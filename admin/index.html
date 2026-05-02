@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Portal Admin | Ferraza</title>
+  <title>Portal Admin | Elegance</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -257,9 +257,9 @@
   <!-- ── Tenant list ── -->
   <div style="width:100%; max-width:440px;">
 
-    <!-- Barbería Ferraza card -->
+    <!-- 𝐄𝐥𝐞𝐠𝐚𝐧𝐜𝐞 𝐛𝐚𝐫𝐛𝐞𝐫𝐬𝐡𝐨𝐩 card -->
     <button
-      id="btn-ferraza"
+      id="btn-elegance"
       class="tenant-button glass-card"
       aria-haspopup="dialog"
       aria-controls="drawer-panel"
@@ -274,7 +274,7 @@
           "></div>
           <img
             src="/logo.jpg"
-            alt="Barbería Ferraza"
+            alt="𝐄𝐥𝐞𝐠𝐚𝐧𝐜𝐞 𝐛𝐚𝐫𝐛𝐞𝐫𝐬𝐡𝐨𝐩"
             style="position:relative; width:64px; height:64px; border-radius:1rem;
                    object-fit:cover; border:1px solid rgba(255,255,255,0.1);"
           >
@@ -283,7 +283,7 @@
         <!-- Info -->
         <div style="flex:1; min-width:0;">
           <h2 style="font-size:1.125rem; font-weight:700; color:#fff; margin:0 0 0.25rem;">
-            Barbería Ferraza
+            𝐄𝐥𝐞𝐠𝐚𝐧𝐜𝐞 𝐛𝐚𝐫𝐛𝐞𝐫𝐬𝐡𝐨𝐩
           </h2>
           <p style="font-size:0.8125rem; color:#64748b; margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
             Sede Central · Av. Libertad 63 / Local 28
@@ -324,9 +324,9 @@
   <div id="drawer-overlay" role="presentation" onclick="closeDrawer()"></div>
 
   <!-- ══════════════════════════════════════════
-       DRAWER PANEL — Barbería Ferraza
+       DRAWER PANEL — 𝐄𝐥𝐞𝐠𝐚𝐧𝐜𝐞 𝐛𝐚𝐫𝐛𝐞𝐫𝐬𝐡𝐨𝐩
   ══════════════════════════════════════════ -->
-  <div id="drawer-panel" role="dialog" aria-modal="true" aria-label="Panel Barbería Ferraza">
+  <div id="drawer-panel" role="dialog" aria-modal="true" aria-label="Panel 𝐄𝐥𝐞𝐠𝐚𝐧𝐜𝐞 𝐛𝐚𝐫𝐛𝐞𝐫𝐬𝐡𝐨𝐩">
 
     <!-- Handle -->
     <div class="drawer-handle"></div>
@@ -335,12 +335,12 @@
     <div style="display:flex; align-items:center; gap:1rem; margin-bottom:1.75rem;">
       <img
         src="/logo.jpg"
-        alt="Ferraza"
+        alt="Elegance"
         style="width:52px; height:52px; border-radius:0.875rem; object-fit:cover; border:1px solid rgba(52,211,153,0.2);"
       >
       <div style="flex:1;">
         <h3 style="font-size:1.125rem; font-weight:700; color:#fff; margin:0 0 0.25rem;">
-          Barbería Ferraza
+          𝐄𝐥𝐞𝐠𝐚𝐧𝐜𝐞 𝐛𝐚𝐫𝐛𝐞𝐫𝐬𝐡𝐨𝐩
         </h3>
         <p style="font-size:0.8rem; color:#64748b; margin:0;">
           Av. Libertad 63 / Local 28
@@ -360,7 +360,7 @@
     <div id="stats-container" style="display:flex; flex-direction:column; gap:0.875rem; margin-bottom:1.75rem;">
 
       <!-- Stat: barberos (carga dinámica) -->
-      <div class="stat-card" id="stat-barberos">
+      <div class="stat-card" id="stat-barberos" style="cursor: pointer;" onclick="toggleBarberosList()">
         <div class="stat-icon">
           <i class="ph-fill ph-users" style="font-size:1.375rem; color:#34d399;"></i>
         </div>
@@ -383,11 +383,19 @@
         </div>
         <div style="flex:1;">
           <p style="font-size:0.75rem; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; color:#64748b; margin:0 0 0.25rem;">Identificador de local</p>
-          <p style="font-size:1rem; font-weight:700; color:#fff; margin:0; font-family:monospace; letter-spacing:0.05em;">ferraza</p>
+          <p style="font-size:1rem; font-weight:700; color:#fff; margin:0; font-family:monospace; letter-spacing:0.05em;">elegance</p>
           <p style="font-size:0.75rem; color:#64748b; margin:0.25rem 0 0;">Colección Firestore: <code style="color:#34d399;">barberos</code></p>
         </div>
       </div>
 
+    </div>
+
+    <!-- Barberos List (Hidden by default) -->
+    <div id="barberos-list-container" class="hidden" style="background: rgba(30, 41, 59, 0.4); border-radius: 1rem; padding: 1.25rem; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 1.75rem;">
+      <h4 style="margin: 0 0 1rem 0; font-size: 0.8125rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.08em;">Detalle de Barberos</h4>
+      <div id="barberos-list-content" style="display: flex; flex-direction: column; gap: 0.75rem;">
+        <!-- Content will be injected here -->
+      </div>
     </div>
 
     <!-- ── Acciones Rápidas ── -->
@@ -404,7 +412,7 @@
     </div>
 
     <!-- ── CTA ── -->
-    <a href="/gestion-interna/index.html?local=ferraza" class="cta-btn">
+    <a href="/gestion-interna/index.html?local=elegance" class="cta-btn">
       <i class="ph-bold ph-arrow-right"></i>
       Abrir Gestión Interna
     </a>
@@ -437,12 +445,12 @@
       document.body.style.overflow = 'hidden';
 
       if (updateHistory) {
-        window.history.pushState({ drawer: 'ferraza' }, '', '/admin/ferraza');
+        window.history.pushState({ drawer: 'elegance' }, '', '/admin/elegance');
       }
 
       if (!drawerLoaded) {
         drawerLoaded = true;
-        loadFerrazazStats();
+        loadEleganceStats();
       }
     }
 
@@ -458,7 +466,7 @@
 
     // Manejar botón atrás / adelante del navegador
     window.addEventListener('popstate', (event) => {
-      if (event.state && event.state.drawer === 'ferraza') {
+      if (event.state && event.state.drawer === 'elegance') {
         openDrawer(false);
       } else {
         closeDrawer(false);
@@ -467,7 +475,7 @@
 
     // Verificar URL al cargar
     window.addEventListener('DOMContentLoaded', () => {
-      if (window.location.pathname.includes('/admin/ferraza')) {
+      if (window.location.pathname.includes('/admin/elegance')) {
         openDrawer(false);
       }
     });
@@ -478,26 +486,26 @@
     });
 
     // ── Hover glow en el botón ────────────────────────────────────────────────
-    const btnFerraza = document.getElementById('btn-ferraza');
-    const logoGlow   = document.getElementById('logo-glow');
-    btnFerraza.addEventListener('mouseenter', () => logoGlow.style.opacity = '1');
-    btnFerraza.addEventListener('mouseleave', () => logoGlow.style.opacity = '0');
+    const btnElegance = document.getElementById('btn-elegance');
+    const logoGlow    = document.getElementById('logo-glow');
+    btnElegance.addEventListener('mouseenter', () => logoGlow.style.opacity = '1');
+    btnElegance.addEventListener('mouseleave', () => logoGlow.style.opacity = '0');
 
-    // ── Consulta Firestore: barberos del local "ferraza" ──────────────────────
-    async function loadFerrazazStats() {
+    // ── Consulta Firestore: barberos del local "elegance" ─────────────────────
+    async function loadEleganceStats() {
       const countEl   = document.getElementById('barberos-count');
       const statusEl  = document.getElementById('barberos-status');
       const sourceEl  = document.getElementById('data-source-label');
 
       try {
-        // Primer intento: filtrar por campo local == "ferraza" y activo == true
+        // Primer intento: filtrar por campo local == "elegance" y activo == true
         let snap = await db.collection('barberos')
-          .where('local', '==', 'ferraza')
+          .where('local', '==', 'elegance')
           .where('activo', '==', true)
           .get();
 
         let total = snap.size;
-        let queryUsed = 'local == "ferraza"';
+        let queryUsed = 'local == "elegance"';
 
         // Fallback: si ningún documento tiene el campo local,
         // contamos todos los barberos activos (compatibilidad con datos legacy)
@@ -574,14 +582,14 @@
 
         // 1.5 Verificar si ya es barbero de este local
         const barberoSnap = await db.collection('barberos').doc(userUid).get();
-        if (barberoSnap.exists && barberoSnap.data().local === 'ferraza' && barberoSnap.data().activo === true) {
+        if (barberoSnap.exists && barberoSnap.data().local === 'elegance' && barberoSnap.data().activo === true) {
           alert(`El usuario ${nombre} ya está registrado y activo como barbero en este local.`);
           sourceEl.textContent = originalSourceText;
           return;
         }
 
         // 2. Confirmar asignación
-        const confirmacion = window.confirm(`Usuario encontrado: ${nombre}\n¿Asignar como nuevo barbero del local ferraza?`);
+        const confirmacion = window.confirm(`Usuario encontrado: ${nombre}\n¿Asignar como nuevo barbero del local elegance?`);
         
         if (confirmacion) {
           sourceEl.textContent = "Asignando barbero...";
@@ -589,7 +597,7 @@
           // 3. Crear documento en la colección 'barberos'
           await db.collection('barberos').doc(userUid).set({
             nombre: nombre,
-            local: 'ferraza',
+            local: 'elegance',
             activo: true,
             creadoEn: firebase.firestore.FieldValue.serverTimestamp()
           }, { merge: true });
@@ -597,7 +605,7 @@
           alert("✅ Barbero asignado correctamente.");
           
           // Refrescar stats
-          loadFerrazazStats();
+          loadEleganceStats();
         } else {
           sourceEl.textContent = originalSourceText;
         }
@@ -679,18 +687,113 @@
           rol: rolNormalizado,
           email: emailTarget, // Asegurar que tenga el email para futuras búsquedas
           nombre: nombre,
-          local: 'ferraza',
+          local: 'elegance',
           activo: true
         }, { merge: true });
 
         alert(`✅ Rol "${rolNormalizado}" asignado correctamente a ${nombre}.`);
         sourceEl.textContent = `Rol ${rolNormalizado} asignado.`;
-        
-        loadFerrazazStats();
+
+        loadEleganceStats();
 
       } catch (err) {
         console.error('[Admin] Error en assignRoleFlow:', err);
         alert("Error: " + err.message);
+      }
+    }
+
+    // ── Barberos List Detail ──────────────────────────────────────────────────
+    let barberosListLoaded = false;
+    let barberosListVisible = false;
+
+    async function toggleBarberosList() {
+      const container = document.getElementById('barberos-list-container');
+      barberosListVisible = !barberosListVisible;
+      
+      if (barberosListVisible) {
+        container.classList.remove('hidden');
+        if (!barberosListLoaded) {
+          await loadBarberosDetalle();
+          barberosListLoaded = true;
+        }
+      } else {
+        container.classList.add('hidden');
+      }
+    }
+
+    async function loadBarberosDetalle() {
+      const contentEl = document.getElementById('barberos-list-content');
+      contentEl.innerHTML = '<div class="skeleton" style="width:100%; height:70px; border-radius:0.75rem;"></div>';
+
+      try {
+        let snap = await db.collection('barberos')
+          .where('local', '==', 'elegance')
+          .get();
+
+        if (snap.empty) {
+          snap = await db.collection('barberos').where('activo', '==', true).get();
+        }
+
+        if (snap.empty) {
+          contentEl.innerHTML = '<p style="font-size:0.875rem; color:#64748b;">No se encontraron barberos.</p>';
+          return;
+        }
+
+        let html = '';
+        for (const doc of snap.docs) {
+          const data = doc.data();
+          const nombre = data.nombre || data.email || 'Sin nombre';
+          const email = data.email || 'Sin correo';
+          const rol = data.rol || 'barbero';
+          
+          let telefono = data.telefono || data.phone || 'Sin teléfono';
+          
+          if (telefono === 'Sin teléfono' && email !== 'Sin correo') {
+            try {
+              const userSnap = await db.collection('users').where('email', '==', email.toLowerCase()).limit(1).get();
+              if (!userSnap.empty) {
+                const userData = userSnap.docs[0].data();
+                telefono = userData.telefono || userData.phone || 'Sin teléfono';
+              }
+            } catch(e) {}
+          }
+
+          // Fetch appointments
+          let totalCitas = 0;
+          try {
+            const citasLegacySnap = await db.collection('citas').where('barbero', '==', nombre).get();
+            totalCitas += citasLegacySnap.size;
+          } catch(e) {}
+
+          try {
+            const bookingsSnap = await db.collection('tenants').doc('elegance').collection('bookings').where('professionalId', '==', doc.id).get();
+            totalCitas += bookingsSnap.size;
+          } catch(e) {}
+
+          const roleColor = rol === 'admin' ? '#f43f5e' : (rol === 'jefe' ? '#f59e0b' : '#3b82f6');
+          const statusOpacity = data.activo ? '1' : '0.5';
+
+          html += `
+            <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 0.75rem; padding: 1rem; opacity: ${statusOpacity};">
+              <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 0.5rem;">
+                <div>
+                  <h5 style="margin: 0; font-size: 1rem; font-weight: 600; color: #fff;">${nombre} ${!data.activo ? '<span style="color:#f87171; font-size:0.7rem;">(Inactivo)</span>' : ''}</h5>
+                  <p style="margin: 0; font-size: 0.75rem; color: #94a3b8;">${email} • ${telefono}</p>
+                </div>
+                <span style="background: ${roleColor}20; color: ${roleColor}; padding: 0.125rem 0.5rem; border-radius: 999px; font-size: 0.625rem; font-weight: 700; text-transform: uppercase; border: 1px solid ${roleColor}40;">${rol}</span>
+              </div>
+              <div style="display:flex; align-items:center; gap: 0.5rem; font-size: 0.8125rem; color: #cbd5e1; margin-top: 0.75rem;">
+                <i class="ph-fill ph-calendar-check" style="color: #34d399;"></i>
+                <span><b>${totalCitas}</b> citas agendadas históricas</span>
+              </div>
+            </div>
+          `;
+        }
+
+        contentEl.innerHTML = html;
+
+      } catch(e) {
+        contentEl.innerHTML = `<p style="font-size:0.875rem; color:#f87171;">Error: ${e.message}</p>`;
       }
     }
 

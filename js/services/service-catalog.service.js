@@ -3,14 +3,14 @@
 
   function getServiceMocks(tenantId) {
     const mocks = {
-      ferraza: [
-        { id: 'srv-ferraza-1', nombre: 'Corte Clasico', precio: 15000, duracion: 60, activo: true, orden: 0 },
-        { id: 'srv-ferraza-2', nombre: 'Barba Premium', precio: 10000, duracion: 30, activo: true, orden: 1 },
-        { id: 'srv-ferraza-3', nombre: 'Corte + Barba', precio: 22000, duracion: 90, activo: true, orden: 2 },
+      elegance: [
+        { id: 'srv-elegance-1', nombre: 'Corte Clasico', precio: 15000, duracion: 60, activo: true, orden: 0 },
+        { id: 'srv-elegance-2', nombre: 'Barba Premium', precio: 10000, duracion: 30, activo: true, orden: 1 },
+        { id: 'srv-elegance-3', nombre: 'Corte + Barba', precio: 22000, duracion: 90, activo: true, orden: 2 },
       ],
     };
 
-    return mocks[tenantId] || mocks.ferraza;
+    return mocks[tenantId] || mocks.elegance;
   }
 
   async function fetchServices(tenantId) {

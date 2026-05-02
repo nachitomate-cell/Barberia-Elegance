@@ -1,12 +1,13 @@
 {
-  "name": "barberia-ferraza",
+  "name": "barberia-elegance",
   "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "serve . -p 3000 --no-clipboard",
     "start": "serve . -p 3000",
     "build:css": "tailwindcss -i input.css -o output.css --minify && tailwindcss -c tailwind-lookbook.config.js -i input.css -o output-lookbook.css --minify",
-    "build:css:watch": "tailwindcss -i input.css -o output.css --watch"
+    "build:css:watch": "tailwindcss -i input.css -o output.css --watch",
+    "seed": "node seed-barberos.js"
   },
   "devDependencies": {
     "firebase-admin": "^13.8.0",

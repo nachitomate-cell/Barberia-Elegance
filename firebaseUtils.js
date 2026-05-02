@@ -529,7 +529,7 @@ const FDB = (() => {
           const nombre = d.nombre || d.displayName || (d.email ? d.email.split('@')[0] : null) || 'Barbero';
           return { id: doc.id, nombre, foto: d.foto || d.photoURL || null, disponible: d.disponible !== false, ...d };
         })
-        .filter(b => b.activo !== false)
+        .filter(b => b.activo !== false && b.rol !== 'admin')
         .sort((a, b) => (a.orden || 0) - (b.orden || 0) || a.nombre.localeCompare(b.nombre));
     } catch (e) {
       console.error('[FDB] Error obteniendo barberos:', e);

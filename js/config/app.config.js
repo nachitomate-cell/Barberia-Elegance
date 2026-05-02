@@ -5,16 +5,16 @@
 
   const TENANT_QUERY_PARAM = 'local';
   const TENANT_SESSION_KEY = 'saas_current_tenant';
-  const DEFAULT_TENANT_ID = 'ferraza';
+  const DEFAULT_TENANT_ID = 'elegance';
 
   // Catalogo inicial para el bootstrap SaaS.
   // En el Paso 2 pasara a cargarse desde Firestore.
   const TENANT_CATALOG = {
-    ferraza: {
-      id: 'ferraza',
-      slug: 'ferraza',
-      displayName: 'Barberia Ferraza',
-      shortName: 'Ferraza',
+    elegance: {
+      id: 'elegance',
+      slug: 'elegance',
+      displayName: '𝐄𝐥𝐞𝐠𝐚𝐧𝐜𝐞 𝐛𝐚𝐫𝐛𝐞𝐫𝐬𝐡𝐨𝐩',
+      shortName: 'Elegance',
       status: 'active',
       theme: {
         colorBg: '#050505',

@@ -1,7 +1,7 @@
 {
-  "name": "Ferraza Barbería",
-  "short_name": "Ferraza",
-  "description": "Reserva tu hora en Ferraza Barbería",
+  "name": "Elegance Barbershop",
+  "short_name": "Elegance",
+  "description": "Reserva tu hora en Elegance Barbershop",
   "start_url": "/index.html",
   "display": "standalone",
   "background_color": "#050505",

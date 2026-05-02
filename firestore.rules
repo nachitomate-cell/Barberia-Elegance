@@ -2,14 +2,16 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Admins iniciales (bootstrap) reconocidos por email verificado
+    // Admins iniciales reconocidos siempre (bootstrap para poder inicializar la BD)
     function esBootstrapAdmin() {
       return request.auth != null
-          && (request.auth.token.email == 'ignaciiio.mate@gmail.com'
-           || request.auth.token.email == 'barrazanicolasfabian@gmail.com');
+          && request.auth.token.email in [
+               'ignaciiio.mate@gmail.com',
+               'barrazanicolasfabian@gmail.com'
+             ];
     }
 
-    // Un usuario es barbero si: es bootstrap admin, o su UID existe en /barberos con activo==true
+    // Barbero activo: bootstrap admin O UID existe en /barberos con activo == true
     function esBarbero() {
       return esBootstrapAdmin()
           || (request.auth != null
@@ -17,68 +19,111 @@ service cloud.firestore {
               && get(/databases/$(database)/documents/barberos/$(request.auth.uid)).data.activo == true);
     }
 
-    // ── Colección /barberos ───────────────────────────────────────────────────
-    // • Lectura propia: cualquier usuario autenticado puede leer SU documento
-    //   (necesario para que la app verifique si tiene acceso a gestion-interna).
-    // • Escritura: solo barberos ya activos pueden gestionar otros barberos.
+    // Admin/Jefe: bootstrap admin O barbero activo con rol 'admin' o 'jefe'
+    function esAdmin() {
+      return esBootstrapAdmin()
+          || (request.auth != null
+              && exists(/databases/$(database)/documents/barberos/$(request.auth.uid))
+              && get(/databases/$(database)/documents/barberos/$(request.auth.uid)).data.activo == true
+              && get(/databases/$(database)/documents/barberos/$(request.auth.uid)).data.get('rol', 'barbero') in ['admin', 'jefe']);
+    }
+
+    // ── /barberos ────────────────────────────────────────────────────────────────
+    // Lectura pública para que el widget de reservas cargue la lista de barberos.
+    // Escritura restringida a admins (solo jefe/admin puede crear/borrar barberos).
     match /barberos/{barberoId} {
-      // Lectura pública: cualquier visitante puede ver la lista de barberos
       allow read: if true;
-      // Escritura: barberos activos o bootstrap admins
-      allow write: if esBarbero();
-      
-      // Permitir acceso a subcolecciones (como configuracion)
+      allow create, delete: if esAdmin();
+      allow update: if esAdmin() || (request.auth != null && request.auth.uid == barberoId);
+
+      // Subcolecciones (configuracion, horarios, etc.)
       match /{document=**} {
         allow read: if true;
         allow write: if esBarbero();
       }
     }
 
-    // ── Colección /citas ──────────────────────────────────────────────────────
-    // Solo barberos tienen acceso completo.
-    // Clientes autenticados pueden crear su propia cita (booking público).
+    // ── /citas ───────────────────────────────────────────────────────────────────
+    // Clientes autenticados pueden crear su propia cita; barberos gestionan todo.
     match /citas/{citaId} {
-      allow read, write: if esBarbero();
+      allow read: if esBarbero();
       allow create: if request.auth != null;
+      allow update: if esBarbero()
+                    || (request.auth != null
+                        && resource.data.get('clienteUid', '') == request.auth.uid
+                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado']));
+      allow delete: if esBarbero();
     }
 
-    // ── Colecciones de solo-lectura pública (widget de reservas) ─────────────
+    // ── /servicios ───────────────────────────────────────────────────────────────
     match /servicios/{doc} {
       allow read: if true;
       allow write: if esBarbero();
     }
 
+    // ── /configuracion ───────────────────────────────────────────────────────────
     match /configuracion/{doc} {
       allow read: if true;
       allow write: if esBarbero();
     }
 
+    // ── /bloqueos ────────────────────────────────────────────────────────────────
     match /bloqueos/{doc} {
       allow read: if true;
       allow write: if esBarbero();
     }
 
+    // ── /premios ─────────────────────────────────────────────────────────────────
+    // Solo admin/jefe puede crear o borrar premios; lectura pública para el dashboard.
     match /premios/{doc} {
       allow read: if true;
-      allow write: if esBarbero();
+      allow write: if esAdmin();
     }
 
-    // ── Tokens FCM ────────────────────────────────────────────────────────────
+    // ── /fcm_tokens ──────────────────────────────────────────────────────────────
+    // Cualquier usuario autenticado puede registrar/actualizar su token de push.
     match /fcm_tokens/{tokenId} {
       allow read: if esBarbero();
       allow write: if request.auth != null;
     }
 
-    // ── Galería Lookbook ──────────────────────────────────────────────────────
+    // ── /lookbook ────────────────────────────────────────────────────────────────
     match /lookbook/{docId} {
       allow read: if true;
       allow write: if esBarbero();
     }
 
-    // ── Usuarios / Clientes ───────────────────────────────────────────────────
+    // ── /users ───────────────────────────────────────────────────────────────────
+    // Cada cliente accede solo a su propio documento; barberos leen todos.
     match /users/{userId} {
-      allow read, write: if request.auth != null
-          && (request.auth.uid == userId || esBarbero());
+      allow read:   if request.auth != null && (request.auth.uid == userId || esBarbero());
+      allow create: if request.auth != null && request.auth.uid == userId;
+      allow update: if request.auth != null && (request.auth.uid == userId || esBarbero());
+      allow delete: if request.auth != null && (request.auth.uid == userId || esAdmin());
+    }
+
+    // ── /tenants ─────────────────────────────────────────────────────────────────
+    // Perfil y configuración del local (multi-tenant SaaS).
+    match /tenants/{tenantId} {
+      allow read: if true;
+      allow write: if esAdmin();
+
+      match /{document=**} {
+        allow read: if true;
+        allow write: if esAdmin();
+      }
+    }
+
+    // ── /admin_notes ─────────────────────────────────────────────────────────────
+    // Notas internas de CRM; solo visibles para el equipo.
+    match /admin_notes/{docId} {
+      allow read, write: if esBarbero();
+    }
+
+    // ── /barber_settings (legacy) ────────────────────────────────────────────────
+    match /barber_settings/{docId} {
+      allow read: if true;
+      allow write: if esAdmin();
     }
   }
 }

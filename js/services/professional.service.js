@@ -3,9 +3,9 @@
 
   function getProfessionalMocks(tenantId) {
     const mocks = {
-      ferraza: [
+      elegance: [
         {
-          id: 'prof-ferraza-1',
+          id: 'prof-elegance-1',
           displayName: 'Nicolas Fabian',
           photoUrl: 'Fabian.png',
           active: true,
@@ -15,7 +15,7 @@
       ],
     };
 
-    return mocks[tenantId] || mocks.ferraza;
+    return mocks[tenantId] || mocks.elegance;
   }
 
   async function fetchProfessionals(tenantId) {

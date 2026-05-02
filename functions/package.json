@@ -1,6 +1,6 @@
 {
-  "name": "ferraza-barberia-functions",
-  "description": "Cloud Functions de Firebase para Barbería Ferraza",
+  "name": "elegance-barbershop-functions",
+  "description": "Cloud Functions de Firebase para Elegance Barbershop",
   "scripts": {
     "serve": "firebase emulators:start --only functions",
     "shell": "firebase functions:shell",

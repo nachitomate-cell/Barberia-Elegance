@@ -1,5 +1,5 @@
 // ════════════════════════════════════════════════════════════════
-//  sw.js — Service Worker de Barbería Ferraza
+//  sw.js — Service Worker de 𝐄𝐥𝐞𝐠𝐚𝐧𝐜𝐞 𝐛𝐚𝐫𝐛𝐞𝐫𝐬𝐡𝐨𝐩
 //  Cubre: cache offline + Firebase Cloud Messaging (push)
 // ════════════════════════════════════════════════════════════════
 
@@ -9,18 +9,18 @@ importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-com
 
 // ── 2. CONFIGURACIÓN FIREBASE (igual que firebase-config.js) ─────
 firebase.initializeApp({
-  apiKey:            "AIzaSyAJ-ACAJlo3_Jk8mP0T3SJ2WpLEmzbQj0g",
-  authDomain:        "barberiaferraza-edc26.firebaseapp.com",
-  projectId:         "barberiaferraza-edc26",
-  storageBucket:     "barberiaferraza-edc26.firebasestorage.app",
-  messagingSenderId: "460382362540",
-  appId:             "1:460382362540:web:4a62e471d6b5c895c93809"
+  apiKey:            "AIzaSyDqVkAhkXALm3hLcrmzjiaS3flUezPFe2Q",
+  authDomain:        "barberia-elegance.firebaseapp.com",
+  projectId:         "barberia-elegance",
+  storageBucket:     "barberia-elegance.firebasestorage.app",
+  messagingSenderId: "515311607907",
+  appId:             "1:515311607907:web:8add6005144015c5e85856"
 });
 
 const messaging = firebase.messaging();
 
 // ── 3. CACHE ─────────────────────────────────────────────────────
-const CACHE_VERSION = 'ferraza-v10';
+const CACHE_VERSION = 'elegance-v1';
 const STATIC_ASSETS = [
   '/admin/',
   '/gestion-interna/',
@@ -172,7 +172,7 @@ self.addEventListener('push', event => {
   // Si ya tiene estructura de FCM (manejada por onBackgroundMessage), no duplicar
   if (data.notification || data.data?.handled_by_fcm) return;
 
-  const title = data.title || 'Barbería Ferraza';
+  const title = data.title || '𝐄𝐥𝐞𝐠𝐚𝐧𝐜𝐞 𝐛𝐚𝐫𝐛𝐞𝐫𝐬𝐡𝐨𝐩';
   const options = {
     body:  data.body  || 'Nueva notificación',
     icon:  '/icons/icon-192.png',

@@ -1,0 +1,69 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "citas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "fecha",     "order": "ASCENDING" },
+        { "fieldPath": "barberoId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "citas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "barberoId", "order": "ASCENDING" },
+        { "fieldPath": "creadoEn",  "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "citas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "clienteEmail", "order": "ASCENDING" },
+        { "fieldPath": "fecha",        "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "citas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "clienteTelefono", "order": "ASCENDING" },
+        { "fieldPath": "fecha",           "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "citas",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "fecha",   "order": "ASCENDING" },
+        { "fieldPath": "estado",  "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "bloqueos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "fecha",     "order": "ASCENDING" },
+        { "fieldPath": "barberoId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "barberos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "local",  "order": "ASCENDING" },
+        { "fieldPath": "activo", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "barberos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "email",  "order": "ASCENDING" },
+        { "fieldPath": "activo", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

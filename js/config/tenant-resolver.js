@@ -43,7 +43,7 @@
   }
 
   function resolveTenant() {
-    const defaultTenantId = normalizeTenantId(window.APP_CONFIG?.defaultTenantId || 'ferraza');
+    const defaultTenantId = normalizeTenantId(window.APP_CONFIG?.defaultTenantId || 'elegance');
     const requestedTenantId = getTenantFromQuery() || getTenantFromSession() || defaultTenantId;
 
     const resolvedTenant = getTenantById(requestedTenantId) || getTenantById(defaultTenantId);

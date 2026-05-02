@@ -1,34 +1,44 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
-    
-    // Función para validar que el usuario está logueado
+
     function isAuth() {
       return request.auth != null;
     }
 
-    // Reglas para la carpeta barberos/
-    match /barberos/{imageId} {
-      // Cualquier persona puede ver las fotos de los barberos
-      allow read: if true;
-      
-      // Solo usuarios autenticados (los admins/barberos en sesión) pueden subir fotos
-      allow write: if isAuth() 
-                   && request.resource.size < 5 * 1024 * 1024 // max 5MB
-                   && request.resource.contentType.matches('image/.*'); // solo imágenes
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
     }
 
-    // Reglas para la galería lookbook
+    function isUnder5MB() {
+      return request.resource.size < 5 * 1024 * 1024;
+    }
+
+    function isUnder10MB() {
+      return request.resource.size < 10 * 1024 * 1024;
+    }
+
+    // Fotos de perfil de barberos
+    match /barberos/{imageId} {
+      allow read: if true;
+      allow write: if isAuth() && isUnder5MB() && isImage();
+    }
+
+    // Galería lookbook
     match /lookbook/{imageId} {
       allow read: if true;
-      allow write: if isAuth() 
-                   && request.resource.size < 5 * 1024 * 1024
-                   && request.resource.contentType.matches('image/.*');
+      allow write: if isAuth() && isUnder10MB() && isImage();
     }
 
-    // Bloquear todo lo demás por defecto
-    match /{allPaths=**} {
+    // Assets del local (logo, fondo, etc.)
+    match /assets/{imageId} {
       allow read: if true;
+      allow write: if isAuth() && isUnder5MB() && isImage();
+    }
+
+    // Bloquear cualquier otra ruta
+    match /{allPaths=**} {
+      allow read: if false;
       allow write: if false;
     }
   }

@@ -23,23 +23,47 @@ const messaging = admin.messaging();
 setGlobalOptions({ region: 'us-central1' });
 
 // ─────────────────────────────────────────────────────────────────
-//  HELPER: obtener todos los tokens FCM activos
+//  HELPER: obtener tokens filtrados por rol (jefe/admin) y barbero
 // ─────────────────────────────────────────────────────────────────
-async function getTokensActivos() {
-  const snap = await db.collection('fcm_tokens')
-    .where('activo', '==', true)
-    .get();
-  return snap.docs.map(d => d.data().token).filter(Boolean);
+async function getTokensActivos(barberoId, barberoNombre) {
+  const validUids = new Set();
+  
+  try {
+    const barberosSnap = await db.collection('barberos').get();
+    barberosSnap.forEach(doc => {
+      const b = doc.data();
+      const isManager = b.rol === 'jefe' || b.rol === 'admin';
+      const isTheBarber = (barberoId && doc.id === barberoId) || (barberoNombre && b.nombre === barberoNombre);
+      
+      if (isManager || isTheBarber) {
+        validUids.add(doc.id);
+        if (b.uid) validUids.add(b.uid); // Por si acaso guardan el uid explícito
+      }
+    });
+
+    const snap = await db.collection('fcm_tokens').where('activo', '==', true).get();
+    const tokens = [];
+    snap.forEach(d => {
+      const data = d.data();
+      if (validUids.has(data.uid)) {
+        tokens.push(data.token);
+      }
+    });
+    return tokens;
+  } catch (err) {
+    logger.error('[FCM] Error filtrando tokens:', err);
+    return [];
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────
-//  HELPER: enviar push a todos los dispositivos registrados
+//  HELPER: enviar push a dispositivos filtrados
 // ─────────────────────────────────────────────────────────────────
-async function enviarPush({ title, body, citaId, fecha, hora }) {
-  const tokens = await getTokensActivos();
+async function enviarPush({ title, body, citaId, fecha, hora, barberoId, barberoNombre }) {
+  const tokens = await getTokensActivos(barberoId, barberoNombre);
 
   if (!tokens.length) {
-    logger.warn('[FCM] No hay tokens registrados. Omitiendo envío.');
+    logger.warn('[FCM] No hay tokens registrados para los destinatarios (jefes/barbero). Omitiendo envío.');
     return null;
   }
 
@@ -106,16 +130,17 @@ exports.notificarCitaAdmin = onDocumentCreated('citas/{citaId}', async (event) =
   const hora    = cita.hora  || '';
   const fecha   = cita.fecha || '';
   const barbero = cita.barbero || cita.barberoNombre || '';
+  const barberoId = cita.barberoId || '';
 
   const title = `Nueva cita — ${hora} ${fecha}`.trim();
   const body  = barbero
     ? `${cliente} · ${servicio} · con ${barbero}`
     : `${cliente} · ${servicio}`;
 
-  logger.info('[FCM] Cita admin creada:', { citaId, cliente, servicio, hora, fecha });
+  logger.info('[FCM] Cita admin creada:', { citaId, cliente, servicio, hora, fecha, barberoId, barbero });
 
   try {
-    await enviarPush({ title, body, citaId, fecha, hora });
+    await enviarPush({ title, body, citaId, fecha, hora, barberoId, barberoNombre: barbero });
   } catch (err) {
     logger.error('[FCM] Error al enviar (admin):', err);
   }
@@ -138,16 +163,17 @@ exports.notificarReservaPublica = onDocumentCreated(
     const hora      = booking.startTime            || '';
     const fecha     = booking.date                 || '';
     const barbero   = booking.professionalNameSnapshot || '';
+    const barberoId = booking.professionalId || '';
 
     const title = `Nueva reserva — ${hora} ${fecha}`.trim();
     const body  = barbero
       ? `${cliente} · ${servicio} · con ${barbero}`
       : `${cliente} · ${servicio}`;
 
-    logger.info('[FCM] Reserva pública creada:', { bookingId, cliente, servicio, hora, fecha });
+    logger.info('[FCM] Reserva pública creada:', { bookingId, cliente, servicio, hora, fecha, barberoId, barbero });
 
     try {
-      await enviarPush({ title, body, citaId: bookingId, fecha, hora });
+      await enviarPush({ title, body, citaId: bookingId, fecha, hora, barberoId, barberoNombre: barbero });
     } catch (err) {
       logger.error('[FCM] Error al enviar (público):', err);
     }

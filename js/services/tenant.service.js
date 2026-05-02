@@ -15,29 +15,29 @@
 
   function getMockTenantConfig(tenantId) {
     const fallbackMap = {
-      ferraza: {
+      elegance: {
         profile: {
-          name: 'Barberia Ferraza',
-          shortName: 'Ferraza',
-          slogan: 'El cambio comienza por ti',
-          club: 'Club Ferraza',
-          address: 'Av. Libertad 63 / Local 28',
-          scheduleText: 'Lun a Sab 10:00 - 20:00 hrs.',
+          name: '𝐄𝐥𝐞𝐠𝐚𝐧𝐜𝐞 𝐛𝐚𝐫𝐛𝐞𝐫𝐬𝐡𝐨𝐩',
+          shortName: 'Elegance',
+          slogan: 'No es un corte, es elegancia que te mereces',
+          club: 'Club Elegance',
+          address: '📍 Ecuador 243 | Viña del Mar',
+          scheduleText: '🕒 Lunes-Sáb: 10-20h | Dom: 12-20h. ¡Reserva ya!',
           phone: '56994269228',
           logoUrl: '/logo.jpg',
-          pageTitle: 'Agendar Hora | Barberia Ferraza',
-          metaDescription: 'Reserva tu hora en Barberia Ferraza. Cortes, barba y mas. Elige tu barbero, servicio y horario en segundos.',
+          pageTitle: 'Agendar Hora | Elegance Barbershop',
+          metaDescription: 'Reserva tu hora en Elegance Barbershop. Cortes, barba y mas. Elige tu barbero, servicio y horario en segundos.',
           heroTitle: 'Que servicio buscas?',
           heroSubtitle: 'Reserva tu hora en segundos',
           shopCompat: {
-            nombre: 'Barberia Ferraza',
-            nombreCorto: 'Ferraza',
-            slogan: 'El cambio comienza por ti',
+            nombre: '𝐄𝐥𝐞𝐠𝐚𝐧𝐜𝐞 𝐛𝐚𝐫𝐛𝐞𝐫𝐬𝐡𝐨𝐩',
+            nombreCorto: 'Elegance',
+            slogan: 'No es un corte, es elegancia que te mereces',
             logo: '/logo.jpg',
-            direccion: 'Av. Libertad 63 / Local 28',
-            horario: 'Lun a Sab 10:00 - 20:00 hrs.',
+            direccion: '📍 Ecuador 243 | Viña del Mar',
+            horario: '🕒 Lunes-Sáb: 10-20h | Dom: 12-20h. ¡Reserva ya!',
             telefono: '56994269228',
-            club: 'Club Ferraza',
+            club: 'Club Elegance',
             barberos: [
               { nombre: 'Nicolas Fabian', foto: '/Fabian.png', disponible: true }
             ],
@@ -59,7 +59,7 @@
       },
     };
 
-    return fallbackMap[tenantId] || fallbackMap.ferraza;
+    return fallbackMap[tenantId] || fallbackMap.elegance;
   }
 
   async function fetchTenantConfig(tenantId) {

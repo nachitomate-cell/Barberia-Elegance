@@ -6,7 +6,7 @@
 const { execSync } = require('child_process');
 const https = require('https');
 
-const PROJECT_ID = 'barberiaferraza-edc26';
+const PROJECT_ID = 'barberia-elegance';
 const BASE_URL   = `firestore.googleapis.com`;
 const COLLECTION = 'barberos';
 
@@ -68,7 +68,7 @@ async function seed() {
   if (!token) {
     console.error('❌ No se pudo obtener el token de Firebase CLI.');
     console.log('\n👉 Ejecuta manualmente en la consola de Firebase:\n');
-    console.log('   Ve a: https://console.firebase.google.com/project/barberiaferraza-edc26/firestore');
+    console.log('   Ve a: https://console.firebase.google.com/project/barberia-elegance/firestore');
     console.log('   Crea la colección "barberos" con estos documentos:\n');
     for (const b of BARBEROS) {
       console.log(`   Documento ID: ${b.uid}`);

@@ -23,10 +23,10 @@
     }
 
     return {
-      horarioInicio: '09:00',
+      horarioInicio: '10:00',
       horarioFin: '20:00',
       intervaloMinutos: 30,
-      diasLaborales: [1, 2, 3, 4, 5, 6],
+      diasLaborales: [0, 1, 2, 3, 4, 5, 6],
       diasBloqueados: [],
       colacion: null,
       diasConfig: {},

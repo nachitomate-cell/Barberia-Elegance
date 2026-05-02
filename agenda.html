@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Agenda | Barbería Ferraza</title>
-    <meta name="description" content="Gestión de agenda interna - Barbería Ferraza">
+    <title>Agenda | 𝐄𝐥𝐞𝐠𝐚𝐧𝐜𝐞 𝐛𝐚𝐫𝐛𝐞𝐫𝐬𝐡𝐨𝐩</title>
+    <meta name="description" content="Gestión de agenda interna - 𝐄𝐥𝐞𝐠𝐚𝐧𝐜𝐞 𝐛𝐚𝐫𝐛𝐞𝐫𝐬𝐡𝐨𝐩">
     
     <!-- Fonts & Icons -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -21,7 +21,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
     <script src="/firebase-config.js"></script>
     <script src="/config.js"></script>
-    <script src="/db.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js"></script>
     <script src="/firebaseUtils.js?v=2.0"></script>
 
     <style>
@@ -85,11 +85,18 @@
                 <p class="text-[10px] text-white/40 uppercase tracking-[0.2em] font-semibold">Gestión Interna</p>
             </div>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-1.5 sm:gap-2">
+            <button id="notifBtn" onclick="solicitarPermisosYObtenerToken()" class="relative w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors" title="Activar notificaciones">
+                <i id="notifIcon" class="ph-bold ph-bell text-lg text-white/60"></i>
+                <span id="notifBadge" class="absolute -top-1 -right-1 flex h-3 w-3 hidden">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                </span>
+            </button>
             <button onclick="firebase.auth().signOut()" class="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors" title="Cerrar sesión">
                 <i class="ph-bold ph-sign-out text-lg text-white/60"></i>
             </button>
-            <button onclick="window.location.href='/'" class="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors" title="Ir al inicio">
+            <button onclick="window.location.href='/'" class="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors hidden sm:flex" title="Ir al inicio">
                 <i class="ph-bold ph-house text-lg text-white/60"></i>
             </button>
         </div>
@@ -554,6 +561,133 @@
                     container.innerHTML = `<p class="text-red-400 text-xs">Error al cargar actividad.</p>`;
                 });
         }
+    </script>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+       FIREBASE CLOUD MESSAGING — Push notifications
+       ═══════════════════════════════════════════════════════════════ -->
+    <script>
+      const FCM_VAPID_KEY = 'BHpDd1ssjyJApoxKD3hWAvCa8Zv89J-U6PpD1n1wx39Mov7c2RIZ_8CKJf5gSoz5bBA7qJRire5LWg8aJ4h5e2A';
+  
+      const _isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+      const _isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+      const _soportePush = 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
+  
+      function _toastEstado(est) {
+        const msgs = {
+          granted: 'Las notificaciones ya están activas ✓',
+          denied: 'Notificaciones bloqueadas. Habilítalas en Ajustes.',
+          nosupport: 'Dispositivo no soporta notificaciones.',
+          loading: 'Configurando notificaciones...',
+        };
+        const msg = msgs[est] || 'Estado desconocido.';
+        alert(msg);
+      }
+  
+      function _actualizarUI(estado) {
+        const map = {
+          granted: { iconCls: 'ph-fill ph-bell-ringing', color: 'text-emerald-400', clickable: false, badge: true },
+          denied: { iconCls: 'ph-bold ph-bell-slash', color: 'text-red-400', clickable: false, badge: false },
+          default: { iconCls: 'ph-bold ph-bell', color: 'text-yellow-400', clickable: true, badge: false },
+          loading: { iconCls: 'ph-bold ph-spinner animate-spin', color: 'text-gray-400', clickable: false, badge: false },
+          nosupport: { iconCls: 'ph-bold ph-bell-slash', color: 'text-gray-600', clickable: false, badge: false },
+          ios_hint: { iconCls: 'ph-bold ph-bell', color: 'text-blue-400', clickable: true, badge: false },
+        };
+        const s = map[estado] || map.nosupport;
+        const handler = s.clickable ? solicitarPermisosYObtenerToken : (estado === 'ios_hint' ? _mostrarHintIOS : () => _toastEstado(estado));
+  
+        const btn = document.getElementById('notifBtn');
+        const icon = document.getElementById('notifIcon');
+        const badge = document.getElementById('notifBadge');
+        if (btn) {
+          if (icon) icon.className = `${s.iconCls} ${s.color} text-lg`;
+          btn.onclick = handler;
+          if (badge) {
+            if (s.badge) badge.classList.remove('hidden');
+            else badge.classList.add('hidden');
+          }
+        }
+      }
+  
+      function _mostrarHintIOS() {
+        alert('Para recibir notificaciones en iPhone:\n1. Toca el botón Compartir (⬆️)\n2. Toca "Añadir a la pantalla de inicio"\n3. Abre la app desde el ícono instalado');
+      }
+  
+      async function _guardarToken(token) {
+        if (!firebase.auth().currentUser) return;
+        try {
+          await db.collection('fcm_tokens').doc(token).set({
+            token,
+            uid: firebase.auth().currentUser.uid,
+            dispositivo: navigator.userAgent.substring(0, 120),
+            creadoEn: firebase.firestore.FieldValue.serverTimestamp(),
+            activo: true
+          }, { merge: true });
+        } catch (e) {
+          console.error('[FCM] Error:', e);
+        }
+      }
+  
+      let _messagingInstance = null;
+      let _swRegistration = null;
+  
+      async function solicitarPermisosYObtenerToken() {
+        if (_isIOS && !_isStandalone) { _mostrarHintIOS(); return; }
+        if (!_soportePush) { _actualizarUI('nosupport'); return; }
+  
+        _actualizarUI('loading');
+  
+        try {
+          const registration = _swRegistration || await navigator.serviceWorker.ready;
+          _swRegistration = registration;
+  
+          const permission = await Notification.requestPermission();
+          if (permission !== 'granted') { _actualizarUI('denied'); return; }
+  
+          const messaging = _messagingInstance || firebase.messaging();
+          _messagingInstance = messaging;
+  
+          const token = await messaging.getToken({ vapidKey: FCM_VAPID_KEY, serviceWorkerRegistration: registration });
+  
+          if (token) {
+            await _guardarToken(token);
+            _actualizarUI('granted');
+  
+            messaging.onMessage(payload => {
+              const title = payload.notification?.title || payload.data?.title || 'Nueva cita';
+              const body = payload.notification?.body || payload.data?.body || 'Tienes una nueva reserva.';
+              registration.showNotification(title, {
+                body, icon: '/icons/icon-192.png', badge: '/icons/icon-192.png',
+                tag: 'nueva-cita', renotify: true, data: { url: '/agenda' }
+              });
+              alert(`🔔 ${title}\n${body}`);
+            });
+          } else {
+            _actualizarUI('default');
+          }
+        } catch (err) {
+          console.error('[FCM] Error:', err);
+          _actualizarUI('default');
+        }
+      }
+  
+      window.addEventListener('load', async () => {
+        if (_isIOS && !_isStandalone) { _actualizarUI('ios_hint'); return; }
+        if (!_soportePush) { _actualizarUI('nosupport'); return; }
+  
+        try {
+          const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+          _swRegistration = reg;
+  
+          if (Notification.permission === 'granted') {
+            solicitarPermisosYObtenerToken();
+          } else {
+            _actualizarUI(Notification.permission === 'denied' ? 'denied' : 'default');
+          }
+        } catch (err) {
+          _actualizarUI('nosupport');
+        }
+      });
     </script>
 </body>
 </html>

@@ -2,3 +2,6 @@
 node_modules/
 functions/node_modules/
 functions/package-lock.json
+service-account.json
+.claude/
+firebase-debug.log

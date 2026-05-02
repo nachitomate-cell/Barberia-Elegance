@@ -13,6 +13,6 @@
     { "source": "/gestion-interna/barberos", "destination": "/gestion-interna/index.html" },
     { "source": "/gestion-interna/premios", "destination": "/gestion-interna/index.html" },
     { "source": "/gestion-interna/lookbook", "destination": "/gestion-interna/index.html" },
-    { "source": "/gestion-interna/ferraza", "destination": "/gestion-interna/index.html" }
+    { "source": "/gestion-interna/elegance", "destination": "/gestion-interna/index.html" }
   ]
 }

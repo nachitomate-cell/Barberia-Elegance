@@ -2,13 +2,13 @@
 // Requiere que los scripts compat de Firebase estén cargados ANTES de este archivo.
 
 const firebaseConfig = {
-  apiKey: "AIzaSyAJ-ACAJlo3_Jk8mP0T3SJ2WpLEmzbQj0g",
-  authDomain: "barberiaferraza-edc26.firebaseapp.com",
-  projectId: "barberiaferraza-edc26",
-  storageBucket: "barberiaferraza-edc26.firebasestorage.app",
-  messagingSenderId: "460382362540",
-  appId: "1:460382362540:web:4a62e471d6b5c895c93809",
-  measurementId: "G-01Y240JZPK"
+  apiKey: "AIzaSyDqVkAhkXALm3hLcrmzjiaS3flUezPFe2Q",
+  authDomain: "barberia-elegance.firebaseapp.com",
+  projectId: "barberia-elegance",
+  storageBucket: "barberia-elegance.firebasestorage.app",
+  messagingSenderId: "515311607907",
+  appId: "1:515311607907:web:8add6005144015c5e85856",
+  measurementId: "G-VCEVWF9JCX"
 };
 
 if (!firebase.apps.length) {

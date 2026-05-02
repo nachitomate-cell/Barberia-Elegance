@@ -54,7 +54,7 @@
       "destination": "/agenda.html"
     },
     {
-      "source": "/admin/ferraza",
+      "source": "/admin/elegance",
       "destination": "/admin/index.html"
     },
     {
@@ -82,7 +82,7 @@
       "destination": "/gestion-interna/index.html"
     },
     {
-      "source": "/gestion-interna/ferraza",
+      "source": "/gestion-interna/elegance",
       "destination": "/gestion-interna/index.html"
     }
   ]

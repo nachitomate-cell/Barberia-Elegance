@@ -7,10 +7,10 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <meta name="theme-color" content="#050505">
-  <title>Únete al Club | Barbería Ferraza</title>
-  <meta name="description" content="Crea tu cuenta en el Club Ferraza. Acumula sellos, canjea premios y lleva un registro de tus visitas.">
-  <meta property="og:title" content="Únete al Club | Barbería Ferraza">
-  <meta property="og:description" content="Regístrate en Barbería Ferraza, acumula sellos y disfruta de beneficios exclusivos.">
+  <title>Únete al Club | Elegance Barbershop</title>
+  <meta name="description" content="Crea tu cuenta en el Club Elegance. Acumula sellos, canjea premios y lleva un registro de tus visitas.">
+  <meta property="og:title" content="Únete al Club | Elegance Barbershop">
+  <meta property="og:description" content="Regístrate en Elegance Barbershop, acumula sellos y disfruta de beneficios exclusivos.">
   <script defer src="/_vercel/insights/script.js"></script>
   <script defer src="/_vercel/speed-insights/script.js"></script>
   <meta property="og:type" content="website">
@@ -21,7 +21,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Ferraza">
+  <meta name="apple-mobile-web-app-title" content="Elegance">
   <link rel="apple-touch-icon" href="/logo.jpg">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -206,8 +206,11 @@
         telefono:  extra.telefono  || '',
         photoURL:  user.photoURL   || null,
         stamps:    0,
+        rol:       'cliente',
         creadoEn:  firebase.firestore.FieldValue.serverTimestamp()
       });
+    } else if (user.photoURL && snap.data().photoURL !== user.photoURL) {
+      await ref.update({ photoURL: user.photoURL });
     }
   }
 

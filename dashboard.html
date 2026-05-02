@@ -7,10 +7,10 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <meta name="theme-color" content="#050505">
-  <title>Mi Club | Barbería Ferraza</title>
-  <meta name="description" content="Tu panel personal en Barbería Ferraza. Revisa tus sellos, canjea premios y actualiza tu perfil.">
-  <meta property="og:title" content="Mi Club | Barbería Ferraza">
-  <meta property="og:description" content="Panel de fidelidad de Barbería Ferraza. Acumula sellos y disfruta de cortes y servicios gratis.">
+  <title>Mi Club | Elegance Barbershop</title>
+  <meta name="description" content="Tu panel personal en Elegance Barbershop. Revisa tus sellos, canjea premios y actualiza tu perfil.">
+  <meta property="og:title" content="Mi Club | Elegance Barbershop">
+  <meta property="og:description" content="Panel de fidelidad de Elegance Barbershop. Acumula sellos y disfruta de cortes y servicios gratis.">
   <script defer src="/_vercel/insights/script.js"></script>
   <script defer src="/_vercel/speed-insights/script.js"></script>
   <meta property="og:type" content="website">
@@ -21,12 +21,12 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Ferraza">
+  <meta name="apple-mobile-web-app-title" content="Elegance">
   <link rel="apple-touch-icon" href="/logo.jpg">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
   <link href="/output.css" rel="stylesheet">
 
@@ -40,109 +40,313 @@
   <script src="firebaseUtils.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
 
-
   <style>
-    body { background-color:#050505; color:#f8fafc; overscroll-behavior-y:none; -webkit-tap-highlight-color:transparent; }
-    .text-neon { color:#fff; text-shadow:0 0 5px rgba(255,255,255,0.4),0 0 10px rgba(255,255,255,0.2); }
-    .border-neon { border-color:#fff; box-shadow:0 0 6px rgba(255,255,255,0.2),inset 0 0 6px rgba(255,255,255,0.05); }
-    .no-scrollbar::-webkit-scrollbar { display:none; }
-    .no-scrollbar { -ms-overflow-style:none; scrollbar-width:none; }
+    :root {
+      --gold: #c9a84c;
+      --gold-dim: rgba(201,168,76,0.35);
+      --gold-glow: rgba(201,168,76,0.18);
+    }
+
+    body {
+      background-color: #050505;
+      color: #f8fafc;
+      overscroll-behavior-y: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    /* Gold accent */
+    .text-gold  { color: var(--gold); text-shadow: 0 0 12px var(--gold-glow), 0 0 24px rgba(201,168,76,0.08); }
+    .border-gold { border-color: var(--gold-dim); box-shadow: 0 0 8px var(--gold-glow), inset 0 0 8px rgba(201,168,76,0.04); }
+
+    /* Legacy white neon (kept for profile/misc) */
+    .text-neon   { color: #fff; text-shadow: 0 0 5px rgba(255,255,255,0.4), 0 0 10px rgba(255,255,255,0.2); }
+    .border-neon { border-color: #fff; box-shadow: 0 0 6px rgba(255,255,255,0.2), inset 0 0 6px rgba(255,255,255,0.05); }
+
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
     /* Masonry grid para Lookbook */
-    .masonry-grid {
-      columns: 2;
-      column-gap: 0.75rem;
+    .masonry-grid { columns: 2; column-gap: 0.75rem; }
+    .masonry-item { break-inside: avoid; margin-bottom: 0.75rem; }
+
+    /* Bottom nav */
+    .nav-tab { transition: all 0.2s; }
+    .nav-tab.active .nav-icon  { color: var(--gold); filter: drop-shadow(0 0 6px var(--gold-glow)); }
+    .nav-tab.active .nav-label { color: var(--gold); }
+    .nav-tab .nav-icon  { color: #4b5563; }
+    .nav-tab .nav-label { color: #4b5563; }
+
+    /* Stamp cell — circular */
+    .stamp-cell {
+      border-radius: 9999px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
     }
-    .masonry-item {
-      break-inside: avoid;
-      margin-bottom: 0.75rem;
+    .stamp-cell.filled {
+      border: 2px solid var(--gold);
+      background: rgba(201,168,76,0.12);
+      box-shadow: 0 0 14px rgba(201,168,76,0.25);
+    }
+    .stamp-cell.empty {
+      border: 1.5px solid rgba(255,255,255,0.12);
+      background: rgba(255,255,255,0.03);
     }
 
-    /* Bottom nav active indicator */
-    .nav-tab { transition: all 0.2s; }
-    .nav-tab.active .nav-icon { color: #ffffff; filter: drop-shadow(0 0 6px rgba(255,255,255,0.6)); }
-    .nav-tab.active .nav-label { color: #ffffff; }
-    .nav-tab .nav-icon  { color: #6b7280; }
-    .nav-tab .nav-label { color: #6b7280; }
+    /* Service card hover */
+    .service-card { transition: transform 0.2s; }
+    .service-card:active { transform: scale(0.97); }
+
+    /* Hero */
+    .hero-bg {
+      background-color: #0d0b09;
+      background-image: url('https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=900&q=85');
+      background-size: cover;
+      background-position: center 20%;
+    }
+    .hero-overlay {
+      background: linear-gradient(160deg,
+        rgba(5,5,5,0.30) 0%,
+        rgba(10,8,5,0.55) 40%,
+        rgba(5,5,5,0.90) 100%);
+    }
+
+    /* Service card image */
+    .service-img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center top;
+      transition: transform 0.4s ease;
+    }
+    .service-card:active .service-img { transform: scale(1.04); }
+
+    /* Membership card — subtle diagonal lines watermark */
+    .membership-pattern::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: repeating-linear-gradient(
+        -45deg,
+        transparent,
+        transparent 18px,
+        rgba(201,168,76,0.025) 18px,
+        rgba(201,168,76,0.025) 19px
+      );
+      pointer-events: none;
+      border-radius: inherit;
+    }
+
+    /* Tier badge */
+    .tier-badge {
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      color: #888;
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 4px;
+      padding: 2px 7px;
+    }
+    .tier-badge.silver { color: #aaa; border-color: rgba(180,180,180,0.3); }
+    .tier-badge.gold   { color: var(--gold); border-color: var(--gold-dim); }
+    .tier-badge.platinum { color: #e8d5ff; border-color: rgba(220,200,255,0.35); }
+
+    @keyframes stampPop {
+      0%   { transform: scale(0.5); opacity: 0; }
+      70%  { transform: scale(1.15); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    @keyframes fadeSlideUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
   </style>
 </head>
 
 <body class="font-sans antialiased min-h-screen">
 
-  <!-- ── Auth Guard (pantalla de carga inicial) ── -->
+  <!-- ── Auth Guard ── -->
   <div id="authGuard" class="fixed inset-0 bg-[#050505] flex flex-col items-center justify-center z-50">
     <div class="w-10 h-10 border-2 border-white/20 border-t-white rounded-full animate-spin mb-4"></div>
     <span class="text-xs text-gray-500">Cargando...</span>
   </div>
 
   <!-- ── CONTENEDOR PRINCIPAL ── -->
-  <div class="max-w-md mx-auto relative pb-44">
+  <div class="max-w-md mx-auto relative pb-28">
 
-    <!-- HEADER -->
-    <header class="px-6 pt-8 pb-5 flex items-center justify-between sticky top-0 bg-[#050505]/95 backdrop-blur-md z-30 border-b border-white/5">
-      <img id="shopLogo" src="" alt="" class="w-9 h-9 rounded-full object-cover border border-white/20 shadow-[0_0_10px_rgba(255,255,255,0.15)]">
-      <div class="text-center">
-        <h1 id="shopClubTitle" class="text-base font-bold text-neon tracking-tight leading-none"></h1>
-        <p id="headerGreeting" class="text-[11px] text-gray-500 mt-0.5">Cargando...</p>
+    <!-- ═══ HEADER ═══ -->
+    <header class="px-5 pt-10 pb-4 flex items-center justify-between sticky top-0 bg-[#050505]/96 backdrop-blur-md z-30">
+      <!-- Bell -->
+      <button class="w-10 h-10 rounded-full bg-white/5 border border-white/8 flex items-center justify-center active:scale-95 transition-all">
+        <i class="ph-bold ph-bell text-lg text-gray-400"></i>
+      </button>
+
+      <!-- Shop name centered -->
+      <div class="text-center select-none">
+        <p id="shopHeaderName" class="text-base font-black tracking-[0.18em] uppercase text-white leading-none"></p>
+        <p class="text-[9px] font-bold tracking-[0.22em] uppercase text-white/30 mt-0.5">BARBERSHOP</p>
       </div>
-      <div id="avatarContainer" class="w-9 h-9 rounded-full bg-brand-card border border-white/10 flex items-center justify-center overflow-hidden">
+
+      <!-- Avatar -->
+      <div id="avatarContainer" class="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden">
         <i class="ph-fill ph-user text-gray-500 text-lg"></i>
       </div>
     </header>
 
     <!-- ═══════ PESTAÑA 1: FIDELIZACIÓN ═══════ -->
-    <section id="tabLoyalty" class="tab-panel px-5 pt-6 animate-[fadeSlideUp_0.45s_cubic-bezier(0.16,1,0.3,1)_forwards]">
+    <section id="tabLoyalty" class="tab-panel animate-[fadeSlideUp_0.45s_cubic-bezier(0.16,1,0.3,1)_forwards]">
 
-      <!-- Tarjeta de sellos -->
-      <div class="relative rounded-3xl border border-neon bg-[#0a0a0d] p-6 shadow-[0_0_30px_rgba(255,255,255,0.08)] overflow-hidden mb-6">
-        <!-- Brillo de fondo decorativo -->
-        <div class="absolute -top-12 -right-12 w-40 h-40 bg-white/5 rounded-full blur-3xl pointer-events-none"></div>
+      <!-- ── HERO ── -->
+      <div class="relative mx-4 mt-2 mb-5 rounded-3xl overflow-hidden hero-bg" style="min-height:272px;">
+        <!-- Dark gradient overlay sobre la foto -->
+        <div class="hero-overlay absolute inset-0 z-10"></div>
+        <!-- Gold glow bottom-left -->
+        <div class="absolute bottom-0 left-0 w-48 h-48 z-10 pointer-events-none" style="background:radial-gradient(circle,rgba(201,168,76,0.12) 0%,transparent 65%);"></div>
 
-        <div class="flex items-start justify-between mb-5">
+        <!-- Content -->
+        <div class="relative z-20 p-7 flex flex-col justify-between" style="min-height:272px;">
+          <div></div>
           <div>
-            <p class="text-[10px] font-bold text-white/40 uppercase tracking-widest mb-1">Tarjeta de Fidelización</p>
-            <h2 id="shopNombreCard" class="text-xl font-bold text-neon"></h2>
+            <h2 class="text-[2.15rem] font-black text-white leading-[1.08] mb-0.5 tracking-tight" style="text-shadow:0 2px 20px rgba(0,0,0,0.6);">
+              No es<br>solo un corte.
+            </h2>
+            <h2 class="text-[2.15rem] font-black leading-[1.08] mb-7 tracking-tight" style="color:var(--gold);font-style:italic;text-shadow:0 2px 20px rgba(0,0,0,0.5);">
+              Es elegancia.
+            </h2>
+            <a href="index.html"
+              class="inline-flex items-center gap-2.5 text-white font-bold px-6 py-3.5 rounded-2xl text-sm active:scale-[0.97] transition-all"
+              style="background:rgba(0,0,0,0.5);backdrop-filter:blur(16px);border:1px solid rgba(201,168,76,0.35);box-shadow:0 0 20px rgba(201,168,76,0.08);">
+              <i class="ph-bold ph-calendar-plus text-base" style="color:var(--gold);"></i>
+              Reservar mi cita
+            </a>
           </div>
-          <div class="flex flex-col items-end">
-            <span class="text-[10px] font-bold text-white/40 uppercase tracking-widest">Sellos</span>
-            <span id="stampsCount" class="text-3xl font-bold text-neon leading-none">0<span class="text-base text-white/40">/10</span></span>
+        </div>
+      </div>
+
+      <!-- ── MEMBERSHIP CARD ── -->
+      <div class="membership-pattern relative mx-4 rounded-3xl bg-[#111115] border border-white/8 p-6 mb-4 overflow-hidden">
+        <div class="absolute -top-10 -right-10 w-36 h-36 rounded-full pointer-events-none" style="background:radial-gradient(circle,rgba(201,168,76,0.08) 0%,transparent 70%);"></div>
+        <!-- Watermark "É" decorativo -->
+        <div class="absolute right-4 bottom-2 pointer-events-none select-none" style="font-size:7rem;font-weight:900;color:rgba(201,168,76,0.04);line-height:1;font-style:italic;">É</div>
+
+        <!-- Top row: label + sellos counter -->
+        <div class="flex items-start justify-between mb-1">
+          <p class="text-[10px] font-bold uppercase tracking-widest" style="color:var(--gold);">Tu Membresía</p>
+          <div class="text-right">
+            <p class="text-[9px] font-bold uppercase tracking-widest text-white/30">Sellos</p>
+            <span id="stampsCount" class="text-3xl font-black text-white leading-none">0<span class="text-sm text-white/30">/5</span></span>
           </div>
         </div>
 
-        <!-- Grid de 10 sellos -->
-        <div id="stampsGrid" class="grid grid-cols-5 gap-3 mb-5">
-          <!-- Renderizado por JS -->
+        <!-- Club name + tier badge + description -->
+        <div class="mb-5">
+          <div class="flex items-center gap-2 mb-1.5">
+            <h2 id="shopClubName" class="text-xl font-black text-white"></h2>
+            <span id="memberTier" class="tier-badge silver">SILVER</span>
+          </div>
+          <p id="membershipDesc" class="text-xs text-gray-500 leading-relaxed"></p>
         </div>
 
-        <!-- Barra de progreso -->
-        <div class="w-full bg-white/5 rounded-full h-1.5 overflow-hidden border border-white/5">
-          <div id="stampsBar" class="h-1.5 rounded-full bg-white transition-all duration-700 shadow-[0_0_8px_rgba(255,255,255,0.5)]" style="width:0%"></div>
-        </div>
-        <p id="stampsMsg" class="text-[11px] text-gray-500 mt-2 text-right font-medium"></p>
-      </div>
+        <!-- Circular stamps row -->
+        <div id="stampsGrid" class="flex gap-2.5 mb-5"></div>
 
-      <!-- Premio siguiente -->
-      <div class="mb-6 bg-brand-card rounded-2xl border border-white/8 px-5 py-4 flex items-center gap-4">
-        <div class="w-11 h-11 rounded-full bg-white/5 border border-white/10 flex items-center justify-center flex-shrink-0">
-          <i class="ph-fill ph-trophy text-white text-xl drop-shadow-[0_0_6px_rgba(255,255,255,0.4)]"></i>
+        <!-- Progress bar -->
+        <div class="w-full rounded-full overflow-hidden mb-3" style="background:rgba(255,255,255,0.05);height:3px;">
+          <div id="stampsBar" class="h-full rounded-full transition-all duration-700" style="width:0%;background:var(--gold);box-shadow:0 0 8px rgba(201,168,76,0.5);"></div>
         </div>
-        <div>
-          <p class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Próximo premio</p>
-          <p id="nextRewardText" class="text-sm font-bold text-brand-text mt-0.5">Cargando...</p>
-        </div>
-      </div>
 
-      <!-- Lista de premios — renderizada dinámicamente desde Firestore -->
-      <h3 class="text-xs font-bold text-white/40 uppercase tracking-widest mb-3 px-1">Tabla de Premios</h3>
-      <div id="premiosList" class="space-y-2.5">
-        <!-- Skeleton de carga -->
-        <div class="flex justify-center py-8">
-          <div class="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+        <!-- Bottom: label + next reward name -->
+        <div class="flex items-center justify-between">
+          <p class="text-[11px] text-gray-600">Tu próxima recompensa</p>
+          <div class="flex items-center gap-1.5">
+            <p id="nextRewardName" class="text-[11px] font-bold text-white"></p>
+            <i class="ph-fill ph-gift text-sm" style="color:rgba(255,255,255,0.4);"></i>
+          </div>
         </div>
       </div>
 
-      <!-- Nota info -->
-      <p class="text-[11px] text-gray-600 text-center mt-5 leading-relaxed">
+      <!-- ── PRÓXIMO PREMIO ── -->
+      <div class="mx-4 mb-5 rounded-2xl bg-[#111115] border border-white/8 px-5 py-4 flex items-center gap-4">
+        <!-- Product image -->
+        <div class="w-14 h-14 rounded-full overflow-hidden border border-white/12 flex-shrink-0 bg-[#1a1a1a]">
+          <img src="https://images.unsplash.com/photo-1585747000558-18538342b6f3?auto=format&fit=crop&w=120&q=80"
+               alt="Premio"
+               class="w-full h-full object-cover"
+               onerror="this.parentElement.innerHTML='<i class=\'ph-fill ph-trophy text-yellow-600 text-2xl m-auto flex\'></i>'">
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-[9px] font-black uppercase tracking-widest mb-0.5" style="color:var(--gold);">Próximo Premio</p>
+          <p id="nextRewardText" class="text-sm font-bold text-white truncate">Cargando...</p>
+        </div>
+        <button onclick="togglePremios()"
+          class="flex-shrink-0 bg-white text-[#050505] font-bold text-xs px-4 py-2.5 rounded-full active:scale-95 transition-all whitespace-nowrap">
+          Ver premios
+        </button>
+      </div>
+
+      <!-- ── PREMIOS LIST (collapsible) ── -->
+      <div id="premiosSection" class="hidden mx-4 mb-5">
+        <h3 class="text-[10px] font-bold uppercase tracking-widest mb-3 px-1" style="color:rgba(255,255,255,0.3);">Tabla de Premios</h3>
+        <div id="premiosList" class="space-y-2.5">
+          <div class="flex justify-center py-6">
+            <div class="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── SERVICIOS DESTACADOS ── -->
+      <div class="mb-6">
+        <h3 class="text-[10px] font-bold uppercase tracking-widest mb-3 px-5" style="color:var(--gold);">Servicios Destacados</h3>
+        <div class="flex gap-3 overflow-x-auto no-scrollbar pl-5 pr-5">
+
+          <!-- Corte Clásico -->
+          <div class="service-card flex-shrink-0 relative rounded-2xl overflow-hidden cursor-pointer" style="width:148px;height:188px;background:#0d0a07;">
+            <img class="service-img"
+                 src="https://images.unsplash.com/photo-1599351431202-1e0f0137899a?auto=format&fit=crop&w=300&q=80"
+                 alt="Corte Clásico"
+                 onerror="this.style.display='none'">
+            <div class="absolute inset-0" style="background:linear-gradient(to top,rgba(0,0,0,0.88) 0%,rgba(0,0,0,0.15) 55%,transparent 100%);"></div>
+            <div class="absolute bottom-0 left-0 right-0 p-3.5">
+              <p class="text-[11px] font-black uppercase tracking-wider text-white">Corte Clásico</p>
+              <div class="mt-1.5 h-px" style="background:var(--gold);width:28px;"></div>
+            </div>
+          </div>
+
+          <!-- Barba Premium -->
+          <div class="service-card flex-shrink-0 relative rounded-2xl overflow-hidden cursor-pointer" style="width:148px;height:188px;background:#0a0806;">
+            <img class="service-img"
+                 src="https://images.unsplash.com/photo-1605497788044-5a32c7078486?auto=format&fit=crop&w=300&q=80"
+                 alt="Barba Premium"
+                 onerror="this.style.display='none'">
+            <div class="absolute inset-0" style="background:linear-gradient(to top,rgba(0,0,0,0.88) 0%,rgba(0,0,0,0.15) 55%,transparent 100%);"></div>
+            <div class="absolute bottom-0 left-0 right-0 p-3.5">
+              <p class="text-[11px] font-black uppercase tracking-wider text-white">Barba Premium</p>
+              <div class="mt-1.5 h-px" style="background:var(--gold);width:28px;"></div>
+            </div>
+          </div>
+
+          <!-- Corte + Barba -->
+          <div class="service-card flex-shrink-0 relative rounded-2xl overflow-hidden cursor-pointer" style="width:148px;height:188px;background:#0a0806;">
+            <img class="service-img"
+                 src="https://images.unsplash.com/photo-1622286342621-4bd786c2447c?auto=format&fit=crop&w=300&q=80"
+                 alt="Corte + Barba"
+                 onerror="this.style.display='none'">
+            <div class="absolute inset-0" style="background:linear-gradient(to top,rgba(0,0,0,0.88) 0%,rgba(0,0,0,0.15) 55%,transparent 100%);"></div>
+            <div class="absolute bottom-0 left-0 right-0 p-3.5">
+              <p class="text-[11px] font-black uppercase tracking-wider text-white">Corte + Barba</p>
+              <div class="mt-1.5 h-px" style="background:var(--gold);width:28px;"></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Nota -->
+      <p class="text-[11px] text-gray-700 text-center mb-6 leading-relaxed px-8">
         Cada visita a la barbería suma un sello.<br>Tu barbero lo registra al terminar el corte.
       </p>
     </section>
@@ -150,16 +354,10 @@
     <!-- ═══════ PESTAÑA 2: LOOKBOOK ═══════ -->
     <section id="tabLookbook" class="tab-panel hidden px-5 pt-6 animate-[fadeSlideUp_0.45s_cubic-bezier(0.16,1,0.3,1)_forwards]">
       <div class="mb-5">
-        <h2 class="text-2xl font-bold text-neon tracking-tight">Lookbook</h2>
+        <h2 class="text-2xl font-black text-white tracking-tight">Lookbook</h2>
         <p class="text-sm text-gray-500 mt-1">Cortes y estilos de la barbería.</p>
       </div>
-
-      <!-- Masonry grid de fotos -->
-      <div class="masonry-grid" id="lookbookGrid">
-        <!-- Las imágenes se cargan dinámicamente. Aquí van los placeholders de ejemplo: -->
-      </div>
-
-      <!-- Empty state si no hay fotos -->
+      <div class="masonry-grid" id="lookbookGrid"></div>
       <div id="lookbookEmpty" class="hidden flex-col items-center justify-center text-center py-20">
         <i class="ph ph-images text-5xl text-white/10 mb-4"></i>
         <p class="text-sm text-gray-600 font-medium">Las fotos del lookbook<br>se subirán pronto.</p>
@@ -171,79 +369,80 @@
 
       <!-- Avatar + datos -->
       <div class="flex flex-col items-center mb-8">
-        <div id="profileAvatar" class="w-20 h-20 rounded-full bg-brand-card border-2 border-neon shadow-[0_0_20px_rgba(255,255,255,0.15)] flex items-center justify-center overflow-hidden mb-4">
+        <div id="profileAvatar" class="w-20 h-20 rounded-full bg-[#111115] border-2 border-neon shadow-[0_0_20px_rgba(255,255,255,0.12)] flex items-center justify-center overflow-hidden mb-4">
           <i class="ph-fill ph-user text-4xl text-gray-500"></i>
         </div>
-        <h2 id="profileName" class="text-xl font-bold text-neon tracking-tight">—</h2>
+        <h2 id="profileName" class="text-xl font-black text-white tracking-tight">—</h2>
         <p id="profileEmail" class="text-sm text-gray-500 mt-0.5">—</p>
         <div class="flex items-center gap-2 mt-3">
           <div class="flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-full px-3 py-1.5">
-            <i class="ph-fill ph-medal text-sm text-white/60"></i>
-            <span id="profileStamps" class="text-xs font-bold text-white/60">0 sellos</span>
+            <i class="ph-fill ph-medal text-sm text-white/50"></i>
+            <span id="profileStamps" class="text-xs font-bold text-white/50">0 sellos</span>
           </div>
         </div>
       </div>
 
-      <!-- Datos de cuenta — editables -->
+      <!-- Datos editables -->
       <h3 class="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-3 px-1">Mi Cuenta</h3>
       <div class="space-y-3 mb-5">
-        <div class="bg-brand-card rounded-2xl border border-white/8 px-5 py-3">
+        <div class="bg-[#111115] rounded-2xl border border-white/8 px-5 py-3">
           <label class="text-[10px] text-gray-600 font-bold uppercase tracking-widest block mb-1">Nombre</label>
           <div class="flex items-center gap-2">
             <i class="ph-fill ph-user text-gray-500 text-base flex-shrink-0"></i>
             <input id="editNombre" type="text" placeholder="Tu nombre"
-              class="flex-1 bg-transparent text-sm font-semibold text-brand-text outline-none placeholder-gray-600 min-w-0">
+              class="flex-1 bg-transparent text-sm font-semibold text-white outline-none placeholder-gray-600 min-w-0">
           </div>
         </div>
-        <div class="bg-brand-card rounded-2xl border border-white/8 px-5 py-3">
+        <div class="bg-[#111115] rounded-2xl border border-white/8 px-5 py-3">
           <label class="text-[10px] text-gray-600 font-bold uppercase tracking-widest block mb-1">Correo</label>
           <div class="flex items-center gap-2">
             <i class="ph-fill ph-envelope text-gray-500 text-base flex-shrink-0"></i>
             <input id="editEmail" type="email" placeholder="tu@correo.com"
-              class="flex-1 bg-transparent text-sm font-semibold text-brand-text outline-none placeholder-gray-600 min-w-0">
+              class="flex-1 bg-transparent text-sm font-semibold text-white outline-none placeholder-gray-600 min-w-0">
           </div>
         </div>
-        <div class="bg-brand-card rounded-2xl border border-white/8 px-5 py-3">
+        <div class="bg-[#111115] rounded-2xl border border-white/8 px-5 py-3">
           <label class="text-[10px] text-gray-600 font-bold uppercase tracking-widest block mb-1">Teléfono</label>
           <div class="flex items-center gap-2">
             <i class="ph-fill ph-phone text-gray-500 text-base flex-shrink-0"></i>
             <input id="editTelefono" type="tel" placeholder="+56 9 XXXX XXXX" inputmode="numeric"
-              class="flex-1 bg-transparent text-sm font-semibold text-brand-text outline-none placeholder-gray-600 min-w-0">
+              class="flex-1 bg-transparent text-sm font-semibold text-white outline-none placeholder-gray-600 min-w-0">
           </div>
         </div>
       </div>
-      <p id="profileSaveMsg" class="hidden text-xs text-center text-neon mb-3">✓ Datos guardados correctamente</p>
+      <p id="profileSaveMsg" class="hidden text-xs text-center mb-3" style="color:var(--gold);">✓ Datos guardados correctamente</p>
       <button onclick="guardarPerfil()"
-        class="w-full bg-white/5 border border-neon text-neon font-bold py-3.5 rounded-2xl text-sm active:scale-[0.99] transition-all hover:bg-white/10 mb-6 flex items-center justify-center gap-2">
+        class="w-full border text-white font-bold py-3.5 rounded-2xl text-sm active:scale-[0.99] transition-all mb-6 flex items-center justify-center gap-2"
+        style="background:rgba(255,255,255,0.04);border-color:var(--gold-dim);color:var(--gold);">
         <i class="ph-bold ph-floppy-disk text-base"></i> Guardar cambios
       </button>
 
-      <!-- Links legales -->
+      <!-- Legal -->
       <h3 class="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-3 px-1">Legal</h3>
       <div class="space-y-2 mb-8">
         <a href="privacidad.html"
-          class="flex items-center justify-between bg-brand-card rounded-2xl border border-white/8 px-5 py-4 hover:border-white/20 transition-all active:scale-[0.99]">
+          class="flex items-center justify-between bg-[#111115] rounded-2xl border border-white/8 px-5 py-4 hover:border-white/20 transition-all active:scale-[0.99]">
           <div class="flex items-center gap-3">
             <i class="ph-fill ph-shield-check text-gray-500 text-lg"></i>
-            <span class="text-sm font-semibold text-brand-text">Política de Privacidad</span>
+            <span class="text-sm font-semibold text-white">Política de Privacidad</span>
           </div>
           <i class="ph-bold ph-arrow-right text-gray-600 text-sm"></i>
         </a>
         <a href="#"
-          class="flex items-center justify-between bg-brand-card rounded-2xl border border-white/8 px-5 py-4 hover:border-white/20 transition-all active:scale-[0.99]">
+          class="flex items-center justify-between bg-[#111115] rounded-2xl border border-white/8 px-5 py-4 hover:border-white/20 transition-all active:scale-[0.99]">
           <div class="flex items-center gap-3">
             <i class="ph-fill ph-file-text text-gray-500 text-lg"></i>
-            <span class="text-sm font-semibold text-brand-text">Términos y Condiciones</span>
+            <span class="text-sm font-semibold text-white">Términos y Condiciones</span>
           </div>
           <i class="ph-bold ph-arrow-right text-gray-600 text-sm"></i>
         </a>
       </div>
 
-      <!-- Acciones de cuenta -->
+      <!-- Sesión -->
       <h3 class="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-3 px-1">Sesión</h3>
       <div class="space-y-3">
         <button onclick="signOut()"
-          class="w-full flex items-center justify-center gap-2 bg-brand-card border border-white/10 text-gray-300 font-semibold py-4 rounded-2xl active:scale-[0.99] transition-all hover:border-white/25 hover:text-white text-sm">
+          class="w-full flex items-center justify-center gap-2 bg-[#111115] border border-white/10 text-gray-300 font-semibold py-4 rounded-2xl active:scale-[0.99] transition-all hover:border-white/25 hover:text-white text-sm">
           <i class="ph-bold ph-sign-out text-base"></i> Cerrar Sesión
         </button>
         <button onclick="confirmDeleteAccount()"
@@ -259,41 +458,38 @@
 
   </div><!-- /max-w-md -->
 
-  <!-- ═══════ STICKY CTA: AGENDAR HORA ═══════ -->
-  <div class="fixed bottom-[4.5rem] left-0 right-0 z-40 flex justify-center pointer-events-none px-5">
-    <a href="index.html"
-      class="pointer-events-auto flex items-center gap-2 bg-white text-[#050505] font-bold px-7 py-3.5 rounded-[2rem] shadow-[0_0_30px_rgba(255,255,255,0.35),0_4px_20px_rgba(0,0,0,0.6)] active:scale-[0.97] transition-all hover:shadow-[0_0_40px_rgba(255,255,255,0.5)] text-base">
-      <i class="ph-bold ph-calendar-plus text-lg"></i>
-      Agendar Hora
-    </a>
-  </div>
-
   <!-- ═══════ BOTTOM NAVIGATION BAR ═══════ -->
-  <nav class="fixed bottom-0 left-0 right-0 z-50 bg-[#0a0a0d]/95 backdrop-blur-xl border-t border-white/8" style="padding-bottom: env(safe-area-inset-bottom);">
+  <nav class="fixed bottom-0 left-0 right-0 z-50 bg-[#0a0a0d]/97 backdrop-blur-xl border-t border-white/6" style="padding-bottom: env(safe-area-inset-bottom);">
     <div class="max-w-md mx-auto flex items-stretch">
 
-      <button class="nav-tab active flex-1 flex flex-col items-center justify-center gap-1 py-3.5 px-2"
+      <button class="nav-tab active flex-1 flex flex-col items-center justify-center gap-1 py-3 px-1"
         onclick="switchTab('loyalty')" id="navLoyalty">
-        <i class="nav-icon ph-fill ph-medal text-2xl transition-all"></i>
-        <span class="nav-label text-[10px] font-bold uppercase tracking-widest transition-all">Fidelización</span>
+        <i class="nav-icon ph-fill ph-house text-2xl transition-all"></i>
+        <span class="nav-label text-[9px] font-bold uppercase tracking-widest transition-all">Fidelización</span>
       </button>
 
-      <button class="nav-tab flex-1 flex flex-col items-center justify-center gap-1 py-3.5 px-2"
+      <button class="nav-tab flex-1 flex flex-col items-center justify-center gap-1 py-3 px-1"
+        onclick="window.location.href='index.html'" id="navAgenda">
+        <i class="nav-icon ph-bold ph-calendar-plus text-2xl transition-all"></i>
+        <span class="nav-label text-[9px] font-bold uppercase tracking-widest transition-all">Agenda</span>
+      </button>
+
+      <button class="nav-tab flex-1 flex flex-col items-center justify-center gap-1 py-3 px-1"
         onclick="switchTab('lookbook')" id="navLookbook">
-        <i class="nav-icon ph-fill ph-images text-2xl transition-all"></i>
-        <span class="nav-label text-[10px] font-bold uppercase tracking-widest transition-all">Lookbook</span>
+        <i class="nav-icon ph-fill ph-squares-four text-2xl transition-all"></i>
+        <span class="nav-label text-[9px] font-bold uppercase tracking-widest transition-all">Lookbook</span>
       </button>
 
-      <button class="nav-tab flex-1 flex flex-col items-center justify-center gap-1 py-3.5 px-2"
+      <button class="nav-tab flex-1 flex flex-col items-center justify-center gap-1 py-3 px-1"
         onclick="switchTab('profile')" id="navProfile">
         <i class="nav-icon ph-fill ph-user-circle text-2xl transition-all"></i>
-        <span class="nav-label text-[10px] font-bold uppercase tracking-widest transition-all">Mi Perfil</span>
+        <span class="nav-label text-[9px] font-bold uppercase tracking-widest transition-all">Mi perfil</span>
       </button>
 
     </div>
   </nav>
 
-  <!-- Modal de confirmación para eliminar cuenta -->
+  <!-- Modal eliminar cuenta -->
   <div id="deleteModal" class="hidden fixed inset-0 bg-[#050505]/85 backdrop-blur-sm z-50 flex items-end justify-center px-5 pb-8">
     <div class="w-full max-w-sm bg-[#111115] border border-white/10 rounded-3xl p-6 animate-[fadeSlideUp_0.3s_cubic-bezier(0.16,1,0.3,1)_forwards]">
       <div class="w-12 h-12 rounded-full bg-red-950/50 border border-red-500/30 flex items-center justify-center mx-auto mb-4">
@@ -322,24 +518,22 @@
 let currentUser     = null;
 let userStamps      = 0;
 let activeTab       = 'loyalty';
-let _premiosDynamic = [];      // premios cargados desde Firestore
-let _userUnsub      = null;    // cleanup onSnapshot del usuario
-let _premiosUnsub   = null;    // cleanup onSnapshot de premios
-let _lookbookUnsub  = null;    // cleanup onSnapshot del lookbook
-let _prevStamps     = null;    // para detectar incremento y lanzar confetti
-let _stampsSynced   = false;   // true después del primer snapshot (no dispara confetti en carga)
+let _premiosDynamic = [];
+let _userUnsub      = null;
+let _premiosUnsub   = null;
+let _lookbookUnsub  = null;
+let _prevStamps     = null;
+let _stampsSynced   = false;
+let _premiosVisible = false;
 
 // ─── Aplicar Config ───────────────────────────────────────────
 document.title = `Mi Club | ${SHOP.nombre}`;
-document.getElementById('shopLogo').src         = SHOP.logo;
-document.getElementById('shopLogo').alt         = SHOP.nombreCorto;
-document.getElementById('shopClubTitle').textContent  = `Mi ${SHOP.club}`;
-document.getElementById('shopNombreCard').textContent = SHOP.nombre;
+document.getElementById('shopHeaderName').textContent = SHOP.nombreCorto.toUpperCase();
+document.getElementById('shopClubName').textContent   = SHOP.club;
 
 // ─── Auth Guard ───────────────────────────────────────────────
 auth.onAuthStateChanged(async user => {
   if (!user) {
-    // Limpiar suscripciones al cerrar sesión
     if (_userUnsub)     { _userUnsub();     _userUnsub     = null; }
     if (_premiosUnsub)  { _premiosUnsub();  _premiosUnsub  = null; }
     if (_lookbookUnsub) { _lookbookUnsub(); _lookbookUnsub = null; }
@@ -349,14 +543,12 @@ auth.onAuthStateChanged(async user => {
   currentUser = user;
   document.getElementById('authGuard').style.display = 'none';
 
-  // Cargar datos en tiempo real con onSnapshot
   subscribeUserData(user);
 
-  // Suscribir premios en tiempo real
   _premiosUnsub = FDB.onPremiosChange(premios => {
     _premiosDynamic = premios;
     renderPremiosDashboard(premios);
-    renderStamps(userStamps); // actualizar mensajes de progreso
+    renderStamps(userStamps);
   });
 
   initLookbook();
@@ -377,19 +569,15 @@ async function ensureUserDoc(user, extra = {}) {
     });
     return (await ref.get()).data();
   }
-  // Actualizar photoURL si cambió (ej. Google)
   if (user.photoURL && snap.data().photoURL !== user.photoURL) {
     await ref.update({ photoURL: user.photoURL });
   }
   return snap.data();
 }
 
-// ─── Cargar datos del usuario en tiempo real (onSnapshot) ────
+// ─── Cargar datos del usuario en tiempo real ─────────────────
 async function subscribeUserData(user) {
-  // Garantiza que siempre exista el documento en Firestore
   await ensureUserDoc(user);
-
-  // Cancelar suscripción previa si existe
   if (_userUnsub) { _userUnsub(); _userUnsub = null; }
   _stampsSynced = false;
   _prevStamps   = null;
@@ -398,34 +586,26 @@ async function subscribeUserData(user) {
     if (!snap.exists) return;
     const data = snap.data();
 
-    const nombre   = data.nombre   || user.displayName || 'Cliente';
-    const email    = user.email    || '';
-    const stamps   = data.stamps   || 0;
+    const nombre = data.nombre || user.displayName || 'Cliente';
+    const email  = user.email  || '';
+    const stamps = data.stamps || 0;
 
-    // ── Detección de sello nuevo → confetti ──────────────────
-    if (_stampsSynced && stamps > _prevStamps) {
-      dispararConfetti();
-    }
+    if (_stampsSynced && stamps > _prevStamps) dispararConfetti();
     _prevStamps   = stamps;
     _stampsSynced = true;
+    userStamps    = stamps;
 
-    userStamps = stamps;
+    document.getElementById('headerGreeting') && (document.getElementById('headerGreeting').textContent = `Hola, ${nombre.split(' ')[0]}`);
 
-    // Header
-    document.getElementById('headerGreeting').textContent = `Hola, ${nombre.split(' ')[0]}`;
-
-    // Avatar en header
     if (user.photoURL) {
       document.getElementById('avatarContainer').innerHTML =
         `<img src="${user.photoURL}" class="w-full h-full object-cover" alt="Avatar">`;
     }
 
-    // Perfil
     document.getElementById('profileName').textContent   = nombre;
     document.getElementById('profileEmail').textContent  = email;
     document.getElementById('profileStamps').textContent = `${stamps} sello${stamps !== 1 ? 's' : ''}`;
 
-    // Rellenar inputs editables (solo si no tiene el foco para no interrumpir edición)
     const nombreInput = document.getElementById('editNombre');
     const telInput    = document.getElementById('editTelefono');
     if (document.activeElement !== nombreInput) nombreInput.value = nombre;
@@ -442,28 +622,17 @@ async function subscribeUserData(user) {
   }, err => console.error('[Dashboard] onSnapshot usuario:', err));
 }
 
-// ─── Confetti al recibir un sello ─────────────────────────────
+// ─── Confetti ─────────────────────────────────────────────────
 function dispararConfetti() {
-  const colors = ['#34d399', '#ffffff', '#86efac', '#d1fae5', '#6ee7b7'];
-
-  // Burst central
-  confetti({
-    particleCount: 90,
-    spread:        70,
-    origin:        { y: 0.55 },
-    colors,
-    ticks:         220,
-    scalar:        1.1,
-  });
-
-  // Rafagas laterales con leve retraso
+  const colors = ['#c9a84c', '#f0d080', '#ffffff', '#e8c060', '#ffd700'];
+  confetti({ particleCount: 90, spread: 70, origin: { y: 0.55 }, colors, ticks: 220, scalar: 1.1 });
   setTimeout(() => {
     confetti({ particleCount: 45, spread: 80, angle: 60,  origin: { x: 0.15, y: 0.5 }, colors });
     confetti({ particleCount: 45, spread: 80, angle: 120, origin: { x: 0.85, y: 0.5 }, colors });
   }, 180);
 }
 
-// ─── Renderizar lista de premios dinámica ─────────────────────
+// ─── Renderizar premios ───────────────────────────────────────
 const _DASH_PREMIO_ICONS = ['ph-sparkle','ph-scissors','ph-crown','ph-star','ph-trophy','ph-medal','ph-gift'];
 
 function renderPremiosDashboard(premios) {
@@ -479,70 +648,102 @@ function renderPremiosDashboard(premios) {
   }
 
   el.innerHTML = premios.map((p, i) => `
-    <div class="flex items-center gap-4 bg-brand-card rounded-2xl border border-white/8 px-5 py-4">
-      <span class="text-xl font-black text-neon leading-none">${p.costoSellos}</span>
+    <div class="flex items-center gap-4 bg-[#111115] rounded-2xl border border-white/8 px-5 py-4">
+      <span class="text-xl font-black text-white leading-none">${p.costoSellos}</span>
       <div class="w-px h-6 bg-white/10"></div>
       <div>
-        <p class="text-xs font-bold text-white/40 uppercase tracking-widest">Sellos</p>
-        <p class="text-sm font-bold text-brand-text">${p.nombre}</p>
+        <p class="text-xs font-bold text-white/30 uppercase tracking-widest">Sellos</p>
+        <p class="text-sm font-bold text-white">${p.nombre}</p>
       </div>
-      <i class="ph-fill ${_DASH_PREMIO_ICONS[i % _DASH_PREMIO_ICONS.length]} text-white/20 ml-auto text-lg"></i>
+      <i class="ph-fill ${_DASH_PREMIO_ICONS[i % _DASH_PREMIO_ICONS.length]} text-white/15 ml-auto text-lg"></i>
     </div>`).join('');
 }
 
-// ─── Renderizar tarjeta de sellos ─────────────────────────────
+// ─── Toggle premios ───────────────────────────────────────────
+function togglePremios() {
+  const section = document.getElementById('premiosSection');
+  _premiosVisible = !_premiosVisible;
+  section.classList.toggle('hidden', !_premiosVisible);
+}
+
+// ─── Renderizar sellos (circular) ─────────────────────────────
 function renderStamps(count) {
   const grid = document.getElementById('stampsGrid');
   grid.innerHTML = '';
 
-  // Siempre 10 celdas; llenas hasta min(count, 10)
-  const filled10 = Math.min(count, 10);
-  for (let i = 1; i <= 10; i++) {
-    const filled = i <= filled10;
-    const isLast = i === filled10 && count > 0;
+  const premios = _premiosDynamic.length
+    ? [..._premiosDynamic].sort((a, b) => a.costoSellos - b.costoSellos)
+    : [{ costoSellos: 5, nombre: 'Barba Gratis' }];
+
+  const nextPremio  = premios.find(p => count < p.costoSellos);
+  const target      = nextPremio ? nextPremio.costoSellos : (premios[premios.length - 1]?.costoSellos || 5);
+  const filledCount = Math.min(count, target);
+
+  // Size adapts to target count
+  const sz = target <= 5 ? '56px' : target <= 7 ? '46px' : '38px';
+  const iconSz = target <= 5 ? '1.25rem' : '1rem';
+
+  for (let i = 1; i <= target; i++) {
+    const filled  = i <= filledCount;
+    const isFirst = i === 1;
+    const isNew   = i === filledCount && count > 0 && _stampsSynced;
 
     const cell = document.createElement('div');
-    cell.className = 'aspect-square rounded-xl flex items-center justify-center transition-all ' +
-      (filled
-        ? 'bg-white/10 border border-white/30 shadow-[0_0_10px_rgba(255,255,255,0.15)]'
-        : 'bg-white/3 border border-white/8');
+    cell.className = `stamp-cell ${filled ? 'filled' : 'empty'}${isNew ? ' animate-[stampPop_0.4s_cubic-bezier(0.34,1.56,0.64,1)_forwards]' : ''}`;
+    cell.style.width  = sz;
+    cell.style.height = sz;
 
-    cell.innerHTML = filled
-      ? `<i class="ph-fill ph-scissors text-xl text-neon drop-shadow-[0_0_6px_rgba(255,255,255,0.5)] ${isLast ? 'animate-[stampPop_0.4s_cubic-bezier(0.34,1.56,0.64,1)_forwards]' : ''}"></i>`
-      : `<span class="text-[11px] font-bold text-white/15">${i}</span>`;
+    if (isFirst) {
+      cell.innerHTML = `<i class="ph-fill ph-crown" style="font-size:${iconSz};color:${filled ? 'var(--gold)' : 'rgba(255,255,255,0.18)'};"></i>`;
+    } else if (filled) {
+      cell.innerHTML = `<i class="ph-bold ph-check" style="font-size:${iconSz};color:var(--gold);"></i>`;
+    } else {
+      cell.innerHTML = `<span style="font-size:${target <= 5 ? '13px' : '11px'};font-weight:700;color:rgba(255,255,255,0.18);">${i}</span>`;
+    }
 
     grid.appendChild(cell);
   }
 
-  // Premios dinámicos (fallback a valores por defecto si aún no cargaron)
-  const premios = _premiosDynamic.length
-    ? [..._premiosDynamic].sort((a, b) => a.costoSellos - b.costoSellos)
-    : [
-        { costoSellos: 5,  nombre: 'Perfilado de cejas gratis' },
-        { costoSellos: 10, nombre: 'Corte clásico gratis' },
-        { costoSellos: 15, nombre: 'Corte + Barba premium gratis' },
-      ];
+  // Counter
+  document.getElementById('stampsCount').innerHTML =
+    `${count}<span style="font-size:0.875rem;color:rgba(255,255,255,0.3);">/${target}</span>`;
 
-  const nextPremio = premios.find(p => count < p.costoSellos);
-  const faltan     = nextPremio ? nextPremio.costoSellos - count : 0;
-  const target     = nextPremio ? nextPremio.costoSellos : (premios[premios.length - 1]?.costoSellos || 10);
-
-  // Barra de progreso dinámica
+  // Progress bar
   const pct = Math.min((count / target) * 100, 100);
   document.getElementById('stampsBar').style.width = pct + '%';
-  document.getElementById('stampsCount').innerHTML =
-    `${count}<span class="text-base text-white/40">/${target}</span>`;
 
-  // Mensaje de progreso
-  const msgEl = document.getElementById('stampsMsg');
-  if (count === 0)    msgEl.textContent = 'Agenda tu primera cita para empezar';
-  else if (nextPremio) msgEl.textContent = `${faltan} sello${faltan !== 1 ? 's' : ''} para: ${nextPremio.nombre}`;
-  else                 msgEl.textContent = '¡Eres nuestro cliente más fiel!';
+  // Next reward texts
+  const faltan = nextPremio ? nextPremio.costoSellos - count : 0;
 
-  // Próximo premio (tarjeta superior)
-  const nextEl = document.getElementById('nextRewardText');
-  if (nextPremio) nextEl.textContent = `${faltan} sello${faltan !== 1 ? 's' : ''} → ${nextPremio.nombre}`;
-  else            nextEl.textContent = '¡Eres nuestro cliente más fiel!';
+  const nextRewardTextEl = document.getElementById('nextRewardText');
+  const nextRewardNameEl = document.getElementById('nextRewardName');
+
+  if (nextPremio) {
+    nextRewardTextEl.textContent = `${nextPremio.costoSellos} sellos → ${nextPremio.nombre}`;
+    if (nextRewardNameEl) nextRewardNameEl.textContent = nextPremio.nombre;
+  } else {
+    nextRewardTextEl.textContent = '¡Eres nuestro cliente más fiel!';
+    if (nextRewardNameEl) nextRewardNameEl.textContent = '¡Nivel máximo!';
+  }
+
+  // Membership description
+  const descEl = document.getElementById('membershipDesc');
+  if (descEl && nextPremio) {
+    descEl.textContent = `Agenda ${nextPremio.costoSellos} citas y obtén ${nextPremio.nombre.toLowerCase()}.`;
+  }
+
+  // Tier badge
+  const tierEl = document.getElementById('memberTier');
+  if (tierEl) {
+    tierEl.className = 'tier-badge';
+    if (count >= 25)     { tierEl.textContent = 'PLATINUM'; tierEl.classList.add('platinum'); }
+    else if (count >= 10){ tierEl.textContent = 'GOLD';     tierEl.classList.add('gold'); }
+    else                 { tierEl.textContent = 'SILVER';   tierEl.classList.add('silver'); }
+  }
+
+  // Profile stamps
+  const profileStampsEl = document.getElementById('profileStamps');
+  if (profileStampsEl) profileStampsEl.textContent = `${count} sello${count !== 1 ? 's' : ''}`;
 }
 
 // ─── Lookbook ─────────────────────────────────────────────────
@@ -551,7 +752,6 @@ function initLookbook() {
   const empty = document.getElementById('lookbookEmpty');
   if (!grid) return;
 
-  // Skeletons mientras carga Firestore
   grid.innerHTML = `
     <div class="masonry-item rounded-2xl aspect-[3/4] bg-white/5 animate-pulse"></div>
     <div class="masonry-item rounded-2xl aspect-[4/5] bg-white/5 animate-pulse"></div>
@@ -572,9 +772,8 @@ function initLookbook() {
     grid.innerHTML = snap.docs.map(doc => {
       const { url } = doc.data();
       return `
-        <div class="masonry-item rounded-2xl overflow-hidden border border-white/8 bg-brand-card">
-          <img src="${url}" loading="lazy"
-               class="w-full object-cover block"
+        <div class="masonry-item rounded-2xl overflow-hidden border border-white/8 bg-[#111115]">
+          <img src="${url}" loading="lazy" class="w-full object-cover block"
                onerror="this.parentElement.remove()">
         </div>`;
     }).join('');
@@ -586,7 +785,7 @@ function switchTab(tab) {
   if (tab === activeTab) return;
   activeTab = tab;
 
-  const panels = { loyalty: 'tabLoyalty', lookbook: 'tabLookbook', profile: 'tabProfile' };
+  const panels  = { loyalty: 'tabLoyalty', lookbook: 'tabLookbook', profile: 'tabProfile' };
   const navBtns = { loyalty: 'navLoyalty', lookbook: 'navLookbook', profile: 'navProfile' };
 
   Object.values(panels).forEach(id => {
@@ -600,26 +799,18 @@ function switchTab(tab) {
   activePanel.classList.remove('hidden');
   void activePanel.offsetWidth;
   activePanel.classList.add('animate-[fadeSlideUp_0.45s_cubic-bezier(0.16,1,0.3,1)_forwards]');
-  document.getElementById(navBtns[tab]).classList.add('active');
+  document.getElementById(navBtns[tab])?.classList.add('active');
 }
 
-// ─── Sign Out ─────────────────────────────────────────────────
-// ─── Guardar perfil ───────────────────────────────────────────
-// ── Prefijo +56 automático para teléfono ─────────────────────
+// ─── Teléfono prefix ──────────────────────────────────────────
 (function initPhonePrefix() {
   const PREFIX = '+56 9 ';
   const input = document.getElementById('editTelefono');
   if (!input) return;
-  input.addEventListener('focus', () => {
-    if (!input.value.startsWith('+56')) input.value = PREFIX;
-  });
-  input.addEventListener('input', () => {
-    if (!input.value.startsWith('+56')) input.value = PREFIX;
-  });
+  input.addEventListener('focus', () => { if (!input.value.startsWith('+56')) input.value = PREFIX; });
+  input.addEventListener('input', () => { if (!input.value.startsWith('+56')) input.value = PREFIX; });
   input.addEventListener('keydown', e => {
-    if ((e.key === 'Backspace' || e.key === 'Delete') && input.selectionStart <= PREFIX.length) {
-      e.preventDefault();
-    }
+    if ((e.key === 'Backspace' || e.key === 'Delete') && input.selectionStart <= PREFIX.length) e.preventDefault();
   });
 })();
 
@@ -627,6 +818,7 @@ function validatePhone(value) {
   return /^\+56\s?9\s?\d{4}\s?\d{4}$/.test(value.trim());
 }
 
+// ─── Guardar perfil ───────────────────────────────────────────
 async function guardarPerfil() {
   if (!currentUser) return;
   const nombre   = document.getElementById('editNombre').value.trim();
@@ -638,21 +830,13 @@ async function guardarPerfil() {
     return alert('Ingresa un teléfono válido. Debe comenzar con +56 9 seguido de 8 dígitos.');
 
   try {
-    // Actualizar Firestore
     await db.collection('users').doc(currentUser.uid).update({ nombre, email, telefono });
-
-    // Actualizar Firebase Auth (displayName y email)
     await currentUser.updateProfile({ displayName: nombre });
-    if (email && email !== currentUser.email) {
-      await currentUser.updateEmail(email);
-    }
+    if (email && email !== currentUser.email) await currentUser.updateEmail(email);
 
-    // Actualizar UI de encabezado
     document.getElementById('profileName').textContent  = nombre;
     document.getElementById('profileEmail').textContent = email;
-    document.getElementById('headerGreeting').textContent = `Hola, ${nombre.split(' ')[0]}`;
 
-    // Mensaje de éxito
     const msg = document.getElementById('profileSaveMsg');
     msg.classList.remove('hidden');
     setTimeout(() => msg.classList.add('hidden'), 3000);
@@ -670,23 +854,16 @@ async function signOut() {
   window.location.href = 'registro.html';
 }
 
-// ─── Delete Account ───────────────────────────────────────────
-function confirmDeleteAccount() {
-  document.getElementById('deleteModal').classList.remove('hidden');
-}
-function closeDeleteModal() {
-  document.getElementById('deleteModal').classList.add('hidden');
-}
+function confirmDeleteAccount() { document.getElementById('deleteModal').classList.remove('hidden'); }
+function closeDeleteModal()     { document.getElementById('deleteModal').classList.add('hidden'); }
+
 async function deleteAccount() {
   if (!currentUser) return;
   try {
-    // Borrar documento de Firestore
     await db.collection('users').doc(currentUser.uid).delete();
-    // Borrar cuenta de Auth
     await currentUser.delete();
     window.location.href = 'index.html';
   } catch (err) {
-    // Firebase requiere re-autenticación reciente para deleteUser
     if (err.code === 'auth/requires-recent-login') {
       closeDeleteModal();
       alert('Por seguridad, cierra sesión e ingresa de nuevo antes de eliminar tu cuenta.');
