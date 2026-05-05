@@ -44,10 +44,11 @@ service cloud.firestore {
     }
 
     // ── /citas ───────────────────────────────────────────────────────────────────
-    // Clientes autenticados pueden crear su propia cita; barberos gestionan todo.
+    // El flujo público (sin login) puede crear citas, barberos gestionan el resto.
     match /citas/{citaId} {
       allow read: if esBarbero();
-      allow create: if request.auth != null;
+      allow create: if request.resource.data.keys().hasAll(['fecha', 'hora', 'clienteNombre', 'clienteTelefono', 'estado'])
+                    && request.resource.data.estado == 'Confirmado';
       allow update: if esBarbero()
                     || (request.auth != null
                         && resource.data.get('clienteUid', '') == request.auth.uid

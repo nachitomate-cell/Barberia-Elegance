@@ -447,7 +447,8 @@
     }
 
     // Precarga bloqueos totales de los próximos 14 días (usado en renderCalendar)
-    async function precargarBloqueos() {
+    async function precargarBloqueos(barberoId = null) {
+      _bloqueosProximos = {};
       try {
         const today = new Date();
         const months = new Set();
@@ -458,7 +459,12 @@
         }
         const resultados = await Promise.all([...months].map(mm => FDB.getBloqueosMes(mm)));
         resultados.flat().forEach(b => {
-          if (b.todo_el_dia) _bloqueosProximos[b.fecha] = true;
+          if (!b.todo_el_dia) return;
+          // Bloqueo global (sin barberoId) bloquea a todos
+          // Bloqueo de barbero específico solo bloquea si es el barbero seleccionado
+          if (!b.barberoId || b.barberoId === barberoId) {
+            _bloqueosProximos[b.fecha] = true;
+          }
         });
       } catch(e) {
         console.warn('[Reservar] No se pudieron precargar bloqueos:', e.message);
@@ -521,7 +527,8 @@
       });
       btn.classList.replace('border-brand-accent/20', 'border-neon');
       btn.classList.replace('bg-[#0a0a0d]', 'bg-brand-neon/10');
-      
+
+      if (window._selectedBarberId !== id) selectedTimeStr = null;
       window._selectedBarber = nombre;
       window._selectedBarberId = id;
       document.getElementById('summaryBarber').textContent = nombre;
@@ -634,7 +641,7 @@
       const settings = customConfig || _fsConfig || DB.getSettings();
       let hours = [];
       try {
-        hours = await FDB.getHorasDisponibles(currentDateStr, selectedServiceObj.duracion, settings);
+        hours = await FDB.getHorasDisponibles(currentDateStr, selectedServiceObj.duracion, settings, window._selectedBarberId || null);
       } catch(e) {
         // Fallback a localStorage si no hay conexión
         hours = DB.getAvailableHours(currentDateStr, selectedServiceObj.duracion);
@@ -764,10 +771,15 @@
 
       } else if (currentStep === 2) {
         const barId = window._selectedBarberId;
+        selectedTimeStr = null;
         if (barId) {
-          const barCfg = await FDB.getConfigBarbero(barId);
+          const [barCfg] = await Promise.all([
+            FDB.getConfigBarbero(barId),
+            precargarBloqueos(barId),
+          ]);
           _activeBarberConfig = barCfg;
         } else {
+          await precargarBloqueos(null);
           _activeBarberConfig = null;
         }
         renderCalendar(_activeBarberConfig);
@@ -798,7 +810,9 @@
         const nombre = document.getElementById('clientName').value;
         const tel = document.getElementById('clientPhone').value;
 
+        const telDigitos = tel.replace(/\D/g, '');
         if (!nombre || !tel) return alert("Por favor ingresa tus datos para la reserva.");
+        if (telDigitos.length < 9) return alert("Ingresa un número de teléfono válido (mínimo 9 dígitos).");
 
         // ── Anti-spam: máx. 3 reservas en 24 h, y 1 por cada 30 min ──
         const SPAM_KEY = 'elegance_reservas_ts';
@@ -826,7 +840,8 @@
             clienteEmail:     email,
             servicioNombre:   selectedServiceObj.nombre,
             duracionServicio: selectedServiceObj.duracion,
-            barbero:          window._selectedBarber || SHOP.barberos[0]?.nombre || '',
+            barbero:          window._selectedBarber   || SHOP.barberos[0]?.nombre || '',
+            barberoId:        window._selectedBarberId || null,
           });
         } catch(e) {
           // Fallback offline: guardar en localStorage
@@ -865,10 +880,18 @@
         const waLink = `https://wa.me/${limpio}?text=${encodeURIComponent(waMsg)}`;
         
         document.getElementById('waBtnLink').href = waLink;
-        
-        // Abrir WhatsApp automáticamente con un pequeño retraso
+
+        // Intentar abrir WhatsApp; si el navegador lo bloquea, el botón ya está visible
         setTimeout(() => {
-          window.open(waLink, '_blank');
+          const popup = window.open(waLink, '_blank');
+          if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+            // Popup bloqueado — resaltar el botón para que el usuario lo toque manualmente
+            const btn = document.getElementById('waBtnLink');
+            if (btn) {
+              btn.classList.add('animate-pulse');
+              btn.title = 'Tu navegador bloqueó la apertura automática. Toca aquí para abrir WhatsApp.';
+            }
+          }
         }, 800);
       }
     }

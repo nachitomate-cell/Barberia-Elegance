@@ -272,10 +272,10 @@ const FDB = (() => {
   /* ──────────────────────────────────────────────────────────────
      CITAS
      ────────────────────────────────────────────────────────────── */
-  async function getCitas(fecha) {
-    const snap = await db.collection(COL.CITAS)
-      .where('fecha', '==', fecha)
-      .get();
+  async function getCitas(fecha, barberoId = null) {
+    let q = db.collection(COL.CITAS).where('fecha', '==', fecha);
+    if (barberoId) q = q.where('barberoId', '==', barberoId);
+    const snap = await q.get();
     return snap.docs
       .map(d => ({ id: d.id, ...d.data() }))
       .sort((a, b) => a.hora.localeCompare(b.hora));
@@ -302,6 +302,7 @@ const FDB = (() => {
       servicioNombre:   cita.servicioNombre   || '',
       duracionServicio: Number(cita.duracionServicio) || 30,
       barbero:          cita.barbero          || '',
+      barberoId:        cita.barberoId        || null,
       estado:           'Confirmado',
       nota:             '',
       creadoEn:         firebase.firestore.FieldValue.serverTimestamp(),
@@ -336,9 +337,10 @@ const FDB = (() => {
   /* ──────────────────────────────────────────────────────────────
      BLOQUEOS MANUALES
      ────────────────────────────────────────────────────────────── */
-  async function addBloqueo({ fecha, todo_el_dia, hora_inicio, hora_fin, motivo }) {
+  async function addBloqueo({ fecha, todo_el_dia, hora_inicio, hora_fin, motivo, barberoId = null }) {
     const ref = await db.collection(COL.BLOQUEOS).add({
       fecha,
+      barberoId:    barberoId || null,
       todo_el_dia:  !!todo_el_dia,
       hora_inicio:  todo_el_dia ? null : (hora_inicio || null),
       hora_fin:     todo_el_dia ? null : (hora_fin    || null),
@@ -348,9 +350,15 @@ const FDB = (() => {
     return ref.id;
   }
 
-  async function getBloqueosDia(fecha) {
-    const snap = await db.collection(COL.BLOQUEOS).where('fecha', '==', fecha).get();
-    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  async function getBloqueosDia(fecha, barberoId = null) {
+    let q = db.collection(COL.BLOQUEOS).where('fecha', '==', fecha);
+    // Sin filtrar por barberoId aquí: los bloqueos globales (barberoId==null) también aplican.
+    // El filtro por barbero se hace en getHorasDisponibles combinando globales + del barbero.
+    const snap = await q.get();
+    const todos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    if (!barberoId) return todos;
+    // Retorna bloqueos globales (sin barberoId) + los del barbero específico
+    return todos.filter(b => !b.barberoId || b.barberoId === barberoId);
   }
 
   async function getBloqueosMes(yyyyMM) {
@@ -417,13 +425,13 @@ const FDB = (() => {
      ────────────────────────────────────────────────────────────── */
   // Legacy: el flujo publico multi-tenant usa BookingService.getAvailableSlots().
   // Se mantiene temporalmente para compatibilidad con paneles existentes.
-  async function getHorasDisponibles(fecha, duracionServicio, configOverride = null) {
+  async function getHorasDisponibles(fecha, duracionServicio, configOverride = null, barberoId = null) {
     const cfg = configOverride || await getConfig();
 
-    // Cargar citas y bloqueos en paralelo
+    // Cargar citas y bloqueos en paralelo, filtrando por barbero si se especifica
     const [citas, bloqueos] = await Promise.all([
-      getCitas(fecha),
-      getBloqueosDia(fecha),
+      getCitas(fecha, barberoId),
+      getBloqueosDia(fecha, barberoId),
     ]);
 
     // Día completamente bloqueado → sin slots
@@ -558,10 +566,6 @@ const FDB = (() => {
           return docEmail === targetEmail;
         });
         if (doc) return true;
-        
-        // Debugging temporal: Si no lo encuentra, mostrar qué correos SÍ están en la colección barberos y su estado activo
-        const correos = snap.docs.map(d => `${d.data().email || 'Sin correo'} (activo: ${d.data().activo})`).join('\n');
-        alert(`Depuración: Tu correo es "${email}". \nCorreos encontrados en 'barberos': \n${correos}\n\nSi ves tu correo pero dice "activo: false", significa que el barbero está DESACTIVADO en la base de datos y por eso se rechaza el inicio de sesión.`);
       }
       return false;
     } catch (e) {
@@ -651,9 +655,68 @@ const FDB = (() => {
     }
   }
 
+  /* ──────────────────────────────────────────────────────────────
+     MIGRACIÓN: backfill barberoId en citas antiguas
+     Asocia citas sin barberoId al barbero cuyo nombre coincida.
+     Se ejecuta una sola vez por sesión de admin (flag en sessionStorage).
+     ────────────────────────────────────────────────────────────── */
+  async function migrarBarberoIdCitas() {
+    const FLAG = 'fs_migrated_barberoId_v1';
+    if (sessionStorage.getItem(FLAG)) return;
+    sessionStorage.setItem(FLAG, '1');
+
+    try {
+      // Obtener barberos y construir mapa nombre → id (insensible a mayúsculas/espacios)
+      const barbSnap = await db.collection(COL.BARBEROS).get();
+      const nombreAId = {};
+      barbSnap.docs.forEach(d => {
+        const data = d.data();
+        if (data.activo === false) return;
+        const nombre = (data.nombre || data.displayName || '').toLowerCase().trim();
+        if (nombre) nombreAId[nombre] = d.id;
+      });
+
+      if (!Object.keys(nombreAId).length) return;
+
+      // Obtener citas sin barberoId (o con barberoId == null)
+      const citasSnap = await db.collection(COL.CITAS).get();
+      const sinId = citasSnap.docs.filter(d => {
+        const data = d.data();
+        return !data.barberoId;
+      });
+
+      if (!sinId.length) return;
+      console.info(`[FDB] Migrando barberoId en ${sinId.length} citas antiguas…`);
+
+      // Procesar en batches de 400
+      const chunks = [];
+      for (let i = 0; i < sinId.length; i += 400) chunks.push(sinId.slice(i, i + 400));
+
+      for (const chunk of chunks) {
+        const batch = db.batch();
+        chunk.forEach(doc => {
+          const nombreBarbero = (doc.data().barbero || '').toLowerCase().trim();
+          const barbId = nombreAId[nombreBarbero] || null;
+          if (barbId) {
+            batch.update(doc.ref, { barberoId: barbId });
+          } else if (Object.keys(nombreAId).length === 1) {
+            // Si solo hay un barbero activo, asignar todas las citas sin coincidencia a él
+            batch.update(doc.ref, { barberoId: Object.values(nombreAId)[0] });
+          }
+        });
+        await batch.commit();
+      }
+      console.info('[FDB] Migración de barberoId completada.');
+    } catch (e) {
+      console.warn('[FDB] Error en migración de barberoId:', e.message);
+      sessionStorage.removeItem(FLAG); // Permitir reintento
+    }
+  }
+
   /* ── API pública ────────────────────────────────────────────── */
   return {
     migrarDesdeLocalStorage,
+    migrarBarberoIdCitas,
     // Servicios
     getServicios, addServicio, updateServicio, deleteServicio,
     reordenarServicios, onServiciosChange,

@@ -799,7 +799,11 @@
                   Hoy
                 </button>
               </div>
-              <div class="flex items-center gap-2">
+              <div class="flex items-center gap-2 flex-wrap">
+                <select id="admin-barbero-filtro" onchange="cambiarFiltroBarbero(this.value)"
+                  class="bg-admin-card border border-admin-border text-sm text-white rounded-xl px-3 py-2 min-h-[44px] focus:outline-none focus:border-admin-accent transition-colors">
+                  <option value="">Todos los barberos</option>
+                </select>
                 <button onclick="openBloqueoModal()"
                   class="flex items-center gap-2 bg-red-500/10 border border-red-500/30 text-red-400 font-bold px-4 py-3 min-h-[44px] rounded-xl hover:bg-red-500/20 active:bg-red-500/30 transition-colors text-sm">
                   <i class="ph-bold ph-prohibit text-base"></i> Bloquear
@@ -1309,6 +1313,14 @@
             </div>
           </div>
           <div>
+            <label class="block text-xs font-bold text-gray-400 mb-2">Barbero <span
+                class="text-admin-accent">*</span></label>
+            <select id="mb-barbero" onchange="handleMbChange()"
+              class="w-full bg-admin-bg border border-admin-border rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-admin-accent">
+              <option value="">- Selecciona barbero -</option>
+            </select>
+          </div>
+          <div>
             <label class="block text-xs font-bold text-gray-400 mb-2">Hora <span
                 class="text-admin-accent">*</span></label>
             <select id="mb-hora" disabled
@@ -1466,6 +1478,15 @@
 
         <div class="space-y-4">
 
+          <!-- Barbero -->
+          <div>
+            <label class="block text-[10px] font-bold text-gray-500 mb-1.5 uppercase tracking-widest">Barbero</label>
+            <select id="blq-barbero"
+              class="w-full bg-admin-bg border border-admin-border rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-red-400/50 transition-colors">
+              <option value="">— Global (todos los barberos) —</option>
+            </select>
+          </div>
+
           <!-- Fecha -->
           <div>
             <label class="block text-[10px] font-bold text-gray-500 mb-1.5 uppercase tracking-widest">Fecha</label>
@@ -1571,6 +1592,7 @@
       //  ESTADO GLOBAL
       // ══════════════════════════════════════════════════════════════
       let currentAdminDate = new Date();
+      let _adminBarberoFiltro = null;
       let dragSrcEl = null;
       let fsSettings = {};
       let blockedDates = [];
@@ -1692,6 +1714,22 @@
       // ══════════════════════════════════════════════════════════════
       //  TAB 1 · TIMELINE DE CITAS
       // ══════════════════════════════════════════════════════════════
+      function cambiarFiltroBarbero(barberoId) {
+        _adminBarberoFiltro = barberoId || null;
+        renderTimeline();
+      }
+
+      function _poblarSelectorFiltroBarbero() {
+        const sel = document.getElementById('admin-barbero-filtro');
+        if (!sel) return;
+        const prev = sel.value;
+        sel.innerHTML = '<option value="">Todos los barberos</option>';
+        (_barberosCache || [])
+          .filter(b => b.activo !== false && b.rol !== 'admin')
+          .forEach(b => sel.innerHTML += `<option value="${b.id}">${b.nombre || b.email}</option>`);
+        if (prev) sel.value = prev;
+      }
+
       function changeAdminDate(offset) {
         currentAdminDate.setDate(currentAdminDate.getDate() + offset);
         _resubscribeCitas();
@@ -1741,7 +1779,9 @@
         // Usar caché de Firestore (alimentado por onSnapshot)
         const settings = _configCache || {};
         const allSrvs = _serviciosCache;
-        const dayBookings = _citasDiaCache;
+        const dayBookings = _adminBarberoFiltro
+          ? _citasDiaCache.filter(c => c.barberoId === _adminBarberoFiltro)
+          : _citasDiaCache;
 
         // Horario específico del día si está configurado
         const dw = currentAdminDate.getDay();
@@ -2089,6 +2129,14 @@
       //  BLOQUEOS MANUALES
       // ══════════════════════════════════════════════════════════════
       function openBloqueoModal() {
+        // Poblar selector de barberos
+        const barSel = document.getElementById('blq-barbero');
+        const barberos = (_barberosCache || []).filter(b => b.activo !== false && b.rol !== 'admin');
+        barSel.innerHTML = '<option value="">— Global (todos los barberos) —</option>';
+        barberos.forEach(b => barSel.innerHTML += `<option value="${b.id}">${b.nombre || b.email}</option>`);
+        // Si hay un solo barbero, pre-seleccionarlo
+        if (barberos.length === 1) barSel.value = barberos[0].id;
+
         document.getElementById('blq-fecha').value = dateToLocalStr(currentAdminDate);
         document.getElementById('blq-todo-dia').checked = false;
         document.getElementById('blq-motivo').value = '';
@@ -2113,16 +2161,16 @@
         const inicio = document.getElementById('blq-inicio').value;
         const fin = document.getElementById('blq-fin').value;
         const motivo = document.getElementById('blq-motivo').value.trim();
+        const barberoId = document.getElementById('blq-barbero').value || null;
 
         if (!fecha) return alert('Selecciona una fecha.');
         if (!todoDia && timeToMins(inicio) >= timeToMins(fin))
           return alert('La hora de inicio debe ser anterior a la hora de fin.');
 
         try {
-          await FDB.addBloqueo({ fecha, todo_el_dia: todoDia, hora_inicio: inicio, hora_fin: fin, motivo });
+          await FDB.addBloqueo({ fecha, todo_el_dia: todoDia, hora_inicio: inicio, hora_fin: fin, motivo, barberoId });
           closeBloqueoModal();
-          showMiniToast('Bloqueo creado correctamente');
-          // onBloqueosDiaChange actualizará _bloqueosCache y re-renderizará si es el día visible
+          showMiniToast(barberoId ? 'Bloqueo creado para el barbero' : 'Bloqueo global creado');
         } catch (e) { alert('Error al crear bloqueo: ' + e.message); }
       }
 
@@ -2996,11 +3044,17 @@
         const srvs = _serviciosCache || [];
         sel.innerHTML = '<option value="">- Servicio -</option>';
         srvs.forEach(s => sel.innerHTML += `<option value="${s.id}">${s.nombre} · $${s.precio.toLocaleString('es-CL')}</option>`);
+        // Poblar selector de barberos
+        const barSel = document.getElementById('mb-barbero');
+        const barberos = (_barberosCache || []).filter(b => b.activo !== false && b.rol !== 'admin');
+        barSel.innerHTML = '<option value="">- Selecciona barbero -</option>';
+        barberos.forEach(b => barSel.innerHTML += `<option value="${b.id}">${b.nombre || b.email}</option>`);
+        if (barberos.length === 1) barSel.value = barberos[0].id;
         document.getElementById('mb-fecha').value = dateToLocalStr(currentAdminDate);
         document.getElementById('mb-nombre').value = '';
         document.getElementById('mb-telefono').value = '+569 ';
         document.getElementById('mb-email').value = '';
-        document.getElementById('mb-hora').innerHTML = '<option>Elige servicio primero</option>';
+        document.getElementById('mb-hora').innerHTML = '<option>Elige barbero, fecha y servicio primero</option>';
         document.getElementById('mb-hora').disabled = true;
         handleMbChange();
       }
@@ -3008,12 +3062,14 @@
       async function handleMbChange() {
         const dateVal = document.getElementById('mb-fecha').value;
         const srvId = document.getElementById('mb-servicio').value;
+        const barberoId = document.getElementById('mb-barbero').value;
         const hourSel = document.getElementById('mb-hora');
-        if (!dateVal || !srvId) { hourSel.innerHTML = '<option>Elige fecha y servicio</option>'; hourSel.disabled = true; return; }
+        if (!dateVal || !srvId || !barberoId) { hourSel.innerHTML = '<option>Elige barbero, fecha y servicio</option>'; hourSel.disabled = true; return; }
         const srvObj = _serviciosCache.find(s => String(s.id) === String(srvId)); if (!srvObj) return;
+        const barCfg = await FDB.getConfigBarbero(barberoId);
         hourSel.disabled = true;
         hourSel.innerHTML = '<option>Cargando…</option>';
-        const hours = await FDB.getHorasDisponibles(dateVal, srvObj.duracion, _configCache);
+        const hours = await FDB.getHorasDisponibles(dateVal, srvObj.duracion, barCfg, barberoId);
         hourSel.disabled = false;
         hourSel.innerHTML = '<option value="">— Hora —</option>';
         hours.forEach(h => hourSel.innerHTML += h.occupied
@@ -3027,17 +3083,19 @@
         const nombre = document.getElementById('mb-nombre').value.trim();
         const tel = document.getElementById('mb-telefono').value.trim();
         const email = document.getElementById('mb-email').value.trim();
-        if (!dateVal || !srvId || !timeVal || !nombre) return alert('Completa Fecha, Servicio, Hora y Nombre.');
+        const barberoId = document.getElementById('mb-barbero').value;
+        if (!dateVal || !srvId || !timeVal || !nombre || !barberoId) return alert('Completa Barbero, Fecha, Servicio, Hora y Nombre.');
         const srvObj = _serviciosCache.find(s => String(s.id) === String(srvId));
+        const barObj = (_barberosCache || []).find(b => b.id === barberoId);
         try {
           await FDB.addCita({
             fecha: dateVal, hora: timeVal, clienteNombre: nombre,
             clienteTelefono: tel === '+569 ' ? '' : tel, clienteEmail: email,
             servicioNombre: srvObj.nombre, duracionServicio: srvObj.duracion,
-            barbero: SHOP.barberos[0]?.nombre || '',
+            barbero: barObj?.nombre || '',
+            barberoId: barberoId,
           });
           closeManualBookingModal();
-          // onSnapshot actualiza el timeline automáticamente
         } catch (e) { alert('Error al guardar cita: ' + e.message); }
       }
 
@@ -3254,8 +3312,11 @@
         initActivityListener();
         // Precargar lista de barberos (necesario para el selector de configuración)
         await _precargarBarberos();
-        // Cargar selector de barberos para el tab de configuración
+        // Backfill automático: asignar barberoId a citas antiguas que no lo tengan
+        FDB.migrarBarberoIdCitas().catch(e => console.warn('[Admin] migrarBarberoIdCitas:', e));
+        // Poblar selectores de barbero en toda la UI admin
         populateBarberConfigSelector();
+        _poblarSelectorFiltroBarbero();
 
         // Abrir pestaña inicial basada en la URL si existe
         if (window.INITIAL_TAB) {

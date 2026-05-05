@@ -422,27 +422,47 @@
 
         function buildCitaSlot(time, cita) {
             const isConfirmed = cita.estado === 'Confirmado';
-            const borderCol = isConfirmed ? 'border-white' : 'border-[#eab308]'; // Yellow si pendiente
-            
+            const isCompleted = cita.estado === 'Completada';
+            const isCancelled = cita.estado === 'Cancelada';
+            const borderCol = isCompleted ? 'border-emerald-500' : isCancelled ? 'border-red-500/50' : isConfirmed ? 'border-white' : 'border-[#eab308]';
+            const telLimpio = (cita.clienteTelefono || '').replace(/\D/g, '');
+            const waLink = telLimpio ? `https://wa.me/${telLimpio}` : null;
+
             return `
-            <div class="glass-card rounded-2xl p-4 flex items-center justify-between group transition-all hover:bg-white/10 border-l-4 ${borderCol}">
-                <div class="flex items-center gap-4">
-                    <div class="text-center min-w-[50px]">
-                        <p class="text-sm font-bold text-white">${time}</p>
-                        <p class="text-[10px] text-white/40">${cita.duracionServicio || 30} min</p>
+            <div class="glass-card rounded-2xl p-4 border-l-4 ${borderCol} ${isCancelled ? 'opacity-50' : ''}">
+                <div class="flex items-start justify-between gap-3">
+                    <div class="flex items-center gap-4 min-w-0">
+                        <div class="text-center min-w-[48px] shrink-0">
+                            <p class="text-sm font-bold text-white">${time}</p>
+                            <p class="text-[10px] text-white/40">${cita.duracionServicio || 30} min</p>
+                        </div>
+                        <div class="h-10 w-[1px] bg-white/10 shrink-0"></div>
+                        <div class="min-w-0">
+                            <h4 class="font-bold text-white text-[15px] leading-tight truncate">${cita.servicioNombre || 'Servicio'}</h4>
+                            <p class="text-xs text-white/70 mt-0.5 font-medium">${cita.clienteNombre || 'Cliente'}</p>
+                            ${cita.clienteTelefono ? `<p class="text-[11px] text-white/40 mt-0.5">${cita.clienteTelefono}</p>` : ''}
+                        </div>
                     </div>
-                    <div class="h-8 w-[1px] bg-white/10"></div>
-                    <div>
-                        <h4 class="font-bold text-white text-[15px] leading-tight">${cita.servicioNombre || 'Servicio'}</h4>
-                        <p class="text-xs text-white/60 mt-1">${cita.clienteNombre || 'Cliente'}</p>
+                    <div class="flex items-center gap-2 shrink-0">
+                        ${waLink && !isCancelled ? `<a href="${waLink}" target="_blank" title="WhatsApp cliente" class="w-9 h-9 rounded-xl bg-[#25D366]/10 border border-[#25D366]/30 flex items-center justify-center hover:bg-[#25D366]/20 transition-colors"><i class="ph-fill ph-whatsapp-logo text-[#25D366] text-lg"></i></a>` : ''}
+                        ${!isCompleted && !isCancelled ? `<button onclick="cambiarEstadoCita('${cita.id}','Completada')" title="Marcar completada" class="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center hover:bg-emerald-500/20 transition-colors"><i class="ph-bold ph-check text-emerald-400 text-lg"></i></button>` : ''}
+                        ${!isCancelled ? `<button onclick="cambiarEstadoCita('${cita.id}','Cancelada')" title="Cancelar cita" class="w-9 h-9 rounded-xl bg-red-500/10 border border-red-500/30 flex items-center justify-center hover:bg-red-500/20 transition-colors"><i class="ph-bold ph-x text-red-400 text-lg"></i></button>` : ''}
+                        <span class="px-2 py-1 rounded-md bg-white/5 border border-white/10 text-[10px] font-bold uppercase ${isCompleted ? 'text-emerald-400' : isCancelled ? 'text-red-400' : 'text-white/60'}">
+                            ${isCompleted ? 'Listo' : isCancelled ? 'Anulada' : isConfirmed ? 'Conf' : 'Pend'}
+                        </span>
                     </div>
-                </div>
-                <div class="flex items-center gap-3">
-                    <span class="px-2 py-1 rounded-md bg-white/5 border border-white/10 text-[10px] font-bold text-white/60 uppercase">
-                        ${isConfirmed ? 'Conf' : 'Pend'}
-                    </span>
                 </div>
             </div>`;
+        }
+
+        async function cambiarEstadoCita(id, nuevoEstado) {
+            const labels = { 'Completada': 'marcar como completada', 'Cancelada': 'cancelar' };
+            if (!confirm(`¿${labels[nuevoEstado] || nuevoEstado} esta cita?`)) return;
+            try {
+                await db.collection('citas').doc(id).update({ estado: nuevoEstado });
+            } catch(e) {
+                alert('Error al actualizar la cita: ' + e.message);
+            }
         }
 
         function buildFreeSlot(time) {
