@@ -10,6 +10,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
   <link href="/output.css" rel="stylesheet">
+  <script defer src="/_vercel/insights/script.js"></script>
+  <script defer src="/_vercel/speed-insights/script.js"></script>
 
   <style>
     * { box-sizing: border-box; }
@@ -254,7 +256,7 @@
     </p>
   </div>
 
-  <!-- ── Tenant list ── -->
+  <!-- ─��� Tenant list ── -->
   <div style="width:100%; max-width:440px;">
 
     <!-- 𝐄𝐥𝐞𝐠𝐚𝐧𝐜𝐞 𝐛𝐚𝐫𝐛𝐞𝐫𝐬𝐡𝐨𝐩 card -->
@@ -797,7 +799,7 @@
       }
     }
 
-    // ── Auth check ────────────────────────────────────────────────────────────
+    // ── Auth check ──────────────────────────────────────────────────��─────────
     firebase.auth().onAuthStateChanged(async (user) => {
       if (user) {
         // Verificar rol admin (desarrollador)
