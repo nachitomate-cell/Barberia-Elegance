@@ -807,12 +807,14 @@
         btn.classList.add('bg-brand-neon/10');
 
       } else if (currentStep === 4) {
-        const nombre = document.getElementById('clientName').value;
-        const tel = document.getElementById('clientPhone').value;
+        const nombre = document.getElementById('clientName').value.trim();
+        const tel = document.getElementById('clientPhone').value.trim();
+        const email = document.getElementById('clientEmail').value.trim();
 
         const telDigitos = tel.replace(/\D/g, '');
-        if (!nombre || !tel) return alert("Por favor ingresa tus datos para la reserva.");
+        if (!nombre || !tel) return alert("Por favor ingresa tu nombre y teléfono para la reserva.");
         if (telDigitos.length < 9) return alert("Ingresa un número de teléfono válido (mínimo 9 dígitos).");
+        if (!email) return alert("Por favor ingresa tu correo electrónico para recibir la confirmación.");
 
         // ── Anti-spam: máx. 3 reservas en 24 h, y 1 por cada 30 min ──
         const SPAM_KEY = 'elegance_reservas_ts';
@@ -829,8 +831,7 @@
           return alert(`Espera ${mins} minuto${mins !== 1 ? 's' : ''} antes de realizar otra reserva.`);
         }
 
-        const email = document.getElementById('clientEmail').value.trim();
-
+        let citaGuardada = false;
         try {
           await FDB.addCita({
             fecha:            currentDateStr,
@@ -843,6 +844,7 @@
             barbero:          window._selectedBarber   || SHOP.barberos[0]?.nombre || '',
             barberoId:        window._selectedBarberId || null,
           });
+          citaGuardada = true;
         } catch(e) {
           // Fallback offline: guardar en localStorage
           console.warn('[Reservar] Sin conexión, guardando en localStorage:', e.message);
@@ -850,13 +852,17 @@
             fecha: currentDateStr, hora: selectedTimeStr,
             clienteNombre: nombre, clienteTelefono: tel, clienteEmail: email,
             servicioNombre: selectedServiceObj.nombre, duracionServicio: selectedServiceObj.duracion,
-            barbero: window._selectedBarber || SHOP.barberos[0]?.nombre || '',
+            barbero:   window._selectedBarber   || SHOP.barberos[0]?.nombre || '',
+            barberoId: window._selectedBarberId || null,
           });
+          citaGuardada = true; // Guardada localmente como fallback
         }
 
-        // Registrar timestamp de reserva exitosa
-        last24h.push(now);
-        localStorage.setItem(SPAM_KEY, JSON.stringify(last24h));
+        // Registrar timestamp solo si la reserva se guardó correctamente
+        if (citaGuardada) {
+          last24h.push(now);
+          localStorage.setItem(SPAM_KEY, JSON.stringify(last24h));
+        }
 
         document.getElementById('step4').classList.add('hidden');
         document.getElementById('footerContact').classList.add('hidden');
@@ -875,8 +881,19 @@
 
 
         const waMsg = `Hola ${SHOP.nombreCorto}! Acabo de agendar en su web. Soy ${nombre} y voy para un ${selectedServiceObj.nombre} a las ${selectedTimeStr} hrs el ${currentDateStr}. \n¿Todo ok? 💈`;
-        const numBarbero = (_fsConfig || {}).telefonoAdmin || DB.getSettings().telefonoAdmin || SHOP.telefono;
-        const limpio = String(numBarbero).replace(/\D/g, ''); // Quita símbolos, espacios, y el "+"
+        let numBarbero = SHOP.telefono;
+        try {
+          const bid = window._selectedBarberId;
+          if (bid) {
+            const bcfg = await FDB.getConfigBarbero(bid);
+            numBarbero = bcfg.telefonoAdmin || (_fsConfig || {}).telefonoAdmin || DB.getSettings().telefonoAdmin || SHOP.telefono;
+          } else {
+            numBarbero = (_fsConfig || {}).telefonoAdmin || DB.getSettings().telefonoAdmin || SHOP.telefono;
+          }
+        } catch(_) {
+          numBarbero = (_fsConfig || {}).telefonoAdmin || DB.getSettings().telefonoAdmin || SHOP.telefono;
+        }
+        const limpio = String(numBarbero).replace(/\D/g, '');
         const waLink = `https://wa.me/${limpio}?text=${encodeURIComponent(waMsg)}`;
         
         document.getElementById('waBtnLink').href = waLink;

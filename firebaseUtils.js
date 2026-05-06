@@ -566,6 +566,8 @@ const FDB = (() => {
           return docEmail === targetEmail;
         });
         if (doc) return true;
+
+        console.warn('[FDB] esBarbero: correo no encontrado o barbero inactivo:', email);
       }
       return false;
     } catch (e) {
