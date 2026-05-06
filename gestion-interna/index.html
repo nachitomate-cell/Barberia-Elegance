@@ -603,7 +603,7 @@
         window.INITIAL_TAB = 'tab-clientes';
         window.INITIAL_CLIENT_UID = path.replace('/gestion-interna/clientes/', '');
       } else if (path === '/gestion-interna' || path === '/gestion-interna/') {
-        window.INITIAL_TAB = 'tab-agenda-equipo';
+        window.INITIAL_TAB = 'tab-home';
       }
 
       let tenant = null;
@@ -714,8 +714,17 @@
         <!-- ── Navegación principal ── -->
         <nav class="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">
 
+          <a href="/gestion-interna/" data-tab="tab-home"
+            onclick="event.preventDefault(); closeSidebar(); openTab('tab-home',this)"
+            class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 min-h-[44px] rounded-xl font-medium text-sm transition-all text-gray-400">
+            <span class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
+              <i class="ph-fill ph-house text-base"></i>
+            </span>
+            <span class="flex-1 text-left">Inicio</span>
+          </a>
+
           <!-- Sección Agenda -->
-          <p class="text-[9px] font-black text-gray-600 uppercase tracking-[0.15em] px-3 pt-1 pb-2">Agenda</p>
+          <p class="text-[9px] font-black text-gray-600 uppercase tracking-[0.15em] px-3 pt-3 pb-2">Agenda</p>
 
           <a href="/gestion-interna/agenda" data-tab="tab-citas"
             onclick="event.preventDefault(); closeSidebar(); openTab('tab-citas',this)"
@@ -866,6 +875,100 @@
   ══════════════════════════════════════ -->
       <main class="flex-1 h-full overflow-y-auto w-full px-4 py-6 lg:px-10 lg:py-10 md:pt-10 max-w-5xl mx-auto"
         style="padding-top: max(calc(env(safe-area-inset-top) + 5rem), 5rem);">
+
+        <!-- ══════════════════ TAB HOME ══════════════════ -->
+        <div id="tab-home" class="tab-content hidden">
+          <div class="max-w-2xl mx-auto">
+
+            <div class="mb-8">
+              <h2 class="text-2xl font-black text-white">Bienvenido al Panel Admin</h2>
+              <p class="text-sm text-white/40 mt-1">Selecciona una sección para comenzar a gestionar la barbería.</p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+              <div class="rounded-2xl p-5 cursor-pointer hover:bg-white/[0.07] transition-colors border border-white/8 bg-white/4"
+                onclick="openTab('tab-agenda-equipo', document.querySelector('[data-tab=tab-agenda-equipo]'))">
+                <div class="flex items-center gap-3 mb-3">
+                  <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+                    <i class="ph-fill ph-calendar-check text-emerald-400 text-lg"></i>
+                  </div>
+                  <h3 class="font-bold text-white">Agenda del equipo</h3>
+                </div>
+                <p class="text-xs text-white/40 leading-relaxed">Vista de todas las citas del día por barbero. Filtra por fecha y sigue el estado en tiempo real.</p>
+              </div>
+
+              <div class="rounded-2xl p-5 cursor-pointer hover:bg-white/[0.07] transition-colors border border-white/8 bg-white/4"
+                onclick="openTab('tab-clientes', document.querySelector('[data-tab=tab-clientes]'))">
+                <div class="flex items-center gap-3 mb-3">
+                  <div class="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
+                    <i class="ph-fill ph-users text-blue-400 text-lg"></i>
+                  </div>
+                  <h3 class="font-bold text-white">Clientes</h3>
+                </div>
+                <p class="text-xs text-white/40 leading-relaxed">Base de datos de clientes. Busca por nombre o teléfono, revisa historial de citas y puntos acumulados.</p>
+              </div>
+
+              <div class="rounded-2xl p-5 cursor-pointer hover:bg-white/[0.07] transition-colors border border-white/8 bg-white/4"
+                onclick="openTab('tab-servicios', document.querySelector('[data-tab=tab-servicios]'))">
+                <div class="flex items-center gap-3 mb-3">
+                  <div class="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shrink-0">
+                    <i class="ph-fill ph-scissors text-purple-400 text-lg"></i>
+                  </div>
+                  <h3 class="font-bold text-white">Servicios</h3>
+                </div>
+                <p class="text-xs text-white/40 leading-relaxed">Administra el catálogo: nombre, precio, duración y disponibilidad para reserva online.</p>
+              </div>
+
+              <div class="rounded-2xl p-5 cursor-pointer hover:bg-white/[0.07] transition-colors border border-white/8 bg-white/4"
+                onclick="openTab('tab-barberos', document.querySelector('[data-tab=tab-barberos]'))">
+                <div class="flex items-center gap-3 mb-3">
+                  <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
+                    <i class="ph-fill ph-identification-badge text-amber-400 text-lg"></i>
+                  </div>
+                  <h3 class="font-bold text-white">Equipo</h3>
+                </div>
+                <p class="text-xs text-white/40 leading-relaxed">Gestiona los barberos: crea cuentas, asigna roles, configura horarios y bloqueos.</p>
+              </div>
+
+              <div class="rounded-2xl p-5 cursor-pointer hover:bg-white/[0.07] transition-colors border border-white/8 bg-white/4"
+                onclick="openTab('tab-premios', document.querySelector('[data-tab=tab-premios]'))">
+                <div class="flex items-center gap-3 mb-3">
+                  <div class="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center shrink-0">
+                    <i class="ph-fill ph-star text-rose-400 text-lg"></i>
+                  </div>
+                  <h3 class="font-bold text-white">Premios del Club</h3>
+                </div>
+                <p class="text-xs text-white/40 leading-relaxed">Programa de fidelización. Crea premios canjeables por puntos y gestiona los canjes.</p>
+              </div>
+
+              <div class="rounded-2xl p-5 cursor-pointer hover:bg-white/[0.07] transition-colors border border-white/8 bg-white/4"
+                onclick="openTab('tab-lookbook', document.querySelector('[data-tab=tab-lookbook]'))">
+                <div class="flex items-center gap-3 mb-3">
+                  <div class="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shrink-0">
+                    <i class="ph-fill ph-images text-indigo-400 text-lg"></i>
+                  </div>
+                  <h3 class="font-bold text-white">Lookbook</h3>
+                </div>
+                <p class="text-xs text-white/40 leading-relaxed">Galería de trabajos del equipo. Las fotos aparecen en el portal de reservas públicas.</p>
+              </div>
+
+              <div class="sm:col-span-2 rounded-2xl p-5 cursor-pointer hover:bg-white/[0.07] transition-colors border border-white/8 bg-white/4"
+                onclick="openTab('tab-config', document.querySelector('[data-tab=tab-config]'))">
+                <div class="flex items-center gap-3 mb-3">
+                  <div class="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
+                    <i class="ph-fill ph-gear text-white/50 text-lg"></i>
+                  </div>
+                  <h3 class="font-bold text-white">Configuración</h3>
+                </div>
+                <p class="text-xs text-white/40 leading-relaxed">Ajustes generales del negocio: horarios de apertura, intervalo entre citas, colación y datos del local.</p>
+              </div>
+
+            </div>
+
+            <p class="text-center text-[10px] text-white/15 mt-10">Elegance Barbershop · Panel Admin · Synaptech SPA</p>
+          </div>
+        </div>
 
         <!-- ══════════════════ TAB 1: CITAS ══════════════════ -->
         <div id="tab-citas" class="tab-content block">
