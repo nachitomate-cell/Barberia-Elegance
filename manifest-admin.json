@@ -2,7 +2,7 @@
   "name": "Panel Administrativo — Elegance",
   "short_name": "Admin Elegance",
   "description": "Panel de administración de Elegance Barbershop",
-  "start_url": "/gestion-interna/",
+  "start_url": "/gestion-interna/login/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",

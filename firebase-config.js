@@ -16,6 +16,7 @@ if (!firebase.apps.length) {
 }
 
 const auth    = firebase.auth();
+auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(() => {});
 const db      = firebase.firestore();
 let storage;
 try {
