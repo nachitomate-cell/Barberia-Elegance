@@ -1,6 +1,6 @@
 // db.js - Persistencia y Lógica de Negocio
 const defaultSettings = {
-    horarioInicio: "10:00",
+    horarioInicio: "09:00",
     horarioFin: "20:00",
     intervaloMinutos: 30,
     diasLaborales: [0, 1, 2, 3, 4, 5, 6], // Dom a Sab
@@ -21,7 +21,7 @@ function initDatabase() {
     const currentSettings = JSON.parse(localStorage.getItem('barber_settings') || '{}');
     
     // Forzamos el nuevo horario para que aplique incluso si había caché local preexistente
-    currentSettings.horarioInicio = "10:00";
+    currentSettings.horarioInicio = "09:00";
     currentSettings.horarioFin = "20:00";
 
     localStorage.setItem('barber_settings', JSON.stringify({ ...defaultSettings, ...currentSettings }));

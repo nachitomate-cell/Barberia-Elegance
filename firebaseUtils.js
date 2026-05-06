@@ -160,7 +160,7 @@ const FDB = (() => {
     }
   }
 
-  async function addServicio({ nombre, precio, duracion, categoria }) {
+  async function addServicio({ nombre, precio, duracion, categoria, icono }) {
     // Calcular el siguiente orden
     const snap = await db.collection(COL.SERVICIOS).orderBy('orden', 'desc').limit(1).get();
     const nextOrden = snap.empty ? 0 : (snap.docs[0].data().orden || 0) + 1;
@@ -169,6 +169,7 @@ const FDB = (() => {
       precio:   Number(precio),
       duracion: Number(duracion),
       categoria: categoria || 'Otro',
+      icono:    icono || 'ph-scissors',
       orden:    nextOrden,
       activo:   true,
     });

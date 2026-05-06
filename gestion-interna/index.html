@@ -655,7 +655,6 @@
         '/gestion-interna/agenda': 'tab-citas',
         '/gestion-interna/agenda/': 'tab-agenda-equipo',
         '/gestion-interna/servicios': 'tab-servicios',
-        '/gestion-interna/configuracion': 'tab-config',
         '/gestion-interna/clientes': 'tab-clientes',
         '/gestion-interna/lookbook': 'tab-lookbook',
         '/gestion-interna/barberos': 'tab-barberos',
@@ -852,14 +851,6 @@
             <span class="flex-1 text-left">Equipo</span>
           </a>
 
-          <a href="/gestion-interna/configuracion" data-tab="tab-config"
-            onclick="event.preventDefault(); closeSidebar(); openTab('tab-config',this)"
-            class="admin-only nav-btn w-full flex items-center gap-3 px-3 py-2.5 min-h-[44px] rounded-xl font-medium text-sm transition-all text-gray-400">
-            <span class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
-              <i class="ph ph-gear text-base"></i>
-            </span>
-            <span class="flex-1 text-left">Configuración</span>
-          </a>
 
           <!-- Separador -->
           <div class="pt-3 border-t border-admin-border mx-1 mt-2"></div>
@@ -1176,6 +1167,18 @@
                   <option value="Extras">Extras</option>
                   <option value="Otro">Otro</option>
                 </select>
+                <!-- Icon picker -->
+                <input type="hidden" id="ns-icono" value="ph-scissors">
+                <div>
+                  <label class="block text-xs font-bold text-gray-400 mb-2">Ícono</label>
+                  <button type="button" onclick="toggleIconPicker('ns')"
+                    class="flex items-center gap-3 w-full bg-admin-bg border border-admin-border rounded-xl px-4 py-3 text-sm text-white hover:border-admin-accent/50 transition-colors">
+                    <i id="ns-icono-preview" class="ph ph-scissors text-xl text-admin-accent"></i>
+                    <span class="text-gray-400 text-xs">Elegir ícono</span>
+                    <i class="ph ph-caret-down text-gray-500 ml-auto text-xs"></i>
+                  </button>
+                  <div id="ns-icon-picker" class="hidden mt-2 bg-admin-bg border border-admin-border rounded-xl p-3 grid grid-cols-8 gap-1.5"></div>
+                </div>
                 <button onclick="crearServicio()"
                   class="w-full bg-admin-accent text-admin-bg font-bold py-3 rounded-xl hover:bg-emerald-300 transition-colors text-sm">
                   Guardar Servicio
@@ -1198,41 +1201,35 @@
             </button>
           </div>
 
+          <!-- WhatsApp del local -->
+          <div class="bg-admin-card border border-admin-border rounded-2xl p-5 mb-6">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                style="background:rgba(37,211,102,0.1);border:1px solid rgba(37,211,102,0.2);">
+                <i class="ph-fill ph-whatsapp-logo text-lg" style="color:#25D366;"></i>
+              </div>
+              <div>
+                <p class="font-bold text-sm text-white">WhatsApp del local</p>
+                <p class="text-xs text-gray-500">Número al que llegan las confirmaciones de reserva</p>
+              </div>
+            </div>
+            <div class="flex gap-2">
+              <input type="tel" id="wsp-local-input" placeholder="56912345678"
+                class="flex-1 bg-admin-bg border border-admin-border rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-admin-accent placeholder-gray-600">
+              <button onclick="guardarWspLocal()"
+                class="bg-admin-accent text-admin-bg font-bold px-5 py-3 rounded-xl hover:bg-emerald-300 transition-colors text-sm flex items-center gap-2 whitespace-nowrap">
+                <i class="ph-bold ph-check"></i> Guardar
+              </button>
+            </div>
+            <p class="text-[10px] text-gray-600 mt-2">Solo números sin +, espacios ni guiones · Ej: 56912345678</p>
+          </div>
+
           <!-- Grid de barberos -->
           <div id="barberosAdminGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             <div class="col-span-full flex items-center justify-center py-16 text-gray-600">
               <i class="ph ph-spinner animate-spin text-3xl mr-3"></i> Cargando...
             </div>
           </div>
-        </div>
-        <div id="tab-config" class="tab-content hidden">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-            <div>
-              <h2 class="text-2xl font-bold tracking-tight">Configuración</h2>
-              <p class="text-sm text-gray-500 mt-1">Ajustes individuales de horario y disponibilidad por barbero.</p>
-            </div>
-            <div
-              class="flex items-center gap-3 bg-admin-card border border-admin-border rounded-2xl px-4 py-3 shrink-0">
-              <i class="ph-fill ph-user-circle text-admin-accent text-xl"></i>
-              <div>
-                <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Configurando a</p>
-                <select id="config-barbero-select" onchange="cambiarBarberoConfig(this.value)"
-                  class="bg-transparent text-white text-sm font-bold focus:outline-none"
-                  style="color-scheme:dark; min-width: 140px;">
-                  <option value="">Cargando...</option>
-                </select>
-              </div>
-            </div>
-          </div>
-          <div id="config-barbero-body" class="space-y-5">
-            <div class="flex items-center justify-center py-20 text-gray-600 gap-3">
-              <i class="ph ph-spinner animate-spin text-3xl"></i>
-              <p class="text-sm">Selecciona un barbero para editar su configuración.</p>
-            </div>
-          </div>
-
-
-
         </div>
 
         <!-- ══════════════════ TAB: PREMIOS ══════════════════ -->
@@ -1704,6 +1701,18 @@
               <option value="Otro">Otro</option>
             </select>
           </div>
+          <!-- Icon picker (edit) -->
+          <input type="hidden" id="edit-srv-icono" value="ph-scissors">
+          <div>
+            <label class="block text-xs font-bold text-gray-400 mb-2">Ícono</label>
+            <button type="button" onclick="toggleIconPicker('edit-srv')"
+              class="flex items-center gap-3 w-full bg-admin-bg border border-admin-border rounded-xl px-4 py-3 text-sm text-white hover:border-admin-accent/50 transition-colors">
+              <i id="edit-srv-icono-preview" class="ph ph-scissors text-xl text-admin-accent"></i>
+              <span class="text-gray-400 text-xs">Elegir ícono</span>
+              <i class="ph ph-caret-down text-gray-500 ml-auto text-xs"></i>
+            </button>
+            <div id="edit-srv-icon-picker" class="hidden mt-2 bg-admin-bg border border-admin-border rounded-xl p-3 grid grid-cols-8 gap-1.5"></div>
+          </div>
           <div class="flex justify-end gap-3 pt-2 border-t border-admin-border">
             <button onclick="closeEditModal()"
               class="text-gray-400 font-bold px-5 py-3 rounded-xl hover:text-white text-sm">Cancelar</button>
@@ -1911,12 +1920,6 @@
           <span>Barberos</span>
         </button>
 
-        <!-- Config -->
-        <button onclick="closeSidebar(); openTab('tab-config', document.querySelector('[data-tab=tab-config]'))"
-          class="mob-nav-btn admin-only" id="mobNav-tab-config">
-          <i class="ph ph-gear"></i>
-          <span>Config</span>
-        </button>
 
       </nav>
     </div>
@@ -2038,7 +2041,6 @@
             'tab-citas': 'agenda',
             'tab-agenda-equipo': 'agenda/',
             'tab-servicios': 'servicios',
-            'tab-config': 'configuracion',
             'tab-clientes': 'clientes',
             'tab-lookbook': 'lookbook',
             'tab-barberos': 'barberos',
@@ -2052,7 +2054,6 @@
 
         if (id === 'tab-clientes') cargarClientes();
         if (id === 'tab-barberos') cargarBarberos();
-        if (id === 'tab-config') populateBarberConfigSelector();
         if (id === 'tab-agenda-equipo') initAgendaEquipo();
       }
 
@@ -2501,8 +2502,8 @@
         document.getElementById('blq-todo-dia').checked = false;
         document.getElementById('blq-motivo').value = '';
         document.getElementById('blq-horario-row').classList.remove('hidden');
-        buildTimeOptions('blq-inicio', '13:00');
-        buildTimeOptions('blq-fin', '14:00');
+        _bshTimeOptions('blq-inicio', '13:00');
+        _bshTimeOptions('blq-fin', '14:00');
         document.getElementById('bloqueoModal').classList.replace('hidden', 'flex');
       }
 
@@ -2588,6 +2589,9 @@
           const catBadge = s.categoria ? `<span class="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-admin-bg text-gray-400 border-admin-border ml-2">${s.categoria}</span>` : `<span class="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-admin-bg text-gray-400 border-admin-border ml-2">Otro</span>`;
           card.innerHTML = `
       <div class="text-gray-600 px-1 shrink-0 select-none" title="Arrastrar"><i class="ph ph-dots-six-vertical text-2xl"></i></div>
+      <div class="w-9 h-9 rounded-xl bg-admin-accent/10 border border-admin-accent/20 flex items-center justify-center shrink-0">
+        <i class="ph ${s.icono || 'ph-scissors'} text-lg text-admin-accent"></i>
+      </div>
       <div class="flex-1 min-w-0">
         <h4 class="font-bold text-white text-sm flex items-center">${s.nombre} ${catBadge}</h4>
         <p class="text-xs text-gray-400 mt-0.5">$${s.precio.toLocaleString('es-CL')} · ${s.duracion} min</p>
@@ -2614,19 +2618,70 @@
         });
       }
 
+      // ── Icon picker para servicios ──────────────────────────────────────
+      const _SRV_ICONS = [
+        'ph-scissors','ph-user-focus','ph-mask-happy','ph-magic-wand',
+        'ph-sparkle','ph-star','ph-crown','ph-fire',
+        'ph-drop','ph-wave','ph-lightning','ph-paint-brush',
+        'ph-gift','ph-eye','ph-smiley','ph-flower',
+        'ph-leaf','ph-diamond','ph-trophy','ph-confetti',
+        'ph-clock','ph-sun','ph-moon','ph-wind'
+      ];
+
+      function _initIconPickers() {
+        ['ns', 'edit-srv'].forEach(prefix => {
+          const container = document.getElementById(prefix + '-icon-picker');
+          if (!container || container.childElementCount) return;
+          _SRV_ICONS.forEach(ic => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.dataset.icon = ic;
+            btn.title = ic.replace('ph-', '');
+            btn.className = 'icon-pick-btn w-9 h-9 rounded-lg border border-admin-border flex items-center justify-center hover:border-admin-accent/50 transition-colors';
+            btn.innerHTML = `<i class="ph ${ic} text-base text-gray-400"></i>`;
+            btn.onclick = () => selectIcon(prefix, ic);
+            container.appendChild(btn);
+          });
+        });
+      }
+
+      function toggleIconPicker(prefix) {
+        _initIconPickers();
+        const picker = document.getElementById(prefix + '-icon-picker');
+        picker.classList.toggle('hidden');
+      }
+
+      function selectIcon(prefix, iconName) {
+        document.getElementById(prefix + '-icono').value = iconName;
+        const preview = document.getElementById(prefix + '-icono-preview');
+        if (preview) preview.className = `ph ${iconName} text-xl text-admin-accent`;
+        document.getElementById(prefix + '-icon-picker').classList.add('hidden');
+        document.querySelectorAll(`#${prefix}-icon-picker .icon-pick-btn`).forEach(btn => {
+          const active = btn.dataset.icon === iconName;
+          btn.classList.toggle('border-admin-accent', active);
+          btn.classList.toggle('bg-admin-accent/10', active);
+          btn.classList.toggle('border-admin-border', !active);
+          btn.querySelector('i').className = `ph ${btn.dataset.icon} text-base ${active ? 'text-admin-accent' : 'text-gray-400'}`;
+        });
+      }
+
       async function crearServicio() {
         const nom = document.getElementById('ns-nombre').value.trim();
         const pre = parseInt(document.getElementById('ns-precio').value);
         const dur = parseInt(document.getElementById('ns-duracion').value);
         const cat = document.getElementById('ns-categoria').value;
-        if (!nom || !pre || !dur) return alert('Rellena todos los campos.');
+        const ico = document.getElementById('ns-icono').value || 'ph-scissors';
+        if (!nom) return alert('El nombre del servicio es obligatorio.');
+        if (!pre || pre <= 0) return alert('El precio debe ser mayor a $0.');
+        if (!dur || dur <= 0) return alert('La duración debe ser mayor a 0 minutos.');
         try {
-          await FDB.addServicio({ nombre: nom, precio: pre, duracion: dur, categoria: cat });
+          await FDB.addServicio({ nombre: nom, precio: pre, duracion: dur, categoria: cat, icono: ico });
           // onSnapshot actualiza _serviciosCache y llama loadServicesAdmin automáticamente
           document.getElementById('ns-nombre').value = '';
           document.getElementById('ns-precio').value = '';
           document.getElementById('ns-duracion').value = '';
           document.getElementById('ns-categoria').value = 'Cortes';
+          selectIcon('ns', 'ph-scissors');
         } catch (e) { alert('Error al crear servicio: ' + e.message); }
       }
 
@@ -2645,331 +2700,31 @@
         document.getElementById('edit-srv-precio').value = s.precio;
         document.getElementById('edit-srv-duracion').value = s.duracion;
         document.getElementById('edit-srv-categoria').value = s.categoria || 'Otro';
+        selectIcon('edit-srv', s.icono || 'ph-scissors');
         document.getElementById('editServiceModal').classList.replace('hidden', 'flex');
       }
-      function closeEditModal() { document.getElementById('editServiceModal').classList.replace('flex', 'hidden'); }
+      function closeEditModal() {
+        document.getElementById('editServiceModal').classList.replace('flex', 'hidden');
+        document.getElementById('edit-srv-icon-picker').classList.add('hidden');
+      }
       async function guardarEdicionServicio() {
         const id = document.getElementById('edit-srv-id').value;
         const nom = document.getElementById('edit-srv-nombre').value.trim();
         const pre = parseInt(document.getElementById('edit-srv-precio').value);
         const dur = parseInt(document.getElementById('edit-srv-duracion').value);
         const cat = document.getElementById('edit-srv-categoria').value;
-        if (!nom || !pre || !dur) return alert('Completa todos los campos.');
+        const ico = document.getElementById('edit-srv-icono').value || 'ph-scissors';
+        if (!nom) return alert('El nombre del servicio es obligatorio.');
+        if (!pre || pre <= 0) return alert('El precio debe ser mayor a $0.');
+        if (!dur || dur <= 0) return alert('La duración debe ser mayor a 0 minutos.');
         try {
-          await FDB.updateServicio(id, { nombre: nom, precio: pre, duracion: dur, categoria: cat });
+          await FDB.updateServicio(id, { nombre: nom, precio: pre, duracion: dur, categoria: cat, icono: ico });
           closeEditModal();
           // onSnapshot actualiza la lista automáticamente
         } catch (e) { alert('Error al guardar: ' + e.message); }
       }
 
       // ══════════════════════════════════════════════════════════════
-      //  TAB 3 · CONFIGURACIÓN
-      // ══════════════════════════════════════════════════════════════
-      function buildTimeOptions(selId, selected) {
-        const el = document.getElementById(selId); if (!el) return; el.innerHTML = '';
-        for (let h = 6; h <= 23; h++) for (let m = 0; m < 60; m += 30) { const t = minsToTime(h * 60 + m); el.innerHTML += `<option value="${t}"${t === selected ? ' selected' : ''}>${t}</option>`; }
-      }
-
-      function loadConfig() {
-        const set = _configCache || {};
-        document.getElementById('config-intervalo').value = set.intervaloMinutos.toString();
-        const TEL_REAL = '56994269228';
-        const TEL_PLACEHOLDER = '56900000000';
-        const telGuardado = set.telefonoAdmin || '';
-        // Si está vacío o es el placeholder de ejemplo, forzar el número real
-        const telFinal = (!telGuardado || telGuardado === TEL_PLACEHOLDER) ? TEL_REAL : telGuardado;
-        document.getElementById('config-tel').value = telFinal;
-        if (telFinal !== telGuardado) FDB.updateConfig({ telefonoAdmin: telFinal });
-        buildTimeOptions('break-inicio', colacion?.inicio || '14:00');
-        buildTimeOptions('break-fin', colacion?.fin || '15:00');
-        if (colacion) document.getElementById('colacionStatus').textContent = `Colación activa: ${colacion.inicio} – ${colacion.fin}`;
-        renderBlockedDates();
-
-        const daysDiv = document.getElementById('configDaysDiv'); daysDiv.innerHTML = '';
-        for (let i = 0; i < 7; i++) {
-          const dc = (fsSettings.diasConfig || {})[i] || {};
-          const activo = set.diasLaborales.includes(i);
-          const ini = dc.inicio || set.horarioInicio || '09:00';
-          const fin = dc.fin || set.horarioFin || '20:00';
-          const row = document.createElement('div');
-          row.className = 'rounded-xl border border-admin-border bg-admin-bg overflow-hidden';
-          row.innerHTML = `
-      <label class="flex items-center justify-between cursor-pointer px-5 py-4">
-        <span class="text-white font-semibold text-sm">${DAY_NAMES[i]}</span>
-        <div class="relative flex items-center">
-          <input type="checkbox" class="sr-only"${activo ? ' checked' : ''} onchange="toggleDayRow(${i},this)">
-          <div class="toggle-track w-11 h-6 rounded-full ${activo ? 'bg-admin-accent' : 'bg-gray-600'} relative">
-            <div class="toggle-thumb absolute left-1 top-1 w-4 h-4 rounded-full bg-white${activo ? ' translate-x-5' : ''}"></div>
-          </div>
-        </div>
-      </label>
-      <div id="dayhours-${i}" class="${activo ? '' : 'hidden'} px-5 pb-4 flex flex-wrap gap-3 border-t border-admin-border/50">
-        <div><label class="block text-[10px] font-bold text-gray-500 mb-1 uppercase tracking-widest">Apertura</label>
-          <select id="day-inicio-${i}" onchange="guardarHorarioDia(${i})" class="bg-admin-card border border-admin-border rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-admin-accent" style="color-scheme:dark;"></select></div>
-        <div><label class="block text-[10px] font-bold text-gray-500 mb-1 uppercase tracking-widest">Cierre</label>
-          <select id="day-fin-${i}" onchange="guardarHorarioDia(${i})" class="bg-admin-card border border-admin-border rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-admin-accent" style="color-scheme:dark;"></select></div>
-      </div>`;
-          daysDiv.appendChild(row);
-          buildTimeOptions(`day-inicio-${i}`, ini);
-          buildTimeOptions(`day-fin-${i}`, fin);
-        }
-      }
-
-      function toggleDayRow(ix, inp) {
-        const cfg = _configCache || {};
-        let cur = [...(cfg.diasLaborales || [1, 2, 3, 4, 5, 6])];
-        if (inp.checked) { if (!cur.includes(ix)) cur.push(ix); } else { cur = cur.filter(x => x !== ix); }
-        FDB.updateConfig({ diasLaborales: cur });
-        document.getElementById(`dayhours-${ix}`).classList.toggle('hidden', !inp.checked);
-        const track = inp.nextElementSibling; const thumb = track.querySelector('.toggle-thumb');
-        track.style.backgroundColor = inp.checked ? '#34D399' : '';
-        thumb.style.transform = inp.checked ? 'translateX(1.25rem)' : '';
-      }
-      // ── Estado actual de configuración por barbero ──
-      let _currentBarberoConfigId = null;
-      let _barberConfigCache = {};
-      let _barberConfigUnsub = null;
-
-      async function populateBarberConfigSelector() {
-        const sel = document.getElementById('config-barbero-select');
-        if (!sel) return;
-
-        try {
-          // Preferir caché local ya cargado por cargarBarberos()
-          let barberos = (typeof _barberosCache !== 'undefined' && _barberosCache.length)
-            ? _barberosCache
-            : null;
-
-          // Si el caché aún no está listo, consultar Firestore directamente
-          if (!barberos) {
-            const snap = await db.collection('barberos').get();
-            barberos = snap.docs.map(d => {
-              const data = d.data();
-              const nombre = data.nombre || data.displayName || (data.email ? data.email.split('@')[0] : 'Barbero');
-              return { id: d.id, nombre, ...data };
-            });
-          }
-
-          // Excluir barberos desactivados y con rol admin
-          barberos = barberos.filter(b => b.activo !== false && b.rol !== 'admin');
-
-          if (!barberos.length) {
-            sel.innerHTML = '<option value="">Sin barberos configurables</option>';
-            return;
-          }
-
-          sel.innerHTML = barberos.map(b =>
-            `<option value="${b.id}">${b.nombre || b.id}</option>`
-          ).join('');
-
-          // Seleccionar el primero automáticamente
-          cambiarBarberoConfig(barberos[0].id);
-        } catch (e) {
-          console.error('[Config] Error al cargar selector de barberos:', e);
-          sel.innerHTML = '<option value="">Error al cargar</option>';
-        }
-      }
-
-      function cambiarBarberoConfig(barberoid) {
-        if (!barberoid) return;
-        _currentBarberoConfigId = barberoid;
-
-        // Desuscribir listener anterior
-        if (_barberConfigUnsub) { _barberConfigUnsub(); _barberConfigUnsub = null; }
-
-        // Suscribir al nuevo barbero en tiempo real
-        _barberConfigUnsub = FDB.onConfigBarberoChange(barberoid, cfg => {
-          _barberConfigCache = cfg;
-          renderBarberConfigBody(cfg, barberoid);
-        });
-      }
-
-      function renderBarberConfigBody(cfg, barberoid) {
-        const body = document.getElementById('config-barbero-body');
-        if (!body) return;
-        const set = cfg || {};
-
-        body.innerHTML = `
-          <div class="bg-admin-card border border-admin-border rounded-2xl p-6">
-            <h3 class="font-bold mb-1 flex items-center gap-2">
-              <i class="ph ph-calendar-blank text-admin-accent"></i> Horario por Día
-            </h3>
-            <p class="text-sm text-gray-500 mb-5">Activa cada día para definir su horario individual.</p>
-            <div id="configDaysDiv" class="space-y-2"></div>
-          </div>
-
-          <div class="bg-admin-card border border-admin-border rounded-2xl p-6">
-            <h3 class="font-bold mb-1 flex items-center gap-2">
-              <i class="ph ph-coffee text-indigo-400"></i> Hora de Colación
-            </h3>
-            <p class="text-sm text-gray-500 mb-5">Bloque de descanso bloqueado en el calendario.</p>
-            <div class="flex flex-wrap gap-3 items-end">
-              <div>
-                <label class="block text-xs font-bold text-gray-400 mb-2">Inicio</label>
-                <select id="break-inicio" class="bg-admin-bg border border-admin-border rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-admin-accent" style="color-scheme:dark;"></select>
-              </div>
-              <div>
-                <label class="block text-xs font-bold text-gray-400 mb-2">Fin</label>
-                <select id="break-fin" class="bg-admin-bg border border-admin-border rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-admin-accent" style="color-scheme:dark;"></select>
-              </div>
-              <button onclick="guardarColacion()" class="bg-admin-accent text-admin-bg font-bold px-5 py-3 rounded-xl hover:bg-emerald-300 transition-colors text-sm">Guardar</button>
-              <button onclick="quitarColacion()" class="bg-red-500/10 border border-red-500/30 text-red-400 font-bold px-5 py-3 rounded-xl hover:bg-red-500/20 transition-colors text-sm">Quitar</button>
-            </div>
-            <p id="colacionStatus" class="text-xs text-gray-500 mt-3"></p>
-          </div>
-
-          <div class="bg-admin-card border border-admin-border rounded-2xl p-6">
-            <h3 class="font-bold mb-1 flex items-center gap-2">
-              <i class="ph ph-prohibit text-red-400"></i> Fechas Bloqueadas
-            </h3>
-            <p class="text-sm text-gray-500 mb-5">Días sin reservas (feriados, vacaciones, etc.).</p>
-            <div class="flex gap-3 mb-4">
-              <input type="date" id="newBlockedDate"
-                class="flex-1 bg-admin-bg border border-admin-border rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-admin-accent"
-                style="color-scheme:dark;">
-              <button onclick="agregarFechaBloqueada()" class="bg-admin-accent text-admin-bg font-bold px-5 py-3 rounded-xl hover:bg-emerald-300 transition-colors text-sm whitespace-nowrap">Bloquear</button>
-            </div>
-            <div id="blockedDatesList" class="space-y-2"></div>
-          </div>
-
-          <div class="grid sm:grid-cols-2 gap-5">
-            <div class="bg-admin-card border border-admin-border rounded-2xl p-6">
-              <h3 class="font-bold mb-1 flex items-center gap-2"><i class="ph ph-clock text-admin-accent"></i> Intervalo</h3>
-              <p class="text-sm text-gray-500 mb-4">Bloques mínimos entre citas.</p>
-              <select id="config-intervalo" onchange="guardarIntervalo()" class="w-full bg-admin-bg border border-admin-border rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-admin-accent">
-                <option value="30">30 minutos</option>
-                <option value="60">60 minutos</option>
-              </select>
-            </div>
-            <div class="bg-admin-card border border-admin-border rounded-2xl p-6">
-              <h3 class="font-bold mb-1 flex items-center gap-2"><i class="ph ph-whatsapp-logo text-[#25D366]"></i> WhatsApp</h3>
-              <p class="text-sm text-gray-500 mb-4">Número para confirmaciones.</p>
-              <div class="flex gap-2">
-                <input type="text" id="config-tel" class="flex-1 bg-admin-bg border border-admin-border rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-admin-accent">
-                <button onclick="guardarTelefono()" class="bg-admin-accent text-admin-bg font-bold px-4 py-3 rounded-xl hover:bg-emerald-300 text-sm">OK</button>
-              </div>
-            </div>
-          </div>
-        `;
-
-        // Poblar selects
-        buildTimeOptions('break-inicio', set.colacion?.inicio || '14:00');
-        buildTimeOptions('break-fin', set.colacion?.fin || '15:00');
-        if (set.colacion) {
-          document.getElementById('colacionStatus').textContent = `Colación activa: ${set.colacion.inicio} – ${set.colacion.fin}`;
-        }
-        document.getElementById('config-tel').value = set.telefonoAdmin || '';
-        document.getElementById('config-intervalo').value = String(set.intervaloMinutos || 30);
-        renderBlockedDates();
-
-        // Horario por día
-        const daysDiv = document.getElementById('configDaysDiv');
-        daysDiv.innerHTML = '';
-        for (let i = 0; i < 7; i++) {
-          const dc = (set.diasConfig || {})[i] || {};
-          const activo = (set.diasLaborales || [1, 2, 3, 4, 5, 6]).includes(i);
-          const ini = dc.inicio || set.horarioInicio || '09:00';
-          const fin = dc.fin || set.horarioFin || '20:00';
-          const row = document.createElement('div');
-          row.className = 'rounded-xl border border-admin-border bg-admin-bg overflow-hidden';
-          row.innerHTML = `
-      <label class="flex items-center justify-between cursor-pointer px-5 py-4">
-        <span class="text-white font-semibold text-sm">${DAY_NAMES[i]}</span>
-        <div class="relative flex items-center">
-          <input type="checkbox" class="sr-only"${activo ? ' checked' : ''} onchange="toggleDayRow(${i},this)">
-          <div class="toggle-track w-11 h-6 rounded-full ${activo ? 'bg-admin-accent' : 'bg-gray-600'} relative">
-            <div class="toggle-thumb absolute left-1 top-1 w-4 h-4 rounded-full bg-white${activo ? ' translate-x-5' : ''}"></div>
-          </div>
-        </div>
-      </label>
-      <div id="dayhours-${i}" class="${activo ? '' : 'hidden'} px-5 pb-4 flex flex-wrap gap-3 border-t border-admin-border/50">
-        <div><label class="block text-[10px] font-bold text-gray-500 mb-1 uppercase tracking-widest">Apertura</label>
-          <select id="day-inicio-${i}" onchange="guardarHorarioDia(${i})" class="bg-admin-card border border-admin-border rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-admin-accent" style="color-scheme:dark;"></select></div>
-        <div><label class="block text-[10px] font-bold text-gray-500 mb-1 uppercase tracking-widest">Cierre</label>
-          <select id="day-fin-${i}" onchange="guardarHorarioDia(${i})" class="bg-admin-card border border-admin-border rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-admin-accent" style="color-scheme:dark;"></select></div>
-      </div>`;
-          daysDiv.appendChild(row);
-          buildTimeOptions(`day-inicio-${i}`, ini);
-          buildTimeOptions(`day-fin-${i}`, fin);
-        }
-      }
-
-      function _getBarberoId() { return _currentBarberoConfigId; }
-
-      function toggleDayRow(ix, inp) {
-        const id = _getBarberoId(); if (!id) return;
-        const cfg = _barberConfigCache || {};
-        let cur = [...(cfg.diasLaborales || [1, 2, 3, 4, 5, 6])];
-        if (inp.checked) { if (!cur.includes(ix)) cur.push(ix); } else { cur = cur.filter(x => x !== ix); }
-        FDB.updateConfigBarbero(id, { diasLaborales: cur });
-        document.getElementById(`dayhours-${ix}`).classList.toggle('hidden', !inp.checked);
-        const track = inp.nextElementSibling; const thumb = track.querySelector('.toggle-thumb');
-        track.style.backgroundColor = inp.checked ? '#34D399' : '';
-        thumb.style.transform = inp.checked ? 'translateX(1.25rem)' : '';
-      }
-      function guardarHorarioDia(ix) {
-        const id = _getBarberoId(); if (!id) return;
-        const ini = document.getElementById(`day-inicio-${ix}`).value;
-        const fin = document.getElementById(`day-fin-${ix}`).value;
-        const diasConfig = { ...((_barberConfigCache || {}).diasConfig || {}), [ix]: { inicio: ini, fin } };
-        FDB.updateConfigBarbero(id, { diasConfig });
-      }
-      function guardarColacion() {
-        const id = _getBarberoId(); if (!id) return;
-        const ini = document.getElementById('break-inicio').value;
-        const fin = document.getElementById('break-fin').value;
-        if (timeToMins(ini) >= timeToMins(fin)) return alert('El inicio debe ser anterior al fin.');
-        FDB.updateConfigBarbero(id, { colacion: { inicio: ini, fin } });
-        showMiniToast('Colación guardada');
-      }
-      function quitarColacion() {
-        const id = _getBarberoId(); if (!id) return;
-        FDB.updateConfigBarbero(id, { colacion: null });
-      }
-      function agregarFechaBloqueada() {
-        const id = _getBarberoId(); if (!id) return;
-        const val = document.getElementById('newBlockedDate').value; if (!val) return;
-        const cur = (_barberConfigCache || {}).diasBloqueados || [];
-        if (cur.includes(val)) return alert('Esa fecha ya está bloqueada.');
-        const nuevo = [...cur, val].sort();
-        FDB.updateConfigBarbero(id, { diasBloqueados: nuevo });
-        document.getElementById('newBlockedDate').value = '';
-      }
-      function eliminarFechaBloqueada(d) {
-        const id = _getBarberoId(); if (!id) return;
-        const cur = (_barberConfigCache || {}).diasBloqueados || [];
-        FDB.updateConfigBarbero(id, { diasBloqueados: cur.filter(x => x !== d) });
-      }
-      function renderBlockedDates() {
-        const blockedDates = (_barberConfigCache || {}).diasBloqueados || [];
-        const el = document.getElementById('blockedDatesList');
-        if (!el) return;
-        if (!blockedDates.length) { el.innerHTML = '<p class="text-xs text-gray-600 text-center py-3">Sin fechas bloqueadas.</p>'; return; }
-        el.innerHTML = blockedDates.map(d => `
-    <div class="flex items-center justify-between bg-admin-bg border border-admin-border rounded-xl px-4 py-3">
-      <div class="flex items-center gap-3">
-        <i class="ph-fill ph-prohibit text-red-400 text-sm"></i>
-        <span class="text-sm font-semibold text-white">${d}</span>
-        <span class="text-xs text-gray-500">${new Date(d + 'T12:00:00').toLocaleDateString('es-CL', { weekday: 'long' })}</span>
-      </div>
-      <button onclick="eliminarFechaBloqueada('${d}')" style="min-width:36px;min-height:36px;display:flex;align-items:center;justify-content:center;color:#f87171;cursor:pointer;background:none;border:none;font-size:0.875rem;font-weight:bold;touch-action:manipulation;-webkit-tap-highlight-color:transparent;border-radius:8px;padding:6px;">✕</button>
-    </div>`).join('');
-      }
-      function guardarIntervalo() {
-        const id = _getBarberoId(); if (!id) return;
-        const v = parseInt(document.getElementById('config-intervalo').value);
-        FDB.updateConfigBarbero(id, { intervaloMinutos: v });
-        showMiniToast('Intervalo guardado');
-      }
-      function guardarTelefono() {
-        const id = _getBarberoId(); if (!id) return;
-        const v = document.getElementById('config-tel').value.trim();
-        if (!v) return;
-        const limpio = v.replace(/\D/g, '');
-        document.getElementById('config-tel').value = limpio;
-        FDB.updateConfigBarbero(id, { telefonoAdmin: limpio });
-        showMiniToast('Número actualizado');
-      }
 
       // loadConfig legacy (sigue siendo usada por el listener global de AppState)
       function loadConfig() {
@@ -3684,18 +3439,16 @@
         loadMonthlyMetrics();
         initLookbookAdmin();
         initActivityListener();
-        // Precargar lista de barberos (necesario para el selector de configuración)
+        // Precargar lista de barberos
         await _precargarBarberos();
         // Backfill automático: asignar barberoId a citas antiguas que no lo tengan
         FDB.migrarBarberoIdCitas().catch(e => console.warn('[Admin] migrarBarberoIdCitas:', e));
         // Poblar selectores de barbero en toda la UI admin
-        populateBarberConfigSelector();
         _poblarSelectorFiltroBarbero();
 
         // Abrir pestaña inicial basada en la URL si existe
         if (window.INITIAL_TAB) {
           openTab(window.INITIAL_TAB, null, false);
-          if (window.INITIAL_TAB === 'tab-config') populateBarberConfigSelector();
           // Si es la pestaña de clientes y hay un UID inicial, abrir el panel
           if (window.INITIAL_TAB === 'tab-clientes' && window.INITIAL_CLIENT_UID) {
             // Esperar un momento a que los clientes se carguen para una transición suave
@@ -3712,13 +3465,16 @@
       const sessionStartTime = new Date();
       const _notifiedDocs = new Set();
       let _activityUnsub = null;
+      let _badgeUnsub = null;
+      let _lookbookUnsub = null;
       let _toastIdTarget = null; // para hacer scroll
 
       function initActivityListener() {
         const todayStr = dateToLocalStr(new Date());
 
         // 1. Badge (Solo conteo del día actual, filtrado por barbero)
-        db.collection('citas').where('fecha', '==', todayStr).onSnapshot(snap => {
+        if (_badgeUnsub) _badgeUnsub();
+        _badgeUnsub = db.collection('citas').where('fecha', '==', todayStr).onSnapshot(snap => {
           const total = _myBarberoId
             ? snap.docs.filter(d => d.data().barberoId === _myBarberoId).length
             : snap.size;
@@ -3999,7 +3755,8 @@
 
       function initLookbookAdmin() {
         // Listener tiempo real → grid admin
-        db.collection('lookbook').orderBy('order', 'asc').onSnapshot(snap => {
+        if (_lookbookUnsub) _lookbookUnsub();
+        _lookbookUnsub = db.collection('lookbook').orderBy('order', 'asc').onSnapshot(snap => {
           const grid = document.getElementById('lookbookAdminGrid');
           const count = document.getElementById('lookbookCount');
           if (!grid) return;
@@ -4726,6 +4483,113 @@
   </script>
 
   <!-- ═══════════════════ MODAL: EDITAR BARBERO ═══════════════════ -->
+  <!-- ═══════════════════════════════════════════════════════════
+       HORARIO POR BARBERO — modal
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="barberScheduleModal"
+    class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-[9100] flex items-center justify-center p-4">
+    <div class="bg-admin-card border border-admin-border rounded-2xl w-full max-w-lg shadow-2xl relative flex flex-col" style="max-height:90dvh;">
+
+      <!-- Header -->
+      <div class="flex items-start justify-between p-6 pb-4 shrink-0" style="border-bottom:1px solid rgba(255,255,255,0.07);">
+        <div>
+          <h3 class="text-base font-bold text-white">Horario de <span id="bsh-nombre" class="text-admin-accent"></span></h3>
+          <p class="text-xs text-gray-500 mt-0.5">Días y horas de atención personalizados</p>
+        </div>
+        <button onclick="closeBarberScheduleModal()"
+          class="w-8 h-8 flex items-center justify-center rounded-full text-gray-500 hover:text-white hover:bg-white/10 transition-colors text-lg">&times;</button>
+      </div>
+
+      <!-- Scroll body -->
+      <div class="overflow-y-auto p-6 flex-1 space-y-6">
+
+        <!-- 1. Horario general -->
+        <div>
+          <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-3">Horario General</p>
+          <div class="flex items-center gap-3">
+            <div class="flex-1">
+              <label class="block text-xs text-gray-400 mb-1.5">Apertura</label>
+              <select id="bsh-inicio" class="w-full bg-admin-bg border border-admin-border rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-admin-accent" style="color-scheme:dark;"></select>
+            </div>
+            <div class="text-gray-600 shrink-0 mt-5">→</div>
+            <div class="flex-1">
+              <label class="block text-xs text-gray-400 mb-1.5">Cierre</label>
+              <select id="bsh-fin" class="w-full bg-admin-bg border border-admin-border rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-admin-accent" style="color-scheme:dark;"></select>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Días laborales -->
+        <div>
+          <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-3">Días que trabaja</p>
+          <div class="grid grid-cols-7 gap-1.5" id="bsh-dias-container"></div>
+        </div>
+
+        <!-- 3. Colación -->
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest">Colación / Descanso</p>
+            <label class="relative inline-flex items-center cursor-pointer gap-2">
+              <input type="checkbox" id="bsh-colacion-toggle" class="sr-only peer" onchange="toggleBshColacion(this.checked)">
+              <div class="w-9 h-5 rounded-full transition-colors" style="background:#374151;" id="bsh-col-track"></div>
+              <div class="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-4" id="bsh-col-thumb"></div>
+            </label>
+          </div>
+          <div id="bsh-colacion-fields" class="hidden">
+            <div class="flex items-center gap-3">
+              <div class="flex-1">
+                <label class="block text-xs text-gray-400 mb-1.5">Inicio</label>
+                <select id="bsh-col-inicio" class="w-full bg-admin-bg border border-admin-border rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-admin-accent" style="color-scheme:dark;"></select>
+              </div>
+              <div class="text-gray-600 shrink-0 mt-5">→</div>
+              <div class="flex-1">
+                <label class="block text-xs text-gray-400 mb-1.5">Fin</label>
+                <select id="bsh-col-fin" class="w-full bg-admin-bg border border-admin-border rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-admin-accent" style="color-scheme:dark;"></select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. Horario por día -->
+        <div>
+          <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-3">Horario por día (opcional)</p>
+          <p class="text-xs text-gray-600 mb-3">Activa un día para definir horas distintas al horario general.</p>
+          <div class="space-y-2" id="bsh-diasconfig-container"></div>
+        </div>
+
+        <!-- 5. Fechas bloqueadas -->
+        <div>
+          <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-3">Fechas bloqueadas</p>
+          <p class="text-xs text-gray-600 mb-3">Días sin atención para este barbero (vacaciones, feriados, etc.).</p>
+          <div class="flex gap-2 mb-3">
+            <input type="date" id="bsh-blocked-date"
+              class="flex-1 bg-admin-bg border border-admin-border rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-admin-accent"
+              style="color-scheme:dark;">
+            <button onclick="_bshAddBlockedDate()"
+              class="bg-red-500/20 border border-red-500/30 text-red-400 hover:bg-red-500/30 font-bold px-4 py-2.5 rounded-xl transition-colors text-sm whitespace-nowrap">
+              Bloquear
+            </button>
+          </div>
+          <div id="bsh-blocked-list" class="space-y-1.5"></div>
+        </div>
+
+        <!-- Reset -->
+        <button onclick="resetBarberScheduleToGlobal()"
+          class="w-full text-xs text-gray-500 hover:text-red-400 py-2.5 border border-dashed border-gray-700 hover:border-red-500/30 rounded-xl transition-colors">
+          Restablecer al horario global del local
+        </button>
+      </div>
+
+      <!-- Footer -->
+      <div class="p-6 pt-4 shrink-0" style="border-top:1px solid rgba(255,255,255,0.07);">
+        <button onclick="saveBarberSchedule()" id="bshSaveBtn"
+          class="w-full bg-admin-accent text-admin-bg font-bold py-3 rounded-xl hover:bg-emerald-300 transition-colors text-sm flex items-center justify-center gap-2">
+          <i class="ph-bold ph-check"></i> Guardar Horario
+        </button>
+      </div>
+    </div>
+  </div>
+
   <div id="barberEditModal"
     class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-[9000] flex items-center justify-center p-4">
     <div class="bg-admin-card border border-admin-border rounded-2xl w-full max-w-md shadow-2xl p-6 relative">
@@ -4995,7 +4859,28 @@
       }
     }
 
+    function _cargarWspLocal() {
+      const input = document.getElementById('wsp-local-input');
+      if (!input) return;
+      input.value = (_configCache || {}).telefonoAdmin || '';
+    }
+
+    async function guardarWspLocal() {
+      const input = document.getElementById('wsp-local-input');
+      if (!input) return;
+      const limpio = input.value.replace(/\D/g, '');
+      if (!limpio) { showMiniToast('❌ Ingresa un número válido'); return; }
+      input.value = limpio;
+      try {
+        await FDB.updateConfig({ telefonoAdmin: limpio });
+        showMiniToast('✅ WhatsApp del local actualizado');
+      } catch(e) {
+        showMiniToast('❌ Error: ' + e.message);
+      }
+    }
+
     async function cargarBarberos() {
+      _cargarWspLocal();
       const grid = document.getElementById('barberosAdminGrid');
       if (grid) grid.innerHTML = '<div class="col-span-full flex items-center justify-center py-16 text-gray-600"><i class="ph ph-spinner animate-spin text-3xl mr-3"></i> Cargando...</div>';
       try {
@@ -5057,6 +4942,10 @@
               <button onclick="event.stopPropagation(); openBarberEditModal('${b.id}')"
                 class="flex-1 flex items-center justify-center gap-1.5 bg-white/5 hover:bg-white/10 border border-admin-border text-gray-300 hover:text-white text-xs font-semibold py-2 rounded-xl transition-colors">
                 <i class="ph ph-pencil-simple text-sm"></i> Editar
+              </button>
+              <button onclick="event.stopPropagation(); openBarberScheduleModal('${b.id}')"
+                class="w-10 flex items-center justify-center bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-400 rounded-xl transition-colors" title="Configurar horario">
+                <i class="ph ph-clock text-sm"></i>
               </button>
               <button onclick="event.stopPropagation(); toggleBarberStatus('${b.id}', ${activo})"
                 class="flex-1 flex items-center justify-center gap-1.5 ${activo ? 'bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/30 text-orange-400' : 'bg-admin-accent/10 hover:bg-admin-accent/20 border border-admin-accent/30 text-admin-accent'} text-xs font-semibold py-2 rounded-xl transition-colors">
@@ -5192,6 +5081,227 @@
     // Cerrar modal al hacer clic en el fondo
     document.getElementById('barberEditModal').addEventListener('click', function (e) {
       if (e.target === this) closeBarberModal();
+    });
+
+    // ═══════════════════════════════════════════════════════════
+    //  HORARIO POR BARBERO
+    // ═══════════════════════════════════════════════════════════
+    const _BSH_DIAS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    let _bshBarberoId = null;
+    let _bshDiasLaborales = new Set([1,2,3,4,5,6]);
+    let _bshDiasConfig = {}; // { dayIndex: { activo:true, inicio:'HH:MM', fin:'HH:MM' } }
+    let _bshBlockedDates = [];
+
+    function _bshTimeOptions(selId, selected) {
+      const el = document.getElementById(selId);
+      if (!el) return;
+      el.innerHTML = '';
+      for (let h = 6; h <= 23; h++) {
+        for (let m = 0; m < 60; m += 30) {
+          const t = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
+          el.innerHTML += `<option value="${t}"${t === selected ? ' selected' : ''}>${t}</option>`;
+        }
+      }
+    }
+
+    function _bshRenderDias() {
+      const c = document.getElementById('bsh-dias-container');
+      if (!c) return;
+      c.innerHTML = _BSH_DIAS.map((n, i) => {
+        const on = _bshDiasLaborales.has(i);
+        return `<button type="button" onclick="toggleBshDia(${i})"
+          class="flex flex-col items-center py-2 rounded-xl text-xs font-bold border transition-all
+          ${on ? 'border-admin-accent/50 text-admin-accent' : 'border-admin-border text-gray-500 hover:border-gray-500'}"
+          style="${on ? 'background:rgba(52,211,153,0.15)' : 'background:rgba(255,255,255,0.03)'}">${n}</button>`;
+      }).join('');
+    }
+
+    function _bshRenderDiasConfig() {
+      const c = document.getElementById('bsh-diasconfig-container');
+      if (!c) return;
+      const activos = [..._bshDiasLaborales].sort((a,b) => a-b);
+      if (!activos.length) {
+        c.innerHTML = '<p class="text-xs text-gray-600 text-center py-2">No hay días laborales seleccionados.</p>';
+        return;
+      }
+      c.innerHTML = activos.map(i => {
+        const cfg = _bshDiasConfig[i] || {};
+        const tiene = !!cfg.activo;
+        return `
+          <div class="border border-admin-border rounded-xl overflow-hidden">
+            <div class="flex items-center justify-between px-4 py-3">
+              <span class="text-sm font-semibold text-white">${_BSH_DIAS[i]}</span>
+              <div class="flex items-center gap-3">
+                ${tiene ? `<span class="text-[10px] text-admin-accent font-bold">${cfg.inicio||'?'} – ${cfg.fin||'?'}</span>` : '<span class="text-[10px] text-gray-600">Horario general</span>'}
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" class="sr-only peer" ${tiene?'checked':''} onchange="onBshDcToggle(${i},this.checked)">
+                  <div class="w-8 h-4 rounded-full transition-colors" style="${tiene?'background:#34d399':'background:#374151'}"></div>
+                  <div class="absolute left-0.5 top-0.5 w-3 h-3 bg-white rounded-full shadow transition-transform ${tiene?'translate-x-4':''}"></div>
+                </label>
+              </div>
+            </div>
+            <div id="bsh-dc-${i}" class="${tiene?'':'hidden'} px-4 pb-4 flex items-center gap-3" style="border-top:1px solid rgba(255,255,255,0.07);padding-top:0.75rem;">
+              <div class="flex-1">
+                <label class="block text-[10px] text-gray-500 mb-1.5">Apertura</label>
+                <select id="bsh-dc-i-${i}" class="w-full bg-admin-bg border border-admin-border rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-admin-accent" style="color-scheme:dark;"></select>
+              </div>
+              <div class="text-gray-600 shrink-0 mt-4 text-xs">→</div>
+              <div class="flex-1">
+                <label class="block text-[10px] text-gray-500 mb-1.5">Cierre</label>
+                <select id="bsh-dc-f-${i}" class="w-full bg-admin-bg border border-admin-border rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-admin-accent" style="color-scheme:dark;"></select>
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+      activos.forEach(i => {
+        const cfg = _bshDiasConfig[i] || {};
+        _bshTimeOptions(`bsh-dc-i-${i}`, cfg.inicio || '09:00');
+        _bshTimeOptions(`bsh-dc-f-${i}`, cfg.fin   || '20:00');
+      });
+    }
+
+    function toggleBshDia(i) {
+      if (_bshDiasLaborales.has(i)) { _bshDiasLaborales.delete(i); delete _bshDiasConfig[i]; }
+      else _bshDiasLaborales.add(i);
+      _bshRenderDias();
+      _bshRenderDiasConfig();
+    }
+
+    function onBshDcToggle(i, on) {
+      if (on) _bshDiasConfig[i] = { activo: true, inicio: '09:00', fin: '20:00' };
+      else delete _bshDiasConfig[i];
+      _bshRenderDiasConfig();
+    }
+
+    function toggleBshColacion(on) {
+      const el = document.getElementById('bsh-colacion-fields');
+      const track = document.getElementById('bsh-col-track');
+      if (el) on ? el.classList.remove('hidden') : el.classList.add('hidden');
+      if (track) track.style.background = on ? '#34d399' : '#374151';
+    }
+
+    function _bshRenderBlockedDates() {
+      const el = document.getElementById('bsh-blocked-list');
+      if (!el) return;
+      if (!_bshBlockedDates.length) {
+        el.innerHTML = '<p class="text-xs text-gray-600 text-center py-2">Sin fechas bloqueadas.</p>';
+        return;
+      }
+      el.innerHTML = _bshBlockedDates.map(d => {
+        const label = new Date(d + 'T12:00:00').toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' });
+        return `<div class="flex items-center justify-between bg-admin-bg border border-admin-border rounded-xl px-4 py-2.5">
+          <div class="flex items-center gap-2.5">
+            <i class="ph-fill ph-prohibit text-red-400 text-sm shrink-0"></i>
+            <span class="text-sm font-semibold text-white">${d}</span>
+            <span class="text-xs text-gray-500 capitalize">${label}</span>
+          </div>
+          <button onclick="_bshRemoveBlockedDate('${d}')"
+            class="w-7 h-7 flex items-center justify-center text-gray-600 hover:text-red-400 transition-colors rounded-lg hover:bg-red-500/10">
+            <i class="ph-bold ph-x text-xs"></i>
+          </button>
+        </div>`;
+      }).join('');
+    }
+
+    function _bshAddBlockedDate() {
+      const input = document.getElementById('bsh-blocked-date');
+      const val = input.value;
+      if (!val) return;
+      if (_bshBlockedDates.includes(val)) { showMiniToast('Esa fecha ya está bloqueada'); return; }
+      _bshBlockedDates = [..._bshBlockedDates, val].sort();
+      input.value = '';
+      _bshRenderBlockedDates();
+    }
+
+    function _bshRemoveBlockedDate(d) {
+      _bshBlockedDates = _bshBlockedDates.filter(x => x !== d);
+      _bshRenderBlockedDates();
+    }
+
+    async function openBarberScheduleModal(id) {
+      _bshBarberoId = id;
+      const b = _barberosCache.find(x => x.id === id) || {};
+      const nombre = b.nombre || b.displayName || (b.email ? b.email.split('@')[0] : 'Barbero');
+      document.getElementById('bsh-nombre').textContent = nombre;
+
+      let cfg;
+      try { cfg = await FDB.getConfigBarbero(id); }
+      catch(e) { cfg = { horarioInicio:'09:00', horarioFin:'20:00', diasLaborales:[1,2,3,4,5,6], colacion:null, diasConfig:{}, diasBloqueados:[] }; }
+
+      _bshDiasLaborales = new Set(cfg.diasLaborales || [1,2,3,4,5,6]);
+      _bshDiasConfig = {};
+      Object.entries(cfg.diasConfig || {}).forEach(([k, v]) => {
+        if (v && (v.inicio || v.fin)) _bshDiasConfig[parseInt(k)] = { activo:true, inicio: v.inicio||'09:00', fin: v.fin||'20:00' };
+      });
+      _bshBlockedDates = [...(cfg.diasBloqueados || [])].sort();
+
+      _bshTimeOptions('bsh-inicio', cfg.horarioInicio || '09:00');
+      _bshTimeOptions('bsh-fin',    cfg.horarioFin    || '20:00');
+
+      const colToggle = document.getElementById('bsh-colacion-toggle');
+      const hasCol = cfg.colacion && cfg.colacion.inicio;
+      colToggle.checked = !!hasCol;
+      toggleBshColacion(!!hasCol);
+      _bshTimeOptions('bsh-col-inicio', hasCol ? cfg.colacion.inicio : '13:00');
+      _bshTimeOptions('bsh-col-fin',    hasCol ? cfg.colacion.fin   : '14:00');
+
+      document.getElementById('bsh-blocked-date').value = '';
+      _bshRenderDias();
+      _bshRenderDiasConfig();
+      _bshRenderBlockedDates();
+      document.getElementById('barberScheduleModal').classList.replace('hidden','flex');
+    }
+
+    function closeBarberScheduleModal() {
+      document.getElementById('barberScheduleModal').classList.replace('flex','hidden');
+      _bshBarberoId = null;
+    }
+
+    async function saveBarberSchedule() {
+      if (!_bshBarberoId) return;
+      const btn = document.getElementById('bshSaveBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="ph ph-spinner animate-spin"></i> Guardando...';
+      try {
+        const diasConfig = {};
+        Object.keys(_bshDiasConfig).forEach(k => {
+          const iSel = document.getElementById(`bsh-dc-i-${k}`);
+          const fSel = document.getElementById(`bsh-dc-f-${k}`);
+          if (iSel && fSel) diasConfig[k] = { inicio: iSel.value, fin: fSel.value };
+        });
+        const colOn = document.getElementById('bsh-colacion-toggle').checked;
+        await FDB.updateConfigBarbero(_bshBarberoId, {
+          horarioInicio: document.getElementById('bsh-inicio').value,
+          horarioFin:    document.getElementById('bsh-fin').value,
+          diasLaborales: [..._bshDiasLaborales].sort((a,b) => a-b),
+          colacion: colOn ? { inicio: document.getElementById('bsh-col-inicio').value, fin: document.getElementById('bsh-col-fin').value } : null,
+          diasConfig,
+          diasBloqueados: _bshBlockedDates,
+        });
+        showMiniToast('✅ Horario guardado');
+        closeBarberScheduleModal();
+      } catch(e) {
+        showMiniToast('❌ Error: ' + e.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="ph-bold ph-check"></i> Guardar Horario';
+      }
+    }
+
+    async function resetBarberScheduleToGlobal() {
+      if (!_bshBarberoId) return;
+      if (!confirm('¿Eliminar la configuración personalizada y volver al horario global del local?')) return;
+      try {
+        await db.collection('barberos').doc(_bshBarberoId).collection('configuracion').doc('main').delete();
+        showMiniToast('✅ Restablecido al horario global');
+        closeBarberScheduleModal();
+      } catch(e) {
+        showMiniToast('❌ Error: ' + e.message);
+      }
+    }
+
+    document.getElementById('barberScheduleModal').addEventListener('click', function(e) {
+      if (e.target === this) closeBarberScheduleModal();
     });
   </script>
 

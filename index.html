@@ -381,7 +381,7 @@
         innerGrid.className = "grid grid-cols-2 gap-4";
         
         categories[cat].forEach((s, i) => {
-          const icon = _ICONS[i % _ICONS.length];
+          const icon = s.icono || _ICONS[i % _ICONS.length];
           innerGrid.innerHTML += `
             <button onclick="selectService(this)" data-service-id="${s.id}" data-category="${cat}"
               class="service-option relative flex flex-col items-center justify-center p-6 rounded-2xl bg-[#0a0a0d] border border-brand-accent/20 shadow-sm hover:border-brand-neon/50 hover:shadow-[0_0_15px_rgba(255,255,255,0.15)] active:scale-95 text-center transition-all overflow-hidden group">
@@ -931,7 +931,9 @@
         document.getElementById('successSummaryDate').innerHTML = `📅 <span>${dd}/${mm}/${yyyy} a las ${selectedTimeStr} hrs</span>`;
 
 
-        const waMsg = `Hola ${SHOP.nombreCorto}! Acabo de agendar en su web. Soy ${nombre} y voy para un ${selectedServiceObj.nombre} a las ${selectedTimeStr} hrs el ${currentDateStr}. \n¿Todo ok? 💈`;
+        const barberName = window._selectedBarber || '';
+        const barberPart = barberName ? ` con ${barberName}` : '';
+        const waMsg = `Hola ${SHOP.nombreCorto}! Acabo de agendar en su web. Soy ${nombre} y voy para un ${selectedServiceObj.nombre}${barberPart} a las ${selectedTimeStr} hrs el ${currentDateStr}. \n¿Todo ok? 💈`;
         let numBarbero = SHOP.telefono;
         try {
           const bid = window._selectedBarberId;

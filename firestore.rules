@@ -11,12 +11,17 @@ service cloud.firestore {
              ];
     }
 
-    // Barbero activo: bootstrap admin O UID existe en /barberos con activo == true
+    // Barbero activo: bootstrap admin O UID existe en /barberos con activo != false
+    // Usa get('activo', true) para que documentos sin campo activo sean tratados como activos,
+    // igual que la lógica JS (activo !== false).
+    function esBarberoDoc(docData) {
+      return docData.get('activo', true) != false;
+    }
     function esBarbero() {
       return esBootstrapAdmin()
           || (request.auth != null
               && exists(/databases/$(database)/documents/barberos/$(request.auth.uid))
-              && get(/databases/$(database)/documents/barberos/$(request.auth.uid)).data.activo == true);
+              && esBarberoDoc(get(/databases/$(database)/documents/barberos/$(request.auth.uid)).data));
     }
 
     // Admin/Jefe: bootstrap admin O barbero activo con rol 'admin' o 'jefe'
@@ -24,16 +29,23 @@ service cloud.firestore {
       return esBootstrapAdmin()
           || (request.auth != null
               && exists(/databases/$(database)/documents/barberos/$(request.auth.uid))
-              && get(/databases/$(database)/documents/barberos/$(request.auth.uid)).data.activo == true
+              && esBarberoDoc(get(/databases/$(database)/documents/barberos/$(request.auth.uid)).data)
               && get(/databases/$(database)/documents/barberos/$(request.auth.uid)).data.get('rol', 'barbero') in ['admin', 'jefe']);
     }
 
     // ── /barberos ────────────────────────────────────────────────────────────────
     // Lectura pública para que el widget de reservas cargue la lista de barberos.
     // Escritura restringida a admins (solo jefe/admin puede crear/borrar barberos).
+    // Auto-registro: un barbero puede crear su propio documento {uid} con campos mínimos
+    // cuando su doc original fue creado con ID auto-generado (no su UID).
     match /barberos/{barberoId} {
       allow read: if true;
-      allow create, delete: if esAdmin();
+      allow delete: if esAdmin();
+      allow create: if esAdmin()
+                    || (request.auth != null
+                        && request.auth.uid == barberoId
+                        && request.resource.data.get('activo', true) != false
+                        && request.resource.data.keys().hasAll(['activo', '_mainDocId']));
       allow update: if esAdmin() || (request.auth != null && request.auth.uid == barberoId);
 
       // Subcolecciones (configuracion, horarios, etc.)
