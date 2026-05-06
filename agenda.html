@@ -8,7 +8,7 @@
     <meta name="theme-color" content="#050505">
 
     <!-- PWA -->
-    <link rel="manifest" href="/manifest-admin.json">
+    <link rel="manifest" href="/manifest-agenda.json">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -81,6 +81,37 @@
     <div id="loadingOverlay" class="fixed inset-0 z-[10000] flex flex-col items-center justify-center bg-[#050505] transition-opacity duration-300">
         <div class="w-12 h-12 border-4 border-white/10 border-t-white rounded-full animate-spin mb-4 shadow-[0_0_15px_rgba(255,255,255,0.2)]"></div>
         <p class="text-white/60 text-sm font-medium animate-pulse tracking-widest uppercase">Cargando Agenda...</p>
+    </div>
+
+    <!-- Login Integrado -->
+    <div id="loginOverlay" class="hidden fixed inset-0 z-[9000] flex flex-col items-center justify-center px-4"
+         style="background:linear-gradient(rgba(0,0,0,0.72),rgba(0,0,0,0.88)),url('/fondologin.webp') center/cover no-repeat;">
+        <div class="w-full max-w-sm">
+            <div class="flex flex-col items-center mb-8">
+                <img src="/logo.jpg" alt="Logo" class="w-20 h-20 object-contain rounded-full border-2 border-white/20 shadow-2xl mb-4">
+                <p class="text-[10px] text-white/40 font-bold uppercase tracking-[0.25em]">Agenda Barbero</p>
+                <h1 class="text-xl font-black text-white mt-1">𝐄𝐥𝐞𝐠𝐚𝐧𝐜𝐞 𝐛𝐚𝐫𝐛𝐞𝐫𝐬𝐡𝐨𝐩</h1>
+            </div>
+            <div class="rounded-2xl p-7 space-y-4" style="background:rgba(17,17,21,0.85);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08);">
+                <div>
+                    <label class="text-[11px] font-bold text-white/40 uppercase tracking-widest mb-1.5 block">Correo</label>
+                    <input id="agendaEmail" type="email" placeholder="correo@elegance.cl" autocomplete="email"
+                        class="w-full rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-white/30 transition-all"
+                        style="background:#fff;color:#000;" onkeydown="if(event.key==='Enter')loginBarbero()">
+                </div>
+                <div>
+                    <label class="text-[11px] font-bold text-white/40 uppercase tracking-widest mb-1.5 block">Contraseña</label>
+                    <input id="agendaPassword" type="password" placeholder="••••••••" autocomplete="current-password"
+                        class="w-full rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-white/30 transition-all"
+                        style="background:#fff;color:#000;" onkeydown="if(event.key==='Enter')loginBarbero()">
+                </div>
+                <p id="loginError" class="text-red-400 text-xs hidden"></p>
+                <button id="loginBtn" onclick="loginBarbero()"
+                    class="w-full py-3 rounded-xl text-sm font-bold text-black bg-white hover:bg-white/90 active:scale-95 transition-all mt-1">
+                    Ingresar a mi agenda
+                </button>
+            </div>
+        </div>
     </div>
 
     <!-- Header Navigation -->
@@ -189,11 +220,7 @@
 
     <script>
         // ── ESTADO GLOBAL DE LA AGENDA ──
-        let barberId = window.location.pathname.split('/').pop() || '';
-        if(barberId.includes('.html')) barberId = barberId.replace('.html', '');
-        if(!barberId || barberId === 'agenda') {
-            window.location.href = '/gestion-interna/';
-        }
+        let barberId = null; // Se resuelve desde Firebase Auth tras el login
 
         let currentDate = new Date();
         let barberConfig = null;
@@ -208,18 +235,26 @@
         document.addEventListener('DOMContentLoaded', () => {
             firebase.auth().onAuthStateChanged(async (user) => {
                 if (user) {
+                    document.getElementById('loginOverlay').classList.add('hidden');
+                    document.getElementById('loadingOverlay').classList.remove('hidden');
+
                     const isBarbero = await FDB.esBarbero(user.email, user.uid);
                     if (!isBarbero) {
                         window.location.href = '/dashboard';
                         return;
                     }
-                    
-                    const isAdmin = await FDB.esAdminJefe(user.email, user.uid);
-                    const myBarberId = await FDB.getBarberoId(user.email, user.uid) || user.uid;
 
-                    if (!isAdmin && myBarberId !== barberId) {
-                        window.location.href = `/agenda/${myBarberId}`;
+                    const isAdmin = await FDB.esAdminJefe(user.email, user.uid);
+                    const paramBarbero = new URLSearchParams(window.location.search).get('barbero');
+
+                    if (isAdmin && paramBarbero) {
+                        // Admin viendo la agenda de un barbero específico
+                        barberId = paramBarbero;
+                    } else if (isAdmin) {
+                        window.location.href = '/gestion-interna/';
                         return;
+                    } else {
+                        barberId = await FDB.getBarberoId(user.email, user.uid) || user.uid;
                     }
 
                     try {
@@ -234,16 +269,43 @@
                         document.getElementById('mainApp').classList.remove('hidden');
                     }
 
-                    // Renovar token FCM ahora que el usuario está autenticado.
-                    // Necesario en cada apertura de la PWA para recibir push en background.
+                    // Renovar token FCM en cada apertura de la PWA para push en background.
                     if ('Notification' in window && Notification.permission === 'granted' && 'serviceWorker' in navigator) {
                         navigator.serviceWorker.ready.then(() => solicitarPermisosYObtenerToken());
                     }
                 } else {
-                    window.location.href = '/gestion-interna/login/';
+                    document.getElementById('loadingOverlay').classList.add('hidden');
+                    document.getElementById('loginOverlay').classList.remove('hidden');
                 }
             });
         });
+
+        async function loginBarbero() {
+            const email = document.getElementById('agendaEmail').value.trim();
+            const password = document.getElementById('agendaPassword').value;
+            const errEl = document.getElementById('loginError');
+            const btn = document.getElementById('loginBtn');
+
+            if (!email || !password) return;
+
+            errEl.classList.add('hidden');
+            btn.disabled = true;
+            btn.textContent = 'Ingresando…';
+
+            try {
+                await firebase.auth().signInWithEmailAndPassword(email, password);
+                // onAuthStateChanged se encarga del resto
+            } catch (e) {
+                let msg = 'Credenciales incorrectas.';
+                if (e.code === 'auth/user-not-found' || e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential') msg = 'Correo o contraseña incorrectos.';
+                else if (e.code === 'auth/invalid-email') msg = 'Formato de correo inválido.';
+                else if (e.code === 'auth/too-many-requests') msg = 'Demasiados intentos. Intenta más tarde.';
+                errEl.textContent = msg;
+                errEl.classList.remove('hidden');
+                btn.disabled = false;
+                btn.textContent = 'Ingresar a mi agenda';
+            }
+        }
 
         async function loadBarberData() {
             // Cargar configuración global y del barbero

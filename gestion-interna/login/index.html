@@ -17,7 +17,6 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <script src="/firebase-config.js"></script>
   <script src="/config.js"></script>
-  <script src="/db.js"></script>
   <script src="/firebaseUtils.js?v=1.9"></script>
 
   <style>
@@ -145,8 +144,7 @@
           if (isAdmin) {
             window.location.href = '/gestion-interna/';
           } else {
-            const barberId = await FDB.getBarberoId(user.email, user.uid) || user.uid;
-            window.location.href = `/agenda/${barberId}`;
+            window.location.href = '/agenda';
           }
         } else {
           // Es un cliente normal, redirigir al portal de clientes sin cerrar sesión
@@ -176,9 +174,7 @@
         
         const isBarbero = await FDB.esBarbero(cred.user.email, cred.user.uid);
         
-        if (isBarbero) {
-          // Redirección manejada por onAuthStateChanged
-        } else {
+        if (!isBarbero) {
           window.location.href = '/dashboard';
         }
         

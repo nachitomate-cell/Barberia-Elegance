@@ -16,7 +16,6 @@
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
   <link href="/output.css" rel="stylesheet">
   <script src="/config.js"></script>
-  <script src="/db.js"></script>
   <!-- Después de firebase-config.js se carga firebaseUtils -->
 
 
@@ -236,24 +235,31 @@
     /* ── SIDEBAR DRAWER ─────────────────────────── */
     #sidebar {
       position: fixed;
-      top: 0; left: 0;
+      top: 0;
+      left: 0;
       height: 100dvh;
       z-index: 70;
       transform: translateX(-100%);
-      transition: transform .3s cubic-bezier(.16,1,.3,1);
-      box-shadow: 4px 0 40px rgba(0,0,0,.6);
+      transition: transform .3s cubic-bezier(.16, 1, .3, 1);
+      box-shadow: 4px 0 40px rgba(0, 0, 0, .6);
     }
-    #sidebar.open { transform: translateX(0); }
+
+    #sidebar.open {
+      transform: translateX(0);
+    }
 
     #sidebarOverlay {
       display: none;
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,.6);
+      background: rgba(0, 0, 0, .6);
       z-index: 65;
       backdrop-filter: blur(4px);
     }
-    #sidebarOverlay.open { display: block; }
+
+    #sidebarOverlay.open {
+      display: block;
+    }
 
     @media (min-width: 768px) {
       #sidebar {
@@ -263,7 +269,10 @@
         z-index: auto !important;
         box-shadow: none;
       }
-      #sidebarOverlay { display: none !important; }
+
+      #sidebarOverlay {
+        display: none !important;
+      }
     }
 
     /* Nav items */
@@ -271,30 +280,38 @@
       position: relative;
       overflow: hidden;
     }
+
     .nav-btn::before {
       content: '';
       position: absolute;
-      left: 0; top: 0; bottom: 0;
+      left: 0;
+      top: 0;
+      bottom: 0;
       width: 3px;
       background: #34d399;
       border-radius: 0 3px 3px 0;
       transform: scaleY(0);
       transition: transform .2s ease;
     }
-    .nav-btn.active::before { transform: scaleY(1); }
+
+    .nav-btn.active::before {
+      transform: scaleY(1);
+    }
+
     .nav-btn.active {
-      background: rgba(52,211,153,.12) !important;
+      background: rgba(52, 211, 153, .12) !important;
       color: #34d399 !important;
     }
+
     .nav-btn:not(.active):hover {
-      background: rgba(255,255,255,.05);
+      background: rgba(255, 255, 255, .05);
       color: #f9fafb;
     }
 
     /* Sidebar user card */
     .sidebar-user-card {
-      background: linear-gradient(135deg, rgba(52,211,153,.08) 0%, rgba(52,211,153,.02) 100%);
-      border-bottom: 1px solid rgba(52,211,153,.15);
+      background: linear-gradient(135deg, rgba(52, 211, 153, .08) 0%, rgba(52, 211, 153, .02) 100%);
+      border-bottom: 1px solid rgba(52, 211, 153, .15);
     }
 
     /* Activity feed */
@@ -302,37 +319,45 @@
       position: relative;
       padding-left: 1.25rem;
     }
+
     .activity-item::before {
       content: '';
       position: absolute;
-      left: 4px; top: 6px;
-      width: 6px; height: 6px;
+      left: 4px;
+      top: 6px;
+      width: 6px;
+      height: 6px;
       border-radius: 50%;
       background: #34d399;
-      box-shadow: 0 0 6px rgba(52,211,153,.5);
+      box-shadow: 0 0 6px rgba(52, 211, 153, .5);
     }
 
     /* Mobile header premium */
     #mobileHeader {
-      background: rgba(17,24,39,.92);
+      background: rgba(17, 24, 39, .92);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
-      border-bottom: 1px solid rgba(52,211,153,.12);
+      border-bottom: 1px solid rgba(52, 211, 153, .12);
     }
 
     /* Mobile bottom nav scrollable */
     #mobileBottomNav {
-      background: rgba(17,24,39,0.97);
+      background: rgba(17, 24, 39, 0.97);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
-      border-top: 1px solid rgba(52,211,153,0.12);
+      border-top: 1px solid rgba(52, 211, 153, 0.12);
     }
+
     #mobileBottomNav nav {
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
       scrollbar-width: none;
     }
-    #mobileBottomNav nav::-webkit-scrollbar { display: none; }
+
+    #mobileBottomNav nav::-webkit-scrollbar {
+      display: none;
+    }
+
     .mob-nav-btn {
       display: flex;
       flex-direction: column;
@@ -349,11 +374,22 @@
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
     }
+
     .mob-nav-btn.active {
       color: #34d399;
     }
-    .mob-nav-btn i { font-size: 1.4rem; }
-    .mob-nav-btn span { font-size: 9px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
+
+    .mob-nav-btn i {
+      font-size: 1.4rem;
+    }
+
+    .mob-nav-btn span {
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
 
     /* ── SELLO TOAST mobile ──────────────────────────────── */
     @media (max-width: 639px) {
@@ -455,70 +491,94 @@
       background-color: #f1f5f9;
       color: #1e293b;
     }
-    html.light .bg-admin-card, 
+
+    html.light .bg-admin-card,
     html.light aside,
     html.light #crmDrawer,
     html.light #sticky-admin-header,
     html.light .bg-admin-bg,
     html.light #customCalendarDropdown,
-    html.light #calDaysGrid > button {
+    html.light #calDaysGrid>button {
       background-color: #ffffff !important;
     }
+
     html.light .border-admin-border,
     html.light .border-gray-700,
     html.light #sidebar,
     html.light #crmDrawer,
     html.light #sticky-admin-header,
     html.light .border-admin-accent\/20,
-    html.light #calDaysGrid > button {
+    html.light #calDaysGrid>button {
       border-color: #e2e8f0 !important;
     }
+
     html.light .text-gray-400,
     html.light .text-gray-500,
     html.light .text-gray-600 {
       color: #64748b !important;
     }
+
     html.light .text-white,
     html.light .text-gray-100,
     html.light .text-gray-200,
     html.light .text-gray-300 {
       color: #0f172a !important;
     }
+
     html.light .bg-admin-accent\/10 {
       background-color: rgba(52, 211, 153, 0.15) !important;
     }
+
     html.light .proxima-card {
       background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
       border-color: #cbd5e1;
     }
+
     html.light .slot-free {
       border-left-color: #cbd5e1;
     }
+
     html.light #calMonthLabel {
       color: #1e293b;
     }
+
     html.light .nav-btn:hover {
       background-color: #f1f5f9 !important;
     }
+
     html.light .nav-btn.bg-admin-accent\/10 {
       background-color: rgba(52, 211, 153, 0.15) !important;
     }
+
     html.light .tab-content h2 {
       color: #0f172a;
     }
-    html.light select, html.light input, html.light textarea {
+
+    html.light select,
+    html.light input,
+    html.light textarea {
       background-color: #ffffff !important;
       color: #0f172a !important;
       border-color: #cbd5e1 !important;
     }
+
     html.light select {
       color-scheme: light !important;
     }
+
     /* Animación para el modal de cliente */
     @keyframes scaleIn {
-      from { opacity: 0; transform: scale(0.95); }
-      to { opacity: 1; transform: scale(1); }
+      from {
+        opacity: 0;
+        transform: scale(0.95);
+      }
+
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
     }
+
     .animate-scale-in {
       animation: scaleIn 0.3s ease-out;
     }
@@ -527,13 +587,16 @@
     .custom-scrollbar::-webkit-scrollbar {
       width: 6px;
     }
+
     .custom-scrollbar::-webkit-scrollbar-track {
       background: rgba(255, 255, 255, 0.02);
     }
+
     .custom-scrollbar::-webkit-scrollbar-thumb {
       background: rgba(255, 255, 255, 0.1);
       border-radius: 10px;
     }
+
     .custom-scrollbar::-webkit-scrollbar-thumb:hover {
       background: rgba(52, 211, 153, 0.3);
     }
@@ -542,9 +605,11 @@
     .hidden-for-role {
       display: none !important;
     }
+
     body.is-barbero-only .admin-only {
       display: none !important;
     }
+
     body.is-barbero-only .jefe-only {
       display: none !important;
     }
@@ -581,12 +646,13 @@
 
   <!-- Lógica de Tenant / URL -->
   <script>
-    (function() {
+    (function () {
       const urlParams = new URLSearchParams(window.location.search);
       const path = window.location.pathname;
 
       // Mapeo de rutas a pestañas
       const routes = {
+        '/gestion-interna/agenda': 'tab-citas',
         '/gestion-interna/agenda/': 'tab-agenda-equipo',
         '/gestion-interna/servicios': 'tab-servicios',
         '/gestion-interna/configuracion': 'tab-config',
@@ -595,14 +661,14 @@
         '/gestion-interna/barberos': 'tab-barberos',
         '/gestion-interna/premios': 'tab-premios'
       };
-      
+
       if (routes[path]) {
         window.INITIAL_TAB = routes[path];
       } else if (path.startsWith('/gestion-interna/clientes/')) {
         window.INITIAL_TAB = 'tab-clientes';
         window.INITIAL_CLIENT_UID = path.replace('/gestion-interna/clientes/', '');
       } else if (path === '/gestion-interna' || path === '/gestion-interna/') {
-        window.INITIAL_TAB = 'tab-home';
+        window.INITIAL_TAB = 'tab-citas';
       }
 
       let tenant = null;
@@ -613,7 +679,7 @@
       if (tenant) {
         window.CURRENT_TENANT = tenant;
         console.log('[Tenant] Identificado como:', tenant);
-        
+
         // Limpiar URL si entramos por parámetro
         if (urlParams.has('local')) {
           window.history.replaceState({}, '', '/gestion-interna/' + tenant);
@@ -647,8 +713,7 @@
     </script>
 
     <!-- ── Mobile Header Premium ── -->
-    <header id="mobileHeader"
-      class="md:hidden fixed top-0 left-0 right-0 z-50 flex items-center px-3 gap-2"
+    <header id="mobileHeader" class="md:hidden fixed top-0 left-0 right-0 z-50 flex items-center px-3 gap-2"
       style="min-height: calc(3.5rem + env(safe-area-inset-top)); padding-top: env(safe-area-inset-top);">
 
       <!-- Hamburger -->
@@ -695,15 +760,18 @@
         class="flex flex-col w-72 md:w-60 bg-admin-card border-r border-admin-border md:h-full shrink-0 overflow-hidden">
 
         <!-- ── Cabecera del sidebar ── -->
-        <div class="sidebar-user-card px-5 py-4 flex items-center gap-3 cursor-pointer hover:bg-admin-accent/5 transition-colors"
-          onclick="closeSidebar(); openTab('tab-home', document.querySelector('.nav-btn[data-tab=tab-home]'))">
+        <div
+          class="sidebar-user-card px-5 py-4 flex items-center gap-3 cursor-pointer hover:bg-admin-accent/5 transition-colors"
+          onclick="closeSidebar(); openTab('tab-citas', document.querySelector('.nav-btn[data-tab=tab-citas]'))">
           <div class="relative shrink-0">
             <img id="shopLogoSidebar" src="" alt=""
               class="h-11 w-11 object-cover rounded-full border-2 border-admin-accent/40 shadow-[0_0_12px_rgba(52,211,153,0.25)]">
-            <span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-admin-accent rounded-full border-2 border-admin-card shadow-[0_0_6px_rgba(52,211,153,0.8)]"></span>
+            <span
+              class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-admin-accent rounded-full border-2 border-admin-card shadow-[0_0_6px_rgba(52,211,153,0.8)]"></span>
           </div>
           <div class="flex-1 min-w-0">
-            <p class="text-[10px] font-bold text-admin-accent/70 uppercase tracking-widest leading-none mb-0.5">Panel Admin</p>
+            <p class="text-[10px] font-bold text-admin-accent/70 uppercase tracking-widest leading-none mb-0.5">Panel
+              Admin</p>
             <h1 id="shopNombreSidebar" class="text-sm font-bold text-white truncate leading-tight"></h1>
             <p id="adminUserEmail" class="text-[10px] text-gray-500 truncate mt-0.5"></p>
           </div>
@@ -713,18 +781,19 @@
         <!-- ── Navegación principal ── -->
         <nav class="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">
 
-          <a href="/gestion-interna/" data-tab="tab-home"
-            onclick="event.preventDefault(); closeSidebar(); openTab('tab-home',this)"
-            class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 min-h-[44px] rounded-xl font-medium text-sm transition-all text-gray-400">
-            <span class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
-              <i class="ph-fill ph-house text-base"></i>
-            </span>
-            <span class="flex-1 text-left">Inicio</span>
-          </a>
-
           <!-- Sección Agenda -->
-          <p class="text-[9px] font-black text-gray-600 uppercase tracking-[0.15em] px-3 pt-3 pb-2">Agenda</p>
+          <p class="text-[9px] font-black text-gray-600 uppercase tracking-[0.15em] px-3 pt-1 pb-2">Agenda</p>
 
+          <a href="/gestion-interna/agenda" data-tab="tab-citas"
+            onclick="event.preventDefault(); closeSidebar(); openTab('tab-citas',this)"
+            class="jefe-only nav-btn w-full flex items-center gap-3 px-3 py-2.5 min-h-[44px] rounded-xl font-semibold text-sm transition-all text-gray-400">
+            <span
+              class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center shrink-0 transition-colors group-hover:bg-admin-accent/10">
+              <i class="ph-fill ph-calendar-check text-base"></i>
+            </span>
+            <span class="flex-1 text-left">Citas del día</span>
+            <span id="citasBadge" class="nav-badge hidden">0</span>
+          </a>
 
           <a href="/gestion-interna/agenda/" data-tab="tab-agenda-equipo"
             onclick="event.preventDefault(); closeSidebar(); openTab('tab-agenda-equipo',this)"
@@ -808,7 +877,8 @@
 
         <!-- ── Actividad reciente ── -->
         <div class="px-4 pb-3 flex-shrink-0 border-t border-admin-border/50">
-          <h3 class="text-[9px] font-black text-gray-600 uppercase tracking-[0.15em] mt-3 mb-2 flex items-center gap-1.5">
+          <h3
+            class="text-[9px] font-black text-gray-600 uppercase tracking-[0.15em] mt-3 mb-2 flex items-center gap-1.5">
             <i class="ph-fill ph-activity text-admin-accent text-xs"></i> Actividad
           </h3>
           <div id="activityFeed" class="space-y-2 max-h-36 overflow-y-auto pr-1 text-xs">
@@ -855,7 +925,9 @@
           <a href="https://synaptechspa.cl" target="_blank"
             class="mt-2 flex items-center justify-center gap-2 py-2 px-3 rounded-xl border border-dashed border-admin-border/40 hover:border-admin-accent/30 hover:bg-admin-accent/5 transition-all group opacity-40 hover:opacity-90">
             <img src="/logo1.png" alt="SynapTech" class="h-4 w-auto object-contain opacity-70 group-hover:opacity-100">
-            <span class="text-[9px] font-black text-gray-500 group-hover:text-gray-300 uppercase tracking-widest transition-colors">SynapTech Spa</span>
+            <span
+              class="text-[9px] font-black text-gray-500 group-hover:text-gray-300 uppercase tracking-widest transition-colors">SynapTech
+              Spa</span>
           </a>
         </div>
       </aside>
@@ -866,102 +938,8 @@
       <main class="flex-1 h-full overflow-y-auto w-full px-4 py-6 lg:px-10 lg:py-10 md:pt-10 max-w-5xl mx-auto"
         style="padding-top: max(calc(env(safe-area-inset-top) + 5rem), 5rem);">
 
-        <!-- ══════════════════ TAB HOME ══════════════════ -->
-        <div id="tab-home" class="tab-content hidden">
-          <div class="max-w-2xl mx-auto">
-
-            <div class="mb-8">
-              <h2 class="text-2xl font-black text-white">Bienvenido al Panel Admin</h2>
-              <p class="text-sm text-white/40 mt-1">Selecciona una sección para comenzar a gestionar la barbería.</p>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-
-              <div class="rounded-2xl p-5 cursor-pointer hover:bg-white/[0.07] transition-colors border border-white/8 bg-white/4"
-                onclick="openTab('tab-agenda-equipo', document.querySelector('[data-tab=tab-agenda-equipo]'))">
-                <div class="flex items-center gap-3 mb-3">
-                  <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
-                    <i class="ph-fill ph-calendar-check text-emerald-400 text-lg"></i>
-                  </div>
-                  <h3 class="font-bold text-white">Agenda del equipo</h3>
-                </div>
-                <p class="text-xs text-white/40 leading-relaxed">Vista de todas las citas del día por barbero. Filtra por fecha y sigue el estado en tiempo real.</p>
-              </div>
-
-              <div class="rounded-2xl p-5 cursor-pointer hover:bg-white/[0.07] transition-colors border border-white/8 bg-white/4"
-                onclick="openTab('tab-clientes', document.querySelector('[data-tab=tab-clientes]'))">
-                <div class="flex items-center gap-3 mb-3">
-                  <div class="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0">
-                    <i class="ph-fill ph-users text-blue-400 text-lg"></i>
-                  </div>
-                  <h3 class="font-bold text-white">Clientes</h3>
-                </div>
-                <p class="text-xs text-white/40 leading-relaxed">Base de datos de clientes. Busca por nombre o teléfono, revisa historial de citas y puntos acumulados.</p>
-              </div>
-
-              <div class="rounded-2xl p-5 cursor-pointer hover:bg-white/[0.07] transition-colors border border-white/8 bg-white/4"
-                onclick="openTab('tab-servicios', document.querySelector('[data-tab=tab-servicios]'))">
-                <div class="flex items-center gap-3 mb-3">
-                  <div class="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center shrink-0">
-                    <i class="ph-fill ph-scissors text-purple-400 text-lg"></i>
-                  </div>
-                  <h3 class="font-bold text-white">Servicios</h3>
-                </div>
-                <p class="text-xs text-white/40 leading-relaxed">Administra el catálogo: nombre, precio, duración y disponibilidad para reserva online.</p>
-              </div>
-
-              <div class="rounded-2xl p-5 cursor-pointer hover:bg-white/[0.07] transition-colors border border-white/8 bg-white/4"
-                onclick="openTab('tab-barberos', document.querySelector('[data-tab=tab-barberos]'))">
-                <div class="flex items-center gap-3 mb-3">
-                  <div class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
-                    <i class="ph-fill ph-identification-badge text-amber-400 text-lg"></i>
-                  </div>
-                  <h3 class="font-bold text-white">Equipo</h3>
-                </div>
-                <p class="text-xs text-white/40 leading-relaxed">Gestiona los barberos: crea cuentas, asigna roles, configura horarios y bloqueos.</p>
-              </div>
-
-              <div class="rounded-2xl p-5 cursor-pointer hover:bg-white/[0.07] transition-colors border border-white/8 bg-white/4"
-                onclick="openTab('tab-premios', document.querySelector('[data-tab=tab-premios]'))">
-                <div class="flex items-center gap-3 mb-3">
-                  <div class="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center shrink-0">
-                    <i class="ph-fill ph-star text-rose-400 text-lg"></i>
-                  </div>
-                  <h3 class="font-bold text-white">Premios del Club</h3>
-                </div>
-                <p class="text-xs text-white/40 leading-relaxed">Programa de fidelización. Crea premios canjeables por puntos y gestiona los canjes.</p>
-              </div>
-
-              <div class="rounded-2xl p-5 cursor-pointer hover:bg-white/[0.07] transition-colors border border-white/8 bg-white/4"
-                onclick="openTab('tab-lookbook', document.querySelector('[data-tab=tab-lookbook]'))">
-                <div class="flex items-center gap-3 mb-3">
-                  <div class="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shrink-0">
-                    <i class="ph-fill ph-images text-indigo-400 text-lg"></i>
-                  </div>
-                  <h3 class="font-bold text-white">Lookbook</h3>
-                </div>
-                <p class="text-xs text-white/40 leading-relaxed">Galería de trabajos del equipo. Las fotos aparecen en el portal de reservas públicas.</p>
-              </div>
-
-              <div class="sm:col-span-2 rounded-2xl p-5 cursor-pointer hover:bg-white/[0.07] transition-colors border border-white/8 bg-white/4"
-                onclick="openTab('tab-config', document.querySelector('[data-tab=tab-config]'))">
-                <div class="flex items-center gap-3 mb-3">
-                  <div class="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
-                    <i class="ph-fill ph-gear text-white/50 text-lg"></i>
-                  </div>
-                  <h3 class="font-bold text-white">Configuración</h3>
-                </div>
-                <p class="text-xs text-white/40 leading-relaxed">Ajustes generales del negocio: horarios de apertura, intervalo entre citas, colación y datos del local.</p>
-              </div>
-
-            </div>
-
-            <p class="text-center text-[10px] text-white/15 mt-10">Elegance Barbershop · Panel Admin · Synaptech SPA</p>
-          </div>
-        </div>
-
-        <!-- tab-citas eliminado -->
-        <div id="tab-citas" class="hidden">
+        <!-- ══════════════════ TAB 1: CITAS ══════════════════ -->
+        <div id="tab-citas" class="tab-content block">
 
           <!-- STICKY HEADER -->
           <header id="sticky-admin-header"
@@ -1124,7 +1102,8 @@
         <div id="tab-agenda-equipo" class="tab-content hidden">
 
           <!-- Header sticky -->
-          <header class="sticky top-0 z-50 bg-[#111827] border-b border-gray-700 pt-3 pb-4 mb-5 px-4 -mx-4 lg:px-10 lg:-mx-10">
+          <header
+            class="sticky top-0 z-50 bg-[#111827] border-b border-gray-700 pt-3 pb-4 mb-5 px-4 -mx-4 lg:px-10 lg:-mx-10">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h2 class="text-lg font-black tracking-tight text-white leading-tight">Agenda del Equipo</h2>
@@ -1143,7 +1122,9 @@
                   <i class="ph-bold ph-caret-down" style="font-size:.7rem;color:#6b7280;flex-shrink:0;"></i>
                 </button>
                 <!-- Mini-calendario equipo -->
-                <div id="equipoCalDrop" style="display:none;position:absolute;top:auto;z-index:9999;width:280px;background:#1f2937;border:1px solid #374151;border-radius:1rem;box-shadow:0 20px 60px rgba(0,0,0,.7);padding:1rem;margin-top:4px;"></div>
+                <div id="equipoCalDrop"
+                  style="display:none;position:absolute;top:auto;z-index:9999;width:280px;background:#1f2937;border:1px solid #374151;border-radius:1rem;box-shadow:0 20px 60px rgba(0,0,0,.7);padding:1rem;margin-top:4px;">
+                </div>
                 <button onclick="equipoChangeDate(1)"
                   class="w-10 h-10 rounded-xl bg-admin-card border border-admin-border hover:bg-admin-border flex items-center justify-center transition-colors shrink-0">
                   <i class="ph-bold ph-caret-right"></i>
@@ -1230,12 +1211,12 @@
               <h2 class="text-2xl font-bold tracking-tight">Configuración</h2>
               <p class="text-sm text-gray-500 mt-1">Ajustes individuales de horario y disponibilidad por barbero.</p>
             </div>
-            <div class="flex items-center gap-3 bg-admin-card border border-admin-border rounded-2xl px-4 py-3 shrink-0">
+            <div
+              class="flex items-center gap-3 bg-admin-card border border-admin-border rounded-2xl px-4 py-3 shrink-0">
               <i class="ph-fill ph-user-circle text-admin-accent text-xl"></i>
               <div>
                 <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Configurando a</p>
-                <select id="config-barbero-select"
-                  onchange="cambiarBarberoConfig(this.value)"
+                <select id="config-barbero-select" onchange="cambiarBarberoConfig(this.value)"
                   class="bg-transparent text-white text-sm font-bold focus:outline-none"
                   style="color-scheme:dark; min-width: 140px;">
                   <option value="">Cargando...</option>
@@ -1259,7 +1240,8 @@
           <div class="flex items-center justify-between mb-6">
             <div>
               <h2 class="text-2xl font-bold tracking-tight">Premios del Club</h2>
-              <p class="text-sm text-gray-500 mt-1">Define los premios globales que obtienen los clientes por acumular sellos.</p>
+              <p class="text-sm text-gray-500 mt-1">Define los premios globales que obtienen los clientes por acumular
+                sellos.</p>
             </div>
           </div>
 
@@ -1277,12 +1259,14 @@
               <div class="flex flex-wrap gap-3 items-end">
                 <input type="hidden" id="np-id">
                 <div class="flex-1 min-w-[160px]">
-                  <label class="block text-[10px] font-bold text-gray-500 mb-1.5 uppercase tracking-widest">Nombre</label>
+                  <label
+                    class="block text-[10px] font-bold text-gray-500 mb-1.5 uppercase tracking-widest">Nombre</label>
                   <input type="text" id="np-nombre" placeholder="Ej. Corte gratis"
                     class="w-full bg-admin-bg border border-admin-border rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-admin-accent placeholder-gray-600">
                 </div>
                 <div>
-                  <label class="block text-[10px] font-bold text-gray-500 mb-1.5 uppercase tracking-widest">Sellos</label>
+                  <label
+                    class="block text-[10px] font-bold text-gray-500 mb-1.5 uppercase tracking-widest">Sellos</label>
                   <input type="number" id="np-sellos" placeholder="10" min="1" max="99"
                     class="w-24 bg-admin-bg border border-admin-border rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-admin-accent">
                 </div>
@@ -1423,146 +1407,163 @@
     <!-- ══════════════════════════════════════════════════════
      SIDE PANEL — Gestión del Cliente Seleccionado
 ══════════════════════════════════════════════════════ -->
-    <div id="clientModal" class="hidden fixed inset-0 bg-black/90 backdrop-blur-md z-[200] flex items-center justify-center p-0 md:p-6 lg:p-12 overflow-hidden">
-      
+    <div id="clientModal"
+      class="hidden fixed inset-0 bg-black/90 backdrop-blur-md z-[200] flex items-center justify-center p-0 md:p-6 lg:p-12 overflow-hidden">
+
       <!-- Center Container -->
-      <div class="bg-gray-950 w-full max-w-5xl h-full md:h-[90vh] md:max-h-[90vh] md:rounded-[2.5rem] shadow-[0_0_100px_rgba(0,0,0,0.5)] border border-white/5 overflow-hidden flex flex-col relative animate-scale-in">
-        
+      <div
+        class="bg-gray-950 w-full max-w-5xl h-full md:h-[90vh] md:max-h-[90vh] md:rounded-[2.5rem] shadow-[0_0_100px_rgba(0,0,0,0.5)] border border-white/5 overflow-hidden flex flex-col relative animate-scale-in">
+
         <!-- Header with Close button -->
         <div class="flex items-center justify-between p-6 md:p-8 border-b border-white/5 bg-gray-900/30">
-           <div class="flex items-center gap-5">
-              <div id="panelAvatar" class="w-14 h-14 md:w-16 md:h-16 rounded-full bg-admin-bg border-2 border-admin-accent/20 flex items-center justify-center overflow-hidden shrink-0 shadow-lg shadow-admin-accent/5">
-                 <i class="ph-fill ph-user text-2xl text-gray-500"></i>
-              </div>
-              <div class="min-w-0">
-                <h3 id="panelNombre" class="text-xl md:text-2xl font-black text-white tracking-tight truncate">—</h3>
-                <p id="panelEmail" class="text-sm text-gray-500 font-medium truncate">—</p>
-              </div>
-           </div>
-           <button onclick="cerrarPanel()" class="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-all">
-              <i class="ph-bold ph-x text-lg"></i>
-           </button>
+          <div class="flex items-center gap-5">
+            <div id="panelAvatar"
+              class="w-14 h-14 md:w-16 md:h-16 rounded-full bg-admin-bg border-2 border-admin-accent/20 flex items-center justify-center overflow-hidden shrink-0 shadow-lg shadow-admin-accent/5">
+              <i class="ph-fill ph-user text-2xl text-gray-500"></i>
+            </div>
+            <div class="min-w-0">
+              <h3 id="panelNombre" class="text-xl md:text-2xl font-black text-white tracking-tight truncate">—</h3>
+              <p id="panelEmail" class="text-sm text-gray-500 font-medium truncate">—</p>
+            </div>
+          </div>
+          <button onclick="cerrarPanel()"
+            class="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-all">
+            <i class="ph-bold ph-x text-lg"></i>
+          </button>
         </div>
 
         <!-- Scrollable Content -->
         <div class="flex-1 overflow-y-auto p-6 md:p-10 lg:p-12 space-y-12 custom-scrollbar">
-           
-           <!-- Top Section: Stats & Card -->
-           <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-              
-              <!-- Column: Stamps Counter -->
-              <div class="lg:col-span-4 space-y-6">
-                 <div class="bg-gradient-to-br from-gray-900 to-gray-950 border border-white/5 rounded-[2rem] p-8 text-center relative overflow-hidden group shadow-2xl">
-                    <div class="absolute inset-0 bg-admin-accent/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                    <p class="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-6">Sellos Acumulados</p>
-                    <div class="relative inline-flex items-end justify-center mb-6">
-                       <span id="panelStampsNum" class="text-7xl font-black text-admin-accent drop-shadow-[0_0_15px_rgba(52,211,153,0.3)]">0</span>
-                       <span class="text-2xl text-gray-700 font-black mb-3 ml-1">/10</span>
-                    </div>
-                    <p id="panelStampsMsg" class="text-xs font-bold text-gray-400 bg-white/5 py-2 px-4 rounded-full inline-block">Cargando...</p>
-                    
-                    <div class="mt-8 w-full bg-white/5 rounded-full h-3 p-1 border border-white/5 shadow-inner">
-                       <div id="panelProgressBar" class="h-1 rounded-full bg-gradient-to-r from-admin-accent to-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.5)] transition-all duration-1000 ease-out" style="width:0%"></div>
-                    </div>
-                 </div>
 
-                 <!-- Quick Actions -->
-                 <div class="grid grid-cols-2 gap-4">
-                    <button onclick="accionSello(1)" class="flex flex-col items-center gap-3 bg-admin-accent/5 border border-admin-accent/20 text-admin-accent py-6 rounded-3xl hover:bg-admin-accent/10 transition-all active:scale-95">
-                       <i class="ph-fill ph-plus-circle text-3xl"></i>
-                       <span class="text-xs font-black uppercase tracking-widest">+1 Sello</span>
-                    </button>
-                    <button onclick="accionSello(-1)" class="flex flex-col items-center gap-3 bg-red-500/5 border border-red-500/20 text-red-400 py-6 rounded-3xl hover:bg-red-500/10 transition-all active:scale-95">
-                       <i class="ph-fill ph-minus-circle text-3xl"></i>
-                       <span class="text-xs font-black uppercase tracking-widest">-1 Sello</span>
-                    </button>
-                 </div>
+          <!-- Top Section: Stats & Card -->
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
+            <!-- Column: Stamps Counter -->
+            <div class="lg:col-span-4 space-y-6">
+              <div
+                class="bg-gradient-to-br from-gray-900 to-gray-950 border border-white/5 rounded-[2rem] p-8 text-center relative overflow-hidden group shadow-2xl">
+                <div class="absolute inset-0 bg-admin-accent/5 opacity-0 group-hover:opacity-100 transition-opacity">
+                </div>
+                <p class="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-6">Sellos Acumulados</p>
+                <div class="relative inline-flex items-end justify-center mb-6">
+                  <span id="panelStampsNum"
+                    class="text-7xl font-black text-admin-accent drop-shadow-[0_0_15px_rgba(52,211,153,0.3)]">0</span>
+                  <span class="text-2xl text-gray-700 font-black mb-3 ml-1">/10</span>
+                </div>
+                <p id="panelStampsMsg"
+                  class="text-xs font-bold text-gray-400 bg-white/5 py-2 px-4 rounded-full inline-block">Cargando...</p>
+
+                <div class="mt-8 w-full bg-white/5 rounded-full h-3 p-1 border border-white/5 shadow-inner">
+                  <div id="panelProgressBar"
+                    class="h-1 rounded-full bg-gradient-to-r from-admin-accent to-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.5)] transition-all duration-1000 ease-out"
+                    style="width:0%"></div>
+                </div>
               </div>
 
-              <!-- Column: Card & Info -->
-              <div class="lg:col-span-8 space-y-10">
-                 
-                 <!-- Loyalty Card Grid -->
-                 <div>
-                    <p class="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-5">Tarjeta de Fidelización</p>
-                    <div id="panelStampsGrid" class="grid grid-cols-5 md:grid-cols-10 gap-3"></div>
-                 </div>
-
-                 <div class="grid grid-cols-1 md:grid-cols-2 gap-10 pt-10 border-t border-white/5">
-                    
-                    <!-- Info Column -->
-                    <div class="space-y-5">
-                       <p class="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-2">Información</p>
-                       <div class="flex items-center gap-4 text-sm bg-white/3 p-4 rounded-2xl border border-white/5">
-                          <i class="ph-fill ph-users-three text-lg text-admin-accent"></i>
-                          <div class="flex-1">
-                            <p class="text-gray-500 text-[10px] uppercase font-bold">Visitas Totales</p>
-                            <p id="panelInfoAsistencias" class="text-white font-bold text-base">— veces asistió</p>
-                          </div>
-                       </div>
-                       <div class="flex items-center gap-4 text-sm bg-white/3 p-4 rounded-2xl border border-white/5">
-                          <i class="ph-fill ph-envelope text-lg text-gray-500"></i>
-                          <div class="flex-1 min-w-0">
-                            <p class="text-gray-500 text-[10px] uppercase font-bold">Email</p>
-                            <p id="panelInfoEmail" class="text-white font-medium truncate">—</p>
-                          </div>
-                       </div>
-                       <div class="flex items-center gap-4 text-sm bg-white/3 p-4 rounded-2xl border border-white/5">
-                          <i class="ph-fill ph-phone text-lg text-gray-500"></i>
-                          <div class="flex-1">
-                            <p class="text-gray-500 text-[10px] uppercase font-bold">Teléfono</p>
-                            <p id="panelInfoTel" class="text-white font-medium">—</p>
-                          </div>
-                       </div>
-                       <div class="flex items-center gap-4 text-sm bg-white/3 p-4 rounded-2xl border border-white/5">
-                          <i class="ph-fill ph-sparkle text-lg text-yellow-400"></i>
-                          <div class="flex-1">
-                            <p class="text-gray-500 text-[10px] uppercase font-bold">Miembro desde</p>
-                            <p id="panelInfoFecha" class="text-white font-medium">—</p>
-                          </div>
-                       </div>
-                       <div class="flex items-center gap-4 text-sm bg-white/3 p-4 rounded-2xl border border-white/5">
-                          <i class="ph-fill ph-clock-counter-clockwise text-lg text-admin-accent"></i>
-                          <div class="flex-1">
-                            <p class="text-gray-500 text-[10px] uppercase font-bold">Último sello</p>
-                            <p id="panelInfoUltimoSello" class="text-white font-medium">—</p>
-                          </div>
-                       </div>
-                       
-                       <div class="pt-6">
-                          <button onclick="resetearSellos()" class="flex items-center gap-2 text-gray-600 hover:text-red-400 transition-colors text-[10px] font-black uppercase tracking-widest">
-                             <i class="ph ph-arrow-counter-clockwise"></i> Resetear todos los sellos
-                          </button>
-                       </div>
-                    </div>
-
-                    <!-- Rewards & History Column -->
-                    <div class="space-y-8">
-                       <!-- Canjear -->
-                       <div>
-                          <p class="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-4">Canjear Premio</p>
-                          <div class="bg-gray-900/50 border border-white/5 rounded-3xl p-5 space-y-4">
-                             <div class="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar" id="premiosOptions"></div>
-                             <button onclick="canjearPremio()" class="w-full bg-yellow-400 text-gray-950 font-black py-4 rounded-2xl hover:bg-yellow-300 transition-all shadow-lg shadow-yellow-400/10 active:scale-95 text-xs uppercase tracking-widest flex items-center justify-center gap-2 mt-2">
-                                <i class="ph-fill ph-gift text-lg"></i>
-                                Canjear Seleccionado
-                             </button>
-                             <p id="canjeMsg" class="text-[10px] text-center mt-2 hidden font-bold"></p>
-                          </div>
-                       </div>
-
-                       <!-- Historial -->
-                       <div>
-                          <p class="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-4">Historial de Sellos</p>
-                          <div id="panelHistorial" class="bg-white/3 border border-white/5 rounded-3xl p-6 space-y-4 max-h-80 overflow-y-auto custom-scrollbar">
-                             <p class="text-xs text-gray-600 text-center py-4 italic">Sin historial registrado.</p>
-                          </div>
-                       </div>
-                    </div>
-
-                 </div>
+              <!-- Quick Actions -->
+              <div class="grid grid-cols-2 gap-4">
+                <button onclick="accionSello(1)"
+                  class="flex flex-col items-center gap-3 bg-admin-accent/5 border border-admin-accent/20 text-admin-accent py-6 rounded-3xl hover:bg-admin-accent/10 transition-all active:scale-95">
+                  <i class="ph-fill ph-plus-circle text-3xl"></i>
+                  <span class="text-xs font-black uppercase tracking-widest">+1 Sello</span>
+                </button>
+                <button onclick="accionSello(-1)"
+                  class="flex flex-col items-center gap-3 bg-red-500/5 border border-red-500/20 text-red-400 py-6 rounded-3xl hover:bg-red-500/10 transition-all active:scale-95">
+                  <i class="ph-fill ph-minus-circle text-3xl"></i>
+                  <span class="text-xs font-black uppercase tracking-widest">-1 Sello</span>
+                </button>
               </div>
-           </div>
+            </div>
+
+            <!-- Column: Card & Info -->
+            <div class="lg:col-span-8 space-y-10">
+
+              <!-- Loyalty Card Grid -->
+              <div>
+                <p class="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-5">Tarjeta de Fidelización
+                </p>
+                <div id="panelStampsGrid" class="grid grid-cols-5 md:grid-cols-10 gap-3"></div>
+              </div>
+
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-10 pt-10 border-t border-white/5">
+
+                <!-- Info Column -->
+                <div class="space-y-5">
+                  <p class="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-2">Información</p>
+                  <div class="flex items-center gap-4 text-sm bg-white/3 p-4 rounded-2xl border border-white/5">
+                    <i class="ph-fill ph-users-three text-lg text-admin-accent"></i>
+                    <div class="flex-1">
+                      <p class="text-gray-500 text-[10px] uppercase font-bold">Visitas Totales</p>
+                      <p id="panelInfoAsistencias" class="text-white font-bold text-base">— veces asistió</p>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-4 text-sm bg-white/3 p-4 rounded-2xl border border-white/5">
+                    <i class="ph-fill ph-envelope text-lg text-gray-500"></i>
+                    <div class="flex-1 min-w-0">
+                      <p class="text-gray-500 text-[10px] uppercase font-bold">Email</p>
+                      <p id="panelInfoEmail" class="text-white font-medium truncate">—</p>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-4 text-sm bg-white/3 p-4 rounded-2xl border border-white/5">
+                    <i class="ph-fill ph-phone text-lg text-gray-500"></i>
+                    <div class="flex-1">
+                      <p class="text-gray-500 text-[10px] uppercase font-bold">Teléfono</p>
+                      <p id="panelInfoTel" class="text-white font-medium">—</p>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-4 text-sm bg-white/3 p-4 rounded-2xl border border-white/5">
+                    <i class="ph-fill ph-sparkle text-lg text-yellow-400"></i>
+                    <div class="flex-1">
+                      <p class="text-gray-500 text-[10px] uppercase font-bold">Miembro desde</p>
+                      <p id="panelInfoFecha" class="text-white font-medium">—</p>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-4 text-sm bg-white/3 p-4 rounded-2xl border border-white/5">
+                    <i class="ph-fill ph-clock-counter-clockwise text-lg text-admin-accent"></i>
+                    <div class="flex-1">
+                      <p class="text-gray-500 text-[10px] uppercase font-bold">Último sello</p>
+                      <p id="panelInfoUltimoSello" class="text-white font-medium">—</p>
+                    </div>
+                  </div>
+
+                  <div class="pt-6">
+                    <button onclick="resetearSellos()"
+                      class="flex items-center gap-2 text-gray-600 hover:text-red-400 transition-colors text-[10px] font-black uppercase tracking-widest">
+                      <i class="ph ph-arrow-counter-clockwise"></i> Resetear todos los sellos
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Rewards & History Column -->
+                <div class="space-y-8">
+                  <!-- Canjear -->
+                  <div>
+                    <p class="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-4">Canjear Premio</p>
+                    <div class="bg-gray-900/50 border border-white/5 rounded-3xl p-5 space-y-4">
+                      <div class="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar" id="premiosOptions"></div>
+                      <button onclick="canjearPremio()"
+                        class="w-full bg-yellow-400 text-gray-950 font-black py-4 rounded-2xl hover:bg-yellow-300 transition-all shadow-lg shadow-yellow-400/10 active:scale-95 text-xs uppercase tracking-widest flex items-center justify-center gap-2 mt-2">
+                        <i class="ph-fill ph-gift text-lg"></i>
+                        Canjear Seleccionado
+                      </button>
+                      <p id="canjeMsg" class="text-[10px] text-center mt-2 hidden font-bold"></p>
+                    </div>
+                  </div>
+
+                  <!-- Historial -->
+                  <div>
+                    <p class="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-4">Historial de Sellos
+                    </p>
+                    <div id="panelHistorial"
+                      class="bg-white/3 border border-white/5 rounded-3xl p-6 space-y-4 max-h-80 overflow-y-auto custom-scrollbar">
+                      <p class="text-xs text-gray-600 text-center py-4 italic">Sin historial registrado.</p>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -1856,11 +1857,20 @@
     <!-- ══════════════════════════════════════════════════════
      MOBILE BOTTOM NAV — Scrollable horizontal
 ══════════════════════════════════════════════════════ -->
-    <div id="mobileBottomNav" class="md:hidden fixed bottom-0 left-0 right-0 z-50" style="padding-bottom: env(safe-area-inset-bottom);">
+    <div id="mobileBottomNav" class="md:hidden fixed bottom-0 left-0 right-0 z-50"
+      style="padding-bottom: env(safe-area-inset-bottom);">
       <nav class="flex items-stretch">
 
-<!-- Agenda equipo -->
-        <button onclick="closeSidebar(); openTab('tab-agenda-equipo', document.querySelector('[data-tab=tab-agenda-equipo]'))"
+        <!-- Citas del día (solo jefe) -->
+        <button onclick="closeSidebar(); openTab('tab-citas', document.querySelector('[data-tab=tab-citas]'))"
+          class="mob-nav-btn jefe-only" id="mobNav-tab-citas">
+          <i class="ph-fill ph-calendar-check"></i>
+          <span>Citas</span>
+        </button>
+
+        <!-- Agenda equipo -->
+        <button
+          onclick="closeSidebar(); openTab('tab-agenda-equipo', document.querySelector('[data-tab=tab-agenda-equipo]'))"
           class="mob-nav-btn" id="mobNav-tab-agenda-equipo">
           <i class="ph-fill ph-calendar-dots"></i>
           <span>Equipo</span>
@@ -2025,6 +2035,7 @@
         // Actualizar URL si corresponde
         if (push) {
           const tabToRoute = {
+            'tab-citas': 'agenda',
             'tab-agenda-equipo': 'agenda/',
             'tab-servicios': 'servicios',
             'tab-config': 'configuracion',
@@ -2856,7 +2867,7 @@
         daysDiv.innerHTML = '';
         for (let i = 0; i < 7; i++) {
           const dc = (set.diasConfig || {})[i] || {};
-          const activo = (set.diasLaborales || [1,2,3,4,5,6]).includes(i);
+          const activo = (set.diasLaborales || [1, 2, 3, 4, 5, 6]).includes(i);
           const ini = dc.inicio || set.horarioInicio || '09:00';
           const fin = dc.fin || set.horarioFin || '20:00';
           const row = document.createElement('div');
@@ -3522,38 +3533,38 @@
         // como stub por compatibilidad con llamadas externas.
       }
 
-    function toggleTheme() {
-      const html = document.documentElement;
-      const isLight = html.classList.toggle('light');
-      html.classList.toggle('dark', !isLight);
-      
-      const icon = document.getElementById('themeIcon');
-      const label = document.getElementById('themeLabel');
-      
-      if (isLight) {
-        icon.className = 'ph ph-moon text-lg';
-        label.textContent = 'Modo Oscuro';
-        localStorage.setItem('admin_theme', 'light');
-      } else {
-        icon.className = 'ph ph-sun text-lg';
-        label.textContent = 'Modo Claro';
-        localStorage.setItem('admin_theme', 'dark');
-      }
-    }
+      function toggleTheme() {
+        const html = document.documentElement;
+        const isLight = html.classList.toggle('light');
+        html.classList.toggle('dark', !isLight);
 
-    // Inicializar tema guardado
-    (function initTheme() {
-      const saved = localStorage.getItem('admin_theme');
-      if (saved === 'light') {
-        document.documentElement.classList.add('light');
-        document.documentElement.classList.remove('dark');
         const icon = document.getElementById('themeIcon');
         const label = document.getElementById('themeLabel');
-        if (icon) icon.className = 'ph ph-moon text-lg';
-        if (label) label.textContent = 'Modo Oscuro';
+
+        if (isLight) {
+          icon.className = 'ph ph-moon text-lg';
+          label.textContent = 'Modo Oscuro';
+          localStorage.setItem('admin_theme', 'light');
+        } else {
+          icon.className = 'ph ph-sun text-lg';
+          label.textContent = 'Modo Claro';
+          localStorage.setItem('admin_theme', 'dark');
+        }
       }
-    })();
-  
+
+      // Inicializar tema guardado
+      (function initTheme() {
+        const saved = localStorage.getItem('admin_theme');
+        if (saved === 'light') {
+          document.documentElement.classList.add('light');
+          document.documentElement.classList.remove('dark');
+          const icon = document.getElementById('themeIcon');
+          const label = document.getElementById('themeLabel');
+          if (icon) icon.className = 'ph ph-moon text-lg';
+          if (label) label.textContent = 'Modo Oscuro';
+        }
+      })();
+
 
       // ══════════════════════════════════════════════════════════════
       //  INIT
@@ -3592,10 +3603,10 @@
               } else {
                 document.querySelectorAll('.jefe-only').forEach(el => el.classList.add('hidden-for-role'));
                 // Si admin intenta abrir agenda, redirigir a servicios
-                if (window.INITIAL_TAB === 'tab-citas') window.INITIAL_TAB = 'tab-home';
+                if (window.INITIAL_TAB === 'tab-citas') window.INITIAL_TAB = 'tab-servicios';
               }
             }
-            
+
             // Autenticado y autorizado: mostrar app
             document.getElementById('adminApp').classList.remove('hidden');
 
@@ -4715,18 +4726,22 @@
   </script>
 
   <!-- ═══════════════════ MODAL: EDITAR BARBERO ═══════════════════ -->
-  <div id="barberEditModal" class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-[9000] flex items-center justify-center p-4">
+  <div id="barberEditModal"
+    class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-[9000] flex items-center justify-center p-4">
     <div class="bg-admin-card border border-admin-border rounded-2xl w-full max-w-md shadow-2xl p-6 relative">
-      <button onclick="closeBarberModal()" class="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full text-gray-500 hover:text-white hover:bg-white/10 transition-colors text-lg">&times;</button>
+      <button onclick="closeBarberModal()"
+        class="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full text-gray-500 hover:text-white hover:bg-white/10 transition-colors text-lg">&times;</button>
       <h3 id="barberModalTitle" class="text-lg font-bold mb-5">Editar Barbero</h3>
 
       <!-- Foto -->
       <div class="flex flex-col items-center mb-5">
         <div class="relative group cursor-pointer" onclick="document.getElementById('barberPhotoInput').click()">
-          <div id="barberPhotoPreview" class="w-24 h-24 rounded-full bg-gray-800 border-2 border-admin-border flex items-center justify-center overflow-hidden">
+          <div id="barberPhotoPreview"
+            class="w-24 h-24 rounded-full bg-gray-800 border-2 border-admin-border flex items-center justify-center overflow-hidden">
             <i class="ph-fill ph-user text-4xl text-gray-500"></i>
           </div>
-          <div class="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+          <div
+            class="absolute inset-0 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
             <i class="ph-bold ph-camera text-white text-xl"></i>
           </div>
         </div>
@@ -4750,7 +4765,9 @@
         </div>
         <div>
           <label class="block text-xs font-bold text-gray-400 mb-1">Rol</label>
-          <select id="barberEditRol" disabled class="w-full bg-admin-bg/50 border border-admin-border/50 rounded-xl px-4 py-3 text-sm text-gray-500 cursor-not-allowed" style="color-scheme:dark;">
+          <select id="barberEditRol" disabled
+            class="w-full bg-admin-bg/50 border border-admin-border/50 rounded-xl px-4 py-3 text-sm text-gray-500 cursor-not-allowed"
+            style="color-scheme:dark;">
             <option value="barbero">Barbero</option>
             <option value="jefe">Jefe</option>
             <option value="admin">Administrador</option>
@@ -4838,8 +4855,8 @@
     function _equipoRenderCal() {
       const drop = document.getElementById('equipoCalDrop');
       if (!drop) return;
-      const months = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-      const days = ['D','L','M','M','J','V','S'];
+      const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+      const days = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
       const first = new Date(_equipoCalYear, _equipoCalMonth, 1).getDay();
       const total = new Date(_equipoCalYear, _equipoCalMonth + 1, 0).getDate();
       const todStr = dateToLocalStr(new Date());
@@ -4847,12 +4864,12 @@
       let cells = '';
       for (let i = 0; i < first; i++) cells += '<span></span>';
       for (let d = 1; d <= total; d++) {
-        const dStr = `${_equipoCalYear}-${String(_equipoCalMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        const dStr = `${_equipoCalYear}-${String(_equipoCalMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
         const isToday = dStr === todStr;
         const isSel = dStr === selStr;
-        cells += `<span onclick="_equipoPickDate('${dStr}')" style="display:flex;align-items:center;justify-content:center;height:2rem;border-radius:.5rem;cursor:pointer;font-size:.75rem;font-weight:${isToday?'700':'400'};background:${isSel?'#34d399':'transparent'};color:${isSel?'#111827':isToday?'#34d399':'#d1d5db'};"
-          onmouseover="this.style.background='${isSel?'#34d399':'rgba(255,255,255,.08)'}'"
-          onmouseout="this.style.background='${isSel?'#34d399':'transparent'}'">
+        cells += `<span onclick="_equipoPickDate('${dStr}')" style="display:flex;align-items:center;justify-content:center;height:2rem;border-radius:.5rem;cursor:pointer;font-size:.75rem;font-weight:${isToday ? '700' : '400'};background:${isSel ? '#34d399' : 'transparent'};color:${isSel ? '#111827' : isToday ? '#34d399' : '#d1d5db'};"
+          onmouseover="this.style.background='${isSel ? '#34d399' : 'rgba(255,255,255,.08)'}'"
+          onmouseout="this.style.background='${isSel ? '#34d399' : 'transparent'}'">
           ${d}</span>`;
       }
       drop.innerHTML = `
@@ -4864,7 +4881,7 @@
             <i class="ph-bold ph-caret-right" style="font-size:.65rem;"></i></button>
         </div>
         <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:4px;">
-          ${days.map(d=>`<span style="text-align:center;font-size:.6rem;font-weight:700;color:#6b7280;padding:2px 0;">${d}</span>`).join('')}
+          ${days.map(d => `<span style="text-align:center;font-size:.6rem;font-weight:700;color:#6b7280;padding:2px 0;">${d}</span>`).join('')}
         </div>
         <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;">${cells}</div>`;
     }
@@ -4917,10 +4934,10 @@
 
       const statusKey = st => (!st || st === 'Confirmado') ? 'Pendiente' : st.replace(/\s/g, '');
       const statusColor = {
-        Pendiente:   { bg: 'rgba(251,191,36,.1)',  border: 'rgba(251,191,36,.3)',  text: '#fbbf24' },
-        Completada:  { bg: 'rgba(52,211,153,.1)',  border: 'rgba(52,211,153,.3)',  text: '#34d399' },
-        Cancelada:   { bg: 'rgba(239,68,68,.08)', border: 'rgba(239,68,68,.25)',  text: '#f87171' },
-        NoAsistio:   { bg: 'rgba(156,163,175,.08)',border: 'rgba(156,163,175,.25)',text: '#9ca3af' },
+        Pendiente: { bg: 'rgba(251,191,36,.1)', border: 'rgba(251,191,36,.3)', text: '#fbbf24' },
+        Completada: { bg: 'rgba(52,211,153,.1)', border: 'rgba(52,211,153,.3)', text: '#34d399' },
+        Cancelada: { bg: 'rgba(239,68,68,.08)', border: 'rgba(239,68,68,.25)', text: '#f87171' },
+        NoAsistio: { bg: 'rgba(156,163,175,.08)', border: 'rgba(156,163,175,.25)', text: '#9ca3af' },
       };
 
       let totalCitas = 0, totalCompletadas = 0, totalPendientes = 0;
@@ -4951,7 +4968,7 @@
               <p style="font-size:.8rem;font-weight:700;color:#fff;margin:0 0 .2rem;">${c.clienteNombre || '—'}</p>
               <p style="font-size:.7rem;color:#9ca3af;margin:0;">${c.servicioNombre || '—'} · $${srv.precio.toLocaleString('es-CL')}</p>
               ${c.nota ? `<p style="font-size:.65rem;color:#6b7280;margin:.25rem 0 0;font-style:italic;">"${c.nota}"</p>` : ''}
-              ${c.clienteTelefono ? `<a href="https://wa.me/${(c.clienteTelefono||'').replace(/\D/g,'')}" target="_blank" style="display:inline-flex;align-items:center;gap:.25rem;font-size:.65rem;color:#34d399;text-decoration:none;margin-top:.35rem;"><i class="ph-fill ph-whatsapp-logo"></i> WP</a>` : ''}
+              ${c.clienteTelefono ? `<a href="https://wa.me/${(c.clienteTelefono || '').replace(/\D/g, '')}" target="_blank" style="display:inline-flex;align-items:center;gap:.25rem;font-size:.65rem;color:#34d399;text-decoration:none;margin-top:.35rem;"><i class="ph-fill ph-whatsapp-logo"></i> WP</a>` : ''}
             </div>`;
         }).join('') : `<div style="text-align:center;padding:2rem 0;color:#4b5563;font-size:.75rem;">Sin citas este día</div>`;
 
@@ -5000,14 +5017,14 @@
         const nombre = b.nombre || b.displayName || (b.email ? b.email.split('@')[0] : 'Sin nombre');
         const activo = b.activo !== false;
         const isAdminDev = b.rol === 'admin';
-        
+
         const fotoHTML = b.foto
           ? `<img src="${b.foto}" alt="${nombre}" class="w-20 h-20 rounded-full object-cover border-2 ${activo ? 'border-admin-accent/50' : 'border-gray-700'} shadow-lg">`
           : `<div class="w-20 h-20 rounded-full bg-gray-800 border-2 ${activo ? 'border-admin-accent/50' : 'border-gray-700'} flex items-center justify-center"><i class="ph-fill ph-user text-3xl text-gray-500"></i></div>`;
 
         const waMsg = encodeURIComponent("Hola, necesito ayuda con la agenda");
         const devPhone = "56936302528"; // Número del desarrollador
-        const clickAttr = isAdminDev 
+        const clickAttr = isAdminDev
           ? `onclick="window.open('https://wa.me/${devPhone}?text=${waMsg}', '_blank')"`
           : '';
 
@@ -5070,7 +5087,7 @@
 
     async function eliminarBarbero(id, nombre) {
       if (!confirm(`¿Estás seguro de que deseas eliminar permanentemente a "${nombre}"? Esta acción no se puede deshacer.`)) return;
-      
+
       try {
         showMiniToast('Eliminando...');
         await db.collection('barberos').doc(id).delete();
@@ -5173,7 +5190,7 @@
     }
 
     // Cerrar modal al hacer clic en el fondo
-    document.getElementById('barberEditModal').addEventListener('click', function(e) {
+    document.getElementById('barberEditModal').addEventListener('click', function (e) {
       if (e.target === this) closeBarberModal();
     });
   </script>
