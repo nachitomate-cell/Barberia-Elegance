@@ -587,7 +587,6 @@
 
       // Mapeo de rutas a pestañas
       const routes = {
-        '/gestion-interna/agenda': 'tab-citas',
         '/gestion-interna/agenda/': 'tab-agenda-equipo',
         '/gestion-interna/servicios': 'tab-servicios',
         '/gestion-interna/configuracion': 'tab-config',
@@ -697,7 +696,7 @@
 
         <!-- ── Cabecera del sidebar ── -->
         <div class="sidebar-user-card px-5 py-4 flex items-center gap-3 cursor-pointer hover:bg-admin-accent/5 transition-colors"
-          onclick="closeSidebar(); openTab('tab-citas', document.querySelector('.nav-btn[data-tab=tab-citas]'))">
+          onclick="closeSidebar(); openTab('tab-home', document.querySelector('.nav-btn[data-tab=tab-home]'))">
           <div class="relative shrink-0">
             <img id="shopLogoSidebar" src="" alt=""
               class="h-11 w-11 object-cover rounded-full border-2 border-admin-accent/40 shadow-[0_0_12px_rgba(52,211,153,0.25)]">
@@ -726,15 +725,6 @@
           <!-- Sección Agenda -->
           <p class="text-[9px] font-black text-gray-600 uppercase tracking-[0.15em] px-3 pt-3 pb-2">Agenda</p>
 
-          <a href="/gestion-interna/agenda" data-tab="tab-citas"
-            onclick="event.preventDefault(); closeSidebar(); openTab('tab-citas',this)"
-            class="jefe-only nav-btn w-full flex items-center gap-3 px-3 py-2.5 min-h-[44px] rounded-xl font-semibold text-sm transition-all text-gray-400">
-            <span class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center shrink-0 transition-colors group-hover:bg-admin-accent/10">
-              <i class="ph-fill ph-calendar-check text-base"></i>
-            </span>
-            <span class="flex-1 text-left">Citas del día</span>
-            <span id="citasBadge" class="nav-badge hidden">0</span>
-          </a>
 
           <a href="/gestion-interna/agenda/" data-tab="tab-agenda-equipo"
             onclick="event.preventDefault(); closeSidebar(); openTab('tab-agenda-equipo',this)"
@@ -970,8 +960,8 @@
           </div>
         </div>
 
-        <!-- ══════════════════ TAB 1: CITAS ══════════════════ -->
-        <div id="tab-citas" class="tab-content block">
+        <!-- tab-citas eliminado -->
+        <div id="tab-citas" class="hidden">
 
           <!-- STICKY HEADER -->
           <header id="sticky-admin-header"
@@ -1869,14 +1859,7 @@
     <div id="mobileBottomNav" class="md:hidden fixed bottom-0 left-0 right-0 z-50" style="padding-bottom: env(safe-area-inset-bottom);">
       <nav class="flex items-stretch">
 
-        <!-- Citas del día (solo jefe) -->
-        <button onclick="closeSidebar(); openTab('tab-citas', document.querySelector('[data-tab=tab-citas]'))"
-          class="mob-nav-btn jefe-only" id="mobNav-tab-citas">
-          <i class="ph-fill ph-calendar-check"></i>
-          <span>Citas</span>
-        </button>
-
-        <!-- Agenda equipo -->
+<!-- Agenda equipo -->
         <button onclick="closeSidebar(); openTab('tab-agenda-equipo', document.querySelector('[data-tab=tab-agenda-equipo]'))"
           class="mob-nav-btn" id="mobNav-tab-agenda-equipo">
           <i class="ph-fill ph-calendar-dots"></i>
@@ -2042,7 +2025,6 @@
         // Actualizar URL si corresponde
         if (push) {
           const tabToRoute = {
-            'tab-citas': 'agenda',
             'tab-agenda-equipo': 'agenda/',
             'tab-servicios': 'servicios',
             'tab-config': 'configuracion',
@@ -3610,7 +3592,7 @@
               } else {
                 document.querySelectorAll('.jefe-only').forEach(el => el.classList.add('hidden-for-role'));
                 // Si admin intenta abrir agenda, redirigir a servicios
-                if (window.INITIAL_TAB === 'tab-citas') window.INITIAL_TAB = 'tab-servicios';
+                if (window.INITIAL_TAB === 'tab-citas') window.INITIAL_TAB = 'tab-home';
               }
             }
             
