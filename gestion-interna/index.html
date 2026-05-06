@@ -603,7 +603,7 @@
         window.INITIAL_TAB = 'tab-clientes';
         window.INITIAL_CLIENT_UID = path.replace('/gestion-interna/clientes/', '');
       } else if (path === '/gestion-interna' || path === '/gestion-interna/') {
-        window.INITIAL_TAB = 'tab-citas';
+        window.location.replace('/gestion-interna/agenda/');
       }
 
       let tenant = null;
