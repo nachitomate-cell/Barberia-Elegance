@@ -255,6 +255,19 @@
                         return;
                     } else {
                         barberId = await FDB.getBarberoId(user.email, user.uid) || user.uid;
+                        // Si el doc del barbero no usa su UID como ID, crear un doc delgado en
+                        // barberos/{uid} para que las reglas de Firestore lo reconozcan.
+                        if (barberId !== user.uid) {
+                            try {
+                                const uidDoc = await db.collection('barberos').doc(user.uid).get();
+                                if (!uidDoc.exists) {
+                                    await db.collection('barberos').doc(user.uid).set({
+                                        activo: true,
+                                        _mainDocId: barberId
+                                    });
+                                }
+                            } catch (_e) { /* silent: no bloquear login */ }
+                        }
                     }
 
                     try {
