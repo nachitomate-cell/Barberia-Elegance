@@ -2619,7 +2619,9 @@
         const pre = parseInt(document.getElementById('ns-precio').value);
         const dur = parseInt(document.getElementById('ns-duracion').value);
         const cat = document.getElementById('ns-categoria').value;
-        if (!nom || !pre || !dur) return alert('Rellena todos los campos.');
+        if (!nom) return alert('El nombre del servicio es obligatorio.');
+        if (!pre || pre <= 0) return alert('El precio debe ser mayor a $0.');
+        if (!dur || dur <= 0) return alert('La duración debe ser mayor a 0 minutos.');
         try {
           await FDB.addServicio({ nombre: nom, precio: pre, duracion: dur, categoria: cat });
           // onSnapshot actualiza _serviciosCache y llama loadServicesAdmin automáticamente
@@ -2654,7 +2656,9 @@
         const pre = parseInt(document.getElementById('edit-srv-precio').value);
         const dur = parseInt(document.getElementById('edit-srv-duracion').value);
         const cat = document.getElementById('edit-srv-categoria').value;
-        if (!nom || !pre || !dur) return alert('Completa todos los campos.');
+        if (!nom) return alert('El nombre del servicio es obligatorio.');
+        if (!pre || pre <= 0) return alert('El precio debe ser mayor a $0.');
+        if (!dur || dur <= 0) return alert('La duración debe ser mayor a 0 minutos.');
         try {
           await FDB.updateServicio(id, { nombre: nom, precio: pre, duracion: dur, categoria: cat });
           closeEditModal();
@@ -3712,13 +3716,16 @@
       const sessionStartTime = new Date();
       const _notifiedDocs = new Set();
       let _activityUnsub = null;
+      let _badgeUnsub = null;
+      let _lookbookUnsub = null;
       let _toastIdTarget = null; // para hacer scroll
 
       function initActivityListener() {
         const todayStr = dateToLocalStr(new Date());
 
         // 1. Badge (Solo conteo del día actual, filtrado por barbero)
-        db.collection('citas').where('fecha', '==', todayStr).onSnapshot(snap => {
+        if (_badgeUnsub) _badgeUnsub();
+        _badgeUnsub = db.collection('citas').where('fecha', '==', todayStr).onSnapshot(snap => {
           const total = _myBarberoId
             ? snap.docs.filter(d => d.data().barberoId === _myBarberoId).length
             : snap.size;
@@ -3999,7 +4006,8 @@
 
       function initLookbookAdmin() {
         // Listener tiempo real → grid admin
-        db.collection('lookbook').orderBy('order', 'asc').onSnapshot(snap => {
+        if (_lookbookUnsub) _lookbookUnsub();
+        _lookbookUnsub = db.collection('lookbook').orderBy('order', 'asc').onSnapshot(snap => {
           const grid = document.getElementById('lookbookAdminGrid');
           const count = document.getElementById('lookbookCount');
           if (!grid) return;

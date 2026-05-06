@@ -804,14 +804,26 @@
       const _soportePush = 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
   
       function _toastEstado(est) {
+        if (est === 'denied') {
+          const isAndroid = /android/i.test(navigator.userAgent);
+          const isIOS = /iphone|ipad/i.test(navigator.userAgent);
+          let instrucciones;
+          if (isAndroid) {
+            instrucciones = 'Notificaciones bloqueadas.\n\nPara reactivarlas en Android:\n1. Toca el ícono de candado en la barra de direcciones\n2. Selecciona "Permisos del sitio"\n3. Activa "Notificaciones"';
+          } else if (isIOS) {
+            instrucciones = 'Notificaciones bloqueadas.\n\nPara reactivarlas en iPhone:\n1. Abre Ajustes > Safari > Configuración de sitios web\n2. Busca "Notificaciones" y encuentra este sitio\n3. Cambia el permiso a "Permitir"';
+          } else {
+            instrucciones = 'Notificaciones bloqueadas.\n\nPara reactivarlas en Chrome:\n1. Haz clic en el candado (🔒) en la barra de URL\n2. Busca "Notificaciones" y cámbialo a "Permitir"\n3. Recarga la página';
+          }
+          alert(instrucciones);
+          return;
+        }
         const msgs = {
           granted: 'Las notificaciones ya están activas ✓',
-          denied: 'Notificaciones bloqueadas. Habilítalas en Ajustes.',
-          nosupport: 'Dispositivo no soporta notificaciones.',
+          nosupport: 'Este dispositivo no soporta notificaciones push.',
           loading: 'Configurando notificaciones...',
         };
-        const msg = msgs[est] || 'Estado desconocido.';
-        alert(msg);
+        alert(msgs[est] || 'Estado desconocido.');
       }
   
       function _actualizarUI(estado) {

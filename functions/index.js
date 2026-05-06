@@ -124,6 +124,25 @@ exports.notificarCitaAdmin = onDocumentCreated('citas/{citaId}', async (event) =
   const cita   = event.data?.data();
   if (!cita) return null;
 
+  // Anti-spam: máx. 3 citas por teléfono en las últimas 24 horas
+  const telefono = cita.clienteTelefono;
+  if (telefono) {
+    const oneDayAgo = admin.firestore.Timestamp.fromDate(new Date(Date.now() - 24 * 60 * 60 * 1000));
+    try {
+      const recientes = await db.collection('citas')
+        .where('clienteTelefono', '==', telefono)
+        .where('creadoEn', '>', oneDayAgo)
+        .get();
+      if (recientes.size > 3) {
+        logger.warn(`[Anti-spam] ${telefono} superó el límite diario. Eliminando ${event.params.citaId}.`);
+        await event.data.ref.delete();
+        return null;
+      }
+    } catch (err) {
+      logger.error('[Anti-spam] Error en verificación de rate limit:', err);
+    }
+  }
+
   const citaId  = event.params.citaId;
   const cliente = cita.clienteNombre || cita.nombre || 'Cliente';
   const servicio = cita.servicioNombre || cita.servicio || 'Servicio';
