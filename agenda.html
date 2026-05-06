@@ -222,13 +222,17 @@
                         return;
                     }
 
-                    await loadBarberData();
-                    renderDaySelector();
-                    loadAgendaData();
-                    loadLatestReservations();
-
-                    document.getElementById('loadingOverlay').classList.add('hidden');
-                    document.getElementById('mainApp').classList.remove('hidden');
+                    try {
+                        await loadBarberData();
+                        renderDaySelector();
+                        loadAgendaData();
+                        loadLatestReservations();
+                    } catch (err) {
+                        console.error('Error al cargar datos de la agenda:', err);
+                    } finally {
+                        document.getElementById('loadingOverlay').classList.add('hidden');
+                        document.getElementById('mainApp').classList.remove('hidden');
+                    }
                 } else {
                     window.location.href = '/gestion-interna/login/';
                 }
@@ -317,8 +321,25 @@
                 .where('fecha', '==', fechaStr)
                 .where('barberoId', '==', barberId)
                 .onSnapshot(snap => {
+                    const changes = snap.docChanges();
+                    changes.forEach(change => {
+                        if (change.type === 'added' && !_initialLoad && Notification.permission === 'granted') {
+                            const data = change.doc.data();
+                            // Notificar solo si se creó hace poco (evitar spam al recargar viejo)
+                            const diff = new Date() - (data.creadoEn?.toDate() || new Date());
+                            if (diff < 60000) {
+                                new Notification('Nueva Reserva', {
+                                    body: `${data.clienteNombre} reservó para las ${data.hora}.`,
+                                    icon: '/logo.jpg'
+                                });
+                            }
+                        }
+                    });
+
                     todayCitas = snap.docs.map(d => ({id: d.id, ...d.data()}));
                     renderSlots();
+                    
+                    if(_initialLoad) setTimeout(() => _initialLoad = false, 2000);
                 });
 
             // Bloqueos (para este barbero específicamente)
@@ -657,23 +678,8 @@
         alert('Para recibir notificaciones en iPhone:\n1. Toca el botón Compartir (⬆️)\n2. Toca "Añadir a la pantalla de inicio"\n3. Abre la app desde el ícono instalado');
       }
   
-      async function _guardarToken(token) {
-        if (!firebase.auth().currentUser) return;
-        try {
-          await db.collection('fcm_tokens').doc(token).set({
-            token,
-            uid: firebase.auth().currentUser.uid,
-            dispositivo: navigator.userAgent.substring(0, 120),
-            creadoEn: firebase.firestore.FieldValue.serverTimestamp(),
-            activo: true
-          }, { merge: true });
-        } catch (e) {
-          console.error('[FCM] Error:', e);
-        }
-      }
-  
-      let _messagingInstance = null;
       let _swRegistration = null;
+      let _initialLoad = true;
   
       async function solicitarPermisosYObtenerToken() {
         if (_isIOS && !_isStandalone) { _mostrarHintIOS(); return; }
@@ -682,35 +688,22 @@
         _actualizarUI('loading');
   
         try {
-          const registration = _swRegistration || await navigator.serviceWorker.ready;
-          _swRegistration = registration;
-  
           const permission = await Notification.requestPermission();
-          if (permission !== 'granted') { _actualizarUI('denied'); return; }
-  
-          const messaging = _messagingInstance || firebase.messaging();
-          _messagingInstance = messaging;
-  
-          const token = await messaging.getToken({ vapidKey: FCM_VAPID_KEY, serviceWorkerRegistration: registration });
-  
-          if (token) {
-            await _guardarToken(token);
-            _actualizarUI('granted');
-  
-            messaging.onMessage(payload => {
-              const title = payload.notification?.title || payload.data?.title || 'Nueva cita';
-              const body = payload.notification?.body || payload.data?.body || 'Tienes una nueva reserva.';
-              registration.showNotification(title, {
-                body, icon: '/icons/icon-192.png', badge: '/icons/icon-192.png',
-                tag: 'nueva-cita', renotify: true, data: { url: '/agenda' }
-              });
-              alert(`🔔 ${title}\n${body}`);
-            });
-          } else {
-            _actualizarUI('default');
+          if (permission !== 'granted') { 
+             _actualizarUI('denied'); 
+             return; 
           }
+          
+          _actualizarUI('granted');
+          
+          // Notificación de prueba
+          new Notification('Notificaciones Activadas', {
+            body: 'Te avisaremos cuando hayan nuevas reservas.',
+            icon: '/logo.jpg'
+          });
+
         } catch (err) {
-          console.error('[FCM] Error:', err);
+          console.error('[Notificaciones] Error:', err);
           _actualizarUI('default');
         }
       }
