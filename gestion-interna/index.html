@@ -1167,6 +1167,18 @@
                   <option value="Extras">Extras</option>
                   <option value="Otro">Otro</option>
                 </select>
+                <!-- Icon picker -->
+                <input type="hidden" id="ns-icono" value="ph-scissors">
+                <div>
+                  <label class="block text-xs font-bold text-gray-400 mb-2">Ícono</label>
+                  <button type="button" onclick="toggleIconPicker('ns')"
+                    class="flex items-center gap-3 w-full bg-admin-bg border border-admin-border rounded-xl px-4 py-3 text-sm text-white hover:border-admin-accent/50 transition-colors">
+                    <i id="ns-icono-preview" class="ph ph-scissors text-xl text-admin-accent"></i>
+                    <span class="text-gray-400 text-xs">Elegir ícono</span>
+                    <i class="ph ph-caret-down text-gray-500 ml-auto text-xs"></i>
+                  </button>
+                  <div id="ns-icon-picker" class="hidden mt-2 bg-admin-bg border border-admin-border rounded-xl p-3 grid grid-cols-8 gap-1.5"></div>
+                </div>
                 <button onclick="crearServicio()"
                   class="w-full bg-admin-accent text-admin-bg font-bold py-3 rounded-xl hover:bg-emerald-300 transition-colors text-sm">
                   Guardar Servicio
@@ -1688,6 +1700,18 @@
               <option value="Extras">Extras</option>
               <option value="Otro">Otro</option>
             </select>
+          </div>
+          <!-- Icon picker (edit) -->
+          <input type="hidden" id="edit-srv-icono" value="ph-scissors">
+          <div>
+            <label class="block text-xs font-bold text-gray-400 mb-2">Ícono</label>
+            <button type="button" onclick="toggleIconPicker('edit-srv')"
+              class="flex items-center gap-3 w-full bg-admin-bg border border-admin-border rounded-xl px-4 py-3 text-sm text-white hover:border-admin-accent/50 transition-colors">
+              <i id="edit-srv-icono-preview" class="ph ph-scissors text-xl text-admin-accent"></i>
+              <span class="text-gray-400 text-xs">Elegir ícono</span>
+              <i class="ph ph-caret-down text-gray-500 ml-auto text-xs"></i>
+            </button>
+            <div id="edit-srv-icon-picker" class="hidden mt-2 bg-admin-bg border border-admin-border rounded-xl p-3 grid grid-cols-8 gap-1.5"></div>
           </div>
           <div class="flex justify-end gap-3 pt-2 border-t border-admin-border">
             <button onclick="closeEditModal()"
@@ -2565,6 +2589,9 @@
           const catBadge = s.categoria ? `<span class="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-admin-bg text-gray-400 border-admin-border ml-2">${s.categoria}</span>` : `<span class="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-admin-bg text-gray-400 border-admin-border ml-2">Otro</span>`;
           card.innerHTML = `
       <div class="text-gray-600 px-1 shrink-0 select-none" title="Arrastrar"><i class="ph ph-dots-six-vertical text-2xl"></i></div>
+      <div class="w-9 h-9 rounded-xl bg-admin-accent/10 border border-admin-accent/20 flex items-center justify-center shrink-0">
+        <i class="ph ${s.icono || 'ph-scissors'} text-lg text-admin-accent"></i>
+      </div>
       <div class="flex-1 min-w-0">
         <h4 class="font-bold text-white text-sm flex items-center">${s.nombre} ${catBadge}</h4>
         <p class="text-xs text-gray-400 mt-0.5">$${s.precio.toLocaleString('es-CL')} · ${s.duracion} min</p>
@@ -2591,21 +2618,70 @@
         });
       }
 
+      // ── Icon picker para servicios ──────────────────────────────────────
+      const _SRV_ICONS = [
+        'ph-scissors','ph-user-focus','ph-mask-happy','ph-magic-wand',
+        'ph-sparkle','ph-star','ph-crown','ph-fire',
+        'ph-drop','ph-wave','ph-lightning','ph-paint-brush',
+        'ph-gift','ph-eye','ph-smiley','ph-flower',
+        'ph-leaf','ph-diamond','ph-trophy','ph-confetti',
+        'ph-clock','ph-sun','ph-moon','ph-wind'
+      ];
+
+      function _initIconPickers() {
+        ['ns', 'edit-srv'].forEach(prefix => {
+          const container = document.getElementById(prefix + '-icon-picker');
+          if (!container || container.childElementCount) return;
+          _SRV_ICONS.forEach(ic => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.dataset.icon = ic;
+            btn.title = ic.replace('ph-', '');
+            btn.className = 'icon-pick-btn w-9 h-9 rounded-lg border border-admin-border flex items-center justify-center hover:border-admin-accent/50 transition-colors';
+            btn.innerHTML = `<i class="ph ${ic} text-base text-gray-400"></i>`;
+            btn.onclick = () => selectIcon(prefix, ic);
+            container.appendChild(btn);
+          });
+        });
+      }
+
+      function toggleIconPicker(prefix) {
+        _initIconPickers();
+        const picker = document.getElementById(prefix + '-icon-picker');
+        picker.classList.toggle('hidden');
+      }
+
+      function selectIcon(prefix, iconName) {
+        document.getElementById(prefix + '-icono').value = iconName;
+        const preview = document.getElementById(prefix + '-icono-preview');
+        if (preview) preview.className = `ph ${iconName} text-xl text-admin-accent`;
+        document.getElementById(prefix + '-icon-picker').classList.add('hidden');
+        document.querySelectorAll(`#${prefix}-icon-picker .icon-pick-btn`).forEach(btn => {
+          const active = btn.dataset.icon === iconName;
+          btn.classList.toggle('border-admin-accent', active);
+          btn.classList.toggle('bg-admin-accent/10', active);
+          btn.classList.toggle('border-admin-border', !active);
+          btn.querySelector('i').className = `ph ${btn.dataset.icon} text-base ${active ? 'text-admin-accent' : 'text-gray-400'}`;
+        });
+      }
+
       async function crearServicio() {
         const nom = document.getElementById('ns-nombre').value.trim();
         const pre = parseInt(document.getElementById('ns-precio').value);
         const dur = parseInt(document.getElementById('ns-duracion').value);
         const cat = document.getElementById('ns-categoria').value;
+        const ico = document.getElementById('ns-icono').value || 'ph-scissors';
         if (!nom) return alert('El nombre del servicio es obligatorio.');
         if (!pre || pre <= 0) return alert('El precio debe ser mayor a $0.');
         if (!dur || dur <= 0) return alert('La duración debe ser mayor a 0 minutos.');
         try {
-          await FDB.addServicio({ nombre: nom, precio: pre, duracion: dur, categoria: cat });
+          await FDB.addServicio({ nombre: nom, precio: pre, duracion: dur, categoria: cat, icono: ico });
           // onSnapshot actualiza _serviciosCache y llama loadServicesAdmin automáticamente
           document.getElementById('ns-nombre').value = '';
           document.getElementById('ns-precio').value = '';
           document.getElementById('ns-duracion').value = '';
           document.getElementById('ns-categoria').value = 'Cortes';
+          selectIcon('ns', 'ph-scissors');
         } catch (e) { alert('Error al crear servicio: ' + e.message); }
       }
 
@@ -2624,20 +2700,25 @@
         document.getElementById('edit-srv-precio').value = s.precio;
         document.getElementById('edit-srv-duracion').value = s.duracion;
         document.getElementById('edit-srv-categoria').value = s.categoria || 'Otro';
+        selectIcon('edit-srv', s.icono || 'ph-scissors');
         document.getElementById('editServiceModal').classList.replace('hidden', 'flex');
       }
-      function closeEditModal() { document.getElementById('editServiceModal').classList.replace('flex', 'hidden'); }
+      function closeEditModal() {
+        document.getElementById('editServiceModal').classList.replace('flex', 'hidden');
+        document.getElementById('edit-srv-icon-picker').classList.add('hidden');
+      }
       async function guardarEdicionServicio() {
         const id = document.getElementById('edit-srv-id').value;
         const nom = document.getElementById('edit-srv-nombre').value.trim();
         const pre = parseInt(document.getElementById('edit-srv-precio').value);
         const dur = parseInt(document.getElementById('edit-srv-duracion').value);
         const cat = document.getElementById('edit-srv-categoria').value;
+        const ico = document.getElementById('edit-srv-icono').value || 'ph-scissors';
         if (!nom) return alert('El nombre del servicio es obligatorio.');
         if (!pre || pre <= 0) return alert('El precio debe ser mayor a $0.');
         if (!dur || dur <= 0) return alert('La duración debe ser mayor a 0 minutos.');
         try {
-          await FDB.updateServicio(id, { nombre: nom, precio: pre, duracion: dur, categoria: cat });
+          await FDB.updateServicio(id, { nombre: nom, precio: pre, duracion: dur, categoria: cat, icono: ico });
           closeEditModal();
           // onSnapshot actualiza la lista automáticamente
         } catch (e) { alert('Error al guardar: ' + e.message); }
