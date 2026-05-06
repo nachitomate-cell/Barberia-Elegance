@@ -233,6 +233,12 @@
                         document.getElementById('loadingOverlay').classList.add('hidden');
                         document.getElementById('mainApp').classList.remove('hidden');
                     }
+
+                    // Renovar token FCM ahora que el usuario está autenticado.
+                    // Necesario en cada apertura de la PWA para recibir push en background.
+                    if ('Notification' in window && Notification.permission === 'granted' && 'serviceWorker' in navigator) {
+                        navigator.serviceWorker.ready.then(() => solicitarPermisosYObtenerToken());
+                    }
                 } else {
                     window.location.href = '/gestion-interna/login/';
                 }
@@ -679,49 +685,99 @@
       }
   
       let _swRegistration = null;
+      let _messagingInstance = null;
       let _initialLoad = true;
-  
+      let _fcmInitialized = false;
+
+      async function _guardarToken(token) {
+        if (!firebase.auth().currentUser) {
+          console.warn('[FCM] Sin usuario autenticado, no se guarda token');
+          return;
+        }
+        try {
+          await db.collection('fcm_tokens').doc(token).set({
+            token,
+            uid: firebase.auth().currentUser.uid,
+            dispositivo: navigator.userAgent.substring(0, 120),
+            creadoEn: firebase.firestore.FieldValue.serverTimestamp(),
+            activo: true
+          }, { merge: true });
+          console.log('[FCM] Token guardado en Firestore');
+        } catch (e) {
+          console.error('[FCM] Error guardando token:', e);
+        }
+      }
+
       async function solicitarPermisosYObtenerToken() {
         if (_isIOS && !_isStandalone) { _mostrarHintIOS(); return; }
         if (!_soportePush) { _actualizarUI('nosupport'); return; }
-  
+
         _actualizarUI('loading');
-  
+
         try {
+          const registration = _swRegistration || await navigator.serviceWorker.ready;
+          _swRegistration = registration;
+
           const permission = await Notification.requestPermission();
-          if (permission !== 'granted') { 
-             _actualizarUI('denied'); 
-             return; 
+          if (permission !== 'granted') {
+             _actualizarUI('denied');
+             return;
           }
-          
-          _actualizarUI('granted');
-          
-          // Notificación de prueba
-          new Notification('Notificaciones Activadas', {
-            body: 'Te avisaremos cuando hayan nuevas reservas.',
-            icon: '/logo.jpg'
+
+          // Obtener token FCM real para recibir push en background
+          const messaging = _messagingInstance || firebase.messaging();
+          _messagingInstance = messaging;
+
+          const token = await messaging.getToken({
+            vapidKey: FCM_VAPID_KEY,
+            serviceWorkerRegistration: registration
           });
 
+          if (token) {
+            await _guardarToken(token);
+            _actualizarUI('granted');
+
+            // Notificaciones en primer plano (app abierta)
+            if (!_fcmInitialized) {
+              _fcmInitialized = true;
+              messaging.onMessage(payload => {
+                const title = payload.notification?.title || payload.data?.title || 'Nueva cita';
+                const body = payload.notification?.body || payload.data?.body || 'Tienes una nueva reserva.';
+                registration.showNotification(title, {
+                  body, icon: '/icons/icon-192.png', badge: '/icons/icon-192.png',
+                  tag: 'nueva-cita', renotify: true, data: { url: window.location.href }
+                });
+              });
+            }
+          } else {
+            console.warn('[FCM] Token vacío — revisa la VAPID key');
+            _actualizarUI('default');
+          }
+
         } catch (err) {
-          console.error('[Notificaciones] Error:', err);
+          console.error('[FCM] Error:', err);
           _actualizarUI('default');
         }
       }
-  
+
       window.addEventListener('load', async () => {
         if (_isIOS && !_isStandalone) { _actualizarUI('ios_hint'); return; }
         if (!_soportePush) { _actualizarUI('nosupport'); return; }
-  
+
         try {
           const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
           _swRegistration = reg;
-  
+          console.log('[SW] Registrado:', reg.scope);
+
+          // Solo actualizar UI — el token FCM se pide desde onAuthStateChanged
+          // cuando el usuario ya está autenticado, evitando el error 401.
           if (Notification.permission === 'granted') {
-            solicitarPermisosYObtenerToken();
+            _actualizarUI('granted');
           } else {
             _actualizarUI(Notification.permission === 'denied' ? 'denied' : 'default');
           }
         } catch (err) {
+          console.error('[SW] Error registrando SW:', err);
           _actualizarUI('nosupport');
         }
       });
