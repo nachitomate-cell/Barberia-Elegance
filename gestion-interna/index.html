@@ -4734,6 +4734,97 @@
   </script>
 
   <!-- ═══════════════════ MODAL: EDITAR BARBERO ═══════════════════ -->
+  <!-- ═══════════════════════════════════════════════════════════
+       HORARIO POR BARBERO — modal
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="barberScheduleModal"
+    class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-[9100] flex items-center justify-center p-4">
+    <div class="bg-admin-card border border-admin-border rounded-2xl w-full max-w-lg shadow-2xl relative flex flex-col" style="max-height:90dvh;">
+
+      <!-- Header -->
+      <div class="flex items-start justify-between p-6 pb-4 shrink-0" style="border-bottom:1px solid rgba(255,255,255,0.07);">
+        <div>
+          <h3 class="text-base font-bold text-white">Horario de <span id="bsh-nombre" class="text-admin-accent"></span></h3>
+          <p class="text-xs text-gray-500 mt-0.5">Días y horas de atención personalizados</p>
+        </div>
+        <button onclick="closeBarberScheduleModal()"
+          class="w-8 h-8 flex items-center justify-center rounded-full text-gray-500 hover:text-white hover:bg-white/10 transition-colors text-lg">&times;</button>
+      </div>
+
+      <!-- Scroll body -->
+      <div class="overflow-y-auto p-6 flex-1 space-y-6">
+
+        <!-- 1. Horario general -->
+        <div>
+          <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-3">Horario General</p>
+          <div class="flex items-center gap-3">
+            <div class="flex-1">
+              <label class="block text-xs text-gray-400 mb-1.5">Apertura</label>
+              <select id="bsh-inicio" class="w-full bg-admin-bg border border-admin-border rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-admin-accent" style="color-scheme:dark;"></select>
+            </div>
+            <div class="text-gray-600 shrink-0 mt-5">→</div>
+            <div class="flex-1">
+              <label class="block text-xs text-gray-400 mb-1.5">Cierre</label>
+              <select id="bsh-fin" class="w-full bg-admin-bg border border-admin-border rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-admin-accent" style="color-scheme:dark;"></select>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Días laborales -->
+        <div>
+          <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-3">Días que trabaja</p>
+          <div class="grid grid-cols-7 gap-1.5" id="bsh-dias-container"></div>
+        </div>
+
+        <!-- 3. Colación -->
+        <div>
+          <div class="flex items-center justify-between mb-3">
+            <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest">Colación / Descanso</p>
+            <label class="relative inline-flex items-center cursor-pointer gap-2">
+              <input type="checkbox" id="bsh-colacion-toggle" class="sr-only peer" onchange="toggleBshColacion(this.checked)">
+              <div class="w-9 h-5 rounded-full transition-colors" style="background:#374151;" id="bsh-col-track"></div>
+              <div class="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-4" id="bsh-col-thumb"></div>
+            </label>
+          </div>
+          <div id="bsh-colacion-fields" class="hidden">
+            <div class="flex items-center gap-3">
+              <div class="flex-1">
+                <label class="block text-xs text-gray-400 mb-1.5">Inicio</label>
+                <select id="bsh-col-inicio" class="w-full bg-admin-bg border border-admin-border rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-admin-accent" style="color-scheme:dark;"></select>
+              </div>
+              <div class="text-gray-600 shrink-0 mt-5">→</div>
+              <div class="flex-1">
+                <label class="block text-xs text-gray-400 mb-1.5">Fin</label>
+                <select id="bsh-col-fin" class="w-full bg-admin-bg border border-admin-border rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-admin-accent" style="color-scheme:dark;"></select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. Horario por día -->
+        <div>
+          <p class="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-3">Horario por día (opcional)</p>
+          <p class="text-xs text-gray-600 mb-3">Activa un día para definir horas distintas al horario general.</p>
+          <div class="space-y-2" id="bsh-diasconfig-container"></div>
+        </div>
+
+        <!-- Reset -->
+        <button onclick="resetBarberScheduleToGlobal()"
+          class="w-full text-xs text-gray-500 hover:text-red-400 py-2.5 border border-dashed border-gray-700 hover:border-red-500/30 rounded-xl transition-colors">
+          Restablecer al horario global del local
+        </button>
+      </div>
+
+      <!-- Footer -->
+      <div class="p-6 pt-4 shrink-0" style="border-top:1px solid rgba(255,255,255,0.07);">
+        <button onclick="saveBarberSchedule()" id="bshSaveBtn"
+          class="w-full bg-admin-accent text-admin-bg font-bold py-3 rounded-xl hover:bg-emerald-300 transition-colors text-sm flex items-center justify-center gap-2">
+          <i class="ph-bold ph-check"></i> Guardar Horario
+        </button>
+      </div>
+    </div>
+  </div>
+
   <div id="barberEditModal"
     class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-[9000] flex items-center justify-center p-4">
     <div class="bg-admin-card border border-admin-border rounded-2xl w-full max-w-md shadow-2xl p-6 relative">
@@ -5066,6 +5157,10 @@
                 class="flex-1 flex items-center justify-center gap-1.5 bg-white/5 hover:bg-white/10 border border-admin-border text-gray-300 hover:text-white text-xs font-semibold py-2 rounded-xl transition-colors">
                 <i class="ph ph-pencil-simple text-sm"></i> Editar
               </button>
+              <button onclick="event.stopPropagation(); openBarberScheduleModal('${b.id}')"
+                class="w-10 flex items-center justify-center bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-400 rounded-xl transition-colors" title="Configurar horario">
+                <i class="ph ph-clock text-sm"></i>
+              </button>
               <button onclick="event.stopPropagation(); toggleBarberStatus('${b.id}', ${activo})"
                 class="flex-1 flex items-center justify-center gap-1.5 ${activo ? 'bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/30 text-orange-400' : 'bg-admin-accent/10 hover:bg-admin-accent/20 border border-admin-accent/30 text-admin-accent'} text-xs font-semibold py-2 rounded-xl transition-colors">
                 <i class="ph ${activo ? 'ph-toggle-right' : 'ph-toggle-left'} text-sm"></i>
@@ -5200,6 +5295,184 @@
     // Cerrar modal al hacer clic en el fondo
     document.getElementById('barberEditModal').addEventListener('click', function (e) {
       if (e.target === this) closeBarberModal();
+    });
+
+    // ═══════════════════════════════════════════════════════════
+    //  HORARIO POR BARBERO
+    // ═══════════════════════════════════════════════════════════
+    const _BSH_DIAS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    let _bshBarberoId = null;
+    let _bshDiasLaborales = new Set([1,2,3,4,5,6]);
+    let _bshDiasConfig = {}; // { dayIndex: { activo:true, inicio:'HH:MM', fin:'HH:MM' } }
+
+    function _bshTimeOptions(selId, selected) {
+      const el = document.getElementById(selId);
+      if (!el) return;
+      el.innerHTML = '';
+      for (let h = 6; h <= 23; h++) {
+        for (let m = 0; m < 60; m += 30) {
+          const t = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
+          el.innerHTML += `<option value="${t}"${t === selected ? ' selected' : ''}>${t}</option>`;
+        }
+      }
+    }
+
+    function _bshRenderDias() {
+      const c = document.getElementById('bsh-dias-container');
+      if (!c) return;
+      c.innerHTML = _BSH_DIAS.map((n, i) => {
+        const on = _bshDiasLaborales.has(i);
+        return `<button type="button" onclick="toggleBshDia(${i})"
+          class="flex flex-col items-center py-2 rounded-xl text-xs font-bold border transition-all
+          ${on ? 'border-admin-accent/50 text-admin-accent' : 'border-admin-border text-gray-500 hover:border-gray-500'}"
+          style="${on ? 'background:rgba(52,211,153,0.15)' : 'background:rgba(255,255,255,0.03)'}">${n}</button>`;
+      }).join('');
+    }
+
+    function _bshRenderDiasConfig() {
+      const c = document.getElementById('bsh-diasconfig-container');
+      if (!c) return;
+      const activos = [..._bshDiasLaborales].sort((a,b) => a-b);
+      if (!activos.length) {
+        c.innerHTML = '<p class="text-xs text-gray-600 text-center py-2">No hay días laborales seleccionados.</p>';
+        return;
+      }
+      c.innerHTML = activos.map(i => {
+        const cfg = _bshDiasConfig[i] || {};
+        const tiene = !!cfg.activo;
+        return `
+          <div class="border border-admin-border rounded-xl overflow-hidden">
+            <div class="flex items-center justify-between px-4 py-3">
+              <span class="text-sm font-semibold text-white">${_BSH_DIAS[i]}</span>
+              <div class="flex items-center gap-3">
+                ${tiene ? `<span class="text-[10px] text-admin-accent font-bold">${cfg.inicio||'?'} – ${cfg.fin||'?'}</span>` : '<span class="text-[10px] text-gray-600">Horario general</span>'}
+                <label class="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" class="sr-only peer" ${tiene?'checked':''} onchange="onBshDcToggle(${i},this.checked)">
+                  <div class="w-8 h-4 rounded-full transition-colors" style="${tiene?'background:#34d399':'background:#374151'}"></div>
+                  <div class="absolute left-0.5 top-0.5 w-3 h-3 bg-white rounded-full shadow transition-transform ${tiene?'translate-x-4':''}"></div>
+                </label>
+              </div>
+            </div>
+            <div id="bsh-dc-${i}" class="${tiene?'':'hidden'} px-4 pb-4 flex items-center gap-3" style="border-top:1px solid rgba(255,255,255,0.07);padding-top:0.75rem;">
+              <div class="flex-1">
+                <label class="block text-[10px] text-gray-500 mb-1.5">Apertura</label>
+                <select id="bsh-dc-i-${i}" class="w-full bg-admin-bg border border-admin-border rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-admin-accent" style="color-scheme:dark;"></select>
+              </div>
+              <div class="text-gray-600 shrink-0 mt-4 text-xs">→</div>
+              <div class="flex-1">
+                <label class="block text-[10px] text-gray-500 mb-1.5">Cierre</label>
+                <select id="bsh-dc-f-${i}" class="w-full bg-admin-bg border border-admin-border rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-admin-accent" style="color-scheme:dark;"></select>
+              </div>
+            </div>
+          </div>`;
+      }).join('');
+      activos.forEach(i => {
+        const cfg = _bshDiasConfig[i] || {};
+        _bshTimeOptions(`bsh-dc-i-${i}`, cfg.inicio || '09:00');
+        _bshTimeOptions(`bsh-dc-f-${i}`, cfg.fin   || '20:00');
+      });
+    }
+
+    function toggleBshDia(i) {
+      if (_bshDiasLaborales.has(i)) { _bshDiasLaborales.delete(i); delete _bshDiasConfig[i]; }
+      else _bshDiasLaborales.add(i);
+      _bshRenderDias();
+      _bshRenderDiasConfig();
+    }
+
+    function onBshDcToggle(i, on) {
+      if (on) _bshDiasConfig[i] = { activo: true, inicio: '09:00', fin: '20:00' };
+      else delete _bshDiasConfig[i];
+      _bshRenderDiasConfig();
+    }
+
+    function toggleBshColacion(on) {
+      const el = document.getElementById('bsh-colacion-fields');
+      const track = document.getElementById('bsh-col-track');
+      if (el) on ? el.classList.remove('hidden') : el.classList.add('hidden');
+      if (track) track.style.background = on ? '#34d399' : '#374151';
+    }
+
+    async function openBarberScheduleModal(id) {
+      _bshBarberoId = id;
+      const b = _barberosCache.find(x => x.id === id) || {};
+      const nombre = b.nombre || b.displayName || (b.email ? b.email.split('@')[0] : 'Barbero');
+      document.getElementById('bsh-nombre').textContent = nombre;
+
+      let cfg;
+      try { cfg = await FDB.getConfigBarbero(id); }
+      catch(e) { cfg = { horarioInicio:'09:00', horarioFin:'20:00', diasLaborales:[1,2,3,4,5,6], colacion:null, diasConfig:{} }; }
+
+      _bshDiasLaborales = new Set(cfg.diasLaborales || [1,2,3,4,5,6]);
+      _bshDiasConfig = {};
+      Object.entries(cfg.diasConfig || {}).forEach(([k, v]) => {
+        if (v && (v.inicio || v.fin)) _bshDiasConfig[parseInt(k)] = { activo:true, inicio: v.inicio||'09:00', fin: v.fin||'20:00' };
+      });
+
+      _bshTimeOptions('bsh-inicio', cfg.horarioInicio || '09:00');
+      _bshTimeOptions('bsh-fin',    cfg.horarioFin    || '20:00');
+
+      const colToggle = document.getElementById('bsh-colacion-toggle');
+      const hasCol = cfg.colacion && cfg.colacion.inicio;
+      colToggle.checked = !!hasCol;
+      toggleBshColacion(!!hasCol);
+      _bshTimeOptions('bsh-col-inicio', hasCol ? cfg.colacion.inicio : '13:00');
+      _bshTimeOptions('bsh-col-fin',    hasCol ? cfg.colacion.fin   : '14:00');
+
+      _bshRenderDias();
+      _bshRenderDiasConfig();
+      document.getElementById('barberScheduleModal').classList.replace('hidden','flex');
+    }
+
+    function closeBarberScheduleModal() {
+      document.getElementById('barberScheduleModal').classList.replace('flex','hidden');
+      _bshBarberoId = null;
+    }
+
+    async function saveBarberSchedule() {
+      if (!_bshBarberoId) return;
+      const btn = document.getElementById('bshSaveBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="ph ph-spinner animate-spin"></i> Guardando...';
+      try {
+        const diasConfig = {};
+        Object.keys(_bshDiasConfig).forEach(k => {
+          const iSel = document.getElementById(`bsh-dc-i-${k}`);
+          const fSel = document.getElementById(`bsh-dc-f-${k}`);
+          if (iSel && fSel) diasConfig[k] = { inicio: iSel.value, fin: fSel.value };
+        });
+        const colOn = document.getElementById('bsh-colacion-toggle').checked;
+        await FDB.updateConfigBarbero(_bshBarberoId, {
+          horarioInicio: document.getElementById('bsh-inicio').value,
+          horarioFin:    document.getElementById('bsh-fin').value,
+          diasLaborales: [..._bshDiasLaborales].sort((a,b) => a-b),
+          colacion: colOn ? { inicio: document.getElementById('bsh-col-inicio').value, fin: document.getElementById('bsh-col-fin').value } : null,
+          diasConfig,
+        });
+        showMiniToast('✅ Horario guardado');
+        closeBarberScheduleModal();
+      } catch(e) {
+        showMiniToast('❌ Error: ' + e.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="ph-bold ph-check"></i> Guardar Horario';
+      }
+    }
+
+    async function resetBarberScheduleToGlobal() {
+      if (!_bshBarberoId) return;
+      if (!confirm('¿Eliminar la configuración personalizada y volver al horario global del local?')) return;
+      try {
+        await db.collection('barberos').doc(_bshBarberoId).collection('configuracion').doc('main').delete();
+        showMiniToast('✅ Restablecido al horario global');
+        closeBarberScheduleModal();
+      } catch(e) {
+        showMiniToast('❌ Error: ' + e.message);
+      }
+    }
+
+    document.getElementById('barberScheduleModal').addEventListener('click', function(e) {
+      if (e.target === this) closeBarberScheduleModal();
     });
   </script>
 
