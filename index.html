@@ -931,7 +931,9 @@
         document.getElementById('successSummaryDate').innerHTML = `📅 <span>${dd}/${mm}/${yyyy} a las ${selectedTimeStr} hrs</span>`;
 
 
-        const waMsg = `Hola ${SHOP.nombreCorto}! Acabo de agendar en su web. Soy ${nombre} y voy para un ${selectedServiceObj.nombre} a las ${selectedTimeStr} hrs el ${currentDateStr}. \n¿Todo ok? 💈`;
+        const barberName = window._selectedBarber || '';
+        const barberPart = barberName ? ` con ${barberName}` : '';
+        const waMsg = `Hola ${SHOP.nombreCorto}! Acabo de agendar en su web. Soy ${nombre} y voy para un ${selectedServiceObj.nombre}${barberPart} a las ${selectedTimeStr} hrs el ${currentDateStr}. \n¿Todo ok? 💈`;
         let numBarbero = SHOP.telefono;
         try {
           const bid = window._selectedBarberId;

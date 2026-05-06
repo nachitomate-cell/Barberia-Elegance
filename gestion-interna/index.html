@@ -1189,6 +1189,29 @@
             </button>
           </div>
 
+          <!-- WhatsApp del local -->
+          <div class="bg-admin-card border border-admin-border rounded-2xl p-5 mb-6">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                style="background:rgba(37,211,102,0.1);border:1px solid rgba(37,211,102,0.2);">
+                <i class="ph-fill ph-whatsapp-logo text-lg" style="color:#25D366;"></i>
+              </div>
+              <div>
+                <p class="font-bold text-sm text-white">WhatsApp del local</p>
+                <p class="text-xs text-gray-500">Número al que llegan las confirmaciones de reserva</p>
+              </div>
+            </div>
+            <div class="flex gap-2">
+              <input type="tel" id="wsp-local-input" placeholder="56912345678"
+                class="flex-1 bg-admin-bg border border-admin-border rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-admin-accent placeholder-gray-600">
+              <button onclick="guardarWspLocal()"
+                class="bg-admin-accent text-admin-bg font-bold px-5 py-3 rounded-xl hover:bg-emerald-300 transition-colors text-sm flex items-center gap-2 whitespace-nowrap">
+                <i class="ph-bold ph-check"></i> Guardar
+              </button>
+            </div>
+            <p class="text-[10px] text-gray-600 mt-2">Solo números sin +, espacios ni guiones · Ej: 56912345678</p>
+          </div>
+
           <!-- Grid de barberos -->
           <div id="barberosAdminGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             <div class="col-span-full flex items-center justify-center py-16 text-gray-600">
@@ -4755,7 +4778,28 @@
       }
     }
 
+    function _cargarWspLocal() {
+      const input = document.getElementById('wsp-local-input');
+      if (!input) return;
+      input.value = (_configCache || {}).telefonoAdmin || '';
+    }
+
+    async function guardarWspLocal() {
+      const input = document.getElementById('wsp-local-input');
+      if (!input) return;
+      const limpio = input.value.replace(/\D/g, '');
+      if (!limpio) { showMiniToast('❌ Ingresa un número válido'); return; }
+      input.value = limpio;
+      try {
+        await FDB.updateConfig({ telefonoAdmin: limpio });
+        showMiniToast('✅ WhatsApp del local actualizado');
+      } catch(e) {
+        showMiniToast('❌ Error: ' + e.message);
+      }
+    }
+
     async function cargarBarberos() {
+      _cargarWspLocal();
       const grid = document.getElementById('barberosAdminGrid');
       if (grid) grid.innerHTML = '<div class="col-span-full flex items-center justify-center py-16 text-gray-600"><i class="ph ph-spinner animate-spin text-3xl mr-3"></i> Cargando...</div>';
       try {
