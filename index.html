@@ -21,8 +21,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Elegance">
-  <script defer src="/_vercel/insights/script.js"></script>
-  <script defer src="/_vercel/speed-insights/script.js"></script>
+
   <link rel="apple-touch-icon" href="/logo.jpg">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -212,8 +211,11 @@
       <!-- PASO 4 -->
       <section id="step4" class="hidden opacity-0 transform translate-x-12">
         <h2 class="text-2xl font-bold text-neon tracking-tight mb-2">Último paso</h2>
-        <p class="text-[14px] text-gray-400 mb-8 leading-relaxed">Ingresa tus datos para confirmar la reserva a tu
-          nombre.</p>
+        
+        <!-- Contenedor Auth (Se inyecta por JS) -->
+        <div id="step4AuthContainer" class="mb-6"></div>
+
+        <p class="text-[14px] text-gray-400 mb-6 leading-relaxed">Confirma tus datos para la reserva.</p>
 
         <div class="space-y-5">
           <div>
@@ -796,6 +798,55 @@
         document.getElementById('summaryPrice').innerText = "$" + selectedServiceObj.precio.toLocaleString('es-CL');
         document.getElementById('summaryDateString').innerText = currentDateStr;
         document.getElementById('summaryTime').innerText = selectedTimeStr;
+
+        // ── PREFILL DATOS AUTH O MOSTRAR BANNER ──
+        const user = firebase.auth().currentUser;
+        const authContainer = document.getElementById('step4AuthContainer');
+        
+        if (user) {
+          authContainer.innerHTML = `
+            <div class="bg-brand-accent/10 border border-brand-accent/20 rounded-2xl p-4 flex items-center gap-3 shadow-[0_0_15px_rgba(52,211,153,0.05)]">
+              <div class="w-10 h-10 rounded-full bg-brand-accent/20 flex items-center justify-center shrink-0">
+                <i class="ph-fill ph-user-check text-brand-text text-lg"></i>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-[10px] font-bold text-brand-text/70 uppercase tracking-widest mb-0.5">Conectado como</p>
+                <p class="text-sm font-bold text-white truncate">${user.displayName || 'Miembro del Club'}</p>
+              </div>
+            </div>
+          `;
+          
+          if (user.displayName && !document.getElementById('clientName').value) {
+            document.getElementById('clientName').value = user.displayName;
+          }
+          if (user.email && !document.getElementById('clientEmail').value) {
+            document.getElementById('clientEmail').value = user.email;
+          }
+          
+          if (typeof db !== 'undefined') {
+            db.collection('users').doc(user.uid).get().then(doc => {
+              if (doc.exists && doc.data().telefono && document.getElementById('clientPhone').value === '+569 ') {
+                document.getElementById('clientPhone').value = doc.data().telefono;
+              }
+            }).catch(console.error);
+          }
+        } else {
+          authContainer.innerHTML = `
+            <div class="bg-brand-neon/10 border border-brand-neon/30 rounded-2xl p-4 flex items-center justify-between gap-3 shadow-[0_0_15px_rgba(52,211,153,0.1)]">
+              <div class="flex items-center gap-3 min-w-0">
+                <div class="w-10 h-10 rounded-full bg-brand-neon/20 flex items-center justify-center shrink-0">
+                  <i class="ph-fill ph-star text-brand-neon text-lg drop-shadow-[0_0_5px_rgba(52,211,153,0.5)]"></i>
+                </div>
+                <div class="min-w-0">
+                  <p class="text-sm font-bold text-white leading-tight truncate">¿Eres parte del Club?</p>
+                  <p class="text-[10px] text-brand-neon mt-0.5 font-medium">Inicia sesión y suma puntos</p>
+                </div>
+              </div>
+              <a href="registro.html" class="text-xs font-bold text-black bg-brand-neon px-4 py-2.5 rounded-full hover:bg-white transition-all shadow-[0_0_10px_rgba(52,211,153,0.3)] shrink-0">Entrar</a>
+            </div>
+          `;
+        }
+        // ──────────────────────────────────────────
 
         transitionStep(3, 4);
         currentStep = 4;

@@ -233,33 +233,27 @@
       border-radius: 3px;
     }
 
-    /* ── SIDEBAR DRAWER (mobile) ─────────────────────────── */
+    /* ── SIDEBAR DRAWER ─────────────────────────── */
     #sidebar {
       position: fixed;
-      top: 0;
-      left: 0;
+      top: 0; left: 0;
       height: 100dvh;
       z-index: 70;
       transform: translateX(-100%);
-      transition: transform .32s cubic-bezier(.16, 1, .3, 1);
+      transition: transform .3s cubic-bezier(.16,1,.3,1);
+      box-shadow: 4px 0 40px rgba(0,0,0,.6);
     }
-
-    #sidebar.open {
-      transform: translateX(0);
-    }
+    #sidebar.open { transform: translateX(0); }
 
     #sidebarOverlay {
       display: none;
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, .55);
+      background: rgba(0,0,0,.6);
       z-index: 65;
-      backdrop-filter: blur(2px);
+      backdrop-filter: blur(4px);
     }
-
-    #sidebarOverlay.open {
-      display: block;
-    }
+    #sidebarOverlay.open { display: block; }
 
     @media (min-width: 768px) {
       #sidebar {
@@ -267,11 +261,63 @@
         transform: none !important;
         height: auto !important;
         z-index: auto !important;
+        box-shadow: none;
       }
+      #sidebarOverlay { display: none !important; }
+    }
 
-      #sidebarOverlay {
-        display: none !important;
-      }
+    /* Nav items */
+    .nav-btn {
+      position: relative;
+      overflow: hidden;
+    }
+    .nav-btn::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 3px;
+      background: #34d399;
+      border-radius: 0 3px 3px 0;
+      transform: scaleY(0);
+      transition: transform .2s ease;
+    }
+    .nav-btn.active::before { transform: scaleY(1); }
+    .nav-btn.active {
+      background: rgba(52,211,153,.12) !important;
+      color: #34d399 !important;
+    }
+    .nav-btn:not(.active):hover {
+      background: rgba(255,255,255,.05);
+      color: #f9fafb;
+    }
+
+    /* Sidebar user card */
+    .sidebar-user-card {
+      background: linear-gradient(135deg, rgba(52,211,153,.08) 0%, rgba(52,211,153,.02) 100%);
+      border-bottom: 1px solid rgba(52,211,153,.15);
+    }
+
+    /* Activity feed */
+    .activity-item {
+      position: relative;
+      padding-left: 1.25rem;
+    }
+    .activity-item::before {
+      content: '';
+      position: absolute;
+      left: 4px; top: 6px;
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: #34d399;
+      box-shadow: 0 0 6px rgba(52,211,153,.5);
+    }
+
+    /* Mobile header premium */
+    #mobileHeader {
+      background: rgba(17,24,39,.92);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(52,211,153,.12);
     }
 
     /* ── SELLO TOAST mobile ──────────────────────────────── */
@@ -507,6 +553,7 @@
       // Mapeo de rutas a pestañas
       const routes = {
         '/gestion-interna/agenda': 'tab-citas',
+        '/gestion-interna/agenda/': 'tab-agenda-equipo',
         '/gestion-interna/servicios': 'tab-servicios',
         '/gestion-interna/configuracion': 'tab-config',
         '/gestion-interna/clientes': 'tab-clientes',
@@ -565,27 +612,41 @@
       }
     </script>
 
-    <!-- ── Mobile Header ── -->
-    <header
-      class="md:hidden fixed top-0 left-0 right-0 bg-admin-card border-b border-admin-border flex items-center px-4 z-50 gap-3"
+    <!-- ── Mobile Header Premium ── -->
+    <header id="mobileHeader"
+      class="md:hidden fixed top-0 left-0 right-0 z-50 flex items-center px-3 gap-2"
       style="min-height: calc(3.5rem + env(safe-area-inset-top)); padding-top: env(safe-area-inset-top);">
+
+      <!-- Hamburger -->
       <button id="hamburgerBtn" onclick="openSidebar()" aria-label="Menú"
-        class="w-10 h-10 flex items-center justify-center rounded-xl active:bg-white/10 transition-colors shrink-0 -ml-1"
+        class="w-10 h-10 flex items-center justify-center rounded-xl transition-colors active:bg-white/10 shrink-0"
         style="touch-action:manipulation;-webkit-tap-highlight-color:transparent;">
-        <span style="font-size:1.25rem;color:#d1d5db;font-weight:bold;line-height:1;">☰</span>
+        <i class="ph-bold ph-list text-xl text-gray-300"></i>
       </button>
-      <img id="shopLogoMobile" src="" alt="" class="h-8 w-8 object-cover rounded-full border border-gray-700 shrink-0">
-      <h1 class="text-sm font-bold flex-1 truncate">Panel Admin</h1>
-      <!-- Campana push — mobile header -->
-      <button id="notifBtnMobile" onclick="solicitarPermisosYObtenerToken()" aria-label="Notificaciones"
-        class="w-10 h-10 flex items-center justify-center rounded-xl active:bg-white/10 transition-colors shrink-0"
-        style="touch-action:manipulation;-webkit-tap-highlight-color:transparent;">
-        <i id="notifIconMobile" class="ph ph-bell text-xl text-yellow-400"></i>
-      </button>
-      <button onclick="openManualBookingModal()" aria-label="Nueva Cita"
-        class="w-10 h-10 flex items-center justify-center rounded-xl bg-admin-accent/10 hover:bg-admin-accent/20 active:bg-admin-accent/30 transition-colors shrink-0">
-        <i class="ph-bold ph-plus text-xl text-admin-accent"></i>
-      </button>
+
+      <!-- Logo + título -->
+      <div class="flex items-center gap-2 flex-1 min-w-0">
+        <img id="shopLogoMobile" src="" alt=""
+          class="h-8 w-8 object-cover rounded-full border border-admin-accent/30 shrink-0 shadow-[0_0_8px_rgba(52,211,153,0.2)]">
+        <div class="min-w-0">
+          <h1 class="text-sm font-bold text-white leading-none truncate">Panel Admin</h1>
+          <p id="shopNombreHeader" class="text-[10px] text-gray-500 truncate leading-none mt-0.5"></p>
+        </div>
+      </div>
+
+      <!-- Acciones -->
+      <div class="flex items-center gap-1 shrink-0">
+        <button id="notifBtnMobile" aria-label="Notificaciones"
+          class="w-10 h-10 flex items-center justify-center rounded-xl transition-colors active:bg-white/10"
+          style="touch-action:manipulation;-webkit-tap-highlight-color:transparent;">
+          <i id="notifIconMobile" class="ph ph-bell text-xl text-yellow-400"></i>
+        </button>
+        <button onclick="openManualBookingModal()" aria-label="Nueva Cita"
+          class="w-10 h-10 flex items-center justify-center rounded-xl bg-admin-accent/10 border border-admin-accent/20 transition-colors active:bg-admin-accent/30"
+          style="touch-action:manipulation;-webkit-tap-highlight-color:transparent;">
+          <i class="ph-bold ph-plus text-lg text-admin-accent"></i>
+        </button>
+      </div>
     </header>
 
     <!-- Sidebar overlay (mobile) -->
@@ -594,104 +655,174 @@
     <div class="flex h-[100dvh]">
 
       <!-- ══════════════════════════════════════
-       SIDEBAR
-  ══════════════════════════════════════ -->
+           SIDEBAR PREMIUM
+      ══════════════════════════════════════ -->
       <aside id="sidebar"
-        class="flex flex-col w-72 md:w-64 bg-admin-card border-r border-admin-border md:h-full shrink-0">
-        <a href="/gestion-interna/agenda" onclick="event.preventDefault(); openTab('tab-citas', document.querySelector('.nav-btn[href=\'/gestion-interna/agenda\']'))"
-          class="p-5 border-b border-admin-border flex items-center gap-3 hover:bg-white/5 transition-colors cursor-pointer">
-          <img id="shopLogoSidebar" src="" alt=""
-            class="h-10 w-10 object-cover rounded-full border border-gray-700 shrink-0">
-          <div class="flex-1 min-w-0">
-            <h1 class="text-sm font-bold leading-tight">Panel Admin</h1>
-            <p id="shopNombreSidebar" class="text-xs text-gray-500 truncate"></p>
-          </div>
-        </a>
+        class="flex flex-col w-72 md:w-60 bg-admin-card border-r border-admin-border md:h-full shrink-0 overflow-hidden">
 
-        <nav class="flex-1 p-4 space-y-1 overflow-y-auto">
-          <a href="/gestion-interna/agenda" onclick="event.preventDefault(); openTab('tab-citas',this)"
-            class="jefe-only nav-btn w-full flex items-center gap-3 bg-admin-accent/10 text-admin-accent px-4 py-3 min-h-[44px] rounded-xl font-semibold text-sm transition-colors">
-            <i class="ph-fill ph-calendar-check text-lg"></i> Citas de la Agenda
+        <!-- ── Cabecera del sidebar ── -->
+        <div class="sidebar-user-card px-5 py-4 flex items-center gap-3 cursor-pointer hover:bg-admin-accent/5 transition-colors"
+          onclick="closeSidebar(); openTab('tab-citas', document.querySelector('.nav-btn[data-tab=tab-citas]'))">
+          <div class="relative shrink-0">
+            <img id="shopLogoSidebar" src="" alt=""
+              class="h-11 w-11 object-cover rounded-full border-2 border-admin-accent/40 shadow-[0_0_12px_rgba(52,211,153,0.25)]">
+            <span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-admin-accent rounded-full border-2 border-admin-card shadow-[0_0_6px_rgba(52,211,153,0.8)]"></span>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-[10px] font-bold text-admin-accent/70 uppercase tracking-widest leading-none mb-0.5">Panel Admin</p>
+            <h1 id="shopNombreSidebar" class="text-sm font-bold text-white truncate leading-tight"></h1>
+            <p id="adminUserEmail" class="text-[10px] text-gray-500 truncate mt-0.5"></p>
+          </div>
+          <i class="ph ph-caret-right text-gray-600 text-sm shrink-0"></i>
+        </div>
+
+        <!-- ── Navegación principal ── -->
+        <nav class="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">
+
+          <!-- Sección Agenda -->
+          <p class="text-[9px] font-black text-gray-600 uppercase tracking-[0.15em] px-3 pt-1 pb-2">Agenda</p>
+
+          <a href="/gestion-interna/agenda" data-tab="tab-citas"
+            onclick="event.preventDefault(); closeSidebar(); openTab('tab-citas',this)"
+            class="jefe-only nav-btn w-full flex items-center gap-3 px-3 py-2.5 min-h-[44px] rounded-xl font-semibold text-sm transition-all text-gray-400">
+            <span class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center shrink-0 transition-colors group-hover:bg-admin-accent/10">
+              <i class="ph-fill ph-calendar-check text-base"></i>
+            </span>
+            <span class="flex-1 text-left">Citas del día</span>
             <span id="citasBadge" class="nav-badge hidden">0</span>
           </a>
-          <a href="/gestion-interna/agenda/"
-            class="nav-btn w-full flex items-center gap-3 text-gray-400 hover:text-white hover:bg-white/5 px-4 py-3 min-h-[44px] rounded-xl font-medium text-sm transition-colors">
-            <i class="ph-fill ph-users text-lg"></i> Agendas del equipo
+
+          <a href="/gestion-interna/agenda/" data-tab="tab-agenda-equipo"
+            onclick="event.preventDefault(); closeSidebar(); openTab('tab-agenda-equipo',this)"
+            class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 min-h-[44px] rounded-xl font-medium text-sm transition-all text-gray-400">
+            <span class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
+              <i class="ph-fill ph-users text-base"></i>
+            </span>
+            <span class="flex-1 text-left">Agenda del equipo</span>
           </a>
-          <a href="/gestion-interna/servicios" onclick="event.preventDefault(); openTab('tab-servicios',this)"
-            class="admin-only nav-btn w-full flex items-center gap-3 text-gray-400 hover:text-white hover:bg-white/5 px-4 py-3 min-h-[44px] rounded-xl font-semibold text-sm transition-colors">
-            <i class="ph ph-list-dashes text-lg"></i> Servicios
+
+          <!-- Sección Gestión -->
+          <p class="text-[9px] font-black text-gray-600 uppercase tracking-[0.15em] px-3 pt-3 pb-2">Gestión</p>
+
+          <a href="/gestion-interna/clientes" data-tab="tab-clientes"
+            onclick="event.preventDefault(); closeSidebar(); openTab('tab-clientes',this)"
+            class="admin-only nav-btn w-full flex items-center gap-3 px-3 py-2.5 min-h-[44px] rounded-xl font-medium text-sm transition-all text-gray-400">
+            <span class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
+              <i class="ph ph-user-list text-base"></i>
+            </span>
+            <span class="flex-1 text-left">Clientes</span>
           </a>
-          <a href="/gestion-interna/configuracion" onclick="event.preventDefault(); openTab('tab-config',this)"
-            class="admin-only nav-btn w-full flex items-center gap-3 text-gray-400 hover:text-white hover:bg-white/5 px-4 py-3 min-h-[44px] rounded-xl font-semibold text-sm transition-colors">
-            <i class="ph ph-gear text-lg"></i> Configuración
+
+          <a href="/gestion-interna/premios" data-tab="tab-premios"
+            onclick="event.preventDefault(); closeSidebar(); openTab('tab-premios',this)"
+            class="admin-only nav-btn w-full flex items-center gap-3 px-3 py-2.5 min-h-[44px] rounded-xl font-medium text-sm transition-all text-gray-400">
+            <span class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
+              <i class="ph ph-trophy text-base"></i>
+            </span>
+            <span class="flex-1 text-left">Premios del Club</span>
           </a>
-          <a href="/gestion-interna/clientes" onclick="event.preventDefault(); openTab('tab-clientes',this)"
-            class="admin-only nav-btn w-full flex items-center gap-3 text-gray-400 hover:text-white hover:bg-white/5 px-4 py-3 min-h-[44px] rounded-xl font-semibold text-sm transition-colors">
-            <i class="ph ph-users text-lg"></i> Clientes y Fidelización
+
+          <a href="/gestion-interna/servicios" data-tab="tab-servicios"
+            onclick="event.preventDefault(); closeSidebar(); openTab('tab-servicios',this)"
+            class="admin-only nav-btn w-full flex items-center gap-3 px-3 py-2.5 min-h-[44px] rounded-xl font-medium text-sm transition-all text-gray-400">
+            <span class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
+              <i class="ph ph-scissors text-base"></i>
+            </span>
+            <span class="flex-1 text-left">Servicios</span>
           </a>
-          <a href="/gestion-interna/premios" onclick="event.preventDefault(); openTab('tab-premios',this)"
-            class="admin-only nav-btn w-full flex items-center gap-3 text-gray-400 hover:text-white hover:bg-white/5 px-4 py-3 min-h-[44px] rounded-xl font-semibold text-sm transition-colors">
-            <i class="ph ph-trophy text-lg"></i> Premios del Club
+
+          <a href="/gestion-interna/lookbook" data-tab="tab-lookbook"
+            onclick="event.preventDefault(); closeSidebar(); openTab('tab-lookbook',this)"
+            class="nav-btn w-full flex items-center gap-3 px-3 py-2.5 min-h-[44px] rounded-xl font-medium text-sm transition-all text-gray-400">
+            <span class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
+              <i class="ph ph-images text-base"></i>
+            </span>
+            <span class="flex-1 text-left">Lookbook</span>
           </a>
-          <a href="/gestion-interna/lookbook" onclick="event.preventDefault(); openTab('tab-lookbook',this)"
-            class="nav-btn w-full flex items-center gap-3 text-gray-400 hover:text-white hover:bg-white/5 px-4 py-3 min-h-[44px] rounded-xl font-semibold text-sm transition-colors">
-            <i class="ph ph-images text-lg"></i> Lookbook
+
+          <a href="/gestion-interna/barberos" data-tab="tab-barberos"
+            onclick="event.preventDefault(); closeSidebar(); openTab('tab-barberos',this)"
+            class="admin-only nav-btn w-full flex items-center gap-3 px-3 py-2.5 min-h-[44px] rounded-xl font-medium text-sm transition-all text-gray-400">
+            <span class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
+              <i class="ph ph-barbell text-base"></i>
+            </span>
+            <span class="flex-1 text-left">Equipo</span>
           </a>
-          <a href="/gestion-interna/barberos" onclick="event.preventDefault(); openTab('tab-barberos',this)"
-            class="admin-only nav-btn w-full flex items-center gap-3 text-gray-400 hover:text-white hover:bg-white/5 px-4 py-3 min-h-[44px] rounded-xl font-semibold text-sm transition-colors">
-            <i class="ph ph-barbell text-lg"></i> Barberos
+
+          <a href="/gestion-interna/configuracion" data-tab="tab-config"
+            onclick="event.preventDefault(); closeSidebar(); openTab('tab-config',this)"
+            class="admin-only nav-btn w-full flex items-center gap-3 px-3 py-2.5 min-h-[44px] rounded-xl font-medium text-sm transition-all text-gray-400">
+            <span class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
+              <i class="ph ph-gear text-base"></i>
+            </span>
+            <span class="flex-1 text-left">Configuración</span>
           </a>
 
           <!-- Separador -->
-          <div class="pt-2 border-t border-admin-border"></div>
+          <div class="pt-3 border-t border-admin-border mx-1 mt-2"></div>
 
-          <!-- Botón notificaciones push -->
-          <button id="notifBtn" onclick="solicitarPermisosYObtenerToken()"
-            class="flex items-center gap-3 px-4 py-3 min-h-[44px] w-full font-medium text-sm transition-colors rounded-xl text-yellow-400 hover:bg-yellow-500/10">
-            <i id="notifIcon" class="ph ph-bell text-lg"></i>
-            <span id="notifLabel">Activar notificaciones</span>
-            <span id="notifBadge" class="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full hidden"></span>
+          <!-- Notificaciones push -->
+          <button id="notifBtn"
+            class="nav-btn flex items-center gap-3 px-3 py-2.5 min-h-[44px] w-full font-medium text-sm transition-all rounded-xl text-yellow-400">
+            <span class="w-8 h-8 rounded-lg bg-yellow-500/10 flex items-center justify-center shrink-0">
+              <i id="notifIcon" class="ph ph-bell text-base"></i>
+            </span>
+            <span id="notifLabel" class="flex-1 text-left">Activar notificaciones</span>
+            <span id="notifBadge" class="text-[10px] font-bold px-1.5 py-0.5 rounded-full hidden"></span>
           </button>
         </nav>
 
-        <div class="px-5 pb-4 flex-shrink-0">
-          <h3 class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 flex items-center gap-1.5">
-            <i class="ph-fill ph-activity text-admin-accent"></i> Actividad Reciente
+        <!-- ── Actividad reciente ── -->
+        <div class="px-4 pb-3 flex-shrink-0 border-t border-admin-border/50">
+          <h3 class="text-[9px] font-black text-gray-600 uppercase tracking-[0.15em] mt-3 mb-2 flex items-center gap-1.5">
+            <i class="ph-fill ph-activity text-admin-accent text-xs"></i> Actividad
           </h3>
-          <div id="activityFeed" class="space-y-3 max-h-48 overflow-y-auto pr-1 text-xs">
+          <div id="activityFeed" class="space-y-2 max-h-36 overflow-y-auto pr-1 text-xs">
             <p class="text-gray-600 italic">Esperando actividad...</p>
           </div>
         </div>
 
-        <div class="p-4 border-t border-admin-border space-y-1 shrink-0">
-          <button onclick="window.location.href='/'"
-            class="flex items-center gap-3 text-gray-500 hover:text-white px-4 py-2.5 min-h-[44px] w-full font-medium text-sm transition-colors rounded-xl hover:bg-white/5">
-            <i class="ph ph-calendar-plus text-lg"></i> Agendar
-          </button>
-          <button onclick="firebase.auth().signOut()"
-            class="flex items-center gap-3 text-gray-500 hover:text-red-400 px-4 py-2.5 min-h-[44px] w-full font-medium text-sm transition-colors rounded-xl hover:bg-red-500/5">
-            <i class="ph ph-sign-out text-lg"></i> Cerrar Sesión
-          </button>
-          <button onclick="toggleTheme()"
-            class="flex items-center gap-3 text-gray-500 hover:text-gray-900 px-4 py-2.5 min-h-[44px] w-full font-medium text-sm transition-colors rounded-xl hover:bg-gray-100">
-            <i id="themeIcon" class="ph ph-sun text-lg"></i> <span id="themeLabel">Modo Claro</span>
-          </button>
-          
-          <a href="https://synaptechspa.cl" target="_blank" 
-            class="mt-4 flex flex-col items-center gap-1 p-2 rounded-xl border border-dashed border-admin-border/50 hover:border-admin-accent/30 hover:bg-admin-accent/5 transition-all group opacity-50 hover:opacity-100">
-            <span class="font-bold text-gray-500 uppercase tracking-widest leading-none" style="width: 78.43px; height: 15px; font-size: 8px; display: flex; align-items: center; justify-content: center;">desarrollado por</span>
-            <div class="flex items-center gap-1.5 mt-0.5">
-              <img src="/logo1.png" alt="SynapTech Spa" style="width: 30px; height: 20px; object-fit: contain;">
-              <span class="font-black text-gray-500 group-hover:text-gray-300 transition-colors" style="width: 78.43px; height: 15px; font-size: 10px; display: flex; align-items: center; white-space: nowrap;">SynapTech Spa</span>
-            </div>
-          </a>
-        </div>
-        <div class="px-4 pb-6 pt-2">
+        <!-- ── Acciones inferiores ── -->
+        <div class="p-3 border-t border-admin-border space-y-0.5 shrink-0">
+          <!-- Activar Sonido -->
           <button id="btnUnlockAudio" onclick="unlockAudioManual()"
-            class="w-full bg-gray-800 text-gray-300 border border-gray-600 px-4 py-2 rounded-full flex items-center justify-center gap-2 hover:bg-gray-700 active:opacity-60 transition-all font-bold text-sm">
-            <i class="ph-bold ph-speaker-slash"></i> Activar Sonido
+            class="nav-btn flex items-center gap-3 px-3 py-2.5 min-h-[44px] w-full font-medium text-sm transition-all rounded-xl text-gray-500 hover:text-white">
+            <span class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
+              <i class="ph-bold ph-speaker-slash text-base"></i>
+            </span>
+            <span class="text-left">Activar Sonido</span>
           </button>
+          <!-- Modo de color -->
+          <button onclick="toggleTheme()"
+            class="nav-btn flex items-center gap-3 px-3 py-2.5 min-h-[44px] w-full font-medium text-sm transition-all rounded-xl text-gray-500 hover:text-white">
+            <span class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
+              <i id="themeIcon" class="ph ph-sun text-base"></i>
+            </span>
+            <span id="themeLabel" class="text-left">Modo Claro</span>
+          </button>
+          <!-- Ir a agendar -->
+          <button onclick="window.location.href='/'"
+            class="nav-btn flex items-center gap-3 px-3 py-2.5 min-h-[44px] w-full font-medium text-sm transition-all rounded-xl text-gray-500 hover:text-white">
+            <span class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
+              <i class="ph ph-calendar-plus text-base"></i>
+            </span>
+            <span class="text-left">Ir a Agendar</span>
+          </button>
+          <!-- Cerrar sesión -->
+          <button onclick="firebase.auth().signOut()"
+            class="nav-btn flex items-center gap-3 px-3 py-2.5 min-h-[44px] w-full font-medium text-sm transition-all rounded-xl text-gray-500 hover:text-red-400">
+            <span class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
+              <i class="ph ph-sign-out text-base"></i>
+            </span>
+            <span class="text-left">Cerrar Sesión</span>
+          </button>
+
+          <!-- Branding SynapTech -->
+          <a href="https://synaptechspa.cl" target="_blank"
+            class="mt-2 flex items-center justify-center gap-2 py-2 px-3 rounded-xl border border-dashed border-admin-border/40 hover:border-admin-accent/30 hover:bg-admin-accent/5 transition-all group opacity-40 hover:opacity-90">
+            <img src="/logo1.png" alt="SynapTech" class="h-4 w-auto object-contain opacity-70 group-hover:opacity-100">
+            <span class="text-[9px] font-black text-gray-500 group-hover:text-gray-300 uppercase tracking-widest transition-colors">SynapTech Spa</span>
+          </a>
         </div>
       </aside>
 
@@ -859,6 +990,49 @@
 
           <!-- Bloqueos activos del día -->
           <div id="bloqueosDelDia" class="mt-4 space-y-2"></div>
+        </div>
+
+        <!-- ══════════════════ TAB: AGENDA EQUIPO ══════════════════ -->
+        <div id="tab-agenda-equipo" class="tab-content hidden">
+
+          <!-- Header sticky -->
+          <header class="sticky top-0 z-50 bg-[#111827] border-b border-gray-700 pt-3 pb-4 mb-5 px-4 -mx-4 lg:px-10 lg:-mx-10">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h2 class="text-lg font-black tracking-tight text-white leading-tight">Agenda del Equipo</h2>
+                <p class="text-xs text-gray-500">Control total de citas por barbero</p>
+              </div>
+              <!-- Controles de fecha -->
+              <div class="flex items-center gap-2">
+                <button onclick="equipoChangeDate(-1)"
+                  class="w-10 h-10 rounded-xl bg-admin-card border border-admin-border hover:bg-admin-border flex items-center justify-center transition-colors shrink-0">
+                  <i class="ph-bold ph-caret-left"></i>
+                </button>
+                <button id="equipoDateBtn" onclick="equipoToggleCalendar()"
+                  style="display:flex;align-items:center;gap:.5rem;color:#34d399;font-weight:700;padding:.5rem 1rem;background:#1f2937;border:1px solid #374151;border-radius:.75rem;font-size:.875rem;min-width:200px;cursor:pointer;font-family:inherit;">
+                  <i class="ph-fill ph-calendar" style="color:#34d399;flex-shrink:0;"></i>
+                  <span id="equipoDateText" style="flex:1;text-align:left;">Cargando…</span>
+                  <i class="ph-bold ph-caret-down" style="font-size:.7rem;color:#6b7280;flex-shrink:0;"></i>
+                </button>
+                <!-- Mini-calendario equipo -->
+                <div id="equipoCalDrop" style="display:none;position:absolute;top:auto;z-index:9999;width:280px;background:#1f2937;border:1px solid #374151;border-radius:1rem;box-shadow:0 20px 60px rgba(0,0,0,.7);padding:1rem;margin-top:4px;"></div>
+                <button onclick="equipoChangeDate(1)"
+                  class="w-10 h-10 rounded-xl bg-admin-card border border-admin-border hover:bg-admin-border flex items-center justify-center transition-colors shrink-0">
+                  <i class="ph-bold ph-caret-right"></i>
+                </button>
+                <button onclick="equipoJumpToday()"
+                  class="text-xs font-bold text-gray-400 hover:text-admin-accent px-3 py-2 rounded-xl border border-admin-border bg-admin-card transition-colors">
+                  Hoy
+                </button>
+              </div>
+            </div>
+            <!-- Resumen rápido del equipo -->
+            <div id="equipoResumen" class="mt-3 flex gap-4 text-xs text-gray-500 flex-wrap"></div>
+          </header>
+
+          <!-- Columnas de barberos -->
+          <div id="equipoColumnas" class="flex gap-4 overflow-x-auto pb-6 min-h-[300px]"></div>
+
         </div>
 
         <!-- ══════════════════ TAB 2: SERVICIOS ══════════════════ -->
@@ -1663,21 +1837,26 @@
           target.classList.replace('hidden', 'block');
         }
 
+        // ── Sidebar nav: usar data-tab + clase .active ──
         document.querySelectorAll('.nav-btn').forEach(b => {
-          b.classList.remove('bg-admin-accent/10', 'text-admin-accent');
-          b.classList.add('text-gray-400', 'hover:text-white', 'hover:bg-white/5');
+          b.classList.remove('active', 'bg-admin-accent/10', 'text-admin-accent');
+          b.classList.add('text-gray-400');
         });
+        // Marcar activo por data-tab
+        const activeNavBtn = document.querySelector(`.nav-btn[data-tab="${id}"]`);
+        if (activeNavBtn) {
+          activeNavBtn.classList.add('active');
+          activeNavBtn.classList.remove('text-gray-400');
+        }
+
+        // ── Mobile bottom nav ──
         document.querySelectorAll('.mobile-nav-btn').forEach(b => {
           b.classList.remove('text-admin-accent'); b.classList.add('text-gray-400');
           const ic = b.querySelector('i'); if (ic) ic.className = ic.className.replace('ph-fill ', 'ph ');
         });
-
         const tabMap = { 'tab-citas': 0, 'tab-servicios': 1, 'tab-config': 2, 'tab-clientes': 3, 'tab-premios': 4, 'tab-lookbook': 5, 'tab-barberos': 6 };
         const idx = tabMap[id];
-        const dBtns = document.querySelectorAll('.nav-btn');
         const mBtns = document.querySelectorAll('.mobile-nav-btn');
-
-        if (dBtns[idx]) { dBtns[idx].classList.add('bg-admin-accent/10', 'text-admin-accent'); dBtns[idx].classList.remove('text-gray-400', 'hover:text-white', 'hover:bg-white/5'); }
         if (mBtns[idx]) {
           mBtns[idx].classList.remove('text-gray-400'); mBtns[idx].classList.add('text-admin-accent');
           const ic = mBtns[idx].querySelector('i'); if (ic) ic.className = ic.className.replace('ph ', 'ph-fill ');
@@ -1687,6 +1866,7 @@
         if (push) {
           const tabToRoute = {
             'tab-citas': 'agenda',
+            'tab-agenda-equipo': 'agenda/',
             'tab-servicios': 'servicios',
             'tab-config': 'configuracion',
             'tab-clientes': 'clientes',
@@ -1703,6 +1883,7 @@
         if (id === 'tab-clientes') cargarClientes();
         if (id === 'tab-barberos') cargarBarberos();
         if (id === 'tab-config') populateBarberConfigSelector();
+        if (id === 'tab-agenda-equipo') initAgendaEquipo();
       }
 
       // Manejar botón Atrás/Adelante del navegador
@@ -3271,8 +3452,17 @@
               _adminInitialized = true;
               await AppState.init().catch(e => console.error('[Admin] Error init:', e));
               await _initAdmin();
-              if (Notification.permission === 'granted') {
-                solicitarPermisosYObtenerToken();
+              // Solicitar/renovar token FCM aquí, cuando el usuario ya está
+              // autenticado en Firebase Auth, evitando el error 401 Unauthorized.
+              if (_soportePush && Notification.permission === 'granted') {
+                // Esperar a que el SW esté listo antes de pedir el token
+                if (_swRegistration) {
+                  solicitarPermisosYObtenerToken();
+                } else {
+                  navigator.serviceWorker.ready.then(() => solicitarPermisosYObtenerToken());
+                }
+              } else if (_soportePush && Notification.permission !== 'denied') {
+                _actualizarUI('default');
               }
             }
           } else {
@@ -4333,6 +4523,9 @@
     }
 
     // ── Inicialización al cargar ─────────────────────────────────────
+    // SOLO registrar el Service Worker aquí. El token FCM se solicita
+    // desde el listener de auth (onAuthStateChanged) una vez que el
+    // usuario está autenticado, evitando el error 401 Unauthorized.
     window.addEventListener('load', async () => {
       // iOS sin instalar → mostrar hint inmediatamente
       if (_isIOS && !_isStandalone) {
@@ -4348,9 +4541,10 @@
         _swRegistration = reg;
         console.log('[SW] Registrado:', reg.scope);
 
-        // Si ya tiene permiso concedido → renovar token silenciosamente
+        // Solo actualizar UI según el permiso actual.
+        // El token se pedirá desde onAuthStateChanged cuando haya sesión activa.
         if (Notification.permission === 'granted') {
-          solicitarPermisosYObtenerToken();
+          _actualizarUI('granted'); // Mostrar como activo, token se renovará con auth
         } else {
           _actualizarUI(Notification.permission === 'denied' ? 'denied' : 'default');
         }
@@ -4430,6 +4624,198 @@
         _barberosCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       } catch (e) {
         console.warn('[Barberos] Error en precarga silenciosa:', e.message);
+      }
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    //  AGENDA DEL EQUIPO — vista de control total por barbero
+    // ══════════════════════════════════════════════════════════════
+    let _equipoDate = new Date();
+    let _equipoCitasUnsub = null;
+    let _equipoCalVisible = false;
+    let _equipoCalYear, _equipoCalMonth;
+
+    function initAgendaEquipo() {
+      equipoUpdateDateText();
+      _equipoResubscribe();
+    }
+
+    function equipoChangeDate(offset) {
+      _equipoDate.setDate(_equipoDate.getDate() + offset);
+      equipoUpdateDateText();
+      _equipoResubscribe();
+    }
+
+    function equipoJumpToday() {
+      _equipoDate = new Date();
+      equipoUpdateDateText();
+      _equipoResubscribe();
+    }
+
+    function equipoUpdateDateText() {
+      const el = document.getElementById('equipoDateText');
+      if (el) el.textContent = _equipoDate.toLocaleDateString('es-CL', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    }
+
+    function equipoToggleCalendar() {
+      const drop = document.getElementById('equipoCalDrop');
+      if (!drop) return;
+      _equipoCalVisible = !_equipoCalVisible;
+      drop.style.display = _equipoCalVisible ? 'block' : 'none';
+      if (_equipoCalVisible) {
+        _equipoCalYear = _equipoDate.getFullYear();
+        _equipoCalMonth = _equipoDate.getMonth();
+        _equipoRenderCal();
+        const btn = document.getElementById('equipoDateBtn');
+        if (btn) {
+          const rect = btn.getBoundingClientRect();
+          drop.style.position = 'fixed';
+          drop.style.top = (rect.bottom + 6) + 'px';
+          drop.style.left = rect.left + 'px';
+        }
+      }
+    }
+
+    function _equipoRenderCal() {
+      const drop = document.getElementById('equipoCalDrop');
+      if (!drop) return;
+      const months = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+      const days = ['D','L','M','M','J','V','S'];
+      const first = new Date(_equipoCalYear, _equipoCalMonth, 1).getDay();
+      const total = new Date(_equipoCalYear, _equipoCalMonth + 1, 0).getDate();
+      const todStr = dateToLocalStr(new Date());
+      const selStr = dateToLocalStr(_equipoDate);
+      let cells = '';
+      for (let i = 0; i < first; i++) cells += '<span></span>';
+      for (let d = 1; d <= total; d++) {
+        const dStr = `${_equipoCalYear}-${String(_equipoCalMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        const isToday = dStr === todStr;
+        const isSel = dStr === selStr;
+        cells += `<span onclick="_equipoPickDate('${dStr}')" style="display:flex;align-items:center;justify-content:center;height:2rem;border-radius:.5rem;cursor:pointer;font-size:.75rem;font-weight:${isToday?'700':'400'};background:${isSel?'#34d399':'transparent'};color:${isSel?'#111827':isToday?'#34d399':'#d1d5db'};"
+          onmouseover="this.style.background='${isSel?'#34d399':'rgba(255,255,255,.08)'}'"
+          onmouseout="this.style.background='${isSel?'#34d399':'transparent'}'">
+          ${d}</span>`;
+      }
+      drop.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.75rem;">
+          <button onclick="_equipoShiftMonth(-1)" style="width:1.75rem;height:1.75rem;border-radius:.5rem;background:rgba(255,255,255,.05);border:none;color:#9ca3af;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+            <i class="ph-bold ph-caret-left" style="font-size:.65rem;"></i></button>
+          <span style="font-size:.7rem;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:.08em;">${months[_equipoCalMonth]} ${_equipoCalYear}</span>
+          <button onclick="_equipoShiftMonth(1)" style="width:1.75rem;height:1.75rem;border-radius:.5rem;background:rgba(255,255,255,.05);border:none;color:#9ca3af;cursor:pointer;display:flex;align-items:center;justify-content:center;">
+            <i class="ph-bold ph-caret-right" style="font-size:.65rem;"></i></button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:4px;">
+          ${days.map(d=>`<span style="text-align:center;font-size:.6rem;font-weight:700;color:#6b7280;padding:2px 0;">${d}</span>`).join('')}
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;">${cells}</div>`;
+    }
+
+    function _equipoShiftMonth(dir) {
+      _equipoCalMonth += dir;
+      if (_equipoCalMonth < 0) { _equipoCalMonth = 11; _equipoCalYear--; }
+      if (_equipoCalMonth > 11) { _equipoCalMonth = 0; _equipoCalYear++; }
+      _equipoRenderCal();
+    }
+
+    function _equipoPickDate(dStr) {
+      const [y, m, d] = dStr.split('-').map(Number);
+      _equipoDate = new Date(y, m - 1, d);
+      equipoUpdateDateText();
+      document.getElementById('equipoCalDrop').style.display = 'none';
+      _equipoCalVisible = false;
+      _equipoResubscribe();
+    }
+
+    document.addEventListener('click', e => {
+      if (_equipoCalVisible) {
+        const drop = document.getElementById('equipoCalDrop');
+        const btn = document.getElementById('equipoDateBtn');
+        if (drop && btn && !drop.contains(e.target) && !btn.contains(e.target)) {
+          drop.style.display = 'none';
+          _equipoCalVisible = false;
+        }
+      }
+    });
+
+    function _equipoResubscribe() {
+      if (_equipoCitasUnsub) { _equipoCitasUnsub(); _equipoCitasUnsub = null; }
+      const dStr = dateToLocalStr(_equipoDate);
+      _equipoCitasUnsub = FDB.onCitasDiaChange(dStr, citas => {
+        renderAgendaEquipo(citas);
+      });
+    }
+
+    function renderAgendaEquipo(citas) {
+      const contenedor = document.getElementById('equipoColumnas');
+      const resumen = document.getElementById('equipoResumen');
+      if (!contenedor) return;
+
+      const barberos = (_barberosCache || []).filter(b => b.activo !== false && b.rol !== 'admin');
+      if (!barberos.length) {
+        contenedor.innerHTML = '<div class="w-full text-center py-16 text-gray-600 text-sm">No hay barberos activos registrados.</div>';
+        return;
+      }
+
+      const statusKey = st => (!st || st === 'Confirmado') ? 'Pendiente' : st.replace(/\s/g, '');
+      const statusColor = {
+        Pendiente:   { bg: 'rgba(251,191,36,.1)',  border: 'rgba(251,191,36,.3)',  text: '#fbbf24' },
+        Completada:  { bg: 'rgba(52,211,153,.1)',  border: 'rgba(52,211,153,.3)',  text: '#34d399' },
+        Cancelada:   { bg: 'rgba(239,68,68,.08)', border: 'rgba(239,68,68,.25)',  text: '#f87171' },
+        NoAsistio:   { bg: 'rgba(156,163,175,.08)',border: 'rgba(156,163,175,.25)',text: '#9ca3af' },
+      };
+
+      let totalCitas = 0, totalCompletadas = 0, totalPendientes = 0;
+
+      contenedor.innerHTML = barberos.map(b => {
+        const misCitas = citas
+          .filter(c => c.barberoId === b.id && c.estado !== 'Cancelada')
+          .sort((a, z) => a.hora.localeCompare(z.hora));
+
+        const canceladas = citas.filter(c => c.barberoId === b.id && c.estado === 'Cancelada').length;
+        const completadas = misCitas.filter(c => c.estado === 'Completada').length;
+        const pendientes = misCitas.filter(c => !c.estado || c.estado === 'Confirmado' || c.estado === 'Pendiente').length;
+
+        totalCitas += misCitas.length + canceladas;
+        totalCompletadas += completadas;
+        totalPendientes += pendientes;
+
+        const citasHTML = misCitas.length ? misCitas.map(c => {
+          const sk = statusKey(c.estado);
+          const col = statusColor[sk] || statusColor.Pendiente;
+          const srv = (_serviciosCache || []).find(s => s.nombre === c.servicioNombre) || { precio: 0 };
+          return `
+            <div style="background:${col.bg};border:1px solid ${col.border};border-radius:.75rem;padding:.75rem 1rem;margin-bottom:.5rem;">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.25rem;">
+                <span style="font-size:.7rem;font-weight:900;color:${col.text};font-family:monospace;">${c.hora}</span>
+                <span style="font-size:.6rem;font-weight:700;color:${col.text};text-transform:uppercase;letter-spacing:.05em;">${sk === 'NoAsistio' ? 'No asistió' : sk}</span>
+              </div>
+              <p style="font-size:.8rem;font-weight:700;color:#fff;margin:0 0 .2rem;">${c.clienteNombre || '—'}</p>
+              <p style="font-size:.7rem;color:#9ca3af;margin:0;">${c.servicioNombre || '—'} · $${srv.precio.toLocaleString('es-CL')}</p>
+              ${c.nota ? `<p style="font-size:.65rem;color:#6b7280;margin:.25rem 0 0;font-style:italic;">"${c.nota}"</p>` : ''}
+              ${c.clienteTelefono ? `<a href="https://wa.me/${(c.clienteTelefono||'').replace(/\D/g,'')}" target="_blank" style="display:inline-flex;align-items:center;gap:.25rem;font-size:.65rem;color:#34d399;text-decoration:none;margin-top:.35rem;"><i class="ph-fill ph-whatsapp-logo"></i> WP</a>` : ''}
+            </div>`;
+        }).join('') : `<div style="text-align:center;padding:2rem 0;color:#4b5563;font-size:.75rem;">Sin citas este día</div>`;
+
+        return `
+          <div style="flex:0 0 260px;max-width:260px;background:#1f2937;border:1px solid #374151;border-radius:1rem;padding:1rem;display:flex;flex-direction:column;">
+            <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.75rem;padding-bottom:.75rem;border-bottom:1px solid #374151;">
+              <div style="width:2.25rem;height:2.25rem;border-radius:50%;background:rgba(52,211,153,.15);border:2px solid rgba(52,211,153,.4);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <i class="ph-fill ph-user" style="color:#34d399;font-size:1rem;"></i>
+              </div>
+              <div style="min-width:0;">
+                <p style="font-size:.8rem;font-weight:800;color:#fff;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${b.nombre || b.email}</p>
+                <p style="font-size:.65rem;color:#6b7280;margin:0;">${misCitas.length} cita${misCitas.length !== 1 ? 's' : ''}${canceladas ? ` · ${canceladas} canc.` : ''}</p>
+              </div>
+            </div>
+            <div style="flex:1;overflow-y:auto;max-height:65vh;">${citasHTML}</div>
+          </div>`;
+      }).join('');
+
+      if (resumen) {
+        resumen.innerHTML = `
+          <span><i class="ph ph-calendar-check mr-1"></i>${totalCitas} cita${totalCitas !== 1 ? 's' : ''} en total</span>
+          <span style="color:#34d399;"><i class="ph ph-check-circle mr-1"></i>${totalCompletadas} completada${totalCompletadas !== 1 ? 's' : ''}</span>
+          <span style="color:#fbbf24;"><i class="ph ph-clock mr-1"></i>${totalPendientes} pendiente${totalPendientes !== 1 ? 's' : ''}</span>`;
       }
     }
 

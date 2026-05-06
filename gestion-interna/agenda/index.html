@@ -15,59 +15,162 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <script src="/firebase-config.js"></script>
   <script src="/firebaseUtils.js?v=2.1"></script>
+
   <style>
-    body { background:#0d1117; color:#f1f5f9; font-family:'Inter',sans-serif; -webkit-tap-highlight-color:transparent; min-height:100dvh; }
-    .card { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); transition:background .2s,border-color .2s; }
-    .card:active { background:rgba(255,255,255,0.08); }
-    .avatar { background:rgba(255,255,255,0.06); }
-    .badge { font-size:10px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; }
+    * { box-sizing: border-box; }
+    body {
+      background: #0d1117;
+      color: #f1f5f9;
+      font-family: 'Inter', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      min-height: 100dvh;
+      overscroll-behavior-y: none;
+    }
+
+    /* Cards */
+    .card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      transition: background .2s, border-color .2s;
+    }
+
+    /* Barber card */
+    .barber-card { transition: all .2s ease; }
+    .barber-card.expanded .citas-list { display: block; }
+    .barber-card.expanded .chevron { transform: rotate(180deg); }
+    .citas-list { display: none; }
+    .chevron { transition: transform .25s ease; }
+
+    /* Estado badges */
+    .badge-Confirmado, .badge-Pendiente {
+      background: rgba(251,191,36,.12);
+      color: #fbbf24;
+      border: 1px solid rgba(251,191,36,.25);
+    }
+    .badge-Completada {
+      background: rgba(52,211,153,.12);
+      color: #34d399;
+      border: 1px solid rgba(52,211,153,.25);
+    }
+    .badge-Cancelada {
+      background: rgba(248,113,113,.1);
+      color: #f87171;
+      border: 1px solid rgba(248,113,113,.2);
+    }
+    .badge-NoAsistio {
+      background: rgba(156,163,175,.1);
+      color: #9ca3af;
+      border: 1px solid rgba(156,163,175,.2);
+    }
+
+    /* Timeline bar */
+    .timeline-bar {
+      height: 6px;
+      border-radius: 3px;
+      background: rgba(255,255,255,0.06);
+      overflow: hidden;
+    }
+    .timeline-fill {
+      height: 100%;
+      border-radius: 3px;
+      background: linear-gradient(90deg, #34d399, #059669);
+      transition: width .5s ease;
+    }
+
+    /* Dot "online" */
+    @keyframes pulse-green {
+      0%, 100% { opacity: 1; }
+      50% { opacity: .4; }
+    }
+    .dot-live { animation: pulse-green 2s infinite; }
+
+    /* Date nav */
+    .date-pill {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 999px;
+      padding: .4rem .9rem;
+      font-size: .8rem;
+      font-weight: 700;
+      color: #9ca3af;
+      cursor: pointer;
+      transition: all .15s;
+      white-space: nowrap;
+    }
+    .date-pill.active {
+      background: rgba(52,211,153,.12);
+      border-color: rgba(52,211,153,.4);
+      color: #34d399;
+    }
+    .date-pill:not(.active):hover {
+      background: rgba(255,255,255,.07);
+      color: #e5e7eb;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #374151; border-radius: 2px; }
   </style>
 </head>
 <body>
 
 <!-- ── LOADING ── -->
 <div id="loadingOverlay" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#0d1117]">
-  <div class="w-10 h-10 border-2 border-white/10 border-t-white rounded-full animate-spin mb-4"></div>
-  <p class="text-sm text-white/40">Cargando...</p>
+  <div class="w-10 h-10 border-2 border-white/10 border-t-emerald-400 rounded-full animate-spin mb-4"></div>
+  <p class="text-sm text-white/40">Cargando agendas...</p>
 </div>
 
 <!-- ── APP ── -->
-<div id="mainApp" class="hidden max-w-lg mx-auto px-4 pb-10">
+<div id="mainApp" class="hidden max-w-2xl mx-auto px-4 pb-16">
 
   <!-- Header -->
-  <header class="flex items-center gap-3 py-5 mb-2">
-    <a href="/gestion-interna/" class="w-10 h-10 rounded-xl border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors">
+  <header class="flex items-center gap-3 py-5 mb-4">
+    <a href="/gestion-interna/"
+      class="w-10 h-10 rounded-xl border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors shrink-0">
       <i class="ph-bold ph-arrow-left text-white/60"></i>
     </a>
-    <div>
+    <div class="flex-1 min-w-0">
       <h1 class="text-lg font-bold text-white leading-tight">Agendas del equipo</h1>
-      <p id="fechaHoy" class="text-xs text-white/40 mt-0.5"></p>
+      <div class="flex items-center gap-1.5 mt-0.5">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 dot-live"></span>
+        <p id="fechaLabel" class="text-xs text-white/40"></p>
+      </div>
     </div>
-    <button onclick="recargar()" class="ml-auto w-10 h-10 rounded-xl border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors" title="Recargar">
+    <button onclick="recargar()" id="reloadBtn"
+      class="w-10 h-10 rounded-xl border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors shrink-0"
+      title="Recargar">
       <i class="ph-bold ph-arrows-clockwise text-white/60"></i>
     </button>
   </header>
 
-  <!-- Resumen del día -->
-  <div id="resumenDia" class="grid grid-cols-3 gap-3 mb-6">
+  <!-- Selector de fecha (carrusel) -->
+  <div class="flex gap-2 overflow-x-auto pb-3 mb-5 -mx-4 px-4 scroll-smooth" id="dateNav"
+    style="scrollbar-width:none;">
+    <!-- Se genera con JS -->
+  </div>
+
+  <!-- KPIs del día -->
+  <div class="grid grid-cols-3 gap-3 mb-6">
     <div class="card rounded-2xl p-4 text-center">
-      <p id="totalCitas" class="text-2xl font-black text-white">—</p>
-      <p class="text-[10px] text-white/40 font-semibold mt-0.5 uppercase tracking-widest">Citas hoy</p>
+      <p id="kpiTotal" class="text-2xl font-black text-white">—</p>
+      <p class="text-[10px] text-white/40 font-bold mt-0.5 uppercase tracking-widest">Total citas</p>
     </div>
     <div class="card rounded-2xl p-4 text-center">
-      <p id="totalBarberos" class="text-2xl font-black text-white">—</p>
-      <p class="text-[10px] text-white/40 font-semibold mt-0.5 uppercase tracking-widest">Barberos</p>
+      <p id="kpiPendientes" class="text-2xl font-black text-amber-400">—</p>
+      <p class="text-[10px] text-white/40 font-bold mt-0.5 uppercase tracking-widest">Pendientes</p>
     </div>
     <div class="card rounded-2xl p-4 text-center">
-      <p id="totalLibres" class="text-2xl font-black text-emerald-400">—</p>
-      <p class="text-[10px] text-white/40 font-semibold mt-0.5 uppercase tracking-widest">Libres</p>
+      <p id="kpiCompletadas" class="text-2xl font-black text-emerald-400">—</p>
+      <p class="text-[10px] text-white/40 font-bold mt-0.5 uppercase tracking-widest">Completadas</p>
     </div>
   </div>
 
-  <!-- Lista de barberos -->
+  <!-- Sección barberos -->
   <div class="flex items-center gap-2 mb-3">
     <i class="ph-fill ph-users text-white/30 text-base"></i>
     <span class="text-xs font-bold text-white/40 uppercase tracking-widest">Equipo activo</span>
+    <span id="barberoCount" class="ml-auto text-xs font-bold text-white/30"></span>
   </div>
 
   <div id="barberosGrid" class="space-y-3">
@@ -76,7 +179,7 @@
     <div class="card rounded-2xl p-4 animate-pulse h-24"></div>
   </div>
 
-  <!-- Vacío -->
+  <!-- Empty state -->
   <div id="emptyState" class="hidden text-center py-16">
     <i class="ph ph-users text-5xl text-white/10 block mb-3"></i>
     <p class="text-sm text-white/30">No hay barberos activos registrados.</p>
@@ -88,109 +191,260 @@
 <script>
   const db = firebase.firestore();
 
-  // Fecha de hoy
-  const hoy = new Date();
-  const yyyy = hoy.getFullYear();
-  const mm   = String(hoy.getMonth()+1).padStart(2,'0');
-  const dd   = String(hoy.getDate()).padStart(2,'0');
-  const fechaStr = `${yyyy}-${mm}-${dd}`;
+  // ── Estado global ────────────────────────────────────────────────
+  let _barberos       = [];
+  let _currentDateStr = '';
+  let _citasCache     = {}; // { barberoId: [citas...] }
+  let _unsubscribes   = []; // onSnapshot cleanup
+  let _today          = '';
 
-  document.getElementById('fechaHoy').textContent =
-    hoy.toLocaleDateString('es-CL', { weekday:'long', day:'numeric', month:'long' });
+  // ── Helpers de fecha ─────────────────────────────────────────────
+  function toDateStr(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${dd}`;
+  }
 
-  // ── AUTH GATE ──────────────────────────────────────────────────
+  function labelFecha(dateStr) {
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const date = new Date(y, m - 1, d);
+    return date.toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' });
+  }
+
+  function shortLabel(dateStr) {
+    if (dateStr === _today) return 'Hoy';
+    const [y, m, d] = dateStr.split('-').map(Number);
+    const date = new Date(y, m - 1, d);
+    const mañana = new Date(); mañana.setDate(mañana.getDate() + 1);
+    if (toDateStr(mañana) === dateStr) return 'Mañana';
+    return date.toLocaleDateString('es-CL', { weekday: 'short', day: 'numeric' });
+  }
+
+  // ── Renderizar nav de fechas ──────────────────────────────────────
+  function renderDateNav() {
+    const nav = document.getElementById('dateNav');
+    nav.innerHTML = '';
+    for (let i = -1; i <= 6; i++) {
+      const d = new Date();
+      d.setDate(d.getDate() + i);
+      const str = toDateStr(d);
+      const pill = document.createElement('button');
+      pill.className = `date-pill ${str === _currentDateStr ? 'active' : ''}`;
+      pill.textContent = shortLabel(str);
+      pill.onclick = () => cambiarFecha(str);
+      nav.appendChild(pill);
+    }
+    // Scroll al active
+    const active = nav.querySelector('.active');
+    if (active) active.scrollIntoView({ inline: 'center', behavior: 'smooth' });
+  }
+
+  // ── Cambiar fecha ────────────────────────────────────────────────
+  function cambiarFecha(dateStr) {
+    if (dateStr === _currentDateStr) return;
+    _currentDateStr = dateStr;
+    _citasCache     = {};
+
+    // Limpiar subscripciones anteriores
+    _unsubscribes.forEach(u => u());
+    _unsubscribes = [];
+
+    renderDateNav();
+    document.getElementById('fechaLabel').textContent = labelFecha(dateStr);
+    renderKPIs();
+    renderBarberos();
+    subscribeToday();
+  }
+
+  // ── Subscribir tiempo real para la fecha actual ───────────────────
+  function subscribeToday() {
+    if (!_barberos.length) return;
+
+    const unsub = db.collection('citas')
+      .where('fecha', '==', _currentDateStr)
+      .onSnapshot(snap => {
+        // Reconstruir cache
+        _citasCache = {};
+        _barberos.forEach(b => { _citasCache[b.id] = []; });
+
+        snap.docs.forEach(doc => {
+          const c = { id: doc.id, ...doc.data() };
+          if (c.estado === 'Cancelada') return; // excluir canceladas del conteo
+          const bid = c.barberoId || '__sin_asignar__';
+          if (!_citasCache[bid]) _citasCache[bid] = [];
+          _citasCache[bid].push(c);
+        });
+
+        // Ordenar citas de cada barbero por hora
+        Object.keys(_citasCache).forEach(bid => {
+          _citasCache[bid].sort((a, b) => (a.hora || '').localeCompare(b.hora || ''));
+        });
+
+        renderKPIs();
+        renderBarberos();
+      }, err => {
+        console.error('[Agenda Equipo] onSnapshot error:', err);
+      });
+
+    _unsubscribes.push(unsub);
+  }
+
+  // ── KPIs ─────────────────────────────────────────────────────────
+  function renderKPIs() {
+    const todasLasCitas = Object.values(_citasCache).flat();
+    const total       = todasLasCitas.length;
+    const pendientes  = todasLasCitas.filter(c => c.estado !== 'Completada').length;
+    const completadas = todasLasCitas.filter(c => c.estado === 'Completada').length;
+
+    document.getElementById('kpiTotal').textContent       = total;
+    document.getElementById('kpiPendientes').textContent  = pendientes;
+    document.getElementById('kpiCompletadas').textContent = completadas;
+  }
+
+  // ── Renderizar tarjetas de barberos ──────────────────────────────
+  function renderBarberos() {
+    const grid = document.getElementById('barberosGrid');
+
+    if (!_barberos.length) {
+      grid.innerHTML = '';
+      document.getElementById('emptyState').classList.remove('hidden');
+      document.getElementById('barberoCount').textContent = '';
+      return;
+    }
+
+    document.getElementById('barberoCount').textContent = `${_barberos.length} barberos`;
+
+    grid.innerHTML = _barberos.map(b => {
+      const citas       = _citasCache[b.id] || [];
+      const total       = citas.length;
+      const completadas = citas.filter(c => c.estado === 'Completada').length;
+      const pendientes  = citas.filter(c => c.estado !== 'Completada').length;
+      const pct         = total > 0 ? Math.round((completadas / total) * 100) : 0;
+
+      // Color del estado
+      let estadoColor = 'text-emerald-400', estadoLabel = 'Libre';
+      if (total > 0 && pendientes > 0) { estadoColor = 'text-amber-400'; estadoLabel = `${pendientes} pendiente${pendientes > 1 ? 's' : ''}`; }
+      else if (total > 0 && pendientes === 0) { estadoColor = 'text-emerald-400'; estadoLabel = 'Al día ✓'; }
+
+      const avatarHTML = b.foto
+        ? `<img src="${b.foto}" alt="${b.nombre}" class="w-14 h-14 rounded-2xl object-cover border border-white/10 shrink-0">`
+        : `<div class="w-14 h-14 rounded-2xl flex items-center justify-center border border-white/10 bg-white/5 shrink-0">
+             <i class="ph-fill ph-user text-2xl text-white/30"></i>
+           </div>`;
+
+      // Mini-lista de citas (hasta 5, el resto colapsado)
+      const citasHTML = citas.length === 0
+        ? `<p class="text-xs text-white/25 italic py-2 text-center">Sin citas este día</p>`
+        : citas.map(c => `
+          <div class="flex items-start gap-3 py-2.5 border-b border-white/5 last:border-0">
+            <span class="text-xs font-bold text-white/50 w-12 shrink-0 pt-0.5">${c.hora || '?'}</span>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-semibold text-white truncate">${c.clienteNombre || 'Sin nombre'}</p>
+              <p class="text-xs text-white/40 truncate">${c.servicioNombre || ''}</p>
+            </div>
+            <span class="badge-${c.estado || 'Pendiente'} text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 mt-0.5">${c.estado || 'Pendiente'}</span>
+          </div>`).join('');
+
+      return `
+      <div class="barber-card card rounded-2xl overflow-hidden" id="bcard-${b.id}">
+        <!-- Cabecera clickeable -->
+        <div class="flex items-center gap-4 p-4 cursor-pointer hover:bg-white/[0.03] transition-colors"
+          onclick="toggleCard('${b.id}')">
+          ${avatarHTML}
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 mb-0.5">
+              <h3 class="font-bold text-white text-base leading-tight truncate">${b.nombre}</h3>
+              ${b.especialidad ? `<span class="text-[10px] font-bold text-white/30 uppercase tracking-wide shrink-0">${b.especialidad}</span>` : ''}
+            </div>
+            <p class="text-xs ${estadoColor} font-semibold">${estadoLabel}</p>
+            <!-- Barra de progreso -->
+            ${total > 0 ? `
+            <div class="timeline-bar mt-2">
+              <div class="timeline-fill" style="width:${pct}%"></div>
+            </div>
+            <p class="text-[10px] text-white/25 mt-1">${completadas} de ${total} completadas</p>
+            ` : `<p class="text-[10px] text-white/25 mt-1">Sin citas este día</p>`}
+          </div>
+          <div class="flex flex-col items-center gap-1.5 shrink-0 pl-2">
+            <span class="text-2xl font-black ${estadoColor}">${total}</span>
+            <i class="ph-bold ph-caret-down text-white/20 text-xs chevron"></i>
+          </div>
+        </div>
+
+        <!-- Lista de citas (colapsable) -->
+        <div class="citas-list border-t border-white/5 px-4 pb-1">
+          <p class="text-[10px] font-bold text-white/25 uppercase tracking-widest py-2">
+            Citas del día — ${b.nombre}
+          </p>
+          ${citasHTML}
+          <a href="/agenda/${b.id}"
+            class="flex items-center justify-center gap-2 py-3 mt-1 text-xs font-bold text-emerald-400 hover:text-emerald-300 transition-colors">
+            <i class="ph ph-calendar text-sm"></i> Ver agenda completa
+          </a>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // ── Toggle expand/collapse card ──────────────────────────────────
+  function toggleCard(id) {
+    const card = document.getElementById(`bcard-${id}`);
+    if (card) card.classList.toggle('expanded');
+  }
+
+  // ── Recargar manual ──────────────────────────────────────────────
+  function recargar() {
+    const btn = document.getElementById('reloadBtn');
+    btn.querySelector('i').classList.add('animate-spin');
+    // Las suscripciones onSnapshot se actualizan solas; forzamos un re-render
+    renderKPIs();
+    renderBarberos();
+    setTimeout(() => btn.querySelector('i').classList.remove('animate-spin'), 800);
+  }
+
+  // ── AUTH GATE ────────────────────────────────────────────────────
   firebase.auth().onAuthStateChanged(async user => {
     if (!user) { window.location.href = '/gestion-interna/login/'; return; }
 
+    const isBarbero = await FDB.esBarbero(user.email, user.uid);
+    if (!isBarbero) { window.location.href = '/gestion-interna/login/'; return; }
+
     const isAdmin = await FDB.esAdminJefe(user.email, user.uid);
     if (!isAdmin) {
-      // Barbero sin rol admin → su propia agenda
+      // Barbero sin rol admin → redirige a su propia agenda
       const myId = await FDB.getBarberoId(user.email, user.uid) || user.uid;
       window.location.href = `/agenda/${myId}`;
       return;
     }
 
-    await cargarAgendas();
+    // Inicializar
+    const now    = new Date();
+    _today          = toDateStr(now);
+    _currentDateStr = _today;
+
+    document.getElementById('fechaLabel').textContent = labelFecha(_today);
+
+    renderDateNav();
+
+    // Cargar barberos
+    _barberos = await FDB.getBarberos();
+    document.getElementById('barberoCount').textContent = `${_barberos.length} barberos`;
+
+    if (_barberos.length === 0) {
+      document.getElementById('barberosGrid').innerHTML = '';
+      document.getElementById('emptyState').classList.remove('hidden');
+    }
+
+    // Inicializar cache vacío
+    _barberos.forEach(b => { _citasCache[b.id] = []; });
+
+    // Escuchar en tiempo real
+    subscribeToday();
+
     document.getElementById('loadingOverlay').classList.add('hidden');
     document.getElementById('mainApp').classList.remove('hidden');
   });
-
-  async function cargarAgendas() {
-    const barberos = await FDB.getBarberos();
-    const grid     = document.getElementById('barberosGrid');
-
-    document.getElementById('totalBarberos').textContent = barberos.length;
-
-    if (!barberos.length) {
-      grid.innerHTML = '';
-      document.getElementById('emptyState').classList.remove('hidden');
-      document.getElementById('totalCitas').textContent = '0';
-      document.getElementById('totalLibres').textContent = '0';
-      return;
-    }
-
-    // Cargar citas de hoy para todos los barberos en paralelo
-    const citasPorBarbero = await Promise.all(
-      barberos.map(b =>
-        db.collection('citas')
-          .where('fecha', '==', fechaStr)
-          .where('barberoId', '==', b.id)
-          .get()
-          .then(snap => snap.docs
-            .map(d => d.data())
-            .filter(c => c.estado !== 'Cancelada')
-          )
-          .catch(() => [])
-      )
-    );
-
-    const totalCitas = citasPorBarbero.reduce((a, c) => a + c.length, 0);
-    document.getElementById('totalCitas').textContent = totalCitas;
-    document.getElementById('totalLibres').textContent =
-      barberos.filter((_, i) => citasPorBarbero[i].length === 0).length;
-
-    grid.innerHTML = barberos.map((b, i) => {
-      const citas      = citasPorBarbero[i];
-      const totalB     = citas.length;
-      const completadas = citas.filter(c => c.estado === 'Completada').length;
-      const pendientes  = citas.filter(c => c.estado !== 'Completada').length;
-
-      const avatarHTML = b.foto
-        ? `<img src="${b.foto}" alt="${b.nombre}" class="w-14 h-14 rounded-2xl object-cover border border-white/10">`
-        : `<div class="avatar w-14 h-14 rounded-2xl flex items-center justify-center border border-white/10">
-             <i class="ph-fill ph-user text-2xl text-white/30"></i>
-           </div>`;
-
-      const estadoColor = totalB === 0 ? 'text-emerald-400' : pendientes > 3 ? 'text-amber-400' : 'text-white';
-      const estadoLabel = totalB === 0 ? 'Libre' : `${pendientes} pendiente${pendientes !== 1 ? 's' : ''}`;
-
-      return `
-      <a href="/agenda/${b.id}" class="card rounded-2xl p-4 flex items-center gap-4 active:scale-[0.98] transition-all block">
-        ${avatarHTML}
-        <div class="flex-1 min-w-0">
-          <div class="flex items-center gap-2 mb-0.5">
-            <h3 class="font-bold text-white text-base leading-tight truncate">${b.nombre}</h3>
-            ${b.especialidad ? `<span class="badge text-white/30 shrink-0">${b.especialidad}</span>` : ''}
-          </div>
-          <p class="text-xs ${estadoColor} font-semibold">${estadoLabel}</p>
-          ${totalB > 0 ? `<p class="text-[11px] text-white/30 mt-0.5">${completadas} completada${completadas !== 1 ? 's' : ''} · ${totalB} total</p>` : '<p class="text-[11px] text-white/30 mt-0.5">Sin citas hoy</p>'}
-        </div>
-        <div class="flex flex-col items-center gap-1 shrink-0">
-          <span class="text-2xl font-black ${estadoColor}">${totalB}</span>
-          <i class="ph-bold ph-caret-right text-white/20 text-sm"></i>
-        </div>
-      </a>`;
-    }).join('');
-  }
-
-  function recargar() {
-    document.getElementById('barberosGrid').innerHTML = `
-      <div class="card rounded-2xl p-4 animate-pulse h-24"></div>
-      <div class="card rounded-2xl p-4 animate-pulse h-24"></div>`;
-    document.getElementById('totalCitas').textContent = '—';
-    document.getElementById('totalLibres').textContent = '—';
-    cargarAgendas();
-  }
 </script>
 </body>
 </html>

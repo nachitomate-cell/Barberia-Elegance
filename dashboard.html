@@ -11,8 +11,7 @@
   <meta name="description" content="Tu panel personal en Elegance Barbershop. Revisa tus sellos, canjea premios y actualiza tu perfil.">
   <meta property="og:title" content="Mi Club | Elegance Barbershop">
   <meta property="og:description" content="Panel de fidelidad de Elegance Barbershop. Acumula sellos y disfruta de cortes y servicios gratis.">
-  <script defer src="/_vercel/insights/script.js"></script>
-  <script defer src="/_vercel/speed-insights/script.js"></script>
+
   <meta property="og:type" content="website">
   <meta name="robots" content="noindex, nofollow">
 
@@ -181,8 +180,9 @@
     <!-- ═══ HEADER ═══ -->
     <header class="px-5 pt-10 pb-4 flex items-center justify-between sticky top-0 bg-[#050505]/96 backdrop-blur-md z-30">
       <!-- Bell -->
-      <button class="w-10 h-10 rounded-full bg-white/5 border border-white/8 flex items-center justify-center active:scale-95 transition-all">
-        <i class="ph-bold ph-bell text-lg text-gray-400"></i>
+      <button id="btnNotifBell" onclick="toggleNotificaciones()" class="relative w-10 h-10 rounded-full bg-white/5 border border-white/8 flex items-center justify-center active:scale-95 transition-all">
+        <i id="bellIcon" class="ph-bold ph-bell text-lg text-gray-400"></i>
+        <span id="bellDot" class="hidden absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 ring-2 ring-[#050505]"></span>
       </button>
 
       <!-- Shop name centered -->
@@ -224,6 +224,21 @@
               Reservar mi cita
             </a>
           </div>
+        </div>
+      </div>
+
+      <!-- ── INSTALAR APP BANNER (Big) ── -->
+      <div id="pwaBigInstallCard" class="hidden mx-4 mb-5 rounded-3xl p-5 relative overflow-hidden cursor-pointer active:scale-95 transition-all shadow-[0_0_20px_rgba(201,168,76,0.1)]" style="background:linear-gradient(to right, rgba(201,168,76,0.12), rgba(201,168,76,0.04)); border: 1px solid rgba(201,168,76,0.3);" onclick="instalarPWA()">
+        <div class="absolute -right-6 -top-6 w-24 h-24 rounded-full blur-xl pointer-events-none" style="background:rgba(201,168,76,0.15);"></div>
+        <div class="flex items-center gap-4 relative z-10">
+          <div class="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(201,168,76,0.2)]" style="background:rgba(201,168,76,0.15); border: 1px solid rgba(201,168,76,0.3);">
+            <i class="ph-fill ph-device-mobile text-2xl" style="color:var(--gold);"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <h3 class="text-[15px] font-black text-white leading-tight mb-1">Instala la App Oficial</h3>
+            <p class="text-xs text-white/60 leading-snug truncate">Acceso rápido y sin ocupar memoria.</p>
+          </div>
+          <i class="ph-bold ph-caret-right text-lg shrink-0" style="color:var(--gold);"></i>
         </div>
       </div>
 
@@ -271,12 +286,9 @@
 
       <!-- ── PRÓXIMO PREMIO ── -->
       <div class="mx-4 mb-5 rounded-2xl bg-[#111115] border border-white/8 px-5 py-4 flex items-center gap-4">
-        <!-- Product image -->
-        <div class="w-14 h-14 rounded-full overflow-hidden border border-white/12 flex-shrink-0 bg-[#1a1a1a]">
-          <img src="https://images.unsplash.com/photo-1585747000558-18538342b6f3?auto=format&fit=crop&w=120&q=80"
-               alt="Premio"
-               class="w-full h-full object-cover"
-               onerror="this.parentElement.innerHTML='<i class=\'ph-fill ph-trophy text-yellow-600 text-2xl m-auto flex\'></i>'">
+        <!-- Product icon -->
+        <div class="w-14 h-14 rounded-full overflow-hidden border border-white/12 flex-shrink-0 bg-[#1a1a1a] flex items-center justify-center">
+          <i class='ph-fill ph-trophy text-yellow-600 text-2xl'></i>
         </div>
         <div class="flex-1 min-w-0">
           <p class="text-[9px] font-black uppercase tracking-widest mb-0.5" style="color:var(--gold);">Próximo Premio</p>
@@ -379,6 +391,14 @@
             <i class="ph-fill ph-medal text-sm text-white/50"></i>
             <span id="profileStamps" class="text-xs font-bold text-white/50">0 sellos</span>
           </div>
+        </div>
+      </div>
+
+      <!-- ── PRÓXIMA CITA + HISTORIAL ── -->
+      <div id="profileCitasSection" class="mb-6">
+        <h3 class="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-3 px-1">Mis Citas</h3>
+        <div id="profileCitasContent">
+          <div class="flex justify-center py-6"><div class="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div></div>
         </div>
       </div>
 
@@ -552,7 +572,9 @@ auth.onAuthStateChanged(async user => {
   });
 
   initLookbook();
+  cargarCitasUsuario(user);
 });
+
 
 // ─── Crear documento si no existe ────────────────────────────
 async function ensureUserDoc(user, extra = {}) {
@@ -873,6 +895,251 @@ async function deleteAccount() {
     }
   }
 }
+
+// ────────────────────────────────────────────────────────────────
+//  NOTIFICACIONES
+// ────────────────────────────────────────────────────────────────
+let _notifEnabled  = localStorage.getItem('notif_granted') === '1';
+let _notifSchedule = null; // intervalId
+
+async function toggleNotificaciones() {
+  // Si ya están activas → solo informar
+  if (_notifEnabled) {
+    alert('✅ Notificaciones ya activadas. Recibirás un aviso 30 minutos antes de tu próxima cita.');
+    return;
+  }
+  if (!('Notification' in window)) {
+    alert('Tu navegador no soporta notificaciones push.');
+    return;
+  }
+  const perm = await Notification.requestPermission();
+  if (perm !== 'granted') {
+    alert('Necesitas permitir las notificaciones para recibir recordatorios de tus citas.');
+    return;
+  }
+  _notifEnabled = true;
+  localStorage.setItem('notif_granted', '1');
+  actualizarIconoCampana(true);
+  iniciarSchedulerRecordatorio();
+  // Pequeño feedback visual
+  new Notification('Elegance Barbershop 💈', {
+    body: '¡Listo! Te avisaremos 30 minutos antes de tu próxima cita.',
+    icon: '/icons/icon-192.png'
+  });
+}
+
+function actualizarIconoCampana(activa) {
+  const icon = document.getElementById('bellIcon');
+  const btn  = document.getElementById('btnNotifBell');
+  if (!icon || !btn) return;
+  if (activa) {
+    icon.className = 'ph-fill ph-bell text-lg';
+    icon.style.color = 'var(--gold)';
+    btn.style.borderColor  = 'rgba(201,168,76,0.4)';
+  } else {
+    icon.className = 'ph-bold ph-bell text-lg text-gray-400';
+    icon.style.color = '';
+    btn.style.borderColor  = '';
+  }
+}
+
+// Inicializar estado de campana al cargar
+(function initBellState() {
+  if (_notifEnabled && Notification.permission === 'granted') {
+    actualizarIconoCampana(true);
+    iniciarSchedulerRecordatorio();
+  } else if (_notifEnabled && Notification.permission !== 'granted') {
+    // El permiso fue revocado manualmente
+    _notifEnabled = false;
+    localStorage.removeItem('notif_granted');
+  }
+})();
+
+// ── Scheduler: revisar citas cada 5 min ──────────────────────
+function iniciarSchedulerRecordatorio() {
+  if (_notifSchedule) return; // ya corre
+  _notifSchedule = setInterval(revisarProximaCita, 5 * 60 * 1000);
+  revisarProximaCita(); // check inmediato
+}
+
+async function revisarProximaCita() {
+  if (!currentUser || !_notifEnabled || Notification.permission !== 'granted') return;
+
+  const userData = await db.collection('users').doc(currentUser.uid).get();
+  if (!userData.exists) return;
+  const { nombre = '', telefono = '' } = userData.data();
+
+  // Buscar citas de los próximos 7 días por email o teléfono
+  const hoy = new Date();
+  const fechas = [];
+  for (let i = 0; i <= 7; i++) {
+    const d = new Date(hoy);
+    d.setDate(hoy.getDate() + i);
+    fechas.push(d.toISOString().slice(0, 10));
+  }
+
+  const snap = await db.collection('citas')
+    .where('clienteEmail', '==', currentUser.email)
+    .where('estado', '!=', 'Cancelada')
+    .get();
+
+  const ahora  = new Date();
+  const NOTIF_KEY = 'notif_sent_ids';
+  const enviados  = JSON.parse(localStorage.getItem(NOTIF_KEY) || '[]');
+
+  for (const doc of snap.docs) {
+    const c = doc.data();
+    if (!fechas.includes(c.fecha)) continue;
+    if (enviados.includes(doc.id)) continue;
+
+    const [hh, mm]  = (c.hora || '00:00').split(':').map(Number);
+    const [yy, mo, dd] = (c.fecha || '').split('-').map(Number);
+    const citaDate  = new Date(yy, mo - 1, dd, hh, mm);
+    const diffMin   = (citaDate - ahora) / 60000;
+
+    // Enviar notificación si faltan entre 25 y 35 minutos
+    if (diffMin >= 25 && diffMin <= 35) {
+      new Notification('⏰ Tu cita se acerca — Elegance', {
+        body:  `Tienes cita a las ${c.hora} (${c.servicioNombre || 'servicio'} con ${c.barbero || 'tu barbero'}). ¡Nos vemos pronto!`,
+        icon:  '/icons/icon-192.png',
+        badge: '/icons/icon-192.png',
+        tag:   doc.id
+      });
+      enviados.push(doc.id);
+      localStorage.setItem(NOTIF_KEY, JSON.stringify(enviados));
+    }
+  }
+}
+
+// ────────────────────────────────────────────────────────────────
+//  CITAS DEL USUARIO EN MI PERFIL
+// ────────────────────────────────────────────────────────────────
+async function cargarCitasUsuario(user) {
+  const contenedor = document.getElementById('profileCitasContent');
+  if (!contenedor) return;
+
+  try {
+    const snap = await db.collection('citas')
+      .where('clienteEmail', '==', user.email)
+      .orderBy('fecha', 'desc')
+      .orderBy('hora', 'desc')
+      .limit(20)
+      .get();
+
+    if (snap.empty) {
+      contenedor.innerHTML = `
+        <div class="bg-[#111115] rounded-2xl border border-white/8 px-5 py-6 text-center">
+          <i class="ph-fill ph-calendar-x text-4xl text-white/10 mb-2 block"></i>
+          <p class="text-sm text-gray-500">Aún no tienes citas registradas.<br>¡Reserva tu primer corte!</p>
+          <a href="index.html" class="inline-block mt-4 px-5 py-2.5 rounded-xl text-xs font-bold text-black" style="background:var(--gold);">Reservar ahora</a>
+        </div>`;
+      return;
+    }
+
+    const ahora   = new Date();
+    const citas   = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const futuras = citas.filter(c => {
+      const [yy, mo, dd] = (c.fecha || '').split('-').map(Number);
+      const [hh, mm]     = (c.hora  || '00:00').split(':').map(Number);
+      return new Date(yy, mo - 1, dd, hh, mm) > ahora && c.estado !== 'Cancelada';
+    }).sort((a, b) => a.fecha.localeCompare(b.fecha) || a.hora.localeCompare(b.hora));
+
+    const proxima = futuras[0] || null;
+    let html = '';
+
+    // ─ Tarjeta de próxima cita ─
+    if (proxima) {
+      const fechaStr   = formatearFechaCita(proxima.fecha);
+      const diffMs     = new Date(...[...proxima.fecha.split('-').map(Number), ...proxima.hora.split(':').map(Number)]) - ahora;
+      const diffH      = Math.round(diffMs / 3600000);
+      const diffD      = Math.floor(diffMs / 86400000);
+      const enTiempo   = diffH <= 2 ? `<span class="text-red-400 font-bold">¡En ${diffH <= 0 ? 'menos de 1 hora' : diffH + ' hora' + (diffH !== 1 ? 's' : '')}!</span>` :
+                         diffD === 0 ? `<span style="color:var(--gold)" class="font-bold">Hoy</span>` :
+                         diffD === 1 ? `<span style="color:var(--gold)" class="font-bold">Mañana</span>` :
+                         `En ${diffD} días`;
+
+      html += `
+        <div class="mb-3 rounded-2xl p-4 relative overflow-hidden" style="background:linear-gradient(135deg,rgba(201,168,76,0.1),rgba(201,168,76,0.04));border:1px solid rgba(201,168,76,0.35);">
+          <div class="absolute -right-4 -top-4 w-20 h-20 rounded-full blur-xl" style="background:rgba(201,168,76,0.1);"></div>
+          <p class="text-[9px] font-black uppercase tracking-widest mb-2" style="color:var(--gold);">📅 Próxima Cita</p>
+          <div class="flex items-start justify-between gap-3">
+            <div class="flex-1">
+              <p class="text-sm font-black text-white leading-tight">${proxima.servicioNombre || 'Corte'}</p>
+              <p class="text-xs text-white/60 mt-0.5">${proxima.barbero || 'Barbero'} · ${proxima.hora} hrs</p>
+              <p class="text-xs text-white/60">${fechaStr}</p>
+            </div>
+            <div class="text-right shrink-0">
+              <p class="text-xs">${enTiempo}</p>
+              <span class="inline-block mt-1.5 text-[9px] font-bold px-2 py-1 rounded-full" style="background:rgba(201,168,76,0.15);color:var(--gold);">${proxima.estado || 'Confirmada'}</span>
+            </div>
+          </div>
+        </div>`;
+    } else {
+      html += `
+        <div class="mb-3 rounded-2xl px-5 py-4 flex items-center gap-3" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
+          <i class="ph-fill ph-calendar-blank text-2xl text-white/20"></i>
+          <div>
+            <p class="text-sm font-bold text-white/60">Sin próximas citas</p>
+            <a href="index.html" class="text-xs font-bold" style="color:var(--gold);">Reservar ahora →</a>
+          </div>
+        </div>`;
+    }
+
+    // ─ Total de citas históricas ─
+    const total      = citas.length;
+    const activas    = futuras.length;
+    const completadas = citas.filter(c => c.estado === 'Completada').length;
+
+    html += `
+      <div class="grid grid-cols-3 gap-2 mb-3">
+        <div class="bg-[#111115] rounded-xl border border-white/8 px-3 py-3 text-center">
+          <p class="text-xl font-black text-white">${total}</p>
+          <p class="text-[9px] text-gray-500 uppercase tracking-wide">Total</p>
+        </div>
+        <div class="bg-[#111115] rounded-xl border border-white/8 px-3 py-3 text-center">
+          <p class="text-xl font-black" style="color:var(--gold);">${activas}</p>
+          <p class="text-[9px] text-gray-500 uppercase tracking-wide">Próximas</p>
+        </div>
+        <div class="bg-[#111115] rounded-xl border border-white/8 px-3 py-3 text-center">
+          <p class="text-xl font-black text-white/60">${completadas}</p>
+          <p class="text-[9px] text-gray-500 uppercase tracking-wide">Completadas</p>
+        </div>
+      </div>`;
+
+    // ─ Lista últimas citas ─
+    const recientes = citas.slice(0, 5);
+    html += `<div class="space-y-2">`;
+    for (const c of recientes) {
+      const esFutura  = futuras.find(f => f.id === c.id);
+      const colorE    = c.estado === 'Completada' ? 'text-green-400' : c.estado === 'Cancelada' ? 'text-red-400' : 'text-yellow-400';
+      const iconE     = c.estado === 'Completada' ? 'ph-check-circle' : c.estado === 'Cancelada' ? 'ph-x-circle' : 'ph-clock';
+      html += `
+        <div class="bg-[#111115] rounded-xl border border-white/8 px-4 py-3 flex items-center gap-3">
+          <i class="ph-fill ${iconE} text-lg ${colorE} shrink-0"></i>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-semibold text-white truncate">${c.servicioNombre || 'Servicio'}</p>
+            <p class="text-xs text-gray-500">${formatearFechaCita(c.fecha)} · ${c.hora}</p>
+          </div>
+          <span class="text-[9px] font-bold ${colorE} shrink-0">${c.estado || 'Confirmada'}</span>
+        </div>`;
+    }
+    html += `</div>`;
+
+    contenedor.innerHTML = html;
+
+  } catch (e) {
+    // Si falla la query (p.ej. falta index en Firestore), intentar sin orderBy
+    console.warn('[Perfil] Error cargando citas:', e.message);
+    contenedor.innerHTML = `<p class="text-xs text-gray-600 text-center py-4">No se pudieron cargar las citas.</p>`;
+  }
+}
+
+function formatearFechaCita(fechaStr) {
+  if (!fechaStr) return '—';
+  const [yy, mo, dd] = fechaStr.split('-').map(Number);
+  const d = new Date(yy, mo - 1, dd);
+  return d.toLocaleDateString('es-CL', { weekday: 'short', day: 'numeric', month: 'short' });
+}
 </script>
 
   <script>
@@ -944,16 +1211,23 @@ async function deleteAccount() {
     const _isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
     const _pwaDismissed = sessionStorage.getItem('pwa_dismissed');
 
-    // Capturar el evento antes que el navegador lo consuma
+    // Mostrar el banner grande de inmediato si no es PWA (y no fue descartado)
+    if (!_isStandalone && !_pwaDismissed) {
+      document.getElementById('pwaBigInstallCard').classList.remove('hidden');
+    }
+
+    // Capturar el evento antes que el navegador lo consuma (Android/Desktop)
     window.addEventListener('beforeinstallprompt', e => {
       e.preventDefault();
       _pwaPrompt = e;
       if (!_isStandalone && !_pwaDismissed) mostrarBannerPWA();
     });
 
-    // Esconder banner si el usuario ya instaló
+    // Esconder banners si el usuario ya instaló
     window.addEventListener('appinstalled', () => {
       ocultarBannerPWA();
+      const bigCard = document.getElementById('pwaBigInstallCard');
+      if (bigCard) bigCard.classList.add('hidden');
       console.log('[PWA] App instalada correctamente.');
     });
 
@@ -965,10 +1239,22 @@ async function deleteAccount() {
     }
 
     function instalarPWA() {
-      if (!_pwaPrompt) return;
+      if (_isIOS_PWA) {
+        document.getElementById('pwaModalIOS').classList.remove('hidden');
+        return;
+      }
+      if (!_pwaPrompt) {
+        // Fallback si no está disponible o el usuario rechazó previamente en Android
+        alert("La instalación automática no está lista. Intenta usando la opción 'Agregar a la pantalla principal' en el menú de tu navegador.");
+        return;
+      }
       _pwaPrompt.prompt();
       _pwaPrompt.userChoice.then(r => {
-        if (r.outcome === 'accepted') ocultarBannerPWA();
+        if (r.outcome === 'accepted') {
+          ocultarBannerPWA();
+          const bigCard = document.getElementById('pwaBigInstallCard');
+          if (bigCard) bigCard.classList.add('hidden');
+        }
         _pwaPrompt = null;
       });
     }
@@ -976,22 +1262,23 @@ async function deleteAccount() {
     function cerrarBannerPWA() {
       ocultarBannerPWA();
       sessionStorage.setItem('pwa_dismissed', '1');
+      const bigCard = document.getElementById('pwaBigInstallCard');
+      if (bigCard) bigCard.classList.add('hidden');
     }
 
     function ocultarBannerPWA() {
-      document.getElementById('pwaBanner').classList.add('hidden');
+      const banner = document.getElementById('pwaBanner');
+      if(banner) banner.classList.add('hidden');
     }
 
-    // iOS: mostrar modal de instrucciones si no está instalada y no fue descartada
-    if (_isIOS_PWA && !_isStandalone && !_pwaDismissed) {
-      setTimeout(() => {
-        document.getElementById('pwaModalIOS').classList.remove('hidden');
-      }, 3000);
-    }
+    // iOS: el modal se usa a través del botón instalar, no es necesario lanzarlo al inicio automáticamente 
+    // a menos que quieras forzarlo. Ya lo forzamos al presionar el BigCard, así que lo quitamos del onLoad.
 
     function cerrarModalIOS() {
       document.getElementById('pwaModalIOS').classList.add('hidden');
       sessionStorage.setItem('pwa_dismissed', '1');
+      const bigCard = document.getElementById('pwaBigInstallCard');
+      if (bigCard) bigCard.classList.add('hidden');
     }
   </script>
 </body>
