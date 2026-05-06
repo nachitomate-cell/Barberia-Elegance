@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#111827">
+  <title>Agendas del equipo | Elegance</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <link href="/output.css" rel="stylesheet">
+  <script src="/config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="/firebase-config.js"></script>
+  <script src="/firebaseUtils.js?v=2.1"></script>
+  <style>
+    body { background:#0d1117; color:#f1f5f9; font-family:'Inter',sans-serif; -webkit-tap-highlight-color:transparent; min-height:100dvh; }
+    .card { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); transition:background .2s,border-color .2s; }
+    .card:active { background:rgba(255,255,255,0.08); }
+    .avatar { background:rgba(255,255,255,0.06); }
+    .badge { font-size:10px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; }
+  </style>
+</head>
+<body>
+
+<!-- ── LOADING ── -->
+<div id="loadingOverlay" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#0d1117]">
+  <div class="w-10 h-10 border-2 border-white/10 border-t-white rounded-full animate-spin mb-4"></div>
+  <p class="text-sm text-white/40">Cargando...</p>
+</div>
+
+<!-- ── APP ── -->
+<div id="mainApp" class="hidden max-w-lg mx-auto px-4 pb-10">
+
+  <!-- Header -->
+  <header class="flex items-center gap-3 py-5 mb-2">
+    <a href="/gestion-interna/" class="w-10 h-10 rounded-xl border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors">
+      <i class="ph-bold ph-arrow-left text-white/60"></i>
+    </a>
+    <div>
+      <h1 class="text-lg font-bold text-white leading-tight">Agendas del equipo</h1>
+      <p id="fechaHoy" class="text-xs text-white/40 mt-0.5"></p>
+    </div>
+    <button onclick="recargar()" class="ml-auto w-10 h-10 rounded-xl border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors" title="Recargar">
+      <i class="ph-bold ph-arrows-clockwise text-white/60"></i>
+    </button>
+  </header>
+
+  <!-- Resumen del día -->
+  <div id="resumenDia" class="grid grid-cols-3 gap-3 mb-6">
+    <div class="card rounded-2xl p-4 text-center">
+      <p id="totalCitas" class="text-2xl font-black text-white">—</p>
+      <p class="text-[10px] text-white/40 font-semibold mt-0.5 uppercase tracking-widest">Citas hoy</p>
+    </div>
+    <div class="card rounded-2xl p-4 text-center">
+      <p id="totalBarberos" class="text-2xl font-black text-white">—</p>
+      <p class="text-[10px] text-white/40 font-semibold mt-0.5 uppercase tracking-widest">Barberos</p>
+    </div>
+    <div class="card rounded-2xl p-4 text-center">
+      <p id="totalLibres" class="text-2xl font-black text-emerald-400">—</p>
+      <p class="text-[10px] text-white/40 font-semibold mt-0.5 uppercase tracking-widest">Libres</p>
+    </div>
+  </div>
+
+  <!-- Lista de barberos -->
+  <div class="flex items-center gap-2 mb-3">
+    <i class="ph-fill ph-users text-white/30 text-base"></i>
+    <span class="text-xs font-bold text-white/40 uppercase tracking-widest">Equipo activo</span>
+  </div>
+
+  <div id="barberosGrid" class="space-y-3">
+    <!-- Skeletons -->
+    <div class="card rounded-2xl p-4 animate-pulse h-24"></div>
+    <div class="card rounded-2xl p-4 animate-pulse h-24"></div>
+  </div>
+
+  <!-- Vacío -->
+  <div id="emptyState" class="hidden text-center py-16">
+    <i class="ph ph-users text-5xl text-white/10 block mb-3"></i>
+    <p class="text-sm text-white/30">No hay barberos activos registrados.</p>
+    <a href="/gestion-interna/" class="mt-4 inline-block text-xs text-emerald-400 hover:underline">Ir al panel admin</a>
+  </div>
+
+</div><!-- /mainApp -->
+
+<script>
+  const db = firebase.firestore();
+
+  // Fecha de hoy
+  const hoy = new Date();
+  const yyyy = hoy.getFullYear();
+  const mm   = String(hoy.getMonth()+1).padStart(2,'0');
+  const dd   = String(hoy.getDate()).padStart(2,'0');
+  const fechaStr = `${yyyy}-${mm}-${dd}`;
+
+  document.getElementById('fechaHoy').textContent =
+    hoy.toLocaleDateString('es-CL', { weekday:'long', day:'numeric', month:'long' });
+
+  // ── AUTH GATE ──────────────────────────────────────────────────
+  firebase.auth().onAuthStateChanged(async user => {
+    if (!user) { window.location.href = '/gestion-interna/login/'; return; }
+
+    const isAdmin = await FDB.esAdminJefe(user.email, user.uid);
+    if (!isAdmin) {
+      // Barbero sin rol admin → su propia agenda
+      const myId = await FDB.getBarberoId(user.email, user.uid) || user.uid;
+      window.location.href = `/agenda/${myId}`;
+      return;
+    }
+
+    await cargarAgendas();
+    document.getElementById('loadingOverlay').classList.add('hidden');
+    document.getElementById('mainApp').classList.remove('hidden');
+  });
+
+  async function cargarAgendas() {
+    const barberos = await FDB.getBarberos();
+    const grid     = document.getElementById('barberosGrid');
+
+    document.getElementById('totalBarberos').textContent = barberos.length;
+
+    if (!barberos.length) {
+      grid.innerHTML = '';
+      document.getElementById('emptyState').classList.remove('hidden');
+      document.getElementById('totalCitas').textContent = '0';
+      document.getElementById('totalLibres').textContent = '0';
+      return;
+    }
+
+    // Cargar citas de hoy para todos los barberos en paralelo
+    const citasPorBarbero = await Promise.all(
+      barberos.map(b =>
+        db.collection('citas')
+          .where('fecha', '==', fechaStr)
+          .where('barberoId', '==', b.id)
+          .get()
+          .then(snap => snap.docs
+            .map(d => d.data())
+            .filter(c => c.estado !== 'Cancelada')
+          )
+          .catch(() => [])
+      )
+    );
+
+    const totalCitas = citasPorBarbero.reduce((a, c) => a + c.length, 0);
+    document.getElementById('totalCitas').textContent = totalCitas;
+    document.getElementById('totalLibres').textContent =
+      barberos.filter((_, i) => citasPorBarbero[i].length === 0).length;
+
+    grid.innerHTML = barberos.map((b, i) => {
+      const citas      = citasPorBarbero[i];
+      const totalB     = citas.length;
+      const completadas = citas.filter(c => c.estado === 'Completada').length;
+      const pendientes  = citas.filter(c => c.estado !== 'Completada').length;
+
+      const avatarHTML = b.foto
+        ? `<img src="${b.foto}" alt="${b.nombre}" class="w-14 h-14 rounded-2xl object-cover border border-white/10">`
+        : `<div class="avatar w-14 h-14 rounded-2xl flex items-center justify-center border border-white/10">
+             <i class="ph-fill ph-user text-2xl text-white/30"></i>
+           </div>`;
+
+      const estadoColor = totalB === 0 ? 'text-emerald-400' : pendientes > 3 ? 'text-amber-400' : 'text-white';
+      const estadoLabel = totalB === 0 ? 'Libre' : `${pendientes} pendiente${pendientes !== 1 ? 's' : ''}`;
+
+      return `
+      <a href="/agenda/${b.id}" class="card rounded-2xl p-4 flex items-center gap-4 active:scale-[0.98] transition-all block">
+        ${avatarHTML}
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 mb-0.5">
+            <h3 class="font-bold text-white text-base leading-tight truncate">${b.nombre}</h3>
+            ${b.especialidad ? `<span class="badge text-white/30 shrink-0">${b.especialidad}</span>` : ''}
+          </div>
+          <p class="text-xs ${estadoColor} font-semibold">${estadoLabel}</p>
+          ${totalB > 0 ? `<p class="text-[11px] text-white/30 mt-0.5">${completadas} completada${completadas !== 1 ? 's' : ''} · ${totalB} total</p>` : '<p class="text-[11px] text-white/30 mt-0.5">Sin citas hoy</p>'}
+        </div>
+        <div class="flex flex-col items-center gap-1 shrink-0">
+          <span class="text-2xl font-black ${estadoColor}">${totalB}</span>
+          <i class="ph-bold ph-caret-right text-white/20 text-sm"></i>
+        </div>
+      </a>`;
+    }).join('');
+  }
+
+  function recargar() {
+    document.getElementById('barberosGrid').innerHTML = `
+      <div class="card rounded-2xl p-4 animate-pulse h-24"></div>
+      <div class="card rounded-2xl p-4 animate-pulse h-24"></div>`;
+    document.getElementById('totalCitas').textContent = '—';
+    document.getElementById('totalLibres').textContent = '—';
+    cargarAgendas();
+  }
+</script>
+</body>
+</html>

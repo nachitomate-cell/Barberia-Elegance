@@ -5,7 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Agenda | 𝐄𝐥𝐞𝐠𝐚𝐧𝐜𝐞 𝐛𝐚𝐫𝐛𝐞𝐫𝐬𝐡𝐨𝐩</title>
     <meta name="description" content="Gestión de agenda interna - 𝐄𝐥𝐞𝐠𝐚𝐧𝐜𝐞 𝐛𝐚𝐫𝐛𝐞𝐫𝐬𝐡𝐨𝐩">
-    
+    <meta name="theme-color" content="#050505">
+
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest-admin.json">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Agenda">
+    <link rel="apple-touch-icon" href="/logo.jpg">
+
     <!-- Fonts & Icons -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -709,5 +718,95 @@
         }
       });
     </script>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       PWA INSTALL BANNER — para barberos (agenda)
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="pwaBanner" class="hidden fixed bottom-4 left-3 right-3 z-50 rounded-2xl p-4 flex items-center gap-3 shadow-2xl"
+    style="background:#111115;border:1px solid rgba(255,255,255,0.12);box-shadow:0 8px 40px rgba(0,0,0,0.7);">
+    <img src="/logo.jpg" class="w-11 h-11 rounded-xl object-cover shrink-0 border border-white/10" alt="Elegance">
+    <div class="flex-1 min-w-0">
+      <p class="text-sm font-bold text-white leading-tight">Instala la agenda</p>
+      <p class="text-xs text-white/40 mt-0.5">Acceso directo desde tu pantalla de inicio</p>
+    </div>
+    <div class="flex items-center gap-2 shrink-0">
+      <button onclick="instalarPWA()"
+        class="px-4 py-2 rounded-xl text-xs font-bold text-black bg-white active:scale-95 transition-all">
+        Instalar
+      </button>
+      <button onclick="cerrarBannerPWA()"
+        class="w-8 h-8 rounded-xl flex items-center justify-center text-white/30 hover:text-white/60 transition-colors"
+        style="background:rgba(255,255,255,0.05);">
+        <i class="ph-bold ph-x text-sm"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Modal iOS -->
+  <div id="pwaModalIOS" class="hidden fixed inset-0 z-50 flex items-end justify-center p-4" style="background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);">
+    <div class="w-full max-w-sm rounded-3xl p-6 text-center" style="background:#111115;border:1px solid rgba(255,255,255,0.1);">
+      <img src="/logo.jpg" class="w-14 h-14 rounded-2xl object-cover mx-auto mb-4 border border-white/10" alt="Elegance">
+      <h3 class="text-base font-bold text-white mb-1">Instala tu agenda</h3>
+      <p class="text-xs text-white/40 mb-5 leading-relaxed">Abre la agenda sin necesidad de abrir el navegador cada vez.</p>
+      <div class="space-y-2 text-left mb-5">
+        <div class="flex items-center gap-3 rounded-2xl p-3" style="background:rgba(255,255,255,0.04);">
+          <span class="w-6 h-6 rounded-full bg-white flex items-center justify-center text-[11px] font-black text-black shrink-0">1</span>
+          <p class="text-xs text-white/70">Toca el botón <strong class="text-white">Compartir</strong> <i class="ph ph-export inline"></i> en Safari</p>
+        </div>
+        <div class="flex items-center gap-3 rounded-2xl p-3" style="background:rgba(255,255,255,0.04);">
+          <span class="w-6 h-6 rounded-full bg-white flex items-center justify-center text-[11px] font-black text-black shrink-0">2</span>
+          <p class="text-xs text-white/70">Selecciona <strong class="text-white">«Agregar a pantalla de inicio»</strong></p>
+        </div>
+      </div>
+      <button onclick="cerrarModalIOS()"
+        class="w-full py-3 rounded-2xl text-sm font-bold text-white/50 border border-white/10">
+        Entendido
+      </button>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      let _pwaPrompt = null;
+      const isIOS        = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+      const dismissed    = sessionStorage.getItem('agenda_pwa_dismissed');
+
+      if (isStandalone || dismissed) return;
+
+      window.addEventListener('beforeinstallprompt', e => {
+        e.preventDefault();
+        _pwaPrompt = e;
+        setTimeout(() => document.getElementById('pwaBanner').classList.remove('hidden'), 3000);
+      });
+
+      window.addEventListener('appinstalled', () => {
+        document.getElementById('pwaBanner').classList.add('hidden');
+      });
+
+      window.instalarPWA = function() {
+        if (!_pwaPrompt) return;
+        _pwaPrompt.prompt();
+        _pwaPrompt.userChoice.then(() => {
+          document.getElementById('pwaBanner').classList.add('hidden');
+          _pwaPrompt = null;
+        });
+      };
+
+      window.cerrarBannerPWA = function() {
+        document.getElementById('pwaBanner').classList.add('hidden');
+        sessionStorage.setItem('agenda_pwa_dismissed', '1');
+      };
+
+      if (isIOS) {
+        setTimeout(() => document.getElementById('pwaModalIOS').classList.remove('hidden'), 3500);
+      }
+
+      window.cerrarModalIOS = function() {
+        document.getElementById('pwaModalIOS').classList.add('hidden');
+        sessionStorage.setItem('agenda_pwa_dismissed', '1');
+      };
+    })();
+  </script>
 </body>
 </html>
