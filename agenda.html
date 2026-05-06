@@ -113,6 +113,21 @@
 
     <main class="max-w-4xl mx-auto px-6 pt-8 hidden" id="mainApp">
         
+        <!-- ── INSTALAR APP BANNER (Big) ── -->
+        <div id="pwaBigInstallCard" class="hidden mb-8 rounded-3xl p-5 relative overflow-hidden cursor-pointer active:scale-95 transition-all shadow-[0_0_20px_rgba(201,168,76,0.1)] animate-fade-in" style="background:linear-gradient(to right, rgba(201,168,76,0.12), rgba(201,168,76,0.04)); border: 1px solid rgba(201,168,76,0.3);" onclick="triggerPWAInstall()">
+            <div class="absolute -right-6 -top-6 w-24 h-24 rounded-full blur-xl pointer-events-none" style="background:rgba(201,168,76,0.15);"></div>
+            <div class="flex items-center gap-4 relative z-10">
+                <div class="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(201,168,76,0.2)]" style="background:rgba(201,168,76,0.15); border: 1px solid rgba(201,168,76,0.3);">
+                    <i class="ph-fill ph-device-mobile text-2xl" style="color:#c9a84c;"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <h3 class="text-[15px] font-black text-white leading-tight mb-1">Instalar como Aplicación</h3>
+                    <p class="text-xs text-white/60 leading-snug truncate">Acceso rápido y notificaciones push.</p>
+                </div>
+                <i class="ph-bold ph-caret-right text-lg shrink-0" style="color:#c9a84c;"></i>
+            </div>
+        </div>
+
         <!-- Latest Reservations Section -->
         <div class="mb-12 animate-fade-in" style="animation-delay: 0.05s;">
             <div class="flex items-center justify-between mb-4">
@@ -772,39 +787,63 @@
       const isStandalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
       const dismissed    = sessionStorage.getItem('agenda_pwa_dismissed');
 
-      if (isStandalone || dismissed) return;
+      // Mostrar card principal de inmediato si no es standalone y no descartó
+      if (!isStandalone && !dismissed) {
+        const bigCard = document.getElementById('pwaBigInstallCard');
+        if (bigCard) bigCard.classList.remove('hidden');
+      }
 
       window.addEventListener('beforeinstallprompt', e => {
         e.preventDefault();
         _pwaPrompt = e;
-        setTimeout(() => document.getElementById('pwaBanner').classList.remove('hidden'), 3000);
+        if (!isStandalone && !dismissed) {
+          setTimeout(() => document.getElementById('pwaBanner').classList.remove('hidden'), 3000);
+        }
       });
 
       window.addEventListener('appinstalled', () => {
         document.getElementById('pwaBanner').classList.add('hidden');
+        const bigCard = document.getElementById('pwaBigInstallCard');
+        if (bigCard) bigCard.classList.add('hidden');
       });
 
-      window.instalarPWA = function() {
-        if (!_pwaPrompt) return;
+      window.triggerPWAInstall = function() {
+        if (isIOS) {
+          document.getElementById('pwaModalIOS').classList.remove('hidden');
+          return;
+        }
+        if (!_pwaPrompt) {
+          alert("La instalación automática no está lista. Intenta usando la opción 'Agregar a la pantalla principal' en el menú de tu navegador.");
+          return;
+        }
         _pwaPrompt.prompt();
         _pwaPrompt.userChoice.then(() => {
           document.getElementById('pwaBanner').classList.add('hidden');
+          const bigCard = document.getElementById('pwaBigInstallCard');
+          if (bigCard) bigCard.classList.add('hidden');
           _pwaPrompt = null;
         });
       };
 
+      window.instalarPWA = window.triggerPWAInstall;
+
       window.cerrarBannerPWA = function() {
         document.getElementById('pwaBanner').classList.add('hidden');
         sessionStorage.setItem('agenda_pwa_dismissed', '1');
+        const bigCard = document.getElementById('pwaBigInstallCard');
+        if (bigCard) bigCard.classList.add('hidden');
       };
 
-      if (isIOS) {
-        setTimeout(() => document.getElementById('pwaModalIOS').classList.remove('hidden'), 3500);
-      }
+      // Remover popup automático en iOS para no molestar, dejarlo al botón manual
+      // if (isIOS && !isStandalone && !dismissed) {
+      //   setTimeout(() => document.getElementById('pwaModalIOS').classList.remove('hidden'), 3500);
+      // }
 
       window.cerrarModalIOS = function() {
         document.getElementById('pwaModalIOS').classList.add('hidden');
         sessionStorage.setItem('agenda_pwa_dismissed', '1');
+        const bigCard = document.getElementById('pwaBigInstallCard');
+        if (bigCard) bigCard.classList.add('hidden');
       };
     })();
   </script>

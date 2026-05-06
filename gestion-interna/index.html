@@ -320,6 +320,41 @@
       border-bottom: 1px solid rgba(52,211,153,.12);
     }
 
+    /* Mobile bottom nav scrollable */
+    #mobileBottomNav {
+      background: rgba(17,24,39,0.97);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-top: 1px solid rgba(52,211,153,0.12);
+    }
+    #mobileBottomNav nav {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    #mobileBottomNav nav::-webkit-scrollbar { display: none; }
+    .mob-nav-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      min-width: 64px;
+      padding: 6px 10px 10px;
+      color: #6B7280;
+      transition: color .2s;
+      flex-shrink: 0;
+      border: none;
+      background: none;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .mob-nav-btn.active {
+      color: #34d399;
+    }
+    .mob-nav-btn i { font-size: 1.4rem; }
+    .mob-nav-btn span { font-size: 9px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
+
     /* ── SELLO TOAST mobile ──────────────────────────────── */
     @media (max-width: 639px) {
       #selloToast {
@@ -1725,32 +1760,71 @@
     </div>
 
     <!-- ══════════════════════════════════════════════════════
-     MOBILE BOTTOM NAV
+    <!-- ══════════════════════════════════════════════════════
+     MOBILE BOTTOM NAV — Scrollable horizontal
 ══════════════════════════════════════════════════════ -->
-    <div class="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-admin-card border-t border-admin-border">
-      <nav class="flex justify-around items-center h-20">
-        <a href="/gestion-interna/agenda" onclick="event.preventDefault(); openTab('tab-citas',this)"
-          class="jefe-only mobile-nav-btn flex-1 flex flex-col items-center justify-center gap-1 text-admin-accent py-2">
-          <i class="ph-fill ph-calendar-check text-2xl"></i>
-          <span class="text-[9px] font-bold uppercase tracking-wider">Citas</span>
-        </a>
-        <a href="/gestion-interna/agenda/"
-          class="admin-only mobile-nav-btn flex-1 flex flex-col items-center justify-center gap-1 text-gray-400 py-2">
-          <i class="ph-fill ph-users text-2xl"></i>
-          <span class="text-[9px] font-bold uppercase tracking-wider">Equipo</span>
-        </a>
-        <a href="/gestion-interna/configuracion" onclick="event.preventDefault(); openTab('tab-config',this)"
-          class="admin-only mobile-nav-btn flex-1 flex flex-col items-center justify-center gap-1 text-gray-400 py-2">
-          <i class="ph ph-gear text-2xl"></i>
-          <span class="text-[9px] font-bold uppercase tracking-wider">Config</span>
-        </a>
-        <a href="/gestion-interna/clientes" onclick="event.preventDefault(); openTab('tab-clientes',this)"
-          class="admin-only mobile-nav-btn flex-1 flex flex-col items-center justify-center gap-1 text-gray-400 py-2">
-          <i class="ph ph-users-three text-2xl"></i>
-          <span class="text-[9px] font-bold uppercase tracking-wider">Clientes</span>
-        </a>
+    <div id="mobileBottomNav" class="md:hidden fixed bottom-0 left-0 right-0 z-50" style="padding-bottom: env(safe-area-inset-bottom);">
+      <nav class="flex items-stretch">
+
+        <!-- Citas del día (solo jefe) -->
+        <button onclick="closeSidebar(); openTab('tab-citas', document.querySelector('[data-tab=tab-citas]'))"
+          class="mob-nav-btn jefe-only" id="mobNav-tab-citas">
+          <i class="ph-fill ph-calendar-check"></i>
+          <span>Citas</span>
+        </button>
+
+        <!-- Agenda equipo -->
+        <button onclick="closeSidebar(); openTab('tab-agenda-equipo', document.querySelector('[data-tab=tab-agenda-equipo]'))"
+          class="mob-nav-btn" id="mobNav-tab-agenda-equipo">
+          <i class="ph-fill ph-calendar-dots"></i>
+          <span>Equipo</span>
+        </button>
+
+        <!-- Clientes -->
+        <button onclick="closeSidebar(); openTab('tab-clientes', document.querySelector('[data-tab=tab-clientes]'))"
+          class="mob-nav-btn admin-only" id="mobNav-tab-clientes">
+          <i class="ph ph-user-list"></i>
+          <span>Clientes</span>
+        </button>
+
+        <!-- Premios -->
+        <button onclick="closeSidebar(); openTab('tab-premios', document.querySelector('[data-tab=tab-premios]'))"
+          class="mob-nav-btn admin-only" id="mobNav-tab-premios">
+          <i class="ph ph-trophy"></i>
+          <span>Premios</span>
+        </button>
+
+        <!-- Servicios -->
+        <button onclick="closeSidebar(); openTab('tab-servicios', document.querySelector('[data-tab=tab-servicios]'))"
+          class="mob-nav-btn admin-only" id="mobNav-tab-servicios">
+          <i class="ph ph-scissors"></i>
+          <span>Servicios</span>
+        </button>
+
+        <!-- Lookbook -->
+        <button onclick="closeSidebar(); openTab('tab-lookbook', document.querySelector('[data-tab=tab-lookbook]'))"
+          class="mob-nav-btn" id="mobNav-tab-lookbook">
+          <i class="ph ph-images"></i>
+          <span>Lookbook</span>
+        </button>
+
+        <!-- Equipo/Barberos -->
+        <button onclick="closeSidebar(); openTab('tab-barberos', document.querySelector('[data-tab=tab-barberos]'))"
+          class="mob-nav-btn admin-only" id="mobNav-tab-barberos">
+          <i class="ph ph-barbell"></i>
+          <span>Barberos</span>
+        </button>
+
+        <!-- Config -->
+        <button onclick="closeSidebar(); openTab('tab-config', document.querySelector('[data-tab=tab-config]'))"
+          class="mob-nav-btn admin-only" id="mobNav-tab-config">
+          <i class="ph ph-gear"></i>
+          <span>Config</span>
+        </button>
+
       </nav>
     </div>
+
 
     <!-- ══════════════════════════════════════════════════════
      SCRIPTS
@@ -1849,17 +1923,17 @@
           activeNavBtn.classList.remove('text-gray-400');
         }
 
-        // ── Mobile bottom nav ──
-        document.querySelectorAll('.mobile-nav-btn').forEach(b => {
-          b.classList.remove('text-admin-accent'); b.classList.add('text-gray-400');
-          const ic = b.querySelector('i'); if (ic) ic.className = ic.className.replace('ph-fill ', 'ph ');
+        // ── Mobile bottom nav (nuevo scrollable) ──
+        document.querySelectorAll('.mob-nav-btn').forEach(b => {
+          b.classList.remove('active');
+          const ic = b.querySelector('i');
+          if (ic) ic.className = ic.className.replace('ph-fill ', 'ph ');
         });
-        const tabMap = { 'tab-citas': 0, 'tab-servicios': 1, 'tab-config': 2, 'tab-clientes': 3, 'tab-premios': 4, 'tab-lookbook': 5, 'tab-barberos': 6 };
-        const idx = tabMap[id];
-        const mBtns = document.querySelectorAll('.mobile-nav-btn');
-        if (mBtns[idx]) {
-          mBtns[idx].classList.remove('text-gray-400'); mBtns[idx].classList.add('text-admin-accent');
-          const ic = mBtns[idx].querySelector('i'); if (ic) ic.className = ic.className.replace('ph ', 'ph-fill ');
+        const mobBtn = document.getElementById('mobNav-' + id);
+        if (mobBtn) {
+          mobBtn.classList.add('active');
+          const ic = mobBtn.querySelector('i');
+          if (ic) ic.className = ic.className.replace('ph ', 'ph-fill ');
         }
 
         // Actualizar URL si corresponde
