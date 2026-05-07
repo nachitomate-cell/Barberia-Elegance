@@ -1050,7 +1050,9 @@ async function cargarCitasUsuario(user) {
     // ─ Tarjeta de próxima cita ─
     if (proxima) {
       const fechaStr   = formatearFechaCita(proxima.fecha);
-      const diffMs     = new Date(...[...proxima.fecha.split('-').map(Number), ...proxima.hora.split(':').map(Number)]) - ahora;
+      const [_fy, _fm, _fd] = proxima.fecha.split('-').map(Number);
+      const [_fh, _fmin]   = proxima.hora.split(':').map(Number);
+      const diffMs     = new Date(_fy, _fm - 1, _fd, _fh, _fmin) - ahora;
       const diffH      = Math.round(diffMs / 3600000);
       const diffD      = Math.floor(diffMs / 86400000);
       const enTiempo   = diffH <= 2 ? `<span class="text-red-400 font-bold">¡En ${diffH <= 0 ? 'menos de 1 hora' : diffH + ' hora' + (diffH !== 1 ? 's' : '')}!</span>` :
