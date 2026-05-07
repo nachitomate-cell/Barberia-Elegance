@@ -598,6 +598,7 @@
     }
 
     let _fsBarberos      = [];
+    let _multiHoras      = []; // cache de getHorasDisponiblesMulti para auto-asignación en paso 4
 
     function _renderBarberos(barberos) {
       const skeleton = document.getElementById('barberosSkeleton');
@@ -784,6 +785,7 @@
       try {
         if (window._selectedBarberId === 'any') {
           hours = await FDB.getHorasDisponiblesMulti(currentDateStr, selectedServiceObj.duracion, settings, _fsBarberos);
+          _multiHoras = hours;
         } else {
           hours = await FDB.getHorasDisponibles(currentDateStr, selectedServiceObj.duracion, settings, window._selectedBarberId || null);
         }
@@ -1035,41 +1037,27 @@
           return alert(`Espera ${mins} minuto${mins !== 1 ? 's' : ''} antes de realizar otra reserva.`);
         }
 
-        // Cuando el cliente elige "Sin preferencia", asignar al barbero con menos
-        // citas ese día que además esté libre en el horario seleccionado.
+        // Auto-asignación para "Sin preferencia": usa el cache de _multiHoras
+        // (calculado en renderHours con getHorasDisponiblesMulti) para evitar
+        // un query a Firestore que requeriría auth — el usuario público no está autenticado.
         let barberoIdFinal = window._selectedBarberId === 'any' ? null : (window._selectedBarberId || null);
         let barberoNombreFinal = window._selectedBarber === 'any' ? '' : (window._selectedBarber || '');
 
         if (window._selectedBarberId === 'any' && _fsBarberos.length > 0) {
-          try {
-            const toMins = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
-            const todasCitas = await FDB.getCitas(currentDateStr, null);
-            const dur = parseInt(selectedServiceObj.duracion);
-            const selMins = toMins(selectedTimeStr);
-
-            const counts = {};
-            _fsBarberos.forEach(b => { counts[b.id] = 0; });
-            todasCitas
-              .filter(c => c.estado !== 'Cancelada' && c.barberoId)
-              .forEach(c => { if (counts[c.barberoId] !== undefined) counts[c.barberoId]++; });
-
-            const libres = _fsBarberos.filter(b => {
-              const bCitas = todasCitas.filter(c => c.barberoId === b.id && c.estado !== 'Cancelada');
-              return !bCitas.some(c => {
-                const cs = toMins(c.hora);
-                const ce = cs + (parseInt(c.duracionServicio) || 30);
-                return selMins < ce && (selMins + dur) > cs;
-              });
-            });
-
-            libres.sort((a, b) => (counts[a.id] || 0) - (counts[b.id] || 0));
-            const asignado = libres[0] || null;
+          const slotData = _multiHoras.find(h => h.time === selectedTimeStr);
+          const availIds = slotData?.availableBarberoIds || [];
+          if (availIds.length > 0) {
+            // Asignar al primer barbero disponible en el slot (orden aleatorio para distribuir carga)
+            const shuffled = [...availIds].sort(() => Math.random() - 0.5);
+            const asignado = _fsBarberos.find(b => b.id === shuffled[0]);
             if (asignado) {
-              barberoIdFinal = asignado.id;
+              barberoIdFinal    = asignado.id;
               barberoNombreFinal = asignado.nombre;
             }
-          } catch(e) {
-            console.warn('[Reservar] No se pudo auto-asignar barbero, se guarda sin asignar:', e.message);
+          } else if (_fsBarberos.length > 0) {
+            // Fallback: primer barbero de la lista
+            barberoIdFinal    = _fsBarberos[0].id;
+            barberoNombreFinal = _fsBarberos[0].nombre;
           }
         }
 
@@ -1121,9 +1109,10 @@
         document.getElementById('successSummaryDate').innerHTML = `📅 <span>${dd}/${mm}/${yyyy} a las ${selectedTimeStr} hrs</span>`;
 
 
-        const barberName = window._selectedBarber || '';
-        const barberPart = barberName ? ` con ${barberName}` : '';
-        const waMsg = `Hola ${SHOP.nombreCorto}! Acabo de agendar en su web. Soy ${nombre} y voy para un ${selectedServiceObj.nombre}${barberPart} a las ${selectedTimeStr} hrs el ${currentDateStr}. \n¿Todo ok? 💈`;
+        const barberPart = barberoNombreFinal ? ` con ${barberoNombreFinal}` : '';
+        const [wYear, wMon, wDay] = currentDateStr.split('-');
+        const fechaLegible = `${wDay}/${wMon}/${wYear}`;
+        const waMsg = `Hola ${SHOP.nombreCorto}! Acabo de agendar en su web. Soy ${nombre} y voy para un ${selectedServiceObj.nombre}${barberPart} a las ${selectedTimeStr} hrs el ${fechaLegible}. \n¿Todo ok? 💈`;
         let numBarbero = SHOP.telefono;
         try {
           const bid = window._selectedBarberId;
