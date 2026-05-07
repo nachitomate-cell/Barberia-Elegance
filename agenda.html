@@ -341,13 +341,34 @@
                         document.getElementById('mainApp').classList.remove('hidden');
                     }
 
-                    // Renovar token si ya está concedido; pedir permiso automáticamente si no
+                    // Gestión de notificaciones al abrir la PWA
                     if ('Notification' in window && 'serviceWorker' in navigator) {
                         if (Notification.permission === 'granted') {
-                            navigator.serviceWorker.ready.then(() => solicitarPermisosYObtenerToken());
+                            // Renovar token FCM en silencio sin volver a pedir permiso
+                            navigator.serviceWorker.ready.then(async reg => {
+                                try {
+                                    const messaging = firebase.messaging();
+                                    const token = await messaging.getToken({ vapidKey: FCM_VAPID_KEY, serviceWorkerRegistration: reg });
+                                    if (token) await _guardarToken(token);
+                                    _actualizarUI('granted');
+                                    if (!_fcmInitialized) {
+                                        _fcmInitialized = true;
+                                        messaging.onMessage(payload => {
+                                            const title = payload.notification?.title || payload.data?.title || 'Nueva cita';
+                                            const body  = payload.notification?.body  || payload.data?.body  || 'Tienes una nueva reserva.';
+                                            reg.showNotification(title, { body, icon: '/icons/icon-192.png', badge: '/icons/icon-192.png', tag: 'nueva-cita', renotify: true, data: { url: window.location.href } });
+                                        });
+                                    }
+                                } catch(e) {
+                                    console.warn('[FCM] Error renovando token:', e.message);
+                                    _actualizarUI('granted'); // mantener UI correcta aunque falle el token
+                                }
+                            });
                         } else if (Notification.permission === 'default') {
                             // Mostrar modal de notificaciones tras 1.5 s (mejor UX que pedir de inmediato)
                             setTimeout(_mostrarModalNotificaciones, 1500);
+                        } else {
+                            _actualizarUI('denied');
                         }
                     }
                 } else {
@@ -1000,16 +1021,24 @@
         if (_isIOS && !_isStandalone) { _mostrarHintIOS(); return; }
         if (!_soportePush) { _actualizarUI('nosupport'); return; }
 
+        // Si ya está denegado, no pedir de nuevo — solo actualizar UI
+        if (Notification.permission === 'denied') { _actualizarUI('denied'); return; }
+
         _actualizarUI('loading');
 
         try {
           const registration = _swRegistration || await navigator.serviceWorker.ready;
           _swRegistration = registration;
 
-          const permission = await Notification.requestPermission();
-          if (permission !== 'granted') {
-             _actualizarUI('denied');
-             return;
+          // Solo pedir permiso si aún no fue concedido — nunca volver a llamar
+          // requestPermission() cuando ya está 'granted' para evitar el diálogo duplicado
+          // que en Android se interpreta como denegación si el usuario lo cierra
+          if (Notification.permission !== 'granted') {
+            const permission = await Notification.requestPermission();
+            if (permission !== 'granted') {
+              _actualizarUI('denied');
+              return;
+            }
           }
 
           // Obtener token FCM real para recibir push en background
