@@ -220,16 +220,75 @@
 
     <script>
         // ── ESTADO GLOBAL DE LA AGENDA ──
-        let barberId = null; // Se resuelve desde Firebase Auth tras el login
+        let barberId = null;
 
         let currentDate = new Date();
         let barberConfig = null;
         let globalConfig = null;
         let todayCitas = [];
-        let todayBloqueos = [];
+        let todayBloqueosBarbero = [];   // Bloqueos específicos del barbero
+        let todayBloqueosGlobales = [];  // Bloqueos globales (barberoId == null)
+
+        // Combina ambos arrays sin race condition
+        function getBloqueos() { return [...todayBloqueosBarbero, ...todayBloqueosGlobales]; }
 
         // Suscripciones de Firestore para limpiarlas si cambia el día
         let unsubs = [];
+
+        // Debounce para consolidar los 3 onSnapshot en un solo render
+        let _renderTimer = null;
+        function scheduleRender() {
+            clearTimeout(_renderTimer);
+            _renderTimer = setTimeout(renderSlots, 80);
+        }
+
+        // Resuelve isBarbero + isAdmin + barberoId + nombre en UNA sola lectura Firestore.
+        async function resolverInfoBarbero(email, uid) {
+            const BOOTSTRAP_ADMINS = ['ignaciiio.mate@gmail.com', 'barrazanicolasfabian@gmail.com'];
+            const esBootstrap = email && BOOTSTRAP_ADMINS.includes(email.toLowerCase());
+
+            // Para admins bootstrap, solo necesitamos el barberoId (una lectura por UID)
+            if (esBootstrap) {
+                let bId = uid;
+                try {
+                    const snap = await db.collection('barberos').get();
+                    const byUid = snap.docs.find(d => d.id === uid);
+                    if (byUid) bId = uid;
+                    // barberoId = uid en este caso, isAdmin=true
+                } catch(_) {}
+                return { isBarbero: true, isAdmin: true, barberoId: uid, nombre: null, snap: null };
+            }
+
+            // Una sola lectura para todos los demás
+            let snap = null;
+            try {
+                snap = await db.collection('barberos').get();
+            } catch(e) {
+                return { isBarbero: false, isAdmin: false, barberoId: null, nombre: null, snap: null };
+            }
+
+            // Buscar por UID primero (más rápido y seguro)
+            let foundDoc = snap.docs.find(d => d.id === uid && d.data().activo !== false);
+            // Fallback: buscar por email
+            if (!foundDoc && email) {
+                const targetEmail = email.toLowerCase().trim();
+                foundDoc = snap.docs.find(d => {
+                    const data = d.data();
+                    if (data.activo === false) return false;
+                    const docEmail = typeof data.email === 'string' ? data.email.toLowerCase().trim() : '';
+                    return docEmail === targetEmail;
+                });
+            }
+
+            if (!foundDoc) return { isBarbero: false, isAdmin: false, barberoId: null, nombre: null, snap };
+
+            const data = foundDoc.data();
+            const rol = data.rol || 'barbero';
+            const isAdmin = rol === 'admin' || rol === 'jefe';
+            const nombre = data.nombre || data.displayName || null;
+
+            return { isBarbero: true, isAdmin, barberoId: foundDoc.id, nombre, snap };
+        }
 
         // ── INICIALIZACIÓN ──
         document.addEventListener('DOMContentLoaded', () => {
@@ -238,40 +297,33 @@
                     document.getElementById('loginOverlay').classList.add('hidden');
                     document.getElementById('loadingOverlay').classList.remove('hidden');
 
-                    const isBarbero = await FDB.esBarbero(user.email, user.uid);
-                    if (!isBarbero) {
+                    // Una sola lectura Firestore para verificar permisos + obtener barberoId
+                    const info = await resolverInfoBarbero(user.email, user.uid);
+
+                    if (!info.isBarbero) {
                         window.location.href = '/dashboard';
                         return;
                     }
 
-                    const isAdmin = await FDB.esAdminJefe(user.email, user.uid);
                     const paramBarbero = new URLSearchParams(window.location.search).get('barbero');
 
-                    if (isAdmin && paramBarbero) {
-                        // Admin viendo la agenda de un barbero específico
+                    if (info.isAdmin && paramBarbero) {
                         barberId = paramBarbero;
-                    } else if (isAdmin) {
+                    } else if (info.isAdmin) {
                         window.location.href = '/gestion-interna/';
                         return;
                     } else {
-                        barberId = await FDB.getBarberoId(user.email, user.uid) || user.uid;
-                        // Si el doc del barbero no usa su UID como ID, crear un doc delgado en
-                        // barberos/{uid} para que las reglas de Firestore lo reconozcan.
-                        if (barberId !== user.uid) {
-                            try {
-                                const uidDoc = await db.collection('barberos').doc(user.uid).get();
-                                if (!uidDoc.exists) {
-                                    await db.collection('barberos').doc(user.uid).set({
-                                        activo: true,
-                                        _mainDocId: barberId
-                                    });
-                                }
-                            } catch (_e) { /* silent: no bloquear login */ }
-                        }
+                        barberId = info.barberoId || user.uid;
+                        await FDB.ensureBarberoUidDoc(user.uid, user.email);
+                    }
+
+                    // Precargar nombre si ya lo tenemos del snap anterior
+                    if (info.nombre) {
+                        document.getElementById('barberNameHeader').textContent = 'Agenda ' + info.nombre;
                     }
 
                     try {
-                        await loadBarberData();
+                        await loadBarberData(info.nombre);
                         renderDaySelector();
                         loadAgendaData();
                         loadLatestReservations();
@@ -320,18 +372,27 @@
             }
         }
 
-        async function loadBarberData() {
-            // Cargar configuración global y del barbero
-            globalConfig = await FDB.getConfig();
-            barberConfig = await FDB.getConfigBarbero(barberId);
+        // nombrePrecargado: si ya lo tenemos del snap inicial, evitamos una lectura extra
+        async function loadBarberData(nombrePrecargado = null) {
+            // Parallelizar las 3 lecturas independientes
+            const fetchNombre = nombrePrecargado
+                ? Promise.resolve(nombrePrecargado)
+                : db.collection('barberos').doc(barberId).get()
+                    .then(doc => (doc.exists && doc.data().nombre) ? doc.data().nombre : null)
+                    .catch(() => null);
 
-            // Obtener nombre del barbero
-            try {
-                const doc = await db.collection('barberos').doc(barberId).get();
-                if(doc.exists) {
-                    document.getElementById('barberNameHeader').textContent = 'Agenda ' + doc.data().nombre;
-                }
-            } catch(e) {}
+            const [cfg, cfgBarbero, nombre] = await Promise.all([
+                FDB.getConfig(),
+                FDB.getConfigBarbero(barberId),
+                fetchNombre,
+            ]);
+
+            globalConfig = cfg;
+            barberConfig = cfgBarbero;
+
+            if (nombre) {
+                document.getElementById('barberNameHeader').textContent = 'Agenda ' + nombre;
+            }
         }
 
         // ── MANEJO DE FECHAS ──
@@ -406,41 +467,47 @@
                     changes.forEach(change => {
                         if (change.type === 'added' && !_initialLoad && Notification.permission === 'granted') {
                             const data = change.doc.data();
-                            // Notificar solo si se creó hace poco (evitar spam al recargar viejo)
                             const diff = new Date() - (data.creadoEn?.toDate() || new Date());
                             if (diff < 60000) {
-                                new Notification('Nueva Reserva', {
-                                    body: `${data.clienteNombre} reservó para las ${data.hora}.`,
-                                    icon: '/logo.jpg'
+                                // Usar SW showNotification (compatible con todos los navegadores modernos)
+                                navigator.serviceWorker.ready.then(reg => {
+                                    reg.showNotification('Nueva Reserva', {
+                                        body: `${data.clienteNombre} reservó para las ${data.hora}.`,
+                                        icon: '/icons/icon-192.png',
+                                        badge: '/icons/icon-192.png',
+                                        tag: 'nueva-cita',
+                                        renotify: true,
+                                        data: { url: '/agenda' }
+                                    });
+                                }).catch(() => {
+                                    try { new Notification('Nueva Reserva', { body: `${data.clienteNombre} reservó para las ${data.hora}.`, icon: '/logo.jpg' }); } catch(_) {}
                                 });
                             }
                         }
                     });
 
                     todayCitas = snap.docs.map(d => ({id: d.id, ...d.data()}));
-                    renderSlots();
-                    
+                    scheduleRender();
+
                     if(_initialLoad) setTimeout(() => _initialLoad = false, 2000);
                 });
 
-            // Bloqueos (para este barbero específicamente)
+            // Bloqueos específicos del barbero
             const unsubBloq = db.collection('bloqueos')
                 .where('fecha', '==', fechaStr)
                 .where('barberoId', '==', barberId)
                 .onSnapshot(snap => {
-                    todayBloqueos = snap.docs.map(d => ({id: d.id, ...d.data()}));
-                    renderSlots();
+                    todayBloqueosBarbero = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                    scheduleRender();
                 });
 
-            // Bloqueos globales (si los hay)
+            // Bloqueos globales (barberoId == null)
             const unsubBloqGlob = db.collection('bloqueos')
                 .where('fecha', '==', fechaStr)
                 .where('barberoId', '==', null)
                 .onSnapshot(snap => {
-                    const globs = snap.docs.map(d => ({id: d.id, ...d.data()}));
-                    // Fusionar y renderizar (evitando duplicados visuales)
-                    todayBloqueos = [...todayBloqueos.filter(b => b.barberoId), ...globs];
-                    renderSlots();
+                    todayBloqueosGlobales = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                    scheduleRender();
                 });
 
             unsubs.push(unsubCitas, unsubBloq, unsubBloqGlob);
@@ -465,7 +532,8 @@
             const dw  = new Date(fechaStr + 'T12:00:00').getDay();
             const dc  = (cfg.diasConfig || {})[dw] || {};
 
-            if (dc.activo === false || !cfg.diasLaborales.includes(dw) || todayBloqueos.some(b => b.todo_el_dia)) {
+            const bloqueos = getBloqueos();
+            if (dc.activo === false || !cfg.diasLaborales.includes(dw) || bloqueos.some(b => b.todo_el_dia)) {
                 mSec.classList.add('hidden');
                 aSec.classList.add('hidden');
                 eSec.classList.remove('hidden');
@@ -522,7 +590,7 @@
                 }
 
                 // 3. Verificar Bloqueos
-                const bloqueo = todayBloqueos.find(b => {
+                const bloqueo = bloqueos.find(b => {
                     if (b.todo_el_dia) return true;
                     const bS = toMins(b.hora_inicio);
                     const bEnd = toMins(b.hora_fin);

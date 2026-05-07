@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestión Barberos | Elegance Admin</title>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="/firebase-config.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0f172a; color: #f1f5f9; font-family: system-ui, sans-serif; padding: 1.5rem; max-width: 900px; margin: 0 auto; }
+    h1 { font-size: 1.4rem; font-weight: 800; color: #34d399; margin-bottom: .25rem; }
+    .subtitle { font-size: .8rem; color: #64748b; margin-bottom: 1.5rem; }
+    h2 { font-size: .95rem; font-weight: 700; color: #e2e8f0; margin-bottom: .25rem; }
+    .section { background: #1e293b; border: 1px solid #334155; border-radius: 1rem; padding: 1.25rem; margin-bottom: 1.25rem; }
+    .section-title { font-size: .7rem; font-weight: 800; color: #475569; text-transform: uppercase; letter-spacing: .1em; margin-bottom: 1rem; }
+    label { display: block; font-size: .7rem; font-weight: 700; color: #64748b; margin-bottom: .3rem; margin-top: .65rem; text-transform: uppercase; letter-spacing: .05em; }
+    input, select { width: 100%; background: #0f172a; border: 1px solid #334155; color: #f1f5f9; padding: .55rem .8rem; border-radius: .5rem; font-size: .85rem; outline: none; }
+    input:focus, select:focus { border-color: #34d399; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: .65rem; }
+    .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: .65rem; }
+    @media(max-width:600px){ .grid2,.grid3 { grid-template-columns:1fr; } }
+
+    /* Buttons */
+    .btn { display: inline-flex; align-items: center; gap: .4rem; font-weight: 700; font-size: .82rem; padding: .55rem 1.1rem; border-radius: .55rem; border: none; cursor: pointer; transition: opacity .15s; }
+    .btn:hover { opacity: .85; }
+    .btn:disabled { opacity: .4; cursor: not-allowed; }
+    .btn-green  { background: #34d399; color: #0f172a; }
+    .btn-slate  { background: #1e293b; color: #94a3b8; border: 1px solid #334155; }
+    .btn-red    { background: rgba(239,68,68,.15); color: #f87171; border: 1px solid rgba(239,68,68,.3); }
+    .btn-blue   { background: rgba(96,165,250,.12); color: #60a5fa; border: 1px solid rgba(96,165,250,.25); }
+    .btn-amber  { background: rgba(251,191,36,.12); color: #fbbf24; border: 1px solid rgba(251,191,36,.25); }
+    .btn-sm     { padding: .35rem .75rem; font-size: .75rem; }
+
+    /* Auth status */
+    #authStatus { background: #1c1c2e; border: 1px solid #7c3aed; border-radius: 1rem; padding: 1rem; margin-bottom: 1.25rem; }
+
+    /* Barberos table */
+    .barb-row { display: flex; align-items: center; gap: .75rem; padding: .75rem; background: #0f172a; border: 1px solid #1e293b; border-radius: .75rem; margin-bottom: .5rem; }
+    .barb-row:last-child { margin-bottom: 0; }
+    .barb-avatar { width: 36px; height: 36px; border-radius: 50%; background: #1e293b; border: 1px solid #334155; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-weight: 800; font-size: .85rem; color: #64748b; }
+    .barb-info { flex: 1; min-width: 0; }
+    .barb-nombre { font-size: .875rem; font-weight: 700; color: #f1f5f9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .barb-email  { font-size: .72rem; color: #475569; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .barb-actions { display: flex; gap: .4rem; flex-shrink: 0; }
+    .badge-activo   { font-size: .65rem; font-weight: 700; padding: .2rem .5rem; border-radius: 9999px; background: rgba(52,211,153,.12); color: #34d399; border: 1px solid rgba(52,211,153,.25); flex-shrink:0; }
+    .badge-inactivo { font-size: .65rem; font-weight: 700; padding: .2rem .5rem; border-radius: 9999px; background: rgba(107,114,128,.1); color: #6b7280; border: 1px solid rgba(107,114,128,.2); flex-shrink:0; }
+
+    /* Password modal */
+    #pwdModal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:100; align-items:center; justify-content:center; }
+    #pwdModal.open { display:flex; }
+    #pwdModalBox { background:#1e293b; border:1px solid #334155; border-radius:1.25rem; padding:1.5rem; width:100%; max-width:380px; }
+
+    /* Log */
+    #log { background: #020617; border: 1px solid #1e293b; border-radius: .75rem; padding: 1rem; font-family: monospace; font-size: .75rem; color: #94a3b8; max-height: 260px; overflow-y: auto; white-space: pre-wrap; margin-top: 1rem; }
+    .ok  { color: #34d399; }
+    .err { color: #f87171; }
+    .inf { color: #60a5fa; }
+    .warn{ color: #fbbf24; }
+
+    /* Barbero seed cards */
+    .seed-card { background: #0f172a; border: 1px solid #1e293b; border-radius: .75rem; padding: 1rem; margin-top: .75rem; }
+  </style>
+</head>
+<body>
+
+<h1>Gestión de Barberos</h1>
+<p class="subtitle">Crea, edita y elimina barberos en Firestore. Requiere sesión de admin/jefe.</p>
+
+<div id="authStatus"><h2 style="color:#a78bfa;">Verificando autenticación...</h2></div>
+
+<div id="app" style="display:none;">
+
+  <!-- ── SECCIÓN 1: Barberos existentes ── -->
+  <div class="section">
+    <p class="section-title">Barberos registrados en Firestore</p>
+    <div id="barberosList"><p style="color:#475569;font-size:.85rem;">Cargando...</p></div>
+    <button class="btn btn-slate" style="margin-top:.75rem;" onclick="cargarBarberos()">↺ Recargar</button>
+  </div>
+
+  <!-- ── SECCIÓN 2: Agregar / actualizar barberos ── -->
+  <div class="section">
+    <p class="section-title">Agregar / actualizar barberos</p>
+    <p style="font-size:.78rem;color:#475569;margin-bottom:.5rem;">
+      Si el email ya existe en Firestore, el documento se actualiza. Si no, se crea uno nuevo.<br>
+      La contraseña se usa para crear la cuenta en Firebase Auth (si aún no existe).
+    </p>
+    <div id="barberosForm"></div>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:1rem;">
+      <button class="btn btn-green" id="btnGuardar" onclick="guardarTodos()">Guardar todos en Firestore</button>
+      <button class="btn btn-slate" onclick="agregarCampo()">+ Agregar fila</button>
+    </div>
+  </div>
+
+  <div id="log">Los logs aparecerán aquí...</div>
+</div>
+
+<!-- ── Modal contraseña ── -->
+<div id="pwdModal">
+  <div id="pwdModalBox">
+    <h2 style="margin-bottom:.25rem;">Cambiar contraseña</h2>
+    <p style="font-size:.78rem;color:#64748b;margin-bottom:1rem;" id="pwdModalDesc"></p>
+    <input type="hidden" id="pwdModalEmail">
+    <label>Nueva contraseña</label>
+    <input type="password" id="pwdInput" placeholder="Mínimo 6 caracteres">
+    <div style="display:flex;gap:.5rem;margin-top:1rem;justify-content:flex-end;">
+      <button class="btn btn-slate" onclick="closePwdModal()">Cancelar</button>
+      <button class="btn btn-green" id="pwdSaveBtn" onclick="guardarPassword()">Guardar</button>
+    </div>
+    <p id="pwdError" style="color:#f87171;font-size:.75rem;margin-top:.5rem;display:none;"></p>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+const API_KEY = firebaseConfig.apiKey; // de firebase-config.js
+
+// ── Log ───────────────────────────────────────────────────────────────────────
+const logEl = () => document.getElementById('log');
+function log(msg, cls='') {
+  const el = logEl();
+  el.innerHTML += `<span class="${cls}">${msg}</span>\n`;
+  el.scrollTop = el.scrollHeight;
+}
+
+// ── Datos base de los 5 barberos ──────────────────────────────────────────────
+const BARBEROS_BASE = [
+  { nombre:'Joaquin', email:'joaquin.elegancebarbershop@gmail.com', especialidad:'Cortes modernos y degradados', telefono:'', rol:'barbero', orden:1 },
+  { nombre:'Amiri',   email:'amiri.elegancebarbershop@gmail.com',   especialidad:'Afro y texturas',              telefono:'', rol:'barbero', orden:2 },
+  { nombre:'Jesus',   email:'jesus.elegancebarbershop@gmail.com',   especialidad:'Barba y perfilados',           telefono:'', rol:'barbero', orden:3 },
+  { nombre:'Checho',  email:'checho.elegancebarbershop@gmail.com',  especialidad:'Clásicos y pompadour',         telefono:'', rol:'barbero', orden:4 },
+  { nombre:'Maxi',    email:'maxi.elegancebarbershop@gmail.com',    especialidad:'Skin fades y diseños',         telefono:'', rol:'barbero', orden:5 },
+];
+
+let _seedRows = [...BARBEROS_BASE];
+
+// ── Renderizar form de seed ───────────────────────────────────────────────────
+function renderForm() {
+  document.getElementById('barberosForm').innerHTML = _seedRows.map((b, i) => `
+    <div class="seed-card" id="scard-${i}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem;">
+        <span style="font-size:.8rem;font-weight:700;color:#94a3b8;">#${i+1}</span>
+        <button class="btn btn-red btn-sm" onclick="eliminarFila(${i})">✕ Quitar fila</button>
+      </div>
+      <div class="grid2">
+        <div><label>Nombre</label><input id="s${i}-nombre" value="${b.nombre}"></div>
+        <div><label>Email (login)</label><input id="s${i}-email" type="email" value="${b.email}"></div>
+      </div>
+      <div class="grid2">
+        <div><label>Especialidad</label><input id="s${i}-especialidad" value="${b.especialidad}"></div>
+        <div><label>Teléfono</label><input id="s${i}-telefono" value="${b.telefono}" placeholder="56912345678"></div>
+      </div>
+      <div class="grid3">
+        <div><label>Rol</label>
+          <select id="s${i}-rol">
+            <option value="barbero" ${b.rol==='barbero'?'selected':''}>Barbero</option>
+            <option value="jefe"    ${b.rol==='jefe'   ?'selected':''}>Jefe</option>
+          </select>
+        </div>
+        <div><label>Orden</label><input id="s${i}-orden" type="number" value="${b.orden}" min="0"></div>
+        <div><label>Contraseña Auth</label><input id="s${i}-pwd" type="password" placeholder="Elegance2025!" value="Elegance2025!"></div>
+      </div>
+    </div>`).join('');
+}
+
+function agregarCampo() {
+  _seedRows.push({ nombre:'', email:'', especialidad:'', telefono:'', rol:'barbero', orden: _seedRows.length+1 });
+  renderForm();
+}
+
+function eliminarFila(i) {
+  _seedRows.splice(i, 1);
+  renderForm();
+}
+
+// ── Guardar todos ─────────────────────────────────────────────────────────────
+async function guardarTodos() {
+  logEl().innerHTML = '';
+  document.getElementById('btnGuardar').disabled = true;
+  log('Iniciando seed...', 'inf');
+
+  for (let i = 0; i < _seedRows.length; i++) {
+    const nombre       = document.getElementById(`s${i}-nombre`).value.trim();
+    const email        = document.getElementById(`s${i}-email`).value.trim().toLowerCase();
+    const especialidad = document.getElementById(`s${i}-especialidad`).value.trim();
+    const telefono     = document.getElementById(`s${i}-telefono`).value.trim();
+    const rol          = document.getElementById(`s${i}-rol`).value;
+    const orden        = parseInt(document.getElementById(`s${i}-orden`).value) || i+1;
+    const pwd          = document.getElementById(`s${i}-pwd`).value.trim();
+
+    if (!nombre || !email) { log(`⚠  Fila ${i+1}: nombre/email requeridos. Saltando.`, 'err'); continue; }
+    log(`\n▸ ${nombre} (${email})`, 'inf');
+
+    // 1. Firestore
+    try {
+      const data = {
+        nombre, email, especialidad, telefono, rol, orden,
+        local: 'elegance', activo: true, foto: '',
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      };
+
+      const snap = await db.collection('barberos').where('email','==',email).limit(1).get();
+      if (!snap.empty) {
+        await db.collection('barberos').doc(snap.docs[0].id).set(data, { merge: true });
+        log(`  ✅ Firestore actualizado (${snap.docs[0].id.slice(0,10)}…)`, 'ok');
+      } else {
+        // Doc sin datos con mismo nombre?
+        const all = await db.collection('barberos').get();
+        const match = all.docs.find(d => (d.data().nombre||'').toLowerCase()===nombre.toLowerCase() && !d.data().email);
+        if (match) {
+          await db.collection('barberos').doc(match.id).set(data, { merge: true });
+          log(`  ✅ Doc sin datos completado (${match.id.slice(0,10)}…)`, 'ok');
+        } else {
+          const ref = await db.collection('barberos').add({ ...data, creadoEn: firebase.firestore.FieldValue.serverTimestamp() });
+          log(`  ✅ Doc nuevo creado (${ref.id.slice(0,10)}…)`, 'ok');
+        }
+      }
+    } catch(e) { log(`  ❌ Firestore: ${e.message}`, 'err'); }
+
+    // 2. Firebase Auth via REST
+    if (pwd && pwd.length >= 6) {
+      try {
+        const res = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${API_KEY}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password: pwd, returnSecureToken: false }),
+        });
+        const json = await res.json();
+        if (json.error) {
+          if (json.error.message === 'EMAIL_EXISTS') {
+            log(`  ℹ  Auth: cuenta ya existe en Firebase Auth`, 'warn');
+          } else {
+            log(`  ⚠  Auth: ${json.error.message}`, 'warn');
+          }
+        } else {
+          log(`  ✅ Auth: cuenta creada en Firebase Authentication`, 'ok');
+        }
+      } catch(e) { log(`  ❌ Auth REST: ${e.message}`, 'err'); }
+    } else if (pwd) {
+      log(`  ⚠  Contraseña muy corta (mín. 6 caracteres). Auth omitido.`, 'warn');
+    } else {
+      log(`  ℹ  Sin contraseña: Auth omitido.`, 'warn');
+    }
+  }
+
+  log('\n✅ Proceso terminado.', 'ok');
+  document.getElementById('btnGuardar').disabled = false;
+  await cargarBarberos();
+}
+
+// ── Cargar y mostrar barberos existentes ──────────────────────────────────────
+async function cargarBarberos() {
+  const el = document.getElementById('barberosList');
+  el.innerHTML = '<p style="color:#475569;font-size:.82rem;">Cargando...</p>';
+  try {
+    const snap = await db.collection('barberos').get();
+    if (snap.empty) { el.innerHTML = '<p style="color:#475569;font-size:.82rem;">No hay documentos.</p>'; return; }
+
+    const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      .sort((a,b) => (a.orden||99)-(b.orden||99) || (a.nombre||'').localeCompare(b.nombre||''));
+
+    el.innerHTML = docs.map(b => {
+      const nombre = b.nombre || b.email?.split('@')[0] || '(sin nombre)';
+      const initials = nombre.slice(0,2).toUpperCase();
+      const activo = b.activo !== false;
+      return `
+      <div class="barb-row" id="brow-${b.id}">
+        <div class="barb-avatar">${initials}</div>
+        <div class="barb-info">
+          <div class="barb-nombre">${nombre}</div>
+          <div class="barb-email">${b.email || '— sin email —'} · ${b.rol || 'barbero'}</div>
+        </div>
+        <span class="${activo?'badge-activo':'badge-inactivo'}">${activo?'Activo':'Inactivo'}</span>
+        <div class="barb-actions">
+          ${b.email ? `
+          <button class="btn btn-blue btn-sm" onclick="abrirModalPwd('${b.id}','${b.email}','${nombre}')"
+            title="Cambiar contraseña">🔑</button>` : ''}
+          <button class="btn btn-red btn-sm" onclick="eliminarBarbero('${b.id}','${nombre}')"
+            title="Eliminar de Firestore">🗑</button>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    el.innerHTML = `<p style="color:#f87171;font-size:.82rem;">Error: ${e.message}</p>`;
+  }
+}
+
+// ── Eliminar de Firestore ─────────────────────────────────────────────────────
+async function eliminarBarbero(id, nombre) {
+  if (!confirm(`¿Eliminar permanentemente a "${nombre}" de Firestore?\n\nEsto NO elimina su cuenta de Firebase Auth.`)) return;
+  try {
+    await db.collection('barberos').doc(id).delete();
+    document.getElementById(`brow-${id}`)?.remove();
+    log(`✅ Eliminado de Firestore: ${nombre} (${id})`, 'ok');
+  } catch(e) {
+    log(`❌ Error al eliminar: ${e.message}`, 'err');
+  }
+}
+
+// ── Modal contraseña ──────────────────────────────────────────────────────────
+function abrirModalPwd(docId, email, nombre) {
+  document.getElementById('pwdModalDesc').textContent = `Barbero: ${nombre} · ${email}`;
+  document.getElementById('pwdModalEmail').value = email;
+  document.getElementById('pwdInput').value = '';
+  document.getElementById('pwdError').style.display = 'none';
+  document.getElementById('pwdModal').classList.add('open');
+  setTimeout(() => document.getElementById('pwdInput').focus(), 100);
+}
+
+function closePwdModal() {
+  document.getElementById('pwdModal').classList.remove('open');
+}
+
+async function guardarPassword() {
+  const email = document.getElementById('pwdModalEmail').value;
+  const pwd   = document.getElementById('pwdInput').value.trim();
+  const errEl = document.getElementById('pwdError');
+  const btn   = document.getElementById('pwdSaveBtn');
+
+  errEl.style.display = 'none';
+  if (pwd.length < 6) { errEl.textContent = 'La contraseña debe tener al menos 6 caracteres.'; errEl.style.display='block'; return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Guardando...';
+
+  try {
+    // Intentar crear la cuenta (si no existe, la crea; si existe, dará EMAIL_EXISTS)
+    const resCreate = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${API_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pwd, returnSecureToken: false }),
+    });
+    const jsonCreate = await resCreate.json();
+
+    if (!jsonCreate.error) {
+      log(`✅ Cuenta Auth creada para ${email}`, 'ok');
+      closePwdModal();
+      return;
+    }
+
+    if (jsonCreate.error.message === 'EMAIL_EXISTS') {
+      // Cuenta ya existe → enviar email de reset de contraseña
+      const resReset = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestType: 'PASSWORD_RESET', email }),
+      });
+      const jsonReset = await resReset.json();
+      if (jsonReset.error) throw new Error(jsonReset.error.message);
+      log(`✅ Email de restablecimiento de contraseña enviado a ${email}`, 'ok');
+      alert(`La cuenta ya existe en Firebase Auth.\n\nSe envió un email de restablecimiento de contraseña a:\n${email}`);
+      closePwdModal();
+    } else {
+      throw new Error(jsonCreate.error.message);
+    }
+  } catch(e) {
+    errEl.textContent = e.message;
+    errEl.style.display = 'block';
+    log(`❌ Error contraseña para ${email}: ${e.message}`, 'err');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Guardar';
+  }
+}
+
+// Cerrar modal al hacer clic fuera
+document.getElementById('pwdModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('pwdModal')) closePwdModal();
+});
+
+// ── Auth Guard ────────────────────────────────────────────────────────────────
+auth.onAuthStateChanged(async user => {
+  const statusEl = document.getElementById('authStatus');
+  if (!user) {
+    statusEl.innerHTML = '<h2 style="color:#f87171;">No autenticado — inicia sesión en el panel admin primero.</h2>';
+    statusEl.style.borderColor = '#ef4444';
+    return;
+  }
+
+  let esAdmin = false;
+  const BOOTSTRAP = ['ignaciiio.mate@gmail.com','barrazanicolasfabian@gmail.com'];
+  if (user.email && BOOTSTRAP.includes(user.email.toLowerCase())) esAdmin = true;
+  if (!esAdmin) {
+    try {
+      const doc = await db.collection('barberos').doc(user.uid).get();
+      if (doc.exists) { const r = doc.data().rol; esAdmin = r==='admin'||r==='jefe'; }
+    } catch(_) {}
+  }
+
+  if (!esAdmin) {
+    statusEl.innerHTML = '<h2 style="color:#f87171;">Acceso denegado — solo admin/jefe.</h2>';
+    statusEl.style.borderColor = '#ef4444';
+    return;
+  }
+
+  statusEl.innerHTML = `<h2 style="color:#34d399;font-size:.9rem;">✅ ${user.email}</h2>`;
+  statusEl.style.borderColor = '#34d399';
+  statusEl.style.background  = '#0f2e1f';
+
+  renderForm();
+  document.getElementById('app').style.display = 'block';
+  await cargarBarberos();
+});
+</script>
+</body>
+</html>

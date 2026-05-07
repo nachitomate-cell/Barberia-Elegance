@@ -189,7 +189,8 @@
         availableProfessionalIds = target?.availableProfessionalIds || [];
       }
 
-      professionalId = availableProfessionalIds[0];
+      const randomIndex = Math.floor(Math.random() * availableProfessionalIds.length);
+      professionalId = availableProfessionalIds[randomIndex];
       if (!professionalId) {
         throw new Error('No se encontro un profesional libre para la hora seleccionada.');
       }

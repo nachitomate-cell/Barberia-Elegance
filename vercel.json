@@ -82,6 +82,10 @@
       "destination": "/gestion-interna/index.html"
     },
     {
+      "source": "/gestion-interna/metricas",
+      "destination": "/gestion-interna/metricas.html"
+    },
+    {
       "source": "/gestion-interna/elegance",
       "destination": "/gestion-interna/index.html"
     }

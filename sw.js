@@ -20,26 +20,30 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 // ── 3. CACHE ─────────────────────────────────────────────────────
-const CACHE_VERSION = 'elegance-v1';
+const CACHE_VERSION = 'elegance-v4';
 const STATIC_ASSETS = [
   '/agenda',
-  '/admin/',
-  '/gestion-interna/',
   '/logo.jpg',
   '/output.css',
   '/firebase-config.js',
   '/firebaseUtils.js',
   '/config.js',
-  '/db.js',
-  '/manifest-admin.json',
   '/icons/icon-192.png',
-  '/icons/icon-512.png'
+  '/icons/icon-512.png',
+  '/manifest-agenda.json'
 ];
 
 self.addEventListener('install', event => {
   self.skipWaiting();
+  // Caching fail-safe: si un asset falla, el SW sigue instalándose
   event.waitUntil(
-    caches.open(CACHE_VERSION).then(cache => cache.addAll(STATIC_ASSETS))
+    caches.open(CACHE_VERSION).then(cache =>
+      Promise.allSettled(
+        STATIC_ASSETS.map(url =>
+          cache.add(url).catch(err => console.warn('[SW] No se pudo cachear:', url, err.message))
+        )
+      )
+    )
   );
 });
 
@@ -90,12 +94,18 @@ self.addEventListener('fetch', event => {
           if (cached) return cached;
           // SPA fallback: servir el shell principal según la ruta
           if (url.pathname.startsWith('/gestion-interna')) {
-            return caches.match('/gestion-interna/') || caches.match('/gestion-interna/index.html');
+            return (await caches.match('/gestion-interna/')) ||
+                   (await caches.match('/gestion-interna/index.html')) ||
+                   new Response('', { status: 503 });
           }
           if (url.pathname.startsWith('/agenda')) {
-            return caches.match('/agenda') || caches.match('/agenda.html');
+            return (await caches.match('/agenda')) ||
+                   (await caches.match('/agenda.html')) ||
+                   new Response('', { status: 503 });
           }
-          return caches.match('/') || caches.match('/index.html');
+          return (await caches.match('/')) ||
+                 (await caches.match('/index.html')) ||
+                 new Response('', { status: 503 });
         })
     );
   } else {
@@ -152,12 +162,17 @@ self.addEventListener('notificationclick', event => {
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
-      for (const client of clientList) {
-        if (client.url.includes('/agenda') && 'focus' in client) {
-          return client.focus();
-        }
+      // Priorizar ventana de /agenda ya abierta
+      const agendaClient = clientList.find(c => c.url.includes('/agenda'));
+      if (agendaClient && 'focus' in agendaClient) return agendaClient.focus();
+
+      // Cualquier ventana del mismo origen
+      const anyClient = clientList.find(c => new URL(c.url).origin === self.location.origin);
+      if (anyClient && 'focus' in anyClient) {
+        return anyClient.navigate(targetUrl).then(c => c && c.focus());
       }
-      if (clients.openWindow) return clients.openWindow(targetUrl);
+
+      return clients.openWindow(targetUrl);
     })
   );
 });

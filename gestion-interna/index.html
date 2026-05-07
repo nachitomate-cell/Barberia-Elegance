@@ -273,7 +273,34 @@
       #sidebarOverlay {
         display: none !important;
       }
+
+      /* Desktop: sin header fijo, padding mínimo */
+      main {
+        padding-top: 1.5rem;
+      }
+
+      /* Sidebar colapsado en desktop */
+      body.sidebar-collapsed #sidebar {
+        display: none !important;
+      }
+
+      /* Toggle sidebar: visible solo en desktop */
+      #desktop-sidebar-btn {
+        display: flex;
+      }
     }
+
+    /* Mobile: toggle sidebar oculto */
+    #desktop-sidebar-btn {
+      display: none;
+    }
+
+    /* Mobile: main necesita clearance para el header fijo */
+    main {
+      padding-top: calc(env(safe-area-inset-top) + 4.5rem);
+    }
+
+    /* El FAB de reapertura del sidebar se controla con style.display desde JS */
 
     /* Nav items */
     .nav-btn {
@@ -658,7 +685,8 @@
         '/gestion-interna/clientes': 'tab-clientes',
         '/gestion-interna/lookbook': 'tab-lookbook',
         '/gestion-interna/barberos': 'tab-barberos',
-        '/gestion-interna/premios': 'tab-premios'
+        '/gestion-interna/premios': 'tab-premios',
+        '/gestion-interna/metricas': 'tab-metricas'
       };
 
       if (routes[path]) {
@@ -708,6 +736,18 @@
         if (s) s.classList.remove('open');
         if (o) o.classList.remove('open');
         document.body.style.overflow = '';
+      }
+      function toggleSidebarDesktop() {
+        var collapsed = document.body.classList.toggle('sidebar-collapsed');
+        localStorage.setItem('sidebar_collapsed', collapsed ? '1' : '0');
+        var icon = document.getElementById('desktop-sidebar-icon');
+        if (icon) icon.className = collapsed ? 'ph-bold ph-list text-base' : 'ph-bold ph-list text-base';
+      }
+      // Restaurar al cargar (se llama en onAuthStateChanged cuando adminApp ya es visible)
+      function restoreSidebarState() {
+        if (localStorage.getItem('sidebar_collapsed') === '1') {
+          document.body.classList.add('sidebar-collapsed');
+        }
       }
     </script>
 
@@ -852,6 +892,14 @@
           </a>
 
 
+          <a href="/gestion-interna/metricas.html"
+            class="admin-only nav-btn w-full flex items-center gap-3 px-3 py-2.5 min-h-[44px] rounded-xl font-medium text-sm transition-all text-gray-400">
+            <span class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
+              <i class="ph ph-chart-bar text-base"></i>
+            </span>
+            <span class="flex-1 text-left">Métricas</span>
+          </a>
+
           <!-- Separador -->
           <div class="pt-3 border-t border-admin-border mx-1 mt-2"></div>
 
@@ -904,7 +952,7 @@
             <span class="text-left">Ir a Agendar</span>
           </button>
           <!-- Cerrar sesión -->
-          <button onclick="firebase.auth().signOut()"
+          <button onclick="logoutAdmin()"
             class="nav-btn flex items-center gap-3 px-3 py-2.5 min-h-[44px] w-full font-medium text-sm transition-all rounded-xl text-gray-500 hover:text-red-400">
             <span class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
               <i class="ph ph-sign-out text-base"></i>
@@ -926,8 +974,15 @@
       <!-- ══════════════════════════════════════
        MAIN
   ══════════════════════════════════════ -->
-      <main class="flex-1 h-full overflow-y-auto w-full px-4 py-6 lg:px-10 lg:py-10 md:pt-10 max-w-5xl mx-auto"
-        style="padding-top: max(calc(env(safe-area-inset-top) + 5rem), 5rem);">
+      <main class="flex-1 h-full overflow-y-auto w-full px-4 pb-6 lg:px-10 lg:pb-10 max-w-5xl mx-auto">
+
+        <!-- Botón toggle sidebar (solo desktop, controlado por CSS de #id) -->
+        <button id="desktop-sidebar-btn" onclick="toggleSidebarDesktop()"
+          title="Mostrar/ocultar menú"
+          class="items-center justify-center w-8 h-8 rounded-lg bg-white/5 hover:bg-admin-accent/10 hover:text-admin-accent text-gray-500 transition-colors mb-3 shrink-0"
+          style="touch-action:manipulation;">
+          <i id="desktop-sidebar-icon" class="ph-bold ph-list text-base"></i>
+        </button>
 
         <!-- ══════════════════ TAB 1: CITAS ══════════════════ -->
         <div id="tab-citas" class="tab-content block">
@@ -1863,6 +1918,220 @@
     </div>
 
     <!-- ══════════════════════════════════════════════════════
+         TAB MÉTRICAS
+    ══════════════════════════════════════════════════════ -->
+    <div id="tab-metricas" class="tab-content hidden admin-only">
+      <div id="metricas-main" class="space-y-6 pb-32 md:pb-10">
+
+        <!-- Encabezado + selector de período -->
+        <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+          <div class="flex-1">
+            <h2 class="text-2xl font-bold tracking-tight flex items-center gap-2">
+              <i class="ph-fill ph-chart-bar text-admin-accent"></i> Métricas del Negocio
+            </h2>
+            <p class="text-sm text-gray-500 mt-0.5">Análisis de rendimiento y datos para decisiones.</p>
+          </div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <select id="met-periodo" onchange="cargarMetricas()"
+              class="bg-admin-card border border-admin-border text-white text-sm rounded-xl px-3 py-2 focus:outline-none focus:border-admin-accent" style="color-scheme:dark;">
+              <option value="semana">Esta semana</option>
+              <option value="mes" selected>Este mes</option>
+              <option value="mes_anterior">Mes anterior</option>
+              <option value="3meses">Últimos 3 meses</option>
+              <option value="hoy">Hoy</option>
+            </select>
+            <button onclick="cargarMetricas()"
+              class="flex items-center gap-1.5 bg-admin-accent/10 border border-admin-accent/20 text-admin-accent text-sm font-semibold px-3 py-2 rounded-xl hover:bg-admin-accent/20 transition-colors">
+              <i class="ph-bold ph-arrows-clockwise text-sm"></i> Actualizar
+            </button>
+          </div>
+        </div>
+
+        <!-- ── KPI cards ── -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3" id="met-kpis">
+          <!-- se renderizan por JS -->
+          <div class="bg-admin-card border border-admin-border rounded-2xl p-4 animate-pulse h-24"></div>
+          <div class="bg-admin-card border border-admin-border rounded-2xl p-4 animate-pulse h-24"></div>
+          <div class="bg-admin-card border border-admin-border rounded-2xl p-4 animate-pulse h-24"></div>
+          <div class="bg-admin-card border border-admin-border rounded-2xl p-4 animate-pulse h-24"></div>
+        </div>
+
+        <!-- ── Objetivos ── -->
+        <div class="bg-admin-card border border-admin-border rounded-2xl p-5">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+              <i class="ph-fill ph-target text-admin-accent"></i> Objetivos del mes
+            </h3>
+            <button onclick="toggleObjetivosEdit()"
+              class="text-xs font-semibold text-gray-500 hover:text-admin-accent transition-colors flex items-center gap-1">
+              <i class="ph-bold ph-pencil text-xs"></i> <span id="met-obj-edit-label">Editar</span>
+            </button>
+          </div>
+
+          <!-- Vista de objetivos -->
+          <div id="met-obj-view" class="space-y-3">
+            <!-- ingresos -->
+            <div>
+              <div class="flex justify-between text-xs mb-1">
+                <span class="text-gray-400 font-semibold">Ingresos mensuales</span>
+                <span id="met-obj-ing-label" class="font-bold text-white">$0 / $0</span>
+              </div>
+              <div class="w-full bg-white/5 rounded-full h-2">
+                <div id="met-obj-ing-bar" class="h-2 rounded-full transition-all duration-700 bg-admin-accent" style="width:0%"></div>
+              </div>
+            </div>
+            <!-- citas -->
+            <div>
+              <div class="flex justify-between text-xs mb-1">
+                <span class="text-gray-400 font-semibold">Citas completadas</span>
+                <span id="met-obj-citas-label" class="font-bold text-white">0 / 0</span>
+              </div>
+              <div class="w-full bg-white/5 rounded-full h-2">
+                <div id="met-obj-citas-bar" class="h-2 rounded-full transition-all duration-700 bg-indigo-400" style="width:0%"></div>
+              </div>
+            </div>
+            <!-- nuevos clientes -->
+            <div>
+              <div class="flex justify-between text-xs mb-1">
+                <span class="text-gray-400 font-semibold">Clientes nuevos</span>
+                <span id="met-obj-nuevos-label" class="font-bold text-white">0 / 0</span>
+              </div>
+              <div class="w-full bg-white/5 rounded-full h-2">
+                <div id="met-obj-nuevos-bar" class="h-2 rounded-full transition-all duration-700 bg-yellow-400" style="width:0%"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Formulario edición -->
+          <div id="met-obj-form" class="hidden mt-4 pt-4 border-t border-admin-border space-y-3">
+            <div class="grid grid-cols-3 gap-3">
+              <div>
+                <label class="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1">Ingresos ($)</label>
+                <input type="number" id="met-obj-ing-input" min="0" step="1000" placeholder="500000"
+                  class="w-full bg-admin-bg border border-admin-border text-white text-sm rounded-xl px-3 py-2 focus:outline-none focus:border-admin-accent">
+              </div>
+              <div>
+                <label class="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1">Citas</label>
+                <input type="number" id="met-obj-citas-input" min="0" placeholder="80"
+                  class="w-full bg-admin-bg border border-admin-border text-white text-sm rounded-xl px-3 py-2 focus:outline-none focus:border-admin-accent">
+              </div>
+              <div>
+                <label class="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1">Clientes</label>
+                <input type="number" id="met-obj-nuevos-input" min="0" placeholder="20"
+                  class="w-full bg-admin-bg border border-admin-border text-white text-sm rounded-xl px-3 py-2 focus:outline-none focus:border-admin-accent">
+              </div>
+            </div>
+            <button onclick="guardarObjetivos()"
+              class="bg-admin-accent/10 border border-admin-accent/30 text-admin-accent font-bold text-sm px-4 py-2 rounded-xl hover:bg-admin-accent/20 transition-colors">
+              Guardar objetivos
+            </button>
+          </div>
+        </div>
+
+        <!-- ── Fila: horas pico + día de la semana ── -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+          <!-- Horas más populares -->
+          <div class="bg-admin-card border border-admin-border rounded-2xl p-5">
+            <h3 class="text-sm font-bold text-white flex items-center gap-2 mb-4">
+              <i class="ph-fill ph-clock text-admin-accent"></i> Horas pico
+            </h3>
+            <div id="met-horas-chart" class="space-y-2">
+              <div class="animate-pulse h-4 bg-white/5 rounded-full"></div>
+            </div>
+            <p class="text-[10px] text-gray-600 mt-3">Basado en citas confirmadas y completadas del período.</p>
+          </div>
+
+          <!-- Días de la semana -->
+          <div class="bg-admin-card border border-admin-border rounded-2xl p-5">
+            <h3 class="text-sm font-bold text-white flex items-center gap-2 mb-4">
+              <i class="ph-fill ph-calendar-dots text-indigo-400"></i> Días más activos
+            </h3>
+            <div id="met-dias-chart" class="space-y-2">
+              <div class="animate-pulse h-4 bg-white/5 rounded-full"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Ranking barberos ── -->
+        <div class="bg-admin-card border border-admin-border rounded-2xl p-5">
+          <h3 class="text-sm font-bold text-white flex items-center gap-2 mb-4">
+            <i class="ph-fill ph-ranking text-yellow-400"></i> Ranking de barberos
+          </h3>
+          <div id="met-barberos-table" class="space-y-2">
+            <div class="animate-pulse h-12 bg-white/5 rounded-xl"></div>
+          </div>
+        </div>
+
+        <!-- ── Servicios más solicitados ── -->
+        <div class="bg-admin-card border border-admin-border rounded-2xl p-5">
+          <h3 class="text-sm font-bold text-white flex items-center gap-2 mb-4">
+            <i class="ph-fill ph-scissors text-pink-400"></i> Servicios más solicitados
+          </h3>
+          <div id="met-servicios-chart" class="space-y-2">
+            <div class="animate-pulse h-4 bg-white/5 rounded-full"></div>
+          </div>
+        </div>
+
+        <!-- ── Fila: publicidad ── -->
+        <div class="bg-admin-card border border-admin-border rounded-2xl p-5">
+          <h3 class="text-sm font-bold text-white flex items-center gap-2 mb-1">
+            <i class="ph-fill ph-megaphone text-orange-400"></i> Inteligencia publicitaria
+          </h3>
+          <p class="text-xs text-gray-500 mb-5">Datos accionables para saber a quién y cuándo hacer publicidad.</p>
+          <div id="met-publi-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="animate-pulse h-24 bg-white/5 rounded-xl"></div>
+            <div class="animate-pulse h-24 bg-white/5 rounded-xl"></div>
+          </div>
+        </div>
+
+        <!-- ── Clientes en riesgo de fuga ── -->
+        <div class="bg-admin-card border border-admin-border rounded-2xl p-5">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+              <i class="ph-fill ph-warning text-red-400"></i> Clientes en riesgo de fuga
+              <span id="met-fuga-badge" class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-400 hidden"></span>
+            </h3>
+          </div>
+          <p class="text-xs text-gray-500 mb-3">No han visitado en más de 30 días. Ideal para reactivar con publicidad dirigida.</p>
+          <div id="met-fuga-list" class="space-y-2 max-h-64 overflow-y-auto custom-scrollbar">
+            <div class="animate-pulse h-10 bg-white/5 rounded-xl"></div>
+          </div>
+        </div>
+
+        <!-- ── Top clientes frecuentes ── -->
+        <div class="bg-admin-card border border-admin-border rounded-2xl p-5">
+          <h3 class="text-sm font-bold text-white flex items-center gap-2 mb-4">
+            <i class="ph-fill ph-star text-yellow-400"></i> Top 10 clientes más frecuentes
+          </h3>
+          <div id="met-top-clientes" class="space-y-2">
+            <div class="animate-pulse h-10 bg-white/5 rounded-xl"></div>
+          </div>
+        </div>
+
+        <!-- ── Tasa de cancelación ── -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="bg-admin-card border border-admin-border rounded-2xl p-5 text-center">
+            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Tasa de cancelación</p>
+            <p id="met-cancel-pct" class="text-3xl font-black text-red-400">—</p>
+            <p class="text-xs text-gray-600 mt-1">del total de citas</p>
+          </div>
+          <div class="bg-admin-card border border-admin-border rounded-2xl p-5 text-center">
+            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Ticket promedio</p>
+            <p id="met-ticket-avg" class="text-3xl font-black text-admin-accent">—</p>
+            <p class="text-xs text-gray-600 mt-1">por cita completada</p>
+          </div>
+          <div class="bg-admin-card border border-admin-border rounded-2xl p-5 text-center">
+            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Hora más vacía</p>
+            <p id="met-hora-vacia" class="text-3xl font-black text-indigo-400">—</p>
+            <p class="text-xs text-gray-600 mt-1">Publica ahí para llenar</p>
+          </div>
+        </div>
+
+      </div><!-- /metricas-main -->
+    </div><!-- /tab-metricas -->
+
+    <!-- ══════════════════════════════════════════════════════
     <!-- ══════════════════════════════════════════════════════
      MOBILE BOTTOM NAV — Scrollable horizontal
 ══════════════════════════════════════════════════════ -->
@@ -1920,6 +2189,12 @@
           <span>Barberos</span>
         </button>
 
+        <!-- Métricas -->
+        <button onclick="window.location.href='/gestion-interna/metricas.html'"
+          class="mob-nav-btn admin-only">
+          <i class="ph ph-chart-bar"></i>
+          <span>Métricas</span>
+        </button>
 
       </nav>
     </div>
@@ -1959,6 +2234,17 @@
       let _panelUnsub = null; // cleanup del onSnapshot del cliente abierto
       let _myBarberoId = null; // ID del barbero autenticado
       let _myRole = null;      // Rol del usuario autenticado
+      let _bookingsMap = {};   // booking por ID para updateBookingEstado (evita JSON en atributo HTML)
+
+      // Escapa caracteres HTML peligrosos en datos de usuario antes de inyectar en innerHTML
+      function esc(s) {
+        return String(s == null ? '' : s)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+      }
 
       // Clientes (Tab 4)
       let allClients = [];   // Cache de Firestore
@@ -2004,6 +2290,10 @@
         // Cerrar el panel lateral de cliente al cambiar de pestaña
         cerrarPanel();
 
+        // Volver al tope al cambiar de pestaña
+        const mainEl = document.querySelector('main');
+        if (mainEl) mainEl.scrollTop = 0;
+
         document.querySelectorAll('.tab-content').forEach(el => { el.classList.add('hidden'); el.classList.remove('block'); });
         const target = document.getElementById(id);
         if (target) {
@@ -2044,7 +2334,8 @@
             'tab-clientes': 'clientes',
             'tab-lookbook': 'lookbook',
             'tab-barberos': 'barberos',
-            'tab-premios': 'premios'
+            'tab-premios': 'premios',
+            'tab-metricas': 'metricas'
           };
           const route = tabToRoute[id];
           if (route) {
@@ -2055,6 +2346,7 @@
         if (id === 'tab-clientes') cargarClientes();
         if (id === 'tab-barberos') cargarBarberos();
         if (id === 'tab-agenda-equipo') initAgendaEquipo();
+        if (id === 'tab-metricas') cargarMetricas();
       }
 
       // Manejar botón Atrás/Adelante del navegador
@@ -2128,6 +2420,8 @@
 
       function statusKey(estado) {
         if (!estado || estado === 'Confirmado') return 'Pendiente';
+        // Normalizar variantes de "No Asistió" → clave canónica sin espacios ni tildes
+        if (estado === 'No Asistió' || estado === 'NoAsistió' || estado === 'No Asistio') return 'NoAsistio';
         return estado.replace(/\s/g, '');
       }
 
@@ -2232,8 +2526,10 @@
       </div>`;
           } else {
             booked++;
-            const srv = allSrvs.find(s => s.nombre === booking.servicioNombre) || { precio: 0 };
-            if (booking.estado === 'Completada') totalIncome += srv.precio;
+            _bookingsMap[booking.id] = booking;
+            const srv = allSrvs.find(s => s.nombre === booking.servicioNombre);
+            const precio = Number(srv?.precio) || 0;
+            if (booking.estado === 'Completada') totalIncome += precio;
             const sk = statusKey(booking.estado);
 
             // Detectar si es la cita más próxima a ocurrir (hoy, estado pendiente, hora futura)
@@ -2249,27 +2545,27 @@
         ${currentLabel}
         <span class="text-xs font-mono font-bold ${isNextUp ? 'text-admin-accent' : 'text-gray-400'} w-12 shrink-0">${timeStr}</span>
 
-        <div class="flex-1 min-w-0 cursor-pointer group" onclick="openCRMDrawer('${(booking.clienteTelefono || '').replace(/'/g, "\\'").replace(/"/g, '&quot;')}', '${(booking.clienteNombre || '').replace(/'/g, "\\'").replace(/"/g, '&quot;')}')" title="Ver perfil del cliente">
+        <div class="flex-1 min-w-0 cursor-pointer group" onclick="openCRMDrawer('${esc(booking.clienteTelefono)}', '${esc(booking.clienteNombre)}')" title="Ver perfil del cliente">
           <div class="flex flex-wrap items-center gap-2 mb-1">
-            <span class="font-bold text-white group-hover:text-admin-accent transition-colors text-sm">${booking.clienteNombre}</span>
+            <span class="font-bold text-white group-hover:text-admin-accent transition-colors text-sm">${esc(booking.clienteNombre)}</span>
             <span class="text-[10px] font-bold px-2 py-0.5 rounded-full border badge-${sk}">${sk === 'NoAsistio' ? 'No Asistió' : sk}</span>
             ${isNextUp ? '<span class="text-[9px] font-black text-admin-accent uppercase tracking-widest px-2 py-0.5 rounded-full bg-admin-accent/10 border border-admin-accent/30">Próxima</span>' : ''}
           </div>
           <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
-            <span><i class="ph ph-scissors mr-1"></i>${booking.servicioNombre}</span>
-            <span>$${srv.precio.toLocaleString('es-CL')}</span>
+            <span><i class="ph ph-scissors mr-1"></i>${esc(booking.servicioNombre)}</span>
+            <span>$${precio.toLocaleString('es-CL')}</span>
             ${booking.clienteTelefono ? `<a href="https://wa.me/${(booking.clienteTelefono || '').replace(/\D/g, '')}?text=${encodeURIComponent(`Hola ${booking.clienteNombre} 👋, te confirmamos tu cita en ${SHOP.nombre} para el día ${currentAdminDate.toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' })} a las ${timeStr} para el servicio de ${booking.servicioNombre}. ¡Te esperamos!`)}" target="_blank" class="text-admin-accent hover:underline flex items-center gap-1"><i class="ph-fill ph-whatsapp-logo"></i> WP</a>` : ''}
           </div>
           ${booking.nota ? `<p class="text-xs text-gray-600 mt-1 italic">"${booking.nota}"</p>` : ''}
         </div>
 
         <div class="shrink-0">
-          <select onchange="updateBookingEstado('${booking.id}', this.value, ${JSON.stringify(booking).replace(/"/g, '&quot;')})"
+          <select onchange="updateBookingEstado('${booking.id}', this.value)"
             class="status-select text-xs font-bold border border-admin-border px-3 py-2 text-white focus:outline-none focus:border-admin-accent">
-            <option value="Pendiente"  ${sk === 'Pendiente' ? 'selected' : ''}>⏳ Pendiente</option>
+            <option value="Pendiente"  ${sk === 'Pendiente'  ? 'selected' : ''}>⏳ Pendiente</option>
             <option value="Completada" ${sk === 'Completada' ? 'selected' : ''}>✅ Completada</option>
-            <option value="Cancelada"  ${sk === 'Cancelada' ? 'selected' : ''}>❌ Cancelada</option>
-            <option value="No Asistió" ${sk === 'NoAsistio' || booking.estado === 'No Asistió' ? 'selected' : ''}>👻 No Asistió</option>
+            <option value="Cancelada"  ${sk === 'Cancelada'  ? 'selected' : ''}>❌ Cancelada</option>
+            <option value="NoAsistio"  ${sk === 'NoAsistio'  ? 'selected' : ''}>👻 No Asistió</option>
           </select>
         </div>
       </div>`;
@@ -2326,12 +2622,13 @@
       }
 
       // ── Cambio de estado + prompt de sello ──────────────────────────
-      async function updateBookingEstado(id, nuevoEstado, booking) {
+      async function updateBookingEstado(id, nuevoEstado) {
         // Actualizar en Firestore → onSnapshot dispara renderTimeline automáticamente
         await FDB.updateCitaEstado(id, nuevoEstado);
 
         if (nuevoEstado !== 'Completada') return;
 
+        const booking = _bookingsMap[id] || {};
         // Buscar cliente en Firestore por email o nombre
         const email = booking.clienteEmail?.trim() || '';
         const nombre = booking.clienteNombre?.trim() || '';
@@ -2974,13 +3271,20 @@
       }
 
       function cerrarPanel(push = true) {
-        // Detener suscripción al cerrar el panel
         if (_panelUnsub) { _panelUnsub(); _panelUnsub = null; }
 
         document.getElementById('clientModal').classList.add('hidden');
         document.getElementById('tab-clientes').classList.remove('hidden');
         currentClientUid = null;
-        selectedPremio = null;
+        selectedPremio   = null;
+
+        // Limpiar datos del modal para evitar que se muestren al abrir el siguiente cliente
+        const avatarEl = document.getElementById('panelAvatar');
+        if (avatarEl) avatarEl.innerHTML = '<i class="ph-fill ph-user text-2xl text-gray-500"></i>';
+        const nombreEl = document.getElementById('panelNombre');
+        if (nombreEl) nombreEl.textContent = '—';
+        const emailEl = document.getElementById('panelEmail');
+        if (emailEl) emailEl.textContent = '—';
 
         if (push && window.location.pathname.includes('/gestion-interna/clientes/')) {
           window.history.pushState({ tabId: 'tab-clientes' }, '', `/gestion-interna/clientes`);
@@ -3340,6 +3644,8 @@
 
           const isBarbero = await FDB.esBarbero(user.email, user.uid);
           if (isBarbero) {
+            // Garantizar doc barberos/{uid} para reglas Firestore
+            await FDB.ensureBarberoUidDoc(user.uid, user.email);
             const role = await FDB.getRol(user.email, user.uid);
             const isAuthorized = role === 'admin' || role === 'jefe';
 
@@ -3364,6 +3670,9 @@
 
             // Autenticado y autorizado: mostrar app
             document.getElementById('adminApp').classList.remove('hidden');
+
+            // Restaurar estado del sidebar (desktop)
+            restoreSidebarState();
 
             // Safari iOS: forzar repaint
             const _mobileHeader = document.querySelector('header.md\\:hidden');
@@ -3469,6 +3778,17 @@
       let _lookbookUnsub = null;
       let _toastIdTarget = null; // para hacer scroll
 
+      function logoutAdmin() {
+        // Limpiar todos los listeners antes de cerrar sesión
+        if (_activityUnsub)  { _activityUnsub();  _activityUnsub  = null; }
+        if (_badgeUnsub)     { _badgeUnsub();     _badgeUnsub     = null; }
+        if (_lookbookUnsub)  { _lookbookUnsub();  _lookbookUnsub  = null; }
+        if (_citasUnsub)     { _citasUnsub();     _citasUnsub     = null; }
+        if (_bloqueosUnsub)  { _bloqueosUnsub();  _bloqueosUnsub  = null; }
+        if (_panelUnsub)     { _panelUnsub();     _panelUnsub     = null; }
+        firebase.auth().signOut();
+      }
+
       function initActivityListener() {
         const todayStr = dateToLocalStr(new Date());
 
@@ -3491,6 +3811,7 @@
 
         // 2. Notificaciones Proactivas y Feed
         // Solo escuchamos citas de hoy o futuras para no saturar la memoria
+        if (_activityUnsub) _activityUnsub();
         _activityUnsub = db.collection('citas')
           .where('fecha', '>=', todayStr)
           .onSnapshot(snap => {
@@ -3522,8 +3843,7 @@
                 }
               } else if (change.type === 'modified') {
                 const est = data.estado || 'Confirmado';
-                // Validar ambos estados por si acaso
-                if (est === 'Cancelado' || est === 'Cancelada') {
+                if (est === 'Cancelada') {
                   setTimeout(() => addToActivityFeed(data.clienteNombre, data.fecha, data.hora, 'Cita Cancelada'), 50);
                 }
               }
@@ -3582,8 +3902,8 @@
         const colorCls = isCancel ? 'bg-red-500' : 'bg-admin-accent';
 
         // Fallbacks seguros para datos faltantes
-        const safeNombre = nombre || 'Cliente sin nombre';
-        const safeHora = hora || '--:--';
+        const safeNombre = esc(nombre || 'Cliente sin nombre');
+        const safeHora   = esc(hora   || '--:--');
         let dateText = 'Fecha pendiente';
 
         if (fecha) {
@@ -3950,7 +4270,7 @@
                   ultimaVisitaStr = c.fecha;
                 }
               }
-            } else if (est === 'Cancelada' || est === 'NoAsistio' || est === 'No Asistió') {
+            } else if (est === 'Cancelada' || est === 'NoAsistio' || est === 'No Asistió' || est === 'NoAsistió') {
               totalCanceladas++;
             }
           });
@@ -4642,6 +4962,18 @@
           <input type="email" id="barberEditEmail" placeholder="correo@ejemplo.com" disabled
             class="w-full bg-admin-bg/50 border border-admin-border/50 rounded-xl px-4 py-3 text-sm text-gray-500 cursor-not-allowed">
         </div>
+        <div class="flex items-center justify-between bg-admin-bg border border-admin-border rounded-xl px-4 py-3">
+          <div>
+            <p class="text-sm font-semibold text-white">Disponible para reservas</p>
+            <p class="text-xs text-gray-500">Si está desactivado aparece como "Agenda llena hoy"</p>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer shrink-0 ml-3">
+            <input type="checkbox" id="barberEditDisponible" class="sr-only peer" checked
+              onchange="document.getElementById('barberEditDisponibleTrack').style.background = this.checked ? '#34d399' : '#374151'">
+            <div id="barberEditDisponibleTrack" class="w-10 h-5 rounded-full transition-colors bg-admin-accent"></div>
+            <div class="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5"></div>
+          </label>
+        </div>
       </div>
 
       <button onclick="saveBarberProfile()" id="barberSaveBtn"
@@ -4901,6 +5233,7 @@
       grid.innerHTML = _barberosCache.map(b => {
         const nombre = b.nombre || b.displayName || (b.email ? b.email.split('@')[0] : 'Sin nombre');
         const activo = b.activo !== false;
+        const disponible = b.disponible !== false;
         const isAdminDev = b.rol === 'admin';
 
         const fotoHTML = b.foto
@@ -4930,6 +5263,10 @@
             <p class="text-xs text-gray-500 mt-0.5">${b.especialidad || 'Sin especialidad'}</p>
             <p class="text-[10px] font-bold text-admin-accent uppercase tracking-widest mt-1">${b.rol || 'Barbero'}</p>
             ${b.email ? `<p class="text-[11px] text-gray-600 mt-0.5">${b.email}</p>` : ''}
+            ${!isAdminDev ? `<span class="inline-flex items-center gap-1 mt-1.5 text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${disponible ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'}">
+              <span class="w-1 h-1 rounded-full ${disponible ? 'bg-emerald-400' : 'bg-amber-400'}"></span>
+              ${disponible ? 'Disponible' : 'Agenda llena'}
+            </span>` : ''}
           </div>
 
           <!-- Acciones -->
@@ -4946,6 +5283,11 @@
               <button onclick="event.stopPropagation(); openBarberScheduleModal('${b.id}')"
                 class="w-10 flex items-center justify-center bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-400 rounded-xl transition-colors" title="Configurar horario">
                 <i class="ph ph-clock text-sm"></i>
+              </button>
+              <button onclick="event.stopPropagation(); toggleBarberDisponible('${b.id}', ${disponible})"
+                class="w-10 flex items-center justify-center ${disponible ? 'bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-400' : 'bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400'} rounded-xl transition-colors"
+                title="${disponible ? 'Marcar como agenda llena' : 'Marcar como disponible'}">
+                <i class="ph ${disponible ? 'ph-check-circle' : 'ph-x-circle'} text-sm"></i>
               </button>
               <button onclick="event.stopPropagation(); toggleBarberStatus('${b.id}', ${activo})"
                 class="flex-1 flex items-center justify-center gap-1.5 ${activo ? 'bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/30 text-orange-400' : 'bg-admin-accent/10 hover:bg-admin-accent/20 border border-admin-accent/30 text-admin-accent'} text-xs font-semibold py-2 rounded-xl transition-colors">
@@ -4969,6 +5311,18 @@
         if (b) b.activo = !currentlyActive;
         renderBarberosAdmin();
         showMiniToast(currentlyActive ? '⚠️ Barbero desactivado' : '✅ Barbero activado');
+      } catch (e) {
+        showMiniToast('❌ Error: ' + e.message);
+      }
+    }
+
+    async function toggleBarberDisponible(id, currentlyDisponible) {
+      try {
+        await db.collection('barberos').doc(id).update({ disponible: !currentlyDisponible });
+        const b = _barberosCache.find(x => x.id === id);
+        if (b) b.disponible = !currentlyDisponible;
+        renderBarberosAdmin();
+        showMiniToast(!currentlyDisponible ? '✅ Marcado como disponible' : '⚠️ Marcado como agenda llena');
       } catch (e) {
         showMiniToast('❌ Error: ' + e.message);
       }
@@ -4999,6 +5353,9 @@
       document.getElementById('barberEditRol').value = b.rol || 'barbero';
       document.getElementById('barberEditEmail').value = b.email || '';
       document.getElementById('barberPhotoURL').value = b.foto || '';
+      const disponible = b.disponible !== false;
+      document.getElementById('barberEditDisponible').checked = disponible;
+      document.getElementById('barberEditDisponibleTrack').style.background = disponible ? '#34d399' : '#374151';
       // Preview de foto
       const preview = document.getElementById('barberPhotoPreview');
       if (b.foto) {
@@ -5032,6 +5389,7 @@
       const nombre = document.getElementById('barberEditNombre').value.trim();
       const especialidad = document.getElementById('barberEditEspecialidad').value.trim();
       const rol = document.getElementById('barberEditRol').value;
+      const disponible = document.getElementById('barberEditDisponible').checked;
       const fileInput = document.getElementById('barberPhotoInput');
       const btn = document.getElementById('barberSaveBtn');
 
@@ -5051,7 +5409,8 @@
           fotoURL = await uploadTask.ref.getDownloadURL();
         }
 
-        const data = { nombre, especialidad, rol, activo: true };
+        const existente = _barberosCache.find(x => x.id === id) || {};
+        const data = { nombre, especialidad, rol, disponible, activo: existente.activo !== false };
         if (fotoURL) data.foto = fotoURL;
 
         if (id) {
@@ -5303,6 +5662,506 @@
     document.getElementById('barberScheduleModal').addEventListener('click', function(e) {
       if (e.target === this) closeBarberScheduleModal();
     });
+  </script>
+
+  <!-- ══════════════════════════════════════════════════════
+       MÉTRICAS — Script independiente
+  ══════════════════════════════════════════════════════ -->
+  <script>
+  'use strict';
+
+  // ── Estado de métricas ──────────────────────────────────────
+  let _metCitas       = [];   // citas del período cargado
+  let _metLoading     = false;
+  let _metObjetivos   = { ingresos: 0, citas: 0, nuevos: 0 };
+  let _metObjEditOpen = false;
+
+  // ── Utilitarios de fecha ────────────────────────────────────
+  function _metFechaStr(d) {
+    return d.getFullYear() + '-' +
+      String(d.getMonth()+1).padStart(2,'0') + '-' +
+      String(d.getDate()).padStart(2,'0');
+  }
+  function _metRango(periodo) {
+    const hoy  = new Date();
+    const yyyy = hoy.getFullYear();
+    const mm   = hoy.getMonth();
+    switch (periodo) {
+      case 'hoy': {
+        const s = _metFechaStr(hoy);
+        return { desde: s, hasta: s };
+      }
+      case 'semana': {
+        const lunes = new Date(hoy);
+        lunes.setDate(hoy.getDate() - ((hoy.getDay()+6)%7));
+        return { desde: _metFechaStr(lunes), hasta: _metFechaStr(hoy) };
+      }
+      case 'mes_anterior': {
+        const ini = new Date(yyyy, mm-1, 1);
+        const fin = new Date(yyyy, mm, 0);
+        return { desde: _metFechaStr(ini), hasta: _metFechaStr(fin) };
+      }
+      case '3meses': {
+        const ini = new Date(yyyy, mm-2, 1);
+        return { desde: _metFechaStr(ini), hasta: _metFechaStr(hoy) };
+      }
+      default: { // 'mes'
+        const ini = new Date(yyyy, mm, 1);
+        return { desde: _metFechaStr(ini), hasta: _metFechaStr(hoy) };
+      }
+    }
+  }
+  function _metFmtPeso(n) {
+    if (n >= 1000000) return '$' + (n/1000000).toFixed(1) + 'M';
+    if (n >= 1000)    return '$' + Math.round(n/1000) + 'K';
+    return '$' + n.toLocaleString('es-CL');
+  }
+  function _metBar(pct, color = '#34d399') {
+    const w = Math.min(Math.round(pct), 100);
+    return `<div class="flex-1 bg-white/5 rounded-full h-2 overflow-hidden">
+      <div class="h-2 rounded-full transition-all duration-500" style="width:${w}%;background:${color};"></div>
+    </div>`;
+  }
+
+  // ── Cargar objetivos desde localStorage ─────────────────────
+  function _metCargarObjetivos() {
+    try {
+      const raw = localStorage.getItem('met_objetivos');
+      if (raw) _metObjetivos = { ..._metObjetivos, ...JSON.parse(raw) };
+    } catch(_) {}
+  }
+
+  function guardarObjetivos() {
+    const ing   = parseInt(document.getElementById('met-obj-ing-input').value)   || 0;
+    const citas = parseInt(document.getElementById('met-obj-citas-input').value) || 0;
+    const nue   = parseInt(document.getElementById('met-obj-nuevos-input').value)|| 0;
+    _metObjetivos = { ingresos: ing, citas, nuevos: nue };
+    localStorage.setItem('met_objetivos', JSON.stringify(_metObjetivos));
+    toggleObjetivosEdit();
+    _metRenderObjetivos(_metCitas);
+  }
+
+  function toggleObjetivosEdit() {
+    _metObjEditOpen = !_metObjEditOpen;
+    document.getElementById('met-obj-form').classList.toggle('hidden', !_metObjEditOpen);
+    document.getElementById('met-obj-edit-label').textContent = _metObjEditOpen ? 'Cerrar' : 'Editar';
+    if (_metObjEditOpen) {
+      document.getElementById('met-obj-ing-input').value   = _metObjetivos.ingresos || '';
+      document.getElementById('met-obj-citas-input').value = _metObjetivos.citas    || '';
+      document.getElementById('met-obj-nuevos-input').value= _metObjetivos.nuevos   || '';
+    }
+  }
+
+  // ── Cargar citas del período ─────────────────────────────────
+  async function cargarMetricas() {
+    if (_metLoading) return;
+    _metLoading = true;
+    _metCargarObjetivos();
+
+    const periodo = document.getElementById('met-periodo')?.value || 'mes';
+    const { desde, hasta } = _metRango(periodo);
+
+    // Skeletons
+    ['met-kpis','met-horas-chart','met-dias-chart','met-barberos-table',
+     'met-servicios-chart','met-publi-grid','met-fuga-list','met-top-clientes'
+    ].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = `<div class="animate-pulse h-10 bg-white/5 rounded-xl"></div>`;
+    });
+
+    try {
+      const snap = await db.collection('citas')
+        .where('fecha', '>=', desde)
+        .where('fecha', '<=', hasta)
+        .get();
+
+      _metCitas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+      _metRenderKPIs(_metCitas);
+      _metRenderObjetivos(_metCitas);
+      _metRenderHoras(_metCitas);
+      _metRenderDias(_metCitas);
+      _metRenderBarberos(_metCitas);
+      _metRenderServicios(_metCitas);
+      _metRenderPublicidad(_metCitas, desde, hasta);
+
+    } catch(e) {
+      console.error('[Métricas]', e);
+      document.getElementById('met-kpis').innerHTML =
+        `<p class="text-red-400 text-sm col-span-4">Error cargando datos: ${e.message}</p>`;
+    } finally {
+      _metLoading = false;
+    }
+  }
+
+  // ── KPI Cards ───────────────────────────────────────────────
+  function _metRenderKPIs(citas) {
+    const completadas = citas.filter(c => c.estado === 'Completada');
+    const canceladas  = citas.filter(c => c.estado === 'Cancelada');
+    const pendientes  = citas.filter(c => c.estado !== 'Cancelada' && c.estado !== 'Completada');
+
+    const ingresos    = completadas.reduce((s, c) => s + (Number(c.precio)||0), 0);
+    const ticket      = completadas.length ? Math.round(ingresos / completadas.length) : 0;
+    const cancelPct   = citas.length ? Math.round((canceladas.length / citas.length) * 100) : 0;
+
+    document.getElementById('met-cancel-pct').textContent = cancelPct + '%';
+    document.getElementById('met-ticket-avg').textContent  = _metFmtPeso(ticket);
+
+    const kpis = [
+      { label: 'Ingresos totales', value: _metFmtPeso(ingresos),
+        icon: 'ph-fill ph-currency-dollar', color: 'text-admin-accent', bg: 'bg-admin-accent/10', border: 'border-admin-accent/20',
+        sub: `${completadas.length} citas completadas` },
+      { label: 'Total de citas', value: citas.length,
+        icon: 'ph-fill ph-calendar-check', color: 'text-indigo-400', bg: 'bg-indigo-400/10', border: 'border-indigo-400/20',
+        sub: `${pendientes.length} pendientes` },
+      { label: 'Ticket promedio', value: _metFmtPeso(ticket),
+        icon: 'ph-fill ph-receipt', color: 'text-yellow-400', bg: 'bg-yellow-400/10', border: 'border-yellow-400/20',
+        sub: 'por cita completada' },
+      { label: 'Cancelaciones', value: canceladas.length,
+        icon: 'ph-fill ph-x-circle', color: 'text-red-400', bg: 'bg-red-400/10', border: 'border-red-400/20',
+        sub: cancelPct + '% del total' },
+    ];
+
+    document.getElementById('met-kpis').innerHTML = kpis.map(k => `
+      <div class="bg-admin-card border ${k.border} rounded-2xl p-4 flex flex-col gap-2">
+        <div class="flex items-center justify-between">
+          <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">${k.label}</p>
+          <span class="w-8 h-8 ${k.bg} rounded-lg flex items-center justify-center">
+            <i class="${k.icon} ${k.color} text-base"></i>
+          </span>
+        </div>
+        <p class="text-2xl font-black ${k.color} leading-none">${k.value}</p>
+        <p class="text-[11px] text-gray-600">${k.sub}</p>
+      </div>`).join('');
+  }
+
+  // ── Objetivos ───────────────────────────────────────────────
+  function _metRenderObjetivos(citas) {
+    const completadas = citas.filter(c => c.estado === 'Completada');
+    const ingresos    = completadas.reduce((s, c) => s + (Number(c.precio)||0), 0);
+    const numCitas    = completadas.length;
+
+    // Nuevos clientes: telefonos únicos que no aparecen en citas anteriores (aproximación con emails únicos)
+    const emails   = [...new Set(citas.map(c => c.clienteEmail).filter(Boolean))];
+    const numNuevos = emails.length; // proxy razonable
+
+    const objI = _metObjetivos.ingresos || 1;
+    const objC = _metObjetivos.citas    || 1;
+    const objN = _metObjetivos.nuevos   || 1;
+
+    const pctI = Math.min((ingresos / objI)*100, 100);
+    const pctC = Math.min((numCitas / objC)*100, 100);
+    const pctN = Math.min((numNuevos / objN)*100, 100);
+
+    document.getElementById('met-obj-ing-label').textContent    = `${_metFmtPeso(ingresos)} / ${_metFmtPeso(_metObjetivos.ingresos||0)}`;
+    document.getElementById('met-obj-citas-label').textContent  = `${numCitas} / ${_metObjetivos.citas||0}`;
+    document.getElementById('met-obj-nuevos-label').textContent = `${numNuevos} / ${_metObjetivos.nuevos||0}`;
+
+    document.getElementById('met-obj-ing-bar').style.width    = pctI + '%';
+    document.getElementById('met-obj-citas-bar').style.width  = pctC + '%';
+    document.getElementById('met-obj-nuevos-bar').style.width = pctN + '%';
+
+    const colorBar = (pct, el, colOk, colWarn, colBad) => {
+      el.style.background = pct >= 80 ? colOk : pct >= 40 ? colWarn : colBad;
+    };
+    colorBar(pctI, document.getElementById('met-obj-ing-bar'),   '#34d399','#fbbf24','#f87171');
+    colorBar(pctC, document.getElementById('met-obj-citas-bar'), '#818cf8','#fbbf24','#f87171');
+    colorBar(pctN, document.getElementById('met-obj-nuevos-bar'),'#fbbf24','#fb923c','#f87171');
+  }
+
+  // ── Horas pico ──────────────────────────────────────────────
+  function _metRenderHoras(citas) {
+    const activas = citas.filter(c => c.estado !== 'Cancelada' && c.hora);
+    const map = {};
+    activas.forEach(c => {
+      const h = c.hora.split(':')[0].padStart(2,'0') + ':00';
+      map[h] = (map[h]||0) + 1;
+    });
+    const sorted = Object.entries(map).sort((a,b) => b[1]-a[1]);
+    const max    = sorted[0]?.[1] || 1;
+
+    // Hora más vacía en rango laboral
+    const todasHoras = Array.from({length:13},(_,i)=>`${(i+8).toString().padStart(2,'0')}:00`);
+    const horaVacia  = todasHoras.find(h => !map[h]) || (sorted[sorted.length-1]?.[0] || '—');
+    document.getElementById('met-hora-vacia').textContent = horaVacia;
+
+    const colores = ['#34d399','#34d399','#fbbf24','#fbbf24','#f87171','#f87171'];
+    const el = document.getElementById('met-horas-chart');
+    if (!sorted.length) { el.innerHTML = `<p class="text-sm text-gray-600 text-center py-4">Sin datos para el período.</p>`; return; }
+
+    el.innerHTML = sorted.slice(0,10).map(([hora, cnt], i) => `
+      <div class="flex items-center gap-3">
+        <span class="text-xs font-bold text-gray-400 w-12 shrink-0">${hora}</span>
+        ${_metBar((cnt/max)*100, colores[Math.min(i,5)])}
+        <span class="text-xs font-bold text-white w-6 text-right shrink-0">${cnt}</span>
+      </div>`).join('');
+  }
+
+  // ── Días de la semana ────────────────────────────────────────
+  function _metRenderDias(citas) {
+    const nombres = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+    const map = [0,0,0,0,0,0,0];
+    citas.filter(c => c.estado !== 'Cancelada' && c.fecha).forEach(c => {
+      const dw = new Date(c.fecha + 'T12:00:00').getDay();
+      map[dw]++;
+    });
+    const max = Math.max(...map) || 1;
+    const el  = document.getElementById('met-dias-chart');
+    el.innerHTML = [1,2,3,4,5,6,0].map(dw => `
+      <div class="flex items-center gap-3">
+        <span class="text-xs font-bold text-gray-400 w-16 shrink-0">${nombres[dw].slice(0,3)}</span>
+        ${_metBar((map[dw]/max)*100, '#818cf8')}
+        <span class="text-xs font-bold text-white w-6 text-right shrink-0">${map[dw]}</span>
+      </div>`).join('');
+  }
+
+  // ── Ranking barberos ─────────────────────────────────────────
+  function _metRenderBarberos(citas) {
+    const map = {};
+    citas.forEach(c => {
+      const nombre = c.barbero || c.barberoNombre || 'Sin asignar';
+      if (!map[nombre]) map[nombre] = { citas:0, ingresos:0, completadas:0, canceladas:0 };
+      map[nombre].citas++;
+      if (c.estado === 'Completada') { map[nombre].completadas++; map[nombre].ingresos += Number(c.precio)||0; }
+      if (c.estado === 'Cancelada')  map[nombre].canceladas++;
+    });
+
+    const sorted = Object.entries(map).sort((a,b) => b[1].ingresos - a[1].ingresos);
+    const maxIng  = sorted[0]?.[1].ingresos || 1;
+    const medals  = ['🥇','🥈','🥉'];
+
+    const el = document.getElementById('met-barberos-table');
+    if (!sorted.length) { el.innerHTML = `<p class="text-sm text-gray-600 text-center py-4">Sin citas en el período.</p>`; return; }
+
+    el.innerHTML = `
+      <div class="grid grid-cols-4 text-[10px] font-bold text-gray-600 uppercase tracking-wider px-3 mb-1">
+        <span>Barbero</span><span class="text-center">Citas</span><span class="text-center">Ingresos</span><span class="text-center">Cancelac.</span>
+      </div>` +
+      sorted.map(([nombre, d], i) => `
+      <div class="flex items-center gap-3 bg-admin-bg border border-admin-border rounded-xl px-3 py-3">
+        <span class="text-base shrink-0">${medals[i] || '　'}</span>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-bold text-white truncate">${nombre}</p>
+          ${_metBar((d.ingresos/maxIng)*100)}
+        </div>
+        <span class="text-xs font-bold text-gray-400 w-10 text-center shrink-0">${d.citas}</span>
+        <span class="text-xs font-bold text-admin-accent w-14 text-center shrink-0">${_metFmtPeso(d.ingresos)}</span>
+        <span class="text-xs font-bold text-red-400 w-10 text-center shrink-0">${d.canceladas}</span>
+      </div>`).join('');
+  }
+
+  // ── Servicios más solicitados ────────────────────────────────
+  function _metRenderServicios(citas) {
+    const map = {};
+    citas.filter(c => c.estado !== 'Cancelada').forEach(c => {
+      const svc = c.servicioNombre || 'Desconocido';
+      if (!map[svc]) map[svc] = { cnt:0, ingresos:0 };
+      map[svc].cnt++;
+      map[svc].ingresos += Number(c.precio)||0;
+    });
+    const sorted = Object.entries(map).sort((a,b) => b[1].cnt - a[1].cnt);
+    const maxCnt = sorted[0]?.[1].cnt || 1;
+    const colores = ['#34d399','#818cf8','#fbbf24','#f87171','#fb923c','#a78bfa'];
+
+    const el = document.getElementById('met-servicios-chart');
+    if (!sorted.length) { el.innerHTML = `<p class="text-sm text-gray-600 text-center py-4">Sin datos.</p>`; return; }
+
+    el.innerHTML = sorted.slice(0,8).map(([nombre, d], i) => `
+      <div class="flex items-center gap-3">
+        <span class="text-xs font-semibold text-gray-400 flex-shrink-0" style="min-width:120px;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${nombre}">${nombre}</span>
+        ${_metBar((d.cnt/maxCnt)*100, colores[i%colores.length])}
+        <span class="text-xs font-bold text-white w-6 text-right shrink-0">${d.cnt}</span>
+        <span class="text-xs text-gray-500 shrink-0 hidden sm:inline">${_metFmtPeso(d.ingresos)}</span>
+      </div>`).join('');
+  }
+
+  // ── Publicidad inteligente ───────────────────────────────────
+  async function _metRenderPublicidad(citas, desde, hasta) {
+    // Día de semana con menos citas (para publicitar ese día)
+    const diasNombres = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+    const mapDias = [0,0,0,0,0,0,0];
+    citas.filter(c => c.estado !== 'Cancelada').forEach(c => {
+      if (c.fecha) mapDias[new Date(c.fecha+'T12:00:00').getDay()]++;
+    });
+    const laboral = [1,2,3,4,5,6];
+    const diaVacio = laboral.reduce((min, d) => mapDias[d] < mapDias[min] ? d : min, laboral[0]);
+
+    // Servicio más rentable (no el más frecuente)
+    const mapSvc = {};
+    citas.filter(c => c.estado === 'Completada').forEach(c => {
+      const s = c.servicioNombre || 'Desconocido';
+      if (!mapSvc[s]) mapSvc[s] = { cnt:0, ingresos:0 };
+      mapSvc[s].cnt++; mapSvc[s].ingresos += Number(c.precio)||0;
+    });
+    const svcRentable = Object.entries(mapSvc).sort((a,b)=>b[1].ingresos-a[1].ingresos)[0];
+
+    // Franja horaria con menos ocupación (ideal para publicitar descuento)
+    const mapHoras = {};
+    citas.filter(c=>c.estado!=='Cancelada'&&c.hora).forEach(c=>{
+      const h = c.hora.split(':')[0];
+      mapHoras[h]=(mapHoras[h]||0)+1;
+    });
+    const rango = Array.from({length:11},(_,i)=>`${i+9}`);
+    const horaFloja = rango.reduce((min,h) => (mapHoras[h]||0)<(mapHoras[min]||0)?h:min, rango[0]);
+
+    // Tasa de retención: clientes que vienen más de 1 vez
+    const telCount = {};
+    citas.forEach(c => { if(c.clienteTelefono) telCount[c.clienteTelefono]=(telCount[c.clienteTelefono]||0)+1; });
+    const recurrentes = Object.values(telCount).filter(v=>v>1).length;
+    const totalUnicos = Object.keys(telCount).length;
+    const retencion   = totalUnicos ? Math.round((recurrentes/totalUnicos)*100) : 0;
+
+    const cards = [
+      {
+        icon: 'ph-fill ph-calendar-x', color: '#818cf8',
+        title: 'Día para hacer publicidad',
+        value: diasNombres[diaVacio],
+        desc: `Es tu día más flojo (${mapDias[diaVacio]} citas). Publica ofertas el día anterior.`
+      },
+      {
+        icon: 'ph-fill ph-clock', color: '#fbbf24',
+        title: 'Hora para promover descuento',
+        value: `${horaFloja}:00 hrs`,
+        desc: `Pocos clientes llegan a esa hora. Un descuento ahí llena esos huecos.`
+      },
+      {
+        icon: 'ph-fill ph-receipt', color: '#34d399',
+        title: 'Servicio más rentable',
+        value: svcRentable ? svcRentable[0] : '—',
+        desc: svcRentable ? `${_metFmtPeso(svcRentable[1].ingresos)} en el período — promuévelo primero.` : 'Sin datos suficientes.'
+      },
+      {
+        icon: 'ph-fill ph-arrow-counter-clockwise', color: '#f87171',
+        title: 'Tasa de retención',
+        value: retencion + '%',
+        desc: `${recurrentes} de ${totalUnicos} clientes volvieron. El ${100-retencion}% no regresó.`
+      }
+    ];
+
+    document.getElementById('met-publi-grid').innerHTML = cards.map(c => `
+      <div class="bg-admin-bg border border-admin-border rounded-xl p-4 flex gap-3">
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style="background:${c.color}18;border:1px solid ${c.color}30;">
+          <i class="${c.icon} text-lg" style="color:${c.color};"></i>
+        </div>
+        <div class="min-w-0">
+          <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest">${c.title}</p>
+          <p class="text-base font-black text-white leading-tight mt-0.5">${c.value}</p>
+          <p class="text-[11px] text-gray-600 mt-1 leading-snug">${c.desc}</p>
+        </div>
+      </div>`).join('');
+
+    // Cargar también clientes en fuga y top clientes
+    await _metRenderClientesFuga(desde);
+    _metRenderTopClientes(citas);
+  }
+
+  // ── Clientes en riesgo de fuga (>30 días sin visita) ────────
+  async function _metRenderClientesFuga(desde) {
+    try {
+      const corte = new Date();
+      corte.setDate(corte.getDate() - 30);
+      const corteStr = _metFechaStr(corte);
+
+      // Todos los clientes que tenían citas antes del corte
+      const snapViejos = await db.collection('citas')
+        .where('fecha', '<', corteStr)
+        .where('estado', '!=', 'Cancelada')
+        .get();
+
+      // Todos los que vinieron en los últimos 30 días
+      const snapRecientes = await db.collection('citas')
+        .where('fecha', '>=', corteStr)
+        .where('estado', '!=', 'Cancelada')
+        .get();
+
+      const recientesTels = new Set(snapRecientes.docs.map(d=>d.data().clienteTelefono).filter(Boolean));
+
+      // Los que están en viejos pero NO en recientes = en fuga
+      const fugaMap = {};
+      snapViejos.docs.forEach(d => {
+        const data = d.data();
+        const tel  = data.clienteTelefono;
+        if (!tel || recientesTels.has(tel)) return;
+        if (!fugaMap[tel]) {
+          fugaMap[tel] = {
+            nombre: data.clienteNombre || 'Sin nombre',
+            tel,
+            ultimaFecha: data.fecha,
+            servicio: data.servicioNombre || ''
+          };
+        } else if (data.fecha > fugaMap[tel].ultimaFecha) {
+          fugaMap[tel].ultimaFecha = data.fecha;
+          fugaMap[tel].servicio    = data.servicioNombre || '';
+        }
+      });
+
+      const lista = Object.values(fugaMap)
+        .sort((a,b) => b.ultimaFecha.localeCompare(a.ultimaFecha))
+        .slice(0, 50);
+
+      const badge = document.getElementById('met-fuga-badge');
+      badge.textContent = lista.length;
+      badge.classList.toggle('hidden', lista.length === 0);
+
+      const el = document.getElementById('met-fuga-list');
+      if (!lista.length) {
+        el.innerHTML = `<p class="text-sm text-gray-600 text-center py-4">🎉 Sin clientes en riesgo de fuga.</p>`;
+        return;
+      }
+
+      el.innerHTML = lista.map(c => {
+        const tel = (c.tel||'').replace(/\D/g,'');
+        const waLink = tel ? `https://wa.me/${tel.startsWith('56')?tel:'56'+tel}?text=${encodeURIComponent(`Hola ${c.nombre.split(' ')[0]}! Te extrañamos en Elegance 💈 ¿Cuándo agendamos tu próximo corte?`)}` : null;
+        const diasSin = Math.round((new Date() - new Date(c.ultimaFecha+'T12:00:00'))/(1000*60*60*24));
+        return `
+        <div class="flex items-center gap-3 bg-admin-bg border border-admin-border rounded-xl px-3 py-2.5">
+          <div class="w-8 h-8 rounded-full bg-red-400/10 border border-red-400/20 flex items-center justify-center shrink-0">
+            <i class="ph-fill ph-user text-red-400 text-sm"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-semibold text-white truncate">${c.nombre}</p>
+            <p class="text-[11px] text-gray-500">Último: ${c.ultimaFecha} · hace ${diasSin} días · ${c.servicio}</p>
+          </div>
+          ${waLink ? `<a href="${waLink}" target="_blank" title="Mensaje WhatsApp"
+            class="w-8 h-8 rounded-lg bg-[#25D366]/10 border border-[#25D366]/30 flex items-center justify-center shrink-0 hover:bg-[#25D366]/20 transition-colors">
+            <i class="ph-fill ph-whatsapp-logo text-[#25D366] text-base"></i></a>` : ''}
+        </div>`;
+      }).join('');
+
+    } catch(e) {
+      document.getElementById('met-fuga-list').innerHTML =
+        `<p class="text-xs text-gray-600 text-center py-4">Error cargando datos.</p>`;
+    }
+  }
+
+  // ── Top 10 clientes más frecuentes ──────────────────────────
+  function _metRenderTopClientes(citas) {
+    const map = {};
+    citas.filter(c => c.estado !== 'Cancelada').forEach(c => {
+      const tel  = c.clienteTelefono || 'sin_tel';
+      const nom  = c.clienteNombre   || 'Sin nombre';
+      if (!map[tel]) map[tel] = { nombre: nom, cnt: 0, ingresos: 0 };
+      map[tel].cnt++;
+      map[tel].ingresos += Number(c.precio)||0;
+    });
+    const sorted = Object.entries(map).sort((a,b)=>b[1].cnt-a[1].cnt).slice(0,10);
+    const maxCnt = sorted[0]?.[1].cnt || 1;
+    const medals = ['🥇','🥈','🥉'];
+
+    const el = document.getElementById('met-top-clientes');
+    if (!sorted.length) { el.innerHTML = `<p class="text-sm text-gray-600 text-center py-4">Sin datos.</p>`; return; }
+
+    el.innerHTML = sorted.map(([tel, d], i) => `
+      <div class="flex items-center gap-3 bg-admin-bg border border-admin-border rounded-xl px-3 py-2.5">
+        <span class="text-base shrink-0">${medals[i] || `<span class="text-xs font-bold text-gray-600">#${i+1}</span>`}</span>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-semibold text-white truncate">${d.nombre}</p>
+          ${_metBar((d.cnt/maxCnt)*100, '#fbbf24')}
+        </div>
+        <span class="text-xs font-bold text-yellow-400 shrink-0">${d.cnt} visitas</span>
+        <span class="text-xs text-gray-500 shrink-0 hidden sm:inline">${_metFmtPeso(d.ingresos)}</span>
+      </div>`).join('');
+  }
   </script>
 
 </body>

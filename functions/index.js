@@ -10,10 +10,11 @@
 //    firebase deploy --only functions
 // ════════════════════════════════════════════════════════════════
 
-const { onDocumentCreated } = require('firebase-functions/v2/firestore');
-const { setGlobalOptions }  = require('firebase-functions/v2');
-const { logger }            = require('firebase-functions');
-const admin                 = require('firebase-admin');
+const { onDocumentCreated }    = require('firebase-functions/v2/firestore');
+const { onSchedule }           = require('firebase-functions/v2/scheduler');
+const { setGlobalOptions }     = require('firebase-functions/v2');
+const { logger }               = require('firebase-functions');
+const admin                    = require('firebase-admin');
 
 admin.initializeApp();
 const db        = admin.firestore();
@@ -27,27 +28,34 @@ setGlobalOptions({ region: 'us-central1' });
 // ─────────────────────────────────────────────────────────────────
 async function getTokensActivos(barberoId, barberoNombre) {
   const validUids = new Set();
-  
+
   try {
-    const barberosSnap = await db.collection('barberos').get();
+    const [barberosSnap, tokensSnap] = await Promise.all([
+      db.collection('barberos').get(),
+      db.collection('fcm_tokens').where('activo', '==', true).get(),
+    ]);
+
+    const barberoIdTrimmed   = (barberoId    || '').trim();
+    const barberoNombreTrimmed = (barberoNombre || '').toLowerCase().trim();
+
     barberosSnap.forEach(doc => {
       const b = doc.data();
-      const isManager = b.rol === 'jefe' || b.rol === 'admin';
-      const isTheBarber = (barberoId && doc.id === barberoId) || (barberoNombre && b.nombre === barberoNombre);
-      
-      if (isManager || isTheBarber) {
+      if (b.activo === false) return;
+
+      const isManager   = b.rol === 'jefe' || b.rol === 'admin';
+      const matchById   = barberoIdTrimmed   && doc.id === barberoIdTrimmed;
+      const matchByName = barberoNombreTrimmed && (b.nombre || '').toLowerCase().trim() === barberoNombreTrimmed;
+
+      if (isManager || matchById || matchByName) {
         validUids.add(doc.id);
-        if (b.uid) validUids.add(b.uid); // Por si acaso guardan el uid explícito
+        if (b.uid) validUids.add(b.uid);
       }
     });
 
-    const snap = await db.collection('fcm_tokens').where('activo', '==', true).get();
     const tokens = [];
-    snap.forEach(d => {
+    tokensSnap.forEach(d => {
       const data = d.data();
-      if (validUids.has(data.uid)) {
-        tokens.push(data.token);
-      }
+      if (validUids.has(data.uid)) tokens.push(data.token);
     });
     return tokens;
   } catch (err) {
@@ -70,10 +78,10 @@ async function enviarPush({ title, body, citaId, fecha, hora, barberoId, barbero
   const message = {
     notification: { title, body },
     data: {
-      citaId:  citaId || '',
-      url:     '/gestion-interna/',
-      fecha:   fecha  || '',
-      hora:    hora   || '',
+      citaId: citaId || '',
+      url:    '/agenda',        // /agenda redirige a admins automáticamente
+      fecha:  fecha  || '',
+      hora:   hora   || '',
     },
     webpush: {
       headers: { Urgency: 'high' },
@@ -86,9 +94,9 @@ async function enviarPush({ title, body, citaId, fecha, hora, barberoId, barbero
         tag:      'nueva-cita',
         renotify: true,
         actions:  [{ action: 'abrir', title: 'Ver cita' }],
-        data:     { url: '/gestion-interna/', citaId: citaId || '' }
+        data:     { url: '/agenda', citaId: citaId || '' }
       },
-      fcmOptions: { link: '/gestion-interna/' }
+      fcmOptions: { link: '/agenda' }
     },
     tokens,
   };
@@ -96,16 +104,18 @@ async function enviarPush({ title, body, citaId, fecha, hora, barberoId, barbero
   const response = await messaging.sendEachForMulticast(message);
   logger.info(`[FCM] Enviado: ${response.successCount} OK, ${response.failureCount} errores`);
 
-  // Limpiar tokens inválidos
+  // Limpiar tokens inválidos o expirados
+  const TOKEN_ERRORS = new Set([
+    'messaging/invalid-registration-token',
+    'messaging/registration-token-not-registered',
+    'messaging/invalid-argument',
+  ]);
   const invalidos = [];
   response.responses.forEach((res, idx) => {
     if (!res.success) {
-      const code = res.error?.code;
+      const code = res.error?.code || '';
       logger.warn(`[FCM] Token ${idx} falló: ${code}`);
-      if (
-        code === 'messaging/invalid-registration-token' ||
-        code === 'messaging/registration-token-not-registered'
-      ) invalidos.push(tokens[idx]);
+      if (TOKEN_ERRORS.has(code)) invalidos.push(tokens[idx]);
     }
   });
 
@@ -199,3 +209,38 @@ exports.notificarReservaPublica = onDocumentCreated(
     return null;
   }
 );
+
+// ─────────────────────────────────────────────────────────────────
+//  CRON: limpiar tokens FCM inactivos (se ejecuta cada domingo a las 3am UTC)
+//  Elimina docs con activo==false o con más de 60 días sin actualizarse.
+// ─────────────────────────────────────────────────────────────────
+exports.limpiarTokensInactivos = onSchedule('0 3 * * 0', async () => {
+  const corte60dias = admin.firestore.Timestamp.fromDate(
+    new Date(Date.now() - 60 * 24 * 60 * 60 * 1000)
+  );
+
+  const [inactivosSnap, viejosSnap] = await Promise.all([
+    db.collection('fcm_tokens').where('activo', '==', false).get(),
+    db.collection('fcm_tokens').where('creadoEn', '<', corte60dias).get(),
+  ]);
+
+  // Unir IDs únicos a eliminar
+  const idsAEliminar = new Set([
+    ...inactivosSnap.docs.map(d => d.id),
+    ...viejosSnap.docs.map(d => d.id),
+  ]);
+
+  if (!idsAEliminar.size) {
+    logger.info('[Cron] No hay tokens para limpiar.');
+    return;
+  }
+
+  const ids = [...idsAEliminar];
+  // Firestore batch: máx 500 operaciones
+  for (let i = 0; i < ids.length; i += 400) {
+    const batch = db.batch();
+    ids.slice(i, i + 400).forEach(id => batch.delete(db.collection('fcm_tokens').doc(id)));
+    await batch.commit();
+  }
+  logger.info(`[Cron] ${ids.length} tokens eliminados.`);
+});

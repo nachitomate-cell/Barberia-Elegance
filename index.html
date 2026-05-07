@@ -250,7 +250,7 @@
             <span class="font-bold text-neon" id="summaryPrice"></span>
           </div>
           <div class="flex items-center gap-1.5 text-sm text-gray-400 font-medium mt-2 relative">
-            <i class="ph-fill ph-user text-brand-neon/70"></i> <span id="summaryBarber">Nicolas Fabian</span>
+            <i class="ph-fill ph-user text-brand-neon/70"></i> <span id="summaryBarber">Sin preferencia</span>
           </div>
           <div class="flex items-center gap-1.5 text-sm text-gray-400 font-medium mt-1 relative">
             <i class="ph-fill ph-calendar-blank text-brand-neon/70"></i> <span id="summaryDateString"></span>, <span
@@ -483,18 +483,33 @@
          grid.innerHTML = '<p class="text-sm text-gray-500">No hay barberos disponibles en este momento.</p>';
          return;
       }
-      grid.innerHTML = barberos.map(b => {
-        const fotoHTML = b.foto 
+      const isAnySelected = window._selectedBarberId === 'any' || (!window._selectedBarberId && window._selectedBarber === null);
+      const anyStateClass = (window._selectedBarberId === 'any' || window._selectedBarber === 'any') ? 'border-neon bg-brand-neon/10' : 'border-brand-accent/20 bg-[#0a0a0d]';
+      const anyCard = `
+        <button onclick="selectBarber(this, 'any', 'any')" class="barber-option relative flex w-full flex-col items-center justify-center p-6 rounded-2xl border-2 ${anyStateClass} shadow-sm hover:border-brand-neon/50 hover:shadow-[0_0_15px_rgba(255,255,255,0.15)] active:scale-95 text-center transition-all overflow-hidden group">
+          <div class="absolute inset-0 bg-brand-neon/0 group-hover:bg-brand-neon/5 transition-colors"></div>
+          <div class="w-20 h-20 rounded-full flex items-center justify-center border border-[#F9E7B3]/60 shadow-[0_0_15px_rgba(249,231,179,0.3)] mb-4 relative z-10 bg-[#111115]"><i class="ph-fill ph-shuffle text-3xl text-gray-400"></i></div>
+          <span class="font-bold text-gray-100 text-lg mb-0.5 relative z-10 tracking-wide">Sin preferencia</span>
+          <p class="text-xs text-gray-400 font-medium mb-2 relative z-10 uppercase tracking-widest">Cualquier barbero disponible</p>
+          <span class="flex items-center gap-1.5 text-[13px] font-bold text-brand-neon relative z-10 mt-1">
+            <i class="ph-fill ph-check-circle text-[16px]"></i>
+            Primer horario disponible
+          </span>
+        </button>
+      `;
+
+      grid.innerHTML = anyCard + barberos.map(b => {
+        const fotoHTML = b.foto
           ? `<img src="${b.foto}" alt="Foto de ${b.nombre}" class="w-20 h-20 rounded-full object-cover border border-[#F9E7B3]/60 shadow-[0_0_15px_rgba(249,231,179,0.3)] mb-4 relative z-10 bg-[#111115]">`
           : `<div class="w-20 h-20 rounded-full flex items-center justify-center border border-[#F9E7B3]/60 shadow-[0_0_15px_rgba(249,231,179,0.3)] mb-4 relative z-10 bg-[#111115]"><i class="ph-fill ph-user text-3xl text-gray-400"></i></div>`;
-          
+
         const isSelected = window._selectedBarber === b.nombre;
         const stateClass = isSelected ? 'border-neon bg-brand-neon/10' : 'border-brand-accent/20 bg-[#0a0a0d]';
-        
-        const especialidadHTML = b.especialidad 
-          ? `<p class="text-xs text-gray-400 font-medium mb-2 relative z-10 uppercase tracking-widest">${b.especialidad}</p>` 
+
+        const especialidadHTML = b.especialidad
+          ? `<p class="text-xs text-gray-400 font-medium mb-2 relative z-10 uppercase tracking-widest">${b.especialidad}</p>`
           : '';
-        
+
         const disponibilidadString = b.disponible !== false ? 'Disponible para reservas' : 'Agenda llena hoy';
         const isAvailableIcon = b.disponible !== false ? 'check-circle' : 'x-circle';
 
@@ -511,15 +526,6 @@
         </button>
       `}).join('');
       
-      if (!window._selectedBarber) {
-        const disponible = barberos.find(b => b.disponible !== false);
-        if (disponible) {
-          window._selectedBarber = disponible.nombre;
-          window._selectedBarberId = disponible.id;
-          document.getElementById('summaryBarber').textContent = disponible.nombre;
-          _renderBarberos(barberos); // Re-render para aplicar estilos de selección
-        }
-      }
     }
 
     function selectBarber(btn, id, nombre) {
@@ -533,7 +539,7 @@
       if (window._selectedBarberId !== id) selectedTimeStr = null;
       window._selectedBarber = nombre;
       window._selectedBarberId = id;
-      document.getElementById('summaryBarber').textContent = nombre;
+      document.getElementById('summaryBarber').textContent = id === 'any' ? 'Sin preferencia' : nombre;
     }
 
     async function initServices() {
@@ -772,7 +778,8 @@
         updateProgress();
 
       } else if (currentStep === 2) {
-        const barId = window._selectedBarberId;
+        if (!window._selectedBarberId) return alert("Selecciona un barbero o elige 'Sin preferencia'.");
+        const barId = window._selectedBarberId === 'any' ? null : window._selectedBarberId;
         selectedTimeStr = null;
         if (barId) {
           const [barCfg] = await Promise.all([
@@ -892,8 +899,8 @@
             clienteEmail:     email,
             servicioNombre:   selectedServiceObj.nombre,
             duracionServicio: selectedServiceObj.duracion,
-            barbero:          window._selectedBarber   || SHOP.barberos[0]?.nombre || '',
-            barberoId:        window._selectedBarberId || null,
+            barbero:          (window._selectedBarber === 'any' ? '' : window._selectedBarber) || '',
+            barberoId:        (window._selectedBarberId === 'any' ? null : window._selectedBarberId) || null,
           });
           citaGuardada = true;
         } catch(e) {

@@ -111,6 +111,46 @@
     ::-webkit-scrollbar { width: 4px; height: 4px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: #374151; border-radius: 2px; }
+
+    /* Select de estado — hereda colores del badge */
+    .estado-select {
+      appearance: none;
+      -webkit-appearance: none;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 20px 3px 8px;
+      border-radius: 9999px;
+      cursor: pointer;
+      outline: none;
+      flex-shrink: 0;
+      margin-top: 2px;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236b7280'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 6px center;
+      transition: opacity .15s;
+      color-scheme: dark;
+    }
+    .estado-select:hover { opacity: .85; }
+    .estado-select.s-Confirmado,.estado-select.s-Pendiente {
+      background-color: rgba(251,191,36,.12);
+      color: #fbbf24;
+      border: 1px solid rgba(251,191,36,.3);
+    }
+    .estado-select.s-Completada {
+      background-color: rgba(52,211,153,.12);
+      color: #34d399;
+      border: 1px solid rgba(52,211,153,.3);
+    }
+    .estado-select.s-Cancelada {
+      background-color: rgba(248,113,113,.1);
+      color: #f87171;
+      border: 1px solid rgba(248,113,113,.25);
+    }
+    .estado-select.s-NoAsistio {
+      background-color: rgba(156,163,175,.1);
+      color: #9ca3af;
+      border: 1px solid rgba(156,163,175,.25);
+    }
   </style>
 </head>
 <body>
@@ -270,7 +310,6 @@
 
         snap.docs.forEach(doc => {
           const c = { id: doc.id, ...doc.data() };
-          if (c.estado === 'Cancelada') return; // excluir canceladas del conteo
           const bid = c.barberoId || '__sin_asignar__';
           if (!_citasCache[bid]) _citasCache[bid] = [];
           _citasCache[bid].push(c);
@@ -293,8 +332,8 @@
   // ── KPIs ─────────────────────────────────────────────────────────
   function renderKPIs() {
     const todasLasCitas = Object.values(_citasCache).flat();
-    const total       = todasLasCitas.length;
-    const pendientes  = todasLasCitas.filter(c => c.estado !== 'Completada').length;
+    const total       = todasLasCitas.filter(c => c.estado !== 'Cancelada').length;
+    const pendientes  = todasLasCitas.filter(c => c.estado !== 'Completada' && c.estado !== 'Cancelada').length;
     const completadas = todasLasCitas.filter(c => c.estado === 'Completada').length;
 
     document.getElementById('kpiTotal').textContent       = total;
@@ -313,13 +352,18 @@
       return;
     }
 
+    const expandedIds = new Set(
+      [...document.querySelectorAll('.barber-card.expanded')].map(el => el.id.replace('bcard-', ''))
+    );
+
     document.getElementById('barberoCount').textContent = `${_barberos.length} barberos`;
 
     grid.innerHTML = _barberos.map(b => {
       const citas       = _citasCache[b.id] || [];
-      const total       = citas.length;
-      const completadas = citas.filter(c => c.estado === 'Completada').length;
-      const pendientes  = citas.filter(c => c.estado !== 'Completada').length;
+      const activas     = citas.filter(c => c.estado !== 'Cancelada');
+      const total       = activas.length;
+      const completadas = activas.filter(c => c.estado === 'Completada').length;
+      const pendientes  = activas.filter(c => c.estado !== 'Completada').length;
       const pct         = total > 0 ? Math.round((completadas / total) * 100) : 0;
 
       // Color del estado
@@ -333,18 +377,33 @@
              <i class="ph-fill ph-user text-2xl text-white/30"></i>
            </div>`;
 
-      // Mini-lista de citas (hasta 5, el resto colapsado)
+      // Mini-lista de citas
       const citasHTML = citas.length === 0
         ? `<p class="text-xs text-white/25 italic py-2 text-center">Sin citas este día</p>`
-        : citas.map(c => `
-          <div class="flex items-start gap-3 py-2.5 border-b border-white/5 last:border-0">
+        : citas.map(c => {
+          const estado = c.estado || 'Pendiente';
+          const isCancelada = estado === 'Cancelada';
+          return `
+          <div class="flex items-start gap-3 py-2.5 border-b border-white/5 last:border-0 ${isCancelada ? 'opacity-50' : ''}">
             <span class="text-xs font-bold text-white/50 w-12 shrink-0 pt-0.5">${c.hora || '?'}</span>
             <div class="flex-1 min-w-0">
-              <p class="text-sm font-semibold text-white truncate">${c.clienteNombre || 'Sin nombre'}</p>
+              <p class="text-sm font-semibold text-white truncate ${isCancelada ? 'line-through' : ''}">${c.clienteNombre || 'Sin nombre'}</p>
               <p class="text-xs text-white/40 truncate">${c.servicioNombre || ''}</p>
             </div>
-            <span class="badge-${c.estado || 'Pendiente'} text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 mt-0.5">${c.estado || 'Pendiente'}</span>
-          </div>`).join('');
+            <select
+              class="estado-select s-${estado}"
+              onchange="cambiarEstadoCita('${c.id}', this.value, this)"
+              onclick="event.stopPropagation()"
+              title="Cambiar estado"
+            >
+              <option value="Confirmado" ${estado==='Confirmado'?'selected':''}>Confirmado</option>
+              <option value="Pendiente"  ${estado==='Pendiente' ?'selected':''}>Pendiente</option>
+              <option value="Completada" ${estado==='Completada'?'selected':''}>Completada</option>
+              <option value="Cancelada"  ${estado==='Cancelada' ?'selected':''}>Cancelada</option>
+              <option value="NoAsistio"  ${estado==='NoAsistio' ?'selected':''}>No Asistió</option>
+            </select>
+          </div>`;
+        }).join('');
 
       return `
       <div class="barber-card card rounded-2xl overflow-hidden" id="bcard-${b.id}">
@@ -385,6 +444,12 @@
         </div>
       </div>`;
     }).join('');
+
+    // Restaurar tarjetas que estaban expandidas
+    expandedIds.forEach(id => {
+      const card = document.getElementById(`bcard-${id}`);
+      if (card) card.classList.add('expanded');
+    });
   }
 
   // ── Toggle expand/collapse card ──────────────────────────────────
@@ -403,6 +468,25 @@
     setTimeout(() => btn.querySelector('i').classList.remove('animate-spin'), 800);
   }
 
+  // ── Cambiar estado de cita ───────────────────────────────────────
+  async function cambiarEstadoCita(citaId, nuevoEstado, selectEl) {
+    // Actualizar clases del select de forma inmediata (optimistic UI)
+    const estados = ['Confirmado','Pendiente','Completada','Cancelada','NoAsistio'];
+    estados.forEach(e => selectEl.classList.remove('s-' + e));
+    selectEl.classList.add('s-' + nuevoEstado);
+    selectEl.disabled = true;
+
+    try {
+      await FDB.updateCitaEstado(citaId, nuevoEstado);
+      // El onSnapshot refrescará el UI automáticamente
+    } catch (e) {
+      console.error('[Agenda] cambiarEstadoCita:', e);
+      // Revertir en caso de error
+      selectEl.disabled = false;
+      alert('Error al cambiar el estado: ' + e.message);
+    }
+  }
+
   // ── AUTH GATE ────────────────────────────────────────────────────
   firebase.auth().onAuthStateChanged(async user => {
     if (!user) { window.location.href = '/gestion-interna/login/'; return; }
@@ -416,6 +500,10 @@
       window.location.href = '/agenda';
       return;
     }
+
+    // Garantizar que barberos/{uid} exista para que las reglas Firestore
+    // permitan leer /citas (las reglas verifican por UID, no por email)
+    await FDB.ensureBarberoUidDoc(user.uid, user.email);
 
     // Inicializar
     const now    = new Date();

@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#111827">
+  <title>Métricas | Panel Admin</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <link href="/output.css" rel="stylesheet">
+  <script src="/config.js"></script>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="/firebase-config.js"></script>
+  <script src="/firebaseUtils.js?v=2.0"></script>
+
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      background-color: #111827;
+      color: #F9FAFB;
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      min-height: 100dvh;
+    }
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #374151; border-radius: 3px; }
+
+    /* Loading screen */
+    #loadingScreen {
+      position: fixed; inset: 0;
+      background: #111827;
+      display: flex; align-items: center; justify-content: center;
+      z-index: 999;
+      flex-direction: column; gap: 1rem;
+    }
+    #loadingScreen.hidden { display: none; }
+
+    /* Header fijo */
+    #met-header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(17,24,39,.97);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(52,211,153,.12);
+    }
+
+    /* Barras de progreso */
+    .prog-bar-bg { background: rgba(255,255,255,.06); border-radius: 9999px; height: 8px; overflow: hidden; }
+    .prog-bar    { height: 8px; border-radius: 9999px; transition: width .7s ease; }
+  </style>
+</head>
+
+<body>
+
+  <!-- Loading -->
+  <div id="loadingScreen">
+    <div style="width:48px;height:48px;border:3px solid #374151;border-top-color:#34d399;border-radius:50%;animation:spin .8s linear infinite;"></div>
+    <p style="color:#6b7280;font-size:.875rem;">Verificando acceso...</p>
+  </div>
+  <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+
+  <!-- Contenido principal -->
+  <div id="app" style="display:none;">
+
+    <!-- Header -->
+    <header id="met-header" class="px-4 md:px-8 py-3 flex items-center gap-3">
+      <a href="/gestion-interna" title="Volver al panel"
+        class="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors shrink-0">
+        <i class="ph-bold ph-arrow-left text-gray-400 text-base"></i>
+      </a>
+      <div class="flex-1 min-w-0">
+        <h1 class="text-base font-bold text-white leading-none flex items-center gap-2">
+          <i class="ph-fill ph-chart-bar text-[#34d399]"></i> Métricas del Negocio
+        </h1>
+        <p class="text-[11px] text-gray-500 mt-0.5">Análisis de rendimiento y datos para decisiones</p>
+      </div>
+      <div class="flex items-center gap-2 shrink-0">
+        <select id="met-periodo" onchange="cargarMetricas()"
+          class="bg-[#1f2937] border border-[#374151] text-white text-sm rounded-xl px-3 py-2 focus:outline-none focus:border-[#34d399]"
+          style="color-scheme:dark;">
+          <option value="hoy">Hoy</option>
+          <option value="semana">Esta semana</option>
+          <option value="mes" selected>Este mes</option>
+          <option value="mes_anterior">Mes anterior</option>
+          <option value="3meses">Últimos 3 meses</option>
+        </select>
+        <button id="btn-actualizar" onclick="triggerActualizar()"
+          class="flex items-center gap-1.5 bg-[#34d399]/10 border border-[#34d399]/20 text-[#34d399] text-sm font-semibold px-3 py-2 rounded-xl hover:bg-[#34d399]/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
+          <i id="btn-actualizar-icon" class="ph-bold ph-arrows-clockwise text-sm"></i>
+          <span class="hidden sm:inline">Actualizar</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Contenido scrollable -->
+    <main class="px-4 md:px-8 py-6 max-w-5xl mx-auto space-y-6 pb-16">
+
+      <!-- KPIs -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3" id="met-kpis">
+        <div class="bg-[#1f2937] border border-[#374151] rounded-2xl p-4 animate-pulse h-24"></div>
+        <div class="bg-[#1f2937] border border-[#374151] rounded-2xl p-4 animate-pulse h-24"></div>
+        <div class="bg-[#1f2937] border border-[#374151] rounded-2xl p-4 animate-pulse h-24"></div>
+        <div class="bg-[#1f2937] border border-[#374151] rounded-2xl p-4 animate-pulse h-24"></div>
+      </div>
+
+      <!-- Objetivos -->
+      <div class="bg-[#1f2937] border border-[#374151] rounded-2xl p-5">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-sm font-bold text-white flex items-center gap-2">
+            <i class="ph-fill ph-target text-[#34d399]"></i> Objetivos del mes
+          </h3>
+          <button onclick="toggleObjetivosEdit()"
+            class="text-xs font-semibold text-gray-500 hover:text-[#34d399] transition-colors flex items-center gap-1">
+            <i class="ph-bold ph-pencil text-xs"></i> <span id="met-obj-edit-label">Editar</span>
+          </button>
+        </div>
+        <div id="met-obj-view" class="space-y-3">
+          <div>
+            <div class="flex justify-between text-xs mb-1">
+              <span class="text-gray-400 font-semibold">Ingresos mensuales</span>
+              <span id="met-obj-ing-label" class="font-bold text-white">$0 / $0</span>
+            </div>
+            <div class="prog-bar-bg"><div id="met-obj-ing-bar" class="prog-bar" style="width:0%;background:#34d399;"></div></div>
+          </div>
+          <div>
+            <div class="flex justify-between text-xs mb-1">
+              <span class="text-gray-400 font-semibold">Citas completadas</span>
+              <span id="met-obj-citas-label" class="font-bold text-white">0 / 0</span>
+            </div>
+            <div class="prog-bar-bg"><div id="met-obj-citas-bar" class="prog-bar" style="width:0%;background:#818cf8;"></div></div>
+          </div>
+          <div>
+            <div class="flex justify-between text-xs mb-1">
+              <span class="text-gray-400 font-semibold">Clientes nuevos</span>
+              <span id="met-obj-nuevos-label" class="font-bold text-white">0 / 0</span>
+            </div>
+            <div class="prog-bar-bg"><div id="met-obj-nuevos-bar" class="prog-bar" style="width:0%;background:#fbbf24;"></div></div>
+          </div>
+        </div>
+        <div id="met-obj-form" style="display:none;" class="mt-4 pt-4 border-t border-[#374151] space-y-3">
+          <div class="grid grid-cols-3 gap-3">
+            <div>
+              <label class="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1">Ingresos ($)</label>
+              <input type="number" id="met-obj-ing-input" min="0" step="1000" placeholder="500000"
+                class="w-full bg-[#111827] border border-[#374151] text-white text-sm rounded-xl px-3 py-2 focus:outline-none focus:border-[#34d399]">
+            </div>
+            <div>
+              <label class="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1">Citas</label>
+              <input type="number" id="met-obj-citas-input" min="0" placeholder="80"
+                class="w-full bg-[#111827] border border-[#374151] text-white text-sm rounded-xl px-3 py-2 focus:outline-none focus:border-[#34d399]">
+            </div>
+            <div>
+              <label class="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1">Clientes</label>
+              <input type="number" id="met-obj-nuevos-input" min="0" placeholder="20"
+                class="w-full bg-[#111827] border border-[#374151] text-white text-sm rounded-xl px-3 py-2 focus:outline-none focus:border-[#34d399]">
+            </div>
+          </div>
+          <button onclick="guardarObjetivos()"
+            class="bg-[#34d399]/10 border border-[#34d399]/30 text-[#34d399] font-bold text-sm px-4 py-2 rounded-xl hover:bg-[#34d399]/20 transition-colors">
+            Guardar objetivos
+          </button>
+        </div>
+      </div>
+
+      <!-- Horas pico + Días -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div class="bg-[#1f2937] border border-[#374151] rounded-2xl p-5">
+          <h3 class="text-sm font-bold text-white flex items-center gap-2 mb-4">
+            <i class="ph-fill ph-clock text-[#34d399]"></i> Horas pico
+          </h3>
+          <div id="met-horas-chart" class="space-y-2">
+            <div class="animate-pulse h-4 bg-white/5 rounded-full"></div>
+          </div>
+          <p class="text-[10px] text-gray-600 mt-3">Basado en citas confirmadas y completadas.</p>
+        </div>
+        <div class="bg-[#1f2937] border border-[#374151] rounded-2xl p-5">
+          <h3 class="text-sm font-bold text-white flex items-center gap-2 mb-4">
+            <i class="ph-fill ph-calendar-dots text-indigo-400"></i> Días más activos
+          </h3>
+          <div id="met-dias-chart" class="space-y-2">
+            <div class="animate-pulse h-4 bg-white/5 rounded-full"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ranking barberos -->
+      <div class="bg-[#1f2937] border border-[#374151] rounded-2xl p-5">
+        <h3 class="text-sm font-bold text-white flex items-center gap-2 mb-4">
+          <i class="ph-fill ph-ranking text-yellow-400"></i> Ranking de barberos
+        </h3>
+        <div id="met-barberos-table" class="space-y-2">
+          <div class="animate-pulse h-12 bg-white/5 rounded-xl"></div>
+        </div>
+      </div>
+
+      <!-- Servicios -->
+      <div class="bg-[#1f2937] border border-[#374151] rounded-2xl p-5">
+        <h3 class="text-sm font-bold text-white flex items-center gap-2 mb-4">
+          <i class="ph-fill ph-scissors text-pink-400"></i> Servicios más solicitados
+        </h3>
+        <div id="met-servicios-chart" class="space-y-2">
+          <div class="animate-pulse h-4 bg-white/5 rounded-full"></div>
+        </div>
+      </div>
+
+      <!-- Publicidad inteligente -->
+      <div class="bg-[#1f2937] border border-[#374151] rounded-2xl p-5">
+        <h3 class="text-sm font-bold text-white flex items-center gap-2 mb-1">
+          <i class="ph-fill ph-megaphone text-orange-400"></i> Inteligencia publicitaria
+        </h3>
+        <p class="text-xs text-gray-500 mb-5">Datos accionables para saber a quién y cuándo hacer publicidad.</p>
+        <div id="met-publi-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="animate-pulse h-24 bg-white/5 rounded-xl"></div>
+          <div class="animate-pulse h-24 bg-white/5 rounded-xl"></div>
+        </div>
+      </div>
+
+      <!-- Clientes en fuga -->
+      <div class="bg-[#1f2937] border border-[#374151] rounded-2xl p-5">
+        <div class="flex items-center gap-2 mb-3">
+          <h3 class="text-sm font-bold text-white flex items-center gap-2">
+            <i class="ph-fill ph-warning text-red-400"></i> Clientes en riesgo de fuga
+          </h3>
+          <span id="met-fuga-badge" style="display:none;"
+            class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-400"></span>
+        </div>
+        <p class="text-xs text-gray-500 mb-3">No han visitado en más de 30 días.</p>
+        <div id="met-fuga-list" class="space-y-2 max-h-72 overflow-y-auto">
+          <div class="animate-pulse h-10 bg-white/5 rounded-xl"></div>
+        </div>
+      </div>
+
+      <!-- Top clientes -->
+      <div class="bg-[#1f2937] border border-[#374151] rounded-2xl p-5">
+        <h3 class="text-sm font-bold text-white flex items-center gap-2 mb-4">
+          <i class="ph-fill ph-star text-yellow-400"></i> Top 10 clientes más frecuentes
+        </h3>
+        <div id="met-top-clientes" class="space-y-2">
+          <div class="animate-pulse h-10 bg-white/5 rounded-xl"></div>
+        </div>
+      </div>
+
+      <!-- Stats finales -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="bg-[#1f2937] border border-[#374151] rounded-2xl p-5 text-center">
+          <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Tasa de cancelación</p>
+          <p id="met-cancel-pct" class="text-3xl font-black text-red-400">—</p>
+          <p class="text-xs text-gray-600 mt-1">del total de citas</p>
+        </div>
+        <div class="bg-[#1f2937] border border-[#374151] rounded-2xl p-5 text-center">
+          <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Ticket promedio</p>
+          <p id="met-ticket-avg" class="text-3xl font-black text-[#34d399]">—</p>
+          <p class="text-xs text-gray-600 mt-1">por cita completada</p>
+        </div>
+        <div class="bg-[#1f2937] border border-[#374151] rounded-2xl p-5 text-center">
+          <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Hora más vacía</p>
+          <p id="met-hora-vacia" class="text-3xl font-black text-indigo-400">—</p>
+          <p class="text-xs text-gray-600 mt-1">Publica ahí para llenar</p>
+        </div>
+      </div>
+
+    </main>
+  </div><!-- /app -->
+
+  <script>
+  'use strict';
+
+  // db ya declarado por firebase-config.js
+
+  // ── Auth guard ───────────────────────────────────────────────
+  firebase.auth().onAuthStateChanged(async (user) => {
+    if (!user) { window.location.href = '/gestion-interna/login/'; return; }
+
+    const isBarbero = await FDB.esBarbero(user.email, user.uid);
+    if (!isBarbero) { window.location.href = '/gestion-interna/login/'; return; }
+
+    const rol = await FDB.getRol(user.email, user.uid);
+    if (rol !== 'admin' && rol !== 'jefe') {
+      window.location.href = '/gestion-interna/login/';
+      return;
+    }
+
+    document.getElementById('loadingScreen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    cargarMetricas();
+  });
+
+  // ── Estado ───────────────────────────────────────────────────
+  let _metCitas       = [];
+  let _metLoading     = false;
+  let _metObjetivos   = { ingresos: 0, citas: 0, nuevos: 0 };
+  let _metObjEditOpen = false;
+
+  // ── Utilitarios ──────────────────────────────────────────────
+  function _fechaStr(d) {
+    return d.getFullYear() + '-' +
+      String(d.getMonth()+1).padStart(2,'0') + '-' +
+      String(d.getDate()).padStart(2,'0');
+  }
+  function _rango(periodo) {
+    const hoy = new Date(), yyyy = hoy.getFullYear(), mm = hoy.getMonth();
+    switch (periodo) {
+      case 'hoy':          { const s = _fechaStr(hoy); return { desde: s, hasta: s }; }
+      case 'semana':       { const l = new Date(hoy); l.setDate(hoy.getDate() - ((hoy.getDay()+6)%7)); return { desde: _fechaStr(l), hasta: _fechaStr(hoy) }; }
+      case 'mes_anterior': { return { desde: _fechaStr(new Date(yyyy, mm-1, 1)), hasta: _fechaStr(new Date(yyyy, mm, 0)) }; }
+      case '3meses':       { return { desde: _fechaStr(new Date(yyyy, mm-2, 1)), hasta: _fechaStr(hoy) }; }
+      default:             { return { desde: _fechaStr(new Date(yyyy, mm, 1)), hasta: _fechaStr(hoy) }; }
+    }
+  }
+  function _fmt(n) {
+    if (n >= 1000000) return '$' + (n/1000000).toFixed(1) + 'M';
+    if (n >= 1000)    return '$' + Math.round(n/1000) + 'K';
+    return '$' + n.toLocaleString('es-CL');
+  }
+  function _bar(pct, color = '#34d399') {
+    const w = Math.min(Math.round(pct), 100);
+    return `<div style="flex:1;background:rgba(255,255,255,.06);border-radius:9999px;height:8px;overflow:hidden;">
+      <div style="width:${w}%;height:8px;background:${color};border-radius:9999px;transition:width .5s;"></div>
+    </div>`;
+  }
+
+  // ── Objetivos ────────────────────────────────────────────────
+  function _cargarObjetivos() {
+    try { const r = localStorage.getItem('met_objetivos'); if (r) _metObjetivos = { ..._metObjetivos, ...JSON.parse(r) }; } catch(_) {}
+  }
+  function guardarObjetivos() {
+    _metObjetivos = {
+      ingresos: parseInt(document.getElementById('met-obj-ing-input').value) || 0,
+      citas:    parseInt(document.getElementById('met-obj-citas-input').value) || 0,
+      nuevos:   parseInt(document.getElementById('met-obj-nuevos-input').value) || 0,
+    };
+    localStorage.setItem('met_objetivos', JSON.stringify(_metObjetivos));
+    toggleObjetivosEdit();
+    _renderObjetivos(_metCitas);
+  }
+  function toggleObjetivosEdit() {
+    _metObjEditOpen = !_metObjEditOpen;
+    document.getElementById('met-obj-form').style.display = _metObjEditOpen ? 'block' : 'none';
+    document.getElementById('met-obj-edit-label').textContent = _metObjEditOpen ? 'Cerrar' : 'Editar';
+    if (_metObjEditOpen) {
+      document.getElementById('met-obj-ing-input').value    = _metObjetivos.ingresos || '';
+      document.getElementById('met-obj-citas-input').value  = _metObjetivos.citas    || '';
+      document.getElementById('met-obj-nuevos-input').value = _metObjetivos.nuevos   || '';
+    }
+  }
+
+  // ── Carga principal ──────────────────────────────────────────
+  async function cargarMetricas() {
+    if (_metLoading) return;
+    _metLoading = true;
+    _cargarObjetivos();
+
+    const periodo = document.getElementById('met-periodo').value || 'mes';
+    const { desde, hasta } = _rango(periodo);
+
+    ['met-kpis','met-horas-chart','met-dias-chart','met-barberos-table',
+     'met-servicios-chart','met-publi-grid','met-fuga-list','met-top-clientes'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.innerHTML = '<div style="height:40px;background:rgba(255,255,255,.05);border-radius:12px;animation:pulse 1.5s infinite;"></div>';
+    });
+
+    try {
+      const snap = await db.collection('citas')
+        .where('fecha', '>=', desde)
+        .where('fecha', '<=', hasta)
+        .get();
+
+      _metCitas = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+      _renderKPIs(_metCitas);
+      _renderObjetivos(_metCitas);
+      _renderHoras(_metCitas);
+      _renderDias(_metCitas);
+      _renderBarberos(_metCitas);
+      _renderServicios(_metCitas);
+      await _renderPublicidad(_metCitas, desde, hasta);
+
+    } catch(e) {
+      console.error('[Métricas]', e);
+      document.getElementById('met-kpis').innerHTML =
+        `<p style="color:#f87171;font-size:.875rem;grid-column:span 4;">Error: ${e.message}</p>`;
+    } finally {
+      _metLoading = false;
+    }
+  }
+
+  async function triggerActualizar() {
+    const btn  = document.getElementById('btn-actualizar');
+    const icon = document.getElementById('btn-actualizar-icon');
+    if (!btn || _metLoading) return;
+    btn.disabled = true;
+    icon.classList.add('animate-spin');
+    try { await cargarMetricas(); } finally {
+      btn.disabled = false;
+      icon.classList.remove('animate-spin');
+    }
+  }
+
+  // ── KPIs ─────────────────────────────────────────────────────
+  function _renderKPIs(citas) {
+    const comp   = citas.filter(c => c.estado === 'Completada');
+    const canc   = citas.filter(c => c.estado === 'Cancelada');
+    const pend   = citas.filter(c => c.estado !== 'Cancelada' && c.estado !== 'Completada');
+    const ing    = comp.reduce((s, c) => s + (Number(c.precio)||0), 0);
+    const ticket = comp.length ? Math.round(ing / comp.length) : 0;
+    const pctC   = citas.length ? Math.round((canc.length / citas.length) * 100) : 0;
+
+    document.getElementById('met-cancel-pct').textContent = pctC + '%';
+    document.getElementById('met-ticket-avg').textContent  = _fmt(ticket);
+
+    const kpis = [
+      { label:'Ingresos totales', value:_fmt(ing),        icon:'ph-fill ph-currency-dollar', color:'#34d399',  sub:`${comp.length} completadas` },
+      { label:'Total de citas',   value:citas.length,     icon:'ph-fill ph-calendar-check',  color:'#818cf8',  sub:`${pend.length} pendientes` },
+      { label:'Ticket promedio',  value:_fmt(ticket),     icon:'ph-fill ph-receipt',          color:'#fbbf24',  sub:'por cita completada' },
+      { label:'Cancelaciones',    value:canc.length,      icon:'ph-fill ph-x-circle',         color:'#f87171',  sub:pctC+'% del total' },
+    ];
+
+    document.getElementById('met-kpis').innerHTML = kpis.map(k => `
+      <div style="background:#1f2937;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:1rem;display:flex;flex-direction:column;gap:.5rem;">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <p style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.08em;">${k.label}</p>
+          <span style="width:32px;height:32px;background:${k.color}18;border-radius:8px;display:flex;align-items:center;justify-content:center;">
+            <i class="${k.icon}" style="color:${k.color};font-size:1rem;"></i>
+          </span>
+        </div>
+        <p style="font-size:1.5rem;font-weight:900;color:${k.color};line-height:1;">${k.value}</p>
+        <p style="font-size:11px;color:#4b5563;">${k.sub}</p>
+      </div>`).join('');
+  }
+
+  // ── Objetivos render ─────────────────────────────────────────
+  function _renderObjetivos(citas) {
+    const comp   = citas.filter(c => c.estado === 'Completada');
+    const ing    = comp.reduce((s, c) => s + (Number(c.precio)||0), 0);
+    const emails = [...new Set(citas.map(c => c.clienteEmail).filter(Boolean))];
+
+    const pctI = Math.min((_metObjetivos.ingresos ? (ing / _metObjetivos.ingresos)*100 : 0), 100);
+    const pctC = Math.min((_metObjetivos.citas    ? (comp.length / _metObjetivos.citas)*100 : 0), 100);
+    const pctN = Math.min((_metObjetivos.nuevos   ? (emails.length / _metObjetivos.nuevos)*100 : 0), 100);
+
+    document.getElementById('met-obj-ing-label').textContent    = `${_fmt(ing)} / ${_fmt(_metObjetivos.ingresos||0)}`;
+    document.getElementById('met-obj-citas-label').textContent  = `${comp.length} / ${_metObjetivos.citas||0}`;
+    document.getElementById('met-obj-nuevos-label').textContent = `${emails.length} / ${_metObjetivos.nuevos||0}`;
+    document.getElementById('met-obj-ing-bar').style.width      = pctI + '%';
+    document.getElementById('met-obj-citas-bar').style.width    = pctC + '%';
+    document.getElementById('met-obj-nuevos-bar').style.width   = pctN + '%';
+    document.getElementById('met-obj-ing-bar').style.background    = pctI>=80?'#34d399':pctI>=40?'#fbbf24':'#f87171';
+    document.getElementById('met-obj-citas-bar').style.background  = pctC>=80?'#818cf8':pctC>=40?'#fbbf24':'#f87171';
+    document.getElementById('met-obj-nuevos-bar').style.background = pctN>=80?'#fbbf24':pctN>=40?'#fb923c':'#f87171';
+  }
+
+  // ── Horas pico ───────────────────────────────────────────────
+  function _renderHoras(citas) {
+    const map = {};
+    citas.filter(c => c.estado !== 'Cancelada' && c.hora).forEach(c => {
+      const h = c.hora.split(':')[0].padStart(2,'0') + ':00';
+      map[h] = (map[h]||0) + 1;
+    });
+    const sorted = Object.entries(map).sort((a,b) => b[1]-a[1]);
+    const max    = sorted[0]?.[1] || 1;
+    const todas  = Array.from({length:13},(_,i)=>`${(i+8).toString().padStart(2,'0')}:00`);
+    const vacia  = todas.find(h => !map[h]) || (sorted[sorted.length-1]?.[0] || '—');
+    document.getElementById('met-hora-vacia').textContent = vacia;
+
+    const col = ['#34d399','#34d399','#fbbf24','#fbbf24','#f87171','#f87171'];
+    const el  = document.getElementById('met-horas-chart');
+    if (!sorted.length) { el.innerHTML = '<p style="color:#4b5563;font-size:.875rem;text-align:center;padding:1rem;">Sin datos para el período.</p>'; return; }
+    el.innerHTML = sorted.slice(0,10).map(([hora, cnt], i) => `
+      <div style="display:flex;align-items:center;gap:.75rem;">
+        <span style="font-size:.75rem;font-weight:700;color:#9ca3af;width:44px;flex-shrink:0;">${hora}</span>
+        ${_bar((cnt/max)*100, col[Math.min(i,5)])}
+        <span style="font-size:.75rem;font-weight:700;color:white;width:24px;text-align:right;flex-shrink:0;">${cnt}</span>
+      </div>`).join('');
+  }
+
+  // ── Días semana ───────────────────────────────────────────────
+  function _renderDias(citas) {
+    const nombres = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+    const map = [0,0,0,0,0,0,0];
+    citas.filter(c => c.estado !== 'Cancelada' && c.fecha).forEach(c => {
+      map[new Date(c.fecha+'T12:00:00').getDay()]++;
+    });
+    const max = Math.max(...map) || 1;
+    document.getElementById('met-dias-chart').innerHTML = [1,2,3,4,5,6,0].map(dw => `
+      <div style="display:flex;align-items:center;gap:.75rem;">
+        <span style="font-size:.75rem;font-weight:700;color:#9ca3af;width:56px;flex-shrink:0;">${nombres[dw].slice(0,3)}</span>
+        ${_bar((map[dw]/max)*100, '#818cf8')}
+        <span style="font-size:.75rem;font-weight:700;color:white;width:24px;text-align:right;flex-shrink:0;">${map[dw]}</span>
+      </div>`).join('');
+  }
+
+  // ── Ranking barberos ─────────────────────────────────────────
+  function _renderBarberos(citas) {
+    const map = {};
+    citas.forEach(c => {
+      const n = c.barbero || c.barberoNombre || 'Sin asignar';
+      if (!map[n]) map[n] = { citas:0, ingresos:0, canceladas:0 };
+      map[n].citas++;
+      if (c.estado === 'Completada') map[n].ingresos += Number(c.precio)||0;
+      if (c.estado === 'Cancelada')  map[n].canceladas++;
+    });
+    const sorted = Object.entries(map).sort((a,b) => b[1].ingresos - a[1].ingresos);
+    const maxIng = sorted[0]?.[1].ingresos || 1;
+    const medals = ['🥇','🥈','🥉'];
+    const el = document.getElementById('met-barberos-table');
+    if (!sorted.length) { el.innerHTML = '<p style="color:#4b5563;font-size:.875rem;text-align:center;padding:1rem;">Sin citas.</p>'; return; }
+    el.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr auto auto auto;font-size:10px;font-weight:700;color:#4b5563;text-transform:uppercase;letter-spacing:.08em;padding:.25rem .75rem;margin-bottom:.25rem;">
+        <span>Barbero</span><span style="text-align:center;">Citas</span><span style="text-align:center;min-width:60px;">Ingresos</span><span style="text-align:center;min-width:40px;">Canc.</span>
+      </div>` +
+      sorted.map(([nombre, d], i) => `
+      <div style="display:flex;align-items:center;gap:.75rem;background:#111827;border:1px solid #374151;border-radius:12px;padding:.75rem;margin-bottom:.5rem;">
+        <span style="font-size:1rem;flex-shrink:0;">${medals[i] || '#' + (i+1)}</span>
+        <div style="flex:1;min-width:0;">
+          <p style="font-size:.875rem;font-weight:700;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${nombre}</p>
+          ${_bar((d.ingresos/maxIng)*100)}
+        </div>
+        <span style="font-size:.75rem;font-weight:700;color:#9ca3af;min-width:32px;text-align:center;flex-shrink:0;">${d.citas}</span>
+        <span style="font-size:.75rem;font-weight:700;color:#34d399;min-width:56px;text-align:center;flex-shrink:0;">${_fmt(d.ingresos)}</span>
+        <span style="font-size:.75rem;font-weight:700;color:#f87171;min-width:32px;text-align:center;flex-shrink:0;">${d.canceladas}</span>
+      </div>`).join('');
+  }
+
+  // ── Servicios ────────────────────────────────────────────────
+  function _renderServicios(citas) {
+    const map = {};
+    citas.filter(c => c.estado !== 'Cancelada').forEach(c => {
+      const s = c.servicioNombre || 'Desconocido';
+      if (!map[s]) map[s] = { cnt:0, ingresos:0 };
+      map[s].cnt++; map[s].ingresos += Number(c.precio)||0;
+    });
+    const sorted = Object.entries(map).sort((a,b) => b[1].cnt - a[1].cnt);
+    const maxCnt = sorted[0]?.[1].cnt || 1;
+    const cols   = ['#34d399','#818cf8','#fbbf24','#f87171','#fb923c','#a78bfa'];
+    const el     = document.getElementById('met-servicios-chart');
+    if (!sorted.length) { el.innerHTML = '<p style="color:#4b5563;font-size:.875rem;text-align:center;padding:1rem;">Sin datos.</p>'; return; }
+    el.innerHTML = sorted.slice(0,8).map(([nombre, d], i) => `
+      <div style="display:flex;align-items:center;gap:.75rem;">
+        <span style="font-size:.75rem;font-weight:600;color:#9ca3af;min-width:100px;max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${nombre}">${nombre}</span>
+        ${_bar((d.cnt/maxCnt)*100, cols[i%cols.length])}
+        <span style="font-size:.75rem;font-weight:700;color:white;width:24px;text-align:right;flex-shrink:0;">${d.cnt}</span>
+        <span style="font-size:.75rem;color:#4b5563;flex-shrink:0;">${_fmt(d.ingresos)}</span>
+      </div>`).join('');
+  }
+
+  // ── Publicidad inteligente ───────────────────────────────────
+  async function _renderPublicidad(citas, desde, hasta) {
+    const diasNombres = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+    const mapDias = [0,0,0,0,0,0,0];
+    citas.filter(c => c.estado !== 'Cancelada' && c.fecha).forEach(c => {
+      mapDias[new Date(c.fecha+'T12:00:00').getDay()]++;
+    });
+    const laboral  = [1,2,3,4,5,6];
+    const diaVacio = laboral.reduce((min, d) => mapDias[d] < mapDias[min] ? d : min, laboral[0]);
+
+    const mapSvc = {};
+    citas.filter(c => c.estado === 'Completada').forEach(c => {
+      const s = c.servicioNombre || 'Desconocido';
+      if (!mapSvc[s]) mapSvc[s] = { cnt:0, ingresos:0 };
+      mapSvc[s].cnt++; mapSvc[s].ingresos += Number(c.precio)||0;
+    });
+    const svcRentable = Object.entries(mapSvc).sort((a,b) => b[1].ingresos - a[1].ingresos)[0];
+
+    const mapHoras = {};
+    citas.filter(c => c.estado !== 'Cancelada' && c.hora).forEach(c => {
+      const h = c.hora.split(':')[0]; mapHoras[h] = (mapHoras[h]||0)+1;
+    });
+    const rango     = Array.from({length:11},(_,i)=>`${i+9}`);
+    const horaFloja = rango.reduce((min,h) => (mapHoras[h]||0)<(mapHoras[min]||0)?h:min, rango[0]);
+
+    const telCount = {};
+    citas.forEach(c => { if(c.clienteTelefono) telCount[c.clienteTelefono]=(telCount[c.clienteTelefono]||0)+1; });
+    const recurrentes = Object.values(telCount).filter(v=>v>1).length;
+    const totalUnicos = Object.keys(telCount).length;
+    const retencion   = totalUnicos ? Math.round((recurrentes/totalUnicos)*100) : 0;
+
+    const cards = [
+      { icon:'ph-fill ph-calendar-x', color:'#818cf8', title:'Día para hacer publicidad',
+        value: diasNombres[diaVacio], desc:`Día más flojo (${mapDias[diaVacio]} citas). Publica ofertas el día anterior.` },
+      { icon:'ph-fill ph-clock', color:'#fbbf24', title:'Hora para promover descuento',
+        value:`${horaFloja}:00 hrs`, desc:`Pocos clientes a esa hora. Un descuento ahí llena esos huecos.` },
+      { icon:'ph-fill ph-receipt', color:'#34d399', title:'Servicio más rentable',
+        value: svcRentable ? svcRentable[0] : '—',
+        desc: svcRentable ? `${_fmt(svcRentable[1].ingresos)} en el período — promuévelo primero.` : 'Sin datos.' },
+      { icon:'ph-fill ph-arrow-counter-clockwise', color:'#f87171', title:'Tasa de retención',
+        value: retencion+'%', desc:`${recurrentes} de ${totalUnicos} clientes volvieron.` },
+    ];
+
+    document.getElementById('met-publi-grid').innerHTML = cards.map(c => `
+      <div style="background:#111827;border:1px solid #374151;border-radius:12px;padding:1rem;display:flex;gap:.75rem;">
+        <div style="width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:${c.color}18;border:1px solid ${c.color}30;">
+          <i class="${c.icon}" style="color:${c.color};font-size:1rem;"></i>
+        </div>
+        <div style="min-width:0;">
+          <p style="font-size:10px;font-weight:700;color:#4b5563;text-transform:uppercase;letter-spacing:.08em;">${c.title}</p>
+          <p style="font-size:1rem;font-weight:900;color:white;margin:.25rem 0;">${c.value}</p>
+          <p style="font-size:11px;color:#4b5563;line-height:1.4;">${c.desc}</p>
+        </div>
+      </div>`).join('');
+
+    await _renderFuga();
+    _renderTopClientes(citas);
+  }
+
+  // ── Clientes en fuga ─────────────────────────────────────────
+  async function _renderFuga() {
+    try {
+      const corte = new Date();
+      corte.setDate(corte.getDate() - 30);
+      const corteStr = _fechaStr(corte);
+
+      const [snapViejos, snapRecientes] = await Promise.all([
+        db.collection('citas').where('fecha', '<', corteStr).where('estado', '!=', 'Cancelada').get(),
+        db.collection('citas').where('fecha', '>=', corteStr).where('estado', '!=', 'Cancelada').get(),
+      ]);
+
+      const recTels = new Set(snapRecientes.docs.map(d => d.data().clienteTelefono).filter(Boolean));
+      const fugaMap = {};
+      snapViejos.docs.forEach(d => {
+        const data = d.data(), tel = data.clienteTelefono;
+        if (!tel || recTels.has(tel)) return;
+        if (!fugaMap[tel] || data.fecha > fugaMap[tel].ultimaFecha) {
+          fugaMap[tel] = { nombre: data.clienteNombre || 'Sin nombre', tel, ultimaFecha: data.fecha, servicio: data.servicioNombre||'' };
+        }
+      });
+
+      const lista = Object.values(fugaMap).sort((a,b) => b.ultimaFecha.localeCompare(a.ultimaFecha)).slice(0,50);
+
+      const badge = document.getElementById('met-fuga-badge');
+      badge.textContent = lista.length;
+      badge.style.display = lista.length ? 'inline-flex' : 'none';
+
+      const el = document.getElementById('met-fuga-list');
+      if (!lista.length) { el.innerHTML = '<p style="color:#4b5563;font-size:.875rem;text-align:center;padding:1rem;">🎉 Sin clientes en riesgo.</p>'; return; }
+
+      el.innerHTML = lista.map(c => {
+        const tel    = (c.tel||'').replace(/\D/g,'');
+        const waLink = tel ? `https://wa.me/${tel.startsWith('56')?tel:'56'+tel}?text=${encodeURIComponent(`Hola ${c.nombre.split(' ')[0]}! Te extrañamos en Elegance 💈 ¿Cuándo agendamos tu próximo corte?`)}` : null;
+        const dias   = Math.round((new Date() - new Date(c.ultimaFecha+'T12:00:00'))/(864e5));
+        return `
+        <div style="display:flex;align-items:center;gap:.75rem;background:#111827;border:1px solid #374151;border-radius:12px;padding:.625rem .75rem;margin-bottom:.5rem;">
+          <div style="width:32px;height:32px;border-radius:50%;background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <i class="ph-fill ph-user" style="color:#f87171;font-size:.875rem;"></i>
+          </div>
+          <div style="flex:1;min-width:0;">
+            <p style="font-size:.875rem;font-weight:600;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${c.nombre}</p>
+            <p style="font-size:11px;color:#4b5563;">Último: ${c.ultimaFecha} · hace ${dias} días</p>
+          </div>
+          ${waLink ? `<a href="${waLink}" target="_blank"
+            style="width:32px;height:32px;border-radius:8px;background:rgba(37,211,102,.1);border:1px solid rgba(37,211,102,.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;text-decoration:none;">
+            <i class="ph-fill ph-whatsapp-logo" style="color:#25D366;font-size:1rem;"></i></a>` : ''}
+        </div>`;
+      }).join('');
+    } catch(e) {
+      document.getElementById('met-fuga-list').innerHTML = '<p style="color:#4b5563;font-size:.75rem;text-align:center;padding:1rem;">Error cargando datos.</p>';
+    }
+  }
+
+  // ── Top clientes ─────────────────────────────────────────────
+  function _renderTopClientes(citas) {
+    const map = {};
+    citas.filter(c => c.estado !== 'Cancelada').forEach(c => {
+      const tel = c.clienteTelefono || 'sin_tel';
+      if (!map[tel]) map[tel] = { nombre: c.clienteNombre || 'Sin nombre', cnt:0, ingresos:0 };
+      map[tel].cnt++; map[tel].ingresos += Number(c.precio)||0;
+    });
+    const sorted = Object.entries(map).sort((a,b) => b[1].cnt - a[1].cnt).slice(0,10);
+    const maxCnt = sorted[0]?.[1].cnt || 1;
+    const medals = ['🥇','🥈','🥉'];
+    const el     = document.getElementById('met-top-clientes');
+    if (!sorted.length) { el.innerHTML = '<p style="color:#4b5563;font-size:.875rem;text-align:center;padding:1rem;">Sin datos.</p>'; return; }
+    el.innerHTML = sorted.map(([tel, d], i) => `
+      <div style="display:flex;align-items:center;gap:.75rem;background:#111827;border:1px solid #374151;border-radius:12px;padding:.625rem .75rem;margin-bottom:.5rem;">
+        <span style="font-size:1rem;flex-shrink:0;">${medals[i] || '<span style="font-size:.75rem;font-weight:700;color:#4b5563;">#'+(i+1)+'</span>'}</span>
+        <div style="flex:1;min-width:0;">
+          <p style="font-size:.875rem;font-weight:600;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${d.nombre}</p>
+          ${_bar((d.cnt/maxCnt)*100, '#fbbf24')}
+        </div>
+        <span style="font-size:.75rem;font-weight:700;color:#fbbf24;flex-shrink:0;">${d.cnt} visitas</span>
+        <span style="font-size:.75rem;color:#4b5563;flex-shrink:0;">${_fmt(d.ingresos)}</span>
+      </div>`).join('');
+  }
+  </script>
+</body>
+</html>

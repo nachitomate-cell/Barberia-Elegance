@@ -130,18 +130,6 @@ const FDB = (() => {
       await batch.commit();
     }
 
-    // Asegurar que los UIDs específicos solicitados existan (fuera del flag de migración general)
-    try {
-      const uids = ['MRbgFWo4dtUoauZea2YhkYXcjtJ3', 'oQicdNhcCwbTFXU7NyNyfNeeXqZ2'];
-      for (const uid of uids) {
-        const doc = await db.collection(COL.BARBEROS).doc(uid).get();
-        if (!doc.exists) {
-          await db.collection(COL.BARBEROS).doc(uid).set({ uid: uid, activo: true }, { merge: true });
-          console.info(`[FDB] Barbero por UID agregado: ${uid}`);
-        }
-      }
-    } catch (e) { console.warn('[FDB] Error asegurando UIDs:', e); }
-
     localStorage.setItem(FLAG, '1');
     console.info('[FDB] Migración completada.');
   }
@@ -538,7 +526,7 @@ const FDB = (() => {
           const nombre = d.nombre || d.displayName || (d.email ? d.email.split('@')[0] : null) || 'Barbero';
           return { id: doc.id, nombre, foto: d.foto || d.photoURL || null, disponible: d.disponible !== false, ...d };
         })
-        .filter(b => b.activo !== false && b.rol !== 'admin')
+        .filter(b => b.activo !== false && b.rol !== 'admin' && !b._mainDocId)
         .sort((a, b) => (a.orden || 0) - (b.orden || 0) || a.nombre.localeCompare(b.nombre));
     } catch (e) {
       console.error('[FDB] Error obteniendo barberos:', e);
@@ -581,14 +569,17 @@ const FDB = (() => {
     try {
       if (uid) {
         const doc = await db.collection(COL.BARBEROS).doc(uid).get();
-        if (doc.exists && doc.data().activo !== false) return uid;
+        if (doc.exists && doc.data().activo !== false) {
+          // Si es doc de enlace, devolver el ID del doc principal
+          return doc.data()._mainDocId || uid;
+        }
       }
       if (email) {
         const snap = await db.collection(COL.BARBEROS).get();
         const targetEmail = email.toLowerCase();
         const doc = snap.docs.find(d => {
           const data = d.data();
-          if (data.activo === false) return false;
+          if (data.activo === false || data._mainDocId) return false;
           const docEmail = typeof data.email === 'string' ? data.email.toLowerCase().trim() : '';
           return docEmail === targetEmail;
         });
@@ -655,6 +646,46 @@ const FDB = (() => {
       return 'invitado';
     } catch (e) {
       return 'error';
+    }
+  }
+
+  /* ──────────────────────────────────────────────────────────────
+     ENLACE UID: garantiza que barberos/{uid} exista para que las
+     reglas de Firestore (que verifican por UID) reconozcan al
+     barbero. Se crea un doc de enlace mínimo con _mainDocId
+     apuntando al doc principal del barbero.
+     ────────────────────────────────────────────────────────────── */
+  async function ensureBarberoUidDoc(uid, email) {
+    if (!uid) return;
+    try {
+      const uidDoc = await db.collection(COL.BARBEROS).doc(uid).get();
+      if (uidDoc.exists && !uidDoc.data()._needsSync) return;
+
+      let mainDoc = null;
+      const targetEmail = (email || '').toLowerCase().trim();
+      if (targetEmail) {
+        const snap = await db.collection(COL.BARBEROS).get();
+        mainDoc = snap.docs.find(d => {
+          if (d.id === uid) return false;
+          const data = d.data();
+          if (data.activo === false || data._mainDocId) return false;
+          const docEmail = typeof data.email === 'string' ? data.email.toLowerCase().trim() : '';
+          return docEmail === targetEmail;
+        }) || null;
+      }
+
+      const linkData = {
+        activo: true,
+        uid,
+        _mainDocId: mainDoc ? mainDoc.id : uid,
+        rol: mainDoc ? (mainDoc.data().rol || 'barbero') : 'barbero',
+        nombre: mainDoc ? (mainDoc.data().nombre || mainDoc.data().displayName || '') : '',
+      };
+
+      await db.collection(COL.BARBEROS).doc(uid).set(linkData, { merge: true });
+      console.info('[FDB] ensureBarberoUidDoc: doc enlace creado/actualizado', uid);
+    } catch (e) {
+      console.warn('[FDB] ensureBarberoUidDoc:', e.message);
     }
   }
 
@@ -741,6 +772,7 @@ const FDB = (() => {
     incrementarSellos, modificarSellos, canjearSellos,
     // Barberos (Permisos)
     getBarberos, esBarbero, esAdminJefe, getBarberoId, getRol,
+    ensureBarberoUidDoc,
   };
 })();
 
