@@ -38,7 +38,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
   <script src="firebase-config.js"></script>
-  <script src="firebaseUtils.js?v=2.0"></script>
+  <script src="firebaseUtils.js?v=2.1"></script>
 
 
   <style>
@@ -668,18 +668,16 @@
     }
 
     async function initServices() {
-      try {
-        _fsConfig   = await FDB.getConfig();
-        _fsServices = await FDB.getServicios();
-        _fsBarberos = await FDB.getBarberos();
-        if (!_fsServices.length) _fsServices = DB.getServices();
-        if (!_fsBarberos.length) _fsBarberos = SHOP.barberos;
-      } catch(e) {
-        console.warn('[Reservar] Firestore no disponible, usando localStorage/config:', e.message);
-        _fsConfig   = DB.getSettings();
-        _fsServices = DB.getServices();
-        _fsBarberos = SHOP.barberos;
-      }
+      const [rConfig, rServices, rBarberos] = await Promise.allSettled([
+        FDB.getConfig(),
+        FDB.getServicios(),
+        FDB.getBarberos()
+      ]);
+      _fsConfig   = rConfig.status   === 'fulfilled' ? rConfig.value   : DB.getSettings();
+      _fsServices = rServices.status === 'fulfilled' ? rServices.value : DB.getServices();
+      _fsBarberos = rBarberos.status === 'fulfilled' ? rBarberos.value : SHOP.barberos;
+      if (!_fsServices.length) _fsServices = DB.getServices();
+      if (!_fsBarberos.length) _fsBarberos = SHOP.barberos;
       window._fsServices = _fsServices;
       await precargarBloqueos();
       renderCategories(_fsServices);
