@@ -12,6 +12,7 @@
 
 const { onDocumentCreated }    = require('firebase-functions/v2/firestore');
 const { onSchedule }           = require('firebase-functions/v2/scheduler');
+const { onCall, HttpsError }   = require('firebase-functions/v2/https');
 const { setGlobalOptions }     = require('firebase-functions/v2');
 const { logger }               = require('firebase-functions');
 const admin                    = require('firebase-admin');
@@ -243,4 +244,62 @@ exports.limpiarTokensInactivos = onSchedule('0 3 * * 0', async () => {
     await batch.commit();
   }
   logger.info(`[Cron] ${ids.length} tokens eliminados.`);
+});
+
+// ─────────────────────────────────────────────────────────────────
+//  CALLABLE: cambiar contraseña de un barbero desde el panel admin
+//  Solo admins/jefes pueden invocar esta función.
+// ─────────────────────────────────────────────────────────────────
+exports.cambiarPasswordBarbero = onCall({ region: 'us-central1' }, async (request) => {
+  const callerUid = request.auth?.uid;
+  if (!callerUid) throw new HttpsError('unauthenticated', 'Debes iniciar sesión.');
+
+  const BOOTSTRAP_ADMINS = ['ignaciiio.mate@gmail.com', 'barrazanicolasfabian@gmail.com'];
+  const callerEmail = request.auth?.token?.email || '';
+  const isBootstrap  = BOOTSTRAP_ADMINS.includes(callerEmail.toLowerCase());
+
+  if (!isBootstrap) {
+    // Verificar que el caller sea admin/jefe en Firestore
+    const callerDoc = await db.collection('barberos').doc(callerUid).get();
+    const rol = callerDoc.exists ? callerDoc.data().rol : null;
+    if (rol !== 'admin' && rol !== 'jefe') {
+      throw new HttpsError('permission-denied', 'Solo administradores pueden cambiar contraseñas.');
+    }
+  }
+
+  const { barberoId, password } = request.data;
+  if (!barberoId || !password || password.length < 6) {
+    throw new HttpsError('invalid-argument', 'barberoId y contraseña (mín. 6 caracteres) son requeridos.');
+  }
+
+  // Resolver el UID del barbero desde su barberoId (ID del doc original)
+  let targetUid = null;
+
+  // 1. Buscar un doc de enlace que apunte a este barberoId
+  const linkSnap = await db.collection('barberos')
+    .where('_mainDocId', '==', barberoId)
+    .limit(1)
+    .get();
+
+  if (!linkSnap.empty) {
+    targetUid = linkSnap.docs[0].id; // El ID del link doc ES el UID de Firebase Auth
+  } else {
+    // 2. Quizás el barberoId mismo es el UID (doc original con uid===id)
+    const barberoDoc = await db.collection('barberos').doc(barberoId).get();
+    if (barberoDoc.exists) {
+      const data = barberoDoc.data();
+      targetUid = data.uid || barberoId;
+    }
+  }
+
+  if (!targetUid) throw new HttpsError('not-found', 'No se encontró el barbero.');
+
+  try {
+    await admin.auth().updateUser(targetUid, { password });
+    logger.info(`[Admin] Contraseña actualizada para uid=${targetUid} barberoId=${barberoId}`);
+    return { ok: true };
+  } catch (err) {
+    logger.error('[Admin] Error actualizando contraseña:', err);
+    throw new HttpsError('internal', err.message);
+  }
 });
