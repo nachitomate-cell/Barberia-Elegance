@@ -271,28 +271,29 @@
             }
 
             // Buscar por UID primero
-            let foundDoc = snap.docs.find(d => d.id === uid && d.data().activo !== false);
+            let uidDoc = snap.docs.find(d => d.id === uid && d.data().activo !== false);
+            let foundDoc = null;
 
-            // Si es un doc de enlace auto-referenciante (_mainDocId === uid), está corrupto.
-            // Lo descartamos para que el fallback por email encuentre el doc original.
-            if (foundDoc && foundDoc.data()._mainDocId === foundDoc.id) {
-                foundDoc = null;
-            }
-
-            // Si es un doc de enlace válido, usamos _mainDocId como barberoId real.
-            if (foundDoc && foundDoc.data()._mainDocId && foundDoc.data()._mainDocId !== foundDoc.id) {
-                const data = foundDoc.data();
-                const rol = data.rol || 'barbero';
+            // Si es un doc de enlace VÁLIDO (apunta a otro ID), usarlo directamente.
+            if (uidDoc && uidDoc.data()._mainDocId && uidDoc.data()._mainDocId !== uidDoc.id) {
+                const d = uidDoc.data();
+                const rol = d.rol || 'barbero';
                 return {
                     isBarbero: true,
                     isAdmin: rol === 'admin' || rol === 'jefe',
-                    barberoId: data._mainDocId,
-                    nombre: data.nombre || data.displayName || null,
+                    barberoId: d._mainDocId,
+                    nombre: d.nombre || null,
                     snap,
                 };
             }
 
-            // Fallback: buscar por email (encuentra el doc original)
+            // Si NO es un doc de enlace (doc original con uid===id o doc sin _mainDocId),
+            // es el barbero en su propio ID — usar directamente.
+            if (uidDoc && !uidDoc.data()._mainDocId) {
+                foundDoc = uidDoc;
+            }
+
+            // Fallback 1: buscar por email en docs originales (sin _mainDocId)
             if (!foundDoc && email) {
                 const targetEmail = email.toLowerCase().trim();
                 foundDoc = snap.docs.find(d => {
@@ -301,6 +302,19 @@
                     const docEmail = typeof data.email === 'string' ? data.email.toLowerCase().trim() : '';
                     return docEmail === targetEmail;
                 });
+            }
+
+            // Fallback 2: buscar por nombre usando el nombre del doc UID corrupto
+            // (cubre barberos sin campo email en su doc original)
+            if (!foundDoc && uidDoc) {
+                const nombreRef = (uidDoc.data().nombre || '').toLowerCase().trim();
+                if (nombreRef) {
+                    foundDoc = snap.docs.find(d => {
+                        const data = d.data();
+                        if (d.id === uid || data.activo === false || data._mainDocId) return false;
+                        return (data.nombre || '').toLowerCase().trim() === nombreRef;
+                    });
+                }
             }
 
             if (!foundDoc) return { isBarbero: false, isAdmin: false, barberoId: null, nombre: null, snap };
@@ -345,7 +359,9 @@
                     }
 
                     barberId = myBarberoId;
-                    await FDB.ensureBarberoUidDoc(user.uid, user.email);
+                    // Pasamos barberId (ID del doc original) para que el enlace UID
+                    // se cree correctamente incluso sin campo email en el doc.
+                    await FDB.ensureBarberoUidDoc(user.uid, user.email, barberId);
 
                     // Precargar nombre si ya lo tenemos del snap anterior
                     if (info.nombre) {

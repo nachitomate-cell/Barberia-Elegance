@@ -671,45 +671,67 @@ const FDB = (() => {
      barbero. Se crea un doc de enlace mínimo con _mainDocId
      apuntando al doc principal del barbero.
      ────────────────────────────────────────────────────────────── */
-  async function ensureBarberoUidDoc(uid, email) {
+  // mainDocId: ID del doc original del barbero (ya resuelto por resolverInfoBarbero).
+  // Pasarlo evita una búsqueda extra y funciona aunque el doc no tenga email.
+  async function ensureBarberoUidDoc(uid, email, mainDocId) {
     if (!uid) return;
     try {
       const uidDoc = await db.collection(COL.BARBEROS).doc(uid).get();
 
-      // Doc ya existe y es válido (no auto-referenciante, no marcado para re-sync)
       const existingData = uidDoc.exists ? uidDoc.data() : null;
       const isSelfRef = existingData && existingData._mainDocId === uid;
+      // Doc ya correcto y no necesita resync
       if (uidDoc.exists && !isSelfRef && !existingData._needsSync) return;
 
-      // Buscar el doc principal del barbero por email
-      const targetEmail = (email || '').toLowerCase().trim();
-      const snap = await db.collection(COL.BARBEROS).get();
-      const mainDoc = snap.docs.find(d => {
-        if (d.id === uid) return false;
-        const data = d.data();
-        if (data.activo === false || data._mainDocId) return false;
-        const docEmail = typeof data.email === 'string' ? data.email.toLowerCase().trim() : '';
-        return docEmail === targetEmail;
-      }) || null;
+      let mainDoc = null;
+
+      // 1. Usar mainDocId ya conocido (evita búsqueda si ya lo tenemos)
+      if (mainDocId && mainDocId !== uid) {
+        const snap = await db.collection(COL.BARBEROS).doc(mainDocId).get();
+        if (snap.exists) mainDoc = snap;
+      }
+
+      // 2. Fallback: buscar por email
+      if (!mainDoc) {
+        const targetEmail = (email || '').toLowerCase().trim();
+        const allSnap = await db.collection(COL.BARBEROS).get();
+        mainDoc = allSnap.docs.find(d => {
+          if (d.id === uid) return false;
+          const data = d.data();
+          if (data.activo === false || data._mainDocId) return false;
+          const docEmail = typeof data.email === 'string' ? data.email.toLowerCase().trim() : '';
+          return targetEmail && docEmail === targetEmail;
+        }) || null;
+
+        // 3. Fallback: buscar por nombre (cubre barberos sin campo email)
+        if (!mainDoc && existingData?.nombre) {
+          const nombreRef = existingData.nombre.toLowerCase().trim();
+          mainDoc = allSnap.docs.find(d => {
+            if (d.id === uid) return false;
+            const data = d.data();
+            if (data.activo === false || data._mainDocId) return false;
+            return (data.nombre || '').toLowerCase().trim() === nombreRef;
+          }) || null;
+        }
+      }
 
       if (!mainDoc) {
-        // No se encontró el doc principal — no crear un enlace auto-referenciante.
-        // El admin debe agregar el email correcto al doc del barbero en Firestore.
-        console.warn('[FDB] ensureBarberoUidDoc: no se encontró doc principal para', email, '— agrega el email al doc del barbero en Firestore.');
+        console.warn('[FDB] ensureBarberoUidDoc: no se encontró doc principal para uid', uid, '— agrega email al doc del barbero.');
         return;
       }
 
+      const mData = typeof mainDoc.data === 'function' ? mainDoc.data() : mainDoc;
       const linkData = {
         activo: true,
         uid,
-        email: targetEmail || (mainDoc.data().email || ''),
-        _mainDocId: mainDoc.id,
-        rol: mainDoc.data().rol || 'barbero',
-        nombre: mainDoc.data().nombre || mainDoc.data().displayName || '',
+        email: (email || '').toLowerCase().trim() || mData.email || '',
+        _mainDocId: typeof mainDoc.id === 'string' ? mainDoc.id : mainDocId,
+        rol: mData.rol || 'barbero',
+        nombre: mData.nombre || mData.displayName || '',
       };
 
       await db.collection(COL.BARBEROS).doc(uid).set(linkData, { merge: true });
-      console.info('[FDB] ensureBarberoUidDoc: enlace creado', uid, '→', mainDoc.id);
+      console.info('[FDB] ensureBarberoUidDoc: enlace creado/corregido', uid, '→', linkData._mainDocId);
     } catch (e) {
       console.warn('[FDB] ensureBarberoUidDoc:', e.message);
     }
