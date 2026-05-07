@@ -1211,10 +1211,6 @@
               <h2 class="text-2xl font-bold tracking-tight">Equipo de Barberos</h2>
               <p class="text-sm text-gray-500 mt-1">Gestiona el perfil y disponibilidad de cada barbero.</p>
             </div>
-            <button onclick="openAddBarberModal()"
-              class="flex items-center gap-2 bg-admin-accent/10 hover:bg-admin-accent/20 text-admin-accent border border-admin-accent/30 px-4 py-2.5 rounded-xl text-sm font-bold transition-colors">
-              <i class="ph-bold ph-plus text-base"></i> Agregar Barbero
-            </button>
           </div>
 
           <!-- WhatsApp del local -->
@@ -5339,7 +5335,7 @@
     function renderBarberosAdmin() {
       const grid = document.getElementById('barberosAdminGrid');
       if (!_barberosCache.length) {
-        grid.innerHTML = '<div class="col-span-full text-center py-16 text-gray-600"><i class="ph ph-users text-5xl mb-3 block"></i><p class="text-sm">No hay barberos registrados.</p><button onclick="openAddBarberModal()" class="mt-4 text-admin-accent text-sm font-bold hover:underline">+ Agregar el primero</button></div>';
+        grid.innerHTML = '<div class="col-span-full text-center py-16 text-gray-600"><i class="ph ph-users text-5xl mb-3 block"></i><p class="text-sm">No hay barberos registrados.</p></div>';
         return;
       }
       grid.innerHTML = _barberosCache.map(b => {
