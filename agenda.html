@@ -341,9 +341,14 @@
                         document.getElementById('mainApp').classList.remove('hidden');
                     }
 
-                    // Renovar token FCM en cada apertura de la PWA para push en background.
-                    if ('Notification' in window && Notification.permission === 'granted' && 'serviceWorker' in navigator) {
-                        navigator.serviceWorker.ready.then(() => solicitarPermisosYObtenerToken());
+                    // Renovar token si ya está concedido; pedir permiso automáticamente si no
+                    if ('Notification' in window && 'serviceWorker' in navigator) {
+                        if (Notification.permission === 'granted') {
+                            navigator.serviceWorker.ready.then(() => solicitarPermisosYObtenerToken());
+                        } else if (Notification.permission === 'default') {
+                            // Mostrar modal de notificaciones tras 1.5 s (mejor UX que pedir de inmediato)
+                            setTimeout(_mostrarModalNotificaciones, 1500);
+                        }
                     }
                 } else {
                     document.getElementById('loadingOverlay').classList.add('hidden');
@@ -942,6 +947,30 @@
       function _mostrarHintIOS() {
         alert('Para recibir notificaciones en iPhone:\n1. Toca el botón Compartir (⬆️)\n2. Toca "Añadir a la pantalla de inicio"\n3. Abre la app desde el ícono instalado');
       }
+
+      function _mostrarModalNotificaciones() {
+        if (Notification.permission !== 'default') return;
+        if (sessionStorage.getItem('notif_dismissed')) return;
+        // iOS sin instalar como PWA: mostrar guía de instalación en lugar del permiso
+        if (_isIOS && !_isStandalone) {
+          if (!sessionStorage.getItem('agenda_pwa_dismissed')) {
+            document.getElementById('pwaModalIOS').classList.remove('hidden');
+          }
+          return;
+        }
+        if (!_soportePush) return;
+        document.getElementById('notifPermModal').classList.remove('hidden');
+      }
+
+      window.activarNotificaciones = async function() {
+        document.getElementById('notifPermModal').classList.add('hidden');
+        await solicitarPermisosYObtenerToken();
+      };
+
+      window.cerrarNotifModal = function() {
+        document.getElementById('notifPermModal').classList.add('hidden');
+        sessionStorage.setItem('notif_dismissed', '1');
+      };
   
       let _swRegistration = null;
       let _messagingInstance = null;
@@ -1152,6 +1181,37 @@
       <button onclick="cerrarModalIOS()"
         class="w-full py-3 rounded-2xl text-sm font-bold text-white/50 border border-white/10">
         Entendido
+      </button>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       MODAL — Permiso de notificaciones
+       ═══════════════════════════════════════════════════════════ -->
+  <div id="notifPermModal" class="hidden fixed inset-0 z-[6000] flex items-end justify-center px-4 pb-6"
+       style="background:rgba(0,0,0,0.55);backdrop-filter:blur(6px);">
+    <div class="w-full max-w-sm rounded-3xl p-6 animate-fade-in"
+         style="background:#0d0d10;border:1px solid rgba(255,255,255,0.1);box-shadow:0 -4px 40px rgba(0,0,0,0.6);">
+      <!-- Icono -->
+      <div class="flex justify-center mb-4">
+        <div class="w-16 h-16 rounded-2xl flex items-center justify-center"
+             style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);">
+          <i class="ph-fill ph-bell-ringing text-3xl text-white"></i>
+        </div>
+      </div>
+      <!-- Texto -->
+      <h3 class="text-lg font-black text-white text-center mb-1">Activar notificaciones</h3>
+      <p class="text-sm text-white/50 text-center mb-6 leading-relaxed">
+        Recibe alertas al instante cuando llega una nueva reserva, sin tener que revisar la app.
+      </p>
+      <!-- Botones -->
+      <button onclick="activarNotificaciones()"
+        class="w-full py-3.5 rounded-2xl text-sm font-bold text-black bg-white active:scale-95 transition-all mb-2">
+        <i class="ph-bold ph-bell mr-2"></i>Activar notificaciones
+      </button>
+      <button onclick="cerrarNotifModal()"
+        class="w-full py-3 rounded-2xl text-sm font-medium text-white/40 border border-white/8 active:scale-95 transition-all">
+        Ahora no
       </button>
     </div>
   </div>
