@@ -88,6 +88,10 @@
     {
       "source": "/gestion-interna/elegance",
       "destination": "/gestion-interna/index.html"
+    },
+    {
+      "source": "/gestion-interna/seed-barberos-tool",
+      "destination": "/gestion-interna/seed-barberos-tool.html"
     }
   ]
 }
