@@ -79,7 +79,7 @@ async function enviarPush({ title, body, citaId, fecha, hora, barberoId, barbero
     notification: { title, body },
     data: {
       citaId: citaId || '',
-      url:    '/agenda',        // /agenda redirige a admins automáticamente
+      url:    barberoId ? `/agenda/${barberoId}` : '/agenda',
       fecha:  fecha  || '',
       hora:   hora   || '',
     },
@@ -94,9 +94,9 @@ async function enviarPush({ title, body, citaId, fecha, hora, barberoId, barbero
         tag:      'nueva-cita',
         renotify: true,
         actions:  [{ action: 'abrir', title: 'Ver cita' }],
-        data:     { url: '/agenda', citaId: citaId || '' }
+        data:     { url: barberoId ? `/agenda/${barberoId}` : '/agenda', citaId: citaId || '' }
       },
-      fcmOptions: { link: '/agenda' }
+      fcmOptions: { link: barberoId ? `/agenda/${barberoId}` : '/agenda' }
     },
     tokens,
   };

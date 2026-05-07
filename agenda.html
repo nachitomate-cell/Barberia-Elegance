@@ -126,6 +126,9 @@
             </div>
         </div>
         <div class="flex items-center gap-1.5 sm:gap-2">
+            <button id="reloadBtn" onclick="recargarAgenda()" class="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors" title="Recargar agenda">
+                <i id="reloadIcon" class="ph-bold ph-arrows-clockwise text-lg text-white/60"></i>
+            </button>
             <button id="notifBtn" onclick="solicitarPermisosYObtenerToken()" class="relative w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors" title="Activar notificaciones">
                 <i id="notifIcon" class="ph-bold ph-bell text-lg text-white/60"></i>
                 <span id="notifBadge" class="absolute -top-1 -right-1 flex h-3 w-3 hidden">
@@ -479,6 +482,22 @@
                 }
                 container.appendChild(btn);
             }
+        }
+
+        // ── RECARGA MANUAL DE AGENDA ──
+        function recargarAgenda() {
+            if (!barberId) return;
+            const icon = document.getElementById('reloadIcon');
+            const btn  = document.getElementById('reloadBtn');
+            if (btn.disabled) return;
+            btn.disabled = true;
+            icon.classList.add('animate-spin');
+            loadAgendaData();
+            loadLatestReservations();
+            setTimeout(() => {
+                btn.disabled = false;
+                icon.classList.remove('animate-spin');
+            }, 1500);
         }
 
         // ── CARGA Y RENDERIZADO DE AGENDA ──

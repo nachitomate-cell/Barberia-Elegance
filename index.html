@@ -229,7 +229,7 @@
             <label
               class="block text-sm font-bold text-brand-neon mb-2 drop-shadow-[0_0_3px_rgba(255,255,255,0.25)]">Teléfono
               móvil</label>
-            <input type="tel" id="clientPhone" value="+569 " inputmode="numeric"
+            <input type="tel" id="clientPhone" value="" placeholder="+56 9 XXXX XXXX" inputmode="numeric"
               class="w-full bg-brand-card border border-brand-accent/20 rounded-2xl px-5 py-4 text-brand-text font-medium focus:outline-none focus:border-brand-neon focus:ring-1 focus:ring-brand-neon focus:shadow-[0_0_15px_rgba(255,255,255,0.15)] transition-all shadow-sm placeholder-gray-600">
           </div>
           <div>
@@ -832,7 +832,7 @@
           
           if (typeof db !== 'undefined') {
             db.collection('users').doc(user.uid).get().then(doc => {
-              if (doc.exists && doc.data().telefono && document.getElementById('clientPhone').value === '+569 ') {
+              if (doc.exists && doc.data().telefono && !document.getElementById('clientPhone').value) {
                 document.getElementById('clientPhone').value = doc.data().telefono;
               }
             }).catch(console.error);

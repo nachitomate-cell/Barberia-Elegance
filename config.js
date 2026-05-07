@@ -8,7 +8,7 @@ const SHOP = {
   logo:        "/logo.jpg",
   direccion:   "📍 Ecuador 243 | Viña del Mar",
   horario:     "🕒 Lunes-Sáb: 10-20h | Dom: 12-20h. ¡Reserva ya!",
-  telefono:    "56994269228",   // WhatsApp sin + ni espacios
+  telefono:    "0",   // WhatsApp sin + ni espacios
   club:        "Club Elegance",
 
   barberos: [

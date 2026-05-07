@@ -1697,7 +1697,7 @@
           <div class="grid grid-cols-2 gap-3">
             <div>
               <label class="block text-xs font-bold text-gray-400 mb-2">Teléfono</label>
-              <input type="tel" id="mb-telefono" value="+569 "
+              <input type="tel" id="mb-telefono" value="" placeholder="+56 9 XXXX XXXX"
                 class="w-full bg-admin-bg border border-admin-border rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-admin-accent">
             </div>
             <div>
@@ -3471,7 +3471,7 @@
         if (barberos.length === 1) barSel.value = barberos[0].id;
         document.getElementById('mb-fecha').value = dateToLocalStr(currentAdminDate);
         document.getElementById('mb-nombre').value = '';
-        document.getElementById('mb-telefono').value = '+569 ';
+        document.getElementById('mb-telefono').value = '';
         document.getElementById('mb-email').value = '';
         document.getElementById('mb-hora').innerHTML = '<option>Elige barbero, fecha y servicio primero</option>';
         document.getElementById('mb-hora').disabled = true;
