@@ -359,9 +359,6 @@
                     }
 
                     barberId = myBarberoId;
-                    // Pasamos barberId (ID del doc original) para que el enlace UID
-                    // se cree correctamente incluso sin campo email en el doc.
-                    await FDB.ensureBarberoUidDoc(user.uid, user.email, barberId);
 
                     // Precargar nombre si ya lo tenemos del snap anterior
                     if (info.nombre) {
