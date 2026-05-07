@@ -31,34 +31,61 @@ async function getTokensActivos(barberoId, barberoNombre) {
   const validUids = new Set();
 
   try {
-    const [barberosSnap, tokensSnap] = await Promise.all([
+    const barberoIdTrimmed     = (barberoId    || '').trim();
+    const barberoNombreTrimmed = (barberoNombre || '').toLowerCase().trim();
+
+    // Query paralela: docs de barberos + tokens por UID + tokens directos por barberoId
+    const queries = [
       db.collection('barberos').get(),
       db.collection('fcm_tokens').where('activo', '==', true).get(),
-    ]);
+    ];
+    if (barberoIdTrimmed) {
+      queries.push(
+        db.collection('fcm_tokens')
+          .where('barberoId', '==', barberoIdTrimmed)
+          .where('activo', '==', true)
+          .get()
+      );
+    }
 
-    const barberoIdTrimmed   = (barberoId    || '').trim();
-    const barberoNombreTrimmed = (barberoNombre || '').toLowerCase().trim();
+    const [barberosSnap, tokensSnap, directTokensSnap] = await Promise.all(queries);
 
     barberosSnap.forEach(doc => {
       const b = doc.data();
       if (b.activo === false) return;
 
-      const isManager   = b.rol === 'jefe' || b.rol === 'admin';
-      const matchById   = barberoIdTrimmed   && doc.id === barberoIdTrimmed;
-      const matchByName = barberoNombreTrimmed && (b.nombre || '').toLowerCase().trim() === barberoNombreTrimmed;
+      const isManager      = b.rol === 'jefe' || b.rol === 'admin';
+      const matchById      = barberoIdTrimmed && doc.id === barberoIdTrimmed;
+      const matchByName    = barberoNombreTrimmed && (b.nombre || '').toLowerCase().trim() === barberoNombreTrimmed;
+      // Detecta doc de enlace (uid-doc): su _mainDocId apunta al doc original del barbero.
+      // doc.id en este caso ES el UID de Firebase Auth del barbero.
+      const matchByMainDoc = barberoIdTrimmed && b._mainDocId === barberoIdTrimmed;
 
-      if (isManager || matchById || matchByName) {
+      if (isManager || matchById || matchByName || matchByMainDoc) {
         validUids.add(doc.id);
         if (b.uid) validUids.add(b.uid);
       }
     });
 
-    const tokens = [];
+    const tokenSet = new Set();
+
+    // Tokens encontrados por UID
     tokensSnap.forEach(d => {
       const data = d.data();
-      if (validUids.has(data.uid)) tokens.push(data.token);
+      if (validUids.has(data.uid) && !tokenSet.has(data.token)) {
+        tokenSet.add(data.token);
+      }
     });
-    return tokens;
+
+    // Tokens encontrados directamente por barberoId (mecanismo secundario)
+    if (directTokensSnap) {
+      directTokensSnap.forEach(d => {
+        const t = d.data().token;
+        if (t && !tokenSet.has(t)) tokenSet.add(t);
+      });
+    }
+
+    return [...tokenSet];
   } catch (err) {
     logger.error('[FCM] Error filtrando tokens:', err);
     return [];

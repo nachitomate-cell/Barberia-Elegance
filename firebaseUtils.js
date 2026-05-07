@@ -473,6 +473,69 @@ const FDB = (() => {
     return slots;
   }
 
+  // Calcula slots disponibles considerando TODOS los barberos.
+  // Un slot es disponible si al menos un barbero está libre en ese horario.
+  // Retorna los slots con { time, occupied, availableBarberoIds[] }.
+  async function getHorasDisponiblesMulti(fecha, duracionServicio, configOverride = null, barberos = []) {
+    const cfg = configOverride || await getConfig();
+    const [todasCitas, todosBloqueos] = await Promise.all([
+      getCitas(fecha, null),
+      getBloqueosDia(fecha, null),
+    ]);
+
+    if (todosBloqueos.some(b => b.todo_el_dia && !b.barberoId)) return [];
+
+    const toMins  = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+    const fromMin = m => `${Math.floor(m / 60).toString().padStart(2, '0')}:${(m % 60).toString().padStart(2, '0')}`;
+
+    const dw  = new Date(fecha + 'T12:00:00').getDay();
+    const dc  = (cfg.diasConfig || {})[dw] || {};
+    const ini = toMins(dc.inicio || cfg.horarioInicio || '09:00');
+    const fin = toMins(dc.fin    || cfg.horarioFin    || '20:00');
+    const interval = cfg.intervaloMinutos || 30;
+    const dur = parseInt(duracionServicio);
+    const col = cfg.colacion;
+
+    const globalBloqRanges = todosBloqueos
+      .filter(b => !b.todo_el_dia && !b.barberoId && b.hora_inicio && b.hora_fin)
+      .map(b => ({ start: toMins(b.hora_inicio), end: toMins(b.hora_fin) }));
+
+    const result = [];
+
+    for (let cur = ini; cur + dur <= fin; cur += interval) {
+      if (col) {
+        const colS = toMins(col.inicio), colE = toMins(col.fin);
+        if (cur >= colS && cur < colE) continue;
+      }
+      const globalBlocked = globalBloqRanges.some(r => cur < r.end && (cur + dur) > r.start);
+      if (globalBlocked) continue;
+
+      const availableBarberoIds = [];
+
+      for (const barbero of barberos) {
+        if (todosBloqueos.some(b => b.todo_el_dia && b.barberoId === barbero.id)) continue;
+
+        const barBloqs = todosBloqueos
+          .filter(b => !b.todo_el_dia && b.barberoId === barbero.id && b.hora_inicio && b.hora_fin)
+          .map(b => ({ start: toMins(b.hora_inicio), end: toMins(b.hora_fin) }));
+
+        if (barBloqs.some(r => cur < r.end && (cur + dur) > r.start)) continue;
+
+        const barCitas = todasCitas
+          .filter(c => c.estado !== 'Cancelada' && c.barberoId === barbero.id)
+          .map(c => ({ start: toMins(c.hora), end: toMins(c.hora) + (parseInt(c.duracionServicio) || 30) }));
+
+        if (barCitas.some(o => cur < o.end && (cur + dur) > o.start)) continue;
+
+        availableBarberoIds.push(barbero.id);
+      }
+
+      result.push({ time: fromMin(cur), occupied: availableBarberoIds.length === 0, availableBarberoIds });
+    }
+
+    return result;
+  }
+
   /* ──────────────────────────────────────────────────────────────
      USUARIOS / SELLOS
      ────────────────────────────────────────────────────────────── */
@@ -811,7 +874,7 @@ const FDB = (() => {
     updateCitaEstado, updateCitaNota, deleteCita,
     onCitasDiaChange,
     // Disponibilidad
-    getHorasDisponibles,
+    getHorasDisponibles, getHorasDisponiblesMulti,
     // Bloqueos manuales
     addBloqueo, getBloqueosDia, getBloqueosMes, deleteBloqueo, onBloqueosDiaChange,
     // Premios del club

@@ -148,15 +148,21 @@
       </div>
     </header>
 
-    <div class="px-6 mt-6 mb-8 pt-1 animate-[fadeSlideUp_0.5s_cubic-bezier(0.16,1,0.3,1)_forwards]">
+    <div class="px-6 mt-6 mb-6 pt-1 animate-[fadeSlideUp_0.5s_cubic-bezier(0.16,1,0.3,1)_forwards]">
       <div class="flex justify-between items-end mb-2.5">
-        <span id="stepIndicatorText" class="text-xs font-bold text-neon uppercase tracking-widest">Paso 1 de 4:
-          Servicios</span>
+        <span id="stepIndicatorText" class="text-xs font-bold text-neon uppercase tracking-widest">Paso 1 de 4: Servicios</span>
         <span id="progressPercentage" class="text-xs font-bold text-brand-neon/60">25%</span>
       </div>
       <div class="w-full bg-[#1a1a24] rounded-full h-1.5 overflow-hidden border border-brand-accent/10">
         <div id="progressBar" class="bg-neon h-1.5 rounded-full transition-all duration-700 w-1/4 relative"></div>
       </div>
+      <!-- Mini recap de selección: aparece desde paso 2 -->
+      <div id="selectionRecap" class="hidden mt-3 flex flex-wrap items-center gap-1.5 text-[11px] text-gray-500 font-medium"></div>
+    </div>
+
+    <!-- Toast de validación inline (reemplaza alert) -->
+    <div id="toastValidation" class="hidden fixed top-4 left-1/2 z-[9999] max-w-[320px] w-[90vw] px-4 py-3 rounded-2xl text-sm font-semibold text-center shadow-2xl"
+      style="transform:translateX(-50%);background:#1a0a0a;border:1px solid rgba(239,68,68,0.5);color:#f87171;backdrop-filter:blur(12px);transition:opacity 0.3s,transform 0.3s;">
     </div>
 
     <main class="px-6 pb-6 relative min-h-[500px]">
@@ -282,6 +288,11 @@
           Enviar WhatsApp <i
             class="ph-bold ph-whatsapp-logo text-2xl drop-shadow-[0_0_5px_rgba(37,211,102,0.8)]"></i>
         </a>
+        <a href="https://www.instagram.com/elegance.cl_/" target="_blank" rel="noopener"
+          class="flex items-center justify-center gap-2 text-sm font-semibold text-white/50 hover:text-white transition-colors mb-5">
+          <i class="ph-fill ph-instagram-logo text-lg"></i>
+          @elegance.cl_
+        </a>
         <button onclick="window.location.reload()"
           class="font-bold text-brand-neon/60 hover:text-neon transition-all hover:drop-shadow-[0_0_5px_rgba(255,255,255,0.4)]">Agendar otra hora</button>
       </section>
@@ -344,6 +355,74 @@
       const h = Math.floor(mins / 60);
       const m = mins % 60;
       return m === 0 ? `${h}h` : `${h}h ${m}m`;
+    }
+
+    let _toastTimer = null;
+    function showToast(msg) {
+      const el = document.getElementById('toastValidation');
+      if (!el) { alert(msg); return; }
+      el.textContent = msg;
+      el.classList.remove('hidden');
+      el.style.opacity = '1';
+      el.style.transform = 'translateX(-50%) translateY(0)';
+      clearTimeout(_toastTimer);
+      _toastTimer = setTimeout(() => {
+        el.style.opacity = '0';
+        el.style.transform = 'translateX(-50%) translateY(-8px)';
+        setTimeout(() => el.classList.add('hidden'), 300);
+      }, 3000);
+    }
+
+    function updateSelectionRecap() {
+      const el = document.getElementById('selectionRecap');
+      if (!el) return;
+      const parts = [];
+      if (selectedServiceObj) {
+        parts.push(`<span class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 border border-white/10"><i class="ph ph-scissors text-[10px]"></i>${selectedServiceObj.nombre}</span>`);
+      }
+      if (window._selectedBarber && window._selectedBarber !== 'any') {
+        parts.push(`<span class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 border border-white/10"><i class="ph ph-user text-[10px]"></i>${window._selectedBarber}</span>`);
+      } else if (window._selectedBarberId === 'any') {
+        parts.push(`<span class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 border border-white/10"><i class="ph ph-shuffle text-[10px]"></i>Sin preferencia</span>`);
+      }
+      if (selectedTimeStr && currentDateStr) {
+        const [y, m, d] = currentDateStr.split('-');
+        parts.push(`<span class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 border border-white/10"><i class="ph ph-clock text-[10px]"></i>${d}/${m} ${selectedTimeStr}</span>`);
+      }
+      if (parts.length) {
+        el.innerHTML = parts.join('');
+        el.classList.remove('hidden');
+      } else {
+        el.classList.add('hidden');
+      }
+    }
+
+    function updateContinueBtn() {
+      const btn = document.getElementById('btnContinue');
+      if (!btn) return;
+      if (currentStep === 1) {
+        if (selectedServiceObj) {
+          btn.innerHTML = `${selectedServiceObj.nombre} · $${selectedServiceObj.precio.toLocaleString('es-CL')} <i class="ph-bold ph-arrow-right text-lg"></i>`;
+        } else {
+          btn.innerHTML = 'Continuar <i class="ph-bold ph-arrow-right text-lg"></i>';
+        }
+      } else if (currentStep === 2) {
+        if (window._selectedBarberId === 'any') {
+          btn.innerHTML = 'Sin preferencia · Continuar <i class="ph-bold ph-arrow-right text-lg"></i>';
+        } else if (window._selectedBarber && window._selectedBarber !== 'any') {
+          btn.innerHTML = `Con ${window._selectedBarber} · Continuar <i class="ph-bold ph-arrow-right text-lg"></i>`;
+        } else {
+          btn.innerHTML = 'Continuar <i class="ph-bold ph-arrow-right text-lg"></i>';
+        }
+      } else if (currentStep === 3) {
+        if (selectedTimeStr) {
+          btn.innerHTML = `Reservar las ${selectedTimeStr} <i class="ph-bold ph-check text-lg"></i>`;
+        } else {
+          btn.innerHTML = 'Continuar <i class="ph-bold ph-arrow-right text-lg"></i>';
+        }
+      } else if (currentStep === 4) {
+        btn.innerHTML = 'Confirmar reserva <i class="ph-bold ph-check-circle text-lg"></i>';
+      }
     }
 
     // Caché local (alimentado por Firestore al iniciar)
@@ -540,6 +619,9 @@
       window._selectedBarber = nombre;
       window._selectedBarberId = id;
       document.getElementById('summaryBarber').textContent = id === 'any' ? 'Sin preferencia' : nombre;
+
+      updateContinueBtn();
+      updateSelectionRecap();
     }
 
     async function initServices() {
@@ -644,14 +726,23 @@
       if (!selectedServiceObj) return;
 
       const grid = document.getElementById('hoursGrid');
-      grid.innerHTML = '<p class="text-xs text-brand-neon/40 col-span-3">Cargando horarios…</p>';
+      grid.innerHTML = `
+        <div class="h-10 w-20 bg-white/5 rounded-[1rem] animate-pulse"></div>
+        <div class="h-10 w-20 bg-white/5 rounded-[1rem] animate-pulse"></div>
+        <div class="h-10 w-20 bg-white/5 rounded-[1rem] animate-pulse opacity-80"></div>
+        <div class="h-10 w-20 bg-white/5 rounded-[1rem] animate-pulse opacity-60"></div>
+        <div class="h-10 w-20 bg-white/5 rounded-[1rem] animate-pulse opacity-40"></div>
+      `;
 
       const settings = customConfig || _fsConfig || DB.getSettings();
       let hours = [];
       try {
-        hours = await FDB.getHorasDisponibles(currentDateStr, selectedServiceObj.duracion, settings, window._selectedBarberId || null);
+        if (window._selectedBarberId === 'any') {
+          hours = await FDB.getHorasDisponiblesMulti(currentDateStr, selectedServiceObj.duracion, settings, _fsBarberos);
+        } else {
+          hours = await FDB.getHorasDisponibles(currentDateStr, selectedServiceObj.duracion, settings, window._selectedBarberId || null);
+        }
       } catch(e) {
-        // Fallback a localStorage si no hay conexión
         hours = DB.getAvailableHours(currentDateStr, selectedServiceObj.duracion);
       }
 
@@ -675,25 +766,33 @@
       }
 
       if (hours.length === 0) {
-        grid.innerHTML = `<p class="text-sm text-brand-neon/60">No hay horas disponibles este día.</p>`;
+        grid.innerHTML = `
+          <div class="col-span-full flex flex-col items-center py-8 text-center">
+            <i class="ph ph-calendar-x text-3xl text-white/20 mb-2"></i>
+            <p class="text-sm text-white/40 font-medium">No hay horas disponibles</p>
+            <p class="text-xs text-white/20 mt-1">Prueba con otro día</p>
+          </div>`;
         return;
       }
 
+      let firstAvailableBtn = null;
       hours.forEach(h => {
         if (h.occupied) {
-          grid.innerHTML += `<button class="px-6 py-3 rounded-[1rem] border border-gray-800 bg-[#0a0a0d] text-[15px] font-medium text-gray-600 line-through pointer-events-none opacity-40 shadow-inner">${h.time}</button>`;
+          grid.innerHTML += `<button disabled class="px-6 py-3 rounded-[1rem] border border-white/5 bg-[#0a0a0d] text-[15px] font-medium text-gray-700 line-through pointer-events-none opacity-30">${h.time}</button>`;
         } else {
           grid.innerHTML += `<button onclick="selectTime(this, '${h.time}')" class="time-pill px-6 py-3 rounded-[1rem] border border-brand-accent/20 bg-[#0a0a0d] shadow-[0_0_5px_rgba(0,0,0,0.5)] text-[15px] font-bold text-gray-300 transition-all active:scale-95 hover:border-neon hover:shadow-[0_0_10px_rgba(255,255,255,0.15)] hover:text-neon focus:outline-none">${h.time}</button>`;
         }
+      });
+
+      // Scroll suave al primer slot disponible
+      requestAnimationFrame(() => {
+        const firstAvail = grid.querySelector('.time-pill');
+        if (firstAvail) firstAvail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       });
     }
 
     function selectService(btn) {
       const id = btn.getAttribute('data-service-id');
-      console.log('ID recibido:', id, typeof id);
-      console.log('_fsServices:', window._fsServices?.length);
-      const _found = (window._fsServices || []).find(s => String(s.id) === String(id));
-      console.log('Encontrado:', _found);
 
       document.querySelectorAll('.service-option').forEach(el => {
         el.classList.replace('border-neon', 'border-brand-accent/20');
@@ -717,9 +816,11 @@
       btn.querySelector('.icon-svg').classList.remove('drop-shadow-[0_0_5px_rgba(255,255,255,0.35)]');
       btn.querySelector('.icon-svg').classList.add('drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]', 'scale-110');
 
-      // Buscar en la lista global (garantizada en scope de onclick)
       selectedServiceObj = (window._fsServices || _fsServices || []).find(s => String(s.id) === String(id))
         || DB.getServices().find(s => String(s.id) === String(id));
+
+      updateContinueBtn();
+      updateSelectionRecap();
     }
 
     function selectTime(btn, time) {
@@ -731,6 +832,12 @@
       btn.classList.remove('bg-[#0a0a0d]', 'text-gray-300', 'border-brand-accent/20', 'border');
       btn.classList.add('bg-brand-neon/10', 'text-neon', 'border-neon', 'shadow-[0_0_15px_rgba(255,255,255,0.25)]', 'border-2');
       selectedTimeStr = time;
+
+      updateContinueBtn();
+      updateSelectionRecap();
+
+      // Scroll suave hacia el botón para que el usuario vea el CTA actualizado
+      document.getElementById('btnContinue')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
     function goBack() {
@@ -748,12 +855,7 @@
           currentStep--;
           updateProgress();
 
-          let btn = document.getElementById('btnContinue');
-          if (currentStep === 1 || currentStep === 2 || currentStep === 3) {
-            btn.innerHTML = 'Continuar <i class="ph-bold ph-arrow-right text-xl"></i>';
-            btn.classList.add('bg-[#0a0a0d]');
-            btn.classList.remove('bg-brand-neon/10');
-          }
+          updateContinueBtn();
         }, 300);
       }
     }
@@ -771,14 +873,15 @@
     async function nextStep() {
       if (isTransitioning) return;
       if (currentStep === 1) {
-        if (!selectedServiceObj) return alert("Selecciona un servicio.");
+        if (!selectedServiceObj) return showToast('Selecciona un servicio para continuar.');
 
         transitionStep(1, 2);
         currentStep = 2;
         updateProgress();
+        updateContinueBtn();
 
       } else if (currentStep === 2) {
-        if (!window._selectedBarberId) return alert("Selecciona un barbero o elige 'Sin preferencia'.");
+        if (!window._selectedBarberId) return showToast("Elige un barbero o selecciona 'Sin preferencia'.");
         const barId = window._selectedBarberId === 'any' ? null : window._selectedBarberId;
         selectedTimeStr = null;
         if (barId) {
@@ -797,9 +900,10 @@
         transitionStep(2, 3);
         currentStep = 3;
         updateProgress();
+        updateContinueBtn();
 
       } else if (currentStep === 3) {
-        if (!selectedTimeStr) return alert("Selecciona una hora disponible.");
+        if (!selectedTimeStr) return showToast('Elige una hora disponible para continuar.');
 
         document.getElementById('summaryService').innerText = selectedServiceObj.nombre;
         document.getElementById('summaryPrice').innerText = "$" + selectedServiceObj.precio.toLocaleString('es-CL');
@@ -858,11 +962,8 @@
         transitionStep(3, 4);
         currentStep = 4;
         updateProgress();
-
-        let btn = document.getElementById('btnContinue');
-        btn.innerHTML = 'Reservar ahora <i class="ph-bold ph-check-circle text-xl drop-shadow-[0_0_5px_rgba(255,255,255,0.4)]"></i>';
-        btn.classList.remove('bg-[#0a0a0d]');
-        btn.classList.add('bg-brand-neon/10');
+        updateContinueBtn();
+        updateSelectionRecap();
 
       } else if (currentStep === 4) {
         const nombre = document.getElementById('clientName').value.trim();
@@ -870,9 +971,9 @@
         const email = document.getElementById('clientEmail').value.trim();
 
         const telDigitos = tel.replace(/\D/g, '');
-        if (!nombre || !tel) return alert("Por favor ingresa tu nombre y teléfono para la reserva.");
-        if (telDigitos.length < 9) return alert("Ingresa un número de teléfono válido (mínimo 9 dígitos).");
-        if (!email) return alert("Por favor ingresa tu correo electrónico para recibir la confirmación.");
+        if (!nombre || !tel) return showToast('Por favor ingresa tu nombre y teléfono.');
+        if (telDigitos.length < 9) return showToast('Ingresa un número de teléfono válido (mínimo 9 dígitos).');
+        if (!email) return showToast('Por favor ingresa tu correo para recibir la confirmación.');
 
         // ── Anti-spam: máx. 3 reservas en 24 h, y 1 por cada 30 min ──
         const SPAM_KEY = 'elegance_reservas_ts';
@@ -889,6 +990,44 @@
           return alert(`Espera ${mins} minuto${mins !== 1 ? 's' : ''} antes de realizar otra reserva.`);
         }
 
+        // Cuando el cliente elige "Sin preferencia", asignar al barbero con menos
+        // citas ese día que además esté libre en el horario seleccionado.
+        let barberoIdFinal = window._selectedBarberId === 'any' ? null : (window._selectedBarberId || null);
+        let barberoNombreFinal = window._selectedBarber === 'any' ? '' : (window._selectedBarber || '');
+
+        if (window._selectedBarberId === 'any' && _fsBarberos.length > 0) {
+          try {
+            const toMins = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+            const todasCitas = await FDB.getCitas(currentDateStr, null);
+            const dur = parseInt(selectedServiceObj.duracion);
+            const selMins = toMins(selectedTimeStr);
+
+            const counts = {};
+            _fsBarberos.forEach(b => { counts[b.id] = 0; });
+            todasCitas
+              .filter(c => c.estado !== 'Cancelada' && c.barberoId)
+              .forEach(c => { if (counts[c.barberoId] !== undefined) counts[c.barberoId]++; });
+
+            const libres = _fsBarberos.filter(b => {
+              const bCitas = todasCitas.filter(c => c.barberoId === b.id && c.estado !== 'Cancelada');
+              return !bCitas.some(c => {
+                const cs = toMins(c.hora);
+                const ce = cs + (parseInt(c.duracionServicio) || 30);
+                return selMins < ce && (selMins + dur) > cs;
+              });
+            });
+
+            libres.sort((a, b) => (counts[a.id] || 0) - (counts[b.id] || 0));
+            const asignado = libres[0] || null;
+            if (asignado) {
+              barberoIdFinal = asignado.id;
+              barberoNombreFinal = asignado.nombre;
+            }
+          } catch(e) {
+            console.warn('[Reservar] No se pudo auto-asignar barbero, se guarda sin asignar:', e.message);
+          }
+        }
+
         let citaGuardada = false;
         try {
           await FDB.addCita({
@@ -899,21 +1038,20 @@
             clienteEmail:     email,
             servicioNombre:   selectedServiceObj.nombre,
             duracionServicio: selectedServiceObj.duracion,
-            barbero:          (window._selectedBarber === 'any' ? '' : window._selectedBarber) || '',
-            barberoId:        (window._selectedBarberId === 'any' ? null : window._selectedBarberId) || null,
+            barbero:          barberoNombreFinal,
+            barberoId:        barberoIdFinal,
           });
           citaGuardada = true;
         } catch(e) {
-          // Fallback offline: guardar en localStorage
           console.warn('[Reservar] Sin conexión, guardando en localStorage:', e.message);
           DB.saveBooking({
             fecha: currentDateStr, hora: selectedTimeStr,
             clienteNombre: nombre, clienteTelefono: tel, clienteEmail: email,
             servicioNombre: selectedServiceObj.nombre, duracionServicio: selectedServiceObj.duracion,
-            barbero:   window._selectedBarber   || SHOP.barberos[0]?.nombre || '',
-            barberoId: window._selectedBarberId || null,
+            barbero:   barberoNombreFinal || SHOP.barberos[0]?.nombre || '',
+            barberoId: barberoIdFinal || null,
           });
-          citaGuardada = true; // Guardada localmente como fallback
+          citaGuardada = true;
         }
 
         // Registrar timestamp solo si la reserva se guardó correctamente

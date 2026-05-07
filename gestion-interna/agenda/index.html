@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#111827">
   <title>Agendas del equipo | Elegance</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
   <link href="/output.css" rel="stylesheet">
@@ -19,29 +20,31 @@
   <style>
     * { box-sizing: border-box; }
     body {
-      background: #0d1117;
-      color: #f1f5f9;
+      background: #111827;
+      color: #f9fafb;
       font-family: 'Inter', sans-serif;
       -webkit-tap-highlight-color: transparent;
       min-height: 100dvh;
       overscroll-behavior-y: none;
     }
 
-    /* Cards */
+    /* En iframe: sin header propio */
+    body.in-iframe #standaloneHeader { display: none; }
+    body.in-iframe #mainApp { padding-top: 1.25rem; }
+
     .card {
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.08);
+      background: #1f2937;
+      border: 1px solid #374151;
       transition: background .2s, border-color .2s;
     }
+    .card:hover { border-color: #4b5563; }
 
-    /* Barber card */
     .barber-card { transition: all .2s ease; }
     .barber-card.expanded .citas-list { display: block; }
     .barber-card.expanded .chevron { transform: rotate(180deg); }
     .citas-list { display: none; }
     .chevron { transition: transform .25s ease; }
 
-    /* Estado badges */
     .badge-Confirmado, .badge-Pendiente {
       background: rgba(251,191,36,.12);
       color: #fbbf24;
@@ -63,56 +66,53 @@
       border: 1px solid rgba(156,163,175,.2);
     }
 
-    /* Timeline bar */
     .timeline-bar {
-      height: 6px;
-      border-radius: 3px;
-      background: rgba(255,255,255,0.06);
+      height: 4px;
+      border-radius: 2px;
+      background: #374151;
       overflow: hidden;
     }
     .timeline-fill {
       height: 100%;
-      border-radius: 3px;
+      border-radius: 2px;
       background: linear-gradient(90deg, #34d399, #059669);
-      transition: width .5s ease;
+      transition: width .6s cubic-bezier(.16,1,.3,1);
     }
 
-    /* Dot "online" */
     @keyframes pulse-green {
       0%, 100% { opacity: 1; }
       50% { opacity: .4; }
     }
     .dot-live { animation: pulse-green 2s infinite; }
 
-    /* Date nav */
     .date-pill {
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.08);
+      background: #1f2937;
+      border: 1px solid #374151;
       border-radius: 999px;
-      padding: .4rem .9rem;
-      font-size: .8rem;
+      padding: .45rem 1rem;
+      font-size: .78rem;
       font-weight: 700;
-      color: #9ca3af;
+      color: #6b7280;
       cursor: pointer;
       transition: all .15s;
       white-space: nowrap;
+      user-select: none;
     }
     .date-pill.active {
-      background: rgba(52,211,153,.12);
-      border-color: rgba(52,211,153,.4);
+      background: rgba(52,211,153,.14);
+      border-color: rgba(52,211,153,.5);
       color: #34d399;
     }
     .date-pill:not(.active):hover {
-      background: rgba(255,255,255,.07);
+      background: #374151;
       color: #e5e7eb;
+      border-color: #4b5563;
     }
 
-    /* Scrollbar */
     ::-webkit-scrollbar { width: 4px; height: 4px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: #374151; border-radius: 2px; }
 
-    /* Select de estado — hereda colores del badge */
     .estado-select {
       appearance: none;
       -webkit-appearance: none;
@@ -123,7 +123,6 @@
       cursor: pointer;
       outline: none;
       flex-shrink: 0;
-      margin-top: 2px;
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236b7280'/%3E%3C/svg%3E");
       background-repeat: no-repeat;
       background-position: right 6px center;
@@ -131,7 +130,8 @@
       color-scheme: dark;
     }
     .estado-select:hover { opacity: .85; }
-    .estado-select.s-Confirmado,.estado-select.s-Pendiente {
+    .estado-select:disabled { opacity: .5; cursor: not-allowed; }
+    .estado-select.s-Confirmado, .estado-select.s-Pendiente {
       background-color: rgba(251,191,36,.12);
       color: #fbbf24;
       border: 1px solid rgba(251,191,36,.3);
@@ -151,117 +151,355 @@
       color: #9ca3af;
       border: 1px solid rgba(156,163,175,.25);
     }
+
+    .search-input {
+      background: #1f2937;
+      border: 1px solid #374151;
+      border-radius: 12px;
+      padding: .6rem .9rem .6rem 2.4rem;
+      font-size: .875rem;
+      color: #f9fafb;
+      width: 100%;
+      outline: none;
+      transition: border-color .2s, background .2s;
+      font-family: 'Inter', sans-serif;
+    }
+    .search-input::placeholder { color: #6b7280; }
+    .search-input:focus {
+      border-color: rgba(52,211,153,.5);
+      background: rgba(52,211,153,.04);
+    }
+
+    .fab {
+      position: fixed;
+      bottom: 24px;
+      right: 20px;
+      z-index: 200;
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      background: #34d399;
+      color: #052e16;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 24px rgba(52,211,153,.35), 0 2px 8px rgba(0,0,0,.4);
+      transition: transform .15s, box-shadow .15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .fab:active { transform: scale(.94); box-shadow: 0 2px 12px rgba(52,211,153,.25); }
+
+    .sheet {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      z-index: 401;
+      background: #1f2937;
+      border-top: 1px solid #374151;
+      border-radius: 24px 24px 0 0;
+      transition: transform .3s cubic-bezier(.16,1,.3,1);
+      transform: translateY(100%);
+      max-height: 93dvh;
+    }
+    .sheet-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 400;
+      background: rgba(0,0,0,.6);
+      backdrop-filter: blur(4px);
+    }
+
+    .form-input, .form-select {
+      background: #111827;
+      border: 1px solid #374151;
+      border-radius: 12px;
+      padding: .65rem .85rem;
+      font-size: .875rem;
+      color: #f9fafb;
+      width: 100%;
+      outline: none;
+      transition: border-color .2s;
+      font-family: 'Inter', sans-serif;
+      color-scheme: dark;
+    }
+    .form-input::placeholder { color: #6b7280; }
+    .form-input:focus, .form-select:focus {
+      border-color: rgba(52,211,153,.5);
+    }
+    .form-select {
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7'%3E%3Cpath d='M0 0l6 7 6-7z' fill='%236b7280'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 2rem;
+      cursor: pointer;
+    }
+    .form-label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin-bottom: 6px;
+    }
+
+    @keyframes shimmer {
+      0% { background-position: -400px 0; }
+      100% { background-position: 400px 0; }
+    }
+    .skeleton {
+      background: linear-gradient(90deg, #1f2937 25%, #374151 50%, #1f2937 75%);
+      background-size: 800px 100%;
+      animation: shimmer 1.6s infinite;
+      border-radius: 16px;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-up { animation: fadeUp .3s cubic-bezier(.16,1,.3,1) forwards; }
+
+    /* KPI cards */
+    .kpi-card {
+      background: #1f2937;
+      border: 1px solid #374151;
+      border-radius: 16px;
+      padding: 1rem;
+      text-align: center;
+    }
+
+    /* Section label */
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: #6b7280;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+    }
   </style>
 </head>
 <body>
 
 <!-- ── LOADING ── -->
-<div id="loadingOverlay" class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#0d1117]">
+<div id="loadingOverlay" class="fixed inset-0 z-50 flex flex-col items-center justify-center" style="background:#111827;">
   <div class="w-10 h-10 border-2 border-white/10 border-t-emerald-400 rounded-full animate-spin mb-4"></div>
   <p class="text-sm text-white/40">Cargando agendas...</p>
 </div>
 
 <!-- ── APP ── -->
-<div id="mainApp" class="hidden max-w-2xl mx-auto px-4 pb-16">
+<div id="mainApp" class="hidden max-w-4xl mx-auto px-4 lg:px-8 pb-28 pt-0">
 
-  <!-- Header -->
-  <header class="flex items-center gap-3 py-5 mb-4">
+  <!-- Header (solo cuando es standalone, no iframe) -->
+  <header id="standaloneHeader" class="flex items-center gap-3 py-5 mb-2 border-b border-gray-700/50">
     <a href="/gestion-interna/"
-      class="w-10 h-10 rounded-xl border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors shrink-0">
-      <i class="ph-bold ph-arrow-left text-white/60"></i>
+      class="w-9 h-9 rounded-xl border border-gray-700 flex items-center justify-center hover:bg-gray-700 transition-colors shrink-0">
+      <i class="ph-bold ph-arrow-left text-gray-400 text-sm"></i>
     </a>
     <div class="flex-1 min-w-0">
-      <h1 class="text-lg font-bold text-white leading-tight">Agendas del equipo</h1>
+      <h1 class="text-base font-bold text-white leading-tight">Agenda del equipo</h1>
       <div class="flex items-center gap-1.5 mt-0.5">
-        <span class="w-2 h-2 rounded-full bg-emerald-400 dot-live"></span>
-        <p id="fechaLabel" class="text-xs text-white/40"></p>
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 dot-live shrink-0"></span>
+        <p id="fechaLabelHeader" class="text-xs text-gray-500 truncate"></p>
+      </div>
+    </div>
+  </header>
+
+  <!-- Título cuando está en iframe -->
+  <div id="iframeHeader" class="hidden flex items-center justify-between mb-4 pt-2">
+    <div>
+      <h1 class="text-lg font-black text-white tracking-tight">Agenda del equipo</h1>
+      <div class="flex items-center gap-1.5 mt-0.5">
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 dot-live shrink-0"></span>
+        <p id="fechaLabel" class="text-xs text-gray-500 truncate"></p>
       </div>
     </div>
     <button onclick="recargar()" id="reloadBtn"
-      class="w-10 h-10 rounded-xl border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors shrink-0"
-      title="Recargar">
-      <i class="ph-bold ph-arrows-clockwise text-white/60"></i>
+      class="w-9 h-9 rounded-xl border border-gray-700 flex items-center justify-center hover:bg-gray-700 transition-colors shrink-0">
+      <i class="ph-bold ph-arrows-clockwise text-gray-400 text-sm"></i>
     </button>
-  </header>
-
-  <!-- Selector de fecha (carrusel) -->
-  <div class="flex gap-2 overflow-x-auto pb-3 mb-5 -mx-4 px-4 scroll-smooth" id="dateNav"
-    style="scrollbar-width:none;">
-    <!-- Se genera con JS -->
   </div>
 
-  <!-- KPIs del día -->
-  <div class="grid grid-cols-3 gap-3 mb-6">
-    <div class="card rounded-2xl p-4 text-center">
+  <!-- Selector de fecha -->
+  <div class="flex gap-2 overflow-x-auto pb-3 mt-4 mb-5 -mx-4 px-4" id="dateNav"
+    style="scrollbar-width:none; -ms-overflow-style:none;">
+  </div>
+
+  <!-- KPIs -->
+  <div class="grid grid-cols-3 gap-3 mb-5">
+    <div class="kpi-card">
       <p id="kpiTotal" class="text-2xl font-black text-white">—</p>
-      <p class="text-[10px] text-white/40 font-bold mt-0.5 uppercase tracking-widest">Total citas</p>
+      <p class="section-label mt-1">Total</p>
     </div>
-    <div class="card rounded-2xl p-4 text-center">
+    <div class="kpi-card">
       <p id="kpiPendientes" class="text-2xl font-black text-amber-400">—</p>
-      <p class="text-[10px] text-white/40 font-bold mt-0.5 uppercase tracking-widest">Pendientes</p>
+      <p class="section-label mt-1">Pendientes</p>
     </div>
-    <div class="card rounded-2xl p-4 text-center">
+    <div class="kpi-card">
       <p id="kpiCompletadas" class="text-2xl font-black text-emerald-400">—</p>
-      <p class="text-[10px] text-white/40 font-bold mt-0.5 uppercase tracking-widest">Completadas</p>
+      <p class="section-label mt-1">Completadas</p>
     </div>
   </div>
 
-  <!-- Sección barberos -->
+  <!-- Buscador -->
+  <div class="relative mb-4">
+    <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-base pointer-events-none"></i>
+    <input id="searchInput" type="search" placeholder="Buscar barbero..." class="search-input"
+      oninput="filtrarBarberos(this.value)">
+  </div>
+
+  <!-- Header sección barberos -->
   <div class="flex items-center gap-2 mb-3">
-    <i class="ph-fill ph-users text-white/30 text-base"></i>
-    <span class="text-xs font-bold text-white/40 uppercase tracking-widest">Equipo activo</span>
-    <span id="barberoCount" class="ml-auto text-xs font-bold text-white/30"></span>
+    <p class="section-label">Equipo activo</p>
+    <span id="barberoCount" class="ml-auto text-[11px] font-bold text-gray-600"></span>
   </div>
 
   <div id="barberosGrid" class="space-y-3">
-    <!-- Skeletons -->
-    <div class="card rounded-2xl p-4 animate-pulse h-24"></div>
-    <div class="card rounded-2xl p-4 animate-pulse h-24"></div>
+    <div class="skeleton h-24"></div>
+    <div class="skeleton h-24" style="animation-delay:.12s"></div>
+    <div class="skeleton h-24" style="animation-delay:.24s"></div>
   </div>
 
   <!-- Empty state -->
   <div id="emptyState" class="hidden text-center py-16">
-    <i class="ph ph-users text-5xl text-white/10 block mb-3"></i>
-    <p class="text-sm text-white/30">No hay barberos activos registrados.</p>
-    <a href="/gestion-interna/" class="mt-4 inline-block text-xs text-emerald-400 hover:underline">Ir al panel admin</a>
+    <div class="w-16 h-16 rounded-2xl bg-gray-800 border border-gray-700 flex items-center justify-center mx-auto mb-4">
+      <i class="ph ph-users text-3xl text-gray-600"></i>
+    </div>
+    <p class="text-sm text-gray-500 font-medium">No hay barberos activos registrados.</p>
+    <a href="/gestion-interna/" class="mt-3 inline-block text-xs text-emerald-400 hover:underline">Ir al panel admin</a>
   </div>
 
-</div><!-- /mainApp -->
+</div>
+
+<!-- ── FAB — Nueva cita ── -->
+<button class="fab" id="fabBtn" onclick="abrirModalNuevaCita(null)" title="Agregar cita manual">
+  <i class="ph-bold ph-plus text-2xl"></i>
+</button>
+
+<!-- ── MODAL — Nueva Cita Manual ── -->
+<div id="nuevaCitaOverlay" class="sheet-overlay hidden" onclick="cerrarModalNuevaCita()"></div>
+<div id="nuevaCitaSheet" class="sheet">
+  <div class="flex justify-center pt-3 pb-1 cursor-pointer" onclick="cerrarModalNuevaCita()">
+    <div class="w-10 h-1 rounded-full bg-white/20"></div>
+  </div>
+
+  <div class="overflow-y-auto px-5 pb-10" style="max-height: calc(93dvh - 32px)">
+    <div class="flex items-center justify-between mb-6 pt-2">
+      <div>
+        <h2 class="text-lg font-bold text-white">Nueva cita manual</h2>
+        <p class="text-xs text-gray-500 mt-0.5">Agregar cita que no fue agendada desde la app</p>
+      </div>
+      <button onclick="cerrarModalNuevaCita()"
+        class="w-9 h-9 rounded-xl border border-gray-700 flex items-center justify-center hover:bg-gray-700 transition-colors shrink-0">
+        <i class="ph-bold ph-x text-gray-400 text-sm"></i>
+      </button>
+    </div>
+
+    <div class="space-y-4">
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="form-label">Barbero *</label>
+          <select id="nc-barbero" class="form-select">
+            <option value="">Seleccionar...</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label">Fecha *</label>
+          <input id="nc-fecha" type="date" class="form-input">
+        </div>
+      </div>
+
+      <div>
+        <label class="form-label">Hora *</label>
+        <select id="nc-hora" class="form-select">
+          <option value="">Seleccionar hora...</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="form-label">Servicio *</label>
+        <select id="nc-servicio" class="form-select" onchange="onServicioChange(this)">
+          <option value="">Seleccionar servicio...</option>
+        </select>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="form-label">Nombre cliente *</label>
+          <input id="nc-nombre" type="text" placeholder="Ej: Juan Pérez" class="form-input" autocomplete="off">
+        </div>
+        <div>
+          <label class="form-label">Teléfono</label>
+          <input id="nc-tel" type="tel" placeholder="56912345678" class="form-input" autocomplete="off">
+        </div>
+      </div>
+
+      <div>
+        <label class="form-label">Email <span class="normal-case font-normal text-gray-600">(opcional)</span></label>
+        <input id="nc-email" type="email" placeholder="cliente@email.com" class="form-input" autocomplete="off">
+      </div>
+
+      <div>
+        <label class="form-label">Nota <span class="normal-case font-normal text-gray-600">(opcional)</span></label>
+        <textarea id="nc-nota" rows="2" placeholder="Ej: prefiere degradado bajo..."
+          class="form-input resize-none"></textarea>
+      </div>
+
+      <p id="nc-error" class="text-red-400 text-xs hidden"></p>
+
+      <button id="nc-guardar" onclick="guardarNuevaCita()"
+        class="w-full py-3.5 rounded-2xl text-sm font-bold text-black bg-emerald-400 hover:bg-emerald-300 active:scale-[.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+        <i class="ph-bold ph-calendar-check mr-2"></i>Guardar cita
+      </button>
+    </div>
+  </div>
+</div>
 
 <script>
-  const db = firebase.firestore();
+  // Detectar iframe
+  if (window.self !== window.top) {
+    document.body.classList.add('in-iframe');
+    document.getElementById('iframeHeader').classList.remove('hidden');
+    document.getElementById('iframeHeader').classList.add('flex');
+  }
 
-  // ── Estado global ────────────────────────────────────────────────
   let _barberos       = [];
+  let _servicios      = [];
   let _currentDateStr = '';
-  let _citasCache     = {}; // { barberoId: [citas...] }
-  let _unsubscribes   = []; // onSnapshot cleanup
+  let _citasCache     = {};
+  let _unsubscribes   = [];
   let _today          = '';
+  let _searchQuery    = '';
+
+  function _fechaLabelEl() {
+    return document.getElementById(
+      window.self !== window.top ? 'fechaLabel' : 'fechaLabelHeader'
+    );
+  }
 
   // ── Helpers de fecha ─────────────────────────────────────────────
   function toDateStr(d) {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const dd = String(d.getDate()).padStart(2, '0');
-    return `${y}-${m}-${dd}`;
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   }
 
   function labelFecha(dateStr) {
     const [y, m, d] = dateStr.split('-').map(Number);
-    const date = new Date(y, m - 1, d);
-    return date.toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' });
+    return new Date(y, m-1, d).toLocaleDateString('es-CL', { weekday:'long', day:'numeric', month:'long' });
   }
 
   function shortLabel(dateStr) {
     if (dateStr === _today) return 'Hoy';
     const [y, m, d] = dateStr.split('-').map(Number);
-    const date = new Date(y, m - 1, d);
+    const date = new Date(y, m-1, d);
     const mañana = new Date(); mañana.setDate(mañana.getDate() + 1);
     if (toDateStr(mañana) === dateStr) return 'Mañana';
-    return date.toLocaleDateString('es-CL', { weekday: 'short', day: 'numeric' });
+    return date.toLocaleDateString('es-CL', { weekday:'short', day:'numeric' });
   }
 
-  // ── Renderizar nav de fechas ──────────────────────────────────────
+  // ── Nav de fechas ────────────────────────────────────────────────
   function renderDateNav() {
     const nav = document.getElementById('dateNav');
     nav.innerHTML = '';
@@ -275,36 +513,33 @@
       pill.onclick = () => cambiarFecha(str);
       nav.appendChild(pill);
     }
-    // Scroll al active
     const active = nav.querySelector('.active');
-    if (active) active.scrollIntoView({ inline: 'center', behavior: 'smooth' });
+    if (active) active.scrollIntoView({ inline:'center', behavior:'smooth' });
   }
 
   // ── Cambiar fecha ────────────────────────────────────────────────
   function cambiarFecha(dateStr) {
     if (dateStr === _currentDateStr) return;
     _currentDateStr = dateStr;
-    _citasCache     = {};
-
-    // Limpiar subscripciones anteriores
+    _citasCache = {};
     _unsubscribes.forEach(u => u());
     _unsubscribes = [];
 
     renderDateNav();
-    document.getElementById('fechaLabel').textContent = labelFecha(dateStr);
+    const el = _fechaLabelEl();
+    if (el) el.textContent = labelFecha(dateStr);
     renderKPIs();
     renderBarberos();
     subscribeToday();
   }
 
-  // ── Subscribir tiempo real para la fecha actual ───────────────────
+  // ── Suscripción tiempo real ───────────────────────────────────────
   function subscribeToday() {
     if (!_barberos.length) return;
 
     const unsub = db.collection('citas')
       .where('fecha', '==', _currentDateStr)
       .onSnapshot(snap => {
-        // Reconstruir cache
         _citasCache = {};
         _barberos.forEach(b => { _citasCache[b.id] = []; });
 
@@ -315,9 +550,8 @@
           _citasCache[bid].push(c);
         });
 
-        // Ordenar citas de cada barbero por hora
         Object.keys(_citasCache).forEach(bid => {
-          _citasCache[bid].sort((a, b) => (a.hora || '').localeCompare(b.hora || ''));
+          _citasCache[bid].sort((a, b) => (a.hora||'').localeCompare(b.hora||''));
         });
 
         renderKPIs();
@@ -331,19 +565,24 @@
 
   // ── KPIs ─────────────────────────────────────────────────────────
   function renderKPIs() {
-    const todasLasCitas = Object.values(_citasCache).flat();
-    const total       = todasLasCitas.filter(c => c.estado !== 'Cancelada').length;
-    const pendientes  = todasLasCitas.filter(c => c.estado !== 'Completada' && c.estado !== 'Cancelada').length;
-    const completadas = todasLasCitas.filter(c => c.estado === 'Completada').length;
-
-    document.getElementById('kpiTotal').textContent       = total;
-    document.getElementById('kpiPendientes').textContent  = pendientes;
-    document.getElementById('kpiCompletadas').textContent = completadas;
+    const todas = Object.values(_citasCache).flat();
+    document.getElementById('kpiTotal').textContent       = todas.filter(c => c.estado !== 'Cancelada').length;
+    document.getElementById('kpiPendientes').textContent  = todas.filter(c => c.estado === 'Confirmado' || c.estado === 'Pendiente').length;
+    document.getElementById('kpiCompletadas').textContent = todas.filter(c => c.estado === 'Completada').length;
   }
 
-  // ── Renderizar tarjetas de barberos ──────────────────────────────
+  // ── Buscador ─────────────────────────────────────────────────────
+  function filtrarBarberos(q) {
+    _searchQuery = q.toLowerCase().trim();
+    renderBarberos();
+  }
+
+  // ── Renderizar tarjetas ──────────────────────────────────────────
   function renderBarberos() {
     const grid = document.getElementById('barberosGrid');
+
+    let lista = _barberos;
+    if (_searchQuery) lista = lista.filter(b => b.nombre.toLowerCase().includes(_searchQuery));
 
     if (!_barberos.length) {
       grid.innerHTML = '';
@@ -351,140 +590,255 @@
       document.getElementById('barberoCount').textContent = '';
       return;
     }
+    document.getElementById('emptyState').classList.add('hidden');
 
     const expandedIds = new Set(
-      [...document.querySelectorAll('.barber-card.expanded')].map(el => el.id.replace('bcard-', ''))
+      [...document.querySelectorAll('.barber-card.expanded')].map(el => el.id.replace('bcard-',''))
     );
 
-    document.getElementById('barberoCount').textContent = `${_barberos.length} barberos`;
+    document.getElementById('barberoCount').textContent = `${_barberos.length} barbero${_barberos.length !== 1 ? 's' : ''}`;
 
-    grid.innerHTML = _barberos.map(b => {
+    if (!lista.length) {
+      grid.innerHTML = `<p class="text-center text-sm text-gray-600 py-8">Sin resultados para "${_searchQuery}"</p>`;
+      return;
+    }
+
+    grid.innerHTML = lista.map((b, idx) => {
       const citas       = _citasCache[b.id] || [];
       const activas     = citas.filter(c => c.estado !== 'Cancelada');
       const total       = activas.length;
       const completadas = activas.filter(c => c.estado === 'Completada').length;
-      const pendientes  = activas.filter(c => c.estado !== 'Completada').length;
+      const pendientes  = activas.filter(c => c.estado === 'Confirmado' || c.estado === 'Pendiente').length;
+      const noAsistio   = activas.filter(c => c.estado === 'NoAsistio').length;
       const pct         = total > 0 ? Math.round((completadas / total) * 100) : 0;
 
-      // Color del estado
-      let estadoColor = 'text-emerald-400', estadoLabel = 'Libre';
-      if (total > 0 && pendientes > 0) { estadoColor = 'text-amber-400'; estadoLabel = `${pendientes} pendiente${pendientes > 1 ? 's' : ''}`; }
-      else if (total > 0 && pendientes === 0) { estadoColor = 'text-emerald-400'; estadoLabel = 'Al día ✓'; }
+      let estadoColor = 'text-gray-600', estadoLabel = 'Sin citas';
+      if (total > 0 && pendientes > 0)                               { estadoColor = 'text-amber-400'; estadoLabel = `${pendientes} pendiente${pendientes>1?'s':''}`; }
+      else if (total > 0 && completadas > 0 && pendientes === 0)     { estadoColor = 'text-emerald-400'; estadoLabel = 'Al día ✓'; }
+      else if (total > 0 && noAsistio > 0)                           { estadoColor = 'text-gray-400'; estadoLabel = `${noAsistio} no asistió`; }
 
       const avatarHTML = b.foto
-        ? `<img src="${b.foto}" alt="${b.nombre}" class="w-14 h-14 rounded-2xl object-cover border border-white/10 shrink-0">`
-        : `<div class="w-14 h-14 rounded-2xl flex items-center justify-center border border-white/10 bg-white/5 shrink-0">
-             <i class="ph-fill ph-user text-2xl text-white/30"></i>
+        ? `<img src="${b.foto}" alt="${b.nombre}" class="w-14 h-14 rounded-2xl object-cover border border-gray-700 shrink-0">`
+        : `<div class="w-14 h-14 rounded-2xl flex items-center justify-center border border-gray-700 bg-gray-800 shrink-0">
+             <i class="ph-fill ph-user text-2xl text-gray-600"></i>
            </div>`;
 
-      // Mini-lista de citas
       const citasHTML = citas.length === 0
-        ? `<p class="text-xs text-white/25 italic py-2 text-center">Sin citas este día</p>`
+        ? `<div class="py-5 text-center">
+             <p class="text-xs text-gray-600 italic mb-3">Sin citas este día</p>
+             <button onclick="abrirModalNuevaCita('${b.id}')"
+               class="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-400 border border-emerald-500/25 rounded-xl px-3 py-1.5 hover:bg-emerald-500/10 transition-colors">
+               <i class="ph-bold ph-plus text-xs"></i> Agregar cita
+             </button>
+           </div>`
         : citas.map(c => {
-          const estado = c.estado || 'Pendiente';
-          const isCancelada = estado === 'Cancelada';
-          return `
-          <div class="flex items-start gap-3 py-2.5 border-b border-white/5 last:border-0 ${isCancelada ? 'opacity-50' : ''}">
-            <span class="text-xs font-bold text-white/50 w-12 shrink-0 pt-0.5">${c.hora || '?'}</span>
-            <div class="flex-1 min-w-0">
-              <p class="text-sm font-semibold text-white truncate ${isCancelada ? 'line-through' : ''}">${c.clienteNombre || 'Sin nombre'}</p>
-              <p class="text-xs text-white/40 truncate">${c.servicioNombre || ''}</p>
-            </div>
-            <select
-              class="estado-select s-${estado}"
-              onchange="cambiarEstadoCita('${c.id}', this.value, this)"
-              onclick="event.stopPropagation()"
-              title="Cambiar estado"
-            >
-              <option value="Confirmado" ${estado==='Confirmado'?'selected':''}>Confirmado</option>
-              <option value="Pendiente"  ${estado==='Pendiente' ?'selected':''}>Pendiente</option>
-              <option value="Completada" ${estado==='Completada'?'selected':''}>Completada</option>
-              <option value="Cancelada"  ${estado==='Cancelada' ?'selected':''}>Cancelada</option>
-              <option value="NoAsistio"  ${estado==='NoAsistio' ?'selected':''}>No Asistió</option>
-            </select>
-          </div>`;
-        }).join('');
+            const estado = c.estado || 'Pendiente';
+            const isCancelada = estado === 'Cancelada';
+            const telLimpio = (c.clienteTelefono || '').replace(/\D/g, '');
+            const waLink = telLimpio ? `https://wa.me/${telLimpio}` : null;
+            return `
+            <div class="flex items-center gap-3 py-2.5 border-b border-gray-700/50 last:border-0 ${isCancelada ? 'opacity-40' : ''}">
+              <span class="text-xs font-bold text-gray-500 w-11 shrink-0">${c.hora||'?'}</span>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-semibold text-white truncate ${isCancelada ? 'line-through' : ''}">${c.clienteNombre||'Sin nombre'}</p>
+                <p class="text-[11px] text-gray-500 truncate">${c.servicioNombre||''}</p>
+              </div>
+              ${waLink && !isCancelada ? `
+              <a href="${waLink}" target="_blank" onclick="event.stopPropagation()"
+                class="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border border-[#25D366]/20 hover:bg-[#25D366]/10 transition-colors">
+                <i class="ph-fill ph-whatsapp-logo text-[#25D366] text-sm"></i>
+              </a>` : ''}
+              <select
+                class="estado-select s-${estado}"
+                onchange="cambiarEstadoCita('${c.id}', this.value, this)"
+                onclick="event.stopPropagation()"
+                title="Cambiar estado"
+              >
+                <option value="Confirmado" ${estado==='Confirmado'?'selected':''}>Confirmado</option>
+                <option value="Pendiente"  ${estado==='Pendiente' ?'selected':''}>Pendiente</option>
+                <option value="Completada" ${estado==='Completada'?'selected':''}>Completada</option>
+                <option value="Cancelada"  ${estado==='Cancelada' ?'selected':''}>Cancelada</option>
+                <option value="NoAsistio"  ${estado==='NoAsistio' ?'selected':''}>No Asistió</option>
+              </select>
+            </div>`;
+          }).join('');
 
       return `
-      <div class="barber-card card rounded-2xl overflow-hidden" id="bcard-${b.id}">
-        <!-- Cabecera clickeable -->
-        <div class="flex items-center gap-4 p-4 cursor-pointer hover:bg-white/[0.03] transition-colors"
+      <div class="barber-card card rounded-2xl overflow-hidden fade-up" id="bcard-${b.id}" style="animation-delay:${idx * .05}s">
+        <div class="flex items-center gap-4 p-4 cursor-pointer select-none hover:bg-white/[0.02] active:bg-white/[0.03] transition-colors"
           onclick="toggleCard('${b.id}')">
           ${avatarHTML}
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2 mb-0.5">
-              <h3 class="font-bold text-white text-base leading-tight truncate">${b.nombre}</h3>
-              ${b.especialidad ? `<span class="text-[10px] font-bold text-white/30 uppercase tracking-wide shrink-0">${b.especialidad}</span>` : ''}
+              <h3 class="font-bold text-white text-[15px] leading-tight truncate">${b.nombre}</h3>
+              ${b.especialidad ? `<span class="text-[10px] font-bold text-gray-600 uppercase tracking-wide shrink-0 hidden sm:inline">${b.especialidad}</span>` : ''}
             </div>
             <p class="text-xs ${estadoColor} font-semibold">${estadoLabel}</p>
-            <!-- Barra de progreso -->
             ${total > 0 ? `
-            <div class="timeline-bar mt-2">
+            <div class="timeline-bar mt-2 w-full max-w-[160px]">
               <div class="timeline-fill" style="width:${pct}%"></div>
             </div>
-            <p class="text-[10px] text-white/25 mt-1">${completadas} de ${total} completadas</p>
-            ` : `<p class="text-[10px] text-white/25 mt-1">Sin citas este día</p>`}
+            <p class="text-[10px] text-gray-600 mt-1">${completadas} de ${total} completadas</p>
+            ` : `<p class="text-[10px] text-gray-600 mt-1">Disponible todo el día</p>`}
           </div>
           <div class="flex flex-col items-center gap-1.5 shrink-0 pl-2">
             <span class="text-2xl font-black ${estadoColor}">${total}</span>
-            <i class="ph-bold ph-caret-down text-white/20 text-xs chevron"></i>
+            <i class="ph-bold ph-caret-down text-gray-600 text-xs chevron"></i>
           </div>
         </div>
 
-        <!-- Lista de citas (colapsable) -->
-        <div class="citas-list border-t border-white/5 px-4 pb-1">
-          <p class="text-[10px] font-bold text-white/25 uppercase tracking-widest py-2">
-            Citas del día — ${b.nombre}
-          </p>
+        <div class="citas-list border-t border-gray-700/50 px-4 pb-2">
+          <div class="flex items-center justify-between py-2.5">
+            <p class="section-label">Citas · ${b.nombre}</p>
+            <button onclick="abrirModalNuevaCita('${b.id}')"
+              class="flex items-center gap-1 text-[11px] font-bold text-emerald-400 hover:text-emerald-300 transition-colors">
+              <i class="ph-bold ph-plus text-xs"></i> Agregar
+            </button>
+          </div>
           ${citasHTML}
-          <a href="/agenda?barbero=${b.id}"
-            class="flex items-center justify-center gap-2 py-3 mt-1 text-xs font-bold text-emerald-400 hover:text-emerald-300 transition-colors">
+          <a href="/agenda/${b.id}"
+            class="flex items-center justify-center gap-2 py-3 mt-1 text-xs font-semibold text-gray-500 hover:text-gray-300 transition-colors border-t border-gray-700/30">
             <i class="ph ph-calendar text-sm"></i> Ver agenda completa
           </a>
         </div>
       </div>`;
     }).join('');
 
-    // Restaurar tarjetas que estaban expandidas
     expandedIds.forEach(id => {
       const card = document.getElementById(`bcard-${id}`);
       if (card) card.classList.add('expanded');
     });
   }
 
-  // ── Toggle expand/collapse card ──────────────────────────────────
   function toggleCard(id) {
     const card = document.getElementById(`bcard-${id}`);
     if (card) card.classList.toggle('expanded');
   }
 
-  // ── Recargar manual ──────────────────────────────────────────────
   function recargar() {
     const btn = document.getElementById('reloadBtn');
-    btn.querySelector('i').classList.add('animate-spin');
-    // Las suscripciones onSnapshot se actualizan solas; forzamos un re-render
+    if (btn) btn.querySelector('i').classList.add('animate-spin');
     renderKPIs();
     renderBarberos();
-    setTimeout(() => btn.querySelector('i').classList.remove('animate-spin'), 800);
+    setTimeout(() => { if (btn) btn.querySelector('i').classList.remove('animate-spin'); }, 800);
   }
 
-  // ── Cambiar estado de cita ───────────────────────────────────────
   async function cambiarEstadoCita(citaId, nuevoEstado, selectEl) {
-    // Actualizar clases del select de forma inmediata (optimistic UI)
     const estados = ['Confirmado','Pendiente','Completada','Cancelada','NoAsistio'];
-    estados.forEach(e => selectEl.classList.remove('s-' + e));
-    selectEl.classList.add('s-' + nuevoEstado);
+    estados.forEach(e => selectEl.classList.remove('s-'+e));
+    selectEl.classList.add('s-'+nuevoEstado);
     selectEl.disabled = true;
-
     try {
       await FDB.updateCitaEstado(citaId, nuevoEstado);
-      // El onSnapshot refrescará el UI automáticamente
     } catch (e) {
       console.error('[Agenda] cambiarEstadoCita:', e);
-      // Revertir en caso de error
       selectEl.disabled = false;
-      alert('Error al cambiar el estado: ' + e.message);
     }
+  }
+
+  // ── MODAL NUEVA CITA ─────────────────────────────────────────────
+  function _generarHoras() {
+    const horas = [];
+    for (let h = 8; h < 22; h++) {
+      horas.push(`${String(h).padStart(2,'0')}:00`);
+      horas.push(`${String(h).padStart(2,'0')}:30`);
+    }
+    return horas;
+  }
+
+  function abrirModalNuevaCita(barberoId) {
+    document.getElementById('nc-fecha').value = _currentDateStr;
+
+    const selBarbero = document.getElementById('nc-barbero');
+    selBarbero.innerHTML = '<option value="">Seleccionar...</option>' +
+      _barberos.map(b => `<option value="${b.id}" ${b.id === barberoId ? 'selected' : ''}>${b.nombre}</option>`).join('');
+
+    const selHora = document.getElementById('nc-hora');
+    selHora.innerHTML = '<option value="">Seleccionar hora...</option>' +
+      _generarHoras().map(h => `<option value="${h}">${h}</option>`).join('');
+
+    const selServicio = document.getElementById('nc-servicio');
+    selServicio.innerHTML = '<option value="">Seleccionar servicio...</option>' +
+      _servicios
+        .filter(s => s.activo !== false)
+        .map(s => `<option value="${s.id}" data-nombre="${s.nombre}" data-duracion="${s.duracion||30}">${s.nombre} — ${s.duracion||30} min</option>`)
+        .join('');
+
+    ['nc-nombre','nc-tel','nc-email','nc-nota'].forEach(id => { document.getElementById(id).value = ''; });
+    document.getElementById('nc-error').classList.add('hidden');
+    document.getElementById('nc-guardar').disabled = false;
+
+    document.getElementById('nuevaCitaOverlay').classList.remove('hidden');
+    requestAnimationFrame(() => { document.getElementById('nuevaCitaSheet').style.transform = 'translateY(0)'; });
+  }
+
+  function cerrarModalNuevaCita() {
+    document.getElementById('nuevaCitaSheet').style.transform = 'translateY(100%)';
+    setTimeout(() => document.getElementById('nuevaCitaOverlay').classList.add('hidden'), 280);
+  }
+
+  function onServicioChange(sel) {}
+
+  async function guardarNuevaCita() {
+    const errEl = document.getElementById('nc-error');
+    const btnEl = document.getElementById('nc-guardar');
+    errEl.classList.add('hidden');
+
+    const barberoId = document.getElementById('nc-barbero').value;
+    const fecha     = document.getElementById('nc-fecha').value;
+    const hora      = document.getElementById('nc-hora').value;
+    const nombre    = document.getElementById('nc-nombre').value.trim();
+    const tel       = document.getElementById('nc-tel').value.trim();
+    const email     = document.getElementById('nc-email').value.trim();
+    const nota      = document.getElementById('nc-nota').value.trim();
+    const selSrv    = document.getElementById('nc-servicio');
+    const srvOption = selSrv.options[selSrv.selectedIndex];
+    const srvNombre = srvOption?.value ? srvOption.getAttribute('data-nombre') : '';
+    const srvDur    = srvOption?.value ? parseInt(srvOption.getAttribute('data-duracion')||'30') : 30;
+
+    if (!barberoId) { mostrarError('Selecciona un barbero.'); return; }
+    if (!fecha)     { mostrarError('Selecciona una fecha.'); return; }
+    if (!hora)      { mostrarError('Selecciona una hora.'); return; }
+    if (!nombre)    { mostrarError('Ingresa el nombre del cliente.'); return; }
+    if (!srvNombre) { mostrarError('Selecciona un servicio.'); return; }
+
+    const barbero = _barberos.find(b => b.id === barberoId);
+    btnEl.disabled = true;
+    btnEl.innerHTML = '<i class="ph ph-spinner animate-spin mr-2"></i>Guardando...';
+
+    try {
+      await db.collection('citas').add({
+        fecha,
+        hora,
+        clienteNombre:    nombre,
+        clienteTelefono:  tel || '',
+        clienteEmail:     email || '',
+        servicioNombre:   srvNombre,
+        duracionServicio: srvDur,
+        barbero:          barbero?.nombre || '',
+        barberoId,
+        estado:           'Confirmado',
+        nota:             nota || '',
+        creadoManualmente: true,
+        creadoEn:         firebase.firestore.FieldValue.serverTimestamp(),
+      });
+
+      cerrarModalNuevaCita();
+      if (fecha !== _currentDateStr) cambiarFecha(fecha);
+    } catch (e) {
+      console.error('[NuevaCita] Error:', e);
+      mostrarError('Error al guardar: ' + e.message);
+      btnEl.disabled = false;
+      btnEl.innerHTML = '<i class="ph-bold ph-calendar-check mr-2"></i>Guardar cita';
+    }
+  }
+
+  function mostrarError(msg) {
+    const el = document.getElementById('nc-error');
+    el.textContent = msg;
+    el.classList.remove('hidden');
+    document.getElementById('nc-guardar').disabled = false;
+    document.getElementById('nc-guardar').innerHTML = '<i class="ph-bold ph-calendar-check mr-2"></i>Guardar cita';
   }
 
   // ── AUTH GATE ────────────────────────────────────────────────────
@@ -495,38 +849,32 @@
     if (!isBarbero) { window.location.href = '/gestion-interna/login/'; return; }
 
     const isAdmin = await FDB.esAdminJefe(user.email, user.uid);
-    if (!isAdmin) {
-      // Barbero sin rol admin → redirige a su propia agenda
-      window.location.href = '/agenda';
-      return;
-    }
+    if (!isAdmin) { window.location.href = '/agenda'; return; }
 
-    // Garantizar que barberos/{uid} exista para que las reglas Firestore
-    // permitan leer /citas (las reglas verifican por UID, no por email)
     await FDB.ensureBarberoUidDoc(user.uid, user.email);
 
-    // Inicializar
-    const now    = new Date();
+    const now       = new Date();
     _today          = toDateStr(now);
     _currentDateStr = _today;
 
-    document.getElementById('fechaLabel').textContent = labelFecha(_today);
-
+    const el = _fechaLabelEl();
+    if (el) el.textContent = labelFecha(_today);
     renderDateNav();
 
-    // Cargar barberos
-    _barberos = await FDB.getBarberos();
-    document.getElementById('barberoCount').textContent = `${_barberos.length} barberos`;
+    [_barberos, _servicios] = await Promise.all([
+      FDB.getBarberos(),
+      FDB.getServicios().catch(() => []),
+    ]);
+
+    document.getElementById('barberoCount').textContent =
+      `${_barberos.length} barbero${_barberos.length!==1?'s':''}`;
 
     if (_barberos.length === 0) {
       document.getElementById('barberosGrid').innerHTML = '';
       document.getElementById('emptyState').classList.remove('hidden');
     }
 
-    // Inicializar cache vacío
     _barberos.forEach(b => { _citasCache[b.id] = []; });
-
-    // Escuchar en tiempo real
     subscribeToday();
 
     document.getElementById('loadingOverlay').classList.add('hidden');

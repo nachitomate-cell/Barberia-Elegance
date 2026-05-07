@@ -58,8 +58,12 @@
       "destination": "/admin/index.html"
     },
     {
-      "source": "/gestion-interna/agenda",
+      "source": "/gestion-interna",
       "destination": "/gestion-interna/index.html"
+    },
+    {
+      "source": "/gestion-interna/agenda",
+      "destination": "/gestion-interna/agenda/index.html"
     },
     {
       "source": "/gestion-interna/servicios",
@@ -70,11 +74,19 @@
       "destination": "/gestion-interna/index.html"
     },
     {
+      "source": "/gestion-interna/clientes",
+      "destination": "/gestion-interna/index.html"
+    },
+    {
       "source": "/gestion-interna/clientes/:uid*",
       "destination": "/gestion-interna/index.html"
     },
     {
       "source": "/gestion-interna/barberos",
+      "destination": "/gestion-interna/index.html"
+    },
+    {
+      "source": "/gestion-interna/premios",
       "destination": "/gestion-interna/index.html"
     },
     {

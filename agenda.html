@@ -360,6 +360,10 @@
 
                     barberId = myBarberoId;
 
+                    // Garantiza que barberos/{uid} exista para que las reglas de Firestore
+                    // reconozcan al barbero al hacer update/delete en /citas.
+                    FDB.ensureBarberoUidDoc(user.uid, user.email, info.barberoId).catch(() => {});
+
                     // Precargar nombre si ya lo tenemos del snap anterior
                     if (info.nombre) {
                         document.getElementById('barberNameHeader').textContent = 'Agenda ' + info.nombre;
@@ -543,6 +547,10 @@
             const dd = String(currentDate.getDate()).padStart(2, '0');
             const fechaStr = `${yyyy}-${mm}-${dd}`;
 
+            // Flag local por día: evita notificaciones al cargar citas existentes
+            // al navegar entre días. Se resetea en cada llamada a loadAgendaData.
+            let _diaLoaded = false;
+
             // Citas
             const unsubCitas = db.collection('citas')
                 .where('fecha', '==', fechaStr)
@@ -550,9 +558,11 @@
                 .onSnapshot(snap => {
                     const changes = snap.docChanges();
                     changes.forEach(change => {
-                        if (change.type === 'added' && !_initialLoad && Notification.permission === 'granted') {
+                        if (change.type === 'added' && _diaLoaded && Notification.permission === 'granted') {
                             const data = change.doc.data();
-                            const diff = new Date() - (data.creadoEn?.toDate() || new Date());
+                            // creadoEn puede no existir en citas antiguas: usar epoch 0
+                            // para que diff sea muy grande y no dispare notificación
+                            const diff = new Date() - (data.creadoEn?.toDate() || new Date(0));
                             if (diff < 60000) {
                                 navigator.serviceWorker.ready.then(reg => {
                                     reg.showNotification('Nueva Reserva', {
@@ -573,7 +583,7 @@
                     todayCitas = snap.docs.map(d => ({id: d.id, ...d.data()}));
                     scheduleRender();
 
-                    if(_initialLoad) setTimeout(() => _initialLoad = false, 2000);
+                    if (!_diaLoaded) setTimeout(() => { _diaLoaded = true; }, 2000);
                 }, err => {
                     console.error('[Agenda] Error en onSnapshot citas:', err.code, '— barberId:', barberId);
                 });
@@ -617,6 +627,7 @@
             const fechaStr = `${yyyy}-${mm}-${dd}`;
 
             const cfg = barberConfig || globalConfig;
+            if (!cfg) return;
             const dw  = new Date(fechaStr + 'T12:00:00').getDay();
             const dc  = (cfg.diasConfig || {})[dw] || {};
 
@@ -680,6 +691,7 @@
                 // 3. Verificar Bloqueos
                 const bloqueo = bloqueos.find(b => {
                     if (b.todo_el_dia) return true;
+                    if (!b.hora_inicio || !b.hora_fin) return false;
                     const bS = toMins(b.hora_inicio);
                     const bEnd = toMins(b.hora_fin);
                     return cur >= bS && cur < bEnd;
@@ -1062,6 +1074,7 @@
           await db.collection('fcm_tokens').doc(token).set({
             token,
             uid: firebase.auth().currentUser.uid,
+            barberoId: barberId || null,
             dispositivo: navigator.userAgent.substring(0, 120),
             creadoEn: firebase.firestore.FieldValue.serverTimestamp(),
             activo: true

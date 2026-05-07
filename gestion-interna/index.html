@@ -893,7 +893,8 @@
           </a>
 
 
-          <a href="/gestion-interna/metricas.html"
+          <a href="/gestion-interna/metricas" data-tab="tab-metricas"
+            onclick="event.preventDefault(); closeSidebar(); openTab('tab-metricas',this)"
             class="admin-only nav-btn w-full flex items-center gap-3 px-3 py-2.5 min-h-[44px] rounded-xl font-medium text-sm transition-all text-gray-400">
             <span class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center shrink-0">
               <i class="ph ph-chart-bar text-base"></i>
@@ -1146,49 +1147,8 @@
         </div>
 
         <!-- ══════════════════ TAB: AGENDA EQUIPO ══════════════════ -->
-        <div id="tab-agenda-equipo" class="tab-content hidden">
-
-          <!-- Header sticky -->
-          <header
-            class="sticky top-0 z-50 bg-[#111827] border-b border-gray-700 pt-3 pb-4 mb-5 px-4 -mx-4 lg:px-10 lg:-mx-10">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <h2 class="text-lg font-black tracking-tight text-white leading-tight">Agenda del Equipo</h2>
-                <p class="text-xs text-gray-500">Control total de citas por barbero</p>
-              </div>
-              <!-- Controles de fecha -->
-              <div class="flex items-center gap-2">
-                <button onclick="equipoChangeDate(-1)"
-                  class="w-10 h-10 rounded-xl bg-admin-card border border-admin-border hover:bg-admin-border flex items-center justify-center transition-colors shrink-0">
-                  <i class="ph-bold ph-caret-left"></i>
-                </button>
-                <button id="equipoDateBtn" onclick="equipoToggleCalendar()"
-                  style="display:flex;align-items:center;gap:.5rem;color:#34d399;font-weight:700;padding:.5rem 1rem;background:#1f2937;border:1px solid #374151;border-radius:.75rem;font-size:.875rem;min-width:200px;cursor:pointer;font-family:inherit;">
-                  <i class="ph-fill ph-calendar" style="color:#34d399;flex-shrink:0;"></i>
-                  <span id="equipoDateText" style="flex:1;text-align:left;">Cargando…</span>
-                  <i class="ph-bold ph-caret-down" style="font-size:.7rem;color:#6b7280;flex-shrink:0;"></i>
-                </button>
-                <!-- Mini-calendario equipo -->
-                <div id="equipoCalDrop"
-                  style="display:none;position:absolute;top:auto;z-index:9999;width:280px;background:#1f2937;border:1px solid #374151;border-radius:1rem;box-shadow:0 20px 60px rgba(0,0,0,.7);padding:1rem;margin-top:4px;">
-                </div>
-                <button onclick="equipoChangeDate(1)"
-                  class="w-10 h-10 rounded-xl bg-admin-card border border-admin-border hover:bg-admin-border flex items-center justify-center transition-colors shrink-0">
-                  <i class="ph-bold ph-caret-right"></i>
-                </button>
-                <button onclick="equipoJumpToday()"
-                  class="text-xs font-bold text-gray-400 hover:text-admin-accent px-3 py-2 rounded-xl border border-admin-border bg-admin-card transition-colors">
-                  Hoy
-                </button>
-              </div>
-            </div>
-            <!-- Resumen rápido del equipo -->
-            <div id="equipoResumen" class="mt-3 flex gap-4 text-xs text-gray-500 flex-wrap"></div>
-          </header>
-
-          <!-- Columnas de barberos -->
-          <div id="equipoColumnas" class="flex gap-4 overflow-x-auto pb-6 min-h-[300px]"></div>
-
+        <div id="tab-agenda-equipo" class="tab-content hidden" style="margin:-1.5rem -1rem -1.5rem; height:calc(100vh - 60px); overflow:hidden;">
+          <iframe id="agendaEquipoFrame" style="width:100%;height:100%;border:none;display:block;"></iframe>
         </div>
 
         <!-- ══════════════════ TAB 2: SERVICIOS ══════════════════ -->
@@ -1454,6 +1414,220 @@
 
         </div>
 
+        <!-- ══════════════════════════════════════════════════════
+             TAB MÉTRICAS
+        ══════════════════════════════════════════════════════ -->
+        <div id="tab-metricas" class="tab-content hidden admin-only">
+          <div id="metricas-main" class="space-y-6 pb-32 md:pb-10">
+
+            <!-- Encabezado + selector de período -->
+            <div class="flex flex-col sm:flex-row sm:items-center gap-3">
+              <div class="flex-1">
+                <h2 class="text-2xl font-bold tracking-tight flex items-center gap-2">
+                  <i class="ph-fill ph-chart-bar text-admin-accent"></i> Métricas del Negocio
+                </h2>
+                <p class="text-sm text-gray-500 mt-0.5">Análisis de rendimiento y datos para decisiones.</p>
+              </div>
+              <div class="flex items-center gap-2 flex-wrap">
+                <select id="met-periodo" onchange="cargarMetricas()"
+                  class="bg-admin-card border border-admin-border text-white text-sm rounded-xl px-3 py-2 focus:outline-none focus:border-admin-accent" style="color-scheme:dark;">
+                  <option value="semana">Esta semana</option>
+                  <option value="mes" selected>Este mes</option>
+                  <option value="mes_anterior">Mes anterior</option>
+                  <option value="3meses">Últimos 3 meses</option>
+                  <option value="hoy">Hoy</option>
+                </select>
+                <button onclick="cargarMetricas()"
+                  class="flex items-center gap-1.5 bg-admin-accent/10 border border-admin-accent/20 text-admin-accent text-sm font-semibold px-3 py-2 rounded-xl hover:bg-admin-accent/20 transition-colors">
+                  <i class="ph-bold ph-arrows-clockwise text-sm"></i> Actualizar
+                </button>
+              </div>
+            </div>
+
+            <!-- ── KPI cards ── -->
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3" id="met-kpis">
+              <!-- se renderizan por JS -->
+              <div class="bg-admin-card border border-admin-border rounded-2xl p-4 animate-pulse h-24"></div>
+              <div class="bg-admin-card border border-admin-border rounded-2xl p-4 animate-pulse h-24"></div>
+              <div class="bg-admin-card border border-admin-border rounded-2xl p-4 animate-pulse h-24"></div>
+              <div class="bg-admin-card border border-admin-border rounded-2xl p-4 animate-pulse h-24"></div>
+            </div>
+
+            <!-- ── Objetivos ── -->
+            <div class="bg-admin-card border border-admin-border rounded-2xl p-5">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                  <i class="ph-fill ph-target text-admin-accent"></i> Objetivos del mes
+                </h3>
+                <button onclick="toggleObjetivosEdit()"
+                  class="text-xs font-semibold text-gray-500 hover:text-admin-accent transition-colors flex items-center gap-1">
+                  <i class="ph-bold ph-pencil text-xs"></i> <span id="met-obj-edit-label">Editar</span>
+                </button>
+              </div>
+
+              <!-- Vista de objetivos -->
+              <div id="met-obj-view" class="space-y-3">
+                <!-- ingresos -->
+                <div>
+                  <div class="flex justify-between text-xs mb-1">
+                    <span class="text-gray-400 font-semibold">Ingresos mensuales</span>
+                    <span id="met-obj-ing-label" class="font-bold text-white">$0 / $0</span>
+                  </div>
+                  <div class="w-full bg-white/5 rounded-full h-2">
+                    <div id="met-obj-ing-bar" class="h-2 rounded-full transition-all duration-700 bg-admin-accent" style="width:0%"></div>
+                  </div>
+                </div>
+                <!-- citas -->
+                <div>
+                  <div class="flex justify-between text-xs mb-1">
+                    <span class="text-gray-400 font-semibold">Citas completadas</span>
+                    <span id="met-obj-citas-label" class="font-bold text-white">0 / 0</span>
+                  </div>
+                  <div class="w-full bg-white/5 rounded-full h-2">
+                    <div id="met-obj-citas-bar" class="h-2 rounded-full transition-all duration-700 bg-indigo-400" style="width:0%"></div>
+                  </div>
+                </div>
+                <!-- nuevos clientes -->
+                <div>
+                  <div class="flex justify-between text-xs mb-1">
+                    <span class="text-gray-400 font-semibold">Clientes nuevos</span>
+                    <span id="met-obj-nuevos-label" class="font-bold text-white">0 / 0</span>
+                  </div>
+                  <div class="w-full bg-white/5 rounded-full h-2">
+                    <div id="met-obj-nuevos-bar" class="h-2 rounded-full transition-all duration-700 bg-yellow-400" style="width:0%"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Formulario edición -->
+              <div id="met-obj-form" class="hidden mt-4 pt-4 border-t border-admin-border space-y-3">
+                <div class="grid grid-cols-3 gap-3">
+                  <div>
+                    <label class="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1">Ingresos ($)</label>
+                    <input type="number" id="met-obj-ing-input" min="0" step="1000" placeholder="500000"
+                      class="w-full bg-admin-bg border border-admin-border text-white text-sm rounded-xl px-3 py-2 focus:outline-none focus:border-admin-accent">
+                  </div>
+                  <div>
+                    <label class="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1">Citas</label>
+                    <input type="number" id="met-obj-citas-input" min="0" placeholder="80"
+                      class="w-full bg-admin-bg border border-admin-border text-white text-sm rounded-xl px-3 py-2 focus:outline-none focus:border-admin-accent">
+                  </div>
+                  <div>
+                    <label class="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1">Clientes</label>
+                    <input type="number" id="met-obj-nuevos-input" min="0" placeholder="20"
+                      class="w-full bg-admin-bg border border-admin-border text-white text-sm rounded-xl px-3 py-2 focus:outline-none focus:border-admin-accent">
+                  </div>
+                </div>
+                <button onclick="guardarObjetivos()"
+                  class="bg-admin-accent/10 border border-admin-accent/30 text-admin-accent font-bold text-sm px-4 py-2 rounded-xl hover:bg-admin-accent/20 transition-colors">
+                  Guardar objetivos
+                </button>
+              </div>
+            </div>
+
+            <!-- ── Fila: horas pico + día de la semana ── -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+              <!-- Horas más populares -->
+              <div class="bg-admin-card border border-admin-border rounded-2xl p-5">
+                <h3 class="text-sm font-bold text-white flex items-center gap-2 mb-4">
+                  <i class="ph-fill ph-clock text-admin-accent"></i> Horas pico
+                </h3>
+                <div id="met-horas-chart" class="space-y-2">
+                  <div class="animate-pulse h-4 bg-white/5 rounded-full"></div>
+                </div>
+                <p class="text-[10px] text-gray-600 mt-3">Basado en citas confirmadas y completadas del período.</p>
+              </div>
+
+              <!-- Días de la semana -->
+              <div class="bg-admin-card border border-admin-border rounded-2xl p-5">
+                <h3 class="text-sm font-bold text-white flex items-center gap-2 mb-4">
+                  <i class="ph-fill ph-calendar-dots text-indigo-400"></i> Días más activos
+                </h3>
+                <div id="met-dias-chart" class="space-y-2">
+                  <div class="animate-pulse h-4 bg-white/5 rounded-full"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ── Ranking barberos ── -->
+            <div class="bg-admin-card border border-admin-border rounded-2xl p-5">
+              <h3 class="text-sm font-bold text-white flex items-center gap-2 mb-4">
+                <i class="ph-fill ph-ranking text-yellow-400"></i> Ranking de barberos
+              </h3>
+              <div id="met-barberos-table" class="space-y-2">
+                <div class="animate-pulse h-12 bg-white/5 rounded-xl"></div>
+              </div>
+            </div>
+
+            <!-- ── Servicios más solicitados ── -->
+            <div class="bg-admin-card border border-admin-border rounded-2xl p-5">
+              <h3 class="text-sm font-bold text-white flex items-center gap-2 mb-4">
+                <i class="ph-fill ph-scissors text-pink-400"></i> Servicios más solicitados
+              </h3>
+              <div id="met-servicios-chart" class="space-y-2">
+                <div class="animate-pulse h-4 bg-white/5 rounded-full"></div>
+              </div>
+            </div>
+
+            <!-- ── Fila: publicidad ── -->
+            <div class="bg-admin-card border border-admin-border rounded-2xl p-5">
+              <h3 class="text-sm font-bold text-white flex items-center gap-2 mb-1">
+                <i class="ph-fill ph-megaphone text-orange-400"></i> Inteligencia publicitaria
+              </h3>
+              <p class="text-xs text-gray-500 mb-5">Datos accionables para saber a quién y cuándo hacer publicidad.</p>
+              <div id="met-publi-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div class="animate-pulse h-24 bg-white/5 rounded-xl"></div>
+                <div class="animate-pulse h-24 bg-white/5 rounded-xl"></div>
+              </div>
+            </div>
+
+            <!-- ── Clientes en riesgo de fuga ── -->
+            <div class="bg-admin-card border border-admin-border rounded-2xl p-5">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                  <i class="ph-fill ph-warning text-red-400"></i> Clientes en riesgo de fuga
+                  <span id="met-fuga-badge" class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-400 hidden"></span>
+                </h3>
+              </div>
+              <p class="text-xs text-gray-500 mb-3">No han visitado en más de 30 días. Ideal para reactivar con publicidad dirigida.</p>
+              <div id="met-fuga-list" class="space-y-2 max-h-64 overflow-y-auto custom-scrollbar">
+                <div class="animate-pulse h-10 bg-white/5 rounded-xl"></div>
+              </div>
+            </div>
+
+            <!-- ── Top clientes frecuentes ── -->
+            <div class="bg-admin-card border border-admin-border rounded-2xl p-5">
+              <h3 class="text-sm font-bold text-white flex items-center gap-2 mb-4">
+                <i class="ph-fill ph-star text-yellow-400"></i> Top 10 clientes más frecuentes
+              </h3>
+              <div id="met-top-clientes" class="space-y-2">
+                <div class="animate-pulse h-10 bg-white/5 rounded-xl"></div>
+              </div>
+            </div>
+
+            <!-- ── Tasa de cancelación ── -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div class="bg-admin-card border border-admin-border rounded-2xl p-5 text-center">
+                <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Tasa de cancelación</p>
+                <p id="met-cancel-pct" class="text-3xl font-black text-red-400">—</p>
+                <p class="text-xs text-gray-600 mt-1">del total de citas</p>
+              </div>
+              <div class="bg-admin-card border border-admin-border rounded-2xl p-5 text-center">
+                <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Ticket promedio</p>
+                <p id="met-ticket-avg" class="text-3xl font-black text-admin-accent">—</p>
+                <p class="text-xs text-gray-600 mt-1">por cita completada</p>
+              </div>
+              <div class="bg-admin-card border border-admin-border rounded-2xl p-5 text-center">
+                <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Hora más vacía</p>
+                <p id="met-hora-vacia" class="text-3xl font-black text-indigo-400">—</p>
+                <p class="text-xs text-gray-600 mt-1">Publica ahí para llenar</p>
+              </div>
+            </div>
+
+          </div><!-- /metricas-main -->
+        </div><!-- /tab-metricas -->
+
       </main>
     </div>
 
@@ -1461,161 +1635,158 @@
      SIDE PANEL — Gestión del Cliente Seleccionado
 ══════════════════════════════════════════════════════ -->
     <div id="clientModal"
-      class="hidden fixed inset-0 bg-black/90 backdrop-blur-md z-[200] flex items-center justify-center p-0 md:p-6 lg:p-12 overflow-hidden">
+      class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[200] flex items-end sm:items-center justify-center p-0 sm:p-4 md:p-6">
 
-      <!-- Center Container -->
-      <div
-        class="bg-gray-950 w-full max-w-5xl h-full md:h-[90vh] md:max-h-[90vh] md:rounded-[2.5rem] shadow-[0_0_100px_rgba(0,0,0,0.5)] border border-white/5 overflow-hidden flex flex-col relative animate-scale-in">
+      <div class="bg-gray-950 w-full max-w-4xl max-h-[96dvh] sm:max-h-[90vh] rounded-t-[1.75rem] sm:rounded-[1.75rem] shadow-2xl border border-white/5 overflow-hidden flex flex-col">
 
-        <!-- Header with Close button -->
-        <div class="flex items-center justify-between p-6 md:p-8 border-b border-white/5 bg-gray-900/30">
-          <div class="flex items-center gap-5">
-            <div id="panelAvatar"
-              class="w-14 h-14 md:w-16 md:h-16 rounded-full bg-admin-bg border-2 border-admin-accent/20 flex items-center justify-center overflow-hidden shrink-0 shadow-lg shadow-admin-accent/5">
-              <i class="ph-fill ph-user text-2xl text-gray-500"></i>
-            </div>
-            <div class="min-w-0">
-              <h3 id="panelNombre" class="text-xl md:text-2xl font-black text-white tracking-tight truncate">—</h3>
-              <p id="panelEmail" class="text-sm text-gray-500 font-medium truncate">—</p>
-            </div>
+        <!-- Header -->
+        <div class="flex items-center gap-3 px-5 py-4 border-b border-white/5 shrink-0">
+          <div id="panelAvatar"
+            class="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden shrink-0">
+            <i class="ph-fill ph-user text-lg text-gray-500"></i>
           </div>
-          <button onclick="cerrarPanel()"
-            class="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-all">
-            <i class="ph-bold ph-x text-lg"></i>
-          </button>
+          <div class="min-w-0 flex-1">
+            <h3 id="panelNombre" class="text-sm font-bold text-white truncate leading-tight">—</h3>
+            <p id="panelEmail" class="text-[11px] text-gray-500 truncate">—</p>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <a id="panelWaBtn" href="#" target="_blank"
+              class="hidden w-8 h-8 rounded-full bg-green-500/10 border border-green-500/20 items-center justify-center text-green-400 hover:bg-green-500/20 transition-colors">
+              <i class="ph-fill ph-whatsapp-logo text-base"></i>
+            </a>
+            <button onclick="cerrarPanel()"
+              class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-all">
+              <i class="ph-bold ph-x text-sm"></i>
+            </button>
+          </div>
         </div>
 
-        <!-- Scrollable Content -->
-        <div class="flex-1 overflow-y-auto p-6 md:p-10 lg:p-12 space-y-12 custom-scrollbar">
+        <!-- Scrollable Body -->
+        <div class="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
+          <div class="p-4 sm:p-5 space-y-4">
 
-          <!-- Top Section: Stats & Card -->
-          <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            <!-- Row 1: Stamps card + Actions + Info -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
 
-            <!-- Column: Stamps Counter -->
-            <div class="lg:col-span-4 space-y-6">
-              <div
-                class="bg-gradient-to-br from-gray-900 to-gray-950 border border-white/5 rounded-[2rem] p-8 text-center relative overflow-hidden group shadow-2xl">
-                <div class="absolute inset-0 bg-admin-accent/5 opacity-0 group-hover:opacity-100 transition-opacity">
+              <!-- Stamps card -->
+              <div class="bg-white/3 border border-white/8 rounded-2xl p-4 text-center">
+                <p class="text-[9px] font-black text-gray-500 uppercase tracking-[0.2em] mb-2">Sellos acumulados</p>
+                <div class="flex items-end justify-center gap-1 mb-1">
+                  <span id="panelStampsNum" class="text-5xl font-black text-admin-accent leading-none">0</span>
+                  <span id="panelStampsDenom" class="text-lg font-bold text-gray-600 mb-0.5">/10</span>
                 </div>
-                <p class="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-6">Sellos Acumulados</p>
-                <div class="relative inline-flex items-end justify-center mb-6">
-                  <span id="panelStampsNum"
-                    class="text-7xl font-black text-admin-accent drop-shadow-[0_0_15px_rgba(52,211,153,0.3)]">0</span>
-                  <span class="text-2xl text-gray-700 font-black mb-3 ml-1">/10</span>
-                </div>
-                <p id="panelStampsMsg"
-                  class="text-xs font-bold text-gray-400 bg-white/5 py-2 px-4 rounded-full inline-block">Cargando...</p>
-
-                <div class="mt-8 w-full bg-white/5 rounded-full h-3 p-1 border border-white/5 shadow-inner">
+                <p id="panelStampsMsg" class="text-[10px] text-gray-500 mb-3">—</p>
+                <div class="w-full bg-white/5 rounded-full h-1.5">
                   <div id="panelProgressBar"
-                    class="h-1 rounded-full bg-gradient-to-r from-admin-accent to-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.5)] transition-all duration-1000 ease-out"
+                    class="h-1.5 rounded-full bg-gradient-to-r from-admin-accent to-emerald-400 transition-all duration-700"
                     style="width:0%"></div>
                 </div>
               </div>
 
-              <!-- Quick Actions -->
-              <div class="grid grid-cols-2 gap-4">
+              <!-- Quick actions -->
+              <div class="grid grid-cols-2 gap-2.5">
                 <button onclick="accionSello(1)"
-                  class="flex flex-col items-center gap-3 bg-admin-accent/5 border border-admin-accent/20 text-admin-accent py-6 rounded-3xl hover:bg-admin-accent/10 transition-all active:scale-95">
-                  <i class="ph-fill ph-plus-circle text-3xl"></i>
-                  <span class="text-xs font-black uppercase tracking-widest">+1 Sello</span>
+                  class="flex flex-col items-center justify-center gap-2 bg-admin-accent/8 border border-admin-accent/20 text-admin-accent py-5 rounded-2xl hover:bg-admin-accent/15 transition-all active:scale-95">
+                  <i class="ph-fill ph-plus-circle text-2xl"></i>
+                  <span class="text-[10px] font-black uppercase tracking-wider">+1 Sello</span>
                 </button>
                 <button onclick="accionSello(-1)"
-                  class="flex flex-col items-center gap-3 bg-red-500/5 border border-red-500/20 text-red-400 py-6 rounded-3xl hover:bg-red-500/10 transition-all active:scale-95">
-                  <i class="ph-fill ph-minus-circle text-3xl"></i>
-                  <span class="text-xs font-black uppercase tracking-widest">-1 Sello</span>
+                  class="flex flex-col items-center justify-center gap-2 bg-red-500/5 border border-red-500/15 text-red-400 py-5 rounded-2xl hover:bg-red-500/10 transition-all active:scale-95">
+                  <i class="ph-fill ph-minus-circle text-2xl"></i>
+                  <span class="text-[10px] font-black uppercase tracking-wider">-1 Sello</span>
                 </button>
               </div>
-            </div>
 
-            <!-- Column: Card & Info -->
-            <div class="lg:col-span-8 space-y-10">
-
-              <!-- Loyalty Card Grid -->
-              <div>
-                <p class="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-5">Tarjeta de Fidelización
-                </p>
-                <div id="panelStampsGrid" class="grid grid-cols-5 md:grid-cols-10 gap-3"></div>
-              </div>
-
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-10 pt-10 border-t border-white/5">
-
-                <!-- Info Column -->
-                <div class="space-y-5">
-                  <p class="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-2">Información</p>
-                  <div class="flex items-center gap-4 text-sm bg-white/3 p-4 rounded-2xl border border-white/5">
-                    <i class="ph-fill ph-users-three text-lg text-admin-accent"></i>
-                    <div class="flex-1">
-                      <p class="text-gray-500 text-[10px] uppercase font-bold">Visitas Totales</p>
-                      <p id="panelInfoAsistencias" class="text-white font-bold text-base">— veces asistió</p>
-                    </div>
-                  </div>
-                  <div class="flex items-center gap-4 text-sm bg-white/3 p-4 rounded-2xl border border-white/5">
-                    <i class="ph-fill ph-envelope text-lg text-gray-500"></i>
-                    <div class="flex-1 min-w-0">
-                      <p class="text-gray-500 text-[10px] uppercase font-bold">Email</p>
-                      <p id="panelInfoEmail" class="text-white font-medium truncate">—</p>
-                    </div>
-                  </div>
-                  <div class="flex items-center gap-4 text-sm bg-white/3 p-4 rounded-2xl border border-white/5">
-                    <i class="ph-fill ph-phone text-lg text-gray-500"></i>
-                    <div class="flex-1">
-                      <p class="text-gray-500 text-[10px] uppercase font-bold">Teléfono</p>
-                      <p id="panelInfoTel" class="text-white font-medium">—</p>
-                    </div>
-                  </div>
-                  <div class="flex items-center gap-4 text-sm bg-white/3 p-4 rounded-2xl border border-white/5">
-                    <i class="ph-fill ph-sparkle text-lg text-yellow-400"></i>
-                    <div class="flex-1">
-                      <p class="text-gray-500 text-[10px] uppercase font-bold">Miembro desde</p>
-                      <p id="panelInfoFecha" class="text-white font-medium">—</p>
-                    </div>
-                  </div>
-                  <div class="flex items-center gap-4 text-sm bg-white/3 p-4 rounded-2xl border border-white/5">
-                    <i class="ph-fill ph-clock-counter-clockwise text-lg text-admin-accent"></i>
-                    <div class="flex-1">
-                      <p class="text-gray-500 text-[10px] uppercase font-bold">Último sello</p>
-                      <p id="panelInfoUltimoSello" class="text-white font-medium">—</p>
-                    </div>
-                  </div>
-
-                  <div class="pt-6">
-                    <button onclick="resetearSellos()"
-                      class="flex items-center gap-2 text-gray-600 hover:text-red-400 transition-colors text-[10px] font-black uppercase tracking-widest">
-                      <i class="ph ph-arrow-counter-clockwise"></i> Resetear todos los sellos
-                    </button>
+              <!-- Client info -->
+              <div class="space-y-2">
+                <div class="flex items-center gap-2.5 bg-white/3 rounded-xl px-3 py-2 border border-white/5">
+                  <i class="ph-fill ph-users-three text-sm text-admin-accent shrink-0"></i>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-[9px] text-gray-600 uppercase font-bold">Visitas</p>
+                    <p id="panelInfoAsistencias" class="text-xs font-semibold text-white">—</p>
                   </div>
                 </div>
-
-                <!-- Rewards & History Column -->
-                <div class="space-y-8">
-                  <!-- Canjear -->
-                  <div>
-                    <p class="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-4">Canjear Premio</p>
-                    <div class="bg-gray-900/50 border border-white/5 rounded-3xl p-5 space-y-4">
-                      <div class="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar" id="premiosOptions"></div>
-                      <button onclick="canjearPremio()"
-                        class="w-full bg-yellow-400 text-gray-950 font-black py-4 rounded-2xl hover:bg-yellow-300 transition-all shadow-lg shadow-yellow-400/10 active:scale-95 text-xs uppercase tracking-widest flex items-center justify-center gap-2 mt-2">
-                        <i class="ph-fill ph-gift text-lg"></i>
-                        Canjear Seleccionado
-                      </button>
-                      <p id="canjeMsg" class="text-[10px] text-center mt-2 hidden font-bold"></p>
-                    </div>
+                <div class="flex items-center gap-2.5 bg-white/3 rounded-xl px-3 py-2 border border-white/5">
+                  <i class="ph-fill ph-phone text-sm text-gray-500 shrink-0"></i>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-[9px] text-gray-600 uppercase font-bold">Teléfono</p>
+                    <p id="panelInfoTel" class="text-xs font-semibold text-white">—</p>
                   </div>
-
-                  <!-- Historial -->
-                  <div>
-                    <p class="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-4">Historial de Sellos
-                    </p>
-                    <div id="panelHistorial"
-                      class="bg-white/3 border border-white/5 rounded-3xl p-6 space-y-4 max-h-80 overflow-y-auto custom-scrollbar">
-                      <p class="text-xs text-gray-600 text-center py-4 italic">Sin historial registrado.</p>
-                    </div>
+                  <a id="panelWaBtnInline" href="#" target="_blank"
+                    class="hidden text-green-400 hover:text-green-300 transition-colors shrink-0">
+                    <i class="ph-fill ph-whatsapp-logo text-base"></i>
+                  </a>
+                </div>
+                <div class="flex items-center gap-2.5 bg-white/3 rounded-xl px-3 py-2 border border-white/5">
+                  <i class="ph-fill ph-calendar text-sm text-gray-500 shrink-0"></i>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-[9px] text-gray-600 uppercase font-bold">Miembro desde</p>
+                    <p id="panelInfoFecha" class="text-xs font-semibold text-white">—</p>
                   </div>
                 </div>
-
+                <div class="flex items-center gap-2.5 bg-white/3 rounded-xl px-3 py-2 border border-white/5">
+                  <i class="ph-fill ph-clock-counter-clockwise text-sm text-admin-accent shrink-0"></i>
+                  <div class="flex-1 min-w-0">
+                    <p class="text-[9px] text-gray-600 uppercase font-bold">Último sello</p>
+                    <p id="panelInfoUltimoSello" class="text-xs font-semibold text-white">—</p>
+                  </div>
+                </div>
               </div>
             </div>
+
+            <!-- Loyalty card grid -->
+            <div class="bg-white/[0.02] border border-white/5 rounded-2xl p-4">
+              <p class="text-[9px] font-black text-gray-500 uppercase tracking-[0.2em] mb-3">Tarjeta de fidelización</p>
+              <div id="panelStampsGrid" class="grid gap-1.5"></div>
+            </div>
+
+            <!-- Rewards + History -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+
+              <!-- Canjear premio -->
+              <div class="bg-white/[0.02] border border-white/5 rounded-2xl p-4 space-y-3">
+                <p class="text-[9px] font-black text-gray-500 uppercase tracking-[0.2em]">Canjear Premio</p>
+                <div class="space-y-1.5 max-h-36 overflow-y-auto pr-0.5 custom-scrollbar" id="premiosOptions"></div>
+                <button id="btnCanjear" onclick="canjearPremio()"
+                  class="w-full bg-yellow-400/10 border border-yellow-400/20 text-yellow-400 font-bold py-3 rounded-xl hover:bg-yellow-400/20 transition-all text-xs uppercase tracking-widest flex items-center justify-center gap-2">
+                  <i class="ph-fill ph-gift text-sm"></i> Canjear seleccionado
+                </button>
+                <p id="canjeMsg" class="text-[10px] text-center hidden font-bold"></p>
+              </div>
+
+              <!-- Historial de sellos -->
+              <div class="bg-white/[0.02] border border-white/5 rounded-2xl p-4">
+                <p class="text-[9px] font-black text-gray-500 uppercase tracking-[0.2em] mb-3">Historial de sellos</p>
+                <div id="panelHistorial" class="space-y-0.5 max-h-44 overflow-y-auto custom-scrollbar">
+                  <p class="text-xs text-gray-600 text-center py-3 italic">Sin historial.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Citas recientes -->
+            <div class="bg-white/[0.02] border border-white/5 rounded-2xl p-4">
+              <p class="text-[9px] font-black text-gray-500 uppercase tracking-[0.2em] mb-3">Citas recientes</p>
+              <div id="panelCitas" class="space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar">
+                <div class="h-8 bg-white/5 rounded-xl animate-pulse"></div>
+              </div>
+            </div>
+
+            <!-- Zona admin: reset -->
+            <div class="flex items-center gap-3 pb-2">
+              <button id="btnResetSellos" onclick="iniciarResetSellos()"
+                class="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-gray-600 hover:text-red-400 transition-colors">
+                <i class="ph ph-arrow-counter-clockwise text-sm"></i> Resetear todos los sellos
+              </button>
+              <div id="confirmResetArea" class="hidden items-center gap-2">
+                <span class="text-[10px] text-red-400 font-bold">¿Confirmar?</span>
+                <button onclick="confirmarReset()"
+                  class="text-[10px] font-bold text-white bg-red-500/20 border border-red-500/30 px-3 py-1 rounded-lg hover:bg-red-500/30 transition-colors">
+                  Resetear
+                </button>
+                <button onclick="cancelarReset()" class="text-[10px] font-bold text-gray-500 hover:text-white transition-colors">Cancelar</button>
+              </div>
+            </div>
+
           </div>
         </div>
       </div>
@@ -1919,221 +2090,6 @@
     </div>
 
     <!-- ══════════════════════════════════════════════════════
-         TAB MÉTRICAS
-    ══════════════════════════════════════════════════════ -->
-    <div id="tab-metricas" class="tab-content hidden admin-only">
-      <div id="metricas-main" class="space-y-6 pb-32 md:pb-10">
-
-        <!-- Encabezado + selector de período -->
-        <div class="flex flex-col sm:flex-row sm:items-center gap-3">
-          <div class="flex-1">
-            <h2 class="text-2xl font-bold tracking-tight flex items-center gap-2">
-              <i class="ph-fill ph-chart-bar text-admin-accent"></i> Métricas del Negocio
-            </h2>
-            <p class="text-sm text-gray-500 mt-0.5">Análisis de rendimiento y datos para decisiones.</p>
-          </div>
-          <div class="flex items-center gap-2 flex-wrap">
-            <select id="met-periodo" onchange="cargarMetricas()"
-              class="bg-admin-card border border-admin-border text-white text-sm rounded-xl px-3 py-2 focus:outline-none focus:border-admin-accent" style="color-scheme:dark;">
-              <option value="semana">Esta semana</option>
-              <option value="mes" selected>Este mes</option>
-              <option value="mes_anterior">Mes anterior</option>
-              <option value="3meses">Últimos 3 meses</option>
-              <option value="hoy">Hoy</option>
-            </select>
-            <button onclick="cargarMetricas()"
-              class="flex items-center gap-1.5 bg-admin-accent/10 border border-admin-accent/20 text-admin-accent text-sm font-semibold px-3 py-2 rounded-xl hover:bg-admin-accent/20 transition-colors">
-              <i class="ph-bold ph-arrows-clockwise text-sm"></i> Actualizar
-            </button>
-          </div>
-        </div>
-
-        <!-- ── KPI cards ── -->
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3" id="met-kpis">
-          <!-- se renderizan por JS -->
-          <div class="bg-admin-card border border-admin-border rounded-2xl p-4 animate-pulse h-24"></div>
-          <div class="bg-admin-card border border-admin-border rounded-2xl p-4 animate-pulse h-24"></div>
-          <div class="bg-admin-card border border-admin-border rounded-2xl p-4 animate-pulse h-24"></div>
-          <div class="bg-admin-card border border-admin-border rounded-2xl p-4 animate-pulse h-24"></div>
-        </div>
-
-        <!-- ── Objetivos ── -->
-        <div class="bg-admin-card border border-admin-border rounded-2xl p-5">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-sm font-bold text-white flex items-center gap-2">
-              <i class="ph-fill ph-target text-admin-accent"></i> Objetivos del mes
-            </h3>
-            <button onclick="toggleObjetivosEdit()"
-              class="text-xs font-semibold text-gray-500 hover:text-admin-accent transition-colors flex items-center gap-1">
-              <i class="ph-bold ph-pencil text-xs"></i> <span id="met-obj-edit-label">Editar</span>
-            </button>
-          </div>
-
-          <!-- Vista de objetivos -->
-          <div id="met-obj-view" class="space-y-3">
-            <!-- ingresos -->
-            <div>
-              <div class="flex justify-between text-xs mb-1">
-                <span class="text-gray-400 font-semibold">Ingresos mensuales</span>
-                <span id="met-obj-ing-label" class="font-bold text-white">$0 / $0</span>
-              </div>
-              <div class="w-full bg-white/5 rounded-full h-2">
-                <div id="met-obj-ing-bar" class="h-2 rounded-full transition-all duration-700 bg-admin-accent" style="width:0%"></div>
-              </div>
-            </div>
-            <!-- citas -->
-            <div>
-              <div class="flex justify-between text-xs mb-1">
-                <span class="text-gray-400 font-semibold">Citas completadas</span>
-                <span id="met-obj-citas-label" class="font-bold text-white">0 / 0</span>
-              </div>
-              <div class="w-full bg-white/5 rounded-full h-2">
-                <div id="met-obj-citas-bar" class="h-2 rounded-full transition-all duration-700 bg-indigo-400" style="width:0%"></div>
-              </div>
-            </div>
-            <!-- nuevos clientes -->
-            <div>
-              <div class="flex justify-between text-xs mb-1">
-                <span class="text-gray-400 font-semibold">Clientes nuevos</span>
-                <span id="met-obj-nuevos-label" class="font-bold text-white">0 / 0</span>
-              </div>
-              <div class="w-full bg-white/5 rounded-full h-2">
-                <div id="met-obj-nuevos-bar" class="h-2 rounded-full transition-all duration-700 bg-yellow-400" style="width:0%"></div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Formulario edición -->
-          <div id="met-obj-form" class="hidden mt-4 pt-4 border-t border-admin-border space-y-3">
-            <div class="grid grid-cols-3 gap-3">
-              <div>
-                <label class="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1">Ingresos ($)</label>
-                <input type="number" id="met-obj-ing-input" min="0" step="1000" placeholder="500000"
-                  class="w-full bg-admin-bg border border-admin-border text-white text-sm rounded-xl px-3 py-2 focus:outline-none focus:border-admin-accent">
-              </div>
-              <div>
-                <label class="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1">Citas</label>
-                <input type="number" id="met-obj-citas-input" min="0" placeholder="80"
-                  class="w-full bg-admin-bg border border-admin-border text-white text-sm rounded-xl px-3 py-2 focus:outline-none focus:border-admin-accent">
-              </div>
-              <div>
-                <label class="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-1">Clientes</label>
-                <input type="number" id="met-obj-nuevos-input" min="0" placeholder="20"
-                  class="w-full bg-admin-bg border border-admin-border text-white text-sm rounded-xl px-3 py-2 focus:outline-none focus:border-admin-accent">
-              </div>
-            </div>
-            <button onclick="guardarObjetivos()"
-              class="bg-admin-accent/10 border border-admin-accent/30 text-admin-accent font-bold text-sm px-4 py-2 rounded-xl hover:bg-admin-accent/20 transition-colors">
-              Guardar objetivos
-            </button>
-          </div>
-        </div>
-
-        <!-- ── Fila: horas pico + día de la semana ── -->
-        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-
-          <!-- Horas más populares -->
-          <div class="bg-admin-card border border-admin-border rounded-2xl p-5">
-            <h3 class="text-sm font-bold text-white flex items-center gap-2 mb-4">
-              <i class="ph-fill ph-clock text-admin-accent"></i> Horas pico
-            </h3>
-            <div id="met-horas-chart" class="space-y-2">
-              <div class="animate-pulse h-4 bg-white/5 rounded-full"></div>
-            </div>
-            <p class="text-[10px] text-gray-600 mt-3">Basado en citas confirmadas y completadas del período.</p>
-          </div>
-
-          <!-- Días de la semana -->
-          <div class="bg-admin-card border border-admin-border rounded-2xl p-5">
-            <h3 class="text-sm font-bold text-white flex items-center gap-2 mb-4">
-              <i class="ph-fill ph-calendar-dots text-indigo-400"></i> Días más activos
-            </h3>
-            <div id="met-dias-chart" class="space-y-2">
-              <div class="animate-pulse h-4 bg-white/5 rounded-full"></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ── Ranking barberos ── -->
-        <div class="bg-admin-card border border-admin-border rounded-2xl p-5">
-          <h3 class="text-sm font-bold text-white flex items-center gap-2 mb-4">
-            <i class="ph-fill ph-ranking text-yellow-400"></i> Ranking de barberos
-          </h3>
-          <div id="met-barberos-table" class="space-y-2">
-            <div class="animate-pulse h-12 bg-white/5 rounded-xl"></div>
-          </div>
-        </div>
-
-        <!-- ── Servicios más solicitados ── -->
-        <div class="bg-admin-card border border-admin-border rounded-2xl p-5">
-          <h3 class="text-sm font-bold text-white flex items-center gap-2 mb-4">
-            <i class="ph-fill ph-scissors text-pink-400"></i> Servicios más solicitados
-          </h3>
-          <div id="met-servicios-chart" class="space-y-2">
-            <div class="animate-pulse h-4 bg-white/5 rounded-full"></div>
-          </div>
-        </div>
-
-        <!-- ── Fila: publicidad ── -->
-        <div class="bg-admin-card border border-admin-border rounded-2xl p-5">
-          <h3 class="text-sm font-bold text-white flex items-center gap-2 mb-1">
-            <i class="ph-fill ph-megaphone text-orange-400"></i> Inteligencia publicitaria
-          </h3>
-          <p class="text-xs text-gray-500 mb-5">Datos accionables para saber a quién y cuándo hacer publicidad.</p>
-          <div id="met-publi-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div class="animate-pulse h-24 bg-white/5 rounded-xl"></div>
-            <div class="animate-pulse h-24 bg-white/5 rounded-xl"></div>
-          </div>
-        </div>
-
-        <!-- ── Clientes en riesgo de fuga ── -->
-        <div class="bg-admin-card border border-admin-border rounded-2xl p-5">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-sm font-bold text-white flex items-center gap-2">
-              <i class="ph-fill ph-warning text-red-400"></i> Clientes en riesgo de fuga
-              <span id="met-fuga-badge" class="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-400 hidden"></span>
-            </h3>
-          </div>
-          <p class="text-xs text-gray-500 mb-3">No han visitado en más de 30 días. Ideal para reactivar con publicidad dirigida.</p>
-          <div id="met-fuga-list" class="space-y-2 max-h-64 overflow-y-auto custom-scrollbar">
-            <div class="animate-pulse h-10 bg-white/5 rounded-xl"></div>
-          </div>
-        </div>
-
-        <!-- ── Top clientes frecuentes ── -->
-        <div class="bg-admin-card border border-admin-border rounded-2xl p-5">
-          <h3 class="text-sm font-bold text-white flex items-center gap-2 mb-4">
-            <i class="ph-fill ph-star text-yellow-400"></i> Top 10 clientes más frecuentes
-          </h3>
-          <div id="met-top-clientes" class="space-y-2">
-            <div class="animate-pulse h-10 bg-white/5 rounded-xl"></div>
-          </div>
-        </div>
-
-        <!-- ── Tasa de cancelación ── -->
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div class="bg-admin-card border border-admin-border rounded-2xl p-5 text-center">
-            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Tasa de cancelación</p>
-            <p id="met-cancel-pct" class="text-3xl font-black text-red-400">—</p>
-            <p class="text-xs text-gray-600 mt-1">del total de citas</p>
-          </div>
-          <div class="bg-admin-card border border-admin-border rounded-2xl p-5 text-center">
-            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Ticket promedio</p>
-            <p id="met-ticket-avg" class="text-3xl font-black text-admin-accent">—</p>
-            <p class="text-xs text-gray-600 mt-1">por cita completada</p>
-          </div>
-          <div class="bg-admin-card border border-admin-border rounded-2xl p-5 text-center">
-            <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2">Hora más vacía</p>
-            <p id="met-hora-vacia" class="text-3xl font-black text-indigo-400">—</p>
-            <p class="text-xs text-gray-600 mt-1">Publica ahí para llenar</p>
-          </div>
-        </div>
-
-      </div><!-- /metricas-main -->
-    </div><!-- /tab-metricas -->
-
-    <!-- ══════════════════════════════════════════════════════
-    <!-- ══════════════════════════════════════════════════════
      MOBILE BOTTOM NAV — Scrollable horizontal
 ══════════════════════════════════════════════════════ -->
     <div id="mobileBottomNav" class="md:hidden fixed bottom-0 left-0 right-0 z-50"
@@ -2149,7 +2105,7 @@
 
         <!-- Agenda equipo -->
         <button
-          onclick="closeSidebar(); openTab('tab-agenda-equipo', document.querySelector('[data-tab=tab-agenda-equipo]'))"
+          onclick="openTab('tab-agenda-equipo', document.querySelector('[data-tab=tab-agenda-equipo]'))"
           class="mob-nav-btn" id="mobNav-tab-agenda-equipo">
           <i class="ph-fill ph-calendar-dots"></i>
           <span>Equipo</span>
@@ -2191,8 +2147,8 @@
         </button>
 
         <!-- Métricas -->
-        <button onclick="window.location.href='/gestion-interna/metricas.html'"
-          class="mob-nav-btn admin-only">
+        <button onclick="closeSidebar(); openTab('tab-metricas', document.querySelector('[data-tab=tab-metricas]'))"
+          class="mob-nav-btn admin-only" id="mobNav-tab-metricas">
           <i class="ph ph-chart-bar"></i>
           <span>Métricas</span>
         </button>
@@ -2969,18 +2925,22 @@
         const dur = parseInt(document.getElementById('ns-duracion').value);
         const cat = document.getElementById('ns-categoria').value;
         const ico = document.getElementById('ns-icono').value || 'ph-scissors';
-        if (!nom) return alert('El nombre del servicio es obligatorio.');
-        if (!pre || pre <= 0) return alert('El precio debe ser mayor a $0.');
-        if (!dur || dur <= 0) return alert('La duración debe ser mayor a 0 minutos.');
+        if (!nom) return showMiniToast('❌ El nombre del servicio es obligatorio.');
+        if (!pre || pre <= 0) return showMiniToast('❌ El precio debe ser mayor a $0.');
+        if (!dur || dur <= 0) return showMiniToast('❌ La duración debe ser mayor a 0 minutos.');
+        const btn = document.querySelector('[onclick="crearServicio()"]');
+        const orig = btn ? btn.innerHTML : null;
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ph ph-spinner animate-spin mr-2"></i>Guardando...'; }
         try {
           await FDB.addServicio({ nombre: nom, precio: pre, duracion: dur, categoria: cat, icono: ico });
-          // onSnapshot actualiza _serviciosCache y llama loadServicesAdmin automáticamente
           document.getElementById('ns-nombre').value = '';
           document.getElementById('ns-precio').value = '';
           document.getElementById('ns-duracion').value = '';
           document.getElementById('ns-categoria').value = 'Cortes';
           selectIcon('ns', 'ph-scissors');
-        } catch (e) { alert('Error al crear servicio: ' + e.message); }
+          showMiniToast('✅ Servicio creado');
+        } catch (e) { showMiniToast('❌ Error: ' + e.message); }
+        finally { if (btn) { btn.disabled = false; btn.innerHTML = orig; } }
       }
 
       async function borrarServ(id) {
@@ -3012,9 +2972,9 @@
         const dur = parseInt(document.getElementById('edit-srv-duracion').value);
         const cat = document.getElementById('edit-srv-categoria').value;
         const ico = document.getElementById('edit-srv-icono').value || 'ph-scissors';
-        if (!nom) return alert('El nombre del servicio es obligatorio.');
-        if (!pre || pre <= 0) return alert('El precio debe ser mayor a $0.');
-        if (!dur || dur <= 0) return alert('La duración debe ser mayor a 0 minutos.');
+        if (!nom) return showMiniToast('❌ El nombre del servicio es obligatorio.');
+        if (!pre || pre <= 0) return showMiniToast('❌ El precio debe ser mayor a $0.');
+        if (!dur || dur <= 0) return showMiniToast('❌ La duración debe ser mayor a 0 minutos.');
         try {
           await FDB.updateServicio(id, { nombre: nom, precio: pre, duracion: dur, categoria: cat, icono: ico });
           closeEditModal();
@@ -3279,13 +3239,16 @@
         currentClientUid = null;
         selectedPremio   = null;
 
-        // Limpiar datos del modal para evitar que se muestren al abrir el siguiente cliente
+        // Reset estado del panel
         const avatarEl = document.getElementById('panelAvatar');
-        if (avatarEl) avatarEl.innerHTML = '<i class="ph-fill ph-user text-2xl text-gray-500"></i>';
+        if (avatarEl) avatarEl.innerHTML = '<i class="ph-fill ph-user text-lg text-gray-500"></i>';
         const nombreEl = document.getElementById('panelNombre');
         if (nombreEl) nombreEl.textContent = '—';
         const emailEl = document.getElementById('panelEmail');
         if (emailEl) emailEl.textContent = '—';
+        const canjeMsg = document.getElementById('canjeMsg');
+        if (canjeMsg) { canjeMsg.classList.add('hidden'); canjeMsg.textContent = ''; }
+        cancelarReset();
 
         if (push && window.location.pathname.includes('/gestion-interna/clientes/')) {
           window.history.pushState({ tabId: 'tab-clientes' }, '', `/gestion-interna/clientes`);
@@ -3300,51 +3263,108 @@
         const avatarEl = document.getElementById('panelAvatar');
         avatarEl.innerHTML = data.photoURL
           ? `<img src="${data.photoURL}" class="w-full h-full object-cover">`
-          : `<span class="text-sm font-bold text-gray-400">${initials}</span>`;
+          : `<span class="text-xs font-bold text-gray-400">${initials}</span>`;
 
         document.getElementById('panelNombre').textContent = data.nombre || '—';
         document.getElementById('panelEmail').textContent = data.email || '—';
 
-        // Contador
+        // WhatsApp link
+        const rawTel = (data.telefono || '').replace(/\D/g, '');
+        const waTel = rawTel.length >= 8 ? (rawTel.startsWith('56') ? rawTel : '56' + rawTel) : null;
+        const waUrl = waTel ? `https://wa.me/${waTel}` : null;
+        ['panelWaBtn', 'panelWaBtnInline'].forEach(id => {
+          const el = document.getElementById(id);
+          if (!el) return;
+          if (waUrl) { el.href = waUrl; el.classList.remove('hidden'); el.classList.add('flex'); }
+          else { el.classList.add('hidden'); el.classList.remove('flex'); }
+        });
+
+        // Stamps counter — use next reward threshold as denominator
+        const sorted = [..._premiosCache].sort((a, b) => a.costoSellos - b.costoSellos);
+        const nextReward = sorted.find(p => stamps < p.costoSellos);
+        const maxCost = sorted.length ? sorted[sorted.length - 1].costoSellos : 10;
+        const denom = nextReward ? nextReward.costoSellos : maxCost;
         document.getElementById('panelStampsNum').textContent = stamps;
-        document.getElementById('panelProgressBar').style.width = Math.min(stamps / 10 * 100, 100) + '%';
+        document.getElementById('panelStampsDenom').textContent = `/${denom}`;
+        document.getElementById('panelProgressBar').style.width = Math.min(stamps / Math.max(denom, 1) * 100, 100) + '%';
+        document.getElementById('panelStampsMsg').textContent = nextReward
+          ? `${denom - stamps} sello${denom - stamps !== 1 ? 's' : ''} para: ${nextReward.nombre}`
+          : stamps > 0 ? '¡Premios disponibles!' : '—';
 
-        const prox = _premiosCache.find(p => stamps < p.costoSellos);
-        document.getElementById('panelStampsMsg').textContent = prox
-          ? `${prox.costoSellos - stamps} sello${prox.costoSellos - stamps !== 1 ? 's' : ''} para: ${prox.nombre}`
-          : '¡Máximos premios disponibles!';
-
-        // Grid de sellos
+        // Loyalty stamp grid — dynamic size based on max reward cost
         const gridEl = document.getElementById('panelStampsGrid');
+        const gridSize = Math.max(maxCost, stamps, 10);
+        const cols = gridSize <= 10 ? 10 : gridSize <= 15 ? 15 : 20;
+        gridEl.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
         gridEl.innerHTML = '';
-        for (let i = 1; i <= 10; i++) {
+        for (let i = 1; i <= gridSize; i++) {
           const filled = i <= stamps;
-          gridEl.innerHTML += `
-      <div class="aspect-square rounded-xl border flex items-center justify-center text-xs font-bold
-        ${filled ? 'stamp-cell-filled' : 'stamp-cell-empty'}">
-        ${filled ? '<i class="ph-fill ph-scissors text-sm"></i>' : i}
-      </div>`;
+          const isRewardAt = _premiosCache.some(p => p.costoSellos === i);
+          gridEl.innerHTML += `<div class="aspect-square rounded-lg border flex items-center justify-center text-[10px] font-bold relative
+            ${filled ? 'bg-admin-accent/15 border-admin-accent/40 text-admin-accent' : 'bg-white/3 border-white/8 text-gray-600'}">
+            ${filled ? '<i class="ph-fill ph-scissors text-[10px]"></i>' : i}
+            ${isRewardAt ? '<span class="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-yellow-400 border border-gray-950"></span>' : ''}
+          </div>`;
         }
 
-        // Información del cliente
+        // Info
         const historial = data.historialSellos || [];
         const asistencias = historial.filter(h => h.tipo === 'suma').length;
-        document.getElementById('panelInfoAsistencias').textContent = `${asistencias} veces asistió`;
-
-        document.getElementById('panelInfoEmail').textContent = data.email || '—';
+        document.getElementById('panelInfoAsistencias').textContent = `${asistencias} visita${asistencias !== 1 ? 's' : ''}`;
         document.getElementById('panelInfoTel').textContent = data.telefono || '—';
         document.getElementById('panelInfoFecha').textContent = data.creadoEn?.toDate
-          ? `Miembro desde ${data.creadoEn.toDate().toLocaleDateString('es-CL', { month: 'long', year: 'numeric' })}`
+          ? data.creadoEn.toDate().toLocaleDateString('es-CL', { day: 'numeric', month: 'short', year: 'numeric' })
           : '—';
         document.getElementById('panelInfoUltimoSello').textContent = data.ultimoSello
-          ? `Último sello: ${formatDate(data.ultimoSello)}`
+          ? formatDate(data.ultimoSello)
           : 'Sin sellos aún';
 
-        // Premios disponibles
+        // Premios y historial
         _renderPremios(stamps);
-
-        // Historial
         _renderHistorial(historial);
+
+        // Citas recientes
+        _cargarCitasCliente(uid, data.email);
+      }
+
+      async function _cargarCitasCliente(uid, email) {
+        const el = document.getElementById('panelCitas');
+        if (!el) return;
+        if (!email) {
+          el.innerHTML = '<p class="text-xs text-gray-600 italic text-center py-2">Sin email — no se pueden cargar citas.</p>';
+          return;
+        }
+        try {
+          const snap = await db.collection('citas')
+            .where('clienteEmail', '==', email)
+            .limit(25)
+            .get();
+          if (snap.empty) {
+            el.innerHTML = '<p class="text-xs text-gray-600 italic text-center py-2">Sin citas registradas.</p>';
+            return;
+          }
+          const citasSorted = snap.docs.sort((a, b) => {
+            const fa = a.data().fecha || ''; const fb = b.data().fecha || '';
+            return fb.localeCompare(fa) || (b.data().hora || '').localeCompare(a.data().hora || '');
+          }).slice(0, 10);
+          const estadoColor = {
+            'Completada': 'text-emerald-400', 'Confirmado': 'text-yellow-400',
+            'Pendiente': 'text-yellow-400', 'Cancelada': 'text-red-400', 'NoAsistio': 'text-gray-500'
+          };
+          el.innerHTML = citasSorted.map(d => {
+            const c = d.data();
+            const col = estadoColor[c.estado] || 'text-gray-400';
+            return `<div class="flex items-center gap-3 bg-white/[0.02] border border-white/5 rounded-xl px-3 py-2.5">
+              <div class="flex-1 min-w-0">
+                <p class="text-xs font-semibold text-white truncate">${c.servicioNombre || '—'}</p>
+                <p class="text-[10px] text-gray-500 mt-0.5">${c.fecha} · ${c.hora} · ${c.barbero || '—'}</p>
+              </div>
+              <span class="text-[10px] font-bold ${col} shrink-0">${c.estado}</span>
+            </div>`;
+          }).join('');
+        } catch (e) {
+          el.innerHTML = `<p class="text-xs text-gray-600 italic text-center py-2">Error cargando citas.</p>`;
+        }
       }
 
       function _renderPremios(stamps) {
@@ -3388,22 +3408,30 @@
 
       function _renderHistorial(historial) {
         const el = document.getElementById('panelHistorial');
-        if (!historial.length) { el.innerHTML = '<p class="text-xs text-gray-600 text-center py-4">Sin historial registrado.</p>'; return; }
-
-        const sorted = [...historial].sort((a, b) => new Date(b.fecha) - new Date(a.fecha)).slice(0, 15);
+        if (!historial.length) {
+          el.innerHTML = '<p class="text-xs text-gray-600 text-center py-3 italic">Sin historial registrado.</p>';
+          return;
+        }
+        const sorted = [...historial].sort((a, b) => new Date(b.fecha) - new Date(a.fecha)).slice(0, 20);
         el.innerHTML = sorted.map(h => {
-          const esSuma = h.tipo === 'suma';
-          const icono = esSuma ? 'ph-plus-circle' : 'ph-gift';
-          const color = esSuma ? 'text-admin-accent' : 'text-yellow-400';
-          const label = esSuma ? `+${h.cantidad} sello` : `Canje: ${h.nota}`;
-          return `
-    <div class="flex items-center gap-3 py-2 border-b border-admin-border/30 last:border-0">
-      <i class="ph-fill ${icono} ${color} text-base shrink-0"></i>
-      <div class="flex-1 min-w-0">
-        <p class="text-xs font-semibold text-white truncate">${label}</p>
-        <p class="text-[10px] text-gray-600">${formatDate(h.fecha)}</p>
-      </div>
-    </div>`;
+          let icono, color, label;
+          if (h.tipo === 'suma') {
+            icono = 'ph-plus-circle'; color = 'text-admin-accent';
+            label = `+${h.cantidad} sello`;
+          } else if (h.tipo === 'canje') {
+            icono = 'ph-gift'; color = 'text-yellow-400';
+            label = `Canje: ${h.nota}`;
+          } else {
+            icono = 'ph-minus-circle'; color = 'text-red-400';
+            label = `${h.cantidad} sello`;
+          }
+          return `<div class="flex items-start gap-2 py-1.5 border-b border-white/4 last:border-0">
+            <i class="ph-fill ${icono} ${color} text-sm shrink-0 mt-0.5"></i>
+            <div class="flex-1 min-w-0">
+              <p class="text-xs font-semibold text-white truncate">${label}</p>
+              <p class="text-[10px] text-gray-600">${formatDate(h.fecha)}</p>
+            </div>
+          </div>`;
         }).join('');
       }
 
@@ -3423,39 +3451,76 @@
       /* ── Acciones del panel ── */
       async function accionSello(delta) {
         if (!currentClientUid) return;
+        const btnSel = delta > 0
+          ? document.querySelector('[onclick="accionSello(1)"]')
+          : document.querySelector('[onclick="accionSello(-1)"]');
+        if (btnSel) { btnSel.disabled = true; btnSel.style.opacity = '0.5'; }
         try {
-          const nota = delta > 0 ? 'Sello añadido manualmente' : 'Sello quitado manualmente';
-          await _modificarStamps(currentClientUid, delta, nota);
-          // onSnapshot actualiza el panel y la lista automáticamente
+          if (delta > 0) {
+            // incrementarSellos también actualiza ultimoSello
+            await _incrementarSello(currentClientUid, 'Sello añadido manualmente');
+          } else {
+            await _modificarStamps(currentClientUid, delta, 'Sello quitado manualmente');
+          }
           showMiniToast(delta > 0 ? '+1 sello sumado ✓' : 'Sello quitado');
-        } catch (e) { alert(e.message); }
+        } catch (e) {
+          showMiniToast('Error: ' + e.message);
+        } finally {
+          if (btnSel) { btnSel.disabled = false; btnSel.style.opacity = ''; }
+        }
       }
 
       async function canjearPremio() {
         if (!currentClientUid || !selectedPremio) {
-          document.getElementById('canjeMsg').textContent = 'Selecciona un premio primero.';
-          document.getElementById('canjeMsg').className = 'text-xs text-center mt-2 text-red-400';
-          document.getElementById('canjeMsg').classList.remove('hidden');
+          const msg = document.getElementById('canjeMsg');
+          msg.textContent = 'Selecciona un premio primero.';
+          msg.className = 'text-[10px] text-center font-bold text-red-400';
+          msg.classList.remove('hidden');
           return;
         }
-
-        if (!confirm(`¿Canjear "${selectedPremio.nombre}" por ${selectedPremio.costoSellos} sellos?`)) return;
-
+        const btn = document.getElementById('btnCanjear');
+        if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; }
         try {
           const nombrePremio = selectedPremio.nombre;
           await _canjearStamps(currentClientUid, selectedPremio.costoSellos, nombrePremio);
-          // onSnapshot actualiza el panel y la lista automáticamente
-
-          document.getElementById('canjeMsg').textContent = `✓ ${nombrePremio} canjeado.`;
-          document.getElementById('canjeMsg').className = 'text-xs text-center mt-2 text-admin-accent';
-          document.getElementById('canjeMsg').classList.remove('hidden');
+          const msg = document.getElementById('canjeMsg');
+          msg.textContent = `✓ ${nombrePremio} canjeado`;
+          msg.className = 'text-[10px] text-center font-bold text-admin-accent';
+          msg.classList.remove('hidden');
           selectedPremio = null;
           showMiniToast(`Premio canjeado: ${nombrePremio}`);
         } catch (e) {
-          document.getElementById('canjeMsg').textContent = e.message;
-          document.getElementById('canjeMsg').className = 'text-xs text-center mt-2 text-red-400';
-          document.getElementById('canjeMsg').classList.remove('hidden');
+          const msg = document.getElementById('canjeMsg');
+          msg.textContent = e.message;
+          msg.className = 'text-[10px] text-center font-bold text-red-400';
+          msg.classList.remove('hidden');
+        } finally {
+          if (btn) { btn.disabled = false; btn.style.opacity = ''; }
         }
+      }
+
+      function iniciarResetSellos() {
+        document.getElementById('confirmResetArea').classList.remove('hidden');
+        document.getElementById('confirmResetArea').classList.add('flex');
+        document.getElementById('btnResetSellos').classList.add('hidden');
+      }
+      function cancelarReset() {
+        document.getElementById('confirmResetArea').classList.add('hidden');
+        document.getElementById('confirmResetArea').classList.remove('flex');
+        document.getElementById('btnResetSellos').classList.remove('hidden');
+      }
+      async function confirmarReset() {
+        if (!currentClientUid) return;
+        const cliente = allClients.find(c => c.uid === currentClientUid);
+        const actual = cliente ? (cliente.stamps || 0) : 0;
+        if (actual === 0) { showMiniToast('Ya tiene 0 sellos'); cancelarReset(); return; }
+        try {
+          await _modificarStamps(currentClientUid, -actual, 'Reset manual por admin');
+          showMiniToast('Sellos reseteados a 0');
+        } catch(e) {
+          showMiniToast('Error: ' + e.message);
+        }
+        cancelarReset();
       }
 
       function openManualBookingModal() {
@@ -3723,6 +3788,8 @@
         document.getElementById('shopLogoSidebar').src = SHOP.logo;
         document.getElementById('shopLogoSidebar').alt = SHOP.nombreCorto;
         document.getElementById('shopNombreSidebar').textContent = SHOP.nombre;
+        const headerNombre = document.getElementById('shopNombreHeader');
+        if (headerNombre) headerNombre.textContent = SHOP.nombreCorto || SHOP.nombre;
 
         // ── AppState: migración + suscripciones en tiempo real ──────
         AppState.subscribe('servicios', srvs => {
@@ -5034,8 +5101,8 @@
     // Precarga silenciosa: solo actualiza _barberosCache sin tocar el DOM
     async function _precargarBarberos() {
       try {
-        const snap = await db.collection('barberos').get();
-        _barberosCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        // Usar FDB.getBarberos() para aplicar deduplicación y filtro de _mainDocId
+        _barberosCache = await FDB.getBarberos();
       } catch (e) {
         console.warn('[Barberos] Error en precarga silenciosa:', e.message);
       }
@@ -5050,8 +5117,11 @@
     let _equipoCalYear, _equipoCalMonth;
 
     function initAgendaEquipo() {
-      equipoUpdateDateText();
-      _equipoResubscribe();
+      const frame = document.getElementById('agendaEquipoFrame');
+      if (frame && !frame.dataset.loaded) {
+        frame.src = '/gestion-interna/agenda/';
+        frame.dataset.loaded = '1';
+      }
     }
 
     function equipoChangeDate(offset) {
@@ -5258,8 +5328,8 @@
       const grid = document.getElementById('barberosAdminGrid');
       if (grid) grid.innerHTML = '<div class="col-span-full flex items-center justify-center py-16 text-gray-600"><i class="ph ph-spinner animate-spin text-3xl mr-3"></i> Cargando...</div>';
       try {
-        const snap = await db.collection('barberos').get();
-        _barberosCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        // Usar FDB.getBarberos() para aplicar deduplicación y filtrar docs _mainDocId
+        _barberosCache = await FDB.getBarberos();
         renderBarberosAdmin();
       } catch (e) {
         if (grid) grid.innerHTML = `<div class="col-span-full text-center py-10 text-red-400"><i class="ph ph-warning text-2xl mb-2"></i><p>Error al cargar: ${e.message}</p></div>`;
@@ -5477,7 +5547,19 @@
     }
 
     function openAddBarberModal() {
-      alert("Para agregar un nuevo barbero a la plataforma, por favor contáctate con el desarrollador. La inclusión de cada barbero adicional tiene un valor asociado.");
+      // Abrir el mismo modal de edición con un barbero vacío (crea uno nuevo al guardar)
+      const fakeEmptyBarber = {};
+      const id = '';
+      document.getElementById('barberEditId').value = id;
+      document.getElementById('barberEditNombre').value = '';
+      document.getElementById('barberEditEspecialidad').value = '';
+      document.getElementById('barberEditRol').value = 'barbero';
+      document.getElementById('barberEditEmail').value = '';
+      document.getElementById('barberPhotoURL').value = '';
+      document.getElementById('barberEditDisponible').checked = true;
+      document.getElementById('barberEditDisponibleTrack').style.background = '#34d399';
+      document.getElementById('barberPhotoPreview').innerHTML = '<i class="ph-fill ph-user text-4xl text-gray-500"></i>';
+      document.getElementById('barberEditModal').classList.replace('hidden', 'flex');
     }
 
     function closeBarberModal() {
@@ -5786,6 +5868,14 @@
   let _metObjetivos   = { ingresos: 0, citas: 0, nuevos: 0 };
   let _metObjEditOpen = false;
 
+  // Las citas no tienen campo 'precio' — se resuelve buscando el servicio en _serviciosCache
+  function _metGetPrecio(cita) {
+    if (Number(cita.precio) > 0) return Number(cita.precio); // retrocompatibilidad
+    const srv = (typeof _serviciosCache !== 'undefined' ? _serviciosCache : [])
+      .find(s => s.nombre === cita.servicioNombre);
+    return srv ? (Number(srv.precio) || 0) : 0;
+  }
+
   // ── Utilitarios de fecha ────────────────────────────────────
   function _metFechaStr(d) {
     return d.getFullYear() + '-' +
@@ -5910,7 +6000,7 @@
     const canceladas  = citas.filter(c => c.estado === 'Cancelada');
     const pendientes  = citas.filter(c => c.estado !== 'Cancelada' && c.estado !== 'Completada');
 
-    const ingresos    = completadas.reduce((s, c) => s + (Number(c.precio)||0), 0);
+    const ingresos    = completadas.reduce((s, c) => s + _metGetPrecio(c), 0);
     const ticket      = completadas.length ? Math.round(ingresos / completadas.length) : 0;
     const cancelPct   = citas.length ? Math.round((canceladas.length / citas.length) * 100) : 0;
 
@@ -5948,7 +6038,7 @@
   // ── Objetivos ───────────────────────────────────────────────
   function _metRenderObjetivos(citas) {
     const completadas = citas.filter(c => c.estado === 'Completada');
-    const ingresos    = completadas.reduce((s, c) => s + (Number(c.precio)||0), 0);
+    const ingresos    = completadas.reduce((s, c) => s + (_metGetPrecio(c)), 0);
     const numCitas    = completadas.length;
 
     // Nuevos clientes: telefonos únicos que no aparecen en citas anteriores (aproximación con emails únicos)
@@ -6032,7 +6122,7 @@
       const nombre = c.barbero || c.barberoNombre || 'Sin asignar';
       if (!map[nombre]) map[nombre] = { citas:0, ingresos:0, completadas:0, canceladas:0 };
       map[nombre].citas++;
-      if (c.estado === 'Completada') { map[nombre].completadas++; map[nombre].ingresos += Number(c.precio)||0; }
+      if (c.estado === 'Completada') { map[nombre].completadas++; map[nombre].ingresos += _metGetPrecio(c); }
       if (c.estado === 'Cancelada')  map[nombre].canceladas++;
     });
 
@@ -6067,7 +6157,7 @@
       const svc = c.servicioNombre || 'Desconocido';
       if (!map[svc]) map[svc] = { cnt:0, ingresos:0 };
       map[svc].cnt++;
-      map[svc].ingresos += Number(c.precio)||0;
+      map[svc].ingresos += _metGetPrecio(c);
     });
     const sorted = Object.entries(map).sort((a,b) => b[1].cnt - a[1].cnt);
     const maxCnt = sorted[0]?.[1].cnt || 1;
@@ -6101,7 +6191,7 @@
     citas.filter(c => c.estado === 'Completada').forEach(c => {
       const s = c.servicioNombre || 'Desconocido';
       if (!mapSvc[s]) mapSvc[s] = { cnt:0, ingresos:0 };
-      mapSvc[s].cnt++; mapSvc[s].ingresos += Number(c.precio)||0;
+      mapSvc[s].cnt++; mapSvc[s].ingresos += _metGetPrecio(c);
     });
     const svcRentable = Object.entries(mapSvc).sort((a,b)=>b[1].ingresos-a[1].ingresos)[0];
 
@@ -6221,7 +6311,8 @@
 
       el.innerHTML = lista.map(c => {
         const tel = (c.tel||'').replace(/\D/g,'');
-        const waLink = tel ? `https://wa.me/${tel.startsWith('56')?tel:'56'+tel}?text=${encodeURIComponent(`Hola ${c.nombre.split(' ')[0]}! Te extrañamos en Elegance 💈 ¿Cuándo agendamos tu próximo corte?`)}` : null;
+        const shopNm = (typeof SHOP !== 'undefined' ? SHOP.nombreCorto || SHOP.nombre : 'la barbería');
+        const waLink = tel ? `https://wa.me/${tel.startsWith('56')?tel:'56'+tel}?text=${encodeURIComponent(`Hola ${c.nombre.split(' ')[0]}! Te extrañamos en ${shopNm} 💈 ¿Cuándo agendamos tu próximo corte?`)}` : null;
         const diasSin = Math.round((new Date() - new Date(c.ultimaFecha+'T12:00:00'))/(1000*60*60*24));
         return `
         <div class="flex items-center gap-3 bg-admin-bg border border-admin-border rounded-xl px-3 py-2.5">
@@ -6252,7 +6343,7 @@
       const nom  = c.clienteNombre   || 'Sin nombre';
       if (!map[tel]) map[tel] = { nombre: nom, cnt: 0, ingresos: 0 };
       map[tel].cnt++;
-      map[tel].ingresos += Number(c.precio)||0;
+      map[tel].ingresos += _metGetPrecio(c);
     });
     const sorted = Object.entries(map).sort((a,b)=>b[1].cnt-a[1].cnt).slice(0,10);
     const maxCnt = sorted[0]?.[1].cnt || 1;
