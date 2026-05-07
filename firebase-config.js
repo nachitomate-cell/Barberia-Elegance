@@ -2,7 +2,7 @@
 // Requiere que los scripts compat de Firebase estén cargados ANTES de este archivo.
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDqVkAhkXALm3hLcrmzjiaS3flUezPFe2Q",
+  apiKey: "AIzaSyDBFZgRs43p6uMjeBm5cED_vbasXP3VUUU",
   authDomain: "barberia-elegance.firebaseapp.com",
   projectId: "barberia-elegance",
   storageBucket: "barberia-elegance.firebasestorage.app",
