@@ -267,36 +267,54 @@ exports.cambiarPasswordBarbero = onCall({ region: 'us-central1' }, async (reques
     }
   }
 
-  const { barberoId, password } = request.data;
-  if (!barberoId || !password || password.length < 6) {
-    throw new HttpsError('invalid-argument', 'barberoId y contraseña (mín. 6 caracteres) son requeridos.');
+  const { barberoId, email, password } = request.data;
+  if (!password || password.length < 6) {
+    throw new HttpsError('invalid-argument', 'Contraseña de mínimo 6 caracteres requerida.');
+  }
+  if (!email && !barberoId) {
+    throw new HttpsError('invalid-argument', 'Se requiere email o barberoId.');
   }
 
-  // Resolver el UID del barbero desde su barberoId (ID del doc original)
   let targetUid = null;
 
-  // 1. Buscar un doc de enlace que apunte a este barberoId
-  const linkSnap = await db.collection('barberos')
-    .where('_mainDocId', '==', barberoId)
-    .limit(1)
-    .get();
-
-  if (!linkSnap.empty) {
-    targetUid = linkSnap.docs[0].id; // El ID del link doc ES el UID de Firebase Auth
-  } else {
-    // 2. Quizás el barberoId mismo es el UID (doc original con uid===id)
-    const barberoDoc = await db.collection('barberos').doc(barberoId).get();
-    if (barberoDoc.exists) {
-      const data = barberoDoc.data();
-      targetUid = data.uid || barberoId;
+  // 1. Buscar por email en Firebase Auth (método más directo y confiable)
+  if (email) {
+    try {
+      const userRecord = await admin.auth().getUserByEmail(email.toLowerCase().trim());
+      targetUid = userRecord.uid;
+      logger.info(`[Admin] Usuario encontrado por email: ${email} → uid=${targetUid}`);
+    } catch (err) {
+      if (err.code !== 'auth/user-not-found') throw new HttpsError('internal', err.message);
     }
   }
 
-  if (!targetUid) throw new HttpsError('not-found', 'No se encontró el barbero.');
+  // 2. Fallback: buscar doc de enlace en Firestore que apunte al barberoId
+  if (!targetUid && barberoId) {
+    const linkSnap = await db.collection('barberos')
+      .where('_mainDocId', '==', barberoId)
+      .limit(1)
+      .get();
+    if (!linkSnap.empty) {
+      targetUid = linkSnap.docs[0].id;
+      logger.info(`[Admin] UID encontrado via link doc: ${targetUid}`);
+    }
+  }
+
+  // 3. Fallback: uid guardado en el doc del barbero
+  if (!targetUid && barberoId) {
+    const barberoDoc = await db.collection('barberos').doc(barberoId).get();
+    if (barberoDoc.exists && barberoDoc.data().uid) {
+      targetUid = barberoDoc.data().uid;
+    }
+  }
+
+  if (!targetUid) {
+    throw new HttpsError('not-found', `No se encontró ningún usuario de Firebase Auth con el email "${email}". Verifica que el correo sea correcto.`);
+  }
 
   try {
     await admin.auth().updateUser(targetUid, { password });
-    logger.info(`[Admin] Contraseña actualizada para uid=${targetUid} barberoId=${barberoId}`);
+    logger.info(`[Admin] Contraseña actualizada uid=${targetUid}`);
     return { ok: true };
   } catch (err) {
     logger.error('[Admin] Error actualizando contraseña:', err);
