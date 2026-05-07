@@ -270,14 +270,34 @@
                 return { isBarbero: false, isAdmin: false, barberoId: null, nombre: null, snap: null };
             }
 
-            // Buscar por UID primero (más rápido y seguro)
+            // Buscar por UID primero
             let foundDoc = snap.docs.find(d => d.id === uid && d.data().activo !== false);
-            // Fallback: buscar por email
+
+            // Si es un doc de enlace auto-referenciante (_mainDocId === uid), está corrupto.
+            // Lo descartamos para que el fallback por email encuentre el doc original.
+            if (foundDoc && foundDoc.data()._mainDocId === foundDoc.id) {
+                foundDoc = null;
+            }
+
+            // Si es un doc de enlace válido, usamos _mainDocId como barberoId real.
+            if (foundDoc && foundDoc.data()._mainDocId && foundDoc.data()._mainDocId !== foundDoc.id) {
+                const data = foundDoc.data();
+                const rol = data.rol || 'barbero';
+                return {
+                    isBarbero: true,
+                    isAdmin: rol === 'admin' || rol === 'jefe',
+                    barberoId: data._mainDocId,
+                    nombre: data.nombre || data.displayName || null,
+                    snap,
+                };
+            }
+
+            // Fallback: buscar por email (encuentra el doc original)
             if (!foundDoc && email) {
                 const targetEmail = email.toLowerCase().trim();
                 foundDoc = snap.docs.find(d => {
                     const data = d.data();
-                    if (data.activo === false) return false;
+                    if (data.activo === false || data._mainDocId) return false;
                     const docEmail = typeof data.email === 'string' ? data.email.toLowerCase().trim() : '';
                     return docEmail === targetEmail;
                 });
@@ -521,7 +541,6 @@
                             const data = change.doc.data();
                             const diff = new Date() - (data.creadoEn?.toDate() || new Date());
                             if (diff < 60000) {
-                                // Usar SW showNotification (compatible con todos los navegadores modernos)
                                 navigator.serviceWorker.ready.then(reg => {
                                     reg.showNotification('Nueva Reserva', {
                                         body: `${data.clienteNombre} reservó para las ${data.hora}.`,
@@ -529,7 +548,7 @@
                                         badge: '/icons/icon-192.png',
                                         tag: 'nueva-cita',
                                         renotify: true,
-                                        data: { url: '/agenda' }
+                                        data: { url: window.location.href }
                                     });
                                 }).catch(() => {
                                     try { new Notification('Nueva Reserva', { body: `${data.clienteNombre} reservó para las ${data.hora}.`, icon: '/logo.jpg' }); } catch(_) {}
@@ -542,6 +561,8 @@
                     scheduleRender();
 
                     if(_initialLoad) setTimeout(() => _initialLoad = false, 2000);
+                }, err => {
+                    console.error('[Agenda] Error en onSnapshot citas:', err.code, '— barberId:', barberId);
                 });
 
             // Bloqueos específicos del barbero
@@ -551,6 +572,8 @@
                 .onSnapshot(snap => {
                     todayBloqueosBarbero = snap.docs.map(d => ({id: d.id, ...d.data()}));
                     scheduleRender();
+                }, err => {
+                    console.error('[Agenda] Error en onSnapshot bloqueos:', err.code);
                 });
 
             // Bloqueos globales (barberoId == null)

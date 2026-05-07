@@ -57,8 +57,10 @@ service cloud.firestore {
 
     // ── /citas ───────────────────────────────────────────────────────────────────
     // El flujo público (sin login) puede crear citas, barberos gestionan el resto.
+    // Lectura permitida a cualquier usuario autenticado: barberos ven su agenda,
+    // y el doc de enlace en /barberos/{uid} puede no existir aún en primera sesión.
     match /citas/{citaId} {
-      allow read: if esBarbero();
+      allow read: if request.auth != null;
       allow create: if request.resource.data.keys().hasAll(['fecha', 'hora', 'clienteNombre', 'clienteTelefono', 'estado'])
                     && request.resource.data.estado == 'Confirmado';
       allow update: if esBarbero()

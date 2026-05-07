@@ -675,31 +675,41 @@ const FDB = (() => {
     if (!uid) return;
     try {
       const uidDoc = await db.collection(COL.BARBEROS).doc(uid).get();
-      if (uidDoc.exists && !uidDoc.data()._needsSync) return;
 
-      let mainDoc = null;
+      // Doc ya existe y es válido (no auto-referenciante, no marcado para re-sync)
+      const existingData = uidDoc.exists ? uidDoc.data() : null;
+      const isSelfRef = existingData && existingData._mainDocId === uid;
+      if (uidDoc.exists && !isSelfRef && !existingData._needsSync) return;
+
+      // Buscar el doc principal del barbero por email
       const targetEmail = (email || '').toLowerCase().trim();
-      if (targetEmail) {
-        const snap = await db.collection(COL.BARBEROS).get();
-        mainDoc = snap.docs.find(d => {
-          if (d.id === uid) return false;
-          const data = d.data();
-          if (data.activo === false || data._mainDocId) return false;
-          const docEmail = typeof data.email === 'string' ? data.email.toLowerCase().trim() : '';
-          return docEmail === targetEmail;
-        }) || null;
+      const snap = await db.collection(COL.BARBEROS).get();
+      const mainDoc = snap.docs.find(d => {
+        if (d.id === uid) return false;
+        const data = d.data();
+        if (data.activo === false || data._mainDocId) return false;
+        const docEmail = typeof data.email === 'string' ? data.email.toLowerCase().trim() : '';
+        return docEmail === targetEmail;
+      }) || null;
+
+      if (!mainDoc) {
+        // No se encontró el doc principal — no crear un enlace auto-referenciante.
+        // El admin debe agregar el email correcto al doc del barbero en Firestore.
+        console.warn('[FDB] ensureBarberoUidDoc: no se encontró doc principal para', email, '— agrega el email al doc del barbero en Firestore.');
+        return;
       }
 
       const linkData = {
         activo: true,
         uid,
-        _mainDocId: mainDoc ? mainDoc.id : uid,
-        rol: mainDoc ? (mainDoc.data().rol || 'barbero') : 'barbero',
-        nombre: mainDoc ? (mainDoc.data().nombre || mainDoc.data().displayName || '') : '',
+        email: targetEmail || (mainDoc.data().email || ''),
+        _mainDocId: mainDoc.id,
+        rol: mainDoc.data().rol || 'barbero',
+        nombre: mainDoc.data().nombre || mainDoc.data().displayName || '',
       };
 
       await db.collection(COL.BARBEROS).doc(uid).set(linkData, { merge: true });
-      console.info('[FDB] ensureBarberoUidDoc: doc enlace creado/actualizado', uid);
+      console.info('[FDB] ensureBarberoUidDoc: enlace creado', uid, '→', mainDoc.id);
     } catch (e) {
       console.warn('[FDB] ensureBarberoUidDoc:', e.message);
     }
