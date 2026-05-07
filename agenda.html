@@ -305,17 +305,24 @@
                         return;
                     }
 
-                    const paramBarbero = new URLSearchParams(window.location.search).get('barbero');
-
-                    if (info.isAdmin && paramBarbero) {
-                        barberId = paramBarbero;
-                    } else if (info.isAdmin) {
+                    // Admin y Jefe van al panel de gestión, nunca a /agenda
+                    if (info.isAdmin) {
                         window.location.href = '/gestion-interna/';
                         return;
-                    } else {
-                        barberId = info.barberoId || user.uid;
-                        await FDB.ensureBarberoUidDoc(user.uid, user.email);
                     }
+
+                    // Barbero normal: su URL permanente es /agenda/{barberoId}
+                    const myBarberoId = info.barberoId || user.uid;
+                    const pathParts = window.location.pathname.split('/').filter(Boolean);
+                    const pathId = pathParts[1] || null; // /agenda/{id}
+
+                    if (!pathId || pathId !== myBarberoId) {
+                        window.location.href = '/agenda/' + myBarberoId;
+                        return;
+                    }
+
+                    barberId = myBarberoId;
+                    await FDB.ensureBarberoUidDoc(user.uid, user.email);
 
                     // Precargar nombre si ya lo tenemos del snap anterior
                     if (info.nombre) {

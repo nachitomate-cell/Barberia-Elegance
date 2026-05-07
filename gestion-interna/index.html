@@ -3650,8 +3650,9 @@
             const isAuthorized = role === 'admin' || role === 'jefe';
 
             if (!isAuthorized) {
-              // El barbero no tiene permiso para el panel administrativo global
-              window.location.href = '/gestion-interna/login/';
+              // Barbero sin rol admin/jefe: redirigir a su propia agenda
+              const bId = await FDB.getBarberoId(user.email, user.uid);
+              window.location.href = bId ? '/agenda/' + bId : '/agenda';
               return;
             } else {
               _myRole = role;

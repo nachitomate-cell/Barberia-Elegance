@@ -144,7 +144,9 @@
           if (isAdmin) {
             window.location.href = '/gestion-interna/';
           } else {
-            window.location.href = '/agenda';
+            // Barbero normal: obtener su ID y redirigir a su agenda personal
+            const bId = await FDB.getBarberoId(user.email, user.uid);
+            window.location.href = bId ? '/agenda/' + bId : '/agenda';
           }
         } else {
           // Es un cliente normal, redirigir al portal de clientes sin cerrar sesión
