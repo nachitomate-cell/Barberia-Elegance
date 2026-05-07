@@ -9,7 +9,7 @@ importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-com
 
 // ── 2. CONFIGURACIÓN FIREBASE (igual que firebase-config.js) ─────
 firebase.initializeApp({
-  apiKey:            "AIzaSyDBFZgRs43p6uMjeBm5cED_vbasXP3VUUU",
+  apiKey:            "AIzaSyDqVkAhkXALm3hLcrmzjiaS3flUezPFe2Q",
   authDomain:        "barberia-elegance.firebaseapp.com",
   projectId:         "barberia-elegance",
   storageBucket:     "barberia-elegance.firebasestorage.app",
