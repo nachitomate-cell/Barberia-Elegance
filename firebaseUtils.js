@@ -440,7 +440,7 @@ const FDB = (() => {
       .filter(c => c.estado !== 'Cancelada')
       .map(c => ({
         start: toMins(c.hora),
-        end:   toMins(c.hora) + parseInt(c.duracionServicio),
+        end:   toMins(c.hora) + (parseInt(c.duracionServicio) || 30),
       }));
 
     // Rangos de bloqueo manual parciales
@@ -519,15 +519,31 @@ const FDB = (() => {
   async function getBarberos() {
     try {
       const snap = await db.collection(COL.BARBEROS).get();
-      return snap.docs
+      const todos = snap.docs
         .map(doc => {
           const d = doc.data();
-          // Construir nombre de display robusto
           const nombre = d.nombre || d.displayName || (d.email ? d.email.split('@')[0] : null) || 'Barbero';
           return { id: doc.id, nombre, foto: d.foto || d.photoURL || null, disponible: d.disponible !== false, ...d };
         })
         .filter(b => b.activo !== false && b.rol !== 'admin' && !b._mainDocId)
-        .sort((a, b) => (a.orden || 0) - (b.orden || 0) || a.nombre.localeCompare(b.nombre));
+        .sort((a, b) => {
+          // Priorizar docs cuyo id NO coincide con uid — son los docs "originales"
+          // que ya tienen citas asignadas. Si el seed creó uno nuevo (uid===id) para
+          // el mismo barbero, ese va al final y será descartado al deduplicar.
+          const aOrig = (!a.uid || a.uid !== a.id) ? 0 : 1;
+          const bOrig = (!b.uid || b.uid !== b.id) ? 0 : 1;
+          return aOrig - bOrig || (a.orden || 0) - (b.orden || 0) || a.nombre.localeCompare(b.nombre);
+        });
+
+      // Deduplicar por email: conserva el primer doc (original) por cada email
+      const seenEmails = new Set();
+      return todos.filter(b => {
+        const key = b.email?.toLowerCase().trim();
+        if (!key) return true;
+        if (seenEmails.has(key)) return false;
+        seenEmails.add(key);
+        return true;
+      });
     } catch (e) {
       console.error('[FDB] Error obteniendo barberos:', e);
       return [];
