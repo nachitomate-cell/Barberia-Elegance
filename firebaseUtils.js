@@ -21,13 +21,23 @@ const FDB = (() => {
     BARBEROS:  'barberos',
   };
 
-  const configRef = () => db.collection(COL.CONFIG).doc('main');
+  // Para elegance usamos las colecciones planas existentes (retrocompat).
+  // Para cualquier otro tenant usamos tenants/{id}/{coleccion}.
+  function tenantCol(name) {
+    const tid = window.CURRENT_TENANT_ID || 'elegance';
+    if (tid === 'elegance') return db.collection(name);
+    return db.collection('tenants').doc(tid).collection(name);
+  }
+
+  const configRef = () => tenantCol(COL.CONFIG).doc('main');
 
   /* ──────────────────────────────────────────────────────────────
      MIGRACIÓN: localStorage → Firestore (se ejecuta solo 1 vez)
      Mueve datos existentes sin borrar nada de Firestore.
      ────────────────────────────────────────────────────────────── */
   async function migrarDesdeLocalStorage() {
+    // La migración solo aplica a elegance (datos legacy de localStorage)
+    if ((window.CURRENT_TENANT_ID || 'elegance') !== 'elegance') return;
     const FLAG = 'fs_migrated_v2';
     if (localStorage.getItem(FLAG)) return;
 
@@ -36,11 +46,11 @@ const FDB = (() => {
     // ── Servicios ────────────────────────────────────────────────
     const lsSrvs = JSON.parse(localStorage.getItem('barber_services') || '[]');
     if (lsSrvs.length) {
-      const snap = await db.collection(COL.SERVICIOS).limit(1).get();
+      const snap = await tenantCol(COL.SERVICIOS).limit(1).get();
       if (snap.empty) {
         const batch = db.batch();
         lsSrvs.forEach((s, i) => {
-          const ref = db.collection(COL.SERVICIOS).doc(String(s.id));
+          const ref = tenantCol(COL.SERVICIOS).doc(String(s.id));
           batch.set(ref, {
             nombre:   s.nombre,
             precio:   Number(s.precio),
@@ -78,7 +88,7 @@ const FDB = (() => {
     // ── Citas ────────────────────────────────────────────────────
     const lsCitas = JSON.parse(localStorage.getItem('barber_bookings') || '[]');
     if (lsCitas.length) {
-      const snap = await db.collection(COL.CITAS).limit(1).get();
+      const snap = await tenantCol(COL.CITAS).limit(1).get();
       if (snap.empty) {
         // Firestore permite 500 escrituras por batch
         const chunks = [];
@@ -86,7 +96,7 @@ const FDB = (() => {
         for (const chunk of chunks) {
           const batch = db.batch();
           chunk.forEach(b => {
-            const ref = db.collection(COL.CITAS).doc(String(b.id));
+            const ref = tenantCol(COL.CITAS).doc(String(b.id));
             batch.set(ref, {
               fecha:            b.fecha            || '',
               hora:             b.hora             || '',
@@ -108,7 +118,7 @@ const FDB = (() => {
     }
 
     // ── Barberos (Permisos) ──────────────────────────────────────
-    const snapBarberos = await db.collection(COL.BARBEROS).limit(1).get();
+    const snapBarberos = await tenantCol(COL.BARBEROS).limit(1).get();
     if (snapBarberos.empty) {
       console.info('[FDB] Inicializando colección de barberos…');
       const initialBarberos = [
@@ -119,8 +129,8 @@ const FDB = (() => {
       ];
       const batch = db.batch();
       initialBarberos.forEach(b => {
-        const id = b.uid || db.collection(COL.BARBEROS).doc().id;
-        const ref = db.collection(COL.BARBEROS).doc(id);
+        const id = b.uid || tenantCol(COL.BARBEROS).doc().id;
+        const ref = tenantCol(COL.BARBEROS).doc(id);
         batch.set(ref, { 
           email: b.email ? b.email.toLowerCase() : null, 
           uid: b.uid || null,
@@ -139,20 +149,20 @@ const FDB = (() => {
      ────────────────────────────────────────────────────────────── */
   async function getServicios() {
     try {
-      const snap = await db.collection(COL.SERVICIOS).orderBy('orden').get();
+      const snap = await tenantCol(COL.SERVICIOS).orderBy('orden').get();
       return snap.docs.map(d => ({ id: d.id, ...d.data() }));
     } catch (_) {
       // Fallback si no existe campo 'orden' en los documentos
-      const snap = await db.collection(COL.SERVICIOS).get();
+      const snap = await tenantCol(COL.SERVICIOS).get();
       return snap.docs.map(d => ({ id: d.id, ...d.data() }));
     }
   }
 
   async function addServicio({ nombre, precio, duracion, categoria, icono }) {
     // Calcular el siguiente orden
-    const snap = await db.collection(COL.SERVICIOS).orderBy('orden', 'desc').limit(1).get();
+    const snap = await tenantCol(COL.SERVICIOS).orderBy('orden', 'desc').limit(1).get();
     const nextOrden = snap.empty ? 0 : (snap.docs[0].data().orden || 0) + 1;
-    const ref = await db.collection(COL.SERVICIOS).add({
+    const ref = await tenantCol(COL.SERVICIOS).add({
       nombre,
       precio:   Number(precio),
       duracion: Number(duracion),
@@ -165,25 +175,25 @@ const FDB = (() => {
   }
 
   async function updateServicio(id, data) {
-    await db.collection(COL.SERVICIOS).doc(String(id)).update(data);
+    await tenantCol(COL.SERVICIOS).doc(String(id)).update(data);
   }
 
   async function deleteServicio(id) {
-    await db.collection(COL.SERVICIOS).doc(String(id)).delete();
+    await tenantCol(COL.SERVICIOS).doc(String(id)).delete();
   }
 
   async function reordenarServicios(serviciosOrdenados) {
     // serviciosOrdenados: array de {id, ...} en el nuevo orden
     const batch = db.batch();
     serviciosOrdenados.forEach((s, i) => {
-      batch.update(db.collection(COL.SERVICIOS).doc(String(s.id)), { orden: i });
+      batch.update(tenantCol(COL.SERVICIOS).doc(String(s.id)), { orden: i });
     });
     await batch.commit();
   }
 
   // onSnapshot → callback recibe array de servicios en tiempo real
   function onServiciosChange(callback) {
-    return db.collection(COL.SERVICIOS).orderBy('orden').onSnapshot(snap => {
+    return tenantCol(COL.SERVICIOS).orderBy('orden').onSnapshot(snap => {
       callback(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     }, err => console.error('[FDB] onServiciosChange:', err));
   }
@@ -236,7 +246,7 @@ const FDB = (() => {
      CONFIGURACIÓN POR BARBERO — barberos/{barberoid}/configuracion/main
      ────────────────────────────────────────────────────────────── */
   const _barberConfigRef = (barberoid) =>
-    db.collection(COL.BARBEROS).doc(barberoid).collection('configuracion').doc('main');
+    tenantCol(COL.BARBEROS).doc(barberoid).collection('configuracion').doc('main');
 
   async function getConfigBarbero(barberoid) {
     try {
@@ -262,7 +272,7 @@ const FDB = (() => {
      CITAS
      ────────────────────────────────────────────────────────────── */
   async function getCitas(fecha, barberoId = null) {
-    let q = db.collection(COL.CITAS).where('fecha', '==', fecha);
+    let q = tenantCol(COL.CITAS).where('fecha', '==', fecha);
     if (barberoId) q = q.where('barberoId', '==', barberoId);
     const snap = await q.get();
     return snap.docs
@@ -272,7 +282,7 @@ const FDB = (() => {
 
   async function getCitasMes(yyyyMM) {
     // yyyyMM = "2026-04"
-    const snap = await db.collection(COL.CITAS)
+    const snap = await tenantCol(COL.CITAS)
       .where('fecha', '>=', yyyyMM + '-01')
       .where('fecha', '<=', yyyyMM + '-31')
       .get();
@@ -282,7 +292,7 @@ const FDB = (() => {
   // Legacy: el flujo publico multi-tenant usa BookingService.createBooking().
   // Se mantiene temporalmente para compatibilidad con vistas antiguas.
   async function addCita(cita) {
-    const ref = await db.collection(COL.CITAS).add({
+    const ref = await tenantCol(COL.CITAS).add({
       fecha:            cita.fecha            || '',
       hora:             cita.hora             || '',
       clienteNombre:    cita.clienteNombre    || '',
@@ -300,20 +310,20 @@ const FDB = (() => {
   }
 
   async function updateCitaEstado(id, estado) {
-    await db.collection(COL.CITAS).doc(id).update({ estado });
+    await tenantCol(COL.CITAS).doc(id).update({ estado });
   }
 
   async function updateCitaNota(id, nota) {
-    await db.collection(COL.CITAS).doc(id).update({ nota });
+    await tenantCol(COL.CITAS).doc(id).update({ nota });
   }
 
   async function deleteCita(id) {
-    await db.collection(COL.CITAS).doc(id).delete();
+    await tenantCol(COL.CITAS).doc(id).delete();
   }
 
   // onSnapshot para un día específico → autoactualiza el panel admin
   function onCitasDiaChange(fecha, callback) {
-    return db.collection(COL.CITAS)
+    return tenantCol(COL.CITAS)
       .where('fecha', '==', fecha)
       .onSnapshot(snap => {
         const citas = snap.docs
@@ -327,7 +337,7 @@ const FDB = (() => {
      BLOQUEOS MANUALES
      ────────────────────────────────────────────────────────────── */
   async function addBloqueo({ fecha, todo_el_dia, hora_inicio, hora_fin, motivo, barberoId = null }) {
-    const ref = await db.collection(COL.BLOQUEOS).add({
+    const ref = await tenantCol(COL.BLOQUEOS).add({
       fecha,
       barberoId:    barberoId || null,
       todo_el_dia:  !!todo_el_dia,
@@ -340,7 +350,7 @@ const FDB = (() => {
   }
 
   async function getBloqueosDia(fecha, barberoId = null) {
-    let q = db.collection(COL.BLOQUEOS).where('fecha', '==', fecha);
+    let q = tenantCol(COL.BLOQUEOS).where('fecha', '==', fecha);
     // Sin filtrar por barberoId aquí: los bloqueos globales (barberoId==null) también aplican.
     // El filtro por barbero se hace en getHorasDisponibles combinando globales + del barbero.
     const snap = await q.get();
@@ -351,7 +361,7 @@ const FDB = (() => {
   }
 
   async function getBloqueosMes(yyyyMM) {
-    const snap = await db.collection(COL.BLOQUEOS)
+    const snap = await tenantCol(COL.BLOQUEOS)
       .where('fecha', '>=', yyyyMM + '-01')
       .where('fecha', '<=', yyyyMM + '-31')
       .get();
@@ -359,11 +369,11 @@ const FDB = (() => {
   }
 
   async function deleteBloqueo(id) {
-    await db.collection(COL.BLOQUEOS).doc(id).delete();
+    await tenantCol(COL.BLOQUEOS).doc(id).delete();
   }
 
   function onBloqueosDiaChange(fecha, callback) {
-    return db.collection(COL.BLOQUEOS)
+    return tenantCol(COL.BLOQUEOS)
       .where('fecha', '==', fecha)
       .onSnapshot(
         snap => callback(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
@@ -375,12 +385,12 @@ const FDB = (() => {
      PREMIOS DEL CLUB
      ────────────────────────────────────────────────────────────── */
   async function getPremios() {
-    const snap = await db.collection(COL.PREMIOS).orderBy('costoSellos').get();
+    const snap = await tenantCol(COL.PREMIOS).orderBy('costoSellos').get();
     return snap.docs.map(d => ({ id: d.id, ...d.data() }));
   }
 
   async function addPremio(nombre, costoSellos) {
-    const ref = await db.collection(COL.PREMIOS).add({
+    const ref = await tenantCol(COL.PREMIOS).add({
       nombre,
       costoSellos: Number(costoSellos),
       creadoEn:    firebase.firestore.FieldValue.serverTimestamp(),
@@ -389,18 +399,18 @@ const FDB = (() => {
   }
 
   async function updatePremio(id, data) {
-    await db.collection(COL.PREMIOS).doc(id).update({
+    await tenantCol(COL.PREMIOS).doc(id).update({
       ...data,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
     });
   }
 
   async function deletePremio(id) {
-    await db.collection(COL.PREMIOS).doc(id).delete();
+    await tenantCol(COL.PREMIOS).doc(id).delete();
   }
 
   function onPremiosChange(callback) {
-    return db.collection(COL.PREMIOS)
+    return tenantCol(COL.PREMIOS)
       .orderBy('costoSellos')
       .onSnapshot(
         snap => callback(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
@@ -581,7 +591,7 @@ const FDB = (() => {
      ────────────────────────────────────────────────────────────── */
   async function getBarberos() {
     try {
-      const snap = await db.collection(COL.BARBEROS).get();
+      const snap = await tenantCol(COL.BARBEROS).get();
       const todos = snap.docs
         .map(doc => {
           const d = doc.data();
@@ -621,11 +631,11 @@ const FDB = (() => {
 
       // 1. Verificar por UID (más seguro y directo)
       if (uid) {
-        const doc = await db.collection(COL.BARBEROS).doc(uid).get();
+        const doc = await tenantCol(COL.BARBEROS).doc(uid).get();
         if (doc.exists && doc.data().activo !== false) return true;
       }
       if (email) {
-        const snap = await db.collection(COL.BARBEROS).get();
+        const snap = await tenantCol(COL.BARBEROS).get();
         const targetEmail = email.toLowerCase();
         const doc = snap.docs.find(d => {
           const data = d.data();
@@ -647,14 +657,14 @@ const FDB = (() => {
   async function getBarberoId(email, uid) {
     try {
       if (uid) {
-        const doc = await db.collection(COL.BARBEROS).doc(uid).get();
+        const doc = await tenantCol(COL.BARBEROS).doc(uid).get();
         if (doc.exists && doc.data().activo !== false) {
           // Si es doc de enlace, devolver el ID del doc principal
           return doc.data()._mainDocId || uid;
         }
       }
       if (email) {
-        const snap = await db.collection(COL.BARBEROS).get();
+        const snap = await tenantCol(COL.BARBEROS).get();
         const targetEmail = email.toLowerCase();
         const doc = snap.docs.find(d => {
           const data = d.data();
@@ -677,14 +687,14 @@ const FDB = (() => {
       if (email && BOOTSTRAP_ADMINS.includes(email.toLowerCase())) return true;
 
       if (uid) {
-        const doc = await db.collection(COL.BARBEROS).doc(uid).get();
+        const doc = await tenantCol(COL.BARBEROS).doc(uid).get();
         if (doc.exists && doc.data().activo !== false) {
           const rol = doc.data().rol;
           return rol === 'admin' || rol === 'jefe';
         }
       }
       if (email) {
-        const snap = await db.collection(COL.BARBEROS).get();
+        const snap = await tenantCol(COL.BARBEROS).get();
         const targetEmail = email.toLowerCase();
         const doc = snap.docs.find(d => {
           const data = d.data();
@@ -709,11 +719,11 @@ const FDB = (() => {
     if (email && BOOTSTRAP_ADMINS.includes(email.toLowerCase())) return 'admin';
     try {
       if (uid) {
-        const doc = await db.collection(COL.BARBEROS).doc(uid).get();
+        const doc = await tenantCol(COL.BARBEROS).doc(uid).get();
         if (doc.exists) return doc.data().rol || 'barbero';
       }
       if (email) {
-        const snap = await db.collection(COL.BARBEROS).get();
+        const snap = await tenantCol(COL.BARBEROS).get();
         const targetEmail = email.toLowerCase();
         const doc = snap.docs.find(d => {
           const data = d.data();
@@ -739,7 +749,7 @@ const FDB = (() => {
   async function ensureBarberoUidDoc(uid, email, mainDocId) {
     if (!uid) return;
     try {
-      const uidDoc = await db.collection(COL.BARBEROS).doc(uid).get();
+      const uidDoc = await tenantCol(COL.BARBEROS).doc(uid).get();
 
       const existingData = uidDoc.exists ? uidDoc.data() : null;
       const isSelfRef = existingData && existingData._mainDocId === uid;
@@ -750,14 +760,14 @@ const FDB = (() => {
 
       // 1. Usar mainDocId ya conocido (evita búsqueda si ya lo tenemos)
       if (mainDocId && mainDocId !== uid) {
-        const snap = await db.collection(COL.BARBEROS).doc(mainDocId).get();
+        const snap = await tenantCol(COL.BARBEROS).doc(mainDocId).get();
         if (snap.exists) mainDoc = snap;
       }
 
       // 2. Fallback: buscar por email
       if (!mainDoc) {
         const targetEmail = (email || '').toLowerCase().trim();
-        const allSnap = await db.collection(COL.BARBEROS).get();
+        const allSnap = await tenantCol(COL.BARBEROS).get();
         mainDoc = allSnap.docs.find(d => {
           if (d.id === uid) return false;
           const data = d.data();
@@ -793,7 +803,7 @@ const FDB = (() => {
         nombre: mData.nombre || mData.displayName || '',
       };
 
-      await db.collection(COL.BARBEROS).doc(uid).set(linkData, { merge: true });
+      await tenantCol(COL.BARBEROS).doc(uid).set(linkData, { merge: true });
       console.info('[FDB] ensureBarberoUidDoc: enlace creado/corregido', uid, '→', linkData._mainDocId);
     } catch (e) {
       console.warn('[FDB] ensureBarberoUidDoc:', e.message);
@@ -812,7 +822,7 @@ const FDB = (() => {
 
     try {
       // Obtener barberos y construir mapa nombre → id (insensible a mayúsculas/espacios)
-      const barbSnap = await db.collection(COL.BARBEROS).get();
+      const barbSnap = await tenantCol(COL.BARBEROS).get();
       const nombreAId = {};
       barbSnap.docs.forEach(d => {
         const data = d.data();
@@ -824,7 +834,7 @@ const FDB = (() => {
       if (!Object.keys(nombreAId).length) return;
 
       // Obtener citas sin barberoId (o con barberoId == null)
-      const citasSnap = await db.collection(COL.CITAS).get();
+      const citasSnap = await tenantCol(COL.CITAS).get();
       const sinId = citasSnap.docs.filter(d => {
         const data = d.data();
         return !data.barberoId;

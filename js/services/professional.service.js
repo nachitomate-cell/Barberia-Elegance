@@ -3,6 +3,12 @@
 
   function getProfessionalMocks(tenantId) {
     const mocks = {
+      gitana: [
+        { id: 'prof-gitana-1', displayName: 'Sabina', photoUrl: null, active: true, role: 'nail-tech', order: 0 },
+        { id: 'prof-gitana-2', displayName: 'Clau',   photoUrl: null, active: true, role: 'nail-tech', order: 1 },
+        { id: 'prof-gitana-3', displayName: 'Cony',   photoUrl: null, active: true, role: 'nail-tech', order: 2 },
+        { id: 'prof-gitana-4', displayName: 'Gigi',   photoUrl: null, active: true, role: 'pestañas',  order: 3 },
+      ],
       elegance: [
         {
           id: 'prof-elegance-1',

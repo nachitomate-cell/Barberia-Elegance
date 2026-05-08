@@ -42,41 +42,52 @@
 
 
   <style>
+    /* ── Sistema de variables por tenant ─────────────────────────── */
+    :root {
+      --accent:   #c9a84c;
+      --accent-r: 201; --accent-g: 168; --accent-b: 76;
+      --gold:     var(--accent);
+      --gold-dim: rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.35);
+      --neon-clr: #ffffff;
+      --neon-r:   255; --neon-g: 255; --neon-b: 255;
+      --body-bg:  #050505;
+    }
+    /* Gitana Nails Studio — fucsia oscuro */
+    .tenant-gitana {
+      --accent:   #f472b6;
+      --accent-r: 244; --accent-g: 114; --accent-b: 182;
+      --neon-clr: #f472b6;
+      --neon-r:   244; --neon-g: 114; --neon-b: 182;
+      --body-bg:  #0a0508;
+    }
+
     body {
-      background-color: #050505;
+      background-color: var(--body-bg);
       color: #f8fafc;
       overscroll-behavior-y: none;
       -webkit-tap-highlight-color: transparent;
     }
 
-    .no-scrollbar::-webkit-scrollbar {
-      display: none;
-    }
-
-    .no-scrollbar {
-      -ms-overflow-style: none;
-      scrollbar-width: none;
-    }
-
-    :root {
-      --gold: #c9a84c;
-      --gold-dim: rgba(201,168,76,0.35);
-    }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
     .text-neon {
-      color: #ffffff;
-      text-shadow: 0 0 5px rgba(255,255,255,0.4), 0 0 10px rgba(255,255,255,0.2);
+      color: var(--neon-clr);
+      text-shadow: 0 0 5px rgba(var(--neon-r),var(--neon-g),var(--neon-b),0.4),
+                   0 0 10px rgba(var(--neon-r),var(--neon-g),var(--neon-b),0.2);
     }
     .border-neon {
-      border-color: #ffffff;
-      box-shadow: 0 0 6px rgba(255,255,255,0.2), inset 0 0 6px rgba(255,255,255,0.2);
+      border-color: var(--neon-clr);
+      box-shadow: 0 0 6px rgba(var(--neon-r),var(--neon-g),var(--neon-b),0.2),
+                  inset 0 0 6px rgba(var(--neon-r),var(--neon-g),var(--neon-b),0.2);
     }
     .bg-neon {
-      background-color: #ffffff;
-      box-shadow: 0 0 8px rgba(255,255,255,0.4), 0 0 15px rgba(255,255,255,0.2);
+      background-color: var(--neon-clr);
+      box-shadow: 0 0 8px rgba(var(--neon-r),var(--neon-g),var(--neon-b),0.4),
+                  0 0 15px rgba(var(--neon-r),var(--neon-g),var(--neon-b),0.2);
     }
 
-    /* Booking hero header */
+    /* Booking hero */
     .booking-hero {
       background-color: #0a0806;
       background-image: url('https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&w=900&q=85');
@@ -85,23 +96,70 @@
       position: relative;
     }
     .booking-hero-overlay {
-      position: absolute;
-      inset: 0;
+      position: absolute; inset: 0;
       background: linear-gradient(180deg,
-        rgba(5,5,5,0.55) 0%,
-        rgba(5,5,5,0.40) 40%,
-        rgba(5,5,5,0.82) 100%);
+        rgba(5,5,5,0.55) 0%, rgba(5,5,5,0.40) 40%, rgba(5,5,5,0.82) 100%);
     }
     .hero-logo-ring {
-      border: 2px solid var(--gold);
-      box-shadow: 0 0 0 1px rgba(201,168,76,0.15), 0 0 28px rgba(201,168,76,0.2), 0 0 50px rgba(0,0,0,0.6);
+      border: 2px solid var(--accent);
+      box-shadow: 0 0 0 1px rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.15),
+                  0 0 28px rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.22),
+                  0 0 50px rgba(0,0,0,0.6);
     }
     .gold-divider {
-      width: 36px;
-      height: 1.5px;
-      background: linear-gradient(90deg, transparent, var(--gold), transparent);
-      border-radius: 2px;
-      margin: 10px auto;
+      width: 36px; height: 1.5px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      border-radius: 2px; margin: 10px auto;
+    }
+
+    /* ── Gitana: hero sin imagen ───────────────────────────────── */
+    .tenant-gitana .booking-hero {
+      background-image: none;
+      background-color: var(--body-bg);
+    }
+    .tenant-gitana .booking-hero-overlay {
+      background: linear-gradient(180deg,
+        rgba(10,5,8,0.45) 0%, rgba(10,5,8,0.15) 40%, rgba(10,5,8,0.98) 100%);
+    }
+    /* Gitana: quick-info strip */
+    .tenant-gitana .info-strip { background: rgba(10,5,8,0.85) !important; }
+    .tenant-gitana .info-strip i { color: rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.7) !important; }
+
+    /* Gitana: tarjetas de servicio redondeadas */
+    .tenant-gitana .service-option { border-radius: 1.5rem; }
+    .tenant-gitana .service-option:hover {
+      box-shadow: 0 0 18px rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.22) !important;
+    }
+
+    /* Gitana: barra de progreso track */
+    .tenant-gitana #progressTrack { background-color: #1f0f1a !important; }
+
+    /* Gitana: botón continuar fucsia */
+    .tenant-gitana #btnContinue {
+      background-color: var(--accent) !important;
+      color: #160712 !important;
+      box-shadow: 0 4px 24px rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.4) !important;
+    }
+
+    /* Gitana: club banner (override inline styles) */
+    .tenant-gitana #clubBanner a {
+      border-color: rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.25) !important;
+      box-shadow: 0 0 24px rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.07) !important;
+    }
+    .tenant-gitana #clubBanner .w-11 {
+      background: rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.1) !important;
+      border-color: rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.25) !important;
+    }
+    .tenant-gitana #clubBanner i { color: var(--accent) !important; }
+
+    /* Gitana: footer contact icons */
+    .tenant-gitana #footerContact .w-10 {
+      background: rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.1) !important;
+      border-color: rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.22) !important;
+    }
+    .tenant-gitana #footerContact .w-10 i { color: var(--accent) !important; filter: none; }
+    .tenant-gitana #footerContact p[class*="uppercase"] {
+      color: rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.6) !important;
     }
 
     @keyframes fadeSlideUp {
@@ -148,7 +206,7 @@
     </header>
 
     <!-- Quick info strip -->
-    <div class="flex items-center justify-center gap-0 border-b border-white/5"
+    <div class="info-strip flex items-center justify-center gap-0 border-b border-white/5"
       style="background:rgba(10,8,7,0.8);">
       <a id="heroInfoAddr" href="https://maps.google.com/?q=Ecuador+243+Viña+del+Mar" target="_blank" rel="noopener"
         class="flex-1 flex items-center justify-center gap-1.5 py-3 text-[11px] font-semibold text-gray-500 hover:text-gray-300 transition-colors border-r border-white/5 active:bg-white/3">
@@ -166,7 +224,7 @@
         <span id="stepIndicatorText" class="text-xs font-bold text-neon uppercase tracking-widest">Paso 1 de 4: Servicios</span>
         <span id="progressPercentage" class="text-xs font-bold text-brand-neon/60">25%</span>
       </div>
-      <div class="w-full bg-[#1a1a24] rounded-full h-1.5 overflow-hidden border border-brand-accent/10">
+      <div id="progressTrack" class="w-full bg-[#1a1a24] rounded-full h-1.5 overflow-hidden border border-brand-accent/10">
         <div id="progressBar" class="bg-neon h-1.5 rounded-full transition-all duration-700 w-1/4 relative"></div>
       </div>
       <!-- Mini recap de selección: aparece desde paso 2 -->
@@ -198,7 +256,7 @@
 
       <!-- PASO 2 -->
       <section id="step2" class="hidden opacity-0 transform translate-x-12">
-        <h2 class="text-2xl font-bold mb-6 text-neon tracking-tight">Selecciona tu Barbero</h2>
+        <h2 id="step2Heading" class="text-2xl font-bold mb-6 text-neon tracking-tight">Selecciona tu Barbero</h2>
         <!-- Skeleton visible mientras carga Firestore -->
         <div id="barberosSkeleton" class="flex flex-col gap-4">
           <div class="h-36 bg-white/5 rounded-2xl animate-pulse"></div>
@@ -298,10 +356,10 @@
           Enviar WhatsApp <i
             class="ph-bold ph-whatsapp-logo text-2xl drop-shadow-[0_0_5px_rgba(37,211,102,0.8)]"></i>
         </a>
-        <a href="https://www.instagram.com/elegance.cl_/" target="_blank" rel="noopener"
+        <a id="successInstagram" href="#" target="_blank" rel="noopener"
           class="flex items-center justify-center gap-2 text-sm font-semibold text-white/50 hover:text-white transition-colors mb-5">
           <i class="ph-fill ph-instagram-logo text-lg"></i>
-          @elegance.cl_
+          <span id="successInstagramHandle"></span>
         </a>
         <button onclick="window.location.reload()"
           class="font-bold text-brand-neon/60 hover:text-neon transition-all hover:drop-shadow-[0_0_5px_rgba(255,255,255,0.4)]">Agendar otra hora</button>
@@ -364,10 +422,10 @@
         </div>
 
         <!-- Instagram -->
-        <a href="https://www.instagram.com/elegance.cl_/" target="_blank" rel="noopener"
+        <a id="footerInstagram" href="#" target="_blank" rel="noopener"
           class="flex items-center justify-center gap-2 mt-5 text-xs font-semibold text-gray-600 hover:text-gray-400 transition-colors">
           <i class="ph-fill ph-instagram-logo text-sm"></i>
-          @elegance.cl_
+          <span id="footerInstagramHandle"></span>
         </a>
 
       </div>
@@ -607,12 +665,13 @@
       }
       const isAnySelected = window._selectedBarberId === 'any' || (!window._selectedBarberId && window._selectedBarber === null);
       const anyStateClass = (window._selectedBarberId === 'any' || window._selectedBarber === 'any') ? 'border-neon bg-brand-neon/10' : 'border-brand-accent/20 bg-[#0a0a0d]';
+      const _profLabel = window.CURRENT_TENANT_ID === 'gitana' ? 'Cualquier profesional disponible' : 'Cualquier barbero disponible';
       const anyCard = `
         <button onclick="selectBarber(this, 'any', 'any')" class="barber-option relative flex w-full flex-col items-center justify-center p-6 rounded-2xl border-2 ${anyStateClass} shadow-sm hover:border-brand-neon/50 hover:shadow-[0_0_15px_rgba(255,255,255,0.15)] active:scale-95 text-center transition-all overflow-hidden group">
           <div class="absolute inset-0 bg-brand-neon/0 group-hover:bg-brand-neon/5 transition-colors"></div>
           <div class="w-20 h-20 rounded-full flex items-center justify-center border border-[#F9E7B3]/60 shadow-[0_0_15px_rgba(249,231,179,0.3)] mb-4 relative z-10 bg-[#111115]"><i class="ph-fill ph-shuffle text-3xl text-gray-400"></i></div>
           <span class="font-bold text-gray-100 text-lg mb-0.5 relative z-10 tracking-wide">Sin preferencia</span>
-          <p class="text-xs text-gray-400 font-medium mb-2 relative z-10 uppercase tracking-widest">Cualquier barbero disponible</p>
+          <p class="text-xs text-gray-400 font-medium mb-2 relative z-10 uppercase tracking-widest">${_profLabel}</p>
           <span class="flex items-center gap-1.5 text-[13px] font-bold text-brand-neon relative z-10 mt-1">
             <i class="ph-fill ph-check-circle text-[16px]"></i>
             Primer horario disponible
@@ -905,7 +964,8 @@
     function updateProgress() {
       const bar = document.getElementById('progressBar');
       const percentage = currentStep === 1 ? '25%' : (currentStep === 2 ? '50%' : (currentStep === 3 ? '75%' : '100%'));
-      const textStates = ["Paso 1 de 4: Servicios", "Paso 2 de 4: Barbero", "Paso 3 de 4: Fecha y Hora", "Paso 4 de 4: Confirmación"];
+      const paso2Label = window.CURRENT_TENANT_ID === 'gitana' ? 'Profesional' : 'Barbero';
+      const textStates = [`Paso 1 de 4: Servicios`, `Paso 2 de 4: ${paso2Label}`, `Paso 3 de 4: Fecha y Hora`, `Paso 4 de 4: Confirmación`];
 
       bar.style.width = percentage;
       document.getElementById('progressPercentage').innerText = percentage;
@@ -972,14 +1032,14 @@
           }
 
           authContainer.innerHTML = `
-            <div class="rounded-2xl overflow-hidden relative" style="background:#0a0807;border:1px solid rgba(201,168,76,0.3);box-shadow:0 0 28px rgba(201,168,76,0.07);">
-              <div class="absolute inset-0 pointer-events-none" style="background:radial-gradient(ellipse at 5% 0%,rgba(201,168,76,0.09) 0%,transparent 55%);"></div>
+            <div class="rounded-2xl overflow-hidden relative" style="background:#0a0807;border:1px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.3);box-shadow:0 0 28px rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.07);">
+              <div class="absolute inset-0 pointer-events-none" style="background:radial-gradient(ellipse at 5% 0%,rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.09) 0%,transparent 55%);"></div>
               <div class="flex items-center gap-3.5 px-5 py-4 relative">
-                <div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style="background:rgba(201,168,76,0.12);border:1px solid rgba(201,168,76,0.25);">
-                  <i class="ph-fill ph-medal text-xl" style="color:var(--gold);filter:drop-shadow(0 0 6px rgba(201,168,76,0.5));"></i>
+                <div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style="background:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.12);border:1px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.25);">
+                  <i class="ph-fill ph-medal text-xl" style="color:var(--accent);filter:drop-shadow(0 0 6px rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.5));"></i>
                 </div>
                 <div class="flex-1 min-w-0">
-                  <p class="text-[10px] font-bold uppercase tracking-widest mb-0.5" style="color:rgba(201,168,76,0.6);">Club Elegance · Miembro activo</p>
+                  <p class="text-[10px] font-bold uppercase tracking-widest mb-0.5" style="color:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.6);">${SHOP.club} · Miembro activo</p>
                   <p class="text-sm font-bold text-white truncate">${user.displayName || 'Miembro'}</p>
                 </div>
                 <div class="text-right shrink-0">
@@ -987,9 +1047,9 @@
                   <p class="text-[10px] text-gray-500 font-semibold">sellos</p>
                 </div>
               </div>
-              <div class="flex items-center gap-2 px-5 py-2.5 border-t" style="background:rgba(201,168,76,0.05);border-color:rgba(201,168,76,0.15);">
-                <i class="ph-fill ph-seal-check text-sm" style="color:var(--gold);"></i>
-                <p class="text-xs font-semibold text-white/60">Esta visita sumará <span class="font-black" style="color:var(--gold);">+1 sello</span> a tu cuenta</p>
+              <div class="flex items-center gap-2 px-5 py-2.5 border-t" style="background:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.05);border-color:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.15);">
+                <i class="ph-fill ph-seal-check text-sm" style="color:var(--accent);"></i>
+                <p class="text-xs font-semibold text-white/60">Esta visita sumará <span class="font-black" style="color:var(--accent);">+1 sello</span> a tu cuenta</p>
               </div>
             </div>
           `;
@@ -1002,41 +1062,42 @@
           }
         } else {
           // No logueado: CTA prominente para unirse al club
+          const _clubEmoji = window.CURRENT_TENANT_ID === 'gitana' ? '💅' : '✂️';
           authContainer.innerHTML = `
-            <div class="rounded-2xl overflow-hidden relative" style="background:#0a0807;border:1px solid rgba(201,168,76,0.35);box-shadow:0 0 28px rgba(201,168,76,0.08);">
-              <div class="absolute inset-0 pointer-events-none" style="background:radial-gradient(ellipse at 5% 0%,rgba(201,168,76,0.1) 0%,transparent 55%);"></div>
+            <div class="rounded-2xl overflow-hidden relative" style="background:#0a0807;border:1px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.35);box-shadow:0 0 28px rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.08);">
+              <div class="absolute inset-0 pointer-events-none" style="background:radial-gradient(ellipse at 5% 0%,rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.1) 0%,transparent 55%);"></div>
               <div class="px-5 pt-5 pb-4 relative">
                 <div class="flex items-center gap-3 mb-4">
-                  <div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style="background:rgba(201,168,76,0.12);border:1px solid rgba(201,168,76,0.3);">
-                    <i class="ph-fill ph-medal text-xl" style="color:var(--gold);filter:drop-shadow(0 0 6px rgba(201,168,76,0.5));"></i>
+                  <div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style="background:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.12);border:1px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.3);">
+                    <i class="ph-fill ph-medal text-xl" style="color:var(--accent);filter:drop-shadow(0 0 6px rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.5));"></i>
                   </div>
                   <div>
-                    <p class="text-[10px] font-bold uppercase tracking-widest mb-0.5" style="color:rgba(201,168,76,0.6);">Club Elegance</p>
-                    <p class="text-sm font-bold text-white">Acumula sellos, gana cortes gratis</p>
+                    <p class="text-[10px] font-bold uppercase tracking-widest mb-0.5" style="color:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.6);">${SHOP.club}</p>
+                    <p class="text-sm font-bold text-white">Acumula sellos y gana premios gratis</p>
                   </div>
                 </div>
                 <div class="grid grid-cols-3 gap-2 mb-4">
-                  <div class="text-center py-2.5 rounded-xl" style="background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.12);">
-                    <p class="text-lg font-black" style="color:var(--gold);">+1</p>
+                  <div class="text-center py-2.5 rounded-xl" style="background:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.06);border:1px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.12);">
+                    <p class="text-lg font-black" style="color:var(--accent);">+1</p>
                     <p class="text-[10px] text-gray-500 font-semibold">por visita</p>
                   </div>
-                  <div class="text-center py-2.5 rounded-xl" style="background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.12);">
-                    <p class="text-lg font-black" style="color:var(--gold);">✂️</p>
-                    <p class="text-[10px] text-gray-500 font-semibold">cortes gratis</p>
+                  <div class="text-center py-2.5 rounded-xl" style="background:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.06);border:1px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.12);">
+                    <p class="text-lg font-black" style="color:var(--accent);">${_clubEmoji}</p>
+                    <p class="text-[10px] text-gray-500 font-semibold">gratis</p>
                   </div>
-                  <div class="text-center py-2.5 rounded-xl" style="background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.12);">
-                    <p class="text-lg font-black" style="color:var(--gold);">🎁</p>
+                  <div class="text-center py-2.5 rounded-xl" style="background:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.06);border:1px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.12);">
+                    <p class="text-lg font-black" style="color:var(--accent);">🎁</p>
                     <p class="text-[10px] text-gray-500 font-semibold">premios</p>
                   </div>
                 </div>
-                <a href="registro.html" class="flex items-center justify-center gap-2 w-full py-3 rounded-xl text-sm font-bold text-black transition-all active:scale-[0.98]" style="background:var(--gold);box-shadow:0 0 20px rgba(201,168,76,0.25);">
+                <a href="registro.html" class="flex items-center justify-center gap-2 w-full py-3 rounded-xl text-sm font-bold transition-all active:scale-[0.98]" style="background:var(--accent);color:#160712;box-shadow:0 0 20px rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.25);">
                   <i class="ph-bold ph-user-plus text-base"></i>
-                  Unirme al Club Elegance
+                  Unirme al ${SHOP.club}
                 </a>
               </div>
-              <div class="flex items-center justify-center gap-2 px-5 py-2.5 border-t" style="background:rgba(0,0,0,0.2);border-color:rgba(201,168,76,0.12);">
+              <div class="flex items-center justify-center gap-2 px-5 py-2.5 border-t" style="background:rgba(0,0,0,0.2);border-color:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.12);">
                 <p class="text-xs text-gray-600">¿Ya tienes cuenta?</p>
-                <a href="registro.html" class="text-xs font-bold" style="color:rgba(201,168,76,0.8);">Iniciar sesión</a>
+                <a href="registro.html" class="text-xs font-bold" style="color:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.8);">Iniciar sesión</a>
               </div>
             </div>
           `;
@@ -1060,7 +1121,7 @@
         if (!email) return showToast('Por favor ingresa tu correo para recibir la confirmación.');
 
         // ── Anti-spam: máx. 3 reservas en 24 h, y 1 por cada 30 min ──
-        const SPAM_KEY = 'elegance_reservas_ts';
+        const SPAM_KEY = `${window.CURRENT_TENANT_ID || 'elegance'}_reservas_ts`;
         const MAX_PER_DAY = 3;
         const MIN_INTERVAL_MS = 30 * 60 * 1000; // 30 minutos
         const now = Date.now();
@@ -1149,7 +1210,7 @@
         const barberPart = barberoNombreFinal ? ` con ${barberoNombreFinal}` : '';
         const [wYear, wMon, wDay] = currentDateStr.split('-');
         const fechaLegible = `${wDay}/${wMon}/${wYear}`;
-        const waMsg = `Hola ${SHOP.nombreCorto}! Acabo de agendar en su web. Soy ${nombre} y voy para un ${selectedServiceObj.nombre}${barberPart} a las ${selectedTimeStr} hrs el ${fechaLegible}. \n¿Todo ok? ✂️`;
+        const waMsg = `Hola ${SHOP.nombreCorto}! Acabo de agendar en su web. Soy ${nombre} y voy para un ${selectedServiceObj.nombre}${barberPart} a las ${selectedTimeStr} hrs el ${fechaLegible}. \n¿Todo ok? ${SHOP.waEmoji || '✂️'}`;
         let numBarbero = SHOP.telefono;
         try {
           const bid = window._selectedBarberId;
@@ -1213,12 +1274,33 @@
     }
 
     function applyConfig() {
-      document.title = `Agendar Hora | ${SHOP.nombre}`;
+      document.title = SHOP.pageTitle || `Agendar Hora | ${SHOP.nombre}`;
       document.getElementById('shopLogo').src = SHOP.logo;
       document.getElementById('shopLogo').alt = SHOP.nombre;
       document.getElementById('shopNombre').textContent = SHOP.nombre;
       document.getElementById('shopSlogan').textContent = SHOP.slogan;
       document.getElementById('shopClubNombre').textContent = SHOP.club;
+
+      // Metas dinámicas
+      const themeMeta = document.querySelector('meta[name="theme-color"]');
+      if (themeMeta) themeMeta.content = SHOP.bodyBg || (window.CURRENT_TENANT_ID === 'gitana' ? '#0a0508' : '#050505');
+      const appleTitleMeta = document.querySelector('meta[name="apple-mobile-web-app-title"]');
+      if (appleTitleMeta) appleTitleMeta.content = SHOP.nombreCorto;
+      const appleIcon = document.querySelector('link[rel="apple-touch-icon"]');
+      if (appleIcon) appleIcon.href = SHOP.logo;
+
+      // Instagram
+      const ig   = SHOP.instagram       || '#';
+      const igh  = SHOP.instagramHandle || '';
+      const succIG = document.getElementById('successInstagram');
+      if (succIG) { succIG.href = ig; document.getElementById('successInstagramHandle').textContent = igh; }
+      const footIG = document.getElementById('footerInstagram');
+      if (footIG) { footIG.href = ig; document.getElementById('footerInstagramHandle').textContent = igh; }
+
+      // Step 2 heading (barbero vs profesional)
+      const step2h = document.getElementById('step2Heading');
+      if (step2h) step2h.textContent = window.CURRENT_TENANT_ID === 'gitana'
+        ? 'Selecciona tu Profesional' : 'Selecciona tu Barbero';
 
       // ── Dirección ────────────────────────────────────────────────
       const dirClean = SHOP.direccion.replace(/[📍🕒]/g, '').trim();

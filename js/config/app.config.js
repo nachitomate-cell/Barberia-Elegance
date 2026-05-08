@@ -23,6 +23,25 @@
         colorAccent: '#d4d4d8',
       },
     },
+    gitana: {
+      id: 'gitana',
+      slug: 'gitana',
+      displayName: 'Gitana Nails Studio',
+      shortName: 'Gitana',
+      status: 'active',
+      theme: {
+        colorBg: '#0a0508',
+        colorSurface: '#120a10',
+        colorPrimary: '#f0b8cc',
+        colorAccent: '#c97da0',
+      },
+    },
+  };
+
+  // Mapeo dominio → tenant para detección automática sin ?local=
+  const DOMAIN_TENANT_MAP = {
+    'gitananails.synaptechspa.cl': 'gitana',
+    'barberiaelegance.synaptechspa.cl': 'elegance',
   };
 
   window.APP_CONFIG = Object.freeze({
@@ -31,5 +50,6 @@
     tenantSessionKey: TENANT_SESSION_KEY,
     defaultTenantId: DEFAULT_TENANT_ID,
     tenants: TENANT_CATALOG,
+    domainTenantMap: DOMAIN_TENANT_MAP,
   });
 })();

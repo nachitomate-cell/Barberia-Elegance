@@ -138,15 +138,17 @@
         document.getElementById('loadingOverlay').classList.remove('hidden');
         
         const isBarbero = await FDB.esBarbero(user.email, user.uid);
-        
+        const _tid = window.CURRENT_TENANT_ID || 'elegance';
+        const _tParam = _tid !== 'elegance' ? `?local=${_tid}` : '';
+
         if (isBarbero) {
           const isAdmin = await FDB.esAdminJefe(user.email, user.uid);
           if (isAdmin) {
-            window.location.href = '/gestion-interna/';
+            window.location.href = `/gestion-interna/${_tParam}`;
           } else {
             // Barbero normal: obtener su ID y redirigir a su agenda personal
             const bId = await FDB.getBarberoId(user.email, user.uid);
-            window.location.href = bId ? '/agenda/' + bId : '/agenda';
+            window.location.href = bId ? `/agenda/${bId}${_tParam}` : `/agenda${_tParam}`;
           }
         } else {
           // Es un cliente normal, redirigir al portal de clientes sin cerrar sesión

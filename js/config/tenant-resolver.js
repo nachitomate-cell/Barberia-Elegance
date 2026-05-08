@@ -42,9 +42,19 @@
     }
   }
 
+  function getTenantFromHostname() {
+    try {
+      const domainMap = window.APP_CONFIG?.domainTenantMap || {};
+      const hostname = window.location.hostname.toLowerCase();
+      return normalizeTenantId(domainMap[hostname] || '');
+    } catch (_) {
+      return '';
+    }
+  }
+
   function resolveTenant() {
     const defaultTenantId = normalizeTenantId(window.APP_CONFIG?.defaultTenantId || 'elegance');
-    const requestedTenantId = getTenantFromQuery() || getTenantFromSession() || defaultTenantId;
+    const requestedTenantId = getTenantFromQuery() || getTenantFromSession() || getTenantFromHostname() || defaultTenantId;
 
     const resolvedTenant = getTenantById(requestedTenantId) || getTenantById(defaultTenantId);
     const resolvedTenantId = resolvedTenant?.id || defaultTenantId;

@@ -15,6 +15,52 @@
 
   function getMockTenantConfig(tenantId) {
     const fallbackMap = {
+      gitana: {
+        profile: {
+          name: 'Gitana Nails Studio',
+          shortName: 'Gitana',
+          slogan: 'Hacemos uñas',
+          club: 'Club Gitana',
+          address: '📍 Las Encinas 1390 local 18 | Concón',
+          scheduleText: '🕒 Reserva tu hora en segundos. Reagenda con 24 hrs de anticipación.',
+          phone: '56997023355',
+          logoUrl: '/local2.jpg',
+          pageTitle: 'Agendar Hora | Gitana Nails Studio',
+          metaDescription: 'Reserva tu hora en Gitana Nails Studio. Manicura, extensiones de uñas, pestañas y más. Elige tu profesional, servicio y horario en segundos.',
+          heroTitle: '¿Qué servicio buscas?',
+          heroSubtitle: 'Reserva tu hora en segundos',
+          instagram: 'https://www.instagram.com/gitana.nails.studio',
+          shopCompat: {
+            nombre: 'Gitana Nails Studio',
+            nombreCorto: 'Gitana',
+            slogan: 'Hacemos uñas',
+            logo: '/local2.jpg',
+            direccion: '📍 Las Encinas 1390 local 18 | Concón',
+            horario: '🕒 Reagenda con mín. 24 hrs al +56997023355',
+            telefono: '56997023355',
+            club: 'Club Gitana',
+            barberos: [
+              { nombre: 'Sabina', foto: null, disponible: true },
+              { nombre: 'Clau', foto: null, disponible: true },
+              { nombre: 'Cony', foto: null, disponible: true },
+              { nombre: 'Gigi', foto: null, disponible: true },
+            ],
+          },
+        },
+        theme: {
+          colorBg: '#0a0508',
+          colorSurface: '#120a10',
+          colorSurfaceAlt: '#1a1018',
+          colorPrimary: '#f0b8cc',
+          colorAccent: '#c97da0',
+          colorText: '#fdf0f5',
+          colorMuted: '#c4a0b5',
+          colorBorder: 'rgba(240,184,204,0.15)',
+          colorGlow: 'rgba(240,184,204,0.22)',
+          colorButtonText: '#0a0508',
+          colorProgressTrack: '#1f0f1a',
+        },
+      },
       elegance: {
         profile: {
           name: '𝐄𝐥𝐞𝐠𝐚𝐧𝐜𝐞 𝐛𝐚𝐫𝐛𝐞𝐫𝐬𝐡𝐨𝐩',
