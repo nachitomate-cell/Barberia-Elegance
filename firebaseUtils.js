@@ -272,12 +272,17 @@ const FDB = (() => {
      CITAS
      ────────────────────────────────────────────────────────────── */
   async function getCitas(fecha, barberoId = null) {
-    let q = tenantCol(COL.CITAS).where('fecha', '==', fecha);
-    if (barberoId) q = q.where('barberoId', '==', barberoId);
-    const snap = await q.get();
-    return snap.docs
-      .map(d => ({ id: d.id, ...d.data() }))
-      .sort((a, b) => a.hora.localeCompare(b.hora));
+    try {
+      let q = tenantCol(COL.CITAS).where('fecha', '==', fecha);
+      if (barberoId) q = q.where('barberoId', '==', barberoId);
+      const snap = await q.get();
+      return snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => a.hora.localeCompare(b.hora));
+    } catch(e) {
+      console.warn('[FDB] getCitas falló, asumiendo sin citas:', e.code || e.message);
+      return [];
+    }
   }
 
   async function getCitasByCliente(email) {
@@ -358,10 +363,14 @@ const FDB = (() => {
   }
 
   async function getBloqueosDia(fecha, barberoId = null) {
-    let q = tenantCol(COL.BLOQUEOS).where('fecha', '==', fecha);
-    // Sin filtrar por barberoId aquí: los bloqueos globales (barberoId==null) también aplican.
-    // El filtro por barbero se hace en getHorasDisponibles combinando globales + del barbero.
-    const snap = await q.get();
+    let snap;
+    try {
+      const q = tenantCol(COL.BLOQUEOS).where('fecha', '==', fecha);
+      snap = await q.get();
+    } catch(e) {
+      console.warn('[FDB] getBloqueosDia falló, asumiendo sin bloqueos:', e.code || e.message);
+      return [];
+    }
     const todos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     if (!barberoId) return todos;
     // Retorna bloqueos globales (sin barberoId) + los del barbero específico
@@ -433,7 +442,8 @@ const FDB = (() => {
   // Legacy: el flujo publico multi-tenant usa BookingService.getAvailableSlots().
   // Se mantiene temporalmente para compatibilidad con paneles existentes.
   async function getHorasDisponibles(fecha, duracionServicio, configOverride = null, barberoId = null) {
-    const cfg = configOverride || await getConfig();
+    let cfg;
+    try { cfg = configOverride || await getConfig(); } catch(e) { cfg = _defaultConfig(); }
 
     // Cargar citas y bloqueos en paralelo, filtrando por barbero si se especifica
     const [citas, bloqueos] = await Promise.all([
@@ -495,7 +505,8 @@ const FDB = (() => {
   // Un slot es disponible si al menos un barbero está libre en ese horario.
   // Retorna los slots con { time, occupied, availableBarberoIds[] }.
   async function getHorasDisponiblesMulti(fecha, duracionServicio, configOverride = null, barberos = []) {
-    const cfg = configOverride || await getConfig();
+    let cfg;
+    try { cfg = configOverride || await getConfig(); } catch(e) { cfg = _defaultConfig(); }
     const [todasCitas, todosBloqueos] = await Promise.all([
       getCitas(fecha, null),
       getBloqueosDia(fecha, null),
