@@ -32,7 +32,7 @@
       slogan:          'Estudio de Uñas y Pestañas',
       logo:            '/local2.jpg',
       direccion:       '📍 Las Encinas 1390 local 18 | Concón',
-      horario:         '🕒 Reagenda con mín. 24 hrs al +56997023355',
+      horario:         'Estudio de uñas y pestañas en Concón | Atención con hora previa',
       telefono:        '56997023355',
       club:            'Club Gitana',
       instagram:       'https://www.instagram.com/gitana.nails.studio',
