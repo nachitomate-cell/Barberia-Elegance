@@ -37,7 +37,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
-  <script src="firebase-config.js"></script>
+  <script src="firebase-config.js?v=1.1"></script>
   <script src="firebaseUtils.js?v=2.3"></script>
 
 
@@ -1129,15 +1129,25 @@
 
       const settings = customConfig || _fsConfig || DB.getSettings();
       let hours = [];
-      try {
-        if (window._selectedBarberId === 'any') {
-          hours = await FDB.getHorasDisponiblesMulti(currentDateStr, selectedServiceObj.duracion, settings, _fsBarberos);
-          _multiHoras = hours;
-        } else {
-          hours = await FDB.getHorasDisponibles(currentDateStr, selectedServiceObj.duracion, settings, window._selectedBarberId || null);
+      let lastErr;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          if (attempt > 0) await new Promise(r => setTimeout(r, 800 * attempt));
+          if (window._selectedBarberId === 'any') {
+            hours = await FDB.getHorasDisponiblesMulti(currentDateStr, selectedServiceObj.duracion, settings, _fsBarberos);
+            _multiHoras = hours;
+          } else {
+            hours = await FDB.getHorasDisponibles(currentDateStr, selectedServiceObj.duracion, settings, window._selectedBarberId || null);
+          }
+          lastErr = null;
+          break;
+        } catch(e) {
+          lastErr = e;
+          console.warn(`[Reservar] Intento ${attempt + 1} fallido:`, e.code || e.message);
         }
-      } catch(e) {
-        console.error('[Reservar] Error al consultar disponibilidad:', e);
+      }
+      if (lastErr) {
+        console.error('[Reservar] Error al consultar disponibilidad:', lastErr);
         grid.innerHTML = `
           <div class="col-span-full flex flex-col items-center py-8 text-center gap-3">
             <i class="ph ph-wifi-slash text-3xl text-white/20"></i>
