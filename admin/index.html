@@ -464,6 +464,7 @@
         profIcon:    'ph-users',
         citasCol:    () => db.collection('citas'),
         profCol:     () => db.collection('barberos'),
+        usersCol:    () => db.collection('users'),
       },
       gitana: {
         nombre:      'Gitana Nails Studio',
@@ -476,6 +477,7 @@
         profIcon:    'ph-sparkle',
         citasCol:    () => db.collection('tenants').doc('gitana').collection('citas'),
         profCol:     () => db.collection('tenants').doc('gitana').collection('barberos'),
+        usersCol:    () => db.collection('tenants').doc('gitana').collection('users'),
       },
     };
 
@@ -710,23 +712,34 @@
       const prev = sourceEl.textContent;
       try {
         sourceEl.textContent = 'Buscando usuario…';
-        const userSnap = await FDB.usersCol().where('email','==',email.trim().toLowerCase()).limit(1).get();
-        if (userSnap.empty) { alert('No se encontró ningún usuario con ese correo.'); sourceEl.textContent = prev; return; }
+        const emailClean = email.trim().toLowerCase();
 
-        const userData = userSnap.docs[0].data();
-        const userUid  = userSnap.docs[0].id;
-        const nombre   = userData.nombre || 'Sin nombre';
+        // Buscar primero en profCol (ya registrado en este local)
+        let profSnap = await cfg.profCol().where('email','==',emailClean).limit(1).get();
+        if (!profSnap.empty && profSnap.docs[0].data().activo === true) {
+          alert(`${profSnap.docs[0].data().nombre || emailClean} ya está registrado y activo en este local.`);
+          sourceEl.textContent = prev; return;
+        }
 
-        const existing = await cfg.profCol().doc(userUid).get();
-        if (existing.exists && existing.data().activo === true) {
-          alert(`${nombre} ya está registrado y activo en este local.`); sourceEl.textContent = prev; return;
+        // Buscar en la colección de usuarios del tenant correcto
+        let nombre = 'Sin nombre', docId = null;
+        const userSnap = await cfg.usersCol().where('email','==',emailClean).limit(1).get();
+        if (!userSnap.empty) {
+          docId  = userSnap.docs[0].id;
+          nombre = userSnap.docs[0].data().nombre || nombre;
+        } else {
+          // El usuario no ha reservado nunca — pedir nombre manualmente
+          const nombreInput = window.prompt(`El correo ${emailClean} no tiene reservas previas.\nIngresa el nombre del profesional:`);
+          if (!nombreInput?.trim()) { sourceEl.textContent = prev; return; }
+          nombre = nombreInput.trim();
+          docId  = cfg.profCol().doc().id;
         }
 
         if (!confirm(`Usuario: ${nombre}\n¿Agregar a ${cfg.nombre}?`)) { sourceEl.textContent = prev; return; }
 
         sourceEl.textContent = 'Guardando…';
-        await cfg.profCol().doc(userUid).set({
-          nombre, email: email.trim().toLowerCase(),
+        await cfg.profCol().doc(docId).set({
+          nombre, email: emailClean,
           local: _activeTenant, activo: true,
           creadoEn: firebase.firestore.FieldValue.serverTimestamp(),
         }, { merge: true });
@@ -757,14 +770,22 @@
         let uid = null, nombre = 'Sin nombre', rolActual = 'Sin rol';
 
         if (!snap.empty) {
-          uid = snap.docs[0].id;
-          nombre = snap.docs[0].data().nombre || nombre;
-          rolActual = snap.docs[0].data().rol || rolActual;
+          uid       = snap.docs[0].id;
+          nombre    = snap.docs[0].data().nombre || nombre;
+          rolActual = snap.docs[0].data().rol    || rolActual;
         } else {
-          const uSnap = await FDB.usersCol().where('email','==',emailTarget).limit(1).get();
-          if (uSnap.empty) { alert('No se encontró ningún registro.'); sourceEl.textContent = prev; return; }
-          uid = uSnap.docs[0].id;
-          nombre = uSnap.docs[0].data().nombre || nombre;
+          // Buscar en usuarios del tenant correcto (no FDB.usersCol que depende del CURRENT_TENANT_ID)
+          const uSnap = await cfg.usersCol().where('email','==',emailTarget).limit(1).get();
+          if (!uSnap.empty) {
+            uid    = uSnap.docs[0].id;
+            nombre = uSnap.docs[0].data().nombre || nombre;
+          } else {
+            // No existe en ninguna colección — crear doc nuevo con solo el email
+            const nombreInput = window.prompt(`No se encontró "${emailTarget}" en este local.\nIngresa el nombre para crear el registro:`);
+            if (!nombreInput?.trim()) { sourceEl.textContent = prev; return; }
+            nombre = nombreInput.trim();
+            uid    = cfg.profCol().doc().id;
+          }
         }
 
         const rolesValidos = ['profesional','barbero','admin','jefe'];

@@ -18,11 +18,6 @@ if (!firebase.apps.length) {
 const auth    = firebase.auth();
 auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(() => {});
 const db      = firebase.firestore();
-db.enablePersistence({ synchronizeTabs: true }).catch(e => {
-  if (e.code !== 'failed-precondition' && e.code !== 'unimplemented') {
-    console.warn('[Firebase] enablePersistence:', e.code);
-  }
-});
 let storage;
 try {
   storage = firebase.storage();
