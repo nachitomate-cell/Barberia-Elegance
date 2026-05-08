@@ -559,7 +559,9 @@ const FDB = (() => {
      Toda operación sobre 'users' pasa por tenantCol para
      mantener clientes separados por local.
      ────────────────────────────────────────────────────────────── */
-  function usersCol() { return tenantCol(COL.USERS); }
+  function usersCol()    { return tenantCol(COL.USERS);    }
+  function barberosCol() { return tenantCol(COL.BARBEROS); }
+  function citasCol()    { return tenantCol(COL.CITAS);    }
 
   async function getClientes() {
     const snap = await tenantCol(COL.USERS).get();
@@ -932,6 +934,8 @@ const FDB = (() => {
     addBloqueo, getBloqueosDia, getBloqueosMes, deleteBloqueo, onBloqueosDiaChange,
     // Premios del club
     getPremios, addPremio, updatePremio, deletePremio, onPremiosChange,
+    // Colecciones tenant-aware (para uso directo en admin panel)
+    barberosCol, citasCol,
     // Clientes / Usuarios
     usersCol, getClientes, getClienteByEmail, getClienteByNombre,
     onClienteChange, ensureCliente,

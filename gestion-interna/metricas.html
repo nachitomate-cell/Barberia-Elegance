@@ -381,7 +381,7 @@
     });
 
     try {
-      const snap = await db.collection('citas')
+      const snap = await FDB.citasCol()
         .where('fecha', '>=', desde)
         .where('fecha', '<=', hasta)
         .get();
@@ -631,8 +631,8 @@
       const corteStr = _fechaStr(corte);
 
       const [snapViejos, snapRecientes] = await Promise.all([
-        db.collection('citas').where('fecha', '<', corteStr).where('estado', '!=', 'Cancelada').get(),
-        db.collection('citas').where('fecha', '>=', corteStr).where('estado', '!=', 'Cancelada').get(),
+        FDB.citasCol().where('fecha', '<', corteStr).where('estado', '!=', 'Cancelada').get(),
+        FDB.citasCol().where('fecha', '>=', corteStr).where('estado', '!=', 'Cancelada').get(),
       ]);
 
       const recTels = new Set(snapRecientes.docs.map(d => d.data().clienteTelefono).filter(Boolean));

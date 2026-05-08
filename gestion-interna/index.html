@@ -1213,11 +1213,6 @@
                 <select id="ns-categoria"
                   class="w-full bg-admin-bg border border-admin-border rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-admin-accent"
                   style="color-scheme:dark;">
-                  <option value="Cortes" selected>Cortes</option>
-                  <option value="Barba">Barba</option>
-                  <option value="Combos">Combos</option>
-                  <option value="Extras">Extras</option>
-                  <option value="Otro">Otro</option>
                 </select>
                 <!-- Icon picker -->
                 <input type="hidden" id="ns-icono" value="ph-scissors">
@@ -1953,11 +1948,6 @@
             <select id="edit-srv-categoria"
               class="w-full bg-admin-bg border border-admin-border rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-admin-accent"
               style="color-scheme:dark;">
-              <option value="Cortes">Cortes</option>
-              <option value="Barba">Barba</option>
-              <option value="Combos">Combos</option>
-              <option value="Extras">Extras</option>
-              <option value="Otro">Otro</option>
             </select>
           </div>
           <!-- Icon picker (edit) -->
@@ -2369,6 +2359,17 @@
         if (prev) sel.value = prev;
       }
 
+      function _poblarCategorias() {
+        const cats = (window.SHOP && window.SHOP.categoriasServicio) || ['Otro'];
+        ['ns-categoria', 'edit-srv-categoria'].forEach(id => {
+          const sel = document.getElementById(id);
+          if (!sel) return;
+          const prev = sel.value;
+          sel.innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join('');
+          if (prev && cats.includes(prev)) sel.value = prev;
+        });
+      }
+
       function changeAdminDate(offset) {
         currentAdminDate.setDate(currentAdminDate.getDate() + offset);
         _resubscribeCitas();
@@ -2602,7 +2603,7 @@
 
         try {
           showMiniToast('Reagendando...');
-          await db.collection('citas').doc(citaId).update({ hora: newTime });
+          await FDB.citasCol().doc(citaId).update({ hora: newTime });
           // UI se actualiza por onSnapshot
         } catch (err) {
           console.error(err);
@@ -2968,7 +2969,7 @@
           document.getElementById('ns-nombre').value = '';
           document.getElementById('ns-precio').value = '';
           document.getElementById('ns-duracion').value = '';
-          document.getElementById('ns-categoria').value = 'Cortes';
+          document.getElementById('ns-categoria').value = (window.SHOP && window.SHOP.categoriasServicio && window.SHOP.categoriasServicio[0]) || 'Otro';
           selectIcon('ns', 'ph-scissors');
           showMiniToast('✅ Servicio creado');
         } catch (e) { showMiniToast('❌ Error: ' + e.message); }
@@ -3367,7 +3368,7 @@
           return;
         }
         try {
-          const snap = await db.collection('citas')
+          const snap = await FDB.citasCol()
             .where('clienteEmail', '==', email)
             .limit(25)
             .get();
@@ -3853,8 +3854,9 @@
         await _precargarBarberos();
         // Backfill automático: asignar barberoId a citas antiguas que no lo tengan
         FDB.migrarBarberoIdCitas().catch(e => console.warn('[Admin] migrarBarberoIdCitas:', e));
-        // Poblar selectores de barbero en toda la UI admin
+        // Poblar selectores de barbero y categorías de servicio
         _poblarSelectorFiltroBarbero();
+        _poblarCategorias();
 
         // Abrir pestaña inicial basada en la URL si existe
         if (window.INITIAL_TAB) {
@@ -3895,7 +3897,7 @@
 
         // 1. Badge (Solo conteo del día actual, filtrado por barbero)
         if (_badgeUnsub) _badgeUnsub();
-        _badgeUnsub = db.collection('citas').where('fecha', '==', todayStr).onSnapshot(snap => {
+        _badgeUnsub = FDB.citasCol().where('fecha', '==', todayStr).onSnapshot(snap => {
           const total = _myBarberoId
             ? snap.docs.filter(d => d.data().barberoId === _myBarberoId).length
             : snap.size;
@@ -3913,7 +3915,7 @@
         // 2. Notificaciones Proactivas y Feed
         // Solo escuchamos citas de hoy o futuras para no saturar la memoria
         if (_activityUnsub) _activityUnsub();
-        _activityUnsub = db.collection('citas')
+        _activityUnsub = FDB.citasCol()
           .where('fecha', '>=', todayStr)
           .onSnapshot(snap => {
 
@@ -4344,7 +4346,7 @@
 
         try {
           // 1. Cargar historial de citas
-          const citasSnap = await db.collection('citas').where('clienteTelefono', '==', telefono).get();
+          const citasSnap = await FDB.citasCol().where('clienteTelefono', '==', telefono).get();
 
           let totalCompletadas = 0;
           let totalCanceladas = 0;
@@ -4575,7 +4577,7 @@
           const end = new Date(year, month + 1, 0, 23, 59, 59);
 
           // Consulta real a Firestore filtrando por rango de fechas del mes
-          const snap = await db.collection('citas')
+          const snap = await FDB.citasCol()
             .where('fecha', '>=', _toDateStr(start))
             .where('fecha', '<=', _toDateStr(end))
             .get();
@@ -5469,7 +5471,7 @@
 
     async function toggleBarberStatus(id, currentlyActive) {
       try {
-        await db.collection('barberos').doc(id).update({ activo: !currentlyActive });
+        await FDB.barberosCol().doc(id).update({ activo: !currentlyActive });
         const b = _barberosCache.find(x => x.id === id);
         if (b) b.activo = !currentlyActive;
         renderBarberosAdmin();
@@ -5481,7 +5483,7 @@
 
     async function toggleBarberDisponible(id, currentlyDisponible) {
       try {
-        await db.collection('barberos').doc(id).update({ disponible: !currentlyDisponible });
+        await FDB.barberosCol().doc(id).update({ disponible: !currentlyDisponible });
         const b = _barberosCache.find(x => x.id === id);
         if (b) b.disponible = !currentlyDisponible;
         renderBarberosAdmin();
@@ -5560,7 +5562,7 @@
 
       try {
         showMiniToast('Eliminando...');
-        await db.collection('barberos').doc(id).delete();
+        await FDB.barberosCol().doc(id).delete();
         _barberosCache = _barberosCache.filter(x => x.id !== id);
         renderBarberosAdmin();
         showMiniToast('✅ Barbero eliminado correctamente');
@@ -5684,13 +5686,13 @@
 
         if (id) {
           // Editar existente
-          await db.collection('barberos').doc(id).update(data);
+          await FDB.barberosCol().doc(id).update(data);
           const idx = _barberosCache.findIndex(x => x.id === id);
           if (idx !== -1) _barberosCache[idx] = { ..._barberosCache[idx], ...data };
           showMiniToast('✅ Perfil actualizado');
         } else {
           // Crear nuevo
-          const ref = await db.collection('barberos').add(data);
+          const ref = await FDB.barberosCol().add(data);
           _barberosCache.push({ id: ref.id, ...data });
           showMiniToast('✅ Barbero agregado');
         }
@@ -5920,7 +5922,7 @@
       if (!_bshBarberoId) return;
       if (!confirm('¿Eliminar la configuración personalizada y volver al horario global del local?')) return;
       try {
-        await db.collection('barberos').doc(_bshBarberoId).collection('configuracion').doc('main').delete();
+        await FDB.barberosCol().doc(_bshBarberoId).collection('configuracion').doc('main').delete();
         showMiniToast('✅ Restablecido al horario global');
         closeBarberScheduleModal();
       } catch(e) {
@@ -6047,7 +6049,7 @@
     });
 
     try {
-      const snap = await db.collection('citas')
+      const snap = await FDB.citasCol()
         .where('fecha', '>=', desde)
         .where('fecha', '<=', hasta)
         .get();
@@ -6340,13 +6342,13 @@
       const corteStr = _metFechaStr(corte);
 
       // Todos los clientes que tenían citas antes del corte
-      const snapViejos = await db.collection('citas')
+      const snapViejos = await FDB.citasCol()
         .where('fecha', '<', corteStr)
         .where('estado', '!=', 'Cancelada')
         .get();
 
       // Todos los que vinieron en los últimos 30 días
-      const snapRecientes = await db.collection('citas')
+      const snapRecientes = await FDB.citasCol()
         .where('fecha', '>=', corteStr)
         .where('estado', '!=', 'Cancelada')
         .get();

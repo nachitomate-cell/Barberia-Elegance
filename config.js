@@ -9,6 +9,7 @@
 
   const _tenants = {
     elegance: {
+      categoriasServicio: ['Cortes', 'Barba', 'Combos', 'Extras', 'Otro'],
       nombre:          '𝐄𝐥𝐞𝐠𝐚𝐧𝐜𝐞 𝐛𝐚𝐫𝐛𝐞𝐫𝐬𝐡𝐨𝐩',
       nombreCorto:     'Elegance',
       slogan:          'No es un corte, es elegancia que te mereces',
@@ -25,6 +26,7 @@
       ],
     },
     gitana: {
+      categoriasServicio: ['Uñas', 'Pestañas', 'Cejas', 'Combos', 'Otro'],
       nombre:          'Gitana Nails Studio',
       nombreCorto:     'Gitana',
       slogan:          'Estudio de Uñas y Pestañas',
