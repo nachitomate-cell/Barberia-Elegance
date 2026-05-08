@@ -5052,8 +5052,9 @@
   </div>
 
   <div id="barberEditModal"
-    class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-[9000] flex items-center justify-center p-4">
-    <div class="bg-admin-card border border-admin-border rounded-2xl w-full max-w-md shadow-2xl p-6 relative">
+    class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-[9000] overflow-y-auto">
+    <div class="flex min-h-full items-center justify-center p-4">
+    <div class="bg-admin-card border border-admin-border rounded-2xl w-full max-w-md shadow-2xl p-6 relative my-4">
       <button onclick="closeBarberModal()"
         class="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full text-gray-500 hover:text-white hover:bg-white/10 transition-colors text-lg">&times;</button>
       <h3 id="barberModalTitle" class="text-lg font-bold mb-5">Editar Barbero</h3>
@@ -5127,6 +5128,7 @@
         class="mt-5 w-full bg-admin-accent text-admin-bg font-bold py-3 rounded-xl hover:bg-emerald-300 transition-colors text-sm flex items-center justify-center gap-2">
         <i class="ph-bold ph-check"></i> Guardar Cambios
       </button>
+    </div>
     </div>
   </div>
 
@@ -5706,7 +5708,7 @@
 
     // Cerrar modal al hacer clic en el fondo
     document.getElementById('barberEditModal').addEventListener('click', function (e) {
-      if (e.target === this) closeBarberModal();
+      if (e.target === this || e.target === this.firstElementChild) closeBarberModal();
     });
 
     // ═══════════════════════════════════════════════════════════
