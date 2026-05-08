@@ -1197,6 +1197,7 @@
             <div class="md:col-span-2">
               <div id="servicesAdminList" class="space-y-3"></div>
             </div>
+            <div class="flex flex-col gap-4">
             <div class="bg-admin-card border border-admin-border rounded-2xl p-6 h-fit">
               <h3 class="font-bold mb-4 flex items-center gap-2">
                 <i class="ph-fill ph-plus-circle text-admin-accent"></i> Nuevo Servicio
@@ -1232,6 +1233,26 @@
                 </button>
               </div>
             </div>
+
+            <!-- Gestión de Categorías -->
+            <div class="bg-admin-card border border-admin-border rounded-2xl p-6 h-fit">
+              <h3 class="font-bold mb-4 flex items-center gap-2">
+                <i class="ph-fill ph-tag text-admin-accent"></i> Categorías
+              </h3>
+              <div id="categoriasAdminList" class="space-y-2 mb-3"></div>
+              <div class="flex gap-2">
+                <input type="text" id="nueva-categoria-input"
+                  placeholder="Nueva categoría..."
+                  maxlength="30"
+                  onkeydown="if(event.key==='Enter') agregarCategoria()"
+                  class="flex-1 bg-admin-bg border border-admin-border rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-admin-accent placeholder-gray-600">
+                <button onclick="agregarCategoria()"
+                  class="bg-admin-accent text-admin-bg font-bold px-4 py-2.5 rounded-xl hover:bg-emerald-300 transition-colors text-sm shrink-0">
+                  <i class="ph-bold ph-plus"></i>
+                </button>
+              </div>
+            </div>
+            </div><!-- /flex col wrapper -->
           </div>
         </div>
 
@@ -2359,8 +2380,14 @@
         if (prev) sel.value = prev;
       }
 
+      function _getCategorias() {
+        return (_configCache && _configCache.categoriasServicio && _configCache.categoriasServicio.length)
+          ? _configCache.categoriasServicio
+          : ((window.SHOP && window.SHOP.categoriasServicio) || ['Otro']);
+      }
+
       function _poblarCategorias() {
-        const cats = (window.SHOP && window.SHOP.categoriasServicio) || ['Otro'];
+        const cats = _getCategorias();
         ['ns-categoria', 'edit-srv-categoria'].forEach(id => {
           const sel = document.getElementById(id);
           if (!sel) return;
@@ -2368,6 +2395,48 @@
           sel.innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join('');
           if (prev && cats.includes(prev)) sel.value = prev;
         });
+      }
+
+      function renderCategoriasAdmin() {
+        const list = document.getElementById('categoriasAdminList');
+        if (!list) return;
+        const cats = _getCategorias();
+        if (!cats.length) {
+          list.innerHTML = '<p class="text-xs text-gray-500 text-center py-2">Sin categorías</p>';
+          return;
+        }
+        list.innerHTML = cats.map(c => `
+          <div class="flex items-center justify-between bg-admin-bg border border-admin-border rounded-xl px-3 py-2">
+            <span class="text-sm text-white">${c}</span>
+            <button onclick="eliminarCategoria('${c.replace(/'/g, "\\'")}')"
+              class="text-gray-500 hover:text-red-400 transition-colors p-1 rounded-lg hover:bg-red-400/10">
+              <i class="ph ph-trash text-base"></i>
+            </button>
+          </div>`).join('');
+      }
+
+      async function agregarCategoria() {
+        const input = document.getElementById('nueva-categoria-input');
+        const nombre = input.value.trim();
+        if (!nombre) return;
+        const cats = _getCategorias();
+        if (cats.map(c => c.toLowerCase()).includes(nombre.toLowerCase()))
+          return showMiniToast('⚠️ Esa categoría ya existe.');
+        const nuevas = [...cats, nombre];
+        try {
+          await FDB.updateConfig({ categoriasServicio: nuevas });
+          input.value = '';
+          showMiniToast('✅ Categoría agregada');
+        } catch(e) { showMiniToast('❌ Error: ' + e.message); }
+      }
+
+      async function eliminarCategoria(nombre) {
+        const cats = _getCategorias();
+        const nuevas = cats.filter(c => c !== nombre);
+        try {
+          await FDB.updateConfig({ categoriasServicio: nuevas });
+          showMiniToast('✅ Categoría eliminada');
+        } catch(e) { showMiniToast('❌ Error: ' + e.message); }
       }
 
       function changeAdminDate(offset) {
@@ -3844,6 +3913,8 @@
           fsSettings = cfg;
           loadConfig();
           renderTimeline();
+          renderCategoriasAdmin();
+          _poblarCategorias();
         });
 
         _resubscribeCitas();
@@ -3857,6 +3928,7 @@
         // Poblar selectores de barbero y categorías de servicio
         _poblarSelectorFiltroBarbero();
         _poblarCategorias();
+        renderCategoriasAdmin();
 
         // Abrir pestaña inicial basada en la URL si existe
         if (window.INITIAL_TAB) {
