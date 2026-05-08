@@ -48,14 +48,26 @@
       position: sticky;
       top: 0;
       z-index: 50;
-      background: rgba(17,24,39,.97);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid rgba(52,211,153,.12);
+      background: rgba(17, 24, 39, .82);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255, 255, 255, .06);
     }
 
     /* Barras de progreso */
     .prog-bar-bg { background: rgba(255,255,255,.06); border-radius: 9999px; height: 8px; overflow: hidden; }
     .prog-bar    { height: 8px; border-radius: 9999px; transition: width .7s ease; }
+
+    /* ── PREMIUM DARK: border sutil en cards ── */
+    html.dark [class*="border-[#374151]"],
+    html.dark [class*="border-gray-700"] {
+      border-color: rgba(255, 255, 255, .07) !important;
+    }
+
+    /* ── Texto secundario legible ── */
+    html.dark .text-gray-500 {
+      color: #94a3b8 !important;
+    }
   </style>
 </head>
 
@@ -102,7 +114,7 @@
     </header>
 
     <!-- Contenido scrollable -->
-    <main class="px-4 md:px-8 py-6 max-w-5xl mx-auto space-y-6 pb-16">
+    <main class="px-4 md:px-8 lg:px-8 py-6 lg:py-8 max-w-7xl mx-auto space-y-6 pb-16">
 
       <!-- KPIs -->
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-3" id="met-kpis">

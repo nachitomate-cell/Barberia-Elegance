@@ -243,6 +243,10 @@
       transform: translateX(-100%);
       transition: transform .3s cubic-bezier(.16, 1, .3, 1);
       box-shadow: 4px 0 40px rgba(0, 0, 0, .6);
+      background: rgba(13, 20, 36, .88) !important;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-right: 1px solid rgba(255, 255, 255, .06) !important;
     }
 
     #sidebar.open {
@@ -327,7 +331,7 @@
     }
 
     .nav-btn.active {
-      background: rgba(52, 211, 153, .12) !important;
+      background: rgba(255, 255, 255, .08) !important;
       color: #34d399 !important;
     }
 
@@ -362,10 +366,10 @@
 
     /* Mobile header premium */
     #mobileHeader {
-      background: rgba(17, 24, 39, .92);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border-bottom: 1px solid rgba(52, 211, 153, .12);
+      background: rgba(9, 15, 26, .82);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(255, 255, 255, .06);
     }
 
     /* Mobile bottom nav scrollable */
@@ -507,8 +511,10 @@
       position: sticky !important;
       top: 0 !important;
       z-index: 90 !important;
-      background: #111827 !important;
-      border-bottom: 1px solid #374151;
+      background: rgba(17, 24, 39, .90) !important;
+      backdrop-filter: blur(16px) !important;
+      -webkit-backdrop-filter: blur(16px) !important;
+      border-bottom: 1px solid rgba(255, 255, 255, .06) !important;
       padding-top: .5rem;
       padding-bottom: 1rem;
       margin-bottom: 1.25rem;
@@ -528,6 +534,23 @@
     html.light #customCalendarDropdown,
     html.light #calDaysGrid>button {
       background-color: #ffffff !important;
+    }
+
+    html.light #sidebar {
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+    }
+
+    html.light #sticky-admin-header {
+      backdrop-filter: blur(12px) !important;
+      -webkit-backdrop-filter: blur(12px) !important;
+      background: rgba(255, 255, 255, .92) !important;
+      border-bottom: 1px solid #e2e8f0 !important;
+    }
+
+    html.light .bg-admin-card {
+      box-shadow: 0 4px 20px rgba(0, 0, 0, .03) !important;
+      border-color: #f1f5f9 !important;
     }
 
     html.light .border-admin-border,
@@ -640,6 +663,19 @@
 
     body.is-barbero-only .jefe-only {
       display: none !important;
+    }
+
+    /* ── PREMIUM DARK: border sutil en cards ── */
+    html.dark .border-admin-border {
+      border-color: rgba(255, 255, 255, .07) !important;
+    }
+    html.dark .border-gray-700 {
+      border-color: rgba(255, 255, 255, .07) !important;
+    }
+
+    /* ── PREMIUM DARK: texto secundario más legible ── */
+    html.dark .text-gray-600 {
+      color: #94a3b8 !important;
     }
   </style>
 </head>
@@ -976,7 +1012,7 @@
       <!-- ══════════════════════════════════════
        MAIN
   ══════════════════════════════════════ -->
-      <main class="flex-1 h-full overflow-y-auto w-full px-4 pb-6 lg:px-10 lg:pb-10 max-w-5xl mx-auto">
+      <main class="flex-1 h-full overflow-y-auto w-full px-4 pb-6 lg:px-8 lg:pb-10 max-w-7xl mx-auto">
 
         <!-- Botón toggle sidebar (solo desktop, controlado por CSS de #id) -->
         <button id="desktop-sidebar-btn" onclick="toggleSidebarDesktop()"
@@ -1631,12 +1667,13 @@
      SIDE PANEL — Gestión del Cliente Seleccionado
 ══════════════════════════════════════════════════════ -->
     <div id="clientModal"
-      class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[200] flex items-end sm:items-center justify-center p-0 sm:p-4 md:p-6">
+      class="hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[200] overflow-y-auto">
+      <div class="flex min-h-full items-end sm:items-center justify-center p-0 sm:p-4 md:p-6">
 
-      <div class="bg-gray-950 w-full max-w-4xl max-h-[96dvh] sm:max-h-[90vh] rounded-t-[1.75rem] sm:rounded-[1.75rem] shadow-2xl border border-white/5 overflow-hidden flex flex-col">
+      <div class="bg-gray-950 w-full max-w-4xl rounded-t-[1.75rem] sm:rounded-[1.75rem] shadow-2xl border border-white/5 flex flex-col">
 
         <!-- Header -->
-        <div class="flex items-center gap-3 px-5 py-4 border-b border-white/5 shrink-0">
+        <div class="flex items-center gap-3 px-5 py-4 border-b border-white/5 shrink-0 sticky top-0 z-10 bg-gray-950 rounded-t-[1.75rem] sm:rounded-t-[1.75rem]">
           <div id="panelAvatar"
             class="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden shrink-0">
             <i class="ph-fill ph-user text-lg text-gray-500"></i>
@@ -1657,9 +1694,8 @@
           </div>
         </div>
 
-        <!-- Scrollable Body -->
-        <div class="flex-1 min-h-0 overflow-y-auto custom-scrollbar">
-          <div class="p-4 sm:p-5 space-y-4">
+        <!-- Body -->
+        <div class="p-4 sm:p-5 space-y-4">
 
             <!-- Row 1: Stamps card + Actions + Info -->
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -5079,6 +5115,12 @@
             <div class="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5"></div>
           </label>
         </div>
+        <!-- Servicios que realiza este barbero -->
+        <div class="bg-admin-bg border border-admin-border rounded-xl px-4 py-3">
+          <p class="text-sm font-semibold text-white mb-1">Servicios que realiza</p>
+          <p class="text-xs text-gray-500 mb-3">Si no seleccionas ninguno, aparecerá para todos los servicios.</p>
+          <div id="barberServiciosChecks" class="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-1"></div>
+        </div>
       </div>
 
       <button onclick="saveBarberProfile()" id="barberSaveBtn"
@@ -5375,6 +5417,13 @@
               <span class="w-1 h-1 rounded-full ${disponible ? 'bg-emerald-400' : 'bg-amber-400'}"></span>
               ${disponible ? 'Disponible' : 'Agenda llena'}
             </span>` : ''}
+            ${!isAdminDev && Array.isArray(b.serviciosIds) && b.serviciosIds.length > 0 ? (() => {
+              const nombres = b.serviciosIds.map(sid => {
+                const s = (_serviciosCache || []).find(sv => String(sv.id) === String(sid));
+                return s ? s.nombre : null;
+              }).filter(Boolean);
+              return nombres.length ? `<p class="text-[10px] text-gray-600 mt-1.5 leading-relaxed">${nombres.join(' · ')}</p>` : '';
+            })() : ''}
           </div>
 
           <!-- Acciones -->
@@ -5539,12 +5588,24 @@
       } else {
         preview.innerHTML = '<i class="ph-fill ph-user text-4xl text-gray-500"></i>';
       }
+      // Poblar checkboxes de servicios
+      const checksContainer = document.getElementById('barberServiciosChecks');
+      const serviciosActivos = Array.isArray(b.serviciosIds) ? b.serviciosIds.map(String) : [];
+      if (_serviciosCache && _serviciosCache.length > 0) {
+        checksContainer.innerHTML = _serviciosCache.map(s => {
+          const checked = serviciosActivos.length === 0 || serviciosActivos.includes(String(s.id)) ? 'checked' : '';
+          return `<label class="flex items-center gap-2 text-xs text-gray-300 cursor-pointer select-none">
+            <input type="checkbox" class="barber-srv-check w-4 h-4 accent-emerald-400 cursor-pointer" value="${s.id}" ${checked}>
+            <span class="truncate">${s.nombre}</span>
+          </label>`;
+        }).join('');
+      } else {
+        checksContainer.innerHTML = '<p class="text-xs text-gray-600 col-span-2">No hay servicios creados aún.</p>';
+      }
       document.getElementById('barberEditModal').classList.replace('hidden', 'flex');
     }
 
     function openAddBarberModal() {
-      // Abrir el mismo modal de edición con un barbero vacío (crea uno nuevo al guardar)
-      const fakeEmptyBarber = {};
       const id = '';
       document.getElementById('barberEditId').value = id;
       document.getElementById('barberEditNombre').value = '';
@@ -5555,6 +5616,18 @@
       document.getElementById('barberEditDisponible').checked = true;
       document.getElementById('barberEditDisponibleTrack').style.background = '#34d399';
       document.getElementById('barberPhotoPreview').innerHTML = '<i class="ph-fill ph-user text-4xl text-gray-500"></i>';
+      // Poblar checkboxes de servicios (todos marcados por defecto para nuevo barbero)
+      const checksContainer = document.getElementById('barberServiciosChecks');
+      if (_serviciosCache && _serviciosCache.length > 0) {
+        checksContainer.innerHTML = _serviciosCache.map(s =>
+          `<label class="flex items-center gap-2 text-xs text-gray-300 cursor-pointer select-none">
+            <input type="checkbox" class="barber-srv-check w-4 h-4 accent-emerald-400 cursor-pointer" value="${s.id}" checked>
+            <span class="truncate">${s.nombre}</span>
+          </label>`
+        ).join('');
+      } else {
+        checksContainer.innerHTML = '<p class="text-xs text-gray-600 col-span-2">No hay servicios creados aún.</p>';
+      }
       document.getElementById('barberEditModal').classList.replace('hidden', 'flex');
     }
 
@@ -5597,8 +5670,14 @@
           fotoURL = await uploadTask.ref.getDownloadURL();
         }
 
+        // Recoger servicios seleccionados; array vacío = realiza todos
+        const todosServicios = _serviciosCache ? _serviciosCache.map(s => String(s.id)) : [];
+        const checkedIds = [...document.querySelectorAll('.barber-srv-check:checked')].map(el => el.value);
+        // Si están todos marcados o no hay servicios, guardar array vacío (sin restricción)
+        const serviciosIds = checkedIds.length === todosServicios.length ? [] : checkedIds;
+
         const existente = _barberosCache.find(x => x.id === id) || {};
-        const data = { nombre, especialidad, rol, disponible, activo: existente.activo !== false };
+        const data = { nombre, especialidad, rol, disponible, activo: existente.activo !== false, serviciosIds };
         if (fotoURL) data.foto = fotoURL;
 
         if (id) {

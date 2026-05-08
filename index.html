@@ -844,7 +844,16 @@
           hours = await FDB.getHorasDisponibles(currentDateStr, selectedServiceObj.duracion, settings, window._selectedBarberId || null);
         }
       } catch(e) {
-        hours = DB.getAvailableHours(currentDateStr, selectedServiceObj.duracion);
+        console.error('[Reservar] Error al consultar disponibilidad:', e);
+        grid.innerHTML = `
+          <div class="col-span-full flex flex-col items-center py-8 text-center gap-3">
+            <i class="ph ph-wifi-slash text-3xl text-white/20"></i>
+            <p class="text-sm text-white/40 font-medium">No se pudo verificar disponibilidad</p>
+            <button onclick="renderHours()" class="px-4 py-2 rounded-xl text-xs font-bold border border-white/10 text-white/50 hover:border-white/30 hover:text-white/80 transition-colors">
+              <i class="ph ph-arrows-clockwise mr-1"></i>Reintentar
+            </button>
+          </div>`;
+        return;
       }
 
       grid.innerHTML = '';
@@ -919,6 +928,21 @@
 
       selectedServiceObj = (window._fsServices || _fsServices || []).find(s => String(s.id) === String(id))
         || DB.getServices().find(s => String(s.id) === String(id));
+
+      // Filtrar barberos que realizan este servicio
+      const barberosParaServicio = (_fsBarberos || []).filter(b => {
+        if (!b.serviciosIds || b.serviciosIds.length === 0) return true;
+        return b.serviciosIds.map(String).includes(String(id));
+      });
+      // Si el barbero seleccionado no realiza este servicio, resetear selección
+      if (window._selectedBarberId && window._selectedBarberId !== 'any') {
+        const aun = barberosParaServicio.find(b => b.id === window._selectedBarberId);
+        if (!aun) {
+          window._selectedBarberId = null;
+          window._selectedBarber = null;
+        }
+      }
+      _renderBarberos(barberosParaServicio);
 
       updateContinueBtn();
       updateSelectionRecap();
