@@ -46,6 +46,105 @@
       --gold-glow: rgba(201,168,76,0.18);
     }
 
+    /* ── Gitana Nails & Studio — tema fuchsia ─────────────────── */
+    .tenant-gitana {
+      --gold: #f472b6;
+      --gold-dim: rgba(244,114,182,0.35);
+      --gold-glow: rgba(244,114,182,0.18);
+    }
+    html.tenant-gitana body { background-color: #080508; }
+
+    /* Hero: sin imagen de barbero */
+    .tenant-gitana .hero-bg {
+      background-image: none;
+      background: linear-gradient(135deg, #0f0a12 0%, #190d1e 55%, #0a080e 100%);
+    }
+    .tenant-gitana .hero-overlay {
+      background: linear-gradient(160deg,
+        rgba(5,3,8,0.15) 0%,
+        rgba(12,6,18,0.45) 40%,
+        rgba(5,3,8,0.85) 100%);
+    }
+    .tenant-gitana .hero-glow-spot {
+      background: radial-gradient(circle, rgba(244,114,182,0.12) 0%, transparent 65%) !important;
+    }
+    .tenant-gitana .hero-cta {
+      border-color: rgba(244,114,182,0.35) !important;
+      box-shadow: 0 0 20px rgba(244,114,182,0.08) !important;
+    }
+
+    /* Sellos */
+    .tenant-gitana .stamp-cell.filled {
+      border-color: #f472b6;
+      background: rgba(244,114,182,0.12);
+      box-shadow: 0 0 14px rgba(244,114,182,0.25);
+    }
+    .tenant-gitana #stampsBar {
+      background: #f472b6 !important;
+      box-shadow: 0 0 8px rgba(244,114,182,0.5) !important;
+    }
+
+    /* Membership card */
+    .tenant-gitana .membership-pattern::before {
+      background-image: repeating-linear-gradient(
+        -45deg, transparent, transparent 18px,
+        rgba(244,114,182,0.025) 18px, rgba(244,114,182,0.025) 19px
+      );
+    }
+    .tenant-gitana .membership-glow {
+      background: radial-gradient(circle, rgba(244,114,182,0.08) 0%, transparent 70%) !important;
+    }
+    .tenant-gitana #membershipWatermark { color: rgba(244,114,182,0.05) !important; }
+
+    /* Bottom nav */
+    .tenant-gitana .nav-tab.active .nav-icon {
+      color: var(--gold);
+      filter: drop-shadow(0 0 6px rgba(244,114,182,0.3));
+    }
+    .tenant-gitana .nav-tab.active .nav-label { color: var(--gold); }
+
+    /* Tier badges */
+    .tenant-gitana .tier-badge.gold {
+      color: var(--gold);
+      border-color: rgba(244,114,182,0.35);
+    }
+    .tenant-gitana .tier-badge.platinum {
+      color: #f9a8d4;
+      border-color: rgba(244,114,182,0.3);
+    }
+
+    /* PWA banners */
+    .tenant-gitana #pwaBigInstallCard {
+      background: linear-gradient(to right, rgba(244,114,182,0.1), rgba(244,114,182,0.03)) !important;
+      border-color: rgba(244,114,182,0.28) !important;
+      box-shadow: 0 0 20px rgba(244,114,182,0.07) !important;
+    }
+    .tenant-gitana .pwa-icon-bg {
+      background: rgba(244,114,182,0.12) !important;
+      border-color: rgba(244,114,182,0.28) !important;
+      box-shadow: 0 0 15px rgba(244,114,182,0.15) !important;
+    }
+    .tenant-gitana #pwaBanner {
+      border-color: rgba(244,114,182,0.3) !important;
+    }
+    .tenant-gitana #pwaModalIOS > div {
+      border-color: rgba(244,114,182,0.22) !important;
+    }
+    .tenant-gitana .pwa-step-badge {
+      background: var(--gold) !important;
+    }
+
+    /* Botones primarios en dashboard */
+    .tenant-gitana .btn-accion-primary {
+      background: var(--gold) !important;
+      color: #160712 !important;
+    }
+    .tenant-gitana a.btn-reservar {
+      background: var(--gold) !important;
+      color: #160712 !important;
+    }
+    /* ────────────────────────────────────────────────────────── */
+
     body {
       background-color: #050505;
       color: #f8fafc;
@@ -188,7 +287,7 @@
       <!-- Shop name centered -->
       <div class="text-center select-none">
         <p id="shopHeaderName" class="text-base font-black tracking-[0.18em] uppercase text-white leading-none"></p>
-        <p class="text-[9px] font-bold tracking-[0.22em] uppercase text-white/30 mt-0.5">BARBERSHOP</p>
+        <p id="shopHeaderSub" class="text-[9px] font-bold tracking-[0.22em] uppercase text-white/30 mt-0.5">BARBERSHOP</p>
       </div>
 
       <!-- Avatar -->
@@ -204,21 +303,21 @@
       <div class="relative mx-4 mt-2 mb-5 rounded-3xl overflow-hidden hero-bg" style="min-height:272px;">
         <!-- Dark gradient overlay sobre la foto -->
         <div class="hero-overlay absolute inset-0 z-10"></div>
-        <!-- Gold glow bottom-left -->
-        <div class="absolute bottom-0 left-0 w-48 h-48 z-10 pointer-events-none" style="background:radial-gradient(circle,rgba(201,168,76,0.12) 0%,transparent 65%);"></div>
+        <!-- Accent glow bottom-left -->
+        <div class="hero-glow-spot absolute bottom-0 left-0 w-48 h-48 z-10 pointer-events-none" style="background:radial-gradient(circle,rgba(201,168,76,0.12) 0%,transparent 65%);"></div>
 
         <!-- Content -->
         <div class="relative z-20 p-7 flex flex-col justify-between" style="min-height:272px;">
           <div></div>
           <div>
-            <h2 class="text-[2.15rem] font-black text-white leading-[1.08] mb-0.5 tracking-tight" style="text-shadow:0 2px 20px rgba(0,0,0,0.6);">
+            <h2 id="heroLine1" class="text-[2.15rem] font-black text-white leading-[1.08] mb-0.5 tracking-tight" style="text-shadow:0 2px 20px rgba(0,0,0,0.6);">
               No es<br>solo un corte.
             </h2>
-            <h2 class="text-[2.15rem] font-black leading-[1.08] mb-7 tracking-tight" style="color:var(--gold);font-style:italic;text-shadow:0 2px 20px rgba(0,0,0,0.5);">
+            <h2 id="heroLine2" class="text-[2.15rem] font-black leading-[1.08] mb-7 tracking-tight" style="color:var(--gold);font-style:italic;text-shadow:0 2px 20px rgba(0,0,0,0.5);">
               Es elegancia.
             </h2>
             <a href="index.html"
-              class="inline-flex items-center gap-2.5 text-white font-bold px-6 py-3.5 rounded-2xl text-sm active:scale-[0.97] transition-all"
+              class="hero-cta inline-flex items-center gap-2.5 text-white font-bold px-6 py-3.5 rounded-2xl text-sm active:scale-[0.97] transition-all"
               style="background:rgba(0,0,0,0.5);backdrop-filter:blur(16px);border:1px solid rgba(201,168,76,0.35);box-shadow:0 0 20px rgba(201,168,76,0.08);">
               <i class="ph-bold ph-calendar-plus text-base" style="color:var(--gold);"></i>
               Reservar mi cita
@@ -231,7 +330,7 @@
       <div id="pwaBigInstallCard" class="hidden mx-4 mb-5 rounded-3xl p-5 relative overflow-hidden cursor-pointer active:scale-95 transition-all shadow-[0_0_20px_rgba(201,168,76,0.1)]" style="background:linear-gradient(to right, rgba(201,168,76,0.12), rgba(201,168,76,0.04)); border: 1px solid rgba(201,168,76,0.3);" onclick="instalarPWA()">
         <div class="absolute -right-6 -top-6 w-24 h-24 rounded-full blur-xl pointer-events-none" style="background:rgba(201,168,76,0.15);"></div>
         <div class="flex items-center gap-4 relative z-10">
-          <div class="w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(201,168,76,0.2)]" style="background:rgba(201,168,76,0.15); border: 1px solid rgba(201,168,76,0.3);">
+          <div class="pwa-icon-bg w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-[0_0_15px_rgba(201,168,76,0.2)]" style="background:rgba(201,168,76,0.15); border: 1px solid rgba(201,168,76,0.3);">
             <i class="ph-fill ph-device-mobile text-2xl" style="color:var(--gold);"></i>
           </div>
           <div class="flex-1 min-w-0">
@@ -244,9 +343,9 @@
 
       <!-- ── MEMBERSHIP CARD ── -->
       <div class="membership-pattern relative mx-4 rounded-3xl bg-[#111115] border border-white/8 p-6 mb-4 overflow-hidden">
-        <div class="absolute -top-10 -right-10 w-36 h-36 rounded-full pointer-events-none" style="background:radial-gradient(circle,rgba(201,168,76,0.08) 0%,transparent 70%);"></div>
-        <!-- Watermark "É" decorativo -->
-        <div class="absolute right-4 bottom-2 pointer-events-none select-none" style="font-size:7rem;font-weight:900;color:rgba(201,168,76,0.04);line-height:1;font-style:italic;">É</div>
+        <div class="membership-glow absolute -top-10 -right-10 w-36 h-36 rounded-full pointer-events-none" style="background:radial-gradient(circle,rgba(201,168,76,0.08) 0%,transparent 70%);"></div>
+        <!-- Watermark decorativo -->
+        <div id="membershipWatermark" class="absolute right-4 bottom-2 pointer-events-none select-none" style="font-size:7rem;font-weight:900;color:rgba(201,168,76,0.04);line-height:1;font-style:italic;">É</div>
 
         <!-- Top row: label + sellos counter -->
         <div class="flex items-start justify-between mb-1">
@@ -395,7 +494,7 @@
       </div>
       <p id="profileSaveMsg" class="hidden text-xs text-center mb-3" style="color:var(--gold);">✓ Datos guardados correctamente</p>
       <button onclick="guardarPerfil()"
-        class="w-full border text-white font-bold py-3.5 rounded-2xl text-sm active:scale-[0.99] transition-all mb-6 flex items-center justify-center gap-2"
+        class="btn-accion-primary w-full border text-white font-bold py-3.5 rounded-2xl text-sm active:scale-[0.99] transition-all mb-6 flex items-center justify-center gap-2"
         style="background:rgba(255,255,255,0.04);border-color:var(--gold-dim);color:var(--gold);">
         <i class="ph-bold ph-floppy-disk text-base"></i> Guardar cambios
       </button>
@@ -553,9 +652,30 @@ let _stampsSynced   = false;
 let _premiosVisible = false;
 
 // ─── Aplicar Config ───────────────────────────────────────────
-document.title = `Mi Club | ${SHOP.nombre}`;
+document.title = `Mi ${SHOP.club}`;
 document.getElementById('shopHeaderName').textContent = SHOP.nombreCorto.toUpperCase();
 document.getElementById('shopClubName').textContent   = SHOP.club;
+
+// Contenido tenant-específico
+(function applyTenantContent() {
+  const isGitana = window.CURRENT_TENANT_ID === 'gitana';
+
+  // Subtítulo header
+  const sub = document.getElementById('shopHeaderSub');
+  if (sub) sub.textContent = isGitana ? 'NAILS & STUDIO' : 'BARBERSHOP';
+
+  // Hero copy
+  const h1 = document.getElementById('heroLine1');
+  const h2 = document.getElementById('heroLine2');
+  if (isGitana) {
+    if (h1) h1.innerHTML = 'No son solo uñas.<br>Es arte.';
+    if (h2) h2.textContent = 'Tu momento de brillar.';
+  }
+
+  // Watermark
+  const wm = document.getElementById('membershipWatermark');
+  if (wm) wm.textContent = isGitana ? 'G' : 'É';
+})();
 
 // ─── Auth Guard ───────────────────────────────────────────────
 auth.onAuthStateChanged(async user => {
@@ -780,14 +900,15 @@ async function cargarServicios() {
   const grid = document.getElementById('serviciosGrid');
   if (!grid) return;
   try {
-    const snap = await db.collection('servicios').orderBy('orden', 'asc').limit(6).get();
-    if (snap.empty) { document.getElementById('serviciosSection')?.classList.add('hidden'); return; }
-    grid.innerHTML = snap.docs.map(d => {
-      const s = d.data();
+    const servicios = await FDB.getServicios();
+    const muestra   = servicios.filter(s => s.activo !== false).slice(0, 6);
+    if (!muestra.length) { document.getElementById('serviciosSection')?.classList.add('hidden'); return; }
+    grid.innerHTML = muestra.map(s => {
       const precio = s.precio ? `$${Number(s.precio).toLocaleString('es-CL')}` : '';
-      return `<a href="index.html" class="service-card flex-shrink-0 relative rounded-2xl overflow-hidden cursor-pointer flex-shrink-0" style="width:148px;height:188px;background:#0d0a07;text-decoration:none;">
+      const icono  = s.icono || (window.CURRENT_TENANT_ID === 'gitana' ? 'ph-sparkle' : 'ph-scissors');
+      return `<a href="index.html" class="service-card flex-shrink-0 relative rounded-2xl overflow-hidden cursor-pointer" style="width:148px;height:188px;background:#0d0a07;text-decoration:none;">
         <div class="absolute inset-0 flex items-center justify-center">
-          <i class="ph-fill ph-scissors text-4xl" style="color:rgba(201,168,76,0.2);"></i>
+          <i class="ph-fill ${icono} text-4xl" style="color:rgba(var(--gold-r,201),var(--gold-g,168),var(--gold-b,76),0.2);color:var(--gold);opacity:0.2;"></i>
         </div>
         <div class="absolute inset-0" style="background:linear-gradient(to top,rgba(0,0,0,0.88) 0%,rgba(0,0,0,0.15) 55%,transparent 100%);"></div>
         <div class="absolute bottom-0 left-0 right-0 p-3.5">
@@ -1112,8 +1233,8 @@ async function cargarCitasUsuario(user) {
       contenedor.innerHTML = `
         <div class="bg-[#111115] rounded-2xl border border-white/8 px-5 py-6 text-center">
           <i class="ph-fill ph-calendar-x text-4xl text-white/10 mb-2 block"></i>
-          <p class="text-sm text-gray-500">Aún no tienes citas registradas.<br>¡Reserva tu primer turno!</p>
-          <a href="index.html" class="inline-block mt-4 px-5 py-2.5 rounded-xl text-xs font-bold text-black" style="background:var(--gold);">Reservar ahora</a>
+          <p class="text-sm text-gray-500">Aún no tienes citas registradas.<br>¡Reserva tu primera cita!</p>
+          <a href="index.html" class="btn-reservar inline-block mt-4 px-5 py-2.5 rounded-xl text-xs font-bold text-black" style="background:var(--gold);">Reservar ahora</a>
         </div>`;
       return;
     }
@@ -1285,11 +1406,11 @@ function formatearFechaCita(fechaStr) {
       <p class="text-sm text-white/50 mb-6 leading-relaxed">Lleva tu club de fidelidad siempre contigo. Instala la app en tu iPhone en 2 pasos:</p>
       <div class="space-y-3 text-left mb-6">
         <div class="flex items-center gap-3 rounded-2xl p-3" style="background:rgba(255,255,255,0.05);">
-          <span class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-black text-[#0d0b09] shrink-0" style="background:var(--gold);">1</span>
+          <span class="pwa-step-badge w-7 h-7 rounded-full flex items-center justify-center text-xs font-black text-[#0d0b09] shrink-0" style="background:var(--gold);">1</span>
           <p class="text-sm text-white/80">Toca el botón <strong class="text-white">Compartir</strong> <i class="ph ph-export inline"></i> en Safari</p>
         </div>
         <div class="flex items-center gap-3 rounded-2xl p-3" style="background:rgba(255,255,255,0.05);">
-          <span class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-black text-[#0d0b09] shrink-0" style="background:var(--gold);">2</span>
+          <span class="pwa-step-badge w-7 h-7 rounded-full flex items-center justify-center text-xs font-black text-[#0d0b09] shrink-0" style="background:var(--gold);">2</span>
           <p class="text-sm text-white/80">Selecciona <strong class="text-white">«Agregar a pantalla de inicio»</strong></p>
         </div>
       </div>
