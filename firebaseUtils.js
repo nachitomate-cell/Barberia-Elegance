@@ -274,7 +274,16 @@ const FDB = (() => {
   async function getCitas(fecha, barberoId = null) {
     let q = tenantCol(COL.CITAS).where('fecha', '==', fecha);
     if (barberoId) q = q.where('barberoId', '==', barberoId);
-    const snap = await q.get({ source: 'server' });
+    let snap;
+    try {
+      snap = await q.get({ source: 'server' });
+    } catch(e) {
+      if (e.code === 'unavailable' || e.code === 'deadline-exceeded') {
+        snap = await q.get();
+      } else {
+        throw e;
+      }
+    }
     return snap.docs
       .map(d => ({ id: d.id, ...d.data() }))
       .sort((a, b) => a.hora.localeCompare(b.hora));
@@ -361,7 +370,16 @@ const FDB = (() => {
     let q = tenantCol(COL.BLOQUEOS).where('fecha', '==', fecha);
     // Sin filtrar por barberoId aquí: los bloqueos globales (barberoId==null) también aplican.
     // El filtro por barbero se hace en getHorasDisponibles combinando globales + del barbero.
-    const snap = await q.get({ source: 'server' });
+    let snap;
+    try {
+      snap = await q.get({ source: 'server' });
+    } catch(e) {
+      if (e.code === 'unavailable' || e.code === 'deadline-exceeded') {
+        snap = await q.get();
+      } else {
+        throw e;
+      }
+    }
     const todos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     if (!barberoId) return todos;
     // Retorna bloqueos globales (sin barberoId) + los del barbero específico
