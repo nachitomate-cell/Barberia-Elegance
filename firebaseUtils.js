@@ -206,7 +206,7 @@ const FDB = (() => {
     horarioFin:       '20:00',
     intervaloMinutos: 30,
     diasLaborales:    [1, 2, 3, 4, 5, 6],
-    telefonoAdmin:    (typeof SHOP !== 'undefined' ? SHOP.telefono : '56900000000'),
+    telefonoAdmin:    '',
     diasBloqueados:   [],
     colacion:         null,
     diasConfig:       {},

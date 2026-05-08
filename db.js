@@ -4,7 +4,7 @@ const defaultSettings = {
     horarioFin: "20:00",
     intervaloMinutos: 30,
     diasLaborales: [0, 1, 2, 3, 4, 5, 6], // Dom a Sab
-    telefonoAdmin: (typeof SHOP !== 'undefined' ? SHOP.telefono : "56900000000")
+    telefonoAdmin: ''
 };
 
 const defaultServices = [

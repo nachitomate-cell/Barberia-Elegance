@@ -38,7 +38,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
   <script src="firebase-config.js?v=1.1"></script>
-  <script src="firebaseUtils.js?v=2.4"></script>
+  <script src="firebaseUtils.js?v=2.5"></script>
 
 
   <style>
@@ -1547,20 +1547,11 @@
         const [wYear, wMon, wDay] = currentDateStr.split('-');
         const fechaLegible = `${wDay}/${wMon}/${wYear}`;
         const waMsg = `Hola ${SHOP.nombreCorto}! Acabo de agendar en su web. Soy ${nombre} y voy para un ${selectedServiceObj.nombre}${barberPart} a las ${selectedTimeStr} hrs el ${fechaLegible}. \n¿Todo ok? ${SHOP.waEmoji || '✂️'}`;
-        let numBarbero = '';
-        try {
-          const bid = window._selectedBarberId;
-          if (bid) {
-            const bcfg = await FDB.getConfigBarbero(bid);
-            numBarbero = bcfg.telefonoAdmin || (_fsConfig || {}).telefonoAdmin || DB.getSettings().telefonoAdmin || '';
-          } else {
-            numBarbero = (_fsConfig || {}).telefonoAdmin || DB.getSettings().telefonoAdmin || '';
-          }
-        } catch(_) {
-          numBarbero = (_fsConfig || {}).telefonoAdmin || DB.getSettings().telefonoAdmin || '';
-        }
+        // Solo leer el número desde Firestore (configuracion/main → telefonoAdmin)
+        const numBarbero = (_fsConfig || {}).telefonoAdmin || '';
         const limpio = String(numBarbero).replace(/\D/g, '');
-        const waLink = limpio ? `https://wa.me/${limpio}?text=${encodeURIComponent(waMsg)}` : null;
+        // Mínimo 8 dígitos para considerarse un número válido
+        const waLink = limpio.length >= 8 ? `https://wa.me/${limpio}?text=${encodeURIComponent(waMsg)}` : null;
         
         const waBtnLink = document.getElementById('waBtnLink');
         if (waLink) {
