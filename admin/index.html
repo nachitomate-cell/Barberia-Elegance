@@ -1,10 +1,9 @@
 <!DOCTYPE html>
 <html lang="es" class="dark">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Portal Admin | Elegance</title>
+  <title>Portal Admin | SynapTech</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -15,12 +14,12 @@
     * { box-sizing: border-box; }
 
     body {
-      background-color: #0b1120;
+      background-color: #080d17;
       color: #F9FAFB;
       font-family: 'Inter', sans-serif;
       background-image:
-        radial-gradient(ellipse at 10% 20%, rgba(52, 211, 153, 0.06) 0%, transparent 55%),
-        radial-gradient(ellipse at 90% 80%, rgba(16, 185, 129, 0.06) 0%, transparent 55%);
+        radial-gradient(ellipse at 15% 15%, rgba(52,211,153,0.05) 0%, transparent 50%),
+        radial-gradient(ellipse at 85% 85%, rgba(236,72,153,0.05) 0%, transparent 50%);
       min-height: 100vh;
       display: flex;
       flex-direction: column;
@@ -30,417 +29,420 @@
     }
 
     .glass-card {
-      background: rgba(30, 41, 59, 0.65);
+      background: rgba(15, 23, 42, 0.7);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.55);
+      border: 1px solid rgba(255,255,255,0.07);
+      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.6);
     }
 
-    /* ── Tenant button ── */
-    .tenant-button {
+    /* ── Tenant cards ── */
+    .tenant-card {
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       cursor: pointer;
       border-radius: 1.5rem;
-      padding: 1.5rem;
-      display: block;
-      width: 100%;
+      padding: 1.25rem;
+      border: 1px solid rgba(255,255,255,0.07);
+      background: rgba(15,23,42,0.5);
+      backdrop-filter: blur(12px);
       text-align: left;
-      border: 1px solid rgba(255,255,255,0.08);
-      text-decoration: none;
+      width: 100%;
       color: inherit;
+      display: block;
+      text-decoration: none;
     }
-    .tenant-button:hover {
-      transform: translateY(-4px);
-      border-color: rgba(52, 211, 153, 0.4);
-      background: rgba(52, 211, 153, 0.06);
-      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.25), 0 0 20px rgba(52, 211, 153, 0.12);
+    .tenant-card:hover { transform: translateY(-3px); }
+    .tenant-card.elegance:hover {
+      border-color: rgba(52,211,153,0.4);
+      background: rgba(52,211,153,0.05);
+      box-shadow: 0 12px 30px rgba(0,0,0,0.3), 0 0 20px rgba(52,211,153,0.08);
+    }
+    .tenant-card.gitana:hover {
+      border-color: rgba(236,72,153,0.4);
+      background: rgba(236,72,153,0.05);
+      box-shadow: 0 12px 30px rgba(0,0,0,0.3), 0 0 20px rgba(236,72,153,0.08);
     }
 
     /* ── Drawer overlay ── */
     #drawer-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.65);
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.7);
       backdrop-filter: blur(4px);
       -webkit-backdrop-filter: blur(4px);
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.35s ease;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.3s ease;
       z-index: 40;
     }
-    #drawer-overlay.open {
-      opacity: 1;
-      pointer-events: auto;
-    }
+    #drawer-overlay.open { opacity: 1; pointer-events: auto; }
 
     /* ── Drawer panel ── */
     #drawer-panel {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: #0f1e34;
-      border-top: 1px solid rgba(52, 211, 153, 0.18);
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: #0c1526;
+      border-top: 1px solid rgba(255,255,255,0.08);
       border-radius: 1.5rem 1.5rem 0 0;
       padding: 0 1.5rem 2rem;
       transform: translateY(100%);
-      transition: transform 0.4s cubic-bezier(0.32, 0, 0.15, 1);
+      transition: transform 0.4s cubic-bezier(0.32,0,0.15,1);
       z-index: 50;
-      max-height: 90vh;
+      max-height: 92vh;
       overflow-y: auto;
-      box-shadow: 0 -20px 60px rgba(0,0,0,0.5), 0 0 40px rgba(52,211,153,0.06);
+      box-shadow: 0 -20px 60px rgba(0,0,0,0.5);
     }
-    #drawer-panel.open {
-      transform: translateY(0);
-    }
+    #drawer-panel.open { transform: translateY(0); }
 
-    /* Drag handle */
     .drawer-handle {
-      width: 40px;
-      height: 4px;
-      background: rgba(255,255,255,0.15);
+      width: 40px; height: 4px;
+      background: rgba(255,255,255,0.12);
       border-radius: 999px;
       margin: 1rem auto 1.5rem;
     }
 
     /* ── Stat card ── */
     .stat-card {
-      background: rgba(52, 211, 153, 0.06);
-      border: 1px solid rgba(52, 211, 153, 0.16);
       border-radius: 1rem;
-      padding: 1.25rem 1.5rem;
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      transition: background 0.2s ease;
+      padding: 1.125rem 1.25rem;
+      display: flex; align-items: center; gap: 1rem;
+      transition: background 0.2s;
+      border: 1px solid rgba(255,255,255,0.06);
+      background: rgba(255,255,255,0.03);
     }
-    .stat-card:hover {
-      background: rgba(52, 211, 153, 0.1);
-    }
+    .stat-card.clickable { cursor: pointer; }
+    .stat-card.clickable:hover { background: rgba(255,255,255,0.06); }
+
     .stat-icon {
-      width: 48px;
-      height: 48px;
-      border-radius: 0.875rem;
-      background: rgba(52, 211, 153, 0.12);
-      border: 1px solid rgba(52, 211, 153, 0.25);
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      width: 44px; height: 44px;
+      border-radius: 0.75rem;
+      display: flex; align-items: center; justify-content: center;
       flex-shrink: 0;
     }
 
-    /* Skeleton loader */
+    /* ── CTA button ── */
+    .cta-btn {
+      display: flex; align-items: center; justify-content: center; gap: 0.625rem;
+      width: 100%; padding: 0.875rem 1.5rem;
+      border-radius: 0.875rem;
+      color: #fff; font-weight: 600; font-size: 0.9375rem;
+      text-decoration: none; border: none; cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .cta-btn:hover { transform: translateY(-2px); }
+    .cta-btn:active { transform: translateY(0); }
+    .cta-btn.elegance {
+      background: linear-gradient(135deg,#10b981,#059669);
+      box-shadow: 0 4px 20px rgba(16,185,129,0.25);
+    }
+    .cta-btn.elegance:hover { box-shadow: 0 8px 30px rgba(16,185,129,0.35); }
+    .cta-btn.gitana {
+      background: linear-gradient(135deg,#ec4899,#db2777);
+      box-shadow: 0 4px 20px rgba(236,72,153,0.25);
+    }
+    .cta-btn.gitana:hover { box-shadow: 0 8px 30px rgba(236,72,153,0.35); }
+
+    /* ── Secondary button ── */
+    .btn-secondary {
+      display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+      width: 100%; padding: 0.75rem 1rem;
+      border-radius: 0.75rem;
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.09);
+      color: #cbd5e1; font-weight: 500; font-size: 0.875rem;
+      cursor: pointer; transition: all 0.2s ease;
+    }
+    .btn-secondary:hover { background: rgba(255,255,255,0.08); color: #fff; }
+
+    /* ── Badge ── */
+    .badge {
+      display: inline-flex; align-items: center; gap: 0.375rem;
+      padding: 0.2rem 0.625rem; border-radius: 999px;
+      font-size: 0.6875rem; font-weight: 600;
+    }
+    .badge-dot {
+      width: 5px; height: 5px; border-radius: 50%;
+      animation: pulse-dot 1.8s infinite;
+    }
+    @keyframes pulse-dot { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+
+    /* ── Skeleton ── */
     .skeleton {
-      background: linear-gradient(90deg, rgba(255,255,255,0.06) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.06) 75%);
+      background: linear-gradient(90deg,rgba(255,255,255,0.05) 25%,rgba(255,255,255,0.09) 50%,rgba(255,255,255,0.05) 75%);
       background-size: 200% 100%;
       animation: shimmer 1.4s infinite;
       border-radius: 0.5rem;
     }
-    @keyframes shimmer {
-      0%   { background-position: 200% 0; }
-      100% { background-position: -200% 0; }
-    }
+    @keyframes shimmer { 0% { background-position:200% 0; } 100% { background-position:-200% 0; } }
 
-    /* CTA button */
-    .cta-btn {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.625rem;
-      width: 100%;
-      padding: 0.875rem 1.5rem;
-      border-radius: 0.875rem;
-      background: linear-gradient(135deg, #10b981, #059669);
-      color: #fff;
-      font-weight: 600;
-      font-size: 0.9375rem;
-      text-decoration: none;
-      border: none;
-      cursor: pointer;
-      transition: all 0.25s ease;
-      box-shadow: 0 4px 20px rgba(16,185,129,0.3);
+    /* ── Quick action links ── */
+    .quick-link {
+      display: flex; align-items: center; gap: 0.75rem;
+      padding: 0.75rem 1rem; border-radius: 0.75rem;
+      border: 1px solid rgba(255,255,255,0.06);
+      background: rgba(255,255,255,0.03);
+      text-decoration: none; color: #cbd5e1;
+      font-size: 0.875rem; font-weight: 500;
+      transition: all 0.2s;
     }
-    .cta-btn:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 30px rgba(16,185,129,0.4);
-    }
-    .cta-btn:active {
-      transform: translateY(0);
-    }
+    .quick-link:hover { background: rgba(255,255,255,0.07); color: #fff; }
 
-    /* Status badge */
-    .badge-active {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.375rem;
-      padding: 0.25rem 0.75rem;
-      border-radius: 999px;
-      background: rgba(52, 211, 153, 0.12);
-      border: 1px solid rgba(52, 211, 153, 0.3);
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: #34d399;
+    /* ── Unauthorized ── */
+    #unauthorized-screen {
+      position: fixed; inset: 0; background: #000; z-index: 9999;
+      display: none; align-items: center; justify-content: center;
     }
-    .badge-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: #34d399;
-      animation: pulse-dot 1.8s infinite;
-    }
-    @keyframes pulse-dot {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.35; }
-    }
-
-    /* Secondary button */
-    .btn-secondary {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-      width: 100%;
-      padding: 0.75rem 1rem;
-      border-radius: 0.75rem;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      color: #cbd5e1;
-      font-weight: 500;
-      font-size: 0.875rem;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-    .btn-secondary:hover {
-      background: rgba(255, 255, 255, 0.08);
-      border-color: rgba(255, 255, 255, 0.2);
-      color: #fff;
+    @keyframes pulse-img {
+      0%,100% { transform:scale(1); opacity:.85; }
+      50% { transform:scale(1.04); opacity:1; }
     }
 
     .hidden { display: none !important; }
-  </style>
-</head>
 
-<body>
-
-  <!-- Pantalla de bloqueo para no-admins -->
-  <div id="unauthorized-screen" class="hidden" style="position:fixed; inset:0; background:black; z-index:9999; display:flex; align-items:center; justify-content:center;">
-    <img src="/perro.webp" alt="Acceso Denegado" style="max-width:90%; max-height:90%; object-fit:contain; animation: pulse 2s infinite;">
-  </div>
-
-  <style>
-    @keyframes pulse {
-      0% { transform: scale(1); opacity: 0.8; }
-      50% { transform: scale(1.05); opacity: 1; }
-      100% { transform: scale(1); opacity: 0.8; }
+    /* Divider */
+    .section-label {
+      font-size: 0.6875rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.1em;
+      color: #475569; margin: 0 0 0.625rem;
     }
   </style>
+</head>
+<body>
 
-  <!-- ── Logout ── -->
+  <!-- Pantalla de bloqueo -->
+  <div id="unauthorized-screen">
+    <img src="/perro.webp" alt="Acceso Denegado"
+      style="max-width:88%; max-height:88%; object-fit:contain; animation:pulse-img 2s infinite;">
+  </div>
+
+  <!-- Logout -->
   <button onclick="firebase.auth().signOut()" style="
     position:fixed; top:1rem; right:1rem; z-index:100;
     display:flex; align-items:center; gap:0.375rem;
     padding:0.5rem 0.875rem; border-radius:0.625rem;
-    background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);
+    background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.09);
     color:#94a3b8; font-size:0.8125rem; font-weight:500; cursor:pointer;
-    transition:all 0.2s ease;
+    transition:all 0.2s;
   " onmouseover="this.style.color='#f87171';this.style.borderColor='rgba(248,113,113,0.3)'"
-     onmouseout="this.style.color='#94a3b8';this.style.borderColor='rgba(255,255,255,0.1)'">
-    <i class="ph ph-sign-out"></i>
-    Cerrar sesión
+     onmouseout="this.style.color='#94a3b8';this.style.borderColor='rgba(255,255,255,0.09)'">
+    <i class="ph ph-sign-out"></i> Cerrar sesión
   </button>
 
-  <!-- ── Header ── -->
-  <div style="margin-bottom:3rem; text-align:center;">
+  <!-- Header -->
+  <div style="margin-bottom:2.5rem; text-align:center;">
     <div style="
       display:inline-flex; align-items:center; justify-content:center;
-      width:64px; height:64px; border-radius:1rem;
-      background:rgba(52,211,153,0.1); margin-bottom:1.5rem;
-      border:1px solid rgba(52,211,153,0.2);
+      width:56px; height:56px; border-radius:1rem;
+      background:rgba(255,255,255,0.05); margin-bottom:1.25rem;
+      border:1px solid rgba(255,255,255,0.09);
     ">
-      <i class="ph-fill ph-layout" style="font-size:1.875rem; color:#34d399;"></i>
+      <i class="ph-fill ph-storefront" style="font-size:1.625rem; color:#94a3b8;"></i>
     </div>
-    <h1 style="font-size:1.875rem; font-weight:700; letter-spacing:-0.03em; color:#fff; margin:0 0 0.5rem;">
+    <h1 style="font-size:1.75rem; font-weight:700; letter-spacing:-0.03em; color:#fff; margin:0 0 0.375rem;">
       Portal de Administración
     </h1>
-    <p style="color:#94a3b8; font-size:0.9375rem; margin:0;">
-      Selecciona una sucursal para gestionar
+    <p style="color:#64748b; font-size:0.875rem; margin:0;">
+      Selecciona un local para gestionar
     </p>
   </div>
 
   <!-- ── Tenant list ── -->
-  <div style="width:100%; max-width:440px;">
+  <div style="width:100%; max-width:460px; display:flex; flex-direction:column; gap:0.875rem;">
 
-    <!-- 𝐄𝐥𝐞𝐠𝐚𝐧𝐜𝐞 𝐛𝐚𝐫𝐛𝐞𝐫𝐬𝐡𝐨𝐩 card -->
-    <button
-      id="btn-elegance"
-      class="tenant-button glass-card"
-      aria-haspopup="dialog"
-      aria-controls="drawer-panel"
-      onclick="openDrawer()"
-    >
-      <div style="display:flex; align-items:center; gap:1.25rem;">
-        <!-- Logo -->
-        <div style="position:relative; flex-shrink:0;">
-          <div id="logo-glow" style="
-            position:absolute; inset:0; background:rgba(52,211,153,0.2);
-            filter:blur(14px); border-radius:50%; opacity:0; transition:opacity 0.3s;
-          "></div>
-          <img
-            src="/logo.jpg"
-            alt="𝐄𝐥𝐞𝐠𝐚𝐧𝐜𝐞 𝐛𝐚𝐫𝐛𝐞𝐫𝐬𝐡𝐨𝐩"
-            style="position:relative; width:64px; height:64px; border-radius:1rem;
-                   object-fit:cover; border:1px solid rgba(255,255,255,0.1);"
-          >
-        </div>
-
-        <!-- Info -->
-        <div style="flex:1; min-width:0;">
-          <h2 style="font-size:1.125rem; font-weight:700; color:#fff; margin:0 0 0.25rem;">
-            𝐄𝐥𝐞𝐠𝐚𝐧𝐜𝐞 𝐛𝐚𝐫𝐛𝐞𝐫𝐬𝐡𝐨𝐩
-          </h2>
+    <!-- Elegance Barbershop -->
+    <button class="tenant-card elegance" onclick="openDrawer('elegance')">
+      <div style="display:flex; align-items:center; gap:1.125rem;">
+        <img src="/logo.jpg" alt="Elegance"
+          style="width:56px; height:56px; border-radius:1rem; object-fit:cover; border:1px solid rgba(52,211,153,0.2); flex-shrink:0;">
+        <div style="flex:1; min-width:0; text-align:left;">
+          <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.25rem;">
+            <h2 style="font-size:1rem; font-weight:700; color:#fff; margin:0;">Elegance Barbershop</h2>
+            <span style="
+              padding:0.125rem 0.5rem; border-radius:999px; font-size:0.625rem; font-weight:700;
+              background:rgba(52,211,153,0.1); border:1px solid rgba(52,211,153,0.25); color:#34d399;
+            ">ACTIVO</span>
+          </div>
           <p style="font-size:0.8125rem; color:#64748b; margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-            Sede Central · Av. Libertad 63 / Local 28
+            <i class="ph-fill ph-map-pin" style="font-size:0.75rem; color:rgba(52,211,153,0.5);"></i>
+            Ecuador 243, Viña del Mar
           </p>
         </div>
-
-        <!-- Arrow -->
         <div style="
-          width:36px; height:36px; border-radius:50%; flex-shrink:0;
+          width:32px; height:32px; border-radius:50%; flex-shrink:0;
           display:flex; align-items:center; justify-content:center;
-          background:rgba(255,255,255,0.05);
+          background:rgba(52,211,153,0.08); border:1px solid rgba(52,211,153,0.15);
         ">
-          <i class="ph-bold ph-caret-right" style="color:#64748b;"></i>
+          <i class="ph-bold ph-caret-right" style="color:#34d399; font-size:0.875rem;"></i>
+        </div>
+      </div>
+    </button>
+
+    <!-- Gitana Nails Studio -->
+    <button class="tenant-card gitana" onclick="openDrawer('gitana')">
+      <div style="display:flex; align-items:center; gap:1.125rem;">
+        <img src="/local2.jpg" alt="Gitana"
+          style="width:56px; height:56px; border-radius:1rem; object-fit:cover; border:1px solid rgba(236,72,153,0.2); flex-shrink:0;"
+          onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+        <div style="
+          display:none; width:56px; height:56px; border-radius:1rem; flex-shrink:0;
+          background:rgba(236,72,153,0.08); border:1px solid rgba(236,72,153,0.2);
+          align-items:center; justify-content:center;
+        ">
+          <i class="ph-fill ph-sparkle" style="font-size:1.5rem; color:#ec4899;"></i>
+        </div>
+        <div style="flex:1; min-width:0; text-align:left;">
+          <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.25rem;">
+            <h2 style="font-size:1rem; font-weight:700; color:#fff; margin:0;">Gitana Nails Studio</h2>
+            <span style="
+              padding:0.125rem 0.5rem; border-radius:999px; font-size:0.625rem; font-weight:700;
+              background:rgba(236,72,153,0.1); border:1px solid rgba(236,72,153,0.25); color:#ec4899;
+            ">ACTIVO</span>
+          </div>
+          <p style="font-size:0.8125rem; color:#64748b; margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+            <i class="ph-fill ph-map-pin" style="font-size:0.75rem; color:rgba(236,72,153,0.5);"></i>
+            Las Encinas 1390 local 18, Concón
+          </p>
+        </div>
+        <div style="
+          width:32px; height:32px; border-radius:50%; flex-shrink:0;
+          display:flex; align-items:center; justify-content:center;
+          background:rgba(236,72,153,0.08); border:1px solid rgba(236,72,153,0.15);
+        ">
+          <i class="ph-bold ph-caret-right" style="color:#ec4899; font-size:0.875rem;"></i>
         </div>
       </div>
     </button>
 
     <!-- Footer meta -->
-    <div style="margin-top:2rem; display:flex; align-items:center; justify-content:center; gap:1.5rem;">
+    <div style="margin-top:1.5rem; display:flex; align-items:center; justify-content:center; gap:1.5rem;">
       <div style="text-align:center;">
-        <span style="font-size:0.625rem; text-transform:uppercase; letter-spacing:0.12em; font-weight:700; color:#475569; display:block; margin-bottom:0.25rem;">Versión</span>
-        <span style="font-size:0.75rem; font-weight:500; color:#94a3b8;">v2.4.0-admin</span>
+        <span style="font-size:0.625rem; text-transform:uppercase; letter-spacing:0.12em; font-weight:700; color:#334155; display:block; margin-bottom:0.25rem;">Locales</span>
+        <span style="font-size:0.75rem; font-weight:600; color:#64748b;">2 activos</span>
       </div>
-      <div style="width:1px; height:24px; background:#1e293b;"></div>
+      <div style="width:1px; height:20px; background:#1e293b;"></div>
       <div style="text-align:center;">
-        <span style="font-size:0.625rem; text-transform:uppercase; letter-spacing:0.12em; font-weight:700; color:#475569; display:block; margin-bottom:0.25rem;">Estado</span>
-        <div style="display:flex; align-items:center; gap:6px;">
-          <div style="width:6px; height:6px; border-radius:50%; background:#34d399; animation:pulse-dot 1.8s infinite;"></div>
-          <span style="font-size:0.75rem; font-weight:500; color:#34d399;">Sistemas Activos</span>
-        </div>
+        <span style="font-size:0.625rem; text-transform:uppercase; letter-spacing:0.12em; font-weight:700; color:#334155; display:block; margin-bottom:0.25rem;">Versión</span>
+        <span style="font-size:0.75rem; font-weight:500; color:#64748b;">v2.5.0-admin</span>
+      </div>
+      <div style="width:1px; height:20px; background:#1e293b;"></div>
+      <div style="text-align:center; display:flex; align-items:center; gap:0.375rem;">
+        <div style="width:5px; height:5px; border-radius:50%; background:#34d399; animation:pulse-dot 1.8s infinite;"></div>
+        <span style="font-size:0.75rem; font-weight:500; color:#34d399;">Online</span>
       </div>
     </div>
   </div>
 
-  <!-- ══════════════════════════════════════════
-       DRAWER OVERLAY
-  ══════════════════════════════════════════ -->
-  <div id="drawer-overlay" role="presentation" onclick="closeDrawer()"></div>
+  <!-- ══ DRAWER OVERLAY ══ -->
+  <div id="drawer-overlay" onclick="closeDrawer()"></div>
 
-  <!-- ══════════════════════════════════════════
-       DRAWER PANEL — 𝐄𝐥𝐞𝐠𝐚𝐧𝐜𝐞 𝐛𝐚𝐫𝐛𝐞𝐫𝐬𝐡𝐨𝐩
-  ══════════════════════════════════════════ -->
-  <div id="drawer-panel" role="dialog" aria-modal="true" aria-label="Panel 𝐄𝐥𝐞𝐠𝐚𝐧𝐜𝐞 𝐛𝐚𝐫𝐛𝐞𝐫𝐬𝐡𝐨𝐩">
-
-    <!-- Handle -->
+  <!-- ══ DRAWER PANEL (dinámico) ══ -->
+  <div id="drawer-panel" role="dialog" aria-modal="true">
     <div class="drawer-handle"></div>
 
     <!-- Drawer header -->
-    <div style="display:flex; align-items:center; gap:1rem; margin-bottom:1.75rem;">
-      <img
-        src="/logo.jpg"
-        alt="Elegance"
-        style="width:52px; height:52px; border-radius:0.875rem; object-fit:cover; border:1px solid rgba(52,211,153,0.2);"
-      >
+    <div style="display:flex; align-items:center; gap:1rem; margin-bottom:1.5rem;">
+      <img id="drawer-logo" src="" alt=""
+        style="width:48px; height:48px; border-radius:0.875rem; object-fit:cover; border:1px solid rgba(255,255,255,0.1);">
       <div style="flex:1;">
-        <h3 style="font-size:1.125rem; font-weight:700; color:#fff; margin:0 0 0.25rem;">
-          𝐄𝐥𝐞𝐠𝐚𝐧𝐜𝐞 𝐛𝐚𝐫𝐛𝐞𝐫𝐬𝐡𝐨𝐩
-        </h3>
-        <p style="font-size:0.8rem; color:#64748b; margin:0;">
-          Av. Libertad 63 / Local 28
-        </p>
+        <h3 id="drawer-title" style="font-size:1.0625rem; font-weight:700; color:#fff; margin:0 0 0.2rem;"></h3>
+        <p id="drawer-subtitle" style="font-size:0.8rem; color:#64748b; margin:0;"></p>
       </div>
-      <button onclick="closeDrawer()" aria-label="Cerrar panel" style="
-        width:36px; height:36px; border-radius:50%; border:1px solid rgba(255,255,255,0.1);
-        background:rgba(255,255,255,0.05); color:#94a3b8; cursor:pointer;
-        display:flex; align-items:center; justify-content:center; font-size:1rem;
-        transition: background 0.2s;
-      " onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">
+      <button onclick="closeDrawer()" style="
+        width:34px; height:34px; border-radius:50%; border:1px solid rgba(255,255,255,0.09);
+        background:rgba(255,255,255,0.04); color:#94a3b8; cursor:pointer;
+        display:flex; align-items:center; justify-content:center;
+        transition:background 0.2s;
+      " onmouseover="this.style.background='rgba(255,255,255,0.09)'"
+         onmouseout="this.style.background='rgba(255,255,255,0.04)'">
         <i class="ph-bold ph-x"></i>
       </button>
     </div>
 
-    <!-- ── Stats grid ── -->
-    <div id="stats-container" style="display:flex; flex-direction:column; gap:0.875rem; margin-bottom:1.75rem;">
+    <!-- Stats -->
+    <div style="display:flex; flex-direction:column; gap:0.75rem; margin-bottom:1.5rem;">
 
-      <!-- Stat: barberos (carga dinámica) -->
-      <div class="stat-card" id="stat-barberos" style="cursor: pointer;" onclick="toggleBarberosList()">
-        <div class="stat-icon">
-          <i class="ph-fill ph-users" style="font-size:1.375rem; color:#34d399;"></i>
-        </div>
+      <!-- Profesionales -->
+      <div class="stat-card clickable" onclick="toggleProfList()" id="stat-prof">
+        <div class="stat-icon" id="stat-prof-icon"></div>
         <div style="flex:1;">
-          <p style="font-size:0.75rem; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; color:#64748b; margin:0 0 0.25rem;">Barberos en local</p>
-          <div id="barberos-count" style="font-size:1.75rem; font-weight:700; color:#fff; line-height:1;">
-            <!-- Skeleton -->
-            <div class="skeleton" style="width:48px; height:28px;"></div>
+          <p id="stat-prof-label" style="font-size:0.7rem; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; color:#64748b; margin:0 0 0.2rem;"></p>
+          <div id="prof-count" style="font-size:1.625rem; font-weight:700; color:#fff; line-height:1;">
+            <div class="skeleton" style="width:44px; height:26px;"></div>
           </div>
-          <div id="barberos-status" style="margin-top:0.375rem;">
-            <div class="skeleton" style="width:80px; height:14px;"></div>
+          <div id="prof-status" style="margin-top:0.3rem;">
+            <div class="skeleton" style="width:72px; height:12px;"></div>
+          </div>
+        </div>
+        <i class="ph ph-caret-down" style="color:#475569; font-size:1rem; transition:transform 0.2s;" id="prof-caret"></i>
+      </div>
+
+      <!-- Citas hoy -->
+      <div class="stat-card" id="stat-citas">
+        <div class="stat-icon" id="stat-citas-icon"></div>
+        <div style="flex:1;">
+          <p style="font-size:0.7rem; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; color:#64748b; margin:0 0 0.2rem;">Citas hoy</p>
+          <div id="citas-count" style="font-size:1.625rem; font-weight:700; color:#fff; line-height:1;">
+            <div class="skeleton" style="width:44px; height:26px;"></div>
+          </div>
+          <div id="citas-status" style="margin-top:0.3rem;">
+            <div class="skeleton" style="width:80px; height:12px;"></div>
           </div>
         </div>
       </div>
 
-      <!-- Stat: local -->
+      <!-- Identificador -->
       <div class="stat-card">
-        <div class="stat-icon">
-          <i class="ph-fill ph-map-pin" style="font-size:1.375rem; color:#34d399;"></i>
+        <div class="stat-icon" style="background:rgba(100,116,139,0.1); border:1px solid rgba(100,116,139,0.2);">
+          <i class="ph-fill ph-database" style="font-size:1.25rem; color:#94a3b8;"></i>
         </div>
         <div style="flex:1;">
-          <p style="font-size:0.75rem; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; color:#64748b; margin:0 0 0.25rem;">Identificador de local</p>
-          <p style="font-size:1rem; font-weight:700; color:#fff; margin:0; font-family:monospace; letter-spacing:0.05em;">elegance</p>
-          <p style="font-size:0.75rem; color:#64748b; margin:0.25rem 0 0;">Colección Firestore: <code style="color:#34d399;">barberos</code></p>
+          <p style="font-size:0.7rem; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; color:#64748b; margin:0 0 0.25rem;">Tenant ID · Firestore</p>
+          <p id="drawer-tenant-id" style="font-size:0.9375rem; font-weight:700; color:#fff; margin:0; font-family:monospace; letter-spacing:0.05em;"></p>
+          <p id="drawer-collection" style="font-size:0.725rem; color:#64748b; margin:0.2rem 0 0;"></p>
         </div>
       </div>
-
     </div>
 
-    <!-- Barberos List (Hidden by default) -->
-    <div id="barberos-list-container" class="hidden" style="background: rgba(30, 41, 59, 0.4); border-radius: 1rem; padding: 1.25rem; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 1.75rem;">
-      <h4 style="margin: 0 0 1rem 0; font-size: 0.8125rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.08em;">Detalle de Barberos</h4>
-      <div id="barberos-list-content" style="display: flex; flex-direction: column; gap: 0.75rem;">
-        <!-- Content will be injected here -->
+    <!-- Lista de profesionales (colapsable) -->
+    <div id="prof-list-container" class="hidden" style="
+      background:rgba(255,255,255,0.02); border-radius:0.875rem; padding:1.125rem;
+      border:1px solid rgba(255,255,255,0.05); margin-bottom:1.5rem;
+    ">
+      <p style="font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:#475569; margin:0 0 0.75rem;" id="prof-list-title"></p>
+      <div id="prof-list-content" style="display:flex; flex-direction:column; gap:0.625rem;"></div>
+    </div>
+
+    <!-- Acciones rápidas -->
+    <div style="margin-bottom:1.5rem;">
+      <p class="section-label">Acciones Rápidas</p>
+      <div style="display:flex; flex-direction:column; gap:0.5rem;">
+        <a id="link-agenda"     href="#" class="quick-link">
+          <i class="ph-bold ph-calendar-check" style="font-size:1rem;"></i>
+          <span>Ver agenda del día</span>
+          <i class="ph ph-arrow-square-out" style="margin-left:auto; font-size:0.875rem; color:#475569;"></i>
+        </a>
+        <a id="link-booking"   href="#" class="quick-link" target="_blank">
+          <i class="ph-bold ph-clock-clockwise" style="font-size:1rem;"></i>
+          <span>Abrir página de reservas</span>
+          <i class="ph ph-arrow-square-out" style="margin-left:auto; font-size:0.875rem; color:#475569;"></i>
+        </a>
+        <button onclick="addProfFlow()" class="quick-link" style="cursor:pointer;">
+          <i class="ph-bold ph-user-plus" style="font-size:1rem;"></i>
+          <span id="btn-add-prof-label">Agregar Profesional</span>
+        </button>
+        <button onclick="assignRoleFlow()" class="quick-link" style="cursor:pointer;">
+          <i class="ph-bold ph-shield-check" style="font-size:1rem;"></i>
+          <span>Asignar Rol</span>
+        </button>
       </div>
     </div>
 
-    <!-- ── Acciones Rápidas ── -->
-    <div style="margin-bottom: 1.75rem;">
-      <p style="font-size:0.6875rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em; color:#475569; margin:0 0 0.75rem;">Acciones Rápidas</p>
-      <button onclick="addBarberoFlow()" class="btn-secondary">
-        <i class="ph-bold ph-user-plus"></i>
-        Agregar Barbero
-      </button>
-      <button onclick="assignRoleFlow()" class="btn-secondary" style="margin-top: 0.5rem;">
-        <i class="ph-bold ph-shield-check"></i>
-        Asignar Rol
-      </button>
-    </div>
-
-    <!-- ── CTA ── -->
-    <a href="/gestion-interna/index.html?local=elegance" class="cta-btn">
+    <!-- CTA principal -->
+    <a id="cta-gestion" href="#" class="cta-btn">
       <i class="ph-bold ph-arrow-right"></i>
       Abrir Gestión Interna
     </a>
 
-    <!-- Source indicator -->
-    <p id="data-source-label" style="text-align:center; font-size:0.6875rem; color:#475569; margin:0.875rem 0 0; font-weight:500;">
-      Consultando Firestore…
-    </p>
-
+    <p id="data-source-label" style="text-align:center; font-size:0.6875rem; color:#334155; margin:0.75rem 0 0; font-weight:500;"></p>
   </div>
 
-  <!-- ══════════════════════════════════════════
-       FIREBASE + LÓGICA
-  ══════════════════════════════════════════ -->
+  <!-- ══ FIREBASE ══ -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
@@ -449,390 +451,361 @@
   <script src="/firebaseUtils.js?v=2.2"></script>
 
   <script>
-    // ── Drawer open / close ───────────────────────────────────────────────────
-    let drawerLoaded = false;
+    // ── Config por tenant ─────────────────────────────────────────
+    const TENANTS = {
+      elegance: {
+        nombre:      'Elegance Barbershop',
+        direccion:   'Ecuador 243, Viña del Mar',
+        logo:        '/logo.jpg',
+        color:       '#34d399',
+        colorRgb:    '52,211,153',
+        profLabel:   'Barberos en local',
+        profLabelBtn:'Agregar Barbero',
+        profIcon:    'ph-users',
+        citasCol:    () => db.collection('citas'),
+        profCol:     () => db.collection('barberos'),
+      },
+      gitana: {
+        nombre:      'Gitana Nails Studio',
+        direccion:   'Las Encinas 1390 local 18, Concón',
+        logo:        '/local2.jpg',
+        color:       '#ec4899',
+        colorRgb:    '236,72,153',
+        profLabel:   'Profesionales en estudio',
+        profLabelBtn:'Agregar Profesional',
+        profIcon:    'ph-sparkle',
+        citasCol:    () => db.collection('tenants').doc('gitana').collection('citas'),
+        profCol:     () => db.collection('tenants').doc('gitana').collection('barberos'),
+      },
+    };
 
-    function openDrawer(updateHistory = true) {
+    let _activeTenant = null;
+    let _profListLoaded = false;
+    let _profListVisible = false;
+
+    // ── Drawer open / close ───────────────────────────────────────
+    function openDrawer(tenantId, updateHistory = true) {
+      const cfg = TENANTS[tenantId];
+      if (!cfg) return;
+      _activeTenant = tenantId;
+      _profListLoaded = false;
+      _profListVisible = false;
+
+      // Poblar header
+      document.getElementById('drawer-logo').src         = cfg.logo;
+      document.getElementById('drawer-logo').alt         = cfg.nombre;
+      document.getElementById('drawer-title').textContent = cfg.nombre;
+      document.getElementById('drawer-subtitle').textContent = cfg.direccion;
+
+      // Colores dinámicos del drawer
+      document.getElementById('drawer-panel').style.borderTopColor = `rgba(${cfg.colorRgb},0.2)`;
+
+      // Stat: profesionales
+      document.getElementById('stat-prof-label').textContent = cfg.profLabel;
+      document.getElementById('stat-prof-icon').style.cssText =
+        `background:rgba(${cfg.colorRgb},0.1); border:1px solid rgba(${cfg.colorRgb},0.2);`;
+      document.getElementById('stat-prof-icon').innerHTML =
+        `<i class="ph-fill ${cfg.profIcon}" style="font-size:1.25rem; color:${cfg.color};"></i>`;
+
+      // Stat: citas
+      document.getElementById('stat-citas-icon').style.cssText =
+        `background:rgba(${cfg.colorRgb},0.1); border:1px solid rgba(${cfg.colorRgb},0.2);`;
+      document.getElementById('stat-citas-icon').innerHTML =
+        `<i class="ph-fill ph-calendar-dots" style="font-size:1.25rem; color:${cfg.color};"></i>`;
+
+      // Tenant ID
+      document.getElementById('drawer-tenant-id').textContent = tenantId;
+      document.getElementById('drawer-collection').innerHTML =
+        tenantId === 'elegance'
+          ? `Colección raíz: <code style="color:${cfg.color};">barberos</code>`
+          : `Colección: <code style="color:${cfg.color};">tenants/gitana/barberos</code>`;
+
+      // Botón agregar prof
+      document.getElementById('btn-add-prof-label').textContent = cfg.profLabelBtn;
+
+      // Links de acciones
+      document.getElementById('link-agenda').href   = `/agenda.html?local=${tenantId}`;
+      document.getElementById('link-booking').href  = `/index.html?local=${tenantId}`;
+      document.getElementById('cta-gestion').href   = `/gestion-interna/index.html?local=${tenantId}`;
+      document.getElementById('cta-gestion').className = `cta-btn ${tenantId}`;
+
+      // Reset stats a skeleton
+      document.getElementById('prof-count').innerHTML  = '<div class="skeleton" style="width:44px;height:26px;"></div>';
+      document.getElementById('prof-status').innerHTML = '<div class="skeleton" style="width:72px;height:12px;"></div>';
+      document.getElementById('citas-count').innerHTML = '<div class="skeleton" style="width:44px;height:26px;"></div>';
+      document.getElementById('citas-status').innerHTML= '<div class="skeleton" style="width:80px;height:12px;"></div>';
+      document.getElementById('data-source-label').textContent = 'Consultando Firestore…';
+      document.getElementById('prof-list-container').classList.add('hidden');
+      document.getElementById('prof-list-content').innerHTML = '';
+      document.getElementById('prof-caret').style.transform = 'rotate(0deg)';
+
+      // Mostrar drawer
       document.getElementById('drawer-overlay').classList.add('open');
       document.getElementById('drawer-panel').classList.add('open');
       document.body.style.overflow = 'hidden';
 
-      if (updateHistory) {
-        window.history.pushState({ drawer: 'elegance' }, '', '/admin/elegance');
-      }
+      if (updateHistory) window.history.pushState({ drawer: tenantId }, '', `/admin/${tenantId}`);
 
-      if (!drawerLoaded) {
-        drawerLoaded = true;
-        loadEleganceStats();
-      }
+      loadStats(tenantId);
     }
 
     function closeDrawer(updateHistory = true) {
       document.getElementById('drawer-overlay').classList.remove('open');
       document.getElementById('drawer-panel').classList.remove('open');
       document.body.style.overflow = '';
-
-      if (updateHistory) {
-        window.history.pushState({ drawer: null }, '', '/admin/');
-      }
+      if (updateHistory) window.history.pushState({ drawer: null }, '', '/admin/');
     }
 
-    // Manejar botón atrás / adelante del navegador
-    window.addEventListener('popstate', (event) => {
-      if (event.state && event.state.drawer === 'elegance') {
-        openDrawer(false);
-      } else {
-        closeDrawer(false);
-      }
+    window.addEventListener('popstate', e => {
+      if (e.state?.drawer) openDrawer(e.state.drawer, false);
+      else closeDrawer(false);
     });
 
-    // Verificar URL al cargar
     window.addEventListener('DOMContentLoaded', () => {
-      if (window.location.pathname.includes('/admin/elegance')) {
-        openDrawer(false);
-      }
+      const path = window.location.pathname;
+      if (path.includes('/admin/elegance')) openDrawer('elegance', false);
+      else if (path.includes('/admin/gitana')) openDrawer('gitana', false);
     });
 
-    // Cerrar con Escape
-    document.addEventListener('keydown', e => {
-      if (e.key === 'Escape') closeDrawer();
-    });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
 
-    // ── Hover glow en el botón ────────────────────────────────────────────────
-    const btnElegance = document.getElementById('btn-elegance');
-    const logoGlow    = document.getElementById('logo-glow');
-    btnElegance.addEventListener('mouseenter', () => logoGlow.style.opacity = '1');
-    btnElegance.addEventListener('mouseleave', () => logoGlow.style.opacity = '0');
+    // ── Cargar stats ─────────────────────────────────────────────
+    async function loadStats(tenantId) {
+      const cfg = TENANTS[tenantId];
+      const sourceEl = document.getElementById('data-source-label');
 
-    // ── Consulta Firestore: barberos del local "elegance" ─────────────────────
-    async function loadEleganceStats() {
-      const countEl   = document.getElementById('barberos-count');
-      const statusEl  = document.getElementById('barberos-status');
-      const sourceEl  = document.getElementById('data-source-label');
+      // Hoy
+      const now = new Date();
+      const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
 
+      // ── Profesionales ──
       try {
-        // Primer intento: filtrar por campo local == "elegance" y activo == true
-        let snap = await db.collection('barberos')
-          .where('local', '==', 'elegance')
-          .where('activo', '==', true)
-          .get();
+        let profSnap = await cfg.profCol().where('activo', '==', true).get();
 
-        let total = snap.size;
-        let queryUsed = 'local == "elegance"';
-
-        // Fallback: si ningún documento tiene el campo local,
-        // contamos todos los barberos activos (compatibilidad con datos legacy)
-        if (total === 0) {
-          const fallbackSnap = await db.collection('barberos')
-            .where('activo', '==', true)
-            .get();
-          if (fallbackSnap.size > 0) {
-            total     = fallbackSnap.size;
-            queryUsed = 'activo == true (fallback)';
-          }
+        // Fallback para elegance: si no hay campo activo, contar todos
+        if (profSnap.empty && tenantId === 'elegance') {
+          profSnap = await cfg.profCol().get();
         }
 
-        // Render número
-        countEl.innerHTML = `<span>${total}</span>`;
-        countEl.querySelector('span').style.cssText =
-          'font-size:1.875rem; font-weight:700; color:#fff;';
+        const total = profSnap.size;
+        document.getElementById('prof-count').innerHTML =
+          `<span style="font-size:1.625rem; font-weight:700; color:#fff;">${total}</span>`;
 
-        // Render badge
         if (total > 0) {
-          statusEl.innerHTML = `
-            <span class="badge-active">
-              <span class="badge-dot"></span>
+          document.getElementById('prof-status').innerHTML = `
+            <span class="badge" style="background:rgba(${cfg.colorRgb},0.1); border:1px solid rgba(${cfg.colorRgb},0.2); color:${cfg.color};">
+              <span class="badge-dot" style="background:${cfg.color};"></span>
               ${total === 1 ? '1 activo' : `${total} activos`}
             </span>`;
         } else {
-          statusEl.innerHTML = `
-            <span class="badge-error">
-              <i class="ph-bold ph-warning"></i>
-              Sin barberos registrados
-            </span>`;
+          document.getElementById('prof-status').innerHTML =
+            `<span style="font-size:0.75rem; color:#f87171;">Sin registros</span>`;
         }
-
-        sourceEl.textContent = `Datos en tiempo real · Firestore · ${queryUsed}`;
-
-      } catch (err) {
-        console.error('[AdminPanel] Error al leer barberos:', err.message);
-
-        countEl.innerHTML = `<span style="font-size:1.25rem; color:#f87171;">—</span>`;
-        statusEl.innerHTML = `
-          <span class="badge-error">
-            <i class="ph-bold ph-warning"></i>
-            Sin permisos de lectura
-          </span>`;
-        sourceEl.textContent = `Error · ${err.code || err.message}`;
+      } catch(e) {
+        document.getElementById('prof-count').innerHTML = `<span style="color:#f87171;">—</span>`;
+        document.getElementById('prof-status').innerHTML = `<span style="font-size:0.7rem; color:#f87171;">Sin permisos</span>`;
       }
-    }
 
-    // ── Flujo: Agregar Barbero ────────────────────────────────────────────────
-    async function addBarberoFlow() {
-      const email = window.prompt("Ingresa el correo electrónico del usuario para agregarlo como barbero:");
-      if (!email || !email.trim()) return;
-
+      // ── Citas hoy ──
       try {
-        const sourceEl = document.getElementById('data-source-label');
-        const originalSourceText = sourceEl.textContent;
-        sourceEl.textContent = "Buscando usuario...";
+        const citasSnap = await cfg.citasCol().where('fecha', '==', todayStr).get();
+        const total = citasSnap.size;
+        const confirmadas = citasSnap.docs.filter(d => (d.data().estado || '') !== 'Cancelada').length;
 
-        // 1. Buscar en la colección 'users'
-        const userSnap = await FDB.usersCol()
-          .where('email', '==', email.trim().toLowerCase())
-          .limit(1)
-          .get();
-
-        if (userSnap.empty) {
-          alert("No se encontró ningún usuario con ese correo electrónico.");
-          sourceEl.textContent = originalSourceText;
-          return;
-        }
-
-        const userData = userSnap.docs[0].data();
-        const userUid  = userSnap.docs[0].id;
-        const nombre   = userData.nombre || "Sin nombre";
-
-        // 1.5 Verificar si ya es barbero de este local
-        const barberoSnap = await db.collection('barberos').doc(userUid).get();
-        if (barberoSnap.exists && barberoSnap.data().local === 'elegance' && barberoSnap.data().activo === true) {
-          alert(`El usuario ${nombre} ya está registrado y activo como barbero en este local.`);
-          sourceEl.textContent = originalSourceText;
-          return;
-        }
-
-        // 2. Confirmar asignación
-        const confirmacion = window.confirm(`Usuario encontrado: ${nombre}\n¿Asignar como nuevo barbero del local elegance?`);
-        
-        if (confirmacion) {
-          sourceEl.textContent = "Asignando barbero...";
-          
-          // 3. Crear documento en la colección 'barberos'
-          await db.collection('barberos').doc(userUid).set({
-            nombre: nombre,
-            local: 'elegance',
-            activo: true,
-            creadoEn: firebase.firestore.FieldValue.serverTimestamp()
-          }, { merge: true });
-
-          alert("✅ Barbero asignado correctamente.");
-          
-          // Refrescar stats
-          loadEleganceStats();
-        } else {
-          sourceEl.textContent = originalSourceText;
-        }
-
-      } catch (err) {
-        console.error('[Admin] Error en addBarberoFlow:', err);
-        alert("Error: " + err.message);
+        document.getElementById('citas-count').innerHTML =
+          `<span style="font-size:1.625rem; font-weight:700; color:#fff;">${confirmadas}</span>`;
+        document.getElementById('citas-status').innerHTML =
+          `<span style="font-size:0.75rem; color:#94a3b8;">${total} registros · ${todayStr}</span>`;
+      } catch(e) {
+        document.getElementById('citas-count').innerHTML = `<span style="color:#f87171;">—</span>`;
+        document.getElementById('citas-status').innerHTML = `<span style="font-size:0.7rem; color:#f87171;">Sin permisos</span>`;
       }
+
+      sourceEl.textContent = `Datos en tiempo real · Firestore · ${todayStr}`;
     }
 
-    // ── Flujo: Asignar Rol ────────────────────────────────────────────────────
-    async function assignRoleFlow() {
-      const email = window.prompt("Ingresa el correo electrónico para asignar un rol:");
-      if (!email || !email.trim()) return;
+    // ── Lista de profesionales (colapsable) ───────────────────────
+    async function toggleProfList() {
+      _profListVisible = !_profListVisible;
+      const container = document.getElementById('prof-list-container');
+      const caret = document.getElementById('prof-caret');
+      caret.style.transform = _profListVisible ? 'rotate(180deg)' : 'rotate(0deg)';
 
-      try {
-        const sourceEl = document.getElementById('data-source-label');
-        const originalSourceText = sourceEl.textContent;
-        sourceEl.textContent = "Buscando en barberos...";
-
-        const emailTarget = email.trim().toLowerCase();
-
-        // 1. Buscar primero en 'barberos' por email
-        let barberoSnap = await db.collection('barberos')
-          .where('email', '==', emailTarget)
-          .limit(1)
-          .get();
-
-        let userUid = null;
-        let nombre = "Sin nombre";
-        let rolActual = "Ninguno";
-
-        if (!barberoSnap.empty) {
-          const doc = barberoSnap.docs[0];
-          userUid = doc.id;
-          nombre = doc.data().nombre || "Sin nombre";
-          rolActual = doc.data().rol || "Sin rol asignado";
-        } else {
-          // 2. Si no está en barberos, buscar en 'users' para obtener UID y nombre
-          sourceEl.textContent = "Buscando en usuarios...";
-          const userSnap = await FDB.usersCol()
-            .where('email', '==', emailTarget)
-            .limit(1)
-            .get();
-
-          if (userSnap.empty) {
-            alert("No se encontró ningún registro con ese correo electrónico en ninguna colección.");
-            sourceEl.textContent = originalSourceText;
-            return;
-          }
-
-          userUid = userSnap.docs[0].id;
-          nombre = userSnap.docs[0].data().nombre || "Sin nombre";
-        }
-
-        // 3. Preguntar por el nuevo rol
-        const nuevoRolInput = window.prompt(
-          `Usuario: ${nombre}\nRol actual: ${rolActual}\n\nIngresa el nuevo rol (barbero, admin o jefe):`,
-          rolActual === "Ninguno" || rolActual === "Sin rol asignado" ? "barbero" : rolActual
-        );
-
-        if (!nuevoRolInput) {
-          sourceEl.textContent = originalSourceText;
-          return;
-        }
-
-        const rolesValidos = ['barbero', 'admin', 'jefe'];
-        const rolNormalizado = nuevoRolInput.trim().toLowerCase();
-
-        if (!rolesValidos.includes(rolNormalizado)) {
-          alert("Rol no válido. Por favor ingresa: barbero, admin o jefe.");
-          sourceEl.textContent = originalSourceText;
-          return;
-        }
-
-        // 4. Actualizar en Firestore (usando el campo 'rol')
-        sourceEl.textContent = "Actualizando rol...";
-        await db.collection('barberos').doc(userUid).set({
-          rol: rolNormalizado,
-          email: emailTarget, // Asegurar que tenga el email para futuras búsquedas
-          nombre: nombre,
-          local: 'elegance',
-          activo: true
-        }, { merge: true });
-
-        alert(`✅ Rol "${rolNormalizado}" asignado correctamente a ${nombre}.`);
-        sourceEl.textContent = `Rol ${rolNormalizado} asignado.`;
-
-        loadEleganceStats();
-
-      } catch (err) {
-        console.error('[Admin] Error en assignRoleFlow:', err);
-        alert("Error: " + err.message);
-      }
-    }
-
-    // ── Barberos List Detail ──────────────────────────────────────────────────
-    let barberosListLoaded = false;
-    let barberosListVisible = false;
-
-    async function toggleBarberosList() {
-      const container = document.getElementById('barberos-list-container');
-      barberosListVisible = !barberosListVisible;
-      
-      if (barberosListVisible) {
+      if (_profListVisible) {
         container.classList.remove('hidden');
-        if (!barberosListLoaded) {
-          await loadBarberosDetalle();
-          barberosListLoaded = true;
+        if (!_profListLoaded) {
+          await loadProfDetalle();
+          _profListLoaded = true;
         }
       } else {
         container.classList.add('hidden');
       }
     }
 
-    async function loadBarberosDetalle() {
-      const contentEl = document.getElementById('barberos-list-content');
-      contentEl.innerHTML = '<div class="skeleton" style="width:100%; height:70px; border-radius:0.75rem;"></div>';
+    async function loadProfDetalle() {
+      if (!_activeTenant) return;
+      const cfg = TENANTS[_activeTenant];
+      const contentEl = document.getElementById('prof-list-content');
+      document.getElementById('prof-list-title').textContent = cfg.profLabel;
+      contentEl.innerHTML = '<div class="skeleton" style="width:100%; height:60px; border-radius:0.75rem;"></div>';
 
       try {
-        let snap = await db.collection('barberos')
-          .where('local', '==', 'elegance')
-          .get();
+        let snap = await cfg.profCol().get();
 
         if (snap.empty) {
-          snap = await db.collection('barberos').where('activo', '==', true).get();
-        }
-
-        if (snap.empty) {
-          contentEl.innerHTML = '<p style="font-size:0.875rem; color:#64748b;">No se encontraron barberos.</p>';
+          contentEl.innerHTML = '<p style="font-size:0.875rem; color:#64748b;">Sin registros encontrados.</p>';
           return;
         }
 
         let html = '';
         for (const doc of snap.docs) {
-          const data = doc.data();
-          const nombre = data.nombre || data.email || 'Sin nombre';
-          const email = data.email || 'Sin correo';
-          const rol = data.rol || 'barbero';
-          
-          let telefono = data.telefono || data.phone || 'Sin teléfono';
-          
-          if (telefono === 'Sin teléfono' && email !== 'Sin correo') {
-            try {
-              const userSnap = await FDB.usersCol().where('email', '==', email.toLowerCase()).limit(1).get();
-              if (!userSnap.empty) {
-                const userData = userSnap.docs[0].data();
-                telefono = userData.telefono || userData.phone || 'Sin teléfono';
-              }
-            } catch(e) {}
-          }
-
-          // Fetch appointments
-          let totalCitas = 0;
-          try {
-            const citasLegacySnap = await db.collection('citas').where('barbero', '==', nombre).get();
-            totalCitas += citasLegacySnap.size;
-          } catch(e) {}
-
-          try {
-            const bookingsSnap = await db.collection('tenants').doc('elegance').collection('bookings').where('professionalId', '==', doc.id).get();
-            totalCitas += bookingsSnap.size;
-          } catch(e) {}
-
-          const roleColor = rol === 'admin' ? '#f43f5e' : (rol === 'jefe' ? '#f59e0b' : '#3b82f6');
-          const statusOpacity = data.activo ? '1' : '0.5';
+          const d = doc.data();
+          const nombre   = d.nombre || d.email || 'Sin nombre';
+          const email    = d.email  || '—';
+          const rol      = d.rol    || (_activeTenant === 'gitana' ? 'profesional' : 'barbero');
+          const activo   = d.activo !== false;
+          const rolColor = rol === 'admin' ? '#f43f5e' : rol === 'jefe' ? '#f59e0b' : cfg.color;
 
           html += `
-            <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 0.75rem; padding: 1rem; opacity: ${statusOpacity};">
-              <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 0.5rem;">
-                <div>
-                  <h5 style="margin: 0; font-size: 1rem; font-weight: 600; color: #fff;">${nombre} ${!data.activo ? '<span style="color:#f87171; font-size:0.7rem;">(Inactivo)</span>' : ''}</h5>
-                  <p style="margin: 0; font-size: 0.75rem; color: #94a3b8;">${email} • ${telefono}</p>
+            <div style="
+              background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06);
+              border-radius:0.75rem; padding:0.875rem; opacity:${activo ? 1 : 0.5};
+              display:flex; align-items:center; gap:0.875rem;
+            ">
+              <div style="
+                width:36px; height:36px; border-radius:50%; flex-shrink:0;
+                background:rgba(${cfg.colorRgb},0.1); border:1px solid rgba(${cfg.colorRgb},0.2);
+                display:flex; align-items:center; justify-content:center;
+              ">
+                <i class="ph-fill ph-user" style="color:${cfg.color}; font-size:1rem;"></i>
+              </div>
+              <div style="flex:1; min-width:0;">
+                <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap;">
+                  <span style="font-size:0.875rem; font-weight:600; color:#f1f5f9;">${nombre}</span>
+                  ${!activo ? '<span style="font-size:0.6rem; color:#f87171; font-weight:700;">INACTIVO</span>' : ''}
                 </div>
-                <span style="background: ${roleColor}20; color: ${roleColor}; padding: 0.125rem 0.5rem; border-radius: 999px; font-size: 0.625rem; font-weight: 700; text-transform: uppercase; border: 1px solid ${roleColor}40;">${rol}</span>
+                <p style="font-size:0.725rem; color:#64748b; margin:0.1rem 0 0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${email}</p>
               </div>
-              <div style="display:flex; align-items:center; gap: 0.5rem; font-size: 0.8125rem; color: #cbd5e1; margin-top: 0.75rem;">
-                <i class="ph-fill ph-calendar-check" style="color: #34d399;"></i>
-                <span><b>${totalCitas}</b> citas agendadas históricas</span>
-              </div>
-            </div>
-          `;
+              <span style="
+                padding:0.15rem 0.5rem; border-radius:999px; font-size:0.6rem; font-weight:700;
+                text-transform:uppercase; flex-shrink:0;
+                background:${rolColor}20; border:1px solid ${rolColor}40; color:${rolColor};
+              ">${rol}</span>
+            </div>`;
         }
-
         contentEl.innerHTML = html;
-
       } catch(e) {
         contentEl.innerHTML = `<p style="font-size:0.875rem; color:#f87171;">Error: ${e.message}</p>`;
       }
     }
 
-    // ── Auth check ────────────────────────────────────────────────────────────
-    firebase.auth().onAuthStateChanged(async (user) => {
-      if (user) {
-        // Verificar rol admin (desarrollador)
-        const role = await FDB.getRol(user.email, user.uid);
-        if (role !== 'admin') {
-          console.warn('[Admin] Acceso denegado: Rol insuficiente');
-          document.getElementById('unauthorized-screen').classList.remove('hidden');
-          document.body.style.overflow = 'hidden';
-        } else {
-          console.log('[Admin] Acceso concedido: Desarrollador verificado');
-          document.getElementById('unauthorized-screen').classList.add('hidden');
+    // ── Flujo: Agregar Profesional ────────────────────────────────
+    async function addProfFlow() {
+      if (!_activeTenant) return;
+      const cfg = TENANTS[_activeTenant];
+      const email = window.prompt(`Correo del usuario para agregar como ${cfg.profLabelBtn.toLowerCase().replace('agregar ','')}`);
+      if (!email?.trim()) return;
+
+      const sourceEl = document.getElementById('data-source-label');
+      const prev = sourceEl.textContent;
+      try {
+        sourceEl.textContent = 'Buscando usuario…';
+        const userSnap = await FDB.usersCol().where('email','==',email.trim().toLowerCase()).limit(1).get();
+        if (userSnap.empty) { alert('No se encontró ningún usuario con ese correo.'); sourceEl.textContent = prev; return; }
+
+        const userData = userSnap.docs[0].data();
+        const userUid  = userSnap.docs[0].id;
+        const nombre   = userData.nombre || 'Sin nombre';
+
+        const existing = await cfg.profCol().doc(userUid).get();
+        if (existing.exists && existing.data().activo === true) {
+          alert(`${nombre} ya está registrado y activo en este local.`); sourceEl.textContent = prev; return;
         }
-      } else {
-        // No hay sesión: mostrar bloqueo
-        document.getElementById('unauthorized-screen').classList.remove('hidden');
+
+        if (!confirm(`Usuario: ${nombre}\n¿Agregar a ${cfg.nombre}?`)) { sourceEl.textContent = prev; return; }
+
+        sourceEl.textContent = 'Guardando…';
+        await cfg.profCol().doc(userUid).set({
+          nombre, email: email.trim().toLowerCase(),
+          local: _activeTenant, activo: true,
+          creadoEn: firebase.firestore.FieldValue.serverTimestamp(),
+        }, { merge: true });
+
+        alert(`✅ ${nombre} agregado correctamente.`);
+        _profListLoaded = false;
+        loadStats(_activeTenant);
+      } catch(e) {
+        alert('Error: ' + e.message);
+        sourceEl.textContent = prev;
+      }
+    }
+
+    // ── Flujo: Asignar Rol ────────────────────────────────────────
+    async function assignRoleFlow() {
+      if (!_activeTenant) return;
+      const cfg = TENANTS[_activeTenant];
+      const email = window.prompt('Correo del usuario para asignar un rol:');
+      if (!email?.trim()) return;
+
+      const sourceEl = document.getElementById('data-source-label');
+      const prev = sourceEl.textContent;
+      try {
+        sourceEl.textContent = 'Buscando…';
+        const emailTarget = email.trim().toLowerCase();
+
+        let snap = await cfg.profCol().where('email','==',emailTarget).limit(1).get();
+        let uid = null, nombre = 'Sin nombre', rolActual = 'Sin rol';
+
+        if (!snap.empty) {
+          uid = snap.docs[0].id;
+          nombre = snap.docs[0].data().nombre || nombre;
+          rolActual = snap.docs[0].data().rol || rolActual;
+        } else {
+          const uSnap = await FDB.usersCol().where('email','==',emailTarget).limit(1).get();
+          if (uSnap.empty) { alert('No se encontró ningún registro.'); sourceEl.textContent = prev; return; }
+          uid = uSnap.docs[0].id;
+          nombre = uSnap.docs[0].data().nombre || nombre;
+        }
+
+        const rolesValidos = ['profesional','barbero','admin','jefe'];
+        const nuevoRol = window.prompt(`Usuario: ${nombre}\nRol actual: ${rolActual}\n\nNuevo rol (${rolesValidos.join(', ')}):`, rolActual);
+        if (!nuevoRol) { sourceEl.textContent = prev; return; }
+
+        const rolNorm = nuevoRol.trim().toLowerCase();
+        if (!rolesValidos.includes(rolNorm)) { alert('Rol no válido.'); sourceEl.textContent = prev; return; }
+
+        sourceEl.textContent = 'Actualizando…';
+        await cfg.profCol().doc(uid).set({
+          rol: rolNorm, email: emailTarget, nombre, local: _activeTenant, activo: true,
+        }, { merge: true });
+
+        alert(`✅ Rol "${rolNorm}" asignado a ${nombre}.`);
+        _profListLoaded = false;
+        sourceEl.textContent = `Rol ${rolNorm} asignado.`;
+      } catch(e) {
+        alert('Error: ' + e.message);
+        sourceEl.textContent = prev;
+      }
+    }
+
+    // ── Auth check ────────────────────────────────────────────────
+    firebase.auth().onAuthStateChanged(async (user) => {
+      const screen = document.getElementById('unauthorized-screen');
+      if (!user) {
+        screen.style.display = 'flex';
         document.body.style.overflow = 'hidden';
-        
-        // Opcional: Redirigir a login después de un momento
-        // setTimeout(() => window.location.href = '/gestion-interna/login/', 3000);
+        return;
+      }
+      const role = await FDB.getRol(user.email, user.uid);
+      if (role !== 'admin') {
+        console.warn('[Admin] Acceso denegado:', user.email);
+        screen.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+      } else {
+        screen.style.display = 'none';
+        console.log('[Admin] Acceso concedido:', user.email);
       }
     });
   </script>
-
 </body>
 </html>
