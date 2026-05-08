@@ -280,6 +280,14 @@ const FDB = (() => {
       .sort((a, b) => a.hora.localeCompare(b.hora));
   }
 
+  async function getCitasByCliente(email) {
+    const snap = await tenantCol(COL.CITAS)
+      .where('clienteEmail', '==', email)
+      .limit(50)
+      .get();
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  }
+
   async function getCitasMes(yyyyMM) {
     // yyyyMM = "2026-04"
     const snap = await tenantCol(COL.CITAS)
@@ -915,7 +923,7 @@ const FDB = (() => {
     // Configuración por barbero
     getConfigBarbero, updateConfigBarbero, onConfigBarberoChange,
     // Citas
-    getCitas, getCitasMes, addCita,
+    getCitas, getCitasMes, getCitasByCliente, addCita,
     updateCitaEstado, updateCitaNota, deleteCita,
     onCitasDiaChange,
     // Disponibilidad
