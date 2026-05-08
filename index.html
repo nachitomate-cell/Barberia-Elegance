@@ -1547,35 +1547,37 @@
         const [wYear, wMon, wDay] = currentDateStr.split('-');
         const fechaLegible = `${wDay}/${wMon}/${wYear}`;
         const waMsg = `Hola ${SHOP.nombreCorto}! Acabo de agendar en su web. Soy ${nombre} y voy para un ${selectedServiceObj.nombre}${barberPart} a las ${selectedTimeStr} hrs el ${fechaLegible}. \n¿Todo ok? ${SHOP.waEmoji || '✂️'}`;
-        let numBarbero = SHOP.telefono;
+        let numBarbero = '';
         try {
           const bid = window._selectedBarberId;
           if (bid) {
             const bcfg = await FDB.getConfigBarbero(bid);
-            numBarbero = bcfg.telefonoAdmin || (_fsConfig || {}).telefonoAdmin || DB.getSettings().telefonoAdmin || SHOP.telefono;
+            numBarbero = bcfg.telefonoAdmin || (_fsConfig || {}).telefonoAdmin || DB.getSettings().telefonoAdmin || '';
           } else {
-            numBarbero = (_fsConfig || {}).telefonoAdmin || DB.getSettings().telefonoAdmin || SHOP.telefono;
+            numBarbero = (_fsConfig || {}).telefonoAdmin || DB.getSettings().telefonoAdmin || '';
           }
         } catch(_) {
-          numBarbero = (_fsConfig || {}).telefonoAdmin || DB.getSettings().telefonoAdmin || SHOP.telefono;
+          numBarbero = (_fsConfig || {}).telefonoAdmin || DB.getSettings().telefonoAdmin || '';
         }
         const limpio = String(numBarbero).replace(/\D/g, '');
-        const waLink = `https://wa.me/${limpio}?text=${encodeURIComponent(waMsg)}`;
+        const waLink = limpio ? `https://wa.me/${limpio}?text=${encodeURIComponent(waMsg)}` : null;
         
-        document.getElementById('waBtnLink').href = waLink;
-
-        // Intentar abrir WhatsApp; si el navegador lo bloquea, el botón ya está visible
-        setTimeout(() => {
-          const popup = window.open(waLink, '_blank');
-          if (!popup || popup.closed || typeof popup.closed === 'undefined') {
-            // Popup bloqueado — resaltar el botón para que el usuario lo toque manualmente
-            const btn = document.getElementById('waBtnLink');
-            if (btn) {
-              btn.classList.add('animate-pulse');
-              btn.title = 'Tu navegador bloqueó la apertura automática. Toca aquí para abrir WhatsApp.';
+        const waBtnLink = document.getElementById('waBtnLink');
+        if (waLink) {
+          waBtnLink.href = waLink;
+          waBtnLink.style.display = '';
+          // Intentar abrir WhatsApp; si el navegador lo bloquea, el botón ya está visible
+          setTimeout(() => {
+            const popup = window.open(waLink, '_blank');
+            if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+              waBtnLink.classList.add('animate-pulse');
+              waBtnLink.title = 'Tu navegador bloqueó la apertura automática. Toca aquí para abrir WhatsApp.';
             }
-          }
-        }, 800);
+          }, 800);
+        } else {
+          // Sin número configurado: ocultar botón de WhatsApp
+          waBtnLink.style.display = 'none';
+        }
       }
     }
 

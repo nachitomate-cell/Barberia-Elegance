@@ -69,7 +69,7 @@
           club: 'Club Elegance',
           address: '📍 Ecuador 243 | Viña del Mar',
           scheduleText: '🕒 Lunes-Sáb: 10-20h | Dom: 12-20h. ¡Reserva ya!',
-          phone: '56994269228',
+          phone: '',
           logoUrl: '/logo.jpg',
           pageTitle: 'Agendar Hora | Elegance Barbershop',
           metaDescription: 'Reserva tu hora en Elegance Barbershop. Cortes, barba y mas. Elige tu barbero, servicio y horario en segundos.',
@@ -82,7 +82,7 @@
             logo: '/logo.jpg',
             direccion: '📍 Ecuador 243 | Viña del Mar',
             horario: '🕒 Lunes-Sáb: 10-20h | Dom: 12-20h. ¡Reserva ya!',
-            telefono: '56994269228',
+            telefono: '',
             club: 'Club Elegance',
             barberos: [
               { nombre: 'Nicolas Fabian', foto: '/Fabian.png', disponible: true }

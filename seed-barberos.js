@@ -48,7 +48,7 @@ const SHOP = {
   slogan:   'No es un corte, es elegancia que te mereces',
   direccion: 'Ecuador 243 | Viña del Mar',
   horario:  'Lun-Sáb: 10-20h | Dom: 12-20h',
-  telefono: '56994269228',
+  telefono: '',
   logo:     '/logo.jpg',
   club:     'Club Elegance',
 };
