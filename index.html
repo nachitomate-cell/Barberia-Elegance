@@ -1020,7 +1020,7 @@
           // Usuario logueado: mostrar sello ganado + datos prefilled
           let stampsHtml = '';
           if (typeof db !== 'undefined') {
-            db.collection('users').doc(user.uid).get().then(doc => {
+            FDB.usersCol().doc(user.uid).get().then(doc => {
               const data = doc.exists ? doc.data() : {};
               const sellos = data.sellos || 0;
               const el = document.getElementById('step4StampsCount');

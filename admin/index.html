@@ -578,7 +578,7 @@
         sourceEl.textContent = "Buscando usuario...";
 
         // 1. Buscar en la colección 'users'
-        const userSnap = await db.collection('users')
+        const userSnap = await FDB.usersCol()
           .where('email', '==', email.trim().toLowerCase())
           .limit(1)
           .get();
@@ -659,7 +659,7 @@
         } else {
           // 2. Si no está en barberos, buscar en 'users' para obtener UID y nombre
           sourceEl.textContent = "Buscando en usuarios...";
-          const userSnap = await db.collection('users')
+          const userSnap = await FDB.usersCol()
             .where('email', '==', emailTarget)
             .limit(1)
             .get();
@@ -763,7 +763,7 @@
           
           if (telefono === 'Sin teléfono' && email !== 'Sin correo') {
             try {
-              const userSnap = await db.collection('users').where('email', '==', email.toLowerCase()).limit(1).get();
+              const userSnap = await FDB.usersCol().where('email', '==', email.toLowerCase()).limit(1).get();
               if (!userSnap.empty) {
                 const userData = userSnap.docs[0].data();
                 telefono = userData.telefono || userData.phone || 'Sin teléfono';

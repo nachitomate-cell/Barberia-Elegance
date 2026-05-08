@@ -547,10 +547,45 @@ const FDB = (() => {
   }
 
   /* ──────────────────────────────────────────────────────────────
-     USUARIOS / SELLOS
+     USUARIOS / CLIENTES
+     Toda operación sobre 'users' pasa por tenantCol para
+     mantener clientes separados por local.
      ────────────────────────────────────────────────────────────── */
+  function usersCol() { return tenantCol(COL.USERS); }
+
+  async function getClientes() {
+    const snap = await tenantCol(COL.USERS).get();
+    return snap.docs.map(d => ({ uid: d.id, stamps: 0, ...d.data() }));
+  }
+
+  async function getClienteByEmail(email) {
+    const snap = await tenantCol(COL.USERS).where('email', '==', email.toLowerCase()).limit(1).get();
+    return snap.empty ? null : { uid: snap.docs[0].id, ...snap.docs[0].data() };
+  }
+
+  async function getClienteByNombre(nombre) {
+    const snap = await tenantCol(COL.USERS).where('nombre', '==', nombre).limit(1).get();
+    return snap.empty ? null : { uid: snap.docs[0].id, ...snap.docs[0].data() };
+  }
+
+  function onClienteChange(uid, callback) {
+    return tenantCol(COL.USERS).doc(uid).onSnapshot(snap => {
+      callback(snap.exists ? { uid: snap.id, ...snap.data() } : null);
+    }, err => console.error('[FDB] onClienteChange:', err));
+  }
+
+  async function ensureCliente(uid, data) {
+    const ref  = tenantCol(COL.USERS).doc(uid);
+    const snap = await ref.get();
+    if (!snap.exists) {
+      await ref.set(data);
+    } else if (data.photoURL && snap.data().photoURL !== data.photoURL) {
+      await ref.update({ photoURL: data.photoURL });
+    }
+  }
+
   async function incrementarSellos(uid, nota = 'Sello sumado') {
-    await db.collection(COL.USERS).doc(uid).update({
+    await tenantCol(COL.USERS).doc(uid).update({
       stamps:      firebase.firestore.FieldValue.increment(1),
       ultimoSello: new Date().toISOString(),
       historialSellos: firebase.firestore.FieldValue.arrayUnion({
@@ -560,7 +595,7 @@ const FDB = (() => {
   }
 
   async function modificarSellos(uid, delta, nota = '') {
-    await db.collection(COL.USERS).doc(uid).update({
+    await tenantCol(COL.USERS).doc(uid).update({
       stamps: firebase.firestore.FieldValue.increment(delta),
       historialSellos: firebase.firestore.FieldValue.arrayUnion({
         fecha: new Date().toISOString(),
@@ -572,7 +607,7 @@ const FDB = (() => {
   }
 
   async function canjearSellos(uid, costo, premio) {
-    const ref  = db.collection(COL.USERS).doc(uid);
+    const ref  = tenantCol(COL.USERS).doc(uid);
     const snap = await ref.get();
     if (!snap.exists) throw new Error('Cliente no encontrado.');
     const actual = snap.data().stamps || 0;
@@ -889,6 +924,9 @@ const FDB = (() => {
     addBloqueo, getBloqueosDia, getBloqueosMes, deleteBloqueo, onBloqueosDiaChange,
     // Premios del club
     getPremios, addPremio, updatePremio, deletePremio, onPremiosChange,
+    // Clientes / Usuarios
+    usersCol, getClientes, getClienteByEmail, getClienteByNombre,
+    onClienteChange, ensureCliente,
     // Sellos
     incrementarSellos, modificarSellos, canjearSellos,
     // Barberos (Permisos)

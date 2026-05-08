@@ -2588,8 +2588,8 @@
 
         try {
           let snap = null;
-          if (email) snap = await db.collection('users').where('email', '==', email).limit(1).get();
-          if ((!snap || snap.empty) && nombre) snap = await db.collection('users').where('nombre', '==', nombre).limit(1).get();
+          if (email) snap = await FDB.usersCol().where('email', '==', email).limit(1).get();
+          if ((!snap || snap.empty) && nombre) snap = await FDB.usersCol().where('nombre', '==', nombre).limit(1).get();
 
           if (snap && !snap.empty) {
             const docRef = snap.docs[0];
@@ -3009,7 +3009,7 @@
         // ── 2. Verificar conectividad básica ────────────────────────
         try {
           // Intentar leer UN solo documento para probar permisos
-          await db.collection('users').limit(1).get();
+          await FDB.usersCol().limit(1).get();
         } catch (e) {
           listEl.innerHTML = _errorBox(
             `Error de conexión (${e.code || 'desconocido'})`,
@@ -3021,7 +3021,7 @@
 
         // ── 3. Cargar todos los usuarios ────────────────────────────
         try {
-          const snap = await db.collection('users').get();
+          const snap = await FDB.usersCol().get();
 
           if (snap.empty) {
             listEl.innerHTML = '<div class="p-10 text-center text-gray-500 text-sm"><i class="ph ph-users text-3xl block mb-2 opacity-30"></i>No hay clientes registrados aún.</div>';
@@ -3076,13 +3076,13 @@
         // Check 3: Leer colección users
         try {
           const t0 = Date.now();
-          const s = await db.collection('users').limit(1).get();
+          const s = await FDB.usersCol().limit(1).get();
           checks.push({ ok: true, msg: `Firestore read: OK (${Date.now() - t0}ms) — ${s.size} doc(s) encontrado(s)` });
         } catch (e) { checks.push({ ok: false, msg: `Firestore read: FALLÓ — code=${e.code} msg=${e.message}` }); }
 
         // Check 4: Total de documentos
         try {
-          const s = await db.collection('users').get();
+          const s = await FDB.usersCol().get();
           checks.push({ ok: true, msg: `Total usuarios en Firestore: ${s.size}` });
           if (s.size > 0) {
             const sample = s.docs[0].data();
@@ -3201,7 +3201,7 @@
 
         // onSnapshot: actualiza el panel en tiempo real cada vez que
         // cambie el documento del usuario en Firestore
-        _panelUnsub = db.collection('users').doc(uid).onSnapshot(snap => {
+        _panelUnsub = FDB.usersCol().doc(uid).onSnapshot(snap => {
           if (!snap.exists) return;
           const data = snap.data();
 
@@ -3610,7 +3610,7 @@
 
         // Verificar si ya existe un cliente con ese email
         if (email) {
-          const existing = await db.collection('users').where('email', '==', email).limit(1).get();
+          const existing = await FDB.usersCol().where('email', '==', email).limit(1).get();
           if (!existing.empty) {
             errEl.textContent = 'Ya existe un cliente con ese correo.';
             errEl.classList.remove('hidden');
@@ -3620,7 +3620,7 @@
 
         try {
           // Crear documento con ID automático (no tiene cuenta Auth)
-          await db.collection('users').add({
+          await FDB.usersCol().add({
             nombre,
             email: email || '',
             telefono: telefono || '',
