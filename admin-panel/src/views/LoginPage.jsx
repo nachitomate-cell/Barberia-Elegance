@@ -2,7 +2,11 @@ import { useState } from 'react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import { useTenant } from '../contexts/TenantContext';
-import { Scissors } from 'lucide-react';
+
+const LOGIN_IMAGE = {
+  elegance: '/loginelegance.png',
+  ferraza:  '/loginferraza.png',
+};
 
 export default function LoginPage() {
   const tenant = useTenant();
@@ -11,7 +15,9 @@ export default function LoginPage() {
   const [error,    setError]    = useState('');
   const [loading,  setLoading]  = useState(false);
 
-  const field = 'w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors';
+  const bgImage = LOGIN_IMAGE[tenant.id];
+
+  const field = 'w-full bg-black/40 backdrop-blur-sm border border-white/20 rounded-lg px-4 py-3 text-sm text-white placeholder-white/40 focus:outline-none focus:border-white/50 transition-colors';
 
   const loginEmail = async e => {
     e?.preventDefault();
@@ -27,30 +33,58 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center px-4">
-      <div className="w-full max-w-sm">
+    <div className="min-h-screen relative flex items-center justify-center px-4 overflow-hidden">
 
-        {/* Logo mark */}
-        <div className="flex flex-col items-center mb-8">
-          <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-4">
-            <Scissors size={22} className="text-emerald-400" />
-          </div>
-          <h1 className="text-lg font-bold text-white">Panel Admin</h1>
-          <p className="text-xs text-slate-500 mt-0.5">{tenant.name}</p>
+      {/* Background image */}
+      {bgImage ? (
+        <>
+          <img
+            src={bgImage}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+          {/* Dark overlay */}
+          <div className="absolute inset-0 bg-black/60" />
+        </>
+      ) : (
+        <div className="absolute inset-0 bg-slate-950" />
+      )}
+
+      {/* Content */}
+      <div className="relative z-10 w-full max-w-sm">
+
+        {/* Header */}
+        <div className="flex flex-col items-center mb-8 text-center">
+          <h1 className="text-2xl font-black text-white tracking-tight">{tenant.name}</h1>
+          <p className="text-sm text-white/50 mt-1">Panel de administración</p>
         </div>
 
         {/* Card */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+        <div className="rounded-2xl p-6 border border-white/15" style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(20px)' }}>
           <form onSubmit={loginEmail} className="space-y-3">
-            <input type="email"    className={field} placeholder="Correo electrónico" value={email}    onChange={e => setEmail(e.target.value)}    />
-            <input type="password" className={field} placeholder="Contraseña"         value={password} onChange={e => setPassword(e.target.value)} />
-            {error && <p className="text-xs text-red-400">{error}</p>}
+            <input
+              type="email"
+              className={field}
+              placeholder="Correo electrónico"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              autoComplete="email"
+            />
+            <input
+              type="password"
+              className={field}
+              placeholder="Contraseña"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              autoComplete="current-password"
+            />
+            {error && <p className="text-xs text-red-400 font-medium">{error}</p>}
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-semibold text-sm rounded-lg transition-all flex items-center justify-center gap-2"
+              className="w-full py-3 bg-white hover:bg-white/90 disabled:opacity-50 text-black font-bold text-sm rounded-lg transition-all flex items-center justify-center gap-2 mt-1"
             >
-              {loading && <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+              {loading && <span className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />}
               Ingresar
             </button>
           </form>
