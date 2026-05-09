@@ -537,7 +537,7 @@
     </section>
 
     <!-- ═══════ PESTAÑA: PRODUCTOS ═══════ -->
-    <section id="tabProductos" class="tab-panel hidden px-5 pt-6 animate-[fadeSlideUp_0.45s_cubic-bezier(0.16,1,0.3,1)_forwards]">
+    <section id="tabProductos" class="tab-panel hidden px-5 pt-6 pb-32 animate-[fadeSlideUp_0.45s_cubic-bezier(0.16,1,0.3,1)_forwards]">
       <div class="mb-5">
         <h2 class="text-2xl font-bold text-white tracking-tight">Productos</h2>
         <p class="text-sm text-gray-500 mt-1">Productos disponibles en el local.</p>
@@ -872,6 +872,8 @@ auth.onAuthStateChanged(async user => {
 });
 
 /* ─── Productos tab ──────────────────────────────────────────── */
+let _isProductsEnabled = false;
+
 function _tenantCol(name) {
   const tid = window.CURRENT_TENANT_ID || 'elegance';
   return tid === 'elegance' ? db.collection(name) : db.collection('tenants').doc(tid).collection(name);
@@ -881,6 +883,7 @@ async function initProductosTab() {
   try {
     const snap = await _tenantCol('config').doc('ui').get();
     const activo = snap.exists ? !!snap.data().productosActivos : false;
+    _isProductsEnabled = activo;
     if (!activo) return;
 
     // Show nav button
@@ -902,20 +905,20 @@ async function initProductosTab() {
       empty.classList.add('hidden');
       empty.style.display = '';
       grid.innerHTML = productos.map(p => `
-        <div class="bg-[#111115] border border-white/8 rounded-2xl overflow-hidden">
-          <div class="h-36 bg-[#1a1a1f] flex items-center justify-center overflow-hidden">
+        <div class="bg-[#0d0d10] border border-white/8 rounded-2xl overflow-hidden flex flex-col">
+          <div class="bg-white rounded-t-xl p-3 aspect-square flex items-center justify-center overflow-hidden">
             ${p.imagen
-              ? `<img src="${p.imagen}" alt="${p.nombre}" class="w-full h-full object-cover">`
-              : `<i class="ph ph-shopping-bag text-4xl text-white/10"></i>`}
+              ? `<img src="${p.imagen}" alt="${p.nombre || ''}" class="w-full h-full object-contain">`
+              : `<i class="ph ph-shopping-bag text-4xl text-gray-300"></i>`}
           </div>
-          <div class="p-3">
-            <p class="text-sm font-semibold text-white leading-tight">${p.nombre || ''}</p>
-            ${p.descripcion ? `<p class="text-xs text-gray-500 mt-1 line-clamp-2">${p.descripcion}</p>` : ''}
-            <div class="flex items-center justify-between mt-2">
-              <span class="text-sm font-bold" style="color:var(--gold);">$${Number(p.precio||0).toLocaleString('es-CL')}</span>
-              ${p.stock !== null && p.stock !== undefined
-                ? `<span class="text-[10px] font-semibold px-2 py-0.5 rounded-full border ${Number(p.stock) > 0 ? 'text-gray-400 border-white/10' : 'text-red-400 border-red-500/20'}">${Number(p.stock) > 0 ? `Stock: ${p.stock}` : 'Sin stock'}</span>`
-                : ''}
+          <div class="p-3 flex flex-col flex-1">
+            <p class="text-sm font-bold text-white leading-tight">${p.nombre || ''}</p>
+            ${p.descripcion
+              ? `<p class="text-xs text-gray-400 mt-1.5 leading-snug" style="-webkit-line-clamp:3;display:-webkit-box;-webkit-box-orient:vertical;overflow:hidden;">${p.descripcion}</p>`
+              : ''}
+            <div class="flex items-center justify-between mt-auto pt-3">
+              <span class="text-lg font-bold" style="color:#D4AF37;">$${Number(p.precio||0).toLocaleString('es-CL')}</span>
+              <button class="border border-[#D4AF37]/60 text-[#D4AF37] px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-[#D4AF37] hover:text-black transition-colors active:scale-95">Reservar</button>
             </div>
           </div>
         </div>
@@ -1616,6 +1619,21 @@ async function cargarCitasUsuario(user) {
         </div>`;
     }
     html += `</div>`;
+
+    // ─ Banner cross-selling post-cita ─
+    if (_isProductsEnabled && completadas > 0) {
+      html += `
+        <div class="mt-4 p-4 rounded-xl flex items-center justify-between gap-3"
+             style="background:linear-gradient(to right,#111115,#0a0a0d);border:1px solid rgba(212,175,55,0.28);">
+          <div class="flex-1 min-w-0">
+            <p class="text-[10px] font-black uppercase tracking-widest mb-1" style="color:rgba(212,175,55,0.6);">Para tu próxima cita</p>
+            <p class="text-xs text-gray-300 leading-snug">Mantén tu estilo como el primer día. Descubre nuestras ceras y pomadas.</p>
+          </div>
+          <button onclick="switchTab('productos')"
+            class="shrink-0 px-3 py-2 rounded-lg text-xs font-bold text-black active:scale-95 transition-all"
+            style="background:#D4AF37;">Ver Tienda</button>
+        </div>`;
+    }
 
     contenedor.innerHTML = html;
 

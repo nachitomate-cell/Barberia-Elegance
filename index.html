@@ -704,6 +704,9 @@
         <h2 class="text-2xl font-bold text-neon tracking-tight mb-1">Último paso</h2>
         <p class="text-[13px] text-gray-500 mb-5">Ingresa tus datos y confirma tu reserva.</p>
 
+        <!-- ── Cross-selling productos (inyectado por JS si productosActivos) ── -->
+        <div id="step4XSell" class="hidden mb-5"></div>
+
         <!-- ── Club de Fidelidad (inyectado por JS según auth) ── -->
         <div id="step4AuthContainer" class="mb-6"></div>
 
@@ -866,6 +869,14 @@
     let selectedTimeStr = null;
     let currentDateStr = "";
     let isTransitioning = false;
+    let _fsProducts = [];
+    let _isProductsEnabled = false;
+
+    function _tenantProductos() {
+      const tid = window.CURRENT_TENANT_ID || 'elegance';
+      const fdb = firebase.firestore();
+      return tid === 'elegance' ? fdb.collection('productos') : fdb.collection('tenants').doc(tid).collection('productos');
+    }
 
     function formatDuration(mins) {
       mins = parseInt(mins);
@@ -1215,6 +1226,17 @@
       if (!_fsServices.length) _fsServices = DB.getServices();
       if (!_fsBarberos.length) _fsBarberos = SHOP.barberos;
       window._fsServices = _fsServices;
+
+      // Cargar productos para cross-selling (si está activo)
+      _isProductsEnabled = !!_fsConfig?.productosActivos;
+      if (_isProductsEnabled) {
+        try {
+          const prodSnap = await _tenantProductos().limit(6).get();
+          _fsProducts = prodSnap.docs.map(d => ({ id: d.id, ...d.data() }))
+            .filter(p => (p.stock == null || Number(p.stock) > 0));
+        } catch(e) { _fsProducts = []; }
+      }
+
       await precargarBloqueos();
       renderCategories(_fsServices);
       _renderServicesGrid(_fsServices);
@@ -1592,6 +1614,36 @@
         document.getElementById('summaryPrice').innerText = "$" + selectedServiceObj.precio.toLocaleString('es-CL');
         document.getElementById('summaryDateString').innerText = currentDateStr;
         document.getElementById('summaryTime').innerText = selectedTimeStr;
+
+        // ── Cross-selling carousel ──
+        const xsellEl = document.getElementById('step4XSell');
+        if (xsellEl) {
+          if (_isProductsEnabled && _fsProducts.length > 0) {
+            xsellEl.innerHTML = `
+              <p class="text-sm font-semibold mb-2.5" style="color:#D4AF37;">¿Te falta producto en casa? Añádelo a tu cita</p>
+              <div class="overflow-x-auto no-scrollbar -mx-6 px-6">
+                <div class="flex gap-3 pb-2">
+                  ${_fsProducts.map(p => `
+                    <div class="w-40 flex-shrink-0 bg-[#0d0d10] border border-gray-800 rounded-2xl overflow-hidden">
+                      <div class="bg-white p-2 flex items-center justify-center" style="aspect-ratio:1;">
+                        ${p.imagen
+                          ? `<img src="${p.imagen}" alt="${p.nombre || ''}" class="w-full h-full object-contain">`
+                          : `<i class="ph ph-shopping-bag text-3xl text-gray-300"></i>`}
+                      </div>
+                      <div class="p-2.5">
+                        <p class="text-xs font-semibold text-white truncate">${p.nombre || ''}</p>
+                        <p class="text-xs font-bold mt-0.5" style="color:#D4AF37;">$${Number(p.precio||0).toLocaleString('es-CL')}</p>
+                        <button class="mt-2 w-full py-1.5 rounded-lg text-xs font-bold border border-[#D4AF37]/50 text-[#D4AF37] hover:bg-[#D4AF37] hover:text-black transition-colors active:scale-95">+ Añadir</button>
+                      </div>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>`;
+            xsellEl.classList.remove('hidden');
+          } else {
+            xsellEl.classList.add('hidden');
+          }
+        }
 
         // ── PREFILL DATOS AUTH O MOSTRAR BANNER ──
         const user = firebase.auth().currentUser;
