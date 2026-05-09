@@ -735,16 +735,33 @@
         window.INITIAL_TAB = 'tab-citas';
       }
 
+      const KNOWN_TENANTS = ['elegance', 'ferraza', 'gitana'];
+      const DOMAIN_MAP = {
+        'barberiaelegance.synaptechspa.cl': 'elegance',
+        'barberiaferraza.synaptechspa.cl':  'ferraza',
+        'gitananails.synaptechspa.cl':      'gitana',
+      };
+
       let tenant = null;
-      if (path.includes('/gestion-interna/elegance') || urlParams.get('local') === 'elegance') {
-        tenant = 'elegance';
+      // 1. Por ruta: /gestion-interna/{tenantId}
+      for (const t of KNOWN_TENANTS) {
+        if (path.includes('/gestion-interna/' + t)) { tenant = t; break; }
+      }
+      // 2. Por query param ?local=
+      if (!tenant) {
+        const qLocal = urlParams.get('local');
+        if (KNOWN_TENANTS.includes(qLocal)) tenant = qLocal;
+      }
+      // 3. Por dominio
+      if (!tenant) {
+        tenant = DOMAIN_MAP[window.location.hostname.toLowerCase()] || null;
       }
 
       if (tenant) {
         window.CURRENT_TENANT = tenant;
         console.log('[Tenant] Identificado como:', tenant);
 
-        // Limpiar URL si entramos por parámetro
+        // Normalizar URL a /gestion-interna/{tenant} si venía por ?local=
         if (urlParams.has('local')) {
           window.history.replaceState({}, '', '/gestion-interna/' + tenant);
         }

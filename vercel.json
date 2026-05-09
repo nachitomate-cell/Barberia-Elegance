@@ -102,6 +102,14 @@
       "destination": "/gestion-interna/index.html"
     },
     {
+      "source": "/gestion-interna/ferraza",
+      "destination": "/gestion-interna/index.html"
+    },
+    {
+      "source": "/gestion-interna/gitana",
+      "destination": "/gestion-interna/index.html"
+    },
+    {
       "source": "/gestion-interna/seed-barberos-tool",
       "destination": "/gestion-interna/seed-barberos-tool.html"
     }
