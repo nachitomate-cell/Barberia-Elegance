@@ -42,6 +42,14 @@
   ],
   "rewrites": [
     {
+      "source": "/panel",
+      "destination": "/panel/index.html"
+    },
+    {
+      "source": "/panel/:path*",
+      "destination": "/panel/index.html"
+    },
+    {
       "source": "/servicios",
       "destination": "/index.html"
     },
