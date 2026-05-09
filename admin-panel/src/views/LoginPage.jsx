@@ -1,5 +1,10 @@
 import { useState } from 'react';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import {
+  signInWithEmailAndPassword,
+  setPersistence,
+  browserLocalPersistence,
+  browserSessionPersistence,
+} from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import { useTenant } from '../contexts/TenantContext';
 
@@ -10,10 +15,11 @@ const LOGIN_IMAGE = {
 
 export default function LoginPage() {
   const tenant = useTenant();
-  const [email,    setEmail]    = useState('');
-  const [password, setPassword] = useState('');
-  const [error,    setError]    = useState('');
-  const [loading,  setLoading]  = useState(false);
+  const [email,      setEmail]      = useState('');
+  const [password,   setPassword]   = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
+  const [error,      setError]      = useState('');
+  const [loading,    setLoading]    = useState(false);
 
   const bgImage = LOGIN_IMAGE[tenant.id];
 
@@ -24,6 +30,7 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
+      await setPersistence(auth, rememberMe ? browserLocalPersistence : browserSessionPersistence);
       await signInWithEmailAndPassword(auth, email, password);
     } catch (err) {
       setError(err.message);
@@ -78,6 +85,19 @@ export default function LoginPage() {
               onChange={e => setPassword(e.target.value)}
               autoComplete="current-password"
             />
+            <div className="flex items-center mt-4 mb-1">
+              <input
+                type="checkbox"
+                id="rememberMe"
+                checked={rememberMe}
+                onChange={e => setRememberMe(e.target.checked)}
+                className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-gray-900"
+              />
+              <label htmlFor="rememberMe" className="ml-2 text-sm text-gray-400 select-none cursor-pointer">
+                Mantener sesión iniciada
+              </label>
+            </div>
+
             {error && <p className="text-xs text-red-400 font-medium">{error}</p>}
             <button
               type="submit"
