@@ -2,11 +2,13 @@ import { useState } from 'react';
 import { Menu } from 'lucide-react';
 import Sidebar    from './Sidebar';
 import PWABanner  from './PWABanner';
-import { useChatNotifications } from '../../hooks/useChatNotifications';
+import { useChatNotifications }       from '../../hooks/useChatNotifications';
+import { useAppointmentNotifications } from '../../hooks/useAppointmentNotifications';
 
 export default function AdminLayout({ children }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const unreadChats = useChatNotifications();
+  useAppointmentNotifications();
 
   return (
     <div className="flex h-screen bg-slate-950 overflow-hidden">
