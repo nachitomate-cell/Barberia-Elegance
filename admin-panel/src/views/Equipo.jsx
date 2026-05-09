@@ -1,6 +1,10 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, Edit2, Clock, Trash2, PowerOff, User, ShieldCheck, MessageCircle, Upload } from 'lucide-react';
+import {
+  Calendar, Edit2, Trash2, PowerOff, User, ShieldCheck, MessageCircle,
+  Upload, ChevronDown, Plus, X, Phone, Mail, Percent, Scissors,
+  CalendarOff, Clock, Check,
+} from 'lucide-react';
 import { updateDoc, doc } from 'firebase/firestore';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../lib/firebase';
@@ -11,100 +15,182 @@ import Badge        from '../components/ui/Badge';
 import DropdownMenu from '../components/ui/DropdownMenu';
 import SlideOver    from '../components/ui/SlideOver';
 
+/* ─── Constants ───────────────────────────────────────────── */
 const SUPPORT_EMAIL = 'ignaciiio.mate@gmail.com';
 
+const DIAS_LABELS = { '1':'Lunes','2':'Martes','3':'Miércoles','4':'Jueves','5':'Viernes','6':'Sábado','0':'Domingo' };
+const DIAS_ORDER  = ['1','2','3','4','5','6','0'];
+
+const TIME_OPTIONS = Array.from({ length: 24 }, (_, h) =>
+  ['00','30'].map(m => `${String(h).padStart(2,'0')}:${m}`)
+).flat();
+
+const DEFAULT_DIA = activo => ({ activo, inicio: '09:00', fin: '20:00', descansos: [] });
+const DEFAULT_HORARIO = () => ({
+  '0': DEFAULT_DIA(false),
+  '1': DEFAULT_DIA(true),
+  '2': DEFAULT_DIA(true),
+  '3': DEFAULT_DIA(true),
+  '4': DEFAULT_DIA(true),
+  '5': DEFAULT_DIA(true),
+  '6': { activo: true, inicio: '09:00', fin: '14:00', descansos: [] },
+});
+
+const BARBER_EMPTY = {
+  nombre:'', especialidad:'', foto:'', email:'', whatsapp:'',
+  comision: 0,
+  serviciosIds: [],
+  horario: DEFAULT_HORARIO(),
+  ausencias: [],
+};
+
+/* ─── Helpers ────────────────────────────────────────────── */
 function buildWaUrl(tenantName) {
   const msg = `Hola, te escribo desde la agenda (${tenantName}), necesito ayuda con la agenda/panel administrativo`;
   return `https://wa.me/56983568212?text=${encodeURIComponent(msg)}`;
 }
 
-const DIAS_SEMANA = [
-  { v: 1, l: 'Lun' }, { v: 2, l: 'Mar' }, { v: 3, l: 'Mié' },
-  { v: 4, l: 'Jue' }, { v: 5, l: 'Vie' }, { v: 6, l: 'Sáb' }, { v: 0, l: 'Dom' },
-];
+function initHorario(b) {
+  const base = DEFAULT_HORARIO();
+  if (b.horario) {
+    DIAS_ORDER.forEach(d => {
+      if (b.horario[d]) base[d] = { ...base[d], ...b.horario[d], descansos: b.horario[d].descansos || [] };
+    });
+  }
+  return base;
+}
 
-const TIME_OPTIONS = Array.from({ length: 24 }, (_, h) =>
-  ['00', '30'].map(m => `${String(h).padStart(2,'0')}:${m}`)
-).flat();
+/* ─── Section accordion ──────────────────────────────────── */
+function Section({ title, Icon, children, defaultOpen = false }) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="border border-slate-800 rounded-xl overflow-hidden">
+      <button type="button" onClick={() => setOpen(v => !v)}
+        className="flex items-center gap-2 w-full px-4 py-3 bg-slate-800/40 hover:bg-slate-800/60 transition-colors text-left">
+        {Icon && <Icon size={14} className="text-slate-400 shrink-0" />}
+        <span className="flex-1 text-sm font-semibold text-white">{title}</span>
+        <ChevronDown size={14} className={`text-slate-500 transition-transform ${open ? 'rotate-180' : ''}`} />
+      </button>
+      {open && <div className="px-4 pb-4 pt-3 space-y-3 border-t border-slate-800">{children}</div>}
+    </div>
+  );
+}
 
-const BARBER_EMPTY = {
-  nombre: '', especialidad: '', foto: '',
-  serviciosIds: [],
-  horarioInicio: '09:00', horarioFin: '20:00',
-  diasLaborales: [1,2,3,4,5,6],
-};
+/* ─── DayRow ─────────────────────────────────────────────── */
+function DayRow({ diaKey, config, onChange }) {
+  const addDescanso = () => onChange({ ...config, descansos: [...config.descansos, { inicio:'13:00', fin:'14:00' }] });
+  const rmDescanso  = i  => onChange({ ...config, descansos: config.descansos.filter((_,x) => x !== i) });
+  const upDescanso  = (i, k, v) => onChange({
+    ...config, descansos: config.descansos.map((d, x) => x === i ? { ...d, [k]: v } : d),
+  });
 
+  const sel = 'bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-xs text-white focus:outline-none focus:border-emerald-500';
+
+  return (
+    <div className={`rounded-lg border overflow-hidden ${config.activo ? 'border-slate-700' : 'border-slate-800/60'}`}>
+      {/* Day toggle + hour range */}
+      <div className="flex items-center gap-2.5 px-3 py-2">
+        <button type="button" onClick={() => onChange({ ...config, activo: !config.activo })}
+          className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-all ${
+            config.activo ? 'bg-emerald-500 border-emerald-500' : 'border-slate-600'}`}>
+          {config.activo && <Check size={10} className="text-white" strokeWidth={3} />}
+        </button>
+        <span className={`text-xs font-semibold w-20 shrink-0 ${config.activo ? 'text-white' : 'text-slate-600'}`}>
+          {DIAS_LABELS[diaKey]}
+        </span>
+        {config.activo ? (
+          <div className="flex items-center gap-1 flex-1">
+            <select value={config.inicio} onChange={e => onChange({...config, inicio: e.target.value})} className={sel}>
+              {TIME_OPTIONS.map(t => <option key={t}>{t}</option>)}
+            </select>
+            <span className="text-slate-600 text-xs">–</span>
+            <select value={config.fin} onChange={e => onChange({...config, fin: e.target.value})} className={sel}>
+              {TIME_OPTIONS.map(t => <option key={t}>{t}</option>)}
+            </select>
+          </div>
+        ) : (
+          <span className="text-xs text-slate-700 italic">Día libre</span>
+        )}
+      </div>
+
+      {/* Breaks */}
+      {config.activo && (
+        <div className="px-3 pb-2.5 space-y-1.5 border-t border-slate-800/60 pt-2">
+          {config.descansos.map((d, i) => (
+            <div key={i} className="flex items-center gap-1.5">
+              <span className="text-[10px] text-slate-500 w-14 shrink-0">Descanso</span>
+              <select value={d.inicio} onChange={e => upDescanso(i,'inicio',e.target.value)} className={sel}>
+                {TIME_OPTIONS.map(t => <option key={t}>{t}</option>)}
+              </select>
+              <span className="text-slate-600 text-xs">–</span>
+              <select value={d.fin} onChange={e => upDescanso(i,'fin',e.target.value)} className={sel}>
+                {TIME_OPTIONS.map(t => <option key={t}>{t}</option>)}
+              </select>
+              <button type="button" onClick={() => rmDescanso(i)} className="text-red-400/50 hover:text-red-400 transition-colors ml-0.5">
+                <X size={12} />
+              </button>
+            </div>
+          ))}
+          <button type="button" onClick={addDescanso}
+            className="flex items-center gap-1 text-[10px] text-slate-500 hover:text-emerald-400 transition-colors">
+            <Plus size={10} /> Añadir descanso
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── BarberCard ─────────────────────────────────────────── */
 function BarberCard({ barber, onEdit, waUrl, onVerAgenda }) {
-  const isActive       = barber.disponible !== false;
-  const isStrictAdmin  = barber.rol === 'admin';
-  const isAdmin        = barber.rol === 'admin' || barber.rol === 'jefe';
-  const isSupportAdmin = (barber.email || '').toLowerCase().trim() === SUPPORT_EMAIL;
-  const colPath        = tenantCol('barberos').path;
+  const isActive      = barber.disponible !== false;
+  const isStrictAdmin = barber.rol === 'admin';
+  const isAdmin       = barber.rol === 'admin' || barber.rol === 'jefe';
+  const isSupportAdmin= (barber.email || '').toLowerCase().trim() === SUPPORT_EMAIL;
+  const colPath       = tenantCol('barberos').path;
 
-  const toggleStatus = () =>
-    updateDoc(doc(db, `${colPath}/${barber.id}`), { disponible: !isActive });
-
+  const toggleStatus = () => updateDoc(doc(db,`${colPath}/${barber.id}`),{ disponible:!isActive });
   const handleDelete = async () => {
     if (!confirm(`¿Eliminar a ${barber.nombre}?`)) return;
     const { deleteDoc } = await import('firebase/firestore');
-    await deleteDoc(doc(db, `${colPath}/${barber.id}`));
+    await deleteDoc(doc(db,`${colPath}/${barber.id}`));
   };
 
   const menuItems = [
-    { label: 'Editar datos',       Icon: Edit2,    onClick: () => onEdit(barber) },
-    { label: 'Configurar horario', Icon: Clock,    onClick: () => onEdit(barber) },
+    { label:'Editar datos',      Icon:Edit2,    onClick:() => onEdit(barber) },
+    { label:'Configurar horario',Icon:Clock,    onClick:() => onEdit(barber) },
     'separator',
-    { label: isActive ? 'Desactivar' : 'Activar', Icon: PowerOff, onClick: toggleStatus },
-    { label: 'Eliminar',           Icon: Trash2,   onClick: handleDelete, danger: true },
+    { label: isActive?'Desactivar':'Activar', Icon:PowerOff, onClick:toggleStatus },
+    { label:'Eliminar', Icon:Trash2, onClick:handleDelete, danger:true },
   ];
 
   return (
-    <div className="relative bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-col items-center gap-3 hover:border-slate-700 transition-all group">
-
-      {!isStrictAdmin && (
-        <div className="absolute top-3 right-3">
-          <DropdownMenu items={menuItems} />
-        </div>
-      )}
-
-      {isStrictAdmin && (
-        <div className="absolute top-3 right-3 text-emerald-500/60" title="Administrador">
-          <ShieldCheck size={16} />
-        </div>
-      )}
+    <div className="relative bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-col items-center gap-3 hover:border-slate-700 transition-all">
+      {!isStrictAdmin && <div className="absolute top-3 right-3"><DropdownMenu items={menuItems} /></div>}
+      {isStrictAdmin  && <div className="absolute top-3 right-3 text-emerald-500/60"><ShieldCheck size={16} /></div>}
 
       <div className="w-20 h-20 rounded-full overflow-hidden bg-slate-800 border border-slate-700 shrink-0">
         {barber.foto
           ? <img src={barber.foto} alt={barber.nombre} className="w-full h-full object-cover" />
-          : <div className="w-full h-full flex items-center justify-center"><User size={32} className="text-slate-600" /></div>
-        }
+          : <div className="w-full h-full flex items-center justify-center"><User size={32} className="text-slate-600" /></div>}
       </div>
 
       <div className="text-center">
         <p className="font-semibold text-white text-sm">{barber.nombre}</p>
-        {isAdmin && (
-          <p className="text-xs text-emerald-500/70 font-semibold mt-0.5 uppercase tracking-wide">
-            {barber.rol === 'jefe' ? 'Jefe' : 'Admin'}
-          </p>
-        )}
-        {!isAdmin && barber.especialidad && (
-          <p className="text-xs text-slate-500 mt-0.5">{barber.especialidad}</p>
-        )}
-        <div className="mt-2">
-          <Badge variant={isActive ? 'active' : 'inactive'}>
-            {isActive ? 'Activo' : 'Inactivo'}
-          </Badge>
-        </div>
+        {isAdmin && <p className="text-xs text-emerald-500/70 font-semibold mt-0.5 uppercase tracking-wide">{barber.rol==='jefe'?'Jefe':'Admin'}</p>}
+        {!isAdmin && barber.especialidad && <p className="text-xs text-slate-500 mt-0.5">{barber.especialidad}</p>}
+        {barber.comision > 0 && <p className="text-xs text-slate-600 mt-0.5">{barber.comision}% comisión</p>}
+        <div className="mt-2"><Badge variant={isActive?'active':'inactive'}>{isActive?'Activo':'Inactivo'}</Badge></div>
       </div>
 
       {isSupportAdmin ? (
         <a href={waUrl} target="_blank" rel="noopener noreferrer"
-          className="mt-1 flex items-center gap-1.5 w-full justify-center px-4 py-2 bg-green-600/10 hover:bg-green-600/20 text-green-400 text-xs font-semibold rounded-lg transition-all border border-green-600/30">
+          className="mt-1 flex items-center gap-1.5 w-full justify-center px-4 py-2 bg-green-600/10 hover:bg-green-600/20 text-green-400 text-xs font-semibold rounded-lg border border-green-600/30 transition-all">
           <MessageCircle size={13} /> Soporte vía WhatsApp
         </a>
       ) : (
         <button onClick={onVerAgenda}
-          className="mt-1 flex items-center gap-1.5 w-full justify-center px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold rounded-lg transition-all border border-slate-700">
+          className="mt-1 flex items-center gap-1.5 w-full justify-center px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold rounded-lg border border-slate-700 transition-all">
           <Calendar size={13} /> Ver Agenda
         </button>
       )}
@@ -112,6 +198,7 @@ function BarberCard({ barber, onEdit, waUrl, onVerAgenda }) {
   );
 }
 
+/* ─── Main component ─────────────────────────────────────── */
 export default function Equipo() {
   const navigate = useNavigate();
   const tenant   = useTenant();
@@ -119,7 +206,6 @@ export default function Equipo() {
 
   const { data: rawBarberos, loading } = useCollection('barberos');
   const { data: servicios }            = useCollection('servicios');
-
   const barberos = rawBarberos.filter(b => !b._mainDocId);
 
   const [slide,     setSlide]     = useState(false);
@@ -130,21 +216,26 @@ export default function Equipo() {
   const [saving,    setSaving]    = useState(false);
   const fileRef = useRef(null);
 
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
   const openEdit = b => {
     setEditing(b);
     setPreview(b.foto || '');
     setForm({
-      nombre:        b.nombre        || '',
-      especialidad:  b.especialidad  || '',
-      foto:          b.foto          || '',
-      serviciosIds:  b.serviciosIds  || [],
-      horarioInicio: b.horarioInicio || '09:00',
-      horarioFin:    b.horarioFin    || '20:00',
-      diasLaborales: b.diasLaborales || [1,2,3,4,5,6],
+      nombre:       b.nombre       || '',
+      especialidad: b.especialidad || '',
+      foto:         b.foto         || '',
+      email:        b.email        || '',
+      whatsapp:     b.whatsapp     || '',
+      comision:     b.comision     ?? 0,
+      serviciosIds: b.serviciosIds || [],
+      horario:      initHorario(b),
+      ausencias:    b.ausencias    || [],
     });
     setSlide(true);
   };
 
+  /* ── Photo upload ── */
   const handleFileChange = async e => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -157,29 +248,38 @@ export default function Equipo() {
         : `tenants/${tid}/barberos/${Date.now()}_${file.name}`;
       const snap = await uploadBytes(storageRef(storage, path), file);
       const url  = await getDownloadURL(snap.ref);
-      setForm(f => ({ ...f, foto: url }));
-      setPreview(url);
+      set('foto', url); setPreview(url);
     } finally { setUploading(false); }
   };
 
+  /* ── Save ── */
   const handleSave = async () => {
     if (!editing || saving) return;
     setSaving(true);
     try {
-      const colPath = tenantCol('barberos').path;
-      await updateDoc(doc(db, `${colPath}/${editing.id}`), form);
+      await updateDoc(doc(db, `${tenantCol('barberos').path}/${editing.id}`), form);
       setSlide(false);
     } finally { setSaving(false); }
   };
 
+  /* ── Servicios toggle ── */
   const toggleServicio = id =>
-    setForm(f => ({
-      ...f,
-      serviciosIds: f.serviciosIds.includes(id)
-        ? f.serviciosIds.filter(s => s !== id)
-        : [...f.serviciosIds, id],
-    }));
+    set('serviciosIds', form.serviciosIds.includes(id)
+      ? form.serviciosIds.filter(s => s !== id)
+      : [...form.serviciosIds, id]);
 
+  /* ── Ausencias ── */
+  const addAusencia = () => set('ausencias', [...form.ausencias, {
+    id: Date.now().toString(36),
+    fechaInicio: new Date().toISOString().slice(0,10),
+    fechaFin:    new Date().toISOString().slice(0,10),
+    motivo: '',
+  }]);
+  const rmAusencia  = id => set('ausencias', form.ausencias.filter(a => a.id !== id));
+  const upAusencia  = (id, k, v) =>
+    set('ausencias', form.ausencias.map(a => a.id === id ? { ...a, [k]: v } : a));
+
+  /* ── Shared styles ── */
   const field = 'w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors';
   const lbl   = 'block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5';
 
@@ -203,106 +303,100 @@ export default function Equipo() {
         </div>
       )}
 
-      <SlideOver
-        isOpen={slide}
-        onClose={() => setSlide(false)}
-        title="Editar barbero"
+      {/* ── SlideOver ── */}
+      <SlideOver isOpen={slide} onClose={() => setSlide(false)} title="Editar barbero" maxWidth="max-w-lg"
         footer={
           <div className="flex gap-3 justify-end">
             <button onClick={() => setSlide(false)} className="px-4 py-2 text-sm text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-all">Cancelar</button>
             <button onClick={handleSave} disabled={saving || uploading}
               className="flex items-center gap-2 px-5 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-sm font-semibold rounded-lg transition-all">
               {saving && <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-              Guardar
+              Guardar cambios
             </button>
           </div>
         }
       >
-        <div className="space-y-4">
+        <div className="space-y-3">
 
-          {/* Foto de perfil */}
-          <div>
-            <label className={lbl}>Foto de perfil</label>
-            <div className="flex items-center gap-4">
+          {/* ── Perfil ── */}
+          <Section title="Datos del perfil" Icon={User} defaultOpen>
+            {/* Avatar */}
+            <div className="flex items-center gap-4 mb-1">
               <div className="w-16 h-16 rounded-full overflow-hidden bg-slate-800 border border-slate-700 shrink-0 flex items-center justify-center">
                 {preview
-                  ? <img src={preview} alt="preview" className="w-full h-full object-cover" />
-                  : <User size={24} className="text-slate-600" />
-                }
+                  ? <img src={preview} alt="" className="w-full h-full object-cover" />
+                  : <User size={24} className="text-slate-600" />}
               </div>
-              <div className="flex-1 space-y-2">
+              <div className="flex-1 space-y-1.5">
                 <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs font-medium rounded-lg transition-colors disabled:opacity-50">
-                  {uploading
-                    ? <span className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
-                    : <Upload size={12} />}
+                  {uploading ? <span className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"/> : <Upload size={12} />}
                   {uploading ? 'Subiendo...' : 'Subir foto'}
                 </button>
                 <input className={`${field} text-xs`} placeholder="https://..." value={form.foto}
-                  onChange={e => { setForm(f => ({ ...f, foto: e.target.value })); setPreview(e.target.value); }} />
+                  onChange={e => { set('foto', e.target.value); setPreview(e.target.value); }} />
                 <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
               </div>
             </div>
-          </div>
 
-          <div>
-            <label className={lbl}>Nombre</label>
-            <input className={field} placeholder="Nicolás Fabián" value={form.nombre}
-              onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} />
-          </div>
-          <div>
-            <label className={lbl}>Especialidad</label>
-            <input className={field} placeholder="Cortes y barba clásica" value={form.especialidad}
-              onChange={e => setForm(f => ({ ...f, especialidad: e.target.value }))} />
-          </div>
-
-          {/* Horario */}
-          <div>
-            <label className={lbl}>Horario de trabajo</label>
+            <div>
+              <label className={lbl}>Nombre *</label>
+              <input className={field} placeholder="Nicolás Fabián" value={form.nombre}
+                onChange={e => set('nombre', e.target.value)} />
+            </div>
+            <div>
+              <label className={lbl}>Especialidad</label>
+              <input className={field} placeholder="Cortes y barba clásica" value={form.especialidad}
+                onChange={e => set('especialidad', e.target.value)} />
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <p className="text-[10px] text-slate-500 mb-1">Inicio</p>
-                <select className={field} value={form.horarioInicio} onChange={e => setForm(f => ({ ...f, horarioInicio: e.target.value }))}>
-                  {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
+                <label className={lbl}><Mail size={10} className="inline mr-1" />Email</label>
+                <input className={field} type="email" placeholder="correo@ejemplo.com" value={form.email}
+                  onChange={e => set('email', e.target.value)} />
               </div>
               <div>
-                <p className="text-[10px] text-slate-500 mb-1">Fin</p>
-                <select className={field} value={form.horarioFin} onChange={e => setForm(f => ({ ...f, horarioFin: e.target.value }))}>
-                  {TIME_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
-                </select>
+                <label className={lbl}><Phone size={10} className="inline mr-1" />WhatsApp</label>
+                <input className={field} placeholder="+56 9..." value={form.whatsapp}
+                  onChange={e => set('whatsapp', e.target.value)} />
               </div>
             </div>
-          </div>
+          </Section>
 
-          {/* Días laborales */}
-          <div>
-            <label className={lbl}>Días de trabajo</label>
-            <div className="flex flex-wrap gap-1.5">
-              {DIAS_SEMANA.map(({ v, l }) => {
-                const on = form.diasLaborales.includes(v);
-                return (
-                  <button key={v} type="button"
-                    onClick={() => setForm(f => ({
-                      ...f,
-                      diasLaborales: on ? f.diasLaborales.filter(d => d !== v) : [...f.diasLaborales, v],
-                    }))}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
-                      on ? 'border-emerald-500/60 bg-emerald-500/15 text-emerald-400' : 'border-slate-700 text-slate-500 hover:border-slate-600'
-                    }`}>
-                    {l}
-                  </button>
-                );
-              })}
+          {/* ── Comisión ── */}
+          <Section title="Comisión" Icon={Percent}>
+            <div>
+              <label className={lbl}>Porcentaje de comisión por servicio</label>
+              <div className="relative">
+                <input className={field} type="number" min="0" max="100" step="1"
+                  placeholder="0" value={form.comision}
+                  onChange={e => set('comision', Number(e.target.value))} />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm font-bold">%</span>
+              </div>
+              <p className="text-[10px] text-slate-600 mt-1">Porcentaje que recibe el barbero sobre cada servicio realizado.</p>
             </div>
-          </div>
+          </Section>
 
-          {/* Servicios que realiza */}
-          <div>
-            <label className={lbl}>Servicios que realiza</label>
-            <p className="text-[10px] text-slate-500 mb-2">Si no seleccionas ninguno, aparecerá para todos los servicios.</p>
+          {/* ── Horario semanal ── */}
+          <Section title="Horario semanal" Icon={Clock}>
+            <p className="text-[10px] text-slate-500 -mt-1 mb-2">Configura el horario de cada día. Puedes añadir descansos dentro de cada jornada.</p>
+            <div className="space-y-2">
+              {DIAS_ORDER.map(d => (
+                <DayRow
+                  key={d}
+                  diaKey={d}
+                  config={form.horario[d]}
+                  onChange={cfg => setForm(f => ({ ...f, horario: { ...f.horario, [d]: cfg } }))}
+                />
+              ))}
+            </div>
+          </Section>
+
+          {/* ── Servicios ── */}
+          <Section title="Servicios que realiza" Icon={Scissors}>
+            <p className="text-[10px] text-slate-500 -mt-1 mb-2">Si no seleccionas ninguno, aparecerá disponible para todos los servicios.</p>
             {servicios.length === 0 ? (
-              <p className="text-xs text-slate-600 italic">Sin servicios configurados</p>
+              <p className="text-xs text-slate-600 italic">Sin servicios configurados aún.</p>
             ) : (
               <div className="space-y-1.5 max-h-44 overflow-y-auto pr-1">
                 {servicios.map(s => {
@@ -311,13 +405,51 @@ export default function Equipo() {
                     <label key={s.id} className="flex items-center gap-2.5 px-3 py-2 rounded-lg bg-slate-800 cursor-pointer hover:bg-slate-700 transition-colors">
                       <input type="checkbox" checked={checked} onChange={() => toggleServicio(s.id)}
                         className="w-4 h-4 accent-emerald-500 shrink-0" />
-                      <span className="text-sm text-white">{s.nombre}</span>
+                      <span className="text-sm text-white flex-1">{s.nombre}</span>
+                      {s.duracion && <span className="text-[10px] text-slate-500">{s.duracion}min</span>}
                     </label>
                   );
                 })}
               </div>
             )}
-          </div>
+          </Section>
+
+          {/* ── Ausencias ── */}
+          <Section title="Ausencias y vacaciones" Icon={CalendarOff}>
+            <p className="text-[10px] text-slate-500 -mt-1 mb-2">Fechas en que el barbero no estará disponible (vacaciones, licencias, etc.).</p>
+            <div className="space-y-2">
+              {form.ausencias.map(a => (
+                <div key={a.id} className="border border-slate-700 rounded-lg p-3 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="grid grid-cols-2 gap-2 flex-1">
+                      <div>
+                        <p className="text-[10px] text-slate-500 mb-1">Desde</p>
+                        <input type="date" value={a.fechaInicio}
+                          onChange={e => upAusencia(a.id,'fechaInicio',e.target.value)}
+                          className={`${field} text-xs`} />
+                      </div>
+                      <div>
+                        <p className="text-[10px] text-slate-500 mb-1">Hasta</p>
+                        <input type="date" value={a.fechaFin}
+                          onChange={e => upAusencia(a.id,'fechaFin',e.target.value)}
+                          className={`${field} text-xs`} />
+                      </div>
+                    </div>
+                    <button type="button" onClick={() => rmAusencia(a.id)}
+                      className="self-end mb-0.5 text-red-400/50 hover:text-red-400 transition-colors p-1">
+                      <X size={14} />
+                    </button>
+                  </div>
+                  <input className={`${field} text-xs`} placeholder="Motivo (vacaciones, licencia…)"
+                    value={a.motivo} onChange={e => upAusencia(a.id,'motivo',e.target.value)} />
+                </div>
+              ))}
+              <button type="button" onClick={addAusencia}
+                className="flex items-center gap-1.5 px-3 py-2 w-full justify-center border border-dashed border-slate-700 text-slate-500 hover:text-white hover:border-slate-500 rounded-lg text-xs font-medium transition-all">
+                <Plus size={13} /> Añadir ausencia
+              </button>
+            </div>
+          </Section>
 
         </div>
       </SlideOver>

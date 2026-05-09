@@ -9,8 +9,10 @@ import Clientes    from './views/Clientes';
 import Metricas    from './views/Metricas';
 import Premios     from './views/Premios';
 import Productos   from './views/Productos';
-import Lookbook    from './views/Lookbook';
-import LoginPage   from './views/LoginPage';
+import Lookbook       from './views/Lookbook';
+import Configuracion  from './views/Configuracion';
+import Gastos         from './views/Gastos';
+import LoginPage      from './views/LoginPage';
 
 function ProtectedApp() {
   const { user, role, loading } = useAuth();
@@ -38,6 +40,8 @@ function ProtectedApp() {
         <Route path="productos"       element={<Productos />} />
         <Route path="lookbook"        element={<Lookbook />} />
         <Route path="metricas"        element={<Metricas />} />
+        <Route path="gastos"          element={<Gastos />} />
+        <Route path="configuracion"   element={<Configuracion />} />
         <Route path="*"               element={<Navigate to={defaultRoute} replace />} />
       </Routes>
     </AdminLayout>

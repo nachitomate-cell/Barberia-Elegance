@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 import {
   CalendarDays, Scissors, Users, Star, BarChart3,
   Trophy, ShoppingBag, Images, LogOut, ChevronRight,
-  Sun, Moon, ExternalLink,
+  Sun, Moon, ExternalLink, Settings, TrendingDown,
 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { auth } from '../../lib/firebase';
@@ -11,14 +11,16 @@ import { useTenant } from '../../contexts/TenantContext';
 import { useAuth }   from '../../contexts/AuthContext';
 
 const NAV = [
-  { to: 'agenda',    label: 'Agenda',    Icon: CalendarDays, adminOnly: false },
-  { to: 'servicios', label: 'Servicios', Icon: Scissors                       },
-  { to: 'equipo',    label: 'Equipo',    Icon: Users                          },
-  { to: 'clientes',  label: 'Clientes',  Icon: Star                           },
-  { to: 'premios',   label: 'Premios',   Icon: Trophy                         },
-  { to: 'productos', label: 'Productos', Icon: ShoppingBag                    },
-  { to: 'lookbook',  label: 'Lookbook',  Icon: Images                         },
-  { to: 'metricas',  label: 'Métricas',  Icon: BarChart3                      },
+  { to: 'agenda',        label: 'Agenda',        Icon: CalendarDays               },
+  { to: 'servicios',     label: 'Servicios',     Icon: Scissors                   },
+  { to: 'equipo',        label: 'Equipo',        Icon: Users                      },
+  { to: 'clientes',      label: 'Clientes',      Icon: Star                       },
+  { to: 'premios',       label: 'Premios',       Icon: Trophy                     },
+  { to: 'productos',     label: 'Productos',     Icon: ShoppingBag                },
+  { to: 'lookbook',      label: 'Lookbook',      Icon: Images                     },
+  { to: 'metricas',      label: 'Métricas',      Icon: BarChart3                  },
+  { to: 'gastos',        label: 'Gastos',        Icon: TrendingDown, adminOnly: true },
+  { to: 'configuracion', label: 'Configuración', Icon: Settings,     adminOnly: true },
 ];
 
 function useTheme() {
@@ -38,7 +40,7 @@ export default function Sidebar({ onClose }) {
   const tenant        = useTenant();
   const { role }      = useAuth();
   const isAdminRole   = role === 'admin' || role === 'jefe';
-  const visibleNav    = NAV;
+  const visibleNav    = NAV.filter(item => !item.adminOnly || isAdminRole);
   const [light, setLight] = useTheme();
 
   return (
