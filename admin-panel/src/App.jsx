@@ -14,6 +14,8 @@ import Configuracion    from './views/Configuracion';
 import Gastos           from './views/Gastos';
 import BookingServicios from './views/BookingServicios';
 import BookingBarbero   from './views/BookingBarbero';
+import BookingFecha     from './views/BookingFecha';
+import BookingConfirmar from './views/BookingConfirmar';
 import AgendaBarbero    from './views/AgendaBarbero';
 import LoginPage        from './views/LoginPage';
 
@@ -45,9 +47,11 @@ function ProtectedApp() {
         <Route path="metricas"        element={<Metricas />} />
         <Route path="gastos"          element={<Gastos />} />
         <Route path="configuracion"   element={<Configuracion />} />
-        <Route path="booking-preview"  element={<BookingServicios onContinuar={s => alert(`Seleccionado: ${s.nombre}`)} />} />
-        <Route path="booking-barbero"  element={<BookingBarbero  onContinuar={b => alert(`Barbero: ${b.barbero?.nombre}`)} />} />
-        <Route path="agenda-preview"   element={<AgendaBarbero barberoNombre="Joaquin Amiri" />} />
+        <Route path="booking-preview"    element={<BookingServicios onContinuar={s => alert(`Seleccionado: ${s.nombre}`)} />} />
+        <Route path="booking-barbero"   element={<BookingBarbero  onContinuar={b => alert(`Barbero: ${b.barbero?.nombre}`)} />} />
+        <Route path="booking-fecha"     element={<BookingFecha    onContinuar={f => alert(`Fecha: ${f.hora}`)} />} />
+        <Route path="booking-confirmar" element={<BookingConfirmar onConfirmar={d => alert(`Confirmado: ${d.nombre}`)} />} />
+        <Route path="agenda-preview"    element={<AgendaBarbero barberoNombre="Joaquin Amiri" />} />
         <Route path="*"               element={<Navigate to={defaultRoute} replace />} />
       </Routes>
     </AdminLayout>
