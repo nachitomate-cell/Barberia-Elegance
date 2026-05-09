@@ -20,7 +20,7 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 // ── 3. CACHE ─────────────────────────────────────────────────────
-const CACHE_VERSION = 'saas-v7';
+const CACHE_VERSION = 'saas-v8';
 const STATIC_ASSETS = [
   '/dashboard.html',
   '/index.html',
