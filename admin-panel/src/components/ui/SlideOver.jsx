@@ -22,15 +22,19 @@ export default function SlideOver({ isOpen, onClose, title, subtitle, children, 
       {/* Panel */}
       <div className={`relative z-10 w-full ${maxWidth} flex flex-col bg-slate-900 shadow-2xl border-l border-slate-800 animate-slide-in-right`}>
 
-        {/* Header */}
-        <div className="flex items-start justify-between gap-4 px-6 pt-6 pb-5 border-b border-slate-800 shrink-0">
-          <div>
-            <h2 className="text-base font-semibold text-white">{title}</h2>
+        {/* Header — safe-area-inset-top para no quedar bajo el notch/Dynamic Island */}
+        <div
+          className="flex items-start justify-between gap-4 px-6 pb-5 border-b border-slate-800 shrink-0"
+          style={{ paddingTop: 'max(env(safe-area-inset-top), 1.5rem)' }}
+        >
+          <div className="min-w-0">
+            <h2 className="text-base font-semibold text-white truncate">{title}</h2>
             {subtitle && <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>}
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-slate-800 transition-all shrink-0"
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:text-white hover:bg-slate-800 active:scale-95 transition-all shrink-0"
+            aria-label="Cerrar"
           >
             <X size={18} />
           </button>
@@ -41,9 +45,12 @@ export default function SlideOver({ isOpen, onClose, title, subtitle, children, 
           {children}
         </div>
 
-        {/* Footer (optional) */}
+        {/* Footer — safe-area-inset-bottom para el home indicator */}
         {footer && (
-          <div className="px-6 py-4 border-t border-slate-800 shrink-0">
+          <div
+            className="px-6 pt-4 border-t border-slate-800 shrink-0"
+            style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 1rem)' }}
+          >
             {footer}
           </div>
         )}
