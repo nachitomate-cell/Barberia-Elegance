@@ -31,10 +31,7 @@ service cloud.firestore {
       return request.auth.token.get('tenantId', '');
     }
 
-    // ── Fallback de emergencia (solo para bootstrap) ────────────────
-    // Se mantiene temporalmente durante la migración a Custom Claims.
-    // Eliminar una vez que migrarClaimsExistentes() haya corrido y
-    // todos los admins hayan vuelto a iniciar sesión.
+    // ── Fallback de emergencia (bootstrap) ─────────────────────────
     function esBootstrap() {
       return autenticado()
           && request.auth.token.email in [
@@ -43,15 +40,27 @@ service cloud.firestore {
              ];
     }
 
+    // TEMP: fallback Firestore mientras los barberos no tengan Custom Claims.
+    // Eliminar después de ejecutar migrarClaimsExistentes() y que todos
+    // cierren sesión y vuelvan a abrir.
+    function esBarberoFirestore(tid) {
+      return autenticado() && (
+        tid == 'elegance'
+          ? exists(/databases/$(database)/documents/barberos/$(request.auth.uid))
+          : exists(/databases/$(database)/documents/tenants/$(tid)/barberos/$(request.auth.uid))
+      );
+    }
+
     // ── Pertenencia a tenant ────────────────────────────────────────
     function esDeTenant(tid) {
       return autenticado() && tenantClaim() == tid;
     }
 
-    // ── Roles (incluye fallback bootstrap para no romper acceso) ────
+    // ── Roles ───────────────────────────────────────────────────────
     function esStaff(tid) {
       return (esDeTenant(tid) && rol() in ['admin', 'jefe', 'barbero'])
-          || esBootstrap();
+          || esBootstrap()
+          || esBarberoFirestore(tid); // TEMP: eliminar post-migración
     }
 
     function esAdmin(tid) {
@@ -59,7 +68,6 @@ service cloud.firestore {
           || esBootstrap();
     }
 
-    // Solo 'admin' puede eliminar barberos o cambiar el rol de otros
     function esAdminEstricto(tid) {
       return (esDeTenant(tid) && rol() == 'admin')
           || esBootstrap();
@@ -85,9 +93,8 @@ service cloud.firestore {
     // ═══════════════════════════════════════════════════════════════
 
     // ── /barberos ──────────────────────────────────────────────────
-    // Lectura pública: widget de reservas necesita listar barberos.
-    // Escritura restringida; un barbero puede actualizar su propio doc
-    // pero NO puede modificar campos sensibles (rol, disponible, comision).
+    // Lectura pública: widget de reservas y agenda pública necesitan
+    // listar barberos y su configuración (subcolección /configuracion).
     match /barberos/{barberoId} {
       allow read: if true;
       allow create: if esAdmin('elegance');
@@ -98,6 +105,13 @@ service cloud.firestore {
                         && sinCambio('disponible')
                         && sinCambio('comision'));
       allow delete: if esAdminEstricto('elegance');
+
+      // Subcolecciones: configuración de horario, preferencias, etc.
+      // Lectura pública para que la agenda y el widget de reservas funcionen.
+      match /{subCol}/{docId} {
+        allow read: if true;
+        allow write: if esStaff('elegance');
+      }
     }
 
     // ── /citas ─────────────────────────────────────────────────────
@@ -220,6 +234,11 @@ service cloud.firestore {
                           && sinCambio('disponible')
                           && sinCambio('comision'));
         allow delete: if esAdminEstricto(tid);
+
+        match /{subCol}/{docId} {
+          allow read: if true;
+          allow write: if esStaff(tid);
+        }
       }
 
       // ── citas (panel admin) ───────────────────────────────────────
