@@ -7,6 +7,8 @@ import Agenda      from './views/Agenda';
 import Equipo      from './views/Equipo';
 import Clientes    from './views/Clientes';
 import Metricas    from './views/Metricas';
+import Premios     from './views/Premios';
+import Productos   from './views/Productos';
 import LoginPage   from './views/LoginPage';
 
 function ProtectedApp() {
@@ -28,6 +30,8 @@ function ProtectedApp() {
         <Route path="servicios"       element={<Servicios />} />
         <Route path="equipo"          element={<Equipo />} />
         <Route path="clientes"        element={<Clientes />} />
+        <Route path="premios"         element={<Premios />} />
+        <Route path="productos"       element={<Productos />} />
         <Route path="metricas"        element={<Metricas />} />
         <Route path="*"               element={<Navigate to="agenda" replace />} />
       </Routes>

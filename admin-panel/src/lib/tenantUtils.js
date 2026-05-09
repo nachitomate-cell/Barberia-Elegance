@@ -1,4 +1,4 @@
-import { collection } from 'firebase/firestore';
+import { collection, doc } from 'firebase/firestore';
 import { db } from './firebase';
 
 const DOMAIN_MAP = {
@@ -24,4 +24,8 @@ export function tenantCol(name) {
   return tid === 'elegance'
     ? collection(db, name)
     : collection(db, `tenants/${tid}/${name}`);
+}
+
+export function tenantDoc(colName, docId) {
+  return doc(tenantCol(colName), docId);
 }

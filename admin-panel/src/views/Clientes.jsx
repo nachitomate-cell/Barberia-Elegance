@@ -1,114 +1,404 @@
-import { useState, useMemo } from 'react';
-import { Search, User, Phone, Mail } from 'lucide-react';
+import { useState, useMemo, useEffect } from 'react';
+import { Search, User, Phone, Trophy, Plus, Minus, Gift, X, RotateCcw } from 'lucide-react';
+import {
+  onSnapshot, updateDoc, doc, getDocs, query, where, orderBy as firestoreOrderBy,
+  limit, increment, arrayUnion,
+} from 'firebase/firestore';
+import { tenantCol } from '../lib/tenantUtils';
 import { useCollection } from '../hooks/useCollection';
-import { orderBy }       from 'firebase/firestore';
-import StampProgressBar  from '../components/ui/StampProgressBar';
-import Badge             from '../components/ui/Badge';
+import SlideOver from '../components/ui/SlideOver';
 
-function CustomerRow({ customer, maxStamps }) {
+/* ── Utilidades ── */
+function initials(name = '') {
+  return name.trim().split(/\s+/).map(w => w[0]?.toUpperCase()).slice(0, 2).join('');
+}
+function formatFecha(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleDateString('es-CL', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+/* ── Stamp grid ── */
+function StampGrid({ stamps, premios }) {
+  const maxCost = premios.length ? Math.max(...premios.map(p => p.costoSellos)) : 10;
+  const size    = Math.max(maxCost, stamps, 10);
+  const cols    = size <= 10 ? 10 : size <= 15 ? 15 : 20;
+
   return (
-    <tr className="hover:bg-slate-800/40 transition-colors">
-      {/* Avatar + nombre */}
-      <td className="px-5 py-3.5">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center shrink-0">
-            {customer.photoURL
-              ? <img src={customer.photoURL} alt="" className="w-full h-full rounded-full object-cover" />
-              : <User size={14} className="text-slate-400" />
-            }
+    <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
+      {Array.from({ length: size }, (_, i) => {
+        const n       = i + 1;
+        const filled  = n <= stamps;
+        const isPrize = premios.some(p => p.costoSellos === n);
+        return (
+          <div key={n} className={`relative aspect-square rounded-md border flex items-center justify-center text-[9px] font-bold ${
+            filled ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-400' : 'bg-white/3 border-white/8 text-slate-600'
+          }`}>
+            {filled ? <i className="ph-fill ph-scissors text-[9px]" /> : n}
+            {isPrize && <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-yellow-400 border border-slate-950" />}
           </div>
-          <div>
-            <p className="text-sm font-medium text-white">{customer.nombre || 'Sin nombre'}</p>
-            <p className="text-xs text-slate-500 mt-0.5 hidden md:block">{customer.email}</p>
-          </div>
-        </div>
-      </td>
-
-      {/* Teléfono */}
-      <td className="px-3 py-3.5 hidden sm:table-cell">
-        <span className="flex items-center gap-1.5 text-xs text-slate-400">
-          <Phone size={11} /> {customer.telefono || '—'}
-        </span>
-      </td>
-
-      {/* Sellos */}
-      <td className="px-3 py-3.5">
-        <StampProgressBar stamps={customer.stamps ?? 0} total={maxStamps} size="sm" />
-      </td>
-
-      {/* Rol */}
-      <td className="px-3 py-3.5 hidden md:table-cell">
-        <Badge variant={customer.rol === 'admin' ? 'admin' : 'active'}>
-          {customer.rol || 'cliente'}
-        </Badge>
-      </td>
-    </tr>
+        );
+      })}
+    </div>
   );
 }
 
-export default function Clientes() {
-  const { data: clientes, loading } = useCollection('users', [orderBy('nombre')]);
-  const [search, setSearch]         = useState('');
+/* ── Panel de cliente (slide-over) ── */
+function ClientePanel({ cliente: init, premios, onClose }) {
+  const [data,     setData]     = useState(init);
+  const [citas,    setCitas]    = useState([]);
+  const [selPremio, setSelPremio] = useState(null);
+  const [opLoad,   setOpLoad]   = useState(false);
+  const [canjeMsg, setCanjeMsg] = useState('');
+  const [resetOn,  setResetOn]  = useState(false);
 
-  const filtered = useMemo(() =>
-    clientes.filter(c =>
-      c.nombre?.toLowerCase().includes(search.toLowerCase()) ||
-      c.email?.toLowerCase().includes(search.toLowerCase()) ||
-      c.telefono?.includes(search)
-    ),
-    [clientes, search]
+  /* Real-time subscription for this client */
+  useEffect(() => {
+    const ref = doc(tenantCol('users'), init.uid);
+    const unsub = onSnapshot(ref, snap => {
+      if (snap.exists()) { setData({ uid: snap.id, ...snap.data() }); setSelPremio(null); }
+    });
+    return unsub;
+  }, [init.uid]);
+
+  /* Load recent appointments (one-time) */
+  useEffect(() => {
+    if (!init.email) return;
+    getDocs(query(tenantCol('citas'), where('clienteEmail', '==', init.email), limit(10)))
+      .then(snap => {
+        const arr = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        arr.sort((a, b) => (b.fecha || '').localeCompare(a.fecha || '') || (b.hora || '').localeCompare(a.hora || ''));
+        setCitas(arr);
+      }).catch(() => {});
+  }, [init.uid, init.email]);
+
+  const stamps    = data.stamps || 0;
+  const sorted    = [...premios].sort((a, b) => a.costoSellos - b.costoSellos);
+  const nextPrize = sorted.find(p => stamps < p.costoSellos);
+  const maxCost   = sorted.length ? sorted[sorted.length - 1].costoSellos : 10;
+  const denom     = nextPrize ? nextPrize.costoSellos : maxCost;
+  const pct       = Math.min(stamps / Math.max(denom, 1) * 100, 100);
+
+  const rawTel = (data.telefono || '').replace(/\D/g, '');
+  const waUrl  = rawTel.length >= 8 ? `https://wa.me/${rawTel.startsWith('56') ? rawTel : '56' + rawTel}` : null;
+
+  const accionSello = async delta => {
+    setOpLoad(true);
+    try {
+      await updateDoc(doc(tenantCol('users'), data.uid), {
+        stamps:         increment(delta),
+        ...(delta > 0 ? { ultimoSello: new Date().toISOString() } : {}),
+        historialSellos: arrayUnion({
+          fecha: new Date().toISOString(),
+          tipo:  delta > 0 ? 'suma' : 'resta',
+          cantidad: delta,
+          nota: delta > 0 ? 'Sello añadido manualmente' : 'Sello quitado manualmente',
+        }),
+      });
+    } finally { setOpLoad(false); }
+  };
+
+  const canjear = async () => {
+    if (!selPremio) { setCanjeMsg('Selecciona un premio primero.'); return; }
+    if (stamps < selPremio.costoSellos) { setCanjeMsg('Sellos insuficientes.'); return; }
+    setOpLoad(true);
+    try {
+      await updateDoc(doc(tenantCol('users'), data.uid), {
+        stamps: increment(-selPremio.costoSellos),
+        historialSellos: arrayUnion({
+          fecha: new Date().toISOString(), tipo: 'canje',
+          cantidad: -selPremio.costoSellos, nota: selPremio.nombre,
+        }),
+      });
+      setCanjeMsg(`✓ ${selPremio.nombre} canjeado`);
+    } catch (e) { setCanjeMsg(e.message); }
+    finally { setOpLoad(false); }
+  };
+
+  const resetSellos = async () => {
+    if (!stamps) { setResetOn(false); return; }
+    setOpLoad(true);
+    try {
+      await updateDoc(doc(tenantCol('users'), data.uid), {
+        stamps: increment(-stamps),
+        historialSellos: arrayUnion({ fecha: new Date().toISOString(), tipo: 'resta', cantidad: -stamps, nota: 'Reset manual por admin' }),
+      });
+    } finally { setOpLoad(false); setResetOn(false); }
+  };
+
+  const historial = [...(data.historialSellos || [])].sort((a, b) => new Date(b.fecha) - new Date(a.fecha)).slice(0, 20);
+
+  return (
+    <div className="space-y-6">
+      {/* Avatar + info */}
+      <div className="flex items-start gap-4">
+        <div className="w-14 h-14 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center overflow-hidden shrink-0">
+          {data.photoURL
+            ? <img src={data.photoURL} alt="" className="w-full h-full object-cover" />
+            : <span className="text-sm font-bold text-slate-400">{initials(data.nombre || data.email || '?')}</span>}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-white">{data.nombre || '—'}</p>
+          <p className="text-xs text-slate-500 truncate">{data.email}</p>
+          {data.telefono && (
+            <div className="flex items-center gap-2 mt-1">
+              <p className="text-xs text-slate-400">{data.telefono}</p>
+              {waUrl && <a href={waUrl} target="_blank" rel="noreferrer" className="text-[10px] font-bold text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-md hover:bg-emerald-500/10 transition-colors">WhatsApp ↗</a>}
+            </div>
+          )}
+          <p className="text-[10px] text-slate-600 mt-1">Miembro desde {formatFecha(data.creadoEn?.toDate ? data.creadoEn.toDate().toISOString() : data.creadoEn)}</p>
+        </div>
+      </div>
+
+      {/* Contador de sellos */}
+      <div className="bg-slate-950 border border-slate-800 rounded-xl p-4">
+        <div className="flex items-end gap-1 mb-1">
+          <span className="text-4xl font-black text-emerald-400 leading-none">{stamps}</span>
+          <span className="text-lg font-bold text-slate-600 mb-0.5">/{denom}</span>
+        </div>
+        <p className="text-[10px] text-slate-500 mb-2">
+          {nextPrize ? `${denom - stamps} sello${denom - stamps !== 1 ? 's' : ''} para: ${nextPrize.nombre}` : stamps > 0 ? '¡Premios disponibles!' : 'Sin sellos aún'}
+        </p>
+        <div className="w-full bg-white/5 rounded-full h-1.5 overflow-hidden mb-4">
+          <div className="h-1.5 rounded-full bg-emerald-500 transition-all" style={{ width: `${pct}%` }} />
+        </div>
+
+        {/* Stamp grid */}
+        <StampGrid stamps={stamps} premios={premios} />
+
+        {/* +/- buttons */}
+        <div className="flex gap-2 mt-4">
+          <button onClick={() => accionSello(-1)} disabled={opLoad || stamps <= 0}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 border border-slate-700 text-slate-300 text-xs font-semibold rounded-lg transition-all">
+            <Minus size={13} /> Quitar sello
+          </button>
+          <button onClick={() => accionSello(1)} disabled={opLoad}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-xs font-semibold rounded-lg transition-all">
+            <Plus size={13} /> Añadir sello
+          </button>
+        </div>
+      </div>
+
+      {/* Canjear premio */}
+      {premios.length > 0 && (
+        <div>
+          <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Canjear premio</p>
+          <div className="space-y-1.5 mb-3">
+            {premios.map(p => {
+              const puede = stamps >= p.costoSellos;
+              const sel   = selPremio?.id === p.id;
+              return (
+                <button key={p.id} disabled={!puede} onClick={() => setSelPremio(sel ? null : p)}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border text-sm font-semibold transition-all text-left ${
+                    sel     ? 'border-yellow-400/60 bg-yellow-400/10 text-white' :
+                    puede   ? 'border-slate-700 hover:border-slate-500 bg-slate-800/40 text-white' :
+                              'border-slate-800/40 bg-transparent text-slate-600 cursor-not-allowed opacity-50'
+                  }`}>
+                  <Trophy size={14} className={puede ? 'text-yellow-400' : 'text-slate-600'} />
+                  <span className="flex-1">{p.nombre}</span>
+                  <span className={`text-xs font-bold ${puede ? 'text-yellow-400' : 'text-slate-600'}`}>{p.costoSellos} ✂</span>
+                </button>
+              );
+            })}
+          </div>
+          {canjeMsg && <p className={`text-xs text-center font-bold mb-2 ${canjeMsg.startsWith('✓') ? 'text-emerald-400' : 'text-red-400'}`}>{canjeMsg}</p>}
+          <button onClick={canjear} disabled={opLoad || !selPremio}
+            className="w-full flex items-center justify-center gap-2 py-2.5 bg-yellow-500/10 hover:bg-yellow-500/20 disabled:opacity-40 border border-yellow-500/30 text-yellow-400 text-sm font-semibold rounded-lg transition-all">
+            <Gift size={15} /> Canjear premio
+          </button>
+        </div>
+      )}
+
+      {/* Historial */}
+      {historial.length > 0 && (
+        <div>
+          <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Historial de sellos</p>
+          <div className="space-y-px max-h-44 overflow-y-auto">
+            {historial.map((h, i) => {
+              const icon  = h.tipo === 'suma' ? 'ph-plus-circle' : h.tipo === 'canje' ? 'ph-gift' : 'ph-minus-circle';
+              const color = h.tipo === 'suma' ? 'text-emerald-400' : h.tipo === 'canje' ? 'text-yellow-400' : 'text-red-400';
+              const label = h.tipo === 'suma' ? `+${h.cantidad} sello` : h.tipo === 'canje' ? `Canje: ${h.nota}` : `${h.cantidad} sello`;
+              return (
+                <div key={i} className="flex items-start gap-2 py-1.5 border-b border-white/4 last:border-0">
+                  <i className={`ph-fill ${icon} ${color} text-sm shrink-0 mt-0.5`} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-white truncate">{label}</p>
+                    <p className="text-[10px] text-slate-600">{formatFecha(h.fecha)}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Citas recientes */}
+      {citas.length > 0 && (
+        <div>
+          <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Citas recientes</p>
+          <div className="space-y-1.5">
+            {citas.map(c => {
+              const col = c.estado === 'Completada' ? 'text-emerald-400' : c.estado === 'Cancelada' ? 'text-red-400' : 'text-yellow-400';
+              return (
+                <div key={c.id} className="flex items-center gap-3 bg-white/[0.02] border border-white/5 rounded-xl px-3 py-2.5">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-white truncate">{c.servicioNombre || '—'}</p>
+                    <p className="text-[10px] text-slate-500 mt-0.5">{c.fecha} · {c.hora} · {c.barbero || '—'}</p>
+                  </div>
+                  <span className={`text-[10px] font-bold ${col} shrink-0`}>{c.estado}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Reset sellos */}
+      <div className="pt-2 border-t border-slate-800">
+        {!resetOn ? (
+          <button onClick={() => setResetOn(true)} disabled={!stamps}
+            className="flex items-center gap-2 text-xs text-slate-600 hover:text-red-400 disabled:opacity-30 transition-colors">
+            <RotateCcw size={13} /> Resetear todos los sellos
+          </button>
+        ) : (
+          <div className="flex items-center gap-2">
+            <p className="text-xs text-red-400 flex-1">¿Resetear {stamps} sellos a 0?</p>
+            <button onClick={() => setResetOn(false)} className="px-3 py-1.5 text-xs text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-all">Cancelar</button>
+            <button onClick={resetSellos} disabled={opLoad} className="px-3 py-1.5 text-xs font-bold text-red-400 hover:text-white rounded-lg bg-red-500/10 hover:bg-red-500/20 transition-all">Confirmar</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ── Vista principal Clientes ── */
+export default function Clientes() {
+  const { data: clientes, loading } = useCollection('users');
+  const { data: premios }           = useCollection('premios', [firestoreOrderBy('costoSellos')]);
+
+  const [search,   setSearch]   = useState('');
+  const [selected, setSelected] = useState(null);
+
+  const sorted = useMemo(() =>
+    [...clientes].sort((a, b) => (b.stamps || 0) - (a.stamps || 0) || (a.nombre || '').localeCompare(b.nombre || '')),
+    [clientes]
   );
 
-  const maxStamps = 10;
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase();
+    return q ? sorted.filter(c =>
+      c.nombre?.toLowerCase().includes(q) ||
+      c.email?.toLowerCase().includes(q) ||
+      c.telefono?.includes(q)
+    ) : sorted;
+  }, [sorted, search]);
+
+  const total  = clientes.length;
+  const avg    = total ? (clientes.reduce((s, c) => s + (c.stamps || 0), 0) / total).toFixed(1) : 0;
+  const conPremio = premios.length
+    ? clientes.filter(c => (c.stamps || 0) >= premios[0]?.costoSellos).length
+    : clientes.filter(c => (c.stamps || 0) >= 5).length;
 
   return (
     <div className="max-w-4xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-xl font-bold text-white">Clientes</h1>
-          <p className="text-sm text-slate-500 mt-0.5">{clientes.length} registrados</p>
-        </div>
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-xl font-bold text-white">Clientes y Fidelización</h1>
+        <p className="text-sm text-slate-500 mt-0.5">Gestiona sellos y premios de cada cliente.</p>
+      </div>
+
+      {/* KPIs */}
+      <div className="grid grid-cols-3 gap-3 mb-5">
+        {[
+          { label: 'Clientes', value: total,     color: 'text-white' },
+          { label: 'Avg Sellos', value: avg,     color: 'text-emerald-400' },
+          { label: 'Con premios', value: conPremio, color: 'text-yellow-400' },
+        ].map(({ label, value, color }) => (
+          <div key={label} className="bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-center">
+            <p className={`text-2xl font-black ${color}`}>{value}</p>
+            <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mt-0.5">{label}</p>
+          </div>
+        ))}
       </div>
 
       {/* Search */}
       <div className="relative mb-4">
         <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-        <input
-          placeholder="Buscar por nombre, correo o teléfono…"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="w-full pl-9 pr-4 py-2.5 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white placeholder-slate-600 focus:outline-none focus:border-slate-600 transition-colors"
-        />
+        <input placeholder="Buscar por nombre, correo o teléfono…"
+          value={search} onChange={e => setSearch(e.target.value)}
+          className="w-full pl-9 pr-4 py-2.5 bg-slate-900 border border-slate-800 rounded-lg text-sm text-white placeholder-slate-600 focus:outline-none focus:border-slate-600 transition-colors" />
+        {search && (
+          <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white">
+            <X size={14} />
+          </button>
+        )}
       </div>
 
       {/* Table */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
         {loading ? (
-          <div className="flex justify-center py-16">
-            <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-          </div>
+          <div className="flex justify-center py-16"><div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" /></div>
+        ) : filtered.length === 0 ? (
+          <div className="flex flex-col items-center py-16 text-slate-600"><User size={28} className="mb-3" /><p className="text-sm">Sin clientes</p></div>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-slate-800">
-                <th className="px-5 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Cliente</th>
-                <th className="px-3 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider hidden sm:table-cell">Teléfono</th>
-                <th className="px-3 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Sellos</th>
-                <th className="px-3 py-3 text-left text-[11px] font-semibold text-slate-500 uppercase tracking-wider hidden md:table-cell">Rol</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/60">
-              {filtered.map(c => <CustomerRow key={c.id} customer={c} maxStamps={maxStamps} />)}
-            </tbody>
-          </table>
-        )}
-        {!loading && filtered.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-16 text-slate-600">
-            <User size={32} className="mb-3" />
-            <p className="text-sm font-medium">Sin clientes</p>
+          <div className="divide-y divide-slate-800/60">
+            {filtered.map(c => {
+              const stamps = c.stamps || 0;
+              const maxCost = premios.length ? premios[premios.length - 1]?.costoSellos : 10;
+              const pct = Math.min(stamps / Math.max(maxCost, 1) * 100, 100);
+              const badgeCls = stamps >= (maxCost || 10) ? 'text-yellow-400 border-yellow-400/40 bg-yellow-400/10'
+                : stamps >= 5 ? 'text-emerald-400 border-emerald-500/40 bg-emerald-500/10'
+                : 'text-slate-500 border-slate-700';
+              const hasPrize = premios.some(p => stamps >= p.costoSellos);
+              return (
+                <div key={c.uid || c.id} onClick={() => setSelected(c)}
+                  className="grid grid-cols-12 items-center px-5 py-4 hover:bg-white/2 transition-colors cursor-pointer group">
+                  <div className="col-span-5 flex items-center gap-3 min-w-0">
+                    <div className="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center overflow-hidden shrink-0">
+                      {c.photoURL
+                        ? <img src={c.photoURL} alt="" className="w-full h-full object-cover" />
+                        : <span className="text-xs font-bold text-slate-400">{initials(c.nombre || c.email || '?')}</span>}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-white text-sm truncate group-hover:text-emerald-400 transition-colors">{c.nombre || '—'}</p>
+                      <p className="text-xs text-slate-500 truncate">{c.email}</p>
+                    </div>
+                  </div>
+                  <div className="col-span-3 hidden sm:block">
+                    <p className="text-xs text-slate-500 truncate flex items-center gap-1"><Phone size={10} /> {c.telefono || '—'}</p>
+                  </div>
+                  <div className="col-span-5 sm:col-span-3">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${badgeCls}`}>{stamps} sellos</span>
+                      {hasPrize && <Trophy size={11} className="text-yellow-400" />}
+                    </div>
+                    <div className="w-full bg-white/5 rounded-full h-1"><div className="h-1 rounded-full bg-emerald-500 transition-all" style={{ width: `${pct}%` }} /></div>
+                  </div>
+                  <div className="col-span-2 sm:col-span-1 flex justify-end">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-slate-600 group-hover:text-emerald-400 transition-colors"><polyline points="9 18 15 12 9 6"/></svg>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
+
+      {/* Client detail SlideOver */}
+      <SlideOver isOpen={!!selected} onClose={() => setSelected(null)}
+        title={selected?.nombre || 'Cliente'}
+        subtitle={selected?.email}
+        maxWidth="max-w-lg">
+        {selected && (
+          <ClientePanel
+            key={selected.uid || selected.id}
+            cliente={{ uid: selected.uid || selected.id, ...selected }}
+            premios={premios}
+            onClose={() => setSelected(null)}
+          />
+        )}
+      </SlideOver>
     </div>
   );
 }

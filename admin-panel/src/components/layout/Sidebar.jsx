@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import {
   CalendarDays, Scissors, Users, Star, BarChart3,
-  LogOut, ChevronRight,
+  Trophy, ShoppingBag, LogOut, ChevronRight,
 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { auth } from '../../lib/firebase';
@@ -12,6 +12,8 @@ const NAV = [
   { to: 'servicios', label: 'Servicios', Icon: Scissors     },
   { to: 'equipo',    label: 'Equipo',    Icon: Users        },
   { to: 'clientes',  label: 'Clientes',  Icon: Star         },
+  { to: 'premios',   label: 'Premios',   Icon: Trophy       },
+  { to: 'productos', label: 'Productos', Icon: ShoppingBag  },
   { to: 'metricas',  label: 'Métricas',  Icon: BarChart3    },
 ];
 

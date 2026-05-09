@@ -119,8 +119,10 @@ export default function Agenda() {
               <div key={b.id} className="flex-1 min-w-[160px] border-r border-slate-800 last:border-r-0">
                 {/* Column header */}
                 <div className="h-10 px-3 flex items-center gap-2 border-b border-slate-800 sticky top-0 bg-slate-900 z-10">
-                  <div className="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center text-[10px] font-bold text-emerald-400 shrink-0">
-                    {b.nombre?.[0] ?? '?'}
+                  <div className="w-6 h-6 rounded-full overflow-hidden bg-emerald-500/20 flex items-center justify-center shrink-0">
+                    {b.foto
+                      ? <img src={b.foto} alt={b.nombre} className="w-full h-full object-cover" />
+                      : <span className="text-[10px] font-bold text-emerald-400">{b.nombre?.[0] ?? '?'}</span>}
                   </div>
                   <span className="text-xs font-semibold text-white truncate">{b.nombre}</span>
                 </div>

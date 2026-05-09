@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { X } from 'lucide-react';
 
-export default function SlideOver({ isOpen, onClose, title, subtitle, children, footer }) {
+export default function SlideOver({ isOpen, onClose, title, subtitle, children, footer, maxWidth = 'max-w-md' }) {
   useEffect(() => {
     if (!isOpen) return;
     const onKey = e => e.key === 'Escape' && onClose();
@@ -20,7 +20,7 @@ export default function SlideOver({ isOpen, onClose, title, subtitle, children, 
       />
 
       {/* Panel */}
-      <div className="relative z-10 w-full max-w-md flex flex-col bg-slate-900 shadow-2xl border-l border-slate-800 animate-slide-in-right">
+      <div className={`relative z-10 w-full ${maxWidth} flex flex-col bg-slate-900 shadow-2xl border-l border-slate-800 animate-slide-in-right`}>
 
         {/* Header */}
         <div className="flex items-start justify-between gap-4 px-6 pt-6 pb-5 border-b border-slate-800 shrink-0">
