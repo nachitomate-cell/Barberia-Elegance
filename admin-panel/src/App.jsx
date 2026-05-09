@@ -9,6 +9,7 @@ import Clientes    from './views/Clientes';
 import Metricas    from './views/Metricas';
 import Premios     from './views/Premios';
 import Productos   from './views/Productos';
+import Lookbook    from './views/Lookbook';
 import LoginPage   from './views/LoginPage';
 
 function ProtectedApp() {
@@ -32,6 +33,7 @@ function ProtectedApp() {
         <Route path="clientes"        element={<Clientes />} />
         <Route path="premios"         element={<Premios />} />
         <Route path="productos"       element={<Productos />} />
+        <Route path="lookbook"        element={<Lookbook />} />
         <Route path="metricas"        element={<Metricas />} />
         <Route path="*"               element={<Navigate to="agenda" replace />} />
       </Routes>

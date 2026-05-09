@@ -108,6 +108,12 @@ service cloud.firestore {
       allow write: if esBarbero();
     }
 
+    // ── /productos ───────────────────────────────────────────────────────────────
+    match /productos/{docId} {
+      allow read: if true;
+      allow write: if esBarbero();
+    }
+
     // ── /users ───────────────────────────────────────────────────────────────────
     // Cada cliente accede solo a su propio documento; barberos leen todos.
     match /users/{userId} {
