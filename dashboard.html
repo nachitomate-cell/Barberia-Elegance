@@ -336,6 +336,21 @@
       from { opacity: 0; transform: translateY(14px); }
       to   { opacity: 1; transform: translateY(0); }
     }
+    /* Fix autofill blanco en Chrome/Safari */
+    input:-webkit-autofill,
+    input:-webkit-autofill:hover,
+    input:-webkit-autofill:focus {
+      -webkit-box-shadow: 0 0 0 1000px #111111 inset !important;
+      -webkit-text-fill-color: #ffffff !important;
+      caret-color: #ffffff;
+      transition: background-color 5000s ease-in-out 0s;
+    }
+    #editEmail:-webkit-autofill,
+    #editEmail:-webkit-autofill:hover,
+    #editEmail:-webkit-autofill:focus {
+      -webkit-box-shadow: 0 0 0 1000px #0a0a0a inset !important;
+      -webkit-text-fill-color: #6b7280 !important;
+    }
   </style>
 </head>
 
@@ -550,11 +565,11 @@
     </section>
 
     <!-- ═══════ PESTAÑA 3: MI PERFIL ═══════ -->
-    <section id="tabProfile" class="tab-panel hidden px-5 pt-6 animate-[fadeSlideUp_0.45s_cubic-bezier(0.16,1,0.3,1)_forwards]">
+    <section id="tabProfile" class="tab-panel hidden px-5 pt-10 pb-32 animate-[fadeSlideUp_0.45s_cubic-bezier(0.16,1,0.3,1)_forwards]">
 
       <!-- Avatar + datos -->
       <div class="flex flex-col items-center mb-8">
-        <div class="relative mb-4">
+        <div class="relative mb-4 mt-2">
           <div id="profileAvatar" class="w-20 h-20 rounded-full bg-[#111115] border-2 border-neon shadow-[0_0_20px_rgba(255,255,255,0.12)] flex items-center justify-center overflow-hidden">
             <i class="ph-fill ph-user text-4xl text-gray-500"></i>
           </div>
@@ -593,8 +608,8 @@
         <!-- Nombre -->
         <div>
           <label class="text-[10px] text-gray-600 font-bold uppercase tracking-widest block mb-1.5 px-1">Nombre</label>
-          <input id="editNombre" type="text" placeholder="Tu nombre"
-            class="bg-gray-900 border border-gray-800 rounded-lg w-full p-3 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] transition-all">
+          <input id="editNombre" type="text" placeholder="Tu nombre" autocomplete="name"
+            class="w-full bg-[#111] border border-gray-700 rounded-lg p-3 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] transition-all">
         </div>
 
         <!-- Correo (readonly) -->
@@ -603,15 +618,15 @@
             <label class="text-[10px] text-gray-600 font-bold uppercase tracking-widest">Correo</label>
             <i class="ph-fill ph-lock-simple text-[10px] text-gray-700"></i>
           </div>
-          <input id="editEmail" type="email" placeholder="tu@correo.com" readonly
-            class="bg-gray-950 border border-gray-800 rounded-lg w-full p-3 text-gray-500 text-sm cursor-not-allowed focus:outline-none">
+          <input id="editEmail" type="email" placeholder="tu@correo.com" readonly autocomplete="off"
+            class="w-full bg-[#0a0a0a] border border-gray-800 rounded-lg p-3 text-gray-500 text-sm cursor-not-allowed focus:outline-none">
         </div>
 
         <!-- Teléfono -->
         <div>
           <label class="text-[10px] text-gray-600 font-bold uppercase tracking-widest block mb-1.5 px-1">Teléfono</label>
-          <input id="editTelefono" type="tel" placeholder="+56 9 XXXX XXXX" inputmode="numeric"
-            class="bg-gray-900 border border-gray-800 rounded-lg w-full p-3 text-white text-sm placeholder-gray-600 focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] transition-all">
+          <input id="editTelefono" type="tel" placeholder="+56 9 XXXX XXXX" inputmode="numeric" autocomplete="tel"
+            class="w-full bg-[#111] border border-gray-700 rounded-lg p-3 text-white text-sm placeholder-gray-500 focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] transition-all">
         </div>
 
       </div>
@@ -997,6 +1012,58 @@ async function subscribeUserData(user) {
 
   }, err => console.error('[Dashboard] onSnapshot usuario:', err));
 }
+
+// ─── Subida de foto de perfil ────────────────────────────────
+document.getElementById('avatarFileInput').addEventListener('change', async function() {
+  const file = this.files?.[0];
+  if (!file || !currentUser) return;
+
+  const avatarEl = document.getElementById('profileAvatar');
+  const camBtn   = avatarEl?.parentElement?.querySelector('button');
+
+  // Mostrar spinner mientras sube
+  avatarEl.innerHTML = `<div class="w-full h-full flex items-center justify-center bg-[#111115]">
+    <div class="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin"></div></div>`;
+  if (camBtn) camBtn.disabled = true;
+
+  try {
+    const storage = firebase.storage();
+    const tid     = window.CURRENT_TENANT_ID || 'elegance';
+    const path    = tid === 'elegance'
+      ? `avatars/${currentUser.uid}/profile`
+      : `tenants/${tid}/avatars/${currentUser.uid}/profile`;
+
+    const snap    = await storage.ref(path).put(file, { contentType: file.type || 'image/jpeg' });
+    const url     = await snap.ref.getDownloadURL();
+
+    // Actualizar Firebase Auth
+    await currentUser.updateProfile({ photoURL: url });
+
+    // Actualizar Firestore
+    await FDB.usersCol().doc(currentUser.uid).update({ photoURL: url });
+
+    // Actualizar DOM
+    const imgTag = `<img src="${url}" class="w-full h-full object-cover" alt="Avatar">`;
+    avatarEl.innerHTML = imgTag;
+    const headerAvatar = document.getElementById('avatarContainer');
+    if (headerAvatar) headerAvatar.innerHTML = imgTag;
+
+    showToast('Foto actualizada correctamente', 'ok');
+  } catch (err) {
+    console.error('[Avatar] Upload error:', err);
+    const msg = err.code === 'storage/unauthorized'
+      ? 'Sin permiso para subir. Volvé a iniciar sesión.'
+      : 'Error al subir la foto. Intentá de nuevo.';
+    showToast(msg, 'err');
+    // Restaurar ícono por defecto
+    avatarEl.innerHTML = currentUser.photoURL
+      ? `<img src="${currentUser.photoURL}" class="w-full h-full object-cover" alt="Avatar">`
+      : `<i class="ph-fill ph-user text-4xl text-gray-500"></i>`;
+  } finally {
+    if (camBtn) camBtn.disabled = false;
+    this.value = '';
+  }
+});
 
 // ─── Confetti ─────────────────────────────────────────────────
 function dispararConfetti() {
