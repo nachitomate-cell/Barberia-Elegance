@@ -1,5 +1,5 @@
 import { initializeApp, getApps } from 'firebase/app';
-import { getAuth, setPersistence, browserLocalPersistence } from 'firebase/auth';
+import { initializeAuth, getAuth, indexedDBLocalPersistence, browserLocalPersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
@@ -14,8 +14,17 @@ const firebaseConfig = {
 
 const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 
-export const auth = getAuth(app);
-setPersistence(auth, browserLocalPersistence).catch(() => {});
+// initializeAuth es síncrono — no hay race condition con signInWithEmailAndPassword.
+// indexedDB como primario es más robusto en mobile/iOS que localStorage.
+let _auth;
+try {
+  _auth = initializeAuth(app, {
+    persistence: [indexedDBLocalPersistence, browserLocalPersistence],
+  });
+} catch {
+  _auth = getAuth(app);
+}
+export const auth = _auth;
 
 export const db      = getFirestore(app);
 export const storage = getStorage(app);
