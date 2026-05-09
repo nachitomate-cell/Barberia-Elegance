@@ -66,68 +66,8 @@
       "destination": "/admin/index.html"
     },
     {
-      "source": "/gestion-interna",
+      "source": "/gestion-interna/:path*",
       "destination": "/gestion-interna/index.html"
-    },
-    {
-      "source": "/gestion-interna/agenda",
-      "destination": "/gestion-interna/agenda/index.html"
-    },
-    {
-      "source": "/gestion-interna/login",
-      "destination": "/gestion-interna/login/index.html"
-    },
-    {
-      "source": "/gestion-interna/login/:path*",
-      "destination": "/gestion-interna/login/index.html"
-    },
-    {
-      "source": "/gestion-interna/servicios",
-      "destination": "/gestion-interna/index.html"
-    },
-    {
-      "source": "/gestion-interna/configuracion",
-      "destination": "/gestion-interna/index.html"
-    },
-    {
-      "source": "/gestion-interna/clientes",
-      "destination": "/gestion-interna/index.html"
-    },
-    {
-      "source": "/gestion-interna/clientes/:uid*",
-      "destination": "/gestion-interna/index.html"
-    },
-    {
-      "source": "/gestion-interna/barberos",
-      "destination": "/gestion-interna/index.html"
-    },
-    {
-      "source": "/gestion-interna/premios",
-      "destination": "/gestion-interna/index.html"
-    },
-    {
-      "source": "/gestion-interna/lookbook",
-      "destination": "/gestion-interna/index.html"
-    },
-    {
-      "source": "/gestion-interna/metricas",
-      "destination": "/gestion-interna/metricas.html"
-    },
-    {
-      "source": "/gestion-interna/elegance",
-      "destination": "/gestion-interna/index.html"
-    },
-    {
-      "source": "/gestion-interna/ferraza",
-      "destination": "/gestion-interna/index.html"
-    },
-    {
-      "source": "/gestion-interna/gitana",
-      "destination": "/gestion-interna/index.html"
-    },
-    {
-      "source": "/gestion-interna/seed-barberos-tool",
-      "destination": "/gestion-interna/seed-barberos-tool.html"
     }
   ]
 }

@@ -45,7 +45,7 @@ export default function App() {
   return (
     <TenantProvider>
       <AuthProvider>
-        <BrowserRouter basename="/panel">
+        <BrowserRouter basename="/gestion-interna">
           <Routes>
             <Route path="/*" element={<ProtectedApp />} />
           </Routes>
