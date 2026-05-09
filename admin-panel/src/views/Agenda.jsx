@@ -343,8 +343,8 @@ export default function Agenda() {
   const dateStr = fmt(date);
 
   const { data: rawBarberos } = useCollection('barberos');
-  const { data: citas }       = useCollection('citas',    [where('fecha', '==', dateStr)]);
-  const { data: bloqueos }    = useCollection('bloqueos', [where('fecha', '==', dateStr)]);
+  const { data: citas }       = useCollection('citas',    [where('fecha', '==', dateStr)], [dateStr]);
+  const { data: bloqueos }    = useCollection('bloqueos', [where('fecha', '==', dateStr)], [dateStr]);
   const { data: servicios }   = useCollection('servicios');
 
   const barberos = useMemo(() =>
