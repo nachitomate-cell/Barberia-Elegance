@@ -1,17 +1,19 @@
 import { useState } from 'react';
-import { Menu, X } from 'lucide-react';
+import { Menu } from 'lucide-react';
 import Sidebar    from './Sidebar';
 import PWABanner  from './PWABanner';
+import { useChatNotifications } from '../../hooks/useChatNotifications';
 
 export default function AdminLayout({ children }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  const unreadChats = useChatNotifications();
 
   return (
     <div className="flex h-screen bg-slate-950 overflow-hidden">
 
       {/* ── Desktop sidebar (always visible ≥ lg) ── */}
       <div className="hidden lg:flex lg:flex-col lg:w-60 lg:shrink-0">
-        <Sidebar />
+        <Sidebar unreadChats={unreadChats} />
       </div>
 
       {/* ── Mobile drawer ── */}
@@ -24,7 +26,7 @@ export default function AdminLayout({ children }) {
           />
           {/* Panel */}
           <div className="relative z-10 w-64 flex flex-col animate-slide-in-right">
-            <Sidebar onClose={() => setMobileOpen(false)} />
+            <Sidebar onClose={() => setMobileOpen(false)} unreadChats={unreadChats} />
           </div>
         </div>
       )}

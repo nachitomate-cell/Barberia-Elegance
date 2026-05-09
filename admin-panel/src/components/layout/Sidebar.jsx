@@ -37,7 +37,7 @@ function useTheme() {
   return [light, setLight];
 }
 
-export default function Sidebar({ onClose }) {
+export default function Sidebar({ onClose, unreadChats = 0 }) {
   const tenant        = useTenant();
   const { role }      = useAuth();
   const isAdminRole   = role === 'admin' || role === 'jefe';
@@ -54,28 +54,42 @@ export default function Sidebar({ onClose }) {
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto no-scrollbar">
-        {visibleNav.map(({ to, label, Icon }) => (
-          <NavLink
-            key={to}
-            to={to}
-            onClick={onClose}
-            className={({ isActive }) =>
-              `group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                isActive
-                  ? 'bg-emerald-500/10 text-emerald-400'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800'
-              }`
-            }
-          >
-            {({ isActive }) => (
-              <>
-                <Icon size={17} strokeWidth={isActive ? 2.5 : 2} />
-                <span className="flex-1">{label}</span>
-                {isActive && <ChevronRight size={14} className="text-emerald-500 opacity-60" />}
-              </>
-            )}
-          </NavLink>
-        ))}
+        {visibleNav.map(({ to, label, Icon }) => {
+          const isChat  = to === 'chat';
+          const hasBadge = isChat && unreadChats > 0;
+          return (
+            <NavLink
+              key={to}
+              to={to}
+              onClick={onClose}
+              className={({ isActive }) =>
+                `group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                  isActive
+                    ? 'bg-emerald-500/10 text-emerald-400'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                }`
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  <div className="relative shrink-0">
+                    <Icon size={17} strokeWidth={isActive ? 2.5 : 2} />
+                    {hasBadge && (
+                      <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full" />
+                    )}
+                  </div>
+                  <span className="flex-1">{label}</span>
+                  {hasBadge && !isActive && (
+                    <span className="text-[10px] font-bold bg-red-500 text-white rounded-full px-1.5 py-0.5 leading-none">
+                      {unreadChats > 9 ? '9+' : unreadChats}
+                    </span>
+                  )}
+                  {isActive && <ChevronRight size={14} className="text-emerald-500 opacity-60" />}
+                </>
+              )}
+            </NavLink>
+          );
+        })}
       </nav>
 
       {/* Footer */}
