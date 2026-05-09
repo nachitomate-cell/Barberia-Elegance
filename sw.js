@@ -20,13 +20,16 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 // ── 3. CACHE ─────────────────────────────────────────────────────
-const CACHE_VERSION = 'saas-v6';
+const CACHE_VERSION = 'saas-v7';
 const STATIC_ASSETS = [
+  '/dashboard.html',
+  '/index.html',
   '/agenda',
   '/output.css',
   '/firebase-config.js',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
+  '/manifest.json',
   '/manifest-agenda.json'
 ];
 
@@ -100,7 +103,8 @@ self.addEventListener('fetch', event => {
                    (await caches.match('/agenda.html')) ||
                    new Response('', { status: 503 });
           }
-          return (await caches.match('/')) ||
+          return (await caches.match('/dashboard.html')) ||
+                 (await caches.match('/')) ||
                  (await caches.match('/index.html')) ||
                  new Response('', { status: 503 });
         })

@@ -919,25 +919,31 @@ async function initProductosTab() {
       }
       empty.classList.add('hidden');
       empty.style.display = '';
-      grid.innerHTML = productos.map(p => `
-        <div class="bg-[#0d0d10] border border-white/8 rounded-2xl overflow-hidden flex flex-col">
-          <div class="bg-white rounded-t-xl p-3 aspect-square flex items-center justify-center overflow-hidden">
+      grid.innerHTML = productos.map(p => {
+        const safeNombre = (p.nombre || '').replace(/'/g, '&#39;').replace(/"/g, '&quot;');
+        const safeDesc   = (p.descripcion || '').replace(/'/g, '&#39;').replace(/"/g, '&quot;');
+        const safeImg    = (p.imagen || '').replace(/'/g, '&#39;').replace(/"/g, '&quot;');
+        const precio     = Number(p.precio || 0).toLocaleString('es-CL');
+        return `
+        <div onclick="abrirProductoModal('${safeNombre}','${safeDesc}','${safeImg}',${Number(p.precio||0)})"
+             class="bg-[#0d0d10] border border-white/8 rounded-2xl overflow-hidden flex flex-col cursor-pointer active:scale-95 transition-transform">
+          <div class="bg-white rounded-t-xl p-3 aspect-square flex items-center justify-center overflow-hidden pointer-events-none">
             ${p.imagen
-              ? `<img src="${p.imagen}" alt="${p.nombre || ''}" class="w-full h-full object-contain">`
+              ? `<img src="${p.imagen}" alt="${safeNombre}" class="w-full h-full object-contain">`
               : `<i class="ph ph-shopping-bag text-4xl text-gray-300"></i>`}
           </div>
-          <div class="p-3 flex flex-col flex-1">
+          <div class="p-3 flex flex-col flex-1 pointer-events-none">
             <p class="text-sm font-bold text-white leading-tight">${p.nombre || ''}</p>
             ${p.descripcion
               ? `<p class="text-xs text-gray-400 mt-1.5 leading-snug" style="-webkit-line-clamp:3;display:-webkit-box;-webkit-box-orient:vertical;overflow:hidden;">${p.descripcion}</p>`
               : ''}
             <div class="flex items-center justify-between mt-auto pt-3">
-              <span class="text-lg font-bold" style="color:#D4AF37;">$${Number(p.precio||0).toLocaleString('es-CL')}</span>
-              <button class="border border-[#D4AF37]/60 text-[#D4AF37] px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-[#D4AF37] hover:text-black transition-colors active:scale-95">Reservar</button>
+              <span class="text-lg font-bold" style="color:#D4AF37;">$${precio}</span>
+              <span class="border border-[#D4AF37]/60 text-[#D4AF37] px-3 py-1.5 rounded-lg text-xs font-semibold">Ver detalle</span>
             </div>
           </div>
-        </div>
-      `).join('');
+        </div>`;
+      }).join('');
     });
   } catch (e) {
     console.warn('[Productos] Error:', e.message);
@@ -1781,6 +1787,35 @@ function formatearFechaCita(fechaStr) {
     </div>
   </div>
 
+  <!-- ══ Modal Detalle de Producto ══ -->
+  <div id="productoModal" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onclick="cerrarProductoModal()">
+    <div class="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-sm overflow-hidden relative" onclick="event.stopPropagation()">
+      <!-- Botón cerrar -->
+      <button onclick="cerrarProductoModal()" class="absolute top-3 right-3 z-10 bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white rounded-full p-1.5 transition-colors active:scale-90">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256">
+          <path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"/>
+        </svg>
+      </button>
+      <!-- Imagen -->
+      <div class="bg-white p-6 flex justify-center items-center h-48">
+        <img id="productoModalImg" src="" alt="" class="h-full w-full object-contain">
+        <i id="productoModalImgFallback" class="ph ph-shopping-bag text-6xl text-gray-300 hidden"></i>
+      </div>
+      <!-- Contenido -->
+      <div class="p-5">
+        <h3 id="productoModalNombre" class="text-xl font-bold text-white mb-2"></h3>
+        <p id="productoModalDesc" class="text-sm text-gray-400 mb-6 max-h-40 overflow-y-auto leading-relaxed"></p>
+        <!-- Footer -->
+        <div class="flex items-center justify-between">
+          <span id="productoModalPrecio" class="text-2xl font-bold" style="color:#D4AF37;"></span>
+          <button onclick="cerrarProductoModal(); switchTab('loyalty');" class="bg-[#D4AF37] hover:bg-[#c9a832] text-black font-bold py-2 px-4 rounded-lg text-sm transition-colors active:scale-95">
+            Reservar Producto
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Modal iOS: instrucciones "Agregar a inicio" -->
   <div id="pwaModalIOS" class="hidden fixed inset-0 z-50 flex items-end justify-center p-4" style="background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);">
     <div class="w-full max-w-sm rounded-3xl p-6 text-center" style="background:#1a1a1f;border:1px solid rgba(201,168,76,0.25);">
@@ -1842,6 +1877,31 @@ function formatearFechaCita(fechaStr) {
       setTimeout(() => {
         document.getElementById('pwaBanner').classList.remove('hidden');
       }, 2500);
+    }
+
+    function abrirProductoModal(nombre, descripcion, imagen, precio) {
+      const modal = document.getElementById('productoModal');
+      const img   = document.getElementById('productoModalImg');
+      const imgFallback = document.getElementById('productoModalImgFallback');
+      document.getElementById('productoModalNombre').textContent  = nombre;
+      document.getElementById('productoModalDesc').textContent    = descripcion || '';
+      document.getElementById('productoModalPrecio').textContent  = '$' + Number(precio).toLocaleString('es-CL');
+      if (imagen) {
+        img.src = imagen;
+        img.alt = nombre;
+        img.classList.remove('hidden');
+        imgFallback.classList.add('hidden');
+      } else {
+        img.classList.add('hidden');
+        imgFallback.classList.remove('hidden');
+      }
+      modal.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function cerrarProductoModal() {
+      document.getElementById('productoModal').classList.add('hidden');
+      document.body.style.overflow = '';
     }
 
     function instalarPWA() {
