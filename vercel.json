@@ -1,33 +1,19 @@
 {
   "headers": [
     {
-      "source": "/(.*)\.html",
-      "headers": [
-        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" },
-        { "key": "Pragma",        "value": "no-cache" },
-        { "key": "Expires",       "value": "0" }
-      ]
-    },
-    {
-      "source": "/(.*)\.js",
-      "headers": [
-        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
-      ]
-    },
-    {
       "source": "/sw.js",
       "headers": [
-        { "key": "Cache-Control",        "value": "no-cache, no-store, must-revalidate" },
+        { "key": "Cache-Control",         "value": "no-cache, no-store, must-revalidate" },
         { "key": "Service-Worker-Allowed","value": "/" }
       ]
     }
   ],
   "rewrites": [
-    { "source": "/favicon.ico",           "destination": "/logo.jpg" },
-    { "source": "/agenda",                "destination": "/agenda.html" },
-    { "source": "/agenda/:path*",         "destination": "/agenda.html" },
-    { "source": "/servicios",             "destination": "/index.html" },
-    { "source": "/gestion-interna",       "destination": "/gestion-interna/index.html" },
-    { "source": "/gestion-interna/:path*","destination": "/gestion-interna/index.html" }
+    { "source": "/favicon.ico",            "destination": "/logo.jpg" },
+    { "source": "/agenda",                 "destination": "/agenda.html" },
+    { "source": "/agenda/:path*",          "destination": "/agenda.html" },
+    { "source": "/servicios",              "destination": "/index.html" },
+    { "source": "/gestion-interna",        "destination": "/gestion-interna/index.html" },
+    { "source": "/gestion-interna/:path*", "destination": "/gestion-interna/index.html" }
   ]
 }
