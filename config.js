@@ -3,8 +3,9 @@
 
 (function () {
   const _domainMap = {
-    'gitananails.synaptechspa.cl': 'gitana',
+    'gitananails.synaptechspa.cl':      'gitana',
     'barberiaelegance.synaptechspa.cl': 'elegance',
+    'barberiaferraza.synaptechspa.cl':  'ferraza',
   };
 
   const _tenants = {
@@ -20,6 +21,23 @@
       club:            'Club Elegance',
       instagram:       'https://www.instagram.com/elegance.cl_/',
       instagramHandle: '@elegance.cl_',
+      waEmoji:         '✂️',
+      barberos: [
+        { nombre: 'Nicolas Fabian', foto: 'Fabian.png', disponible: true },
+      ],
+    },
+    ferraza: {
+      categoriasServicio: ['Cortes', 'Barba', 'Combos', 'Extras', 'Otro'],
+      nombre:          'Barbería Ferraza',
+      nombreCorto:     'Ferraza',
+      slogan:          'El cambio comienza por ti',
+      logo:            '/logo.jpg',
+      direccion:       '📍 Av. Libertad 63 / Local 28',
+      horario:         '🕒 Lun a Sáb: 10:00 – 20:00 hrs.',
+      telefono:        '56994269228',
+      club:            'Club Ferraza',
+      instagram:       '',
+      instagramHandle: '',
       waEmoji:         '✂️',
       barberos: [
         { nombre: 'Nicolas Fabian', foto: 'Fabian.png', disponible: true },

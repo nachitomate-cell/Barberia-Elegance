@@ -36,12 +36,26 @@
         colorAccent: '#c97da0',
       },
     },
+    ferraza: {
+      id: 'ferraza',
+      slug: 'ferraza',
+      displayName: 'Barbería Ferraza',
+      shortName: 'Ferraza',
+      status: 'active',
+      theme: {
+        colorBg: '#050505',
+        colorSurface: '#0a0a0d',
+        colorPrimary: '#ffffff',
+        colorAccent: '#d4d4d8',
+      },
+    },
   };
 
   // Mapeo dominio → tenant para detección automática sin ?local=
   const DOMAIN_TENANT_MAP = {
-    'gitananails.synaptechspa.cl': 'gitana',
+    'gitananails.synaptechspa.cl':      'gitana',
     'barberiaelegance.synaptechspa.cl': 'elegance',
+    'barberiaferraza.synaptechspa.cl':  'ferraza',
   };
 
   window.APP_CONFIG = Object.freeze({
