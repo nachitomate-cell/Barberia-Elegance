@@ -1,0 +1,50 @@
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { TenantProvider } from './contexts/TenantContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import AdminLayout from './components/layout/AdminLayout';
+import Servicios   from './views/Servicios';
+import Agenda      from './views/Agenda';
+import Equipo      from './views/Equipo';
+import Clientes    from './views/Clientes';
+import Metricas    from './views/Metricas';
+import LoginPage   from './views/LoginPage';
+
+function ProtectedApp() {
+  const { user, loading } = useAuth();
+
+  if (loading) return (
+    <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+      <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+
+  if (!user) return <LoginPage />;
+
+  return (
+    <AdminLayout>
+      <Routes>
+        <Route index                  element={<Navigate to="agenda" replace />} />
+        <Route path="agenda"          element={<Agenda />} />
+        <Route path="servicios"       element={<Servicios />} />
+        <Route path="equipo"          element={<Equipo />} />
+        <Route path="clientes"        element={<Clientes />} />
+        <Route path="metricas"        element={<Metricas />} />
+        <Route path="*"               element={<Navigate to="agenda" replace />} />
+      </Routes>
+    </AdminLayout>
+  );
+}
+
+export default function App() {
+  return (
+    <TenantProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/*" element={<ProtectedApp />} />
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
+    </TenantProvider>
+  );
+}
