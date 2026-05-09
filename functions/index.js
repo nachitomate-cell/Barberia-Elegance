@@ -10,7 +10,7 @@
 //    firebase deploy --only functions
 // ════════════════════════════════════════════════════════════════
 
-const { onDocumentCreated }    = require('firebase-functions/v2/firestore');
+const { onDocumentCreated, onDocumentWritten } = require('firebase-functions/v2/firestore');
 const { onSchedule }           = require('firebase-functions/v2/scheduler');
 const { onCall, HttpsError }   = require('firebase-functions/v2/https');
 const { setGlobalOptions }     = require('firebase-functions/v2');
@@ -23,6 +23,128 @@ const messaging = admin.messaging();
 
 // Región: us-central1 es el default de FCM; cambia a southamerica-east1 si prefieres Brasil
 setGlobalOptions({ region: 'us-central1' });
+
+// ═════════════════════════════════════════════════════════════════
+//  CUSTOM CLAIMS — sincronización automática de rol y tenantId
+//
+//  Cuando se escribe un doc de barbero se asignan Custom Claims al
+//  usuario de Firebase Auth correspondiente.  Las reglas de Firestore
+//  leen request.auth.token.role / .tenantId (sin lecturas extras).
+//
+//  Formato de claims: { role: 'admin'|'jefe'|'barbero', tenantId: string }
+// ═════════════════════════════════════════════════════════════════
+
+/**
+ * Asigna Custom Claims a un UID dado, solo si los claims reales
+ * son distintos a los existentes (evita bucles de escritura).
+ */
+async function setClaims(uid, role, tenantId) {
+  try {
+    const user = await admin.auth().getUser(uid);
+    const current = user.customClaims || {};
+    if (current.role === role && current.tenantId === tenantId) return; // ya están
+    await admin.auth().setCustomUserClaims(uid, { role, tenantId });
+    logger.info(`[Claims] ${uid} → role=${role} tenantId=${tenantId}`);
+  } catch (err) {
+    if (err.code !== 'auth/user-not-found') {
+      logger.error('[Claims] Error setCustomUserClaims:', err.message);
+    }
+  }
+}
+
+/**
+ * Resuelve el UID de Firebase Auth para un doc de barbero.
+ * - Si el docId es directamente un UID de Auth → lo usa.
+ * - Si el doc tiene campo `uid` → lo usa.
+ * - Si el doc tiene `_mainDocId` → el docId ya ES el UID (link-doc).
+ */
+function resolveUid(docId, data) {
+  if (data._mainDocId) return docId;      // link-doc: su ID es el UID
+  if (data.uid)        return data.uid;   // campo uid explícito
+  return docId;                           // intentar con el docId directamente
+}
+
+// Trigger: /barberos/{docId} (tenant elegance)
+exports.sincronizarClaimsElegance = onDocumentWritten(
+  'barberos/{docId}',
+  async (event) => {
+    const docId = event.params.docId;
+    const after  = event.data?.after?.data();
+
+    if (!after || after.activo === false) return null; // doc borrado o desactivado
+
+    const uid      = resolveUid(docId, after);
+    const role     = after.rol || 'barbero';
+    const tenantId = 'elegance';
+
+    await setClaims(uid, role, tenantId);
+    return null;
+  }
+);
+
+// Trigger: /tenants/{tid}/barberos/{docId} (ferraza, gitana, etc.)
+exports.sincronizarClaimsTenant = onDocumentWritten(
+  'tenants/{tid}/barberos/{docId}',
+  async (event) => {
+    const { tid, docId } = event.params;
+    const after = event.data?.after?.data();
+
+    if (!after || after.activo === false) return null;
+
+    const uid      = resolveUid(docId, after);
+    const role     = after.rol || 'barbero';
+
+    await setClaims(uid, role, tid);
+    return null;
+  }
+);
+
+/**
+ * CALLABLE: migración one-time — recorre todos los barberos existentes
+ * y establece Custom Claims.  Solo puede invocarla ignaciiio.mate@gmail.com.
+ * Llamar desde la consola del navegador (una sola vez):
+ *   firebase.functions().httpsCallable('migrarClaimsExistentes')()
+ */
+exports.migrarClaimsExistentes = onCall({ region: 'us-central1' }, async (request) => {
+  const BOOTSTRAP = ['ignaciiio.mate@gmail.com', 'barrazanicolasfabian@gmail.com'];
+  const email     = request.auth?.token?.email || '';
+  if (!BOOTSTRAP.includes(email.toLowerCase())) {
+    throw new HttpsError('permission-denied', 'No autorizado.');
+  }
+
+  let migrados = 0;
+  let errores  = 0;
+
+  // Elegance: root /barberos
+  const eleganceSnap = await db.collection('barberos').get();
+  for (const docSnap of eleganceSnap.docs) {
+    const data = docSnap.data();
+    if (data.activo === false) continue;
+    const uid = resolveUid(docSnap.id, data);
+    try {
+      await setClaims(uid, data.rol || 'barbero', 'elegance');
+      migrados++;
+    } catch { errores++; }
+  }
+
+  // Multi-tenant: /tenants/{tid}/barberos
+  const tenantsSnap = await db.collection('tenants').get();
+  for (const tenantDoc of tenantsSnap.docs) {
+    const barberosSnap = await tenantDoc.ref.collection('barberos').get();
+    for (const docSnap of barberosSnap.docs) {
+      const data = docSnap.data();
+      if (data.activo === false) continue;
+      const uid = resolveUid(docSnap.id, data);
+      try {
+        await setClaims(uid, data.rol || 'barbero', tenantDoc.id);
+        migrados++;
+      } catch { errores++; }
+    }
+  }
+
+  logger.info(`[Migración Claims] migrados=${migrados} errores=${errores}`);
+  return { ok: true, migrados, errores };
+});
 
 // ─────────────────────────────────────────────────────────────────
 //  HELPER: obtener tokens filtrados por rol (jefe/admin) y barbero

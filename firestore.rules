@@ -2,162 +2,315 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Admins iniciales reconocidos siempre (bootstrap para poder inicializar la BD)
-    function esBootstrapAdmin() {
-      return request.auth != null
+    // ═══════════════════════════════════════════════════════════════
+    //  FUNCIONES AUXILIARES
+    //
+    //  Toda la lógica se basa en Custom Claims (JWT de Firebase Auth).
+    //  Los claims son asignados por Cloud Functions y son inmutables
+    //  desde el cliente — eliminan la necesidad de leer Firestore en
+    //  cada evaluación de regla.
+    //
+    //  Estructura de claims esperada:
+    //    { role: 'admin' | 'jefe' | 'barbero', tenantId: string }
+    // ═══════════════════════════════════════════════════════════════
+
+    function autenticado() {
+      return request.auth != null;
+    }
+
+    function uid() {
+      return request.auth.uid;
+    }
+
+    // Lectura segura de claims con valor por defecto vacío
+    function rol() {
+      return request.auth.token.get('role', '');
+    }
+
+    function tenantClaim() {
+      return request.auth.token.get('tenantId', '');
+    }
+
+    // ── Fallback de emergencia (solo para bootstrap) ────────────────
+    // Se mantiene temporalmente durante la migración a Custom Claims.
+    // Eliminar una vez que migrarClaimsExistentes() haya corrido y
+    // todos los admins hayan vuelto a iniciar sesión.
+    function esBootstrap() {
+      return autenticado()
           && request.auth.token.email in [
                'ignaciiio.mate@gmail.com',
                'barrazanicolasfabian@gmail.com'
              ];
     }
 
-    // Barbero activo: bootstrap admin O UID existe en /barberos con activo != false
-    // Usa get('activo', true) para que documentos sin campo activo sean tratados como activos,
-    // igual que la lógica JS (activo !== false).
-    function esBarberoDoc(docData) {
-      return docData.get('activo', true) != false;
-    }
-    function esBarbero() {
-      return esBootstrapAdmin()
-          || (request.auth != null
-              && exists(/databases/$(database)/documents/barberos/$(request.auth.uid))
-              && esBarberoDoc(get(/databases/$(database)/documents/barberos/$(request.auth.uid)).data));
+    // ── Pertenencia a tenant ────────────────────────────────────────
+    function esDeTenant(tid) {
+      return autenticado() && tenantClaim() == tid;
     }
 
-    // Admin/Jefe: bootstrap admin O barbero activo con rol 'admin' o 'jefe'
-    function esAdmin() {
-      return esBootstrapAdmin()
-          || (request.auth != null
-              && exists(/databases/$(database)/documents/barberos/$(request.auth.uid))
-              && esBarberoDoc(get(/databases/$(database)/documents/barberos/$(request.auth.uid)).data)
-              && get(/databases/$(database)/documents/barberos/$(request.auth.uid)).data.get('rol', 'barbero') in ['admin', 'jefe']);
+    // ── Roles (incluye fallback bootstrap para no romper acceso) ────
+    function esStaff(tid) {
+      return (esDeTenant(tid) && rol() in ['admin', 'jefe', 'barbero'])
+          || esBootstrap();
     }
 
-    // ── /barberos ────────────────────────────────────────────────────────────────
-    // Lectura pública para que el widget de reservas cargue la lista de barberos.
-    // Escritura restringida a admins (solo jefe/admin puede crear/borrar barberos).
-    // Auto-registro: un barbero puede crear su propio documento {uid} con campos mínimos
-    // cuando su doc original fue creado con ID auto-generado (no su UID).
+    function esAdmin(tid) {
+      return (esDeTenant(tid) && rol() in ['admin', 'jefe'])
+          || esBootstrap();
+    }
+
+    // Solo 'admin' puede eliminar barberos o cambiar el rol de otros
+    function esAdminEstricto(tid) {
+      return (esDeTenant(tid) && rol() == 'admin')
+          || esBootstrap();
+    }
+
+    // ── Validación de campos ────────────────────────────────────────
+
+    // Verifica que un campo NO fue modificado en un update
+    function sinCambio(campo) {
+      return !(campo in request.resource.data.diff(resource.data).affectedKeys());
+    }
+
+    // Booking público válido: campos mínimos + estado inicial correcto
+    // + no inyecta campos de privilegio
+    function bookingPublicoValido() {
+      return request.resource.data.keys().hasAll(['fecha', 'hora', 'clienteNombre', 'estado'])
+          && request.resource.data.estado in ['Confirmada', 'Pendiente']
+          && !request.resource.data.keys().hasAny(['rol', 'role', 'tenantId', 'adminOverride', 'barberoRol']);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  ELEGANCE — colecciones raíz (tenant legacy/predeterminado)
+    // ═══════════════════════════════════════════════════════════════
+
+    // ── /barberos ──────────────────────────────────────────────────
+    // Lectura pública: widget de reservas necesita listar barberos.
+    // Escritura restringida; un barbero puede actualizar su propio doc
+    // pero NO puede modificar campos sensibles (rol, disponible, comision).
     match /barberos/{barberoId} {
       allow read: if true;
-      allow delete: if esAdmin();
-      allow create: if esAdmin()
-                    || (request.auth != null
-                        && request.auth.uid == barberoId
-                        && request.resource.data.get('activo', true) != false
-                        && request.resource.data.keys().hasAll(['activo', '_mainDocId']));
-      allow update: if esAdmin() || (request.auth != null && request.auth.uid == barberoId);
-
-      // Subcolecciones (configuracion, horarios, etc.)
-      match /{document=**} {
-        allow read: if true;
-        allow write: if esBarbero();
-      }
+      allow create: if esAdmin('elegance');
+      allow update: if esAdmin('elegance')
+                    || (esStaff('elegance')
+                        && uid() == barberoId
+                        && sinCambio('rol')
+                        && sinCambio('disponible')
+                        && sinCambio('comision'));
+      allow delete: if esAdminEstricto('elegance');
     }
 
-    // ── /citas ───────────────────────────────────────────────────────────────────
-    // El flujo público (sin login) puede crear citas, barberos gestionan el resto.
-    // Lectura permitida a cualquier usuario autenticado: barberos ven su agenda,
-    // y el doc de enlace en /barberos/{uid} puede no existir aún en primera sesión.
+    // ── /citas ─────────────────────────────────────────────────────
+    // Creación pública sin auth (widget de reservas online) con
+    // validación estricta de estructura.  Staff puede crear/editar.
+    // Clientes solo pueden cancelar su propia cita.
     match /citas/{citaId} {
-      allow read: if request.auth != null;
-      allow create: if request.resource.data.keys().hasAll(['fecha', 'hora', 'clienteNombre', 'clienteTelefono', 'estado'])
-                    && request.resource.data.estado == 'Confirmado';
-      allow update: if esBarbero()
-                    || (request.auth != null
-                        && resource.data.get('clienteUid', '') == request.auth.uid
-                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado']));
-      allow delete: if esBarbero();
+      allow read: if esStaff('elegance');
+      allow create: if bookingPublicoValido()
+                    || esStaff('elegance');
+      allow update: if esStaff('elegance')
+                    || (autenticado()
+                        && resource.data.get('clienteUid', null) == uid()
+                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado'])
+                        && request.resource.data.estado == 'Cancelada');
+      allow delete: if esAdmin('elegance');
     }
 
-    // ── /servicios ───────────────────────────────────────────────────────────────
-    match /servicios/{doc} {
+    // ── /servicios ─────────────────────────────────────────────────
+    match /servicios/{docId} {
       allow read: if true;
-      allow write: if esBarbero();
+      allow write: if esAdmin('elegance');
     }
 
-    // ── /configuracion ───────────────────────────────────────────────────────────
-    match /configuracion/{doc} {
+    // ── /bloqueos ──────────────────────────────────────────────────
+    match /bloqueos/{docId} {
       allow read: if true;
-      allow write: if esBarbero();
+      allow write: if esStaff('elegance');
     }
 
-    // ── /bloqueos ────────────────────────────────────────────────────────────────
-    match /bloqueos/{doc} {
+    // ── /premios ───────────────────────────────────────────────────
+    match /premios/{docId} {
       allow read: if true;
-      allow write: if esBarbero();
+      allow write: if esAdmin('elegance');
     }
 
-    // ── /premios ─────────────────────────────────────────────────────────────────
-    // Solo admin/jefe puede crear o borrar premios; lectura pública para el dashboard.
-    match /premios/{doc} {
-      allow read: if true;
-      allow write: if esAdmin();
-    }
-
-    // ── /fcm_tokens ──────────────────────────────────────────────────────────────
-    // Cualquier usuario autenticado puede registrar/actualizar su token de push.
-    match /fcm_tokens/{tokenId} {
-      allow read: if esBarbero();
-      allow write: if request.auth != null;
-    }
-
-    // ── /lookbook ────────────────────────────────────────────────────────────────
-    match /lookbook/{docId} {
-      allow read: if true;
-      allow write: if esBarbero();
-    }
-
-    // ── /productos ───────────────────────────────────────────────────────────────
+    // ── /productos ─────────────────────────────────────────────────
     match /productos/{docId} {
       allow read: if true;
-      allow write: if esBarbero();
+      allow write: if esAdmin('elegance');
     }
 
-    // ── /users ───────────────────────────────────────────────────────────────────
-    // Cada cliente accede solo a su propio documento; barberos leen todos.
-    match /users/{userId} {
-      allow read:   if request.auth != null && (request.auth.uid == userId || esBarbero());
-      allow create: if request.auth != null && request.auth.uid == userId;
-      allow update: if request.auth != null && (request.auth.uid == userId || esBarbero());
-      allow delete: if request.auth != null && (request.auth.uid == userId || esAdmin());
-    }
-
-    // ── /tenants ─────────────────────────────────────────────────────────────────
-    // Perfil y configuración del local (multi-tenant SaaS).
-    match /tenants/{tenantId} {
+    // ── /lookbook ──────────────────────────────────────────────────
+    match /lookbook/{docId} {
       allow read: if true;
-      allow write: if esAdmin();
-
-      match /{document=**} {
-        allow read: if true;
-        allow write: if esAdmin();
-      }
+      allow write: if esStaff('elegance');
     }
 
-    // ── /admin_notes ─────────────────────────────────────────────────────────────
-    // Notas internas de CRM; solo visibles para el equipo.
+    // ── /settings ──────────────────────────────────────────────────
+    // Configuración del local: solo staff la lee, solo admin escribe.
+    match /settings/{docId} {
+      allow read: if esStaff('elegance');
+      allow write: if esAdmin('elegance');
+    }
+
+    // ── /gastos ────────────────────────────────────────────────────
+    // Datos financieros: acceso exclusivo a admin/jefe.
+    match /gastos/{docId} {
+      allow read, write: if esAdmin('elegance');
+    }
+
+    // ── /config ────────────────────────────────────────────────────
+    // Configuración UI (activa productos, etc.).
+    match /config/{docId} {
+      allow read: if true;
+      allow write: if esAdmin('elegance');
+    }
+
+    // ── /users ─────────────────────────────────────────────────────
+    // Un cliente accede solo a su propio doc.
+    // Staff puede leer todos; nadie puede modificar role/tenantId/rol.
+    match /users/{userId} {
+      allow read: if autenticado() && (uid() == userId || esStaff('elegance'));
+      allow create: if autenticado()
+                    && uid() == userId
+                    && !request.resource.data.keys().hasAny(['role', 'tenantId', 'rol', 'adminOverride']);
+      allow update: if autenticado()
+                    && (uid() == userId || esStaff('elegance'))
+                    && sinCambio('role')
+                    && sinCambio('tenantId')
+                    && sinCambio('rol');
+      allow delete: if esAdmin('elegance');
+    }
+
+    // ── /admin_notes ───────────────────────────────────────────────
     match /admin_notes/{docId} {
-      allow read, write: if esBarbero();
+      allow read, write: if esStaff('elegance');
     }
 
-    // ── /barber_settings (legacy) ────────────────────────────────────────────────
+    // ── /fcm_tokens ────────────────────────────────────────────────
+    // Cualquier usuario autenticado puede registrar su token push.
+    match /fcm_tokens/{tokenId} {
+      allow read: if esStaff('elegance');
+      allow write: if autenticado();
+    }
+
+    // ── /barber_settings (legacy) ───────────────────────────────────
     match /barber_settings/{docId} {
       allow read: if true;
-      allow write: if esAdmin();
+      allow write: if esAdmin('elegance');
     }
 
-    // ── /settings ────────────────────────────────────────────────────────────────
-    // Configuración general del local (nombre, dirección, horario, redes sociales).
-    match /settings/{docId} {
-      allow read: if esBarbero();
-      allow write: if esAdmin();
-    }
+    // ═══════════════════════════════════════════════════════════════
+    //  MULTI-TENANT — /tenants/{tid}/...
+    //  El tenantId del usuario (claim) debe coincidir con {tid}.
+    // ═══════════════════════════════════════════════════════════════
 
-    // ── /gastos ──────────────────────────────────────────────────────────────────
-    // Registro de egresos; datos financieros sensibles, solo visibles para admin/jefe.
-    match /gastos/{docId} {
-      allow read, write: if esAdmin();
+    match /tenants/{tid} {
+      allow read: if true;
+      allow write: if esAdmin(tid);
+
+      // ── barberos ─────────────────────────────────────────────────
+      match /barberos/{barberoId} {
+        allow read: if true;
+        allow create: if esAdmin(tid);
+        allow update: if esAdmin(tid)
+                      || (esStaff(tid)
+                          && uid() == barberoId
+                          && sinCambio('rol')
+                          && sinCambio('disponible')
+                          && sinCambio('comision'));
+        allow delete: if esAdminEstricto(tid);
+      }
+
+      // ── citas (panel admin) ───────────────────────────────────────
+      match /citas/{citaId} {
+        allow read: if esStaff(tid);
+        allow create: if bookingPublicoValido() || esStaff(tid);
+        allow update: if esStaff(tid)
+                      || (autenticado()
+                          && resource.data.get('clienteUid', null) == uid()
+                          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado'])
+                          && request.resource.data.estado == 'Cancelada');
+        allow delete: if esAdmin(tid);
+      }
+
+      // ── bookings (flujo público web) ──────────────────────────────
+      match /bookings/{bookingId} {
+        allow read: if esStaff(tid);
+        allow create: if bookingPublicoValido() || esStaff(tid);
+        allow update: if esStaff(tid)
+                      || (autenticado()
+                          && resource.data.get('clienteUid', null) == uid()
+                          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado'])
+                          && request.resource.data.estado == 'Cancelada');
+        allow delete: if esAdmin(tid);
+      }
+
+      // ── servicios ─────────────────────────────────────────────────
+      match /servicios/{docId} {
+        allow read: if true;
+        allow write: if esAdmin(tid);
+      }
+
+      // ── bloqueos ──────────────────────────────────────────────────
+      match /bloqueos/{docId} {
+        allow read: if true;
+        allow write: if esStaff(tid);
+      }
+
+      // ── premios ───────────────────────────────────────────────────
+      match /premios/{docId} {
+        allow read: if true;
+        allow write: if esAdmin(tid);
+      }
+
+      // ── productos ─────────────────────────────────────────────────
+      match /productos/{docId} {
+        allow read: if true;
+        allow write: if esAdmin(tid);
+      }
+
+      // ── lookbook ──────────────────────────────────────────────────
+      match /lookbook/{docId} {
+        allow read: if true;
+        allow write: if esStaff(tid);
+      }
+
+      // ── settings ──────────────────────────────────────────────────
+      match /settings/{docId} {
+        allow read: if esStaff(tid);
+        allow write: if esAdmin(tid);
+      }
+
+      // ── gastos ────────────────────────────────────────────────────
+      match /gastos/{docId} {
+        allow read, write: if esAdmin(tid);
+      }
+
+      // ── config ────────────────────────────────────────────────────
+      match /config/{docId} {
+        allow read: if true;
+        allow write: if esAdmin(tid);
+      }
+
+      // ── users ─────────────────────────────────────────────────────
+      match /users/{userId} {
+        allow read: if autenticado() && (uid() == userId || esStaff(tid));
+        allow create: if autenticado()
+                      && uid() == userId
+                      && !request.resource.data.keys().hasAny(['role', 'tenantId', 'rol', 'adminOverride']);
+        allow update: if autenticado()
+                      && (uid() == userId || esStaff(tid))
+                      && sinCambio('role')
+                      && sinCambio('tenantId')
+                      && sinCambio('rol');
+        allow delete: if esAdmin(tid);
+      }
+
+      // ── admin_notes ───────────────────────────────────────────────
+      match /admin_notes/{docId} {
+        allow read, write: if esStaff(tid);
+      }
     }
   }
 }
