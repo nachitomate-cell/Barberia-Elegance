@@ -24,7 +24,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
   <link href="/output.css" rel="stylesheet">
 
@@ -77,6 +77,54 @@
     .tenant-gitana .spinner {
       border-color: rgba(244,114,182,0.25);
       border-top-color: #f472b6;
+    }
+    /* ────────────────────────────────────────────────────────── */
+
+    /* ── Utilidades globales ─────────────────────────────────── */
+    .font-display { font-family: 'Playfair Display', Georgia, serif; }
+
+    /* Separador ornamental — oculto por defecto, activo en Ferraza */
+    .sep-ornamental {
+      display: none; align-items: center; gap: 0.875rem; user-select: none;
+    }
+    .sep-ornamental::before, .sep-ornamental::after {
+      content: ''; flex: 1; height: 1px;
+      background: linear-gradient(to right, transparent, rgba(255,255,255,0.12));
+    }
+    .sep-ornamental::after { background: linear-gradient(to left, transparent, rgba(255,255,255,0.12)); }
+    .sep-ornamental-gem { font-size: 0.5rem; color: rgba(255,255,255,0.25); letter-spacing: 0.32em; }
+
+    /* ── Barbería Ferraza — Premium Dark monocromático ────────── */
+    .tenant-ferraza { --gold: #e2e8f0; --gold-dim: rgba(226,232,240,0.20); }
+    .tenant-ferraza .ambient-glow {
+      background: radial-gradient(circle, rgba(226,232,240,0.025) 0%, transparent 65%);
+    }
+    .tenant-ferraza .logo-ring {
+      border-color: rgba(226,232,240,0.35);
+      box-shadow: 0 0 0 1px rgba(226,232,240,0.05), 0 0 18px rgba(226,232,240,0.07);
+    }
+    .tenant-ferraza .sep-ornamental  { display: flex; }
+    .tenant-ferraza .gold-divider    { display: none; }
+    .tenant-ferraza .tab-btn.active  { color: #e2e8f0; border-color: rgba(226,232,240,0.55); }
+    .tenant-ferraza .field {
+      border-radius: 0.5rem;
+      border-color: rgba(200,210,220,0.14);
+    }
+    .tenant-ferraza .field:focus {
+      border-color: rgba(226,232,240,0.38);
+      box-shadow: 0 0 0 3px rgba(226,232,240,0.05);
+    }
+    .tenant-ferraza .btn-primary {
+      border-radius: 0.5rem;
+      border-color: rgba(226,232,240,0.4);
+      color: #e2e8f0;
+      box-shadow: none;
+    }
+    .tenant-ferraza .btn-primary:hover  { background: rgba(226,232,240,0.06); box-shadow: none; }
+    .tenant-ferraza .btn-google         { border-radius: 0.5rem; }
+    .tenant-ferraza .spinner {
+      border-color: rgba(226,232,240,0.18);
+      border-top-color: #e2e8f0;
     }
     /* ────────────────────────────────────────────────────────── */
 
@@ -238,7 +286,8 @@
       <img id="shopLogo" src="" alt=""
         class="w-[76px] h-[76px] rounded-full object-cover logo-ring mb-5">
       <div class="gold-divider mb-4"></div>
-      <h1 id="heroClubTitle" class="text-2xl font-bold tracking-tight text-white text-center leading-tight"></h1>
+      <div class="sep-ornamental mb-4"><span class="sep-ornamental-gem">✦ &nbsp; ✦ &nbsp; ✦</span></div>
+      <h1 id="heroClubTitle" class="font-display text-2xl font-bold tracking-tight text-white text-center leading-tight"></h1>
       <p id="heroClubSub" class="text-[11px] font-semibold text-gray-500 mt-1.5 text-center uppercase tracking-[0.2em]"></p>
     </div>
 

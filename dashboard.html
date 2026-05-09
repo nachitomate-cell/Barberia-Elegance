@@ -145,6 +145,69 @@
     }
     /* ────────────────────────────────────────────────────────── */
 
+    /* ── Barbería Ferraza — Premium Dark monocromático ────────── */
+    .tenant-ferraza {
+      --gold:      #e2e8f0;
+      --gold-dim:  rgba(226,232,240,0.20);
+      --gold-glow: rgba(226,232,240,0.05);
+    }
+    /* Navegación inferior: sin halo */
+    .tenant-ferraza .nav-tab.active .nav-icon { filter: none !important; }
+    /* Hero headline: serif, sin sombra */
+    .tenant-ferraza #heroLine2 {
+      font-family: 'Playfair Display', Georgia, serif !important;
+      text-shadow: none !important;
+    }
+    /* Barra de sellos: sin resplandor dorado */
+    .tenant-ferraza #stampsBar { box-shadow: none !important; }
+    /* Ícono de premio: plateado */
+    .tenant-ferraza .premio-icon { color: rgba(226,232,240,0.65) !important; }
+    /* Chips de estado en historial */
+    .tenant-ferraza .cita-estado-cancelada { color: #6b7280 !important; }
+    .tenant-ferraza .cita-estado-pendiente  { color: #9ca3af !important; }
+    /* Chip estado próxima cita */
+    .tenant-ferraza .proxima-estado-chip {
+      background: rgba(226,232,240,0.08) !important;
+      border-radius: 0.375rem !important;
+    }
+    /* Botón reagendar en próxima cita */
+    .reagendar-proxima-btn {
+      border-color: rgba(201,168,76,0.3);
+      background: rgba(201,168,76,0.07);
+    }
+    .tenant-ferraza .reagendar-proxima-btn {
+      border-color: rgba(226,232,240,0.18) !important;
+      background: rgba(226,232,240,0.04) !important;
+    }
+    /* Botón reagendar en historial */
+    .reagendar-hist-btn { color: rgba(201,168,76,0.6); }
+    .reagendar-hist-btn:hover { background: rgba(201,168,76,0.12); }
+    .tenant-ferraza .reagendar-hist-btn { color: rgba(226,232,240,0.5) !important; }
+    .tenant-ferraza .reagendar-hist-btn:hover { background: rgba(226,232,240,0.08) !important; }
+    /* Clases globales: quitar glow para tono monocromático */
+    .tenant-ferraza .text-gold   { text-shadow: none !important; }
+    .tenant-ferraza .border-gold { box-shadow: none !important; }
+    /* Hero glow spot y membership → plateado ultrasuave */
+    .tenant-ferraza .hero-glow-spot {
+      background: radial-gradient(circle, rgba(226,232,240,0.04) 0%, transparent 65%) !important;
+    }
+    .tenant-ferraza .membership-glow {
+      background: radial-gradient(circle, rgba(226,232,240,0.03) 0%, transparent 70%) !important;
+    }
+    .tenant-ferraza #membershipWatermark { color: rgba(226,232,240,0.04) !important; }
+    /* PWA install card → silver */
+    .tenant-ferraza #pwaBigInstallCard {
+      background: linear-gradient(to right, rgba(226,232,240,0.05), rgba(226,232,240,0.02)) !important;
+      border-color: rgba(226,232,240,0.18) !important;
+      box-shadow: none !important;
+    }
+    .tenant-ferraza .pwa-icon-bg {
+      background: rgba(226,232,240,0.08) !important;
+      border-color: rgba(226,232,240,0.18) !important;
+      box-shadow: none !important;
+    }
+    /* ────────────────────────────────────────────────────────── */
+
     body {
       background-color: #050505;
       color: #f8fafc;
@@ -390,7 +453,7 @@
       <div class="mx-4 mb-5 rounded-2xl bg-[#111115] border border-white/8 px-5 py-4 flex items-center gap-4">
         <!-- Product icon -->
         <div class="w-14 h-14 rounded-full overflow-hidden border border-white/12 flex-shrink-0 bg-[#1a1a1a] flex items-center justify-center">
-          <i class='ph-fill ph-trophy text-yellow-600 text-2xl'></i>
+          <i class='ph-fill ph-trophy premio-icon text-yellow-600 text-2xl'></i>
         </div>
         <div class="flex-1 min-w-0">
           <p class="text-[9px] font-black uppercase tracking-widest mb-0.5" style="color:var(--gold);">Próximo Premio</p>
@@ -1355,13 +1418,13 @@ async function cargarCitasUsuario(user) {
             </div>
             <div class="text-right shrink-0">
               <p class="text-xs">${enTiempo}</p>
-              <span class="inline-block mt-1.5 text-[9px] font-bold px-2 py-1 rounded-full" style="background:rgba(201,168,76,0.15);color:var(--gold);">${proxima.estado || 'Confirmada'}</span>
+              <span class="proxima-estado-chip inline-block mt-1.5 text-[9px] font-bold px-2 py-1 rounded-md" style="background:rgba(201,168,76,0.15);color:var(--gold);">${proxima.estado || 'Confirmada'}</span>
             </div>
           </div>
           <div class="mt-3 grid grid-cols-2 gap-2">
             <button onclick="abrirModalReagendar('${proxima.id}')"
-              class="flex items-center justify-center gap-1.5 text-xs font-semibold py-2 rounded-xl border active:scale-[0.98] transition-all"
-              style="color:var(--gold);border-color:rgba(201,168,76,0.3);background:rgba(201,168,76,0.07);">
+              class="reagendar-proxima-btn flex items-center justify-center gap-1.5 text-xs font-semibold py-2 rounded-xl border active:scale-[0.98] transition-all"
+              style="color:var(--gold);">
               <i class="ph-bold ph-calendar-dots text-sm"></i> Reagendar
             </button>
             <button onclick="abrirModalCancelar('${proxima.id}')"
@@ -1402,17 +1465,16 @@ async function cargarCitasUsuario(user) {
     html += `<div class="space-y-2">`;
     for (const c of sorted.slice(0, 8)) {
       const esFutura = futuras.some(f => f.id === c.id);
-      const colorE   = c.estado === 'Completada' ? 'text-green-400'
-                     : c.estado === 'Cancelada'  ? 'text-red-400'
-                     : 'text-yellow-400';
+      const colorE   = c.estado === 'Completada' ? 'text-green-400 cita-estado-completada'
+                     : c.estado === 'Cancelada'  ? 'text-red-400 cita-estado-cancelada'
+                     : 'text-white/50 cita-estado-pendiente';
       const iconE    = c.estado === 'Completada' ? 'ph-check-circle'
                      : c.estado === 'Cancelada'  ? 'ph-x-circle'
                      : 'ph-clock';
       const cancelBtn = esFutura
         ? `<div class="flex gap-1 shrink-0">
              <button onclick="abrirModalReagendar('${c.id}')" title="Reagendar cita"
-               class="w-7 h-7 rounded-lg flex items-center justify-center transition-all active:scale-90 hover:bg-[rgba(201,168,76,0.15)]"
-               style="color:rgba(201,168,76,0.6);">
+               class="reagendar-hist-btn w-7 h-7 rounded-lg flex items-center justify-center transition-all active:scale-90">
                <i class="ph-bold ph-calendar-dots text-sm"></i>
              </button>
              <button onclick="abrirModalCancelar('${c.id}')" title="Cancelar cita"

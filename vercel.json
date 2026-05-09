@@ -66,6 +66,14 @@
       "destination": "/gestion-interna/agenda/index.html"
     },
     {
+      "source": "/gestion-interna/login",
+      "destination": "/gestion-interna/login/index.html"
+    },
+    {
+      "source": "/gestion-interna/login/:path*",
+      "destination": "/gestion-interna/login/index.html"
+    },
+    {
       "source": "/gestion-interna/servicios",
       "destination": "/gestion-interna/index.html"
     },
