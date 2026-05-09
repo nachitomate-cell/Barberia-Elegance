@@ -514,6 +514,72 @@
       background: rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.06) !important;
       border-color: rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.15) !important;
     }
+
+    /* ═══════════════════════════════════════════════════════════════
+       ELEGANCE — Golden Booking Theme (default tenant)
+       ═══════════════════════════════════════════════════════════════ */
+
+    /* Barra de progreso dorada */
+    #progressBar {
+      background-color: #D4AF37 !important;
+      box-shadow: none !important;
+    }
+    .tenant-ferraza #progressBar {
+      background-color: var(--neon-clr) !important;
+      box-shadow: 0 0 8px rgba(var(--neon-r),var(--neon-g),var(--neon-b),0.4),
+                  0 0 15px rgba(var(--neon-r),var(--neon-g),var(--neon-b),0.2) !important;
+    }
+
+    /* Botón Continuar dorado */
+    #btnContinue {
+      background-color: #D4AF37 !important;
+      color: #050505 !important;
+    }
+    .tenant-ferraza #btnContinue {
+      background-color: #ffffff !important;
+      color: #050505 !important;
+    }
+
+    /* Cards de servicio seleccionadas: borde y fondo dorado */
+    .service-option.border-neon {
+      border-color: #D4AF37 !important;
+      box-shadow: none !important;
+    }
+    .service-option.bg-brand-neon\/10 {
+      background-color: rgba(212,175,55,0.08) !important;
+    }
+    .barber-option.border-neon {
+      border-color: #D4AF37 !important;
+      box-shadow: none !important;
+    }
+    .barber-option.bg-brand-neon\/10 {
+      background-color: rgba(212,175,55,0.08) !important;
+    }
+    .tenant-ferraza .service-option.border-neon,
+    .tenant-ferraza .barber-option.border-neon {
+      border-color: var(--neon-clr) !important;
+      box-shadow: 0 0 15px rgba(var(--neon-r),var(--neon-g),var(--neon-b),0.15) !important;
+    }
+    .tenant-ferraza .service-option.bg-brand-neon\/10,
+    .tenant-ferraza .barber-option.bg-brand-neon\/10 {
+      background-color: rgba(var(--neon-r),var(--neon-g),var(--neon-b),0.1) !important;
+    }
+
+    /* WhatsApp CTA: sólido verde para elegance */
+    #waBtnLink {
+      background-color: #25D366 !important;
+      color: #ffffff !important;
+      border-color: #25D366 !important;
+      box-shadow: 0 4px 20px rgba(37,211,102,0.35) !important;
+    }
+    #waBtnLink i { filter: none !important; color: #ffffff !important; }
+    .tenant-ferraza #waBtnLink {
+      background-color: rgba(37,211,102,0.1) !important;
+      color: #25D366 !important;
+      border-color: #25D366 !important;
+      box-shadow: 0 0 20px rgba(37,211,102,0.3) !important;
+    }
+    .tenant-ferraza #waBtnLink i { color: #25D366 !important; }
   </style>
 </head>
 
@@ -910,23 +976,42 @@
         
         // Grid interno para los servicios de esta categoría
         const innerGrid = document.createElement('div');
-        innerGrid.className = "grid grid-cols-2 gap-4";
-        
+        const _isEleganceSvc = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance';
+        innerGrid.className = _isEleganceSvc ? 'flex flex-col gap-2' : 'grid grid-cols-2 gap-4';
+
         categories[cat].forEach((s, i) => {
           const icon = s.icono || _ICONS[i % _ICONS.length];
-          innerGrid.innerHTML += `
-            <button onclick="selectService(this)" data-service-id="${s.id}" data-category="${cat}"
-              class="service-option relative flex flex-col items-center justify-center p-6 rounded-2xl bg-[#0a0a0d] border border-brand-accent/20 shadow-sm hover:border-brand-neon/50 hover:shadow-[0_0_15px_rgba(255,255,255,0.15)] active:scale-95 text-center transition-all overflow-hidden group">
-              <div class="absolute inset-0 bg-brand-neon/0 group-hover:bg-brand-neon/5 transition-colors"></div>
-              <div class="icon-bg w-14 h-14 rounded-full bg-[#111115] border border-brand-accent/20 shadow-[0_0_10px_rgba(255,255,255,0.05)] flex items-center justify-center mb-4 transition-all relative z-10">
-                <i class="icon-svg ph ${icon} text-3xl text-brand-neon drop-shadow-[0_0_5px_rgba(255,255,255,0.35)] transition-all"></i>
-              </div>
-              <span class="svc-name font-bold text-gray-200 text-sm mb-1 relative z-10 tracking-wide">${s.nombre}</span>
-              <span class="text-[14px] font-bold text-neon price-tag transition-all mb-1 relative z-10">$${s.precio.toLocaleString('es-CL')}</span>
-              <span class="flex items-center gap-1 text-[11px] font-medium text-brand-neon/60 duration-tag transition-all relative z-10">
-                <i class="ph ph-clock text-[13px]"></i>${formatDuration(s.duracion)}
-              </span>
-            </button>`;
+          if (_isEleganceSvc) {
+            innerGrid.innerHTML += `
+              <button onclick="selectService(this)" data-service-id="${s.id}" data-category="${cat}"
+                class="service-option relative flex flex-row items-center gap-4 p-4 rounded-2xl bg-[#0a0a0d] border border-brand-accent/20 active:scale-[0.99] transition-all overflow-hidden group w-full text-left">
+                <div class="icon-bg w-11 h-11 rounded-full bg-[#111115] border border-brand-accent/20 flex items-center justify-center shrink-0 transition-all">
+                  <i class="icon-svg ph ${icon} text-xl text-brand-neon transition-all"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <span class="svc-name font-bold text-gray-200 text-sm block truncate tracking-wide">${s.nombre}</span>
+                  <div class="flex items-center gap-3 mt-0.5">
+                    <span class="text-[13px] font-bold text-neon price-tag">\$${s.precio.toLocaleString('es-CL')}</span>
+                    <span class="flex items-center gap-1 text-[11px] font-medium text-brand-neon/60 duration-tag"><i class="ph ph-clock text-[12px]"></i>${formatDuration(s.duracion)}</span>
+                  </div>
+                </div>
+                <div class="svc-radio w-5 h-5 rounded-full border-2 shrink-0 transition-all" style="border-color:rgba(212,175,55,0.4)"></div>
+              </button>`;
+          } else {
+            innerGrid.innerHTML += `
+              <button onclick="selectService(this)" data-service-id="${s.id}" data-category="${cat}"
+                class="service-option relative flex flex-col items-center justify-center p-6 rounded-2xl bg-[#0a0a0d] border border-brand-accent/20 shadow-sm hover:border-brand-neon/50 hover:shadow-[0_0_15px_rgba(255,255,255,0.15)] active:scale-95 text-center transition-all overflow-hidden group">
+                <div class="absolute inset-0 bg-brand-neon/0 group-hover:bg-brand-neon/5 transition-colors"></div>
+                <div class="icon-bg w-14 h-14 rounded-full bg-[#111115] border border-brand-accent/20 shadow-[0_0_10px_rgba(255,255,255,0.05)] flex items-center justify-center mb-4 transition-all relative z-10">
+                  <i class="icon-svg ph ${icon} text-3xl text-brand-neon drop-shadow-[0_0_5px_rgba(255,255,255,0.35)] transition-all"></i>
+                </div>
+                <span class="svc-name font-bold text-gray-200 text-sm mb-1 relative z-10 tracking-wide">${s.nombre}</span>
+                <span class="text-[14px] font-bold text-neon price-tag transition-all mb-1 relative z-10">\$${s.precio.toLocaleString('es-CL')}</span>
+                <span class="flex items-center gap-1 text-[11px] font-medium text-brand-neon/60 duration-tag transition-all relative z-10">
+                  <i class="ph ph-clock text-[13px]"></i>${formatDuration(s.duracion)}
+                </span>
+              </button>`;
+          }
         });
         
         catContainer.appendChild(innerGrid);
@@ -1021,10 +1106,23 @@
          grid.innerHTML = '<p class="text-sm text-gray-500">No hay barberos disponibles en este momento.</p>';
          return;
       }
-      const isAnySelected = window._selectedBarberId === 'any' || (!window._selectedBarberId && window._selectedBarber === null);
+      const _isElegance = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance';
       const anyStateClass = (window._selectedBarberId === 'any' || window._selectedBarber === 'any') ? 'border-neon bg-brand-neon/10' : 'border-brand-accent/20 bg-[#0a0a0d]';
       const _profLabel = window.CURRENT_TENANT_ID === 'gitana' ? 'Cualquier profesional disponible' : 'Cualquier barbero disponible';
-      const anyCard = `
+
+      const anyCard = _isElegance ? `
+        <button onclick="selectBarber(this, 'any', 'any')" class="barber-option relative flex flex-row items-center gap-4 p-4 rounded-2xl border-2 ${anyStateClass} active:scale-[0.99] transition-all overflow-hidden group w-full text-left">
+          <div class="w-12 h-12 rounded-full flex items-center justify-center border border-white/10 shrink-0 bg-[#111115]"><i class="ph-fill ph-shuffle text-xl text-gray-400"></i></div>
+          <div class="flex-1 min-w-0">
+            <span class="barber-name font-bold text-gray-100 text-base block">Sin preferencia</span>
+            <p class="text-xs text-gray-500 font-medium mt-0.5">${_profLabel}</p>
+            <span class="flex items-center gap-1 text-[12px] font-bold text-brand-neon mt-1">
+              <i class="ph-fill ph-check-circle text-[14px]"></i>Primer horario disponible
+            </span>
+          </div>
+          <div class="barber-radio w-5 h-5 rounded-full border-2 shrink-0 transition-all" style="border-color:rgba(212,175,55,0.4)"></div>
+        </button>
+      ` : `
         <button onclick="selectBarber(this, 'any', 'any')" class="barber-option relative flex w-full flex-col items-center justify-center p-6 rounded-2xl border-2 ${anyStateClass} shadow-sm hover:border-brand-neon/50 hover:shadow-[0_0_15px_rgba(255,255,255,0.15)] active:scale-95 text-center transition-all overflow-hidden group">
           <div class="absolute inset-0 bg-brand-neon/0 group-hover:bg-brand-neon/5 transition-colors"></div>
           <div class="w-20 h-20 rounded-full flex items-center justify-center border border-[#F9E7B3]/60 shadow-[0_0_15px_rgba(249,231,179,0.3)] mb-4 relative z-10 bg-[#111115]"><i class="ph-fill ph-shuffle text-3xl text-gray-400"></i></div>
@@ -1038,42 +1136,63 @@
       `;
 
       grid.innerHTML = anyCard + barberos.map(b => {
-        const fotoHTML = b.foto
+        const fotoHTMLElegance = b.foto
+          ? `<img src="${b.foto}" alt="Foto de ${b.nombre}" class="w-12 h-12 rounded-full object-cover border border-white/10 shrink-0 bg-[#111115]">`
+          : `<div class="w-12 h-12 rounded-full flex items-center justify-center border border-white/10 shrink-0 bg-[#111115]"><i class="ph-fill ph-user text-xl text-gray-400"></i></div>`;
+        const fotoHTMLDefault = b.foto
           ? `<img src="${b.foto}" alt="Foto de ${b.nombre}" class="w-20 h-20 rounded-full object-cover border border-[#F9E7B3]/60 shadow-[0_0_15px_rgba(249,231,179,0.3)] mb-4 relative z-10 bg-[#111115]">`
           : `<div class="w-20 h-20 rounded-full flex items-center justify-center border border-[#F9E7B3]/60 shadow-[0_0_15px_rgba(249,231,179,0.3)] mb-4 relative z-10 bg-[#111115]"><i class="ph-fill ph-user text-3xl text-gray-400"></i></div>`;
 
         const isSelected = window._selectedBarber === b.nombre;
         const stateClass = isSelected ? 'border-neon bg-brand-neon/10' : 'border-brand-accent/20 bg-[#0a0a0d]';
 
-        const especialidadHTML = b.especialidad
-          ? `<p class="text-xs text-gray-400 font-medium mb-2 relative z-10 uppercase tracking-widest">${b.especialidad}</p>`
-          : '';
+        const especialidadElegance = b.especialidad
+          ? `<p class="text-xs text-gray-500 font-medium mt-0.5">${b.especialidad}</p>` : '';
+        const especialidadDefault = b.especialidad
+          ? `<p class="text-xs text-gray-400 font-medium mb-2 relative z-10 uppercase tracking-widest">${b.especialidad}</p>` : '';
 
         const disponibilidadString = b.disponible !== false ? 'Disponible para reservas' : 'Agenda llena hoy';
         const isAvailableIcon = b.disponible !== false ? 'check-circle' : 'x-circle';
 
+        if (_isElegance) {
+          return `
+          <button onclick="selectBarber(this, '${b.id}', '${b.nombre}')" class="barber-option relative flex flex-row items-center gap-4 p-4 rounded-2xl border-2 ${stateClass} active:scale-[0.99] transition-all overflow-hidden group w-full text-left">
+            ${fotoHTMLElegance}
+            <div class="flex-1 min-w-0">
+              <span class="barber-name font-bold text-gray-100 text-base block truncate">${b.nombre}</span>
+              ${especialidadElegance}
+              <span class="flex items-center gap-1 text-[12px] font-bold text-brand-neon mt-1">
+                <i class="ph-fill ph-${isAvailableIcon} text-[14px]"></i>${disponibilidadString}
+              </span>
+            </div>
+            <div class="barber-radio w-5 h-5 rounded-full border-2 shrink-0 transition-all" style="border-color:rgba(212,175,55,0.4)"></div>
+          </button>`;
+        }
         return `
         <button onclick="selectBarber(this, '${b.id}', '${b.nombre}')" class="barber-option relative flex w-full flex-col items-center justify-center p-6 rounded-2xl border-2 ${stateClass} shadow-sm hover:border-brand-neon/50 hover:shadow-[0_0_15px_rgba(255,255,255,0.15)] active:scale-95 text-center transition-all overflow-hidden group">
           <div class="absolute inset-0 bg-brand-neon/0 group-hover:bg-brand-neon/5 transition-colors"></div>
-          ${fotoHTML}
+          ${fotoHTMLDefault}
           <span class="barber-name font-bold text-gray-100 text-lg mb-0.5 relative z-10 tracking-wide">${b.nombre}</span>
-          ${especialidadHTML}
+          ${especialidadDefault}
           <span class="flex items-center gap-1.5 text-[13px] font-bold text-brand-neon relative z-10 mt-1">
             <i class="ph-fill ph-${isAvailableIcon} text-[16px]"></i>
             ${disponibilidadString}
           </span>
         </button>
-      `}).join('');
-      
+      `;}).join('');
     }
 
     function selectBarber(btn, id, nombre) {
       document.querySelectorAll('.barber-option').forEach(el => {
         el.classList.replace('border-neon', 'border-brand-accent/20');
         el.classList.replace('bg-brand-neon/10', 'bg-[#0a0a0d]');
+        const radio = el.querySelector('.barber-radio');
+        if (radio) { radio.style.background = 'transparent'; radio.style.borderColor = 'rgba(212,175,55,0.4)'; }
       });
       btn.classList.replace('border-brand-accent/20', 'border-neon');
       btn.classList.replace('bg-[#0a0a0d]', 'bg-brand-neon/10');
+      const selRadio = btn.querySelector('.barber-radio');
+      if (selRadio) { selRadio.style.background = '#D4AF37'; selRadio.style.borderColor = '#D4AF37'; }
 
       if (window._selectedBarberId !== id) selectedTimeStr = null;
       window._selectedBarber = nombre;
@@ -1198,7 +1317,9 @@
     async function renderHours(customConfig = null) {
       if (!selectedServiceObj) return;
 
+      const _isEleganceHr = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance';
       const grid = document.getElementById('hoursGrid');
+      grid.className = _isEleganceHr ? 'w-full flex flex-col gap-0' : 'flex flex-wrap gap-2.5';
       grid.innerHTML = `
         <div class="h-10 w-20 bg-white/5 rounded-[1rem] animate-pulse"></div>
         <div class="h-10 w-20 bg-white/5 rounded-[1rem] animate-pulse"></div>
@@ -1268,14 +1389,44 @@
         return;
       }
 
-      let firstAvailableBtn = null;
-      hours.forEach(h => {
-        if (h.occupied) {
-          grid.innerHTML += `<button disabled class="px-6 py-3 rounded-[1rem] border border-white/5 bg-[#0a0a0d] text-[15px] font-medium text-gray-700 line-through pointer-events-none opacity-30">${h.time}</button>`;
-        } else {
-          grid.innerHTML += `<button onclick="selectTime(this, '${h.time}')" class="time-pill px-6 py-3 rounded-[1rem] border border-brand-accent/20 bg-[#0a0a0d] shadow-[0_0_5px_rgba(0,0,0,0.5)] text-[15px] font-bold text-gray-300 transition-all active:scale-95 hover:border-neon hover:shadow-[0_0_10px_rgba(255,255,255,0.15)] hover:text-neon focus:outline-none">${h.time}</button>`;
-        }
-      });
+      if (_isEleganceHr) {
+        const hourGroups = [
+          { label: 'Mañana', hours: hours.filter(h => parseInt(h.time) < 12) },
+          { label: 'Tarde',  hours: hours.filter(h => { const hr = parseInt(h.time); return hr >= 12 && hr < 18; }) },
+          { label: 'Noche',  hours: hours.filter(h => parseInt(h.time) >= 18) },
+        ];
+        hourGroups.forEach(({ label, hours: groupHours }) => {
+          if (!groupHours.length) return;
+          const section = document.createElement('div');
+          section.className = 'mb-5 w-full';
+          const subGrid = document.createElement('div');
+          subGrid.className = 'grid grid-cols-3 gap-2';
+          section.innerHTML = `<p class="text-xs font-bold text-gray-600 uppercase tracking-widest mb-2">${label}</p>`;
+          groupHours.forEach(h => {
+            const pill = document.createElement('button');
+            if (h.occupied) {
+              pill.disabled = true;
+              pill.className = 'px-3 py-2.5 rounded-xl border border-white/5 bg-[#0a0a0d] text-sm font-medium text-gray-700 line-through pointer-events-none opacity-30';
+              pill.textContent = h.time;
+            } else {
+              pill.className = 'time-pill px-3 py-2.5 rounded-xl border border-brand-accent/20 bg-[#0a0a0d] text-sm font-bold text-gray-300 transition-all active:scale-95 hover:border-[#D4AF37] hover:text-[#D4AF37] focus:outline-none';
+              pill.textContent = h.time;
+              pill.onclick = () => selectTime(pill, h.time);
+            }
+            subGrid.appendChild(pill);
+          });
+          section.appendChild(subGrid);
+          grid.appendChild(section);
+        });
+      } else {
+        hours.forEach(h => {
+          if (h.occupied) {
+            grid.innerHTML += `<button disabled class="px-6 py-3 rounded-[1rem] border border-white/5 bg-[#0a0a0d] text-[15px] font-medium text-gray-700 line-through pointer-events-none opacity-30">${h.time}</button>`;
+          } else {
+            grid.innerHTML += `<button onclick="selectTime(this, '${h.time}')" class="time-pill px-6 py-3 rounded-[1rem] border border-brand-accent/20 bg-[#0a0a0d] shadow-[0_0_5px_rgba(0,0,0,0.5)] text-[15px] font-bold text-gray-300 transition-all active:scale-95 hover:border-neon hover:shadow-[0_0_10px_rgba(255,255,255,0.15)] hover:text-neon focus:outline-none">${h.time}</button>`;
+          }
+        });
+      }
 
       // Scroll suave al primer slot disponible
       requestAnimationFrame(() => {
@@ -1287,31 +1438,37 @@
     function selectService(btn) {
       const id = btn.getAttribute('data-service-id');
       const _isGitana = window.CURRENT_TENANT_ID === 'gitana';
+      const _isElegance = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance';
 
       document.querySelectorAll('.service-option').forEach(el => {
         el.classList.replace('border-neon', 'border-brand-accent/20');
         el.classList.remove('bg-brand-neon/10', 'scale-105', 'shadow-[0_0_20px_rgba(255,255,255,0.2)]', 'border-2');
         el.classList.add('border');
-
-        el.querySelector('.icon-bg').classList.replace('border-brand-neon', 'border-brand-accent/20');
-        el.querySelector('.icon-bg').classList.replace('shadow-[0_0_15px_rgba(255,255,255,0.3)]', 'shadow-[0_0_10px_rgba(255,255,255,0.05)]');
-
-        el.querySelector('.icon-svg').classList.remove('drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]', 'scale-110');
-        el.querySelector('.icon-svg').classList.add('drop-shadow-[0_0_5px_rgba(255,255,255,0.35)]');
+        const iconBg = el.querySelector('.icon-bg');
+        const iconSvg = el.querySelector('.icon-svg');
+        if (!_isElegance && iconBg) iconBg.classList.replace('border-brand-neon', 'border-brand-accent/20');
+        if (!_isElegance && iconBg) iconBg.classList.replace('shadow-[0_0_15px_rgba(255,255,255,0.3)]', 'shadow-[0_0_10px_rgba(255,255,255,0.05)]');
+        if (!_isElegance && iconSvg) iconSvg.classList.remove('drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]', 'scale-110');
+        if (!_isElegance && iconSvg) iconSvg.classList.add('drop-shadow-[0_0_5px_rgba(255,255,255,0.35)]');
+        const radio = el.querySelector('.svc-radio');
+        if (radio) { radio.style.background = 'transparent'; radio.style.borderColor = 'rgba(212,175,55,0.4)'; }
       });
 
       btn.classList.add('border-2', 'border-neon', 'bg-brand-neon/10');
-      if (!_isGitana) btn.classList.add('scale-105', 'shadow-[0_0_20px_rgba(255,255,255,0.2)]');
+      if (!_isGitana && !_isElegance) btn.classList.add('scale-105', 'shadow-[0_0_20px_rgba(255,255,255,0.2)]');
       btn.classList.replace('border-brand-accent/20', 'border-neon');
       btn.classList.remove('border');
 
-      btn.querySelector('.icon-bg').classList.replace('border-brand-accent/20', 'border-brand-neon');
-      if (!_isGitana) {
-        btn.querySelector('.icon-bg').classList.replace('shadow-[0_0_10px_rgba(255,255,255,0.05)]', 'shadow-[0_0_15px_rgba(255,255,255,0.3)]');
+      const selIconBg = btn.querySelector('.icon-bg');
+      const selIconSvg = btn.querySelector('.icon-svg');
+      if (!_isElegance && selIconBg) selIconBg.classList.replace('border-brand-accent/20', 'border-brand-neon');
+      if (!_isElegance && !_isGitana && selIconBg) {
+        selIconBg.classList.replace('shadow-[0_0_10px_rgba(255,255,255,0.05)]', 'shadow-[0_0_15px_rgba(255,255,255,0.3)]');
       }
-
-      btn.querySelector('.icon-svg').classList.remove('drop-shadow-[0_0_5px_rgba(255,255,255,0.35)]');
-      if (!_isGitana) btn.querySelector('.icon-svg').classList.add('drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]', 'scale-110');
+      if (!_isElegance && selIconSvg) selIconSvg.classList.remove('drop-shadow-[0_0_5px_rgba(255,255,255,0.35)]');
+      if (!_isElegance && !_isGitana && selIconSvg) selIconSvg.classList.add('drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]', 'scale-110');
+      const selRadio = btn.querySelector('.svc-radio');
+      if (selRadio) { selRadio.style.background = '#D4AF37'; selRadio.style.borderColor = '#D4AF37'; }
 
       selectedServiceObj = (window._fsServices || _fsServices || []).find(s => String(s.id) === String(id))
         || DB.getServices().find(s => String(s.id) === String(id));
@@ -1337,14 +1494,22 @@
 
     function selectTime(btn, time) {
       const _isGitana = window.CURRENT_TENANT_ID === 'gitana';
+      const _isEleganceTm = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance';
       document.querySelectorAll('.time-pill').forEach(el => {
         el.classList.remove('bg-neon', 'bg-brand-neon/10', 'text-[#050505]', 'text-neon', 'border-neon', 'shadow-[0_0_15px_rgba(255,255,255,0.25)]', 'border-2');
         el.classList.add('bg-[#0a0a0d]', 'text-gray-300', 'border-brand-accent/20', 'border');
+        if (_isEleganceTm) el.style.cssText = '';
       });
 
       btn.classList.remove('bg-[#0a0a0d]', 'text-gray-300', 'border-brand-accent/20', 'border');
       if (_isGitana) {
         btn.classList.add('bg-neon', 'text-[#050505]', 'border-neon', 'border-2');
+      } else if (_isEleganceTm) {
+        btn.style.background = '#D4AF37';
+        btn.style.color = '#050505';
+        btn.style.borderColor = '#D4AF37';
+        btn.style.fontWeight = '800';
+        btn.style.boxShadow = 'none';
       } else {
         btn.classList.add('bg-brand-neon/10', 'text-neon', 'border-neon', 'shadow-[0_0_15px_rgba(255,255,255,0.25)]', 'border-2');
       }
