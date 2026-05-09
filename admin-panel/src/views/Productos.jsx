@@ -80,21 +80,36 @@ export default function Productos() {
     setSlide(true);
   };
 
+  const [uploadError, setUploadError] = useState('');
+
   const handleFileChange = async e => {
     const file = e.target.files?.[0];
     if (!file) return;
+    setUploadError('');
     setPreview(URL.createObjectURL(file));
     setUploading(true);
     try {
-      const tid  = resolveTenantId();
-      const path = `${tid === 'elegance' ? '' : `tenants/${tid}/`}productos/${Date.now()}_${file.name}`;
-      const snap = await uploadBytes(storageRef(storage, path), file);
-      const url  = await getDownloadURL(snap.ref);
+      const tid      = resolveTenantId();
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const prefix   = tid === 'elegance' ? '' : `tenants/${tid}/`;
+      const path     = `${prefix}productos/${Date.now()}_${safeName}`;
+      const snap     = await uploadBytes(
+        storageRef(storage, path),
+        file,
+        { contentType: file.type || 'image/jpeg' },
+      );
+      const url = await getDownloadURL(snap.ref);
       setForm(f => ({ ...f, imagen: url }));
       setPreview(url);
     } catch (err) {
       console.error('Upload error:', err);
-    } finally { setUploading(false); }
+      setUploadError(err.code === 'storage/unauthorized'
+        ? 'Sin permiso para subir. Verificá que tu sesión esté activa.'
+        : `Error al subir: ${err.message}`);
+      setPreview(form.imagen);
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleSave = async () => {
@@ -235,6 +250,9 @@ export default function Productos() {
                   {uploading ? <span className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" /> : <Upload size={12} />}
                   {uploading ? 'Subiendo...' : 'Subir imagen'}
                 </button>
+                {uploadError && (
+                  <p className="text-xs text-red-400 leading-snug">{uploadError}</p>
+                )}
                 <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
               </div>
             </div>
