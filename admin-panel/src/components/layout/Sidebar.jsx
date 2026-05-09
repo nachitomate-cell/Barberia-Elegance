@@ -15,7 +15,7 @@ const NAV = [
   { to: 'servicios',     label: 'Servicios',     Icon: Scissors                   },
   { to: 'equipo',        label: 'Equipo',        Icon: Users                      },
   { to: 'clientes',      label: 'Clientes',      Icon: Star                       },
-  { to: 'mensajes',      label: 'Mensajes',      Icon: MessageCircle, adminOnly: true },
+  { to: 'mensajes',      label: 'Mensajes',      Icon: MessageCircle              },
   { to: 'premios',       label: 'Premios',       Icon: Trophy                     },
   { to: 'productos',     label: 'Productos',     Icon: ShoppingBag                },
   { to: 'lookbook',      label: 'Lookbook',      Icon: Images                     },
