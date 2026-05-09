@@ -37,21 +37,33 @@ export default function AdminLayout({ children }) {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
         {/* Mobile topbar */}
-        <header className="lg:hidden flex items-center gap-3 px-4 py-3 bg-slate-900 border-b border-slate-800 shrink-0">
+        <header
+          className="lg:hidden sticky top-0 z-30 flex items-center justify-between px-4 pb-3 bg-slate-900 border-b border-slate-800 shrink-0"
+          style={{ paddingTop: 'max(env(safe-area-inset-top), 0.75rem)' }}
+        >
+          {/* Hamburger — 44×44px touch target */}
           <button
             onClick={() => setMobileOpen(true)}
-            className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-all"
+            className="w-11 h-11 flex items-center justify-center -ml-1 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 hover:text-white transition-all"
+            aria-label="Abrir menú"
           >
-            <Menu size={20} />
+            <Menu size={22} />
           </button>
-          <span className="text-sm font-semibold text-white">Panel Admin</span>
+
+          <span className="text-sm font-bold text-white tracking-wide">Panel Admin</span>
+
+          {/* Spacer espejo para centrar el título */}
+          <div className="w-11" />
         </header>
 
         {/* PWA install banner */}
         <PWABanner />
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto bg-slate-950 p-5 lg:p-7">
+        <main
+          className="flex-1 overflow-y-auto bg-slate-950 p-5 lg:p-7"
+          style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 1.25rem)' }}
+        >
           {children}
         </main>
 

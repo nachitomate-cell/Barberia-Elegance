@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 import {
   CalendarDays, Scissors, Users, Star, BarChart3,
   Trophy, ShoppingBag, Images, LogOut, ChevronRight,
-  Sun, Moon, ExternalLink, Settings, TrendingDown, MessageCircle,
+  Sun, Moon, ExternalLink, Settings, TrendingDown, MessageCircle, X,
 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { auth } from '../../lib/firebase';
@@ -46,10 +46,27 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
 
   return (
     <aside className="flex flex-col h-full bg-slate-900 border-r border-slate-800">
-      {/* Brand */}
-      <div className="px-5 pt-6 pb-5 border-b border-slate-800">
-        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Panel Admin</p>
-        <h1 className="text-sm font-bold text-white leading-tight">{tenant.name}</h1>
+      {/* Brand — safe-area-inset-top para que el notch no tape el título */}
+      <div
+        className="px-5 pb-5 border-b border-slate-800"
+        style={{ paddingTop: 'max(env(safe-area-inset-top), 1.5rem)' }}
+      >
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Panel Admin</p>
+            <h1 className="text-sm font-bold text-white leading-tight truncate">{tenant.name}</h1>
+          </div>
+          {/* Botón X visible solo en el drawer móvil (onClose se pasa solo en móvil) */}
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="w-8 h-8 flex items-center justify-center shrink-0 rounded-lg text-slate-500 hover:text-white hover:bg-slate-700 active:scale-95 transition-all mt-0.5"
+              aria-label="Cerrar menú"
+            >
+              <X size={16} />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Nav */}
@@ -89,8 +106,11 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
         })}
       </nav>
 
-      {/* Footer */}
-      <div className="px-3 py-4 border-t border-slate-800 space-y-1">
+      {/* Footer — safe-area-inset-bottom para el home indicator */}
+      <div
+        className="px-3 pt-4 border-t border-slate-800 space-y-1"
+        style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 1rem)' }}
+      >
         {/* Link to public agenda */}
         <a
           href="/index.html"
