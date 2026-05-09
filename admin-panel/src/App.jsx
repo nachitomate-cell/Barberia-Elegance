@@ -10,9 +10,10 @@ import Metricas    from './views/Metricas';
 import Premios     from './views/Premios';
 import Productos   from './views/Productos';
 import Lookbook       from './views/Lookbook';
-import Configuracion  from './views/Configuracion';
-import Gastos         from './views/Gastos';
-import LoginPage      from './views/LoginPage';
+import Configuracion    from './views/Configuracion';
+import Gastos           from './views/Gastos';
+import BookingServicios from './views/BookingServicios';
+import LoginPage        from './views/LoginPage';
 
 function ProtectedApp() {
   const { user, role, loading } = useAuth();
@@ -42,6 +43,7 @@ function ProtectedApp() {
         <Route path="metricas"        element={<Metricas />} />
         <Route path="gastos"          element={<Gastos />} />
         <Route path="configuracion"   element={<Configuracion />} />
+        <Route path="booking-preview" element={<BookingServicios onContinuar={s => alert(`Seleccionado: ${s.nombre}`)} />} />
         <Route path="*"               element={<Navigate to={defaultRoute} replace />} />
       </Routes>
     </AdminLayout>

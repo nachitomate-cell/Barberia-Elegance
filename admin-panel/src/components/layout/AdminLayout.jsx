@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Menu, X } from 'lucide-react';
-import Sidebar from './Sidebar';
+import Sidebar    from './Sidebar';
+import PWABanner  from './PWABanner';
 
 export default function AdminLayout({ children }) {
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -41,6 +42,9 @@ export default function AdminLayout({ children }) {
           </button>
           <span className="text-sm font-semibold text-white">Panel Admin</span>
         </header>
+
+        {/* PWA install banner */}
+        <PWABanner />
 
         {/* Page content */}
         <main className="flex-1 overflow-y-auto bg-slate-950 p-5 lg:p-7">
