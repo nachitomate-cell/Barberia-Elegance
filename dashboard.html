@@ -250,9 +250,15 @@
       transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
     }
     .stamp-cell.filled {
-      border: 1px solid rgba(255,255,255,0.25);
-      background: rgba(255,255,255,0.10);
-      box-shadow: 0 0 8px rgba(255,255,255,0.12);
+      border: 1px solid var(--gold-dim);
+      background: rgba(201,168,76,0.10);
+      box-shadow: 0 0 10px var(--gold-glow);
+    }
+    /* Ferraza: sellos plateados */
+    .tenant-ferraza .stamp-cell.filled {
+      border: 1px solid rgba(226,232,240,0.25) !important;
+      background: rgba(226,232,240,0.08) !important;
+      box-shadow: none !important;
     }
     .stamp-cell.empty {
       border: 1px solid #3f3f46;
@@ -418,14 +424,14 @@
           <p class="text-[10px] font-bold uppercase tracking-widest" style="color:var(--gold);">Tu Membresía</p>
           <div class="text-right">
             <p class="text-[9px] font-bold uppercase tracking-widest text-white/30">Sellos</p>
-            <span id="stampsCount" class="font-display text-3xl font-bold text-white leading-none">0<span class="text-sm text-white/30">/5</span></span>
+            <span id="stampsCount" class="text-3xl font-bold text-white leading-none">0<span class="text-sm text-white/30">/5</span></span>
           </div>
         </div>
 
         <!-- Club name + tier badge + description -->
         <div class="mb-5">
           <div class="flex items-center gap-2 mb-1.5">
-            <h2 id="shopClubName" class="font-display text-xl font-bold text-white"></h2>
+            <h2 id="shopClubName" class="text-xl font-bold text-white"></h2>
             <span id="memberTier" class="tier-badge silver">SILVER</span>
           </div>
           <p id="membershipDesc" class="text-xs text-gray-500 leading-relaxed"></p>
@@ -494,7 +500,7 @@
     <!-- ═══════ PESTAÑA 2: LOOKBOOK ═══════ -->
     <section id="tabLookbook" class="tab-panel hidden px-5 pt-6 animate-[fadeSlideUp_0.45s_cubic-bezier(0.16,1,0.3,1)_forwards]">
       <div class="mb-5">
-        <h2 class="font-display text-2xl font-bold text-white tracking-tight">Lookbook</h2>
+        <h2 class="text-2xl font-bold text-white tracking-tight">Lookbook</h2>
         <p class="text-sm text-gray-500 mt-1">Cortes y estilos de la barbería.</p>
       </div>
       <div class="masonry-grid" id="lookbookGrid"></div>
@@ -758,7 +764,9 @@ document.getElementById('shopClubName').textContent   = SHOP.club;
 
 // Contenido tenant-específico
 (function applyTenantContent() {
-  const isGitana = window.CURRENT_TENANT_ID === 'gitana';
+  const tid      = window.CURRENT_TENANT_ID;
+  const isGitana  = tid === 'gitana';
+  const isFerraza = tid === 'ferraza';
 
   // Subtítulo header
   const sub = document.getElementById('shopHeaderSub');
@@ -770,11 +778,13 @@ document.getElementById('shopClubName').textContent   = SHOP.club;
   if (isGitana) {
     if (h1) h1.innerHTML = 'No son solo uñas.<br>Es arte.';
     if (h2) h2.textContent = 'Tu momento de brillar.';
+  } else if (isFerraza) {
+    if (h2) h2.textContent = 'El cambio comienza por ti.';
   }
 
   // Watermark
   const wm = document.getElementById('membershipWatermark');
-  if (wm) wm.textContent = isGitana ? 'G' : 'É';
+  if (wm) wm.textContent = isGitana ? 'G' : isFerraza ? 'F' : 'É';
 })();
 
 // ─── Auth Guard ───────────────────────────────────────────────

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Calendar, Edit2, Clock, Trash2, PowerOff, User } from 'lucide-react';
+import { Plus, Calendar, Edit2, Clock, Trash2, PowerOff, User, ShieldCheck, MessageCircle } from 'lucide-react';
 import { updateDoc, doc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { tenantCol } from '../lib/tenantUtils';
@@ -8,9 +8,14 @@ import Badge        from '../components/ui/Badge';
 import DropdownMenu from '../components/ui/DropdownMenu';
 import SlideOver    from '../components/ui/SlideOver';
 
+const SUPPORT_EMAIL = 'ignaciiio.mate@gmail.com';
+const SUPPORT_WA    = 'https://wa.me/56983568212?text=Hola%2C%20te%20escribo%20desde%20la%20agenda%2C%20necesito%20soporte.';
+
 function BarberCard({ barber, onEdit }) {
-  const isActive  = barber.disponible !== false;
-  const colPath   = tenantCol('barberos').path;
+  const isActive      = barber.disponible !== false;
+  const isAdmin       = barber.rol === 'admin' || barber.rol === 'jefe';
+  const isSupportAdmin = (barber.email || '').toLowerCase().trim() === SUPPORT_EMAIL;
+  const colPath       = tenantCol('barberos').path;
 
   const toggleStatus = () =>
     updateDoc(doc(db, `${colPath}/${barber.id}`), { disponible: !isActive });
@@ -22,7 +27,7 @@ function BarberCard({ barber, onEdit }) {
   };
 
   const menuItems = [
-    { label: 'Editar datos',      Icon: Edit2,     onClick: () => onEdit(barber) },
+    { label: 'Editar datos',       Icon: Edit2,    onClick: () => onEdit(barber) },
     { label: 'Configurar horario', Icon: Clock,    onClick: () => {} },
     'separator',
     { label: isActive ? 'Desactivar' : 'Activar', Icon: PowerOff, onClick: toggleStatus },
@@ -32,10 +37,19 @@ function BarberCard({ barber, onEdit }) {
   return (
     <div className="relative bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-col items-center gap-3 hover:border-slate-700 transition-all group">
 
-      {/* Dropdown (top-right) */}
-      <div className="absolute top-3 right-3">
-        <DropdownMenu items={menuItems} />
-      </div>
+      {/* Dropdown — oculto para admin/jefe */}
+      {!isAdmin && (
+        <div className="absolute top-3 right-3">
+          <DropdownMenu items={menuItems} />
+        </div>
+      )}
+
+      {/* Escudo de admin (top-right cuando es admin) */}
+      {isAdmin && (
+        <div className="absolute top-3 right-3 text-emerald-500/60" title="Administrador">
+          <ShieldCheck size={16} />
+        </div>
+      )}
 
       {/* Avatar */}
       <div className="w-20 h-20 rounded-full overflow-hidden bg-slate-800 border border-slate-700 shrink-0">
@@ -50,7 +64,12 @@ function BarberCard({ barber, onEdit }) {
       {/* Info */}
       <div className="text-center">
         <p className="font-semibold text-white text-sm">{barber.nombre}</p>
-        {barber.especialidad && (
+        {isAdmin && (
+          <p className="text-xs text-emerald-500/70 font-semibold mt-0.5 uppercase tracking-wide">
+            {barber.rol === 'jefe' ? 'Jefe' : 'Admin'}
+          </p>
+        )}
+        {!isAdmin && barber.especialidad && (
           <p className="text-xs text-slate-500 mt-0.5">{barber.especialidad}</p>
         )}
         <div className="mt-2">
@@ -60,10 +79,21 @@ function BarberCard({ barber, onEdit }) {
         </div>
       </div>
 
-      {/* Primary CTA */}
-      <button className="mt-1 flex items-center gap-1.5 w-full justify-center px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold rounded-lg transition-all border border-slate-700">
-        <Calendar size={13} /> Ver Agenda
-      </button>
+      {/* CTA */}
+      {isSupportAdmin ? (
+        <a
+          href={SUPPORT_WA}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-1 flex items-center gap-1.5 w-full justify-center px-4 py-2 bg-green-600/10 hover:bg-green-600/20 text-green-400 text-xs font-semibold rounded-lg transition-all border border-green-600/30"
+        >
+          <MessageCircle size={13} /> Soporte vía WhatsApp
+        </a>
+      ) : (
+        <button className="mt-1 flex items-center gap-1.5 w-full justify-center px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold rounded-lg transition-all border border-slate-700">
+          <Calendar size={13} /> Ver Agenda
+        </button>
+      )}
     </div>
   );
 }
@@ -71,7 +101,9 @@ function BarberCard({ barber, onEdit }) {
 const BARBER_EMPTY = { nombre: '', especialidad: '' };
 
 export default function Equipo() {
-  const { data: barberos, loading } = useCollection('barberos');
+  const { data: rawBarberos, loading } = useCollection('barberos');
+  // Filtrar docs de enlace UID (_mainDocId) para evitar duplicados
+  const barberos = rawBarberos.filter(b => !b._mainDocId);
   const [slide,   setSlide]   = useState(false);
   const [editing, setEditing] = useState(null);
   const [form,    setForm]    = useState(BARBER_EMPTY);

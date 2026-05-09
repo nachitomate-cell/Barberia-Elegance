@@ -20,14 +20,11 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 // ── 3. CACHE ─────────────────────────────────────────────────────
-const CACHE_VERSION = 'elegance-v5';
+const CACHE_VERSION = 'saas-v6';
 const STATIC_ASSETS = [
   '/agenda',
-  '/logo.jpg',
   '/output.css',
   '/firebase-config.js',
-  '/firebaseUtils.js',
-  '/config.js',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
   '/manifest-agenda.json'
