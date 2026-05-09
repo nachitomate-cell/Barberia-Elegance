@@ -48,7 +48,7 @@ function ProtectedApp() {
         <Route path="metricas"        element={<Metricas />} />
         <Route path="gastos"          element={<Gastos />} />
         <Route path="configuracion"   element={<Configuracion />} />
-        <Route path="chat"            element={<Chat />} />
+        <Route path="mensajes"        element={<Chat />} />
         <Route path="booking-preview"    element={<BookingServicios onContinuar={s => alert(`Seleccionado: ${s.nombre}`)} />} />
         <Route path="booking-barbero"   element={<BookingBarbero  onContinuar={b => alert(`Barbero: ${b.barbero?.nombre}`)} />} />
         <Route path="booking-fecha"     element={<BookingFecha    onContinuar={f => alert(`Fecha: ${f.hora}`)} />} />

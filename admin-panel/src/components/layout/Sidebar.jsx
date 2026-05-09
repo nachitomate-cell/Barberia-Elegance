@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 import {
   CalendarDays, Scissors, Users, Star, BarChart3,
   Trophy, ShoppingBag, Images, LogOut, ChevronRight,
-  Sun, Moon, ExternalLink, Settings, TrendingDown, MessageSquare,
+  Sun, Moon, ExternalLink, Settings, TrendingDown, MessageCircle,
 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { auth } from '../../lib/firebase';
@@ -15,13 +15,13 @@ const NAV = [
   { to: 'servicios',     label: 'Servicios',     Icon: Scissors                   },
   { to: 'equipo',        label: 'Equipo',        Icon: Users                      },
   { to: 'clientes',      label: 'Clientes',      Icon: Star                       },
+  { to: 'mensajes',      label: 'Mensajes',      Icon: MessageCircle, adminOnly: true },
   { to: 'premios',       label: 'Premios',       Icon: Trophy                     },
   { to: 'productos',     label: 'Productos',     Icon: ShoppingBag                },
   { to: 'lookbook',      label: 'Lookbook',      Icon: Images                     },
   { to: 'metricas',      label: 'Métricas',      Icon: BarChart3                  },
-  { to: 'gastos',        label: 'Gastos',        Icon: TrendingDown,   adminOnly: true },
-  { to: 'configuracion', label: 'Configuración', Icon: Settings,       adminOnly: true },
-  { to: 'chat',          label: 'Mensajes',      Icon: MessageSquare,  adminOnly: true },
+  { to: 'gastos',        label: 'Gastos',        Icon: TrendingDown,  adminOnly: true },
+  { to: 'configuracion', label: 'Configuración', Icon: Settings,      adminOnly: true },
 ];
 
 function useTheme() {
@@ -55,8 +55,8 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto no-scrollbar">
         {visibleNav.map(({ to, label, Icon }) => {
-          const isChat  = to === 'chat';
-          const hasBadge = isChat && unreadChats > 0;
+          const isMensajes = to === 'mensajes';
+          const hasBadge   = isMensajes && unreadChats > 0;
           return (
             <NavLink
               key={to}
@@ -72,19 +72,16 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
             >
               {({ isActive }) => (
                 <>
-                  <div className="relative shrink-0">
-                    <Icon size={17} strokeWidth={isActive ? 2.5 : 2} />
-                    {hasBadge && (
-                      <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full" />
-                    )}
-                  </div>
+                  <Icon size={17} strokeWidth={isActive ? 2.5 : 2} className="shrink-0" />
                   <span className="flex-1">{label}</span>
-                  {hasBadge && !isActive && (
-                    <span className="text-[10px] font-bold bg-red-500 text-white rounded-full px-1.5 py-0.5 leading-none">
+                  {hasBadge && (
+                    <span className="ml-auto bg-red-500 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full">
                       {unreadChats > 9 ? '9+' : unreadChats}
                     </span>
                   )}
-                  {isActive && <ChevronRight size={14} className="text-emerald-500 opacity-60" />}
+                  {isActive && !hasBadge && (
+                    <ChevronRight size={14} className="text-emerald-500 opacity-60" />
+                  )}
                 </>
               )}
             </NavLink>
