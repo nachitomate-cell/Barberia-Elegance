@@ -66,7 +66,8 @@
       box-shadow: 0 0 0 3px rgba(244,114,182,0.07);
     }
     .tenant-gitana .btn-primary {
-      border-color: #f472b6;
+      background: transparent;
+      border: 1.5px solid #f472b6;
       color: #f472b6;
       box-shadow: 0 0 20px rgba(244,114,182,0.12);
     }
@@ -115,8 +116,9 @@
       box-shadow: 0 0 0 3px rgba(226,232,240,0.05);
     }
     .tenant-ferraza .btn-primary {
+      background: transparent;
       border-radius: 0.5rem;
-      border-color: rgba(226,232,240,0.4);
+      border: 1.5px solid rgba(226,232,240,0.4);
       color: #e2e8f0;
       box-shadow: none;
     }
@@ -180,8 +182,8 @@
     /* Inputs */
     .field {
       width: 100%;
-      background: #0d0d10;
-      border: 1px solid rgba(255,255,255,0.08);
+      background: #111827;
+      border: 1px solid #374151;
       border-radius: 14px;
       padding: 14px 18px;
       color: #f8fafc;
@@ -190,30 +192,32 @@
       transition: border-color 0.2s, box-shadow 0.2s;
       outline: none;
     }
-    .field::placeholder { color: #4b5563; }
+    .field::placeholder { color: #6b7280; }
     .field:focus {
-      border-color: rgba(201,168,76,0.5);
-      box-shadow: 0 0 0 3px rgba(201,168,76,0.07);
+      border-color: #D4AF37;
+      box-shadow: 0 0 0 1px #D4AF37;
     }
-    input:-webkit-autofill {
-      -webkit-box-shadow: 0 0 0 100px #0d0d10 inset !important;
+    input:-webkit-autofill,
+    input:-webkit-autofill:hover,
+    input:-webkit-autofill:focus {
+      -webkit-box-shadow: 0 0 0 100px #111827 inset !important;
       -webkit-text-fill-color: #f8fafc !important;
+      caret-color: #f8fafc;
     }
 
     /* Primary CTA */
     .btn-primary {
       width: 100%;
-      background: transparent;
-      border: 1.5px solid var(--gold);
-      color: var(--gold);
+      background: #D4AF37;
+      border: 1.5px solid #D4AF37;
+      color: #000000;
       font-weight: 700;
       font-size: 14px;
-      letter-spacing: 0.07em;
+      letter-spacing: 0.04em;
       text-transform: uppercase;
       padding: 15px 24px;
       border-radius: 100px;
-      box-shadow: 0 0 20px rgba(201,168,76,0.12);
-      transition: all 0.25s;
+      transition: all 0.2s;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -221,17 +225,17 @@
       cursor: pointer;
     }
     .btn-primary:hover {
-      background: rgba(201,168,76,0.08);
-      box-shadow: 0 0 28px rgba(201,168,76,0.22);
+      background: #c9a832;
+      border-color: #c9a832;
     }
     .btn-primary:active { transform: scale(0.97); }
 
     /* Google button */
     .btn-google {
       width: 100%;
-      background: #0d0d10;
-      border: 1px solid rgba(255,255,255,0.1);
-      color: #d1d5db;
+      background: #1f2937;
+      border: 1px solid #374151;
+      color: #ffffff;
       font-weight: 600;
       font-size: 14px;
       padding: 14px 24px;
@@ -244,8 +248,8 @@
       cursor: pointer;
     }
     .btn-google:hover {
-      border-color: rgba(255,255,255,0.2);
-      background: #111115;
+      background: #374151;
+      border-color: #4b5563;
     }
     .btn-google:active { transform: scale(0.97); }
 
@@ -342,10 +346,10 @@
     </div>
 
     <!-- Divider -->
-    <div class="flex items-center gap-4 my-6">
-      <div class="flex-1 h-px bg-white/[0.06]"></div>
-      <span class="text-[10px] font-bold text-gray-600 uppercase tracking-widest">o</span>
-      <div class="flex-1 h-px bg-white/[0.06]"></div>
+    <div class="flex items-center my-6">
+      <div class="flex-grow border-t border-gray-700"></div>
+      <span class="flex-shrink-0 mx-4 text-gray-500 text-sm">o</span>
+      <div class="flex-grow border-t border-gray-700"></div>
     </div>
 
     <!-- Google Auth -->
