@@ -13,7 +13,7 @@ import Lookbook    from './views/Lookbook';
 import LoginPage   from './views/LoginPage';
 
 function ProtectedApp() {
-  const { user, loading } = useAuth();
+  const { user, role, loading } = useAuth();
 
   if (loading) return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center">
@@ -23,11 +23,14 @@ function ProtectedApp() {
 
   if (!user) return <LoginPage />;
 
+  const isAdminRole  = role === 'admin' || role === 'jefe';
+  const defaultRoute = isAdminRole ? 'servicios' : 'agenda';
+
   return (
     <AdminLayout>
       <Routes>
-        <Route index                  element={<Navigate to="agenda" replace />} />
-        <Route path="agenda"          element={<Agenda />} />
+        <Route index                  element={<Navigate to={defaultRoute} replace />} />
+        <Route path="agenda"          element={isAdminRole ? <Navigate to="servicios" replace /> : <Agenda />} />
         <Route path="servicios"       element={<Servicios />} />
         <Route path="equipo"          element={<Equipo />} />
         <Route path="clientes"        element={<Clientes />} />
@@ -35,7 +38,7 @@ function ProtectedApp() {
         <Route path="productos"       element={<Productos />} />
         <Route path="lookbook"        element={<Lookbook />} />
         <Route path="metricas"        element={<Metricas />} />
-        <Route path="*"               element={<Navigate to="agenda" replace />} />
+        <Route path="*"               element={<Navigate to={defaultRoute} replace />} />
       </Routes>
     </AdminLayout>
   );

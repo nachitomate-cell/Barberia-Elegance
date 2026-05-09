@@ -1,12 +1,13 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
-import { auth, db } from '../lib/firebase';
+import { getDoc } from 'firebase/firestore';
+import { auth } from '../lib/firebase';
+import { tenantDoc } from '../lib/tenantUtils';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user,    setUser]    = useState(undefined); // undefined = loading
+  const [user,    setUser]    = useState(undefined);
   const [role,    setRole]    = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -20,10 +21,22 @@ export function AuthProvider({ children }) {
       }
       setUser(firebaseUser);
       try {
-        const snap = await getDoc(doc(db, 'users', firebaseUser.uid));
-        setRole(snap.exists() ? snap.data().rol : 'cliente');
+        // El rol del equipo se guarda en barberos/{uid}
+        const snap = await getDoc(tenantDoc('barberos', firebaseUser.uid));
+        if (snap.exists()) {
+          const data = snap.data();
+          // Si es doc de enlace (_mainDocId), leer el doc principal
+          if (data._mainDocId) {
+            const main = await getDoc(tenantDoc('barberos', data._mainDocId));
+            setRole(main.exists() ? (main.data().rol || 'barbero') : 'barbero');
+          } else {
+            setRole(data.rol || 'barbero');
+          }
+        } else {
+          setRole('barbero');
+        }
       } catch {
-        setRole('cliente');
+        setRole('barbero');
       }
       setLoading(false);
     });
