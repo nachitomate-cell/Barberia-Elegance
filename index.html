@@ -28,6 +28,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
   <link href="/output.css" rel="stylesheet">
 
   <script src="config.js"></script>
@@ -884,6 +885,21 @@
       const h = Math.floor(mins / 60);
       const m = mins % 60;
       return m === 0 ? `${h}h` : `${h}h ${m}m`;
+    }
+
+    // ── Confetti de celebración (reserva confirmada) ───────────────
+    function dispararConfettiElegante() {
+      if (typeof confetti !== 'function') return;
+      const COLORS  = ['#D4AF37', '#FDE047', '#FFFFFF'];
+      const end     = Date.now() + 3000;
+
+      (function frame() {
+        // Rafaga izquierda
+        confetti({ particleCount: 5, angle: 60,  spread: 55, origin: { x: 0, y: 0.9 }, colors: COLORS, scalar: 1.1 });
+        // Rafaga derecha
+        confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1, y: 0.9 }, colors: COLORS, scalar: 1.1 });
+        if (Date.now() < end) requestAnimationFrame(frame);
+      }());
     }
 
     let _toastTimer = null;
@@ -1852,6 +1868,9 @@
         const successEl = document.getElementById('success-state');
         successEl.classList.remove('hidden');
         successEl.classList.add('flex');
+
+        // ── Celebración ──────────────────────────────────────────────
+        dispararConfettiElegante();
 
         // Poblar el resumen dinámico
         document.getElementById('successSummaryService').textContent = selectedServiceObj.nombre;
