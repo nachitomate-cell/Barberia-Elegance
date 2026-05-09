@@ -430,6 +430,9 @@
         </div>
       </div>
 
+      <!-- ── HERO BANNER (anuncio dinámico desde Firestore) ── -->
+      <div id="heroBanner" class="hidden mx-4 mb-4 rounded-2xl overflow-hidden relative active:scale-[0.99] transition-all" style="min-height:170px;"></div>
+
       <!-- ── MEMBERSHIP CARD ── -->
       <div class="membership-pattern relative mx-4 rounded-3xl bg-[#111115] border border-white/8 p-6 mb-4 overflow-hidden">
         <div class="membership-glow absolute -top-10 -right-10 w-36 h-36 rounded-full pointer-events-none" style="background:radial-gradient(circle,rgba(201,168,76,0.08) 0%,transparent 70%);"></div>
@@ -693,7 +696,10 @@
 
       <button class="nav-tab active flex-1 flex flex-col items-center justify-center gap-1 py-3 px-1"
         onclick="switchTab('loyalty')" id="navLoyalty">
-        <i class="nav-icon ph-fill ph-house text-2xl transition-all"></i>
+        <span class="relative inline-flex items-center justify-center">
+          <i class="nav-icon ph-fill ph-house text-2xl transition-all"></i>
+          <span id="loyaltyDot" class="hidden absolute -top-0.5 -right-1 w-2 h-2 rounded-full bg-red-500 border border-[#0a0a0d]"></span>
+        </span>
         <span class="nav-label text-[9px] font-bold uppercase tracking-widest transition-all">Fidelización</span>
       </button>
 
@@ -890,6 +896,7 @@ auth.onAuthStateChanged(async user => {
   cargarServicios();
   cargarCitasUsuario(user);
   initProductosTab();
+  cargarAnuncio();
 });
 
 /* ─── Productos tab ──────────────────────────────────────────── */
@@ -1264,10 +1271,71 @@ function initLookbook() {
   }, err => console.error('[Lookbook] onSnapshot:', err));
 }
 
+// ─── Anuncio dinámico (Hero Banner) ──────────────────────────
+async function cargarAnuncio() {
+  try {
+    const tid = window.CURRENT_TENANT_ID || 'elegance';
+    const ref = tid === 'elegance'
+      ? firebase.firestore().collection('config').doc('anuncio')
+      : firebase.firestore().collection('tenants').doc(tid).collection('config').doc('anuncio');
+
+    const snap = await ref.get();
+    if (!snap.exists) return;
+    const d = snap.data();
+    if (!d.activo) return;
+
+    const banner = document.getElementById('heroBanner');
+    if (!banner) return;
+
+    // Construir el banner con imagen + overlay + contenido
+    const imgStyle = d.imagen ? `background-image:url('${d.imagen}');background-size:cover;background-position:center;` : 'background:#1a1208;';
+    banner.style.cssText = `min-height:170px;${imgStyle}`;
+    banner.innerHTML = `
+      <div class="absolute inset-0" style="background:linear-gradient(to top,rgba(0,0,0,0.88) 0%,rgba(0,0,0,0.45) 55%,rgba(0,0,0,0.12) 100%);"></div>
+      <div class="relative z-10 p-5 flex flex-col justify-end" style="min-height:170px;">
+        <p class="text-[9px] font-black uppercase tracking-widest mb-1" style="color:var(--gold);">Anuncio</p>
+        <h3 class="text-lg font-black text-white leading-tight mb-1">${d.titulo || ''}</h3>
+        ${d.descripcion ? `<p class="text-xs text-white/65 leading-snug mb-3">${d.descripcion}</p>` : '<div class="mb-3"></div>'}
+        <a href="${d.ctaUrl || 'index.html'}"
+          class="self-start inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-black active:scale-95 transition-all"
+          style="background:var(--gold);">
+          ${d.ctaTexto || 'Reservar mi lugar'}
+          <i class="ph-bold ph-arrow-right text-sm"></i>
+        </a>
+      </div>`;
+    banner.classList.remove('hidden');
+
+    // Punto rojo si el usuario no ha visto esta versión
+    const versionId = d.versionId || String(d.updatedAt?.seconds || 'v1');
+    banner.dataset.version = versionId;
+    const lastSeen = localStorage.getItem('lastSeenAnuncio');
+    if (versionId !== lastSeen) {
+      const dot = document.getElementById('loyaltyDot');
+      if (dot) dot.classList.remove('hidden');
+      // Si el usuario ya está mirando fidelización, marcar como visto tras 2s
+      if (activeTab === 'loyalty') {
+        setTimeout(marcarAnuncioVisto, 2000);
+      }
+    }
+  } catch(e) {
+    console.warn('[Anuncio]', e.message);
+  }
+}
+
+function marcarAnuncioVisto() {
+  const dot = document.getElementById('loyaltyDot');
+  if (dot) dot.classList.add('hidden');
+  const banner = document.getElementById('heroBanner');
+  if (banner?.dataset.version) {
+    localStorage.setItem('lastSeenAnuncio', banner.dataset.version);
+  }
+}
+
 // ─── Tab Navigation ───────────────────────────────────────────
 function switchTab(tab) {
   if (tab === activeTab) return;
   activeTab = tab;
+  if (tab === 'loyalty') marcarAnuncioVisto();
 
   const panels  = { loyalty: 'tabLoyalty', lookbook: 'tabLookbook', productos: 'tabProductos', profile: 'tabProfile' };
   const navBtns = { loyalty: 'navLoyalty', lookbook: 'navLookbook', productos: 'navProductos', profile: 'navProfile' };

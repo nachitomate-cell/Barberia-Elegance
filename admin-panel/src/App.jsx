@@ -18,6 +18,7 @@ import BookingFecha     from './views/BookingFecha';
 import BookingConfirmar from './views/BookingConfirmar';
 import AgendaBarbero    from './views/AgendaBarbero';
 import Chat            from './views/Chat';
+import Marketing        from './views/Marketing';
 import LoginPage        from './views/LoginPage';
 
 function ProtectedApp() {
@@ -49,6 +50,7 @@ function ProtectedApp() {
         <Route path="gastos"          element={<Gastos />} />
         <Route path="configuracion"   element={<Configuracion />} />
         <Route path="mensajes"        element={<Chat />} />
+        <Route path="marketing"       element={<Marketing />} />
         <Route path="booking-preview"    element={<BookingServicios onContinuar={s => alert(`Seleccionado: ${s.nombre}`)} />} />
         <Route path="booking-barbero"   element={<BookingBarbero  onContinuar={b => alert(`Barbero: ${b.barbero?.nombre}`)} />} />
         <Route path="booking-fecha"     element={<BookingFecha    onContinuar={f => alert(`Fecha: ${f.hora}`)} />} />
