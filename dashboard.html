@@ -481,6 +481,30 @@
         </div>
       </div>
 
+      <!-- ── PERFIL DE VISITAS ── -->
+      <div id="perfilVisitasCard" class="hidden mx-4 mb-5 rounded-2xl bg-[#111115] border border-white/8 px-5 py-4">
+        <p class="text-[9px] font-black uppercase tracking-widest mb-3" style="color:var(--gold);">Tu perfil de visitas</p>
+        <div class="flex items-center gap-3 mb-3">
+          <div class="w-9 h-9 rounded-full flex items-center justify-center shrink-0" style="background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.22);">
+            <i class="ph-fill ph-scissors text-base" style="color:var(--gold);"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-[10px] font-bold uppercase tracking-widest text-white/30">Servicio favorito</p>
+            <p id="perfilServicio" class="text-sm font-bold text-white mt-0.5 truncate">—</p>
+          </div>
+        </div>
+        <div class="h-px bg-white/5 mb-3"></div>
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-full flex items-center justify-center shrink-0" style="background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.22);">
+            <i class="ph-fill ph-user text-base" style="color:var(--gold);"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-[10px] font-bold uppercase tracking-widest text-white/30">Tu barbero frecuente</p>
+            <p id="perfilBarbero" class="text-sm font-bold text-white mt-0.5 truncate">—</p>
+          </div>
+        </div>
+      </div>
+
       <!-- ── SERVICIOS DESTACADOS ── -->
       <div class="mb-6" id="serviciosSection">
         <h3 class="text-[10px] font-bold uppercase tracking-widest mb-3 px-5" style="color:var(--gold);">Servicios</h3>
@@ -507,6 +531,19 @@
       <div id="lookbookEmpty" class="hidden flex-col items-center justify-center text-center py-20">
         <i class="ph ph-images text-5xl text-white/10 mb-4"></i>
         <p class="text-sm text-gray-600 font-medium">Las fotos del lookbook<br>se subirán pronto.</p>
+      </div>
+    </section>
+
+    <!-- ═══════ PESTAÑA: PRODUCTOS ═══════ -->
+    <section id="tabProductos" class="tab-panel hidden px-5 pt-6 animate-[fadeSlideUp_0.45s_cubic-bezier(0.16,1,0.3,1)_forwards]">
+      <div class="mb-5">
+        <h2 class="text-2xl font-bold text-white tracking-tight">Productos</h2>
+        <p class="text-sm text-gray-500 mt-1">Productos disponibles en el local.</p>
+      </div>
+      <div id="productosGrid" class="grid grid-cols-2 gap-3"></div>
+      <div id="productosEmpty" class="hidden flex-col items-center justify-center text-center py-20">
+        <i class="ph ph-shopping-bag text-5xl text-white/10 mb-4"></i>
+        <p class="text-sm text-gray-600 font-medium">No hay productos disponibles aún.</p>
       </div>
     </section>
 
@@ -641,6 +678,12 @@
         onclick="switchTab('lookbook')" id="navLookbook">
         <i class="nav-icon ph-fill ph-squares-four text-2xl transition-all"></i>
         <span class="nav-label text-[9px] font-bold uppercase tracking-widest transition-all">Lookbook</span>
+      </button>
+
+      <button class="nav-tab hidden flex-1 flex flex-col items-center justify-center gap-1 py-3 px-1"
+        onclick="switchTab('productos')" id="navProductos">
+        <i class="nav-icon ph-fill ph-shopping-bag text-2xl transition-all"></i>
+        <span class="nav-label text-[9px] font-bold uppercase tracking-widest transition-all">Tienda</span>
       </button>
 
       <button class="nav-tab flex-1 flex flex-col items-center justify-center gap-1 py-3 px-1"
@@ -810,7 +853,63 @@ auth.onAuthStateChanged(async user => {
   initLookbook();
   cargarServicios();
   cargarCitasUsuario(user);
+  initProductosTab();
 });
+
+/* ─── Productos tab ──────────────────────────────────────────── */
+function _tenantCol(name) {
+  const tid = window.CURRENT_TENANT_ID || 'elegance';
+  return tid === 'elegance' ? db.collection(name) : db.collection('tenants').doc(tid).collection(name);
+}
+
+async function initProductosTab() {
+  try {
+    const snap = await _tenantCol('config').doc('ui').get();
+    const activo = snap.exists ? !!snap.data().productosActivos : false;
+    if (!activo) return;
+
+    // Show nav button
+    const navBtn = document.getElementById('navProductos');
+    if (navBtn) navBtn.classList.remove('hidden');
+
+    // Subscribe to products
+    const grid  = document.getElementById('productosGrid');
+    const empty = document.getElementById('productosEmpty');
+    _tenantCol('productos').onSnapshot(snap2 => {
+      const productos = snap2.docs.map(d => ({ id: d.id, ...d.data() }));
+      if (!grid || !empty) return;
+      if (productos.length === 0) {
+        grid.innerHTML = '';
+        empty.classList.remove('hidden');
+        empty.style.display = 'flex';
+        return;
+      }
+      empty.classList.add('hidden');
+      empty.style.display = '';
+      grid.innerHTML = productos.map(p => `
+        <div class="bg-[#111115] border border-white/8 rounded-2xl overflow-hidden">
+          <div class="h-36 bg-[#1a1a1f] flex items-center justify-center overflow-hidden">
+            ${p.imagen
+              ? `<img src="${p.imagen}" alt="${p.nombre}" class="w-full h-full object-cover">`
+              : `<i class="ph ph-shopping-bag text-4xl text-white/10"></i>`}
+          </div>
+          <div class="p-3">
+            <p class="text-sm font-semibold text-white leading-tight">${p.nombre || ''}</p>
+            ${p.descripcion ? `<p class="text-xs text-gray-500 mt-1 line-clamp-2">${p.descripcion}</p>` : ''}
+            <div class="flex items-center justify-between mt-2">
+              <span class="text-sm font-bold" style="color:var(--gold);">$${Number(p.precio||0).toLocaleString('es-CL')}</span>
+              ${p.stock !== null && p.stock !== undefined
+                ? `<span class="text-[10px] font-semibold px-2 py-0.5 rounded-full border ${Number(p.stock) > 0 ? 'text-gray-400 border-white/10' : 'text-red-400 border-red-500/20'}">${Number(p.stock) > 0 ? `Stock: ${p.stock}` : 'Sin stock'}</span>`
+                : ''}
+            </div>
+          </div>
+        </div>
+      `).join('');
+    });
+  } catch (e) {
+    console.warn('[Productos] Error:', e.message);
+  }
+}
 
 
 // ─── Crear documento si no existe ────────────────────────────
@@ -1070,8 +1169,8 @@ function switchTab(tab) {
   if (tab === activeTab) return;
   activeTab = tab;
 
-  const panels  = { loyalty: 'tabLoyalty', lookbook: 'tabLookbook', profile: 'tabProfile' };
-  const navBtns = { loyalty: 'navLoyalty', lookbook: 'navLookbook', profile: 'navProfile' };
+  const panels  = { loyalty: 'tabLoyalty', lookbook: 'tabLookbook', productos: 'tabProductos', profile: 'tabProfile' };
+  const navBtns = { loyalty: 'navLoyalty', lookbook: 'navLookbook', productos: 'navProductos', profile: 'navProfile' };
 
   Object.values(panels).forEach(id => {
     const el = document.getElementById(id);
@@ -1508,6 +1607,36 @@ async function cargarCitasUsuario(user) {
     html += `</div>`;
 
     contenedor.innerHTML = html;
+
+    // ─ Perfil de visitas ─
+    try {
+      const completadasArr = citas.filter(c => c.estado === 'Completada');
+      if (completadasArr.length > 0) {
+        const svcCount = {}, barCount = {};
+        completadasArr.forEach(c => {
+          if (c.servicioNombre) svcCount[c.servicioNombre] = (svcCount[c.servicioNombre] || 0) + 1;
+          if (c.barbero)        barCount[c.barbero]        = (barCount[c.barbero]        || 0) + 1;
+        });
+        const topSvc = Object.entries(svcCount).sort((a,b) => b[1]-a[1])[0]?.[0];
+        const topBar = Object.entries(barCount).sort((a,b) => b[1]-a[1])[0]?.[0];
+        if (topSvc || topBar) {
+          try {
+            await FDB.usersCol().doc(user.uid).update({
+              servicioFrecuente: topSvc || null,
+              barberoFrecuente:  topBar || null,
+            });
+          } catch (_) {}
+          const card = document.getElementById('perfilVisitasCard');
+          if (card) {
+            const el = document.getElementById('perfilServicio');
+            const eb = document.getElementById('perfilBarbero');
+            if (el) el.textContent = topSvc || '—';
+            if (eb) eb.textContent = topBar || '—';
+            card.classList.remove('hidden');
+          }
+        }
+      }
+    } catch (_) {}
 
   } catch (e) {
     console.warn('[Perfil] Error cargando citas:', e.message);

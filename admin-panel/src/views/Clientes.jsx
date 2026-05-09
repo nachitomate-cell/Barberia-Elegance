@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Search, User, Phone, Trophy, Plus, Minus, Gift, X, RotateCcw } from 'lucide-react';
+import { Search, User, Phone, Trophy, Plus, Minus, Gift, X, RotateCcw, MessageCircle } from 'lucide-react';
 import {
   onSnapshot, updateDoc, doc, getDocs, query, where, orderBy as firestoreOrderBy,
   limit, increment, arrayUnion,
@@ -80,7 +80,13 @@ function ClientePanel({ cliente: init, premios, onClose }) {
   const pct       = Math.min(stamps / Math.max(denom, 1) * 100, 100);
 
   const rawTel = (data.telefono || '').replace(/\D/g, '');
-  const waUrl  = rawTel.length >= 8 ? `https://wa.me/${rawTel.startsWith('56') ? rawTel : '56' + rawTel}` : null;
+  const baseWa = rawTel.length >= 8 ? `56${rawTel.startsWith('56') ? rawTel.slice(2) : rawTel}` : null;
+  const waUrl  = baseWa ? `https://wa.me/${baseWa}` : null;
+  const waMsg  = baseWa ? (() => {
+    const svcTxt = data.servicioFrecuente ? ` tu ${data.servicioFrecuente} favorito` : ' tu próximo servicio';
+    const msg = `¡Hola ${data.nombre || ''}! 💈 Llevas ${stamps} sello${stamps !== 1 ? 's' : ''} en tu tarjeta de fidelidad. Te invitamos a realizarte${svcTxt} y seguir acumulando. ¡Te esperamos!`;
+    return `https://wa.me/${baseWa}?text=${encodeURIComponent(msg)}`;
+  })() : null;
 
   const accionSello = async delta => {
     setOpLoad(true);
@@ -141,9 +147,15 @@ function ClientePanel({ cliente: init, premios, onClose }) {
           <p className="font-semibold text-white">{data.nombre || '—'}</p>
           <p className="text-xs text-slate-500 truncate">{data.email}</p>
           {data.telefono && (
-            <div className="flex items-center gap-2 mt-1">
+            <div className="flex flex-wrap items-center gap-2 mt-1">
               <p className="text-xs text-slate-400">{data.telefono}</p>
-              {waUrl && <a href={waUrl} target="_blank" rel="noreferrer" className="text-[10px] font-bold text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-md hover:bg-emerald-500/10 transition-colors">WhatsApp ↗</a>}
+              {waUrl && <a href={waUrl} target="_blank" rel="noreferrer" className="text-[10px] font-bold text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-md hover:bg-emerald-500/10 transition-colors">WA ↗</a>}
+              {waMsg && (
+                <a href={waMsg} target="_blank" rel="noreferrer"
+                  className="flex items-center gap-1 text-[10px] font-bold text-green-400 border border-green-500/30 px-2 py-0.5 rounded-md hover:bg-green-500/10 transition-colors">
+                  <MessageCircle size={10} /> Invitar
+                </a>
+              )}
             </div>
           )}
           <p className="text-[10px] text-slate-600 mt-1">Miembro desde {formatFecha(data.creadoEn?.toDate ? data.creadoEn.toDate().toISOString() : data.creadoEn)}</p>

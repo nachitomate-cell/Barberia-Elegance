@@ -1,7 +1,9 @@
+import { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   CalendarDays, Scissors, Users, Star, BarChart3,
   Trophy, ShoppingBag, Images, LogOut, ChevronRight,
+  Sun, Moon, ExternalLink,
 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { auth } from '../../lib/firebase';
@@ -19,11 +21,25 @@ const NAV = [
   { to: 'metricas',  label: 'Métricas',  Icon: BarChart3                      },
 ];
 
+function useTheme() {
+  const [light, setLight] = useState(() => {
+    try { return localStorage.getItem('gestion-theme') === 'light'; } catch { return false; }
+  });
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('light', light);
+    try { localStorage.setItem('gestion-theme', light ? 'light' : 'dark'); } catch {}
+  }, [light]);
+
+  return [light, setLight];
+}
+
 export default function Sidebar({ onClose }) {
   const tenant        = useTenant();
   const { role }      = useAuth();
   const isAdminRole   = role === 'admin' || role === 'jefe';
   const visibleNav    = NAV.filter(item => !(item.to === 'agenda' && isAdminRole));
+  const [light, setLight] = useTheme();
 
   return (
     <aside className="flex flex-col h-full bg-slate-900 border-r border-slate-800">
@@ -60,7 +76,28 @@ export default function Sidebar({ onClose }) {
       </nav>
 
       {/* Footer */}
-      <div className="px-3 py-4 border-t border-slate-800">
+      <div className="px-3 py-4 border-t border-slate-800 space-y-1">
+        {/* Link to public agenda */}
+        <a
+          href="/index.html"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-slate-500 hover:text-white hover:bg-slate-800 transition-all"
+        >
+          <ExternalLink size={17} />
+          Ver agenda pública
+        </a>
+
+        {/* Theme toggle */}
+        <button
+          onClick={() => setLight(v => !v)}
+          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-slate-500 hover:text-white hover:bg-slate-800 transition-all"
+        >
+          {light ? <Moon size={17} /> : <Sun size={17} />}
+          {light ? 'Modo oscuro' : 'Modo claro'}
+        </button>
+
+        {/* Logout */}
         <button
           onClick={() => signOut(auth)}
           className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-slate-500 hover:text-red-400 hover:bg-red-950/30 transition-all"
@@ -68,6 +105,12 @@ export default function Sidebar({ onClose }) {
           <LogOut size={17} />
           Cerrar sesión
         </button>
+
+        {/* Synaptechspa branding */}
+        <div className="pt-3 mt-1 border-t border-slate-800/60 flex items-center gap-2 px-3">
+          <img src="/logo1.png" alt="Synaptech" className="w-5 h-5 rounded object-contain opacity-60" />
+          <p className="text-[10px] text-slate-600">Desarrollado por Synaptechspa</p>
+        </div>
       </div>
     </aside>
   );

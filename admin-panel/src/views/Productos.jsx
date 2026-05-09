@@ -1,9 +1,9 @@
-import { useState, useRef } from 'react';
-import { Plus, ShoppingBag, Edit2, Trash2, Upload, ImageOff } from 'lucide-react';
-import { addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { useState, useRef, useEffect } from 'react';
+import { Plus, ShoppingBag, Edit2, Trash2, Upload, ImageOff, Power, AlertTriangle } from 'lucide-react';
+import { addDoc, updateDoc, deleteDoc, doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { storage } from '../lib/firebase';
-import { tenantCol } from '../lib/tenantUtils';
+import { storage, db } from '../lib/firebase';
+import { tenantCol, tenantDoc } from '../lib/tenantUtils';
 import { useCollection } from '../hooks/useCollection';
 import SlideOver from '../components/ui/SlideOver';
 import { resolveTenantId } from '../lib/tenantUtils';
@@ -47,13 +47,30 @@ function ProductCard({ producto, onEdit, onDelete }) {
 export default function Productos() {
   const { data: productos, loading } = useCollection('productos');
 
-  const [slide,    setSlide]    = useState(false);
-  const [editing,  setEditing]  = useState(null);
-  const [form,     setForm]     = useState(EMPTY);
-  const [saving,   setSaving]   = useState(false);
-  const [preview,  setPreview]  = useState('');
-  const [uploading, setUploading] = useState(false);
+  const [slide,      setSlide]      = useState(false);
+  const [editing,    setEditing]    = useState(null);
+  const [form,       setForm]       = useState(EMPTY);
+  const [saving,     setSaving]     = useState(false);
+  const [preview,    setPreview]    = useState('');
+  const [uploading,  setUploading]  = useState(false);
+  const [activo,     setActivo]     = useState(false);
+  const [activoLoad, setActivoLoad] = useState(true);
+  const [confirmOn,  setConfirmOn]  = useState(false);
   const fileRef = useRef(null);
+
+  /* Load activation state */
+  useEffect(() => {
+    getDoc(tenantDoc('config', 'ui'))
+      .then(snap => { if (snap.exists()) setActivo(!!snap.data().productosActivos); })
+      .catch(() => {})
+      .finally(() => setActivoLoad(false));
+  }, []);
+
+  const toggleActivo = async (newVal) => {
+    await setDoc(tenantDoc('config', 'ui'), { productosActivos: newVal }, { merge: true });
+    setActivo(newVal);
+    setConfirmOn(false);
+  };
 
   const openNew  = () => { setEditing(null); setForm(EMPTY); setPreview(''); setSlide(true); };
   const openEdit = p => {
@@ -111,15 +128,67 @@ export default function Productos() {
 
   return (
     <div className="max-w-5xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-xl font-bold text-white">Productos</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Productos disponibles en el local · visibles en el dashboard de clientes.</p>
+          <p className="text-sm text-slate-500 mt-0.5">Productos disponibles en el local.</p>
         </div>
         <button onClick={openNew} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
           <Plus size={16} /> Agregar producto
         </button>
       </div>
+
+      {/* Activation banner */}
+      {!activoLoad && (
+        <div className={`mb-6 flex items-start gap-4 px-5 py-4 rounded-xl border transition-all ${
+          activo ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-slate-700 bg-slate-900'
+        }`}>
+          <Power size={20} className={`shrink-0 mt-0.5 ${activo ? 'text-emerald-400' : 'text-slate-500'}`} />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-white">
+              Sección de productos: <span className={activo ? 'text-emerald-400' : 'text-slate-500'}>{activo ? 'Activa' : 'Inactiva'}</span>
+            </p>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {activo
+                ? 'Los clientes pueden ver los productos publicados en su perfil del club (pestaña "Productos").'
+                : 'Al activar, los clientes verán una pestaña "Productos" en su perfil del club.'}
+            </p>
+          </div>
+          <button
+            onClick={() => activo ? toggleActivo(false) : setConfirmOn(true)}
+            className={`shrink-0 px-4 py-2 rounded-lg text-xs font-semibold border transition-all ${
+              activo
+                ? 'border-red-500/30 text-red-400 hover:bg-red-500/10'
+                : 'border-emerald-500/40 text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20'
+            }`}
+          >
+            {activo ? 'Desactivar' : 'Activar'}
+          </button>
+        </div>
+      )}
+
+      {/* Confirm activation modal */}
+      {confirmOn && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}>
+          <div className="w-full max-w-sm bg-slate-900 border border-slate-700 rounded-2xl p-6 shadow-2xl">
+            <div className="flex items-center gap-3 mb-4">
+              <AlertTriangle size={22} className="text-amber-400 shrink-0" />
+              <h3 className="font-semibold text-white">Activar sección Productos</h3>
+            </div>
+            <p className="text-sm text-slate-400 leading-relaxed mb-5">
+              Los clientes verán directamente los productos publicados en su perfil del club.<br /><br />
+              <strong className="text-amber-400">Revisa los precios y el stock antes de activar.</strong> Esta sección es pública para todos los clientes registrados.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button onClick={() => setConfirmOn(false)} className="px-4 py-2 text-sm text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-all">Cancelar</button>
+              <button onClick={() => toggleActivo(true)} className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold rounded-lg transition-all">
+                Entendido, activar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
 
       {loading ? (
         <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" /></div>

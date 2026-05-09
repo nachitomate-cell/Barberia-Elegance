@@ -1,14 +1,28 @@
 import { useState } from 'react';
-import { Plus, Trophy, Edit2, Trash2, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, X } from 'lucide-react';
 import { addDoc, updateDoc, deleteDoc, doc, serverTimestamp, orderBy } from 'firebase/firestore';
 import { tenantCol } from '../lib/tenantUtils';
 import { useCollection } from '../hooks/useCollection';
 
-const EMPTY = { nombre: '', costoSellos: '' };
+const EMPTY = { nombre: '', costoSellos: '', icono: '✂️' };
 
-const TROPHY_COLORS = [
-  'text-yellow-400', 'text-emerald-400', 'text-blue-400',
-  'text-purple-400', 'text-rose-400',   'text-amber-400',
+const ICONOS = [
+  { v: '✂️',  l: 'Tijeras'  },
+  { v: '💈',  l: 'Barbería' },
+  { v: '🎁',  l: 'Regalo'   },
+  { v: '⭐',  l: 'Estrella' },
+  { v: '👑',  l: 'VIP'      },
+  { v: '💆',  l: 'Masaje'   },
+  { v: '🪒',  l: 'Navaja'   },
+  { v: '🎯',  l: 'Objetivo' },
+  { v: '🏆',  l: 'Trofeo'   },
+  { v: '🎉',  l: 'Fiesta'   },
+  { v: '💎',  l: 'Diamante' },
+  { v: '🔥',  l: 'Fuego'    },
+  { v: '🌟',  l: 'Especial' },
+  { v: '🎀',  l: 'Lazo'     },
+  { v: '💅',  l: 'Uñas'     },
+  { v: '🧴',  l: 'Producto' },
 ];
 
 export default function Premios() {
@@ -18,7 +32,10 @@ export default function Premios() {
   const [editing, setEditing] = useState(null);
   const [saving,  setSaving]  = useState(false);
 
-  const openEdit = p => { setEditing(p.id); setForm({ nombre: p.nombre, costoSellos: p.costoSellos }); };
+  const openEdit = p => {
+    setEditing(p.id);
+    setForm({ nombre: p.nombre, costoSellos: p.costoSellos, icono: p.icono || '✂️' });
+  };
   const cancelEdit = () => { setEditing(null); setForm(EMPTY); };
 
   const handleSave = async () => {
@@ -27,11 +44,12 @@ export default function Premios() {
     if (!nombre || !sellos || sellos < 1) return;
     setSaving(true);
     try {
+      const payload = { nombre, costoSellos: sellos, icono: form.icono, updatedAt: serverTimestamp() };
       if (editing) {
-        await updateDoc(doc(tenantCol('premios'), editing), { nombre, costoSellos: sellos, updatedAt: serverTimestamp() });
+        await updateDoc(doc(tenantCol('premios'), editing), payload);
         cancelEdit();
       } else {
-        await addDoc(tenantCol('premios'), { nombre, costoSellos: sellos, creadoEn: serverTimestamp() });
+        await addDoc(tenantCol('premios'), { ...payload, creadoEn: serverTimestamp() });
         setForm(EMPTY);
       }
     } finally { setSaving(false); }
@@ -49,7 +67,7 @@ export default function Premios() {
     <div className="max-w-2xl mx-auto">
       <div className="mb-6">
         <h1 className="text-xl font-bold text-white">Premios del Club</h1>
-        <p className="text-sm text-slate-500 mt-0.5">Define los premios globales que obtienen los clientes por acumular sellos.</p>
+        <p className="text-sm text-slate-500 mt-0.5">Define los premios que obtienen los clientes por acumular sellos.</p>
       </div>
 
       {/* Lista */}
@@ -58,15 +76,15 @@ export default function Premios() {
           <div className="flex justify-center py-10"><div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" /></div>
         ) : premios.length === 0 ? (
           <div className="flex flex-col items-center py-10 text-slate-600">
-            <Trophy size={28} className="mb-2" />
+            <span className="text-3xl mb-2">🏆</span>
             <p className="text-sm">Sin premios configurados.</p>
             <p className="text-xs mt-0.5 text-slate-700">Crea el primero con el formulario de abajo.</p>
           </div>
         ) : (
           <div className="divide-y divide-slate-800/60">
-            {premios.map((p, i) => (
+            {premios.map(p => (
               <div key={p.id} className="flex items-center gap-3 px-5 py-3.5 hover:bg-slate-800/30 transition-colors">
-                <Trophy size={16} className={`shrink-0 ${TROPHY_COLORS[i % TROPHY_COLORS.length]}`} />
+                <span className="text-xl shrink-0">{p.icono || '✂️'}</span>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-white truncate">{p.nombre}</p>
                   <p className="text-xs text-slate-500 mt-0.5">{p.costoSellos} sello{p.costoSellos !== 1 ? 's' : ''}</p>
@@ -96,6 +114,28 @@ export default function Premios() {
               <X size={15} />
             </button>
           )}
+        </div>
+
+        {/* Icono picker */}
+        <div className="mb-4">
+          <label className={lbl}>Ícono</label>
+          <div className="flex flex-wrap gap-1.5">
+            {ICONOS.map(({ v, l }) => (
+              <button
+                key={v}
+                type="button"
+                title={l}
+                onClick={() => setForm(f => ({ ...f, icono: v }))}
+                className={`w-9 h-9 rounded-lg flex items-center justify-center text-lg transition-all border ${
+                  form.icono === v
+                    ? 'border-emerald-500 bg-emerald-500/15'
+                    : 'border-slate-700 bg-slate-800 hover:border-slate-600'
+                }`}
+              >
+                {v}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="grid grid-cols-2 gap-3 mb-4">
