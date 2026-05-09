@@ -214,6 +214,18 @@ service cloud.firestore {
       allow write: if esAdmin('elegance');
     }
 
+    // ── /chats ─────────────────────────────────────────────────────
+    // El cliente lee/escribe solo su propio chat. Staff lee/escribe todos.
+    match /chats/{userId} {
+      allow read, write: if autenticado() && (uid() == userId || esStaff('elegance'));
+
+      match /messages/{msgId} {
+        allow read:          if autenticado() && (uid() == userId || esStaff('elegance'));
+        allow create:        if autenticado() && (uid() == userId || esStaff('elegance'));
+        allow update, delete: if esAdmin('elegance');
+      }
+    }
+
     // ═══════════════════════════════════════════════════════════════
     //  MULTI-TENANT — /tenants/{tid}/...
     //  El tenantId del usuario (claim) debe coincidir con {tid}.
@@ -329,6 +341,17 @@ service cloud.firestore {
       // ── admin_notes ───────────────────────────────────────────────
       match /admin_notes/{docId} {
         allow read, write: if esStaff(tid);
+      }
+
+      // ── chats ─────────────────────────────────────────────────────
+      match /chats/{userId} {
+        allow read, write: if autenticado() && (uid() == userId || esStaff(tid));
+
+        match /messages/{msgId} {
+          allow read:          if autenticado() && (uid() == userId || esStaff(tid));
+          allow create:        if autenticado() && (uid() == userId || esStaff(tid));
+          allow update, delete: if esAdmin(tid);
+        }
       }
     }
   }

@@ -866,11 +866,17 @@ auth.onAuthStateChanged(async user => {
     if (_userUnsub)     { _userUnsub();     _userUnsub     = null; }
     if (_premiosUnsub)  { _premiosUnsub();  _premiosUnsub  = null; }
     if (_lookbookUnsub) { _lookbookUnsub(); _lookbookUnsub = null; }
+    if (_chatUnsub)     { _chatUnsub();     _chatUnsub     = null; }
+    const _chatWidgetEl = document.getElementById('chatWidget');
+    if (_chatWidgetEl) _chatWidgetEl.classList.add('hidden');
     window.location.href = 'registro.html';
     return;
   }
   currentUser = user;
   document.getElementById('authGuard').style.display = 'none';
+  // Mostrar widget de chat (currentUser ya está asignado aquí)
+  const _chatWidgetEl = document.getElementById('chatWidget');
+  if (_chatWidgetEl) _chatWidgetEl.classList.remove('hidden');
 
   subscribeUserData(user);
 
@@ -2057,11 +2063,7 @@ function formatearFechaCita(fechaStr) {
       }
     }
 
-    // Mostrar widget solo cuando el usuario esté autenticado
-    firebase.auth().onAuthStateChanged(u => {
-      const widget = document.getElementById('chatWidget');
-      if (widget) widget.classList.toggle('hidden', !u);
-    });
+    // El widget se muestra/oculta desde el onAuthStateChanged principal (ver auth.onAuthStateChanged)
 
     function instalarPWA() {
       if (_isIOS_PWA) {
