@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Fondo oscuro redondeado -->
+  <rect width="100" height="100" rx="18" fill="#0A0D16"/>
+
+  <!-- Hoja 1: de (22,32) a (78,68) — cruza en (50,50) -->
+  <line x1="22" y1="32" x2="78" y2="68" stroke="#D4AF37" stroke-width="6" stroke-linecap="round"/>
+
+  <!-- Hoja 2: de (22,68) a (78,32) — cruza en (50,50) -->
+  <line x1="22" y1="68" x2="78" y2="32" stroke="#D4AF37" stroke-width="6" stroke-linecap="round"/>
+
+  <!-- Pivote central (tornillo) -->
+  <circle cx="50" cy="50" r="5" fill="#0A0D16" stroke="#D4AF37" stroke-width="3"/>
+
+  <!-- Aro mango 1 (arriba-izquierda) -->
+  <circle cx="22" cy="32" r="11" fill="none" stroke="#D4AF37" stroke-width="5.5"/>
+
+  <!-- Aro mango 2 (abajo-izquierda) -->
+  <circle cx="22" cy="68" r="11" fill="none" stroke="#D4AF37" stroke-width="5.5"/>
+</svg>
