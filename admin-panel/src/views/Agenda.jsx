@@ -347,7 +347,9 @@ export default function Agenda() {
   const { data: bloqueos }    = useCollection('bloqueos', [where('fecha', '==', dateStr)]);
   const { data: servicios }   = useCollection('servicios');
 
-  const barberos = useMemo(() => rawBarberos.filter(b => !b._mainDocId && b.disponible !== false), [rawBarberos]);
+  const barberos = useMemo(() =>
+    rawBarberos.filter(b => !b._mainDocId && b.disponible !== false && b.rol !== 'admin'),
+  [rawBarberos]);
 
   const moveDay = delta => { const d = new Date(date); d.setDate(d.getDate() + delta); setDate(d); };
 

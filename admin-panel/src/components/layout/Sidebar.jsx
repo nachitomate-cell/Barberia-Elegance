@@ -38,7 +38,7 @@ export default function Sidebar({ onClose }) {
   const tenant        = useTenant();
   const { role }      = useAuth();
   const isAdminRole   = role === 'admin' || role === 'jefe';
-  const visibleNav    = NAV.filter(item => !(item.to === 'agenda' && isAdminRole));
+  const visibleNav    = NAV;
   const [light, setLight] = useTheme();
 
   return (

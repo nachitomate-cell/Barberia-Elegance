@@ -24,13 +24,13 @@ function ProtectedApp() {
   if (!user) return <LoginPage />;
 
   const isAdminRole  = role === 'admin' || role === 'jefe';
-  const defaultRoute = isAdminRole ? 'servicios' : 'agenda';
+  const defaultRoute = isAdminRole ? 'agenda' : 'agenda';
 
   return (
     <AdminLayout>
       <Routes>
         <Route index                  element={<Navigate to={defaultRoute} replace />} />
-        <Route path="agenda"          element={isAdminRole ? <Navigate to="servicios" replace /> : <Agenda />} />
+        <Route path="agenda"          element={<Agenda />} />
         <Route path="servicios"       element={<Servicios />} />
         <Route path="equipo"          element={<Equipo />} />
         <Route path="clientes"        element={<Clientes />} />
