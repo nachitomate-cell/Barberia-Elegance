@@ -72,12 +72,24 @@ function ClientePanel({ cliente: init, premios, onClose }) {
       }).catch(() => {});
   }, [init.uid, init.email]);
 
-  const stamps    = data.stamps || 0;
+  // sellosDisponibles = saldo actual para gastar (se descuenta al canjear)
+  // sellosHistoricos  = total histórico acumulado (nunca disminuye, determina el nivel)
+  const sellosDisponibles = data.sellosDisponibles ?? data.stamps ?? 0;
+  const sellosHistoricos  = data.sellosHistoricos  ?? data.stamps ?? 0;
+  const stamps = sellosDisponibles; // alias para compatibilidad con UI existente
+
   const sorted    = [...premios].sort((a, b) => a.costoSellos - b.costoSellos);
   const nextPrize = sorted.find(p => stamps < p.costoSellos);
   const maxCost   = sorted.length ? sorted[sorted.length - 1].costoSellos : 10;
   const denom     = nextPrize ? nextPrize.costoSellos : maxCost;
   const pct       = Math.min(stamps / Math.max(denom, 1) * 100, 100);
+
+  function calcTier(historicos) {
+    if (historicos >= 25) return 'PLATINUM';
+    if (historicos >= 10) return 'GOLD';
+    return 'SILVER';
+  }
+  const tier = calcTier(sellosHistoricos);
 
   const rawTel = (data.telefono || '').replace(/\D/g, '');
   const baseWa = rawTel.length >= 8 ? `56${rawTel.startsWith('56') ? rawTel.slice(2) : rawTel}` : null;
@@ -92,8 +104,12 @@ function ClientePanel({ cliente: init, premios, onClose }) {
     setOpLoad(true);
     try {
       await updateDoc(doc(tenantCol('users'), data.uid), {
-        stamps:         increment(delta),
-        ...(delta > 0 ? { ultimoSello: new Date().toISOString() } : {}),
+        // Disponibles siempre se mueve (suma y quita)
+        sellosDisponibles: increment(delta),
+        // Históricos solo se incrementa — nunca retrocede
+        ...(delta > 0 ? { sellosHistoricos: increment(delta), ultimoSello: new Date().toISOString() } : {}),
+        // Compatibilidad con campo legacy
+        stamps: increment(delta),
         historialSellos: arrayUnion({
           fecha: new Date().toISOString(),
           tipo:  delta > 0 ? 'suma' : 'resta',
@@ -106,11 +122,13 @@ function ClientePanel({ cliente: init, premios, onClose }) {
 
   const canjear = async () => {
     if (!selPremio) { setCanjeMsg('Selecciona un premio primero.'); return; }
-    if (stamps < selPremio.costoSellos) { setCanjeMsg('Sellos insuficientes.'); return; }
+    if (sellosDisponibles < selPremio.costoSellos) { setCanjeMsg('Saldo insuficiente.'); return; }
     setOpLoad(true);
     try {
       await updateDoc(doc(tenantCol('users'), data.uid), {
-        stamps: increment(-selPremio.costoSellos),
+        // Solo se descuenta de disponibles — históricos no se toca
+        sellosDisponibles: increment(-selPremio.costoSellos),
+        stamps:            increment(-selPremio.costoSellos),
         historialSellos: arrayUnion({
           fecha: new Date().toISOString(), tipo: 'canje',
           cantidad: -selPremio.costoSellos, nota: selPremio.nombre,
@@ -122,12 +140,17 @@ function ClientePanel({ cliente: init, premios, onClose }) {
   };
 
   const resetSellos = async () => {
-    if (!stamps) { setResetOn(false); return; }
+    if (!sellosDisponibles) { setResetOn(false); return; }
     setOpLoad(true);
     try {
+      // Solo resetea el saldo disponible — el histórico se preserva
       await updateDoc(doc(tenantCol('users'), data.uid), {
-        stamps: increment(-stamps),
-        historialSellos: arrayUnion({ fecha: new Date().toISOString(), tipo: 'resta', cantidad: -stamps, nota: 'Reset manual por admin' }),
+        sellosDisponibles: increment(-sellosDisponibles),
+        stamps:            increment(-sellosDisponibles),
+        historialSellos: arrayUnion({
+          fecha: new Date().toISOString(), tipo: 'resta',
+          cantidad: -sellosDisponibles, nota: 'Reset manual por admin',
+        }),
       });
     } finally { setOpLoad(false); setResetOn(false); }
   };
@@ -164,9 +187,18 @@ function ClientePanel({ cliente: init, premios, onClose }) {
 
       {/* Contador de sellos */}
       <div className="bg-slate-950 border border-slate-800 rounded-xl p-4">
-        <div className="flex items-end gap-1 mb-1">
-          <span className="text-4xl font-black text-emerald-400 leading-none">{stamps}</span>
-          <span className="text-lg font-bold text-slate-600 mb-0.5">/{denom}</span>
+        <div className="flex items-start justify-between mb-1">
+          <div className="flex items-end gap-1">
+            <span className="text-4xl font-black text-emerald-400 leading-none">{stamps}</span>
+            <span className="text-lg font-bold text-slate-600 mb-0.5">/{denom}</span>
+          </div>
+          <span className={`text-[10px] font-black px-2 py-0.5 rounded-full border ${
+            tier === 'PLATINUM' ? 'text-violet-300 border-violet-400/30 bg-violet-400/5' :
+            tier === 'GOLD'     ? 'text-[#D4AF37] border-[#D4AF37]/30 bg-[#D4AF37]/5' :
+                                  'text-slate-400 border-slate-600/30 bg-slate-800/30'
+          }`}>
+            {tier} · {sellosHistoricos} hist.
+          </span>
         </div>
         <p className="text-[10px] text-slate-500 mb-2">
           {nextPrize ? `${denom - stamps} sello${denom - stamps !== 1 ? 's' : ''} para: ${nextPrize.nombre}` : stamps > 0 ? '¡Premios disponibles!' : 'Sin sellos aún'}

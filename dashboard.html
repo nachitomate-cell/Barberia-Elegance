@@ -931,7 +931,7 @@ async function initProductosTab() {
         const safeImg    = (p.imagen || '').replace(/'/g, '&#39;').replace(/"/g, '&quot;');
         const precio     = Number(p.precio || 0).toLocaleString('es-CL');
         return `
-        <div onclick="abrirProductoModal('${safeNombre}','${safeDesc}','${safeImg}',${Number(p.precio||0)})"
+        <div onclick="abrirProductoModal('${safeNombre}','${safeDesc}','${safeImg}',${Number(p.precio||0)},'${p.id}')"
              class="bg-[#0d0d10] border border-white/8 rounded-2xl overflow-hidden flex flex-col cursor-pointer active:scale-95 transition-transform">
           <div class="bg-white rounded-t-xl p-3 aspect-square flex items-center justify-center overflow-hidden pointer-events-none">
             ${p.imagen
@@ -991,12 +991,16 @@ async function subscribeUserData(user) {
 
     const nombre = data.nombre || user.displayName || 'Cliente';
     const email  = user.email  || '';
-    const stamps = data.stamps || 0;
 
-    if (_stampsSynced && stamps > _prevStamps) dispararConfetti();
-    _prevStamps   = stamps;
+    // sellosDisponibles = saldo actual para canjear (se descuenta al canjear)
+    // sellosHistoricos  = total histórico acumulado (nunca disminuye, determina nivel)
+    const disponibles = data.sellosDisponibles ?? data.stamps ?? 0;
+    const historicos  = data.sellosHistoricos  ?? data.stamps ?? 0;
+
+    if (_stampsSynced && disponibles > _prevStamps) dispararConfetti();
+    _prevStamps   = disponibles;
     _stampsSynced = true;
-    userStamps    = stamps;
+    userStamps    = disponibles;
 
     document.title = `Hola, ${nombre.split(' ')[0]} | ${SHOP.nombre}`;
 
@@ -1007,7 +1011,7 @@ async function subscribeUserData(user) {
 
     document.getElementById('profileName').textContent   = nombre;
     document.getElementById('profileEmail').textContent  = email;
-    document.getElementById('profileStamps').textContent = `${stamps} sello${stamps !== 1 ? 's' : ''}`;
+    document.getElementById('profileStamps').textContent = `${disponibles} sello${disponibles !== 1 ? 's' : ''}`;
 
     const nombreInput = document.getElementById('editNombre');
     const telInput    = document.getElementById('editTelefono');
@@ -1020,7 +1024,7 @@ async function subscribeUserData(user) {
         `<img src="${user.photoURL}" class="w-full h-full object-cover" alt="Avatar">`;
     }
 
-    renderStamps(stamps);
+    renderStamps(disponibles, historicos);
 
   }, err => console.error('[Dashboard] onSnapshot usuario:', err));
 }
@@ -1122,7 +1126,10 @@ function togglePremios() {
 }
 
 // ─── Renderizar sellos ────────────────────────────────────────
-function renderStamps(count) {
+// count       = sellosDisponibles (saldo actual — controla el grid y la barra)
+// historicos  = sellosHistoricos  (total acumulado — controla el nivel)
+function renderStamps(count, historicos) {
+  if (historicos === undefined) historicos = count; // retrocompat
   const grid = document.getElementById('stampsGrid');
   grid.innerHTML = '';
 
@@ -1181,16 +1188,16 @@ function renderStamps(count) {
     descEl.textContent = `Agenda ${nextPremio.costoSellos} citas y obtén ${nextPremio.nombre.toLowerCase()}.`;
   }
 
-  // Tier badge
+  // Tier badge — calculado con el total histórico (no con disponibles)
   const tierEl = document.getElementById('memberTier');
   if (tierEl) {
     tierEl.className = 'tier-badge';
-    if (count >= 25)     { tierEl.textContent = 'PLATINUM'; tierEl.classList.add('platinum'); }
-    else if (count >= 10){ tierEl.textContent = 'GOLD';     tierEl.classList.add('gold'); }
-    else                 { tierEl.textContent = 'SILVER';   tierEl.classList.add('silver'); }
+    if (historicos >= 25)     { tierEl.textContent = 'PLATINUM'; tierEl.classList.add('platinum'); }
+    else if (historicos >= 10){ tierEl.textContent = 'GOLD';     tierEl.classList.add('gold'); }
+    else                      { tierEl.textContent = 'SILVER';   tierEl.classList.add('silver'); }
   }
 
-  // Profile stamps
+  // Profile stamps — muestra el saldo disponible
   const profileStampsEl = document.getElementById('profileStamps');
   if (profileStampsEl) profileStampsEl.textContent = `${count} sello${count !== 1 ? 's' : ''}`;
 }
@@ -1875,7 +1882,7 @@ function formatearFechaCita(fechaStr) {
         <!-- Footer -->
         <div class="flex items-center justify-between border-t border-gray-800 pt-4">
           <span id="productoModalPrecio" class="text-2xl font-bold text-[#D4AF37]"></span>
-          <button onclick="cerrarProductoModal(); switchTab('loyalty');" class="bg-[#D4AF37] text-black font-bold py-2 px-5 rounded-xl hover:bg-yellow-500 transition-colors active:scale-95">
+          <button id="btnReservarProducto" onclick="reservarProducto()" class="bg-[#D4AF37] text-black font-bold py-2 px-5 rounded-xl hover:bg-yellow-500 transition-colors active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
             Reservar Producto
           </button>
         </div>
@@ -1946,7 +1953,10 @@ function formatearFechaCita(fechaStr) {
       }, 2500);
     }
 
-    function abrirProductoModal(nombre, descripcion, imagen, precio) {
+    let _productoActual = {};
+
+    function abrirProductoModal(nombre, descripcion, imagen, precio, productId) {
+      _productoActual = { id: productId || '', nombre, precio };
       const modal = document.getElementById('productoModal');
       const img   = document.getElementById('productoModalImg');
       const imgFallback = document.getElementById('productoModalImgFallback');
@@ -1962,6 +1972,9 @@ function formatearFechaCita(fechaStr) {
         img.classList.add('hidden');
         imgFallback.classList.remove('hidden');
       }
+      // Restaurar botón por si quedó en estado "Reservando..."
+      const btn = document.getElementById('btnReservarProducto');
+      if (btn) { btn.disabled = false; btn.textContent = 'Reservar Producto'; }
       modal.classList.remove('hidden');
       document.body.style.overflow = 'hidden';
     }
@@ -1969,6 +1982,36 @@ function formatearFechaCita(fechaStr) {
     function cerrarProductoModal() {
       document.getElementById('productoModal').classList.add('hidden');
       document.body.style.overflow = '';
+    }
+
+    async function reservarProducto() {
+      if (!currentUser || !_productoActual.id) return;
+      const btn = document.getElementById('btnReservarProducto');
+      btn.disabled    = true;
+      btn.textContent = 'Reservando...';
+      try {
+        const tid = window.CURRENT_TENANT_ID || 'elegance';
+        const col = tid === 'elegance'
+          ? firebase.firestore().collection('product_reservations')
+          : firebase.firestore().collection('tenants').doc(tid).collection('product_reservations');
+        await col.add({
+          productId:   _productoActual.id,
+          productName: _productoActual.nombre,
+          precio:      _productoActual.precio,
+          userId:      currentUser.uid,
+          userName:    currentUser.displayName || currentUser.email || 'Cliente',
+          userEmail:   currentUser.email || '',
+          status:      'pending',
+          createdAt:   firebase.firestore.FieldValue.serverTimestamp(),
+        });
+        cerrarProductoModal();
+        showToast('¡Producto reservado! Lo separaremos para tu próxima visita.', 'ok');
+      } catch (err) {
+        console.error('[Reserva producto]', err);
+        btn.disabled    = false;
+        btn.textContent = 'Reservar Producto';
+        showToast('Error al reservar. Intenta de nuevo.', 'error');
+      }
     }
 
     // ══════════════════════════════════════════════
