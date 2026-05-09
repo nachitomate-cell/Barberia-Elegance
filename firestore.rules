@@ -146,5 +146,18 @@ service cloud.firestore {
       allow read: if true;
       allow write: if esAdmin();
     }
+
+    // ── /settings ────────────────────────────────────────────────────────────────
+    // Configuración general del local (nombre, dirección, horario, redes sociales).
+    match /settings/{docId} {
+      allow read: if esBarbero();
+      allow write: if esAdmin();
+    }
+
+    // ── /gastos ──────────────────────────────────────────────────────────────────
+    // Registro de egresos; datos financieros sensibles, solo visibles para admin/jefe.
+    match /gastos/{docId} {
+      allow read, write: if esAdmin();
+    }
   }
 }
