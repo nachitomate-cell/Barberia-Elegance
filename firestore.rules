@@ -214,6 +214,19 @@ service cloud.firestore {
       allow write: if esAdmin('elegance');
     }
 
+    // ── /product_reservations ──────────────────────────────────────
+    // Cliente crea su propia reserva. Staff lee y actualiza el estado.
+    match /product_reservations/{docId} {
+      allow read:   if autenticado() && (resource.data.get('userId', '') == uid() || esStaff('elegance'));
+      allow create: if autenticado()
+                    && request.resource.data.userId == uid()
+                    && request.resource.data.status == 'pending'
+                    && !request.resource.data.keys().hasAny(['role', 'tenantId', 'adminOverride']);
+      allow update: if esStaff('elegance')
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']);
+      allow delete: if esAdmin('elegance');
+    }
+
     // ── /chats ─────────────────────────────────────────────────────
     // El cliente lee/escribe solo su propio chat. Staff lee/escribe todos.
     match /chats/{userId} {
@@ -352,6 +365,18 @@ service cloud.firestore {
           allow create:        if autenticado() && (uid() == userId || esStaff(tid));
           allow update, delete: if esAdmin(tid);
         }
+      }
+
+      // ── product_reservations ──────────────────────────────────────
+      match /product_reservations/{docId} {
+        allow read:   if autenticado() && (resource.data.get('userId', '') == uid() || esStaff(tid));
+        allow create: if autenticado()
+                      && request.resource.data.userId == uid()
+                      && request.resource.data.status == 'pending'
+                      && !request.resource.data.keys().hasAny(['role', 'tenantId', 'adminOverride']);
+        allow update: if esStaff(tid)
+                      && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']);
+        allow delete: if esAdmin(tid);
       }
     }
   }

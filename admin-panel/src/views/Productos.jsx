@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { Plus, ShoppingBag, Edit2, Trash2, Upload, ImageOff, Power, AlertTriangle } from 'lucide-react';
-import { addDoc, updateDoc, deleteDoc, doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { Plus, ShoppingBag, Edit2, Trash2, Upload, ImageOff, Power, AlertTriangle, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { addDoc, updateDoc, deleteDoc, doc, getDoc, setDoc, serverTimestamp, onSnapshot, query, where } from 'firebase/firestore';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage, db } from '../lib/firebase';
 import { tenantCol, tenantDoc } from '../lib/tenantUtils';
@@ -56,7 +56,33 @@ export default function Productos() {
   const [activo,     setActivo]     = useState(false);
   const [activoLoad, setActivoLoad] = useState(true);
   const [confirmOn,  setConfirmOn]  = useState(false);
+  const [reservas,        setReservas]        = useState([]);
+  const [reservasLoading, setReservasLoading] = useState(true);
   const fileRef = useRef(null);
+
+  /* Reservas pendientes en tiempo real */
+  useEffect(() => {
+    const q = query(tenantCol('product_reservations'), where('status', '==', 'pending'));
+    const unsub = onSnapshot(q, snap => {
+      const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      docs.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+      setReservas(docs);
+      setReservasLoading(false);
+    }, () => setReservasLoading(false));
+    return unsub;
+  }, []);
+
+  const marcarEntregado = id =>
+    updateDoc(doc(tenantCol('product_reservations'), id), { status: 'delivered', updatedAt: serverTimestamp() });
+
+  const cancelarReserva = id =>
+    updateDoc(doc(tenantCol('product_reservations'), id), { status: 'cancelled', updatedAt: serverTimestamp() });
+
+  function fmtDate(ts) {
+    if (!ts) return '—';
+    const d = ts.toDate ? ts.toDate() : new Date(ts);
+    return d.toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
 
   /* Load activation state */
   useEffect(() => {
@@ -218,6 +244,62 @@ export default function Productos() {
           {productos.map(p => <ProductCard key={p.id} producto={p} onEdit={openEdit} onDelete={handleDelete} />)}
         </div>
       )}
+
+      {/* ── Reservas Pendientes ─────────────────────────────────── */}
+      <div className="mt-10">
+        <div className="flex items-center gap-2 mb-4">
+          <Clock size={16} className="text-amber-400" />
+          <h2 className="text-sm font-bold text-white uppercase tracking-wide">Reservas Pendientes</h2>
+          {reservas.length > 0 && (
+            <span className="ml-1 bg-amber-500/20 text-amber-400 text-xs font-bold px-2 py-0.5 rounded-full border border-amber-500/30">
+              {reservas.length}
+            </span>
+          )}
+        </div>
+
+        {reservasLoading ? (
+          <div className="flex justify-center py-10">
+            <div className="w-5 h-5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : reservas.length === 0 ? (
+          <div className="flex items-center gap-3 px-5 py-4 bg-slate-900 border border-slate-800 rounded-xl text-slate-500 text-sm">
+            <CheckCircle2 size={16} className="text-slate-600 shrink-0" />
+            Sin reservas pendientes por el momento.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {reservas.map(r => (
+              <div key={r.id} className="flex items-center gap-4 px-5 py-4 bg-slate-900 border border-slate-800 rounded-xl hover:border-slate-700 transition-colors">
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-white truncate">{r.userName || '—'}</p>
+                  <p className="text-xs text-slate-400 mt-0.5 truncate">{r.productName}</p>
+                  <p className="text-xs text-slate-600 mt-0.5">{fmtDate(r.createdAt)}</p>
+                </div>
+                {/* Precio */}
+                <span className="text-sm font-bold text-emerald-400 shrink-0">
+                  ${Number(r.precio || 0).toLocaleString('es-CL')}
+                </span>
+                {/* Acciones */}
+                <div className="flex gap-2 shrink-0">
+                  <button
+                    onClick={() => marcarEntregado(r.id)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[#D4AF37]/10 border border-[#D4AF37]/40 text-[#D4AF37] hover:bg-[#D4AF37]/20 rounded-lg text-xs font-semibold transition-colors"
+                  >
+                    <CheckCircle2 size={12} /> Entregado
+                  </button>
+                  <button
+                    onClick={() => cancelarReserva(r.id)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-transparent border border-red-500/30 text-red-400 hover:bg-red-500/10 rounded-lg text-xs font-semibold transition-colors"
+                  >
+                    <XCircle size={12} /> Cancelar
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* SlideOver */}
       <SlideOver isOpen={slide} onClose={() => setSlide(false)}

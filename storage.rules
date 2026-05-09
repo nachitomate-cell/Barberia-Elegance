@@ -18,6 +18,15 @@ service firebase.storage {
       return request.resource.size < 10 * 1024 * 1024;
     }
 
+    // Fotos de perfil de clientes — cada usuario sube solo a su propio uid
+    match /avatars/{userId}/{fileName} {
+      allow read: if true;
+      allow write: if isAuth()
+                   && request.auth.uid == userId
+                   && isImage()
+                   && isUnder5MB();
+    }
+
     // Fotos de perfil de barberos
     match /barberos/{imageId} {
       allow read: if true;

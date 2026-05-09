@@ -543,7 +543,7 @@
     /* Cards de servicio seleccionadas: borde y fondo dorado */
     .service-option.border-neon {
       border-color: #D4AF37 !important;
-      box-shadow: none !important;
+      box-shadow: 0 0 10px rgba(212,175,55,0.1) !important;
     }
     .service-option.bg-brand-neon\/10 {
       background-color: rgba(212,175,55,0.08) !important;
@@ -664,7 +664,7 @@
           <div class="h-36 bg-white/5 rounded-lg animate-pulse"></div>
           <div class="h-36 bg-white/5 rounded-lg animate-pulse"></div>
         </div>
-        <div class="flex flex-col gap-6" id="servicesGrid">
+        <div class="flex flex-col gap-6 pb-32" id="servicesGrid">
         </div>
       </section>
 
@@ -932,9 +932,13 @@
       if (!btn) return;
       if (currentStep === 1) {
         if (selectedServiceObj) {
+          btn.disabled = false;
+          btn.style.opacity = '1';
           btn.innerHTML = `${selectedServiceObj.nombre} · $${selectedServiceObj.precio.toLocaleString('es-CL')} <i class="ph-bold ph-arrow-right text-lg"></i>`;
         } else {
-          btn.innerHTML = 'Continuar <i class="ph-bold ph-arrow-right text-lg"></i>';
+          btn.disabled = true;
+          btn.style.opacity = '0.5';
+          btn.innerHTML = 'Selecciona un servicio <i class="ph-bold ph-arrow-right text-lg"></i>';
         }
       } else if (currentStep === 2) {
         if (window._selectedBarberId === 'any') {
@@ -963,12 +967,20 @@
 
     const _ICONS = ['ph-scissors','ph-mask-happy','ph-user-focus','ph-magic-wand','ph-sparkle','ph-star'];
 
+    function _catIcon(cat, idx) {
+      const c = (cat || '').toLowerCase();
+      if (c.includes('corte')) return 'ph-scissors';
+      if (c.includes('combo') || c.includes('pack')) return 'ph-package';
+      if (c.includes('barba') || c.includes('afeit') || c.includes('beard')) return 'ph-user';
+      return _ICONS[idx % _ICONS.length];
+    }
+
     function _renderServicesGrid(services) {
       const skeleton = document.getElementById('servicesSkeleton');
       if (skeleton) skeleton.style.display = 'none';
       const grid = document.getElementById('servicesGrid');
       grid.innerHTML = '';
-      
+
       const categories = {};
       services.forEach(s => {
         const cat = s.categoria || 'Otros';
@@ -976,22 +988,27 @@
         categories[cat].push(s);
       });
 
+      const _isEleganceSvc = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance';
+
       Object.keys(categories).forEach(cat => {
         // Contenedor de la categoría (útil para el filtro de pills)
         const catContainer = document.createElement('div');
         catContainer.className = "category-section col-span-2 mb-2";
         catContainer.dataset.category = cat;
-        
-        // Título de la colección/categoría
-        catContainer.innerHTML = `<div class="cat-sep sep-ornamental mb-4"><span class="sep-ornamental-gem">✦ ✦ ✦</span></div><h3 class="cat-title border-l-4 border-neon pl-3 text-lg font-semibold text-white/80 mb-4">${cat}</h3>`;
-        
+
+        // Título limpio para elegance; ornamental para otros tenants
+        if (_isEleganceSvc) {
+          catContainer.innerHTML = `<h3 class="text-gray-400 font-bold uppercase tracking-widest text-xs mb-4 ml-1">${cat}</h3>`;
+        } else {
+          catContainer.innerHTML = `<div class="cat-sep sep-ornamental mb-4"><span class="sep-ornamental-gem">✦ ✦ ✦</span></div><h3 class="cat-title border-l-4 border-neon pl-3 text-lg font-semibold text-white/80 mb-4">${cat}</h3>`;
+        }
+
         // Grid interno para los servicios de esta categoría
         const innerGrid = document.createElement('div');
-        const _isEleganceSvc = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance';
         innerGrid.className = _isEleganceSvc ? 'flex flex-col gap-2' : 'grid grid-cols-2 gap-4';
 
         categories[cat].forEach((s, i) => {
-          const icon = s.icono || _ICONS[i % _ICONS.length];
+          const icon = s.icono || (_isEleganceSvc ? _catIcon(cat, i) : _ICONS[i % _ICONS.length]);
           if (_isEleganceSvc) {
             innerGrid.innerHTML += `
               <button onclick="selectService(this)" data-service-id="${s.id}" data-category="${cat}"
@@ -1466,6 +1483,7 @@
         el.classList.replace('border-neon', 'border-brand-accent/20');
         el.classList.remove('bg-brand-neon/10', 'scale-105', 'shadow-[0_0_20px_rgba(255,255,255,0.2)]', 'border-2');
         el.classList.add('border');
+        el.style.boxShadow = '';
         const iconBg = el.querySelector('.icon-bg');
         const iconSvg = el.querySelector('.icon-svg');
         if (!_isElegance && iconBg) iconBg.classList.replace('border-brand-neon', 'border-brand-accent/20');
@@ -1478,6 +1496,7 @@
 
       btn.classList.add('border-2', 'border-neon', 'bg-brand-neon/10');
       if (!_isGitana && !_isElegance) btn.classList.add('scale-105', 'shadow-[0_0_20px_rgba(255,255,255,0.2)]');
+      if (_isElegance) btn.style.boxShadow = '0 0 10px rgba(212,175,55,0.1)';
       btn.classList.replace('border-brand-accent/20', 'border-neon');
       btn.classList.remove('border');
 
@@ -1974,6 +1993,7 @@
 
     window.addEventListener('DOMContentLoaded', async () => {
       applyConfig();
+      updateContinueBtn();    // botón deshabilitado hasta que se elija servicio
       await initServices();   // carga servicios y config desde Firestore
       renderCalendar();       // ahora que _fsConfig está listo
     });

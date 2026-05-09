@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, where } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { db, auth } from '../lib/firebase';
 import { resolveTenantId } from '../lib/tenantUtils';
@@ -9,6 +9,13 @@ function citasCol() {
   return tid === 'elegance'
     ? collection(db, 'citas')
     : collection(db, `tenants/${tid}/citas`);
+}
+
+function reservasCol() {
+  const tid = resolveTenantId();
+  return tid === 'elegance'
+    ? collection(db, 'product_reservations')
+    : collection(db, `tenants/${tid}/product_reservations`);
 }
 
 // Tono diferente al del chat (dos notas ascendentes — "ding-dong")
@@ -34,60 +41,61 @@ function playAppointmentBell() {
 }
 
 export function useAppointmentNotifications() {
-  const isInitialLoad  = useRef(true);
-  const firestoreUnsub = useRef(null);
+  const isInitialCitas    = useRef(true);
+  const isInitialReservas = useRef(true);
+  const citasUnsub        = useRef(null);
+  const reservasUnsub     = useRef(null);
 
   useEffect(() => {
     const authUnsub = onAuthStateChanged(auth, user => {
 
-      // Limpiar listener anterior si existe (logout / cambio de usuario)
-      if (firestoreUnsub.current) {
-        firestoreUnsub.current();
-        firestoreUnsub.current = null;
-      }
+      // Limpiar listeners anteriores
+      if (citasUnsub.current)    { citasUnsub.current();    citasUnsub.current    = null; }
+      if (reservasUnsub.current) { reservasUnsub.current(); reservasUnsub.current = null; }
 
       if (!user) {
-        isInitialLoad.current = true;
+        isInitialCitas.current    = true;
+        isInitialReservas.current = true;
         return;
       }
 
-      // Usuario confirmado: abrir listener en citas
-      isInitialLoad.current = true;
-      const q = query(citasCol(), orderBy('creadoEn', 'desc'));
+      // ── Listener de citas ──────────────────────────────────────────
+      isInitialCitas.current = true;
+      const qCitas = query(citasCol(), orderBy('creadoEn', 'desc'));
 
-      firestoreUnsub.current = onSnapshot(q, snap => {
+      citasUnsub.current = onSnapshot(qCitas, snap => {
+        if (isInitialCitas.current) { isInitialCitas.current = false; return; }
 
-        // ── Ignorar la carga inicial completa ──
-        // Firestore envía todos los docs existentes como 'added' en el primer snap.
-        if (isInitialLoad.current) {
-          isInitialLoad.current = false;
-          return;
-        }
-
-        // ── Cambios posteriores: solo docs nuevos ──
         snap.docChanges().forEach(change => {
           if (change.type !== 'added') return;
-
           const data = change.doc.data();
-
-          // Filtro opcional: no sonar si la creó el propio admin desde el panel.
-          // Las reservas del widget público tienen clienteUid; las del admin no.
           const esReservaCliente = !!data.clienteUid;
           const esCreadorActual  = data.clienteUid === user.uid;
+          if (esReservaCliente && !esCreadorActual) playAppointmentBell();
+          else if (!esReservaCliente) playAppointmentBell();
+        });
+      });
 
-          if (esReservaCliente && !esCreadorActual) {
-            playAppointmentBell();
-          } else if (!esReservaCliente) {
-            // Sin clienteUid → reserva pública anónima → sonar igual
-            playAppointmentBell();
-          }
+      // ── Listener de reservas de productos ─────────────────────────
+      isInitialReservas.current = true;
+      const qReservas = query(reservasCol(), where('status', '==', 'pending'));
+
+      reservasUnsub.current = onSnapshot(qReservas, snap => {
+        if (isInitialReservas.current) { isInitialReservas.current = false; return; }
+
+        snap.docChanges().forEach(change => {
+          if (change.type !== 'added') return;
+          // Solo sonar si la reserva no la hizo el propio admin
+          const data = change.doc.data();
+          if (data.userId !== user.uid) playAppointmentBell();
         });
       });
     });
 
     return () => {
       authUnsub();
-      if (firestoreUnsub.current) firestoreUnsub.current();
+      if (citasUnsub.current)    citasUnsub.current();
+      if (reservasUnsub.current) reservasUnsub.current();
     };
   }, []);
 }
