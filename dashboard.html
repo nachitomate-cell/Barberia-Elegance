@@ -1787,6 +1787,67 @@ function formatearFechaCita(fechaStr) {
     </div>
   </div>
 
+  <!-- ══ Chat Widget ══ -->
+  <div id="chatWidget" class="hidden fixed z-[70] right-4" style="bottom:calc(5rem + env(safe-area-inset-bottom))">
+
+    <!-- Botón flotante -->
+    <div class="relative">
+      <button id="chatToggleBtn" onclick="toggleChat()"
+        class="w-14 h-14 rounded-full flex items-center justify-center shadow-xl active:scale-90 transition-transform"
+        style="background:#D4AF37">
+        <svg id="chatIconMsg" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="#000" viewBox="0 0 256 256">
+          <path d="M216,48H40A16,16,0,0,0,24,64V224a8,8,0,0,0,13,6.22L72,208H216a16,16,0,0,0,16-16V64A16,16,0,0,0,216,48ZM216,192H69.33a8,8,0,0,0-5.16,1.88L40,213.56V64H216Z"/>
+        </svg>
+        <svg id="chatIconX" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="#000" viewBox="0 0 256 256" class="hidden">
+          <path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"/>
+        </svg>
+      </button>
+      <span id="chatUnreadDot" class="hidden absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-[#050505]"></span>
+    </div>
+
+    <!-- Popover -->
+    <div id="chatPopover" class="hidden absolute bottom-16 right-0 flex flex-col overflow-hidden shadow-2xl rounded-t-2xl rounded-bl-2xl"
+      style="width:320px;height:400px;background:#111827;border:1px solid rgba(255,255,255,0.1)">
+
+      <!-- Cabecera -->
+      <div class="flex items-center justify-between px-4 py-3 shrink-0" style="background:#000;border-bottom:1px solid rgba(255,255,255,0.08)">
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-green-400 shrink-0"></span>
+          <span id="chatHeaderNombre" class="text-sm font-bold text-white">Soporte</span>
+        </div>
+        <button onclick="toggleChat()" class="text-gray-500 hover:text-white transition-colors p-1">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 256 256">
+            <path d="M205.66,194.34a8,8,0,0,1-11.32,11.32L128,139.31,61.66,205.66a8,8,0,0,1-11.32-11.32L116.69,128,50.34,61.66A8,8,0,0,1,61.66,50.34L128,116.69l66.34-66.35a8,8,0,0,1,11.32,11.32L139.31,128Z"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Mensajes -->
+      <div id="chatMessages" class="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
+        <div class="flex justify-start">
+          <div class="max-w-[75%] text-sm rounded-2xl rounded-tl-none px-3 py-2 leading-snug" style="background:#1f2937;color:#e5e7eb">
+            ¡Hola! ¿En qué podemos ayudarte hoy?
+          </div>
+        </div>
+      </div>
+
+      <!-- Input -->
+      <div class="shrink-0 flex items-center gap-2 p-3" style="background:#000;border-top:1px solid rgba(255,255,255,0.08)">
+        <input id="chatInput" type="text" placeholder="Escribe un mensaje..."
+          class="flex-1 text-sm rounded-xl px-3 py-2 text-white placeholder-gray-500 focus:outline-none"
+          style="background:#1f2937;border:1px solid rgba(255,255,255,0.1)"
+          onkeydown="if(event.key==='Enter')sendChatMessage()">
+        <button onclick="sendChatMessage()"
+          class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 active:scale-90 transition-transform"
+          style="background:#D4AF37">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="#000" viewBox="0 0 256 256">
+            <path d="M231.87,114l-168-95.89A16,16,0,0,0,40.92,37.34L71.55,128,40.92,218.67A16,16,0,0,0,56,240a16.15,16.15,0,0,0,7.93-2.1l167.92-96.05a16,16,0,0,0,.05-27.89Z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- ══ Modal Detalle de Producto ══ -->
   <div id="productoModal" class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onclick="cerrarProductoModal()">
     <div class="w-full max-w-sm bg-gray-900 rounded-2xl overflow-hidden shadow-2xl relative flex flex-col" onclick="event.stopPropagation()">
@@ -1903,6 +1964,104 @@ function formatearFechaCita(fechaStr) {
       document.getElementById('productoModal').classList.add('hidden');
       document.body.style.overflow = '';
     }
+
+    // ══════════════════════════════════════════════
+    //  CHAT DE SOPORTE
+    // ══════════════════════════════════════════════
+    let _chatUnsub   = null;
+    let _chatOpen    = false;
+    let _chatInited  = false;
+
+    function _chatDoc(userId) {
+      const tid = window.CURRENT_TENANT_ID || 'elegance';
+      return tid === 'elegance'
+        ? firebase.firestore().collection('chats').doc(userId)
+        : firebase.firestore().collection('tenants').doc(tid).collection('chats').doc(userId);
+    }
+
+    function _chatMsgsCol(userId) {
+      return _chatDoc(userId).collection('messages');
+    }
+
+    function initChat() {
+      if (_chatInited || !currentUser) return;
+      _chatInited = true;
+
+      // Nombre del local en el header
+      const shopName = (window.SHOP?.nombreCorto || window.SHOP?.nombre || 'Soporte');
+      document.getElementById('chatHeaderNombre').textContent = 'Soporte ' + shopName;
+
+      // Escuchar mensajes en tiempo real
+      _chatUnsub = _chatMsgsCol(currentUser.uid)
+        .orderBy('timestamp', 'asc')
+        .onSnapshot(snap => {
+          const container = document.getElementById('chatMessages');
+          if (!container) return;
+          const msgs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+          if (msgs.length === 0) return;
+          container.innerHTML = msgs.map(m => {
+            const isUser = m.sender === 'user';
+            const text   = m.text || '';
+            return isUser
+              ? `<div class="flex justify-end">
+                   <div class="max-w-[75%] text-sm rounded-2xl rounded-tr-none px-3 py-2 leading-snug font-medium" style="background:#D4AF37;color:#000">${text}</div>
+                 </div>`
+              : `<div class="flex justify-start">
+                   <div class="max-w-[75%] text-sm rounded-2xl rounded-tl-none px-3 py-2 leading-snug" style="background:#1f2937;color:#e5e7eb">${text}</div>
+                 </div>`;
+          }).join('');
+          container.scrollTop = container.scrollHeight;
+
+          // Badge si el popover está cerrado y hay msg del admin
+          const lastMsg = msgs[msgs.length - 1];
+          if (!_chatOpen && lastMsg?.sender === 'admin') {
+            document.getElementById('chatUnreadDot').classList.remove('hidden');
+          }
+        });
+    }
+
+    async function sendChatMessage() {
+      if (!currentUser) return;
+      const input = document.getElementById('chatInput');
+      const text  = (input?.value || '').trim();
+      if (!text) return;
+      input.value = '';
+
+      const ts = firebase.firestore.FieldValue.serverTimestamp();
+      const uid = currentUser.uid;
+
+      await _chatMsgsCol(uid).add({ text, sender: 'user', timestamp: ts });
+      await _chatDoc(uid).set({
+        userName:    currentUser.displayName || currentUser.email || 'Cliente',
+        userEmail:   currentUser.email || '',
+        lastMessage: text,
+        updatedAt:   ts,
+        hasUnread:   true,
+      }, { merge: true });
+    }
+
+    function toggleChat() {
+      _chatOpen = !_chatOpen;
+      document.getElementById('chatPopover').classList.toggle('hidden', !_chatOpen);
+      document.getElementById('chatIconMsg').classList.toggle('hidden',  _chatOpen);
+      document.getElementById('chatIconX').classList.toggle('hidden',   !_chatOpen);
+      document.getElementById('chatUnreadDot').classList.add('hidden');
+
+      if (_chatOpen) {
+        initChat();
+        setTimeout(() => {
+          const c = document.getElementById('chatMessages');
+          if (c) c.scrollTop = c.scrollHeight;
+          document.getElementById('chatInput')?.focus();
+        }, 60);
+      }
+    }
+
+    // Mostrar widget solo cuando el usuario esté autenticado
+    firebase.auth().onAuthStateChanged(u => {
+      const widget = document.getElementById('chatWidget');
+      if (widget) widget.classList.toggle('hidden', !u);
+    });
 
     function instalarPWA() {
       if (_isIOS_PWA) {
