@@ -30,6 +30,8 @@
       categoriasServicio: ['Cortes', 'Barba', 'Combos', 'Extras', 'Otro'],
       nombre:          'Barbería Ferraza',
       nombreCorto:     'Ferraza',
+      pageTitle:       'Barbería Ferraza | El cambio comienza por ti',
+      bodyBg:          '#000000',
       slogan:          'El cambio comienza por ti',
       logo:            '/local1.jpg',
       direccion:       '📍 Av. Libertad 63 / Local 28',
