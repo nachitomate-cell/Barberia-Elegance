@@ -479,3 +479,16 @@ const haircutReminder = require('./haircut-reminder');
 exports.actualizarSuggestionElegance = haircutReminder.actualizarSuggestionElegance;
 exports.actualizarSuggestionTenant   = haircutReminder.actualizarSuggestionTenant;
 exports.enviarRecordatoriosCorte     = haircutReminder.enviarRecordatoriosCorte;
+
+// ─────────────────────────────────────────────────────────────────
+//  SELLO AUTOMÁTICO — ver sello-automatico.js para detalles
+// ─────────────────────────────────────────────────────────────────
+const selloAutomatico = require('./sello-automatico');
+exports.sellosElegance = selloAutomatico.sellosElegance;
+exports.sellosTenant   = selloAutomatico.sellosTenant;
+
+// ─────────────────────────────────────────────────────────────────
+//  CUMPLEAÑOS AUTOMÁTICO — ver cumpleanos.js para detalles
+// ─────────────────────────────────────────────────────────────────
+const cumpleanos = require('./cumpleanos');
+exports.selloCumpleanos = cumpleanos.selloCumpleanos;

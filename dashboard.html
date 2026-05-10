@@ -634,6 +634,17 @@
             class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37]">
         </div>
 
+        <!-- Fecha de Nacimiento -->
+        <div>
+          <label class="text-[10px] text-gray-600 font-bold uppercase tracking-widest block mb-1.5 px-1">
+            🎂 Fecha de Nacimiento <span class="normal-case font-normal text-gray-700">(opcional)</span>
+          </label>
+          <input id="editFechaNacimiento" type="date" autocomplete="bday"
+            class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37]"
+            style="color-scheme:dark;">
+          <p class="text-[10px] text-gray-700 mt-1 px-1">Recibirás 1 sello de regalo el día de tu cumpleaños.</p>
+        </div>
+
       </div>
       <p id="profileSaveMsg" class="hidden text-xs text-center mb-3" style="color:var(--gold);">✓ Datos guardados correctamente</p>
       <button id="btnGuardarPerfil" onclick="guardarPerfil()"
@@ -1024,8 +1035,10 @@ async function subscribeUserData(user) {
 
     const nombreInput = document.getElementById('editNombre');
     const telInput    = document.getElementById('editTelefono');
+    const cumpleInput = document.getElementById('editFechaNacimiento');
     if (document.activeElement !== nombreInput) nombreInput.value = nombre;
     if (document.activeElement !== telInput)    telInput.value    = data.telefono || '';
+    if (document.activeElement !== cumpleInput) cumpleInput.value = data.fechaNacimiento || '';
     document.getElementById('editEmail').value = email;
 
     if (user.photoURL) {
@@ -1373,11 +1386,21 @@ function validatePhone(value) {
 }
 
 // ─── Guardar perfil ───────────────────────────────────────────
+// ─── Helper: ref a clientes/{phone} respetando tenant ────────────
+function clientesDocRef(normalizedPhone) {
+  const tid = window.CURRENT_TENANT_ID || 'elegance';
+  const fs  = firebase.firestore();
+  return tid === 'elegance'
+    ? fs.collection('clientes').doc(normalizedPhone)
+    : fs.collection('tenants').doc(tid).collection('clientes').doc(normalizedPhone);
+}
+
 async function guardarPerfil() {
   if (!currentUser) return;
-  const nombre   = document.getElementById('editNombre').value.trim();
-  const email    = document.getElementById('editEmail').value.trim();
-  const telefono = document.getElementById('editTelefono').value.trim();
+  const nombre          = document.getElementById('editNombre').value.trim();
+  const email           = document.getElementById('editEmail').value.trim();
+  const telefono        = document.getElementById('editTelefono').value.trim();
+  const fechaNacimiento = document.getElementById('editFechaNacimiento').value || null;
 
   if (!nombre) { showToast('El nombre no puede estar vacío.', 'err'); return; }
   if (telefono && !validatePhone(telefono)) {
@@ -1388,9 +1411,30 @@ async function guardarPerfil() {
   const btn = document.querySelector('[onclick="guardarPerfil()"]');
   if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; }
   try {
-    await FDB.usersCol().doc(currentUser.uid).update({ nombre, email, telefono });
+    // Actualizar users/{uid}
+    const updateData = { nombre, email, telefono };
+    if (fechaNacimiento !== null) updateData.fechaNacimiento = fechaNacimiento;
+    await FDB.usersCol().doc(currentUser.uid).update(updateData);
     await currentUser.updateProfile({ displayName: nombre });
     if (email && email !== currentUser.email) await currentUser.updateEmail(email);
+
+    // Actualizar clientes/{phone} con cumpleDia para el cron de cumpleaños
+    const normalizedPhone = telefono.replace(/\D/g, '');
+    if (normalizedPhone) {
+      const clienteData = {
+        nombre,
+        telefono,
+        uid: currentUser.uid,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      };
+      if (fechaNacimiento) {
+        const parts = fechaNacimiento.split('-'); // ["YYYY","MM","DD"]
+        clienteData.fechaNacimiento = fechaNacimiento;
+        clienteData.cumpleDia       = `${parts[1]}-${parts[2]}`;
+      }
+      await clientesDocRef(normalizedPhone).set(clienteData, { merge: true });
+    }
+
     document.getElementById('profileName').textContent  = nombre;
     document.getElementById('profileEmail').textContent = email;
     const msg = document.getElementById('profileSaveMsg');

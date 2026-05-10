@@ -1,12 +1,16 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Search, User, Phone, Trophy, Plus, Minus, Gift, X, RotateCcw, MessageCircle } from 'lucide-react';
+import { Search, User, Phone, Trophy, Plus, Minus, Gift, X, RotateCcw, MessageCircle, Cake } from 'lucide-react';
 import {
-  onSnapshot, updateDoc, doc, getDocs, query, where, orderBy as firestoreOrderBy,
-  limit, increment, arrayUnion,
+  onSnapshot, updateDoc, setDoc, doc, getDocs, query, where, orderBy as firestoreOrderBy,
+  limit, increment, arrayUnion, serverTimestamp,
 } from 'firebase/firestore';
 import { tenantCol } from '../lib/tenantUtils';
 import { useCollection } from '../hooks/useCollection';
 import SlideOver from '../components/ui/SlideOver';
+
+function normalizePhone(phone) {
+  return (phone || '').replace(/\D/g, '');
+}
 
 /* ── Utilidades ── */
 function initials(name = '') {
@@ -45,21 +49,64 @@ function StampGrid({ stamps, premios }) {
 
 /* ── Panel de cliente (slide-over) ── */
 function ClientePanel({ cliente: init, premios, onClose }) {
-  const [data,     setData]     = useState(init);
-  const [citas,    setCitas]    = useState([]);
-  const [selPremio, setSelPremio] = useState(null);
-  const [opLoad,   setOpLoad]   = useState(false);
-  const [canjeMsg, setCanjeMsg] = useState('');
-  const [resetOn,  setResetOn]  = useState(false);
+  const [data,        setData]        = useState(init);
+  const [citas,       setCitas]       = useState([]);
+  const [selPremio,   setSelPremio]   = useState(null);
+  const [opLoad,      setOpLoad]      = useState(false);
+  const [canjeMsg,    setCanjeMsg]    = useState('');
+  const [resetOn,     setResetOn]     = useState(false);
+  const [fechaCumple, setFechaCumple] = useState(init.fechaNacimiento || '');
+  const [cumpleLoad,  setCumpleLoad]  = useState(false);
+  const [cumpleMsg,   setCumpleMsg]   = useState('');
 
   /* Real-time subscription for this client */
   useEffect(() => {
     const ref = doc(tenantCol('users'), init.uid);
     const unsub = onSnapshot(ref, snap => {
-      if (snap.exists()) { setData({ uid: snap.id, ...snap.data() }); setSelPremio(null); }
+      if (snap.exists()) {
+        const d = snap.data();
+        setData({ uid: snap.id, ...d });
+        setSelPremio(null);
+        // Sync birthday only when input is not focused
+        setFechaCumple(prev => document.activeElement?.id === 'cumpleInput-' + snap.id ? prev : (d.fechaNacimiento || ''));
+      }
     });
     return unsub;
   }, [init.uid]);
+
+  const guardarCumple = async () => {
+    const phone = normalizePhone(data.telefono);
+    if (!phone) { setCumpleMsg('Sin teléfono registrado'); return; }
+    setCumpleLoad(true);
+    try {
+      // Escribe en users/{uid} para que la UI lo refleje en onSnapshot
+      await updateDoc(doc(tenantCol('users'), data.uid), {
+        fechaNacimiento: fechaCumple || null,
+      });
+      // Escribe en clientes/{phone} para que el cron de cumpleaños pueda querying
+      const clienteData = {
+        nombre:    data.nombre    || '',
+        telefono:  data.telefono  || '',
+        uid:       data.uid,
+        updatedAt: serverTimestamp(),
+      };
+      if (fechaCumple) {
+        const [, m, d] = fechaCumple.split('-');
+        clienteData.fechaNacimiento = fechaCumple;
+        clienteData.cumpleDia       = `${m}-${d}`;
+      } else {
+        clienteData.fechaNacimiento = null;
+        clienteData.cumpleDia       = null;
+      }
+      await setDoc(doc(tenantCol('clientes'), phone), clienteData, { merge: true });
+      setCumpleMsg('✓ Guardado');
+      setTimeout(() => setCumpleMsg(''), 2500);
+    } catch (e) {
+      setCumpleMsg('Error: ' + e.message);
+    } finally {
+      setCumpleLoad(false);
+    }
+  };
 
   /* Load recent appointments (one-time) */
   useEffect(() => {
@@ -183,6 +230,42 @@ function ClientePanel({ cliente: init, premios, onClose }) {
           )}
           <p className="text-[10px] text-slate-600 mt-1">Miembro desde {formatFecha(data.creadoEn?.toDate ? data.creadoEn.toDate().toISOString() : data.creadoEn)}</p>
         </div>
+      </div>
+
+      {/* Fecha de nacimiento */}
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Cake size={13} className="text-slate-500 shrink-0" />
+          <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Cumpleaños</p>
+        </div>
+        <div className="flex gap-2">
+          <input
+            id={`cumpleInput-${data.uid}`}
+            type="date"
+            value={fechaCumple}
+            onChange={e => setFechaCumple(e.target.value)}
+            className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500 transition-colors"
+            style={{ colorScheme: 'dark' }}
+          />
+          <button
+            onClick={guardarCumple}
+            disabled={cumpleLoad}
+            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-xs font-bold rounded-lg transition-all"
+          >
+            {cumpleLoad ? '…' : 'Guardar'}
+          </button>
+        </div>
+        {cumpleMsg && (
+          <p className={`text-xs mt-1.5 font-semibold ${cumpleMsg.startsWith('✓') ? 'text-emerald-400' : 'text-red-400'}`}>
+            {cumpleMsg}
+          </p>
+        )}
+        {fechaCumple && (
+          <p className="text-[10px] text-slate-600 mt-1">
+            🎂 Recibirá +1 sello automáticamente el{' '}
+            {new Date(fechaCumple + 'T12:00:00').toLocaleDateString('es-CL', { day: 'numeric', month: 'long' })}
+          </p>
+        )}
       </div>
 
       {/* Contador de sellos */}
