@@ -9,6 +9,8 @@ import {
 import { db } from '../lib/firebase';
 import { tenantCol } from '../lib/tenantUtils';
 import { useCollection } from '../hooks/useCollection';
+import { useTenant } from '../contexts/TenantContext';
+import ReviewModal from '../components/ReviewModal';
 
 /* ── Constants ─────────────────────────────────────────────── */
 const HOUR_START  = 8;
@@ -50,7 +52,7 @@ function Modal({ title, onClose, children, footer }) {
 }
 
 /* ── CitaModal (create / edit) ───────────────────────────────── */
-function CitaModal({ cita, barberos, servicios, defaultHora, defaultBarberoId, dateStr, onClose }) {
+function CitaModal({ cita, barberos, servicios, defaultHora, defaultBarberoId, dateStr, onClose, onComplete }) {
   const isNew = !cita;
   const defaultBarb = defaultBarberoId || barberos[0]?.id || '';
   const [form, setForm] = useState({
@@ -93,10 +95,17 @@ function CitaModal({ cita, barberos, servicios, defaultHora, defaultBarberoId, d
       if (isNew) {
         payload.creadoEn = serverTimestamp();
         await addDoc(tenantCol('citas'), payload);
+        onClose();
       } else {
         await updateDoc(doc(db, `${tenantCol('citas').path}/${cita.id}`), payload);
+        // Si se marcó como Completada y antes no lo estaba → disparar flujo de reseña
+        const yaEraCompletada = cita?.estado === 'Completada';
+        if (form.estado === 'Completada' && !yaEraCompletada && onComplete) {
+          onComplete({ ...cita, ...payload });
+        } else {
+          onClose();
+        }
       }
-      onClose();
     } finally { setSaving(false); }
   };
 
@@ -335,10 +344,12 @@ function SlotRow({ idx, barberoId, dateStr, onNewCita, onNewBloqueo, blockMode }
 
 /* ── Main Agenda component ───────────────────────────────────── */
 export default function Agenda() {
-  const [date,      setDate]      = useState(new Date());
-  const [blockMode, setBlockMode] = useState(false);
-  const [citaModal, setCitaModal] = useState(null);    // { cita?, barberoId, hora }
-  const [blqModal,  setBlqModal]  = useState(null);    // { barberoId, hora }
+  const { id: tenantId } = useTenant();
+  const [date,        setDate]        = useState(new Date());
+  const [blockMode,   setBlockMode]   = useState(false);
+  const [citaModal,   setCitaModal]   = useState(null);    // { cita?, barberoId, hora }
+  const [blqModal,    setBlqModal]    = useState(null);    // { barberoId, hora }
+  const [reviewCita,  setReviewCita]  = useState(null);    // cita completada → mostrar ReviewModal
 
   const dateStr = fmt(date);
 
@@ -505,6 +516,15 @@ export default function Agenda() {
         </div>
       </div>
 
+      {/* ReviewModal — aparece al finalizar una cita */}
+      {reviewCita && (
+        <ReviewModal
+          cita={reviewCita}
+          tenantId={tenantId}
+          onClose={() => { setReviewCita(null); setCitaModal(null); }}
+        />
+      )}
+
       {/* Modals */}
       {citaModal && (
         <CitaModal
@@ -515,6 +535,7 @@ export default function Agenda() {
           defaultBarberoId={citaModal.barberoId}
           dateStr={dateStr}
           onClose={() => setCitaModal(null)}
+          onComplete={cita => setReviewCita(cita)}
         />
       )}
       {blqModal && (

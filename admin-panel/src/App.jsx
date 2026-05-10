@@ -23,6 +23,7 @@ import AgendaBarbero    from './views/AgendaBarbero';
 import Chat            from './views/Chat';
 import Marketing        from './views/Marketing';
 import LoginPage        from './views/LoginPage';
+import BarberTV         from './views/BarberTV';
 
 function TenantGate({ children }) {
   const { suspended } = useTenant();
@@ -46,33 +47,40 @@ function ProtectedApp() {
 
   if (!user) return <LoginPage />;
 
-  const isAdminRole  = role === 'admin' || role === 'jefe';
-  const defaultRoute = isAdminRole ? 'agenda' : 'agenda';
+  const defaultRoute = 'agenda';
 
   return (
-    <AdminLayout>
-      <Routes>
-        <Route index                  element={<Navigate to={defaultRoute} replace />} />
-        <Route path="agenda"          element={<Agenda />} />
-        <Route path="servicios"       element={<Servicios />} />
-        <Route path="equipo"          element={<Equipo />} />
-        <Route path="clientes"        element={<Clientes />} />
-        <Route path="premios"         element={<Premios />} />
-        <Route path="productos"       element={<Productos />} />
-        <Route path="lookbook"        element={<Lookbook />} />
-        <Route path="metricas"        element={<Metricas />} />
-        <Route path="gastos"          element={<Gastos />} />
-        <Route path="configuracion"   element={<Configuracion />} />
-        <Route path="mensajes"        element={<Chat />} />
-        <Route path="marketing"       element={<Marketing />} />
-        <Route path="booking-preview"    element={<BookingServicios onContinuar={s => alert(`Seleccionado: ${s.nombre}`)} />} />
-        <Route path="booking-barbero"   element={<BookingBarbero  onContinuar={b => alert(`Barbero: ${b.barbero?.nombre}`)} />} />
-        <Route path="booking-fecha"     element={<BookingFecha    onContinuar={f => alert(`Fecha: ${f.hora}`)} />} />
-        <Route path="booking-confirmar" element={<BookingConfirmar onConfirmar={d => alert(`Confirmado: ${d.nombre}`)} />} />
-        <Route path="agenda-preview"    element={<AgendaBarbero barberoNombre="Joaquin Amiri" />} />
-        <Route path="*"               element={<Navigate to={defaultRoute} replace />} />
-      </Routes>
-    </AdminLayout>
+    <Routes>
+      {/* Vista TV: pantalla completa, sin sidebar ni navbar */}
+      <Route path="tv" element={<BarberTV />} />
+
+      {/* Resto del panel con AdminLayout */}
+      <Route path="/*" element={
+        <AdminLayout>
+          <Routes>
+            <Route index                  element={<Navigate to={defaultRoute} replace />} />
+            <Route path="agenda"          element={<Agenda />} />
+            <Route path="servicios"       element={<Servicios />} />
+            <Route path="equipo"          element={<Equipo />} />
+            <Route path="clientes"        element={<Clientes />} />
+            <Route path="premios"         element={<Premios />} />
+            <Route path="productos"       element={<Productos />} />
+            <Route path="lookbook"        element={<Lookbook />} />
+            <Route path="metricas"        element={<Metricas />} />
+            <Route path="gastos"          element={<Gastos />} />
+            <Route path="configuracion"   element={<Configuracion />} />
+            <Route path="mensajes"        element={<Chat />} />
+            <Route path="marketing"       element={<Marketing />} />
+            <Route path="booking-preview"    element={<BookingServicios onContinuar={s => alert(`Seleccionado: ${s.nombre}`)} />} />
+            <Route path="booking-barbero"   element={<BookingBarbero  onContinuar={b => alert(`Barbero: ${b.barbero?.nombre}`)} />} />
+            <Route path="booking-fecha"     element={<BookingFecha    onContinuar={f => alert(`Fecha: ${f.hora}`)} />} />
+            <Route path="booking-confirmar" element={<BookingConfirmar onConfirmar={d => alert(`Confirmado: ${d.nombre}`)} />} />
+            <Route path="agenda-preview"    element={<AgendaBarbero barberoNombre="Joaquin Amiri" />} />
+            <Route path="*"               element={<Navigate to={defaultRoute} replace />} />
+          </Routes>
+        </AdminLayout>
+      } />
+    </Routes>
   );
 }
 

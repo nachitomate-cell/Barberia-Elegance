@@ -1,6 +1,7 @@
 // ════════════════════════════════════════════════════════════════
 //  functions/index.js — Firebase Cloud Functions v2
 //  Dispara notificación push FCM cuando se crea una reserva.
+//  Ver haircut-reminder.js para el sistema de recordatorios de corte.
 //
 //  Cubre dos colecciones:
 //    1. /citas/{citaId}                          ← reservas creadas desde admin
@@ -470,3 +471,11 @@ exports.cambiarPasswordBarbero = onCall({ region: 'us-central1' }, async (reques
     throw new HttpsError('internal', err.message);
   }
 });
+
+// ─────────────────────────────────────────────────────────────────
+//  HAIRCUT REMINDER SYSTEM — ver haircut-reminder.js para detalles
+// ─────────────────────────────────────────────────────────────────
+const haircutReminder = require('./haircut-reminder');
+exports.actualizarSuggestionElegance = haircutReminder.actualizarSuggestionElegance;
+exports.actualizarSuggestionTenant   = haircutReminder.actualizarSuggestionTenant;
+exports.enviarRecordatoriosCorte     = haircutReminder.enviarRecordatoriosCorte;
