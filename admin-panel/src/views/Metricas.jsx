@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import SynapTechNews from '../components/SynapTechNews';
 import {
   TrendingUp, CalendarCheck, XCircle, DollarSign,
   ShoppingBag, RefreshCcw, Activity, Crown, Star, User,
@@ -158,6 +159,9 @@ export default function Metricas() {
           {new Date().toLocaleDateString('es-CL', { month: 'long', year: 'numeric' })}
         </p>
       </div>
+
+      {/* Novedades SynapTech */}
+      <SynapTechNews />
 
       {/* KPIs — row 1 (servicios) */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

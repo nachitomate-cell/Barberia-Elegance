@@ -12,7 +12,7 @@ import { tenantCol }                        from '../lib/tenantUtils';
 // ── Constantes ────────────────────────────────────────────────────
 const GOLD          = '#D4AF37';
 const SLIDE_MS      = 15_000;
-const SLIDE_COUNT   = 3;
+const SLIDE_COUNT   = 4;
 const RATIOS        = ['4/5', '1/1', '3/4', '4/5', '1/1', '3/4', '4/5', '1/1', '3/4'];
 
 // ── Reloj con fecha ───────────────────────────────────────────────
@@ -433,6 +433,102 @@ function QrOverlay({ qrUrl }) {
   );
 }
 
+// ── Slide 4: SynapTech ───────────────────────────────────────────
+function SlideSynapTech() {
+  return (
+    <div className="w-full h-full flex items-center justify-center p-20 relative overflow-hidden">
+      {/* Fondo */}
+      <div className="absolute inset-0"
+        style={{
+          background: 'radial-gradient(ellipse 70% 70% at 30% 50%, rgba(212,175,55,0.07) 0%, transparent 70%), radial-gradient(ellipse 50% 50% at 75% 30%, rgba(212,175,55,0.04) 0%, transparent 60%)',
+        }}
+      />
+      <div className="absolute inset-0 opacity-[0.025]"
+        style={{
+          backgroundImage: 'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)',
+          backgroundSize: '80px 80px',
+        }}
+      />
+
+      <div className="relative z-10 text-center max-w-4xl">
+        {/* Logo placeholder */}
+        <motion.div
+          className="flex items-center justify-center mb-10"
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.1, duration: 0.6, ease: 'easeOut' }}
+        >
+          <div
+            className="w-20 h-20 rounded-3xl flex items-center justify-center"
+            style={{
+              background: 'rgba(212,175,55,0.08)',
+              border: '1px solid rgba(212,175,55,0.25)',
+              boxShadow: '0 0 60px rgba(212,175,55,0.15), 0 0 0 1px rgba(212,175,55,0.1)',
+            }}
+          >
+            <img src="/logo1.png" alt="SynapTech" className="w-12 h-12 object-contain" />
+          </div>
+        </motion.div>
+
+        <motion.p
+          className="text-[10px] font-black tracking-[0.6em] uppercase mb-4"
+          style={{ color: GOLD }}
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          ✦ &nbsp; Tecnología para tu negocio &nbsp; ✦
+        </motion.p>
+
+        <motion.h2
+          className="font-black leading-tight mb-6"
+          style={{ fontSize: 'clamp(3.5rem,8vw,6.5rem)' }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.5 }}
+        >
+          <span
+            style={{
+              background: `linear-gradient(135deg, ${GOLD} 0%, #FDE047 50%, ${GOLD} 100%)`,
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+            }}
+          >
+            SynapTech
+          </span>
+        </motion.h2>
+
+        <motion.p
+          className="text-gray-400 text-xl font-light mb-12 leading-relaxed"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.45 }}
+        >
+          Impulsa tu negocio con tecnología de vanguardia.<br />
+          Software a medida para barberías y negocios modernos.
+        </motion.p>
+
+        <motion.div
+          className="inline-flex items-center gap-3 rounded-full px-10 py-4"
+          style={{
+            border: `1px solid rgba(212,175,55,0.35)`,
+            background: 'rgba(212,175,55,0.05)',
+            boxShadow: '0 0 40px rgba(212,175,55,0.1)',
+          }}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.55 }}
+        >
+          <span className="font-bold text-base tracking-widest" style={{ color: GOLD }}>
+            synaptechspa.cl
+          </span>
+        </motion.div>
+      </div>
+    </div>
+  );
+}
+
 // ── Indicadores de slide mejorados ───────────────────────────────
 function SlideIndicators({ count, active, onChange }) {
   return (
@@ -562,6 +658,7 @@ export default function BarberTV() {
     <SlidePublicidad key="pub" />,
     <SlideLookbook   key="look" photos={photos} />,
     <SlideEquipo     key="team" barberos={barberos} imageCache={imageCache} />,
+    <SlideSynapTech  key="synaptech" />,
   ];
 
   return (

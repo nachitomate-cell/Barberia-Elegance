@@ -9,6 +9,7 @@
   "theme_color": "#050505",
   "orientation": "portrait",
   "categories": ["lifestyle", "beauty"],
+  "author": "SynapTech SpA",
   "icons": [
     {
       "src": "/icons/icon-192.png",

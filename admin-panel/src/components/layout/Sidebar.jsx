@@ -38,12 +38,30 @@ function useTheme() {
   return [light, setLight];
 }
 
+const LS_KEY_NEWS = 'synaptech_last_seen_news';
+const LATEST_NEWS_DATE = '2026-05-09';
+
+function useUnreadNews() {
+  const [unread, setUnread] = useState(() => {
+    try { return (localStorage.getItem(LS_KEY_NEWS) ?? '') < LATEST_NEWS_DATE; } catch { return false; }
+  });
+  useEffect(() => {
+    function check() {
+      try { setUnread((localStorage.getItem(LS_KEY_NEWS) ?? '') < LATEST_NEWS_DATE); } catch {}
+    }
+    window.addEventListener('storage', check);
+    return () => window.removeEventListener('storage', check);
+  }, []);
+  return unread;
+}
+
 export default function Sidebar({ onClose, unreadChats = 0 }) {
   const tenant        = useTenant();
   const { role }      = useAuth();
   const isAdminRole   = role === 'admin' || role === 'jefe';
   const visibleNav    = NAV.filter(item => !item.adminOnly || isAdminRole);
   const [light, setLight] = useTheme();
+  const hasUnreadNews = useUnreadNews();
 
   return (
     <aside className="flex flex-col h-full bg-slate-900 border-r border-slate-800">
@@ -88,20 +106,28 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
                 }`
               }
             >
-              {({ isActive }) => (
-                <>
-                  <Icon size={17} strokeWidth={isActive ? 2.5 : 2} className="shrink-0" />
-                  <span className="flex-1">{label}</span>
-                  {hasBadge && (
-                    <span className="ml-auto bg-red-500 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full">
-                      {unreadChats > 9 ? '9+' : unreadChats}
-                    </span>
-                  )}
-                  {isActive && !hasBadge && (
-                    <ChevronRight size={14} className="text-emerald-500 opacity-60" />
-                  )}
-                </>
-              )}
+              {({ isActive }) => {
+                const isMetricas   = to === 'metricas';
+                const showNewsDot  = isMetricas && hasUnreadNews;
+                const showBadge    = hasBadge;
+                return (
+                  <>
+                    <Icon size={17} strokeWidth={isActive ? 2.5 : 2} className="shrink-0" />
+                    <span className="flex-1">{label}</span>
+                    {showNewsDot && !showBadge && (
+                      <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
+                    )}
+                    {showBadge && (
+                      <span className="ml-auto bg-red-500 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full">
+                        {unreadChats > 9 ? '9+' : unreadChats}
+                      </span>
+                    )}
+                    {isActive && !showBadge && !showNewsDot && (
+                      <ChevronRight size={14} className="text-emerald-500 opacity-60" />
+                    )}
+                  </>
+                );
+              }}
             </NavLink>
           );
         })}
@@ -141,10 +167,17 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
           Cerrar sesión
         </button>
 
-        {/* Synaptechspa branding */}
-        <div className="pt-3 mt-1 border-t border-slate-800/60 flex items-center gap-2 px-3">
-          <img src="/logo1.png" alt="Synaptech" className="w-5 h-5 rounded object-contain opacity-60" />
-          <p className="text-[10px] text-slate-600">Desarrollado por Synaptechspa</p>
+        {/* SynapTech branding */}
+        <div className="pt-3 mt-1 border-t border-slate-800/60 px-3">
+          <a
+            href="https://www.synaptechspa.cl/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+          >
+            <img src="/logo1.png" alt="SynapTech" className="w-5 h-5 rounded object-contain opacity-60" />
+            <p className="text-[10px] text-slate-600">Desarrollado con ❤️ por SynapTech</p>
+          </a>
         </div>
       </div>
     </aside>
