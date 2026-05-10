@@ -24,6 +24,7 @@ import Chat            from './views/Chat';
 import Marketing        from './views/Marketing';
 import LoginPage        from './views/LoginPage';
 import BarberTV         from './views/BarberTV';
+import Finanzas         from './views/Finanzas';
 
 function TenantGate({ children }) {
   const { suspended } = useTenant();
@@ -68,6 +69,7 @@ function ProtectedApp() {
             <Route path="lookbook"        element={<Lookbook />} />
             <Route path="metricas"        element={<Metricas />} />
             <Route path="gastos"          element={<Gastos />} />
+            <Route path="finanzas"        element={<Finanzas />} />
             <Route path="configuracion"   element={<Configuracion />} />
             <Route path="mensajes"        element={<Chat />} />
             <Route path="marketing"       element={<Marketing />} />

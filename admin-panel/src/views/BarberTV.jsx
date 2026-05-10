@@ -1,214 +1,431 @@
-// BarberTV.jsx — Digital Signage / Vista de TV para el local
-// Requiere: npm install qrcode.react (en admin-panel/)
-// Ruta: /gestion-interna/tv  (renderiza sin AdminLayout)
+// BarberTV.jsx — Digital Signage Premium para la barbería
+// Ruta: /gestion-interna/tv (sin AdminLayout)
+// Deps: framer-motion, qrcode.react  (npm install framer-motion qrcode.react)
 
-import { useState, useEffect } from 'react';
-import { QRCodeSVG }           from 'qrcode.react';
+import { useState, useEffect }             from 'react';
+import { motion, AnimatePresence, stagger, useAnimate } from 'framer-motion';
+import { QRCodeSVG }                        from 'qrcode.react';
 import { query, onSnapshot, orderBy, where } from 'firebase/firestore';
-import { useTenant }           from '../contexts/TenantContext';
-import { tenantCol }           from '../lib/tenantUtils';
+import { useTenant }                        from '../contexts/TenantContext';
+import { tenantCol }                        from '../lib/tenantUtils';
 
-// ── Reloj digital ────────────────────────────────────────────────
+// ── Constantes ────────────────────────────────────────────────────
+const GOLD          = '#D4AF37';
+const SLIDE_MS      = 15_000;
+const SLIDE_COUNT   = 3;
+const RATIOS        = ['4/5', '1/1', '3/4', '4/5', '1/1', '3/4', '4/5', '1/1', '3/4'];
+
+// ── Reloj con fecha ───────────────────────────────────────────────
 function DigitalClock() {
   const [now, setNow] = useState(new Date());
-  useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 1000);
-    return () => clearInterval(id);
-  }, []);
-
-  const pad = n => String(n).padStart(2, '0');
-  const h = pad(now.getHours());
-  const m = pad(now.getMinutes());
-  const s = pad(now.getSeconds());
+  useEffect(() => { const id = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(id); }, []);
+  const pad  = n => String(n).padStart(2, '0');
+  const hora = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  const secs = pad(now.getSeconds());
+  const fecha = now.toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' });
 
   return (
-    <div className="text-right font-mono leading-none">
-      <div className="text-5xl font-black text-white tracking-widest">
-        {h}<span className="text-[#D4AF37]">:</span>{m}
+    <div className="text-right">
+      <div className="flex items-end justify-end gap-1">
+        <span className="font-mono font-black text-white leading-none" style={{ fontSize: 'clamp(2.5rem,5vw,4rem)' }}>
+          {hora}
+        </span>
+        <motion.span
+          className="font-mono font-black leading-none pb-1"
+          style={{ fontSize: 'clamp(1.25rem,2.5vw,2rem)', color: GOLD }}
+          animate={{ opacity: [1, 0.2, 1] }}
+          transition={{ duration: 1, repeat: Infinity, ease: 'easeInOut' }}
+        >
+          :{secs}
+        </motion.span>
       </div>
-      <div className="text-base text-gray-600 tracking-widest mt-1">:{s}</div>
+      <p className="text-gray-500 text-sm tracking-wide capitalize mt-1">{fecha}</p>
     </div>
   );
 }
 
-// ── Panel de turnos (25% izquierdo) ──────────────────────────────
+// ── Panel de turnos ───────────────────────────────────────────────
 function AppointmentPanel({ citas }) {
   const [enSillon, ...siguientes] = citas.slice(0, 4);
 
   return (
-    <div className="h-full flex flex-col p-6 gap-5 overflow-hidden">
+    <div className="h-full flex flex-col p-5 gap-4 overflow-hidden">
+      {/* Título */}
+      <div className="flex items-center gap-2 shrink-0">
+        <div className="w-1 h-5 rounded-full" style={{ background: GOLD }} />
+        <span className="text-[10px] font-black tracking-[0.4em] uppercase text-gray-400">Turnos de Hoy</span>
+      </div>
+
       {/* En Sillón */}
-      <div>
-        <div className="flex items-center gap-2 mb-3">
-          <span className="w-2 h-2 rounded-full bg-[#D4AF37] animate-pulse" />
-          <span className="text-[#D4AF37] text-[10px] font-black tracking-[0.35em] uppercase">
+      <div className="shrink-0">
+        <div className="flex items-center gap-2 mb-2">
+          <motion.span
+            className="w-2 h-2 rounded-full"
+            style={{ background: GOLD }}
+            animate={{ scale: [1, 1.4, 1], opacity: [1, 0.6, 1] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          />
+          <span className="text-[9px] font-black tracking-[0.4em] uppercase" style={{ color: GOLD }}>
             En Sillón
           </span>
         </div>
-        {enSillon ? (
-          <div className="bg-[#D4AF37]/10 border border-[#D4AF37]/40 rounded-2xl p-4">
-            <div className="text-white text-2xl font-black truncate leading-tight">
-              {enSillon.clienteNombre || enSillon.nombre || '—'}
-            </div>
-            <div className="text-gray-400 text-sm mt-1 truncate">
-              {enSillon.servicioNombre || enSillon.servicio || ''}
-            </div>
-            <div className="text-[#D4AF37] font-mono text-xl font-bold mt-2">
-              {enSillon.hora}
-            </div>
-          </div>
-        ) : (
-          <div className="bg-gray-900 border border-gray-800 rounded-2xl p-4 text-center text-gray-600 text-sm">
-            Sin turno activo
-          </div>
-        )}
+
+        <AnimatePresence mode="wait">
+          {enSillon ? (
+            <motion.div
+              key={enSillon.id}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.4 }}
+              className="rounded-2xl p-4 relative overflow-hidden"
+              style={{
+                background: 'rgba(212,175,55,0.07)',
+                border: `1px solid rgba(212,175,55,0.3)`,
+                boxShadow: `0 0 30px rgba(212,175,55,0.08) inset`,
+              }}
+            >
+              {/* shimmer line */}
+              <div className="absolute top-0 left-0 right-0 h-px"
+                style={{ background: `linear-gradient(to right, transparent, ${GOLD}60, transparent)` }} />
+
+              <p className="text-white font-black text-xl leading-tight truncate">
+                {enSillon.clienteNombre || enSillon.nombre}
+              </p>
+              <p className="text-gray-500 text-xs truncate mt-0.5">
+                {enSillon.servicioNombre || enSillon.servicio}
+              </p>
+              <p className="font-mono font-bold text-lg mt-2" style={{ color: GOLD }}>
+                {enSillon.hora}
+              </p>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="empty"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="rounded-2xl p-4 text-center"
+              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}
+            >
+              <p className="text-gray-600 text-sm font-semibold">Sillón Disponible</p>
+              <motion.div
+                className="w-2 h-2 rounded-full mx-auto mt-2"
+                style={{ background: '#22c55e' }}
+                animate={{ opacity: [1, 0.3, 1] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
-      {/* A continuación */}
+      {/* A continuación — stagger */}
       <div className="flex-1 overflow-hidden">
-        <div className="text-gray-600 text-[10px] font-black tracking-[0.35em] uppercase mb-3">
+        <p className="text-[9px] font-black tracking-[0.4em] uppercase text-gray-700 mb-2">
           A continuación
-        </div>
+        </p>
         <div className="flex flex-col gap-2.5">
           {siguientes.length === 0 ? (
-            <div className="text-gray-700 text-sm text-center mt-6">
-              No hay más turnos hoy
-            </div>
+            <p className="text-gray-800 text-sm text-center mt-4">No hay más turnos</p>
           ) : siguientes.map((c, i) => (
-            <div
+            <motion.div
               key={c.id || i}
-              className="flex items-center gap-3 bg-gray-900 border border-gray-800 rounded-xl p-3"
+              initial={{ opacity: 0, x: -16 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: i * 0.1, duration: 0.35 }}
+              className="flex items-center gap-3 rounded-xl p-3"
+              style={{
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid rgba(255,255,255,0.06)',
+                backdropFilter: 'blur(4px)',
+              }}
             >
-              <div className="w-8 h-8 rounded-full bg-gray-800 text-gray-500 text-sm font-bold flex items-center justify-center shrink-0">
+              <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-black shrink-0"
+                style={{ background: 'rgba(212,175,55,0.1)', color: GOLD, border: `1px solid rgba(212,175,55,0.2)` }}>
                 {i + 1}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-white font-semibold text-sm truncate">
-                  {c.clienteNombre || c.nombre}
-                </div>
-                <div className="text-gray-600 text-xs truncate">
-                  {c.servicioNombre || c.servicio}
-                </div>
+                <p className="text-white font-semibold text-sm truncate">{c.clienteNombre || c.nombre}</p>
+                <p className="text-gray-600 text-xs truncate">{c.servicioNombre || c.servicio}</p>
               </div>
-              <div className="text-[#D4AF37] font-mono text-sm font-bold shrink-0">
-                {c.hora}
-              </div>
-            </div>
+              <p className="font-mono text-xs font-bold shrink-0" style={{ color: GOLD }}>{c.hora}</p>
+            </motion.div>
           ))}
         </div>
       </div>
 
-      <div className="text-center text-gray-800 text-[10px] tracking-widest uppercase">
+      <p className="text-center text-gray-800 text-[9px] tracking-widest uppercase shrink-0">
         Powered by Synaptech
-      </div>
+      </p>
     </div>
   );
 }
 
-// ── Slides ────────────────────────────────────────────────────────
+// ── Slide 1: Publicidad ───────────────────────────────────────────
 function SlidePublicidad() {
   return (
-    <div className="w-full h-full flex items-center justify-center p-16 bg-gradient-to-br from-gray-950 via-[#0a0a0a] to-gray-950">
-      <div className="text-center max-w-2xl">
-        <div className="text-[#D4AF37] text-xs font-black tracking-[0.5em] uppercase mb-8">
+    <div className="w-full h-full flex items-center justify-center p-20 relative">
+      {/* Fondo con textura */}
+      <div className="absolute inset-0"
+        style={{
+          backgroundImage: `
+            radial-gradient(ellipse 80% 80% at 30% 60%, rgba(212,175,55,0.06) 0%, transparent 70%),
+            radial-gradient(ellipse 60% 60% at 80% 20%, rgba(212,175,55,0.04) 0%, transparent 60%)
+          `,
+        }}
+      />
+      {/* Grid texture overlay */}
+      <div className="absolute inset-0 opacity-[0.03]"
+        style={{
+          backgroundImage: 'linear-gradient(rgba(255,255,255,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.4) 1px, transparent 1px)',
+          backgroundSize: '60px 60px',
+        }}
+      />
+
+      <div className="relative z-10 text-center max-w-3xl">
+        <motion.p
+          className="text-[10px] font-black tracking-[0.6em] uppercase mb-6"
+          style={{ color: GOLD }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
           ✦ &nbsp; Oferta del Mes &nbsp; ✦
-        </div>
-        <h2 className="text-white font-black leading-[0.9] mb-8" style={{ fontSize: 'clamp(4rem,9vw,7rem)' }}>
-          Corte&nbsp;+<br />
-          <span className="text-[#D4AF37]">Barba</span>
-        </h2>
-        <p className="text-gray-400 text-xl font-light mb-12 leading-relaxed">
-          Lunes a Miércoles — precio especial<br />
-          para clientes frecuentes del local.
-        </p>
-        <div className="inline-flex items-center gap-3 border border-[#D4AF37]/40 rounded-full px-8 py-3.5 bg-[#D4AF37]/5">
-          <span className="text-[#D4AF37] font-bold text-base tracking-widest">
+        </motion.p>
+
+        <motion.h2
+          className="font-black leading-[0.88] mb-8"
+          style={{ fontSize: 'clamp(5rem,12vw,9rem)' }}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.2, duration: 0.5 }}
+        >
+          <span className="text-white">Corte</span>
+          <br />
+          <span
+            style={{
+              background: `linear-gradient(135deg, ${GOLD} 0%, #FDE047 50%, ${GOLD} 100%)`,
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
+            }}
+          >
+            + Barba
+          </span>
+        </motion.h2>
+
+        <motion.p
+          className="text-gray-400 text-xl font-light mb-12 leading-relaxed"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.35 }}
+        >
+          Lunes a Miércoles — precio especial<br />para clientes frecuentes del local.
+        </motion.p>
+
+        <motion.div
+          className="inline-flex items-center gap-3 rounded-full px-10 py-4"
+          style={{
+            border: `1px solid rgba(212,175,55,0.35)`,
+            background: 'rgba(212,175,55,0.05)',
+            boxShadow: '0 0 40px rgba(212,175,55,0.1)',
+          }}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.45 }}
+        >
+          <span className="font-bold text-base tracking-widest" style={{ color: GOLD }}>
             Consulta en caja
           </span>
-        </div>
+        </motion.div>
       </div>
     </div>
   );
 }
 
+// ── Slide 2: Lookbook ─────────────────────────────────────────────
 function SlideLookbook({ photos }) {
   if (!photos.length) {
     return (
       <div className="w-full h-full flex items-center justify-center text-gray-800">
         <div className="text-center">
-          <div className="text-7xl mb-4 opacity-30">📷</div>
-          <div className="text-xl text-gray-700">Lookbook en construcción</div>
+          <p className="text-7xl mb-4 opacity-20">📷</p>
+          <p className="text-xl">Lookbook en construcción</p>
         </div>
       </div>
     );
   }
-  const RATIOS = ['4/5', '1/1', '3/4', '4/5', '1/1', '3/4', '4/5', '1/1', '3/4'];
   return (
-    <div className="w-full h-full flex flex-col p-6 overflow-hidden">
-      <div className="text-[#D4AF37] text-[10px] font-black tracking-[0.5em] uppercase mb-4 text-center">
+    <div className="w-full h-full flex flex-col p-5 overflow-hidden">
+      <motion.p
+        className="text-[9px] font-black tracking-[0.6em] uppercase text-center mb-4 shrink-0"
+        style={{ color: GOLD }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+      >
         ✦ &nbsp; Nuestros Trabajos &nbsp; ✦
-      </div>
+      </motion.p>
       <div className="columns-3 gap-3 flex-1 overflow-hidden">
         {photos.slice(0, 9).map((p, i) => (
-          <div key={p.id || i} className="break-inside-avoid rounded-xl overflow-hidden mb-3">
+          <motion.div
+            key={p.id || i}
+            className="break-inside-avoid rounded-xl overflow-hidden mb-3"
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: i * 0.06 }}
+          >
             <img
               src={p.url}
               alt=""
               className="w-full object-cover"
               style={{ aspectRatio: RATIOS[i % RATIOS.length] }}
             />
-          </div>
+          </motion.div>
         ))}
       </div>
     </div>
   );
 }
 
+// ── Slide 3: Meet the Team ────────────────────────────────────────
 function SlideEquipo({ barberos }) {
   const team = barberos.slice(0, 6);
   return (
-    <div className="w-full h-full flex flex-col items-center justify-center p-12">
-      <div className="text-[#D4AF37] text-[10px] font-black tracking-[0.5em] uppercase mb-12 text-center">
+    <div className="w-full h-full flex flex-col items-center justify-center p-12 relative">
+      <div className="absolute inset-0"
+        style={{
+          backgroundImage: 'radial-gradient(ellipse 60% 60% at 50% 50%, rgba(212,175,55,0.04) 0%, transparent 70%)',
+        }}
+      />
+      <motion.p
+        className="text-[9px] font-black tracking-[0.6em] uppercase text-center mb-12 relative z-10"
+        style={{ color: GOLD }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+      >
         ✦ &nbsp; Nuestro Equipo &nbsp; ✦
-      </div>
-      <div className="grid grid-cols-3 gap-10 w-full max-w-3xl">
+      </motion.p>
+      <div className="grid grid-cols-3 gap-10 w-full max-w-3xl relative z-10">
         {team.map((b, i) => (
-          <div key={b.id || i} className="flex flex-col items-center text-center gap-3">
-            <div className="w-28 h-28 rounded-full overflow-hidden border-2 border-[#D4AF37]/30 bg-gray-900">
+          <motion.div
+            key={b.id || i}
+            className="flex flex-col items-center text-center gap-3"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.1, duration: 0.4 }}
+          >
+            <div
+              className="w-28 h-28 rounded-full overflow-hidden relative"
+              style={{
+                border: `2px solid rgba(212,175,55,0.3)`,
+                boxShadow: `0 0 20px rgba(212,175,55,0.1)`,
+              }}
+            >
               {b.foto || b.fotoUrl ? (
-                <img
-                  src={b.foto || b.fotoUrl}
-                  alt={b.nombre}
-                  className="w-full h-full object-cover"
-                />
+                <img src={b.foto || b.fotoUrl} alt={b.nombre} className="w-full h-full object-cover" />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-4xl font-black text-[#D4AF37] bg-[#D4AF37]/5">
+                <div className="w-full h-full flex items-center justify-center text-4xl font-black"
+                  style={{ background: 'rgba(212,175,55,0.08)', color: GOLD }}>
                   {(b.nombre || '?')[0].toUpperCase()}
                 </div>
               )}
             </div>
             <div>
-              <div className="text-white font-bold text-lg leading-tight">{b.nombre}</div>
-              <div className="text-[#D4AF37] text-sm mt-0.5">
+              <p className="text-white font-bold text-lg leading-tight">{b.nombre}</p>
+              <p className="text-sm mt-0.5" style={{ color: GOLD }}>
                 {b.especialidad || b.rol || 'Barbero'}
-              </div>
+              </p>
             </div>
-          </div>
+          </motion.div>
         ))}
         {team.length === 0 && (
-          <div className="col-span-3 text-gray-700 text-center">
-            Sin datos de equipo
-          </div>
+          <p className="col-span-3 text-gray-700 text-center">Sin datos de equipo</p>
         )}
       </div>
     </div>
   );
 }
 
-// ── Componente principal ──────────────────────────────────────────
-const SLIDE_COUNT    = 3;
-const SLIDE_INTERVAL = 15_000; // 15 segundos
+// ── QR con efecto glow ────────────────────────────────────────────
+function QrOverlay({ qrUrl }) {
+  return (
+    <div className="absolute bottom-6 right-6 z-20">
+      <motion.div
+        className="rounded-3xl p-5 flex flex-col items-center gap-3 relative overflow-hidden"
+        style={{
+          background:   'rgba(5,5,5,0.88)',
+          backdropFilter: 'blur(16px)',
+          border:       `1px solid rgba(212,175,55,0.5)`,
+          boxShadow:    `0 0 0 1px rgba(212,175,55,0.1) inset`,
+        }}
+        animate={{
+          boxShadow: [
+            '0 0 20px rgba(212,175,55,0.12), 0 0 0 1px rgba(212,175,55,0.1) inset',
+            '0 0 45px rgba(212,175,55,0.30), 0 0 0 1px rgba(212,175,55,0.2) inset',
+            '0 0 20px rgba(212,175,55,0.12), 0 0 0 1px rgba(212,175,55,0.1) inset',
+          ],
+        }}
+        transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+      >
+        {/* Borde interior decorativo */}
+        <div className="absolute inset-[3px] rounded-[20px] pointer-events-none"
+          style={{ border: `1px solid rgba(212,175,55,0.15)` }} />
 
+        {/* Texto con brillo animado */}
+        <div className="relative">
+          <motion.span
+            className="text-xs font-black tracking-[0.3em] uppercase relative z-10"
+            style={{ color: GOLD }}
+            animate={{
+              textShadow: [
+                '0 0 8px rgba(212,175,55,0.3)',
+                '0 0 20px rgba(212,175,55,0.8)',
+                '0 0 8px rgba(212,175,55,0.3)',
+              ],
+            }}
+            transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+          >
+            ¡Agenda tu hora!
+          </motion.span>
+        </div>
+
+        <QRCodeSVG
+          value={qrUrl}
+          size={160}
+          fgColor={GOLD}
+          bgColor="transparent"
+          level="M"
+        />
+
+        <p className="text-gray-600 text-[10px] tracking-wide">Escanea con tu cámara</p>
+      </motion.div>
+    </div>
+  );
+}
+
+// ── Indicadores de slide mejorados ───────────────────────────────
+function SlideIndicators({ count, active, onChange }) {
+  return (
+    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+      {Array.from({ length: count }).map((_, i) => (
+        <button
+          key={i}
+          onClick={() => onChange(i)}
+          className="h-1.5 rounded-full transition-all duration-500 cursor-none"
+          style={{
+            width:      i === active ? '2rem' : '0.5rem',
+            background: i === active
+              ? `linear-gradient(to right, ${GOLD}, #FDE047)`
+              : 'rgba(255,255,255,0.15)',
+            boxShadow:  i === active ? `0 0 8px rgba(212,175,55,0.5)` : 'none',
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+// ── Componente principal ──────────────────────────────────────────
 export default function BarberTV() {
   const { id: tenantId, name: tenantName } = useTenant();
 
@@ -216,20 +433,17 @@ export default function BarberTV() {
   const [photos,   setPhotos]   = useState([]);
   const [barberos, setBarberos] = useState([]);
   const [slide,    setSlide]    = useState(0);
-  const [visible,  setVisible]  = useState(true);
 
   const qrUrl = `${window.location.origin}/index.html?local=${tenantId}`;
 
-  // Citas de hoy, ordenadas por hora
+  // Citas de hoy
   useEffect(() => {
-    const todayStr = new Date().toISOString().split('T')[0]; // 'YYYY-MM-DD'
-
+    const todayStr = new Date().toISOString().split('T')[0];
     const q = query(
       tenantCol('citas'),
-      where('estado', 'in', ['confirmada', 'pendiente']),
+      where('estado', 'in', ['Confirmada', 'confirmada', 'pendiente', 'Pendiente']),
       orderBy('hora', 'asc'),
     );
-
     return onSnapshot(q, snap => {
       const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       setCitas(docs.filter(c => {
@@ -242,35 +456,25 @@ export default function BarberTV() {
     });
   }, [tenantId]);
 
-  // Fotos del lookbook
+  // Lookbook
   useEffect(() => {
     const q = query(tenantCol('lookbook'), orderBy('order', 'asc'));
-    return onSnapshot(q, snap => {
-      setPhotos(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-    });
+    return onSnapshot(q, snap => setPhotos(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
   }, [tenantId]);
 
-  // Equipo (excluye docs de enlace UID)
+  // Equipo
   useEffect(() => {
     const q = query(tenantCol('barberos'), where('activo', '!=', false));
     return onSnapshot(q, snap => {
       setBarberos(
-        snap.docs
-          .map(d => ({ id: d.id, ...d.data() }))
-          .filter(b => !b._mainDocId),
+        snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(b => !b._mainDocId),
       );
     });
   }, [tenantId]);
 
-  // Carrusel automático con cross-fade
+  // Carrusel automático
   useEffect(() => {
-    const id = setInterval(() => {
-      setVisible(false);
-      setTimeout(() => {
-        setSlide(s => (s + 1) % SLIDE_COUNT);
-        setVisible(true);
-      }, 700);
-    }, SLIDE_INTERVAL);
+    const id = setInterval(() => setSlide(s => (s + 1) % SLIDE_COUNT), SLIDE_MS);
     return () => clearInterval(id);
   }, []);
 
@@ -281,86 +485,79 @@ export default function BarberTV() {
   ];
 
   return (
-    <div className="w-screen h-screen bg-black overflow-hidden flex flex-col select-none cursor-none">
+    <div
+      className="w-screen h-screen overflow-hidden flex flex-col select-none cursor-none"
+      style={{ background: '#050505' }}
+    >
       {/* ── Header ─────────────────────────────────────────────── */}
-      <header className="flex items-center justify-between px-10 py-5 border-b border-gray-900 shrink-0">
+      <header
+        className="flex items-center justify-between px-10 py-5 shrink-0 relative"
+        style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+      >
+        {/* Shimmer border */}
+        <div className="absolute bottom-0 left-0 right-0 h-px"
+          style={{ background: 'linear-gradient(to right, transparent, rgba(212,175,55,0.2), transparent)' }} />
+
         <div className="flex items-center gap-4">
-          <img src="/logo.jpg" alt="" className="h-12 w-12 rounded-xl object-cover" />
+          <div
+            className="relative w-12 h-12 rounded-2xl overflow-hidden"
+            style={{ boxShadow: `0 0 20px rgba(212,175,55,0.2), 0 0 0 1px rgba(212,175,55,0.15)` }}
+          >
+            <img src="/logo.jpg" alt="" className="w-full h-full object-cover" />
+          </div>
           <div>
             <div className="text-white font-black text-xl tracking-tight leading-none">
               {tenantName}
             </div>
-            <div className="text-[#D4AF37] text-[10px] tracking-[0.35em] uppercase mt-0.5">
+            <div className="text-[9px] tracking-[0.4em] uppercase mt-0.5" style={{ color: GOLD }}>
               Premium Barbershop
             </div>
           </div>
         </div>
+
         <DigitalClock />
       </header>
 
       {/* ── Body ───────────────────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Panel izquierdo — turnos */}
-        <aside className="w-[25%] border-r border-gray-900 overflow-hidden shrink-0">
+        {/* Panel turnos — 25% */}
+        <aside
+          className="w-[25%] overflow-hidden shrink-0"
+          style={{ borderRight: '1px solid rgba(255,255,255,0.04)' }}
+        >
           <AppointmentPanel citas={citas} />
         </aside>
 
-        {/* Área principal — carrusel */}
+        {/* Carrusel — 75% */}
         <main className="flex-1 relative overflow-hidden">
-          {/* Slide activo con fade */}
-          <div
-            className="absolute inset-0 transition-opacity duration-700 ease-in-out"
-            style={{ opacity: visible ? 1 : 0 }}
-          >
-            {slides[slide]}
-          </div>
+          {/* Fondo base con profundidad */}
+          <div className="absolute inset-0"
+            style={{
+              background: 'radial-gradient(ellipse 100% 80% at 50% 100%, rgba(212,175,55,0.03) 0%, transparent 60%)',
+            }}
+          />
 
-          {/* Indicadores de slide */}
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-10">
-            {Array.from({ length: SLIDE_COUNT }).map((_, i) => (
-              <button
-                key={i}
-                onClick={() => { setSlide(i); setVisible(true); }}
-                className={`h-1.5 rounded-full transition-all duration-300 cursor-none ${
-                  i === slide ? 'w-8 bg-[#D4AF37]' : 'w-2 bg-gray-800'
-                }`}
-              />
-            ))}
-          </div>
+          {/* Slide con blur-out / scale-in transition */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={slide}
+              className="absolute inset-0"
+              initial={{ opacity: 0, filter: 'blur(12px)', scale: 1.02 }}
+              animate={{ opacity: 1, filter: 'blur(0px)',  scale: 1    }}
+              exit={  { opacity: 0, filter: 'blur(8px)',   scale: 0.99 }}
+              transition={{ duration: 0.7, ease: [0.4, 0, 0.2, 1] }}
+            >
+              {slides[slide]}
+            </motion.div>
+          </AnimatePresence>
 
-          {/* QR Code — esquina inferior derecha */}
-          <div className="absolute bottom-6 right-6 z-20" style={{ animation: 'qr-glow 3s ease-in-out infinite' }}>
-            <div className="
-              bg-gray-950/85 backdrop-blur-md
-              border border-[#D4AF37]/50
-              rounded-2xl p-4
-              flex flex-col items-center gap-3
-              shadow-[0_0_40px_rgba(212,175,55,0.12)]
-            ">
-              <span className="text-[#D4AF37] font-black text-sm tracking-[0.2em] uppercase">
-                ¡Agenda tu hora!
-              </span>
-              <QRCodeSVG
-                value={qrUrl}
-                size={170}
-                fgColor="#D4AF37"
-                bgColor="transparent"
-                level="M"
-              />
-              <span className="text-gray-600 text-xs tracking-wide">
-                Escanea con tu cámara
-              </span>
-            </div>
-          </div>
+          {/* Indicadores */}
+          <SlideIndicators count={SLIDE_COUNT} active={slide} onChange={setSlide} />
+
+          {/* QR */}
+          <QrOverlay qrUrl={qrUrl} />
         </main>
       </div>
-
-      <style>{`
-        @keyframes qr-glow {
-          0%, 100% { filter: drop-shadow(0 0 6px rgba(212,175,55,0.15)); }
-          50%       { filter: drop-shadow(0 0 18px rgba(212,175,55,0.40)); }
-        }
-      `}</style>
     </div>
   );
 }
