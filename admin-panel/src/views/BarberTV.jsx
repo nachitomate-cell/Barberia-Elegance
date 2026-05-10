@@ -2,8 +2,8 @@
 // Ruta: /gestion-interna/tv (sin AdminLayout)
 // Deps: framer-motion, qrcode.react  (npm install framer-motion qrcode.react)
 
-import { useState, useEffect }             from 'react';
-import { motion, AnimatePresence, stagger, useAnimate } from 'framer-motion';
+import { useState, useEffect, useRef }      from 'react';
+import { motion, AnimatePresence }          from 'framer-motion';
 import { QRCodeSVG }                        from 'qrcode.react';
 import { query, onSnapshot, orderBy, where } from 'firebase/firestore';
 import { useTenant }                        from '../contexts/TenantContext';
@@ -288,8 +288,13 @@ function SlideLookbook({ photos }) {
 }
 
 // ── Slide 3: Meet the Team ────────────────────────────────────────
-function SlideEquipo({ barberos }) {
-  const team = barberos.slice(0, 6);
+// imageCache: { [barberoId]: resolvedUrl } — pre-cargado en el padre
+function SlideEquipo({ barberos, imageCache }) {
+  // Máximo 8 miembros; grid adaptativo según cantidad
+  const team    = barberos.slice(0, 8);
+  const cols    = team.length > 6 ? 'grid-cols-4' : 'grid-cols-3';
+  const maxCols = team.length > 6 ? 4 : 3;
+
   return (
     <div className="w-full h-full flex flex-col items-center justify-center p-12 relative">
       <div className="absolute inset-0"
@@ -298,46 +303,71 @@ function SlideEquipo({ barberos }) {
         }}
       />
       <motion.p
-        className="text-[9px] font-black tracking-[0.6em] uppercase text-center mb-12 relative z-10"
+        className="text-[9px] font-black tracking-[0.6em] uppercase text-center mb-10 relative z-10"
         style={{ color: GOLD }}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
       >
         ✦ &nbsp; Nuestro Equipo &nbsp; ✦
       </motion.p>
-      <div className="grid grid-cols-3 gap-10 w-full max-w-3xl relative z-10">
-        {team.map((b, i) => (
-          <motion.div
-            key={b.id || i}
-            className="flex flex-col items-center text-center gap-3"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.1, duration: 0.4 }}
-          >
-            <div
-              className="w-28 h-28 rounded-full overflow-hidden relative"
-              style={{
-                border: `2px solid rgba(212,175,55,0.3)`,
-                boxShadow: `0 0 20px rgba(212,175,55,0.1)`,
-              }}
+
+      <div className={`grid ${cols} gap-8 w-full max-w-4xl relative z-10`}>
+        {team.map((b, i) => {
+          const resolvedUrl = imageCache[b.id] ?? null;
+          const initial     = (b.nombre || '?')[0].toUpperCase();
+
+          return (
+            <motion.div
+              key={b.id || i}
+              className="flex flex-col items-center text-center gap-3"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.08, duration: 0.4 }}
             >
-              {b.foto || b.fotoUrl ? (
-                <img src={b.foto || b.fotoUrl} alt={b.nombre} className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center text-4xl font-black"
-                  style={{ background: 'rgba(212,175,55,0.08)', color: GOLD }}>
-                  {(b.nombre || '?')[0].toUpperCase()}
+              {/*
+                Contenedor de tamaño fijo: el avatar (iniciales) siempre ocupa
+                el espacio — la foto se superpone encima cuando está lista.
+                Esto evita layout shift mientras cargan las imágenes.
+              */}
+              <div
+                className="relative w-28 h-28 rounded-full overflow-hidden shrink-0"
+                style={{
+                  border:     `2px solid rgba(212,175,55,0.3)`,
+                  boxShadow:  `0 0 20px rgba(212,175,55,0.1)`,
+                }}
+              >
+                {/* Capa base: avatar de iniciales (siempre visible) */}
+                <div
+                  className="absolute inset-0 flex items-center justify-center text-3xl font-black select-none"
+                  style={{ background: 'rgba(212,175,55,0.08)', color: GOLD }}
+                >
+                  {initial}
                 </div>
-              )}
-            </div>
-            <div>
-              <p className="text-white font-bold text-lg leading-tight">{b.nombre}</p>
-              <p className="text-sm mt-0.5" style={{ color: GOLD }}>
-                {b.especialidad || b.rol || 'Barbero'}
-              </p>
-            </div>
-          </motion.div>
-        ))}
+
+                {/* Foto: se renderiza encima cuando la URL está resuelta.
+                    La transición opacity-0 → 1 evita el parpadeo de carga. */}
+                {resolvedUrl && (
+                  <img
+                    src={resolvedUrl}
+                    alt={b.nombre}
+                    className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500"
+                    style={{ opacity: 0 }}
+                    onLoad={e => { e.currentTarget.style.opacity = '1'; }}
+                    onError={e => { e.currentTarget.style.display = 'none'; }}
+                  />
+                )}
+              </div>
+
+              <div>
+                <p className="text-white font-bold text-base leading-tight">{b.nombre}</p>
+                <p className="text-sm mt-0.5 capitalize" style={{ color: GOLD }}>
+                  {b.especialidad || (b.rol === 'jefe' ? 'Jefe de Sala' : 'Barbero')}
+                </p>
+              </div>
+            </motion.div>
+          );
+        })}
+
         {team.length === 0 && (
           <p className="col-span-3 text-gray-700 text-center">Sin datos de equipo</p>
         )}
@@ -429,10 +459,14 @@ function SlideIndicators({ count, active, onChange }) {
 export default function BarberTV() {
   const { id: tenantId, name: tenantName } = useTenant();
 
-  const [citas,    setCitas]    = useState([]);
-  const [photos,   setPhotos]   = useState([]);
-  const [barberos, setBarberos] = useState([]);
-  const [slide,    setSlide]    = useState(0);
+  const [citas,      setCitas]      = useState([]);
+  const [photos,     setPhotos]     = useState([]);
+  const [barberos,   setBarberos]   = useState([]);
+  const [slide,      setSlide]      = useState(0);
+  // imageCache: { [barberoId]: resolvedUrl }
+  // Vive en el padre para sobrevivir el unmount/mount de SlideEquipo en el carrusel
+  const [imageCache, setImageCache] = useState({});
+  const preloadedRef = useRef(new Set()); // evita crear Image() duplicados
 
   const qrUrl = `${window.location.origin}/index.html?local=${tenantId}`;
 
@@ -462,15 +496,61 @@ export default function BarberTV() {
     return onSnapshot(q, snap => setPhotos(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
   }, [tenantId]);
 
-  // Equipo
+  // Equipo — excluye docs de enlace UID (_mainDocId) y rol 'admin'
   useEffect(() => {
     const q = query(tenantCol('barberos'), where('activo', '!=', false));
     return onSnapshot(q, snap => {
       setBarberos(
-        snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(b => !b._mainDocId),
+        snap.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .filter(b => !b._mainDocId && b.rol !== 'admin'),
       );
     });
   }, [tenantId]);
+
+  // ── Caché de URLs de foto (se pobla una sola vez por barbero) ───
+  useEffect(() => {
+    if (!barberos.length) return;
+
+    setImageCache(prev => {
+      const next    = { ...prev };
+      let changed   = false;
+      barberos.forEach(b => {
+        const url = b.foto || b.fotoUrl;
+        if (url && !next[b.id]) {
+          next[b.id] = url;
+          changed    = true;
+        }
+      });
+      return changed ? next : prev;
+    });
+  }, [barberos]);
+
+  // ── Pre-loader: calienta la caché del navegador ─────────────────
+  // Fotos del equipo → se precargan en cuanto llegan de Firestore
+  useEffect(() => {
+    barberos.forEach(b => {
+      const url = b.foto || b.fotoUrl;
+      if (url && !preloadedRef.current.has(url)) {
+        preloadedRef.current.add(url);
+        const img = new Image();
+        img.src   = url;
+      }
+    });
+  }, [barberos]);
+
+  // Fotos del lookbook → se precargan cuando el slide de Publicidad está activo
+  // (el siguiente slide es Lookbook, así las imágenes ya están en caché)
+  useEffect(() => {
+    if (slide !== 0) return;
+    photos.forEach(p => {
+      if (p.url && !preloadedRef.current.has(p.url)) {
+        preloadedRef.current.add(p.url);
+        const img = new Image();
+        img.src   = p.url;
+      }
+    });
+  }, [slide, photos]);
 
   // Carrusel automático
   useEffect(() => {
@@ -481,7 +561,7 @@ export default function BarberTV() {
   const slides = [
     <SlidePublicidad key="pub" />,
     <SlideLookbook   key="look" photos={photos} />,
-    <SlideEquipo     key="team" barberos={barberos} />,
+    <SlideEquipo     key="team" barberos={barberos} imageCache={imageCache} />,
   ];
 
   return (
