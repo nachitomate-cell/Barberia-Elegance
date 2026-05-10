@@ -20,7 +20,7 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 // ── 3. CACHE ─────────────────────────────────────────────────────
-const CACHE_VERSION = 'saas-v11';
+const CACHE_VERSION = 'saas-v12';
 const STATIC_ASSETS = [
   '/dashboard.html',
   '/index.html',
@@ -132,24 +132,42 @@ self.addEventListener('fetch', event => {
 messaging.onBackgroundMessage(payload => {
   console.log('[SW] Mensaje en background recibido:', payload);
 
-  const notifTitle = payload.notification?.title
-    || payload.data?.title
-    || 'Nueva reserva';
+  const tipo       = payload.data?.tipo || null;
+  const citaId     = payload.data?.citaId || null;
+  const tenantId   = payload.data?.tenantId || null;
+
+  const notifTitle = payload.notification?.title || payload.data?.title || 'Nueva reserva';
+  const body       = payload.notification?.body  || payload.data?.body  || 'Tienes una nueva cita agendada.';
+
+  let tag, renotify, actions;
+
+  if (tipo === 'recordatorio') {
+    tag      = `recordatorio-${citaId || 'cita'}`;
+    renotify = false;
+    actions  = [
+      { action: 'confirmar', title: '✅ Confirmar' },
+      { action: 'cancelar',  title: '❌ Cancelar'  },
+    ];
+  } else {
+    tag      = 'nueva-cita';
+    renotify = true;
+    actions  = [{ action: 'abrir', title: 'Ver cita' }];
+  }
 
   const notifOptions = {
-    body:    payload.notification?.body  || payload.data?.body  || 'Tienes una nueva cita agendada.',
+    body,
     icon:    '/icons/icon-192.png',
     badge:   '/icons/icon-192.png',
     vibrate: [200, 100, 200],
-    tag:     'nueva-cita',          // colapsa notificaciones duplicadas
-    renotify: true,
+    tag,
+    renotify,
     data: {
-      url: payload.data?.url || '/agenda',
-      citaId: payload.data?.citaId || null
+      url:      payload.data?.url || (tipo === 'recordatorio' ? '/dashboard.html' : '/agenda'),
+      citaId,
+      tipo,
+      tenantId,
     },
-    actions: [
-      { action: 'abrir', title: 'Ver cita' }
-    ]
+    actions,
   };
 
   return self.registration.showNotification(notifTitle, notifOptions);
@@ -159,10 +177,38 @@ messaging.onBackgroundMessage(payload => {
 self.addEventListener('notificationclick', event => {
   event.notification.close();
 
-  const targetUrl = event.notification.data?.url || '/agenda';
+  const data     = event.notification.data || {};
+  const action   = event.action;
+  const tipo     = data.tipo;
+  const citaId   = data.citaId;
+  const tenantId = data.tenantId || '';
+
+  let targetUrl;
+  if (tipo === 'recordatorio' && citaId && (action === 'confirmar' || action === 'cancelar')) {
+    // Acción de recordatorio: abrir dashboard con deep-link params
+    targetUrl = `/dashboard.html?accion=${action}&citaId=${encodeURIComponent(citaId)}&tenantId=${encodeURIComponent(tenantId)}`;
+  } else if (tipo === 'recordatorio') {
+    // Toque en el cuerpo de la notificación (sin acción específica)
+    targetUrl = `/dashboard.html`;
+  } else {
+    targetUrl = data.url || '/agenda';
+  }
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
+      if (tipo === 'recordatorio') {
+        // Para recordatorio siempre navegar al dashboard con los params
+        const dashClient = clientList.find(c => c.url.includes('/dashboard.html'));
+        if (dashClient && 'navigate' in dashClient) {
+          return dashClient.navigate(targetUrl).then(c => c && c.focus());
+        }
+        const anyClient = clientList.find(c => new URL(c.url).origin === self.location.origin);
+        if (anyClient && 'navigate' in anyClient) {
+          return anyClient.navigate(targetUrl).then(c => c && c.focus());
+        }
+        return clients.openWindow(targetUrl);
+      }
+
       // Priorizar ventana de /agenda ya abierta
       const agendaClient = clientList.find(c => c.url.includes('/agenda'));
       if (agendaClient && 'focus' in agendaClient) return agendaClient.focus();

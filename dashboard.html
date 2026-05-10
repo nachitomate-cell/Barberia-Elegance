@@ -910,6 +910,7 @@ auth.onAuthStateChanged(async user => {
   cargarCitasUsuario(user);
   initProductosTab();
   cargarAnuncio();
+  manejarDeepLinkRecordatorio();
 });
 
 /* ─── Productos tab ──────────────────────────────────────────── */
@@ -1622,6 +1623,41 @@ async function confirmarReagendamiento() {
     showToast('Error al reagendar. Intenta de nuevo.', 'err');
     btn.disabled    = false;
     btn.textContent = 'Sí, elegir nuevo horario';
+  }
+}
+
+// ────────────────────────────────────────────────────────────────
+//  DEEP LINK — recordatorio push (accion=confirmar|cancelar)
+// ────────────────────────────────────────────────────────────────
+async function manejarDeepLinkRecordatorio() {
+  const params   = new URLSearchParams(window.location.search);
+  const accion   = params.get('accion');
+  const citaId   = params.get('citaId');
+  if (!accion || !citaId) return;
+
+  // Limpiar params de la URL sin recargar
+  history.replaceState({}, '', window.location.pathname);
+
+  if (accion === 'confirmar') {
+    try {
+      await FDB.updateCitaEstado(citaId, 'Confirmada');
+      showToast('¡Cita confirmada! Nos vemos mañana 🙌', 'ok');
+      cargarCitasUsuario(currentUser);
+    } catch (e) {
+      showToast('No se pudo confirmar la cita. Intenta de nuevo.', 'err');
+    }
+    return;
+  }
+
+  if (accion === 'cancelar') {
+    try {
+      const snap = await FDB.citasCol().doc(citaId).get();
+      if (!snap.exists) { showToast('Cita no encontrada.', 'err'); return; }
+      _citaCache[citaId] = { id: citaId, ...snap.data() };
+      abrirModalCancelar(citaId);
+    } catch (e) {
+      showToast('No se pudo cargar la cita. Intenta de nuevo.', 'err');
+    }
   }
 }
 

@@ -492,3 +492,9 @@ exports.sellosTenant   = selloAutomatico.sellosTenant;
 // ─────────────────────────────────────────────────────────────────
 const cumpleanos = require('./cumpleanos');
 exports.selloCumpleanos = cumpleanos.selloCumpleanos;
+
+// ─────────────────────────────────────────────────────────────────
+//  RECORDATORIO DE CITA 24H — ver recordatorio-cita.js para detalles
+// ─────────────────────────────────────────────────────────────────
+const recordatorioCita = require('./recordatorio-cita');
+exports.recordatorioCita24h = recordatorioCita.recordatorioCita24h;
