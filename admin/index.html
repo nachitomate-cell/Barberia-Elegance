@@ -62,6 +62,11 @@
       background: rgba(236,72,153,0.05);
       box-shadow: 0 12px 30px rgba(0,0,0,0.3), 0 0 20px rgba(236,72,153,0.08);
     }
+    .tenant-card.ferraza:hover {
+      border-color: rgba(251,191,36,0.4);
+      background: rgba(251,191,36,0.05);
+      box-shadow: 0 12px 30px rgba(0,0,0,0.3), 0 0 20px rgba(251,191,36,0.08);
+    }
 
     /* ── Drawer overlay ── */
     #drawer-overlay {
@@ -138,6 +143,11 @@
       box-shadow: 0 4px 20px rgba(236,72,153,0.25);
     }
     .cta-btn.gitana:hover { box-shadow: 0 8px 30px rgba(236,72,153,0.35); }
+    .cta-btn.ferraza {
+      background: linear-gradient(135deg,#f59e0b,#d97706);
+      box-shadow: 0 4px 20px rgba(251,191,36,0.25);
+    }
+    .cta-btn.ferraza:hover { box-shadow: 0 8px 30px rgba(251,191,36,0.35); }
 
     /* ── Secondary button ── */
     .btn-secondary {
@@ -170,6 +180,7 @@
       border-radius: 0.5rem;
     }
     @keyframes shimmer { 0% { background-position:200% 0; } 100% { background-position:-200% 0; } }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
     /* ── Quick action links ── */
     .quick-link {
@@ -195,6 +206,31 @@
 
     .hidden { display: none !important; }
 
+    /* ── Modal de errores ── */
+    #errors-modal {
+      position: fixed; inset: 0; z-index: 200;
+      background: #080d17;
+      display: none; flex-direction: column;
+    }
+    #errors-modal.open { display: flex; }
+
+    .err-table { width: 100%; border-collapse: collapse; }
+    .err-table th {
+      text-align: left; padding: 0.625rem 0.875rem;
+      font-size: 0.6875rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.08em;
+      color: #475569;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      white-space: nowrap;
+    }
+    .err-table td {
+      padding: 0.75rem 0.875rem;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      font-size: 0.8125rem; color: #94a3b8;
+      vertical-align: middle;
+    }
+    .err-table tr:hover td { background: rgba(255,255,255,0.02); }
+
     /* Divider */
     .section-label {
       font-size: 0.6875rem; font-weight: 700;
@@ -209,6 +245,62 @@
   <div id="unauthorized-screen">
     <img src="/perro.webp" alt="Acceso Denegado"
       style="max-width:88%; max-height:88%; object-fit:contain; animation:pulse-img 2s infinite;">
+  </div>
+
+  <!-- Logs de errores -->
+  <button onclick="openErrorsModal()" style="
+    position:fixed; top:1rem; left:1rem; z-index:100;
+    display:flex; align-items:center; gap:0.375rem;
+    padding:0.5rem 0.875rem; border-radius:0.625rem;
+    background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.09);
+    color:#94a3b8; font-size:0.8125rem; font-weight:500; cursor:pointer;
+    transition:all 0.2s;
+  " onmouseover="this.style.color='#f87171';this.style.borderColor='rgba(248,113,113,0.3)'"
+     onmouseout="this.style.color='#94a3b8';this.style.borderColor='rgba(255,255,255,0.09)'">
+    <i class="ph ph-warning-circle"></i>
+    Logs
+    <span id="errors-badge" style="
+      display:none; padding:0.1rem 0.4rem; border-radius:999px;
+      background:rgba(248,113,113,0.15); border:1px solid rgba(248,113,113,0.3);
+      color:#f87171; font-size:0.625rem; font-weight:700; min-width:18px; text-align:center;
+    "></span>
+  </button>
+
+  <!-- Modal de Logs de Errores -->
+  <div id="errors-modal">
+    <!-- Header -->
+    <div style="padding:1.25rem 1.5rem; border-bottom:1px solid rgba(255,255,255,0.07); display:flex; align-items:center; gap:0.875rem; flex-shrink:0;">
+      <div style="width:36px; height:36px; border-radius:0.75rem; background:rgba(248,113,113,0.1); border:1px solid rgba(248,113,113,0.2); display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+        <i class="ph-fill ph-warning-circle" style="font-size:1.125rem; color:#f87171;"></i>
+      </div>
+      <div style="flex:1;">
+        <h2 style="font-size:1rem; font-weight:700; color:#fff; margin:0;">Logs de Errores</h2>
+        <p id="errors-subtitle" style="font-size:0.75rem; color:#64748b; margin:0;">Cargando…</p>
+      </div>
+      <button onclick="loadErrorLogs()" title="Refrescar" style="
+        width:34px; height:34px; border-radius:50%; border:1px solid rgba(255,255,255,0.09);
+        background:rgba(255,255,255,0.04); color:#94a3b8; cursor:pointer; flex-shrink:0;
+        display:flex; align-items:center; justify-content:center; transition:background 0.2s;
+      " onmouseover="this.style.background='rgba(255,255,255,0.09)'" onmouseout="this.style.background='rgba(255,255,255,0.04)'">
+        <i class="ph ph-arrows-clockwise" style="font-size:1rem;"></i>
+      </button>
+      <button onclick="closeErrorsModal()" style="
+        width:34px; height:34px; border-radius:50%; border:1px solid rgba(255,255,255,0.09);
+        background:rgba(255,255,255,0.04); color:#94a3b8; cursor:pointer; flex-shrink:0;
+        display:flex; align-items:center; justify-content:center; transition:background 0.2s;
+      " onmouseover="this.style.background='rgba(255,255,255,0.09)'" onmouseout="this.style.background='rgba(255,255,255,0.04)'">
+        <i class="ph-bold ph-x" style="font-size:1rem;"></i>
+      </button>
+    </div>
+
+    <!-- Contenido scrolleable -->
+    <div style="flex:1; overflow-y:auto; padding:1.5rem;">
+      <div id="errors-content">
+        <div class="skeleton" style="width:100%; height:48px; border-radius:0.75rem; margin-bottom:0.5rem;"></div>
+        <div class="skeleton" style="width:100%; height:48px; border-radius:0.75rem; margin-bottom:0.5rem;"></div>
+        <div class="skeleton" style="width:100%; height:48px; border-radius:0.75rem;"></div>
+      </div>
+    </div>
   </div>
 
   <!-- Logout -->
@@ -309,11 +401,47 @@
       </div>
     </button>
 
+    <!-- Barbería Ferraza -->
+    <button class="tenant-card ferraza" onclick="openDrawer('ferraza')">
+      <div style="display:flex; align-items:center; gap:1.125rem;">
+        <img src="/local1.jpg" alt="Ferraza"
+          style="width:56px; height:56px; border-radius:1rem; object-fit:cover; border:1px solid rgba(251,191,36,0.2); flex-shrink:0;"
+          onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+        <div style="
+          display:none; width:56px; height:56px; border-radius:1rem; flex-shrink:0;
+          background:rgba(251,191,36,0.08); border:1px solid rgba(251,191,36,0.2);
+          align-items:center; justify-content:center;
+        ">
+          <i class="ph-fill ph-scissors" style="font-size:1.5rem; color:#f59e0b;"></i>
+        </div>
+        <div style="flex:1; min-width:0; text-align:left;">
+          <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.25rem;">
+            <h2 style="font-size:1rem; font-weight:700; color:#fff; margin:0;">Barbería Ferraza</h2>
+            <span style="
+              padding:0.125rem 0.5rem; border-radius:999px; font-size:0.625rem; font-weight:700;
+              background:rgba(251,191,36,0.1); border:1px solid rgba(251,191,36,0.25); color:#f59e0b;
+            ">ACTIVO</span>
+          </div>
+          <p style="font-size:0.8125rem; color:#64748b; margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+            <i class="ph-fill ph-map-pin" style="font-size:0.75rem; color:rgba(251,191,36,0.5);"></i>
+            Av. Libertad 63 / Local 28
+          </p>
+        </div>
+        <div style="
+          width:32px; height:32px; border-radius:50%; flex-shrink:0;
+          display:flex; align-items:center; justify-content:center;
+          background:rgba(251,191,36,0.08); border:1px solid rgba(251,191,36,0.15);
+        ">
+          <i class="ph-bold ph-caret-right" style="color:#f59e0b; font-size:0.875rem;"></i>
+        </div>
+      </div>
+    </button>
+
     <!-- Footer meta -->
     <div style="margin-top:1.5rem; display:flex; align-items:center; justify-content:center; gap:1.5rem;">
       <div style="text-align:center;">
         <span style="font-size:0.625rem; text-transform:uppercase; letter-spacing:0.12em; font-weight:700; color:#334155; display:block; margin-bottom:0.25rem;">Locales</span>
-        <span style="font-size:0.75rem; font-weight:600; color:#64748b;">2 activos</span>
+        <span style="font-size:0.75rem; font-weight:600; color:#64748b;">3 activos</span>
       </div>
       <div style="width:1px; height:20px; background:#1e293b;"></div>
       <div style="text-align:center;">
@@ -325,6 +453,16 @@
         <div style="width:5px; height:5px; border-radius:50%; background:#34d399; animation:pulse-dot 1.8s infinite;"></div>
         <span style="font-size:0.75rem; font-weight:500; color:#34d399;">Online</span>
       </div>
+      <div style="width:1px; height:20px; background:#1e293b;"></div>
+      <button onclick="forceGlobalRefresh()" title="Forzar Actualización Global en todos los locales" style="
+        display:flex; align-items:center; gap:0.375rem;
+        background:none; border:none; cursor:pointer;
+        padding:0.25rem 0.5rem; border-radius:0.5rem;
+        color:#475569; transition:color 0.2s;
+      " onmouseover="this.style.color='#f59e0b'" onmouseout="this.style.color='#475569'">
+        <i class="ph ph-arrows-clockwise" style="font-size:0.875rem;"></i>
+        <span style="font-size:0.625rem; text-transform:uppercase; letter-spacing:0.1em; font-weight:700;">Update</span>
+      </button>
     </div>
   </div>
 
@@ -408,6 +546,23 @@
       <div id="prof-list-content" style="display:flex; flex-direction:column; gap:0.625rem;"></div>
     </div>
 
+    <!-- Kill switch -->
+    <div style="margin-bottom:1.5rem;">
+      <p class="section-label">Control del Local</p>
+      <div class="stat-card">
+        <div class="stat-icon" id="kill-switch-icon" style="background:rgba(100,116,139,0.1);border:1px solid rgba(100,116,139,0.2);">
+          <div class="skeleton" style="width:24px;height:24px;border-radius:50%;"></div>
+        </div>
+        <div style="flex:1;">
+          <p style="font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;margin:0 0 0.25rem;">Estado operativo</p>
+          <div id="kill-switch-status"><div class="skeleton" style="width:80px;height:16px;"></div></div>
+        </div>
+        <button onclick="toggleTenantStatus()" id="kill-switch-btn"
+          style="padding:0.5rem 0.875rem;border-radius:0.625rem;font-size:0.8125rem;font-weight:600;cursor:pointer;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:#64748b;transition:all 0.2s;"
+        >…</button>
+      </div>
+    </div>
+
     <!-- Acciones rápidas -->
     <div style="margin-bottom:1.5rem;">
       <p class="section-label">Acciones Rápidas</p>
@@ -429,6 +584,24 @@
         <button onclick="assignRoleFlow()" class="quick-link" style="cursor:pointer;">
           <i class="ph-bold ph-shield-check" style="font-size:1rem;"></i>
           <span>Asignar Rol</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Volumen de Datos -->
+    <div style="margin-bottom:1.5rem;">
+      <p class="section-label">Volumen de Datos · Consumo Histórico</p>
+      <div id="consumo-section">
+        <!-- Estado inicial: botón on-demand -->
+        <button onclick="calcularConsumo()" id="consumo-btn" style="
+          display:flex; align-items:center; justify-content:center; gap:0.5rem;
+          width:100%; padding:0.75rem 1rem; border-radius:0.75rem; cursor:pointer;
+          background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08);
+          color:#64748b; font-size:0.875rem; font-weight:500; transition:all 0.2s;
+        " onmouseover="this.style.background='rgba(255,255,255,0.07)';this.style.color='#94a3b8'"
+           onmouseout="this.style.background='rgba(255,255,255,0.03)';this.style.color='#64748b'">
+          <i class="ph ph-chart-bar" style="font-size:1rem;"></i>
+          Calcular Consumo
         </button>
       </div>
     </div>
@@ -479,11 +652,25 @@
         profCol:     () => db.collection('tenants').doc('gitana').collection('barberos'),
         usersCol:    () => db.collection('tenants').doc('gitana').collection('users'),
       },
+      ferraza: {
+        nombre:      'Barbería Ferraza',
+        direccion:   'Av. Libertad 63 / Local 28',
+        logo:        '/local1.jpg',
+        color:       '#f59e0b',
+        colorRgb:    '251,191,36',
+        profLabel:   'Barberos en local',
+        profLabelBtn:'Agregar Barbero',
+        profIcon:    'ph-scissors',
+        citasCol:    () => db.collection('tenants').doc('ferraza').collection('citas'),
+        profCol:     () => db.collection('tenants').doc('ferraza').collection('barberos'),
+        usersCol:    () => db.collection('tenants').doc('ferraza').collection('users'),
+      },
     };
 
-    let _activeTenant = null;
+    let _activeTenant   = null;
     let _profListLoaded = false;
     let _profListVisible = false;
+    let _tenantStatus   = 'active';
 
     // ── Drawer open / close ───────────────────────────────────────
     function openDrawer(tenantId, updateHistory = true) {
@@ -520,7 +707,7 @@
       document.getElementById('drawer-collection').innerHTML =
         tenantId === 'elegance'
           ? `Colección raíz: <code style="color:${cfg.color};">barberos</code>`
-          : `Colección: <code style="color:${cfg.color};">tenants/gitana/barberos</code>`;
+          : `Colección: <code style="color:${cfg.color};">tenants/${tenantId}/barberos</code>`;
 
       // Botón agregar prof
       document.getElementById('btn-add-prof-label').textContent = cfg.profLabelBtn;
@@ -530,6 +717,27 @@
       document.getElementById('link-booking').href  = `/index.html?local=${tenantId}`;
       document.getElementById('cta-gestion').href   = `/gestion-interna/index.html?local=${tenantId}`;
       document.getElementById('cta-gestion').className = `cta-btn ${tenantId}`;
+
+      // Reset consumo a estado inicial
+      document.getElementById('consumo-section').innerHTML = `
+        <button onclick="calcularConsumo()" id="consumo-btn" style="
+          display:flex;align-items:center;justify-content:center;gap:0.5rem;
+          width:100%;padding:0.75rem 1rem;border-radius:0.75rem;cursor:pointer;
+          background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);
+          color:#64748b;font-size:0.875rem;font-weight:500;transition:all 0.2s;
+        " onmouseover="this.style.background='rgba(255,255,255,0.07)';this.style.color='#94a3b8'"
+           onmouseout="this.style.background='rgba(255,255,255,0.03)';this.style.color='#64748b'">
+          <i class="ph ph-chart-bar" style="font-size:1rem;"></i>
+          Calcular Consumo
+        </button>`;
+
+      // Reset kill switch a skeleton
+      _tenantStatus = 'active';
+      document.getElementById('kill-switch-icon').innerHTML = '<div class="skeleton" style="width:24px;height:24px;border-radius:50%;"></div>';
+      document.getElementById('kill-switch-icon').style.cssText = 'background:rgba(100,116,139,0.1);border:1px solid rgba(100,116,139,0.2);width:44px;height:44px;border-radius:0.75rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;';
+      document.getElementById('kill-switch-status').innerHTML = '<div class="skeleton" style="width:80px;height:16px;"></div>';
+      document.getElementById('kill-switch-btn').textContent = '…';
+      document.getElementById('kill-switch-btn').style.cssText = 'padding:0.5rem 0.875rem;border-radius:0.625rem;font-size:0.8125rem;font-weight:600;cursor:pointer;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:#64748b;transition:all 0.2s;';
 
       // Reset stats a skeleton
       document.getElementById('prof-count').innerHTML  = '<div class="skeleton" style="width:44px;height:26px;"></div>';
@@ -549,6 +757,7 @@
       if (updateHistory) window.history.pushState({ drawer: tenantId }, '', `/admin/${tenantId}`);
 
       loadStats(tenantId);
+      loadTenantStatus(tenantId);
     }
 
     function closeDrawer(updateHistory = true) {
@@ -567,9 +776,14 @@
       const path = window.location.pathname;
       if (path.includes('/admin/elegance')) openDrawer('elegance', false);
       else if (path.includes('/admin/gitana')) openDrawer('gitana', false);
+      else if (path.includes('/admin/ferraza')) openDrawer('ferraza', false);
     });
 
-    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
+    document.addEventListener('keydown', e => {
+      if (e.key !== 'Escape') return;
+      if (document.getElementById('errors-modal').classList.contains('open')) closeErrorsModal();
+      else closeDrawer();
+    });
 
     // ── Cargar stats ─────────────────────────────────────────────
     async function loadStats(tenantId) {
@@ -589,7 +803,9 @@
           profSnap = await cfg.profCol().get();
         }
 
-        const total = profSnap.size;
+        // Excluir docs de enlace UID (generados por ensureBarberoUidDoc)
+        const staffDocs = profSnap.docs.filter(d => !d.data()._mainDocId);
+        const total = staffDocs.length;
         document.getElementById('prof-count').innerHTML =
           `<span style="font-size:1.625rem; font-weight:700; color:#fff;">${total}</span>`;
 
@@ -597,7 +813,7 @@
           document.getElementById('prof-status').innerHTML = `
             <span class="badge" style="background:rgba(${cfg.colorRgb},0.1); border:1px solid rgba(${cfg.colorRgb},0.2); color:${cfg.color};">
               <span class="badge-dot" style="background:${cfg.color};"></span>
-              ${total === 1 ? '1 activo' : `${total} activos`}
+              ${total === 1 ? '1 registrado' : `${total} registrados`}
             </span>`;
         } else {
           document.getElementById('prof-status').innerHTML =
@@ -806,6 +1022,360 @@
       } catch(e) {
         alert('Error: ' + e.message);
         sourceEl.textContent = prev;
+      }
+    }
+
+    // ── Monitor de Consumo ────────────────────────────────────────
+    async function calcularConsumo() {
+      if (!_activeTenant) return;
+      const cfg      = TENANTS[_activeTenant];
+      const color    = cfg.color;
+      const colorRgb = cfg.colorRgb;
+
+      // Estado de carga
+      document.getElementById('consumo-section').innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:center;gap:0.625rem;
+          padding:0.875rem;border-radius:0.75rem;
+          background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
+          <div style="width:14px;height:14px;border-radius:50%;
+            border:2px solid rgba(255,255,255,0.12);border-top-color:#94a3b8;
+            animation:spin 0.8s linear infinite;flex-shrink:0;"></div>
+          <span style="font-size:0.875rem;color:#64748b;">Calculando…</span>
+        </div>`;
+
+      try {
+        // 3 aggregation queries en paralelo — cada una cuesta 1 lectura (no getDocs)
+        const [citasSnap, clientesSnap, profSnap] = await Promise.all([
+          cfg.citasCol().count().get(),
+          cfg.usersCol().count().get(),
+          cfg.profCol().count().get(),
+        ]);
+
+        // CountQuerySnapshot expone .data().count, no .docs
+        const totalCitas    = citasSnap.data().count;
+        const totalClientes = clientesSnap.data().count;
+        const totalEquipo   = profSnap.data().count;
+
+        function fmtNum(n) {
+          return Number(n).toLocaleString('es-CL');
+        }
+
+        function metricCard(icon, value, label) {
+          return `
+            <div style="display:flex;flex-direction:column;align-items:center;
+              padding:0.875rem 0.375rem;border-radius:0.875rem;
+              background:rgba(${colorRgb},0.05);border:1px solid rgba(${colorRgb},0.15);
+              gap:0.375rem;text-align:center;">
+              <i class="ph-fill ${icon}" style="font-size:1.25rem;color:${color};"></i>
+              <span style="font-size:1.375rem;font-weight:700;color:#f1f5f9;line-height:1;">${fmtNum(value)}</span>
+              <span style="font-size:0.6rem;font-weight:700;text-transform:uppercase;
+                letter-spacing:0.08em;color:#475569;line-height:1.3;">${label}</span>
+            </div>`;
+        }
+
+        document.getElementById('consumo-section').innerHTML = `
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem;margin-bottom:0.625rem;">
+            ${metricCard('ph-calendar-dots', totalCitas,    'Citas<br>históricas')}
+            ${metricCard('ph-users',         totalClientes, 'Clientes<br>registrados')}
+            ${metricCard('ph-scissors',      totalEquipo,   'Docs<br>equipo')}
+          </div>
+          <button onclick="calcularConsumo()" style="
+            display:flex;align-items:center;justify-content:center;gap:0.375rem;
+            width:100%;padding:0.5rem;border-radius:0.625rem;cursor:pointer;
+            background:none;border:1px solid transparent;color:#475569;
+            font-size:0.75rem;font-weight:500;transition:color 0.2s;
+          " onmouseover="this.style.color='#64748b'" onmouseout="this.style.color='#475569'">
+            <i class="ph ph-arrows-clockwise" style="font-size:0.875rem;"></i>
+            Actualizar
+          </button>`;
+
+      } catch(e) {
+        document.getElementById('consumo-section').innerHTML = `
+          <div style="padding:0.75rem 1rem;border-radius:0.75rem;
+            background:rgba(239,68,68,0.05);border:1px solid rgba(239,68,68,0.15);">
+            <p style="font-size:0.8rem;color:#f87171;margin:0;">
+              <i class="ph ph-warning" style="margin-right:0.375rem;"></i>
+              ${e.message}
+            </p>
+          </div>`;
+      }
+    }
+
+    // ── Forzar Actualización Global ───────────────────────────────
+    async function forceGlobalRefresh() {
+      if (!confirm(
+        '¿Forzar recarga en todos los locales?\n\n' +
+        'Todos los clientes con la app abierta serán recargados automáticamente ' +
+        'y sus cachés de Service Worker serán eliminadas.'
+      )) return;
+
+      const btn = document.querySelector('button[title="Forzar Actualización Global en todos los locales"]');
+      if (btn) { btn.style.opacity = '0.5'; btn.style.pointerEvents = 'none'; }
+
+      try {
+        await db.collection('_system').doc('global_config').set({
+          forceRefreshTimestamp: Date.now(),
+          triggeredBy:  firebase.auth().currentUser?.email || 'superadmin',
+          triggeredAt:  firebase.firestore.FieldValue.serverTimestamp(),
+        }, { merge: true });
+        alert('✅ Señal enviada. Los clientes actualizarán en segundos.');
+      } catch(e) {
+        alert('Error al enviar señal: ' + e.message);
+      } finally {
+        if (btn) { btn.style.opacity = ''; btn.style.pointerEvents = ''; }
+      }
+    }
+
+    // ── Kill Switch ───────────────────────────────────────────────
+    async function loadTenantStatus(tenantId) {
+      try {
+        const snap = await db.collection('_system').doc(tenantId).get();
+        _tenantStatus = snap.exists ? (snap.data().status || 'active') : 'active';
+        renderKillSwitch(_tenantStatus);
+      } catch(e) {
+        document.getElementById('kill-switch-status').innerHTML =
+          `<span style="font-size:0.75rem;color:#f87171;">Sin datos</span>`;
+      }
+    }
+
+    function renderKillSwitch(status) {
+      const isActive = status === 'active';
+      const iconEl   = document.getElementById('kill-switch-icon');
+      const statusEl = document.getElementById('kill-switch-status');
+      const btnEl    = document.getElementById('kill-switch-btn');
+
+      iconEl.style.cssText = isActive
+        ? 'width:44px;height:44px;border-radius:0.75rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.2);'
+        : 'width:44px;height:44px;border-radius:0.75rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);';
+      iconEl.innerHTML = isActive
+        ? '<i class="ph-fill ph-check-circle" style="font-size:1.25rem;color:#34d399;"></i>'
+        : '<i class="ph-fill ph-warning-circle" style="font-size:1.25rem;color:#ef4444;"></i>';
+
+      statusEl.innerHTML = isActive
+        ? `<span class="badge" style="background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.25);color:#34d399;">
+            <span class="badge-dot" style="background:#34d399;"></span>Activo
+           </span>`
+        : `<span class="badge" style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);color:#ef4444;">
+            <span class="badge-dot" style="background:#ef4444;animation:none;"></span>Suspendido
+           </span>`;
+
+      btnEl.textContent = isActive ? 'Suspender' : 'Reactivar';
+      btnEl.style.cssText = isActive
+        ? 'padding:0.5rem 0.875rem;border-radius:0.625rem;font-size:0.8125rem;font-weight:600;cursor:pointer;transition:all 0.2s;border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.08);color:#f87171;'
+        : 'padding:0.5rem 0.875rem;border-radius:0.625rem;font-size:0.8125rem;font-weight:600;cursor:pointer;transition:all 0.2s;border:1px solid rgba(52,211,153,0.3);background:rgba(52,211,153,0.08);color:#34d399;';
+    }
+
+    async function toggleTenantStatus() {
+      if (!_activeTenant) return;
+      const cfg       = TENANTS[_activeTenant];
+      const isActive  = _tenantStatus === 'active';
+      const newStatus = isActive ? 'suspended' : 'active';
+      const action    = isActive ? 'SUSPENDER' : 'REACTIVAR';
+
+      if (!confirm(
+        `¿${action} "${cfg.nombre}"?\n\n` +
+        (isActive
+          ? 'Los usuarios serán bloqueados inmediatamente al intentar acceder.'
+          : 'El local volverá a estar accesible para todos los usuarios.')
+      )) return;
+
+      const sourceEl = document.getElementById('data-source-label');
+      const prev = sourceEl.textContent;
+      try {
+        sourceEl.textContent = 'Actualizando estado…';
+        await db.collection('_system').doc(_activeTenant).set({
+          status:      newStatus,
+          tenantName:  cfg.nombre,
+          updatedAt:   firebase.firestore.FieldValue.serverTimestamp(),
+          updatedBy:   firebase.auth().currentUser?.email || 'superadmin',
+        }, { merge: true });
+        _tenantStatus = newStatus;
+        renderKillSwitch(newStatus);
+        sourceEl.textContent = `Estado actualizado: ${newStatus}`;
+      } catch(e) {
+        alert('Error al actualizar estado: ' + e.message);
+        sourceEl.textContent = prev;
+      }
+    }
+
+    // ── Modal de Logs de Errores ──────────────────────────────────
+    const _ERR_TENANT_COLORS = {
+      elegance: { color:'#34d399', rgb:'52,211,153'  },
+      gitana:   { color:'#ec4899', rgb:'236,72,153'  },
+      ferraza:  { color:'#f59e0b', rgb:'251,191,36'  },
+    };
+
+    function escHtml(str) {
+      return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function openErrorsModal() {
+      document.getElementById('errors-modal').classList.add('open');
+      document.body.style.overflow = 'hidden';
+      loadErrorLogs();
+    }
+
+    function closeErrorsModal() {
+      document.getElementById('errors-modal').classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    async function loadErrorLogs() {
+      const contentEl  = document.getElementById('errors-content');
+      const subtitleEl = document.getElementById('errors-subtitle');
+
+      contentEl.innerHTML = `
+        <div class="skeleton" style="width:100%;height:48px;border-radius:.75rem;margin-bottom:.5rem;"></div>
+        <div class="skeleton" style="width:100%;height:48px;border-radius:.75rem;margin-bottom:.5rem;"></div>
+        <div class="skeleton" style="width:100%;height:48px;border-radius:.75rem;"></div>`;
+      subtitleEl.textContent = 'Cargando…';
+
+      try {
+        const snap = await db.collection('system_errors')
+          .where('status', '==', 'open')
+          .get();
+
+        const docs = snap.docs.sort((a, b) => {
+          const ta = a.data().timestamp?.seconds || 0;
+          const tb = b.data().timestamp?.seconds || 0;
+          return tb - ta;
+        });
+
+        const count = docs.length;
+        subtitleEl.textContent = count
+          ? `${count} error${count !== 1 ? 'es' : ''} abierto${count !== 1 ? 's' : ''}`
+          : 'Sin errores abiertos';
+
+        const badgeEl = document.getElementById('errors-badge');
+        if (count > 0) {
+          badgeEl.textContent = count > 99 ? '99+' : String(count);
+          badgeEl.style.display = 'inline-block';
+        } else {
+          badgeEl.style.display = 'none';
+        }
+
+        if (count === 0) {
+          contentEl.innerHTML = `
+            <div style="text-align:center;padding:3rem 1rem;color:#475569;">
+              <i class="ph-fill ph-check-circle" style="font-size:2.5rem;color:#34d399;display:block;margin-bottom:.75rem;"></i>
+              <p style="font-size:.9375rem;font-weight:600;color:#94a3b8;margin:0 0 .375rem;">Sin errores abiertos</p>
+              <p style="font-size:.8125rem;margin:0;">Todo funciona correctamente</p>
+            </div>`;
+          return;
+        }
+
+        let html = `
+          <div style="overflow-x:auto;border-radius:1rem;border:1px solid rgba(255,255,255,0.06);">
+            <table class="err-table">
+              <thead><tr>
+                <th>Fecha</th>
+                <th>Tenant</th>
+                <th>Fuente</th>
+                <th>Página</th>
+                <th>Error</th>
+                <th></th>
+              </tr></thead>
+              <tbody>`;
+
+        for (const d of docs) {
+          const data = d.data();
+
+          const ts = data.timestamp?.seconds
+            ? new Date(data.timestamp.seconds * 1000)
+            : null;
+          const dateStr = ts
+            ? ts.toLocaleDateString('es-CL', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' })
+            : '—';
+
+          const tid = data.tenantId || null;
+          const tc  = _ERR_TENANT_COLORS[tid];
+          const tenantBadge = tid
+            ? `<span style="padding:.15rem .5rem;border-radius:999px;font-size:.6rem;font-weight:700;
+                background:rgba(${tc?.rgb||'100,116,139'},.1);border:1px solid rgba(${tc?.rgb||'100,116,139'},.25);
+                color:${tc?.color||'#94a3b8'};">${escHtml(tid)}</span>`
+            : `<span style="color:#475569;font-size:.8rem;">—</span>`;
+
+          const srcLabel = data.source === 'react'
+            ? `<span style="font-size:.65rem;font-weight:700;color:#a78bfa;background:rgba(167,139,250,.1);padding:.1rem .4rem;border-radius:4px;border:1px solid rgba(167,139,250,.2);">React</span>`
+            : `<span style="font-size:.65rem;font-weight:700;color:#60a5fa;background:rgba(96,165,250,.1);padding:.1rem .4rem;border-radius:4px;border:1px solid rgba(96,165,250,.2);">Static</span>`;
+
+          let displayUrl = '—';
+          try {
+            const u = new URL(data.url || '');
+            displayUrl = u.pathname;
+          } catch { displayUrl = escHtml((data.url || '').slice(0, 40)); }
+
+          const rawMsg = data.message || '';
+          const msg    = escHtml(rawMsg.slice(0, 80)) + (rawMsg.length > 80 ? '…' : '');
+
+          html += `
+            <tr id="err-row-${d.id}">
+              <td style="color:#64748b;white-space:nowrap;">${dateStr}</td>
+              <td>${tenantBadge}</td>
+              <td>${srcLabel}</td>
+              <td style="font-family:monospace;font-size:.75rem;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escHtml(data.url||'')}">${displayUrl}</td>
+              <td style="max-width:260px;color:#f1f5f9;" title="${escHtml(rawMsg)}">${msg}</td>
+              <td style="text-align:right;white-space:nowrap;">
+                <button onclick="resolveError('${d.id}')" style="
+                  padding:.375rem .75rem;border-radius:.5rem;font-size:.75rem;font-weight:600;cursor:pointer;
+                  background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.2);color:#34d399;transition:all .2s;
+                " onmouseover="this.style.background='rgba(52,211,153,.15)'" onmouseout="this.style.background='rgba(52,211,153,.08)'">
+                  <i class="ph-bold ph-check"></i> Resolver
+                </button>
+              </td>
+            </tr>`;
+        }
+
+        html += '</tbody></table></div>';
+        contentEl.innerHTML = html;
+
+      } catch(e) {
+        contentEl.innerHTML = `<p style="color:#f87171;text-align:center;padding:2rem;">Error al cargar: ${escHtml(e.message)}</p>`;
+        subtitleEl.textContent = 'Error al cargar';
+      }
+    }
+
+    async function resolveError(docId) {
+      const row = document.getElementById(`err-row-${docId}`);
+      if (row) { row.style.opacity = '0.4'; row.style.pointerEvents = 'none'; }
+      try {
+        await db.collection('system_errors').doc(docId).update({ status: 'resolved' });
+        if (row) {
+          row.style.transition = 'opacity 0.3s, transform 0.3s';
+          row.style.opacity = '0';
+          row.style.transform = 'translateX(12px)';
+          setTimeout(() => {
+            row.remove();
+            _updateErrorsBadgeFromTable();
+          }, 320);
+        }
+      } catch(e) {
+        if (row) { row.style.opacity = ''; row.style.pointerEvents = ''; }
+        alert('Error al resolver: ' + e.message);
+      }
+    }
+
+    function _updateErrorsBadgeFromTable() {
+      const rows  = document.querySelectorAll('#errors-content tbody tr');
+      const count = rows.length;
+      const subtitleEl = document.getElementById('errors-subtitle');
+      const badgeEl    = document.getElementById('errors-badge');
+
+      subtitleEl.textContent = count
+        ? `${count} error${count !== 1 ? 'es' : ''} abierto${count !== 1 ? 's' : ''}`
+        : 'Sin errores abiertos';
+
+      if (count === 0) {
+        badgeEl.style.display = 'none';
+        document.getElementById('errors-content').innerHTML = `
+          <div style="text-align:center;padding:3rem 1rem;color:#475569;">
+            <i class="ph-fill ph-check-circle" style="font-size:2.5rem;color:#34d399;display:block;margin-bottom:.75rem;"></i>
+            <p style="font-size:.9375rem;font-weight:600;color:#94a3b8;margin:0 0 .375rem;">Sin errores abiertos</p>
+            <p style="font-size:.8125rem;margin:0;">Todo funciona correctamente</p>
+          </div>`;
+      } else {
+        badgeEl.textContent = count > 99 ? '99+' : String(count);
+        badgeEl.style.display = 'inline-block';
       }
     }
 

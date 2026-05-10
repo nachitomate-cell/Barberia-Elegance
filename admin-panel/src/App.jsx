@@ -1,6 +1,9 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { TenantProvider } from './contexts/TenantContext';
+import { TenantProvider, useTenant } from './contexts/TenantContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import SuspendedScreen from './components/SuspendedScreen';
+import { ErrorBoundaryWithTenant } from './components/ErrorBoundary';
+import { useVersionManager } from './hooks/useVersionManager';
 import AdminLayout from './components/layout/AdminLayout';
 import Servicios   from './views/Servicios';
 import Agenda      from './views/Agenda';
@@ -20,6 +23,17 @@ import AgendaBarbero    from './views/AgendaBarbero';
 import Chat            from './views/Chat';
 import Marketing        from './views/Marketing';
 import LoginPage        from './views/LoginPage';
+
+function TenantGate({ children }) {
+  const { suspended } = useTenant();
+  if (suspended === null) return (
+    <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+      <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
+  if (suspended) return <SuspendedScreen />;
+  return children;
+}
 
 function ProtectedApp() {
   const { user, role, loading } = useAuth();
@@ -63,15 +77,21 @@ function ProtectedApp() {
 }
 
 export default function App() {
+  useVersionManager();
+
   return (
     <TenantProvider>
-      <AuthProvider>
-        <BrowserRouter basename="/gestion-interna">
-          <Routes>
-            <Route path="/*" element={<ProtectedApp />} />
-          </Routes>
-        </BrowserRouter>
-      </AuthProvider>
+      <ErrorBoundaryWithTenant>
+        <TenantGate>
+          <AuthProvider>
+            <BrowserRouter basename="/gestion-interna">
+              <Routes>
+                <Route path="/*" element={<ProtectedApp />} />
+              </Routes>
+            </BrowserRouter>
+          </AuthProvider>
+        </TenantGate>
+      </ErrorBoundaryWithTenant>
     </TenantProvider>
   );
 }

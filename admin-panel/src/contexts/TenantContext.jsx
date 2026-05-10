@@ -1,4 +1,6 @@
-import { createContext, useContext, useMemo } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 import { resolveTenantId } from '../lib/tenantUtils';
 
 const TENANT_META = {
@@ -10,11 +12,23 @@ const TENANT_META = {
 const TenantContext = createContext(null);
 
 export function TenantProvider({ children }) {
-  const id   = useMemo(() => resolveTenantId(), []);
-  const meta = TENANT_META[id] ?? TENANT_META.elegance;
+  const id       = useMemo(() => resolveTenantId(), []);
+  const meta     = TENANT_META[id] ?? TENANT_META.elegance;
+  // null = cargando, false = activo, true = suspendido
+  const [suspended, setSuspended] = useState(null);
+
+  useEffect(() => {
+    const ref = doc(db, '_system', id);
+    const unsub = onSnapshot(
+      ref,
+      snap => setSuspended(snap.exists() ? snap.data().status === 'suspended' : false),
+      ()   => setSuspended(false),
+    );
+    return unsub;
+  }, [id]);
 
   return (
-    <TenantContext.Provider value={{ id, ...meta }}>
+    <TenantContext.Provider value={{ id, ...meta, suspended }}>
       {children}
     </TenantContext.Provider>
   );
