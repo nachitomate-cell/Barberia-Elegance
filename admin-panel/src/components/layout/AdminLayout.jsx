@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Menu } from 'lucide-react';
 import Sidebar    from './Sidebar';
-import PWABanner  from './PWABanner';
+import PWABanner           from './PWABanner';
+import NotificationBanner  from './NotificationBanner';
 import { useChatNotifications }       from '../../hooks/useChatNotifications';
 import { useAppointmentNotifications } from '../../hooks/useAppointmentNotifications';
 
@@ -58,6 +59,9 @@ export default function AdminLayout({ children }) {
 
         {/* PWA install banner */}
         <PWABanner />
+
+        {/* Push notification opt-in banner */}
+        <NotificationBanner />
 
         {/* Page content */}
         <main
