@@ -170,12 +170,17 @@ messaging.onBackgroundMessage(payload => {
     actions,
   };
 
+  // Badge en el ícono de la PWA (reaparece aunque la app esté cerrada)
+  self.navigator?.setAppBadge?.().catch?.(() => {});
+
   return self.registration.showNotification(notifTitle, notifOptions);
 });
 
 // ── 5. CLIC EN LA NOTIFICACIÓN ───────────────────────────────────
 self.addEventListener('notificationclick', event => {
   event.notification.close();
+  // Limpiar badge al tocar la notificación
+  self.navigator?.clearAppBadge?.().catch?.(() => {});
 
   const data     = event.notification.data || {};
   const action   = event.action;

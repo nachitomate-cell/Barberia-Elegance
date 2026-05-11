@@ -28,9 +28,8 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
   <link href="/output.css" rel="stylesheet">
 
   <script src="config.js"></script>
@@ -58,8 +57,8 @@
       --neon-r:   255; --neon-g: 255; --neon-b: 255;
       --body-bg:  #050505;
     }
-    /* Serif display — Playfair Display */
-    .font-display { font-family: 'Playfair Display', Georgia, serif; }
+    /* Display — Plus Jakarta Sans */
+    .font-display { font-family: 'Plus Jakarta Sans', sans-serif; }
 
     /* Separador ornamental clásico (oculto por defecto; visible solo en Ferraza vía .tenant-ferraza .cat-sep) */
     .sep-ornamental {
@@ -101,7 +100,7 @@
     }
     .tenant-ferraza body { background-color: #000000; }
     .tenant-ferraza .booking-hero {
-      background-image: url('/ferraza.png') !important;
+      background-image: url('/ferraza1.webp') !important;
       background-color: #050505 !important;
       background-size: cover !important;
       background-position: center 30% !important;
@@ -113,16 +112,16 @@
     /* Ferraza — tipografía y formas premium */
     .tenant-ferraza h2,
     .tenant-ferraza h3,
-    .tenant-ferraza #shopClubNombre { font-family: 'Playfair Display', Georgia, serif; }
+    .tenant-ferraza #shopClubNombre { font-family: 'Plus Jakarta Sans', sans-serif; }
     .tenant-ferraza .service-option { border-radius: 0.5rem !important; }
     .tenant-ferraza .service-option .icon-bg { border-radius: 0.375rem !important; }
-    .tenant-ferraza .service-option .svc-name { font-family: 'Playfair Display', Georgia, serif; }
+    .tenant-ferraza .service-option .svc-name { font-family: 'Plus Jakarta Sans', sans-serif; }
     .tenant-ferraza .category-pill { border-radius: 0.375rem !important; }
     .tenant-ferraza .barber-option { border-radius: 0.5rem !important; }
-    .tenant-ferraza .barber-option .barber-name { font-family: 'Playfair Display', Georgia, serif; }
+    .tenant-ferraza .barber-option .barber-name { font-family: 'Plus Jakarta Sans', sans-serif; }
     .tenant-ferraza .day-btn { border-radius: 0.5rem !important; }
     .tenant-ferraza .cat-sep { display: flex !important; }
-    .tenant-ferraza .cat-title { font-family: 'Playfair Display', Georgia, serif; }
+    .tenant-ferraza .cat-title { font-family: 'Plus Jakarta Sans', sans-serif; }
     /* Ferraza — club banner premium */
     .tenant-ferraza #clubBanner a {
       background: linear-gradient(135deg,rgba(226,232,240,0.03) 0%,rgba(15,15,20,0) 100%) !important;
@@ -888,6 +887,7 @@
     let isTransitioning = false;
     let _fsProducts = [];
     let _isProductsEnabled = false;
+    let _selectedProducts = [];
 
     function _tenantProductos() {
       const tid = window.CURRENT_TENANT_ID || 'elegance';
@@ -903,20 +903,6 @@
       return m === 0 ? `${h}h` : `${h}h ${m}m`;
     }
 
-    // ── Confetti de celebración (reserva confirmada) ───────────────
-    function dispararConfettiElegante() {
-      if (typeof confetti !== 'function') return;
-      const COLORS  = ['#D4AF37', '#FDE047', '#FFFFFF'];
-      const end     = Date.now() + 3000;
-
-      (function frame() {
-        // Rafaga izquierda
-        confetti({ particleCount: 5, angle: 60,  spread: 55, origin: { x: 0, y: 0.9 }, colors: COLORS, scalar: 1.1 });
-        // Rafaga derecha
-        confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1, y: 0.9 }, colors: COLORS, scalar: 1.1 });
-        if (Date.now() < end) requestAnimationFrame(frame);
-      }());
-    }
 
     let _toastTimer = null;
     function showToast(msg) {
@@ -1684,13 +1670,31 @@
                       <div class="p-2.5">
                         <p class="text-xs font-semibold text-white truncate">${p.nombre || ''}</p>
                         <p class="text-xs font-bold mt-0.5" style="color:#D4AF37;">$${Number(p.precio||0).toLocaleString('es-CL')}</p>
-                        <button class="mt-2 w-full py-1.5 rounded-lg text-xs font-bold border border-[#D4AF37]/50 text-[#D4AF37] hover:bg-[#D4AF37] hover:text-black transition-colors active:scale-95">+ Añadir</button>
+                        <button data-pid="${p.id}" data-pname="${(p.nombre||'').replace(/"/g,'&quot;')}" data-pprecio="${p.precio||0}" class="xsell-btn mt-2 w-full py-1.5 rounded-lg text-xs font-bold border border-[#D4AF37]/50 text-[#D4AF37] hover:bg-[#D4AF37] hover:text-black transition-colors active:scale-95">+ Añadir</button>
                       </div>
                     </div>
                   `).join('')}
                 </div>
               </div>`;
             xsellEl.classList.remove('hidden');
+            _selectedProducts = [];
+            xsellEl.onclick = e => {
+              const btn = e.target.closest('button[data-pid]');
+              if (!btn) return;
+              const pid = btn.dataset.pid;
+              const idx = _selectedProducts.findIndex(p => p.id === pid);
+              if (idx === -1) {
+                _selectedProducts.push({ id: pid, nombre: btn.dataset.pname, precio: Number(btn.dataset.pprecio) });
+                btn.textContent = '✓ Añadido';
+                btn.style.background = '#D4AF37';
+                btn.style.color = '#000';
+              } else {
+                _selectedProducts.splice(idx, 1);
+                btn.textContent = '+ Añadir';
+                btn.style.background = '';
+                btn.style.color = '';
+              }
+            };
           } else {
             xsellEl.classList.add('hidden');
           }
@@ -1853,6 +1857,7 @@
             clienteEmail:     email,
             servicioNombre:   selectedServiceObj.nombre,
             duracionServicio: selectedServiceObj.duracion,
+            precio:           Number(selectedServiceObj.precio) || 0,
             barbero:          barberoNombreFinal,
             barberoId:        barberoIdFinal,
           });
@@ -1875,6 +1880,24 @@
           localStorage.setItem(SPAM_KEY, JSON.stringify(last24h));
         }
 
+        // Guardar reservas de productos seleccionados en cross-sell
+        if (citaGuardada && _selectedProducts.length > 0) {
+          const user = firebase.auth().currentUser;
+          const reservasCol = tenantCol('product_reservations');
+          await Promise.all(_selectedProducts.map(p =>
+            reservasCol.add({
+              productId:   p.id,
+              productName: p.nombre,
+              precio:      p.precio,
+              userName:    nombre,
+              userId:      user?.uid || null,
+              status:      'pending',
+              createdAt:   firebase.firestore.FieldValue.serverTimestamp(),
+            })
+          )).catch(e => console.warn('[Reserva producto]', e));
+          _selectedProducts = [];
+        }
+
         document.getElementById('step4').classList.add('hidden');
         document.getElementById('footerContact').classList.add('hidden');
 
@@ -1884,9 +1907,6 @@
         const successEl = document.getElementById('success-state');
         successEl.classList.remove('hidden');
         successEl.classList.add('flex');
-
-        // ── Celebración ──────────────────────────────────────────────
-        dispararConfettiElegante();
 
         // Poblar el resumen dinámico
         document.getElementById('successSummaryService').textContent = selectedServiceObj.nombre;
@@ -2026,10 +2046,71 @@
       if (heroHor) heroHor.textContent = horParts[0] || horClean;
     }
 
+    /* ── settings/general override ───────────────────────────────
+       Lee Firestore settings/general y fusiona sobre window.SHOP.
+       config.js siempre queda como fallback; solo sobreescribe campos
+       no vacíos. Si el documento no existe no cambia nada.
+    ─────────────────────────────────────────────────────────────── */
+    function _horarioObjToText(h) {
+      var LABELS = { '1':'Lun','2':'Mar','3':'Mié','4':'Jue','5':'Vie','6':'Sáb','0':'Dom' };
+      var ORDER  = ['1','2','3','4','5','6','0'];
+      var parts  = [];
+      var i = 0;
+      while (i < ORDER.length) {
+        var d = ORDER[i];
+        if (!h[d] || !h[d].activo) { i++; continue; }
+        var inicio = h[d].inicio, fin = h[d].fin;
+        var j = i + 1;
+        while (j < ORDER.length && h[ORDER[j]] && h[ORDER[j]].activo &&
+               h[ORDER[j]].inicio === inicio && h[ORDER[j]].fin === fin) j++;
+        var label = (j - i === 1) ? LABELS[d] : (LABELS[d] + '–' + LABELS[ORDER[j-1]]);
+        parts.push(label + ': ' + inicio + '–' + fin);
+        i = j;
+      }
+      return parts.join(' | ');
+    }
+
+    async function applySettingsOverrides() {
+      try {
+        var tid  = window.CURRENT_TENANT_ID;
+        var path = (tid === 'elegance') ? 'settings/general' : ('tenants/' + tid + '/settings/general');
+        var snap = await firebase.firestore().doc(path).get();
+        if (!snap.exists) return;
+        var s = snap.data();
+        var changed = false;
+
+        ['nombre', 'direccion', 'telefono', 'whatsapp', 'logo'].forEach(function(k) {
+          if (s[k] && String(s[k]).trim()) { window.SHOP[k] = String(s[k]).trim(); changed = true; }
+        });
+
+        if (s.instagram && String(s.instagram).trim()) {
+          var ig = String(s.instagram).trim();
+          if (ig.startsWith('http')) {
+            window.SHOP.instagram = ig;
+            var m = ig.match(/instagram\.com\/([^/?#]+)/);
+            if (m) window.SHOP.instagramHandle = '@' + m[1];
+          } else {
+            var handle = ig.startsWith('@') ? ig : ('@' + ig);
+            window.SHOP.instagram      = 'https://www.instagram.com/' + handle.slice(1) + '/';
+            window.SHOP.instagramHandle = handle;
+          }
+          changed = true;
+        }
+
+        if (s.horario && typeof s.horario === 'object') {
+          var txt = _horarioObjToText(s.horario);
+          if (txt) { window.SHOP.horario = txt; changed = true; }
+        }
+
+        if (changed) applyConfig();
+      } catch (_) { /* config.js queda como fallback */ }
+    }
+
     window.addEventListener('DOMContentLoaded', async () => {
       applyConfig();
       updateContinueBtn();    // botón deshabilitado hasta que se elija servicio
       await initServices();   // carga servicios y config desde Firestore
+      await applySettingsOverrides(); // override con settings/general si existe
       renderCalendar();       // ahora que _fsConfig está listo
     });
 
