@@ -754,6 +754,7 @@
     .tenant-mapubarbershop .icon-bg {
       background: #2A1E22 !important;
       border-color: rgba(191,163,126,0.20) !important;
+      border-radius: 0.5rem !important;
       box-shadow: none !important;
     }
     .tenant-mapubarbershop .service-option.border-neon .icon-bg {
@@ -1483,32 +1484,36 @@
 
       const _isEleganceSvc = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance';
       const _isMapuSvc     = window.CURRENT_TENANT_ID === 'mapubarbershop';
+      const _useRowLayout  = _isEleganceSvc || _isMapuSvc;
 
       Object.keys(categories).forEach(cat => {
-        // Contenedor de la categoría (útil para el filtro de pills)
         const catContainer = document.createElement('div');
         catContainer.className = "category-section col-span-2 mb-2";
         catContainer.dataset.category = cat;
 
-        // Título limpio para elegance; ornamental para otros tenants
-        if (_isEleganceSvc) {
+        if (_isMapuSvc) {
+          catContainer.innerHTML = `<h3 class="text-[10.5px] font-semibold uppercase tracking-[0.12em] mb-3 ml-1" style="color:rgba(191,163,126,0.65)">${cat}</h3>`;
+        } else if (_isEleganceSvc) {
           catContainer.innerHTML = `<h3 class="text-gray-400 font-bold uppercase tracking-widest text-xs mb-4 ml-1">${cat}</h3>`;
         } else {
           catContainer.innerHTML = `<div class="cat-sep sep-ornamental mb-4"><span class="sep-ornamental-gem">✦ ✦ ✦</span></div><h3 class="cat-title border-l-4 border-neon pl-3 text-lg font-semibold text-white/80 mb-4">${cat}</h3>`;
         }
 
-        // Grid interno para los servicios de esta categoría
         const innerGrid = document.createElement('div');
-        innerGrid.className = _isEleganceSvc ? 'flex flex-col gap-2' : 'grid grid-cols-2 gap-4';
+        innerGrid.className = _useRowLayout ? 'flex flex-col gap-2' : 'grid grid-cols-2 gap-4';
 
         categories[cat].forEach((s, i) => {
-          const icon = s.icono || (_isEleganceSvc ? _catIcon(cat, i) : _ICONS[i % _ICONS.length]);
-          if (_isEleganceSvc) {
+          const icon = s.icono || (_useRowLayout ? _catIcon(cat, i) : _ICONS[i % _ICONS.length]);
+          if (_useRowLayout) {
+            const iconEl = _isMapuSvc
+              ? `<span class="icon-svg mapu-icon block w-6 h-6">${_getMapuIcon(s.nombre, cat)}</span>`
+              : `<i class="icon-svg ph ${icon} text-xl text-brand-neon transition-all"></i>`;
+            const radioClr = _isMapuSvc ? 'rgba(191,163,126,0.40)' : 'rgba(212,175,55,0.4)';
             innerGrid.innerHTML += `
               <button onclick="selectService(this)" data-service-id="${s.id}" data-category="${cat}"
                 class="service-option relative flex flex-row items-center gap-4 p-4 rounded-2xl bg-[#0a0a0d] border border-brand-accent/20 active:scale-[0.99] transition-all overflow-hidden group w-full text-left">
                 <div class="icon-bg w-11 h-11 rounded-full bg-[#111115] border border-brand-accent/20 flex items-center justify-center shrink-0 transition-all">
-                  <i class="icon-svg ph ${icon} text-xl text-brand-neon transition-all"></i>
+                  ${iconEl}
                 </div>
                 <div class="flex-1 min-w-0">
                   <span class="svc-name font-bold text-gray-200 text-sm block truncate tracking-wide">${s.nombre}</span>
@@ -1517,12 +1522,10 @@
                     <span class="flex items-center gap-1 text-[11px] font-medium text-brand-neon/60 duration-tag"><i class="ph ph-clock text-[12px]"></i>${formatDuration(s.duracion)}</span>
                   </div>
                 </div>
-                <div class="svc-radio w-5 h-5 rounded-full border-2 shrink-0 transition-all" style="border-color:rgba(212,175,55,0.4)"></div>
+                <div class="svc-radio w-5 h-5 rounded-full border-2 shrink-0 transition-all" style="border-color:${radioClr}"></div>
               </button>`;
           } else {
-            const iconHtml = _isMapuSvc
-              ? `<span class="icon-svg mapu-icon block w-7 h-7 transition-all">${_getMapuIcon(s.nombre, cat)}</span>`
-              : `<i class="icon-svg ph ${icon} text-3xl text-brand-neon drop-shadow-[0_0_5px_rgba(255,255,255,0.35)] transition-all"></i>`;
+            const iconHtml = `<i class="icon-svg ph ${icon} text-3xl text-brand-neon drop-shadow-[0_0_5px_rgba(255,255,255,0.35)] transition-all"></i>`;
             innerGrid.innerHTML += `
               <button onclick="selectService(this)" data-service-id="${s.id}" data-category="${cat}"
                 class="service-option relative flex flex-col items-center justify-center p-6 rounded-2xl bg-[#0a0a0d] border border-brand-accent/20 shadow-sm hover:border-brand-neon/50 hover:shadow-[0_0_15px_rgba(255,255,255,0.15)] active:scale-95 text-center transition-all overflow-hidden group">
@@ -2045,7 +2048,11 @@
     function selectService(btn) {
       const id = btn.getAttribute('data-service-id');
       const _isGitana = window.CURRENT_TENANT_ID === 'gitana';
+      const _isMapu   = window.CURRENT_TENANT_ID === 'mapubarbershop';
       const _isElegance = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance';
+      const _useRowSel  = _isElegance || _isMapu;
+      const _radioDim   = _isMapu ? 'rgba(191,163,126,0.40)' : 'rgba(212,175,55,0.4)';
+      const _radioSel   = _isMapu ? '#BFA37E' : '#D4AF37';
 
       document.querySelectorAll('.service-option').forEach(el => {
         el.classList.replace('border-neon', 'border-brand-accent/20');
@@ -2059,12 +2066,12 @@
         if (!_isElegance && iconSvg) iconSvg.classList.remove('drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]', 'scale-110');
         if (!_isElegance && iconSvg) iconSvg.classList.add('drop-shadow-[0_0_5px_rgba(255,255,255,0.35)]');
         const radio = el.querySelector('.svc-radio');
-        if (radio) { radio.style.background = 'transparent'; radio.style.borderColor = 'rgba(212,175,55,0.4)'; }
+        if (radio) { radio.style.background = 'transparent'; radio.style.borderColor = _radioDim; }
       });
 
       btn.classList.add('border-2', 'border-neon', 'bg-brand-neon/10');
-      if (!_isGitana && !_isElegance) btn.classList.add('scale-105', 'shadow-[0_0_20px_rgba(255,255,255,0.2)]');
-      if (_isElegance) btn.style.boxShadow = '0 0 10px rgba(212,175,55,0.1)';
+      if (!_isGitana && !_useRowSel) btn.classList.add('scale-105', 'shadow-[0_0_20px_rgba(255,255,255,0.2)]');
+      if (_useRowSel) btn.style.boxShadow = _isMapu ? 'none' : '0 0 10px rgba(212,175,55,0.1)';
       btn.classList.replace('border-brand-accent/20', 'border-neon');
       btn.classList.remove('border');
 
@@ -2077,7 +2084,7 @@
       if (!_isElegance && selIconSvg) selIconSvg.classList.remove('drop-shadow-[0_0_5px_rgba(255,255,255,0.35)]');
       if (!_isElegance && !_isGitana && selIconSvg) selIconSvg.classList.add('drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]', 'scale-110');
       const selRadio = btn.querySelector('.svc-radio');
-      if (selRadio) { selRadio.style.background = '#D4AF37'; selRadio.style.borderColor = '#D4AF37'; }
+      if (selRadio) { selRadio.style.background = _radioSel; selRadio.style.borderColor = _radioSel; }
 
       selectedServiceObj = (window._fsServices || _fsServices || []).find(s => String(s.id) === String(id))
         || DB.getServices().find(s => String(s.id) === String(id));
