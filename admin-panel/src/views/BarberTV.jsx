@@ -9,7 +9,7 @@ import { useTenant }                                from '../contexts/TenantCont
 import { tenantCol, tenantDoc, resolveTenantId }    from '../lib/tenantUtils';
 
 // ── Constantes ────────────────────────────────────────────────────
-const TENANT_ACCENT = { ferraza: '#00C8FF' };
+const TENANT_ACCENT = { ferraza: '#e2e8f0' };
 let GOLD            = '#D4AF37'; // sobreescrito por tenant en BarberTV antes de renderizar hijos
 const SLIDE_MS     = 15_000;
 const RATIOS       = ['4/5', '1/1', '3/4', '4/5', '1/1', '3/4', '4/5', '1/1', '3/4'];
