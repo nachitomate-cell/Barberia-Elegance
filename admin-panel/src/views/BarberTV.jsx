@@ -516,7 +516,7 @@ function QrOverlay({ qrUrl }) {
             }}
             transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
           >
-            ¡Agenda tu hora!
+            ¡Únete al Club!
           </motion.span>
         </div>
 
@@ -528,7 +528,7 @@ function QrOverlay({ qrUrl }) {
           level="M"
         />
 
-        <p className="text-gray-600 text-[10px] tracking-wide">Escanea con tu cámara</p>
+        <p className="text-gray-600 text-[10px] tracking-wide">Escanea y regístrate gratis</p>
       </motion.div>
     </div>
   );
@@ -614,7 +614,7 @@ export default function BarberTV() {
   // Tracks which slides have been shown at least once (para skip de animaciones en revisita)
   const visitedRef     = useRef(new Set([0]));
 
-  const qrUrl = `${window.location.origin}/index.html?local=${tenantId}`;
+  const qrUrl = `${window.location.origin}/registro.html?local=${tenantId}`;
 
   // Marca el slide actual como visitado DESPUÉS de renderizar
   useEffect(() => {
