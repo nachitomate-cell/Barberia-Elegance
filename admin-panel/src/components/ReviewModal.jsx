@@ -1,37 +1,14 @@
-// ReviewModal.jsx — Se muestra cuando el barbero finaliza una cita.
-// Lógica:
-//   1. Cliente califica de 1 a 5 estrellas
-//   2. Guarda rating en el doc de la cita + colección reseñas
-//   3. Si 5 estrellas → botón "Publicar en Google Maps y ganar +1 sello"
-//   4. Al hacer clic: abre Maps, espera 3 s (verificación simulada) → +1 sello
-
 import { useState } from 'react';
-import { Star, MapPin, Award, X, CheckCircle } from 'lucide-react';
-import { updateDoc, addDoc, increment, serverTimestamp } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { Star, X, CheckCircle } from 'lucide-react';
+import { updateDoc, addDoc, serverTimestamp } from 'firebase/firestore';
 import { tenantCol, tenantDoc } from '../lib/tenantUtils';
 
-// URL de Google Maps — configura con el enlace real de la barbería
-const GOOGLE_MAPS_URLS = {
-  elegance: 'https://maps.google.com/?cid=TU_CID_ELEGANCE',
-  ferraza:  'https://maps.google.com/?cid=TU_CID_FERRAZA',
-  gitana:   'https://maps.google.com/?cid=TU_CID_GITANA',
-};
-
-function normalizePhone(phone) {
-  return (phone || '').replace(/\D/g, '');
-}
-
-export default function ReviewModal({ cita, tenantId, onClose }) {
+export default function ReviewModal({ cita, onClose }) {
   const [rating,    setRating]    = useState(0);
   const [hover,     setHover]     = useState(0);
   const [saving,    setSaving]    = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [sellosOk,  setSellosOk]  = useState(false);
-  const [mapsLoading, setMapsLoading] = useState(false);
-
   const clienteNombre = cita.clienteNombre || cita.nombre || 'el cliente';
-  const phone         = normalizePhone(cita.clienteTelefono);
 
   async function submitRating() {
     if (!rating || saving) return;
@@ -58,30 +35,6 @@ export default function ReviewModal({ cita, tenantId, onClose }) {
       setSubmitted(true);
     } finally {
       setSaving(false);
-    }
-  }
-
-  async function handleGoogleMaps() {
-    if (mapsLoading || sellosOk) return;
-    const url = GOOGLE_MAPS_URLS[tenantId] || GOOGLE_MAPS_URLS.elegance;
-    window.open(url, '_blank', 'noopener');
-
-    setMapsLoading(true);
-
-    // Verificación simulada: 3 segundos tras abrir Maps
-    await new Promise(r => setTimeout(r, 3000));
-
-    try {
-      if (phone) {
-        const clienteRef = tenantDoc('clientes', phone);
-        await updateDoc(clienteRef, {
-          sellosDisponibles: increment(1),
-          sellosHistoricos:  increment(1),
-        });
-      }
-      setSellosOk(true);
-    } finally {
-      setMapsLoading(false);
     }
   }
 
@@ -173,54 +126,6 @@ export default function ReviewModal({ cita, tenantId, onClose }) {
                 <p className="text-white font-semibold">¡Gracias por calificar!</p>
                 <p className="text-slate-400 text-sm">La reseña queda guardada.</p>
               </div>
-
-              {/* CTA Google Maps — solo si 5 estrellas */}
-              {rating === 5 && (
-                <div className="bg-amber-500/5 border border-amber-500/30 rounded-xl p-4 space-y-3">
-                  <div className="flex items-start gap-3">
-                    <Award size={18} className="text-amber-400 shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-amber-300 font-semibold text-sm leading-tight">
-                        ¡Oferta exclusiva para {clienteNombre}!
-                      </p>
-                      <p className="text-slate-400 text-xs mt-1 leading-relaxed">
-                        Publica una reseña en Google Maps y gana{' '}
-                        <span className="text-amber-400 font-bold">+1 sello</span> extra en tu tarjeta de fidelidad.
-                      </p>
-                    </div>
-                  </div>
-
-                  {sellosOk ? (
-                    <div className="flex items-center gap-2 bg-amber-500/10 rounded-lg px-3 py-2">
-                      <CheckCircle size={16} className="text-amber-400" />
-                      <span className="text-amber-300 text-sm font-semibold">
-                        ¡+1 sello añadido! 🎉
-                      </span>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={handleGoogleMaps}
-                      disabled={mapsLoading}
-                      className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl
-                        bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold text-sm
-                        transition-all active:scale-[0.98]
-                        disabled:opacity-60 disabled:cursor-wait"
-                    >
-                      {mapsLoading ? (
-                        <>
-                          <span className="w-4 h-4 border-2 border-slate-900 border-t-transparent rounded-full animate-spin" />
-                          Verificando…
-                        </>
-                      ) : (
-                        <>
-                          <MapPin size={16} />
-                          Publicar en Google Maps y ganar +1 sello
-                        </>
-                      )}
-                    </button>
-                  )}
-                </div>
-              )}
 
               <button
                 onClick={onClose}
