@@ -279,12 +279,7 @@ function SlidePublicidad({ oferta }) {
         >
           <span className="text-white">{o.titulo1}</span>
           <br />
-          <span style={{
-            background: `linear-gradient(135deg, ${GOLD} 0%, #FDE047 50%, ${GOLD} 100%)`,
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-          }}>
+          <span style={{ color: GOLD }}>
             {o.titulo2}
           </span>
         </motion.h2>
@@ -354,11 +349,23 @@ function SlideLookbook({ photos }) {
           exit={{ opacity: 0 }}
           transition={{ duration: 0.55, ease: 'easeInOut' }}
         >
-          <img src={photos[safe].url} alt="" className="w-full h-full object-cover" />
+          {/* Fondo difuminado para rellenar sin barras negras */}
+          <img
+            src={photos[safe].url}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover"
+            style={{ filter: 'blur(28px) brightness(0.35)', transform: 'scale(1.1)' }}
+          />
+          {/* Foto completa sin recorte */}
+          <img
+            src={photos[safe].url}
+            alt=""
+            className="absolute inset-0 w-full h-full object-contain"
+          />
           <div
             className="absolute inset-0"
             style={{
-              background: 'linear-gradient(to bottom, rgba(5,5,5,0.45) 0%, transparent 20%, transparent 76%, rgba(5,5,5,0.7) 100%)',
+              background: 'linear-gradient(to bottom, rgba(5,5,5,0.3) 0%, transparent 18%, transparent 78%, rgba(5,5,5,0.5) 100%)',
             }}
           />
         </motion.div>

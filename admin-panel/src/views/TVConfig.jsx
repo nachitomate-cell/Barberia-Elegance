@@ -132,10 +132,7 @@ function AnuncioPreview({ oferta, accentColor }) {
             className="font-black leading-tight mb-2"
             style={{
               fontSize: 'clamp(1.1rem, 2.8vw, 1.8rem)',
-              background: `linear-gradient(135deg, ${gold} 0%, #FDE047 50%, ${gold} 100%)`,
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
+              color: gold,
             }}
           >
             {o.titulo2}
