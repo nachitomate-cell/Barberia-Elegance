@@ -1,9 +1,9 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   ChevronLeft, ChevronRight, Plus, X, Ban, CalendarOff,
   CheckCircle2, XCircle, Clock, Trash2, Lock, History,
   User, Phone, Mail, Scissors, CalendarDays, DollarSign,
-  Timer, MessageSquare, BadgeCheck,
+  Timer, MessageSquare, BadgeCheck, Search, ListFilter,
 } from 'lucide-react';
 import {
   addDoc, updateDoc, deleteDoc, doc, serverTimestamp, where, orderBy, limit,
@@ -40,10 +40,10 @@ const TIME_LABELS = Array.from({ length: TOTAL_SLOTS }, (_, i) => {
 });
 
 /* ── Modal shell ─────────────────────────────────────────────── */
-function Modal({ title, onClose, children, footer }) {
+function Modal({ title, onClose, children, footer, maxW = 'max-w-md' }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}>
-      <div className="w-full max-w-md bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl flex flex-col max-h-[90vh]">
+      <div className={`w-full ${maxW} bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl flex flex-col max-h-[90vh]`}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800">
           <h3 className="font-semibold text-white">{title}</h3>
           <button onClick={onClose} className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-slate-800 transition-all"><X size={16} /></button>
@@ -390,13 +390,13 @@ function Row({ icon: Icon, label, value }) {
   );
 }
 
-function UltimaCitaModal({ cita, loading, onClose }) {
+function UltimaCitaModal({ cita, loading, onClose, titleText = 'Última cita agendada' }) {
   return (
     <Modal
       title={
         <span className="flex items-center gap-2">
           <History size={15} className="text-slate-400" />
-          Última cita agendada
+          {titleText}
         </span>
       }
       onClose={onClose}
@@ -458,23 +458,231 @@ function UltimaCitaModal({ cita, loading, onClose }) {
   );
 }
 
+/* ── HistorialModal ──────────────────────────────────────────── */
+const ESTADOS_FILTRO = ['Confirmada', 'Completada', 'Cancelada', 'Pendiente'];
+
+function HistorialModal({ onClose }) {
+  const [search,  setSearch]  = useState('');
+  const [estado,  setEstado]  = useState('');
+  const [detalle, setDetalle] = useState(null);
+
+  const { data: citas, loading } = useCollection(
+    'citas',
+    [orderBy('creadoEn', 'desc'), limit(200)],
+    [],
+  );
+
+  const filtered = useMemo(() => citas.filter(c => {
+    if (estado && c.estado !== estado) return false;
+    const q = search.trim().toLowerCase();
+    if (q) {
+      return (
+        c.clienteNombre?.toLowerCase().includes(q) ||
+        c.servicioNombre?.toLowerCase().includes(q) ||
+        c.barbero?.toLowerCase().includes(q)
+      );
+    }
+    return true;
+  }), [citas, search, estado]);
+
+  const fmtFecha = f => {
+    if (!f) return '—';
+    const [y, m, d] = f.split('-').map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' });
+  };
+
+  return (
+    <>
+      <Modal
+        title={
+          <span className="flex items-center gap-2">
+            <History size={15} className="text-slate-400" />
+            Historial de citas
+          </span>
+        }
+        onClose={onClose}
+        maxW="max-w-2xl"
+      >
+        {/* Barra de búsqueda y filtros */}
+        <div className="flex gap-2 mb-1">
+          <div className="relative flex-1">
+            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Buscar por cliente, servicio o barbero…"
+              className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-8 pr-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-slate-500 transition-colors"
+            />
+          </div>
+          <div className="relative">
+            <ListFilter size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+            <select
+              value={estado}
+              onChange={e => setEstado(e.target.value)}
+              className="bg-slate-800 border border-slate-700 rounded-lg pl-8 pr-3 py-2 text-sm text-white focus:outline-none focus:border-slate-500 transition-colors appearance-none"
+            >
+              <option value="">Todos</option>
+              {ESTADOS_FILTRO.map(e => <option key={e} value={e}>{e}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <p className="text-xs text-slate-600 mb-3">
+          {loading ? 'Cargando…' : `${filtered.length} cita${filtered.length !== 1 ? 's' : ''}`}
+          {!loading && citas.length >= 200 && ' (mostrando últimas 200)'}
+        </p>
+
+        {/* Lista */}
+        {loading ? (
+          <div className="flex justify-center py-10">
+            <span className="w-6 h-6 border-2 border-slate-600 border-t-slate-300 rounded-full animate-spin" />
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="flex flex-col items-center py-10 gap-2 text-center">
+            <CalendarDays size={32} className="text-slate-700" />
+            <p className="text-sm text-slate-500">Sin resultados.</p>
+          </div>
+        ) : (
+          <div className="space-y-1.5">
+            {filtered.map(c => (
+              <button
+                key={c.id}
+                onClick={() => setDetalle(c)}
+                className="w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-800/50 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 transition-all group"
+              >
+                {/* Estado dot */}
+                <span className={`w-2 h-2 rounded-full shrink-0 ${
+                  c.estado === 'Completada' ? 'bg-blue-400' :
+                  c.estado === 'Cancelada'  ? 'bg-red-400'  :
+                  c.estado === 'Pendiente'  ? 'bg-amber-400':
+                  'bg-emerald-400'
+                }`} />
+
+                {/* Info principal */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-baseline gap-2">
+                    <p className="text-sm font-semibold text-white truncate">{c.clienteNombre || 'Sin nombre'}</p>
+                    <span className={`shrink-0 text-[10px] font-bold px-1.5 py-0.5 rounded-full border ${ESTADO_BADGE[c.estado] ?? 'bg-slate-700 text-slate-300 border-slate-600'}`}>
+                      {c.estado ?? '—'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 truncate">
+                    {c.servicioNombre || '—'}{c.barbero ? ` · ${c.barbero}` : ''}
+                  </p>
+                </div>
+
+                {/* Fecha + hora */}
+                <div className="text-right shrink-0">
+                  <p className="text-xs font-semibold text-slate-400">{fmtFecha(c.fecha)}</p>
+                  <p className="text-[10px] text-slate-600">{c.hora || '—'}</p>
+                </div>
+
+                <ChevronRight size={14} className="text-slate-600 group-hover:text-slate-400 transition-colors shrink-0" />
+              </button>
+            ))}
+          </div>
+        )}
+      </Modal>
+
+      {/* Detalle de cita seleccionada */}
+      {detalle && (
+        <UltimaCitaModal
+          cita={detalle}
+          loading={false}
+          titleText="Detalle de cita"
+          onClose={() => setDetalle(null)}
+        />
+      )}
+    </>
+  );
+}
+
+/* ── UltimasCitasModal (últimas 5) ───────────────────────────── */
+function UltimasCitasModal({ citas, loading, onClose }) {
+  const [detalle, setDetalle] = useState(null);
+
+  if (detalle) {
+    return (
+      <UltimaCitaModal
+        cita={detalle}
+        loading={false}
+        titleText="Detalle de cita"
+        onClose={() => setDetalle(null)}
+      />
+    );
+  }
+
+  return (
+    <Modal
+      title={
+        <span className="flex items-center gap-2">
+          <History size={15} className="text-slate-400" />
+          Últimas 5 citas
+        </span>
+      }
+      onClose={onClose}
+    >
+      {loading ? (
+        <div className="flex justify-center py-8">
+          <span className="w-6 h-6 border-2 border-slate-600 border-t-slate-300 rounded-full animate-spin" />
+        </div>
+      ) : citas.length === 0 ? (
+        <div className="flex flex-col items-center py-8 text-center gap-2">
+          <CalendarDays size={32} className="text-slate-700" />
+          <p className="text-sm text-slate-500">No hay citas registradas aún.</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {citas.map((c, i) => (
+            <button
+              key={c.id}
+              onClick={() => setDetalle(c)}
+              className="w-full flex items-center gap-3 bg-slate-800/50 hover:bg-slate-800 rounded-xl px-4 py-3 text-left transition-all group"
+            >
+              <span className={`w-2 h-2 rounded-full shrink-0 ${i === 0 ? 'bg-emerald-500 animate-pulse' : 'bg-slate-700'}`} />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-white truncate">{c.clienteNombre || '—'}</p>
+                <p className="text-xs text-slate-500">{c.servicioNombre || '—'} · {c.fecha} {c.hora}</p>
+              </div>
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${ESTADO_BADGE[c.estado] ?? 'bg-slate-700 text-slate-300 border-slate-600'}`}>
+                {c.estado}
+              </span>
+              <ChevronRight size={14} className="text-slate-600 group-hover:text-slate-400 shrink-0" />
+            </button>
+          ))}
+        </div>
+      )}
+    </Modal>
+  );
+}
+
 /* ── Main Agenda component ───────────────────────────────────── */
+const LS_LAST_SEEN = 'agenda_last_seen_cita';
+
 export default function Agenda() {
   const { id: tenantId } = useTenant();
   const [date,          setDate]          = useState(new Date());
   const [showHelp,      setShowHelp]      = useState(false);
+  const [hasNewCita,    setHasNewCita]    = useState(false);
   const [blockMode,     setBlockMode]     = useState(false);
   const [citaModal,     setCitaModal]     = useState(null);
   const [blqModal,      setBlqModal]      = useState(null);
   const [reviewCita,    setReviewCita]    = useState(null);
   const [showUltima,    setShowUltima]    = useState(false);
+  const [showHistorial, setShowHistorial] = useState(false);
 
   const { data: ultimasCitas, loading: loadingUltima } = useCollection(
     'citas',
-    [orderBy('creadoEn', 'desc'), limit(1)],
+    [orderBy('creadoEn', 'desc'), limit(5)],
     [],
   );
   const ultimaCita = ultimasCitas[0] ?? null;
+
+  useEffect(() => {
+    if (!ultimaCita?.id) return;
+    const lastSeen = localStorage.getItem(LS_LAST_SEEN);
+    setHasNewCita(ultimaCita.id !== lastSeen);
+  }, [ultimaCita?.id]);
 
   const dateStr = fmt(date);
 
@@ -543,11 +751,32 @@ export default function Agenda() {
         </button>
 
         <button
-          onClick={() => setShowUltima(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-700 text-slate-400 hover:text-white hover:border-slate-600 transition-all"
-          title="Última cita agendada"
+          onClick={() => {
+            setShowUltima(true);
+            if (ultimaCita?.id) {
+              localStorage.setItem(LS_LAST_SEEN, ultimaCita.id);
+              setHasNewCita(false);
+            }
+          }}
+          className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+            hasNewCita
+              ? 'border-emerald-500/60 bg-emerald-500/10 text-emerald-400'
+              : 'border-slate-700 text-slate-400 hover:text-white hover:border-slate-600'
+          }`}
+          title="Últimas citas agendadas"
         >
-          <History size={14} /> Última cita
+          <History size={14} /> Últimas citas
+          {hasNewCita && (
+            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-slate-900 animate-pulse" />
+          )}
+        </button>
+
+        <button
+          onClick={() => setShowHistorial(true)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-700 text-slate-400 hover:text-white hover:border-slate-600 transition-all"
+          title="Historial de citas"
+        >
+          <ListFilter size={14} /> Historial
         </button>
 
         <button
@@ -680,11 +909,14 @@ export default function Agenda() {
         />
       )}
       {showUltima && (
-        <UltimaCitaModal
-          cita={ultimaCita}
+        <UltimasCitasModal
+          citas={ultimasCitas}
           loading={loadingUltima}
           onClose={() => setShowUltima(false)}
         />
+      )}
+      {showHistorial && (
+        <HistorialModal onClose={() => setShowHistorial(false)} />
       )}
       {showHelp && (
         <HelpModal title="Ayuda — Agenda" onClose={() => setShowHelp(false)}>

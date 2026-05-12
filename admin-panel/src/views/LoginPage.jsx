@@ -9,8 +9,9 @@ import { auth } from '../lib/firebase';
 import { useTenant } from '../contexts/TenantContext';
 
 const LOGIN_IMAGE = {
-  elegance: '/loginelegance.png',
-  ferraza:  '/loginferraza.webp',
+  elegance:       '/loginelegance.png',
+  ferraza:        '/loginferraza.webp',
+  mapubarbershop: '/loginmapu.png',
 };
 
 export default function LoginPage() {

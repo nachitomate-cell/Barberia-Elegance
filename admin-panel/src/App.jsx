@@ -22,9 +22,11 @@ import BookingConfirmar from './views/BookingConfirmar';
 import AgendaBarbero    from './views/AgendaBarbero';
 import Chat            from './views/Chat';
 import Marketing        from './views/Marketing';
+import ServicioFavorito from './views/ServicioFavorito';
 import LoginPage        from './views/LoginPage';
 import BarberTV         from './views/BarberTV';
 import Finanzas         from './views/Finanzas';
+import Mensualidad      from './views/Mensualidad';
 
 function TenantGate({ children }) {
   const { suspended } = useTenant();
@@ -67,10 +69,12 @@ function ProtectedApp() {
             <Route path="premios"         element={<Premios />} />
             <Route path="productos"       element={<Productos />} />
             <Route path="lookbook"        element={<Lookbook />} />
+            <Route path="servicio-favorito" element={<ServicioFavorito />} />
             <Route path="metricas"        element={<Metricas />} />
             <Route path="gastos"          element={<Gastos />} />
             <Route path="finanzas"        element={<Finanzas />} />
             <Route path="configuracion"   element={<Configuracion />} />
+            <Route path="mensualidad"     element={<Mensualidad />} />
             <Route path="mensajes"        element={<Chat />} />
             <Route path="marketing"       element={<Marketing />} />
             <Route path="booking-preview"    element={<BookingServicios onContinuar={s => alert(`Seleccionado: ${s.nombre}`)} />} />

@@ -6,6 +6,7 @@
     'gitananails.synaptechspa.cl':      'gitana',
     'barberiaelegance.synaptechspa.cl': 'elegance',
     'barberiaferraza.synaptechspa.cl':  'ferraza',
+    'mapubarbershop.synaptechspa.cl':   'mapubarbershop',
   };
 
   const _tenants = {
@@ -63,6 +64,54 @@
         { nombre: 'Clau',   foto: null, disponible: true },
         { nombre: 'Cony',   foto: null, disponible: true },
         { nombre: 'Gigi',   foto: null, disponible: true },
+      ],
+    },
+    mapubarbershop: {
+      categoriasServicio: ['Cortes', 'Barba', 'Combos', 'Extras', 'Otro'],
+      nombre:          'Mapu Barber Shop',
+      nombreCorto:     'Mapu',
+      pageTitle:       'Mapu Barber Shop | Vive la Experiencia',
+      slogan:          'Vive la Experiencia',
+      logo:            '/mapu.jfif',
+      logo2:           '/mapu2.png',
+      direccion:       '',
+      horario:         '',
+      telefono:        '',
+      club:            'Club Mapu',
+      instagram:       '',
+      instagramHandle: '',
+      waEmoji:         '✂️',
+      sucursales: [
+        {
+          id:        'valparaiso',
+          nombre:    'Mapu Barber Shop Valparaíso',
+          calle:     'Blanco 974 Local 01',
+          ciudad:    'Valparaíso',
+          mapsUrl:   'https://maps.google.com/?q=Blanco+974+Local+01+Valparaíso+Chile',
+        },
+        {
+          id:        'vinadelmar',
+          nombre:    'Mapu Barber Shop Viña del Mar',
+          calle:     '1 Oriente 876 Casi esq. 10 Norte',
+          ciudad:    'Viña del Mar',
+          mapsUrl:   'https://maps.google.com/?q=1+Oriente+876+Viña+del+Mar+Chile',
+        },
+      ],
+      barberos: [
+        // ── Ambas sucursales ────────────────────────────────────────
+        { id: 'luka-araya',          nombre: 'Luka Araya',          foto: null, disponible: true },
+        { id: 'ivi-soto',            nombre: 'Ivi Soto',            foto: null, disponible: true },
+        { id: 'felipe-vergara',      nombre: 'Felipe Vergara',      foto: null, disponible: true },
+        { id: 'lucia-fuentes',       nombre: 'Lucia Fuentes',       foto: null, disponible: true },
+        { id: 'santiago-echeverria', nombre: 'Santiago Echeverria', foto: null, disponible: true },
+        { id: 'jonathan-chamorro',   nombre: 'Jonathan Chamorro',   foto: null, disponible: true },
+        // ── Solo Valparaíso ─────────────────────────────────────────
+        { id: 'fernanda-soudre',     nombre: 'Fernanda Soudre',     foto: null, disponible: true, sucursalId: 'valparaiso'  },
+        // ── Solo Viña del Mar ───────────────────────────────────────
+        { id: 'renato-perez',        nombre: 'Renato Perez',        foto: null, disponible: true, sucursalId: 'vinadelmar'  },
+        { id: 'daniela-ramirez',     nombre: 'Daniela Ramirez',     foto: null, disponible: true, sucursalId: 'vinadelmar'  },
+        { id: 'ian-alcalde',         nombre: 'Ian Alcalde',         foto: null, disponible: true, sucursalId: 'vinadelmar'  },
+        { id: 'gabriel-apablaza',    nombre: 'Gabriel Apablaza',    foto: null, disponible: true, sucursalId: 'vinadelmar'  },
       ],
     },
   };

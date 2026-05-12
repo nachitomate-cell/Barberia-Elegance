@@ -135,6 +135,145 @@
     }
     /* ────────────────────────────────────────────────────────── */
 
+    /* ── Mapu Barber Shop — Classic Barbershop ────────────────── */
+    .tenant-mapubarbershop {
+      --gold:     #BFA37E;
+      --gold-dim: rgba(191,163,126,0.28);
+    }
+
+    /* Fondo burdeo oscuro */
+    html.tenant-mapubarbershop body,
+    .tenant-mapubarbershop body {
+      background-color: #2A1E22;
+      color: #F0EBE1;
+    }
+
+    /* Ambient glow — tono arena muy suave */
+    .tenant-mapubarbershop .ambient-glow {
+      background: radial-gradient(circle, rgba(191,163,126,0.045) 0%, transparent 65%);
+    }
+
+    /* Logo ring — latón dorado mate */
+    .tenant-mapubarbershop .logo-ring {
+      border: 2px solid #BFA37E !important;
+      box-shadow:
+        0 0 0 1px rgba(191,163,126,0.12),
+        0 0 0 5px rgba(42,30,34,0.8),
+        0 0 0 6px rgba(191,163,126,0.12),
+        0 0 20px rgba(191,163,126,0.10) !important;
+    }
+
+    /* Club title — serif clásico */
+    .tenant-mapubarbershop #heroClubTitle {
+      font-family: 'Playfair Display', Georgia, serif;
+      font-style: normal;
+      font-weight: 700;
+      color: #F0EBE1;
+      letter-spacing: 0.02em;
+    }
+    .tenant-mapubarbershop #heroClubSub {
+      color: rgba(191,163,126,0.60);
+    }
+
+    /* Gold divider */
+    .tenant-mapubarbershop .gold-divider {
+      background: linear-gradient(90deg, transparent, #BFA37E, transparent);
+    }
+
+    /* Tab activo */
+    .tenant-mapubarbershop .tab-btn.active {
+      color: #BFA37E;
+      border-color: #BFA37E;
+    }
+    .tenant-mapubarbershop .tab-btn {
+      color: rgba(191,163,126,0.40);
+    }
+
+    /* Borde inferior de tabs */
+    .tenant-mapubarbershop .border-b {
+      border-color: rgba(191,163,126,0.10);
+    }
+
+    /* Campos de entrada */
+    .tenant-mapubarbershop .field {
+      background: #352529 !important;
+      border: 1px solid rgba(191,163,126,0.18) !important;
+      color: #F0EBE1 !important;
+      border-radius: 10px !important;
+    }
+    .tenant-mapubarbershop .field::placeholder {
+      color: rgba(191,163,126,0.40) !important;
+    }
+    .tenant-mapubarbershop .field:focus {
+      border-color: rgba(191,163,126,0.55) !important;
+      box-shadow: 0 0 0 2px rgba(191,163,126,0.08) !important;
+    }
+    .tenant-mapubarbershop input:-webkit-autofill,
+    .tenant-mapubarbershop input:-webkit-autofill:focus {
+      -webkit-box-shadow: 0 0 0 100px #352529 inset !important;
+      -webkit-text-fill-color: #F0EBE1 !important;
+    }
+
+    /* Botón primario — sólido dorado mate */
+    .tenant-mapubarbershop .btn-primary {
+      background: #BFA37E !important;
+      border: none !important;
+      color: #2A1E22 !important;
+      font-family: system-ui, -apple-system, sans-serif;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      box-shadow: none !important;
+      border-radius: 10px !important;
+    }
+    .tenant-mapubarbershop .btn-primary:hover {
+      background: #CDB48E !important;
+      box-shadow: none !important;
+    }
+
+    /* Botón Google */
+    .tenant-mapubarbershop .btn-google {
+      background: #352529 !important;
+      border: 1px solid rgba(191,163,126,0.18) !important;
+      color: #F0EBE1 !important;
+      border-radius: 10px !important;
+    }
+    .tenant-mapubarbershop .btn-google:hover {
+      background: #3D2C31 !important;
+      border-color: rgba(191,163,126,0.30) !important;
+    }
+
+    /* Spinner */
+    .tenant-mapubarbershop .spinner {
+      border-color: rgba(191,163,126,0.20) !important;
+      border-top-color: #BFA37E !important;
+    }
+
+    /* Divisor "o" */
+    .tenant-mapubarbershop .flex-grow.border-t { border-color: rgba(191,163,126,0.12) !important; }
+    .tenant-mapubarbershop span.mx-4.text-gray-500 { color: rgba(191,163,126,0.40) !important; }
+
+    /* Loading overlay */
+    .tenant-mapubarbershop #loadingOverlay {
+      background: rgba(42,30,34,0.88) !important;
+    }
+
+    /* Link volver */
+    .tenant-mapubarbershop a.text-gray-600 {
+      color: rgba(191,163,126,0.45) !important;
+    }
+    .tenant-mapubarbershop a.text-gray-600:hover {
+      color: rgba(191,163,126,0.75) !important;
+    }
+
+    /* Eye toggle */
+    .tenant-mapubarbershop .eye-toggle { color: rgba(191,163,126,0.40) !important; }
+    .tenant-mapubarbershop .eye-toggle:hover { color: rgba(191,163,126,0.70) !important; }
+
+    /* Nota cumpleaños */
+    .tenant-mapubarbershop .text-gray-600 { color: rgba(191,163,126,0.42) !important; }
+    /* ────────────────────────────────────────────────────────── */
+
     @keyframes fadeSlideUp {
       from { opacity:0; transform:translateY(14px); }
       to   { opacity:1; transform:translateY(0); }

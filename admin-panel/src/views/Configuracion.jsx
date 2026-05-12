@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import {
-  Store, MapPin, Phone, Instagram, Image, Clock, Check, Save, HelpCircle,
+  Store, MapPin, Phone, Instagram, Image, Clock, Check, Save, HelpCircle, AlertCircle,
 } from 'lucide-react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -100,6 +100,8 @@ export default function Configuracion() {
   const [loading,  setLoading]  = useState(true);
   const [saving,   setSaving]   = useState(false);
   const [saved,    setSaved]    = useState(false);
+  const [dirty,    setDirty]    = useState(false);
+  const [saveErr,  setSaveErr]  = useState('');
   const [showHelp, setShowHelp] = useState(false);
   const savedTimer = useRef(null);
 
@@ -120,17 +122,21 @@ export default function Configuracion() {
     }).finally(() => setLoading(false));
   }, []);
 
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
-  const setDia = (d, cfg) => setForm(f => ({ ...f, horario: { ...f.horario, [d]: cfg } }));
+  const set = (k, v) => { setForm(f => ({ ...f, [k]: v })); setDirty(true); };
+  const setDia = (d, cfg) => { setForm(f => ({ ...f, horario: { ...f.horario, [d]: cfg } })); setDirty(true); };
 
   const handleSave = async () => {
     if (saving) return;
     setSaving(true);
+    setSaveErr('');
     try {
       await setDoc(settingsRef(), form, { merge: true });
       setSaved(true);
+      setDirty(false);
       if (savedTimer.current) clearTimeout(savedTimer.current);
       savedTimer.current = setTimeout(() => setSaved(false), 2500);
+    } catch (e) {
+      setSaveErr(e?.message || 'Error al guardar. Verifica tu conexión.');
     } finally {
       setSaving(false);
     }
@@ -157,15 +163,29 @@ export default function Configuracion() {
           <p className="text-sm text-slate-500 mt-0.5">Información pública de tu local</p>
         </div>
         <button onClick={handleSave} disabled={saving}
-          className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition-all">
+          className="relative flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition-all">
           {saving
             ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
             : saved
               ? <Check size={15} />
               : <Save size={15} />}
           {saved ? 'Guardado' : 'Guardar cambios'}
+          {dirty && !saving && !saved && (
+            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-400 border-2 border-slate-950" />
+          )}
         </button>
       </div>
+
+      {/* Error banner */}
+      {saveErr && (
+        <div className="flex items-center gap-3 px-4 py-3 bg-red-950/50 border border-red-500/30 rounded-xl text-sm text-red-400">
+          <AlertCircle size={15} className="shrink-0" />
+          <span className="flex-1">{saveErr}</span>
+          <button onClick={() => setSaveErr('')} className="text-red-400/50 hover:text-red-400 transition-colors">
+            <Check size={13} />
+          </button>
+        </div>
+      )}
 
       {/* Información General */}
       <Card Icon={Store} title="Información General">
@@ -259,7 +279,7 @@ export default function Configuracion() {
               WhatsApp
             </a>
             <a
-              href="mailto:soporte@synaptechspa.cl?subject=Soporte%20Panel%20Barber%C3%ADa"
+              href="mailto:hola@synaptechspa.cl?subject=Soporte%20Panel%20Barber%C3%ADa"
               className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all hover:opacity-90 active:scale-[0.98]"
               style={{ background: 'rgba(212,175,55,0.1)', color: '#D4AF37', border: '1px solid rgba(212,175,55,0.25)' }}
             >

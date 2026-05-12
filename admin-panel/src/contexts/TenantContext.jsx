@@ -4,9 +4,10 @@ import { db } from '../lib/firebase';
 import { resolveTenantId } from '../lib/tenantUtils';
 
 const TENANT_META = {
-  elegance: { name: '𝐄𝐥𝐞𝐠𝐚𝐧𝐜𝐞 𝐁𝐚𝐫𝐛𝐞𝐫𝐬𝐡𝐨𝐩', accent: 'emerald', emoji: '✂️' },
-  ferraza:  { name: 'Barbería Ferraza',       accent: 'slate',   emoji: '✂️' },
-  gitana:   { name: 'Gitana Nails Studio',    accent: 'pink',    emoji: '💅' },
+  elegance:       { name: '𝐄𝐥𝐞𝐠𝐚𝐧𝐜𝐞 𝐁𝐚𝐫𝐛𝐞𝐫𝐬𝐡𝐨𝐩', accent: 'emerald', emoji: '✂️' },
+  ferraza:        { name: 'Barbería Ferraza',       accent: 'slate',   emoji: '✂️' },
+  gitana:         { name: 'Gitana Nails Studio',    accent: 'pink',    emoji: '💅' },
+  mapubarbershop: { name: 'Mapu Barber Shop',       accent: 'emerald', emoji: '✂️' },
 };
 
 const TenantContext = createContext(null);

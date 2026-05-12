@@ -3,10 +3,11 @@ import { NavLink } from 'react-router-dom';
 import {
   CalendarDays, Scissors, Users, Star, BarChart3,
   Trophy, ShoppingBag, Images, LogOut, ChevronRight,
-  Sun, Moon, ExternalLink, Settings, TrendingDown, MessageCircle, X, Megaphone,
+  Sun, Moon, ExternalLink, Settings, TrendingDown, MessageCircle, X, Megaphone, ImagePlus, CreditCard,
 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
-import { auth } from '../../lib/firebase';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { auth, db } from '../../lib/firebase';
 import { useTenant } from '../../contexts/TenantContext';
 import { useAuth }   from '../../contexts/AuthContext';
 
@@ -19,10 +20,12 @@ const NAV = [
   { to: 'premios',       label: 'Premios',       Icon: Trophy                     },
   { to: 'productos',     label: 'Productos',     Icon: ShoppingBag                },
   { to: 'lookbook',      label: 'Lookbook',      Icon: Images                     },
+  { to: 'servicio-favorito', label: 'Servicio favorito', Icon: ImagePlus          },
   { to: 'metricas',      label: 'Métricas',      Icon: BarChart3                  },
   { to: 'marketing',     label: 'Marketing',     Icon: Megaphone,     adminOnly: true },
   { to: 'gastos',        label: 'Gastos',        Icon: TrendingDown,  adminOnly: true },
   { to: 'configuracion', label: 'Configuración', Icon: Settings,      adminOnly: true },
+  { to: 'mensualidad',   label: 'Mensualidad',   Icon: CreditCard,    adminOnly: true },
 ];
 
 function useTheme() {
@@ -36,6 +39,28 @@ function useTheme() {
   }, [light]);
 
   return [light, setLight];
+}
+
+function useBillingAlert() {
+  const { id: tenantId } = useTenant();
+  const [hasPending, setHasPending] = useState(false);
+  useEffect(() => {
+    const ref = doc(db, '_billing', tenantId);
+    const unsub = onSnapshot(
+      ref,
+      snap => {
+        if (snap.exists()) {
+          const d = snap.data();
+          setHasPending(d.estadoPago === 'pendiente' || d.estadoPago === 'atrasado' || Number(d.montoPendiente) > 0);
+        } else {
+          setHasPending(false);
+        }
+      },
+      () => setHasPending(false),
+    );
+    return unsub;
+  }, [tenantId]);
+  return hasPending;
 }
 
 const LS_KEY_NEWS = 'synaptech_last_seen_news';
@@ -61,7 +86,8 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
   const isAdminRole   = role === 'admin' || role === 'jefe';
   const visibleNav    = NAV.filter(item => !item.adminOnly || isAdminRole);
   const [light, setLight] = useTheme();
-  const hasUnreadNews = useUnreadNews();
+  const hasUnreadNews  = useUnreadNews();
+  const hasBillingAlert = useBillingAlert();
 
   return (
     <aside className="flex flex-col h-full bg-slate-900 border-r border-slate-800">
@@ -107,22 +133,24 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
               }
             >
               {({ isActive }) => {
-                const isMetricas   = to === 'metricas';
-                const showNewsDot  = isMetricas && hasUnreadNews;
-                const showBadge    = hasBadge;
+                const isMetricas      = to === 'metricas';
+                const isMensualidad   = to === 'mensualidad';
+                const showNewsDot     = isMetricas && hasUnreadNews;
+                const showBillingDot  = isMensualidad && hasBillingAlert;
+                const showBadge       = hasBadge;
                 return (
                   <>
                     <Icon size={17} strokeWidth={isActive ? 2.5 : 2} className="shrink-0" />
                     <span className="flex-1">{label}</span>
-                    {showNewsDot && !showBadge && (
-                      <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse shrink-0" />
+                    {(showNewsDot || showBillingDot) && !showBadge && (
+                      <span className={`w-2 h-2 rounded-full animate-pulse shrink-0 ${showBillingDot ? 'bg-amber-400' : 'bg-red-500'}`} />
                     )}
                     {showBadge && (
                       <span className="ml-auto bg-red-500 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full">
                         {unreadChats > 9 ? '9+' : unreadChats}
                       </span>
                     )}
-                    {isActive && !showBadge && !showNewsDot && (
+                    {isActive && !showBadge && !showNewsDot && !showBillingDot && (
                       <ChevronRight size={14} className="text-emerald-500 opacity-60" />
                     )}
                   </>

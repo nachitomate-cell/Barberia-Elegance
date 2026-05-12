@@ -28,7 +28,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
   <link href="/output.css" rel="stylesheet">
 
@@ -532,12 +532,377 @@
     }
 
     /* ═══════════════════════════════════════════════════════════════
+       MAPU BARBER SHOP — Classic Artisan Barbershop Theme
+       Paleta: Burdeo cálido · Arena dorada · Crema clásica
+       ═══════════════════════════════════════════════════════════════ */
+
+    /* 1. Variables */
+    .tenant-mapubarbershop {
+      --accent:   #BFA37E;
+      --accent-r: 191; --accent-g: 163; --accent-b: 126;
+      --body-bg:  #2A1E22;
+    }
+
+    /* 2. Fondo burdeo oscuro mate */
+    .tenant-mapubarbershop body {
+      background-color: #2A1E22;
+    }
+
+    /* 3. Hero — overlay cálido y borde de latón doble */
+    .tenant-mapubarbershop .booking-hero {
+      background-image: url('/mapu3.png') !important;
+      background-size: cover !important;
+      background-position: center 30% !important;
+    }
+    .tenant-mapubarbershop .booking-hero-overlay {
+      background: linear-gradient(180deg,
+        rgba(42,30,34,0.60) 0%, rgba(42,30,34,0.32) 42%, rgba(42,30,34,0.97) 100%) !important;
+    }
+    /* Marco de latón doble sobre la imagen */
+    .tenant-mapubarbershop .booking-hero::before {
+      content: '';
+      position: absolute; inset: 10px;
+      border: 1px solid rgba(201,168,76,0.25);
+      pointer-events: none; z-index: 5;
+    }
+    .tenant-mapubarbershop .booking-hero::after {
+      content: '';
+      position: absolute; inset: 15px;
+      border: 1px solid rgba(201,168,76,0.10);
+      pointer-events: none; z-index: 5;
+    }
+
+    /* 4. Logo ring */
+    .tenant-mapubarbershop .hero-logo-ring {
+      border: 2px solid #BFA37E !important;
+      box-shadow:
+        0 0 0 1px rgba(191,163,126,0.12),
+        0 0 0 5px rgba(42,30,34,0.8),
+        0 0 0 6px rgba(191,163,126,0.15),
+        0 0 24px rgba(191,163,126,0.15),
+        0 0 50px rgba(0,0,0,0.5) !important;
+    }
+
+    /* 5. Segundo logo — tratamiento premium */
+    .tenant-mapubarbershop #shopLogo2 {
+      filter: drop-shadow(0 0 12px rgba(201,168,76,0.3)) !important;
+      opacity: 0.92 !important;
+    }
+
+    /* 6. Nombre del local */
+    .tenant-mapubarbershop #shopNombre {
+      font-family: 'Playfair Display', Georgia, serif !important;
+      font-weight: 700 !important;
+      letter-spacing: 0.01em !important;
+      color: #F0EBE1 !important;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.5) !important;
+    }
+
+    /* 7. Eslogan */
+    .tenant-mapubarbershop #shopSlogan {
+      font-family: 'Playfair Display', Georgia, serif !important;
+      font-style: italic !important;
+      letter-spacing: 0.18em !important;
+      color: rgba(191,163,126,0.90) !important;
+      text-shadow: none !important;
+    }
+
+    /* 8. Divisor */
+    .tenant-mapubarbershop .gold-divider {
+      width: 60px !important; height: 1px !important;
+      background: linear-gradient(90deg, transparent, #BFA37E, transparent) !important;
+      opacity: 0.6 !important;
+    }
+
+    /* 9. Info strip del hero */
+    .tenant-mapubarbershop .info-strip {
+      background: rgba(42,30,34,0.95) !important;
+      border-bottom: 1px solid rgba(191,163,126,0.12) !important;
+    }
+
+    /* 10. Texto del progress step */
+    .tenant-mapubarbershop #stepIndicatorText {
+      font-family: system-ui, -apple-system, sans-serif !important;
+      font-style: normal !important;
+      font-size: 10px !important;
+      font-weight: 500 !important;
+      letter-spacing: 0.12em !important;
+      text-transform: uppercase !important;
+      color: rgba(191,163,126,0.75) !important;
+      text-shadow: none !important;
+    }
+
+    /* 11. Barra de progreso — dorado mate sólido */
+    .tenant-mapubarbershop #progressBar {
+      background: #BFA37E !important;
+      box-shadow: none !important;
+    }
+    .tenant-mapubarbershop #progressTrack {
+      background: rgba(191,163,126,0.12) !important;
+    }
+
+    /* 12. Encabezados de pasos — Playfair */
+    .tenant-mapubarbershop h2.text-neon,
+    .tenant-mapubarbershop #step0 h2,
+    .tenant-mapubarbershop #step1 h2,
+    .tenant-mapubarbershop #step2 h2,
+    .tenant-mapubarbershop #step3 h2,
+    .tenant-mapubarbershop #step4 h2 {
+      font-family: 'Playfair Display', Georgia, serif !important;
+      color: #F0EBE1 !important;
+      text-shadow: none !important;
+      font-weight: 700 !important;
+    }
+    .tenant-mapubarbershop #step0 p.text-gray-500 {
+      font-style: normal !important;
+      color: rgba(191,163,126,0.5) !important;
+    }
+
+    /* 13. Tarjetas de sucursal */
+    .tenant-mapubarbershop .sucursal-option {
+      background: #352529 !important;
+      border-color: transparent !important;
+      border-radius: 0.625rem !important;
+      box-shadow: none !important;
+      transition: all 0.18s ease !important;
+    }
+    .tenant-mapubarbershop .sucursal-option:hover {
+      border-color: rgba(191,163,126,0.25) !important;
+      background: #3D2C31 !important;
+    }
+    .tenant-mapubarbershop .sucursal-option.border-neon {
+      border-color: #BFA37E !important;
+      border-width: 2px !important;
+      background: #3D2C31 !important;
+      box-shadow: none !important;
+    }
+    .tenant-mapubarbershop .sucursal-option.bg-brand-neon\/10 {
+      background: #3D2C31 !important;
+    }
+    .tenant-mapubarbershop .sucursal-option .font-bold {
+      font-family: 'Playfair Display', Georgia, serif !important;
+      color: #F0EBE1 !important;
+    }
+    .tenant-mapubarbershop .sucursal-option p {
+      color: rgba(191,163,126,0.5) !important;
+    }
+    .tenant-mapubarbershop .sucursal-option .ph-fill.ph-map-pin {
+      color: rgba(191,163,126,0.65) !important;
+    }
+
+    /* 14. Category pills */
+    .tenant-mapubarbershop .category-pill {
+      background: #352529 !important;
+      border-color: rgba(191,163,126,0.15) !important;
+      border-radius: 3px !important;
+      color: rgba(191,163,126,0.55) !important;
+      font-family: system-ui, -apple-system, sans-serif !important;
+      font-style: normal !important;
+      font-size: 10.5px !important;
+      font-weight: 600 !important;
+      letter-spacing: 0.10em !important;
+      text-transform: uppercase !important;
+      box-shadow: none !important;
+    }
+    .tenant-mapubarbershop .category-pill:hover {
+      border-color: rgba(191,163,126,0.38) !important;
+      color: rgba(191,163,126,0.88) !important;
+      background: #3D2C31 !important;
+    }
+    .tenant-mapubarbershop .category-pill.border-neon {
+      background: #3D2C31 !important;
+      border-color: #BFA37E !important;
+      color: #BFA37E !important;
+      box-shadow: none !important;
+    }
+    .tenant-mapubarbershop .category-pill.text-neon { color: #BFA37E !important; }
+
+    /* 15. Separador y título de categoría */
+    .tenant-mapubarbershop .cat-sep { display: flex !important; }
+    .tenant-mapubarbershop .cat-title {
+      font-family: 'Playfair Display', Georgia, serif !important;
+      border-left-color: #BFA37E !important;
+      color: rgba(240,235,225,0.65) !important;
+      font-style: normal !important;
+      font-weight: 600 !important;
+    }
+
+    /* 16. Tarjetas de servicio */
+    .tenant-mapubarbershop .service-option {
+      background: #352529 !important;
+      border-color: transparent !important;
+      border-radius: 0.625rem !important;
+      box-shadow: none !important;
+      transition: all 0.18s ease !important;
+    }
+    .tenant-mapubarbershop .service-option:hover {
+      border-color: rgba(191,163,126,0.25) !important;
+      background: #3D2C31 !important;
+    }
+    .tenant-mapubarbershop .service-option.border-neon,
+    .tenant-mapubarbershop .service-option.border-2.border-neon {
+      border-color: #BFA37E !important;
+      border-width: 2px !important;
+      background: #3D2C31 !important;
+      box-shadow: none !important;
+    }
+    .tenant-mapubarbershop .service-option.bg-brand-neon\/10 {
+      background: #3D2C31 !important;
+    }
+
+    /* 17. Contenedor de icono */
+    .tenant-mapubarbershop .icon-bg {
+      background: #2A1E22 !important;
+      border-color: rgba(191,163,126,0.20) !important;
+      box-shadow: none !important;
+    }
+    .tenant-mapubarbershop .service-option.border-neon .icon-bg {
+      border-color: rgba(191,163,126,0.45) !important;
+      background: #2A1E22 !important;
+    }
+
+    /* 18. SVG icon custom de Mapu */
+    .tenant-mapubarbershop .mapu-icon svg {
+      width: 100%; height: 100%;
+      stroke: #BFA37E;
+      filter: none;
+    }
+
+    /* 19. Nombre del servicio */
+    .tenant-mapubarbershop .svc-name {
+      font-family: 'Playfair Display', Georgia, serif !important;
+      color: #F0EBE1 !important;
+      font-style: normal !important;
+      font-weight: 600 !important;
+    }
+
+    /* 20. Precio y duración */
+    .tenant-mapubarbershop .price-tag {
+      color: #BFA37E !important;
+      text-shadow: none !important;
+      font-family: 'Playfair Display', Georgia, serif !important;
+    }
+    .tenant-mapubarbershop .duration-tag { color: rgba(191,163,126,0.48) !important; }
+
+    /* 21. Barbero cards */
+    .tenant-mapubarbershop .barber-option {
+      background: #352529 !important;
+      border-color: transparent !important;
+      box-shadow: none !important;
+    }
+    .tenant-mapubarbershop .barber-option:hover {
+      border-color: rgba(191,163,126,0.25) !important;
+      background: #3D2C31 !important;
+    }
+    .tenant-mapubarbershop .barber-option.border-neon {
+      border-color: #BFA37E !important;
+      border-width: 2px !important;
+      background: #3D2C31 !important;
+      box-shadow: none !important;
+    }
+    .tenant-mapubarbershop .barber-option.bg-brand-neon\/10 {
+      background: #3D2C31 !important;
+    }
+    .tenant-mapubarbershop .barber-name {
+      font-family: 'Playfair Display', Georgia, serif !important;
+      color: #F0EBE1 !important;
+    }
+    .tenant-mapubarbershop .text-brand-neon { color: #BFA37E !important; }
+    .tenant-mapubarbershop .text-neon {
+      color: #BFA37E !important;
+      text-shadow: none !important;
+    }
+
+    /* 22. Day buttons calendario */
+    .tenant-mapubarbershop .day-btn {
+      background: #352529 !important;
+      border-color: rgba(191,163,126,0.15) !important;
+    }
+    .tenant-mapubarbershop .day-btn.active,
+    .tenant-mapubarbershop .day-btn.border-neon {
+      border-color: #BFA37E !important;
+      background: #3D2C31 !important;
+      box-shadow: none !important;
+    }
+    .tenant-mapubarbershop .day-btn .dot.bg-neon {
+      background: #BFA37E !important;
+      box-shadow: none !important;
+    }
+
+    /* 23. Horas disponibles */
+    .tenant-mapubarbershop #hoursGrid button:not([disabled]) {
+      background: #352529 !important;
+      border-color: rgba(191,163,126,0.15) !important;
+      color: rgba(240,235,225,0.75) !important;
+    }
+    .tenant-mapubarbershop #hoursGrid button:not([disabled]):hover {
+      border-color: rgba(191,163,126,0.42) !important;
+      background: #3D2C31 !important;
+      color: #BFA37E !important;
+    }
+    .tenant-mapubarbershop .time-pill.bg-neon {
+      background: #BFA37E !important;
+      color: #2A1E22 !important;
+      box-shadow: none !important;
+    }
+    .tenant-mapubarbershop .time-pill.border-neon { box-shadow: none !important; }
+
+    /* 24. Inputs de confirmación */
+    .tenant-mapubarbershop #clientName,
+    .tenant-mapubarbershop #clientPhone,
+    .tenant-mapubarbershop #clientEmail {
+      background: #352529 !important;
+      border-color: rgba(191,163,126,0.18) !important;
+      color: #F0EBE1 !important;
+    }
+    .tenant-mapubarbershop #clientName:focus,
+    .tenant-mapubarbershop #clientPhone:focus,
+    .tenant-mapubarbershop #clientEmail:focus {
+      outline: none !important;
+      border-color: rgba(191,163,126,0.55) !important;
+      box-shadow: 0 0 0 2px rgba(191,163,126,0.10) !important;
+    }
+
+    /* 25. Botón Continuar — dorado mate sólido */
+    .tenant-mapubarbershop #btnContinue {
+      background: #BFA37E !important;
+      color: #2A1E22 !important;
+      font-family: system-ui, -apple-system, sans-serif !important;
+      font-style: normal !important;
+      font-weight: 700 !important;
+      letter-spacing: 0.14em !important;
+      text-transform: uppercase !important;
+      box-shadow: none !important;
+      border: none !important;
+    }
+
+    /* 26. WhatsApp CTA */
+    .tenant-mapubarbershop #waBtnLink {
+      background: rgba(191,163,126,0.07) !important;
+      color: #BFA37E !important;
+      border-color: rgba(191,163,126,0.25) !important;
+      box-shadow: none !important;
+    }
+    .tenant-mapubarbershop #waBtnLink i { color: #BFA37E !important; filter: none !important; }
+
+    /* 27. Recap chips */
+    .tenant-mapubarbershop #selectionRecap span {
+      background: rgba(191,163,126,0.07) !important;
+      border-color: rgba(191,163,126,0.14) !important;
+      color: rgba(191,163,126,0.65) !important;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
        ELEGANCE — Golden Booking Theme (default tenant)
        ═══════════════════════════════════════════════════════════════ */
 
     /* Barra de progreso dorada */
     #progressBar {
       background-color: #D4AF37 !important;
+      box-shadow: none !important;
+    }
+    .tenant-mapubarbershop #progressBar {
+      background: #BFA37E !important;
       box-shadow: none !important;
     }
     .tenant-ferraza #progressBar {
@@ -555,6 +920,12 @@
       background-color: #ffffff !important;
       color: #050505 !important;
     }
+    /* Mapu override — sólido mate, sin gradiente */
+    .tenant-mapubarbershop #btnContinue {
+      background: #BFA37E !important;
+      color: #2A1E22 !important;
+      box-shadow: none !important;
+    }
 
     /* Cards de servicio seleccionadas: borde y fondo dorado */
     .service-option.border-neon {
@@ -570,6 +941,21 @@
     }
     .barber-option.bg-brand-neon\/10 {
       background-color: rgba(212,175,55,0.08) !important;
+    }
+    /* Mapu overrides para cards seleccionadas */
+    .tenant-mapubarbershop .service-option.border-neon {
+      border-color: #BFA37E !important;
+      box-shadow: none !important;
+    }
+    .tenant-mapubarbershop .service-option.bg-brand-neon\/10 {
+      background: #3D2C31 !important;
+    }
+    .tenant-mapubarbershop .barber-option.border-neon {
+      border-color: #BFA37E !important;
+      box-shadow: none !important;
+    }
+    .tenant-mapubarbershop .barber-option.bg-brand-neon\/10 {
+      background: #3D2C31 !important;
     }
     .tenant-ferraza .service-option.border-neon,
     .tenant-ferraza .barber-option.border-neon {
@@ -616,10 +1002,13 @@
 
       <!-- Hero content -->
       <div class="relative z-10 flex flex-col items-center justify-center text-center px-6 pt-12 pb-10">
-        <!-- Logo circular con borde blanco -->
-        <div class="hero-logo-ring rounded-full mb-5 overflow-hidden" style="width:96px;height:96px;background:#0a0a0a;">
-          <img id="shopLogo" src="" alt=""
-            class="w-full h-full object-cover rounded-full">
+        <!-- Logo(s) del local -->
+        <div id="heroLogoArea" class="flex items-center justify-center gap-4 mb-5">
+          <div class="hero-logo-ring rounded-full overflow-hidden shrink-0" style="width:96px;height:96px;background:#0a0a0a;">
+            <img id="shopLogo" src="" alt=""
+              class="w-full h-full object-cover rounded-full">
+          </div>
+          <img id="shopLogo2" src="" alt="" style="display:none;height:60px;width:auto;object-fit:contain;max-width:120px;">
         </div>
 
         <!-- Shop name -->
@@ -667,6 +1056,13 @@
     </div>
 
     <main class="px-6 pb-6 relative min-h-[500px]">
+
+      <!-- PASO 0: Sucursal (solo para tenants con múltiples sucursales) -->
+      <section id="step0" class="hidden opacity-0 transform translate-x-12">
+        <h2 class="text-2xl font-bold mb-2 text-neon tracking-tight">¿En qué sucursal?</h2>
+        <p class="text-sm text-gray-500 mb-6">Elige la sucursal donde quieres reservar.</p>
+        <div id="sucursalesGrid" class="flex flex-col gap-4"></div>
+      </section>
 
       <section id="step1" class="animate-[fadeSlideUp_0.5s_cubic-bezier(0.16,1,0.3,1)_forwards]">
         <h2 class="text-2xl font-bold mb-6 text-neon tracking-tight">¿Qué servicio buscas?</h2>
@@ -924,6 +1320,9 @@
       const el = document.getElementById('selectionRecap');
       if (!el) return;
       const parts = [];
+      if (window._selectedSucursal && window._hasSucursales) {
+        parts.push(`<span class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 border border-white/10"><i class="ph ph-map-pin text-[10px]"></i>${window._selectedSucursal.ciudad}</span>`);
+      }
       if (selectedServiceObj) {
         const _svcIcon = window.CURRENT_TENANT_ID === 'gitana' ? 'ph-sparkle' : 'ph-scissors';
         parts.push(`<span class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 border border-white/10"><i class="ph ${_svcIcon} text-[10px]"></i>${selectedServiceObj.nombre}</span>`);
@@ -948,7 +1347,17 @@
     function updateContinueBtn() {
       const btn = document.getElementById('btnContinue');
       if (!btn) return;
-      if (currentStep === 1) {
+      if (currentStep === 0) {
+        if (window._selectedSucursal) {
+          btn.disabled = false;
+          btn.style.opacity = '1';
+          btn.innerHTML = `${window._selectedSucursal.ciudad} · Continuar <i class="ph-bold ph-arrow-right text-lg"></i>`;
+        } else {
+          btn.disabled = true;
+          btn.style.opacity = '0.5';
+          btn.innerHTML = 'Selecciona una sucursal <i class="ph-bold ph-arrow-right text-lg"></i>';
+        }
+      } else if (currentStep === 1) {
         if (selectedServiceObj) {
           btn.disabled = false;
           btn.style.opacity = '1';
@@ -985,6 +1394,72 @@
 
     const _ICONS = ['ph-scissors','ph-mask-happy','ph-user-focus','ph-magic-wand','ph-sparkle','ph-star'];
 
+    /* ── Iconos SVG clásicos de barbería para Mapu Barber Shop ── */
+    const _MAPU_SVGS = {
+      /* Tijeras de barbero clásicas */
+      corte: `<svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="7" cy="8" r="3"/>
+        <circle cx="7" cy="20" r="3"/>
+        <line x1="9.6" y1="6.3" x2="24" y2="22"/>
+        <line x1="24" y1="6" x2="9.6" y2="21.7"/>
+        <line x1="9.6" y1="9.7" x2="15.5" y2="14"/>
+      </svg>`,
+      /* Navaja de afeitar recta */
+      barba: `<svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="11" width="6" height="6" rx="2"/>
+        <path d="M8 11.8 L25 9 L25 19 L8 16.2 Z"/>
+        <line x1="8" y1="13.5" x2="24.5" y2="11"/>
+      </svg>`,
+      /* Tijeras + peine — combo completo */
+      combo: `<svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="6" cy="6" r="2.5"/>
+        <circle cx="6" cy="16" r="2.5"/>
+        <line x1="8.2" y1="4.5" x2="21" y2="17.5"/>
+        <line x1="21" y1="4.5" x2="8.2" y2="17.5"/>
+        <line x1="13" y1="10" x2="15" y2="12"/>
+        <rect x="3" y="21" width="22" height="3.5" rx="1.75"/>
+        <line x1="7" y1="24.5" x2="7" y2="27"/>
+        <line x1="11" y1="24.5" x2="11" y2="27"/>
+        <line x1="15" y1="24.5" x2="15" y2="27"/>
+        <line x1="19" y1="24.5" x2="19" y2="27"/>
+        <line x1="23" y1="24.5" x2="23" y2="27"/>
+      </svg>`,
+      /* Maquina perfiladora / detailer */
+      perfilado: `<svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="9" y="3" width="10" height="17" rx="3"/>
+        <rect x="11" y="6" width="6" height="5" rx="1"/>
+        <line x1="11" y1="17" x2="17" y2="17"/>
+        <path d="M9 20 L7 26 L14 24.5 L21 26 L19 20"/>
+        <line x1="10.5" y1="21.5" x2="10" y2="24.5"/>
+        <line x1="14" y1="20.5" x2="14" y2="25"/>
+        <line x1="17.5" y1="21.5" x2="18" y2="24.5"/>
+      </svg>`,
+      /* Peine clásico de barbero */
+      comb: `<svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="9" width="24" height="4" rx="2"/>
+        <line x1="6" y1="13" x2="6" y2="21"/>
+        <line x1="10" y1="13" x2="10" y2="21"/>
+        <line x1="14" y1="13" x2="14" y2="21"/>
+        <line x1="18" y1="13" x2="18" y2="21"/>
+        <line x1="22" y1="13" x2="22" y2="21"/>
+      </svg>`,
+      /* Estrella / premium */
+      star: `<svg viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M14 3 L16.2 11.5 L25 14 L16.2 16.5 L14 25 L11.8 16.5 L3 14 L11.8 11.5 Z"/>
+      </svg>`,
+    };
+
+    function _getMapuIcon(nombre, cat) {
+      const n = (nombre || '').toLowerCase();
+      const c = (cat  || '').toLowerCase();
+      if (n.includes('combo') || n.includes('pack') || (n.includes('corte') && n.includes('barba'))) return _MAPU_SVGS.combo;
+      if (n.includes('barba') || n.includes('afeit') || n.includes('navaja') || c.includes('barba')) return _MAPU_SVGS.barba;
+      if (n.includes('perfil') || n.includes('ceja') || n.includes('detalle') || n.includes('liner')) return _MAPU_SVGS.perfilado;
+      if (n.includes('corte') || c.includes('corte') || n.includes('cort')) return _MAPU_SVGS.corte;
+      if (n.includes('pein') || n.includes('comb') || c.includes('combo')) return _MAPU_SVGS.comb;
+      return _MAPU_SVGS.star;
+    }
+
     function _catIcon(cat, idx) {
       const c = (cat || '').toLowerCase();
       if (c.includes('corte')) return 'ph-scissors';
@@ -1007,6 +1482,7 @@
       });
 
       const _isEleganceSvc = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance';
+      const _isMapuSvc     = window.CURRENT_TENANT_ID === 'mapubarbershop';
 
       Object.keys(categories).forEach(cat => {
         // Contenedor de la categoría (útil para el filtro de pills)
@@ -1044,12 +1520,15 @@
                 <div class="svc-radio w-5 h-5 rounded-full border-2 shrink-0 transition-all" style="border-color:rgba(212,175,55,0.4)"></div>
               </button>`;
           } else {
+            const iconHtml = _isMapuSvc
+              ? `<span class="icon-svg mapu-icon block w-7 h-7 transition-all">${_getMapuIcon(s.nombre, cat)}</span>`
+              : `<i class="icon-svg ph ${icon} text-3xl text-brand-neon drop-shadow-[0_0_5px_rgba(255,255,255,0.35)] transition-all"></i>`;
             innerGrid.innerHTML += `
               <button onclick="selectService(this)" data-service-id="${s.id}" data-category="${cat}"
                 class="service-option relative flex flex-col items-center justify-center p-6 rounded-2xl bg-[#0a0a0d] border border-brand-accent/20 shadow-sm hover:border-brand-neon/50 hover:shadow-[0_0_15px_rgba(255,255,255,0.15)] active:scale-95 text-center transition-all overflow-hidden group">
                 <div class="absolute inset-0 bg-brand-neon/0 group-hover:bg-brand-neon/5 transition-colors"></div>
                 <div class="icon-bg w-14 h-14 rounded-full bg-[#111115] border border-brand-accent/20 shadow-[0_0_10px_rgba(255,255,255,0.05)] flex items-center justify-center mb-4 transition-all relative z-10">
-                  <i class="icon-svg ph ${icon} text-3xl text-brand-neon drop-shadow-[0_0_5px_rgba(255,255,255,0.35)] transition-all"></i>
+                  ${iconHtml}
                 </div>
                 <span class="svc-name font-bold text-gray-200 text-sm mb-1 relative z-10 tracking-wide">${s.nombre}</span>
                 <span class="text-[14px] font-bold text-neon price-tag transition-all mb-1 relative z-10">\$${s.precio.toLocaleString('es-CL')}</span>
@@ -1142,7 +1621,67 @@
     }
 
     let _fsBarberos      = [];
+    let _activeBarberos  = []; // _fsBarberos filtrado por sucursal (si aplica)
     let _multiHoras      = []; // cache de getHorasDisponiblesMulti para auto-asignación en paso 4
+
+    function _buildDiasLabel(horario) {
+      if (!horario) return null;
+      const ORDER = ['1','2','3','4','5','6','0'];
+      const SHORT = { '1':'Lun','2':'Mar','3':'Mié','4':'Jue','5':'Vie','6':'Sáb','0':'Dom' };
+      const active = ORDER.filter(d => horario[d] && horario[d].activo);
+      if (!active.length) return null;
+      const parts = [];
+      let i = 0;
+      while (i < active.length) {
+        let j = i;
+        while (
+          j + 1 < active.length &&
+          ORDER.indexOf(active[j + 1]) === ORDER.indexOf(active[j]) + 1
+        ) j++;
+        parts.push(j > i ? `${SHORT[active[i]]}–${SHORT[active[j]]}` : SHORT[active[i]]);
+        i = j + 1;
+      }
+      return parts.join(', ');
+    }
+
+    function _renderSucursales() {
+      const grid = document.getElementById('sucursalesGrid');
+      if (!grid || !SHOP.sucursales) return;
+      grid.innerHTML = SHOP.sucursales.map(s => {
+        const isSelected = window._selectedSucursal?.id === s.id;
+        const stateClass = isSelected ? 'border-neon bg-brand-neon/10' : 'border-brand-accent/20 bg-[#0a0a0d]';
+        return `
+          <button onclick="selectSucursal(this, '${s.id}')"
+            class="sucursal-option relative flex items-center gap-4 p-5 rounded-2xl border-2 ${stateClass} active:scale-[0.99] transition-all w-full text-left">
+            <div class="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 bg-[#111115] border border-white/10">
+              <i class="ph-fill ph-map-pin text-xl text-gray-400"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <span class="font-bold text-gray-100 text-base block">${s.nombre}</span>
+              <p class="text-xs text-gray-500 mt-0.5">${s.calle}</p>
+              <p class="text-xs text-gray-500">${s.ciudad}, Chile</p>
+            </div>
+            <div class="w-5 h-5 rounded-full border-2 shrink-0 transition-all" style="border-color:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.4);"></div>
+          </button>`;
+      }).join('');
+    }
+
+    function selectSucursal(btn, id) {
+      document.querySelectorAll('.sucursal-option').forEach(el => {
+        el.classList.replace('border-neon', 'border-brand-accent/20');
+        el.classList.remove('bg-brand-neon/10');
+        el.classList.add('bg-[#0a0a0d]');
+      });
+      btn.classList.replace('border-brand-accent/20', 'border-neon');
+      btn.classList.remove('bg-[#0a0a0d]');
+      btn.classList.add('bg-brand-neon/10');
+      window._selectedSucursal = SHOP.sucursales.find(s => s.id === id);
+      // Update hero address strip
+      const heroAddr = document.getElementById('heroInfoAddrText');
+      if (heroAddr && window._selectedSucursal) heroAddr.textContent = window._selectedSucursal.ciudad;
+      updateContinueBtn();
+      updateSelectionRecap();
+    }
 
     function _renderBarberos(barberos) {
       const skeleton = document.getElementById('barberosSkeleton');
@@ -1152,7 +1691,7 @@
          grid.innerHTML = '<p class="text-sm text-gray-500">No hay barberos disponibles en este momento.</p>';
          return;
       }
-      const _isElegance = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance';
+      const _isElegance = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'mapubarbershop';
       const anyStateClass = (window._selectedBarberId === 'any' || window._selectedBarber === 'any') ? 'border-neon bg-brand-neon/10' : 'border-brand-accent/20 bg-[#0a0a0d]';
       const _profLabel = window.CURRENT_TENANT_ID === 'gitana' ? 'Cualquier profesional disponible' : 'Cualquier barbero disponible';
 
@@ -1197,6 +1736,14 @@
         const especialidadDefault = b.especialidad
           ? `<p class="text-xs text-gray-400 font-medium mb-2 relative z-10 uppercase tracking-widest">${b.especialidad}</p>` : '';
 
+        const diasLabel = _buildDiasLabel(b.horario);
+        const diasHTMLElegance = diasLabel
+          ? `<p class="flex items-center gap-1 text-[11px] text-gray-500 mt-0.5"><i class="ph-fill ph-calendar-blank text-[11px]"></i>${diasLabel}</p>`
+          : '';
+        const diasHTMLDefault = diasLabel
+          ? `<p class="flex items-center justify-center gap-1 text-[11px] text-gray-400 mb-1.5 relative z-10"><i class="ph-fill ph-calendar-blank text-[11px]"></i>${diasLabel}</p>`
+          : '';
+
         const disponibilidadString = b.disponible !== false ? 'Disponible para reservas' : 'Agenda llena hoy';
         const isAvailableIcon = b.disponible !== false ? 'check-circle' : 'x-circle';
 
@@ -1207,6 +1754,7 @@
             <div class="flex-1 min-w-0">
               <span class="barber-name font-bold text-gray-100 text-base block truncate">${b.nombre}</span>
               ${especialidadElegance}
+              ${diasHTMLElegance}
               <span class="flex items-center gap-1 text-[12px] font-bold text-brand-neon mt-1">
                 <i class="ph-fill ph-${isAvailableIcon} text-[14px]"></i>${disponibilidadString}
               </span>
@@ -1220,6 +1768,7 @@
           ${fotoHTMLDefault}
           <span class="barber-name font-bold text-gray-100 text-lg mb-0.5 relative z-10 tracking-wide">${b.nombre}</span>
           ${especialidadDefault}
+          ${diasHTMLDefault}
           <span class="flex items-center gap-1.5 text-[13px] font-bold text-brand-neon relative z-10 mt-1">
             <i class="ph-fill ph-${isAvailableIcon} text-[16px]"></i>
             ${disponibilidadString}
@@ -1260,6 +1809,7 @@
       _fsBarberos = rBarberos.status === 'fulfilled' ? rBarberos.value : SHOP.barberos;
       if (!_fsServices.length) _fsServices = DB.getServices();
       if (!_fsBarberos.length) _fsBarberos = SHOP.barberos;
+      _activeBarberos = _fsBarberos;
       window._fsServices = _fsServices;
 
       // Cargar productos para cross-selling (si está activo)
@@ -1532,8 +2082,9 @@
       selectedServiceObj = (window._fsServices || _fsServices || []).find(s => String(s.id) === String(id))
         || DB.getServices().find(s => String(s.id) === String(id));
 
-      // Filtrar barberos que realizan este servicio
-      const barberosParaServicio = (_fsBarberos || []).filter(b => {
+      // Filtrar barberos que realizan este servicio (respetando sucursal activa)
+      const _base = (_activeBarberos.length ? _activeBarberos : _fsBarberos) || [];
+      const barberosParaServicio = _base.filter(b => {
         if (!b.serviciosIds || b.serviciosIds.length === 0) return true;
         return b.serviciosIds.map(String).includes(String(id));
       });
@@ -1582,8 +2133,9 @@
     }
 
     function goBack() {
-      if (currentStep === 1) window.history.back();
-      else {
+      if (currentStep === 0 || (currentStep === 1 && !window._hasSucursales)) {
+        window.history.back();
+      } else {
         const currentStepEl = document.getElementById(`step${currentStep}`);
         const prevStepEl = document.getElementById(`step${currentStep - 1}`);
 
@@ -1603,18 +2155,50 @@
 
     function updateProgress() {
       const bar = document.getElementById('progressBar');
-      const percentage = currentStep === 1 ? '25%' : (currentStep === 2 ? '50%' : (currentStep === 3 ? '75%' : '100%'));
       const paso2Label = window.CURRENT_TENANT_ID === 'gitana' ? 'Profesional' : 'Barbero';
-      const textStates = [`Paso 1 de 4: Servicios`, `Paso 2 de 4: ${paso2Label}`, `Paso 3 de 4: Fecha y Hora`, `Paso 4 de 4: Confirmación`];
-
+      let percentage, text;
+      if (window._hasSucursales) {
+        const pcts   = ['20%',       '40%',       '60%',        '80%',         '100%'        ];
+        const labels = ['Sucursal',  'Servicios', paso2Label,   'Fecha y Hora','Confirmación'];
+        percentage = pcts[currentStep];
+        text = `Paso ${currentStep + 1} de 5: ${labels[currentStep]}`;
+      } else {
+        const pcts   = ['25%',      '50%',           '75%',          '100%'         ];
+        const labels = ['Servicios', paso2Label,     'Fecha y Hora', 'Confirmación' ];
+        percentage = pcts[currentStep - 1];
+        text = `Paso ${currentStep} de 4: ${labels[currentStep - 1]}`;
+      }
       bar.style.width = percentage;
       document.getElementById('progressPercentage').innerText = percentage;
-      document.getElementById('stepIndicatorText').innerText = textStates[currentStep - 1];
+      document.getElementById('stepIndicatorText').innerText = text;
     }
 
     async function nextStep() {
       if (isTransitioning) return;
-      if (currentStep === 1) {
+      if (currentStep === 0) {
+        if (!window._selectedSucursal) return showToast('Selecciona una sucursal para continuar.');
+        // Filtrar barberos por sucursal seleccionada
+        const sid = window._selectedSucursal.id;
+        _activeBarberos = _fsBarberos.filter(b => !b.sucursalId || b.sucursalId === sid);
+        _renderBarberos(_activeBarberos);
+        // Actualizar dirección en footer y strip
+        const calle = window._selectedSucursal.calle;
+        const ciudad = window._selectedSucursal.ciudad;
+        const mapsUrl = window._selectedSucursal.mapsUrl || `https://maps.google.com/?q=${encodeURIComponent(calle + ' ' + ciudad)}`;
+        const calleEl = document.getElementById('shopDireccionCalle');
+        const ciudadEl = document.getElementById('shopDireccionCiudad');
+        const heroAddr = document.getElementById('heroInfoAddrText');
+        if (calleEl)  calleEl.textContent  = calle;
+        if (ciudadEl) ciudadEl.textContent = ciudad + ', Chile';
+        if (heroAddr) heroAddr.textContent = ciudad;
+        document.getElementById('shopDireccionLink')?.setAttribute('href', mapsUrl);
+        document.getElementById('heroInfoAddr')?.setAttribute('href', mapsUrl);
+        transitionStep(0, 1);
+        currentStep = 1;
+        updateProgress();
+        updateContinueBtn();
+
+      } else if (currentStep === 1) {
         if (!selectedServiceObj) return showToast('Selecciona un servicio para continuar.');
 
         transitionStep(1, 2);
@@ -1860,6 +2444,10 @@
             precio:           Number(selectedServiceObj.precio) || 0,
             barbero:          barberoNombreFinal,
             barberoId:        barberoIdFinal,
+            ...(window._selectedSucursal ? {
+              sucursalId:     window._selectedSucursal.id,
+              sucursalNombre: window._selectedSucursal.nombre,
+            } : {}),
           });
           citaGuardada = true;
         } catch(e) {
@@ -1980,6 +2568,12 @@
       document.title = SHOP.pageTitle || `Agendar Hora | ${SHOP.nombre}`;
       document.getElementById('shopLogo').src = SHOP.logo;
       document.getElementById('shopLogo').alt = SHOP.nombre;
+      // Segundo logo (opcional)
+      const logo2El = document.getElementById('shopLogo2');
+      if (logo2El) {
+        if (SHOP.logo2) { logo2El.src = SHOP.logo2; logo2El.style.display = 'block'; }
+        else              logo2El.style.display = 'none';
+      }
       document.getElementById('shopNombre').textContent = SHOP.nombre;
       document.getElementById('shopSlogan').textContent = SHOP.slogan;
       document.getElementById('shopClubNombre').textContent = SHOP.club;
@@ -2014,25 +2608,25 @@
         ? 'Selecciona tu Profesional' : 'Selecciona tu Barbero';
 
       // ── Dirección ────────────────────────────────────────────────
-      const dirClean = SHOP.direccion.replace(/[📍🕒]/g, '').trim();
-      const [dirCalle, dirCiudad] = dirClean.split('|').map(s => s.trim());
+      const dirRaw   = (SHOP.direccion || '').replace(/[📍🕒]/g, '').trim();
+      const [dirCalle, dirCiudad] = dirRaw.split('|').map(s => s.trim());
       const calleEl   = document.getElementById('shopDireccionCalle');
       const ciudadEl  = document.getElementById('shopDireccionCiudad');
-      if (calleEl)  calleEl.textContent  = dirCalle  || dirClean;
+      if (calleEl)  calleEl.textContent  = dirCalle  || dirRaw || '';
       if (ciudadEl) ciudadEl.textContent = dirCiudad || '';
 
       // Quick strip
       const heroAddr = document.getElementById('heroInfoAddrText');
-      if (heroAddr) heroAddr.textContent = dirCalle || dirClean;
+      if (heroAddr) heroAddr.textContent = dirCalle || dirRaw || '';
 
       // Actualizar link de Google Maps con la dirección real
-      const gmapsQ = encodeURIComponent((dirCalle || dirClean) + ' ' + (dirCiudad || ''));
+      const gmapsQ = encodeURIComponent((dirCalle || dirRaw) + ' ' + (dirCiudad || ''));
       const gmapsUrl = `https://maps.google.com/?q=${gmapsQ}`;
       document.getElementById('shopDireccionLink')?.setAttribute('href', gmapsUrl);
       document.getElementById('heroInfoAddr')?.setAttribute('href', gmapsUrl);
 
       // ── Horario ──────────────────────────────────────────────────
-      const horClean = SHOP.horario.replace(/[📍🕒]/g, '').replace('¡Reserva ya!', '').trim();
+      const horClean = (SHOP.horario || '').replace(/[📍🕒]/g, '').replace('¡Reserva ya!', '').trim();
       const horParts = horClean.split('|').map(s => s.trim()).filter(Boolean);
 
       const horGrid = document.getElementById('shopHorarioGrid');
@@ -2111,7 +2705,22 @@
 
     window.addEventListener('DOMContentLoaded', async () => {
       applyConfig();
+
+      // Inicializar modo multi-sucursal
+      window._hasSucursales = !!(SHOP.sucursales && SHOP.sucursales.length > 1);
+      window._selectedSucursal = null;
+      if (window._hasSucursales) {
+        const s0 = document.getElementById('step0');
+        if (s0) {
+          s0.classList.remove('hidden', 'opacity-0', 'translate-x-12', 'transform');
+        }
+        document.getElementById('step1')?.classList.add('hidden');
+        _renderSucursales();
+        currentStep = 0;
+      }
+
       updateContinueBtn();    // botón deshabilitado hasta que se elija servicio
+      updateProgress();
       await initServices();   // carga servicios y config desde Firestore
       await applySettingsOverrides(); // override con settings/general si existe
       renderCalendar();       // ahora que _fsConfig está listo

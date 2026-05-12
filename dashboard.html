@@ -211,6 +211,131 @@
     }
     /* ────────────────────────────────────────────────────────── */
 
+    /* ── Mapu Barber Shop — Classic Barbershop ────────────────── */
+    .tenant-mapubarbershop {
+      --gold:     #BFA37E;
+      --gold-dim: rgba(191,163,126,0.28);
+      --gold-glow: rgba(191,163,126,0.06);
+    }
+
+    /* Fondo burdeo oscuro mate */
+    html.tenant-mapubarbershop body { background-color: #2A1E22; }
+
+    /* Header sticky */
+    .tenant-mapubarbershop header {
+      background-color: rgba(42,30,34,0.97) !important;
+    }
+
+    /* Auth guard bg */
+    .tenant-mapubarbershop #authGuard {
+      background: #2A1E22 !important;
+    }
+
+    /* Hero: título principal — serif regular sin italic */
+    .tenant-mapubarbershop #heroLine1 {
+      font-family: 'Playfair Display', Georgia, serif !important;
+      font-weight: 700 !important;
+      font-style: normal !important;
+      color: #F0EBE1 !important;
+      text-shadow: 0 2px 20px rgba(0,0,0,0.5) !important;
+    }
+    .tenant-mapubarbershop #heroLine2 {
+      font-family: 'Playfair Display', Georgia, serif !important;
+      font-weight: 600 !important;
+      font-style: normal !important;
+      color: #BFA37E !important;
+      text-shadow: none !important;
+    }
+
+    /* Botón "Reservar mi cita" — sólido dorado mate */
+    .tenant-mapubarbershop .hero-cta {
+      background: #BFA37E !important;
+      color: #2A1E22 !important;
+      border: none !important;
+      box-shadow: none !important;
+      backdrop-filter: none !important;
+      font-weight: 700 !important;
+    }
+    .tenant-mapubarbershop .hero-cta i { color: #2A1E22 !important; }
+
+    /* PWA Install card — plano, sin resplandor */
+    .tenant-mapubarbershop #pwaBigInstallCard {
+      background: #352529 !important;
+      border: 1px solid rgba(191,163,126,0.25) !important;
+      box-shadow: none !important;
+    }
+    .tenant-mapubarbershop #pwaBigInstallCard .absolute { display: none !important; }
+    .tenant-mapubarbershop .pwa-icon-bg {
+      background: rgba(191,163,126,0.10) !important;
+      border-color: rgba(191,163,126,0.22) !important;
+      box-shadow: none !important;
+    }
+
+    /* Membership card — burdeo ligeramente más claro */
+    .tenant-mapubarbershop .membership-pattern {
+      background: #2E2226 !important;
+      border-color: rgba(191,163,126,0.12) !important;
+    }
+    .tenant-mapubarbershop .membership-glow {
+      background: radial-gradient(circle, rgba(191,163,126,0.05) 0%, transparent 70%) !important;
+    }
+    .tenant-mapubarbershop #membershipWatermark {
+      color: rgba(191,163,126,0.04) !important;
+    }
+
+    /* Descripción membresía — crema, no gris */
+    .tenant-mapubarbershop #membershipDesc {
+      color: rgba(240,235,225,0.55) !important;
+    }
+
+    /* Cuadrícula de sellos — fondo oscuro con borde sutil */
+    .tenant-mapubarbershop #stampsGrid {
+      background: rgba(42,30,34,0.7) !important;
+      border-color: rgba(191,163,126,0.10) !important;
+    }
+
+    /* Sellos vacíos — borde discontinuo tipo tarjeta física */
+    .tenant-mapubarbershop .stamp-cell.empty {
+      border: 1px dashed rgba(191,163,126,0.32) !important;
+      background: transparent !important;
+    }
+
+    /* Sellos llenos — dorado mate sólido */
+    .tenant-mapubarbershop .stamp-cell.filled {
+      background: #BFA37E !important;
+      border: 1px solid #BFA37E !important;
+      box-shadow: none !important;
+    }
+    .tenant-mapubarbershop .stamp-cell.filled i { color: #2A1E22 !important; }
+
+    /* Barra de progreso de sellos */
+    .tenant-mapubarbershop #stampsBar {
+      background: #BFA37E !important;
+      box-shadow: none !important;
+    }
+
+    /* Cards secundarias (próximo premio, perfil, historial) */
+    .tenant-mapubarbershop .bg-\[#111115\] {
+      background: #352529 !important;
+    }
+    .tenant-mapubarbershop .border-white\/8 {
+      border-color: rgba(191,163,126,0.10) !important;
+    }
+
+    /* Bottom navigation */
+    .tenant-mapubarbershop nav {
+      background-color: rgba(42,30,34,0.97) !important;
+      border-top-color: rgba(191,163,126,0.12) !important;
+    }
+    .tenant-mapubarbershop .nav-tab.active .nav-icon {
+      color: #BFA37E !important;
+      filter: none !important;
+    }
+    .tenant-mapubarbershop .nav-tab.active .nav-label {
+      color: #BFA37E !important;
+    }
+    /* ────────────────────────────────────────────────────────── */
+
     body {
       background-color: #050505;
       color: #f8fafc;
@@ -525,6 +650,43 @@
             <p id="perfilBarbero" class="text-sm font-bold text-white mt-0.5 truncate">—</p>
           </div>
         </div>
+      </div>
+
+      <!-- ── SERVICIO FAVORITO ── -->
+      <div id="servicioFavoritoCard" class="hidden mx-4 mb-5 rounded-2xl bg-[#111115] border border-white/8 overflow-hidden">
+        <div class="px-5 pt-4 pb-3 flex items-center justify-between">
+          <p class="text-[9px] font-black uppercase tracking-widest" style="color:var(--gold);">Tu foto favorita</p>
+          <button
+            onclick="document.getElementById('sfFileInput').click()"
+            id="btnSfCambiar"
+            class="text-[10px] text-white/30 hover:text-white/60 transition-colors active:scale-95"
+          >Cambiar foto</button>
+        </div>
+        <div class="px-5 pb-5">
+          <!-- Con foto -->
+          <div id="sfWithPhoto" class="hidden">
+            <div class="w-full rounded-xl overflow-hidden" style="max-height:300px;">
+              <img id="sfPhoto" src="" alt="Foto favorita" class="w-full object-cover rounded-xl">
+            </div>
+          </div>
+          <!-- Sin foto — subir la propia -->
+          <div id="sfNoPhoto" class="hidden">
+            <div
+              onclick="document.getElementById('sfFileInput').click()"
+              class="flex flex-col items-center justify-center h-32 border-2 border-dashed rounded-xl cursor-pointer active:scale-95 transition-all"
+              style="border-color:rgba(201,168,76,0.25);"
+            >
+              <i class="ph-bold ph-camera text-2xl mb-2" style="color:rgba(201,168,76,0.4);"></i>
+              <p class="text-xs font-semibold" style="color:rgba(201,168,76,0.5);">Subí tu foto de estilo favorito</p>
+              <p class="text-[10px] mt-1" style="color:rgba(255,255,255,0.15);">Solo la verás vos</p>
+            </div>
+          </div>
+          <!-- Cargando -->
+          <div id="sfLoading" class="hidden flex items-center justify-center h-32">
+            <div class="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+          </div>
+        </div>
+        <input id="sfFileInput" type="file" accept="image/*" class="hidden">
       </div>
 
       <!-- ── SERVICIOS DESTACADOS ── -->
@@ -874,6 +1036,7 @@ let _premiosDynamic = [];
 let _userUnsub      = null;
 let _premiosUnsub   = null;
 let _lookbookUnsub  = null;
+let _sfUnsub        = null;
 let _prevStamps     = null;
 let _stampsSynced   = false;
 let _premiosVisible = false;
@@ -915,6 +1078,7 @@ auth.onAuthStateChanged(async user => {
     if (_userUnsub)     { _userUnsub();     _userUnsub     = null; }
     if (_premiosUnsub)  { _premiosUnsub();  _premiosUnsub  = null; }
     if (_lookbookUnsub) { _lookbookUnsub(); _lookbookUnsub = null; }
+    if (_sfUnsub)       { _sfUnsub();       _sfUnsub       = null; }
     if (_chatUnsub)     { _chatUnsub();     _chatUnsub     = null; }
     const _chatWidgetEl = document.getElementById('chatWidget');
     if (_chatWidgetEl) _chatWidgetEl.classList.add('hidden');
@@ -936,6 +1100,7 @@ auth.onAuthStateChanged(async user => {
   });
 
   initLookbook();
+  initServicioFavorito(user);
   cargarServicios();
   cargarCitasUsuario(user);
   initProductosTab();
@@ -1160,7 +1325,9 @@ function renderPremiosDashboard(premios) {
   }
 
   el.innerHTML = premios.map((p, i) => `
-    <div onclick="abrirModalCanje(${JSON.stringify(p.nombre)}, ${p.costoSellos})"
+    <div onclick="abrirModalCanje(this.dataset.nombre, +this.dataset.sellos)"
+      data-nombre="${(p.nombre || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;')}"
+      data-sellos="${p.costoSellos}"
       class="flex items-center gap-4 bg-[#111115] rounded-2xl border border-white/8 px-5 py-4 cursor-pointer active:scale-[0.98] transition-transform select-none hover:border-white/20">
       <span class="text-xl font-black text-white leading-none">${p.costoSellos}</span>
       <div class="w-px h-6 bg-white/10"></div>
@@ -1978,6 +2145,140 @@ function formatearFechaCita(fechaStr) {
   const d = new Date(yy, mo - 1, dd);
   return d.toLocaleDateString('es-CL', { weekday: 'short', day: 'numeric', month: 'short' });
 }
+
+// ─── Compresión de imagen (cliente) ──────────────────────────
+async function _compressImage(file, maxPx = 1200, quality = 0.82) {
+  return new Promise(resolve => {
+    const img = new Image();
+    const blobUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(blobUrl);
+      let { width, height } = img;
+      if (width > maxPx || height > maxPx) {
+        const ratio = Math.min(maxPx / width, maxPx / height);
+        width  = Math.round(width  * ratio);
+        height = Math.round(height * ratio);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width  = width;
+      canvas.height = height;
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+      canvas.toBlob(blob => resolve(blob ?? file), 'image/jpeg', quality);
+    };
+    img.onerror = () => { URL.revokeObjectURL(blobUrl); resolve(file); };
+    img.src = blobUrl;
+  });
+}
+
+// ─── Servicio Favorito ────────────────────────────────────────
+async function initServicioFavorito(user) {
+  try {
+    const snap = await _tenantCol('config').doc('ui').get();
+    const activo = snap.exists ? !!snap.data().servicioFavoritoActivo : false;
+    const card = document.getElementById('servicioFavoritoCard');
+    const cambiarBtn = document.getElementById('btnSfCambiar');
+    if (!activo || !card) return;
+
+    card.classList.remove('hidden');
+    _sfSetLoading(true);
+
+    const email = user.email.toLowerCase();
+    if (_sfUnsub) { _sfUnsub(); _sfUnsub = null; }
+
+    _sfUnsub = _tenantCol('servicioFavorito')
+      .where('email', '==', email)
+      .onSnapshot(qs => {
+        _sfSetLoading(false);
+        if (qs.empty) {
+          _sfShowNoPhoto();
+          if (cambiarBtn) cambiarBtn.classList.add('hidden');
+        } else {
+          const data = qs.docs[0].data();
+          const url = data.adminUrl || data.clienteUrl || null;
+          if (url) {
+            _sfShowPhoto(url);
+            if (cambiarBtn) cambiarBtn.classList.remove('hidden');
+          } else {
+            _sfShowNoPhoto();
+            if (cambiarBtn) cambiarBtn.classList.add('hidden');
+          }
+        }
+      }, err => {
+        console.warn('[SF]', err.message);
+        _sfSetLoading(false);
+      });
+  } catch (e) {
+    console.warn('[SF] init:', e.message);
+  }
+}
+
+function _sfSetLoading(on) {
+  document.getElementById('sfLoading')?.classList.toggle('hidden', !on);
+  document.getElementById('sfLoading')?.style.setProperty('display', on ? 'flex' : 'none');
+  if (on) {
+    document.getElementById('sfWithPhoto')?.classList.add('hidden');
+    document.getElementById('sfNoPhoto')?.classList.add('hidden');
+  }
+}
+
+function _sfShowPhoto(url) {
+  const img = document.getElementById('sfPhoto');
+  if (img) img.src = url;
+  document.getElementById('sfWithPhoto')?.classList.remove('hidden');
+  document.getElementById('sfNoPhoto')?.classList.add('hidden');
+  document.getElementById('sfLoading')?.classList.add('hidden');
+}
+
+function _sfShowNoPhoto() {
+  document.getElementById('sfWithPhoto')?.classList.add('hidden');
+  document.getElementById('sfNoPhoto')?.classList.remove('hidden');
+  document.getElementById('sfLoading')?.classList.add('hidden');
+}
+
+// ─── Subida de foto por el cliente ───────────────────────────
+document.getElementById('sfFileInput').addEventListener('change', async function () {
+  const file = this.files?.[0];
+  this.value = '';
+  if (!file || !currentUser) return;
+
+  _sfSetLoading(true);
+  try {
+    const storage  = firebase.storage();
+    const tid      = window.CURRENT_TENANT_ID || 'elegance';
+    const emailKey = currentUser.email.toLowerCase().replace(/[^a-z0-9]/g, '_');
+    const filename = `${Date.now()}_cliente.jpg`;
+    const path     = tid === 'elegance'
+      ? `servicioFavorito/${emailKey}/${filename}`
+      : `tenants/${tid}/servicioFavorito/${emailKey}/${filename}`;
+
+    const compressed = await _compressImage(file);
+    const snap       = await storage.ref(path).put(compressed, { contentType: 'image/jpeg' });
+    const url        = await snap.ref.getDownloadURL();
+
+    const email    = currentUser.email.toLowerCase();
+    const existing = await _tenantCol('servicioFavorito').where('email', '==', email).get();
+
+    if (!existing.empty) {
+      await existing.docs[0].ref.update({
+        clienteUrl:      url,
+        clienteFilename: filename,
+        updatedAt:       firebase.firestore.FieldValue.serverTimestamp(),
+      });
+    } else {
+      await _tenantCol('servicioFavorito').add({
+        email,
+        clienteUrl:      url,
+        clienteFilename: filename,
+        updatedAt:       firebase.firestore.FieldValue.serverTimestamp(),
+      });
+    }
+    showToast('Foto guardada', 'ok');
+  } catch (err) {
+    console.error('[SF cliente upload]', err);
+    showToast(err.code === 'storage/unauthorized' ? 'Sin permiso para subir.' : 'Error al subir la foto.', 'err');
+    _sfSetLoading(false);
+  }
+});
 </script>
 
   <script>

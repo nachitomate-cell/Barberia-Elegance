@@ -99,6 +99,15 @@ service cloud.firestore {
     }
 
     // ═══════════════════════════════════════════════════════════════
+    //  _billing — estado de pagos por tenant
+    //  Lectura solo para staff del tenant. Escritura solo bootstrap.
+    // ═══════════════════════════════════════════════════════════════
+    match /_billing/{tid} {
+      allow read:  if esStaff(tid) || esBootstrap();
+      allow write: if esBootstrap();
+    }
+
+    // ═══════════════════════════════════════════════════════════════
     //  ELEGANCE — colecciones raíz (tenant legacy/predeterminado)
     // ═══════════════════════════════════════════════════════════════
 
@@ -175,9 +184,10 @@ service cloud.firestore {
     }
 
     // ── /settings ──────────────────────────────────────────────────
-    // Configuración del local: solo staff la lee, solo admin escribe.
+    // Configuración del local: pública para lectura (nombre, dirección,
+    // teléfono, horario — se muestran en la página de reservas pública).
     match /settings/{docId} {
-      allow read: if esStaff('elegance');
+      allow read: if true;
       allow write: if esAdmin('elegance');
     }
 
@@ -192,6 +202,53 @@ service cloud.firestore {
     match /config/{docId} {
       allow read: if true;
       allow write: if esAdmin('elegance');
+    }
+
+    // ── /configuracion ─────────────────────────────────────────────
+    // Horario y configuración operativa del local. El widget de reservas
+    // la lee para calcular disponibilidad sin necesitar autenticación.
+    match /configuracion/{docId} {
+      allow read: if true;
+      allow write: if esAdmin('elegance');
+    }
+
+    // ── /system_errors ─────────────────────────────────────────────
+    // El error-logger del cliente escribe aquí para observabilidad.
+    match /system_errors/{docId} {
+      allow write: if true;
+      allow read:  if esBootstrap();
+    }
+
+    // ── /servicioFavorito ──────────────────────────────────────────
+    // Foto personalizada por cliente. Staff asigna; cliente lee/sube la suya.
+    match /servicioFavorito/{docId} {
+      allow read:   if autenticado() && (
+                       resource.data.email == request.auth.token.email
+                    || esStaff('elegance')
+                    );
+      allow create: if esStaff('elegance')
+                    || (autenticado()
+                        && request.resource.data.email == request.auth.token.email);
+      allow update: if esStaff('elegance')
+                    || (autenticado()
+                        && resource.data.email == request.auth.token.email);
+      allow delete: if esStaff('elegance');
+    }
+
+    // ── /clientes ──────────────────────────────────────────────────
+    // Staff lee/escribe todo. Clientes autenticados pueden crear/actualizar
+    // su propio documento (identificado por uid en el campo uid).
+    match /clientes/{docId} {
+      allow read:   if esStaff('elegance');
+      allow create: if esStaff('elegance')
+                    || (autenticado()
+                        && request.resource.data.uid == request.auth.uid
+                        && !request.resource.data.keys().hasAny(['role', 'adminOverride']));
+      allow update: if esStaff('elegance')
+                    || (autenticado()
+                        && resource.data.get('uid', '') == request.auth.uid
+                        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'adminOverride']));
+      allow delete: if esAdmin('elegance');
     }
 
     // ── /users ─────────────────────────────────────────────────────
@@ -344,7 +401,7 @@ service cloud.firestore {
 
       // ── settings ──────────────────────────────────────────────────
       match /settings/{docId} {
-        allow read: if esStaff(tid);
+        allow read: if true;
         allow write: if esAdmin(tid);
       }
 
@@ -357,6 +414,41 @@ service cloud.firestore {
       match /config/{docId} {
         allow read: if true;
         allow write: if esAdmin(tid);
+      }
+
+      // ── configuracion ─────────────────────────────────────────────
+      match /configuracion/{docId} {
+        allow read: if true;
+        allow write: if esAdmin(tid);
+      }
+
+      // ── servicioFavorito ──────────────────────────────────────────
+      match /servicioFavorito/{docId} {
+        allow read:   if autenticado() && (
+                         resource.data.email == request.auth.token.email
+                      || esStaff(tid)
+                      );
+        allow create: if esStaff(tid)
+                      || (autenticado()
+                          && request.resource.data.email == request.auth.token.email);
+        allow update: if esStaff(tid)
+                      || (autenticado()
+                          && resource.data.email == request.auth.token.email);
+        allow delete: if esStaff(tid);
+      }
+
+      // ── clientes ──────────────────────────────────────────────────
+      match /clientes/{docId} {
+        allow read:   if esStaff(tid);
+        allow create: if esStaff(tid)
+                      || (autenticado()
+                          && request.resource.data.uid == request.auth.uid
+                          && !request.resource.data.keys().hasAny(['role', 'adminOverride']));
+        allow update: if esStaff(tid)
+                      || (autenticado()
+                          && resource.data.get('uid', '') == request.auth.uid
+                          && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'adminOverride']));
+        allow delete: if esAdmin(tid);
       }
 
       // ── users ─────────────────────────────────────────────────────

@@ -11,6 +11,7 @@ import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage
 import { db, storage, auth } from '../lib/firebase';
 import { tenantCol, resolveTenantId } from '../lib/tenantUtils';
 import { useCollection } from '../hooks/useCollection';
+import { useSucursales } from '../hooks/useSucursales';
 import { useTenant } from '../contexts/TenantContext';
 import Badge        from '../components/ui/Badge';
 import DropdownMenu from '../components/ui/DropdownMenu';
@@ -41,6 +42,7 @@ const DEFAULT_HORARIO = () => ({
 const BARBER_EMPTY = {
   nombre:'', especialidad:'', foto:'', email:'', whatsapp:'',
   comision: 0,
+  sucursalId: '',
   serviciosIds: [],
   horario: DEFAULT_HORARIO(),
   ausencias: [],
@@ -147,7 +149,7 @@ function DayRow({ diaKey, config, onChange }) {
 }
 
 /* ─── BarberCard ─────────────────────────────────────────── */
-function BarberCard({ barber, onEdit, waUrl, onVerAgenda }) {
+function BarberCard({ barber, onEdit, waUrl, onVerAgenda, sucursales = [] }) {
   const isActive      = barber.disponible !== false;
   const isStrictAdmin = barber.rol === 'admin';
   const isAdmin       = barber.rol === 'admin' || barber.rol === 'jefe';
@@ -183,6 +185,15 @@ function BarberCard({ barber, onEdit, waUrl, onVerAgenda }) {
         <p className="font-semibold text-white text-sm">{barber.nombre}</p>
         {isAdmin && <p className="text-xs text-emerald-500/70 font-semibold mt-0.5 uppercase tracking-wide">{barber.rol==='jefe'?'Jefe':'Admin'}</p>}
         {!isAdmin && barber.especialidad && <p className="text-xs text-slate-500 mt-0.5">{barber.especialidad}</p>}
+        {barber.sucursalId && (() => {
+          const suc = sucursales.find(s => s.id === barber.sucursalId);
+          return (
+            <p className="text-[10px] text-slate-600 mt-0.5 flex items-center justify-center gap-1">
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-slate-600"></span>
+              {suc ? suc.nombre : barber.sucursalId}
+            </p>
+          );
+        })()}
         {barber.comision > 0 && <p className="text-xs text-slate-600 mt-0.5">{barber.comision}% comisión</p>}
         <div className="mt-2"><Badge variant={isActive?'active':'inactive'}>{isActive?'Activo':'Inactivo'}</Badge></div>
       </div>
@@ -210,6 +221,7 @@ export default function Equipo() {
 
   const { data: rawBarberos, loading } = useCollection('barberos');
   const { data: servicios }            = useCollection('servicios');
+  const sucursales                     = useSucursales();
   const barberos = rawBarberos.filter(b => !b._mainDocId);
 
   const [slide,     setSlide]     = useState(false);
@@ -245,6 +257,7 @@ export default function Equipo() {
       email:        b.email        || '',
       whatsapp:     b.whatsapp     || '',
       comision:     b.comision     ?? 0,
+      sucursalId:   b.sucursalId   || '',
       serviciosIds: b.serviciosIds || [],
       horario:      initHorario(b),
       ausencias:    b.ausencias    || [],
@@ -362,7 +375,7 @@ export default function Equipo() {
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           {barberos.map(b => (
             <BarberCard key={b.id} barber={b} onEdit={openEdit} waUrl={waUrl}
-              onVerAgenda={() => navigate('/agenda')} />
+              sucursales={sucursales} onVerAgenda={() => navigate('/agenda')} />
           ))}
         </div>
       )}
@@ -415,6 +428,23 @@ export default function Equipo() {
               <input className={field} placeholder="Cortes y barba clásica" value={form.especialidad}
                 onChange={e => set('especialidad', e.target.value)} />
             </div>
+
+            {sucursales.length > 0 && (
+              <div>
+                <label className={lbl}>Sucursal</label>
+                <select className={field} value={form.sucursalId || ''}
+                  onChange={e => set('sucursalId', e.target.value)}>
+                  <option value="">Todas las sucursales</option>
+                  {sucursales.map(s => (
+                    <option key={s.id} value={s.id}>{s.nombre}</option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-slate-600 mt-1">
+                  "Todas" significa que aparece disponible en cualquier sucursal.
+                </p>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className={lbl}><Mail size={10} className="inline mr-1" />Email</label>

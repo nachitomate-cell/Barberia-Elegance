@@ -233,7 +233,83 @@ export default function Metricas() {
         </p>
       </div>
 
-      <SynapTechNews />
+      {/* Rankings — primero para visibilidad rápida */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+        {/* Top 10 clientes */}
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Crown size={16} className="text-amber-400" />
+            <p className="text-sm font-semibold text-white">Top 10 Clientes</p>
+            <span className="text-xs text-slate-500 ml-auto">Últimos 6 meses</span>
+          </div>
+          {stats.top10.length === 0 ? (
+            <p className="text-xs text-slate-600 italic text-center py-8">Sin datos de citas</p>
+          ) : (
+            <div className="space-y-1">
+              {stats.top10.map((c, i) => (
+                <div key={i}
+                  className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-800/50 transition-colors">
+                  <span className={`text-xs font-bold w-5 text-center shrink-0 ${rankColor(i)}`}>{i + 1}</span>
+                  <div className="w-7 h-7 rounded-full bg-slate-800 flex items-center justify-center shrink-0">
+                    <User size={13} className="text-slate-500" />
+                  </div>
+                  <p className="text-sm text-white flex-1 truncate">{c.nombre}</p>
+                  <div className="text-right shrink-0">
+                    <p className="text-xs font-semibold text-white">
+                      {c.citas} {c.citas === 1 ? 'cita' : 'citas'}
+                    </p>
+                    {c.gasto > 0 && (
+                      <p className="text-[10px] text-slate-500">${c.gasto.toLocaleString('es-CL')}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Ranking barberos */}
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <Star size={16} className="text-emerald-400" />
+            <p className="text-sm font-semibold text-white">Ranking de Barberos</p>
+            <span className="text-xs text-slate-500 ml-auto">Este mes</span>
+          </div>
+          {stats.barberRanking.length === 0 ? (
+            <p className="text-xs text-slate-600 italic text-center py-8">Sin citas completadas este mes</p>
+          ) : (
+            <div className="space-y-1">
+              {stats.barberRanking.map((b, i) => {
+                const maxIng = stats.barberRanking[0]?.ingresos || 1;
+                const pct    = maxIng > 0
+                  ? Math.round((b.ingresos / maxIng) * 100)
+                  : Math.round((b.citas / (stats.barberRanking[0]?.citas || 1)) * 100);
+                return (
+                  <div key={i}
+                    className="px-3 py-2 rounded-lg hover:bg-slate-800/50 transition-colors space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs font-bold w-5 text-center shrink-0 ${rankColor(i)}`}>{i + 1}</span>
+                      <p className="text-sm text-white flex-1 truncate">{b.nombre}</p>
+                      <div className="text-right shrink-0">
+                        <p className="text-xs font-semibold text-white">{b.citas} citas</p>
+                        {b.ingresos > 0 && (
+                          <p className="text-[10px] text-slate-500">${b.ingresos.toLocaleString('es-CL')}</p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="ml-7 h-1 bg-slate-800 rounded-full overflow-hidden">
+                      <div className="h-full bg-emerald-500/70 rounded-full transition-all"
+                        style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+      </div>
 
       {/* KPIs — fila 1 */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -382,83 +458,8 @@ export default function Metricas() {
 
       </div>
 
-      {/* Rankings */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <SynapTechNews />
 
-        {/* Top 10 clientes */}
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <Crown size={16} className="text-amber-400" />
-            <p className="text-sm font-semibold text-white">Top 10 Clientes</p>
-            <span className="text-xs text-slate-500 ml-auto">Últimos 6 meses</span>
-          </div>
-          {stats.top10.length === 0 ? (
-            <p className="text-xs text-slate-600 italic text-center py-8">Sin datos de citas</p>
-          ) : (
-            <div className="space-y-1">
-              {stats.top10.map((c, i) => (
-                <div key={i}
-                  className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-800/50 transition-colors">
-                  <span className={`text-xs font-bold w-5 text-center shrink-0 ${rankColor(i)}`}>{i + 1}</span>
-                  <div className="w-7 h-7 rounded-full bg-slate-800 flex items-center justify-center shrink-0">
-                    <User size={13} className="text-slate-500" />
-                  </div>
-                  <p className="text-sm text-white flex-1 truncate">{c.nombre}</p>
-                  <div className="text-right shrink-0">
-                    <p className="text-xs font-semibold text-white">
-                      {c.citas} {c.citas === 1 ? 'cita' : 'citas'}
-                    </p>
-                    {c.gasto > 0 && (
-                      <p className="text-[10px] text-slate-500">${c.gasto.toLocaleString('es-CL')}</p>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Ranking barberos */}
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <Star size={16} className="text-emerald-400" />
-            <p className="text-sm font-semibold text-white">Ranking de Barberos</p>
-            <span className="text-xs text-slate-500 ml-auto">Este mes</span>
-          </div>
-          {stats.barberRanking.length === 0 ? (
-            <p className="text-xs text-slate-600 italic text-center py-8">Sin citas completadas este mes</p>
-          ) : (
-            <div className="space-y-1">
-              {stats.barberRanking.map((b, i) => {
-                const maxIng = stats.barberRanking[0]?.ingresos || 1;
-                const pct    = maxIng > 0
-                  ? Math.round((b.ingresos / maxIng) * 100)
-                  : Math.round((b.citas / (stats.barberRanking[0]?.citas || 1)) * 100);
-                return (
-                  <div key={i}
-                    className="px-3 py-2 rounded-lg hover:bg-slate-800/50 transition-colors space-y-1.5">
-                    <div className="flex items-center gap-2">
-                      <span className={`text-xs font-bold w-5 text-center shrink-0 ${rankColor(i)}`}>{i + 1}</span>
-                      <p className="text-sm text-white flex-1 truncate">{b.nombre}</p>
-                      <div className="text-right shrink-0">
-                        <p className="text-xs font-semibold text-white">{b.citas} citas</p>
-                        {b.ingresos > 0 && (
-                          <p className="text-[10px] text-slate-500">${b.ingresos.toLocaleString('es-CL')}</p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="ml-7 h-1 bg-slate-800 rounded-full overflow-hidden">
-                      <div className="h-full bg-emerald-500/70 rounded-full transition-all"
-                        style={{ width: `${pct}%` }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-      </div>
       {showHelp && (
         <HelpModal title="Ayuda — Métricas" onClose={() => setShowHelp(false)}>
           <p><strong className="text-white">Métricas</strong> muestra el resumen analítico del negocio.</p>

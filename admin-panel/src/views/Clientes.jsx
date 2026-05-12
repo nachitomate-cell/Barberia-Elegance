@@ -1,13 +1,21 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { Search, User, Phone, Trophy, Plus, Minus, Gift, X, RotateCcw, MessageCircle, Cake } from 'lucide-react';
+import { Search, User, Phone, Trophy, Plus, Minus, Gift, X, RotateCcw, MessageCircle, Cake, UserX, Send } from 'lucide-react';
 import {
   onSnapshot, updateDoc, setDoc, doc, getDocs, query, where, orderBy as firestoreOrderBy,
   increment, arrayUnion, serverTimestamp,
 } from 'firebase/firestore';
 import { tenantCol } from '../lib/tenantUtils';
 import { useCollection } from '../hooks/useCollection';
+import { useTenant } from '../contexts/TenantContext';
 import SlideOver from '../components/ui/SlideOver';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
+
+/* ── Dominio público por tenant ─────────────────────────────────── */
+const PROD_DOMAINS = {
+  elegance: 'https://barberiaelegance.synaptechspa.cl',
+  ferraza:  'https://barberiaferraza.synaptechspa.cl',
+  gitana:   'https://gitananails.synaptechspa.cl',
+};
 
 function normalizePhone(phone) {
   return (phone || '').replace(/\D/g, '');
@@ -111,13 +119,16 @@ function ClientePanel({ cliente: init, premios, onClose }) {
     }
   };
 
-  /* Load recent appointments (one-time) */
+  const [totalCitas, setTotalCitas] = useState(0);
+
+  /* Load all appointments for this client (one-time) */
   useEffect(() => {
     if (!init.email) return;
     getDocs(query(tenantCol('citas'), where('clienteEmail', '==', init.email)))
       .then(snap => {
         const arr = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         arr.sort((a, b) => (b.fecha || '').localeCompare(a.fecha || '') || (b.hora || '').localeCompare(a.hora || ''));
+        setTotalCitas(arr.length);
         setCitas(arr.slice(0, 10));
       }).catch(() => {});
   }, [init.uid, init.email]);
@@ -365,7 +376,14 @@ function ClientePanel({ cliente: init, premios, onClose }) {
       {/* Citas recientes */}
       {citas.length > 0 && (
         <div>
-          <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Citas recientes</p>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Citas recientes</p>
+            {totalCitas > 0 && (
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-400">
+                {totalCitas} en total
+              </span>
+            )}
+          </div>
           <div className="space-y-1.5">
             {citas.map(c => {
               const col = c.estado === 'Completada' ? 'text-emerald-400' : c.estado === 'Cancelada' ? 'text-red-400' : 'text-yellow-400';
@@ -402,16 +420,186 @@ function ClientePanel({ cliente: init, premios, onClose }) {
   );
 }
 
+/* ── Modal: clientes sin registro ───────────────────────────────── */
+function SinRegistroModal({ sinRegistro, shopName, registroUrl, onClose }) {
+  const [search, setSearch] = useState('');
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return sinRegistro;
+    return sinRegistro.filter(c =>
+      c.nombre?.toLowerCase().includes(q) ||
+      c.telefono?.includes(q)
+    );
+  }, [sinRegistro, search]);
+
+  const waMsg = (nombre) => {
+    const msg = `¡Hola ${nombre || 'ahí'}! 👋 Gracias por visitarnos en ${shopName}. Tenemos un club de fidelidad donde acumulas sellos y ganas premios gratis 🎁. ¡Únete registrándote aquí! 👉 ${registroUrl}`;
+    return msg;
+  };
+
+  const waUrl = (telefono, nombre) => {
+    const raw = (telefono || '').replace(/\D/g, '');
+    if (!raw || raw.length < 8) return null;
+    const num = raw.startsWith('56') ? raw : `56${raw}`;
+    return `https://wa.me/${num}?text=${encodeURIComponent(waMsg(nombre))}`;
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="w-full max-w-lg bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl flex flex-col max-h-[85vh]">
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800">
+          <div>
+            <div className="flex items-center gap-2">
+              <UserX size={15} className="text-amber-400" />
+              <h3 className="font-semibold text-white">Clientes sin registro</h3>
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-400/10 border border-amber-400/30 text-amber-400">
+                {sinRegistro.length}
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">Han agendado pero no se han unido al club de fidelidad</p>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-slate-800 transition-all">
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* Búsqueda */}
+        <div className="px-5 pt-4">
+          <div className="relative">
+            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Buscar por nombre o teléfono…"
+              className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-8 pr-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-slate-500 transition-colors"
+            />
+          </div>
+          <p className="text-xs text-slate-600 mt-2 mb-1">{filtered.length} cliente{filtered.length !== 1 ? 's' : ''}</p>
+        </div>
+
+        {/* Lista */}
+        <div className="flex-1 overflow-y-auto px-5 pb-5 space-y-2 mt-1">
+          {filtered.length === 0 ? (
+            <div className="flex flex-col items-center py-10 gap-2 text-center">
+              <UserX size={28} className="text-slate-700" />
+              <p className="text-sm text-slate-500">Sin resultados</p>
+            </div>
+          ) : filtered.map(c => {
+            const url = waUrl(c.telefono, c.nombre);
+            return (
+              <div key={c.key} className="flex items-center gap-3 bg-slate-800/50 border border-slate-800 rounded-xl px-4 py-3">
+                {/* Avatar */}
+                <div className="w-9 h-9 rounded-full bg-slate-700 flex items-center justify-center shrink-0">
+                  <span className="text-xs font-bold text-slate-300">
+                    {(c.nombre || '?').trim().split(/\s+/).map(w => w[0]).slice(0,2).join('').toUpperCase()}
+                  </span>
+                </div>
+
+                {/* Info */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-white truncate">{c.nombre || 'Sin nombre'}</p>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    {c.telefono && <span className="text-[10px] text-slate-500">{c.telefono}</span>}
+                    <span className="text-[10px] font-bold text-blue-400/80">{c.count} cita{c.count !== 1 ? 's' : ''}</span>
+                  </div>
+                </div>
+
+                {/* Botón WA */}
+                {url ? (
+                  <a
+                    href={url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold shrink-0 transition-all hover:opacity-90 active:scale-95"
+                    style={{ background: '#25D366', color: '#fff' }}
+                    title={`Enviar invitación a ${c.nombre}`}
+                  >
+                    <Send size={11} />
+                    Invitar
+                  </a>
+                ) : (
+                  <span className="text-[10px] text-slate-600 shrink-0">Sin teléfono</span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Footer: mensaje de referencia */}
+        <div className="px-5 py-3 border-t border-slate-800 bg-slate-800/20 rounded-b-2xl">
+          <p className="text-[10px] text-slate-600 leading-relaxed">
+            <span className="text-slate-500 font-semibold">Mensaje enviado:</span>{' '}
+            "¡Hola! 👋 Gracias por visitarnos en {shopName}. Únete al club de fidelidad y gana premios 🎁 👉 {registroUrl}"
+          </p>
+        </div>
+
+      </div>
+    </div>
+  );
+}
+
 /* ── Vista principal Clientes ── */
 export default function Clientes() {
+  const { id: tenantId, name: shopName } = useTenant();
   const { data: clientes, loading } = useCollection('users');
   const { data: premios }           = useCollection('premios', [firestoreOrderBy('costoSellos')]);
+  const { data: todasCitas }        = useCollection('citas', [], []);
 
-  const [search,    setSearch]    = useState('');
-  const [showHelp,  setShowHelp]  = useState(false);
-  const [selected,  setSelected]  = useState(null);
+  const [search,          setSearch]          = useState('');
+  const [showHelp,        setShowHelp]        = useState(false);
+  const [selected,        setSelected]        = useState(null);
+  const [showSinRegistro, setShowSinRegistro] = useState(false);
+
+  const registroUrl = `${PROD_DOMAINS[tenantId] || window.location.origin}/registro.html`;
 
   const sellos = c => c.sellosDisponibles ?? c.stamps ?? 0;
+
+  const citasPorEmail = useMemo(() => {
+    const map = {};
+    todasCitas.forEach(c => {
+      if (c.clienteEmail) map[c.clienteEmail] = (map[c.clienteEmail] || 0) + 1;
+    });
+    return map;
+  }, [todasCitas]);
+
+  /* Clientes sin registro: han agendado pero no están en /users */
+  const sinRegistro = useMemo(() => {
+    const regEmails = new Set(clientes.map(c => (c.email || '').toLowerCase()).filter(Boolean));
+    const regPhones = new Set(clientes.map(c => normalizePhone(c.telefono)).filter(Boolean));
+
+    const map = {};
+    todasCitas.forEach(cita => {
+      const phone = normalizePhone(cita.clienteTelefono);
+      const email = (cita.clienteEmail || '').toLowerCase();
+
+      // Saltar si ya está registrado
+      if (email && regEmails.has(email)) return;
+      if (phone && regPhones.has(phone)) return;
+
+      const key = phone || email || cita.clienteNombre;
+      if (!key) return;
+
+      if (!map[key]) {
+        map[key] = {
+          key,
+          nombre:   cita.clienteNombre  || '',
+          telefono: cita.clienteTelefono || '',
+          email:    cita.clienteEmail    || '',
+          count:    0,
+        };
+      }
+      map[key].count++;
+    });
+
+    return Object.values(map).sort((a, b) => b.count - a.count);
+  }, [todasCitas, clientes]);
 
   const sorted = useMemo(() =>
     [...clientes].sort((a, b) => sellos(b) - sellos(a) || (a.nombre || '').localeCompare(b.nombre || '')),
@@ -432,24 +620,40 @@ export default function Clientes() {
   const conPremio = premios.length
     ? clientes.filter(c => sellos(c) >= premios[0]?.costoSellos).length
     : clientes.filter(c => sellos(c) >= 5).length;
+  const totalCitasGlobal = todasCitas.length;
 
   return (
     <div className="max-w-4xl mx-auto">
       {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center gap-2">
-          <h1 className="text-xl font-bold text-white">Clientes y Fidelización</h1>
-          <HelpButton onClick={() => setShowHelp(true)} />
+      <div className="flex items-start justify-between mb-6">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold text-white">Clientes y Fidelización</h1>
+            <HelpButton onClick={() => setShowHelp(true)} />
+          </div>
+          <p className="text-sm text-slate-500 mt-0.5">Gestiona sellos y premios de cada cliente.</p>
         </div>
-        <p className="text-sm text-slate-500 mt-0.5">Gestiona sellos y premios de cada cliente.</p>
+        <button
+          onClick={() => setShowSinRegistro(true)}
+          className="relative flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold border border-amber-500/30 bg-amber-400/5 text-amber-400 hover:bg-amber-400/10 transition-all shrink-0"
+        >
+          <UserX size={13} />
+          Sin registro
+          {sinRegistro.length > 0 && (
+            <span className="ml-0.5 px-1.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300 font-black text-[10px]">
+              {sinRegistro.length}
+            </span>
+          )}
+        </button>
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-3 gap-3 mb-5">
+      <div className="grid grid-cols-4 gap-3 mb-5">
         {[
-          { label: 'Clientes', value: total,     color: 'text-white' },
-          { label: 'Avg Sellos', value: avg,     color: 'text-emerald-400' },
-          { label: 'Con premios', value: conPremio, color: 'text-yellow-400' },
+          { label: 'Clientes',    value: total,            color: 'text-white' },
+          { label: 'Citas totales', value: totalCitasGlobal, color: 'text-blue-400' },
+          { label: 'Avg sellos',  value: avg,              color: 'text-emerald-400' },
+          { label: 'Con premios', value: conPremio,        color: 'text-yellow-400' },
         ].map(({ label, value, color }) => (
           <div key={label} className="bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-center">
             <p className={`text-2xl font-black ${color}`}>{value}</p>
@@ -487,6 +691,7 @@ export default function Clientes() {
                 : stamps >= 5 ? 'text-emerald-400 border-emerald-500/40 bg-emerald-500/10'
                 : 'text-slate-500 border-slate-700';
               const hasPrize = premios.some(p => stamps >= p.costoSellos);
+              const numCitas = c.email ? (citasPorEmail[c.email] || 0) : 0;
               return (
                 <div key={c.uid || c.id} onClick={() => setSelected(c)}
                   className="grid grid-cols-12 items-center px-5 py-4 hover:bg-white/2 transition-colors cursor-pointer group">
@@ -499,6 +704,9 @@ export default function Clientes() {
                     <div className="min-w-0">
                       <p className="font-semibold text-white text-sm truncate group-hover:text-emerald-400 transition-colors">{c.nombre || '—'}</p>
                       <p className="text-xs text-slate-500 truncate">{c.email}</p>
+                      {numCitas > 0 && (
+                        <p className="text-[10px] text-blue-400/70 font-semibold">{numCitas} cita{numCitas !== 1 ? 's' : ''}</p>
+                      )}
                     </div>
                   </div>
                   <div className="col-span-3 hidden sm:block">
@@ -520,6 +728,16 @@ export default function Clientes() {
           </div>
         )}
       </div>
+
+      {/* Modal sin registro */}
+      {showSinRegistro && (
+        <SinRegistroModal
+          sinRegistro={sinRegistro}
+          shopName={shopName}
+          registroUrl={registroUrl}
+          onClose={() => setShowSinRegistro(false)}
+        />
+      )}
 
       {/* Client detail SlideOver */}
       <SlideOver isOpen={!!selected} onClose={() => setSelected(null)}
