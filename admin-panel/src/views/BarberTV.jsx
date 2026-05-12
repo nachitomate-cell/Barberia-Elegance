@@ -547,26 +547,32 @@ function SlideIndicators({ labels, active, paused, onChange }) {
 // ── Componente principal ──────────────────────────────────────────
 export default function BarberTV() {
   const { id: tenantId, name: tenantName } = useTenant();
-  GOLD = TENANT_ACCENT[tenantId] || '#D4AF37';
 
   // Citas: se inicializan desde localStorage para evitar parpadeo offline
-  const [citas,      setCitas]      = useState(() => {
+  const [citas,        setCitas]        = useState(() => {
     try {
       const tid = resolveTenantId();
       return JSON.parse(localStorage.getItem(lsCitasKey(tid)) || '[]');
     } catch { return []; }
   });
-  const [photos,     setPhotos]     = useState([]);
-  const [barberos,   setBarberos]   = useState([]);
-  const [oferta,     setOferta]     = useState(OFERTA_DEFAULT);
-  const [slide,      setSlide]      = useState(0);
-  const [paused,     setPaused]     = useState(false);
-  const [offline,    setOffline]    = useState(false);
-  const [imageCache, setImageCache] = useState({});
+  const [photos,       setPhotos]       = useState([]);
+  const [barberos,     setBarberos]     = useState([]);
+  const [oferta,       setOferta]       = useState(OFERTA_DEFAULT);
+  const [slide,        setSlide]        = useState(0);
+  const [paused,       setPaused]       = useState(false);
+  const [offline,      setOffline]      = useState(false);
+  const [imageCache,   setImageCache]   = useState({});
+  const [duracion,     setDuracion]     = useState(SLIDE_MS);
+  const [slidesActivos,setSlidesActivos]= useState({ oferta: true, lookbook: true, equipo: true });
+  const [accentColor,  setAccentColor]  = useState('');
 
-  const preloadedRef = useRef(new Set());
+  // Acento dinámico: config Firestore > TENANT_ACCENT hardcode > dorado
+  GOLD = accentColor || TENANT_ACCENT[tenantId] || '#D4AF37';
+
+  const preloadedRef   = useRef(new Set());
+  const activeCountRef = useRef(3);
   // Tracks which slides have been shown at least once (para skip de animaciones en revisita)
-  const visitedRef   = useRef(new Set([0]));
+  const visitedRef     = useRef(new Set([0]));
 
   const qrUrl = `${window.location.origin}/index.html?local=${tenantId}`;
 
@@ -622,15 +628,18 @@ export default function BarberTV() {
     );
   }, [tenantId]);
 
-  // Configuración del slide de oferta — leída desde Firestore en tiempo real
+  // Configuración TV — oferta, duración, slides activos y color en tiempo real
   useEffect(() => {
     const ref = tenantDoc('configuracion', 'tv');
     return onSnapshot(
       ref,
       snap => {
-        if (snap.exists() && snap.data()?.oferta) {
-          setOferta(prev => ({ ...OFERTA_DEFAULT, ...snap.data().oferta }));
-        }
+        if (!snap.exists()) return;
+        const d = snap.data();
+        if (d.oferta)        setOferta(prev => ({ ...OFERTA_DEFAULT, ...d.oferta }));
+        if (d.duracionSlide) setDuracion(Number(d.duracionSlide) * 1000);
+        if (d.slidesActivos) setSlidesActivos(prev => ({ ...prev, ...d.slidesActivos }));
+        setAccentColor(d.accentColor || '');
       },
       () => {},
     );
@@ -677,11 +686,11 @@ export default function BarberTV() {
   useEffect(() => {
     if (paused) return;
     const id = setInterval(
-      () => setSlide(s => (s + 1) % SLIDE_LABELS.length),
-      SLIDE_MS,
+      () => setSlide(s => (s + 1) % (activeCountRef.current || 1)),
+      duracion,
     );
     return () => clearInterval(id);
-  }, [paused]);
+  }, [paused, duracion]);
 
   const handleCarouselClick = useCallback(() => setPaused(p => !p), []);
 
@@ -690,11 +699,18 @@ export default function BarberTV() {
     setSlide(i);
   }, []);
 
-  const slides = [
-    <SlidePublicidad key="pub"  oferta={oferta} />,
-    <SlideLookbook   key="look" photos={photos}   skipAnimation={visitedRef.current.has(1)} />,
-    <SlideEquipo     key="team" barberos={barberos} imageCache={imageCache} skipAnimation={visitedRef.current.has(2)} />,
+  const ALL_DEFS = [
+    { key: 'oferta',   label: 'Oferta',   el: <SlidePublicidad key="pub"  oferta={oferta} /> },
+    { key: 'lookbook', label: 'Trabajos', el: <SlideLookbook   key="look" photos={photos} skipAnimation={visitedRef.current.has(1)} /> },
+    { key: 'equipo',   label: 'Equipo',   el: <SlideEquipo     key="team" barberos={barberos} imageCache={imageCache} skipAnimation={visitedRef.current.has(2)} /> },
   ];
+  const activeDefs = ALL_DEFS.filter(s => slidesActivos[s.key] !== false);
+  // Si todos están desactivados, mostrar todo (evitar pantalla en blanco)
+  const visibleDefs = activeDefs.length ? activeDefs : ALL_DEFS;
+  activeCountRef.current = visibleDefs.length;
+  const safeSlide   = Math.min(slide, visibleDefs.length - 1);
+  const slides      = visibleDefs.map(s => s.el);
+  const slideLabels = visibleDefs.map(s => s.label);
 
   return (
     <div
@@ -749,20 +765,20 @@ export default function BarberTV() {
 
           <AnimatePresence mode="wait">
             <motion.div
-              key={slide}
+              key={safeSlide}
               className="absolute inset-0"
               initial={{ opacity: 0, filter: 'blur(12px)', scale: 1.02 }}
               animate={{ opacity: 1, filter: 'blur(0px)',  scale: 1    }}
               exit={  { opacity: 0, filter: 'blur(8px)',   scale: 0.99 }}
               transition={{ duration: 0.7, ease: [0.4, 0, 0.2, 1] }}
             >
-              {slides[slide]}
+              {slides[safeSlide]}
             </motion.div>
           </AnimatePresence>
 
           <SlideIndicators
-            labels={SLIDE_LABELS}
-            active={slide}
+            labels={slideLabels}
+            active={safeSlide}
             paused={paused}
             onChange={handleSlideChange}
           />

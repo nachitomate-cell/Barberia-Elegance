@@ -25,6 +25,7 @@ import Marketing        from './views/Marketing';
 import ServicioFavorito from './views/ServicioFavorito';
 import LoginPage        from './views/LoginPage';
 import BarberTV         from './views/BarberTV';
+import TVConfig         from './views/TVConfig';
 import Finanzas         from './views/Finanzas';
 import Mensualidad      from './views/Mensualidad';
 
@@ -69,6 +70,7 @@ function ProtectedApp() {
             <Route path="premios"         element={<Premios />} />
             <Route path="productos"       element={<Productos />} />
             <Route path="lookbook"        element={<Lookbook />} />
+            <Route path="tv-config"       element={<TVConfig />} />
             <Route path="servicio-favorito" element={<ServicioFavorito />} />
             <Route path="metricas"        element={<Metricas />} />
             <Route path="gastos"          element={<Gastos />} />

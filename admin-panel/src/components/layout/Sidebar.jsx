@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 import {
   CalendarDays, Scissors, Users, Star, BarChart3,
   Trophy, ShoppingBag, Images, LogOut, ChevronRight,
-  Sun, Moon, ExternalLink, Settings, TrendingDown, MessageCircle, X, Megaphone, ImagePlus, CreditCard,
+  Sun, Moon, ExternalLink, Settings, TrendingDown, MessageCircle, X, Megaphone, ImagePlus, CreditCard, Monitor,
 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
@@ -20,6 +20,7 @@ const NAV = [
   { to: 'premios',       label: 'Premios',       Icon: Trophy                     },
   { to: 'productos',     label: 'Productos',     Icon: ShoppingBag                },
   { to: 'lookbook',      label: 'Lookbook',      Icon: Images                     },
+  { to: 'tv-config',    label: 'Pantalla TV',   Icon: Monitor,       adminOnly: true },
   { to: 'servicio-favorito', label: 'Servicio favorito', Icon: ImagePlus          },
   { to: 'metricas',      label: 'Métricas',      Icon: BarChart3                  },
   { to: 'marketing',     label: 'Marketing',     Icon: Megaphone,     adminOnly: true },
