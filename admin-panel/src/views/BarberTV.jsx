@@ -342,11 +342,11 @@ function SlideLookbook({ photos, skipAnimation }) {
       >
         ✦ &nbsp; Nuestros Trabajos &nbsp; ✦
       </motion.p>
-      <div className="columns-3 gap-3 flex-1 overflow-hidden">
+      <div className="grid grid-cols-3 gap-3 flex-1 min-h-0" style={{ gridTemplateRows: 'repeat(3, 1fr)' }}>
         {photos.slice(0, 9).map((p, i) => (
           <motion.div
             key={p.id || i}
-            className="break-inside-avoid rounded-xl overflow-hidden mb-3"
+            className="rounded-xl overflow-hidden min-h-0"
             initial={skipAnimation ? false : { opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={skipAnimation ? {} : { delay: i * 0.06 }}
@@ -354,8 +354,7 @@ function SlideLookbook({ photos, skipAnimation }) {
             <img
               src={p.url}
               alt=""
-              className="w-full object-cover"
-              style={{ aspectRatio: RATIOS[i % RATIOS.length] }}
+              className="w-full h-full object-cover"
             />
           </motion.div>
         ))}

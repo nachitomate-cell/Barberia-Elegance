@@ -47,7 +47,15 @@ export class ErrorBoundary extends React.Component {
               Ocurrió un error inesperado. El equipo ha sido notificado automáticamente.
             </p>
             <button
-              onClick={() => window.location.reload()}
+              onClick={() => {
+                if ('caches' in window) {
+                  caches.keys()
+                    .then(names => Promise.all(names.map(n => caches.delete(n))))
+                    .finally(() => window.location.reload());
+                } else {
+                  window.location.reload();
+                }
+              }}
               className="w-full py-3 px-6 rounded-xl bg-orange-500/10 border border-orange-500/25 text-orange-400 text-sm font-semibold hover:bg-orange-500/20 transition-colors cursor-pointer"
             >
               Recargar la página
