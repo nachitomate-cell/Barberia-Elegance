@@ -1,0 +1,161 @@
+'use strict';
+
+// recuperacion-password.js
+// Callable: genera un enlace de reset via Firebase Admin y lo envía
+// por Resend desde citas@synaptechspa.cl (dominio con reputación).
+// El cliente llama: firebase.functions().httpsCallable('enviarRecuperacionPassword')
+
+const { onCall, HttpsError } = require('firebase-functions/v2/https');
+const { defineSecret }       = require('firebase-functions/params');
+const { logger }             = require('firebase-functions');
+const admin                  = require('firebase-admin');
+
+const RESEND_API_KEY = defineSecret('RESEND_API_KEY');
+
+const TENANT_CONFIG = {
+  elegance: {
+    nombre:   'Elegance Barbershop',
+    color:    '#D4AF37',
+    from:     'Elegance Barbershop <citas@synaptechspa.cl>',
+    loginUrl: 'https://barberiaelegance.synaptechspa.cl/registro',
+  },
+  ferraza: {
+    nombre:   'Barbería Ferraza',
+    color:    '#e2e8f0',
+    from:     'Barbería Ferraza <citas@synaptechspa.cl>',
+    loginUrl: 'https://barberiaferraza.synaptechspa.cl/registro',
+  },
+  gitana: {
+    nombre:   'Gitana Nails Studio',
+    color:    '#f472b6',
+    from:     'Gitana Nails Studio <citas@synaptechspa.cl>',
+    loginUrl: 'https://gitananails.synaptechspa.cl/registro',
+  },
+  mapubarbershop: {
+    nombre:   'Mapu Barber Shop',
+    color:    '#BFA37E',
+    from:     'Mapu Barber Shop <citas@synaptechspa.cl>',
+    loginUrl: 'https://mapubarbershop.synaptechspa.cl/registro',
+  },
+};
+
+async function sendResend(apiKey, payload) {
+  const res = await fetch('https://api.resend.com/emails', {
+    method:  'POST',
+    headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body:    JSON.stringify(payload),
+  });
+  const body = await res.json();
+  if (!res.ok) throw new Error(`Resend error ${res.status}: ${JSON.stringify(body)}`);
+  return body;
+}
+
+function buildResetEmailHtml({ cfg, resetLink }) {
+  const btnColor   = cfg.color;
+  const btnTextClr = cfg.color === '#e2e8f0' ? '#0f172a' : '#000000';
+
+  return `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Recuperar contraseña — ${cfg.nombre}</title>
+</head>
+<body style="margin:0;padding:0;background:#0a0a0a;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0a0a0a;padding:40px 16px;">
+    <tr><td align="center">
+      <table width="100%" style="max-width:520px;background:#111115;border-radius:16px;overflow:hidden;border:1px solid #222228;">
+
+        <tr>
+          <td style="background:${btnColor};padding:32px 36px 28px;">
+            <p style="margin:0 0 4px;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:rgba(0,0,0,0.5);">${cfg.nombre}</p>
+            <h1 style="margin:0;font-size:24px;font-weight:900;color:#000;letter-spacing:-0.3px;">Recuperar contraseña</h1>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:28px 36px 8px;">
+            <p style="margin:0 0 16px;font-size:15px;color:#cccccc;line-height:1.6;">
+              Recibimos una solicitud para restablecer la contraseña de tu cuenta en
+              <strong style="color:#fff;">${cfg.nombre}</strong>.
+            </p>
+            <p style="margin:0 0 28px;font-size:14px;color:#888;line-height:1.6;">
+              Haz clic en el botón de abajo para elegir una nueva contraseña.
+              Este enlace es válido por <strong style="color:#aaa;">1 hora</strong>.
+            </p>
+            <a href="${resetLink}"
+              style="display:inline-block;padding:14px 36px;background:${btnColor};color:${btnTextClr};font-size:14px;font-weight:700;border-radius:100px;text-decoration:none;letter-spacing:0.04em;text-transform:uppercase;">
+              Restablecer contraseña
+            </a>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:24px 36px;">
+            <p style="margin:0;font-size:12px;color:#444;line-height:1.7;">
+              Si no solicitaste este cambio, ignora este correo. Tu contraseña actual seguirá siendo la misma y nadie tendrá acceso a tu cuenta.
+            </p>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:16px 36px 24px;border-top:1px solid #1e1e24;">
+            <p style="margin:0;font-size:11px;color:#333;">
+              Este correo fue enviado automáticamente por ${cfg.nombre}.
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
+exports.enviarRecuperacionPassword = onCall(
+  { region: 'us-central1', secrets: [RESEND_API_KEY] },
+  async (request) => {
+    const { email, tenantId } = request.data || {};
+
+    if (!email || !String(email).includes('@')) {
+      throw new HttpsError('invalid-argument', 'Correo electrónico inválido.');
+    }
+
+    const cfg = TENANT_CONFIG[tenantId] || TENANT_CONFIG.elegance;
+
+    // Generar enlace seguro via Firebase Admin
+    let resetLink;
+    try {
+      resetLink = await admin.auth().generatePasswordResetLink(
+        email.toLowerCase().trim(),
+        { url: cfg.loginUrl },
+      );
+    } catch (err) {
+      if (err.code === 'auth/user-not-found') {
+        // Responder ok para no revelar qué emails están registrados
+        logger.info(`[Reset] Sin cuenta para ${email} — respondiendo ok por seguridad`);
+        return { ok: true };
+      }
+      logger.error('[Reset] generatePasswordResetLink:', err.message);
+      throw new HttpsError('internal', 'No se pudo generar el enlace de recuperación.');
+    }
+
+    const html = buildResetEmailHtml({ cfg, resetLink });
+
+    try {
+      await sendResend(RESEND_API_KEY.value(), {
+        from:    cfg.from,
+        to:      [email.toLowerCase().trim()],
+        subject: `🔑 Recupera tu contraseña — ${cfg.nombre}`,
+        html,
+      });
+    } catch (err) {
+      logger.error('[Reset] Resend error:', err.message);
+      throw new HttpsError('internal', 'No se pudo enviar el correo. Intenta de nuevo.');
+    }
+
+    logger.info(`[Reset] Email enviado a ${email} (tenant: ${tenantId})`);
+    return { ok: true };
+  },
+);

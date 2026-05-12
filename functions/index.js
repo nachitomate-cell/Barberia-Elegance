@@ -617,3 +617,10 @@ exports.recordatorioCita24h = recordatorioCita.recordatorioCita24h;
 const confirmacionCita = require('./confirmacion-cita');
 exports.confirmacionCitaElegance = confirmacionCita.confirmacionCitaElegance;
 exports.confirmacionCitaTenant   = confirmacionCita.confirmacionCitaTenant;
+
+// ─────────────────────────────────────────────────────────────────
+//  RECUPERACIÓN DE CONTRASEÑA — ver recuperacion-password.js
+//  Envía el enlace por Resend desde citas@synaptechspa.cl
+// ─────────────────────────────────────────────────────────────────
+const recuperacionPassword = require('./recuperacion-password');
+exports.enviarRecuperacionPassword = recuperacionPassword.enviarRecuperacionPassword;
