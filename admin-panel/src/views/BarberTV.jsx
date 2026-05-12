@@ -1,27 +1,39 @@
 // BarberTV.jsx — Digital Signage Premium para la barbería
 // Ruta: /gestion-interna/tv (sin AdminLayout)
-// Deps: framer-motion, qrcode.react  (npm install framer-motion qrcode.react)
 
-import { useState, useEffect, useRef }      from 'react';
-import { motion, AnimatePresence }          from 'framer-motion';
-import { QRCodeSVG }                        from 'qrcode.react';
-import { query, onSnapshot, orderBy, where } from 'firebase/firestore';
-import { useTenant }                        from '../contexts/TenantContext';
-import { tenantCol }                        from '../lib/tenantUtils';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { motion, AnimatePresence }                  from 'framer-motion';
+import { QRCodeSVG }                                from 'qrcode.react';
+import { query, onSnapshot, orderBy, where }        from 'firebase/firestore';
+import { useTenant }                                from '../contexts/TenantContext';
+import { tenantCol, tenantDoc, resolveTenantId }    from '../lib/tenantUtils';
 
 // ── Constantes ────────────────────────────────────────────────────
-const GOLD          = '#D4AF37';
-const SLIDE_MS      = 15_000;
-const SLIDE_COUNT   = 4;
-const RATIOS        = ['4/5', '1/1', '3/4', '4/5', '1/1', '3/4', '4/5', '1/1', '3/4'];
+const GOLD         = '#D4AF37';
+const SLIDE_MS     = 15_000;
+const RATIOS       = ['4/5', '1/1', '3/4', '4/5', '1/1', '3/4', '4/5', '1/1', '3/4'];
+const SLIDE_LABELS = ['Oferta', 'Trabajos', 'Equipo'];
+
+const OFERTA_DEFAULT = {
+  etiqueta:    'Oferta del Mes',
+  titulo1:     'Corte',
+  titulo2:     '+ Barba',
+  descripcion: 'Lunes a Miércoles — precio especial\npara clientes frecuentes del local.',
+  cta:         'Consulta en caja',
+};
+
+function lsCitasKey(tid) { return `barber_tv_citas_${tid}`; }
 
 // ── Reloj con fecha ───────────────────────────────────────────────
 function DigitalClock() {
   const [now, setNow] = useState(new Date());
-  useEffect(() => { const id = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(id); }, []);
-  const pad  = n => String(n).padStart(2, '0');
-  const hora = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
-  const secs = pad(now.getSeconds());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const pad   = n => String(n).padStart(2, '0');
+  const hora  = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  const secs  = pad(now.getSeconds());
   const fecha = now.toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' });
 
   return (
@@ -45,8 +57,60 @@ function DigitalClock() {
 }
 
 // ── Panel de turnos ───────────────────────────────────────────────
-function AppointmentPanel({ citas }) {
+function AppointmentPanel({ citas, offline }) {
   const [enSillon, ...siguientes] = citas.slice(0, 4);
+
+  // Estado vacío completo — sin citas en todo el día
+  if (citas.length === 0) {
+    return (
+      <div className="h-full flex flex-col p-5 overflow-hidden">
+        <div className="flex items-center gap-2 shrink-0 mb-4">
+          <div className="w-1 h-5 rounded-full" style={{ background: GOLD }} />
+          <span className="text-[10px] font-black tracking-[0.4em] uppercase text-gray-400">Turnos de Hoy</span>
+          {offline && (
+            <span className="ml-auto text-[8px] text-yellow-700 tracking-widest uppercase">sin conexión</span>
+          )}
+        </div>
+
+        <motion.div
+          className="flex-1 flex flex-col items-center justify-center gap-4"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.6 }}
+        >
+          <motion.div
+            className="w-16 h-16 rounded-full flex items-center justify-center text-3xl"
+            style={{ background: 'rgba(212,175,55,0.06)', border: '1px solid rgba(212,175,55,0.15)' }}
+            animate={{ scale: [1, 1.05, 1] }}
+            transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+          >
+            ✂️
+          </motion.div>
+
+          <p className="text-gray-600 text-sm font-semibold text-center leading-relaxed">
+            Sin citas<br />por el momento
+          </p>
+
+          <motion.div
+            className="w-8 h-px"
+            style={{ background: `rgba(212,175,55,0.3)` }}
+            animate={{ scaleX: [0.4, 1, 0.4] }}
+            transition={{ duration: 2.5, repeat: Infinity }}
+          />
+
+          <div className="flex flex-col items-center gap-1">
+            <motion.div
+              className="w-2.5 h-2.5 rounded-full"
+              style={{ background: '#22c55e' }}
+              animate={{ opacity: [1, 0.3, 1], scale: [1, 1.3, 1] }}
+              transition={{ duration: 1.8, repeat: Infinity }}
+            />
+            <p className="text-gray-700 text-[9px] tracking-widest uppercase">Sillón Disponible</p>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-full flex flex-col p-5 gap-4 overflow-hidden">
@@ -54,6 +118,9 @@ function AppointmentPanel({ citas }) {
       <div className="flex items-center gap-2 shrink-0">
         <div className="w-1 h-5 rounded-full" style={{ background: GOLD }} />
         <span className="text-[10px] font-black tracking-[0.4em] uppercase text-gray-400">Turnos de Hoy</span>
+        {offline && (
+          <span className="ml-auto text-[8px] text-yellow-700 tracking-widest uppercase">sin conexión</span>
+        )}
       </div>
 
       {/* En Sillón */}
@@ -81,11 +148,10 @@ function AppointmentPanel({ citas }) {
               className="rounded-2xl p-4 relative overflow-hidden"
               style={{
                 background: 'rgba(212,175,55,0.07)',
-                border: `1px solid rgba(212,175,55,0.3)`,
-                boxShadow: `0 0 30px rgba(212,175,55,0.08) inset`,
+                border:     `1px solid rgba(212,175,55,0.3)`,
+                boxShadow:  `0 0 30px rgba(212,175,55,0.08) inset`,
               }}
             >
-              {/* shimmer line */}
               <div className="absolute top-0 left-0 right-0 h-px"
                 style={{ background: `linear-gradient(to right, transparent, ${GOLD}60, transparent)` }} />
 
@@ -95,13 +161,18 @@ function AppointmentPanel({ citas }) {
               <p className="text-gray-500 text-xs truncate mt-0.5">
                 {enSillon.servicioNombre || enSillon.servicio}
               </p>
+              {(enSillon.barberoNombre || enSillon.barbero) && (
+                <p className="text-[10px] mt-1 truncate" style={{ color: `${GOLD}AA` }}>
+                  ✂ {enSillon.barberoNombre || enSillon.barbero}
+                </p>
+              )}
               <p className="font-mono font-bold text-lg mt-2" style={{ color: GOLD }}>
                 {enSillon.hora}
               </p>
             </motion.div>
           ) : (
             <motion.div
-              key="empty"
+              key="empty-sillon"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               className="rounded-2xl p-4 text-center"
@@ -119,7 +190,7 @@ function AppointmentPanel({ citas }) {
         </AnimatePresence>
       </div>
 
-      {/* A continuación — stagger */}
+      {/* A continuación */}
       <div className="flex-1 overflow-hidden">
         <p className="text-[9px] font-black tracking-[0.4em] uppercase text-gray-700 mb-2">
           A continuación
@@ -135,37 +206,42 @@ function AppointmentPanel({ citas }) {
               transition={{ delay: i * 0.1, duration: 0.35 }}
               className="flex items-center gap-3 rounded-xl p-3"
               style={{
-                background: 'rgba(255,255,255,0.03)',
-                border: '1px solid rgba(255,255,255,0.06)',
+                background:     'rgba(255,255,255,0.03)',
+                border:         '1px solid rgba(255,255,255,0.06)',
                 backdropFilter: 'blur(4px)',
               }}
             >
-              <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-black shrink-0"
-                style={{ background: 'rgba(212,175,55,0.1)', color: GOLD, border: `1px solid rgba(212,175,55,0.2)` }}>
+              <div
+                className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-black shrink-0"
+                style={{ background: 'rgba(212,175,55,0.1)', color: GOLD, border: `1px solid rgba(212,175,55,0.2)` }}
+              >
                 {i + 1}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-white font-semibold text-sm truncate">{c.clienteNombre || c.nombre}</p>
-                <p className="text-gray-600 text-xs truncate">{c.servicioNombre || c.servicio}</p>
+                <p className="text-white font-semibold text-sm truncate">
+                  {c.clienteNombre || c.nombre}
+                </p>
+                <p className="text-gray-600 text-xs truncate">
+                  {c.servicioNombre || c.servicio}
+                  {(c.barberoNombre || c.barbero) ? ` · ${c.barberoNombre || c.barbero}` : ''}
+                </p>
               </div>
               <p className="font-mono text-xs font-bold shrink-0" style={{ color: GOLD }}>{c.hora}</p>
             </motion.div>
           ))}
         </div>
       </div>
-
-      <p className="text-center text-gray-800 text-[9px] tracking-widest uppercase shrink-0">
-        Powered by Synaptech
-      </p>
     </div>
   );
 }
 
-// ── Slide 1: Publicidad ───────────────────────────────────────────
-function SlidePublicidad() {
+// ── Slide 1: Publicidad (configuración desde Firestore) ───────────
+function SlidePublicidad({ oferta }) {
+  const o = { ...OFERTA_DEFAULT, ...oferta };
+  const lines = o.descripcion.split('\n');
+
   return (
     <div className="w-full h-full flex items-center justify-center p-20 relative">
-      {/* Fondo con textura */}
       <div className="absolute inset-0"
         style={{
           backgroundImage: `
@@ -174,7 +250,6 @@ function SlidePublicidad() {
           `,
         }}
       />
-      {/* Grid texture overlay */}
       <div className="absolute inset-0 opacity-[0.03]"
         style={{
           backgroundImage: 'linear-gradient(rgba(255,255,255,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.4) 1px, transparent 1px)',
@@ -190,7 +265,7 @@ function SlidePublicidad() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
         >
-          ✦ &nbsp; Oferta del Mes &nbsp; ✦
+          ✦ &nbsp; {o.etiqueta} &nbsp; ✦
         </motion.p>
 
         <motion.h2
@@ -198,19 +273,17 @@ function SlidePublicidad() {
           style={{ fontSize: 'clamp(5rem,12vw,9rem)' }}
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.2, duration: 0.5 }}
+          transition={{ delay: 0.2, duration: 0.6 }}
         >
-          <span className="text-white">Corte</span>
+          <span className="text-white">{o.titulo1}</span>
           <br />
-          <span
-            style={{
-              background: `linear-gradient(135deg, ${GOLD} 0%, #FDE047 50%, ${GOLD} 100%)`,
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-            }}
-          >
-            + Barba
+          <span style={{
+            background: `linear-gradient(135deg, ${GOLD} 0%, #FDE047 50%, ${GOLD} 100%)`,
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+          }}>
+            {o.titulo2}
           </span>
         </motion.h2>
 
@@ -218,24 +291,26 @@ function SlidePublicidad() {
           className="text-gray-400 text-xl font-light mb-12 leading-relaxed"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 0.35 }}
+          transition={{ delay: 0.45 }}
         >
-          Lunes a Miércoles — precio especial<br />para clientes frecuentes del local.
+          {lines.map((line, i) => (
+            <span key={i}>{line}{i < lines.length - 1 && <br />}</span>
+          ))}
         </motion.p>
 
         <motion.div
           className="inline-flex items-center gap-3 rounded-full px-10 py-4"
           style={{
-            border: `1px solid rgba(212,175,55,0.35)`,
+            border:     `1px solid rgba(212,175,55,0.35)`,
             background: 'rgba(212,175,55,0.05)',
-            boxShadow: '0 0 40px rgba(212,175,55,0.1)',
+            boxShadow:  '0 0 40px rgba(212,175,55,0.1)',
           }}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.45 }}
+          transition={{ delay: 0.65 }}
         >
           <span className="font-bold text-base tracking-widest" style={{ color: GOLD }}>
-            Consulta en caja
+            {o.cta}
           </span>
         </motion.div>
       </div>
@@ -244,7 +319,8 @@ function SlidePublicidad() {
 }
 
 // ── Slide 2: Lookbook ─────────────────────────────────────────────
-function SlideLookbook({ photos }) {
+// skipAnimation = true en revisitas para no re-animar desde cero
+function SlideLookbook({ photos, skipAnimation }) {
   if (!photos.length) {
     return (
       <div className="w-full h-full flex items-center justify-center text-gray-800">
@@ -260,7 +336,7 @@ function SlideLookbook({ photos }) {
       <motion.p
         className="text-[9px] font-black tracking-[0.6em] uppercase text-center mb-4 shrink-0"
         style={{ color: GOLD }}
-        initial={{ opacity: 0 }}
+        initial={skipAnimation ? false : { opacity: 0 }}
         animate={{ opacity: 1 }}
       >
         ✦ &nbsp; Nuestros Trabajos &nbsp; ✦
@@ -270,9 +346,9 @@ function SlideLookbook({ photos }) {
           <motion.div
             key={p.id || i}
             className="break-inside-avoid rounded-xl overflow-hidden mb-3"
-            initial={{ opacity: 0, scale: 0.96 }}
+            initial={skipAnimation ? false : { opacity: 0, scale: 0.96 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: i * 0.06 }}
+            transition={skipAnimation ? {} : { delay: i * 0.06 }}
           >
             <img
               src={p.url}
@@ -288,12 +364,9 @@ function SlideLookbook({ photos }) {
 }
 
 // ── Slide 3: Meet the Team ────────────────────────────────────────
-// imageCache: { [barberoId]: resolvedUrl } — pre-cargado en el padre
-function SlideEquipo({ barberos, imageCache }) {
-  // Máximo 8 miembros; grid adaptativo según cantidad
-  const team    = barberos.slice(0, 8);
-  const cols    = team.length > 6 ? 'grid-cols-4' : 'grid-cols-3';
-  const maxCols = team.length > 6 ? 4 : 3;
+function SlideEquipo({ barberos, imageCache, skipAnimation }) {
+  const team = barberos.slice(0, 8);
+  const cols = team.length > 6 ? 'grid-cols-4' : 'grid-cols-3';
 
   return (
     <div className="w-full h-full flex flex-col items-center justify-center p-12 relative">
@@ -305,7 +378,7 @@ function SlideEquipo({ barberos, imageCache }) {
       <motion.p
         className="text-[9px] font-black tracking-[0.6em] uppercase text-center mb-10 relative z-10"
         style={{ color: GOLD }}
-        initial={{ opacity: 0 }}
+        initial={skipAnimation ? false : { opacity: 0 }}
         animate={{ opacity: 1 }}
       >
         ✦ &nbsp; Nuestro Equipo &nbsp; ✦
@@ -314,38 +387,29 @@ function SlideEquipo({ barberos, imageCache }) {
       <div className={`grid ${cols} gap-8 w-full max-w-4xl relative z-10`}>
         {team.map((b, i) => {
           const resolvedUrl = imageCache[b.id] ?? null;
-          const initial     = (b.nombre || '?')[0].toUpperCase();
+          const avatar      = (b.nombre || '?')[0].toUpperCase();
 
           return (
             <motion.div
               key={b.id || i}
               className="flex flex-col items-center text-center gap-3"
-              initial={{ opacity: 0, y: 20 }}
+              initial={skipAnimation ? false : { opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.08, duration: 0.4 }}
+              transition={skipAnimation ? {} : { delay: i * 0.08, duration: 0.4 }}
             >
-              {/*
-                Contenedor de tamaño fijo: el avatar (iniciales) siempre ocupa
-                el espacio — la foto se superpone encima cuando está lista.
-                Esto evita layout shift mientras cargan las imágenes.
-              */}
               <div
                 className="relative w-28 h-28 rounded-full overflow-hidden shrink-0"
                 style={{
-                  border:     `2px solid rgba(212,175,55,0.3)`,
-                  boxShadow:  `0 0 20px rgba(212,175,55,0.1)`,
+                  border:    `2px solid rgba(212,175,55,0.3)`,
+                  boxShadow: `0 0 20px rgba(212,175,55,0.1)`,
                 }}
               >
-                {/* Capa base: avatar de iniciales (siempre visible) */}
                 <div
                   className="absolute inset-0 flex items-center justify-center text-3xl font-black select-none"
                   style={{ background: 'rgba(212,175,55,0.08)', color: GOLD }}
                 >
-                  {initial}
+                  {avatar}
                 </div>
-
-                {/* Foto: se renderiza encima cuando la URL está resuelta.
-                    La transición opacity-0 → 1 evita el parpadeo de carga. */}
                 {resolvedUrl && (
                   <img
                     src={resolvedUrl}
@@ -357,7 +421,6 @@ function SlideEquipo({ barberos, imageCache }) {
                   />
                 )}
               </div>
-
               <div>
                 <p className="text-white font-bold text-base leading-tight">{b.nombre}</p>
                 <p className="text-sm mt-0.5 capitalize" style={{ color: GOLD }}>
@@ -383,10 +446,10 @@ function QrOverlay({ qrUrl }) {
       <motion.div
         className="rounded-3xl p-5 flex flex-col items-center gap-3 relative overflow-hidden"
         style={{
-          background:   'rgba(5,5,5,0.88)',
+          background:     'rgba(5,5,5,0.88)',
           backdropFilter: 'blur(16px)',
-          border:       `1px solid rgba(212,175,55,0.5)`,
-          boxShadow:    `0 0 0 1px rgba(212,175,55,0.1) inset`,
+          border:         `1px solid rgba(212,175,55,0.5)`,
+          boxShadow:      `0 0 0 1px rgba(212,175,55,0.1) inset`,
         }}
         animate={{
           boxShadow: [
@@ -397,11 +460,9 @@ function QrOverlay({ qrUrl }) {
         }}
         transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
       >
-        {/* Borde interior decorativo */}
         <div className="absolute inset-[3px] rounded-[20px] pointer-events-none"
           style={{ border: `1px solid rgba(212,175,55,0.15)` }} />
 
-        {/* Texto con brillo animado */}
         <div className="relative">
           <motion.span
             className="text-xs font-black tracking-[0.3em] uppercase relative z-10"
@@ -433,120 +494,52 @@ function QrOverlay({ qrUrl }) {
   );
 }
 
-// ── Slide 4: SynapTech ───────────────────────────────────────────
-function SlideSynapTech() {
+// ── Indicadores con labels y estado de pausa ─────────────────────
+function SlideIndicators({ labels, active, paused, onChange }) {
   return (
-    <div className="w-full h-full flex items-center justify-center p-20 relative overflow-hidden">
-      {/* Fondo */}
-      <div className="absolute inset-0"
-        style={{
-          background: 'radial-gradient(ellipse 70% 70% at 30% 50%, rgba(212,175,55,0.07) 0%, transparent 70%), radial-gradient(ellipse 50% 50% at 75% 30%, rgba(212,175,55,0.04) 0%, transparent 60%)',
-        }}
-      />
-      <div className="absolute inset-0 opacity-[0.025]"
-        style={{
-          backgroundImage: 'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)',
-          backgroundSize: '80px 80px',
-        }}
-      />
-
-      <div className="relative z-10 text-center max-w-4xl">
-        {/* Logo placeholder */}
-        <motion.div
-          className="flex items-center justify-center mb-10"
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.1, duration: 0.6, ease: 'easeOut' }}
-        >
-          <div
-            className="w-20 h-20 rounded-3xl flex items-center justify-center"
-            style={{
-              background: 'rgba(212,175,55,0.08)',
-              border: '1px solid rgba(212,175,55,0.25)',
-              boxShadow: '0 0 60px rgba(212,175,55,0.15), 0 0 0 1px rgba(212,175,55,0.1)',
-            }}
-          >
-            <img src="/logo1.png" alt="SynapTech" className="w-12 h-12 object-contain" />
-          </div>
-        </motion.div>
-
-        <motion.p
-          className="text-[10px] font-black tracking-[0.6em] uppercase mb-4"
-          style={{ color: GOLD }}
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-        >
-          ✦ &nbsp; Tecnología para tu negocio &nbsp; ✦
-        </motion.p>
-
-        <motion.h2
-          className="font-black leading-tight mb-6"
-          style={{ fontSize: 'clamp(3.5rem,8vw,6.5rem)' }}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.5 }}
-        >
-          <span
-            style={{
-              background: `linear-gradient(135deg, ${GOLD} 0%, #FDE047 50%, ${GOLD} 100%)`,
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-            }}
-          >
-            SynapTech
-          </span>
-        </motion.h2>
-
-        <motion.p
-          className="text-gray-400 text-xl font-light mb-12 leading-relaxed"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.45 }}
-        >
-          Impulsa tu negocio con tecnología de vanguardia.<br />
-          Software a medida para barberías y negocios modernos.
-        </motion.p>
-
-        <motion.div
-          className="inline-flex items-center gap-3 rounded-full px-10 py-4"
-          style={{
-            border: `1px solid rgba(212,175,55,0.35)`,
-            background: 'rgba(212,175,55,0.05)',
-            boxShadow: '0 0 40px rgba(212,175,55,0.1)',
-          }}
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.55 }}
-        >
-          <span className="font-bold text-base tracking-widest" style={{ color: GOLD }}>
-            synaptechspa.cl
-          </span>
-        </motion.div>
-      </div>
-    </div>
-  );
-}
-
-// ── Indicadores de slide mejorados ───────────────────────────────
-function SlideIndicators({ count, active, onChange }) {
-  return (
-    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-10">
-      {Array.from({ length: count }).map((_, i) => (
+    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-end gap-5 z-10">
+      {labels.map((label, i) => (
         <button
           key={i}
-          onClick={() => onChange(i)}
-          className="h-1.5 rounded-full transition-all duration-500 cursor-none"
-          style={{
-            width:      i === active ? '2rem' : '0.5rem',
-            background: i === active
-              ? `linear-gradient(to right, ${GOLD}, #FDE047)`
-              : 'rgba(255,255,255,0.15)',
-            boxShadow:  i === active ? `0 0 8px rgba(212,175,55,0.5)` : 'none',
-          }}
-        />
+          onClick={e => { e.stopPropagation(); onChange(i); }}
+          className="flex flex-col items-center gap-1.5"
+        >
+          <span
+            className="text-[8px] font-black tracking-[0.3em] uppercase transition-all duration-500"
+            style={{ color: i === active ? GOLD : 'rgba(255,255,255,0.2)' }}
+          >
+            {label}
+          </span>
+          <div
+            className="h-1 rounded-full transition-all duration-500"
+            style={{
+              width:      i === active ? '3rem' : '1.5rem',
+              background: i === active
+                ? `linear-gradient(to right, ${GOLD}, #FDE047)`
+                : 'rgba(255,255,255,0.12)',
+              boxShadow:  i === active ? `0 0 8px rgba(212,175,55,0.5)` : 'none',
+            }}
+          />
+        </button>
       ))}
+
+      {/* Indicador de pausa */}
+      <AnimatePresence>
+        {paused && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.7 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.7 }}
+            className="mb-1 w-5 h-5 rounded-full flex items-center justify-center"
+            style={{
+              background: 'rgba(212,175,55,0.12)',
+              border:     `1px solid rgba(212,175,55,0.35)`,
+            }}
+          >
+            <span style={{ fontSize: '9px', color: GOLD }}>⏸</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -555,18 +548,33 @@ function SlideIndicators({ count, active, onChange }) {
 export default function BarberTV() {
   const { id: tenantId, name: tenantName } = useTenant();
 
-  const [citas,      setCitas]      = useState([]);
+  // Citas: se inicializan desde localStorage para evitar parpadeo offline
+  const [citas,      setCitas]      = useState(() => {
+    try {
+      const tid = resolveTenantId();
+      return JSON.parse(localStorage.getItem(lsCitasKey(tid)) || '[]');
+    } catch { return []; }
+  });
   const [photos,     setPhotos]     = useState([]);
   const [barberos,   setBarberos]   = useState([]);
+  const [oferta,     setOferta]     = useState(OFERTA_DEFAULT);
   const [slide,      setSlide]      = useState(0);
-  // imageCache: { [barberoId]: resolvedUrl }
-  // Vive en el padre para sobrevivir el unmount/mount de SlideEquipo en el carrusel
+  const [paused,     setPaused]     = useState(false);
+  const [offline,    setOffline]    = useState(false);
   const [imageCache, setImageCache] = useState({});
-  const preloadedRef = useRef(new Set()); // evita crear Image() duplicados
+
+  const preloadedRef = useRef(new Set());
+  // Tracks which slides have been shown at least once (para skip de animaciones en revisita)
+  const visitedRef   = useRef(new Set([0]));
 
   const qrUrl = `${window.location.origin}/index.html?local=${tenantId}`;
 
-  // Citas de hoy
+  // Marca el slide actual como visitado DESPUÉS de renderizar
+  useEffect(() => {
+    visitedRef.current.add(slide);
+  }, [slide]);
+
+  // Citas de hoy — error handler + caché offline en localStorage
   useEffect(() => {
     const todayStr = new Date().toISOString().split('T')[0];
     const q = query(
@@ -574,56 +582,78 @@ export default function BarberTV() {
       where('estado', 'in', ['Confirmada', 'confirmada', 'pendiente', 'Pendiente']),
       orderBy('hora', 'asc'),
     );
-    return onSnapshot(q, snap => {
-      const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      setCitas(docs.filter(c => {
-        const f = c.fecha;
-        if (!f) return false;
-        if (typeof f === 'string') return f.startsWith(todayStr);
-        if (f.toDate) return f.toDate().toISOString().startsWith(todayStr);
-        return false;
-      }));
-    });
+    return onSnapshot(
+      q,
+      snap => {
+        const docs     = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const filtered = docs.filter(c => {
+          const f = c.fecha;
+          if (!f) return false;
+          if (typeof f === 'string') return f.startsWith(todayStr);
+          if (f.toDate) return f.toDate().toISOString().startsWith(todayStr);
+          return false;
+        });
+        setCitas(filtered);
+        setOffline(false);
+        try { localStorage.setItem(lsCitasKey(tenantId), JSON.stringify(filtered)); } catch {}
+      },
+      () => setOffline(true),
+    );
   }, [tenantId]);
 
   // Lookbook
   useEffect(() => {
     const q = query(tenantCol('lookbook'), orderBy('order', 'asc'));
-    return onSnapshot(q, snap => setPhotos(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
+    return onSnapshot(
+      q,
+      snap => setPhotos(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+      () => {},
+    );
   }, [tenantId]);
 
   // Equipo — excluye docs de enlace UID (_mainDocId) y rol 'admin'
   useEffect(() => {
     const q = query(tenantCol('barberos'), where('activo', '!=', false));
-    return onSnapshot(q, snap => {
-      setBarberos(
+    return onSnapshot(
+      q,
+      snap => setBarberos(
         snap.docs
           .map(d => ({ id: d.id, ...d.data() }))
           .filter(b => !b._mainDocId && b.rol !== 'admin'),
-      );
-    });
+      ),
+      () => {},
+    );
   }, [tenantId]);
 
-  // ── Caché de URLs de foto (se pobla una sola vez por barbero) ───
+  // Configuración del slide de oferta — leída desde Firestore en tiempo real
+  useEffect(() => {
+    const ref = tenantDoc('configuracion', 'tv');
+    return onSnapshot(
+      ref,
+      snap => {
+        if (snap.exists() && snap.data()?.oferta) {
+          setOferta(prev => ({ ...OFERTA_DEFAULT, ...snap.data().oferta }));
+        }
+      },
+      () => {},
+    );
+  }, [tenantId]);
+
+  // Caché de URLs de foto (se pobla una sola vez por barbero)
   useEffect(() => {
     if (!barberos.length) return;
-
     setImageCache(prev => {
-      const next    = { ...prev };
-      let changed   = false;
+      const next  = { ...prev };
+      let changed = false;
       barberos.forEach(b => {
         const url = b.foto || b.fotoUrl;
-        if (url && !next[b.id]) {
-          next[b.id] = url;
-          changed    = true;
-        }
+        if (url && !next[b.id]) { next[b.id] = url; changed = true; }
       });
       return changed ? next : prev;
     });
   }, [barberos]);
 
-  // ── Pre-loader: calienta la caché del navegador ─────────────────
-  // Fotos del equipo → se precargan en cuanto llegan de Firestore
+  // Pre-loader: equipo — al recibir datos de Firestore
   useEffect(() => {
     barberos.forEach(b => {
       const url = b.foto || b.fotoUrl;
@@ -635,10 +665,8 @@ export default function BarberTV() {
     });
   }, [barberos]);
 
-  // Fotos del lookbook → se precargan cuando el slide de Publicidad está activo
-  // (el siguiente slide es Lookbook, así las imágenes ya están en caché)
+  // Pre-loader: lookbook — en cuanto llegan las fotos (no solo en slide 0)
   useEffect(() => {
-    if (slide !== 0) return;
     photos.forEach(p => {
       if (p.url && !preloadedRef.current.has(p.url)) {
         preloadedRef.current.add(p.url);
@@ -646,19 +674,29 @@ export default function BarberTV() {
         img.src   = p.url;
       }
     });
-  }, [slide, photos]);
+  }, [photos]);
 
-  // Carrusel automático
+  // Carrusel automático — se pausa con click
   useEffect(() => {
-    const id = setInterval(() => setSlide(s => (s + 1) % SLIDE_COUNT), SLIDE_MS);
+    if (paused) return;
+    const id = setInterval(
+      () => setSlide(s => (s + 1) % SLIDE_LABELS.length),
+      SLIDE_MS,
+    );
     return () => clearInterval(id);
+  }, [paused]);
+
+  const handleCarouselClick = useCallback(() => setPaused(p => !p), []);
+
+  const handleSlideChange = useCallback((i) => {
+    visitedRef.current.add(i);
+    setSlide(i);
   }, []);
 
   const slides = [
-    <SlidePublicidad key="pub" />,
-    <SlideLookbook   key="look" photos={photos} />,
-    <SlideEquipo     key="team" barberos={barberos} imageCache={imageCache} />,
-    <SlideSynapTech  key="synaptech" />,
+    <SlidePublicidad key="pub"  oferta={oferta} />,
+    <SlideLookbook   key="look" photos={photos}   skipAnimation={visitedRef.current.has(1)} />,
+    <SlideEquipo     key="team" barberos={barberos} imageCache={imageCache} skipAnimation={visitedRef.current.has(2)} />,
   ];
 
   return (
@@ -671,7 +709,6 @@ export default function BarberTV() {
         className="flex items-center justify-between px-10 py-5 shrink-0 relative"
         style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
       >
-        {/* Shimmer border */}
         <div className="absolute bottom-0 left-0 right-0 h-px"
           style={{ background: 'linear-gradient(to right, transparent, rgba(212,175,55,0.2), transparent)' }} />
 
@@ -702,19 +739,17 @@ export default function BarberTV() {
           className="w-[25%] overflow-hidden shrink-0"
           style={{ borderRight: '1px solid rgba(255,255,255,0.04)' }}
         >
-          <AppointmentPanel citas={citas} />
+          <AppointmentPanel citas={citas} offline={offline} />
         </aside>
 
-        {/* Carrusel — 75% */}
-        <main className="flex-1 relative overflow-hidden">
-          {/* Fondo base con profundidad */}
+        {/* Carrusel — 75% — click pausa/reanuda */}
+        <main className="flex-1 relative overflow-hidden" onClick={handleCarouselClick}>
           <div className="absolute inset-0"
             style={{
               background: 'radial-gradient(ellipse 100% 80% at 50% 100%, rgba(212,175,55,0.03) 0%, transparent 60%)',
             }}
           />
 
-          {/* Slide con blur-out / scale-in transition */}
           <AnimatePresence mode="wait">
             <motion.div
               key={slide}
@@ -728,10 +763,13 @@ export default function BarberTV() {
             </motion.div>
           </AnimatePresence>
 
-          {/* Indicadores */}
-          <SlideIndicators count={SLIDE_COUNT} active={slide} onChange={setSlide} />
+          <SlideIndicators
+            labels={SLIDE_LABELS}
+            active={slide}
+            paused={paused}
+            onChange={handleSlideChange}
+          />
 
-          {/* QR */}
           <QrOverlay qrUrl={qrUrl} />
         </main>
       </div>

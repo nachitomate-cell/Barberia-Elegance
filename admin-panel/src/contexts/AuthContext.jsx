@@ -6,6 +6,8 @@ import { tenantDoc } from '../lib/tenantUtils';
 
 const AuthContext = createContext(null);
 
+const SUPERADMIN_EMAIL = 'ignaciiio.mate@gmail.com';
+
 export function AuthProvider({ children }) {
   const [user,    setUser]    = useState(undefined);
   const [role,    setRole]    = useState(null);
@@ -20,6 +22,14 @@ export function AuthProvider({ children }) {
         return;
       }
       setUser(firebaseUser);
+
+      // Superadmin de SynapTech — acceso total en cualquier tenant
+      if (firebaseUser.email?.toLowerCase() === SUPERADMIN_EMAIL) {
+        setRole('admin');
+        setLoading(false);
+        return;
+      }
+
       try {
         // El rol del equipo se guarda en barberos/{uid}
         const snap = await getDoc(tenantDoc('barberos', firebaseUser.uid));

@@ -1,14 +1,14 @@
 import { useState, useRef, useEffect } from 'react';
 import { Plus, ShoppingBag, Edit2, Trash2, Upload, ImageOff, Power, AlertTriangle, CheckCircle2, XCircle, Clock } from 'lucide-react';
-import { addDoc, updateDoc, deleteDoc, doc, getDoc, setDoc, serverTimestamp, onSnapshot, query, where } from 'firebase/firestore';
-import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { addDoc, updateDoc, deleteDoc, doc, getDoc, setDoc, serverTimestamp, onSnapshot, query, where, orderBy, writeBatch } from 'firebase/firestore';
+import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { storage, db } from '../lib/firebase';
-import { tenantCol, tenantDoc } from '../lib/tenantUtils';
+import { tenantCol, tenantDoc, resolveTenantId } from '../lib/tenantUtils';
 import { useCollection } from '../hooks/useCollection';
 import SlideOver from '../components/ui/SlideOver';
-import { resolveTenantId } from '../lib/tenantUtils';
+import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 
-const EMPTY = { nombre: '', descripcion: '', precio: '', stock: '', imagen: '' };
+const EMPTY = { nombre: '', descripcion: '', precio: '', stock: '', imagen: '', imagenPath: '' };
 
 function ProductCard({ producto, onEdit, onDelete }) {
   return (
@@ -45,9 +45,10 @@ function ProductCard({ producto, onEdit, onDelete }) {
 }
 
 export default function Productos() {
-  const { data: productos, loading } = useCollection('productos');
+  const { data: productos, loading } = useCollection('productos', [orderBy('createdAt', 'asc')]);
 
   const [slide,      setSlide]      = useState(false);
+  const [showHelp,   setShowHelp]   = useState(false);
   const [editing,    setEditing]    = useState(null);
   const [form,       setForm]       = useState(EMPTY);
   const [saving,     setSaving]     = useState(false);
@@ -72,8 +73,18 @@ export default function Productos() {
     return unsub;
   }, []);
 
-  const marcarEntregado = id =>
-    updateDoc(doc(tenantCol('product_reservations'), id), { status: 'delivered', updatedAt: serverTimestamp() });
+  const marcarEntregado = async id => {
+    const reserva = reservas.find(r => r.id === id);
+    const batch = writeBatch(db);
+    batch.update(doc(tenantCol('product_reservations'), id), { status: 'delivered', updatedAt: serverTimestamp() });
+    if (reserva?.productId) {
+      const prod = productos.find(p => p.id === reserva.productId);
+      if (prod && prod.stock != null && Number(prod.stock) > 0) {
+        batch.update(doc(tenantCol('productos'), reserva.productId), { stock: Number(prod.stock) - 1 });
+      }
+    }
+    await batch.commit();
+  };
 
   const cancelarReserva = id =>
     updateDoc(doc(tenantCol('product_reservations'), id), { status: 'cancelled', updatedAt: serverTimestamp() });
@@ -101,7 +112,7 @@ export default function Productos() {
   const openNew  = () => { setEditing(null); setForm(EMPTY); setPreview(''); setSlide(true); };
   const openEdit = p => {
     setEditing(p.id);
-    setForm({ nombre: p.nombre || '', descripcion: p.descripcion || '', precio: p.precio || '', stock: p.stock ?? '', imagen: p.imagen || '' });
+    setForm({ nombre: p.nombre || '', descripcion: p.descripcion || '', precio: p.precio || '', stock: p.stock ?? '', imagen: p.imagen || '', imagenPath: p.imagenPath || '' });
     setPreview(p.imagen || '');
     setSlide(true);
   };
@@ -125,7 +136,7 @@ export default function Productos() {
         { contentType: file.type || 'image/jpeg' },
       );
       const url = await getDownloadURL(snap.ref);
-      setForm(f => ({ ...f, imagen: url }));
+      setForm(f => ({ ...f, imagen: url, imagenPath: path }));
       setPreview(url);
     } catch (err) {
       console.error('Upload error:', err);
@@ -148,10 +159,15 @@ export default function Productos() {
         precio:      Number(form.precio) || 0,
         stock:       form.stock !== '' ? Number(form.stock) : null,
         imagen:      form.imagen,
+        imagenPath:  form.imagenPath || '',
         updatedAt:   serverTimestamp(),
       };
       if (editing) {
+        const oldProduct = productos.find(p => p.id === editing);
         await updateDoc(doc(tenantCol('productos'), editing), payload);
+        if (oldProduct?.imagenPath && oldProduct.imagenPath !== form.imagenPath) {
+          try { await deleteObject(storageRef(storage, oldProduct.imagenPath)); } catch (_) {}
+        }
       } else {
         await addDoc(tenantCol('productos'), { ...payload, createdAt: serverTimestamp() });
       }
@@ -161,7 +177,11 @@ export default function Productos() {
 
   const handleDelete = async id => {
     if (!confirm('¿Eliminar este producto?')) return;
+    const prod = productos.find(p => p.id === id);
     await deleteDoc(doc(tenantCol('productos'), id));
+    if (prod?.imagenPath) {
+      try { await deleteObject(storageRef(storage, prod.imagenPath)); } catch (_) {}
+    }
   };
 
   const field = 'w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors';
@@ -171,7 +191,10 @@ export default function Productos() {
     <div className="max-w-5xl mx-auto">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-xl font-bold text-white">Productos</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold text-white">Productos</h1>
+            <HelpButton onClick={() => setShowHelp(true)} />
+          </div>
           <p className="text-sm text-slate-500 mt-0.5">Productos disponibles en el local.</p>
         </div>
         <button onClick={openNew} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
@@ -362,6 +385,17 @@ export default function Productos() {
           </div>
         </div>
       </SlideOver>
+      {showHelp && (
+        <HelpModal title="Ayuda — Productos" onClose={() => setShowHelp(false)}>
+          <p>En <strong className="text-white">Productos</strong> gestionas los artículos disponibles para reserva o venta en el local.</p>
+          <ul className="space-y-1.5 list-disc list-inside text-slate-400">
+            <li>Agrega productos con nombre, descripción, precio, stock e imagen.</li>
+            <li>Activa o desactiva la tienda con el interruptor — cuando está desactivada los clientes no ven los productos.</li>
+            <li>Revisa las <span className="text-white">reservas pendientes</span> al final de la página y aprueba o rechaza cada solicitud.</li>
+            <li>El stock se reduce automáticamente al aprobar una reserva.</li>
+          </ul>
+        </HelpModal>
+      )}
     </div>
   );
 }

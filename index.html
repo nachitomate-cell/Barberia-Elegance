@@ -1883,7 +1883,10 @@
         // Guardar reservas de productos seleccionados en cross-sell
         if (citaGuardada && _selectedProducts.length > 0) {
           const user = firebase.auth().currentUser;
-          const reservasCol = tenantCol('product_reservations');
+          const _rtid = window.CURRENT_TENANT_ID || 'elegance';
+          const reservasCol = _rtid === 'elegance'
+            ? db.collection('product_reservations')
+            : db.collection('tenants').doc(_rtid).collection('product_reservations');
           await Promise.all(_selectedProducts.map(p =>
             reservasCol.add({
               productId:   p.id,

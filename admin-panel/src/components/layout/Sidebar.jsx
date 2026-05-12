@@ -140,7 +140,7 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
       >
         {/* Link to public agenda */}
         <a
-          href="/index.html"
+          href={`/index.html?local=${tenant.id}`}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-slate-500 hover:text-white hover:bg-slate-800 transition-all"

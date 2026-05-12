@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Megaphone, Image, Type, AlignLeft, Link2,
-  ToggleLeft, ToggleRight, Save, Eye, EyeOff,
+  ToggleLeft, ToggleRight, Save,
 } from 'lucide-react';
+import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 import { getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { tenantDoc } from '../lib/tenantUtils';
 
@@ -16,12 +17,13 @@ const EMPTY = {
 };
 
 export default function Marketing() {
-  const [form,    setForm]    = useState(EMPTY);
+  const [form,     setForm]     = useState(EMPTY);
+  const [showHelp, setShowHelp] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving,  setSaving]  = useState(false);
   const [saved,   setSaved]   = useState(false);
+  const savedTimer = useRef(null);
 
-  /* Cargar estado actual desde Firestore */
   useEffect(() => {
     getDoc(tenantDoc('config', 'anuncio'))
       .then(snap => { if (snap.exists()) setForm({ ...EMPTY, ...snap.data() }); })
@@ -33,14 +35,18 @@ export default function Marketing() {
     setSaving(true);
     setSaved(false);
     try {
-      await setDoc(tenantDoc('config', 'anuncio'), {
+      const payload = {
         ...form,
-        // Nuevo versionId en cada guardado para que el punto rojo se reactive
-        versionId: Date.now().toString(),
         updatedAt: serverTimestamp(),
-      });
+      };
+      // Solo regenerar versionId cuando el banner se publica activo
+      if (form.activo) payload.versionId = Date.now().toString();
+
+      await setDoc(tenantDoc('config', 'anuncio'), payload);
+
       setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
+      if (savedTimer.current) clearTimeout(savedTimer.current);
+      savedTimer.current = setTimeout(() => setSaved(false), 3000);
     } finally { setSaving(false); }
   };
 
@@ -60,10 +66,13 @@ export default function Marketing() {
 
       {/* Header */}
       <div>
-        <h1 className="text-xl font-bold text-white flex items-center gap-2">
-          <Megaphone size={20} className="text-[#D4AF37]" />
-          Marketing
-        </h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-xl font-bold text-white flex items-center gap-2">
+            <Megaphone size={20} className="text-[#D4AF37]" />
+            Marketing
+          </h1>
+          <HelpButton onClick={() => setShowHelp(true)} />
+        </div>
         <p className="text-sm text-slate-500 mt-0.5">
           Gestiona el banner publicitario que ven los clientes en su app.
         </p>
@@ -186,12 +195,9 @@ export default function Marketing() {
 
         {/* Save */}
         <div className="flex items-center justify-between pt-1">
-          {saved && (
-            <p className="text-xs font-semibold text-emerald-400">
-              ✓ Guardado — los clientes verán el cambio en su próxima carga.
-            </p>
-          )}
-          {!saved && <span />}
+          {saved
+            ? <p className="text-xs font-semibold text-emerald-400">✓ Guardado — los clientes verán el cambio en su próxima carga.</p>
+            : <span />}
           <button
             onClick={handleSave}
             disabled={saving || !form.titulo}
@@ -209,12 +215,23 @@ export default function Marketing() {
       <div className="flex items-start gap-3 px-4 py-3.5 bg-slate-900/60 border border-slate-800 rounded-xl text-xs text-slate-500 leading-relaxed">
         <Megaphone size={14} className="text-slate-600 shrink-0 mt-0.5" />
         <span>
-          Cada vez que guardas se genera un nuevo <strong className="text-slate-400">versionId</strong>.
+          Al publicar con el banner <strong className="text-slate-400">activo</strong> se genera un nuevo <strong className="text-slate-400">versionId</strong>.
           Esto activa el punto rojo en el ícono de Fidelización de la app del cliente,
           avisándole que hay un anuncio nuevo sin necesidad de push notifications.
         </span>
       </div>
 
+    {showHelp && (
+      <HelpModal title="Ayuda — Marketing" onClose={() => setShowHelp(false)}>
+        <p>En <strong className="text-white">Marketing</strong> configuras el banner que aparece en la app de tus clientes.</p>
+        <ul className="space-y-1.5 list-disc list-inside text-slate-400">
+          <li>Sube una <span className="text-white">imagen</span> de promoción (descuentos, nuevos servicios, eventos).</li>
+          <li>Agrega un <span className="text-white">título</span>, descripción y enlace opcional al que llevar al cliente.</li>
+          <li>Activa la casilla <span className="text-white">Marcar como nuevo</span> para notificar a los clientes sobre el anuncio.</li>
+          <li>Guarda los cambios para que el banner se actualice en tiempo real en la app pública.</li>
+        </ul>
+      </HelpModal>
+    )}
     </div>
   );
 }

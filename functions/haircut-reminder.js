@@ -71,7 +71,7 @@ async function recalcularSuggestion(citasCol, clientesCol, telefono, clienteNomb
   // Últimas MAX_CITAS_AVG citas completadas de este cliente
   const snap = await citasCol
     .where('clienteTelefono', '==', telefono)
-    .where('estado', '==', 'completada')
+    .where('estado', 'in', ['Completada', 'completada'])
     .orderBy('fecha', 'desc')
     .limit(MAX_CITAS_AVG)
     .get();
@@ -127,9 +127,9 @@ exports.actualizarSuggestionElegance = onDocumentWritten('citas/{citaId}', async
   const before = event.data?.before?.data();
   const after  = event.data?.after?.data();
 
-  if (!after)                          return null; // doc eliminado
-  if (after.estado !== 'completada')   return null; // solo interesa 'completada'
-  if (before?.estado === 'completada') return null; // ya estaba completada
+  if (!after)                                              return null; // doc eliminado
+  if (!['Completada', 'completada'].includes(after.estado)) return null;
+  if (['Completada', 'completada'].includes(before?.estado)) return null;
 
   const telefono      = after.clienteTelefono;
   const clienteNombre = after.clienteNombre || after.nombre || '';
@@ -152,9 +152,9 @@ exports.actualizarSuggestionTenant = onDocumentWritten(
     const before = event.data?.before?.data();
     const after  = event.data?.after?.data();
 
-    if (!after)                          return null;
-    if (after.estado !== 'completada')   return null;
-    if (before?.estado === 'completada') return null;
+    if (!after)                                               return null;
+    if (!['Completada', 'completada'].includes(after.estado))  return null;
+    if (['Completada', 'completada'].includes(before?.estado))  return null;
 
     const { tid }       = event.params;
     const telefono      = after.clienteTelefono;
@@ -207,7 +207,7 @@ exports.enviarRecordatoriosCorte = onSchedule(
         // Verificar que no tenga cita futura ya agendada
         const futuraCita = await citasCol
           .where('clienteTelefono', '==', telefono)
-          .where('estado', 'in', ['pendiente', 'confirmada'])
+          .where('estado', 'in', ['Pendiente', 'pendiente', 'Confirmada', 'confirmada', 'Confirmado'])
           .where('fecha', '>', todayTs)
           .limit(1)
           .get();

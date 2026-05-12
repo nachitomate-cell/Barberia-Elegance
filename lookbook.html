@@ -160,7 +160,11 @@
     // Alterna aspect ratios para el efecto masonry natural
     const RATIOS = ['aspect-[3/4]', 'aspect-[4/5]', 'aspect-square', 'aspect-[2/3]', 'aspect-[3/4]', 'aspect-[4/5]'];
 
-    db.collection('lookbook').orderBy('order', 'asc').onSnapshot(snap => {
+    const _lbTid = window.CURRENT_TENANT_ID || 'elegance';
+    const _lbCol = _lbTid === 'elegance'
+      ? db.collection('lookbook')
+      : db.collection('tenants').doc(_lbTid).collection('lookbook');
+    _lbCol.orderBy('order', 'asc').onSnapshot(snap => {
       const grid = document.getElementById('lookbookGrid');
       if (!grid) return;
 

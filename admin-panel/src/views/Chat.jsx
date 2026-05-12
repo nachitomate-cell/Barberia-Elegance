@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { MessageSquare, Send, User } from 'lucide-react';
+import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 import {
   collection, doc, query, orderBy, onSnapshot,
   addDoc, setDoc, serverTimestamp,
@@ -195,10 +196,12 @@ function ChatConversation({ userId, userName }) {
 export default function Chat() {
   const [selectedId,   setSelectedId]   = useState(null);
   const [selectedName, setSelectedName] = useState('');
+  const [showHelp,     setShowHelp]     = useState(false);
 
   const select = (id, name) => {
     setSelectedId(id);
     setSelectedName(name || 'Cliente');
+    setDoc(chatDoc(id), { hasUnread: false }, { merge: true }).catch(() => {});
   };
 
   return (
@@ -207,7 +210,10 @@ export default function Chat() {
       {/* Columna izquierda */}
       <div className="w-1/3 min-w-[220px] flex flex-col bg-slate-900 border-r border-slate-800">
         <div className="px-4 py-3 border-b border-slate-800">
-          <h2 className="text-sm font-bold text-white">Mensajes</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-sm font-bold text-white">Mensajes</h2>
+            <HelpButton onClick={() => setShowHelp(true)} />
+          </div>
           <p className="text-xs text-slate-500 mt-0.5">Soporte en tiempo real</p>
         </div>
         <div className="flex-1 overflow-y-auto">
@@ -226,6 +232,17 @@ export default function Chat() {
           </div>
         )}
       </div>
+      {showHelp && (
+        <HelpModal title="Ayuda — Mensajes" onClose={() => setShowHelp(false)}>
+          <p><strong className="text-white">Mensajes</strong> es el chat en tiempo real con tus clientes.</p>
+          <ul className="space-y-1.5 list-disc list-inside text-slate-400">
+            <li>Los clientes pueden escribirte desde la <span className="text-white">app pública</span> de la barbería.</li>
+            <li>Selecciona una conversación en la columna izquierda para ver y responder los mensajes.</li>
+            <li>El punto rojo en el menú lateral indica que hay <span className="text-white">mensajes sin leer</span>.</li>
+            <li>Al abrir un chat el contador se marca como leído automáticamente.</li>
+          </ul>
+        </HelpModal>
+      )}
     </div>
   );
 }

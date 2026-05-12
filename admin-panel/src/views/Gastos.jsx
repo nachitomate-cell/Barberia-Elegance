@@ -3,8 +3,9 @@ import {
   TrendingDown, Plus, X, Calendar, DollarSign,
   Tag, CreditCard, AlertCircle, ChevronDown,
 } from 'lucide-react';
+import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 import {
-  collection, addDoc, query, where, orderBy,
+  addDoc, query, where, orderBy,
   onSnapshot, serverTimestamp, Timestamp,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -24,13 +25,14 @@ const CAT_COLORS = {
   Otros:              'bg-slate-500/20 text-slate-400',
 };
 
-const EMPTY_FORM = {
-  descripcion: '',
-  monto:       '',
-  categoria:   'Insumos',
-  metodoPago:  'Efectivo',
-  fecha:       new Date().toISOString().slice(0, 10),
-};
+function localDateStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function emptyForm() {
+  return { descripcion: '', monto: '', categoria: 'Insumos', metodoPago: 'Efectivo', fecha: localDateStr() };
+}
 
 /* ─── Helpers ────────────────────────────────────────────────── */
 function gastosCol() {
@@ -46,7 +48,7 @@ function thisMonthRange() {
 
 /* ─── GastoModal ─────────────────────────────────────────────── */
 function GastoModal({ onClose, onSaved }) {
-  const [form,   setForm]   = useState(EMPTY_FORM);
+  const [form,   setForm]   = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [error,  setError]  = useState('');
 
@@ -183,7 +185,8 @@ function KpiCard({ label, value, sub, color = 'red' }) {
 
 /* ─── Main component ─────────────────────────────────────────── */
 export default function Gastos() {
-  const [gastos,  setGastos]  = useState([]);
+  const [gastos,    setGastos]    = useState([]);
+  const [showHelp,  setShowHelp]  = useState(false);
   const [loading, setLoading] = useState(true);
   const [modal,   setModal]   = useState(false);
 
@@ -221,7 +224,10 @@ export default function Gastos() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-white">Gastos</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold text-white">Gastos</h1>
+            <HelpButton onClick={() => setShowHelp(true)} />
+          </div>
           <p className="text-sm text-slate-500 mt-0.5">
             {new Date().toLocaleDateString('es-CL', { month: 'long', year: 'numeric' })}
           </p>
@@ -316,6 +322,17 @@ export default function Gastos() {
       </div>
 
       {modal && <GastoModal onClose={() => setModal(false)} />}
+      {showHelp && (
+        <HelpModal title="Ayuda — Gastos" onClose={() => setShowHelp(false)}>
+          <p>En <strong className="text-white">Gastos</strong> registras los costos operativos del local para controlar la rentabilidad.</p>
+          <ul className="space-y-1.5 list-disc list-inside text-slate-400">
+            <li>Usa <span className="text-white">Registrar Gasto</span> para agregar un gasto con monto, categoría, descripción y fecha.</li>
+            <li>Los KPIs muestran el total del mes, el gasto promedio y la categoría con mayor gasto.</li>
+            <li>El desglose por categoría ayuda a identificar dónde se concentran los costos.</li>
+            <li>Compara los gastos con los ingresos de <span className="text-white">Métricas</span> para calcular tu margen neto.</li>
+          </ul>
+        </HelpModal>
+      )}
     </div>
   );
 }

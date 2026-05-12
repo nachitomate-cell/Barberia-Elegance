@@ -10,7 +10,7 @@ import { useTenant } from '../contexts/TenantContext';
 
 const LOGIN_IMAGE = {
   elegance: '/loginelegance.png',
-  ferraza:  '/loginferraza.png',
+  ferraza:  '/loginferraza.webp',
 };
 
 export default function LoginPage() {

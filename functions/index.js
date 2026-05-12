@@ -362,6 +362,118 @@ exports.notificarReservaPublica = onDocumentCreated(
 );
 
 // ─────────────────────────────────────────────────────────────────
+//  HELPER: tokens para tenant multi-tenant (lee tenants/{tid}/barberos)
+// ─────────────────────────────────────────────────────────────────
+async function getTokensActivosTenant(tid, barberoId, barberoNombre) {
+  const validUids = new Set();
+  try {
+    const barberoIdTrimmed     = (barberoId    || '').trim();
+    const barberoNombreTrimmed = (barberoNombre || '').toLowerCase().trim();
+
+    const [barberosSnap, tokensSnap] = await Promise.all([
+      db.collection(`tenants/${tid}/barberos`).get(),
+      db.collection('fcm_tokens').where('tenantId', '==', tid).get(),
+    ]);
+
+    barberosSnap.forEach(docSnap => {
+      const b = docSnap.data();
+      if (b.activo === false) return;
+      const isManager   = b.rol === 'jefe' || b.rol === 'admin';
+      const matchById   = barberoIdTrimmed && docSnap.id === barberoIdTrimmed;
+      const matchByName = barberoNombreTrimmed && (b.nombre || '').toLowerCase().trim() === barberoNombreTrimmed;
+      if (isManager || matchById || matchByName) {
+        validUids.add(docSnap.id);
+        if (b.uid) validUids.add(b.uid);
+      }
+    });
+
+    const tokenSet = new Set();
+    tokensSnap.forEach(d => {
+      const data = d.data();
+      if (data.activo && validUids.has(data.uid)) tokenSet.add(data.token);
+    });
+    return [...tokenSet];
+  } catch (err) {
+    logger.error('[FCM] Error filtrando tokens tenant:', err);
+    return [];
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────
+//  TRIGGER 3: reservas desde admin en tenants multi-tenant
+//  /tenants/{tenantId}/citas/{citaId}
+// ─────────────────────────────────────────────────────────────────
+exports.notificarCitaTenant = onDocumentCreated(
+  'tenants/{tenantId}/citas/{citaId}',
+  async (event) => {
+    const cita = event.data?.data();
+    if (!cita) return null;
+
+    const { tenantId, citaId } = event.params;
+    const cliente   = cita.clienteNombre || cita.nombre || 'Cliente';
+    const servicio  = cita.servicioNombre || cita.servicio || 'Servicio';
+    const hora      = cita.hora  || '';
+    const fecha     = cita.fecha || '';
+    const barbero   = cita.barbero || cita.barberoNombre || '';
+    const barberoId = cita.barberoId || '';
+
+    const title = `Nueva cita — ${hora} ${fecha}`.trim();
+    const body  = barbero
+      ? `${cliente} · ${servicio} · con ${barbero}`
+      : `${cliente} · ${servicio}`;
+
+    logger.info('[FCM] Cita tenant creada:', { tenantId, citaId, cliente, hora, fecha });
+
+    try {
+      const tokens = await getTokensActivosTenant(tenantId, barberoId, barbero);
+      if (!tokens.length) {
+        logger.warn(`[FCM] Sin tokens para tenant ${tenantId}. Omitiendo.`);
+        return null;
+      }
+
+      const message = {
+        notification: { title, body },
+        data: { citaId, url: '/gestion-interna/agenda', fecha, hora },
+        webpush: {
+          headers: { Urgency: 'high' },
+          notification: {
+            title, body,
+            icon:     '/gestion-interna/pwa-192.png',
+            badge:    '/gestion-interna/pwa-192.png',
+            vibrate:  [200, 100, 200],
+            tag:      'nueva-cita',
+            renotify: true,
+          },
+          fcmOptions: { link: '/gestion-interna/agenda' },
+        },
+        tokens,
+      };
+
+      const response = await messaging.sendEachForMulticast(message);
+      logger.info(`[FCM] Tenant ${tenantId}: ${response.successCount} OK, ${response.failureCount} errores`);
+
+      const TOKEN_ERRORS = new Set([
+        'messaging/invalid-registration-token',
+        'messaging/registration-token-not-registered',
+        'messaging/invalid-argument',
+      ]);
+      const invalidos = [];
+      response.responses.forEach((res, idx) => {
+        if (!res.success && TOKEN_ERRORS.has(res.error?.code || '')) invalidos.push(tokens[idx]);
+      });
+      if (invalidos.length) {
+        const batch = db.batch();
+        invalidos.forEach(t => batch.update(db.collection('fcm_tokens').doc(t), { activo: false }));
+        await batch.commit();
+      }
+    } catch (err) {
+      logger.error('[FCM] Error al enviar (tenant):', err);
+    }
+    return null;
+  }
+);
+
+// ─────────────────────────────────────────────────────────────────
 //  CRON: limpiar tokens FCM inactivos (se ejecuta cada domingo a las 3am UTC)
 //  Elimina docs con activo==false o con más de 60 días sin actualizarse.
 // ─────────────────────────────────────────────────────────────────

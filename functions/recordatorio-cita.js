@@ -11,7 +11,7 @@
 //  Campos requeridos en citas/{citaId}:
 //    fecha:                   "YYYY-MM-DD"
 //    hora:                    "HH:MM"
-//    estado:                  "pendiente"|"Pendiente"|"confirmada"|"Confirmada"
+//    estado:                  "pendiente"|"Pendiente"|"confirmada"|"Confirmada"|"Confirmado"
 //    clienteTelefono:         string (normalizable a solo dígitos)
 //    clienteNombre:           string
 //    recordatorio24hEnviado:  boolean — idempotencia
@@ -58,7 +58,7 @@ exports.recordatorioCita24h = onSchedule(
 
       const snap = await citasCol
         .where('fecha', '==', mananaISO)
-        .where('estado', 'in', ['pendiente', 'Pendiente', 'confirmada', 'Confirmada'])
+        .where('estado', 'in', ['pendiente', 'Pendiente', 'confirmada', 'Confirmada', 'Confirmado'])
         .get();
 
       if (snap.empty) {

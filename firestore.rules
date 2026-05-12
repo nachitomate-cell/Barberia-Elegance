@@ -84,8 +84,18 @@ service cloud.firestore {
     // + no inyecta campos de privilegio
     function bookingPublicoValido() {
       return request.resource.data.keys().hasAll(['fecha', 'hora', 'clienteNombre', 'estado'])
-          && request.resource.data.estado in ['Confirmada', 'Pendiente']
+          && request.resource.data.estado in ['Confirmada', 'Confirmado', 'Pendiente']
           && !request.resource.data.keys().hasAny(['rol', 'role', 'tenantId', 'adminOverride', 'barberoRol']);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  _system — configuración global (versionamiento, kill switch)
+    //  Lectura para cualquier usuario autenticado.
+    //  Escritura solo para bootstrap (SynapTech).
+    // ═══════════════════════════════════════════════════════════════
+    match /_system/{docId} {
+      allow read:  if autenticado();
+      allow write: if esBootstrap();
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -117,14 +127,18 @@ service cloud.firestore {
     // ── /citas ─────────────────────────────────────────────────────
     // Creación pública sin auth (widget de reservas online) con
     // validación estricta de estructura.  Staff puede crear/editar.
-    // Clientes solo pueden cancelar su propia cita.
+    // Clientes pueden leer y cancelar sus propias citas (por email o uid).
     match /citas/{citaId} {
-      allow read: if esStaff('elegance');
+      allow read: if esStaff('elegance')
+                  || (autenticado()
+                      && (resource.data.get('clienteEmail', '') == request.auth.token.email
+                          || resource.data.get('clienteUid', '')  == request.auth.uid));
       allow create: if bookingPublicoValido()
                     || esStaff('elegance');
       allow update: if esStaff('elegance')
                     || (autenticado()
-                        && resource.data.get('clienteUid', null) == uid()
+                        && (resource.data.get('clienteEmail', '') == request.auth.token.email
+                            || resource.data.get('clienteUid', '') == request.auth.uid)
                         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado'])
                         && request.resource.data.estado == 'Cancelada');
       allow delete: if esAdmin('elegance');
@@ -268,11 +282,15 @@ service cloud.firestore {
 
       // ── citas (panel admin) ───────────────────────────────────────
       match /citas/{citaId} {
-        allow read: if esStaff(tid);
+        allow read: if esStaff(tid)
+                    || (autenticado()
+                        && (resource.data.get('clienteEmail', '') == request.auth.token.email
+                            || resource.data.get('clienteUid', '')  == request.auth.uid));
         allow create: if bookingPublicoValido() || esStaff(tid);
         allow update: if esStaff(tid)
                       || (autenticado()
-                          && resource.data.get('clienteUid', null) == uid()
+                          && (resource.data.get('clienteEmail', '') == request.auth.token.email
+                              || resource.data.get('clienteUid', '') == request.auth.uid)
                           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado'])
                           && request.resource.data.estado == 'Cancelada');
         allow delete: if esAdmin(tid);
@@ -280,11 +298,15 @@ service cloud.firestore {
 
       // ── bookings (flujo público web) ──────────────────────────────
       match /bookings/{bookingId} {
-        allow read: if esStaff(tid);
+        allow read: if esStaff(tid)
+                    || (autenticado()
+                        && (resource.data.get('clienteEmail', '') == request.auth.token.email
+                            || resource.data.get('clienteUid', '')  == request.auth.uid));
         allow create: if bookingPublicoValido() || esStaff(tid);
         allow update: if esStaff(tid)
                       || (autenticado()
-                          && resource.data.get('clienteUid', null) == uid()
+                          && (resource.data.get('clienteEmail', '') == request.auth.token.email
+                              || resource.data.get('clienteUid', '') == request.auth.uid)
                           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado'])
                           && request.resource.data.estado == 'Cancelada');
         allow delete: if esAdmin(tid);

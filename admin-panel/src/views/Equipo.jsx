@@ -3,17 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import {
   Calendar, Edit2, Trash2, PowerOff, User, ShieldCheck, MessageCircle,
   Upload, ChevronDown, Plus, X, Phone, Mail, Percent, Scissors,
-  CalendarOff, Clock, Check,
+  CalendarOff, Clock, Check, KeyRound,
 } from 'lucide-react';
-import { updateDoc, doc } from 'firebase/firestore';
+import { updateDoc, addDoc, deleteDoc, doc } from 'firebase/firestore';
+import { sendPasswordResetEmail } from 'firebase/auth';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, storage } from '../lib/firebase';
+import { db, storage, auth } from '../lib/firebase';
 import { tenantCol, resolveTenantId } from '../lib/tenantUtils';
 import { useCollection } from '../hooks/useCollection';
 import { useTenant } from '../contexts/TenantContext';
 import Badge        from '../components/ui/Badge';
 import DropdownMenu from '../components/ui/DropdownMenu';
 import SlideOver    from '../components/ui/SlideOver';
+import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 
 /* ─── Constants ───────────────────────────────────────────── */
 const SUPPORT_EMAIL = 'ignaciiio.mate@gmail.com';
@@ -43,6 +45,11 @@ const BARBER_EMPTY = {
   horario: DEFAULT_HORARIO(),
   ausencias: [],
 };
+
+function localDateStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
 
 /* ─── Helpers ────────────────────────────────────────────── */
 function buildWaUrl(tenantName) {
@@ -88,7 +95,6 @@ function DayRow({ diaKey, config, onChange }) {
 
   return (
     <div className={`rounded-lg border overflow-hidden ${config.activo ? 'border-slate-700' : 'border-slate-800/60'}`}>
-      {/* Day toggle + hour range */}
       <div className="flex items-center gap-2.5 px-3 py-2">
         <button type="button" onClick={() => onChange({ ...config, activo: !config.activo })}
           className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-all ${
@@ -113,7 +119,6 @@ function DayRow({ diaKey, config, onChange }) {
         )}
       </div>
 
-      {/* Breaks */}
       {config.activo && (
         <div className="px-3 pb-2.5 space-y-1.5 border-t border-slate-800/60 pt-2">
           {config.descansos.map((d, i) => (
@@ -152,13 +157,12 @@ function BarberCard({ barber, onEdit, waUrl, onVerAgenda }) {
   const toggleStatus = () => updateDoc(doc(db,`${colPath}/${barber.id}`),{ disponible:!isActive });
   const handleDelete = async () => {
     if (!confirm(`¿Eliminar a ${barber.nombre}?`)) return;
-    const { deleteDoc } = await import('firebase/firestore');
     await deleteDoc(doc(db,`${colPath}/${barber.id}`));
   };
 
   const menuItems = [
-    { label:'Editar datos',      Icon:Edit2,    onClick:() => onEdit(barber) },
-    { label:'Configurar horario',Icon:Clock,    onClick:() => onEdit(barber) },
+    { label:'Editar datos',       Icon:Edit2,    onClick:() => onEdit(barber) },
+    { label:'Configurar horario', Icon:Clock,    onClick:() => onEdit(barber) },
     'separator',
     { label: isActive?'Desactivar':'Activar', Icon:PowerOff, onClick:toggleStatus },
     { label:'Eliminar', Icon:Trash2, onClick:handleDelete, danger:true },
@@ -209,14 +213,27 @@ export default function Equipo() {
   const barberos = rawBarberos.filter(b => !b._mainDocId);
 
   const [slide,     setSlide]     = useState(false);
+  const [showHelp,  setShowHelp]  = useState(false);
   const [editing,   setEditing]   = useState(null);
   const [form,      setForm]      = useState(BARBER_EMPTY);
   const [preview,   setPreview]   = useState('');
   const [uploading, setUploading] = useState(false);
   const [saving,    setSaving]    = useState(false);
+  const [uploadError, setUploadError] = useState('');
+  const [resetMsg,  setResetMsg]  = useState('');
+  const [resetSending, setResetSending] = useState(false);
   const fileRef = useRef(null);
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  const openNew = () => {
+    setEditing(null);
+    setPreview('');
+    setForm({ ...BARBER_EMPTY, horario: DEFAULT_HORARIO() });
+    setUploadError('');
+    setResetMsg('');
+    setSlide(true);
+  };
 
   const openEdit = b => {
     setEditing(b);
@@ -232,10 +249,10 @@ export default function Equipo() {
       horario:      initHorario(b),
       ausencias:    b.ausencias    || [],
     });
+    setUploadError('');
+    setResetMsg('');
     setSlide(true);
   };
-
-  const [uploadError, setUploadError] = useState('');
 
   /* ── Photo upload ── */
   const handleFileChange = async e => {
@@ -271,12 +288,32 @@ export default function Equipo() {
 
   /* ── Save ── */
   const handleSave = async () => {
-    if (!editing || saving) return;
+    if (!form.nombre.trim() || saving) return;
     setSaving(true);
     try {
-      await updateDoc(doc(db, `${tenantCol('barberos').path}/${editing.id}`), form);
+      if (editing) {
+        await updateDoc(doc(db, `${tenantCol('barberos').path}/${editing.id}`), form);
+      } else {
+        await addDoc(tenantCol('barberos'), { ...form, disponible: true, createdAt: new Date().toISOString() });
+      }
       setSlide(false);
     } finally { setSaving(false); }
+  };
+
+  /* ── Password reset ── */
+  const handlePasswordReset = async () => {
+    const email = form.email.trim();
+    if (!email) return;
+    setResetSending(true);
+    setResetMsg('');
+    try {
+      await sendPasswordResetEmail(auth, email);
+      setResetMsg('✓ Enlace enviado a ' + email);
+    } catch (err) {
+      setResetMsg(err.code === 'auth/user-not-found'
+        ? 'No existe una cuenta Firebase con ese email.'
+        : `Error: ${err.message}`);
+    } finally { setResetSending(false); }
   };
 
   /* ── Servicios toggle ── */
@@ -286,10 +323,11 @@ export default function Equipo() {
       : [...form.serviciosIds, id]);
 
   /* ── Ausencias ── */
+  const today = localDateStr();
   const addAusencia = () => set('ausencias', [...form.ausencias, {
     id: Date.now().toString(36),
-    fechaInicio: new Date().toISOString().slice(0,10),
-    fechaFin:    new Date().toISOString().slice(0,10),
+    fechaInicio: today,
+    fechaFin:    today,
     motivo: '',
   }]);
   const rmAusencia  = id => set('ausencias', form.ausencias.filter(a => a.id !== id));
@@ -302,9 +340,18 @@ export default function Equipo() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-xl font-bold text-white">Equipo</h1>
-        <p className="text-sm text-slate-500 mt-0.5">{barberos.length} miembros</p>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold text-white">Equipo</h1>
+            <HelpButton onClick={() => setShowHelp(true)} />
+          </div>
+          <p className="text-sm text-slate-500 mt-0.5">{barberos.length} miembros</p>
+        </div>
+        <button onClick={openNew}
+          className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
+          <Plus size={16} /> Nuevo barbero
+        </button>
       </div>
 
       {loading ? (
@@ -321,14 +368,16 @@ export default function Equipo() {
       )}
 
       {/* ── SlideOver ── */}
-      <SlideOver isOpen={slide} onClose={() => setSlide(false)} title="Editar barbero" maxWidth="max-w-lg"
+      <SlideOver isOpen={slide} onClose={() => setSlide(false)}
+        title={editing ? 'Editar barbero' : 'Nuevo barbero'}
+        maxWidth="max-w-lg"
         footer={
           <div className="flex gap-3 justify-end">
             <button onClick={() => setSlide(false)} className="px-4 py-2 text-sm text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-all">Cancelar</button>
-            <button onClick={handleSave} disabled={saving || uploading}
+            <button onClick={handleSave} disabled={saving || uploading || !form.nombre.trim()}
               className="flex items-center gap-2 px-5 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-sm font-semibold rounded-lg transition-all">
               {saving && <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-              Guardar cambios
+              {editing ? 'Guardar cambios' : 'Crear barbero'}
             </button>
           </div>
         }
@@ -337,7 +386,6 @@ export default function Equipo() {
 
           {/* ── Perfil ── */}
           <Section title="Datos del perfil" Icon={User} defaultOpen>
-            {/* Avatar */}
             <div className="flex items-center gap-4 mb-1">
               <div className="w-16 h-16 rounded-full overflow-hidden bg-slate-800 border border-slate-700 shrink-0 flex items-center justify-center">
                 {preview
@@ -350,9 +398,7 @@ export default function Equipo() {
                   {uploading ? <span className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"/> : <Upload size={12} />}
                   {uploading ? 'Subiendo...' : 'Subir foto'}
                 </button>
-                {uploadError && (
-                  <p className="text-xs text-red-400 leading-snug">{uploadError}</p>
-                )}
+                {uploadError && <p className="text-xs text-red-400 leading-snug">{uploadError}</p>}
                 <input className={`${field} text-xs`} placeholder="https://..." value={form.foto}
                   onChange={e => { set('foto', e.target.value); setPreview(e.target.value); }} />
                 <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
@@ -383,6 +429,33 @@ export default function Equipo() {
             </div>
           </Section>
 
+          {/* ── Seguridad ── */}
+          {editing && (
+            <Section title="Seguridad" Icon={KeyRound}>
+              <p className="text-xs text-slate-500 -mt-1">
+                Envía un enlace al email del barbero para que restablezca su contraseña. Requiere que tenga cuenta Firebase Auth con ese email.
+              </p>
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={handlePasswordReset}
+                  disabled={resetSending || !form.email.trim()}
+                  className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 border border-slate-700 text-slate-300 hover:text-white text-xs font-semibold rounded-lg transition-all">
+                  {resetSending
+                    ? <span className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
+                    : <KeyRound size={13} />}
+                  Enviar enlace de restablecimiento
+                </button>
+              </div>
+              {resetMsg && (
+                <p className={`text-xs font-semibold ${resetMsg.startsWith('✓') ? 'text-emerald-400' : 'text-red-400'}`}>
+                  {resetMsg}
+                </p>
+              )}
+              {!form.email.trim() && (
+                <p className="text-[10px] text-slate-600 italic">El barbero necesita un email para usar esta función.</p>
+              )}
+            </Section>
+          )}
+
           {/* ── Comisión ── */}
           <Section title="Comisión" Icon={Percent}>
             <div>
@@ -402,12 +475,8 @@ export default function Equipo() {
             <p className="text-[10px] text-slate-500 -mt-1 mb-2">Configura el horario de cada día. Puedes añadir descansos dentro de cada jornada.</p>
             <div className="space-y-2">
               {DIAS_ORDER.map(d => (
-                <DayRow
-                  key={d}
-                  diaKey={d}
-                  config={form.horario[d]}
-                  onChange={cfg => setForm(f => ({ ...f, horario: { ...f.horario, [d]: cfg } }))}
-                />
+                <DayRow key={d} diaKey={d} config={form.horario[d]}
+                  onChange={cfg => setForm(f => ({ ...f, horario: { ...f.horario, [d]: cfg } }))} />
               ))}
             </div>
           </Section>
@@ -473,6 +542,18 @@ export default function Equipo() {
 
         </div>
       </SlideOver>
+      {showHelp && (
+        <HelpModal title="Ayuda — Equipo" onClose={() => setShowHelp(false)}>
+          <p>En <strong className="text-white">Equipo</strong> administras los barberos y sus configuraciones.</p>
+          <ul className="space-y-1.5 list-disc list-inside text-slate-400">
+            <li>Agrega barberos con nombre, foto, teléfono y correo.</li>
+            <li>Define los <span className="text-white">días hábiles</span> y el <span className="text-white">horario</span> de cada barbero.</li>
+            <li>Registra <span className="text-white">ausencias programadas</span> para bloquear su disponibilidad en fechas concretas.</li>
+            <li>Asigna el rol <span className="text-white">Admin</span> para dar acceso completo al panel, o <span className="text-white">Barbero</span> para acceso limitado.</li>
+            <li>Usa el botón de restablecimiento para enviar un correo de cambio de contraseña.</li>
+          </ul>
+        </HelpModal>
+      )}
     </div>
   );
 }

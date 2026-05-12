@@ -1,12 +1,13 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Search, User, Phone, Trophy, Plus, Minus, Gift, X, RotateCcw, MessageCircle, Cake } from 'lucide-react';
 import {
   onSnapshot, updateDoc, setDoc, doc, getDocs, query, where, orderBy as firestoreOrderBy,
-  limit, increment, arrayUnion, serverTimestamp,
+  increment, arrayUnion, serverTimestamp,
 } from 'firebase/firestore';
 import { tenantCol } from '../lib/tenantUtils';
 import { useCollection } from '../hooks/useCollection';
 import SlideOver from '../components/ui/SlideOver';
+import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 
 function normalizePhone(phone) {
   return (phone || '').replace(/\D/g, '');
@@ -58,6 +59,7 @@ function ClientePanel({ cliente: init, premios, onClose }) {
   const [fechaCumple, setFechaCumple] = useState(init.fechaNacimiento || '');
   const [cumpleLoad,  setCumpleLoad]  = useState(false);
   const [cumpleMsg,   setCumpleMsg]   = useState('');
+  const cumpleTimer = useRef(null);
 
   /* Real-time subscription for this client */
   useEffect(() => {
@@ -100,7 +102,8 @@ function ClientePanel({ cliente: init, premios, onClose }) {
       }
       await setDoc(doc(tenantCol('clientes'), phone), clienteData, { merge: true });
       setCumpleMsg('✓ Guardado');
-      setTimeout(() => setCumpleMsg(''), 2500);
+      if (cumpleTimer.current) clearTimeout(cumpleTimer.current);
+      cumpleTimer.current = setTimeout(() => setCumpleMsg(''), 2500);
     } catch (e) {
       setCumpleMsg('Error: ' + e.message);
     } finally {
@@ -111,11 +114,11 @@ function ClientePanel({ cliente: init, premios, onClose }) {
   /* Load recent appointments (one-time) */
   useEffect(() => {
     if (!init.email) return;
-    getDocs(query(tenantCol('citas'), where('clienteEmail', '==', init.email), limit(10)))
+    getDocs(query(tenantCol('citas'), where('clienteEmail', '==', init.email)))
       .then(snap => {
         const arr = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         arr.sort((a, b) => (b.fecha || '').localeCompare(a.fecha || '') || (b.hora || '').localeCompare(a.hora || ''));
-        setCitas(arr);
+        setCitas(arr.slice(0, 10));
       }).catch(() => {});
   }, [init.uid, init.email]);
 
@@ -346,7 +349,7 @@ function ClientePanel({ cliente: init, premios, onClose }) {
               const color = h.tipo === 'suma' ? 'text-emerald-400' : h.tipo === 'canje' ? 'text-yellow-400' : 'text-red-400';
               const label = h.tipo === 'suma' ? `+${h.cantidad} sello` : h.tipo === 'canje' ? `Canje: ${h.nota}` : `${h.cantidad} sello`;
               return (
-                <div key={i} className="flex items-start gap-2 py-1.5 border-b border-white/4 last:border-0">
+                <div key={`${h.fecha}-${h.tipo}-${i}`} className="flex items-start gap-2 py-1.5 border-b border-white/4 last:border-0">
                   <i className={`ph-fill ${icon} ${color} text-sm shrink-0 mt-0.5`} />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-semibold text-white truncate">{label}</p>
@@ -404,11 +407,14 @@ export default function Clientes() {
   const { data: clientes, loading } = useCollection('users');
   const { data: premios }           = useCollection('premios', [firestoreOrderBy('costoSellos')]);
 
-  const [search,   setSearch]   = useState('');
-  const [selected, setSelected] = useState(null);
+  const [search,    setSearch]    = useState('');
+  const [showHelp,  setShowHelp]  = useState(false);
+  const [selected,  setSelected]  = useState(null);
+
+  const sellos = c => c.sellosDisponibles ?? c.stamps ?? 0;
 
   const sorted = useMemo(() =>
-    [...clientes].sort((a, b) => (b.stamps || 0) - (a.stamps || 0) || (a.nombre || '').localeCompare(b.nombre || '')),
+    [...clientes].sort((a, b) => sellos(b) - sellos(a) || (a.nombre || '').localeCompare(b.nombre || '')),
     [clientes]
   );
 
@@ -422,16 +428,19 @@ export default function Clientes() {
   }, [sorted, search]);
 
   const total  = clientes.length;
-  const avg    = total ? (clientes.reduce((s, c) => s + (c.stamps || 0), 0) / total).toFixed(1) : 0;
+  const avg    = total ? (clientes.reduce((s, c) => s + sellos(c), 0) / total).toFixed(1) : 0;
   const conPremio = premios.length
-    ? clientes.filter(c => (c.stamps || 0) >= premios[0]?.costoSellos).length
-    : clientes.filter(c => (c.stamps || 0) >= 5).length;
+    ? clientes.filter(c => sellos(c) >= premios[0]?.costoSellos).length
+    : clientes.filter(c => sellos(c) >= 5).length;
 
   return (
     <div className="max-w-4xl mx-auto">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-xl font-bold text-white">Clientes y Fidelización</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-xl font-bold text-white">Clientes y Fidelización</h1>
+          <HelpButton onClick={() => setShowHelp(true)} />
+        </div>
         <p className="text-sm text-slate-500 mt-0.5">Gestiona sellos y premios de cada cliente.</p>
       </div>
 
@@ -471,7 +480,7 @@ export default function Clientes() {
         ) : (
           <div className="divide-y divide-slate-800/60">
             {filtered.map(c => {
-              const stamps = c.stamps || 0;
+              const stamps = sellos(c);
               const maxCost = premios.length ? premios[premios.length - 1]?.costoSellos : 10;
               const pct = Math.min(stamps / Math.max(maxCost, 1) * 100, 100);
               const badgeCls = stamps >= (maxCost || 10) ? 'text-yellow-400 border-yellow-400/40 bg-yellow-400/10'
@@ -526,6 +535,18 @@ export default function Clientes() {
           />
         )}
       </SlideOver>
+      {showHelp && (
+        <HelpModal title="Ayuda — Clientes y Fidelización" onClose={() => setShowHelp(false)}>
+          <p>En <strong className="text-white">Clientes</strong> gestionas el programa de fidelización por sellos.</p>
+          <ul className="space-y-1.5 list-disc list-inside text-slate-400">
+            <li>Busca clientes por nombre o teléfono con la barra de búsqueda.</li>
+            <li>Haz clic en un cliente para ver su historial y <span className="text-white">agregar o retirar sellos</span> manualmente.</li>
+            <li>Los sellos se acumulan automáticamente al completar citas con precio definido.</li>
+            <li>Al alcanzar el costo de un <span className="text-white">Premio</span>, el sistema lo desbloquea para el cliente.</li>
+            <li>El sello de <span className="text-white">cumpleaños</span> se otorga automáticamente el día del cumpleaños del cliente.</li>
+          </ul>
+        </HelpModal>
+      )}
     </div>
   );
 }

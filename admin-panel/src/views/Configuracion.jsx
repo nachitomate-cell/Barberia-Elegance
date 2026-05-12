@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Store, MapPin, Phone, Instagram, Image, Clock, Check, Save, HelpCircle,
 } from 'lucide-react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { tenantCol } from '../lib/tenantUtils';
+import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 
 /* ─── Constants ─────────────────────────────────────────────── */
 const DIAS_LABELS = { '1':'Lunes','2':'Martes','3':'Miércoles','4':'Jueves','5':'Viernes','6':'Sábado','0':'Domingo' };
@@ -95,10 +96,12 @@ function DayRow({ diaKey, config, onChange }) {
 
 /* ─── Main component ─────────────────────────────────────────── */
 export default function Configuracion() {
-  const [form,    setForm]    = useState(DEFAULT_SETTINGS);
-  const [loading, setLoading] = useState(true);
-  const [saving,  setSaving]  = useState(false);
-  const [saved,   setSaved]   = useState(false);
+  const [form,     setForm]     = useState(DEFAULT_SETTINGS);
+  const [loading,  setLoading]  = useState(true);
+  const [saving,   setSaving]   = useState(false);
+  const [saved,    setSaved]    = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
+  const savedTimer = useRef(null);
 
   useEffect(() => {
     getDoc(settingsRef()).then(snap => {
@@ -126,7 +129,8 @@ export default function Configuracion() {
     try {
       await setDoc(settingsRef(), form, { merge: true });
       setSaved(true);
-      setTimeout(() => setSaved(false), 2500);
+      if (savedTimer.current) clearTimeout(savedTimer.current);
+      savedTimer.current = setTimeout(() => setSaved(false), 2500);
     } finally {
       setSaving(false);
     }
@@ -146,7 +150,10 @@ export default function Configuracion() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-white">Configuración</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold text-white">Configuración</h1>
+            <HelpButton onClick={() => setShowHelp(true)} />
+          </div>
           <p className="text-sm text-slate-500 mt-0.5">Información pública de tu local</p>
         </div>
         <button onClick={handleSave} disabled={saving}
@@ -209,7 +216,7 @@ export default function Configuracion() {
 
       {/* Horario de Atención */}
       <Card Icon={Clock} title="Horario de Atención">
-        <p className="text-xs text-slate-500 -mt-1">Horario general del local. Los barberos pueden tener horarios individuales en Equipo.</p>
+        <p className="text-xs text-slate-500 -mt-1">Referencia informativa del local. La disponibilidad real de reservas la controlan los horarios individuales de cada barbero en <strong className="text-slate-400">Equipo</strong>.</p>
         <div className="mt-2">
           {DIAS_ORDER.map(d => (
             <DayRow key={d} diaKey={d} config={form.horario[d]} onChange={cfg => setDia(d, cfg)} />
@@ -242,7 +249,7 @@ export default function Configuracion() {
           </div>
           <div className="flex flex-col sm:flex-row gap-2">
             <a
-              href="https://wa.me/56912345678?text=Hola%20SynapTech%2C%20necesito%20soporte%20con%20mi%20panel%20de%20barber%C3%ADa"
+              href="https://wa.me/56983568212?text=Hola%20SynapTech%2C%20necesito%20soporte%20con%20mi%20panel%20de%20barber%C3%ADa"
               target="_blank"
               rel="noopener noreferrer"
               className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold transition-all hover:opacity-90 active:scale-[0.98]"
@@ -269,6 +276,17 @@ export default function Configuracion() {
         </div>
       </div>
 
+      {showHelp && (
+        <HelpModal title="Ayuda — Configuración" onClose={() => setShowHelp(false)}>
+          <p>En <strong className="text-white">Configuración</strong> gestionas la información pública y las reglas de reserva del local.</p>
+          <ul className="space-y-1.5 list-disc list-inside text-slate-400">
+            <li>Actualiza el <span className="text-white">nombre</span>, dirección, teléfono e Instagram de tu barbería.</li>
+            <li>Define el <span className="text-white">horario de apertura y cierre</span> y los días hábiles del local.</li>
+            <li>Configura con cuántos días de <span className="text-white">anticipación</span> pueden reservar los clientes.</li>
+            <li>Guarda los cambios con <span className="text-white">Guardar cambios</span> — se reflejan en la app pública de inmediato.</li>
+          </ul>
+        </HelpModal>
+      )}
     </div>
   );
 }

@@ -106,7 +106,7 @@ const FDB = (() => {
               servicioNombre:   b.servicioNombre   || '',
               duracionServicio: Number(b.duracionServicio) || 30,
               barbero:          b.barbero          || '',
-              estado:           b.estado           || 'Confirmado',
+              estado:           b.estado           || 'Confirmada',
               nota:             b.nota             || '',
               creadoEn:         firebase.firestore.FieldValue.serverTimestamp(),
             });
@@ -313,9 +313,10 @@ const FDB = (() => {
       clienteEmail:     cita.clienteEmail     || '',
       servicioNombre:   cita.servicioNombre   || '',
       duracionServicio: Number(cita.duracionServicio) || 30,
+      precio:           Number(cita.precio)   || 0,
       barbero:          cita.barbero          || '',
       barberoId:        cita.barberoId        || null,
-      estado:           'Confirmado',
+      estado:           'Confirmada',
       nota:             '',
       creadoEn:         firebase.firestore.FieldValue.serverTimestamp(),
     });

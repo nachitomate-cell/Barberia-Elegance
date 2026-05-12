@@ -648,8 +648,8 @@
       </div>
       <p id="profileSaveMsg" class="hidden text-xs text-center mb-3" style="color:var(--gold);">✓ Datos guardados correctamente</p>
       <button id="btnGuardarPerfil" onclick="guardarPerfil()"
-        class="w-full border rounded-lg font-bold py-3.5 text-sm transition-all mb-6 flex items-center justify-center gap-2 bg-gray-800 text-gray-500 border-gray-700 cursor-not-allowed"
-        disabled>
+        class="w-full border rounded-lg font-bold py-3.5 text-sm transition-all mb-6 flex items-center justify-center gap-2"
+        style="background:#D4AF37;color:#000;border-color:#D4AF37;">
         <i class="ph-bold ph-floppy-disk text-base"></i> Guardar cambios
       </button>
 
@@ -722,7 +722,7 @@
         <span class="nav-label text-[9px] font-bold uppercase tracking-widest transition-all">Agenda</span>
       </button>
 
-      <button class="nav-tab flex-1 flex flex-col items-center justify-center gap-1 py-3 px-1"
+      <button class="nav-tab hidden flex-1 flex flex-col items-center justify-center gap-1 py-3 px-1"
         onclick="switchTab('lookbook')" id="navLookbook">
         <i class="nav-icon ph-fill ph-squares-four text-2xl transition-all"></i>
         <span class="nav-label text-[9px] font-bold uppercase tracking-widest transition-all">Lookbook</span>
@@ -812,6 +812,36 @@
           Cancelar
         </button>
       </div>
+    </div>
+  </div>
+
+  <!-- Modal canje de premio -->
+  <div id="canjeModal" class="hidden fixed inset-0 bg-[#050505]/85 backdrop-blur-sm z-50 flex items-end justify-center px-5 pb-8" onclick="if(event.target===this)cerrarModalCanje()">
+    <div class="w-full max-w-sm bg-[#111115] border border-white/10 rounded-3xl p-6 animate-[fadeSlideUp_0.3s_cubic-bezier(0.16,1,0.3,1)_forwards]">
+      <div class="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4" style="background:rgba(212,175,55,0.12);border:1px solid rgba(212,175,55,0.3)">
+        <i class="ph-fill ph-trophy text-2xl" style="color:#D4AF37"></i>
+      </div>
+      <p id="canjeModalSubtitle" class="text-xs font-bold uppercase tracking-widest text-center mb-1" style="color:#D4AF37"></p>
+      <h3 id="canjeModalTitle" class="text-lg font-black text-white text-center mb-5"></h3>
+      <div class="bg-[#1a1a1f] rounded-2xl px-5 py-4 mb-6 border border-white/6 space-y-3">
+        <div class="flex gap-3 items-start">
+          <i class="ph-fill ph-storefront text-base mt-0.5 shrink-0" style="color:#D4AF37"></i>
+          <p class="text-sm text-gray-300 leading-relaxed">Preséntate en la barbería y muéstrale esta pantalla a tu barbero.</p>
+        </div>
+        <div class="flex gap-3 items-start">
+          <i class="ph-fill ph-seal-check text-base mt-0.5 shrink-0" style="color:#D4AF37"></i>
+          <p class="text-sm text-gray-300 leading-relaxed">Él verificará tus sellos y hará válido el premio al momento.</p>
+        </div>
+        <div class="flex gap-3 items-start">
+          <i class="ph-fill ph-chat-circle-text text-base mt-0.5 shrink-0" style="color:#D4AF37"></i>
+          <p class="text-sm text-gray-300 leading-relaxed">¿Quieres avisarle antes? Escríbele desde el soporte de la app.</p>
+        </div>
+      </div>
+      <button onclick="cerrarModalCanje()"
+        class="w-full font-bold py-3.5 rounded-2xl transition-all active:scale-[0.98] text-sm text-black"
+        style="background:#D4AF37;">
+        Entendido
+      </button>
     </div>
   </div>
 
@@ -1130,15 +1160,26 @@ function renderPremiosDashboard(premios) {
   }
 
   el.innerHTML = premios.map((p, i) => `
-    <div class="flex items-center gap-4 bg-[#111115] rounded-2xl border border-white/8 px-5 py-4">
+    <div onclick="abrirModalCanje(${JSON.stringify(p.nombre)}, ${p.costoSellos})"
+      class="flex items-center gap-4 bg-[#111115] rounded-2xl border border-white/8 px-5 py-4 cursor-pointer active:scale-[0.98] transition-transform select-none hover:border-white/20">
       <span class="text-xl font-black text-white leading-none">${p.costoSellos}</span>
       <div class="w-px h-6 bg-white/10"></div>
-      <div>
+      <div class="flex-1 min-w-0">
         <p class="text-xs font-bold text-white/30 uppercase tracking-widest">Sellos</p>
         <p class="text-sm font-bold text-white">${p.nombre}</p>
       </div>
-      <i class="ph-fill ${_DASH_PREMIO_ICONS[i % _DASH_PREMIO_ICONS.length]} text-white/15 ml-auto text-lg"></i>
+      <i class="ph-bold ph-caret-right text-white/20 text-sm shrink-0"></i>
     </div>`).join('');
+}
+
+// ─── Modal canje de premio ────────────────────────────────────
+function abrirModalCanje(nombre, sellos) {
+  document.getElementById('canjeModalTitle').textContent  = nombre;
+  document.getElementById('canjeModalSubtitle').textContent = `${sellos} sello${sellos !== 1 ? 's' : ''}`;
+  document.getElementById('canjeModal').classList.remove('hidden');
+}
+function cerrarModalCanje() {
+  document.getElementById('canjeModal').classList.add('hidden');
 }
 
 // ─── Toggle premios ───────────────────────────────────────────
@@ -1254,10 +1295,25 @@ async function cargarServicios() {
 }
 
 // ─── Lookbook ─────────────────────────────────────────────────
-function initLookbook() {
+async function initLookbook() {
   const grid  = document.getElementById('lookbookGrid');
   const empty = document.getElementById('lookbookEmpty');
   if (!grid) return;
+
+  // Verificar flag lookbookActivo en config/ui
+  try {
+    const _lbCfgTid = window.CURRENT_TENANT_ID || 'elegance';
+    const _lbCfgRef = _lbCfgTid === 'elegance'
+      ? db.collection('config').doc('ui')
+      : db.collection('tenants').doc(_lbCfgTid).collection('config').doc('ui');
+    const cfgSnap = await _lbCfgRef.get();
+    const activo  = cfgSnap.exists ? !!cfgSnap.data().lookbookActivo : false;
+    if (!activo) return; // sección desactivada — no mostrar tab ni cargar fotos
+  } catch (_) {}
+
+  // Mostrar pestaña en la nav
+  const navBtn = document.getElementById('navLookbook');
+  if (navBtn) navBtn.classList.remove('hidden');
 
   grid.innerHTML = `
     <div class="masonry-item rounded-md aspect-[3/4] bg-white/5 animate-pulse"></div>
@@ -1267,7 +1323,11 @@ function initLookbook() {
 
   if (_lookbookUnsub) { _lookbookUnsub(); _lookbookUnsub = null; }
 
-  _lookbookUnsub = db.collection('lookbook').orderBy('order', 'asc').onSnapshot(snap => {
+  const _lbTid = window.CURRENT_TENANT_ID || 'elegance';
+  const _lbCol = _lbTid === 'elegance'
+    ? db.collection('lookbook')
+    : db.collection('tenants').doc(_lbTid).collection('lookbook');
+  _lookbookUnsub = _lbCol.orderBy('order', 'asc').onSnapshot(snap => {
     if (snap.empty) {
       grid.innerHTML = '';
       empty.classList.remove('hidden');
@@ -1279,8 +1339,10 @@ function initLookbook() {
     grid.innerHTML = snap.docs.map(doc => {
       const { url } = doc.data();
       return `
-        <div class="masonry-item rounded-md overflow-hidden border border-white/8 bg-[#111115]">
-          <img src="${url}" loading="lazy" class="w-full object-cover block grayscale hover:grayscale-0 transition-all duration-300"
+        <div class="masonry-item rounded-md overflow-hidden border border-white/8 bg-[#111115] relative min-h-[180px]">
+          <div class="lk-sk absolute inset-0 bg-white/5 animate-pulse"></div>
+          <img src="${url}" loading="lazy" class="w-full object-cover block relative z-10 opacity-0 transition-opacity duration-500"
+               onload="this.style.opacity='1';const s=this.parentElement.querySelector('.lk-sk');if(s)s.remove();"
                onerror="this.parentElement.remove()">
         </div>`;
     }).join('');
@@ -1382,6 +1444,7 @@ function switchTab(tab) {
   });
 })();
 
+
 function validatePhone(value) {
   return /^\+56\s?9\s?\d{4}\s?\d{4}$/.test(value.trim());
 }
@@ -1415,7 +1478,7 @@ async function guardarPerfil() {
     // Actualizar users/{uid}
     const updateData = { nombre, email, telefono };
     if (fechaNacimiento !== null) updateData.fechaNacimiento = fechaNacimiento;
-    await FDB.usersCol().doc(currentUser.uid).update(updateData);
+    await FDB.usersCol().doc(currentUser.uid).set(updateData, { merge: true });
     await currentUser.updateProfile({ displayName: nombre });
     if (email && email !== currentUser.email) await currentUser.updateEmail(email);
 

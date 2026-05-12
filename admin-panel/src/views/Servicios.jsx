@@ -6,6 +6,7 @@ import { tenantCol } from '../lib/tenantUtils';
 import { useCollection } from '../hooks/useCollection';
 import { useConfig }     from '../hooks/useConfig';
 import SlideOver from '../components/ui/SlideOver';
+import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 
 const ICONS = [
   'ph-scissors','ph-user-focus','ph-mask-happy','ph-magic-wand',
@@ -49,8 +50,9 @@ export default function Servicios() {
   const { config, updateConfig }     = useConfig();
   const categorias = config.categoriasServicio ?? ['Otro'];
 
-  const [slide,   setSlide]   = useState(false);
-  const [editing, setEditing] = useState(null);
+  const [slide,     setSlide]     = useState(false);
+  const [showHelp,  setShowHelp]  = useState(false);
+  const [editing,   setEditing]   = useState(null);
   const [form,    setForm]    = useState(EMPTY);
   const [saving,  setSaving]  = useState(false);
   const [newCat,  setNewCat]  = useState('');
@@ -68,7 +70,8 @@ export default function Servicios() {
       if (editing) {
         await updateDoc(doc(tenantCol('servicios'), editing), payload);
       } else {
-        await addDoc(tenantCol('servicios'), { ...payload, orden: servicios.length, createdAt: serverTimestamp() });
+        const nextOrden = servicios.length ? Math.max(...servicios.map(s => s.orden ?? 0)) + 1 : 0;
+        await addDoc(tenantCol('servicios'), { ...payload, orden: nextOrden, createdAt: serverTimestamp() });
       }
       setSlide(false);
     } finally { setSaving(false); }
@@ -99,8 +102,17 @@ export default function Servicios() {
     setNewCat('');
   };
 
-  const delCategoria = async nombre =>
-    updateConfig({ categoriasServicio: categorias.filter(c => c !== nombre) });
+  const delCategoria = async nombre => {
+    if (categorias.length <= 1) return;
+    const fallback = categorias.filter(c => c !== nombre)[0] ?? 'Otro';
+    const afectados = servicios.filter(s => s.categoria === nombre);
+    if (afectados.length > 0) {
+      const batch = writeBatch(db);
+      afectados.forEach(s => batch.update(doc(tenantCol('servicios'), s.id), { categoria: fallback }));
+      await batch.commit();
+    }
+    await updateConfig({ categoriasServicio: categorias.filter(c => c !== nombre) });
+  };
 
   const field = 'w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors';
   const lbl   = 'block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5';
@@ -112,7 +124,10 @@ export default function Servicios() {
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-xl font-bold text-white">Servicios</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-bold text-white">Servicios</h1>
+              <HelpButton onClick={() => setShowHelp(true)} />
+            </div>
             <p className="text-xs text-slate-500 mt-0.5">Arrastra para reordenar. El orden se guarda en Firestore.</p>
           </div>
           <button onClick={openNew} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
@@ -131,7 +146,7 @@ export default function Servicios() {
                 onDragStart={() => { dragId.current = s.id; }}
                 onDragEnd={() => { dragId.current = null; setDragOver(null); }}
                 onDragOver={e => { e.preventDefault(); setDragOver(s.id); }}
-                onDragLeave={() => setDragOver(null)}
+                onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOver(null); }}
                 onDrop={() => handleDrop(s.id)}
                 className={`flex items-center gap-4 bg-slate-900 border rounded-xl p-4 transition-all cursor-grab active:cursor-grabbing select-none ${
                   dragOver === s.id ? 'border-emerald-500 bg-emerald-500/5' : 'border-slate-800 hover:border-slate-700'
@@ -232,6 +247,17 @@ export default function Servicios() {
           </div>
         </div>
       </SlideOver>
+      {showHelp && (
+        <HelpModal title="Ayuda — Servicios" onClose={() => setShowHelp(false)}>
+          <p>En <strong className="text-white">Servicios</strong> defines los cortes y tratamientos que ofrece el local.</p>
+          <ul className="space-y-1.5 list-disc list-inside text-slate-400">
+            <li>Crea servicios con nombre, categoría, <span className="text-white">precio</span> y <span className="text-white">duración</span> en minutos.</li>
+            <li><span className="text-white">Arrastra</span> las tarjetas para reordenar cómo se muestran a los clientes.</li>
+            <li>Agrega <span className="text-white">categorías personalizadas</span> para agrupar los servicios (ej: Barba, Color, Premium).</li>
+            <li>Cada servicio puede tener un ícono decorativo que aparece en la app pública.</li>
+          </ul>
+        </HelpModal>
+      )}
     </div>
   );
 }

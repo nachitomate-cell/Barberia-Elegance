@@ -11,7 +11,7 @@ import {
   Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend,
 } from 'recharts';
 import { query, where, onSnapshot } from 'firebase/firestore';
-import { tenantCol }   from '../lib/tenantUtils';
+import { tenantCol, resolveTenantId } from '../lib/tenantUtils';
 import { PLANES, formatPrecio } from '../lib/plans';
 import {
   activarSuscripcion, cancelarSuscripcion,
@@ -217,7 +217,10 @@ export default function Finanzas() {
 
   const porPlan = useMemo(() => {
     const counts = { silver: 0, gold: 0, black: 0 };
-    activos.forEach(u => { counts[u.subscription?.planId]  = (counts[u.subscription?.planId] ?? 0) + 1; });
+    activos.forEach(u => {
+      const pid = u.subscription?.planId;
+      if (pid && pid in counts) counts[pid]++;
+    });
     return Object.entries(counts)
       .filter(([, v]) => v > 0)
       .map(([id, value]) => ({ name: PLANES[id]?.nombre ?? id, value, color: PLAN_COLORS[id] }));
@@ -226,18 +229,12 @@ export default function Finanzas() {
   const mrrSeries = useMemo(() => buildMrrSeries(users), [users]);
 
   const handleActivar = async (uid, plan) => {
-    const tenantId = tenantCol('users').path.includes('tenants/')
-      ? tenantCol('users').path.split('/')[1]
-      : 'elegance';
-    await activarSuscripcion(tenantId, uid, plan);
+    await activarSuscripcion(resolveTenantId(), uid, plan);
   };
 
   const handleCancelar = async (uid) => {
     if (!confirm('¿Cancelar esta suscripción?')) return;
-    const tenantId = tenantCol('users').path.includes('tenants/')
-      ? tenantCol('users').path.split('/')[1]
-      : 'elegance';
-    await cancelarSuscripcion(tenantId, uid);
+    await cancelarSuscripcion(resolveTenantId(), uid);
   };
 
   if (loading) {
