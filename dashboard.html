@@ -1051,6 +1051,7 @@ document.getElementById('shopClubName').textContent   = SHOP.club;
   const tid      = window.CURRENT_TENANT_ID;
   const isGitana  = tid === 'gitana';
   const isFerraza = tid === 'ferraza';
+  const isMapu    = tid === 'mapubarbershop';
 
   // Subtítulo header
   const sub = document.getElementById('shopHeaderSub');
@@ -1065,11 +1066,14 @@ document.getElementById('shopClubName').textContent   = SHOP.club;
   } else if (isFerraza) {
     if (h1) h1.style.display = 'none';
     if (h2) h2.textContent = 'El cambio comienza por ti.';
+  } else if (isMapu) {
+    if (h1) h1.innerHTML = 'Vive<br>la Experiencia.';
+    if (h2) h2.style.display = 'none';
   }
 
   // Watermark
   const wm = document.getElementById('membershipWatermark');
-  if (wm) wm.textContent = isGitana ? 'G' : isFerraza ? 'F' : 'É';
+  if (wm) wm.textContent = isGitana ? 'G' : isFerraza ? 'F' : isMapu ? 'M' : 'É';
 })();
 
 // ─── Auth Guard ───────────────────────────────────────────────
