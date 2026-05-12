@@ -17,25 +17,25 @@ const TENANT_CONFIG = {
     nombre:   'Elegance Barbershop',
     color:    '#D4AF37',
     from:     'Elegance Barbershop <citas@synaptechspa.cl>',
-    loginUrl: 'https://barberiaelegance.synaptechspa.cl/registro',
+    loginUrl:'https://barberiaelegance.synaptechspa.cl/registro',
   },
   ferraza: {
     nombre:   'Barbería Ferraza',
     color:    '#e2e8f0',
     from:     'Barbería Ferraza <citas@synaptechspa.cl>',
-    loginUrl: 'https://barberiaferraza.synaptechspa.cl/registro',
+    loginUrl:'https://barberiaferraza.synaptechspa.cl/registro',
   },
   gitana: {
     nombre:   'Gitana Nails Studio',
     color:    '#f472b6',
     from:     'Gitana Nails Studio <citas@synaptechspa.cl>',
-    loginUrl: 'https://gitananails.synaptechspa.cl/registro',
+    loginUrl:'https://gitananails.synaptechspa.cl/registro',
   },
   mapubarbershop: {
     nombre:   'Mapu Barber Shop',
     color:    '#BFA37E',
     from:     'Mapu Barber Shop <citas@synaptechspa.cl>',
-    loginUrl: 'https://mapubarbershop.synaptechspa.cl/registro',
+    loginUrl:'https://mapubarbershop.synaptechspa.cl/registro',
   },
 };
 
@@ -129,7 +129,6 @@ exports.enviarRecuperacionPassword = onCall(
     try {
       resetLink = await admin.auth().generatePasswordResetLink(
         email.toLowerCase().trim(),
-        { url: cfg.loginUrl },
       );
     } catch (err) {
       if (err.code === 'auth/user-not-found') {
