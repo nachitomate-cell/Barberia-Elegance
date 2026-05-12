@@ -4,12 +4,13 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence }                  from 'framer-motion';
 import { QRCodeSVG }                                from 'qrcode.react';
-import { query, onSnapshot, orderBy, where }        from 'firebase/firestore';
+import { query, onSnapshot, where }                 from 'firebase/firestore';
 import { useTenant }                                from '../contexts/TenantContext';
 import { tenantCol, tenantDoc, resolveTenantId }    from '../lib/tenantUtils';
 
 // ── Constantes ────────────────────────────────────────────────────
-const GOLD         = '#D4AF37';
+const TENANT_ACCENT = { ferraza: '#00C8FF' };
+let GOLD            = '#D4AF37'; // sobreescrito por tenant en BarberTV antes de renderizar hijos
 const SLIDE_MS     = 15_000;
 const RATIOS       = ['4/5', '1/1', '3/4', '4/5', '1/1', '3/4', '4/5', '1/1', '3/4'];
 const SLIDE_LABELS = ['Oferta', 'Trabajos', 'Equipo'];
@@ -547,6 +548,7 @@ function SlideIndicators({ labels, active, paused, onChange }) {
 // ── Componente principal ──────────────────────────────────────────
 export default function BarberTV() {
   const { id: tenantId, name: tenantName } = useTenant();
+  GOLD = TENANT_ACCENT[tenantId] || '#D4AF37';
 
   // Citas: se inicializan desde localStorage para evitar parpadeo offline
   const [citas,      setCitas]      = useState(() => {
@@ -574,28 +576,24 @@ export default function BarberTV() {
     visitedRef.current.add(slide);
   }, [slide]);
 
-  // Citas de hoy — error handler + caché offline en localStorage
+  // Citas de hoy — filtra solo por fecha para evitar índices compuestos
   useEffect(() => {
     const todayStr = new Date().toISOString().split('T')[0];
+    const ACTIVE = new Set(['Confirmada', 'confirmada', 'pendiente', 'Pendiente']);
     const q = query(
       tenantCol('citas'),
-      where('estado', 'in', ['Confirmada', 'confirmada', 'pendiente', 'Pendiente']),
-      orderBy('hora', 'asc'),
+      where('fecha', '==', todayStr),
     );
     return onSnapshot(
       q,
       snap => {
-        const docs     = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        const filtered = docs.filter(c => {
-          const f = c.fecha;
-          if (!f) return false;
-          if (typeof f === 'string') return f.startsWith(todayStr);
-          if (f.toDate) return f.toDate().toISOString().startsWith(todayStr);
-          return false;
-        });
-        setCitas(filtered);
+        const docs = snap.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .filter(c => ACTIVE.has(c.estado))
+          .sort((a, b) => (a.hora || '').localeCompare(b.hora || ''));
+        setCitas(docs);
         setOffline(false);
-        try { localStorage.setItem(lsCitasKey(tenantId), JSON.stringify(filtered)); } catch {}
+        try { localStorage.setItem(lsCitasKey(tenantId), JSON.stringify(docs)); } catch {}
       },
       () => setOffline(true),
     );

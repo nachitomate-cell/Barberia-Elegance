@@ -305,7 +305,34 @@ const FDB = (() => {
   // Legacy: el flujo publico multi-tenant usa BookingService.createBooking().
   // Se mantiene temporalmente para compatibilidad con vistas antiguas.
   async function addCita(cita) {
-    const ref = await tenantCol(COL.CITAS).add({
+    const toMins = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+    const startMin = toMins(cita.hora);
+    const dur = Number(cita.duracionServicio) || 30;
+
+    // Re-check overlap: atrapa reservas hechas mientras el usuario completaba el formulario
+    if (cita.barberoId) {
+      const existing = await getCitas(cita.fecha, cita.barberoId);
+      const conflict = existing.filter(c => c.estado !== 'Cancelada').some(c => {
+        const cs = toMins(c.hora);
+        const ce = cs + (parseInt(c.duracionServicio) || 30);
+        return startMin < ce && (startMin + dur) > cs;
+      });
+      if (conflict) {
+        const err = new Error('Esa hora ya fue tomada. Por favor elige otro horario.');
+        err.code = 'slot-taken';
+        throw err;
+      }
+    }
+
+    // Slot lock: evita doble reserva exactamente simultánea para el mismo barbero+hora
+    const safeHora = (cita.hora || '').replace(':', '');
+    const safeBid  = String(cita.barberoId || 'any').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const lockId   = `${safeBid}_${cita.fecha}_${safeHora}`;
+    const lockRef  = tenantCol('slotLocks').doc(lockId);
+    const citaRef  = tenantCol(COL.CITAS).doc();
+    const citaId   = citaRef.id;
+
+    const citaData = {
       fecha:            cita.fecha            || '',
       hora:             cita.hora             || '',
       clienteNombre:    cita.clienteNombre    || '',
@@ -318,13 +345,51 @@ const FDB = (() => {
       barberoId:        cita.barberoId        || null,
       estado:           'Confirmada',
       nota:             '',
+      slotLockId:       cita.barberoId ? lockId : null,
       creadoEn:         firebase.firestore.FieldValue.serverTimestamp(),
-    });
-    return ref.id;
+    };
+    if (cita.sucursalId)     citaData.sucursalId     = cita.sucursalId;
+    if (cita.sucursalNombre) citaData.sucursalNombre = cita.sucursalNombre;
+
+    if (cita.barberoId) {
+      try {
+        await db.runTransaction(async (tx) => {
+          const lockSnap = await tx.get(lockRef);
+          if (lockSnap.exists) {
+            const err = new Error('Esa hora ya fue tomada. Por favor elige otro horario.');
+            err.code = 'slot-taken';
+            throw err;
+          }
+          tx.set(lockRef, { citaId, creadoEn: firebase.firestore.FieldValue.serverTimestamp() });
+          tx.set(citaRef, citaData);
+        });
+        return citaId;
+      } catch (e) {
+        if (e.code === 'slot-taken') throw e;
+        // Transacción fallida (p.ej. regla de Firestore pendiente): fallback a escritura directa
+        console.warn('[addCita] Transaction fallback:', e.code || e.message);
+        citaData.slotLockId = null;
+        await citaRef.set(citaData);
+        return citaId;
+      }
+    }
+
+    await citaRef.set(citaData);
+    return citaId;
   }
 
   async function updateCitaEstado(id, estado) {
-    await tenantCol(COL.CITAS).doc(id).update({ estado });
+    const citaRef = tenantCol(COL.CITAS).doc(id);
+    if (estado === 'Cancelada') {
+      const snap = await citaRef.get();
+      const lockId = snap.exists ? snap.data().slotLockId : null;
+      const batch = db.batch();
+      batch.update(citaRef, { estado });
+      if (lockId) batch.delete(tenantCol('slotLocks').doc(lockId));
+      await batch.commit();
+    } else {
+      await citaRef.update({ estado });
+    }
   }
 
   async function updateCitaNota(id, nota) {
@@ -332,7 +397,13 @@ const FDB = (() => {
   }
 
   async function deleteCita(id) {
-    await tenantCol(COL.CITAS).doc(id).delete();
+    const citaRef = tenantCol(COL.CITAS).doc(id);
+    const snap = await citaRef.get();
+    const lockId = snap.exists ? snap.data().slotLockId : null;
+    const batch = db.batch();
+    batch.delete(citaRef);
+    if (lockId) batch.delete(tenantCol('slotLocks').doc(lockId));
+    await batch.commit();
   }
 
   // onSnapshot para un día específico → autoactualiza el panel admin

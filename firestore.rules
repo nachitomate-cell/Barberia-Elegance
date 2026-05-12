@@ -285,6 +285,15 @@ service cloud.firestore {
       allow write: if esAdmin('elegance');
     }
 
+    // ── /slotLocks ─────────────────────────────────────────────────
+    // Usado por addCita para prevenir doble reserva simultánea.
+    // Lectura/creación pública (sin auth) para que el widget funcione.
+    match /slotLocks/{lockId} {
+      allow read:   if true;
+      allow create: if request.resource.data.keys().hasOnly(['citaId', 'creadoEn']);
+      allow delete: if esStaff('elegance');
+    }
+
     // ── /product_reservations ──────────────────────────────────────
     // Cliente crea su propia reserva. Staff lee y actualiza el estado.
     match /product_reservations/{docId} {
@@ -491,6 +500,14 @@ service cloud.firestore {
         allow update: if esStaff(tid)
                       && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']);
         allow delete: if esAdmin(tid);
+      }
+
+      // ── slotLocks ─────────────────────────────────────────────────
+      // Usado por addCita para prevenir doble reserva simultánea.
+      match /slotLocks/{lockId} {
+        allow read:   if true;
+        allow create: if request.resource.data.keys().hasOnly(['citaId', 'creadoEn']);
+        allow delete: if esStaff(tid);
       }
     }
   }
