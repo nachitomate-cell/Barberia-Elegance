@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence }                  from 'framer-motion';
 import { QRCodeSVG }                                from 'qrcode.react';
-import { query, onSnapshot, where }                 from 'firebase/firestore';
+import { query, onSnapshot, where, orderBy }        from 'firebase/firestore';
 import { useTenant }                                from '../contexts/TenantContext';
 import { tenantCol, tenantDoc, resolveTenantId }    from '../lib/tenantUtils';
 
