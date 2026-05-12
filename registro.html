@@ -14,6 +14,13 @@
   <meta property="og:title" content="Únete al Club | Elegance Barbershop">
   <meta property="og:description" content="Regístrate en Elegance Barbershop, acumula sellos y disfruta de beneficios exclusivos.">
   <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Elegance Barbershop">
+  <meta property="og:image" content="/logo.jpg">
+  <meta property="og:url" content="https://barberiaelegance.synaptechspa.cl/registro">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Únete al Club | Elegance Barbershop">
+  <meta name="twitter:description" content="Regístrate en Elegance Barbershop y disfruta de beneficios exclusivos.">
+  <meta name="twitter:image" content="/logo.jpg">
   <meta name="robots" content="noindex, nofollow">
 
   <!-- PWA -->
@@ -420,6 +427,9 @@
       animation: spin 0.8s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Ocultar sección social al recuperar contraseña */
+    .tab-reset .social-section { display: none; }
   </style>
 </head>
 
@@ -467,6 +477,12 @@
       <button onclick="loginWithEmail()" class="btn-primary mt-5">
         <i class="ph-bold ph-sign-in"></i> Ingresar
       </button>
+      <p class="text-center mt-4">
+        <button onclick="switchTab('reset')"
+          class="text-[11px] font-semibold text-gray-600 hover:text-gray-400 transition-colors uppercase tracking-widest">
+          ¿Olvidaste tu contraseña?
+        </button>
+      </p>
     </div>
 
     <!-- PANEL REGISTRO -->
@@ -495,6 +511,28 @@
       </button>
     </div>
 
+    <!-- PANEL RECUPERAR CONTRASEÑA -->
+    <div id="panelReset" class="hidden">
+      <p class="text-sm text-gray-500 text-center mb-5 leading-relaxed">
+        Ingresa tu correo y te enviaremos un enlace para restablecer tu contraseña.
+      </p>
+      <div class="space-y-3">
+        <input type="email" id="resetEmail" placeholder="Correo electrónico" autocomplete="email" class="field">
+      </div>
+      <button onclick="sendPasswordReset()" class="btn-primary mt-5">
+        <i class="ph-bold ph-paper-plane-right"></i> Enviar enlace
+      </button>
+      <p class="text-center mt-4">
+        <button onclick="switchTab('login')"
+          class="inline-flex items-center gap-1.5 text-[11px] font-semibold text-gray-600 hover:text-gray-400 transition-colors uppercase tracking-widest">
+          <i class="ph ph-arrow-left"></i> Volver
+        </button>
+      </p>
+    </div>
+
+    <!-- Divider + Google (se ocultan en la pantalla de recuperación) -->
+    <div class="social-section">
+
     <!-- Divider -->
     <div class="flex items-center my-6">
       <div class="flex-grow border-t border-gray-700"></div>
@@ -512,6 +550,8 @@
       </svg>
       Continuar con Google
     </button>
+
+    </div><!-- /social-section -->
 
     <!-- Back link -->
     <p class="text-center mt-7">
@@ -560,12 +600,17 @@
     btn.innerHTML = `<i class="ph ph-${isText ? 'eye' : 'eye-slash'} text-xl"></i>`;
   }
   function switchTab(tab) {
-    const isLogin = tab === 'login';
+    const isLogin    = tab === 'login';
+    const isRegister = tab === 'register';
+    const isReset    = tab === 'reset';
     document.getElementById('panelLogin').classList.toggle('hidden', !isLogin);
-    document.getElementById('panelRegister').classList.toggle('hidden', isLogin);
+    document.getElementById('panelRegister').classList.toggle('hidden', !isRegister);
+    document.getElementById('panelReset').classList.toggle('hidden', !isReset);
+    document.body.classList.toggle('tab-reset', isReset);
     const base = 'tab-btn flex-1 pb-3 text-xs font-bold text-center border-b-2 uppercase tracking-widest';
-    document.getElementById('tabLogin').className    = base + (isLogin  ? ' active' : '');
-    document.getElementById('tabRegister').className = base + (!isLogin ? ' active' : '');
+    document.getElementById('tabLogin').className    = base + (isLogin    ? ' active' : '');
+    document.getElementById('tabRegister').className = base + (isRegister ? ' active' : '');
+    document.getElementById('alertBanner').classList.add('hidden');
   }
 
   // ── Firestore: crear/actualizar perfil ────────────────────────
@@ -690,6 +735,23 @@
     }
   }
 
+  // ── Recuperar contraseña ──────────────────────────────────────
+  async function sendPasswordReset() {
+    const email = document.getElementById('resetEmail').value.trim();
+    if (!email) return showAlert('Ingresa tu correo electrónico.');
+    showLoading('Enviando enlace...');
+    try {
+      await auth.sendPasswordResetEmail(email);
+      hideLoading();
+      showAlert('¡Listo! Revisa tu correo (incluye spam) para restablecer tu contraseña.', false);
+      switchTab('login');
+      document.getElementById('loginEmail').value = email;
+    } catch (err) {
+      hideLoading();
+      showAlert(friendlyError(err.code));
+    }
+  }
+
   // ── Error messages en español ─────────────────────────────────
   function friendlyError(code) {
     const map = {
@@ -709,8 +771,9 @@
   // ── Enter key shortcuts ───────────────────────────────────────
   document.addEventListener('keydown', e => {
     if (e.key !== 'Enter') return;
-    if (!document.getElementById('panelLogin').classList.contains('hidden')) loginWithEmail();
-    else registerWithEmail();
+    if (!document.getElementById('panelLogin').classList.contains('hidden'))    loginWithEmail();
+    else if (!document.getElementById('panelRegister').classList.contains('hidden')) registerWithEmail();
+    else if (!document.getElementById('panelReset').classList.contains('hidden'))    sendPasswordReset();
   });
 
   // ── Prefijo +56 automático para teléfono ─────────────────────
