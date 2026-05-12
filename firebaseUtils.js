@@ -314,7 +314,7 @@ const FDB = (() => {
       const existing = await getCitas(cita.fecha, cita.barberoId);
       const conflict = existing.filter(c => c.estado !== 'Cancelada').some(c => {
         const cs = toMins(c.hora);
-        const ce = cs + (parseInt(c.duracionServicio) || 30);
+        const ce = cs + (parseInt(c.duracionServicio || c.duracion) || 30);
         return startMin < ce && (startMin + dur) > cs;
       });
       if (conflict) {
@@ -540,7 +540,7 @@ const FDB = (() => {
       .filter(c => c.estado !== 'Cancelada')
       .map(c => ({
         start: toMins(c.hora),
-        end:   toMins(c.hora) + (parseInt(c.duracionServicio) || 30),
+        end:   toMins(c.hora) + (parseInt(c.duracionServicio || c.duracion) || 30),
       }));
 
     // Rangos de bloqueo manual parciales
@@ -624,7 +624,7 @@ const FDB = (() => {
 
         const barCitas = todasCitas
           .filter(c => c.estado !== 'Cancelada' && c.barberoId === barbero.id)
-          .map(c => ({ start: toMins(c.hora), end: toMins(c.hora) + (parseInt(c.duracionServicio) || 30) }));
+          .map(c => ({ start: toMins(c.hora), end: toMins(c.hora) + (parseInt(c.duracionServicio || c.duracion) || 30) }));
 
         if (barCitas.some(o => cur < o.end && (cur + dur) > o.start)) continue;
 

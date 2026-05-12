@@ -3,7 +3,7 @@ import {
   ChevronLeft, ChevronRight, Plus, X, Ban, CalendarOff,
   CheckCircle2, XCircle, Clock, Trash2, Lock, History,
   User, Phone, Mail, Scissors, CalendarDays, DollarSign,
-  Timer, MessageSquare, BadgeCheck, Search, ListFilter,
+  Timer, MessageSquare, BadgeCheck, Search, ListFilter, MapPin,
 } from 'lucide-react';
 import {
   addDoc, updateDoc, deleteDoc, doc, serverTimestamp, where, orderBy, limit,
@@ -67,7 +67,7 @@ function CitaModal({ cita, barberos, servicios, defaultHora, defaultBarberoId, d
     servicioId:      cita?.servicioId      || firstSvc?.id       || '',
     servicioNombre:  cita?.servicioNombre  || firstSvc?.nombre   || '',
     precio:          Number(cita?.precio)  || Number(firstSvc?.precio)   || 0,
-    duracion:        Number(cita?.duracion)|| Number(firstSvc?.duracion) || 30,
+    duracion:        Number(cita?.duracion) || Number(cita?.duracionServicio) || Number(firstSvc?.duracion) || 30,
     barberoId:       cita?.barberoId       || defaultBarb,
     barbero:         cita?.barbero         || barberos.find(b => b.id === defaultBarb)?.nombre || '',
     hora:            cita?.hora            || defaultHora || '09:00',
@@ -99,7 +99,7 @@ function CitaModal({ cita, barberos, servicios, defaultHora, defaultBarberoId, d
     if (!form.clienteNombre.trim()) return;
     setSaving(true);
     try {
-      const payload = { ...form, fecha: dateStr, updatedAt: serverTimestamp() };
+      const payload = { ...form, duracionServicio: form.duracion, fecha: dateStr, updatedAt: serverTimestamp() };
       if (isNew) {
         payload.creadoEn = serverTimestamp();
         await addDoc(tenantCol('citas'), payload);
@@ -324,7 +324,7 @@ function BloqueoBlock({ bloqueo, onDelete }) {
 /* ── AppointmentBlock ────────────────────────────────────────── */
 function AppointmentBlock({ cita, colIndex, colTotal, onClick }) {
   const slot  = slotIdx(cita.hora);
-  const spans = Math.max(1, Math.round((cita.duracion || 30) / SLOT_MINS));
+  const spans = Math.max(1, Math.round((cita.duracion || cita.duracionServicio || 30) / SLOT_MINS));
   const color = STATUS_STYLE[cita.estado] ?? STATUS_STYLE.Confirmada;
   const pct   = 100 / colTotal;
 
@@ -341,7 +341,7 @@ function AppointmentBlock({ cita, colIndex, colTotal, onClick }) {
     >
       <p className="font-semibold truncate leading-tight">{cita.clienteNombre || 'Cliente'}</p>
       <p className="truncate text-[10px] opacity-75">{cita.servicioNombre}</p>
-      <p className="truncate text-[10px] opacity-50">{cita.hora}</p>
+      <p className="truncate text-[10px] opacity-50">{cita.hora}{cita.sucursalNombre ? ` · ${cita.sucursalNombre}` : ''}</p>
     </div>
   );
 }
@@ -435,6 +435,7 @@ function UltimaCitaModal({ cita, loading, onClose, titleText = 'Última cita age
             <Row icon={Clock}        label="Hora"      value={cita.hora}            />
             <Row icon={Scissors}     label="Servicio"  value={cita.servicioNombre}  />
             <Row icon={BadgeCheck}   label="Barbero"   value={cita.barbero}         />
+            {cita.sucursalNombre && <Row icon={MapPin} label="Sede" value={cita.sucursalNombre} />}
             <Row icon={Timer}        label="Duración"  value={cita.duracion ? `${cita.duracion} min` : null} />
             <Row icon={DollarSign}   label="Precio"    value={cita.precio != null ? `$${Number(cita.precio).toLocaleString('es-CL')}` : null} />
           </div>
@@ -567,7 +568,7 @@ function HistorialModal({ onClose }) {
                     </span>
                   </div>
                   <p className="text-xs text-slate-500 truncate">
-                    {c.servicioNombre || '—'}{c.barbero ? ` · ${c.barbero}` : ''}
+                    {c.servicioNombre || '—'}{c.barbero ? ` · ${c.barbero}` : ''}{c.sucursalNombre ? ` · ${c.sucursalNombre}` : ''}
                   </p>
                 </div>
 
