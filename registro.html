@@ -625,7 +625,6 @@
         telefono:  extra.telefono  || '',
         photoURL:  user.photoURL   || null,
         stamps:    0,
-        rol:       'cliente',
         creadoEn:  firebase.firestore.FieldValue.serverTimestamp(),
       };
       if (extra.fechaNacimiento) data.fechaNacimiento = extra.fechaNacimiento;
