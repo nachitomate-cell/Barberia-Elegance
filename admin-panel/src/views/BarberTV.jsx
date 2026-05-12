@@ -12,6 +12,7 @@ import { tenantCol, tenantDoc, resolveTenantId }    from '../lib/tenantUtils';
 const TENANT_ACCENT = { ferraza: '#e2e8f0' };
 let GOLD            = '#D4AF37'; // sobreescrito por tenant en BarberTV antes de renderizar hijos
 const SLIDE_MS     = 15_000;
+const PHOTO_MS     = 3_000;
 const RATIOS       = ['4/5', '1/1', '3/4', '4/5', '1/1', '3/4', '4/5', '1/1', '3/4'];
 const SLIDE_LABELS = ['Oferta', 'Trabajos', 'Equipo'];
 
@@ -319,9 +320,16 @@ function SlidePublicidad({ oferta }) {
   );
 }
 
-// ── Slide 2: Lookbook ─────────────────────────────────────────────
-// skipAnimation = true en revisitas para no re-animar desde cero
-function SlideLookbook({ photos, skipAnimation }) {
+// ── Slide 2: Lookbook — una foto a la vez ─────────────────────────
+function SlideLookbook({ photos }) {
+  const [photoIdx, setPhotoIdx] = useState(0);
+
+  useEffect(() => {
+    if (photos.length <= 1) return;
+    const id = setInterval(() => setPhotoIdx(i => (i + 1) % photos.length), PHOTO_MS);
+    return () => clearInterval(id);
+  }, [photos.length]);
+
   if (!photos.length) {
     return (
       <div className="w-full h-full flex items-center justify-center text-gray-800">
@@ -332,33 +340,65 @@ function SlideLookbook({ photos, skipAnimation }) {
       </div>
     );
   }
+
+  const safe = photoIdx % photos.length;
+
   return (
-    <div className="w-full h-full flex flex-col p-5 overflow-hidden">
-      <motion.p
-        className="text-[9px] font-black tracking-[0.6em] uppercase text-center mb-4 shrink-0"
-        style={{ color: GOLD }}
-        initial={skipAnimation ? false : { opacity: 0 }}
-        animate={{ opacity: 1 }}
-      >
-        ✦ &nbsp; Nuestros Trabajos &nbsp; ✦
-      </motion.p>
-      <div className="grid grid-cols-3 gap-3 flex-1 min-h-0" style={{ gridTemplateRows: 'repeat(3, 1fr)' }}>
-        {photos.slice(0, 9).map((p, i) => (
-          <motion.div
-            key={p.id || i}
-            className="rounded-xl overflow-hidden min-h-0"
-            initial={skipAnimation ? false : { opacity: 0, scale: 0.96 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={skipAnimation ? {} : { delay: i * 0.06 }}
-          >
-            <img
-              src={p.url}
-              alt=""
-              className="w-full h-full object-cover"
-            />
-          </motion.div>
-        ))}
+    <div className="w-full h-full relative overflow-hidden">
+      <AnimatePresence>
+        <motion.div
+          key={safe}
+          className="absolute inset-0"
+          initial={{ opacity: 0, scale: 1.03 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.55, ease: 'easeInOut' }}
+        >
+          <img src={photos[safe].url} alt="" className="w-full h-full object-cover" />
+          <div
+            className="absolute inset-0"
+            style={{
+              background: 'linear-gradient(to bottom, rgba(5,5,5,0.45) 0%, transparent 20%, transparent 76%, rgba(5,5,5,0.7) 100%)',
+            }}
+          />
+        </motion.div>
+      </AnimatePresence>
+
+      {/* Label */}
+      <div className="absolute top-6 inset-x-0 z-10 text-center pointer-events-none">
+        <p className="text-[9px] font-black tracking-[0.6em] uppercase" style={{ color: GOLD }}>
+          ✦ &nbsp; Nuestros Trabajos &nbsp; ✦
+        </p>
       </div>
+
+      {/* Dot indicators (capped at 15) */}
+      {photos.length <= 15 && (
+        <div className="absolute bottom-20 inset-x-0 z-10 flex justify-center items-center gap-2 pointer-events-none">
+          {photos.map((_, i) => (
+            <div
+              key={i}
+              className="rounded-full transition-all duration-500"
+              style={{
+                width:      i === safe ? '1.5rem' : '0.375rem',
+                height:     '0.375rem',
+                background: i === safe
+                  ? `linear-gradient(to right, ${GOLD}, #FDE047)`
+                  : 'rgba(255,255,255,0.2)',
+                boxShadow: i === safe ? `0 0 8px rgba(212,175,55,0.5)` : 'none',
+              }}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Counter for large sets */}
+      {photos.length > 15 && (
+        <div className="absolute bottom-20 right-8 z-10 pointer-events-none">
+          <span className="font-mono text-sm font-black" style={{ color: `${GOLD}AA` }}>
+            {safe + 1} / {photos.length}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
@@ -701,7 +741,7 @@ export default function BarberTV() {
 
   const ALL_DEFS = [
     { key: 'oferta',   label: 'Oferta',   el: <SlidePublicidad key="pub"  oferta={oferta} /> },
-    { key: 'lookbook', label: 'Trabajos', el: <SlideLookbook   key="look" photos={photos} skipAnimation={visitedRef.current.has(1)} /> },
+    { key: 'lookbook', label: 'Trabajos', el: <SlideLookbook   key="look" photos={photos} /> },
     { key: 'equipo',   label: 'Equipo',   el: <SlideEquipo     key="team" barberos={barberos} imageCache={imageCache} skipAnimation={visitedRef.current.has(2)} /> },
   ];
   const activeDefs = ALL_DEFS.filter(s => slidesActivos[s.key] !== false);
