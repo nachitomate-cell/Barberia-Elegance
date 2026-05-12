@@ -267,6 +267,14 @@ service cloud.firestore {
       allow delete: if esAdmin('elegance');
     }
 
+    // ── /resenas ───────────────────────────────────────────────────
+    // Creadas desde el ReviewModal al completar una cita.
+    // Staff lee para analytics; cualquier staff puede escribir.
+    match /resenas/{docId} {
+      allow read:  if esStaff('elegance');
+      allow write: if esStaff('elegance');
+    }
+
     // ── /admin_notes ───────────────────────────────────────────────
     match /admin_notes/{docId} {
       allow read, write: if esStaff('elegance');
@@ -472,6 +480,12 @@ service cloud.firestore {
                       && sinCambio('tenantId')
                       && sinCambio('rol');
         allow delete: if esAdmin(tid);
+      }
+
+      // ── resenas ───────────────────────────────────────────────────
+      match /resenas/{docId} {
+        allow read:  if esStaff(tid);
+        allow write: if esStaff(tid);
       }
 
       // ── admin_notes ───────────────────────────────────────────────

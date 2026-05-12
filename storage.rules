@@ -64,6 +64,10 @@ service firebase.storage {
       allow read: if true;
       allow write: if isAuth() && isUnder5MB() && isImage();
     }
+    match /tenants/{tenantId}/servicioFavorito/{userId}/{fileName} {
+      allow read: if true;
+      allow write: if isAuth() && isUnder5MB() && isImage();
+    }
 
     // Bloquear cualquier otra ruta
     match /{allPaths=**} {

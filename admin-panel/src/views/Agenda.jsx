@@ -896,7 +896,7 @@ export default function Agenda() {
           defaultBarberoId={citaModal.barberoId}
           dateStr={dateStr}
           onClose={() => setCitaModal(null)}
-          onComplete={cita => setReviewCita(cita)}
+          onComplete={cita => { setCitaModal(null); setReviewCita(cita); }}
         />
       )}
       {blqModal && (
