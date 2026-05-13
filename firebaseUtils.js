@@ -293,6 +293,10 @@ const FDB = (() => {
     return snap.docs.map(d => ({ id: d.id, ...d.data() }));
   }
 
+  async function clearGoogleReviewFlag(citaId) {
+    await tenantCol(COL.CITAS).doc(citaId).update({ pendingGoogleReview: false });
+  }
+
   async function getCitasMes(yyyyMM) {
     // yyyyMM = "2026-04"
     const snap = await tenantCol(COL.CITAS)
@@ -309,13 +313,17 @@ const FDB = (() => {
     const startMin = toMins(cita.hora);
     const dur = Number(cita.duracionServicio) || 30;
 
-    // Re-check overlap: atrapa reservas hechas mientras el usuario completaba el formulario
+    // Re-check overlap usando slotLocks (lectura pública, a diferencia de citas).
+    // Se generan las horas a verificar: ventana de ±2h alrededor del slot pedido.
     if (cita.barberoId) {
-      const existing = await getCitas(cita.fecha, cita.barberoId);
-      const conflict = existing.filter(c => c.estado !== 'Cancelada').some(c => {
-        const cs = toMins(c.hora);
-        const ce = cs + (parseInt(c.duracionServicio || c.duracion) || 30);
-        return startMin < ce && (startMin + dur) > cs;
+      const fromMin = m => `${Math.floor(m/60).toString().padStart(2,'0')}:${(m%60).toString().padStart(2,'0')}`;
+      const checkHoras = [];
+      for (let m = Math.max(0, startMin - 120); m < startMin + dur + 120; m += 30) checkHoras.push(fromMin(m));
+      const locks = await getSlotLocksDia(cita.fecha, cita.barberoId, checkHoras);
+      const conflict = locks.some(s => {
+        const ss = toMins(s.hora);
+        const se = ss + (Number(s.duracion) || 30);
+        return startMin < se && (startMin + dur) > ss;
       });
       if (conflict) {
         const err = new Error('Esa hora ya fue tomada. Por favor elige otro horario.');
@@ -360,7 +368,14 @@ const FDB = (() => {
             err.code = 'slot-taken';
             throw err;
           }
-          tx.set(lockRef, { citaId, creadoEn: firebase.firestore.FieldValue.serverTimestamp() });
+          tx.set(lockRef, {
+            citaId,
+            fecha:     cita.fecha,
+            hora:      cita.hora,
+            barberoId: cita.barberoId,
+            duracion:  dur,
+            creadoEn:  firebase.firestore.FieldValue.serverTimestamp(),
+          });
           tx.set(citaRef, citaData);
         });
         return citaId;
@@ -471,6 +486,73 @@ const FDB = (() => {
   }
 
   /* ──────────────────────────────────────────────────────────────
+     SLOT LOCKS — fuente pública de ocupación (lectura sin auth)
+     Reemplaza getCitas() en el flujo público de reservas.
+     ────────────────────────────────────────────────────────────── */
+
+  // Construye el lockId en el mismo formato que addCita
+  function _buildLockId(barberoId, fecha, hora) {
+    const safeBid  = String(barberoId || 'any').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const safeHora = hora.replace(':', '');
+    return `${safeBid}_${fecha}_${safeHora}`;
+  }
+
+  // Devuelve slotLocks para la fecha+barbero dados.
+  // Combina dos fuentes:
+  //   1. Query por campo `fecha` (slotLocks NUEVOS que tienen los metadatos completos)
+  //   2. GET directo por ID construido (slotLocks ANTIGUOS sin campo `fecha`)
+  // `allHoras` = lista de todas las horas posibles del día (para la búsqueda directa).
+  async function getSlotLocksDia(fecha, barberoId = null, allHoras = []) {
+    const result = [];
+    const foundHoras = new Set();
+
+    // ① New-format: query by fecha field
+    try {
+      const snap = await tenantCol('slotLocks').where('fecha', '==', fecha).get();
+      snap.docs.forEach(d => {
+        const s = d.data();
+        if (!s.hora) return; // ignorar docs sin metadatos
+        if (barberoId && s.barberoId !== barberoId) return;
+        result.push(s);
+        foundHoras.add(s.hora);
+      });
+    } catch(_) {}
+
+    // ② Old-format fallback: GET directo por IDs construidos
+    if (allHoras.length > 0) {
+      const toCheck = allHoras.filter(h => !foundHoras.has(h));
+      if (toCheck.length > 0 && barberoId) {
+        // Caso: barbero específico — un GET por slot
+        try {
+          const gets = toCheck.map(h =>
+            tenantCol('slotLocks').doc(_buildLockId(barberoId, fecha, h)).get()
+          );
+          const snaps = await Promise.all(gets);
+          snaps.forEach((snap, i) => {
+            if (snap.exists && !snap.data().hora) {
+              result.push({ hora: toCheck[i], barberoId, duracion: snap.data().duracion || 30 });
+            }
+          });
+        } catch(_) {}
+      } else if (toCheck.length > 0 && !barberoId) {
+        // Sin barberoId: no sabemos qué IDs buscar → omitir el fallback
+        // (este caso solo ocurre en getHorasDisponiblesMulti que lo maneja por barbero)
+      }
+    }
+
+    return result;
+  }
+
+  function onSlotLocksChange(fecha, callback) {
+    return tenantCol('slotLocks')
+      .where('fecha', '==', fecha)
+      .onSnapshot(
+        snap => callback(snap.docs.map(d => d.data()).filter(s => s.hora)),
+        err  => console.warn('[FDB] onSlotLocksChange:', err.code || err.message)
+      );
+  }
+
+  /* ──────────────────────────────────────────────────────────────
      PREMIOS DEL CLUB
      ────────────────────────────────────────────────────────────── */
   async function getPremios() {
@@ -517,15 +599,6 @@ const FDB = (() => {
     let cfg;
     try { cfg = configOverride || await getConfig(); } catch(e) { cfg = _defaultConfig(); }
 
-    // Cargar citas y bloqueos en paralelo, filtrando por barbero si se especifica
-    const [citas, bloqueos] = await Promise.all([
-      getCitas(fecha, barberoId),
-      getBloqueosDia(fecha, barberoId),
-    ]);
-
-    // Día completamente bloqueado → sin slots
-    if (bloqueos.some(b => b.todo_el_dia)) return [];
-
     const toMins  = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
     const fromMin = m => `${Math.floor(m / 60).toString().padStart(2, '0')}:${(m % 60).toString().padStart(2, '0')}`;
 
@@ -536,12 +609,23 @@ const FDB = (() => {
     const fin = toMins(dc.fin    || cfg.horarioFin    || '20:00');
     const interval = cfg.intervaloMinutos || 30;
 
-    const ocupados = citas
-      .filter(c => c.estado !== 'Cancelada')
-      .map(c => ({
-        start: toMins(c.hora),
-        end:   toMins(c.hora) + (parseInt(c.duracionServicio || c.duracion) || 30),
-      }));
+    // Todas las horas posibles del día (para fallback old-format en getSlotLocksDia)
+    const allHoras = [];
+    for (let t = ini; t < fin; t += interval) allHoras.push(fromMin(t));
+
+    // Usar slotLocks (lectura pública) en lugar de citas (requiere auth)
+    const [slotLocks, bloqueos] = await Promise.all([
+      getSlotLocksDia(fecha, barberoId, allHoras),
+      getBloqueosDia(fecha, barberoId),
+    ]);
+
+    // Día completamente bloqueado → sin slots
+    if (bloqueos.some(b => b.todo_el_dia)) return [];
+
+    const ocupados = slotLocks.map(s => ({
+      start: toMins(s.hora),
+      end:   toMins(s.hora) + (Number(s.duracion) || 30),
+    }));
 
     // Rangos de bloqueo manual parciales
     const rangosBloq = bloqueos
@@ -579,8 +663,9 @@ const FDB = (() => {
   async function getHorasDisponiblesMulti(fecha, duracionServicio, configOverride = null, barberos = []) {
     let cfg;
     try { cfg = configOverride || await getConfig(); } catch(e) { cfg = _defaultConfig(); }
-    const [todasCitas, todosBloqueos] = await Promise.all([
-      getCitas(fecha, null),
+
+    const [todasSlots, todosBloqueos] = await Promise.all([
+      getSlotLocksDia(fecha, null),  // new-format, todos los barberos
       getBloqueosDia(fecha, null),
     ]);
 
@@ -596,6 +681,30 @@ const FDB = (() => {
     const interval = cfg.intervaloMinutos || 30;
     const dur = parseInt(duracionServicio);
     const col = cfg.colacion;
+
+    // Todas las horas posibles del día
+    const allHoras = [];
+    for (let t = ini; t < fin; t += interval) allHoras.push(fromMin(t));
+
+    // Fallback old-format: GET directo por barbero en paralelo
+    const oldSlotsByBarbero = new Map();
+    await Promise.all(barberos.map(async barbero => {
+      const newHoras = new Set(todasSlots.filter(s => s.barberoId === barbero.id).map(s => s.hora));
+      const toCheck = allHoras.filter(h => !newHoras.has(h));
+      if (!toCheck.length) { oldSlotsByBarbero.set(barbero.id, []); return; }
+      try {
+        const snaps = await Promise.all(
+          toCheck.map(h => tenantCol('slotLocks').doc(_buildLockId(barbero.id, fecha, h)).get())
+        );
+        const old = [];
+        snaps.forEach((snap, i) => {
+          if (snap.exists && !snap.data().hora) {
+            old.push({ hora: toCheck[i], barberoId: barbero.id, duracion: snap.data().duracion || 30 });
+          }
+        });
+        oldSlotsByBarbero.set(barbero.id, old);
+      } catch(_) { oldSlotsByBarbero.set(barbero.id, []); }
+    }));
 
     const globalBloqRanges = todosBloqueos
       .filter(b => !b.todo_el_dia && !b.barberoId && b.hora_inicio && b.hora_fin)
@@ -622,11 +731,12 @@ const FDB = (() => {
 
         if (barBloqs.some(r => cur < r.end && (cur + dur) > r.start)) continue;
 
-        const barCitas = todasCitas
-          .filter(c => c.estado !== 'Cancelada' && c.barberoId === barbero.id)
-          .map(c => ({ start: toMins(c.hora), end: toMins(c.hora) + (parseInt(c.duracionServicio || c.duracion) || 30) }));
+        const barSlots = [
+          ...todasSlots.filter(s => s.barberoId === barbero.id),
+          ...(oldSlotsByBarbero.get(barbero.id) || []),
+        ].map(s => ({ start: toMins(s.hora), end: toMins(s.hora) + (Number(s.duracion) || 30) }));
 
-        if (barCitas.some(o => cur < o.end && (cur + dur) > o.start)) continue;
+        if (barSlots.some(o => cur < o.end && (cur + dur) > o.start)) continue;
 
         availableBarberoIds.push(barbero.id);
       }
@@ -1010,9 +1120,11 @@ const FDB = (() => {
     // Citas
     getCitas, getCitasMes, getCitasByCliente, addCita,
     updateCitaEstado, updateCitaNota, deleteCita,
-    onCitasDiaChange,
+    onCitasDiaChange, clearGoogleReviewFlag,
     // Disponibilidad
     getHorasDisponibles, getHorasDisponiblesMulti,
+    // Slot locks (fuente pública de ocupación)
+    getSlotLocksDia, onSlotLocksChange,
     // Bloqueos manuales
     addBloqueo, getBloqueosDia, getBloqueosMes, deleteBloqueo, onBloqueosDiaChange,
     // Premios del club

@@ -66,8 +66,8 @@ function CitaModal({ cita, barberos, servicios, defaultHora, defaultBarberoId, d
     clienteTelefono: cita?.clienteTelefono || '',
     servicioId:      cita?.servicioId      || firstSvc?.id       || '',
     servicioNombre:  cita?.servicioNombre  || firstSvc?.nombre   || '',
-    precio:          Number(cita?.precio)  || Number(firstSvc?.precio)   || 0,
-    duracion:        Number(cita?.duracion) || Number(cita?.duracionServicio) || Number(firstSvc?.duracion) || 30,
+    precio:          cita?.precio != null ? Number(cita.precio) : (Number(firstSvc?.precio) || 0),
+    duracion:        Number(cita?.duracion || cita?.duracionServicio || firstSvc?.duracion) || 30,
     barberoId:       cita?.barberoId       || defaultBarb,
     barbero:         cita?.barbero         || barberos.find(b => b.id === defaultBarb)?.nombre || '',
     hora:            cita?.hora            || defaultHora || '09:00',
@@ -105,8 +105,11 @@ function CitaModal({ cita, barberos, servicios, defaultHora, defaultBarberoId, d
         await addDoc(tenantCol('citas'), payload);
         onClose();
       } else {
-        await updateDoc(doc(db, `${tenantCol('citas').path}/${cita.id}`), payload);
         const yaEraCompletada = cita?.estado === 'Completada';
+        if (form.estado === 'Completada' && !yaEraCompletada) {
+          payload.pendingGoogleReview = true;
+        }
+        await updateDoc(doc(db, `${tenantCol('citas').path}/${cita.id}`), payload);
         if (form.estado === 'Completada' && !yaEraCompletada && onComplete) {
           onComplete({ ...cita, ...payload });
         } else {
@@ -323,8 +326,8 @@ function BloqueoBlock({ bloqueo, onDelete }) {
 
 /* ── AppointmentBlock ────────────────────────────────────────── */
 function AppointmentBlock({ cita, colIndex, colTotal, onClick }) {
-  const slot  = slotIdx(cita.hora);
-  const spans = Math.max(1, Math.round((cita.duracion || cita.duracionServicio || 30) / SLOT_MINS));
+  const slot  = Math.max(0, Math.min(TOTAL_SLOTS - 1, slotIdx(cita.hora)));
+  const spans = Math.max(1, Math.min(TOTAL_SLOTS - slot, Math.round((cita.duracion || cita.duracionServicio || 30) / SLOT_MINS)));
   const color = STATUS_STYLE[cita.estado] ?? STATUS_STYLE.Confirmada;
   const pct   = 100 / colTotal;
 

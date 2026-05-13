@@ -7,6 +7,7 @@
     'barberiaelegance.synaptechspa.cl': 'elegance',
     'barberiaferraza.synaptechspa.cl':  'ferraza',
     'mapubarbershop.synaptechspa.cl':   'mapubarbershop',
+    'chameleonbarber.synaptechspa.cl':  'chameleon',
   };
 
   const _tenants = {
@@ -23,6 +24,7 @@
       instagram:       'https://www.instagram.com/elegance.cl_/',
       instagramHandle: '@elegance.cl_',
       waEmoji:         '✂️',
+      googleReviewUrl: '',
       barberos: [
         { nombre: 'Nicolas Fabian', foto: 'Fabian.png', disponible: true },
       ],
@@ -42,6 +44,7 @@
       instagram:       '',
       instagramHandle: '',
       waEmoji:         '✂️',
+      googleReviewUrl: '',
       barberos: [
         { nombre: 'Nicolas Fabian', foto: 'Fabian.png', disponible: true },
       ],
@@ -59,11 +62,33 @@
       instagram:       'https://www.instagram.com/gitana.nails.studio',
       instagramHandle: '@gitana.nails.studio',
       waEmoji:         '💅',
+      googleReviewUrl: '',
       barberos: [
         { nombre: 'Sabina', foto: null, disponible: true },
         { nombre: 'Clau',   foto: null, disponible: true },
         { nombre: 'Cony',   foto: null, disponible: true },
         { nombre: 'Gigi',   foto: null, disponible: true },
+      ],
+    },
+    chameleon: {
+      categoriasServicio: ['Ritual del Cabello', 'Ritual de la Barba', 'Diseño de Cejas', 'Otros'],
+      nombre:          'Chameleon Barber Studio',
+      nombreCorto:     'Chameleon',
+      pageTitle:       'Chameleon Barber Studio | Agenda tu hora',
+      slogan:          'Clásico y moderno, perfecto para tí!',
+      logo:            '/local3.jpg',
+      direccion:       '📍 Av. Libertad 868 | Viña del Mar',
+      horario:         '🕒 Lun a Sáb: 10:30 – 20:00 hrs.',
+      telefono:        '56928186861',
+      club:            'Club Chameleon',
+      instagram:       'https://www.instagram.com/chameleon.barberstudio/',
+      instagramHandle: '@chameleon.barberstudio',
+      waEmoji:         '✂️',
+      googleReviewUrl: 'https://www.google.com/maps/place/Chameleon+Barber+Studio/@-33.0128439,-71.5521047,837m/data=!3m1!1e3!4m24!1m15!4m14!1m6!1m2!1s0x9689dd307c746191:0x7e5a231571807302!2sChameleon+Barber+Studio,+2520000+Vi%C3%B1a+del+Mar,+Valpara%C3%ADso!2m2!1d-71.5494108!2d-33.0136638!1m6!1m2!1s0x9689dd307c746191:0x7e5a231571807302!2sChameleon+Barber+Studio,+2520000+Vi%C3%B1a+del+Mar,+Valpara%C3%ADso!2m2!1d-71.5494108!2d-33.0136638!3m7!1s0x9689dd307c746191:0x7e5a231571807302!8m2!3d-33.0136638!4d-71.5494108!9m1!1b1!16s%2Fg%2F11vlx04l0m?entry=ttu&g_ep=EgoyMDI2MDUxMC4wIKXMDSoASAFQAw%3D%3D',
+      barberos: [
+        { nombre: 'Omar Peñafiel',  foto: null, disponible: true },
+        { nombre: 'Juan Vásquez',   foto: null, disponible: true },
+        { nombre: 'David Figueredo',foto: null, disponible: true },
       ],
     },
     mapubarbershop: {
@@ -81,6 +106,7 @@
       instagram:       '',
       instagramHandle: '',
       waEmoji:         '✂️',
+      googleReviewUrl: '',
       sucursales: [
         {
           id:        'valparaiso',
