@@ -17,7 +17,8 @@
 <body>
   <h1>Seed — Chameleon Barber Studio</h1>
   <p>Popula <code>tenants/chameleon/</code> con barberos, servicios, productos, premios y anuncio.</p>
-  <button id="btn" onclick="run()">▶ Ejecutar Seed</button>
+  <button id="btn" onclick="run()">▶ Ejecutar Seed completo</button>
+  <button id="btn2" onclick="runUpdate()" style="background:#f59e0b;margin-left:1rem;">⟳ Actualizar datos reales</button>
   <pre id="log">Listo para ejecutar…</pre>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -51,18 +52,45 @@
         write('── Barberos ──');
         await set('tenants/chameleon/barberos/omar-penafiel', {
           nombre: 'Omar Peñafiel', activo: true, disponible: true, foto: null,
+          horario: {
+            '1': { activo: true,  inicio: '10:30', fin: '19:00', descansos: [] },
+            '2': { activo: true,  inicio: '10:30', fin: '19:00', descansos: [] },
+            '3': { activo: true,  inicio: '10:30', fin: '19:00', descansos: [] },
+            '4': { activo: true,  inicio: '10:30', fin: '19:00', descansos: [] },
+            '5': { activo: true,  inicio: '10:30', fin: '19:00', descansos: [] },
+            '6': { activo: true,  inicio: '11:00', fin: '17:30', descansos: [] },
+            '0': { activo: false, inicio: '09:00', fin: '20:00', descansos: [] },
+          },
         });
         await set('tenants/chameleon/barberos/juan-vasquez', {
           nombre: 'Juan Vásquez', activo: true, disponible: true, foto: null,
+          horario: {
+            '1': { activo: true,  inicio: '10:30', fin: '18:30', descansos: [] },
+            '2': { activo: true,  inicio: '10:30', fin: '18:30', descansos: [] },
+            '3': { activo: true,  inicio: '10:30', fin: '18:30', descansos: [] },
+            '4': { activo: true,  inicio: '10:30', fin: '18:30', descansos: [] },
+            '5': { activo: true,  inicio: '10:30', fin: '18:30', descansos: [] },
+            '6': { activo: true,  inicio: '11:00', fin: '15:30', descansos: [] },
+            '0': { activo: false, inicio: '09:00', fin: '20:00', descansos: [] },
+          },
         });
         await set('tenants/chameleon/barberos/david-figueredo', {
           nombre: 'David Figueredo', activo: true, disponible: true, foto: null,
+          horario: {
+            '1': { activo: false, inicio: '10:30', fin: '19:00', descansos: [] },
+            '2': { activo: false, inicio: '10:30', fin: '19:00', descansos: [] },
+            '3': { activo: false, inicio: '10:30', fin: '19:00', descansos: [] },
+            '4': { activo: true,  inicio: '10:30', fin: '19:00', descansos: [] },
+            '5': { activo: true,  inicio: '10:30', fin: '19:00', descansos: [] },
+            '6': { activo: true,  inicio: '11:00', fin: '17:30', descansos: [] },
+            '0': { activo: false, inicio: '09:00', fin: '20:00', descansos: [] },
+          },
         });
 
         /* ── Servicios — Ritual del Cabello ── */
         write('\n── Servicios · Ritual del Cabello ──');
         await set('tenants/chameleon/servicios/corte-personalizado', {
-          nombre: 'Corte de Cabello Personalizado', categoria: 'Ritual del Cabello',
+          nombre: 'Corte clásico', categoria: 'Ritual del Cabello',
           duracion: 40, precio: 15000, disponible: true, orden: 1,
           descripcion: 'Dale un toque moderno a tu look con un corte inspirado en las últimas tendencias, diseñado para todo tipo de cabello y largo. Incluye lavado y peinado profesional con productos especializados.',
         });
@@ -87,8 +115,8 @@
           descripcion: 'Afeitado al ras utilizando técnicas de máquina, navaja y vapor ozono. Productos especializados que cuidan e hidratan la piel, asegurando un acabado suave y libre de irritaciones.',
         });
         await set('tenants/chameleon/servicios/rasurado-express', {
-          nombre: 'Rasurado Capilar Ritual Express', categoria: 'Ritual del Cabello',
-          duracion: 30, precio: 12000, disponible: true, orden: 6,
+          nombre: 'Ritual de rasurado capilar exprés', categoria: 'Ritual del Cabello',
+          duracion: 20, precio: 12000, disponible: true, orden: 6,
           descripcion: 'Afeitado al ras utilizando trimmer y shaver, con un acabado suave y preciso que te dejará sintiéndote fresco desde el primer momento.',
         });
 
@@ -100,7 +128,7 @@
           descripcion: 'Mantén tu barba siempre prolija y bien definida. Quitamos el volumen justo, limpiamos los contornos con trimmer y shaver para un acabado nítido y natural.',
         });
         await set('tenants/chameleon/servicios/afeitado-barba', {
-          nombre: 'Afeitado Completo de Barba', categoria: 'Ritual de la Barba',
+          nombre: 'Perfilado de barba con navaja', categoria: 'Ritual de la Barba',
           duracion: 30, precio: 12000, disponible: true, orden: 8,
           descripcion: 'Afeitado al ras que elimina completamente el vello facial, con precisión, productos de alta calidad, vapor ozono y garantizando un acabado suave y prolijo.',
         });
@@ -158,15 +186,16 @@
 
         /* ── Premios ── */
         write('\n── Premios ──');
+        // Eliminar premios previos antes de crear los reales
+        const premSnap = await db.collection('tenants/chameleon/premios').get();
+        for (const d of premSnap.docs) await d.ref.delete();
+        write(`  ✓ Premios anteriores eliminados (${premSnap.size})`, 'ok');
         const addPremio = async (data) => {
           await db.collection('tenants/chameleon/premios').add(data);
           write(`  ✓ Premio → "${data.nombre}" (${data.costoSellos} sellos)`, 'ok');
         };
-        await addPremio({ nombre: 'Bebida de cortesía', descripcion: 'Un café o agua fresca mientras esperas tu turno.', costoSellos: 3, icono: 'ph-coffee' });
-        await addPremio({ nombre: 'Descuento 10%', descripcion: '10% de descuento en tu próxima visita. Válido por 30 días.', costoSellos: 5, icono: 'ph-tag' });
-        await addPremio({ nombre: 'Perfilado de Cejas Gratis', descripcion: 'Un perfilado de cejas completamente gratis en tu próxima cita.', costoSellos: 6, icono: 'ph-sparkle' });
-        await addPremio({ nombre: 'Corte de Cabello Gratis', descripcion: 'Un corte personalizado sin costo. Elige al barbero de tu preferencia.', costoSellos: 10, icono: 'ph-scissors' });
-        await addPremio({ nombre: 'Kit Grooming Chameleon', descripcion: 'Kit de productos: pomada + aceite de barba de la línea premium Chameleon.', costoSellos: 15, icono: 'ph-gift' });
+        await addPremio({ nombre: 'Descuento 40%', descripcion: '40% de descuento en tu próximo corte. Válido 30 días.', costoSellos: 5, icono: 'ph-tag', activo: true });
+        await addPremio({ nombre: 'Corte gratis', descripcion: 'Un corte clásico completamente gratis. Elige al barbero de tu preferencia.', costoSellos: 10, icono: 'ph-scissors', activo: true });
 
         /* ── Anuncio de Marketing ── */
         write('\n── Anuncio de Marketing ──');
@@ -186,6 +215,76 @@
         write(`\n❌ Error: ${e.message}`, 'err');
       }
       btn.disabled = false;
+    }
+    /* ── Actualizar solo datos reales (sin duplicar productos) ── */
+    async function runUpdate() {
+      const btn2 = document.getElementById('btn2');
+      btn2.disabled = true;
+      log.innerHTML = '';
+      try {
+        /* Servicios — corregir nombres y duración */
+        write('── Actualizar servicios ──');
+        await set('tenants/chameleon/servicios/corte-personalizado', { nombre: 'Corte clásico', duracion: 40, precio: 15000 });
+        await set('tenants/chameleon/servicios/corte-barba',         { nombre: 'Corte de cabello y barba', duracion: 60, precio: 24500 });
+        await set('tenants/chameleon/servicios/corte-cejas',         { nombre: 'Corte de cabello + perfilado de cejas', duracion: 45, precio: 17000 });
+        await set('tenants/chameleon/servicios/corte-barba-cejas',   { nombre: 'Corte de cabello barba y cejas', duracion: 60, precio: 27000 });
+        await set('tenants/chameleon/servicios/rasurado-ritual',     { nombre: 'Ritual de rasurado capilar', duracion: 35, precio: 15000 });
+        await set('tenants/chameleon/servicios/rasurado-express',    { nombre: 'Ritual de rasurado capilar exprés', duracion: 20, precio: 12000 });
+        await set('tenants/chameleon/servicios/perfilado-barba',     { nombre: 'Perfilado de barba simple', duracion: 25, precio: 10500 });
+        await set('tenants/chameleon/servicios/afeitado-barba',      { nombre: 'Perfilado de barba con navaja', duracion: 30, precio: 12000 });
+        await set('tenants/chameleon/servicios/perfilado-cejas',     { nombre: 'Perfilado de cejas', duracion: 10, precio: 4000 });
+
+        /* Barberos — horarios reales */
+        write('\n── Actualizar horarios de barberos ──');
+        await set('tenants/chameleon/barberos/omar-penafiel', {
+          horario: {
+            '1': { activo: true,  inicio: '10:30', fin: '19:00', descansos: [] },
+            '2': { activo: true,  inicio: '10:30', fin: '19:00', descansos: [] },
+            '3': { activo: true,  inicio: '10:30', fin: '19:00', descansos: [] },
+            '4': { activo: true,  inicio: '10:30', fin: '19:00', descansos: [] },
+            '5': { activo: true,  inicio: '10:30', fin: '19:00', descansos: [] },
+            '6': { activo: true,  inicio: '11:00', fin: '17:30', descansos: [] },
+            '0': { activo: false, inicio: '09:00', fin: '20:00', descansos: [] },
+          },
+        });
+        await set('tenants/chameleon/barberos/juan-vasquez', {
+          horario: {
+            '1': { activo: true,  inicio: '10:30', fin: '18:30', descansos: [] },
+            '2': { activo: true,  inicio: '10:30', fin: '18:30', descansos: [] },
+            '3': { activo: true,  inicio: '10:30', fin: '18:30', descansos: [] },
+            '4': { activo: true,  inicio: '10:30', fin: '18:30', descansos: [] },
+            '5': { activo: true,  inicio: '10:30', fin: '18:30', descansos: [] },
+            '6': { activo: true,  inicio: '11:00', fin: '15:30', descansos: [] },
+            '0': { activo: false, inicio: '09:00', fin: '20:00', descansos: [] },
+          },
+        });
+        await set('tenants/chameleon/barberos/david-figueredo', {
+          horario: {
+            '1': { activo: false, inicio: '10:30', fin: '19:00', descansos: [] },
+            '2': { activo: false, inicio: '10:30', fin: '19:00', descansos: [] },
+            '3': { activo: false, inicio: '10:30', fin: '19:00', descansos: [] },
+            '4': { activo: true,  inicio: '10:30', fin: '19:00', descansos: [] },
+            '5': { activo: true,  inicio: '10:30', fin: '19:00', descansos: [] },
+            '6': { activo: true,  inicio: '11:00', fin: '17:30', descansos: [] },
+            '0': { activo: false, inicio: '09:00', fin: '20:00', descansos: [] },
+          },
+        });
+
+        /* Premios — reemplazar ficticios por reales */
+        write('\n── Reemplazar premios ──');
+        const premSnap = await db.collection('tenants/chameleon/premios').get();
+        for (const d of premSnap.docs) await d.ref.delete();
+        write(`  ✓ Premios anteriores eliminados (${premSnap.size})`, 'ok');
+        await db.collection('tenants/chameleon/premios').add({ nombre: 'Descuento 40%', descripcion: '40% de descuento en tu próximo corte. Válido 30 días.', costoSellos: 5, icono: 'ph-tag', activo: true });
+        write('  ✓ Premio → "Descuento 40%" (5 sellos)', 'ok');
+        await db.collection('tenants/chameleon/premios').add({ nombre: 'Corte gratis', descripcion: 'Un corte clásico completamente gratis. Elige al barbero de tu preferencia.', costoSellos: 10, icono: 'ph-scissors', activo: true });
+        write('  ✓ Premio → "Corte gratis" (10 sellos)', 'ok');
+
+        write('\n✅ Actualización completada.', 'ok');
+      } catch (e) {
+        write(`\n❌ Error: ${e.message}`, 'err');
+      }
+      btn2.disabled = false;
     }
   </script>
 </body>
