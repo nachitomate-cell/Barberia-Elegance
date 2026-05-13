@@ -38,6 +38,8 @@ function formatFecha(iso) {
 
 /* ── Stamp grid ── */
 function StampGrid({ stamps, premios }) {
+  const { id: tenantId } = useTenant();
+  const isChameleon = tenantId === 'chameleon';
   const maxCost = premios.length ? Math.max(...premios.map(p => p.costoSellos)) : 10;
   const size    = Math.max(maxCost, stamps, 10);
   const cols    = size <= 10 ? 10 : size <= 15 ? 15 : 20;
@@ -50,9 +52,15 @@ function StampGrid({ stamps, premios }) {
         const isPrize = premios.some(p => p.costoSellos === n);
         return (
           <div key={n} className={`relative aspect-square rounded-md border flex items-center justify-center text-[9px] font-bold ${
-            filled ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-400' : 'bg-white/3 border-white/8 text-slate-600'
+            filled
+              ? isChameleon ? 'bg-black border-zinc-700' : 'bg-emerald-500/15 border-emerald-500/40 text-emerald-400'
+              : 'bg-white/3 border-white/8 text-slate-600'
           }`}>
-            {filled ? <i className="ph-fill ph-scissors text-[9px]" /> : n}
+            {filled
+              ? isChameleon
+                ? <img src="/sellochamaleon.png" style={{ width: '75%', height: '75%', objectFit: 'contain' }} alt="sello" />
+                : <i className="ph-fill ph-scissors text-[9px]" />
+              : n}
             {isPrize && <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-yellow-400 border border-slate-950" />}
           </div>
         );
