@@ -1,0 +1,16 @@
+{
+  "name": "Panel Admin · Elegance",
+  "short_name": "Elegance",
+  "description": "Panel de administración — Elegance Barbershop",
+  "theme_color": "#10b981",
+  "background_color": "#0f172a",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "start_url": "/gestion-interna/?local=elegance",
+  "scope": "/gestion-interna/",
+  "icons": [
+    { "src": "/logo.jpg",                        "sizes": "any",     "type": "image/jpeg" },
+    { "src": "/gestion-interna/pwa-192.png",     "sizes": "192x192", "type": "image/png" },
+    { "src": "/gestion-interna/pwa-512.png",     "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

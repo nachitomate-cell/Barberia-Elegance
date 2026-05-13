@@ -1,0 +1,16 @@
+{
+  "name": "Panel Admin · Chameleon",
+  "short_name": "Chameleon",
+  "description": "Panel de administración — Chameleon Barber Studio",
+  "theme_color": "#c9a84c",
+  "background_color": "#0f172a",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "start_url": "/gestion-interna/",
+  "scope": "/gestion-interna/",
+  "icons": [
+    { "src": "/local3.jpg",                       "sizes": "any",     "type": "image/jpeg" },
+    { "src": "/gestion-interna/pwa-192.png",      "sizes": "192x192", "type": "image/png" },
+    { "src": "/gestion-interna/pwa-512.png",      "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

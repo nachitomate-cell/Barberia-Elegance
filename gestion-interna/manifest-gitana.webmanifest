@@ -1,0 +1,16 @@
+{
+  "name": "Panel Admin · Gitana",
+  "short_name": "Gitana",
+  "description": "Panel de administración — Gitana Nails Studio",
+  "theme_color": "#ec4899",
+  "background_color": "#0f172a",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "start_url": "/gestion-interna/?local=gitana",
+  "scope": "/gestion-interna/",
+  "icons": [
+    { "src": "/gitana.png",                      "sizes": "any",     "type": "image/png" },
+    { "src": "/gestion-interna/pwa-192.png",     "sizes": "192x192", "type": "image/png" },
+    { "src": "/gestion-interna/pwa-512.png",     "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
