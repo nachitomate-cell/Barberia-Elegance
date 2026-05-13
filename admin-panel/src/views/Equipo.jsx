@@ -5,7 +5,7 @@ import {
   Upload, ChevronDown, Plus, X, Phone, Mail, Percent, Scissors,
   CalendarOff, Clock, Check, KeyRound,
 } from 'lucide-react';
-import { updateDoc, addDoc, deleteDoc, doc } from 'firebase/firestore';
+import { updateDoc, addDoc, deleteDoc, doc, serverTimestamp, deleteField } from 'firebase/firestore';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage, auth } from '../lib/firebase';
@@ -224,6 +224,9 @@ export default function Equipo() {
   const sucursales                     = useSucursales();
   const barberos = rawBarberos.filter(b => !b._mainDocId);
 
+  const memberLabel = resolveTenantId() === 'gitana' ? 'profesional' : 'barbero';
+  const memberLabelCap = memberLabel.charAt(0).toUpperCase() + memberLabel.slice(1);
+
   const [slide,     setSlide]     = useState(false);
   const [showHelp,  setShowHelp]  = useState(false);
   const [editing,   setEditing]   = useState(null);
@@ -305,9 +308,13 @@ export default function Equipo() {
     setSaving(true);
     try {
       if (editing) {
-        await updateDoc(doc(db, `${tenantCol('barberos').path}/${editing.id}`), form);
+        const payload = { ...form, updatedAt: serverTimestamp() };
+        payload.foto = form.foto || deleteField();
+        await updateDoc(doc(db, `${tenantCol('barberos').path}/${editing.id}`), payload);
       } else {
-        await addDoc(tenantCol('barberos'), { ...form, disponible: true, createdAt: new Date().toISOString() });
+        const payload = { ...form, disponible: true, createdAt: serverTimestamp() };
+        if (!payload.foto) delete payload.foto;
+        await addDoc(tenantCol('barberos'), payload);
       }
       setSlide(false);
     } finally { setSaving(false); }
@@ -363,7 +370,7 @@ export default function Equipo() {
         </div>
         <button onClick={openNew}
           className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
-          <Plus size={16} /> Nuevo barbero
+          <Plus size={16} /> Nuevo {memberLabel}
         </button>
       </div>
 
@@ -382,7 +389,7 @@ export default function Equipo() {
 
       {/* ── SlideOver ── */}
       <SlideOver isOpen={slide} onClose={() => setSlide(false)}
-        title={editing ? 'Editar barbero' : 'Nuevo barbero'}
+        title={editing ? `Editar ${memberLabel}` : `Nuevo ${memberLabel}`}
         maxWidth="max-w-lg"
         footer={
           <div className="flex gap-3 justify-end">
@@ -390,7 +397,7 @@ export default function Equipo() {
             <button onClick={handleSave} disabled={saving || uploading || !form.nombre.trim()}
               className="flex items-center gap-2 px-5 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-sm font-semibold rounded-lg transition-all">
               {saving && <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-              {editing ? 'Guardar cambios' : 'Crear barbero'}
+              {editing ? 'Guardar cambios' : `Crear ${memberLabel}`}
             </button>
           </div>
         }
@@ -463,7 +470,7 @@ export default function Equipo() {
           {editing && (
             <Section title="Seguridad" Icon={KeyRound}>
               <p className="text-xs text-slate-500 -mt-1">
-                Envía un enlace al email del barbero para que restablezca su contraseña. Requiere que tenga cuenta Firebase Auth con ese email.
+                Envía un enlace al email del {memberLabel} para que restablezca su contraseña. Requiere que tenga cuenta Firebase Auth con ese email.
               </p>
               <div className="flex items-center gap-2">
                 <button type="button" onClick={handlePasswordReset}

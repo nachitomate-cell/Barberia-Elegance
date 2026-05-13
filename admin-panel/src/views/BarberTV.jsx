@@ -585,7 +585,16 @@ function SlideProductos({ productos, skipAnimation }) {
 }
 
 // ── QR con efecto glow ────────────────────────────────────────────
-function QrOverlay({ qrUrl }) {
+function QrOverlay({ qrUrl, qrColor, qrSize }) {
+  const color = qrColor || GOLD;
+  const size  = qrSize  || 160;
+  // Extraer componentes RGB del color para el glow dinámico
+  const hexToRgb = h => {
+    const r = parseInt(h.slice(1,3),16), g = parseInt(h.slice(3,5),16), b = parseInt(h.slice(5,7),16);
+    return isNaN(r) ? '212,175,55' : `${r},${g},${b}`;
+  };
+  const rgb = hexToRgb(color);
+
   return (
     <div className="absolute bottom-6 right-6 z-20">
       <motion.div
@@ -593,30 +602,30 @@ function QrOverlay({ qrUrl }) {
         style={{
           background:     'rgba(5,5,5,0.88)',
           backdropFilter: 'blur(16px)',
-          border:         `1px solid rgba(212,175,55,0.5)`,
-          boxShadow:      `0 0 0 1px rgba(212,175,55,0.1) inset`,
+          border:         `1px solid rgba(${rgb},0.5)`,
+          boxShadow:      `0 0 0 1px rgba(${rgb},0.1) inset`,
         }}
         animate={{
           boxShadow: [
-            '0 0 20px rgba(212,175,55,0.12), 0 0 0 1px rgba(212,175,55,0.1) inset',
-            '0 0 45px rgba(212,175,55,0.30), 0 0 0 1px rgba(212,175,55,0.2) inset',
-            '0 0 20px rgba(212,175,55,0.12), 0 0 0 1px rgba(212,175,55,0.1) inset',
+            `0 0 20px rgba(${rgb},0.12), 0 0 0 1px rgba(${rgb},0.1) inset`,
+            `0 0 45px rgba(${rgb},0.30), 0 0 0 1px rgba(${rgb},0.2) inset`,
+            `0 0 20px rgba(${rgb},0.12), 0 0 0 1px rgba(${rgb},0.1) inset`,
           ],
         }}
         transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
       >
         <div className="absolute inset-[3px] rounded-[20px] pointer-events-none"
-          style={{ border: `1px solid rgba(212,175,55,0.15)` }} />
+          style={{ border: `1px solid rgba(${rgb},0.15)` }} />
 
         <div className="relative">
           <motion.span
             className="text-xs font-black tracking-[0.3em] uppercase relative z-10"
-            style={{ color: GOLD }}
+            style={{ color }}
             animate={{
               textShadow: [
-                '0 0 8px rgba(212,175,55,0.3)',
-                '0 0 20px rgba(212,175,55,0.8)',
-                '0 0 8px rgba(212,175,55,0.3)',
+                `0 0 8px rgba(${rgb},0.3)`,
+                `0 0 20px rgba(${rgb},0.8)`,
+                `0 0 8px rgba(${rgb},0.3)`,
               ],
             }}
             transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
@@ -627,8 +636,8 @@ function QrOverlay({ qrUrl }) {
 
         <QRCodeSVG
           value={qrUrl}
-          size={160}
-          fgColor={GOLD}
+          size={size}
+          fgColor={color}
           bgColor="transparent"
           level="M"
         />
@@ -711,6 +720,7 @@ export default function BarberTV() {
   const [duracion,     setDuracion]     = useState(SLIDE_MS);
   const [slidesActivos,setSlidesActivos]= useState({ oferta: true, lookbook: true, equipo: true, productos: true });
   const [accentColor,  setAccentColor]  = useState('');
+  const [qrConfig,     setQrConfig]     = useState({ color: '', size: 160 });
 
   // Acento dinámico: config Firestore > TENANT_ACCENT hardcode > dorado
   GOLD = accentColor || TENANT_ACCENT[tenantId] || '#D4AF37';
@@ -786,6 +796,7 @@ export default function BarberTV() {
         if (d.duracionSlide) setDuracion(Number(d.duracionSlide) * 1000);
         if (d.slidesActivos) setSlidesActivos(prev => ({ ...prev, ...d.slidesActivos }));
         setAccentColor(d.accentColor || '');
+        if (d.qr)            setQrConfig(prev => ({ ...prev, ...d.qr }));
       },
       () => {},
     );
@@ -949,7 +960,7 @@ export default function BarberTV() {
             onChange={handleSlideChange}
           />
 
-          <QrOverlay qrUrl={qrUrl} />
+          <QrOverlay qrUrl={qrUrl} qrColor={qrConfig.color} qrSize={qrConfig.size} />
         </main>
       </div>
     </div>

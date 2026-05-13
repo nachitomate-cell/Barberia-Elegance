@@ -6,10 +6,30 @@
         { "key": "Cache-Control",         "value": "no-cache, no-store, must-revalidate" },
         { "key": "Service-Worker-Allowed","value": "/" }
       ]
+    },
+    {
+      "source": "/(.*)\\.html",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/firebaseUtils.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/js/(.*)\\.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, must-revalidate" }
+      ]
     }
   ],
   "rewrites": [
     { "source": "/favicon.ico",            "destination": "/logo.jpg" },
+    { "source": "/dashboard",              "destination": "/dashboard.html" },
+    { "source": "/registro",               "destination": "/registro.html" },
     { "source": "/agenda",                 "destination": "/agenda.html" },
     { "source": "/agenda/:path*",          "destination": "/agenda.html" },
     { "source": "/servicios",              "destination": "/index.html" },

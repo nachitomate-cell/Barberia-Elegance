@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Seed · Chameleon Barber Studio</title>
+  <style>
+    body { font-family: monospace; background: #0f172a; color: #94a3b8; padding: 2rem; }
+    h1   { color: #06b6d4; }
+    button { padding: .75rem 1.5rem; background: #06b6d4; color: #000; border: none;
+             border-radius: .5rem; font-size: 1rem; font-weight: 700; cursor: pointer; margin-top: 1rem; }
+    button:disabled { opacity: .4; cursor: not-allowed; }
+    pre  { background: #1e293b; padding: 1rem; border-radius: .5rem; white-space: pre-wrap; margin-top: 1rem; }
+    .ok  { color: #34d399; }
+    .err { color: #f87171; }
+  </style>
+</head>
+<body>
+  <h1>Seed — Chameleon Barber Studio</h1>
+  <p>Popula <code>tenants/chameleon/</code> con barberos, servicios, productos, premios y anuncio.</p>
+  <button id="btn" onclick="run()">▶ Ejecutar Seed</button>
+  <pre id="log">Listo para ejecutar…</pre>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="/firebase-config.js?v=1.1"></script>
+  <script>
+    // db declarado globalmente por firebase-config.js
+    const log = document.getElementById('log');
+    const btn = document.getElementById('btn');
+
+    function write(msg, cls) {
+      log.innerHTML += `<span class="${cls||''}">${msg}\n</span>`;
+    }
+
+    async function set(path, data) {
+      const parts = path.split('/');
+      let ref = db;
+      for (let i = 0; i < parts.length; i++) {
+        ref = i % 2 === 0 ? ref.collection(parts[i]) : ref.doc(parts[i]);
+      }
+      await ref.set(data, { merge: true });
+      write(`  ✓ ${path}`, 'ok');
+    }
+
+    async function run() {
+      btn.disabled = true;
+      log.innerHTML = '';
+      try {
+        /* ── Barberos ── */
+        write('── Barberos ──');
+        await set('tenants/chameleon/barberos/omar-penafiel', {
+          nombre: 'Omar Peñafiel', activo: true, disponible: true, foto: null,
+        });
+        await set('tenants/chameleon/barberos/juan-vasquez', {
+          nombre: 'Juan Vásquez', activo: true, disponible: true, foto: null,
+        });
+        await set('tenants/chameleon/barberos/david-figueredo', {
+          nombre: 'David Figueredo', activo: true, disponible: true, foto: null,
+        });
+
+        /* ── Servicios — Ritual del Cabello ── */
+        write('\n── Servicios · Ritual del Cabello ──');
+        await set('tenants/chameleon/servicios/corte-personalizado', {
+          nombre: 'Corte de Cabello Personalizado', categoria: 'Ritual del Cabello',
+          duracion: 40, precio: 15000, disponible: true, orden: 1,
+          descripcion: 'Dale un toque moderno a tu look con un corte inspirado en las últimas tendencias, diseñado para todo tipo de cabello y largo. Incluye lavado y peinado profesional con productos especializados.',
+        });
+        await set('tenants/chameleon/servicios/corte-barba', {
+          nombre: 'Corte de Cabello y Barba', categoria: 'Ritual del Cabello',
+          duracion: 60, precio: 24500, disponible: true, orden: 2,
+          descripcion: 'Renueva tu look con un corte acorde a las últimas tendencias y un perfilado de barba diseñado para resaltar tu mejor versión. Incluye lavado y peinado profesional. ¡De lunes a miércoles por solo $20.500!',
+        });
+        await set('tenants/chameleon/servicios/corte-cejas', {
+          nombre: 'Corte de Cabello y Perfilado de Cejas', categoria: 'Ritual del Cabello',
+          duracion: 45, precio: 17000, disponible: true, orden: 3,
+          descripcion: 'Corte de cabello personalizado y perfilado de cejas para un look equilibrado y bien definido.',
+        });
+        await set('tenants/chameleon/servicios/corte-barba-cejas', {
+          nombre: 'Corte de Cabello, Barba y Cejas', categoria: 'Ritual del Cabello',
+          duracion: 60, precio: 27000, disponible: true, orden: 4,
+          descripcion: 'Look completo con corte de cabello, definición de barba y perfilado de cejas para un acabado impecable. De lunes a miércoles $22.000.',
+        });
+        await set('tenants/chameleon/servicios/rasurado-ritual', {
+          nombre: 'Rasurado Capilar Ritual', categoria: 'Ritual del Cabello',
+          duracion: 35, precio: 15000, disponible: true, orden: 5,
+          descripcion: 'Afeitado al ras utilizando técnicas de máquina, navaja y vapor ozono. Productos especializados que cuidan e hidratan la piel, asegurando un acabado suave y libre de irritaciones.',
+        });
+        await set('tenants/chameleon/servicios/rasurado-express', {
+          nombre: 'Rasurado Capilar Ritual Express', categoria: 'Ritual del Cabello',
+          duracion: 30, precio: 12000, disponible: true, orden: 6,
+          descripcion: 'Afeitado al ras utilizando trimmer y shaver, con un acabado suave y preciso que te dejará sintiéndote fresco desde el primer momento.',
+        });
+
+        /* ── Servicios — Ritual de la Barba ── */
+        write('\n── Servicios · Ritual de la Barba ──');
+        await set('tenants/chameleon/servicios/perfilado-barba', {
+          nombre: 'Perfilado de Barba Simple', categoria: 'Ritual de la Barba',
+          duracion: 25, precio: 10500, disponible: true, orden: 7,
+          descripcion: 'Mantén tu barba siempre prolija y bien definida. Quitamos el volumen justo, limpiamos los contornos con trimmer y shaver para un acabado nítido y natural.',
+        });
+        await set('tenants/chameleon/servicios/afeitado-barba', {
+          nombre: 'Afeitado Completo de Barba', categoria: 'Ritual de la Barba',
+          duracion: 30, precio: 12000, disponible: true, orden: 8,
+          descripcion: 'Afeitado al ras que elimina completamente el vello facial, con precisión, productos de alta calidad, vapor ozono y garantizando un acabado suave y prolijo.',
+        });
+
+        /* ── Servicios — Diseño de Cejas ── */
+        write('\n── Servicios · Diseño de Cejas ──');
+        await set('tenants/chameleon/servicios/perfilado-cejas', {
+          nombre: 'Perfilado de Cejas', categoria: 'Diseño de Cejas',
+          duracion: 10, precio: 4000, disponible: true, orden: 9,
+          descripcion: 'Perfilado y arreglo de las cejas para mejorar la apariencia facial.',
+        });
+
+        /* ── Servicios — Otros ── */
+        write('\n── Servicios · Otros ──');
+        await set('tenants/chameleon/servicios/corte-referido', {
+          nombre: 'Corte Referido', categoria: 'Otros',
+          duracion: 45, precio: 12000, disponible: true, orden: 10,
+          descripcion: 'Servicio por referido válido solo agendando las 2 personas online y mostrando el flyer de la promoción. Valor de $12.000 por persona.',
+        });
+
+        /* ── Productos ── */
+        write('\n── Productos ──');
+        const addDoc = async (col, data) => {
+          await db.collection(col).add({ ...data, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+          write(`  ✓ ${col} → "${data.nombre}"`, 'ok');
+        };
+        await addDoc('tenants/chameleon/productos', {
+          nombre: 'Pomada Matte Premium',
+          descripcion: 'Control fuerte con acabado mate opaco. Ideal para peinados texturizados y definidos.',
+          precio: 9900,
+          stock: 12,
+          imagen: '',
+        });
+        await addDoc('tenants/chameleon/productos', {
+          nombre: 'Aceite para Barba',
+          descripcion: 'Hidrata y suaviza la barba. Con extracto de argán y vitamina E. 30 ml.',
+          precio: 8500,
+          stock: 8,
+          imagen: '',
+        });
+        await addDoc('tenants/chameleon/productos', {
+          nombre: 'Shampoo Anticaída',
+          descripcion: 'Fórmula fortalecedora con cafeína y biotina. 250 ml. Uso diario.',
+          precio: 7900,
+          stock: 15,
+          imagen: '',
+        });
+        await addDoc('tenants/chameleon/productos', {
+          nombre: 'Cera Modeladora Flexible',
+          descripcion: 'Fijación media con brillo natural. Fácil de lavar. Para cualquier tipo de cabello.',
+          precio: 6500,
+          stock: 0,
+          imagen: '',
+        });
+
+        /* ── Premios ── */
+        write('\n── Premios ──');
+        const addPremio = async (data) => {
+          await db.collection('tenants/chameleon/premios').add(data);
+          write(`  ✓ Premio → "${data.nombre}" (${data.costoSellos} sellos)`, 'ok');
+        };
+        await addPremio({ nombre: 'Bebida de cortesía', descripcion: 'Un café o agua fresca mientras esperas tu turno.', costoSellos: 3, icono: 'ph-coffee' });
+        await addPremio({ nombre: 'Descuento 10%', descripcion: '10% de descuento en tu próxima visita. Válido por 30 días.', costoSellos: 5, icono: 'ph-tag' });
+        await addPremio({ nombre: 'Perfilado de Cejas Gratis', descripcion: 'Un perfilado de cejas completamente gratis en tu próxima cita.', costoSellos: 6, icono: 'ph-sparkle' });
+        await addPremio({ nombre: 'Corte de Cabello Gratis', descripcion: 'Un corte personalizado sin costo. Elige al barbero de tu preferencia.', costoSellos: 10, icono: 'ph-scissors' });
+        await addPremio({ nombre: 'Kit Grooming Chameleon', descripcion: 'Kit de productos: pomada + aceite de barba de la línea premium Chameleon.', costoSellos: 15, icono: 'ph-gift' });
+
+        /* ── Anuncio de Marketing ── */
+        write('\n── Anuncio de Marketing ──');
+        await db.collection('tenants').doc('chameleon').collection('config').doc('anuncio').set({
+          titulo: '¡Lunes a Miércoles con descuento!',
+          descripcion: 'Corte + Barba por solo $20.500 los días lunes, martes y miércoles. Agenda online y aprovecha esta promo exclusiva.',
+          imagen: '',
+          ctaTexto: 'Reservar ahora',
+          ctaUrl: '/',
+          activo: true,
+          versionId: Date.now().toString(),
+        }, { merge: true });
+        write('  ✓ tenants/chameleon/config/anuncio', 'ok');
+
+        write('\n✅ Seed completado exitosamente.', 'ok');
+      } catch (e) {
+        write(`\n❌ Error: ${e.message}`, 'err');
+      }
+      btn.disabled = false;
+    }
+  </script>
+</body>
+</html>

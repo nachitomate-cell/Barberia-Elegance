@@ -3,10 +3,11 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Monitor, ExternalLink, Save, Check, ChevronRight,
-  AlertCircle, Eye, Palette, Images, Users, Megaphone, ShoppingBag,
+  AlertCircle, Eye, Palette, Images, Users, Megaphone, ShoppingBag, QrCode,
 } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 import { getDoc, setDoc, getDocs, query, where } from 'firebase/firestore';
-import { tenantDoc, tenantCol } from '../lib/tenantUtils';
+import { tenantDoc, tenantCol, resolveTenantId } from '../lib/tenantUtils';
 
 // Debe coincidir con OFERTA_DEFAULT en BarberTV.jsx
 const OFERTA_DEFAULT = {
@@ -22,7 +23,10 @@ const CONFIG_DEFAULT = {
   duracionSlide: 15,
   slidesActivos: { oferta: true, lookbook: true, equipo: true, productos: true },
   accentColor:   '',
+  qr:            { color: '', size: 160 },
 };
+
+const QR_SIZE_STEPS = [100, 120, 140, 160, 180, 200, 220, 240];
 
 const ACCENT_PRESETS = [
   { label: 'Dorado',    value: '#D4AF37' },
@@ -180,6 +184,7 @@ export default function TVConfig() {
             duracionSlide: d.duracionSlide ?? 15,
             slidesActivos: { oferta: true, lookbook: true, equipo: true, productos: true, ...(d.slidesActivos || {}) },
             accentColor:   d.accentColor || '',
+            qr:            { color: '', size: 160, ...(d.qr || {}) },
           });
         }
       })
@@ -229,6 +234,7 @@ export default function TVConfig() {
         duracionSlide: config.duracionSlide,
         slidesActivos: config.slidesActivos,
         accentColor:   config.accentColor,
+        qr:            config.qr,
       }, { merge: true });
       setSaved(true);
       setDirty(false);
@@ -241,8 +247,14 @@ export default function TVConfig() {
     }
   };
 
+  const updateQr = (key, value) => {
+    setConfig(prev => ({ ...prev, qr: { ...prev.qr, [key]: value } }));
+    setDirty(true);
+  };
+
   const inp = 'w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors';
   const gold = config.accentColor || '#D4AF37';
+  const qrColor = config.qr.color || gold;
 
   if (loading) return (
     <div className="flex justify-center py-20">
@@ -394,6 +406,140 @@ export default function TVConfig() {
             </div>
           </div>
         </Field>
+      </Card>
+
+      {/* ── QR ────────────────────────────────────────────────────── */}
+      <Card icon={QrCode} title="Código QR">
+        <p className="text-xs text-slate-500 -mt-1">
+          El QR aparece fijo en la esquina inferior derecha del carrusel y apunta al registro del club.
+        </p>
+
+        <Field label="Color del QR">
+          <div className="space-y-3">
+            <div className="flex flex-wrap gap-2 items-center">
+              {/* Opción: heredar color de acento */}
+              <button
+                type="button"
+                title="Color de acento (por defecto)"
+                onClick={() => updateQr('color', '')}
+                className="w-7 h-7 rounded-lg transition-all duration-150 flex items-center justify-center text-[9px] font-black"
+                style={{
+                  background:    gold,
+                  outline:       config.qr.color === '' ? '2px solid #fff' : '2px solid transparent',
+                  outlineOffset: '2px',
+                  transform:     config.qr.color === '' ? 'scale(1.2)' : 'scale(1)',
+                }}
+              >
+                A
+              </button>
+              {/* Presets fijos */}
+              {[
+                { label: 'Blanco',    value: '#e2e8f0' },
+                { label: 'Azul neon', value: '#00C8FF' },
+                { label: 'Esmeralda', value: '#10b981' },
+                { label: 'Rosa',      value: '#f43f5e' },
+                { label: 'Naranja',   value: '#f97316' },
+                { label: 'Violeta',   value: '#a855f7' },
+              ].map(p => (
+                <button
+                  key={p.value}
+                  type="button"
+                  title={p.label}
+                  onClick={() => updateQr('color', p.value)}
+                  className="w-7 h-7 rounded-lg transition-all duration-150"
+                  style={{
+                    background:    p.value,
+                    outline:       config.qr.color === p.value ? '2px solid #fff' : '2px solid transparent',
+                    outlineOffset: '2px',
+                    transform:     config.qr.color === p.value ? 'scale(1.2)' : 'scale(1)',
+                  }}
+                />
+              ))}
+              {/* Picker personalizado */}
+              <label className="relative w-7 h-7 cursor-pointer" title="Color personalizado">
+                <input
+                  type="color"
+                  value={qrColor}
+                  onChange={e => updateQr('color', e.target.value)}
+                  className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                />
+                <div
+                  className="w-7 h-7 rounded-lg flex items-center justify-center"
+                  style={{ background: qrColor, border: '1.5px dashed rgba(255,255,255,0.45)' }}
+                >
+                  <Palette size={11} className="text-white opacity-80" />
+                </div>
+              </label>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 rounded-md shrink-0 border border-white/10" style={{ background: qrColor }} />
+              <span className="text-xs text-slate-400 font-mono">{qrColor}</span>
+              {config.qr.color && (
+                <button
+                  type="button"
+                  onClick={() => updateQr('color', '')}
+                  className="ml-auto text-xs text-slate-600 hover:text-slate-400 transition-colors"
+                >
+                  Usar color de acento
+                </button>
+              )}
+            </div>
+          </div>
+        </Field>
+
+        <Field
+          label="Tamaño del QR"
+          hint={`El QR se mostrará en ${config.qr.size} × ${config.qr.size} px en la pantalla TV`}
+        >
+          <div className="flex items-center gap-4">
+            <input
+              type="range"
+              min={0}
+              max={QR_SIZE_STEPS.length - 1}
+              step={1}
+              value={QR_SIZE_STEPS.indexOf(config.qr.size) !== -1
+                ? QR_SIZE_STEPS.indexOf(config.qr.size)
+                : 3}
+              onChange={e => updateQr('size', QR_SIZE_STEPS[Number(e.target.value)])}
+              className="flex-1 accent-emerald-500"
+            />
+            <span className="text-white font-mono font-bold tabular-nums w-16 text-center bg-slate-800 rounded-lg py-1.5 text-sm border border-slate-700">
+              {config.qr.size}px
+            </span>
+          </div>
+        </Field>
+
+        {/* Preview */}
+        <div>
+          <div className="flex items-center gap-1.5 mb-3">
+            <Eye size={12} className="text-slate-600" />
+            <span className="text-[10px] font-bold text-slate-600 uppercase tracking-widest">
+              Vista previa
+            </span>
+          </div>
+          <div className="flex justify-center">
+            <div
+              className="rounded-2xl p-4 flex flex-col items-center gap-2.5"
+              style={{
+                background:    'rgba(5,5,5,0.88)',
+                border:        `1px solid ${qrColor}88`,
+                boxShadow:     `0 0 24px ${qrColor}22`,
+              }}
+            >
+              <span className="text-xs font-black tracking-[0.3em] uppercase" style={{ color: qrColor }}>
+                ¡Únete al Club!
+              </span>
+              <QRCodeSVG
+                value={`${window.location.origin}/registro.html?local=${resolveTenantId()}`}
+                size={config.qr.size}
+                fgColor={qrColor}
+                bgColor="transparent"
+                level="M"
+              />
+              <p className="text-slate-600 text-[10px] tracking-wide">Escanea y regístrate gratis</p>
+            </div>
+          </div>
+        </div>
       </Card>
 
       {/* ── Slide Anuncio ─────────────────────────────────────────── */}

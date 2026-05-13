@@ -48,7 +48,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
   <script src="firebase-config.js?v=1.1"></script>
   <script src="/js/utils/error-logger.js?v=1.0"></script>
-  <script src="firebaseUtils.js?v=2.5"></script>
+  <script src="firebaseUtils.js?v=2.6"></script>
   <script src="/js/guards/tenant-status-guard.js?v=1.0"></script>
   <script src="/js/guards/version-manager.js?v=1.0"></script>
 
@@ -1066,6 +1066,91 @@
     .tenant-mapubarbershop .barber-option.bg-brand-neon\/10 {
       background: #3D2C31 !important;
     }
+    /* ── Chameleon Barber Studio ── */
+    .tenant-chameleon {
+      --accent:   #DAA520;
+      --accent-r: 218; --accent-g: 165; --accent-b: 32;
+      --neon-clr: #DAA520;
+      --neon-r:   218; --neon-g: 165; --neon-b: 32;
+      --body-bg:  #000000;
+    }
+    .tenant-chameleon body { background-color: #000000; }
+    .tenant-chameleon .booking-hero {
+      background-image: url('/fondolocal3.webp') !important;
+      background-size: cover !important;
+      background-position: center 30% !important;
+    }
+    .tenant-chameleon .booking-hero-overlay {
+      background: linear-gradient(180deg,
+        rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.25) 40%, rgba(0,0,0,0.92) 100%) !important;
+    }
+    /* Botones de acción → esmeralda */
+    .tenant-chameleon #btnContinue {
+      background: #004D40 !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 20px rgba(0,77,64,0.45) !important;
+    }
+    .tenant-chameleon #btnContinueBar {
+      background: rgba(0,0,0,0.92) !important;
+      border-top-color: rgba(218,165,32,0.10) !important;
+    }
+    /* CTA "Unirme al Club" en paso 4 */
+    .tenant-chameleon #step4AuthContainer a.flex {
+      background: #004D40 !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 18px rgba(0,77,64,0.35) !important;
+    }
+    .tenant-chameleon #step4AuthContainer a.flex i { color: #ffffff !important; }
+    /* Tarjeta seleccionada: borde dorado metálico */
+    .tenant-chameleon .service-option.border-neon {
+      border-color: #DAA520 !important;
+      box-shadow: 0 0 14px rgba(218,165,32,0.18) !important;
+    }
+    .tenant-chameleon .service-option.bg-brand-neon\/10 {
+      background-color: rgba(218,165,32,0.07) !important;
+    }
+    /* Jerarquía: precio y duración en blanco sobre tarjeta seleccionada */
+    .tenant-chameleon .service-option.border-neon .price-tag {
+      color: #ffffff !important;
+    }
+    .tenant-chameleon .service-option.border-neon .duration-tag {
+      color: rgba(255,255,255,0.55) !important;
+    }
+    /* Icono: halo dorado en tarjeta seleccionada */
+    .tenant-chameleon .service-option.border-neon .icon-bg {
+      border-color: rgba(218,165,32,0.50) !important;
+      box-shadow: 0 0 12px rgba(218,165,32,0.28) !important;
+      background: rgba(218,165,32,0.06) !important;
+    }
+    .tenant-chameleon .service-option.border-neon .icon-svg {
+      color: #DAA520 !important;
+      filter: drop-shadow(0 0 5px rgba(218,165,32,0.50)) !important;
+    }
+    /* Barbero seleccionado */
+    .tenant-chameleon .barber-option.border-neon {
+      border-color: #DAA520 !important;
+      box-shadow: 0 0 12px rgba(218,165,32,0.15) !important;
+    }
+    .tenant-chameleon .barber-option.bg-brand-neon\/10 {
+      background-color: rgba(218,165,32,0.07) !important;
+    }
+    /* Time pill seleccionada */
+    .tenant-chameleon .time-pill.border-neon,
+    .tenant-chameleon .time-pill.bg-brand-neon\/10 {
+      background: rgba(218,165,32,0.12) !important;
+      color: #DAA520 !important;
+      border-color: #DAA520 !important;
+      box-shadow: 0 0 10px rgba(218,165,32,0.20) !important;
+      font-weight: 800 !important;
+    }
+    /* Category pills */
+    .tenant-chameleon .category-pill.border-neon {
+      border-color: #DAA520 !important;
+      color: #DAA520 !important;
+      background: rgba(218,165,32,0.08) !important;
+      box-shadow: none !important;
+    }
+
     .tenant-ferraza .service-option.border-neon,
     .tenant-ferraza .barber-option.border-neon {
       border-color: var(--neon-clr) !important;
@@ -1598,9 +1683,10 @@
         categories[cat].push(s);
       });
 
-      const _isEleganceSvc = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance';
-      const _isMapuSvc     = window.CURRENT_TENANT_ID === 'mapubarbershop';
-      const _useRowLayout  = _isEleganceSvc || _isMapuSvc;
+      const _isEleganceSvc  = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance';
+      const _isMapuSvc      = window.CURRENT_TENANT_ID === 'mapubarbershop';
+      const _isChameleonSvc = window.CURRENT_TENANT_ID === 'chameleon';
+      const _useRowLayout   = _isEleganceSvc || _isMapuSvc || _isChameleonSvc;
 
       Object.keys(categories).forEach(cat => {
         const catContainer = document.createElement('div');
@@ -1611,6 +1697,8 @@
           catContainer.innerHTML = `<h3 class="text-[10.5px] font-semibold uppercase tracking-[0.12em] mb-3 ml-1" style="color:rgba(191,163,126,0.65)">${cat}</h3>`;
         } else if (_isEleganceSvc) {
           catContainer.innerHTML = `<h3 class="text-gray-400 font-bold uppercase tracking-widest text-xs mb-4 ml-1">${cat}</h3>`;
+        } else if (_isChameleonSvc) {
+          catContainer.innerHTML = `<h3 class="text-[10.5px] font-semibold uppercase tracking-[0.12em] mb-3 ml-1" style="color:rgba(201,168,76,0.70)">${cat}</h3>`;
         } else {
           catContainer.innerHTML = `<div class="cat-sep sep-ornamental mb-4"><span class="sep-ornamental-gem">✦ ✦ ✦</span></div><h3 class="cat-title border-l-4 border-neon pl-3 text-lg font-semibold text-white/80 mb-4">${cat}</h3>`;
         }
@@ -1742,6 +1830,7 @@
     let _fsBarberos      = [];
     let _activeBarberos  = []; // _fsBarberos filtrado por sucursal (si aplica)
     let _multiHoras      = []; // cache de getHorasDisponiblesMulti para auto-asignación en paso 4
+    let _unsubSlotLocks  = null; // listener tiempo real de slotLocks en paso 3
 
     function _buildDiasLabel(horario) {
       if (!horario) return null;
@@ -1810,8 +1899,9 @@
          grid.innerHTML = '<p class="text-sm text-gray-500">No hay barberos disponibles en este momento.</p>';
          return;
       }
-      const _isElegance = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance';
-      const _isMapuB    = window.CURRENT_TENANT_ID === 'mapubarbershop';
+      const _isElegance   = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance';
+      const _isMapuB      = window.CURRENT_TENANT_ID === 'mapubarbershop';
+      const _isChameleon  = window.CURRENT_TENANT_ID === 'chameleon';
       const anyStateClass = (window._selectedBarberId === 'any' || window._selectedBarber === 'any') ? 'border-neon bg-brand-neon/10' : 'border-brand-accent/20 bg-[#0a0a0d]';
       const _profLabel = window.CURRENT_TENANT_ID === 'gitana' ? 'Cualquier profesional disponible' : 'Cualquier barbero disponible';
 
@@ -1857,7 +1947,7 @@
         return;
       }
 
-      const anyCard = _isElegance ? `
+      const anyCard = (_isElegance || _isChameleon) ? `
         <button onclick="selectBarber(this, 'any', 'any')" class="barber-option relative flex flex-row items-center gap-4 p-4 rounded-2xl border-2 ${anyStateClass} active:scale-[0.99] transition-all overflow-hidden group w-full text-left">
           <div class="w-12 h-12 rounded-full flex items-center justify-center border border-white/10 shrink-0 bg-[#111115]"><i class="ph-fill ph-shuffle text-xl text-gray-400"></i></div>
           <div class="flex-1 min-w-0">
@@ -1867,7 +1957,7 @@
               <i class="ph-fill ph-check-circle text-[14px]"></i>Primer horario disponible
             </span>
           </div>
-          <div class="barber-radio w-5 h-5 rounded-full border-2 shrink-0 transition-all" style="border-color:rgba(212,175,55,0.4)"></div>
+          <div class="barber-radio w-5 h-5 rounded-full border-2 shrink-0 transition-all" style="border-color:rgba(201,168,76,0.4)"></div>
         </button>
       ` : `
         <button onclick="selectBarber(this, 'any', 'any')" class="barber-option relative flex w-full flex-col items-center justify-center p-6 rounded-2xl border-2 ${anyStateClass} shadow-sm hover:border-brand-neon/50 hover:shadow-[0_0_15px_rgba(255,255,255,0.15)] active:scale-95 text-center transition-all overflow-hidden group">
@@ -1910,7 +2000,7 @@
         const disponibilidadString = b.disponible !== false ? 'Disponible para reservas' : 'Agenda llena hoy';
         const isAvailableIcon = b.disponible !== false ? 'check-circle' : 'x-circle';
 
-        if (_isElegance) {
+        if (_isElegance || _isChameleon) {
           return `
           <button onclick="selectBarber(this, '${b.id}', '${b.nombre}')" class="barber-option relative flex flex-row items-center gap-4 p-4 rounded-2xl border-2 ${stateClass} active:scale-[0.99] transition-all overflow-hidden group w-full text-left">
             ${fotoHTMLElegance}
@@ -1922,7 +2012,7 @@
                 <i class="ph-fill ph-${isAvailableIcon} text-[14px]"></i>${disponibilidadString}
               </span>
             </div>
-            <div class="barber-radio w-5 h-5 rounded-full border-2 shrink-0 transition-all" style="border-color:rgba(212,175,55,0.4)"></div>
+            <div class="barber-radio w-5 h-5 rounded-full border-2 shrink-0 transition-all" style="border-color:rgba(201,168,76,0.4)"></div>
           </button>`;
         }
         return `
@@ -1951,7 +2041,8 @@
           el.classList.replace('bg-brand-neon/10', 'bg-[#0a0a0d]');
         }
         const radio = el.querySelector('.barber-radio');
-        if (radio) { radio.style.background = 'transparent'; radio.style.borderColor = _isMapuSel ? 'rgba(191,163,126,0.40)' : 'rgba(212,175,55,0.4)'; }
+        const _radioBorderUnsel = _isMapuSel ? 'rgba(191,163,126,0.40)' : window.CURRENT_TENANT_ID === 'chameleon' ? 'rgba(201,168,76,0.4)' : 'rgba(212,175,55,0.4)';
+        if (radio) { radio.style.background = 'transparent'; radio.style.borderColor = _radioBorderUnsel; }
       });
       if (_isMapuSel) {
         btn.style.borderColor = '#BFA37E';
@@ -1960,8 +2051,10 @@
         btn.classList.replace('border-brand-accent/20', 'border-neon');
         btn.classList.replace('bg-[#0a0a0d]', 'bg-brand-neon/10');
       }
+      const _isChameleonSel = window.CURRENT_TENANT_ID === 'chameleon';
       const selRadio = btn.querySelector('.barber-radio');
-      if (selRadio) { selRadio.style.background = _isMapuSel ? '#BFA37E' : '#D4AF37'; selRadio.style.borderColor = _isMapuSel ? '#BFA37E' : '#D4AF37'; }
+      const _radioFill = _isMapuSel ? '#BFA37E' : _isChameleonSel ? '#c9a84c' : '#D4AF37';
+      if (selRadio) { selRadio.style.background = _radioFill; selRadio.style.borderColor = _radioFill; }
 
       if (window._selectedBarberId !== id) selectedTimeStr = null;
       window._selectedBarber = nombre;
@@ -2065,6 +2158,29 @@
       }
     }
 
+    function _subscribeSlotLocks(fecha) {
+      if (_unsubSlotLocks) { _unsubSlotLocks(); _unsubSlotLocks = null; }
+      if (!fecha || typeof FDB === 'undefined' || !FDB.onSlotLocksChange) return;
+      _unsubSlotLocks = FDB.onSlotLocksChange(fecha, () => {
+        if (currentStep !== 3) return;
+        const prevTime = selectedTimeStr;
+        renderHours(_activeBarberConfig).then(() => {
+          // Si la hora previamente seleccionada sigue disponible, reseleccionarla
+          if (!prevTime) return;
+          const pill = [...document.querySelectorAll('#hoursGrid .time-pill')]
+            .find(p => p.textContent.trim() === prevTime);
+          if (pill) {
+            selectTime(pill, prevTime);
+          } else if (prevTime) {
+            // La hora fue tomada por otro cliente
+            selectedTimeStr = null;
+            updateContinueBtn();
+            showToast('La hora que elegiste fue tomada. Selecciona otra.');
+          }
+        });
+      });
+    }
+
     function handleDayClick(btn, dateStr) {
       const _isGitana = window.CURRENT_TENANT_ID === 'gitana';
       document.querySelectorAll('.day-btn:not(.pointer-events-none)').forEach(b => {
@@ -2093,6 +2209,7 @@
       currentDateStr = dateStr;
       selectedTimeStr = null;
       renderHours(_activeBarberConfig);
+      _subscribeSlotLocks(dateStr);
     }
 
     async function renderHours(customConfig = null) {
@@ -2407,6 +2524,7 @@
         }
         renderCalendar(_activeBarberConfig);
         renderHours(_activeBarberConfig);
+        _subscribeSlotLocks(currentDateStr);
 
         transitionStep(2, 3);
         currentStep = 3;
@@ -2415,6 +2533,8 @@
 
       } else if (currentStep === 3) {
         if (!selectedTimeStr) return showToast('Elige una hora disponible para continuar.');
+        // Liberar listener al avanzar al paso 4
+        if (_unsubSlotLocks) { _unsubSlotLocks(); _unsubSlotLocks = null; }
 
         document.getElementById('summaryService').innerText = selectedServiceObj.nombre;
         document.getElementById('summaryPrice').innerText = "$" + selectedServiceObj.precio.toLocaleString('es-CL');
@@ -2644,6 +2764,7 @@
             updateProgress();
             updateContinueBtn();
             renderHours(_activeBarberConfig);
+            _subscribeSlotLocks(currentDateStr);
             return;
           }
           console.warn('[Reservar] Sin conexión, guardando en localStorage:', e.message);

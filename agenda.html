@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Agenda | 𝐄𝐥𝐞𝐠𝐚𝐧𝐜𝐞 𝐛𝐚𝐫𝐛𝐞𝐫𝐬𝐡𝐨𝐩</title>
-    <meta name="description" content="Gestión de agenda interna - 𝐄𝐥𝐞𝐠𝐚𝐧𝐜𝐞 𝐛𝐚𝐫𝐛𝐞𝐫𝐬𝐡𝐨𝐩">
+    <title>Agenda | Barbershop</title>
+    <meta name="description" content="Gestión de agenda interna">
     <meta name="theme-color" content="#050505">
     <meta name="author" content="SynapTech SpA">
 
@@ -14,7 +14,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Agenda">
-    <link rel="apple-touch-icon" href="/logo.jpg">
+    <link rel="apple-touch-icon" id="appleTouchIcon" href="/logo.jpg">
 
     <!-- Fonts & Icons -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -33,7 +33,7 @@
     <script src="/js/utils/error-logger.js?v=1.0"></script>
     <script src="/config.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js"></script>
-    <script src="/firebaseUtils.js?v=2.5"></script>
+    <script src="/firebaseUtils.js?v=2.6"></script>
     <script src="/js/guards/tenant-status-guard.js?v=1.0"></script>
     <script src="/js/guards/version-manager.js?v=1.0"></script>
 
@@ -92,9 +92,9 @@
          style="background:linear-gradient(rgba(0,0,0,0.72),rgba(0,0,0,0.88)),url('/fondologin.webp') center/cover no-repeat;">
         <div class="w-full max-w-sm">
             <div class="flex flex-col items-center mb-8">
-                <img src="/logo.jpg" alt="Logo" class="w-20 h-20 object-contain rounded-full border-2 border-white/20 shadow-2xl mb-4">
+                <img id="loginLogo" src="/logo.jpg" alt="Logo" class="w-20 h-20 object-contain rounded-full border-2 border-white/20 shadow-2xl mb-4">
                 <p class="text-[10px] text-white/40 font-bold uppercase tracking-[0.25em]">Agenda Barbero</p>
-                <h1 class="text-xl font-black text-white mt-1">𝐄𝐥𝐞𝐠𝐚𝐧𝐜𝐞 𝐛𝐚𝐫𝐛𝐞𝐫𝐬𝐡𝐨𝐩</h1>
+                <h1 id="loginShopName" class="text-xl font-black text-white mt-1">Barbershop</h1>
             </div>
             <div class="rounded-2xl p-7 space-y-4" style="background:rgba(17,17,21,0.85);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08);">
                 <div>
@@ -226,6 +226,38 @@
     </main>
 
     <script>
+        // ── COLECCIÓN TENANT-AWARE (misma lógica que firebaseUtils.js) ──
+        function tenantCol(name) {
+            const tid = window.CURRENT_TENANT_ID || 'elegance';
+            if (tid === 'elegance') return db.collection(name);
+            return db.collection('tenants').doc(tid).collection(name);
+        }
+
+        // ── BRANDING DINÁMICO POR TENANT ──
+        function _aplicarBranding() {
+            const shop = window.SHOP || {};
+            const logo = shop.logo || '/logo.jpg';
+            const nombre = shop.nombre || 'Barbershop';
+            const nombreCorto = shop.nombreCorto || 'Agenda';
+
+            document.title = 'Agenda | ' + nombreCorto;
+
+            const loginLogo = document.getElementById('loginLogo');
+            if (loginLogo) loginLogo.src = logo;
+
+            const loginShopName = document.getElementById('loginShopName');
+            if (loginShopName) loginShopName.textContent = nombre;
+
+            const bannerLogo = document.getElementById('bannerLogo');
+            if (bannerLogo) bannerLogo.src = logo;
+
+            const modalIOSLogo = document.getElementById('modalIOSLogo');
+            if (modalIOSLogo) modalIOSLogo.src = logo;
+
+            const touchIcon = document.getElementById('appleTouchIcon');
+            if (touchIcon) touchIcon.href = logo;
+        }
+
         // ── ESTADO GLOBAL DE LA AGENDA ──
         let barberId = null;
 
@@ -258,7 +290,7 @@
             if (esBootstrap) {
                 let bId = uid;
                 try {
-                    const snap = await db.collection('barberos').get();
+                    const snap = await tenantCol('barberos').get();
                     const byUid = snap.docs.find(d => d.id === uid);
                     if (byUid) bId = uid;
                     // barberoId = uid en este caso, isAdmin=true
@@ -269,7 +301,7 @@
             // Una sola lectura para todos los demás
             let snap = null;
             try {
-                snap = await db.collection('barberos').get();
+                snap = await tenantCol('barberos').get();
             } catch(e) {
                 return { isBarbero: false, isAdmin: false, barberoId: null, nombre: null, snap: null };
             }
@@ -333,6 +365,8 @@
 
         // ── INICIALIZACIÓN ──
         document.addEventListener('DOMContentLoaded', () => {
+            _aplicarBranding();
+
             firebase.auth().onAuthStateChanged(async (user) => {
                 if (user) {
                     document.getElementById('loginOverlay').classList.add('hidden');
@@ -454,18 +488,26 @@
             // Parallelizar las 3 lecturas independientes
             const fetchNombre = nombrePrecargado
                 ? Promise.resolve(nombrePrecargado)
-                : db.collection('barberos').doc(barberId).get()
+                : tenantCol('barberos').doc(barberId).get()
                     .then(doc => (doc.exists && doc.data().nombre) ? doc.data().nombre : null)
                     .catch(() => null);
 
-            const [cfg, cfgBarbero, nombre] = await Promise.all([
+            // Leer config por barbero directamente para saber si el doc existe.
+            // FDB.getConfigBarbero() siempre retorna defaults, nunca null,
+            // por lo que barberConfig sería siempre truthy y globalConfig nunca se usaría.
+            const fetchBarberConfig = tenantCol('barberos').doc(barberId)
+                .collection('configuracion').doc('main').get()
+                .then(snap => snap.exists ? snap.data() : null)
+                .catch(() => null);
+
+            const [cfg, rawBarberCfg, nombre] = await Promise.all([
                 FDB.getConfig(),
-                FDB.getConfigBarbero(barberId),
+                fetchBarberConfig,
                 fetchNombre,
             ]);
 
             globalConfig = cfg;
-            barberConfig = cfgBarbero;
+            barberConfig = rawBarberCfg; // null → renderSlots usa globalConfig
 
             if (nombre) {
                 document.getElementById('barberNameHeader').textContent = 'Agenda ' + nombre;
@@ -556,7 +598,7 @@
             let _diaLoaded = false;
 
             // Citas
-            const unsubCitas = db.collection('citas')
+            const unsubCitas = tenantCol('citas')
                 .where('fecha', '==', fechaStr)
                 .where('barberoId', '==', barberId)
                 .onSnapshot(snap => {
@@ -593,7 +635,7 @@
                 });
 
             // Bloqueos específicos del barbero
-            const unsubBloq = db.collection('bloqueos')
+            const unsubBloq = tenantCol('bloqueos')
                 .where('fecha', '==', fechaStr)
                 .where('barberoId', '==', barberId)
                 .onSnapshot(snap => {
@@ -604,7 +646,7 @@
                 });
 
             // Bloqueos globales (barberoId == null)
-            const unsubBloqGlob = db.collection('bloqueos')
+            const unsubBloqGlob = tenantCol('bloqueos')
                 .where('fecha', '==', fechaStr)
                 .where('barberoId', '==', null)
                 .onSnapshot(snap => {
@@ -719,7 +761,7 @@
         }
 
         function buildCitaSlot(time, cita) {
-            const isConfirmed = cita.estado === 'Confirmado';
+            const isConfirmed = cita.estado === 'Confirmada';
             const isCompleted = cita.estado === 'Completada';
             const isCancelled = cita.estado === 'Cancelada';
             const borderCol = isCompleted ? 'border-emerald-500' : isCancelled ? 'border-red-500/50' : isConfirmed ? 'border-white' : 'border-[#eab308]';
@@ -756,7 +798,7 @@
             const labels = { 'Completada': 'marcar como completada', 'Cancelada': 'cancelar' };
             if (!confirm(`¿${labels[nuevoEstado] || nuevoEstado} esta cita?`)) return;
             try {
-                await db.collection('citas').doc(id).update({ estado: nuevoEstado });
+                await tenantCol('citas').doc(id).update({ estado: nuevoEstado });
             } catch(e) {
                 alert('Error al actualizar la cita: ' + e.message);
             }
@@ -792,7 +834,7 @@
             const estadoMap = {
                 'Completada': ['text-emerald-400 border-emerald-500/30 bg-emerald-500/10', 'Completada'],
                 'Cancelada':  ['text-red-400 border-red-500/30 bg-red-500/10', 'Cancelada'],
-                'Confirmado': ['text-white border-white/20 bg-white/5', 'Confirmada'],
+                'Confirmada': ['text-white border-white/20 bg-white/5', 'Confirmada'],
                 'Pendiente':  ['text-yellow-400 border-yellow-500/30 bg-yellow-500/10', 'Pendiente'],
             };
             const [cls, label] = estadoMap[cita.estado] || estadoMap['Pendiente'];
@@ -830,7 +872,7 @@
             btn.disabled = true;
             btn.textContent = 'Guardando…';
             try {
-                await db.collection('citas').doc(_citaActiva.id).update({ nota });
+                await tenantCol('citas').doc(_citaActiva.id).update({ nota });
                 _citaActiva.nota = nota;
                 // Actualizar también en el array local para reflejar el indicador en la tarjeta
                 const localCita = todayCitas.find(c => c.id === _citaActiva.id);
@@ -848,7 +890,7 @@
 
         async function cambiarEstadoDesdeDetalle(id, nuevoEstado) {
             try {
-                await db.collection('citas').doc(id).update({ estado: nuevoEstado });
+                await tenantCol('citas').doc(id).update({ estado: nuevoEstado });
                 const localCita = todayCitas.find(c => c.id === id);
                 if (localCita) localCita.estado = nuevoEstado;
                 if (_citaActiva && _citaActiva.id === id) {
@@ -896,7 +938,7 @@
             const endMins = toMins(time) + interval;
             const timeEnd = fromMin(endMins);
 
-            await db.collection('bloqueos').add({
+            await tenantCol('bloqueos').add({
                 fecha: fechaStr,
                 barberoId: barberId,
                 todo_el_dia: false,
@@ -911,7 +953,7 @@
         function loadLatestReservations() {
             const container = document.getElementById('latestReservationsContainer');
             
-            db.collection('citas')
+            tenantCol('citas')
                 .where('barberoId', '==', barberId)
                 .orderBy('creadoEn', 'desc')
                 .limit(5)
@@ -1075,7 +1117,7 @@
           return;
         }
         try {
-          await db.collection('fcm_tokens').doc(token).set({
+          await tenantCol('fcm_tokens').doc(token).set({
             token,
             uid: firebase.auth().currentUser.uid,
             barberoId: barberId || null,
@@ -1245,7 +1287,7 @@
        ═══════════════════════════════════════════════════════════ -->
   <div id="pwaBanner" class="hidden fixed bottom-4 left-3 right-3 z-50 rounded-2xl p-4 flex items-center gap-3 shadow-2xl"
     style="background:#111115;border:1px solid rgba(255,255,255,0.12);box-shadow:0 8px 40px rgba(0,0,0,0.7);">
-    <img src="/logo.jpg" class="w-11 h-11 rounded-xl object-cover shrink-0 border border-white/10" alt="Elegance">
+    <img id="bannerLogo" src="/logo.jpg" class="w-11 h-11 rounded-xl object-cover shrink-0 border border-white/10" alt="Logo">
     <div class="flex-1 min-w-0">
       <p class="text-sm font-bold text-white leading-tight">Instala la agenda</p>
       <p class="text-xs text-white/40 mt-0.5">Acceso directo desde tu pantalla de inicio</p>
@@ -1266,7 +1308,7 @@
   <!-- Modal iOS -->
   <div id="pwaModalIOS" class="hidden fixed inset-0 z-50 flex items-end justify-center p-4" style="background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);">
     <div class="w-full max-w-sm rounded-3xl p-6 text-center" style="background:#111115;border:1px solid rgba(255,255,255,0.1);">
-      <img src="/logo.jpg" class="w-14 h-14 rounded-2xl object-cover mx-auto mb-4 border border-white/10" alt="Elegance">
+      <img id="modalIOSLogo" src="/logo.jpg" class="w-14 h-14 rounded-2xl object-cover mx-auto mb-4 border border-white/10" alt="Logo">
       <h3 class="text-base font-bold text-white mb-1">Instala tu agenda</h3>
       <p class="text-xs text-white/40 mb-5 leading-relaxed">Abre la agenda sin necesidad de abrir el navegador cada vez.</p>
       <div class="space-y-2 text-left mb-5">

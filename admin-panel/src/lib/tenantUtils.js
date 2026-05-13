@@ -6,6 +6,7 @@ const DOMAIN_MAP = {
   'barberiaferraza.synaptechspa.cl':  'ferraza',
   'gitananails.synaptechspa.cl':      'gitana',
   'mapubarbershop.synaptechspa.cl':   'mapubarbershop',
+  'chameleonbarber.synaptechspa.cl':  'chameleon',
 };
 
 export function resolveTenantId() {

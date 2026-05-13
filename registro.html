@@ -46,7 +46,7 @@
   <script src="config.js"></script>
   <script src="firebase-config.js?v=1.1"></script>
   <script src="/js/utils/error-logger.js?v=1.0"></script>
-  <script src="firebaseUtils.js?v=2.5"></script>
+  <script src="firebaseUtils.js?v=2.6"></script>
   <script src="/js/guards/tenant-status-guard.js?v=1.0"></script>
   <script src="/js/guards/version-manager.js?v=1.0"></script>
 
@@ -280,6 +280,45 @@
 
     /* Nota cumpleaños */
     .tenant-mapubarbershop .text-gray-600 { color: rgba(191,163,126,0.42) !important; }
+    /* ────────────────────────────────────────────────────────── */
+
+    /* ── Chameleon Barber Studio — tema dorado ─────────────────── */
+    .tenant-chameleon {
+      --gold: #DAA520;
+      --gold-dim: rgba(218,165,32,0.20);
+    }
+    .tenant-chameleon body { background-color: #000000; }
+    .tenant-chameleon .ambient-glow {
+      background: radial-gradient(circle, rgba(218,165,32,0.05) 0%, transparent 65%);
+    }
+    .tenant-chameleon .logo-ring {
+      border-color: rgba(218,165,32,0.55);
+      box-shadow: 0 0 0 1px rgba(218,165,32,0.08),
+                  0 0 24px rgba(218,165,32,0.18),
+                  0 0 56px rgba(218,165,32,0.05);
+    }
+    .tenant-chameleon .gold-divider {
+      background: linear-gradient(90deg, transparent, #DAA520, transparent);
+    }
+    .tenant-chameleon .field:focus {
+      border-color: rgba(218,165,32,0.5);
+      box-shadow: 0 0 0 3px rgba(218,165,32,0.07);
+    }
+    .tenant-chameleon .btn-primary {
+      background: #004D40;
+      border: 1.5px solid #004D40;
+      color: #ffffff;
+      box-shadow: 0 4px 20px rgba(0,77,64,0.40);
+    }
+    .tenant-chameleon .btn-primary:hover {
+      background: #00695C;
+      border-color: #00695C;
+      box-shadow: 0 4px 24px rgba(0,77,64,0.50);
+    }
+    .tenant-chameleon .spinner {
+      border-color: rgba(218,165,32,0.25);
+      border-top-color: #DAA520;
+    }
     /* ────────────────────────────────────────────────────────── */
 
     @keyframes fadeSlideUp {

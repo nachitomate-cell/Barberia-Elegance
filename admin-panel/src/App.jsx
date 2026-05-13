@@ -1,6 +1,8 @@
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { TenantProvider, useTenant } from './contexts/TenantContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { resolveTenantId } from './lib/tenantUtils';
 import SuspendedScreen from './components/SuspendedScreen';
 import { ErrorBoundaryWithTenant } from './components/ErrorBoundary';
 import { useVersionManager } from './hooks/useVersionManager';
@@ -92,8 +94,23 @@ function ProtectedApp() {
   );
 }
 
+const TENANT_MANIFESTS = {
+  elegance:      '/gestion-interna/manifest-elegance.webmanifest',
+  gitana:        '/gestion-interna/manifest-gitana.webmanifest',
+  ferraza:       '/gestion-interna/manifest-ferraza.webmanifest',
+  mapubarber:    '/gestion-interna/manifest-mapubarber.webmanifest',
+  mapubarbershop:'/gestion-interna/manifest-mapubarber.webmanifest',
+};
+
 export default function App() {
   useVersionManager();
+
+  useEffect(() => {
+    const tid  = resolveTenantId();
+    const href = TENANT_MANIFESTS[tid] ?? TENANT_MANIFESTS.elegance;
+    const link = document.querySelector('link[rel="manifest"]');
+    if (link) link.setAttribute('href', href);
+  }, []);
 
   return (
     <TenantProvider>

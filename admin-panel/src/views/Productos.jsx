@@ -113,7 +113,12 @@ export default function Productos() {
     setConfirmOn(false);
   };
 
-  const openNew  = () => { setEditing(null); setForm(EMPTY); setPreview(''); setSlide(true); };
+  const MAX_PRODUCTOS = 10;
+
+  const openNew  = () => {
+    if (productos.length >= MAX_PRODUCTOS) return;
+    setEditing(null); setForm(EMPTY); setPreview(''); setSlide(true);
+  };
   const openEdit = p => {
     setEditing(p.id);
     setForm({ nombre: p.nombre || '', descripcion: p.descripcion || '', precio: p.precio || '', stock: p.stock ?? '', imagen: p.imagen || '', imagenPath: p.imagenPath || '' });
@@ -199,9 +204,21 @@ export default function Productos() {
             <h1 className="text-xl font-bold text-white">Productos</h1>
             <HelpButton onClick={() => setShowHelp(true)} />
           </div>
-          <p className="text-sm text-slate-500 mt-0.5">Productos disponibles en el local.</p>
+          <p className="text-sm text-slate-500 mt-0.5">
+            Productos disponibles en el local.
+            {!loading && (
+              <span className={`ml-2 font-semibold ${productos.length >= MAX_PRODUCTOS ? 'text-amber-400' : 'text-slate-600'}`}>
+                {productos.length}/{MAX_PRODUCTOS}
+              </span>
+            )}
+          </p>
         </div>
-        <button onClick={openNew} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
+        <button
+          onClick={openNew}
+          disabled={loading || productos.length >= MAX_PRODUCTOS}
+          title={productos.length >= MAX_PRODUCTOS ? 'Límite de 10 productos alcanzado' : ''}
+          className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+        >
           <Plus size={16} /> Agregar producto
         </button>
       </div>

@@ -434,7 +434,8 @@ function SinRegistroModal({ sinRegistro, shopName, registroUrl, onClose }) {
   }, [sinRegistro, search]);
 
   const waMsg = (nombre) => {
-    const msg = `¡Hola ${nombre || 'ahí'}! 👋 Gracias por visitarnos en ${shopName}. Tenemos un club de fidelidad donde acumulas sellos y ganas premios gratis 🎁. ¡Únete registrándote aquí! 👉 ${registroUrl}`;
+    const name = shopName.normalize('NFKC');
+    const msg = `¡Hola ${nombre || 'ahí'}! 👋 Gracias por visitarnos en ${name}. Tenemos un club de fidelidad donde acumulas sellos y ganas premios gratis 🎁. ¡Únete registrándote aquí! 👉 ${registroUrl}`;
     return msg;
   };
 
