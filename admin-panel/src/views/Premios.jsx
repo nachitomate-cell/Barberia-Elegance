@@ -60,13 +60,6 @@ export default function Premios() {
     const sellos = parseInt(form.costoSellos);
     if (!nombre || !sellos || sellos < 1) return;
 
-    const duplicado = premios.find(p =>
-      p.costoSellos === sellos && p.id !== editing
-    );
-    if (duplicado) {
-      setError(`Ya existe un premio con ${sellos} sello${sellos !== 1 ? 's' : ''} ("${duplicado.nombre}").`);
-      return;
-    }
     setError('');
 
     setSaving(true);
