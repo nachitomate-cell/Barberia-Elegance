@@ -340,25 +340,26 @@ function SlideLookbook({ photos }) {
 
   return (
     <div className="w-full h-full relative overflow-hidden">
-      <AnimatePresence>
+      {photos.map((photo, i) => (
         <motion.div
-          key={safe}
+          key={photo.id || photo.url || i}
           className="absolute inset-0"
-          initial={{ opacity: 0, scale: 1.03 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0 }}
+          animate={{
+            opacity: i === safe ? 1 : 0,
+            scale:   i === safe ? 1 : 1.03,
+          }}
           transition={{ duration: 0.55, ease: 'easeInOut' }}
         >
           {/* Fondo difuminado para rellenar sin barras negras */}
           <img
-            src={photos[safe].url}
+            src={photo.url}
             alt=""
             className="absolute inset-0 w-full h-full object-cover"
             style={{ filter: 'blur(28px) brightness(0.35)', transform: 'scale(1.1)' }}
           />
           {/* Foto completa sin recorte */}
           <img
-            src={photos[safe].url}
+            src={photo.url}
             alt=""
             className="absolute inset-0 w-full h-full object-contain"
           />
@@ -369,7 +370,7 @@ function SlideLookbook({ photos }) {
             }}
           />
         </motion.div>
-      </AnimatePresence>
+      ))}
 
       {/* Label */}
       <div className="absolute top-6 inset-x-0 z-10 text-center pointer-events-none">
@@ -876,7 +877,6 @@ export default function BarberTV() {
   const visibleDefs = activeDefs.length ? activeDefs : ALL_DEFS;
   activeCountRef.current = visibleDefs.length;
   const safeSlide   = Math.min(slide, visibleDefs.length - 1);
-  const slides      = visibleDefs.map(s => s.el);
   const slideLabels = visibleDefs.map(s => s.label);
 
   return (
@@ -930,18 +930,17 @@ export default function BarberTV() {
             }}
           />
 
-          <AnimatePresence mode="wait">
+          {visibleDefs.map((def, i) => (
             <motion.div
-              key={safeSlide}
+              key={def.key}
               className="absolute inset-0"
-              initial={{ opacity: 0, filter: 'blur(12px)', scale: 1.02 }}
-              animate={{ opacity: 1, filter: 'blur(0px)',  scale: 1    }}
-              exit={  { opacity: 0, filter: 'blur(8px)',   scale: 0.99 }}
+              animate={{ opacity: i === safeSlide ? 1 : 0 }}
               transition={{ duration: 0.7, ease: [0.4, 0, 0.2, 1] }}
+              style={{ pointerEvents: i === safeSlide ? 'auto' : 'none' }}
             >
-              {slides[safeSlide]}
+              {def.el}
             </motion.div>
-          </AnimatePresence>
+          ))}
 
           <SlideIndicators
             labels={slideLabels}
