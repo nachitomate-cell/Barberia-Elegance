@@ -24,7 +24,11 @@ function ProductCard({ producto, onEdit, onDelete }) {
         <h3 className="font-semibold text-white text-sm">{producto.nombre}</h3>
         {producto.descripcion && <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{producto.descripcion}</p>}
         <div className="flex items-center justify-between mt-3">
-          <span className="text-emerald-400 font-bold text-sm">${Number(producto.precio || 0).toLocaleString('es-CL')}</span>
+          {producto.precio ? (
+            <span className="text-emerald-400 font-bold text-sm">${Number(producto.precio).toLocaleString('es-CL')}</span>
+          ) : (
+            <span className="text-slate-500 text-xs italic">Consultar en el local</span>
+          )}
           <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${
             (producto.stock || 0) > 0 ? 'text-slate-400 border-slate-700' : 'text-red-400 border-red-500/30 bg-red-500/5'
           }`}>
@@ -300,9 +304,13 @@ export default function Productos() {
                   <p className="text-xs text-slate-600 mt-0.5">{fmtDate(r.createdAt)}</p>
                 </div>
                 {/* Precio */}
-                <span className="text-sm font-bold text-emerald-400 shrink-0">
-                  ${Number(r.precio || 0).toLocaleString('es-CL')}
-                </span>
+                {r.precio ? (
+                  <span className="text-sm font-bold text-emerald-400 shrink-0">
+                    ${Number(r.precio).toLocaleString('es-CL')}
+                  </span>
+                ) : (
+                  <span className="text-xs text-slate-500 italic shrink-0">Consultar en el local</span>
+                )}
                 {/* Acciones */}
                 <div className="flex gap-2 shrink-0">
                   <button

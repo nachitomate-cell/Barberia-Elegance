@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Monitor, ExternalLink, Save, Check, ChevronRight,
-  AlertCircle, Eye, Palette, Images, Users, Megaphone,
+  AlertCircle, Eye, Palette, Images, Users, Megaphone, ShoppingBag,
 } from 'lucide-react';
 import { getDoc, setDoc, getDocs, query, where } from 'firebase/firestore';
 import { tenantDoc, tenantCol } from '../lib/tenantUtils';
@@ -20,7 +20,7 @@ const OFERTA_DEFAULT = {
 const CONFIG_DEFAULT = {
   oferta:        { ...OFERTA_DEFAULT },
   duracionSlide: 15,
-  slidesActivos: { oferta: true, lookbook: true, equipo: true },
+  slidesActivos: { oferta: true, lookbook: true, equipo: true, productos: true },
   accentColor:   '',
 };
 
@@ -165,8 +165,9 @@ export default function TVConfig() {
   const [saved,         setSaved]         = useState(false);
   const [saveErr,       setSaveErr]       = useState('');
   const [dirty,         setDirty]         = useState(false);
-  const [lookbookCount, setLookbookCount] = useState(null);
-  const [barberoCount,  setBarberoCount]  = useState(null);
+  const [lookbookCount,  setLookbookCount]  = useState(null);
+  const [barberoCount,   setBarberoCount]   = useState(null);
+  const [productosCount, setProductosCount] = useState(null);
   const savedTimer = useRef(null);
 
   useEffect(() => {
@@ -177,7 +178,7 @@ export default function TVConfig() {
           setConfig({
             oferta:        { ...OFERTA_DEFAULT, ...(d.oferta || {}) },
             duracionSlide: d.duracionSlide ?? 15,
-            slidesActivos: { oferta: true, lookbook: true, equipo: true, ...(d.slidesActivos || {}) },
+            slidesActivos: { oferta: true, lookbook: true, equipo: true, productos: true, ...(d.slidesActivos || {}) },
             accentColor:   d.accentColor || '',
           });
         }
@@ -199,6 +200,12 @@ export default function TVConfig() {
         )
       )
       .catch(() => setBarberoCount(0));
+  }, []);
+
+  useEffect(() => {
+    getDocs(tenantCol('productos'))
+      .then(snap => setProductosCount(snap.size))
+      .catch(() => setProductosCount(0));
   }, []);
 
   const update = (path, value) => {
@@ -329,6 +336,12 @@ export default function TVConfig() {
               onChange={v => update('slidesActivos', { ...config.slidesActivos, equipo: v })}
               label="Nuestro Equipo"
               sublabel="Presentación de barberos"
+            />
+            <SlideToggle
+              checked={config.slidesActivos.productos}
+              onChange={v => update('slidesActivos', { ...config.slidesActivos, productos: v })}
+              label="Productos"
+              sublabel="Catálogo de productos del local"
             />
           </div>
         </Field>
@@ -506,6 +519,33 @@ export default function TVConfig() {
         <p className="text-xs text-slate-600 bg-slate-800/50 rounded-lg px-3 py-2.5 leading-relaxed border border-slate-800">
           Muestra todos los barberos activos (máx. 8).
           Los usuarios con rol <strong className="text-slate-400">admin</strong> no aparecen en pantalla.
+        </p>
+      </Card>
+
+      {/* ── Slide Productos ───────────────────────────────────────── */}
+      <Card
+        icon={ShoppingBag}
+        title="Slide 4 — Productos"
+        badge={<StatusBadge active={config.slidesActivos.productos} />}
+      >
+        <div className="flex items-center justify-between py-1">
+          <div>
+            <p className="text-sm font-medium text-white">
+              {productosCount === null
+                ? <span className="text-slate-500 animate-pulse">Cargando…</span>
+                : `${productosCount} producto${productosCount !== 1 ? 's' : ''} cargado${productosCount !== 1 ? 's' : ''}`}
+            </p>
+            <p className="text-xs text-slate-500 mt-0.5">Los productos se gestionan en la sección Productos</p>
+          </div>
+          <Link
+            to="productos"
+            className="flex items-center gap-1 text-xs text-emerald-400 hover:text-emerald-300 font-semibold transition-colors"
+          >
+            Ir a Productos <ChevronRight size={13} />
+          </Link>
+        </div>
+        <p className="text-xs text-slate-600 bg-slate-800/50 rounded-lg px-3 py-2.5 leading-relaxed border border-slate-800">
+          Muestra los primeros <strong className="text-slate-400">8 productos</strong> con imagen, precio y disponibilidad de stock.
         </p>
       </Card>
 

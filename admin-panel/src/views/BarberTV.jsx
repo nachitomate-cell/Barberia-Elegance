@@ -486,6 +486,103 @@ function SlideEquipo({ barberos, imageCache, skipAnimation }) {
   );
 }
 
+// ── Slide 4: Productos ────────────────────────────────────────────
+function SlideProductos({ productos, skipAnimation }) {
+  const visible = productos.slice(0, 8);
+  const cols    = visible.length > 6 ? 'grid-cols-4' : 'grid-cols-3';
+
+  if (!visible.length) {
+    return (
+      <div className="w-full h-full flex items-center justify-center text-gray-800">
+        <div className="text-center">
+          <p className="text-7xl mb-4 opacity-20">🛍️</p>
+          <p className="text-xl">Sin productos disponibles</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full h-full flex flex-col items-center justify-center p-12 relative">
+      <div
+        className="absolute inset-0"
+        style={{
+          backgroundImage: 'radial-gradient(ellipse 60% 60% at 50% 50%, rgba(212,175,55,0.04) 0%, transparent 70%)',
+        }}
+      />
+
+      <motion.p
+        className="text-[9px] font-black tracking-[0.6em] uppercase text-center mb-10 relative z-10"
+        style={{ color: GOLD }}
+        initial={skipAnimation ? false : { opacity: 0 }}
+        animate={{ opacity: 1 }}
+      >
+        ✦ &nbsp; Nuestros Productos &nbsp; ✦
+      </motion.p>
+
+      <div className={`grid ${cols} gap-6 w-full max-w-5xl relative z-10`}>
+        {visible.map((p, i) => {
+          const enStock = p.stock == null || Number(p.stock) > 0;
+          return (
+            <motion.div
+              key={p.id || i}
+              className="flex flex-col rounded-2xl overflow-hidden"
+              style={{
+                background: 'rgba(255,255,255,0.03)',
+                border:     `1px solid rgba(212,175,55,0.15)`,
+                boxShadow:  '0 4px 24px rgba(0,0,0,0.3)',
+              }}
+              initial={skipAnimation ? false : { opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={skipAnimation ? {} : { delay: i * 0.07, duration: 0.4 }}
+            >
+              <div className="aspect-square bg-slate-950 overflow-hidden">
+                {p.imagen ? (
+                  <img
+                    src={p.imagen}
+                    alt={p.nombre}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div
+                    className="w-full h-full flex items-center justify-center"
+                    style={{ background: 'rgba(212,175,55,0.04)' }}
+                  >
+                    <span className="text-4xl opacity-20">🛍️</span>
+                  </div>
+                )}
+              </div>
+              <div className="px-4 py-3 flex flex-col gap-1">
+                <p className="text-white font-bold text-sm leading-tight truncate">{p.nombre}</p>
+                {p.precio ? (
+                  <p className="font-black text-base" style={{ color: GOLD }}>
+                    ${Number(p.precio).toLocaleString('es-CL')}
+                  </p>
+                ) : (
+                  <p className="text-xs italic" style={{ color: `${GOLD}88` }}>
+                    Consultar en el local
+                  </p>
+                )}
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <motion.div
+                    className="w-1.5 h-1.5 rounded-full shrink-0"
+                    style={{ background: enStock ? '#22c55e' : '#ef4444' }}
+                    animate={enStock ? { opacity: [1, 0.4, 1], scale: [1, 1.3, 1] } : {}}
+                    transition={{ duration: 2, repeat: Infinity }}
+                  />
+                  <span className="text-[10px] font-semibold" style={{ color: enStock ? '#4ade80' : '#f87171' }}>
+                    {enStock ? 'Disponible' : 'Sin stock'}
+                  </span>
+                </div>
+              </div>
+            </motion.div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ── QR con efecto glow ────────────────────────────────────────────
 function QrOverlay({ qrUrl }) {
   return (
@@ -604,20 +701,21 @@ export default function BarberTV() {
   });
   const [photos,       setPhotos]       = useState([]);
   const [barberos,     setBarberos]     = useState([]);
+  const [productos,    setProductos]    = useState([]);
   const [oferta,       setOferta]       = useState(OFERTA_DEFAULT);
   const [slide,        setSlide]        = useState(0);
   const [paused,       setPaused]       = useState(false);
   const [offline,      setOffline]      = useState(false);
   const [imageCache,   setImageCache]   = useState({});
   const [duracion,     setDuracion]     = useState(SLIDE_MS);
-  const [slidesActivos,setSlidesActivos]= useState({ oferta: true, lookbook: true, equipo: true });
+  const [slidesActivos,setSlidesActivos]= useState({ oferta: true, lookbook: true, equipo: true, productos: true });
   const [accentColor,  setAccentColor]  = useState('');
 
   // Acento dinámico: config Firestore > TENANT_ACCENT hardcode > dorado
   GOLD = accentColor || TENANT_ACCENT[tenantId] || '#D4AF37';
 
   const preloadedRef   = useRef(new Set());
-  const activeCountRef = useRef(3);
+  const activeCountRef = useRef(4);
   // Tracks which slides have been shown at least once (para skip de animaciones en revisita)
   const visitedRef     = useRef(new Set([0]));
 
@@ -729,6 +827,27 @@ export default function BarberTV() {
     });
   }, [photos]);
 
+  // Productos
+  useEffect(() => {
+    const q = query(tenantCol('productos'), orderBy('createdAt', 'asc'));
+    return onSnapshot(
+      q,
+      snap => setProductos(snap.docs.map(d => ({ id: d.id, ...d.data() }))),
+      () => {},
+    );
+  }, [tenantId]);
+
+  // Pre-loader: productos
+  useEffect(() => {
+    productos.forEach(p => {
+      if (p.imagen && !preloadedRef.current.has(p.imagen)) {
+        preloadedRef.current.add(p.imagen);
+        const img = new Image();
+        img.src   = p.imagen;
+      }
+    });
+  }, [productos]);
+
   // Carrusel automático — se pausa con click
   useEffect(() => {
     if (paused) return;
@@ -747,9 +866,10 @@ export default function BarberTV() {
   }, []);
 
   const ALL_DEFS = [
-    { key: 'oferta',   label: 'Oferta',   el: <SlidePublicidad key="pub"  oferta={oferta} /> },
-    { key: 'lookbook', label: 'Trabajos', el: <SlideLookbook   key="look" photos={photos} /> },
-    { key: 'equipo',   label: 'Equipo',   el: <SlideEquipo     key="team" barberos={barberos} imageCache={imageCache} skipAnimation={visitedRef.current.has(2)} /> },
+    { key: 'oferta',    label: 'Oferta',    el: <SlidePublicidad key="pub"  oferta={oferta} /> },
+    { key: 'lookbook',  label: 'Trabajos',  el: <SlideLookbook   key="look" photos={photos} /> },
+    { key: 'equipo',    label: 'Equipo',    el: <SlideEquipo     key="team" barberos={barberos} imageCache={imageCache} skipAnimation={visitedRef.current.has(2)} /> },
+    { key: 'productos', label: 'Productos', el: <SlideProductos  key="prod" productos={productos} skipAnimation={visitedRef.current.has(3)} /> },
   ];
   const activeDefs = ALL_DEFS.filter(s => slidesActivos[s.key] !== false);
   // Si todos están desactivados, mostrar todo (evitar pantalla en blanco)
