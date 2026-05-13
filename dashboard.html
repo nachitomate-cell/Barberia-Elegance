@@ -1546,7 +1546,9 @@ function renderStamps(count, historicos) {
 
     if (filled) {
       if (isNew) cell.style.animation = 'stampPop 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards';
-      cell.innerHTML = `<i class="ph-fill ph-scissors text-lg text-black"></i>`;
+      cell.innerHTML = window.CURRENT_TENANT_ID === 'chameleon'
+        ? `<img src="/sellochamaleon.png" style="width:75%;height:75%;object-fit:contain;" alt="sello" />`
+        : `<i class="ph-fill ph-scissors text-lg text-black"></i>`;
     }
 
     grid.appendChild(cell);
