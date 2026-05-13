@@ -22,6 +22,11 @@ function normalizePhone(phone) {
 }
 
 /* ── Utilidades ── */
+function calcTier(historicos) {
+  if (historicos >= 25) return 'PLATINUM';
+  if (historicos >= 10) return 'GOLD';
+  return 'SILVER';
+}
 function initials(name = '') {
   return name.trim().split(/\s+/).map(w => w[0]?.toUpperCase()).slice(0, 2).join('');
 }
@@ -145,11 +150,6 @@ function ClientePanel({ cliente: init, premios, onClose }) {
   const denom     = nextPrize ? nextPrize.costoSellos : maxCost;
   const pct       = Math.min(stamps / Math.max(denom, 1) * 100, 100);
 
-  function calcTier(historicos) {
-    if (historicos >= 25) return 'PLATINUM';
-    if (historicos >= 10) return 'GOLD';
-    return 'SILVER';
-  }
   const tier = calcTier(sellosHistoricos);
 
   const rawTel = (data.telefono || '').replace(/\D/g, '');
@@ -554,6 +554,7 @@ export default function Clientes() {
   const { data: todasCitas }        = useCollection('citas', [], []);
 
   const [search,          setSearch]          = useState('');
+  const [filtro,          setFiltro]          = useState('todos');
   const [showHelp,        setShowHelp]        = useState(false);
   const [selected,        setSelected]        = useState(null);
   const [showSinRegistro, setShowSinRegistro] = useState(false);
@@ -607,14 +608,37 @@ export default function Clientes() {
     [clientes]
   );
 
+  const mesActual = String(new Date().getMonth() + 1).padStart(2, '0');
+
+  const applyFiltro = c => {
+    if (filtro === 'todos') return true;
+    const disponibles = c.sellosDisponibles ?? c.stamps ?? 0;
+    const historicos  = c.sellosHistoricos  ?? c.stamps ?? 0;
+    if (filtro === 'premio') return premios.some(p => disponibles >= p.costoSellos);
+    if (filtro === 'cumple') return c.cumpleDia?.startsWith(mesActual + '-');
+    if (filtro === 'silver')   return calcTier(historicos) === 'SILVER';
+    if (filtro === 'gold')     return calcTier(historicos) === 'GOLD';
+    if (filtro === 'platinum') return calcTier(historicos) === 'PLATINUM';
+    if (filtro === 'sin30' || filtro === 'sin60' || filtro === 'sin90') {
+      const dias = filtro === 'sin30' ? 30 : filtro === 'sin60' ? 60 : 90;
+      const cutoff = new Date(Date.now() - dias * 864e5);
+      const ultimo = c.ultimoSello ? new Date(c.ultimoSello) : null;
+      return !ultimo || ultimo < cutoff;
+    }
+    return true;
+  };
+
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
-    return q ? sorted.filter(c =>
-      c.nombre?.toLowerCase().includes(q) ||
-      c.email?.toLowerCase().includes(q) ||
-      c.telefono?.includes(q)
-    ) : sorted;
-  }, [sorted, search]);
+    return sorted.filter(c => {
+      const matchSearch = !q ||
+        c.nombre?.toLowerCase().includes(q) ||
+        c.email?.toLowerCase().includes(q) ||
+        c.telefono?.includes(q);
+      return matchSearch && applyFiltro(c);
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sorted, search, filtro, premios, mesActual]);
 
   const total  = clientes.length;
   const avg    = total ? (clientes.reduce((s, c) => s + sellos(c), 0) / total).toFixed(1) : 0;
@@ -664,7 +688,7 @@ export default function Clientes() {
       </div>
 
       {/* Search */}
-      <div className="relative mb-4">
+      <div className="relative mb-3">
         <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
         <input placeholder="Buscar por nombre, correo o teléfono…"
           value={search} onChange={e => setSearch(e.target.value)}
@@ -675,6 +699,46 @@ export default function Clientes() {
           </button>
         )}
       </div>
+
+      {/* Filtros */}
+      <div className="flex gap-1.5 mb-4 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+        {[
+          { id: 'todos',    label: 'Todos' },
+          { id: 'premio',   label: '🏆 Con premio' },
+          { id: 'cumple',   label: `🎂 Cumple en ${new Date().toLocaleString('es-CL', { month: 'long' })}` },
+          { id: 'sin30',    label: 'Sin visita 30d' },
+          { id: 'sin60',    label: 'Sin visita 60d' },
+          { id: 'sin90',    label: 'Sin visita 90d' },
+          { id: 'silver',   label: 'SILVER' },
+          { id: 'gold',     label: 'GOLD' },
+          { id: 'platinum', label: 'PLATINUM' },
+        ].map(f => {
+          const active = filtro === f.id;
+          const tierColor =
+            f.id === 'platinum' ? (active ? 'bg-violet-500/20 border-violet-400 text-violet-300' : 'border-violet-400/20 text-violet-400 hover:bg-violet-500/10') :
+            f.id === 'gold'     ? (active ? 'bg-yellow-500/20 border-yellow-400 text-yellow-300' : 'border-yellow-400/20 text-yellow-400 hover:bg-yellow-500/10') :
+            f.id === 'silver'   ? (active ? 'bg-slate-500/40 border-slate-400 text-slate-200'    : 'border-slate-600 text-slate-400 hover:bg-slate-700') :
+            active ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300' : 'border-slate-700 text-slate-400 hover:bg-slate-800';
+          return (
+            <button key={f.id} onClick={() => setFiltro(f.id)}
+              className={`shrink-0 px-3 py-1.5 rounded-full border text-xs font-semibold transition-all ${tierColor}`}>
+              {f.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Contador cuando hay filtro activo */}
+      {filtro !== 'todos' && (
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-xs text-slate-500">
+            <span className="text-white font-semibold">{filtered.length}</span> cliente{filtered.length !== 1 ? 's' : ''} con este filtro
+          </p>
+          <button onClick={() => setFiltro('todos')} className="text-xs text-slate-500 hover:text-white flex items-center gap-1 transition-colors">
+            <X size={11} /> Limpiar filtro
+          </button>
+        </div>
+      )}
 
       {/* Table */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
