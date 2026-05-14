@@ -68,6 +68,10 @@ service firebase.storage {
       allow read: if true;
       allow write: if isAuth() && isUnder5MB() && isImage();
     }
+    match /tenants/{tenantId}/tv-bg.jpg {
+      allow read: if true;
+      allow write: if isAuth() && isUnder5MB() && isImage();
+    }
 
     // Bloquear cualquier otra ruta
     match /{allPaths=**} {
