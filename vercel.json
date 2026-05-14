@@ -35,6 +35,7 @@
     { "source": "/servicios",              "destination": "/index.html" },
     { "source": "/gestion-interna",        "destination": "/gestion-interna/index.html" },
     { "source": "/gestion-interna/:path*", "destination": "/gestion-interna/index.html" },
+    { "source": "/catalogo",               "destination": "/catalogo.html" },
     { "source": "/:slug", "destination": "/barbero.html" }
   ]
 }
