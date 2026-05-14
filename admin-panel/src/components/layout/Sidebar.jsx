@@ -311,13 +311,17 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
         style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 1rem)' }}
       >
         <a
-          href={`/index.html?local=${tenant.id}`}
+          href={
+            tenant.id === 'deluxeperfumes'
+              ? `/catalogo?local=deluxeperfumes`
+              : `/index.html?local=${tenant.id}`
+          }
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-slate-500 hover:text-white hover:bg-slate-800 transition-all"
         >
           <ExternalLink size={17} />
-          Ver agenda pública
+          {tenant.id === 'deluxeperfumes' ? 'Ver catálogo' : 'Ver agenda pública'}
         </a>
 
         <button

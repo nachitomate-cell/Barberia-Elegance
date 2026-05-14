@@ -467,6 +467,25 @@
       transition: background 0.16s; -webkit-tap-highlight-color: transparent;
     }
     .btn-retry:hover { background: var(--gold-dim); }
+
+    /* ── Load more ───────────────────────────────────────────────────── */
+    .load-more-wrap {
+      display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+      padding: 1.5rem 0 0.5rem;
+    }
+    .btn-load-more {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      padding: 0.75rem 2rem; border-radius: var(--r-pill);
+      border: 1px solid var(--gold-border); background: transparent;
+      color: var(--gold); font-family: var(--sans); font-size: 0.875rem; font-weight: 600;
+      cursor: pointer; transition: background 0.16s;
+      -webkit-tap-highlight-color: transparent; min-height: 46px;
+    }
+    .btn-load-more:hover { background: var(--gold-dim); }
+    .btn-load-more:active { transform: scale(0.97); }
+    .load-more-count {
+      font-size: 0.75rem; color: var(--text-muted);
+    }
   </style>
 </head>
 <body>
@@ -504,6 +523,12 @@
   <div class="grid-section">
     <p class="results-count" id="results-count" style="display:none"></p>
     <div class="product-grid" id="product-grid"></div>
+    <div id="load-more-wrap" class="load-more-wrap" style="display:none">
+      <button class="btn-load-more" onclick="loadMore()">
+        <i class="ph ph-arrow-down"></i> Ver más
+      </button>
+      <p id="load-more-count" class="load-more-count"></p>
+    </div>
   </div>
 
   <!-- ── Bottom sheet ──────────────────────────────────────────────────── -->
@@ -549,6 +574,9 @@
 
   <script>
     const TENANT_ID = new URLSearchParams(location.search).get('local') || 'deluxeperfumes';
+
+    const PAGE_SIZE = 24;
+    let _page = 1;
 
     let _all            = [];
     let _cat            = 'all';
@@ -636,6 +664,7 @@
 
     function selectCat(cat, el) {
       _cat = cat;
+      _page = 1;
       document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
       el.classList.add('active');
       renderProducts();
@@ -643,6 +672,7 @@
 
     function onSearch(val) {
       _q = val.trim().toLowerCase();
+      _page = 1;
       const clearBtn = document.getElementById('search-clear');
       clearBtn.style.display = _q ? 'block' : 'none';
       renderProducts();
@@ -653,6 +683,11 @@
       input.value = '';
       onSearch('');
       input.focus();
+    }
+
+    function loadMore() {
+      _page++;
+      renderProducts();
     }
 
     // ── Render grid ───────────────────────────────────────────────────
@@ -684,49 +719,61 @@
       if (filtered.length === 0) {
         const term = esc(_q || _cat);
         grid.innerHTML = `
-          <div class="state-wrap">
-            <div class="state-icon"><i class="ph ph-magnifying-glass"></i></div>
-            <p class="state-title">Sin resultados</p>
-            <p class="state-sub">No encontramos fragancias que coincidan con "${term}".<br>Prueba con otro término o explora las categorías.</p>
-          </div>`;
+      <div class="state-wrap">
+        <div class="state-icon"><i class="ph ph-magnifying-glass"></i></div>
+        <p class="state-title">Sin resultados</p>
+        <p class="state-sub">No encontramos fragancias que coincidan con "${term}".<br>Prueba con otro término o explora las categorías.</p>
+      </div>`;
+        document.getElementById('load-more-wrap').style.display = 'none';
         return;
       }
 
-      grid.innerHTML = filtered.map((p, i) => {
+      const visible = filtered.slice(0, _page * PAGE_SIZE);
+      const hasMore = filtered.length > visible.length;
+
+      grid.innerHTML = visible.map((p, i) => {
         const off         = offPct(p.precio, p.precioOriginal);
-        const delay       = Math.min(i, 8) * 55;
+        const delay       = Math.min(i % PAGE_SIZE, 8) * 55;
         const memberPrice = (_isMember && p.precio != null)
           ? Math.round(p.precio * (1 - _memberDiscount / 100))
           : null;
-        // Para no-miembros: mostrar incentivo en ~1 de cada 3 productos con precio alto
         const showIncentive = !_isMember && p.precio > 15000 && i % 3 === 0;
         const savedAmt      = showIncentive ? Math.round(p.precio * 0.10) : 0;
 
         return `
-          <div class="product-card" onclick="openDetail('${esc(p.id)}')" style="animation-delay:${delay}ms">
-            <div class="product-img-wrap">
-              ${p.imagen
-                ? `<img class="product-img" src="${esc(p.imagen)}" alt="${esc(p.nombre||'')}" loading="lazy"
-                     onerror="this.closest('.product-img-wrap').innerHTML='<div class=\\"product-img-placeholder\\"><i class=\\"ph-fill ph-drop\\"></i></div>'">`
-                : `<div class="product-img-placeholder"><i class="ph-fill ph-drop"></i></div>`}
-              ${p.categoria ? `<span class="badge-cat">${esc(p.categoria)}</span>` : ''}
-              ${off > 0 ? `<span class="badge-off">-${off}%</span>` : ''}
-            </div>
-            <div class="product-info">
-              ${p.marca ? `<p class="product-brand">${esc(p.marca)}</p>` : ''}
-              <p class="product-name">${esc(p.nombre || 'Producto')}</p>
-              <div class="product-prices">
-                ${memberPrice != null
-                  ? `<span class="product-price">${fmtPrice(memberPrice)}</span>
-                     <span class="product-price-orig">${fmtPrice(p.precio)}</span>
-                     <span class="badge-member-price">Precio miembro</span>`
-                  : `${p.precio != null ? `<span class="product-price">${fmtPrice(p.precio)}</span>` : ''}
-                     ${off > 0 ? `<span class="product-price-orig">${fmtPrice(p.precioOriginal)}</span>` : ''}`}
-              </div>
-              ${showIncentive ? `<p class="member-incentive">Miembros ahorran ${fmtPrice(savedAmt)}</p>` : ''}
-            </div>
-          </div>`;
+      <div class="product-card" onclick="openDetail('${esc(p.id)}')" style="animation-delay:${delay}ms">
+        <div class="product-img-wrap">
+          ${p.imagen
+            ? `<img class="product-img" src="${esc(p.imagen)}" alt="${esc(p.nombre||'')}" loading="lazy"
+                 onerror="this.closest('.product-img-wrap').innerHTML='<div class=\\"product-img-placeholder\\"><i class=\\"ph-fill ph-drop\\"></i></div>'">`
+            : `<div class="product-img-placeholder"><i class="ph-fill ph-drop"></i></div>`}
+          ${p.categoria ? `<span class="badge-cat">${esc(p.categoria)}</span>` : ''}
+          ${off > 0 ? `<span class="badge-off">-${off}%</span>` : ''}
+        </div>
+        <div class="product-info">
+          ${p.marca ? `<p class="product-brand">${esc(p.marca)}</p>` : ''}
+          <p class="product-name">${esc(p.nombre || 'Producto')}</p>
+          <div class="product-prices">
+            ${memberPrice != null
+              ? `<span class="product-price">${fmtPrice(memberPrice)}</span>
+                 <span class="product-price-orig">${fmtPrice(p.precio)}</span>
+                 <span class="badge-member-price">Precio miembro</span>`
+              : `${p.precio != null ? `<span class="product-price">${fmtPrice(p.precio)}</span>` : ''}
+                 ${off > 0 ? `<span class="product-price-orig">${fmtPrice(p.precioOriginal)}</span>` : ''}`}
+          </div>
+          ${showIncentive ? `<p class="member-incentive">Miembros ahorran ${fmtPrice(savedAmt)}</p>` : ''}
+        </div>
+      </div>`;
       }).join('');
+
+      const lmWrap = document.getElementById('load-more-wrap');
+      if (hasMore) {
+        lmWrap.style.display = 'flex';
+        document.getElementById('load-more-count').textContent =
+          `Mostrando ${visible.length} de ${filtered.length} fragancias`;
+      } else {
+        lmWrap.style.display = 'none';
+      }
     }
 
     // ── Detail bottom sheet ───────────────────────────────────────────
@@ -898,7 +945,7 @@
     (function () {
       const q = TENANT_ID !== 'deluxeperfumes' ? '?local=' + TENANT_ID : '';
       document.getElementById('nav-catalogo').href = '/catalogo' + q;
-      document.getElementById('nav-club').href     = '/registro.html' + q;
+      document.getElementById('nav-club').href     = '/registro' + q;
     })();
   </script>
 </body>

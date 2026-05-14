@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { Search, User, Phone, Trophy, Plus, Minus, Gift, X, RotateCcw, MessageCircle, Cake, UserX, Send, Sparkles, Bot, RefreshCw } from 'lucide-react';
+import { Search, User, Phone, Trophy, Plus, Minus, Gift, X, RotateCcw, MessageCircle, Cake, UserX, Send, Sparkles, Bot, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
 import {
   onSnapshot, updateDoc, setDoc, doc, getDocs, query, where, orderBy as firestoreOrderBy,
   increment, arrayUnion, serverTimestamp,
@@ -751,6 +751,8 @@ function IAModal({ stats, shopName, onClose }) {
   );
 }
 
+const PAGE_SIZE = 50;
+
 /* ── Vista principal Clientes ── */
 export default function Clientes() {
   const { id: tenantId, name: shopName } = useTenant();
@@ -770,6 +772,9 @@ export default function Clientes() {
   const [selected,        setSelected]        = useState(null);
   const [showSinRegistro, setShowSinRegistro] = useState(false);
   const [showIA,          setShowIA]          = useState(false);
+  const [page,            setPage]            = useState(1);
+
+  useEffect(() => { setPage(1); }, [search, filtro]);
 
   const registroUrl = `${PROD_DOMAINS[tenantId] || window.location.origin}/registro.html`;
 
@@ -869,6 +874,9 @@ export default function Clientes() {
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sorted, search, filtro, premios, mesActual]);
+
+  const pageCount = Math.ceil(filtered.length / PAGE_SIZE);
+  const paged     = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const total  = clientes.length;
   const avg    = total ? (clientes.reduce((s, c) => s + sellos(c), 0) / total).toFixed(1) : 0;
@@ -1069,7 +1077,7 @@ export default function Clientes() {
           <div className="flex flex-col items-center py-16 text-slate-600"><User size={28} className="mb-3" /><p className="text-sm">Sin clientes</p></div>
         ) : (
           <div className="divide-y divide-slate-800/60">
-            {filtered.map(c => {
+            {paged.map(c => {
               const stamps = sellos(c);
               const maxCost = premios.length ? premios[premios.length - 1]?.costoSellos : 10;
               const pct = Math.min(stamps / Math.max(maxCost, 1) * 100, 100);
@@ -1111,6 +1119,31 @@ export default function Clientes() {
                 </div>
               );
             })}
+          </div>
+        )}
+        {pageCount > 1 && (
+          <div className="flex items-center justify-between px-5 py-3 border-t border-slate-800">
+            <button
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-400 hover:text-white disabled:opacity-30 transition-colors"
+            >
+              <ChevronLeft size={13} /> Anterior
+            </button>
+            <p className="text-xs text-slate-500">
+              Página{' '}
+              <span className="text-white font-bold">{page}</span>
+              {' '}de{' '}
+              <span className="text-white font-bold">{pageCount}</span>
+              <span className="text-slate-600 ml-1.5">· {filtered.length} clientes</span>
+            </p>
+            <button
+              onClick={() => setPage(p => Math.min(pageCount, p + 1))}
+              disabled={page === pageCount}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-400 hover:text-white disabled:opacity-30 transition-colors"
+            >
+              Siguiente <ChevronRight size={13} />
+            </button>
           </div>
         )}
       </div>

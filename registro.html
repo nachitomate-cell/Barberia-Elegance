@@ -595,9 +595,9 @@
 
     <!-- Back link -->
     <p class="text-center mt-7">
-      <a href="index.html"
+      <a id="backLink" href="index.html"
         class="inline-flex items-center gap-1.5 text-[11px] font-semibold text-gray-600 hover:text-gray-400 transition-colors uppercase tracking-widest">
-        <i class="ph ph-arrow-left"></i> Volver a agendar
+        <i class="ph ph-arrow-left"></i> <span id="backLinkText">Volver a agendar</span>
       </a>
     </p>
 
@@ -850,6 +850,16 @@
         ? 'Acumula sellos · Canjea servicios'
         : 'Acumula sellos · Gana premios';
     initPhonePrefix('regTelefono');
+
+    // Back link: perfume store goes to /catalogo, others go to index
+    const tid = window.CURRENT_TENANT_ID;
+    if (tid === 'deluxeperfumes') {
+      const q = '?local=deluxeperfumes';
+      document.getElementById('backLink').href = '/catalogo' + q;
+      document.getElementById('backLinkText').textContent = 'Volver al catálogo';
+    } else if (tid && tid !== 'elegance') {
+      document.getElementById('backLink').href = 'index.html?local=' + tid;
+    }
   });
 </script>
 

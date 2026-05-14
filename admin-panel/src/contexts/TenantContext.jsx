@@ -9,6 +9,7 @@ const TENANT_META = {
   gitana:         { name: 'Gitana Nails Studio',    accent: 'pink',    emoji: '💅' },
   mapubarbershop: { name: 'Mapu Barber Shop',       accent: 'emerald', emoji: '✂️' },
   chameleon:      { name: 'Chameleon Barber Studio', accent: 'cyan',    emoji: '✂️' },
+  deluxeperfumes: { name: 'Deluxe Perfumes',        accent: 'purple',  emoji: '🌸' },
 };
 
 const TenantContext = createContext(null);
