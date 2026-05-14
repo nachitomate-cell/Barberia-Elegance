@@ -6,10 +6,11 @@
 // Para añadir un tenant nuevo: agregar entrada en DOMAIN_MAP y TENANT_META.
 
 const DOMAIN_MAP = {
-  'gitananails.synaptechspa.cl':      'gitana',
-  'barberiaelegance.synaptechspa.cl': 'elegance',
-  'barberiaferraza.synaptechspa.cl':  'ferraza',
-  'mapubarbershop.synaptechspa.cl':   'mapubarbershop',
+  'gitananails.synaptechspa.cl':       'gitana',
+  'barberiaelegance.synaptechspa.cl':  'elegance',
+  'barberiaferraza.synaptechspa.cl':   'ferraza',
+  'mapubarbershop.synaptechspa.cl':    'mapubarbershop',
+  'deluxeperfumes.synaptechspa.cl':    'deluxeperfumes',
 };
 
 const TENANT_META = {
@@ -187,7 +188,13 @@ export default async function middleware(request) {
   const url      = new URL(request.url);
   const hostname = (request.headers.get('host') || '').replace(/:\d+$/, '');
   const tenantId = DOMAIN_MAP[hostname] || 'elegance';
-  const meta     = TENANT_META[tenantId];
+
+  // ── Deluxeperfumes: redirigir siempre al catálogo (no es barbería)
+  if (tenantId === 'deluxeperfumes') {
+    return Response.redirect(new URL('/catalogo', request.url), 302);
+  }
+
+  const meta = TENANT_META[tenantId];
 
   // ── Manifest: devolver versión dinámica por tenant ───────────────────────────
   if (url.pathname === '/manifest.json') {
