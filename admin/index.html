@@ -1744,7 +1744,8 @@
         const user = firebase.auth().currentUser;
         const token = await user?.getIdToken(true);
         if (token) {
-          const payload = JSON.parse(atob(token.split('.')[1]));
+          const b64 = token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
+          const payload = JSON.parse(atob(b64.padEnd(b64.length+(4-b64.length%4)%4,'=')));
           console.log('[Admin] Token email:', payload.email, '| UID:', user.uid);
         }
         await db.collection('_system').doc('global_config').set({
