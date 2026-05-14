@@ -778,6 +778,7 @@ export default function BarberTV() {
   const [slidesActivos,  setSlidesActivos]  = useState({ oferta: true, lookbook: true, equipo: true, productos: true });
   const [accentColor,    setAccentColor]    = useState('');
   const [qrConfig,       setQrConfig]       = useState({ color: '', size: 160 });
+  const [backgroundUrl,  setBackgroundUrl]  = useState('');
 
   GOLD = accentColor || TENANT_ACCENT[tenantId] || '#D4AF37';
 
@@ -838,6 +839,7 @@ export default function BarberTV() {
       if (d.slidesActivos) setSlidesActivos(prev => ({ ...prev, ...d.slidesActivos }));
       setAccentColor(d.accentColor || '');
       if (d.qr)            setQrConfig(prev => ({ ...prev, ...d.qr }));
+      setBackgroundUrl(d.backgroundUrl || '');
     }, () => {});
   }, [tenantId]);
 
@@ -918,12 +920,29 @@ export default function BarberTV() {
 
   return (
     <div
-      className="w-screen h-screen overflow-hidden flex flex-col select-none cursor-none"
+      className="relative w-screen h-screen overflow-hidden flex flex-col select-none cursor-none"
       style={{ background: '#050505' }}
     >
+      {/* ── Imagen de fondo ────────────────────────────────────── */}
+      {backgroundUrl && (
+        <>
+          <img
+            src={backgroundUrl}
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
+            style={{ filter: 'brightness(0.25) saturate(0.65)', zIndex: 0 }}
+          />
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{ background: 'rgba(5,5,5,0.52)', zIndex: 0 }}
+          />
+        </>
+      )}
+
       {/* ── Header ─────────────────────────────────────────────── */}
       <header
-        className="flex items-center justify-between px-10 py-5 shrink-0 relative"
+        className="flex items-center justify-between px-10 py-5 shrink-0 relative z-10"
         style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
       >
         <div className="absolute bottom-0 left-0 right-0 h-px"
@@ -948,7 +967,7 @@ export default function BarberTV() {
       </header>
 
       {/* ── Body ───────────────────────────────────────────────── */}
-      <div className="flex flex-1 min-h-0 overflow-hidden">
+      <div className="flex flex-1 min-h-0 overflow-hidden relative z-10">
 
         {/* Panel turnos — 26% */}
         <aside
@@ -1005,7 +1024,9 @@ export default function BarberTV() {
       </div>
 
       {/* ── Ticker inferior de servicios — Opción B ────────────── */}
-      <BottomTicker servicios={servicios} />
+      <div className="relative z-10">
+        <BottomTicker servicios={servicios} />
+      </div>
 
     </div>
   );

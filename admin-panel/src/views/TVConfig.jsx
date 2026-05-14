@@ -4,10 +4,41 @@ import { Link } from 'react-router-dom';
 import {
   Monitor, ExternalLink, Save, Check, ChevronRight,
   AlertCircle, Eye, Palette, Images, Users, Megaphone, ShoppingBag, QrCode,
+  ImagePlus, Trash2, Upload,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { getDoc, setDoc, getDocs, query, where } from 'firebase/firestore';
+import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { storage } from '../lib/firebase';
 import { tenantDoc, tenantCol, resolveTenantId } from '../lib/tenantUtils';
+
+/* ── Compresión de imagen vía canvas ─────────────────────────────── */
+async function compressImage(file, { maxPx = 1280, quality = 0.7 } = {}) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let { width, height } = img;
+      if (width > maxPx || height > maxPx) {
+        const ratio = Math.min(maxPx / width, maxPx / height);
+        width  = Math.round(width  * ratio);
+        height = Math.round(height * ratio);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width  = width;
+      canvas.height = height;
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+      canvas.toBlob(
+        blob => blob ? resolve(blob) : reject(new Error('Compresión fallida')),
+        'image/jpeg',
+        quality,
+      );
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
 
 // Debe coincidir con OFERTA_DEFAULT en BarberTV.jsx
 const OFERTA_DEFAULT = {
@@ -174,6 +205,12 @@ export default function TVConfig() {
   const [productosCount, setProductosCount] = useState(null);
   const savedTimer = useRef(null);
 
+  /* ── Background image ───────────────────────────────────────────── */
+  const [bgUrl,       setBgUrl]       = useState('');
+  const [bgUploading, setBgUploading] = useState(false);
+  const [bgErr,       setBgErr]       = useState('');
+  const bgInputRef = useRef(null);
+
   useEffect(() => {
     getDoc(tenantDoc('configuracion', 'tv'))
       .then(snap => {
@@ -186,6 +223,7 @@ export default function TVConfig() {
             accentColor:   d.accentColor || '',
             qr:            { color: '', size: 160, ...(d.qr || {}) },
           });
+          if (d.backgroundUrl) setBgUrl(d.backgroundUrl);
         }
       })
       .finally(() => setLoading(false));
@@ -222,6 +260,42 @@ export default function TVConfig() {
       return { ...prev, [path]: value };
     });
     setDirty(true);
+  };
+
+  const handleBgUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setBgErr('');
+    setBgUploading(true);
+    try {
+      const blob      = await compressImage(file, { maxPx: 1280, quality: 0.7 });
+      const tid       = resolveTenantId();
+      const sRef      = storageRef(storage, `tenants/${tid}/tv-bg.jpg`);
+      await uploadBytes(sRef, blob, { contentType: 'image/jpeg' });
+      const url       = await getDownloadURL(sRef);
+      await setDoc(tenantDoc('configuracion', 'tv'), { backgroundUrl: url }, { merge: true });
+      setBgUrl(url);
+    } catch (err) {
+      setBgErr('Error al subir la imagen. Intenta con una imagen más pequeña.');
+      console.error(err);
+    } finally {
+      setBgUploading(false);
+      if (bgInputRef.current) bgInputRef.current.value = '';
+    }
+  };
+
+  const handleBgRemove = async () => {
+    setBgErr('');
+    try {
+      const tid  = resolveTenantId();
+      const sRef = storageRef(storage, `tenants/${tid}/tv-bg.jpg`);
+      await deleteObject(sRef).catch(() => {});
+      await setDoc(tenantDoc('configuracion', 'tv'), { backgroundUrl: '' }, { merge: true });
+      setBgUrl('');
+    } catch (err) {
+      setBgErr('No se pudo eliminar la imagen.');
+      console.error(err);
+    }
   };
 
   const handleSave = async () => {
@@ -305,6 +379,78 @@ export default function TVConfig() {
           <button onClick={() => setSaveErr('')} className="ml-2 text-red-400/50 hover:text-red-400">×</button>
         </div>
       )}
+
+      {/* ── Imagen de fondo ───────────────────────────────────────── */}
+      <Card icon={ImagePlus} title="Imagen de Fondo">
+        <p className="text-xs text-slate-500 -mt-1">
+          Se aplica en toda la pantalla TV con brillo reducido para no tapar el contenido.
+          La imagen se comprime automáticamente a máx. 1280px y calidad 70%.
+        </p>
+
+        {bgErr && (
+          <div className="flex items-center gap-2 px-3 py-2.5 bg-red-950/50 border border-red-500/30 rounded-lg text-xs text-red-400">
+            <AlertCircle size={13} className="shrink-0" />
+            {bgErr}
+          </div>
+        )}
+
+        {bgUrl ? (
+          <div className="space-y-3">
+            {/* Preview */}
+            <div className="relative rounded-xl overflow-hidden" style={{ aspectRatio: '16/5' }}>
+              <img
+                src={bgUrl}
+                alt="Fondo TV"
+                className="absolute inset-0 w-full h-full object-cover"
+                style={{ filter: 'brightness(0.28) saturate(0.7)' }}
+              />
+              <div className="absolute inset-0" style={{ background: 'rgba(5,5,5,0.45)' }} />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                  Así se ve en TV
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-700 text-xs font-semibold text-slate-400 hover:text-white hover:border-slate-600 cursor-pointer transition-all">
+                <Upload size={13} />
+                Cambiar imagen
+                <input ref={bgInputRef} type="file" accept="image/*" className="hidden" onChange={handleBgUpload} disabled={bgUploading} />
+              </label>
+              <button
+                onClick={handleBgRemove}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg border border-red-900/50 text-xs font-semibold text-red-500 hover:bg-red-950/40 hover:border-red-700/50 transition-all"
+              >
+                <Trash2 size={13} />
+                Quitar fondo
+              </button>
+            </div>
+          </div>
+        ) : (
+          <label
+            className="flex flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed border-slate-700 hover:border-slate-600 cursor-pointer transition-colors py-8"
+            style={{ background: bgUploading ? 'rgba(16,185,129,0.03)' : 'rgba(255,255,255,0.01)' }}
+          >
+            {bgUploading ? (
+              <>
+                <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                <p className="text-xs text-slate-500">Comprimiendo y subiendo…</p>
+              </>
+            ) : (
+              <>
+                <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                  <ImagePlus size={22} className="text-slate-600" />
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-semibold text-slate-400">Subir imagen de fondo</p>
+                  <p className="text-xs text-slate-600 mt-0.5">JPG, PNG · se comprime automáticamente</p>
+                </div>
+              </>
+            )}
+            <input ref={bgInputRef} type="file" accept="image/*" className="hidden" onChange={handleBgUpload} disabled={bgUploading} />
+          </label>
+        )}
+      </Card>
 
       {/* ── General ───────────────────────────────────────────────── */}
       <Card icon={Monitor} title="Configuración General">
