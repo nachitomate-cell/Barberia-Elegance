@@ -489,6 +489,29 @@
       <p id="heroClubSub" class="text-[11px] font-semibold text-gray-500 mt-1.5 text-center uppercase tracking-[0.2em]"></p>
     </div>
 
+    <!-- Panel: ya eres miembro (deluxeperfumes, sesión activa) -->
+    <div id="deluxe-member-panel" class="hidden text-center">
+      <p id="dlx-greeting" class="text-white font-semibold text-xl mb-1"></p>
+      <p class="text-[11px] font-semibold text-gray-500 uppercase tracking-[0.2em] mb-8">Miembro Club Deluxe</p>
+      <div class="bg-white/5 border border-white/10 rounded-2xl p-5 mb-6">
+        <p class="text-[10px] uppercase tracking-[0.2em] text-gray-500 mb-2">Tus sellos</p>
+        <p id="dlx-stamps" class="text-5xl font-bold" style="color:var(--gold)">—</p>
+        <p class="text-[11px] text-gray-600 mt-2">Acumula 10 sellos para un premio</p>
+      </div>
+      <a href="/catalogo?local=deluxeperfumes"
+         class="btn-primary w-full block text-center"
+         style="text-decoration:none">
+        <i class="ph ph-storefront"></i> Explorar fragancias
+      </a>
+      <button onclick="firebase.auth().signOut().then(()=>location.reload())"
+         class="mt-5 text-[11px] font-semibold text-gray-600 hover:text-gray-400 transition-colors uppercase tracking-widest">
+        Cerrar sesión
+      </button>
+    </div>
+
+    <!-- Formularios de auth -->
+    <div id="auth-forms">
+
     <!-- Tabs -->
     <div class="flex mb-7 border-b border-white/[0.07]">
       <button id="tabLogin"
@@ -593,6 +616,8 @@
 
     </div><!-- /social-section -->
 
+    </div><!-- /auth-forms -->
+
     <!-- Back link -->
     <p class="text-center mt-7">
       <a id="backLink" href="index.html"
@@ -688,8 +713,25 @@
   // _registering evita que onAuthStateChanged redirija antes de
   // que ensureUserDoc termine de guardar el nombre y teléfono.
   let _registering = false;
-  auth.onAuthStateChanged(user => {
-    if (user && !_registering) goToDashboard();
+  auth.onAuthStateChanged(async user => {
+    if (!user || _registering) return;
+    const tid = window.CURRENT_TENANT_ID;
+    if (tid === 'deluxeperfumes') {
+      // Mostrar panel de bienvenida en lugar de redirigir
+      document.getElementById('auth-forms').style.display = 'none';
+      const panel = document.getElementById('deluxe-member-panel');
+      panel.classList.remove('hidden');
+      try {
+        const ref = FDB.usersCol().doc(user.uid);
+        const snap = await ref.get();
+        const d = snap.data() || {};
+        const nombre = d.nombre || user.displayName || 'Miembro';
+        document.getElementById('dlx-greeting').textContent = '¡Hola, ' + nombre.split(' ')[0] + '!';
+        document.getElementById('dlx-stamps').textContent = d.stamps ?? 0;
+      } catch (_) {}
+      return;
+    }
+    goToDashboard();
   });
 
   // ── Google Login ──────────────────────────────────────────────
