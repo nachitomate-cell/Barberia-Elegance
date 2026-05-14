@@ -225,6 +225,14 @@
       color:        var(--ps-cl,  rgba(255,255,255,0.80)) !important;
       font-weight:  var(--ps-fw,  600)                    !important;
       box-shadow:   var(--ps-sh,  none)                   !important;
+      /* touch feedback instantáneo */
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      user-select: none;
+    }
+    .time-pill:active {
+      transform: scale(0.93);
+      transition: transform 0.08s ease !important;
     }
     .time-pill:hover {
       background:   rgba(255,255,255,0.11) !important;
@@ -2262,14 +2270,19 @@
 
       const _isEleganceHr = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance';
       const grid = document.getElementById('hoursGrid');
-      grid.className = _isEleganceHr ? 'w-full flex flex-col gap-0' : 'flex flex-wrap gap-2.5';
-      grid.innerHTML = `
-        <div class="h-10 w-20 bg-white/5 rounded-[1rem] animate-pulse"></div>
-        <div class="h-10 w-20 bg-white/5 rounded-[1rem] animate-pulse"></div>
-        <div class="h-10 w-20 bg-white/5 rounded-[1rem] animate-pulse opacity-80"></div>
-        <div class="h-10 w-20 bg-white/5 rounded-[1rem] animate-pulse opacity-60"></div>
-        <div class="h-10 w-20 bg-white/5 rounded-[1rem] animate-pulse opacity-40"></div>
-      `;
+      grid.className = _isEleganceHr
+        ? 'w-full flex flex-col gap-0'
+        : 'grid grid-cols-3 gap-2.5';
+      grid.innerHTML = _isEleganceHr
+        ? `<div class="h-10 w-full bg-white/5 rounded-[1rem] animate-pulse mb-2"></div>
+           <div class="h-10 w-full bg-white/5 rounded-[1rem] animate-pulse mb-2 opacity-80"></div>
+           <div class="h-10 w-full bg-white/5 rounded-[1rem] animate-pulse opacity-60"></div>`
+        : `<div class="h-14 bg-white/5 rounded-[1rem] animate-pulse"></div>
+           <div class="h-14 bg-white/5 rounded-[1rem] animate-pulse opacity-80"></div>
+           <div class="h-14 bg-white/5 rounded-[1rem] animate-pulse opacity-60"></div>
+           <div class="h-14 bg-white/5 rounded-[1rem] animate-pulse opacity-40"></div>
+           <div class="h-14 bg-white/5 rounded-[1rem] animate-pulse opacity-20"></div>
+           <div class="h-14 bg-white/5 rounded-[1rem] animate-pulse opacity-10"></div>`;
 
       const settings = customConfig || _fsConfig || DB.getSettings();
       let hours = [];
@@ -2364,9 +2377,9 @@
       } else {
         hours.forEach(h => {
           if (h.occupied) {
-            grid.innerHTML += `<button disabled class="slot-pill-busy px-6 py-3 rounded-[1rem] border text-[15px] font-medium">${h.time}</button>`;
+            grid.innerHTML += `<button disabled class="slot-pill-busy w-full py-4 rounded-2xl border text-[15px] font-medium text-center">${h.time}</button>`;
           } else {
-            grid.innerHTML += `<button onclick="selectTime(this, '${h.time}')" class="time-pill px-6 py-3 rounded-[1rem] border text-[15px] transition-[border-color,color,background] active:scale-95 focus:outline-none">${h.time}</button>`;
+            grid.innerHTML += `<button onclick="selectTime(this, '${h.time}')" class="time-pill w-full py-4 rounded-2xl border text-[15px] text-center transition-[border-color,color,background] active:scale-95 focus:outline-none">${h.time}</button>`;
           }
         });
       }
@@ -2458,7 +2471,7 @@
       const SEL = {
         elegance:       { bg: '#D4AF37', cl: '#0a0807', sh: '0 0 14px rgba(212,175,55,0.5)' },
         ferraza:        { bg: '#D4AF37', cl: '#0a0807', sh: 'none' },
-        chameleon:      { bg: '#00bcd4', cl: '#050505', sh: '0 0 12px rgba(0,188,212,0.5)' },
+        chameleon:      { bg: '#DAA520', cl: '#0a0807', sh: '0 0 14px rgba(218,165,32,0.40)' },
         gitana:         { bg: 'var(--brand-neon)', cl: '#050505', sh: 'none' },
         mapubarbershop: { bg: '#BFA37E', cl: '#2A1E22', sh: 'none' },
       };
