@@ -389,8 +389,8 @@ export default function Marketing() {
         </p>
       </div>
 
-      {/* Asistente IA */}
-      <AsistenteIA stats={stats} statsLoading={statsLoading} />
+      {/* Asistente IA — oculto temporalmente */}
+      {/* <AsistenteIA stats={stats} statsLoading={statsLoading} /> */}
 
       {/* Preview card */}
       {form.imagen && (
