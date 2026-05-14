@@ -35,26 +35,6 @@
     }
   ],
   "rewrites": [
-    {
-      "source": "/registro",
-      "has": [{ "type": "host", "value": "deluxeperfumes.synaptechspa.cl" }],
-      "destination": "/registro.html"
-    },
-    {
-      "source": "/registro.html",
-      "has": [{ "type": "host", "value": "deluxeperfumes.synaptechspa.cl" }],
-      "destination": "/registro.html"
-    },
-    {
-      "source": "/gestion-interna",
-      "has": [{ "type": "host", "value": "deluxeperfumes.synaptechspa.cl" }],
-      "destination": "/gestion-interna/index.html"
-    },
-    {
-      "source": "/gestion-interna/:path*",
-      "has": [{ "type": "host", "value": "deluxeperfumes.synaptechspa.cl" }],
-      "destination": "/gestion-interna/index.html"
-    },
     { "source": "/favicon.ico",            "destination": "/logo.jpg" },
     { "source": "/dashboard",              "destination": "/dashboard.html" },
     { "source": "/registro",               "destination": "/registro.html" },
@@ -67,11 +47,6 @@
     { "source": "/membresia",              "destination": "/membresia.html" },
     { "source": "/chat-miembros",          "destination": "/chat-miembros.html" },
     { "source": "/admin-membresias",       "destination": "/admin-membresias.html" },
-    {
-      "source": "/:path+",
-      "has": [{ "type": "host", "value": "deluxeperfumes.synaptechspa.cl" }],
-      "destination": "/catalogo.html"
-    },
-    { "source": "/:slug", "destination": "/barbero.html" }
+    { "source": "/:slug",                  "destination": "/barbero.html" }
   ]
 }
