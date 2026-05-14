@@ -106,7 +106,7 @@
       instagram:       '',
       instagramHandle: '',
       waEmoji:         '✂️',
-      googleReviewUrl: '',
+      googleReviewUrl: 'https://g.page/r/CSAV1u-lXwVeEBM/review',
       sucursales: [
         {
           id:        'valparaiso',
