@@ -216,6 +216,46 @@
       to   { opacity:1; transform:translateY(0); }
     }
 
+    /* ── Paso 3: estado de píldoras de horario ───────────────────── */
+    .slot-pill-avail {
+      background: rgba(255,255,255,0.03);
+      border-color: rgba(255,255,255,0.18);
+      color: rgba(255,255,255,0.68);
+      font-weight: 700;
+    }
+    .slot-pill-avail:hover {
+      background: rgba(255,255,255,0.07);
+      border-color: var(--accent, #D4AF37);
+      color: var(--accent, #D4AF37);
+    }
+    .slot-pill-busy {
+      background: rgba(120,15,15,0.14);
+      border-color: rgba(200,50,50,0.22);
+      color: rgba(200,70,70,0.38);
+      text-decoration: line-through;
+      text-decoration-color: rgba(200,70,70,0.45);
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    /* ── Paso 4 / Pantalla Éxito: SVG check animado ─────────────── */
+    @keyframes drawCircle {
+      to { stroke-dashoffset: 0; }
+    }
+    @keyframes drawCheck {
+      to { stroke-dashoffset: 0; }
+    }
+    .svg-check-circle {
+      stroke-dasharray: 160;
+      stroke-dashoffset: 160;
+      animation: drawCircle 0.55s cubic-bezier(0.16,1,0.3,1) 0.05s forwards;
+    }
+    .svg-check-path {
+      stroke-dasharray: 58;
+      stroke-dashoffset: 58;
+      animation: drawCheck 0.45s cubic-bezier(0.16,1,0.3,1) 0.45s forwards;
+    }
+
     /* ═══════════════════════════════════════════════════════════════
        GITANA NAILS — PREMIUM BOHO-CHIC v3
        Elegante · Femenino · Glassmorphism · Sin glows
@@ -1372,10 +1412,12 @@
       <!-- Pantalla de Éxito -->
       <section id="success-state"
         class="hidden flex-col items-center justify-center text-center pt-10 pb-20 animate-[fadeSlideUp_0.5s_cubic-bezier(0.16,1,0.3,1)_forwards]">
-        <div
-          class="w-24 h-24 bg-[#0a0a0d] border border-neon rounded-full flex items-center justify-center mb-8 shadow-[0_0_30px_rgba(255,255,255,0.2)] relative">
-          <div class="absolute inset-0 rounded-full bg-brand-neon/10 animate-ping opacity-75"></div>
-          <i class="ph-fill ph-check-circle text-6xl text-neon relative z-10"></i>
+        <div class="w-24 h-24 mb-8 relative flex items-center justify-center">
+          <div class="absolute inset-0 rounded-full bg-brand-neon/10 animate-ping opacity-60"></div>
+          <svg viewBox="0 0 52 52" class="w-24 h-24 text-neon relative z-10" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle class="svg-check-circle" cx="26" cy="26" r="24" stroke="currentColor" stroke-width="1.5"/>
+            <path class="svg-check-path" d="M14 27l8 8 16-16" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
         </div>
         <h2 class="text-3xl font-bold text-neon tracking-tight mb-3">¡Reserva Confirmada!</h2>
         
@@ -2304,10 +2346,10 @@
             const pill = document.createElement('button');
             if (h.occupied) {
               pill.disabled = true;
-              pill.className = 'px-3 py-2.5 rounded-xl border border-white/5 bg-[#0a0a0d] text-sm font-medium text-gray-700 line-through pointer-events-none opacity-30';
+              pill.className = 'slot-pill-busy px-3 py-2.5 rounded-xl border text-sm font-medium';
               pill.textContent = h.time;
             } else {
-              pill.className = 'time-pill px-3 py-2.5 rounded-xl border border-brand-accent/20 bg-[#0a0a0d] text-sm font-bold text-gray-300 transition-all active:scale-95 hover:border-[#D4AF37] hover:text-[#D4AF37] focus:outline-none';
+              pill.className = 'time-pill slot-pill-avail px-3 py-2.5 rounded-xl border text-sm transition-all active:scale-95 focus:outline-none';
               pill.textContent = h.time;
               pill.onclick = () => selectTime(pill, h.time);
             }
@@ -2319,9 +2361,9 @@
       } else {
         hours.forEach(h => {
           if (h.occupied) {
-            grid.innerHTML += `<button disabled class="px-6 py-3 rounded-[1rem] border border-white/5 bg-[#0a0a0d] text-[15px] font-medium text-gray-700 line-through pointer-events-none opacity-30">${h.time}</button>`;
+            grid.innerHTML += `<button disabled class="slot-pill-busy px-6 py-3 rounded-[1rem] border text-[15px] font-medium">${h.time}</button>`;
           } else {
-            grid.innerHTML += `<button onclick="selectTime(this, '${h.time}')" class="time-pill px-6 py-3 rounded-[1rem] border border-brand-accent/20 bg-[#0a0a0d] shadow-[0_0_5px_rgba(0,0,0,0.5)] text-[15px] font-bold text-gray-300 transition-all active:scale-95 hover:border-neon hover:shadow-[0_0_10px_rgba(255,255,255,0.15)] hover:text-neon focus:outline-none">${h.time}</button>`;
+            grid.innerHTML += `<button onclick="selectTime(this, '${h.time}')" class="time-pill slot-pill-avail px-6 py-3 rounded-[1rem] border text-[15px] transition-all active:scale-95 hover:border-neon hover:text-neon focus:outline-none">${h.time}</button>`;
           }
         });
       }
@@ -2402,9 +2444,8 @@
       const _isMapuTm   = window.CURRENT_TENANT_ID === 'mapubarbershop';
       const _isEleganceTm = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance';
       document.querySelectorAll('.time-pill').forEach(el => {
+        el.style.cssText = '';
         el.classList.remove('bg-neon', 'bg-brand-neon/10', 'text-[#050505]', 'text-neon', 'border-neon', 'shadow-[0_0_15px_rgba(255,255,255,0.25)]', 'border-2');
-        el.classList.add('bg-[#0a0a0d]', 'text-gray-300', 'border-brand-accent/20', 'border');
-        if (_isEleganceTm || _isMapuTm) el.style.cssText = '';
       });
 
       btn.classList.remove('bg-[#0a0a0d]', 'text-gray-300', 'border-brand-accent/20', 'border');
