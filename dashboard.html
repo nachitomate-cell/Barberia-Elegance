@@ -943,7 +943,7 @@
           <input id="editFechaNacimiento" type="date" autocomplete="bday"
             class="w-full bg-gray-900 border border-gray-700 rounded-lg p-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37]"
             style="color-scheme:dark;">
-          <p class="text-[10px] text-gray-700 mt-1 px-1">Recibirás 1 sello de regalo el día de tu cumpleaños.</p>
+          <p id="nacimientoLockMsg" class="text-[10px] text-gray-700 mt-1 px-1">Recibirás 1 sello de regalo el día de tu cumpleaños.</p>
         </div>
 
       </div>
@@ -1396,6 +1396,26 @@ async function subscribeUserData(user) {
     if (document.activeElement !== nombreInput) nombreInput.value = nombre;
     if (document.activeElement !== telInput)    telInput.value    = data.telefono || '';
     if (document.activeElement !== cumpleInput) cumpleInput.value = data.fechaNacimiento || '';
+    // Bloquear la fecha de nacimiento una vez guardada para evitar abuso del sello de cumpleaños
+    if (data.fechaNacimiento) {
+      cumpleInput.readOnly = true;
+      cumpleInput.style.opacity  = '0.5';
+      cumpleInput.style.cursor   = 'not-allowed';
+      const lockMsg = document.getElementById('nacimientoLockMsg');
+      if (lockMsg) {
+        lockMsg.textContent  = '🔒 Para modificar la fecha contactá al local.';
+        lockMsg.style.color  = '#6b7280';
+      }
+    } else {
+      cumpleInput.readOnly = false;
+      cumpleInput.style.opacity = '';
+      cumpleInput.style.cursor  = '';
+      const lockMsg = document.getElementById('nacimientoLockMsg');
+      if (lockMsg) {
+        lockMsg.textContent = 'Recibirás 1 sello de regalo el día de tu cumpleaños.';
+        lockMsg.style.color = '';
+      }
+    }
     document.getElementById('editEmail').value = email;
 
     if (user.photoURL) {
@@ -1794,7 +1814,8 @@ async function guardarPerfil() {
   const nombre          = document.getElementById('editNombre').value.trim();
   const email           = document.getElementById('editEmail').value.trim();
   const telefono        = document.getElementById('editTelefono').value.trim();
-  const fechaNacimiento = document.getElementById('editFechaNacimiento').value || null;
+  const cumpleEl        = document.getElementById('editFechaNacimiento');
+  const fechaNacimiento = (!cumpleEl.readOnly && cumpleEl.value) ? cumpleEl.value : null;
 
   if (!nombre) { showToast('El nombre no puede estar vacío.', 'err'); return; }
   if (telefono && !validatePhone(telefono)) {

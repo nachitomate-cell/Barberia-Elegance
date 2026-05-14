@@ -76,9 +76,12 @@ exports.selloCumpleanos = onSchedule(
         const uid      = cliente.uid      ?? null;
         const fcmToken = cliente.fcmToken ?? null;
 
-        // ── Idempotencia ────────────────────────────────────────
-        if (cliente.ultimoSelloCumple === todayISO) {
-          logger.info(`[Cumple] ${phone}: ya procesado hoy, omitiendo`);
+        // ── Idempotencia: un sello por año calendario ───────────
+        // Se compara el AÑO (no el día) para que cambiar la fecha
+        // de nacimiento no permita canjear el sello más de una vez.
+        const anoUltimoSello = (cliente.ultimoSelloCumple || '').substring(0, 4);
+        if (anoUltimoSello === parts[0]) {
+          logger.info(`[Cumple] ${phone}: ya recibió sello de cumpleaños en ${parts[0]}, omitiendo`);
           continue;
         }
 

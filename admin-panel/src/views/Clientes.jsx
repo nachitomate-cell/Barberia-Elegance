@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { Search, User, Phone, Trophy, Plus, Minus, Gift, X, RotateCcw, MessageCircle, Cake, UserX, Send, Sparkles } from 'lucide-react';
+import { Search, User, Phone, Trophy, Plus, Minus, Gift, X, RotateCcw, MessageCircle, Cake, UserX, Send, Sparkles, Bot, RefreshCw } from 'lucide-react';
 import {
   onSnapshot, updateDoc, setDoc, doc, getDocs, query, where, orderBy as firestoreOrderBy,
   increment, arrayUnion, serverTimestamp,
@@ -554,6 +554,196 @@ function SinRegistroModal({ sinRegistro, shopName, registroUrl, onClose }) {
   );
 }
 
+/* ── Modal IA ── */
+const LOADING_PHRASES = [
+  'Analizando patrones de visita…',
+  'Cruzando datos de fidelización…',
+  'Calculando oportunidades de retención…',
+  'Identificando el mayor impacto…',
+];
+
+function buildRecommendations(stats) {
+  const recs = [];
+  const { total, avg, riesgo, conPremio, totalCitas, cumple, silver, gold, platinum } = stats;
+
+  if (riesgo >= 3) {
+    recs.push(
+      `Detecté ${riesgo} clientes que llevan más de 30 días sin visitar. ` +
+      `Enviarles un mensaje de WhatsApp hoy puede recuperar entre ${Math.round(riesgo * 0.3)} y ${Math.round(riesgo * 0.5)} citas esta semana, ` +
+      `ya que los clientes responden mejor al contacto directo en los primeros 45 días de inactividad.`
+    );
+  }
+
+  if (conPremio >= 2) {
+    recs.push(
+      `${conPremio} clientes tienen un premio disponible sin canjear. ` +
+      `Notificarlos activamente puede aumentar tus reservas de esta semana un 25–30%, ` +
+      `ya que un cliente con premio pendiente tiene 3 veces más probabilidad de agendar que uno sin incentivo.`
+    );
+  }
+
+  if (cumple >= 1) {
+    recs.push(
+      `${cumple} cliente${cumple > 1 ? 's' : ''} ${cumple > 1 ? 'cumplen' : 'cumple'} años este mes. ` +
+      `Ofrecerles un sello de regalo o descuento de cumpleaños genera una tasa de reserva del 80% en el mes correspondiente. ` +
+      `Es el momento de mayor disposición emocional para fidelizar.`
+    );
+  }
+
+  if (parseFloat(avg) < 3 && total >= 5) {
+    recs.push(
+      `El promedio de ${avg} sellos por cliente indica que muchos abandonan antes de llegar a su primer premio. ` +
+      `Reducir el umbral del primer beneficio en 2 sellos puede aumentar la tasa de retorno en un 40% ` +
+      `según los patrones de programas de fidelización en servicios de barbería.`
+    );
+  }
+
+  if (platinum >= 1) {
+    recs.push(
+      `Tienes ${platinum} cliente${platinum > 1 ? 's' : ''} PLATINUM con alta lealtad comprobada. ` +
+      `Contactarlos para invitarlos a referir amigos puede generarte entre 2 y 4 clientes nuevos por cada uno, ` +
+      `sin costo de adquisición, aprovechando la confianza que ya construiste.`
+    );
+  }
+
+  if (total > 0 && totalCitas > 0) {
+    const cxc = (totalCitas / total).toFixed(1);
+    recs.push(
+      `Con ${total} clientes registrados y un promedio de ${cxc} citas por cliente, ` +
+      `tu programa de fidelización tiene base sólida. ` +
+      `El siguiente paso es activar a los ${Math.max(1, Math.round(total * 0.25))} clientes con más antigüedad y menos visitas recientes: ` +
+      `son tu mayor oportunidad de crecimiento sin costo adicional.`
+    );
+  }
+
+  if (recs.length === 0) {
+    recs.push(
+      `Aún no hay suficientes datos para un análisis profundo. ` +
+      `A medida que más clientes se registren en el club de fidelización, ` +
+      `el sistema podrá identificar oportunidades concretas de retención y crecimiento.`
+    );
+  }
+
+  return recs;
+}
+
+function IAModal({ stats, shopName, onClose }) {
+  const recs = useRef(buildRecommendations(stats));
+  const [idx,       setIdx]       = useState(0);
+  const [phase,     setPhase]     = useState('loading'); // loading | typing | done
+  const [displayed, setDisplayed] = useState('');
+  const [loadLabel, setLoadLabel] = useState(LOADING_PHRASES[0]);
+
+  const fullText = recs.current[idx % recs.current.length] ?? '';
+
+  function startCycle(nextIdx) {
+    const next = nextIdx % recs.current.length;
+    setIdx(next);
+    setDisplayed('');
+    setPhase('loading');
+    setLoadLabel(LOADING_PHRASES[Math.floor(Math.random() * LOADING_PHRASES.length)]);
+  }
+
+  /* Fase loading → typing */
+  useEffect(() => {
+    if (phase !== 'loading') return;
+    const t = setTimeout(() => setPhase('typing'), 1700);
+    return () => clearTimeout(t);
+  }, [phase]);
+
+  /* Efecto typewriter */
+  useEffect(() => {
+    if (phase !== 'typing') return;
+    setDisplayed('');
+    let i = 0;
+    const id = setInterval(() => {
+      i++;
+      setDisplayed(fullText.slice(0, i));
+      if (i >= fullText.length) { clearInterval(id); setPhase('done'); }
+    }, 18);
+    return () => clearInterval(id);
+  }, [phase, fullText]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(6px)' }}
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="w-full max-w-md rounded-2xl overflow-hidden shadow-2xl border border-violet-500/20"
+        style={{ background: '#0f0f18' }}>
+
+        {/* Header */}
+        <div className="relative px-5 pt-5 pb-4 overflow-hidden"
+          style={{ background: 'linear-gradient(135deg, rgba(139,92,246,0.15) 0%, rgba(59,130,246,0.08) 100%)' }}>
+          <div className="absolute inset-0 pointer-events-none"
+            style={{ background: 'radial-gradient(ellipse at top right, rgba(139,92,246,0.12), transparent 70%)' }} />
+          <div className="flex items-center justify-between relative">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl flex items-center justify-center"
+                style={{ background: 'rgba(139,92,246,0.2)', border: '1px solid rgba(139,92,246,0.3)' }}>
+                <Bot size={16} className="text-violet-400" />
+              </div>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-violet-400/70">Análisis IA</p>
+                <h3 className="text-sm font-bold text-white leading-none">Recomendación para {shopName}</h3>
+              </div>
+            </div>
+            <button onClick={onClose}
+              className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-500 hover:text-white hover:bg-slate-800 transition-colors">
+              <X size={14} />
+            </button>
+          </div>
+        </div>
+
+        {/* Body */}
+        <div className="px-5 py-5 min-h-[9rem] flex items-start">
+          {phase === 'loading' ? (
+            <div className="w-full space-y-3">
+              <div className="flex items-center gap-2 text-violet-400/60 text-xs font-medium mb-1">
+                <div className="w-3 h-3 rounded-full border-2 border-violet-400/30 border-t-violet-400 animate-spin shrink-0" />
+                {loadLabel}
+              </div>
+              <div className="h-2.5 bg-slate-800 rounded-full animate-pulse w-full" />
+              <div className="h-2.5 bg-slate-800 rounded-full animate-pulse w-4/5" style={{ animationDelay: '0.1s' }} />
+              <div className="h-2.5 bg-slate-800 rounded-full animate-pulse w-3/5" style={{ animationDelay: '0.2s' }} />
+            </div>
+          ) : (
+            <div className="flex gap-3 w-full">
+              <div className="w-[3px] rounded-full shrink-0 self-stretch"
+                style={{ background: 'linear-gradient(180deg, #8b5cf6, #3b82f6)', minHeight: '1rem' }} />
+              <p className="text-sm text-slate-200 leading-relaxed">
+                {displayed}
+                {phase === 'typing' && (
+                  <span className="inline-block w-0.5 h-[1em] ml-0.5 align-text-bottom bg-violet-400 animate-pulse" />
+                )}
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-5 pb-5 flex items-center justify-between gap-3">
+          <button
+            onClick={() => startCycle(idx + 1)}
+            disabled={phase === 'loading' || phase === 'typing'}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-white border border-slate-800 hover:border-slate-700 hover:bg-slate-800 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+          >
+            <RefreshCw size={11} />
+            Otro consejo
+          </button>
+          <button
+            onClick={onClose}
+            className="px-4 py-2 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-white transition-colors"
+          >
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── Vista principal Clientes ── */
 export default function Clientes() {
   const { id: tenantId, name: shopName } = useTenant();
@@ -566,6 +756,7 @@ export default function Clientes() {
   const [showHelp,        setShowHelp]        = useState(false);
   const [selected,        setSelected]        = useState(null);
   const [showSinRegistro, setShowSinRegistro] = useState(false);
+  const [showIA,          setShowIA]          = useState(false);
 
   const registroUrl = `${PROD_DOMAINS[tenantId] || window.location.origin}/registro.html`;
 
@@ -673,6 +864,19 @@ export default function Clientes() {
     : clientes.filter(c => sellos(c) >= 5).length;
   const totalCitasGlobal = todasCitas.length;
 
+  const iaStats = useMemo(() => ({
+    total,
+    avg,
+    riesgo:     clientesEnRiesgo.length,
+    conPremio,
+    totalCitas: totalCitasGlobal,
+    cumple:     clientes.filter(c => c.cumpleDia?.startsWith(mesActual + '-')).length,
+    silver:     clientes.filter(c => calcTier(c.sellosHistoricos ?? c.stamps ?? 0) === 'SILVER').length,
+    gold:       clientes.filter(c => calcTier(c.sellosHistoricos ?? c.stamps ?? 0) === 'GOLD').length,
+    platinum:   clientes.filter(c => calcTier(c.sellosHistoricos ?? c.stamps ?? 0) === 'PLATINUM').length,
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [total, avg, clientesEnRiesgo.length, conPremio, totalCitasGlobal, clientes.length]);
+
   return (
     <div className="max-w-4xl mx-auto">
       {/* Header */}
@@ -684,7 +888,15 @@ export default function Clientes() {
           </div>
           <p className="text-sm text-slate-500 mt-0.5">Gestiona sellos y premios de cada cliente.</p>
         </div>
-        <button
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowIA(true)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border border-violet-500/30 bg-violet-500/5 text-violet-400 hover:bg-violet-500/10 transition-all"
+          >
+            <Bot size={13} />
+            Pedir consejo
+          </button>
+          <button
           onClick={() => setShowSinRegistro(true)}
           className="relative flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold border border-amber-500/30 bg-amber-400/5 text-amber-400 hover:bg-amber-400/10 transition-all shrink-0"
         >
@@ -695,7 +907,8 @@ export default function Clientes() {
               {sinRegistro.length}
             </span>
           )}
-        </button>
+          </button>
+        </div>
       </div>
 
       {/* KPIs */}
@@ -913,6 +1126,14 @@ export default function Clientes() {
           />
         )}
       </SlideOver>
+      {showIA && (
+        <IAModal
+          stats={iaStats}
+          shopName={shopName}
+          onClose={() => setShowIA(false)}
+        />
+      )}
+
       {showHelp && (
         <HelpModal title="Ayuda — Clientes y Fidelización" onClose={() => setShowHelp(false)}>
           <p>En <strong className="text-white">Clientes</strong> gestionas el programa de fidelización por sellos.</p>

@@ -34,6 +34,7 @@
     { "source": "/agenda/:path*",          "destination": "/agenda.html" },
     { "source": "/servicios",              "destination": "/index.html" },
     { "source": "/gestion-interna",        "destination": "/gestion-interna/index.html" },
-    { "source": "/gestion-interna/:path*", "destination": "/gestion-interna/index.html" }
+    { "source": "/gestion-interna/:path*", "destination": "/gestion-interna/index.html" },
+    { "source": "/:slug", "destination": "/barbero.html" }
   ]
 }

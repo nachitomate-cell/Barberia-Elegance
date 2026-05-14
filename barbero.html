@@ -1,0 +1,1120 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta name="theme-color" content="#050505">
+  <title>Agendar hora</title>
+  <link rel="icon" type="image/jpeg" href="/logo.jpg">
+  <link rel="manifest" href="/manifest.json">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <link href="/output.css" rel="stylesheet">
+
+  <script src="/config.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="/firebase-config.js?v=1.1"></script>
+  <script src="/js/utils/error-logger.js?v=1.0"></script>
+  <script src="/firebaseUtils.js?v=2.6"></script>
+  <script src="/js/guards/tenant-status-guard.js?v=1.0"></script>
+  <script src="/js/guards/version-manager.js?v=1.0"></script>
+
+  <style>
+    :root {
+      --accent:   #c9a84c;
+      --accent-r: 201; --accent-g: 168; --accent-b: 76;
+      --body-bg:  #050505;
+    }
+    body {
+      background-color: var(--body-bg);
+      color: #f8fafc;
+      overscroll-behavior-y: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #000; }
+    ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    .text-accent { color: var(--accent); }
+    .border-accent { border-color: var(--accent) !important; }
+    .bg-accent-soft { background: rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.10); }
+
+    /* Hero */
+    .barber-hero-bg {
+      background: linear-gradient(180deg,
+        rgba(var(--body-r,5),var(--body-g,5),var(--body-b,5),0.3) 0%,
+        var(--body-bg) 100%);
+    }
+
+    /* Service cards */
+    .svc-card {
+      background: #0a0a0d;
+      border: 1.5px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.18);
+      border-radius: 1.25rem;
+      transition: border-color 0.2s, background 0.2s;
+      cursor: pointer;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .svc-card:active { transform: scale(0.98); }
+    .svc-card.selected {
+      border-color: var(--accent) !important;
+      background: rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.08) !important;
+    }
+    .svc-card .icon-wrap {
+      background: rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.08);
+      border: 1px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.18);
+    }
+
+    /* Category pills */
+    .cat-pill {
+      flex-shrink: 0;
+      padding: 0.35rem 0.9rem;
+      border-radius: 9999px;
+      border: 1.5px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.2);
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: rgba(255,255,255,0.5);
+      background: transparent;
+      cursor: pointer;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .cat-pill.active {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.1);
+    }
+
+    /* Day buttons */
+    .day-btn {
+      flex-shrink: 0;
+      width: 4rem; height: 5.5rem;
+      border-radius: 1.25rem;
+      border: 1.5px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.2);
+      background: #0a0a0d;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .day-btn.active {
+      border-color: var(--accent);
+      background: rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.1);
+    }
+    .day-btn:active { transform: scale(0.95); }
+
+    /* Time pills */
+    .time-pill {
+      padding: 0.5rem 1rem;
+      border-radius: 0.75rem;
+      border: 1.5px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.2);
+      background: #0a0a0d;
+      color: #d1d5db;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .time-pill:disabled { opacity: 0.3; cursor: not-allowed; pointer-events: none; }
+    .time-pill.selected {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #050505;
+      font-weight: 800;
+    }
+    .time-pill:not(:disabled):active { transform: scale(0.96); }
+
+    /* Animations */
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(12px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+    .fade-up { animation: fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) forwards; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner {
+      width: 2rem; height: 2rem;
+      border: 2px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.2);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    /* Progress bar */
+    #progressBar { background: var(--accent); transition: width 0.5s ease; }
+    #stepIndicatorText { color: var(--accent); }
+
+    /* Inputs */
+    .booking-input {
+      width: 100%;
+      background: #0a0a0d;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 1rem;
+      padding: 1rem 1.25rem;
+      color: #fff;
+      font-weight: 500;
+      font-size: 0.9375rem;
+      transition: border-color 0.2s;
+      outline: none;
+    }
+    .booking-input::placeholder { color: #374151; }
+    .booking-input:focus { border-color: rgba(255,255,255,0.35); }
+
+    /* Continue button */
+    #btnContinue {
+      background: #fff;
+      color: #050505;
+      font-weight: 900;
+    }
+    #btnContinue:disabled { opacity: 0.45; }
+    #btnContinue:active:not(:disabled) { transform: scale(0.98); }
+
+    /* Toast */
+    #toast {
+      position: fixed; top: 1rem; left: 50%; z-index: 9999;
+      transform: translateX(-50%) translateY(-8px);
+      background: #1a0a0a;
+      border: 1px solid rgba(239,68,68,0.5);
+      color: #f87171;
+      padding: 0.75rem 1.25rem;
+      border-radius: 1rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      text-align: center;
+      max-width: 20rem;
+      width: 90vw;
+      opacity: 0;
+      backdrop-filter: blur(12px);
+      transition: opacity 0.3s, transform 0.3s;
+      pointer-events: none;
+    }
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* Back link */
+    #backBar {
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+    }
+  </style>
+</head>
+<body>
+
+<!-- Back bar -->
+<div id="backBar" class="fixed top-0 left-0 right-0 z-50 flex items-center px-4"
+  style="height:3rem;padding-top:env(safe-area-inset-top);">
+  <a href="/" id="backLink"
+    class="flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-white transition-colors">
+    <i class="ph-bold ph-arrow-left text-base"></i>
+    <span id="backShopName">Volver</span>
+  </a>
+</div>
+
+<!-- Loading -->
+<div id="loadingState" class="min-h-screen flex items-center justify-center">
+  <div class="spinner"></div>
+</div>
+
+<!-- Not found -->
+<div id="notFoundState" class="hidden min-h-screen flex flex-col items-center justify-center text-center px-6 gap-4">
+  <i class="ph ph-user-x text-5xl text-white/15"></i>
+  <h2 class="text-xl font-bold text-white/60">Barbero no encontrado</h2>
+  <p class="text-sm text-gray-600">La página que buscas no existe o el barbero no está disponible.</p>
+  <a href="/" class="mt-2 px-5 py-2.5 rounded-xl border border-white/10 text-sm font-semibold text-white/60 hover:text-white hover:border-white/30 transition-colors">
+    Ver agenda completa
+  </a>
+</div>
+
+<!-- Main content (hidden until barber loaded) -->
+<div id="mainContent" class="hidden max-w-md mx-auto"
+  style="padding-top: calc(3rem + env(safe-area-inset-top)); padding-bottom: 6rem;">
+
+  <!-- Hero barber card -->
+  <div class="relative overflow-hidden"
+    style="background: linear-gradient(180deg, rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.06) 0%, transparent 100%);
+           border-bottom: 1px solid rgba(255,255,255,0.04);
+           padding: 2rem 1.5rem 1.25rem;">
+
+    <div class="flex items-center gap-4">
+      <!-- Photo -->
+      <div id="barberPhotoWrap"
+        class="w-20 h-20 rounded-full overflow-hidden shrink-0 flex items-center justify-center"
+        style="border: 2px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.4);
+               box-shadow: 0 0 20px rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.15);
+               background: #111;">
+        <i class="ph-fill ph-user text-4xl text-white/20"></i>
+      </div>
+      <!-- Info -->
+      <div class="min-w-0">
+        <p class="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-0.5" id="shopNameLabel"></p>
+        <h1 id="barberName" class="text-2xl font-black text-white leading-tight tracking-tight"></h1>
+        <p id="barberEspecialidad" class="text-sm font-medium mt-0.5 hidden" style="color:var(--accent);"></p>
+      </div>
+    </div>
+
+    <!-- Availability badge -->
+    <div id="disponibleBadge"
+      class="inline-flex items-center gap-1.5 mt-3 px-3 py-1 rounded-full text-xs font-bold"
+      style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.25);color:#10b981;">
+      <i class="ph-fill ph-check-circle text-sm"></i>
+      Disponible para reservas
+    </div>
+  </div>
+
+  <!-- Progress bar -->
+  <div class="px-6 mt-5 mb-5 fade-up">
+    <div class="flex justify-between items-end mb-2">
+      <span id="stepIndicatorText" class="text-xs font-bold uppercase tracking-widest">Paso 1 de 3: Servicio</span>
+      <span id="progressPercentage" class="text-xs font-bold" style="color:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.6);">33%</span>
+    </div>
+    <div class="w-full rounded-full h-1.5 overflow-hidden" style="background:rgba(255,255,255,0.08);">
+      <div id="progressBar" class="h-1.5 rounded-full w-1/3"></div>
+    </div>
+    <!-- Mini recap -->
+    <div id="selectionRecap" class="hidden mt-3 flex flex-wrap items-center gap-1.5 text-[11px] text-gray-500 font-medium"></div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast"></div>
+
+  <main class="px-6 relative">
+
+    <!-- STEP 1: Servicios -->
+    <section id="step1" class="fade-up">
+      <h2 class="text-2xl font-bold mb-5 tracking-tight" style="color:var(--accent);">¿Qué servicio buscas?</h2>
+
+      <!-- Category pills -->
+      <div id="catPills" class="flex gap-2 overflow-x-auto pb-4 mb-4 no-scrollbar -mx-6 px-6"></div>
+
+      <!-- Skeleton -->
+      <div id="svcSkeleton" class="grid grid-cols-2 gap-3">
+        <div class="h-32 bg-white/5 rounded-2xl animate-pulse"></div>
+        <div class="h-32 bg-white/5 rounded-2xl animate-pulse opacity-80"></div>
+        <div class="h-32 bg-white/5 rounded-2xl animate-pulse opacity-60"></div>
+        <div class="h-32 bg-white/5 rounded-2xl animate-pulse opacity-40"></div>
+      </div>
+
+      <!-- Services grid (filled by JS) -->
+      <div id="svcGrid" class="grid grid-cols-2 gap-3"></div>
+    </section>
+
+    <!-- STEP 2: Fecha y Hora -->
+    <section id="step2" class="hidden opacity-0">
+      <h2 class="text-2xl font-bold mb-5 tracking-tight" style="color:var(--accent);">Selecciona fecha y hora</h2>
+
+      <!-- Month label -->
+      <p id="monthText" class="text-sm font-semibold text-gray-500 mb-3"></p>
+
+      <!-- Day carousel -->
+      <div id="dayCarousel" class="flex gap-2 overflow-x-auto pb-3 no-scrollbar -mx-6 px-6 mb-6"></div>
+
+      <!-- Hours grid -->
+      <div id="hoursSection"></div>
+    </section>
+
+    <!-- STEP 3: Confirmar -->
+    <section id="step3" class="hidden opacity-0">
+      <h2 class="text-2xl font-bold mb-1 tracking-tight" style="color:var(--accent);">Último paso</h2>
+      <p class="text-[13px] text-gray-500 mb-5">Ingresa tus datos y confirma tu reserva.</p>
+
+      <!-- Auth prefill container -->
+      <div id="authContainer" class="mb-4"></div>
+
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-bold text-white/50 uppercase tracking-widest mb-2">Nombre completo</label>
+          <input type="text" id="clientName" placeholder="Ej. Ignacio Mateluna" class="booking-input">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-white/50 uppercase tracking-widest mb-2">Teléfono móvil</label>
+          <input type="tel" id="clientPhone" placeholder="+56 9 XXXX XXXX" inputmode="numeric" class="booking-input">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-white/50 uppercase tracking-widest mb-2">
+            Correo <span class="normal-case font-normal text-gray-600 tracking-normal">(opcional)</span>
+          </label>
+          <input type="email" id="clientEmail" placeholder="ejemplo@correo.com" inputmode="email" class="booking-input">
+        </div>
+      </div>
+
+      <!-- Summary card -->
+      <div class="mt-5 rounded-2xl p-4 relative overflow-hidden"
+        style="background:#0a0807;border:1px solid rgba(255,255,255,0.08);">
+        <p class="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-3">Resumen de reserva</p>
+        <div class="flex justify-between items-center mb-2">
+          <span class="font-bold text-white text-[15px]" id="summaryService"></span>
+          <span class="font-black text-white text-[15px]" id="summaryPrice"></span>
+        </div>
+        <div class="h-px bg-white/5 mb-2"></div>
+        <div class="flex items-center gap-2 text-sm text-gray-500 font-medium mb-1">
+          <i class="ph-fill ph-user text-white/20 text-base"></i>
+          <span id="summaryBarber"></span>
+        </div>
+        <div class="flex items-center gap-2 text-sm font-medium">
+          <i class="ph-fill ph-calendar-blank text-white/20 text-base"></i>
+          <span class="text-gray-500" id="summaryDate"></span>
+          <span class="text-white font-bold ml-1" id="summaryTime"></span>
+        </div>
+      </div>
+
+      <p class="mt-4 text-[11px] text-center text-gray-600 leading-relaxed">
+        <i class="ph-fill ph-info inline-block mr-0.5"></i>
+        Para reagendar o cancelar tu hora en línea, regístrate en el Club de Fidelidad.
+      </p>
+    </section>
+
+    <!-- SUCCESS -->
+    <section id="successState" class="hidden flex-col items-center justify-center text-center pt-10 pb-20 fade-up">
+      <div class="w-24 h-24 rounded-full flex items-center justify-center mb-8 relative"
+        style="background:#0a0a0d;border:2px solid var(--accent);
+               box-shadow: 0 0 30px rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.25);">
+        <div class="absolute inset-0 rounded-full animate-ping opacity-40"
+          style="background:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.15);"></div>
+        <i class="ph-fill ph-check-circle text-6xl relative z-10" style="color:var(--accent);"></i>
+      </div>
+      <h2 class="text-3xl font-bold tracking-tight mb-3" style="color:var(--accent);">¡Reserva Confirmada!</h2>
+
+      <div class="rounded-xl p-4 mb-6 w-full max-w-sm mx-auto"
+        style="background:#0a0a0d;border:1px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.3);">
+        <p id="successSvc" class="font-bold text-white text-lg leading-tight mb-2"></p>
+        <p id="successDate" class="text-sm font-medium flex items-center justify-center gap-1.5" style="color:var(--accent);"></p>
+      </div>
+
+      <p class="text-white/60 font-medium mb-8 text-[15px] leading-relaxed px-4">
+        Tu espacio está asegurado. Envía un WhatsApp al local para activar tus recordatorios.
+      </p>
+
+      <a id="waBtnLink" href="#" target="_blank"
+        class="w-full text-lg font-bold py-4 rounded-[2rem] active:scale-[0.98] transition-all flex items-center justify-center gap-2 mb-4 max-w-sm"
+        style="background:rgba(37,211,102,0.1);border:2px solid #25D366;color:#25D366;
+               box-shadow:0 0 20px rgba(37,211,102,0.25);">
+        Enviar WhatsApp <i class="ph-bold ph-whatsapp-logo text-2xl"></i>
+      </a>
+
+      <a id="successIG" href="#" target="_blank" rel="noopener"
+        class="flex items-center justify-center gap-2 text-sm font-semibold text-white/40 hover:text-white transition-colors mb-6">
+        <i class="ph-fill ph-instagram-logo text-lg"></i>
+        <span id="successIGHandle"></span>
+      </a>
+
+      <button onclick="window.location.reload()"
+        class="font-bold text-white/40 hover:text-white transition-colors">
+        Agendar otra hora
+      </button>
+    </section>
+
+    <!-- Club banner (visible on step 1) -->
+    <div id="clubBanner" class="mt-10 fade-up">
+      <a id="clubLink" href="/registro.html"
+        class="group flex items-center gap-4 rounded-2xl px-5 py-4 active:scale-[0.98] transition-all relative overflow-hidden"
+        style="background:#0a0807;border:1px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.25);">
+        <div class="w-11 h-11 rounded-full flex items-center justify-center shrink-0"
+          style="background:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.10);
+                 border:1px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.25);">
+          <i class="ph-fill ph-medal text-xl" style="color:var(--accent);"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p id="clubName" class="text-[10px] font-bold uppercase tracking-widest mb-0.5"
+            style="color:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.5);"></p>
+          <p class="text-sm font-bold text-white">Únete y gana cortes gratis</p>
+          <p class="text-xs text-gray-500 mt-0.5">Acumula sellos en cada visita</p>
+        </div>
+        <i class="ph-bold ph-arrow-right text-white/20 text-lg group-hover:text-white/50 transition-colors shrink-0"></i>
+      </a>
+    </div>
+
+  </main>
+</div>
+
+<!-- Continue button bar -->
+<div id="btnContinueBar"
+  class="fixed bottom-0 left-0 right-0 z-40"
+  style="background:rgba(0,0,0,0.72);backdrop-filter:blur(20px);
+         border-top:1px solid rgba(255,255,255,0.05);">
+  <div class="max-w-md mx-auto px-5 pt-3.5"
+    style="padding-bottom:calc(1.1rem + env(safe-area-inset-bottom));">
+    <button id="btnContinue" onclick="nextStep()"
+      class="w-full text-base py-4 rounded-2xl shadow-lg active:scale-[0.98] transition-all flex items-center justify-center gap-2.5 focus:outline-none">
+      Continuar <i class="ph-bold ph-arrow-right text-lg"></i>
+    </button>
+  </div>
+</div>
+
+<script>
+  /* ──────────────────────────────────────────────────────────────────
+     BARBERO PAGE — isolated booking flow for a single barber
+     URL: /:barberoSlug  →  reads slug from pathname
+     ────────────────────────────────────────────────────────────────── */
+
+  /* ── State ─────────────────────────────────────────────────────── */
+  let currentStep = 1;
+  let isTransitioning = false;
+
+  let _barber = null;           // barbero object from Firestore
+  let _barberoId = null;
+  let _barberoNombre = null;
+  let _fsConfig = null;
+  let _barberConfig = null;     // per-barber config override
+  let _allServices = [];
+  let _filteredServices = [];
+  let _selectedService = null;
+  let _selectedDate = '';
+  let _selectedTime = null;
+  let _bloqueosProximos = {};   // { 'YYYY-MM-DD': true }
+  let _unsubSlotLocks = null;
+  let _toastTimer = null;
+
+  /* ── Utilities ──────────────────────────────────────────────────── */
+  function slugify(str) {
+    return String(str)
+      .normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .toLowerCase().trim()
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9-]/g, '');
+  }
+
+  function formatPrice(n) {
+    return '$' + Number(n).toLocaleString('es-CL');
+  }
+
+  function formatDuration(mins) {
+    mins = parseInt(mins);
+    if (mins < 60) return `${mins} min`;
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return m === 0 ? `${h}h` : `${h}h ${m}m`;
+  }
+
+  function showToast(msg) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(() => el.classList.remove('show'), 3200);
+  }
+
+  function updateRecap() {
+    const el = document.getElementById('selectionRecap');
+    const parts = [];
+    if (_selectedService) {
+      parts.push(`<span class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 border border-white/10">
+        <i class="ph ph-scissors text-[10px]"></i>${_selectedService.nombre}</span>`);
+    }
+    if (_selectedDate && _selectedTime) {
+      const [y, m, d] = _selectedDate.split('-');
+      parts.push(`<span class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 border border-white/10">
+        <i class="ph ph-clock text-[10px]"></i>${d}/${m} ${_selectedTime}</span>`);
+    }
+    if (parts.length) {
+      el.innerHTML = parts.join('');
+      el.classList.remove('hidden');
+    } else {
+      el.classList.add('hidden');
+    }
+  }
+
+  /* ── Progress ───────────────────────────────────────────────────── */
+  function updateProgress() {
+    const bar = document.getElementById('progressBar');
+    const pcts   = ['33%', '67%', '100%'];
+    const labels = ['Servicio', 'Fecha y Hora', 'Confirmación'];
+    const i = currentStep - 1;
+    bar.style.width = pcts[i];
+    document.getElementById('progressPercentage').textContent = pcts[i];
+    document.getElementById('stepIndicatorText').textContent =
+      `Paso ${currentStep} de 3: ${labels[i]}`;
+  }
+
+  function updateContinueBtn() {
+    const btn = document.getElementById('btnContinue');
+    if (currentStep === 1) {
+      if (_selectedService) {
+        btn.disabled = false;
+        btn.innerHTML = `${_selectedService.nombre} · ${formatPrice(_selectedService.precio)} <i class="ph-bold ph-arrow-right text-lg"></i>`;
+      } else {
+        btn.disabled = true;
+        btn.innerHTML = `Selecciona un servicio <i class="ph-bold ph-arrow-right text-lg"></i>`;
+      }
+    } else if (currentStep === 2) {
+      if (_selectedTime) {
+        btn.disabled = false;
+        btn.innerHTML = `Reservar las ${_selectedTime} <i class="ph-bold ph-check text-lg"></i>`;
+      } else {
+        btn.disabled = false;
+        btn.innerHTML = `Continuar <i class="ph-bold ph-arrow-right text-lg"></i>`;
+      }
+    } else if (currentStep === 3) {
+      btn.disabled = false;
+      btn.innerHTML = `Confirmar reserva <i class="ph-bold ph-check-circle text-lg"></i>`;
+    }
+  }
+
+  /* ── Step transitions ───────────────────────────────────────────── */
+  function transitionStep(from, to) {
+    if (isTransitioning) return;
+    isTransitioning = true;
+    const fromEl = document.getElementById(`step${from}`);
+    const toEl   = document.getElementById(`step${to}`);
+    const btn = document.getElementById('btnContinue');
+    btn.disabled = true;
+
+    fromEl.classList.add('opacity-0', 'transition-all', 'duration-300', '-translate-x-12');
+    setTimeout(() => {
+      fromEl.classList.add('hidden');
+      fromEl.classList.remove('-translate-x-12','transition-all','duration-300','opacity-0');
+      toEl.classList.remove('hidden');
+      toEl.classList.add('opacity-0','translate-x-12');
+      void toEl.offsetWidth;
+      toEl.classList.add('transition-all','duration-500','ease-out');
+      toEl.classList.remove('opacity-0','translate-x-12');
+      setTimeout(() => { isTransitioning = false; btn.disabled = false; }, 500);
+    }, 300);
+  }
+
+  /* ── Services ───────────────────────────────────────────────────── */
+  function renderServices(services) {
+    document.getElementById('svcSkeleton').style.display = 'none';
+    const grid = document.getElementById('svcGrid');
+    if (!services.length) {
+      grid.innerHTML = '<p class="col-span-2 text-sm text-gray-600 text-center py-8">No hay servicios disponibles.</p>';
+      return;
+    }
+    grid.innerHTML = services.map(s => {
+      const icon = _svcIcon(s.nombre, s.categoria);
+      const isSelected = _selectedService?.id === s.id;
+      return `
+      <button onclick="selectService(this, '${s.id}')"
+        class="svc-card ${isSelected ? 'selected' : ''} text-left p-4 flex flex-col gap-2 active:scale-[0.98]"
+        data-id="${s.id}">
+        <div class="icon-wrap w-10 h-10 rounded-xl flex items-center justify-center">
+          <i class="ph-fill ${icon} text-xl" style="color:var(--accent);"></i>
+        </div>
+        <p class="text-sm font-bold text-white leading-snug">${s.nombre}</p>
+        <div class="flex items-center gap-2 mt-auto">
+          <span class="text-sm font-black" style="color:var(--accent);">${formatPrice(s.precio)}</span>
+          <span class="text-xs text-gray-600 font-medium">${formatDuration(s.duracion)}</span>
+        </div>
+      </button>`;
+    }).join('');
+  }
+
+  function _svcIcon(nombre, cat) {
+    const n = (nombre || '').toLowerCase();
+    const c = (cat   || '').toLowerCase();
+    if (n.includes('combo') || (n.includes('corte') && n.includes('barba'))) return 'ph-package';
+    if (n.includes('barba') || n.includes('afeit') || c.includes('barba')) return 'ph-user';
+    if (n.includes('ceja') || n.includes('perfil') || n.includes('detalle')) return 'ph-magic-wand';
+    if (n.includes('corte') || c.includes('corte')) return 'ph-scissors';
+    if (n.includes('trat') || n.includes('masc')) return 'ph-sparkle';
+    return 'ph-scissors';
+  }
+
+  function renderCategories(services) {
+    const cats = [...new Set(services.map(s => s.categoria || 'Otro').filter(Boolean))];
+    if (cats.length < 2) { document.getElementById('catPills').style.display = 'none'; return; }
+    const container = document.getElementById('catPills');
+    container.innerHTML = ['Todos', ...cats].map((c, i) => `
+      <button onclick="filterByCategory('${c}')"
+        class="cat-pill ${i === 0 ? 'active' : ''}"
+        data-cat="${c}">${c}</button>`).join('');
+  }
+
+  function filterByCategory(cat) {
+    document.querySelectorAll('.cat-pill').forEach(p => {
+      p.classList.toggle('active', p.dataset.cat === cat);
+    });
+    const filtered = cat === 'Todos'
+      ? _allServices
+      : _allServices.filter(s => (s.categoria || 'Otro') === cat);
+    renderServices(filtered);
+  }
+
+  function selectService(btn, id) {
+    _selectedService = _allServices.find(s => s.id === id) || null;
+    document.querySelectorAll('.svc-card').forEach(el => el.classList.remove('selected'));
+    if (btn) btn.classList.add('selected');
+    updateContinueBtn();
+    updateRecap();
+  }
+
+  /* ── Calendar ───────────────────────────────────────────────────── */
+  async function precargarBloqueos() {
+    _bloqueosProximos = {};
+    try {
+      const tid = window.CURRENT_TENANT_ID || 'elegance';
+      const fdb = firebase.firestore();
+      const bloqueoCol = tid === 'elegance'
+        ? fdb.collection('bloqueos')
+        : fdb.collection('tenants').doc(tid).collection('bloqueos');
+      const snap = await bloqueoCol
+        .where('todo_el_dia', '==', true)
+        .limit(60).get();
+      snap.docs.forEach(doc => {
+        const b = doc.data();
+        if (!b.barberoId || b.barberoId === _barberoId) {
+          _bloqueosProximos[b.fecha] = true;
+        }
+      });
+    } catch(e) { /* silent */ }
+  }
+
+  function renderCalendar() {
+    const carousel = document.getElementById('dayCarousel');
+    carousel.innerHTML = '';
+    const today = new Date();
+    const cfg = _barberConfig || _fsConfig;
+    const DAYS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+    const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                    'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+    document.getElementById('monthText').textContent =
+      `${MONTHS[today.getMonth()]} ${today.getFullYear()}`;
+
+    let firstSet = false;
+    let added = 0, offset = 0;
+
+    while (added < 20 && offset < 60) {
+      const d = new Date(today);
+      d.setDate(today.getDate() + offset++);
+      const m   = String(d.getMonth() + 1).padStart(2,'0');
+      const dd  = String(d.getDate()).padStart(2,'0');
+      const str = `${d.getFullYear()}-${m}-${dd}`;
+      const dw  = d.getDay();
+
+      const diasLaborales = cfg?.diasLaborales ?? [1,2,3,4,5,6];
+      const diasBloq      = cfg?.diasBloqueados ?? [];
+      if (!diasLaborales.includes(dw) || diasBloq.includes(str) || _bloqueosProximos[str]) continue;
+
+      added++;
+      const isFirst = !firstSet;
+      if (isFirst) { _selectedDate = str; firstSet = true; }
+
+      const activeStyle = isFirst
+        ? `border-color:var(--accent);background:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.1);`
+        : '';
+      const dayNumStyle = isFirst ? 'color:#fff;font-weight:700;' : 'color:#d1d5db;';
+      const dayLblStyle = isFirst ? 'color:var(--accent);' : 'color:#6b7280;';
+      const dotStyle    = isFirst ? 'background:var(--accent);' : 'background:transparent;';
+
+      carousel.innerHTML += `
+        <button onclick="handleDayClick(this,'${str}')" class="day-btn" style="${activeStyle}">
+          <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:2px;${dayLblStyle}">${DAYS[dw]}</span>
+          <span style="font-size:1.5rem;${dayNumStyle}">${d.getDate()}</span>
+          <div style="width:6px;height:6px;border-radius:50%;margin-top:4px;transition:background 0.2s;${dotStyle}"></div>
+        </button>`;
+    }
+  }
+
+  function handleDayClick(btn, dateStr) {
+    document.querySelectorAll('.day-btn').forEach(b => {
+      b.style.borderColor = '';
+      b.style.background  = '';
+      const spans = b.querySelectorAll('span');
+      if (spans[0]) spans[0].style.color = '#6b7280';
+      if (spans[1]) { spans[1].style.color = '#d1d5db'; spans[1].style.fontWeight = ''; }
+      const dot = b.querySelector('div');
+      if (dot) dot.style.background = 'transparent';
+    });
+    btn.style.borderColor = 'var(--accent)';
+    btn.style.background  = 'rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.1)';
+    const spans = btn.querySelectorAll('span');
+    if (spans[0]) spans[0].style.color = 'var(--accent)';
+    if (spans[1]) { spans[1].style.color = '#fff'; spans[1].style.fontWeight = '700'; }
+    const dot = btn.querySelector('div');
+    if (dot) dot.style.background = 'var(--accent)';
+
+    _selectedDate = dateStr;
+    _selectedTime = null;
+    updateContinueBtn();
+    renderHours();
+    subscribeSlotLocks(dateStr);
+  }
+
+  /* ── Hours ──────────────────────────────────────────────────────── */
+  async function renderHours() {
+    if (!_selectedService) return;
+    const section = document.getElementById('hoursSection');
+    section.innerHTML = `<div class="flex flex-wrap gap-2 mt-2">
+      ${[1,2,3,4,5].map(i => `<div class="h-10 w-20 bg-white/5 rounded-xl animate-pulse opacity-${100-i*15}"></div>`).join('')}
+    </div>`;
+
+    const cfg = _barberConfig || _fsConfig;
+    let hours = [];
+    try {
+      hours = await FDB.getHorasDisponibles(
+        _selectedDate, _selectedService.duracion, cfg, _barberoId
+      );
+    } catch(e) {
+      section.innerHTML = `
+        <div class="flex flex-col items-center py-10 gap-3 text-center">
+          <i class="ph ph-wifi-slash text-3xl text-white/20"></i>
+          <p class="text-sm text-white/40">No se pudo cargar disponibilidad</p>
+          <button onclick="renderHours()" class="px-4 py-2 rounded-xl text-xs font-bold border border-white/10 text-white/50 hover:border-white/30 transition-colors">Reintentar</button>
+        </div>`;
+      return;
+    }
+
+    // Filter past times if today
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
+    if (_selectedDate === todayStr) {
+      hours = hours.filter(h => {
+        const [hh, mm] = h.time.split(':').map(Number);
+        const hDate = new Date(now); hDate.setHours(hh, mm, 0, 0);
+        return (hDate - now) / 60000 >= 15;
+      });
+    }
+
+    if (!hours.length) {
+      section.innerHTML = `
+        <div class="flex flex-col items-center py-10 gap-2 text-center">
+          <i class="ph ph-calendar-x text-3xl text-white/20"></i>
+          <p class="text-sm text-white/40">No hay horas disponibles</p>
+          <p class="text-xs text-white/20">Prueba con otro día</p>
+        </div>`;
+      return;
+    }
+
+    const groups = [
+      { label: 'Mañana', hours: hours.filter(h => parseInt(h.time) < 12) },
+      { label: 'Tarde',  hours: hours.filter(h => { const hr = parseInt(h.time); return hr >= 12 && hr < 18; }) },
+      { label: 'Noche',  hours: hours.filter(h => parseInt(h.time) >= 18) },
+    ];
+
+    section.innerHTML = groups.filter(g => g.hours.length).map(g => `
+      <div class="mb-5">
+        <p class="text-xs font-bold uppercase tracking-widest mb-3" style="color:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.5);">${g.label}</p>
+        <div class="flex flex-wrap gap-2">
+          ${g.hours.map(h => {
+            const occupied = h.occupied;
+            return `<button onclick="${occupied ? '' : `selectTime(this,'${h.time}')`}"
+              class="time-pill ${occupied ? '' : ''}"
+              ${occupied ? 'disabled' : ''}
+              data-time="${h.time}">
+              ${h.time}
+            </button>`;
+          }).join('')}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function selectTime(btn, time) {
+    document.querySelectorAll('.time-pill').forEach(el => {
+      el.classList.remove('selected');
+      el.style.background = '';
+      el.style.color = '';
+      el.style.borderColor = '';
+    });
+    btn.classList.add('selected');
+    _selectedTime = time;
+    updateContinueBtn();
+    updateRecap();
+    document.getElementById('btnContinue')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  /* ── Slot locks realtime ────────────────────────────────────────── */
+  function subscribeSlotLocks(fecha) {
+    if (_unsubSlotLocks) { _unsubSlotLocks(); _unsubSlotLocks = null; }
+    if (!fecha || typeof FDB === 'undefined' || !FDB.onSlotLocksChange) return;
+    _unsubSlotLocks = FDB.onSlotLocksChange(fecha, () => {
+      if (currentStep !== 2) return;
+      const prev = _selectedTime;
+      renderHours();
+      if (prev) {
+        setTimeout(() => {
+          const pill = [...document.querySelectorAll('.time-pill')].find(p => p.dataset.time === prev);
+          if (pill && !pill.disabled) {
+            selectTime(pill, prev);
+          } else if (prev) {
+            _selectedTime = null;
+            updateContinueBtn();
+            showToast('La hora que elegiste fue tomada. Selecciona otra.');
+          }
+        }, 600);
+      }
+    });
+  }
+
+  /* ── Step navigation ────────────────────────────────────────────── */
+  async function nextStep() {
+    if (isTransitioning) return;
+
+    if (currentStep === 1) {
+      if (!_selectedService) return showToast('Selecciona un servicio para continuar.');
+      // Load barber config + bloqueos, then render calendar
+      try {
+        const [barCfg] = await Promise.all([
+          FDB.getConfigBarbero(_barberoId),
+          precargarBloqueos(),
+        ]);
+        _barberConfig = barCfg;
+      } catch(e) { _barberConfig = null; }
+      renderCalendar();
+      renderHours();
+      subscribeSlotLocks(_selectedDate);
+      document.getElementById('clubBanner').classList.add('hidden');
+      transitionStep(1, 2);
+      currentStep = 2;
+      updateProgress();
+      updateContinueBtn();
+
+    } else if (currentStep === 2) {
+      if (!_selectedTime) return showToast('Elige una hora disponible para continuar.');
+      if (_unsubSlotLocks) { _unsubSlotLocks(); _unsubSlotLocks = null; }
+
+      document.getElementById('summaryService').textContent = _selectedService.nombre;
+      document.getElementById('summaryPrice').textContent   = formatPrice(_selectedService.precio);
+      document.getElementById('summaryBarber').textContent  = _barberoNombre;
+      document.getElementById('summaryDate').textContent    = _selectedDate;
+      document.getElementById('summaryTime').textContent    = _selectedTime;
+
+      // Prefill from Firebase auth
+      const user = firebase.auth().currentUser;
+      if (user) {
+        try {
+          const doc = await FDB.usersCol().doc(user.uid).get();
+          const data = doc.exists ? doc.data() : {};
+          if (data.nombre && !document.getElementById('clientName').value)
+            document.getElementById('clientName').value = data.nombre;
+          if (data.telefono && !document.getElementById('clientPhone').value)
+            document.getElementById('clientPhone').value = data.telefono;
+          if (user.email && !document.getElementById('clientEmail').value)
+            document.getElementById('clientEmail').value = user.email;
+        } catch(e) {}
+      }
+
+      transitionStep(2, 3);
+      currentStep = 3;
+      updateProgress();
+      updateContinueBtn();
+
+    } else if (currentStep === 3) {
+      await submitBooking();
+    }
+  }
+
+  /* ── Booking submission ─────────────────────────────────────────── */
+  async function submitBooking() {
+    const nombre   = document.getElementById('clientName').value.trim();
+    const telefono = document.getElementById('clientPhone').value.trim();
+    const email    = document.getElementById('clientEmail').value.trim();
+
+    if (!nombre)    return showToast('Por favor, ingresa tu nombre.');
+    if (!telefono)  return showToast('Por favor, ingresa tu teléfono.');
+    if (telefono.replace(/\D/g,'').length < 8)
+      return showToast('Ingresa un teléfono válido.');
+
+    // Spam guard
+    const SPAM_KEY = `${window.CURRENT_TENANT_ID || 'elegance'}_reservas_ts`;
+    const prevTs = JSON.parse(localStorage.getItem(SPAM_KEY) || '[]').filter(
+      t => Date.now() - t < 60 * 60 * 1000
+    );
+    if (prevTs.length >= 3) return showToast('Has hecho demasiadas reservas recientemente. Espera un momento.');
+
+    const btn = document.getElementById('btnContinue');
+    btn.disabled = true;
+    btn.innerHTML = '<div class="spinner" style="width:1.25rem;height:1.25rem;border-width:2px;margin:0 auto;"></div>';
+
+    try {
+      await FDB.addCita({
+        fecha:            _selectedDate,
+        hora:             _selectedTime,
+        clienteNombre:    nombre,
+        clienteTelefono:  telefono,
+        clienteEmail:     email || '',
+        servicioNombre:   _selectedService.nombre,
+        servicioId:       _selectedService.id,
+        duracionServicio: _selectedService.duracion,
+        barbero:          _barberoNombre,
+        barberoId:        _barberoId,
+        precio:           _selectedService.precio,
+        estado:           'Confirmada',
+        origen:           'barbero-page',
+      });
+
+      // Track for spam guard
+      localStorage.setItem(SPAM_KEY, JSON.stringify([...prevTs, Date.now()]));
+
+      showSuccess(nombre, telefono);
+    } catch(e) {
+      btn.disabled = false;
+      btn.innerHTML = 'Confirmar reserva <i class="ph-bold ph-check-circle text-lg"></i>';
+      const msg = e.code === 'slot-taken'
+        ? 'Esa hora ya fue tomada. Vuelve atrás y elige otra.'
+        : 'No se pudo confirmar la reserva. Intenta de nuevo.';
+      showToast(msg);
+    }
+  }
+
+  function showSuccess(clienteNombre, clienteTelefono) {
+    // Hide booking sections
+    ['step3','btnContinueBar'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.add('hidden');
+    });
+
+    // Show success
+    const ss = document.getElementById('successState');
+    ss.classList.remove('hidden');
+    ss.style.display = 'flex';
+
+    document.getElementById('successSvc').textContent =
+      `${_selectedService.nombre} con ${_barberoNombre}`;
+
+    const [y,m,d] = _selectedDate.split('-');
+    const DIAS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+    const dDate = new Date(_selectedDate + 'T12:00:00');
+    document.getElementById('successDate').innerHTML =
+      `<i class="ph-fill ph-calendar-blank"></i> ${DIAS[dDate.getDay()]} ${d}/${m} a las ${_selectedTime}`;
+
+    // WhatsApp
+    const shop   = typeof SHOP !== 'undefined' ? SHOP : {};
+    const waNum  = (shop.telefono || '').replace(/\D/g,'');
+    const waMsg  = encodeURIComponent(
+      `Hola ${_barberoNombre}, confirmé mi reserva en la app:\n` +
+      `📅 ${d}/${m} a las ${_selectedTime}\n✂️ ${_selectedService.nombre}\n👤 ${clienteNombre}`
+    );
+    const waBtn = document.getElementById('waBtnLink');
+    if (waNum) {
+      waBtn.href = `https://wa.me/${waNum}?text=${waMsg}`;
+      setTimeout(() => {
+        const p = window.open(waBtn.href, '_blank');
+        if (!p) waBtn.classList.add('animate-pulse');
+      }, 800);
+    } else {
+      waBtn.style.display = 'none';
+    }
+
+    // Instagram
+    const ig  = shop.instagram || '#';
+    const igh = shop.instagramHandle || '';
+    document.getElementById('successIG').href = ig;
+    document.getElementById('successIGHandle').textContent = igh;
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  /* ── Page initialization ────────────────────────────────────────── */
+  async function initPage() {
+    // Read slug from URL path (first segment)
+    const pathSlug = window.location.pathname.replace(/^\//, '').split('/')[0].toLowerCase();
+
+    // Apply tenant accent colors from SHOP config
+    if (typeof SHOP !== 'undefined') {
+      const accentMap = {
+        elegance:      { r:201, g:168, b:76  },
+        chameleon:     { r:201, g:168, b:76  },
+        ferraza:       { r:226, g:232, b:240 },
+        gitana:        { r:236, g:72,  b:153 },
+        mapubarbershop:{ r:191, g:163, b:126 },
+      };
+      const tid = window.CURRENT_TENANT_ID || 'elegance';
+      const ac  = accentMap[tid] || accentMap.elegance;
+      const root = document.documentElement;
+      root.style.setProperty('--accent',   `rgb(${ac.r},${ac.g},${ac.b})`);
+      root.style.setProperty('--accent-r', ac.r);
+      root.style.setProperty('--accent-g', ac.g);
+      root.style.setProperty('--accent-b', ac.b);
+      if (SHOP.bodyBg) root.style.setProperty('--body-bg', SHOP.bodyBg);
+      document.querySelector('meta[name="theme-color"]').content = SHOP.bodyBg || '#050505';
+
+      document.getElementById('backShopName').textContent = SHOP.nombreCorto || SHOP.nombre || 'Volver';
+      document.getElementById('shopNameLabel').textContent = SHOP.nombre || '';
+      document.getElementById('clubName').textContent = SHOP.club || '';
+      document.title = `Agendar hora | ${SHOP.nombre || ''}`;
+    }
+
+    // Load barberos + config
+    let barberos = [];
+    try {
+      [_fsConfig, barberos] = await Promise.all([
+        FDB.getConfig(),
+        FDB.getBarberos(),
+      ]);
+    } catch(e) {
+      barberos = [];
+    }
+
+    // Find the barber matching the slug
+    _barber = barberos.find(b => slugify(b.nombre) === pathSlug) || null;
+
+    // Fallback: partial first-name match
+    if (!_barber && pathSlug.length >= 3) {
+      _barber = barberos.find(b => slugify(b.nombre).startsWith(pathSlug)) || null;
+    }
+
+    const loading = document.getElementById('loadingState');
+    loading.classList.add('hidden');
+
+    if (!_barber || _barber.activo === false) {
+      document.getElementById('notFoundState').classList.remove('hidden');
+      return;
+    }
+
+    _barberoId     = _barber.id;
+    _barberoNombre = _barber.nombre;
+
+    // Render hero
+    document.getElementById('barberName').textContent = _barber.nombre;
+    const espEl = document.getElementById('barberEspecialidad');
+    if (_barber.especialidad) {
+      espEl.textContent = _barber.especialidad;
+      espEl.classList.remove('hidden');
+    }
+    const photoWrap = document.getElementById('barberPhotoWrap');
+    if (_barber.foto) {
+      photoWrap.innerHTML =
+        `<img src="${_barber.foto}" alt="${_barber.nombre}" class="w-full h-full object-cover">`;
+    }
+    if (_barber.disponible === false) {
+      const badge = document.getElementById('disponibleBadge');
+      badge.style.background = 'rgba(239,68,68,0.1)';
+      badge.style.border = '1px solid rgba(239,68,68,0.25)';
+      badge.style.color = '#f87171';
+      badge.innerHTML = '<i class="ph-fill ph-x-circle text-sm"></i> Sin disponibilidad hoy';
+    }
+
+    // Load services
+    const rawServices = await FDB.getServicios().catch(() => []);
+    _allServices = rawServices.filter(s => s.activo !== false);
+
+    renderCategories(_allServices);
+    renderServices(_allServices);
+
+    // Show main content
+    document.getElementById('mainContent').classList.remove('hidden');
+    document.getElementById('btnContinueBar').classList.remove('hidden');
+    updateProgress();
+    updateContinueBtn();
+
+    // Preload bloqueos in background
+    precargarBloqueos().catch(() => {});
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    // Hide continue bar until barber loads
+    document.getElementById('btnContinueBar').classList.add('hidden');
+    initPage().catch(e => {
+      console.error('[BarberoPage]', e);
+      document.getElementById('loadingState').classList.add('hidden');
+      document.getElementById('notFoundState').classList.remove('hidden');
+    });
+  });
+</script>
+</body>
+</html>

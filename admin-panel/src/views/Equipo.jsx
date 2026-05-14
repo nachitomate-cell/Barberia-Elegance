@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Calendar, Edit2, Trash2, PowerOff, User, ShieldCheck, MessageCircle,
   Upload, ChevronDown, Plus, X, Phone, Mail, Percent, Scissors,
-  CalendarOff, Clock, Check, KeyRound,
+  CalendarOff, Clock, Check, KeyRound, Link2, Copy,
 } from 'lucide-react';
 import { updateDoc, addDoc, deleteDoc, doc, serverTimestamp, deleteField } from 'firebase/firestore';
 import { sendPasswordResetEmail } from 'firebase/auth';
@@ -20,6 +20,28 @@ import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 
 /* ─── Constants ───────────────────────────────────────────── */
 const SUPPORT_EMAIL = 'ignaciiio.mate@gmail.com';
+
+const TENANT_DOMAINS = {
+  elegance:      'barberiaelegance.synaptechspa.cl',
+  ferraza:       'barberiaferraza.synaptechspa.cl',
+  gitana:        'gitananails.synaptechspa.cl',
+  mapubarbershop:'mapubarbershop.synaptechspa.cl',
+  chameleon:     'chameleonbarber.synaptechspa.cl',
+};
+
+function slugify(str) {
+  return String(str)
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .toLowerCase().trim()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '');
+}
+
+function barberPublicUrl(nombre) {
+  const tid    = resolveTenantId();
+  const domain = TENANT_DOMAINS[tid] ?? window.location.hostname;
+  return `https://${domain}/${slugify(nombre)}`;
+}
 
 const DIAS_LABELS = { '1':'Lunes','2':'Martes','3':'Miércoles','4':'Jueves','5':'Viernes','6':'Sábado','0':'Domingo' };
 const DIAS_ORDER  = ['1','2','3','4','5','6','0'];
@@ -148,6 +170,36 @@ function DayRow({ diaKey, config, onChange }) {
   );
 }
 
+/* ─── BookingUrlButton ───────────────────────────────────── */
+function BookingUrlButton({ nombre }) {
+  const [copied, setCopied] = useState(false);
+  const url = barberPublicUrl(nombre);
+
+  function copyUrl(e) {
+    e.stopPropagation();
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  return (
+    <div className="flex items-center w-full gap-1">
+      <a href={url} target="_blank" rel="noopener noreferrer"
+        className="flex-1 flex items-center gap-1.5 justify-center px-3 py-1.5 bg-slate-800/60 hover:bg-slate-800 text-slate-500 hover:text-emerald-400 text-[11px] font-medium rounded-lg border border-slate-800 hover:border-emerald-900/60 transition-all truncate"
+        title={url}>
+        <Link2 size={11} />
+        <span className="truncate">/{slugify(nombre)}</span>
+      </a>
+      <button onClick={copyUrl}
+        className="shrink-0 flex items-center justify-center w-7 h-7 rounded-lg bg-slate-800/60 hover:bg-slate-800 border border-slate-800 text-slate-500 hover:text-white transition-all"
+        title="Copiar enlace">
+        {copied ? <Check size={11} className="text-emerald-400" /> : <Copy size={11} />}
+      </button>
+    </div>
+  );
+}
+
 /* ─── BarberCard ─────────────────────────────────────────── */
 function BarberCard({ barber, onEdit, waUrl, onVerAgenda, sucursales = [] }) {
   const isActive      = barber.disponible !== false;
@@ -208,6 +260,10 @@ function BarberCard({ barber, onEdit, waUrl, onVerAgenda, sucursales = [] }) {
           className="mt-1 flex items-center gap-1.5 w-full justify-center px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold rounded-lg border border-slate-700 transition-all">
           <Calendar size={13} /> Ver Agenda
         </button>
+      )}
+
+      {!isSupportAdmin && barber.nombre && (
+        <BookingUrlButton nombre={barber.nombre} />
       )}
     </div>
   );
