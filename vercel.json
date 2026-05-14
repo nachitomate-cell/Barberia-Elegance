@@ -27,11 +27,6 @@
     }
   ],
   "rewrites": [
-    {
-      "source": "/((?!gestion-interna|sw\\.js|workbox|assets|registerSW|manifest).*)",
-      "has": [{ "type": "host", "value": "deluxeperfumes.synaptechspa.cl" }],
-      "destination": "/catalogo.html"
-    },
     { "source": "/favicon.ico",            "destination": "/logo.jpg" },
     { "source": "/dashboard",              "destination": "/dashboard.html" },
     { "source": "/registro",               "destination": "/registro.html" },
@@ -41,6 +36,16 @@
     { "source": "/gestion-interna",        "destination": "/gestion-interna/index.html" },
     { "source": "/gestion-interna/:path*", "destination": "/gestion-interna/index.html" },
     { "source": "/catalogo",               "destination": "/catalogo.html" },
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "deluxeperfumes.synaptechspa.cl" }],
+      "destination": "/catalogo.html"
+    },
+    {
+      "source": "/:path+",
+      "has": [{ "type": "host", "value": "deluxeperfumes.synaptechspa.cl" }],
+      "destination": "/catalogo.html"
+    },
     { "source": "/:slug", "destination": "/barbero.html" }
   ]
 }
