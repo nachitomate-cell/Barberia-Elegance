@@ -268,6 +268,14 @@
       animation: drawCheck 0.45s cubic-bezier(0.16,1,0.3,1) 0.45s forwards;
     }
 
+    /* Sello Chameleon – Paso 4 */
+    .sello-chameleon-wrap { display: none; }
+    @keyframes selloPopIn {
+      0%   { opacity: 0; transform: scale(0.35) rotate(-18deg); }
+      65%  { transform: scale(1.12) rotate(4deg); }
+      100% { opacity: 1; transform: scale(1) rotate(0deg); }
+    }
+
     /* ═══════════════════════════════════════════════════════════════
        GITANA NAILS — PREMIUM BOHO-CHIC v3
        Elegante · Femenino · Glassmorphism · Sin glows
@@ -1213,6 +1221,19 @@
       background-color: rgba(var(--neon-r),var(--neon-g),var(--neon-b),0.1) !important;
     }
 
+    .tenant-chameleon .sello-chameleon-wrap {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 1.25rem;
+    }
+    .tenant-chameleon .sello-chameleon-img {
+      width: 6.5rem;
+      height: 6.5rem;
+      object-fit: contain;
+      animation: selloPopIn 0.65s cubic-bezier(0.16, 1, 0.3, 1) 0.5s both;
+      filter: drop-shadow(0 0 14px rgba(218,165,32,0.40));
+    }
+
     /* WhatsApp CTA: sólido verde para elegance */
     #waBtnLink {
       background-color: #25D366 !important;
@@ -1369,6 +1390,10 @@
       <section id="step4" class="hidden opacity-0 transform translate-x-12">
         <h2 class="text-2xl font-bold text-neon tracking-tight mb-1">Último paso</h2>
         <p class="text-[13px] text-gray-500 mb-5">Ingresa tus datos y confirma tu reserva.</p>
+
+        <div class="sello-chameleon-wrap">
+          <img src="/sellochamaleon.png" alt="" class="sello-chameleon-img">
+        </div>
 
         <!-- ── Cross-selling productos (inyectado por JS si productosActivos) ── -->
         <div id="step4XSell" class="hidden mb-5"></div>
