@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Membresías · Deluxe Perfumes</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+
+  <style>
+    :root {
+      --gold: #C9A84C; --gold-rgb: 201, 168, 76; --gold-light: #E8D5A3;
+      --gold-dim: rgba(201,168,76,0.1); --gold-border: rgba(201,168,76,0.18);
+      --bg: #070500; --surface: #0C0904; --card: #121008;
+      --border: rgba(201,168,76,0.1); --text: #F0E6CC; --text-sec: #9A8A5C;
+      --text-muted: #544A32; --red: #D94F4F; --green: #27C96F;
+      --serif: 'Cormorant Garamond', Georgia, serif;
+      --sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg); color: var(--text);
+      font-family: var(--sans); min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Header ── */
+    .hdr {
+      position: sticky; top: 0; z-index: 40;
+      background: rgba(7,5,0,0.94);
+      backdrop-filter: blur(20px) saturate(160%);
+      -webkit-backdrop-filter: blur(20px) saturate(160%);
+      border-bottom: 1px solid var(--border);
+      padding: 0 1.25rem;
+    }
+    .hdr-inner {
+      max-width: 1100px; margin: 0 auto;
+      display: flex; align-items: center; gap: 1rem;
+      height: 60px;
+    }
+    .hdr-back {
+      display: flex; align-items: center; gap: 0.35rem;
+      color: var(--text-sec); text-decoration: none;
+      font-size: 0.8rem; letter-spacing: 0.04em;
+      transition: color .2s;
+    }
+    .hdr-back:hover { color: var(--gold); }
+    .hdr-divider { width: 1px; height: 24px; background: var(--border); }
+    .hdr-titles { flex: 1; }
+    .hdr-title {
+      font-family: var(--serif); font-size: 1.25rem; font-weight: 600;
+      color: var(--gold); line-height: 1.1;
+    }
+    .hdr-sub { font-size: 0.7rem; color: var(--text-muted); letter-spacing: 0.12em; text-transform: uppercase; margin-top: 1px; }
+
+    /* ── Layout ── */
+    .page { max-width: 1100px; margin: 0 auto; padding: 1.5rem 1.25rem 4rem; }
+
+    /* ── Metrics row ── */
+    .metrics {
+      display: flex; gap: 0.75rem;
+      overflow-x: auto; -webkit-overflow-scrolling: touch;
+      padding-bottom: 0.25rem; margin-bottom: 1.75rem;
+      scrollbar-width: none;
+    }
+    .metrics::-webkit-scrollbar { display: none; }
+    .metric-card {
+      flex: 0 0 auto; min-width: 160px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 1.1rem 1.25rem;
+    }
+    .metric-label {
+      font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--text-muted); margin-bottom: 0.5rem;
+    }
+    .metric-val {
+      font-family: var(--serif); font-size: 2rem; font-weight: 600;
+      color: var(--gold); line-height: 1;
+    }
+    .metric-val.warn { color: var(--red); }
+    .metric-icon {
+      font-size: 1.1rem; color: var(--text-muted); margin-bottom: 0.4rem; display: block;
+    }
+
+    /* ── Section cards ── */
+    .section { margin-bottom: 1.5rem; }
+    .section-hdr {
+      display: flex; align-items: center; gap: 0.6rem;
+      margin-bottom: 1rem; cursor: pointer; user-select: none;
+    }
+    .section-hdr h2 {
+      font-family: var(--serif); font-size: 1.2rem; font-weight: 600;
+      color: var(--gold-light); flex: 1;
+    }
+    .section-hdr .toggle-icon { color: var(--text-muted); font-size: 1rem; transition: transform .25s; }
+    .section-hdr.collapsed .toggle-icon { transform: rotate(-90deg); }
+    .section-body { }
+    .section-body.hidden { display: none; }
+
+    .card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 1.25rem 1.5rem;
+    }
+
+    /* ── Form ── */
+    .form-row { display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 0.9rem; }
+    .form-group { display: flex; flex-direction: column; gap: 0.4rem; flex: 1; min-width: 160px; }
+    label { font-size: 0.72rem; color: var(--text-sec); letter-spacing: 0.07em; text-transform: uppercase; }
+    input[type="email"], input[type="text"], input[type="date"],
+    select, textarea {
+      background: var(--surface); border: 1px solid var(--gold-border);
+      border-radius: 8px; color: var(--text); font-family: var(--sans);
+      font-size: 0.9rem; padding: 0.65rem 0.9rem;
+      outline: none; transition: border-color .2s;
+      width: 100%;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--gold); }
+    input::placeholder, textarea::placeholder { color: var(--text-muted); }
+    select option { background: #1a1500; }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      min-height: 44px; padding: 0 1.2rem;
+      border-radius: 8px; border: none; cursor: pointer;
+      font-family: var(--sans); font-size: 0.85rem; font-weight: 600;
+      letter-spacing: 0.03em; transition: opacity .2s, transform .1s;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-gold { background: var(--gold); color: #070500; }
+    .btn-gold:hover:not(:disabled) { opacity: 0.88; }
+    .btn-outline {
+      background: transparent; border: 1px solid var(--gold-border);
+      color: var(--text-sec);
+    }
+    .btn-outline:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); }
+    .btn-danger { background: rgba(217,79,79,0.15); border: 1px solid rgba(217,79,79,0.3); color: var(--red); }
+    .btn-danger:hover:not(:disabled) { background: rgba(217,79,79,0.25); }
+    .btn-sm { min-height: 36px; padding: 0 0.85rem; font-size: 0.78rem; }
+
+    /* ── Found client box ── */
+    .found-box {
+      display: none; background: var(--gold-dim); border: 1px solid var(--gold-border);
+      border-radius: 10px; padding: 1rem 1.25rem; margin: 0.9rem 0;
+    }
+    .found-box.visible { display: block; }
+    .found-name { font-family: var(--serif); font-size: 1.05rem; color: var(--gold-light); }
+    .found-detail { font-size: 0.78rem; color: var(--text-sec); margin-top: 0.2rem; }
+
+    /* ── Members table desktop ── */
+    .tbl-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+    th {
+      text-align: left; padding: 0.6rem 0.9rem;
+      font-size: 0.67rem; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--text-muted); border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    td {
+      padding: 0.7rem 0.9rem; border-bottom: 1px solid rgba(201,168,76,0.06);
+      vertical-align: middle;
+    }
+    tr.row-warn td { background: rgba(217,79,79,0.06); }
+    tr:last-child td { border-bottom: none; }
+    .plan-badge {
+      display: inline-block; padding: 0.2rem 0.55rem; border-radius: 99px;
+      font-size: 0.68rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+    }
+    .plan-basico { background: var(--gold-dim); color: var(--gold); border: 1px solid var(--gold-border); }
+    .plan-premium { background: rgba(201,168,76,0.2); color: var(--gold-light); border: 1px solid rgba(201,168,76,0.35); }
+    .td-actions { display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap; }
+
+    /* ── Member cards mobile ── */
+    .member-cards { display: none; flex-direction: column; gap: 0.75rem; }
+    .member-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 1rem 1.1rem;
+    }
+    .member-card.warn { border-color: rgba(217,79,79,0.3); }
+    .mc-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 0.6rem; }
+    .mc-name { font-family: var(--serif); font-size: 1rem; color: var(--text); }
+    .mc-meta { font-size: 0.75rem; color: var(--text-sec); margin-top: 0.25rem; }
+    .mc-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.75rem; }
+
+    @media (max-width: 720px) {
+      .tbl-wrap { display: none; }
+      .member-cards { display: flex; }
+    }
+
+    /* ── Skeleton ── */
+    .skeleton-row {
+      display: flex; flex-direction: column; gap: 0.6rem; padding: 0.5rem 0;
+    }
+    .skel {
+      background: linear-gradient(90deg, var(--surface) 25%, rgba(201,168,76,0.06) 50%, var(--surface) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      border-radius: 6px; height: 14px;
+    }
+    @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+    .skel.w60 { width: 60%; } .skel.w40 { width: 40%; } .skel.w80 { width: 80%; }
+
+    /* ── Pagos list ── */
+    .pago-item {
+      display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;
+      padding: 0.75rem 0; border-bottom: 1px solid rgba(201,168,76,0.06);
+    }
+    .pago-item:last-child { border-bottom: none; }
+    .pago-name { font-size: 0.88rem; color: var(--text); flex: 1; min-width: 120px; }
+    .pago-detail { font-size: 0.75rem; color: var(--text-sec); }
+    .pago-monto { font-family: var(--serif); font-size: 1rem; color: var(--gold); white-space: nowrap; }
+    .estado-badge {
+      font-size: 0.65rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+      padding: 0.18rem 0.5rem; border-radius: 99px;
+    }
+    .estado-activo { background: rgba(39,201,111,0.15); color: var(--green); }
+    .estado-vencido { background: rgba(217,79,79,0.15); color: var(--red); }
+    .estado-cancelado { background: rgba(84,74,50,0.35); color: var(--text-muted); }
+
+    /* ── Chat / Votacion ── */
+    .chat-row { display: flex; gap: 0.75rem; align-items: flex-end; flex-wrap: wrap; }
+    .chat-row textarea { flex: 1; min-width: 200px; resize: vertical; min-height: 70px; }
+    .toggle-tipo {
+      display: flex; border: 1px solid var(--gold-border); border-radius: 8px; overflow: hidden;
+    }
+    .toggle-tipo button {
+      flex: 1; background: transparent; color: var(--text-sec); border: none;
+      padding: 0.5rem 0.9rem; font-family: var(--sans); font-size: 0.78rem; cursor: pointer;
+      transition: background .2s, color .2s; white-space: nowrap;
+    }
+    .toggle-tipo button.active { background: var(--gold-dim); color: var(--gold); }
+    .votacion-opciones { display: flex; flex-direction: column; gap: 0.5rem; margin: 0.75rem 0; }
+    .opcion-row { display: flex; gap: 0.5rem; align-items: center; }
+    .opcion-row input { flex: 1; }
+    .opcion-row .btn-rm {
+      background: transparent; border: none; color: var(--text-muted);
+      cursor: pointer; font-size: 1rem; padding: 0.3rem; min-height: unset;
+    }
+    .opcion-row .btn-rm:hover { color: var(--red); }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%);
+      z-index: 999; pointer-events: none; display: flex; flex-direction: column;
+      align-items: center; gap: 0.5rem;
+    }
+    .toast-msg {
+      background: var(--card); border: 1px solid var(--gold-border);
+      border-radius: 10px; padding: 0.65rem 1.25rem;
+      font-size: 0.84rem; color: var(--text);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+      animation: toastIn .25s ease forwards;
+      opacity: 0;
+    }
+    .toast-msg.ok { border-color: rgba(39,201,111,0.35); color: var(--green); }
+    .toast-msg.err { border-color: rgba(217,79,79,0.35); color: var(--red); }
+    @keyframes toastIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+    /* ── Denied view ── */
+    #view-denied {
+      display: none; flex-direction: column; align-items: center; justify-content: center;
+      height: 60vh; gap: 1rem; text-align: center;
+    }
+    #view-denied i { font-size: 3rem; color: var(--red); }
+    #view-denied h2 { font-family: var(--serif); font-size: 1.6rem; color: var(--text); }
+    #view-denied p { color: var(--text-sec); font-size: 0.88rem; }
+
+    /* ── Loading overlay ── */
+    #view-loading {
+      display: flex; align-items: center; justify-content: center;
+      height: 60vh; gap: 1rem; flex-direction: column;
+    }
+    .spinner {
+      width: 36px; height: 36px; border-radius: 50%;
+      border: 3px solid var(--gold-border); border-top-color: var(--gold);
+      animation: spin .8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    #view-main { display: none; }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="hdr">
+    <div class="hdr-inner">
+      <a href="/gestion-interna" class="hdr-back">
+        <i class="ph ph-arrow-left"></i> Gestion Interna
+      </a>
+      <div class="hdr-divider"></div>
+      <div class="hdr-titles">
+        <div class="hdr-title">Membresías · Deluxe Perfumes</div>
+        <div class="hdr-sub">Club Deluxe</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Loading -->
+  <div id="view-loading">
+    <div class="spinner"></div>
+    <div style="color:var(--text-sec);font-size:.85rem;">Verificando acceso…</div>
+  </div>
+
+  <!-- Denied -->
+  <div id="view-denied">
+    <i class="ph ph-lock"></i>
+    <h2>Acceso denegado</h2>
+    <p>Esta sección es solo para administradores de Deluxe Perfumes.</p>
+  </div>
+
+  <!-- Main content -->
+  <div id="view-main">
+    <div class="page">
+
+      <!-- ── Métricas ── -->
+      <div class="metrics">
+        <div class="metric-card">
+          <i class="ph ph-users metric-icon"></i>
+          <div class="metric-label">Miembros activos</div>
+          <div class="metric-val" id="met-activos">—</div>
+        </div>
+        <div class="metric-card">
+          <i class="ph ph-currency-circle-dollar metric-icon"></i>
+          <div class="metric-label">Ingresos este mes</div>
+          <div class="metric-val" id="met-ingresos">—</div>
+        </div>
+        <div class="metric-card">
+          <i class="ph ph-clock-countdown metric-icon"></i>
+          <div class="metric-label">Vencen esta semana</div>
+          <div class="metric-val warn" id="met-vencen">—</div>
+        </div>
+        <div class="metric-card">
+          <i class="ph ph-drop metric-icon"></i>
+          <div class="metric-label">Decants pendientes</div>
+          <div class="metric-val" id="met-decants">—</div>
+        </div>
+      </div>
+
+      <!-- ── Activar membresía ── -->
+      <div class="section">
+        <div class="section-hdr" onclick="toggleSection(this)">
+          <h2><i class="ph ph-plus-circle" style="margin-right:.4rem;font-size:1rem;"></i>Activar membresía manual</h2>
+          <i class="ph ph-caret-down toggle-icon"></i>
+        </div>
+        <div class="section-body">
+          <div class="card">
+            <div class="form-row">
+              <div class="form-group" style="flex:2;min-width:200px;">
+                <label>Email del cliente</label>
+                <input type="email" id="inp-email" placeholder="cliente@email.com">
+              </div>
+              <div class="form-group">
+                <label>Plan</label>
+                <select id="inp-plan">
+                  <option value="basico">Club Deluxe</option>
+                  <option value="premium">Club Deluxe Premium</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Período</label>
+                <select id="inp-periodo">
+                  <option value="mensual">Mensual</option>
+                  <option value="anual">Anual</option>
+                </select>
+              </div>
+            </div>
+            <button class="btn btn-outline" onclick="buscarCliente()">
+              <i class="ph ph-magnifying-glass"></i> Buscar cliente
+            </button>
+
+            <div class="found-box" id="found-box">
+              <div class="found-name" id="found-name">—</div>
+              <div class="found-detail" id="found-detail">—</div>
+            </div>
+
+            <div style="margin-top:1rem;">
+              <button class="btn btn-gold" id="btn-activar" disabled onclick="doActivar()">
+                <i class="ph ph-check-circle"></i> Activar / Renovar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Tabla miembros ── -->
+      <div class="section">
+        <div class="section-hdr" onclick="toggleSection(this)">
+          <h2><i class="ph ph-crown" style="margin-right:.4rem;font-size:1rem;"></i>Miembros activos</h2>
+          <i class="ph ph-caret-down toggle-icon"></i>
+        </div>
+        <div class="section-body">
+          <!-- Skeleton -->
+          <div id="members-skeleton" class="card">
+            <div class="skeleton-row">
+              <div class="skel w80"></div><div class="skel w60"></div><div class="skel w40"></div>
+            </div>
+            <div class="skeleton-row" style="margin-top:.5rem;">
+              <div class="skel w60"></div><div class="skel w80"></div><div class="skel w40"></div>
+            </div>
+            <div class="skeleton-row" style="margin-top:.5rem;">
+              <div class="skel w40"></div><div class="skel w80"></div><div class="skel w60"></div>
+            </div>
+          </div>
+
+          <!-- Desktop table -->
+          <div class="tbl-wrap card" id="members-table-wrap" style="display:none;padding:0;">
+            <table id="members-table">
+              <thead>
+                <tr>
+                  <th>Nombre</th><th>Plan</th><th>Inicio</th>
+                  <th>Vencimiento</th><th>Decants</th><th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody id="members-tbody"></tbody>
+            </table>
+          </div>
+
+          <!-- Mobile cards -->
+          <div class="member-cards" id="member-cards"></div>
+
+          <div id="members-empty" style="display:none;text-align:center;padding:2rem;color:var(--text-muted);font-size:.88rem;">
+            No hay miembros activos.
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Historial pagos ── -->
+      <div class="section">
+        <div class="section-hdr collapsed" onclick="toggleSection(this)">
+          <h2><i class="ph ph-receipt" style="margin-right:.4rem;font-size:1rem;"></i>Historial de pagos</h2>
+          <i class="ph ph-caret-down toggle-icon"></i>
+        </div>
+        <div class="section-body hidden">
+          <div class="card">
+            <div id="pagos-list">
+              <div style="color:var(--text-muted);font-size:.85rem;">Cargando pagos…</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Chat anuncio ── -->
+      <div class="section">
+        <div class="section-hdr" onclick="toggleSection(this)">
+          <h2><i class="ph ph-megaphone" style="margin-right:.4rem;font-size:1rem;"></i>Chat miembros — Enviar anuncio</h2>
+          <i class="ph ph-caret-down toggle-icon"></i>
+        </div>
+        <div class="section-body">
+          <div class="card">
+            <div class="toggle-tipo" style="margin-bottom:.9rem;max-width:260px;">
+              <button class="active" id="tipo-btn-mensaje" onclick="setTipo('mensaje')">Mensaje</button>
+              <button id="tipo-btn-anuncio" onclick="setTipo('anuncio')">Anuncio</button>
+            </div>
+            <div class="chat-row">
+              <textarea id="chat-texto" placeholder="Mensaje o anuncio para todos los miembros…"></textarea>
+            </div>
+            <div style="margin-top:.9rem;">
+              <button class="btn btn-gold" onclick="doPublicarChat()">
+                <i class="ph ph-paper-plane-tilt"></i> Publicar en chat
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Crear votación ── -->
+      <div class="section">
+        <div class="section-hdr" onclick="toggleSection(this)">
+          <h2><i class="ph ph-check-square" style="margin-right:.4rem;font-size:1rem;"></i>Crear votación</h2>
+          <i class="ph ph-caret-down toggle-icon"></i>
+        </div>
+        <div class="section-body">
+          <div class="card">
+            <div class="form-group" style="margin-bottom:.9rem;">
+              <label>Pregunta</label>
+              <input type="text" id="vot-pregunta" placeholder="¿Cuál es tu fragancia favorita?">
+            </div>
+            <div class="votacion-opciones" id="vot-opciones">
+              <div class="opcion-row">
+                <input type="text" placeholder="Opción 1" class="vot-op">
+                <button class="btn-rm" title="Eliminar" onclick="rmOpcion(this)"><i class="ph ph-x-circle"></i></button>
+              </div>
+              <div class="opcion-row">
+                <input type="text" placeholder="Opción 2" class="vot-op">
+                <button class="btn-rm" title="Eliminar" onclick="rmOpcion(this)"><i class="ph ph-x-circle"></i></button>
+              </div>
+            </div>
+            <button class="btn btn-outline btn-sm" style="margin-bottom:1rem;" onclick="addOpcion()">
+              <i class="ph ph-plus"></i> Agregar opción
+            </button>
+            <div class="form-group" style="margin-bottom:1rem;max-width:220px;">
+              <label>Fecha límite</label>
+              <input type="date" id="vot-fecha">
+            </div>
+            <button class="btn btn-gold" onclick="doCrearVotacion()">
+              <i class="ph ph-check-fat"></i> Crear votación
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /page -->
+  </div><!-- /view-main -->
+
+  <!-- Toast container -->
+  <div id="toast"></div>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="/config.js"></script>
+  <script src="/firebase-config.js?v=1.1"></script>
+
+  <script>
+  /* ─────────────────────────────────────────────
+     Globals
+  ───────────────────────────────────────────── */
+  const ADMIN_EMAIL = 'ignaciiio.mate@gmail.com';
+  const TENANT = 'deluxeperfumes';
+  let db, auth, currentUser;
+  let foundUid = null, foundNombre = null;
+  let chatTipo = 'mensaje';
+  let membersUnsub = null;
+
+  /* ─────────────────────────────────────────────
+     Helpers
+  ───────────────────────────────────────────── */
+  function fmtPrice(n) {
+    return '$' + Number(n).toLocaleString('es-CL');
+  }
+  function fmtDate(ts) {
+    if (!ts) return '—';
+    const d = ts.toDate ? ts.toDate() : new Date(ts);
+    return d.toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' });
+  }
+  function toast(msg, type = 'ok') {
+    const el = document.createElement('div');
+    el.className = 'toast-msg ' + type;
+    el.textContent = msg;
+    document.getElementById('toast').appendChild(el);
+    setTimeout(() => el.remove(), 3500);
+  }
+  function toggleSection(hdr) {
+    hdr.classList.toggle('collapsed');
+    const body = hdr.nextElementSibling;
+    body.classList.toggle('hidden');
+  }
+
+  /* ─────────────────────────────────────────────
+     Auth guard
+  ───────────────────────────────────────────── */
+  function initApp() {
+    db = firebase.firestore();
+    auth = firebase.auth();
+
+    auth.onAuthStateChanged(user => {
+      document.getElementById('view-loading').style.display = 'none';
+      if (!user || user.email !== ADMIN_EMAIL) {
+        document.getElementById('view-denied').style.display = 'flex';
+        return;
+      }
+      currentUser = user;
+      document.getElementById('view-main').style.display = 'block';
+      loadAll();
+    });
+  }
+
+  /* ─────────────────────────────────────────────
+     Load everything
+  ───────────────────────────────────────────── */
+  function loadAll() {
+    loadMetrics();
+    listenMembers();
+    loadPagos();
+  }
+
+  /* ─────────────────────────────────────────────
+     Metrics
+  ───────────────────────────────────────────── */
+  async function loadMetrics() {
+    try {
+      const now = new Date();
+      const weekAhead = new Date(now.getTime() + 7 * 86400000);
+      const inicioMes = new Date(now.getFullYear(), now.getMonth(), 1);
+      const finMes    = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
+      // Users
+      const usersSnap = await db.collection('tenants').doc(TENANT).collection('users')
+        .where('esMiembro', '==', true).get();
+
+      let activos = 0, vencenSemana = 0, decants = 0;
+      usersSnap.forEach(d => {
+        const dat = d.data();
+        const vence = dat.fechaVencimientoMembresia ? dat.fechaVencimientoMembresia.toDate() : null;
+        if (vence && vence > now) { activos++; }
+        if (vence && vence > now && vence <= weekAhead) { vencenSemana++; }
+        decants += (dat.decantsPendientes || 0);
+      });
+
+      document.getElementById('met-activos').textContent = activos;
+      document.getElementById('met-vencen').textContent = vencenSemana;
+      document.getElementById('met-decants').textContent = decants;
+
+      // Pagos del mes
+      const pagosSnap = await db.collection('membresias').doc(TENANT).collection('pagos')
+        .where('fechaPago', '>=', firebase.firestore.Timestamp.fromDate(inicioMes))
+        .where('fechaPago', '<=', firebase.firestore.Timestamp.fromDate(finMes))
+        .get();
+
+      let ingresos = 0;
+      pagosSnap.forEach(d => { ingresos += (d.data().monto || 0); });
+      document.getElementById('met-ingresos').textContent = fmtPrice(ingresos);
+    } catch (e) {
+      console.error('loadMetrics:', e);
+    }
+  }
+
+  /* ─────────────────────────────────────────────
+     Members realtime
+  ───────────────────────────────────────────── */
+  function listenMembers() {
+    if (membersUnsub) membersUnsub();
+    membersUnsub = db.collection('tenants').doc(TENANT).collection('users')
+      .where('esMiembro', '==', true)
+      .orderBy('fechaVencimientoMembresia', 'asc')
+      .onSnapshot(snap => {
+        document.getElementById('members-skeleton').style.display = 'none';
+        renderMembers(snap.docs);
+      }, err => {
+        console.error('listenMembers:', err);
+        document.getElementById('members-skeleton').style.display = 'none';
+        toast('No se pudo cargar la lista de miembros.', 'err');
+      });
+  }
+
+  function renderMembers(docs) {
+    const now = new Date();
+    const weekAhead = new Date(now.getTime() + 7 * 86400000);
+    const tbody = document.getElementById('members-tbody');
+    const cards = document.getElementById('member-cards');
+    const empty = document.getElementById('members-empty');
+    const tableWrap = document.getElementById('members-table-wrap');
+
+    tbody.innerHTML = '';
+    cards.innerHTML = '';
+
+    const valid = docs.filter(d => {
+      const v = d.data().fechaVencimientoMembresia;
+      return v && v.toDate() > now;
+    });
+
+    if (valid.length === 0) {
+      tableWrap.style.display = 'none';
+      empty.style.display = 'block';
+      return;
+    }
+    tableWrap.style.display = '';
+    empty.style.display = 'none';
+
+    valid.forEach(doc => {
+      const d = doc.data(), uid = doc.id;
+      const vence = d.fechaVencimientoMembresia ? d.fechaVencimientoMembresia.toDate() : null;
+      const isWarn = vence && vence <= weekAhead;
+      const planLabel = d.planMembresia === 'premium' ? 'Premium' : 'Básico';
+      const planClass = d.planMembresia === 'premium' ? 'plan-premium' : 'plan-basico';
+
+      // Desktop row
+      const tr = document.createElement('tr');
+      if (isWarn) tr.className = 'row-warn';
+      tr.innerHTML = `
+        <td>
+          <div style="font-weight:600;font-size:.88rem;">${d.nombre || '—'}</div>
+          <div style="font-size:.72rem;color:var(--text-muted);">${d.email || ''}</div>
+        </td>
+        <td><span class="plan-badge ${planClass}">${planLabel}</span></td>
+        <td style="white-space:nowrap;font-size:.8rem;color:var(--text-sec);">${fmtDate(d.fechaInicioMembresia)}</td>
+        <td style="white-space:nowrap;font-size:.8rem;${isWarn ? 'color:var(--red);font-weight:600;' : 'color:var(--text-sec);}'">${fmtDate(d.fechaVencimientoMembresia)}</td>
+        <td style="text-align:center;">${d.decantsPendientes > 0 ? `<span style="color:var(--gold);font-weight:700;">${d.decantsPendientes}</span>` : '<span style="color:var(--text-muted);">0</span>'}</td>
+        <td>
+          <div class="td-actions">
+            <button class="btn btn-outline btn-sm" onclick="extenderMes('${uid}')">
+              <i class="ph ph-plus"></i> +1 mes
+            </button>
+            ${d.planMembresia === 'premium' && d.decantsPendientes > 0 ? `
+            <button class="btn btn-outline btn-sm" onclick="decantEntregado('${uid}', ${d.decantsPendientes})">
+              <i class="ph ph-drop"></i> Decant
+            </button>` : ''}
+            <button class="btn btn-danger btn-sm" onclick="desactivar('${uid}', '${(d.nombre || '').replace(/'/g, "\\'")}')">
+              <i class="ph ph-x"></i> Desactivar
+            </button>
+          </div>
+        </td>`;
+      tbody.appendChild(tr);
+
+      // Mobile card
+      const card = document.createElement('div');
+      card.className = 'member-card' + (isWarn ? ' warn' : '');
+      card.innerHTML = `
+        <div class="mc-top">
+          <div>
+            <div class="mc-name">${d.nombre || '—'}</div>
+            <div class="mc-meta">${d.email || ''}</div>
+          </div>
+          <span class="plan-badge ${planClass}">${planLabel}</span>
+        </div>
+        <div class="mc-meta">
+          Inicio: ${fmtDate(d.fechaInicioMembresia)}<br>
+          Vence: <span style="${isWarn ? 'color:var(--red);font-weight:600;' : ''}">${fmtDate(d.fechaVencimientoMembresia)}</span>
+          ${d.decantsPendientes > 0 ? ` &nbsp;·&nbsp; <span style="color:var(--gold);">Decants: ${d.decantsPendientes}</span>` : ''}
+        </div>
+        <div class="mc-actions">
+          <button class="btn btn-outline btn-sm" onclick="extenderMes('${uid}')">
+            <i class="ph ph-plus"></i> +1 mes
+          </button>
+          ${d.planMembresia === 'premium' && d.decantsPendientes > 0 ? `
+          <button class="btn btn-outline btn-sm" onclick="decantEntregado('${uid}', ${d.decantsPendientes})">
+            <i class="ph ph-drop"></i> Decant entregado
+          </button>` : ''}
+          <button class="btn btn-danger btn-sm" onclick="desactivar('${uid}', '${(d.nombre || '').replace(/'/g, "\\'")}')">
+            <i class="ph ph-x"></i> Desactivar
+          </button>
+        </div>`;
+      cards.appendChild(card);
+    });
+  }
+
+  /* ─────────────────────────────────────────────
+     Member actions
+  ───────────────────────────────────────────── */
+  async function extenderMes(uid) {
+    try {
+      const ref = db.collection('tenants').doc(TENANT).collection('users').doc(uid);
+      const snap = await ref.get();
+      if (!snap.exists) { toast('Miembro no encontrado.', 'err'); return; }
+      const actual = snap.data().fechaVencimientoMembresia;
+      const base = actual ? actual.toDate() : new Date();
+      base.setMonth(base.getMonth() + 1);
+      await ref.update({ fechaVencimientoMembresia: firebase.firestore.Timestamp.fromDate(base) });
+      toast('Membresía extendida 1 mes.');
+    } catch (e) {
+      console.error('extenderMes:', e);
+      toast('No se pudo extender la membresía.', 'err');
+    }
+  }
+
+  async function decantEntregado(uid, actual) {
+    if (actual <= 0) return;
+    try {
+      await db.collection('tenants').doc(TENANT).collection('users').doc(uid)
+        .update({ decantsPendientes: firebase.firestore.FieldValue.increment(-1) });
+      toast('Decant marcado como entregado.');
+    } catch (e) {
+      console.error('decantEntregado:', e);
+      toast('No se pudo actualizar el decant.', 'err');
+    }
+  }
+
+  async function desactivar(uid, nombre) {
+    if (!confirm(`¿Desactivar la membresía de ${nombre}?\n\nEsta acción revoca su acceso al Club Deluxe.`)) return;
+    try {
+      await db.collection('tenants').doc(TENANT).collection('users').doc(uid)
+        .update({ esMiembro: false });
+      toast(`Membresía de ${nombre} desactivada.`);
+    } catch (e) {
+      console.error('desactivar:', e);
+      toast('No se pudo desactivar la membresía.', 'err');
+    }
+  }
+
+  /* ─────────────────────────────────────────────
+     Buscar cliente
+  ───────────────────────────────────────────── */
+  async function buscarCliente() {
+    const email = document.getElementById('inp-email').value.trim().toLowerCase();
+    if (!email) { toast('Ingresa un email.', 'err'); return; }
+    foundUid = null; foundNombre = null;
+    const box = document.getElementById('found-box');
+    box.classList.remove('visible');
+    document.getElementById('btn-activar').disabled = true;
+    try {
+      const snap = await db.collection('tenants').doc(TENANT).collection('users')
+        .where('email', '==', email).limit(1).get();
+      if (snap.empty) {
+        toast('No se encontró ningún cliente con ese email.', 'err');
+        return;
+      }
+      const doc = snap.docs[0];
+      const d = doc.data();
+      foundUid = doc.id;
+      foundNombre = d.nombre || email;
+      document.getElementById('found-name').textContent = d.nombre || '(sin nombre)';
+      const planActual = d.planMembresia ? (d.planMembresia === 'premium' ? 'Club Deluxe Premium' : 'Club Deluxe') : 'Sin membresía';
+      const vence = d.fechaVencimientoMembresia ? fmtDate(d.fechaVencimientoMembresia) : '—';
+      document.getElementById('found-detail').textContent = `Plan actual: ${planActual} · Vence: ${vence}`;
+      box.classList.add('visible');
+      document.getElementById('btn-activar').disabled = false;
+    } catch (e) {
+      console.error('buscarCliente:', e);
+      toast('Error al buscar el cliente.', 'err');
+    }
+  }
+
+  /* ─────────────────────────────────────────────
+     activarMembresia
+  ───────────────────────────────────────────── */
+  async function activarMembresia(uid, plan, periodo) {
+    const ahora = new Date();
+    const vence = new Date(ahora);
+    if (periodo === 'mensual') vence.setMonth(vence.getMonth() + 1);
+    else vence.setFullYear(vence.getFullYear() + 1);
+
+    const montos = { basico: { mensual: 3990, anual: 39900 }, premium: { mensual: 7990, anual: 69990 } };
+    const batch = db.batch();
+
+    const userRef = db.collection('tenants').doc(TENANT).collection('users').doc(uid);
+    batch.set(userRef, {
+      esMiembro: true,
+      planMembresia: plan,
+      fechaInicioMembresia: firebase.firestore.Timestamp.fromDate(ahora),
+      fechaVencimientoMembresia: firebase.firestore.Timestamp.fromDate(vence),
+      puntosMultiplicador: 2,
+      decantsPendientes: plan === 'premium' ? firebase.firestore.FieldValue.increment(1) : 0,
+      noRenovar: false,
+      membresiaActivadaEn: firebase.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
+
+    const pagoRef = db.collection('membresias').doc(TENANT).collection('pagos').doc();
+    batch.set(pagoRef, {
+      clienteId: uid,
+      clienteNombre: foundNombre || '',
+      clienteEmail: document.getElementById('inp-email').value.trim().toLowerCase(),
+      plan,
+      monto: montos[plan][periodo],
+      periodo,
+      fechaPago: firebase.firestore.Timestamp.fromDate(ahora),
+      fechaVencimiento: firebase.firestore.Timestamp.fromDate(vence),
+      metodoPago: 'manual',
+      estado: 'activo',
+    });
+
+    await batch.commit();
+  }
+
+  async function doActivar() {
+    if (!foundUid) { toast('Primero busca un cliente.', 'err'); return; }
+    const plan = document.getElementById('inp-plan').value;
+    const periodo = document.getElementById('inp-periodo').value;
+    const btn = document.getElementById('btn-activar');
+    btn.disabled = true;
+    try {
+      await activarMembresia(foundUid, plan, periodo);
+      toast('Membresía activada / renovada correctamente.');
+      document.getElementById('found-box').classList.remove('visible');
+      document.getElementById('inp-email').value = '';
+      foundUid = null; foundNombre = null;
+      loadMetrics();
+    } catch (e) {
+      console.error('doActivar:', e);
+      toast('No se pudo activar la membresía.', 'err');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  /* ─────────────────────────────────────────────
+     Historial pagos
+  ───────────────────────────────────────────── */
+  async function loadPagos() {
+    try {
+      const snap = await db.collection('membresias').doc(TENANT).collection('pagos')
+        .orderBy('fechaPago', 'desc').limit(20).get();
+      const list = document.getElementById('pagos-list');
+      if (snap.empty) { list.innerHTML = '<div style="color:var(--text-muted);font-size:.85rem;">Sin pagos registrados.</div>'; return; }
+      list.innerHTML = '';
+      snap.forEach(doc => {
+        const d = doc.data();
+        const planLabel = d.plan === 'premium' ? 'Club Deluxe Premium' : 'Club Deluxe';
+        const periodLabel = d.periodo === 'anual' ? 'Anual' : 'Mensual';
+        const estadoClass = d.estado === 'activo' ? 'estado-activo' : d.estado === 'vencido' ? 'estado-vencido' : 'estado-cancelado';
+        const item = document.createElement('div');
+        item.className = 'pago-item';
+        item.innerHTML = `
+          <div class="pago-name">
+            ${d.clienteNombre || d.clienteEmail || '—'}
+            <div class="pago-detail">${d.clienteEmail || ''}</div>
+          </div>
+          <div class="pago-detail">${planLabel} · ${periodLabel}</div>
+          <div class="pago-monto">${fmtPrice(d.monto)}</div>
+          <div class="pago-detail">${fmtDate(d.fechaPago)}</div>
+          <span class="estado-badge ${estadoClass}">${d.estado || '—'}</span>`;
+        list.appendChild(item);
+      });
+    } catch (e) {
+      console.error('loadPagos:', e);
+      document.getElementById('pagos-list').innerHTML = '<div style="color:var(--text-muted);font-size:.85rem;">No se pudo cargar el historial.</div>';
+    }
+  }
+
+  /* ─────────────────────────────────────────────
+     Chat
+  ───────────────────────────────────────────── */
+  function setTipo(tipo) {
+    chatTipo = tipo;
+    document.getElementById('tipo-btn-mensaje').classList.toggle('active', tipo === 'mensaje');
+    document.getElementById('tipo-btn-anuncio').classList.toggle('active', tipo === 'anuncio');
+  }
+
+  async function publicarEnChat(texto, tipo) {
+    await db.collection('chats').doc(TENANT).collection('miembros').add({
+      autorId: currentUser.uid,
+      autorNombre: 'Deluxe Team',
+      esDueno: true,
+      texto,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+      tipo,
+    });
+  }
+
+  async function doPublicarChat() {
+    const texto = document.getElementById('chat-texto').value.trim();
+    if (!texto) { toast('Escribe un mensaje antes de publicar.', 'err'); return; }
+    try {
+      await publicarEnChat(texto, chatTipo);
+      document.getElementById('chat-texto').value = '';
+      toast('Mensaje publicado en el chat de miembros.');
+    } catch (e) {
+      console.error('doPublicarChat:', e);
+      toast('No se pudo publicar el mensaje.', 'err');
+    }
+  }
+
+  /* ─────────────────────────────────────────────
+     Votación
+  ───────────────────────────────────────────── */
+  function addOpcion() {
+    const cont = document.getElementById('vot-opciones');
+    const rows = cont.querySelectorAll('.opcion-row');
+    if (rows.length >= 5) { toast('Máximo 5 opciones.', 'err'); return; }
+    const row = document.createElement('div');
+    row.className = 'opcion-row';
+    const n = rows.length + 1;
+    row.innerHTML = `
+      <input type="text" placeholder="Opción ${n}" class="vot-op">
+      <button class="btn-rm" title="Eliminar" onclick="rmOpcion(this)"><i class="ph ph-x-circle"></i></button>`;
+    cont.appendChild(row);
+  }
+
+  function rmOpcion(btn) {
+    const cont = document.getElementById('vot-opciones');
+    if (cont.querySelectorAll('.opcion-row').length <= 2) { toast('Mínimo 2 opciones.', 'err'); return; }
+    btn.closest('.opcion-row').remove();
+  }
+
+  async function doCrearVotacion() {
+    const pregunta = document.getElementById('vot-pregunta').value.trim();
+    const fecha = document.getElementById('vot-fecha').value;
+    if (!pregunta) { toast('Escribe una pregunta para la votación.', 'err'); return; }
+    if (!fecha) { toast('Selecciona una fecha límite.', 'err'); return; }
+
+    const opInputs = document.querySelectorAll('#vot-opciones .vot-op');
+    const opciones = [];
+    opInputs.forEach(inp => { if (inp.value.trim()) opciones.push(inp.value.trim()); });
+    if (opciones.length < 2) { toast('Agrega al menos 2 opciones con texto.', 'err'); return; }
+
+    const fechaLimite = new Date(fecha + 'T23:59:59');
+    const votos = {};
+    opciones.forEach((_, i) => { votos[i] = []; });
+
+    try {
+      await db.collection('chats').doc(TENANT).collection('miembros').add({
+        autorId: currentUser.uid,
+        autorNombre: 'Deluxe Team',
+        esDueno: true,
+        tipo: 'votacion',
+        pregunta,
+        opciones,
+        votos,
+        fechaLimite: firebase.firestore.Timestamp.fromDate(fechaLimite),
+        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+      });
+      toast('Votación creada y publicada en el chat.');
+      document.getElementById('vot-pregunta').value = '';
+      document.getElementById('vot-fecha').value = '';
+      const cont = document.getElementById('vot-opciones');
+      cont.innerHTML = `
+        <div class="opcion-row">
+          <input type="text" placeholder="Opción 1" class="vot-op">
+          <button class="btn-rm" title="Eliminar" onclick="rmOpcion(this)"><i class="ph ph-x-circle"></i></button>
+        </div>
+        <div class="opcion-row">
+          <input type="text" placeholder="Opción 2" class="vot-op">
+          <button class="btn-rm" title="Eliminar" onclick="rmOpcion(this)"><i class="ph ph-x-circle"></i></button>
+        </div>`;
+    } catch (e) {
+      console.error('doCrearVotacion:', e);
+      toast('No se pudo crear la votación.', 'err');
+    }
+  }
+
+  /* ─────────────────────────────────────────────
+     Boot
+  ───────────────────────────────────────────── */
+  window.addEventListener('DOMContentLoaded', () => {
+    // Wait for Firebase to be ready (firebase-config.js inits the app)
+    const ready = () => {
+      if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0) {
+        initApp();
+      } else {
+        setTimeout(ready, 80);
+      }
+    };
+    ready();
+  });
+  </script>
+</body>
+</html>

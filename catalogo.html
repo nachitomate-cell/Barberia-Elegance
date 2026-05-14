@@ -243,6 +243,31 @@
       text-decoration: line-through;
     }
 
+    /* ── Member pricing ──────────────────────────────────────────────── */
+    .badge-member-price {
+      display: block; width: fit-content;
+      font-size: 0.5rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.07em; padding: 0.15rem 0.45rem;
+      border-radius: var(--r-pill);
+      background: var(--gold-dim); border: 1px solid var(--gold-border);
+      color: var(--gold); margin-top: 0.25rem;
+    }
+    .member-incentive {
+      font-size: 0.5625rem; color: var(--text-muted);
+      font-weight: 600; margin-top: 0.25rem; letter-spacing: 0.02em;
+    }
+    .detail-member-price {
+      font-size: 0.75rem; color: var(--text-sec); margin-top: 0.375rem;
+      display: flex; align-items: center; gap: 0.375rem;
+    }
+    .detail-member-badge {
+      font-size: 0.5625rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.07em; padding: 0.15rem 0.5rem;
+      border-radius: var(--r-pill);
+      background: var(--gold-dim); border: 1px solid var(--gold-border);
+      color: var(--gold);
+    }
+
     /* ── Skeleton ────────────────────────────────────────────────────── */
     .skel-card {
       background: var(--card); border: 1px solid var(--border);
@@ -464,6 +489,7 @@
       <p id="detail-brand" class="detail-brand"></p>
       <h2 id="detail-name" class="detail-name"></h2>
       <div id="detail-price-row" class="detail-price-row"></div>
+      <div id="detail-member-note" class="detail-member-price" style="display:none"></div>
       <p id="detail-desc" class="detail-desc"></p>
       <div class="detail-divider"></div>
       <div id="detail-actions"></div>
@@ -472,6 +498,7 @@
 
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <script src="/config.js"></script>
   <script src="/firebase-config.js?v=1.1"></script>
@@ -479,10 +506,31 @@
   <script>
     const TENANT_ID = new URLSearchParams(location.search).get('local') || 'deluxeperfumes';
 
-    let _all     = [];
-    let _cat     = 'all';
-    let _q       = '';
-    let _waPhone = '';
+    let _all            = [];
+    let _cat            = 'all';
+    let _q              = '';
+    let _waPhone        = '';
+    let _isMember       = false;
+    let _memberDiscount = 0;   // 10 para basico, 15 para premium
+    let _memberPlan     = null;
+
+    // ── Membership check ──────────────────────────────────────────────
+    firebase.auth().onAuthStateChanged(async (user) => {
+      if (!user) return;
+      try {
+        const snap = await db.collection('tenants').doc(TENANT_ID)
+          .collection('users').doc(user.uid).get();
+        if (!snap.exists) return;
+        const d = snap.data();
+        const vence = d.fechaVencimientoMembresia?.toDate();
+        if (d.esMiembro && vence && vence > new Date()) {
+          _isMember       = true;
+          _memberPlan     = d.planMembresia;
+          _memberDiscount = d.planMembresia === 'premium' ? 15 : 10;
+          renderProducts(); // Re-renderiza con precios de miembro
+        }
+      } catch (_) {}
+    });
 
     function col() {
       return db.collection('tenants').doc(TENANT_ID).collection('productos');
@@ -601,8 +649,15 @@
       }
 
       grid.innerHTML = filtered.map((p, i) => {
-        const off   = offPct(p.precio, p.precioOriginal);
-        const delay = Math.min(i, 8) * 55;
+        const off         = offPct(p.precio, p.precioOriginal);
+        const delay       = Math.min(i, 8) * 55;
+        const memberPrice = (_isMember && p.precio != null)
+          ? Math.round(p.precio * (1 - _memberDiscount / 100))
+          : null;
+        // Para no-miembros: mostrar incentivo en ~1 de cada 3 productos con precio alto
+        const showIncentive = !_isMember && p.precio > 15000 && i % 3 === 0;
+        const savedAmt      = showIncentive ? Math.round(p.precio * 0.10) : 0;
+
         return `
           <div class="product-card" onclick="openDetail('${esc(p.id)}')" style="animation-delay:${delay}ms">
             <div class="product-img-wrap">
@@ -617,9 +672,14 @@
               ${p.marca ? `<p class="product-brand">${esc(p.marca)}</p>` : ''}
               <p class="product-name">${esc(p.nombre || 'Producto')}</p>
               <div class="product-prices">
-                ${p.precio != null ? `<span class="product-price">${fmtPrice(p.precio)}</span>` : ''}
-                ${off > 0 ? `<span class="product-price-orig">${fmtPrice(p.precioOriginal)}</span>` : ''}
+                ${memberPrice != null
+                  ? `<span class="product-price">${fmtPrice(memberPrice)}</span>
+                     <span class="product-price-orig">${fmtPrice(p.precio)}</span>
+                     <span class="badge-member-price">Precio miembro</span>`
+                  : `${p.precio != null ? `<span class="product-price">${fmtPrice(p.precio)}</span>` : ''}
+                     ${off > 0 ? `<span class="product-price-orig">${fmtPrice(p.precioOriginal)}</span>` : ''}`}
               </div>
+              ${showIncentive ? `<p class="member-incentive">Miembros ahorran ${fmtPrice(savedAmt)}</p>` : ''}
             </div>
           </div>`;
       }).join('');
@@ -649,14 +709,38 @@
       document.getElementById('detail-name').textContent = p.nombre || 'Producto';
 
       // Prices
-      const priceRow = document.getElementById('detail-price-row');
+      const priceRow  = document.getElementById('detail-price-row');
+      const memberPriceDetail = (_isMember && p.precio != null)
+        ? Math.round(p.precio * (1 - _memberDiscount / 100))
+        : null;
       let priceHtml = '';
-      if (p.precio != null) priceHtml += `<span class="detail-price">${fmtPrice(p.precio)}</span>`;
-      if (off > 0) {
-        priceHtml += `<span class="detail-price-orig">${fmtPrice(p.precioOriginal)}</span>`;
-        priceHtml += `<span class="detail-badge-off">-${off}%</span>`;
+      if (memberPriceDetail != null) {
+        priceHtml = `<span class="detail-price">${fmtPrice(memberPriceDetail)}</span>
+          <span class="detail-price-orig">${fmtPrice(p.precio)}</span>`;
+      } else {
+        if (p.precio != null) priceHtml += `<span class="detail-price">${fmtPrice(p.precio)}</span>`;
+        if (off > 0) {
+          priceHtml += `<span class="detail-price-orig">${fmtPrice(p.precioOriginal)}</span>`;
+          priceHtml += `<span class="detail-badge-off">-${off}%</span>`;
+        }
       }
       priceRow.innerHTML = priceHtml;
+
+      // Member price note
+      const priceNoteEl = document.getElementById('detail-member-note');
+      if (priceNoteEl) {
+        if (memberPriceDetail != null) {
+          priceNoteEl.innerHTML = `<span class="detail-member-badge">Precio miembro ${_memberDiscount}%</span>
+            <span>vs. precio público ${fmtPrice(p.precio)}</span>`;
+          priceNoteEl.style.display = 'flex';
+        } else if (p.precio != null) {
+          const saving = Math.round(p.precio * 0.10);
+          priceNoteEl.innerHTML = `<i class="ph ph-crown"></i> Miembros pagan ${fmtPrice(p.precio - saving)} · <a href="/membresia" style="color:var(--gold)">Únete al Club</a>`;
+          priceNoteEl.style.display = 'flex';
+        } else {
+          priceNoteEl.style.display = 'none';
+        }
+      }
 
       // Description
       const descEl = document.getElementById('detail-desc');

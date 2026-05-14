@@ -1,0 +1,1246 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Club Deluxe · Membresía</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+  <style>
+    /* ── Design tokens ──────────────────────────────────────────────── */
+    :root {
+      --gold:         #C9A84C;
+      --gold-rgb:     201, 168, 76;
+      --gold-light:   #E8D5A3;
+      --gold-dim:     rgba(201,168,76,0.1);
+      --gold-border:  rgba(201,168,76,0.18);
+      --bg:           #070500;
+      --surface:      #0C0904;
+      --card:         #121008;
+      --border:       rgba(201,168,76,0.1);
+      --text:         #F0E6CC;
+      --text-sec:     #9A8A5C;
+      --text-muted:   #544A32;
+      --red:          #D94F4F;
+      --serif:        'Cormorant Garamond', Georgia, serif;
+      --sans:         'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      --r-card:       14px;
+      --r-pill:       999px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      overscroll-behavior-y: none;
+    }
+
+    /* ── Header ─────────────────────────────────────────────────────── */
+    .header {
+      position: sticky; top: 0; z-index: 40;
+      background: rgba(7,5,0,0.94);
+      backdrop-filter: blur(20px) saturate(160%);
+      -webkit-backdrop-filter: blur(20px) saturate(160%);
+      border-bottom: 1px solid var(--border);
+      padding: 0.875rem 1.25rem;
+    }
+    .header-top {
+      display: flex; align-items: center; gap: 0.875rem;
+    }
+    .header-logo {
+      width: 42px; height: 42px; border-radius: 10px; flex-shrink: 0;
+      object-fit: cover; border: 1px solid var(--gold-border);
+    }
+    .header-logo-fallback {
+      width: 42px; height: 42px; border-radius: 10px; flex-shrink: 0;
+      background: var(--gold-dim); border: 1px solid var(--gold-border);
+      display: none; align-items: center; justify-content: center;
+    }
+    .header-name {
+      font-family: var(--serif);
+      font-size: 1.1875rem; font-weight: 700;
+      color: var(--gold-light); letter-spacing: 0.025em;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .header-tagline {
+      font-size: 0.625rem; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.1em; margin-top: 2px;
+    }
+
+    /* ── Views ───────────────────────────────────────────────────────── */
+    .view { display: none; }
+    .view.active { display: block; }
+
+    /* ── Skeleton (loading) ──────────────────────────────────────────── */
+    .skel {
+      background: linear-gradient(90deg,
+        rgba(var(--gold-rgb),0.04) 25%,
+        rgba(var(--gold-rgb),0.08) 50%,
+        rgba(var(--gold-rgb),0.04) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.5s infinite;
+      border-radius: 8px;
+    }
+    @keyframes shimmer {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+    .loading-wrap {
+      padding: 2rem 1.25rem;
+      display: flex; flex-direction: column; gap: 1.25rem;
+    }
+    .skel-hero { height: 140px; border-radius: var(--r-card); }
+    .skel-toggle { height: 44px; border-radius: var(--r-pill); width: 220px; margin: 0 auto; }
+    .skel-cards {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 0.875rem;
+    }
+    @media (max-width: 500px) { .skel-cards { grid-template-columns: 1fr; } }
+    .skel-plan-card { height: 280px; border-radius: var(--r-card); }
+
+    /* ── Gate view ───────────────────────────────────────────────────── */
+    .gate-wrap {
+      min-height: calc(100vh - 74px);
+      display: flex; align-items: center; justify-content: center;
+      padding: 2rem 1.25rem;
+    }
+    .gate-card {
+      background: var(--card); border: 1px solid var(--gold-border);
+      border-radius: 20px; padding: 2.5rem 2rem;
+      text-align: center; max-width: 380px; width: 100%;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.5);
+    }
+    .gate-icon {
+      width: 72px; height: 72px; border-radius: 50%;
+      background: var(--gold-dim); border: 1px solid var(--gold-border);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--gold); font-size: 2rem;
+      margin: 0 auto 1.5rem;
+    }
+    .gate-title {
+      font-family: var(--serif); font-size: 1.75rem; font-weight: 700;
+      color: var(--gold-light); margin-bottom: 0.75rem; line-height: 1.2;
+    }
+    .gate-sub {
+      font-size: 0.9rem; color: var(--text-sec);
+      line-height: 1.7; margin-bottom: 2rem;
+    }
+
+    /* ── Buttons ─────────────────────────────────────────────────────── */
+    .btn-primary {
+      display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+      width: 100%; padding: 0.9375rem 1.5rem; border-radius: var(--r-pill);
+      background: linear-gradient(135deg, var(--gold) 0%, #A8873A 100%);
+      color: #070500; font-family: var(--sans); font-size: 0.9375rem; font-weight: 800;
+      border: none; cursor: pointer; text-decoration: none;
+      transition: transform 0.16s, opacity 0.16s;
+      -webkit-tap-highlight-color: transparent; min-height: 52px;
+    }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-primary:active { transform: scale(0.97); }
+
+    .btn-outline {
+      display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+      width: 100%; padding: 0.875rem 1.5rem; border-radius: var(--r-pill);
+      background: transparent; border: 1px solid var(--gold-border);
+      color: var(--gold); font-family: var(--sans); font-size: 0.9rem; font-weight: 600;
+      cursor: pointer; text-decoration: none;
+      transition: background 0.16s;
+      -webkit-tap-highlight-color: transparent; min-height: 48px;
+    }
+    .btn-outline:hover { background: var(--gold-dim); }
+    .btn-outline:active { transform: scale(0.97); }
+
+    .btn-danger {
+      display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+      width: 100%; padding: 0.875rem 1.5rem; border-radius: var(--r-pill);
+      background: transparent; border: 1px solid rgba(217,79,79,0.3);
+      color: var(--red); font-family: var(--sans); font-size: 0.875rem; font-weight: 600;
+      cursor: pointer;
+      transition: background 0.16s;
+      -webkit-tap-highlight-color: transparent; min-height: 48px;
+    }
+    .btn-danger:hover { background: rgba(217,79,79,0.08); }
+
+    .btn-wa {
+      display: flex; align-items: center; justify-content: center; gap: 0.625rem;
+      width: 100%; padding: 1rem 1.5rem; border-radius: var(--r-pill);
+      background: linear-gradient(135deg, #27D36B 0%, #1DB954 100%);
+      color: #fff; font-family: var(--sans); font-size: 0.9375rem; font-weight: 700;
+      border: none; cursor: pointer; text-decoration: none;
+      transition: transform 0.16s, opacity 0.16s;
+      -webkit-tap-highlight-color: transparent; min-height: 52px;
+    }
+    .btn-wa:active { transform: scale(0.97); opacity: 0.9; }
+
+    /* ── Plans view ──────────────────────────────────────────────────── */
+    .plans-wrap { padding: 0 0 5rem; }
+
+    .plans-hero {
+      padding: 3rem 1.5rem 2rem;
+      text-align: center;
+    }
+    .plans-hero-eyebrow {
+      font-size: 0.6875rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.14em; color: var(--gold); margin-bottom: 0.75rem;
+    }
+    .plans-hero-title {
+      font-family: var(--serif); font-size: clamp(2rem, 7vw, 3rem);
+      font-weight: 700; color: var(--gold-light);
+      line-height: 1.12; margin-bottom: 1rem;
+    }
+    .plans-hero-sub {
+      font-size: 0.9375rem; color: var(--text-sec);
+      line-height: 1.7; max-width: 400px; margin: 0 auto;
+    }
+
+    /* Toggle ─── */
+    .toggle-wrap {
+      display: flex; justify-content: center;
+      padding: 0 1.25rem 2rem;
+    }
+    .toggle-pill {
+      display: flex;
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r-pill); padding: 4px; gap: 2px;
+    }
+    .toggle-btn {
+      padding: 0.5rem 1.25rem; border-radius: var(--r-pill);
+      font-family: var(--sans); font-size: 0.875rem; font-weight: 600;
+      border: none; cursor: pointer; color: var(--text-muted);
+      background: transparent; transition: all 0.2s;
+      display: flex; align-items: center; gap: 0.5rem;
+      white-space: nowrap; min-height: 40px;
+    }
+    .toggle-btn.active {
+      background: rgba(var(--gold-rgb),0.15);
+      color: var(--gold);
+    }
+    .badge-ahorro {
+      padding: 0.1875rem 0.5rem; border-radius: var(--r-pill);
+      background: var(--gold); color: #070500;
+      font-size: 0.5625rem; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    /* Plan cards ─── */
+    .plan-cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem; padding: 0 1.25rem;
+    }
+    @media (max-width: 560px) {
+      .plan-cards { grid-template-columns: 1fr; }
+    }
+
+    .plan-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 18px; padding: 1.5rem;
+      display: flex; flex-direction: column; gap: 1.25rem;
+      position: relative; overflow: hidden;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .plan-card.popular {
+      border-color: rgba(var(--gold-rgb),0.35);
+      box-shadow: 0 0 0 1px rgba(var(--gold-rgb),0.08),
+                  0 20px 50px rgba(0,0,0,0.4);
+    }
+    .plan-card.popular::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg,
+        rgba(var(--gold-rgb),0.04) 0%,
+        transparent 60%);
+      pointer-events: none;
+    }
+
+    .badge-popular {
+      position: absolute; top: 1rem; right: 1rem;
+      padding: 0.25rem 0.75rem; border-radius: var(--r-pill);
+      background: linear-gradient(135deg, var(--gold) 0%, #A8873A 100%);
+      color: #070500; font-size: 0.5625rem; font-weight: 800;
+      text-transform: uppercase; letter-spacing: 0.08em;
+    }
+
+    .plan-name {
+      font-family: var(--serif); font-size: 1.25rem; font-weight: 700;
+      color: var(--text); line-height: 1.2;
+    }
+    .plan-price-wrap { display: flex; align-items: baseline; gap: 0.25rem; }
+    .plan-price {
+      font-family: var(--serif); font-size: 2rem; font-weight: 700;
+      color: var(--gold); letter-spacing: -0.02em;
+    }
+    .plan-period {
+      font-size: 0.8125rem; color: var(--text-sec);
+    }
+
+    .plan-divider { height: 1px; background: var(--border); }
+
+    .plan-benefits {
+      list-style: none; display: flex; flex-direction: column; gap: 0.6rem;
+      flex: 1;
+    }
+    .plan-benefits li {
+      display: flex; align-items: flex-start; gap: 0.625rem;
+      font-size: 0.8375rem; color: var(--text-sec); line-height: 1.45;
+    }
+    .plan-benefits li i {
+      color: var(--gold); font-size: 0.9375rem; flex-shrink: 0; margin-top: 1px;
+    }
+
+    /* Testimonials ─── */
+    .testimonials-section {
+      padding: 3rem 1.25rem 0;
+    }
+    .section-label {
+      font-size: 0.625rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.14em; color: var(--text-muted);
+      text-align: center; margin-bottom: 2rem;
+    }
+    .testimonial-grid {
+      display: grid; gap: 0.875rem;
+      grid-template-columns: 1fr;
+    }
+    @media (min-width: 640px) {
+      .testimonial-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+    .testimonial-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--r-card); padding: 1.25rem;
+    }
+    .testimonial-stars {
+      color: var(--gold); font-size: 0.75rem; margin-bottom: 0.75rem;
+      letter-spacing: 0.1em;
+    }
+    .testimonial-text {
+      font-size: 0.875rem; color: var(--text-sec);
+      line-height: 1.7; margin-bottom: 1rem;
+      font-style: italic;
+    }
+    .testimonial-author {
+      font-size: 0.75rem; font-weight: 700; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.08em;
+    }
+
+    /* ── Member view ─────────────────────────────────────────────────── */
+    .member-wrap { padding: 1.5rem 1.25rem 5rem; max-width: 600px; margin: 0 auto; }
+
+    .membership-card {
+      background: linear-gradient(135deg,
+        #1A1408 0%, #221B0A 40%, #1A1408 100%);
+      border: 1px solid rgba(var(--gold-rgb),0.35);
+      border-radius: 20px; padding: 2rem;
+      position: relative; overflow: hidden; margin-bottom: 1.5rem;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.55),
+                  inset 0 1px 0 rgba(var(--gold-rgb),0.15);
+    }
+    .membership-card::before {
+      content: '';
+      position: absolute; top: -60%; right: -20%;
+      width: 280px; height: 280px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(var(--gold-rgb),0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .membership-card::after {
+      content: '';
+      position: absolute; bottom: -40%; left: -10%;
+      width: 200px; height: 200px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(var(--gold-rgb),0.05) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .mc-top {
+      display: flex; justify-content: space-between;
+      align-items: flex-start; margin-bottom: 1.75rem;
+    }
+    .mc-logo-icon {
+      width: 36px; height: 36px; border-radius: 8px;
+      background: rgba(var(--gold-rgb),0.12); border: 1px solid var(--gold-border);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--gold); font-size: 1.125rem;
+    }
+    .mc-badge {
+      padding: 0.3rem 0.875rem; border-radius: var(--r-pill);
+      background: rgba(var(--gold-rgb),0.12); border: 1px solid var(--gold-border);
+      font-size: 0.625rem; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 0.1em; color: var(--gold);
+    }
+    .mc-plan-name {
+      font-family: var(--serif); font-size: 1.5rem; font-weight: 700;
+      color: var(--gold-light); margin-bottom: 0.25rem;
+    }
+    .mc-user-name {
+      font-size: 0.9375rem; font-weight: 600; color: var(--text);
+    }
+    .mc-meta {
+      display: flex; justify-content: space-between;
+      align-items: flex-end; margin-top: 1.5rem;
+    }
+    .mc-meta-label {
+      font-size: 0.5625rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.12em; color: var(--text-muted); margin-bottom: 0.2rem;
+    }
+    .mc-meta-value {
+      font-size: 0.875rem; font-weight: 600; color: var(--text-sec);
+    }
+
+    /* Decant counter ─── */
+    .decant-card {
+      background: var(--card); border: 1px solid var(--gold-border);
+      border-radius: var(--r-card); padding: 1.5rem;
+      text-align: center; margin-bottom: 1.25rem;
+      display: none;
+    }
+    .decant-number {
+      font-family: var(--serif); font-size: 4rem; font-weight: 700;
+      color: var(--gold); line-height: 1; margin-bottom: 0.25rem;
+    }
+    .decant-label {
+      font-size: 0.875rem; color: var(--text-sec);
+    }
+
+    /* Benefits list ─── */
+    .section-title {
+      font-family: var(--serif); font-size: 1.125rem; font-weight: 600;
+      color: var(--text); margin-bottom: 1rem;
+    }
+    .member-benefits {
+      list-style: none; background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--r-card); overflow: hidden; margin-bottom: 1.5rem;
+    }
+    .member-benefits li {
+      display: flex; align-items: center; gap: 0.875rem;
+      padding: 0.875rem 1.125rem;
+      border-bottom: 1px solid var(--border); font-size: 0.9rem; color: var(--text-sec);
+    }
+    .member-benefits li:last-child { border-bottom: none; }
+    .member-benefits li i { color: var(--gold); font-size: 1.0625rem; flex-shrink: 0; }
+
+    /* Payment history ─── */
+    .payments-table {
+      width: 100%; border-collapse: collapse;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: var(--r-card); overflow: hidden;
+      margin-bottom: 1.5rem;
+    }
+    .payments-table th {
+      text-align: left; padding: 0.75rem 1rem;
+      font-size: 0.6875rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.08em; color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      background: rgba(var(--gold-rgb),0.03);
+    }
+    .payments-table td {
+      padding: 0.875rem 1rem;
+      font-size: 0.8125rem; color: var(--text-sec);
+      border-bottom: 1px solid var(--border);
+    }
+    .payments-table tr:last-child td { border-bottom: none; }
+    .payment-status {
+      display: inline-flex; align-items: center; gap: 0.3rem;
+      padding: 0.2rem 0.625rem; border-radius: var(--r-pill);
+      font-size: 0.6875rem; font-weight: 700;
+    }
+    .payment-status.pagado {
+      background: rgba(39,211,107,0.1); color: #27D36B;
+    }
+    .payment-status.pendiente {
+      background: rgba(var(--gold-rgb),0.1); color: var(--gold);
+    }
+
+    /* ── Modals ──────────────────────────────────────────────────────── */
+    .modal-overlay {
+      position: fixed; inset: 0; z-index: 80;
+      background: rgba(0,0,0,0.86); backdrop-filter: blur(10px);
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.28s;
+      display: flex; align-items: center; justify-content: center;
+      padding: 1.25rem;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: auto; }
+
+    .modal-box {
+      background: #0E0B05; border: 1px solid var(--gold-border);
+      border-radius: 20px; width: 100%; max-width: 420px;
+      padding: 2rem; max-height: 90vh; overflow-y: auto;
+      transform: translateY(20px) scale(0.97);
+      transition: transform 0.28s cubic-bezier(0.34,1.3,0.64,1);
+    }
+    .modal-overlay.open .modal-box {
+      transform: translateY(0) scale(1);
+    }
+    .modal-title {
+      font-family: var(--serif); font-size: 1.5rem; font-weight: 700;
+      color: var(--gold-light); margin-bottom: 0.75rem;
+    }
+    .modal-sub {
+      font-size: 0.9rem; color: var(--text-sec);
+      line-height: 1.7; margin-bottom: 1.5rem;
+    }
+    .modal-actions { display: flex; flex-direction: column; gap: 0.75rem; }
+
+    /* ── Olfactory modal ─────────────────────────────────────────────── */
+    #modal-olfactory .modal-box {
+      max-width: 480px;
+    }
+    .olf-progress {
+      display: flex; gap: 0.375rem; margin-bottom: 2rem;
+    }
+    .olf-dot {
+      flex: 1; height: 3px; border-radius: 2px;
+      background: var(--border);
+      transition: background 0.3s;
+    }
+    .olf-dot.done { background: var(--gold); }
+
+    .olf-question {
+      font-family: var(--serif); font-size: 1.375rem; font-weight: 600;
+      color: var(--text); margin-bottom: 1.25rem; line-height: 1.3;
+    }
+    .olf-options {
+      display: flex; flex-direction: column; gap: 0.625rem;
+      margin-bottom: 1.75rem;
+    }
+    .olf-option {
+      padding: 0.875rem 1.125rem; border-radius: var(--r-card);
+      border: 1px solid var(--border); background: var(--surface);
+      color: var(--text-sec); font-family: var(--sans); font-size: 0.9rem;
+      font-weight: 500; cursor: pointer; text-align: left;
+      transition: all 0.16s; -webkit-tap-highlight-color: transparent;
+    }
+    .olf-option:hover { border-color: rgba(var(--gold-rgb),0.3); color: var(--text); }
+    .olf-option.selected {
+      border-color: rgba(var(--gold-rgb),0.5);
+      background: rgba(var(--gold-rgb),0.08); color: var(--gold);
+    }
+    .olf-footer {
+      display: flex; justify-content: space-between; align-items: center; gap: 1rem;
+    }
+    .olf-skip {
+      font-size: 0.8125rem; color: var(--text-muted);
+      cursor: pointer; background: none; border: none;
+      text-decoration: underline;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .olf-skip:hover { color: var(--text-sec); }
+    .olf-next {
+      padding: 0.75rem 1.75rem; border-radius: var(--r-pill);
+      background: linear-gradient(135deg, var(--gold) 0%, #A8873A 100%);
+      color: #070500; font-family: var(--sans); font-size: 0.9rem; font-weight: 800;
+      border: none; cursor: pointer; transition: opacity 0.16s;
+      opacity: 0.4; pointer-events: none; min-height: 44px;
+    }
+    .olf-next.ready { opacity: 1; pointer-events: auto; }
+
+    /* Slide animation ─── */
+    @keyframes slideLeft {
+      from { opacity: 0; transform: translateX(30px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    .slide-in { animation: slideLeft 0.28s ease both; }
+
+    /* ── Misc helpers ────────────────────────────────────────────────── */
+    .mt-1 { margin-top: 1rem; }
+    .mt-2 { margin-top: 2rem; }
+    .gap-section { margin-bottom: 1.5rem; }
+  </style>
+</head>
+<body>
+
+  <!-- ── Header ──────────────────────────────────────────────────────── -->
+  <header class="header">
+    <div class="header-top">
+      <img id="store-logo" src="/deluxeperfumes.jpg" alt="Deluxe Perfumes" class="header-logo"
+        onerror="this.style.display='none';document.getElementById('logo-fallback').style.display='flex'">
+      <div id="logo-fallback" class="header-logo-fallback">
+        <i class="ph-fill ph-drop" style="font-size:1.375rem;color:var(--gold)"></i>
+      </div>
+      <div style="min-width:0;flex:1">
+        <p class="header-name">Deluxe Perfumes</p>
+        <p class="header-tagline">Fragancias · Viña del Mar</p>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── View: Loading ────────────────────────────────────────────────── -->
+  <div id="view-loading" class="view active">
+    <div class="loading-wrap">
+      <div class="skel skel-hero"></div>
+      <div class="skel skel-toggle"></div>
+      <div class="skel-cards">
+        <div class="skel skel-plan-card"></div>
+        <div class="skel skel-plan-card"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── View: Gate (no session) ──────────────────────────────────────── -->
+  <div id="view-gate" class="view">
+    <div class="gate-wrap">
+      <div class="gate-card">
+        <div class="gate-icon">
+          <i class="ph-fill ph-crown-simple"></i>
+        </div>
+        <h1 class="gate-title">Club Deluxe</h1>
+        <p class="gate-sub">Accede a descuentos exclusivos, puntos dobles y beneficios únicos para miembros. Inicia sesión para unirte o gestionar tu membresía.</p>
+        <a href="/registro?redirect=membresia" class="btn-primary">
+          <i class="ph-bold ph-sign-in"></i>
+          Inicia sesión para continuar
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── View: Plans ───────────────────────────────────────────────────── -->
+  <div id="view-plans" class="view">
+    <div class="plans-wrap">
+
+      <div class="plans-hero">
+        <p class="plans-hero-eyebrow">Membresía exclusiva</p>
+        <h1 class="plans-hero-title">Únete al Club Deluxe</h1>
+        <p class="plans-hero-sub">Descuentos permanentes, puntos dobles, decants sorpresa y acceso a una comunidad de apasionados por las fragancias.</p>
+      </div>
+
+      <!-- Toggle mensual/anual -->
+      <div class="toggle-wrap">
+        <div class="toggle-pill">
+          <button class="toggle-btn active" id="toggle-mensual" onclick="setPeriodo('mensual')">
+            Mensual
+          </button>
+          <button class="toggle-btn" id="toggle-anual" onclick="setPeriodo('anual')">
+            Anual
+            <span class="badge-ahorro">Ahorra 2 meses</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Plan cards -->
+      <div class="plan-cards">
+
+        <!-- Club Deluxe (básico) -->
+        <div class="plan-card" id="card-basico">
+          <div>
+            <p class="plan-name">Club Deluxe</p>
+            <div class="plan-price-wrap">
+              <span class="plan-price" id="price-basico">$3.990</span>
+              <span class="plan-period" id="period-basico">/mes</span>
+            </div>
+          </div>
+          <div class="plan-divider"></div>
+          <ul class="plan-benefits" id="benefits-basico"></ul>
+          <button class="btn-outline" onclick="iniciarPago('basico', selectedPeriodo)">
+            Suscribirme
+          </button>
+        </div>
+
+        <!-- Club Deluxe Premium -->
+        <div class="plan-card popular" id="card-premium">
+          <span class="badge-popular">Más popular</span>
+          <div>
+            <p class="plan-name">Club Deluxe Premium</p>
+            <div class="plan-price-wrap">
+              <span class="plan-price" id="price-premium">$7.990</span>
+              <span class="plan-period" id="period-premium">/mes</span>
+            </div>
+          </div>
+          <div class="plan-divider"></div>
+          <ul class="plan-benefits" id="benefits-premium"></ul>
+          <button class="btn-primary" onclick="iniciarPago('premium', selectedPeriodo)">
+            Suscribirme — Premium
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Testimonials -->
+      <div class="testimonials-section">
+        <p class="section-label">Lo que dicen nuestros miembros</p>
+        <div class="testimonial-grid">
+
+          <div class="testimonial-card">
+            <div class="testimonial-stars">★★★★★</div>
+            <p class="testimonial-text">"El decant sorpresa del mes pasado fue de Initio. Jamás lo habría probado por mi cuenta. Ahora es mi favorito."</p>
+            <p class="testimonial-author">Gloria M. — Premium</p>
+          </div>
+
+          <div class="testimonial-card">
+            <div class="testimonial-stars">★★★★★</div>
+            <p class="testimonial-text">"El 10% de descuento permanente ya me pagó la membresía en el primer mes. Lo recomiendo a cualquiera que compre seguido."</p>
+            <p class="testimonial-author">Rodrigo A. — Club Deluxe</p>
+          </div>
+
+          <div class="testimonial-card">
+            <div class="testimonial-stars">★★★★★</div>
+            <p class="testimonial-text">"El chat exclusivo es lo mejor. Pides consejo, te responden al tiro y siempre aciertan con la fragancia. Atención increíble."</p>
+            <p class="testimonial-author">Valentina C. — Premium</p>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── View: Member ──────────────────────────────────────────────────── -->
+  <div id="view-member" class="view">
+    <div class="member-wrap">
+
+      <!-- Membership card -->
+      <div class="membership-card">
+        <div class="mc-top">
+          <div class="mc-logo-icon">
+            <i class="ph-fill ph-crown-simple"></i>
+          </div>
+          <span class="mc-badge">Activa</span>
+        </div>
+        <p class="mc-plan-name" id="mc-plan-name">Club Deluxe</p>
+        <p class="mc-user-name" id="mc-user-name">—</p>
+        <div class="mc-meta">
+          <div>
+            <p class="mc-meta-label">Miembro desde</p>
+            <p class="mc-meta-value" id="mc-since">—</p>
+          </div>
+          <div style="text-align:right">
+            <p class="mc-meta-label">Vigente hasta</p>
+            <p class="mc-meta-value" id="mc-until">—</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Decant counter (premium only) -->
+      <div class="decant-card" id="decant-card">
+        <p class="decant-number" id="decant-count">1</p>
+        <p class="decant-label" id="decant-label">decant disponible para retirar</p>
+        <p style="font-size:0.75rem;color:var(--text-muted);margin-top:0.5rem">Contacta al equipo para coordinar tu retiro</p>
+      </div>
+
+      <!-- Active benefits -->
+      <h2 class="section-title">Tus beneficios activos</h2>
+      <ul class="member-benefits" id="member-benefits-list"></ul>
+
+      <!-- Chat CTA -->
+      <a href="/chat-miembros" class="btn-wa gap-section">
+        <i class="ph-fill ph-chat-teardrop-dots"></i>
+        Ir al Chat Exclusivo
+      </a>
+
+      <!-- Payment history -->
+      <h2 class="section-title mt-2">Historial de pagos</h2>
+      <div style="overflow-x:auto;margin-bottom:1.5rem">
+        <table class="payments-table">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Plan</th>
+              <th>Monto</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody id="payments-body">
+            <tr>
+              <td colspan="4" style="text-align:center;color:var(--text-muted);padding:1.5rem">
+                Cargando pagos…
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Cancel -->
+      <button class="btn-danger" onclick="openCancelModal()">
+        <i class="ph ph-x-circle"></i>
+        Cancelar membresía
+      </button>
+
+    </div>
+  </div>
+
+  <!-- ── Modal: Olfactory quiz ─────────────────────────────────────────── -->
+  <div id="modal-olfactory" class="modal-overlay">
+    <div class="modal-box">
+      <div class="olf-progress" id="olf-progress"></div>
+      <p class="olf-question" id="olf-question">—</p>
+      <div class="olf-options" id="olf-options"></div>
+      <div class="olf-footer">
+        <button class="olf-skip" onclick="skipOlfactory()">Omitir por ahora</button>
+        <button class="olf-next" id="olf-next" onclick="nextOlfatoryStep()">Siguiente</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Modal: Cancel ────────────────────────────────────────────────── -->
+  <div id="modal-cancel" class="modal-overlay" onclick="closeCancelModal(event)">
+    <div class="modal-box">
+      <h2 class="modal-title">¿Cancelar membresía?</h2>
+      <p class="modal-sub" id="cancel-modal-text">
+        Tu membresía seguirá activa hasta la fecha de vencimiento. No se renovará automáticamente.
+      </p>
+      <div class="modal-actions">
+        <button class="btn-danger" onclick="confirmarCancelacion()">
+          <i class="ph ph-x-circle"></i>
+          Confirmar cancelación
+        </button>
+        <button class="btn-outline" onclick="closeCancelModal()">
+          <i class="ph ph-arrow-left"></i>
+          Volver
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="/config.js"></script>
+  <script src="/firebase-config.js?v=1.1"></script>
+
+  <script>
+    /* ── Constants ─────────────────────────────────────────────────── */
+    const TENANT_ID = 'deluxeperfumes';
+    const BOOTSTRAP_ADMINS = ['ignaciiio.mate@gmail.com'];
+
+    let currentUser  = null;
+    let memberData   = null;
+    let waPhone      = '';
+    let selectedPeriodo = 'mensual';
+    let olfatoryStep    = 0;
+    let olfatoryAnswers = {};
+
+    const PLANES = {
+      basico: {
+        nombre: 'Club Deluxe',
+        precioMensual: 3990,
+        precioAnual: 39900,
+        beneficios: [
+          '10% descuento en todas tus compras',
+          'Puntos dobles en cada compra',
+          'Acceso al chat exclusivo de miembros',
+          'Acceso anticipado a lanzamientos'
+        ],
+        descuento: 10
+      },
+      premium: {
+        nombre: 'Club Deluxe Premium',
+        precioMensual: 7990,
+        precioAnual: 69990,
+        beneficios: [
+          '15% descuento en todas tus compras',
+          'Puntos dobles en cada compra',
+          'Decant sorpresa mensual',
+          'Envío gratis sin mínimo',
+          'Acceso anticipado a lanzamientos',
+          'Asesoría personalizada en el chat',
+          'Voto en incorporaciones al catálogo',
+          'Acceso a eventos exclusivos'
+        ],
+        descuento: 15
+      }
+    };
+
+    const OLFATORY_QUESTIONS = [
+      {
+        pregunta: '¿Qué ocasión buscas?',
+        opciones: ['Uso diario', 'Noche / Salidas', 'Trabajo / Oficina', 'Eventos especiales']
+      },
+      {
+        pregunta: '¿Qué familia olfativa te atrae?',
+        opciones: ['Dulce y gourmand', 'Amaderado / Oud', 'Cítrico / Fresco', 'Floral', 'Árabe intenso']
+      },
+      {
+        pregunta: '¿Qué proyección prefieres?',
+        opciones: [
+          'Discreta — solo para mí',
+          'Moderada — que me rodee',
+          'Intensa — que se sienta de lejos'
+        ]
+      },
+      {
+        pregunta: '¿Cuánto sueles invertir en un perfume?',
+        opciones: ['Hasta $30.000', '$30.000 – $80.000', 'Más de $80.000']
+      }
+    ];
+
+    /* ── Helpers ───────────────────────────────────────────────────── */
+    function fmtPrice(n) {
+      return '$' + Number(n).toLocaleString('es-CL');
+    }
+
+    function esc(s) {
+      return String(s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function fmtDate(ts) {
+      if (!ts) return '—';
+      const d = ts.toDate ? ts.toDate() : new Date(ts);
+      return d.toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' });
+    }
+
+    /* ── View management ───────────────────────────────────────────── */
+    function showView(name) {
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      const el = document.getElementById('view-' + name);
+      if (el) el.classList.add('active');
+    }
+
+    /* ── Firebase auth flow ────────────────────────────────────────── */
+    firebase.auth().onAuthStateChanged(async (user) => {
+      if (!user) {
+        showView('gate');
+        return;
+      }
+      currentUser = user;
+      await Promise.all([loadSettings(), loadMemberData(user.uid)]);
+      if (!memberData || !memberData.membresiaActiva) {
+        renderPlans();
+        showView('plans');
+      } else {
+        renderMemberView();
+        showView('member');
+        loadPaymentHistory(user.uid);
+        checkOlfatoryProfile();
+      }
+    });
+
+    /* ── loadSettings ──────────────────────────────────────────────── */
+    async function loadSettings() {
+      try {
+        const snap = await db.collection('tenants').doc(TENANT_ID)
+          .collection('settings').doc('main').get();
+        if (!snap.exists) return;
+        const d = snap.data();
+        if (d.whatsapp) waPhone = d.whatsapp.replace(/\D/g, '');
+      } catch (_) {}
+    }
+
+    /* ── loadMemberData ────────────────────────────────────────────── */
+    async function loadMemberData(uid) {
+      try {
+        const snap = await db.collection('tenants').doc(TENANT_ID)
+          .collection('users').doc(uid).get();
+        if (!snap.exists) { memberData = null; return; }
+        const d = snap.data();
+        let membresiaActiva = false;
+        if (d.esMiembro && d.fechaVencimientoMembresia) {
+          const venc = d.fechaVencimientoMembresia.toDate
+            ? d.fechaVencimientoMembresia.toDate()
+            : new Date(d.fechaVencimientoMembresia);
+          membresiaActiva = venc > new Date();
+        }
+        memberData = { ...d, membresiaActiva };
+      } catch (_) {
+        memberData = null;
+      }
+    }
+
+    /* ── loadPaymentHistory ────────────────────────────────────────── */
+    async function loadPaymentHistory(uid) {
+      const tbody = document.getElementById('payments-body');
+      try {
+        const snap = await db.collection('membresias').doc(TENANT_ID)
+          .collection('pagos')
+          .where('clienteId', '==', uid)
+          .orderBy('fechaPago', 'desc')
+          .limit(5)
+          .get();
+
+        if (snap.empty) {
+          tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:1.5rem">Sin pagos registrados aún.</td></tr>`;
+          return;
+        }
+
+        tbody.innerHTML = snap.docs.map(doc => {
+          const p = doc.data();
+          const estadoClass = p.estado === 'pagado' ? 'pagado' : 'pendiente';
+          const estadoText  = p.estado === 'pagado' ? 'Pagado' : 'Pendiente';
+          const planNombre  = PLANES[p.plan]?.nombre || p.plan || '—';
+          return `
+            <tr>
+              <td>${fmtDate(p.fechaPago)}</td>
+              <td>${esc(planNombre)}</td>
+              <td>${p.monto != null ? fmtPrice(p.monto) : '—'}</td>
+              <td><span class="payment-status ${estadoClass}">${estadoText}</span></td>
+            </tr>`;
+        }).join('');
+      } catch (_) {
+        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:1.5rem">No se pudo cargar el historial.</td></tr>`;
+      }
+    }
+
+    /* ── Render plans ──────────────────────────────────────────────── */
+    function renderPlans() {
+      // Build benefit lists
+      ['basico', 'premium'].forEach(key => {
+        const ul = document.getElementById('benefits-' + key);
+        if (!ul) return;
+        ul.innerHTML = PLANES[key].beneficios.map(b =>
+          `<li><i class="ph-fill ph-check-circle"></i>${esc(b)}</li>`
+        ).join('');
+      });
+      updatePrices();
+    }
+
+    function updatePrices() {
+      ['basico', 'premium'].forEach(key => {
+        const p = PLANES[key];
+        const priceEl  = document.getElementById('price-' + key);
+        const periodEl = document.getElementById('period-' + key);
+        if (!priceEl || !periodEl) return;
+        if (selectedPeriodo === 'mensual') {
+          priceEl.textContent  = fmtPrice(p.precioMensual);
+          periodEl.textContent = '/mes';
+        } else {
+          priceEl.textContent  = fmtPrice(p.precioAnual);
+          periodEl.textContent = '/año';
+        }
+      });
+    }
+
+    function setPeriodo(p) {
+      selectedPeriodo = p;
+      document.getElementById('toggle-mensual').classList.toggle('active', p === 'mensual');
+      document.getElementById('toggle-anual').classList.toggle('active',  p === 'anual');
+      updatePrices();
+    }
+
+    /* ── Render member view ────────────────────────────────────────── */
+    function renderMemberView() {
+      if (!memberData || !currentUser) return;
+
+      const planKey   = memberData.planMembresia || 'basico';
+      const planData  = PLANES[planKey] || PLANES.basico;
+
+      // Membership card
+      document.getElementById('mc-plan-name').textContent =
+        planData.nombre;
+      document.getElementById('mc-user-name').textContent =
+        currentUser.displayName || currentUser.email || '—';
+      document.getElementById('mc-since').textContent =
+        fmtDate(memberData.fechaInicioMembresia);
+      document.getElementById('mc-until').textContent =
+        fmtDate(memberData.fechaVencimientoMembresia);
+
+      // Decant counter (premium only)
+      if (planKey === 'premium') {
+        const decantCard = document.getElementById('decant-card');
+        decantCard.style.display = 'block';
+        const pending = typeof memberData.decantsPendientes === 'number'
+          ? memberData.decantsPendientes : 1;
+        document.getElementById('decant-count').textContent = pending;
+        document.getElementById('decant-label').textContent =
+          `decant${pending !== 1 ? 's' : ''} disponible${pending !== 1 ? 's' : ''} para retirar`;
+      }
+
+      // Benefits
+      const ul = document.getElementById('member-benefits-list');
+      ul.innerHTML = planData.beneficios.map(b =>
+        `<li><i class="ph-fill ph-check-circle"></i>${esc(b)}</li>`
+      ).join('');
+
+      // Cancel modal text
+      document.getElementById('cancel-modal-text').textContent =
+        'Tu membresía seguirá activa hasta el ' +
+        fmtDate(memberData.fechaVencimientoMembresia) +
+        '. No se renovará automáticamente.';
+    }
+
+    /* ── iniciarPago ───────────────────────────────────────────────── */
+    function iniciarPago(plan, periodo) {
+      // ARQUITECTURA: reemplazar este bloque con el SDK de Webpay/Khipu
+      // manteniendo la misma firma de función para no tocar el resto del código
+      const planData = PLANES[plan];
+      const precio   = periodo === 'mensual' ? planData.precioMensual : planData.precioAnual;
+      const msg = encodeURIComponent(
+        'Hola Deluxe! Quiero suscribirme 🌹\n\n' +
+        'Plan: ' + planData.nombre + '\n' +
+        'Período: ' + (periodo === 'mensual' ? 'Mensual' : 'Anual') + '\n' +
+        'Precio: ' + fmtPrice(precio) + '\n\n' +
+        'Nombre: ' + (currentUser.displayName || '') + '\n' +
+        'Email: '  + (currentUser.email || '')
+      );
+      const phone = waPhone || '56900000000';
+      window.open('https://wa.me/' + phone + '?text=' + msg, '_blank');
+    }
+
+    /* ── cancelarMembresia ─────────────────────────────────────────── */
+    async function cancelarMembresia() {
+      if (!currentUser) return;
+      try {
+        await db.collection('tenants').doc(TENANT_ID)
+          .collection('users').doc(currentUser.uid)
+          .update({
+            canceladaEn: firebase.firestore.FieldValue.serverTimestamp(),
+            noRenovar: true
+          });
+        closeCancelModal();
+        // Refresh member data to reflect state
+        await loadMemberData(currentUser.uid);
+        renderMemberView();
+        // Show soft confirmation
+        showToast('Tu membresía no se renovará. Seguirá activa hasta la fecha indicada.');
+      } catch (err) {
+        showToast('Hubo un error al cancelar. Intenta nuevamente.', true);
+      }
+    }
+
+    async function confirmarCancelacion() {
+      const btn = document.querySelector('#modal-cancel .btn-danger');
+      if (btn) { btn.textContent = 'Cancelando…'; btn.disabled = true; }
+      await cancelarMembresia();
+      if (btn) { btn.textContent = 'Confirmar cancelación'; btn.disabled = false; }
+    }
+
+    /* ── Modals ────────────────────────────────────────────────────── */
+    function openCancelModal() {
+      document.getElementById('modal-cancel').classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeCancelModal(e) {
+      if (e && e.target !== document.getElementById('modal-cancel')) return;
+      document.getElementById('modal-cancel').classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    /* ── Olfactory profile ─────────────────────────────────────────── */
+    function checkOlfatoryProfile() {
+      if (!currentUser) return;
+      const key = 'olfatoryDone_' + currentUser.uid;
+      if (!localStorage.getItem(key)) {
+        olfatoryStep    = 0;
+        olfatoryAnswers = {};
+        showOlfatoryQuestion(0);
+        document.getElementById('modal-olfactory').classList.add('open');
+        document.body.style.overflow = 'hidden';
+      }
+    }
+
+    function showOlfatoryQuestion(step) {
+      const total  = OLFATORY_QUESTIONS.length;
+      const q      = OLFATORY_QUESTIONS[step];
+
+      // Progress dots
+      const progressEl = document.getElementById('olf-progress');
+      progressEl.innerHTML = Array(total).fill(0).map((_, i) =>
+        `<div class="olf-dot${i <= step ? ' done' : ''}"></div>`
+      ).join('');
+
+      // Question text (slide animation)
+      const qEl = document.getElementById('olf-question');
+      qEl.className = 'olf-question slide-in';
+      qEl.textContent = q.pregunta;
+      void qEl.offsetWidth; // force reflow
+
+      // Options
+      const optEl = document.getElementById('olf-options');
+      optEl.className = 'olf-options slide-in';
+      optEl.innerHTML = q.opciones.map(o =>
+        `<button class="olf-option" onclick="selectOlfatoryAnswer(this, '${esc(o)}')">${esc(o)}</button>`
+      ).join('');
+
+      // Reset next button
+      const nextBtn = document.getElementById('olf-next');
+      nextBtn.textContent = step < total - 1 ? 'Siguiente' : 'Finalizar';
+      nextBtn.classList.remove('ready');
+
+      // If already answered this step (back navigation), restore
+      const keys = Object.keys(olfatoryAnswers);
+      if (keys.length > step) {
+        const prev = olfatoryAnswers['pregunta' + (step + 1)];
+        if (prev) {
+          optEl.querySelectorAll('.olf-option').forEach(btn => {
+            if (btn.textContent === prev) {
+              btn.classList.add('selected');
+              nextBtn.classList.add('ready');
+            }
+          });
+        }
+      }
+    }
+
+    function selectOlfatoryAnswer(btn, value) {
+      const optEl = document.getElementById('olf-options');
+      optEl.querySelectorAll('.olf-option').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      olfatoryAnswers['pregunta' + (olfatoryStep + 1)] = value;
+      document.getElementById('olf-next').classList.add('ready');
+    }
+
+    function nextOlfatoryStep() {
+      const total = OLFATORY_QUESTIONS.length;
+      if (olfatoryStep < total - 1) {
+        olfatoryStep++;
+        showOlfatoryQuestion(olfatoryStep);
+      } else {
+        saveOlfatoryProfile();
+      }
+    }
+
+    function skipOlfactory() {
+      closeOlfatoryModal();
+    }
+
+    function closeOlfatoryModal() {
+      document.getElementById('modal-olfactory').classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    async function saveOlfatoryProfile() {
+      if (!currentUser) { closeOlfatoryModal(); return; }
+      try {
+        await db.collection('tenants').doc(TENANT_ID)
+          .collection('users').doc(currentUser.uid)
+          .set({
+            perfilOlfativo: {
+              ...olfatoryAnswers,
+              completadoEn: firebase.firestore.FieldValue.serverTimestamp()
+            }
+          }, { merge: true });
+      } catch (_) {}
+      localStorage.setItem('olfatoryDone_' + currentUser.uid, '1');
+      closeOlfatoryModal();
+      showToast('Perfil olfativo guardado. ¡Gracias!');
+    }
+
+    /* ── Toast helper ──────────────────────────────────────────────── */
+    function showToast(msg, isError) {
+      let toast = document.getElementById('app-toast');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'app-toast';
+        toast.style.cssText = [
+          'position:fixed', 'bottom:1.5rem', 'left:50%', 'transform:translateX(-50%)',
+          'z-index:999', 'padding:0.875rem 1.5rem', 'border-radius:var(--r-pill)',
+          'font-family:var(--sans)', 'font-size:0.875rem', 'font-weight:600',
+          'max-width:90vw', 'text-align:center',
+          'box-shadow:0 8px 32px rgba(0,0,0,0.5)',
+          'transition:opacity 0.3s'
+        ].join(';');
+        document.body.appendChild(toast);
+      }
+      toast.textContent = msg;
+      toast.style.background = isError ? 'var(--red)' : 'var(--gold)';
+      toast.style.color       = isError ? '#fff'       : '#070500';
+      toast.style.opacity     = '1';
+      clearTimeout(toast._t);
+      toast._t = setTimeout(() => { toast.style.opacity = '0'; }, 3500);
+    }
+
+    /* ── Escape key handler ────────────────────────────────────────── */
+    document.addEventListener('keydown', e => {
+      if (e.key !== 'Escape') return;
+      document.getElementById('modal-cancel').classList.remove('open');
+      document.getElementById('modal-olfactory').classList.remove('open');
+      document.body.style.overflow = '';
+    });
+  </script>
+</body>
+</html>

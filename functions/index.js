@@ -624,3 +624,13 @@ exports.confirmacionCitaTenant   = confirmacionCita.confirmacionCitaTenant;
 // ─────────────────────────────────────────────────────────────────
 const recuperacionPassword = require('./recuperacion-password');
 exports.enviarRecuperacionPassword = recuperacionPassword.enviarRecuperacionPassword;
+
+// ─────────────────────────────────────────────────────────────────
+//  MEMBRESÍA DELUXE PERFUMES — ver membresia-notificaciones.js
+//  Push de vencimiento (cron diario), nuevo decant (callable admin),
+//  anuncio en chat (trigger onDocumentCreated)
+// ─────────────────────────────────────────────────────────────────
+const membresiaNotif = require('./membresia-notificaciones');
+exports.avisarVencimientoMembresia = membresiaNotif.avisarVencimientoMembresia;
+exports.notificarNuevoDecant       = membresiaNotif.notificarNuevoDecant;
+exports.notificarAnuncioChat       = membresiaNotif.notificarAnuncioChat;

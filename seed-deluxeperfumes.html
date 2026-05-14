@@ -80,6 +80,39 @@
           accentColor: '#C9A84C',
           direccion:   'Viña del Mar, Chile',
           horario:     'Lun–Sáb 10:00–20:00 · Dom 11:00–18:00',
+          membresia: {
+            activa: true,
+            planes: {
+              basico: {
+                nombre:        'Club Deluxe',
+                precioMensual: 3990,
+                precioAnual:   39900,
+                descuento:     10,
+                beneficios: [
+                  '10% de descuento en todas tus compras',
+                  'Puntos dobles en cada compra',
+                  'Acceso al chat exclusivo de miembros',
+                  'Acceso anticipado a lanzamientos',
+                ],
+              },
+              premium: {
+                nombre:        'Club Deluxe Premium',
+                precioMensual: 7990,
+                precioAnual:   69990,
+                descuento:     15,
+                beneficios: [
+                  '15% de descuento en todas tus compras',
+                  'Puntos dobles en cada compra',
+                  'Decant sorpresa mensual',
+                  'Envío gratis sin mínimo de compra',
+                  'Acceso anticipado a lanzamientos',
+                  'Asesoría personalizada en el chat',
+                  'Voto en incorporaciones al catálogo',
+                  'Acceso a eventos exclusivos',
+                ],
+              },
+            },
+          },
         });
         log('✔ Config lista', 'ok');
       } catch (e) {

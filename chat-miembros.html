@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Chat Exclusivo · Club Deluxe</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+  <style>
+    /* ── Design tokens ──────────────────────────────────────────────── */
+    :root {
+      --gold:         #C9A84C;
+      --gold-rgb:     201, 168, 76;
+      --gold-light:   #E8D5A3;
+      --gold-dim:     rgba(201,168,76,0.1);
+      --gold-border:  rgba(201,168,76,0.18);
+      --bg:           #070500;
+      --surface:      #0C0904;
+      --card:         #121008;
+      --border:       rgba(201,168,76,0.1);
+      --text:         #F0E6CC;
+      --text-sec:     #9A8A5C;
+      --text-muted:   #544A32;
+      --red:          #D94F4F;
+      --serif:        'Cormorant Garamond', Georgia, serif;
+      --sans:         'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      --r-card:       14px;
+      --r-pill:       999px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%; overflow: hidden;
+      background: var(--bg); color: var(--text);
+      font-family: var(--sans);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Loading ────────────────────────────────────────────────────── */
+    #view-loading {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      height: 100vh; gap: 1.25rem;
+    }
+    .spinner {
+      width: 40px; height: 40px; border-radius: 50%;
+      border: 3px solid var(--gold-border);
+      border-top-color: var(--gold);
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { color: var(--text-sec); font-size: 0.875rem; letter-spacing: 0.04em; }
+
+    /* ── Paywall ────────────────────────────────────────────────────── */
+    #view-paywall {
+      display: none; flex-direction: column; align-items: center; justify-content: center;
+      height: 100vh; padding: 2rem 1.5rem; text-align: center; gap: 0;
+    }
+    .paywall-crown {
+      width: 72px; height: 72px; border-radius: 50%;
+      background: var(--gold-dim); border: 1px solid var(--gold-border);
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 1.5rem;
+    }
+    .paywall-crown i { font-size: 2rem; color: var(--gold); }
+    .paywall-title {
+      font-family: var(--serif); font-size: 1.75rem; font-weight: 600;
+      color: var(--gold-light); line-height: 1.2; margin-bottom: 0.875rem;
+    }
+    .paywall-desc {
+      color: var(--text-sec); font-size: 0.9375rem; line-height: 1.6;
+      max-width: 320px; margin-bottom: 2rem;
+    }
+    .btn-primary {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      padding: 0.875rem 2rem; border-radius: var(--r-pill);
+      background: linear-gradient(135deg, var(--gold) 0%, #A8882E 100%);
+      color: #070500; font-family: var(--sans); font-size: 0.9375rem; font-weight: 700;
+      border: none; cursor: pointer; text-decoration: none;
+      transition: opacity 0.16s, transform 0.16s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-primary:active { transform: scale(0.97); opacity: 0.9; }
+
+    /* ── Chat layout ────────────────────────────────────────────────── */
+    #view-chat {
+      display: none; flex-direction: column; height: 100vh; overflow: hidden;
+    }
+
+    /* ── Header ─────────────────────────────────────────────────────── */
+    .chat-header {
+      flex-shrink: 0;
+      background: rgba(7,5,0,0.96);
+      backdrop-filter: blur(20px) saturate(160%);
+      -webkit-backdrop-filter: blur(20px) saturate(160%);
+      border-bottom: 1px solid var(--border);
+      padding: 0.75rem 1rem;
+      display: flex; align-items: center; gap: 0.75rem; z-index: 10;
+    }
+    .header-back {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: transparent; border: 1px solid var(--gold-border);
+      color: var(--gold); display: flex; align-items: center; justify-content: center;
+      cursor: pointer; flex-shrink: 0; font-size: 1.125rem;
+      transition: background 0.15s; -webkit-tap-highlight-color: transparent;
+    }
+    .header-back:hover { background: var(--gold-dim); }
+    .header-logo {
+      width: 38px; height: 38px; border-radius: 9px; flex-shrink: 0;
+      object-fit: cover; border: 1px solid var(--gold-border);
+    }
+    .header-info { flex: 1; min-width: 0; }
+    .header-title {
+      font-family: var(--serif); font-size: 1.0625rem; font-weight: 600;
+      color: var(--gold-light); line-height: 1.2;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .header-subtitle { color: var(--text-muted); font-size: 0.75rem; margin-top: 0.1rem; }
+    .plan-badge {
+      flex-shrink: 0; display: flex; align-items: center; gap: 0.3rem;
+      padding: 0.3rem 0.7rem; border-radius: var(--r-pill);
+      border: 1px solid var(--gold-border); background: var(--gold-dim);
+      font-size: 0.7rem; font-weight: 700; color: var(--gold);
+      letter-spacing: 0.04em; white-space: nowrap;
+    }
+    .plan-badge i { font-size: 0.75rem; }
+
+    /* ── Messages area ──────────────────────────────────────────────── */
+    #msg-list {
+      flex: 1; overflow-y: auto; overflow-x: hidden;
+      padding: 1rem 0.875rem 1.5rem;
+      scroll-behavior: smooth;
+      -webkit-overflow-scrolling: touch;
+    }
+    #msg-list::-webkit-scrollbar { width: 4px; }
+    #msg-list::-webkit-scrollbar-track { background: transparent; }
+    #msg-list::-webkit-scrollbar-thumb { background: var(--gold-border); border-radius: 2px; }
+
+    /* ── Bubble: own ────────────────────────────────────────────────── */
+    .msg-row { display: flex; margin-bottom: 0.625rem; }
+    .msg-row.own { justify-content: flex-end; }
+    .msg-row.other { justify-content: flex-start; }
+    .msg-row.team { justify-content: flex-start; }
+
+    .bubble {
+      max-width: 85%; padding: 0.625rem 0.875rem;
+      border-radius: var(--r-card); font-size: 0.9rem; line-height: 1.55;
+      word-break: break-word;
+    }
+    .bubble-own {
+      background: rgba(var(--gold-rgb), 0.16); border: 1px solid rgba(var(--gold-rgb), 0.22);
+      color: var(--text); border-bottom-right-radius: 4px;
+    }
+    .bubble-other {
+      background: var(--surface); border: 1px solid var(--border);
+      color: var(--text); border-bottom-left-radius: 4px;
+    }
+    .bubble-team {
+      background: var(--card); border: 1px solid var(--gold-border);
+      color: var(--text); border-bottom-left-radius: 4px;
+    }
+    .bubble-meta {
+      display: flex; align-items: center; gap: 0.375rem;
+      margin-bottom: 0.25rem; flex-wrap: wrap;
+    }
+    .bubble-author {
+      font-size: 0.7rem; font-weight: 700; color: var(--text-sec); letter-spacing: 0.02em;
+    }
+    .bubble-author.gold { color: var(--gold); }
+    .team-badge {
+      font-size: 0.6rem; font-weight: 700; color: var(--gold);
+      background: var(--gold-dim); border: 1px solid var(--gold-border);
+      padding: 0.1rem 0.4rem; border-radius: var(--r-pill); letter-spacing: 0.04em;
+    }
+    .bubble-time { font-size: 0.68rem; color: var(--text-muted); margin-top: 0.25rem; text-align: right; }
+    .bubble-time.left { text-align: left; }
+
+    /* ── Anuncio card ───────────────────────────────────────────────── */
+    .anuncio-card {
+      width: 100%; margin-bottom: 0.75rem;
+      background: var(--gold-dim); border: 1px solid var(--gold-border);
+      border-radius: var(--r-card); padding: 1rem 1.125rem;
+      display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+      text-align: center;
+    }
+    .anuncio-icon { font-size: 1.5rem; color: var(--gold); }
+    .anuncio-badge {
+      font-size: 0.65rem; font-weight: 700; letter-spacing: 0.06em;
+      color: var(--gold); background: rgba(var(--gold-rgb), 0.15);
+      border: 1px solid var(--gold-border); padding: 0.2rem 0.6rem;
+      border-radius: var(--r-pill); text-transform: uppercase;
+    }
+    .anuncio-text { color: var(--text); font-size: 0.9375rem; line-height: 1.55; }
+    .anuncio-time { font-size: 0.7rem; color: var(--text-muted); }
+
+    /* ── Votacion card ──────────────────────────────────────────────── */
+    .votacion-card {
+      width: 100%; margin-bottom: 0.75rem;
+      background: var(--card); border: 1px solid var(--gold-border);
+      border-radius: var(--r-card); padding: 1rem 1.125rem;
+    }
+    .votacion-pregunta {
+      font-family: var(--serif); font-size: 1.1rem; font-weight: 600;
+      color: var(--gold-light); margin-bottom: 0.875rem; line-height: 1.3;
+    }
+    .votacion-opciones { display: flex; flex-direction: column; gap: 0.5rem; }
+    .vot-btn {
+      width: 100%; padding: 0.625rem 1rem; border-radius: var(--r-pill);
+      background: var(--gold-dim); border: 1px solid var(--gold-border);
+      color: var(--gold); font-family: var(--sans); font-size: 0.875rem; font-weight: 600;
+      cursor: pointer; text-align: left; transition: background 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .vot-btn:hover { background: rgba(var(--gold-rgb), 0.18); }
+    .vot-btn:active { transform: scale(0.98); }
+    .vot-result {
+      margin-bottom: 0.5rem; border-radius: var(--r-card); overflow: hidden;
+      background: var(--surface); border: 1px solid var(--border);
+    }
+    .vot-result-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 0.5rem 0.75rem; position: relative; z-index: 1;
+    }
+    .vot-result-bar {
+      position: absolute; left: 0; top: 0; bottom: 0;
+      background: rgba(var(--gold-rgb), 0.12); border-radius: inherit;
+      transition: width 0.4s ease; z-index: 0;
+    }
+    .vot-result.voted { border-color: var(--gold-border); }
+    .vot-result.voted .vot-result-bar { background: rgba(var(--gold-rgb), 0.2); }
+    .vot-result-text { font-size: 0.875rem; color: var(--text); z-index: 1; position: relative; }
+    .vot-result-pct { font-size: 0.8rem; font-weight: 700; color: var(--gold); z-index: 1; position: relative; }
+    .votacion-footer {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: 0.75rem; flex-wrap: wrap; gap: 0.375rem;
+    }
+    .vot-total { font-size: 0.78rem; color: var(--text-muted); }
+    .vot-cerrada {
+      font-size: 0.7rem; font-weight: 700; color: var(--text-muted);
+      background: var(--surface); border: 1px solid var(--border);
+      padding: 0.2rem 0.55rem; border-radius: var(--r-pill); letter-spacing: 0.04em;
+    }
+
+    /* ── Input bar ──────────────────────────────────────────────────── */
+    .input-bar {
+      flex-shrink: 0;
+      background: rgba(7,5,0,0.96);
+      backdrop-filter: blur(20px) saturate(160%);
+      -webkit-backdrop-filter: blur(20px) saturate(160%);
+      border-top: 1px solid var(--border);
+      padding: 0.625rem 0.875rem;
+      display: flex; align-items: flex-end; gap: 0.625rem;
+      padding-bottom: max(0.625rem, env(safe-area-inset-bottom));
+    }
+    #msg-input {
+      flex: 1; min-height: 48px; max-height: 108px;
+      background: var(--surface); border: 1px solid var(--gold-border);
+      border-radius: var(--r-card); color: var(--text);
+      font-family: var(--sans); font-size: 0.9375rem;
+      padding: 0.75rem 1rem; resize: none; outline: none;
+      line-height: 1.5; overflow-y: auto;
+      -webkit-tap-highlight-color: transparent;
+      scrollbar-width: none;
+    }
+    #msg-input::-webkit-scrollbar { display: none; }
+    #msg-input::placeholder { color: var(--text-muted); }
+    #msg-input:focus { border-color: rgba(var(--gold-rgb), 0.35); }
+    .send-btn {
+      width: 48px; height: 48px; flex-shrink: 0; border-radius: 12px;
+      background: linear-gradient(135deg, var(--gold) 0%, #A8882E 100%);
+      border: none; color: #070500; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.25rem; transition: opacity 0.15s, transform 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .send-btn:active { opacity: 0.85; transform: scale(0.95); }
+    .send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+  </style>
+</head>
+<body>
+
+  <!-- ── Loading ───────────────────────────────────────────────────────── -->
+  <div id="view-loading">
+    <div class="spinner"></div>
+    <p class="loading-text">Verificando membresía…</p>
+  </div>
+
+  <!-- ── Paywall ───────────────────────────────────────────────────────── -->
+  <div id="view-paywall">
+    <div class="paywall-crown"><i class="ph-fill ph-crown"></i></div>
+    <h1 class="paywall-title">Este chat es exclusivo<br>para miembros Club Deluxe</h1>
+    <p class="paywall-desc">Únete al club y accede a conversaciones exclusivas, anuncios anticipados y votaciones de lanzamientos.</p>
+    <a class="btn-primary" href="/membresia">Conocer planes <i class="ph-bold ph-arrow-right"></i></a>
+  </div>
+
+  <!-- ── Chat ──────────────────────────────────────────────────────────── -->
+  <div id="view-chat">
+
+    <header class="chat-header">
+      <button class="header-back" onclick="history.back()" aria-label="Volver">
+        <i class="ph-bold ph-arrow-left"></i>
+      </button>
+      <img src="/deluxeperfumes.jpg" alt="Deluxe Perfumes" class="header-logo"
+        onerror="this.style.display='none'">
+      <div class="header-info">
+        <p class="header-title">Chat Exclusivo · Club Deluxe</p>
+        <p class="header-subtitle">Solo miembros activos</p>
+      </div>
+      <div class="plan-badge" id="plan-badge">
+        <i class="ph-fill ph-star"></i><span id="plan-label">Club Deluxe</span>
+      </div>
+    </header>
+
+    <div id="msg-list" role="log" aria-live="polite" aria-label="Mensajes del chat"></div>
+
+    <div class="input-bar">
+      <textarea id="msg-input" rows="1" placeholder="Escribe tu mensaje…"
+        maxlength="500" aria-label="Mensaje"></textarea>
+      <button class="send-btn" id="send-btn" onclick="sendMessage()" aria-label="Enviar">
+        <i class="ph-fill ph-paper-plane-right"></i>
+      </button>
+    </div>
+
+  </div>
+
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="/config.js"></script>
+  <script src="/firebase-config.js?v=1.1"></script>
+
+  <script>
+    /* ── Constants ─────────────────────────────────────────────────────── */
+    const TENANT_ID = 'deluxeperfumes';
+
+    /* ── State ─────────────────────────────────────────────────────────── */
+    let currentUser = null;
+    let memberData  = null;
+    let unsubscribeChat = null;
+    const renderedIds = new Set();
+
+    /* ── Helpers ───────────────────────────────────────────────────────── */
+    function esc(s) {
+      return String(s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function fmtTime(ts) {
+      if (!ts) return 'ahora';
+      const d = ts.toDate ? ts.toDate() : new Date(ts);
+      const now = new Date();
+      const hm = d.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hour12: false });
+      const isYesterday =
+        d.getDate() === now.getDate() - 1 &&
+        d.getMonth() === now.getMonth() &&
+        d.getFullYear() === now.getFullYear();
+      return isYesterday ? 'ayer ' + hm : hm;
+    }
+
+    function isNearBottom() {
+      const el = document.getElementById('msg-list');
+      return el.scrollHeight - el.scrollTop - el.clientHeight < 100;
+    }
+
+    function scrollToBottom() {
+      const el = document.getElementById('msg-list');
+      el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+    }
+
+    /* ── View switchers ────────────────────────────────────────────────── */
+    function showLoading() {
+      document.getElementById('view-loading').style.display = 'flex';
+      document.getElementById('view-paywall').style.display = 'none';
+      document.getElementById('view-chat').style.display    = 'none';
+    }
+    function showPaywall() {
+      document.getElementById('view-loading').style.display = 'none';
+      document.getElementById('view-paywall').style.display = 'flex';
+      document.getElementById('view-chat').style.display    = 'none';
+    }
+    function showChat() {
+      document.getElementById('view-loading').style.display = 'none';
+      document.getElementById('view-paywall').style.display = 'none';
+      document.getElementById('view-chat').style.display    = 'flex';
+      renderPlanBadge();
+    }
+
+    function renderPlanBadge() {
+      const plan = memberData?.planMembresia || 'basico';
+      const label = document.getElementById('plan-label');
+      const badge = document.getElementById('plan-badge');
+      if (plan === 'premium') {
+        label.textContent = 'Club Deluxe Premium';
+        badge.querySelector('i').className = 'ph-fill ph-star';
+      } else {
+        label.textContent = 'Club Deluxe';
+        badge.querySelector('i').className = 'ph-fill ph-crown';
+      }
+    }
+
+    /* ── Member data ───────────────────────────────────────────────────── */
+    async function loadMemberData(uid) {
+      try {
+        const snap = await db.collection('tenants').doc(TENANT_ID)
+          .collection('users').doc(uid).get();
+        memberData = snap.exists ? snap.data() : null;
+      } catch (e) {
+        console.error('loadMemberData', e);
+        memberData = null;
+      }
+    }
+
+    /* ── Auth gate ─────────────────────────────────────────────────────── */
+    firebase.auth().onAuthStateChanged(async (user) => {
+      if (!user) { showPaywall(); return; }
+      currentUser = user;
+      await loadMemberData(user.uid);
+
+      const ahora = new Date();
+      const venc  = memberData?.fechaVencimientoMembresia?.toDate?.();
+      const activa = memberData?.esMiembro === true && venc && venc > ahora;
+
+      if (!activa) { showPaywall(); return; }
+
+      showChat();
+      startChatListener();
+    });
+
+    /* ── Chat listener ─────────────────────────────────────────────────── */
+    function startChatListener() {
+      const chatRef = db.collection('chats').doc(TENANT_ID)
+        .collection('miembros')
+        .orderBy('timestamp', 'asc')
+        .limitToLast(80);
+
+      unsubscribeChat = chatRef.onSnapshot(snap => {
+        const near = isNearBottom();
+        snap.docChanges().forEach(change => {
+          if (change.type === 'added') {
+            if (!renderedIds.has(change.doc.id)) {
+              renderMessage(change.doc);
+              renderedIds.add(change.doc.id);
+            }
+          }
+          if (change.type === 'modified') {
+            const el = document.getElementById('msg-' + change.doc.id);
+            if (el) {
+              const newEl = document.createElement('div');
+              newEl.outerHTML; // noop — we'll replace properly below
+              el.outerHTML = buildMessageHTML(change.doc.id, change.doc.data());
+            }
+          }
+        });
+        if (near) scrollToBottom();
+      });
+    }
+
+    window.addEventListener('beforeunload', () => {
+      if (unsubscribeChat) unsubscribeChat();
+    });
+
+    /* ── Render helpers ────────────────────────────────────────────────── */
+    function renderMessage(doc) {
+      const list = document.getElementById('msg-list');
+      const html = buildMessageHTML(doc.id, doc.data());
+      const wrapper = document.createElement('div');
+      wrapper.innerHTML = html;
+      const node = wrapper.firstElementChild;
+      if (node) list.appendChild(node);
+    }
+
+    function buildMessageHTML(id, data) {
+      switch (data.tipo) {
+        case 'anuncio':   return buildAnuncioHTML(id, data);
+        case 'votacion':  return buildVotacionHTML(id, data);
+        default:          return buildMensajeHTML(id, data);
+      }
+    }
+
+    function buildMensajeHTML(id, data) {
+      const esPropio = data.autorId === currentUser?.uid;
+      const esDueno  = data.esDueno === true;
+      let rowClass, bubbleClass;
+      if (esPropio)      { rowClass = 'own';   bubbleClass = 'bubble-own'; }
+      else if (esDueno)  { rowClass = 'team';  bubbleClass = 'bubble-team'; }
+      else               { rowClass = 'other'; bubbleClass = 'bubble-other'; }
+
+      const metaHTML = !esPropio ? `
+        <div class="bubble-meta">
+          <span class="bubble-author${esDueno ? ' gold' : ''}">${esc(data.autorNombre || 'Miembro')}</span>
+          ${esDueno ? '<span class="team-badge">Deluxe Team</span>' : ''}
+        </div>` : '';
+
+      return `
+        <div class="msg-row ${rowClass}" id="msg-${esc(id)}">
+          <div class="bubble ${bubbleClass}">
+            ${metaHTML}
+            <span>${esc(data.texto)}</span>
+            <p class="bubble-time ${esPropio ? '' : 'left'}">${fmtTime(data.timestamp)}</p>
+          </div>
+        </div>`;
+    }
+
+    function buildAnuncioHTML(id, data) {
+      return `
+        <div class="anuncio-card" id="msg-${esc(id)}">
+          <i class="ph-fill ph-megaphone anuncio-icon"></i>
+          <span class="anuncio-badge">Anuncio oficial</span>
+          <p class="anuncio-text">${esc(data.texto)}</p>
+          <p class="anuncio-time">${fmtTime(data.timestamp)}</p>
+        </div>`;
+    }
+
+    function buildVotacionHTML(id, data) {
+      const opciones   = data.opciones || [];
+      const totalVotos = opciones.reduce((s, o) => s + (o.votos || 0), 0);
+      const yaVoto     = opciones.some(o => (o.votantes || []).includes(currentUser?.uid));
+
+      const ahora = new Date();
+      const limite = data.fechaLimite?.toDate?.();
+      const cerrada = !data.activa || (limite && limite < ahora);
+
+      let opcionesHTML;
+      if (!cerrada && !yaVoto) {
+        opcionesHTML = opciones.map((o, i) => `
+          <button class="vot-btn" onclick="votar('${esc(id)}', ${i})">
+            ${esc(o.texto)}
+          </button>`).join('');
+      } else {
+        opcionesHTML = opciones.map((o, i) => {
+          const pct = totalVotos > 0 ? Math.round((o.votos || 0) / totalVotos * 100) : 0;
+          const miVoto = (o.votantes || []).includes(currentUser?.uid);
+          return `
+            <div class="vot-result${miVoto ? ' voted' : ''}">
+              <div class="vot-result-bar" style="width:${pct}%"></div>
+              <div class="vot-result-header">
+                <span class="vot-result-text">${esc(o.texto)}${miVoto ? ' ✓' : ''}</span>
+                <span class="vot-result-pct">${pct}%</span>
+              </div>
+            </div>`;
+        }).join('');
+      }
+
+      return `
+        <div class="votacion-card" id="msg-${esc(id)}">
+          <p class="votacion-pregunta">${esc(data.pregunta || '')}</p>
+          <div class="votacion-opciones">${opcionesHTML}</div>
+          <div class="votacion-footer">
+            <span class="vot-total">${totalVotos} ${totalVotos === 1 ? 'voto' : 'votos'}</span>
+            ${cerrada ? '<span class="vot-cerrada">Votación cerrada</span>' : ''}
+          </div>
+        </div>`;
+    }
+
+    /* ── Send message ──────────────────────────────────────────────────── */
+    async function sendMessage() {
+      const input  = document.getElementById('msg-input');
+      const texto  = input.value.trim();
+      if (!texto || texto.length > 500) return;
+
+      const btn = document.getElementById('send-btn');
+      btn.disabled = true;
+      try {
+        await db.collection('chats').doc(TENANT_ID).collection('miembros').add({
+          autorId:     currentUser.uid,
+          autorNombre: currentUser.displayName || 'Miembro',
+          esDueno:     false,
+          texto,
+          timestamp:   firebase.firestore.FieldValue.serverTimestamp(),
+          tipo:        'mensaje',
+        });
+        input.value = '';
+        input.style.height = '';
+        scrollToBottom();
+      } catch (e) {
+        console.error('sendMessage', e);
+      } finally {
+        btn.disabled = false;
+        input.focus();
+      }
+    }
+
+    /* ── Votar ─────────────────────────────────────────────────────────── */
+    async function votar(mensajeId, opcionIndex) {
+      const ref = db.collection('chats').doc(TENANT_ID).collection('miembros').doc(mensajeId);
+      try {
+        await db.runTransaction(async (tx) => {
+          const snap = await tx.get(ref);
+          const data = snap.data();
+          if (!data.activa) return;
+
+          const yaVoto = (data.opciones || []).some(o =>
+            (o.votantes || []).includes(currentUser.uid));
+          if (yaVoto) return;
+
+          const opciones = (data.opciones || []).map((o, i) => {
+            if (i === opcionIndex) {
+              return {
+                ...o,
+                votos:    (o.votos || 0) + 1,
+                votantes: [...(o.votantes || []), currentUser.uid],
+              };
+            }
+            return o;
+          });
+          tx.update(ref, { opciones });
+        });
+      } catch (e) {
+        console.error('votar', e);
+      }
+    }
+
+    /* ── Textarea auto-resize + Enter to send ──────────────────────────── */
+    const msgInput = document.getElementById('msg-input');
+
+    msgInput.addEventListener('input', () => {
+      msgInput.style.height = '';
+      msgInput.style.height = Math.min(msgInput.scrollHeight, 108) + 'px';
+    });
+
+    msgInput.addEventListener('keydown', (e) => {
+      const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+      if (e.key === 'Enter' && !e.shiftKey && !isMobile) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+  </script>
+</body>
+</html>
