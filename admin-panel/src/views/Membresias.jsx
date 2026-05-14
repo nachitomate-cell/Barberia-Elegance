@@ -1,50 +1,235 @@
 import { useState, useEffect } from 'react';
-import { collection, onSnapshot, query, where, doc, updateDoc, addDoc, Timestamp } from 'firebase/firestore';
+import {
+  collection, onSnapshot, query, where,
+  doc, updateDoc, setDoc, addDoc, getDoc, Timestamp,
+} from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useTenant } from '../contexts/TenantContext';
-import { Users, UserCheck, AlertTriangle, Plus, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
+import {
+  Users, UserCheck, AlertTriangle, Plus, XCircle,
+  RefreshCw, Settings, Trash2, GripVertical,
+} from 'lucide-react';
 
-const PLANES = {
-  basico:  { label: 'Básico',  descuento: 10, color: 'text-slate-300', bg: 'bg-slate-700/50'  },
-  premium: { label: 'Premium', descuento: 15, color: 'text-amber-400',  bg: 'bg-amber-900/30' },
-};
-
+/* ── Helpers ─────────────────────────────────────────────────────── */
 function diasRestantes(fecha) {
   if (!fecha) return null;
-  const diff = fecha.getTime() - Date.now();
-  return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  return Math.ceil((fecha.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
 }
 
-/* ── Modal activar membresía ─────────────────────────────────────── */
-function ModalActivar({ tenantId, onClose }) {
+const INPUT_CLS = 'w-full bg-slate-900 border border-slate-600 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-emerald-500 transition-colors';
+
+/* ── Modal: Definir Planes ───────────────────────────────────────── */
+function ModalPlanes({ tenantId, planesIniciales, onClose }) {
+  const [planes,  setPlanes]  = useState(() =>
+    planesIniciales.length
+      ? planesIniciales.map(p => ({ ...p, caract: p.caracteristicas ?? [] }))
+      : [{ id: Date.now(), nombre: '', precio: '', caract: [''] }]
+  );
+  const [loading, setLoading] = useState(false);
+  const [error,   setError]   = useState('');
+
+  function addPlan() {
+    setPlanes(prev => [...prev, { id: Date.now(), nombre: '', precio: '', caract: [''] }]);
+  }
+
+  function removePlan(idx) {
+    setPlanes(prev => prev.filter((_, i) => i !== idx));
+  }
+
+  function updatePlan(idx, key, val) {
+    setPlanes(prev => prev.map((p, i) => i === idx ? { ...p, [key]: val } : p));
+  }
+
+  function addCaract(pidx) {
+    setPlanes(prev => prev.map((p, i) =>
+      i === pidx ? { ...p, caract: [...p.caract, ''] } : p
+    ));
+  }
+
+  function removeCaract(pidx, cidx) {
+    setPlanes(prev => prev.map((p, i) =>
+      i === pidx ? { ...p, caract: p.caract.filter((_, ci) => ci !== cidx) } : p
+    ));
+  }
+
+  function updateCaract(pidx, cidx, val) {
+    setPlanes(prev => prev.map((p, i) =>
+      i === pidx
+        ? { ...p, caract: p.caract.map((c, ci) => ci === cidx ? val : c) }
+        : p
+    ));
+  }
+
+  async function guardar() {
+    const validos = planes.filter(p => p.nombre.trim());
+    if (!validos.length) { setError('Define al menos un plan con nombre.'); return; }
+    setLoading(true); setError('');
+    try {
+      const payload = validos.map((p, idx) => ({
+        id:              String(p.id ?? idx),
+        nombre:          p.nombre.trim(),
+        precio:          Number(p.precio) || 0,
+        orden:           idx,
+        caracteristicas: p.caract.filter(c => c.trim()),
+      }));
+      await setDoc(
+        doc(db, 'tenants', tenantId, 'configuracion', 'membresia'),
+        { planes: payload, updatedAt: Timestamp.now() },
+        { merge: true }
+      );
+      onClose();
+    } catch (e) {
+      setError(e.message || 'Error al guardar.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/70 backdrop-blur-sm overflow-y-auto py-6 px-3">
+      <div className="w-full max-w-3xl bg-slate-800 border border-slate-700 rounded-2xl">
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700">
+          <div>
+            <h3 className="text-white font-bold text-lg">Definir planes de membresía</h3>
+            <p className="text-xs text-slate-500 mt-0.5">Los cambios se guardan en Firestore y aplican de inmediato.</p>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-lg text-slate-500 hover:text-white hover:bg-slate-700 transition-colors">
+            <XCircle size={18} />
+          </button>
+        </div>
+
+        {/* Planes */}
+        <div className="p-6 space-y-4 overflow-y-auto max-h-[65vh]">
+          {error && <p className="text-red-400 text-sm bg-red-950/30 border border-red-800/40 rounded-xl px-4 py-2">{error}</p>}
+
+          {planes.map((plan, pidx) => (
+            <div key={plan.id} className="bg-slate-900/60 border border-slate-700 rounded-xl p-4 space-y-3">
+
+              {/* Cabecera del plan */}
+              <div className="flex items-center gap-3">
+                <GripVertical size={16} className="text-slate-600 shrink-0" />
+                <div className="flex-1 grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Nombre del plan</label>
+                    <input
+                      value={plan.nombre}
+                      onChange={e => updatePlan(pidx, 'nombre', e.target.value)}
+                      placeholder="Ej. Básico, Premium…"
+                      className={INPUT_CLS}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Precio mensual (CLP)</label>
+                    <input
+                      type="number"
+                      value={plan.precio}
+                      onChange={e => updatePlan(pidx, 'precio', e.target.value)}
+                      placeholder="5900"
+                      className={INPUT_CLS}
+                    />
+                  </div>
+                </div>
+                <button
+                  onClick={() => removePlan(pidx)}
+                  className="p-2 rounded-lg text-slate-600 hover:text-red-400 hover:bg-red-950/30 transition-colors shrink-0"
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+
+              {/* Características */}
+              <div className="pl-7 space-y-2">
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Características</p>
+                {plan.caract.map((c, cidx) => (
+                  <div key={cidx} className="flex items-center gap-2">
+                    <span className="text-emerald-500 text-xs shrink-0">✓</span>
+                    <input
+                      value={c}
+                      onChange={e => updateCaract(pidx, cidx, e.target.value)}
+                      placeholder={`Característica ${cidx + 1}`}
+                      className={INPUT_CLS + ' flex-1'}
+                    />
+                    <button
+                      onClick={() => removeCaract(pidx, cidx)}
+                      className="p-1.5 rounded-lg text-slate-600 hover:text-red-400 transition-colors shrink-0"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                ))}
+                <button
+                  onClick={() => addCaract(pidx)}
+                  className="flex items-center gap-1.5 text-xs text-emerald-500 hover:text-emerald-400 transition-colors mt-1"
+                >
+                  <Plus size={13} /> Agregar característica
+                </button>
+              </div>
+
+            </div>
+          ))}
+
+          <button
+            onClick={addPlan}
+            className="w-full py-3 border-2 border-dashed border-slate-700 rounded-xl text-sm font-medium text-slate-500 hover:border-emerald-700 hover:text-emerald-500 transition-colors flex items-center justify-center gap-2"
+          >
+            <Plus size={16} /> Agregar plan
+          </button>
+        </div>
+
+        {/* Footer */}
+        <div className="flex gap-3 px-6 py-4 border-t border-slate-700">
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-slate-600 text-slate-400 text-sm font-medium hover:bg-slate-700 transition-colors">
+            Cancelar
+          </button>
+          <button
+            onClick={guardar}
+            disabled={loading}
+            className="flex-1 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-500 transition-colors disabled:opacity-50"
+          >
+            {loading ? 'Guardando…' : 'Guardar planes'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Modal: Activar membresía ────────────────────────────────────── */
+function ModalActivar({ tenantId, planes, onClose }) {
   const [uid,     setUid]     = useState('');
   const [nombre,  setNombre]  = useState('');
-  const [plan,    setPlan]    = useState('basico');
+  const [planId,  setPlanId]  = useState(planes[0]?.id ?? '');
   const [periodo, setPeriodo] = useState('mensual');
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState('');
 
   async function activar() {
     if (!uid.trim() || !nombre.trim()) { setError('UID y nombre son obligatorios.'); return; }
+    if (!planId) { setError('Selecciona un plan.'); return; }
     setLoading(true); setError('');
     try {
       const meses = periodo === 'anual' ? 12 : 1;
       const vence = new Date();
       vence.setMonth(vence.getMonth() + meses);
+      const planObj = planes.find(p => p.id === planId);
 
       await updateDoc(doc(db, 'tenants', tenantId, 'users', uid.trim()), {
-        esMiembro:                true,
-        planMembresia:            plan,
+        esMiembro:                 true,
+        planMembresia:             planId,
+        planNombre:                planObj?.nombre ?? planId,
         fechaVencimientoMembresia: Timestamp.fromDate(vence),
-        noRenovar:                false,
+        noRenovar:                 false,
       });
       await addDoc(collection(db, 'membresias', tenantId, 'pagos'), {
-        clienteId:  uid.trim(),
-        nombre:     nombre.trim(),
-        plan,
+        clienteId:   uid.trim(),
+        nombre:      nombre.trim(),
+        plan:        planId,
+        planNombre:  planObj?.nombre ?? planId,
         periodo,
-        monto:      plan === 'premium' ? (periodo === 'anual' ? 99000 : 9900) : (periodo === 'anual' ? 59000 : 5900),
-        fechaPago:  Timestamp.now(),
+        monto:       planObj ? (periodo === 'anual' ? (planObj.precio * 10) : planObj.precio) : 0,
+        fechaPago:   Timestamp.now(),
         vencimiento: Timestamp.fromDate(vence),
       });
       onClose();
@@ -59,49 +244,40 @@ function ModalActivar({ tenantId, onClose }) {
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm px-4">
       <div className="w-full max-w-md bg-slate-800 border border-slate-700 rounded-2xl p-6 space-y-4">
         <h3 className="text-white font-bold text-lg">Activar membresía</h3>
-
         {error && <p className="text-red-400 text-sm">{error}</p>}
-
         <div className="space-y-3">
           <div>
             <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">UID del cliente</label>
-            <input
-              value={uid} onChange={e => setUid(e.target.value)} placeholder="Firebase UID"
-              className="w-full bg-slate-900 border border-slate-600 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-emerald-500"
-            />
+            <input value={uid} onChange={e => setUid(e.target.value)} placeholder="Firebase UID" className={INPUT_CLS} />
           </div>
           <div>
             <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Nombre</label>
-            <input
-              value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Nombre del cliente"
-              className="w-full bg-slate-900 border border-slate-600 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-emerald-500"
-            />
+            <input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Nombre del cliente" className={INPUT_CLS} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Plan</label>
-              <select value={plan} onChange={e => setPlan(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-600 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-emerald-500">
-                <option value="basico">Básico</option>
-                <option value="premium">Premium</option>
+              <select value={planId} onChange={e => setPlanId(e.target.value)} className={INPUT_CLS}>
+                {planes.length
+                  ? planes.map(p => <option key={p.id} value={p.id}>{p.nombre} — ${p.precio?.toLocaleString('es-CL')}</option>)
+                  : <option value="">Sin planes definidos</option>
+                }
               </select>
             </div>
             <div>
               <label className="text-xs font-bold text-slate-500 uppercase tracking-widest block mb-1">Período</label>
-              <select value={periodo} onChange={e => setPeriodo(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-600 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-emerald-500">
+              <select value={periodo} onChange={e => setPeriodo(e.target.value)} className={INPUT_CLS}>
                 <option value="mensual">Mensual</option>
-                <option value="anual">Anual</option>
+                <option value="anual">Anual (−2 meses)</option>
               </select>
             </div>
           </div>
         </div>
-
         <div className="flex gap-3 pt-1">
           <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-slate-600 text-slate-400 text-sm font-medium hover:bg-slate-700 transition-colors">
             Cancelar
           </button>
-          <button onClick={activar} disabled={loading}
+          <button onClick={activar} disabled={loading || !planes.length}
             className="flex-1 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-bold hover:bg-emerald-500 transition-colors disabled:opacity-50">
             {loading ? 'Activando…' : 'Activar'}
           </button>
@@ -112,11 +288,12 @@ function ModalActivar({ tenantId, onClose }) {
 }
 
 /* ── Fila de miembro ─────────────────────────────────────────────── */
-function FilaMiembro({ miembro, tenantId }) {
-  const dias = diasRestantes(miembro.fechaVencimientoMembresia?.toDate());
-  const vencido = dias !== null && dias <= 0;
+function FilaMiembro({ miembro, tenantId, planes }) {
+  const dias    = diasRestantes(miembro.fechaVencimientoMembresia?.toDate());
+  const vencido  = dias !== null && dias <= 0;
   const porVencer = dias !== null && dias > 0 && dias <= 7;
-  const plan = PLANES[miembro.planMembresia] ?? PLANES.basico;
+  const planObj  = planes.find(p => p.id === miembro.planMembresia);
+  const planLabel = planObj?.nombre ?? miembro.planNombre ?? miembro.planMembresia ?? '—';
 
   async function extender() {
     const vence = miembro.fechaVencimientoMembresia?.toDate() ?? new Date();
@@ -130,9 +307,7 @@ function FilaMiembro({ miembro, tenantId }) {
 
   async function desactivar() {
     if (!window.confirm(`¿Desactivar membresía de ${miembro.nombre || miembro.uid}?`)) return;
-    await updateDoc(doc(db, 'tenants', tenantId, 'users', miembro.uid), {
-      esMiembro: false,
-    });
+    await updateDoc(doc(db, 'tenants', tenantId, 'users', miembro.uid), { esMiembro: false });
   }
 
   return (
@@ -142,8 +317,8 @@ function FilaMiembro({ miembro, tenantId }) {
         <p className="text-xs text-slate-500 truncate max-w-[160px]">{miembro.uid}</p>
       </td>
       <td className="px-4 py-3">
-        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold ${plan.bg} ${plan.color}`}>
-          {plan.label}
+        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-bold bg-slate-700/50 text-slate-300">
+          {planLabel}
         </span>
       </td>
       <td className="px-4 py-3 text-sm">
@@ -163,13 +338,11 @@ function FilaMiembro({ miembro, tenantId }) {
       </td>
       <td className="px-4 py-3">
         <div className="flex items-center gap-2">
-          <button onClick={extender}
-            title="Extender 1 mes"
+          <button onClick={extender} title="Extender 1 mes"
             className="p-1.5 rounded-lg text-slate-500 hover:text-emerald-400 hover:bg-emerald-950/30 transition-colors">
             <RefreshCw size={14} />
           </button>
-          <button onClick={desactivar}
-            title="Desactivar"
+          <button onClick={desactivar} title="Desactivar"
             className="p-1.5 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-950/30 transition-colors">
             <XCircle size={14} />
           </button>
@@ -182,10 +355,22 @@ function FilaMiembro({ miembro, tenantId }) {
 /* ── Vista principal ─────────────────────────────────────────────── */
 export default function Membresias() {
   const tenant = useTenant();
-  const [miembros,    setMiembros]    = useState([]);
-  const [loading,     setLoading]     = useState(true);
-  const [modalOpen,   setModalOpen]   = useState(false);
+  const [miembros,     setMiembros]     = useState([]);
+  const [planes,       setPlanes]       = useState([]);
+  const [loadingM,     setLoadingM]     = useState(true);
+  const [modalActivar, setModalActivar] = useState(false);
+  const [modalPlanes,  setModalPlanes]  = useState(false);
 
+  // Planes desde Firestore
+  useEffect(() => {
+    const ref = doc(db, 'tenants', tenant.id, 'configuracion', 'membresia');
+    const unsub = onSnapshot(ref, snap => {
+      setPlanes(snap.exists() ? (snap.data().planes ?? []) : []);
+    });
+    return unsub;
+  }, [tenant.id]);
+
+  // Miembros desde Firestore
   useEffect(() => {
     const q = query(
       collection(db, 'tenants', tenant.id, 'users'),
@@ -199,12 +384,12 @@ export default function Membresias() {
         return ta - tb;
       });
       setMiembros(docs);
-      setLoading(false);
-    }, () => setLoading(false));
+      setLoadingM(false);
+    }, () => setLoadingM(false));
     return unsub;
   }, [tenant.id]);
 
-  const ahora = Date.now();
+  const ahora     = Date.now();
   const activos   = miembros.filter(m => (m.fechaVencimientoMembresia?.toDate()?.getTime() ?? 0) > ahora);
   const vencidos  = miembros.filter(m => (m.fechaVencimientoMembresia?.toDate()?.getTime() ?? 0) <= ahora);
   const porVencer = activos.filter(m => diasRestantes(m.fechaVencimientoMembresia?.toDate()) <= 7);
@@ -213,34 +398,68 @@ export default function Membresias() {
     <div className="p-4 md:p-6 max-w-4xl mx-auto space-y-6">
 
       {/* Encabezado */}
-      <div>
-        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">{tenant.name}</p>
-        <h1 className="text-2xl font-bold text-white">Membresías</h1>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">{tenant.name}</p>
+          <h1 className="text-2xl font-bold text-white">Membresías</h1>
+        </div>
+        <button
+          onClick={() => setModalPlanes(true)}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-600 text-slate-400 text-sm font-medium hover:text-white hover:border-slate-500 transition-colors"
+        >
+          <Settings size={15} /> Definir planes
+        </button>
       </div>
+
+      {/* Planes activos (preview) */}
+      {planes.length > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {planes.map(p => (
+            <div key={p.id} className="bg-slate-800/60 border border-slate-700 rounded-xl p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-bold text-white">{p.nombre}</span>
+                <span className="text-emerald-400 font-bold text-sm">
+                  ${(p.precio ?? 0).toLocaleString('es-CL')}<span className="text-slate-500 text-xs font-normal">/mes</span>
+                </span>
+              </div>
+              <ul className="space-y-1">
+                {(p.caracteristicas ?? []).slice(0, 4).map((c, i) => (
+                  <li key={i} className="flex items-center gap-1.5 text-xs text-slate-400">
+                    <span className="text-emerald-500 shrink-0">✓</span>{c}
+                  </li>
+                ))}
+                {(p.caracteristicas ?? []).length > 4 && (
+                  <li className="text-xs text-slate-600">+{p.caracteristicas.length - 4} más…</li>
+                )}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Métricas */}
       <div className="grid grid-cols-3 gap-3">
-        <div className="bg-slate-800/60 border border-slate-700 rounded-xl p-4 flex flex-col gap-1">
+        <div className="bg-slate-800/60 border border-slate-700 rounded-xl p-4">
           <div className="flex items-center gap-2 text-emerald-400 mb-1">
-            <UserCheck size={16} /><span className="text-xs font-bold uppercase tracking-widest">Activos</span>
+            <UserCheck size={15} /><span className="text-[10px] font-bold uppercase tracking-widest">Activos</span>
           </div>
           <p className="text-3xl font-black text-white">{activos.length}</p>
         </div>
-        <div className="bg-slate-800/60 border border-slate-700 rounded-xl p-4 flex flex-col gap-1">
+        <div className="bg-slate-800/60 border border-slate-700 rounded-xl p-4">
           <div className="flex items-center gap-2 text-amber-400 mb-1">
-            <AlertTriangle size={16} /><span className="text-xs font-bold uppercase tracking-widest">Por vencer</span>
+            <AlertTriangle size={15} /><span className="text-[10px] font-bold uppercase tracking-widest">Por vencer</span>
           </div>
           <p className="text-3xl font-black text-white">{porVencer.length}</p>
         </div>
-        <div className="bg-slate-800/60 border border-slate-700 rounded-xl p-4 flex flex-col gap-1">
+        <div className="bg-slate-800/60 border border-slate-700 rounded-xl p-4">
           <div className="flex items-center gap-2 text-red-400 mb-1">
-            <XCircle size={16} /><span className="text-xs font-bold uppercase tracking-widest">Vencidos</span>
+            <XCircle size={15} /><span className="text-[10px] font-bold uppercase tracking-widest">Vencidos</span>
           </div>
           <p className="text-3xl font-black text-white">{vencidos.length}</p>
         </div>
       </div>
 
-      {/* Tabla */}
+      {/* Tabla miembros */}
       <div className="bg-slate-800/40 border border-slate-700 rounded-xl overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700">
           <div className="flex items-center gap-2">
@@ -248,14 +467,14 @@ export default function Membresias() {
             <span className="text-sm font-bold text-white">Miembros</span>
           </div>
           <button
-            onClick={() => setModalOpen(true)}
+            onClick={() => setModalActivar(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg transition-colors"
           >
             <Plus size={14} />Activar
           </button>
         </div>
 
-        {loading ? (
+        {loadingM ? (
           <div className="p-8 flex justify-center">
             <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
           </div>
@@ -274,7 +493,7 @@ export default function Membresias() {
               </thead>
               <tbody>
                 {miembros.map(m => (
-                  <FilaMiembro key={m.uid} miembro={m} tenantId={tenant.id} />
+                  <FilaMiembro key={m.uid} miembro={m} tenantId={tenant.id} planes={planes} />
                 ))}
               </tbody>
             </table>
@@ -282,7 +501,9 @@ export default function Membresias() {
         )}
       </div>
 
-      {modalOpen && <ModalActivar tenantId={tenant.id} onClose={() => setModalOpen(false)} />}
+      {/* Modales */}
+      {modalPlanes  && <ModalPlanes  tenantId={tenant.id} planesIniciales={planes} onClose={() => setModalPlanes(false)}  />}
+      {modalActivar && <ModalActivar tenantId={tenant.id} planes={planes}          onClose={() => setModalActivar(false)} />}
     </div>
   );
 }
