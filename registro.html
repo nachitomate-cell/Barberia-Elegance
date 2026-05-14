@@ -699,39 +699,34 @@
   }
 
   // ── Redirección post-auth ─────────────────────────────────────
-  function goToDashboard() {
+  async function goToDashboard() {
     const tid = window.CURRENT_TENANT_ID;
-    // Tiendas sin dashboard de reservas van al catálogo
     if (tid === 'deluxeperfumes') {
-      window.location.href = '/catalogo' + (tid ? '?local=' + tid : '');
-    } else {
-      window.location.href = 'dashboard.html';
+      // Para deluxe, el Club IS el destino — mostrar panel en lugar de redirigir
+      const user = firebase.auth().currentUser;
+      if (user) {
+        document.getElementById('auth-forms').style.display = 'none';
+        const panel = document.getElementById('deluxe-member-panel');
+        panel.classList.remove('hidden');
+        try {
+          const snap = await FDB.usersCol().doc(user.uid).get();
+          const d = snap.data() || {};
+          const nombre = d.nombre || user.displayName || 'Miembro';
+          document.getElementById('dlx-greeting').textContent = '¡Hola, ' + nombre.split(' ')[0] + '!';
+          document.getElementById('dlx-stamps').textContent = d.stamps ?? 0;
+        } catch (_) {}
+      }
+      return;
     }
+    window.location.href = 'dashboard.html';
   }
 
   // ── Auth: Comprobar sesión activa ─────────────────────────────
   // _registering evita que onAuthStateChanged redirija antes de
   // que ensureUserDoc termine de guardar el nombre y teléfono.
   let _registering = false;
-  auth.onAuthStateChanged(async user => {
-    if (!user || _registering) return;
-    const tid = window.CURRENT_TENANT_ID;
-    if (tid === 'deluxeperfumes') {
-      // Mostrar panel de bienvenida en lugar de redirigir
-      document.getElementById('auth-forms').style.display = 'none';
-      const panel = document.getElementById('deluxe-member-panel');
-      panel.classList.remove('hidden');
-      try {
-        const ref = FDB.usersCol().doc(user.uid);
-        const snap = await ref.get();
-        const d = snap.data() || {};
-        const nombre = d.nombre || user.displayName || 'Miembro';
-        document.getElementById('dlx-greeting').textContent = '¡Hola, ' + nombre.split(' ')[0] + '!';
-        document.getElementById('dlx-stamps').textContent = d.stamps ?? 0;
-      } catch (_) {}
-      return;
-    }
-    goToDashboard();
+  auth.onAuthStateChanged(user => {
+    if (user && !_registering) goToDashboard();
   });
 
   // ── Google Login ──────────────────────────────────────────────
