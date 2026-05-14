@@ -234,7 +234,8 @@
       transform: scale(0.93);
       transition: transform 0.08s ease !important;
     }
-    .time-pill:hover {
+    /* Hover solo en píldoras NO seleccionadas */
+    .time-pill:not([data-sel]):hover {
       background:   rgba(255,255,255,0.11) !important;
       border-color: var(--accent, #D4AF37) !important;
       color:        var(--accent, #D4AF37) !important;
@@ -2458,25 +2459,27 @@
     function selectTime(btn, time) {
       const tid = window.CURRENT_TENANT_ID || 'elegance';
 
-      // Reset TODAS las píldoras al estado disponible (quitar custom props → fallback CSS)
+      // Reset TODAS las píldoras al estado disponible
       document.querySelectorAll('.time-pill').forEach(el => {
         el.style.removeProperty('--ps-bg');
         el.style.removeProperty('--ps-br');
         el.style.removeProperty('--ps-cl');
         el.style.removeProperty('--ps-fw');
         el.style.removeProperty('--ps-sh');
+        el.removeAttribute('data-sel');
       });
 
       // Colores de selección por tenant
       const SEL = {
-        elegance:       { bg: '#D4AF37', cl: '#0a0807', sh: '0 0 14px rgba(212,175,55,0.5)' },
-        ferraza:        { bg: '#D4AF37', cl: '#0a0807', sh: 'none' },
+        elegance:       { bg: '#D4AF37', cl: '#0a0807', sh: '0 0 14px rgba(212,175,55,0.50)' },
+        ferraza:        { bg: '#e2e8f0', cl: '#050505', sh: '0 0 10px rgba(226,232,240,0.35)' },
         chameleon:      { bg: '#DAA520', cl: '#0a0807', sh: '0 0 14px rgba(218,165,32,0.40)' },
         gitana:         { bg: 'var(--brand-neon)', cl: '#050505', sh: 'none' },
         mapubarbershop: { bg: '#BFA37E', cl: '#2A1E22', sh: 'none' },
       };
       const s = SEL[tid] ?? SEL.elegance;
 
+      btn.setAttribute('data-sel', '1');
       btn.style.setProperty('--ps-bg', s.bg);
       btn.style.setProperty('--ps-br', s.bg);
       btn.style.setProperty('--ps-cl', s.cl);
