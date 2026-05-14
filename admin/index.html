@@ -1741,6 +1741,12 @@
       if (btn) { btn.style.opacity = '0.5'; btn.style.pointerEvents = 'none'; }
 
       try {
+        const user = firebase.auth().currentUser;
+        const token = await user?.getIdToken(true);
+        if (token) {
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          console.log('[Admin] Token email:', payload.email, '| UID:', user.uid);
+        }
         await db.collection('_system').doc('global_config').set({
           forceRefreshTimestamp: Date.now(),
           triggeredBy:  firebase.auth().currentUser?.email || 'superadmin',
@@ -1811,6 +1817,7 @@
       const prev = sourceEl.textContent;
       try {
         sourceEl.textContent = 'Actualizando estado…';
+        await firebase.auth().currentUser?.getIdToken(true);
         await db.collection('_system').doc(_activeTenant).set({
           status:      newStatus,
           tenantName:  cfg.nombre,
