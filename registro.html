@@ -675,7 +675,13 @@
 
   // ── Redirección post-auth ─────────────────────────────────────
   function goToDashboard() {
-    window.location.href = 'dashboard.html';
+    const tid = window.CURRENT_TENANT_ID;
+    // Tiendas sin dashboard de reservas van al catálogo
+    if (tid === 'deluxeperfumes') {
+      window.location.href = '/catalogo' + (tid ? '?local=' + tid : '');
+    } else {
+      window.location.href = 'dashboard.html';
+    }
   }
 
   // ── Auth: Comprobar sesión activa ─────────────────────────────
