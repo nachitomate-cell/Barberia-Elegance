@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { where } from 'firebase/firestore';
+import { useState, useMemo, useEffect, useCallback } from 'react';
+import { getDocs, query, where } from 'firebase/firestore';
 import {
   TrendingUp, CalendarCheck, XCircle, DollarSign,
   ShoppingBag, RefreshCcw, Activity, Crown, Star, User, Sparkles,
@@ -8,7 +8,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, PieChart, Pie, Cell,
 } from 'recharts';
-import { useCollection } from '../hooks/useCollection';
+import { tenantCol } from '../lib/tenantUtils';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 
 function localYearMonth() {
@@ -98,13 +98,34 @@ const fmtCLP  = v => `$${Number(v).toLocaleString('es-CL')}`;
 const rankColor = i => i === 0 ? 'text-amber-400' : i === 1 ? 'text-slate-400' : i === 2 ? 'text-amber-700' : 'text-slate-600';
 
 export default function Metricas() {
-  const [showHelp, setShowHelp] = useState(false);
+  const [showHelp,  setShowHelp]  = useState(false);
+  const [citas,     setCitas]     = useState([]);
+  const [servicios, setServicios] = useState([]);
+  const [clientes,  setClientes]  = useState([]);
+  const [ventas,    setVentas]    = useState([]);
+  const [fetching,  setFetching]  = useState(false);
 
-  // Citas de los últimos 6 meses (evita cargar toda la colección)
-  const { data: citas }     = useCollection('citas',    [where('fecha', '>=', SIX_MONTHS_AGO)], []);
-  const { data: servicios } = useCollection('servicios', [], []);
-  const { data: clientes }  = useCollection('clientes',  [], []);
-  const { data: ventas }    = useCollection('product_reservations', [], []);
+  const fetchData = useCallback(async () => {
+    setFetching(true);
+    try {
+      const [citasSnap, serviciosSnap, clientesSnap, ventasSnap] = await Promise.all([
+        getDocs(query(tenantCol('citas'), where('fecha', '>=', SIX_MONTHS_AGO))),
+        getDocs(tenantCol('servicios')),
+        getDocs(tenantCol('clientes')),
+        getDocs(tenantCol('product_reservations')),
+      ]);
+      setCitas(citasSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setServicios(serviciosSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setClientes(clientesSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setVentas(ventasSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (e) {
+      console.error('Metricas fetchData:', e);
+    } finally {
+      setFetching(false);
+    }
+  }, []);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   // Mapa precio por servicioId y por servicioNombre
   const precioMap = useMemo(() => {
@@ -324,14 +345,24 @@ export default function Metricas() {
     <div className="max-w-6xl mx-auto space-y-6">
 
       {/* Header */}
-      <div>
-        <div className="flex items-center gap-2">
-          <h1 className="text-xl font-bold text-white">Métricas</h1>
-          <HelpButton onClick={() => setShowHelp(true)} />
+      <div className="flex items-start justify-between">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold text-white">Métricas</h1>
+            <HelpButton onClick={() => setShowHelp(true)} />
+          </div>
+          <p className="text-sm text-slate-500 mt-0.5">
+            {new Date().toLocaleDateString('es-CL', { month: 'long', year: 'numeric' })}
+          </p>
         </div>
-        <p className="text-sm text-slate-500 mt-0.5">
-          {new Date().toLocaleDateString('es-CL', { month: 'long', year: 'numeric' })}
-        </p>
+        <button
+          onClick={fetchData}
+          disabled={fetching}
+          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border border-slate-700 text-slate-400 hover:text-white hover:border-slate-600 disabled:opacity-40 transition-all"
+        >
+          <RefreshCcw size={12} className={fetching ? 'animate-spin' : ''} />
+          Actualizar
+        </button>
       </div>
 
       {/* Panel IA */}

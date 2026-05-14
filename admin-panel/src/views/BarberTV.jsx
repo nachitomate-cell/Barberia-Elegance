@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence }                  from 'framer-motion';
 import { QRCodeSVG }                                from 'qrcode.react';
-import { query, onSnapshot, where, orderBy }        from 'firebase/firestore';
+import { query, getDocs, onSnapshot, where, orderBy } from 'firebase/firestore';
 import { useTenant }                                from '../contexts/TenantContext';
 import { tenantCol, tenantDoc, resolveTenantId }    from '../lib/tenantUtils';
 
@@ -810,22 +810,25 @@ export default function BarberTV() {
 
   // Lookbook
   useEffect(() => {
-    const q = query(tenantCol('lookbook'), orderBy('order', 'asc'));
-    return onSnapshot(q, snap => setPhotos(snap.docs.map(d => ({ id: d.id, ...d.data() }))), () => {});
+    getDocs(query(tenantCol('lookbook'), orderBy('order', 'asc')))
+      .then(snap => setPhotos(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
+      .catch(() => {});
   }, [tenantId]);
 
   // Equipo
   useEffect(() => {
-    const q = query(tenantCol('barberos'), where('activo', '!=', false));
-    return onSnapshot(q, snap => setBarberos(
-      snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(b => !b._mainDocId && b.rol !== 'admin'),
-    ), () => {});
+    getDocs(query(tenantCol('barberos'), where('activo', '!=', false)))
+      .then(snap => setBarberos(
+        snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(b => !b._mainDocId && b.rol !== 'admin'),
+      ))
+      .catch(() => {});
   }, [tenantId]);
 
   // Servicios — para el ticker inferior
   useEffect(() => {
-    const q = query(tenantCol('servicios'), orderBy('orden', 'asc'));
-    return onSnapshot(q, snap => setServicios(snap.docs.map(d => ({ id: d.id, ...d.data() }))), () => {});
+    getDocs(query(tenantCol('servicios'), orderBy('orden', 'asc')))
+      .then(snap => setServicios(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
+      .catch(() => {});
   }, [tenantId]);
 
   // Configuración TV
@@ -845,8 +848,9 @@ export default function BarberTV() {
 
   // Productos
   useEffect(() => {
-    const q = query(tenantCol('productos'), orderBy('createdAt', 'asc'));
-    return onSnapshot(q, snap => setProductos(snap.docs.map(d => ({ id: d.id, ...d.data() }))), () => {});
+    getDocs(query(tenantCol('productos'), orderBy('createdAt', 'asc')))
+      .then(snap => setProductos(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
+      .catch(() => {});
   }, [tenantId]);
 
   // Caché de fotos de barberos

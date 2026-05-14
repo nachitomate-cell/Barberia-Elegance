@@ -10,6 +10,13 @@ import { useTenant } from '../contexts/TenantContext';
 import SlideOver from '../components/ui/SlideOver';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 
+function getNinetyDaysAgo() {
+  const d = new Date();
+  d.setDate(d.getDate() - 90);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+const NINETY_DAYS_AGO = getNinetyDaysAgo();
+
 /* ── Dominio público por tenant ─────────────────────────────────── */
 const PROD_DOMAINS = {
   elegance: 'https://barberiaelegance.synaptechspa.cl',
@@ -749,7 +756,13 @@ export default function Clientes() {
   const { id: tenantId, name: shopName } = useTenant();
   const { data: clientes, loading } = useCollection('users');
   const { data: premios }           = useCollection('premios', [firestoreOrderBy('costoSellos')]);
-  const { data: todasCitas }        = useCollection('citas', [], []);
+  const [todasCitas, setTodasCitas] = useState([]);
+
+  useEffect(() => {
+    getDocs(query(tenantCol('citas'), where('fecha', '>=', NINETY_DAYS_AGO)))
+      .then(snap => setTodasCitas(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
+      .catch(() => {});
+  }, []);
 
   const [search,          setSearch]          = useState('');
   const [filtro,          setFiltro]          = useState('todos');

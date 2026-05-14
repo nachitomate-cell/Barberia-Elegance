@@ -10,7 +10,7 @@ import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend,
 } from 'recharts';
-import { query, where, onSnapshot } from 'firebase/firestore';
+import { getDocs } from 'firebase/firestore';
 import { tenantCol, resolveTenantId } from '../lib/tenantUtils';
 import { PLANES, formatPrecio } from '../lib/plans';
 import {
@@ -189,13 +189,13 @@ export default function Finanzas() {
   const [loading, setLoading] = useState(true);
   const [tab,     setTab]     = useState('dashboard'); // 'dashboard' | 'clientes'
 
-  // Suscribirse a todos los users del tenant en tiempo real
   useEffect(() => {
-    const unsub = onSnapshot(tenantCol('users'), snap => {
-      setUsers(snap.docs.map(d => ({ uid: d.id, ...d.data() })));
-      setLoading(false);
-    }, () => setLoading(false));
-    return unsub;
+    getDocs(tenantCol('users'))
+      .then(snap => {
+        setUsers(snap.docs.map(d => ({ uid: d.id, ...d.data() })));
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
   }, []);
 
   // ── Métricas computadas ───────────────────────────────────────
