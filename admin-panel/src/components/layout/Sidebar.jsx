@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import {
   CalendarDays, Scissors, Users, Star, BarChart3,
-  Trophy, ShoppingBag, Images, LogOut, ChevronRight,
-  Sun, Moon, ExternalLink, Settings, TrendingDown, MessageCircle, X, Megaphone, ImagePlus, CreditCard, Monitor,
+  Trophy, ShoppingBag, Images, LogOut, ChevronRight, ChevronDown,
+  Sun, Moon, ExternalLink, Settings, TrendingDown, MessageCircle, X,
+  Megaphone, ImagePlus, CreditCard, Monitor,
 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
@@ -11,34 +12,65 @@ import { auth, db } from '../../lib/firebase';
 import { useTenant } from '../../contexts/TenantContext';
 import { useAuth }   from '../../contexts/AuthContext';
 
-const NAV = [
-  { to: 'agenda',        label: 'Agenda',        Icon: CalendarDays               },
-  { to: 'servicios',     label: 'Servicios',     Icon: Scissors                   },
-  { to: 'equipo',        label: 'Equipo',        Icon: Users                      },
-  { to: 'clientes',      label: 'Clientes',      Icon: Star                       },
-  { to: 'mensajes',      label: 'Mensajes',      Icon: MessageCircle              },
-  { to: 'premios',       label: 'Premios',       Icon: Trophy                     },
-  { to: 'productos',     label: 'Productos',     Icon: ShoppingBag                },
-  { to: 'lookbook',      label: 'Lookbook',      Icon: Images                     },
-  { to: 'tv-config',    label: 'Pantalla TV',   Icon: Monitor,       adminOnly: true },
-  { to: 'servicio-favorito', label: 'Servicio favorito', Icon: ImagePlus          },
-  { to: 'metricas',      label: 'Métricas',      Icon: BarChart3                  },
-  { to: 'marketing',     label: 'Marketing',     Icon: Megaphone,     adminOnly: true },
-  { to: 'gastos',        label: 'Gastos',        Icon: TrendingDown,  adminOnly: true },
-  { to: 'configuracion', label: 'Configuración', Icon: Settings,      adminOnly: true },
-  { to: 'mensualidad',   label: 'Mensualidad',   Icon: CreditCard,    adminOnly: true },
+/* ── Grupos de navegación ────────────────────────────────────────── */
+const NAV_GROUPS = [
+  {
+    id: 'operaciones',
+    label: 'Operaciones',
+    items: [
+      { to: 'agenda',   label: 'Agenda',   Icon: CalendarDays  },
+      { to: 'mensajes', label: 'Mensajes', Icon: MessageCircle },
+    ],
+  },
+  {
+    id: 'equipo',
+    label: 'Equipo',
+    items: [
+      { to: 'equipo',            label: 'Equipo',         Icon: Users     },
+      { to: 'servicios',         label: 'Servicios',      Icon: Scissors  },
+      { to: 'lookbook',          label: 'Lookbook',       Icon: Images    },
+      { to: 'servicio-favorito', label: 'Serv. favorito', Icon: ImagePlus },
+    ],
+  },
+  {
+    id: 'clientes',
+    label: 'Clientes',
+    items: [
+      { to: 'clientes',  label: 'Clientes',  Icon: Star        },
+      { to: 'premios',   label: 'Premios',   Icon: Trophy      },
+      { to: 'productos', label: 'Productos', Icon: ShoppingBag },
+    ],
+  },
+  {
+    id: 'analisis',
+    label: 'Análisis',
+    items: [
+      { to: 'metricas', label: 'Métricas', Icon: BarChart3                        },
+      { to: 'gastos',   label: 'Gastos',   Icon: TrendingDown, adminOnly: true     },
+    ],
+  },
+  {
+    id: 'administracion',
+    label: 'Administración',
+    adminOnly: true,
+    items: [
+      { to: 'marketing',     label: 'Marketing',     Icon: Megaphone,  adminOnly: true },
+      { to: 'mensualidad',   label: 'Mensualidad',   Icon: CreditCard, adminOnly: true },
+      { to: 'tv-config',     label: 'Pantalla TV',   Icon: Monitor,    adminOnly: true },
+      { to: 'configuracion', label: 'Configuración', Icon: Settings,   adminOnly: true },
+    ],
+  },
 ];
 
+/* ── Hooks auxiliares ────────────────────────────────────────────── */
 function useTheme() {
   const [light, setLight] = useState(() => {
     try { return localStorage.getItem('gestion-theme') === 'light'; } catch { return false; }
   });
-
   useEffect(() => {
     document.documentElement.classList.toggle('light', light);
     try { localStorage.setItem('gestion-theme', light ? 'light' : 'dark'); } catch {}
   }, [light]);
-
   return [light, setLight];
 }
 
@@ -64,8 +96,8 @@ function useBillingAlert() {
   return hasPending;
 }
 
-const LS_KEY_NEWS = 'synaptech_last_seen_news';
-const LATEST_NEWS_DATE = '2026-05-09';
+const LS_KEY_NEWS      = 'synaptech_last_seen_news';
+const LATEST_NEWS_DATE = '2026-05-13';
 
 function useUnreadNews() {
   const [unread, setUnread] = useState(() => {
@@ -81,18 +113,53 @@ function useUnreadNews() {
   return unread;
 }
 
+/* ── Sidebar ─────────────────────────────────────────────────────── */
 export default function Sidebar({ onClose, unreadChats = 0 }) {
-  const tenant        = useTenant();
-  const { role }      = useAuth();
-  const isAdminRole   = role === 'admin' || role === 'jefe';
-  const visibleNav    = NAV.filter(item => !item.adminOnly || isAdminRole);
+  const tenant          = useTenant();
+  const { role }        = useAuth();
+  const isAdminRole     = role === 'admin' || role === 'jefe';
   const [light, setLight] = useTheme();
-  const hasUnreadNews  = useUnreadNews();
+  const hasUnreadNews   = useUnreadNews();
   const hasBillingAlert = useBillingAlert();
+  const location        = useLocation();
+
+  /* Estado de grupos colapsados */
+  const [collapsed, setCollapsed] = useState(() => {
+    try {
+      const saved = localStorage.getItem('sidebar-collapsed-groups');
+      return saved ? JSON.parse(saved) : {};
+    } catch { return {}; }
+  });
+
+  function toggleGroup(id) {
+    setCollapsed(prev => {
+      const next = { ...prev, [id]: !prev[id] };
+      try { localStorage.setItem('sidebar-collapsed-groups', JSON.stringify(next)); } catch {}
+      return next;
+    });
+  }
+
+  /* Auto-expandir el grupo cuando se navega a una ruta dentro de él */
+  useEffect(() => {
+    const slug = location.pathname.split('/').filter(Boolean).pop();
+    NAV_GROUPS.forEach(group => {
+      if (group.items.some(item => item.to === slug)) {
+        setCollapsed(prev => {
+          if (!prev[group.id]) return prev;
+          const next = { ...prev, [group.id]: false };
+          try { localStorage.setItem('sidebar-collapsed-groups', JSON.stringify(next)); } catch {}
+          return next;
+        });
+      }
+    });
+  }, [location.pathname]);
+
+  const currentSlug = location.pathname.split('/').filter(Boolean).pop();
 
   return (
     <aside className="flex flex-col h-full bg-slate-900 border-r border-slate-800">
-      {/* Brand — safe-area-inset-top para que el notch no tape el título */}
+
+      {/* Brand */}
       <div
         className="px-5 pb-5 border-b border-slate-800"
         style={{ paddingTop: 'max(env(safe-area-inset-top), 1.5rem)' }}
@@ -102,7 +169,6 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
             <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Panel Admin</p>
             <h1 className="text-sm font-bold text-white leading-tight truncate">{tenant.name}</h1>
           </div>
-          {/* Botón X visible solo en el drawer móvil (onClose se pasa solo en móvil) */}
           {onClose && (
             <button
               onClick={onClose}
@@ -115,59 +181,102 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
         </div>
       </div>
 
-      {/* Nav */}
-      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto no-scrollbar">
-        {visibleNav.map(({ to, label, Icon }) => {
-          const isMensajes = to === 'mensajes';
-          const hasBadge   = isMensajes && unreadChats > 0;
+      {/* Nav agrupado */}
+      <nav className="flex-1 px-3 py-3 overflow-y-auto no-scrollbar">
+        {NAV_GROUPS.map(group => {
+          const items = group.items.filter(item => !item.adminOnly || isAdminRole);
+          if (items.length === 0) return null;
+          if (group.adminOnly && !isAdminRole) return null;
+
+          const hasActive = items.some(item => item.to === currentSlug);
+          /* El grupo activo nunca se colapsa */
+          const isOpen = hasActive || !collapsed[group.id];
+
+          /* Indicador de notificación en el grupo */
+          const groupDotColor =
+            items.some(i => i.to === 'mensajes'   && unreadChats > 0)   ? 'bg-red-500'   :
+            items.some(i => i.to === 'mensualidad' && hasBillingAlert)   ? 'bg-amber-400' :
+            items.some(i => i.to === 'metricas'   && hasUnreadNews)      ? 'bg-red-500'   :
+            null;
+
           return (
-            <NavLink
-              key={to}
-              to={to}
-              onClick={onClose}
-              className={({ isActive }) =>
-                `group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                  isActive
-                    ? 'bg-emerald-500/10 text-emerald-400'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
-                }`
-              }
-            >
-              {({ isActive }) => {
-                const isMetricas      = to === 'metricas';
-                const isMensualidad   = to === 'mensualidad';
-                const showNewsDot     = isMetricas && hasUnreadNews;
-                const showBillingDot  = isMensualidad && hasBillingAlert;
-                const showBadge       = hasBadge;
-                return (
-                  <>
-                    <Icon size={17} strokeWidth={isActive ? 2.5 : 2} className="shrink-0" />
-                    <span className="flex-1">{label}</span>
-                    {(showNewsDot || showBillingDot) && !showBadge && (
-                      <span className={`w-2 h-2 rounded-full animate-pulse shrink-0 ${showBillingDot ? 'bg-amber-400' : 'bg-red-500'}`} />
-                    )}
-                    {showBadge && (
-                      <span className="ml-auto bg-red-500 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full">
-                        {unreadChats > 9 ? '9+' : unreadChats}
-                      </span>
-                    )}
-                    {isActive && !showBadge && !showNewsDot && !showBillingDot && (
-                      <ChevronRight size={14} className="text-emerald-500 opacity-60" />
-                    )}
-                  </>
-                );
-              }}
-            </NavLink>
+            <div key={group.id} className="mb-2">
+
+              {/* Cabecera del grupo */}
+              <button
+                onClick={() => !hasActive && toggleGroup(group.id)}
+                className="w-full flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-slate-800/40 transition-colors group/hdr"
+              >
+                <span className="flex-1 text-left text-[10px] font-bold text-slate-600 uppercase tracking-widest group-hover/hdr:text-slate-400 transition-colors">
+                  {group.label}
+                </span>
+                {/* Dot de notificación visible cuando está colapsado */}
+                {!isOpen && groupDotColor && (
+                  <span className={`w-1.5 h-1.5 rounded-full animate-pulse shrink-0 ${groupDotColor}`} />
+                )}
+                <ChevronDown
+                  size={12}
+                  className={`text-slate-700 group-hover/hdr:text-slate-500 transition-all duration-200 ${isOpen ? '' : '-rotate-90'}`}
+                />
+              </button>
+
+              {/* Items con animación de colapso */}
+              <div
+                className="overflow-hidden transition-all duration-200"
+                style={{ maxHeight: isOpen ? '20rem' : '0px', opacity: isOpen ? 1 : 0 }}
+              >
+                <div className="space-y-0.5 pt-0.5 pb-1">
+                  {items.map(({ to, label, Icon }) => {
+                    const isMensajes    = to === 'mensajes';
+                    const hasBadge      = isMensajes && unreadChats > 0;
+                    const showNewsDot   = to === 'metricas'   && hasUnreadNews;
+                    const showBillingDot = to === 'mensualidad' && hasBillingAlert;
+                    return (
+                      <NavLink
+                        key={to}
+                        to={to}
+                        onClick={onClose}
+                        className={({ isActive }) =>
+                          `group/item flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                            isActive
+                              ? 'bg-emerald-500/10 text-emerald-400'
+                              : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                          }`
+                        }
+                      >
+                        {({ isActive }) => (
+                          <>
+                            <Icon size={16} strokeWidth={isActive ? 2.5 : 2} className="shrink-0" />
+                            <span className="flex-1">{label}</span>
+                            {(showNewsDot || showBillingDot) && !hasBadge && (
+                              <span className={`w-1.5 h-1.5 rounded-full animate-pulse shrink-0 ${showBillingDot ? 'bg-amber-400' : 'bg-red-500'}`} />
+                            )}
+                            {hasBadge && (
+                              <span className="ml-auto bg-red-500 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full">
+                                {unreadChats > 9 ? '9+' : unreadChats}
+                              </span>
+                            )}
+                            {isActive && !hasBadge && !showNewsDot && !showBillingDot && (
+                              <ChevronRight size={14} className="text-emerald-500 opacity-60" />
+                            )}
+                          </>
+                        )}
+                      </NavLink>
+                    );
+                  })}
+                </div>
+              </div>
+
+            </div>
           );
         })}
       </nav>
 
-      {/* Footer — safe-area-inset-bottom para el home indicator */}
+      {/* Footer */}
       <div
         className="px-3 pt-4 border-t border-slate-800 space-y-1"
         style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 1rem)' }}
       >
-        {/* Link to public agenda */}
         <a
           href={`/index.html?local=${tenant.id}`}
           target="_blank"
@@ -178,7 +287,6 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
           Ver agenda pública
         </a>
 
-        {/* Theme toggle */}
         <button
           onClick={() => setLight(v => !v)}
           className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-slate-500 hover:text-white hover:bg-slate-800 transition-all"
@@ -187,7 +295,6 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
           {light ? 'Modo oscuro' : 'Modo claro'}
         </button>
 
-        {/* Logout */}
         <button
           onClick={() => signOut(auth)}
           className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-slate-500 hover:text-red-400 hover:bg-red-950/30 transition-all"
@@ -196,7 +303,6 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
           Cerrar sesión
         </button>
 
-        {/* SynapTech branding */}
         <div className="pt-3 mt-1 border-t border-slate-800/60 px-3">
           <a
             href="https://www.synaptechspa.cl/"
@@ -209,6 +315,7 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
           </a>
         </div>
       </div>
+
     </aside>
   );
 }

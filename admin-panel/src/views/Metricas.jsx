@@ -3,7 +3,7 @@ import { where } from 'firebase/firestore';
 import SynapTechNews from '../components/SynapTechNews';
 import {
   TrendingUp, CalendarCheck, XCircle, DollarSign,
-  ShoppingBag, RefreshCcw, Activity, Crown, Star, User,
+  ShoppingBag, RefreshCcw, Activity, Crown, Star, User, Sparkles,
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -74,6 +74,23 @@ function DarkTooltip({ active, payload, label, fmt }) {
           {p.name}: <span className="font-semibold">{fmt ? fmt(p.value) : p.value}</span>
         </p>
       ))}
+    </div>
+  );
+}
+
+/* ── InsightCard ─────────────────────────────────────────────────── */
+const INSIGHT_STYLES = {
+  success: { border: 'border-emerald-500/20', bg: 'bg-emerald-500/5',  dot: 'bg-emerald-400' },
+  info:    { border: 'border-blue-500/20',    bg: 'bg-blue-500/5',     dot: 'bg-blue-400'    },
+  star:    { border: 'border-amber-500/20',   bg: 'bg-amber-500/5',    dot: 'bg-amber-400'   },
+  warning: { border: 'border-red-500/20',     bg: 'bg-red-500/5',      dot: 'bg-red-400'     },
+};
+function InsightCard({ text, type = 'info' }) {
+  const s = INSIGHT_STYLES[type] || INSIGHT_STYLES.info;
+  return (
+    <div className={`flex items-start gap-2.5 px-3 py-2.5 rounded-lg border ${s.border} ${s.bg}`}>
+      <div className={`w-1.5 h-1.5 rounded-full ${s.dot} mt-1.5 shrink-0`} />
+      <p className="text-xs text-slate-300 leading-relaxed">{text}</p>
     </div>
   );
 }
@@ -218,6 +235,91 @@ export default function Metricas() {
     };
   }, [clientes]);
 
+  /* ── Insights IA ─────────────────────────────────────────────── */
+  const aiInsights = useMemo(() => {
+    if (!citas.length) return [];
+    const thisMonth  = localYearMonth();
+    const monthCitas = citas.filter(c => c.fecha?.startsWith(thisMonth));
+    const completadas = monthCitas.filter(c => c.estado === 'Completada');
+    const canceladas  = monthCitas.filter(c => c.estado === 'Cancelada');
+    const insights = [];
+
+    if (completadas.length > 0) {
+      const prevMonth = (() => {
+        const d = new Date(); d.setMonth(d.getMonth() - 1);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      })();
+      const prevOk = citas.filter(c => c.fecha?.startsWith(prevMonth) && c.estado === 'Completada').length;
+      const trendStr = prevOk
+        ? (() => {
+            const diff = completadas.length - prevOk;
+            const pct  = Math.round(Math.abs(diff) / prevOk * 100);
+            return diff > 0 ? `, un ${pct}% más que el mes pasado` : diff < 0 ? `, un ${pct}% menos que el mes pasado` : ', igual que el mes pasado';
+          })()
+        : '';
+      insights.push({
+        type: 'success',
+        text: `Completaste ${completadas.length} cita${completadas.length !== 1 ? 's' : ''} este mes${trendStr}${stats.ticket > 0 ? `, con ticket promedio de $${Math.round(stats.ticket).toLocaleString('es-CL')}` : ''}.`,
+      });
+    }
+
+    const byDay = {};
+    citas.filter(c => c.estado === 'Completada' && c.fecha).forEach(c => {
+      const dow = new Date(c.fecha + 'T12:00:00').getDay();
+      byDay[dow] = (byDay[dow] || 0) + 1;
+    });
+    const DIAS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    const mejorDia = Object.entries(byDay).sort((a, b) => b[1] - a[1])[0];
+    if (mejorDia) {
+      insights.push({
+        type: 'info',
+        text: `El ${DIAS[+mejorDia[0]]} es tu día más demandado, acumulando ${mejorDia[1]} citas en los últimos 6 meses.`,
+      });
+    }
+
+    if (stats.barberRanking.length > 0) {
+      const top = stats.barberRanking[0];
+      insights.push({
+        type: 'star',
+        text: `${top.nombre} lidera el equipo este mes${top.ingresos > 0 ? ` con $${top.ingresos.toLocaleString('es-CL')} en ${top.citas} cita${top.citas !== 1 ? 's' : ''}` : ` con ${top.citas} cita${top.citas !== 1 ? 's' : ''} completadas`}.`,
+      });
+    }
+
+    const pctCancel = monthCitas.length ? Math.round((canceladas.length / monthCitas.length) * 100) : 0;
+    if (pctCancel >= 20) {
+      insights.push({
+        type: 'warning',
+        text: `La tasa de cancelación es del ${pctCancel}% este mes. Considera enviar recordatorios por WhatsApp a tus clientes.`,
+      });
+    } else if (stats.pctRecurr >= 50) {
+      insights.push({
+        type: 'success',
+        text: `El ${stats.pctRecurr}% de tus clientes son recurrentes. Tu programa de fidelización está generando retención.`,
+      });
+    }
+
+    return insights;
+  }, [citas, stats]);
+
+  /* ── Heatmap demanda ─────────────────────────────────────────── */
+  const heatmapData = useMemo(() => {
+    const DAYS  = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+    const HOURS = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19];
+    const counts = {};
+    let maxVal = 1;
+    citas.filter(c => c.estado !== 'Cancelada' && c.fecha && c.hora).forEach(c => {
+      const d = new Date(c.fecha + 'T' + c.hora);
+      if (isNaN(d.getTime())) return;
+      const dow  = (d.getDay() + 6) % 7;
+      const hour = d.getHours();
+      if (hour < 8 || hour > 19) return;
+      const key = `${dow}-${hour}`;
+      counts[key] = (counts[key] || 0) + 1;
+      if (counts[key] > maxVal) maxVal = counts[key];
+    });
+    return { DAYS, HOURS, counts, maxVal };
+  }, [citas]);
+
   /* ── Render ──────────────────────────────────────────────────── */
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -232,6 +334,24 @@ export default function Metricas() {
           {new Date().toLocaleDateString('es-CL', { month: 'long', year: 'numeric' })}
         </p>
       </div>
+
+      {/* Panel IA */}
+      {aiInsights.length > 0 && (
+        <div className="relative overflow-hidden bg-slate-900 border border-violet-500/25 rounded-xl p-5">
+          <div className="absolute top-0 right-0 w-56 h-56 bg-violet-500/5 rounded-full blur-3xl pointer-events-none" />
+          <div className="flex items-center gap-2 mb-4">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-violet-500/10 border border-violet-500/20">
+              <div className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
+              <Sparkles size={11} className="text-violet-400" />
+              <span className="text-[10px] font-bold text-violet-400 uppercase tracking-wider">Análisis IA</span>
+            </div>
+            <span className="text-[10px] text-slate-500 ml-auto">Generado a partir de tus datos reales</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {aiInsights.map((ins, i) => <InsightCard key={i} {...ins} />)}
+          </div>
+        </div>
+      )}
 
       {/* Rankings — primero para visibilidad rápida */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -454,6 +574,53 @@ export default function Metricas() {
               </div>
             </div>
           )}
+        </ChartCard>
+
+        {/* Heatmap demanda */}
+        <ChartCard title="Mapa de demanda" subtitle="Frecuencia de citas por día y hora · últimos 6 meses" fullWidth>
+          <div className="flex items-center gap-1.5 mb-3">
+            <Sparkles size={11} className="text-violet-400" />
+            <span className="text-[10px] font-semibold text-violet-400">Detectado por IA</span>
+          </div>
+          <div className="overflow-x-auto">
+            <div style={{ minWidth: 480 }}>
+              <div className="flex items-center mb-1 ml-9">
+                {heatmapData.HOURS.map(h => (
+                  <div key={h} className="flex-1 text-center text-[9px] text-slate-600">{h}h</div>
+                ))}
+              </div>
+              {heatmapData.DAYS.map((day, di) => (
+                <div key={di} className="flex items-center gap-0.5 mb-0.5">
+                  <div className="w-9 text-[10px] text-slate-500 shrink-0 text-right pr-1.5">{day}</div>
+                  {heatmapData.HOURS.map(h => {
+                    const count     = heatmapData.counts[`${di}-${h}`] || 0;
+                    const intensity = count / heatmapData.maxVal;
+                    return (
+                      <div
+                        key={h}
+                        className="flex-1 h-5 rounded-sm"
+                        style={{
+                          background: count === 0
+                            ? 'rgba(255,255,255,0.04)'
+                            : `rgba(16,185,129,${(0.12 + intensity * 0.78).toFixed(2)})`,
+                        }}
+                        title={`${day} ${h}:00 — ${count} cita${count !== 1 ? 's' : ''}`}
+                      />
+                    );
+                  })}
+                </div>
+              ))}
+              <div className="flex items-center gap-1.5 mt-3 ml-9">
+                <span className="text-[9px] text-slate-600">Menos</span>
+                {[0, 0.25, 0.5, 0.75, 1].map(v => (
+                  <div key={v} className="w-3 h-3 rounded-sm"
+                    style={{ background: v === 0 ? 'rgba(255,255,255,0.04)' : `rgba(16,185,129,${(0.12 + v * 0.78).toFixed(2)})` }}
+                  />
+                ))}
+                <span className="text-[9px] text-slate-600">Más</span>
+              </div>
+            </div>
+          </div>
         </ChartCard>
 
       </div>

@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { Search, User, Phone, Trophy, Plus, Minus, Gift, X, RotateCcw, MessageCircle, Cake, UserX, Send } from 'lucide-react';
+import { Search, User, Phone, Trophy, Plus, Minus, Gift, X, RotateCcw, MessageCircle, Cake, UserX, Send, Sparkles } from 'lucide-react';
 import {
   onSnapshot, updateDoc, setDoc, doc, getDocs, query, where, orderBy as firestoreOrderBy,
   increment, arrayUnion, serverTimestamp,
@@ -611,6 +611,24 @@ export default function Clientes() {
     return Object.values(map).sort((a, b) => b.count - a.count);
   }, [todasCitas, clientes]);
 
+  const clientesEnRiesgo = useMemo(() => {
+    const ahora = Date.now();
+    return clientes
+      .filter(c => {
+        if (!c.ultimoSello) return false;
+        const historicos = c.sellosHistoricos ?? c.stamps ?? 0;
+        if (historicos < 1) return false;
+        const dias = (ahora - new Date(c.ultimoSello).getTime()) / 864e5;
+        return dias >= 30;
+      })
+      .map(c => ({
+        ...c,
+        diasSinVisita: Math.floor((ahora - new Date(c.ultimoSello).getTime()) / 864e5),
+      }))
+      .sort((a, b) => b.diasSinVisita - a.diasSinVisita)
+      .slice(0, 5);
+  }, [clientes]);
+
   const sorted = useMemo(() =>
     [...clientes].sort((a, b) => sellos(b) - sellos(a) || (a.nombre || '').localeCompare(b.nombre || '')),
     [clientes]
@@ -694,6 +712,75 @@ export default function Clientes() {
           </div>
         ))}
       </div>
+
+      {/* Panel IA — Clientes en riesgo */}
+      {clientesEnRiesgo.length > 0 && (
+        <div className="relative overflow-hidden bg-slate-900 border border-orange-500/20 rounded-xl p-4 mb-5">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/5 rounded-full blur-3xl pointer-events-none" />
+          <div className="flex items-center gap-2 mb-3">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-orange-500/10 border border-orange-500/20">
+              <div className="w-1.5 h-1.5 rounded-full bg-orange-400 animate-pulse" />
+              <Sparkles size={11} className="text-orange-400" />
+              <span className="text-[10px] font-bold text-orange-400 uppercase tracking-wider">IA detectó</span>
+            </div>
+            <p className="text-xs font-semibold text-white">
+              {clientesEnRiesgo.length} cliente{clientesEnRiesgo.length !== 1 ? 's' : ''} en riesgo de abandono
+            </p>
+            <button
+              onClick={() => setFiltro('sin30')}
+              className="ml-auto text-[10px] text-slate-500 hover:text-orange-400 transition-colors"
+            >
+              Ver todos →
+            </button>
+          </div>
+          <div className="space-y-1.5">
+            {clientesEnRiesgo.slice(0, 3).map(c => {
+              const raw = normalizePhone(c.telefono);
+              const num = raw.length >= 8 ? (raw.startsWith('56') ? raw : `56${raw}`) : null;
+              const waHref = num
+                ? `https://wa.me/${num}?text=${encodeURIComponent(`¡Hola ${c.nombre || ''}! 💈 Te extrañamos en la barbería. ¿Cuándo te agendamos tu próximo corte?`)}`
+                : null;
+              return (
+                <div key={c.uid || c.id} className="flex items-center gap-3 bg-slate-800/50 border border-slate-700/50 rounded-lg px-3 py-2">
+                  <div className="w-7 h-7 rounded-full bg-slate-700 flex items-center justify-center shrink-0">
+                    <span className="text-[10px] font-bold text-slate-300">{initials(c.nombre || '?')}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-semibold text-white truncate">{c.nombre || '—'}</p>
+                    <p className="text-[10px] text-slate-500">Sin visita hace {c.diasSinVisita} días</p>
+                  </div>
+                  <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${
+                    c.diasSinVisita >= 90
+                      ? 'text-red-400 border-red-400/30 bg-red-400/10'
+                      : c.diasSinVisita >= 60
+                        ? 'text-orange-400 border-orange-400/30 bg-orange-400/10'
+                        : 'text-yellow-400 border-yellow-400/30 bg-yellow-400/10'
+                  }`}>
+                    {c.diasSinVisita >= 90 ? 'Crítico' : c.diasSinVisita >= 60 ? 'En riesgo' : 'Seguimiento'}
+                  </span>
+                  {waHref && (
+                    <a
+                      href={waHref}
+                      target="_blank"
+                      rel="noreferrer"
+                      onClick={e => e.stopPropagation()}
+                      className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold shrink-0 hover:opacity-90 transition-opacity"
+                      style={{ background: '#25D366', color: '#fff' }}
+                    >
+                      <MessageCircle size={9} /> Contactar
+                    </a>
+                  )}
+                </div>
+              );
+            })}
+            {clientesEnRiesgo.length > 3 && (
+              <p className="text-[10px] text-slate-500 text-center pt-1">
+                +{clientesEnRiesgo.length - 3} más → usa el filtro &quot;Sin visita 30d&quot;
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Search */}
       <div className="relative mb-3">

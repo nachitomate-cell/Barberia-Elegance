@@ -8,6 +8,22 @@ import { Sparkles, X, ChevronRight, Tag } from 'lucide-react';
 /* ── Mock data (reemplazar con Firestore `global_news` en el futuro) ── */
 const newsFeed = [
   {
+    id: 'v3-ai-features',
+    date: '2026-05-13',
+    category: 'nueva-funcion',
+    title: 'Análisis IA — Insights, Demanda y Riesgo',
+    summary: 'Panel IA con insights automáticos, mapa de calor de demanda y detección de clientes en riesgo.',
+    detail: 'En Métricas: un panel "Análisis IA" genera hasta 4 insights automáticos con tus datos reales — tendencia mensual vs. el mes anterior, día más activo, barbero líder y alertas de cancelación. También se agregó un Mapa de Demanda que muestra la frecuencia de citas por día y hora en un heatmap de colores. En Clientes: detección automática de clientes que no han visitado en 30+ días, clasificados como Seguimiento, En riesgo o Crítico, con acceso directo a WhatsApp para reconectarlos.',
+  },
+  {
+    id: 'v3-sidebar-groups',
+    date: '2026-05-13',
+    category: 'mejora',
+    title: 'Sidebar inteligente por módulos',
+    summary: 'El menú lateral ahora agrupa las funciones en 5 categorías y es completamente comprimible.',
+    detail: 'El sidebar fue rediseñado con 5 grupos colapsables: Operaciones, Equipo, Clientes, Análisis y Administración. Cada grupo puede comprimirse con un clic y el estado se recuerda entre sesiones. Si un grupo tiene notificaciones pendientes (chats, alertas de pago, novedades), muestra un indicador incluso estando cerrado. El grupo con la página activa nunca se colapsa accidentalmente.',
+  },
+  {
     id: 'v2-memberships',
     date: '2026-05-09',
     category: 'nueva-funcion',
@@ -56,7 +72,7 @@ const CATEGORY_META = {
   'aviso':         { label: 'Aviso',         bg: 'rgba(212,175,55,0.12)', color: '#D4AF37', border: 'rgba(212,175,55,0.25)' },
 };
 
-const LS_KEY = 'synaptech_last_seen_news';
+const LS_KEY           = 'synaptech_last_seen_news';
 
 function formatDate(iso) {
   const d = new Date(iso + 'T12:00:00');
