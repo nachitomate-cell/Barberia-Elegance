@@ -811,6 +811,88 @@
     </a>
 
     <p id="data-source-label" style="text-align:center; font-size:0.6875rem; color:#334155; margin:0.75rem 0 0; font-weight:500;"></p>
+
+    <!-- Zona de Peligro -->
+    <div style="margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid rgba(239,68,68,0.08);">
+      <p style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:rgba(239,68,68,0.35);margin:0 0 0.625rem;text-align:center;">Zona de Peligro</p>
+      <button onclick="openDeleteModal()" style="
+        display:flex;align-items:center;justify-content:center;gap:0.5rem;
+        width:100%;padding:0.75rem 1rem;border-radius:0.875rem;
+        background:rgba(239,68,68,0.04);border:1px solid rgba(239,68,68,0.12);
+        color:#f87171;font-size:0.875rem;font-weight:600;cursor:pointer;
+        transition:all 0.2s;
+      " onmouseover="this.style.background='rgba(239,68,68,0.09)';this.style.borderColor='rgba(239,68,68,0.28)'"
+         onmouseout="this.style.background='rgba(239,68,68,0.04)';this.style.borderColor='rgba(239,68,68,0.12)'">
+        <i class="ph-bold ph-trash" style="font-size:0.9375rem;"></i>
+        Eliminar Tenant
+      </button>
+    </div>
+  </div>
+
+  <!-- ══ MODAL ELIMINAR TENANT ══ -->
+  <div id="delete-tenant-modal" style="
+    position:fixed;inset:0;z-index:300;
+    background:rgba(8,13,23,0.96);backdrop-filter:blur(12px);
+    display:none;align-items:center;justify-content:center;padding:1.5rem;
+  ">
+    <div style="
+      width:100%;max-width:420px;
+      background:#0c1526;border:1px solid rgba(239,68,68,0.2);
+      border-radius:1.5rem;padding:1.75rem;
+      box-shadow:0 25px 50px rgba(0,0,0,0.6),0 0 40px rgba(239,68,68,0.06);
+    ">
+      <!-- Header -->
+      <div style="display:flex;align-items:center;gap:0.875rem;margin-bottom:1.5rem;">
+        <div style="width:44px;height:44px;border-radius:0.875rem;flex-shrink:0;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);display:flex;align-items:center;justify-content:center;">
+          <i class="ph-fill ph-trash" style="font-size:1.25rem;color:#ef4444;"></i>
+        </div>
+        <div>
+          <h2 style="font-size:1rem;font-weight:700;color:#fff;margin:0;">Eliminar Tenant</h2>
+          <p id="del-tenant-name" style="font-size:0.75rem;color:#64748b;margin:0;"></p>
+        </div>
+      </div>
+      <!-- Advertencia -->
+      <div style="background:rgba(239,68,68,0.05);border:1px solid rgba(239,68,68,0.15);border-radius:0.875rem;padding:1rem;margin-bottom:1.25rem;">
+        <p style="font-size:0.8125rem;color:#fca5a5;font-weight:600;margin:0 0 0.375rem;">⚠ Esta acción es irreversible</p>
+        <p style="font-size:0.75rem;color:#64748b;margin:0;line-height:1.6;">Se eliminarán barberos, citas, clientes, premios, servicios y toda la configuración del tenant.</p>
+      </div>
+      <!-- Frase -->
+      <p style="font-size:0.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#475569;margin:0 0 0.5rem;">Escribe exactamente para confirmar</p>
+      <div id="del-phrase" style="
+        background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);
+        border-radius:0.625rem;padding:0.75rem 1rem;
+        font-size:0.875rem;font-weight:600;color:#e2e8f0;
+        font-family:monospace;letter-spacing:0.02em;margin-bottom:0.875rem;
+        user-select:all;cursor:text;
+      "></div>
+      <input id="del-phrase-input" type="text" autocomplete="off" spellcheck="false"
+        placeholder="Escribe la frase aquí…"
+        oninput="checkDeletePhrase()"
+        onkeydown="if(event.key==='Enter')document.getElementById('del-confirm-btn').click()"
+        style="
+          width:100%;box-sizing:border-box;
+          background:#080d17;border:1px solid rgba(255,255,255,0.1);
+          border-radius:0.625rem;padding:0.75rem 1rem;
+          font-size:0.875rem;color:#fff;outline:none;
+          transition:border-color 0.2s,box-shadow 0.2s;
+          margin-bottom:1.25rem;display:block;
+        "
+      />
+      <!-- Botones -->
+      <div style="display:flex;gap:0.625rem;">
+        <button onclick="closeDeleteModal()" style="
+          flex:1;padding:0.75rem;border-radius:0.75rem;
+          background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.09);
+          color:#94a3b8;font-size:0.875rem;font-weight:600;cursor:pointer;transition:all 0.2s;
+        ">Cancelar</button>
+        <button id="del-confirm-btn" onclick="executeTenantDelete()" disabled style="
+          flex:1;padding:0.75rem;border-radius:0.75rem;
+          background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.25);
+          color:#f87171;font-size:0.875rem;font-weight:700;
+          cursor:not-allowed;opacity:0.4;transition:all 0.2s;
+        ">Eliminar</button>
+      </div>
+    </div>
   </div>
 
   <!-- ══ FIREBASE ══ -->
@@ -1831,6 +1913,107 @@
       } catch(e) {
         alert('Error al actualizar estado: ' + e.message);
         sourceEl.textContent = prev;
+      }
+    }
+
+    // ── Eliminar Tenant ───────────────────────────────────────────
+    const DELETE_PHRASES = [
+      'navaja limpia, negocio borrado',
+      'este corte no tiene vuelta atrás',
+      'el pelo no crece de nuevo',
+      'tijeras en mano, datos en llamas',
+      'synap dijo que no lo hagas',
+      'operación cabeza rapada confirmada',
+      'borro esto con plena conciencia',
+      'sin remordimientos, sin clientes',
+      'el barbero tomó malas decisiones',
+      'adiós local, adiós a todo',
+    ];
+
+    let _deletePhrase = '';
+
+    function openDeleteModal() {
+      const cfg = TENANTS[_activeTenant];
+      if (!cfg) return;
+      _deletePhrase = DELETE_PHRASES[Math.floor(Math.random() * DELETE_PHRASES.length)];
+      document.getElementById('del-tenant-name').textContent = cfg.nombre + ' · ' + _activeTenant;
+      document.getElementById('del-phrase').textContent = _deletePhrase;
+      const input = document.getElementById('del-phrase-input');
+      input.value = '';
+      input.style.borderColor = 'rgba(255,255,255,0.1)';
+      input.style.boxShadow = 'none';
+      const btn = document.getElementById('del-confirm-btn');
+      btn.disabled = true; btn.style.opacity = '0.4'; btn.style.cursor = 'not-allowed';
+      btn.style.background = 'rgba(239,68,68,0.12)'; btn.style.borderColor = 'rgba(239,68,68,0.25)';
+      btn.style.color = '#f87171'; btn.textContent = 'Eliminar';
+      document.getElementById('delete-tenant-modal').style.display = 'flex';
+      setTimeout(() => input.focus(), 120);
+    }
+
+    function closeDeleteModal() {
+      document.getElementById('delete-tenant-modal').style.display = 'none';
+    }
+
+    function checkDeletePhrase() {
+      const input = document.getElementById('del-phrase-input');
+      const btn   = document.getElementById('del-confirm-btn');
+      const match = input.value === _deletePhrase;
+      if (!input.value.length) {
+        input.style.borderColor = 'rgba(255,255,255,0.1)';
+        input.style.boxShadow   = 'none';
+      } else if (match) {
+        input.style.borderColor = '#22c55e';
+        input.style.boxShadow   = '0 0 0 3px rgba(34,197,94,0.12)';
+      } else {
+        input.style.borderColor = 'rgba(239,68,68,0.45)';
+        input.style.boxShadow   = 'none';
+      }
+      btn.disabled       = !match;
+      btn.style.opacity  = match ? '1'            : '0.4';
+      btn.style.cursor   = match ? 'pointer'       : 'not-allowed';
+      btn.style.background  = match ? 'rgba(239,68,68,0.28)' : 'rgba(239,68,68,0.12)';
+      btn.style.borderColor = match ? 'rgba(239,68,68,0.6)'  : 'rgba(239,68,68,0.25)';
+      btn.style.color       = match ? '#ef4444'               : '#f87171';
+    }
+
+    async function _deleteCol(colRef, batchSize = 100) {
+      const snap = await colRef.limit(batchSize).get();
+      if (snap.empty) return;
+      const batch = db.batch();
+      snap.docs.forEach(d => batch.delete(d.ref));
+      await batch.commit();
+      if (snap.size === batchSize) await _deleteCol(colRef, batchSize);
+    }
+
+    async function executeTenantDelete() {
+      const tid = _activeTenant;
+      const cfg = TENANTS[tid];
+      if (!cfg) return;
+      const btn = document.getElementById('del-confirm-btn');
+      btn.textContent = 'Eliminando…';
+      btn.disabled = true; btn.style.opacity = '0.6'; btn.style.cursor = 'not-allowed';
+      try {
+        await firebase.auth().currentUser?.getIdToken(true);
+        if (tid !== 'elegance') {
+          const tRef = db.collection('tenants').doc(tid);
+          const SUBS = [
+            'barberos','citas','bookings','servicios','bloqueos','premios',
+            'productos','lookbook','settings','gastos','config','configuracion',
+            'servicioFavorito','clientes','users','resenas','admin_notes',
+            'fcm_tokens','soporte_mensajes','slotLocks','product_reservations','chats',
+          ];
+          for (const sub of SUBS) await _deleteCol(tRef.collection(sub));
+          await tRef.delete();
+        }
+        await db.collection('_system').doc(tid).delete().catch(() => {});
+        await db.collection('_billing').doc(tid).delete().catch(() => {});
+        closeDeleteModal();
+        closeDrawer();
+        alert(`✅ Tenant "${cfg.nombre}" eliminado correctamente.`);
+      } catch(e) {
+        btn.textContent = 'Eliminar';
+        btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer';
+        alert('Error al eliminar: ' + e.message);
       }
     }
 
