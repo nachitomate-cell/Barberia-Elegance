@@ -766,7 +766,8 @@
             const isCancelled = cita.estado === 'Cancelada';
             const borderCol = isCompleted ? 'border-emerald-500' : isCancelled ? 'border-red-500/50' : isConfirmed ? 'border-white' : 'border-[#eab308]';
             const telLimpio = (cita.clienteTelefono || '').replace(/\D/g, '');
-            const waLink = telLimpio ? `https://wa.me/${telLimpio}` : null;
+            const isChameleon = (window.CURRENT_TENANT_ID || 'elegance') === 'chameleon';
+            const waLink = telLimpio && !isChameleon ? `https://wa.me/${telLimpio}` : null;
 
             const notaIndicator = cita.nota ? `<span class="inline-flex items-center gap-1 text-[10px] text-white/40 mt-1"><i class="ph ph-note-pencil text-[10px]"></i>Nota</span>` : '';
             return `
@@ -815,11 +816,12 @@
             document.getElementById('cd-servicio').textContent = cita.servicioNombre || 'Servicio';
             document.getElementById('cd-horario').textContent  = `${cita.hora} · ${cita.duracionServicio || 30} min · ${cita.fecha || ''}`;
 
+            const _isChameleon = (window.CURRENT_TENANT_ID || 'elegance') === 'chameleon';
             document.getElementById('cd-nombre').textContent = cita.clienteNombre || 'Cliente';
-            document.getElementById('cd-tel').textContent    = cita.clienteTelefono || '';
+            document.getElementById('cd-tel').textContent    = _isChameleon ? '' : (cita.clienteTelefono || '');
 
             const telLimpio = (cita.clienteTelefono || '').replace(/\D/g, '');
-            document.getElementById('cd-wa-btn').innerHTML = telLimpio
+            document.getElementById('cd-wa-btn').innerHTML = telLimpio && !_isChameleon
                 ? `<a href="https://wa.me/${telLimpio}" target="_blank" class="w-9 h-9 rounded-xl bg-[#25D366]/10 border border-[#25D366]/30 flex items-center justify-center"><i class="ph-fill ph-whatsapp-logo text-[#25D366] text-lg"></i></a>`
                 : '';
 
@@ -996,9 +998,9 @@
                                 <p class="text-xs text-white/80 font-medium flex items-center gap-1.5">
                                     <i class="ph ph-user-circle text-white/40"></i> ${cita.clienteNombre}
                                 </p>
-                                <p class="text-[10px] text-white/40 flex items-center gap-1.5">
+                                ${(window.CURRENT_TENANT_ID || 'elegance') !== 'chameleon' ? `<p class="text-[10px] text-white/40 flex items-center gap-1.5">
                                     <i class="ph ph-phone text-white/40"></i> ${cita.clienteTelefono}
-                                </p>
+                                </p>` : ''}
                                 ${cita.clienteEmail ? `
                                 <p class="text-[10px] text-white/40 flex items-center gap-1.5">
                                     <i class="ph ph-envelope-simple text-white/40"></i> ${cita.clienteEmail}
