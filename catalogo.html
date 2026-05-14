@@ -425,6 +425,38 @@
     .btn-share:hover { background: var(--gold-dim); }
     .btn-share:active { transform: scale(0.97); }
 
+    /* ── Bottom nav ─────────────────────────────────────────────────── */
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
+      display: flex;
+      background: rgba(7,5,0,0.97);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border-top: 1px solid var(--border);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    .nav-tab {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 0.3rem; padding: 0.75rem 0.5rem;
+      text-decoration: none;
+      color: var(--text-muted);
+      font-family: var(--sans); font-size: 0.625rem; font-weight: 700;
+      letter-spacing: 0.07em; text-transform: uppercase;
+      transition: color 0.18s;
+      -webkit-tap-highlight-color: transparent;
+      position: relative; min-height: 56px;
+    }
+    .nav-tab i { font-size: 1.375rem; line-height: 1; }
+    .nav-tab.active { color: var(--gold); }
+    .nav-tab.active::after {
+      content: '';
+      position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+      width: 2.25rem; height: 2px; border-radius: 0 0 3px 3px;
+      background: linear-gradient(90deg, rgba(201,168,76,0.4), var(--gold), rgba(201,168,76,0.4));
+    }
+    .nav-tab:not(.active):active { color: var(--text-sec); }
+
     /* ── Retry button ────────────────────────────────────────────────── */
     .btn-retry {
       display: inline-flex; align-items: center; gap: 0.5rem;
@@ -495,6 +527,18 @@
       <div id="detail-actions"></div>
     </div>
   </div>
+
+  <!-- ── Bottom nav ──────────────────────────────────────────────────── -->
+  <nav class="bottom-nav">
+    <a id="nav-catalogo" href="/catalogo" class="nav-tab active">
+      <i class="ph-fill ph-drop"></i>
+      Catálogo
+    </a>
+    <a id="nav-club" href="/registro.html" class="nav-tab">
+      <i class="ph ph-crown"></i>
+      Club
+    </a>
+  </nav>
 
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -849,6 +893,13 @@
 
     loadSettings();
     loadProducts();
+
+    // Nav links — preservar ?local= si se accede como tenant secundario
+    (function () {
+      const q = TENANT_ID !== 'deluxeperfumes' ? '?local=' + TENANT_ID : '';
+      document.getElementById('nav-catalogo').href = '/catalogo' + q;
+      document.getElementById('nav-club').href     = '/registro.html' + q;
+    })();
   </script>
 </body>
 </html>
