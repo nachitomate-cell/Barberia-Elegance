@@ -2,11 +2,12 @@ import { collection, doc } from 'firebase/firestore';
 import { db } from './firebase';
 
 const DOMAIN_MAP = {
-  'barberiaelegance.synaptechspa.cl': 'elegance',
-  'barberiaferraza.synaptechspa.cl':  'ferraza',
-  'gitananails.synaptechspa.cl':      'gitana',
-  'mapubarbershop.synaptechspa.cl':   'mapubarbershop',
-  'chameleonbarber.synaptechspa.cl':  'chameleon',
+  'barberiaelegance.synaptechspa.cl':  'elegance',
+  'barberiaferraza.synaptechspa.cl':   'ferraza',
+  'gitananails.synaptechspa.cl':       'gitana',
+  'mapubarbershop.synaptechspa.cl':    'mapubarbershop',
+  'chameleonbarber.synaptechspa.cl':   'chameleon',
+  'deluxeperfumes.synaptechspa.cl':    'deluxeperfumes',
 };
 
 export function resolveTenantId() {
