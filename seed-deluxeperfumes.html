@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Seed · Deluxe Perfumes</title>
+  <style>
+    body { font-family: monospace; background: #070500; color: #9A8A5C; padding: 2rem; }
+    h1   { color: #C9A84C; font-family: Georgia, serif; letter-spacing: .04em; }
+    p    { color: #544A32; margin: .25rem 0; font-size: .875rem; }
+    .actions { display: flex; gap: 1rem; flex-wrap: wrap; margin: 1.5rem 0; }
+    button {
+      padding: .75rem 1.5rem; border: none; border-radius: .5rem;
+      font-size: .9375rem; font-weight: 700; cursor: pointer;
+    }
+    button:disabled { opacity: .4; cursor: not-allowed; }
+    #btn-seed   { background: #C9A84C; color: #070500; }
+    #btn-clear  { background: #D94F4F; color: #fff; }
+    #btn-config { background: #2D4A2D; color: #6EE77A; border: 1px solid #3D6A3D; }
+    pre  { background: #0C0904; border: 1px solid rgba(201,168,76,.15); padding: 1rem;
+           border-radius: .5rem; white-space: pre-wrap; margin-top: 1rem; font-size: .8125rem; }
+    .ok  { color: #6EE77A; }
+    .err { color: #F87171; }
+    .hd  { color: #C9A84C; }
+  </style>
+</head>
+<body>
+  <h1>Seed — Deluxe Perfumes</h1>
+  <p>Popula <code>tenants/deluxeperfumes/</code> con configuración y catálogo de ejemplo.</p>
+  <p>Categorías: Hombre · Mujer · Unisex · Árabe · Nicho · Diseñador</p>
+
+  <div class="actions">
+    <button id="btn-config" onclick="seedConfig()">⚙ Solo configuración</button>
+    <button id="btn-seed"   onclick="seedAll()">▶ Seed completo (config + productos)</button>
+    <button id="btn-clear"  onclick="clearProducts()">✕ Borrar productos</button>
+  </div>
+  <pre id="log">Listo para ejecutar…</pre>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="/firebase-config.js?v=1.1"></script>
+  <script>
+    const TENANT = 'deluxeperfumes';
+    const logEl  = document.getElementById('log');
+
+    function log(msg, cls) {
+      logEl.innerHTML += `<span class="${cls || ''}">${msg}\n</span>`;
+    }
+
+    async function setDoc(path, data) {
+      const parts = path.split('/');
+      let ref = db;
+      for (let i = 0; i < parts.length; i++) {
+        ref = i % 2 === 0 ? ref.collection(parts[i]) : ref.doc(parts[i]);
+      }
+      await ref.set(data, { merge: true });
+      log(`  ✓ ${path}`, 'ok');
+    }
+
+    async function addDoc(col, data) {
+      const parts = col.split('/');
+      let ref = db;
+      for (let i = 0; i < parts.length; i++) {
+        ref = i % 2 === 0 ? ref.collection(parts[i]) : ref.doc(parts[i]);
+      }
+      const docRef = await ref.add(data);
+      log(`  ✓ ${col}/${docRef.id}  →  ${data.nombre}`, 'ok');
+    }
+
+    // ── Config ──────────────────────────────────────────────────────────
+    async function seedConfig() {
+      document.getElementById('btn-config').disabled = true;
+      logEl.innerHTML = '';
+      log('── Configuración del tenant ──', 'hd');
+      try {
+        await setDoc(`tenants/${TENANT}/settings/main`, {
+          nombre:      'Deluxe Perfumes',
+          tagline:     'Fragancias de lujo · Viña del Mar',
+          whatsapp:    '56912345678',   // <-- reemplaza con el número real
+          logo:        '/deluxeperfumes.jpg',
+          accentColor: '#C9A84C',
+          direccion:   'Viña del Mar, Chile',
+          horario:     'Lun–Sáb 10:00–20:00 · Dom 11:00–18:00',
+        });
+        log('✔ Config lista', 'ok');
+      } catch (e) {
+        log('✘ ' + e.message, 'err');
+      }
+      document.getElementById('btn-config').disabled = false;
+    }
+
+    // ── Productos ────────────────────────────────────────────────────────
+    const PRODUCTS = [
+
+      /* ── HOMBRE ──────────────────────────────────────── */
+      {
+        nombre:        'Eros Energy EDT 100ml',
+        marca:         'VERSACE',
+        categoria:     'Hombre',
+        descripcion:   'Frescura intensa y masculina. Notas de menta helada, limón de Calabria y madera de guayaco. Energizante y magnético.',
+        precio:        71990,
+        activo:        true,
+        imagen:        'https://images.unsplash.com/photo-1585386959984-a4155224a1ad?w=600&q=80',
+      },
+      {
+        nombre:        'One Million Royal EDP 100ml',
+        marca:         'PACO RABANNE',
+        categoria:     'Hombre',
+        descripcion:   'La versión más lujosa y adictiva de One Million. Notas de cuero, especias cálidas y madera de sándalo. Poder puro.',
+        precio:        125990,
+        activo:        true,
+        imagen:        'https://images.unsplash.com/photo-1547887538-e3a2f32cb1cc?w=600&q=80',
+      },
+      {
+        nombre:        'Sauvage EDP 100ml',
+        marca:         'DIOR',
+        categoria:     'Hombre',
+        descripcion:   'Emblemática fragancia salvaje e imponente. Bergamota de Calabria, pimienta de Sichuan, lavanda y sándalo de Mysore.',
+        precio:        109990,
+        activo:        true,
+        imagen:        'https://images.unsplash.com/photo-1594035910387-fea47794261f?w=600&q=80',
+      },
+      {
+        nombre:        'Acqua di Giò Profumo 100ml',
+        marca:         'ARMANI',
+        categoria:     'Hombre',
+        descripcion:   'Profundo como el mar. Incienso marino, pachulí y bergamota se fusionan en una fragancia acuática e intensa.',
+        precio:        109990,
+        activo:        true,
+        imagen:        'https://images.unsplash.com/photo-1590156206657-aec787e5f3e5?w=600&q=80',
+      },
+      {
+        nombre:        'Y EDP 100ml',
+        marca:         'YVES SAINT LAURENT',
+        categoria:     'Hombre',
+        descripcion:   'Audaz, libre e indomable. Manzana fresca, jengibre, salvia y cedro de Virginia para el hombre de hoy.',
+        precio:        89990,
+        precioOriginal: 112990,
+        activo:        true,
+        imagen:        'https://images.unsplash.com/photo-1541643600914-78b084683702?w=600&q=80',
+      },
+      {
+        nombre:        'Luna Rossa Carbon EDT 100ml',
+        marca:         'PRADA',
+        categoria:     'Hombre',
+        descripcion:   'Lavanda, bergamota y madera de oud en una composición fresca y masculina. Sofisticación sin esfuerzo.',
+        precio:        98990,
+        activo:        true,
+        imagen:        null,
+      },
+
+      /* ── MUJER ───────────────────────────────────────── */
+      {
+        nombre:        'La Vie Est Belle EDP 100ml',
+        marca:         'LANCÔME',
+        categoria:     'Mujer',
+        descripcion:   'Un ícono dulce e irresistible. Iris, praline y patchouli construyen una fragancia femenina y radiante.',
+        precio:        89990,
+        activo:        true,
+        imagen:        'https://images.unsplash.com/photo-1587017539504-67cfbddac569?w=600&q=80',
+      },
+      {
+        nombre:        'Chance EDP 100ml',
+        marca:         'CHANEL',
+        categoria:     'Mujer',
+        descripcion:   'Redondo y fresco, generoso e inesperado. Jazmín, iris y vetiver crean una feminidad espontánea y luminosa.',
+        precio:        129990,
+        activo:        true,
+        imagen:        'https://images.unsplash.com/photo-1616394584738-fc6e612e71b9?w=600&q=80',
+      },
+      {
+        nombre:        'Libre EDP 90ml',
+        marca:         'YVES SAINT LAURENT',
+        categoria:     'Mujer',
+        descripcion:   'Lavanda francesa y vainilla africana en tensión perfecta. Para la mujer que define sus propias reglas.',
+        precio:        99990,
+        precioOriginal: 124990,
+        activo:        true,
+        imagen:        'https://images.unsplash.com/photo-1615634260167-c8cdede054de?w=600&q=80',
+      },
+      {
+        nombre:        'Flowerbomb EDP 50ml',
+        marca:         'VIKTOR & ROLF',
+        categoria:     'Mujer',
+        descripcion:   'Una explosión floral adictiva. Jazmín, rosa, freesia y patchouli envuelven en una nube de femineidad pura.',
+        precio:        85990,
+        activo:        true,
+        imagen:        null,
+      },
+      {
+        nombre:        'For Her EDP 100ml',
+        marca:         'NARCISO RODRIGUEZ',
+        categoria:     'Mujer',
+        descripcion:   'Almizcle sensual y musc blanc con rosa y ámbar. Minimalismo olfativo que deja huella.',
+        precio:        75990,
+        precioOriginal: 94990,
+        activo:        true,
+        imagen:        'https://images.unsplash.com/photo-1556229162-5c63ed9c4efb?w=600&q=80',
+      },
+
+      /* ── UNISEX ──────────────────────────────────────── */
+      {
+        nombre:        'Erba Pura EDP 50ml',
+        marca:         'XERJOFF',
+        categoria:     'Unisex',
+        descripcion:   'El verano eterno embotellado. Naranja de Sicilia, frutas tropicales, musgo y vainilla cremosa. Exótico y paradisíaco.',
+        precio:        139990,
+        activo:        true,
+        imagen:        'https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?w=600&q=80',
+      },
+      {
+        nombre:        'Jazz Club EDT 100ml',
+        marca:         'MAISON MARGIELA',
+        categoria:     'Unisex',
+        descripcion:   'Ron, tabaco y madera de cedro en una fragancia que huele a las noches de los años 30. Íntimo y sofisticado.',
+        precio:        119990,
+        activo:        true,
+        imagen:        null,
+      },
+      {
+        nombre:        'Wood Sage & Sea Salt EDC 100ml',
+        marca:         'JO MALONE LONDON',
+        categoria:     'Unisex',
+        descripcion:   'Brisa marina salina con salvia y ambrette. Limpio, mineral y absolutamente adictivo. London Cologne Collection.',
+        precio:        134990,
+        precioOriginal: 159990,
+        activo:        true,
+        imagen:        'https://images.unsplash.com/photo-1568702846914-96b305d2aaeb?w=600&q=80',
+      },
+
+      /* ── NICHO ───────────────────────────────────────── */
+      {
+        nombre:        'Aventus EDP 100ml',
+        marca:         'CREED',
+        categoria:     'Nicho',
+        descripcion:   'El rey de las fragancias nicho. Piña ahumada, grosella negra, abedul y almizcle. Éxito, poder y determinación.',
+        precio:        329990,
+        activo:        true,
+        imagen:        'https://images.unsplash.com/photo-1523293182086-7651a899d37f?w=600&q=80',
+      },
+      {
+        nombre:        'Bal d\'Afrique EDP 50ml',
+        marca:         'BYREDO',
+        categoria:     'Nicho',
+        descripcion:   'Nerolí africano, cedro de Atlas, vetiver y almizcle blanco. Arte minimalista sueco con alma africana.',
+        precio:        159990,
+        activo:        true,
+        imagen:        null,
+      },
+
+      /* ── ÁRABE ───────────────────────────────────────── */
+      {
+        nombre:        'Amber Oud Carbon EDP 60ml',
+        marca:         'AL HARAMAIN',
+        categoria:     'Árabe',
+        descripcion:   'Oud oscuro y profundo con ámbar, cuero y madera ahumada. Orientalismo intenso de larga duración.',
+        precio:        41990,
+        precioOriginal: 55990,
+        activo:        true,
+        imagen:        'https://images.unsplash.com/photo-1594386608374-fb9a3c8e3b4f?w=600&q=80',
+      },
+      {
+        nombre:        'Ain Emarat EDP 100ml',
+        marca:         'AL WATANIAH',
+        categoria:     'Árabe',
+        descripcion:   'Rosa damascena, oud y almizcle en perfecta armonía árabe. Elegante, duradero y de gran proyección.',
+        precio:        32990,
+        precioOriginal: 43990,
+        activo:        true,
+        imagen:        null,
+      },
+      {
+        nombre:        'Yara EDP 100ml',
+        marca:         'LATTAFA',
+        categoria:     'Árabe',
+        descripcion:   'Frutos rojos, rosa turca y almizcle blanco. Dulce y femenino, con increíble relación calidad-precio.',
+        precio:        26990,
+        activo:        true,
+        imagen:        'https://images.unsplash.com/photo-1547887537-6158d64c35b3?w=600&q=80',
+      },
+      {
+        nombre:        'La Yuqawam Homme EDP 75ml',
+        marca:         'RASASI',
+        categoria:     'Árabe',
+        descripcion:   'Bergamota, lavanda, oud hindú y sándalo. Una fragancia oriental que combina elegancia occidental con alma árabe.',
+        precio:        38990,
+        activo:        true,
+        imagen:        null,
+      },
+      {
+        nombre:        'Khaltat Al Oud Al Ameen 50ml',
+        marca:         'AL HARAMAIN',
+        categoria:     'Árabe',
+        descripcion:   'Aceite puro de oud con notas cítrica y especiada. Concentrado de larga duración — unas gotas bastan.',
+        precio:        54990,
+        precioOriginal: 72990,
+        activo:        true,
+        imagen:        null,
+      },
+    ];
+
+    async function seedProducts() {
+      log('\n── Productos ──', 'hd');
+      const col = `tenants/${TENANT}/productos`;
+      for (const p of PRODUCTS) {
+        await addDoc(col, { ...p, creadoEn: firebase.firestore.FieldValue.serverTimestamp() });
+      }
+      log(`\n✔ ${PRODUCTS.length} productos cargados`, 'ok');
+    }
+
+    async function seedAll() {
+      const btn = document.getElementById('btn-seed');
+      btn.disabled = true;
+      logEl.innerHTML = '';
+      try {
+        await seedConfig();
+        await seedProducts();
+        log('\n🎉 Seed completo — abre el catálogo para verlo', 'ok');
+      } catch (e) {
+        log('✘ ' + e.message, 'err');
+      }
+      btn.disabled = false;
+    }
+
+    async function clearProducts() {
+      if (!confirm('¿Borrar todos los productos de deluxeperfumes? Esta acción no se puede deshacer.')) return;
+      const btn = document.getElementById('btn-clear');
+      btn.disabled = true;
+      logEl.innerHTML = '';
+      log('── Borrando productos… ──', 'hd');
+      try {
+        const snap = await db.collection(`tenants/${TENANT}/productos`).get();
+        const batch = db.batch();
+        snap.docs.forEach(d => batch.delete(d.ref));
+        await batch.commit();
+        log(`✔ ${snap.size} productos eliminados`, 'ok');
+      } catch (e) {
+        log('✘ ' + e.message, 'err');
+      }
+      btn.disabled = false;
+    }
+  </script>
+</body>
+</html>
