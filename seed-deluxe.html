@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Seed — Deluxe Perfumes</title>
+  <style>
+    body { font-family: system-ui, sans-serif; background: #0a0a0a; color: #e5e5e5; padding: 2rem; max-width: 640px; margin: auto; }
+    h1   { color: #C9A84C; margin-bottom: .25rem; }
+    p    { color: #888; font-size: .875rem; margin-bottom: 1.5rem; }
+    button {
+      background: #C9A84C; color: #000; border: none; padding: .75rem 2rem;
+      border-radius: 8px; font-size: 1rem; font-weight: 700; cursor: pointer;
+    }
+    button:disabled { opacity: .4; cursor: default; }
+    #log {
+      margin-top: 1.5rem; background: #111; border: 1px solid #222;
+      border-radius: 8px; padding: 1rem; font-size: .8rem;
+      font-family: monospace; line-height: 1.8; max-height: 400px; overflow-y: auto;
+    }
+    .ok  { color: #4ade80; }
+    .err { color: #f87171; }
+    .info{ color: #C9A84C; }
+  </style>
+</head>
+<body>
+  <h1>Seed — Deluxe Perfumes</h1>
+  <p>Carga 30 perfumes + configuración de tienda en <code>tenants/deluxeperfumes</code>.<br>
+     Inicia sesión primero con tu cuenta de Google admin.</p>
+
+  <div id="login-section">
+    <button id="btn-login" onclick="loginGoogle()">Iniciar sesión con Google</button>
+    <p id="user-status" style="margin-top:.75rem;color:#888;font-size:.8rem"></p>
+  </div>
+  <div id="seed-section" style="display:none;margin-top:1.25rem">
+    <p id="logged-as" style="color:#4ade80;font-size:.8rem;margin-bottom:.75rem"></p>
+    <button id="btn" onclick="seed()">Sembrar catálogo (30 perfumes)</button>
+  </div>
+  <div id="log"></div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script>
+    firebase.initializeApp({
+      apiKey:            'AIzaSyDqVkAhkXALm3hLcrmzjiaS3flUezPFe2Q',
+      authDomain:        'barberia-elegance.firebaseapp.com',
+      projectId:         'barberia-elegance',
+      storageBucket:     'barberia-elegance.firebasestorage.app',
+      messagingSenderId: '515311607907',
+      appId:             '1:515311607907:web:8add6005144015c5e85856',
+    });
+    const auth = firebase.auth();
+    const db   = firebase.firestore();
+
+    /* ── Catálogo ─────────────────────────────────────────────────────── */
+    const PRODUCTOS = [
+      // ── Hombre (8) ───────────────────────────────────────────────────
+      {
+        id: 'acqua-di-gio',
+        nombre: 'Acqua di Giò',
+        marca: 'Giorgio Armani',
+        categoria: 'Hombre',
+        descripcion: 'Fragancia acuática y marina con notas de bergamota, mar y madera blanca. Fresco y atemporal.',
+        precio: 42990,
+        precioOriginal: null,
+        stock: 8,
+      },
+      {
+        id: 'dior-sauvage',
+        nombre: 'Sauvage',
+        marca: 'Christian Dior',
+        categoria: 'Hombre',
+        descripcion: 'Fresco y amaderado con notas de pimienta de Sichuan, bergamota calabresa y ambroxan. Icónico y poderoso.',
+        precio: 89990,
+        precioOriginal: 109990,
+        stock: 5,
+      },
+      {
+        id: 'bleu-de-chanel',
+        nombre: 'Bleu de Chanel',
+        marca: 'Chanel',
+        categoria: 'Hombre',
+        descripcion: 'Amaderado aromático con cítricos vibrantes, vetiver y sándalo. Sofisticado e intemporal.',
+        precio: 95990,
+        precioOriginal: null,
+        stock: 4,
+      },
+      {
+        id: '212-men',
+        nombre: '212 Men NYC',
+        marca: 'Carolina Herrera',
+        categoria: 'Hombre',
+        descripcion: 'Energético y urbano con notas de menta, cactus y madera de cedro. El perfume de la ciudad.',
+        precio: 38990,
+        precioOriginal: null,
+        stock: 11,
+      },
+      {
+        id: 'nautica-voyage',
+        nombre: 'Voyage',
+        marca: 'Nautica',
+        categoria: 'Hombre',
+        descripcion: 'Fresco marino con manzana, loto acuático y musgo de roble. Ideal para el día a día.',
+        precio: 24990,
+        precioOriginal: 29990,
+        stock: 14,
+      },
+      {
+        id: '1-million',
+        nombre: '1 Million',
+        marca: 'Paco Rabanne',
+        categoria: 'Hombre',
+        descripcion: 'Especiado y sensual con pomelo fresco, canela y cuero. El perfume del éxito.',
+        precio: 52990,
+        precioOriginal: 64990,
+        stock: 7,
+      },
+      {
+        id: 'boss-bottled-night',
+        nombre: 'Bottled Night',
+        marca: 'Hugo Boss',
+        categoria: 'Hombre',
+        descripcion: 'Fresco y oscuro con lavanda, birch y musgo africano. Para la noche perfecta.',
+        precio: 34990,
+        precioOriginal: null,
+        stock: 9,
+      },
+      {
+        id: 'eros-versace',
+        nombre: 'Eros',
+        marca: 'Versace',
+        categoria: 'Hombre',
+        descripcion: 'Oriental y fresco con menta, manzana verde y vainilla tonka. Audaz y seductor.',
+        precio: 47990,
+        precioOriginal: null,
+        stock: 6,
+      },
+
+      // ── Mujer (9) ────────────────────────────────────────────────────
+      {
+        id: 'la-vie-est-belle',
+        nombre: 'La Vie Est Belle',
+        marca: 'Lancôme',
+        categoria: 'Mujer',
+        descripcion: 'Gourmand floral con iris, jazmín y pralinée de pacana. Celebra la felicidad de vivir.',
+        precio: 79990,
+        precioOriginal: 94990,
+        stock: 6,
+      },
+      {
+        id: 'coco-mademoiselle',
+        nombre: 'Coco Mademoiselle',
+        marca: 'Chanel',
+        categoria: 'Mujer',
+        descripcion: 'Oriental fresco con bergamota, rosa de mayo y pachulí. La fragancia de la mujer libre.',
+        precio: 98990,
+        precioOriginal: null,
+        stock: 3,
+      },
+      {
+        id: 'good-girl',
+        nombre: 'Good Girl',
+        marca: 'Carolina Herrera',
+        categoria: 'Mujer',
+        descripcion: 'Floral y gourmand con jazmín sambac, almendra y cacao. Dulce y poderosa a la vez.',
+        precio: 82990,
+        precioOriginal: null,
+        stock: 5,
+      },
+      {
+        id: 'black-opium',
+        nombre: 'Black Opium',
+        marca: 'Yves Saint Laurent',
+        categoria: 'Mujer',
+        descripcion: 'Café negro, flor de naranja y vainilla. Adictivo, oscuro y luminoso al mismo tiempo.',
+        precio: 88990,
+        precioOriginal: null,
+        stock: 4,
+      },
+      {
+        id: 'miss-dior',
+        nombre: 'Miss Dior',
+        marca: 'Christian Dior',
+        categoria: 'Mujer',
+        descripcion: 'Floral y chypre con piñón rosa, rosa peonia y musgo blanco. Romántico y elegante.',
+        precio: 91990,
+        precioOriginal: null,
+        stock: 4,
+      },
+      {
+        id: 'flowerbomb',
+        nombre: 'Flowerbomb',
+        marca: 'Viktor & Rolf',
+        categoria: 'Mujer',
+        descripcion: 'Floral explosivo con jazmín, rosa, freesia y orquídea sobre base de patchouli.',
+        precio: 85990,
+        precioOriginal: 99990,
+        stock: 3,
+      },
+      {
+        id: 'daisy-marc-jacobs',
+        nombre: 'Daisy',
+        marca: 'Marc Jacobs',
+        categoria: 'Mujer',
+        descripcion: 'Fresco floral con violetas, jazmín y fresas silvestres. Joven, fresco y alegre.',
+        precio: 56990,
+        precioOriginal: null,
+        stock: 8,
+      },
+      {
+        id: 'light-blue-dg',
+        nombre: 'Light Blue',
+        marca: 'Dolce & Gabbana',
+        categoria: 'Mujer',
+        descripcion: 'Cítrico y floral con manzana siciliana, bambú y cedro. La esencia del Mediterráneo.',
+        precio: 54990,
+        precioOriginal: 64990,
+        stock: 7,
+      },
+      {
+        id: 'si-armani',
+        nombre: 'Sì',
+        marca: 'Giorgio Armani',
+        categoria: 'Mujer',
+        descripcion: 'Chypre floral con grosellas negras, néroli y vainilla. Sofisticada y moderna.',
+        precio: 72990,
+        precioOriginal: null,
+        stock: 5,
+      },
+
+      // ── Unisex (6) ───────────────────────────────────────────────────
+      {
+        id: 'ck-one',
+        nombre: 'CK One',
+        marca: 'Calvin Klein',
+        categoria: 'Unisex',
+        descripcion: 'El clásico unisex con bergamota, té verde, jazmín y musgo. Fresco y libre.',
+        precio: 29990,
+        precioOriginal: null,
+        stock: 15,
+      },
+      {
+        id: 'molecule-01',
+        nombre: 'Escentric 01',
+        marca: 'Escentric Molecules',
+        categoria: 'Unisex',
+        descripcion: 'Basado en Iso E Super, se funde con la piel de cada persona creando una fragancia única e irrepetible.',
+        precio: 67990,
+        precioOriginal: null,
+        stock: 4,
+      },
+      {
+        id: 'le-beau-jpg',
+        nombre: 'Le Beau',
+        marca: 'Jean Paul Gaultier',
+        categoria: 'Unisex',
+        descripcion: 'Tropical y amaderado con coco, almendra y cedro de la India. Exótico y magnético.',
+        precio: 58990,
+        precioOriginal: null,
+        stock: 6,
+      },
+      {
+        id: 'libre-ysl',
+        nombre: 'Libre',
+        marca: 'Yves Saint Laurent',
+        categoria: 'Unisex',
+        descripcion: 'Floral amaderado con lavanda francesa, flor de naranjo de Marruecos y vainilla de Madagascar.',
+        precio: 78990,
+        precioOriginal: 89990,
+        stock: 5,
+      },
+      {
+        id: 'sandalo-zara',
+        nombre: 'Sándalo',
+        marca: 'Zara',
+        categoria: 'Unisex',
+        descripcion: 'Cremoso y cálido con sándalo, musgo y vainilla suave. Accesible y muy versátil.',
+        precio: 14990,
+        precioOriginal: null,
+        stock: 20,
+      },
+      {
+        id: 'tobacco-oud',
+        nombre: 'Tobacco Oud',
+        marca: 'Tom Ford',
+        categoria: 'Unisex',
+        descripcion: 'Oud, tabaco oriental, madera de patchouli y especias cálidas. Lujoso y envolvente.',
+        precio: 149990,
+        precioOriginal: 178990,
+        stock: 2,
+      },
+
+      // ── Árabe / Nicho (4) ────────────────────────────────────────────
+      {
+        id: 'oud-intense',
+        nombre: 'Oud Intense',
+        marca: 'Al Haramain',
+        categoria: 'Árabe / Nicho',
+        descripcion: 'Oud puro con rosa turca, especias orientales y ámbar. Una experiencia profunda y perdurable.',
+        precio: 34990,
+        precioOriginal: null,
+        stock: 8,
+      },
+      {
+        id: 'rose-oud-rasasi',
+        nombre: 'Rose Oud',
+        marca: 'Rasasi',
+        categoria: 'Árabe / Nicho',
+        descripcion: 'Rosa búlgara y oud ahumado en una combinación atemporal del Medio Oriente. Elegante.',
+        precio: 28990,
+        precioOriginal: null,
+        stock: 10,
+      },
+      {
+        id: 'amber-oud',
+        nombre: 'Amber Oud',
+        marca: 'Al Haramain',
+        categoria: 'Árabe / Nicho',
+        descripcion: 'Ámbar dorado, oud suave y sándalo cremoso. Cálido, dulce y muy duradero sobre la piel.',
+        precio: 38990,
+        precioOriginal: 44990,
+        stock: 7,
+      },
+      {
+        id: 'lattafa-raghba',
+        nombre: 'Raghba',
+        marca: 'Lattafa',
+        categoria: 'Árabe / Nicho',
+        descripcion: 'Vainilla, caramelo y oud en un oriental dulce y adictivo. Relación calidad-precio excepcional.',
+        precio: 19990,
+        precioOriginal: null,
+        stock: 12,
+      },
+
+      // ── Miniatura / Set (3) ──────────────────────────────────────────
+      {
+        id: 'set-chanel-miniatura',
+        nombre: 'Set Miniaturas Chanel',
+        marca: 'Chanel',
+        categoria: 'Miniaturas / Sets',
+        descripcion: 'Colección de 4 miniaturas: N°5, Coco Mademoiselle, Chance y Bleu. Ideal para regalo.',
+        precio: 19990,
+        precioOriginal: 24990,
+        stock: 6,
+      },
+      {
+        id: 'set-dior-miniatura',
+        nombre: 'Set Miniaturas Dior',
+        marca: 'Christian Dior',
+        categoria: 'Miniaturas / Sets',
+        descripcion: 'Trío de miniaturas: Sauvage, Miss Dior y J\'adore. Perfecto para descubrir la casa Dior.',
+        precio: 24990,
+        precioOriginal: null,
+        stock: 4,
+      },
+      {
+        id: 'set-armani-miniatura',
+        nombre: 'Set Miniaturas Armani',
+        marca: 'Giorgio Armani',
+        categoria: 'Miniaturas / Sets',
+        descripcion: 'Tres miniaturas: Acqua di Giò, Sì y Code. El lujo italiano en formato viaje.',
+        precio: 17990,
+        precioOriginal: null,
+        stock: 5,
+      },
+    ];
+
+    // ── Auth ──────────────────────────────────────────────────────────
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        document.getElementById('login-section').style.display = 'none';
+        document.getElementById('seed-section').style.display  = '';
+        document.getElementById('logged-as').textContent = '✓ Autenticado como ' + user.email;
+      } else {
+        document.getElementById('login-section').style.display = '';
+        document.getElementById('seed-section').style.display  = 'none';
+      }
+    });
+
+    async function loginGoogle() {
+      const btn = document.getElementById('btn-login');
+      btn.disabled = true;
+      document.getElementById('user-status').textContent = 'Abriendo ventana de Google…';
+      try {
+        await auth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
+      } catch (e) {
+        document.getElementById('user-status').textContent = 'Error: ' + e.message;
+        btn.disabled = false;
+      }
+    }
+
+    function log(msg, cls = '') {
+      const el = document.getElementById('log');
+      el.innerHTML += `<div class="${cls}">${msg}</div>`;
+      el.scrollTop = el.scrollHeight;
+    }
+
+    async function seed() {
+      const btn = document.getElementById('btn');
+      btn.disabled = true;
+      document.getElementById('log').innerHTML = '';
+
+      log('Iniciando…', 'info');
+
+      const tenantRef = db.collection('tenants').doc('deluxeperfumes');
+
+      // Settings
+      try {
+        await tenantRef.collection('settings').doc('main').set({
+          nombre:      'Deluxe Perfumes',
+          logo:        '',
+          whatsapp:    '',
+          accentColor: '#C9A84C',
+        }, { merge: true });
+        log('✓ settings/main guardado', 'ok');
+      } catch (e) {
+        log('✗ settings/main: ' + e.message, 'err');
+      }
+
+      // Productos
+      let ok = 0, err = 0;
+      for (const p of PRODUCTOS) {
+        const { id, ...data } = p;
+        try {
+          await tenantRef.collection('productos').doc(id).set({
+            ...data,
+            activo:    true,
+            imagen:    null,
+            creadoEn:  firebase.firestore.FieldValue.serverTimestamp(),
+          }, { merge: true });
+          log(`✓ ${data.marca} — ${data.nombre}`, 'ok');
+          ok++;
+        } catch (e) {
+          log(`✗ ${id}: ${e.message}`, 'err');
+          err++;
+        }
+      }
+
+      log('', '');
+      log(`Listo: ${ok} productos cargados${err ? `, ${err} errores` : ''}.`, 'info');
+      log('Puedes cerrar esta pestaña.', 'info');
+      btn.textContent = 'Completado';
+    }
+  </script>
+</body>
+</html>

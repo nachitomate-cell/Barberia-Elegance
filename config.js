@@ -3,11 +3,12 @@
 
 (function () {
   const _domainMap = {
-    'gitananails.synaptechspa.cl':      'gitana',
-    'barberiaelegance.synaptechspa.cl': 'elegance',
-    'barberiaferraza.synaptechspa.cl':  'ferraza',
-    'mapubarbershop.synaptechspa.cl':   'mapubarbershop',
-    'chameleonbarber.synaptechspa.cl':  'chameleon',
+    'gitananails.synaptechspa.cl':        'gitana',
+    'barberiaelegance.synaptechspa.cl':   'elegance',
+    'barberiaferraza.synaptechspa.cl':    'ferraza',
+    'mapubarbershop.synaptechspa.cl':     'mapubarbershop',
+    'chameleonbarber.synaptechspa.cl':    'chameleon',
+    'deluxeperfumes.synaptechspa.cl':     'deluxeperfumes',
   };
 
   const _tenants = {
@@ -90,6 +91,24 @@
         { nombre: 'Juan Vásquez',   foto: null, disponible: true },
         { nombre: 'David Figueredo',foto: null, disponible: true },
       ],
+    },
+    deluxeperfumes: {
+      categoriasServicio: ['Perfumes', 'Sets', 'Miniaturas', 'Accesorios', 'Otro'],
+      nombre:          'Deluxe Perfumes',
+      nombreCorto:     'Deluxe',
+      pageTitle:       'Deluxe Perfumes | Tu fragancia perfecta',
+      slogan:          'Tu fragancia perfecta',
+      logo:            '/logo4.webp',
+      logo2:           '/logo4(2).webp',
+      direccion:       '📍 1/2 Oriente 831, Oficina 601, Viña del Mar',
+      horario:         '🚚 Delivery en Viña, Valparaíso y Con-Con.',
+      telefono:        '',
+      club:            'Club Deluxe',
+      instagram:       '',
+      instagramHandle: '',
+      waEmoji:         '🌸',
+      googleReviewUrl: '',
+      barberos:        [],
     },
     mapubarbershop: {
       categoriasServicio: ['Cortes', 'Barba', 'Combos', 'Extras', 'Otro'],
