@@ -35,18 +35,6 @@
     }
   ],
   "rewrites": [
-    { "source": "/favicon.ico",            "destination": "/logo.jpg" },
-    { "source": "/dashboard",              "destination": "/dashboard.html" },
-    { "source": "/registro",               "destination": "/registro.html" },
-    { "source": "/agenda",                 "destination": "/agenda.html" },
-    { "source": "/agenda/:path*",          "destination": "/agenda.html" },
-    { "source": "/servicios",              "destination": "/index.html" },
-    { "source": "/gestion-interna",        "destination": "/gestion-interna/index.html" },
-    { "source": "/gestion-interna/:path*", "destination": "/gestion-interna/index.html" },
-    { "source": "/catalogo",               "destination": "/catalogo.html" },
-    { "source": "/membresia",              "destination": "/membresia.html" },
-    { "source": "/chat-miembros",          "destination": "/chat-miembros.html" },
-    { "source": "/admin-membresias",       "destination": "/admin-membresias.html" },
     {
       "source": "/registro",
       "has": [{ "type": "host", "value": "deluxeperfumes.synaptechspa.cl" }],
@@ -67,6 +55,18 @@
       "has": [{ "type": "host", "value": "deluxeperfumes.synaptechspa.cl" }],
       "destination": "/gestion-interna/index.html"
     },
+    { "source": "/favicon.ico",            "destination": "/logo.jpg" },
+    { "source": "/dashboard",              "destination": "/dashboard.html" },
+    { "source": "/registro",               "destination": "/registro.html" },
+    { "source": "/agenda",                 "destination": "/agenda.html" },
+    { "source": "/agenda/:path*",          "destination": "/agenda.html" },
+    { "source": "/servicios",              "destination": "/index.html" },
+    { "source": "/gestion-interna",        "destination": "/gestion-interna/index.html" },
+    { "source": "/gestion-interna/:path*", "destination": "/gestion-interna/index.html" },
+    { "source": "/catalogo",               "destination": "/catalogo.html" },
+    { "source": "/membresia",              "destination": "/membresia.html" },
+    { "source": "/chat-miembros",          "destination": "/chat-miembros.html" },
+    { "source": "/admin-membresias",       "destination": "/admin-membresias.html" },
     {
       "source": "/:path+",
       "has": [{ "type": "host", "value": "deluxeperfumes.synaptechspa.cl" }],
