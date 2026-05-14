@@ -2294,7 +2294,10 @@
     async function renderHours(customConfig = null) {
       if (!selectedServiceObj) return;
 
-      const _isEleganceHr = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance';
+      const _isEleganceHr = !window.CURRENT_TENANT_ID ||
+        window.CURRENT_TENANT_ID === 'elegance' ||
+        window.CURRENT_TENANT_ID === 'chameleon' ||
+        window.CURRENT_TENANT_ID === 'ferraza';
       const grid = document.getElementById('hoursGrid');
       grid.className = _isEleganceHr
         ? 'w-full flex flex-col gap-0'
