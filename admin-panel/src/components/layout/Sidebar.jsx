@@ -4,7 +4,7 @@ import {
   CalendarDays, Scissors, Users, Star, BarChart3,
   Trophy, ShoppingBag, Images, LogOut, ChevronRight, ChevronDown,
   Sun, Moon, ExternalLink, Settings, TrendingDown, MessageCircle, X,
-  Megaphone, ImagePlus, CreditCard, Monitor, Headphones,
+  Megaphone, ImagePlus, CreditCard, Monitor, Headphones, Medal,
 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
@@ -272,6 +272,38 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
           );
         })}
       </nav>
+
+      {/* Membresías — solo Chameleon */}
+      {tenant.id === 'chameleon' && (
+        <div className="mb-2">
+          <button className="w-full flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-slate-800/40 transition-colors group/hdr">
+            <span className="flex-1 text-left text-[10px] font-bold text-slate-600 uppercase tracking-widest group-hover/hdr:text-slate-400 transition-colors">
+              Membresías
+            </span>
+          </button>
+          <div className="space-y-0.5 pt-0.5 pb-1">
+            <NavLink
+              to="membresias"
+              onClick={onClose}
+              className={({ isActive }) =>
+                `group/item flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                  isActive
+                    ? 'bg-emerald-500/10 text-emerald-400'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                }`
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  <Medal size={16} strokeWidth={isActive ? 2.5 : 2} className="shrink-0" />
+                  <span className="flex-1">Membresías</span>
+                  {isActive && <ChevronRight size={14} className="text-emerald-500 opacity-60" />}
+                </>
+              )}
+            </NavLink>
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <div
