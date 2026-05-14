@@ -30,6 +30,7 @@ import BarberTV         from './views/BarberTV';
 import TVConfig         from './views/TVConfig';
 import Finanzas         from './views/Finanzas';
 import Mensualidad      from './views/Mensualidad';
+import Soporte          from './views/Soporte';
 
 function TenantGate({ children }) {
   const { suspended } = useTenant();
@@ -81,6 +82,7 @@ function ProtectedApp() {
             <Route path="mensualidad"     element={<Mensualidad />} />
             <Route path="mensajes"        element={<Chat />} />
             <Route path="marketing"       element={<Marketing />} />
+            <Route path="soporte"         element={<Soporte />} />
             <Route path="booking-preview"    element={<BookingServicios onContinuar={s => alert(`Seleccionado: ${s.nombre}`)} />} />
             <Route path="booking-barbero"   element={<BookingBarbero  onContinuar={b => alert(`Barbero: ${b.barbero?.nombre}`)} />} />
             <Route path="booking-fecha"     element={<BookingFecha    onContinuar={f => alert(`Fecha: ${f.hora}`)} />} />

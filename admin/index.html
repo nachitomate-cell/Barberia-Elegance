@@ -745,6 +745,21 @@
       </div>
     </div>
 
+    <!-- Mensajes de Soporte -->
+    <div style="margin-bottom:1.5rem;">
+      <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.625rem;">
+        <p class="section-label" style="margin:0;">Mensajes de Soporte</p>
+        <span id="soporte-badge" style="
+          display:none;padding:0.1rem 0.45rem;border-radius:999px;
+          font-size:0.6rem;font-weight:700;
+          background:rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.3);color:#f59e0b;
+        "></span>
+      </div>
+      <div id="soporte-section">
+        <div class="skeleton" style="width:100%;height:56px;border-radius:0.75rem;"></div>
+      </div>
+    </div>
+
     <!-- CTA principal -->
     <a id="cta-gestion" href="#" class="cta-btn">
       <i class="ph-bold ph-arrow-right"></i>
@@ -777,6 +792,7 @@
         citasCol:    () => db.collection('citas'),
         profCol:     () => db.collection('barberos'),
         usersCol:    () => db.collection('users'),
+        soporteCol:  () => db.collection('soporte_mensajes'),
       },
       gitana: {
         nombre:      'Gitana Nails Studio',
@@ -790,6 +806,7 @@
         citasCol:    () => db.collection('tenants').doc('gitana').collection('citas'),
         profCol:     () => db.collection('tenants').doc('gitana').collection('barberos'),
         usersCol:    () => db.collection('tenants').doc('gitana').collection('users'),
+        soporteCol:  () => db.collection('tenants').doc('gitana').collection('soporte_mensajes'),
       },
       ferraza: {
         nombre:      'Barbería Ferraza',
@@ -803,6 +820,7 @@
         citasCol:    () => db.collection('tenants').doc('ferraza').collection('citas'),
         profCol:     () => db.collection('tenants').doc('ferraza').collection('barberos'),
         usersCol:    () => db.collection('tenants').doc('ferraza').collection('users'),
+        soporteCol:  () => db.collection('tenants').doc('ferraza').collection('soporte_mensajes'),
       },
       mapubarber: {
         nombre:      'Mapu Barbershop',
@@ -816,6 +834,7 @@
         citasCol:    () => db.collection('tenants').doc('mapubarber').collection('citas'),
         profCol:     () => db.collection('tenants').doc('mapubarber').collection('barberos'),
         usersCol:    () => db.collection('tenants').doc('mapubarber').collection('users'),
+        soporteCol:  () => db.collection('tenants').doc('mapubarber').collection('soporte_mensajes'),
       },
       chameleon: {
         nombre:      'Chameleon Barber Studio',
@@ -829,6 +848,7 @@
         citasCol:    () => db.collection('tenants').doc('chameleon').collection('citas'),
         profCol:     () => db.collection('tenants').doc('chameleon').collection('barberos'),
         usersCol:    () => db.collection('tenants').doc('chameleon').collection('users'),
+        soporteCol:  () => db.collection('tenants').doc('chameleon').collection('soporte_mensajes'),
       },
     };
 
@@ -939,6 +959,7 @@
 
       loadStats(tenantId);
       loadTenantStatus(tenantId);
+      loadSoporte(tenantId);
     }
 
     function closeDrawer(updateHistory = true) {
@@ -969,21 +990,41 @@
       await Promise.all(Object.entries(TENANTS).map(async ([tid, cfg]) => {
         const el = document.getElementById(`badge-${tid}`);
         if (!el) return;
+
+        const parts = [];
+
         try {
           const snap = await cfg.citasCol().where('fecha', '==', todayStr).get();
           const activas = snap.docs.filter(d => (d.data().estado || '') !== 'Cancelada').length;
-          if (activas === 0) {
-            el.innerHTML = `<span style="font-size:0.7rem;color:#475569;">Sin citas hoy</span>`;
-          } else {
-            el.innerHTML = `<span style="
+          if (activas > 0) {
+            parts.push(`<span style="
               display:inline-flex;align-items:center;gap:0.3rem;
               font-size:0.7rem;font-weight:600;
               padding:0.15rem 0.5rem;border-radius:999px;
               background:rgba(${cfg.colorRgb},0.12);border:1px solid rgba(${cfg.colorRgb},0.25);
               color:${cfg.color};
-            "><span style="width:5px;height:5px;border-radius:50%;background:${cfg.color};flex-shrink:0;"></span>${activas} cita${activas !== 1 ? 's' : ''} hoy</span>`;
+            "><span style="width:5px;height:5px;border-radius:50%;background:${cfg.color};flex-shrink:0;"></span>${activas} cita${activas !== 1 ? 's' : ''} hoy</span>`);
           }
-        } catch(_) { /* permisos — no mostrar nada */ }
+        } catch(_) {}
+
+        try {
+          if (cfg.soporteCol) {
+            const sSnap = await cfg.soporteCol().where('leido', '==', false).get();
+            if (sSnap.size > 0) {
+              parts.push(`<span style="
+                display:inline-flex;align-items:center;gap:0.3rem;
+                font-size:0.7rem;font-weight:600;
+                padding:0.15rem 0.5rem;border-radius:999px;
+                background:rgba(251,191,36,0.12);border:1px solid rgba(251,191,36,0.3);
+                color:#f59e0b;
+              "><span style="width:5px;height:5px;border-radius:50%;background:#f59e0b;flex-shrink:0;"></span>${sSnap.size} mensaje${sSnap.size !== 1 ? 's' : ''} sin leer</span>`);
+            }
+          }
+        } catch(_) {}
+
+        el.innerHTML = parts.length
+          ? `<div style="display:flex;flex-wrap:wrap;gap:0.375rem;">${parts.join('')}</div>`
+          : `<span style="font-size:0.7rem;color:#475569;">Sin actividad hoy</span>`;
       }));
     }
 
@@ -1736,6 +1777,103 @@
       } catch(e) {
         alert('Error al actualizar estado: ' + e.message);
         sourceEl.textContent = prev;
+      }
+    }
+
+    // ── Soporte ───────────────────────────────────────────────────
+    const TIPO_META = {
+      sugerencia: { label: 'Sugerencia', color: '#10b981', rgb: '16,185,129' },
+      reclamo:    { label: 'Reclamo',    color: '#f87171', rgb: '248,113,113' },
+      consulta:   { label: 'Consulta',   color: '#60a5fa', rgb: '96,165,250'  },
+      otro:       { label: 'Otro',       color: '#94a3b8', rgb: '148,163,184' },
+    };
+
+    function soporteFmtDate(ts) {
+      if (!ts) return '—';
+      const d    = ts.toDate ? ts.toDate() : new Date(ts.seconds * 1000);
+      const diff = Math.floor((Date.now() - d.getTime()) / 86_400_000);
+      if (diff === 0) return 'Hoy';
+      if (diff === 1) return 'Ayer';
+      if (diff < 7)  return `Hace ${diff} días`;
+      return d.toLocaleDateString('es-CL', { day: 'numeric', month: 'short' });
+    }
+
+    async function loadSoporte(tenantId) {
+      const cfg     = TENANTS[tenantId];
+      const el      = document.getElementById('soporte-section');
+      const badgeEl = document.getElementById('soporte-badge');
+      if (!el || !cfg.soporteCol) return;
+
+      el.innerHTML = '<div class="skeleton" style="width:100%;height:56px;border-radius:.75rem;"></div>';
+      badgeEl.style.display = 'none';
+
+      try {
+        const snap = await cfg.soporteCol().orderBy('creadoEn', 'desc').limit(8).get();
+        const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const unread = docs.filter(d => !d.leido).length;
+
+        if (unread > 0) {
+          badgeEl.textContent = `${unread} sin leer`;
+          badgeEl.style.display = 'inline-block';
+        }
+
+        if (docs.length === 0) {
+          el.innerHTML = `
+            <div style="text-align:center;padding:1.25rem;border-radius:0.75rem;
+              background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);">
+              <p style="font-size:0.8125rem;color:#475569;margin:0;">Sin mensajes de soporte aún</p>
+            </div>`;
+          return;
+        }
+
+        el.innerHTML = docs.map(m => {
+          const t = TIPO_META[m.tipo] || TIPO_META.otro;
+          return `
+            <div style="
+              background:rgba(255,255,255,0.02);border-radius:0.75rem;
+              border:1px solid ${m.leido ? 'rgba(255,255,255,0.06)' : 'rgba(251,191,36,0.15)'};
+              padding:0.875rem;margin-bottom:0.5rem;
+            ">
+              <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.5rem;">
+                <span style="
+                  padding:0.1rem 0.5rem;border-radius:999px;font-size:0.6rem;font-weight:700;
+                  background:rgba(${t.rgb},0.12);border:1px solid rgba(${t.rgb},0.28);color:${t.color};
+                ">${t.label}</span>
+                <span style="font-size:0.7rem;color:#475569;">${soporteFmtDate(m.creadoEn)}</span>
+                ${!m.leido
+                  ? `<span style="font-size:0.65rem;color:#f59e0b;font-weight:700;margin-left:auto;">
+                       ● Sin leer
+                     </span>`
+                  : `<span style="font-size:0.65rem;color:#34d399;margin-left:auto;">✓ Leído</span>`}
+              </div>
+              <p style="font-size:0.8125rem;color:#94a3b8;margin:0 0 0.625rem;line-height:1.5;">
+                ${escHtml(m.mensaje)}
+              </p>
+              ${!m.leido
+                ? `<button onclick="marcarLeido('${tenantId}','${m.id}')" style="
+                    padding:0.3rem 0.75rem;border-radius:0.5rem;cursor:pointer;font-size:0.75rem;font-weight:600;
+                    background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.2);color:#34d399;
+                    transition:background 0.2s;"
+                    onmouseover="this.style.background='rgba(52,211,153,0.18)'"
+                    onmouseout="this.style.background='rgba(52,211,153,0.08)'">
+                    Marcar como leído
+                  </button>`
+                : ''}
+            </div>`;
+        }).join('');
+      } catch(e) {
+        el.innerHTML = `<p style="font-size:0.8rem;color:#f87171;padding:0.5rem 0;">Error: ${escHtml(e.message)}</p>`;
+      }
+    }
+
+    async function marcarLeido(tenantId, docId) {
+      const cfg = TENANTS[tenantId];
+      if (!cfg?.soporteCol) return;
+      try {
+        await cfg.soporteCol().doc(docId).update({ leido: true });
+        loadSoporte(tenantId);
+      } catch(e) {
+        alert('Error al marcar: ' + e.message);
       }
     }
 

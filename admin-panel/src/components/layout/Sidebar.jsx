@@ -4,7 +4,7 @@ import {
   CalendarDays, Scissors, Users, Star, BarChart3,
   Trophy, ShoppingBag, Images, LogOut, ChevronRight, ChevronDown,
   Sun, Moon, ExternalLink, Settings, TrendingDown, MessageCircle, X,
-  Megaphone, ImagePlus, CreditCard, Monitor,
+  Megaphone, ImagePlus, CreditCard, Monitor, Headphones,
 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
@@ -58,6 +58,7 @@ const NAV_GROUPS = [
       { to: 'mensualidad',   label: 'Mensualidad',   Icon: CreditCard, adminOnly: true },
       { to: 'tv-config',     label: 'Pantalla TV',   Icon: Monitor,    adminOnly: true },
       { to: 'configuracion', label: 'Configuración', Icon: Settings,   adminOnly: true },
+      { to: 'soporte',       label: 'Soporte',       Icon: Headphones, adminOnly: true },
     ],
   },
 ];
@@ -196,7 +197,7 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
           const groupDotColor =
             items.some(i => i.to === 'mensajes'   && unreadChats > 0)   ? 'bg-red-500'   :
             items.some(i => i.to === 'mensualidad' && hasBillingAlert)   ? 'bg-amber-400' :
-            items.some(i => i.to === 'metricas'   && hasUnreadNews)      ? 'bg-red-500'   :
+            items.some(i => i.to === 'soporte'    && hasUnreadNews)      ? 'bg-red-500'   :
             null;
 
           return (
@@ -229,7 +230,7 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
                   {items.map(({ to, label, Icon }) => {
                     const isMensajes    = to === 'mensajes';
                     const hasBadge      = isMensajes && unreadChats > 0;
-                    const showNewsDot   = to === 'metricas'   && hasUnreadNews;
+                    const showNewsDot   = to === 'soporte'    && hasUnreadNews;
                     const showBillingDot = to === 'mensualidad' && hasBillingAlert;
                     return (
                       <NavLink

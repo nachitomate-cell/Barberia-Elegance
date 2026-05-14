@@ -298,6 +298,16 @@ service cloud.firestore {
       allow write: if esAdmin('elegance');
     }
 
+    // ── /soporte_mensajes ──────────────────────────────────────────
+    // Mensajes de soporte enviados por admins de elegance a SynapTech.
+    // Escritura: admins del local. Lectura y marcar leído: bootstrap.
+    match /soporte_mensajes/{docId} {
+      allow read:   if esAdmin('elegance') || esBootstrap();
+      allow create: if esAdmin('elegance');
+      allow update: if esBootstrap();
+      allow delete: if esBootstrap();
+    }
+
     // ── /slotLocks ─────────────────────────────────────────────────
     // Fuente pública de ocupación para el widget de reservas (sin auth).
     // Los documentos incluyen fecha/hora/barberoId/duracion para que
@@ -525,6 +535,14 @@ service cloud.firestore {
         allow update: if esStaff(tid)
                       && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']);
         allow delete: if esAdmin(tid);
+      }
+
+      // ── soporte_mensajes ──────────────────────────────────────────
+      match /soporte_mensajes/{docId} {
+        allow read:   if esAdmin(tid) || esBootstrap();
+        allow create: if esAdmin(tid);
+        allow update: if esBootstrap();
+        allow delete: if esBootstrap();
       }
 
       // ── slotLocks ─────────────────────────────────────────────────

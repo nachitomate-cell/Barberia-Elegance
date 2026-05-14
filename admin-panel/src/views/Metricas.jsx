@@ -1,6 +1,5 @@
 import { useState, useMemo } from 'react';
 import { where } from 'firebase/firestore';
-import SynapTechNews from '../components/SynapTechNews';
 import {
   TrendingUp, CalendarCheck, XCircle, DollarSign,
   ShoppingBag, RefreshCcw, Activity, Crown, Star, User, Sparkles,
@@ -624,8 +623,6 @@ export default function Metricas() {
         </ChartCard>
 
       </div>
-
-      <SynapTechNews />
 
       {showHelp && (
         <HelpModal title="Ayuda — Métricas" onClose={() => setShowHelp(false)}>
