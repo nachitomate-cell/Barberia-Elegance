@@ -468,6 +468,100 @@
     }
     .btn-retry:hover { background: var(--gold-dim); }
 
+    /* ── Hero logo ───────────────────────────────────────────────────── */
+    .hero-logo-wrap {
+      position: relative; overflow: hidden;
+      display: flex; flex-direction: column; align-items: center;
+      padding: 2.25rem 1.25rem 1.75rem;
+    }
+    .hero-ambient {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -55%);
+      width: 320px; height: 320px; border-radius: 50%;
+      background: radial-gradient(circle,
+        rgba(var(--gold-rgb), 0.11) 0%,
+        rgba(var(--gold-rgb), 0.04) 40%,
+        transparent 70%);
+      animation: heroAmbient 4s ease-in-out infinite alternate;
+      pointer-events: none;
+    }
+    @keyframes heroAmbient {
+      from { transform: translate(-50%,-55%) scale(0.88); opacity: 0.7; }
+      to   { transform: translate(-50%,-55%) scale(1.08); opacity: 1; }
+    }
+    .hero-orbit {
+      position: absolute; top: 50%; left: 50%;
+      width: 200px; height: 200px;
+      transform: translate(-50%, -60%);
+      animation: heroOrbit 10s linear infinite;
+      pointer-events: none;
+    }
+    .hero-orbit-dot {
+      position: absolute; top: 0; left: 50%; margin-left: -2px;
+      width: 4px; height: 4px; border-radius: 50%;
+      background: var(--gold); opacity: 0.45;
+    }
+    .hero-orbit-dot:nth-child(2) { top: auto; bottom: 0; opacity: 0.28; }
+    .hero-orbit-dot:nth-child(3) {
+      top: 50%; left: 0; margin-left: 0; margin-top: -2px; opacity: 0.32;
+    }
+    .hero-orbit-dot:nth-child(4) {
+      top: 50%; left: auto; right: 0; margin-top: -2px; opacity: 0.2;
+    }
+    @keyframes heroOrbit {
+      from { transform: translate(-50%,-60%) rotate(0deg); }
+      to   { transform: translate(-50%,-60%) rotate(360deg); }
+    }
+    .hero-ring {
+      position: relative; z-index: 2;
+      width: 108px; height: 108px; border-radius: 26px;
+      overflow: hidden;
+      border: 1.5px solid rgba(var(--gold-rgb), 0.38);
+      box-shadow:
+        0 0 0 5px rgba(7,5,0,0.9),
+        0 0 0 6.5px rgba(var(--gold-rgb), 0.15),
+        0 0 36px rgba(var(--gold-rgb), 0.18),
+        0 24px 64px rgba(0,0,0,0.6);
+      animation: heroRingIn 0.9s cubic-bezier(0.34,1.56,0.64,1) both;
+    }
+    @keyframes heroRingIn {
+      from { opacity: 0; transform: scale(0.65) translateY(24px); }
+      to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .hero-ring img {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+    }
+    .hero-ring-placeholder {
+      width: 100%; height: 100%;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--gold-dim); font-size: 2.75rem; color: var(--gold);
+    }
+    .hero-name {
+      position: relative; z-index: 2;
+      font-family: var(--serif);
+      font-size: 1.5625rem; font-weight: 700;
+      color: var(--gold-light); letter-spacing: 0.04em;
+      margin-top: 1.125rem; text-align: center;
+      animation: heroFadeUp 0.7s ease 0.18s both;
+    }
+    .hero-sub {
+      position: relative; z-index: 2;
+      font-size: 0.625rem; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.2em;
+      margin-top: 0.375rem;
+      animation: heroFadeUp 0.7s ease 0.3s both;
+    }
+    .hero-line {
+      position: relative; z-index: 2;
+      width: 56px; height: 1px; margin-top: 1rem;
+      background: linear-gradient(90deg, transparent, var(--gold), transparent);
+      animation: heroFadeUp 0.7s ease 0.44s both;
+    }
+    @keyframes heroFadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
     /* ── Load more ───────────────────────────────────────────────────── */
     .load-more-wrap {
       display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
@@ -517,6 +611,24 @@
   <!-- ── Filter chips ──────────────────────────────────────────────────── -->
   <div class="filters-scroll" id="filters-bar">
     <button class="filter-chip active" data-cat="all" onclick="selectCat('all',this)">Todos</button>
+  </div>
+
+  <!-- ── Hero logo ────────────────────────────────────────────────────── -->
+  <div class="hero-logo-wrap" id="hero-logo-section">
+    <div class="hero-ambient"></div>
+    <div class="hero-orbit">
+      <div class="hero-orbit-dot"></div>
+      <div class="hero-orbit-dot"></div>
+      <div class="hero-orbit-dot"></div>
+      <div class="hero-orbit-dot"></div>
+    </div>
+    <div class="hero-ring">
+      <img id="hero-logo-img" src="/logo4.webp" alt="Deluxe Perfumes"
+        onerror="this.parentNode.innerHTML='<div class=\\'hero-ring-placeholder\\'><i class=\\'ph-fill ph-drop\\'></i></div>'">
+    </div>
+    <p class="hero-name" id="hero-store-name">Deluxe Perfumes</p>
+    <p class="hero-sub" id="hero-tagline">Fragancias · Viña del Mar</p>
+    <div class="hero-line"></div>
   </div>
 
   <!-- ── Product grid ──────────────────────────────────────────────────── -->
@@ -706,6 +818,10 @@
         return true;
       });
 
+      // Mostrar/ocultar hero según si hay filtro activo
+      const heroEl = document.getElementById('hero-logo-section');
+      if (heroEl) heroEl.style.display = (_q || _cat !== 'all') ? 'none' : '';
+
       const countEl = document.getElementById('results-count');
       if (_q || _cat !== 'all') {
         countEl.style.display = '';
@@ -891,8 +1007,14 @@
         if (d.nombre) {
           document.getElementById('store-name').textContent = d.nombre;
           document.title = 'Catálogo · ' + d.nombre;
+          const heroName = document.getElementById('hero-store-name');
+          if (heroName) heroName.textContent = d.nombre;
         }
-        if (d.logo) document.getElementById('store-logo').src = d.logo;
+        if (d.logo) {
+          document.getElementById('store-logo').src = d.logo;
+          const heroImg = document.getElementById('hero-logo-img');
+          if (heroImg) heroImg.src = d.logo;
+        }
         if (d.whatsapp) _waPhone = d.whatsapp.replace(/\D/g, '');
         if (d.accentColor) {
           const hex = d.accentColor.replace('#', '');
