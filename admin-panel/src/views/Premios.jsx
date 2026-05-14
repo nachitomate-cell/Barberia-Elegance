@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { Plus, Trophy } from 'lucide-react';
-import { addDoc, updateDoc, deleteDoc, doc, serverTimestamp, orderBy } from 'firebase/firestore';
+import { useState, useMemo } from 'react';
+import { Plus, Trophy, ChevronUp, ChevronDown } from 'lucide-react';
+import { addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { tenantCol } from '../lib/tenantUtils';
 import { useCollection } from '../hooks/useCollection';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
@@ -35,12 +35,24 @@ function IconPicker({ value, onChange }) {
 }
 
 export default function Premios() {
-  const { data: premios, loading } = useCollection('premios', [orderBy('costoSellos')]);
+  const { data: premios, loading } = useCollection('premios');
+
+  const sorted = useMemo(() => {
+    const arr = [...premios];
+    arr.sort((a, b) => {
+      const ao = a.orden ?? Infinity;
+      const bo = b.orden ?? Infinity;
+      if (ao !== bo) return ao - bo;
+      return (a.costoSellos ?? 0) - (b.costoSellos ?? 0);
+    });
+    return arr;
+  }, [premios]);
 
   const [form,     setForm]     = useState(EMPTY);
   const [showHelp, setShowHelp] = useState(false);
   const [editing,  setEditing]  = useState(null);
   const [saving,   setSaving]   = useState(false);
+  const [moving,   setMoving]   = useState(false);
   const [error,    setError]    = useState('');
 
   const openEdit = p => {
@@ -86,6 +98,22 @@ export default function Premios() {
     await deleteDoc(doc(tenantCol('premios'), id));
   };
 
+  const move = async (idx, dir) => {
+    const targetIdx = idx + dir;
+    if (targetIdx < 0 || targetIdx >= sorted.length || moving) return;
+    setMoving(true);
+    const a = sorted[idx];
+    const b = sorted[targetIdx];
+    const ordenA = a.orden ?? idx;
+    const ordenB = b.orden ?? targetIdx;
+    try {
+      await Promise.all([
+        updateDoc(doc(tenantCol('premios'), a.id), { orden: ordenB }),
+        updateDoc(doc(tenantCol('premios'), b.id), { orden: ordenA }),
+      ]);
+    } finally { setMoving(false); }
+  };
+
   const field = 'w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] transition-colors';
   const lbl   = 'block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5';
 
@@ -113,8 +141,25 @@ export default function Premios() {
           </div>
         ) : (
           <div className="divide-y divide-slate-800/60">
-            {premios.map(p => (
-              <div key={p.id} className="flex items-center gap-3 px-5 py-3.5 hover:bg-slate-800/30 transition-colors">
+            {sorted.map((p, idx) => (
+              <div key={p.id} className="flex items-center gap-3 px-4 py-3.5 hover:bg-slate-800/30 transition-colors">
+                {/* Orden buttons */}
+                <div className="flex flex-col shrink-0">
+                  <button
+                    onClick={() => move(idx, -1)}
+                    disabled={idx === 0 || moving}
+                    className="p-0.5 rounded text-slate-600 hover:text-slate-300 disabled:opacity-20 disabled:cursor-default transition-colors"
+                    title="Subir">
+                    <ChevronUp size={14} />
+                  </button>
+                  <button
+                    onClick={() => move(idx, 1)}
+                    disabled={idx === sorted.length - 1 || moving}
+                    className="p-0.5 rounded text-slate-600 hover:text-slate-300 disabled:opacity-20 disabled:cursor-default transition-colors"
+                    title="Bajar">
+                    <ChevronDown size={14} />
+                  </button>
+                </div>
                 <i className={`ph ${p.icono || 'ph-scissors'} text-base shrink-0 text-[#D4AF37]`} />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-white truncate">{p.nombre}</p>
