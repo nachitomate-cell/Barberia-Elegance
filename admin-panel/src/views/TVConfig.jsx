@@ -504,54 +504,6 @@ export default function TVConfig() {
           </div>
         </Field>
 
-        <Field label="Color de acento">
-          <div className="space-y-3">
-            <div className="flex flex-wrap gap-2 items-center">
-              {ACCENT_PRESETS.map(p => (
-                <button
-                  key={p.value}
-                  type="button"
-                  title={p.label}
-                  onClick={() => update('accentColor', p.value)}
-                  className="w-7 h-7 rounded-lg transition-all duration-150"
-                  style={{
-                    background:    p.value,
-                    outline:       config.accentColor === p.value ? '2px solid #fff' : '2px solid transparent',
-                    outlineOffset: '2px',
-                    transform:     config.accentColor === p.value ? 'scale(1.2)' : 'scale(1)',
-                  }}
-                />
-              ))}
-              <label className="relative w-7 h-7 cursor-pointer" title="Color personalizado">
-                <input
-                  type="color"
-                  value={gold}
-                  onChange={e => update('accentColor', e.target.value)}
-                  className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-                />
-                <div
-                  className="w-7 h-7 rounded-lg flex items-center justify-center"
-                  style={{ background: gold, border: '1.5px dashed rgba(255,255,255,0.45)' }}
-                >
-                  <Palette size={11} className="text-white opacity-80" />
-                </div>
-              </label>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-5 h-5 rounded-md shrink-0 border border-white/10" style={{ background: gold }} />
-              <span className="text-xs text-slate-400 font-mono">{gold}</span>
-              {config.accentColor && (
-                <button
-                  type="button"
-                  onClick={() => update('accentColor', '')}
-                  className="ml-auto text-xs text-slate-600 hover:text-slate-400 transition-colors"
-                >
-                  Restablecer dorado
-                </button>
-              )}
-            </div>
-          </div>
-        </Field>
       </Card>
 
       {/* ── QR ────────────────────────────────────────────────────── */}
@@ -745,6 +697,55 @@ export default function TVConfig() {
             value={config.oferta.descripcion}
             onChange={e => update('oferta.descripcion', e.target.value)}
           />
+        </Field>
+
+        <Field label="Color de acento">
+          <div className="space-y-3">
+            <div className="flex flex-wrap gap-2 items-center">
+              {ACCENT_PRESETS.map(p => (
+                <button
+                  key={p.value}
+                  type="button"
+                  title={p.label}
+                  onClick={() => update('accentColor', p.value)}
+                  className="w-7 h-7 rounded-lg transition-all duration-150"
+                  style={{
+                    background:    p.value,
+                    outline:       config.accentColor === p.value ? '2px solid #fff' : '2px solid transparent',
+                    outlineOffset: '2px',
+                    transform:     config.accentColor === p.value ? 'scale(1.2)' : 'scale(1)',
+                  }}
+                />
+              ))}
+              <label className="relative w-7 h-7 cursor-pointer" title="Color personalizado">
+                <input
+                  type="color"
+                  value={gold}
+                  onChange={e => update('accentColor', e.target.value)}
+                  className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                />
+                <div
+                  className="w-7 h-7 rounded-lg flex items-center justify-center"
+                  style={{ background: gold, border: '1.5px dashed rgba(255,255,255,0.45)' }}
+                >
+                  <Palette size={11} className="text-white opacity-80" />
+                </div>
+              </label>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-5 h-5 rounded-md shrink-0 border border-white/10" style={{ background: gold }} />
+              <span className="text-xs text-slate-400 font-mono">{gold}</span>
+              {config.accentColor && (
+                <button
+                  type="button"
+                  onClick={() => update('accentColor', '')}
+                  className="ml-auto text-xs text-slate-600 hover:text-slate-400 transition-colors"
+                >
+                  Restablecer dorado
+                </button>
+              )}
+            </div>
+          </div>
         </Field>
 
         <div>
