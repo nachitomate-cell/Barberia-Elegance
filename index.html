@@ -2202,7 +2202,12 @@
 
         let dw = d.getDay();
         const diasBloqConfig = settings.diasBloqueados || [];
-        let disabled = !settings.diasLaborales.includes(dw) ||
+        // Si hay config de barbero con horario por día, usar su flag activo;
+        // si no, caer al diasLaborales del tenant.
+        const dayOff = (customConfig && customConfig.horario)
+          ? !customConfig.horario[String(dw)]?.activo
+          : !settings.diasLaborales.includes(dw);
+        let disabled = dayOff ||
                        diasBloqConfig.includes(dateStr) ||
                        !!_bloqueosProximos[dateStr];
 
