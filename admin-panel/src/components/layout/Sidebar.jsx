@@ -4,7 +4,7 @@ import {
   CalendarDays, Scissors, Users, Star, BarChart3,
   Trophy, ShoppingBag, Images, LogOut, ChevronRight, ChevronDown,
   Sun, Moon, ExternalLink, Settings, TrendingDown, MessageCircle, X,
-  Megaphone, ImagePlus, CreditCard, Monitor, Headphones, Medal,
+  Megaphone, ImagePlus, CreditCard, Monitor, Headphones, Medal, History,
 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
@@ -13,7 +13,7 @@ import { useTenant } from '../../contexts/TenantContext';
 import { useAuth }   from '../../contexts/AuthContext';
 
 /* ── Grupos de navegación ────────────────────────────────────────── */
-const NAV_GROUPS = [
+const NAV_GROUPS_DEFAULT = [
   {
     id: 'operaciones',
     label: 'Operaciones',
@@ -36,9 +36,10 @@ const NAV_GROUPS = [
     id: 'clientes',
     label: 'Clientes',
     items: [
-      { to: 'clientes',  label: 'Clientes',  Icon: Star        },
-      { to: 'premios',   label: 'Premios',   Icon: Trophy      },
-      { to: 'productos', label: 'Productos', Icon: ShoppingBag },
+      { to: 'clientes',  label: 'Clientes',  Icon: Star          },
+      { to: 'historial', label: 'Historial', Icon: History        },
+      { to: 'premios',   label: 'Premios',   Icon: Trophy        },
+      { to: 'productos', label: 'Productos', Icon: ShoppingBag   },
     ],
   },
   {
@@ -58,6 +59,45 @@ const NAV_GROUPS = [
       { to: 'mensualidad',   label: 'Mensualidad',   Icon: CreditCard, adminOnly: true },
       { to: 'tv-config',     label: 'Pantalla TV',   Icon: Monitor,    adminOnly: true },
       { to: 'configuracion', label: 'Configuración', Icon: Settings,   adminOnly: true },
+      { to: 'soporte',       label: 'Soporte',       Icon: Headphones, adminOnly: true },
+    ],
+  },
+];
+
+const NAV_GROUPS_DELUXE = [
+  {
+    id: 'catalogo',
+    label: 'Catálogo',
+    items: [
+      { to: 'productos',  label: 'Productos',   Icon: ShoppingBag },
+      { to: 'mensajes',   label: 'Mensajes',    Icon: MessageCircle },
+    ],
+  },
+  {
+    id: 'club',
+    label: 'Club Deluxe',
+    items: [
+      { to: 'clientes',   label: 'Miembros',    Icon: Users   },
+      { to: 'membresias', label: 'Membresías',  Icon: Medal   },
+      { to: 'premios',    label: 'Premios',     Icon: Trophy  },
+    ],
+  },
+  {
+    id: 'analisis',
+    label: 'Análisis',
+    items: [
+      { to: 'metricas',   label: 'Métricas',    Icon: BarChart3                    },
+      { to: 'finanzas',   label: 'Finanzas',    Icon: TrendingDown, adminOnly: true },
+    ],
+  },
+  {
+    id: 'administracion',
+    label: 'Administración',
+    adminOnly: true,
+    items: [
+      { to: 'marketing',     label: 'Marketing',     Icon: Megaphone,  adminOnly: true },
+      { to: 'configuracion', label: 'Configuración', Icon: Settings,   adminOnly: true },
+      { to: 'mensualidad',   label: 'Mensualidad',   Icon: CreditCard, adminOnly: true },
       { to: 'soporte',       label: 'Soporte',       Icon: Headphones, adminOnly: true },
     ],
   },
@@ -119,6 +159,7 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
   const tenant          = useTenant();
   const { role }        = useAuth();
   const isAdminRole     = role === 'admin' || role === 'jefe';
+  const NAV_GROUPS      = tenant.id === 'deluxeperfumes' ? NAV_GROUPS_DELUXE : NAV_GROUPS_DEFAULT;
   const [light, setLight] = useTheme();
   const hasUnreadNews   = useUnreadNews();
   const hasBillingAlert = useBillingAlert();

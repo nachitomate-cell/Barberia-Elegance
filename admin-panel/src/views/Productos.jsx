@@ -1,46 +1,141 @@
 import { useState, useRef, useEffect } from 'react';
-import { Plus, ShoppingBag, Edit2, Trash2, Upload, ImageOff, Power, AlertTriangle, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { Plus, ShoppingBag, Edit2, Trash2, Upload, ImageOff, Power, AlertTriangle, CheckCircle2, XCircle, Clock, Eye, EyeOff, Tag, Package } from 'lucide-react';
 import { addDoc, updateDoc, deleteDoc, doc, getDoc, setDoc, serverTimestamp, onSnapshot, query, where, orderBy, writeBatch } from 'firebase/firestore';
 import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { storage, db } from '../lib/firebase';
 import { tenantCol, tenantDoc, resolveTenantId } from '../lib/tenantUtils';
+import { useTenant } from '../contexts/TenantContext';
 import { useCollection } from '../hooks/useCollection';
 import SlideOver from '../components/ui/SlideOver';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 
-const EMPTY = { nombre: '', descripcion: '', precio: '', stock: '', imagen: '', imagenPath: '' };
+const EMPTY = { nombre: '', descripcion: '', precio: '', precioOriginal: '', marca: '', categoria: '', stock: '', imagen: '', imagenPath: '', activo: true };
 
-function ProductCard({ producto, onEdit, onDelete }) {
+const CATEGORIAS_DELUXE = ['Perfumes', 'Sets', 'Miniaturas', 'Accesorios', 'Aromatizadores', 'Otro'];
+
+function ProductCard({ producto, onEdit, onDelete, isDeluxe }) {
+  const off = producto.precioOriginal && producto.precio && producto.precioOriginal > producto.precio
+    ? Math.round((1 - producto.precio / producto.precioOriginal) * 100) : 0;
+
+  if (isDeluxe) {
+    return (
+      <div className={`group relative overflow-hidden rounded-2xl border border-amber-500/20 bg-black/40 backdrop-blur-sm
+        hover:border-amber-500/40 hover:shadow-[0_0_20px_rgba(217,160,80,0.15)] hover:-translate-y-0.5
+        transition-all duration-300 ${producto.activo === false ? 'opacity-60' : ''}`}>
+
+        {producto.activo === false && (
+          <div className="absolute top-2 left-2 z-10 flex items-center gap-1 bg-black/80 border border-amber-500/20 rounded-full px-2 py-0.5">
+            <EyeOff size={10} className="text-amber-600/70" />
+            <span className="text-[10px] text-amber-600/60 font-medium tracking-wide">Oculto</span>
+          </div>
+        )}
+
+        {/* Botón editar flotante (esquina superior derecha) */}
+        <button
+          onClick={() => onEdit(producto)}
+          className="absolute top-2 right-2 z-10 w-8 h-8 flex items-center justify-center
+            bg-black/60 border border-amber-500/30 rounded-full
+            text-amber-500/50 hover:text-amber-400 hover:border-amber-400/60 hover:bg-amber-500/10
+            opacity-0 group-hover:opacity-100 transition-all duration-200"
+        >
+          <Edit2 size={12} />
+        </button>
+
+        {/* Imagen con iluminación dramática */}
+        <div className="aspect-[4/5] overflow-hidden relative">
+          {producto.imagen ? (
+            <img
+              src={producto.imagen}
+              alt={producto.nombre}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            />
+          ) : (
+            <div className="w-full h-full bg-[radial-gradient(ellipse_at_50%_55%,rgba(180,120,40,0.18)_0%,rgba(10,5,0,0.9)_55%,#000_100%)]
+              flex flex-col items-center justify-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-amber-500/5 border border-amber-500/10 flex items-center justify-center">
+                <ImageOff size={20} className="text-amber-500/20" />
+              </div>
+            </div>
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
+        </div>
+
+        {/* Info */}
+        <div className="p-4">
+          {producto.marca && (
+            <p className="text-[10px] font-medium text-amber-600/70 uppercase tracking-[0.15em] mb-1">{producto.marca}</p>
+          )}
+          <h3 className="text-sm font-light text-gray-100 leading-snug line-clamp-2 tracking-wide">{producto.nombre}</h3>
+          {producto.categoria && (
+            <span className="inline-block text-[9px] font-medium uppercase tracking-widest bg-amber-500/5 border border-amber-500/15 text-amber-600/60 rounded-full px-2 py-0.5 mt-1.5">
+              {producto.categoria}
+            </span>
+          )}
+          <div className="flex items-baseline gap-2 mt-3">
+            {producto.precio ? (
+              <span className="text-amber-500 font-semibold text-sm">${Number(producto.precio).toLocaleString('es-CL')}</span>
+            ) : (
+              <span className="text-amber-600/40 text-xs italic">Consultar</span>
+            )}
+            {off > 0 && (
+              <span className="text-[10px] text-gray-600 line-through">${Number(producto.precioOriginal).toLocaleString('es-CL')}</span>
+            )}
+            {off > 0 && (
+              <span className="text-[10px] font-semibold bg-amber-500/10 border border-amber-500/25 text-amber-500 rounded-full px-1.5 py-0.5">-{off}%</span>
+            )}
+          </div>
+          <div className="mt-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+            <button
+              onClick={() => onDelete(producto.id)}
+              className="w-full flex items-center justify-center gap-1.5 py-1.5 bg-transparent
+                border border-red-500/20 text-red-400/60 hover:border-red-500/40 hover:text-red-400
+                hover:bg-red-500/5 rounded-lg text-xs font-medium transition-colors"
+            >
+              <Trash2 size={10} /> Eliminar
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden hover:border-slate-700 transition-all group">
-      {/* Imagen */}
-      <div className="h-40 bg-slate-800 flex items-center justify-center overflow-hidden">
+    <div className={`bg-slate-900 border rounded-xl overflow-hidden hover:border-slate-600 transition-all group relative ${producto.activo === false ? 'border-slate-800 opacity-60' : 'border-slate-800'}`}>
+      {producto.activo === false && (
+        <div className="absolute top-2 left-2 z-10 flex items-center gap-1 bg-slate-800/90 border border-slate-700 rounded-full px-2 py-0.5">
+          <EyeOff size={10} className="text-slate-400" />
+          <span className="text-[10px] text-slate-400 font-semibold">Oculto</span>
+        </div>
+      )}
+      <div className="aspect-[3/4] bg-slate-800 flex items-center justify-center overflow-hidden">
         {producto.imagen
-          ? <img src={producto.imagen} alt={producto.nombre} className="w-full h-full object-cover" />
+          ? <img src={producto.imagen} alt={producto.nombre} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
           : <ImageOff size={28} className="text-slate-600" />}
       </div>
-      {/* Info */}
-      <div className="p-4">
-        <h3 className="font-semibold text-white text-sm">{producto.nombre}</h3>
-        {producto.descripcion && <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">{producto.descripcion}</p>}
-        <div className="flex items-center justify-between mt-3">
+      <div className="p-3">
+        <h3 className="font-semibold text-white text-sm leading-tight line-clamp-2">{producto.nombre}</h3>
+        <div className="flex items-baseline gap-2 mt-2">
           {producto.precio ? (
             <span className="text-emerald-400 font-bold text-sm">${Number(producto.precio).toLocaleString('es-CL')}</span>
           ) : (
-            <span className="text-slate-500 text-xs italic">Consultar en el local</span>
+            <span className="text-slate-500 text-xs italic">Consultar</span>
           )}
-          <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${
-            (producto.stock || 0) > 0 ? 'text-slate-400 border-slate-700' : 'text-red-400 border-red-500/30 bg-red-500/5'
-          }`}>
-            Stock: {producto.stock ?? '—'}
-          </span>
+          {off > 0 && (
+            <span className="text-[10px] font-bold text-slate-500 line-through">${Number(producto.precioOriginal).toLocaleString('es-CL')}</span>
+          )}
+          {off > 0 && (
+            <span className="text-[10px] font-bold bg-red-500/15 border border-red-500/30 text-red-400 rounded-full px-1.5 py-0.5">-{off}%</span>
+          )}
         </div>
-        <div className="flex gap-2 mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button onClick={() => onEdit(producto)} className="flex-1 flex items-center justify-center gap-1.5 py-1.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 rounded-lg text-xs font-semibold transition-colors">
-            <Edit2 size={12} /> Editar
+        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full border mt-1 inline-block ${
+          (producto.stock || 0) > 0 ? 'text-slate-500 border-slate-700' : 'text-red-400 border-red-500/30 bg-red-500/5'
+        }`}>Stock: {producto.stock ?? '—'}</span>
+        <div className="flex gap-2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button onClick={() => onEdit(producto)} className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 rounded-lg text-xs font-semibold transition-colors">
+            <Edit2 size={11} /> Editar
           </button>
-          <button onClick={() => onDelete(producto.id)} className="flex-1 flex items-center justify-center gap-1.5 py-1.5 bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 rounded-lg text-xs font-semibold transition-colors">
-            <Trash2 size={12} /> Eliminar
+          <button onClick={() => onDelete(producto.id)} className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 rounded-lg text-xs font-semibold transition-colors">
+            <Trash2 size={11} /> Eliminar
           </button>
         </div>
       </div>
@@ -49,6 +144,9 @@ function ProductCard({ producto, onEdit, onDelete }) {
 }
 
 export default function Productos() {
+  const tenant = useTenant();
+  const isDeluxe = tenant.id === 'deluxeperfumes';
+
   const { data: productos, loading } = useCollection('productos', [orderBy('createdAt', 'asc')]);
 
   const [slide,      setSlide]      = useState(false);
@@ -64,6 +162,8 @@ export default function Productos() {
   const [reservas,        setReservas]        = useState([]);
   const [reservasLoading, setReservasLoading] = useState(true);
   const fileRef = useRef(null);
+
+  const MAX_PRODUCTOS = isDeluxe ? 200 : 10;
 
   /* Reservas pendientes en tiempo real */
   useEffect(() => {
@@ -113,15 +213,24 @@ export default function Productos() {
     setConfirmOn(false);
   };
 
-  const MAX_PRODUCTOS = 10;
-
   const openNew  = () => {
     if (productos.length >= MAX_PRODUCTOS) return;
     setEditing(null); setForm(EMPTY); setPreview(''); setSlide(true);
   };
   const openEdit = p => {
     setEditing(p.id);
-    setForm({ nombre: p.nombre || '', descripcion: p.descripcion || '', precio: p.precio || '', stock: p.stock ?? '', imagen: p.imagen || '', imagenPath: p.imagenPath || '' });
+    setForm({
+      nombre:        p.nombre        || '',
+      descripcion:   p.descripcion   || '',
+      precio:        p.precio        ?? '',
+      precioOriginal:p.precioOriginal ?? '',
+      marca:         p.marca         || '',
+      categoria:     p.categoria     || '',
+      stock:         p.stock         ?? '',
+      imagen:        p.imagen        || '',
+      imagenPath:    p.imagenPath    || '',
+      activo:        p.activo !== false,
+    });
     setPreview(p.imagen || '');
     setSlide(true);
   };
@@ -163,13 +272,17 @@ export default function Productos() {
     setSaving(true);
     try {
       const payload = {
-        nombre:      form.nombre,
-        descripcion: form.descripcion,
-        precio:      Number(form.precio) || 0,
-        stock:       form.stock !== '' ? Number(form.stock) : null,
-        imagen:      form.imagen,
-        imagenPath:  form.imagenPath || '',
-        updatedAt:   serverTimestamp(),
+        nombre:         form.nombre,
+        descripcion:    form.descripcion,
+        precio:         form.precio !== '' ? Number(form.precio) : null,
+        precioOriginal: form.precioOriginal !== '' ? Number(form.precioOriginal) : null,
+        marca:          form.marca   || null,
+        categoria:      form.categoria || null,
+        stock:          form.stock !== '' ? Number(form.stock) : null,
+        imagen:         form.imagen,
+        imagenPath:     form.imagenPath || '',
+        activo:         form.activo !== false,
+        updatedAt:      serverTimestamp(),
       };
       if (editing) {
         const oldProduct = productos.find(p => p.id === editing);
@@ -283,9 +396,15 @@ export default function Productos() {
           <p className="text-sm font-medium">Sin productos aún</p>
           <p className="text-xs mt-0.5">Agrega el primero con el botón de arriba.</p>
         </div>
+      ) : isDeluxe ? (
+        <div className="rounded-2xl bg-[radial-gradient(ellipse_at_center,rgba(120,80,20,0.07)_0%,transparent_70%)] p-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {productos.map(p => <ProductCard key={p.id} producto={p} onEdit={openEdit} onDelete={handleDelete} isDeluxe={isDeluxe} />)}
+          </div>
+        </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-          {productos.map(p => <ProductCard key={p.id} producto={p} onEdit={openEdit} onDelete={handleDelete} />)}
+          {productos.map(p => <ProductCard key={p.id} producto={p} onEdit={openEdit} onDelete={handleDelete} isDeluxe={isDeluxe} />)}
         </div>
       )}
 
@@ -389,25 +508,75 @@ export default function Productos() {
           </div>
           {/* Nombre */}
           <div>
-            <label className={lbl}>Nombre</label>
-            <input className={field} placeholder="Pomada para el cabello" value={form.nombre} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} />
+            <label className={lbl}>Nombre *</label>
+            <input className={field} placeholder={isDeluxe ? 'Chanel N°5 EDP 100ml' : 'Pomada para el cabello'} value={form.nombre} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} />
           </div>
+          {/* Deluxe: Marca + Categoría */}
+          {isDeluxe && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={lbl}>Marca</label>
+                <input className={field} placeholder="Chanel, Dior, YSL..." value={form.marca} onChange={e => setForm(f => ({ ...f, marca: e.target.value }))} />
+              </div>
+              <div>
+                <label className={lbl}>Categoría</label>
+                <select className={field} value={form.categoria} onChange={e => setForm(f => ({ ...f, categoria: e.target.value }))}>
+                  <option value="">Sin categoría</option>
+                  {CATEGORIAS_DELUXE.map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+            </div>
+          )}
           {/* Descripción */}
           <div>
             <label className={lbl}>Descripción</label>
             <textarea className={`${field} resize-none`} rows={2} placeholder="Descripción breve del producto..." value={form.descripcion} onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))} />
           </div>
-          {/* Precio + Stock */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={lbl}>Precio ($)</label>
-              <input className={field} type="number" placeholder="9900" value={form.precio} onChange={e => setForm(f => ({ ...f, precio: e.target.value }))} />
+          {/* Precio */}
+          {isDeluxe ? (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={lbl}>Precio de venta ($)</label>
+                <input className={field} type="number" placeholder="45000" value={form.precio} onChange={e => setForm(f => ({ ...f, precio: e.target.value }))} />
+              </div>
+              <div>
+                <label className={lbl}>Precio original ($) <span className="text-slate-600 normal-case tracking-normal font-normal">opcional</span></label>
+                <input className={field} type="number" placeholder="55000" value={form.precioOriginal} onChange={e => setForm(f => ({ ...f, precioOriginal: e.target.value }))} />
+              </div>
             </div>
-            <div>
-              <label className={lbl}>Stock</label>
-              <input className={field} type="number" placeholder="0" min="0" value={form.stock} onChange={e => setForm(f => ({ ...f, stock: e.target.value }))} />
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={lbl}>Precio ($)</label>
+                <input className={field} type="number" placeholder="9900" value={form.precio} onChange={e => setForm(f => ({ ...f, precio: e.target.value }))} />
+              </div>
+              <div>
+                <label className={lbl}>Stock</label>
+                <input className={field} type="number" placeholder="0" min="0" value={form.stock} onChange={e => setForm(f => ({ ...f, stock: e.target.value }))} />
+              </div>
             </div>
-          </div>
+          )}
+          {/* Deluxe: Visible en catálogo */}
+          {isDeluxe && (
+            <div className="flex items-center justify-between p-3 bg-slate-800/50 border border-slate-700 rounded-xl">
+              <div>
+                <p className="text-sm font-semibold text-white">Visible en catálogo</p>
+                <p className="text-xs text-slate-500 mt-0.5">Los clientes pueden ver este producto</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setForm(f => ({ ...f, activo: !f.activo }))}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+                  form.activo
+                    ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400'
+                    : 'bg-slate-800 border-slate-600 text-slate-400'
+                }`}
+              >
+                {form.activo ? <Eye size={12} /> : <EyeOff size={12} />}
+                {form.activo ? 'Visible' : 'Oculto'}
+              </button>
+            </div>
+          )}
         </div>
       </SlideOver>
       {showHelp && (

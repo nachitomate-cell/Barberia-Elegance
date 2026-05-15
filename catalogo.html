@@ -8,41 +8,33 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
-
   <style>
-    /* ── Design tokens ──────────────────────────────────────────────── */
     :root {
-      --gold:         #C9A84C;
-      --gold-rgb:     201, 168, 76;
-      --gold-light:   #E8D5A3;
-      --gold-dim:     rgba(201,168,76,0.1);
-      --gold-border:  rgba(201,168,76,0.18);
-      --bg:           #070500;
-      --surface:      #0C0904;
-      --card:         #121008;
-      --border:       rgba(201,168,76,0.1);
-      --text:         #F0E6CC;
-      --text-sec:     #9A8A5C;
-      --text-muted:   #544A32;
-      --red:          #D94F4F;
-      --serif:        'Cormorant Garamond', Georgia, serif;
-      --sans:         'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-      --r-card:       14px;
-      --r-pill:       999px;
+      --gold:        #C9A84C;
+      --gold-rgb:    201, 168, 76;
+      --gold-light:  #E8D5A3;
+      --gold-dim:    rgba(201,168,76,0.1);
+      --gold-border: rgba(201,168,76,0.18);
+      --bg:          #070500;
+      --surface:     #0C0904;
+      --card:        #121008;
+      --border:      rgba(201,168,76,0.1);
+      --text:        #F0E6CC;
+      --text-sec:    #9A8A5C;
+      --text-muted:  #544A32;
+      --red:         #D94F4F;
+      --serif:       'Cormorant Garamond', Georgia, serif;
+      --sans:        'Plus Jakarta Sans', system-ui, sans-serif;
+      --r-card:      14px;
+      --r-pill:      999px;
     }
-
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: var(--sans);
-      min-height: 100vh;
-      -webkit-font-smoothing: antialiased;
-      overscroll-behavior-y: none;
+      background: var(--bg); color: var(--text); font-family: var(--sans);
+      min-height: 100vh; -webkit-font-smoothing: antialiased; overscroll-behavior-y: none;
     }
 
-    /* ── Header ─────────────────────────────────────────────────────── */
+    /* ── Header ── */
     .header {
       position: sticky; top: 0; z-index: 40;
       background: rgba(7,5,0,0.94);
@@ -51,9 +43,7 @@
       border-bottom: 1px solid var(--border);
       padding: 0.875rem 1.25rem 0;
     }
-    .header-top {
-      display: flex; align-items: center; gap: 0.875rem; margin-bottom: 0.875rem;
-    }
+    .header-top { display: flex; align-items: center; gap: 0.875rem; margin-bottom: 0.875rem; }
     .header-logo {
       width: 42px; height: 42px; border-radius: 10px; flex-shrink: 0;
       object-fit: cover; border: 1px solid var(--gold-border);
@@ -64,527 +54,891 @@
       display: none; align-items: center; justify-content: center;
     }
     .header-name {
-      font-family: var(--serif);
-      font-size: 1.1875rem; font-weight: 700;
+      font-family: var(--serif); font-size: 1.1875rem; font-weight: 700;
       color: var(--gold-light); letter-spacing: 0.025em;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
-    .header-tagline {
-      font-size: 0.625rem; color: var(--text-muted);
-      text-transform: uppercase; letter-spacing: 0.1em; margin-top: 2px;
+    .header-tagline { font-size: 0.625rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 2px; }
+    .btn-header-icon {
+      flex-shrink: 0; width: 40px; height: 40px; border-radius: 50%;
+      border: 1px solid var(--gold-border); background: var(--gold-dim);
+      color: var(--gold); font-size: 1.125rem;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: all 0.18s; -webkit-tap-highlight-color: transparent;
+      position: relative;
+    }
+    .btn-header-icon:hover { background: rgba(var(--gold-rgb),.2); }
+    .btn-header-icon.active {
+      background: linear-gradient(135deg,rgba(var(--gold-rgb),.28),rgba(var(--gold-rgb),.12));
+      border-color: rgba(var(--gold-rgb),.45);
+    }
+    .btn-header-icon .dot {
+      position: absolute; top: -2px; right: -2px;
+      width: 9px; height: 9px; border-radius: 50%;
+      background: var(--gold); border: 2px solid var(--bg);
     }
 
-    /* ── Search ──────────────────────────────────────────────────────── */
+    /* ── Search ── */
     .search-row { position: relative; padding-bottom: 0.875rem; }
-    .search-icon {
-      position: absolute; left: 1rem; top: 50%; transform: translateY(-50%);
-      color: var(--text-muted); font-size: 1rem; pointer-events: none;
-    }
-    .search-clear {
-      position: absolute; right: 0.875rem; top: 50%; transform: translateY(-50%);
-      color: var(--text-muted); font-size: 1rem; cursor: pointer;
-      background: none; border: none; padding: 0.25rem;
-      display: none;
-    }
+    .search-icon { position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 1rem; pointer-events: none; }
+    .search-clear { position: absolute; right: .875rem; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 1rem; cursor: pointer; background: none; border: none; padding: .25rem; display: none; }
     .search-input {
-      width: 100%;
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: var(--r-pill);
-      padding: 0.75rem 2.5rem 0.75rem 2.75rem;
-      font-family: var(--sans); font-size: 0.875rem; color: var(--text);
-      outline: none; transition: border-color 0.2s, box-shadow 0.2s;
-      -webkit-appearance: none; appearance: none;
+      width: 100%; background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--r-pill); padding: .75rem 2.5rem .75rem 2.75rem;
+      font-family: var(--sans); font-size: .875rem; color: var(--text);
+      outline: none; transition: border-color .2s, box-shadow .2s;
+      -webkit-appearance: none;
     }
     .search-input::placeholder { color: var(--text-muted); }
-    .search-input:focus {
-      border-color: rgba(var(--gold-rgb), 0.35);
-      box-shadow: 0 0 0 3px rgba(var(--gold-rgb), 0.06);
-    }
+    .search-input:focus { border-color: rgba(var(--gold-rgb),.35); box-shadow: 0 0 0 3px rgba(var(--gold-rgb),.06); }
 
-    /* ── Filter chips ────────────────────────────────────────────────── */
+    /* ── Filters ── */
     .filters-scroll {
-      display: flex; gap: 0.5rem;
-      padding: 0 1.25rem 0.875rem;
+      display: flex; gap: .75rem;
+      padding: 0 1rem .5rem;
       overflow-x: auto; -webkit-overflow-scrolling: touch;
       scrollbar-width: none;
+      scroll-snap-type: x mandatory;
     }
     .filters-scroll::-webkit-scrollbar { display: none; }
     .filter-chip {
-      flex-shrink: 0;
-      padding: 0.4375rem 1rem; border-radius: var(--r-pill);
-      font-family: var(--sans); font-size: 0.8125rem; font-weight: 600;
+      flex-shrink: 0; scroll-snap-align: start;
+      padding: .5rem 1.25rem; border-radius: var(--r-pill);
+      font-family: var(--sans); font-size: .8125rem; font-weight: 600;
       cursor: pointer; border: 1px solid var(--border);
       background: var(--surface); color: var(--text-sec);
-      transition: all 0.16s; white-space: nowrap;
-      -webkit-tap-highlight-color: transparent;
+      transition: background .16s, border-color .16s, color .16s, transform .1s;
+      white-space: nowrap; -webkit-tap-highlight-color: transparent;
       min-height: 36px; line-height: 1;
     }
-    .filter-chip:active { transform: scale(0.95); }
-    .filter-chip.active {
-      background: rgba(var(--gold-rgb), 0.13);
-      border-color: rgba(var(--gold-rgb), 0.38);
-      color: var(--gold);
-    }
+    .filter-chip:active { transform: scale(.94); }
+    .filter-chip.active { background: #c9a84c; border-color: #d4b360; color: #050301; font-weight: 700; }
 
-    /* ── Grid ────────────────────────────────────────────────────────── */
-    .grid-section { padding: 0 1rem 7rem; }
-    .results-count {
-      font-size: 0.75rem; color: var(--text-muted);
-      padding: 0 0.25rem 0.75rem; letter-spacing: 0.03em;
-    }
-    .product-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 0.875rem;
-    }
-    @media (min-width: 480px) {
-      .product-grid { grid-template-columns: repeat(3, 1fr); }
-    }
-    @media (min-width: 768px) {
-      .product-grid { gap: 1.125rem; }
-      .grid-section { padding: 0 1.5rem 7rem; }
-    }
-    @media (min-width: 1024px) {
-      .product-grid { grid-template-columns: repeat(4, 1fr); }
-    }
+    /* ── Grid ── */
+    .grid-section { padding: 0 1rem 3rem; background: radial-gradient(ellipse at center, rgba(201,168,76,0.06) 0%, transparent 70%); }
+    .results-count { font-size: .75rem; color: var(--text-muted); padding: 0 .25rem .75rem; letter-spacing: .03em; }
+    .product-grid { display: grid; grid-template-columns: 1fr; gap: 1.25rem; }
+    @media(min-width:520px){ .product-grid { grid-template-columns: repeat(2,1fr); gap: 1rem; } }
+    @media(min-width:768px){ .product-grid { gap: 1.25rem; } .grid-section { padding: 0 1.5rem 3rem; } }
+    @media(min-width:960px){ .product-grid { grid-template-columns: repeat(3,1fr); } }
+    @media(min-width:1280px){ .product-grid { grid-template-columns: repeat(4,1fr); } }
 
-    /* ── Product card ────────────────────────────────────────────────── */
+    /* ── Product card ── */
     .product-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--r-card);
-      overflow: hidden; cursor: pointer;
-      display: flex; flex-direction: column;
-      transition: transform 0.22s cubic-bezier(0.34,1.56,0.64,1),
-                  border-color 0.2s, box-shadow 0.22s;
-      -webkit-tap-highlight-color: transparent;
-      animation: fadeUp 0.38s ease both;
-      will-change: transform;
+      background: rgba(12,9,4,0.55); border: 1px solid rgba(201,168,76,0.15); border-radius: var(--r-card);
+      overflow: hidden; cursor: pointer; display: flex; flex-direction: column;
+      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      transition: transform .28s cubic-bezier(.34,1.56,.64,1), border-color .22s, box-shadow .28s;
+      -webkit-tap-highlight-color: transparent; animation: fadeUp .38s ease both; will-change: transform;
     }
-    .product-card:hover {
-      transform: translateY(-4px);
-      border-color: rgba(var(--gold-rgb), 0.3);
-      box-shadow: 0 18px 44px rgba(0,0,0,0.55),
-                  0 0 0 1px rgba(var(--gold-rgb), 0.07);
-    }
-    .product-card:active { transform: scale(0.97); transition-duration: 0.1s; }
+    .product-card:hover { transform: translateY(-5px); border-color: rgba(var(--gold-rgb),.35); box-shadow: 0 0 20px rgba(201,168,76,0.12), 0 20px 48px rgba(0,0,0,.65), 0 0 0 1px rgba(var(--gold-rgb),.08); }
+    .product-card:active { transform: scale(.97); transition-duration: .1s; }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:translateY(0)} }
 
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(18px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-
-    .product-img-wrap {
-      aspect-ratio: 3 / 4;
-      background: linear-gradient(160deg, #0D0A04, #181308);
-      overflow: hidden; position: relative;
-    }
-    .product-img {
-      width: 100%; height: 100%; object-fit: cover;
-      transition: transform 0.4s ease;
-    }
+    .product-img-wrap { aspect-ratio: 4/5; background: radial-gradient(ellipse at 50% 55%, rgba(180,120,40,0.18) 0%, rgba(10,5,0,0.9) 55%, #000 100%); overflow: hidden; position: relative; }
+    .product-img { width:100%; height:100%; object-fit:cover; transition: transform .5s ease; }
     .product-card:hover .product-img { transform: scale(1.06); }
-    .product-img-wrap::after {
-      content: '';
-      position: absolute; inset: 0;
-      background: linear-gradient(to bottom, transparent 55%, rgba(7,5,0,0.5) 100%);
-      pointer-events: none; z-index: 1;
+    .product-img-wrap::after { content:''; position:absolute; inset:0; background:linear-gradient(to bottom,transparent 50%,rgba(7,5,0,.6) 100%); pointer-events:none; z-index:1; }
+    .product-img-placeholder { width:100%; height:100%; display:flex; align-items:center; justify-content:center; color:rgba(var(--gold-rgb),.18); font-size:2.75rem; }
+    .badge-cat { position:absolute; top:.625rem; left:.625rem; z-index:2; padding:.2rem .5rem; border-radius:var(--r-pill); font-size:.5rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; background:rgba(7,5,0,.8); backdrop-filter:blur(8px); border:1px solid rgba(201,168,76,0.22); color:var(--gold); }
+    .badge-off { position:absolute; top:.625rem; right:2.75rem; z-index:2; padding:.2rem .5rem; border-radius:var(--r-pill); font-size:.5rem; font-weight:800; text-transform:uppercase; background:var(--red); color:#fff; }
+
+    .product-info { padding:.875rem 1rem; flex:1; display:flex; flex-direction:column; }
+    .product-brand { font-size:.5625rem; font-weight:600; color:rgba(201,168,76,0.6); text-transform:uppercase; letter-spacing:.15em; margin-bottom:.25rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .product-name { font-family:var(--serif); font-size:.9375rem; font-weight:500; color:var(--text); line-height:1.3; flex:1; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; letter-spacing:.02em; }
+    .product-prices { display:flex; align-items:baseline; gap:.375rem; flex-wrap:wrap; margin-top:.625rem; }
+    .product-price { font-family:var(--serif); font-size:1.0625rem; font-weight:700; color:var(--gold); letter-spacing:-.01em; }
+    .product-price-orig { font-size:.6875rem; color:var(--text-muted); text-decoration:line-through; }
+    .badge-member-price { display:block; width:fit-content; font-size:.5rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em; padding:.15rem .45rem; border-radius:var(--r-pill); background:var(--gold-dim); border:1px solid var(--gold-border); color:var(--gold); margin-top:.25rem; }
+    .member-incentive { font-size:.5625rem; color:var(--text-muted); font-weight:600; margin-top:.25rem; letter-spacing:.02em; }
+    .product-pts { font-size:.5rem; font-weight:700; color:rgba(var(--gold-rgb),.55); letter-spacing:.06em; margin-top:.25rem; display:flex; align-items:center; gap:.2rem; }
+
+    /* ── Skeleton ── */
+    .skel-card { background:var(--card); border:1px solid var(--border); border-radius:var(--r-card); overflow:hidden; }
+    .skel { background:linear-gradient(90deg,rgba(var(--gold-rgb),.04) 25%,rgba(var(--gold-rgb),.08) 50%,rgba(var(--gold-rgb),.04) 75%); background-size:200% 100%; animation:shimmer 1.5s infinite; }
+    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+
+    /* ── States ── */
+    .state-wrap { grid-column:1/-1; display:flex; flex-direction:column; align-items:center; padding:4.5rem 2rem; text-align:center; gap:.625rem; }
+    .state-icon { width:66px; height:66px; border-radius:50%; background:var(--gold-dim); border:1px solid var(--gold-border); display:flex; align-items:center; justify-content:center; color:var(--gold); font-size:1.75rem; margin-bottom:.625rem; }
+    .state-title { font-family:var(--serif); font-size:1.3125rem; font-weight:600; color:var(--text); }
+    .state-sub { font-size:.875rem; color:var(--text-sec); line-height:1.65; max-width:280px; }
+    .btn-retry { display:inline-flex; align-items:center; gap:.5rem; padding:.75rem 1.5rem; border-radius:var(--r-pill); border:1px solid var(--gold-border); background:transparent; color:var(--gold); font-family:var(--sans); font-size:.875rem; font-weight:600; cursor:pointer; margin-top:.75rem; transition:background .16s; -webkit-tap-highlight-color:transparent; }
+    .btn-retry:hover { background:var(--gold-dim); }
+
+    /* ── Hero ── */
+    .hero-logo-wrap { position:relative; overflow:hidden; display:flex; flex-direction:column; align-items:center; padding:2.25rem 1.25rem 1.75rem; }
+    .hero-ambient { position:absolute; top:50%; left:50%; transform:translate(-50%,-55%); width:320px; height:320px; border-radius:50%; background:radial-gradient(circle,rgba(var(--gold-rgb),.11) 0%,rgba(var(--gold-rgb),.04) 40%,transparent 70%); animation:heroAmbient 4s ease-in-out infinite alternate; pointer-events:none; }
+    @keyframes heroAmbient { from{transform:translate(-50%,-55%) scale(.88);opacity:.7} to{transform:translate(-50%,-55%) scale(1.08);opacity:1} }
+    .hero-orbit { position:absolute; top:50%; left:50%; width:200px; height:200px; transform:translate(-50%,-60%); animation:heroOrbit 10s linear infinite; pointer-events:none; }
+    .hero-orbit-dot { position:absolute; top:0; left:50%; margin-left:-2px; width:4px; height:4px; border-radius:50%; background:var(--gold); opacity:.45; }
+    .hero-orbit-dot:nth-child(2){top:auto;bottom:0;opacity:.28}
+    .hero-orbit-dot:nth-child(3){top:50%;left:0;margin-left:0;margin-top:-2px;opacity:.32}
+    .hero-orbit-dot:nth-child(4){top:50%;left:auto;right:0;margin-top:-2px;opacity:.2}
+    @keyframes heroOrbit { from{transform:translate(-50%,-60%) rotate(0deg)} to{transform:translate(-50%,-60%) rotate(360deg)} }
+    .hero-ring { position:relative; z-index:2; width:108px; height:108px; border-radius:26px; overflow:hidden; border:1.5px solid rgba(var(--gold-rgb),.38); box-shadow:0 0 0 5px rgba(7,5,0,.9),0 0 0 6.5px rgba(var(--gold-rgb),.15),0 0 36px rgba(var(--gold-rgb),.18),0 24px 64px rgba(0,0,0,.6); animation:heroRingIn .9s cubic-bezier(.34,1.56,.64,1) both; }
+    @keyframes heroRingIn { from{opacity:0;transform:scale(.65) translateY(24px)} to{opacity:1;transform:scale(1) translateY(0)} }
+    .hero-ring img { width:100%; height:100%; object-fit:cover; display:block; }
+    .hero-ring-placeholder { width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:var(--gold-dim); font-size:2.75rem; color:var(--gold); }
+    .hero-name { position:relative; z-index:2; font-family:var(--serif); font-size:1.5625rem; font-weight:700; color:var(--gold-light); letter-spacing:.04em; margin-top:1.125rem; text-align:center; animation:heroFadeUp .7s ease .18s both; }
+    .hero-sub { position:relative; z-index:2; font-size:.625rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:.2em; margin-top:.375rem; animation:heroFadeUp .7s ease .3s both; }
+    .hero-line { position:relative; z-index:2; width:56px; height:1px; margin-top:1rem; background:linear-gradient(90deg,transparent,var(--gold),transparent); animation:heroFadeUp .7s ease .44s both; }
+    @keyframes heroFadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+
+    /* ── Load more ── */
+    .load-more-wrap { display:flex; flex-direction:column; align-items:center; gap:.5rem; padding:1.5rem 0 .5rem; }
+    .btn-load-more { display:inline-flex; align-items:center; gap:.5rem; padding:.75rem 2rem; border-radius:var(--r-pill); border:1px solid var(--gold-border); background:transparent; color:var(--gold); font-family:var(--sans); font-size:.875rem; font-weight:600; cursor:pointer; transition:background .16s; -webkit-tap-highlight-color:transparent; min-height:46px; }
+    .btn-load-more:hover { background:var(--gold-dim); }
+    .btn-load-more:active { transform:scale(.97); }
+    .load-more-count { font-size:.75rem; color:var(--text-muted); }
+
+    /* ── Shared modal overlay ── */
+    .modal-overlay { position:fixed; inset:0; z-index:60; background:rgba(0,0,0,.85); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); opacity:0; pointer-events:none; transition:opacity .28s; }
+    .modal-overlay.open { opacity:1; pointer-events:auto; }
+
+    /* ── Shared modal handle ── */
+    .modal-handle { width:44px; height:4px; background:rgba(var(--gold-rgb),.2); border-radius:2px; margin:1rem auto 0; }
+
+    /* ── Product modal ── */
+    #prod-modal { position:fixed; inset:0; z-index:61; display:flex; align-items:flex-end; justify-content:center; pointer-events:none; }
+    @media(min-width:600px){ #prod-modal { align-items:center; padding:1.5rem; } }
+    .prod-card {
+      background:#0D0A04; border:1px solid var(--gold-border);
+      border-radius:22px 22px 0 0; width:100%; max-width:520px; max-height:94vh;
+      overflow-y:auto; overscroll-behavior:contain; scrollbar-width:none;
+      transform:translateY(100%); transition:transform .36s cubic-bezier(.32,0,.15,1);
+      pointer-events:none;
+    }
+    .prod-card::-webkit-scrollbar { display:none; }
+    @media(min-width:600px){
+      .prod-card { border-radius:22px; transform:translateY(20px) scale(.97); opacity:0; transition:transform .32s cubic-bezier(.32,0,.15,1),opacity .28s; max-height:88vh; }
+    }
+    #prod-modal.open .prod-card { transform:translateY(0); }
+    @media(min-width:600px){ #prod-modal.open .prod-card { transform:translateY(0) scale(1); opacity:1; } }
+    @media(min-width:600px){ #prod-modal .modal-handle { display:none; } }
+
+    /* Imagen del producto */
+    #prod-img-wrap { background:radial-gradient(circle at 50% 42%,#201708 0%,#0d0803 52%,#040200 100%); position:relative; }
+    .prod-img { width:100%; aspect-ratio:3/4; object-fit:contain; background:none; padding:1.75rem 2.25rem; display:block; transition:transform .4s ease; }
+    .prod-img-placeholder { width:100%; aspect-ratio:3/4; display:flex; align-items:center; justify-content:center; background:none; color:rgba(var(--gold-rgb),.15); font-size:5rem; }
+    .prod-body { padding:1.25rem 1.5rem 2.5rem; }
+    .prod-head { display:flex; justify-content:space-between; align-items:flex-start; gap:.75rem; margin-bottom:.875rem; }
+    .prod-badges { display:flex; gap:.375rem; flex-wrap:wrap; }
+    .prod-badge { padding:.25rem .75rem; border-radius:var(--r-pill); font-size:.5625rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; background:var(--gold-dim); border:1px solid var(--gold-border); color:var(--gold); }
+    .modal-close { flex-shrink:0; width:36px; height:36px; border-radius:50%; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); color:var(--text-sec); cursor:pointer; font-size:.875rem; display:flex; align-items:center; justify-content:center; transition:background .16s; -webkit-tap-highlight-color:transparent; }
+    .modal-close:hover { background:rgba(255,255,255,.1); }
+    .prod-brand { font-size:.6875rem; font-weight:700; color:rgba(201,168,76,0.72); text-transform:uppercase; letter-spacing:.18em; margin-bottom:.25rem; }
+    .prod-name { font-family:var(--serif); font-size:1.625rem; font-weight:600; color:var(--text); letter-spacing:.02em; line-height:1.2; margin-bottom:.875rem; }
+    .prod-price-row { display:flex; align-items:baseline; gap:.75rem; flex-wrap:wrap; margin-bottom:.5rem; }
+    .prod-price { font-family:var(--serif); font-size:2.125rem; font-weight:700; color:var(--gold); letter-spacing:-.02em; }
+    .prod-price-orig { font-size:1rem; color:var(--text-muted); text-decoration:line-through; }
+    .prod-badge-off { padding:.25rem .625rem; border-radius:var(--r-pill); font-size:.75rem; font-weight:800; background:var(--red); color:#fff; }
+    .prod-pts-note { display:flex; align-items:center; gap:.375rem; font-size:.8125rem; color:var(--gold); margin-bottom:.75rem; font-weight:600; }
+    .prod-member-note { font-size:.75rem; color:var(--text-sec); margin-bottom:1rem; display:flex; align-items:center; gap:.375rem; flex-wrap:wrap; }
+    .prod-member-badge { font-size:.5625rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em; padding:.15rem .5rem; border-radius:var(--r-pill); background:var(--gold-dim); border:1px solid var(--gold-border); color:var(--gold); }
+    .prod-desc { font-size:.875rem; color:var(--text-sec); line-height:1.8; margin-bottom:1.25rem; }
+    .prod-divider { height:1px; background:var(--border); margin-bottom:1.25rem; }
+
+    /* Pirámide olfativa */
+    .prod-notes { margin-bottom:1.25rem; }
+    .prod-notes-title { font-size:.5625rem; font-weight:700; text-transform:uppercase; letter-spacing:.2em; color:rgba(201,168,76,0.55); margin-bottom:.875rem; }
+    .prod-notes-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:.625rem; }
+    .prod-note-col-label { font-size:.5rem; font-weight:700; text-transform:uppercase; letter-spacing:.14em; color:rgba(201,168,76,0.5); margin-bottom:.375rem; }
+    .prod-note-pills { display:flex; flex-direction:column; gap:.25rem; }
+    .prod-note-pill { padding:.3rem .5rem; border-radius:6px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.07); font-size:.5625rem; color:var(--text-sec); text-align:center; line-height:1.4; letter-spacing:.02em; }
+
+    /* CTAs */
+    .btn-primary-cta { display:flex; align-items:center; justify-content:center; gap:.625rem; width:100%; padding:1rem 1.5rem; border-radius:14px; background:linear-gradient(135deg,#b87e28,#c9a84c); color:#050301; font-family:var(--sans); font-size:.9375rem; font-weight:700; border:none; cursor:pointer; text-decoration:none; transition:opacity .16s,transform .16s; -webkit-tap-highlight-color:transparent; min-height:52px; margin-bottom:.75rem; }
+    .btn-primary-cta:hover { opacity:.92; }
+    .btn-primary-cta:active { transform:scale(.97); opacity:.85; }
+    .btn-loyalty-redeem { display:flex; align-items:center; justify-content:center; gap:.5rem; width:100%; padding:.875rem 1.5rem; border-radius:14px; background:rgba(255,255,255,.03); border:1px solid rgba(201,168,76,.28); color:var(--gold); font-family:var(--sans); font-size:.875rem; font-weight:600; cursor:pointer; transition:background .16s,border-color .16s; -webkit-tap-highlight-color:transparent; min-height:48px; margin-bottom:.75rem; }
+    .btn-loyalty-redeem:hover { background:rgba(201,168,76,.08); border-color:rgba(201,168,76,.5); }
+    .btn-loyalty-redeem:active { transform:scale(.97); }
+    .btn-wa { display:flex; align-items:center; justify-content:center; gap:.5rem; width:100%; padding:.875rem 1.5rem; border-radius:14px; background:transparent; border:1px solid rgba(37,211,102,.25); color:#25d366; font-family:var(--sans); font-size:.875rem; font-weight:600; cursor:pointer; text-decoration:none; transition:background .16s; -webkit-tap-highlight-color:transparent; min-height:48px; margin-bottom:.75rem; }
+    .btn-wa:hover { background:rgba(37,211,102,.07); }
+    .btn-wa:active { transform:scale(.97); }
+    .btn-share { display:flex; align-items:center; justify-content:center; gap:.5rem; width:100%; padding:.75rem 1.5rem; border-radius:14px; background:transparent; border:1px solid rgba(255,255,255,.07); color:var(--text-muted); font-family:var(--sans); font-size:.8125rem; font-weight:600; cursor:pointer; transition:all .16s; -webkit-tap-highlight-color:transparent; min-height:44px; }
+    .btn-share:hover { background:rgba(255,255,255,.04); color:var(--text-sec); }
+    .btn-share:active { transform:scale(.97); }
+
+    /* ── Club modal ── */
+    #club-modal { position:fixed; inset:0; z-index:61; display:flex; align-items:flex-end; justify-content:center; pointer-events:none; }
+    @media(min-width:520px){ #club-modal { align-items:center; padding:1.5rem; } }
+    .club-card {
+      background:#0A0803; border:1px solid var(--gold-border);
+      border-radius:26px 26px 0 0; width:100%; max-width:420px; max-height:94vh;
+      overflow-y:auto; overscroll-behavior:contain; scrollbar-width:none;
+      transform:translateY(100%); transition:transform .36s cubic-bezier(.32,0,.15,1);
+      pointer-events:none;
+    }
+    .club-card::-webkit-scrollbar { display:none; }
+    @media(min-width:520px){
+      .club-card { border-radius:22px; transform:translateY(16px) scale(.97); opacity:0; transition:transform .32s cubic-bezier(.32,0,.15,1),opacity .26s; }
+    }
+    #club-modal.open .club-card { transform:translateY(0); }
+    @media(min-width:520px){ #club-modal.open .club-card { transform:translateY(0) scale(1); opacity:1; } }
+    @media(min-width:520px){ #club-modal .modal-handle { display:none; } }
+
+    .club-inner { padding:1.5rem 1.75rem 2.5rem; }
+    .club-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1.75rem; }
+    .club-label { font-size:.5625rem; font-weight:700; text-transform:uppercase; letter-spacing:.16em; color:var(--gold); margin-bottom:.25rem; }
+    .club-title { font-family:var(--serif); font-size:1.625rem; font-weight:700; color:var(--text); letter-spacing:.03em; line-height:1.15; }
+    .club-close { flex-shrink:0; width:34px; height:34px; border-radius:50%; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.07); color:var(--text-muted); cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:.875rem; transition:all .16s; -webkit-tap-highlight-color:transparent; }
+    .club-close:hover { background:rgba(255,255,255,.09); color:var(--text); }
+
+    .club-tabs { display:flex; border-bottom:1px solid rgba(255,255,255,.07); margin-bottom:1.5rem; }
+    .club-tab { flex:1; padding:0 0 .75rem; border:none; background:transparent; font-family:var(--sans); font-size:.75rem; font-weight:700; text-transform:uppercase; letter-spacing:.1em; color:var(--text-muted); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; transition:color .18s,border-color .18s; -webkit-tap-highlight-color:transparent; }
+    .club-tab.active { color:var(--gold); border-bottom-color:var(--gold); }
+
+    .club-field { width:100%; padding:.8125rem 1rem; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.09); border-radius:12px; font-family:var(--sans); font-size:1rem; color:var(--text); outline:none; margin-bottom:.75rem; transition:border-color .18s,box-shadow .18s; -webkit-appearance:none; }
+    .club-field:focus { border-color:rgba(var(--gold-rgb),.38); box-shadow:0 0 0 3px rgba(var(--gold-rgb),.07); }
+    .club-field::placeholder { color:var(--text-muted); }
+
+    .btn-club-primary { width:100%; padding:.9375rem; border-radius:var(--r-pill); background:var(--gold); color:#070500; font-family:var(--sans); font-size:.9375rem; font-weight:700; border:none; cursor:pointer; margin-top:.25rem; transition:opacity .16s,transform .16s; -webkit-tap-highlight-color:transparent; min-height:52px; }
+    .btn-club-primary:hover { opacity:.92; }
+    .btn-club-primary:active { transform:scale(.97); }
+
+    .club-or { display:flex; align-items:center; gap:.75rem; margin:1.25rem 0; }
+    .club-or::before,.club-or::after { content:''; flex:1; height:1px; background:rgba(255,255,255,.07); }
+    .club-or span { font-size:.75rem; color:var(--text-muted); }
+
+    .btn-google { width:100%; padding:.875rem; border-radius:var(--r-pill); background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.12); color:var(--text); font-family:var(--sans); font-size:.9rem; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:.625rem; transition:background .16s; -webkit-tap-highlight-color:transparent; min-height:48px; }
+    .btn-google:hover { background:rgba(255,255,255,.09); }
+    .btn-google:active { transform:scale(.97); }
+
+    .club-alert { padding:.75rem 1rem; border-radius:10px; font-size:.8125rem; font-weight:500; margin-bottom:1rem; background:rgba(217,79,79,.12); border:1px solid rgba(217,79,79,.25); color:#f87171; display:none; }
+    .club-alert.ok { background:rgba(52,211,153,.1); border-color:rgba(52,211,153,.25); color:#6ee7b7; }
+    .club-alert.show { display:block; }
+
+    /* Club member panel */
+    .club-pts-card { background:linear-gradient(135deg,rgba(var(--gold-rgb),.14),rgba(var(--gold-rgb),.05)); border:1px solid var(--gold-border); border-radius:18px; padding:1.5rem; text-align:center; margin-bottom:1.25rem; }
+    .club-pts-label { font-size:.625rem; font-weight:700; text-transform:uppercase; letter-spacing:.18em; color:var(--text-muted); margin-bottom:.375rem; }
+    .club-pts-value { font-family:var(--serif); font-size:3.75rem; font-weight:700; color:var(--gold); line-height:1; letter-spacing:-.02em; margin-bottom:.25rem; }
+    .club-pts-sub { font-size:.75rem; color:var(--text-muted); }
+    .club-progress { margin-bottom:1.5rem; }
+    .club-progress-labels { display:flex; justify-content:space-between; font-size:.75rem; color:var(--text-sec); margin-bottom:.5rem; }
+    .club-progress-track { height:6px; border-radius:3px; background:rgba(255,255,255,.07); overflow:hidden; }
+    .club-progress-fill { height:100%; border-radius:3px; background:linear-gradient(90deg,rgba(var(--gold-rgb),.6),var(--gold)); transition:width .6s cubic-bezier(.34,1.56,.64,1); }
+    .club-how { background:rgba(255,255,255,.03); border:1px solid rgba(255,255,255,.07); border-radius:14px; padding:1rem 1.25rem; margin-bottom:1.5rem; }
+    .club-how-title { font-size:.625rem; font-weight:700; text-transform:uppercase; letter-spacing:.14em; color:var(--text-muted); margin-bottom:.75rem; }
+    .club-how-row { display:flex; align-items:center; gap:.75rem; margin-bottom:.5rem; }
+    .club-how-row:last-child { margin-bottom:0; }
+    .club-how-icon { width:30px; height:30px; border-radius:8px; flex-shrink:0; background:var(--gold-dim); border:1px solid var(--gold-border); display:flex; align-items:center; justify-content:center; color:var(--gold); font-size:.9rem; }
+    .club-how-text { font-size:.8125rem; color:var(--text-sec); line-height:1.45; }
+    .club-how-text strong { color:var(--text); font-weight:600; }
+    .btn-club-secondary { width:100%; padding:.75rem; border:1px solid rgba(255,255,255,.08); border-radius:var(--r-pill); background:transparent; color:var(--text-muted); font-family:var(--sans); font-size:.8125rem; font-weight:600; cursor:pointer; transition:all .16s; -webkit-tap-highlight-color:transparent; }
+    .btn-club-secondary:hover { color:var(--text); border-color:rgba(255,255,255,.16); }
+
+    /* ── Contact FAB ── */
+    #contact-fab {
+      position:fixed; bottom:calc(1.5rem + env(safe-area-inset-bottom,0px)); right:1.25rem; z-index:50;
+      width:58px; height:58px; border-radius:50%;
+      background:#0c0803;
+      color:var(--gold); border:1px solid rgba(201,168,76,0.32); cursor:pointer;
+      display:flex; align-items:center; justify-content:center; font-size:1.75rem;
+      box-shadow:0 4px 20px rgba(0,0,0,.65), 0 0 0 1px rgba(201,168,76,.05), 0 0 16px rgba(201,168,76,.07);
+      transition:transform .22s cubic-bezier(.34,1.56,.64,1), box-shadow .22s, border-color .22s;
+      -webkit-tap-highlight-color:transparent;
+    }
+    #contact-fab:hover {
+      transform:scale(1.08);
+      border-color:rgba(201,168,76,0.55);
+      box-shadow:0 6px 28px rgba(0,0,0,.7), 0 0 0 1px rgba(201,168,76,.14), 0 0 32px rgba(201,168,76,.16);
+    }
+    #contact-fab:active { transform:scale(.93); }
+
+    /* ── Contact modal ── */
+    #contact-modal { position:fixed; inset:0; z-index:61; display:flex; align-items:flex-end; justify-content:center; pointer-events:none; }
+    @media(min-width:480px){ #contact-modal { align-items:center; padding:1.5rem; } }
+    .contact-card { background:#0A0803; border:1px solid var(--gold-border); border-radius:22px 22px 0 0; width:100%; max-width:380px; transform:translateY(100%); transition:transform .34s cubic-bezier(.32,0,.15,1); pointer-events:none; }
+    @media(min-width:480px){ .contact-card { border-radius:20px; transform:translateY(12px) scale(.97); opacity:0; transition:transform .3s cubic-bezier(.32,0,.15,1),opacity .26s; } }
+    #contact-modal.open .contact-card { transform:translateY(0); }
+    @media(min-width:480px){ #contact-modal.open .contact-card { transform:translateY(0) scale(1); opacity:1; } }
+    @media(min-width:480px){ #contact-modal .modal-handle { display:none; } }
+
+    .contact-inner { padding:1.25rem 1.5rem 2rem; }
+    .contact-title { font-family:var(--serif); font-size:1.25rem; font-weight:700; color:var(--text); margin-bottom:.25rem; }
+    .contact-sub { font-size:.8125rem; color:var(--text-sec); margin-bottom:1.5rem; }
+    .contact-option { display:flex; align-items:center; gap:1rem; padding:1rem 1.125rem; border-radius:14px; text-decoration:none; margin-bottom:.625rem; border:1px solid rgba(255,255,255,.07); background:rgba(255,255,255,.03); transition:background .16s,border-color .16s; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+    .contact-option:hover { background:rgba(255,255,255,.06); border-color:rgba(255,255,255,.12); }
+    .contact-option:active { transform:scale(.98); }
+    .contact-icon { width:44px; height:44px; border-radius:12px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:1.375rem; }
+    .contact-icon.wa { background:rgba(37,211,102,.15); color:#25d366; }
+    .contact-icon.ig { background:rgba(225,48,108,.12); color:#e1306c; }
+    .contact-opt-label { font-size:.9375rem; font-weight:700; color:var(--text); }
+    .contact-opt-desc { font-size:.75rem; color:var(--text-sec); margin-top:.125rem; }
+    .contact-arrow { color:var(--text-muted); font-size:1rem; margin-left:auto; }
+    .btn-contact-close { width:100%; padding:.75rem; border:1px solid rgba(255,255,255,.08); border-radius:var(--r-pill); background:transparent; color:var(--text-muted); font-family:var(--sans); font-size:.875rem; font-weight:600; cursor:pointer; margin-top:.5rem; transition:all .16s; -webkit-tap-highlight-color:transparent; }
+    .btn-contact-close:hover { color:var(--text); border-color:rgba(255,255,255,.16); }
+
+    /* ── Fix: modal wrappers + cards get pointer-events when open ── */
+    #prod-modal.open, #club-modal.open, #contact-modal.open,
+    #benefits-modal.open, #chat-modal.open, #wish-modal.open { pointer-events:auto; }
+    #prod-modal.open .prod-card, #club-modal.open .club-card,
+    #contact-modal.open .contact-card, #benefits-modal.open .benefits-card,
+    #chat-modal.open .chat-card, #wish-modal.open .wish-card { pointer-events:auto; }
+
+    /* ── Wishlist card button (on grid) ── */
+    .btn-card-wish {
+      position:absolute; top:.625rem; right:.625rem; z-index:3;
+      width:34px; height:34px; border-radius:50%;
+      background:rgba(7,5,0,.78); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
+      border:1px solid rgba(var(--gold-rgb),.28);
+      color:rgba(var(--gold-rgb),.55); font-size:1rem;
+      display:flex; align-items:center; justify-content:center;
+      cursor:pointer; -webkit-tap-highlight-color:transparent;
+      transition:all .2s; pointer-events:auto;
+    }
+    .btn-card-wish:hover { color:var(--gold); border-color:rgba(var(--gold-rgb),.55); background:rgba(var(--gold-rgb),.14); }
+    .btn-card-wish:active { transform:scale(.88); }
+    .btn-card-wish.wished { color:var(--gold); background:rgba(var(--gold-rgb),.2); border-color:rgba(var(--gold-rgb),.45); }
+
+    /* ── Agotado badge ── */
+    .badge-agotado {
+      position:absolute; bottom:.5rem; left:.5rem; z-index:2;
+      padding:.2rem .5rem; border-radius:var(--r-pill);
+      font-size:.5rem; font-weight:800; text-transform:uppercase; letter-spacing:.08em;
+      background:rgba(7,5,0,.8); backdrop-filter:blur(6px);
+      border:1px solid rgba(255,255,255,.15); color:rgba(255,255,255,.6);
     }
 
-    .product-img-placeholder {
-      width: 100%; height: 100%;
-      display: flex; align-items: center; justify-content: center;
-      color: rgba(var(--gold-rgb), 0.15); font-size: 2.5rem;
+    /* ── Modal action buttons ── */
+    .btn-modal-wish {
+      display:flex; align-items:center; justify-content:center; gap:.5rem;
+      width:100%; padding:.875rem 1.5rem; border-radius:var(--r-pill);
+      border:1px solid var(--gold-border); background:transparent;
+      color:var(--gold); font-family:var(--sans); font-size:.9rem; font-weight:600;
+      cursor:pointer; transition:background .16s; -webkit-tap-highlight-color:transparent;
+      min-height:48px; margin-bottom:.625rem;
+    }
+    .btn-modal-wish:hover { background:var(--gold-dim); }
+    .btn-modal-wish:active { transform:scale(.97); }
+    .btn-modal-wish.wished { background:rgba(var(--gold-rgb),.14); border-color:rgba(var(--gold-rgb),.45); }
+
+    .btn-modal-alert {
+      display:flex; align-items:center; justify-content:center; gap:.5rem;
+      width:100%; padding:.875rem 1.5rem; border-radius:var(--r-pill);
+      border:1px solid rgba(255,255,255,.1); background:rgba(255,255,255,.04);
+      color:var(--text-sec); font-family:var(--sans); font-size:.875rem; font-weight:600;
+      cursor:pointer; transition:all .16s; -webkit-tap-highlight-color:transparent;
+      min-height:48px; margin-bottom:.625rem;
+    }
+    .btn-modal-alert:hover { background:rgba(255,255,255,.08); }
+    .btn-modal-alert.active { color:#34d399; border-color:rgba(52,211,153,.3); background:rgba(52,211,153,.06); }
+
+    /* ── Wishlist modal ── */
+    #wish-modal { position:fixed; inset:0; z-index:61; display:flex; align-items:flex-end; justify-content:center; pointer-events:none; }
+    @media(min-width:520px){ #wish-modal { align-items:center; padding:1.5rem; } }
+    .wish-card {
+      background:#0A0803; border:1px solid var(--gold-border);
+      border-radius:26px 26px 0 0; width:100%; max-width:480px; max-height:90vh;
+      overflow-y:auto; overscroll-behavior:contain; scrollbar-width:none;
+      transform:translateY(100%); transition:transform .36s cubic-bezier(.32,0,.15,1);
+      pointer-events:none;
+    }
+    .wish-card::-webkit-scrollbar { display:none; }
+    @media(min-width:520px){ .wish-card { border-radius:22px; transform:translateY(16px) scale(.97); opacity:0; transition:transform .32s cubic-bezier(.32,0,.15,1),opacity .26s; } }
+    #wish-modal.open .wish-card { transform:translateY(0); }
+    @media(min-width:520px){ #wish-modal.open .wish-card { transform:translateY(0) scale(1); opacity:1; } }
+    .wish-inner { padding:1.5rem 1.75rem 2.5rem; }
+    .wish-item {
+      display:flex; align-items:center; gap:.875rem;
+      padding:.875rem; border-radius:14px; border:1px solid rgba(255,255,255,.06);
+      background:rgba(255,255,255,.025); margin-bottom:.5rem;
+      cursor:pointer; -webkit-tap-highlight-color:transparent; transition:background .16s;
+    }
+    .wish-item:hover { background:rgba(255,255,255,.05); }
+    .wish-item:active { transform:scale(.98); }
+    .wish-item-img { width:52px; height:52px; border-radius:10px; object-fit:cover; background:var(--surface); flex-shrink:0; }
+    .wish-item-img-ph { width:52px; height:52px; border-radius:10px; background:var(--gold-dim); border:1px solid var(--gold-border); display:flex; align-items:center; justify-content:center; color:var(--gold); font-size:1.25rem; flex-shrink:0; }
+    .wish-item-info { flex:1; min-width:0; }
+    .wish-item-name { font-size:.875rem; font-weight:700; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .wish-item-price { font-family:var(--serif); font-size:.9375rem; color:var(--gold); margin-top:.2rem; }
+    .btn-wish-remove { flex-shrink:0; width:30px; height:30px; border-radius:50%; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08); color:var(--text-muted); font-size:.8125rem; display:flex; align-items:center; justify-content:center; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:all .16s; }
+    .btn-wish-remove:hover { color:#f87171; border-color:rgba(248,113,113,.3); background:rgba(248,113,113,.08); }
+
+    /* ── Club CTA float (non-logged users) ── */
+    #club-cta {
+      position:fixed; bottom:5.5rem; left:1rem; right:1rem; z-index:55;
+      background:linear-gradient(135deg,#0F0B03,#1A1305);
+      border:1px solid rgba(var(--gold-rgb),.35);
+      border-radius:18px; padding:1rem 1.125rem;
+      box-shadow:0 8px 32px rgba(0,0,0,.6), 0 0 0 1px rgba(var(--gold-rgb),.08) inset;
+      transform:translateY(120%); opacity:0;
+      transition:transform .4s cubic-bezier(.32,0,.15,1), opacity .3s;
+      pointer-events:none;
+    }
+    #club-cta.visible {
+      transform:translateY(0); opacity:1; pointer-events:auto;
+    }
+    .club-cta-row { display:flex; align-items:center; gap:.875rem; }
+    .club-cta-icon {
+      flex-shrink:0; width:40px; height:40px; border-radius:50%;
+      background:linear-gradient(135deg,rgba(var(--gold-rgb),.25),rgba(var(--gold-rgb),.1));
+      border:1px solid rgba(var(--gold-rgb),.3);
+      display:flex; align-items:center; justify-content:center;
+      font-size:1.125rem; color:var(--gold);
+    }
+    .club-cta-text { flex:1; min-width:0; }
+    .club-cta-title { font-size:.875rem; font-weight:700; color:var(--text); line-height:1.2; }
+    .club-cta-sub { font-size:.6875rem; color:var(--text-sec); margin-top:.15rem; }
+    .btn-cta-join {
+      flex-shrink:0; padding:.5rem 1.125rem;
+      background:var(--gold); color:#070500;
+      border:none; border-radius:var(--r-pill);
+      font-family:var(--sans); font-size:.8125rem; font-weight:700;
+      cursor:pointer; -webkit-tap-highlight-color:transparent;
+      transition:opacity .16s; white-space:nowrap;
+    }
+    .btn-cta-join:hover { opacity:.88; }
+    .club-cta-dismiss {
+      position:absolute; top:.625rem; right:.625rem;
+      width:22px; height:22px; border-radius:50%;
+      background:rgba(255,255,255,.07); border:none;
+      color:var(--text-muted); font-size:.75rem;
+      display:flex; align-items:center; justify-content:center;
+      cursor:pointer; -webkit-tap-highlight-color:transparent;
     }
 
-    .badge-cat {
-      position: absolute; top: 0.5rem; left: 0.5rem; z-index: 2;
-      padding: 0.2rem 0.5rem; border-radius: var(--r-pill);
-      font-size: 0.5rem; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 0.08em;
-      background: rgba(7,5,0,0.72); backdrop-filter: blur(6px);
-      border: 1px solid var(--gold-border); color: var(--gold);
+    /* ── Bottom Navigation (member) ── */
+    #member-bar {
+      position:fixed; bottom:1.125rem; left:50%; z-index:55;
+      transform:translateX(-50%) translateY(24px);
+      width:90%; max-width:400px;
+      background:rgba(5,3,1,0.9);
+      backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px);
+      border:1px solid rgba(201,168,76,0.2);
+      border-radius:20px;
+      box-shadow:0 8px 32px rgba(0,0,0,.55), 0 0 0 1px rgba(201,168,76,0.05) inset;
+      display:flex; align-items:stretch; padding:5px; gap:3px;
+      pointer-events:none; opacity:0;
+      transition:opacity .32s, transform .44s cubic-bezier(.34,1.56,.64,1);
     }
-    .badge-off {
-      position: absolute; top: 0.5rem; right: 0.5rem; z-index: 2;
-      padding: 0.2rem 0.5rem; border-radius: var(--r-pill);
-      font-size: 0.5rem; font-weight: 800; text-transform: uppercase;
-      letter-spacing: 0.05em;
-      background: var(--red); color: #fff;
+    #member-bar.visible { pointer-events:auto; opacity:1; transform:translateX(-50%) translateY(0); }
+
+    .member-bar-btn {
+      flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+      padding:9px 6px 8px; border-radius:14px;
+      background:transparent; border:1px solid transparent;
+      color:rgba(201,168,76,0.42);
+      font-family:var(--sans); font-size:.5625rem; font-weight:700;
+      letter-spacing:.06em; text-transform:uppercase;
+      cursor:pointer; -webkit-tap-highlight-color:transparent;
+      transition:color .18s, background .18s, border-color .18s, box-shadow .18s;
+      position:relative; overflow:hidden;
+    }
+    .member-bar-btn i {
+      font-size:1.1875rem; line-height:1;
+      transition:transform .2s cubic-bezier(.34,1.56,.64,1);
+    }
+    .member-bar-btn:hover {
+      color:var(--gold); background:rgba(201,168,76,0.06); border-color:rgba(201,168,76,0.14);
+    }
+    .member-bar-btn:hover i { transform:scale(1.12) translateY(-1px); }
+    .member-bar-btn:active { transform:scale(.93); transition-duration:.07s; }
+    .member-bar-btn.active {
+      color:var(--gold); background:rgba(201,168,76,0.1); border-color:rgba(201,168,76,0.24);
+      box-shadow:0 0 14px rgba(201,168,76,0.1);
+    }
+    .member-bar-btn.active i { text-shadow:0 0 10px rgba(201,168,76,0.6); }
+    .member-bar-sep { width:1px; background:rgba(201,168,76,0.08); flex-shrink:0; margin:8px 0; }
+
+    /* Flash ring + animaciones */
+    .bn-flash-ring {
+      display:none; position:absolute; inset:0; border-radius:14px;
+      background:rgba(201,168,76,0.22); pointer-events:none;
+    }
+    @keyframes bnRingPop {
+      0%   { opacity:0; transform:scale(.55); }
+      28%  { opacity:1; transform:scale(1.06); }
+      65%  { opacity:.55; }
+      100% { opacity:0; transform:scale(1.75); }
+    }
+    @keyframes bnGoldPulse {
+      0%,100% { box-shadow:0 0 0 0 rgba(201,168,76,0); border-color:rgba(201,168,76,0.24); }
+      42%     { box-shadow:0 0 20px 6px rgba(201,168,76,0.36); border-color:rgba(201,168,76,0.55); }
+    }
+    @keyframes bnIconGlow {
+      0%,100% { color:var(--gold); text-shadow:none; }
+      42%     { color:#fde68a; text-shadow:0 0 12px rgba(253,230,138,0.85), 0 0 28px rgba(201,168,76,0.55); }
+    }
+    .member-bar-btn.flashing             { animation:bnGoldPulse .78s ease 2; }
+    .member-bar-btn.flashing i           { animation:bnIconGlow  .78s ease 2; }
+    .member-bar-btn.flashing .bn-flash-ring { display:block; animation:bnRingPop .68s ease-out 2; }
+
+    /* ── Benefits modal ── */
+    #benefits-modal { position:fixed; inset:0; z-index:61; display:flex; align-items:flex-end; justify-content:center; pointer-events:none; }
+    @media(min-width:520px){ #benefits-modal { align-items:center; padding:1.5rem; } }
+    .benefits-card {
+      background:#0A0803; border:1px solid var(--gold-border);
+      border-radius:26px 26px 0 0; width:100%; max-width:440px; max-height:88vh;
+      overflow-y:auto; overscroll-behavior:contain; scrollbar-width:none;
+      transform:translateY(100%); transition:transform .36s cubic-bezier(.32,0,.15,1);
+      pointer-events:none;
+    }
+    .benefits-card::-webkit-scrollbar { display:none; }
+    @media(min-width:520px){ .benefits-card { border-radius:22px; transform:translateY(16px) scale(.97); opacity:0; transition:transform .32s cubic-bezier(.32,0,.15,1),opacity .26s; } }
+    #benefits-modal.open .benefits-card { transform:translateY(0); }
+    @media(min-width:520px){ #benefits-modal.open .benefits-card { transform:translateY(0) scale(1); opacity:1; } }
+    .benefits-inner { padding:1.5rem 1.75rem 2.5rem; }
+
+    .prize-row { display:flex; align-items:flex-start; gap:1rem; padding:1rem; border-radius:14px; border:1px solid rgba(255,255,255,.07); background:rgba(255,255,255,.025); margin-bottom:.625rem; }
+    .prize-pts { min-width:52px; text-align:center; }
+    .prize-pts-num { font-family:var(--serif); font-size:1.5rem; font-weight:700; color:var(--gold); line-height:1; }
+    .prize-pts-lbl { font-size:.5rem; font-weight:700; text-transform:uppercase; letter-spacing:.1em; color:var(--text-muted); }
+    .prize-info { flex:1; }
+    .prize-name { font-size:.875rem; font-weight:700; color:var(--text); }
+    .prize-desc { font-size:.75rem; color:var(--text-sec); margin-top:.2rem; }
+    .prize-lock { font-size:1rem; color:var(--text-muted); margin-left:auto; flex-shrink:0; align-self:center; }
+    .prize-check { font-size:1rem; color:#34d399; margin-left:auto; flex-shrink:0; align-self:center; }
+
+    /* ── Chat modal ── */
+    #chat-modal { position:fixed; inset:0; z-index:61; display:flex; align-items:flex-end; justify-content:center; pointer-events:none; }
+    @media(min-width:520px){ #chat-modal { align-items:center; padding:1.5rem; } }
+    .chat-card {
+      background:#0A0803; border:1px solid var(--gold-border);
+      border-radius:26px 26px 0 0; width:100%; max-width:400px;
+      transform:translateY(100%); transition:transform .36s cubic-bezier(.32,0,.15,1);
+      pointer-events:none;
+    }
+    @media(min-width:520px){ .chat-card { border-radius:22px; transform:translateY(16px) scale(.97); opacity:0; transition:transform .32s cubic-bezier(.32,0,.15,1),opacity .26s; } }
+    #chat-modal.open .chat-card { transform:translateY(0); }
+    @media(min-width:520px){ #chat-modal.open .chat-card { transform:translateY(0) scale(1); opacity:1; } }
+    .chat-inner { padding:1.5rem 1.75rem 2.5rem; }
+    .btn-chat-wa {
+      display:flex; align-items:center; justify-content:center; gap:.625rem;
+      width:100%; padding:1rem; border-radius:var(--r-pill);
+      background:rgba(37,211,102,.15); border:1px solid rgba(37,211,102,.3);
+      color:#25d366; font-family:var(--sans); font-size:1rem; font-weight:700;
+      cursor:pointer; text-decoration:none; -webkit-tap-highlight-color:transparent;
+      transition:all .16s;
+    }
+    .btn-chat-wa:hover { background:rgba(37,211,102,.22); }
+    .btn-chat-wa i { font-size:1.25rem; }
+
+    /* ── Loyalty overlay (softer than modal blackout) ── */
+    #loyalty-overlay {
+      z-index:61;
+      background:rgba(0,0,0,0.6);
+      backdrop-filter:blur(5px);
+      -webkit-backdrop-filter:blur(5px);
     }
 
-    .product-info {
-      padding: 0.75rem;
-      flex: 1; display: flex; flex-direction: column;
+    /* ── Loyalty Bottom Sheet ── */
+    #loyalty-panel {
+      position:fixed; bottom:0; left:0; right:0; z-index:62;
+      width:100%; max-height:90dvh;
+      display:flex; flex-direction:column;
+      background:#0a0805;
+      border-top:1px solid rgba(201,168,76,0.2);
+      border-radius:24px 24px 0 0;
+      overflow:hidden;
+      overscroll-behavior:contain;
+      transform:translateY(110%);
+      transition:transform .38s cubic-bezier(.32,0,.15,1);
+      pointer-events:none;
     }
-    .product-brand {
-      font-size: 0.5625rem; font-weight: 700;
-      color: var(--text-muted); text-transform: uppercase;
-      letter-spacing: 0.1em; margin-bottom: 0.2rem;
-      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    }
-    .product-name {
-      font-size: 0.875rem; font-weight: 700; color: var(--text);
-      line-height: 1.3; flex: 1;
-      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
-    .product-prices {
-      display: flex; align-items: baseline; gap: 0.375rem;
-      flex-wrap: wrap; margin-top: 0.5rem;
-    }
-    .product-price {
-      font-family: var(--serif);
-      font-size: 1.0625rem; font-weight: 700;
-      color: var(--gold); letter-spacing: -0.01em;
-    }
-    .product-price-orig {
-      font-size: 0.6875rem; color: var(--text-muted);
-      text-decoration: line-through;
+    #loyalty-panel.open { transform:translateY(0); pointer-events:auto; }
+
+    /* Centered sheet on tablet+ */
+    @media (min-width:640px) {
+      #loyalty-panel { left:50%; right:auto; width:440px; border-radius:24px 24px 0 0;
+        transform:translateX(-50%) translateY(110%); }
+      #loyalty-panel.open { transform:translateX(-50%) translateY(0); }
     }
 
-    /* ── Member pricing ──────────────────────────────────────────────── */
-    .badge-member-price {
-      display: block; width: fit-content;
-      font-size: 0.5rem; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 0.07em; padding: 0.15rem 0.45rem;
-      border-radius: var(--r-pill);
-      background: var(--gold-dim); border: 1px solid var(--gold-border);
-      color: var(--gold); margin-top: 0.25rem;
+    .lp-drag-handle {
+      width:44px; height:5px; border-radius:9999px;
+      background:rgba(201,168,76,0.22); margin:14px auto 0; flex-shrink:0;
     }
-    .member-incentive {
-      font-size: 0.5625rem; color: var(--text-muted);
-      font-weight: 600; margin-top: 0.25rem; letter-spacing: 0.02em;
+    .lp-header {
+      padding:1.25rem 1.5rem 1rem; flex-shrink:0;
+      border-bottom:1px solid rgba(201,168,76,0.1);
+      background:#0a0805;
     }
-    .detail-member-price {
-      font-size: 0.75rem; color: var(--text-sec); margin-top: 0.375rem;
-      display: flex; align-items: center; gap: 0.375rem;
+    .lp-elite-label {
+      font-size:.5625rem; font-weight:700; text-transform:uppercase;
+      letter-spacing:.28em; color:rgba(201,168,76,0.72); margin-bottom:.5rem;
     }
-    .detail-member-badge {
-      font-size: 0.5625rem; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 0.07em; padding: 0.15rem 0.5rem;
-      border-radius: var(--r-pill);
-      background: var(--gold-dim); border: 1px solid var(--gold-border);
-      color: var(--gold);
+    .lp-subtitle {
+      font-family:var(--serif); font-size:1.3125rem; font-weight:600;
+      color:var(--gold); letter-spacing:.03em; line-height:1.2;
     }
+    .lp-close {
+      position:absolute; top:1.125rem; right:1.125rem;
+      width:34px; height:34px; border-radius:50%;
+      background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.07);
+      color:rgba(255,255,255,.28); cursor:pointer; font-size:.875rem;
+      display:flex; align-items:center; justify-content:center;
+      transition:all .16s; -webkit-tap-highlight-color:transparent;
+    }
+    .lp-close:hover { color:var(--gold); border-color:rgba(201,168,76,0.32); background:rgba(201,168,76,.06); }
 
-    /* ── Skeleton ────────────────────────────────────────────────────── */
-    .skel-card {
-      background: var(--card); border: 1px solid var(--border);
-      border-radius: var(--r-card); overflow: hidden;
+    .lp-body {
+      padding:1.5rem; flex:1;
+      overflow-y:auto; overflow-x:hidden;
+      overscroll-behavior:contain;
+      -webkit-overflow-scrolling:touch;
+      scrollbar-width:none;
     }
-    .skel {
-      background: linear-gradient(90deg,
-        rgba(var(--gold-rgb),0.04) 25%,
-        rgba(var(--gold-rgb),0.08) 50%,
-        rgba(var(--gold-rgb),0.04) 75%);
-      background-size: 200% 100%;
-      animation: shimmer 1.5s infinite;
-    }
-    @keyframes shimmer {
-      0%   { background-position: 200% 0; }
-      100% { background-position: -200% 0; }
-    }
+    .lp-body::-webkit-scrollbar { display:none; }
+    .lp-auth-intro { font-size:.8125rem; color:var(--text-muted); line-height:1.65; margin-bottom:1.5rem; }
 
-    /* ── Empty / error state ─────────────────────────────────────────── */
-    .state-wrap {
-      grid-column: 1 / -1;
-      display: flex; flex-direction: column; align-items: center;
-      padding: 4.5rem 2rem; text-align: center; gap: 0.625rem;
-    }
-    .state-icon {
-      width: 66px; height: 66px; border-radius: 50%;
-      background: var(--gold-dim); border: 1px solid var(--gold-border);
-      display: flex; align-items: center; justify-content: center;
-      color: var(--gold); font-size: 1.75rem; margin-bottom: 0.625rem;
-    }
-    .state-title {
-      font-family: var(--serif);
-      font-size: 1.3125rem; font-weight: 600; color: var(--text);
-    }
-    .state-sub {
-      font-size: 0.875rem; color: var(--text-sec);
-      line-height: 1.65; max-width: 280px;
-    }
+    .lp-greeting { font-size:.9375rem; font-weight:600; color:var(--text); margin-bottom:.15rem; }
+    .lp-greeting-sub { font-size:.6875rem; color:var(--text-muted); letter-spacing:.04em; margin-bottom:1.75rem; }
 
-    /* ── Bottom sheet ────────────────────────────────────────────────── */
-    #detail-overlay {
-      position: fixed; inset: 0; z-index: 60;
-      background: rgba(0,0,0,0.82); backdrop-filter: blur(8px);
-      opacity: 0; pointer-events: none;
-      transition: opacity 0.28s;
-    }
-    #detail-overlay.open { opacity: 1; pointer-events: auto; }
-
-    #detail-panel {
-      position: fixed; bottom: 0; left: 0; right: 0; z-index: 61;
-      background: #0D0A04;
-      border-top: 1px solid var(--gold-border);
-      border-radius: 22px 22px 0 0;
-      max-height: 90vh; overflow-y: auto;
-      transform: translateY(100%);
-      transition: transform 0.36s cubic-bezier(0.32,0,0.15,1);
-      overscroll-behavior: contain;
-    }
-    #detail-panel.open { transform: translateY(0); }
-
-    .detail-handle {
-      width: 44px; height: 4px;
-      background: rgba(var(--gold-rgb),0.2); border-radius: 2px;
-      margin: 1rem auto 0;
-    }
-
-    .detail-img {
-      width: 100%; aspect-ratio: 3/2; object-fit: contain;
-      background: linear-gradient(150deg, #0D0A04 0%, #171209 100%);
-      padding: 2rem 3rem; margin-top: 0.75rem;
-    }
-    .detail-img-placeholder {
-      width: 100%; aspect-ratio: 3/2;
-      display: flex; align-items: center; justify-content: center;
-      background: var(--surface); margin-top: 0.75rem;
-      color: rgba(var(--gold-rgb),0.15); font-size: 5rem;
-    }
-
-    .detail-body { padding: 1.25rem 1.5rem 3rem; }
-
-    .detail-head {
-      display: flex; justify-content: space-between;
-      align-items: flex-start; gap: 0.75rem; margin-bottom: 0.875rem;
-    }
-    .detail-badges { display: flex; gap: 0.375rem; flex-wrap: wrap; }
-    .detail-badge {
-      padding: 0.25rem 0.75rem; border-radius: var(--r-pill);
-      font-size: 0.5625rem; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 0.08em;
-      background: var(--gold-dim); border: 1px solid var(--gold-border);
-      color: var(--gold);
-    }
-    .detail-close {
-      flex-shrink: 0; width: 36px; height: 36px; border-radius: 50%;
-      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
-      color: var(--text-sec); cursor: pointer; font-size: 0.875rem;
-      display: flex; align-items: center; justify-content: center;
-      transition: background 0.16s; -webkit-tap-highlight-color: transparent;
-    }
-    .detail-close:hover { background: rgba(255,255,255,0.1); }
-
-    .detail-brand {
-      font-size: 0.6875rem; font-weight: 700;
-      color: var(--text-muted); text-transform: uppercase;
-      letter-spacing: 0.1em; margin-bottom: 0.25rem;
-    }
-    .detail-name {
-      font-family: var(--serif);
-      font-size: 1.625rem; font-weight: 700; color: var(--text);
-      letter-spacing: 0.01em; line-height: 1.2; margin-bottom: 1rem;
-    }
-    .detail-price-row {
-      display: flex; align-items: baseline; gap: 0.75rem;
-      flex-wrap: wrap; margin-bottom: 1.125rem;
-    }
-    .detail-price {
-      font-family: var(--serif);
-      font-size: 2.125rem; font-weight: 700; color: var(--gold);
-      letter-spacing: -0.02em;
-    }
-    .detail-price-orig {
-      font-size: 1rem; color: var(--text-muted); text-decoration: line-through;
-    }
-    .detail-badge-off {
-      padding: 0.25rem 0.625rem; border-radius: var(--r-pill);
-      font-size: 0.75rem; font-weight: 800;
-      background: var(--red); color: #fff;
-    }
-    .detail-desc {
-      font-size: 0.9rem; color: var(--text-sec);
-      line-height: 1.75; margin-bottom: 1.25rem;
-    }
-    .detail-divider { height: 1px; background: var(--border); margin-bottom: 1.25rem; }
-
-    .btn-wa {
-      display: flex; align-items: center; justify-content: center; gap: 0.625rem;
-      width: 100%; padding: 1rem 1.5rem; border-radius: var(--r-pill);
-      background: linear-gradient(135deg, #27D36B 0%, #1DB954 100%);
-      color: #fff; font-family: var(--sans); font-size: 0.9375rem; font-weight: 700;
-      border: none; cursor: pointer; text-decoration: none;
-      transition: transform 0.16s, opacity 0.16s;
-      -webkit-tap-highlight-color: transparent; min-height: 52px;
-      margin-bottom: 0.75rem;
-    }
-    .btn-wa:active { transform: scale(0.97); opacity: 0.9; }
-
-    .btn-share {
-      display: flex; align-items: center; justify-content: center; gap: 0.5rem;
-      width: 100%; padding: 0.875rem 1.5rem; border-radius: var(--r-pill);
-      background: transparent; border: 1px solid var(--gold-border);
-      color: var(--gold); font-family: var(--sans); font-size: 0.9rem; font-weight: 600;
-      cursor: pointer; transition: background 0.16s;
-      -webkit-tap-highlight-color: transparent; min-height: 48px;
-    }
-    .btn-share:hover { background: var(--gold-dim); }
-    .btn-share:active { transform: scale(0.97); }
-
-    /* ── Bottom nav ─────────────────────────────────────────────────── */
-    .bottom-nav {
-      position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
-      display: flex;
-      background: rgba(7,5,0,0.97);
-      backdrop-filter: blur(24px) saturate(180%);
-      -webkit-backdrop-filter: blur(24px) saturate(180%);
-      border-top: 1px solid var(--border);
-      padding-bottom: env(safe-area-inset-bottom, 0px);
-    }
-    .nav-tab {
-      flex: 1; display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      gap: 0.3rem; padding: 0.75rem 0.5rem;
-      text-decoration: none;
-      color: var(--text-muted);
-      font-family: var(--sans); font-size: 0.625rem; font-weight: 700;
-      letter-spacing: 0.07em; text-transform: uppercase;
-      transition: color 0.18s;
-      -webkit-tap-highlight-color: transparent;
-      position: relative; min-height: 56px;
-    }
-    .nav-tab i { font-size: 1.375rem; line-height: 1; }
-    .nav-tab.active { color: var(--gold); }
-    .nav-tab.active::after {
-      content: '';
-      position: absolute; top: 0; left: 50%; transform: translateX(-50%);
-      width: 2.25rem; height: 2px; border-radius: 0 0 3px 3px;
-      background: linear-gradient(90deg, rgba(201,168,76,0.4), var(--gold), rgba(201,168,76,0.4));
-    }
-    .nav-tab:not(.active):active { color: var(--text-sec); }
-
-    /* ── Retry button ────────────────────────────────────────────────── */
-    .btn-retry {
-      display: inline-flex; align-items: center; gap: 0.5rem;
-      padding: 0.75rem 1.5rem; border-radius: var(--r-pill);
-      border: 1px solid var(--gold-border); background: transparent;
-      color: var(--gold); font-family: var(--sans); font-size: 0.875rem; font-weight: 600;
-      cursor: pointer; margin-top: 0.75rem;
-      transition: background 0.16s; -webkit-tap-highlight-color: transparent;
-    }
-    .btn-retry:hover { background: var(--gold-dim); }
-
-    /* ── Hero logo ───────────────────────────────────────────────────── */
-    .hero-logo-wrap {
-      position: relative; overflow: hidden;
-      display: flex; flex-direction: column; align-items: center;
-      padding: 2.25rem 1.25rem 1.75rem;
-    }
-    .hero-ambient {
-      position: absolute; top: 50%; left: 50%;
-      transform: translate(-50%, -55%);
-      width: 320px; height: 320px; border-radius: 50%;
-      background: radial-gradient(circle,
-        rgba(var(--gold-rgb), 0.11) 0%,
-        rgba(var(--gold-rgb), 0.04) 40%,
-        transparent 70%);
-      animation: heroAmbient 4s ease-in-out infinite alternate;
-      pointer-events: none;
-    }
-    @keyframes heroAmbient {
-      from { transform: translate(-50%,-55%) scale(0.88); opacity: 0.7; }
-      to   { transform: translate(-50%,-55%) scale(1.08); opacity: 1; }
-    }
-    .hero-orbit {
-      position: absolute; top: 50%; left: 50%;
-      width: 200px; height: 200px;
-      transform: translate(-50%, -60%);
-      animation: heroOrbit 10s linear infinite;
-      pointer-events: none;
-    }
-    .hero-orbit-dot {
-      position: absolute; top: 0; left: 50%; margin-left: -2px;
-      width: 4px; height: 4px; border-radius: 50%;
-      background: var(--gold); opacity: 0.45;
-    }
-    .hero-orbit-dot:nth-child(2) { top: auto; bottom: 0; opacity: 0.28; }
-    .hero-orbit-dot:nth-child(3) {
-      top: 50%; left: 0; margin-left: 0; margin-top: -2px; opacity: 0.32;
-    }
-    .hero-orbit-dot:nth-child(4) {
-      top: 50%; left: auto; right: 0; margin-top: -2px; opacity: 0.2;
-    }
-    @keyframes heroOrbit {
-      from { transform: translate(-50%,-60%) rotate(0deg); }
-      to   { transform: translate(-50%,-60%) rotate(360deg); }
-    }
-    .hero-ring {
-      position: relative; z-index: 2;
-      width: 108px; height: 108px; border-radius: 26px;
-      overflow: hidden;
-      border: 1.5px solid rgba(var(--gold-rgb), 0.38);
+    /* Wax seal */
+    .lp-seal-wrap { display:flex; flex-direction:column; align-items:center; margin-bottom:1.75rem; }
+    .lp-seal {
+      width:116px; height:116px; border-radius:50%;
+      background:radial-gradient(circle at 38% 32%,#f8e07a,#c9a030 38%,#87571a 65%,#3a1e00 100%);
       box-shadow:
-        0 0 0 5px rgba(7,5,0,0.9),
-        0 0 0 6.5px rgba(var(--gold-rgb), 0.15),
-        0 0 36px rgba(var(--gold-rgb), 0.18),
-        0 24px 64px rgba(0,0,0,0.6);
-      animation: heroRingIn 0.9s cubic-bezier(0.34,1.56,0.64,1) both;
+        inset 0 -6px 10px rgba(0,0,0,0.65),
+        inset 0 3px 5px rgba(255,225,80,0.18),
+        0 14px 36px rgba(0,0,0,0.6),
+        0 0 0 1px rgba(201,168,76,0.15),
+        0 6px 18px rgba(201,168,76,0.2);
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      gap:.1rem; cursor:default;
+      transition:transform .3s cubic-bezier(.34,1.56,.64,1), box-shadow .3s;
     }
-    @keyframes heroRingIn {
-      from { opacity: 0; transform: scale(0.65) translateY(24px); }
-      to   { opacity: 1; transform: scale(1) translateY(0); }
+    .lp-seal:hover {
+      transform:scale(1.045);
+      box-shadow:
+        inset 0 -6px 10px rgba(0,0,0,0.65),
+        inset 0 3px 5px rgba(255,225,80,0.18),
+        0 18px 44px rgba(0,0,0,0.65),
+        0 0 0 1px rgba(201,168,76,0.22),
+        0 8px 24px rgba(201,168,76,0.32);
     }
-    .hero-ring img {
-      width: 100%; height: 100%; object-fit: cover; display: block;
+    .lp-seal-crown { font-size:.875rem; color:rgba(255,245,160,0.88); line-height:1; }
+    .lp-seal-mono { font-family:var(--serif); font-size:2rem; font-weight:700; color:#fff9e5; line-height:1; text-shadow:0 2px 8px rgba(0,0,0,0.55); letter-spacing:-.01em; }
+    .lp-pts-label { font-size:.5625rem; font-weight:700; text-transform:uppercase; letter-spacing:.14em; color:var(--gold); margin-top:.875rem; }
+    .lp-pts-value { font-family:var(--serif); font-size:1.875rem; font-weight:700; color:var(--gold-light); letter-spacing:-.02em; line-height:1.1; }
+    .lp-pts-sub { font-size:.5rem; color:var(--text-muted); margin-top:.15rem; letter-spacing:.03em; }
+
+    /* Progress */
+    .lp-prog { margin-bottom:1.75rem; }
+    .lp-prog-labels { display:flex; justify-content:space-between; align-items:center; margin-bottom:.5rem; }
+    .lp-prog-text { font-size:.5625rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:rgba(255,255,255,.28); }
+    .lp-prog-track { height:3px; width:100%; background:rgba(255,255,255,.07); border-radius:9999px; overflow:hidden; }
+    .lp-prog-fill { height:100%; border-radius:9999px; background:linear-gradient(90deg,rgba(201,168,76,0.55),#c9a84c); transition:width .75s cubic-bezier(.34,1.56,.64,1); }
+
+    /* Structure */
+    .lp-divider { height:1px; background:rgba(201,168,76,0.08); margin:1.375rem 0; }
+    .lp-section-title { font-size:.5625rem; font-weight:700; text-transform:uppercase; letter-spacing:.18em; color:var(--text-muted); margin-bottom:.875rem; }
+
+    /* Reward cards */
+    .lp-reward {
+      display:flex; align-items:center; gap:.875rem;
+      padding:.875rem 1rem; border-radius:12px;
+      border:1px solid rgba(201,168,76,0.12);
+      background:rgba(255,255,255,.055); margin-bottom:.625rem;
+      transition:border-color .18s, background .18s;
     }
-    .hero-ring-placeholder {
-      width: 100%; height: 100%;
-      display: flex; align-items: center; justify-content: center;
-      background: var(--gold-dim); font-size: 2.75rem; color: var(--gold);
+    .lp-reward.unlocked { border-color:rgba(201,168,76,0.28); background:rgba(201,168,76,.04); }
+    .lp-reward-icon {
+      flex-shrink:0; width:38px; height:38px; border-radius:10px;
+      background:rgba(201,168,76,.07); border:1px solid rgba(201,168,76,.14);
+      display:flex; align-items:center; justify-content:center; font-size:1.0625rem; color:var(--gold);
     }
-    .hero-name {
-      position: relative; z-index: 2;
-      font-family: var(--serif);
-      font-size: 1.5625rem; font-weight: 700;
-      color: var(--gold-light); letter-spacing: 0.04em;
-      margin-top: 1.125rem; text-align: center;
-      animation: heroFadeUp 0.7s ease 0.18s both;
+    .lp-reward.unlocked .lp-reward-icon { background:rgba(201,168,76,.16); border-color:rgba(201,168,76,.3); }
+    .lp-reward-info { flex:1; min-width:0; }
+    .lp-reward-name { font-size:.8125rem; font-weight:700; color:var(--text-sec); line-height:1.2; margin-bottom:.2rem; }
+    .lp-reward.unlocked .lp-reward-name { color:var(--gold); }
+    .lp-reward-desc { font-size:.6875rem; color:var(--text-muted); line-height:1.45; }
+    .lp-reward-pts { flex-shrink:0; text-align:center; padding-left:.25rem; }
+    .lp-reward-pts-num { font-family:var(--serif); font-size:1.0625rem; font-weight:700; color:var(--gold); line-height:1; }
+    .lp-reward-pts-lbl { font-size:.4375rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--text-muted); }
+    .lp-reward-status { flex-shrink:0; margin-left:.25rem; font-size:.9375rem; color:var(--text-muted); }
+    .lp-reward.unlocked .lp-reward-status { color:#34d399; }
+
+    .lp-signout { display:flex; align-items:center; justify-content:center; gap:.5rem; width:100%; padding:.75rem; border:1px solid rgba(255,255,255,.07); border-radius:var(--r-pill); background:transparent; color:var(--text-muted); font-family:var(--sans); font-size:.8125rem; font-weight:600; cursor:pointer; transition:all .16s; -webkit-tap-highlight-color:transparent; margin-top:1.5rem; }
+    .lp-signout:hover { color:var(--text); border-color:rgba(255,255,255,.14); }
+
+    /* ── ScentMatch Swipe ───────────────────────────────────────────── */
+    #swipe-view {
+      position:fixed; inset:0; z-index:70;
+      background:#030201;
+      display:flex; flex-direction:column;
+      transform:translateY(100%);
+      transition:transform .38s cubic-bezier(.32,0,.15,1);
+      pointer-events:none;
     }
-    .hero-sub {
-      position: relative; z-index: 2;
-      font-size: 0.625rem; color: var(--text-muted);
-      text-transform: uppercase; letter-spacing: 0.2em;
-      margin-top: 0.375rem;
-      animation: heroFadeUp 0.7s ease 0.3s both;
+    #swipe-view.open { transform:translateY(0); pointer-events:auto; }
+
+    .swipe-top-bar {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:1rem 1.25rem; flex-shrink:0;
+      border-bottom:1px solid rgba(201,168,76,0.08);
     }
-    .hero-line {
-      position: relative; z-index: 2;
-      width: 56px; height: 1px; margin-top: 1rem;
-      background: linear-gradient(90deg, transparent, var(--gold), transparent);
-      animation: heroFadeUp 0.7s ease 0.44s both;
+    .swipe-title {
+      font-family:var(--serif); font-size:1.0625rem; font-weight:700;
+      color:var(--gold); letter-spacing:.04em; text-align:center;
     }
-    @keyframes heroFadeUp {
-      from { opacity: 0; transform: translateY(12px); }
-      to   { opacity: 1; transform: translateY(0); }
+    .swipe-counter {
+      font-size:.5625rem; font-weight:700; text-transform:uppercase;
+      letter-spacing:.14em; color:var(--text-muted); text-align:center; margin-top:2px;
+    }
+    .swipe-close {
+      width:36px; height:36px; border-radius:50%;
+      background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1);
+      color:var(--text-sec); cursor:pointer; font-size:.875rem;
+      display:flex; align-items:center; justify-content:center;
+      transition:all .16s; -webkit-tap-highlight-color:transparent; flex-shrink:0;
+    }
+    .swipe-close:hover { color:var(--gold); border-color:rgba(201,168,76,.3); background:rgba(201,168,76,.06); }
+
+    /* Stack area */
+    .swipe-stack {
+      flex:1; position:relative;
+      display:flex; align-items:center; justify-content:center;
+      padding:1rem 1rem 5.5rem;
+      overflow:hidden;
     }
 
-    /* ── Load more ───────────────────────────────────────────────────── */
-    .load-more-wrap {
-      display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
-      padding: 1.5rem 0 0.5rem;
+    /* Cards */
+    .swipe-card {
+      position:absolute;
+      width:100%; max-width:340px; aspect-ratio:3/4;
+      border-radius:24px; overflow:hidden;
+      border:1px solid rgba(201,168,76,.2);
+      box-shadow:0 20px 50px rgba(0,0,0,.5);
+      touch-action:none; user-select:none; -webkit-user-select:none;
+      cursor:grab;
     }
-    .btn-load-more {
-      display: inline-flex; align-items: center; gap: 0.5rem;
-      padding: 0.75rem 2rem; border-radius: var(--r-pill);
-      border: 1px solid var(--gold-border); background: transparent;
-      color: var(--gold); font-family: var(--sans); font-size: 0.875rem; font-weight: 600;
-      cursor: pointer; transition: background 0.16s;
-      -webkit-tap-highlight-color: transparent; min-height: 46px;
+    .swipe-card:active { cursor:grabbing; }
+    .swipe-card[data-pos="0"] { z-index:10; }
+    .swipe-card[data-pos="1"] { z-index:9;  transform:scale(0.94) translateY(14px); transition:transform .3s ease; }
+    .swipe-card[data-pos="2"] { z-index:8;  transform:scale(0.88) translateY(26px); transition:transform .3s ease; }
+
+    .swipe-card img {
+      width:100%; height:100%; object-fit:cover; object-position:center;
+      pointer-events:none; display:block;
     }
-    .btn-load-more:hover { background: var(--gold-dim); }
-    .btn-load-more:active { transform: scale(0.97); }
-    .load-more-count {
-      font-size: 0.75rem; color: var(--text-muted);
+    .swipe-card-placeholder {
+      width:100%; height:100%;
+      background:radial-gradient(ellipse at 50% 40%,#201708,#040200);
+      display:flex; align-items:center; justify-content:center;
+      color:rgba(201,168,76,.12); font-size:4rem;
     }
+    .swipe-card-grad {
+      position:absolute; inset:0;
+      background:linear-gradient(to top,#000 0%,rgba(0,0,0,.52) 42%,transparent 100%);
+      pointer-events:none;
+    }
+    .swipe-card-info {
+      position:absolute; bottom:0; left:0; right:0;
+      padding:1.25rem 1.5rem 1.5rem;
+    }
+    .swipe-card-brand {
+      font-size:.5rem; font-weight:700; text-transform:uppercase;
+      letter-spacing:.18em; color:rgba(201,168,76,.7); margin-bottom:.25rem;
+    }
+    .swipe-card-name {
+      font-family:var(--serif); font-size:1.625rem; font-weight:700;
+      color:#fff; letter-spacing:.01em; line-height:1.15; margin-bottom:.3rem;
+    }
+    .swipe-card-price {
+      font-family:var(--serif); font-size:.9375rem; color:var(--gold); font-weight:600;
+    }
+    .swipe-card-cat {
+      display:inline-block; margin-top:.5rem;
+      padding:.2rem .6rem; border-radius:999px;
+      background:rgba(201,168,76,.12); border:1px solid rgba(201,168,76,.22);
+      font-size:.5rem; font-weight:700; text-transform:uppercase;
+      letter-spacing:.1em; color:var(--gold);
+    }
+
+    /* GUARDAR / OMITIR indicator */
+    .swipe-label {
+      position:absolute; top:1.25rem;
+      padding:.3rem .875rem; border-radius:8px;
+      font-family:var(--sans); font-size:1.125rem; font-weight:800;
+      text-transform:uppercase; letter-spacing:.1em;
+      border-width:3px; border-style:solid;
+      opacity:0; pointer-events:none;
+    }
+    .swipe-label-save {
+      left:1rem; color:var(--gold); border-color:var(--gold);
+      transform:rotate(-10deg);
+    }
+    .swipe-label-skip {
+      right:1rem; color:rgba(140,140,140,.9); border-color:rgba(140,140,140,.9);
+      transform:rotate(10deg);
+    }
+
+    /* Action buttons — float over the card stack */
+    .swipe-actions {
+      position:absolute; bottom:1.25rem; left:0; right:0; z-index:20;
+      display:flex; align-items:center; justify-content:center; gap:2.5rem;
+    }
+    .swipe-btn {
+      width:64px; height:64px; border-radius:50%;
+      display:flex; align-items:center; justify-content:center;
+      font-size:1.5rem; cursor:pointer;
+      -webkit-tap-highlight-color:transparent;
+      transition:transform .18s cubic-bezier(.34,1.56,.64,1), box-shadow .18s;
+    }
+    .swipe-btn:active { transform:scale(.88) !important; }
+    .swipe-btn-skip {
+      background:rgba(20,15,10,.95); border:2px solid rgba(130,120,110,.4);
+      color:rgba(150,140,130,.85);
+      box-shadow:0 4px 16px rgba(0,0,0,.45);
+    }
+    .swipe-btn-skip:hover { border-color:rgba(150,140,130,.65); transform:scale(1.06); }
+    .swipe-btn-save {
+      background:var(--gold); border:none; color:#050301;
+      box-shadow:0 0 24px rgba(201,168,76,.45), 0 8px 24px rgba(0,0,0,.5);
+    }
+    .swipe-btn-save:hover { box-shadow:0 0 38px rgba(201,168,76,.65), 0 8px 24px rgba(0,0,0,.5); transform:scale(1.06); }
+
+    /* Hint bar */
+    .swipe-hint-bar {
+      padding:.625rem 1.25rem calc(.75rem + env(safe-area-inset-bottom,0px));
+      display:flex; align-items:center; justify-content:center; gap:1.5rem;
+      flex-shrink:0;
+    }
+    .swipe-hint-item {
+      display:flex; align-items:center; gap:.375rem;
+      font-size:.5rem; font-weight:700; text-transform:uppercase;
+      letter-spacing:.12em; color:rgba(255,255,255,.18);
+    }
+
+    /* Fly-off animations */
+    @keyframes smFlyLeft  { to { transform:translateX(-150%) rotate(-22deg); opacity:0; } }
+    @keyframes smFlyRight { to { transform:translateX(150%)  rotate(22deg);  opacity:0; } }
+    .swipe-fly-left  { animation:smFlyLeft  .36s cubic-bezier(.4,0,.6,1) forwards !important; }
+    .swipe-fly-right { animation:smFlyRight .36s cubic-bezier(.4,0,.6,1) forwards !important; }
+
+    /* Empty state */
+    .swipe-empty {
+      display:flex; flex-direction:column; align-items:center;
+      gap:.875rem; text-align:center; padding:2rem 1.5rem;
+    }
+    .swipe-empty-icon {
+      width:72px; height:72px; border-radius:50%;
+      background:var(--gold-dim); border:1px solid var(--gold-border);
+      display:flex; align-items:center; justify-content:center;
+      color:var(--gold); font-size:2rem;
+    }
+    .swipe-empty-title {
+      font-family:var(--serif); font-size:1.375rem; font-weight:700; color:var(--text);
+    }
+    .swipe-empty-sub { font-size:.875rem; color:var(--text-sec); line-height:1.65; max-width:260px; }
+    .swipe-restart-btn {
+      padding:.75rem 2rem; border-radius:999px;
+      border:1px solid var(--gold-border); background:transparent;
+      color:var(--gold); font-family:var(--sans); font-size:.875rem;
+      font-weight:600; cursor:pointer; transition:background .16s;
+      -webkit-tap-highlight-color:transparent; margin-top:.25rem;
+    }
+    .swipe-restart-btn:hover { background:var(--gold-dim); }
   </style>
 </head>
 <body>
 
-  <!-- ── Header ────────────────────────────────────────────────────────── -->
+  <!-- Header -->
   <header class="header">
     <div class="header-top">
       <img id="store-logo" src="/logo5.jpg" alt="Deluxe Perfumes" class="header-logo"
@@ -596,8 +950,17 @@
         <p id="store-name" class="header-name">Deluxe Perfumes</p>
         <p class="header-tagline">Fragancias · Viña del Mar</p>
       </div>
+      <button class="btn-header-icon" id="wish-btn" onclick="openWishlist()" aria-label="Guardados" title="Mis guardados" style="display:none">
+        <i class="ph ph-heart"></i>
+        <span class="dot" id="wish-dot" style="display:none"></span>
+      </button>
+      <button class="btn-header-icon" onclick="openSwipe()" aria-label="ScentMatch" title="Descubrir fragancias">
+        <i class="ph ph-shuffle"></i>
+      </button>
+      <button class="btn-header-icon" id="club-btn" onclick="openClub()" aria-label="Club Deluxe" title="Club de fidelidad">
+        <i class="ph ph-crown"></i>
+      </button>
     </div>
-
     <div class="search-row">
       <i class="ph ph-magnifying-glass search-icon"></i>
       <input id="search-input" class="search-input" type="search"
@@ -608,74 +971,389 @@
     </div>
   </header>
 
-  <!-- ── Filter chips ──────────────────────────────────────────────────── -->
+  <!-- Filters -->
   <div class="filters-scroll" id="filters-bar">
     <button class="filter-chip active" data-cat="all" onclick="selectCat('all',this)">Todos</button>
   </div>
 
-  <!-- ── Hero logo ────────────────────────────────────────────────────── -->
+  <!-- Hero -->
   <div class="hero-logo-wrap" id="hero-logo-section">
     <div class="hero-ambient"></div>
     <div class="hero-orbit">
-      <div class="hero-orbit-dot"></div>
-      <div class="hero-orbit-dot"></div>
-      <div class="hero-orbit-dot"></div>
-      <div class="hero-orbit-dot"></div>
+      <div class="hero-orbit-dot"></div><div class="hero-orbit-dot"></div>
+      <div class="hero-orbit-dot"></div><div class="hero-orbit-dot"></div>
     </div>
     <div class="hero-ring">
       <img id="hero-logo-img" src="/logo5.jpg" alt="Deluxe Perfumes"
-        onerror="this.parentNode.innerHTML='<div class=\\'hero-ring-placeholder\\'><i class=\\'ph-fill ph-drop\\'></i></div>'">
+        onerror="this.parentNode.innerHTML='<div class=\'hero-ring-placeholder\'><i class=\'ph-fill ph-drop\'></i></div>'">
     </div>
     <p class="hero-name" id="hero-store-name">Deluxe Perfumes</p>
     <p class="hero-sub" id="hero-tagline">Fragancias · Viña del Mar</p>
     <div class="hero-line"></div>
   </div>
 
-  <!-- ── Product grid ──────────────────────────────────────────────────── -->
+  <!-- Grid -->
   <div class="grid-section">
     <p class="results-count" id="results-count" style="display:none"></p>
     <div class="product-grid" id="product-grid"></div>
     <div id="load-more-wrap" class="load-more-wrap" style="display:none">
-      <button class="btn-load-more" onclick="loadMore()">
-        <i class="ph ph-arrow-down"></i> Ver más
-      </button>
+      <button class="btn-load-more" onclick="loadMore()"><i class="ph ph-arrow-down"></i> Ver más</button>
       <p id="load-more-count" class="load-more-count"></p>
     </div>
   </div>
 
-  <!-- ── Bottom sheet ──────────────────────────────────────────────────── -->
-  <div id="detail-overlay" onclick="closeDetail()"></div>
-  <div id="detail-panel">
-    <div class="detail-handle"></div>
-    <div id="detail-img-wrap"></div>
-    <div class="detail-body">
-      <div class="detail-head">
-        <div class="detail-badges" id="detail-badges"></div>
-        <button class="detail-close" onclick="closeDetail()">
-          <i class="ph-bold ph-x"></i>
-        </button>
+  <!-- ── MODAL: Producto ── -->
+  <div id="prod-overlay" class="modal-overlay"></div>
+  <div id="prod-modal" onclick="closeDetail()">
+    <div class="prod-card" id="prod-card" onclick="event.stopPropagation()">
+      <div class="modal-handle"></div>
+      <div id="prod-img-wrap"></div>
+      <div class="prod-body">
+        <div class="prod-head">
+          <div class="prod-badges" id="prod-badges"></div>
+          <button class="modal-close" onclick="closeDetail()"><i class="ph-bold ph-x"></i></button>
+        </div>
+        <p id="prod-brand" class="prod-brand"></p>
+        <h2 id="prod-name" class="prod-name"></h2>
+        <div id="prod-price-row" class="prod-price-row"></div>
+        <div id="prod-pts-note" class="prod-pts-note" style="display:none"></div>
+        <div id="prod-member-note" class="prod-member-note" style="display:none"></div>
+        <p id="prod-desc" class="prod-desc"></p>
+        <div id="prod-notes-sep" class="prod-divider" style="display:none"></div>
+        <div id="prod-notes" class="prod-notes" style="display:none"></div>
+        <div class="prod-divider"></div>
+        <div id="prod-actions"></div>
       </div>
-      <p id="detail-brand" class="detail-brand"></p>
-      <h2 id="detail-name" class="detail-name"></h2>
-      <div id="detail-price-row" class="detail-price-row"></div>
-      <div id="detail-member-note" class="detail-member-price" style="display:none"></div>
-      <p id="detail-desc" class="detail-desc"></p>
-      <div class="detail-divider"></div>
-      <div id="detail-actions"></div>
     </div>
   </div>
 
-  <!-- ── Bottom nav ──────────────────────────────────────────────────── -->
-  <nav class="bottom-nav">
-    <a id="nav-catalogo" href="/catalogo" class="nav-tab active">
-      <i class="ph-fill ph-drop"></i>
-      Catálogo
-    </a>
-    <a id="nav-club" href="/registro.html" class="nav-tab">
-      <i class="ph ph-crown"></i>
-      Club
-    </a>
-  </nav>
+  <!-- ── BOTTOM SHEET: L'Élite de Luxe ── -->
+  <div id="loyalty-overlay" class="modal-overlay" onclick="closeClub()"></div>
+  <div id="loyalty-panel">
+
+    <div class="lp-drag-handle"></div>
+
+    <!-- Encabezado -->
+    <div class="lp-header">
+      <p class="lp-elite-label">✦ L'Élite de Luxe</p>
+      <p class="lp-subtitle">Tu Viaje Olfativo</p>
+      <button class="lp-close" onclick="closeClub()" aria-label="Cerrar panel">
+        <i class="ph-bold ph-x"></i>
+      </button>
+    </div>
+
+    <div class="lp-body">
+
+      <!-- Sin sesión -->
+      <div id="club-auth">
+        <p class="lp-auth-intro">Únete al programa exclusivo de fidelización y acumula puntos en cada fragancia.</p>
+        <div id="club-alert" class="club-alert"></div>
+        <div class="club-tabs">
+          <button class="club-tab active" id="tab-ingresar" onclick="switchTab('login')">Ingresar</button>
+          <button class="club-tab" id="tab-unirse" onclick="switchTab('register')">Unirme</button>
+        </div>
+
+        <div id="panel-login">
+          <input type="email" id="c-email" class="club-field" placeholder="Correo electrónico" autocomplete="email">
+          <input type="password" id="c-pw" class="club-field" placeholder="Contraseña" autocomplete="current-password">
+          <button class="btn-club-primary" onclick="clubLogin()">Ingresar</button>
+          <div class="club-or"><span>o</span></div>
+          <button class="btn-google" onclick="clubGoogle()">
+            <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.2l6.7-6.7C35.7 2.3 30.2 0 24 0 14.7 0 6.7 5.4 2.7 13.3l7.8 6C12.3 13.2 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17z"/><path fill="#FBBC05" d="M10.5 28.7A14.6 14.6 0 0 1 9.5 24c0-1.6.3-3.2.8-4.7l-7.8-6A23.9 23.9 0 0 0 0 24c0 3.9.9 7.5 2.7 10.7l7.8-6z"/><path fill="#34A853" d="M24 48c6.2 0 11.4-2 15.2-5.5l-7.5-5.8c-2 1.4-4.6 2.2-7.7 2.2-6.3 0-11.6-4.3-13.5-10l-7.8 6C6.7 42.6 14.7 48 24 48z"/></svg>
+            Continuar con Google
+          </button>
+        </div>
+
+        <div id="panel-register" style="display:none">
+          <input type="text"     id="c-nombre" class="club-field" placeholder="Nombre completo" autocomplete="name">
+          <input type="email"    id="c-remail" class="club-field" placeholder="Correo electrónico" autocomplete="email">
+          <input type="password" id="c-rpw"    class="club-field" placeholder="Contraseña (mín. 6 caracteres)" autocomplete="new-password">
+          <button class="btn-club-primary" onclick="clubRegister()">Unirme al Club</button>
+          <div class="club-or"><span>o</span></div>
+          <button class="btn-google" onclick="clubGoogle()">
+            <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.2l6.7-6.7C35.7 2.3 30.2 0 24 0 14.7 0 6.7 5.4 2.7 13.3l7.8 6C12.3 13.2 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v8.5h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17z"/><path fill="#FBBC05" d="M10.5 28.7A14.6 14.6 0 0 1 9.5 24c0-1.6.3-3.2.8-4.7l-7.8-6A23.9 23.9 0 0 0 0 24c0 3.9.9 7.5 2.7 10.7l7.8-6z"/><path fill="#34A853" d="M24 48c6.2 0 11.4-2 15.2-5.5l-7.5-5.8c-2 1.4-4.6 2.2-7.7 2.2-6.3 0-11.6-4.3-13.5-10l-7.8 6C6.7 42.6 14.7 48 24 48z"/></svg>
+            Continuar con Google
+          </button>
+        </div>
+      </div>
+
+      <!-- Con sesión -->
+      <div id="club-member" style="display:none">
+
+        <!-- Saludo formal -->
+        <p id="club-greeting" class="lp-greeting"></p>
+        <p class="lp-greeting-sub">Tu viaje olfativo continúa.</p>
+
+        <!-- Sello de oro fundido -->
+        <div class="lp-seal-wrap">
+          <div class="lp-seal">
+            <span class="lp-seal-crown"><i class="ph-fill ph-crown"></i></span>
+            <span class="lp-seal-mono">DP</span>
+          </div>
+          <p class="lp-pts-label">Puntos acumulados</p>
+          <p class="lp-pts-value" id="club-pts">0</p>
+          <p class="lp-pts-sub">1 punto por cada $1.000 en compras</p>
+        </div>
+
+        <!-- Barra de progreso minimalista -->
+        <div class="lp-prog">
+          <div class="lp-prog-labels">
+            <span class="lp-prog-text" id="prog-label">Faltan 50 pts para primer canje</span>
+            <span class="lp-prog-text" id="prog-pct">0%</span>
+          </div>
+          <div class="lp-prog-track">
+            <div class="lp-prog-fill" id="prog-fill" style="width:0%"></div>
+          </div>
+        </div>
+
+        <div class="lp-divider"></div>
+
+        <!-- Premios disponibles -->
+        <p class="lp-section-title">Premios disponibles</p>
+
+        <div class="lp-reward" id="prize-50">
+          <div class="lp-reward-icon"><i class="ph-fill ph-tag"></i></div>
+          <div class="lp-reward-info">
+            <p class="lp-reward-name">Descuento exclusivo 10%</p>
+            <p class="lp-reward-desc">En tu próxima compra de fragancia</p>
+          </div>
+          <div class="lp-reward-pts">
+            <p class="lp-reward-pts-num">50</p>
+            <p class="lp-reward-pts-lbl">pts</p>
+          </div>
+          <i class="ph ph-lock-simple lp-reward-status" id="prize-50-icon"></i>
+        </div>
+
+        <div class="lp-reward" id="prize-100">
+          <div class="lp-reward-icon"><i class="ph-fill ph-crown"></i></div>
+          <div class="lp-reward-info">
+            <p class="lp-reward-name">Acceso VIP + Miniatura gratis</p>
+            <p class="lp-reward-desc">Preventas, ediciones especiales y regalo</p>
+          </div>
+          <div class="lp-reward-pts">
+            <p class="lp-reward-pts-num">100</p>
+            <p class="lp-reward-pts-lbl">pts</p>
+          </div>
+          <i class="ph ph-lock-simple lp-reward-status" id="prize-100-icon"></i>
+        </div>
+
+        <div class="lp-divider"></div>
+
+        <!-- Cómo funciona -->
+        <p class="lp-section-title">¿Cómo funciona?</p>
+        <div class="club-how">
+          <div class="club-how-row">
+            <div class="club-how-icon"><i class="ph-fill ph-bag"></i></div>
+            <p class="club-how-text"><strong>Compra fragancias</strong> y gana <strong>1 punto por cada $1.000</strong> gastados.</p>
+          </div>
+          <div class="club-how-row">
+            <div class="club-how-icon"><i class="ph-fill ph-crown"></i></div>
+            <p class="club-how-text">Con <strong>50 puntos</strong> obtienes un <strong>descuento exclusivo</strong> en tu próxima compra.</p>
+          </div>
+          <div class="club-how-row" style="margin-bottom:0">
+            <div class="club-how-icon"><i class="ph-fill ph-star"></i></div>
+            <p class="club-how-text">Con <strong>100 puntos</strong> accedes a <strong>preventas y ediciones especiales</strong>.</p>
+          </div>
+        </div>
+
+        <button class="lp-signout" onclick="clubSignOut()">
+          <i class="ph ph-sign-out"></i> Cerrar sesión
+        </button>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SCENT MATCH SWIPE ── -->
+  <div id="swipe-view">
+    <div class="swipe-top-bar">
+      <button class="swipe-close" onclick="closeSwipe()" aria-label="Cerrar">
+        <i class="ph-bold ph-x"></i>
+      </button>
+      <div>
+        <p class="swipe-title">✦ ScentMatch</p>
+        <p class="swipe-counter" id="swipe-counter"></p>
+      </div>
+      <div style="width:36px"></div>
+    </div>
+
+    <div class="swipe-stack" id="swipe-stack">
+      <!-- Cards + action buttons rendered by JS -->
+    </div>
+
+    <div class="swipe-hint-bar">
+      <div class="swipe-hint-item">
+        <i class="ph ph-arrow-left"></i> Omitir
+      </div>
+      <div class="swipe-hint-item" style="opacity:.3">·</div>
+      <div class="swipe-hint-item">
+        Guardar <i class="ph ph-arrow-right"></i>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAB: Contacto -->
+  <button id="contact-fab" onclick="openContact()" aria-label="Contactar">
+    <i class="ph-fill ph-whatsapp-logo"></i>
+  </button>
+
+  <!-- ── MODAL: Contacto ── -->
+  <div id="contact-overlay" class="modal-overlay"></div>
+  <div id="contact-modal" onclick="closeContact()">
+    <div class="contact-card" id="contact-card" onclick="event.stopPropagation()">
+      <div class="modal-handle"></div>
+      <div class="contact-inner">
+        <h3 class="contact-title">Contáctanos</h3>
+        <p class="contact-sub">Estamos para ayudarte a encontrar tu fragancia perfecta.</p>
+        <div id="contact-opts"></div>
+        <button class="btn-contact-close" onclick="closeContact()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── CTA: Club (no logueado) ── -->
+  <div id="club-cta">
+    <button class="club-cta-dismiss" onclick="dismissCta()" aria-label="Cerrar">
+      <i class="ph-bold ph-x"></i>
+    </button>
+    <div class="club-cta-row">
+      <div class="club-cta-icon"><i class="ph-fill ph-crown"></i></div>
+      <div class="club-cta-text">
+        <p class="club-cta-title">Únete al Club Deluxe</p>
+        <p class="club-cta-sub">Gana puntos y obtén descuentos exclusivos</p>
+      </div>
+      <button class="btn-cta-join" onclick="openClub()">Unirme</button>
+    </div>
+  </div>
+
+  <!-- ── Bottom Navigation (logueado) ── -->
+  <div id="member-bar">
+    <button class="member-bar-btn" id="btn-beneficios"
+      onclick="openBenefits(); setActiveTab(this)">
+      <span class="bn-flash-ring"></span>
+      <i class="ph-fill ph-star"></i>
+      <span>Beneficios</span>
+    </button>
+    <div class="member-bar-sep"></div>
+    <button class="member-bar-btn" id="member-bar-wish"
+      onclick="openWishlist(); setActiveTab(this)">
+      <i class="ph-fill ph-heart"></i>
+      <span>Guardados</span>
+    </button>
+    <div class="member-bar-sep"></div>
+    <button class="member-bar-btn"
+      onclick="openChat(); setActiveTab(this)">
+      <i class="ph-fill ph-chats-circle"></i>
+      <span>Chat del Club</span>
+    </button>
+  </div>
+
+  <!-- ── MODAL: Wishlist ── -->
+  <div id="wish-overlay" class="modal-overlay" onclick="closeWishlist()"></div>
+  <div id="wish-modal" onclick="closeWishlist()">
+    <div class="wish-card" id="wish-card" onclick="event.stopPropagation()">
+      <div class="modal-handle"></div>
+      <div class="wish-inner">
+        <div class="club-header">
+          <div>
+            <p class="club-label">✦ Mis favoritos</p>
+            <h2 class="club-title" id="wish-title">Guardados</h2>
+          </div>
+          <button class="club-close" onclick="closeWishlist()"><i class="ph-bold ph-x"></i></button>
+        </div>
+        <div id="wish-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MODAL: Beneficios ── -->
+  <div id="benefits-overlay" class="modal-overlay"></div>
+  <div id="benefits-modal" onclick="closeBenefits()">
+    <div class="benefits-card" id="benefits-card" onclick="event.stopPropagation()">
+      <div class="modal-handle"></div>
+      <div class="benefits-inner">
+        <div class="club-header">
+          <div>
+            <p class="club-label">✦ Club Deluxe</p>
+            <h2 class="club-title">Tus Beneficios</h2>
+          </div>
+          <button class="club-close" onclick="closeBenefits()"><i class="ph-bold ph-x"></i></button>
+        </div>
+
+        <div class="club-pts-card" style="margin-bottom:1.5rem">
+          <p class="club-pts-label">Tus puntos acumulados</p>
+          <p class="club-pts-value" id="ben-pts">0</p>
+          <p class="club-pts-sub">1 punto por cada $1.000 en compras</p>
+        </div>
+
+        <div class="club-progress" style="margin-bottom:1.75rem">
+          <div class="club-progress-labels">
+            <span id="ben-prog-label">Faltan 50 pts para tu primer canje</span>
+            <span id="ben-prog-pct">0%</span>
+          </div>
+          <div class="club-progress-track">
+            <div class="club-progress-fill" id="ben-prog-fill" style="width:0%"></div>
+          </div>
+        </div>
+
+        <p style="font-size:.6875rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--text-muted);margin-bottom:.875rem">Premios disponibles</p>
+
+        <div class="prize-row" id="prize-50">
+          <div class="prize-pts">
+            <p class="prize-pts-num">50</p>
+            <p class="prize-pts-lbl">puntos</p>
+          </div>
+          <div class="prize-info">
+            <p class="prize-name">Descuento exclusivo 10%</p>
+            <p class="prize-desc">En tu próxima compra de fragancia</p>
+          </div>
+          <i class="ph ph-lock-simple prize-lock" id="prize-50-icon"></i>
+        </div>
+
+        <div class="prize-row" id="prize-100">
+          <div class="prize-pts">
+            <p class="prize-pts-num">100</p>
+            <p class="prize-pts-lbl">puntos</p>
+          </div>
+          <div class="prize-info">
+            <p class="prize-name">Acceso VIP + Miniatura gratis</p>
+            <p class="prize-desc">Preventas, ediciones especiales y regalo de bienvenida</p>
+          </div>
+          <i class="ph ph-lock-simple prize-lock" id="prize-100-icon"></i>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MODAL: Chat del Club ── -->
+  <div id="chat-overlay" class="modal-overlay"></div>
+  <div id="chat-modal" onclick="closeChat()">
+    <div class="chat-card" id="chat-card" onclick="event.stopPropagation()">
+      <div class="modal-handle"></div>
+      <div class="chat-inner">
+        <div class="club-header">
+          <div>
+            <p class="club-label">✦ Club Deluxe</p>
+            <h2 class="club-title">Chat del Club</h2>
+          </div>
+          <button class="club-close" onclick="closeChat()"><i class="ph-bold ph-x"></i></button>
+        </div>
+        <p style="font-size:.875rem;color:var(--text-sec);margin-bottom:1.5rem;line-height:1.5">
+          Únete al grupo exclusivo para miembros del Club Deluxe. Recibe novedades, preventas y promociones antes que nadie.
+        </p>
+        <div id="chat-link-wrap">
+          <a id="chat-wa-btn" class="btn-chat-wa" href="#" target="_blank" rel="noopener noreferrer" style="display:none">
+            <i class="ph-fill ph-whatsapp-logo"></i> Unirme al grupo de WhatsApp
+          </a>
+          <p id="chat-no-link" style="display:none;text-align:center;color:var(--text-muted);font-size:.875rem;padding:.75rem 0">
+            El enlace al grupo estará disponible pronto.
+          </p>
+        </div>
+        <button class="btn-contact-close" style="margin-top:1rem" onclick="closeChat()">Cerrar</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -685,390 +1363,841 @@
   <script src="/firebase-config.js?v=1.1"></script>
 
   <script>
-    const TENANT_ID = new URLSearchParams(location.search).get('local') || 'deluxeperfumes';
+    const TENANT_ID   = new URLSearchParams(location.search).get('local') || 'deluxeperfumes';
+    const PTS_RATE    = 1000;   // $1.000 = 1 punto
+    const PTS_GOAL_1  = 50;
+    const PTS_GOAL_2  = 100;
+    const PAGE_SIZE   = 24;
 
-    const PAGE_SIZE = 24;
-    let _page = 1;
+    const MOCK_PRODUCTS = [
+      { id:'mock-1', nombre:'Oud Impérial', marca:'Maison Alchimie', precio:285000, precioOriginal:320000,
+        imagen:'https://images.unsplash.com/photo-1594035910387-fea47794261f?auto=format&fit=crop&q=80&w=800',
+        categoria:'Nicho',
+        descripcion:'Una oda al oud más refinado de Arabia. Ahumado y resinoso, con un corazón de rosa damascena y un fondo de sándalo cremoso.',
+        notas:{ salida:['Bergamota','Incienso'], corazon:['Rosa Damascena','Oud'], fondo:['Sándalo','Ámbar','Almizcle'] } },
+      { id:'mock-2', nombre:'Nuit Dorée', marca:'Atelier Botanique', precio:198000,
+        imagen:'https://images.unsplash.com/photo-1541643600914-78b084683601?auto=format&fit=crop&q=80&w=800',
+        categoria:'Mujer',
+        descripcion:'Florece como una noche de verano bajo cielos dorados. Iris empolvado, jazmín etéreo y una base cálida de vainilla borbónica.',
+        notas:{ salida:['Pera','Aldeídos'], corazon:['Iris','Jazmín','Rosa'], fondo:['Vainilla','Vetiver','Cedro'] } },
+      { id:'mock-3', nombre:'Santal Noir', marca:'Maison Alchimie', precio:245000,
+        imagen:'https://images.unsplash.com/photo-1588405748880-12d1d2a59f75?auto=format&fit=crop&q=80&w=800',
+        categoria:'Unisex',
+        descripcion:'Sándalo de Mysore fusionado con cuero suave y tabaco curado. Magnético y de extraordinaria duración.',
+        notas:{ salida:['Cardamomo','Pimienta Negra'], corazon:['Sándalo','Cuero','Tabaco'], fondo:['Oud','Musgo de Roble','Bálsamo'] } },
+      { id:'mock-4', nombre:'Crème de Soie', marca:'Parfums de Minuit', precio:165000, precioOriginal:185000,
+        imagen:'https://images.unsplash.com/photo-1615397323383-66d482434fb2?auto=format&fit=crop&q=80&w=800',
+        categoria:'Mujer',
+        descripcion:'Delicado como la seda, con apertura cítrica, corazón de lirio del valle y un fondo de musgo blanco ingrávido.',
+        notas:{ salida:['Bergamota','Limón'], corazon:['Lirio','Muguet','Peonía'], fondo:['Musgo Blanco','Almizcle','Cedro'] } },
+      { id:'mock-5', nombre:'Vertigo Absolu', marca:'Atelier Botanique', precio:320000,
+        imagen:'https://images.unsplash.com/photo-1616949755610-8c9bac08c7bb?auto=format&fit=crop&q=80&w=800',
+        categoria:'Nicho',
+        descripcion:'Irresistible e hipnótico. Resinas exóticas, cuero envejecido y especias orientales para el espíritu aventurero.',
+        notas:{ salida:['Azafrán','Elemi'], corazon:['Cuero','Rosa Negra','Labdano'], fondo:['Ámbar Gris','Pachulí','Benjuí'] } },
+      { id:'mock-6', nombre:'Lumière Cendrée', marca:'Parfums de Minuit', precio:138000,
+        imagen:'https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?auto=format&fit=crop&q=80&w=800',
+        categoria:'Hombre',
+        descripcion:'La elegancia del hombre contemporáneo. Notas acuáticas frescas, madera de cachemira y un velo de ámbar cálido.',
+        notas:{ salida:['Limón','Galbano'], corazon:['Geranio','Violeta','Cachemira'], fondo:['Ámbar','Almizcle','Vainilla Seca'] } }
+    ];
 
-    let _all            = [];
-    let _cat            = 'all';
-    let _q              = '';
-    let _waPhone        = '';
-    let _isMember       = false;
-    let _memberDiscount = 0;   // 10 para basico, 15 para premium
-    let _memberPlan     = null;
+    let _page = 1, _all = [], _cat = 'all', _q = '';
+    let _waPhone = '', _igUrl = '';
+    let _isMember = false, _memberDiscount = 0, _memberPlan = null;
+    let _currentUser = null, _userPuntos = 0;
+    let _wishlist = new Set();
+    let _stockAlerts = new Set();
 
-    // ── Membership check ──────────────────────────────────────────────
-    firebase.auth().onAuthStateChanged(async (user) => {
-      if (!user) return;
-      try {
-        const snap = await db.collection('tenants').doc(TENANT_ID)
-          .collection('users').doc(user.uid).get();
-        if (!snap.exists) return;
-        const d = snap.data();
-        const vence = d.fechaVencimientoMembresia?.toDate();
-        if (d.esMiembro && vence && vence > new Date()) {
-          _isMember       = true;
-          _memberPlan     = d.planMembresia;
-          _memberDiscount = d.planMembresia === 'premium' ? 15 : 10;
-          renderProducts(); // Re-renderiza con precios de miembro
-        }
-      } catch (_) {}
-    });
-
-    function col() {
+    function clientesCol() {
+      return db.collection('tenants').doc(TENANT_ID).collection('clientes');
+    }
+    function prodCol() {
       return db.collection('tenants').doc(TENANT_ID).collection('productos');
     }
-
-    function fmtPrice(n) {
-      return '$' + Number(n).toLocaleString('es-CL');
-    }
-
+    function fmtPrice(n) { return '$' + Number(n).toLocaleString('es-CL'); }
     function esc(s) {
-      return String(s)
-        .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-        .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+    function offPct(p, o) { return (!o||!p||o<=p) ? 0 : Math.round((1-p/o)*100); }
+    function calcPts(precio) { return precio ? Math.floor(precio / PTS_RATE) : 0; }
+
+    // ── CTA Club ──────────────────────────────────────────────────────
+    const _ctaKey = 'dlx_cta_dismissed';
+    function showCta() {
+      if (sessionStorage.getItem(_ctaKey)) return;
+      setTimeout(() => document.getElementById('club-cta').classList.add('visible'), 1800);
+    }
+    function hideCta() { document.getElementById('club-cta').classList.remove('visible'); }
+    function dismissCta() { sessionStorage.setItem(_ctaKey, '1'); hideCta(); }
+
+    function showMemberBar() {
+      document.getElementById('member-bar').classList.add('visible');
+      hideCta();
+      setTimeout(flashBeneficios, 680);
+    }
+    function hideMemberBar() {
+      document.getElementById('member-bar').classList.remove('visible');
+      document.querySelectorAll('.member-bar-btn').forEach(b => b.classList.remove('active'));
+    }
+    function setActiveTab(btn) {
+      document.querySelectorAll('.member-bar-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+    function flashBeneficios() {
+      const btn = document.getElementById('btn-beneficios');
+      if (!btn) return;
+      btn.classList.remove('flashing');
+      void btn.offsetWidth; // fuerza reflow para reiniciar animación
+      btn.classList.add('flashing');
+      setTimeout(() => btn.classList.remove('flashing'), 1600);
     }
 
-    function offPct(precio, orig) {
-      if (!orig || !precio || orig <= precio) return 0;
-      return Math.round((1 - precio / orig) * 100);
+    // ── Auth ──────────────────────────────────────────────────────────
+    firebase.auth().onAuthStateChanged(async user => {
+      _currentUser = user;
+      if (!user) {
+        _isMember = false; _memberDiscount = 0; _memberPlan = null; _userPuntos = 0;
+        _wishlist = new Set(); _stockAlerts = new Set();
+        document.getElementById('club-btn').classList.remove('active');
+        document.getElementById('wish-btn').style.display = 'none';
+        hideMemberBar(); showCta();
+        showAuthSection(); return;
+      }
+      document.getElementById('club-btn').classList.add('active');
+      hideCta(); showMemberBar();
+      try {
+        const ref = clientesCol().doc(user.uid);
+        const snap = await ref.get();
+        if (!snap.exists) {
+          await ref.set({ nombre: user.displayName||'', email: user.email||'', puntos: 0, wishlist: [], stockAlerts: [], creadoEn: firebase.firestore.FieldValue.serverTimestamp() });
+          _userPuntos = 0;
+          _wishlist = new Set();
+          _stockAlerts = new Set();
+        } else {
+          const d = snap.data();
+          _userPuntos = d.puntos || 0;
+          _wishlist = new Set(d.wishlist || []);
+          _stockAlerts = new Set(d.stockAlerts || []);
+          const vence = d.fechaVencimientoMembresia?.toDate();
+          if (d.esMiembro && vence && vence > new Date()) {
+            _isMember = true; _memberPlan = d.planMembresia;
+            _memberDiscount = d.planMembresia === 'premium' ? 15 : 10;
+          }
+        }
+        updateWishBtn();
+        renderProducts();
+        showMemberSection(user);
+      } catch(_) {}
+    });
+
+    function showAuthSection() {
+      document.getElementById('club-auth').style.display   = '';
+      document.getElementById('club-member').style.display = 'none';
+    }
+    function showMemberSection(user) {
+      document.getElementById('club-auth').style.display   = 'none';
+      document.getElementById('club-member').style.display = '';
+      const nombre = user.displayName || 'Miembro';
+      document.getElementById('club-greeting').textContent = 'Bienvenido, ' + nombre.split(' ')[0] + '.';
+      document.getElementById('club-pts').textContent = _userPuntos;
+      // progress bar
+      const goal = _userPuntos < PTS_GOAL_1 ? PTS_GOAL_1 : PTS_GOAL_2;
+      const base = _userPuntos < PTS_GOAL_1 ? 0 : PTS_GOAL_1;
+      const pct  = Math.min(100, Math.round((_userPuntos - base) / (goal - base) * 100));
+      document.getElementById('prog-fill').style.width = pct + '%';
+      document.getElementById('prog-pct').textContent  = pct + '%';
+      document.getElementById('prog-label').textContent =
+        _userPuntos < PTS_GOAL_1 ? `Faltan ${PTS_GOAL_1 - _userPuntos} pts para tu primer canje` :
+        _userPuntos < PTS_GOAL_2 ? `Faltan ${PTS_GOAL_2 - _userPuntos} pts para acceso exclusivo` :
+        '¡Nivel máximo alcanzado! 🎉';
+      // prize icons & unlock state
+      const p50  = document.getElementById('prize-50-icon');
+      const p100 = document.getElementById('prize-100-icon');
+      const r50  = document.getElementById('prize-50');
+      const r100 = document.getElementById('prize-100');
+      if (p50)  p50.className  = _userPuntos >= 50  ? 'ph-fill ph-check-circle lp-reward-status' : 'ph ph-lock-simple lp-reward-status';
+      if (p100) p100.className = _userPuntos >= 100 ? 'ph-fill ph-check-circle lp-reward-status' : 'ph ph-lock-simple lp-reward-status';
+      if (r50)  r50.classList.toggle('unlocked',  _userPuntos >= 50);
+      if (r100) r100.classList.toggle('unlocked', _userPuntos >= 100);
+    }
+
+    function switchTab(tab) {
+      const isLogin = tab === 'login';
+      document.getElementById('tab-ingresar').classList.toggle('active', isLogin);
+      document.getElementById('tab-unirse').classList.toggle('active', !isLogin);
+      document.getElementById('panel-login').style.display    = isLogin ? '' : 'none';
+      document.getElementById('panel-register').style.display = isLogin ? 'none' : '';
+      clubAlertClear();
+    }
+    function clubAlertShow(msg, type) {
+      const el = document.getElementById('club-alert');
+      el.textContent = msg;
+      el.className = 'club-alert show' + (type === 'ok' ? ' ok' : '');
+    }
+    function clubAlertClear() {
+      document.getElementById('club-alert').className = 'club-alert';
+    }
+
+    function errMsg(code) {
+      const m = { 'auth/user-not-found':'No existe cuenta con ese correo.','auth/wrong-password':'Contraseña incorrecta.','auth/invalid-credential':'Correo o contraseña incorrectos.','auth/email-already-in-use':'Ese correo ya está registrado.','auth/invalid-email':'Correo inválido.','auth/weak-password':'Contraseña muy débil.','auth/network-request-failed':'Sin conexión a internet.','auth/too-many-requests':'Demasiados intentos. Intenta más tarde.' };
+      return m[code] || 'Ocurrió un error. Intenta nuevamente.';
+    }
+
+    async function clubLogin() {
+      const email = document.getElementById('c-email').value.trim();
+      const pw    = document.getElementById('c-pw').value;
+      if (!email || !pw) { clubAlertShow('Completa todos los campos.'); return; }
+      try { await firebase.auth().signInWithEmailAndPassword(email, pw); closeClub(); }
+      catch(e) { clubAlertShow(errMsg(e.code)); }
+    }
+    async function clubRegister() {
+      const nombre = document.getElementById('c-nombre').value.trim();
+      const email  = document.getElementById('c-remail').value.trim();
+      const pw     = document.getElementById('c-rpw').value;
+      if (!nombre||!email||!pw) { clubAlertShow('Completa todos los campos.'); return; }
+      if (pw.length < 6) { clubAlertShow('La contraseña debe tener al menos 6 caracteres.'); return; }
+      try {
+        const cred = await firebase.auth().createUserWithEmailAndPassword(email, pw);
+        await cred.user.updateProfile({ displayName: nombre });
+        await clientesCol().doc(cred.user.uid).set({ nombre, email, puntos: 0, creadoEn: firebase.firestore.FieldValue.serverTimestamp() });
+        closeClub();
+      } catch(e) { clubAlertShow(errMsg(e.code)); }
+    }
+    async function clubGoogle() {
+      try {
+        const r = await firebase.auth().signInWithPopup(new firebase.auth.GoogleAuthProvider());
+        const ref = clientesCol().doc(r.user.uid);
+        if (!(await ref.get()).exists) {
+          await ref.set({ nombre: r.user.displayName||'', email: r.user.email||'', puntos: 0, creadoEn: firebase.firestore.FieldValue.serverTimestamp() });
+        }
+        closeClub();
+      } catch(e) { if (e.code !== 'auth/popup-closed-by-user') clubAlertShow(errMsg(e.code)); }
+    }
+    async function clubSignOut() {
+      await firebase.auth().signOut();
     }
 
     // ── Skeleton ──────────────────────────────────────────────────────
     function renderSkeleton() {
-      const grid = document.getElementById('product-grid');
-      grid.innerHTML = Array(6).fill(0).map(() => `
-        <div class="skel-card">
-          <div class="skel" style="aspect-ratio:3/4"></div>
-          <div style="padding:.75rem;display:flex;flex-direction:column;gap:.5rem">
-            <div class="skel" style="height:9px;width:45%;border-radius:4px"></div>
-            <div class="skel" style="height:13px;width:80%;border-radius:4px"></div>
-            <div class="skel" style="height:12px;width:65%;border-radius:4px"></div>
-            <div class="skel" style="height:17px;width:40%;border-radius:4px;margin-top:4px"></div>
-          </div>
-        </div>`).join('');
+      document.getElementById('product-grid').innerHTML =
+        Array(6).fill(0).map(() => `<div class="skel-card"><div class="skel" style="aspect-ratio:3/4"></div><div style="padding:.75rem;display:flex;flex-direction:column;gap:.5rem"><div class="skel" style="height:9px;width:45%;border-radius:4px"></div><div class="skel" style="height:13px;width:80%;border-radius:4px"></div><div class="skel" style="height:17px;width:40%;border-radius:4px;margin-top:4px"></div></div></div>`).join('');
     }
 
     // ── Filters ───────────────────────────────────────────────────────
-    function buildFilters(products) {
-      const cats = [...new Set(products.map(p => p.categoria).filter(Boolean))].sort();
-      const hasOffers = products.some(p => p.precioOriginal > p.precio);
+    function buildFilters(prods) {
+      const cats = [...new Set(prods.map(p => p.categoria).filter(Boolean))].sort();
+      const hasOffers = prods.some(p => p.precioOriginal > p.precio);
       const bar = document.getElementById('filters-bar');
-      bar.querySelectorAll('[data-cat]:not([data-cat="all"])').forEach(el => el.remove());
+      bar.querySelectorAll('[data-cat]:not([data-cat="all"])').forEach(e => e.remove());
       cats.forEach(cat => {
         const b = document.createElement('button');
-        b.className = 'filter-chip';
-        b.dataset.cat = cat;
-        b.textContent = cat;
-        b.onclick = () => selectCat(cat, b);
-        bar.appendChild(b);
+        b.className = 'filter-chip'; b.dataset.cat = cat; b.textContent = cat;
+        b.onclick = () => selectCat(cat, b); bar.appendChild(b);
       });
       if (hasOffers) {
         const b = document.createElement('button');
-        b.className = 'filter-chip';
-        b.dataset.cat = '__offers__';
-        b.textContent = 'Ofertas';
-        b.onclick = () => selectCat('__offers__', b);
-        bar.appendChild(b);
+        b.className = 'filter-chip'; b.dataset.cat = '__offers__'; b.textContent = 'Ofertas';
+        b.onclick = () => selectCat('__offers__', b); bar.appendChild(b);
       }
     }
-
     function selectCat(cat, el) {
-      _cat = cat;
-      _page = 1;
+      _cat = cat; _page = 1;
       document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
-      el.classList.add('active');
-      renderProducts();
+      el.classList.add('active'); renderProducts();
     }
-
     function onSearch(val) {
-      _q = val.trim().toLowerCase();
-      _page = 1;
-      const clearBtn = document.getElementById('search-clear');
-      clearBtn.style.display = _q ? 'block' : 'none';
+      _q = val.trim().toLowerCase(); _page = 1;
+      document.getElementById('search-clear').style.display = _q ? 'block' : 'none';
       renderProducts();
     }
-
     function clearSearch() {
-      const input = document.getElementById('search-input');
-      input.value = '';
-      onSearch('');
-      input.focus();
+      const el = document.getElementById('search-input');
+      el.value = ''; onSearch(''); el.focus();
     }
-
-    function loadMore() {
-      _page++;
-      renderProducts();
-    }
+    function loadMore() { _page++; renderProducts(); }
 
     // ── Render grid ───────────────────────────────────────────────────
     function renderProducts() {
       const filtered = _all.filter(p => {
-        if (_cat === '__offers__') {
-          if (!(p.precioOriginal > p.precio)) return false;
-        } else if (_cat !== 'all') {
-          if (p.categoria !== _cat) return false;
-        }
-        if (_q) {
-          const haystack = [p.nombre, p.marca, p.descripcion, p.categoria]
-            .filter(Boolean).join(' ').toLowerCase();
-          if (!haystack.includes(_q)) return false;
-        }
+        if (_cat === '__offers__') { if (!(p.precioOriginal > p.precio)) return false; }
+        else if (_cat !== 'all') { if (p.categoria !== _cat) return false; }
+        if (_q) { const h = [p.nombre,p.marca,p.descripcion,p.categoria].filter(Boolean).join(' ').toLowerCase(); if (!h.includes(_q)) return false; }
         return true;
       });
-
-      // Mostrar/ocultar hero según si hay filtro activo
       const heroEl = document.getElementById('hero-logo-section');
-      if (heroEl) heroEl.style.display = (_q || _cat !== 'all') ? 'none' : '';
-
-      const countEl = document.getElementById('results-count');
-      if (_q || _cat !== 'all') {
-        countEl.style.display = '';
-        countEl.textContent = `${filtered.length} resultado${filtered.length !== 1 ? 's' : ''}`;
-      } else {
-        countEl.style.display = 'none';
-      }
-
+      if (heroEl) heroEl.style.display = (_q||_cat!=='all') ? 'none' : '';
+      const cntEl = document.getElementById('results-count');
+      if (_q||_cat!=='all') { cntEl.style.display=''; cntEl.textContent=`${filtered.length} resultado${filtered.length!==1?'s':''}`; }
+      else cntEl.style.display='none';
       const grid = document.getElementById('product-grid');
-
       if (filtered.length === 0) {
-        const term = esc(_q || _cat);
-        grid.innerHTML = `
-      <div class="state-wrap">
-        <div class="state-icon"><i class="ph ph-magnifying-glass"></i></div>
-        <p class="state-title">Sin resultados</p>
-        <p class="state-sub">No encontramos fragancias que coincidan con "${term}".<br>Prueba con otro término o explora las categorías.</p>
-      </div>`;
-        document.getElementById('load-more-wrap').style.display = 'none';
+        grid.innerHTML = `<div class="state-wrap"><div class="state-icon"><i class="ph ph-magnifying-glass"></i></div><p class="state-title">Sin resultados</p><p class="state-sub">No encontramos fragancias que coincidan con "${esc(_q||_cat)}".</p></div>`;
+        document.getElementById('load-more-wrap').style.display='none'; return;
+      }
+      const visible = filtered.slice(0, _page * PAGE_SIZE);
+      grid.innerHTML = visible.map((p, i) => {
+        const off = offPct(p.precio, p.precioOriginal);
+        const delay = Math.min(i % PAGE_SIZE, 8) * 55;
+        const mPrice = (_isMember && p.precio != null) ? Math.round(p.precio*(1-_memberDiscount/100)) : null;
+        const pts = calcPts(mPrice ?? p.precio);
+        const showInc = !_isMember && p.precio > 15000 && i % 3 === 0;
+        const wished = _wishlist.has(p.id);
+        return `<div class="product-card" onclick="openDetail('${esc(p.id)}')" style="animation-delay:${delay}ms">
+          <div class="product-img-wrap">
+            ${p.imagen?`<img class="product-img" src="${esc(p.imagen)}" alt="${esc(p.nombre||'')}" loading="lazy" onerror="this.closest('.product-img-wrap').innerHTML='<div class=\\"product-img-placeholder\\"><i class=\\"ph-fill ph-drop\\"></i></div>'">`:`<div class="product-img-placeholder"><i class="ph-fill ph-drop"></i></div>`}
+            ${p.categoria?`<span class="badge-cat">${esc(p.categoria)}</span>`:''}
+            ${off>0?`<span class="badge-off">-${off}%</span>`:''}
+            ${p.agotado?`<span class="badge-agotado">Agotado</span>`:''}
+            <button onclick="event.stopPropagation();toggleWishlist('${esc(p.id)}')"
+              class="btn-card-wish${wished?' wished':''}" aria-label="${wished?'Quitar de guardados':'Guardar'}">
+              <i class="ph${wished?'-fill':''} ph-heart"></i>
+            </button>
+          </div>
+          <div class="product-info">
+            ${p.marca?`<p class="product-brand">${esc(p.marca)}</p>`:''}
+            <p class="product-name">${esc(p.nombre||'Producto')}</p>
+            <div class="product-prices">
+              ${mPrice!=null?`<span class="product-price">${fmtPrice(mPrice)}</span><span class="product-price-orig">${fmtPrice(p.precio)}</span><span class="badge-member-price">Precio miembro</span>`:`${p.precio!=null?`<span class="product-price">${fmtPrice(p.precio)}</span>`:''} ${off>0?`<span class="product-price-orig">${fmtPrice(p.precioOriginal)}</span>`:''}`}
+            </div>
+            ${showInc?`<p class="member-incentive">Miembros ahorran ${fmtPrice(Math.round(p.precio*.1))}</p>`:''}
+            ${pts>0?`<p class="product-pts"><i class="ph-fill ph-star"></i> ${pts} pts</p>`:''}
+          </div>
+        </div>`;
+      }).join('');
+      const lm = document.getElementById('load-more-wrap');
+      if (filtered.length > visible.length) {
+        lm.style.display='flex';
+        document.getElementById('load-more-count').textContent=`Mostrando ${visible.length} de ${filtered.length} fragancias`;
+      } else lm.style.display='none';
+    }
+
+    // ── Product modal ─────────────────────────────────────────────────
+    function openDetail(id) {
+      const p = _all.find(x => x.id === id); if (!p) return;
+      const off = offPct(p.precio, p.precioOriginal);
+      document.getElementById('prod-img-wrap').innerHTML = p.imagen
+        ? `<img class="prod-img" src="${esc(p.imagen)}" alt="${esc(p.nombre||'')}">`
+        : `<div class="prod-img-placeholder"><i class="ph-fill ph-drop"></i></div>`;
+      document.getElementById('prod-badges').innerHTML = p.categoria ? `<span class="prod-badge">${esc(p.categoria)}</span>` : '';
+      const brandEl = document.getElementById('prod-brand');
+      brandEl.textContent = p.marca||''; brandEl.style.display = p.marca?'':'none';
+      document.getElementById('prod-name').textContent = p.nombre||'Producto';
+      // Precio
+      const mPrice = (_isMember && p.precio!=null) ? Math.round(p.precio*(1-_memberDiscount/100)) : null;
+      let ph = '';
+      if (mPrice!=null) ph=`<span class="prod-price">${fmtPrice(mPrice)}</span><span class="prod-price-orig">${fmtPrice(p.precio)}</span>`;
+      else {
+        if (p.precio!=null) ph+=`<span class="prod-price">${fmtPrice(p.precio)}</span>`;
+        if (off>0) ph+=`<span class="prod-price-orig">${fmtPrice(p.precioOriginal)}</span><span class="prod-badge-off">-${off}%</span>`;
+      }
+      document.getElementById('prod-price-row').innerHTML = ph;
+      // Puntos
+      const pts = calcPts(mPrice ?? p.precio);
+      const ptsEl = document.getElementById('prod-pts-note');
+      if (pts > 0) { ptsEl.innerHTML=`<i class="ph-fill ph-star"></i> Ganarías <strong>${pts} punto${pts!==1?'s':''}</strong> con esta compra`; ptsEl.style.display='flex'; }
+      else ptsEl.style.display='none';
+      // Nota miembro
+      const noteEl = document.getElementById('prod-member-note');
+      if (mPrice!=null) { noteEl.innerHTML=`<span class="prod-member-badge">Precio miembro ${_memberDiscount}%</span><span>vs. precio público ${fmtPrice(p.precio)}</span>`; noteEl.style.display='flex'; }
+      else if (p.precio!=null) { noteEl.innerHTML=`<i class="ph ph-crown"></i> Miembros pagan ${fmtPrice(Math.round(p.precio*.9))} · <button onclick="event.stopPropagation();closeDetail();openClub()" style="color:var(--gold);background:none;border:none;cursor:pointer;font-size:inherit;font-family:inherit;font-weight:600;padding:0">Unirme al Club</button>`; noteEl.style.display='flex'; }
+      else noteEl.style.display='none';
+      // Desc
+      const descEl = document.getElementById('prod-desc');
+      descEl.textContent=p.descripcion||''; descEl.style.display=p.descripcion?'':'none';
+      // Pirámide olfativa
+      const notesEl = document.getElementById('prod-notes');
+      const notesSepEl = document.getElementById('prod-notes-sep');
+      const notas = p.notas;
+      const hasNotes = notas && (notas.salida?.length || notas.corazon?.length || notas.fondo?.length);
+      if (hasNotes) {
+        const mkPills = arr => (arr||[]).map(n=>`<span class="prod-note-pill">${esc(n)}</span>`).join('') || '<span class="prod-note-pill" style="opacity:.35">—</span>';
+        notesEl.innerHTML = `
+          <p class="prod-notes-title">Pirámide Olfativa</p>
+          <div class="prod-notes-grid">
+            <div><p class="prod-note-col-label">Salida</p><div class="prod-note-pills">${mkPills(notas.salida)}</div></div>
+            <div><p class="prod-note-col-label">Corazón</p><div class="prod-note-pills">${mkPills(notas.corazon)}</div></div>
+            <div><p class="prod-note-col-label">Fondo</p><div class="prod-note-pills">${mkPills(notas.fondo)}</div></div>
+          </div>`;
+        notesEl.style.display='block'; notesSepEl.style.display='block';
+      } else {
+        notesEl.style.display='none'; notesSepEl.style.display='none';
+      }
+      // Acciones
+      const acts = document.getElementById('prod-actions'); acts.innerHTML='';
+      // CTA principal: Consultar por WhatsApp (dorado)
+      if (_waPhone && !p.agotado) {
+        const msg = encodeURIComponent(`Hola! Me interesa:\n*${p.nombre}*${p.precio!=null?`\nPrecio: ${fmtPrice(mPrice??p.precio)}`:''}`);
+        const a=document.createElement('a'); a.className='btn-primary-cta';
+        a.href=`https://wa.me/${_waPhone}?text=${msg}`; a.target='_blank'; a.rel='noopener noreferrer';
+        a.innerHTML='<i class="ph-fill ph-whatsapp-logo" style="font-size:1.125rem"></i> Consultar disponibilidad'; acts.appendChild(a);
+      }
+      // CTA fidelización: Canjear puntos (solo miembros logueados)
+      if (_isMember && _currentUser && !p.agotado) {
+        const rb=document.createElement('button'); rb.className='btn-loyalty-redeem';
+        rb.innerHTML=`<i class="ph-fill ph-crown"></i> Canjear por 1,500 pts L'Élite · <strong>${_userPuntos} disponibles</strong>`;
+        rb.onclick=()=>{ closeDetail(); openClub(); };
+        acts.appendChild(rb);
+      }
+      // Stock alert button (solo si agotado)
+      if (p.agotado) {
+        if (_currentUser) {
+          const isAlert = _stockAlerts.has(p.id);
+          const ab = document.createElement('button');
+          ab.className = 'btn-modal-alert' + (isAlert ? ' active' : '');
+          ab.innerHTML = `<i class="ph${isAlert?'-fill':''} ph-bell"></i> ${isAlert ? 'Te avisaremos cuando llegue' : 'Notificarme cuando llegue'}`;
+          ab.onclick = () => toggleStockAlert(p.id, ab);
+          acts.appendChild(ab);
+        } else {
+          const ab = document.createElement('button');
+          ab.className = 'btn-modal-alert';
+          ab.innerHTML = `<i class="ph ph-bell"></i> Notificarme cuando llegue`;
+          ab.onclick = () => { closeDetail(); openClub(); };
+          acts.appendChild(ab);
+        }
+      }
+      // Secundarios: wishlist + compartir
+      const secRow = document.createElement('div');
+      secRow.style.cssText='display:flex;gap:.625rem;margin-top:.25rem;';
+      if (_currentUser) {
+        const wished = _wishlist.has(p.id);
+        const wb = document.createElement('button');
+        wb.className = 'btn-modal-wish' + (wished ? ' wished' : '');
+        wb.style.flex='1';
+        wb.innerHTML = `<i class="ph${wished?'-fill':''} ph-heart"></i> ${wished ? 'Guardado' : 'Guardar'}`;
+        wb.onclick = () => { toggleWishlist(p.id); closeDetail(); };
+        secRow.appendChild(wb);
+      }
+      const sb=document.createElement('button'); sb.className='btn-share'; sb.style.flex='1';
+      sb.innerHTML='<i class="ph ph-share-network"></i> Compartir';
+      sb.onclick=()=>{ const d={title:p.nombre,text:`${p.nombre}${p.precio!=null?' — '+fmtPrice(p.precio):''}`,url:location.href}; if(navigator.share)navigator.share(d); else navigator.clipboard?.writeText(location.href); };
+      secRow.appendChild(sb);
+      acts.appendChild(secRow);
+      document.getElementById('prod-overlay').classList.add('open');
+      document.getElementById('prod-modal').classList.add('open');
+      document.body.style.overflow='hidden';
+    }
+    function closeDetail() {
+      document.getElementById('prod-overlay').classList.remove('open');
+      document.getElementById('prod-modal').classList.remove('open');
+      if(!document.getElementById('loyalty-panel').classList.contains('open')&&!document.getElementById('contact-modal').classList.contains('open'))
+        document.body.style.overflow='';
+    }
+    // Swipe down to close
+    let _ty0=0;
+    const _prodCard=document.getElementById('prod-card');
+    _prodCard.addEventListener('touchstart',e=>{_ty0=e.touches[0].clientY;},{passive:true});
+    _prodCard.addEventListener('touchend',e=>{if(e.changedTouches[0].clientY-_ty0>72)closeDetail();},{passive:true});
+
+    // ── Club side panel ───────────────────────────────────────────────
+    function openClub() {
+      closeDetail(); closeContact(); closeBenefits(); closeChat();
+      clubAlertClear();
+      switchTab('login');
+      document.getElementById('loyalty-overlay').classList.add('open');
+      document.getElementById('loyalty-panel').classList.add('open');
+      document.body.style.overflow='hidden';
+      if (_currentUser) showMemberSection(_currentUser);
+      else showAuthSection();
+    }
+    function closeClub() {
+      document.getElementById('loyalty-overlay').classList.remove('open');
+      document.getElementById('loyalty-panel').classList.remove('open');
+      document.querySelectorAll('.member-bar-btn').forEach(b => b.classList.remove('active'));
+      if(!document.getElementById('prod-modal').classList.contains('open')&&!document.getElementById('contact-modal').classList.contains('open'))
+        document.body.style.overflow='';
+    }
+    // swipe-down to close bottom sheet
+    let _lpTy0=0;
+    const _lpanel=document.getElementById('loyalty-panel');
+    _lpanel.addEventListener('touchstart',e=>{_lpTy0=e.touches[0].clientY;},{passive:true});
+    _lpanel.addEventListener('touchend',e=>{if(e.changedTouches[0].clientY-_lpTy0>72)closeClub();},{passive:true});
+
+    // ── Contact modal ─────────────────────────────────────────────────
+    function openContact() {
+      closeDetail(); closeClub();
+      const opts=document.getElementById('contact-opts'); opts.innerHTML='';
+      if (_waPhone) {
+        const a=document.createElement('a'); a.className='contact-option';
+        a.href=`https://wa.me/${_waPhone}`; a.target='_blank'; a.rel='noopener noreferrer';
+        a.innerHTML=`<div class="contact-icon wa"><i class="ph-fill ph-whatsapp-logo"></i></div><div style="flex:1"><p class="contact-opt-label">WhatsApp</p><p class="contact-opt-desc">Respuesta rápida · Chat directo</p></div><i class="ph ph-arrow-square-out contact-arrow"></i>`;
+        opts.appendChild(a);
+      }
+      if (_igUrl) {
+        const a=document.createElement('a'); a.className='contact-option';
+        a.href=_igUrl; a.target='_blank'; a.rel='noopener noreferrer';
+        a.innerHTML=`<div class="contact-icon ig"><i class="ph-fill ph-instagram-logo"></i></div><div style="flex:1"><p class="contact-opt-label">Instagram</p><p class="contact-opt-desc">Ver novedades y colecciones</p></div><i class="ph ph-arrow-square-out contact-arrow"></i>`;
+        opts.appendChild(a);
+      }
+      if (!_waPhone&&!_igUrl) opts.innerHTML='<p style="text-align:center;color:var(--text-muted);font-size:.875rem;padding:1rem 0">Sin información de contacto configurada.</p>';
+      document.getElementById('contact-overlay').classList.add('open');
+      document.getElementById('contact-modal').classList.add('open');
+      document.body.style.overflow='hidden';
+    }
+    function closeContact() {
+      document.getElementById('contact-overlay').classList.remove('open');
+      document.getElementById('contact-modal').classList.remove('open');
+      if(!document.getElementById('prod-modal').classList.contains('open')&&!document.getElementById('loyalty-panel').classList.contains('open'))
+        document.body.style.overflow='';
+    }
+    const _contactCard=document.getElementById('contact-card');
+    _contactCard.addEventListener('touchstart',e=>{_ty0=e.touches[0].clientY;},{passive:true});
+    _contactCard.addEventListener('touchend',e=>{if(e.changedTouches[0].clientY-_ty0>72)closeContact();},{passive:true});
+
+    document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeDetail(); closeClub(); closeContact(); closeBenefits(); closeChat(); } });
+
+    // ── Benefits → abre el panel lateral ─────────────────────────────
+    function openBenefits() { openClub(); }
+    function closeBenefits() {
+      document.getElementById('benefits-overlay').classList.remove('open');
+      document.getElementById('benefits-modal').classList.remove('open');
+      if(!document.getElementById('prod-modal').classList.contains('open')&&
+         !document.getElementById('loyalty-panel').classList.contains('open')&&
+         !document.getElementById('contact-modal').classList.contains('open')&&
+         !document.getElementById('chat-modal').classList.contains('open'))
+        document.body.style.overflow='';
+    }
+    const _benCard=document.getElementById('benefits-card');
+    _benCard.addEventListener('touchstart',e=>{_ty0=e.touches[0].clientY;},{passive:true});
+    _benCard.addEventListener('touchend',e=>{if(e.changedTouches[0].clientY-_ty0>72)closeBenefits();},{passive:true});
+
+    // ── Chat modal ────────────────────────────────────────────────────
+    let _chatUrl = '';
+    function openChat() {
+      closeDetail(); closeClub(); closeContact(); closeBenefits();
+      const waBtn = document.getElementById('chat-wa-btn');
+      const noLink = document.getElementById('chat-no-link');
+      if (_chatUrl) { waBtn.href = _chatUrl; waBtn.style.display='flex'; noLink.style.display='none'; }
+      else { waBtn.style.display='none'; noLink.style.display=''; }
+      document.getElementById('chat-overlay').classList.add('open');
+      document.getElementById('chat-modal').classList.add('open');
+      document.body.style.overflow='hidden';
+    }
+    function closeChat() {
+      document.getElementById('chat-overlay').classList.remove('open');
+      document.getElementById('chat-modal').classList.remove('open');
+      if(!document.getElementById('prod-modal').classList.contains('open')&&
+         !document.getElementById('loyalty-panel').classList.contains('open')&&
+         !document.getElementById('contact-modal').classList.contains('open')&&
+         !document.getElementById('benefits-modal').classList.contains('open'))
+        document.body.style.overflow='';
+    }
+    const _chatCard=document.getElementById('chat-card');
+    _chatCard.addEventListener('touchstart',e=>{_ty0=e.touches[0].clientY;},{passive:true});
+    _chatCard.addEventListener('touchend',e=>{if(e.changedTouches[0].clientY-_ty0>72)closeChat();},{passive:true});
+
+    // ── Wishlist ───────────────────────────────────────────────────
+    function updateWishBtn() {
+      const btn = document.getElementById('wish-btn');
+      const dot = document.getElementById('wish-dot');
+      if (!_currentUser) { btn.style.display = 'none'; return; }
+      btn.style.display = '';
+      const icon = btn.querySelector('i');
+      const count = _wishlist.size;
+      icon.className = count > 0 ? 'ph-fill ph-heart' : 'ph ph-heart';
+      dot.style.display = count > 0 ? '' : 'none';
+      // Update member bar button badge
+      const mbw = document.getElementById('member-bar-wish');
+      if (mbw) {
+        const span = mbw.querySelector('span');
+        if (span) span.textContent = count > 0 ? `Guardados (${count})` : 'Guardados';
+      }
+    }
+
+    async function toggleWishlist(id) {
+      if (!_currentUser) { openClub(); return; }
+      if (_wishlist.has(id)) _wishlist.delete(id);
+      else _wishlist.add(id);
+      updateWishBtn();
+      renderProducts();
+      try {
+        await clientesCol().doc(_currentUser.uid).update({ wishlist: [..._wishlist] });
+      } catch(e) {
+        // doc may not exist yet
+        try { await clientesCol().doc(_currentUser.uid).set({ wishlist: [..._wishlist] }, { merge: true }); } catch(_){}
+      }
+    }
+
+    async function toggleStockAlert(id, btn) {
+      if (!_currentUser) { openClub(); return; }
+      if (_stockAlerts.has(id)) _stockAlerts.delete(id);
+      else _stockAlerts.add(id);
+      if (btn) {
+        const isActive = _stockAlerts.has(id);
+        btn.className = 'btn-modal-alert' + (isActive ? ' active' : '');
+        btn.innerHTML = `<i class="ph${isActive?'-fill':''} ph-bell"></i> ${isActive ? 'Te avisaremos cuando llegue' : 'Notificarme cuando llegue'}`;
+      }
+      try {
+        await clientesCol().doc(_currentUser.uid).update({ stockAlerts: [..._stockAlerts] });
+      } catch(e) {
+        try { await clientesCol().doc(_currentUser.uid).set({ stockAlerts: [..._stockAlerts] }, { merge: true }); } catch(_){}
+      }
+    }
+
+    function renderWishlist() {
+      const list = document.getElementById('wish-list');
+      const title = document.getElementById('wish-title');
+      const saved = _all.filter(p => _wishlist.has(p.id));
+      if (title) title.textContent = saved.length > 0 ? `Guardados (${saved.length})` : 'Guardados';
+      if (!list) return;
+      if (saved.length === 0) {
+        list.innerHTML = `
+          <div style="text-align:center;padding:3rem 1rem">
+            <div style="width:64px;height:64px;border-radius:50%;background:var(--gold-dim);border:1px solid var(--gold-border);display:flex;align-items:center;justify-content:center;margin:0 auto 1rem;font-size:1.75rem;color:var(--gold)">
+              <i class="ph ph-heart"></i>
+            </div>
+            <p style="font-family:var(--serif);font-size:1.125rem;color:var(--text);margin-bottom:.375rem">Sin guardados aún</p>
+            <p style="font-size:.875rem;color:var(--text-sec)">Toca el corazón en cualquier fragancia para guardarla aquí.</p>
+          </div>`;
         return;
       }
-
-      const visible = filtered.slice(0, _page * PAGE_SIZE);
-      const hasMore = filtered.length > visible.length;
-
-      grid.innerHTML = visible.map((p, i) => {
-        const off         = offPct(p.precio, p.precioOriginal);
-        const delay       = Math.min(i % PAGE_SIZE, 8) * 55;
-        const memberPrice = (_isMember && p.precio != null)
-          ? Math.round(p.precio * (1 - _memberDiscount / 100))
-          : null;
-        const showIncentive = !_isMember && p.precio > 15000 && i % 3 === 0;
-        const savedAmt      = showIncentive ? Math.round(p.precio * 0.10) : 0;
-
+      list.innerHTML = saved.map(p => {
+        const mPrice = (_isMember && p.precio != null) ? Math.round(p.precio*(1-_memberDiscount/100)) : null;
+        const displayPrice = mPrice ?? p.precio;
         return `
-      <div class="product-card" onclick="openDetail('${esc(p.id)}')" style="animation-delay:${delay}ms">
-        <div class="product-img-wrap">
-          ${p.imagen
-            ? `<img class="product-img" src="${esc(p.imagen)}" alt="${esc(p.nombre||'')}" loading="lazy"
-                 onerror="this.closest('.product-img-wrap').innerHTML='<div class=\\"product-img-placeholder\\"><i class=\\"ph-fill ph-drop\\"></i></div>'">`
-            : `<div class="product-img-placeholder"><i class="ph-fill ph-drop"></i></div>`}
-          ${p.categoria ? `<span class="badge-cat">${esc(p.categoria)}</span>` : ''}
-          ${off > 0 ? `<span class="badge-off">-${off}%</span>` : ''}
-        </div>
-        <div class="product-info">
-          ${p.marca ? `<p class="product-brand">${esc(p.marca)}</p>` : ''}
-          <p class="product-name">${esc(p.nombre || 'Producto')}</p>
-          <div class="product-prices">
-            ${memberPrice != null
-              ? `<span class="product-price">${fmtPrice(memberPrice)}</span>
-                 <span class="product-price-orig">${fmtPrice(p.precio)}</span>
-                 <span class="badge-member-price">Precio miembro</span>`
-              : `${p.precio != null ? `<span class="product-price">${fmtPrice(p.precio)}</span>` : ''}
-                 ${off > 0 ? `<span class="product-price-orig">${fmtPrice(p.precioOriginal)}</span>` : ''}`}
-          </div>
-          ${showIncentive ? `<p class="member-incentive">Miembros ahorran ${fmtPrice(savedAmt)}</p>` : ''}
-        </div>
-      </div>`;
+          <div class="wish-item" onclick="closeWishlist();setTimeout(()=>openDetail('${esc(p.id)}'),150)">
+            ${p.imagen
+              ? `<img class="wish-item-img" src="${esc(p.imagen)}" alt="${esc(p.nombre||'')}" onerror="this.outerHTML='<div class=\\"wish-item-img-ph\\"><i class=\\"ph-fill ph-drop\\"></i></div>'">`
+              : `<div class="wish-item-img-ph"><i class="ph-fill ph-drop"></i></div>`}
+            <div class="wish-item-info">
+              ${p.marca?`<p style="font-size:.5625rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.1em">${esc(p.marca)}</p>`:''}
+              <p class="wish-item-name">${esc(p.nombre||'Producto')}</p>
+              ${displayPrice!=null?`<p class="wish-item-price">${fmtPrice(displayPrice)}</p>`:''}
+            </div>
+            <button class="btn-wish-remove" onclick="event.stopPropagation();toggleWishlist('${esc(p.id)}');renderWishlist()">
+              <i class="ph-bold ph-x"></i>
+            </button>
+          </div>`;
       }).join('');
-
-      const lmWrap = document.getElementById('load-more-wrap');
-      if (hasMore) {
-        lmWrap.style.display = 'flex';
-        document.getElementById('load-more-count').textContent =
-          `Mostrando ${visible.length} de ${filtered.length} fragancias`;
-      } else {
-        lmWrap.style.display = 'none';
-      }
     }
 
-    // ── Detail bottom sheet ───────────────────────────────────────────
-    function openDetail(id) {
-      const p = _all.find(x => x.id === id);
-      if (!p) return;
-
-      const off = offPct(p.precio, p.precioOriginal);
-
-      // Image
-      document.getElementById('detail-img-wrap').innerHTML = p.imagen
-        ? `<img class="detail-img" src="${esc(p.imagen)}" alt="${esc(p.nombre||'')}">`
-        : `<div class="detail-img-placeholder"><i class="ph-fill ph-drop"></i></div>`;
-
-      // Badges
-      const badges = document.getElementById('detail-badges');
-      badges.innerHTML = p.categoria
-        ? `<span class="detail-badge">${esc(p.categoria)}</span>` : '';
-
-      // Brand + name
-      const brandEl = document.getElementById('detail-brand');
-      brandEl.textContent = p.marca || '';
-      brandEl.style.display = p.marca ? '' : 'none';
-      document.getElementById('detail-name').textContent = p.nombre || 'Producto';
-
-      // Prices
-      const priceRow  = document.getElementById('detail-price-row');
-      const memberPriceDetail = (_isMember && p.precio != null)
-        ? Math.round(p.precio * (1 - _memberDiscount / 100))
-        : null;
-      let priceHtml = '';
-      if (memberPriceDetail != null) {
-        priceHtml = `<span class="detail-price">${fmtPrice(memberPriceDetail)}</span>
-          <span class="detail-price-orig">${fmtPrice(p.precio)}</span>`;
-      } else {
-        if (p.precio != null) priceHtml += `<span class="detail-price">${fmtPrice(p.precio)}</span>`;
-        if (off > 0) {
-          priceHtml += `<span class="detail-price-orig">${fmtPrice(p.precioOriginal)}</span>`;
-          priceHtml += `<span class="detail-badge-off">-${off}%</span>`;
-        }
-      }
-      priceRow.innerHTML = priceHtml;
-
-      // Member price note
-      const priceNoteEl = document.getElementById('detail-member-note');
-      if (priceNoteEl) {
-        if (memberPriceDetail != null) {
-          priceNoteEl.innerHTML = `<span class="detail-member-badge">Precio miembro ${_memberDiscount}%</span>
-            <span>vs. precio público ${fmtPrice(p.precio)}</span>`;
-          priceNoteEl.style.display = 'flex';
-        } else if (p.precio != null) {
-          const saving = Math.round(p.precio * 0.10);
-          priceNoteEl.innerHTML = `<i class="ph ph-crown"></i> Miembros pagan ${fmtPrice(p.precio - saving)} · <a href="/membresia" style="color:var(--gold)">Únete al Club</a>`;
-          priceNoteEl.style.display = 'flex';
-        } else {
-          priceNoteEl.style.display = 'none';
-        }
-      }
-
-      // Description
-      const descEl = document.getElementById('detail-desc');
-      descEl.textContent = p.descripcion || '';
-      descEl.style.display = p.descripcion ? '' : 'none';
-
-      // Actions
-      const actions = document.getElementById('detail-actions');
-      actions.innerHTML = '';
-      if (_waPhone) {
-        const msg = encodeURIComponent(
-          `Hola! Me interesa este perfume:\n*${p.nombre}*${p.precio != null ? `\nPrecio: ${fmtPrice(p.precio)}` : ''}`
-        );
-        const a = document.createElement('a');
-        a.className = 'btn-wa';
-        a.href = `https://wa.me/${_waPhone}?text=${msg}`;
-        a.target = '_blank'; a.rel = 'noopener noreferrer';
-        a.innerHTML = '<i class="ph-fill ph-whatsapp-logo"></i> Consultar por WhatsApp';
-        actions.appendChild(a);
-      }
-      const shareBtn = document.createElement('button');
-      shareBtn.className = 'btn-share';
-      shareBtn.innerHTML = '<i class="ph ph-share-network"></i> Compartir fragancia';
-      shareBtn.onclick = () => {
-        const shareData = { title: p.nombre, text: `${p.nombre}${p.precio != null ? ' — ' + fmtPrice(p.precio) : ''}`, url: location.href };
-        if (navigator.share) navigator.share(shareData);
-        else navigator.clipboard?.writeText(location.href);
-      };
-      actions.appendChild(shareBtn);
-
-      document.getElementById('detail-overlay').classList.add('open');
-      document.getElementById('detail-panel').classList.add('open');
+    function openWishlist() {
+      if (!_currentUser) { openClub(); return; }
+      closeDetail(); closeClub(); closeContact(); closeBenefits(); closeChat();
+      renderWishlist();
+      document.getElementById('wish-overlay').classList.add('open');
+      document.getElementById('wish-modal').classList.add('open');
       document.body.style.overflow = 'hidden';
     }
+    function closeWishlist() {
+      document.getElementById('wish-overlay').classList.remove('open');
+      document.getElementById('wish-modal').classList.remove('open');
+      const anyOpen = ['prod-modal','loyalty-panel','contact-modal','benefits-modal','chat-modal']
+        .some(id => document.getElementById(id).classList.contains('open'));
+      if (!anyOpen) document.body.style.overflow = '';
+    }
+    const _wishCard = document.getElementById('wish-card');
+    if (_wishCard) {
+      let _wty0 = 0;
+      _wishCard.addEventListener('touchstart', e => { _wty0 = e.touches[0].clientY; }, { passive: true });
+      _wishCard.addEventListener('touchend',   e => { if (e.changedTouches[0].clientY - _wty0 > 72) closeWishlist(); }, { passive: true });
+    }
 
-    function closeDetail() {
-      document.getElementById('detail-overlay').classList.remove('open');
-      document.getElementById('detail-panel').classList.remove('open');
+    // ── ScentMatch Swipe ──────────────────────────────────────────────
+    let _swipeIdx = 0, _swipePool = [];
+
+    function openSwipe() {
+      closeDetail(); closeClub(); closeContact(); closeBenefits(); closeChat();
+      _swipePool = _all.filter(p => p.imagen).length > 0
+        ? _all.filter(p => p.imagen)
+        : _all.slice();
+      if (_swipePool.length === 0) return;
+      // Shuffle
+      for (let i = _swipePool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [_swipePool[i], _swipePool[j]] = [_swipePool[j], _swipePool[i]];
+      }
+      _swipeIdx = 0;
+      renderSwipeStack();
+      document.getElementById('swipe-view').classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeSwipe() {
+      document.getElementById('swipe-view').classList.remove('open');
       document.body.style.overflow = '';
     }
 
-    // Swipe down to close
-    let _ty0 = 0;
-    const panel = document.getElementById('detail-panel');
-    panel.addEventListener('touchstart', e => { _ty0 = e.touches[0].clientY; }, { passive: true });
-    panel.addEventListener('touchend',   e => { if (e.changedTouches[0].clientY - _ty0 > 72) closeDetail(); }, { passive: true });
+    function renderSwipeStack() {
+      const stack = document.getElementById('swipe-stack');
+      stack.innerHTML = '';
 
-    // Escape key
-    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDetail(); });
+      if (_swipeIdx >= _swipePool.length) {
+        stack.innerHTML = `
+          <div class="swipe-empty">
+            <div class="swipe-empty-icon"><i class="ph-fill ph-sparkle"></i></div>
+            <p class="swipe-empty-title">¡Has visto todo!</p>
+            <p class="swipe-empty-sub">Exploraste todas nuestras fragancias. ¿Volver a empezar?</p>
+            <button class="swipe-restart-btn" onclick="_swipeIdx=0;renderSwipeStack()">
+              <i class="ph ph-arrow-clockwise"></i> Empezar de nuevo
+            </button>
+          </div>`;
+        document.getElementById('swipe-counter').textContent = '';
+        return;
+      }
 
-    // ── Load tenant settings ──────────────────────────────────────────
+      // Render up to 3 cards (back-to-front so front card is on top in DOM)
+      const visible = Math.min(3, _swipePool.length - _swipeIdx);
+      for (let i = visible - 1; i >= 0; i--) {
+        const p = _swipePool[_swipeIdx + i];
+        if (!p) continue;
+        stack.appendChild(buildSwipeCard(p, i));
+      }
+
+      // Action buttons (above cards)
+      const btns = document.createElement('div');
+      btns.className = 'swipe-actions';
+      btns.innerHTML = `
+        <button class="swipe-btn swipe-btn-skip" onclick="triggerSwipe('skip')" aria-label="Omitir">
+          <i class="ph-bold ph-x"></i>
+        </button>
+        <button class="swipe-btn swipe-btn-save" onclick="triggerSwipe('save')" aria-label="Guardar">
+          <i class="ph-fill ph-heart"></i>
+        </button>`;
+      stack.appendChild(btns);
+
+      // Counter
+      const rem = _swipePool.length - _swipeIdx;
+      document.getElementById('swipe-counter').textContent =
+        rem + ' de ' + _swipePool.length;
+
+      // Attach drag to front card
+      const front = stack.querySelector('.swipe-card[data-pos="0"]');
+      if (front) attachSwipeDrag(front);
+    }
+
+    function buildSwipeCard(p, posIdx) {
+      const el = document.createElement('div');
+      el.className = 'swipe-card';
+      el.dataset.pos = posIdx;
+      el.dataset.id = p.id;
+      const imgHtml = p.imagen
+        ? `<img src="${esc(p.imagen)}" alt="${esc(p.nombre||'')}" draggable="false">`
+        : `<div class="swipe-card-placeholder"><i class="ph-fill ph-drop"></i></div>`;
+      el.innerHTML = `
+        ${imgHtml}
+        <div class="swipe-card-grad"></div>
+        <div class="swipe-card-info">
+          ${p.marca ? `<p class="swipe-card-brand">${esc(p.marca)}</p>` : ''}
+          <p class="swipe-card-name">${esc(p.nombre || 'Fragancia')}</p>
+          ${p.precio != null ? `<p class="swipe-card-price">${fmtPrice(p.precio)}</p>` : ''}
+          ${p.categoria ? `<span class="swipe-card-cat">${esc(p.categoria)}</span>` : ''}
+        </div>
+        ${posIdx === 0 ? `
+          <span class="swipe-label swipe-label-save" id="swipe-lbl-save">GUARDAR</span>
+          <span class="swipe-label swipe-label-skip" id="swipe-lbl-skip">OMITIR</span>
+        ` : ''}`;
+      return el;
+    }
+
+    function attachSwipeDrag(card) {
+      let startX = 0, startY = 0, curX = 0, active = false;
+      const THRESHOLD = 90;
+
+      function onStart(e) {
+        active = true; curX = 0;
+        const pt = e.touches ? e.touches[0] : e;
+        startX = pt.clientX; startY = pt.clientY;
+        card.style.transition = 'none';
+        if (e.type === 'mousedown') {
+          document.addEventListener('mousemove', onMove);
+          document.addEventListener('mouseup', onEnd);
+        }
+      }
+      function onMove(e) {
+        if (!active) return;
+        if (e.cancelable) e.preventDefault();
+        const pt = e.touches ? e.touches[0] : e;
+        curX = pt.clientX - startX;
+        const curY = (pt.clientY - startY) * 0.25;
+        const rot = curX * 0.07;
+        card.style.transform = `translateX(${curX}px) translateY(${curY}px) rotate(${rot}deg)`;
+        // Labels
+        const prog = Math.min(Math.abs(curX) / THRESHOLD, 1);
+        const lSave = document.getElementById('swipe-lbl-save');
+        const lSkip = document.getElementById('swipe-lbl-skip');
+        if (lSave) lSave.style.opacity = curX > 20 ? prog : 0;
+        if (lSkip) lSkip.style.opacity = curX < -20 ? prog : 0;
+      }
+      function onEnd() {
+        if (!active) return;
+        active = false;
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onEnd);
+        card.style.transition = '';
+        if (curX > THRESHOLD)       resolveSwipe(card, 'save');
+        else if (curX < -THRESHOLD) resolveSwipe(card, 'skip');
+        else {
+          card.style.transform = '';
+          const lSave = document.getElementById('swipe-lbl-save');
+          const lSkip = document.getElementById('swipe-lbl-skip');
+          if (lSave) lSave.style.opacity = 0;
+          if (lSkip) lSkip.style.opacity = 0;
+        }
+        curX = 0;
+      }
+      card.addEventListener('touchstart', onStart, { passive: true });
+      card.addEventListener('touchmove', onMove, { passive: false });
+      card.addEventListener('touchend', onEnd, { passive: true });
+      card.addEventListener('mousedown', onStart);
+    }
+
+    function triggerSwipe(action) {
+      const front = document.querySelector('#swipe-stack .swipe-card[data-pos="0"]');
+      if (front) resolveSwipe(front, action);
+    }
+
+    function resolveSwipe(card, action) {
+      const id = card.dataset.id;
+      card.classList.add(action === 'save' ? 'swipe-fly-right' : 'swipe-fly-left');
+      if (action === 'save' && _currentUser && id && !id.startsWith('mock-')) {
+        if (!_wishlist.has(id)) toggleWishlist(id);
+      }
+      _swipeIdx++;
+      setTimeout(renderSwipeStack, 380);
+    }
+
+    document.addEventListener('keydown', e => {
+      if (!document.getElementById('swipe-view').classList.contains('open')) return;
+      if (e.key === 'ArrowLeft')  triggerSwipe('skip');
+      if (e.key === 'ArrowRight') triggerSwipe('save');
+      if (e.key === 'Escape')     closeSwipe();
+    });
+
+    // ── Load settings ─────────────────────────────────────────────────
     async function loadSettings() {
       try {
-        const snap = await db.collection('tenants').doc(TENANT_ID).collection('settings').doc('main').get();
-        if (!snap.exists) return;
-        const d = snap.data();
-        if (d.nombre) {
-          document.getElementById('store-name').textContent = d.nombre;
-          document.title = 'Catálogo · ' + d.nombre;
-          const heroName = document.getElementById('hero-store-name');
-          if (heroName) heroName.textContent = d.nombre;
-        }
-        if (d.logo) {
-          document.getElementById('store-logo').src = d.logo;
-          const heroImg = document.getElementById('hero-logo-img');
-          if (heroImg) heroImg.src = d.logo;
-        }
-        if (d.whatsapp) _waPhone = d.whatsapp.replace(/\D/g, '');
-        if (d.accentColor) {
-          const hex = d.accentColor.replace('#', '');
-          if (hex.length === 6) {
-            const r = parseInt(hex.slice(0,2), 16);
-            const g = parseInt(hex.slice(2,4), 16);
-            const b = parseInt(hex.slice(4,6), 16);
-            document.documentElement.style.setProperty('--gold', d.accentColor);
-            document.documentElement.style.setProperty('--gold-rgb', `${r}, ${g}, ${b}`);
-          }
-        }
-      } catch (_) {}
+        const snap=await db.collection('tenants').doc(TENANT_ID).collection('settings').doc('main').get();
+        if(!snap.exists)return;
+        const d=snap.data();
+        if(d.nombre){ document.getElementById('store-name').textContent=d.nombre; document.title='Catálogo · '+d.nombre; const h=document.getElementById('hero-store-name');if(h)h.textContent=d.nombre; document.getElementById('club-title').textContent='Club '+d.nombre; }
+        if(d.logo){ document.getElementById('store-logo').src=d.logo; const hi=document.getElementById('hero-logo-img');if(hi)hi.src=d.logo; }
+        if(d.whatsapp) _waPhone=d.whatsapp.replace(/\D/g,'');
+        if(d.instagram) _igUrl=d.instagram;
+        if(d.chatGrupal) _chatUrl=d.chatGrupal;
+        if(d.tagline){ const t=document.getElementById('hero-tagline');if(t)t.textContent=d.tagline; }
+        if(d.accentColor){ const hex=d.accentColor.replace('#',''); if(hex.length===6){ const r=parseInt(hex.slice(0,2),16),g=parseInt(hex.slice(2,4),16),b=parseInt(hex.slice(4,6),16); document.documentElement.style.setProperty('--gold',d.accentColor); document.documentElement.style.setProperty('--gold-rgb',`${r}, ${g}, ${b}`); } }
+      } catch(_){}
     }
 
     // ── Load products ─────────────────────────────────────────────────
     async function loadProducts() {
       renderSkeleton();
       try {
-        const snap = await col().where('activo', '==', true).get();
-        _all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        _all.sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '', 'es'));
+        const snap = await prodCol().where('activo','==',true).get();
+        _all = snap.docs.map(d => ({id:d.id,...d.data()}));
+        _all.sort((a,b) => (a.nombre||'').localeCompare(b.nombre||'','es'));
+        if (_all.length === 0) _all = MOCK_PRODUCTS.slice();
         buildFilters(_all);
-        if (_all.length === 0) {
-          document.getElementById('product-grid').innerHTML = `
-            <div class="state-wrap">
-              <div class="state-icon"><i class="ph-fill ph-drop"></i></div>
-              <p class="state-title">Catálogo vacío</p>
-              <p class="state-sub">Estamos preparando nuestras fragancias.<br>Vuelve pronto.</p>
-            </div>`;
-          return;
-        }
         renderProducts();
-      } catch (_) {
-        document.getElementById('product-grid').innerHTML = `
-          <div class="state-wrap">
-            <div class="state-icon"><i class="ph ph-wifi-slash"></i></div>
-            <p class="state-title">No pudimos cargar el catálogo</p>
-            <p class="state-sub">Verifica tu conexión a internet e intenta nuevamente.</p>
-            <button class="btn-retry" onclick="loadProducts()">
-              <i class="ph ph-arrow-clockwise"></i> Reintentar
-            </button>
-          </div>`;
+      } catch(_) {
+        _all = MOCK_PRODUCTS.slice();
+        buildFilters(_all);
+        renderProducts();
       }
     }
 
     loadSettings();
     loadProducts();
-
-    // Nav links — preservar ?local= si se accede como tenant secundario
-    (function () {
-      const q = TENANT_ID !== 'deluxeperfumes' ? '?local=' + TENANT_ID : '';
-      document.getElementById('nav-catalogo').href = '/catalogo' + q;
-      document.getElementById('nav-club').href     = '/registro' + q;
-    })();
   </script>
 </body>
 </html>

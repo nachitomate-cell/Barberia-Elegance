@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { TenantProvider, useTenant } from './contexts/TenantContext';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { resolveTenantId } from './lib/tenantUtils';
+import Membresias from './views/Membresias';
 import SuspendedScreen from './components/SuspendedScreen';
 import { ErrorBoundaryWithTenant } from './components/ErrorBoundary';
 import { useVersionManager } from './hooks/useVersionManager';
@@ -31,7 +32,7 @@ import TVConfig         from './views/TVConfig';
 import Finanzas         from './views/Finanzas';
 import Mensualidad      from './views/Mensualidad';
 import Soporte          from './views/Soporte';
-import Membresias       from './views/Membresias';
+import HistorialCortes  from './views/HistorialCortes';
 
 function TenantGate({ children }) {
   const { suspended } = useTenant();
@@ -46,6 +47,8 @@ function TenantGate({ children }) {
 
 function ProtectedApp() {
   const { user, role, loading } = useAuth();
+  const { id: tenantId } = useTenant();
+  const defaultRoute = tenantId === 'deluxeperfumes' ? 'productos' : 'agenda';
 
   if (loading) return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center">
@@ -54,8 +57,6 @@ function ProtectedApp() {
   );
 
   if (!user) return <LoginPage />;
-
-  const defaultRoute = 'agenda';
 
   return (
     <Routes>
@@ -85,6 +86,7 @@ function ProtectedApp() {
             <Route path="marketing"       element={<Marketing />} />
             <Route path="soporte"         element={<Soporte />} />
             <Route path="membresias"      element={<Membresias />} />
+            <Route path="historial"       element={<HistorialCortes />} />
             <Route path="booking-preview"    element={<BookingServicios onContinuar={s => alert(`Seleccionado: ${s.nombre}`)} />} />
             <Route path="booking-barbero"   element={<BookingBarbero  onContinuar={b => alert(`Barbero: ${b.barbero?.nombre}`)} />} />
             <Route path="booking-fecha"     element={<BookingFecha    onContinuar={f => alert(`Fecha: ${f.hora}`)} />} />

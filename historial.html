@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#FAFAFA">
+  <title>Tu Historial | Barbería</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="config.js"></script>
+  <script src="firebase-config.js?v=1.1"></script>
+  <script src="/js/guards/tenant-status-guard.js?v=1.0"></script>
+
+  <link href="/output-lookbook.css" rel="stylesheet">
+
+  <style>
+    body {
+      background-color: #FAFAFA;
+      color: #111827;
+      overscroll-behavior-y: none;
+      -webkit-tap-highlight-color: transparent;
+      font-family: 'Inter', sans-serif;
+    }
+    .glass-nav {
+      background: rgba(255,255,255,0.75);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.5);
+    }
+    .delay-100 { animation-delay: 100ms; }
+    .delay-200 { animation-delay: 200ms; }
+    .ease-spring { transition-timing-function: cubic-bezier(0.175,0.885,0.32,1.15); }
+
+    /* ── Visit cards ── */
+    .visit-card {
+      background: white;
+      border: 1px solid #f3f4f6;
+      border-radius: 18px;
+      padding: 1rem 1.125rem;
+      display: flex;
+      gap: .875rem;
+      align-items: flex-start;
+      margin-bottom: .75rem;
+      box-shadow: 0 1px 6px rgba(0,0,0,.04);
+      transition: transform .15s, box-shadow .15s;
+      cursor: default;
+    }
+    .visit-card:active { transform: scale(.98); box-shadow: 0 0 0 rgba(0,0,0,0); }
+
+    .visit-thumb {
+      width: 64px; height: 64px; border-radius: 14px;
+      object-fit: cover; flex-shrink: 0;
+      background: #f3f4f6;
+    }
+    .visit-thumb-ph {
+      width: 64px; height: 64px; border-radius: 14px;
+      background: linear-gradient(135deg, #f9fafb, #f3f4f6);
+      border: 1px solid #e5e7eb;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .visit-info { flex: 1; min-width: 0; }
+    .visit-service {
+      font-size: .9375rem; font-weight: 700; color: #111827;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .visit-barber {
+      font-size: .8125rem; color: #6b7280; margin-top: .125rem;
+      display: flex; align-items: center; gap: .3rem;
+    }
+    .visit-notes {
+      font-size: .75rem; color: #9ca3af; margin-top: .375rem;
+      line-height: 1.45;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .visit-meta {
+      display: flex; align-items: center; gap: .5rem; margin-top: .5rem;
+      flex-wrap: wrap;
+    }
+    .visit-date-pill {
+      font-size: .625rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .06em; color: #9ca3af;
+      background: #f9fafb; border: 1px solid #e5e7eb;
+      padding: .2rem .5rem; border-radius: 999px;
+    }
+    .visit-price-pill {
+      font-size: .625rem; font-weight: 700; letter-spacing: .03em;
+      color: #059669; background: rgba(5,150,105,.06); border: 1px solid rgba(5,150,105,.2);
+      padding: .2rem .5rem; border-radius: 999px;
+    }
+
+    /* Month separator */
+    .month-sep {
+      font-size: .6875rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .1em; color: #9ca3af;
+      padding: 1.25rem 0 .625rem; display: flex; align-items: center; gap: .625rem;
+    }
+    .month-sep::after { content:''; flex:1; height:1px; background:#e5e7eb; }
+
+    /* Skeletons */
+    .skel { background: linear-gradient(90deg,#f3f4f6 25%,#e5e7eb 50%,#f3f4f6 75%); background-size:200% 100%; animation: shimmer 1.4s infinite; border-radius: 8px; }
+    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+    .skel-card { background:white; border:1px solid #f3f4f6; border-radius:18px; padding:1rem 1.125rem; display:flex; gap:.875rem; margin-bottom:.75rem; }
+
+    /* Auth gate */
+    .gate-card {
+      background: white; border: 1px solid #f3f4f6; border-radius: 20px;
+      padding: 2rem; text-align: center; margin-top: 2rem;
+      box-shadow: 0 1px 6px rgba(0,0,0,.04);
+    }
+    .gate-icon {
+      width: 64px; height: 64px; border-radius: 50%;
+      background: #f9fafb; border: 1px solid #e5e7eb;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 1rem; font-size: 1.75rem; color: #9ca3af;
+    }
+    .btn-go-login {
+      display: inline-flex; align-items: center; gap: .5rem;
+      padding: .875rem 2rem; border-radius: 999px;
+      background: #111827; color: white;
+      font-size: .9375rem; font-weight: 700; text-decoration: none;
+      transition: opacity .16s;
+    }
+    .btn-go-login:hover { opacity: .85; }
+
+    /* Phone search */
+    .phone-form { margin-top: 1.25rem; }
+    .phone-input {
+      width: 100%; padding: .8125rem 1rem; border: 1.5px solid #e5e7eb;
+      border-radius: 12px; font-size: 1rem; font-family: 'Inter',sans-serif;
+      color: #111827; outline: none; transition: border-color .18s;
+      background: white;
+    }
+    .phone-input:focus { border-color: #111827; }
+    .btn-search-phone {
+      width: 100%; margin-top: .625rem; padding: .875rem;
+      background: #111827; color: white; border: none; border-radius: 999px;
+      font-size: .9375rem; font-weight: 700; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: .5rem;
+      transition: opacity .16s;
+    }
+    .btn-search-phone:hover { opacity: .85; }
+    .btn-search-phone:active { transform: scale(.97); }
+
+    /* Empty state */
+    .empty-state {
+      display: flex; flex-direction: column; align-items: center;
+      padding: 4rem 1rem; text-align: center;
+    }
+    .empty-icon {
+      width: 72px; height: 72px; border-radius: 50%;
+      background: #f9fafb; border: 1px solid #e5e7eb;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2rem; color: #d1d5db; margin-bottom: 1rem;
+    }
+  </style>
+</head>
+<body class="font-sans antialiased min-h-screen pb-32 relative">
+
+  <main class="max-w-md mx-auto pt-12 px-6">
+
+    <!-- Header -->
+    <header class="mb-6 opacity-0 animate-[fadeSlideUp_0.6s_cubic-bezier(0.16,1,0.3,1)_forwards]">
+      <h1 class="text-3xl font-bold tracking-tight mb-1" style="color:#111827">Tu Historial</h1>
+      <p class="text-sm text-gray-500 font-medium">Registro de tus visitas a la barbería</p>
+    </header>
+
+    <!-- Estado: cargando auth -->
+    <div id="view-loading" class="opacity-0 animate-[fadeSlideUp_0.6s_cubic-bezier(0.16,1,0.3,1)_forwards] delay-100">
+      <div class="skel-card">
+        <div class="skel" style="width:64px;height:64px;border-radius:14px;flex-shrink:0"></div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:.5rem;padding-top:.25rem">
+          <div class="skel" style="height:13px;width:60%"></div>
+          <div class="skel" style="height:11px;width:40%"></div>
+          <div class="skel" style="height:9px;width:30%;margin-top:4px"></div>
+        </div>
+      </div>
+      <div class="skel-card">
+        <div class="skel" style="width:64px;height:64px;border-radius:14px;flex-shrink:0"></div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:.5rem;padding-top:.25rem">
+          <div class="skel" style="height:13px;width:75%"></div>
+          <div class="skel" style="height:11px;width:45%"></div>
+          <div class="skel" style="height:9px;width:35%;margin-top:4px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Estado: no logueado -->
+    <div id="view-gate" style="display:none">
+      <div class="gate-card opacity-0 animate-[fadeSlideUp_0.6s_cubic-bezier(0.16,1,0.3,1)_forwards] delay-100">
+        <div class="gate-icon"><i class="ph ph-scissors"></i></div>
+        <h2 class="text-xl font-bold mb-2" style="color:#111827">Inicia sesión para ver tu historial</h2>
+        <p class="text-sm text-gray-500 mb-5 leading-relaxed">
+          Accede con tu cuenta para ver el registro completo de tus visitas y cortes.
+        </p>
+        <a href="/registro.html" class="btn-go-login">
+          <i class="ph-bold ph-sign-in"></i> Iniciar sesión
+        </a>
+        <div class="phone-form" id="phone-search-form">
+          <p style="font-size:.75rem;color:#9ca3af;margin-bottom:.75rem;margin-top:1.25rem">
+            ¿Sin cuenta? Busca por tu número de teléfono:
+          </p>
+          <input id="phone-input" class="phone-input" type="tel"
+            placeholder="+56 9 XXXX XXXX" autocomplete="tel">
+          <button class="btn-search-phone" onclick="searchByPhone()">
+            <i class="ph-bold ph-magnifying-glass"></i> Buscar mis visitas
+          </button>
+          <div id="phone-alert" style="display:none;margin-top:.75rem;padding:.75rem;border-radius:10px;font-size:.8125rem;font-weight:500;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);color:#ef4444"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Historial de visitas -->
+    <div id="view-history" style="display:none"
+         class="opacity-0 animate-[fadeSlideUp_0.6s_cubic-bezier(0.16,1,0.3,1)_forwards] delay-100">
+      <div id="visit-list"></div>
+      <div id="empty-state" style="display:none" class="empty-state">
+        <div class="empty-icon"><i class="ph ph-scissors"></i></div>
+        <h3 class="font-bold text-lg mb-1" style="color:#374151">Sin visitas registradas</h3>
+        <p class="text-sm text-gray-500 max-w-xs leading-relaxed">
+          Aún no hay visitas registradas bajo tu número. ¡Nos vemos pronto en la barbería!
+        </p>
+        <a href="/index.html" style="margin-top:1.25rem;display:inline-flex;align-items:center;gap:.5rem;padding:.75rem 1.5rem;border-radius:999px;border:1.5px solid #e5e7eb;color:#374151;font-weight:600;font-size:.9rem;text-decoration:none;transition:all .15s">
+          <i class="ph ph-calendar-plus"></i> Reservar turno
+        </a>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Bottom Navigation Bar -->
+  <div class="fixed bottom-6 left-0 right-0 px-6 max-w-md mx-auto z-30 opacity-0 animate-[fadeSlideUp_0.6s_cubic-bezier(0.16,1,0.3,1)_forwards] delay-200">
+    <nav class="glass-nav rounded-[2rem] px-6 py-4 flex justify-between items-center shadow-xl shadow-gray-200/40">
+      <a href="index.html" class="flex flex-col items-center gap-1.5 text-gray-400 hover:text-gray-700 transition-colors group">
+        <i class="ph ph-house text-2xl group-active:scale-95 transition-transform"></i>
+        <span class="text-[10px] font-semibold">Inicio</span>
+      </a>
+      <a href="index.html" class="flex flex-col items-center gap-1.5 text-gray-400 hover:text-gray-700 transition-colors group">
+        <i class="ph ph-calendar-plus text-2xl group-active:scale-95 transition-transform"></i>
+        <span class="text-[10px] font-semibold">Reservar</span>
+      </a>
+      <a href="lookbook.html" class="flex flex-col items-center gap-1.5 text-gray-400 hover:text-gray-700 transition-colors group">
+        <i class="ph ph-images text-2xl group-active:scale-95 transition-transform"></i>
+        <span class="text-[10px] font-semibold">Lookbook</span>
+      </a>
+      <a href="#" class="flex flex-col items-center gap-1.5 transition-colors group" style="color:var(--brand-accent,#c9a84c)">
+        <div class="relative">
+          <i class="ph-fill ph-clock-counter-clockwise text-2xl group-active:scale-95 transition-transform"></i>
+          <span class="absolute -bottom-3 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full" style="background:var(--brand-accent,#c9a84c)"></span>
+        </div>
+        <span class="text-[10px] font-bold mt-0.5">Historial</span>
+      </a>
+    </nav>
+  </div>
+
+  <script>
+    const _tid = window.CURRENT_TENANT_ID || 'elegance';
+
+    function historialCol() {
+      return _tid === 'elegance'
+        ? db.collection('historial')
+        : db.collection('tenants').doc(_tid).collection('historial');
+    }
+
+    function usersCol() {
+      return _tid === 'elegance'
+        ? db.collection('users')
+        : db.collection('tenants').doc(_tid).collection('users');
+    }
+
+    function fmtDate(ts) {
+      if (!ts) return '';
+      const d = ts.toDate ? ts.toDate() : new Date(ts);
+      return d.toLocaleDateString('es-CL', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+    }
+
+    function fmtMonth(ts) {
+      if (!ts) return '';
+      const d = ts.toDate ? ts.toDate() : new Date(ts);
+      return d.toLocaleDateString('es-CL', { month:'long', year:'numeric' });
+    }
+
+    function fmtPrice(n) { return '$' + Number(n).toLocaleString('es-CL'); }
+
+    function esc(s) {
+      return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function showView(id) {
+      ['view-loading','view-gate','view-history'].forEach(v => {
+        document.getElementById(v).style.display = v === id ? '' : 'none';
+      });
+    }
+
+    function renderVisits(visits) {
+      showView('view-history');
+      const list  = document.getElementById('visit-list');
+      const empty = document.getElementById('empty-state');
+
+      if (visits.length === 0) {
+        list.innerHTML = '';
+        empty.style.display = '';
+        return;
+      }
+      empty.style.display = 'none';
+
+      // Group by month
+      const groups = {};
+      visits.forEach(v => {
+        const key = fmtMonth(v.fecha);
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(v);
+      });
+
+      list.innerHTML = Object.entries(groups).map(([month, items]) => `
+        <div class="month-sep">${month}</div>
+        ${items.map(v => {
+          const dateStr  = fmtDate(v.fecha);
+          const priceStr = v.precio ? fmtPrice(v.precio) : null;
+          return `
+            <div class="visit-card">
+              ${v.foto
+                ? `<img class="visit-thumb" src="${esc(v.foto)}" alt="Foto del corte" onerror="this.outerHTML='<div class=\\"visit-thumb-ph\\"><i class=\\"ph-fill ph-scissors\\" style=\\"font-size:1.5rem;color:#d1d5db\\"></i></div>'">`
+                : `<div class="visit-thumb-ph"><i class="ph-fill ph-scissors" style="font-size:1.5rem;color:#d1d5db"></i></div>`}
+              <div class="visit-info">
+                <p class="visit-service">${esc(v.servicio || 'Corte')}</p>
+                ${v.barberoNombre ? `<p class="visit-barber"><i class="ph ph-user" style="font-size:.875rem"></i>${esc(v.barberoNombre)}</p>` : ''}
+                ${v.notas ? `<p class="visit-notes">${esc(v.notas)}</p>` : ''}
+                <div class="visit-meta">
+                  <span class="visit-date-pill">${esc(dateStr)}</span>
+                  ${priceStr ? `<span class="visit-price-pill">${esc(priceStr)}</span>` : ''}
+                </div>
+              </div>
+            </div>`;
+        }).join('')}
+      `).join('');
+    }
+
+    async function loadHistorial(phone) {
+      try {
+        const snap = await historialCol()
+          .where('clienteTelefono', '==', phone)
+          .get();
+        const visits = snap.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .sort((a, b) => {
+            const ta = a.fecha?.toDate?.() || new Date(a.fecha || 0);
+            const tb = b.fecha?.toDate?.() || new Date(b.fecha || 0);
+            return tb - ta;
+          });
+        renderVisits(visits);
+      } catch(e) {
+        showView('view-history');
+        document.getElementById('visit-list').innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon"><i class="ph ph-wifi-slash"></i></div>
+            <h3 class="font-bold text-lg mb-1" style="color:#374151">No pudimos cargar el historial</h3>
+            <p class="text-sm text-gray-500">Verifica tu conexión e intenta nuevamente.</p>
+          </div>`;
+      }
+    }
+
+    async function searchByPhone() {
+      const raw   = document.getElementById('phone-input').value.trim();
+      const alert = document.getElementById('phone-alert');
+      if (!raw) { alert.style.display=''; alert.textContent='Ingresa tu número de teléfono.'; return; }
+      const phone = raw.replace(/\D/g,'');
+      if (phone.length < 8) { alert.style.display=''; alert.textContent='Número de teléfono inválido.'; return; }
+      alert.style.display = 'none';
+      showView('view-loading');
+      await loadHistorial(phone);
+    }
+
+    // ── Auth listener ─────────────────────────────────────────────
+    firebase.auth().onAuthStateChanged(async user => {
+      if (!user) {
+        showView('view-gate');
+        return;
+      }
+      // Try to get phone from user profile
+      try {
+        const snap = await usersCol().doc(user.uid).get();
+        const phone = snap.exists ? (snap.data().telefono || '') : '';
+        const normalized = phone.replace(/\D/g,'');
+        if (normalized.length >= 8) {
+          await loadHistorial(normalized);
+        } else {
+          // User has no phone → show history view with search
+          showView('view-history');
+          document.getElementById('empty-state').style.display = '';
+          document.getElementById('visit-list').innerHTML = `
+            <div class="gate-card" style="margin-bottom:1rem">
+              <div class="gate-icon"><i class="ph ph-phone"></i></div>
+              <h3 class="font-bold text-base mb-2" style="color:#111827">Asocia tu número de teléfono</h3>
+              <p class="text-sm text-gray-500 mb-4 leading-relaxed">
+                Para ver tu historial, ingresa el número que usaste al reservar tus turnos.
+              </p>
+              <input id="uid-phone-input" class="phone-input" type="tel" placeholder="+56 9 XXXX XXXX">
+              <button class="btn-search-phone" style="margin-top:.625rem" onclick="searchUidPhone()">
+                <i class="ph-bold ph-magnifying-glass"></i> Ver mis visitas
+              </button>
+            </div>`;
+          document.getElementById('empty-state').style.display = 'none';
+        }
+      } catch(e) {
+        showView('view-gate');
+      }
+    });
+
+    async function searchUidPhone() {
+      const raw   = document.getElementById('uid-phone-input')?.value?.trim() || '';
+      const phone = raw.replace(/\D/g,'');
+      if (phone.length < 8) return;
+      document.getElementById('visit-list').innerHTML = '';
+      showView('view-loading');
+      await loadHistorial(phone);
+    }
+  </script>
+</body>
+</html>

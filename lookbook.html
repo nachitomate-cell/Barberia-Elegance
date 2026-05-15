@@ -52,6 +52,13 @@
     
     /* Para transiciones del Bottom Sheet */
     .ease-spring { transition-timing-function: cubic-bezier(0.175, 0.885, 0.32, 1.15); }
+
+    /* Filter bar */
+    .filter-bar{display:flex;gap:.5rem;overflow-x:auto;padding-bottom:.75rem;margin-bottom:1rem;-webkit-overflow-scrolling:touch;scrollbar-width:none;margin-left:-1.5rem;margin-right:-1.5rem;padding-left:1.5rem;padding-right:1.5rem;}
+    .filter-bar::-webkit-scrollbar{display:none;}
+    .filter-pill{flex-shrink:0;padding:.375rem 1rem;border-radius:999px;font-size:.8125rem;font-weight:600;border:1.5px solid #e5e7eb;background:white;color:#6b7280;cursor:pointer;transition:all .15s;white-space:nowrap;-webkit-tap-highlight-color:transparent;min-height:34px;display:flex;align-items:center;}
+    .filter-pill.active{background:#111827;border-color:#111827;color:white;box-shadow:0 2px 8px rgba(17,24,39,.15);}
+    .filter-pill:active{transform:scale(.95);}
   </style>
 </head>
 <body class="font-sans antialiased min-h-screen pb-32 selection:bg-brand-accent selection:text-white relative">
@@ -63,14 +70,14 @@
         <h1 class="text-3xl font-bold tracking-tight text-brand-text mb-1">Lookbook</h1>
         <p class="text-sm text-gray-500 font-medium">Inspiración para tu próximo estilo</p>
       </div>
-      <!-- Botón de filtros ficticio -->
-      <button class="w-12 h-12 bg-white rounded-full border border-gray-100 shadow-[0_2px_8px_rgba(0,0,0,0.04)] flex items-center justify-center active:scale-95 transition-transform">
-         <i class="ph-bold ph-faders text-xl text-brand-text"></i>
-      </button>
+      <div id="photo-count" class="text-xs font-semibold text-gray-400 tabular-nums"></div>
     </header>
 
+    <!-- Filter bar -->
+    <div id="filterBar" class="filter-bar opacity-0 animate-[fadeSlideUp_0.6s_cubic-bezier(0.16,1,0.3,1)_forwards] delay-100"></div>
+
     <!-- Masonry Layout Grid -->
-    <div id="lookbookGrid" class="columns-2 gap-4 space-y-4 opacity-0 animate-[fadeSlideUp_0.6s_cubic-bezier(0.16,1,0.3,1)_forwards] delay-100 pb-10">
+    <div id="lookbookGrid" class="columns-2 gap-4 space-y-4 opacity-0 animate-[fadeSlideUp_0.6s_cubic-bezier(0.16,1,0.3,1)_forwards] delay-200 pb-10">
       <!-- Skeletons mientras carga Firestore -->
       <div class="break-inside-avoid rounded-2xl aspect-[3/4] bg-gray-100 animate-pulse mb-4"></div>
       <div class="break-inside-avoid rounded-2xl aspect-[4/5] bg-gray-100 animate-pulse mb-4"></div>
@@ -105,10 +112,10 @@
         <span class="text-[10px] font-bold mt-0.5">Lookbook</span>
       </a>
       
-      <!-- Perfil (Inactivo) -->
-      <a href="/admin/" class="flex flex-col items-center gap-1.5 text-gray-400 hover:text-brand-text transition-colors group">
-        <i class="ph ph-user text-2xl group-hover:scale-105 group-active:scale-95 transition-transform"></i>
-        <span class="text-[10px] font-semibold">Admin</span>
+      <!-- Historial (Inactivo) -->
+      <a href="historial.html" class="flex flex-col items-center gap-1.5 text-gray-400 hover:text-brand-text transition-colors group">
+        <i class="ph ph-clock-counter-clockwise text-2xl group-hover:scale-105 group-active:scale-95 transition-transform"></i>
+        <span class="text-[10px] font-semibold">Historial</span>
       </a>
     </nav>
   </div>
@@ -156,20 +163,55 @@
   </div>
 
   <script>
-    // ── Cargar fotos desde Firestore ─────────────────────────────
-    // Alterna aspect ratios para el efecto masonry natural
     const RATIOS = ['aspect-[3/4]', 'aspect-[4/5]', 'aspect-square', 'aspect-[2/3]', 'aspect-[3/4]', 'aspect-[4/5]'];
+    const FALLBACK_CATS = ['Fade', 'Clásico', 'Barba', 'Degradado', 'Diseño'];
 
-    const _lbTid = window.CURRENT_TENANT_ID || 'elegance';
-    const _lbCol = _lbTid === 'elegance'
-      ? db.collection('lookbook')
-      : db.collection('tenants').doc(_lbTid).collection('lookbook');
-    _lbCol.orderBy('order', 'asc').onSnapshot(snap => {
+    let _lbDocs = [];
+    let _activeFilter = 'todos';
+    let currentActiveCard = null;
+
+    function esc(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    }
+
+    // ── Filtros ────────────────────────────────────────────────────
+    function buildFilters(docs) {
+      const cats = [...new Set(docs.map(d => d.categoria).filter(Boolean))].sort();
+      const all  = cats.length ? ['Todos', ...cats] : ['Todos', ...FALLBACK_CATS];
+      const bar  = document.getElementById('filterBar');
+      bar.innerHTML = all.map((cat, i) => {
+        const key = i === 0 ? 'todos' : cat;
+        return `<button class="filter-pill${i === 0 ? ' active' : ''}" data-cat="${esc(key)}"
+          onclick="setFilter('${esc(key)}',this)">${esc(cat)}</button>`;
+      }).join('');
+    }
+
+    function setFilter(cat, el) {
+      _activeFilter = cat;
+      document.querySelectorAll('.filter-pill').forEach(b => b.classList.remove('active'));
+      el.classList.add('active');
+      renderGrid();
+    }
+
+    // ── Render grid ────────────────────────────────────────────────
+    function renderGrid() {
       const grid = document.getElementById('lookbookGrid');
       if (!grid) return;
 
-      if (snap.empty) {
-        // Sin fotos: mostrar los placeholders originales como fallback estético
+      const visible = _activeFilter === 'todos'
+        ? _lbDocs
+        : _lbDocs.filter(d => (d.categoria || '') === _activeFilter);
+
+      const countEl = document.getElementById('photo-count');
+      if (countEl) {
+        if (_lbDocs.length === 0) countEl.textContent = '';
+        else if (visible.length < _lbDocs.length)
+          countEl.textContent = `${visible.length}/${_lbDocs.length} fotos`;
+        else
+          countEl.textContent = `${_lbDocs.length} foto${_lbDocs.length !== 1 ? 's' : ''}`;
+      }
+
+      if (_lbDocs.length === 0) {
         grid.innerHTML = `
           <div class="break-inside-avoid relative rounded-2xl overflow-hidden shadow-sm border border-gray-100 mb-4">
             <div class="w-full aspect-[3/4] bg-gradient-to-br from-gray-100 to-gray-200 flex flex-col items-center justify-center text-gray-300">
@@ -185,76 +227,75 @@
         return;
       }
 
-      grid.innerHTML = snap.docs.map((doc, i) => {
-        const { url } = doc.data();
-        const ratio   = RATIOS[i % RATIOS.length];
+      if (visible.length === 0) {
+        grid.innerHTML = `
+          <div class="break-inside-avoid col-span-2 flex flex-col items-center py-16 text-gray-400">
+            <i class="ph ph-image text-4xl mb-3 opacity-30"></i>
+            <p class="text-sm font-medium">Sin fotos en esta categoría</p>
+          </div>`;
+        return;
+      }
+
+      grid.innerHTML = visible.map((d, i) => {
+        const { url, titulo, categoria } = d;
+        const ratio     = RATIOS[i % RATIOS.length];
+        const label     = titulo || categoria || 'Elegance';
         return `
           <div class="break-inside-avoid relative rounded-2xl overflow-hidden group active:scale-[0.97] transition-transform cursor-pointer shadow-sm border border-gray-100 mb-4"
-               onclick="openStyleCard(this, 'Corte Elegance')">
+               onclick="openStyleCard(this,'${esc(label)}')">
             <div class="w-full ${ratio} bg-gray-100 overflow-hidden">
-              <img src="${url}" loading="lazy"
+              <img src="${esc(url)}" loading="lazy"
                    class="w-full h-full object-cover"
                    onerror="this.parentElement.parentElement.remove()">
             </div>
             <div class="style-overlay absolute inset-0 bg-black/60 opacity-0 transition-opacity duration-300 z-10"></div>
             <div class="absolute bottom-3 left-3 bg-white/95 backdrop-blur text-brand-text text-[10px] font-bold px-3 py-1.5 rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.1)] border border-white z-20">
-              <span class="tracking-wide uppercase">Elegance</span>
+              <span class="tracking-wide uppercase">${esc(label)}</span>
             </div>
           </div>`;
       }).join('');
+    }
+
+    // ── Cargar desde Firestore ─────────────────────────────────────
+    const _lbTid = window.CURRENT_TENANT_ID || 'elegance';
+    const _lbCol = _lbTid === 'elegance'
+      ? db.collection('lookbook')
+      : db.collection('tenants').doc(_lbTid).collection('lookbook');
+
+    _lbCol.orderBy('order', 'asc').onSnapshot(snap => {
+      _lbDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      buildFilters(_lbDocs);
+      renderGrid();
     });
 
-    let currentActiveCard = null;
-
-    // Abrir el Bottom Sheet
+    // ── Bottom Sheet ───────────────────────────────────────────────
     function openStyleCard(cardElement, styleName) {
-        // Limpiamos overlays previos por seguridad
-        document.querySelectorAll('.style-overlay').forEach(el => {
-            el.classList.remove('opacity-100');
-        });
-
-        currentActiveCard = cardElement;
-        
-        // Oscurecer la imagen clickeada específicamente
-        let overlay = cardElement.querySelector('.style-overlay');
-        overlay.classList.add('opacity-100'); // Aplica el oscurecimiento
-
-        // Actualizar datos de la interfaz del Sheet
-        document.getElementById('sheetTitle').innerText = styleName;
-
-        // Mostrar Backdrop con blur y oscurecimiento
-        document.getElementById('backdrop').classList.remove('opacity-0', 'pointer-events-none');
-        
-        // Subir el Bottom Sheet con transición "spring"
-        document.getElementById('bottomSheet').classList.remove('translate-y-full');
+      document.querySelectorAll('.style-overlay').forEach(el => el.classList.remove('opacity-100'));
+      currentActiveCard = cardElement;
+      cardElement.querySelector('.style-overlay').classList.add('opacity-100');
+      document.getElementById('sheetTitle').innerText = styleName;
+      document.getElementById('backdrop').classList.remove('opacity-0', 'pointer-events-none');
+      document.getElementById('bottomSheet').classList.remove('translate-y-full');
     }
 
-    // Cerrar el Bottom Sheet
     function closeStyleCard() {
-        // Ocultar Backdrop
-        document.getElementById('backdrop').classList.add('opacity-0', 'pointer-events-none');
-        
-        // Bajar el Bottom Sheet
-        document.getElementById('bottomSheet').classList.add('translate-y-full');
-
-        // Quitar oscurecimiento de la tarjeta en la galería
-        if(currentActiveCard) {
-            let overlay = currentActiveCard.querySelector('.style-overlay');
-            overlay.classList.remove('opacity-100');
-            currentActiveCard = null;
-        }
+      document.getElementById('backdrop').classList.add('opacity-0', 'pointer-events-none');
+      document.getElementById('bottomSheet').classList.add('translate-y-full');
+      if (currentActiveCard) {
+        currentActiveCard.querySelector('.style-overlay').classList.remove('opacity-100');
+        currentActiveCard = null;
+      }
     }
 
-    // Lógica para botón Favorito/Like (Opcional visual)
     function toggleLike(btn) {
-       let heart = btn.querySelector('i');
-       if(heart.classList.contains('text-red-500')) {
-          heart.classList.remove('text-red-500');
-          btn.classList.remove('border-red-100', 'bg-red-50');
-       } else {
-          heart.classList.add('text-red-500');
-          btn.classList.add('border-red-100', 'bg-red-50');
-       }
+      const heart = btn.querySelector('i');
+      if (heart.classList.contains('text-red-500')) {
+        heart.classList.remove('text-red-500');
+        btn.classList.remove('border-red-100', 'bg-red-50');
+      } else {
+        heart.classList.add('text-red-500');
+        btn.classList.add('border-red-100', 'bg-red-50');
+      }
     }
   </script>
 
