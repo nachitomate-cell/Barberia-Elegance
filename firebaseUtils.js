@@ -250,8 +250,16 @@ const FDB = (() => {
 
   async function getConfigBarbero(barberoid) {
     try {
-      const snap = await _barberConfigRef(barberoid).get();
-      return snap.exists ? { ..._defaultConfig(), ...snap.data() } : _defaultConfig();
+      // Leer en paralelo: subcol configuracion/main (horarioInicio, intervalo…)
+      // y doc principal del barbero (horario por día gestionado desde Equipo).
+      const [cfgSnap, barbSnap] = await Promise.all([
+        _barberConfigRef(barberoid).get(),
+        tenantCol(COL.BARBEROS).doc(barberoid).get(),
+      ]);
+      const cfgData  = cfgSnap.exists  ? cfgSnap.data()  : {};
+      const barbData = barbSnap.exists ? barbSnap.data() : {};
+      // horario del doc principal tiene precedencia sobre configuracion/main
+      return { ..._defaultConfig(), ...cfgData, ...(barbData.horario ? { horario: barbData.horario } : {}) };
     } catch (e) {
       console.error('[FDB] getConfigBarbero:', e);
       return _defaultConfig();
@@ -263,8 +271,16 @@ const FDB = (() => {
   }
 
   function onConfigBarberoChange(barberoid, callback) {
-    return _barberConfigRef(barberoid).onSnapshot(snap => {
-      callback(snap.exists ? { ..._defaultConfig(), ...snap.data() } : _defaultConfig());
+    // Escuchar cambios en la subcol; fusionar con horario del doc del barbero al disparar.
+    return _barberConfigRef(barberoid).onSnapshot(async snap => {
+      try {
+        const barbSnap = await tenantCol(COL.BARBEROS).doc(barberoid).get();
+        const barbData = barbSnap.exists ? barbSnap.data() : {};
+        const cfgData  = snap.exists ? snap.data() : {};
+        callback({ ..._defaultConfig(), ...cfgData, ...(barbData.horario ? { horario: barbData.horario } : {}) });
+      } catch(_) {
+        callback(snap.exists ? { ..._defaultConfig(), ...snap.data() } : _defaultConfig());
+      }
     }, err => console.error('[FDB] onConfigBarberoChange:', err));
   }
 
