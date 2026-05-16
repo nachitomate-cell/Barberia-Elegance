@@ -1218,19 +1218,18 @@ document.getElementById('shopClubName').textContent   = SHOP.club;
   const wm = document.getElementById('membershipWatermark');
   if (wm) wm.textContent = isGitana ? 'G' : isFerraza ? 'F' : isMapu ? 'M' : isChameleon ? 'C' : 'É';
 
-  // PWA install icons — por tenant
-  const _pwaIconMap = {
-    elegance:       { src: '/logo.jpg',   alt: 'Elegance'  },
-    ferraza:        { src: '/local1.jpg', alt: 'Ferraza'   },
-    gitana:         { src: '/local2.jpg', alt: 'Gitana'    },
-    mapubarbershop: { src: '/mapu2.png',  alt: 'Mapu'      },
-    chameleon:      { src: '/local3.jpg', alt: 'Chameleon' },
-    deluxeperfumes: { src: '/logo5.jpg',  alt: 'Deluxe'    },
-  };
-  const _pwaIconCfg = _pwaIconMap[tid] || _pwaIconMap.elegance;
-  ['pwaBigIcon', 'pwaBannerIcon', 'pwaModalIcon'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) { el.src = _pwaIconCfg.src; el.alt = _pwaIconCfg.alt; }
+  // PWA install icons — usa SHOP.logo como fuente única de verdad (config.js).
+  // pwaBigIcon está antes del script en el DOM → se puede actualizar ya.
+  // pwaBannerIcon y pwaModalIcon están después → necesitan DOMContentLoaded.
+  const _pwaLogoSrc = window.SHOP?.logo || '/logo.jpg';
+  const _pwaLogoAlt = window.SHOP?.nombreCorto || 'App';
+  const _pwaBigEl = document.getElementById('pwaBigIcon');
+  if (_pwaBigEl) { _pwaBigEl.src = _pwaLogoSrc; _pwaBigEl.alt = _pwaLogoAlt; }
+  document.addEventListener('DOMContentLoaded', function () {
+    ['pwaBannerIcon', 'pwaModalIcon'].forEach(function (id) {
+      const el = document.getElementById(id);
+      if (el) { el.src = _pwaLogoSrc; el.alt = _pwaLogoAlt; }
+    });
   });
 })();
 
@@ -2652,6 +2651,10 @@ document.getElementById('sfFileInput').addEventListener('change', async function
     });
 
     function mostrarBannerPWA() {
+      const _logo = window.SHOP?.logo || '/logo.jpg';
+      const _alt  = window.SHOP?.nombreCorto || 'App';
+      const icon = document.getElementById('pwaBannerIcon');
+      if (icon) { icon.src = _logo; icon.alt = _alt; }
       // Pequeño delay para no aparecer encima del loading
       setTimeout(() => {
         document.getElementById('pwaBanner').classList.remove('hidden');
@@ -2815,6 +2818,10 @@ document.getElementById('sfFileInput').addEventListener('change', async function
 
     function instalarPWA() {
       if (_isIOS_PWA) {
+        const _logo = window.SHOP?.logo || '/logo.jpg';
+        const _alt  = window.SHOP?.nombreCorto || 'App';
+        const icon = document.getElementById('pwaModalIcon');
+        if (icon) { icon.src = _logo; icon.alt = _alt; }
         document.getElementById('pwaModalIOS').classList.remove('hidden');
         return;
       }

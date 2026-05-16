@@ -238,6 +238,12 @@ const TENANT_META = {
   },
 };
 
+function mimeFromSrc(src) {
+  if (src.endsWith('.png'))  return 'image/png';
+  if (src.endsWith('.webp')) return 'image/webp';
+  return 'image/jpeg';
+}
+
 function getPageType(pathname) {
   if (pathname.startsWith('/dashboard')) return 'dashboard';
   if (pathname.startsWith('/registro'))  return 'registro';
@@ -317,6 +323,7 @@ export default async function middleware(request) {
       categories:  ['lifestyle', 'beauty'],
       author:      'SynapTech SpA',
       icons: [
+        { src: meta.icon, sizes: 'any', type: mimeFromSrc(meta.icon), purpose: 'any maskable' },
         { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
         { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
       ],
