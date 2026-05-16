@@ -1,4 +1,4 @@
-// BarberTV.jsx — Digital Signage TV para barbería
+// BarberTV.jsx — Digital Signage Premium para la barbería
 // Ruta: /gestion-interna/tv (sin AdminLayout)
 
 import { useState, useEffect, useRef, useCallback } from 'react';
@@ -10,22 +10,22 @@ import { tenantCol, tenantDoc, resolveTenantId }    from '../lib/tenantUtils';
 
 // ── Constantes ────────────────────────────────────────────────────
 const TENANT_ACCENT = { ferraza: '#e2e8f0' };
-let GOLD    = '#D4AF37';
-const VGREEN = '#00E676';
-const SLIDE_MS = 15_000;
-const PHOTO_MS = 3_000;
+let GOLD            = '#D4AF37';
+const SLIDE_MS     = 15_000;
+const PHOTO_MS     = 3_000;
+const SLIDE_LABELS = ['Oferta', 'Trabajos', 'Equipo'];
 
 const OFERTA_DEFAULT = {
   etiqueta:    'Oferta del Mes',
   titulo1:     'Corte',
   titulo2:     '+ Barba',
   descripcion: 'Lunes a Miércoles — precio especial\npara clientes frecuentes del local.',
-  cta:         'Consulta detalles en caja',
+  cta:         'Consulta en caja',
 };
 
 function lsCitasKey(tid) { return `barber_tv_citas_${tid}`; }
 
-// ── Partículas flotantes ──────────────────────────────────────────
+// ── Partículas flotantes (posiciones deterministas) ───────────────
 const PARTICLE_DATA = Array.from({ length: 22 }, (_, i) => ({
   id:    i,
   x:     ((i * 23 + 7)  % 90) + 5,
@@ -40,7 +40,9 @@ function FloatingParticles() {
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden">
       {PARTICLE_DATA.map(p => (
-        <motion.div key={p.id} className="absolute rounded-full"
+        <motion.div
+          key={p.id}
+          className="absolute rounded-full"
           style={{ left: `${p.x}%`, top: `${p.y}%`, width: p.size, height: p.size, background: GOLD }}
           animate={{ y: [0, -p.rise, 0], opacity: [0, 0.45, 0], scale: [0.5, 1.2, 0.5] }}
           transition={{ duration: p.dur, delay: p.delay, repeat: Infinity, ease: 'easeInOut' }}
@@ -50,45 +52,27 @@ function FloatingParticles() {
   );
 }
 
-// ── Barra de progreso individual (Instagram story) ────────────────
-function StoryBarProgress({ slideKey, paused, duration }) {
+// ── Barra de progreso del slide ───────────────────────────────────
+function SlideProgressBar({ slideKey, duration, paused }) {
   const [pct, setPct] = useState(0);
   useEffect(() => {
     setPct(0);
     if (paused) return;
     const start = Date.now();
-    const id = setInterval(() => setPct(Math.min(((Date.now() - start) / duration) * 100, 100)), 80);
+    const id = setInterval(() => {
+      setPct(Math.min(((Date.now() - start) / duration) * 100, 100));
+    }, 80);
     return () => clearInterval(id);
   }, [slideKey, paused, duration]);
-  return <div style={{ height: '100%', width: `${pct}%`, background: GOLD, borderRadius: 4 }} />;
-}
 
-// ── Story bars (reemplaza SlideIndicators + SlideProgressBar) ──────
-function StoryBars({ defs, active, paused, duration, onChange }) {
   return (
-    <div className="absolute top-0 left-0 right-0 z-20 px-10 pt-5 pointer-events-none">
-      <div className="flex gap-2 mb-2">
-        {defs.map((def, i) => (
-          <div key={def.key} className="flex-1 h-1.5 rounded-full overflow-hidden pointer-events-auto cursor-pointer"
-            style={{ background: 'rgba(255,255,255,0.12)' }}
-            onClick={e => { e.stopPropagation(); onChange(i); }}
-          >
-            {i < active
-              ? <div style={{ height: '100%', width: '100%', background: GOLD, borderRadius: 4 }} />
-              : i === active
-              ? <StoryBarProgress slideKey={active} paused={paused} duration={duration} />
-              : null}
-          </div>
-        ))}
-      </div>
-      <div className="flex gap-2">
-        {defs.map((def, i) => (
-          <div key={def.key} className="flex-1 text-center font-black uppercase"
-            style={{ fontSize: '0.5rem', letterSpacing: '0.25em', color: i === active ? GOLD : 'rgba(255,255,255,0.2)' }}>
-            {def.label}
-          </div>
-        ))}
-      </div>
+    <div className="absolute bottom-0 left-0 right-0 h-[2px] z-20" style={{ background: 'rgba(255,255,255,0.04)' }}>
+      <div style={{
+        height: '100%',
+        width: `${pct}%`,
+        background: `linear-gradient(to right, ${GOLD}77, ${GOLD})`,
+        boxShadow: `0 0 6px rgba(212,175,55,0.45)`,
+      }} />
     </div>
   );
 }
@@ -98,31 +82,38 @@ function BottomTicker({ servicios }) {
   const ref = useRef(null);
   const [offset, setOffset] = useState(null);
 
-  const items   = servicios.filter(s => s.nombre && s.activo !== false);
+  const items  = servicios.filter(s => s.nombre && s.activo !== false);
   const content = items
     .map(s => `✦  ${s.nombre}${s.precio ? `  ·  $${Number(s.precio).toLocaleString('es-CL')}` : ''}`)
     .join('          ');
 
   useEffect(() => {
     if (!ref.current || !content) return;
-    const t = setTimeout(() => { if (ref.current) setOffset(ref.current.scrollWidth / 2); }, 250);
+    const t = setTimeout(() => {
+      if (ref.current) setOffset(ref.current.scrollWidth / 2);
+    }, 250);
     return () => clearTimeout(t);
   }, [content]);
 
   if (!items.length) return null;
-  const duration = Math.max(25, content.length * 0.11);
+
+  const duration = Math.max(22, content.length * 0.1);
 
   return (
-    <div className="shrink-0 overflow-hidden relative"
-      style={{ height: '3.5rem', borderTop: '1px solid rgba(212,175,55,0.10)', background: 'rgba(212,175,55,0.02)' }}>
-      <div className="absolute inset-y-0 left-0 w-24 z-10 pointer-events-none"
-        style={{ background: 'linear-gradient(to right, #000, transparent)' }} />
-      <div className="absolute inset-y-0 right-0 w-24 z-10 pointer-events-none"
-        style={{ background: 'linear-gradient(to left, #000, transparent)' }} />
+    <div
+      className="shrink-0 overflow-hidden relative"
+      style={{ height: '2.25rem', borderTop: '1px solid rgba(212,175,55,0.07)', background: 'rgba(212,175,55,0.015)' }}
+    >
+      <div className="absolute inset-y-0 left-0 w-16 z-10 pointer-events-none"
+        style={{ background: 'linear-gradient(to right, #050505, transparent)' }} />
+      <div className="absolute inset-y-0 right-0 w-16 z-10 pointer-events-none"
+        style={{ background: 'linear-gradient(to left, #050505, transparent)' }} />
+
       <div className="relative h-full flex items-center overflow-hidden">
-        <motion.div ref={ref}
-          className="absolute flex whitespace-nowrap font-black"
-          style={{ color: `${GOLD}99`, fontSize: '1.05rem', letterSpacing: '0.2em' }}
+        <motion.div
+          ref={ref}
+          className="absolute flex whitespace-nowrap text-[11px] font-semibold tracking-[0.25em]"
+          style={{ color: `${GOLD}66` }}
           animate={offset ? { x: [0, -offset] } : {}}
           transition={{ duration, repeat: Infinity, ease: 'linear', repeatType: 'loop' }}
         >
@@ -134,7 +125,7 @@ function BottomTicker({ servicios }) {
   );
 }
 
-// ── Reloj digital (solo HH:MM, sin segundos) ──────────────────────
+// ── Reloj con fecha ───────────────────────────────────────────────
 function DigitalClock() {
   const [now, setNow] = useState(new Date());
   useEffect(() => {
@@ -143,149 +134,161 @@ function DigitalClock() {
   }, []);
   const pad   = n => String(n).padStart(2, '0');
   const hora  = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
-  const raw   = now.toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' });
-  const fecha = raw.charAt(0).toUpperCase() + raw.slice(1);
+  const secs  = pad(now.getSeconds());
+  const fecha = now.toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' });
 
   return (
     <div className="text-right">
-      <div className="font-mono font-black text-white leading-none"
-        style={{ fontSize: 'clamp(3.5rem,6vw,5.5rem)' }}>
-        {hora}
+      <div className="flex items-end justify-end gap-1">
+        <span className="font-mono font-black text-white leading-none" style={{ fontSize: 'clamp(2.5rem,5vw,4rem)' }}>
+          {hora}
+        </span>
+        <motion.span
+          className="font-mono font-black leading-none pb-1"
+          style={{ fontSize: 'clamp(1.25rem,2.5vw,2rem)', color: GOLD }}
+          animate={{ opacity: [1, 0.2, 1] }}
+          transition={{ duration: 1, repeat: Infinity, ease: 'easeInOut' }}
+        >
+          :{secs}
+        </motion.span>
       </div>
-      <p className="font-semibold text-gray-400 mt-2" style={{ fontSize: 'clamp(0.85rem,1.3vw,1.2rem)' }}>
-        {fecha}
-      </p>
+      <p className="text-gray-500 text-sm tracking-wide capitalize mt-1">{fecha}</p>
     </div>
   );
 }
 
-// ── Panel de turnos ───────────────────────────────────────────────
+// ── Panel de turnos (Opción A) ────────────────────────────────────
 function AppointmentPanel({ citas, totalHoy, completadasHoy, offline }) {
   const [enSillon, ...siguientes] = citas.slice(0, 5);
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
 
-      {/* Stats */}
-      <div className="px-6 pt-6 pb-5 shrink-0">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="w-1.5 h-7 rounded-full shrink-0" style={{ background: GOLD }} />
-          <span className="font-black uppercase text-gray-400"
-            style={{ fontSize: '0.65rem', letterSpacing: '0.35em' }}>
-            Agenda de Hoy
-          </span>
-          {offline && <span className="ml-auto text-yellow-700 uppercase font-bold" style={{ fontSize: '0.55rem', letterSpacing: '0.2em' }}>offline</span>}
+      {/* ── Stats strip ─────────────────────────── */}
+      <div className="px-5 pt-5 pb-4 shrink-0">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="w-1 h-5 rounded-full shrink-0" style={{ background: GOLD }} />
+          <span className="text-[10px] font-black tracking-[0.4em] uppercase text-gray-400">Agenda de Hoy</span>
+          {offline && <span className="ml-auto text-[8px] text-yellow-700 tracking-widest uppercase">offline</span>}
         </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-2xl p-4 text-center"
-            style={{ background: 'rgba(212,175,55,0.06)', border: '1px solid rgba(212,175,55,0.12)' }}>
-            <p className="font-black text-white leading-none"
-              style={{ fontSize: 'clamp(2.5rem,4vw,4rem)' }}>{totalHoy}</p>
-            <p className="font-black uppercase text-gray-500 mt-2"
-              style={{ fontSize: '0.6rem', letterSpacing: '0.3em' }}>Total</p>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="rounded-xl p-3 text-center"
+            style={{ background: 'rgba(212,175,55,0.05)', border: '1px solid rgba(212,175,55,0.1)' }}>
+            <p className="font-black text-3xl text-white leading-none">{totalHoy}</p>
+            <p className="text-[9px] text-gray-600 uppercase tracking-widest mt-1">Total</p>
           </div>
-          <div className="rounded-2xl p-4 text-center"
-            style={{ background: 'rgba(0,230,118,0.06)', border: '1px solid rgba(0,230,118,0.16)' }}>
-            <p className="font-black leading-none"
-              style={{ fontSize: 'clamp(2.5rem,4vw,4rem)', color: VGREEN, textShadow: `0 0 24px ${VGREEN}66` }}>
-              {completadasHoy}
-            </p>
-            <p className="font-black uppercase mt-2"
-              style={{ fontSize: '0.6rem', letterSpacing: '0.3em', color: `${VGREEN}BB` }}>Listas</p>
+          <div className="rounded-xl p-3 text-center"
+            style={{ background: 'rgba(34,197,94,0.05)', border: '1px solid rgba(34,197,94,0.1)' }}>
+            <p className="font-black text-3xl text-green-400 leading-none">{completadasHoy}</p>
+            <p className="text-[9px] text-gray-600 uppercase tracking-widest mt-1">Listas</p>
           </div>
         </div>
       </div>
 
-      <div className="mx-6 h-px shrink-0" style={{ background: 'rgba(212,175,55,0.07)' }} />
+      <div className="mx-5 h-px shrink-0" style={{ background: 'rgba(212,175,55,0.06)' }} />
 
-      {/* Empty state */}
+      {/* ── Empty state ─────────────────────────── */}
       {citas.length === 0 ? (
-        <motion.div className="flex-1 flex flex-col items-center justify-center gap-6 p-6"
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6 }}>
-          <motion.div className="rounded-full flex items-center justify-center"
-            style={{
-              width: 'clamp(4.5rem,7vw,7rem)', height: 'clamp(4.5rem,7vw,7rem)',
-              fontSize: 'clamp(2.2rem,3.5vw,3.5rem)',
-              background: 'rgba(212,175,55,0.06)', border: '1px solid rgba(212,175,55,0.14)',
-            }}
-            animate={{ scale: [1, 1.05, 1] }}
-            transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}>
+        <motion.div
+          className="flex-1 flex flex-col items-center justify-center gap-4 p-5"
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6 }}
+        >
+          <motion.div
+            className="w-14 h-14 rounded-full flex items-center justify-center text-2xl"
+            style={{ background: 'rgba(212,175,55,0.06)', border: '1px solid rgba(212,175,55,0.12)' }}
+            animate={{ scale: [1, 1.06, 1] }}
+            transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+          >
             ✂️
           </motion.div>
-          <p className="font-bold text-gray-500 text-center leading-relaxed"
-            style={{ fontSize: 'clamp(1rem,1.5vw,1.4rem)' }}>
+          <p className="text-gray-600 text-sm font-semibold text-center leading-relaxed">
             Sin citas<br />pendientes
           </p>
-          <div className="flex flex-col items-center gap-3">
-            <motion.div className="w-3.5 h-3.5 rounded-full"
-              style={{ background: VGREEN, boxShadow: `0 0 14px ${VGREEN}, 0 0 30px ${VGREEN}55` }}
-              animate={{ opacity: [1, 0.3, 1], scale: [1, 1.4, 1] }}
+          <div className="flex flex-col items-center gap-1.5">
+            <motion.div
+              className="w-2.5 h-2.5 rounded-full"
+              style={{ background: '#22c55e' }}
+              animate={{ opacity: [1, 0.3, 1], scale: [1, 1.3, 1] }}
               transition={{ duration: 1.8, repeat: Infinity }}
             />
-            <p className="font-black uppercase text-center"
-              style={{
-                fontSize: 'clamp(1.2rem,2vw,2rem)',
-                color: VGREEN,
-                letterSpacing: '0.12em',
-                textShadow: `0 0 24px ${VGREEN}88`,
-              }}>
-              Sillón<br />Disponible
-            </p>
+            <p className="text-gray-700 text-[9px] tracking-widest uppercase">Sillón Disponible</p>
           </div>
         </motion.div>
       ) : (
-        <div className="flex-1 flex flex-col px-6 py-5 gap-5 overflow-hidden">
+        <div className="flex-1 flex flex-col px-5 py-4 gap-4 overflow-hidden">
 
           {/* En Sillón */}
           <div className="shrink-0">
-            <div className="flex items-center gap-2 mb-3">
-              <motion.span className="w-2.5 h-2.5 rounded-full" style={{ background: GOLD }}
+            <div className="flex items-center gap-2 mb-2">
+              <motion.span
+                className="w-2 h-2 rounded-full"
+                style={{ background: GOLD }}
                 animate={{ scale: [1, 1.45, 1], opacity: [1, 0.55, 1] }}
-                transition={{ duration: 2, repeat: Infinity }} />
-              <span className="font-black uppercase" style={{ fontSize: '0.6rem', letterSpacing: '0.4em', color: GOLD }}>
+                transition={{ duration: 2, repeat: Infinity }}
+              />
+              <span className="text-[9px] font-black tracking-[0.4em] uppercase" style={{ color: GOLD }}>
                 En Sillón
               </span>
             </div>
 
             <AnimatePresence mode="wait">
               {enSillon ? (
-                <motion.div key={enSillon.id}
-                  initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.4 }}
-                  className="rounded-2xl p-5 relative overflow-hidden"
-                  style={{ background: 'rgba(212,175,55,0.07)', border: `1px solid rgba(212,175,55,0.28)` }}>
+                <motion.div
+                  key={enSillon.id}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  transition={{ duration: 0.4 }}
+                  className="rounded-2xl p-4 relative overflow-hidden"
+                  style={{
+                    background: 'rgba(212,175,55,0.07)',
+                    border:     `1px solid rgba(212,175,55,0.3)`,
+                    boxShadow:  `0 0 30px rgba(212,175,55,0.06) inset`,
+                  }}
+                >
                   <div className="absolute top-0 left-0 right-0 h-px"
                     style={{ background: `linear-gradient(to right, transparent, ${GOLD}60, transparent)` }} />
+
+                  {/* Barbero avatar */}
                   {(enSillon.barbero || enSillon.barberoNombre) && (
                     <div className="flex items-center gap-2 mb-3">
-                      <div className="w-8 h-8 rounded-full flex items-center justify-center font-black shrink-0"
-                        style={{ background: 'rgba(212,175,55,0.15)', color: GOLD, fontSize: '0.75rem' }}>
+                      <div
+                        className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0"
+                        style={{ background: 'rgba(212,175,55,0.15)', color: GOLD }}
+                      >
                         {(enSillon.barbero || enSillon.barberoNombre)[0].toUpperCase()}
                       </div>
-                      <span className="font-semibold truncate" style={{ color: `${GOLD}AA`, fontSize: '0.9rem' }}>
+                      <span className="text-[10px] font-semibold truncate" style={{ color: `${GOLD}AA` }}>
                         {enSillon.barbero || enSillon.barberoNombre}
                       </span>
                     </div>
                   )}
-                  <p className="text-white font-black leading-tight truncate"
-                    style={{ fontSize: 'clamp(1.5rem,2.5vw,2.5rem)' }}>
+
+                  <p className="text-white font-black text-2xl leading-tight truncate">
                     {enSillon.clienteNombre || enSillon.nombre}
                   </p>
-                  <p className="text-gray-500 truncate mt-1" style={{ fontSize: '0.95rem' }}>
+                  <p className="text-gray-500 text-xs truncate mt-0.5">
                     {enSillon.servicioNombre || enSillon.servicio}
                   </p>
-                  <p className="font-mono font-bold mt-2" style={{ color: GOLD, fontSize: 'clamp(1.5rem,2.5vw,2.5rem)' }}>
+                  <p className="font-mono font-bold text-xl mt-2" style={{ color: GOLD }}>
                     {enSillon.hora}
                   </p>
                 </motion.div>
               ) : (
-                <motion.div key="empty-sillon" initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                  className="rounded-2xl p-5 flex items-center justify-between"
-                  style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                  <p className="font-semibold text-gray-600" style={{ fontSize: '1.05rem' }}>Sillón Disponible</p>
-                  <motion.div className="w-3 h-3 rounded-full"
-                    style={{ background: VGREEN, boxShadow: `0 0 10px ${VGREEN}` }}
-                    animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 1.5, repeat: Infinity }} />
+                <motion.div
+                  key="empty-sillon"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="rounded-2xl p-4 flex items-center justify-between"
+                  style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}
+                >
+                  <p className="text-gray-600 text-sm font-semibold">Sillón Disponible</p>
+                  <motion.div
+                    className="w-2 h-2 rounded-full"
+                    style={{ background: '#22c55e' }}
+                    animate={{ opacity: [1, 0.3, 1] }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                  />
                 </motion.div>
               )}
             </AnimatePresence>
@@ -293,45 +296,47 @@ function AppointmentPanel({ citas, totalHoy, completadasHoy, offline }) {
 
           {/* A continuación */}
           <div className="flex-1 overflow-hidden">
-            <p className="font-black uppercase text-gray-700 mb-3"
-              style={{ fontSize: '0.6rem', letterSpacing: '0.4em' }}>
+            <p className="text-[9px] font-black tracking-[0.4em] uppercase text-gray-700 mb-2.5">
               A continuación
             </p>
             {siguientes.length === 0 ? (
-              <p className="text-gray-700 font-semibold text-center mt-4" style={{ fontSize: '1rem' }}>
-                No hay más turnos
-              </p>
+              <p className="text-gray-800 text-sm text-center mt-4">No hay más turnos</p>
             ) : (
-              <div className="flex flex-col gap-2.5">
+              <div className="flex flex-col gap-2">
                 {siguientes.slice(0, 4).map((c, i) => (
-                  <motion.div key={c.id || i}
-                    initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }}
+                  <motion.div
+                    key={c.id || i}
+                    initial={{ opacity: 0, x: -12 }}
+                    animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: i * 0.08, duration: 0.3 }}
-                    className="flex items-center gap-3 rounded-xl px-4 py-3"
-                    style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
-                    <div className="rounded-full flex items-center justify-center font-black shrink-0"
-                      style={{ width: '2.25rem', height: '2.25rem', background: 'rgba(212,175,55,0.08)', color: GOLD, border: `1px solid rgba(212,175,55,0.14)`, fontSize: '0.85rem' }}>
+                    className="flex items-center gap-3 rounded-xl px-3 py-2.5"
+                    style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}
+                  >
+                    <div
+                      className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-black shrink-0"
+                      style={{ background: 'rgba(212,175,55,0.08)', color: GOLD, border: `1px solid rgba(212,175,55,0.14)` }}
+                    >
                       {i + 1}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-white font-bold truncate" style={{ fontSize: '1.05rem' }}>
+                      <p className="text-white font-semibold text-sm truncate">
                         {c.clienteNombre || c.nombre}
                       </p>
                       <div className="flex items-center gap-1.5 mt-0.5">
                         {(c.barbero || c.barberoNombre) && (
-                          <span className="w-4 h-4 rounded-full inline-flex items-center justify-center font-black shrink-0"
-                            style={{ background: 'rgba(212,175,55,0.1)', color: `${GOLD}AA`, fontSize: '0.6rem' }}>
+                          <span
+                            className="w-4 h-4 rounded-full inline-flex items-center justify-center text-[8px] font-black shrink-0"
+                            style={{ background: 'rgba(212,175,55,0.1)', color: `${GOLD}AA` }}
+                          >
                             {(c.barbero || c.barberoNombre)[0].toUpperCase()}
                           </span>
                         )}
-                        <p className="text-gray-600 truncate" style={{ fontSize: '0.85rem' }}>
+                        <p className="text-gray-600 text-[10px] truncate">
                           {c.servicioNombre || c.servicio || ''}
                         </p>
                       </div>
                     </div>
-                    <p className="font-mono font-bold shrink-0" style={{ color: GOLD, fontSize: '1.05rem' }}>
-                      {c.hora}
-                    </p>
+                    <p className="font-mono text-xs font-bold shrink-0" style={{ color: GOLD }}>{c.hora}</p>
                   </motion.div>
                 ))}
               </div>
@@ -351,35 +356,41 @@ function SlidePublicidad({ oferta }) {
 
   return (
     <div className="w-full h-full flex items-center justify-center p-20 relative">
+      {/* Gradientes de fondo */}
       <div className="absolute inset-0"
         style={{
           backgroundImage: `
-            radial-gradient(ellipse 80% 80% at 30% 60%, rgba(212,175,55,0.08) 0%, transparent 70%),
-            radial-gradient(ellipse 60% 60% at 80% 20%, rgba(212,175,55,0.05) 0%, transparent 60%)
+            radial-gradient(ellipse 80% 80% at 30% 60%, rgba(212,175,55,0.07) 0%, transparent 70%),
+            radial-gradient(ellipse 60% 60% at 80% 20%, rgba(212,175,55,0.04) 0%, transparent 60%)
           `,
         }}
       />
-      <div className="absolute inset-0 opacity-[0.02]"
+      <div className="absolute inset-0 opacity-[0.025]"
         style={{
           backgroundImage: 'linear-gradient(rgba(255,255,255,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.5) 1px, transparent 1px)',
           backgroundSize: '60px 60px',
         }}
       />
+
+      {/* Partículas flotantes (Opción B) */}
       <FloatingParticles />
 
-      <div className="relative z-10 text-center max-w-4xl">
+      <div className="relative z-10 text-center max-w-3xl">
         <motion.p
-          className="font-black uppercase mb-8"
-          style={{ fontSize: 'clamp(0.7rem,1.1vw,1rem)', letterSpacing: '0.65em', color: GOLD }}
-          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
+          className="text-[10px] font-black tracking-[0.6em] uppercase mb-6"
+          style={{ color: GOLD }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
         >
           ✦ &nbsp; {o.etiqueta} &nbsp; ✦
         </motion.p>
 
         <motion.h2
-          className="font-black leading-[0.88] mb-10"
-          style={{ fontSize: 'clamp(6rem,14vw,12rem)' }}
-          initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+          className="font-black leading-[0.88] mb-8"
+          style={{ fontSize: 'clamp(5rem,12vw,9rem)' }}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.2, duration: 0.6 }}
         >
           <span className="text-white">{o.titulo1}</span>
@@ -388,27 +399,30 @@ function SlidePublicidad({ oferta }) {
         </motion.h2>
 
         <motion.p
-          className="font-light mb-12 leading-relaxed"
-          style={{ fontSize: 'clamp(1.3rem,2.2vw,2rem)', color: 'rgba(255,255,255,0.5)' }}
-          initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.45 }}
+          className="text-gray-400 text-xl font-light mb-12 leading-relaxed"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.45 }}
         >
           {lines.map((line, i) => (
             <span key={i}>{line}{i < lines.length - 1 && <br />}</span>
           ))}
         </motion.p>
 
-        {/* CTA: texto sin borde + flecha */}
         <motion.div
-          className="flex items-center justify-center gap-3"
-          initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.65 }}
+          className="inline-flex items-center gap-3 rounded-full px-10 py-4"
+          style={{
+            border:     `1px solid rgba(212,175,55,0.35)`,
+            background: 'rgba(212,175,55,0.05)',
+            boxShadow:  '0 0 40px rgba(212,175,55,0.1)',
+          }}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.65 }}
         >
-          <span className="font-bold tracking-widest"
-            style={{ color: GOLD, fontSize: 'clamp(1rem,1.6vw,1.5rem)' }}>
+          <span className="font-bold text-base tracking-widest" style={{ color: GOLD }}>
             {o.cta}
           </span>
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
-            <path d="M5 12h14M13 6l6 6-6 6" stroke={GOLD} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
         </motion.div>
       </div>
     </div>
@@ -441,19 +455,32 @@ function SlideLookbook({ photos }) {
   return (
     <div className="w-full h-full relative overflow-hidden">
       {photos.map((photo, i) => (
-        <motion.div key={photo.id || photo.url || i} className="absolute inset-0"
+        <motion.div
+          key={photo.id || photo.url || i}
+          className="absolute inset-0"
           animate={{ opacity: i === safe ? 1 : 0, scale: i === safe ? 1 : 1.03 }}
-          transition={{ duration: 0.55, ease: 'easeInOut' }}>
-          <img src={photo.url} alt="" className="absolute inset-0 w-full h-full object-cover"
-            style={{ filter: 'blur(28px) brightness(0.35)', transform: 'scale(1.1)' }} />
-          <img src={photo.url} alt="" className="absolute inset-0 w-full h-full object-contain" />
-          <div className="absolute inset-0"
-            style={{ background: 'linear-gradient(to bottom, rgba(5,5,5,0.3) 0%, transparent 18%, transparent 78%, rgba(5,5,5,0.5) 100%)' }} />
+          transition={{ duration: 0.55, ease: 'easeInOut' }}
+        >
+          <img
+            src={photo.url}
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover"
+            style={{ filter: 'blur(28px) brightness(0.35)', transform: 'scale(1.1)' }}
+          />
+          <img
+            src={photo.url}
+            alt=""
+            className="absolute inset-0 w-full h-full object-contain"
+          />
+          <div
+            className="absolute inset-0"
+            style={{ background: 'linear-gradient(to bottom, rgba(5,5,5,0.3) 0%, transparent 18%, transparent 78%, rgba(5,5,5,0.5) 100%)' }}
+          />
         </motion.div>
       ))}
 
-      <div className="absolute top-16 inset-x-0 z-10 text-center pointer-events-none">
-        <p className="font-black uppercase" style={{ color: GOLD, fontSize: '0.6rem', letterSpacing: '0.6em' }}>
+      <div className="absolute top-6 inset-x-0 z-10 text-center pointer-events-none">
+        <p className="text-[9px] font-black tracking-[0.6em] uppercase" style={{ color: GOLD }}>
           ✦ &nbsp; Nuestros Trabajos &nbsp; ✦
         </p>
       </div>
@@ -461,19 +488,22 @@ function SlideLookbook({ photos }) {
       {photos.length <= 15 && (
         <div className="absolute bottom-12 inset-x-0 z-10 flex justify-center items-center gap-2 pointer-events-none">
           {photos.map((_, i) => (
-            <div key={i} className="rounded-full transition-all duration-500"
+            <div
+              key={i}
+              className="rounded-full transition-all duration-500"
               style={{
                 width:      i === safe ? '1.5rem' : '0.375rem',
                 height:     '0.375rem',
                 background: i === safe ? `linear-gradient(to right, ${GOLD}, #FDE047)` : 'rgba(255,255,255,0.2)',
                 boxShadow:  i === safe ? `0 0 8px rgba(212,175,55,0.5)` : 'none',
-              }} />
+              }}
+            />
           ))}
         </div>
       )}
       {photos.length > 15 && (
         <div className="absolute bottom-12 right-8 z-10 pointer-events-none">
-          <span className="font-mono font-black" style={{ color: `${GOLD}AA`, fontSize: '1rem' }}>
+          <span className="font-mono text-sm font-black" style={{ color: `${GOLD}AA` }}>
             {safe + 1} / {photos.length}
           </span>
         </div>
@@ -482,7 +512,7 @@ function SlideLookbook({ photos }) {
   );
 }
 
-// ── Slide 3: Equipo ───────────────────────────────────────────────
+// ── Slide 3: Equipo (Opción C — cards con fondo) ──────────────────
 function SlideEquipo({ barberos, imageCache, skipAnimation }) {
   const team = barberos.slice(0, 8);
   const cols =
@@ -493,34 +523,55 @@ function SlideEquipo({ barberos, imageCache, skipAnimation }) {
   return (
     <div className="w-full h-full flex flex-col items-center justify-center p-10 relative">
       <div className="absolute inset-0"
-        style={{ backgroundImage: 'radial-gradient(ellipse 60% 60% at 50% 50%, rgba(212,175,55,0.04) 0%, transparent 70%)' }} />
-      <motion.p className="font-black uppercase text-center mb-8 relative z-10"
-        style={{ color: GOLD, fontSize: '0.6rem', letterSpacing: '0.6em' }}
-        initial={skipAnimation ? false : { opacity: 0 }} animate={{ opacity: 1 }}>
+        style={{ backgroundImage: 'radial-gradient(ellipse 60% 60% at 50% 50%, rgba(212,175,55,0.04) 0%, transparent 70%)' }}
+      />
+
+      <motion.p
+        className="text-[9px] font-black tracking-[0.6em] uppercase text-center mb-8 relative z-10"
+        style={{ color: GOLD }}
+        initial={skipAnimation ? false : { opacity: 0 }}
+        animate={{ opacity: 1 }}
+      >
         ✦ &nbsp; Nuestro Equipo &nbsp; ✦
       </motion.p>
+
       <div className={`grid ${cols} gap-5 w-full max-w-4xl relative z-10`}>
         {team.map((b, i) => {
           const resolvedUrl = imageCache[b.id] ?? null;
           const avatar      = (b.nombre || '?')[0].toUpperCase();
+
           return (
-            <motion.div key={b.id || i}
+            <motion.div
+              key={b.id || i}
               className="flex flex-col items-center text-center gap-3 rounded-2xl py-6 px-4"
-              style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(212,175,55,0.1)', boxShadow: '0 4px 24px rgba(0,0,0,0.25)' }}
-              initial={skipAnimation ? false : { opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-              transition={skipAnimation ? {} : { delay: i * 0.08, duration: 0.4 }}>
-              <div className="relative w-24 h-24 rounded-full overflow-hidden shrink-0"
-                style={{ border: `2px solid rgba(212,175,55,0.3)`, boxShadow: `0 0 20px rgba(212,175,55,0.1)` }}>
-                <div className="absolute inset-0 flex items-center justify-center text-3xl font-black select-none"
-                  style={{ background: 'rgba(212,175,55,0.08)', color: GOLD }}>
+              style={{
+                background: 'rgba(255,255,255,0.02)',
+                border:     '1px solid rgba(212,175,55,0.1)',
+                boxShadow:  '0 4px 24px rgba(0,0,0,0.25)',
+              }}
+              initial={skipAnimation ? false : { opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={skipAnimation ? {} : { delay: i * 0.08, duration: 0.4 }}
+            >
+              <div
+                className="relative w-24 h-24 rounded-full overflow-hidden shrink-0"
+                style={{ border: `2px solid rgba(212,175,55,0.3)`, boxShadow: `0 0 20px rgba(212,175,55,0.1)` }}
+              >
+                <div
+                  className="absolute inset-0 flex items-center justify-center text-3xl font-black select-none"
+                  style={{ background: 'rgba(212,175,55,0.08)', color: GOLD }}
+                >
                   {avatar}
                 </div>
                 {resolvedUrl && (
-                  <img src={resolvedUrl} alt={b.nombre}
+                  <img
+                    src={resolvedUrl}
+                    alt={b.nombre}
                     className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500"
                     style={{ opacity: 0 }}
                     onLoad={e => { e.currentTarget.style.opacity = '1'; }}
-                    onError={e => { e.currentTarget.style.display = 'none'; }} />
+                    onError={e => { e.currentTarget.style.display = 'none'; }}
+                  />
                 )}
               </div>
               <div>
@@ -532,7 +583,9 @@ function SlideEquipo({ barberos, imageCache, skipAnimation }) {
             </motion.div>
           );
         })}
-        {team.length === 0 && <p className="col-span-3 text-gray-700 text-center">Sin datos de equipo</p>}
+        {team.length === 0 && (
+          <p className="col-span-3 text-gray-700 text-center">Sin datos de equipo</p>
+        )}
       </div>
     </div>
   );
@@ -557,38 +610,55 @@ function SlideProductos({ productos, skipAnimation }) {
   return (
     <div className="w-full h-full flex flex-col items-center justify-center p-12 relative">
       <div className="absolute inset-0"
-        style={{ backgroundImage: 'radial-gradient(ellipse 60% 60% at 50% 50%, rgba(212,175,55,0.04) 0%, transparent 70%)' }} />
-      <motion.p className="font-black uppercase text-center mb-10 relative z-10"
-        style={{ color: GOLD, fontSize: '0.6rem', letterSpacing: '0.6em' }}
-        initial={skipAnimation ? false : { opacity: 0 }} animate={{ opacity: 1 }}>
+        style={{ backgroundImage: 'radial-gradient(ellipse 60% 60% at 50% 50%, rgba(212,175,55,0.04) 0%, transparent 70%)' }}
+      />
+      <motion.p
+        className="text-[9px] font-black tracking-[0.6em] uppercase text-center mb-10 relative z-10"
+        style={{ color: GOLD }}
+        initial={skipAnimation ? false : { opacity: 0 }}
+        animate={{ opacity: 1 }}
+      >
         ✦ &nbsp; Nuestros Productos &nbsp; ✦
       </motion.p>
+
       <div className={`grid ${cols} gap-6 w-full max-w-5xl relative z-10`}>
         {visible.map((p, i) => {
           const enStock = p.stock == null || Number(p.stock) > 0;
           return (
-            <motion.div key={p.id || i} className="flex flex-col rounded-2xl overflow-hidden"
+            <motion.div
+              key={p.id || i}
+              className="flex flex-col rounded-2xl overflow-hidden"
               style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid rgba(212,175,55,0.15)`, boxShadow: '0 4px 24px rgba(0,0,0,0.3)' }}
-              initial={skipAnimation ? false : { opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-              transition={skipAnimation ? {} : { delay: i * 0.07, duration: 0.4 }}>
+              initial={skipAnimation ? false : { opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={skipAnimation ? {} : { delay: i * 0.07, duration: 0.4 }}
+            >
               <div className="aspect-square bg-slate-950 overflow-hidden">
-                {p.imagen
-                  ? <img src={p.imagen} alt={p.nombre} className="w-full h-full object-cover" />
-                  : <div className="w-full h-full flex items-center justify-center" style={{ background: 'rgba(212,175,55,0.04)' }}>
-                      <span className="text-4xl opacity-20">🛍️</span>
-                    </div>}
+                {p.imagen ? (
+                  <img src={p.imagen} alt={p.nombre} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center" style={{ background: 'rgba(212,175,55,0.04)' }}>
+                    <span className="text-4xl opacity-20">🛍️</span>
+                  </div>
+                )}
               </div>
               <div className="px-4 py-3 flex flex-col gap-1">
                 <p className="text-white font-bold text-sm leading-tight truncate">{p.nombre}</p>
-                {p.precio
-                  ? <p className="font-black text-base" style={{ color: GOLD }}>${Number(p.precio).toLocaleString('es-CL')}</p>
-                  : <p className="text-xs italic" style={{ color: `${GOLD}88` }}>Consultar en el local</p>}
+                {p.precio ? (
+                  <p className="font-black text-base" style={{ color: GOLD }}>
+                    ${Number(p.precio).toLocaleString('es-CL')}
+                  </p>
+                ) : (
+                  <p className="text-xs italic" style={{ color: `${GOLD}88` }}>Consultar en el local</p>
+                )}
                 <div className="flex items-center gap-1.5 mt-0.5">
-                  <motion.div className="w-1.5 h-1.5 rounded-full shrink-0"
-                    style={{ background: enStock ? VGREEN : '#ef4444' }}
+                  <motion.div
+                    className="w-1.5 h-1.5 rounded-full shrink-0"
+                    style={{ background: enStock ? '#22c55e' : '#ef4444' }}
                     animate={enStock ? { opacity: [1, 0.4, 1], scale: [1, 1.3, 1] } : {}}
-                    transition={{ duration: 2, repeat: Infinity }} />
-                  <span className="text-[10px] font-semibold" style={{ color: enStock ? VGREEN : '#f87171' }}>
+                    transition={{ duration: 2, repeat: Infinity }}
+                  />
+                  <span className="text-[10px] font-semibold" style={{ color: enStock ? '#4ade80' : '#f87171' }}>
                     {enStock ? 'Disponible' : 'Sin stock'}
                   </span>
                 </div>
@@ -604,7 +674,7 @@ function SlideProductos({ productos, skipAnimation }) {
 // ── QR overlay ────────────────────────────────────────────────────
 function QrOverlay({ qrUrl, qrColor, qrSize }) {
   const color = qrColor || GOLD;
-  const size  = qrSize  || 180;
+  const size  = qrSize  || 160;
   const hexToRgb = h => {
     const r = parseInt(h.slice(1,3),16), g = parseInt(h.slice(3,5),16), b = parseInt(h.slice(5,7),16);
     return isNaN(r) ? '212,175,55' : `${r},${g},${b}`;
@@ -612,38 +682,73 @@ function QrOverlay({ qrUrl, qrColor, qrSize }) {
   const rgb = hexToRgb(color);
 
   return (
-    <div className="absolute bottom-8 right-8 z-20">
+    <div className="absolute bottom-6 right-6 z-20">
       <motion.div
-        className="rounded-3xl p-6 flex flex-col items-center gap-4 relative overflow-hidden"
-        style={{ background: 'rgba(5,5,5,0.92)', backdropFilter: 'blur(16px)', border: `1px solid rgba(${rgb},0.5)` }}
+        className="rounded-3xl p-5 flex flex-col items-center gap-3 relative overflow-hidden"
+        style={{ background: 'rgba(5,5,5,0.88)', backdropFilter: 'blur(16px)', border: `1px solid rgba(${rgb},0.5)` }}
         animate={{
           boxShadow: [
-            `0 0 20px rgba(${rgb},0.15), 0 0 60px rgba(${rgb},0.06)`,
-            `0 0 50px rgba(${rgb},0.45), 0 0 100px rgba(${rgb},0.18)`,
-            `0 0 20px rgba(${rgb},0.15), 0 0 60px rgba(${rgb},0.06)`,
+            `0 0 20px rgba(${rgb},0.12)`,
+            `0 0 45px rgba(${rgb},0.30)`,
+            `0 0 20px rgba(${rgb},0.12)`,
           ],
         }}
         transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
       >
         <div className="absolute inset-[3px] rounded-[20px] pointer-events-none"
-          style={{ border: `1px solid rgba(${rgb},0.18)` }} />
+          style={{ border: `1px solid rgba(${rgb},0.15)` }} />
 
         <motion.span
-          className="font-black uppercase text-center"
-          style={{ color, fontSize: 'clamp(0.8rem,1.2vw,1.1rem)', letterSpacing: '0.3em' }}
-          animate={{ textShadow: [`0 0 8px rgba(${rgb},0.3)`, `0 0 28px rgba(${rgb},0.95)`, `0 0 8px rgba(${rgb},0.3)`] }}
+          className="text-xs font-black tracking-[0.3em] uppercase"
+          style={{ color }}
+          animate={{ textShadow: [`0 0 8px rgba(${rgb},0.3)`, `0 0 20px rgba(${rgb},0.8)`, `0 0 8px rgba(${rgb},0.3)`] }}
           transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
         >
           ¡Únete al Club!
         </motion.span>
 
         <QRCodeSVG value={qrUrl} size={size} fgColor={color} bgColor="transparent" level="M" />
-
-        <p className="font-bold text-center"
-          style={{ color: 'rgba(180,180,180,0.85)', fontSize: 'clamp(0.8rem,1.1vw,1rem)', letterSpacing: '0.05em' }}>
-          Escanea y regístrate gratis
-        </p>
+        <p className="text-gray-600 text-[10px] tracking-wide">Escanea y regístrate gratis</p>
       </motion.div>
+    </div>
+  );
+}
+
+// ── Indicadores de slide ──────────────────────────────────────────
+function SlideIndicators({ labels, active, paused, onChange }) {
+  return (
+    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-end gap-5 z-10">
+      {labels.map((label, i) => (
+        <button key={i} onClick={e => { e.stopPropagation(); onChange(i); }}
+          className="flex flex-col items-center gap-1.5">
+          <span
+            className="text-[8px] font-black tracking-[0.3em] uppercase transition-all duration-500"
+            style={{ color: i === active ? GOLD : 'rgba(255,255,255,0.2)' }}
+          >
+            {label}
+          </span>
+          <div
+            className="h-1 rounded-full transition-all duration-500"
+            style={{
+              width:      i === active ? '3rem' : '1.5rem',
+              background: i === active ? `linear-gradient(to right, ${GOLD}, #FDE047)` : 'rgba(255,255,255,0.12)',
+              boxShadow:  i === active ? `0 0 8px rgba(212,175,55,0.5)` : 'none',
+            }}
+          />
+        </button>
+      ))}
+
+      <AnimatePresence>
+        {paused && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.7 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.7 }}
+            className="mb-1 w-5 h-5 rounded-full flex items-center justify-center"
+            style={{ background: 'rgba(212,175,55,0.12)', border: `1px solid rgba(212,175,55,0.35)` }}
+          >
+            <span style={{ fontSize: '9px', color: GOLD }}>⏸</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -652,7 +757,9 @@ function QrOverlay({ qrUrl, qrColor, qrSize }) {
 export default function BarberTV() {
   const { id: tenantId, name: tenantName, logo: tenantLogo } = useTenant();
 
-  useEffect(() => { document.title = `${tenantName} — TV`; }, [tenantName]);
+  useEffect(() => {
+    document.title = `${tenantName} — TV`;
+  }, [tenantName]);
 
   const [citas,          setCitas]          = useState(() => {
     try {
@@ -674,7 +781,7 @@ export default function BarberTV() {
   const [duracion,       setDuracion]       = useState(SLIDE_MS);
   const [slidesActivos,  setSlidesActivos]  = useState({ oferta: true, lookbook: true, equipo: true, productos: true });
   const [accentColor,    setAccentColor]    = useState('');
-  const [qrConfig,       setQrConfig]       = useState({ color: '', size: 180 });
+  const [qrConfig,       setQrConfig]       = useState({ color: '', size: 160 });
   const [backgroundUrl,  setBackgroundUrl]  = useState('');
 
   GOLD = accentColor || TENANT_ACCENT[tenantId] || '#D4AF37';
@@ -686,7 +793,7 @@ export default function BarberTV() {
 
   useEffect(() => { visitedRef.current.add(slide); }, [slide]);
 
-  // Citas de hoy
+  // Citas de hoy — carga TODAS para contar completadas + filtra activas en cliente
   useEffect(() => {
     const todayStr = new Date().toISOString().split('T')[0];
     const ACTIVE   = new Set(['Confirmada', 'confirmada', 'pendiente', 'Pendiente']);
@@ -721,14 +828,14 @@ export default function BarberTV() {
       .catch(() => {});
   }, [tenantId]);
 
-  // Servicios — ticker
+  // Servicios — para el ticker inferior
   useEffect(() => {
     getDocs(query(tenantCol('servicios'), orderBy('orden', 'asc')))
       .then(snap => setServicios(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
       .catch(() => {});
   }, [tenantId]);
 
-  // Config TV
+  // Configuración TV
   useEffect(() => {
     const ref = tenantDoc('configuracion', 'tv');
     return onSnapshot(ref, snap => {
@@ -750,7 +857,7 @@ export default function BarberTV() {
       .catch(() => {});
   }, [tenantId]);
 
-  // Caché fotos barberos
+  // Caché de fotos de barberos
   useEffect(() => {
     if (!barberos.length) return;
     setImageCache(prev => {
@@ -768,29 +875,44 @@ export default function BarberTV() {
   useEffect(() => {
     barberos.forEach(b => {
       const url = b.foto || b.fotoUrl;
-      if (url && !preloadedRef.current.has(url)) { preloadedRef.current.add(url); new Image().src = url; }
+      if (url && !preloadedRef.current.has(url)) {
+        preloadedRef.current.add(url);
+        new Image().src = url;
+      }
     });
   }, [barberos]);
   useEffect(() => {
     photos.forEach(p => {
-      if (p.url && !preloadedRef.current.has(p.url)) { preloadedRef.current.add(p.url); new Image().src = p.url; }
+      if (p.url && !preloadedRef.current.has(p.url)) {
+        preloadedRef.current.add(p.url);
+        new Image().src = p.url;
+      }
     });
   }, [photos]);
   useEffect(() => {
     productos.forEach(p => {
-      if (p.imagen && !preloadedRef.current.has(p.imagen)) { preloadedRef.current.add(p.imagen); new Image().src = p.imagen; }
+      if (p.imagen && !preloadedRef.current.has(p.imagen)) {
+        preloadedRef.current.add(p.imagen);
+        new Image().src = p.imagen;
+      }
     });
   }, [productos]);
 
   // Carrusel automático
   useEffect(() => {
     if (paused) return;
-    const id = setInterval(() => setSlide(s => (s + 1) % (activeCountRef.current || 1)), duracion);
+    const id = setInterval(
+      () => setSlide(s => (s + 1) % (activeCountRef.current || 1)),
+      duracion,
+    );
     return () => clearInterval(id);
   }, [paused, duracion]);
 
   const handleCarouselClick = useCallback(() => setPaused(p => !p), []);
-  const handleSlideChange   = useCallback(i => { visitedRef.current.add(i); setSlide(i); }, []);
+  const handleSlideChange   = useCallback(i => {
+    visitedRef.current.add(i);
+    setSlide(i);
+  }, []);
 
   const ALL_DEFS = [
     { key: 'oferta',    label: 'Oferta',    el: <SlidePublicidad key="pub"  oferta={oferta} /> },
@@ -802,43 +924,48 @@ export default function BarberTV() {
   const visibleDefs = activeDefs.length ? activeDefs : ALL_DEFS;
   activeCountRef.current = visibleDefs.length;
   const safeSlide   = Math.min(slide, visibleDefs.length - 1);
+  const slideLabels = visibleDefs.map(s => s.label);
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden flex flex-col select-none cursor-none"
-      style={{ background: '#000000' }}>
-
-      {/* Imagen de fondo */}
+    <div
+      className="relative w-screen h-screen overflow-hidden flex flex-col select-none cursor-none"
+      style={{ background: '#050505' }}
+    >
+      {/* ── Imagen de fondo ────────────────────────────────────── */}
       {backgroundUrl && (
         <>
-          <img src={backgroundUrl} alt="" aria-hidden="true"
+          <img
+            src={backgroundUrl}
+            alt=""
+            aria-hidden="true"
             className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
-            style={{ filter: 'brightness(0.22) saturate(0.65)', zIndex: 0 }} />
-          <div className="absolute inset-0 pointer-events-none"
-            style={{ background: 'rgba(0,0,0,0.55)', zIndex: 0 }} />
+            style={{ filter: 'brightness(0.25) saturate(0.65)', zIndex: 0 }}
+          />
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{ background: 'rgba(5,5,5,0.52)', zIndex: 0 }}
+          />
         </>
       )}
 
       {/* ── Header ─────────────────────────────────────────────── */}
-      <header className="flex items-center justify-between px-10 py-5 shrink-0 relative z-10"
-        style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+      <header
+        className="flex items-center justify-between px-10 py-5 shrink-0 relative z-10"
+        style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+      >
         <div className="absolute bottom-0 left-0 right-0 h-px"
-          style={{ background: 'linear-gradient(to right, transparent, rgba(212,175,55,0.28), transparent)' }} />
+          style={{ background: 'linear-gradient(to right, transparent, rgba(212,175,55,0.2), transparent)' }} />
 
-        <div className="flex items-center gap-5">
-          <div className="relative rounded-2xl overflow-hidden shrink-0"
-            style={{
-              width: 'clamp(3.5rem,5vw,5rem)', height: 'clamp(3.5rem,5vw,5rem)',
-              boxShadow: `0 0 28px rgba(212,175,55,0.28), 0 0 0 1px rgba(212,175,55,0.20)`,
-            }}>
+        <div className="flex items-center gap-4">
+          <div
+            className="relative w-12 h-12 rounded-2xl overflow-hidden"
+            style={{ boxShadow: `0 0 20px rgba(212,175,55,0.2), 0 0 0 1px rgba(212,175,55,0.15)` }}
+          >
             <img src={tenantLogo || '/logo.jpg'} alt={tenantName} className="w-full h-full object-cover" />
           </div>
           <div>
-            <div className="text-white font-black leading-none"
-              style={{ fontSize: 'clamp(1.4rem,2.5vw,2.5rem)' }}>
-              {tenantName}
-            </div>
-            <div className="font-black uppercase mt-1"
-              style={{ fontSize: 'clamp(0.55rem,0.9vw,0.85rem)', letterSpacing: '0.45em', color: GOLD }}>
+            <div className="text-white font-black text-xl tracking-tight leading-none">{tenantName}</div>
+            <div className="text-[9px] tracking-[0.4em] uppercase mt-0.5" style={{ color: GOLD }}>
               Premium Barbershop
             </div>
           </div>
@@ -850,9 +977,11 @@ export default function BarberTV() {
       {/* ── Body ───────────────────────────────────────────────── */}
       <div className="flex flex-1 min-h-0 overflow-hidden relative z-10">
 
-        {/* Panel turnos — 32% */}
-        <aside className="w-[32%] overflow-hidden shrink-0"
-          style={{ borderRight: '1px solid rgba(255,255,255,0.04)' }}>
+        {/* Panel turnos — 26% */}
+        <aside
+          className="w-[26%] overflow-hidden shrink-0"
+          style={{ borderRight: '1px solid rgba(255,255,255,0.04)' }}
+        >
           <AppointmentPanel
             citas={citas}
             totalHoy={totalHoy}
@@ -861,55 +990,48 @@ export default function BarberTV() {
           />
         </aside>
 
-        {/* Carrusel — 68% */}
+        {/* Carrusel — 74% */}
         <main className="flex-1 relative overflow-hidden" onClick={handleCarouselClick}>
           <div className="absolute inset-0"
-            style={{ background: 'radial-gradient(ellipse 100% 80% at 50% 100%, rgba(212,175,55,0.03) 0%, transparent 60%)' }} />
-
-          {/* Story bars */}
-          <StoryBars
-            defs={visibleDefs}
-            active={safeSlide}
-            paused={paused}
-            duration={duracion}
-            onChange={handleSlideChange}
+            style={{ background: 'radial-gradient(ellipse 100% 80% at 50% 100%, rgba(212,175,55,0.03) 0%, transparent 60%)' }}
           />
 
-          {/* Slides */}
+          {/* Slides — Opción C: parallax opacity+scale+x ─────── */}
           {visibleDefs.map((def, i) => {
             const isCurrent = i === safeSlide;
             return (
-              <motion.div key={def.key} className="absolute inset-0"
+              <motion.div
+                key={def.key}
+                className="absolute inset-0"
                 animate={{
                   opacity: isCurrent ? 1 : 0,
                   scale:   isCurrent ? 1 : 1.025,
                   x:       isCurrent ? '0%' : i < safeSlide ? '-3%' : '3%',
                 }}
                 transition={{ duration: 0.75, ease: [0.4, 0, 0.2, 1] }}
-                style={{ pointerEvents: isCurrent ? 'auto' : 'none' }}>
+                style={{ pointerEvents: isCurrent ? 'auto' : 'none' }}
+              >
                 {def.el}
               </motion.div>
             );
           })}
 
+          <SlideIndicators
+            labels={slideLabels}
+            active={safeSlide}
+            paused={paused}
+            onChange={handleSlideChange}
+          />
+
           <QrOverlay qrUrl={qrUrl} qrColor={qrConfig.color} qrSize={qrConfig.size} />
 
-          {/* Indicador pausa */}
-          <AnimatePresence>
-            {paused && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.7 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.7 }}
-                className="absolute bottom-8 left-1/2 -translate-x-1/2 w-9 h-9 rounded-full flex items-center justify-center z-10"
-                style={{ background: 'rgba(212,175,55,0.12)', border: `1px solid rgba(212,175,55,0.35)` }}>
-                <span style={{ fontSize: '13px', color: GOLD }}>⏸</span>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {/* Barra de progreso — Opción B ─────────────────────── */}
+          <SlideProgressBar slideKey={safeSlide} duration={duracion} paused={paused} />
         </main>
 
       </div>
 
-      {/* ── Ticker inferior ───────────────────────────────────── */}
+      {/* ── Ticker inferior de servicios — Opción B ────────────── */}
       <div className="relative z-10">
         <BottomTicker servicios={servicios} />
       </div>
