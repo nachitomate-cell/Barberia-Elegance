@@ -135,7 +135,26 @@ function CitaModal({ cita, barberos, servicios, defaultHora, defaultBarberoId, d
       const payload = { ...form, duracionServicio: form.duracion, fecha: dateStr, updatedAt: serverTimestamp() };
       if (isNew) {
         payload.creadoEn = serverTimestamp();
-        await addDoc(tenantCol('citas'), payload);
+        if (form.barberoId) {
+          const safeHora = (form.hora || '').replace(':', '');
+          const safeBid  = String(form.barberoId).replace(/[^a-zA-Z0-9_-]/g, '_');
+          const lockId   = `${safeBid}_${dateStr}_${safeHora}`;
+          const citaRef  = doc(tenantCol('citas'));
+          const lockRef  = doc(db, `${tenantCol('slotLocks').path}/${lockId}`);
+          const batch    = writeBatch(db);
+          batch.set(citaRef, { ...payload, slotLockId: lockId });
+          batch.set(lockRef, {
+            citaId:    citaRef.id,
+            fecha:     dateStr,
+            hora:      form.hora,
+            barberoId: form.barberoId,
+            duracion:  Number(form.duracion) || 30,
+            creadoEn:  serverTimestamp(),
+          });
+          await batch.commit();
+        } else {
+          await addDoc(tenantCol('citas'), { ...payload, slotLockId: null });
+        }
         onClose();
       } else {
         const yaEraCompletada = cita?.estado === 'Completada';
