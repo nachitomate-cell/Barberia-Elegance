@@ -39,6 +39,38 @@ const TIME_LABELS = Array.from({ length: TOTAL_SLOTS }, (_, i) => {
   return `${String(Math.floor(mins / 60)).padStart(2,'0')}:${String(mins % 60).padStart(2,'0')}`;
 });
 
+/* ── WhatsApp confirmation helpers ──────────────────────────── */
+const WA_SHOP_NAMES = {
+  elegance:       'Barbería Elegance',
+  ferraza:        'Barbería Ferraza',
+  chameleon:      'Chameleon Barber Studio',
+  mapubarbershop: 'Mapu Barber Shop',
+  gitana:         'Gitana Nails Studio',
+  deluxeperfumes: 'Deluxe Perfumes',
+};
+
+function buildWaConfirmMsg(tenantId, form, dateStr) {
+  const shop = WA_SHOP_NAMES[tenantId] || 'tu negocio';
+  const fechaFmt = dateStr
+    ? new Date(dateStr + 'T12:00:00').toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' })
+    : '';
+  return (
+    `Hola ${form.clienteNombre} 👋, te confirmamos tu cita en *${shop}*:\n\n` +
+    `📅 *Fecha:* ${fechaFmt}\n` +
+    `⏰ *Hora:* ${form.hora}\n` +
+    `✂️ *Servicio:* ${form.servicioNombre}\n` +
+    `💈 *Profesional:* ${form.barbero}\n\n` +
+    `¡Te esperamos! 🙌`
+  );
+}
+
+function waPhone(tel) {
+  const d = (tel || '').replace(/\D/g, '');
+  if (d.length === 9 && d.startsWith('9')) return '56' + d;
+  if (d.length === 11 && d.startsWith('56')) return d;
+  return d;
+}
+
 /* ── Modal shell ─────────────────────────────────────────────── */
 function Modal({ title, onClose, children, footer, maxW = 'max-w-md' }) {
   return (
@@ -58,6 +90,7 @@ function Modal({ title, onClose, children, footer, maxW = 'max-w-md' }) {
 /* ── CitaModal (create / edit) ───────────────────────────────── */
 function CitaModal({ cita, barberos, servicios, defaultHora, defaultBarberoId, dateStr, onClose, onComplete }) {
   const isNew = !cita;
+  const { id: tenantId } = useTenant();
   const defaultBarb = defaultBarberoId || barberos[0]?.id || '';
   const firstSvc = servicios[0];
   const [form, setForm] = useState({
@@ -160,7 +193,20 @@ function CitaModal({ cita, barberos, servicios, defaultHora, defaultBarberoId, d
         </div>
         <div>
           <label className={lbl}>Teléfono</label>
-          <input className={field} placeholder="+569..." value={form.clienteTelefono} onChange={e => set('clienteTelefono', e.target.value)} />
+          <div className="flex gap-1.5">
+            <input className={field} placeholder="+569..." value={form.clienteTelefono} onChange={e => set('clienteTelefono', e.target.value)} />
+            {form.clienteTelefono && (
+              <a
+                href={`https://wa.me/${waPhone(form.clienteTelefono)}?text=${encodeURIComponent(buildWaConfirmMsg(tenantId, form, dateStr))}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                title="Enviar confirmación por WhatsApp"
+                className="flex-shrink-0 flex items-center justify-center w-10 rounded-lg bg-emerald-600/15 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-600/30 hover:border-emerald-500/60 transition-colors"
+              >
+                <MessageSquare size={15} />
+              </a>
+            )}
+          </div>
         </div>
       </div>
       <div>
