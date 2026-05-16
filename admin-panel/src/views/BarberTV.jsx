@@ -755,7 +755,11 @@ function SlideIndicators({ labels, active, paused, onChange }) {
 
 // ── Componente principal ──────────────────────────────────────────
 export default function BarberTV() {
-  const { id: tenantId, name: tenantName } = useTenant();
+  const { id: tenantId, name: tenantName, logo: tenantLogo } = useTenant();
+
+  useEffect(() => {
+    document.title = `${tenantName} — TV`;
+  }, [tenantName]);
 
   const [citas,          setCitas]          = useState(() => {
     try {
@@ -957,7 +961,7 @@ export default function BarberTV() {
             className="relative w-12 h-12 rounded-2xl overflow-hidden"
             style={{ boxShadow: `0 0 20px rgba(212,175,55,0.2), 0 0 0 1px rgba(212,175,55,0.15)` }}
           >
-            <img src="/logo.jpg" alt="" className="w-full h-full object-cover" />
+            <img src={tenantLogo || '/logo.jpg'} alt={tenantName} className="w-full h-full object-cover" />
           </div>
           <div>
             <div className="text-white font-black text-xl tracking-tight leading-none">{tenantName}</div>
