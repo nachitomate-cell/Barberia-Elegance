@@ -634,3 +634,14 @@ const membresiaNotif = require('./membresia-notificaciones');
 exports.avisarVencimientoMembresia = membresiaNotif.avisarVencimientoMembresia;
 exports.notificarNuevoDecant       = membresiaNotif.notificarNuevoDecant;
 exports.notificarAnuncioChat       = membresiaNotif.notificarAnuncioChat;
+
+// ─────────────────────────────────────────────────────────────────
+//  INSTAGRAM SYNC — ver instagram-sync.js
+//  OAuth callback, cron cada 6h y sync manual desde admin panel.
+//  Requiere secret: INSTAGRAM_APP_SECRET
+//  App ID (no secreto): _system/instagram_app { appId: '...' }
+// ─────────────────────────────────────────────────────────────────
+const instagramSync = require('./instagram-sync');
+exports.instagramOAuthCallback   = instagramSync.instagramOAuthCallback;
+exports.instagramSyncScheduled   = instagramSync.instagramSyncScheduled;
+exports.instagramSyncManual      = instagramSync.instagramSyncManual;

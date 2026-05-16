@@ -1,0 +1,316 @@
+'use strict';
+
+// functions/instagram-sync.js
+// ─────────────────────────────────────────────────────────────────
+//  INSTAGRAM SYNC — importa posts al lookbook de Firestore.
+//
+//  Usa Instagram API with Instagram Login (reemplaza Basic Display API).
+//  Los docs creados tienen source='instagram' e instagramId para
+//  evitar duplicados en re-sincronizaciones.
+//
+//  SETUP (una vez por app de Meta):
+//    1. developers.facebook.com → Crear App → agregar producto "Instagram"
+//    2. Activar "Instagram Login for Business"
+//    3. Añadir Valid OAuth Redirect URI:
+//       https://us-central1-barberia-elegance.cloudfunctions.net/instagramOAuthCallback
+//    4. Guardar App ID en Firestore: _system/instagram_app { appId: '...' }
+//    5. Setear secrets:
+//       firebase functions:secrets:set INSTAGRAM_APP_SECRET
+//       (App ID va en Firestore, no es secreto)
+//
+//  DEPLOY:
+//    firebase deploy --only functions:instagramOAuthCallback,functions:instagramSyncScheduled,functions:instagramSyncManual
+// ─────────────────────────────────────────────────────────────────
+
+const { onRequest, onCall, HttpsError } = require('firebase-functions/v2/https');
+const { onSchedule }                    = require('firebase-functions/v2/scheduler');
+const { defineSecret }                  = require('firebase-functions/params');
+const { logger }                        = require('firebase-functions');
+const admin                             = require('firebase-admin');
+const https                             = require('https');
+const { URLSearchParams }               = require('url');
+const { FieldValue, Timestamp }         = require('firebase-admin/firestore');
+
+const db = admin.firestore();
+
+const INSTAGRAM_APP_SECRET = defineSecret('INSTAGRAM_APP_SECRET');
+
+const ALL_TENANTS      = ['elegance', 'ferraza', 'gitana', 'chameleon', 'mapubarbershop', 'deluxeperfumes'];
+const BOOTSTRAP_ADMINS = ['ignaciiio.mate@gmail.com', 'barrazanicolasfabian@gmail.com'];
+const CALLBACK_URL     = 'https://us-central1-barberia-elegance.cloudfunctions.net/instagramOAuthCallback';
+
+// ── Helpers de Firestore ───────────────────────────────────────────
+function igConfigRef(tenantId) {
+  return db.collection('_system').doc(`instagram_${tenantId}`);
+}
+
+function lookbookCol(tenantId) {
+  return tenantId === 'elegance'
+    ? db.collection('lookbook')
+    : db.collection('tenants').doc(tenantId).collection('lookbook');
+}
+
+// ── HTTP helpers ───────────────────────────────────────────────────
+function httpsGet(urlStr) {
+  return new Promise((resolve, reject) => {
+    const u    = new URL(urlStr);
+    const opts = { hostname: u.hostname, path: u.pathname + u.search, method: 'GET' };
+    const req  = https.request(opts, res => {
+      let body = '';
+      res.on('data', c => { body += c; });
+      res.on('end', () => { try { resolve(JSON.parse(body)); } catch { resolve(body); } });
+    });
+    req.on('error', reject);
+    req.end();
+  });
+}
+
+function httpsPost(urlStr, data) {
+  return new Promise((resolve, reject) => {
+    const payload = new URLSearchParams(data).toString();
+    const u       = new URL(urlStr);
+    const opts    = {
+      hostname: u.hostname,
+      path:     u.pathname + u.search,
+      method:   'POST',
+      headers:  {
+        'Content-Type':   'application/x-www-form-urlencoded',
+        'Content-Length': Buffer.byteLength(payload),
+      },
+    };
+    const req = https.request(opts, res => {
+      let body = '';
+      res.on('data', c => { body += c; });
+      res.on('end', () => { try { resolve(JSON.parse(body)); } catch { resolve(body); } });
+    });
+    req.on('error', reject);
+    req.write(payload);
+    req.end();
+  });
+}
+
+// ── Mapeo de hashtags a categorías del lookbook ────────────────────
+function extractCategoria(caption = '') {
+  const l = (caption || '').toLowerCase();
+  if (l.includes('#fade')    || l.includes('#degradado'))  return 'Fade';
+  if (l.includes('#clasico') || l.includes('#clásico'))    return 'Clásico';
+  if (l.includes('#barba')   || l.includes('#beard'))      return 'Barba';
+  if (l.includes('#diseño')  || l.includes('#design'))     return 'Diseño';
+  if (l.includes('#corte')   || l.includes('#haircut'))    return 'Fade';
+  return 'Fade';
+}
+
+function extractTitulo(caption = '') {
+  const first = (caption || '').split('\n')[0].replace(/#\S+/g, '').trim();
+  return (first.length > 3 && first.length < 60) ? first : '';
+}
+
+// ── OAuth Callback ─────────────────────────────────────────────────
+exports.instagramOAuthCallback = onRequest(
+  { secrets: [INSTAGRAM_APP_SECRET], region: 'us-central1' },
+  async (req, res) => {
+    const code     = req.query.code;
+    const state    = req.query.state || '';
+    const tenantId = ALL_TENANTS.includes(state) ? state : 'elegance';
+
+    if (!code) {
+      res.status(400).send('Error: parámetro code faltante en el callback.');
+      return;
+    }
+
+    const appSecret = INSTAGRAM_APP_SECRET.value();
+
+    // Leer App ID desde Firestore (no es secreto, se puede guardar ahí)
+    let appId = '';
+    try {
+      const appCfgSnap = await db.collection('_system').doc('instagram_app').get();
+      appId = appCfgSnap.exists ? (appCfgSnap.data().appId || '') : '';
+    } catch (e) {
+      logger.warn('[Instagram] No se pudo leer instagram_app:', e.message);
+    }
+
+    if (!appId) {
+      res.status(500).send('Error: App ID de Instagram no configurado en _system/instagram_app.');
+      return;
+    }
+
+    try {
+      // Paso 1: code → short-lived token (1 hora)
+      const shortRes = await httpsPost('https://api.instagram.com/oauth/access_token', {
+        client_id:     appId,
+        client_secret: appSecret,
+        grant_type:    'authorization_code',
+        redirect_uri:  CALLBACK_URL,
+        code,
+      });
+
+      if (!shortRes.access_token) {
+        logger.error('[Instagram] Short token failed:', shortRes);
+        res.status(500).send('Error intercambiando code por token: ' + (shortRes.error_message || JSON.stringify(shortRes)));
+        return;
+      }
+
+      // Paso 2: short-lived → long-lived token (60 días)
+      const longRes = await httpsGet(
+        `https://graph.instagram.com/access_token?grant_type=ig_exchange_token&client_secret=${appSecret}&access_token=${shortRes.access_token}`
+      );
+
+      if (!longRes.access_token) {
+        logger.error('[Instagram] Long token failed:', longRes);
+        res.status(500).send('Error obteniendo token largo: ' + JSON.stringify(longRes));
+        return;
+      }
+
+      const token     = longRes.access_token;
+      const expiresIn = longRes.expires_in || 5183944; // ~60 días
+
+      // Paso 3: username del usuario
+      const meRes     = await httpsGet(
+        `https://graph.instagram.com/me?fields=id,username&access_token=${token}`
+      );
+
+      const expiresAt = new Date(Date.now() + expiresIn * 1000);
+
+      await igConfigRef(tenantId).set({
+        tenantId,
+        accessToken:       token,
+        tokenExpiresAt:    Timestamp.fromDate(expiresAt),
+        instagramUserId:   String(shortRes.user_id || meRes.id || ''),
+        instagramUsername: meRes.username || '',
+        enabled:           true,
+        connectedAt:       Timestamp.now(),
+        lastSync:          null,
+        postCount:         0,
+        errorMsg:          FieldValue.delete(),
+      }, { merge: true });
+
+      logger.info(`[Instagram] Conectado tenant=${tenantId} @${meRes.username}`);
+      res.redirect(302, '/gestion-interna/?instagram=connected');
+    } catch (err) {
+      logger.error('[Instagram] OAuth error:', err.message);
+      res.status(500).send('Error interno: ' + err.message);
+    }
+  }
+);
+
+// ── Core: sincronizar posts de un tenant ───────────────────────────
+async function syncTenant(tenantId) {
+  const snap = await igConfigRef(tenantId).get();
+  if (!snap.exists) return { tenantId, skipped: true };
+
+  const cfg = snap.data();
+  if (!cfg.enabled || !cfg.accessToken) return { tenantId, skipped: true };
+
+  let token = cfg.accessToken;
+
+  // Auto-renovar si expira en menos de 7 días
+  const expiresAt = cfg.tokenExpiresAt?.toDate?.() ?? new Date(0);
+  const sevenDays = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  if (expiresAt < sevenDays) {
+    try {
+      const refreshed = await httpsGet(
+        `https://graph.instagram.com/refresh_access_token?grant_type=ig_refreshtoken&access_token=${token}`
+      );
+      if (refreshed.access_token) {
+        token = refreshed.access_token;
+        await igConfigRef(tenantId).update({
+          accessToken:    token,
+          tokenExpiresAt: Timestamp.fromDate(new Date(Date.now() + (refreshed.expires_in || 5183944) * 1000)),
+        });
+        logger.info(`[Instagram] Token renovado para ${tenantId}`);
+      }
+    } catch (e) {
+      logger.warn(`[Instagram] No se pudo renovar token (${tenantId}): ${e.message}`);
+    }
+  }
+
+  // Obtener últimos 30 posts de Instagram
+  const mediaRes = await httpsGet(
+    `https://graph.instagram.com/me/media?fields=id,media_type,media_url,thumbnail_url,caption,timestamp&limit=30&access_token=${token}`
+  );
+
+  if (mediaRes.error) {
+    logger.error(`[Instagram] API error (${tenantId}):`, mediaRes.error);
+    // Token inválido → deshabilitar
+    if (mediaRes.error.code === 190) {
+      await igConfigRef(tenantId).update({ enabled: false, errorMsg: 'Token expirado o inválido. Vuelve a conectar.' });
+    }
+    return { tenantId, error: mediaRes.error.message };
+  }
+
+  // Solo imágenes y álbumes (sin videos/reels)
+  const posts = (mediaRes.data || []).filter(p =>
+    (p.media_type === 'IMAGE' || p.media_type === 'CAROUSEL_ALBUM') && p.media_url
+  );
+  if (!posts.length) return { tenantId, added: 0 };
+
+  // Filtrar los ya sincronizados
+  const col          = lookbookCol(tenantId);
+  const existingSnap = await col.where('source', '==', 'instagram').get();
+  const existingIds  = new Set(existingSnap.docs.map(d => d.data().instagramId).filter(Boolean));
+
+  const newPosts = posts.filter(p => !existingIds.has(p.id));
+  if (!newPosts.length) return { tenantId, added: 0 };
+
+  // Calcular order base (debajo de los posts manuales existentes)
+  const topSnap  = await col.orderBy('order', 'desc').limit(1).get();
+  const maxOrder = topSnap.empty ? 0 : (topSnap.docs[0].data().order ?? 0);
+
+  const batch = db.batch();
+  newPosts.forEach((post, idx) => {
+    batch.set(col.doc(`ig_${post.id}`), {
+      url:         post.media_url,
+      titulo:      extractTitulo(post.caption),
+      categoria:   extractCategoria(post.caption),
+      source:      'instagram',
+      instagramId: post.id,
+      caption:     post.caption || '',
+      timestamp:   post.timestamp || '',
+      order:       maxOrder + idx + 1,
+      creadoEn:    Timestamp.now(),
+    });
+  });
+  await batch.commit();
+
+  await igConfigRef(tenantId).update({
+    lastSync:  Timestamp.now(),
+    postCount: FieldValue.increment(newPosts.length),
+    errorMsg:  FieldValue.delete(),
+  });
+
+  logger.info(`[Instagram] Sync OK ${tenantId}: +${newPosts.length} posts`);
+  return { tenantId, added: newPosts.length };
+}
+
+// ── Cron: cada 6 horas ─────────────────────────────────────────────
+exports.instagramSyncScheduled = onSchedule(
+  { schedule: '0 */6 * * *', region: 'us-central1', secrets: [INSTAGRAM_APP_SECRET] },
+  async () => {
+    const results = await Promise.allSettled(ALL_TENANTS.map(syncTenant));
+    results.forEach((r, i) => {
+      if (r.status === 'rejected') logger.error(`[Instagram] Error (${ALL_TENANTS[i]}):`, r.reason);
+    });
+  }
+);
+
+// ── Callable: sync manual desde el admin panel ─────────────────────
+exports.instagramSyncManual = onCall(
+  { region: 'us-central1', secrets: [INSTAGRAM_APP_SECRET] },
+  async (request) => {
+    if (!request.auth) throw new HttpsError('unauthenticated', 'Debes iniciar sesión.');
+
+    const email = (request.auth.token?.email || '').toLowerCase();
+    if (!BOOTSTRAP_ADMINS.includes(email)) {
+      const barberoDoc = await db.collection('barberos').doc(request.auth.uid).get();
+      const rol        = barberoDoc.exists ? barberoDoc.data().rol : null;
+      if (rol !== 'admin' && rol !== 'jefe') {
+        throw new HttpsError('permission-denied', 'Solo administradores pueden sincronizar.');
+      }
+    }
+
+    const tenantId = request.data?.tenantId || 'elegance';
+    if (!ALL_TENANTS.includes(tenantId)) throw new HttpsError('invalid-argument', 'tenantId inválido.');
+
+    return syncTenant(tenantId);
+  }
+);

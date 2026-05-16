@@ -6,7 +6,7 @@ import {
   Timer, MessageSquare, BadgeCheck, Search, ListFilter, MapPin,
 } from 'lucide-react';
 import {
-  addDoc, updateDoc, deleteDoc, doc, serverTimestamp, where, orderBy, limit,
+  addDoc, updateDoc, deleteDoc, doc, serverTimestamp, where, orderBy, limit, writeBatch,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { tenantCol } from '../lib/tenantUtils';
@@ -142,7 +142,15 @@ function CitaModal({ cita, barberos, servicios, defaultHora, defaultBarberoId, d
         if (form.estado === 'Completada' && !yaEraCompletada) {
           payload.pendingGoogleReview = true;
         }
-        await updateDoc(doc(db, `${tenantCol('citas').path}/${cita.id}`), payload);
+        // Si se cancela, borrar el slotLock para liberar el horario en el flujo de reserva
+        if (form.estado === 'Cancelada' && cita?.estado !== 'Cancelada' && cita?.slotLockId) {
+          const batch = writeBatch(db);
+          batch.update(doc(db, `${tenantCol('citas').path}/${cita.id}`), payload);
+          batch.delete(doc(db, `${tenantCol('slotLocks').path}/${cita.slotLockId}`));
+          await batch.commit();
+        } else {
+          await updateDoc(doc(db, `${tenantCol('citas').path}/${cita.id}`), payload);
+        }
         if (form.estado === 'Completada' && !yaEraCompletada && onComplete) {
           onComplete({ ...cita, ...payload });
         } else {
@@ -154,7 +162,14 @@ function CitaModal({ cita, barberos, servicios, defaultHora, defaultBarberoId, d
 
   const handleDelete = async () => {
     if (!confirm('¿Eliminar esta cita?')) return;
-    await deleteDoc(doc(db, `${tenantCol('citas').path}/${cita.id}`));
+    if (cita.slotLockId) {
+      const batch = writeBatch(db);
+      batch.delete(doc(db, `${tenantCol('citas').path}/${cita.id}`));
+      batch.delete(doc(db, `${tenantCol('slotLocks').path}/${cita.slotLockId}`));
+      await batch.commit();
+    } else {
+      await deleteDoc(doc(db, `${tenantCol('citas').path}/${cita.id}`));
+    }
     onClose();
   };
 
