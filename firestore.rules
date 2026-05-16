@@ -314,7 +314,8 @@ service cloud.firestore {
     // el widget pueda filtrar sin leer citas (que requieren auth).
     match /slotLocks/{lockId} {
       allow read:   if true;
-      allow create: if request.resource.data.keys().hasOnly(['citaId', 'creadoEn', 'fecha', 'hora', 'barberoId', 'duracion']);
+      allow create: if esStaff('elegance')
+                    || request.resource.data.keys().hasOnly(['citaId', 'creadoEn', 'fecha', 'hora', 'barberoId', 'duracion']);
       allow delete: if esStaff('elegance');
     }
 
@@ -549,7 +550,8 @@ service cloud.firestore {
       // Fuente pública de ocupación para el widget de reservas (sin auth).
       match /slotLocks/{lockId} {
         allow read:   if true;
-        allow create: if request.resource.data.keys().hasOnly(['citaId', 'creadoEn', 'fecha', 'hora', 'barberoId', 'duracion']);
+        allow create: if esStaff(tid)
+                      || request.resource.data.keys().hasOnly(['citaId', 'creadoEn', 'fecha', 'hora', 'barberoId', 'duracion']);
         allow delete: if esStaff(tid);
       }
     }
