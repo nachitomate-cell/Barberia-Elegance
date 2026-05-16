@@ -2611,7 +2611,12 @@
             FDB.getConfigBarbero(barId),
             precargarBloqueos(barId),
           ]);
-          _activeBarberConfig = barCfg;
+          // _fsBarberos tiene el doc del barbero completo (campo horario desde Equipo).
+          // Siempre preferir ese horario: es la fuente de verdad del admin panel.
+          const barbData = (_fsBarberos || []).find(b => b.id === barId);
+          _activeBarberConfig = barbData?.horario
+            ? { ...barCfg, horario: barbData.horario }
+            : barCfg;
         } else {
           await precargarBloqueos(null);
           _activeBarberConfig = null;
