@@ -638,17 +638,14 @@ const FDB = (() => {
       if (!dayH.activo) return []; // este barbero no trabaja ese día
       ini = toMins(dayH.inicio || barbCfg.horarioInicio || cfg.horarioInicio || '09:00');
       fin = toMins(dayH.fin    || barbCfg.horarioFin    || cfg.horarioFin    || '20:00');
-      console.log('[FDB] slots barbero', barberoId, '| dw=' + dw, '| ini=' + dayH.inicio, '| fin=' + dayH.fin, '| horarioInicio=' + barbCfg.horarioInicio, '| desde=horario[dw]');
     } else if (barbCfg) {
       const dc = (barbCfg.diasConfig || {})[dw] || {};
       ini = toMins(dc.inicio || barbCfg.horarioInicio || cfg.horarioInicio || '09:00');
       fin = toMins(dc.fin    || barbCfg.horarioFin    || cfg.horarioFin    || '20:00');
-      console.log('[FDB] slots barbero', barberoId, '| dw=' + dw, '| horarioInicio=' + barbCfg.horarioInicio, '| desde=configuracion/main');
     } else {
       const dc = (cfg.diasConfig || {})[dw] || {};
       ini = toMins(dc.inicio || cfg.horarioInicio || '09:00');
       fin = toMins(dc.fin    || cfg.horarioFin    || '20:00');
-      console.log('[FDB] slots barbero', barberoId, '| dw=' + dw, '| desde=config_tenant');
     }
     interval = (barbCfg?.intervaloMinutos || cfg.intervaloMinutos || 30);
 
