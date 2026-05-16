@@ -170,12 +170,33 @@ async function procesarSello({ tenantId, citaId, citaRef, cita }) {
     // ── Rama B: sumar sello de fidelidad ───────────────────────
     logger.info(`[Sello] ${citaId}: sin membresía activa → sumando sello a ${telefono}`);
 
+    // Actualizar clientes/{phone} (lookup por teléfono, fuente de verdad para flujos web)
     await clienteRef.update({
       sellosDisponibles:  FieldValue.increment(1),
       sellosHistoricos:   FieldValue.increment(1),
       historial:          FieldValue.arrayUnion(entradaHistorial),
       updatedAt:          Timestamp.now(),
     });
+
+    // Sincronizar en users/{uid} para que el panel admin muestre el sello al instante
+    // (mismos campos que usa el botón "Añadir sello" en /gestion-interna/clientes)
+    if (uid) {
+      const userRef = cols.users.doc(uid);
+      await userRef.update({
+        sellosDisponibles: FieldValue.increment(1),
+        sellosHistoricos:  FieldValue.increment(1),
+        stamps:            FieldValue.increment(1),
+        ultimoSello:       Timestamp.now().toDate().toISOString(),
+        historialSellos:   FieldValue.arrayUnion({
+          fecha:    Timestamp.now().toDate().toISOString(),
+          tipo:     'suma',
+          cantidad: 1,
+          nota:     `Cita completada: ${servicioNombre}`,
+          citaId,
+        }),
+      });
+      logger.info(`[Sello] ${citaId}: sello sincronizado en users/${uid}`);
+    }
 
     logger.info(`[Sello] ${citaId}: +1 sello para ${clienteNombre} (${telefono})`);
   }
