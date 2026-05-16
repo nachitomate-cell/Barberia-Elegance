@@ -64,10 +64,13 @@
     }, err => console.warn('[VersionManager] listener:', err.message));
   }
 
-  // Arrancar en cuanto Firebase esté listo (no necesitamos auth para esto).
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', startListener);
-  } else {
-    startListener();
-  }
+  // Esperar auth antes de escuchar _system (requiere autenticado() en las reglas).
+  // Si auth tarda más de 4 s, arrancar igual para no bloquear la detección de versión.
+  let started = false;
+  const timeout = setTimeout(() => { if (!started) { started = true; startListener(); } }, 4000);
+  const unsub = firebase.auth().onAuthStateChanged(() => {
+    clearTimeout(timeout);
+    unsub();
+    if (!started) { started = true; startListener(); }
+  });
 })();
