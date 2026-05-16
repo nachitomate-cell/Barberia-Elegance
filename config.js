@@ -45,7 +45,7 @@
       instagram:       '',
       instagramHandle: '',
       waEmoji:         '✂️',
-      googleReviewUrl: '',
+      googleReviewUrl: 'https://g.page/r/CT_OVpP50fd8EBM/review',
       barberos: [
         { nombre: 'Nicolas Fabian', foto: 'Fabian.png', disponible: true },
       ],
