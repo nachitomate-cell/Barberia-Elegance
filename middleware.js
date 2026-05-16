@@ -2,7 +2,7 @@
 // Inyecta meta tags OG/SEO/PWA correctos por tenant según el dominio de la petición.
 // Corre en el edge (sin cold start) antes de que el HTML llegue al bot de WhatsApp/redes.
 //
-// Tenants soportados: elegance, ferraza, gitana, mapubarbershop
+// Tenants soportados: elegance, ferraza, gitana, mapubarbershop, chameleon
 // Para añadir un tenant nuevo: agregar entrada en DOMAIN_MAP y TENANT_META.
 
 const DOMAIN_MAP = {
@@ -10,6 +10,7 @@ const DOMAIN_MAP = {
   'barberiaelegance.synaptechspa.cl':  'elegance',
   'barberiaferraza.synaptechspa.cl':   'ferraza',
   'mapubarbershop.synaptechspa.cl':    'mapubarbershop',
+  'chameleonbarber.synaptechspa.cl':   'chameleon',
   'deluxeperfumes.synaptechspa.cl':    'deluxeperfumes',
 };
 
@@ -44,6 +45,19 @@ const TENANT_META = {
       theme_color:      '#050505',
       background_color: '#050505',
     },
+    adminManifest: {
+      name:             'Panel Admin · Elegance',
+      short_name:       'Elegance',
+      description:      'Panel de administración — Elegance Barbershop',
+      theme_color:      '#10b981',
+      background_color: '#0f172a',
+      start_url:        '/gestion-interna/?local=elegance',
+      icons: [
+        { src: '/logo.jpg',                    sizes: 'any',     type: 'image/jpeg' },
+        { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png' },
+        { src: '/gestion-interna/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+      ],
+    },
   },
   ferraza: {
     booking: {
@@ -74,6 +88,19 @@ const TENANT_META = {
       short_name:       'Ferraza',
       theme_color:      '#000000',
       background_color: '#000000',
+    },
+    adminManifest: {
+      name:             'Panel Admin · Ferraza',
+      short_name:       'Ferraza',
+      description:      'Panel de administración — Barbería Ferraza',
+      theme_color:      '#f59e0b',
+      background_color: '#0f172a',
+      start_url:        '/gestion-interna/?local=ferraza',
+      icons: [
+        { src: '/ferraza.png',                 sizes: 'any',     type: 'image/png' },
+        { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png' },
+        { src: '/gestion-interna/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+      ],
     },
   },
   gitana: {
@@ -106,6 +133,19 @@ const TENANT_META = {
       theme_color:      '#050505',
       background_color: '#050505',
     },
+    adminManifest: {
+      name:             'Panel Admin · Gitana',
+      short_name:       'Gitana',
+      description:      'Panel de administración — Gitana Nails Studio',
+      theme_color:      '#ec4899',
+      background_color: '#0f172a',
+      start_url:        '/gestion-interna/?local=gitana',
+      icons: [
+        { src: '/gitana.png',                  sizes: 'any',     type: 'image/png' },
+        { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png' },
+        { src: '/gestion-interna/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+      ],
+    },
   },
   mapubarbershop: {
     booking: {
@@ -137,6 +177,63 @@ const TENANT_META = {
       short_name:       'Mapu',
       theme_color:      '#2A1E22',
       background_color: '#2A1E22',
+    },
+    adminManifest: {
+      name:             'Panel Admin · Mapu',
+      short_name:       'Mapu',
+      description:      'Panel de administración — Mapu Barbershop',
+      theme_color:      '#3b82f6',
+      background_color: '#0f172a',
+      start_url:        '/gestion-interna/?local=mapubarber',
+      icons: [
+        { src: '/mapu2.png',                   sizes: 'any',     type: 'image/png' },
+        { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png' },
+        { src: '/gestion-interna/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+      ],
+    },
+  },
+  chameleon: {
+    booking: {
+      title:       'Chameleon Barber Studio | Tu estilo, tu identidad',
+      description: 'Reserva tu hora en Chameleon Barber Studio. Cortes y barba de élite.',
+      ogTitle:     'Agendar Hora | Chameleon Barber Studio',
+      ogDesc:      'Reserva tu hora en Chameleon Barber Studio. Tu estilo, tu identidad.',
+    },
+    dashboard: {
+      title:       'Mi Club | Chameleon Barber Studio',
+      description: 'Tu panel personal en Chameleon Barber Studio. Revisa tus sellos y canjea premios.',
+      ogTitle:     'Mi Club | Chameleon Barber Studio',
+      ogDesc:      'Panel de fidelidad de Chameleon Barber Studio. Acumula sellos y disfruta de servicios gratis.',
+    },
+    registro: {
+      title:       'Únete al Club | Chameleon Barber Studio',
+      description: 'Crea tu cuenta en Chameleon Barber Studio. Acumula sellos y canjea premios.',
+      ogTitle:     'Únete al Club | Chameleon Barber Studio',
+      ogDesc:      'Regístrate en Chameleon Barber Studio y disfruta de beneficios exclusivos.',
+    },
+    siteName:    'Chameleon Barber Studio',
+    ogImage:     '/local3.jpg',
+    themeColor:  '#c9a84c',
+    appTitle:    'Chameleon',
+    icon:        '/local3.jpg',
+    manifest: {
+      name:             'Chameleon Barber Studio',
+      short_name:       'Chameleon',
+      theme_color:      '#c9a84c',
+      background_color: '#c9a84c',
+    },
+    adminManifest: {
+      name:             'Panel Admin · Chameleon',
+      short_name:       'Chameleon',
+      description:      'Panel de administración — Chameleon Barber Studio',
+      theme_color:      '#c9a84c',
+      background_color: '#0f172a',
+      start_url:        '/gestion-interna/?local=chameleon',
+      icons: [
+        { src: '/local3.jpg',                  sizes: 'any',     type: 'image/jpeg' },
+        { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png' },
+        { src: '/gestion-interna/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+      ],
     },
   },
 };
@@ -172,6 +269,15 @@ function injectMeta(html, meta, pageMeta, canonical) {
   return html;
 }
 
+function injectAdminMeta(html, meta) {
+  const am = meta.adminManifest;
+  html = html.replace(/<meta name="theme-color"[^>]*>/,                `<meta name="theme-color" content="${r(am.theme_color)}">`);
+  html = html.replace(/<meta name="apple-mobile-web-app-title"[^>]*>/, `<meta name="apple-mobile-web-app-title" content="${r(am.short_name)}">`);
+  html = html.replace(/<link rel="icon"[^>]*>/,                        `<link rel="icon" href="${r(am.icons[0].src)}">`);
+  html = html.replace(/<link rel="apple-touch-icon"[^>]*>/,            `<link rel="apple-touch-icon" href="${r(am.icons[0].src)}">`);
+  return html;
+}
+
 export const config = {
   matcher: [
     '/',
@@ -181,6 +287,9 @@ export const config = {
     '/registro',
     '/registro.html',
     '/manifest.json',
+    '/gestion-interna/',
+    '/gestion-interna/index.html',
+    '/gestion-interna/manifest.webmanifest',
   ],
 };
 
@@ -189,14 +298,14 @@ export default async function middleware(request) {
   const hostname = (request.headers.get('host') || '').replace(/:\d+$/, '');
   const tenantId = DOMAIN_MAP[hostname] || 'elegance';
 
-  // ── Deluxeperfumes: redirigir siempre al catálogo (no es barbería)
-  if (tenantId === 'deluxeperfumes') {
+  // ── Deluxeperfumes: redirigir al catálogo (sólo rutas de cliente, no admin)
+  if (tenantId === 'deluxeperfumes' && !url.pathname.startsWith('/gestion-interna')) {
     return Response.redirect(new URL('/catalogo', request.url), 302);
   }
 
-  const meta = TENANT_META[tenantId];
+  const meta = TENANT_META[tenantId] ?? TENANT_META.elegance;
 
-  // ── Manifest: devolver versión dinámica por tenant ───────────────────────────
+  // ── Manifest cliente: devolver versión dinámica por tenant ───────────────────
   if (url.pathname === '/manifest.json') {
     const manifest = {
       ...meta.manifest,
@@ -218,6 +327,35 @@ export default async function middleware(request) {
         'Cache-Control': 'public, max-age=3600',
       },
     });
+  }
+
+  // ── Manifest admin: devolver versión dinámica por tenant ─────────────────────
+  if (url.pathname === '/gestion-interna/manifest.webmanifest') {
+    const manifest = {
+      ...meta.adminManifest,
+      display:     'standalone',
+      orientation: 'portrait-primary',
+      scope:       '/gestion-interna/',
+    };
+    return new Response(JSON.stringify(manifest, null, 2), {
+      headers: {
+        'Content-Type': 'application/manifest+json',
+        'Cache-Control': 'public, max-age=3600',
+      },
+    });
+  }
+
+  // ── Admin HTML: inyectar meta tags del tenant (icon, theme-color, title) ─────
+  if (url.pathname === '/gestion-interna/' || url.pathname === '/gestion-interna/index.html') {
+    const response = await fetch(request);
+    const contentType = response.headers.get('content-type') || '';
+    if (!contentType.includes('text/html')) return response;
+    let html = await response.text();
+    html = injectAdminMeta(html, meta);
+    const headers = new Headers(response.headers);
+    headers.set('Content-Type', 'text/html; charset=utf-8');
+    headers.set('Cache-Control', 'no-store');
+    return new Response(html, { status: response.status, headers });
   }
 
   // ── Elegance: servir el HTML original sin modificar (ya tiene los valores correctos)
