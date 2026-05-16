@@ -599,15 +599,39 @@ const FDB = (() => {
     let cfg;
     try { cfg = configOverride || await getConfig(); } catch(e) { cfg = _defaultConfig(); }
 
+    // Si configOverride ya trae el horario del barbero (tiene campo .horario), usarlo.
+    // Si no, cargar la config del barbero por separado cuando hay barberoId.
+    let barbCfg = null;
+    if (barberoId) {
+      if (cfg.horario) {
+        barbCfg = cfg; // configOverride ya es la config del barbero
+      } else {
+        try { barbCfg = await getConfigBarbero(barberoId); } catch(e) {}
+      }
+    }
+
     const toMins  = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
     const fromMin = m => `${Math.floor(m / 60).toString().padStart(2, '0')}:${(m % 60).toString().padStart(2, '0')}`;
 
-    // Horario específico del día (si está configurado)
-    const dw  = new Date(fecha + 'T12:00:00').getDay();
-    const dc  = (cfg.diasConfig || {})[dw] || {};
-    const ini = toMins(dc.inicio || cfg.horarioInicio || '09:00');
-    const fin = toMins(dc.fin    || cfg.horarioFin    || '20:00');
-    const interval = cfg.intervaloMinutos || 30;
+    // Horario específico del día — prioriza horario del barbero
+    const dw = new Date(fecha + 'T12:00:00').getDay();
+    let ini, fin, interval;
+
+    if (barbCfg && barbCfg.horario && barbCfg.horario[String(dw)]) {
+      const dayH = barbCfg.horario[String(dw)];
+      if (!dayH.activo) return []; // este barbero no trabaja ese día
+      ini = toMins(dayH.inicio || barbCfg.horarioInicio || cfg.horarioInicio || '09:00');
+      fin = toMins(dayH.fin    || barbCfg.horarioFin    || cfg.horarioFin    || '20:00');
+    } else if (barbCfg) {
+      const dc = (barbCfg.diasConfig || {})[dw] || {};
+      ini = toMins(dc.inicio || barbCfg.horarioInicio || cfg.horarioInicio || '09:00');
+      fin = toMins(dc.fin    || barbCfg.horarioFin    || cfg.horarioFin    || '20:00');
+    } else {
+      const dc = (cfg.diasConfig || {})[dw] || {};
+      ini = toMins(dc.inicio || cfg.horarioInicio || '09:00');
+      fin = toMins(dc.fin    || cfg.horarioFin    || '20:00');
+    }
+    interval = (barbCfg?.intervaloMinutos || cfg.intervaloMinutos || 30);
 
     // Todas las horas posibles del día (para fallback old-format en getSlotLocksDia)
     const allHoras = [];
@@ -664,6 +688,12 @@ const FDB = (() => {
     let cfg;
     try { cfg = configOverride || await getConfig(); } catch(e) { cfg = _defaultConfig(); }
 
+    // Cargar configs individuales de cada barbero en paralelo
+    const barberoConfigs = new Map();
+    await Promise.all(barberos.map(async b => {
+      try { barberoConfigs.set(b.id, await getConfigBarbero(b.id)); } catch(e) { barberoConfigs.set(b.id, null); }
+    }));
+
     const [todasSlots, todosBloqueos] = await Promise.all([
       getSlotLocksDia(fecha, null),  // new-format, todos los barberos
       getBloqueosDia(fecha, null),
@@ -674,17 +704,44 @@ const FDB = (() => {
     const toMins  = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
     const fromMin = m => `${Math.floor(m / 60).toString().padStart(2, '0')}:${(m % 60).toString().padStart(2, '0')}`;
 
-    const dw  = new Date(fecha + 'T12:00:00').getDay();
-    const dc  = (cfg.diasConfig || {})[dw] || {};
-    const ini = toMins(dc.inicio || cfg.horarioInicio || '09:00');
-    const fin = toMins(dc.fin    || cfg.horarioFin    || '20:00');
+    const dw = new Date(fecha + 'T12:00:00').getDay();
+
+    // Rango global: unión de todos los horarios de barberos activos ese día
+    let globalIni = Infinity, globalFin = 0;
+    for (const barbero of barberos) {
+      const bc = barberoConfigs.get(barbero.id);
+      let bIni, bFin;
+      if (bc && bc.horario && bc.horario[String(dw)]) {
+        const dayH = bc.horario[String(dw)];
+        if (!dayH.activo) continue;
+        bIni = toMins(dayH.inicio || bc.horarioInicio || cfg.horarioInicio || '09:00');
+        bFin = toMins(dayH.fin    || bc.horarioFin    || cfg.horarioFin    || '20:00');
+      } else if (bc) {
+        const dc = (bc.diasConfig || {})[dw] || {};
+        bIni = toMins(dc.inicio || bc.horarioInicio || cfg.horarioInicio || '09:00');
+        bFin = toMins(dc.fin    || bc.horarioFin    || cfg.horarioFin    || '20:00');
+      } else {
+        const dc = (cfg.diasConfig || {})[dw] || {};
+        bIni = toMins(dc.inicio || cfg.horarioInicio || '09:00');
+        bFin = toMins(dc.fin    || cfg.horarioFin    || '20:00');
+      }
+      if (bIni < globalIni) globalIni = bIni;
+      if (bFin > globalFin) globalFin = bFin;
+    }
+    // Fallback si no hay barberos con horario configurado
+    if (globalIni === Infinity) {
+      const dc = (cfg.diasConfig || {})[dw] || {};
+      globalIni = toMins(dc.inicio || cfg.horarioInicio || '09:00');
+      globalFin = toMins(dc.fin    || cfg.horarioFin    || '20:00');
+    }
+
     const interval = cfg.intervaloMinutos || 30;
     const dur = parseInt(duracionServicio);
     const col = cfg.colacion;
 
-    // Todas las horas posibles del día
+    // Todas las horas posibles del día (rango global)
     const allHoras = [];
-    for (let t = ini; t < fin; t += interval) allHoras.push(fromMin(t));
+    for (let t = globalIni; t < globalFin; t += interval) allHoras.push(fromMin(t));
 
     // Fallback old-format: GET directo por barbero en paralelo
     const oldSlotsByBarbero = new Map();
@@ -712,7 +769,7 @@ const FDB = (() => {
 
     const result = [];
 
-    for (let cur = ini; cur + dur <= fin; cur += interval) {
+    for (let cur = globalIni; cur + dur <= globalFin; cur += interval) {
       if (col) {
         const colS = toMins(col.inicio), colE = toMins(col.fin);
         if (cur >= colS && cur < colE) continue;
@@ -724,6 +781,25 @@ const FDB = (() => {
 
       for (const barbero of barberos) {
         if (todosBloqueos.some(b => b.todo_el_dia && b.barberoId === barbero.id)) continue;
+
+        // Verificar que el slot esté dentro del horario de este barbero
+        const bc = barberoConfigs.get(barbero.id);
+        let bIni, bFin;
+        if (bc && bc.horario && bc.horario[String(dw)]) {
+          const dayH = bc.horario[String(dw)];
+          if (!dayH.activo) continue;
+          bIni = toMins(dayH.inicio || bc.horarioInicio || cfg.horarioInicio || '09:00');
+          bFin = toMins(dayH.fin    || bc.horarioFin    || cfg.horarioFin    || '20:00');
+        } else if (bc) {
+          const dc = (bc.diasConfig || {})[dw] || {};
+          bIni = toMins(dc.inicio || bc.horarioInicio || cfg.horarioInicio || '09:00');
+          bFin = toMins(dc.fin    || bc.horarioFin    || cfg.horarioFin    || '20:00');
+        } else {
+          const dc = (cfg.diasConfig || {})[dw] || {};
+          bIni = toMins(dc.inicio || cfg.horarioInicio || '09:00');
+          bFin = toMins(dc.fin    || cfg.horarioFin    || '20:00');
+        }
+        if (cur < bIni || cur + dur > bFin) continue; // fuera del horario del barbero
 
         const barBloqs = todosBloqueos
           .filter(b => !b.todo_el_dia && b.barberoId === barbero.id && b.hora_inicio && b.hora_fin)
