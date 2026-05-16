@@ -188,8 +188,11 @@
   window.SHOP = _tenants[tenantId];
   document.documentElement.classList.add('tenant-' + tenantId);
 
-  var _favicon = document.querySelector('link[rel="icon"]');
-  if (_favicon && _tenants[tenantId] && _tenants[tenantId].logo) {
-    _favicon.href = _tenants[tenantId].logo;
+  var _logoSrc = _tenants[tenantId] && _tenants[tenantId].logo;
+  if (_logoSrc) {
+    var _favicon = document.querySelector('link[rel="icon"]');
+    if (_favicon) _favicon.href = _logoSrc;
+    var _touchIcon = document.querySelector('link[rel="apple-touch-icon"]');
+    if (_touchIcon) _touchIcon.href = _logoSrc;
   }
 })();
