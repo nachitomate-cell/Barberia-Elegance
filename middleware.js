@@ -269,6 +269,7 @@ function injectMeta(html, meta, pageMeta, canonical) {
   html = html.replace(/<meta name="twitter:image"[^>]*>/,    `<meta name="twitter:image" content="${r(meta.ogImage)}">`);
   html = html.replace(/<meta name="theme-color"[^>]*>/,      `<meta name="theme-color" content="${r(meta.themeColor)}">`);
   html = html.replace(/<meta name="apple-mobile-web-app-title"[^>]*>/, `<meta name="apple-mobile-web-app-title" content="${r(meta.appTitle)}">`);
+  html = html.replace(/<meta name="application-name"[^>]*>/,           `<meta name="application-name" content="${r(meta.appTitle)}">`);
   html = html.replace(/<link rel="icon"[^>]*>/,              `<link rel="icon" type="image/jpeg" href="${r(meta.icon)}">`);
   html = html.replace(/<link rel="apple-touch-icon"[^>]*>/,  `<link rel="apple-touch-icon" href="${r(meta.icon)}">`);
 
@@ -279,6 +280,7 @@ function injectAdminMeta(html, meta) {
   const am = meta.adminManifest;
   html = html.replace(/<meta name="theme-color"[^>]*>/,                `<meta name="theme-color" content="${r(am.theme_color)}">`);
   html = html.replace(/<meta name="apple-mobile-web-app-title"[^>]*>/, `<meta name="apple-mobile-web-app-title" content="${r(am.short_name)}">`);
+  html = html.replace(/<meta name="application-name"[^>]*>/,           `<meta name="application-name" content="${r(am.short_name)}">`);
   html = html.replace(/<link rel="icon"[^>]*>/,                        `<link rel="icon" href="${r(am.icons[0].src)}">`);
   html = html.replace(/<link rel="apple-touch-icon"[^>]*>/,            `<link rel="apple-touch-icon" href="${r(am.icons[0].src)}">`);
   return html;
@@ -331,7 +333,7 @@ export default async function middleware(request) {
     return new Response(JSON.stringify(manifest, null, 2), {
       headers: {
         'Content-Type': 'application/manifest+json',
-        'Cache-Control': 'public, max-age=3600',
+        'Cache-Control': 'no-cache, must-revalidate',
       },
     });
   }
@@ -347,7 +349,7 @@ export default async function middleware(request) {
     return new Response(JSON.stringify(manifest, null, 2), {
       headers: {
         'Content-Type': 'application/manifest+json',
-        'Cache-Control': 'public, max-age=3600',
+        'Cache-Control': 'no-cache, must-revalidate',
       },
     });
   }
