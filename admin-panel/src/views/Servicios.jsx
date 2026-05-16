@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { Plus, Tag } from 'lucide-react';
-import { addDoc, updateDoc, deleteDoc, doc, writeBatch, serverTimestamp, orderBy } from 'firebase/firestore';
+import { addDoc, updateDoc, deleteDoc, deleteField, doc, writeBatch, serverTimestamp, orderBy } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { tenantCol } from '../lib/tenantUtils';
 import { useCollection } from '../hooks/useCollection';
@@ -17,7 +17,13 @@ const ICONS = [
   'ph-clock','ph-sun','ph-moon','ph-wind',
 ];
 
-const EMPTY = { nombre: '', categoria: 'Otro', precio: '', duracion: '', icono: 'ph-scissors' };
+const DIAS = [
+  { key: 1, label: 'Lun' }, { key: 2, label: 'Mar' }, { key: 3, label: 'Mié' },
+  { key: 4, label: 'Jue' }, { key: 5, label: 'Vie' }, { key: 6, label: 'Sáb' },
+  { key: 0, label: 'Dom' },
+];
+const EMPTY_PPD = Object.fromEntries(DIAS.map(d => [d.key, '']));
+const EMPTY = { nombre: '', categoria: 'Otro', precio: '', duracion: '', icono: 'ph-scissors', varPrecios: false, ppd: { ...EMPTY_PPD } };
 
 function IconPicker({ value, onChange }) {
   const [open, setOpen] = useState(false);
@@ -59,19 +65,40 @@ export default function Servicios() {
   const [dragOver, setDragOver] = useState(null);
   const dragId = useRef(null);
 
-  const openNew  = () => { setEditing(null); setForm({ ...EMPTY, categoria: categorias[0] || 'Otro' }); setSlide(true); };
-  const openEdit = s => { setEditing(s.id); setForm({ nombre: s.nombre, categoria: s.categoria || 'Otro', precio: s.precio, duracion: s.duracion, icono: s.icono || 'ph-scissors' }); setSlide(true); };
+  const openNew  = () => { setEditing(null); setForm({ ...EMPTY, categoria: categorias[0] || 'Otro', ppd: { ...EMPTY_PPD } }); setSlide(true); };
+  const openEdit = s => {
+    const ppd = { ...EMPTY_PPD };
+    if (s.preciosPorDia) {
+      Object.entries(s.preciosPorDia).forEach(([k, v]) => { ppd[Number(k)] = v != null ? String(v) : ''; });
+    }
+    setEditing(s.id);
+    setForm({ nombre: s.nombre, categoria: s.categoria || 'Otro', precio: s.precio, duracion: s.duracion, icono: s.icono || 'ph-scissors', varPrecios: !!s.preciosPorDia, ppd });
+    setSlide(true);
+  };
 
   const handleSave = async () => {
     if (!form.nombre || !form.precio || !form.duracion) return;
     setSaving(true);
     try {
-      const payload = { nombre: form.nombre, categoria: form.categoria, precio: Number(form.precio), duracion: Number(form.duracion), icono: form.icono || 'ph-scissors', updatedAt: serverTimestamp() };
+      const basePrecio = Number(form.precio);
+      const preciosPorDia = {};
+      if (form.varPrecios) {
+        DIAS.forEach(({ key }) => {
+          const v = form.ppd[key];
+          if (v !== '' && v != null) preciosPorDia[String(key)] = Number(v);
+        });
+      }
+      const base = { nombre: form.nombre, categoria: form.categoria, precio: basePrecio, duracion: Number(form.duracion), icono: form.icono || 'ph-scissors', updatedAt: serverTimestamp() };
       if (editing) {
-        await updateDoc(doc(tenantCol('servicios'), editing), payload);
+        await updateDoc(doc(tenantCol('servicios'), editing), {
+          ...base,
+          preciosPorDia: form.varPrecios ? preciosPorDia : deleteField(),
+        });
       } else {
         const nextOrden = servicios.length ? Math.max(...servicios.map(s => s.orden ?? 0)) + 1 : 0;
-        await addDoc(tenantCol('servicios'), { ...payload, orden: nextOrden, createdAt: serverTimestamp() });
+        const newDoc = { ...base, orden: nextOrden, createdAt: serverTimestamp() };
+        if (form.varPrecios) newDoc.preciosPorDia = preciosPorDia;
+        await addDoc(tenantCol('servicios'), newDoc);
       }
       setSlide(false);
     } finally { setSaving(false); }
@@ -167,7 +194,12 @@ export default function Servicios() {
                     <h4 className="font-bold text-white text-sm">{s.nombre}</h4>
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-slate-950 text-slate-400 border-slate-700">{s.categoria || 'Otro'}</span>
                   </div>
-                  <p className="text-xs text-slate-400 mt-0.5">${Number(s.precio || 0).toLocaleString('es-CL')} · {s.duracion} min</p>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    ${Number(s.precio || 0).toLocaleString('es-CL')} · {s.duracion} min
+                    {s.preciosPorDia && Object.keys(s.preciosPorDia).length > 0 && (
+                      <span className="ml-1.5 text-[10px] font-bold text-amber-400/70 bg-amber-400/10 border border-amber-400/20 rounded-full px-1.5 py-0.5">precio variable</span>
+                    )}
+                  </p>
                 </div>
                 {/* Actions */}
                 <div className="flex items-center gap-2 shrink-0">
@@ -244,6 +276,41 @@ export default function Servicios() {
           <div>
             <label className={lbl}>Ícono</label>
             <IconPicker value={form.icono} onChange={ic => setForm(f => ({ ...f, icono: ic }))} />
+          </div>
+
+          {/* Precios variables por día */}
+          <div>
+            <button type="button"
+              onClick={() => setForm(f => ({ ...f, varPrecios: !f.varPrecios }))}
+              className={`flex items-center gap-2 w-full px-3 py-2.5 rounded-lg border text-sm font-semibold transition-colors ${
+                form.varPrecios
+                  ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400'
+                  : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-600'
+              }`}>
+              <span className={`w-8 h-4 rounded-full transition-colors relative ${form.varPrecios ? 'bg-emerald-500' : 'bg-slate-600'}`}>
+                <span className={`absolute top-0.5 w-3 h-3 bg-white rounded-full shadow transition-all ${form.varPrecios ? 'left-4' : 'left-0.5'}`} />
+              </span>
+              Precios variables por día
+            </button>
+            {form.varPrecios && (
+              <div className="mt-3 bg-slate-800/60 border border-slate-700 rounded-xl p-3">
+                <p className="text-[11px] text-slate-500 mb-3">Deja en blanco para usar el precio base. El precio que pague el cliente dependerá del día que elija.</p>
+                <div className="grid grid-cols-7 gap-1.5">
+                  {DIAS.map(({ key, label }) => (
+                    <div key={key} className="flex flex-col items-center gap-1">
+                      <span className={`text-[10px] font-bold uppercase ${key === 0 || key === 6 ? 'text-amber-400' : 'text-slate-400'}`}>{label}</span>
+                      <input
+                        type="number"
+                        placeholder={form.precio || '–'}
+                        value={form.ppd[key]}
+                        onChange={e => setForm(f => ({ ...f, ppd: { ...f.ppd, [key]: e.target.value } }))}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-1 py-1.5 text-[11px] text-center text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500 transition-colors"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </SlideOver>

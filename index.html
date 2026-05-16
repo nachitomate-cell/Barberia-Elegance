@@ -1801,7 +1801,7 @@
                 <div class="flex-1 min-w-0">
                   <span class="svc-name font-bold text-gray-200 text-sm block truncate tracking-wide">${s.nombre}</span>
                   <div class="flex items-center gap-3 mt-0.5">
-                    <span class="text-[13px] font-bold text-neon price-tag">\$${s.precio.toLocaleString('es-CL')}</span>
+                    <span class="text-[13px] font-bold text-neon price-tag">\$${_getPrecioEfectivo(s, new Date().getDay()).toLocaleString('es-CL')}</span>
                     <span class="flex items-center gap-1 text-[11px] font-medium text-brand-neon/60 duration-tag"><i class="ph ph-clock text-[12px]"></i>${formatDuration(s.duracion)}</span>
                   </div>
                 </div>
@@ -1817,7 +1817,7 @@
                   ${iconHtml}
                 </div>
                 <span class="svc-name font-bold text-gray-200 text-sm mb-1 relative z-10 tracking-wide">${s.nombre}</span>
-                <span class="text-[14px] font-bold text-neon price-tag transition-all mb-1 relative z-10">\$${s.precio.toLocaleString('es-CL')}</span>
+                <span class="text-[14px] font-bold text-neon price-tag transition-all mb-1 relative z-10">\$${_getPrecioEfectivo(s, new Date().getDay()).toLocaleString('es-CL')}</span>
                 <span class="flex items-center gap-1 text-[11px] font-medium text-brand-neon/60 duration-tag transition-all relative z-10">
                   <i class="ph ph-clock text-[13px]"></i>${formatDuration(s.duracion)}
                 </span>
@@ -1878,6 +1878,30 @@
             section.style.display = 'none';
           }
         }
+      });
+    }
+
+    // Devuelve el precio efectivo de un servicio para un día de la semana (0=Dom…6=Sáb).
+    // Si el servicio tiene preciosPorDia y ese día tiene un valor definido, lo usa;
+    // de lo contrario, cae al precio base.
+    function _getPrecioEfectivo(s, dow) {
+      if (!s) return 0;
+      if (!s.preciosPorDia) return s.precio;
+      const p = s.preciosPorDia[String(dow)];
+      return (p != null && p !== '') ? Number(p) : s.precio;
+    }
+
+    // Actualiza los `.price-tag` del grid de servicios al día de la semana indicado.
+    // Se llama al seleccionar una fecha en el calendario.
+    function _updatePriceTags(dow) {
+      const svcs = window._fsServices || [];
+      document.querySelectorAll('.service-option[data-service-id]').forEach(btn => {
+        const sid = btn.getAttribute('data-service-id');
+        const s = svcs.find(sv => String(sv.id) === String(sid));
+        if (!s) return;
+        const price = _getPrecioEfectivo(s, dow);
+        const tag = btn.querySelector('.price-tag');
+        if (tag) tag.textContent = '$' + price.toLocaleString('es-CL');
       });
     }
 
@@ -2292,6 +2316,7 @@
 
       currentDateStr = dateStr;
       selectedTimeStr = null;
+      _updatePriceTags(new Date(dateStr + 'T00:00:00').getDay());
       renderHours(_activeBarberConfig);
       _subscribeSlotLocks(dateStr);
     }
@@ -2636,7 +2661,8 @@
         if (_unsubSlotLocks) { _unsubSlotLocks(); _unsubSlotLocks = null; }
 
         document.getElementById('summaryService').innerText = selectedServiceObj.nombre;
-        document.getElementById('summaryPrice').innerText = "$" + selectedServiceObj.precio.toLocaleString('es-CL');
+        const _precioEfectivo = _getPrecioEfectivo(selectedServiceObj, new Date(currentDateStr + 'T00:00:00').getDay());
+        document.getElementById('summaryPrice').innerText = "$" + _precioEfectivo.toLocaleString('es-CL');
         document.getElementById('summaryDateString').innerText = currentDateStr;
         document.getElementById('summaryTime').innerText = selectedTimeStr;
 
@@ -2845,7 +2871,7 @@
             clienteEmail:     email,
             servicioNombre:   selectedServiceObj.nombre,
             duracionServicio: selectedServiceObj.duracion,
-            precio:           Number(selectedServiceObj.precio) || 0,
+            precio:           _getPrecioEfectivo(selectedServiceObj, new Date(currentDateStr + 'T00:00:00').getDay()) || 0,
             barbero:          barberoNombreFinal,
             barberoId:        barberoIdFinal,
             ...(window._selectedSucursal ? {
