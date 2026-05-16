@@ -398,9 +398,9 @@
 
                     barberId = myBarberoId;
 
-                    // Garantiza que barberos/{uid} exista para que las reglas de Firestore
-                    // reconozcan al barbero al hacer update/delete en /citas.
-                    FDB.ensureBarberoUidDoc(user.uid, user.email, info.barberoId).catch(() => {});
+                    // Garantiza que barberos/{uid} exista antes de iniciar los listeners.
+                    // Sin este doc, esBarberoFirestore falla y onSnapshot de /citas queda denegado.
+                    await FDB.ensureBarberoUidDoc(user.uid, user.email, info.barberoId).catch(() => {});
 
                     // Precargar nombre si ya lo tenemos del snap anterior
                     if (info.nombre) {
@@ -799,7 +799,15 @@
             const labels = { 'Completada': 'marcar como completada', 'Cancelada': 'cancelar' };
             if (!confirm(`¿${labels[nuevoEstado] || nuevoEstado} esta cita?`)) return;
             try {
-                await tenantCol('citas').doc(id).update({ estado: nuevoEstado });
+                const cita = todayCitas.find(c => c.id === id);
+                if (nuevoEstado === 'Cancelada' && cita?.slotLockId) {
+                    const batch = db.batch();
+                    batch.update(tenantCol('citas').doc(id), { estado: nuevoEstado });
+                    batch.delete(tenantCol('slotLocks').doc(cita.slotLockId));
+                    await batch.commit();
+                } else {
+                    await tenantCol('citas').doc(id).update({ estado: nuevoEstado });
+                }
             } catch(e) {
                 alert('Error al actualizar la cita: ' + e.message);
             }
@@ -892,7 +900,15 @@
 
         async function cambiarEstadoDesdeDetalle(id, nuevoEstado) {
             try {
-                await tenantCol('citas').doc(id).update({ estado: nuevoEstado });
+                const cita = todayCitas.find(c => c.id === id);
+                if (nuevoEstado === 'Cancelada' && cita?.slotLockId) {
+                    const batch = db.batch();
+                    batch.update(tenantCol('citas').doc(id), { estado: nuevoEstado });
+                    batch.delete(tenantCol('slotLocks').doc(cita.slotLockId));
+                    await batch.commit();
+                } else {
+                    await tenantCol('citas').doc(id).update({ estado: nuevoEstado });
+                }
                 const localCita = todayCitas.find(c => c.id === id);
                 if (localCita) localCita.estado = nuevoEstado;
                 if (_citaActiva && _citaActiva.id === id) {
@@ -923,8 +939,7 @@
         }
 
         async function agregarBloqueoRapido(time) {
-            const confirm = window.confirm(`¿Deseas bloquear el horario de las ${time}?`);
-            if(!confirm) return;
+            if (!window.confirm(`¿Deseas bloquear el horario de las ${time}?`)) return;
 
             const yyyy = currentDate.getFullYear();
             const mm = String(currentDate.getMonth() + 1).padStart(2, '0');
@@ -933,22 +948,40 @@
 
             const cfg = barberConfig || globalConfig;
             const interval = cfg.intervaloMinutos || 30;
-            
+
             const toMins  = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
             const fromMin = m => `${Math.floor(m / 60).toString().padStart(2, '0')}:${(m % 60).toString().padStart(2, '0')}`;
-            
+
             const endMins = toMins(time) + interval;
             const timeEnd = fromMin(endMins);
 
-            await tenantCol('bloqueos').add({
-                fecha: fechaStr,
-                barberoId: barberId,
+            const safeHora = time.replace(':', '');
+            const safeBid  = String(barberId).replace(/[^a-zA-Z0-9_-]/g, '_');
+            const lockId   = `bloqueo_${safeBid}_${fechaStr}_${safeHora}`;
+
+            const bloqueoRef = tenantCol('bloqueos').doc();
+            const lockRef    = tenantCol('slotLocks').doc(lockId);
+
+            const batch = db.batch();
+            batch.set(bloqueoRef, {
+                fecha:       fechaStr,
+                barberoId:   barberId,
                 todo_el_dia: false,
                 hora_inicio: time,
-                hora_fin: timeEnd,
-                motivo: 'Bloqueo rápido',
-                creadoEn: firebase.firestore.FieldValue.serverTimestamp()
+                hora_fin:    timeEnd,
+                motivo:      'Bloqueo rápido',
+                slotLockId:  lockId,
+                creadoEn:    firebase.firestore.FieldValue.serverTimestamp(),
             });
+            batch.set(lockRef, {
+                bloqueoId: bloqueoRef.id,
+                fecha:     fechaStr,
+                hora:      time,
+                barberoId: barberId,
+                duracion:  interval,
+                creadoEn:  firebase.firestore.FieldValue.serverTimestamp(),
+            });
+            await batch.commit();
         }
 
         // ── ÚLTIMAS RESERVAS ──

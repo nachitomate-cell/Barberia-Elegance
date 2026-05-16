@@ -307,11 +307,33 @@ function BloqueoModal({ barberos, dateStr, defaultBarberoId, defaultHora, defaul
       if (barberoId) payload.barberoId = barberoId;
       if (tipo === 'dia') {
         payload.todo_el_dia = true;
+        await addDoc(tenantCol('bloqueos'), payload);
       } else {
         payload.hora_inicio = horaIni;
         payload.hora_fin    = horaFin;
+        if (barberoId) {
+          const safeHora = horaIni.replace(':', '');
+          const safeBid  = String(barberoId).replace(/[^a-zA-Z0-9_-]/g, '_');
+          const lockId   = `bloqueo_${safeBid}_${dateStr}_${safeHora}`;
+          const duracion = toMins(horaFin) - toMins(horaIni);
+          const bloqueoRef = doc(tenantCol('bloqueos'));
+          const lockRef    = doc(tenantCol('slotLocks'), lockId);
+          payload.slotLockId = lockId;
+          const batch = writeBatch(db);
+          batch.set(bloqueoRef, payload);
+          batch.set(lockRef, {
+            bloqueoId: bloqueoRef.id,
+            fecha:     dateStr,
+            hora:      horaIni,
+            barberoId,
+            duracion,
+            creadoEn:  serverTimestamp(),
+          });
+          await batch.commit();
+        } else {
+          await addDoc(tenantCol('bloqueos'), payload);
+        }
       }
-      await addDoc(tenantCol('bloqueos'), payload);
       onClose();
     } finally { setSaving(false); }
   };
@@ -391,7 +413,7 @@ function BloqueoBlock({ bloqueo, onDelete }) {
   return (
     <div
       title={`Bloqueado${bloqueo.nota ? ': ' + bloqueo.nota : ''}`}
-      onClick={() => { if (confirm('¿Desbloquear este horario?')) onDelete(bloqueo.id); }}
+      onClick={() => { if (confirm('¿Desbloquear este horario?')) onDelete(bloqueo); }}
       className="absolute inset-x-0.5 rounded-md border border-red-500/30 bg-red-950/40 px-2 py-1 overflow-hidden cursor-pointer hover:bg-red-950/60 transition-all"
       style={{ top: `${startIdx * 40}px`, height: `${spans * 40 - 4}px` }}
     >
@@ -781,8 +803,13 @@ export default function Agenda() {
 
   const moveDay = delta => { const d = new Date(date); d.setDate(d.getDate() + delta); setDate(d); };
 
-  const handleDeleteBloqueo = useCallback(async id => {
-    await deleteDoc(doc(db, `${tenantCol('bloqueos').path}/${id}`));
+  const handleDeleteBloqueo = useCallback(async bloqueo => {
+    const batch = writeBatch(db);
+    batch.delete(doc(db, `${tenantCol('bloqueos').path}/${bloqueo.id}`));
+    if (bloqueo.slotLockId) {
+      batch.delete(doc(db, `${tenantCol('slotLocks').path}/${bloqueo.slotLockId}`));
+    }
+    await batch.commit();
   }, []);
 
   const openNewCita    = (barberoId, hora) => setCitaModal({ cita: null, barberoId, hora });

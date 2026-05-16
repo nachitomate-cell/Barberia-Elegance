@@ -116,7 +116,19 @@ service cloud.firestore {
     // listar barberos y su configuración (subcolección /configuracion).
     match /barberos/{barberoId} {
       allow read: if true;
-      allow create: if esAdmin('elegance');
+      allow create: if esAdmin('elegance')
+                    // Un barbero puede crear su propio doc de enlace (UID → mainDocId).
+                    // Condiciones: doc ID == su UID, referencia un doc principal real
+                    // (que no sea a su vez un enlace), y declara rol 'barbero'.
+                    // Rompe el chicken-and-egg de esBarberoFirestore sin custom claims.
+                    || (autenticado()
+                        && uid() == barberoId
+                        && request.resource.data.get('uid', '') == uid()
+                        && request.resource.data.get('rol', '') == 'barbero'
+                        && '_mainDocId' in request.resource.data
+                        && request.resource.data._mainDocId != barberoId
+                        && exists(/databases/$(database)/documents/barberos/$(request.resource.data._mainDocId))
+                        && !('_mainDocId' in get(/databases/$(database)/documents/barberos/$(request.resource.data._mainDocId)).data));
       allow update: if esAdmin('elegance')
                     || (esStaff('elegance')
                         && uid() == barberoId
@@ -356,7 +368,15 @@ service cloud.firestore {
       // ── barberos ─────────────────────────────────────────────────
       match /barberos/{barberoId} {
         allow read: if true;
-        allow create: if esAdmin(tid);
+        allow create: if esAdmin(tid)
+                      || (autenticado()
+                          && uid() == barberoId
+                          && request.resource.data.get('uid', '') == uid()
+                          && request.resource.data.get('rol', '') == 'barbero'
+                          && '_mainDocId' in request.resource.data
+                          && request.resource.data._mainDocId != barberoId
+                          && exists(/databases/$(database)/documents/tenants/$(tid)/barberos/$(request.resource.data._mainDocId))
+                          && !('_mainDocId' in get(/databases/$(database)/documents/tenants/$(tid)/barberos/$(request.resource.data._mainDocId)).data));
         allow update: if esAdmin(tid)
                       || (esStaff(tid)
                           && uid() == barberoId
