@@ -102,20 +102,34 @@ async function procesarSello({ tenantId, citaId, citaRef, cita }) {
   const barberoId      = cita.barberoId  || null;
 
   if (!telefono) {
-    logger.warn(`[Sello] ${citaId}: sin teléfono en la cita, saltando.`);
-    await citaRef.update({ selloProcesado: true });
-    return;
+    logger.warn(`[Sello] ${citaId}: sin teléfono en la cita, saltando sin marcar procesado.`);
+    return; // no marcar selloProcesado para que reintente si se actualiza el teléfono
   }
 
   const servicioKey = servicioAKey(servicioNombre);
 
   // ── 1. Obtener o crear doc del cliente ─────────────────────────
-  const clienteRef  = cols.clientes.doc(telefono);
-  const clienteSnap = await clienteRef.get();
+  // El doc de clientes usa el teléfono normalizado (sin símbolo +, con código de país).
+  // Intentamos primero con el teléfono tal como viene de la cita; si no existe,
+  // probamos la variante con/sin código de país '56' para manejar formatos distintos
+  // entre el formulario de reserva y el de registro.
+  let clienteRef  = cols.clientes.doc(telefono);
+  let clienteSnap = await clienteRef.get();
 
-  const clienteData = clienteSnap.exists
-    ? clienteSnap.data()
-    : null;
+  if (!clienteSnap.exists) {
+    const alt = telefono.startsWith('56') && telefono.length >= 10
+      ? telefono.slice(2)                          // 56912345678 → 912345678
+      : (telefono.length === 9 ? '56' + telefono : null); // 912345678 → 56912345678
+    if (alt) {
+      const altSnap = await cols.clientes.doc(alt).get();
+      if (altSnap.exists) {
+        clienteRef  = cols.clientes.doc(alt);
+        clienteSnap = altSnap;
+      }
+    }
+  }
+
+  const clienteData = clienteSnap.exists ? clienteSnap.data() : null;
 
   if (!clienteSnap.exists) {
     await clienteRef.set({
@@ -128,10 +142,30 @@ async function procesarSello({ tenantId, citaId, citaRef, cita }) {
       creadoEn:           Timestamp.now(),
       updatedAt:          Timestamp.now(),
     });
-    logger.info(`[Sello] ${citaId}: cliente creado → ${telefono}`);
+    logger.info(`[Sello] ${citaId}: cliente creado → ${clienteRef.id}`);
   }
 
-  const uid = clienteData?.uid ?? null;
+  let uid = clienteData?.uid ?? null;
+
+  // Si el doc de clientes existe pero no tiene uid, buscar en users por teléfono.
+  // Esto ocurre cuando la cita fue creada con un formato de teléfono distinto al del registro.
+  if (!uid) {
+    try {
+      const rawPhone = (cita.clienteTelefono || '').trim();
+      const variants = [...new Set([rawPhone, telefono, clienteRef.id])].filter(Boolean);
+      for (const v of variants) {
+        const q = await cols.users.where('telefono', '==', v).limit(1).get();
+        if (!q.empty) {
+          uid = q.docs[0].id;
+          await clienteRef.update({ uid });
+          logger.info(`[Sello] ${citaId}: uid resuelto por teléfono → ${uid}`);
+          break;
+        }
+      }
+    } catch (e) {
+      logger.warn(`[Sello] ${citaId}: fallback uid por teléfono falló: ${e.message}`);
+    }
+  }
 
   // ── 2. Verificar membresía ─────────────────────────────────────
   const membresia = uid && servicioKey
