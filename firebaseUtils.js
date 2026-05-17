@@ -191,6 +191,15 @@ const FDB = (() => {
     await batch.commit();
   }
 
+  async function reordenarBarberos(barberosOrdenados) {
+    // barberosOrdenados: array de {id, ...} en el nuevo orden
+    const batch = db.batch();
+    barberosOrdenados.forEach((b, i) => {
+      batch.update(tenantCol(COL.BARBEROS).doc(String(b.id)), { orden: i });
+    });
+    await batch.commit();
+  }
+
   // onSnapshot → callback recibe array de servicios en tiempo real
   function onServiciosChange(callback) {
     return tenantCol(COL.SERVICIOS).orderBy('orden').onSnapshot(snap => {
@@ -1228,9 +1237,9 @@ const FDB = (() => {
     onClienteChange, ensureCliente,
     // Sellos
     incrementarSellos, modificarSellos, canjearSellos,
-    // Barberos (Permisos)
+    // Barberos (Permisos + Orden)
     getBarberos, esBarbero, esAdminJefe, getBarberoId, getRol,
-    ensureBarberoUidDoc,
+    ensureBarberoUidDoc, reordenarBarberos,
   };
 })();
 

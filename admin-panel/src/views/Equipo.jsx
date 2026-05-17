@@ -1,11 +1,18 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Calendar, Edit2, Trash2, PowerOff, User, ShieldCheck, MessageCircle,
   Upload, ChevronDown, Plus, X, Phone, Mail, Percent, Scissors,
-  CalendarOff, Clock, Check, KeyRound, Link2, Copy,
+  CalendarOff, Clock, Check, KeyRound, Link2, Copy, GripVertical,
 } from 'lucide-react';
-import { updateDoc, addDoc, deleteDoc, doc, serverTimestamp, deleteField } from 'firebase/firestore';
+import { updateDoc, addDoc, deleteDoc, doc, serverTimestamp, deleteField, writeBatch } from 'firebase/firestore';
+import {
+  DndContext, closestCenter, PointerSensor, useSensor, useSensors,
+} from '@dnd-kit/core';
+import {
+  SortableContext, arrayMove, rectSortingStrategy, useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage, auth } from '../lib/firebase';
@@ -201,7 +208,7 @@ function BookingUrlButton({ nombre }) {
 }
 
 /* ─── BarberCard ─────────────────────────────────────────── */
-function BarberCard({ barber, onEdit, waUrl, onVerAgenda, sucursales = [] }) {
+function BarberCard({ barber, onEdit, waUrl, onVerAgenda, sucursales = [], dragHandleProps = null, isDragging = false }) {
   const isActive      = barber.disponible !== false;
   const isStrictAdmin = barber.rol === 'admin';
   const isAdmin       = barber.rol === 'admin' || barber.rol === 'jefe';
@@ -223,7 +230,12 @@ function BarberCard({ barber, onEdit, waUrl, onVerAgenda, sucursales = [] }) {
   ];
 
   return (
-    <div className="relative bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-col items-center gap-3 hover:border-slate-700 transition-all">
+    <div className={`relative bg-slate-900 border rounded-xl p-5 flex flex-col items-center gap-3 transition-all ${isDragging ? 'border-emerald-500/40 opacity-60 shadow-xl' : 'border-slate-800 hover:border-slate-700'}`}>
+      {dragHandleProps && (
+        <div {...dragHandleProps} className="absolute top-3 left-3 touch-none cursor-grab active:cursor-grabbing text-slate-700 hover:text-slate-400 transition-colors" title="Arrastrar para reordenar">
+          <GripVertical size={14} />
+        </div>
+      )}
       {!isStrictAdmin && <div className="absolute top-3 right-3"><DropdownMenu items={menuItems} /></div>}
       {isStrictAdmin  && <div className="absolute top-3 right-3 text-emerald-500/60"><ShieldCheck size={16} /></div>}
 
@@ -269,6 +281,17 @@ function BarberCard({ barber, onEdit, waUrl, onVerAgenda, sucursales = [] }) {
   );
 }
 
+/* ─── SortableBarberCard ─────────────────────────────────── */
+function SortableBarberCard({ barber, ...props }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: barber.id });
+  const style = { transform: CSS.Transform.toString(transform), transition, zIndex: isDragging ? 10 : undefined };
+  return (
+    <div ref={setNodeRef} style={style}>
+      <BarberCard barber={barber} {...props} dragHandleProps={{ ...attributes, ...listeners }} isDragging={isDragging} />
+    </div>
+  );
+}
+
 /* ─── Main component ─────────────────────────────────────── */
 export default function Equipo() {
   const navigate = useNavigate();
@@ -282,6 +305,52 @@ export default function Equipo() {
 
   const memberLabel = resolveTenantId() === 'gitana' ? 'profesional' : 'barbero';
   const memberLabelCap = memberLabel.charAt(0).toUpperCase() + memberLabel.slice(1);
+
+  /* ── Orden drag-and-drop ── */
+  const [orderedBarberos, setOrderedBarberos] = useState([]);
+  const isDraggingRef  = useRef(false);
+  const migratedRef    = useRef(false);
+
+  // Sincroniza con Firestore cuando no hay drag activo
+  useEffect(() => {
+    if (isDraggingRef.current) return;
+    const sorted = [...barberos].sort((a, b) => (a.orden ?? 9999) - (b.orden ?? 9999));
+    setOrderedBarberos(sorted);
+  }, [barberos]);
+
+  // Migración: asigna orden inicial a barberos que no tienen el campo
+  useEffect(() => {
+    if (migratedRef.current || !barberos.length) return;
+    const needsOrden = barberos.filter(b => b.orden === undefined || b.orden === null);
+    if (!needsOrden.length) { migratedRef.current = true; return; }
+    migratedRef.current = true;
+    const col   = tenantCol('barberos');
+    const batch = writeBatch(db);
+    barberos.forEach((b, i) => {
+      if (b.orden === undefined || b.orden === null) {
+        batch.update(doc(db, col.path, b.id), { orden: i });
+      }
+    });
+    batch.commit().catch(err => console.error('[Equipo] migración orden:', err));
+  }, [barberos]);
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+
+  async function handleDragEnd({ active, over }) {
+    isDraggingRef.current = false;
+    if (!over || active.id === over.id) return;
+    setOrderedBarberos(prev => {
+      const oldIdx  = prev.findIndex(b => b.id === active.id);
+      const newIdx  = prev.findIndex(b => b.id === over.id);
+      const newOrder = arrayMove(prev, oldIdx, newIdx);
+      // Batch write en Firestore
+      const col   = tenantCol('barberos');
+      const batch = writeBatch(db);
+      newOrder.forEach((b, i) => batch.update(doc(db, col.path, b.id), { orden: i }));
+      batch.commit().catch(err => console.error('[Equipo] reordenarBarberos:', err));
+      return newOrder;
+    });
+  }
 
   const [slide,     setSlide]     = useState(false);
   const [showHelp,  setShowHelp]  = useState(false);
@@ -435,12 +504,27 @@ export default function Equipo() {
           <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          {barberos.map(b => (
-            <BarberCard key={b.id} barber={b} onEdit={openEdit} waUrl={waUrl}
-              sucursales={sucursales} onVerAgenda={() => navigate('/agenda')} />
-          ))}
-        </div>
+        <>
+          <p className="text-xs text-slate-600 mb-3 flex items-center gap-1.5">
+            <GripVertical size={11} /> Arrastra las tarjetas para cambiar el orden en la vista de clientes
+          </p>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragStart={() => { isDraggingRef.current = true; }}
+            onDragEnd={handleDragEnd}
+            onDragCancel={() => { isDraggingRef.current = false; }}
+          >
+            <SortableContext items={orderedBarberos.map(b => b.id)} strategy={rectSortingStrategy}>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                {orderedBarberos.map(b => (
+                  <SortableBarberCard key={b.id} barber={b} onEdit={openEdit} waUrl={waUrl}
+                    sucursales={sucursales} onVerAgenda={() => navigate('/agenda')} />
+                ))}
+              </div>
+            </SortableContext>
+          </DndContext>
+        </>
       )}
 
       {/* ── SlideOver ── */}
