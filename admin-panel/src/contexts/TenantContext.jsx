@@ -10,6 +10,7 @@ const TENANT_META = {
   mapubarbershop: { name: 'Mapu Barber Shop',       accent: 'emerald', emoji: '✂️', logo: '/mapu.jfif'  },
   chameleon:      { name: 'Chameleon Barber Studio', accent: 'cyan',   emoji: '✂️', logo: '/local3.jpg' },
   deluxeperfumes: { name: 'Deluxe Perfumes',        accent: 'purple',  emoji: '🌸', logo: '/logo5.jpg'  },
+  lumen:          { name: 'Lumen Barbershop',        accent: 'cyan',    emoji: '✂️', logo: '/lumen.jpg'  },
 };
 
 const TenantContext = createContext(null);

@@ -322,6 +322,64 @@
     }
     /* ────────────────────────────────────────────────────────── */
 
+    /* ── Lumen Barbershop — tema neon cyan ─────────────────────── */
+    .tenant-lumen {
+      --gold: #22d3ee;
+      --gold-dim: rgba(34,211,238,0.20);
+    }
+    .tenant-lumen body { background-color: #030712; }
+    .tenant-lumen .ambient-glow {
+      background: radial-gradient(circle, rgba(34,211,238,0.06) 0%, transparent 65%);
+    }
+    .tenant-lumen .logo-ring {
+      border-color: rgba(34,211,238,0.55);
+      box-shadow: 0 0 0 1px rgba(34,211,238,0.10),
+                  0 0 24px rgba(34,211,238,0.22),
+                  0 0 56px rgba(34,211,238,0.06);
+    }
+    .tenant-lumen .gold-divider {
+      background: linear-gradient(90deg, transparent, #22d3ee, transparent);
+    }
+    .tenant-lumen .tab-btn.active {
+      color: #22d3ee;
+      border-color: #22d3ee;
+    }
+    .tenant-lumen .field:focus {
+      border-color: rgba(34,211,238,0.55);
+      box-shadow: 0 0 0 3px rgba(34,211,238,0.10);
+    }
+    .tenant-lumen .btn-primary {
+      background: #22d3ee;
+      border: 1.5px solid #22d3ee;
+      color: #030712;
+      font-weight: 700;
+      box-shadow: 0 0 20px rgba(34,211,238,0.30);
+    }
+    .tenant-lumen .btn-primary:hover {
+      background: #06b6d4;
+      border-color: #06b6d4;
+      box-shadow: 0 0 28px rgba(34,211,238,0.45);
+    }
+    .tenant-lumen .btn-google {
+      border-color: rgba(34,211,238,0.25);
+    }
+    .tenant-lumen .btn-google:hover {
+      border-color: rgba(34,211,238,0.45);
+      background: rgba(34,211,238,0.05);
+    }
+    .tenant-lumen .spinner {
+      border-color: rgba(34,211,238,0.18);
+      border-top-color: #22d3ee;
+    }
+    .tenant-lumen .flex-grow.border-t { border-color: rgba(34,211,238,0.10) !important; }
+    .tenant-lumen span.mx-4.text-gray-500 { color: rgba(34,211,238,0.35) !important; }
+    .tenant-lumen #loadingOverlay { background: rgba(3,7,18,0.90) !important; }
+    .tenant-lumen a.text-gray-600 { color: rgba(34,211,238,0.40) !important; }
+    .tenant-lumen a.text-gray-600:hover { color: rgba(34,211,238,0.70) !important; }
+    .tenant-lumen .eye-toggle { color: rgba(34,211,238,0.38) !important; }
+    .tenant-lumen .eye-toggle:hover { color: rgba(34,211,238,0.68) !important; }
+    /* ────────────────────────────────────────────────────────── */
+
     @keyframes fadeSlideUp {
       from { opacity:0; transform:translateY(14px); }
       to   { opacity:1; transform:translateY(0); }

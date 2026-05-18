@@ -47,6 +47,7 @@ const WA_SHOP_NAMES = {
   mapubarbershop: 'Mapu Barber Shop',
   gitana:         'Gitana Nails Studio',
   deluxeperfumes: 'Deluxe Perfumes',
+  lumen:          'Lumen Barbershop',
 };
 
 function buildWaConfirmMsg(tenantId, form, dateStr) {
