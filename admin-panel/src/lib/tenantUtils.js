@@ -9,6 +9,7 @@ const DOMAIN_MAP = {
   'chameleonbarber.synaptechspa.cl':   'chameleon',
   'deluxeperfumes.synaptechspa.cl':    'deluxeperfumes',
   'lumenbarbershop.synaptechspa.cl':   'lumen',
+  'delnerobarber.synaptechspa.cl':     'delnero',
 };
 
 export function resolveTenantId() {
