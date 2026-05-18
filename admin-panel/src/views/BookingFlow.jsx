@@ -7,7 +7,8 @@ import BookingConfirmar from './BookingConfirmar';
 
 export default function BookingFlow() {
   const { id } = useTenant();
-  const skipBarbero = id === 'delnero';
+  const skipBarbero = id === 'delnero' ||
+    window.location.hostname.toLowerCase().includes('delnero');
   const total = skipBarbero ? 3 : 4;
 
   const steps = skipBarbero
