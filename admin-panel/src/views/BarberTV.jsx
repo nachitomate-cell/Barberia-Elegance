@@ -9,7 +9,7 @@ import { useTenant }                                from '../contexts/TenantCont
 import { tenantCol, tenantDoc, resolveTenantId }    from '../lib/tenantUtils';
 
 // ── Constantes ────────────────────────────────────────────────────
-const TENANT_ACCENT = { ferraza: '#e2e8f0' };
+const TENANT_ACCENT = { ferraza: '#e2e8f0', lumen: '#22d3ee' };
 let GOLD            = '#D4AF37';
 const SLIDE_MS     = 15_000;
 const PHOTO_MS     = 3_000;

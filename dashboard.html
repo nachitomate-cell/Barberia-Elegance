@@ -1288,6 +1288,7 @@ document.getElementById('shopClubName').textContent   = SHOP.club;
   const isFerraza     = tid === 'ferraza';
   const isMapu        = tid === 'mapubarbershop';
   const isChameleon   = tid === 'chameleon';
+  const isLumen       = tid === 'lumen';
 
   // Subtítulo header
   const sub = document.getElementById('shopHeaderSub');
@@ -1308,11 +1309,14 @@ document.getElementById('shopClubName').textContent   = SHOP.club;
   } else if (isChameleon) {
     if (h1) h1.style.display = 'none';
     if (h2) h2.textContent = 'Clásico y moderno, perfecto para tí!';
+  } else if (isLumen) {
+    if (h1) h1.textContent = 'Ilumina';
+    if (h2) h2.textContent = 'tu estilo.';
   }
 
   // Watermark
   const wm = document.getElementById('membershipWatermark');
-  if (wm) wm.textContent = isGitana ? 'G' : isFerraza ? 'F' : isMapu ? 'M' : isChameleon ? 'C' : 'É';
+  if (wm) wm.textContent = isGitana ? 'G' : isFerraza ? 'F' : isMapu ? 'M' : isChameleon ? 'C' : isLumen ? 'L' : 'É';
 
   // PWA install icons — usa SHOP.logo como fuente única de verdad (config.js).
   // pwaBigIcon está antes del script en el DOM → se puede actualizar ya.
@@ -1387,10 +1391,19 @@ async function initProductosTab() {
     // Subscribe to products
     const grid  = document.getElementById('productosGrid');
     const empty = document.getElementById('productosEmpty');
+    const _LUMEN_PRODUCTOS_EJEMPLO = [
+      { id: '_ej1', nombre: 'Pomada Fijadora Matt',   descripcion: 'Fijación fuerte con acabado mate. Ideal para estilos definidos.',  precio: 8990  },
+      { id: '_ej2', nombre: 'Bálsamo para Barba',     descripcion: 'Hidrata y suaviza tu barba. Aroma a madera y cítricos.',           precio: 12490 },
+      { id: '_ej3', nombre: 'Aceite de Barba Premium',descripcion: 'Cuida, acondiciona y perfuma tu barba todo el día.',               precio: 9990  },
+      { id: '_ej4', nombre: 'Cera Modeladora',        descripcion: 'Control flexible con brillo natural. Para cualquier tipo de cabello.', precio: 7490 },
+    ];
     _tenantCol('productos').onSnapshot(snap2 => {
       const productos = snap2.docs.map(d => ({ id: d.id, ...d.data() }));
       if (!grid || !empty) return;
-      if (productos.length === 0) {
+      const lista = productos.length === 0 && window.CURRENT_TENANT_ID === 'lumen'
+        ? _LUMEN_PRODUCTOS_EJEMPLO
+        : productos;
+      if (lista.length === 0) {
         grid.innerHTML = '';
         empty.classList.remove('hidden');
         empty.style.display = 'flex';
@@ -1398,7 +1411,7 @@ async function initProductosTab() {
       }
       empty.classList.add('hidden');
       empty.style.display = '';
-      grid.innerHTML = productos.map(p => {
+      grid.innerHTML = lista.map(p => {
         const safeNombre = (p.nombre || '').replace(/'/g, '&#39;').replace(/"/g, '&quot;');
         const safeDesc   = (p.descripcion || '').replace(/'/g, '&#39;').replace(/"/g, '&quot;');
         const safeImg    = (p.imagen || '').replace(/'/g, '&#39;').replace(/"/g, '&quot;');
@@ -1593,7 +1606,17 @@ function renderPremiosDashboard(premios) {
   const el = document.getElementById('premiosList');
   if (!el) return;
 
-  if (!premios.length) {
+  const _LUMEN_PREMIOS_EJEMPLO = [
+    { costoSellos: 5,  nombre: 'Descuento 20% en tu próximo corte' },
+    { costoSellos: 10, nombre: 'Corte Gratis'                      },
+    { costoSellos: 15, nombre: 'Corte + Barba Gratis'              },
+  ];
+
+  const lista = !premios.length && window.CURRENT_TENANT_ID === 'lumen'
+    ? _LUMEN_PREMIOS_EJEMPLO
+    : premios;
+
+  if (!lista.length) {
     el.innerHTML = `<div class="flex flex-col items-center py-8 text-center">
       <i class="ph ph-trophy text-4xl text-white/10 mb-3"></i>
       <p class="text-sm text-gray-600">No hay premios configurados aún.</p>
@@ -1601,7 +1624,7 @@ function renderPremiosDashboard(premios) {
     return;
   }
 
-  el.innerHTML = premios.map((p, i) => `
+  el.innerHTML = lista.map((p, i) => `
     <div onclick="abrirModalCanje(this.dataset.nombre, +this.dataset.sellos)"
       data-nombre="${(p.nombre || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;')}"
       data-sellos="${p.costoSellos}"
