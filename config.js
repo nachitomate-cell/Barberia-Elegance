@@ -9,6 +9,7 @@
     'mapubarbershop.synaptechspa.cl':     'mapubarbershop',
     'chameleonbarber.synaptechspa.cl':    'chameleon',
     'deluxeperfumes.synaptechspa.cl':     'deluxeperfumes',
+    'lumenbarbershop.synaptechspa.cl':    'lumen',
   };
 
   const _tenants = {
