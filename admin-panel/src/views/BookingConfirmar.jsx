@@ -53,6 +53,7 @@ export default function BookingConfirmar({
     A08:  isLime ? 'rgba(57,255,20,0.08)'  : 'rgba(212,175,55,0.08)',
     A12:  isLime ? 'rgba(57,255,20,0.12)'  : 'rgba(212,175,55,0.12)',
     A25:  isLime ? 'rgba(57,255,20,0.25)'  : 'rgba(212,175,55,0.25)',
+    A28:  isLime ? 'rgba(57,255,20,0.28)'  : 'rgba(212,175,55,0.28)',
     glow: isLime ? '0 0 22px rgba(57,255,20,0.28), 0 4px 12px rgba(0,0,0,0.4)'
                  : '0 0 22px rgba(212,175,55,0.28), 0 4px 12px rgba(0,0,0,0.4)',
   };
@@ -141,7 +142,50 @@ export default function BookingConfirmar({
         </p>
       </div>
 
+      {/* ── Keyframes dinámicos (glow + shimmer con color del tenant) ── */}
+      <style>{`
+        @keyframes selloglow {
+          0%,100% { box-shadow: 0 0 8px ${clr.A28}, 0 0 18px ${clr.A12}; }
+          50%      { box-shadow: 0 0 22px ${clr.A}, 0 0 40px ${clr.A28}; }
+        }
+        @keyframes selloshimmer {
+          0%   { transform: translateX(-160%); }
+          100% { transform: translateX(160%); }
+        }
+        .sello-banner  { animation: selloglow 2.4s ease-in-out infinite; }
+        .sello-shimmer { animation: selloshimmer 2.8s ease-in-out infinite; }
+      `}</style>
+
       <div className="flex-1 px-5 space-y-4 overflow-y-auto">
+
+        {/* ── Banner +1 Sello ──────────────────────────────────── */}
+        <div
+          className="sello-banner relative overflow-hidden rounded-2xl px-4 py-3 flex items-center gap-3"
+          style={{
+            backgroundColor: clr.A08,
+            border: `1.5px solid ${clr.A}`,
+          }}
+        >
+          {/* Shimmer sweep */}
+          <div
+            className="sello-shimmer pointer-events-none absolute inset-y-0 w-1/3"
+            style={{ background: `linear-gradient(90deg,transparent,${clr.A25},transparent)` }}
+          />
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-[15px] font-black"
+            style={{ backgroundColor: clr.A, color: '#000' }}
+          >
+            +1
+          </div>
+          <div>
+            <p className="text-[13px] font-bold leading-tight" style={{ color: clr.A }}>
+              Esta visita sumará +1 sello
+            </p>
+            <p className="text-[11px] mt-0.5" style={{ color: '#777' }}>
+              Acumula y canjea premios exclusivos
+            </p>
+          </div>
+        </div>
 
         {/* ── Resumen de la cita ──────────────────────────────── */}
         <div className="rounded-2xl p-4" style={{ backgroundColor: '#111', border: '1px solid #1e1e1e' }}>

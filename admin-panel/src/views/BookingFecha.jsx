@@ -213,9 +213,11 @@ export default function BookingFecha({
                       }
                     : isSel
                     ? {
-                        backgroundColor: clr.A12,
-                        color: clr.A,
+                        backgroundColor: clr.A,
+                        color: '#000',
                         border: `1.5px solid ${clr.A}`,
+                        boxShadow: `0 0 14px ${clr.A28}`,
+                        fontWeight: 700,
                       }
                     : {
                         backgroundColor: '#111',
