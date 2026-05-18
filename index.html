@@ -250,6 +250,30 @@
       pointer-events: none;
     }
 
+    /* ── Sello +1: shimmer de acento que recorre la barra (todos los tenants) ── */
+    @keyframes sello-shimmer {
+      0%   { transform: translateX(-130%); }
+      100% { transform: translateX(230%); }
+    }
+    .sello-stamp-bar {
+      position: relative;
+      overflow: hidden;
+    }
+    .sello-stamp-bar::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        105deg,
+        transparent                                        25%,
+        rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.38) 50%,
+        transparent                                        75%
+      );
+      transform: translateX(-130%);
+      animation: sello-shimmer 2.4s cubic-bezier(0.4,0,0.6,1) infinite;
+      pointer-events: none;
+    }
+
     /* ── Paso 4 / Pantalla Éxito: SVG check animado ─────────────── */
     @keyframes drawCircle {
       to { stroke-dashoffset: 0; }
@@ -1634,30 +1658,6 @@
       border-color: #39ff14 !important;
       color: #39ff14 !important;
       box-shadow: 0 0 8px rgba(57,255,20,0.25) !important;
-    }
-
-    /* Sello +1 — shimmer electrificado */
-    @keyframes delnero-shimmer {
-      0%   { transform: translateX(-130%); }
-      100% { transform: translateX(230%); }
-    }
-    .tenant-delnero .sello-stamp-bar {
-      position: relative;
-      overflow: hidden;
-    }
-    .tenant-delnero .sello-stamp-bar::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: linear-gradient(
-        105deg,
-        transparent       25%,
-        rgba(57,255,20,0.38) 50%,
-        transparent       75%
-      );
-      transform: translateX(-130%);
-      animation: delnero-shimmer 2.4s cubic-bezier(0.4,0,0.6,1) infinite;
-      pointer-events: none;
     }
 
     /* Botón Continuar */
