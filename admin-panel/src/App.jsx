@@ -18,10 +18,7 @@ import Productos   from './views/Productos';
 import Lookbook       from './views/Lookbook';
 import Configuracion    from './views/Configuracion';
 import Gastos           from './views/Gastos';
-import BookingServicios from './views/BookingServicios';
-import BookingBarbero   from './views/BookingBarbero';
-import BookingFecha     from './views/BookingFecha';
-import BookingConfirmar from './views/BookingConfirmar';
+import BookingFlow     from './views/BookingFlow';
 import AgendaBarbero    from './views/AgendaBarbero';
 import Chat            from './views/Chat';
 import Marketing        from './views/Marketing';
@@ -89,10 +86,7 @@ function ProtectedApp() {
             <Route path="membresias"      element={<Membresias />} />
             <Route path="historial"       element={<HistorialCortes />} />
             <Route path="instagram"       element={<InstagramPage />} />
-            <Route path="booking-preview"    element={<BookingServicios onContinuar={s => alert(`Seleccionado: ${s.nombre}`)} />} />
-            <Route path="booking-barbero"   element={<BookingBarbero  onContinuar={b => alert(`Barbero: ${b.barbero?.nombre}`)} />} />
-            <Route path="booking-fecha"     element={<BookingFecha    onContinuar={f => alert(`Fecha: ${f.hora}`)} />} />
-            <Route path="booking-confirmar" element={<BookingConfirmar onConfirmar={d => alert(`Confirmado: ${d.nombre}`)} />} />
+            <Route path="booking-preview"   element={<BookingFlow />} />
             <Route path="agenda-preview"    element={<AgendaBarbero barberoNombre="Joaquin Amiri" />} />
             <Route path="*"               element={<Navigate to={defaultRoute} replace />} />
           </Routes>
@@ -108,6 +102,8 @@ const TENANT_MANIFESTS = {
   ferraza:       '/gestion-interna/manifest-ferraza.webmanifest',
   mapubarber:    '/gestion-interna/manifest-mapubarber.webmanifest',
   mapubarbershop:'/gestion-interna/manifest-mapubarber.webmanifest',
+  chameleon:     '/gestion-interna/manifest-chameleon.webmanifest',
+  delnero:       '/gestion-interna/manifest-delnero.webmanifest',
 };
 
 export default function App() {

@@ -155,12 +155,23 @@ function useUnreadNews() {
   return unread;
 }
 
+/* ── Accent class lookup (full strings required for Tailwind purge) ── */
+const ACCENT_CLASSES = {
+  emerald: { active: 'bg-emerald-500/10 text-emerald-400', chevron: 'text-emerald-500' },
+  cyan:    { active: 'bg-cyan-500/10 text-cyan-400',       chevron: 'text-cyan-500'    },
+  lime:    { active: 'bg-lime-500/10 text-lime-400',       chevron: 'text-lime-500'    },
+  pink:    { active: 'bg-pink-500/10 text-pink-400',       chevron: 'text-pink-500'    },
+  purple:  { active: 'bg-purple-500/10 text-purple-400',   chevron: 'text-purple-500'  },
+  slate:   { active: 'bg-slate-500/10 text-slate-300',     chevron: 'text-slate-400'   },
+};
+
 /* ── Sidebar ─────────────────────────────────────────────────────── */
 export default function Sidebar({ onClose, unreadChats = 0 }) {
   const tenant          = useTenant();
   const { role }        = useAuth();
   const isAdminRole     = role === 'admin' || role === 'jefe';
   const NAV_GROUPS      = tenant.id === 'deluxeperfumes' ? NAV_GROUPS_DELUXE : NAV_GROUPS_DEFAULT;
+  const ac              = ACCENT_CLASSES[tenant.accent] ?? ACCENT_CLASSES.emerald;
   const [light, setLight] = useTheme();
   const hasUnreadNews   = useUnreadNews();
   const hasBillingAlert = useBillingAlert();
@@ -282,7 +293,7 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
                         className={({ isActive }) =>
                           `group/item flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                             isActive
-                              ? 'bg-emerald-500/10 text-emerald-400'
+                              ? ac.active
                               : 'text-slate-400 hover:text-white hover:bg-slate-800'
                           }`
                         }
@@ -300,7 +311,7 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
                               </span>
                             )}
                             {isActive && !hasBadge && !showNewsDot && !showBillingDot && (
-                              <ChevronRight size={14} className="text-emerald-500 opacity-60" />
+                              <ChevronRight size={14} className={`${ac.chevron} opacity-60`} />
                             )}
                           </>
                         )}
@@ -329,9 +340,7 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
               onClick={onClose}
               className={({ isActive }) =>
                 `group/item flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                  isActive
-                    ? 'bg-emerald-500/10 text-emerald-400'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                  isActive ? ac.active : 'text-slate-400 hover:text-white hover:bg-slate-800'
                 }`
               }
             >
@@ -339,7 +348,7 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
                 <>
                   <Medal size={16} strokeWidth={isActive ? 2.5 : 2} className="shrink-0" />
                   <span className="flex-1">Membresías</span>
-                  {isActive && <ChevronRight size={14} className="text-emerald-500 opacity-60" />}
+                  {isActive && <ChevronRight size={14} className={`${ac.chevron} opacity-60`} />}
                 </>
               )}
             </NavLink>

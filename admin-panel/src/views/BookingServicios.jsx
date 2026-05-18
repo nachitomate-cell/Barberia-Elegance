@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Clock, Check, ChevronRight, Scissors } from 'lucide-react';
+import { useTenant } from '../contexts/TenantContext';
 
 /* ── Mock data ──────────────────────────────────────────────────── */
 const MOCK_SERVICIOS = [
@@ -14,12 +15,10 @@ const MOCK_SERVICIOS = [
 ];
 
 const CATEGORIAS = ['Todos', 'Cortes', 'Barba', 'Combos'];
-
-/* ── Utils ──────────────────────────────────────────────────────── */
 const fmtPrecio = p => `$${p.toLocaleString('es-CL')}`;
 
 /* ── ServiceCard ─────────────────────────────────────────────────── */
-function ServiceCard({ servicio, selected, onSelect }) {
+function ServiceCard({ servicio, selected, onSelect, clr }) {
   return (
     <button
       type="button"
@@ -29,30 +28,25 @@ function ServiceCard({ servicio, selected, onSelect }) {
       <div
         className="relative flex items-center justify-between px-5 py-4 rounded-2xl border transition-all duration-200"
         style={{
-          borderColor:    selected ? '#D4AF37' : 'rgb(31 31 31)',
+          borderColor:    selected ? clr.A : 'rgb(31 31 31)',
           backgroundColor: selected ? '#0f0f0a' : '#111111',
-          boxShadow:      selected ? '0 0 0 1px #D4AF3722 inset, 0 4px 20px rgba(212,175,55,0.07)' : 'none',
+          boxShadow:      selected ? `0 0 0 1px ${clr.A22} inset, 0 4px 20px ${clr.A07}` : 'none',
         }}
       >
-        {/* Sutil línea dorada izquierda cuando está seleccionado */}
         {selected && (
           <div
             className="absolute left-0 top-3 bottom-3 w-[3px] rounded-full"
-            style={{ backgroundColor: '#D4AF37' }}
+            style={{ backgroundColor: clr.A }}
           />
         )}
 
-        {/* Información del servicio */}
         <div className="flex-1 min-w-0 pr-4">
           <p className={`font-semibold text-[15px] leading-snug transition-colors ${
             selected ? 'text-white' : 'text-gray-200'
           }`}>
             {servicio.nombre}
           </p>
-          <p
-            className="font-bold text-base mt-1"
-            style={{ color: '#D4AF37' }}
-          >
+          <p className="font-bold text-base mt-1" style={{ color: clr.A }}>
             {fmtPrecio(servicio.precio)}
           </p>
           <div className="flex items-center gap-1.5 mt-1.5">
@@ -61,12 +55,11 @@ function ServiceCard({ servicio, selected, onSelect }) {
           </div>
         </div>
 
-        {/* Indicador de selección */}
         <div
           className="w-[22px] h-[22px] rounded-full flex items-center justify-center shrink-0 border-2 transition-all duration-200"
           style={{
-            borderColor:     selected ? '#D4AF37' : '#333',
-            backgroundColor: selected ? '#D4AF37' : 'transparent',
+            borderColor:     selected ? clr.A : '#333',
+            backgroundColor: selected ? clr.A : 'transparent',
           }}
         >
           {selected && (
@@ -79,7 +72,7 @@ function ServiceCard({ servicio, selected, onSelect }) {
 }
 
 /* ── CategoryChip ────────────────────────────────────────────────── */
-function CategoryChip({ label, active, onClick }) {
+function CategoryChip({ label, active, onClick, clr }) {
   return (
     <button
       type="button"
@@ -87,7 +80,7 @@ function CategoryChip({ label, active, onClick }) {
       className="shrink-0 px-4 py-1.5 rounded-full text-[13px] font-medium border transition-all duration-200"
       style={
         active
-          ? { backgroundColor: '#D4AF37', color: '#000', borderColor: '#D4AF37', fontWeight: 700 }
+          ? { backgroundColor: clr.A, color: '#000', borderColor: clr.A, fontWeight: 700 }
           : { backgroundColor: 'transparent', color: '#6b6b6b', borderColor: '#1f1f1f' }
       }
     >
@@ -97,7 +90,20 @@ function CategoryChip({ label, active, onClick }) {
 }
 
 /* ── Main component ──────────────────────────────────────────────── */
-export default function BookingServicios({ servicios = MOCK_SERVICIOS, onContinuar }) {
+export default function BookingServicios({ servicios = MOCK_SERVICIOS, onContinuar, paso = 1, total = 4 }) {
+  const { accent } = useTenant();
+  const isLime = accent === 'lime';
+  const clr = {
+    A:    isLime ? '#39ff14' : '#D4AF37',
+    A06:  isLime ? 'rgba(57,255,20,0.06)'  : 'rgba(212,175,55,0.06)',
+    A07:  isLime ? 'rgba(57,255,20,0.07)'  : 'rgba(212,175,55,0.07)',
+    A12:  isLime ? 'rgba(57,255,20,0.12)'  : 'rgba(212,175,55,0.12)',
+    A15:  isLime ? 'rgba(57,255,20,0.15)'  : 'rgba(212,175,55,0.15)',
+    A22:  isLime ? 'rgba(57,255,20,0.22)'  : 'rgba(212,175,55,0.22)',
+    glow: isLime ? '0 0 22px rgba(57,255,20,0.30), 0 4px 12px rgba(0,0,0,0.4)'
+                 : '0 0 22px rgba(212,175,55,0.30), 0 4px 12px rgba(0,0,0,0.4)',
+  };
+
   const [categoria, setCategoria] = useState('Todos');
   const [selected,  setSelected]  = useState(null);
 
@@ -107,7 +113,6 @@ export default function BookingServicios({ servicios = MOCK_SERVICIOS, onContinu
     categoria === 'Todos' ? servicios : servicios.filter(s => s.categoria === categoria),
   [servicios, categoria]);
 
-  /* Agrupar por categoría (solo en vista "Todos") */
   const agrupados = useMemo(() => {
     if (categoria !== 'Todos') return { [categoria]: filtrados };
     return filtrados.reduce((acc, s) => {
@@ -131,19 +136,18 @@ export default function BookingServicios({ servicios = MOCK_SERVICIOS, onContinu
 
       {/* ── Header ──────────────────────────────────────────────── */}
       <div className="px-5 pt-12 pb-6 shrink-0">
-        {/* Breadcrumb dorado */}
         <div className="flex items-center gap-2 mb-4">
           <div
             className="flex items-center justify-center w-7 h-7 rounded-full"
-            style={{ backgroundColor: 'rgba(212,175,55,0.12)' }}
+            style={{ backgroundColor: clr.A12 }}
           >
-            <Scissors size={13} style={{ color: '#D4AF37' }} />
+            <Scissors size={13} style={{ color: clr.A }} />
           </div>
           <p
             className="text-[11px] font-bold tracking-[0.22em] uppercase"
-            style={{ color: '#D4AF37' }}
+            style={{ color: clr.A }}
           >
-            Paso 1 de 3
+            Paso {paso} de {total}
           </p>
         </div>
 
@@ -167,6 +171,7 @@ export default function BookingServicios({ servicios = MOCK_SERVICIOS, onContinu
               label={cat}
               active={categoria === cat}
               onClick={() => handleCategoriaChange(cat)}
+              clr={clr}
             />
           ))}
         </div>
@@ -179,7 +184,6 @@ export default function BookingServicios({ servicios = MOCK_SERVICIOS, onContinu
       >
         {Object.entries(agrupados).map(([cat, items]) => (
           <section key={cat}>
-            {/* Separador de categoría */}
             {categoria === 'Todos' && (
               <div
                 className="pb-2 mb-4 border-b"
@@ -192,7 +196,6 @@ export default function BookingServicios({ servicios = MOCK_SERVICIOS, onContinu
               </div>
             )}
 
-            {/* Cards */}
             <div className="space-y-3">
               {items.map(s => (
                 <ServiceCard
@@ -200,6 +203,7 @@ export default function BookingServicios({ servicios = MOCK_SERVICIOS, onContinu
                   servicio={s}
                   selected={selected === s.id}
                   onSelect={toggle}
+                  clr={clr}
                 />
               ))}
             </div>
@@ -214,7 +218,6 @@ export default function BookingServicios({ servicios = MOCK_SERVICIOS, onContinu
           background: 'linear-gradient(to top, #0a0a0a 70%, transparent)',
         }}
       >
-        {/* Resumen del servicio seleccionado */}
         <div
           className="overflow-hidden transition-all duration-300"
           style={{
@@ -226,14 +229,14 @@ export default function BookingServicios({ servicios = MOCK_SERVICIOS, onContinu
           {servicioActual && (
             <div
               className="flex items-center justify-between px-4 py-2.5 rounded-xl"
-              style={{ backgroundColor: 'rgba(212,175,55,0.06)', border: '1px solid rgba(212,175,55,0.15)' }}
+              style={{ backgroundColor: clr.A06, border: `1px solid ${clr.A15}` }}
             >
               <div>
                 <p className="text-[10px] text-gray-600 uppercase tracking-wider">Seleccionado</p>
                 <p className="text-sm font-semibold text-white mt-0.5">{servicioActual.nombre}</p>
               </div>
               <div className="text-right">
-                <p className="font-bold text-base" style={{ color: '#D4AF37' }}>
+                <p className="font-bold text-base" style={{ color: clr.A }}>
                   {fmtPrecio(servicioActual.precio)}
                 </p>
                 <div className="flex items-center justify-end gap-1 mt-0.5">
@@ -245,7 +248,6 @@ export default function BookingServicios({ servicios = MOCK_SERVICIOS, onContinu
           )}
         </div>
 
-        {/* CTA principal */}
         <button
           type="button"
           disabled={!selected}
@@ -254,9 +256,9 @@ export default function BookingServicios({ servicios = MOCK_SERVICIOS, onContinu
           style={
             selected
               ? {
-                  backgroundColor: '#D4AF37',
+                  backgroundColor: clr.A,
                   color: '#000',
-                  boxShadow: '0 0 22px rgba(212,175,55,0.30), 0 4px 12px rgba(0,0,0,0.4)',
+                  boxShadow: clr.glow,
                   transform: 'scale(1)',
                 }
               : {

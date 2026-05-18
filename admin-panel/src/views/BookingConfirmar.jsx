@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ChevronLeft, Trophy, Check, Scissors, User, Calendar, Clock } from 'lucide-react';
+import { useTenant } from '../contexts/TenantContext';
 
 const DIAS  = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
@@ -8,7 +9,7 @@ const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
 const fmtPrecio = p => `$${p.toLocaleString('es-CL')}`;
 
 /* ── Fila del resumen ────────────────────────────────────────────── */
-function SummaryRow({ icon: Icon, label, value, valueGold }) {
+function SummaryRow({ icon: Icon, label, value, clr, valueAccent }) {
   return (
     <div className="flex items-center gap-3">
       <div
@@ -21,35 +22,13 @@ function SummaryRow({ icon: Icon, label, value, valueGold }) {
       {value && (
         <p
           className="text-[13px] font-semibold shrink-0"
-          style={{ color: valueGold ? '#D4AF37' : '#888' }}
+          style={{ color: valueAccent ? clr.A : '#888' }}
         >
           {value}
         </p>
       )}
     </div>
   );
-}
-
-/* ── Estilos de input con focus dorado ───────────────────────────── */
-const BASE_INPUT = {
-  width: '100%',
-  backgroundColor: '#111',
-  border: '1px solid #222',
-  borderRadius: '12px',
-  padding: '14px 16px',
-  color: '#fff',
-  fontSize: '14px',
-  outline: 'none',
-  transition: 'border-color 0.2s, box-shadow 0.2s',
-};
-
-function onFocus(e) {
-  e.target.style.borderColor = '#D4AF37';
-  e.target.style.boxShadow   = '0 0 0 1px rgba(212,175,55,0.25)';
-}
-function onBlur(e) {
-  e.target.style.borderColor = '#222';
-  e.target.style.boxShadow   = 'none';
 }
 
 /* ── Main component ──────────────────────────────────────────────── */
@@ -60,9 +39,44 @@ export default function BookingConfirmar({
   fecha          = new Date(),
   hora           = '10:00',
   duracion       = 40,
+  showBarbero    = true,
   onConfirmar,
   onVolver,
+  paso  = 4,
+  total = 4,
 }) {
+  const { accent, name: tenantName } = useTenant();
+  const isLime = accent === 'lime';
+  const clr = {
+    A:    isLime ? '#39ff14' : '#D4AF37',
+    A08:  isLime ? 'rgba(57,255,20,0.08)'  : 'rgba(212,175,55,0.08)',
+    A12:  isLime ? 'rgba(57,255,20,0.12)'  : 'rgba(212,175,55,0.12)',
+    A25:  isLime ? 'rgba(57,255,20,0.25)'  : 'rgba(212,175,55,0.25)',
+    glow: isLime ? '0 0 22px rgba(57,255,20,0.28), 0 4px 12px rgba(0,0,0,0.4)'
+                 : '0 0 22px rgba(212,175,55,0.28), 0 4px 12px rgba(0,0,0,0.4)',
+  };
+
+  const onFocus = e => {
+    e.target.style.borderColor = clr.A;
+    e.target.style.boxShadow   = `0 0 0 1px ${clr.A25}`;
+  };
+  const onBlur = e => {
+    e.target.style.borderColor = '#222';
+    e.target.style.boxShadow   = 'none';
+  };
+
+  const BASE_INPUT = {
+    width: '100%',
+    backgroundColor: '#111',
+    border: '1px solid #222',
+    borderRadius: '12px',
+    padding: '14px 16px',
+    color: '#fff',
+    fontSize: '14px',
+    outline: 'none',
+    transition: 'border-color 0.2s, box-shadow 0.2s',
+  };
+
   const [nombre,   setNombre]   = useState('');
   const [telefono, setTelefono] = useState('');
   const [email,    setEmail]    = useState('');
@@ -82,6 +96,7 @@ export default function BookingConfirmar({
   };
 
   const fechaLabel = `${DIAS[fecha.getDay()]} ${fecha.getDate()} de ${MESES[fecha.getMonth()]}`;
+  const pct = Math.round((paso / total) * 100);
 
   return (
     <div
@@ -103,15 +118,15 @@ export default function BookingConfirmar({
           )}
           <div className="flex-1">
             <div className="flex items-center justify-between mb-1.5">
-              <p className="text-[11px] font-bold tracking-[0.22em] uppercase" style={{ color: '#D4AF37' }}>
-                Paso 4 de 4
+              <p className="text-[11px] font-bold tracking-[0.22em] uppercase" style={{ color: clr.A }}>
+                Paso {paso} de {total}
               </p>
-              <p className="text-[11px] text-gray-600">100%</p>
+              <p className="text-[11px] text-gray-600">{pct}%</p>
             </div>
             <div className="h-1 rounded-full overflow-hidden" style={{ backgroundColor: '#1a1a1a' }}>
               <div
                 className="h-full rounded-full transition-all duration-500"
-                style={{ width: '100%', backgroundColor: '#D4AF37' }}
+                style={{ width: `${pct}%`, backgroundColor: clr.A }}
               />
             </div>
           </div>
@@ -121,7 +136,7 @@ export default function BookingConfirmar({
           Tus datos
         </h1>
         <p className="text-[13px] mt-1" style={{ color: '#555' }}>
-          Confirma tu reserva en Elegance
+          Confirma tu reserva
         </p>
       </div>
 
@@ -133,10 +148,10 @@ export default function BookingConfirmar({
             Tu reserva
           </p>
           <div className="space-y-2.5">
-            <SummaryRow icon={Scissors}  label={servicioNombre} value={fmtPrecio(precio)} valueGold />
-            <SummaryRow icon={User}      label={barberoNombre} />
-            <SummaryRow icon={Calendar}  label={fechaLabel} />
-            <SummaryRow icon={Clock}     label={hora} value={`${duracion} min`} />
+            <SummaryRow icon={Scissors}  label={servicioNombre} value={fmtPrecio(precio)} clr={clr} valueAccent />
+            {showBarbero && <SummaryRow icon={User} label={barberoNombre} clr={clr} />}
+            <SummaryRow icon={Calendar}  label={fechaLabel} clr={clr} />
+            <SummaryRow icon={Clock}     label={hora} value={`${duracion} min`} clr={clr} />
           </div>
         </div>
 
@@ -171,27 +186,27 @@ export default function BookingConfirmar({
           />
         </div>
 
-        {/* ── Club Elegance ────────────────────────────────────── */}
+        {/* ── Club ────────────────────────────────────────────── */}
         <button
           type="button"
           onClick={() => setJoinClub(v => !v)}
           className="w-full text-left rounded-2xl p-4 transition-all duration-200"
           style={{
-            backgroundColor: joinClub ? 'rgba(212,175,55,0.08)' : '#111',
-            border:          joinClub ? '1.5px solid #D4AF37'   : '1px solid #1e1e1e',
+            backgroundColor: joinClub ? clr.A08 : '#111',
+            border:          joinClub ? `1.5px solid ${clr.A}` : '1px solid #1e1e1e',
           }}
         >
           <div className="flex items-start gap-3">
             <div
               className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-              style={{ backgroundColor: 'rgba(212,175,55,0.12)' }}
+              style={{ backgroundColor: clr.A12 }}
             >
-              <Trophy size={18} style={{ color: '#D4AF37' }} />
+              <Trophy size={18} style={{ color: clr.A }} />
             </div>
 
             <div className="flex-1 min-w-0">
               <p className="text-[14px] font-bold text-white leading-tight">
-                Unirme al Club Elegance
+                Unirme al Club de {tenantName.split(' ').slice(0, 2).join(' ')}
               </p>
               <p className="text-[11px] mt-1" style={{ color: '#888' }}>
                 Acumula sellos con cada visita y canjea premios exclusivos
@@ -201,8 +216,8 @@ export default function BookingConfirmar({
             <div
               className="w-[22px] h-[22px] rounded-full flex items-center justify-center shrink-0 border-2 transition-all duration-200 mt-0.5"
               style={{
-                borderColor:     joinClub ? '#D4AF37' : '#333',
-                backgroundColor: joinClub ? '#D4AF37' : 'transparent',
+                borderColor:     joinClub ? clr.A : '#333',
+                backgroundColor: joinClub ? clr.A : 'transparent',
               }}
             >
               {joinClub && <Check size={12} strokeWidth={3.5} className="text-black" />}
@@ -224,9 +239,9 @@ export default function BookingConfirmar({
           style={
             isValid
               ? {
-                  backgroundColor: '#D4AF37',
+                  backgroundColor: clr.A,
                   color: '#000',
-                  boxShadow: '0 0 22px rgba(212,175,55,0.28), 0 4px 12px rgba(0,0,0,0.4)',
+                  boxShadow: clr.glow,
                 }
               : {
                   backgroundColor: '#111',

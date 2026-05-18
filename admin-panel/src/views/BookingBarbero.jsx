@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Check, ChevronRight, Shuffle, User, ChevronLeft } from 'lucide-react';
+import { useTenant } from '../contexts/TenantContext';
 
 /* ── Mock data ──────────────────────────────────────────────────── */
 const MOCK_BARBEROS = [
@@ -8,17 +9,15 @@ const MOCK_BARBEROS = [
   { id: 4, nombre: 'Nicolás Fabián', especialidad: 'Cortes Clásicos',     foto: null, citasHoy: 6 },
 ];
 
-/* ── Lógica de balanceo de carga ────────────────────────────────── */
 function elegirBarberoOptimo(barberos) {
   if (!barberos.length) return null;
   const minCitas = Math.min(...barberos.map(b => b.citasHoy));
   const candidatos = barberos.filter(b => b.citasHoy === minCitas);
-  // En empate, asignación aleatoria entre los candidatos
   return candidatos[Math.floor(Math.random() * candidatos.length)];
 }
 
 /* ── BarberRow ───────────────────────────────────────────────────── */
-function BarberRow({ barbero, selected, onSelect }) {
+function BarberRow({ barbero, selected, onSelect, clr }) {
   return (
     <button
       type="button"
@@ -28,22 +27,20 @@ function BarberRow({ barbero, selected, onSelect }) {
       <div
         className="flex items-center gap-4 px-4 py-3.5 rounded-2xl border transition-all duration-200"
         style={{
-          borderColor:     selected ? '#D4AF37' : '#1a1a1a',
+          borderColor:     selected ? clr.A : '#1a1a1a',
           backgroundColor: selected ? '#111108' : '#111111',
-          boxShadow:       selected ? '0 0 0 1px rgba(212,175,55,0.15) inset' : 'none',
+          boxShadow:       selected ? `0 0 0 1px ${clr.A15} inset` : 'none',
         }}
       >
-        {/* Avatar */}
         <div
           className="w-11 h-11 rounded-full overflow-hidden shrink-0 flex items-center justify-center border"
-          style={{ borderColor: selected ? 'rgba(212,175,55,0.4)' : '#222' , backgroundColor: '#1a1a1a' }}
+          style={{ borderColor: selected ? clr.A35 : '#222', backgroundColor: '#1a1a1a' }}
         >
           {barbero.foto
             ? <img src={barbero.foto} alt={barbero.nombre} className="w-full h-full object-cover" />
             : <User size={18} className="text-gray-600" />}
         </div>
 
-        {/* Info */}
         <div className="flex-1 min-w-0">
           <p className="text-[14px] font-semibold text-white leading-snug truncate">
             {barbero.nombre}
@@ -53,12 +50,11 @@ function BarberRow({ barbero, selected, onSelect }) {
           </p>
         </div>
 
-        {/* Selector */}
         <div
           className="w-[22px] h-[22px] rounded-full flex items-center justify-center shrink-0 border-2 transition-all duration-200"
           style={{
-            borderColor:     selected ? '#D4AF37' : '#333',
-            backgroundColor: selected ? '#D4AF37' : 'transparent',
+            borderColor:     selected ? clr.A : '#333',
+            backgroundColor: selected ? clr.A : 'transparent',
           }}
         >
           {selected && <Check size={12} strokeWidth={3.5} className="text-black" />}
@@ -69,7 +65,7 @@ function BarberRow({ barbero, selected, onSelect }) {
 }
 
 /* ── SinPreferenciaRow ───────────────────────────────────────────── */
-function SinPreferenciaRow({ selected, onSelect }) {
+function SinPreferenciaRow({ selected, onSelect, clr }) {
   return (
     <button
       type="button"
@@ -79,35 +75,32 @@ function SinPreferenciaRow({ selected, onSelect }) {
       <div
         className="flex items-center gap-4 px-4 py-3.5 rounded-2xl border transition-all duration-200"
         style={{
-          borderColor:     selected ? '#D4AF37' : 'rgba(212,175,55,0.2)',
-          backgroundColor: selected ? '#111108' : 'rgba(212,175,55,0.03)',
-          boxShadow:       selected ? '0 0 0 1px rgba(212,175,55,0.15) inset' : 'none',
+          borderColor:     selected ? clr.A : clr.A22,
+          backgroundColor: selected ? '#111108' : clr.A03,
+          boxShadow:       selected ? `0 0 0 1px ${clr.A15} inset` : 'none',
         }}
       >
-        {/* Ícono dorado */}
         <div
           className="w-11 h-11 rounded-full flex items-center justify-center shrink-0 border"
-          style={{ borderColor: 'rgba(212,175,55,0.35)', backgroundColor: 'rgba(212,175,55,0.08)' }}
+          style={{ borderColor: clr.A35, backgroundColor: clr.A08 }}
         >
-          <Shuffle size={18} style={{ color: '#D4AF37' }} />
+          <Shuffle size={18} style={{ color: clr.A }} />
         </div>
 
-        {/* Info */}
         <div className="flex-1 min-w-0">
           <p className="text-[14px] font-semibold text-white leading-snug">
             Sin preferencia
           </p>
-          <p className="text-[11px] mt-0.5" style={{ color: '#D4AF37', opacity: 0.8 }}>
+          <p className="text-[11px] mt-0.5" style={{ color: clr.A, opacity: 0.8 }}>
             Asignación inteligente para hoy
           </p>
         </div>
 
-        {/* Selector */}
         <div
           className="w-[22px] h-[22px] rounded-full flex items-center justify-center shrink-0 border-2 transition-all duration-200"
           style={{
-            borderColor:     selected ? '#D4AF37' : 'rgba(212,175,55,0.4)',
-            backgroundColor: selected ? '#D4AF37' : 'transparent',
+            borderColor:     selected ? clr.A : clr.A35,
+            backgroundColor: selected ? clr.A : 'transparent',
           }}
         >
           {selected && <Check size={12} strokeWidth={3.5} className="text-black" />}
@@ -123,27 +116,38 @@ export default function BookingBarbero({
   servicioNombre = 'Corte Tradicional',
   onContinuar,
   onVolver,
+  paso  = 2,
+  total = 4,
 }) {
-  const [selected, setSelected] = useState('no_preference');
+  const { accent } = useTenant();
+  const isLime = accent === 'lime';
+  const clr = {
+    A:    isLime ? '#39ff14' : '#D4AF37',
+    A03:  isLime ? 'rgba(57,255,20,0.03)'  : 'rgba(212,175,55,0.03)',
+    A08:  isLime ? 'rgba(57,255,20,0.08)'  : 'rgba(212,175,55,0.08)',
+    A15:  isLime ? 'rgba(57,255,20,0.15)'  : 'rgba(212,175,55,0.15)',
+    A22:  isLime ? 'rgba(57,255,20,0.2)'   : 'rgba(212,175,55,0.2)',
+    A28:  isLime ? 'rgba(57,255,20,0.28)'  : 'rgba(212,175,55,0.28)',
+    A35:  isLime ? 'rgba(57,255,20,0.35)'  : 'rgba(212,175,55,0.35)',
+    glow: isLime ? '0 0 22px rgba(57,255,20,0.28), 0 4px 12px rgba(0,0,0,0.4)'
+                 : '0 0 22px rgba(212,175,55,0.28), 0 4px 12px rgba(0,0,0,0.4)',
+  };
 
+  const [selected, setSelected] = useState('no_preference');
   const barberoOptimo = useMemo(() => elegirBarberoOptimo(barberos), [barberos]);
 
   const handleContinue = () => {
     if (selected === 'no_preference') {
       if (!barberoOptimo) return;
-      console.log(
-        `Navegando al Paso 3 con Barbero ID: ${barberoOptimo.id}` +
-        ` — ${barberoOptimo.nombre} (balanceo de carga, ${barberoOptimo.citasHoy} citas hoy)`
-      );
       onContinuar?.({ barbero: barberoOptimo, porBalanceo: true });
     } else {
       const barberoElegido = barberos.find(b => b.id === selected);
-      console.log(`Navegando al Paso 3 con Barbero ID: ${selected} — ${barberoElegido?.nombre}`);
       onContinuar?.({ barbero: barberoElegido, porBalanceo: false });
     }
   };
 
-  /* Chip resumen del servicio anterior */
+  const pct = Math.round((paso / total) * 100);
+
   const ChipServicio = () => (
     <div
       className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full border"
@@ -162,7 +166,6 @@ export default function BookingBarbero({
 
       {/* ── Header ──────────────────────────────────────────────── */}
       <div className="px-5 pt-12 pb-6 shrink-0">
-        {/* Paso + barra de progreso */}
         <div className="flex items-center gap-3 mb-5">
           {onVolver && (
             <button
@@ -177,17 +180,16 @@ export default function BookingBarbero({
             <div className="flex items-center justify-between mb-1.5">
               <p
                 className="text-[11px] font-bold tracking-[0.22em] uppercase"
-                style={{ color: '#D4AF37' }}
+                style={{ color: clr.A }}
               >
-                Paso 2 de 4
+                Paso {paso} de {total}
               </p>
-              <p className="text-[11px] text-gray-600">50%</p>
+              <p className="text-[11px] text-gray-600">{pct}%</p>
             </div>
-            {/* Progress bar */}
             <div className="h-1 rounded-full overflow-hidden" style={{ backgroundColor: '#1a1a1a' }}>
               <div
                 className="h-full rounded-full transition-all duration-500"
-                style={{ width: '50%', backgroundColor: '#D4AF37' }}
+                style={{ width: `${pct}%`, backgroundColor: clr.A }}
               />
             </div>
           </div>
@@ -201,29 +203,21 @@ export default function BookingBarbero({
 
       {/* ── Lista ────────────────────────────────────────────────── */}
       <div className="flex-1 px-5 space-y-3 overflow-y-auto">
+        <SinPreferenciaRow selected={selected === 'no_preference'} onSelect={setSelected} clr={clr} />
 
-        {/* Sin preferencia — primera opción */}
-        <SinPreferenciaRow
-          selected={selected === 'no_preference'}
-          onSelect={setSelected}
-        />
-
-        {/* Separador */}
         <div className="flex items-center gap-3 py-1">
           <div className="flex-1 h-px" style={{ backgroundColor: '#1a1a1a' }} />
-          <p className="text-[10px] text-gray-700 uppercase tracking-widest shrink-0">
-            O elige uno
-          </p>
+          <p className="text-[10px] text-gray-700 uppercase tracking-widest shrink-0">O elige uno</p>
           <div className="flex-1 h-px" style={{ backgroundColor: '#1a1a1a' }} />
         </div>
 
-        {/* Barberos */}
         {barberos.map(b => (
           <BarberRow
             key={b.id}
             barbero={b}
             selected={selected === b.id}
             onSelect={setSelected}
+            clr={clr}
           />
         ))}
       </div>
@@ -233,14 +227,10 @@ export default function BookingBarbero({
         className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md px-5 pb-8 pt-3"
         style={{ background: 'linear-gradient(to top, #0a0a0a 75%, transparent)' }}
       >
-        {/* Hint balanceo */}
         {selected === 'no_preference' && barberoOptimo && (
-          <div
-            className="flex items-center justify-center gap-1.5 mb-3"
-            style={{ opacity: 0.7 }}
-          >
-            <Shuffle size={11} style={{ color: '#D4AF37' }} />
-            <p className="text-[11px]" style={{ color: '#D4AF37' }}>
+          <div className="flex items-center justify-center gap-1.5 mb-3" style={{ opacity: 0.7 }}>
+            <Shuffle size={11} style={{ color: clr.A }} />
+            <p className="text-[11px]" style={{ color: clr.A }}>
               Se asignará a <strong>{barberoOptimo.nombre}</strong> ({barberoOptimo.citasHoy} citas hoy)
             </p>
           </div>
@@ -251,9 +241,9 @@ export default function BookingBarbero({
           onClick={handleContinue}
           className="w-full py-4 rounded-2xl font-bold text-[15px] flex items-center justify-center gap-2 transition-all duration-200 active:scale-[0.98]"
           style={{
-            backgroundColor: '#D4AF37',
+            backgroundColor: clr.A,
             color: '#000',
-            boxShadow: '0 0 22px rgba(212,175,55,0.28), 0 4px 12px rgba(0,0,0,0.4)',
+            boxShadow: clr.glow,
           }}
         >
           Continuar

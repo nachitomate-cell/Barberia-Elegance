@@ -1,0 +1,16 @@
+{
+  "name": "Panel Admin · Del Nero",
+  "short_name": "Del Nero",
+  "description": "Panel de administración — Del Nero Barber",
+  "theme_color": "#39ff14",
+  "background_color": "#050505",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "start_url": "/gestion-interna/?local=delnero",
+  "scope": "/gestion-interna/",
+  "icons": [
+    { "src": "/nero.jpg",                          "sizes": "any",     "type": "image/jpeg" },
+    { "src": "/gestion-interna/pwa-192.png",       "sizes": "192x192", "type": "image/png" },
+    { "src": "/gestion-interna/pwa-512.png",       "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

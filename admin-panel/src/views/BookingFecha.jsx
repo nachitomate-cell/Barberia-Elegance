@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { ChevronLeft, ChevronRight, Clock } from 'lucide-react';
+import { useTenant } from '../contexts/TenantContext';
 
 const DIAS  = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
@@ -15,7 +16,6 @@ function isSameDay(a, b) {
 const today = new Date();
 today.setHours(0, 0, 0, 0);
 
-// Slots bloqueados por día de semana (mock — simula citas ya tomadas)
 const BLOCKED = {
   0: ['09:00','10:30','14:00','16:00','17:30'],
   1: ['09:30','11:00','13:00','15:00'],
@@ -54,9 +54,22 @@ export default function BookingFecha({
   servicioNombre = 'Corte Tradicional',
   barberoNombre  = 'Joaquin Amiri',
   duracion       = 40,
+  showBarbero    = true,
   onContinuar,
   onVolver,
+  paso  = 3,
+  total = 4,
 }) {
+  const { accent } = useTenant();
+  const isLime = accent === 'lime';
+  const clr = {
+    A:    isLime ? '#39ff14' : '#D4AF37',
+    A12:  isLime ? 'rgba(57,255,20,0.12)'  : 'rgba(212,175,55,0.12)',
+    A28:  isLime ? 'rgba(57,255,20,0.28)'  : 'rgba(212,175,55,0.28)',
+    glow: isLime ? '0 0 22px rgba(57,255,20,0.28), 0 4px 12px rgba(0,0,0,0.4)'
+                 : '0 0 22px rgba(212,175,55,0.28), 0 4px 12px rgba(0,0,0,0.4)',
+  };
+
   const [selectedDate, setSelectedDate] = useState(today);
   const [selectedTime, setSelectedTime] = useState(null);
 
@@ -81,6 +94,8 @@ export default function BookingFecha({
     ? `${DIAS[selectedDate.getDay()]} ${selectedDate.getDate()} de ${MESES[selectedDate.getMonth()]} · ${selectedTime}`
     : null;
 
+  const pct = Math.round((paso / total) * 100);
+
   return (
     <div
       className="max-w-md mx-auto flex flex-col"
@@ -101,15 +116,15 @@ export default function BookingFecha({
           )}
           <div className="flex-1">
             <div className="flex items-center justify-between mb-1.5">
-              <p className="text-[11px] font-bold tracking-[0.22em] uppercase" style={{ color: '#D4AF37' }}>
-                Paso 3 de 4
+              <p className="text-[11px] font-bold tracking-[0.22em] uppercase" style={{ color: clr.A }}>
+                Paso {paso} de {total}
               </p>
-              <p className="text-[11px] text-gray-600">75%</p>
+              <p className="text-[11px] text-gray-600">{pct}%</p>
             </div>
             <div className="h-1 rounded-full overflow-hidden" style={{ backgroundColor: '#1a1a1a' }}>
               <div
                 className="h-full rounded-full transition-all duration-500"
-                style={{ width: '75%', backgroundColor: '#D4AF37' }}
+                style={{ width: `${pct}%`, backgroundColor: clr.A }}
               />
             </div>
           </div>
@@ -121,7 +136,7 @@ export default function BookingFecha({
 
         <div className="flex flex-wrap gap-2">
           <Chip label="Servicio" value={servicioNombre} />
-          <Chip label="Barbero"  value={barberoNombre} />
+          {showBarbero && <Chip label="Barbero" value={barberoNombre} />}
           <Chip label="Duración" value={`${duracion} min`} icon={Clock} />
         </div>
       </div>
@@ -144,14 +159,14 @@ export default function BookingFecha({
                 onClick={() => handleDateChange(d)}
                 className="flex-shrink-0 w-14 h-[72px] rounded-2xl flex flex-col items-center justify-center transition-all duration-200"
                 style={{
-                  backgroundColor: isSel ? 'rgba(212,175,55,0.12)' : '#111',
-                  border:          isSel ? '1.5px solid #D4AF37'   : '1px solid #1e1e1e',
-                  transform:       isSel ? 'scale(1.05)'           : 'scale(1)',
+                  backgroundColor: isSel ? clr.A12 : '#111',
+                  border:          isSel ? `1.5px solid ${clr.A}` : '1px solid #1e1e1e',
+                  transform:       isSel ? 'scale(1.05)' : 'scale(1)',
                 }}
               >
                 <span
                   className="text-[9px] font-bold uppercase tracking-wider mb-1"
-                  style={{ color: isSel ? '#D4AF37' : '#555' }}
+                  style={{ color: isSel ? clr.A : '#555' }}
                 >
                   {isToday ? 'Hoy' : DIAS[d.getDay()]}
                 </span>
@@ -164,7 +179,7 @@ export default function BookingFecha({
                 {isToday && (
                   <div
                     className="w-1 h-1 rounded-full mt-1"
-                    style={{ backgroundColor: isSel ? '#D4AF37' : '#444' }}
+                    style={{ backgroundColor: isSel ? clr.A : '#444' }}
                   />
                 )}
               </button>
@@ -198,9 +213,9 @@ export default function BookingFecha({
                       }
                     : isSel
                     ? {
-                        backgroundColor: 'rgba(212,175,55,0.12)',
-                        color: '#D4AF37',
-                        border: '1.5px solid #D4AF37',
+                        backgroundColor: clr.A12,
+                        color: clr.A,
+                        border: `1.5px solid ${clr.A}`,
                       }
                     : {
                         backgroundColor: '#111',
@@ -223,8 +238,8 @@ export default function BookingFecha({
       >
         {fechaLabel && (
           <div className="flex items-center justify-center gap-1.5 mb-3" style={{ opacity: 0.8 }}>
-            <Clock size={11} style={{ color: '#D4AF37' }} />
-            <p className="text-[11px]" style={{ color: '#D4AF37' }}>{fechaLabel}</p>
+            <Clock size={11} style={{ color: clr.A }} />
+            <p className="text-[11px]" style={{ color: clr.A }}>{fechaLabel}</p>
           </div>
         )}
         <button
@@ -235,9 +250,9 @@ export default function BookingFecha({
           style={
             selectedTime
               ? {
-                  backgroundColor: '#D4AF37',
+                  backgroundColor: clr.A,
                   color: '#000',
-                  boxShadow: '0 0 22px rgba(212,175,55,0.28), 0 4px 12px rgba(0,0,0,0.4)',
+                  boxShadow: clr.glow,
                 }
               : {
                   backgroundColor: '#111',
