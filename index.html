@@ -15,12 +15,12 @@
   <meta property="og:description" content="Reserva tu hora en Elegance Barbershop. Elige barbero, servicio y horario fácilmente.">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Elegance Barbershop">
-  <meta property="og:image" content="/logo.jpg">
+  <meta property="og:image" content="https://barberiaelegance.synaptechspa.cl/logo.jpg">
   <meta property="og:url" content="https://barberiaelegance.synaptechspa.cl/">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Agendar Hora | Elegance Barbershop">
   <meta name="twitter:description" content="Reserva tu hora en Elegance Barbershop. Elige barbero, servicio y horario fácilmente.">
-  <meta name="twitter:image" content="/logo.jpg">
+  <meta name="twitter:image" content="https://barberiaelegance.synaptechspa.cl/logo.jpg">
   <meta name="robots" content="index, follow">
   <meta name="author" content="SynapTech SpA">
 
@@ -1471,6 +1471,239 @@
       background: rgba(34,211,238,0.06) !important;
       border-color: rgba(34,211,238,0.14) !important;
     }
+
+    /* ══ DEL NERO BARBER — Verde Neón / Negro Profundo / Crema Serif ══
+       Paleta: Verde neón (#39ff14) · Negro (#050505) · Crema (#f0ead6)
+       ═══════════════════════════════════════════════════════════════ */
+    .tenant-delnero {
+      --accent:   #39ff14;
+      --accent-r: 57; --accent-g: 255; --accent-b: 20;
+      --neon-clr: #39ff14;
+      --neon-r:   57; --neon-g: 255; --neon-b: 20;
+      --body-bg:  #050505;
+    }
+    .tenant-delnero body { background-color: #050505; }
+
+    /* Hero: imagen del local + overlay oscuro fuerte */
+    .tenant-delnero .booking-hero {
+      background-image: url('/nero.jpg') !important;
+      background-size: cover !important;
+      background-position: center 30% !important;
+    }
+    .tenant-delnero .booking-hero-overlay {
+      background: linear-gradient(180deg,
+        rgba(0,0,0,0.70) 0%, rgba(0,0,0,0.55) 40%, rgba(0,0,0,0.94) 100%) !important;
+    }
+
+    /* Logo ring — verde neón */
+    .tenant-delnero .hero-logo-ring {
+      border-color: #39ff14 !important;
+      box-shadow:
+        0 0 0 1px rgba(57,255,20,0.15),
+        0 0 28px rgba(57,255,20,0.22),
+        0 0 50px rgba(57,255,20,0.08) !important;
+    }
+
+    /* Nombre del local — serif crema */
+    .tenant-delnero #shopNombre {
+      font-family: 'Playfair Display', Georgia, serif !important;
+      color: #f0ead6 !important;
+      text-shadow: 0 2px 16px rgba(0,0,0,0.7) !important;
+    }
+    .tenant-delnero #shopClubNombre {
+      font-family: 'Playfair Display', Georgia, serif !important;
+      color: #f0ead6 !important;
+    }
+
+    /* Info strip */
+    .tenant-delnero .info-strip i { color: #39ff14 !important; opacity: 0.75; }
+    .tenant-delnero .info-strip {
+      background: rgba(5,5,5,0.90) !important;
+      border-color: rgba(57,255,20,0.08) !important;
+    }
+
+    /* Barra de progreso */
+    .tenant-delnero #progressBar {
+      background-color: #39ff14 !important;
+      box-shadow: 0 0 8px rgba(57,255,20,0.80), 0 0 15px rgba(57,255,20,0.40) !important;
+    }
+    .tenant-delnero #progressTrack { background-color: rgba(57,255,20,0.10) !important; }
+    .tenant-delnero #stepIndicatorText {
+      color: #39ff14 !important;
+      text-shadow: 0 0 8px rgba(57,255,20,0.50) !important;
+    }
+
+    /* Píldoras de categoría: inactivas oscuras, activa verde neón */
+    .tenant-delnero .category-pill {
+      background: transparent !important;
+      border-color: #3f3f46 !important;
+      color: #71717a !important;
+      box-shadow: none !important;
+    }
+    .tenant-delnero .category-pill:hover {
+      border-color: rgba(57,255,20,0.40) !important;
+      color: #d4d4d8 !important;
+    }
+    .tenant-delnero .category-pill.border-neon {
+      background: rgba(57,255,20,0.10) !important;
+      border-color: #39ff14 !important;
+      color: #39ff14 !important;
+      box-shadow: 0 0 8px rgba(57,255,20,0.20) !important;
+    }
+    .tenant-delnero .category-pill.text-neon { color: #39ff14 !important; }
+
+    /* Heading paso 1 — crema para textos estáticos */
+    .tenant-delnero h2.text-neon {
+      color: #f0ead6 !important;
+      text-shadow: none !important;
+    }
+
+    /* Tarjetas de servicio */
+    .tenant-delnero .service-option {
+      background: rgba(57,255,20,0.02) !important;
+      border-color: #27272a !important;
+    }
+    .tenant-delnero .service-option:hover {
+      border-color: rgba(57,255,20,0.35) !important;
+      background: rgba(57,255,20,0.04) !important;
+      box-shadow: 0 0 15px rgba(57,255,20,0.10) !important;
+    }
+    .tenant-delnero .service-option.border-neon {
+      border-color: #39ff14 !important;
+      background: rgba(57,255,20,0.07) !important;
+      box-shadow: 0 0 0 1px #39ff14, 0 0 15px rgba(57,255,20,0.15) !important;
+    }
+    /* Nombre servicio: crema */
+    .tenant-delnero .service-option .svc-name { color: #f0ead6 !important; }
+    /* Precio: verde neón brillante */
+    .tenant-delnero .service-option .price-tag { color: #39ff14 !important; }
+    .tenant-delnero .service-option .duration-tag { color: rgba(57,255,20,0.55) !important; }
+    .tenant-delnero .service-option.border-neon .icon-bg {
+      border-color: rgba(57,255,20,0.40) !important;
+      box-shadow: 0 0 10px rgba(57,255,20,0.20) !important;
+      background: rgba(57,255,20,0.08) !important;
+    }
+    .tenant-delnero .service-option.border-neon .icon-svg {
+      color: #39ff14 !important;
+      filter: drop-shadow(0 0 4px rgba(57,255,20,0.50)) !important;
+    }
+
+    /* Tarjetas de barbero */
+    .tenant-delnero .barber-option {
+      background: rgba(57,255,20,0.02) !important;
+      border-color: rgba(57,255,20,0.08) !important;
+    }
+    .tenant-delnero .barber-option:hover {
+      border-color: rgba(57,255,20,0.35) !important;
+      background: rgba(57,255,20,0.04) !important;
+    }
+    .tenant-delnero .barber-option.border-neon {
+      border-color: #39ff14 !important;
+      background: rgba(57,255,20,0.07) !important;
+      box-shadow: 0 0 12px rgba(57,255,20,0.15) !important;
+    }
+    .tenant-delnero .barber-option.bg-brand-neon\/10 {
+      background: rgba(57,255,20,0.07) !important;
+    }
+    .tenant-delnero .text-brand-neon { color: #39ff14 !important; }
+
+    /* Calendario */
+    .tenant-delnero .day-btn {
+      background: rgba(57,255,20,0.02) !important;
+      border-color: rgba(57,255,20,0.10) !important;
+    }
+    .tenant-delnero .day-btn.active,
+    .tenant-delnero .day-btn.border-neon {
+      background: rgba(57,255,20,0.08) !important;
+      border-color: #39ff14 !important;
+      box-shadow: 0 0 10px rgba(57,255,20,0.15) !important;
+    }
+    .tenant-delnero .day-btn .dot.bg-neon {
+      background: #39ff14 !important;
+      box-shadow: 0 0 6px rgba(57,255,20,0.60) !important;
+    }
+
+    /* Selector de hora: activo verde neón (fix residual mostaza) */
+    .tenant-delnero .time-pill.bg-neon {
+      background: #39ff14 !important;
+      color: #050505 !important;
+      box-shadow: 0 0 12px rgba(57,255,20,0.55) !important;
+      font-weight: 800 !important;
+    }
+    .tenant-delnero .time-pill.border-neon {
+      border-color: #39ff14 !important;
+      color: #39ff14 !important;
+      box-shadow: 0 0 8px rgba(57,255,20,0.25) !important;
+    }
+
+    /* Botón Continuar */
+    .tenant-delnero #btnContinue {
+      background: transparent !important;
+      border: 1.5px solid #39ff14 !important;
+      color: #39ff14 !important;
+      box-shadow: 0 0 12px rgba(57,255,20,0.20), inset 0 0 12px rgba(57,255,20,0.03) !important;
+    }
+    .tenant-delnero #btnContinue:hover,
+    .tenant-delnero #btnContinue:active {
+      background: #39ff14 !important;
+      color: #050505 !important;
+      box-shadow: 0 0 20px rgba(57,255,20,0.50) !important;
+    }
+    .tenant-delnero #btnContinueBar {
+      background: rgba(5,5,5,0.92) !important;
+      border-top-color: rgba(57,255,20,0.10) !important;
+    }
+
+    /* Inputs datos personales */
+    .tenant-delnero #clientName,
+    .tenant-delnero #clientPhone,
+    .tenant-delnero #clientEmail {
+      background: rgba(57,255,20,0.03) !important;
+      border-color: rgba(57,255,20,0.12) !important;
+    }
+    .tenant-delnero #clientName:focus,
+    .tenant-delnero #clientPhone:focus,
+    .tenant-delnero #clientEmail:focus {
+      outline: none !important;
+      border-color: #39ff14 !important;
+      box-shadow: 0 0 0 2px rgba(57,255,20,0.20) !important;
+    }
+    .tenant-delnero #summaryPrice { color: #39ff14 !important; }
+
+    /* Club banner */
+    .tenant-delnero #clubBanner a {
+      background: rgba(57,255,20,0.03) !important;
+      border-color: rgba(57,255,20,0.18) !important;
+    }
+    .tenant-delnero #clubBanner .club-icon-wrap {
+      background: rgba(57,255,20,0.08) !important;
+      border-color: rgba(57,255,20,0.22) !important;
+    }
+
+    /* Footer contacto */
+    .tenant-delnero #footerContact > .rounded-2xl {
+      background: #080808 !important;
+      border-color: rgba(57,255,20,0.08) !important;
+    }
+    .tenant-delnero #footerContact .w-10 {
+      background: rgba(57,255,20,0.07) !important;
+      border-color: rgba(57,255,20,0.18) !important;
+    }
+    .tenant-delnero #shopHorarioGrid span.rounded-full {
+      background: rgba(57,255,20,0.50) !important;
+    }
+
+    /* Gold divider — verde neón */
+    .tenant-delnero .gold-divider {
+      background: linear-gradient(90deg, transparent, #39ff14, transparent) !important;
+    }
+
+    /* Selection recap chips */
+    .tenant-delnero #selectionRecap span {
+      background: rgba(57,255,20,0.06) !important;
+      border-color: rgba(57,255,20,0.14) !important;
+    }
+    /* ────────────────────────────────────────────────────────────── */
   </style>
 </head>
 
@@ -2814,6 +3047,12 @@
         const labels = ['Sucursal',  'Servicios', paso2Label,   'Fecha y Hora','Confirmación'];
         percentage = pcts[currentStep];
         text = `Paso ${currentStep + 1} de 5: ${labels[currentStep]}`;
+      } else if (window.CURRENT_TENANT_ID === 'delnero') {
+        // 3 pasos: Servicios → Fecha y Hora → Confirmación (sin Barbero)
+        const map = { 1: ['25%', 1, 'Servicios'], 3: ['50%', 2, 'Fecha y Hora'], 4: ['100%', 3, 'Confirmación'] };
+        const [pct, num, label] = map[currentStep] || ['25%', 1, 'Servicios'];
+        percentage = pct;
+        text = `Paso ${num} de 3: ${label}`;
       } else {
         const pcts   = ['25%',      '50%',           '75%',          '100%'         ];
         const labels = ['Servicios', paso2Label,     'Fecha y Hora', 'Confirmación' ];
@@ -2853,10 +3092,39 @@
       } else if (currentStep === 1) {
         if (!selectedServiceObj) return showToast('Selecciona un servicio para continuar.');
 
-        transitionStep(1, 2);
-        currentStep = 2;
-        updateProgress();
-        updateContinueBtn();
+        if (window.CURRENT_TENANT_ID === 'delnero') {
+          // Saltar directamente a Fecha y Hora — auto-asignar el único barbero
+          const primerBarbero = (_fsBarberos || []).find(b => !b._mainDocId && b.disponible !== false && b.rol !== 'admin');
+          window._selectedBarberId = primerBarbero ? primerBarbero.id : 'any';
+          const barId = primerBarbero ? primerBarbero.id : null;
+          selectedTimeStr = null;
+          if (barId) {
+            const [barCfg] = await Promise.all([
+              FDB.getConfigBarbero(barId),
+              precargarBloqueos(barId),
+            ]);
+            const barbData = (_fsBarberos || []).find(b => b.id === barId);
+            _activeBarberConfig = barbData?.horario
+              ? { ...barCfg, horario: barbData.horario }
+              : barCfg;
+          } else {
+            await precargarBloqueos(null);
+            _activeBarberConfig = null;
+          }
+          renderCalendar(_activeBarberConfig);
+          renderHours(_activeBarberConfig);
+          _subscribeSlotLocks(currentDateStr);
+          transitionStep(1, 3);
+          currentStep = 3;
+          updateProgress();
+          updateContinueBtn();
+
+        } else {
+          transitionStep(1, 2);
+          currentStep = 2;
+          updateProgress();
+          updateContinueBtn();
+        }
 
       } else if (currentStep === 2) {
         if (!window._selectedBarberId) return showToast("Elige un barbero o selecciona 'Sin preferencia'.");
