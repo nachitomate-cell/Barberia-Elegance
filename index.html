@@ -1636,6 +1636,30 @@
       box-shadow: 0 0 8px rgba(57,255,20,0.25) !important;
     }
 
+    /* Sello +1 — shimmer electrificado */
+    @keyframes delnero-shimmer {
+      0%   { transform: translateX(-130%); }
+      100% { transform: translateX(230%); }
+    }
+    .tenant-delnero .sello-stamp-bar {
+      position: relative;
+      overflow: hidden;
+    }
+    .tenant-delnero .sello-stamp-bar::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        105deg,
+        transparent       25%,
+        rgba(57,255,20,0.38) 50%,
+        transparent       75%
+      );
+      transform: translateX(-130%);
+      animation: delnero-shimmer 2.4s cubic-bezier(0.4,0,0.6,1) infinite;
+      pointer-events: none;
+    }
+
     /* Botón Continuar */
     .tenant-delnero #btnContinue {
       background: transparent !important;
@@ -3252,7 +3276,7 @@
                   <p class="text-[10px] text-gray-500 font-semibold">sellos</p>
                 </div>
               </div>
-              <div class="flex items-center gap-2 px-5 py-2.5 border-t" style="background:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.05);border-color:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.15);">
+              <div class="sello-stamp-bar flex items-center gap-2 px-5 py-2.5 border-t" style="background:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.05);border-color:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.15);">
                 <i class="ph-fill ph-seal-check text-sm" style="color:var(--accent);"></i>
                 <p class="text-xs font-semibold text-white/60">Esta visita sumará <span class="font-black" style="color:var(--accent);">+1 sello</span> a tu cuenta</p>
               </div>
