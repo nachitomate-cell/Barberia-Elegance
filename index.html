@@ -1249,6 +1249,218 @@
       box-shadow: 0 0 20px rgba(37,211,102,0.3) !important;
     }
     .tenant-ferraza #waBtnLink i { color: #25D366 !important; }
+
+    /* ═══════════════════════════════════════════════════════════════
+       LUMEN — Neon / Cyberpunk Theme
+       Paleta: Cian eléctrico (#22d3ee) · Near-black (#030712) · Glow
+       ═══════════════════════════════════════════════════════════════ */
+    .tenant-lumen {
+      --accent:   #22d3ee;
+      --accent-r: 34; --accent-g: 211; --accent-b: 238;
+      --neon-clr: #22d3ee;
+      --neon-r:   34; --neon-g: 211; --neon-b: 238;
+      --body-bg:  #030712;
+    }
+    .tenant-lumen body { background-color: #030712; }
+
+    /* Hero */
+    .tenant-lumen .booking-hero {
+      background-image: url('/lumen.jpg') !important;
+      background-size: cover !important;
+      background-position: center 30% !important;
+    }
+    .tenant-lumen .booking-hero-overlay {
+      background: linear-gradient(180deg,
+        rgba(3,7,18,0.65) 0%, rgba(3,7,18,0.45) 40%, rgba(3,7,18,0.95) 100%) !important;
+    }
+
+    /* Logo ring — cian neón */
+    .tenant-lumen .hero-logo-ring {
+      border-color: #22d3ee !important;
+      box-shadow:
+        0 0 0 1px rgba(34,211,238,0.15),
+        0 0 20px rgba(34,211,238,0.30),
+        0 0 40px rgba(34,211,238,0.12),
+        0 0 50px rgba(0,0,0,0.6) !important;
+    }
+
+    /* Barra de progreso */
+    .tenant-lumen #progressBar {
+      background-color: #22d3ee !important;
+      box-shadow: 0 0 8px rgba(34,211,238,0.8), 0 0 15px rgba(34,211,238,0.4) !important;
+    }
+    .tenant-lumen #progressTrack { background-color: rgba(34,211,238,0.10) !important; }
+    .tenant-lumen #stepIndicatorText {
+      color: #22d3ee !important;
+      text-shadow: 0 0 8px rgba(34,211,238,0.50) !important;
+    }
+
+    /* Category pills */
+    .tenant-lumen .category-pill {
+      background: transparent !important;
+      border-color: #3f3f46 !important;
+      color: #71717a !important;
+      box-shadow: none !important;
+    }
+    .tenant-lumen .category-pill:hover {
+      border-color: rgba(34,211,238,0.40) !important;
+      color: #a1a1aa !important;
+    }
+    .tenant-lumen .category-pill.border-neon {
+      background: rgba(34,211,238,0.10) !important;
+      border-color: #22d3ee !important;
+      color: #22d3ee !important;
+      box-shadow: 0 0 8px rgba(34,211,238,0.20) !important;
+    }
+    .tenant-lumen .category-pill.text-neon { color: #22d3ee !important; }
+
+    /* Tarjetas de servicio */
+    .tenant-lumen .service-option {
+      background: rgba(34,211,238,0.02) !important;
+      border-color: rgba(34,211,238,0.08) !important;
+    }
+    .tenant-lumen .service-option:hover {
+      border-color: rgba(34,211,238,0.35) !important;
+      background: rgba(34,211,238,0.04) !important;
+      box-shadow: 0 0 15px rgba(34,211,238,0.10) !important;
+    }
+    .tenant-lumen .service-option.border-neon {
+      border-color: #22d3ee !important;
+      background: rgba(34,211,238,0.07) !important;
+      box-shadow: 0 0 0 1px #22d3ee, 0 0 15px rgba(34,211,238,0.15) !important;
+    }
+    .tenant-lumen .service-option.bg-brand-neon\/10 {
+      background: rgba(34,211,238,0.07) !important;
+    }
+    .tenant-lumen .service-option .price-tag { color: #22d3ee !important; }
+    .tenant-lumen .service-option .duration-tag { color: rgba(34,211,238,0.55) !important; }
+    .tenant-lumen .service-option.border-neon .icon-bg {
+      border-color: rgba(34,211,238,0.40) !important;
+      box-shadow: 0 0 10px rgba(34,211,238,0.20) !important;
+      background: rgba(34,211,238,0.08) !important;
+    }
+    .tenant-lumen .service-option.border-neon .icon-svg {
+      color: #22d3ee !important;
+      filter: drop-shadow(0 0 4px rgba(34,211,238,0.50)) !important;
+    }
+
+    /* Barbero cards */
+    .tenant-lumen .barber-option {
+      background: rgba(34,211,238,0.02) !important;
+      border-color: rgba(34,211,238,0.08) !important;
+    }
+    .tenant-lumen .barber-option:hover {
+      border-color: rgba(34,211,238,0.35) !important;
+      background: rgba(34,211,238,0.04) !important;
+    }
+    .tenant-lumen .barber-option.border-neon {
+      border-color: #22d3ee !important;
+      background: rgba(34,211,238,0.07) !important;
+      box-shadow: 0 0 12px rgba(34,211,238,0.15) !important;
+    }
+    .tenant-lumen .barber-option.bg-brand-neon\/10 {
+      background: rgba(34,211,238,0.07) !important;
+    }
+    .tenant-lumen .text-brand-neon { color: #22d3ee !important; }
+
+    /* Calendario */
+    .tenant-lumen .day-btn {
+      background: rgba(34,211,238,0.02) !important;
+      border-color: rgba(34,211,238,0.10) !important;
+    }
+    .tenant-lumen .day-btn.active,
+    .tenant-lumen .day-btn.border-neon {
+      background: rgba(34,211,238,0.08) !important;
+      border-color: #22d3ee !important;
+      box-shadow: 0 0 10px rgba(34,211,238,0.15) !important;
+    }
+    .tenant-lumen .day-btn .dot.bg-neon {
+      background: #22d3ee !important;
+      box-shadow: 0 0 6px rgba(34,211,238,0.60) !important;
+    }
+
+    /* Time pills */
+    .tenant-lumen .time-pill.bg-neon {
+      background: #22d3ee !important;
+      color: #030712 !important;
+      box-shadow: 0 0 10px rgba(34,211,238,0.40) !important;
+      font-weight: 800 !important;
+    }
+    .tenant-lumen .time-pill.border-neon {
+      border-color: #22d3ee !important;
+      color: #22d3ee !important;
+      box-shadow: 0 0 8px rgba(34,211,238,0.25) !important;
+    }
+
+    /* Botón Continuar — ghost outline + hover fill */
+    .tenant-lumen #btnContinue {
+      background: transparent !important;
+      border: 1.5px solid #22d3ee !important;
+      color: #22d3ee !important;
+      box-shadow: 0 0 12px rgba(34,211,238,0.20), inset 0 0 12px rgba(34,211,238,0.03) !important;
+    }
+    .tenant-lumen #btnContinue:hover,
+    .tenant-lumen #btnContinue:active {
+      background: #22d3ee !important;
+      color: #030712 !important;
+      box-shadow: 0 0 20px rgba(34,211,238,0.45) !important;
+    }
+    .tenant-lumen #btnContinueBar {
+      background: rgba(3,7,18,0.92) !important;
+      border-top-color: rgba(34,211,238,0.10) !important;
+    }
+
+    /* Inputs paso 4 */
+    .tenant-lumen #clientName,
+    .tenant-lumen #clientPhone,
+    .tenant-lumen #clientEmail {
+      background: rgba(34,211,238,0.03) !important;
+      border-color: rgba(34,211,238,0.12) !important;
+    }
+    .tenant-lumen #clientName:focus,
+    .tenant-lumen #clientPhone:focus,
+    .tenant-lumen #clientEmail:focus {
+      outline: none !important;
+      border-color: #22d3ee !important;
+      box-shadow: 0 0 0 2px rgba(34,211,238,0.20) !important;
+    }
+    .tenant-lumen #summaryPrice { color: #22d3ee !important; }
+
+    /* WhatsApp CTA */
+    .tenant-lumen #waBtnLink {
+      background: rgba(37,211,102,0.06) !important;
+      border-color: rgba(37,211,102,0.50) !important;
+      color: #25D366 !important;
+      box-shadow: 0 0 15px rgba(37,211,102,0.15) !important;
+    }
+    .tenant-lumen #waBtnLink i { color: #25D366 !important; filter: none !important; }
+
+    /* Club banner */
+    .tenant-lumen #clubBanner a {
+      background: rgba(34,211,238,0.03) !important;
+      border-color: rgba(34,211,238,0.18) !important;
+    }
+    .tenant-lumen #clubBanner .club-icon-wrap {
+      background: rgba(34,211,238,0.08) !important;
+      border-color: rgba(34,211,238,0.22) !important;
+    }
+
+    /* Footer contact */
+    .tenant-lumen #footerContact > .rounded-2xl {
+      background: #07090f !important;
+      border-color: rgba(34,211,238,0.08) !important;
+    }
+    .tenant-lumen #footerContact .w-10 {
+      background: rgba(34,211,238,0.07) !important;
+      border-color: rgba(34,211,238,0.18) !important;
+    }
+    .tenant-lumen #shopHorarioGrid span.rounded-full { background: rgba(34,211,238,0.50) !important; }
+
+    /* Selection recap chips */
+    .tenant-lumen #selectionRecap span {
+      background: rgba(34,211,238,0.06) !important;
+      border-color: rgba(34,211,238,0.14) !important;
+    }
   </style>
 </head>
 

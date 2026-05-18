@@ -594,6 +594,91 @@
     .tier-badge.gold   { color: var(--gold); border-color: var(--gold-dim); }
     .tier-badge.platinum { color: #e8d5ff; border-color: rgba(220,200,255,0.35); }
 
+    /* ── Lumen — Neon / Cyberpunk Theme ──────────────────────────── */
+    .tenant-lumen {
+      --gold:      #22d3ee;
+      --gold-dim:  rgba(34,211,238,0.35);
+      --gold-glow: rgba(34,211,238,0.18);
+    }
+    html.tenant-lumen body { background-color: #030712; }
+    .tenant-lumen header { background-color: rgba(3,7,18,0.97) !important; }
+    .tenant-lumen #authGuard { background: #030712 !important; }
+    /* Hero */
+    .tenant-lumen .hero-bg {
+      background-image: url('/lumen.jpg');
+      background-size: cover;
+      background-position: center 30%;
+    }
+    .tenant-lumen .hero-overlay {
+      background: linear-gradient(160deg,
+        rgba(3,7,18,0.60) 0%, rgba(3,7,18,0.40) 40%, rgba(3,7,18,0.92) 100%);
+    }
+    .tenant-lumen .hero-glow-spot {
+      background: radial-gradient(circle, rgba(34,211,238,0.12) 0%, transparent 65%) !important;
+    }
+    /* Hero CTA — ghost outline cian */
+    .tenant-lumen .hero-cta {
+      background: transparent !important;
+      border-color: #22d3ee !important;
+      color: #22d3ee !important;
+      box-shadow: 0 0 15px rgba(34,211,238,0.25) !important;
+      backdrop-filter: none !important;
+    }
+    .tenant-lumen .hero-cta:hover { background: rgba(34,211,238,0.08) !important; }
+    .tenant-lumen .hero-cta i    { color: #22d3ee !important; }
+    .tenant-lumen .hero-cta span { color: #22d3ee !important; }
+    /* Sellos */
+    .tenant-lumen .stamp-cell.filled {
+      background: #030712 !important;
+      border: 1px solid #22d3ee !important;
+      box-shadow: 0 0 8px rgba(34,211,238,0.30) !important;
+    }
+    .tenant-lumen .stamp-cell.filled i { color: #22d3ee !important; }
+    .tenant-lumen #stampsBar {
+      background: linear-gradient(90deg, #0891b2, #22d3ee) !important;
+      box-shadow: 0 0 10px rgba(34,211,238,0.50) !important;
+    }
+    /* Membership */
+    .tenant-lumen .membership-pattern::before {
+      background-image: repeating-linear-gradient(
+        -45deg, transparent, transparent 18px,
+        rgba(34,211,238,0.02) 18px, rgba(34,211,238,0.02) 19px
+      );
+    }
+    .tenant-lumen .membership-glow {
+      background: radial-gradient(circle, rgba(34,211,238,0.08) 0%, transparent 70%) !important;
+    }
+    .tenant-lumen #membershipWatermark { color: rgba(34,211,238,0.04) !important; }
+    /* Nav activo */
+    .tenant-lumen .nav-tab.active .nav-icon {
+      color: #22d3ee;
+      filter: drop-shadow(0 0 6px rgba(34,211,238,0.40));
+    }
+    .tenant-lumen .nav-tab.active .nav-label { color: #22d3ee; }
+    /* Tier badges */
+    .tenant-lumen .tier-badge.gold     { color: #22d3ee; border-color: rgba(34,211,238,0.35); }
+    .tenant-lumen .tier-badge.platinum { color: #67e8f9; border-color: rgba(34,211,238,0.30); }
+    /* PWA */
+    .tenant-lumen #pwaBigInstallCard {
+      background: linear-gradient(to right, rgba(34,211,238,0.09), rgba(34,211,238,0.03)) !important;
+      border-color: rgba(34,211,238,0.22) !important;
+    }
+    .tenant-lumen .pwa-icon-bg {
+      background: rgba(34,211,238,0.10) !important;
+      border-color: rgba(34,211,238,0.22) !important;
+    }
+    .tenant-lumen #pwaBanner { border-color: rgba(34,211,238,0.28) !important; }
+    .tenant-lumen .pwa-step-badge { background: #22d3ee !important; }
+    /* Botones de acción */
+    .tenant-lumen .btn-accion-primary,
+    .tenant-lumen a.btn-reservar {
+      background: transparent !important;
+      border: 1.5px solid #22d3ee !important;
+      color: #22d3ee !important;
+      box-shadow: 0 0 12px rgba(34,211,238,0.20) !important;
+    }
+    /* ────────────────────────────────────────────────────────────── */
+
     @keyframes stampPop {
       0%   { transform: scale(0.5); opacity: 0; }
       70%  { transform: scale(1.15); }

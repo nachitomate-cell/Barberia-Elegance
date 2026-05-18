@@ -2,7 +2,7 @@
 // Inyecta meta tags OG/SEO/PWA correctos por tenant según el dominio de la petición.
 // Corre en el edge (sin cold start) antes de que el HTML llegue al bot de WhatsApp/redes.
 //
-// Tenants soportados: elegance, ferraza, gitana, mapubarbershop, chameleon
+// Tenants soportados: elegance, ferraza, gitana, mapubarbershop, chameleon, lumen
 // Para añadir un tenant nuevo: agregar entrada en DOMAIN_MAP y TENANT_META.
 
 const DOMAIN_MAP = {
@@ -12,6 +12,7 @@ const DOMAIN_MAP = {
   'mapubarbershop.synaptechspa.cl':    'mapubarbershop',
   'chameleonbarber.synaptechspa.cl':   'chameleon',
   'deluxeperfumes.synaptechspa.cl':    'deluxeperfumes',
+  'lumenbarbershop.synaptechspa.cl':   'lumen',
 };
 
 const TENANT_META = {
@@ -231,6 +232,50 @@ const TENANT_META = {
       start_url:        '/gestion-interna/?local=chameleon',
       icons: [
         { src: '/local3.jpg',                  sizes: 'any',     type: 'image/jpeg' },
+        { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png' },
+        { src: '/gestion-interna/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+      ],
+    },
+  },
+  lumen: {
+    booking: {
+      title:       'Lumen Barbershop | Agenda tu hora',
+      description: 'Reserva tu hora en Lumen Barbershop. Cortes y barba de élite con estética neón.',
+      ogTitle:     'Agendar Hora | Lumen Barbershop',
+      ogDesc:      'Reserva tu hora en Lumen Barbershop. Ilumina tu estilo.',
+    },
+    dashboard: {
+      title:       'Mi Club | Lumen Barbershop',
+      description: 'Tu panel personal en Lumen Barbershop. Revisa tus sellos y canjea premios.',
+      ogTitle:     'Mi Club | Lumen Barbershop',
+      ogDesc:      'Panel de fidelidad de Lumen Barbershop. Acumula sellos y disfruta de servicios gratis.',
+    },
+    registro: {
+      title:       'Únete al Club | Lumen Barbershop',
+      description: 'Crea tu cuenta en Lumen Barbershop. Acumula sellos y canjea premios.',
+      ogTitle:     'Únete al Club | Lumen Barbershop',
+      ogDesc:      'Regístrate en Lumen Barbershop y disfruta de beneficios exclusivos.',
+    },
+    siteName:    'Lumen Barbershop',
+    ogImage:     '/lumen.jpg',
+    themeColor:  '#22d3ee',
+    appTitle:    'Lumen',
+    icon:        '/lumen.jpg',
+    manifest: {
+      name:             'Lumen Barbershop',
+      short_name:       'Lumen',
+      theme_color:      '#22d3ee',
+      background_color: '#030712',
+    },
+    adminManifest: {
+      name:             'Panel Admin · Lumen',
+      short_name:       'Lumen',
+      description:      'Panel de administración — Lumen Barbershop',
+      theme_color:      '#22d3ee',
+      background_color: '#030712',
+      start_url:        '/gestion-interna/?local=lumen',
+      icons: [
+        { src: '/lumen.jpg',                   sizes: 'any',     type: 'image/jpeg' },
         { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png' },
         { src: '/gestion-interna/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
       ],
