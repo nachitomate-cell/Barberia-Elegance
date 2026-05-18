@@ -1498,6 +1498,14 @@
         </a>
       </div>
 
+      <!-- EXTRAS: Cursos / Arriendo de Sillones (condicional por tenant) -->
+      <div id="extrasSection" class="mt-10 hidden animate-[fadeSlideUp_0.5s_cubic-bezier(0.16,1,0.3,1)_forwards]">
+        <p class="text-[10px] font-bold uppercase tracking-widest mb-4 px-0.5" style="color:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.5);">
+          Más de <span id="extrasShopName"></span>
+        </p>
+        <div id="extrasGrid" class="grid grid-cols-1 gap-3 sm:grid-cols-2"></div>
+      </div>
+
       <!-- Footer Contact Info -->
       <div id="footerContact" class="mt-10 pb-6 animate-[fadeSlideUp_0.5s_cubic-bezier(0.16,1,0.3,1)_forwards]">
 
@@ -3082,6 +3090,53 @@
       // Quick strip: primer segmento de horario
       const heroHor = document.getElementById('heroInfoHorText');
       if (heroHor) heroHor.textContent = horParts[0] || horClean;
+
+      renderExtrasSection();
+    }
+
+    function renderExtrasSection() {
+      const f = SHOP.features;
+      if (!f) return;
+
+      const cards = [];
+      if (f.hasCourses     && f.courses)     cards.push({ icon: 'ph-graduation-cap', data: f.courses });
+      if (f.hasChairRental && f.chairRental) cards.push({ icon: 'ph-scissors',       data: f.chairRental });
+      if (!cards.length) return;
+
+      const section = document.getElementById('extrasSection');
+      const grid    = document.getElementById('extrasGrid');
+      if (!section || !grid) return;
+
+      const nameEl = document.getElementById('extrasShopName');
+      if (nameEl) nameEl.textContent = SHOP.nombreCorto;
+
+      const phone = (SHOP.telefono || '').replace(/\D/g, '');
+      grid.innerHTML = cards.map(({ icon, data }) => {
+        const waHref = phone
+          ? 'https://wa.me/' + phone + '?text=' + encodeURIComponent(data.ctaMsg)
+          : '#';
+        return `
+          <div class="rounded-2xl" style="background:#0a0807;border:1px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.18);">
+            <div class="px-5 py-5">
+              <div class="flex items-center gap-3 mb-3">
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                  style="background:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.10);border:1px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.22);">
+                  <i class="ph-fill ${icon} text-xl" style="color:var(--accent);"></i>
+                </div>
+                <h3 class="text-sm font-bold text-white">${data.title}</h3>
+              </div>
+              <p class="text-xs text-gray-400 leading-relaxed mb-4">${data.description}</p>
+              <a href="${waHref}" target="_blank" rel="noopener"
+                class="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-bold active:scale-[0.98] transition-all"
+                style="background:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.12);border:1px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.30);color:var(--accent);">
+                <i class="ph-bold ph-whatsapp-logo text-base"></i>
+                Quiero información
+              </a>
+            </div>
+          </div>`;
+      }).join('');
+
+      section.classList.remove('hidden');
     }
 
     /* ── settings/general override ───────────────────────────────
