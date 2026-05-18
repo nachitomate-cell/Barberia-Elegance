@@ -1271,8 +1271,12 @@
     }
     .tenant-lumen .booking-hero-overlay {
       background: linear-gradient(180deg,
-        rgba(3,7,18,0.65) 0%, rgba(3,7,18,0.45) 40%, rgba(3,7,18,0.95) 100%) !important;
+        rgba(3,7,18,0.82) 0%, rgba(3,7,18,0.70) 40%, rgba(3,7,18,0.97) 100%) !important;
     }
+
+    /* Info strip — íconos de pin y reloj en cian */
+    .tenant-lumen .info-strip i { color: #22d3ee !important; opacity: 0.75; }
+    .tenant-lumen .info-strip { background: rgba(3,7,18,0.90) !important; border-color: rgba(34,211,238,0.08) !important; }
 
     /* Logo ring — cian neón */
     .tenant-lumen .hero-logo-ring {
@@ -1314,10 +1318,16 @@
     }
     .tenant-lumen .category-pill.text-neon { color: #22d3ee !important; }
 
-    /* Tarjetas de servicio */
+    /* Heading paso 1 — blanco, cian reservado para interacciones */
+    .tenant-lumen h2.text-neon {
+      color: #f1f5f9 !important;
+      text-shadow: none !important;
+    }
+
+    /* Tarjetas de servicio — borde visible en estado inactivo */
     .tenant-lumen .service-option {
       background: rgba(34,211,238,0.02) !important;
-      border-color: rgba(34,211,238,0.08) !important;
+      border-color: #27272a !important;
     }
     .tenant-lumen .service-option:hover {
       border-color: rgba(34,211,238,0.35) !important;

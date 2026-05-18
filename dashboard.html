@@ -611,7 +611,7 @@
     }
     .tenant-lumen .hero-overlay {
       background: linear-gradient(160deg,
-        rgba(3,7,18,0.60) 0%, rgba(3,7,18,0.40) 40%, rgba(3,7,18,0.92) 100%);
+        rgba(3,7,18,0.82) 0%, rgba(3,7,18,0.65) 40%, rgba(3,7,18,0.96) 100%);
     }
     .tenant-lumen .hero-glow-spot {
       background: radial-gradient(circle, rgba(34,211,238,0.12) 0%, transparent 65%) !important;
@@ -628,6 +628,11 @@
     .tenant-lumen .hero-cta i    { color: #22d3ee !important; }
     .tenant-lumen .hero-cta span { color: #22d3ee !important; }
     /* Sellos */
+    /* Sellos vacíos — receptáculos visibles con tinte cian */
+    .tenant-lumen .stamp-cell.empty {
+      background: rgba(3,7,18,0.85) !important;
+      border: 1px solid rgba(34,211,238,0.18) !important;
+    }
     .tenant-lumen .stamp-cell.filled {
       background: #030712 !important;
       border: 1px solid #22d3ee !important;
@@ -677,6 +682,11 @@
       color: #22d3ee !important;
       box-shadow: 0 0 12px rgba(34,211,238,0.20) !important;
     }
+    /* Tarjeta central de instalación PWA — oculta (redundante con banner flotante) */
+    .tenant-lumen #pwaBigInstallCard { display: none !important; }
+    /* Botón de chat — color primario cian */
+    .tenant-lumen #chatToggleBtn { background: #22d3ee !important; box-shadow: 0 0 16px rgba(34,211,238,0.35) !important; }
+    .tenant-lumen #chatToggleBtn svg path { fill: #030712 !important; }
     /* ────────────────────────────────────────────────────────────── */
 
     @keyframes stampPop {
