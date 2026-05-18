@@ -3095,17 +3095,18 @@
     }
 
     function renderExtrasSection() {
+      const section = document.getElementById('extrasSection');
+      if (!section) return;
       const f = SHOP.features;
-      if (!f) return;
+      if (!f) { section.classList.add('hidden'); return; }
 
       const cards = [];
       if (f.hasCourses     && f.courses)     cards.push({ icon: 'ph-graduation-cap', data: f.courses });
       if (f.hasChairRental && f.chairRental) cards.push({ icon: 'ph-scissors',       data: f.chairRental });
-      if (!cards.length) return;
+      if (!cards.length) { section.classList.add('hidden'); return; }
 
-      const section = document.getElementById('extrasSection');
-      const grid    = document.getElementById('extrasGrid');
-      if (!section || !grid) return;
+      const grid = document.getElementById('extrasGrid');
+      if (!grid) return;
 
       const nameEl = document.getElementById('extrasShopName');
       if (nameEl) nameEl.textContent = SHOP.nombreCorto;
@@ -3193,6 +3194,11 @@
         if (s.horario && typeof s.horario === 'object') {
           var txt = _horarioObjToText(s.horario);
           if (txt) { window.SHOP.horario = txt; changed = true; }
+        }
+
+        if (s.features && typeof s.features === 'object') {
+          window.SHOP.features = Object.assign({}, window.SHOP.features || {}, s.features);
+          changed = true;
         }
 
         if (changed) applyConfig();

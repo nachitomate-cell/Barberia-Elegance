@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   Store, MapPin, Phone, Instagram, Image, Clock, Check, Save, HelpCircle, AlertCircle,
+  GraduationCap, Scissors,
 } from 'lucide-react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -14,6 +15,13 @@ const DIAS_ORDER  = ['1','2','3','4','5','6','0'];
 const TIME_OPTIONS = Array.from({ length: 24 }, (_, h) =>
   ['00','30'].map(m => `${String(h).padStart(2,'0')}:${m}`)
 ).flat();
+
+const DEFAULT_FEATURES = {
+  hasCourses:     false,
+  courses:        { title: 'Cursos de Barbería',    description: '', ctaMsg: '' },
+  hasChairRental: false,
+  chairRental:    { title: 'Arriendo de Sillones',  description: '', ctaMsg: '' },
+};
 
 const DEFAULT_SETTINGS = {
   nombre:    '',
@@ -31,6 +39,7 @@ const DEFAULT_SETTINGS = {
     '6': { activo: true,  inicio: '09:00', fin: '14:00' },
     '0': { activo: false, inicio: '10:00', fin: '14:00' },
   },
+  features: DEFAULT_FEATURES,
 };
 
 /* ─── Helpers ────────────────────────────────────────────────── */
@@ -42,6 +51,16 @@ function mergeHorario(saved) {
   const base = { ...DEFAULT_SETTINGS.horario };
   if (!saved) return base;
   DIAS_ORDER.forEach(d => { if (saved[d]) base[d] = { ...base[d], ...saved[d] }; });
+  return base;
+}
+
+function mergeFeatures(saved) {
+  const base = { ...DEFAULT_FEATURES, courses: { ...DEFAULT_FEATURES.courses }, chairRental: { ...DEFAULT_FEATURES.chairRental } };
+  if (!saved) return base;
+  if (typeof saved.hasCourses === 'boolean')     base.hasCourses     = saved.hasCourses;
+  if (typeof saved.hasChairRental === 'boolean') base.hasChairRental = saved.hasChairRental;
+  if (saved.courses)     base.courses     = { ...base.courses,     ...saved.courses };
+  if (saved.chairRental) base.chairRental = { ...base.chairRental, ...saved.chairRental };
   return base;
 }
 
@@ -117,6 +136,7 @@ export default function Configuracion() {
           instagram: d.instagram || '',
           logo:      d.logo      || '',
           horario:   mergeHorario(d.horario),
+          features:  mergeFeatures(d.features),
         });
       }
     }).finally(() => setLoading(false));
@@ -124,6 +144,9 @@ export default function Configuracion() {
 
   const set = (k, v) => { setForm(f => ({ ...f, [k]: v })); setDirty(true); };
   const setDia = (d, cfg) => { setForm(f => ({ ...f, horario: { ...f.horario, [d]: cfg } })); setDirty(true); };
+  const setFeat      = (k, v) => { setForm(f => ({ ...f, features: { ...f.features, [k]: v } })); setDirty(true); };
+  const setFeatCourse = (k, v) => { setForm(f => ({ ...f, features: { ...f.features, courses: { ...f.features.courses, [k]: v } } })); setDirty(true); };
+  const setFeatChair  = (k, v) => { setForm(f => ({ ...f, features: { ...f.features, chairRental: { ...f.features.chairRental, [k]: v } } })); setDirty(true); };
 
   const handleSave = async () => {
     if (saving) return;
@@ -241,6 +264,75 @@ export default function Configuracion() {
           {DIAS_ORDER.map(d => (
             <DayRow key={d} diaKey={d} config={form.horario[d]} onChange={cfg => setDia(d, cfg)} />
           ))}
+        </div>
+      </Card>
+
+      {/* Servicios Extra */}
+      <Card Icon={GraduationCap} title="Servicios Extra">
+        <p className="text-xs text-slate-500 -mt-1">
+          Agrega secciones informativas con botón de WhatsApp en tu página pública.
+        </p>
+
+        {/* Cursos */}
+        <div className="border border-slate-700/50 rounded-lg overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 bg-slate-800/40">
+            <div className="flex items-center gap-2.5">
+              <GraduationCap size={15} className="text-slate-400" />
+              <span className="text-sm font-semibold text-white">Cursos de Barbería</span>
+            </div>
+            <button type="button" onClick={() => setFeat('hasCourses', !form.features.hasCourses)}
+              className={`relative inline-flex w-9 h-5 rounded-full transition-colors duration-200 focus:outline-none ${form.features.hasCourses ? 'bg-emerald-500' : 'bg-slate-700'}`}>
+              <span className={`inline-block w-4 h-4 mt-0.5 bg-white rounded-full shadow transform transition-transform duration-200 ${form.features.hasCourses ? 'translate-x-4' : 'translate-x-0.5'}`} />
+            </button>
+          </div>
+          {form.features.hasCourses && (
+            <div className="px-4 py-4 space-y-3 border-t border-slate-700/50">
+              <Field label="Título">
+                <input className={inp} value={form.features.courses.title}
+                  onChange={e => setFeatCourse('title', e.target.value)} />
+              </Field>
+              <Field label="Descripción">
+                <textarea className={`${inp} resize-none`} rows={2} value={form.features.courses.description}
+                  onChange={e => setFeatCourse('description', e.target.value)} />
+              </Field>
+              <Field label="Mensaje de WhatsApp">
+                <input className={inp} placeholder="Hola, quiero información sobre los cursos…"
+                  value={form.features.courses.ctaMsg}
+                  onChange={e => setFeatCourse('ctaMsg', e.target.value)} />
+              </Field>
+            </div>
+          )}
+        </div>
+
+        {/* Arriendo de Sillones */}
+        <div className="border border-slate-700/50 rounded-lg overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 bg-slate-800/40">
+            <div className="flex items-center gap-2.5">
+              <Scissors size={15} className="text-slate-400" />
+              <span className="text-sm font-semibold text-white">Arriendo de Sillones</span>
+            </div>
+            <button type="button" onClick={() => setFeat('hasChairRental', !form.features.hasChairRental)}
+              className={`relative inline-flex w-9 h-5 rounded-full transition-colors duration-200 focus:outline-none ${form.features.hasChairRental ? 'bg-emerald-500' : 'bg-slate-700'}`}>
+              <span className={`inline-block w-4 h-4 mt-0.5 bg-white rounded-full shadow transform transition-transform duration-200 ${form.features.hasChairRental ? 'translate-x-4' : 'translate-x-0.5'}`} />
+            </button>
+          </div>
+          {form.features.hasChairRental && (
+            <div className="px-4 py-4 space-y-3 border-t border-slate-700/50">
+              <Field label="Título">
+                <input className={inp} value={form.features.chairRental.title}
+                  onChange={e => setFeatChair('title', e.target.value)} />
+              </Field>
+              <Field label="Descripción">
+                <textarea className={`${inp} resize-none`} rows={2} value={form.features.chairRental.description}
+                  onChange={e => setFeatChair('description', e.target.value)} />
+              </Field>
+              <Field label="Mensaje de WhatsApp">
+                <input className={inp} placeholder="Hola, me interesa el arriendo de un sillón…"
+                  value={form.features.chairRental.ctaMsg}
+                  onChange={e => setFeatChair('ctaMsg', e.target.value)} />
+              </Field>
+            </div>
+          )}
         </div>
       </Card>
 
