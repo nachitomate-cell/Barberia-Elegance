@@ -274,6 +274,66 @@
       pointer-events: none;
     }
 
+    /* ── Club onboarding: gamificación (fade-in-up, chispas, badge glow) ──────── */
+    @keyframes fade-in-up {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: translateY(0);    }
+    }
+    @keyframes spark-blink {
+      0%, 100% { opacity: 0.1;  transform: scale(0.7); }
+      50%       { opacity: 1;    transform: scale(2.2); }
+    }
+    @keyframes badge-glow-pulse {
+      0%, 100% { box-shadow: 0 0 6px  rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.35); }
+      50%       { box-shadow: 0 0 20px rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.90),
+                              0 0 36px rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.28); }
+    }
+    /* Entrada escalonada: aplicar clase + animation-delay inline */
+    .club-anim-el {
+      opacity: 0;
+      animation: fade-in-up 0.42s cubic-bezier(0.22,1,0.36,1) forwards;
+    }
+    /* Chispas decorativas de fondo */
+    .club-spark {
+      position: absolute;
+      width: 3px; height: 3px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 5px rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.9);
+      animation: spark-blink var(--dur,2s) ease-in-out infinite;
+      animation-delay: var(--del,0s);
+      pointer-events: none;
+    }
+    /* Badge "+1" electrificado: shimmer + pulso de glow */
+    .club-badge-el {
+      position: relative;
+      overflow: hidden;
+      border-color: rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.55) !important;
+      animation: badge-glow-pulse 1.8s ease-in-out infinite;
+    }
+    .club-badge-el::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        105deg,
+        transparent                                         25%,
+        rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.45) 50%,
+        transparent                                         75%
+      );
+      transform: translateX(-130%);
+      animation: sello-shimmer 2.2s cubic-bezier(0.4,0,0.6,1) infinite;
+      pointer-events: none;
+    }
+    /* Tarjeta principal: presión táctil + glow amplificado al activar */
+    .club-hero-card {
+      transition: box-shadow 0.2s ease, transform 0.15s ease;
+    }
+    .club-hero-card:active {
+      transform: scale(0.97);
+      box-shadow: 0 0 36px rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.40) !important;
+    }
+
     /* ── Paso 4 / Pantalla Éxito: SVG check animado ─────────────── */
     @keyframes drawCircle {
       to { stroke-dashoffset: 0; }
@@ -3293,10 +3353,22 @@
           // No logueado: CTA prominente para unirse al club
           const _clubEmoji = window.CURRENT_TENANT_ID === 'gitana' ? '💅' : '✂️';
           authContainer.innerHTML = `
-            <div class="rounded-2xl overflow-hidden relative" style="background:#0a0807;border:1px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.35);box-shadow:0 0 28px rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.08);">
-              <div class="absolute inset-0 pointer-events-none" style="background:radial-gradient(ellipse at 5% 0%,rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.1) 0%,transparent 55%);"></div>
+            <div class="club-hero-card rounded-2xl overflow-hidden relative" style="background:#0a0807;border:1px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.35);box-shadow:0 0 28px rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.08);">
+
+              <!-- Fondo: gradiente radial + chispas que parpadean -->
+              <div class="absolute inset-0 pointer-events-none overflow-hidden">
+                <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 5% 0%,rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.1) 0%,transparent 55%);"></div>
+                <span class="club-spark" style="top:14%;left:9%;--dur:2.3s;--del:0s;"></span>
+                <span class="club-spark" style="top:28%;left:83%;--dur:1.9s;--del:0.7s;"></span>
+                <span class="club-spark" style="top:54%;left:17%;--dur:2.7s;--del:1.2s;"></span>
+                <span class="club-spark" style="top:71%;left:91%;--dur:1.6s;--del:0.4s;"></span>
+                <span class="club-spark" style="top:7%;left:61%;--dur:3.1s;--del:1.0s;"></span>
+              </div>
+
               <div class="px-5 pt-5 pb-4 relative">
-                <div class="flex items-center gap-3 mb-4">
+
+                <!-- Stagger 1: hero header -->
+                <div class="club-anim-el flex items-center gap-3 mb-4" style="animation-delay:0ms;">
                   <div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style="background:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.12);border:1px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.3);">
                     <i class="ph-fill ph-medal text-xl" style="color:var(--accent);filter:drop-shadow(0 0 6px rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.5));"></i>
                   </div>
@@ -3305,8 +3377,10 @@
                     <p class="text-sm font-bold text-white">Acumula sellos y gana premios gratis</p>
                   </div>
                 </div>
-                <div class="grid grid-cols-3 gap-2 mb-4">
-                  <div class="text-center py-2.5 rounded-xl" style="background:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.06);border:1px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.12);">
+
+                <!-- Stagger 2: grid de beneficios (+1 electrificado) -->
+                <div class="club-anim-el grid grid-cols-3 gap-2 mb-4" style="animation-delay:150ms;">
+                  <div class="club-badge-el text-center py-2.5 rounded-xl" style="background:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.06);border:1px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.12);">
                     <p class="text-lg font-black" style="color:var(--accent);">+1</p>
                     <p class="text-[10px] text-gray-500 font-semibold">por visita</p>
                   </div>
@@ -3319,14 +3393,18 @@
                     <p class="text-[10px] text-gray-500 font-semibold">premios</p>
                   </div>
                 </div>
-                <a href="registro.html" class="flex items-center justify-center gap-2 w-full py-3 rounded-xl text-sm font-bold transition-all active:scale-[0.98]" style="background:var(--accent);color:#160712;box-shadow:0 0 20px rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.25);">
+
+                <!-- Stagger 3: CTA button -->
+                <a href="registro.html" class="club-anim-el flex items-center justify-center gap-2 w-full py-3 rounded-xl text-sm font-bold transition-all active:scale-95" style="animation-delay:300ms;background:var(--accent);color:#160712;box-shadow:0 0 20px rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.25);">
                   <i class="ph-bold ph-user-plus text-base"></i>
                   Unirme al ${SHOP.club}
                 </a>
               </div>
-              <div class="flex items-center justify-center gap-2 px-5 py-2.5 border-t" style="background:rgba(0,0,0,0.2);border-color:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.12);">
+
+              <!-- Stagger 4: login footer -->
+              <div class="club-anim-el flex items-center justify-center gap-2 px-5 py-2.5 border-t" style="animation-delay:450ms;background:rgba(0,0,0,0.2);border-color:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.12);">
                 <p class="text-xs text-gray-600">¿Ya tienes cuenta?</p>
-                <a href="registro.html" class="text-xs font-bold" style="color:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.8);">Iniciar sesión</a>
+                <a href="registro.html" class="text-xs font-bold active:scale-95 transition-all" style="color:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.8);">Iniciar sesión</a>
               </div>
             </div>
           `;
