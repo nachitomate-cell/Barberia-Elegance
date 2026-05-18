@@ -1,10 +1,13 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo } from 'react';
 import { useTenant } from '../contexts/TenantContext';
 import { useCollection } from '../hooks/useCollection';
 import BookingServicios from './BookingServicios';
 import BookingBarbero   from './BookingBarbero';
 import BookingFecha     from './BookingFecha';
 import BookingConfirmar from './BookingConfirmar';
+
+/* Tenants que tienen un solo barbero — el paso 2 se omite siempre */
+const SINGLE_BARBER_TENANTS = ['delnero'];
 
 /* ── Loading screen con color de tema ───────────────────────────── */
 function LoadingFlow({ accent }) {
@@ -27,7 +30,10 @@ function LoadingFlow({ accent }) {
 
 /* ── BookingFlow ─────────────────────────────────────────────────── */
 export default function BookingFlow() {
-  const { accent } = useTenant();
+  const { id, accent } = useTenant();
+
+  /* skipBarbero: verdadero si el tenant está en la lista de barbero único */
+  const skipBarbero = SINGLE_BARBER_TENANTS.includes(id);
 
   /* ── Datos reales de Firestore ── */
   const { data: rawBarberos, loading: loadingBarberos } = useCollection('barberos');
@@ -42,35 +48,9 @@ export default function BookingFlow() {
   const servicios = useMemo(() => rawServicios ?? [], [rawServicios]);
   const loading = loadingBarberos || loadingServicios;
 
-  /*
-   * skipBarbero se decide SINCRÓNICAMENTE en el mismo render en que
-   * los datos llegan, usando un ref — sin useEffect, sin setState asíncrono,
-   * sin renders intermedios con skipBarbero === null ya resueltos.
-   *
-   * El ref se escribe una sola vez (cuando loading pasa a false por primera
-   * vez) y no vuelve a cambiar, protegiendo el flujo de actualizaciones
-   * en tiempo real de Firestore.
-   */
-  const skipLocked = useRef(false);
-  const skipResult = useRef(null); // null = aún no decidido
+  if (loading) return <LoadingFlow accent={accent} />;
 
-  if (!loading && !skipLocked.current) {
-    skipLocked.current = true;
-    const count = barberos?.length ?? 0;
-    skipResult.current = count <= 1; // 0 ó 1 barbero → saltar paso
-  }
-
-  const skipBarbero = skipResult.current; // null mientras carga
-
-  /* Espera hasta que los datos lleguen Y la decisión esté tomada */
-  if (loading || skipBarbero === null) return <LoadingFlow accent={accent} />;
-
-  /*
-   * REGLA 3 — total y steps dependen de skipBarbero (ya resuelto
-   * sincrónicamente). Todos los hijos reciben paso/total correctos.
-   *   skip=true  → 3 pasos: Servicio · Fecha · Confirmar
-   *   skip=false → 4 pasos: Servicio · Barbero · Fecha · Confirmar
-   */
+  /* 3 pasos si skip, 4 si no */
   const total = skipBarbero ? 3 : 4;
   const steps = skipBarbero
     ? ['servicios', 'fecha', 'confirmar']
@@ -97,30 +77,12 @@ export default function BookingFlow() {
         total={total}
         onContinuar={s => {
           setServicio(s);
-
-          /*
-           * REGLA 1 — La decisión de salto ocurre aquí, en el onClick del
-           * botón "Continuar" del Paso 1, evaluando barberos.length en este
-           * preciso momento (datos de Firestore ya cargados).
-           *
-           * REGLA 2 — Protección contra null/undefined y fallback:
-           *   length === 0 → asignar 'default-barber' y saltar a Fecha.
-           *   length === 1 → auto-asignar ese barbero y saltar a Fecha.
-           *   length  >  1 → ir al paso de selección de Barbero.
-           *
-           * setStepIdx(fechaIdx) usa el índice precalculado del array steps,
-           * que ya es coherente con skipBarbero (3 ó 4 pasos).
-           */
-          const count = barberos?.length ?? 0;
-
-          if (count === 0) {
-            setBarbero({ id: 'default-barber', nombre: '' });
-            setStepIdx(fechaIdx);
-          } else if (count === 1) {
-            setBarbero(barberos[0]);
+          if (skipBarbero) {
+            // Auto-asignar el primer barbero disponible (o fallback si no hay)
+            setBarbero(barberos[0] ?? { id: 'default-barber', nombre: '' });
             setStepIdx(fechaIdx);
           } else {
-            goNext(); // steps[1] === 'barbero'
+            goNext(); // → 'barbero'
           }
         }}
       />
