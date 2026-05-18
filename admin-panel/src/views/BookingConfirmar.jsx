@@ -36,6 +36,7 @@ export default function BookingConfirmar({
   servicioNombre = 'Corte Tradicional',
   precio         = 10990,
   barberoNombre  = 'Joaquin Amiri',
+  barberoId,
   fecha          = new Date(),
   hora           = '10:00',
   duracion       = 40,
@@ -89,7 +90,7 @@ export default function BookingConfirmar({
     if (!isValid || loading) return;
     setLoading(true);
     try {
-      await onConfirmar?.({ nombre, telefono, email, joinClub });
+      await onConfirmar?.({ nombre, telefono, email, joinClub, barberoId });
     } finally {
       setLoading(false);
     }
