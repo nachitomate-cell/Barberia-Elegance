@@ -3096,6 +3096,9 @@
           // Saltar directamente a Fecha y Hora — auto-asignar el único barbero
           const primerBarbero = (_fsBarberos || []).find(b => !b._mainDocId && b.disponible !== false && b.rol !== 'admin');
           window._selectedBarberId = primerBarbero ? primerBarbero.id : 'any';
+          window._selectedBarber   = primerBarbero ? primerBarbero.nombre : 'any';
+          const summaryBarberEl = document.getElementById('summaryBarber');
+          if (summaryBarberEl) summaryBarberEl.textContent = primerBarbero ? primerBarbero.nombre : 'Sin preferencia';
           const barId = primerBarbero ? primerBarbero.id : null;
           selectedTimeStr = null;
           if (barId) {
