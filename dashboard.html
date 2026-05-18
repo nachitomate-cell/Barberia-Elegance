@@ -14,12 +14,12 @@
   <meta property="og:description" content="Panel de fidelidad de Elegance Barbershop. Acumula sellos y disfruta de cortes y servicios gratis.">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Elegance Barbershop">
-  <meta property="og:image" content="/logo.jpg">
+  <meta property="og:image" content="https://barberiaelegance.synaptechspa.cl/logo.jpg">
   <meta property="og:url" content="https://barberiaelegance.synaptechspa.cl/dashboard">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="Mi Club | Elegance Barbershop">
   <meta name="twitter:description" content="Panel de fidelidad de Elegance Barbershop. Acumula sellos y disfruta de servicios gratis.">
-  <meta name="twitter:image" content="/logo.jpg">
+  <meta name="twitter:image" content="https://barberiaelegance.synaptechspa.cl/logo.jpg">
   <meta name="robots" content="noindex, nofollow">
   <meta name="author" content="SynapTech SpA">
 
@@ -687,6 +687,134 @@
     /* Botón de chat — color primario cian */
     .tenant-lumen #chatToggleBtn { background: #22d3ee !important; box-shadow: 0 0 16px rgba(34,211,238,0.35) !important; }
     .tenant-lumen #chatToggleBtn svg path { fill: #030712 !important; }
+    /* ────────────────────────────────────────────────────────────── */
+
+    /* ══ DEL NERO BARBER — Verde Neón / Negro Profundo / Crema Serif ══
+       Paleta: Verde neón (#39ff14) · Negro (#050505) · Crema (#f0ead6)
+       ═══════════════════════════════════════════════════════════════ */
+    .tenant-delnero {
+      --gold:      #39ff14;
+      --gold-dim:  rgba(57,255,20,0.35);
+      --gold-glow: rgba(57,255,20,0.18);
+    }
+    html.tenant-delnero body { background-color: #050505; }
+    .tenant-delnero header { background-color: rgba(5,5,5,0.97) !important; }
+    .tenant-delnero #authGuard { background: #050505 !important; }
+
+    /* Hero: imagen del local con overlay oscuro fuerte */
+    .tenant-delnero .hero-bg {
+      background-image: url('/nero.jpg');
+      background-size: cover;
+      background-position: center 30%;
+    }
+    .tenant-delnero .hero-overlay {
+      background: linear-gradient(160deg,
+        rgba(0,0,0,0.70) 0%, rgba(0,0,0,0.55) 40%, rgba(0,0,0,0.94) 100%);
+    }
+    .tenant-delnero .hero-glow-spot {
+      background: radial-gradient(circle, rgba(57,255,20,0.10) 0%, transparent 65%) !important;
+    }
+    /* Titular hero: serif crema, sin superposición de logo */
+    .tenant-delnero #heroLine1 {
+      font-family: 'Playfair Display', Georgia, serif !important;
+      color: #f0ead6 !important;
+      font-style: normal !important;
+      text-shadow: 0 2px 20px rgba(0,0,0,0.7) !important;
+    }
+    .tenant-delnero #heroLine2 {
+      font-family: 'Playfair Display', Georgia, serif !important;
+      color: #39ff14 !important;
+      font-style: normal !important;
+      text-shadow: 0 0 20px rgba(57,255,20,0.40) !important;
+    }
+    /* Hero CTA: ghost outline verde neón */
+    .tenant-delnero .hero-cta {
+      background: transparent !important;
+      border-color: #39ff14 !important;
+      color: #39ff14 !important;
+      box-shadow: 0 0 15px rgba(57,255,20,0.25) !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+    }
+    .tenant-delnero .hero-cta i    { color: #39ff14 !important; }
+    .tenant-delnero .hero-cta span { color: #39ff14 !important; }
+    .tenant-delnero .hero-cta:hover { background: rgba(57,255,20,0.08) !important; }
+
+    /* Tarjeta central PWA — oculta (usamos solo el banner flotante) */
+    .tenant-delnero #pwaBigInstallCard { display: none !important; }
+
+    /* Sellos vacíos: receptáculos oscuros con borde neón sutil */
+    .tenant-delnero .stamp-cell.empty {
+      background: #0f0f0f !important;
+      border: 1px solid rgba(57,255,20,0.18) !important;
+    }
+    /* Sellos llenos: borde neón verde brillante */
+    .tenant-delnero .stamp-cell.filled {
+      background: #050505 !important;
+      border: 1px solid #39ff14 !important;
+      box-shadow: 0 0 8px rgba(57,255,20,0.35) !important;
+    }
+    .tenant-delnero .stamp-cell.filled i { color: #39ff14 !important; }
+
+    /* Barra de progreso: degradado verde neón */
+    .tenant-delnero #stampsBar {
+      background: linear-gradient(90deg, #1a8c00, #39ff14) !important;
+      box-shadow: 0 0 10px rgba(57,255,20,0.55) !important;
+    }
+    /* Grid de sellos */
+    .tenant-delnero #stampsGrid {
+      background: #0a0a0a !important;
+      border-color: rgba(255,255,255,0.04) !important;
+    }
+    /* Membership card */
+    .tenant-delnero .membership-pattern::before {
+      background-image: repeating-linear-gradient(
+        -45deg, transparent, transparent 18px,
+        rgba(57,255,20,0.015) 18px, rgba(57,255,20,0.015) 19px
+      );
+    }
+    .tenant-delnero .membership-glow {
+      background: radial-gradient(circle, rgba(57,255,20,0.07) 0%, transparent 70%) !important;
+    }
+    .tenant-delnero #membershipWatermark { color: rgba(57,255,20,0.04) !important; }
+    /* Tarjetas secundarias */
+    .tenant-delnero #tabLoyalty .bg-\[#111115\],
+    .tenant-delnero #tabProfile .bg-\[#111115\] {
+      background-color: #0d0d0d !important;
+      border-color: rgba(255,255,255,0.05) !important;
+    }
+
+    /* Nav activo: verde neón */
+    .tenant-delnero .nav-tab.active .nav-icon {
+      color: #39ff14;
+      filter: drop-shadow(0 0 6px rgba(57,255,20,0.40));
+    }
+    .tenant-delnero .nav-tab.active .nav-label { color: #39ff14; }
+
+    /* Tier badges */
+    .tenant-delnero .tier-badge.gold     { color: #39ff14; border-color: rgba(57,255,20,0.35); }
+    .tenant-delnero .tier-badge.platinum { color: #a3e635; border-color: rgba(57,255,20,0.30); }
+
+    /* PWA */
+    .tenant-delnero #pwaBanner { border-color: rgba(57,255,20,0.28) !important; }
+    .tenant-delnero #pwaModalIOS > div { border-color: rgba(57,255,20,0.18) !important; }
+    .tenant-delnero .pwa-step-badge { background: #39ff14 !important; color: #050505 !important; }
+
+    /* Botón chat y notificaciones: verde neón */
+    .tenant-delnero #chatToggleBtn {
+      background: #39ff14 !important;
+      box-shadow: 0 0 16px rgba(57,255,20,0.40) !important;
+    }
+    .tenant-delnero #chatToggleBtn svg path { fill: #050505 !important; }
+
+    /* Botones de acción primarios */
+    .tenant-delnero .btn-accion-primary,
+    .tenant-delnero a.btn-reservar {
+      background: transparent !important;
+      border: 1.5px solid #39ff14 !important;
+      color: #39ff14 !important;
+      box-shadow: 0 0 12px rgba(57,255,20,0.20) !important;
+    }
     /* ────────────────────────────────────────────────────────────── */
 
     @keyframes stampPop {

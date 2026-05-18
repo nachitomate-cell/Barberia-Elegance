@@ -10,6 +10,7 @@
     'chameleonbarber.synaptechspa.cl':    'chameleon',
     'deluxeperfumes.synaptechspa.cl':     'deluxeperfumes',
     'lumenbarbershop.synaptechspa.cl':    'lumen',
+    'delnerobarber.synaptechspa.cl':      'delnero',
   };
 
   const _tenants = {
@@ -141,6 +142,23 @@
       waEmoji:         '🌸',
       googleReviewUrl: '',
       barberos:        [],
+    },
+    delnero: {
+      categoriasServicio: ['Cortes', 'Barba', 'Combos', 'Extras', 'Otro'],
+      nombre:          'Del Nero Barber',
+      nombreCorto:     'Del Nero',
+      pageTitle:       'Del Nero Barber | Agenda tu hora',
+      slogan:          'Estilo que define. Arte que trasciende.',
+      logo:            '/nero.jpg',
+      direccion:       '📍 Curauma / Placilla',
+      horario:         '🕒 Lun a Sáb: 10:00 – 20:00 hrs.',
+      telefono:        '',
+      club:            'Club Del Nero',
+      instagram:       '',
+      instagramHandle: '',
+      waEmoji:         '✂️',
+      googleReviewUrl: '',
+      barberos: [],
     },
     mapubarbershop: {
       categoriasServicio: ['Cortes', 'Barba', 'Combos', 'Extras', 'Otro'],

@@ -13,6 +13,7 @@ const DOMAIN_MAP = {
   'chameleonbarber.synaptechspa.cl':   'chameleon',
   'deluxeperfumes.synaptechspa.cl':    'deluxeperfumes',
   'lumenbarbershop.synaptechspa.cl':   'lumen',
+  'delnerobarber.synaptechspa.cl':     'delnero',
 };
 
 const TENANT_META = {
@@ -237,6 +238,50 @@ const TENANT_META = {
       ],
     },
   },
+  delnero: {
+    booking: {
+      title:       'Del Nero Barber | Agenda tu hora',
+      description: 'Reserva tu hora en Del Nero Barber. Cortes y barba de élite en Curauma / Placilla.',
+      ogTitle:     'Agendar Hora | Del Nero Barber',
+      ogDesc:      'Reserva tu hora en Del Nero Barber. Estilo que define, arte que trasciende.',
+    },
+    dashboard: {
+      title:       'Mi Club | Del Nero Barber',
+      description: 'Tu panel personal en Del Nero Barber. Revisa tus sellos y canjea premios.',
+      ogTitle:     'Mi Club | Del Nero Barber',
+      ogDesc:      'Panel de fidelidad de Del Nero Barber. Acumula sellos y disfruta de servicios gratis.',
+    },
+    registro: {
+      title:       'Únete al Club | Del Nero Barber',
+      description: 'Crea tu cuenta en Del Nero Barber. Acumula sellos y canjea premios.',
+      ogTitle:     'Únete al Club | Del Nero Barber',
+      ogDesc:      'Regístrate en Del Nero Barber y disfruta de beneficios exclusivos.',
+    },
+    siteName:    'Del Nero Barber',
+    ogImage:     '/nero.jpg',
+    themeColor:  '#050505',
+    appTitle:    'Del Nero',
+    icon:        '/nero.jpg',
+    manifest: {
+      name:             'Del Nero Barber',
+      short_name:       'Del Nero',
+      theme_color:      '#050505',
+      background_color: '#050505',
+    },
+    adminManifest: {
+      name:             'Panel Admin · Del Nero',
+      short_name:       'Del Nero',
+      description:      'Panel de administración — Del Nero Barber',
+      theme_color:      '#39ff14',
+      background_color: '#050505',
+      start_url:        '/gestion-interna/?local=delnero',
+      icons: [
+        { src: '/nero.jpg',                    sizes: 'any',     type: 'image/jpeg' },
+        { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png' },
+        { src: '/gestion-interna/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+      ],
+    },
+  },
   lumen: {
     booking: {
       title:       'Lumen Barbershop | Agenda tu hora',
@@ -300,18 +345,22 @@ function r(str) {
   return str.replace(/\$/g, '$$$$');
 }
 
-function injectMeta(html, meta, pageMeta, canonical) {
-  // ── Replace existing tags ────────────────────────────────────────────────────
+// WhatsApp/Facebook scrapers require absolute URLs for og:image — relative paths are silently ignored.
+function injectMeta(html, meta, pageMeta, canonical, hostname) {
+  const absImage = meta.ogImage.startsWith('http')
+    ? meta.ogImage
+    : `https://${hostname}${meta.ogImage}`;
+
   html = html.replace(/(<title[^>]*>)[^<]*(<\/title>)/,     `$1${r(pageMeta.title)}$2`);
   html = html.replace(/<meta name="description"[^>]*>/,      `<meta name="description" content="${r(pageMeta.description)}">`);
   html = html.replace(/<meta property="og:title"[^>]*>/,     `<meta property="og:title" content="${r(pageMeta.ogTitle)}">`);
   html = html.replace(/<meta property="og:description"[^>]*>/, `<meta property="og:description" content="${r(pageMeta.ogDesc)}">`);
   html = html.replace(/<meta property="og:site_name"[^>]*>/, `<meta property="og:site_name" content="${r(meta.siteName)}">`);
-  html = html.replace(/<meta property="og:image"[^>]*>/,     `<meta property="og:image" content="${r(meta.ogImage)}">`);
+  html = html.replace(/<meta property="og:image"[^>]*>/,     `<meta property="og:image" content="${r(absImage)}">`);
   html = html.replace(/<meta property="og:url"[^>]*>/,       `<meta property="og:url" content="${r(canonical)}">`);
   html = html.replace(/<meta name="twitter:title"[^>]*>/,    `<meta name="twitter:title" content="${r(pageMeta.ogTitle)}">`);
   html = html.replace(/<meta name="twitter:description"[^>]*>/, `<meta name="twitter:description" content="${r(pageMeta.ogDesc)}">`);
-  html = html.replace(/<meta name="twitter:image"[^>]*>/,    `<meta name="twitter:image" content="${r(meta.ogImage)}">`);
+  html = html.replace(/<meta name="twitter:image"[^>]*>/,    `<meta name="twitter:image" content="${r(absImage)}">`);
   html = html.replace(/<meta name="theme-color"[^>]*>/,      `<meta name="theme-color" content="${r(meta.themeColor)}">`);
   html = html.replace(/<meta name="apple-mobile-web-app-title"[^>]*>/, `<meta name="apple-mobile-web-app-title" content="${r(meta.appTitle)}">`);
   html = html.replace(/<meta name="application-name"[^>]*>/,           `<meta name="application-name" content="${r(meta.appTitle)}">`);
@@ -335,6 +384,8 @@ export const config = {
   matcher: [
     '/',
     '/index.html',
+    '/agenda',
+    '/agenda.html',
     '/dashboard',
     '/dashboard.html',
     '/registro',
@@ -425,7 +476,7 @@ export default async function middleware(request) {
   const canonical = `https://${hostname}${url.pathname === '/' ? '' : url.pathname}`;
 
   let html = await response.text();
-  html = injectMeta(html, meta, pageMeta, canonical);
+  html = injectMeta(html, meta, pageMeta, canonical, hostname);
 
   const headers = new Headers(response.headers);
   headers.set('Content-Type', 'text/html; charset=utf-8');
