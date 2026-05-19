@@ -382,14 +382,8 @@ function injectAdminMeta(html, meta) {
 
 export const config = {
   matcher: [
-    '/',
-    '/index.html',
-    '/agenda',
-    '/agenda.html',
-    '/dashboard',
-    '/dashboard.html',
-    '/registro',
-    '/registro.html',
+    '/((?!api|_next|favicon\\.ico|.*\\.).*)',
+    '/(.*)\\.html',
     '/manifest.json',
     '/gestion-interna/',
     '/gestion-interna/index.html',
@@ -407,7 +401,8 @@ export default async function middleware(request) {
     return Response.redirect(new URL('/catalogo', request.url), 302);
   }
 
-  const meta = TENANT_META[tenantId] ?? TENANT_META.elegance;
+  // Deep copy para no contaminar el estado global (importante en Edge environments)
+  const meta = JSON.parse(JSON.stringify(TENANT_META[tenantId] ?? TENANT_META.elegance));
 
   // ── Manifest cliente: devolver versión dinámica por tenant ───────────────────
   if (url.pathname === '/manifest.json') {
@@ -463,16 +458,73 @@ export default async function middleware(request) {
     return new Response(html, { status: response.status, headers });
   }
 
-  // ── Elegance: servir el HTML original sin modificar (ya tiene los valores correctos)
-  if (tenantId === 'elegance') return;
+  const knownStaticRoutes = [
+    '/', '/index.html', '/agenda', '/agenda.html', '/dashboard', '/dashboard.html', 
+    '/registro', '/registro.html', '/catalogo', '/catalogo.html', 
+    '/membresia', '/membresia.html', '/chat-miembros', '/chat-miembros.html', 
+    '/admin-membresias', '/admin-membresias.html', '/barbero.html'
+  ];
+  const isDynamicRoute = !url.pathname.startsWith('/gestion-interna') && !knownStaticRoutes.includes(url.pathname);
+  
+  const pageType = getPageType(url.pathname);
+  let pageMeta = meta[pageType];
 
-  // ── Otros tenants: fetch + reemplazo de meta tags ────────────────────────────
+  // ── Consulta Dinámica para Rutas de Barberos (Fetch a Firestore) ─────────────
+  if (isDynamicRoute) {
+    const slug = url.pathname.substring(1).toLowerCase();
+    const projectId = process.env.FIREBASE_PROJECT_ID || 'barberia-elegance';
+    
+    const firestoreUrl = tenantId === 'elegance'
+      ? `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/barberos`
+      : `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/tenants/${tenantId}/barberos`;
+
+    try {
+      const dbRes = await fetch(firestoreUrl);
+      if (dbRes.ok) {
+        const dbData = await dbRes.json();
+        const docs = dbData.documents || [];
+        const slugify = (str) => String(str).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+        
+        let match = null;
+        for (const doc of docs) {
+          const docId = doc.name.split('/').pop();
+          const nombre = doc.fields?.nombre?.stringValue || '';
+          if (docId === slug || slugify(nombre) === slug) {
+            match = doc;
+            break;
+          }
+        }
+
+        if (match) {
+          const nombreBarbero = match.fields?.nombre?.stringValue || '';
+          const fotoBarbero = match.fields?.foto?.stringValue;
+
+          if (nombreBarbero) {
+            pageMeta.title = `Agenda con ${nombreBarbero} - ${meta.siteName}`;
+            pageMeta.ogTitle = `Agenda con ${nombreBarbero} - ${meta.siteName}`;
+            pageMeta.ogDesc = `Reserva tu hora con ${nombreBarbero} en ${meta.siteName}.`;
+          }
+          if (fotoBarbero) {
+            meta.ogImage = fotoBarbero.startsWith('http') ? fotoBarbero : (fotoBarbero.startsWith('/') ? fotoBarbero : `/${fotoBarbero}`);
+          }
+        }
+      }
+    } catch (e) {
+      console.error('[Edge] Fallback activado. Fetch a BD falló:', e);
+      // Falla silenciosa: mantenemos pageMeta intacto usando los defaults del tenant
+    }
+  }
+
+  // ── Elegance: servir original sin inyección sólo si NO es ruta dinámica ──────
+  if (tenantId === 'elegance' && !isDynamicRoute) {
+    return;
+  }
+
+  // ── Inyección de Meta Tags en HTML ───────────────────────────────────────────
   const response = await fetch(request);
   const contentType = response.headers.get('content-type') || '';
   if (!contentType.includes('text/html')) return response;
 
-  const pageType = getPageType(url.pathname);
-  const pageMeta = meta[pageType];
   const canonical = `https://${hostname}${url.pathname === '/' ? '' : url.pathname}`;
 
   let html = await response.text();
@@ -480,7 +532,13 @@ export default async function middleware(request) {
 
   const headers = new Headers(response.headers);
   headers.set('Content-Type', 'text/html; charset=utf-8');
-  headers.set('Cache-Control', 'no-store');
+
+  // ── Edge Caching para Vercel CDN ─────────────────────────────────────────────
+  if (isDynamicRoute) {
+    headers.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=3600');
+  } else {
+    headers.set('Cache-Control', 'no-store');
+  }
 
   return new Response(html, { status: response.status, headers });
 }
