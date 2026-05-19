@@ -1200,18 +1200,21 @@
           <p id="profileEmail" class="text-[11px] text-gray-500 mt-0.5 truncate">—</p>
           <!-- Stats: rango · visitas · sellos -->
           <div class="flex items-stretch gap-2 mt-3">
-            <div class="flex flex-col items-center justify-center rounded-xl px-2 py-2.5 flex-1"
-                 style="background:var(--gold-glow);border:1px solid var(--gold-dim);">
-              <span id="profileTierBadge" class="text-[13px] font-black uppercase tracking-wide leading-none" style="color:var(--gold);">—</span>
-              <span class="text-[8px] text-zinc-500 font-bold mt-1.5 uppercase tracking-widest">Rango</span>
+            <!-- Rango: gradiente de fondo para status VIP -->
+            <div class="flex flex-col items-center justify-center rounded-2xl px-2 py-3 flex-1"
+                 style="background:linear-gradient(135deg,var(--gold-glow) 0%,rgba(0,0,0,0) 100%),#18181b;">
+              <span id="profileTierBadge" class="text-sm font-black uppercase tracking-wide leading-none" style="color:var(--gold);">—</span>
+              <span class="text-[9px] text-zinc-500 font-bold mt-2 uppercase tracking-widest">Rango</span>
             </div>
-            <div class="flex flex-col items-center justify-center rounded-xl px-2 py-2.5 flex-1 bg-zinc-900/80 border border-zinc-800">
-              <span id="profileVisitsCount" class="text-[17px] font-black text-white leading-none">0</span>
-              <span class="text-[8px] text-zinc-500 font-bold mt-1.5 uppercase tracking-widest">Visitas</span>
+            <!-- Visitas -->
+            <div class="flex flex-col items-center justify-center rounded-2xl px-2 py-3 flex-1 bg-zinc-900">
+              <span id="profileVisitsCount" class="text-2xl font-black text-white leading-none">0</span>
+              <span class="text-[9px] text-zinc-500 font-bold mt-2 uppercase tracking-widest">Visitas</span>
             </div>
-            <div class="flex flex-col items-center justify-center rounded-xl px-2 py-2.5 flex-1 bg-zinc-900/80 border border-zinc-800">
-              <span id="profileStamps" class="text-[17px] font-black text-white/50 leading-none">0</span>
-              <span class="text-[8px] text-zinc-500 font-bold mt-1.5 uppercase tracking-widest">Sellos</span>
+            <!-- Sellos -->
+            <div class="flex flex-col items-center justify-center rounded-2xl px-2 py-3 flex-1 bg-zinc-900">
+              <span id="profileStamps" class="text-2xl font-black text-white/50 leading-none">0</span>
+              <span class="text-[9px] text-zinc-500 font-bold mt-2 uppercase tracking-widest">Sellos</span>
             </div>
           </div>
         </div>
@@ -1313,14 +1316,13 @@
 
   </div><!-- /max-w-md -->
 
-  <!-- ═══════ STICKY FAB: AGENDAR HORA ═══════ -->
-  <div class="fixed bottom-[4.5rem] left-0 right-0 z-50 flex justify-center pointer-events-none px-5">
-    <a href="index.html"
-      class="pointer-events-auto flex items-center gap-2.5 bg-white text-[#050505] font-bold px-7 py-3.5 rounded-xl shadow-[0_0_25px_rgba(255,255,255,0.3),0_4px_20px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.9)] active:scale-[0.97] transition-all hover:shadow-[0_0_35px_rgba(255,255,255,0.45),0_4px_24px_rgba(0,0,0,0.7)] text-base tracking-wide">
-      <i class="ph-bold ph-calendar-plus text-lg"></i>
-      Agendar Hora
-    </a>
-  </div>
+  <!-- ═══════ FAB: AGENDAR HORA ═══════ -->
+  <a href="index.html"
+     class="fixed bottom-[5.5rem] right-4 z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-[0_4px_24px_rgba(0,0,0,0.6)] active:scale-90 transition-all duration-150"
+     style="background:var(--gold);box-shadow:0 0 20px var(--gold-glow),0 4px_20px rgba(0,0,0,0.5);"
+     aria-label="Agendar Hora">
+    <i class="ph-bold ph-calendar-plus text-2xl" style="color:#050505;"></i>
+  </a>
 
   <!-- ═══════ BOTTOM NAVIGATION BAR ═══════ -->
   <nav class="fixed bottom-0 left-0 right-0 z-50 bg-[#0a0a0d]/97 backdrop-blur-xl border-t border-white/6" style="padding-bottom: env(safe-area-inset-bottom);">
@@ -2616,10 +2618,10 @@ async function cargarCitasUsuario(user) {
 
     if (!citas.length) {
       contenedor.innerHTML = `
-        <div class="bg-[#111115] rounded-2xl border border-white/8 px-5 py-6 text-center">
-          <i class="ph-fill ph-calendar-x text-4xl text-white/10 mb-2 block"></i>
-          <p class="text-sm text-gray-500">Aún no tienes citas registradas.<br>¡Reserva tu primera cita!</p>
-          <a href="index.html" class="btn-reservar inline-block mt-4 px-5 py-2.5 rounded-xl text-xs font-bold text-black" style="background:var(--gold);">Reservar ahora</a>
+        <div class="bg-zinc-900 rounded-2xl px-5 py-8 text-center">
+          <i class="ph-fill ph-calendar-x text-4xl text-white/10 mb-3 block"></i>
+          <p class="text-sm text-zinc-500">Aún no tienes citas registradas.<br>¡Reserva tu primera cita!</p>
+          <a href="index.html" class="btn-reservar inline-block mt-5 px-5 py-2.5 rounded-xl text-xs font-bold" style="background:var(--gold);color:#050505;">Reservar ahora</a>
         </div>`;
       return;
     }
@@ -2691,10 +2693,10 @@ async function cargarCitasUsuario(user) {
         </div>`;
     } else {
       html += `
-        <div class="mb-3 rounded-2xl px-5 py-4 flex items-center gap-3" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);">
+        <div class="mb-3 bg-zinc-900 rounded-2xl px-5 py-4 flex items-center gap-3">
           <i class="ph-fill ph-calendar-blank text-2xl text-white/20"></i>
           <div>
-            <p class="text-sm font-bold text-white/60">Sin próximas citas</p>
+            <p class="text-sm font-bold text-white/50">Sin próximas citas</p>
             <a href="index.html" class="text-xs font-bold" style="color:var(--gold);">Reservar ahora →</a>
           </div>
         </div>`;
@@ -2703,17 +2705,17 @@ async function cargarCitasUsuario(user) {
     // ─ Stats ─
     html += `
       <div class="grid grid-cols-3 gap-2 mb-3">
-        <div class="bg-[#111115] rounded-xl border border-white/8 px-3 py-3 text-center">
-          <p class="text-xl font-black text-white">${total}</p>
-          <p class="text-[9px] text-gray-500 uppercase tracking-wide">Total</p>
+        <div class="bg-zinc-900 rounded-2xl px-3 py-3 text-center">
+          <p class="text-2xl font-black text-white">${total}</p>
+          <p class="text-[9px] text-zinc-500 uppercase tracking-widest mt-1">Total</p>
         </div>
-        <div class="bg-[#111115] rounded-xl border border-white/8 px-3 py-3 text-center">
-          <p class="text-xl font-black" style="color:var(--gold);">${futuras.length}</p>
-          <p class="text-[9px] text-gray-500 uppercase tracking-wide">Próximas</p>
+        <div class="bg-zinc-900 rounded-2xl px-3 py-3 text-center">
+          <p class="text-2xl font-black" style="color:var(--gold);">${futuras.length}</p>
+          <p class="text-[9px] text-zinc-500 uppercase tracking-widest mt-1">Próximas</p>
         </div>
-        <div class="bg-[#111115] rounded-xl border border-white/8 px-3 py-3 text-center">
-          <p class="text-xl font-black text-white/60">${completadas}</p>
-          <p class="text-[9px] text-gray-500 uppercase tracking-wide">Completadas</p>
+        <div class="bg-zinc-900 rounded-2xl px-3 py-3 text-center">
+          <p class="text-2xl font-black text-white/50">${completadas}</p>
+          <p class="text-[9px] text-zinc-500 uppercase tracking-widest mt-1">Completadas</p>
         </div>
       </div>`;
 
@@ -2721,12 +2723,17 @@ async function cargarCitasUsuario(user) {
     html += `<div class="space-y-2">`;
     for (const c of sorted.slice(0, 8)) {
       const esFutura = futuras.some(f => f.id === c.id);
-      const colorE   = c.estado === 'Completada' ? 'text-green-400 cita-estado-completada'
-                     : c.estado === 'Cancelada'  ? 'text-red-400 cita-estado-cancelada'
-                     : 'text-white/50 cita-estado-pendiente';
-      const iconE    = c.estado === 'Completada' ? 'ph-check-circle'
-                     : c.estado === 'Cancelada'  ? 'ph-x-circle'
-                     : 'ph-clock';
+      const iconE = c.estado === 'Completada' ? 'ph-check-circle'
+                  : c.estado === 'Cancelada'  ? 'ph-x-circle'
+                  : 'ph-clock';
+      const iconColor = c.estado === 'Completada' ? 'style="color:var(--gold);" cita-estado-completada'
+                      : c.estado === 'Cancelada'  ? 'class="text-red-400 cita-estado-cancelada"'
+                      : 'class="text-zinc-500 cita-estado-pendiente"';
+      const estadoBadge = c.estado === 'Cancelada'
+        ? `<span class="shrink-0 text-[9px] font-bold uppercase px-2 py-0.5 rounded-md bg-red-500/10 text-red-400 cita-estado-cancelada">${c.estado}</span>`
+        : c.estado === 'Completada'
+        ? `<span class="shrink-0 text-[9px] font-bold uppercase px-2 py-0.5 rounded-md cita-estado-completada" style="background:var(--gold-glow);color:var(--gold);">${c.estado}</span>`
+        : `<span class="shrink-0 text-[9px] font-bold uppercase px-2 py-0.5 rounded-md bg-white/6 text-zinc-400 cita-estado-pendiente">${c.estado || 'Agendada'}</span>`;
       const cancelBtn = esFutura
         ? `<div class="flex gap-1 shrink-0">
              <button onclick="abrirModalReagendar('${c.id}')" title="Reagendar cita"
@@ -2741,13 +2748,13 @@ async function cargarCitasUsuario(user) {
         : '';
 
       html += `
-        <div class="bg-[#111115] rounded-xl border border-white/8 px-4 py-3 flex items-center gap-3">
-          <i class="ph-fill ${iconE} text-lg ${colorE} shrink-0"></i>
+        <div class="bg-zinc-900 rounded-xl px-4 py-3 flex items-center gap-3">
+          <i class="ph-fill ${iconE} text-lg shrink-0" ${iconColor}></i>
           <div class="flex-1 min-w-0">
             <p class="text-sm font-semibold text-white truncate">${c.servicioNombre || 'Servicio'}</p>
-            <p class="text-xs text-gray-500">${formatearFechaCita(c.fecha)} · ${c.hora}</p>
+            <p class="text-xs text-zinc-500">${formatearFechaCita(c.fecha)} · ${c.hora}</p>
           </div>
-          <span class="text-[9px] font-bold ${colorE} shrink-0">${c.estado || 'Confirmada'}</span>
+          ${estadoBadge}
           ${cancelBtn}
         </div>`;
     }
