@@ -46,6 +46,7 @@
   <script src="config.js"></script>
   <script src="firebase-config.js?v=1.1"></script>
   <script src="firebaseUtils.js?v=2.6"></script>
+  <script src="js/services/professional.service.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
 
   <style>
@@ -2142,7 +2143,8 @@ async function abrirEquipoModal() {
           </div>
         </div>`;
     }).join('');
-  } catch (_) {
+  } catch (e) {
+    console.error('[Equipo]', e);
     grid.innerHTML = '<p class="col-span-2 text-center text-zinc-500 text-sm py-10">No se pudo cargar el equipo.</p>';
   }
 }
