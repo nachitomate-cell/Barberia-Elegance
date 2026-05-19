@@ -1787,6 +1787,37 @@
       background: rgba(57,255,20,0.06) !important;
       border-color: rgba(57,255,20,0.14) !important;
     }
+    /* ── Del Nero · Club invite banner ──────────────────────────── */
+    #delneroClubInvite { display: none; }
+    .tenant-delnero #delneroClubInvite { display: block; }
+    @keyframes dn-border-pulse {
+      0%, 100% { box-shadow: 0 0 0 1px rgba(57,255,20,0.18), 0 0 10px rgba(57,255,20,0.08); }
+      50%       { box-shadow: 0 0 0 1px rgba(57,255,20,0.42), 0 0 20px rgba(57,255,20,0.18); }
+    }
+    .dn-club-btn { animation: dn-border-pulse 3s ease-in-out infinite; }
+
+    /* ── Del Nero · Club modal ───────────────────────────────────── */
+    #delneroClubModal {
+      display: none; position: fixed; inset: 0; z-index: 9990;
+      background: rgba(0,0,0,0.82); backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px); align-items: flex-end;
+    }
+    #delneroClubModal.open { display: flex; }
+    #delneroClubSheet {
+      width: 100%; max-height: 90dvh; overflow-y: auto;
+      background: #080808;
+      border-radius: 24px 24px 0 0;
+      border-top: 1px solid rgba(57,255,20,0.22);
+      padding: 0 24px 40px;
+      transform: translateY(100%);
+      transition: transform 0.38s cubic-bezier(0.16,1,0.3,1);
+    }
+    #delneroClubModal.open #delneroClubSheet { transform: translateY(0); }
+    #delneroClubHandle {
+      width: 36px; height: 4px;
+      background: rgba(57,255,20,0.22);
+      border-radius: 2px; margin: 14px auto 28px;
+    }
     /* ────────────────────────────────────────────────────────────── */
   </style>
 </head>
@@ -1880,7 +1911,21 @@
 
       <section id="step1" class="animate-[fadeSlideUp_0.5s_cubic-bezier(0.16,1,0.3,1)_forwards]">
         <h2 class="text-2xl font-bold mb-6 text-neon tracking-tight">¿Qué servicio buscas?</h2>
-        
+
+        <!-- Club Del Nero — invite banner (solo delnero) -->
+        <div id="delneroClubInvite" class="mb-5">
+          <button onclick="openDelneroClubModal()" class="dn-club-btn w-full flex items-center gap-3.5 px-4 py-3.5 rounded-2xl text-left active:scale-[0.98] transition-transform" style="background:#0a0a0d;border:1px solid rgba(57,255,20,0.22);">
+            <div class="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style="background:rgba(57,255,20,0.10);border:1px solid rgba(57,255,20,0.28);">
+              <i class="ph-fill ph-medal text-lg" style="color:#39ff14;filter:drop-shadow(0 0 6px rgba(57,255,20,0.65));"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-[10px] font-bold uppercase tracking-widest mb-0.5" style="color:rgba(57,255,20,0.55);">Club Del Nero</p>
+              <p class="text-sm font-semibold" style="color:rgba(255,255,255,0.88);">10 sellos = 1 corte gratis</p>
+            </div>
+            <span class="text-[11px] font-bold px-2.5 py-1 rounded-full flex-shrink-0" style="background:rgba(57,255,20,0.12);color:#39ff14;border:1px solid rgba(57,255,20,0.28);">Ver más</span>
+          </button>
+        </div>
+
         <!-- Category Pills -->
         <div id="categoryPills" class="flex gap-2 overflow-x-auto pb-4 mb-4 no-scrollbar -mx-6 px-6 scroll-smooth">
         </div>
@@ -2147,6 +2192,9 @@
     function updateSelectionRecap() {
       const el = document.getElementById('selectionRecap');
       if (!el) return;
+      // El recap solo aparece desde el paso 2 en adelante
+      if (currentStep <= 1) { el.classList.add('hidden'); return; }
+      const _isDelnero = window.CURRENT_TENANT_ID === 'delnero';
       const parts = [];
       if (window._selectedSucursal && window._hasSucursales) {
         parts.push(`<span class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 border border-white/10"><i class="ph ph-map-pin text-[10px]"></i>${window._selectedSucursal.ciudad}</span>`);
@@ -2155,9 +2203,10 @@
         const _svcIcon = window.CURRENT_TENANT_ID === 'gitana' ? 'ph-sparkle' : 'ph-scissors';
         parts.push(`<span class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 border border-white/10"><i class="ph ${_svcIcon} text-[10px]"></i>${selectedServiceObj.nombre}</span>`);
       }
-      if (window._selectedBarber && window._selectedBarber !== 'any') {
+      // delnero: el barbero es auto-asignado, no mostrar en recap
+      if (!_isDelnero && window._selectedBarber && window._selectedBarber !== 'any') {
         parts.push(`<span class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 border border-white/10"><i class="ph ph-user text-[10px]"></i>${window._selectedBarber}</span>`);
-      } else if (window._selectedBarberId === 'any') {
+      } else if (!_isDelnero && window._selectedBarberId === 'any') {
         parts.push(`<span class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 border border-white/10"><i class="ph ph-shuffle text-[10px]"></i>Sin preferencia</span>`);
       }
       if (selectedTimeStr && currentDateStr) {
@@ -2897,7 +2946,8 @@
         try {
           if (attempt > 0) await new Promise(r => setTimeout(r, 800 * attempt));
           if (window._selectedBarberId === 'any') {
-            hours = await FDB.getHorasDisponiblesMulti(currentDateStr, selectedServiceObj.duracion, settings, _fsBarberos);
+            const _barberosActivos = (_activeBarberos && _activeBarberos.length) ? _activeBarberos : _fsBarberos;
+            hours = await FDB.getHorasDisponiblesMulti(currentDateStr, selectedServiceObj.duracion, settings, _barberosActivos);
             _multiHoras = hours;
           } else {
             hours = await FDB.getHorasDisponibles(currentDateStr, selectedServiceObj.duracion, settings, window._selectedBarberId || null);
@@ -3106,8 +3156,10 @@
       if (currentStep === 0 || (currentStep === 1 && !window._hasSucursales)) {
         window.history.back();
       } else {
+        // delnero salta el paso 2 en ambas direcciones
+        const targetStep = (window.CURRENT_TENANT_ID === 'delnero' && currentStep === 3) ? 1 : currentStep - 1;
         const currentStepEl = document.getElementById(`step${currentStep}`);
-        const prevStepEl = document.getElementById(`step${currentStep - 1}`);
+        const prevStepEl = document.getElementById(`step${targetStep}`);
 
         currentStepEl.classList.add('opacity-0', 'translate-x-12');
         setTimeout(() => {
@@ -3115,9 +3167,8 @@
           prevStepEl.classList.remove('hidden');
           void prevStepEl.offsetWidth;
           prevStepEl.classList.remove('opacity-0', '-translate-x-12');
-          currentStep--;
+          currentStep = targetStep;
           updateProgress();
-
           updateContinueBtn();
         }, 300);
       }
@@ -3825,6 +3876,16 @@
       renderCalendar();       // ahora que _fsConfig está listo
     });
 
+    // ── Club Del Nero modal ─────────────────────────────────────────────────────
+    function openDelneroClubModal() {
+      document.getElementById('delneroClubModal').classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeDelneroClubModal() {
+      document.getElementById('delneroClubModal').classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
     // ── Sobre Nosotros modal (Mapu only) ────────────────────────────────────────
     function openMapuSobre() {
       const m = document.getElementById('mapu-sobre-modal');
@@ -3838,6 +3899,93 @@
     }
 
   </script>
+
+  <!-- Club Del Nero modal -->
+  <div id="delneroClubModal" onclick="if(event.target===this)closeDelneroClubModal()">
+    <div id="delneroClubSheet">
+      <div id="delneroClubHandle"></div>
+
+      <!-- Encabezado -->
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px;">
+        <div style="width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:rgba(57,255,20,0.10);border:1px solid rgba(57,255,20,0.30);box-shadow:0 0 22px rgba(57,255,20,0.14);">
+          <i class="ph-fill ph-medal" style="font-size:24px;color:#39ff14;filter:drop-shadow(0 0 8px rgba(57,255,20,0.75));"></i>
+        </div>
+        <div>
+          <p style="font-family:'Playfair Display',serif;font-size:22px;font-weight:700;color:#f0ead6;line-height:1.2;margin:0;">Club Del Nero</p>
+          <p style="font-size:11px;font-weight:700;letter-spacing:0.1em;color:rgba(57,255,20,0.60);margin:4px 0 0;text-transform:uppercase;">El club exclusivo</p>
+        </div>
+      </div>
+
+      <p style="font-size:13.5px;color:rgba(255,255,255,0.50);line-height:1.75;margin-bottom:24px;">
+        Cada visita suma. Acumula sellos, desbloquea beneficios y forma parte de la comunidad Del Nero.
+      </p>
+
+      <!-- Beneficios -->
+      <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:28px;">
+
+        <div style="display:flex;align-items:flex-start;gap:14px;padding:15px;border-radius:16px;background:rgba(57,255,20,0.04);border:1px solid rgba(57,255,20,0.10);">
+          <div style="width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:rgba(57,255,20,0.10);border:1px solid rgba(57,255,20,0.22);">
+            <i class="ph-fill ph-stamp" style="font-size:16px;color:#39ff14;"></i>
+          </div>
+          <div>
+            <p style="font-size:14px;font-weight:700;color:#f0ead6;margin:0 0 4px;">Sellos por cada visita</p>
+            <p style="font-size:12.5px;color:rgba(255,255,255,0.42);line-height:1.55;margin:0;">Cada corte o servicio te suma un sello en tu tarjeta digital.</p>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:flex-start;gap:14px;padding:15px;border-radius:16px;background:rgba(57,255,20,0.04);border:1px solid rgba(57,255,20,0.10);">
+          <div style="width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:rgba(57,255,20,0.10);border:1px solid rgba(57,255,20,0.22);">
+            <i class="ph-fill ph-gift" style="font-size:16px;color:#39ff14;"></i>
+          </div>
+          <div>
+            <p style="font-size:14px;font-weight:700;color:#f0ead6;margin:0 0 4px;">Cortes gratis</p>
+            <p style="font-size:12.5px;color:rgba(255,255,255,0.42);line-height:1.55;margin:0;">Al completar 10 sellos, tu próximo corte corre por cuenta de Del Nero.</p>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:flex-start;gap:14px;padding:15px;border-radius:16px;background:rgba(57,255,20,0.04);border:1px solid rgba(57,255,20,0.10);">
+          <div style="width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:rgba(57,255,20,0.10);border:1px solid rgba(57,255,20,0.22);">
+            <i class="ph-fill ph-identification-card" style="font-size:16px;color:#39ff14;"></i>
+          </div>
+          <div>
+            <p style="font-size:14px;font-weight:700;color:#f0ead6;margin:0 0 4px;">VIP Pass digital</p>
+            <p style="font-size:12.5px;color:rgba(255,255,255,0.42);line-height:1.55;margin:0;">Tu tarjeta de membresía siempre disponible en tu celular, con sellos en tiempo real.</p>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:flex-start;gap:14px;padding:15px;border-radius:16px;background:rgba(57,255,20,0.04);border:1px solid rgba(57,255,20,0.10);">
+          <div style="width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:rgba(57,255,20,0.10);border:1px solid rgba(57,255,20,0.22);">
+            <i class="ph-fill ph-clock-counter-clockwise" style="font-size:16px;color:#39ff14;"></i>
+          </div>
+          <div>
+            <p style="font-size:14px;font-weight:700;color:#f0ead6;margin:0 0 4px;">Historial de visitas</p>
+            <p style="font-size:12.5px;color:rgba(255,255,255,0.42);line-height:1.55;margin:0;">Revisa cada corte, fecha y servicio desde tu perfil del club.</p>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:flex-start;gap:14px;padding:15px;border-radius:16px;background:rgba(57,255,20,0.04);border:1px solid rgba(57,255,20,0.10);">
+          <div style="width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:rgba(57,255,20,0.10);border:1px solid rgba(57,255,20,0.22);">
+            <i class="ph-fill ph-tag" style="font-size:16px;color:#39ff14;"></i>
+          </div>
+          <div>
+            <p style="font-size:14px;font-weight:700;color:#f0ead6;margin:0 0 4px;">Ofertas exclusivas</p>
+            <p style="font-size:12.5px;color:rgba(255,255,255,0.42);line-height:1.55;margin:0;">Descuentos y promociones especiales solo para miembros del Club Del Nero.</p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- CTAs -->
+      <a href="registro.html" style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:15px;border-radius:14px;background:#39ff14;color:#050505;font-size:14px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;text-decoration:none;box-shadow:0 0 22px rgba(57,255,20,0.38),0 4px 14px rgba(0,0,0,0.5);margin-bottom:10px;">
+        <i class="ph-bold ph-user-plus" style="font-size:16px;"></i>
+        Crear mi cuenta gratis
+      </a>
+      <button onclick="closeDelneroClubModal()" style="width:100%;padding:13px;border-radius:12px;background:transparent;border:1px solid rgba(255,255,255,0.09);color:rgba(255,255,255,0.35);font-size:13px;font-weight:600;cursor:pointer;letter-spacing:0.03em;">
+        Ahora no
+      </button>
+
+    </div>
+  </div>
 
   <!-- Sobre Nosotros modal — Mapu only -->
   <div id="mapu-sobre-modal" onclick="if(event.target===this)closeMapuSobre()">

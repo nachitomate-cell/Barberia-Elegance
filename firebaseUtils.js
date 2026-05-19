@@ -686,10 +686,10 @@ const FDB = (() => {
     let cur = ini;
 
     while (cur + parseInt(duracionServicio) <= fin) {
-      // Saltar colación
+      // Saltar colación: excluye slots que empiezan O que se extienden dentro del bloque
       if (col) {
         const colS = toMins(col.inicio), colE = toMins(col.fin);
-        if (cur >= colS && cur < colE) { cur += interval; continue; }
+        if (cur < colE && (cur + parseInt(duracionServicio)) > colS) { cur += interval; continue; }
       }
       // Saltar bloqueo manual: omite el slot si el servicio solaparía el rango
       const bloqueado = rangosBloq.some(r =>
@@ -797,7 +797,7 @@ const FDB = (() => {
     for (let cur = globalIni; cur + dur <= globalFin; cur += interval) {
       if (col) {
         const colS = toMins(col.inicio), colE = toMins(col.fin);
-        if (cur >= colS && cur < colE) continue;
+        if (cur < colE && (cur + dur) > colS) continue;
       }
       const globalBlocked = globalBloqRanges.some(r => cur < r.end && (cur + dur) > r.start);
       if (globalBlocked) continue;
