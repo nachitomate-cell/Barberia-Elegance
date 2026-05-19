@@ -72,6 +72,10 @@ service firebase.storage {
       allow read: if true;
       allow write: if isAuth() && isUnder5MB() && isImage();
     }
+    match /tenants/{tenantId}/publicidad_tv/{imageId} {
+      allow read: if true;
+      allow write: if isAuth() && isUnder10MB() && isImage();
+    }
 
     // Bloquear cualquier otra ruta
     match /{allPaths=**} {

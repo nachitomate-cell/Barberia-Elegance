@@ -320,6 +320,23 @@ service cloud.firestore {
       allow delete: if esBootstrap();
     }
 
+    // ── /publicidad_tv ─────────────────────────────────────────────
+    match /publicidad_tv/{docId} {
+      allow read: if true;
+      allow write: if esStaff('elegance');
+    }
+    
+    // ── Academia ───────────────────────────────────────────────────
+    match /cursos_academia/{docId} {
+      allow read, write: if esStaff('elegance');
+    }
+    match /alumnos_academia/{docId} {
+      allow read, write: if esStaff('elegance');
+    }
+    match /material_academia/{docId} {
+      allow read, write: if esStaff('elegance');
+    }
+
     // ── /slotLocks ─────────────────────────────────────────────────
     // Fuente pública de ocupación para el widget de reservas (sin auth).
     // Los documentos incluyen fecha/hora/barberoId/duracion para que
@@ -564,6 +581,23 @@ service cloud.firestore {
         allow create: if esAdmin(tid);
         allow update: if esBootstrap();
         allow delete: if esBootstrap();
+      }
+
+      // ── /publicidad_tv ─────────────────────────────────────────────
+      match /publicidad_tv/{docId} {
+        allow read: if true;
+        allow write: if esStaff(tid);
+      }
+      
+      // ── Academia ───────────────────────────────────────────────────
+      match /cursos_academia/{docId} {
+        allow read, write: if esStaff(tid);
+      }
+      match /alumnos_academia/{docId} {
+        allow read, write: if esStaff(tid);
+      }
+      match /material_academia/{docId} {
+        allow read, write: if esStaff(tid);
       }
 
       // ── slotLocks ─────────────────────────────────────────────────
