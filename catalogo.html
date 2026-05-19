@@ -1420,6 +1420,14 @@
       return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     }
     function offPct(p, o) { return (!o||!p||o<=p) ? 0 : Math.round((1-p/o)*100); }
+    function imgFallback(img, cls) {
+      const wrap = img.closest('.' + (cls || 'product-img-wrap'));
+      if (wrap) wrap.innerHTML = '<div class="product-img-placeholder"><i class="ph-fill ph-drop"></i></div>';
+      else img.style.display = 'none';
+    }
+    function imgFallbackOuter(img, cls) {
+      img.outerHTML = '<div class="' + (cls || 'wish-item-img-ph') + '"><i class="ph-fill ph-drop"></i></div>';
+    }
     function calcPts(precio) { return precio ? Math.floor(precio / PTS_RATE) : 0; }
 
     // ── CTA Club ──────────────────────────────────────────────────────
@@ -1645,7 +1653,7 @@
         const wished = _wishlist.has(p.id);
         return `<div class="product-card" onclick="openDetail('${esc(p.id)}')" style="animation-delay:${delay}ms">
           <div class="product-img-wrap">
-            ${p.imagen?`<img class="product-img" src="${esc(p.imagen)}" alt="${esc(p.nombre||'')}" loading="lazy" onerror="this.closest('.product-img-wrap').innerHTML='<div class=\\"product-img-placeholder\\"><i class=\\"ph-fill ph-drop\\"></i></div>'">`:`<div class="product-img-placeholder"><i class="ph-fill ph-drop"></i></div>`}
+            ${p.imagen?`<img class="product-img" src="${esc(p.imagen)}" alt="${esc(p.nombre||'')}" loading="lazy" onerror="imgFallback(this)">`:`<div class="product-img-placeholder"><i class="ph-fill ph-drop"></i></div>`}
             ${p.categoria?`<span class="badge-cat">${esc(p.categoria)}</span>`:''}
             ${off>0?`<span class="badge-off">-${off}%</span>`:''}
             ${p.agotado?`<span class="badge-agotado">Agotado</span>`:''}
@@ -1957,7 +1965,7 @@
         return `
           <div class="wish-item" onclick="closeWishlist();setTimeout(()=>openDetail('${esc(p.id)}'),150)">
             ${p.imagen
-              ? `<img class="wish-item-img" src="${esc(p.imagen)}" alt="${esc(p.nombre||'')}" onerror="this.outerHTML='<div class=\\"wish-item-img-ph\\"><i class=\\"ph-fill ph-drop\\"></i></div>'">`
+              ? `<img class="wish-item-img" src="${esc(p.imagen)}" alt="${esc(p.nombre||'')}" onerror="imgFallbackOuter(this,'wish-item-img-ph')">`
               : `<div class="wish-item-img-ph"><i class="ph-fill ph-drop"></i></div>`}
             <div class="wish-item-info">
               ${p.marca?`<p style="font-size:.5625rem;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.1em">${esc(p.marca)}</p>`:''}

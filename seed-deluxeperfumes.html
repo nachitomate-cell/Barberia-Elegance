@@ -40,6 +40,7 @@
     <button id="btn-config" onclick="seedConfig()">⚙ Solo configuración</button>
     <button id="btn-seed"   onclick="seedAll()">▶ Seed completo (config + productos)</button>
     <button id="btn-patch"  onclick="patchImages()">🖼 Parchear imágenes faltantes</button>
+    <button id="btn-repatch" onclick="patchImages(true)" style="background:#2A1A4A;color:#C4A0F0;border:1px solid #5A3A8A;">↺ Re-parchear (forzar todas)</button>
     <button id="btn-clear"  onclick="clearProducts()">✕ Borrar productos</button>
   </div>
   <pre id="log">Listo para ejecutar…</pre>
@@ -389,48 +390,51 @@
       btn.disabled = false;
     }
 
-    // Imágenes para los productos reales del catálogo (Unsplash)
+    // Imágenes para los productos reales del catálogo
+    // Solo usa IDs de Unsplash confirmados (los que estaban en el seed original)
+    const BASE = 'https://images.unsplash.com/';
+    const Q    = '?w=600&q=80';
     const CATALOG_IMAGES = {
-      '1 million':             'https://images.unsplash.com/photo-1547887538-e3a2f32cb1cc?w=600&q=80',
-      '212 men nyc':           'https://images.unsplash.com/photo-1568702846914-96b305d2aaeb?w=600&q=80',
-      'acqua di giò':          'https://images.unsplash.com/photo-1590156206657-aec787e5f3e5?w=600&q=80',
-      'acqua di gio':          'https://images.unsplash.com/photo-1590156206657-aec787e5f3e5?w=600&q=80',
-      'amber oud':             'https://images.unsplash.com/photo-1594386608374-fb9a3c8e3b4f?w=600&q=80',
-      'black opium':           'https://images.unsplash.com/photo-1616949755610-8c9bac08c7bb?w=600&q=80',
-      'bleu de chanel':        'https://images.unsplash.com/photo-1523293182086-7651a899d37f?w=600&q=80',
-      'bottled night':         'https://images.unsplash.com/photo-1588405748880-12d1d2a59f75?w=600&q=80',
-      'ck one':                'https://images.unsplash.com/photo-1541643600914-78b084683601?w=600&q=80',
-      'coco mademoiselle':     'https://images.unsplash.com/photo-1616394584738-fc6e612e71b9?w=600&q=80',
-      'daisy':                 'https://images.unsplash.com/photo-1556229162-5c63ed9c4efb?w=600&q=80',
-      'sauvage':               'https://images.unsplash.com/photo-1594035910387-fea47794261f?w=600&q=80',
-      'eros':                  'https://images.unsplash.com/photo-1585386959984-a4155224a1ad?w=600&q=80',
-      'flowerbomb':            'https://images.unsplash.com/photo-1615634260167-c8cdede054de?w=600&q=80',
-      'good girl':             'https://images.unsplash.com/photo-1615397323383-66d482434fb2?w=600&q=80',
-      'la vie est belle':      'https://images.unsplash.com/photo-1587017539504-67cfbddac569?w=600&q=80',
-      'raghba':                'https://images.unsplash.com/photo-1547887537-6158d64c35b3?w=600&q=80',
-      'le beau':               'https://images.unsplash.com/photo-1541643600914-78b084683702?w=600&q=80',
-      'libre':                 'https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?w=600&q=80',
-      'light blue':            'https://images.unsplash.com/photo-1568702846914-96b305d2aaeb?w=600&q=80',
-      'miss dior':             'https://images.unsplash.com/photo-1556229162-5c63ed9c4efb?w=600&q=80',
-      'escentric 01':          'https://images.unsplash.com/photo-1541643600914-78b084683601?w=600&q=80',
-      'voyage':                'https://images.unsplash.com/photo-1523293182086-7651a899d37f?w=600&q=80',
-      'oud intense':           'https://images.unsplash.com/photo-1594386608374-fb9a3c8e3b4f?w=600&q=80',
-      'rose oud':              'https://images.unsplash.com/photo-1547887537-6158d64c35b3?w=600&q=80',
-      'sándalo':               'https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?w=600&q=80',
-      'sandalo':               'https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?w=600&q=80',
-      'set miniaturas armani': 'https://images.unsplash.com/photo-1590156206657-aec787e5f3e5?w=600&q=80',
-      'set miniaturas chanel': 'https://images.unsplash.com/photo-1616394584738-fc6e612e71b9?w=600&q=80',
-      'set miniaturas dior':   'https://images.unsplash.com/photo-1594035910387-fea47794261f?w=600&q=80',
-      'sì':                    'https://images.unsplash.com/photo-1615634260167-c8cdede054de?w=600&q=80',
-      'si':                    'https://images.unsplash.com/photo-1615634260167-c8cdede054de?w=600&q=80',
-      'tobacco oud':           'https://images.unsplash.com/photo-1588405748880-12d1d2a59f75?w=600&q=80',
+      '1 million':             BASE+'photo-1547887538-e3a2f32cb1cc'+Q,  // gold/dorado
+      '212 men nyc':           BASE+'photo-1568702846914-96b305d2aaeb'+Q, // verde/marino
+      'acqua di giò':          BASE+'photo-1590156206657-aec787e5f3e5'+Q, // azul marino
+      'acqua di gio':          BASE+'photo-1590156206657-aec787e5f3e5'+Q,
+      'amber oud':             BASE+'photo-1594386608374-fb9a3c8e3b4f'+Q, // oud oscuro
+      'black opium':           BASE+'photo-1615634260167-c8cdede054de'+Q, // femenino oscuro
+      'bleu de chanel':        BASE+'photo-1523293182086-7651a899d37f'+Q, // premium
+      'bottled night':         BASE+'photo-1594035910387-fea47794261f'+Q, // oscuro/noche
+      'ck one':                BASE+'photo-1592945403244-b3fbafd7f539'+Q, // limpio/cítrico
+      'coco mademoiselle':     BASE+'photo-1616394584738-fc6e612e71b9'+Q, // Chanel femenino
+      'daisy':                 BASE+'photo-1556229162-5c63ed9c4efb'+Q,    // floral femenino
+      'sauvage':               BASE+'photo-1594035910387-fea47794261f'+Q, // masculino salvaje
+      'eros':                  BASE+'photo-1585386959984-a4155224a1ad'+Q, // verde/menta
+      'flowerbomb':            BASE+'photo-1587017539504-67cfbddac569'+Q, // floral femenino
+      'good girl':             BASE+'photo-1541643600914-78b084683702'+Q, // femenino elegante
+      'la vie est belle':      BASE+'photo-1587017539504-67cfbddac569'+Q, // dulce femenino
+      'raghba':                BASE+'photo-1547887537-6158d64c35b3'+Q,    // árabe oriental
+      'le beau':               BASE+'photo-1585386959984-a4155224a1ad'+Q, // masculino fresco
+      'libre':                 BASE+'photo-1615634260167-c8cdede054de'+Q, // YSL femenino
+      'light blue':            BASE+'photo-1568702846914-96b305d2aaeb'+Q, // azul/marino
+      'miss dior':             BASE+'photo-1556229162-5c63ed9c4efb'+Q,    // floral Dior
+      'escentric 01':          BASE+'photo-1592945403244-b3fbafd7f539'+Q, // minimalista
+      'voyage':                BASE+'photo-1523293182086-7651a899d37f'+Q, // elegante
+      'oud intense':           BASE+'photo-1594386608374-fb9a3c8e3b4f'+Q, // oud oscuro
+      'rose oud':              BASE+'photo-1547887537-6158d64c35b3'+Q,    // oriental floral
+      'sándalo':               BASE+'photo-1592945403244-b3fbafd7f539'+Q, // madera cálida
+      'sandalo':               BASE+'photo-1592945403244-b3fbafd7f539'+Q,
+      'set miniaturas armani': BASE+'photo-1590156206657-aec787e5f3e5'+Q,
+      'set miniaturas chanel': BASE+'photo-1616394584738-fc6e612e71b9'+Q,
+      'set miniaturas dior':   BASE+'photo-1594035910387-fea47794261f'+Q,
+      'sì':                    BASE+'photo-1615634260167-c8cdede054de'+Q,
+      'si':                    BASE+'photo-1615634260167-c8cdede054de'+Q,
+      'tobacco oud':           BASE+'photo-1594386608374-fb9a3c8e3b4f'+Q, // tabaco/oscuro
     };
 
-    async function patchImages() {
-      const btn = document.getElementById('btn-patch');
+    async function patchImages(force = false) {
+      const btn = force ? document.getElementById('btn-repatch') : document.getElementById('btn-patch');
       btn.disabled = true;
       logEl.innerHTML = '';
-      log('── Parcheando imágenes faltantes… ──', 'hd');
+      log(force ? '── Re-parcheando todas las imágenes… ──' : '── Parcheando imágenes faltantes… ──', 'hd');
       try {
         const snap = await db.collection(`tenants/${TENANT}/productos`).get();
 
@@ -438,22 +442,24 @@
         const imageMap = { ...CATALOG_IMAGES };
         PRODUCTS.forEach(p => { if (p.imagen) imageMap[p.nombre.trim().toLowerCase()] = p.imagen; });
 
-        let updated = 0, skipped = 0;
+        let updated = 0, skipped = 0, noMatch = 0;
         const batch = db.batch();
         snap.docs.forEach(d => {
           const data = d.data();
-          if (data.imagen) { skipped++; return; }
           const key = (data.nombre || '').trim().toLowerCase();
           const url = imageMap[key];
-          if (url) { batch.update(d.ref, { imagen: url }); updated++; log(`  ✓ ${data.nombre}`, 'ok'); }
-          else { log(`  — sin imagen para: ${data.nombre}`, ''); }
+          if (!url) { log(`  — sin imagen para: ${data.nombre}`, ''); noMatch++; return; }
+          if (!force && data.imagen) { skipped++; return; }
+          batch.update(d.ref, { imagen: url });
+          updated++;
+          log(`  ✓ ${data.nombre}`, 'ok');
         });
 
         if (updated > 0) {
           await batch.commit();
-          log(`\n✔ ${updated} producto${updated!==1?'s':''} actualizado${updated!==1?'s':''}. ${skipped} ya tenían imagen.`, 'ok');
+          log(`\n✔ ${updated} actualizado${updated!==1?'s':''}. ${skipped} sin cambios. ${noMatch} sin mapeo.`, 'ok');
         } else {
-          log(`\n— No hay productos sin imagen (${skipped} ya tenían imagen).`, 'ok');
+          log(`\n— Nada que actualizar (${skipped} ya tenían imagen, ${noMatch} sin mapeo).`, 'ok');
         }
       } catch (e) {
         log('✘ ' + e.message, 'err');
