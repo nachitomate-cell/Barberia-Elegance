@@ -2821,7 +2821,7 @@
         FDB.getConfig(),
         FDB.getServicios(),
         FDB.getBarberos(),
-        FDB.getShopSettings()
+        typeof FDB.getShopSettings === 'function' ? FDB.getShopSettings() : Promise.resolve(null)
       ]);
       _fsConfig   = rConfig.status   === 'fulfilled' ? rConfig.value   : DB.getSettings();
       _fsServices = rServices.status === 'fulfilled' ? rServices.value : DB.getServices();
