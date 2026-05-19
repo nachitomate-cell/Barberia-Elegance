@@ -1494,28 +1494,26 @@
     </div>
   </div>
 
-  <!-- ═══ Visor Lookbook ═══ -->
-  <!-- z-[80]: por encima del chat (z-[70]) y del FAB (z-50) -->
-  <!-- Tocar el fondo oscuro cierra el visor -->
-  <div id="lookbookViewer" class="hidden fixed inset-0 z-[80] bg-black/95"
+  <!-- ═══ Visor Lookbook — z-[80] supera chat(z-[70]) y FAB(z-50) ═══ -->
+  <!-- El wrapper cierra al tocar el fondo; la <img> detiene propagación -->
+  <div id="lookbookViewer" class="hidden fixed inset-0 z-[80] bg-black/95 flex items-center justify-center cursor-pointer"
+       style="padding:5rem 2rem 2rem;"
        onclick="cerrarLookbookViewer()">
 
-    <!-- Botón X — absoluto esquina sup-der, siempre visible sobre la foto -->
+    <!-- X: <button> real → funciona siempre en touch/iOS -->
     <button onclick="event.stopPropagation();cerrarLookbookViewer()"
-            class="absolute top-4 right-4 z-[81] bg-black/60 backdrop-blur-sm text-white p-3 rounded-full active:scale-90 transition-transform"
-            style="top:calc(1rem + env(safe-area-inset-top));"
+            class="fixed z-[81] bg-black/70 backdrop-blur-sm text-white p-3.5 rounded-full active:scale-90 transition-transform shadow-lg"
+            style="top:calc(1rem + env(safe-area-inset-top));right:1rem;"
             aria-label="Cerrar">
       <i class="ph-bold ph-x text-xl leading-none"></i>
     </button>
 
-    <!-- Imagen: stopPropagation para que tocar la foto NO cierre el visor -->
-    <div class="absolute inset-0 flex items-center justify-center p-8"
-         onclick="event.stopPropagation()">
-      <img id="lookbookViewerImg" src="" alt=""
-           class="max-w-full max-h-full object-contain rounded-2xl select-none shadow-2xl"
-           draggable="false"
-           style="animation:fadeIn .3s ease;">
-    </div>
+    <!-- stopPropagation sólo en <img>: área pequeña exacta de la foto -->
+    <img id="lookbookViewerImg" src="" alt=""
+         class="max-w-full max-h-full object-contain rounded-2xl select-none shadow-2xl cursor-default"
+         draggable="false"
+         onclick="event.stopPropagation()"
+         style="animation:fadeIn .3s ease;">
   </div>
 
 <script>
