@@ -29,6 +29,13 @@
   <p>Popula <code>tenants/deluxeperfumes/</code> con configuración y catálogo de ejemplo.</p>
   <p>Categorías: Hombre · Mujer · Unisex · Árabe · Nicho · Diseñador</p>
 
+  <div id="login-bar" style="display:flex;gap:.75rem;align-items:center;margin-bottom:1rem;padding:.75rem 1rem;background:#0C0904;border:1px solid rgba(201,168,76,.2);border-radius:.5rem;">
+    <input id="inp-email" type="email" placeholder="Email admin" style="flex:1;background:#1a1206;border:1px solid rgba(201,168,76,.3);color:#C9A84C;padding:.5rem .75rem;border-radius:.375rem;font-family:monospace;font-size:.875rem;" />
+    <input id="inp-pass"  type="password" placeholder="Contraseña" style="flex:1;background:#1a1206;border:1px solid rgba(201,168,76,.3);color:#C9A84C;padding:.5rem .75rem;border-radius:.375rem;font-family:monospace;font-size:.875rem;" />
+    <button id="btn-login" onclick="doLogin()" style="background:#C9A84C;color:#070500;padding:.5rem 1.25rem;border-radius:.375rem;font-weight:700;font-size:.875rem;cursor:pointer;border:none;">Entrar</button>
+    <span id="auth-status" style="color:#544A32;font-size:.8125rem;">Sin sesión</span>
+  </div>
+
   <div class="actions">
     <button id="btn-config" onclick="seedConfig()">⚙ Solo configuración</button>
     <button id="btn-seed"   onclick="seedAll()">▶ Seed completo (config + productos)</button>
@@ -38,6 +45,7 @@
   <pre id="log">Listo para ejecutar…</pre>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <script src="/firebase-config.js?v=1.2"></script>
   <script>
@@ -47,6 +55,31 @@
     function log(msg, cls) {
       logEl.innerHTML += `<span class="${cls || ''}">${msg}\n</span>`;
     }
+
+    // ── Auth ────────────────────────────────────────────────────────────
+    firebase.auth().onAuthStateChanged(user => {
+      const el = document.getElementById('auth-status');
+      if (user) { el.textContent = `✓ ${user.email}`; el.style.color = '#6EE77A'; }
+      else       { el.textContent = 'Sin sesión';      el.style.color = '#544A32'; }
+    });
+
+    async function doLogin() {
+      const email = document.getElementById('inp-email').value.trim();
+      const pass  = document.getElementById('inp-pass').value;
+      if (!email || !pass) return;
+      document.getElementById('btn-login').disabled = true;
+      try {
+        await firebase.auth().signInWithEmailAndPassword(email, pass);
+      } catch(e) {
+        document.getElementById('auth-status').textContent = e.message;
+        document.getElementById('auth-status').style.color = '#F87171';
+      }
+      document.getElementById('btn-login').disabled = false;
+    }
+
+    document.getElementById('inp-pass').addEventListener('keydown', e => {
+      if (e.key === 'Enter') doLogin();
+    });
 
     async function setDoc(path, data) {
       const parts = path.split('/');
