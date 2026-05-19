@@ -2284,7 +2284,7 @@ async function revisarProximaCita() {
     fechas.push(d.toISOString().slice(0, 10));
   }
 
-  const citas = await FDB.getCitasByCliente(currentUser.email);
+  const citas = await FDB.getCitasByCliente(currentUser.email, currentUser.uid);
 
   const ahora  = new Date();
   const NOTIF_KEY = 'notif_sent_ids';
@@ -2447,7 +2447,28 @@ async function cargarCitasUsuario(user) {
   contenedor.innerHTML = `<div class="flex justify-center py-6"><div class="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div></div>`;
 
   try {
-    const citas = await FDB.getCitasByCliente(user.email);
+    const citas = await FDB.getCitasByCliente(user.email, user.uid);
+
+    // Autocomplete: citas encontradas por clienteId sin email → parchear en Firestore
+    const citasSinEmail = citas.filter(c => c.clienteId === user.uid && !c.clienteEmail);
+    if (citasSinEmail.length) {
+      let perfilNombre = '', perfilTelefono = '';
+      try {
+        const usnap = await FDB.usersCol().doc(user.uid).get();
+        if (usnap.exists) {
+          perfilNombre   = usnap.data().nombre   || '';
+          perfilTelefono = usnap.data().telefono || '';
+        }
+      } catch (_) {}
+      await Promise.all(citasSinEmail.map(c => {
+        const patch = { clienteEmail: user.email };
+        if (!c.clienteNombre   && perfilNombre)   patch.clienteNombre   = perfilNombre;
+        if (!c.clienteTelefono && perfilTelefono) patch.clienteTelefono = perfilTelefono;
+        // refleja los cambios en el array local también
+        Object.assign(c, patch);
+        return FDB.citasCol().doc(c.id).update(patch);
+      }));
+    }
 
     if (!citas.length) {
       contenedor.innerHTML = `

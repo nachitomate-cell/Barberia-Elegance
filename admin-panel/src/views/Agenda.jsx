@@ -6,7 +6,7 @@ import {
   Timer, MessageSquare, BadgeCheck, Search, ListFilter, MapPin,
 } from 'lucide-react';
 import {
-  addDoc, updateDoc, deleteDoc, doc, serverTimestamp, where, orderBy, limit, writeBatch,
+  addDoc, updateDoc, deleteDoc, doc, getDoc, serverTimestamp, where, orderBy, limit, writeBatch,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { tenantCol } from '../lib/tenantUtils';
@@ -99,6 +99,7 @@ function CitaModal({ cita, barberos, servicios, defaultHora, defaultBarberoId, d
     clienteNombre:   cita?.clienteNombre   || '',
     clienteEmail:    cita?.clienteEmail    || '',
     clienteTelefono: cita?.clienteTelefono || '',
+    clienteId:       cita?.clienteId       || null,
     servicioId:      cita?.servicioId      || firstSvc?.id       || '',
     servicioNombre:  cita?.servicioNombre  || firstSvc?.nombre   || '',
     precio:          cita?.precio != null ? Number(cita.precio) : (Number(firstSvc?.precio) || 0),
@@ -110,6 +111,63 @@ function CitaModal({ cita, barberos, servicios, defaultHora, defaultBarberoId, d
     nota:            cita?.nota            || '',
   });
   const [saving, setSaving] = useState(false);
+  const [showSugg, setShowSugg] = useState(false);
+
+  const { data: clientes } = useCollection('clientes');
+
+  const suggestions = useMemo(() => {
+    const norm = s => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    const q = norm(form.clienteNombre.trim());
+    if (!q) return [];
+    const words = q.split(/\s+/).filter(Boolean);
+    const scored = clientes
+      .map(c => {
+        const nombre = norm(c.nombre);
+        const email  = norm(c.email);
+        const tel    = (c.telefono || '').replace(/\D/g, '');
+        const allWords = words.every(w =>
+          nombre.includes(w) || email.includes(w) || tel.includes(w),
+        );
+        if (!allWords) return null;
+        // Prioridad: nombre empieza con la query > cualquier palabra empieza con query > contiene
+        const score = nombre.startsWith(q) ? 0
+          : words.some(w => nombre.startsWith(w)) ? 1
+          : 2;
+        return { c, score };
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.score - b.score)
+      .map(({ c }) => c)
+      .slice(0, 8);
+    return scored;
+  }, [clientes, form.clienteNombre]);
+
+  const selectCliente = async c => {
+    setForm(f => ({
+      ...f,
+      clienteNombre:   c.nombre   || '',
+      clienteEmail:    c.email    || '',
+      clienteTelefono: c.telefono || '',
+      clienteId:       c.id,
+    }));
+    setShowSugg(false);
+
+    // Si el cliente tiene cuenta registrada, enriquecer con datos más completos del perfil
+    if (c.uid) {
+      try {
+        const snap = await getDoc(doc(tenantCol('users'), c.uid));
+        if (snap.exists()) {
+          const u = snap.data();
+          setForm(f => ({
+            ...f,
+            clienteNombre:   u.nombre   || f.clienteNombre,
+            clienteEmail:    u.email    || f.clienteEmail,
+            clienteTelefono: u.telefono || f.clienteTelefono,
+          }));
+        }
+      } catch (_) {}
+    }
+  };
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
@@ -135,6 +193,7 @@ function CitaModal({ cita, barberos, servicios, defaultHora, defaultBarberoId, d
     setSaving(true);
     try {
       const payload = { ...form, duracionServicio: form.duracion, fecha: dateStr, updatedAt: serverTimestamp() };
+      if (!payload.clienteId) delete payload.clienteId;
       if (isNew) {
         payload.creadoEn = serverTimestamp();
         if (form.barberoId) {
@@ -218,9 +277,48 @@ function CitaModal({ cita, barberos, servicios, defaultHora, defaultBarberoId, d
         </div>
       }
     >
-      <div>
+      <div className="relative">
         <label className={lbl}>Nombre del cliente *</label>
-        <input className={field} placeholder="Juan Pérez" value={form.clienteNombre} onChange={e => set('clienteNombre', e.target.value)} />
+        <div className="relative">
+          <input
+            className={field}
+            placeholder="Busca un cliente o escribe el nombre…"
+            value={form.clienteNombre}
+            onChange={e => { setForm(f => ({ ...f, clienteNombre: e.target.value, clienteId: null })); setShowSugg(true); }}
+            onFocus={() => setShowSugg(true)}
+            onBlur={() => setTimeout(() => setShowSugg(false), 150)}
+            autoComplete="off"
+          />
+          {form.clienteId && (
+            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[10px] text-emerald-400 font-semibold pointer-events-none">
+              <User size={10} />
+              Vinculado
+            </span>
+          )}
+        </div>
+        {showSugg && suggestions.length > 0 && (
+          <div className="absolute z-20 w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl overflow-hidden">
+            {suggestions.map(c => (
+              <button
+                key={c.id}
+                type="button"
+                onMouseDown={() => selectCliente(c)}
+                className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-slate-700 text-left transition-colors"
+              >
+                <div className="w-7 h-7 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+                  <User size={12} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm text-white font-medium truncate">{c.nombre}</p>
+                  {c.telefono && <p className="text-xs text-slate-500 truncate">{c.telefono}</p>}
+                </div>
+                {c.uid && (
+                  <span className="text-[10px] text-emerald-500/80 font-semibold shrink-0">Club</span>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>

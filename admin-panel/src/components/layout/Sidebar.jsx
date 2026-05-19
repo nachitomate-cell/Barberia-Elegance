@@ -4,7 +4,7 @@ import {
   CalendarDays, Scissors, Users, Star, BarChart3,
   Trophy, ShoppingBag, Images, LogOut, ChevronRight, ChevronDown,
   Sun, Moon, ExternalLink, Settings, TrendingDown, MessageCircle, X,
-  Megaphone, ImagePlus, CreditCard, Monitor, Headphones, Medal, History, Camera,
+  Megaphone, ImagePlus, CreditCard, Monitor, Headphones, Medal, Camera,
 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
@@ -38,7 +38,6 @@ const NAV_GROUPS_DEFAULT = [
     label: 'Clientes',
     items: [
       { to: 'clientes',  label: 'Clientes',  Icon: Star          },
-      { to: 'historial', label: 'Historial', Icon: History        },
       { to: 'premios',   label: 'Premios',   Icon: Trophy        },
       { to: 'productos', label: 'Productos', Icon: ShoppingBag   },
     ],

@@ -310,12 +310,25 @@ const FDB = (() => {
     }
   }
 
-  async function getCitasByCliente(email) {
-    const snap = await tenantCol(COL.CITAS)
-      .where('clienteEmail', '==', email)
-      .limit(50)
-      .get();
-    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  async function getCitasByCliente(email, uid) {
+    const queries = [
+      tenantCol(COL.CITAS).where('clienteEmail', '==', email).limit(50).get(),
+    ];
+    if (uid) {
+      queries.push(tenantCol(COL.CITAS).where('clienteId', '==', uid).limit(50).get());
+    }
+    const snaps = await Promise.all(queries);
+    const seen = new Set();
+    const results = [];
+    for (const snap of snaps) {
+      for (const d of snap.docs) {
+        if (!seen.has(d.id)) {
+          seen.add(d.id);
+          results.push({ id: d.id, ...d.data() });
+        }
+      }
+    }
+    return results;
   }
 
   async function clearGoogleReviewFlag(citaId) {
