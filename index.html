@@ -2358,7 +2358,7 @@
         categories[cat].push(s);
       });
 
-      const _isEleganceSvc  = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance';
+      const _isEleganceSvc  = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza';
       const _isMapuSvc      = window.CURRENT_TENANT_ID === 'mapubarbershop';
       const _isChameleonSvc = window.CURRENT_TENANT_ID === 'chameleon';
       const _useRowLayout   = _isEleganceSvc || _isMapuSvc || _isChameleonSvc;
