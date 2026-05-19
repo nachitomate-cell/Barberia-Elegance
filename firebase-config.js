@@ -15,8 +15,13 @@ if (!firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
 }
 
-const auth    = firebase.auth();
-auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(() => {});
+let auth;
+try {
+  auth = firebase.auth();
+  auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(() => {});
+} catch(e) {
+  console.warn('[Firebase] Auth SDK no disponible en esta página');
+}
 const db      = firebase.firestore();
 let storage;
 try {
