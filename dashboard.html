@@ -2119,27 +2119,28 @@ async function abrirEquipoModal() {
   document.body.style.overflow = 'hidden';
 
   try {
-    const tid  = window.CURRENT_TENANT_ID || 'elegance';
-    const pros  = await ProfessionalService.fetchProfessionals(tid);
-    if (!pros.length) {
+    const barberos = await FDB.getBarberos();
+    if (!barberos.length) {
       grid.innerHTML = '<p class="col-span-2 text-center text-zinc-500 text-sm py-10">Sin profesionales registrados.</p>';
       return;
     }
-    grid.innerHTML = pros.map(p => {
-      const initials = (p.displayName || '?').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
-      const foto = p.photoUrl
-        ? `<img src="${p.photoUrl}" alt="${p.displayName}" class="w-full h-full object-cover"
-               onerror="this.style.display='none';this.parentElement.innerHTML='<span class=\\'text-2xl font-black text-white\\'>${initials}</span>'">`
+    grid.innerHTML = barberos.map(b => {
+      const initials = (b.nombre || '?').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+      const fotoHtml = b.foto
+        ? `<img src="${b.foto}" alt="${b.nombre}" class="w-full h-full object-cover"
+               onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+           <span class="text-2xl font-black text-white hidden w-full h-full items-center justify-center">${initials}</span>`
         : `<span class="text-2xl font-black text-white">${initials}</span>`;
+      const label = b.especialidad || (b.rol && b.rol !== 'barbero' ? b.rol : 'Barbero');
       return `
         <div class="bg-zinc-900 border border-zinc-800 rounded-2xl flex flex-col items-center py-5 px-3 gap-3">
           <div class="w-20 h-20 rounded-full overflow-hidden flex items-center justify-center shrink-0"
                style="background:var(--gold-glow);border:2px solid var(--gold-dim);">
-            ${foto}
+            ${fotoHtml}
           </div>
           <div class="text-center">
-            <p class="text-sm font-bold text-white leading-tight">${p.displayName}</p>
-            <p class="text-[11px] mt-1 capitalize font-semibold" style="color:var(--gold);">${p.role || 'Barbero'}</p>
+            <p class="text-sm font-bold text-white leading-tight">${b.nombre}</p>
+            <p class="text-[11px] mt-1 capitalize font-semibold" style="color:var(--gold);">${label}</p>
           </div>
         </div>`;
     }).join('');
