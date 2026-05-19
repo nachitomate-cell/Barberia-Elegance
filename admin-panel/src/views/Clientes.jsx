@@ -751,7 +751,7 @@ function IAModal({ stats, shopName, onClose }) {
   );
 }
 
-const PAGE_SIZE = 50;
+const PAGE_SIZE = 15;
 
 /* ── Vista principal Clientes ── */
 export default function Clientes() {
