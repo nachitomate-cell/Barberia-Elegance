@@ -535,8 +535,12 @@
     }
 
     /* Service card hover */
-    .service-card { transition: transform 0.2s; }
-    .service-card:active { transform: scale(0.97); }
+    .service-card {
+      transition: transform 0.2s, border-color 0.2s;
+      border: 1px solid #27272a;
+    }
+    .service-card:hover { border-color: var(--gold-dim); }
+    .service-card:active { transform: scale(0.95); }
 
     /* Hero */
     .hero-bg {
@@ -1106,7 +1110,7 @@
       <!-- ── SERVICIOS DESTACADOS ── -->
       <div class="mb-6" id="serviciosSection">
         <h3 class="text-[10px] font-bold uppercase tracking-widest mb-3 px-5" style="color:var(--gold);">Servicios</h3>
-        <div class="flex gap-3 overflow-x-auto no-scrollbar pl-5 pr-5" id="serviciosGrid">
+        <div class="flex gap-3 overflow-x-auto no-scrollbar snap-x snap-mandatory pl-5 pr-5" id="serviciosGrid">
           <div class="service-card flex-shrink-0 rounded-2xl bg-white/5 animate-pulse" style="width:148px;height:188px;"></div>
           <div class="service-card flex-shrink-0 rounded-2xl bg-white/5 animate-pulse" style="width:148px;height:188px;"></div>
           <div class="service-card flex-shrink-0 rounded-2xl bg-white/5 animate-pulse" style="width:148px;height:188px;"></div>
@@ -1114,7 +1118,7 @@
       </div>
 
       <!-- Nota -->
-      <p class="text-[11px] text-gray-700 text-center mb-6 leading-relaxed px-8">
+      <p class="text-sm text-zinc-400 text-center mt-4 mb-6 leading-relaxed px-8">
         Cada visita a la barbería suma un sello.<br>Tu barbero lo registra al terminar el corte.
       </p>
     </section>
@@ -1939,15 +1943,14 @@ async function cargarServicios() {
     grid.innerHTML = muestra.map(s => {
       const precio = s.precio ? `$${Number(s.precio).toLocaleString('es-CL')}` : '';
       const icono  = s.icono || (window.CURRENT_TENANT_ID === 'gitana' ? 'ph-sparkle' : 'ph-scissors');
-      return `<a href="index.html" class="service-card flex-shrink-0 relative rounded-2xl overflow-hidden cursor-pointer" style="width:148px;height:188px;background:#0d0a07;text-decoration:none;">
+      return `<a href="index.html" class="service-card snap-center flex-shrink-0 relative rounded-2xl overflow-hidden cursor-pointer" style="width:148px;height:188px;background:#18181b;text-decoration:none;">
         <div class="absolute inset-0 flex items-center justify-center">
-          <i class="ph-fill ${icono} text-4xl" style="color:rgba(var(--gold-r,201),var(--gold-g,168),var(--gold-b,76),0.2);color:var(--gold);opacity:0.2;"></i>
+          <i class="ph-fill ${icono} text-5xl" style="color:var(--gold);opacity:0.15;"></i>
         </div>
-        <div class="absolute inset-0" style="background:linear-gradient(to top,rgba(0,0,0,0.88) 0%,rgba(0,0,0,0.15) 55%,transparent 100%);"></div>
+        <div class="absolute inset-0" style="background:linear-gradient(to top,rgba(0,0,0,0.92) 0%,rgba(0,0,0,0.10) 60%,transparent 100%);"></div>
         <div class="absolute bottom-0 left-0 right-0 p-3.5">
           <p class="text-[11px] font-black uppercase tracking-wider text-white leading-tight">${s.nombre}</p>
-          ${precio ? `<p class="text-[10px] font-bold mt-0.5" style="color:var(--gold);">${precio}</p>` : ''}
-          <div class="mt-1.5 h-px" style="background:var(--gold);width:28px;"></div>
+          ${precio ? `<p class="text-[10px] font-bold mt-1" style="color:var(--gold);">${precio}</p>` : ''}
         </div>
       </a>`;
     }).join('');
