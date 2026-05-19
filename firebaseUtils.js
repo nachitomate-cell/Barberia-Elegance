@@ -962,13 +962,16 @@ const FDB = (() => {
 
       // Deduplicar por email: conserva el primer doc (original) por cada email
       const seenEmails = new Set();
-      return todos.filter(b => {
+      const deduped = todos.filter(b => {
         const key = b.email?.toLowerCase().trim();
         if (!key) return true;
         if (seenEmails.has(key)) return false;
         seenEmails.add(key);
         return true;
       });
+
+      // Re-ordenar por `orden` limpio (el sort anterior era solo para deduplicar)
+      return deduped.sort((a, b) => (a.orden ?? 9999) - (b.orden ?? 9999) || a.nombre.localeCompare(b.nombre));
     } catch (e) {
       console.error('[FDB] Error obteniendo barberos:', e);
       return [];
