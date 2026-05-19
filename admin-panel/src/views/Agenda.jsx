@@ -112,6 +112,7 @@ function CitaModal({ cita, barberos, servicios, defaultHora, defaultBarberoId, d
   });
   const [saving, setSaving] = useState(false);
   const [showSugg, setShowSugg] = useState(false);
+  const [telError, setTelError] = useState(false);
 
   const { data: clientes } = useCollection('clientes');
 
@@ -190,6 +191,11 @@ function CitaModal({ cita, barberos, servicios, defaultHora, defaultBarberoId, d
 
   const handleSave = async () => {
     if (!form.clienteNombre.trim()) return;
+    if (form.estado === 'Completada' && !form.clienteTelefono.trim()) {
+      setTelError(true);
+      return;
+    }
+    setTelError(false);
     setSaving(true);
     try {
       const payload = { ...form, duracionServicio: form.duracion, fecha: dateStr, updatedAt: serverTimestamp() };
@@ -326,9 +332,17 @@ function CitaModal({ cita, barberos, servicios, defaultHora, defaultBarberoId, d
           <input className={field} type="email" placeholder="juan@email.com" value={form.clienteEmail} onChange={e => set('clienteEmail', e.target.value)} />
         </div>
         <div>
-          <label className={lbl}>Teléfono</label>
+          <label className={lbl}>
+            Teléfono
+            {form.estado === 'Completada' && <span className="ml-1 text-amber-400 normal-case font-normal">— requerido para el sello</span>}
+          </label>
           <div className="flex gap-1.5">
-            <input className={field} placeholder="+569..." value={form.clienteTelefono} onChange={e => set('clienteTelefono', e.target.value)} />
+            <input
+              className={`${field} ${telError ? 'border-red-500 focus:border-red-400' : ''}`}
+              placeholder="+569..."
+              value={form.clienteTelefono}
+              onChange={e => { set('clienteTelefono', e.target.value); if (telError) setTelError(false); }}
+            />
             {form.clienteTelefono && (
               <a
                 href={`https://wa.me/${waPhone(form.clienteTelefono)}?text=${encodeURIComponent(buildWaConfirmMsg(tenantId, form, dateStr))}`}
@@ -341,6 +355,9 @@ function CitaModal({ cita, barberos, servicios, defaultHora, defaultBarberoId, d
               </a>
             )}
           </div>
+          {telError && (
+            <p className="mt-1 text-xs text-red-400 font-semibold">El teléfono es obligatorio para registrar el sello.</p>
+          )}
         </div>
       </div>
       <div>
