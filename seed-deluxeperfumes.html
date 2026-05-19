@@ -356,6 +356,43 @@
       btn.disabled = false;
     }
 
+    // Imágenes para los productos reales del catálogo (Unsplash)
+    const CATALOG_IMAGES = {
+      '1 million':             'https://images.unsplash.com/photo-1547887538-e3a2f32cb1cc?w=600&q=80',
+      '212 men nyc':           'https://images.unsplash.com/photo-1568702846914-96b305d2aaeb?w=600&q=80',
+      'acqua di giò':          'https://images.unsplash.com/photo-1590156206657-aec787e5f3e5?w=600&q=80',
+      'acqua di gio':          'https://images.unsplash.com/photo-1590156206657-aec787e5f3e5?w=600&q=80',
+      'amber oud':             'https://images.unsplash.com/photo-1594386608374-fb9a3c8e3b4f?w=600&q=80',
+      'black opium':           'https://images.unsplash.com/photo-1616949755610-8c9bac08c7bb?w=600&q=80',
+      'bleu de chanel':        'https://images.unsplash.com/photo-1523293182086-7651a899d37f?w=600&q=80',
+      'bottled night':         'https://images.unsplash.com/photo-1588405748880-12d1d2a59f75?w=600&q=80',
+      'ck one':                'https://images.unsplash.com/photo-1541643600914-78b084683601?w=600&q=80',
+      'coco mademoiselle':     'https://images.unsplash.com/photo-1616394584738-fc6e612e71b9?w=600&q=80',
+      'daisy':                 'https://images.unsplash.com/photo-1556229162-5c63ed9c4efb?w=600&q=80',
+      'sauvage':               'https://images.unsplash.com/photo-1594035910387-fea47794261f?w=600&q=80',
+      'eros':                  'https://images.unsplash.com/photo-1585386959984-a4155224a1ad?w=600&q=80',
+      'flowerbomb':            'https://images.unsplash.com/photo-1615634260167-c8cdede054de?w=600&q=80',
+      'good girl':             'https://images.unsplash.com/photo-1615397323383-66d482434fb2?w=600&q=80',
+      'la vie est belle':      'https://images.unsplash.com/photo-1587017539504-67cfbddac569?w=600&q=80',
+      'raghba':                'https://images.unsplash.com/photo-1547887537-6158d64c35b3?w=600&q=80',
+      'le beau':               'https://images.unsplash.com/photo-1541643600914-78b084683702?w=600&q=80',
+      'libre':                 'https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?w=600&q=80',
+      'light blue':            'https://images.unsplash.com/photo-1568702846914-96b305d2aaeb?w=600&q=80',
+      'miss dior':             'https://images.unsplash.com/photo-1556229162-5c63ed9c4efb?w=600&q=80',
+      'escentric 01':          'https://images.unsplash.com/photo-1541643600914-78b084683601?w=600&q=80',
+      'voyage':                'https://images.unsplash.com/photo-1523293182086-7651a899d37f?w=600&q=80',
+      'oud intense':           'https://images.unsplash.com/photo-1594386608374-fb9a3c8e3b4f?w=600&q=80',
+      'rose oud':              'https://images.unsplash.com/photo-1547887537-6158d64c35b3?w=600&q=80',
+      'sándalo':               'https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?w=600&q=80',
+      'sandalo':               'https://images.unsplash.com/photo-1592945403244-b3fbafd7f539?w=600&q=80',
+      'set miniaturas armani': 'https://images.unsplash.com/photo-1590156206657-aec787e5f3e5?w=600&q=80',
+      'set miniaturas chanel': 'https://images.unsplash.com/photo-1616394584738-fc6e612e71b9?w=600&q=80',
+      'set miniaturas dior':   'https://images.unsplash.com/photo-1594035910387-fea47794261f?w=600&q=80',
+      'sì':                    'https://images.unsplash.com/photo-1615634260167-c8cdede054de?w=600&q=80',
+      'si':                    'https://images.unsplash.com/photo-1615634260167-c8cdede054de?w=600&q=80',
+      'tobacco oud':           'https://images.unsplash.com/photo-1588405748880-12d1d2a59f75?w=600&q=80',
+    };
+
     async function patchImages() {
       const btn = document.getElementById('btn-patch');
       btn.disabled = true;
@@ -363,7 +400,9 @@
       log('── Parcheando imágenes faltantes… ──', 'hd');
       try {
         const snap = await db.collection(`tenants/${TENANT}/productos`).get();
-        const imageMap = {};
+
+        // Combina el mapa del seed + el mapa del catálogo real
+        const imageMap = { ...CATALOG_IMAGES };
         PRODUCTS.forEach(p => { if (p.imagen) imageMap[p.nombre.trim().toLowerCase()] = p.imagen; });
 
         let updated = 0, skipped = 0;
