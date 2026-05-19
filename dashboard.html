@@ -882,6 +882,10 @@
       0%, 100% { transform: scale(1);    filter: drop-shadow(0 0 3px rgba(57,255,20,0.55)); }
       50%       { transform: scale(1.20); filter: drop-shadow(0 0 9px rgba(57,255,20,1.00)); }
     }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
     @keyframes fadeSlideUp {
       from { opacity: 0; transform: translateY(14px); }
       to   { opacity: 1; transform: translateY(0); }
@@ -1126,6 +1130,22 @@
       <p class="text-sm text-zinc-400 text-center mt-4 mb-6 leading-relaxed px-8">
         Cada visita a la barbería suma un sello.<br>Tu barbero lo registra al terminar el corte.
       </p>
+
+      <!-- Conoce al equipo -->
+      <div class="px-5 mb-8">
+        <button onclick="abrirEquipoModal()" class="w-full flex items-center justify-between bg-zinc-900/80 border border-zinc-800 rounded-2xl px-4 py-3.5 transition-all duration-200 active:scale-[0.97] hover:border-[var(--gold-dim)]">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style="background:var(--gold-glow);border:1px solid var(--gold-dim);">
+              <i class="ph-fill ph-users text-lg" style="color:var(--gold);"></i>
+            </div>
+            <div class="text-left">
+              <p class="text-sm font-bold text-white">Conoce al equipo</p>
+              <p class="text-[11px] text-zinc-500">Los profesionales del local</p>
+            </div>
+          </div>
+          <i class="ph-bold ph-caret-right text-zinc-600 text-base shrink-0"></i>
+        </button>
+      </div>
     </section>
 
     <!-- ═══════ PESTAÑA 2: LOOKBOOK ═══════ -->
@@ -1158,8 +1178,9 @@
     <section id="tabProfile" class="tab-panel hidden px-5 pt-10 pb-40 animate-[fadeSlideUp_0.45s_cubic-bezier(0.16,1,0.3,1)_forwards]">
 
       <!-- Avatar + datos -->
-      <div class="flex flex-col items-center mb-8">
-        <div class="relative mb-4 mt-2">
+      <div class="flex items-start gap-4 mb-8">
+        <!-- Avatar col -->
+        <div class="relative shrink-0 mt-1">
           <div id="profileAvatar" class="w-20 h-20 rounded-full bg-[#111115] border-2 border-neon shadow-[0_0_20px_rgba(255,255,255,0.12)] flex items-center justify-center overflow-hidden">
             <i class="ph-fill ph-user text-4xl text-gray-500"></i>
           </div>
@@ -1173,12 +1194,25 @@
           </button>
           <input id="avatarFileInput" type="file" accept="image/*" class="hidden">
         </div>
-        <h2 id="profileName" class="text-xl font-black text-white tracking-tight">—</h2>
-        <p id="profileEmail" class="text-sm text-gray-500 mt-0.5">—</p>
-        <div class="flex items-center gap-2 mt-3">
-          <div class="flex items-center gap-1.5 bg-white/5 border border-white/10 rounded-full px-3 py-1.5">
-            <i class="ph-fill ph-medal text-sm text-white/50"></i>
-            <span id="profileStamps" class="text-xs font-bold text-white/50">0 sellos</span>
+        <!-- Info col -->
+        <div class="flex-1 min-w-0 pt-1">
+          <h2 id="profileName" class="text-xl font-black text-white tracking-tight leading-tight truncate">—</h2>
+          <p id="profileEmail" class="text-[11px] text-gray-500 mt-0.5 truncate">—</p>
+          <!-- Stats: rango · visitas · sellos -->
+          <div class="flex items-stretch gap-2 mt-3">
+            <div class="flex flex-col items-center justify-center rounded-xl px-2 py-2.5 flex-1"
+                 style="background:var(--gold-glow);border:1px solid var(--gold-dim);">
+              <span id="profileTierBadge" class="text-[13px] font-black uppercase tracking-wide leading-none" style="color:var(--gold);">—</span>
+              <span class="text-[8px] text-zinc-500 font-bold mt-1.5 uppercase tracking-widest">Rango</span>
+            </div>
+            <div class="flex flex-col items-center justify-center rounded-xl px-2 py-2.5 flex-1 bg-zinc-900/80 border border-zinc-800">
+              <span id="profileVisitsCount" class="text-[17px] font-black text-white leading-none">0</span>
+              <span class="text-[8px] text-zinc-500 font-bold mt-1.5 uppercase tracking-widest">Visitas</span>
+            </div>
+            <div class="flex flex-col items-center justify-center rounded-xl px-2 py-2.5 flex-1 bg-zinc-900/80 border border-zinc-800">
+              <span id="profileStamps" class="text-[17px] font-black text-white/50 leading-none">0</span>
+              <span class="text-[8px] text-zinc-500 font-bold mt-1.5 uppercase tracking-widest">Sellos</span>
+            </div>
           </div>
         </div>
       </div>
@@ -1427,6 +1461,50 @@
         style="background:#D4AF37;">
         Entendido
       </button>
+    </div>
+  </div>
+
+  <!-- ═══ Modal: Conoce al equipo ═══ -->
+  <div id="equipoModal" class="hidden fixed inset-0 z-50 flex flex-col">
+    <div class="absolute inset-0 bg-[#050505]/90 backdrop-blur-sm" onclick="cerrarEquipoModal()"></div>
+    <div class="relative mt-auto w-full max-h-[88dvh] bg-[#111115] border-t border-white/10 rounded-t-3xl flex flex-col overflow-hidden animate-[fadeSlideUp_0.35s_cubic-bezier(0.16,1,0.3,1)_forwards]">
+      <!-- Handle -->
+      <div class="shrink-0 flex justify-center pt-3 pb-1">
+        <div class="w-10 h-1 rounded-full bg-white/15"></div>
+      </div>
+      <!-- Header -->
+      <div class="shrink-0 flex items-center justify-between px-6 pt-3 pb-4 border-b border-white/6">
+        <div>
+          <p class="text-[10px] font-black uppercase tracking-widest mb-0.5" style="color:var(--gold);">Profesionales</p>
+          <h3 class="text-xl font-black text-white">Nuestro Equipo</h3>
+        </div>
+        <button onclick="cerrarEquipoModal()" class="w-9 h-9 rounded-full bg-white/6 border border-white/10 flex items-center justify-center transition-transform active:scale-90">
+          <i class="ph-bold ph-x text-white text-base"></i>
+        </button>
+      </div>
+      <!-- Grid scrollable -->
+      <div class="overflow-y-auto flex-1 px-5 py-6 pb-10">
+        <div id="equipoGrid" class="grid grid-cols-2 gap-4">
+          <div class="bg-zinc-900 rounded-2xl h-44 animate-pulse"></div>
+          <div class="bg-zinc-900 rounded-2xl h-44 animate-pulse"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ Visor Lookbook ═══ -->
+  <div id="lookbookViewer" class="hidden fixed inset-0 z-[60] bg-black flex flex-col">
+    <div class="shrink-0 flex items-center gap-3 px-4 pt-5 pb-4 border-b border-white/8 bg-black/80 backdrop-blur-sm">
+      <button onclick="cerrarLookbookViewer()" class="flex items-center gap-2 text-white active:opacity-60 transition-opacity">
+        <i class="ph-bold ph-arrow-left text-xl"></i>
+        <span class="text-sm font-semibold">Volver</span>
+      </button>
+    </div>
+    <div class="flex-1 flex items-center justify-center overflow-hidden p-4">
+      <img id="lookbookViewerImg" src="" alt=""
+           class="max-w-full max-h-full object-contain rounded-2xl select-none shadow-2xl"
+           draggable="false"
+           style="animation:fadeIn .25s ease;">
     </div>
   </div>
 
@@ -1924,17 +2002,21 @@ function renderStamps(count, historicos) {
   }
 
   // Tier badge — calculado con el total histórico (no con disponibles)
+  const tierLabel = historicos >= 25 ? 'PLATINUM' : historicos >= 10 ? 'GOLD' : 'SILVER';
   const tierEl = document.getElementById('memberTier');
   if (tierEl) {
     tierEl.className = 'tier-badge';
-    if (historicos >= 25)     { tierEl.textContent = 'PLATINUM'; tierEl.classList.add('platinum'); }
-    else if (historicos >= 10){ tierEl.textContent = 'GOLD';     tierEl.classList.add('gold'); }
-    else                      { tierEl.textContent = 'SILVER';   tierEl.classList.add('silver'); }
+    tierEl.textContent = tierLabel;
+    tierEl.classList.add(tierLabel.toLowerCase());
   }
 
-  // Profile stamps — muestra el saldo disponible
+  // Profile: tier badge + visitas + sellos
+  const profileTierEl = document.getElementById('profileTierBadge');
+  if (profileTierEl) profileTierEl.textContent = tierLabel;
+  const profileVisitsEl = document.getElementById('profileVisitsCount');
+  if (profileVisitsEl) profileVisitsEl.textContent = historicos;
   const profileStampsEl = document.getElementById('profileStamps');
-  if (profileStampsEl) profileStampsEl.textContent = `${count} sello${count !== 1 ? 's' : ''}`;
+  if (profileStampsEl) profileStampsEl.textContent = count;
 }
 
 // ─── Servicios desde Firestore ────────────────────────────────
@@ -2009,7 +2091,8 @@ async function initLookbook() {
     grid.innerHTML = snap.docs.map(doc => {
       const { url } = doc.data();
       return `
-        <div class="masonry-item rounded-md overflow-hidden border border-white/8 bg-[#111115] relative min-h-[180px]">
+        <div class="masonry-item rounded-md overflow-hidden border border-white/8 bg-[#111115] relative min-h-[180px] cursor-pointer active:opacity-80 transition-opacity"
+             onclick="abrirFotoLookbook('${url}')">
           <div class="lk-sk absolute inset-0 bg-white/5 animate-pulse"></div>
           <img src="${url}" loading="lazy" class="w-full object-cover block relative z-10 opacity-0 transition-opacity duration-500"
                onload="this.style.opacity='1';const s=this.parentElement.querySelector('.lk-sk');if(s)s.remove();"
@@ -2017,6 +2100,59 @@ async function initLookbook() {
         </div>`;
     }).join('');
   }, err => console.error('[Lookbook] onSnapshot:', err));
+}
+
+// ─── Modal Equipo ─────────────────────────────────────────────
+async function abrirEquipoModal() {
+  const modal = document.getElementById('equipoModal');
+  const grid  = document.getElementById('equipoGrid');
+  modal.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+
+  try {
+    const tid  = window.CURRENT_TENANT_ID || 'elegance';
+    const pros  = await ProfessionalService.fetchProfessionals(tid);
+    if (!pros.length) {
+      grid.innerHTML = '<p class="col-span-2 text-center text-zinc-500 text-sm py-10">Sin profesionales registrados.</p>';
+      return;
+    }
+    grid.innerHTML = pros.map(p => {
+      const initials = (p.displayName || '?').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+      const foto = p.photoUrl
+        ? `<img src="${p.photoUrl}" alt="${p.displayName}" class="w-full h-full object-cover"
+               onerror="this.style.display='none';this.parentElement.innerHTML='<span class=\\'text-2xl font-black text-white\\'>${initials}</span>'">`
+        : `<span class="text-2xl font-black text-white">${initials}</span>`;
+      return `
+        <div class="bg-zinc-900 border border-zinc-800 rounded-2xl flex flex-col items-center py-5 px-3 gap-3">
+          <div class="w-20 h-20 rounded-full overflow-hidden flex items-center justify-center shrink-0"
+               style="background:var(--gold-glow);border:2px solid var(--gold-dim);">
+            ${foto}
+          </div>
+          <div class="text-center">
+            <p class="text-sm font-bold text-white leading-tight">${p.displayName}</p>
+            <p class="text-[11px] mt-1 capitalize font-semibold" style="color:var(--gold);">${p.role || 'Barbero'}</p>
+          </div>
+        </div>`;
+    }).join('');
+  } catch (_) {
+    grid.innerHTML = '<p class="col-span-2 text-center text-zinc-500 text-sm py-10">No se pudo cargar el equipo.</p>';
+  }
+}
+function cerrarEquipoModal() {
+  document.getElementById('equipoModal').classList.add('hidden');
+  document.body.style.overflow = '';
+}
+
+// ─── Visor Lookbook ───────────────────────────────────────────
+function abrirFotoLookbook(url) {
+  document.getElementById('lookbookViewerImg').src = url;
+  document.getElementById('lookbookViewer').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+function cerrarLookbookViewer() {
+  document.getElementById('lookbookViewer').classList.add('hidden');
+  document.getElementById('lookbookViewerImg').src = '';
+  document.body.style.overflow = '';
 }
 
 // ─── Anuncio dinámico (Hero Banner) ──────────────────────────
