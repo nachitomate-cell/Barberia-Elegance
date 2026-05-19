@@ -4,7 +4,7 @@ import {
   CalendarDays, Scissors, Users, Star, BarChart3,
   Trophy, ShoppingBag, Images, LogOut, ChevronRight, ChevronDown,
   Sun, Moon, ExternalLink, Settings, TrendingDown, MessageCircle, X,
-  Megaphone, ImagePlus, CreditCard, Monitor, Headphones, Medal, Camera,
+  Megaphone, ImagePlus, CreditCard, Monitor, Headphones, Medal, Camera, GraduationCap,
 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { doc, onSnapshot } from 'firebase/firestore';
@@ -140,6 +140,23 @@ function useBillingAlert() {
 const LS_KEY_NEWS      = 'synaptech_last_seen_news';
 const LATEST_NEWS_DATE = '2026-05-13';
 
+function useAcademiaEnabled() {
+  const { id: tenantId } = useTenant();
+  const [enabled, setEnabled] = useState(false);
+  useEffect(() => {
+    if (tenantId !== 'elegance') return;
+    const ref = doc(db, `tenants/${tenantId}/settings`, 'general');
+    const unsub = onSnapshot(ref, snap => {
+      if (snap.exists()) {
+        const d = snap.data();
+        setEnabled(!!d.features?.hasAcademiaInternal);
+      }
+    }, () => {});
+    return unsub;
+  }, [tenantId]);
+  return enabled;
+}
+
 function useUnreadNews() {
   const [unread, setUnread] = useState(() => {
     try { return (localStorage.getItem(LS_KEY_NEWS) ?? '') < LATEST_NEWS_DATE; } catch { return false; }
@@ -169,12 +186,30 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
   const tenant          = useTenant();
   const { role }        = useAuth();
   const isAdminRole     = role === 'admin' || role === 'jefe';
-  const NAV_GROUPS      = tenant.id === 'deluxeperfumes' ? NAV_GROUPS_DELUXE : NAV_GROUPS_DEFAULT;
   const ac              = ACCENT_CLASSES[tenant.accent] ?? ACCENT_CLASSES.emerald;
   const [light, setLight] = useTheme();
   const hasUnreadNews   = useUnreadNews();
   const hasBillingAlert = useBillingAlert();
+  const hasAcademia     = useAcademiaEnabled();
   const location        = useLocation();
+
+  const NAV_GROUPS = (() => {
+    const base = tenant.id === 'deluxeperfumes' ? NAV_GROUPS_DELUXE : NAV_GROUPS_DEFAULT;
+    if (tenant.id === 'elegance' && hasAcademia) {
+      return [
+        ...base.slice(0, 1),
+        {
+          id: 'academia',
+          label: 'Academia',
+          items: [
+            { to: 'academia', label: 'Academia', Icon: GraduationCap }
+          ]
+        },
+        ...base.slice(1)
+      ];
+    }
+    return base;
+  })();
 
   /* Estado de grupos colapsados */
   const [collapsed, setCollapsed] = useState(() => {

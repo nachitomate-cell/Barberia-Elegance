@@ -21,6 +21,7 @@ const DEFAULT_FEATURES = {
   courses:        { title: 'Cursos de Barbería',    description: '', ctaMsg: '' },
   hasChairRental: false,
   chairRental:    { title: 'Arriendo de Sillones',  description: '', ctaMsg: '' },
+  hasAcademiaInternal: false,
 };
 
 const DEFAULT_SETTINGS = {
@@ -59,10 +60,14 @@ function mergeFeatures(saved) {
   if (!saved) return base;
   if (typeof saved.hasCourses === 'boolean')     base.hasCourses     = saved.hasCourses;
   if (typeof saved.hasChairRental === 'boolean') base.hasChairRental = saved.hasChairRental;
+  if (typeof saved.hasAcademiaInternal === 'boolean') base.hasAcademiaInternal = saved.hasAcademiaInternal;
   if (saved.courses)     base.courses     = { ...base.courses,     ...saved.courses };
   if (saved.chairRental) base.chairRental = { ...base.chairRental, ...saved.chairRental };
   return base;
 }
+
+/* ─── Helpers ────────────────────────────────────────────────── */
+import { resolveTenantId } from '../lib/tenantUtils';
 
 /* ─── Sub-components ─────────────────────────────────────────── */
 function Card({ Icon, title, children }) {
@@ -123,6 +128,7 @@ export default function Configuracion() {
   const [saveErr,  setSaveErr]  = useState('');
   const [showHelp, setShowHelp] = useState(false);
   const savedTimer = useRef(null);
+  const tenantId = resolveTenantId();
 
   useEffect(() => {
     getDoc(settingsRef()).then(snap => {
@@ -334,6 +340,29 @@ export default function Configuracion() {
             </div>
           )}
         </div>
+
+        {/* Módulo Academia Interno (Solo Elegance) */}
+        {tenantId === 'elegance' && (
+          <div className="border border-slate-700/50 rounded-lg overflow-hidden mt-4">
+            <div className="flex items-center justify-between px-4 py-3 bg-slate-800/40">
+              <div className="flex items-center gap-2.5">
+                <GraduationCap size={15} className="text-slate-400" />
+                <span className="text-sm font-semibold text-white">Módulo Academia (Panel Interno)</span>
+              </div>
+              <button type="button" onClick={() => setFeat('hasAcademiaInternal', !form.features.hasAcademiaInternal)}
+                className={`relative inline-flex w-9 h-5 rounded-full transition-colors duration-200 focus:outline-none ${form.features.hasAcademiaInternal ? 'bg-emerald-500' : 'bg-slate-700'}`}>
+                <span className={`inline-block w-4 h-4 mt-0.5 bg-white rounded-full shadow transform transition-transform duration-200 ${form.features.hasAcademiaInternal ? 'translate-x-4' : 'translate-x-0.5'}`} />
+              </button>
+            </div>
+            {form.features.hasAcademiaInternal && (
+              <div className="px-4 py-3 border-t border-slate-700/50 bg-slate-900">
+                <p className="text-xs text-slate-500">
+                  El módulo <strong>Academia</strong> se activará en el menú lateral izquierdo para que puedas administrar cursos, alumnos y material de estudio de forma interna.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
       </Card>
 
       {/* Soporte Técnico */}

@@ -7,7 +7,7 @@ import {
   ImagePlus, Trash2, Upload,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
-import { getDoc, setDoc, getDocs, query, where } from 'firebase/firestore';
+import { getDoc, setDoc, getDocs, query, where, doc, deleteDoc } from 'firebase/firestore';
 import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { storage } from '../lib/firebase';
 import { tenantDoc, tenantCol, resolveTenantId } from '../lib/tenantUtils';
@@ -205,6 +205,14 @@ export default function TVConfig() {
   const [productosCount, setProductosCount] = useState(null);
   const savedTimer = useRef(null);
 
+  const tenantId = resolveTenantId();
+
+  const [marcas, setMarcas] = useState([]);
+  const [marcaNombre, setMarcaNombre] = useState('');
+  const [marcaImg, setMarcaImg] = useState(null);
+  const [marcaUploading, setMarcaUploading] = useState(false);
+  const marcaInputRef = useRef(null);
+
   /* ── Background image ───────────────────────────────────────────── */
   const [bgUrl,       setBgUrl]       = useState('');
   const [bgUploading, setBgUploading] = useState(false);
@@ -251,6 +259,13 @@ export default function TVConfig() {
       .catch(() => setProductosCount(0));
   }, []);
 
+  useEffect(() => {
+    if (tenantId !== 'elegance') return;
+    getDocs(query(tenantCol('publicidad_tv')))
+      .then(snap => setMarcas(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
+      .catch(() => {});
+  }, [tenantId]);
+
   const update = (path, value) => {
     setConfig(prev => {
       if (path.includes('.')) {
@@ -296,6 +311,52 @@ export default function TVConfig() {
       setBgErr('No se pudo eliminar la imagen.');
       console.error(err);
     }
+  };
+
+  const handleMarcaUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setMarcaImg(file);
+  };
+
+  const handleAddMarca = async () => {
+    if (!marcaNombre || !marcaImg || marcaUploading) return;
+    setMarcaUploading(true);
+    try {
+      const blob = await compressImage(marcaImg, { maxPx: 800, quality: 0.8 });
+      const id = Date.now().toString();
+      const sRef = storageRef(storage, `tenants/${tenantId}/publicidad_tv/${id}.jpg`);
+      await uploadBytes(sRef, blob, { contentType: 'image/jpeg' });
+      const url = await getDownloadURL(sRef);
+      
+      const newMarca = { id, nombre: marcaNombre, logoUrl: url, activo: true, createdAt: new Date().toISOString() };
+      await setDoc(doc(tenantCol('publicidad_tv'), id), newMarca);
+      
+      setMarcas(prev => [...prev, newMarca]);
+      setMarcaNombre('');
+      setMarcaImg(null);
+      if (marcaInputRef.current) marcaInputRef.current.value = '';
+    } catch (err) {
+      console.error(err);
+      alert('Error al guardar marca');
+    } finally {
+      setMarcaUploading(false);
+    }
+  };
+
+  const handleToggleMarca = async (m) => {
+    const next = !m.activo;
+    await setDoc(doc(tenantCol('publicidad_tv'), m.id), { activo: next }, { merge: true });
+    setMarcas(prev => prev.map(x => x.id === m.id ? { ...x, activo: next } : x));
+  };
+
+  const handleDeleteMarca = async (m) => {
+    if (!confirm('¿Eliminar esta marca?')) return;
+    await deleteDoc(doc(tenantCol('publicidad_tv'), m.id));
+    try {
+      await deleteObject(storageRef(storage, `tenants/${tenantId}/publicidad_tv/${m.id}.jpg`));
+    } catch {}
+    setMarcas(prev => prev.filter(x => x.id !== m.id));
   };
 
   const handleSave = async () => {
@@ -501,6 +562,14 @@ export default function TVConfig() {
               label="Productos"
               sublabel="Catálogo de productos del local"
             />
+            {tenantId === 'elegance' && (
+              <SlideToggle
+                checked={config.slidesActivos.marcas ?? true}
+                onChange={v => update('slidesActivos', { ...config.slidesActivos, marcas: v })}
+                label="Publicidad Marcas"
+                sublabel="Logos de auspiciadores (Solo Elegance)"
+              />
+            )}
           </div>
         </Field>
 
@@ -841,6 +910,75 @@ export default function TVConfig() {
           Muestra los primeros <strong className="text-slate-400">8 productos</strong> con imagen, precio y disponibilidad de stock.
         </p>
       </Card>
+
+      {/* ── Slide Marcas (Solo Elegance) ──────────────────────────── */}
+      {tenantId === 'elegance' && (
+        <Card
+          icon={Megaphone}
+          title="Slide 5 — Publicidad de Marcas"
+          badge={<StatusBadge active={config.slidesActivos.marcas ?? true} />}
+        >
+          <p className="text-xs text-slate-500 -mt-1">
+            Agrega los logos de las marcas que auspician la barbería.
+          </p>
+
+          {/* Formulario Add Marca */}
+          <div className="p-4 bg-slate-800/50 rounded-xl border border-slate-700 space-y-3">
+            <p className="text-xs font-semibold text-slate-300">Nueva Marca</p>
+            <div className="flex gap-3">
+              <input
+                type="text"
+                placeholder="Nombre de la marca"
+                className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+                value={marcaNombre}
+                onChange={e => setMarcaNombre(e.target.value)}
+              />
+              <label className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg border border-slate-700 text-xs font-semibold text-slate-400 hover:text-white hover:border-slate-600 cursor-pointer transition-all bg-slate-900 shrink-0">
+                <Upload size={14} />
+                <span className="truncate max-w-[100px]">{marcaImg ? marcaImg.name : 'Subir Logo'}</span>
+                <input ref={marcaInputRef} type="file" accept="image/*" className="hidden" onChange={handleMarcaUpload} />
+              </label>
+              <button
+                onClick={handleAddMarca}
+                disabled={!marcaNombre || !marcaImg || marcaUploading}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg transition-all shrink-0"
+              >
+                {marcaUploading ? 'Guardando...' : 'Añadir'}
+              </button>
+            </div>
+          </div>
+
+          {/* Lista de marcas */}
+          {marcas.length > 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-4">
+              {marcas.map(m => (
+                <div key={m.id} className="relative p-3 bg-slate-800/50 rounded-xl border border-slate-700 flex flex-col items-center gap-2">
+                  <div className="w-full h-16 bg-slate-900 rounded-lg flex items-center justify-center overflow-hidden border border-slate-700/50 p-2">
+                    <img src={m.logoUrl} alt={m.nombre} className="max-w-full max-h-full object-contain" />
+                  </div>
+                  <p className="text-xs font-semibold text-white text-center truncate w-full">{m.nombre}</p>
+                  
+                  <div className="flex items-center gap-2 w-full mt-1">
+                    <button
+                      onClick={() => handleToggleMarca(m)}
+                      className={`flex-1 text-[10px] py-1 rounded-md border font-semibold transition-colors ${m.activo !== false ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-slate-700 text-slate-400 border-slate-600'}`}
+                    >
+                      {m.activo !== false ? 'Activa' : 'Oculta'}
+                    </button>
+                    <button
+                      onClick={() => handleDeleteMarca(m)}
+                      className="p-1.5 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-md transition-colors"
+                      title="Eliminar"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      )}
 
     </div>
   );

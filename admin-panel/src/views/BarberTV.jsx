@@ -671,6 +671,61 @@ function SlideProductos({ productos, skipAnimation }) {
   );
 }
 
+// ── Slide 5: Marcas / Publicidad (Solo Elegance) ──────────────────
+function SlideMarcas({ marcas, skipAnimation }) {
+  const visible = marcas.filter(m => m.activo !== false).slice(0, 12);
+  const cols = visible.length > 8 ? 'grid-cols-4' : (visible.length > 4 ? 'grid-cols-3' : 'grid-cols-2');
+
+  if (!visible.length) {
+    return (
+      <div className="w-full h-full flex items-center justify-center text-gray-800">
+        <div className="text-center">
+          <p className="text-7xl mb-4 opacity-20">🏆</p>
+          <p className="text-xl">Nuestras Marcas</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full h-full flex flex-col items-center justify-center p-12 relative">
+      <div className="absolute inset-0"
+        style={{ backgroundImage: 'radial-gradient(ellipse 60% 60% at 50% 50%, rgba(212,175,55,0.04) 0%, transparent 70%)' }}
+      />
+      <motion.p
+        className="text-[9px] font-black tracking-[0.6em] uppercase text-center mb-10 relative z-10"
+        style={{ color: GOLD }}
+        initial={skipAnimation ? false : { opacity: 0 }}
+        animate={{ opacity: 1 }}
+      >
+        ✦ &nbsp; Marcas Asociadas &nbsp; ✦
+      </motion.p>
+
+      <div className={`grid ${cols} gap-8 w-full max-w-5xl relative z-10`}>
+        {visible.map((m, i) => (
+          <motion.div
+            key={m.id || i}
+            className="flex flex-col items-center justify-center rounded-2xl overflow-hidden p-6"
+            style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid rgba(212,175,55,0.1)`, boxShadow: '0 4px 24px rgba(0,0,0,0.2)' }}
+            initial={skipAnimation ? false : { opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={skipAnimation ? {} : { delay: i * 0.08, duration: 0.4 }}
+          >
+            <div className="w-full h-24 flex items-center justify-center mb-4">
+              {m.logoUrl ? (
+                <img src={m.logoUrl} alt={m.nombre} className="max-w-full max-h-full object-contain" style={{ filter: 'drop-shadow(0 0 10px rgba(255,255,255,0.1))' }} />
+              ) : (
+                <span className="text-4xl opacity-20">🏆</span>
+              )}
+            </div>
+            <p className="text-white font-bold text-sm tracking-wide text-center uppercase">{m.nombre}</p>
+          </motion.div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── QR overlay ────────────────────────────────────────────────────
 function QrOverlay({ qrUrl, qrColor, qrSize }) {
   const color = qrColor || GOLD;
@@ -772,6 +827,7 @@ export default function BarberTV() {
   const [photos,         setPhotos]         = useState([]);
   const [barberos,       setBarberos]       = useState([]);
   const [productos,      setProductos]      = useState([]);
+  const [marcas,         setMarcas]         = useState([]);
   const [servicios,      setServicios]      = useState([]);
   const [oferta,         setOferta]         = useState(OFERTA_DEFAULT);
   const [slide,          setSlide]          = useState(0);
@@ -779,7 +835,7 @@ export default function BarberTV() {
   const [offline,        setOffline]        = useState(false);
   const [imageCache,     setImageCache]     = useState({});
   const [duracion,       setDuracion]       = useState(SLIDE_MS);
-  const [slidesActivos,  setSlidesActivos]  = useState({ oferta: true, lookbook: true, equipo: true, productos: true });
+  const [slidesActivos,  setSlidesActivos]  = useState({ oferta: true, lookbook: true, equipo: true, productos: true, marcas: true });
   const [accentColor,    setAccentColor]    = useState('');
   const [qrConfig,       setQrConfig]       = useState({ color: '', size: 160 });
   const [backgroundUrl,  setBackgroundUrl]  = useState('');
@@ -857,6 +913,14 @@ export default function BarberTV() {
       .catch(() => {});
   }, [tenantId]);
 
+  // Marcas (Solo Elegance)
+  useEffect(() => {
+    if (tenantId !== 'elegance') return;
+    getDocs(query(tenantCol('publicidad_tv'), orderBy('createdAt', 'asc')))
+      .then(snap => setMarcas(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
+      .catch(() => {});
+  }, [tenantId]);
+
   // Caché de fotos de barberos
   useEffect(() => {
     if (!barberos.length) return;
@@ -897,6 +961,14 @@ export default function BarberTV() {
       }
     });
   }, [productos]);
+  useEffect(() => {
+    marcas.forEach(m => {
+      if (m.logoUrl && !preloadedRef.current.has(m.logoUrl)) {
+        preloadedRef.current.add(m.logoUrl);
+        new Image().src = m.logoUrl;
+      }
+    });
+  }, [marcas]);
 
   // Carrusel automático
   useEffect(() => {
@@ -910,6 +982,8 @@ export default function BarberTV() {
 
   const handleCarouselClick = useCallback(() => setPaused(p => !p), []);
   const handleSlideChange   = useCallback(i => {
+    const key = visibleDefs[i]?.key || i;
+    visitedRef.current.add(key);
     visitedRef.current.add(i);
     setSlide(i);
   }, []);
@@ -920,6 +994,9 @@ export default function BarberTV() {
     { key: 'equipo',    label: 'Equipo',    el: <SlideEquipo     key="team" barberos={barberos} imageCache={imageCache} skipAnimation={visitedRef.current.has(2)} /> },
     { key: 'productos', label: 'Productos', el: <SlideProductos  key="prod" productos={productos} skipAnimation={visitedRef.current.has(3)} /> },
   ];
+  if (tenantId === 'elegance') {
+    ALL_DEFS.push({ key: 'marcas', label: 'Marcas', el: <SlideMarcas key="marcas" marcas={marcas} skipAnimation={visitedRef.current.has('marcas')} /> });
+  }
   const activeDefs  = ALL_DEFS.filter(s => slidesActivos[s.key] !== false);
   const visibleDefs = activeDefs.length ? activeDefs : ALL_DEFS;
   activeCountRef.current = visibleDefs.length;
