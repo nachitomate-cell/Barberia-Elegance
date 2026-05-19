@@ -16,6 +16,7 @@
     #btn-seed   { background: #C9A84C; color: #070500; }
     #btn-clear  { background: #D94F4F; color: #fff; }
     #btn-config { background: #2D4A2D; color: #6EE77A; border: 1px solid #3D6A3D; }
+    #btn-patch  { background: #1A3A4A; color: #6BD4F0; border: 1px solid #2A5A7A; }
     pre  { background: #0C0904; border: 1px solid rgba(201,168,76,.15); padding: 1rem;
            border-radius: .5rem; white-space: pre-wrap; margin-top: 1rem; font-size: .8125rem; }
     .ok  { color: #6EE77A; }
@@ -31,6 +32,7 @@
   <div class="actions">
     <button id="btn-config" onclick="seedConfig()">⚙ Solo configuración</button>
     <button id="btn-seed"   onclick="seedAll()">▶ Seed completo (config + productos)</button>
+    <button id="btn-patch"  onclick="patchImages()">🖼 Parchear imágenes faltantes</button>
     <button id="btn-clear"  onclick="clearProducts()">✕ Borrar productos</button>
   </div>
   <pre id="log">Listo para ejecutar…</pre>
@@ -178,7 +180,7 @@
         descripcion:   'Lavanda, bergamota y madera de oud en una composición fresca y masculina. Sofisticación sin esfuerzo.',
         precio:        98990,
         activo:        true,
-        imagen:        null,
+        imagen:        'https://images.unsplash.com/photo-1615397323383-66d482434fb2?w=600&q=80',
       },
 
       /* ── MUJER ───────────────────────────────────────── */
@@ -217,7 +219,7 @@
         descripcion:   'Una explosión floral adictiva. Jazmín, rosa, freesia y patchouli envuelven en una nube de femineidad pura.',
         precio:        85990,
         activo:        true,
-        imagen:        null,
+        imagen:        'https://images.unsplash.com/photo-1616949755610-8c9bac08c7bb?w=600&q=80',
       },
       {
         nombre:        'For Her EDP 100ml',
@@ -247,7 +249,7 @@
         descripcion:   'Ron, tabaco y madera de cedro en una fragancia que huele a las noches de los años 30. Íntimo y sofisticado.',
         precio:        119990,
         activo:        true,
-        imagen:        null,
+        imagen:        'https://images.unsplash.com/photo-1588405748880-12d1d2a59f75?w=600&q=80',
       },
       {
         nombre:        'Wood Sage & Sea Salt EDC 100ml',
@@ -277,7 +279,7 @@
         descripcion:   'Nerolí africano, cedro de Atlas, vetiver y almizcle blanco. Arte minimalista sueco con alma africana.',
         precio:        159990,
         activo:        true,
-        imagen:        null,
+        imagen:        'https://images.unsplash.com/photo-1541643600914-78b084683601?w=600&q=80',
       },
 
       /* ── ÁRABE ───────────────────────────────────────── */
@@ -299,7 +301,7 @@
         precio:        32990,
         precioOriginal: 43990,
         activo:        true,
-        imagen:        null,
+        imagen:        'https://images.unsplash.com/photo-1556229162-5c63ed9c4efb?w=600&q=80',
       },
       {
         nombre:        'Yara EDP 100ml',
@@ -317,7 +319,7 @@
         descripcion:   'Bergamota, lavanda, oud hindú y sándalo. Una fragancia oriental que combina elegancia occidental con alma árabe.',
         precio:        38990,
         activo:        true,
-        imagen:        null,
+        imagen:        'https://images.unsplash.com/photo-1590156206657-aec787e5f3e5?w=600&q=80',
       },
       {
         nombre:        'Khaltat Al Oud Al Ameen 50ml',
@@ -327,7 +329,7 @@
         precio:        54990,
         precioOriginal: 72990,
         activo:        true,
-        imagen:        null,
+        imagen:        'https://images.unsplash.com/photo-1568702846914-96b305d2aaeb?w=600&q=80',
       },
     ];
 
@@ -348,6 +350,39 @@
         await seedConfig();
         await seedProducts();
         log('\n🎉 Seed completo — abre el catálogo para verlo', 'ok');
+      } catch (e) {
+        log('✘ ' + e.message, 'err');
+      }
+      btn.disabled = false;
+    }
+
+    async function patchImages() {
+      const btn = document.getElementById('btn-patch');
+      btn.disabled = true;
+      logEl.innerHTML = '';
+      log('── Parcheando imágenes faltantes… ──', 'hd');
+      try {
+        const snap = await db.collection(`tenants/${TENANT}/productos`).get();
+        const imageMap = {};
+        PRODUCTS.forEach(p => { if (p.imagen) imageMap[p.nombre.trim().toLowerCase()] = p.imagen; });
+
+        let updated = 0, skipped = 0;
+        const batch = db.batch();
+        snap.docs.forEach(d => {
+          const data = d.data();
+          if (data.imagen) { skipped++; return; }
+          const key = (data.nombre || '').trim().toLowerCase();
+          const url = imageMap[key];
+          if (url) { batch.update(d.ref, { imagen: url }); updated++; log(`  ✓ ${data.nombre}`, 'ok'); }
+          else { log(`  — sin imagen para: ${data.nombre}`, ''); }
+        });
+
+        if (updated > 0) {
+          await batch.commit();
+          log(`\n✔ ${updated} producto${updated!==1?'s':''} actualizado${updated!==1?'s':''}. ${skipped} ya tenían imagen.`, 'ok');
+        } else {
+          log(`\n— No hay productos sin imagen (${skipped} ya tenían imagen).`, 'ok');
+        }
       } catch (e) {
         log('✘ ' + e.message, 'err');
       }
