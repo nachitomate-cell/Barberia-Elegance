@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import {
   TrendingDown, Plus, X, Calendar, DollarSign,
-  Tag, CreditCard, AlertCircle, ChevronDown,
+  Tag, CreditCard, AlertCircle, ChevronDown, Trash2
 } from 'lucide-react';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 import {
-  addDoc, query, where, orderBy,
+  addDoc, deleteDoc, doc, query, where, orderBy,
   onSnapshot, serverTimestamp, Timestamp,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -205,6 +205,16 @@ export default function Gastos() {
     return unsub;
   }, []);
 
+  const handleDelete = async (id) => {
+    if (!window.confirm('¿Estás seguro de eliminar este gasto?')) return;
+    try {
+      await deleteDoc(doc(gastosCol(), id));
+    } catch (e) {
+      console.error(e);
+      alert('Error al eliminar el gasto');
+    }
+  };
+
   /* Summary stats */
   const total   = gastos.reduce((s, g) => s + (g.monto || 0), 0);
   const catMap  = {};
@@ -281,6 +291,7 @@ export default function Gastos() {
                   <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Categoría</th>
                   <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Método</th>
                   <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide text-right">Monto</th>
+                  <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide text-right"></th>
                 </tr>
               </thead>
               <tbody>
@@ -307,13 +318,19 @@ export default function Gastos() {
                     <td className="px-5 py-3.5 text-right font-semibold text-red-400 whitespace-nowrap">
                       {fmt(g.monto)}
                     </td>
+                    <td className="px-5 py-3.5 text-right">
+                      <button onClick={() => handleDelete(g.id)}
+                        className="text-slate-500 hover:text-red-400 transition-colors" title="Eliminar gasto">
+                        <Trash2 size={16} />
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
               <tfoot>
                 <tr className="bg-slate-800/30">
                   <td colSpan={4} className="px-5 py-3 text-xs font-bold text-slate-400 uppercase tracking-wide">Total</td>
-                  <td className="px-5 py-3 text-right font-bold text-red-400 text-sm">{fmt(total)}</td>
+                  <td colSpan={2} className="px-5 py-3 text-right font-bold text-red-400 text-sm">{fmt(total)}</td>
                 </tr>
               </tfoot>
             </table>
