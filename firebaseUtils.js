@@ -1223,6 +1223,15 @@ const FDB = (() => {
     }
   }
 
+  async function getShopSettings() {
+    try {
+      const snap = await tenantCol('settings').doc('general').get();
+      return snap.exists ? snap.data() : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
   /* ── API pública ────────────────────────────────────────────── */
   return {
     migrarDesdeLocalStorage,
@@ -1256,6 +1265,8 @@ const FDB = (() => {
     // Barberos (Permisos + Orden)
     getBarberos, esBarbero, esAdminJefe, getBarberoId, getRol,
     ensureBarberoUidDoc, reordenarBarberos,
+    // Shop settings (Configuracion panel: features, nombre, etc.)
+    getShopSettings,
   };
 })();
 

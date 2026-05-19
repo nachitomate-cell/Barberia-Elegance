@@ -1875,6 +1875,9 @@
       </div>
     </div>
 
+    <!-- Features strip: Cursos / Arriendo de Sillones (controlado desde Configuración) -->
+    <div id="featuresStrip" class="hidden px-4 pt-4 pb-0 flex flex-col gap-3"></div>
+
     <!-- Sobre Nosotros — Mapu only -->
     <div id="mapu-sobre-wrap" class="px-6 pt-4 pb-1">
       <button id="mapu-sobre-btn" onclick="openMapuSobre()">
@@ -2764,11 +2767,61 @@
       updateSelectionRecap();
     }
 
+    function _renderFeaturesStrip(fsFeatures) {
+      const strip = document.getElementById('featuresStrip');
+      if (!strip) return;
+
+      // Firestore tiene precedencia; fallback a config.js
+      const shopFeat = SHOP.features || {};
+      const feat = Object.assign({}, shopFeat, fsFeatures || {});
+
+      const phone  = (SHOP.telefono || '').replace(/\D/g, '');
+      const items  = [];
+
+      if (feat.hasCourses) {
+        const c = Object.assign({ title: 'Cursos de Barbería', description: '', ctaMsg: '' }, shopFeat.courses, (fsFeatures || {}).courses);
+        items.push({ icon: 'ph-graduation-cap', title: c.title, desc: c.description, msg: c.ctaMsg });
+      }
+      if (feat.hasChairRental) {
+        const r = Object.assign({ title: 'Arriendo de Sillones', description: '', ctaMsg: '' }, shopFeat.chairRental, (fsFeatures || {}).chairRental);
+        items.push({ icon: 'ph-scissors', title: r.title, desc: r.description, msg: r.ctaMsg });
+      }
+
+      if (!items.length) { strip.classList.add('hidden'); return; }
+
+      strip.innerHTML = items.map(item => {
+        const waUrl = phone && item.msg
+          ? `https://wa.me/${phone}?text=${encodeURIComponent(item.msg)}`
+          : `https://wa.me/${phone}`;
+        return `
+          <div class="flex items-center gap-3 rounded-2xl px-4 py-3"
+               style="background:#18181b;border:1px solid rgba(var(--accent-r,201),var(--accent-g,168),var(--accent-b,76),0.18);">
+            <div class="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center"
+                 style="background:rgba(var(--accent-r,201),var(--accent-g,168),var(--accent-b,76),0.12);">
+              <i class="ph-bold ${item.icon} text-lg" style="color:var(--accent,#c9a84c);"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-[13px] font-bold text-white leading-tight truncate">${item.title}</p>
+              ${item.desc ? `<p class="text-[11px] text-zinc-500 leading-snug mt-0.5 line-clamp-2">${item.desc}</p>` : ''}
+            </div>
+            <a href="${waUrl}" target="_blank" rel="noopener"
+               class="shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-xl text-[11px] font-bold active:opacity-70 transition-opacity"
+               style="background:rgba(var(--accent-r,201),var(--accent-g,168),var(--accent-b,76),0.15);color:var(--accent,#c9a84c);">
+              <i class="ph-bold ph-whatsapp-logo text-sm"></i>
+              Info
+            </a>
+          </div>`;
+      }).join('');
+
+      strip.classList.remove('hidden');
+    }
+
     async function initServices() {
-      const [rConfig, rServices, rBarberos] = await Promise.allSettled([
+      const [rConfig, rServices, rBarberos, rSettings] = await Promise.allSettled([
         FDB.getConfig(),
         FDB.getServicios(),
-        FDB.getBarberos()
+        FDB.getBarberos(),
+        FDB.getShopSettings()
       ]);
       _fsConfig   = rConfig.status   === 'fulfilled' ? rConfig.value   : DB.getSettings();
       _fsServices = rServices.status === 'fulfilled' ? rServices.value : DB.getServices();
@@ -2777,6 +2830,9 @@
       if (!_fsBarberos.length) _fsBarberos = SHOP.barberos;
       _activeBarberos = _fsBarberos;
       window._fsServices = _fsServices;
+
+      const _shopSettings = rSettings.status === 'fulfilled' ? rSettings.value : null;
+      _renderFeaturesStrip(_shopSettings?.features);
 
       // Cargar productos para cross-selling (si está activo)
       _isProductsEnabled = !!_fsConfig?.productosActivos;
