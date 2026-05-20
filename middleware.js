@@ -225,7 +225,7 @@ const TENANT_META = {
     themeColor:  '#c9a84c',
     appTitle:    'Chameleon',
     icon:        '/local3.jpg',
-    local: { telephone: '', streetAddress: 'Av. Libertad 868', addressLocality: 'Viña del Mar', schemaType: 'HairSalon', ratingGeneral: 5.0, totalReviews: 38, reviews: [{ author: 'Rodrigo V.', rating: 5, text: 'El mejor Barber Studio de Viña del Mar. Ambiente premium y barberos de primer nivel.' }, { author: 'Diego S.', rating: 5, text: 'Vine por el degradado y me quedé por la experiencia completa. Increíble atención.' }, { author: 'Matías A.', rating: 5, text: 'El lugar perfecto para quienes cuidan su imagen. Calidad profesional en cada visita.' }] },
+    local: { telephone: '', streetAddress: 'Av. Libertad 868', addressLocality: 'Viña del Mar', schemaType: 'HairSalon', ratingGeneral: 5.0, totalReviews: 226, reviews: [{ author: 'Rodrigo V.', rating: 5, text: 'El mejor Barber Studio de Viña del Mar. Ambiente premium y barberos de primer nivel.' }, { author: 'Diego S.', rating: 5, text: 'Vine por el degradado y me quedé por la experiencia completa. Increíble atención.' }, { author: 'Matías A.', rating: 5, text: 'El lugar perfecto para quienes cuidan su imagen. Calidad profesional en cada visita.' }] },
     manifest: {
       name:             'Chameleon Barber Studio',
       short_name:       'Chameleon',

@@ -104,7 +104,7 @@
       instagramHandle: '@chameleon.barberstudio',
       waEmoji:         '✂️',
       ratingGeneral: 5.0,
-      totalReviews:  38,
+      totalReviews:  226,
       reviews: [
         { author: 'Rodrigo V.', rating: 5, text: 'El mejor Barber Studio de Viña del Mar. Ambiente premium y barberos de primer nivel.' },
         { author: 'Diego S.',   rating: 5, text: 'Vine por el degradado y me quedé por la experiencia completa. Increíble atención y resultado.' },
