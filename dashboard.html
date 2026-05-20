@@ -1451,6 +1451,57 @@
     .tenant-aura button[onclick="cerrarEquipoModal()"] { background: #F4F4F5 !important; border-color: #D4D4D8 !important; }
     .tenant-aura button[onclick="cerrarEquipoModal()"] i { color: #18181B !important; }
 
+    /* ── Aura: Premios + Legal ───────────────────────────────────── */
+
+    /* Próximo Premio card */
+    .tenant-aura [data-aura-stagger].mx-4.mb-5.rounded-2xl {
+      background: #FFFFFF !important;
+      border-color: #D4D4D8 !important;
+    }
+    /* Trophy icon bg inside próximo premio */
+    .tenant-aura .mx-4.mb-5.rounded-2xl .rounded-full.bg-\[#1a1a1a\] {
+      background: rgba(108,171,221,0.08) !important;
+      border-color: rgba(108,171,221,0.20) !important;
+    }
+
+    /* premiosList rows (JS-generated, bg-[#111115]) */
+    .tenant-aura #premiosList > div {
+      background: #FFFFFF !important;
+      border-color: #D4D4D8 !important;
+    }
+    .tenant-aura #premiosList > div:hover { border-color: rgba(108,171,221,0.40) !important; }
+    /* Separador w-px bg-white/10 */
+    .tenant-aura #premiosList .w-px { background-color: #D4D4D8 !important; }
+    /* Número de sellos */
+    .tenant-aura #premiosList span.text-white { color: #00285E !important; }
+    /* "Sellos" label text-white/30 */
+    .tenant-aura #premiosList .text-white\/30 { color: #8E9399 !important; }
+    /* Nombre premio */
+    .tenant-aura #premiosList p.text-white { color: #18181B !important; }
+    /* Flecha text-white/20 */
+    .tenant-aura #premiosList .text-white\/20 { color: #D4D4D8 !important; }
+    /* Spinner skeleton */
+    .tenant-aura #premiosSection .animate-spin {
+      border-color: #D4D4D8 !important;
+      border-top-color: #6CABDD !important;
+    }
+
+    /* Legal heading */
+    .tenant-aura #tabProfile h3.text-white\/30 { color: #8E9399 !important; }
+    /* Legal links */
+    .tenant-aura #tabProfile a[href="privacidad.html"] {
+      background: #FFFFFF !important;
+      border-color: #D4D4D8 !important;
+    }
+    .tenant-aura #tabProfile a[href="privacidad.html"] span { color: #18181B !important; }
+    .tenant-aura #tabProfile a[href="privacidad.html"] i.text-gray-500 { color: #6CABDD !important; }
+    .tenant-aura #tabProfile a[href="privacidad.html"] i.text-gray-600 { color: #A1A1AA !important; }
+    .tenant-aura #tabProfile a[href="privacidad.html"]:hover { border-color: rgba(108,171,221,0.40) !important; }
+
+    /* Global missing utility overrides */
+    .tenant-aura .bg-white\/10  { background-color: rgba(108,171,221,0.08) !important; }
+    .tenant-aura .text-white\/20 { color: rgba(24,24,27,0.25) !important; }
+
     /* ── Aura: remaining dark artifact fixes ─────────────────────── */
 
     /* bg-gray-900 (productoModal) */
