@@ -436,6 +436,8 @@ export const config = {
     '/gestion-interna/',
     '/gestion-interna/index.html',
     '/gestion-interna/manifest.webmanifest',
+    '/sitemap.xml',
+    '/robots.txt',
   ],
 };
 
@@ -443,6 +445,67 @@ export default async function middleware(request) {
   const url      = new URL(request.url);
   const hostname = (request.headers.get('host') || '').replace(/:\d+$/, '');
   const tenantId = DOMAIN_MAP[hostname] || 'elegance';
+
+  // ── Sitemap XML: debe interceptarse antes de cualquier otro handler ───────────
+  if (url.pathname === '/sitemap.xml') {
+    const baseUrl    = `https://${hostname}`;
+    const projectId  = process.env.FIREBASE_PROJECT_ID || 'barberia-elegance';
+    const firestoreUrl = tenantId === 'elegance'
+      ? `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/barberos`
+      : `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/tenants/${tenantId}/barberos`;
+
+    const slugify = (str) =>
+      String(str).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()
+        .replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+
+    const today    = new Date().toISOString().split('T')[0];
+    const isDeluxe = tenantId === 'deluxeperfumes';
+
+    const staticPages = [
+      { loc: baseUrl,                      priority: '1.0', changefreq: 'weekly'  },
+      ...(!isDeluxe ? [{ loc: `${baseUrl}/agenda`,   priority: '0.9', changefreq: 'daily'   }] : []),
+      ...(isDeluxe  ? [{ loc: `${baseUrl}/catalogo`, priority: '0.9', changefreq: 'weekly'  }] : []),
+      ...(!isDeluxe ? [{ loc: `${baseUrl}/registro`, priority: '0.7', changefreq: 'monthly' }] : []),
+    ];
+
+    const dynamicPages = [];
+    try {
+      const dbRes = await fetch(firestoreUrl);
+      if (dbRes.ok) {
+        const dbData = await dbRes.json();
+        for (const doc of (dbData.documents || [])) {
+          const nombre = doc.fields?.nombre?.stringValue || '';
+          const docId  = doc.name.split('/').pop();
+          const slug   = slugify(nombre) || docId;
+          if (slug) dynamicPages.push({ loc: `${baseUrl}/${slug}`, priority: '0.8', changefreq: 'monthly' });
+        }
+      }
+    } catch (_) { /* Falla silenciosa: el sitemap sólo tendrá URLs estáticas */ }
+
+    const toEntry = ({ loc, priority, changefreq }) =>
+      `  <url>\n    <loc>${loc}</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>${changefreq}</changefreq>\n    <priority>${priority}</priority>\n  </url>`;
+
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${[...staticPages, ...dynamicPages].map(toEntry).join('\n')}\n</urlset>`;
+
+    return new Response(xml, {
+      headers: {
+        'Content-Type': 'text/xml; charset=utf-8',
+        'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+      },
+    });
+  }
+
+  // ── Robots.txt: generado dinámicamente para apuntar al sitemap correcto ───────
+  if (url.pathname === '/robots.txt') {
+    const baseUrl = `https://${hostname}`;
+    const txt = `User-agent: *\nAllow: /\n\nSitemap: ${baseUrl}/sitemap.xml\n`;
+    return new Response(txt, {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Cache-Control': 'public, s-maxage=86400, stale-while-revalidate=604800',
+      },
+    });
+  }
 
   // ── Deluxeperfumes: redirigir al catálogo (sólo rutas de cliente, no admin)
   if (tenantId === 'deluxeperfumes' && !url.pathname.startsWith('/gestion-interna')) {
@@ -517,55 +580,6 @@ export default async function middleware(request) {
       headers: {
         'Content-Type': 'application/manifest+json',
         'Cache-Control': 'no-cache, must-revalidate',
-      },
-    });
-  }
-
-  // ── Sitemap XML: generar dinámicamente por tenant ────────────────────────────
-  if (url.pathname === '/sitemap.xml') {
-    const baseUrl = `https://${hostname}`;
-    const projectId = process.env.FIREBASE_PROJECT_ID || 'barberia-elegance';
-    const firestoreUrl = tenantId === 'elegance'
-      ? `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/barberos`
-      : `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/tenants/${tenantId}/barberos`;
-
-    const slugify = (str) =>
-      String(str).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()
-        .replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-
-    const today = new Date().toISOString().split('T')[0];
-    const isDeluxe = tenantId === 'deluxeperfumes';
-
-    const staticPages = [
-      { loc: baseUrl,                      priority: '1.0', changefreq: 'weekly'  },
-      ...(!isDeluxe ? [{ loc: `${baseUrl}/agenda`,   priority: '0.9', changefreq: 'daily'   }] : []),
-      ...(isDeluxe  ? [{ loc: `${baseUrl}/catalogo`, priority: '0.9', changefreq: 'weekly'  }] : []),
-      ...(!isDeluxe ? [{ loc: `${baseUrl}/registro`, priority: '0.7', changefreq: 'monthly' }] : []),
-    ];
-
-    const dynamicPages = [];
-    try {
-      const dbRes = await fetch(firestoreUrl);
-      if (dbRes.ok) {
-        const dbData = await dbRes.json();
-        for (const doc of (dbData.documents || [])) {
-          const nombre = doc.fields?.nombre?.stringValue || '';
-          const docId  = doc.name.split('/').pop();
-          const slug   = slugify(nombre) || docId;
-          if (slug) dynamicPages.push({ loc: `${baseUrl}/${slug}`, priority: '0.8', changefreq: 'monthly' });
-        }
-      }
-    } catch (_) { /* Falla silenciosa: el sitemap sólo tendrá URLs estáticas */ }
-
-    const toEntry = ({ loc, priority, changefreq }) =>
-      `  <url>\n    <loc>${loc}</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>${changefreq}</changefreq>\n    <priority>${priority}</priority>\n  </url>`;
-
-    const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${[...staticPages, ...dynamicPages].map(toEntry).join('\n')}\n</urlset>`;
-
-    return new Response(xml, {
-      headers: {
-        'Content-Type': 'text/xml; charset=utf-8',
-        'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
       },
     });
   }
