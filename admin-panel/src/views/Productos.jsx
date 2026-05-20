@@ -11,6 +11,36 @@ import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 
 const EMPTY = { nombre: '', descripcion: '', precio: '', precioOriginal: '', marca: '', categoria: '', stock: '', imagen: '', imagenPath: '', activo: true };
 
+function playProductChime() {
+  try {
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    const audioCtx = new AudioContext();
+    
+    const playNote = (delay, freq, duration) => {
+      const osc = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, audioCtx.currentTime + delay);
+      
+      gainNode.gain.setValueAtTime(0, audioCtx.currentTime + delay);
+      gainNode.gain.linearRampToValueAtTime(0.25, audioCtx.currentTime + delay + 0.02);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + delay + duration);
+      
+      osc.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      
+      osc.start(audioCtx.currentTime + delay);
+      osc.stop(audioCtx.currentTime + delay + duration);
+    };
+
+    // A nice double-tone chime ("ding-ling")
+    playNote(0, 987.77, 0.18); // B5
+    playNote(0.08, 1318.51, 0.38); // E6
+  } catch (_) {}
+}
+
 const CATEGORIAS_DELUXE = ['Perfumes', 'Sets', 'Miniaturas', 'Accesorios', 'Aromatizadores', 'Otro'];
 
 function ProductCard({ producto, onEdit, onDelete, isDeluxe }) {
@@ -162,6 +192,7 @@ export default function Productos() {
   const [reservas,        setReservas]        = useState([]);
   const [reservasLoading, setReservasLoading] = useState(true);
   const fileRef = useRef(null);
+  const initialized = useRef(false);
 
   const MAX_PRODUCTOS = isDeluxe ? 200 : 10;
 
@@ -171,6 +202,16 @@ export default function Productos() {
     const unsub = onSnapshot(q, snap => {
       const docs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       docs.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+
+      if (initialized.current) {
+        const hasAdditions = snap.docChanges().some(change => change.type === 'added');
+        if (hasAdditions) {
+          playProductChime();
+        }
+      } else {
+        initialized.current = true;
+      }
+
       setReservas(docs);
       setReservasLoading(false);
     }, () => setReservasLoading(false));
