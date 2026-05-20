@@ -2125,6 +2125,23 @@
       background: #6CABDD !important;
     }
 
+    /* ── Aura: shimmer azul en tarjeta seleccionada ── */
+    @keyframes aura-card-shimmer {
+      from { transform: translateX(-120%); }
+      to   { transform: translateX(280%); }
+    }
+    .tenant-aura .service-option.border-neon::after,
+    .tenant-aura .barber-option.border-neon::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(105deg,
+        transparent 30%, rgba(108,171,221,0.30) 50%, transparent 70%);
+      transform: translateX(-120%);
+      animation: aura-card-shimmer 0.65s cubic-bezier(0.25,0.46,0.45,0.94) 1;
+      pointer-events: none;
+    }
+
     /* ── Day Buttons ── */
     .tenant-aura .day-btn {
       background: #FFFFFF !important;
@@ -2278,6 +2295,7 @@
     .tenant-aura #success-state .text-neon { color: #00285E !important; }
     .tenant-aura #success-state .bg-brand-neon\/10 { background: rgba(108,171,221,0.10) !important; }
     .tenant-aura #success-state svg.text-neon { color: #6CABDD !important; }
+    .tenant-aura #success-state #successSummaryDate { color: #6CABDD !important; }
     .tenant-aura #success-state .bg-\[#0a0a0d\] {
       background: #FFFFFF !important;
       border-color: rgba(108,171,221,0.25) !important;

@@ -40,15 +40,18 @@
     .tenant-card {
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       cursor: pointer;
-      border-radius: 1.5rem;
-      padding: 1.25rem;
+      border-radius: 1.25rem;
+      padding: 1.25rem 0.75rem 1rem;
       border: 1px solid rgba(255,255,255,0.07);
       background: rgba(15,23,42,0.5);
       backdrop-filter: blur(12px);
-      text-align: left;
+      text-align: center;
       width: 100%;
       color: inherit;
-      display: block;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.45rem;
       text-decoration: none;
     }
     .tenant-card:hover { transform: translateY(-3px); }
@@ -81,6 +84,16 @@
       border-color: rgba(167,139,250,0.4);
       background: rgba(167,139,250,0.05);
       box-shadow: 0 12px 30px rgba(0,0,0,0.3), 0 0 20px rgba(167,139,250,0.08);
+    }
+    .tenant-card.delnero:hover {
+      border-color: rgba(226,232,240,0.35);
+      background: rgba(226,232,240,0.04);
+      box-shadow: 0 12px 30px rgba(0,0,0,0.3), 0 0 20px rgba(226,232,240,0.07);
+    }
+    .tenant-card.aura:hover {
+      border-color: rgba(108,171,221,0.4);
+      background: rgba(108,171,221,0.05);
+      box-shadow: 0 12px 30px rgba(0,0,0,0.3), 0 0 20px rgba(108,171,221,0.08);
     }
 
     /* ── Drawer overlay ── */
@@ -173,6 +186,17 @@
       box-shadow: 0 4px 20px rgba(167,139,250,0.25);
     }
     .cta-btn.deluxeperfumes:hover { box-shadow: 0 8px 30px rgba(167,139,250,0.35); }
+    .cta-btn.delnero {
+      background: linear-gradient(135deg,#cbd5e1,#94a3b8);
+      box-shadow: 0 4px 20px rgba(226,232,240,0.15);
+      color: #0f172a;
+    }
+    .cta-btn.delnero:hover { box-shadow: 0 8px 30px rgba(226,232,240,0.25); }
+    .cta-btn.aura {
+      background: linear-gradient(135deg,#6CABDD,#3b82f6);
+      box-shadow: 0 4px 20px rgba(108,171,221,0.25);
+    }
+    .cta-btn.aura:hover { box-shadow: 0 8px 30px rgba(108,171,221,0.35); }
 
     /* ── Secondary button ── */
     .btn-secondary {
@@ -419,235 +443,117 @@
   </div>
 
   <!-- ── Tenant list ── -->
-  <div style="width:100%; max-width:460px; display:flex; flex-direction:column; gap:0.875rem;">
+  <div style="width:100%; max-width:660px; display:grid; grid-template-columns:repeat(3,1fr); gap:0.75rem;">
 
     <!-- Elegance Barbershop -->
     <button class="tenant-card elegance" onclick="openDrawer('elegance')">
-      <div style="display:flex; align-items:center; gap:1.125rem;">
-        <img src="/logo.jpg" alt="Elegance"
-          style="width:56px; height:56px; border-radius:1rem; object-fit:cover; border:1px solid rgba(52,211,153,0.2); flex-shrink:0;"
-          onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-        <div style="
-          display:none; width:56px; height:56px; border-radius:1rem; flex-shrink:0;
-          background:rgba(52,211,153,0.08); border:1px solid rgba(52,211,153,0.2);
-          align-items:center; justify-content:center;
-        ">
-          <i class="ph-fill ph-scissors" style="font-size:1.5rem; color:#34d399;"></i>
-        </div>
-        <div style="flex:1; min-width:0; text-align:left;">
-          <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.25rem;">
-            <h2 style="font-size:1rem; font-weight:700; color:#fff; margin:0;">Elegance Barbershop</h2>
-            <span style="
-              padding:0.125rem 0.5rem; border-radius:999px; font-size:0.625rem; font-weight:700;
-              background:rgba(52,211,153,0.1); border:1px solid rgba(52,211,153,0.25); color:#34d399;
-            ">ACTIVO</span>
-          </div>
-          <p style="font-size:0.8125rem; color:#64748b; margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-            <i class="ph-fill ph-map-pin" style="font-size:0.75rem; color:rgba(52,211,153,0.5);"></i>
-            Ecuador 243, Viña del Mar
-          </p>
-          <div id="badge-elegance" style="margin-top:0.375rem; min-height:16px;"></div>
-        </div>
-        <div style="
-          width:32px; height:32px; border-radius:50%; flex-shrink:0;
-          display:flex; align-items:center; justify-content:center;
-          background:rgba(52,211,153,0.08); border:1px solid rgba(52,211,153,0.15);
-        ">
-          <i class="ph-bold ph-caret-right" style="color:#34d399; font-size:0.875rem;"></i>
-        </div>
+      <img src="/logo.jpg" alt="Elegance"
+        style="width:52px;height:52px;border-radius:0.875rem;object-fit:cover;border:1px solid rgba(52,211,153,0.25);flex-shrink:0;"
+        onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <div style="display:none;width:52px;height:52px;border-radius:0.875rem;flex-shrink:0;background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.2);align-items:center;justify-content:center;">
+        <i class="ph-fill ph-scissors" style="font-size:1.4rem;color:#34d399;"></i>
       </div>
+      <span style="font-size:0.6875rem;font-weight:700;color:#fff;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">Elegance Barbershop</span>
+      <span style="padding:0.1rem 0.45rem;border-radius:999px;font-size:0.575rem;font-weight:700;background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.25);color:#34d399;">ACTIVO</span>
+      <div id="badge-elegance" style="min-height:14px;"></div>
     </button>
 
     <!-- Gitana Nails Studio -->
     <button class="tenant-card gitana" onclick="openDrawer('gitana')">
-      <div style="display:flex; align-items:center; gap:1.125rem;">
-        <img src="/local2.jpg" alt="Gitana"
-          style="width:56px; height:56px; border-radius:1rem; object-fit:cover; border:1px solid rgba(236,72,153,0.2); flex-shrink:0;"
-          onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-        <div style="
-          display:none; width:56px; height:56px; border-radius:1rem; flex-shrink:0;
-          background:rgba(236,72,153,0.08); border:1px solid rgba(236,72,153,0.2);
-          align-items:center; justify-content:center;
-        ">
-          <i class="ph-fill ph-sparkle" style="font-size:1.5rem; color:#ec4899;"></i>
-        </div>
-        <div style="flex:1; min-width:0; text-align:left;">
-          <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.25rem;">
-            <h2 style="font-size:1rem; font-weight:700; color:#fff; margin:0;">Gitana Nails Studio</h2>
-            <span style="
-              padding:0.125rem 0.5rem; border-radius:999px; font-size:0.625rem; font-weight:700;
-              background:rgba(236,72,153,0.1); border:1px solid rgba(236,72,153,0.25); color:#ec4899;
-            ">ACTIVO</span>
-          </div>
-          <p style="font-size:0.8125rem; color:#64748b; margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-            <i class="ph-fill ph-map-pin" style="font-size:0.75rem; color:rgba(236,72,153,0.5);"></i>
-            Las Encinas 1390 local 18, Concón
-          </p>
-          <div id="badge-gitana" style="margin-top:0.375rem; min-height:16px;"></div>
-        </div>
-        <div style="
-          width:32px; height:32px; border-radius:50%; flex-shrink:0;
-          display:flex; align-items:center; justify-content:center;
-          background:rgba(236,72,153,0.08); border:1px solid rgba(236,72,153,0.15);
-        ">
-          <i class="ph-bold ph-caret-right" style="color:#ec4899; font-size:0.875rem;"></i>
-        </div>
+      <img src="/local2.jpg" alt="Gitana"
+        style="width:52px;height:52px;border-radius:0.875rem;object-fit:cover;border:1px solid rgba(236,72,153,0.25);flex-shrink:0;"
+        onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <div style="display:none;width:52px;height:52px;border-radius:0.875rem;flex-shrink:0;background:rgba(236,72,153,0.08);border:1px solid rgba(236,72,153,0.2);align-items:center;justify-content:center;">
+        <i class="ph-fill ph-sparkle" style="font-size:1.4rem;color:#ec4899;"></i>
       </div>
+      <span style="font-size:0.6875rem;font-weight:700;color:#fff;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">Gitana Nails Studio</span>
+      <span style="padding:0.1rem 0.45rem;border-radius:999px;font-size:0.575rem;font-weight:700;background:rgba(236,72,153,0.1);border:1px solid rgba(236,72,153,0.25);color:#ec4899;">ACTIVO</span>
+      <div id="badge-gitana" style="min-height:14px;"></div>
     </button>
 
     <!-- Barbería Ferraza -->
     <button class="tenant-card ferraza" onclick="openDrawer('ferraza')">
-      <div style="display:flex; align-items:center; gap:1.125rem;">
-        <img src="/local1.jpg" alt="Ferraza"
-          style="width:56px; height:56px; border-radius:1rem; object-fit:cover; border:1px solid rgba(251,191,36,0.2); flex-shrink:0;"
-          onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-        <div style="
-          display:none; width:56px; height:56px; border-radius:1rem; flex-shrink:0;
-          background:rgba(251,191,36,0.08); border:1px solid rgba(251,191,36,0.2);
-          align-items:center; justify-content:center;
-        ">
-          <i class="ph-fill ph-scissors" style="font-size:1.5rem; color:#f59e0b;"></i>
-        </div>
-        <div style="flex:1; min-width:0; text-align:left;">
-          <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.25rem;">
-            <h2 style="font-size:1rem; font-weight:700; color:#fff; margin:0;">Barbería Ferraza</h2>
-            <span style="
-              padding:0.125rem 0.5rem; border-radius:999px; font-size:0.625rem; font-weight:700;
-              background:rgba(251,191,36,0.1); border:1px solid rgba(251,191,36,0.25); color:#f59e0b;
-            ">ACTIVO</span>
-          </div>
-          <p style="font-size:0.8125rem; color:#64748b; margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-            <i class="ph-fill ph-map-pin" style="font-size:0.75rem; color:rgba(251,191,36,0.5);"></i>
-            Av. Libertad 63 / Local 28
-          </p>
-          <div id="badge-ferraza" style="margin-top:0.375rem; min-height:16px;"></div>
-        </div>
-        <div style="
-          width:32px; height:32px; border-radius:50%; flex-shrink:0;
-          display:flex; align-items:center; justify-content:center;
-          background:rgba(251,191,36,0.08); border:1px solid rgba(251,191,36,0.15);
-        ">
-          <i class="ph-bold ph-caret-right" style="color:#f59e0b; font-size:0.875rem;"></i>
-        </div>
+      <img src="/local1.jpg" alt="Ferraza"
+        style="width:52px;height:52px;border-radius:0.875rem;object-fit:cover;border:1px solid rgba(251,191,36,0.25);flex-shrink:0;"
+        onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <div style="display:none;width:52px;height:52px;border-radius:0.875rem;flex-shrink:0;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);align-items:center;justify-content:center;">
+        <i class="ph-fill ph-scissors" style="font-size:1.4rem;color:#f59e0b;"></i>
       </div>
+      <span style="font-size:0.6875rem;font-weight:700;color:#fff;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">Barbería Ferraza</span>
+      <span style="padding:0.1rem 0.45rem;border-radius:999px;font-size:0.575rem;font-weight:700;background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.25);color:#f59e0b;">ACTIVO</span>
+      <div id="badge-ferraza" style="min-height:14px;"></div>
     </button>
 
     <!-- Chameleon Barber Studio -->
     <button class="tenant-card chameleon" onclick="openDrawer('chameleon')">
-      <div style="display:flex; align-items:center; gap:1.125rem;">
-        <img src="/local3.jpg" alt="Chameleon"
-          style="width:56px; height:56px; border-radius:1rem; object-fit:cover; border:1px solid rgba(201,168,76,0.2); flex-shrink:0;"
-          onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-        <div style="
-          display:none; width:56px; height:56px; border-radius:1rem; flex-shrink:0;
-          background:rgba(201,168,76,0.08); border:1px solid rgba(201,168,76,0.2);
-          align-items:center; justify-content:center;
-        ">
-          <i class="ph-fill ph-scissors" style="font-size:1.5rem; color:#c9a84c;"></i>
-        </div>
-        <div style="flex:1; min-width:0; text-align:left;">
-          <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.25rem;">
-            <h2 style="font-size:1rem; font-weight:700; color:#fff; margin:0;">Chameleon Barber Studio</h2>
-            <span style="
-              padding:0.125rem 0.5rem; border-radius:999px; font-size:0.625rem; font-weight:700;
-              background:rgba(6,182,212,0.1); border:1px solid rgba(201,168,76,0.25); color:#c9a84c;
-            ">ACTIVO</span>
-          </div>
-          <p style="font-size:0.8125rem; color:#64748b; margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-            <i class="ph-fill ph-map-pin" style="font-size:0.75rem; color:rgba(6,182,212,0.5);"></i>
-            Av. Libertad 868, Viña del Mar
-          </p>
-          <div id="badge-chameleon" style="margin-top:0.375rem; min-height:16px;"></div>
-        </div>
-        <div style="
-          width:32px; height:32px; border-radius:50%; flex-shrink:0;
-          display:flex; align-items:center; justify-content:center;
-          background:rgba(201,168,76,0.08); border:1px solid rgba(201,168,76,0.15);
-        ">
-          <i class="ph-bold ph-caret-right" style="color:#c9a84c; font-size:0.875rem;"></i>
-        </div>
+      <img src="/local3.jpg" alt="Chameleon"
+        style="width:52px;height:52px;border-radius:0.875rem;object-fit:cover;border:1px solid rgba(201,168,76,0.25);flex-shrink:0;"
+        onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <div style="display:none;width:52px;height:52px;border-radius:0.875rem;flex-shrink:0;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.2);align-items:center;justify-content:center;">
+        <i class="ph-fill ph-scissors" style="font-size:1.4rem;color:#c9a84c;"></i>
       </div>
+      <span style="font-size:0.6875rem;font-weight:700;color:#fff;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">Chameleon Barber Studio</span>
+      <span style="padding:0.1rem 0.45rem;border-radius:999px;font-size:0.575rem;font-weight:700;background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.25);color:#c9a84c;">ACTIVO</span>
+      <div id="badge-chameleon" style="min-height:14px;"></div>
     </button>
 
     <!-- Mapu Barbershop -->
     <button class="tenant-card mapubarber" onclick="openDrawer('mapubarber')">
-      <div style="display:flex; align-items:center; gap:1.125rem;">
-        <img src="/mapubarber.jpg" alt="Mapu"
-          style="width:56px; height:56px; border-radius:1rem; object-fit:cover; border:1px solid rgba(96,165,250,0.2); flex-shrink:0;"
-          onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-        <div style="
-          display:none; width:56px; height:56px; border-radius:1rem; flex-shrink:0;
-          background:rgba(96,165,250,0.08); border:1px solid rgba(96,165,250,0.2);
-          align-items:center; justify-content:center;
-        ">
-          <i class="ph-fill ph-scissors" style="font-size:1.5rem; color:#60a5fa;"></i>
-        </div>
-        <div style="flex:1; min-width:0; text-align:left;">
-          <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.25rem;">
-            <h2 style="font-size:1rem; font-weight:700; color:#fff; margin:0;">Mapu Barbershop</h2>
-            <span style="
-              padding:0.125rem 0.5rem; border-radius:999px; font-size:0.625rem; font-weight:700;
-              background:rgba(96,165,250,0.1); border:1px solid rgba(96,165,250,0.25); color:#60a5fa;
-            ">ACTIVO</span>
-          </div>
-          <p style="font-size:0.8125rem; color:#64748b; margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-            <i class="ph-fill ph-map-pin" style="font-size:0.75rem; color:rgba(96,165,250,0.5);"></i>
-            Mapu Barbershop
-          </p>
-          <div id="badge-mapubarber" style="margin-top:0.375rem; min-height:16px;"></div>
-        </div>
-        <div style="
-          width:32px; height:32px; border-radius:50%; flex-shrink:0;
-          display:flex; align-items:center; justify-content:center;
-          background:rgba(96,165,250,0.08); border:1px solid rgba(96,165,250,0.15);
-        ">
-          <i class="ph-bold ph-caret-right" style="color:#60a5fa; font-size:0.875rem;"></i>
-        </div>
+      <img src="/mapubarber.jpg" alt="Mapu"
+        style="width:52px;height:52px;border-radius:0.875rem;object-fit:cover;border:1px solid rgba(96,165,250,0.25);flex-shrink:0;"
+        onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <div style="display:none;width:52px;height:52px;border-radius:0.875rem;flex-shrink:0;background:rgba(96,165,250,0.08);border:1px solid rgba(96,165,250,0.2);align-items:center;justify-content:center;">
+        <i class="ph-fill ph-scissors" style="font-size:1.4rem;color:#60a5fa;"></i>
       </div>
+      <span style="font-size:0.6875rem;font-weight:700;color:#fff;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">Mapu Barbershop</span>
+      <span style="padding:0.1rem 0.45rem;border-radius:999px;font-size:0.575rem;font-weight:700;background:rgba(96,165,250,0.1);border:1px solid rgba(96,165,250,0.25);color:#60a5fa;">ACTIVO</span>
+      <div id="badge-mapubarber" style="min-height:14px;"></div>
     </button>
 
     <!-- Deluxe Perfumes -->
     <button class="tenant-card deluxeperfumes" onclick="openDrawer('deluxeperfumes')">
-      <div style="display:flex; align-items:center; gap:1.125rem;">
-        <img src="/deluxeperfumes.jpg" alt="Deluxe Perfumes"
-          style="width:56px; height:56px; border-radius:1rem; object-fit:cover; border:1px solid rgba(167,139,250,0.2); flex-shrink:0;"
-          onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
-        <div style="
-          display:none; width:56px; height:56px; border-radius:1rem; flex-shrink:0;
-          background:rgba(167,139,250,0.08); border:1px solid rgba(167,139,250,0.2);
-          align-items:center; justify-content:center;
-        ">
-          <i class="ph-fill ph-drop" style="font-size:1.5rem; color:#a78bfa;"></i>
-        </div>
-        <div style="flex:1; min-width:0; text-align:left;">
-          <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.25rem;">
-            <h2 style="font-size:1rem; font-weight:700; color:#fff; margin:0;">Deluxe Perfumes</h2>
-            <span style="
-              padding:0.125rem 0.5rem; border-radius:999px; font-size:0.625rem; font-weight:700;
-              background:rgba(167,139,250,0.1); border:1px solid rgba(167,139,250,0.25); color:#a78bfa;
-            ">ACTIVO</span>
-          </div>
-          <p style="font-size:0.8125rem; color:#64748b; margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-            <i class="ph-fill ph-map-pin" style="font-size:0.75rem; color:rgba(167,139,250,0.5);"></i>
-            Por definir
-          </p>
-          <div id="badge-deluxeperfumes" style="margin-top:0.375rem; min-height:16px;"></div>
-        </div>
-        <div style="
-          width:32px; height:32px; border-radius:50%; flex-shrink:0;
-          display:flex; align-items:center; justify-content:center;
-          background:rgba(167,139,250,0.08); border:1px solid rgba(167,139,250,0.15);
-        ">
-          <i class="ph-bold ph-caret-right" style="color:#a78bfa; font-size:0.875rem;"></i>
-        </div>
+      <img src="/deluxeperfumes.jpg" alt="Deluxe Perfumes"
+        style="width:52px;height:52px;border-radius:0.875rem;object-fit:cover;border:1px solid rgba(167,139,250,0.25);flex-shrink:0;"
+        onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <div style="display:none;width:52px;height:52px;border-radius:0.875rem;flex-shrink:0;background:rgba(167,139,250,0.08);border:1px solid rgba(167,139,250,0.2);align-items:center;justify-content:center;">
+        <i class="ph-fill ph-drop" style="font-size:1.4rem;color:#a78bfa;"></i>
       </div>
+      <span style="font-size:0.6875rem;font-weight:700;color:#fff;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">Deluxe Perfumes</span>
+      <span style="padding:0.1rem 0.45rem;border-radius:999px;font-size:0.575rem;font-weight:700;background:rgba(167,139,250,0.1);border:1px solid rgba(167,139,250,0.25);color:#a78bfa;">ACTIVO</span>
+      <div id="badge-deluxeperfumes" style="min-height:14px;"></div>
+    </button>
+
+    <!-- Del Nero Barber -->
+    <button class="tenant-card delnero" onclick="openDrawer('delnero')">
+      <img src="/nero.jpg" alt="Del Nero"
+        style="width:52px;height:52px;border-radius:0.875rem;object-fit:cover;border:1px solid rgba(226,232,240,0.2);flex-shrink:0;"
+        onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <div style="display:none;width:52px;height:52px;border-radius:0.875rem;flex-shrink:0;background:rgba(226,232,240,0.06);border:1px solid rgba(226,232,240,0.15);align-items:center;justify-content:center;">
+        <i class="ph-fill ph-scissors" style="font-size:1.4rem;color:#e2e8f0;"></i>
+      </div>
+      <span style="font-size:0.6875rem;font-weight:700;color:#fff;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">Del Nero Barber</span>
+      <span style="padding:0.1rem 0.45rem;border-radius:999px;font-size:0.575rem;font-weight:700;background:rgba(226,232,240,0.08);border:1px solid rgba(226,232,240,0.2);color:#e2e8f0;">ACTIVO</span>
+      <div id="badge-delnero" style="min-height:14px;"></div>
+    </button>
+
+    <!-- AURA Salón -->
+    <button class="tenant-card aura" onclick="openDrawer('aura')">
+      <img src="/aura.png" alt="Aura"
+        style="width:52px;height:52px;border-radius:0.875rem;object-fit:cover;border:1px solid rgba(108,171,221,0.25);flex-shrink:0;"
+        onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <div style="display:none;width:52px;height:52px;border-radius:0.875rem;flex-shrink:0;background:rgba(108,171,221,0.08);border:1px solid rgba(108,171,221,0.2);align-items:center;justify-content:center;">
+        <i class="ph-fill ph-scissors" style="font-size:1.4rem;color:#6CABDD;"></i>
+      </div>
+      <span style="font-size:0.6875rem;font-weight:700;color:#fff;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">AURA Salón</span>
+      <span style="padding:0.1rem 0.45rem;border-radius:999px;font-size:0.575rem;font-weight:700;background:rgba(108,171,221,0.1);border:1px solid rgba(108,171,221,0.25);color:#6CABDD;">ACTIVO</span>
+      <div id="badge-aura" style="min-height:14px;"></div>
     </button>
 
     <!-- Footer meta -->
     <div style="margin-top:1.5rem; display:flex; align-items:center; justify-content:center; gap:1.5rem;">
       <div style="text-align:center;">
         <span style="font-size:0.625rem; text-transform:uppercase; letter-spacing:0.12em; font-weight:700; color:#334155; display:block; margin-bottom:0.25rem;">Locales</span>
-        <span style="font-size:0.75rem; font-weight:600; color:#64748b;">6 activos</span>
+        <span style="font-size:0.75rem; font-weight:600; color:#64748b;">8 activos</span>
       </div>
       <div style="width:1px; height:20px; background:#1e293b;"></div>
       <div style="text-align:center;">
@@ -1036,6 +942,34 @@
         profCol:     () => db.collection('tenants').doc('deluxeperfumes').collection('barberos'),
         usersCol:    () => db.collection('tenants').doc('deluxeperfumes').collection('users'),
         soporteCol:  () => db.collection('tenants').doc('deluxeperfumes').collection('soporte_mensajes'),
+      },
+      delnero: {
+        nombre:      'Del Nero Barber',
+        direccion:   'Curauma / Placilla',
+        logo:        '/nero.jpg',
+        color:       '#e2e8f0',
+        colorRgb:    '226,232,240',
+        profLabel:   'Barberos en local',
+        profLabelBtn:'Agregar Barbero',
+        profIcon:    'ph-scissors',
+        citasCol:    () => db.collection('tenants').doc('delnero').collection('citas'),
+        profCol:     () => db.collection('tenants').doc('delnero').collection('barberos'),
+        usersCol:    () => db.collection('tenants').doc('delnero').collection('users'),
+        soporteCol:  () => db.collection('tenants').doc('delnero').collection('soporte_mensajes'),
+      },
+      aura: {
+        nombre:      'AURA Salón & Male Grooming',
+        direccion:   'aurasalon.synaptechspa.cl',
+        logo:        '/aura.png',
+        color:       '#6CABDD',
+        colorRgb:    '108,171,221',
+        profLabel:   'Profesionales en local',
+        profLabelBtn:'Agregar Profesional',
+        profIcon:    'ph-scissors',
+        citasCol:    () => db.collection('tenants').doc('aura').collection('citas'),
+        profCol:     () => db.collection('tenants').doc('aura').collection('barberos'),
+        usersCol:    () => db.collection('tenants').doc('aura').collection('users'),
+        soporteCol:  () => db.collection('tenants').doc('aura').collection('soporte_mensajes'),
       },
     };
 
