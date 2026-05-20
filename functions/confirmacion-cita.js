@@ -84,6 +84,17 @@ const TENANT_CONFIG = {
     from:        'Lumen Barbershop <citas@synaptechspa.cl>',
     dashboardUrl:'https://lumenbarbershop.synaptechspa.cl/dashboard',
   },
+  aura: {
+    nombre:      'AURA SALÓN & MALE GROOMING',
+    slogan:      'Eleva Tu Aura',
+    direccion:   'Viña del Mar',
+    horario:     'Lun–Sáb: 10:00–20:00 hrs.',
+    color:       '#6CABDD',
+    instagram:   'https://www.instagram.com/aura.salon.cl/',
+    whatsapp:    '56966153086',
+    from:        'AURA SALÓN & MALE GROOMING <citas@synaptechspa.cl>',
+    dashboardUrl:'https://aurasalon.synaptechspa.cl/dashboard',
+  },
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
