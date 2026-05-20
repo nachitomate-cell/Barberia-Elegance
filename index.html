@@ -2077,6 +2077,15 @@
     .tenant-aura .barber-option.bg-brand-neon\/10 {
       background: rgba(108,171,221,0.06) !important;
     }
+    /* Radio circle — overrides inline gold color set by JS */
+    .tenant-aura .barber-radio {
+      border-color: #D4D4D8 !important;
+      background: transparent !important;
+    }
+    .tenant-aura .barber-option.border-neon .barber-radio {
+      border-color: #6CABDD !important;
+      background: #6CABDD !important;
+    }
 
     /* ── Day Buttons ── */
     .tenant-aura .day-btn {
@@ -3344,7 +3353,7 @@
          grid.innerHTML = '<p class="text-sm text-gray-500">No hay barberos disponibles en este momento.</p>';
          return;
       }
-      const _isElegance   = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza';
+      const _isElegance   = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza' || window.CURRENT_TENANT_ID === 'aura';
       const _isMapuB      = window.CURRENT_TENANT_ID === 'mapubarbershop';
       const _isChameleon  = window.CURRENT_TENANT_ID === 'chameleon';
       const anyStateClass = (window._selectedBarberId === 'any' || window._selectedBarber === 'any') ? 'border-neon bg-brand-neon/10' : 'border-brand-accent/20 bg-[#0a0a0d]';
