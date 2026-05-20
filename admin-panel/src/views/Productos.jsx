@@ -219,16 +219,28 @@ export default function Productos() {
   }, []);
 
   const marcarEntregado = async id => {
-    const reserva = reservas.find(r => r.id === id);
-    const batch = writeBatch(db);
-    batch.update(doc(tenantCol('product_reservations'), id), { status: 'delivered', updatedAt: serverTimestamp() });
-    if (reserva?.productId) {
-      const prod = productos.find(p => p.id === reserva.productId);
-      if (prod && prod.stock != null && Number(prod.stock) > 0) {
-        batch.update(doc(tenantCol('productos'), reserva.productId), { stock: Number(prod.stock) - 1 });
+    try {
+      const reserva = reservas.find(r => r.id === id);
+      if (!reserva) {
+        alert('Error: No se encontró la reserva seleccionada.');
+        return;
       }
+      const batch = writeBatch(db);
+      batch.update(doc(tenantCol('product_reservations'), id), { status: 'delivered', updatedAt: serverTimestamp() });
+      if (reserva.productId) {
+        const prod = productos.find(p => p.id === reserva.productId);
+        if (prod && prod.stock !== undefined && prod.stock !== null && prod.stock !== '') {
+          const currentStock = Number(prod.stock);
+          if (currentStock > 0) {
+            batch.update(doc(tenantCol('productos'), reserva.productId), { stock: currentStock - 1 });
+          }
+        }
+      }
+      await batch.commit();
+    } catch (err) {
+      console.error('Error al entregar reserva:', err);
+      alert('Hubo un error al marcar la entrega: ' + err.message);
     }
-    await batch.commit();
   };
 
   const cancelarReserva = id =>
