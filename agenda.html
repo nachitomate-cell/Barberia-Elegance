@@ -1025,8 +1025,8 @@
             const initials = getInitials(cita.clienteNombre || 'Cliente');
 
             return `
-            <div class="bg-[#161616] rounded-2xl p-4 cursor-pointer transition-transform duration-200 hover:bg-[#1a1a1a] ${isCancelled ? 'opacity-40 grayscale' : 'active:scale-[0.98]'} ${extraClass}"
-                 style="border: 1px solid rgba(255,255,255,0.06); border-left: 4px solid ${leftBorderColor};"
+            <div class="bg-[#1c1c24] rounded-2xl p-4 cursor-pointer transition-transform duration-200 hover:bg-[#22222c] ${isCancelled ? 'opacity-40 grayscale' : 'active:scale-[0.98]'} ${extraClass}"
+                 style="border: 1px solid rgba(255,255,255,0.1); border-left: 4px solid ${leftBorderColor};"
                  onclick="abrirDetalleCita('${cita.id}')">
                 <div class="flex items-start justify-between gap-3">
                     <div class="flex items-center gap-4 min-w-0">
@@ -1450,7 +1450,7 @@
             // ── Fila 1: Cabeceras de día (sticky) ──
             // Celda vacía en columna de tiempo
             const emptyHdr = document.createElement('div');
-            emptyHdr.style.cssText = `grid-column:1;grid-row:1;position:sticky;top:0;z-index:10;background:#0a0a0a;padding:8px 0 8px;border-bottom:1px solid rgba(255,255,255,0.1);`;
+            emptyHdr.style.cssText = `grid-column:1;grid-row:1;position:sticky;top:0;z-index:10;background:#141418;padding:8px 0 8px;border-bottom:1px solid rgba(255,255,255,0.14);`;
             grid.appendChild(emptyHdr);
 
             for (let i = 0; i < 7; i++) {
@@ -1467,15 +1467,15 @@
                     'position:sticky',
                     'top:0',
                     'z-index:10',
-                    'background:#0a0a0a',
+                    `background:${isToday ? 'rgba(201,168,76,0.07)' : '#141418'}`,
                     'text-align:center',
                     'padding:6px 2px 8px',
-                    `border-bottom:${isToday ? '2px solid '+GOLD : '1px solid rgba(255,255,255,0.1)'}`,
+                    `border-bottom:${isToday ? '2px solid '+GOLD : '1px solid rgba(255,255,255,0.14)'}`,
                 ].join(';');
                 hdr.innerHTML = `
-                    <p style="font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;color:${isToday ? GOLD : 'rgba(255,255,255,0.35)'};">${diasCorto[d.getDay()]}</p>
+                    <p style="font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;color:${isToday ? GOLD : 'rgba(255,255,255,0.55)'};">${diasCorto[d.getDay()]}</p>
                     <p style="font-size:17px;font-weight:900;line-height:1.1;color:${isToday ? GOLD : '#fff'}">${d.getDate()}</p>
-                    ${citas.length ? `<p style="font-size:8px;color:rgba(255,255,255,0.3);margin-top:1px;">${citas.length}c</p>` : '<p style="font-size:8px;color:transparent;">0</p>'}
+                    ${citas.length ? `<p style="font-size:8px;font-weight:700;color:${isToday ? GOLD : 'rgba(255,255,255,0.45)'};margin-top:1px;">${citas.length}c</p>` : '<p style="font-size:8px;color:transparent;">0</p>'}
                 `;
                 grid.appendChild(hdr);
             }
@@ -1495,10 +1495,10 @@
                     'align-items:flex-start',
                     'justify-content:flex-end',
                     'padding:2px 5px 0 0',
-                    'border-bottom:1px solid rgba(255,255,255,0.03)',
+                    'border-bottom:1px solid rgba(255,255,255,0.06)',
                 ].join(';');
                 const showTime = cur % 60 === 0; // mostrar solo horas en punto
-                timeCell.innerHTML = `<span style="font-size:9px;font-weight:600;color:rgba(255,255,255,${showTime ? '0.25' : '0.1'});white-space:nowrap;">${showTime ? horaStr : ''}</span>`;
+                timeCell.innerHTML = `<span style="font-size:9px;font-weight:700;color:rgba(255,255,255,${showTime ? '0.5' : '0.18'});white-space:nowrap;">${showTime ? horaStr : ''}</span>`;
                 grid.appendChild(timeCell);
 
                 // Línea de hora actual en toda la fila
@@ -1534,7 +1534,7 @@
                     if (!inRange) {
                         // Fuera de horario o día no laborable
                         const cell = document.createElement('div');
-                        cell.style.cssText = `grid-column:${di+2};grid-row:${gridRow};height:34px;background:rgba(0,0,0,0.18);border-bottom:1px solid rgba(255,255,255,0.02);`;
+                        cell.style.cssText = `grid-column:${di+2};grid-row:${gridRow};height:34px;background:rgba(0,0,0,0.35);border-bottom:1px solid rgba(255,255,255,0.04);`;
                         grid.appendChild(cell);
                         continue;
                     }
@@ -1542,8 +1542,8 @@
                     // Colación
                     if (cfg.colacion && cur >= toMins(cfg.colacion.inicio) && cur < toMins(cfg.colacion.fin)) {
                         const cell = document.createElement('div');
-                        cell.style.cssText = `grid-column:${di+2};grid-row:${gridRow};height:34px;background:rgba(255,255,255,0.02);border-bottom:1px solid rgba(255,255,255,0.03);display:flex;align-items:center;justify-content:center;`;
-                        cell.innerHTML = `<i class="ph-bold ph-coffee" style="font-size:9px;color:rgba(255,255,255,0.12);"></i>`;
+                        cell.style.cssText = `grid-column:${di+2};grid-row:${gridRow};height:34px;background:rgba(255,174,0,0.06);border-bottom:1px solid rgba(255,174,0,0.08);display:flex;align-items:center;justify-content:center;`;
+                        cell.innerHTML = `<i class="ph-bold ph-coffee" style="font-size:10px;color:rgba(255,174,0,0.45);"></i>`;
                         grid.appendChild(cell);
                         continue;
                     }
@@ -1557,8 +1557,8 @@
                     });
                     if (bloqueo) {
                         const cell = document.createElement('div');
-                        cell.style.cssText = `grid-column:${di+2};grid-row:${gridRow};height:34px;background:rgba(239,68,68,0.06);border-left:2px solid rgba(239,68,68,0.18);border-bottom:1px solid rgba(255,255,255,0.03);display:flex;align-items:center;justify-content:center;`;
-                        cell.innerHTML = `<i class="ph-bold ph-lock" style="font-size:9px;color:rgba(239,68,68,0.3);"></i>`;
+                        cell.style.cssText = `grid-column:${di+2};grid-row:${gridRow};height:34px;background:rgba(239,68,68,0.13);border-left:2px solid rgba(239,68,68,0.45);border-bottom:1px solid rgba(239,68,68,0.08);display:flex;align-items:center;justify-content:center;`;
+                        cell.innerHTML = `<i class="ph-bold ph-lock" style="font-size:10px;color:rgba(239,68,68,0.65);"></i>`;
                         grid.appendChild(cell);
                         continue;
                     }
@@ -1569,6 +1569,7 @@
                         const isCompleted = cita.estado === 'Completada';
                         const isConfirmed = cita.estado === 'Confirmada';
                         const leftColor   = isCompleted ? '#10b981' : isConfirmed ? '#6CABDD' : '#eab308';
+                        const bgColor     = isCompleted ? 'rgba(16,185,129,0.14)' : isConfirmed ? 'rgba(108,171,221,0.14)' : 'rgba(234,179,8,0.14)';
                         const durMins     = parseInt(cita.duracionServicio || interval);
                         const spans       = Math.max(1, Math.ceil(durMins / interval));
                         const citaH       = spans * 34 - 1;
@@ -1581,7 +1582,7 @@
                             'padding:3px 5px',
                             'cursor:pointer',
                             'overflow:hidden',
-                            `background:rgba(255,255,255,0.06)`,
+                            `background:${bgColor}`,
                             `border-left:3px solid ${leftColor}`,
                             'border-radius:3px',
                             'margin:1px 1px 0 0',
@@ -1590,7 +1591,7 @@
                         cell.onclick = () => abrirDetalleCitaWeek(fechaStr, cita.id);
                         cell.innerHTML = `
                             <p style="font-size:10px;font-weight:800;color:#fff;line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${cita.clienteNombre || 'Cliente'}</p>
-                            ${spans >= 2 ? `<p style="font-size:8px;color:rgba(255,255,255,0.4);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${cita.servicioNombre || ''}</p>` : ''}
+                            ${spans >= 2 ? `<p style="font-size:8px;color:rgba(255,255,255,0.65);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${cita.servicioNombre || ''}</p>` : ''}
                         `;
                         grid.appendChild(cell);
                         continue;
@@ -1604,17 +1605,17 @@
                         `grid-row:${gridRow}`,
                         'height:34px',
                         'cursor:pointer',
-                        `border-bottom:1px solid rgba(255,255,255,${now ? '0' : '0.035'})`,
-                        `border-top:${now ? '1px solid rgba(239,68,68,0.5)' : 'none'}`,
+                        `border-bottom:1px solid rgba(255,255,255,${now ? '0' : '0.07'})`,
+                        `border-top:${now ? '2px solid rgba(239,68,68,0.7)' : 'none'}`,
                         'display:flex',
                         'align-items:center',
                         'justify-content:center',
                         'transition:background 0.1s',
                     ].join(';');
-                    cell.onmouseenter = function() { this.style.background='rgba(201,168,76,0.09)'; };
+                    cell.onmouseenter = function() { this.style.background='rgba(201,168,76,0.12)'; };
                     cell.onmouseleave = function() { this.style.background=''; };
                     cell.onclick = () => abrirOpcionesSlotSemana(fechaStr, horaStr);
-                    cell.innerHTML = `<i class="ph-bold ph-plus" style="font-size:9px;color:rgba(255,255,255,0.08);pointer-events:none;"></i>`;
+                    cell.innerHTML = `<i class="ph-bold ph-plus" style="font-size:9px;color:rgba(255,255,255,0.18);pointer-events:none;"></i>`;
                     grid.appendChild(cell);
                 }
             }
