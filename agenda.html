@@ -664,10 +664,11 @@
         }
 
         function renderDaySelector() {
-            const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','            document.getElementById('currentDateText').textContent = isToday(currentDate) ? 'Hoy' : 
-                currentDate.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });'Lun','Mar','Mié','Jue','Vie','Sáb'];
+            const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+            const diasCorto = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
             
-            document.getElementById('currentDateDisplay').textContent = `${meses[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
+            const txt = isToday(currentDate) ? 'Hoy' : `${diasCorto[currentDate.getDay()]} ${currentDate.getDate()}`;
+            document.getElementById('currentDateText').textContent = `${meses[currentDate.getMonth()]} ${currentDate.getFullYear()} · ${txt}`;
 
             const container = document.getElementById('daySelectorContainer');
             container.innerHTML = '';
