@@ -110,7 +110,7 @@
         { author: 'Diego S.',   rating: 5, text: 'Vine por el degradado y me quedé por la experiencia completa. Increíble atención y resultado.' },
         { author: 'Matías A.',  rating: 5, text: 'El lugar perfecto para quienes cuidan su imagen. Calidad profesional en cada visita.' },
       ],
-      googleReviewUrl: 'https://www.google.com/maps/place/Chameleon+Barber+Studio/@-33.0128439,-71.5521047,837m/data=!3m1!1e3!4m24!1m15!4m14!1m6!1m2!1s0x9689dd307c746191:0x7e5a231571807302!2sChameleon+Barber+Studio,+2520000+Vi%C3%B1a+del+Mar,+Valpara%C3%ADso!2m2!1d-71.5494108!2d-33.0136638!1m6!1m2!1s0x9689dd307c746191:0x7e5a231571807302!2sChameleon+Barber+Studio,+2520000+Vi%C3%B1a+del+Mar,+Valpara%C3%ADso!2m2!1d-71.5494108!2d-33.0136638!3m7!1s0x9689dd307c746191:0x7e5a231571807302!8m2!3d-33.0136638!4d-71.5494108!9m1!1b1!16s%2Fg%2F11vlx04l0m?entry=ttu&g_ep=EgoyMDI2MDUxMC4wIKXMDSoASAFQAw%3D%3D',
+      googleReviewUrl: 'https://g.page/r/CQJzgHEVI1p-EBM/review',
       features: {
         hasCourses: true,
         courses: {
