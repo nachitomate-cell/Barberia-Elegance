@@ -1632,6 +1632,10 @@
           <input type="tel" id="manualPhone" placeholder="Opcional" class="w-full rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
         </div>
         <div>
+          <label class="text-[11px] font-bold text-white/40 uppercase tracking-widest block mb-1">Email</label>
+          <input type="email" id="manualEmail" placeholder="Opcional" class="w-full rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);" autocomplete="off">
+        </div>
+        <div>
           <label class="text-[11px] font-bold text-white/40 uppercase tracking-widest block mb-1">Servicio</label>
           <select id="manualServiceSelect" onchange="_onManualServiceChange()"
             class="w-full rounded-xl px-4 py-3 text-sm text-white outline-none appearance-none"
@@ -1708,6 +1712,7 @@
         document.getElementById('agendarModal').classList.remove('hidden');
         document.getElementById('manualName').value = '';
         document.getElementById('manualPhone').value = '';
+        document.getElementById('manualEmail').value = '';
         document.getElementById('manualServiceSelect').value = '';
         document.getElementById('manualDuration').value = '30';
         document.getElementById('manualError').classList.add('hidden');
@@ -1805,8 +1810,10 @@
         _manualEmail = c.email || '';
         const nameEl  = document.getElementById('manualName');
         const phoneEl = document.getElementById('manualPhone');
+        const emailEl = document.getElementById('manualEmail');
         if (nameEl)  nameEl.value  = c.nombre   || '';
         if (phoneEl) phoneEl.value = c.telefono || '';
+        if (emailEl) emailEl.value = c.email    || '';
         document.getElementById('manualNameSugg').classList.add('hidden');
         document.getElementById('manualLinkedBadge').classList.remove('hidden');
         // Enriquecer con datos del perfil si tiene cuenta registrada
@@ -1816,7 +1823,7 @@
                 if (snap.exists) {
                     const u = snap.data();
                     if (u.nombre   && nameEl)  nameEl.value  = u.nombre;
-                    if (u.email)               _manualEmail  = u.email;
+                    if (u.email)             { _manualEmail  = u.email; if (emailEl) emailEl.value = u.email; }
                     if (u.telefono && phoneEl) phoneEl.value = u.telefono;
                 }
             } catch(_e) {}
@@ -1879,6 +1886,7 @@
         const err = document.getElementById('manualError');
         const name     = document.getElementById('manualName').value.trim();
         const phone    = document.getElementById('manualPhone').value.trim();
+        const email    = document.getElementById('manualEmail').value.trim() || _manualEmail || '';
         const svcSel   = document.getElementById('manualServiceSelect');
         const servicioId = svcSel ? svcSel.value : '';
         const svcObj   = (_servicios || []).find(s => s.id === servicioId);
@@ -1905,7 +1913,7 @@
                 barberoId: barberId,
                 clienteNombre: name,
                 clienteTelefono: phone || '',
-                clienteEmail: _manualEmail || '',
+                clienteEmail: email,
                 estado: 'Confirmada',
                 fecha: fechaStr,
                 hora: _timeSlotSeleccionado,
