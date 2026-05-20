@@ -608,6 +608,13 @@ service cloud.firestore {
                       || request.resource.data.keys().hasOnly(['citaId', 'creadoEn', 'fecha', 'hora', 'barberoId', 'duracion']);
         allow delete: if esStaff(tid);
       }
+
+      // ── fcm_tokens ────────────────────────────────────────────────
+      // Cualquier usuario autenticado del tenant puede registrar su token push.
+      match /fcm_tokens/{tokenId} {
+        allow read:  if esStaff(tid);
+        allow write: if autenticado();
+      }
     }
   }
 }
