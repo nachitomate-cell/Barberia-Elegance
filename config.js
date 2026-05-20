@@ -54,12 +54,12 @@
       instagramHandle: '',
       waEmoji:         '✂️',
       googleReviewUrl: 'https://g.page/r/CT_OVpP50fd8EBM/review',
-      ratingGeneral: 4.9,
-      totalReviews:  54,
+      ratingGeneral: 4.8,
+      totalReviews:  46,
       reviews: [
-        { author: 'Carlos M.',    rating: 5, text: 'El mejor corte que he tenido. Técnica impecable y un ambiente de primer nivel. 100% recomendado.' },
-        { author: 'Pablo R.',     rating: 5, text: 'Llevo años viniendo y nunca me han fallado. El equipo sabe exactamente lo que uno busca.' },
-        { author: 'Sebastián T.', rating: 5, text: 'Primera vez y quedé impresionado. Atención al detalle que no se encuentra en cualquier parte.' },
+        { author: 'Iván Klemencic',      rating: 5, text: 'Excelente atención. Quien atiende demuestra profesionalismo en lo que hace, lo recomiendo totalmente. Además, está la posibilidad de agendar para el mismo día.' },
+        { author: 'Juan P. Mesa',         rating: 5, text: 'Primero que todo, excelente servicio. Un lugar muy grato, limpio y muy buena disposición de Nicolás. Me atendieron al tiro, excelente corte de cabello, todo bien. Recomendable 100%.' },
+        { author: 'Nicolas Pardo',        rating: 5, text: 'Excelente servicio por parte de Nico, lugar con un muy buen ambiente y atención. Para relajarse un rato. Recomendado!' },
       ],
       barberos: [
         { nombre: 'Nicolas Fabian', foto: 'Fabian.png', disponible: true },

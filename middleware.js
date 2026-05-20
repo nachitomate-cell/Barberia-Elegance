@@ -89,7 +89,7 @@ const TENANT_META = {
     themeColor:  '#000000',
     appTitle:    'Ferraza',
     icon:        '/local1.jpg',
-    local: { telephone: '', streetAddress: 'Av. Libertad 63, Local 28', addressLocality: 'Valparaíso', schemaType: 'HairSalon', ratingGeneral: 4.9, totalReviews: 54, reviews: [{ author: 'Carlos M.', rating: 5, text: 'El mejor corte que he tenido. Técnica impecable y ambiente de primer nivel.' }, { author: 'Pablo R.', rating: 5, text: 'Llevo años viniendo y nunca me han fallado. Saben exactamente lo que uno busca.' }, { author: 'Sebastián T.', rating: 5, text: 'Primera vez y quedé impresionado. Atención al detalle que no se encuentra en cualquier parte.' }] },
+    local: { telephone: '', streetAddress: 'Av. Libertad 63, Local 28', addressLocality: 'Valparaíso', schemaType: 'HairSalon', ratingGeneral: 4.8, totalReviews: 46, reviews: [{ author: 'Iván Klemencic', rating: 5, text: 'Excelente atención. Quien atiende demuestra profesionalismo en lo que hace, lo recomiendo totalmente. Además está la posibilidad de agendar para el mismo día.' }, { author: 'Juan P. Mesa', rating: 5, text: 'Primero que todo, excelente servicio. Lugar muy grato, limpio y muy buena disposición de Nicolás. Me atendieron al tiro, excelente corte de cabello. Recomendable 100%.' }, { author: 'Nicolas Pardo', rating: 5, text: 'Excelente servicio por parte de Nico, lugar con un muy buen ambiente y atención. Para relajarse un rato. Recomendado!' }] },
     manifest: {
       name:             'Barbería Ferraza',
       short_name:       'Ferraza',
