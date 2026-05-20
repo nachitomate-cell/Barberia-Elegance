@@ -13,21 +13,25 @@ function chatsCol() {
 
 function playBell() {
   try {
-    const ctx   = new (window.AudioContext || window.webkitAudioContext)();
-    const times = [0, 0.18, 0.36];
-    const freqs = [880, 1109, 1318];
-    times.forEach((t, i) => {
-      const osc  = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(freqs[i], ctx.currentTime + t);
-      gain.gain.setValueAtTime(0.25, ctx.currentTime + t);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.6);
-      osc.start(ctx.currentTime + t);
-      osc.stop(ctx.currentTime  + t + 0.6);
-    });
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+    const audioCtx = new AudioContext();
+    const osc = audioCtx.createOscillator();
+    const gainNode = audioCtx.createGain();
+    
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, audioCtx.currentTime); // A5
+    osc.frequency.exponentialRampToValueAtTime(1760, audioCtx.currentTime + 0.1); // Up to A6
+    
+    gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+    gainNode.gain.linearRampToValueAtTime(0.5, audioCtx.currentTime + 0.05);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.6);
+    
+    osc.connect(gainNode);
+    gainNode.connect(audioCtx.destination);
+    
+    osc.start(audioCtx.currentTime);
+    osc.stop(audioCtx.currentTime + 0.6);
   } catch (_) { /* autoplay bloqueado — silencioso */ }
 }
 
