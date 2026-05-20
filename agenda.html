@@ -1633,16 +1633,29 @@
         </div>
         <div>
           <label class="text-[11px] font-bold text-white/40 uppercase tracking-widest block mb-1">Servicio</label>
-          <input type="text" id="manualService" placeholder="Ej: Corte de Cabello" class="w-full rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+          <select id="manualServiceSelect" onchange="_onManualServiceChange()"
+            class="w-full rounded-xl px-4 py-3 text-sm text-white outline-none appearance-none"
+            style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+            <option value="" style="background:#111">Cargando servicios…</option>
+          </select>
         </div>
         <div>
           <label class="text-[11px] font-bold text-white/40 uppercase tracking-widest block mb-1">Duración (minutos)</label>
           <select id="manualDuration" class="w-full rounded-xl px-4 py-3 text-sm text-white outline-none appearance-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+            <option value="10" style="background:#111">10 min</option>
             <option value="15" style="background:#111">15 min</option>
+            <option value="20" style="background:#111">20 min</option>
+            <option value="25" style="background:#111">25 min</option>
             <option value="30" style="background:#111" selected>30 min</option>
+            <option value="35" style="background:#111">35 min</option>
+            <option value="40" style="background:#111">40 min</option>
             <option value="45" style="background:#111">45 min</option>
+            <option value="50" style="background:#111">50 min</option>
+            <option value="55" style="background:#111">55 min</option>
             <option value="60" style="background:#111">60 min</option>
+            <option value="75" style="background:#111">75 min</option>
             <option value="90" style="background:#111">90 min</option>
+            <option value="120" style="background:#111">120 min</option>
           </select>
         </div>
         <p id="manualError" class="text-red-400 text-xs hidden"></p>
@@ -1695,14 +1708,16 @@
         document.getElementById('agendarModal').classList.remove('hidden');
         document.getElementById('manualName').value = '';
         document.getElementById('manualPhone').value = '';
-        document.getElementById('manualService').value = '';
+        document.getElementById('manualServiceSelect').value = '';
+        document.getElementById('manualDuration').value = '30';
         document.getElementById('manualError').classList.add('hidden');
         document.getElementById('manualLinkedBadge').classList.add('hidden');
         document.getElementById('manualNameSugg').classList.add('hidden');
         _selectedClienteId = null;
         _manualEmail = '';
-        // Precarga clientes en background para que estén listos al escribir
+        // Precarga en background para que estén listos al abrir el modal
         _loadClientes();
+        _loadServicios();
     }
     function cerrarAgendarModal() {
         document.getElementById('agendarModal').classList.add('hidden');
@@ -1808,15 +1823,70 @@
         }
     }
 
+    // ── SERVICIOS DESDE FIRESTORE ───────────────────────────────────
+    let _servicios = null;
+
+    async function _loadServicios() {
+        if (_servicios !== null) return;
+        try {
+            const snap = await tenantCol('servicios').get();
+            _servicios = snap.docs
+                .map(d => ({ id: d.id, ...d.data() }))
+                .filter(s => s.nombre)
+                .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '', 'es'));
+        } catch (_e) { _servicios = []; }
+        _populateServiciosSelect();
+    }
+
+    function _populateServiciosSelect() {
+        const sel = document.getElementById('manualServiceSelect');
+        if (!sel || !_servicios) return;
+        if (!_servicios.length) {
+            sel.innerHTML = '<option value="" style="background:#111">Sin servicios disponibles</option>';
+            return;
+        }
+        sel.innerHTML = '<option value="" style="background:#111">— Selecciona un servicio —</option>' +
+            _servicios.map(s =>
+                `<option value="${_escHtml(s.id)}" data-dur="${s.duracion || 30}" data-precio="${s.precio || 0}" style="background:#111">${_escHtml(s.nombre)}${s.duracion ? '  ·  ' + s.duracion + ' min' : ''}</option>`
+            ).join('');
+    }
+
+    function _onManualServiceChange() {
+        const sel = document.getElementById('manualServiceSelect');
+        if (!sel || !sel.value) return;
+        const opt = sel.options[sel.selectedIndex];
+        const dur = parseInt(opt.getAttribute('data-dur')) || 30;
+        const durSel = document.getElementById('manualDuration');
+        if (!durSel) return;
+        durSel.value = dur;
+        // Si la duración exacta no existe como opción, agregarla dinámicamente
+        if (parseInt(durSel.value) !== dur) {
+            const newOpt = document.createElement('option');
+            newOpt.value = dur;
+            newOpt.textContent = dur + ' min';
+            newOpt.style.background = '#111';
+            durSel.appendChild(newOpt);
+            const sorted = [...durSel.options]
+                .map(o => ({ v: parseInt(o.value), t: o.textContent }))
+                .sort((a, b) => a.v - b.v);
+            durSel.innerHTML = sorted.map(o => `<option value="${o.v}" style="background:#111">${o.t}</option>`).join('');
+            durSel.value = dur;
+        }
+    }
+
     async function guardarCitaManual() {
         const btn = document.getElementById('manualSaveBtn');
         const err = document.getElementById('manualError');
-        const name = document.getElementById('manualName').value.trim();
-        const phone = document.getElementById('manualPhone').value.trim();
-        const service = document.getElementById('manualService').value.trim();
-        const duration = parseInt(document.getElementById('manualDuration').value);
+        const name     = document.getElementById('manualName').value.trim();
+        const phone    = document.getElementById('manualPhone').value.trim();
+        const svcSel   = document.getElementById('manualServiceSelect');
+        const servicioId = svcSel ? svcSel.value : '';
+        const svcObj   = (_servicios || []).find(s => s.id === servicioId);
+        const service  = svcObj?.nombre || '';
+        const duration = parseInt(document.getElementById('manualDuration').value) || 30;
+        const precio   = Number(svcObj?.precio) || 0;
 
-        if(!name || !service) {
+        if (!name || !servicioId) {
             err.textContent = 'Nombre y Servicio son obligatorios.';
             err.classList.remove('hidden');
             return;
@@ -1841,7 +1911,8 @@
                 hora: _timeSlotSeleccionado,
                 duracionServicio: duration,
                 servicioNombre: service,
-                precio: 15000, // default dummy
+                servicioId: servicioId,
+                precio: precio,
                 creadoEn: firebase.firestore.FieldValue.serverTimestamp(),
                 origen: 'agenda_manual',
                 tenantId: window.CURRENT_TENANT_ID || 'elegance'
