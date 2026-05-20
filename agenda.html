@@ -19,9 +19,12 @@
     <!-- Fonts & Icons -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+    <link rel="dns-prefetch" href="https://firestore.googleapis.com">
+    <link rel="dns-prefetch" href="https://identitytoolkit.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    
+    <script src="https://unpkg.com/@phosphor-icons/web" async></script>
+
     <!-- Tailwind CSS (linking existing output.css) -->
     <link href="/output.css" rel="stylesheet">
 
@@ -32,7 +35,6 @@
     <script src="/firebase-config.js?v=1.2"></script>
     <script src="/js/utils/error-logger.js?v=1.0"></script>
     <script src="/config.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js"></script>
     <script src="/firebaseUtils.js?v=2.6"></script>
     <script src="/js/guards/tenant-status-guard.js?v=1.0"></script>
     <script src="/js/guards/version-manager.js?v=1.0"></script>
@@ -352,6 +354,18 @@
     </main>
 
     <script>
+        // Lazy-loads firebase-messaging-compat.js only when push notifications are needed
+        function _ensureFirebaseMessaging() {
+            if (typeof firebase !== 'undefined' && firebase.messaging) return Promise.resolve();
+            return new Promise((resolve, reject) => {
+                const s = document.createElement('script');
+                s.src = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js';
+                s.onload = resolve;
+                s.onerror = reject;
+                document.head.appendChild(s);
+            });
+        }
+
         // ── COLECCIÓN TENANT-AWARE (misma lógica que firebaseUtils.js) ──
         function tenantCol(name) {
             const tid = window.CURRENT_TENANT_ID || 'elegance';
@@ -581,6 +595,7 @@
                             // Renovar token FCM en silencio sin volver a pedir permiso
                             navigator.serviceWorker.ready.then(async reg => {
                                 try {
+                                    await _ensureFirebaseMessaging();
                                     const messaging = firebase.messaging();
                                     const token = await messaging.getToken({ vapidKey: FCM_VAPID_KEY, serviceWorkerRegistration: reg });
                                     if (token) await _guardarToken(token);
@@ -1835,6 +1850,7 @@
           }
 
           // Obtener token FCM real para recibir push en background
+          await _ensureFirebaseMessaging();
           const messaging = _messagingInstance || firebase.messaging();
           _messagingInstance = messaging;
 
