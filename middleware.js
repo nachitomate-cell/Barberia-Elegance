@@ -89,7 +89,7 @@ const TENANT_META = {
     themeColor:  '#000000',
     appTitle:    'Ferraza',
     icon:        '/local1.jpg',
-    local: { telephone: '', streetAddress: 'Av. Libertad 63, Local 28', addressLocality: 'Valparaíso', schemaType: 'HairSalon' },
+    local: { telephone: '', streetAddress: 'Av. Libertad 63, Local 28', addressLocality: 'Valparaíso', schemaType: 'HairSalon', ratingGeneral: 4.9, totalReviews: 54, reviews: [{ author: 'Carlos M.', rating: 5, text: 'El mejor corte que he tenido. Técnica impecable y ambiente de primer nivel.' }, { author: 'Pablo R.', rating: 5, text: 'Llevo años viniendo y nunca me han fallado. Saben exactamente lo que uno busca.' }, { author: 'Sebastián T.', rating: 5, text: 'Primera vez y quedé impresionado. Atención al detalle que no se encuentra en cualquier parte.' }] },
     manifest: {
       name:             'Barbería Ferraza',
       short_name:       'Ferraza',
@@ -180,7 +180,7 @@ const TENANT_META = {
     themeColor:  '#2A1E22',
     appTitle:    'Mapu',
     icon:        '/mapu2.png',
-    local: { telephone: '', streetAddress: '', addressLocality: 'Valparaíso', schemaType: 'HairSalon' },
+    local: { telephone: '', streetAddress: '', addressLocality: 'Valparaíso', schemaType: 'HairSalon', ratingGeneral: 4.8, totalReviews: 72, reviews: [{ author: 'Tomás E.', rating: 5, text: 'Dos sucursales y en ambas el nivel es excelente. Mi favorito en Valparaíso y Viña del Mar.' }, { author: 'Ignacio F.', rating: 5, text: 'El corte perfecto y el ambiente de barbería que te hace volver. Siempre satisfecho.' }, { author: 'Andrés C.', rating: 5, text: 'Profesionalismo total. Me dejaron exactamente el estilo que quería.' }] },
     manifest: {
       name:             'Mapu Barber Shop',
       short_name:       'Mapu',
@@ -225,7 +225,7 @@ const TENANT_META = {
     themeColor:  '#c9a84c',
     appTitle:    'Chameleon',
     icon:        '/local3.jpg',
-    local: { telephone: '', streetAddress: '', addressLocality: 'Valparaíso', schemaType: 'HairSalon' },
+    local: { telephone: '', streetAddress: 'Av. Libertad 868', addressLocality: 'Viña del Mar', schemaType: 'HairSalon', ratingGeneral: 5.0, totalReviews: 38, reviews: [{ author: 'Rodrigo V.', rating: 5, text: 'El mejor Barber Studio de Viña del Mar. Ambiente premium y barberos de primer nivel.' }, { author: 'Diego S.', rating: 5, text: 'Vine por el degradado y me quedé por la experiencia completa. Increíble atención.' }, { author: 'Matías A.', rating: 5, text: 'El lugar perfecto para quienes cuidan su imagen. Calidad profesional en cada visita.' }] },
     manifest: {
       name:             'Chameleon Barber Studio',
       short_name:       'Chameleon',
@@ -406,9 +406,28 @@ function buildJsonLd(meta, hostname) {
   if (local.telephone) schema.telephone = local.telephone;
 
   const addr = { '@type': 'PostalAddress', addressCountry: 'CL', addressRegion: 'Valparaíso' };
-  if (local.streetAddress)  addr.streetAddress  = local.streetAddress;
+  if (local.streetAddress)   addr.streetAddress   = local.streetAddress;
   if (local.addressLocality) addr.addressLocality = local.addressLocality;
   schema.address = addr;
+
+  if (local.ratingGeneral && local.totalReviews) {
+    schema.aggregateRating = {
+      '@type':       'AggregateRating',
+      ratingValue:   String(local.ratingGeneral),
+      bestRating:    '5',
+      worstRating:   '1',
+      reviewCount:   String(local.totalReviews),
+    };
+  }
+
+  if (Array.isArray(local.reviews) && local.reviews.length) {
+    schema.review = local.reviews.map(r => ({
+      '@type':       'Review',
+      author:        { '@type': 'Person', name: r.author },
+      reviewRating:  { '@type': 'Rating', ratingValue: String(r.rating), bestRating: '5', worstRating: '1' },
+      reviewBody:    r.text,
+    }));
+  }
 
   return JSON.stringify(schema);
 }
