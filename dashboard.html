@@ -2889,8 +2889,8 @@ function _renderEquipoGrid(barberos) {
       ? `<img src="${b.foto}" alt="${b.nombre}"
              class="w-full h-full object-cover transition-opacity duration-300"
              style="opacity:0;"
-             onload="this.style.opacity='1';this.previousElementSibling.style.display='none';"
-             onerror="this.style.display='none';this.previousElementSibling.style.display='flex';">
+             onload="this.style.opacity='1';const ns=this.nextElementSibling;if(ns)ns.style.display='none';"
+             onerror="this.style.display='none';const ns=this.nextElementSibling;if(ns)ns.style.display='flex';">
          <span class="absolute inset-0 animate-pulse rounded-full" style="background:var(--gold-glow);"></span>`
       : `<span class="text-2xl font-black text-white">${initials}</span>`;
     return `

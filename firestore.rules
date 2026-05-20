@@ -73,6 +73,14 @@ service cloud.firestore {
           || esBootstrap();
     }
 
+    // ── Verificar si el usuario es el cliente de un documento de cita ──
+    function esCliente(data) {
+      return autenticado()
+          && (data.get('clienteEmail', '') == request.auth.token.email
+              || data.get('clienteUid',  '') == request.auth.uid
+              || data.get('clienteId',   '') == request.auth.uid);
+    }
+
     // ── Validación de campos ────────────────────────────────────────
 
     // Verifica que un campo NO fue modificado en un update
@@ -150,21 +158,14 @@ service cloud.firestore {
     // validación estricta de estructura.  Staff puede crear/editar.
     // Clientes pueden leer y cancelar sus propias citas (por email o uid).
     match /citas/{citaId} {
-      allow read: if esStaff('elegance')
-                  || (autenticado()
-                      && (resource.data.get('clienteEmail', '') == request.auth.token.email
-                          || resource.data.get('clienteUid', '')  == request.auth.uid));
+      allow read: if esStaff('elegance') || esCliente(resource.data);
       allow create: if bookingPublicoValido()
                     || esStaff('elegance');
       allow update: if esStaff('elegance')
-                    || (autenticado()
-                        && (resource.data.get('clienteEmail', '') == request.auth.token.email
-                            || resource.data.get('clienteUid', '') == request.auth.uid)
+                    || (esCliente(resource.data)
                         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado'])
                         && request.resource.data.estado == 'Cancelada')
-                    || (autenticado()
-                        && (resource.data.get('clienteEmail', '') == request.auth.token.email
-                            || resource.data.get('clienteUid', '') == request.auth.uid)
+                    || (esCliente(resource.data)
                         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['pendingGoogleReview'])
                         && request.resource.data.pendingGoogleReview == false);
       allow delete: if esAdmin('elegance');
@@ -263,7 +264,8 @@ service cloud.firestore {
                         && !request.resource.data.keys().hasAny(['role', 'adminOverride']));
       allow update: if esStaff('elegance')
                     || (autenticado()
-                        && resource.data.get('uid', '') == request.auth.uid
+                        && (resource.data.get('uid', '') == request.auth.uid
+                            || resource.data.get('uid', '') == '')
                         && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'adminOverride']));
       allow delete: if esAdmin('elegance');
     }
@@ -410,20 +412,13 @@ service cloud.firestore {
 
       // ── citas (panel admin) ───────────────────────────────────────
       match /citas/{citaId} {
-        allow read: if esStaff(tid)
-                    || (autenticado()
-                        && (resource.data.get('clienteEmail', '') == request.auth.token.email
-                            || resource.data.get('clienteUid', '')  == request.auth.uid));
+        allow read: if esStaff(tid) || esCliente(resource.data);
         allow create: if bookingPublicoValido() || esStaff(tid);
         allow update: if esStaff(tid)
-                      || (autenticado()
-                          && (resource.data.get('clienteEmail', '') == request.auth.token.email
-                              || resource.data.get('clienteUid', '') == request.auth.uid)
+                      || (esCliente(resource.data)
                           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado'])
                           && request.resource.data.estado == 'Cancelada')
-                      || (autenticado()
-                          && (resource.data.get('clienteEmail', '') == request.auth.token.email
-                              || resource.data.get('clienteUid', '') == request.auth.uid)
+                      || (esCliente(resource.data)
                           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['pendingGoogleReview'])
                           && request.resource.data.pendingGoogleReview == false);
         allow delete: if esAdmin(tid);
@@ -431,15 +426,10 @@ service cloud.firestore {
 
       // ── bookings (flujo público web) ──────────────────────────────
       match /bookings/{bookingId} {
-        allow read: if esStaff(tid)
-                    || (autenticado()
-                        && (resource.data.get('clienteEmail', '') == request.auth.token.email
-                            || resource.data.get('clienteUid', '')  == request.auth.uid));
+        allow read: if esStaff(tid) || esCliente(resource.data);
         allow create: if bookingPublicoValido() || esStaff(tid);
         allow update: if esStaff(tid)
-                      || (autenticado()
-                          && (resource.data.get('clienteEmail', '') == request.auth.token.email
-                              || resource.data.get('clienteUid', '') == request.auth.uid)
+                      || (esCliente(resource.data)
                           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['estado'])
                           && request.resource.data.estado == 'Cancelada');
         allow delete: if esAdmin(tid);
@@ -522,7 +512,8 @@ service cloud.firestore {
                           && !request.resource.data.keys().hasAny(['role', 'adminOverride']));
         allow update: if esStaff(tid)
                       || (autenticado()
-                          && resource.data.get('uid', '') == request.auth.uid
+                          && (resource.data.get('uid', '') == request.auth.uid
+                              || resource.data.get('uid', '') == '')
                           && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'adminOverride']));
         allow delete: if esAdmin(tid);
       }
