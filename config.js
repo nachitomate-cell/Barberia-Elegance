@@ -11,6 +11,9 @@
     'deluxeperfumes.synaptechspa.cl':     'deluxeperfumes',
     'lumenbarbershop.synaptechspa.cl':    'lumen',
     'delnerobarber.synaptechspa.cl':      'delnero',
+    'aurasalon.synaptechspa.cl':          'aura',
+    'aurasalonmalegrooming.synaptech.cl': 'aura',
+    'aurasalonmalegrooming.synaptechspa.cl': 'aura',
   };
 
   const _tenants = {
@@ -208,6 +211,23 @@
         { id: 'ian-alcalde',         nombre: 'Ian Alcalde',         foto: null, disponible: true, sucursalId: 'vinadelmar'  },
         { id: 'gabriel-apablaza',    nombre: 'Gabriel Apablaza',    foto: null, disponible: true, sucursalId: 'vinadelmar'  },
       ],
+    },
+    aura: {
+      categoriasServicio: ['Cortes de Cabello', 'Barba', 'Packs', 'Tratamientos', 'Suscripciones Mensuales', 'Experiencias Premium'],
+      nombre:          'AURA SALÓN & MALE GROOMING',
+      nombreCorto:     'AURA',
+      pageTitle:       'AURA SALÓN | Agenda tu hora',
+      slogan:          'Eleva Tu Aura',
+      logo:            '/aura.png',
+      direccion:       '',
+      horario:         '',
+      telefono:        '',
+      club:            'Club AURA',
+      instagram:       '',
+      instagramHandle: '',
+      waEmoji:         '✂️',
+      googleReviewUrl: '',
+      barberos: [],
     },
   };
 

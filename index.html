@@ -1819,6 +1819,74 @@
       border-radius: 2px; margin: 14px auto 28px;
     }
     /* ────────────────────────────────────────────────────────────── */
+    /* ═══════════════════════════════════════════════════════════════
+       AURA SALÓN & MALE GROOMING
+       Paleta: Negro / Gris Carbón con acento Dorado (#fbbf24)
+       ═══════════════════════════════════════════════════════════════ */
+    .tenant-aura {
+      --accent:   #fbbf24;
+      --accent-r: 251; --accent-g: 191; --accent-b: 36;
+      --body-bg:  #0a0a0a;
+    }
+
+    .tenant-aura body { background-color: #0a0a0a; }
+
+    .tenant-aura .booking-hero {
+      background-image: none !important;
+      background-color: #0a0a0a !important;
+    }
+    .tenant-aura .booking-hero-overlay {
+      background: linear-gradient(180deg, rgba(10,10,10,0.6) 0%, rgba(10,10,10,0.8) 100%) !important;
+    }
+    .tenant-aura .hero-logo-ring {
+      border: 2px solid var(--accent);
+      box-shadow: 0 0 28px rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.2);
+    }
+    .tenant-aura #shopNombre {
+      font-weight: 800 !important;
+      color: #ffffff !important;
+    }
+    .tenant-aura .gold-divider {
+      background: linear-gradient(90deg, transparent, var(--accent), transparent) !important;
+    }
+    .tenant-aura .text-neon { text-shadow: none !important; color: #fbbf24 !important; }
+    .tenant-aura h2.text-neon { color: #ffffff !important; }
+    .tenant-aura .service-option {
+      background: rgba(255,255,255,0.03) !important;
+      border-radius: 12px !important;
+    }
+    .tenant-aura .service-option.border-neon {
+      border-color: var(--accent) !important;
+      background: rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.05) !important;
+    }
+    .tenant-aura .service-option .icon-svg { color: var(--accent) !important; filter: none !important; }
+    .tenant-aura .service-option .price-tag { color: var(--accent) !important; }
+    
+    .tenant-aura .barber-option {
+      background: rgba(255,255,255,0.03) !important;
+      border-radius: 12px !important;
+    }
+    .tenant-aura .barber-option.border-neon {
+      border-color: var(--accent) !important;
+    }
+    .tenant-aura .barber-option .text-brand-neon { color: var(--accent) !important; }
+
+    .tenant-aura .day-btn.active, .tenant-aura .day-btn.border-neon {
+      border-color: var(--accent) !important;
+      background: rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.1) !important;
+    }
+    .tenant-aura .day-btn .dot.bg-neon { background: var(--accent) !important; }
+
+    .tenant-aura .time-pill.bg-neon {
+      background: var(--accent) !important;
+      color: #000 !important;
+    }
+    .tenant-aura #btnContinue {
+      background: var(--accent) !important;
+      color: #000 !important;
+      font-weight: 700 !important;
+    }
+    .tenant-aura #progressBar { background: var(--accent) !important; box-shadow: none !important; }
   </style>
 </head>
 
