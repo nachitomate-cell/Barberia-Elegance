@@ -41,6 +41,17 @@ function getAudioCtx() {
   return _audioCtx;
 }
 
+// Primer gesto del usuario → crear/reanudar el contexto para evitar el warning de autoplay
+const _primeAudio = () => {
+  try {
+    const ctx = getAudioCtx();
+    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+  } catch (_) {}
+};
+document.addEventListener('click',    _primeAudio, { once: true });
+document.addEventListener('keydown',  _primeAudio, { once: true });
+document.addEventListener('touchstart', _primeAudio, { once: true });
+
 // Tono diferente al del chat (dos notas ascendentes — "ding-dong")
 async function playAppointmentBell() {
   // Vibración — funciona en primer y segundo plano

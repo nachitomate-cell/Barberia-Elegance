@@ -11,11 +11,21 @@ function chatsCol() {
     : collection(db, `tenants/${tid}/chats`);
 }
 
+let _chatAudioCtx = null;
+function _getChatAudioCtx() {
+  if (!_chatAudioCtx || _chatAudioCtx.state === 'closed') {
+    _chatAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  return _chatAudioCtx;
+}
+document.addEventListener('click',    () => { try { const c = _getChatAudioCtx(); if (c.state === 'suspended') c.resume().catch(()=>{}); } catch(_){} }, { once: true });
+document.addEventListener('keydown',  () => { try { const c = _getChatAudioCtx(); if (c.state === 'suspended') c.resume().catch(()=>{}); } catch(_){} }, { once: true });
+document.addEventListener('touchstart',() => { try { const c = _getChatAudioCtx(); if (c.state === 'suspended') c.resume().catch(()=>{}); } catch(_){} }, { once: true });
+
 function playBell() {
   try {
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContext) return;
-    const audioCtx = new AudioContext();
+    if (!window.AudioContext && !window.webkitAudioContext) return;
+    const audioCtx = _getChatAudioCtx();
     const osc = audioCtx.createOscillator();
     const gainNode = audioCtx.createGain();
     
