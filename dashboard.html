@@ -2303,6 +2303,8 @@ auth.onAuthStateChanged(async user => {
   // Mostrar widget de chat (currentUser ya está asignado aquí)
   const _chatWidgetEl = document.getElementById('chatWidget');
   if (_chatWidgetEl) _chatWidgetEl.classList.remove('hidden');
+  // Prefetch barberos en background para que el modal abra sin espera
+  FDB.getBarberos().then(b => { _equipoBarberosCache = b; }).catch(() => {});
 
   subscribeUserData(user);
 
@@ -2790,38 +2792,63 @@ async function initLookbook() {
 }
 
 // ─── Modal Equipo ─────────────────────────────────────────────
+let _equipoBarberosCache = null;
+
+function _renderEquipoGrid(barberos) {
+  const grid = document.getElementById('equipoGrid');
+  if (!grid) return;
+  if (!barberos.length) {
+    grid.innerHTML = '<p class="col-span-2 text-center text-zinc-500 text-sm py-10">Sin profesionales registrados.</p>';
+    return;
+  }
+  grid.innerHTML = barberos.map(b => {
+    const initials = (b.nombre || '?').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
+    const label = b.especialidad || (b.rol && b.rol !== 'barbero' ? b.rol : 'Barbero');
+    const avatarContent = b.foto
+      ? `<img src="${b.foto}" alt="${b.nombre}"
+             class="w-full h-full object-cover transition-opacity duration-300"
+             style="opacity:0;"
+             onload="this.style.opacity='1';this.previousElementSibling.style.display='none';"
+             onerror="this.style.display='none';this.previousElementSibling.style.display='flex';">
+         <span class="absolute inset-0 animate-pulse rounded-full" style="background:var(--gold-glow);"></span>`
+      : `<span class="text-2xl font-black text-white">${initials}</span>`;
+    return `
+      <div class="bg-zinc-900 border border-zinc-800 rounded-2xl flex flex-col items-center py-5 px-3 gap-3">
+        <div class="relative w-20 h-20 rounded-full overflow-hidden flex items-center justify-center shrink-0"
+             style="background:var(--gold-glow);border:2px solid var(--gold-dim);">
+          ${avatarContent}
+        </div>
+        <div class="text-center">
+          <p class="text-sm font-bold text-white leading-tight">${b.nombre}</p>
+          <p class="text-[11px] mt-1 capitalize font-semibold" style="color:var(--gold);">${label}</p>
+        </div>
+      </div>`;
+  }).join('');
+}
+
 async function abrirEquipoModal() {
   const modal = document.getElementById('equipoModal');
   const grid  = document.getElementById('equipoGrid');
   modal.classList.remove('hidden');
   document.body.style.overflow = 'hidden';
 
+  // Si ya tenemos datos en cache, renderizamos de inmediato (sin espera)
+  if (_equipoBarberosCache) {
+    _renderEquipoGrid(_equipoBarberosCache);
+    // Refresh silencioso en background para datos frescos
+    FDB.getBarberos().then(b => {
+      _equipoBarberosCache = b;
+      if (!document.getElementById('equipoModal').classList.contains('hidden')) {
+        _renderEquipoGrid(b);
+      }
+    }).catch(() => {});
+    return;
+  }
+
   try {
     const barberos = await FDB.getBarberos();
-    if (!barberos.length) {
-      grid.innerHTML = '<p class="col-span-2 text-center text-zinc-500 text-sm py-10">Sin profesionales registrados.</p>';
-      return;
-    }
-    grid.innerHTML = barberos.map(b => {
-      const initials = (b.nombre || '?').split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
-      const fotoHtml = b.foto
-        ? `<img src="${b.foto}" alt="${b.nombre}" class="w-full h-full object-cover"
-               onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
-           <span class="text-2xl font-black text-white hidden w-full h-full items-center justify-center">${initials}</span>`
-        : `<span class="text-2xl font-black text-white">${initials}</span>`;
-      const label = b.especialidad || (b.rol && b.rol !== 'barbero' ? b.rol : 'Barbero');
-      return `
-        <div class="bg-zinc-900 border border-zinc-800 rounded-2xl flex flex-col items-center py-5 px-3 gap-3">
-          <div class="w-20 h-20 rounded-full overflow-hidden flex items-center justify-center shrink-0"
-               style="background:var(--gold-glow);border:2px solid var(--gold-dim);">
-            ${fotoHtml}
-          </div>
-          <div class="text-center">
-            <p class="text-sm font-bold text-white leading-tight">${b.nombre}</p>
-            <p class="text-[11px] mt-1 capitalize font-semibold" style="color:var(--gold);">${label}</p>
-          </div>
-        </div>`;
-    }).join('');
+    _equipoBarberosCache = barberos;
+    _renderEquipoGrid(barberos);
   } catch (e) {
     console.error('[Equipo]', e);
     grid.innerHTML = '<p class="col-span-2 text-center text-zinc-500 text-sm py-10">No se pudo cargar el equipo.</p>';
