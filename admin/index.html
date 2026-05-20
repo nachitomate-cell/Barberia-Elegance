@@ -95,6 +95,11 @@
       background: rgba(108,171,221,0.05);
       box-shadow: 0 12px 30px rgba(0,0,0,0.3), 0 0 20px rgba(108,171,221,0.08);
     }
+    .tenant-card.lumen:hover {
+      border-color: rgba(251,146,60,0.4);
+      background: rgba(251,146,60,0.05);
+      box-shadow: 0 12px 30px rgba(0,0,0,0.3), 0 0 20px rgba(251,146,60,0.08);
+    }
 
     /* ── Drawer overlay ── */
     #drawer-overlay {
@@ -197,6 +202,11 @@
       box-shadow: 0 4px 20px rgba(108,171,221,0.25);
     }
     .cta-btn.aura:hover { box-shadow: 0 8px 30px rgba(108,171,221,0.35); }
+    .cta-btn.lumen {
+      background: linear-gradient(135deg,#fb923c,#ea580c);
+      box-shadow: 0 4px 20px rgba(251,146,60,0.25);
+    }
+    .cta-btn.lumen:hover { box-shadow: 0 8px 30px rgba(251,146,60,0.35); }
 
     /* ── Secondary button ── */
     .btn-secondary {
@@ -536,6 +546,19 @@
       <div id="badge-delnero" style="min-height:14px;"></div>
     </button>
 
+    <!-- Lumen Barbershop -->
+    <button class="tenant-card lumen" onclick="openDrawer('lumen')">
+      <img src="/lumen.jpg" alt="Lumen"
+        style="width:52px;height:52px;border-radius:0.875rem;object-fit:cover;border:1px solid rgba(251,146,60,0.25);flex-shrink:0;"
+        onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <div style="display:none;width:52px;height:52px;border-radius:0.875rem;flex-shrink:0;background:rgba(251,146,60,0.08);border:1px solid rgba(251,146,60,0.2);align-items:center;justify-content:center;">
+        <i class="ph-fill ph-scissors" style="font-size:1.4rem;color:#fb923c;"></i>
+      </div>
+      <span style="font-size:0.6875rem;font-weight:700;color:#fff;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">Lumen Barbershop</span>
+      <span style="padding:0.1rem 0.45rem;border-radius:999px;font-size:0.575rem;font-weight:700;background:rgba(251,146,60,0.1);border:1px solid rgba(251,146,60,0.25);color:#fb923c;">ACTIVO</span>
+      <div id="badge-lumen" style="min-height:14px;"></div>
+    </button>
+
     <!-- AURA Salón -->
     <button class="tenant-card aura" onclick="openDrawer('aura')">
       <img src="/aura.png" alt="Aura"
@@ -553,7 +576,7 @@
     <div style="margin-top:1.5rem; display:flex; align-items:center; justify-content:center; gap:1.5rem;">
       <div style="text-align:center;">
         <span style="font-size:0.625rem; text-transform:uppercase; letter-spacing:0.12em; font-weight:700; color:#334155; display:block; margin-bottom:0.25rem;">Locales</span>
-        <span style="font-size:0.75rem; font-weight:600; color:#64748b;">8 activos</span>
+        <span style="font-size:0.75rem; font-weight:600; color:#64748b;">9 activos</span>
       </div>
       <div style="width:1px; height:20px; background:#1e293b;"></div>
       <div style="text-align:center;">
@@ -942,6 +965,20 @@
         profCol:     () => db.collection('tenants').doc('deluxeperfumes').collection('barberos'),
         usersCol:    () => db.collection('tenants').doc('deluxeperfumes').collection('users'),
         soporteCol:  () => db.collection('tenants').doc('deluxeperfumes').collection('soporte_mensajes'),
+      },
+      lumen: {
+        nombre:      'Lumen Barbershop',
+        direccion:   'lumenbarbershop.synaptechspa.cl',
+        logo:        '/lumen.jpg',
+        color:       '#fb923c',
+        colorRgb:    '251,146,60',
+        profLabel:   'Barberos en local',
+        profLabelBtn:'Agregar Barbero',
+        profIcon:    'ph-scissors',
+        citasCol:    () => db.collection('tenants').doc('lumen').collection('citas'),
+        profCol:     () => db.collection('tenants').doc('lumen').collection('barberos'),
+        usersCol:    () => db.collection('tenants').doc('lumen').collection('users'),
+        soporteCol:  () => db.collection('tenants').doc('lumen').collection('soporte_mensajes'),
       },
       delnero: {
         nombre:      'Del Nero Barber',
