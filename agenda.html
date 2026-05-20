@@ -561,9 +561,12 @@
 
                     try {
                         await loadBarberData(info.nombre);
-                        renderDaySelector();
-                        loadAgendaData();
-                        if (window.CURRENT_TENANT_ID === 'chameleon') { _initWeekView(); }
+                        if (window.CURRENT_TENANT_ID === 'chameleon') {
+                            _initWeekView();
+                        } else {
+                            renderDaySelector();
+                            loadAgendaData();
+                        }
                         loadLatestReservations();
                     } catch (err) {
                         console.error('Error al cargar datos de la agenda:', err);
