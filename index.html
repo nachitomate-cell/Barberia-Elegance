@@ -3426,8 +3426,13 @@
         </button>
       `;
 
+      // Aura: shuffle barbers so no one gets a permanent "top" position
+      const _barberosOrden = window.CURRENT_TENANT_ID === 'aura'
+        ? [...barberos].sort(() => Math.random() - 0.5)
+        : barberos;
+
       grid.className = 'flex flex-col gap-4';
-      grid.innerHTML = anyCard + barberos.map(b => {
+      grid.innerHTML = anyCard + _barberosOrden.map(b => {
         const fotoHTMLElegance = b.foto
           ? `<img src="${b.foto}" alt="Foto de ${b.nombre}" class="w-12 h-12 rounded-full object-cover border border-white/10 shrink-0 bg-[#111115]">`
           : `<div class="w-12 h-12 rounded-full flex items-center justify-center border border-white/10 shrink-0 bg-[#111115]"><i class="ph-fill ph-user text-xl text-gray-400"></i></div>`;
