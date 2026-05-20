@@ -65,7 +65,11 @@ const SERVICIOS = [
 
 // ── Profesionales ────────────────────────────────────────────────────────────
 const BARBEROS = [
-  { id: 'aura-staff-1', nombre: 'Staff Aura', foto: null, disponible: true, activo: true, rol: 'profesional', orden: 0 },
+  { id: 'aura-manolito', nombre: 'Manolito',          foto: null, disponible: true, activo: true, rol: 'profesional', orden: 0 },
+  { id: 'aura-jocce',    nombre: 'Jocce Garcia (JG)', foto: null, disponible: true, activo: true, rol: 'profesional', orden: 1 },
+  { id: 'aura-chiky',    nombre: 'Chiky barber',      foto: null, disponible: true, activo: true, rol: 'profesional', orden: 2 },
+  { id: 'aura-matiaz',   nombre: 'Matiaz cutz',       foto: null, disponible: true, activo: true, rol: 'profesional', orden: 3 },
+  { id: 'aura-lina',     nombre: 'Lina',              foto: null, disponible: true, activo: true, rol: 'profesional', orden: 4 },
 ];
 
 // ── Configuración de horarios ────────────────────────────────────────────────
