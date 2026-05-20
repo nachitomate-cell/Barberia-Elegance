@@ -219,7 +219,7 @@
         </div>
 
         <!-- Day Selector / Calendar Header -->
-        <div class="mb-10 animate-fade-in" style="animation-delay: 0.1s;">
+        <div id="dayViewHeader" class="mb-10 animate-fade-in" style="animation-delay: 0.1s;">
             <div class="flex items-center justify-between mb-6">
                 <h2 class="text-2xl font-bold text-white tracking-tight cursor-pointer hover:text-brand-accent transition-colors flex items-center gap-2" id="currentDateDisplay" onclick="abrirMiniCalendario()">
                     <span id="currentDateText">Cargando...</span>
@@ -241,7 +241,7 @@
         </div>
 
         <!-- Schedule Grid -->
-        <div class="space-y-2 animate-fade-in" style="animation-delay: 0.2s;">
+        <div id="dayViewGrid" class="space-y-2 animate-fade-in" style="animation-delay: 0.2s;">
 
             <!-- Morning Section -->
             <div id="morningSection" class="hidden">
@@ -262,6 +262,22 @@
             <div id="emptyAgenda" class="hidden py-12 text-center">
                 <i class="ph ph-calendar-blank text-4xl text-white/20 mb-3"></i>
                 <p class="text-white/40 text-sm">No hay turnos configurados para este día.</p>
+            </div>
+        </div>
+
+        <!-- ── VISTA SEMANAL (solo Chameleon) ── -->
+        <div id="weekViewSection" class="hidden animate-fade-in mb-8" style="animation-delay: 0.1s;">
+            <div class="flex items-center justify-between mb-5">
+                <button onclick="cambiarSemana(-1)" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all active:scale-95">
+                    <i class="ph-bold ph-caret-left text-white/60"></i>
+                </button>
+                <h2 id="weekRangeLabel" class="text-sm font-bold text-white/70 tracking-tight select-none"></h2>
+                <button onclick="cambiarSemana(1)" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all active:scale-95">
+                    <i class="ph-bold ph-caret-right text-white/60"></i>
+                </button>
+            </div>
+            <div id="weekColumnsContainer" class="flex gap-2 overflow-x-auto pb-4 no-scrollbar -mx-6 px-6 snap-x snap-mandatory">
+                <!-- Generado por renderWeekView() -->
             </div>
         </div>
 
@@ -547,6 +563,7 @@
                         await loadBarberData(info.nombre);
                         renderDaySelector();
                         loadAgendaData();
+                        if (window.CURRENT_TENANT_ID === 'chameleon') { _initWeekView(); }
                         loadLatestReservations();
                     } catch (err) {
                         console.error('Error al cargar datos de la agenda:', err);
@@ -1240,6 +1257,144 @@
                 creadoEn:  firebase.firestore.FieldValue.serverTimestamp(),
             });
             await batch.commit();
+        }
+
+        // ── VISTA SEMANAL (Chameleon) ────────────────────────────────────
+        let _weekCitas = {};
+        let _weekUnsubs = [];
+        let _currentWeekStart = null;
+
+        function _fmtDate(d) {
+            return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        }
+
+        function _getWeekStart(d) {
+            const day = d.getDay();
+            const diff = (day === 0) ? -6 : 1 - day;
+            const mon = new Date(d);
+            mon.setDate(d.getDate() + diff);
+            mon.setHours(0, 0, 0, 0);
+            return mon;
+        }
+
+        function cambiarSemana(offset) {
+            const ws = new Date(_currentWeekStart);
+            ws.setDate(ws.getDate() + offset * 7);
+            _currentWeekStart = ws;
+            loadWeekData();
+            renderWeekView();
+        }
+
+        function loadWeekData() {
+            _weekUnsubs.forEach(u => u());
+            _weekUnsubs = [];
+            _weekCitas = {};
+            for (let i = 0; i < 7; i++) {
+                const d = new Date(_currentWeekStart);
+                d.setDate(d.getDate() + i);
+                const fechaStr = _fmtDate(d);
+                const unsub = tenantCol('citas')
+                    .where('fecha', '==', fechaStr)
+                    .where('barberoId', '==', barberId)
+                    .onSnapshot(snap => {
+                        _weekCitas[fechaStr] = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                        renderWeekView();
+                    }, () => { _weekCitas[fechaStr] = []; renderWeekView(); });
+                _weekUnsubs.push(unsub);
+            }
+        }
+
+        function abrirDetalleCitaWeek(fechaStr, citaId) {
+            todayCitas = _weekCitas[fechaStr] || [];
+            const [y, m, d] = fechaStr.split('-').map(Number);
+            currentDate = new Date(y, m - 1, d);
+            abrirDetalleCita(citaId);
+        }
+
+        function renderWeekView() {
+            if (!_currentWeekStart) return;
+            const meses    = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+            const diasCorto = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+            const weekEnd  = new Date(_currentWeekStart);
+            weekEnd.setDate(weekEnd.getDate() + 6);
+            const sMes = meses[_currentWeekStart.getMonth()];
+            const eMes = meses[weekEnd.getMonth()];
+            const label = sMes === eMes
+                ? `${_currentWeekStart.getDate()} — ${weekEnd.getDate()} ${sMes} ${weekEnd.getFullYear()}`
+                : `${_currentWeekStart.getDate()} ${sMes} — ${weekEnd.getDate()} ${eMes} ${weekEnd.getFullYear()}`;
+            const labelEl = document.getElementById('weekRangeLabel');
+            if (labelEl) labelEl.textContent = label;
+
+            const container = document.getElementById('weekColumnsContainer');
+            if (!container) return;
+            container.innerHTML = '';
+
+            const todayStr = _fmtDate(new Date());
+            const GOLD = '#c9a84c';
+
+            for (let i = 0; i < 7; i++) {
+                const d = new Date(_currentWeekStart);
+                d.setDate(d.getDate() + i);
+                const fechaStr    = _fmtDate(d);
+                const isToday     = fechaStr === todayStr;
+                const citas       = (_weekCitas[fechaStr] || []).filter(c => c.estado !== 'Cancelada');
+                const citasSorted = [...citas].sort((a, b) => a.hora.localeCompare(b.hora));
+
+                const col = document.createElement('div');
+                col.className = 'flex-shrink-0 flex flex-col rounded-2xl overflow-hidden snap-start';
+                col.style.cssText = `width:140px;background:rgba(255,255,255,${isToday ? '0.05' : '0.02'});border:1px solid ${isToday ? 'rgba(201,168,76,0.4)' : 'rgba(255,255,255,0.06)'};`;
+
+                const hdr = document.createElement('div');
+                hdr.style.cssText = `padding:10px 8px 8px;text-align:center;background:${isToday ? 'rgba(201,168,76,0.1)' : 'rgba(255,255,255,0.02)'};border-bottom:1px solid rgba(255,255,255,0.06);`;
+                hdr.innerHTML = `
+                    <p style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.15em;color:${isToday ? GOLD : 'rgba(255,255,255,0.35)'};margin-bottom:2px;">${diasCorto[d.getDay()]}</p>
+                    <p style="font-size:22px;font-weight:900;line-height:1;color:${isToday ? GOLD : '#fff'}">${d.getDate()}</p>
+                    <p style="font-size:9px;font-weight:700;margin-top:4px;min-height:12px;color:rgba(255,255,255,0.25);">${citas.length > 0 ? citas.length + ' cita' + (citas.length !== 1 ? 's' : '') : ''}</p>
+                `;
+                col.appendChild(hdr);
+
+                const body = document.createElement('div');
+                body.className = 'flex flex-col gap-1.5 p-2 overflow-y-auto';
+                body.style.cssText = 'max-height:420px;scrollbar-width:none;-ms-overflow-style:none;';
+
+                if (citasSorted.length === 0) {
+                    const empty = document.createElement('p');
+                    empty.style.cssText = 'color:rgba(255,255,255,0.18);font-size:10px;text-align:center;padding:20px 4px;font-weight:600;';
+                    empty.textContent = 'Sin citas';
+                    body.appendChild(empty);
+                } else {
+                    citasSorted.forEach(cita => {
+                        const isCompleted = cita.estado === 'Completada';
+                        const isConfirmed = cita.estado === 'Confirmada';
+                        const leftColor = isCompleted ? '#10b981' : isConfirmed ? '#6CABDD' : '#eab308';
+                        const card = document.createElement('div');
+                        card.className = 'rounded-xl cursor-pointer transition-transform duration-150 active:scale-95';
+                        card.style.cssText = `padding:8px 10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-left:3px solid ${leftColor};`;
+                        card.onclick = () => abrirDetalleCitaWeek(fechaStr, cita.id);
+                        card.innerHTML = `
+                            <p style="font-size:12px;font-weight:800;color:#fff;line-height:1;">${cita.hora}</p>
+                            <p style="font-size:10px;font-weight:600;color:rgba(255,255,255,0.55);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${cita.clienteNombre || 'Cliente'}</p>
+                            <p style="font-size:9px;color:rgba(255,255,255,0.28);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${cita.servicioNombre || ''}</p>
+                        `;
+                        body.appendChild(card);
+                    });
+                }
+                col.appendChild(body);
+                container.appendChild(col);
+            }
+        }
+
+        function _initWeekView() {
+            const dh = document.getElementById('dayViewHeader');
+            const dg = document.getElementById('dayViewGrid');
+            const ds = document.getElementById('dailyStatsDashboard');
+            if (dh) dh.classList.add('hidden');
+            if (dg) dg.classList.add('hidden');
+            if (ds) ds.classList.add('hidden');
+            const ws = document.getElementById('weekViewSection');
+            if (ws) ws.classList.remove('hidden');
+            _currentWeekStart = _getWeekStart(new Date());
+            loadWeekData();
         }
 
         // ── ÚLTIMAS RESERVAS ──
