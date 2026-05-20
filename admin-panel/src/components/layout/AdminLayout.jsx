@@ -3,6 +3,7 @@ import { Menu } from 'lucide-react';
 import Sidebar    from './Sidebar';
 import PWABanner           from './PWABanner';
 import NotificationBanner  from './NotificationBanner';
+import PendingAppointmentsBanner from '../PendingAppointmentsBanner';
 import { useChatNotifications }       from '../../hooks/useChatNotifications';
 import { useAppointmentNotifications } from '../../hooks/useAppointmentNotifications';
 
@@ -62,6 +63,9 @@ export default function AdminLayout({ children }) {
 
         {/* Push notification opt-in banner */}
         <NotificationBanner />
+
+        {/* End of day pending appointments banner */}
+        <PendingAppointmentsBanner />
 
         {/* Page content */}
         <main
