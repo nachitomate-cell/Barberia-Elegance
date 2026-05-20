@@ -362,7 +362,7 @@ exports.notificarReservaPublica = onDocumentCreated(
 );
 
 // ─────────────────────────────────────────────────────────────────
-//  HELPER: tokens para tenant multi-tenant (lee tenants/{tid}/barberos)
+//  HELPER: tokens para tenant multi-tenant (lee tenants/{tid}/fcm_tokens)
 // ─────────────────────────────────────────────────────────────────
 async function getTokensActivosTenant(tid, barberoId, barberoNombre) {
   const validUids = new Set();
@@ -370,18 +370,30 @@ async function getTokensActivosTenant(tid, barberoId, barberoNombre) {
     const barberoIdTrimmed     = (barberoId    || '').trim();
     const barberoNombreTrimmed = (barberoNombre || '').toLowerCase().trim();
 
-    const [barberosSnap, tokensSnap] = await Promise.all([
+    // Tokens viven en tenants/{tid}/fcm_tokens (misma ruta que usa tenantCol en agenda.html)
+    const queries = [
       db.collection(`tenants/${tid}/barberos`).get(),
-      db.collection('fcm_tokens').where('tenantId', '==', tid).get(),
-    ]);
+      db.collection(`tenants/${tid}/fcm_tokens`).where('activo', '==', true).get(),
+    ];
+    if (barberoIdTrimmed) {
+      queries.push(
+        db.collection(`tenants/${tid}/fcm_tokens`)
+          .where('barberoId', '==', barberoIdTrimmed)
+          .where('activo', '==', true)
+          .get()
+      );
+    }
+
+    const [barberosSnap, tokensSnap, directTokensSnap] = await Promise.all(queries);
 
     barberosSnap.forEach(docSnap => {
       const b = docSnap.data();
       if (b.activo === false) return;
-      const isManager   = b.rol === 'jefe' || b.rol === 'admin';
-      const matchById   = barberoIdTrimmed && docSnap.id === barberoIdTrimmed;
-      const matchByName = barberoNombreTrimmed && (b.nombre || '').toLowerCase().trim() === barberoNombreTrimmed;
-      if (isManager || matchById || matchByName) {
+      const isManager      = b.rol === 'jefe' || b.rol === 'admin';
+      const matchById      = barberoIdTrimmed && docSnap.id === barberoIdTrimmed;
+      const matchByName    = barberoNombreTrimmed && (b.nombre || '').toLowerCase().trim() === barberoNombreTrimmed;
+      const matchByMainDoc = barberoIdTrimmed && b._mainDocId === barberoIdTrimmed;
+      if (isManager || matchById || matchByName || matchByMainDoc) {
         validUids.add(docSnap.id);
         if (b.uid) validUids.add(b.uid);
       }
@@ -390,8 +402,14 @@ async function getTokensActivosTenant(tid, barberoId, barberoNombre) {
     const tokenSet = new Set();
     tokensSnap.forEach(d => {
       const data = d.data();
-      if (data.activo && validUids.has(data.uid)) tokenSet.add(data.token);
+      if (validUids.has(data.uid)) tokenSet.add(data.token);
     });
+    if (directTokensSnap) {
+      directTokensSnap.forEach(d => {
+        const t = d.data().token;
+        if (t && !tokenSet.has(t)) tokenSet.add(t);
+      });
+    }
     return [...tokenSet];
   } catch (err) {
     logger.error('[FCM] Error filtrando tokens tenant:', err);
@@ -463,7 +481,7 @@ exports.notificarCitaTenant = onDocumentCreated(
       });
       if (invalidos.length) {
         const batch = db.batch();
-        invalidos.forEach(t => batch.update(db.collection('fcm_tokens').doc(t), { activo: false }));
+        invalidos.forEach(t => batch.update(db.collection(`tenants/${tenantId}/fcm_tokens`).doc(t), { activo: false }));
         await batch.commit();
       }
     } catch (err) {
