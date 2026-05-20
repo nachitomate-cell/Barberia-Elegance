@@ -1450,6 +1450,139 @@
     .tenant-aura #equipoModal .border-white\\/6 { border-color: #E4E4E7 !important; }
     .tenant-aura button[onclick="cerrarEquipoModal()"] { background: #F4F4F5 !important; border-color: #D4D4D8 !important; }
     .tenant-aura button[onclick="cerrarEquipoModal()"] i { color: #18181B !important; }
+
+    /* ── Aura: remaining dark artifact fixes ─────────────────────── */
+
+    /* bg-gray-900 (productoModal) */
+    .tenant-aura .bg-gray-900 { background-color: #FFFFFF !important; }
+
+    /* bg-[#0d0d10] (product cards, googleReviewModal content) */
+    .tenant-aura .bg-\[#0d0d10\] { background-color: #FFFFFF !important; }
+
+    /* bg-gray-800 / bg-gray-700 (camera upload button) */
+    .tenant-aura .bg-gray-800 { background-color: #FFFFFF !important; }
+    .tenant-aura .bg-gray-700 { background-color: #F4F4F5 !important; }
+    .tenant-aura .border-gray-600 { border-color: #D4D4D8 !important; }
+    .tenant-aura .border-gray-700 { border-color: #D4D4D8 !important; }
+
+    /* Profile — Rango stat card (inline dark gradient) */
+    .tenant-aura [style*="#18181b"] {
+      background: #F4F4F5 !important;
+    }
+
+    /* Modal backdrops — bg-[#050505]/85 etc. are distinct Tailwind classes; target by ID */
+    .tenant-aura #reagendarCitaModal,
+    .tenant-aura #cancelCitaModal,
+    .tenant-aura #deleteModal,
+    .tenant-aura #canjeModal {
+      background: rgba(0,40,94,0.45) !important;
+      backdrop-filter: blur(6px) !important;
+    }
+    .tenant-aura #equipoModal > div:first-child {
+      background: rgba(0,40,94,0.45) !important;
+    }
+
+    /* Lookbook viewer */
+    .tenant-aura #lookbookViewer {
+      background: rgba(0,40,94,0.88) !important;
+    }
+
+    /* Lookbook close button (bg-black/70) */
+    .tenant-aura #lookbookViewer > button {
+      background: rgba(255,255,255,0.15) !important;
+      color: #FFFFFF !important;
+    }
+
+    /* Cross-sell banner in history tab (JS inline dark gradient) */
+    .tenant-aura [style*="linear-gradient(to right,#111115"] {
+      background: linear-gradient(to right, rgba(108,171,221,0.08), rgba(108,171,221,0.03)) !important;
+      border-color: rgba(108,171,221,0.28) !important;
+    }
+    .tenant-aura [style*="linear-gradient(to right,#111115"] p[style*="rgba(212,175,55"] {
+      color: #6CABDD !important;
+    }
+    .tenant-aura [style*="linear-gradient(to right,#111115"] p.text-gray-300 { color: #52525B !important; }
+    .tenant-aura [style*="linear-gradient(to right,#111115"] button[style*="background:#D4AF37"] {
+      background: #6CABDD !important;
+      color: #FFFFFF !important;
+    }
+
+    /* PWA Banner (inline style on element itself) */
+    .tenant-aura #pwaBanner {
+      background: #FFFFFF !important;
+      box-shadow: 0 4px 20px rgba(108,171,221,0.15) !important;
+    }
+    .tenant-aura #pwaBanner p { color: #18181B !important; }
+    .tenant-aura #pwaBanner button[style*="rgba(255,255,255,0.05)"] {
+      background: rgba(108,171,221,0.08) !important;
+    }
+
+    /* Chat toggle button */
+    .tenant-aura #chatToggleBtn { background: #6CABDD !important; }
+    .tenant-aura #chatToggleBtn svg { fill: #FFFFFF !important; }
+
+    /* Chat popover */
+    .tenant-aura #chatPopover {
+      background: #FFFFFF !important;
+      border-color: #D4D4D8 !important;
+    }
+    .tenant-aura #chatPopover [style*="background:#000"] {
+      background: #F4F4F5 !important;
+      border-color: #E4E4E7 !important;
+    }
+    .tenant-aura #chatHeaderNombre { color: #18181B !important; }
+    .tenant-aura #chatMessages [style*="background:#1f2937"] {
+      background: #EFF4F8 !important;
+      color: #18181B !important;
+    }
+    .tenant-aura #chatMessages [style*="background:#D4AF37"] {
+      background: #6CABDD !important;
+      color: #FFFFFF !important;
+    }
+    .tenant-aura #chatInput {
+      background: #FFFFFF !important;
+      border-color: #D4D4D8 !important;
+      color: #18181B !important;
+    }
+    .tenant-aura #chatInput::placeholder { color: #A1A1AA !important; }
+    .tenant-aura button[onclick="sendChatMessage()"] { background: #6CABDD !important; }
+    .tenant-aura button[onclick="sendChatMessage()"] svg { fill: #FFFFFF !important; }
+
+    /* Producto modal */
+    .tenant-aura #productoModal { background: rgba(0,40,94,0.50) !important; }
+    .tenant-aura #productoModal > div { background: #FFFFFF !important; }
+    .tenant-aura #productoModal button.bg-black\/60 {
+      background: rgba(24,24,27,0.08) !important;
+    }
+    .tenant-aura #productoModal button.bg-black\/60 i { color: #18181B !important; }
+
+    /* PWA iOS modal */
+    .tenant-aura #pwaModalIOS { background: rgba(0,40,94,0.50) !important; }
+    .tenant-aura #pwaModalIOS > div {
+      background: #FFFFFF !important;
+      border-color: rgba(108,171,221,0.25) !important;
+    }
+    .tenant-aura #pwaModalIOS h3 { color: #18181B !important; }
+    .tenant-aura #pwaModalIOS p  { color: #52525B !important; }
+    .tenant-aura #pwaModalIOS strong { color: #18181B !important; }
+    .tenant-aura #pwaModalIOS [style*="rgba(255,255,255,0.05)"] {
+      background: rgba(108,171,221,0.06) !important;
+    }
+    .tenant-aura #pwaModalIOS > div > button {
+      color: #8E9399 !important;
+      border-color: #D4D4D8 !important;
+    }
+
+    /* Google Review modal */
+    .tenant-aura #googleReviewModal { background: rgba(0,40,94,0.50) !important; }
+    .tenant-aura #googleReviewModal > div {
+      background: #FFFFFF !important;
+      border-color: #D4D4D8 !important;
+    }
+    .tenant-aura #googleReviewModal [style*="rgba(201,168,76"] { background: rgba(108,171,221,0.05) !important; }
+    .tenant-aura #googleReviewModal .text-white { color: #18181B !important; }
+    .tenant-aura #googleReviewModal p { color: #52525B !important; }
+    /* ─────────────────────────────────────────────────────────────── */
   </style>
 
 <body class="font-sans antialiased min-h-screen">
