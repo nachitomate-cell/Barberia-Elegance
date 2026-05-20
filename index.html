@@ -1968,110 +1968,6 @@
       z-index: -1;
       pointer-events: none;
     }
-
-    /* Quiénes Somos button (Aura) */
-    #aura-sobre-wrap { display: none; }
-    .tenant-aura #aura-sobre-wrap { display: block !important; }
-    #aura-sobre-btn {
-      width: 100%;
-      padding: 10px 16px;
-      border-radius: 12px;
-      border: 1px solid rgba(255,255,255,0.15);
-      background: rgba(255,255,255,0.04);
-      color: rgba(255,255,255,0.80);
-      font-family: system-ui, sans-serif;
-      font-size: 12.5px;
-      font-weight: 600;
-      letter-spacing: 0.10em;
-      text-transform: uppercase;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      cursor: pointer;
-      transition: background 0.2s, border-color 0.2s, color 0.2s;
-    }
-    #aura-sobre-btn:active {
-      background: rgba(255,255,255,0.08);
-      border-color: rgba(255,255,255,0.30);
-      color: #ffffff;
-    }
-
-    /* Modal overlay for Aura */
-    #aura-sobre-modal {
-      display: none;
-      position: fixed;
-      inset: 0;
-      z-index: 9998;
-      background: rgba(0,0,0,0.85);
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
-      align-items: flex-end;
-    }
-    #aura-sobre-modal.open { display: flex; }
-    #aura-sobre-sheet {
-      width: 100%;
-      max-height: 80vh;
-      overflow-y: auto;
-      background: #09090b; /* zinc-950 */
-      border-radius: 24px 24px 0 0;
-      border-top: 1px solid rgba(255,255,255,0.10);
-      padding: 0 24px 40px;
-      transform: translateY(100%);
-      transition: transform 0.35s cubic-bezier(0.16,1,0.3,1);
-    }
-    #aura-sobre-modal.open #aura-sobre-sheet { transform: translateY(0); }
-    #aura-sobre-handle {
-      width: 36px; height: 4px;
-      background: rgba(255,255,255,0.15);
-      border-radius: 2px;
-      margin: 14px auto 20px;
-    }
-    #aura-sobre-title {
-      font-family: system-ui, sans-serif;
-      font-size: 22px;
-      font-weight: 800;
-      color: #ffffff;
-      margin-bottom: 16px;
-      line-height: 1.25;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-    #aura-sobre-body {
-      font-family: system-ui, sans-serif;
-      font-size: 14px;
-      line-height: 1.75;
-      color: rgba(255,255,255,0.75);
-    }
-    #aura-sobre-close {
-      margin-top: 24px;
-      width: 100%;
-      padding: 13px;
-      border-radius: 12px;
-      background: #ffffff;
-      color: #000000;
-      font-family: system-ui, sans-serif;
-      font-size: 13px;
-      font-weight: 700;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      border: none;
-      cursor: pointer;
-      transition: opacity 0.2s;
-    }
-    #aura-sobre-close:active {
-      opacity: 0.85;
-    }
-
-    /* Hide Quiénes Somos / Sobre Nosotros buttons on steps 2, 3, 4 */
-    body[data-step="2"] #mapu-sobre-wrap,
-    body[data-step="3"] #mapu-sobre-wrap,
-    body[data-step="4"] #mapu-sobre-wrap,
-    body[data-step="2"] #aura-sobre-wrap,
-    body[data-step="3"] #aura-sobre-wrap,
-    body[data-step="4"] #aura-sobre-wrap {
-      display: none !important;
-    }
   </style>
 </head>
 
@@ -2136,14 +2032,6 @@
       <button id="mapu-sobre-btn" onclick="openMapuSobre()">
         <i class="ph ph-info" style="font-size:15px;"></i>
         Sobre Nosotros
-      </button>
-    </div>
-
-    <!-- Quiénes Somos — Aura only -->
-    <div id="aura-sobre-wrap" class="px-6 pt-4 pb-1">
-      <button id="aura-sobre-btn" onclick="openAuraSobre()">
-        <i class="ph ph-info" style="font-size:15px;"></i>
-        Quiénes Somos
       </button>
     </div>
 
@@ -4216,18 +4104,6 @@
       document.body.style.overflow = '';
     }
 
-    // ── Quiénes Somos modal (Aura only) ──────────────────────────────────────────
-    function openAuraSobre() {
-      const m = document.getElementById('aura-sobre-modal');
-      m.classList.add('open');
-      document.body.style.overflow = 'hidden';
-    }
-    function closeAuraSobre() {
-      const m = document.getElementById('aura-sobre-modal');
-      m.classList.remove('open');
-      document.body.style.overflow = '';
-    }
-
   </script>
 
   <!-- Club Del Nero modal -->
@@ -4324,16 +4200,6 @@
       <div id="mapu-sobre-title">Mapu Barber Shop</div>
       <p id="mapu-sobre-body">Fundada en 2017 en Valparaíso, Mapu Barber nació de la pasión por el oficio y la convicción de que una barbería puede ser mucho más que un espacio de corte. Hoy, con dos sucursales en la región, somos un referente de la barbería clásica en Chile.<br><br>Cada barbero que forma parte de nuestro equipo comparte los mismos valores: precisión, respeto por el cliente y amor por el oficio. A través de la Academia Mapu Barber, hemos egresado más de 24 generaciones de barberos que hoy ejercen su profesión con orgullo en todo Chile.</p>
       <button id="mapu-sobre-close" onclick="closeMapuSobre()">Cerrar</button>
-    </div>
-  </div>
-
-  <!-- Quiénes Somos modal — Aura only -->
-  <div id="aura-sobre-modal" onclick="if(event.target===this)closeAuraSobre()">
-    <div id="aura-sobre-sheet">
-      <div id="aura-sobre-handle"></div>
-      <div id="aura-sobre-title">AURA SALÓN & MALE GROOMING</div>
-      <p id="aura-sobre-body">✨ AURA SALÓN & MALE GROOMING ✂️ Más que una barbería, somos un espacio creado para el cuidado, el estilo y la experiencia masculina moderna. En AURA combinamos técnica, diseño y detalles para ofrecerte un servicio integral: cortes clásicos y contemporáneos, perfilado de barba, tratamientos capilares y una atención pensada para tu bienestar. Cada visita es una pausa en la rutina, un momento para verte y sentirte mejor. 💈 Estilo, precisión y personalidad — eso es AURA.</p>
-      <button id="aura-sobre-close" onclick="closeAuraSobre()">Cerrar</button>
     </div>
   </div>
 
