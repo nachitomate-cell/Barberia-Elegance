@@ -2228,18 +2228,56 @@
     .tenant-aura #extrasSection p[class*="uppercase"] { color: #6CABDD !important; }
 
     /* ── Success State ── */
-    .tenant-aura #success-state h2 { color: #00553A !important; }
-    .tenant-aura #success-state .text-neon { color: #00553A !important; }
-    .tenant-aura #success-state .bg-brand-neon\/10 { background: rgba(0,85,58,0.10) !important; }
-    .tenant-aura #success-state svg.text-neon { color: #00553A !important; }
+    .tenant-aura #success-state h2 { color: #00285E !important; }
+    .tenant-aura #success-state .text-neon { color: #00285E !important; }
+    .tenant-aura #success-state .bg-brand-neon\/10 { background: rgba(108,171,221,0.10) !important; }
+    .tenant-aura #success-state svg.text-neon { color: #6CABDD !important; }
     .tenant-aura #success-state .bg-\[#0a0a0d\] {
       background: #FFFFFF !important;
-      border-color: rgba(0,85,58,0.25) !important;
+      border-color: rgba(108,171,221,0.25) !important;
     }
     .tenant-aura #success-state .text-brand-text { color: #18181B !important; }
     .tenant-aura #success-state .text-brand-neon\/80 { color: #52525B !important; }
     .tenant-aura #success-state a[class*="instagram"] { color: #8E9399 !important; }
     .tenant-aura #success-state button { color: #6CABDD !important; }
+
+    /* ── Aura: Sello animado en success ────────────────────────── */
+    @keyframes aura-stamp-in {
+      0%   { opacity: 0; transform: scale(2.2) rotate(-10deg); filter: blur(8px); }
+      55%  { opacity: 1; filter: blur(0); }
+      72%  { transform: scale(0.87) rotate(-1deg); }
+      88%  { transform: scale(1.06) rotate(-4deg); }
+      100% { transform: scale(1.00) rotate(-3deg); opacity: 1; }
+    }
+    @keyframes aura-stamp-ring {
+      0%   { transform: scale(0.86); opacity: 0.65; }
+      100% { transform: scale(1.65); opacity: 0; }
+    }
+    @keyframes aura-stamp-shine {
+      0%   { transform: translateX(-130%) skewX(-18deg); }
+      100% { transform: translateX(280%) skewX(-18deg); }
+    }
+
+    /* Ocultar checkmark SVG por defecto para Aura */
+    .tenant-aura #success-state > div.w-24 { display: none !important; }
+
+    /* Mostrar wrapper del sello solo en Aura */
+    #aura-stamp-wrap { display: none; }
+    .tenant-aura #success-state #aura-stamp-wrap { display: flex !important; }
+
+    /* Animaciones aplicadas a hijos del stamp wrapper */
+    #aura-stamp-wrap .aura-stamp-logo {
+      animation: aura-stamp-in 0.68s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    }
+    #aura-stamp-wrap .aura-stamp-ring-1 {
+      animation: aura-stamp-ring 0.80s ease-out 0.32s both;
+    }
+    #aura-stamp-wrap .aura-stamp-ring-2 {
+      animation: aura-stamp-ring 1.05s ease-out 0.44s both;
+    }
+    #aura-stamp-wrap .aura-stamp-shine {
+      animation: aura-stamp-shine 0.65s ease-in-out 0.50s both;
+    }
 
     /* ── Toast Validation ── */
     .tenant-aura #toastValidation {
@@ -2794,6 +2832,20 @@
             <circle class="svg-check-circle" cx="26" cy="26" r="24" stroke="currentColor" stroke-width="1.5"/>
             <path class="svg-check-path" d="M14 27l8 8 16-16" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
+        </div>
+        <!-- Aura: Sello animado (solo visible con .tenant-aura) -->
+        <div id="aura-stamp-wrap" class="w-28 h-28 mb-8 relative items-center justify-center flex-shrink-0">
+          <div class="aura-stamp-ring-1 absolute inset-0 rounded-full" style="border:2.5px solid rgba(108,171,221,0.55);"></div>
+          <div class="aura-stamp-ring-2 absolute inset-[-6px] rounded-full" style="border:1.5px solid rgba(108,171,221,0.30);"></div>
+          <div class="aura-stamp-logo relative w-24 h-24 rounded-full overflow-hidden flex-shrink-0"
+               style="border:3px solid rgba(108,171,221,0.40);
+                      box-shadow:0 0 0 6px rgba(108,171,221,0.08),
+                                 0 8px 32px rgba(108,171,221,0.22),
+                                 0 2px 8px rgba(0,40,94,0.15);">
+            <img src="/aura.png" alt="Aura" class="w-full h-full object-cover">
+            <div class="aura-stamp-shine absolute inset-0 pointer-events-none"
+                 style="background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,0.55) 50%,transparent 65%);"></div>
+          </div>
         </div>
         <h2 class="text-3xl font-bold text-neon tracking-tight mb-3">¡Reserva Confirmada!</h2>
         
