@@ -44,6 +44,7 @@ const TENANT_META = {
     themeColor:  '#050505',
     appTitle:    'Elegance',
     icon:        '/logo.jpg',
+    local: { telephone: '', streetAddress: '', addressLocality: 'Valparaíso', schemaType: 'HairSalon' },
     manifest: {
       name:             'Elegance Barbershop',
       short_name:       'Elegance',
@@ -88,6 +89,7 @@ const TENANT_META = {
     themeColor:  '#000000',
     appTitle:    'Ferraza',
     icon:        '/local1.jpg',
+    local: { telephone: '', streetAddress: 'Av. Libertad 63, Local 28', addressLocality: 'Valparaíso', schemaType: 'HairSalon' },
     manifest: {
       name:             'Barbería Ferraza',
       short_name:       'Ferraza',
@@ -132,6 +134,7 @@ const TENANT_META = {
     themeColor:  '#050505',
     appTitle:    'Gitana',
     icon:        '/local2.jpg',
+    local: { telephone: '', streetAddress: 'Las Encinas 1390', addressLocality: 'Concón', schemaType: 'BeautySalon' },
     manifest: {
       name:             'Gitana Nails Studio',
       short_name:       'Gitana',
@@ -177,6 +180,7 @@ const TENANT_META = {
     themeColor:  '#2A1E22',
     appTitle:    'Mapu',
     icon:        '/mapu2.png',
+    local: { telephone: '', streetAddress: '', addressLocality: 'Valparaíso', schemaType: 'HairSalon' },
     manifest: {
       name:             'Mapu Barber Shop',
       short_name:       'Mapu',
@@ -221,6 +225,7 @@ const TENANT_META = {
     themeColor:  '#c9a84c',
     appTitle:    'Chameleon',
     icon:        '/local3.jpg',
+    local: { telephone: '', streetAddress: '', addressLocality: 'Valparaíso', schemaType: 'HairSalon' },
     manifest: {
       name:             'Chameleon Barber Studio',
       short_name:       'Chameleon',
@@ -265,6 +270,7 @@ const TENANT_META = {
     themeColor:  '#050505',
     appTitle:    'Del Nero',
     icon:        '/nero.jpg',
+    local: { telephone: '', streetAddress: '', addressLocality: 'Placilla', schemaType: 'HairSalon' },
     manifest: {
       name:             'Del Nero Barber',
       short_name:       'Del Nero',
@@ -309,6 +315,7 @@ const TENANT_META = {
     themeColor:  '#22d3ee',
     appTitle:    'Lumen',
     icon:        '/lumen.jpg',
+    local: { telephone: '', streetAddress: '', addressLocality: 'Valparaíso', schemaType: 'HairSalon' },
     manifest: {
       name:             'Lumen Barbershop',
       short_name:       'Lumen',
@@ -353,6 +360,7 @@ const TENANT_META = {
     themeColor:  '#0a0a0a',
     appTitle:    'AURA',
     icon:        '/aura.png',
+    local: { telephone: '', streetAddress: '', addressLocality: 'Viña del Mar', schemaType: 'HairSalon' },
     manifest: {
       name:             'AURA SALÓN & MALE GROOMING',
       short_name:       'AURA',
@@ -381,6 +389,30 @@ function mimeFromSrc(src) {
   return 'image/jpeg';
 }
 
+function buildJsonLd(meta, hostname) {
+  const local = meta.local || {};
+  const absImage = meta.ogImage.startsWith('http')
+    ? meta.ogImage
+    : `https://${hostname}${meta.ogImage}`;
+
+  const schema = {
+    '@context': 'https://schema.org',
+    '@type':    local.schemaType || 'HairSalon',
+    name:       meta.siteName,
+    image:      absImage,
+    url:        `https://${hostname}`,
+  };
+
+  if (local.telephone) schema.telephone = local.telephone;
+
+  const addr = { '@type': 'PostalAddress', addressCountry: 'CL', addressRegion: 'Valparaíso' };
+  if (local.streetAddress)  addr.streetAddress  = local.streetAddress;
+  if (local.addressLocality) addr.addressLocality = local.addressLocality;
+  schema.address = addr;
+
+  return JSON.stringify(schema);
+}
+
 function getPageType(pathname) {
   if (pathname.startsWith('/dashboard')) return 'dashboard';
   if (pathname.startsWith('/registro'))  return 'registro';
@@ -393,7 +425,7 @@ function r(str) {
 }
 
 // WhatsApp/Facebook scrapers require absolute URLs for og:image — relative paths are silently ignored.
-function injectMeta(html, meta, pageMeta, canonical, hostname) {
+function injectMeta(html, meta, pageMeta, canonical, hostname, pageType) {
   const absImage = meta.ogImage.startsWith('http')
     ? meta.ogImage
     : `https://${hostname}${meta.ogImage}`;
@@ -413,6 +445,12 @@ function injectMeta(html, meta, pageMeta, canonical, hostname) {
   html = html.replace(/<meta name="application-name"[^>]*>/,           `<meta name="application-name" content="${r(meta.appTitle)}">`);
   html = html.replace(/<link rel="icon"[^>]*>/,              `<link rel="icon" type="image/jpeg" href="${r(meta.icon)}">`);
   html = html.replace(/<link rel="apple-touch-icon"[^>]*>/,  `<link rel="apple-touch-icon" href="${r(meta.icon)}">`);
+
+  // Inyectar JSON-LD solo en páginas de booking (index y rutas de barbero)
+  if (pageType === 'booking') {
+    const jsonLd = buildJsonLd(meta, hostname);
+    html = html.replace('</head>', `<script type="application/ld+json">${jsonLd}</script>\n</head>`);
+  }
 
   return html;
 }
@@ -667,7 +705,7 @@ export default async function middleware(request) {
   const canonical = `https://${hostname}${url.pathname === '/' ? '' : url.pathname}`;
 
   let html = await response.text();
-  html = injectMeta(html, meta, pageMeta, canonical, hostname);
+  html = injectMeta(html, meta, pageMeta, canonical, hostname, pageType);
 
   const headers = new Headers(response.headers);
   headers.set('Content-Type', 'text/html; charset=utf-8');
