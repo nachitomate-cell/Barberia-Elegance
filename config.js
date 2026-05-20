@@ -106,9 +106,9 @@
       ratingGeneral: 5.0,
       totalReviews:  226,
       reviews: [
-        { author: 'Rodrigo V.', rating: 5, text: 'El mejor Barber Studio de Viña del Mar. Ambiente premium y barberos de primer nivel.' },
-        { author: 'Diego S.',   rating: 5, text: 'Vine por el degradado y me quedé por la experiencia completa. Increíble atención y resultado.' },
-        { author: 'Matías A.',  rating: 5, text: 'El lugar perfecto para quienes cuidan su imagen. Calidad profesional en cada visita.' },
+        { author: 'Carlos Andrés Yáñez', rating: 5, text: 'Excelente servicio! Vengo de Santiago y confié en esta barbería para cortarme el pelo más barba, el barbero supo cortarme tal cual lo solicitado. Muy profesional!' },
+        { author: 'Cristian Veas',        rating: 5, text: 'Profesionales del corte de pelo y barba. Amables y buena onda, con tema de conversación, ambiente muy agradable y precio acorde al resultado. 5/5' },
+        { author: 'Jorge Miranda',         rating: 5, text: 'Me atendí con Omar, un crack, muy amable y gentil al usar las tijeras, creo que es lo que más destacaría, primera vez que voy, y volvería a ir.' },
       ],
       googleReviewUrl: 'https://g.page/r/CQJzgHEVI1p-EBM/review',
       features: {
