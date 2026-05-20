@@ -20,7 +20,7 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 // ── 3. CACHE ─────────────────────────────────────────────────────
-const CACHE_VERSION = 'saas-v12';
+const CACHE_VERSION = 'saas-v13';
 const STATIC_ASSETS = [
   '/dashboard.html',
   '/index.html',
@@ -29,8 +29,7 @@ const STATIC_ASSETS = [
   '/firebase-config.js',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
-  '/manifest.json',
-  '/manifest-agenda.json'
+  // manifest files are excluded — served dynamically per tenant by middleware
 ];
 
 self.addEventListener('install', event => {
@@ -62,6 +61,16 @@ self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
 
   const url = new URL(event.request.url);
+
+  // Manifests are dynamic per tenant — always fetch from network
+  if (url.pathname === '/manifest.json' || url.pathname === '/manifest-agenda.json') {
+    event.respondWith(
+      fetch(event.request).catch(() =>
+        new Response('{}', { status: 503, headers: { 'Content-Type': 'application/json' } })
+      )
+    );
+    return;
+  }
 
   // No interceptar peticiones de Firebase / APIs externas
   if (

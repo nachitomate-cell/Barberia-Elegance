@@ -432,6 +432,7 @@ export const config = {
     '/((?!api|_next|favicon\\.ico|.*\\.).*)',
     '/(.*)\\.html',
     '/manifest.json',
+    '/manifest-agenda.json',
     '/gestion-interna/',
     '/gestion-interna/index.html',
     '/gestion-interna/manifest.webmanifest',
@@ -462,6 +463,34 @@ export default async function middleware(request) {
       orientation: 'portrait',
       categories:  ['lifestyle', 'beauty'],
       author:      'SynapTech SpA',
+      icons: [
+        { src: meta.icon, sizes: 'any', type: mimeFromSrc(meta.icon), purpose: 'any maskable' },
+        { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
+        { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+      ],
+    };
+    return new Response(JSON.stringify(manifest, null, 2), {
+      headers: {
+        'Content-Type': 'application/manifest+json',
+        'Cache-Control': 'no-cache, must-revalidate',
+      },
+    });
+  }
+
+  // ── Manifest agenda: devolver versión dinámica por tenant ────────────────────
+  if (url.pathname === '/manifest-agenda.json') {
+    const manifest = {
+      name:             `Agenda — ${meta.manifest.name}`,
+      short_name:       'Agenda',
+      description:      `Agenda de citas para barberos de ${meta.manifest.name}`,
+      start_url:        '/agenda',
+      scope:            '/',
+      display:          'standalone',
+      orientation:      'portrait',
+      background_color: meta.manifest.background_color,
+      theme_color:      meta.manifest.theme_color,
+      categories:       ['business', 'productivity'],
+      author:           'SynapTech SpA',
       icons: [
         { src: meta.icon, sizes: 'any', type: mimeFromSrc(meta.icon), purpose: 'any maskable' },
         { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
