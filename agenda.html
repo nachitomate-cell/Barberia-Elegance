@@ -79,7 +79,7 @@
         }
     </style>
 </head>
-<body class="min-h-screen bg-brand-bg antialiased pb-10">
+<body class="min-h-screen bg-brand-bg antialiased" style="padding-bottom: max(2.5rem, env(safe-area-inset-bottom));">
 
     <!-- Pantalla de Carga -->
     <div id="loadingOverlay" class="fixed inset-0 z-[10000] flex flex-col items-center justify-center bg-[#050505] transition-opacity duration-300">
@@ -149,7 +149,7 @@
         </div>
     </header>
 
-    <main class="max-w-4xl mx-auto px-6 pt-8 hidden" id="mainApp">
+    <main class="max-w-lg mx-auto px-6 pt-8 hidden" id="mainApp">
         
         <!-- ── INSTALAR APP BANNER (Big) ── -->
         <div id="pwaBigInstallCard" class="hidden mb-8 rounded-3xl p-5 relative overflow-hidden cursor-pointer active:scale-95 transition-all shadow-[0_0_20px_rgba(201,168,76,0.1)] animate-fade-in" style="background:linear-gradient(to right, rgba(201,168,76,0.12), rgba(201,168,76,0.04)); border: 1px solid rgba(201,168,76,0.3);" onclick="triggerPWAInstall()">
@@ -166,29 +166,15 @@
             </div>
         </div>
 
-        <!-- Latest Reservations Section -->
-        <div class="mb-12 animate-fade-in" style="animation-delay: 0.05s;">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-xs font-bold text-white/30 uppercase tracking-[0.2em] flex items-center gap-2">
-                    <i class="ph-bold ph-clock-counter-clockwise"></i> Últimas Reservas
-                </h3>
-            </div>
-            <div id="latestReservationsContainer" class="flex gap-4 overflow-x-auto pb-4 no-scrollbar -mx-6 px-6">
-                <!-- Se llena dinámicamente -->
-                <div class="flex-shrink-0 w-72 h-32 glass-card rounded-2xl flex items-center justify-center border-dashed border-white/5">
-                    <p class="text-white/20 text-xs italic">Cargando actividad reciente...</p>
-                </div>
-            </div>
-        </div>
         <!-- Day Selector / Calendar Header -->
         <div class="mb-10 animate-fade-in" style="animation-delay: 0.1s;">
             <div class="flex items-center justify-between mb-6">
                 <h2 class="text-2xl font-bold text-white tracking-tight" id="currentDateDisplay">Cargando...</h2>
                 <div class="flex gap-2">
-                    <button onclick="cambiarDia(-1)" class="p-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all">
+                    <button onclick="cambiarDia(-1)" class="w-11 h-11 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all">
                         <i class="ph-bold ph-caret-left text-white/60"></i>
                     </button>
-                    <button onclick="cambiarDia(1)" class="p-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all">
+                    <button onclick="cambiarDia(1)" class="w-11 h-11 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all">
                         <i class="ph-bold ph-caret-right text-white/60"></i>
                     </button>
                 </div>
@@ -200,27 +186,41 @@
         </div>
 
         <!-- Schedule Grid -->
-        <div class="space-y-4 animate-fade-in" style="animation-delay: 0.2s;">
-            
+        <div class="space-y-2 animate-fade-in" style="animation-delay: 0.2s;">
+
             <!-- Morning Section -->
             <div id="morningSection" class="hidden">
-                <h3 class="text-xs font-bold text-white/30 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                <h3 id="morningLabel" class="text-xs font-bold text-white/30 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
                     <i class="ph-bold ph-sun-horizon"></i> Mañana
                 </h3>
-                <div class="space-y-3" id="morningSlots"></div>
+                <div class="space-y-2" id="morningSlots"></div>
             </div>
 
             <!-- Afternoon Section -->
-            <div id="afternoonSection" class="hidden pt-6">
-                <h3 class="text-xs font-bold text-white/30 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+            <div id="afternoonSection" class="hidden pt-4">
+                <h3 id="afternoonLabel" class="text-xs font-bold text-white/30 uppercase tracking-[0.2em] mb-3 flex items-center gap-2">
                     <i class="ph-bold ph-sun"></i> Tarde
                 </h3>
-                <div class="space-y-3" id="afternoonSlots"></div>
+                <div class="space-y-2" id="afternoonSlots"></div>
             </div>
 
             <div id="emptyAgenda" class="hidden py-12 text-center">
                 <i class="ph ph-calendar-blank text-4xl text-white/20 mb-3"></i>
                 <p class="text-white/40 text-sm">No hay turnos configurados para este día.</p>
+            </div>
+        </div>
+
+        <!-- Latest Reservations Section (bottom) -->
+        <div class="mt-12 mb-4 animate-fade-in" style="animation-delay: 0.3s;">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xs font-bold text-white/30 uppercase tracking-[0.2em] flex items-center gap-2">
+                    <i class="ph-bold ph-clock-counter-clockwise"></i> Últimas Reservas
+                </h3>
+            </div>
+            <div id="latestReservationsContainer" class="flex gap-4 overflow-x-auto pb-4 no-scrollbar -mx-6 px-6">
+                <div class="flex-shrink-0 w-72 h-32 glass-card rounded-2xl flex items-center justify-center border border-white/5">
+                    <p class="text-white/20 text-xs italic">Cargando actividad reciente...</p>
+                </div>
             </div>
         </div>
     </main>
@@ -557,10 +557,13 @@
                         <div class="w-1.5 h-1.5 rounded-full bg-zinc-700 mt-1"></div>
                     `;
                 } else {
-                    btn.className = "flex-shrink-0 w-16 h-20 rounded-2xl border border-white/10 flex flex-col items-center justify-center transition-all bg-white/5 hover:border-white/30 cursor-pointer";
+                    const todayObj = new Date();
+                    const isToday = y === todayObj.getFullYear() && m === todayObj.getMonth() && d === dateNum;
+                    btn.className = `flex-shrink-0 w-16 h-20 rounded-2xl flex flex-col items-center justify-center transition-all bg-white/5 hover:border-white/30 cursor-pointer border ${isToday ? 'border-white/25' : 'border-white/10'}`;
                     btn.innerHTML = `
                         <span class="text-[10px] font-bold text-white/40 uppercase mb-1">${dayName}</span>
                         <span class="text-xl font-bold text-white">${dateNum}</span>
+                        ${isToday ? '<div class="w-1.5 h-1.5 rounded-full bg-white/30 mt-1"></div>' : ''}
                     `;
                 }
                 container.appendChild(btn);
@@ -678,10 +681,22 @@
             const dc  = (cfg.diasConfig || {})[dw] || {};
 
             const bloqueos = getBloqueos();
-            if (dc.activo === false || !cfg.diasLaborales.includes(dw) || bloqueos.some(b => b.todo_el_dia)) {
+
+            // Differentiated empty states
+            if (!cfg.diasLaborales.includes(dw) || dc.activo === false) {
                 mSec.classList.add('hidden');
                 aSec.classList.add('hidden');
                 eSec.classList.remove('hidden');
+                eSec.innerHTML = `<i class="ph ph-calendar-x text-4xl text-white/20 mb-3"></i>
+                    <p class="text-white/40 text-sm">Día no laborable.</p>`;
+                return;
+            }
+            if (bloqueos.some(b => b.todo_el_dia)) {
+                mSec.classList.add('hidden');
+                aSec.classList.add('hidden');
+                eSec.classList.remove('hidden');
+                eSec.innerHTML = `<i class="ph ph-lock text-4xl text-white/20 mb-3"></i>
+                    <p class="text-white/40 text-sm">Día bloqueado.</p>`;
                 return;
             }
 
@@ -695,14 +710,39 @@
             const interval = cfg.intervaloMinutos || 30;
 
             const citasOcupadas = todayCitas.filter(c => c.estado !== 'Cancelada');
-            
+
+            // Current time indicator
+            const nowDate = new Date();
+            const isViewingToday = (
+                currentDate.getFullYear() === nowDate.getFullYear() &&
+                currentDate.getMonth()    === nowDate.getMonth()    &&
+                currentDate.getDate()     === nowDate.getDate()
+            );
+            const nowMins = nowDate.getHours() * 60 + nowDate.getMinutes();
+            let nowInserted = false;
+
             let cur = ini;
             let hasMorning = false;
             let hasAfternoon = false;
 
             while (cur < fin) {
                 const horaStr = fromMin(cur);
-                const isAfternoon = cur >= 720; // 12:00 PM
+                const isAfternoon = cur >= 720;
+
+                // Now indicator: insert before the first slot after current time
+                if (isViewingToday && !nowInserted && cur > nowMins) {
+                    const hh = Math.floor(nowMins / 60).toString().padStart(2, '0');
+                    const mn = (nowMins % 60).toString().padStart(2, '0');
+                    const nowEl = `<div class="flex items-center gap-3 py-1 my-0.5" aria-hidden="true">
+                        <span class="text-[10px] font-bold text-red-400 w-[50px] text-right shrink-0">${hh}:${mn}</span>
+                        <div class="flex-1 h-px bg-red-400/50 relative">
+                            <div class="absolute -left-1 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-red-400"></div>
+                        </div>
+                    </div>`;
+                    if (isAfternoon) aSlots.insertAdjacentHTML('beforeend', nowEl);
+                    else mSlots.insertAdjacentHTML('beforeend', nowEl);
+                    nowInserted = true;
+                }
 
                 // 1. Verificar Citas
                 const citaSlot = citasOcupadas.find(c => {
@@ -722,14 +762,11 @@
                 }
 
                 // 2. Verificar Colación
-                let esColacion = false;
                 if (cfg.colacion) {
                     const colS = toMins(cfg.colacion.inicio);
                     const colE = toMins(cfg.colacion.fin);
                     if (cur >= colS && cur < colE) {
-                        esColacion = true;
                         cur += interval;
-                        // No renderizar bloque colación explícito por ahora para no saturar
                         continue;
                     }
                 }
@@ -738,9 +775,7 @@
                 const bloqueo = bloqueos.find(b => {
                     if (b.todo_el_dia) return true;
                     if (!b.hora_inicio || !b.hora_fin) return false;
-                    const bS = toMins(b.hora_inicio);
-                    const bEnd = toMins(b.hora_fin);
-                    return cur >= bS && cur < bEnd;
+                    return cur >= toMins(b.hora_inicio) && cur < toMins(b.hora_fin);
                 });
 
                 if (bloqueo) {
@@ -752,12 +787,27 @@
                 const html = buildFreeSlot(horaStr);
                 if(isAfternoon) { aSlots.insertAdjacentHTML('beforeend', html); hasAfternoon = true; }
                 else { mSlots.insertAdjacentHTML('beforeend', html); hasMorning = true; }
-                
+
                 cur += interval;
             }
 
-            if(hasMorning) mSec.classList.remove('hidden'); else mSec.classList.add('hidden');
-            if(hasAfternoon) aSec.classList.remove('hidden'); else aSec.classList.add('hidden');
+            if (hasMorning) mSec.classList.remove('hidden'); else mSec.classList.add('hidden');
+            if (hasAfternoon) aSec.classList.remove('hidden'); else aSec.classList.add('hidden');
+
+            // Count badges in section headers
+            const morningCitas = citasOcupadas.filter(c => toMins(c.hora) < 720).length;
+            const afternoonCitas = citasOcupadas.filter(c => toMins(c.hora) >= 720).length;
+            const mLabel = document.getElementById('morningLabel');
+            const aLabel = document.getElementById('afternoonLabel');
+            if (mLabel) mLabel.innerHTML = `<i class="ph-bold ph-sun-horizon"></i> Mañana${morningCitas > 0 ? ` <span class="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full" style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.5)">${morningCitas} cita${morningCitas !== 1 ? 's' : ''}</span>` : ''}`;
+            if (aLabel) aLabel.innerHTML = `<i class="ph-bold ph-sun"></i> Tarde${afternoonCitas > 0 ? ` <span class="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full" style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.5)">${afternoonCitas} cita${afternoonCitas !== 1 ? 's' : ''}</span>` : ''}`;
+
+            // No-appointments state
+            if (!hasMorning && !hasAfternoon) {
+                eSec.classList.remove('hidden');
+                eSec.innerHTML = `<i class="ph ph-calendar-check text-4xl text-white/20 mb-3"></i>
+                    <p class="text-white/40 text-sm">Sin reservas por ahora.</p>`;
+            }
         }
 
         function buildCitaSlot(time, cita) {
@@ -1002,7 +1052,7 @@
                 .onSnapshot(snap => {
                     if (snap.empty) {
                         container.innerHTML = `
-                            <div class="flex-shrink-0 w-full glass-card rounded-2xl p-6 flex flex-col items-center justify-center border-dashed border-white/5">
+                            <div class="flex-shrink-0 w-full glass-card rounded-2xl p-6 flex flex-col items-center justify-center border border-white/5">
                                 <i class="ph ph-calendar-x text-2xl text-white/20 mb-2"></i>
                                 <p class="text-white/30 text-xs">No hay reservas recientes aún.</p>
                             </div>
