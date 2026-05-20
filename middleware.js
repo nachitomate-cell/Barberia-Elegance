@@ -14,6 +14,7 @@ const DOMAIN_MAP = {
   'deluxeperfumes.synaptechspa.cl':    'deluxeperfumes',
   'lumenbarbershop.synaptechspa.cl':   'lumen',
   'delnerobarber.synaptechspa.cl':     'delnero',
+  'aurasalon.synaptechspa.cl':         'aura',
 };
 
 const TENANT_META = {
@@ -321,6 +322,50 @@ const TENANT_META = {
       start_url:        '/gestion-interna/?local=lumen',
       icons: [
         { src: '/lumen.jpg',                   sizes: 'any',     type: 'image/jpeg' },
+        { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png' },
+        { src: '/gestion-interna/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+      ],
+    },
+  },
+  aura: {
+    booking: {
+      title:       'AURA SALÓN & MALE GROOMING | Agenda tu hora',
+      description: 'Reserva tu hora en AURA SALÓN. Especialistas en corte, barba y experiencias premium de grooming.',
+      ogTitle:     'Agendar Hora | AURA SALÓN & MALE GROOMING',
+      ogDesc:      'Reserva tu hora en AURA SALÓN. Eleva Tu Aura.',
+    },
+    dashboard: {
+      title:       'Mi Club | AURA SALÓN',
+      description: 'Tu panel personal en AURA SALÓN. Revisa tus sellos y canjea premios.',
+      ogTitle:     'Mi Club | AURA SALÓN',
+      ogDesc:      'Panel de fidelidad de AURA SALÓN. Acumula sellos y disfruta de servicios gratis.',
+    },
+    registro: {
+      title:       'Únete al Club | AURA SALÓN',
+      description: 'Crea tu cuenta en AURA SALÓN. Acumula sellos y canjea premios.',
+      ogTitle:     'Únete al Club | AURA SALÓN',
+      ogDesc:      'Regístrate en AURA SALÓN y disfruta de beneficios exclusivos.',
+    },
+    siteName:    'AURA SALÓN & MALE GROOMING',
+    ogImage:     '/aura.png',
+    themeColor:  '#0a0a0a',
+    appTitle:    'AURA',
+    icon:        '/aura.png',
+    manifest: {
+      name:             'AURA SALÓN & MALE GROOMING',
+      short_name:       'AURA',
+      theme_color:      '#0a0a0a',
+      background_color: '#0a0a0a',
+    },
+    adminManifest: {
+      name:             'Panel Admin · AURA',
+      short_name:       'AURA',
+      description:      'Panel de administración — AURA SALÓN & MALE GROOMING',
+      theme_color:      '#fbbf24',
+      background_color: '#0a0a0a',
+      start_url:        '/gestion-interna/?local=aura',
+      icons: [
+        { src: '/aura.png',                    sizes: 'any',     type: 'image/png' },
         { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png' },
         { src: '/gestion-interna/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
       ],

@@ -12,6 +12,7 @@ const TENANT_META = {
   deluxeperfumes: { name: 'Deluxe Perfumes',        accent: 'purple',  emoji: '🌸', logo: '/logo5.jpg'  },
   lumen:          { name: 'Lumen Barbershop',        accent: 'cyan',    emoji: '✂️', logo: '/lumen.jpg'  },
   delnero:        { name: 'Del Nero Barber',         accent: 'lime',    emoji: '✂️', logo: '/nero.jpg'   },
+  aura:           { name: 'AURA SALÓN & MALE GROOMING', accent: 'amber',   emoji: '✨', logo: '/aura.png'   },
 };
 
 const TenantContext = createContext(null);
