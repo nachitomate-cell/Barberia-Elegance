@@ -1295,6 +1295,43 @@
       box-shadow: none !important;
     }
 
+    /* ── Chameleon: shimmer dorado en tarjeta seleccionada ── */
+    @keyframes cham-card-shimmer {
+      from { transform: translateX(-120%); }
+      to   { transform: translateX(280%); }
+    }
+    .tenant-chameleon .service-option.border-neon::after,
+    .tenant-chameleon .barber-option.border-neon::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(105deg,
+        transparent 30%, rgba(218,165,32,0.30) 50%, transparent 70%);
+      transform: translateX(-120%);
+      animation: cham-card-shimmer 0.65s cubic-bezier(0.25,0.46,0.45,0.94) 1;
+      pointer-events: none;
+    }
+
+    /* ── Chameleon: headers de grupo horario en dorado ── */
+    .tenant-chameleon #hoursGrid .text-gray-600 {
+      color: rgba(218,165,32,0.70) !important;
+    }
+
+    /* ── Chameleon: badge de disponibilidad ── */
+    .cham-badge {
+      display: inline-flex; align-items: center;
+      gap: 5px; font-size: 11px; font-weight: 700; margin-top: 4px;
+    }
+    .cham-badge-dot {
+      width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+    }
+    .cham-badge-green .cham-badge-dot  { background:#4ADE80; box-shadow:0 0 6px rgba(74,222,128,0.65); }
+    .cham-badge-amber .cham-badge-dot  { background:#DAA520; box-shadow:0 0 6px rgba(218,165,32,0.65); }
+    .cham-badge-gray  .cham-badge-dot  { background:rgba(156,163,175,0.45); }
+    .cham-badge-green { color:rgba(74,222,128,0.85); }
+    .cham-badge-amber { color:rgba(218,165,32,0.85); }
+    .cham-badge-gray  { color:rgba(156,163,175,0.55); }
+
     .tenant-ferraza .service-option.border-neon,
     .tenant-ferraza .barber-option.border-neon {
       border-color: var(--neon-clr) !important;
@@ -3337,6 +3374,21 @@
     let _activeBarberos  = []; // _fsBarberos filtrado por sucursal (si aplica)
     let _multiHoras      = []; // cache de getHorasDisponiblesMulti para auto-asignación en paso 4
     let _unsubSlotLocks  = null; // listener tiempo real de slotLocks en paso 3
+    let _chameleonSlotMap = {}; // { barberoId: occupiedCount } — para badges de disponibilidad
+
+    async function _prefetchChameleonSlots() {
+      try {
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const locks = await FDB.getSlotLocksDia(todayStr, null);
+        const map = {};
+        locks.forEach(l => { if (l.barberoId) map[l.barberoId] = (map[l.barberoId] || 0) + 1; });
+        _chameleonSlotMap = map;
+        if (currentStep === 2) {
+          const bbs = _activeBarberos.length ? _activeBarberos : _fsBarberos;
+          _renderBarberos(bbs);
+        }
+      } catch(_) {}
+    }
 
     function _buildDiasLabel(horario) {
       if (!horario) return null;
@@ -3512,6 +3564,43 @@
         const isAvailableIcon = b.disponible !== false ? 'check-circle' : 'x-circle';
 
         if (_isElegance || _isChameleon) {
+          let availabilityHtml;
+          if (_isChameleon) {
+            const occupied = _chameleonSlotMap[b.id] || 0;
+            let badgeClass, badgeLabel;
+            if (b.disponible === false || occupied >= 6) {
+              badgeClass = 'cham-badge-gray'; badgeLabel = 'Sin disponibilidad';
+            } else if (occupied >= 3) {
+              badgeClass = 'cham-badge-amber'; badgeLabel = 'Pocos horarios';
+            } else {
+              badgeClass = 'cham-badge-green'; badgeLabel = 'Disponible';
+            }
+            availabilityHtml = `<span class="cham-badge ${badgeClass}"><span class="cham-badge-dot"></span>${badgeLabel}</span>`;
+            const dotColor = badgeClass === 'cham-badge-green' ? '#4ADE80'
+              : badgeClass === 'cham-badge-amber' ? '#DAA520' : 'rgba(156,163,175,0.45)';
+            const dotGlow = badgeClass === 'cham-badge-green' ? '0 0 5px rgba(74,222,128,0.7)'
+              : badgeClass === 'cham-badge-amber' ? '0 0 5px rgba(218,165,32,0.7)' : 'none';
+            const fotoInner = b.foto
+              ? `<img src="${b.foto}" alt="Foto de ${b.nombre}" class="w-12 h-12 rounded-full object-cover border border-white/10 bg-[#111115]">`
+              : `<div class="w-12 h-12 rounded-full flex items-center justify-center border border-white/10 bg-[#111115]"><i class="ph-fill ph-user text-xl text-gray-400"></i></div>`;
+            return `
+            <button onclick="selectBarber(this, '${b.id}', '${b.nombre}')" class="barber-option relative flex flex-row items-center gap-4 p-4 rounded-2xl border-2 ${stateClass} active:scale-[0.99] transition-all overflow-hidden group w-full text-left">
+              <div class="relative shrink-0">
+                ${fotoInner}
+                <span style="position:absolute;bottom:0;right:0;width:10px;height:10px;border-radius:50%;background:${dotColor};box-shadow:${dotGlow};border:1.5px solid #000;"></span>
+              </div>
+              <div class="flex-1 min-w-0">
+                <span class="barber-name font-bold text-gray-100 text-base block truncate">${b.nombre}</span>
+                ${especialidadElegance}
+                ${diasHTMLElegance}
+                ${availabilityHtml}
+              </div>
+              <div class="barber-radio w-5 h-5 rounded-full border-2 shrink-0 transition-all" style="border-color:rgba(201,168,76,0.4)"></div>
+            </button>`;
+          }
+          availabilityHtml = `<span class="flex items-center gap-1 text-[12px] font-bold text-brand-neon mt-1">
+            <i class="ph-fill ph-${isAvailableIcon} text-[14px]"></i>${disponibilidadString}
+          </span>`;
           return `
           <button onclick="selectBarber(this, '${b.id}', '${b.nombre}')" class="barber-option relative flex flex-row items-center gap-4 p-4 rounded-2xl border-2 ${stateClass} active:scale-[0.99] transition-all overflow-hidden group w-full text-left">
             ${fotoHTMLElegance}
@@ -3519,9 +3608,7 @@
               <span class="barber-name font-bold text-gray-100 text-base block truncate">${b.nombre}</span>
               ${especialidadElegance}
               ${diasHTMLElegance}
-              <span class="flex items-center gap-1 text-[12px] font-bold text-brand-neon mt-1">
-                <i class="ph-fill ph-${isAvailableIcon} text-[14px]"></i>${disponibilidadString}
-              </span>
+              ${availabilityHtml}
             </div>
             <div class="barber-radio w-5 h-5 rounded-full border-2 shrink-0 transition-all" style="border-color:rgba(201,168,76,0.4)"></div>
           </button>`;
@@ -4125,6 +4212,7 @@
           updateContinueBtn();
 
         } else {
+          if (window.CURRENT_TENANT_ID === 'chameleon') _prefetchChameleonSlots();
           transitionStep(1, 2);
           currentStep = 2;
           updateProgress();
