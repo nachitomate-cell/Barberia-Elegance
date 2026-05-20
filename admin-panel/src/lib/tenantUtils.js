@@ -12,6 +12,7 @@ const DOMAIN_MAP = {
   'delnerobarber.synaptechspa.cl':     'delnero',
   'aurasalon.synaptechspa.cl':         'aura',
   'aurasalonmalegrooming.synaptech.cl':'aura',
+  'aurasalonmalegrooming.synaptechspa.cl':'aura',
 };
 
 export function resolveTenantId() {
