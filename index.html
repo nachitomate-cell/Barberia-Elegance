@@ -3390,7 +3390,7 @@
         const todayStr = new Date().toISOString().slice(0, 10);
         const locks = await FDB.getSlotLocksDia(todayStr, null);
         const map = {};
-        locks.forEach(l => { if (l.barberoId) map[l.barberoId] = (map[l.barberoId] || 0) + 1; });
+        locks.forEach(l => { if (l.barberoId && !l.bloqueoId) map[l.barberoId] = (map[l.barberoId] || 0) + 1; });
         _chameleonSlotMap = map;
         if (currentStep === 2) {
           const bbs = _activeBarberos.length ? _activeBarberos : _fsBarberos;
