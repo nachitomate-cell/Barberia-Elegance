@@ -5067,6 +5067,19 @@
       document.body.style.overflow = '';
     }
 
+    // Populate "Sobre Nosotros" modal body from config — text must NOT be hardcoded in
+    // the static HTML because Google indexes display:none content and blends it into
+    // snippets for other tenants (cross-tenant SEO bleed).
+    (function initSobreModals() {
+      if (!window.SHOP || !window.SHOP.sobreNosotros) return;
+      const bodyId = window.CURRENT_TENANT_ID === 'mapubarbershop' ? 'mapu-sobre-body'
+                   : window.CURRENT_TENANT_ID === 'aura'           ? 'aura-sobre-body'
+                   : null;
+      if (!bodyId) return;
+      const el = document.getElementById(bodyId);
+      if (el) el.innerHTML = window.SHOP.sobreNosotros;
+    })();
+
   </script>
 
   <!-- Club Del Nero modal -->
@@ -5161,7 +5174,7 @@
     <div id="mapu-sobre-sheet">
       <div id="mapu-sobre-handle"></div>
       <div id="mapu-sobre-title">Mapu Barber Shop</div>
-      <p id="mapu-sobre-body">Fundada en 2017 en Valparaíso, Mapu Barber nació de la pasión por el oficio y la convicción de que una barbería puede ser mucho más que un espacio de corte. Hoy, con dos sucursales en la región, somos un referente de la barbería clásica en Chile.<br><br>Cada barbero que forma parte de nuestro equipo comparte los mismos valores: precisión, respeto por el cliente y amor por el oficio. A través de la Academia Mapu Barber, hemos egresado más de 24 generaciones de barberos que hoy ejercen su profesión con orgullo en todo Chile.</p>
+      <p id="mapu-sobre-body"></p>
       <button id="mapu-sobre-close" onclick="closeMapuSobre()">Cerrar</button>
     </div>
   </div>
@@ -5171,7 +5184,7 @@
     <div id="aura-sobre-sheet">
       <div id="aura-sobre-handle"></div>
       <div id="aura-sobre-title">Quiénes Somos</div>
-      <p id="aura-sobre-body">✨ AURA SALÓN & MALE GROOMING ✂️ Más que una barbería, somos un espacio creado para el cuidado, el estilo y la experiencia masculina moderna. En AURA combinamos técnica, diseño y detalles para ofrecerte un servicio integral: cortes clásicos y contemporáneos, perfilado de barba, tratamientos capilares y una atención pensada para tu bienestar. Cada visita es una pausa en la rutina, un momento para verte y sentirte mejor. <br><br>💈 Estilo, precisión y personalidad — eso es AURA.</p>
+      <p id="aura-sobre-body"></p>
       <button id="aura-sobre-close" onclick="closeAuraSobre()">Cerrar</button>
     </div>
   </div>
