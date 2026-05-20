@@ -1270,6 +1270,7 @@
                         const [y, m, d] = cita.fecha.split('-');
                         const fechaFormat = `${d}/${m}`;
 
+                        const diff = cita.creadoEn ? Date.now() - cita.creadoEn.toMillis() : Infinity;
                         const isNew = diff < 1000 * 60 * 60 * 2; // last 2 hours
 
                         const card = document.createElement('div');
