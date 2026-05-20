@@ -23,6 +23,39 @@
   <link rel="stylesheet" crossorigin href="/gestion-interna/assets/index-cB2Evll9.css">
 <link rel="manifest" href="/gestion-interna/manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="/gestion-interna/registerSW.js"></script></head>
 <body class="bg-slate-900 text-white antialiased">
+  <!-- Tenant-aware background for Aura -->
+  <style id="aura-bg-style">
+    body.tenant-bg-aura {
+      background-image: url('/aura2.png') !important;
+      background-size: cover !important;
+      background-position: center center !important;
+      background-attachment: fixed !important;
+      background-repeat: no-repeat !important;
+    }
+    body.tenant-bg-aura::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.82);
+      z-index: 0;
+      pointer-events: none;
+    }
+    body.tenant-bg-aura > #root {
+      position: relative;
+      z-index: 1;
+    }
+  </style>
+  <script>
+    (function(){
+      var t = new URLSearchParams(window.location.search).get('local')
+        || sessionStorage.getItem('saas_current_tenant') || '';
+      if (!t) {
+        var dm = { 'aurasalon.synaptechspa.cl':'aura','aurasalonmalegrooming.synaptech.cl':'aura','aurasalonmalegrooming.synaptechspa.cl':'aura' };
+        t = dm[window.location.hostname.toLowerCase()] || '';
+      }
+      if (t === 'aura') document.body.classList.add('tenant-bg-aura');
+    })();
+  </script>
   <div id="root"></div>
 </body>
 </html>
