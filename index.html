@@ -1821,152 +1821,470 @@
     /* ────────────────────────────────────────────────────────────── */
     /* ═══════════════════════════════════════════════════════════════
        AURA SALÓN & MALE GROOMING
-       Paleta: Dark Mode Premium (Monocromático, Acento Blanco/Plata)
+       Paleta: Urbano-Industrial Light Mode (Cultura Deportiva)
+       ───────────────────────────────────────────────────────────────
+       Neutros:
+         alpine-white    #F9FAFB  (zinc-50)   → fondo principal, tarjetas
+         concrete-gray   #8E9399              → fondos secundarios, bordes
+         stainless-steel #D4D4D8  (zinc-300)  → divisores, estados inactivos
+         satin-black     #18181B  (zinc-900)  → textos, encabezados, íconos
+       Acentos:
+         accent-sky      #6CABDD  (Manchester Sky Blue) → CTA, selección
+         accent-navy     #00285E              → hover, header, alto contraste
+         accent-pink     #FF8EA6              → badges, "Nuevo", decorativos
+         accent-moss     #00553A              → éxito, confirmación
+         accent-utilitarian #DC2626 (red-600) → destructivo, error
        ═══════════════════════════════════════════════════════════════ */
     .tenant-aura {
-      --accent:   #ffffff;
-      --accent-r: 255; --accent-g: 255; --accent-b: 255;
-      --body-bg:  #09090b; /* zinc-950 */
+      --accent:   #6CABDD;
+      --accent-r: 108; --accent-g: 171; --accent-b: 221;
+      --neon-clr: #6CABDD;
+      --neon-r: 108; --neon-g: 171; --neon-b: 221;
+      --body-bg:  #F9FAFB;
+      --gold:     #6CABDD;
+      --gold-dim: rgba(108,171,221,0.35);
     }
 
-    .tenant-aura body { background-color: var(--body-bg); color: #f4f4f5; }
+    /* ── Base ── */
+    .tenant-aura body {
+      background-color: #F9FAFB !important;
+      color: #18181B !important;
+    }
 
+    /* ── Hero Header (Navy) ── */
     .tenant-aura .booking-hero {
       background-image: none !important;
-      background-color: var(--body-bg) !important;
+      background-color: #00285E !important;
     }
     .tenant-aura .booking-hero-overlay {
-      background: linear-gradient(180deg, rgba(9,9,11,0.6) 0%, rgba(9,9,11,0.9) 100%) !important;
+      background: linear-gradient(180deg, rgba(0,40,94,0.70) 0%, rgba(0,40,94,0.92) 100%) !important;
     }
     .tenant-aura .hero-logo-ring {
-      border: 2px solid var(--accent);
-      box-shadow: 0 0 24px rgba(255,255,255,0.1);
+      border: 2.5px solid #ffffff !important;
+      box-shadow: 0 0 20px rgba(108,171,221,0.25), 0 0 0 1px rgba(255,255,255,0.15) !important;
     }
     .tenant-aura #shopNombre {
       font-weight: 800 !important;
       color: #ffffff !important;
     }
+    .tenant-aura #shopSlogan,
+    .tenant-aura #shopSlogan span {
+      color: rgba(255,255,255,0.70) !important;
+    }
     .tenant-aura .gold-divider {
-      background: linear-gradient(90deg, transparent, #a1a1aa, transparent) !important;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent) !important;
     }
-    .tenant-aura .text-neon { text-shadow: none !important; color: #ffffff !important; }
-    .tenant-aura h2.text-neon { color: #ffffff !important; }
-    
-    /* Surfaces / Cards (zinc-900) */
+
+    /* ── Info Strip ── */
+    .tenant-aura .info-strip {
+      background: #001A3F !important;
+      border-bottom-color: rgba(108,171,221,0.12) !important;
+    }
+    .tenant-aura .info-strip a,
+    .tenant-aura .info-strip > div {
+      color: #D4D4D8 !important;
+      border-color: rgba(108,171,221,0.15) !important;
+    }
+    .tenant-aura .info-strip i {
+      color: #6CABDD !important;
+    }
+
+    /* ── Back Button ── */
+    .tenant-aura button[onclick="goBack()"] {
+      background: rgba(0,40,94,0.65) !important;
+      border-color: rgba(255,255,255,0.25) !important;
+    }
+
+    /* ── Progress / Stepper ── */
+    .tenant-aura #progressBar {
+      background: #6CABDD !important;
+      box-shadow: none !important;
+    }
+    .tenant-aura #progressTrack {
+      background-color: #D4D4D8 !important;
+    }
+    .tenant-aura #stepIndicatorText {
+      color: #18181B !important;
+      text-shadow: none !important;
+    }
+    .tenant-aura #progressPercentage {
+      color: #6CABDD !important;
+    }
+    .tenant-aura #selectionRecap {
+      color: #8E9399 !important;
+    }
+
+    /* ── Section Headings ── */
+    .tenant-aura .text-neon {
+      text-shadow: none !important;
+      color: #18181B !important;
+    }
+    .tenant-aura h2.text-neon {
+      color: #18181B !important;
+    }
+    .tenant-aura .text-brand-neon\/60,
+    .tenant-aura .text-brand-neon\/80 {
+      color: #18181B !important;
+    }
+
+    /* ── Generic text overrides for light bg ── */
+    .tenant-aura .text-gray-500 { color: #8E9399 !important; }
+    .tenant-aura .text-gray-600 { color: #71717A !important; }
+    .tenant-aura .text-gray-700 { color: #52525B !important; }
+    .tenant-aura .text-white { color: #18181B !important; }
+    .tenant-aura .text-white\/50 { color: rgba(24,24,27,0.50) !important; }
+    .tenant-aura .text-white\/30 { color: rgba(24,24,27,0.30) !important; }
+    .tenant-aura .text-white\/70 { color: rgba(24,24,27,0.70) !important; }
+    .tenant-aura .text-white\/25 { color: rgba(24,24,27,0.25) !important; }
+    .tenant-aura .text-white\/15 { color: rgba(24,24,27,0.15) !important; }
+    .tenant-aura .text-white\/20 { color: rgba(24,24,27,0.20) !important; }
+
+    /* ── Preserve white text inside navy/dark areas ── */
+    .tenant-aura .booking-hero .text-white,
+    .tenant-aura .booking-hero .text-white\/70,
+    .tenant-aura .booking-hero .text-white\/50 {
+      color: inherit !important;
+    }
+    .tenant-aura #shopNombre { color: #ffffff !important; }
+    .tenant-aura .booking-hero p,
+    .tenant-aura .booking-hero span {
+      color: rgba(255,255,255,0.70) !important;
+    }
+
+    /* ── Service Option Cards ── */
     .tenant-aura .service-option {
-      background: #18181b !important; /* zinc-900 */
-      border-color: #27272a !important; /* zinc-800 */
+      background: #FFFFFF !important;
+      border-color: #D4D4D8 !important;
       border-radius: 12px !important;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
     }
+    .tenant-aura .service-option .svc-name { color: #18181B !important; }
+    .tenant-aura .service-option .price-tag { color: #00285E !important; }
+    .tenant-aura .service-option .duration-tag { color: #8E9399 !important; }
+    .tenant-aura .service-option .icon-svg {
+      color: #6CABDD !important;
+      filter: none !important;
+    }
+    .tenant-aura .service-option .icon-bg {
+      background: rgba(108,171,221,0.08) !important;
+      border-color: rgba(108,171,221,0.20) !important;
+    }
+    /* Selected state */
     .tenant-aura .service-option.border-neon {
-      border-color: var(--accent) !important;
-      background: #27272a !important;
+      border-color: #6CABDD !important;
+      background: rgba(108,171,221,0.06) !important;
+      box-shadow: 0 0 0 1px rgba(108,171,221,0.20), 0 2px 8px rgba(108,171,221,0.10) !important;
     }
-    .tenant-aura .service-option .icon-svg { color: var(--accent) !important; filter: none !important; }
-    .tenant-aura .service-option .price-tag { color: var(--accent) !important; }
-    
+    .tenant-aura .service-option.bg-brand-neon\/10 {
+      background: rgba(108,171,221,0.06) !important;
+    }
+    .tenant-aura .service-option.border-neon .icon-bg {
+      background: rgba(108,171,221,0.14) !important;
+      border-color: rgba(108,171,221,0.35) !important;
+    }
+    .tenant-aura .service-option.border-neon .icon-svg {
+      color: #00285E !important;
+    }
+    .tenant-aura .service-option.border-neon .price-tag { color: #00285E !important; }
+
+    /* ── Category Pills ── */
+    .tenant-aura .category-pill {
+      background: #FFFFFF !important;
+      border-color: #D4D4D8 !important;
+      color: #8E9399 !important;
+    }
+    .tenant-aura .category-pill:hover {
+      border-color: #6CABDD !important;
+      color: #6CABDD !important;
+    }
+    .tenant-aura .category-pill.border-neon,
+    .tenant-aura .category-pill.text-neon {
+      border-color: #6CABDD !important;
+      color: #00285E !important;
+      background: rgba(108,171,221,0.08) !important;
+      box-shadow: none !important;
+    }
+
+    /* ── Barber Option Cards ── */
     .tenant-aura .barber-option {
-      background: #18181b !important;
-      border-color: #27272a !important;
+      background: #FFFFFF !important;
+      border-color: #D4D4D8 !important;
       border-radius: 12px !important;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
     }
+    .tenant-aura .barber-option .barber-name { color: #18181B !important; }
+    .tenant-aura .barber-option .text-brand-neon { color: #6CABDD !important; }
+    /* Selected state */
     .tenant-aura .barber-option.border-neon {
-      border-color: var(--accent) !important;
-      background: #27272a !important;
+      border-color: #6CABDD !important;
+      background: rgba(108,171,221,0.06) !important;
+      box-shadow: 0 0 0 1px rgba(108,171,221,0.20), 0 2px 8px rgba(108,171,221,0.10) !important;
     }
-    .tenant-aura .barber-option .text-brand-neon { color: var(--accent) !important; }
+    .tenant-aura .barber-option.bg-brand-neon\/10 {
+      background: rgba(108,171,221,0.06) !important;
+    }
 
+    /* ── Day Buttons ── */
     .tenant-aura .day-btn {
-      background: #18181b !important;
-      border-color: #27272a !important;
+      background: #FFFFFF !important;
+      border-color: #D4D4D8 !important;
+      color: #18181B !important;
     }
-    .tenant-aura .day-btn.active, .tenant-aura .day-btn.border-neon {
-      border-color: var(--accent) !important;
-      background: #27272a !important;
+    .tenant-aura .day-btn span { color: #18181B !important; }
+    .tenant-aura .day-btn .text-gray-600 { color: #8E9399 !important; }
+    .tenant-aura .day-btn.active,
+    .tenant-aura .day-btn.border-neon {
+      border-color: #6CABDD !important;
+      background: rgba(108,171,221,0.06) !important;
     }
-    .tenant-aura .day-btn .dot.bg-neon { background: var(--accent) !important; }
+    .tenant-aura .day-btn .dot.bg-neon {
+      background: #6CABDD !important;
+      box-shadow: none !important;
+    }
 
+    /* ── Time Pills ── */
     .tenant-aura .time-pill {
-      background: #18181b !important;
-      border-color: #27272a !important;
+      background: #FFFFFF !important;
+      border-color: #D4D4D8 !important;
+      color: #18181B !important;
     }
-    .tenant-aura .time-pill.bg-neon {
-      background: var(--accent) !important;
-      border-color: var(--accent) !important;
-      color: #000 !important;
+    .tenant-aura .time-pill:not([data-sel]):hover {
+      background: rgba(108,171,221,0.06) !important;
+      border-color: #6CABDD !important;
+      color: #00285E !important;
+    }
+    .tenant-aura .time-pill.bg-neon,
+    .tenant-aura .time-pill[data-sel] {
+      background: #6CABDD !important;
+      border-color: #6CABDD !important;
+      color: #ffffff !important;
       font-weight: 700 !important;
+      box-shadow: 0 2px 8px rgba(108,171,221,0.30) !important;
     }
-    
-    /* Main CTA */
+    .tenant-aura .slot-pill-busy {
+      background: rgba(220,38,38,0.06) !important;
+      border-color: rgba(220,38,38,0.18) !important;
+      color: rgba(220,38,38,0.40) !important;
+    }
+
+    /* ── Main CTA Button ── */
     .tenant-aura #btnContinue {
-      background: var(--accent) !important;
-      color: #000 !important;
+      background: #6CABDD !important;
+      color: #ffffff !important;
       font-weight: 700 !important;
+      box-shadow: 0 4px 16px rgba(108,171,221,0.30) !important;
     }
-    /* Stepper Minimalista */
-    .tenant-aura #progressBar { background: var(--accent) !important; box-shadow: none !important; }
-    .tenant-aura #progressTrack { height: 2px !important; margin-bottom: 0px !important; }
-    .tenant-aura #stepIndicatorText, .tenant-aura #progressPercentage { display: none !important; }
-    .tenant-aura #selectionRecap { 
-      opacity: 0.7; 
-      justify-content: center; 
-      margin-top: 10px !important; 
+    .tenant-aura #btnContinue:hover {
+      background: #00285E !important;
     }
-
-    /* Header Dinámico (Shrink en pasos > 1) */
-    .tenant-aura body[data-step="2"] .booking-hero,
-    .tenant-aura body[data-step="3"] .booking-hero,
-    .tenant-aura body[data-step="4"] .booking-hero {
-      min-height: auto !important;
-      padding-top: 1.5rem !important;
-      padding-bottom: 1rem !important;
-      transition: all 0.4s ease;
-    }
-    .tenant-aura body[data-step="2"] .hero-logo-ring,
-    .tenant-aura body[data-step="3"] .hero-logo-ring,
-    .tenant-aura body[data-step="4"] .hero-logo-ring {
-      width: 48px !important; 
-      height: 48px !important;
-      transition: all 0.4s ease;
-    }
-    .tenant-aura body[data-step="2"] #shopNombre,
-    .tenant-aura body[data-step="3"] #shopNombre,
-    .tenant-aura body[data-step="4"] #shopNombre,
-    .tenant-aura body[data-step="2"] .gold-divider,
-    .tenant-aura body[data-step="3"] .gold-divider,
-    .tenant-aura body[data-step="4"] .gold-divider,
-    .tenant-aura body[data-step="2"] #shopSlogan,
-    .tenant-aura body[data-step="3"] #shopSlogan,
-    .tenant-aura body[data-step="4"] #shopSlogan {
-      display: none !important;
-    }
-
-    /* Reordenamiento Crítico Paso 4 */
-    .tenant-aura #step4 {
-      display: flex;
-      flex-direction: column;
-    }
-    .tenant-aura #step4 > h2 { order: 1; }
-    .tenant-aura #step4 > p { order: 2; }
-    .tenant-aura #step4 > .space-y-4 { order: 3; margin-top: 0.5rem !important; margin-bottom: 1.5rem !important; }
-    .tenant-aura #step4 > .mt-6.rounded-2xl { order: 4; margin-top: 0 !important; }
-    .tenant-aura #step4 #step4XSell { order: 5; margin-top: 1.5rem; }
-    .tenant-aura #step4AuthContainer { display: none !important; }
-
-    /* Sticky Footer Fade */
     .tenant-aura #btnContinueBar {
-      position: relative;
-      background: transparent !important;
-      border-top: none !important;
-      padding-top: 2rem !important;
+      background: rgba(249,250,251,0.88) !important;
+      backdrop-filter: blur(20px) !important;
+      -webkit-backdrop-filter: blur(20px) !important;
+      border-top: 1px solid #D4D4D8 !important;
     }
-    .tenant-aura #btnContinueBar::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: linear-gradient(to top, #09090b 40%, transparent 100%);
-      z-index: -1;
-      pointer-events: none;
+
+    /* ── Step 4: Form Inputs ── */
+    .tenant-aura #step4 label {
+      color: #8E9399 !important;
+    }
+    .tenant-aura #step4 input[type="text"],
+    .tenant-aura #step4 input[type="tel"],
+    .tenant-aura #step4 input[type="email"] {
+      background: #FFFFFF !important;
+      border-color: #D4D4D8 !important;
+      color: #18181B !important;
+    }
+    .tenant-aura #step4 input::placeholder {
+      color: #D4D4D8 !important;
+    }
+    .tenant-aura #step4 input:focus {
+      border-color: #6CABDD !important;
+      box-shadow: 0 0 0 3px rgba(108,171,221,0.15) !important;
+    }
+
+    /* ── Step 4: Summary Card ── */
+    .tenant-aura #step4 .mt-6.rounded-2xl {
+      background: #FFFFFF !important;
+      border: 1px solid #D4D4D8 !important;
+    }
+    .tenant-aura #step4 .mt-6.rounded-2xl .text-white\/30 { color: #8E9399 !important; }
+    .tenant-aura #step4 .mt-6.rounded-2xl .text-white { color: #18181B !important; }
+    .tenant-aura #step4 .mt-6.rounded-2xl .text-gray-500 { color: #8E9399 !important; }
+    .tenant-aura #step4 .mt-6.rounded-2xl .bg-white\/5,
+    .tenant-aura #step4 .mt-6.rounded-2xl .h-px {
+      background: #D4D4D8 !important;
+    }
+    .tenant-aura #step4 .mt-6.rounded-2xl i {
+      color: #6CABDD !important;
+    }
+    .tenant-aura #step4 .mt-6.rounded-2xl #summaryTime {
+      color: #00285E !important;
+    }
+
+    /* ── Club Banner ── */
+    .tenant-aura #clubBanner > a {
+      background: #FFFFFF !important;
+      border: 1px solid #D4D4D8 !important;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
+    }
+    .tenant-aura #clubBanner .club-icon-wrap {
+      background: rgba(108,171,221,0.10) !important;
+      border-color: rgba(108,171,221,0.25) !important;
+    }
+    .tenant-aura #clubBanner i.ph-fill { color: #6CABDD !important; filter: none !important; }
+    .tenant-aura #clubBanner p.text-white { color: #18181B !important; }
+    .tenant-aura #clubBanner i.ph-bold { color: rgba(24,24,27,0.25) !important; }
+
+    /* ── Club Fidelidad Step 4 ── */
+    .tenant-aura #step4AuthContainer a.flex {
+      background: #6CABDD !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 16px rgba(108,171,221,0.30) !important;
+    }
+    .tenant-aura #step4AuthContainer a.flex i { color: #ffffff !important; }
+
+    /* ── Footer Contact ── */
+    .tenant-aura #footerContact .rounded-2xl {
+      background: #FFFFFF !important;
+      border: 1px solid #D4D4D8 !important;
+    }
+    .tenant-aura #footerContact .w-10 {
+      background: rgba(108,171,221,0.10) !important;
+      border-color: rgba(108,171,221,0.25) !important;
+    }
+    .tenant-aura #footerContact .w-10 i { color: #6CABDD !important; }
+    .tenant-aura #footerContact p[class*="uppercase"] { color: #6CABDD !important; }
+    .tenant-aura #footerContact p.text-white { color: #18181B !important; }
+    .tenant-aura #footerContact .h-px { background: #D4D4D8 !important; }
+    .tenant-aura #footerContact a.active\:bg-white\/5:active {
+      background: rgba(108,171,221,0.06) !important;
+    }
+
+    /* ── Extras Section ── */
+    .tenant-aura #extrasSection p[class*="uppercase"] { color: #6CABDD !important; }
+
+    /* ── Success State ── */
+    .tenant-aura #success-state h2 { color: #00553A !important; }
+    .tenant-aura #success-state .text-neon { color: #00553A !important; }
+    .tenant-aura #success-state .bg-brand-neon\/10 { background: rgba(0,85,58,0.10) !important; }
+    .tenant-aura #success-state svg.text-neon { color: #00553A !important; }
+    .tenant-aura #success-state .bg-\[#0a0a0d\] {
+      background: #FFFFFF !important;
+      border-color: rgba(0,85,58,0.25) !important;
+    }
+    .tenant-aura #success-state .text-brand-text { color: #18181B !important; }
+    .tenant-aura #success-state .text-brand-neon\/80 { color: #52525B !important; }
+    .tenant-aura #success-state a[class*="instagram"] { color: #8E9399 !important; }
+    .tenant-aura #success-state button { color: #6CABDD !important; }
+
+    /* ── Toast Validation ── */
+    .tenant-aura #toastValidation {
+      background: #FFFFFF !important;
+      border: 1px solid rgba(220,38,38,0.35) !important;
+      color: #DC2626 !important;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.10) !important;
+    }
+
+    /* ── Animations: club sparks, badge glow ── */
+    .tenant-aura .club-spark {
+      background: #6CABDD !important;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       AURA — "Quiénes Somos" (Urban-Industrial Style)
+       ═══════════════════════════════════════════════════════════════ */
+    #aura-sobre-wrap { display: none; }
+    .tenant-aura #aura-sobre-wrap { display: block !important; }
+    #aura-sobre-btn {
+      width: 100%;
+      padding: 10px 16px;
+      border-radius: 12px;
+      border: 1px solid rgba(108,171,221,0.25);
+      background: rgba(108,171,221,0.06);
+      color: #00285E;
+      font-family: system-ui, sans-serif;
+      font-size: 12.5px;
+      font-weight: 600;
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    #aura-sobre-btn:active {
+      background: rgba(108,171,221,0.14);
+      border-color: rgba(108,171,221,0.45);
+    }
+
+    #aura-sobre-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 9998;
+      background: rgba(0,40,94,0.45);
+      backdrop-filter: blur(6px);
+      align-items: flex-end;
+    }
+    #aura-sobre-modal.open { display: flex; }
+    #aura-sobre-sheet {
+      width: 100%;
+      max-height: 80vh;
+      overflow-y: auto;
+      background: #F9FAFB;
+      border-radius: 24px 24px 0 0;
+      border-top: 2px solid #6CABDD;
+      padding: 0 24px 40px;
+      transform: translateY(100%);
+      transition: transform 0.35s cubic-bezier(0.16,1,0.3,1);
+    }
+    #aura-sobre-modal.open #aura-sobre-sheet { transform: translateY(0); }
+    #aura-sobre-handle {
+      width: 36px; height: 4px;
+      background: #D4D4D8;
+      border-radius: 2px;
+      margin: 14px auto 20px;
+    }
+    #aura-sobre-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 22px;
+      font-weight: 700;
+      color: #00285E;
+      margin-bottom: 16px;
+      line-height: 1.25;
+    }
+    #aura-sobre-body {
+      font-family: system-ui, sans-serif;
+      font-size: 14.5px;
+      line-height: 1.75;
+      color: rgba(24,24,27,0.72);
+    }
+    #aura-sobre-close {
+      margin-top: 24px;
+      width: 100%;
+      padding: 13px;
+      border-radius: 12px;
+      background: #6CABDD;
+      color: #ffffff;
+      font-family: system-ui, sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      border: none;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    #aura-sobre-close:active { opacity: 0.85; }
+
+    /* Ocultar botón en pasos subsiguientes para un flujo limpio */
+    body[data-step="2"] #aura-sobre-wrap,
+    body[data-step="3"] #aura-sobre-wrap,
+    body[data-step="4"] #aura-sobre-wrap {
+      display: none !important;
     }
   </style>
 </head>
@@ -2032,6 +2350,14 @@
       <button id="mapu-sobre-btn" onclick="openMapuSobre()">
         <i class="ph ph-info" style="font-size:15px;"></i>
         Sobre Nosotros
+      </button>
+    </div>
+
+    <!-- Quiénes Somos — Aura only -->
+    <div id="aura-sobre-wrap" class="px-6 pt-4 pb-1">
+      <button id="aura-sobre-btn" onclick="openAuraSobre()">
+        <i class="ph ph-info" style="font-size:15px;"></i>
+        Quiénes Somos
       </button>
     </div>
 
@@ -4104,6 +4430,18 @@
       document.body.style.overflow = '';
     }
 
+    // ── Quiénes Somos modal (Aura only) ────────────────────────────────────────
+    function openAuraSobre() {
+      const m = document.getElementById('aura-sobre-modal');
+      m.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeAuraSobre() {
+      const m = document.getElementById('aura-sobre-modal');
+      m.classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
   </script>
 
   <!-- Club Del Nero modal -->
@@ -4200,6 +4538,16 @@
       <div id="mapu-sobre-title">Mapu Barber Shop</div>
       <p id="mapu-sobre-body">Fundada en 2017 en Valparaíso, Mapu Barber nació de la pasión por el oficio y la convicción de que una barbería puede ser mucho más que un espacio de corte. Hoy, con dos sucursales en la región, somos un referente de la barbería clásica en Chile.<br><br>Cada barbero que forma parte de nuestro equipo comparte los mismos valores: precisión, respeto por el cliente y amor por el oficio. A través de la Academia Mapu Barber, hemos egresado más de 24 generaciones de barberos que hoy ejercen su profesión con orgullo en todo Chile.</p>
       <button id="mapu-sobre-close" onclick="closeMapuSobre()">Cerrar</button>
+    </div>
+  </div>
+
+  <!-- Quiénes Somos modal — Aura only -->
+  <div id="aura-sobre-modal" onclick="if(event.target===this)closeAuraSobre()">
+    <div id="aura-sobre-sheet">
+      <div id="aura-sobre-handle"></div>
+      <div id="aura-sobre-title">Quiénes Somos</div>
+      <p id="aura-sobre-body">✨ AURA SALÓN & MALE GROOMING ✂️ Más que una barbería, somos un espacio creado para el cuidado, el estilo y la experiencia masculina moderna. En AURA combinamos técnica, diseño y detalles para ofrecerte un servicio integral: cortes clásicos y contemporáneos, perfilado de barba, tratamientos capilares y una atención pensada para tu bienestar. Cada visita es una pausa en la rutina, un momento para verte y sentirte mejor. <br><br>💈 Estilo, precisión y personalidad — eso es AURA.</p>
+      <button id="aura-sobre-close" onclick="closeAuraSobre()">Cerrar</button>
     </div>
   </div>
 
