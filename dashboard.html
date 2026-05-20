@@ -2547,7 +2547,9 @@ document.getElementById('avatarFileInput').addEventListener('change', async func
 function dispararConfetti() {
   const colors = window.CURRENT_TENANT_ID === 'lumen'
     ? ['#22d3ee', '#06b6d4', '#67e8f9', '#ffffff', '#0891b2']
-    : ['#c9a84c', '#f0d080', '#ffffff', '#e8c060', '#ffd700'];
+    : window.CURRENT_TENANT_ID === 'aura'
+      ? ['#6CABDD', '#00285E', '#ffffff', '#8E9399', '#D4D4D8']
+      : ['#c9a84c', '#f0d080', '#ffffff', '#e8c060', '#ffd700'];
   confetti({ particleCount: 90, spread: 70, origin: { y: 0.55 }, colors, ticks: 220, scalar: 1.1 });
   setTimeout(() => {
     confetti({ particleCount: 45, spread: 80, angle: 60,  origin: { x: 0.15, y: 0.5 }, colors });
@@ -2648,6 +2650,8 @@ function renderStamps(count, historicos) {
         cell.innerHTML = `<img src="/sellochamaleon.png" style="width:75%;height:75%;object-fit:contain;" alt="sello" />`;
       } else if (isGrandPrize) {
         cell.innerHTML = `<i class="ph-fill ph-gift text-lg"></i>`;
+      } else if (tid === 'aura') {
+        cell.innerHTML = `<i class="ph-fill ph-basketball text-lg"></i>`;
       } else {
         cell.innerHTML = `<i class="ph-fill ph-scissors text-lg text-black"></i>`;
       }
