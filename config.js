@@ -263,9 +263,13 @@
       instagramHandle: '',
       waEmoji:         '✂️',
       googleReviewUrl: 'https://g.page/r/CRw9h990wQ5jEBM/review',
-      ratingGeneral: 0,
-      totalReviews:  0,
-      reviews:       [],
+      ratingGeneral: 5.0,
+      totalReviews:  43,
+      reviews: [
+        { author: 'Rafael Contador',    rating: 5, text: 'Tremenda experiencia! Fui por un corte de pelo y a arreglarme la barba y quedé más que satisfecho. Chiky Barber me entendió perfectamente lo que quería y fue muy detallista. El ambiente es muy agradable y el servicio impecable. Definitivamente volveré y lo recomiendo al 100%.' },
+        { author: 'Luciano Bravo',      rating: 5, text: 'Excelente experiencia y maravilloso servicio, pasar el rato con un cafecito y cortarse el pelo deja un Aura semanal 🔥' },
+        { author: 'Ignacio Ibaceta',    rating: 5, text: 'Súper buena atención! Servicio completo y perfecto para ir a relajarse, hasta un café ofrecieron al momento de atenderme!' },
+      ],
       barberos: [],
     },
   };
