@@ -1609,9 +1609,23 @@
       </div>
       
       <div class="space-y-4">
-        <div>
+        <div class="relative">
           <label class="text-[11px] font-bold text-white/40 uppercase tracking-widest block mb-1">Nombre del Cliente</label>
-          <input type="text" id="manualName" placeholder="Ej: Juan Pérez" class="w-full rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+          <div class="relative">
+            <input type="text" id="manualName" placeholder="Busca un cliente del Club o escribe el nombre…"
+              class="w-full rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none"
+              style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);padding-right:4.5rem;"
+              autocomplete="off"
+              oninput="_onManualNameInput()"
+              onblur="setTimeout(()=>{const s=document.getElementById('manualNameSugg');if(s)s.classList.add('hidden');},160)">
+            <span id="manualLinkedBadge" class="hidden absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none flex items-center gap-1"
+              style="font-size:0.6rem;font-weight:800;letter-spacing:0.04em;color:var(--neon-clr,#34d399);">
+              <i class="ph-fill ph-check-circle" style="font-size:0.85rem;"></i>Club
+            </span>
+          </div>
+          <div id="manualNameSugg" class="hidden absolute left-0 right-0 z-50 mt-1 rounded-xl overflow-y-auto"
+            style="background:#1c1c26;border:1px solid rgba(255,255,255,0.12);box-shadow:0 8px 32px rgba(0,0,0,0.7);max-height:216px;">
+          </div>
         </div>
         <div>
           <label class="text-[11px] font-bold text-white/40 uppercase tracking-widest block mb-1">Teléfono / WhatsApp</label>
@@ -1683,9 +1697,115 @@
         document.getElementById('manualPhone').value = '';
         document.getElementById('manualService').value = '';
         document.getElementById('manualError').classList.add('hidden');
+        document.getElementById('manualLinkedBadge').classList.add('hidden');
+        document.getElementById('manualNameSugg').classList.add('hidden');
+        _selectedClienteId = null;
+        _manualEmail = '';
+        // Precarga clientes en background para que estén listos al escribir
+        _loadClientes();
     }
     function cerrarAgendarModal() {
         document.getElementById('agendarModal').classList.add('hidden');
+    }
+
+    // ── BUSCADOR CLIENTES CLUB ──────────────────────────────────────
+    let _clientes       = null;
+    let _selectedClienteId = null;
+    let _manualEmail    = '';
+
+    async function _loadClientes() {
+        if (_clientes !== null) return;
+        try {
+            const snap = await tenantCol('clientes').get();
+            _clientes = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        } catch(_e) { _clientes = []; }
+    }
+
+    function _normStr(s) {
+        return (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    }
+
+    function _escHtml(s) {
+        return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function _getSugerencias(query) {
+        if (!_clientes || !query.trim()) return [];
+        const q     = _normStr(query.trim());
+        const words = q.split(/\s+/).filter(Boolean);
+        return _clientes
+            .map(c => {
+                const nombre = _normStr(c.nombre);
+                const email  = _normStr(c.email);
+                const tel    = (c.telefono || '').replace(/\D/g, '');
+                if (!words.every(w => nombre.includes(w) || email.includes(w) || tel.includes(w))) return null;
+                const score  = nombre.startsWith(q) ? 0 : words.some(w => nombre.startsWith(w)) ? 1 : 2;
+                return { c, score };
+            })
+            .filter(Boolean)
+            .sort((a, b) => a.score - b.score)
+            .map(({ c }) => c)
+            .slice(0, 8);
+    }
+
+    function _renderSugerencias(sugs) {
+        const el = document.getElementById('manualNameSugg');
+        if (!el) return;
+        if (!sugs.length) { el.classList.add('hidden'); return; }
+        const clr = getComputedStyle(document.documentElement).getPropertyValue('--neon-clr').trim() || '#34d399';
+        el.innerHTML = sugs.map(c => `
+            <button type="button" onmousedown="seleccionarClienteManual('${_escHtml(c.id)}')"
+                class="w-full flex items-center gap-3 px-3 py-2.5 text-left"
+                style="border-bottom:1px solid rgba(255,255,255,0.05);"
+                onmouseover="this.style.background='rgba(255,255,255,0.07)'"
+                onmouseout="this.style.background=''">
+                <div class="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center"
+                    style="background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.22);">
+                    <i class="ph-fill ph-user" style="font-size:0.75rem;color:${clr};"></i>
+                </div>
+                <div class="min-w-0 flex-1">
+                    <p class="text-sm text-white font-medium truncate">${_escHtml(c.nombre || '')}</p>
+                    ${c.telefono ? `<p class="text-xs truncate" style="color:rgba(255,255,255,0.35);">${_escHtml(c.telefono)}</p>` : ''}
+                </div>
+                ${c.uid ? `<span style="font-size:0.575rem;font-weight:800;letter-spacing:0.05em;padding:0.15rem 0.45rem;border-radius:999px;color:${clr};background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.25);flex-shrink:0;">CLUB</span>` : ''}
+            </button>
+        `).join('');
+        el.classList.remove('hidden');
+    }
+
+    async function _onManualNameInput() {
+        _selectedClienteId = null;
+        _manualEmail = '';
+        const badge = document.getElementById('manualLinkedBadge');
+        if (badge) badge.classList.add('hidden');
+        await _loadClientes();
+        const q = (document.getElementById('manualName') || {}).value || '';
+        _renderSugerencias(_getSugerencias(q));
+    }
+
+    async function seleccionarClienteManual(clienteId) {
+        const c = (_clientes || []).find(x => x.id === clienteId);
+        if (!c) return;
+        _selectedClienteId = clienteId;
+        _manualEmail = c.email || '';
+        const nameEl  = document.getElementById('manualName');
+        const phoneEl = document.getElementById('manualPhone');
+        if (nameEl)  nameEl.value  = c.nombre   || '';
+        if (phoneEl) phoneEl.value = c.telefono || '';
+        document.getElementById('manualNameSugg').classList.add('hidden');
+        document.getElementById('manualLinkedBadge').classList.remove('hidden');
+        // Enriquecer con datos del perfil si tiene cuenta registrada
+        if (c.uid) {
+            try {
+                const snap = await tenantCol('users').doc(c.uid).get();
+                if (snap.exists) {
+                    const u = snap.data();
+                    if (u.nombre   && nameEl)  nameEl.value  = u.nombre;
+                    if (u.email)               _manualEmail  = u.email;
+                    if (u.telefono && phoneEl) phoneEl.value = u.telefono;
+                }
+            } catch(_e) {}
+        }
     }
 
     async function guardarCitaManual() {
@@ -1715,7 +1835,7 @@
                 barberoId: barberId,
                 clienteNombre: name,
                 clienteTelefono: phone || '',
-                clienteEmail: '',
+                clienteEmail: _manualEmail || '',
                 estado: 'Confirmada',
                 fecha: fechaStr,
                 hora: _timeSlotSeleccionado,
@@ -1726,6 +1846,7 @@
                 origen: 'agenda_manual',
                 tenantId: window.CURRENT_TENANT_ID || 'elegance'
             };
+            if (_selectedClienteId) docData.clienteId = _selectedClienteId;
 
             await tenantCol('citas').add(docData);
             cerrarAgendarModal();
