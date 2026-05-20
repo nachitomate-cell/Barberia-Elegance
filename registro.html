@@ -725,6 +725,109 @@
 
     /* Ocultar sección social al recuperar contraseña */
     .tab-reset .social-section { display: none; }
+
+    /* ═══════════════════════════════════════════════════════════════
+       AURA SALÓN & MALE GROOMING
+       Paleta: Urbano-Industrial Light Mode (Cultura Deportiva)
+       ═══════════════════════════════════════════════════════════════ */
+    .tenant-aura {
+      --gold: #6CABDD;
+      --gold-dim: rgba(108,171,221,0.18);
+    }
+    .tenant-aura body {
+      background-color: #F9FAFB !important;
+      color: #18181B !important;
+    }
+    /* Logo & Glow */
+    .tenant-aura .ambient-glow {
+      background: radial-gradient(circle, rgba(108,171,221,0.06) 0%, transparent 65%);
+    }
+    .tenant-aura .logo-ring {
+      border-color: #ffffff !important;
+      box-shadow: 0 0 20px rgba(108,171,221,0.25), 0 0 0 1px rgba(255,255,255,0.15) !important;
+    }
+    .tenant-aura .gold-divider {
+      background: linear-gradient(90deg, transparent, #6CABDD, transparent) !important;
+    }
+    /* Textos */
+    .tenant-aura #heroClubTitle { color: #00285E !important; }
+    .tenant-aura #heroClubSub { color: #8E9399 !important; }
+    .tenant-aura .sep-ornamental-gem { color: #8E9399 !important; }
+    /* Tabs */
+    .tenant-aura .tab-btn { color: #8E9399 !important; border-bottom-color: transparent !important; }
+    .tenant-aura .tab-btn.active { color: #6CABDD !important; border-bottom-color: #6CABDD !important; }
+    .tenant-aura .border-b.border-white\/\\[0\.07\\] { border-color: #D4D4D8 !important; }
+    /* Inputs */
+    .tenant-aura .field {
+      background: #FFFFFF !important;
+      border-color: #D4D4D8 !important;
+      color: #18181B !important;
+    }
+    .tenant-aura .field::placeholder { color: #8E9399 !important; }
+    .tenant-aura .field:focus {
+      border-color: #6CABDD !important;
+      box-shadow: 0 0 0 2px rgba(108,171,221,0.20) !important;
+    }
+    .tenant-aura input:-webkit-autofill,
+    .tenant-aura input:-webkit-autofill:hover,
+    .tenant-aura input:-webkit-autofill:focus {
+      -webkit-box-shadow: 0 0 0 100px #FFFFFF inset !important;
+      -webkit-text-fill-color: #18181B !important;
+      caret-color: #18181B !important;
+    }
+    .tenant-aura input[type="date"] { color-scheme: light !important; }
+    /* Botones */
+    .tenant-aura .btn-primary {
+      background: #6CABDD !important;
+      border-color: #6CABDD !important;
+      color: #FFFFFF !important;
+      box-shadow: 0 4px 16px rgba(108,171,221,0.30) !important;
+    }
+    .tenant-aura .btn-primary:hover {
+      background: #00285E !important;
+      border-color: #00285E !important;
+    }
+    .tenant-aura .btn-google {
+      background: #FFFFFF !important;
+      border-color: #D4D4D8 !important;
+      color: #18181B !important;
+    }
+    .tenant-aura .btn-google:hover { background: #F9FAFB !important; border-color: #6CABDD !important; }
+    /* Otros elementos */
+    .tenant-aura .eye-toggle { color: #8E9399 !important; }
+    .tenant-aura .eye-toggle:hover { color: #6CABDD !important; }
+    .tenant-aura .spinner {
+      border-color: rgba(108,171,221,0.20) !important;
+      border-top-color: #6CABDD !important;
+    }
+    .tenant-aura .text-gray-600 { color: #8E9399 !important; }
+    .tenant-aura .text-gray-600:hover { color: #6CABDD !important; }
+    .tenant-aura .border-gray-700 { border-color: #D4D4D8 !important; }
+    .tenant-aura span.mx-4.text-gray-500 { color: #8E9399 !important; }
+    .tenant-aura .text-gray-400 { color: #52525B !important; }
+    /* Overlay */
+    .tenant-aura #loadingOverlay {
+      background: rgba(249,250,251,0.88) !important;
+    }
+    .tenant-aura #loadingOverlay span { color: #00285E !important; }
+    /* Panel Deluxe -> Aura adaptations just in case */
+    .tenant-aura #deluxe-member-panel p.text-white { color: #18181B !important; }
+    .tenant-aura #deluxe-member-panel .bg-white\\/5 {
+      background: rgba(108,171,221,0.06) !important;
+      border-color: #D4D4D8 !important;
+    }
+    .tenant-aura .w-12.h-12.bg-white\\/5 {
+      background: rgba(108,171,221,0.08) !important;
+      border-color: rgba(108,171,221,0.20) !important;
+    }
+    .tenant-aura .w-12.h-12 i.text-white\\/60 { color: #6CABDD !important; }
+
+    /* Ocultar campos de contraseña y botón de recuperar para Aura */
+    .tenant-aura #panelLogin .relative,
+    .tenant-aura #panelRegister .relative,
+    .tenant-aura button[onclick="switchTab('reset')"] {
+      display: none !important;
+    }
   </style>
 </head>
 
@@ -1032,7 +1135,12 @@
   // ── Email Login ───────────────────────────────────────────────
   async function loginWithEmail() {
     const email    = document.getElementById('loginEmail').value.trim();
-    const password = document.getElementById('loginPassword').value;
+    let password = document.getElementById('loginPassword').value;
+
+    if (window.CURRENT_TENANT_ID === 'aura') {
+      password = 'AuraLoyaltyPassword2026!';
+    }
+
     if (!email || !password) return showAlert('Completa todos los campos.');
     showLoading();
     try {
@@ -1100,8 +1208,12 @@
     const nombre          = document.getElementById('regNombre').value.trim();
     const email           = document.getElementById('regEmail').value.trim();
     const telefono        = document.getElementById('regTelefono').value.trim();
-    const password        = document.getElementById('regPassword').value;
+    let password        = document.getElementById('regPassword').value;
     const fechaNacimiento = document.getElementById('regFechaNacimiento').value || null; // "YYYY-MM-DD" o null
+
+    if (window.CURRENT_TENANT_ID === 'aura') {
+      password = 'AuraLoyaltyPassword2026!';
+    }
 
     if (!nombre || !email || !telefono || !password)
       return showAlert('Completa todos los campos.');

@@ -77,6 +77,28 @@
         .animate-fade-in {
             animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
+
+        /* ── Live Indicator & Highlight ── */
+        @keyframes livePulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 4px rgba(16, 185, 129, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+        .live-dot {
+            width: 8px; height: 8px;
+            background-color: #10b981;
+            border-radius: 50%;
+            animation: livePulse 2s infinite;
+        }
+
+        @keyframes newCitaGlow {
+            0%, 100% { border-color: rgba(16, 185, 129, 0.5); box-shadow: 0 0 10px rgba(16,185,129,0.2); }
+            50% { border-color: #10b981; box-shadow: 0 0 20px rgba(16,185,129,0.6); }
+        }
+        .cita-nueva-highlight {
+            animation: newCitaGlow 1.5s ease-in-out infinite;
+            border-left: 4px solid #10b981 !important;
+        }
     </style>
 </head>
 <body class="min-h-screen bg-brand-bg antialiased" style="padding-bottom: max(2.5rem, env(safe-area-inset-bottom));">
@@ -126,7 +148,10 @@
             </div>
             <div>
                 <h1 class="text-lg font-bold text-white tracking-tight" id="barberNameHeader">Agenda</h1>
-                <p class="text-[10px] text-white/40 uppercase tracking-[0.2em] font-semibold">Gestión Interna</p>
+                <div class="flex items-center gap-2 mt-0.5">
+                    <div class="live-dot" title="Sincronizado en tiempo real"></div>
+                    <p class="text-[10px] text-white/40 uppercase tracking-[0.2em] font-semibold">En Vivo</p>
+                </div>
             </div>
         </div>
         <div class="flex items-center gap-1.5 sm:gap-2">
@@ -258,8 +283,34 @@
             if (touchIcon) touchIcon.href = logo;
         }
 
+        // ── SISTEMA DE AUDIO (SINTETIZADOR BÁSICO) ──
+        function playNotificationSound() {
+            try {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (!AudioContext) return;
+                const audioCtx = new AudioContext();
+                const osc = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+                
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(880, audioCtx.currentTime); // A5
+                osc.frequency.exponentialRampToValueAtTime(1760, audioCtx.currentTime + 0.1); // Up to A6
+                
+                gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+                gainNode.gain.linearRampToValueAtTime(0.5, audioCtx.currentTime + 0.05);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.6);
+                
+                osc.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                
+                osc.start(audioCtx.currentTime);
+                osc.stop(audioCtx.currentTime + 0.6);
+            } catch(e) { console.warn("Audio no soportado o bloqueado"); }
+        }
+
         // ── ESTADO GLOBAL DE LA AGENDA ──
         let barberId = null;
+        let newlyAddedCitas = new Set(); // IDs de citas recién ingresadas para animarlas
 
         let currentDate = new Date();
         let barberConfig = null;
@@ -607,24 +658,31 @@
                 .onSnapshot(snap => {
                     const changes = snap.docChanges();
                     changes.forEach(change => {
-                        if (change.type === 'added' && _diaLoaded && Notification.permission === 'granted') {
+                        if (change.type === 'added' && _diaLoaded) {
                             const data = change.doc.data();
-                            // creadoEn puede no existir en citas antiguas: usar epoch 0
-                            // para que diff sea muy grande y no dispare notificación
                             const diff = new Date() - (data.creadoEn?.toDate() || new Date(0));
-                            if (diff < 60000) {
-                                navigator.serviceWorker.ready.then(reg => {
-                                    reg.showNotification('Nueva Reserva', {
-                                        body: `${data.clienteNombre} reservó para las ${data.hora}.`,
-                                        icon: '/icons/icon-192.png',
-                                        badge: '/icons/icon-192.png',
-                                        tag: 'nueva-cita',
-                                        renotify: true,
-                                        data: { url: window.location.href }
+                            if (diff < 60000) { // Creada hace menos de 1 minuto
+                                playNotificationSound();
+                                newlyAddedCitas.add(change.doc.id);
+                                setTimeout(() => {
+                                    newlyAddedCitas.delete(change.doc.id);
+                                    scheduleRender(); // Re-render para quitar la animación
+                                }, 10000); // Brilla por 10 segundos
+                                
+                                if (Notification.permission === 'granted') {
+                                    navigator.serviceWorker.ready.then(reg => {
+                                        reg.showNotification('Nueva Reserva', {
+                                            body: `${data.clienteNombre} reservó para las ${data.hora}.`,
+                                            icon: '/icons/icon-192.png',
+                                            badge: '/icons/icon-192.png',
+                                            tag: 'nueva-cita',
+                                            renotify: true,
+                                            data: { url: window.location.href }
+                                        });
+                                    }).catch(() => {
+                                        try { new Notification('Nueva Reserva', { body: `${data.clienteNombre} reservó para las ${data.hora}.`, icon: '/logo.jpg' }); } catch(_) {}
                                     });
-                                }).catch(() => {
-                                    try { new Notification('Nueva Reserva', { body: `${data.clienteNombre} reservó para las ${data.hora}.`, icon: '/logo.jpg' }); } catch(_) {}
-                                });
+                                }
                             }
                         }
                     });
@@ -814,38 +872,48 @@
             const isConfirmed = cita.estado === 'Confirmada';
             const isCompleted = cita.estado === 'Completada';
             const isCancelled = cita.estado === 'Cancelada';
-            const leftBorderColor = isCompleted ? '#10b981' : isCancelled ? 'rgba(239,68,68,0.5)' : isConfirmed ? 'rgba(255,255,255,0.55)' : '#eab308';
+            const isPending   = cita.estado === 'Pendiente';
+            
+            // Colores mejorados
+            const leftBorderColor = isCompleted ? '#10b981' : isCancelled ? 'rgba(239,68,68,0.3)' : isConfirmed ? '#6CABDD' : '#eab308';
+            
+            const isNew = newlyAddedCitas.has(cita.id);
+            const extraClass = isNew ? 'cita-nueva-highlight' : '';
+
             const telLimpio = (cita.clienteTelefono || '').replace(/\D/g, '');
             const isChameleon = (window.CURRENT_TENANT_ID || 'elegance') === 'chameleon';
             const waLink = telLimpio && !isChameleon ? `https://wa.me/${telLimpio}` : null;
-            const notaIndicator = cita.nota ? `<span class="inline-flex items-center gap-1 text-[10px] text-white/40 mt-1"><i class="ph ph-note-pencil text-[10px]"></i>Nota</span>` : '';
+            const notaIndicator = cita.nota ? `<span class="inline-flex items-center gap-1 text-[10px] text-white/40 mt-1.5 px-2 py-0.5 rounded-full bg-white/5"><i class="ph ph-note-pencil text-[10px]"></i>Nota adjunta</span>` : '';
             const initials = getInitials(cita.clienteNombre || 'Cliente');
 
             return `
-            <div class="bg-[#161616] rounded-2xl p-4 cursor-pointer active:scale-[0.99] transition-transform ${isCancelled ? 'opacity-50' : ''}"
+            <div class="bg-[#161616] rounded-2xl p-4 cursor-pointer transition-transform duration-200 hover:bg-[#1a1a1a] ${isCancelled ? 'opacity-40 grayscale' : 'active:scale-[0.98]'} ${extraClass}"
                  style="border: 1px solid rgba(255,255,255,0.06); border-left: 4px solid ${leftBorderColor};"
                  onclick="abrirDetalleCita('${cita.id}')">
                 <div class="flex items-start justify-between gap-3">
                     <div class="flex items-center gap-4 min-w-0">
-                        <div class="text-center min-w-[48px] shrink-0">
-                            <p class="text-sm font-bold text-white">${time}</p>
-                            <p class="text-[10px] text-white/40">${cita.duracionServicio || 30} min</p>
+                        <div class="text-center min-w-[56px] shrink-0">
+                            <p class="text-xl font-black ${isCancelled ? 'text-white/40' : 'text-white'} tracking-tight">${time}</p>
+                            <p class="text-[10px] font-bold text-white/30 uppercase mt-0.5">${cita.duracionServicio || 30} min</p>
                         </div>
                         <div class="h-10 w-[1px] bg-white/10 shrink-0"></div>
                         <div class="min-w-0">
-                            <h4 class="font-semibold text-white text-[14px] leading-tight truncate">${cita.servicioNombre || 'Servicio'}</h4>
-                            <div class="flex items-center gap-1.5 mt-1.5">
-                                <div class="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center text-xs font-medium text-zinc-300 shrink-0">${initials}</div>
-                                <p class="text-xs text-white/50 truncate">${cita.clienteNombre || 'Cliente'}</p>
+                            <div class="flex items-center gap-2 mb-1">
+                                <h4 class="font-bold ${isCancelled ? 'text-white/50' : 'text-white'} text-[15px] leading-tight truncate">${cita.servicioNombre || 'Servicio'}</h4>
+                                ${isNew ? '<span class="px-1.5 py-0.5 rounded text-[9px] font-black bg-emerald-500/20 text-emerald-400 uppercase tracking-widest animate-pulse">NUEVA</span>' : ''}
+                            </div>
+                            <div class="flex items-center gap-2 mt-1.5">
+                                <div class="w-7 h-7 rounded-full bg-zinc-800 flex items-center justify-center text-[10px] font-bold text-zinc-400 shrink-0 border border-white/5 shadow-inner">${initials}</div>
+                                <p class="text-xs font-medium text-white/60 truncate">${cita.clienteNombre || 'Cliente'}</p>
                             </div>
                             ${notaIndicator}
                         </div>
                     </div>
                     <div class="flex items-center gap-2 shrink-0" onclick="event.stopPropagation()">
-                        ${waLink && !isCancelled ? `<a href="${waLink}" target="_blank" title="WhatsApp cliente" class="w-9 h-9 rounded-xl bg-[#25D366]/10 border border-[#25D366]/30 flex items-center justify-center transition-all duration-200 hover:scale-105 hover:brightness-110 active:scale-95"><i class="ph-fill ph-whatsapp-logo text-[#25D366] text-lg"></i></a>` : ''}
-                        ${!isCompleted && !isCancelled ? `<button onclick="cambiarEstadoCita('${cita.id}','Completada')" title="Marcar completada" class="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center transition-all duration-200 hover:scale-105 hover:brightness-110 active:scale-95"><i class="ph-bold ph-check text-emerald-400 text-lg"></i></button>` : ''}
-                        ${!isCancelled ? `<button onclick="cambiarEstadoCita('${cita.id}','Cancelada')" title="Cancelar cita" class="w-9 h-9 rounded-xl bg-red-500/10 border border-red-500/30 flex items-center justify-center transition-all duration-200 hover:scale-105 hover:brightness-110 active:scale-95"><i class="ph-bold ph-x text-red-400 text-lg"></i></button>` : ''}
-                        <i class="ph-bold ph-caret-right text-white/20 text-sm"></i>
+                        ${waLink && !isCancelled ? `<a href="${waLink}" target="_blank" title="WhatsApp cliente" class="w-10 h-10 rounded-xl bg-[#25D366]/10 border border-[#25D366]/20 flex items-center justify-center transition-all duration-200 hover:scale-105 hover:bg-[#25D366]/20 active:scale-95"><i class="ph-fill ph-whatsapp-logo text-[#25D366] text-xl drop-shadow-[0_0_8px_rgba(37,211,102,0.4)]"></i></a>` : ''}
+                        ${!isCompleted && !isCancelled ? `<button onclick="cambiarEstadoCita('${cita.id}','Completada')" title="Marcar completada" class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center transition-all duration-200 hover:scale-105 hover:bg-emerald-500/20 active:scale-95"><i class="ph-bold ph-check text-emerald-400 text-lg"></i></button>` : ''}
+                        ${!isCancelled ? `<button onclick="cambiarEstadoCita('${cita.id}','Cancelada')" title="Cancelar cita" class="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center transition-all duration-200 hover:scale-105 hover:bg-red-500/20 active:scale-95"><i class="ph-bold ph-x text-red-400 text-lg"></i></button>` : ''}
+                        <i class="ph-bold ph-caret-right text-white/10 text-lg ml-1"></i>
                     </div>
                 </div>
             </div>`;
@@ -1069,6 +1137,8 @@
                         const [y, m, d] = cita.fecha.split('-');
                         const fechaFormat = `${d}/${m}`;
 
+                        const isNew = diff < 1000 * 60 * 60 * 2; // last 2 hours
+
                         const card = document.createElement('div');
                         card.className = "flex-shrink-0 w-72 glass-card rounded-2xl p-4 border-l-4 border-brand-accent transition-all hover:bg-white/10 cursor-pointer relative overflow-hidden";
                         card.style.borderColor = "#ffffff";
@@ -1076,7 +1146,10 @@
                         card.innerHTML = `
                             <div class="flex items-start justify-between mb-2">
                                 <div>
-                                    <span class="text-[10px] font-extrabold text-white/40 uppercase tracking-tighter">${fechaFormat} • ${cita.hora}</span>
+                                    <div class="flex items-center gap-2 mb-0.5">
+                                        <span class="text-[10px] font-extrabold text-white/40 uppercase tracking-tighter">${fechaFormat} • ${cita.hora}</span>
+                                        ${isNew ? '<span class="px-1.5 py-[1px] rounded text-[8px] font-black bg-emerald-500/20 text-emerald-400 uppercase tracking-widest animate-pulse">NUEVA</span>' : ''}
+                                    </div>
                                     <h4 class="text-sm font-bold text-white leading-tight">${cita.servicioNombre}</h4>
                                 </div>
                                 <div class="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center border border-white/10">

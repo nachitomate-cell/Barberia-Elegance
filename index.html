@@ -1899,6 +1899,16 @@
       from { opacity: 0; transform: translateY(8px); letter-spacing: 0.35em; }
       to   { opacity: 1; transform: translateY(0);   letter-spacing: 0.25em; }
     }
+    @keyframes aura-text-glow {
+      0%, 100% {
+        text-shadow: 0 0 8px rgba(108,171,221,0.1);
+        color: rgba(255,255,255,0.70);
+      }
+      50% {
+        text-shadow: 0 0 18px rgba(108,171,221,0.85), 0 0 28px rgba(108,171,221,0.4);
+        color: rgba(255,255,255,0.95);
+      }
+    }
 
     /* Logo area: emerge desde abajo con blur */
     .tenant-aura #heroLogoArea {
@@ -1916,10 +1926,11 @@
     .tenant-aura .gold-divider {
       animation: aura-fade-up 0.5s ease-out 0.52s both;
     }
-    /* Slogan: letter-spacing se cierra al entrar */
+    /* Slogan: letter-spacing se cierra al entrar, luego pulsa con un aura celeste */
     .tenant-aura #shopSlogan {
       display: inline-block;
-      animation: aura-slogan-appear 0.75s cubic-bezier(0.16, 1, 0.3, 1) 0.65s both;
+      animation: aura-slogan-appear 0.75s cubic-bezier(0.16, 1, 0.3, 1) 0.65s both,
+                 aura-text-glow 3.5s ease-in-out 1.4s infinite;
     }
 
     /* ── Info Strip ── */
@@ -2002,8 +2013,6 @@
     .tenant-aura .service-option {
       background: #FFFFFF !important;
       border-color: #D4D4D8 !important;
-      border-radius: 12px !important;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
     }
     .tenant-aura .service-option .svc-name { color: #18181B !important; }
     .tenant-aura .service-option .price-tag { color: #00285E !important; }
@@ -2056,8 +2065,6 @@
     .tenant-aura .barber-option {
       background: #FFFFFF !important;
       border-color: #D4D4D8 !important;
-      border-radius: 12px !important;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
     }
     .tenant-aura .barber-option .barber-name { color: #18181B !important; }
     .tenant-aura .barber-option .text-brand-neon { color: #6CABDD !important; }
