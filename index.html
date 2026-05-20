@@ -1903,7 +1903,71 @@
       color: #000 !important;
       font-weight: 700 !important;
     }
+    /* Stepper Minimalista */
     .tenant-aura #progressBar { background: var(--accent) !important; box-shadow: none !important; }
+    .tenant-aura #progressTrack { height: 2px !important; margin-bottom: 0px !important; }
+    .tenant-aura #stepIndicatorText, .tenant-aura #progressPercentage { display: none !important; }
+    .tenant-aura #selectionRecap { 
+      opacity: 0.7; 
+      justify-content: center; 
+      margin-top: 10px !important; 
+    }
+
+    /* Header Dinámico (Shrink en pasos > 1) */
+    .tenant-aura body[data-step="2"] .booking-hero,
+    .tenant-aura body[data-step="3"] .booking-hero,
+    .tenant-aura body[data-step="4"] .booking-hero {
+      min-height: auto !important;
+      padding-top: 1.5rem !important;
+      padding-bottom: 1rem !important;
+      transition: all 0.4s ease;
+    }
+    .tenant-aura body[data-step="2"] .hero-logo-ring,
+    .tenant-aura body[data-step="3"] .hero-logo-ring,
+    .tenant-aura body[data-step="4"] .hero-logo-ring {
+      width: 48px !important; 
+      height: 48px !important;
+      transition: all 0.4s ease;
+    }
+    .tenant-aura body[data-step="2"] #shopNombre,
+    .tenant-aura body[data-step="3"] #shopNombre,
+    .tenant-aura body[data-step="4"] #shopNombre,
+    .tenant-aura body[data-step="2"] .gold-divider,
+    .tenant-aura body[data-step="3"] .gold-divider,
+    .tenant-aura body[data-step="4"] .gold-divider,
+    .tenant-aura body[data-step="2"] #shopSlogan,
+    .tenant-aura body[data-step="3"] #shopSlogan,
+    .tenant-aura body[data-step="4"] #shopSlogan {
+      display: none !important;
+    }
+
+    /* Reordenamiento Crítico Paso 4 */
+    .tenant-aura #step4 {
+      display: flex;
+      flex-direction: column;
+    }
+    .tenant-aura #step4 > h2 { order: 1; }
+    .tenant-aura #step4 > p { order: 2; }
+    .tenant-aura #step4 > .space-y-4 { order: 3; margin-top: 0.5rem !important; margin-bottom: 1.5rem !important; }
+    .tenant-aura #step4 > .mt-6.rounded-2xl { order: 4; margin-top: 0 !important; }
+    .tenant-aura #step4 #step4XSell { order: 5; margin-top: 1.5rem; }
+    .tenant-aura #step4AuthContainer { display: none !important; }
+
+    /* Sticky Footer Fade */
+    .tenant-aura #btnContinueBar {
+      position: relative;
+      background: transparent !important;
+      border-top: none !important;
+      padding-top: 2rem !important;
+    }
+    .tenant-aura #btnContinueBar::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: linear-gradient(to top, #09090b 40%, transparent 100%);
+      z-index: -1;
+      pointer-events: none;
+    }
   </style>
 </head>
 
@@ -3339,6 +3403,7 @@
       bar.style.width = percentage;
       document.getElementById('progressPercentage').innerText = percentage;
       document.getElementById('stepIndicatorText').innerText = text;
+      document.body.setAttribute('data-step', currentStep);
     }
 
     async function nextStep() {
