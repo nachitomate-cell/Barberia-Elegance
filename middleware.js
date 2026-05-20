@@ -623,7 +623,8 @@ export default async function middleware(request) {
   }
 
   // ── Admin HTML: inyectar meta tags del tenant (icon, theme-color, title) ─────
-  if (url.pathname === '/gestion-interna/' || url.pathname === '/gestion-interna/index.html') {
+  // Cubre /gestion-interna/, /gestion-interna/index.html y cualquier ruta SPA como /gestion-interna/equipo
+  if (url.pathname === '/gestion-interna' || url.pathname.startsWith('/gestion-interna/')) {
     const response = await fetch(request);
     const contentType = response.headers.get('content-type') || '';
     if (!contentType.includes('text/html')) return response;

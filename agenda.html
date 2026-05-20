@@ -276,7 +276,7 @@
                     <i class="ph-bold ph-caret-right text-white/60"></i>
                 </button>
             </div>
-            <div id="weekColumnsContainer" class="flex gap-2 overflow-x-auto pb-4 no-scrollbar -mx-6 px-6 snap-x snap-mandatory">
+            <div id="weekColumnsContainer" class="no-scrollbar" style="-webkit-overflow-scrolling:touch;">
                 <!-- Generado por renderWeekView() -->
             </div>
         </div>
@@ -1262,9 +1262,10 @@
             await batch.commit();
         }
 
-        // ── VISTA SEMANAL (Chameleon) ────────────────────────────────────
-        let _weekCitas = {};
-        let _weekUnsubs = [];
+        // ── VISTA SEMANAL COMPLETA (Chameleon) ───────────────────────────
+        let _weekCitas    = {};
+        let _weekBloqueos = {};
+        let _weekUnsubs   = [];
         let _currentWeekStart = null;
 
         function _fmtDate(d) {
@@ -1280,6 +1281,11 @@
             return mon;
         }
 
+        function _getWeekDayBloqueos(fechaStr) {
+            const e = _weekBloqueos[fechaStr] || {};
+            return [...(e.barbero || []), ...(e.global || [])];
+        }
+
         function cambiarSemana(offset) {
             const ws = new Date(_currentWeekStart);
             ws.setDate(ws.getDate() + offset * 7);
@@ -1291,22 +1297,44 @@
         function loadWeekData() {
             _weekUnsubs.forEach(u => u());
             _weekUnsubs = [];
-            _weekCitas = {};
+            _weekCitas    = {};
+            _weekBloqueos = {};
             for (let i = 0; i < 7; i++) {
                 const d = new Date(_currentWeekStart);
                 d.setDate(d.getDate() + i);
                 const fechaStr = _fmtDate(d);
-                const unsub = tenantCol('citas')
+
+                const uCitas = tenantCol('citas')
                     .where('fecha', '==', fechaStr)
                     .where('barberoId', '==', barberId)
                     .onSnapshot(snap => {
                         _weekCitas[fechaStr] = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                         renderWeekView();
                     }, () => { _weekCitas[fechaStr] = []; renderWeekView(); });
-                _weekUnsubs.push(unsub);
+
+                const uBloqBarb = tenantCol('bloqueos')
+                    .where('fecha', '==', fechaStr)
+                    .where('barberoId', '==', barberId)
+                    .onSnapshot(snap => {
+                        if (!_weekBloqueos[fechaStr]) _weekBloqueos[fechaStr] = {};
+                        _weekBloqueos[fechaStr].barbero = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                        renderWeekView();
+                    }, () => {});
+
+                const uBloqGlob = tenantCol('bloqueos')
+                    .where('fecha', '==', fechaStr)
+                    .where('barberoId', '==', null)
+                    .onSnapshot(snap => {
+                        if (!_weekBloqueos[fechaStr]) _weekBloqueos[fechaStr] = {};
+                        _weekBloqueos[fechaStr].global = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                        renderWeekView();
+                    }, () => {});
+
+                _weekUnsubs.push(uCitas, uBloqBarb, uBloqGlob);
             }
         }
 
+        // Abre detalle de una cita desde el grid semanal
         function abrirDetalleCitaWeek(fechaStr, citaId) {
             todayCitas = _weekCitas[fechaStr] || [];
             const [y, m, d] = fechaStr.split('-').map(Number);
@@ -1314,8 +1342,19 @@
             abrirDetalleCita(citaId);
         }
 
+        // Abre el modal de slot libre (agendar / bloquear) desde el grid semanal
+        function abrirOpcionesSlotSemana(fechaStr, time) {
+            const [y, m, d] = fechaStr.split('-').map(Number);
+            currentDate = new Date(y, m - 1, d);
+            // Sincroniza todayCitas para que agregarBloqueoRapido use el día correcto
+            todayCitas = _weekCitas[fechaStr] || [];
+            abrirOpcionesSlotLibre(time);
+        }
+
         function renderWeekView() {
             if (!_currentWeekStart) return;
+
+            // ── Label de rango semanal ──
             const meses    = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
             const diasCorto = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
             const weekEnd  = new Date(_currentWeekStart);
@@ -1330,61 +1369,243 @@
 
             const container = document.getElementById('weekColumnsContainer');
             if (!container) return;
+
+            const cfg = barberConfig || globalConfig;
+            if (!cfg) return;
+
+            const toMins  = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+            const fromMin = m => `${Math.floor(m/60).toString().padStart(2,'0')}:${(m%60).toString().padStart(2,'0')}`;
+            const interval = cfg.intervaloMinutos || 30;
+            const GOLD = '#c9a84c';
+            const todayStr = _fmtDate(new Date());
+            const nowMins  = new Date().getHours() * 60 + new Date().getMinutes();
+
+            // ── Rango horario global (mínimo inicio, máximo fin entre los 7 días) ──
+            let iniMins = Infinity, finMins = -Infinity;
+            for (let i = 0; i < 7; i++) {
+                const d = new Date(_currentWeekStart);
+                d.setDate(d.getDate() + i);
+                const dw = d.getDay();
+                const dc = (cfg.diasConfig || {})[dw] || {};
+                if ((cfg.diasLaborales || []).includes(dw) && dc.activo !== false) {
+                    iniMins = Math.min(iniMins, toMins(dc.inicio || cfg.horarioInicio || '09:00'));
+                    finMins = Math.max(finMins, toMins(dc.fin    || cfg.horarioFin    || '20:00'));
+                }
+            }
+            if (!isFinite(iniMins)) iniMins = toMins(cfg.horarioInicio || '09:00');
+            if (!isFinite(finMins)) finMins = toMins(cfg.horarioFin    || '20:00');
+
+            // Lista de slots de tiempo
+            const slots = [];
+            for (let m = iniMins; m < finMins; m += interval) slots.push(m);
+            const totalSlots = slots.length;
+            if (!totalSlots) return;
+
+            // Anchos de columna
+            const timeColW = 42;
+            const dayColW  = 128;
+            const gapW     = 2;
+            const totalW   = timeColW + 7 * dayColW + 6 * gapW;
+
+            // ── Contenedor externo (scroll bidireccional) ──
+            container.style.cssText = [
+                'overflow:auto',
+                'max-height:72vh',
+                'margin:0 -24px',
+                'scrollbar-width:none',
+                '-ms-overflow-style:none',
+                '-webkit-overflow-scrolling:touch',
+            ].join(';');
+
             container.innerHTML = '';
 
-            const todayStr = _fmtDate(new Date());
-            const GOLD = '#c9a84c';
+            const wrapper = document.createElement('div');
+            wrapper.style.cssText = `min-width:${totalW}px;padding:0 24px;`;
+
+            // ── Grid ──
+            const grid = document.createElement('div');
+            grid.style.cssText = [
+                'display:grid',
+                `grid-template-columns:${timeColW}px repeat(7,${dayColW}px)`,
+                `grid-template-rows:auto repeat(${totalSlots},34px)`,
+                `gap:0 ${gapW}px`,
+                'position:relative',
+            ].join(';');
+
+            // ── Fila 1: Cabeceras de día (sticky) ──
+            // Celda vacía en columna de tiempo
+            const emptyHdr = document.createElement('div');
+            emptyHdr.style.cssText = `grid-column:1;grid-row:1;position:sticky;top:0;z-index:10;background:#0a0a0a;padding:8px 0 8px;border-bottom:1px solid rgba(255,255,255,0.1);`;
+            grid.appendChild(emptyHdr);
 
             for (let i = 0; i < 7; i++) {
                 const d = new Date(_currentWeekStart);
                 d.setDate(d.getDate() + i);
-                const fechaStr    = _fmtDate(d);
-                const isToday     = fechaStr === todayStr;
-                const citas       = (_weekCitas[fechaStr] || []).filter(c => c.estado !== 'Cancelada');
-                const citasSorted = [...citas].sort((a, b) => a.hora.localeCompare(b.hora));
-
-                const col = document.createElement('div');
-                col.className = 'flex-shrink-0 flex flex-col rounded-2xl overflow-hidden snap-start';
-                col.style.cssText = `width:140px;background:rgba(255,255,255,${isToday ? '0.05' : '0.02'});border:1px solid ${isToday ? 'rgba(201,168,76,0.4)' : 'rgba(255,255,255,0.06)'};`;
+                const fechaStr = _fmtDate(d);
+                const isToday  = fechaStr === todayStr;
+                const citas    = (_weekCitas[fechaStr] || []).filter(c => c.estado !== 'Cancelada');
 
                 const hdr = document.createElement('div');
-                hdr.style.cssText = `padding:10px 8px 8px;text-align:center;background:${isToday ? 'rgba(201,168,76,0.1)' : 'rgba(255,255,255,0.02)'};border-bottom:1px solid rgba(255,255,255,0.06);`;
+                hdr.style.cssText = [
+                    `grid-column:${i+2}`,
+                    'grid-row:1',
+                    'position:sticky',
+                    'top:0',
+                    'z-index:10',
+                    'background:#0a0a0a',
+                    'text-align:center',
+                    'padding:6px 2px 8px',
+                    `border-bottom:${isToday ? '2px solid '+GOLD : '1px solid rgba(255,255,255,0.1)'}`,
+                ].join(';');
                 hdr.innerHTML = `
-                    <p style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.15em;color:${isToday ? GOLD : 'rgba(255,255,255,0.35)'};margin-bottom:2px;">${diasCorto[d.getDay()]}</p>
-                    <p style="font-size:22px;font-weight:900;line-height:1;color:${isToday ? GOLD : '#fff'}">${d.getDate()}</p>
-                    <p style="font-size:9px;font-weight:700;margin-top:4px;min-height:12px;color:rgba(255,255,255,0.25);">${citas.length > 0 ? citas.length + ' cita' + (citas.length !== 1 ? 's' : '') : ''}</p>
+                    <p style="font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;color:${isToday ? GOLD : 'rgba(255,255,255,0.35)'};">${diasCorto[d.getDay()]}</p>
+                    <p style="font-size:17px;font-weight:900;line-height:1.1;color:${isToday ? GOLD : '#fff'}">${d.getDate()}</p>
+                    ${citas.length ? `<p style="font-size:8px;color:rgba(255,255,255,0.3);margin-top:1px;">${citas.length}c</p>` : '<p style="font-size:8px;color:transparent;">0</p>'}
                 `;
-                col.appendChild(hdr);
+                grid.appendChild(hdr);
+            }
 
-                const body = document.createElement('div');
-                body.className = 'flex flex-col gap-1.5 p-2 overflow-y-auto';
-                body.style.cssText = 'max-height:420px;scrollbar-width:none;-ms-overflow-style:none;';
+            // ── Filas de tiempo ──
+            for (let si = 0; si < totalSlots; si++) {
+                const cur     = slots[si];
+                const horaStr = fromMin(cur);
+                const gridRow = si + 2; // fila 1 = header
 
-                if (citasSorted.length === 0) {
-                    const empty = document.createElement('p');
-                    empty.style.cssText = 'color:rgba(255,255,255,0.18);font-size:10px;text-align:center;padding:20px 4px;font-weight:600;';
-                    empty.textContent = 'Sin citas';
-                    body.appendChild(empty);
-                } else {
-                    citasSorted.forEach(cita => {
+                // Etiqueta de hora (columna 1)
+                const timeCell = document.createElement('div');
+                timeCell.style.cssText = [
+                    `grid-column:1`,
+                    `grid-row:${gridRow}`,
+                    'display:flex',
+                    'align-items:flex-start',
+                    'justify-content:flex-end',
+                    'padding:2px 5px 0 0',
+                    'border-bottom:1px solid rgba(255,255,255,0.03)',
+                ].join(';');
+                const showTime = cur % 60 === 0; // mostrar solo horas en punto
+                timeCell.innerHTML = `<span style="font-size:9px;font-weight:600;color:rgba(255,255,255,${showTime ? '0.25' : '0.1'});white-space:nowrap;">${showTime ? horaStr : ''}</span>`;
+                grid.appendChild(timeCell);
+
+                // Línea de hora actual en toda la fila
+                const isNowRow = todayStr === _fmtDate(new Date()) && cur <= nowMins && (cur + interval) > nowMins;
+
+                // 7 celdas de días
+                for (let di = 0; di < 7; di++) {
+                    const d        = new Date(_currentWeekStart);
+                    d.setDate(d.getDate() + di);
+                    const fechaStr = _fmtDate(d);
+                    const dw       = d.getDay();
+                    const dc       = (cfg.diasConfig || {})[dw] || {};
+                    const isLaboral = (cfg.diasLaborales || []).includes(dw) && dc.activo !== false;
+                    const dayIni   = isLaboral ? toMins(dc.inicio || cfg.horarioInicio || '09:00') : Infinity;
+                    const dayFin   = isLaboral ? toMins(dc.fin    || cfg.horarioFin    || '20:00') : -Infinity;
+                    const inRange  = isLaboral && cur >= dayIni && cur < dayFin;
+
+                    // ¿Está cubierto por una cita que empezó antes?
+                    const citas    = (_weekCitas[fechaStr] || []).filter(c => c.estado !== 'Cancelada');
+                    const contCita = citas.find(c => {
+                        const cStart = toMins(c.hora);
+                        const cEnd   = cStart + parseInt(c.duracionServicio || interval);
+                        return cur > cStart && cur < cEnd;
+                    });
+                    if (contCita) {
+                        // Celda de continuación (parte de una cita multi-slot)
+                        const cell = document.createElement('div');
+                        cell.style.cssText = `grid-column:${di+2};grid-row:${gridRow};height:34px;${isNowRow && _fmtDate(d) === todayStr ? 'border-top:1px solid rgba(239,68,68,0.4);' : ''}`;
+                        grid.appendChild(cell);
+                        continue;
+                    }
+
+                    if (!inRange) {
+                        // Fuera de horario o día no laborable
+                        const cell = document.createElement('div');
+                        cell.style.cssText = `grid-column:${di+2};grid-row:${gridRow};height:34px;background:rgba(0,0,0,0.18);border-bottom:1px solid rgba(255,255,255,0.02);`;
+                        grid.appendChild(cell);
+                        continue;
+                    }
+
+                    // Colación
+                    if (cfg.colacion && cur >= toMins(cfg.colacion.inicio) && cur < toMins(cfg.colacion.fin)) {
+                        const cell = document.createElement('div');
+                        cell.style.cssText = `grid-column:${di+2};grid-row:${gridRow};height:34px;background:rgba(255,255,255,0.02);border-bottom:1px solid rgba(255,255,255,0.03);display:flex;align-items:center;justify-content:center;`;
+                        cell.innerHTML = `<i class="ph-bold ph-coffee" style="font-size:9px;color:rgba(255,255,255,0.12);"></i>`;
+                        grid.appendChild(cell);
+                        continue;
+                    }
+
+                    // Bloqueo
+                    const bloqueos = _getWeekDayBloqueos(fechaStr);
+                    const bloqueo  = bloqueos.find(b => {
+                        if (b.todo_el_dia) return true;
+                        if (!b.hora_inicio || !b.hora_fin) return false;
+                        return cur >= toMins(b.hora_inicio) && cur < toMins(b.hora_fin);
+                    });
+                    if (bloqueo) {
+                        const cell = document.createElement('div');
+                        cell.style.cssText = `grid-column:${di+2};grid-row:${gridRow};height:34px;background:rgba(239,68,68,0.06);border-left:2px solid rgba(239,68,68,0.18);border-bottom:1px solid rgba(255,255,255,0.03);display:flex;align-items:center;justify-content:center;`;
+                        cell.innerHTML = `<i class="ph-bold ph-lock" style="font-size:9px;color:rgba(239,68,68,0.3);"></i>`;
+                        grid.appendChild(cell);
+                        continue;
+                    }
+
+                    // Cita que inicia en este slot
+                    const cita = citas.find(c => toMins(c.hora) === cur);
+                    if (cita) {
                         const isCompleted = cita.estado === 'Completada';
                         const isConfirmed = cita.estado === 'Confirmada';
-                        const leftColor = isCompleted ? '#10b981' : isConfirmed ? '#6CABDD' : '#eab308';
-                        const card = document.createElement('div');
-                        card.className = 'rounded-xl cursor-pointer transition-transform duration-150 active:scale-95';
-                        card.style.cssText = `padding:8px 10px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-left:3px solid ${leftColor};`;
-                        card.onclick = () => abrirDetalleCitaWeek(fechaStr, cita.id);
-                        card.innerHTML = `
-                            <p style="font-size:12px;font-weight:800;color:#fff;line-height:1;">${cita.hora}</p>
-                            <p style="font-size:10px;font-weight:600;color:rgba(255,255,255,0.55);margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${cita.clienteNombre || 'Cliente'}</p>
-                            <p style="font-size:9px;color:rgba(255,255,255,0.28);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${cita.servicioNombre || ''}</p>
+                        const leftColor   = isCompleted ? '#10b981' : isConfirmed ? '#6CABDD' : '#eab308';
+                        const durMins     = parseInt(cita.duracionServicio || interval);
+                        const spans       = Math.max(1, Math.ceil(durMins / interval));
+                        const citaH       = spans * 34 - 1;
+
+                        const cell = document.createElement('div');
+                        cell.style.cssText = [
+                            `grid-column:${di+2}`,
+                            `grid-row:${gridRow} / span ${spans}`,
+                            `height:${citaH}px`,
+                            'padding:3px 5px',
+                            'cursor:pointer',
+                            'overflow:hidden',
+                            `background:rgba(255,255,255,0.06)`,
+                            `border-left:3px solid ${leftColor}`,
+                            'border-radius:3px',
+                            'margin:1px 1px 0 0',
+                            'z-index:1',
+                        ].join(';');
+                        cell.onclick = () => abrirDetalleCitaWeek(fechaStr, cita.id);
+                        cell.innerHTML = `
+                            <p style="font-size:10px;font-weight:800;color:#fff;line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${cita.clienteNombre || 'Cliente'}</p>
+                            ${spans >= 2 ? `<p style="font-size:8px;color:rgba(255,255,255,0.4);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${cita.servicioNombre || ''}</p>` : ''}
                         `;
-                        body.appendChild(card);
-                    });
+                        grid.appendChild(cell);
+                        continue;
+                    }
+
+                    // Slot libre
+                    const now = isNowRow && _fmtDate(d) === todayStr;
+                    const cell = document.createElement('div');
+                    cell.style.cssText = [
+                        `grid-column:${di+2}`,
+                        `grid-row:${gridRow}`,
+                        'height:34px',
+                        'cursor:pointer',
+                        `border-bottom:1px solid rgba(255,255,255,${now ? '0' : '0.035'})`,
+                        `border-top:${now ? '1px solid rgba(239,68,68,0.5)' : 'none'}`,
+                        'display:flex',
+                        'align-items:center',
+                        'justify-content:center',
+                        'transition:background 0.1s',
+                    ].join(';');
+                    cell.onmouseenter = function() { this.style.background='rgba(201,168,76,0.09)'; };
+                    cell.onmouseleave = function() { this.style.background=''; };
+                    cell.onclick = () => abrirOpcionesSlotSemana(fechaStr, horaStr);
+                    cell.innerHTML = `<i class="ph-bold ph-plus" style="font-size:9px;color:rgba(255,255,255,0.08);pointer-events:none;"></i>`;
+                    grid.appendChild(cell);
                 }
-                col.appendChild(body);
-                container.appendChild(col);
             }
+
+            wrapper.appendChild(grid);
+            container.appendChild(wrapper);
         }
 
         function _initWeekView() {
@@ -1398,6 +1619,7 @@
             if (ws) ws.classList.remove('hidden');
             _currentWeekStart = _getWeekStart(new Date());
             loadWeekData();
+            renderWeekView();
         }
 
         // ── ÚLTIMAS RESERVAS ──
