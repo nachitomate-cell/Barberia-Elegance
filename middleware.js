@@ -15,6 +15,7 @@ const DOMAIN_MAP = {
   'lumenbarbershop.synaptechspa.cl':   'lumen',
   'delnerobarber.synaptechspa.cl':     'delnero',
   'aurasalon.synaptechspa.cl':         'aura',
+  'aurasalonmalegrooming.synaptech.cl':'aura',
 };
 
 const TENANT_META = {
