@@ -2694,7 +2694,7 @@
       </button>
 
       <!-- Badge Google Rating -->
-      <div id="heroGoogleBadge" class="hidden absolute top-4 right-4 z-20 flex flex-col items-end"
+      <div id="heroGoogleBadge" class="absolute top-4 right-4 z-20 flex-col items-end" style="display:none;"
            style="background:rgba(0,0,0,0.38);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.18);border-radius:12px;padding:7px 11px;">
         <div class="flex items-center gap-1.5">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="#FBBF24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
@@ -4846,7 +4846,7 @@
       if (!badge || !rEl || !cEl) return;
       rEl.textContent = rating.toFixed(1).replace('.', ',');
       cEl.textContent = `${total} opiniones · Google`;
-      badge.classList.remove('hidden');
+      badge.style.display = 'flex';
     }
 
     function renderReviewsSection() {
