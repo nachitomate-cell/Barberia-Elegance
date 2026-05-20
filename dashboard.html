@@ -34,7 +34,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
   <link href="/output.css" rel="stylesheet">
 
@@ -874,6 +874,335 @@
     }
     /* ────────────────────────────────────────────────────────────── */
 
+    /* ══ AURA SALON & MALE GROOMING — Light Mode ═══════════════════
+       Paleta: Azul acero (#6CABDD) · Navy (#00285E) · Blanco/Gris claro
+       ═══════════════════════════════════════════════════════════════ */
+    .tenant-aura {
+      --gold:      #6CABDD;
+      --gold-dim:  rgba(108,171,221,0.25);
+      --gold-glow: rgba(108,171,221,0.12);
+    }
+    html.tenant-aura body { background-color: #F9FAFB; color: #18181B; }
+
+    /* Header */
+    .tenant-aura header {
+      background-color: rgba(249,250,251,0.97) !important;
+      border-bottom: 1px solid #E4E4E7 !important;
+    }
+    .tenant-aura #authGuard { background: #F9FAFB !important; }
+    .tenant-aura #shopHeaderName { color: #00285E !important; }
+    .tenant-aura #shopHeaderSub  { color: rgba(0,40,94,0.45) !important; }
+    .tenant-aura #btnNotifBell {
+      background: #FFFFFF !important;
+      border-color: #D4D4D8 !important;
+    }
+    .tenant-aura #bellIcon { color: #52525B !important; }
+    .tenant-aura #avatarContainer {
+      background: #FFFFFF !important;
+      border-color: #D4D4D8 !important;
+    }
+
+    /* Hero */
+    .tenant-aura .hero-bg {
+      background-image: url('/auralogin.png');
+      background-color: #00285E;
+      background-size: cover;
+      background-position: center 30%;
+    }
+    .tenant-aura .hero-overlay {
+      background: linear-gradient(160deg,
+        rgba(0,40,94,0.40) 0%, rgba(0,40,94,0.28) 40%, rgba(0,40,94,0.90) 100%);
+    }
+    .tenant-aura .hero-glow-spot {
+      background: radial-gradient(circle, rgba(108,171,221,0.18) 0%, transparent 65%) !important;
+    }
+    .tenant-aura #heroLine1 {
+      color: #ffffff !important;
+      text-shadow: 0 2px 20px rgba(0,0,0,0.35) !important;
+    }
+    .tenant-aura #heroLine2 {
+      color: #6CABDD !important;
+      font-style: normal !important;
+      text-shadow: none !important;
+    }
+    .tenant-aura .hero-cta {
+      background: #6CABDD !important;
+      border-color: #6CABDD !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 20px rgba(108,171,221,0.40) !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+    }
+    .tenant-aura .hero-cta i    { color: #ffffff !important; }
+    .tenant-aura .hero-cta span { color: #ffffff !important; }
+    .tenant-aura .hero-cta:hover {
+      background: #00285E !important;
+      border-color: #00285E !important;
+    }
+
+    /* PWA Install Card */
+    .tenant-aura #pwaBigInstallCard {
+      background: linear-gradient(to right, rgba(108,171,221,0.10), rgba(108,171,221,0.04)) !important;
+      border: 1px solid rgba(108,171,221,0.25) !important;
+      box-shadow: 0 1px 8px rgba(108,171,221,0.08) !important;
+    }
+    .tenant-aura #pwaBigInstallCard h3 { color: #18181B !important; }
+    .tenant-aura #pwaBigInstallCard p  { color: #8E9399 !important; }
+    .tenant-aura .pwa-icon-bg {
+      background: rgba(108,171,221,0.12) !important;
+      border-color: rgba(108,171,221,0.28) !important;
+      box-shadow: none !important;
+    }
+    .tenant-aura #pwaBanner { border-color: rgba(108,171,221,0.28) !important; }
+    .tenant-aura #pwaModalIOS > div { border-color: rgba(108,171,221,0.18) !important; }
+    .tenant-aura .pwa-step-badge { background: #6CABDD !important; }
+
+    /* Membership card */
+    .tenant-aura .membership-pattern {
+      background: #FFFFFF !important;
+      border-color: #D4D4D8 !important;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06) !important;
+    }
+    .tenant-aura .membership-pattern::before {
+      background-image: repeating-linear-gradient(
+        -45deg, transparent, transparent 18px,
+        rgba(108,171,221,0.04) 18px, rgba(108,171,221,0.04) 19px
+      );
+    }
+    .tenant-aura .membership-glow {
+      background: radial-gradient(circle, rgba(108,171,221,0.08) 0%, transparent 70%) !important;
+    }
+    .tenant-aura #membershipWatermark { color: rgba(108,171,221,0.07) !important; }
+    .tenant-aura #shopClubName { color: #00285E !important; }
+    .tenant-aura #membershipDesc { color: #8E9399 !important; }
+
+    /* Stamps grid */
+    .tenant-aura #stampsGrid {
+      background: #EFF4F8 !important;
+      border-color: #D4D4D8 !important;
+    }
+    .tenant-aura .stamp-cell.empty {
+      border: 1px solid #D4D4D8 !important;
+      background: #FFFFFF !important;
+    }
+    .tenant-aura .stamp-cell.filled {
+      background: #6CABDD !important;
+      border: 1px solid #6CABDD !important;
+      box-shadow: 0 0 8px rgba(108,171,221,0.35) !important;
+    }
+    .tenant-aura .stamp-cell.filled i { color: #ffffff !important; }
+    .tenant-aura #stampsBar {
+      background: #6CABDD !important;
+      box-shadow: none !important;
+    }
+
+    /* Cards secundarias */
+    .tenant-aura #tabLoyalty .bg-\[#111115\],
+    .tenant-aura #tabProfile .bg-\[#111115\] {
+      background-color: #FFFFFF !important;
+      border-color: #D4D4D8 !important;
+    }
+    .tenant-aura .border-white\/8 { border-color: #D4D4D8 !important; }
+    .tenant-aura .border-white\/12 { border-color: #D4D4D8 !important; }
+
+    /* Hardcoded dark backgrounds */
+    .tenant-aura .bg-\[#111115\],
+    .tenant-aura .bg-\[#0a0a0e\],
+    .tenant-aura .bg-\[#1a1a1a\],
+    .tenant-aura .bg-\[#050505\] {
+      background-color: #FFFFFF !important;
+    }
+    .tenant-aura .bg-white\/5 { background-color: rgba(108,171,221,0.06) !important; }
+
+    /* Generic text overrides */
+    .tenant-aura .text-white         { color: #18181B !important; }
+    .tenant-aura .text-white\/30     { color: rgba(24,24,27,0.40) !important; }
+    .tenant-aura .text-white\/60     { color: rgba(24,24,27,0.60) !important; }
+    .tenant-aura .text-gray-400      { color: #71717A !important; }
+    .tenant-aura .text-gray-500      { color: #8E9399 !important; }
+    .tenant-aura .text-gray-600      { color: #71717A !important; }
+    .tenant-aura .text-zinc-400      { color: #71717A !important; }
+    .tenant-aura .text-zinc-500      { color: #8E9399 !important; }
+    .tenant-aura .text-zinc-600      { color: #8E9399 !important; }
+
+    /* "Conoce al equipo" button card */
+    .tenant-aura .bg-zinc-900\/80 { background: #FFFFFF !important; }
+    .tenant-aura .border-zinc-800 { border-color: #D4D4D8 !important; }
+    .tenant-aura .text-zinc-500   { color: #8E9399 !important; }
+
+    /* Lookbook & Productos section titles */
+    .tenant-aura #tabLookbook h2,
+    .tenant-aura #tabProductos h2 { color: #00285E !important; }
+
+    /* Bottom navigation */
+    .tenant-aura nav {
+      background-color: rgba(249,250,251,0.97) !important;
+      border-top-color: #E4E4E7 !important;
+    }
+    .tenant-aura .nav-tab .nav-icon  { color: #A1A1AA !important; filter: none !important; }
+    .tenant-aura .nav-tab .nav-label { color: #A1A1AA !important; }
+    .tenant-aura .nav-tab.active .nav-icon {
+      color: #6CABDD !important;
+      filter: none !important;
+    }
+    .tenant-aura .nav-tab.active .nav-label { color: #6CABDD !important; }
+
+    /* Tier badges */
+    .tenant-aura .tier-badge.gold     { color: #6CABDD; border-color: rgba(108,171,221,0.35); }
+    .tenant-aura .tier-badge.platinum { color: #00285E; border-color: rgba(0,40,94,0.28); }
+
+    /* Botones de acción */
+    .tenant-aura .btn-accion-primary {
+      background: #6CABDD !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 18px rgba(108,171,221,0.30) !important;
+      border: none !important;
+    }
+    .tenant-aura a.btn-reservar {
+      background: #6CABDD !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 18px rgba(108,171,221,0.30) !important;
+    }
+
+    /* Autofill en edición de perfil */
+    .tenant-aura input:-webkit-autofill,
+    .tenant-aura input:-webkit-autofill:focus {
+      -webkit-box-shadow: 0 0 0 1000px #FFFFFF inset !important;
+      -webkit-text-fill-color: #18181B !important;
+    }
+    /* Quitar glows de neón sobre fondo blanco */
+    .tenant-aura .text-gold  { text-shadow: none !important; }
+    .tenant-aura .border-gold { box-shadow: none !important; }
+    /* border-neon (usado en avatar de perfil y otros) → sky blue */
+    .tenant-aura .border-neon {
+      border-color: #6CABDD !important;
+      box-shadow: 0 0 0 3px rgba(108,171,221,0.12) !important;
+    }
+    /* Avatar de perfil */
+    .tenant-aura #profileAvatar {
+      border-color: #6CABDD !important;
+      box-shadow: 0 0 0 3px rgba(108,171,221,0.12) !important;
+    }
+    /* Contador de sellos → navy prominente */
+    .tenant-aura #stampsCount { color: #00285E !important; }
+    .tenant-aura #stampsCount span { color: #8E9399 !important; }
+    /* Heading "Tabla de Premios" (tiene inline style) */
+    .tenant-aura #premiosSection h3 { color: #8E9399 !important; }
+    /* Hint text "Solo la verás vos" en sfNoPhoto (inline style blanco) */
+    .tenant-aura #sfNoPhoto p:last-child { color: rgba(24,24,27,0.30) !important; }
+    /* Tipografía moderna para headings del dashboard */
+    .tenant-aura #shopClubName,
+    .tenant-aura #tabLookbook h2,
+    .tenant-aura #tabProductos h2 {
+      font-family: 'Plus Jakarta Sans', sans-serif !important;
+    }
+    /* Progress track de la membership card (inline bg blanco invisible) */
+    .tenant-aura .membership-pattern .rounded-full.overflow-hidden.mb-3 {
+      background: #D4D4D8 !important;
+    }
+    /* "Ver premios" — botón blanco sobre card blanca: invisible */
+    .tenant-aura button[onclick*="togglePremios"] {
+      background: #6CABDD !important;
+      color: #ffffff !important;
+      box-shadow: 0 2px 10px rgba(108,171,221,0.25) !important;
+    }
+    /* Botones reagendar (CSS base hardcodeado en dorado) */
+    .tenant-aura .reagendar-proxima-btn {
+      border-color: rgba(108,171,221,0.30) !important;
+      background: rgba(108,171,221,0.06) !important;
+    }
+    .tenant-aura .reagendar-hist-btn { color: rgba(108,171,221,0.65) !important; }
+    .tenant-aura .reagendar-hist-btn:hover { background: rgba(108,171,221,0.08) !important; }
+    /* Chip de estado próxima cita (generado por JS con inline gold) */
+    .tenant-aura .proxima-estado-chip {
+      background: rgba(108,171,221,0.12) !important;
+      color: #00285E !important;
+    }
+    /* ────────────────────────────────────────────────────────────── */
+
+    /* ══ AURA — Animaciones Premium ════════════════════════════════
+
+       1. Ken Burns  — hero bg zoom lento 14s
+       2. Shimmer    — destello tipo tarjeta física en membership card
+       3. Pulse ring — CTA button latido sutil cada 2.2s
+       4. Stagger    — secciones principales entran escalonadas post-auth
+       5. Counter-up — contador de sellos sube de 0 → N con easing
+
+       ══════════════════════════════════════════════════════════════ */
+
+    /* 1. Ken Burns ─────────────────────────────────────────────── */
+    @keyframes aura-ken-burns {
+      from { transform: scale(1.00) translate(0, 0); }
+      to   { transform: scale(1.07) translate(-0.8%, 0.5%); }
+    }
+    /* Quitamos bg-image del elemento y lo movemos al ::before animable */
+    .tenant-aura .hero-bg { background-image: none !important; }
+    .tenant-aura .hero-bg::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: url('/auralogin.png');
+      background-size: cover;
+      background-position: center 30%;
+      transform-origin: center center;
+      animation: aura-ken-burns 14s ease-in-out infinite alternate;
+      z-index: 1;
+    }
+
+    /* 2. Shimmer en membership card ────────────────────────────── */
+    @keyframes aura-shimmer {
+      0%   { transform: translateX(-130%) skewX(-12deg); }
+      100% { transform: translateX(230%) skewX(-12deg); }
+    }
+    .tenant-aura .membership-pattern::after {
+      content: '';
+      position: absolute;
+      top: -10%;
+      left: 0;
+      width: 45%;
+      height: 120%;
+      background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255,255,255,0.22) 50%,
+        transparent 100%
+      );
+      animation: aura-shimmer 5.5s ease-in-out 2s infinite;
+      pointer-events: none;
+    }
+
+    /* 3. Pulse ring en CTA del hero ────────────────────────────── */
+    @keyframes aura-pulse-ring {
+      0%   { transform: scale(1);    opacity: 0.55; }
+      100% { transform: scale(1.32); opacity: 0; }
+    }
+    .tenant-aura .hero-cta { position: relative; }
+    .tenant-aura .hero-cta::before {
+      content: '';
+      position: absolute;
+      inset: -5px;
+      border-radius: inherit;
+      border: 2px solid rgba(108,171,221,0.60);
+      animation: aura-pulse-ring 2.2s ease-out 1.5s infinite;
+      pointer-events: none;
+    }
+
+    /* 4. Stagger entrance ──────────────────────────────────────── */
+    @keyframes aura-fade-up {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    /* Ocultamos inicialmente solo en Aura */
+    .tenant-aura [data-aura-stagger] { opacity: 0; }
+    /* Clases aplicadas por JS post-auth */
+    .aura-animate { animation: aura-fade-up 0.6s cubic-bezier(0.16,1,0.3,1) forwards; }
+    .aura-d0 { animation-delay: 0.00s; }
+    .aura-d1 { animation-delay: 0.10s; }
+    .aura-d2 { animation-delay: 0.20s; }
+    .aura-d3 { animation-delay: 0.32s; }
+    .aura-d4 { animation-delay: 0.44s; }
+    /* ══════════════════════════════════════════════════════════════ */
+
     @keyframes stampPop {
       0%   { transform: scale(0.5); opacity: 0; }
       70%  { transform: scale(1.15); }
@@ -944,7 +1273,7 @@
     <section id="tabLoyalty" class="tab-panel animate-[fadeSlideUp_0.45s_cubic-bezier(0.16,1,0.3,1)_forwards]">
 
       <!-- ── HERO ── -->
-      <div class="relative mx-4 mt-2 mb-5 rounded-3xl overflow-hidden hero-bg" style="min-height:272px;">
+      <div data-aura-stagger class="relative mx-4 mt-2 mb-5 rounded-3xl overflow-hidden hero-bg" style="min-height:272px;">
         <!-- Dark gradient overlay sobre la foto -->
         <div class="hero-overlay absolute inset-0 z-10"></div>
         <!-- Accent glow bottom-left -->
@@ -989,7 +1318,7 @@
       <div id="heroBanner" class="hidden mx-4 mb-4 rounded-2xl overflow-hidden relative active:scale-[0.99] transition-all" style="min-height:170px;"></div>
 
       <!-- ── MEMBERSHIP CARD ── -->
-      <div class="membership-pattern relative mx-4 rounded-3xl bg-[#111115] border border-white/8 p-6 mb-4 overflow-hidden">
+      <div data-aura-stagger class="membership-pattern relative mx-4 rounded-3xl bg-[#111115] border border-white/8 p-6 mb-4 overflow-hidden">
         <div class="membership-glow absolute -top-10 -right-10 w-36 h-36 rounded-full pointer-events-none" style="background:radial-gradient(circle,rgba(201,168,76,0.08) 0%,transparent 70%);"></div>
         <!-- Watermark decorativo -->
         <div id="membershipWatermark" class="absolute right-4 bottom-2 pointer-events-none select-none" style="font-size:7rem;font-weight:900;color:rgba(201,168,76,0.04);line-height:1;font-style:italic;">É</div>
@@ -1025,13 +1354,13 @@
           <p class="text-[11px] text-gray-600">Tu próxima recompensa</p>
           <div class="flex items-center gap-1.5">
             <p id="nextRewardName" class="text-[11px] font-bold text-white"></p>
-            <i class="ph-fill ph-gift text-sm" style="color:rgba(255,255,255,0.4);"></i>
+            <i class="ph-fill ph-gift text-sm" style="color:var(--gold);opacity:0.5;"></i>
           </div>
         </div>
       </div>
 
       <!-- ── PRÓXIMO PREMIO ── -->
-      <div class="mx-4 mb-5 rounded-2xl bg-[#111115] border border-white/8 px-5 py-4 flex items-center gap-4">
+      <div data-aura-stagger class="mx-4 mb-5 rounded-2xl bg-[#111115] border border-white/8 px-5 py-4 flex items-center gap-4">
         <!-- Product icon -->
         <div class="w-14 h-14 rounded-full overflow-hidden border border-white/12 flex-shrink-0 bg-[#1a1a1a] flex items-center justify-center">
           <i class='ph-fill ph-trophy premio-icon text-yellow-600 text-2xl'></i>
@@ -1060,7 +1389,7 @@
       <div id="perfilVisitasCard" class="hidden mx-4 mb-5 rounded-2xl bg-[#111115] border border-white/8 px-5 py-4">
         <p class="text-[9px] font-black uppercase tracking-widest mb-3" style="color:var(--gold);">Tu perfil de visitas</p>
         <div class="flex items-center gap-3 mb-3">
-          <div class="w-9 h-9 rounded-full flex items-center justify-center shrink-0" style="background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.22);">
+          <div class="w-9 h-9 rounded-full flex items-center justify-center shrink-0" style="background:var(--gold-glow);border:1px solid var(--gold-dim);">
             <i class="ph-fill ph-scissors text-base" style="color:var(--gold);"></i>
           </div>
           <div class="flex-1 min-w-0">
@@ -1070,7 +1399,7 @@
         </div>
         <div class="h-px bg-white/5 mb-3"></div>
         <div class="flex items-center gap-3">
-          <div class="w-9 h-9 rounded-full flex items-center justify-center shrink-0" style="background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.22);">
+          <div class="w-9 h-9 rounded-full flex items-center justify-center shrink-0" style="background:var(--gold-glow);border:1px solid var(--gold-dim);">
             <i class="ph-fill ph-user text-base" style="color:var(--gold);"></i>
           </div>
           <div class="flex-1 min-w-0">
@@ -1102,10 +1431,10 @@
             <div
               onclick="document.getElementById('sfFileInput').click()"
               class="flex flex-col items-center justify-center h-32 border-2 border-dashed rounded-xl cursor-pointer active:scale-95 transition-all"
-              style="border-color:rgba(201,168,76,0.25);"
+              style="border-color:var(--gold-dim);"
             >
-              <i class="ph-bold ph-camera text-2xl mb-2" style="color:rgba(201,168,76,0.4);"></i>
-              <p class="text-xs font-semibold" style="color:rgba(201,168,76,0.5);">Subí tu foto de estilo favorito</p>
+              <i class="ph-bold ph-camera text-2xl mb-2" style="color:var(--gold);opacity:0.5;"></i>
+              <p class="text-xs font-semibold" style="color:var(--gold);opacity:0.6;">Subí tu foto de estilo favorito</p>
               <p class="text-[10px] mt-1" style="color:rgba(255,255,255,0.15);">Solo la verás vos</p>
             </div>
           </div>
@@ -1118,7 +1447,7 @@
       </div>
 
       <!-- ── SERVICIOS DESTACADOS ── -->
-      <div class="mb-6" id="serviciosSection">
+      <div data-aura-stagger class="mb-6" id="serviciosSection">
         <h3 class="text-[10px] font-bold uppercase tracking-widest mb-3 px-5" style="color:var(--gold);">Servicios</h3>
         <div class="flex gap-3 overflow-x-auto no-scrollbar snap-x snap-mandatory pl-5 pr-5" id="serviciosGrid">
           <div class="service-card flex-shrink-0 rounded-2xl bg-white/5 animate-pulse" style="width:148px;height:188px;"></div>
@@ -1133,7 +1462,7 @@
       </p>
 
       <!-- Conoce al equipo -->
-      <div class="px-5 mb-8">
+      <div data-aura-stagger class="px-5 mb-8">
         <button onclick="abrirEquipoModal()" class="w-full flex items-center justify-between bg-zinc-900/80 border border-zinc-800 rounded-2xl px-4 py-3.5 transition-all duration-200 active:scale-[0.97] hover:border-[var(--gold-dim)]">
           <div class="flex items-center gap-3">
             <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style="background:var(--gold-glow);border:1px solid var(--gold-dim);">
@@ -1623,6 +1952,7 @@ auth.onAuthStateChanged(async user => {
   }
   currentUser = user;
   document.getElementById('authGuard').style.display = 'none';
+  initAuraAnimations();
   // Mostrar widget de chat (currentUser ya está asignado aquí)
   const _chatWidgetEl = document.getElementById('chatWidget');
   if (_chatWidgetEl) _chatWidgetEl.classList.remove('hidden');
@@ -1985,6 +2315,7 @@ function renderStamps(count, historicos) {
   // Counter
   document.getElementById('stampsCount').innerHTML =
     `${count}<span style="font-size:0.875rem;color:rgba(255,255,255,0.3);">/${target}</span>`;
+  auraCountUp(count, target);
 
   // Progress bar
   const pct = Math.min((count / target) * 100, 100);
@@ -2962,6 +3293,33 @@ document.getElementById('sfFileInput').addEventListener('change', async function
     _sfSetLoading(false);
   }
 });
+
+// ── Aura Premium Animations ───────────────────────────────────
+function initAuraAnimations() {
+  if (!document.documentElement.classList.contains('tenant-aura')) return;
+  const els = document.querySelectorAll('[data-aura-stagger]');
+  els.forEach((el, i) => {
+    el.classList.add('aura-animate', `aura-d${Math.min(i, 4)}`);
+  });
+}
+
+function auraCountUp(targetNum, totalTarget) {
+  if (!document.documentElement.classList.contains('tenant-aura') || targetNum === 0) return;
+  const el = document.getElementById('stampsCount');
+  if (!el) return;
+  const duration = 800;
+  const start = Date.now();
+  const span = `<span style="font-size:0.875rem;color:rgba(255,255,255,0.3);">/${totalTarget}</span>`;
+  el.innerHTML = `0${span}`;
+  const tick = () => {
+    const elapsed = Date.now() - start;
+    const progress = Math.min(elapsed / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    el.innerHTML = Math.round(eased * targetNum) + span;
+    if (progress < 1) requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
 </script>
 
   <script>

@@ -34,7 +34,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
   <link href="/output.css" rel="stylesheet">
 
@@ -448,6 +448,132 @@
     .tenant-delnero a.text-gray-600:hover { color: rgba(57,255,20,0.70) !important; }
     .tenant-delnero .eye-toggle { color: rgba(57,255,20,0.38) !important; }
     .tenant-delnero .eye-toggle:hover { color: rgba(57,255,20,0.68) !important; }
+    /* ────────────────────────────────────────────────────────── */
+
+    /* ── Aura Salon & Male Grooming — Light Mode ─────────────── */
+    .tenant-aura {
+      --gold:     #6CABDD;
+      --gold-dim: rgba(108,171,221,0.25);
+    }
+    html.tenant-aura body,
+    .tenant-aura body {
+      background-color: #F9FAFB !important;
+      color: #18181B !important;
+    }
+    .tenant-aura .ambient-glow {
+      background: radial-gradient(circle, rgba(108,171,221,0.07) 0%, transparent 65%);
+    }
+    .tenant-aura .logo-ring {
+      border: 2px solid rgba(108,171,221,0.55) !important;
+      box-shadow: 0 0 0 1px rgba(108,171,221,0.08), 0 0 18px rgba(108,171,221,0.14) !important;
+    }
+    .tenant-aura #heroClubTitle { color: #00285E !important; }
+    .tenant-aura #heroClubSub   { color: #8E9399 !important; }
+    .tenant-aura .gold-divider {
+      background: linear-gradient(90deg, transparent, #6CABDD, transparent);
+    }
+    .tenant-aura .tab-btn { color: #A1A1AA; }
+    .tenant-aura .tab-btn.active { color: #00285E; border-color: #6CABDD; }
+    .tenant-aura .border-b { border-color: #E4E4E7 !important; }
+    .tenant-aura .field {
+      background: #FFFFFF !important;
+      border: 1px solid #D4D4D8 !important;
+      color: #18181B !important;
+      border-radius: 14px !important;
+    }
+    .tenant-aura .field::placeholder { color: #A1A1AA !important; }
+    .tenant-aura .field:focus {
+      border-color: #6CABDD !important;
+      box-shadow: 0 0 0 3px rgba(108,171,221,0.15) !important;
+    }
+    .tenant-aura input:-webkit-autofill,
+    .tenant-aura input:-webkit-autofill:focus {
+      -webkit-box-shadow: 0 0 0 100px #FFFFFF inset !important;
+      -webkit-text-fill-color: #18181B !important;
+      caret-color: #18181B;
+    }
+    .tenant-aura .btn-primary {
+      background: #6CABDD !important;
+      border-color: #6CABDD !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 16px rgba(108,171,221,0.30) !important;
+    }
+    .tenant-aura .btn-primary:hover {
+      background: #00285E !important;
+      border-color: #00285E !important;
+    }
+    .tenant-aura .btn-google {
+      background: #FFFFFF !important;
+      border: 1px solid #D4D4D8 !important;
+      color: #18181B !important;
+    }
+    .tenant-aura .btn-google:hover {
+      background: #F4F4F5 !important;
+      border-color: #A1A1AA !important;
+    }
+    .tenant-aura .spinner {
+      border-color: rgba(108,171,221,0.20) !important;
+      border-top-color: #6CABDD !important;
+    }
+    .tenant-aura .flex-grow.border-t { border-color: #E4E4E7 !important; }
+    .tenant-aura span.mx-4.text-gray-500 { color: #A1A1AA !important; }
+    .tenant-aura #loadingOverlay { background: rgba(249,250,251,0.92) !important; }
+    .tenant-aura #loadingOverlay span { color: #52525B !important; }
+    .tenant-aura a.text-gray-600 { color: #8E9399 !important; }
+    .tenant-aura a.text-gray-600:hover { color: #52525B !important; }
+    .tenant-aura .eye-toggle { color: #A1A1AA !important; }
+    .tenant-aura .eye-toggle:hover { color: #52525B !important; }
+    .tenant-aura .text-gray-400 { color: #71717A !important; }
+    .tenant-aura .text-gray-500 { color: #8E9399 !important; }
+    .tenant-aura .text-gray-600 { color: #71717A !important; }
+    .tenant-aura .bg-white\/5 { background-color: rgba(108,171,221,0.06) !important; }
+    .tenant-aura .border-white\/10 { border-color: #D4D4D8 !important; }
+    /* Tipografía moderna para el título del club */
+    .tenant-aura #heroClubTitle {
+      font-family: 'Plus Jakarta Sans', sans-serif !important;
+      font-style: normal !important;
+      font-weight: 700 !important;
+    }
+    /* Date picker en modo claro */
+    .tenant-aura input[type="date"] { color-scheme: light !important; }
+    /* Alert banner — light mode */
+    .tenant-aura #alertBanner[class*="bg-red"] {
+      background: #FEF2F2 !important;
+      border-color: #FCA5A5 !important;
+      color: #991B1B !important;
+    }
+    .tenant-aura #alertBanner[class*="bg-emerald"] {
+      background: #F0FDF4 !important;
+      border-color: #86EFAC !important;
+      color: #166534 !important;
+    }
+    /* Registro — Aura entrance animations */
+    @keyframes aura-reg-logo {
+      from { opacity: 0; transform: scale(0.78); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+    @keyframes aura-reg-fade-up {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .tenant-aura #shopLogo {
+      animation: aura-reg-logo 0.55s cubic-bezier(0.16,1,0.3,1) forwards;
+    }
+    .tenant-aura .gold-divider,
+    .tenant-aura .sep-ornamental,
+    .tenant-aura #heroClubTitle,
+    .tenant-aura #heroClubSub {
+      opacity: 0;
+      animation: aura-reg-fade-up 0.55s cubic-bezier(0.16,1,0.3,1) forwards;
+    }
+    .tenant-aura .gold-divider   { animation-delay: 0.12s; }
+    .tenant-aura .sep-ornamental { animation-delay: 0.20s; }
+    .tenant-aura #heroClubTitle  { animation-delay: 0.28s; }
+    .tenant-aura #heroClubSub    { animation-delay: 0.36s; }
+    .tenant-aura #auth-forms {
+      opacity: 0;
+      animation: aura-reg-fade-up 0.55s cubic-bezier(0.16,1,0.3,1) 0.44s forwards;
+    }
     /* ────────────────────────────────────────────────────────── */
 
     @keyframes fadeSlideUp {
