@@ -23,7 +23,7 @@ const DIAS = [
   { key: 0, label: 'Dom' },
 ];
 const EMPTY_PPD = Object.fromEntries(DIAS.map(d => [d.key, '']));
-const EMPTY = { nombre: '', categoria: 'Otro', precio: '', duracion: '', icono: 'ph-scissors', varPrecios: false, ppd: { ...EMPTY_PPD } };
+const EMPTY = { nombre: '', categoria: 'Otro', precio: '', duracion: '', icono: 'ph-scissors', descripcion: '', varPrecios: false, ppd: { ...EMPTY_PPD } };
 
 function IconPicker({ value, onChange }) {
   const [open, setOpen] = useState(false);
@@ -72,7 +72,7 @@ export default function Servicios() {
       Object.entries(s.preciosPorDia).forEach(([k, v]) => { ppd[Number(k)] = v != null ? String(v) : ''; });
     }
     setEditing(s.id);
-    setForm({ nombre: s.nombre, categoria: s.categoria || 'Otro', precio: s.precio, duracion: s.duracion, icono: s.icono || 'ph-scissors', varPrecios: !!s.preciosPorDia, ppd });
+    setForm({ nombre: s.nombre, categoria: s.categoria || 'Otro', precio: s.precio, duracion: s.duracion, icono: s.icono || 'ph-scissors', descripcion: s.descripcion || '', varPrecios: !!s.preciosPorDia, ppd });
     setSlide(true);
   };
 
@@ -88,15 +88,18 @@ export default function Servicios() {
           if (v !== '' && v != null) preciosPorDia[String(key)] = Number(v);
         });
       }
+      const descripcion = form.descripcion.trim();
       const base = { nombre: form.nombre, categoria: form.categoria, precio: basePrecio, duracion: Number(form.duracion), icono: form.icono || 'ph-scissors', updatedAt: serverTimestamp() };
       if (editing) {
         await updateDoc(doc(tenantCol('servicios'), editing), {
           ...base,
+          descripcion: descripcion || deleteField(),
           preciosPorDia: form.varPrecios ? preciosPorDia : deleteField(),
         });
       } else {
         const nextOrden = servicios.length ? Math.max(...servicios.map(s => s.orden ?? 0)) + 1 : 0;
         const newDoc = { ...base, orden: nextOrden, createdAt: serverTimestamp() };
+        if (descripcion) newDoc.descripcion = descripcion;
         if (form.varPrecios) newDoc.preciosPorDia = preciosPorDia;
         await addDoc(tenantCol('servicios'), newDoc);
       }
@@ -200,6 +203,9 @@ export default function Servicios() {
                       <span className="ml-1.5 text-[10px] font-bold text-amber-400/70 bg-amber-400/10 border border-amber-400/20 rounded-full px-1.5 py-0.5">precio variable</span>
                     )}
                   </p>
+                  {s.descripcion && (
+                    <p className="text-[11px] text-slate-600 mt-0.5 truncate">{s.descripcion}</p>
+                  )}
                 </div>
                 {/* Actions */}
                 <div className="flex items-center gap-2 shrink-0">
@@ -276,6 +282,19 @@ export default function Servicios() {
           <div>
             <label className={lbl}>Ícono</label>
             <IconPicker value={form.icono} onChange={ic => setForm(f => ({ ...f, icono: ic }))} />
+          </div>
+          <div>
+            <label className={lbl}>
+              Descripción <span className="text-slate-600 normal-case tracking-normal font-normal">(opcional)</span>
+            </label>
+            <textarea
+              className={`${field} resize-none`}
+              rows={3}
+              placeholder="Breve descripción visible para el cliente al elegir servicio…"
+              value={form.descripcion}
+              onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))}
+            />
+            <p className="text-[11px] text-slate-600 mt-1">Máximo 2 líneas se mostrarán en la app de reserva.</p>
           </div>
 
           {/* Precios variables por día */}

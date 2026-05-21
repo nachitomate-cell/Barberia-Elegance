@@ -46,6 +46,11 @@ function ServiceCard({ servicio, selected, onSelect, clr }) {
           }`}>
             {servicio.nombre}
           </p>
+          {servicio.descripcion && (
+            <p className="text-xs text-gray-500 mt-1 mb-2 line-clamp-2 leading-relaxed">
+              {servicio.descripcion}
+            </p>
+          )}
           <p className="font-bold text-base mt-1" style={{ color: clr.A }}>
             {fmtPrecio(servicio.precio)}
           </p>
