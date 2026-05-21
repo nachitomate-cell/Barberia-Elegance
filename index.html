@@ -1877,7 +1877,7 @@
          satin-black     #18181B  (zinc-900)  → textos, encabezados, íconos
        Acentos:
          accent-gray     #9CA3AF  (Tailwind gray-400) → CTA, selección
-         accent-navy     #00285E              → hover, header, alto contraste
+         accent-charcoal #111827              → CTA, selección fuerte, encabezados
          accent-pink     #FF8EA6              → badges, "Nuevo", decorativos
          accent-moss     #00553A              → éxito, confirmación
          accent-utilitarian #DC2626 (red-600) → destructivo, error
@@ -1982,7 +1982,7 @@
 
     /* ── Info Strip ── */
     .tenant-aura .info-strip {
-      background: #001A3F !important;
+      background: #111827 !important;
       border-bottom-color: rgba(156,163,175,0.12) !important;
     }
     .tenant-aura .info-strip a,
@@ -1996,13 +1996,13 @@
 
     /* ── Back Button ── */
     .tenant-aura button[onclick="goBack()"] {
-      background: rgba(0,40,94,0.65) !important;
-      border-color: rgba(255,255,255,0.25) !important;
+      background: rgba(17,24,39,0.65) !important;
+      border-color: rgba(255,255,255,0.20) !important;
     }
 
     /* ── Progress / Stepper ── */
     .tenant-aura #progressBar {
-      background: #9CA3AF !important;
+      background: #374151 !important;
       box-shadow: none !important;
     }
     .tenant-aura #progressTrack {
@@ -2013,7 +2013,7 @@
       text-shadow: none !important;
     }
     .tenant-aura #progressPercentage {
-      color: #9CA3AF !important;
+      color: #6B7280 !important;
     }
     .tenant-aura #selectionRecap {
       color: #8E9399 !important;
@@ -2063,7 +2063,7 @@
       border-color: #D4D4D8 !important;
     }
     .tenant-aura .service-option .svc-name { color: #18181B !important; }
-    .tenant-aura .service-option .price-tag { color: #00285E !important; }
+    .tenant-aura .service-option .price-tag { color: #18181B !important; }
     .tenant-aura .service-option .duration-tag { color: #8E9399 !important; }
     .tenant-aura .service-option .icon-svg {
       color: #9CA3AF !important;
@@ -2075,21 +2075,21 @@
     }
     /* Selected state */
     .tenant-aura .service-option.border-neon {
-      border-color: #9CA3AF !important;
-      background: rgba(156,163,175,0.06) !important;
-      box-shadow: 0 0 0 1px rgba(156,163,175,0.20), 0 2px 8px rgba(156,163,175,0.10) !important;
+      border-color: #374151 !important;
+      background: rgba(17,24,39,0.04) !important;
+      box-shadow: 0 0 0 1px rgba(55,65,81,0.25), 0 2px 8px rgba(0,0,0,0.06) !important;
     }
     .tenant-aura .service-option.bg-brand-neon\/10 {
-      background: rgba(156,163,175,0.06) !important;
+      background: rgba(17,24,39,0.04) !important;
     }
     .tenant-aura .service-option.border-neon .icon-bg {
-      background: rgba(156,163,175,0.14) !important;
-      border-color: rgba(156,163,175,0.35) !important;
+      background: rgba(17,24,39,0.08) !important;
+      border-color: rgba(55,65,81,0.35) !important;
     }
     .tenant-aura .service-option.border-neon .icon-svg {
-      color: #00285E !important;
+      color: #111827 !important;
     }
-    .tenant-aura .service-option.border-neon .price-tag { color: #00285E !important; }
+    .tenant-aura .service-option.border-neon .price-tag { color: #111827 !important; }
 
     /* ── Category Pills ── */
     .tenant-aura .category-pill {
@@ -2103,10 +2103,11 @@
     }
     .tenant-aura .category-pill.border-neon,
     .tenant-aura .category-pill.text-neon {
-      border-color: #9CA3AF !important;
-      color: #00285E !important;
-      background: rgba(156,163,175,0.08) !important;
+      border-color: #374151 !important;
+      color: #111827 !important;
+      background: rgba(17,24,39,0.06) !important;
       box-shadow: none !important;
+      font-weight: 700 !important;
     }
 
     /* ── Barber Option Cards ── */
@@ -2118,12 +2119,12 @@
     .tenant-aura .barber-option .text-brand-neon { color: #9CA3AF !important; }
     /* Selected state */
     .tenant-aura .barber-option.border-neon {
-      border-color: #9CA3AF !important;
-      background: rgba(156,163,175,0.06) !important;
-      box-shadow: 0 0 0 1px rgba(156,163,175,0.20), 0 2px 8px rgba(156,163,175,0.10) !important;
+      border-color: #374151 !important;
+      background: rgba(17,24,39,0.04) !important;
+      box-shadow: 0 0 0 1px rgba(55,65,81,0.25), 0 2px 8px rgba(0,0,0,0.06) !important;
     }
     .tenant-aura .barber-option.bg-brand-neon\/10 {
-      background: rgba(156,163,175,0.06) !important;
+      background: rgba(17,24,39,0.04) !important;
     }
     /* Radio circle — overrides inline gold color set by JS */
     .tenant-aura .barber-radio {
@@ -2131,8 +2132,8 @@
       background: transparent !important;
     }
     .tenant-aura .barber-option.border-neon .barber-radio {
-      border-color: #9CA3AF !important;
-      background: #9CA3AF !important;
+      border-color: #1F2937 !important;
+      background: #1F2937 !important;
     }
 
     /* ── Shimmer en tarjeta seleccionada (Elegance + Aura) ── */
@@ -2260,7 +2261,7 @@
       color: #9CA3AF !important;
     }
     .tenant-aura #step4 .mt-6.rounded-2xl #summaryTime {
-      color: #00285E !important;
+      color: #111827 !important;
     }
 
     /* ── Club Banner ── */
@@ -2314,8 +2315,8 @@
     .tenant-aura #extrasSection p[class*="uppercase"] { color: #9CA3AF !important; }
 
     /* ── Success State ── */
-    .tenant-aura #success-state h2 { color: #00285E !important; }
-    .tenant-aura #success-state .text-neon { color: #00285E !important; }
+    .tenant-aura #success-state h2 { color: #111827 !important; }
+    .tenant-aura #success-state .text-neon { color: #111827 !important; }
     .tenant-aura #success-state .bg-brand-neon\/10 { background: rgba(156,163,175,0.10) !important; }
     .tenant-aura #success-state svg.text-neon { color: #9CA3AF !important; }
     .tenant-aura #success-state #successSummaryDate { color: #9CA3AF !important; }
@@ -2475,8 +2476,8 @@
       border-color: #D4D4D8 !important;
     }
     .tenant-aura .service-option.border-neon .svc-radio {
-      border-color: #9CA3AF !important;
-      background: #9CA3AF !important;
+      border-color: #1F2937 !important;
+      background: #1F2937 !important;
       box-shadow: inset 0 0 0 2px #FFFFFF !important;
     }
 
@@ -2529,7 +2530,7 @@
     /* ── Success state: summary card bg-[#0a0a0d] ── */
     .tenant-aura #success-state .bg-\[#0a0a0d\] {
       background: #FFFFFF !important;
-      border-color: rgba(0,85,58,0.25) !important;
+      border-color: rgba(55,65,81,0.25) !important;
     }
 
     /* ── Footer contact: inline style bg-[#0a0807] ── */
@@ -2559,7 +2560,7 @@
       color: #9CA3AF !important;
     }
     .tenant-aura .info-strip[style] {
-      background: #001A3F !important;
+      background: #111827 !important;
     }
 
     /* ── Club banner inline styles ── */
@@ -2604,7 +2605,7 @@
       border-radius: 12px;
       border: 1px solid rgba(156,163,175,0.25);
       background: rgba(156,163,175,0.06);
-      color: #00285E;
+      color: #18181B;
       font-family: system-ui, sans-serif;
       font-size: 12.5px;
       font-weight: 600;
@@ -2627,7 +2628,7 @@
       position: fixed;
       inset: 0;
       z-index: 9998;
-      background: rgba(0,40,94,0.45);
+      background: rgba(17,24,39,0.50);
       backdrop-filter: blur(6px);
       align-items: flex-end;
       opacity: 0;
@@ -2662,7 +2663,7 @@
       font-family: 'Playfair Display', serif;
       font-size: 22px;
       font-weight: 700;
-      color: #00285E;
+      color: #18181B;
       margin-bottom: 16px;
       line-height: 1.25;
       opacity: 0;
@@ -3034,7 +3035,7 @@
                style="border:3px solid rgba(156,163,175,0.40);
                       box-shadow:0 0 0 6px rgba(156,163,175,0.08),
                                  0 8px 32px rgba(156,163,175,0.22),
-                                 0 2px 8px rgba(0,40,94,0.15);">
+                                 0 2px 8px rgba(0,0,0,0.08);">
             <img src="/aura.png" alt="Aura" class="w-full h-full object-cover">
             <div class="aura-stamp-shine absolute inset-0 pointer-events-none"
                  style="background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,0.55) 50%,transparent 65%);"></div>
@@ -4194,10 +4195,11 @@
       const id = btn.getAttribute('data-service-id');
       const _isGitana = window.CURRENT_TENANT_ID === 'gitana';
       const _isMapu   = window.CURRENT_TENANT_ID === 'mapubarbershop';
+      const _isAura   = window.CURRENT_TENANT_ID === 'aura';
       const _isElegance = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance';
-      const _useRowSel  = _isElegance || _isMapu;
-      const _radioDim   = _isMapu ? 'rgba(191,163,126,0.40)' : 'rgba(212,175,55,0.4)';
-      const _radioSel   = _isMapu ? '#BFA37E' : '#D4AF37';
+      const _useRowSel  = _isElegance || _isMapu || _isAura;
+      const _radioDim   = _isMapu ? 'rgba(191,163,126,0.40)' : _isAura ? 'rgba(55,65,81,0.25)' : 'rgba(212,175,55,0.4)';
+      const _radioSel   = _isMapu ? '#BFA37E' : _isAura ? '#1F2937' : '#D4AF37';
 
       document.querySelectorAll('.service-option').forEach(el => {
         el.classList.replace('border-neon', 'border-brand-accent/20');
@@ -4216,7 +4218,7 @@
 
       btn.classList.add('border-2', 'border-neon', 'bg-brand-neon/10');
       if (!_isGitana && !_useRowSel) btn.classList.add('scale-105', 'shadow-[0_0_20px_rgba(255,255,255,0.2)]');
-      if (_useRowSel) btn.style.boxShadow = _isMapu ? 'none' : '0 0 10px rgba(212,175,55,0.1)';
+      if (_useRowSel) btn.style.boxShadow = _isMapu || _isAura ? 'none' : '0 0 10px rgba(212,175,55,0.1)';
       btn.classList.replace('border-brand-accent/20', 'border-neon');
       btn.classList.remove('border');
 
@@ -4276,6 +4278,7 @@
         mapubarbershop: { bg: '#BFA37E', cl: '#2A1E22', sh: 'none' },
         lumen:          { bg: '#C9A050', cl: '#030712', sh: '0 0 14px rgba(201,160,80,0.40)' },
         delnero:        { bg: '#39ff14', cl: '#050505', sh: '0 0 14px rgba(57,255,20,0.55)' },
+        aura:           { bg: '#1F2937', cl: '#ffffff',  sh: 'none' },
       };
       const s = SEL[tid] ?? SEL.elegance;
 
@@ -4555,7 +4558,7 @@
               <div class="club-hero-card rounded-2xl overflow-hidden" style="background:#FFFFFF;border:1px solid #D4D4D8;box-shadow:0 2px 16px rgba(156,163,175,0.10);">
 
                 <!-- Franja de acento superior -->
-                <div style="height:3px;background:linear-gradient(90deg,#9CA3AF 0%,#00285E 100%);"></div>
+                <div style="height:3px;background:linear-gradient(90deg,#D4D4D8 0%,#374151 100%);"></div>
 
                 <div class="px-5 pt-5 pb-4">
 
@@ -4564,7 +4567,7 @@
                     <p class="text-[10px] font-bold uppercase tracking-widest mb-2.5 flex items-center gap-1.5" style="color:#9CA3AF;">
                       <i class="ph-fill ph-sparkle"></i> Exclusivo · Club AURA
                     </p>
-                    <p class="text-[1.2rem] font-black leading-tight mb-2" style="color:#00285E;letter-spacing:-0.02em;">
+                    <p class="text-[1.2rem] font-black leading-tight mb-2" style="color:#111827;letter-spacing:-0.02em;">
                       Cada visita te acerca<br>a un servicio gratis
                     </p>
                     <p class="text-[13px] leading-relaxed" style="color:#52525B;">
