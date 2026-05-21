@@ -726,6 +726,16 @@
     /* Ocultar sección social al recuperar contraseña */
     .tab-reset .social-section { display: none; }
 
+    /* Custom class for the main Booking CTA */
+    .btn-cta-reserva {
+      font-size: 15px !important;
+      padding: 16px 28px !important;
+      border-radius: 16px !important;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3) !important;
+      font-weight: 800 !important;
+      letter-spacing: 0.06em !important;
+    }
+
     /* ═══════════════════════════════════════════════════════════════
        AURA SALÓN & MALE GROOMING
        Paleta: Urbano-Industrial Light Mode (Cultura Deportiva)
@@ -850,7 +860,7 @@
     <!-- Panel: ya eres miembro (deluxeperfumes, sesión activa) -->
     <div id="deluxe-member-panel" class="hidden text-center">
       <p id="dlx-greeting" class="text-white font-semibold text-xl mb-1"></p>
-      <p class="text-[11px] font-semibold text-gray-500 uppercase tracking-[0.2em] mb-8">Miembro Club Deluxe</p>
+      <p id="dlx-membership-title" class="text-[11px] font-semibold text-gray-500 uppercase tracking-[0.2em] mb-8">Miembro Club Deluxe</p>
       <div class="bg-white/5 border border-white/10 rounded-2xl p-5 mb-6">
         <p class="text-[10px] uppercase tracking-[0.2em] text-gray-500 mb-2">Tus sellos</p>
         <p id="dlx-stamps" class="text-5xl font-bold" style="color:var(--gold)">—</p>
@@ -873,10 +883,10 @@
     <!-- Tabs -->
     <div class="flex mb-7 border-b border-white/[0.07]">
       <button id="tabLogin"
-        class="tab-btn active flex-1 pb-3 text-xs font-bold text-center border-b-2 uppercase tracking-widest"
+        class="tab-btn flex-1 pb-3 text-xs font-bold text-center border-b-2 border-transparent uppercase tracking-widest"
         onclick="switchTab('login')">Ingresar</button>
       <button id="tabRegister"
-        class="tab-btn flex-1 pb-3 text-xs font-bold text-center border-b-2 border-transparent uppercase tracking-widest"
+        class="tab-btn active flex-1 pb-3 text-xs font-bold text-center border-b-2 uppercase tracking-widest"
         onclick="switchTab('register')">Crear cuenta</button>
     </div>
 
@@ -884,7 +894,7 @@
     <div id="alertBanner" class="hidden mb-5 px-4 py-3 rounded-2xl border text-sm font-medium text-center"></div>
 
     <!-- PANEL LOGIN -->
-    <div id="panelLogin">
+    <div id="panelLogin" class="hidden">
       <div class="space-y-3">
         <input type="email" id="loginEmail" placeholder="Correo electrónico" autocomplete="email" class="field">
         <div class="relative">
@@ -907,7 +917,7 @@
     </div>
 
     <!-- PANEL REGISTRO -->
-    <div id="panelRegister" class="hidden">
+    <div id="panelRegister">
       <div class="space-y-3">
         <input type="text" id="regNombre" placeholder="Nombre completo" autocomplete="name" class="field">
         <input type="email" id="regEmail" placeholder="Correo electrónico" autocomplete="email" class="field">
@@ -993,13 +1003,14 @@
 
     </div><!-- /auth-forms -->
 
-    <!-- Back link -->
-    <p class="text-center mt-7">
+    <!-- Back link / Booking CTA (thumb zone) -->
+    <div class="mt-8 pt-6 border-t border-white/[0.07]">
       <a id="backLink" href="index.html"
-        class="inline-flex items-center gap-1.5 text-[11px] font-semibold text-gray-600 hover:text-gray-400 transition-colors uppercase tracking-widest">
-        <i class="ph ph-arrow-left"></i> <span id="backLinkText">Volver a agendar</span>
+        class="btn-primary w-full text-base font-bold py-4 text-center rounded-2xl flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition-all btn-cta-reserva"
+        style="text-decoration: none;">
+        <i class="ph ph-calendar-check text-xl"></i> <span id="backLinkText">RESERVAR MI HORA AHORA</span>
       </a>
-    </p>
+    </div>
 
   </div>
 
@@ -1089,6 +1100,7 @@
           const nombre = d.nombre || user.displayName || 'Miembro';
           document.getElementById('dlx-greeting').textContent = '¡Hola, ' + nombre.split(' ')[0] + '!';
           document.getElementById('dlx-stamps').textContent = d.stamps ?? 0;
+          document.getElementById('dlx-membership-title').textContent = 'Miembro ' + (SHOP.club || 'Club Deluxe');
         } catch (_) {}
       }
       return;
@@ -1340,14 +1352,21 @@
         : 'Acumula sellos · Gana premios';
     initPhonePrefix('regTelefono');
 
-    // Back link: perfume store goes to /catalogo, others go to index
+    // Priorizar registro por defecto al cargar
+    switchTab('register');
+
+    // Back link / Booking CTA: perfume store goes to /catalogo, others go to index
     const tid = window.CURRENT_TENANT_ID;
     if (tid === 'deluxeperfumes') {
       const q = '?local=deluxeperfumes';
       document.getElementById('backLink').href = '/catalogo' + q;
-      document.getElementById('backLinkText').textContent = 'Volver al catálogo';
+      document.getElementById('backLinkText').textContent = 'VER FRAGANCIAS DISPONIBLES';
     } else if (tid && tid !== 'elegance') {
       document.getElementById('backLink').href = 'index.html?local=' + tid;
+      document.getElementById('backLinkText').textContent = 'CONTINUAR CON MI RESERVA';
+    } else {
+      document.getElementById('backLink').href = 'index.html';
+      document.getElementById('backLinkText').textContent = 'CONTINUAR CON MI RESERVA';
     }
   });
 </script>
