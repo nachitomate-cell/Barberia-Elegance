@@ -5193,7 +5193,7 @@
     // Populate "Sobre Nosotros" modal body from config — text must NOT be hardcoded in
     // the static HTML because Google indexes display:none content and blends it into
     // snippets for other tenants (cross-tenant SEO bleed).
-    (function initSobreModals() {
+    function initSobreModals() {
       if (!window.SHOP || !window.SHOP.sobreNosotros) return;
       const bodyId = window.CURRENT_TENANT_ID === 'mapubarbershop' ? 'mapu-sobre-body'
                    : window.CURRENT_TENANT_ID === 'aura'           ? 'aura-sobre-body'
@@ -5201,7 +5201,8 @@
       if (!bodyId) return;
       const el = document.getElementById(bodyId);
       if (el) el.innerHTML = window.SHOP.sobreNosotros;
-    })();
+    }
+    window.addEventListener('DOMContentLoaded', initSobreModals);
 
   </script>
 
