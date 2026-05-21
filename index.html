@@ -2291,10 +2291,15 @@
     .tenant-aura #clubBanner i.ph-bold { color: rgba(24,24,27,0.25) !important; }
 
     /* ── Club Fidelidad Step 4 ── */
+    @keyframes auraCtaPulse {
+      0%, 100% { box-shadow: 0 4px 16px rgba(156,163,175,0.30); }
+      50%       { box-shadow: 0 4px 24px rgba(156,163,175,0.55); }
+    }
     .tenant-aura #step4AuthContainer a.flex {
       background: #9CA3AF !important;
       color: #18181B !important;
       box-shadow: 0 4px 16px rgba(156,163,175,0.30) !important;
+      animation: auraCtaPulse 2.5s ease-in-out infinite !important;
     }
     .tenant-aura #step4AuthContainer a.flex i { color: #ffffff !important; }
     .tenant-aura #step4AuthContainer .rounded-2xl {
@@ -4681,12 +4686,22 @@
           const _clubEmoji = window.CURRENT_TENANT_ID === 'gitana' ? '💅' : '✂️';
           if (window.CURRENT_TENANT_ID === 'aura') {
             authContainer.innerHTML = `
-              <div class="club-hero-card rounded-2xl overflow-hidden" style="background:#FFFFFF;border:1px solid #D4D4D8;box-shadow:0 2px 16px rgba(156,163,175,0.10);">
+              <div class="club-hero-card rounded-2xl overflow-hidden relative" style="background:#FFFFFF;border:1px solid #D4D4D8;box-shadow:0 2px 16px rgba(156,163,175,0.10);">
+
+                <!-- Fondo decorativo: gradiente suave + chispas grises -->
+                <div class="absolute inset-0 pointer-events-none overflow-hidden" style="z-index:0;">
+                  <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 8% 0%,rgba(156,163,175,0.09) 0%,transparent 55%);"></div>
+                  <span class="club-spark" style="top:14%;left:9%;--dur:2.3s;--del:0s;"></span>
+                  <span class="club-spark" style="top:28%;left:83%;--dur:1.9s;--del:0.7s;"></span>
+                  <span class="club-spark" style="top:54%;left:17%;--dur:2.7s;--del:1.2s;"></span>
+                  <span class="club-spark" style="top:71%;left:91%;--dur:1.6s;--del:0.4s;"></span>
+                  <span class="club-spark" style="top:7%;left:61%;--dur:3.1s;--del:1.0s;"></span>
+                </div>
 
                 <!-- Franja de acento superior -->
-                <div style="height:3px;background:linear-gradient(90deg,#D4D4D8 0%,#374151 100%);"></div>
+                <div style="height:3px;background:linear-gradient(90deg,#D4D4D8 0%,#374151 100%);position:relative;z-index:1;"></div>
 
-                <div class="px-5 pt-5 pb-4">
+                <div class="px-5 pt-5 pb-4 relative" style="z-index:1;">
 
                   <!-- Stagger 1: eyebrow + titular -->
                   <div class="club-anim-el mb-4" style="animation-delay:0ms;">
@@ -4731,7 +4746,7 @@
                 </div>
 
                 <!-- Footer login -->
-                <div class="club-anim-el flex items-center justify-center gap-2 px-5 py-3 border-t" style="animation-delay:420ms;background:#F9FAFB;border-color:#E4E4E7;">
+                <div class="club-anim-el flex items-center justify-center gap-2 px-5 py-3 border-t relative" style="animation-delay:420ms;background:#F9FAFB;border-color:#E4E4E7;z-index:1;">
                   <p class="text-xs" style="color:#A1A1AA;">¿Ya eres miembro?</p>
                   <a href="registro.html" class="text-xs font-bold active:scale-95 transition-all" style="color:#9CA3AF;">Iniciar sesión</a>
                 </div>
