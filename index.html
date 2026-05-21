@@ -83,8 +83,8 @@
     .service-card-bg { background-size: cover; background-position: center; }
 
     /* ── Service description expand/collapse ── */
-    .svc-desc { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; }
-    .svc-desc.expanded { display:block; overflow:visible; }
+    .svc-desc { display:none; }
+    .svc-desc.expanded { display:block; }
     .svc-desc-toggle { cursor:pointer; -webkit-tap-highlight-color:transparent; user-select:none; }
 
     /* Club banner — plateado premium */
@@ -4034,7 +4034,7 @@
                   ${iconEl}
                 </div>
                 <div class="flex-1 min-w-0">
-                  <span class="svc-name font-bold text-gray-200 text-sm block truncate tracking-wide">${s.nombre}</span>
+                  <span class="svc-name font-bold text-gray-200 text-sm block tracking-wide" style="white-space:normal;">${s.nombre}</span>
                   ${s.descripcion ? `<span class="svc-desc text-[11px] text-gray-500 mt-0.5 leading-snug">${s.descripcion}</span><span onclick="toggleSvcDesc(this,event)" class="svc-desc-toggle text-[10px] font-medium text-gray-600 hover:text-gray-300 hover:underline underline-offset-2 mt-0.5 mb-0.5 block transition-colors">Ver más</span>` : ''}
                   <div class="flex items-center gap-3 mt-0.5">
                     <span class="text-[13px] font-bold text-neon price-tag">\$${_getPrecioEfectivo(s, new Date().getDay()).toLocaleString('es-CL')}</span>
