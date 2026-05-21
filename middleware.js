@@ -444,43 +444,114 @@ function r(str) {
 }
 
 // WhatsApp/Facebook scrapers require absolute URLs for og:image — relative paths are silently ignored.
-function injectMeta(html, meta, pageMeta, canonical, hostname, pageType) {
+function injectMeta(html, meta, pageMeta, canonical, hostname, pageType, tenantId) {
+  // 1. Resolve absolute image URL for OG and search thumbnails
   const absImage = meta.ogImage.startsWith('http')
     ? meta.ogImage
     : `https://${hostname}${meta.ogImage}`;
 
-  html = html.replace(/(<title[^>]*>)[^<]*(<\/title>)/,     `$1${r(pageMeta.title)}$2`);
-  html = html.replace(/<meta name="description"[^>]*>/,      `<meta name="description" content="${r(pageMeta.description)}">`);
-  html = html.replace(/<meta property="og:title"[^>]*>/,     `<meta property="og:title" content="${r(pageMeta.ogTitle)}">`);
-  html = html.replace(/<meta property="og:description"[^>]*>/, `<meta property="og:description" content="${r(pageMeta.ogDesc)}">`);
-  html = html.replace(/<meta property="og:site_name"[^>]*>/, `<meta property="og:site_name" content="${r(meta.siteName)}">`);
-  html = html.replace(/<meta property="og:image"[^>]*>/,     `<meta property="og:image" content="${r(absImage)}">`);
-  html = html.replace(/<meta property="og:url"[^>]*>/,       `<meta property="og:url" content="${r(canonical)}">`);
-  html = html.replace(/<meta name="twitter:title"[^>]*>/,    `<meta name="twitter:title" content="${r(pageMeta.ogTitle)}">`);
-  html = html.replace(/<meta name="twitter:description"[^>]*>/, `<meta name="twitter:description" content="${r(pageMeta.ogDesc)}">`);
-  html = html.replace(/<meta name="twitter:image"[^>]*>/,    `<meta name="twitter:image" content="${r(absImage)}">`);
-  html = html.replace(/<meta name="theme-color"[^>]*>/,      `<meta name="theme-color" content="${r(meta.themeColor)}">`);
-  html = html.replace(/<meta name="apple-mobile-web-app-title"[^>]*>/, `<meta name="apple-mobile-web-app-title" content="${r(meta.appTitle)}">`);
-  html = html.replace(/<meta name="application-name"[^>]*>/,           `<meta name="application-name" content="${r(meta.appTitle)}">`);
-  html = html.replace(/<link rel="icon"[^>]*>/,              `<link rel="icon" type="image/jpeg" href="${r(meta.icon)}">`);
-  html = html.replace(/<link rel="apple-touch-icon"[^>]*>/,  `<link rel="apple-touch-icon" href="${r(meta.icon)}">`);
+  // 2. Strict tenant-isolated dynamic fallback description
+  let desc = pageMeta.description || '';
+  if (!desc || desc.trim() === '' || (desc.includes('Elegance Barbershop') && tenantId !== 'elegance')) {
+    const name = meta.siteName || 'nuestro local';
+    const address = meta.local?.streetAddress || '';
+    const city = meta.local?.addressLocality || '';
+    const isBeauty = meta.local?.schemaType === 'BeautySalon' || name.toLowerCase().includes('nails') || name.toLowerCase().includes('salon');
+    const servicesWord = isBeauty ? 'Cortes, color, uñas y pestañas' : 'Cortes de cabello y perfilado de barba';
+    
+    if (address && city) {
+      desc = `Reserva tu hora en ${name}. ${servicesWord} en ${address}, ${city}. Elige tu profesional y horario en segundos.`;
+    } else if (city) {
+      desc = `Reserva tu hora en ${name}. ${servicesWord} en ${city}. Elige tu profesional y horario en segundos.`;
+    } else {
+      desc = `Reserva tu hora en ${name}. ${servicesWord}. Elige tu profesional, servicio y horario en segundos.`;
+    }
+  }
 
-  // Inyectar JSON-LD solo en páginas de booking (index y rutas de barbero)
+  // 3. Strip all pre-existing SEO, social, thumbnail, and favicon tags to prevent leaks/conflicts (attribute order-agnostic)
+  html = html.replace(/<meta\s+[^>]*name=["']?description["']?[^>]*>/gi, '');
+  html = html.replace(/<meta\s+[^>]*property=["']?og:title["']?[^>]*>/gi, '');
+  html = html.replace(/<meta\s+[^>]*property=["']?og:description["']?[^>]*>/gi, '');
+  html = html.replace(/<meta\s+[^>]*property=["']?og:image["']?[^>]*>/gi, '');
+  html = html.replace(/<meta\s+[^>]*property=["']?og:url["']?[^>]*>/gi, '');
+  html = html.replace(/<meta\s+[^>]*name=["']?thumbnail["']?[^>]*>/gi, '');
+  html = html.replace(/<meta\s+[^>]*name=["']?twitter:title["']?[^>]*>/gi, '');
+  html = html.replace(/<meta\s+[^>]*name=["']?twitter:description["']?[^>]*>/gi, '');
+  html = html.replace(/<meta\s+[^>]*name=["']?twitter:image["']?[^>]*>/gi, '');
+  html = html.replace(/<link\s+[^>]*rel=["']?(?:shortcut\s+)?icon["']?[^>]*>/gi, '');
+  html = html.replace(/<link\s+[^>]*rel=["']?apple-touch-icon["']?[^>]*>/gi, '');
+
+  // 4. Resolve dynamic absolute favicon URLs and MIME type
+  const absIcon = meta.icon.startsWith('http')
+    ? meta.icon
+    : `https://${hostname}${meta.icon}`;
+  const mimeType = mimeFromSrc(meta.icon);
+
+  // 5. Build clean, unified, edge-injected head block with absolute favicon and thumbnail URLs
+  const seoBlock = `
+  <meta name="description" content="${r(desc)}">
+  <meta property="og:title" content="${r(pageMeta.ogTitle || pageMeta.title)}">
+  <meta property="og:description" content="${r(pageMeta.ogDesc || desc)}">
+  <meta property="og:image" content="${r(absImage)}">
+  <meta property="og:url" content="${r(canonical)}">
+  <meta name="thumbnail" content="${r(absImage)}">
+  <meta name="twitter:title" content="${r(pageMeta.ogTitle || pageMeta.title)}">
+  <meta name="twitter:description" content="${r(pageMeta.ogDesc || desc)}">
+  <meta name="twitter:image" content="${r(absImage)}">
+  <link rel="icon" type="${mimeType}" href="${r(absIcon)}">
+  <link rel="shortcut icon" type="${mimeType}" href="${r(absIcon)}">
+  <link rel="apple-touch-icon" href="${r(absIcon)}">`;
+
+  // 6. Prepend this block right at the beginning of the <head>
+  html = html.replace('<head>', `<head>${seoBlock}`);
+
+  // 7. Dynamically replace or update the <title> tag
+  html = html.replace(/(<title[^>]*>)[^<]*(<\/title>)/i, `$1${r(pageMeta.title)}$2`);
+
+  // 8. Inject dynamic semantic schema JSON-LD before </head> for booking pages
   if (pageType === 'booking') {
     const jsonLd = buildJsonLd(meta, hostname);
     html = html.replace('</head>', `<script type="application/ld+json">${jsonLd}</script>\n</head>`);
   }
 
+  // 9. Inject a premium, fully isolated semantic Content SEO block right before </body> to boost crawler indexes safely
+  const isBeauty = meta.local?.schemaType === 'BeautySalon' || meta.siteName.toLowerCase().includes('nails') || meta.siteName.toLowerCase().includes('salon');
+  const servicesWord = isBeauty ? 'experiencia de belleza premium con servicios de manicura, pestañas y estética' : 'servicios de barbería de alta gama con cortes de cabello clásicos y modernos';
+  const addressText = meta.local?.streetAddress ? `ubicado en la dirección ${meta.local.streetAddress}, ${meta.local.addressLocality || ''}` : `en ${meta.local?.addressLocality || ''}`;
+  const seoText = `
+  <!-- Semantic SEO Context Block - Strictly Isolated per Tenant -->
+  <div id="tenant-seo-semantic-content" style="display:none;" aria-hidden="true">
+    <h2>${meta.siteName}</h2>
+    <p>Disfruta de una ${servicesWord} ${addressText}. Reserva tu hora fácilmente online con tu especialista preferido.</p>
+  </div>`;
+  html = html.replace('</body>', `${seoText}\n</body>`);
+
   return html;
 }
 
-function injectAdminMeta(html, meta) {
+function injectAdminMeta(html, meta, hostname) {
   const am = meta.adminManifest;
-  html = html.replace(/<meta name="theme-color"[^>]*>/,                `<meta name="theme-color" content="${r(am.theme_color)}">`);
-  html = html.replace(/<meta name="apple-mobile-web-app-title"[^>]*>/, `<meta name="apple-mobile-web-app-title" content="${r(am.short_name)}">`);
-  html = html.replace(/<meta name="application-name"[^>]*>/,           `<meta name="application-name" content="${r(am.short_name)}">`);
-  html = html.replace(/<link rel="icon"[^>]*>/,                        `<link rel="icon" href="${r(am.icons[0].src)}">`);
-  html = html.replace(/<link rel="apple-touch-icon"[^>]*>/,            `<link rel="apple-touch-icon" href="${r(am.icons[0].src)}">`);
+  
+  // Clean all previous icon/apple icon tags and theme color tags first to avoid duplicates (attribute order-agnostic)
+  html = html.replace(/<meta\s+[^>]*name=["']?theme-color["']?[^>]*>/gi, '');
+  html = html.replace(/<link\s+[^>]*rel=["']?(?:shortcut\s+)?icon["']?[^>]*>/gi, '');
+  html = html.replace(/<link\s+[^>]*rel=["']?apple-touch-icon["']?[^>]*>/gi, '');
+  html = html.replace(/<meta\s+[^>]*name=["']?apple-mobile-web-app-title["']?[^>]*>/gi, '');
+  html = html.replace(/<meta\s+[^>]*name=["']?application-name["']?[^>]*>/gi, '');
+
+  const amIcon = am.icons && am.icons[0] ? am.icons[0].src : meta.icon;
+  const mimeType = mimeFromSrc(amIcon);
+  const absIcon = amIcon.startsWith('http') ? amIcon : `https://${hostname}${amIcon}`;
+
+  const adminHeadBlock = `
+  <meta name="theme-color" content="${r(am.theme_color)}">
+  <meta name="apple-mobile-web-app-title" content="${r(am.short_name)}">
+  <meta name="application-name" content="${r(am.short_name)}">
+  <link rel="icon" type="${mimeType}" href="${r(absIcon)}">
+  <link rel="shortcut icon" type="${mimeType}" href="${r(absIcon)}">
+  <link rel="apple-touch-icon" href="${r(absIcon)}">`;
+
+  html = html.replace('<head>', `<head>${adminHeadBlock}`);
   return html;
 }
 
@@ -648,7 +719,7 @@ export default async function middleware(request) {
     const contentType = response.headers.get('content-type') || '';
     if (!contentType.includes('text/html')) return response;
     let html = await response.text();
-    html = injectAdminMeta(html, meta);
+    html = injectAdminMeta(html, meta, hostname);
     const headers = new Headers(response.headers);
     headers.set('Content-Type', 'text/html; charset=utf-8');
     headers.set('Cache-Control', 'no-store');
@@ -725,7 +796,7 @@ export default async function middleware(request) {
   const canonical = `https://${hostname}${url.pathname === '/' ? '' : url.pathname}`;
 
   let html = await response.text();
-  html = injectMeta(html, meta, pageMeta, canonical, hostname, pageType);
+  html = injectMeta(html, meta, pageMeta, canonical, hostname, pageType, tenantId);
 
   const headers = new Headers(response.headers);
   headers.set('Content-Type', 'text/html; charset=utf-8');
