@@ -48,13 +48,14 @@
       position: relative;
       width: 100%;
       max-width: 28rem;
-      min-height: 100dvh;
+      height: 100dvh;        /* fixed height so btnContinueBar stays visible */
+      overflow: hidden;      /* prevents shell from growing past viewport */
       display: flex;
       flex-direction: column;
       background: var(--body-bg);
       box-shadow: 0 0 80px rgba(0,0,0,0.9);
     }
-    /* Scrollable middle region */
+    /* Scrollable middle region — sole scroll container */
     #scrollContent {
       flex: 1 1 auto;
       overflow-y: auto;
@@ -343,7 +344,7 @@
 </div>
 
 <!-- Main content (hidden until barber loaded) -->
-<div id="mainContent" class="hidden" style="padding-bottom:5rem;">
+<div id="mainContent" class="hidden" style="padding-bottom:7rem;">
 
   <!-- Hero barber card -->
   <div id="barberHero" class="relative overflow-hidden"
