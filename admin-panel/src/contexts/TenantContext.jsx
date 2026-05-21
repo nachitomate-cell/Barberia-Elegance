@@ -10,7 +10,7 @@ const TENANT_META = {
   mapubarbershop: { name: 'Mapu Barber Shop',       accent: 'emerald', emoji: '✂️', logo: '/mapu.jfif'  },
   chameleon:      { name: 'Chameleon Barber Studio', accent: 'cyan',   emoji: '✂️', logo: '/local3.jpg' },
   deluxeperfumes: { name: 'Deluxe Perfumes',        accent: 'purple',  emoji: '🌸', logo: '/logo5.jpg'  },
-  lumen:          { name: "D'Jones Barber",            accent: 'amber',   emoji: '⚓', logo: '/djones-logo.png' },
+  lumen:          { name: "D'Jones Barber",            accent: 'amber',   emoji: '⚓', logo: '/djones.png' },
   delnero:        { name: 'Del Nero Barber',         accent: 'lime',    emoji: '✂️', logo: '/nero.jpg'   },
   aura:           { name: 'AURA SALÓN & MALE GROOMING', accent: 'amber',   emoji: '✨', logo: '/aura.png'   },
 };

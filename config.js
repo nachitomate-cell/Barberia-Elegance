@@ -137,7 +137,7 @@
       nombreCorto:     "D'Jones",
       pageTitle:       "D'Jones Barber | Agenda tu hora",
       slogan:          'Estilo y tradición',
-      logo:            '/djones-logo.png',
+      logo:            '/djones.png',
       direccion:       '',
       horario:         '',
       telefono:        '',

@@ -311,10 +311,10 @@ const TENANT_META = {
       ogDesc:      "Regístrate en D'Jones Barber y disfruta de beneficios exclusivos.",
     },
     siteName:    "D'Jones Barber",
-    ogImage:     '/djones-logo.png',
+    ogImage:     '/djones.png',
     themeColor:  '#C9A050',
     appTitle:    "D'Jones",
-    icon:        '/djones-logo.png',
+    icon:        '/djones.png',
     local: { telephone: '', streetAddress: '', addressLocality: 'Valparaíso', schemaType: 'HairSalon' },
     manifest: {
       name:             "D'Jones Barber",
@@ -330,7 +330,7 @@ const TENANT_META = {
       background_color: '#030712',
       start_url:        '/gestion-interna/?local=lumen',
       icons: [
-        { src: '/djones-logo.png',             sizes: 'any',     type: 'image/png'  },
+        { src: '/djones.png',             sizes: 'any',     type: 'image/png'  },
         { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png'  },
         { src: '/gestion-interna/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
       ],
