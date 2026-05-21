@@ -97,24 +97,47 @@
       background: rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.1);
     }
 
-    /* Day buttons */
-    .day-btn {
-      flex-shrink: 0;
-      width: 4rem; height: 5.5rem;
-      border-radius: 1.25rem;
-      border: 1.5px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.2);
-      background: #0a0a0d;
+    /* Week grid day buttons */
+    .week-day-btn {
+      border-radius: 0.625rem;
+      border: 1.5px solid transparent;
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
-      cursor: pointer;
-      transition: all 0.2s;
+      cursor: default;
+      transition: all 0.15s;
+      font-size: 0.9375rem;
+      font-weight: 600;
+      color: #4b5563;
+      background: transparent;
       -webkit-tap-highlight-color: transparent;
+      padding: 0.45rem 0;
+      gap: 2px;
+      min-height: 2.75rem;
     }
-    .day-btn.active {
-      border-color: var(--accent);
-      background: rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.1);
+    .week-day-btn.available {
+      background: #0a0a0d;
+      border-color: rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.2);
+      color: #d1d5db;
+      cursor: pointer;
     }
-    .day-btn:active { transform: scale(0.95); }
+    .week-day-btn.available:active { transform: scale(0.9); }
+    .week-day-btn.active {
+      border-color: var(--accent) !important;
+      background: rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.12) !important;
+      color: #fff !important;
+    }
+    .week-day-btn.unavailable { opacity: 0.18; pointer-events: none; }
+    .week-day-btn .today-label {
+      font-size: 7px; font-weight: 800; text-transform: uppercase;
+      letter-spacing: 0.04em; color: var(--accent); line-height: 1;
+    }
+
+    /* Button callout pulse when time is selected */
+    @keyframes btnCallout {
+      0%,100% { box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+      40%      { box-shadow: 0 0 0 8px rgba(255,255,255,0.18); }
+    }
+    .btn-callout { animation: btnCallout 0.55s ease; }
 
     /* Time pills */
     .time-pill {
@@ -224,6 +247,22 @@
   </a>
 </div>
 
+<!-- Service chip (visible from step 2 onwards) -->
+<div id="serviceChip" class="hidden fixed left-0 right-0 z-40"
+  style="top: calc(3rem + env(safe-area-inset-top));
+         background: rgba(5,5,5,0.9);
+         backdrop-filter: blur(16px);
+         border-bottom: 1px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.15);">
+  <div class="max-w-md mx-auto px-5 py-2.5 flex items-center justify-between">
+    <div class="flex items-center gap-2 min-w-0">
+      <i class="ph-fill ph-scissors text-sm shrink-0" style="color:var(--accent);"></i>
+      <span id="chipServiceName" class="text-sm font-bold text-white truncate"></span>
+      <span id="chipDuration" class="text-[11px] text-gray-500 font-medium shrink-0 ml-0.5"></span>
+    </div>
+    <span id="chipPrice" class="text-sm font-black ml-3 shrink-0" style="color:var(--accent);"></span>
+  </div>
+</div>
+
 <!-- Loading -->
 <div id="loadingState" class="min-h-screen flex items-center justify-center">
   <div class="spinner"></div>
@@ -245,33 +284,31 @@
 
   <!-- Hero barber card -->
   <div class="relative overflow-hidden"
-    style="background: linear-gradient(180deg, rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.06) 0%, transparent 100%);
-           border-bottom: 1px solid rgba(255,255,255,0.04);
-           padding: 2rem 1.5rem 1.25rem;">
-
-    <div class="flex items-center gap-4">
-      <!-- Photo -->
+    style="border-bottom: 1px solid rgba(255,255,255,0.04); padding: 2.25rem 1.5rem 1.75rem;">
+    <div class="absolute inset-0 pointer-events-none"
+      style="background: radial-gradient(ellipse at 50% -20%, rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.1) 0%, transparent 65%);"></div>
+    <div class="relative flex flex-col items-center text-center gap-3">
+      <!-- Photo — larger, centered -->
       <div id="barberPhotoWrap"
-        class="w-20 h-20 rounded-full overflow-hidden shrink-0 flex items-center justify-center"
-        style="border: 2px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.4);
-               box-shadow: 0 0 20px rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.15);
+        class="w-24 h-24 rounded-full overflow-hidden flex items-center justify-center"
+        style="border: 2.5px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.45);
+               box-shadow: 0 0 40px rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.22), 0 8px 32px rgba(0,0,0,0.5);
                background: #111;">
-        <i class="ph-fill ph-user text-4xl text-white/20"></i>
+        <i class="ph-fill ph-user text-5xl text-white/20"></i>
       </div>
-      <!-- Info -->
-      <div class="min-w-0">
+      <!-- Info — centered -->
+      <div>
         <p class="text-[10px] font-bold uppercase tracking-widest text-white/30 mb-0.5" id="shopNameLabel"></p>
-        <h1 id="barberName" class="text-2xl font-black text-white leading-tight tracking-tight"></h1>
-        <p id="barberEspecialidad" class="text-sm font-medium mt-0.5 hidden" style="color:var(--accent);"></p>
+        <h1 id="barberName" class="text-3xl font-black text-white leading-tight tracking-tight"></h1>
+        <p id="barberEspecialidad" class="text-sm font-medium mt-1 hidden" style="color:var(--accent);"></p>
       </div>
-    </div>
-
-    <!-- Availability badge -->
-    <div id="disponibleBadge"
-      class="inline-flex items-center gap-1.5 mt-3 px-3 py-1 rounded-full text-xs font-bold"
-      style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.25);color:#10b981;">
-      <i class="ph-fill ph-check-circle text-sm"></i>
-      Disponible para reservas
+      <!-- Availability badge — centered -->
+      <div id="disponibleBadge"
+        class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold"
+        style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.25);color:#10b981;">
+        <i class="ph-fill ph-check-circle text-sm"></i>
+        Disponible para reservas
+      </div>
     </div>
   </div>
 
@@ -319,8 +356,19 @@
       <!-- Month label -->
       <p id="monthText" class="text-sm font-semibold text-gray-500 mb-3"></p>
 
-      <!-- Day carousel -->
-      <div id="dayCarousel" class="flex gap-2 overflow-x-auto pb-3 no-scrollbar -mx-6 px-6 mb-6"></div>
+      <!-- Week grid -->
+      <div id="weekGrid" class="mb-6">
+        <div class="grid grid-cols-7 mb-2 text-center">
+          <span class="text-[10px] font-bold text-white/20 uppercase">L</span>
+          <span class="text-[10px] font-bold text-white/20 uppercase">M</span>
+          <span class="text-[10px] font-bold text-white/20 uppercase">M</span>
+          <span class="text-[10px] font-bold text-white/20 uppercase">J</span>
+          <span class="text-[10px] font-bold text-white/20 uppercase">V</span>
+          <span class="text-[10px] font-bold text-white/20 uppercase">S</span>
+          <span class="text-[10px] font-bold text-white/20 uppercase">D</span>
+        </div>
+        <div id="daysGrid" class="grid grid-cols-7 gap-1.5"></div>
+      </div>
 
       <!-- Hours grid -->
       <div id="hoursSection"></div>
@@ -554,8 +602,8 @@
         btn.disabled = false;
         btn.innerHTML = `Reservar las ${_selectedTime} <i class="ph-bold ph-check text-lg"></i>`;
       } else {
-        btn.disabled = false;
-        btn.innerHTML = `Continuar <i class="ph-bold ph-arrow-right text-lg"></i>`;
+        btn.disabled = true;
+        btn.innerHTML = `Elige una hora <i class="ph-bold ph-arrow-right text-lg"></i>`;
       }
     } else if (currentStep === 3) {
       btn.disabled = false;
@@ -651,6 +699,10 @@
     updateRecap();
   }
 
+  function dateToStr(d) {
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+
   /* ── Calendar ───────────────────────────────────────────────────── */
   async function precargarBloqueos() {
     _bloqueosProximos = {};
@@ -673,70 +725,67 @@
   }
 
   function renderCalendar() {
-    const carousel = document.getElementById('dayCarousel');
-    carousel.innerHTML = '';
     const today = new Date();
     const cfg = _barberConfig || _fsConfig;
-    const DAYS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+    const diasLaborales = cfg?.diasLaborales ?? [1,2,3,4,5,6];
+    const diasBloq      = cfg?.diasBloqueados ?? [];
     const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
                     'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    const todayStr = dateToStr(today);
 
-    document.getElementById('monthText').textContent =
-      `${MONTHS[today.getMonth()]} ${today.getFullYear()}`;
+    // Find Monday of current week
+    const dow = today.getDay();
+    const daysFromMon = dow === 0 ? 6 : dow - 1;
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - daysFromMon);
 
-    let firstSet = false;
-    let added = 0, offset = 0;
-
-    while (added < 20 && offset < 60) {
-      const d = new Date(today);
-      d.setDate(today.getDate() + offset++);
-      const m   = String(d.getMonth() + 1).padStart(2,'0');
-      const dd  = String(d.getDate()).padStart(2,'0');
-      const str = `${d.getFullYear()}-${m}-${dd}`;
-      const dw  = d.getDay();
-
-      const diasLaborales = cfg?.diasLaborales ?? [1,2,3,4,5,6];
-      const diasBloq      = cfg?.diasBloqueados ?? [];
-      if (!diasLaborales.includes(dw) || diasBloq.includes(str) || _bloqueosProximos[str]) continue;
-
-      added++;
-      const isFirst = !firstSet;
-      if (isFirst) { _selectedDate = str; firstSet = true; }
-
-      const activeStyle = isFirst
-        ? `border-color:var(--accent);background:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.1);`
-        : '';
-      const dayNumStyle = isFirst ? 'color:#fff;font-weight:700;' : 'color:#d1d5db;';
-      const dayLblStyle = isFirst ? 'color:var(--accent);' : 'color:#6b7280;';
-      const dotStyle    = isFirst ? 'background:var(--accent);' : 'background:transparent;';
-
-      carousel.innerHTML += `
-        <button onclick="handleDayClick(this,'${str}')" class="day-btn" style="${activeStyle}">
-          <span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:2px;${dayLblStyle}">${DAYS[dw]}</span>
-          <span style="font-size:1.5rem;${dayNumStyle}">${d.getDate()}</span>
-          <div style="width:6px;height:6px;border-radius:50%;margin-top:4px;transition:background 0.2s;${dotStyle}"></div>
-        </button>`;
+    // Build 4 weeks of cells
+    const cells = [];
+    for (let w = 0; w < 4; w++) {
+      for (let d = 0; d < 7; d++) {
+        const date = new Date(monday);
+        date.setDate(monday.getDate() + w * 7 + d);
+        cells.push(date);
+      }
     }
+
+    // Month label: first future available date
+    const firstFuture = cells.find(d => dateToStr(d) >= todayStr);
+    if (firstFuture) {
+      document.getElementById('monthText').textContent =
+        `${MONTHS[firstFuture.getMonth()]} ${firstFuture.getFullYear()}`;
+    }
+
+    let firstAvailableStr = null;
+    const html = cells.map(date => {
+      const str        = dateToStr(date);
+      const dw         = date.getDay();
+      const isPast     = str < todayStr;
+      const isWorkday  = diasLaborales.includes(dw);
+      const isBlocked  = diasBloq.includes(str) || !!_bloqueosProximos[str];
+      const isAvailable = !isPast && isWorkday && !isBlocked;
+      const isToday    = str === todayStr;
+      const num        = date.getDate();
+
+      if (!isAvailable) {
+        return `<div class="week-day-btn unavailable">${num}</div>`;
+      }
+      if (!firstAvailableStr) firstAvailableStr = str;
+      const isFirst = str === firstAvailableStr;
+      const todayMark = isToday
+        ? `<span class="today-label">hoy</span>` : '';
+      return `<button onclick="handleDayClick(this,'${str}')"
+        class="week-day-btn available${isFirst ? ' active' : ''}"
+        data-date="${str}">${todayMark}${num}</button>`;
+    }).join('');
+
+    document.getElementById('daysGrid').innerHTML = html;
+    if (firstAvailableStr) _selectedDate = firstAvailableStr;
   }
 
   function handleDayClick(btn, dateStr) {
-    document.querySelectorAll('.day-btn').forEach(b => {
-      b.style.borderColor = '';
-      b.style.background  = '';
-      const spans = b.querySelectorAll('span');
-      if (spans[0]) spans[0].style.color = '#6b7280';
-      if (spans[1]) { spans[1].style.color = '#d1d5db'; spans[1].style.fontWeight = ''; }
-      const dot = b.querySelector('div');
-      if (dot) dot.style.background = 'transparent';
-    });
-    btn.style.borderColor = 'var(--accent)';
-    btn.style.background  = 'rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.1)';
-    const spans = btn.querySelectorAll('span');
-    if (spans[0]) spans[0].style.color = 'var(--accent)';
-    if (spans[1]) { spans[1].style.color = '#fff'; spans[1].style.fontWeight = '700'; }
-    const dot = btn.querySelector('div');
-    if (dot) dot.style.background = 'var(--accent)';
-
+    document.querySelectorAll('.week-day-btn.available').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
     _selectedDate = dateStr;
     _selectedTime = null;
     updateContinueBtn();
@@ -824,7 +873,13 @@
     _selectedTime = time;
     updateContinueBtn();
     updateRecap();
-    document.getElementById('btnContinue')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    // Pulse the continue button to draw attention
+    const continueBtn = document.getElementById('btnContinue');
+    if (continueBtn) {
+      continueBtn.classList.remove('btn-callout');
+      void continueBtn.offsetWidth;
+      continueBtn.classList.add('btn-callout');
+    }
   }
 
   /* ── Slot locks realtime ────────────────────────────────────────── */
@@ -868,6 +923,13 @@
       renderHours();
       subscribeSlotLocks(_selectedDate);
       document.getElementById('clubBanner').classList.add('hidden');
+      // Show service chip
+      document.getElementById('chipServiceName').textContent = _selectedService.nombre;
+      document.getElementById('chipPrice').textContent = formatPrice(_selectedService.precio);
+      document.getElementById('chipDuration').textContent = formatDuration(_selectedService.duracion);
+      document.getElementById('serviceChip').classList.remove('hidden');
+      document.getElementById('mainContent').style.paddingTop =
+        `calc(3rem + 2.5rem + env(safe-area-inset-top))`;
       transitionStep(1, 2);
       currentStep = 2;
       updateProgress();
@@ -880,7 +942,11 @@
       document.getElementById('summaryService').textContent = _selectedService.nombre;
       document.getElementById('summaryPrice').textContent   = formatPrice(_selectedService.precio);
       document.getElementById('summaryBarber').textContent  = _barberoNombre;
-      document.getElementById('summaryDate').textContent    = _selectedDate;
+      const [sy, sm, sd] = _selectedDate.split('-');
+      const DIAS_ES = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+      const sDateObj = new Date(_selectedDate + 'T12:00:00');
+      document.getElementById('summaryDate').textContent    =
+        `${DIAS_ES[sDateObj.getDay()]} ${sd}/${sm}`;
       document.getElementById('summaryTime').textContent    = _selectedTime;
 
       // Prefill from Firebase auth
@@ -992,10 +1058,6 @@
     const waBtn = document.getElementById('waBtnLink');
     if (waNum) {
       waBtn.href = `https://wa.me/${waNum}?text=${waMsg}`;
-      setTimeout(() => {
-        const p = window.open(waBtn.href, '_blank');
-        if (!p) waBtn.classList.add('animate-pulse');
-      }, 800);
     } else {
       waBtn.style.display = 'none';
     }
