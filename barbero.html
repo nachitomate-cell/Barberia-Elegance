@@ -740,6 +740,7 @@
           <i class="ph-fill ${icon} text-xl" style="color:var(--accent);"></i>
         </div>
         <p class="text-sm font-bold text-white leading-snug">${s.nombre}</p>
+        ${s.descripcion ? `<p class="text-[11px] text-gray-500 leading-snug -mt-1" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${s.descripcion}</p>` : ''}
         <div class="flex items-center gap-2 mt-auto">
           <span class="text-sm font-black" style="color:var(--accent);">${formatPrice(s.precio)}</span>
           <span class="text-xs text-gray-600 font-medium">${formatDuration(s.duracion)}</span>
