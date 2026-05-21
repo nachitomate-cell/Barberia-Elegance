@@ -255,7 +255,7 @@
       nombreCorto:     'AURA',
       pageTitle:       'AURA SALÓN | Agenda tu hora',
       slogan:          'Eleva Tu Aura',
-      sobreNosotros:   '✨ AURA SALÓN & MALE GROOMING ✂️ Más que una barbería, somos un espacio creado para el cuidado, el estilo y la experiencia masculina moderna. En AURA combinamos técnica, diseño y detalles para ofrecerte un servicio integral: cortes clásicos y contemporáneos, perfilado de barba, tratamientos capilares y una atención pensada para tu bienestar. Cada visita es una pausa en la rutina, un momento para verte y sentirte mejor.<br><br>💈 Estilo, precisión y personalidad — eso es AURA.',
+      sobreNosotros:   '✨ AURA SALÓN & MALE GROOMING ✂️<br><br>Más que una barbería, somos un espacio creado para el cuidado, el estilo y la experiencia masculina moderna. En AURA combinamos técnica, diseño y detalles para ofrecerte un servicio integral: cortes clásicos y contemporáneos, perfilado de barba, tratamientos capilares y una atención pensada para tu bienestar.<br><br>Cada visita es una pausa en la rutina, un momento para verte y sentirte mejor.<br><br>💈 Estilo, precisión y personalidad — eso es AURA.',
       logo:            '/aura.png',
       direccion:       '',
       horario:         '',
