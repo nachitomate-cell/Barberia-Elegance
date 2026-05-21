@@ -3997,7 +3997,7 @@
         categories[cat].push(s);
       });
 
-      const _isEleganceSvc  = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza' || window.CURRENT_TENANT_ID === 'aura';
+      const _isEleganceSvc  = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza' || window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'lumen';
       const _isMapuSvc      = window.CURRENT_TENANT_ID === 'mapubarbershop';
       const _isChameleonSvc = window.CURRENT_TENANT_ID === 'chameleon';
       const _useRowLayout   = _isEleganceSvc || _isMapuSvc || _isChameleonSvc;
@@ -4254,7 +4254,7 @@
          grid.innerHTML = '<p class="text-sm text-gray-500">No hay barberos disponibles en este momento.</p>';
          return;
       }
-      const _isElegance   = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza' || window.CURRENT_TENANT_ID === 'aura';
+      const _isElegance   = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza' || window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'lumen';
       const _isMapuB      = window.CURRENT_TENANT_ID === 'mapubarbershop';
       const _isChameleon  = window.CURRENT_TENANT_ID === 'chameleon';
       const anyStateClass = (window._selectedBarberId === 'any' || window._selectedBarber === 'any') ? 'border-neon bg-brand-neon/10' : 'border-brand-accent/20 bg-[#0a0a0d]';
@@ -4328,7 +4328,7 @@
       `;
 
       // Aura: shuffle barbers so no one gets a permanent "top" position
-      const _barberosOrden = window.CURRENT_TENANT_ID === 'aura'
+      const _barberosOrden = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'lumen')
         ? [...barberos].sort(() => Math.random() - 0.5)
         : barberos;
 
