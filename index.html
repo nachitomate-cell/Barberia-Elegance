@@ -5092,9 +5092,9 @@
           </div>`).join('');
       }
 
-      // Quick strip: primer segmento de horario
+      // Quick strip: horario completo
       const heroHor = document.getElementById('heroInfoHorText');
-      if (heroHor) heroHor.textContent = horParts[0] || horClean;
+      if (heroHor) heroHor.textContent = horParts.length > 0 ? horParts.join(' • ') : horClean;
 
       renderExtrasSection();
       renderHeroBadge();
