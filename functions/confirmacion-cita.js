@@ -82,7 +82,7 @@ const TENANT_CONFIG = {
     instagram:   '',
     whatsapp:    '',
     from:        "D'Jones Barber <citas@synaptechspa.cl>",
-    dashboardUrl:'https://lumenbarbershop.synaptechspa.cl/dashboard',
+    dashboardUrl:'https://barberiadjones.synaptechspa.cl/dashboard',
   },
   aura: {
     nombre:      'AURA SALÓN & MALE GROOMING',

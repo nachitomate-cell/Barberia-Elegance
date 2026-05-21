@@ -12,7 +12,7 @@ const DOMAIN_MAP = {
   'mapubarbershop.synaptechspa.cl':    'mapubarbershop',
   'chameleonbarber.synaptechspa.cl':   'chameleon',
   'deluxeperfumes.synaptechspa.cl':    'deluxeperfumes',
-  'lumenbarbershop.synaptechspa.cl':   'lumen',
+  'barberiadjones.synaptechspa.cl':    'lumen',
   'delnerobarber.synaptechspa.cl':     'delnero',
   'aurasalon.synaptechspa.cl':         'aura',
   'aurasalonmalegrooming.synaptech.cl':'aura',
