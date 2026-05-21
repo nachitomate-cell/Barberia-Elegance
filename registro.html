@@ -506,21 +506,26 @@
 
     /* Botón de escape: marco de bronce náutico */
     .tenant-lumen .btn-cta-reserva {
-      background: transparent !important;
+      background: rgba(139, 101, 8, 0.08) !important;
       border: 2px solid #8B6508 !important;
       color: #D4AF37 !important;
       font-family: 'Playfair Display', Georgia, serif !important;
       font-weight: 800 !important;
-      box-shadow: none !important;
+      box-shadow: 0 0 12px rgba(139, 101, 8, 0.15) !important;
       transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
       border-radius: 8px !important;
     }
+    .tenant-lumen .btn-cta-reserva * {
+      color: #D4AF37 !important;
+    }
     .tenant-lumen .btn-cta-reserva:hover {
-      background: rgba(139, 101, 8, 0.08) !important;
-      color: #f5ead6 !important;
+      background: rgba(212, 175, 55, 0.15) !important;
       border-color: #D4AF37 !important;
-      box-shadow: 0 0 15px rgba(212, 175, 55, 0.15) !important;
+      box-shadow: 0 0 20px rgba(212, 175, 55, 0.3) !important;
       transform: scale(1.02) !important;
+    }
+    .tenant-lumen .btn-cta-reserva:hover * {
+      color: #f5ead6 !important;
     }
     .tenant-lumen .btn-cta-reserva:active {
       transform: scale(0.98) !important;
