@@ -2277,18 +2277,23 @@
     }
 
     /* ── Club Banner ── */
+    @keyframes premiumGlow {
+      0%, 100% { box-shadow: 0 0 18px rgba(212,175,55,0.08), 0 4px 24px rgba(0,0,0,0.60), inset 0 1px 0 rgba(212,175,55,0.05); }
+      50%       { box-shadow: 0 0 34px rgba(212,175,55,0.22), 0 4px 24px rgba(0,0,0,0.60), inset 0 1px 0 rgba(212,175,55,0.12); }
+    }
     .tenant-aura #clubBanner > a {
-      background: #FFFFFF !important;
-      border: 1px solid #D4D4D8 !important;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
+      background: linear-gradient(135deg, #0f0b04 0%, #1c1408 55%, #100d05 100%) !important;
+      border: 1px solid rgba(212,175,55,0.40) !important;
+      box-shadow: 0 0 18px rgba(212,175,55,0.08), 0 4px 24px rgba(0,0,0,0.60) !important;
+      animation: premiumGlow 4s ease-in-out infinite !important;
     }
     .tenant-aura #clubBanner .club-icon-wrap {
-      background: rgba(156,163,175,0.10) !important;
-      border-color: rgba(156,163,175,0.25) !important;
+      background: rgba(212,175,55,0.12) !important;
+      border-color: rgba(212,175,55,0.35) !important;
     }
-    .tenant-aura #clubBanner i.ph-fill { color: #9CA3AF !important; filter: none !important; }
-    .tenant-aura #clubBanner p.text-white { color: #18181B !important; }
-    .tenant-aura #clubBanner i.ph-bold { color: rgba(24,24,27,0.25) !important; }
+    .tenant-aura #clubBanner i.ph-fill { color: #D4AF37 !important; filter: drop-shadow(0 0 5px rgba(212,175,55,0.50)) !important; }
+    .tenant-aura #clubBanner p.text-white { color: #F0F0F0 !important; }
+    .tenant-aura #clubBanner i.ph-bold { color: rgba(212,175,55,0.45) !important; }
 
     /* ── Club Fidelidad Step 4 ── */
     .tenant-aura #step4AuthContainer a.flex {
@@ -2577,16 +2582,17 @@
 
     /* ── Club banner inline styles ── */
     .tenant-aura #clubBanner a[style] {
-      background: #FFFFFF !important;
-      border-color: #D4D4D8 !important;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
+      background: linear-gradient(135deg, #0f0b04 0%, #1c1408 55%, #100d05 100%) !important;
+      border-color: rgba(212,175,55,0.40) !important;
+      box-shadow: 0 0 18px rgba(212,175,55,0.08), 0 4px 24px rgba(0,0,0,0.60) !important;
+      animation: premiumGlow 4s ease-in-out infinite !important;
     }
     .tenant-aura #clubBanner div[style*="background:rgba(var(--accent"] {
-      background: rgba(156,163,175,0.10) !important;
-      border-color: rgba(156,163,175,0.25) !important;
+      background: rgba(212,175,55,0.12) !important;
+      border-color: rgba(212,175,55,0.35) !important;
     }
     .tenant-aura #clubBanner p[style*="color:rgba(var(--accent"] {
-      color: #9CA3AF !important;
+      color: #D4AF37 !important;
     }
 
     /* ── Drop shadows that emit white glow (dark mode artifact) ── */
