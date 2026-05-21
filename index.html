@@ -1984,6 +1984,9 @@
     .tenant-aura .info-strip {
       background: #111827 !important;
       border-bottom-color: rgba(156,163,175,0.12) !important;
+      /* 3-item layout: 2-col grid, WhatsApp spans second row */
+      display: grid !important;
+      grid-template-columns: 1fr 1fr;
     }
     .tenant-aura .info-strip a,
     .tenant-aura .info-strip > div {
@@ -1992,6 +1995,11 @@
     }
     .tenant-aura .info-strip i {
       color: #9CA3AF !important;
+    }
+    /* Row 1 bottom divider */
+    .tenant-aura #heroInfoAddr,
+    .tenant-aura .info-strip > div:first-of-type {
+      border-bottom: 1px solid rgba(255,255,255,0.05) !important;
     }
 
     /* ── Back Button ── */
@@ -2210,13 +2218,14 @@
 
     /* ── Main CTA Button ── */
     .tenant-aura #btnContinue {
-      background: #111827 !important;
+      background: #000000 !important;
       color: #ffffff !important;
-      font-weight: 700 !important;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.30) !important;
+      font-weight: 800 !important;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.45) !important;
+      letter-spacing: 0.01em;
     }
     .tenant-aura #btnContinue:hover {
-      background: #1F2937 !important;
+      background: #111827 !important;
       color: #ffffff !important;
     }
     .tenant-aura #btnContinueBar {
@@ -2763,7 +2772,12 @@
     }
     .tenant-aura #aura-info-wa {
       display: flex !important;
-      border-left: 1px solid rgba(255,255,255,0.05);
+      grid-column: 1 / -1;       /* span both columns on row 2 */
+      border-left: none !important;
+      border-top: 1px solid rgba(255,255,255,0.05) !important;
+      justify-content: center !important;
+      padding-top: 8px !important;
+      padding-bottom: 8px !important;
       color: rgba(255,255,255,0.50);
       transition: color 0.15s;
       text-decoration: none;

@@ -1661,6 +1661,141 @@
     .tenant-aura #googleReviewModal .text-white { color: #18181B !important; }
     .tenant-aura #googleReviewModal p { color: #52525B !important; }
     /* ─────────────────────────────────────────────────────────────── */
+
+    /* ========================================== */
+    /*      PREMIUM AESTHETICS & MICRO-INTERACTIONS  */
+    /* ========================================== */
+
+    /* 1. Glassmorphism Upgrades for Loyalty and Next Reward Cards */
+    .membership-pattern, .next-reward-card {
+      backdrop-filter: blur(16px) saturate(140%) !important;
+      background-color: rgba(17, 17, 21, 0.75) !important;
+      border: 1.5px solid rgba(255, 255, 255, 0.12) !important;
+      box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.4), inset 0 1px 0 0 rgba(255,255,255,0.05) !important;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.4s ease, box-shadow 0.4s ease;
+    }
+
+    /* Aura Glassmorphism light mode override */
+    .tenant-aura .membership-pattern, .tenant-aura .next-reward-card {
+      backdrop-filter: blur(16px) saturate(140%) !important;
+      background-color: rgba(255, 255, 255, 0.8) !important;
+      border: 1.5px solid rgba(0, 0, 0, 0.08) !important;
+      box-shadow: 0 12px 32px 0 rgba(0, 0, 0, 0.05), inset 0 1px 0 0 rgba(255,255,255,0.8) !important;
+    }
+
+    /* 2. Premium Shimmer Reflection Animation on Membership Card */
+    .membership-pattern::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(
+        115deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0) 35%,
+        rgba(255, 255, 255, 0.08) 48%,
+        rgba(255, 255, 255, 0.18) 50%,
+        rgba(255, 255, 255, 0.08) 52%,
+        rgba(255, 255, 255, 0) 65%,
+        rgba(255, 255, 255, 0) 100%
+      );
+      background-size: 300% 100%;
+      background-position: 150% 0%;
+      pointer-events: none;
+      z-index: 5;
+      animation: premium-shimmer 7s infinite ease-in-out;
+    }
+
+    /* Light mode shimmer correction */
+    .tenant-aura .membership-pattern::after {
+      background: linear-gradient(
+        115deg,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0) 35%,
+        rgba(255, 255, 255, 0.15) 48%,
+        rgba(255, 255, 255, 0.35) 50%,
+        rgba(255, 255, 255, 0.15) 52%,
+        rgba(255, 255, 255, 0) 65%,
+        rgba(255, 255, 255, 0) 100%
+      );
+      background-size: 300% 100%;
+      background-position: 150% 0%;
+      animation: premium-shimmer 7s infinite ease-in-out;
+    }
+
+    @keyframes premium-shimmer {
+      0% { background-position: 150% 0%; }
+      30% { background-position: -50% 0%; }
+      100% { background-position: -50% 0%; }
+    }
+
+    /* 3. Gently Pulsing Glow Animations */
+    .hero-glow-spot, .membership-glow {
+      animation: gentle-glow-pulse 6s infinite ease-in-out alternate;
+    }
+    @keyframes gentle-glow-pulse {
+      0% {
+        opacity: 0.65;
+        transform: scale(0.92);
+      }
+      100% {
+        opacity: 1.15;
+        transform: scale(1.08);
+      }
+    }
+
+    /* 4. Tactile Spring Scaling on Stamp cells and buttons */
+    .stamp-cell {
+      transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.4s ease, border-color 0.4s ease !important;
+    }
+    .stamp-cell:hover {
+      transform: scale(1.12) rotate(2deg);
+      z-index: 10;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.45);
+      border-color: var(--gold) !important;
+    }
+    .stamp-cell:active {
+      transform: scale(0.92) rotate(-2deg);
+    }
+    .tenant-aura .stamp-cell:hover {
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+    }
+
+    /* 5. Enhanced Premium Tier Badges */
+    .tier-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      text-transform: uppercase;
+      font-size: 9px;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      border-radius: 6px;
+      padding: 3px 8px;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    .tier-badge.silver {
+      color: #e2e8f0;
+      border-color: rgba(226, 232, 240, 0.25) !important;
+      background: linear-gradient(135deg, rgba(226, 232, 240, 0.08) 0%, rgba(226, 232, 240, 0.02) 100%) !important;
+    }
+    .tier-badge.gold {
+      color: #ffd700;
+      border-color: rgba(255, 215, 0, 0.3) !important;
+      background: linear-gradient(135deg, rgba(255, 215, 0, 0.12) 0%, rgba(255, 215, 0, 0.03) 100%) !important;
+      box-shadow: 0 2px 10px rgba(255, 215, 0, 0.1);
+    }
+    .tier-badge.platinum {
+      color: #d8b4fe;
+      border-color: rgba(216, 180, 254, 0.4) !important;
+      background: linear-gradient(135deg, rgba(216, 180, 254, 0.15) 0%, rgba(216, 180, 254, 0.03) 100%) !important;
+      box-shadow: 0 2px 12px rgba(216, 180, 254, 0.15);
+    }
   </style>
 
 <body class="font-sans antialiased min-h-screen">
@@ -1785,7 +1920,7 @@
       </div>
 
       <!-- ── PRÓXIMO PREMIO ── -->
-      <div data-aura-stagger class="mx-4 mb-5 rounded-2xl bg-[#111115] border border-white/8 px-5 py-4 flex items-center gap-4">
+      <div data-aura-stagger class="next-reward-card mx-4 mb-5 rounded-2xl bg-[#111115] border border-white/8 px-5 py-4 flex items-center gap-4">
         <!-- Product icon -->
         <div class="w-14 h-14 rounded-full overflow-hidden border border-white/12 flex-shrink-0 bg-[#1a1a1a] flex items-center justify-center">
           <i class='ph-fill ph-trophy premio-icon text-yellow-600 text-2xl'></i>
@@ -1996,6 +2131,8 @@
               <span class="text-[9px] text-zinc-500 font-bold mt-2 uppercase tracking-widest">Sellos</span>
             </div>
           </div>
+          <!-- Tier Progression message -->
+          <div id="profileTierProgress" class="mt-2.5 px-1 text-[11px] text-zinc-400 font-medium"></div>
         </div>
       </div>
 
@@ -2105,7 +2242,9 @@
 
   <!-- ═══════ BOTTOM NAVIGATION BAR ═══════ -->
   <nav class="fixed bottom-0 left-0 right-0 z-50 bg-[#0a0a0d]/97 backdrop-blur-xl border-t border-white/6" style="padding-bottom: env(safe-area-inset-bottom);">
-    <div class="max-w-md mx-auto flex items-stretch">
+    <div class="max-w-md mx-auto flex items-stretch relative">
+      <!-- Dynamic sliding active-tab indicator line -->
+      <div id="navActiveIndicator" class="absolute top-0 left-0 h-[2px] transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]" style="background: var(--gold); box-shadow: 0 0 10px var(--gold); width: 0; transform: translateX(0); z-index: 10;"></div>
 
       <button class="nav-tab active flex-1 flex flex-col items-center justify-center gap-1 py-3 px-1"
         onclick="switchTab('loyalty')" id="navLoyalty">
@@ -2393,6 +2532,8 @@ document.getElementById('shopClubName').textContent   = SHOP.club;
       const el = document.getElementById(id);
       if (el) { el.src = _pwaLogoSrc; el.alt = _pwaLogoAlt; }
     });
+    // Initialize premium active tab indicator
+    updateNavIndicator(activeTab);
   });
 })();
 
@@ -2830,6 +2971,20 @@ function renderStamps(count, historicos) {
   if (profileVisitsEl) profileVisitsEl.textContent = historicos;
   const profileStampsEl = document.getElementById('profileStamps');
   if (profileStampsEl) profileStampsEl.textContent = count;
+
+  // Dynamic Tier Progression message
+  const profileTierProgressEl = document.getElementById('profileTierProgress');
+  if (profileTierProgressEl) {
+    if (historicos < 10) {
+      const faltanVisitas = 10 - historicos;
+      profileTierProgressEl.innerHTML = `¡Faltan <span class="font-bold text-white">${faltanVisitas}</span> visitas para subir al rango <span class="font-bold animate-pulse" style="color:var(--gold);">GOLD</span>!`;
+    } else if (historicos < 25) {
+      const faltanVisitas = 25 - historicos;
+      profileTierProgressEl.innerHTML = `¡Faltan <span class="font-bold text-white">${faltanVisitas}</span> visitas para subir al rango <span class="font-bold text-purple-300 animate-pulse">PLATINUM</span>!`;
+    } else {
+      profileTierProgressEl.innerHTML = `🏆 ¡Has alcanzado el rango máximo <span class="font-bold animate-pulse" style="color:var(--gold);">PLATINUM</span>!`;
+    }
+  }
 }
 
 // ─── Servicios desde Firestore ────────────────────────────────
@@ -3076,7 +3231,30 @@ function switchTab(tab) {
   void activePanel.offsetWidth;
   activePanel.classList.add('animate-[fadeSlideUp_0.45s_cubic-bezier(0.16,1,0.3,1)_forwards]');
   document.getElementById(navBtns[tab])?.classList.add('active');
+
+  // Slide dynamic tab indicator
+  updateNavIndicator(tab);
 }
+
+function updateNavIndicator(tab) {
+  const btnId = { loyalty: 'navLoyalty', lookbook: 'navLookbook', productos: 'navProductos', profile: 'navProfile' }[tab];
+  const activeBtn = document.getElementById(btnId);
+  const indicator = document.getElementById('navActiveIndicator');
+  if (activeBtn && indicator) {
+    setTimeout(() => {
+      const parentRect = activeBtn.parentElement.getBoundingClientRect();
+      const btnRect = activeBtn.getBoundingClientRect();
+      indicator.style.width = `${btnRect.width}px`;
+      indicator.style.transform = `translateX(${btnRect.left - parentRect.left}px)`;
+    }, 50);
+  }
+}
+
+window.addEventListener('resize', () => {
+  if (window.activeTab) {
+    updateNavIndicator(window.activeTab);
+  }
+});
 
 // ─── Teléfono prefix ──────────────────────────────────────────
 (function initPhonePrefix() {
