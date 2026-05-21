@@ -47,7 +47,7 @@ const WA_SHOP_NAMES = {
   mapubarbershop: 'Mapu Barber Shop',
   gitana:         'Gitana Nails Studio',
   deluxeperfumes: 'Deluxe Perfumes',
-  lumen:          'Lumen Barbershop',
+  lumen:          "D'Jones Barber",
   delnero:        'Del Nero Barber',
 };
 
