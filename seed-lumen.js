@@ -152,17 +152,17 @@ async function seedProfile() {
   }, { merge: true });
 
   await tenantRef.collection('settings').doc('theme').set({
-    colorBg:            '#030712',
-    colorSurface:       '#111827',
-    colorSurfaceAlt:    '#1f2937',
-    colorPrimary:       '#C9A050', // Dorado/Ámbar
-    colorAccent:        '#b45309', // Dorado oscuro
-    colorText:          '#f3f4f6',
-    colorMuted:         '#9ca3af',
-    colorBorder:        'rgba(201,160,80,0.18)',
-    colorGlow:          'rgba(201,160,80,0.22)',
-    colorButtonText:    '#030712',
-    colorProgressTrack: '#111827',
+    colorBg:            '#0d0a08',
+    colorSurface:       '#181210',
+    colorSurfaceAlt:    '#241b18',
+    colorPrimary:       '#D4AF37', // Oro Doblón
+    colorAccent:        '#8b0000', // Carmesí Pirata
+    colorText:          '#f5ead6', // Pergamino Envejecido
+    colorMuted:         '#a89f9a', // Vela gastada
+    colorBorder:        'rgba(212,175,55,0.15)',
+    colorGlow:          'rgba(212,175,55,0.22)',
+    colorButtonText:    '#0d0a08',
+    colorProgressTrack: '#181210',
     updatedAt:          TS(),
   }, { merge: true });
 

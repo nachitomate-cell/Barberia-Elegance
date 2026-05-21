@@ -1376,224 +1376,287 @@
        Paleta: Oro vintage (#C9A050) · Negro cálido (#030712) · Bronce
        ═══════════════════════════════════════════════════════════════ */
     .tenant-lumen {
-      --accent:   #C9A050;
-      --accent-r: 201; --accent-g: 160; --accent-b: 80;
-      --neon-clr: #C9A050;
-      --neon-r:   201; --neon-g: 160; --neon-b: 80;
-      --body-bg:  #030712;
+      --accent:   #D4AF37;
+      --accent-r: 212; --accent-g: 175; --accent-b: 55;
+      --neon-clr: #D4AF37;
+      --neon-r:   212; --neon-g: 175; --neon-b: 55;
+      --body-bg:  #0d0a08;
     }
-    .tenant-lumen body { background-color: #030712; }
+    .tenant-lumen body {
+      background-color: #0d0a08 !important;
+      background-image:
+        linear-gradient(rgba(212,175,55,0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(212,175,55,0.015) 1px, transparent 1px);
+      background-size: 24px 24px !important;
+    }
 
-    /* Hero */
+    /* Keyframes para animaciones piratas */
+    @keyframes pirate-float {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-5px) rotate(0.4deg); }
+    }
+    @keyframes doubloon-shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+
+    /* Hero con efecto náutico / Luz de faro */
     .tenant-lumen .booking-hero {
       background-image: url('/djones1.png') !important;
       background-size: cover !important;
       background-position: center 30% !important;
     }
     .tenant-lumen .booking-hero-overlay {
-      background: linear-gradient(180deg,
-        rgba(3,7,18,0.82) 0%, rgba(3,7,18,0.70) 40%, rgba(3,7,18,0.97) 100%) !important;
+      background: radial-gradient(circle at 50% 30%, rgba(212,175,55,0.08) 0%, rgba(13,10,8,0.72) 45%, rgba(13,10,8,0.98) 100%) !important;
     }
 
-    /* Info strip — íconos de pin y reloj en cian */
-    .tenant-lumen .info-strip i { color: #C9A050 !important; opacity: 0.75; }
-    .tenant-lumen .info-strip { background: rgba(3,7,18,0.90) !important; border-color: rgba(201,160,80,0.08) !important; }
+    /* Info strip estilo camarote clásico */
+    .tenant-lumen .info-strip {
+      background: rgba(24,18,16,0.96) !important;
+      border-bottom-color: rgba(212,175,55,0.12) !important;
+    }
+    .tenant-lumen .info-strip i {
+      color: #D4AF37 !important;
+      filter: drop-shadow(0 0 2px rgba(212,175,55,0.4)) !important;
+    }
+    .tenant-lumen .info-strip a,
+    .tenant-lumen .info-strip > div {
+      color: #f5ead6 !important;
+      border-color: rgba(212,175,55,0.08) !important;
+    }
 
-    /* Logo ring — cian neón */
+    /* Anillo de logo — doblón de oro */
     .tenant-lumen .hero-logo-ring {
-      border-color: #C9A050 !important;
+      border: 2.5px double #D4AF37 !important;
       box-shadow:
-        0 0 0 1px rgba(201,160,80,0.15),
-        0 0 20px rgba(201,160,80,0.30),
-        0 0 40px rgba(201,160,80,0.12),
-        0 0 50px rgba(0,0,0,0.6) !important;
+        0 0 0 1px rgba(212,175,55,0.2),
+        0 0 25px rgba(212,175,55,0.35),
+        0 0 45px rgba(212,175,55,0.15),
+        0 0 60px rgba(0,0,0,0.85) !important;
     }
 
-    /* Barra de progreso */
+    /* Barra de progreso — brillo de doblón */
     .tenant-lumen #progressBar {
-      background-color: #C9A050 !important;
-      box-shadow: 0 0 8px rgba(201,160,80,0.8), 0 0 15px rgba(201,160,80,0.4) !important;
+      background: linear-gradient(90deg, #8B6508, #D4AF37, #8B6508) !important;
+      background-size: 200% 100% !important;
+      animation: doubloon-shimmer 6s linear infinite !important;
+      box-shadow: 0 0 12px rgba(212,175,55,0.7), 0 0 20px rgba(212,175,55,0.3) !important;
     }
-    .tenant-lumen #progressTrack { background-color: rgba(201,160,80,0.10) !important; }
+    .tenant-lumen #progressTrack { background-color: rgba(212,175,55,0.08) !important; }
     .tenant-lumen #stepIndicatorText {
-      color: #C9A050 !important;
-      text-shadow: 0 0 8px rgba(201,160,80,0.50) !important;
+      color: #D4AF37 !important;
+      text-shadow: 0 0 8px rgba(212,175,55,0.4) !important;
     }
 
-    /* Category pills */
+    /* Pastillas de categoría — pergamino envejecido */
     .tenant-lumen .category-pill {
-      background: transparent !important;
-      border-color: #3f3f46 !important;
-      color: #71717a !important;
-      box-shadow: none !important;
+      background: rgba(24,18,16,0.5) !important;
+      border: 1px solid rgba(212,175,55,0.15) !important;
+      color: #a89f9a !important;
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
     }
     .tenant-lumen .category-pill:hover {
-      border-color: rgba(201,160,80,0.40) !important;
-      color: #a1a1aa !important;
+      border-color: #D4AF37 !important;
+      color: #f5ead6 !important;
+      animation: pirate-float 2s ease-in-out infinite !important;
     }
     .tenant-lumen .category-pill.border-neon {
-      background: rgba(201,160,80,0.10) !important;
-      border-color: #C9A050 !important;
-      color: #C9A050 !important;
-      box-shadow: 0 0 8px rgba(201,160,80,0.20) !important;
+      background: rgba(212,175,55,0.08) !important;
+      border: 1px double #D4AF37 !important;
+      color: #D4AF37 !important;
+      outline: 1px solid rgba(212,175,55,0.15) !important;
+      box-shadow: 0 0 10px rgba(212,175,55,0.18) !important;
     }
-    .tenant-lumen .category-pill.text-neon { color: #C9A050 !important; }
+    .tenant-lumen .category-pill.text-neon { color: #D4AF37 !important; }
 
-    /* Heading paso 1 — blanco, cian reservado para interacciones */
+    /* Título del paso */
     .tenant-lumen h2.text-neon {
-      color: #f1f5f9 !important;
+      color: #f5ead6 !important;
+      font-family: 'Playfair Display', Georgia, serif !important;
       text-shadow: none !important;
     }
 
-    /* Tarjetas de servicio — borde visible en estado inactivo */
+    /* Tarjetas de servicios — estilo camarote de galeón */
     .tenant-lumen .service-option {
-      background: rgba(201,160,80,0.02) !important;
-      border-color: #27272a !important;
+      background: rgba(24,18,16,0.6) !important;
+      border: 1px solid rgba(212,175,55,0.12) !important;
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
     }
     .tenant-lumen .service-option:hover {
-      border-color: rgba(201,160,80,0.35) !important;
-      background: rgba(201,160,80,0.04) !important;
-      box-shadow: 0 0 15px rgba(201,160,80,0.10) !important;
+      border-color: rgba(212,175,55,0.45) !important;
+      background: rgba(24,18,16,0.85) !important;
+      box-shadow: 0 0 16px rgba(212,175,55,0.12) !important;
+      animation: pirate-float 2.8s ease-in-out infinite !important;
     }
     .tenant-lumen .service-option.border-neon {
-      border-color: #C9A050 !important;
-      background: rgba(201,160,80,0.07) !important;
-      box-shadow: 0 0 0 1px #C9A050, 0 0 15px rgba(201,160,80,0.15) !important;
+      border: 1px double #D4AF37 !important;
+      background: rgba(212,175,55,0.08) !important;
+      outline: 1px solid rgba(212,175,55,0.18) !important;
+      outline-offset: 2px !important;
+      box-shadow: 0 0 20px rgba(212,175,55,0.15) !important;
     }
     .tenant-lumen .service-option.bg-brand-neon\/10 {
-      background: rgba(201,160,80,0.07) !important;
+      background: rgba(212,175,55,0.08) !important;
     }
-    .tenant-lumen .service-option .price-tag { color: #C9A050 !important; }
-    .tenant-lumen .service-option .duration-tag { color: rgba(201,160,80,0.55) !important; }
+    .tenant-lumen .service-option .price-tag {
+      color: #D4AF37 !important;
+      font-weight: 700 !important;
+    }
+    .tenant-lumen .service-option .duration-tag {
+      color: #a89f9a !important;
+    }
     .tenant-lumen .service-option.border-neon .icon-bg {
-      border-color: rgba(201,160,80,0.40) !important;
-      box-shadow: 0 0 10px rgba(201,160,80,0.20) !important;
-      background: rgba(201,160,80,0.08) !important;
+      border-color: rgba(212,175,55,0.3) !important;
+      background: rgba(212,175,55,0.06) !important;
     }
     .tenant-lumen .service-option.border-neon .icon-svg {
-      color: #C9A050 !important;
-      filter: drop-shadow(0 0 4px rgba(201,160,80,0.50)) !important;
+      color: #D4AF37 !important;
+      filter: drop-shadow(0 0 3px rgba(212,175,55,0.4)) !important;
     }
 
-    /* Barbero cards */
+    /* Tarjetas de barbero */
     .tenant-lumen .barber-option {
-      background: rgba(201,160,80,0.02) !important;
-      border-color: rgba(201,160,80,0.08) !important;
+      background: rgba(24,18,16,0.6) !important;
+      border: 1px solid rgba(212,175,55,0.12) !important;
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
     }
     .tenant-lumen .barber-option:hover {
-      border-color: rgba(201,160,80,0.35) !important;
-      background: rgba(201,160,80,0.04) !important;
+      border-color: rgba(212,175,55,0.45) !important;
+      background: rgba(24,18,16,0.85) !important;
+      animation: pirate-float 2.8s ease-in-out infinite !important;
     }
     .tenant-lumen .barber-option.border-neon {
-      border-color: #C9A050 !important;
-      background: rgba(201,160,80,0.07) !important;
-      box-shadow: 0 0 12px rgba(201,160,80,0.15) !important;
+      border: 1px double #D4AF37 !important;
+      background: rgba(212,175,55,0.08) !important;
+      outline: 1px solid rgba(212,175,55,0.18) !important;
+      outline-offset: 2px !important;
+      box-shadow: 0 0 20px rgba(212,175,55,0.15) !important;
     }
     .tenant-lumen .barber-option.bg-brand-neon\/10 {
-      background: rgba(201,160,80,0.07) !important;
+      background: rgba(212,175,55,0.08) !important;
     }
-    .tenant-lumen .text-brand-neon { color: #C9A050 !important; }
+    .tenant-lumen .text-brand-neon { color: #D4AF37 !important; }
 
-    /* Calendario */
+    /* Calendario de reservas */
     .tenant-lumen .day-btn {
-      background: rgba(201,160,80,0.02) !important;
-      border-color: rgba(201,160,80,0.10) !important;
+      background: rgba(24,18,16,0.6) !important;
+      border: 1px solid rgba(212,175,55,0.12) !important;
+      color: #a89f9a !important;
     }
     .tenant-lumen .day-btn.active,
     .tenant-lumen .day-btn.border-neon {
-      background: rgba(201,160,80,0.08) !important;
-      border-color: #C9A050 !important;
-      box-shadow: 0 0 10px rgba(201,160,80,0.15) !important;
+      border: 1px double #D4AF37 !important;
+      background: rgba(212,175,55,0.08) !important;
+      outline: 1px solid rgba(212,175,55,0.18) !important;
+      color: #D4AF37 !important;
+      box-shadow: 0 0 14px rgba(212,175,55,0.15) !important;
     }
     .tenant-lumen .day-btn .dot.bg-neon {
-      background: #C9A050 !important;
-      box-shadow: 0 0 6px rgba(201,160,80,0.60) !important;
+      background: #D4AF37 !important;
+      box-shadow: 0 0 6px rgba(212,175,55,0.7) !important;
     }
 
-    /* Time pills */
+    /* Pastillas de hora */
     .tenant-lumen .time-pill.bg-neon {
-      background: #C9A050 !important;
-      color: #030712 !important;
-      box-shadow: 0 0 10px rgba(201,160,80,0.40) !important;
+      background: linear-gradient(90deg, #8B6508, #D4AF37, #8B6508) !important;
+      background-size: 200% 100% !important;
+      animation: doubloon-shimmer 6s linear infinite !important;
+      color: #0d0a08 !important;
       font-weight: 800 !important;
+      border-color: #D4AF37 !important;
+      box-shadow: 0 0 12px rgba(212,175,55,0.3) !important;
     }
     .tenant-lumen .time-pill.border-neon {
-      border-color: #C9A050 !important;
-      color: #C9A050 !important;
-      box-shadow: 0 0 8px rgba(201,160,80,0.25) !important;
+      border-color: rgba(212,175,55,0.4) !important;
+      color: #D4AF37 !important;
+      background: rgba(212,175,55,0.03) !important;
     }
 
-    /* Botón Continuar — ghost outline + hover fill */
+    /* Botón Continuar */
     .tenant-lumen #btnContinue {
       background: transparent !important;
-      border: 1.5px solid #C9A050 !important;
-      color: #C9A050 !important;
-      box-shadow: 0 0 12px rgba(201,160,80,0.20), inset 0 0 12px rgba(201,160,80,0.03) !important;
+      border: 2px solid #D4AF37 !important;
+      color: #D4AF37 !important;
+      box-shadow: 0 0 16px rgba(212,175,55,0.15) !important;
+      font-family: 'Playfair Display', Georgia, serif !important;
+      font-weight: 700 !important;
+      letter-spacing: 0.05em !important;
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
     }
     .tenant-lumen #btnContinue:hover,
     .tenant-lumen #btnContinue:active {
-      background: #C9A050 !important;
-      color: #030712 !important;
-      box-shadow: 0 0 20px rgba(201,160,80,0.45) !important;
+      background: linear-gradient(90deg, #8B6508, #D4AF37, #8B6508) !important;
+      background-size: 200% 100% !important;
+      animation: doubloon-shimmer 6s linear infinite !important;
+      color: #0d0a08 !important;
+      box-shadow: 0 0 25px rgba(212,175,55,0.5) !important;
+      transform: scale(1.02) !important;
     }
     .tenant-lumen #btnContinueBar {
-      background: rgba(3,7,18,0.92) !important;
-      border-top-color: rgba(201,160,80,0.10) !important;
+      background: rgba(13,10,8,0.96) !important;
+      border-top: 1px solid rgba(212,175,55,0.15) !important;
     }
 
-    /* Inputs paso 4 */
+    /* Inputs del formulario paso 4 */
     .tenant-lumen #clientName,
     .tenant-lumen #clientPhone,
     .tenant-lumen #clientEmail {
-      background: rgba(201,160,80,0.03) !important;
-      border-color: rgba(201,160,80,0.12) !important;
+      background: rgba(24,18,16,0.6) !important;
+      border: 1px solid rgba(212,175,55,0.15) !important;
+      color: #f5ead6 !important;
     }
     .tenant-lumen #clientName:focus,
     .tenant-lumen #clientPhone:focus,
     .tenant-lumen #clientEmail:focus {
-      outline: none !important;
-      border-color: #C9A050 !important;
-      box-shadow: 0 0 0 2px rgba(201,160,80,0.20) !important;
+      border-color: #D4AF37 !important;
+      box-shadow: 0 0 0 2px rgba(212,175,55,0.15) !important;
     }
-    .tenant-lumen #summaryPrice { color: #C9A050 !important; }
+    .tenant-lumen #summaryPrice {
+      color: #D4AF37 !important;
+      font-weight: 800 !important;
+    }
 
     /* WhatsApp CTA */
     .tenant-lumen #waBtnLink {
-      background: rgba(37,211,102,0.06) !important;
-      border-color: rgba(37,211,102,0.50) !important;
+      background: rgba(37,211,102,0.04) !important;
+      border-color: rgba(37,211,102,0.4) !important;
       color: #25D366 !important;
-      box-shadow: 0 0 15px rgba(37,211,102,0.15) !important;
     }
-    .tenant-lumen #waBtnLink i { color: #25D366 !important; filter: none !important; }
+    .tenant-lumen #waBtnLink i { color: #25D366 !important; }
 
     /* Club banner */
     .tenant-lumen #clubBanner a {
-      background: rgba(201,160,80,0.03) !important;
-      border-color: rgba(201,160,80,0.18) !important;
+      background: rgba(24,18,16,0.8) !important;
+      border: 1px solid rgba(212,175,55,0.15) !important;
     }
     .tenant-lumen #clubBanner .club-icon-wrap {
-      background: rgba(201,160,80,0.08) !important;
-      border-color: rgba(201,160,80,0.22) !important;
+      background: rgba(212,175,55,0.08) !important;
+      border-color: rgba(212,175,55,0.15) !important;
+      color: #D4AF37 !important;
     }
 
     /* Footer contact */
     .tenant-lumen #footerContact > .rounded-2xl {
-      background: #07090f !important;
-      border-color: rgba(201,160,80,0.08) !important;
+      background: #181210 !important;
+      border: 1px solid rgba(212,175,55,0.1) !important;
     }
     .tenant-lumen #footerContact .w-10 {
-      background: rgba(201,160,80,0.07) !important;
-      border-color: rgba(201,160,80,0.18) !important;
+      background: rgba(212,175,55,0.06) !important;
+      border-color: rgba(212,175,55,0.15) !important;
+      color: #D4AF37 !important;
     }
-    .tenant-lumen #shopHorarioGrid span.rounded-full { background: rgba(201,160,80,0.50) !important; }
+    .tenant-lumen #shopHorarioGrid span.rounded-full {
+      background: #D4AF37 !important;
+    }
 
     /* Selection recap chips */
     .tenant-lumen #selectionRecap span {
-      background: rgba(201,160,80,0.06) !important;
-      border-color: rgba(201,160,80,0.14) !important;
+      background: rgba(212,175,55,0.05) !important;
+      border-color: rgba(212,175,55,0.15) !important;
+      color: #f5ead6 !important;
     }
 
-    /* Tipografía clásica — títulos en Playfair Display */
+    /* Tipografía clásica */
     .tenant-lumen h1,
     .tenant-lumen h2,
     .tenant-lumen h3,
