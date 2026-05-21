@@ -2291,21 +2291,26 @@
     .tenant-aura #clubBanner i.ph-bold { color: rgba(24,24,27,0.25) !important; }
 
     /* ── Club Fidelidad Step 4 ── */
-    @keyframes auraCtaPulse {
-      0%, 100% { box-shadow: 0 4px 16px rgba(156,163,175,0.30); }
-      50%       { box-shadow: 0 4px 24px rgba(156,163,175,0.55); }
+    @keyframes auraStripeShimmer {
+      0%   { background-position: -100% 0; }
+      100% { background-position: 200% 0; }
     }
-    .tenant-aura #step4AuthContainer a.flex {
-      background: #9CA3AF !important;
-      color: #18181B !important;
-      box-shadow: 0 4px 16px rgba(156,163,175,0.30) !important;
-      animation: auraCtaPulse 2.5s ease-in-out infinite !important;
+    @keyframes auraCtaGlow {
+      0%, 100% { box-shadow: 0 4px 16px rgba(24,24,27,0.18); }
+      50%       { box-shadow: 0 4px 28px rgba(24,24,27,0.36); }
     }
-    .tenant-aura #step4AuthContainer a.flex i { color: #ffffff !important; }
+    .tenant-aura #step4AuthContainer .aura-club-stripe {
+      background: linear-gradient(90deg,#D4D4D8 0%,#E5E7EB 30%,#9CA3AF 50%,#E5E7EB 70%,#D4D4D8 100%);
+      background-size: 200% 100%;
+      animation: auraStripeShimmer 3s ease-in-out infinite;
+    }
+    .tenant-aura #step4AuthContainer .aura-cta-btn {
+      animation: auraCtaGlow 2.5s ease-in-out infinite;
+    }
     .tenant-aura #step4AuthContainer .rounded-2xl {
       background: #FFFFFF !important;
       border-color: #D4D4D8 !important;
-      box-shadow: 0 1px 4px rgba(0,0,0,0.06) !important;
+      box-shadow: 0 2px 20px rgba(0,0,0,0.07) !important;
     }
     .tenant-aura #step4AuthContainer div[style*="background:rgba(0,0,0"] {
       background: rgba(156,163,175,0.04) !important;
@@ -4698,26 +4703,31 @@
                   <span class="club-spark" style="top:7%;left:61%;--dur:3.1s;--del:1.0s;"></span>
                 </div>
 
-                <!-- Franja de acento superior -->
-                <div style="height:3px;background:linear-gradient(90deg,#D4D4D8 0%,#374151 100%);position:relative;z-index:1;"></div>
+                <!-- Franja shimmer superior -->
+                <div class="aura-club-stripe" style="height:3px;position:relative;z-index:1;"></div>
 
                 <div class="px-5 pt-5 pb-4 relative" style="z-index:1;">
 
+                  <!-- Logo AURA -->
+                  <div class="club-anim-el flex justify-center mb-4" style="animation-delay:0ms;">
+                    <img src="/aura.png" alt="AURA" style="height:36px;width:auto;object-fit:contain;opacity:0.88;">
+                  </div>
+
                   <!-- Stagger 1: eyebrow + titular -->
-                  <div class="club-anim-el mb-4" style="animation-delay:0ms;">
-                    <p class="text-[10px] font-bold uppercase tracking-widest mb-2.5 flex items-center gap-1.5" style="color:#9CA3AF;">
+                  <div class="club-anim-el mb-4" style="animation-delay:100ms;">
+                    <p class="text-[10px] font-bold uppercase tracking-widest mb-2.5 flex items-center justify-center gap-1.5" style="color:#9CA3AF;">
                       <i class="ph-fill ph-sparkle"></i> Exclusivo · Club AURA
                     </p>
-                    <p class="text-[1.2rem] font-black leading-tight mb-2" style="color:#111827;letter-spacing:-0.02em;">
+                    <p class="text-[1.2rem] font-black leading-tight mb-2 text-center" style="color:#111827;letter-spacing:-0.02em;">
                       Cada visita te acerca<br>a un servicio gratis
                     </p>
-                    <p class="text-[13px] leading-relaxed" style="color:#52525B;">
+                    <p class="text-[13px] leading-relaxed text-center" style="color:#52525B;">
                       Regístrate gratis en segundos y empieza a acumular sellos desde hoy mismo.
                     </p>
                   </div>
 
                   <!-- Stagger 2: tiles de beneficios -->
-                  <div class="club-anim-el grid grid-cols-3 gap-2 mb-3" style="animation-delay:120ms;">
+                  <div class="club-anim-el grid grid-cols-3 gap-2 mb-3" style="animation-delay:180ms;">
                     <div class="text-center py-3 rounded-xl" style="background:rgba(156,163,175,0.07);border:1px solid rgba(156,163,175,0.20);">
                       <p class="text-base font-black leading-none" style="color:#9CA3AF;">$0</p>
                       <p class="text-[10px] font-semibold mt-1" style="color:#71717A;">unirte</p>
@@ -4733,20 +4743,22 @@
                   </div>
 
                   <!-- Stagger 3: prueba social -->
-                  <p class="club-anim-el text-[11px] text-center mb-4" style="animation-delay:220ms;color:#A1A1AA;">
+                  <p class="club-anim-el text-[11px] text-center mb-4" style="animation-delay:260ms;color:#A1A1AA;">
                     <i class="ph-fill ph-users mr-1" style="color:#9CA3AF;"></i>
                     Tu primera recompensa puede estar a pocas visitas de distancia.
                   </p>
 
-                  <!-- Stagger 4: CTA -->
-                  <a href="registro.html" class="club-anim-el flex items-center justify-center gap-2 w-full py-3.5 rounded-xl text-[13.5px] font-bold text-white transition-all active:scale-95" style="animation-delay:300ms;background:#9CA3AF;box-shadow:0 4px 18px rgba(156,163,175,0.35);">
-                    <i class="ph-bold ph-user-plus"></i>
-                    Crear mi cuenta AURA — es gratis
-                  </a>
+                  <!-- Stagger 4: CTA — club-anim-el en el wrapper, NO en el <a> -->
+                  <div class="club-anim-el" style="animation-delay:340ms;">
+                    <a href="registro.html" class="aura-cta-btn flex items-center justify-center gap-2 w-full py-3.5 rounded-xl text-[13.5px] font-bold transition-all active:scale-[0.97]" style="background:#18181B;color:#FFFFFF;letter-spacing:0.01em;">
+                      <i class="ph-bold ph-user-plus" style="color:#FFFFFF;"></i>
+                      Crear mi cuenta AURA — es gratis
+                    </a>
+                  </div>
                 </div>
 
                 <!-- Footer login -->
-                <div class="club-anim-el flex items-center justify-center gap-2 px-5 py-3 border-t relative" style="animation-delay:420ms;background:#F9FAFB;border-color:#E4E4E7;z-index:1;">
+                <div class="club-anim-el flex items-center justify-center gap-2 px-5 py-3 border-t relative" style="animation-delay:460ms;background:#F9FAFB;border-color:#E4E4E7;z-index:1;">
                   <p class="text-xs" style="color:#A1A1AA;">¿Ya eres miembro?</p>
                   <a href="registro.html" class="text-xs font-bold active:scale-95 transition-all" style="color:#9CA3AF;">Iniciar sesión</a>
                 </div>
