@@ -256,6 +256,18 @@
       backdrop-filter: blur(12px);
       border-bottom: 1px solid rgba(255,255,255,0.04);
     }
+    /* Slim header (steps 2+) */
+    #slimHeader {
+      background: rgba(5,5,5,0.95);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    /* Calendar nav buttons disabled state */
+    #calPrevBtn:disabled, #calNextBtn:disabled {
+      opacity: 0.2;
+      cursor: default;
+      pointer-events: none;
+    }
   </style>
 </head>
 <body>
@@ -269,6 +281,32 @@
     <i class="ph-bold ph-arrow-left text-base"></i>
     <span id="backShopName">Volver</span>
   </a>
+</div>
+
+<!-- Slim header (steps 2 and 3) -->
+<div id="slimHeader" style="display:none; align-items:center; padding:0 1rem;
+  height:3rem; padding-top:env(safe-area-inset-top); position:relative;">
+  <button onclick="prevStep()" style="
+    display:flex; align-items:center; justify-content:center;
+    width:2rem; height:2rem; border-radius:50%;
+    border:1.5px solid rgba(255,255,255,0.12);
+    background:rgba(255,255,255,0.05);
+    color:rgba(255,255,255,0.7); cursor:pointer; flex-shrink:0;
+    -webkit-tap-highlight-color:transparent;">
+    <i class="ph-bold ph-arrow-left" style="font-size:0.875rem;"></i>
+  </button>
+  <div style="position:absolute; left:50%; transform:translateX(-50%);
+    display:flex; align-items:center; gap:0.5rem;">
+    <div id="slimAvatar" style="
+      width:1.75rem; height:1.75rem; border-radius:50%; overflow:hidden;
+      flex-shrink:0; background:#111;
+      border:1.5px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.5);
+      display:flex; align-items:center; justify-content:center;">
+      <i class="ph-fill ph-user" style="font-size:0.875rem;color:rgba(255,255,255,0.3);"></i>
+    </div>
+    <span id="slimBarberName" style="font-size:0.875rem; font-weight:700; color:#fff; white-space:nowrap;"></span>
+  </div>
+  <div style="width:2rem; margin-left:auto; flex-shrink:0;"></div>
 </div>
 
 <!-- Service chip (visible from step 2 onwards) -->
@@ -308,7 +346,7 @@
 <div id="mainContent" class="hidden" style="padding-bottom:5rem;">
 
   <!-- Hero barber card -->
-  <div class="relative overflow-hidden"
+  <div id="barberHero" class="relative overflow-hidden"
     style="border-bottom: 1px solid rgba(255,255,255,0.04); padding: 2.25rem 1.5rem 1.75rem;">
     <div class="absolute inset-0 pointer-events-none"
       style="background: radial-gradient(ellipse at 50% -20%, rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.1) 0%, transparent 65%);"></div>
@@ -375,8 +413,26 @@
     <section id="step2" class="hidden opacity-0">
       <h2 class="text-2xl font-bold mb-5 tracking-tight" style="color:var(--accent);">Selecciona fecha y hora</h2>
 
-      <!-- Month label -->
-      <p id="monthText" class="text-sm font-semibold text-gray-500 mb-3"></p>
+      <!-- Month navigation -->
+      <div id="calNavRow" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem;">
+        <button id="calPrevBtn" onclick="calNavMonth(-1)" style="
+          display:flex; align-items:center; justify-content:center;
+          width:2rem; height:2rem; border-radius:0.5rem;
+          border:1.5px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.03);
+          color:rgba(255,255,255,0.6); cursor:pointer;
+          -webkit-tap-highlight-color:transparent; transition:opacity 0.2s;">
+          <i class="ph-bold ph-caret-left" style="font-size:0.875rem;"></i>
+        </button>
+        <span id="monthText" style="font-size:0.875rem; font-weight:700; color:rgba(255,255,255,0.6); letter-spacing:0.02em;"></span>
+        <button id="calNextBtn" onclick="calNavMonth(1)" style="
+          display:flex; align-items:center; justify-content:center;
+          width:2rem; height:2rem; border-radius:0.5rem;
+          border:1.5px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.03);
+          color:rgba(255,255,255,0.6); cursor:pointer;
+          -webkit-tap-highlight-color:transparent; transition:opacity 0.2s;">
+          <i class="ph-bold ph-caret-right" style="font-size:0.875rem;"></i>
+        </button>
+      </div>
 
       <!-- Week grid -->
       <div id="weekGrid" class="mb-6">
@@ -553,6 +609,7 @@
   let _bloqueosProximos = {};   // { 'YYYY-MM-DD': true }
   let _unsubSlotLocks = null;
   let _toastTimer = null;
+  let _calendarOffset = 0;     // months offset from current month
 
   /* ── Utilities ──────────────────────────────────────────────────── */
   function slugify(str) {
@@ -640,24 +697,26 @@
   }
 
   /* ── Step transitions ───────────────────────────────────────────── */
-  function transitionStep(from, to) {
+  function transitionStep(from, to, reverse = false) {
     if (isTransitioning) return;
     isTransitioning = true;
-    const fromEl = document.getElementById(`step${from}`);
-    const toEl   = document.getElementById(`step${to}`);
-    const btn = document.getElementById('btnContinue');
+    const fromEl   = document.getElementById(`step${from}`);
+    const toEl     = document.getElementById(`step${to}`);
+    const btn      = document.getElementById('btnContinue');
+    const exitCls  = reverse ? 'translate-x-12'  : '-translate-x-12';
+    const enterCls = reverse ? '-translate-x-12' : 'translate-x-12';
     btn.disabled = true;
 
-    fromEl.classList.add('opacity-0', 'transition-all', 'duration-300', '-translate-x-12');
+    fromEl.classList.add('opacity-0', 'transition-all', 'duration-300', exitCls);
     setTimeout(() => {
       fromEl.classList.add('hidden');
-      fromEl.classList.remove('-translate-x-12','transition-all','duration-300','opacity-0');
+      fromEl.classList.remove(exitCls, 'transition-all', 'duration-300', 'opacity-0');
       toEl.classList.remove('hidden');
-      toEl.classList.add('opacity-0','translate-x-12');
+      toEl.classList.add('opacity-0', enterCls);
       void toEl.offsetWidth;
-      toEl.classList.add('transition-all','duration-500','ease-out');
-      toEl.classList.remove('opacity-0','translate-x-12');
-      setTimeout(() => { isTransitioning = false; btn.disabled = false; }, 500);
+      toEl.classList.add('transition-all', 'duration-500', 'ease-out');
+      toEl.classList.remove('opacity-0', enterCls);
+      setTimeout(() => { isTransitioning = false; }, 500);
     }, 300);
   }
 
@@ -753,62 +812,86 @@
   }
 
   function renderCalendar() {
-    const today = new Date();
-    const cfg = _barberConfig || _fsConfig;
+    const today  = new Date();
+    const cfg    = _barberConfig || _fsConfig;
     const diasLaborales = cfg?.diasLaborales ?? [1,2,3,4,5,6];
     const diasBloq      = cfg?.diasBloqueados ?? [];
     const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
                     'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
     const todayStr = dateToStr(today);
 
-    // Find Monday of current week
-    const dow = today.getDay();
-    const daysFromMon = dow === 0 ? 6 : dow - 1;
-    const monday = new Date(today);
-    monday.setDate(today.getDate() - daysFromMon);
+    // Target month from offset
+    const target      = new Date(today.getFullYear(), today.getMonth() + _calendarOffset, 1);
+    const targetYear  = target.getFullYear();
+    const targetMonth = target.getMonth();
 
-    // Build 4 weeks of cells
+    // Update label and nav buttons
+    document.getElementById('monthText').textContent =
+      `${MONTHS[targetMonth]} ${targetYear}`;
+    document.getElementById('calPrevBtn').disabled = _calendarOffset === 0;
+    document.getElementById('calNextBtn').disabled = _calendarOffset >= 2;
+
+    // Grid start: Monday on or before 1st of month
+    const firstOfMonth = new Date(targetYear, targetMonth, 1);
+    const dow1 = firstOfMonth.getDay();
+    const gridStart = new Date(firstOfMonth);
+    gridStart.setDate(1 - (dow1 === 0 ? 6 : dow1 - 1));
+
+    // Grid end: Sunday on or after last day of month
+    const lastOfMonth = new Date(targetYear, targetMonth + 1, 0);
+    const dowL = lastOfMonth.getDay();
+    const gridEnd = new Date(lastOfMonth);
+    gridEnd.setDate(lastOfMonth.getDate() + (dowL === 0 ? 0 : 7 - dowL));
+
+    // Build all cells
     const cells = [];
-    for (let w = 0; w < 4; w++) {
-      for (let d = 0; d < 7; d++) {
-        const date = new Date(monday);
-        date.setDate(monday.getDate() + w * 7 + d);
-        cells.push(date);
-      }
-    }
-
-    // Month label: first future available date
-    const firstFuture = cells.find(d => dateToStr(d) >= todayStr);
-    if (firstFuture) {
-      document.getElementById('monthText').textContent =
-        `${MONTHS[firstFuture.getMonth()]} ${firstFuture.getFullYear()}`;
+    for (let d = new Date(gridStart); d <= gridEnd; d.setDate(d.getDate() + 1)) {
+      cells.push(new Date(d));
     }
 
     let firstAvailableStr = null;
     const html = cells.map(date => {
-      const str        = dateToStr(date);
-      const dw         = date.getDay();
-      const isPast     = str < todayStr;
-      const isWorkday  = diasLaborales.includes(dw);
-      const isBlocked  = diasBloq.includes(str) || !!_bloqueosProximos[str];
-      const isAvailable = !isPast && isWorkday && !isBlocked;
-      const isToday    = str === todayStr;
-      const num        = date.getDate();
+      const str            = dateToStr(date);
+      const dw             = date.getDay();
+      const isCurrentMonth = date.getMonth() === targetMonth;
+      const isPast         = str < todayStr;
+      const isWorkday      = diasLaborales.includes(dw);
+      const isBlocked      = diasBloq.includes(str) || !!_bloqueosProximos[str];
+      const isAvailable    = isCurrentMonth && !isPast && isWorkday && !isBlocked;
+      const isToday        = str === todayStr;
+      const num            = date.getDate();
 
       if (!isAvailable) {
-        return `<div class="week-day-btn unavailable">${num}</div>`;
+        const op = isCurrentMonth ? 'opacity:0.18;' : 'opacity:0.07;';
+        return `<div class="week-day-btn unavailable" style="${op}">${num}</div>`;
       }
       if (!firstAvailableStr) firstAvailableStr = str;
-      const isFirst = str === firstAvailableStr;
-      const todayMark = isToday
-        ? `<span class="today-label">hoy</span>` : '';
+      const isActive   = str === _selectedDate;
+      const todayMark  = isToday ? `<span class="today-label">hoy</span>` : '';
       return `<button onclick="handleDayClick(this,'${str}')"
-        class="week-day-btn available${isFirst ? ' active' : ''}"
+        class="week-day-btn available${isActive ? ' active' : ''}"
         data-date="${str}">${todayMark}${num}</button>`;
     }).join('');
 
     document.getElementById('daysGrid').innerHTML = html;
-    if (firstAvailableStr) _selectedDate = firstAvailableStr;
+
+    // Keep or reset selected date
+    if (firstAvailableStr && (!_selectedDate || !document.querySelector(`.week-day-btn[data-date="${_selectedDate}"]`))) {
+      _selectedDate = firstAvailableStr;
+      const btn = document.querySelector(`.week-day-btn[data-date="${_selectedDate}"]`);
+      if (btn) btn.classList.add('active');
+    }
+  }
+
+  function calNavMonth(dir) {
+    _calendarOffset = Math.max(0, Math.min(2, _calendarOffset + dir));
+    _selectedTime = null;
+    updateContinueBtn();
+    renderCalendar();
+    if (_selectedDate) {
+      renderHours();
+      subscribeSlotLocks(_selectedDate);
+    }
   }
 
   function handleDayClick(btn, dateStr) {
@@ -933,6 +1016,45 @@
     });
   }
 
+  /* ── Hero / slim header toggle ─────────────────────────────────── */
+  function showSlimHeader() {
+    document.getElementById('backBar').style.display    = 'none';
+    document.getElementById('barberHero').style.display = 'none';
+    document.getElementById('slimHeader').style.display = 'flex';
+  }
+
+  function showFullHero() {
+    document.getElementById('slimHeader').style.display  = 'none';
+    document.getElementById('backBar').style.display     = '';
+    document.getElementById('barberHero').style.display  = '';
+  }
+
+  /* ── Step back navigation ───────────────────────────────────────── */
+  function prevStep() {
+    if (isTransitioning || currentStep <= 1) return;
+
+    if (currentStep === 2) {
+      if (_unsubSlotLocks) { _unsubSlotLocks(); _unsubSlotLocks = null; }
+      document.getElementById('clubBanner').classList.remove('hidden');
+      document.getElementById('serviceChip').classList.add('hidden');
+      _calendarOffset = 0;
+      showFullHero();
+      transitionStep(2, 1, true);
+      currentStep = 1;
+      updateProgress();
+      setTimeout(() => updateContinueBtn(), 850);
+
+    } else if (currentStep === 3) {
+      transitionStep(3, 2, true);
+      currentStep = 2;
+      updateProgress();
+      setTimeout(() => {
+        updateContinueBtn();
+        if (_selectedDate) subscribeSlotLocks(_selectedDate);
+      }, 850);
+    }
+  }
+
   /* ── Step navigation ────────────────────────────────────────────── */
   async function nextStep() {
     if (isTransitioning) return;
@@ -951,11 +1073,12 @@
       renderHours();
       subscribeSlotLocks(_selectedDate);
       document.getElementById('clubBanner').classList.add('hidden');
-      // Show service chip
+      // Show service chip + slim header
       document.getElementById('chipServiceName').textContent = _selectedService.nombre;
       document.getElementById('chipPrice').textContent = formatPrice(_selectedService.precio);
       document.getElementById('chipDuration').textContent = formatDuration(_selectedService.duracion);
       document.getElementById('serviceChip').classList.remove('hidden');
+      showSlimHeader();
       transitionStep(1, 2);
       currentStep = 2;
       updateProgress();
@@ -1168,6 +1291,12 @@
     if (_barber.foto) {
       photoWrap.innerHTML =
         `<img src="${_barber.foto}" alt="${_barber.nombre}" class="w-full h-full object-cover">`;
+    }
+    // Populate slim header
+    document.getElementById('slimBarberName').textContent = _barber.nombre;
+    if (_barber.foto) {
+      document.getElementById('slimAvatar').innerHTML =
+        `<img src="${_barber.foto}" alt="${_barber.nombre}" style="width:100%;height:100%;object-fit:cover;">`;
     }
     if (_barber.disponible === false) {
       const badge = document.getElementById('disponibleBadge');
