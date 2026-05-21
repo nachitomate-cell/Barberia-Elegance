@@ -99,6 +99,10 @@
       border: 1px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.18);
     }
 
+    /* ── Service description expand/collapse ── */
+    .svc-desc { max-height: 2.8em; overflow: hidden; transition: max-height 0.3s ease; }
+    .svc-desc.expanded { max-height: 10em; }
+
     /* Category pills */
     .cat-pill {
       flex-shrink: 0;
@@ -625,6 +629,13 @@
     return '$' + Number(n).toLocaleString('es-CL');
   }
 
+  function toggleSvcDesc(btn, e) {
+    e.stopPropagation();
+    const desc = btn.previousElementSibling;
+    const expanded = desc.classList.toggle('expanded');
+    btn.textContent = expanded ? 'Ver menos' : 'Ver más';
+  }
+
   function formatDuration(mins) {
     mins = parseInt(mins);
     if (mins < 60) return `${mins} min`;
@@ -740,7 +751,7 @@
           <i class="ph-fill ${icon} text-xl" style="color:var(--accent);"></i>
         </div>
         <p class="text-sm font-bold text-white leading-snug">${s.nombre}</p>
-        ${s.descripcion ? `<p class="text-[11px] text-gray-500 leading-snug -mt-1" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${s.descripcion}</p>` : ''}
+        ${s.descripcion ? `<p class="svc-desc text-[11px] text-gray-500 leading-snug -mt-1">${s.descripcion}</p><button onclick="toggleSvcDesc(this,event)" class="text-[10px] font-medium text-gray-600 hover:text-gray-300 hover:underline underline-offset-2 mt-0.5 block transition-colors">Ver más</button>` : ''}
         <div class="flex items-center gap-2 mt-auto">
           <span class="text-sm font-black" style="color:var(--accent);">${formatPrice(s.precio)}</span>
           <span class="text-xs text-gray-600 font-medium">${formatDuration(s.duracion)}</span>
