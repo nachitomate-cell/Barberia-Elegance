@@ -100,8 +100,9 @@
     }
 
     /* ── Service description expand/collapse ── */
-    .svc-desc { max-height: 2.8em; overflow: hidden; transition: max-height 0.3s ease; }
-    .svc-desc.expanded { max-height: 10em; }
+    .svc-desc { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; }
+    .svc-desc.expanded { display:block; overflow:visible; }
+    .svc-desc-toggle { cursor:pointer; -webkit-tap-highlight-color:transparent; user-select:none; }
 
     /* Category pills */
     .cat-pill {
@@ -629,11 +630,12 @@
     return '$' + Number(n).toLocaleString('es-CL');
   }
 
-  function toggleSvcDesc(btn, e) {
+  function toggleSvcDesc(el, e) {
     e.stopPropagation();
-    const desc = btn.previousElementSibling;
+    const desc = el.previousElementSibling;
+    if (!desc || !desc.classList.contains('svc-desc')) return;
     const expanded = desc.classList.toggle('expanded');
-    btn.textContent = expanded ? 'Ver menos' : 'Ver más';
+    el.textContent = expanded ? 'Ver menos' : 'Ver más';
   }
 
   function formatDuration(mins) {
@@ -751,7 +753,7 @@
           <i class="ph-fill ${icon} text-xl" style="color:var(--accent);"></i>
         </div>
         <p class="text-sm font-bold text-white leading-snug">${s.nombre}</p>
-        ${s.descripcion ? `<p class="svc-desc text-[11px] text-gray-500 leading-snug -mt-1">${s.descripcion}</p><button onclick="toggleSvcDesc(this,event)" class="text-[10px] font-medium text-gray-600 hover:text-gray-300 hover:underline underline-offset-2 mt-0.5 block transition-colors">Ver más</button>` : ''}
+        ${s.descripcion ? `<span class="svc-desc text-[11px] text-gray-500 leading-snug -mt-1 block">${s.descripcion}</span><span onclick="toggleSvcDesc(this,event)" class="svc-desc-toggle text-[10px] font-medium text-gray-600 hover:text-gray-300 hover:underline underline-offset-2 mt-0.5 block transition-colors">Ver más</span>` : ''}
         <div class="flex items-center gap-2 mt-auto">
           <span class="text-sm font-black" style="color:var(--accent);">${formatPrice(s.precio)}</span>
           <span class="text-xs text-gray-600 font-medium">${formatDuration(s.duracion)}</span>

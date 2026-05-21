@@ -83,8 +83,9 @@
     .service-card-bg { background-size: cover; background-position: center; }
 
     /* ── Service description expand/collapse ── */
-    .svc-desc { max-height: 2.8em; overflow: hidden; transition: max-height 0.3s ease; }
-    .svc-desc.expanded { max-height: 10em; }
+    .svc-desc { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; }
+    .svc-desc.expanded { display:block; overflow:visible; }
+    .svc-desc-toggle { cursor:pointer; -webkit-tap-highlight-color:transparent; user-select:none; }
 
     /* Club banner — plateado premium */
     .club-banner-premium {
@@ -3801,11 +3802,12 @@
       return m === 0 ? `${h}h` : `${h}h ${m}m`;
     }
 
-    function toggleSvcDesc(btn, e) {
+    function toggleSvcDesc(el, e) {
       e.stopPropagation();
-      const desc = btn.previousElementSibling;
+      const desc = el.previousElementSibling;
+      if (!desc || !desc.classList.contains('svc-desc')) return;
       const expanded = desc.classList.toggle('expanded');
-      btn.textContent = expanded ? 'Ver menos' : 'Ver más';
+      el.textContent = expanded ? 'Ver menos' : 'Ver más';
     }
 
 
@@ -4033,7 +4035,7 @@
                 </div>
                 <div class="flex-1 min-w-0">
                   <span class="svc-name font-bold text-gray-200 text-sm block truncate tracking-wide">${s.nombre}</span>
-                  ${s.descripcion ? `<span class="svc-desc text-[11px] text-gray-500 mt-0.5 leading-snug">${s.descripcion}</span><button onclick="toggleSvcDesc(this,event)" class="text-[10px] font-medium text-gray-600 hover:text-gray-300 hover:underline underline-offset-2 mt-0.5 mb-0.5 block transition-colors">Ver más</button>` : ''}
+                  ${s.descripcion ? `<span class="svc-desc text-[11px] text-gray-500 mt-0.5 leading-snug">${s.descripcion}</span><span onclick="toggleSvcDesc(this,event)" class="svc-desc-toggle text-[10px] font-medium text-gray-600 hover:text-gray-300 hover:underline underline-offset-2 mt-0.5 mb-0.5 block transition-colors">Ver más</span>` : ''}
                   <div class="flex items-center gap-3 mt-0.5">
                     <span class="text-[13px] font-bold text-neon price-tag">\$${_getPrecioEfectivo(s, new Date().getDay()).toLocaleString('es-CL')}</span>
                     <span class="flex items-center gap-1 text-[11px] font-medium text-brand-neon/60 duration-tag"><i class="ph ph-clock text-[12px]"></i>${formatDuration(s.duracion)}</span>
@@ -4051,7 +4053,7 @@
                   ${iconHtml}
                 </div>
                 <span class="svc-name font-bold text-gray-200 text-sm mb-1 relative z-10 tracking-wide">${s.nombre}</span>
-                ${s.descripcion ? `<span class="svc-desc text-[10px] text-gray-500 mb-0.5 block relative z-10 leading-snug px-1">${s.descripcion}</span><button onclick="toggleSvcDesc(this,event)" class="text-[10px] font-medium text-gray-600 hover:text-gray-300 hover:underline underline-offset-2 mb-0.5 block relative z-10 transition-colors">Ver más</button>` : ''}
+                ${s.descripcion ? `<span class="svc-desc text-[10px] text-gray-500 mb-0.5 relative z-10 leading-snug px-1">${s.descripcion}</span><span onclick="toggleSvcDesc(this,event)" class="svc-desc-toggle text-[10px] font-medium text-gray-600 hover:text-gray-300 hover:underline underline-offset-2 mb-0.5 block relative z-10 transition-colors">Ver más</span>` : ''}
                 <span class="text-[14px] font-bold text-neon price-tag transition-all mb-1 relative z-10">\$${_getPrecioEfectivo(s, new Date().getDay()).toLocaleString('es-CL')}</span>
                 <span class="flex items-center gap-1 text-[11px] font-medium text-brand-neon/60 duration-tag transition-all relative z-10">
                   <i class="ph ph-clock text-[13px]"></i>${formatDuration(s.duracion)}
