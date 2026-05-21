@@ -2757,6 +2757,35 @@
     .tenant-aura body[data-step="3"] #aura-slim-header,
     .tenant-aura body[data-step="4"] #aura-slim-header { display: flex !important; }
 
+    /* WhatsApp — info strip (Aura only) */
+    #aura-info-wa {
+      display: none !important;
+    }
+    .tenant-aura #aura-info-wa {
+      display: flex !important;
+      border-left: 1px solid rgba(255,255,255,0.05);
+      color: rgba(255,255,255,0.50);
+      transition: color 0.15s;
+      text-decoration: none;
+    }
+    .tenant-aura #aura-info-wa:hover  { color: rgba(255,255,255,0.80); }
+    .tenant-aura #aura-info-wa:active { color: #ffffff; }
+
+    /* WhatsApp — slim header icon */
+    #aura-slim-wa {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      color: #4B5563;
+      flex-shrink: 0;
+      text-decoration: none;
+      transition: color 0.15s, background 0.15s;
+    }
+    #aura-slim-wa:hover  { color: #111827; background: rgba(17,24,39,0.07); }
+    #aura-slim-wa:active { opacity: 0.65; }
+
     /* Back button — Aura slim header */
     #aura-slim-back {
       width: 36px; height: 36px;
@@ -2835,6 +2864,9 @@
       <img id="auraSlimLogo" src="/aura.png" alt="AURA">
       <span class="aura-slim-name">AURA SALÓN</span>
       <span id="auraSlimStep" class="aura-slim-step"></span>
+      <a id="aura-slim-wa" href="#" onclick="openAuraWhatsApp(event)" aria-label="WhatsApp Consultas">
+        <i class="ph-bold ph-whatsapp-logo" style="font-size:18px;"></i>
+      </a>
     </div>
 
     <!-- Quick info strip -->
@@ -2849,6 +2881,11 @@
         <i class="ph-fill ph-clock text-xs" style="color:rgba(201,168,76,0.7);"></i>
         <span id="heroInfoHorText"></span>
       </div>
+      <a id="aura-info-wa" href="#" onclick="openAuraWhatsApp(event)"
+         class="flex-1 flex items-center justify-center gap-1.5 py-3 text-[11px] font-semibold">
+        <i class="ph-bold ph-whatsapp-logo" style="font-size:13px;"></i>
+        <span>Consultas</span>
+      </a>
     </div>
 
     <!-- Features strip: Cursos / Arriendo de Sillones (controlado desde Configuración) -->
@@ -4296,6 +4333,17 @@
 
       // Scroll suave hacia el botón para que el usuario vea el CTA actualizado
       document.getElementById('btnContinue')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function openAuraWhatsApp(e) {
+      if (e) e.preventDefault();
+      const num = (_fsSettings || {}).whatsapp || (_fsSettings || {}).telefono || SHOP.telefono || '';
+      const limpio = String(num).replace(/\D/g, '');
+      const msg = 'Hola AURA SALÓN, tengo una consulta 💈';
+      const url = limpio.length >= 8
+        ? `https://wa.me/${limpio}?text=${encodeURIComponent(msg)}`
+        : `https://wa.me/56900000000?text=${encodeURIComponent(msg)}`;
+      window.open(url, '_blank', 'noopener,noreferrer');
     }
 
     function goBack() {
