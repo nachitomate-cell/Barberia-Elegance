@@ -79,6 +79,8 @@
     unsubAuth();
     if (user?.email === SUPERADMIN_EMAIL) return;
 
+    if (!user) { try { await firebase.auth().signInAnonymously(); } catch (_) {} }
+
     const tenantId = getTenantId();
     try {
       const snap = await systemRef(tenantId).get();
