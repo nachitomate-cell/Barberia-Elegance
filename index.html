@@ -2756,17 +2756,23 @@
     .tenant-aura body[data-step="3"] #aura-slim-header,
     .tenant-aura body[data-step="4"] #aura-slim-header { display: flex !important; }
 
-    /* Adjust back button for light bg on steps 2-4 */
+    /* Back button — Aura slim header */
+    #aura-slim-back {
+      width: 36px; height: 36px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 50%;
+      background: rgba(17,24,39,0.07);
+      border: 1px solid rgba(17,24,39,0.10);
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background 0.15s;
+    }
+    #aura-slim-back:active { background: rgba(17,24,39,0.14); }
+
+    /* Hide the floating back button on steps 2-4 (slim header takes over) */
     .tenant-aura body[data-step="2"] button[onclick="goBack()"],
     .tenant-aura body[data-step="3"] button[onclick="goBack()"],
-    .tenant-aura body[data-step="4"] button[onclick="goBack()"] {
-      background: rgba(17,24,39,0.08) !important;
-      border-color: rgba(17,24,39,0.12) !important;
-      top: 9px !important;
-    }
-    .tenant-aura body[data-step="2"] button[onclick="goBack()"] i,
-    .tenant-aura body[data-step="3"] button[onclick="goBack()"] i,
-    .tenant-aura body[data-step="4"] button[onclick="goBack()"] i { color: #111827 !important; }
+    .tenant-aura body[data-step="4"] button[onclick="goBack()"] { display: none !important; }
   </style>
 </head>
 
@@ -2822,6 +2828,9 @@
 
     <!-- Slim header — Aura only, visible on steps 2-4 -->
     <div id="aura-slim-header">
+      <button id="aura-slim-back" onclick="goBack()" aria-label="Volver">
+        <i class="ph-bold ph-arrow-left" style="font-size:16px;color:#111827;"></i>
+      </button>
       <img id="auraSlimLogo" src="/aura.png" alt="AURA">
       <span class="aura-slim-name">AURA SALÓN</span>
       <span id="auraSlimStep" class="aura-slim-step"></span>
