@@ -2162,23 +2162,7 @@
         transparent 30%, rgba(156,163,175,0.30) 50%, transparent 70%);
     }
 
-    /* ── Day Buttons ── */
-    .tenant-aura .day-btn {
-      background: #FFFFFF !important;
-      border-color: #D4D4D8 !important;
-      color: #18181B !important;
-    }
-    .tenant-aura .day-btn span { color: #18181B !important; }
-    .tenant-aura .day-btn .text-gray-600 { color: #8E9399 !important; }
-    .tenant-aura .day-btn.active,
-    .tenant-aura .day-btn.border-neon {
-      border-color: #9CA3AF !important;
-      background: rgba(156,163,175,0.06) !important;
-    }
-    .tenant-aura .day-btn .dot.bg-neon {
-      background: #9CA3AF !important;
-      box-shadow: none !important;
-    }
+    /* ── Day Buttons — replaced below ── */
 
     /* ── Time Pills ── */
     .tenant-aura .time-pill {
@@ -2189,7 +2173,7 @@
     .tenant-aura .time-pill:not([data-sel]):hover {
       background: rgba(156,163,175,0.06) !important;
       border-color: #9CA3AF !important;
-      color: #00285E !important;
+      color: #111827 !important;
     }
     .tenant-aura .time-pill.bg-neon,
     .tenant-aura .time-pill[data-sel] {
@@ -2205,15 +2189,33 @@
       color: rgba(220,38,38,0.40) !important;
     }
 
+    /* ── Day Cards (step 3) ── */
+    .tenant-aura .day-btn {
+      background: #FFFFFF !important;
+      border-color: #E4E4E7 !important;
+      box-shadow: none !important;
+    }
+    .tenant-aura .day-btn span { color: #6B7280 !important; }
+    .tenant-aura .day-btn .day-num { color: #18181B !important; }
+    .tenant-aura .day-btn .dot { background: transparent !important; box-shadow: none !important; }
+    .tenant-aura .day-btn.active {
+      background: #111827 !important;
+      border-color: #111827 !important;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.20) !important;
+    }
+    .tenant-aura .day-btn.active span { color: rgba(255,255,255,0.70) !important; }
+    .tenant-aura .day-btn.active .day-num { color: #ffffff !important; }
+    .tenant-aura .day-btn.active .dot { background: transparent !important; box-shadow: none !important; }
+
     /* ── Main CTA Button ── */
     .tenant-aura #btnContinue {
-      background: #9CA3AF !important;
-      color: #18181B !important;
+      background: #111827 !important;
+      color: #ffffff !important;
       font-weight: 700 !important;
-      box-shadow: 0 4px 16px rgba(156,163,175,0.30) !important;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.30) !important;
     }
     .tenant-aura #btnContinue:hover {
-      background: #6B7280 !important;
+      background: #1F2937 !important;
       color: #ffffff !important;
     }
     .tenant-aura #btnContinueBar {
@@ -2709,6 +2711,62 @@
     body[data-step="4"] #aura-sobre-wrap {
       display: none !important;
     }
+
+    /* ── Slim Header (pasos 2-4 Aura) ── */
+    #aura-slim-header {
+      display: none;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      background: #FFFFFF;
+      border-bottom: 1px solid #E4E4E7;
+    }
+    #aura-slim-header img {
+      width: 34px; height: 34px;
+      border-radius: 50%;
+      object-fit: cover;
+      flex-shrink: 0;
+    }
+    #aura-slim-header .aura-slim-name {
+      font-size: 14px;
+      font-weight: 800;
+      color: #18181B;
+      letter-spacing: -0.01em;
+      flex: 1;
+    }
+    #aura-slim-header .aura-slim-step {
+      font-size: 11px;
+      font-weight: 600;
+      color: #6B7280;
+      white-space: nowrap;
+    }
+
+    .tenant-aura body[data-step="2"] .booking-hero,
+    .tenant-aura body[data-step="3"] .booking-hero,
+    .tenant-aura body[data-step="4"] .booking-hero { display: none !important; }
+
+    .tenant-aura body[data-step="2"] .info-strip,
+    .tenant-aura body[data-step="3"] .info-strip,
+    .tenant-aura body[data-step="4"] .info-strip { display: none !important; }
+
+    .tenant-aura body[data-step="2"] #aura-slim-header,
+    .tenant-aura body[data-step="3"] #aura-slim-header,
+    .tenant-aura body[data-step="4"] #aura-slim-header { display: flex !important; }
+
+    /* Adjust back button for light bg on steps 2-4 */
+    .tenant-aura body[data-step="2"] button[onclick="goBack()"],
+    .tenant-aura body[data-step="3"] button[onclick="goBack()"],
+    .tenant-aura body[data-step="4"] button[onclick="goBack()"] {
+      background: rgba(17,24,39,0.08) !important;
+      border-color: rgba(17,24,39,0.12) !important;
+      top: 9px !important;
+    }
+    .tenant-aura body[data-step="2"] button[onclick="goBack()"] i,
+    .tenant-aura body[data-step="3"] button[onclick="goBack()"] i,
+    .tenant-aura body[data-step="4"] button[onclick="goBack()"] i { color: #111827 !important; }
   </style>
 </head>
 
@@ -2761,6 +2819,13 @@
         </p>
       </div>
     </header>
+
+    <!-- Slim header — Aura only, visible on steps 2-4 -->
+    <div id="aura-slim-header">
+      <img id="auraSlimLogo" src="/aura.png" alt="AURA">
+      <span class="aura-slim-name">AURA SALÓN</span>
+      <span id="auraSlimStep" class="aura-slim-step"></span>
+    </div>
 
     <!-- Quick info strip -->
     <div class="info-strip flex items-center justify-center gap-0 border-b border-white/5"
@@ -3221,6 +3286,7 @@
 
     // Caché local (alimentado por Firestore al iniciar)
     let _fsConfig        = null;
+    let _fsSettings      = null;
     let _activeBarberConfig = null;
     let _fsServices      = [];
     let _bloqueosProximos = {}; // { "YYYY-MM-DD": true } — días con bloqueo total
@@ -3840,6 +3906,7 @@
       window._fsServices = _fsServices;
 
       const _shopSettings = rSettings.status === 'fulfilled' ? rSettings.value : null;
+      _fsSettings = _shopSettings;
       _renderFeaturesStrip(_shopSettings?.features);
 
       // Cargar productos y bloqueos en paralelo
@@ -4266,6 +4333,8 @@
       document.getElementById('progressPercentage').innerText = percentage;
       document.getElementById('stepIndicatorText').innerText = text;
       document.body.setAttribute('data-step', currentStep);
+      const _slimStep = document.getElementById('auraSlimStep');
+      if (_slimStep) _slimStep.textContent = text;
     }
 
     async function nextStep() {
@@ -4737,8 +4806,8 @@
         const [wYear, wMon, wDay] = currentDateStr.split('-');
         const fechaLegible = `${wDay}/${wMon}/${wYear}`;
         const waMsg = `Hola ${SHOP.nombreCorto}! Acabo de agendar en su web. Soy ${nombre} y voy para un ${selectedServiceObj.nombre}${barberPart} a las ${selectedTimeStr} hrs el ${fechaLegible}. \n¿Todo ok? ${SHOP.waEmoji || '✂️'}`;
-        // Solo leer el número desde Firestore (configuracion/main → telefonoAdmin)
-        const numBarbero = (_fsConfig || {}).telefonoAdmin || '';
+        // Prioriza el WhatsApp configurado en Contacto y Redes Sociales, luego Teléfono, luego Configuración agenda, y finalmente config.js
+        const numBarbero = (_fsSettings || {}).whatsapp || (_fsSettings || {}).telefono || (_fsConfig || {}).telefonoAdmin || SHOP.telefono || '';
         const limpio = String(numBarbero).replace(/\D/g, '');
         // Mínimo 8 dígitos para considerarse un número válido
         const waLink = limpio.length >= 8 ? `https://wa.me/${limpio}?text=${encodeURIComponent(waMsg)}` : null;
