@@ -570,6 +570,9 @@ export const config = {
 };
 
 export default async function middleware(request) {
+  // Prevent infinite loop: re-fetches from this middleware carry this header
+  if (request.headers.get('x-mw-bypass') === '1') return;
+
   const url      = new URL(request.url);
   const hostname = (request.headers.get('host') || '').replace(/:\d+$/, '');
   const tenantId = DOMAIN_MAP[hostname] || 'elegance';
@@ -715,7 +718,7 @@ export default async function middleware(request) {
   // ── Admin HTML: inyectar meta tags del tenant (icon, theme-color, title) ─────
   // Cubre /gestion-interna/, /gestion-interna/index.html y cualquier ruta SPA como /gestion-interna/equipo
   if (url.pathname === '/gestion-interna' || url.pathname.startsWith('/gestion-interna/')) {
-    const response = await fetch(request);
+    const response = await fetch(new Request(request, { headers: new Headers([...request.headers, ['x-mw-bypass', '1']]) }));
     const contentType = response.headers.get('content-type') || '';
     if (!contentType.includes('text/html')) return response;
     let html = await response.text();
@@ -789,7 +792,7 @@ export default async function middleware(request) {
   }
 
   // ── Inyección de Meta Tags en HTML ───────────────────────────────────────────
-  const response = await fetch(request);
+  const response = await fetch(new Request(request, { headers: new Headers([...request.headers, ['x-mw-bypass', '1']]) }));
   const contentType = response.headers.get('content-type') || '';
   if (!contentType.includes('text/html')) return response;
 
