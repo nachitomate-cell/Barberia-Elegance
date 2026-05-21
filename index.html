@@ -3808,20 +3808,23 @@
       const _shopSettings = rSettings.status === 'fulfilled' ? rSettings.value : null;
       _renderFeaturesStrip(_shopSettings?.features);
 
-      // Cargar productos para cross-selling (si está activo)
+      // Cargar productos y bloqueos en paralelo
       _isProductsEnabled = !!_fsConfig?.productosActivos;
-      if (_isProductsEnabled) {
-        try {
-          const prodSnap = await _tenantProductos().limit(6).get();
-          _fsProducts = prodSnap.docs.map(d => ({ id: d.id, ...d.data() }))
-            .filter(p => (p.stock == null || Number(p.stock) > 0));
-        } catch(e) { _fsProducts = []; }
-      }
-
-      await precargarBloqueos();
+      await Promise.allSettled([
+        _isProductsEnabled
+          ? _tenantProductos().limit(6).get()
+              .then(snap => {
+                _fsProducts = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+                  .filter(p => (p.stock == null || Number(p.stock) > 0));
+              })
+              .catch(() => { _fsProducts = []; })
+          : Promise.resolve(),
+        precargarBloqueos()
+      ]);
       renderCategories(_fsServices);
       _renderServicesGrid(_fsServices);
       _renderBarberos(_fsBarberos);
+      return _shopSettings;
     }
 
     function renderCalendar(customConfig = null) {
@@ -4969,13 +4972,19 @@
       return parts.join(' | ');
     }
 
-    async function applySettingsOverrides() {
+    async function applySettingsOverrides(preloadedSettings) {
       try {
-        var tid  = window.CURRENT_TENANT_ID;
-        var path = (tid === 'elegance') ? 'settings/general' : ('tenants/' + tid + '/settings/general');
-        var snap = await firebase.firestore().doc(path).get();
-        if (!snap.exists) return;
-        var s = snap.data();
+        var s;
+        if (preloadedSettings !== undefined) {
+          if (!preloadedSettings) return;
+          s = preloadedSettings;
+        } else {
+          var tid  = window.CURRENT_TENANT_ID;
+          var path = (tid === 'elegance') ? 'settings/general' : ('tenants/' + tid + '/settings/general');
+          var snap = await firebase.firestore().doc(path).get();
+          if (!snap.exists) return;
+          s = snap.data();
+        }
         var changed = false;
 
         ['nombre', 'direccion', 'telefono', 'whatsapp', 'logo'].forEach(function(k) {
@@ -5028,8 +5037,8 @@
 
       updateContinueBtn();    // botón deshabilitado hasta que se elija servicio
       updateProgress();
-      await initServices();   // carga servicios y config desde Firestore
-      await applySettingsOverrides(); // override con settings/general si existe
+      const _loadedSettings = await initServices();   // carga servicios y config desde Firestore
+      await applySettingsOverrides(_loadedSettings); // reutiliza settings ya cargado, sin segunda lectura
       renderCalendar();       // ahora que _fsConfig está listo
     });
 

@@ -20,7 +20,7 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 // ── 3. CACHE ─────────────────────────────────────────────────────
-const CACHE_VERSION = 'saas-v13';
+const CACHE_VERSION = 'saas-v14';
 const STATIC_ASSETS = [
   '/dashboard.html',
   '/index.html',
@@ -62,12 +62,21 @@ self.addEventListener('fetch', event => {
 
   const url = new URL(event.request.url);
 
-  // Manifests are dynamic per tenant — always fetch from network
+  // Manifests are dynamic per tenant — network-first, but cache as fallback
   if (url.pathname === '/manifest.json' || url.pathname === '/manifest-agenda.json') {
     event.respondWith(
-      fetch(event.request).catch(() =>
-        new Response('{}', { status: 503, headers: { 'Content-Type': 'application/json' } })
-      )
+      fetch(event.request)
+        .then(res => {
+          if (res.ok) {
+            const clone = res.clone();
+            caches.open(CACHE_VERSION).then(c => c.put(event.request, clone));
+          }
+          return res;
+        })
+        .catch(async () => {
+          const cached = await caches.match(event.request);
+          return cached || new Response('{}', { status: 503, headers: { 'Content-Type': 'application/json' } });
+        })
     );
     return;
   }

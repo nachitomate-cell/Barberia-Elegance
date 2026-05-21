@@ -23,6 +23,7 @@ try {
   console.warn('[Firebase] Auth SDK no disponible en esta página');
 }
 const db      = firebase.firestore();
+db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
 let storage;
 try {
   storage = firebase.storage();
