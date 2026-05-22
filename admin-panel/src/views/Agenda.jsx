@@ -966,9 +966,15 @@ function UltimasCitasModal({ citas, loading, onClose }) {
 
 /* ── DifusionPanel (marcelo_hairdressing only) ───────────────── */
 function DifusionPanel({ citas, bloqueos, barberos, dateStr }) {
-  // Find the first available slot on the given date (or next working day)
   const [copied, setCopied] = useState(false);
   const canvasRef = useRef(null);
+  const [shopSettings, setShopSettings] = useState(null);
+
+  useEffect(() => {
+    getDoc(doc(tenantCol('settings'), 'general'))
+      .then(snap => { if (snap.exists()) setShopSettings(snap.data()); })
+      .catch(() => {});
+  }, []);
 
   // Hours config
   const SHOP_START = 10 * 60; // 10:00
@@ -1027,19 +1033,25 @@ function DifusionPanel({ citas, bloqueos, barberos, dateStr }) {
 
   // Generate broadcast message
   const message = useMemo(() => {
+    const titulo = `✂️ *Marcelo Palma* — ${fechaFmt.charAt(0).toUpperCase() + fechaFmt.slice(1)}`;
+    const ubicacion = shopSettings?.direccion ? `📍 ${shopSettings.direccion.replace(/^📍\s*/, '')}` : '📍 Curauma / Placilla';
+    const horarioTxt = shopSettings?.horario   ? `🕒 ${shopSettings.horario.replace(/^🕒\s*/, '')}` : '🕒 Lun a Sáb: 10:00 – 20:00 hrs.';
+    const cta = `📲 Agenda tu hora ahora:\n   marcelopalma.synaptechspa.cl`;
+
     if (freeSlots.length === 0) {
-      return `✂️ *Marcelo Palma* — ${fechaFmt.charAt(0).toUpperCase() + fechaFmt.slice(1)}\n\n` +
+      return `${titulo}\n\n` +
              `📵 La agenda para este día está *completa*.\n\n` +
-             `Agenda tu hora en ➡️ marcelopalma.synaptechspa.cl`;
+             `${ubicacion}\n${horarioTxt}\n\n` +
+             `${cta}\n\n_¡Te esperamos!_ ✂️🙌`;
     }
     const horasStr = freeSlots.map(h => `   • ${h}`).join('\n');
     return (
-      `✂️ *Marcelo Palma* — ${fechaFmt.charAt(0).toUpperCase() + fechaFmt.slice(1)}\n\n` +
+      `${titulo}\n\n` +
       `🟢 *Horas disponibles (${freeSlots.length}):*\n${horasStr}\n\n` +
-      `📲 Agenda tu hora ahora:\n   marcelopalma.synaptechspa.cl\n\n` +
-      `_¡Te esperamos!_ ✂️🙌`
+      `${ubicacion}\n${horarioTxt}\n\n` +
+      `${cta}\n\n_¡Te esperamos!_ ✂️🙌`
     );
-  }, [freeSlots, fechaFmt]);
+  }, [freeSlots, fechaFmt, shopSettings]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(message).then(() => {
