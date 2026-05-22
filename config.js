@@ -17,6 +17,7 @@
     'machos.synaptechspa.cl':             'machos',
     'infinity.synaptechspa.cl':           'infinity',
     'sionbarberia.synaptechspa.cl':       'sionbarberia',
+    'barberiasion.synaptechspa.cl':       'sionbarberia',
   };
 
   const _tenants = {

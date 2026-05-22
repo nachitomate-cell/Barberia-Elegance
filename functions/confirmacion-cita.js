@@ -114,7 +114,7 @@ const TENANT_CONFIG = {
     instagram: 'https://www.instagram.com/sionbarberia/',
     whatsapp:  '56988888888',
     from:      'Sion Barbería <citas@synaptechspa.cl>',
-    dashboardUrl: 'https://sionbarberia.synaptechspa.cl/dashboard',
+    dashboardUrl: 'https://barberiasion.synaptechspa.cl/dashboard',
   },
 };
 

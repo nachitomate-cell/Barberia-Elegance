@@ -16,6 +16,7 @@ const DOMAIN_MAP = {
   'machos.synaptechspa.cl':            'machos',
   'infinity.synaptechspa.cl':          'infinity',
   'sionbarberia.synaptechspa.cl':      'sionbarberia',
+  'barberiasion.synaptechspa.cl':      'sionbarberia',
 };
 
 export function resolveTenantId() {

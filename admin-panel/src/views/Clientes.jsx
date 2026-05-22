@@ -22,6 +22,7 @@ const PROD_DOMAINS = {
   elegance: 'https://barberiaelegance.synaptechspa.cl',
   ferraza:  'https://barberiaferraza.synaptechspa.cl',
   gitana:   'https://gitananails.synaptechspa.cl',
+  sionbarberia: 'https://barberiasion.synaptechspa.cl',
 };
 
 function normalizePhone(phone) {
