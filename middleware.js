@@ -18,6 +18,7 @@ const DOMAIN_MAP = {
   'aurasalonmalegrooming.synaptech.cl':'aura',
   'aurasalonmalegrooming.synaptechspa.cl':'aura',
   'machos.synaptechspa.cl':            'machos',
+  'infinity.synaptechspa.cl':          'infinity',
 };
 
 const TENANT_META = {
@@ -434,6 +435,62 @@ const TENANT_META = {
       start_url:        '/gestion-interna/?local=machos',
       icons: [
         { src: '/machos.png',                  sizes: 'any',     type: 'image/png' },
+        { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png' },
+        { src: '/gestion-interna/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+      ],
+    },
+  },
+  infinity: {
+    booking: {
+      title:       'INFINITY STUDIO | Agenda tu hora',
+      description: 'Reserva tu hora en Infinity Studio. Cortes, barba y tratamiento premium en Traslaviña 114, Viña del Mar.',
+      ogTitle:     'Agendar Hora | INFINITY STUDIO',
+      ogDesc:      'Reserva tu hora en Infinity Studio. Estilo, ambiente familiar y confianza.',
+    },
+    dashboard: {
+      title:       'Mi Club | INFINITY STUDIO',
+      description: 'Tu panel personal en Infinity Studio. Revisa tus sellos y canjea premios.',
+      ogTitle:     'Mi Club | INFINITY STUDIO',
+      ogDesc:      'Panel de fidelidad de Infinity Studio. Acumula sellos y disfruta de servicios gratis.',
+    },
+    registro: {
+      title:       'Únete al Club | INFINITY STUDIO',
+      description: 'Crea tu cuenta en el Club Infinity. Acumula sellos y canjea premios exclusivos.',
+      ogTitle:     'Únete al Club | INFINITY STUDIO',
+      ogDesc:      'Regístrate en Infinity Studio y disfruta de beneficios exclusivos.',
+    },
+    siteName:    'INFINITY STUDIO',
+    ogImage:     '/logo.jpg',
+    themeColor:  '#121214',
+    appTitle:    'Infinity',
+    icon:        '/logo.jpg',
+    local: {
+      telephone: '56985551234',
+      streetAddress: 'Traslaviña 114',
+      addressLocality: 'Viña del Mar',
+      schemaType: 'HairSalon',
+      ratingGeneral: 5.0,
+      totalReviews: 12,
+      reviews: [
+        { author: 'Claudio Valdivia', rating: 5, text: 'Excelente atención, el ambiente es súper agradable y familiar. Los cabros cortan con un nivel técnico altísimo. Totalmente recomendado!' },
+        { author: 'Rodrigo Espinoza', rating: 5, text: 'Llevo meses cortándome acá y el servicio es siempre de primer nivel. Un agrado de barbería en Viña.' }
+      ]
+    },
+    manifest: {
+      name:             'INFINITY STUDIO',
+      short_name:       'Infinity',
+      theme_color:      '#121214',
+      background_color: '#121214',
+    },
+    adminManifest: {
+      name:             'Panel Admin · Infinity',
+      short_name:       'Infinity',
+      description:      'Panel de administración — Infinity Studio',
+      theme_color:      '#3b3b3b',
+      background_color: '#121214',
+      start_url:        '/gestion-interna/?local=infinity',
+      icons: [
+        { src: '/logo.jpg',                    sizes: 'any',     type: 'image/jpeg' },
         { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png' },
         { src: '/gestion-interna/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
       ],

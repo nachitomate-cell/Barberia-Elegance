@@ -15,6 +15,7 @@
     'aurasalonmalegrooming.synaptech.cl': 'aura',
     'aurasalonmalegrooming.synaptechspa.cl': 'aura',
     'machos.synaptechspa.cl':             'machos',
+    'infinity.synaptechspa.cl':           'infinity',
   };
 
   const _tenants = {
@@ -308,6 +309,34 @@
         { nombre: 'Álvaro Muñoz', foto: null, disponible: true },
         { nombre: 'Carlos Rivas', foto: null, disponible: true },
         { nombre: 'Sebastián Jara', foto: null, disponible: true },
+      ],
+    },
+    infinity: {
+      categoriasServicio: ['Cortes', 'Barba', 'Combos', 'Color', 'Facial', 'Extras'],
+      nombre:          'INFINITY STUDIO',
+      nombreCorto:     'Infinity',
+      pageTitle:       'INFINITY STUDIO | Estilo y Confianza en Viña del Mar',
+      slogan:          'Ambiente familiar y confianza son nuestra esencia. Resultados de alto nivel.',
+      logo:            '/logo.jpg',
+      direccion:       '📍 Traslaviña 114 | Viña del Mar',
+      horario:         '🕒 Lun a Sáb: 10:00 – 20:00 hrs.',
+      telefono:        '56985551234',
+      club:            'Club Infinity',
+      instagram:       'https://www.instagram.com/infinitystudio23/',
+      instagramHandle: '@infinitystudio23',
+      waEmoji:         '💈',
+      googleReviewUrl: '',
+      ratingGeneral: 5.0,
+      totalReviews:  12,
+      reviews: [
+        { author: 'Claudio Valdivia', rating: 5, text: 'Excelente atención, el ambiente es súper agradable y familiar. Los cabros cortan con un nivel técnico altísimo. Totalmente recomendado!' },
+        { author: 'Rodrigo Espinoza', rating: 5, text: 'Llevo meses cortándome acá y el servicio es siempre de primer nivel. Un agrado de barbería en Viña.' },
+      ],
+      barberos: [
+        { nombre: 'Miguel Martínez', foto: null, disponible: true },
+        { nombre: 'Elio Alfonso', foto: null, disponible: true },
+        { nombre: 'Jose Luis Cordero', foto: null, disponible: true },
+        { nombre: 'Mailo Serrano', foto: null, disponible: true },
       ],
     },
   };

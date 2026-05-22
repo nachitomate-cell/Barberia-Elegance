@@ -105,6 +105,11 @@
       background: rgba(249,115,22,0.05);
       box-shadow: 0 12px 30px rgba(0,0,0,0.3), 0 0 20px rgba(249,115,22,0.08);
     }
+    .tenant-card.infinity:hover {
+      border-color: rgba(255,255,255,0.35);
+      background: rgba(255,255,255,0.04);
+      box-shadow: 0 12px 30px rgba(0,0,0,0.3), 0 0 20px rgba(255,255,255,0.07);
+    }
 
     /* ── Drawer overlay ── */
     #drawer-overlay {
@@ -217,6 +222,12 @@
       box-shadow: 0 4px 20px rgba(249,115,22,0.25);
     }
     .cta-btn.machos:hover { box-shadow: 0 8px 30px rgba(249,115,22,0.35); }
+    .cta-btn.infinity {
+      background: linear-gradient(135deg,#3b3b3b,#25252b);
+      box-shadow: 0 4px 20px rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+    .cta-btn.infinity:hover { box-shadow: 0 8px 30px rgba(255,255,255,0.15); }
 
     /* ── Secondary button ── */
     .btn-secondary {
@@ -595,11 +606,24 @@
       <div id="badge-machos" style="min-height:14px;"></div>
     </button>
 
+    <!-- Infinity Studio -->
+    <button class="tenant-card infinity" onclick="openDrawer('infinity')">
+      <img src="/logo.jpg" alt="Infinity"
+        style="width:52px;height:52px;border-radius:0.875rem;object-fit:cover;border:1px solid rgba(255,255,255,0.25);flex-shrink:0;"
+        onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+      <div style="display:none;width:52px;height:52px;border-radius:0.875rem;flex-shrink:0;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);align-items:center;justify-content:center;">
+        <i class="ph-fill ph-scissors" style="font-size:1.4rem;color:#fff;"></i>
+      </div>
+      <span style="font-size:0.6875rem;font-weight:700;color:#fff;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">Infinity Studio</span>
+      <span style="padding:0.1rem 0.45rem;border-radius:999px;font-size:0.575rem;font-weight:700;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);color:#fff;">DEMO</span>
+      <div id="badge-infinity" style="min-height:14px;"></div>
+    </button>
+
     <!-- Footer meta -->
     <div style="margin-top:1.5rem; display:flex; align-items:center; justify-content:center; gap:1.5rem;">
       <div style="text-align:center;">
         <span style="font-size:0.625rem; text-transform:uppercase; letter-spacing:0.12em; font-weight:700; color:#334155; display:block; margin-bottom:0.25rem;">Locales</span>
-        <span style="font-size:0.75rem; font-weight:600; color:#64748b;">10 activos</span>
+        <span style="font-size:0.75rem; font-weight:600; color:#64748b;">11 activos</span>
       </div>
       <div style="width:1px; height:20px; background:#1e293b;"></div>
       <div style="text-align:center;">
@@ -1044,6 +1068,20 @@
         profCol:     () => db.collection('tenants').doc('machos').collection('barberos'),
         usersCol:    () => db.collection('tenants').doc('machos').collection('users'),
         soporteCol:  () => db.collection('tenants').doc('machos').collection('soporte_mensajes'),
+      },
+      infinity: {
+        nombre:      'INFINITY STUDIO',
+        direccion:   'infinity.synaptechspa.cl',
+        logo:        '/logo.jpg',
+        color:       '#f3f4f6',
+        colorRgb:    '243,244,246',
+        profLabel:   'Barberos en local',
+        profLabelBtn:'Agregar Barbero',
+        profIcon:    'ph-scissors',
+        citasCol:    () => db.collection('tenants').doc('infinity').collection('citas'),
+        profCol:     () => db.collection('tenants').doc('infinity').collection('barberos'),
+        usersCol:    () => db.collection('tenants').doc('infinity').collection('users'),
+        soporteCol:  () => db.collection('tenants').doc('infinity').collection('soporte_mensajes'),
       },
     };
 
