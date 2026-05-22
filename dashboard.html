@@ -45,7 +45,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
   <script src="config.js"></script>
   <script src="firebase-config.js?v=1.2"></script>
-  <script src="firebaseUtils.js?v=2.6"></script>
+  <script src="firebaseUtils.js?v=2.7"></script>
   <script src="js/services/professional.service.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
 
@@ -3205,6 +3205,32 @@ function showToast(msg, type = 'info') {
   clearTimeout(el._t);
   requestAnimationFrame(() => { el.style.opacity = '1'; el.style.transform = 'translateX(-50%) translateY(0)'; });
   el._t = setTimeout(() => { el.style.opacity = '0'; el.style.transform = 'translateX(-50%) translateY(20px)'; }, 2800);
+}
+
+/* ─── Deep-link desde notificación de recordatorio ──────────── */
+async function manejarDeepLinkRecordatorio() {
+  const params = new URLSearchParams(window.location.search);
+  const accion  = params.get('accion');
+  const citaId  = params.get('citaId');
+
+  if (!accion || !citaId) return;
+
+  // Limpiar params de la URL sin recargar la página
+  const cleanUrl = window.location.pathname;
+  window.history.replaceState({}, '', cleanUrl);
+
+  try {
+    if (accion === 'confirmar') {
+      await FDB.updateCitaEstado(citaId, 'Confirmada');
+      showToast('✅ Cita confirmada correctamente', 'ok');
+    } else if (accion === 'cancelar') {
+      await FDB.updateCitaEstado(citaId, 'Cancelada');
+      showToast('Cita cancelada', 'info');
+    }
+  } catch (e) {
+    console.error('[DeepLink] Error al procesar acción:', e);
+    showToast('No se pudo procesar la acción. Intenta desde la app.', 'err');
+  }
 }
 
 // ─── Estado global ────────────────────────────────────────────
