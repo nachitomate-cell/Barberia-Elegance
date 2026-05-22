@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef, createContext, useContext } from 'react';
 import {
   ChevronLeft, ChevronRight, Plus, X, Ban, CalendarOff,
   CheckCircle2, XCircle, Clock, Trash2, Lock, History,
@@ -18,10 +18,24 @@ import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 import AIWatermark from '../components/ui/AIWatermark';
 
 /* ── Constants ─────────────────────────────────────────────── */
-const HOUR_START  = 8;
-const HOUR_END    = 20;
-const SLOT_MINS   = 30;
-const TOTAL_SLOTS = (HOUR_END - HOUR_START) * (60 / SLOT_MINS);
+const HOUR_START = 8;
+const HOUR_END   = 20;
+
+function buildSlotCfg(slotMins) {
+  const totalSlots = (HOUR_END - HOUR_START) * (60 / slotMins);
+  const timeLabels = Array.from({ length: totalSlots }, (_, i) => {
+    const mins = HOUR_START * 60 + i * slotMins;
+    return `${String(Math.floor(mins / 60)).padStart(2,'0')}:${String(mins % 60).padStart(2,'0')}`;
+  });
+  return {
+    slotMins,
+    totalSlots,
+    timeLabels,
+    slotIdx: t => { const [h, m] = t.split(':').map(Number); return Math.floor((h * 60 + m - HOUR_START * 60) / slotMins); },
+  };
+}
+
+const AgendaCtx = createContext(buildSlotCfg(30));
 
 const STATUS_STYLE = {
   Confirmada: 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300',
@@ -34,12 +48,6 @@ function fmt(d) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 function toMins(t) { const [h, m] = t.split(':').map(Number); return h * 60 + m; }
-function slotIdx(t) { return Math.floor((toMins(t) - HOUR_START * 60) / SLOT_MINS); }
-
-const TIME_LABELS = Array.from({ length: TOTAL_SLOTS }, (_, i) => {
-  const mins = HOUR_START * 60 + i * SLOT_MINS;
-  return `${String(Math.floor(mins / 60)).padStart(2,'0')}:${String(mins % 60).padStart(2,'0')}`;
-});
 
 /* ── WhatsApp confirmation helpers ──────────────────────────── */
 const WA_SHOP_NAMES = {
@@ -94,6 +102,7 @@ function Modal({ title, onClose, children, footer, maxW = 'max-w-md' }) {
 
 /* ── CitaModal (create / edit) ───────────────────────────────── */
 function CitaModal({ cita, barberos, servicios, defaultHora, defaultBarberoId, dateStr, onClose, onComplete }) {
+  const { timeLabels } = useContext(AgendaCtx);
   const isNew = !cita;
   const { id: tenantId } = useTenant();
   const defaultBarb = defaultBarberoId || barberos[0]?.id || '';
@@ -382,7 +391,7 @@ function CitaModal({ cita, barberos, servicios, defaultHora, defaultBarberoId, d
         <div>
           <label className={lbl}>Hora</label>
           <select className={field} value={form.hora} onChange={e => set('hora', e.target.value)}>
-            {TIME_LABELS.map(t => <option key={t} value={t}>{t}</option>)}
+            {timeLabels.map(t => <option key={t} value={t}>{t}</option>)}
           </select>
         </div>
       </div>
@@ -425,12 +434,13 @@ function CitaModal({ cita, barberos, servicios, defaultHora, defaultBarberoId, d
 
 /* ── BloqueoModal ────────────────────────────────────────────── */
 function BloqueoModal({ barberos, dateStr, defaultBarberoId, defaultHora, defaultTipo, onClose }) {
+  const { timeLabels } = useContext(AgendaCtx);
   const [tipo, setTipo]     = useState(defaultTipo || 'parcial');
   const [barberoId, setBId] = useState(defaultBarberoId || '');
   const [horaIni,  setHIni] = useState(defaultHora || '09:00');
   const [horaFin,  setHFin] = useState(() => {
-    const idx = TIME_LABELS.indexOf(defaultHora || '09:00');
-    return TIME_LABELS[Math.min(idx + 2, TIME_LABELS.length - 1)] || '10:00';
+    const idx = timeLabels.indexOf(defaultHora || '09:00');
+    return timeLabels[Math.min(idx + 2, timeLabels.length - 1)] || '10:00';
   });
   const [nota, setNota]     = useState('');
   const [saving, setSaving] = useState(false);
@@ -523,13 +533,13 @@ function BloqueoModal({ barberos, dateStr, defaultBarberoId, defaultHora, defaul
             <div>
               <label className={lbl}>Desde</label>
               <select className={field} value={horaIni} onChange={e => { setHIni(e.target.value); setHoraError(''); }}>
-                {TIME_LABELS.map(t => <option key={t} value={t}>{t}</option>)}
+                {timeLabels.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
             <div>
               <label className={lbl}>Hasta</label>
               <select className={field} value={horaFin} onChange={e => { setHFin(e.target.value); setHoraError(''); }}>
-                {TIME_LABELS.map(t => <option key={t} value={t}>{t}</option>)}
+                {timeLabels.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
           </div>
@@ -547,8 +557,9 @@ function BloqueoModal({ barberos, dateStr, defaultBarberoId, defaultHora, defaul
 
 /* ── BloqueoBlock ────────────────────────────────────────────── */
 function BloqueoBlock({ bloqueo, onDelete }) {
+  const { slotIdx, totalSlots } = useContext(AgendaCtx);
   const startIdx = bloqueo.todo_el_dia ? 0 : Math.max(0, slotIdx(bloqueo.hora_inicio));
-  const endIdx   = bloqueo.todo_el_dia ? TOTAL_SLOTS : Math.min(TOTAL_SLOTS, slotIdx(bloqueo.hora_fin));
+  const endIdx   = bloqueo.todo_el_dia ? totalSlots : Math.min(totalSlots, slotIdx(bloqueo.hora_fin));
   const spans    = Math.max(endIdx - startIdx, 1);
 
   return (
@@ -569,8 +580,9 @@ function BloqueoBlock({ bloqueo, onDelete }) {
 
 /* ── AppointmentBlock ────────────────────────────────────────── */
 function AppointmentBlock({ cita, colIndex, colTotal, onClick }) {
-  const slot  = Math.max(0, Math.min(TOTAL_SLOTS - 1, slotIdx(cita.hora)));
-  const spans = Math.max(1, Math.min(TOTAL_SLOTS - slot, Math.round((cita.duracion || cita.duracionServicio || 30) / SLOT_MINS)));
+  const { slotIdx, totalSlots, slotMins } = useContext(AgendaCtx);
+  const slot  = Math.max(0, Math.min(totalSlots - 1, slotIdx(cita.hora)));
+  const spans = Math.max(1, Math.min(totalSlots - slot, Math.round((cita.duracion || cita.duracionServicio || 30) / slotMins)));
   const color = STATUS_STYLE[cita.estado] ?? STATUS_STYLE.Confirmada;
   const pct   = 100 / colTotal;
 
@@ -594,7 +606,8 @@ function AppointmentBlock({ cita, colIndex, colTotal, onClick }) {
 
 /* ── SlotRow (clickable empty slot) ─────────────────────────── */
 function SlotRow({ idx, barberoId, dateStr, onNewCita, onNewBloqueo, blockMode }) {
-  const hora = TIME_LABELS[idx];
+  const { timeLabels } = useContext(AgendaCtx);
+  const hora = timeLabels[idx];
   return (
     <div
       onClick={() => blockMode ? onNewBloqueo(barberoId, hora) : onNewCita(barberoId, hora)}
@@ -1272,6 +1285,7 @@ const LS_LAST_SEEN = 'agenda_last_seen_cita';
 
 export default function Agenda() {
   const { id: tenantId } = useTenant();
+  const [slotMins,      setSlotMins]      = useState(30);
   const [date,          setDate]          = useState(new Date());
   const [showHelp,      setShowHelp]      = useState(false);
   const [hasNewCita,    setHasNewCita]    = useState(false);
@@ -1294,6 +1308,19 @@ export default function Agenda() {
     const lastSeen = localStorage.getItem(LS_LAST_SEEN);
     setHasNewCita(ultimaCita.id !== lastSeen);
   }, [ultimaCita?.id]);
+
+  useEffect(() => {
+    getDoc(doc(tenantCol('configuracion'), 'main'))
+      .then(snap => {
+        if (snap.exists() && snap.data().intervaloMinutos) {
+          setSlotMins(snap.data().intervaloMinutos);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const slotCfg = useMemo(() => buildSlotCfg(slotMins), [slotMins]);
+  const { totalSlots, timeLabels } = slotCfg;
 
   const dateStr = fmt(date);
 
@@ -1328,6 +1355,7 @@ export default function Agenda() {
   [bloqueos]);
 
   return (
+    <AgendaCtx.Provider value={slotCfg}>
     <div className="flex flex-col h-full gap-3">
 
       {/* Toolbar */}
@@ -1434,7 +1462,7 @@ export default function Agenda() {
           {/* Time axis */}
           <div className="w-16 shrink-0 sticky left-0 bg-slate-900 z-10 border-r border-slate-800">
             <div className="h-10 border-b border-slate-800" />
-            {TIME_LABELS.map((t, i) => (
+            {timeLabels.map((t, i) => (
               <div key={i} className="h-10 flex items-center justify-end pr-3 text-[10px] font-mono text-slate-600 border-b border-slate-800/60">
                 {t.endsWith(':00') ? t : ''}
               </div>
@@ -1473,7 +1501,7 @@ export default function Agenda() {
                   <span className="text-xs font-semibold text-white truncate">{b.nombre}</span>
                 </div>
 
-                <div className="relative" style={{ height: `${TOTAL_SLOTS * 40}px` }}>
+                <div className="relative" style={{ height: `${totalSlots * 40}px` }}>
                   {TIME_LABELS.map((_, i) => (
                     <SlotRow
                       key={i}
@@ -1557,5 +1585,6 @@ export default function Agenda() {
         </HelpModal>
       )}
     </div>
+    </AgendaCtx.Provider>
   );
 }

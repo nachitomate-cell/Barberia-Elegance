@@ -48,6 +48,10 @@ function settingsRef() {
   return doc(tenantCol('settings'), 'general');
 }
 
+function confRef() {
+  return doc(tenantCol('configuracion'), 'main');
+}
+
 function mergeHorario(saved) {
   const base = { ...DEFAULT_SETTINGS.horario };
   if (!saved) return base;
@@ -120,20 +124,21 @@ function DayRow({ diaKey, config, onChange }) {
 
 /* ─── Main component ─────────────────────────────────────────── */
 export default function Configuracion() {
-  const [form,     setForm]     = useState(DEFAULT_SETTINGS);
-  const [loading,  setLoading]  = useState(true);
-  const [saving,   setSaving]   = useState(false);
-  const [saved,    setSaved]    = useState(false);
-  const [dirty,    setDirty]    = useState(false);
-  const [saveErr,  setSaveErr]  = useState('');
-  const [showHelp, setShowHelp] = useState(false);
+  const [form,      setForm]      = useState(DEFAULT_SETTINGS);
+  const [intervalo, setIntervalo] = useState(30);
+  const [loading,   setLoading]   = useState(true);
+  const [saving,    setSaving]    = useState(false);
+  const [saved,     setSaved]     = useState(false);
+  const [dirty,     setDirty]     = useState(false);
+  const [saveErr,   setSaveErr]   = useState('');
+  const [showHelp,  setShowHelp]  = useState(false);
   const savedTimer = useRef(null);
   const tenantId = resolveTenantId();
 
   useEffect(() => {
-    getDoc(settingsRef()).then(snap => {
-      if (snap.exists()) {
-        const d = snap.data();
+    Promise.all([getDoc(settingsRef()), getDoc(confRef())]).then(([settSnap, confSnap]) => {
+      if (settSnap.exists()) {
+        const d = settSnap.data();
         setForm({
           nombre:    d.nombre    || '',
           direccion: d.direccion || '',
@@ -144,6 +149,9 @@ export default function Configuracion() {
           horario:   mergeHorario(d.horario),
           features:  mergeFeatures(d.features),
         });
+      }
+      if (confSnap.exists() && confSnap.data().intervaloMinutos) {
+        setIntervalo(confSnap.data().intervaloMinutos);
       }
     }).finally(() => setLoading(false));
   }, []);
@@ -159,7 +167,10 @@ export default function Configuracion() {
     setSaving(true);
     setSaveErr('');
     try {
-      await setDoc(settingsRef(), form, { merge: true });
+      await Promise.all([
+        setDoc(settingsRef(), form, { merge: true }),
+        setDoc(confRef(), { intervaloMinutos: intervalo }, { merge: true }),
+      ]);
       setSaved(true);
       setDirty(false);
       if (savedTimer.current) clearTimeout(savedTimer.current);
@@ -269,6 +280,30 @@ export default function Configuracion() {
         <div className="mt-2">
           {DIAS_ORDER.map(d => (
             <DayRow key={d} diaKey={d} config={form.horario[d]} onChange={cfg => setDia(d, cfg)} />
+          ))}
+        </div>
+      </Card>
+
+      {/* Duración de Turnos */}
+      <Card Icon={Clock} title="Duración de Turnos">
+        <p className="text-xs text-slate-500 -mt-1">
+          Intervalo entre horas disponibles en la agenda pública de reservas.
+        </p>
+        <div className="flex gap-3">
+          {[[30, '30 minutos', 'Cada media hora'], [60, '1 hora', 'Cada hora completa']].map(([mins, label, sub]) => (
+            <button
+              key={mins}
+              type="button"
+              onClick={() => { setIntervalo(mins); setDirty(true); }}
+              className={`flex-1 flex flex-col items-center py-3 px-2 rounded-lg border transition-all ${
+                intervalo === mins
+                  ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400'
+                  : 'border-slate-700 text-slate-400 hover:text-white hover:border-slate-600'
+              }`}
+            >
+              <span className="text-sm font-semibold">{label}</span>
+              <span className={`text-[10px] mt-0.5 ${intervalo === mins ? 'text-emerald-500/70' : 'text-slate-600'}`}>{sub}</span>
+            </button>
           ))}
         </div>
       </Card>
