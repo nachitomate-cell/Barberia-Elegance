@@ -3326,6 +3326,25 @@
     .tenant-aura #aura-info-wa:hover  { color: rgba(255,255,255,0.80); }
     .tenant-aura #aura-info-wa:active { color: #ffffff; }
 
+    /* ── Aura: Review cards (inline dark hardcoded en JS) ── */
+    .tenant-aura #reviewsGrid > div {
+      background: #FFFFFF !important;
+      border-color: rgba(0,0,0,0.07) !important;
+    }
+    .tenant-aura #reviewsGrid > div * {
+      color: #18181B !important;
+    }
+    /* Estrellas vacías: #3f3f46 (oscuro) → gris claro sobre fondo blanco */
+    .tenant-aura #reviewsGrid svg[fill="#3f3f46"] path {
+      fill: #D1D5DB !important;
+    }
+    .tenant-aura #reviewsSection .text-zinc-500 { color: #8E9399 !important; }
+    .tenant-aura #reviewsCtaBtn {
+      border-color: rgba(0,0,0,0.10) !important;
+      color: #71717A !important;
+      background: rgba(156,163,175,0.04) !important;
+    }
+
     /* ═══════════════════════════════════════════════════════════════
        MACHO'S BARBERSHOP — Modern Industrial Slate & Copper Orange
        Paleta: Slate (#090d16) · Copper Orange (#f97316) · Charcoal Surface (#111827)
