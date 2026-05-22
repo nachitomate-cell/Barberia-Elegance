@@ -1502,7 +1502,7 @@ export default function Agenda() {
                 </div>
 
                 <div className="relative" style={{ height: `${totalSlots * 40}px` }}>
-                  {TIME_LABELS.map((_, i) => (
+                  {timeLabels.map((_, i) => (
                     <SlotRow
                       key={i}
                       idx={i}
