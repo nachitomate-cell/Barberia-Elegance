@@ -1754,6 +1754,582 @@
     .tenant-aura #googleReviewModal [style*="rgba(201,168,76"] { background: rgba(156,163,175,0.05) !important; }
     .tenant-aura #googleReviewModal .text-white { color: #18181B !important; }
     .tenant-aura #googleReviewModal p { color: #52525B !important; }
+
+    /* ═══════════════════════════════════════════════════════════════
+       INFINITY STUDIO - DASHBOARD (Luminous White & Glassmorphism Theme)
+       ═══════════════════════════════════════════════════════════════ */
+    .tenant-infinity {
+      --accent:   #111827;
+      --accent-r: 17; --accent-g: 24; --accent-b: 39;
+      --neon-clr: #111827;
+      --neon-r:   17; --neon-g:   24; --neon-b:   39;
+      --body-bg:  #ffffff;
+
+      --gold:      #111827;
+      --gold-dim:  rgba(17, 24, 39, 0.15);
+      --gold-glow: rgba(17, 24, 39, 0.04);
+
+      --brand-bg: #ffffff;
+      --brand-surface: rgba(255, 255, 255, 0.75);
+      --brand-surface-alt: rgba(255, 255, 255, 0.88);
+      --brand-primary: #111827;
+      --brand-accent: #4b5563;
+      --brand-text: #1f2937;
+      --brand-muted: #9ca3af;
+      --brand-border: rgba(17, 24, 39, 0.06);
+      --brand-glow: rgba(255, 255, 255, 0.8);
+      --brand-button-text: #111827;
+      --brand-progress-track: rgba(17, 24, 39, 0.04);
+    }
+    html.tenant-infinity body {
+      background-color: #ffffff !important;
+      background-image:
+        radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 1) 0%, rgba(243, 244, 246, 0.4) 100%),
+        radial-gradient(circle at 10% 40%, rgba(255, 255, 255, 1) 0%, rgba(249, 250, 251, 0.7) 50%, transparent 100%),
+        radial-gradient(circle at 90% 80%, rgba(255, 255, 255, 1) 0%, rgba(243, 244, 246, 0.6) 50%, transparent 100%) !important;
+      background-attachment: fixed !important;
+      color: #111827 !important;
+    }
+
+    .tenant-infinity::before {
+      content: "∞" !important;
+      position: fixed !important;
+      top: 12% !important;
+      left: -8% !important;
+      font-size: 22rem !important;
+      color: rgba(17, 24, 39, 0.015) !important;
+      font-weight: 300 !important;
+      z-index: 0 !important;
+      pointer-events: none !important;
+      will-change: transform !important;
+      animation: float-infinity-slow 22s ease-in-out infinite alternate !important;
+    }
+    .tenant-infinity::after {
+      content: "∞" !important;
+      position: fixed !important;
+      bottom: 8% !important;
+      right: -10% !important;
+      font-size: 28rem !important;
+      color: rgba(17, 24, 39, 0.018) !important;
+      font-weight: 300 !important;
+      z-index: 0 !important;
+      pointer-events: none !important;
+      will-change: transform !important;
+      animation: float-infinity-fast 28s ease-in-out infinite alternate !important;
+    }
+
+    /* Intercepción de Utilidades Oscuras de Tailwind */
+    .tenant-infinity .text-white { color: #111827 !important; }
+    .tenant-infinity .text-white\/30 { color: rgba(17, 24, 39, 0.3) !important; }
+    .tenant-infinity .text-white\/40 { color: rgba(17, 24, 39, 0.4) !important; }
+    .tenant-infinity .text-white\/50 { color: rgba(17, 24, 39, 0.5) !important; }
+    .tenant-infinity .text-white\/60 { color: rgba(17, 24, 39, 0.6) !important; }
+    .tenant-infinity .text-white\/70 { color: rgba(17, 24, 39, 0.7) !important; }
+    .tenant-infinity .text-white\/80 { color: rgba(17, 24, 39, 0.8) !important; }
+    .tenant-infinity .text-white\/90 { color: rgba(17, 24, 39, 0.9) !important; }
+
+    .tenant-infinity .text-gray-300 { color: #374151 !important; }
+    .tenant-infinity .text-gray-400 { color: #4B5563 !important; }
+    .tenant-infinity .text-gray-500 { color: #6B7280 !important; }
+    .tenant-infinity .text-zinc-400 { color: #4B5563 !important; }
+    .tenant-infinity .text-zinc-500 { color: #6B7280 !important; }
+
+    .tenant-infinity .bg-\\[\\#111115\\] {
+      background-color: rgba(255, 255, 255, 0.8) !important;
+      backdrop-filter: blur(16px) saturate(140%) !important;
+      -webkit-backdrop-filter: blur(16px) saturate(140%) !important;
+    }
+    .tenant-infinity .bg-\\[\\#050505\\] { background-color: #ffffff !important; }
+    .tenant-infinity .bg-\\[\\#0a0a0d\\] {
+      background-color: rgba(255, 255, 255, 0.85) !important;
+      backdrop-filter: blur(12px) !important;
+      -webkit-backdrop-filter: blur(12px) !important;
+    }
+    .tenant-infinity .bg-\\[\\#1a1a1f\\] { background-color: rgba(244, 244, 245, 0.9) !important; }
+    .tenant-infinity .bg-zinc-900 { background-color: rgba(244, 244, 245, 0.8) !important; }
+    .tenant-infinity .bg-white\\/5 { background-color: rgba(17, 24, 39, 0.04) !important; }
+
+    .tenant-infinity .border-white\\/8,
+    .tenant-infinity .border-white\\/10,
+    .tenant-infinity .border-white\\/12,
+    .tenant-infinity .border-white\\/6,
+    .tenant-infinity .border-zinc-800,
+    .tenant-infinity .border-zinc-800\\/80 { border-color: rgba(17, 24, 39, 0.08) !important; }
+
+    /* Auth Guard */
+    .tenant-infinity #authGuard {
+      background-color: #ffffff !important;
+      background-image: radial-gradient(circle at center, #ffffff 0%, #f3f4f6 100%) !important;
+    }
+    .tenant-infinity #authGuard .border-t-white { border-top-color: #111827 !important; }
+    .tenant-infinity #authGuard .border-white\\/20 { border-color: rgba(17, 24, 39, 0.1) !important; }
+
+    /* Header */
+    .tenant-infinity header {
+      background-color: rgba(255, 255, 255, 0.85) !important;
+      backdrop-filter: blur(12px) !important;
+      -webkit-backdrop-filter: blur(12px) !important;
+      border-bottom: 1px solid rgba(17, 24, 39, 0.06) !important;
+    }
+    .tenant-infinity #shopHeaderName { color: #111827 !important; }
+    .tenant-infinity #shopHeaderSub { color: #4B5563 !important; }
+    .tenant-infinity #btnNotifBell, .tenant-infinity #avatarContainer {
+      background-color: rgba(255, 255, 255, 0.9) !important;
+      border-color: rgba(17, 24, 39, 0.08) !important;
+    }
+    .tenant-infinity #btnNotifBell i, .tenant-infinity #avatarContainer i { color: #4B5563 !important; }
+
+    /* Hero Section */
+    .tenant-infinity .hero-bg {
+      background-image: url('/infinity_bg.png') !important;
+      background-size: cover !important;
+      background-position: center !important;
+      border: 1px solid rgba(17, 24, 39, 0.06) !important;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05) !important;
+    }
+    .tenant-infinity .hero-overlay {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0.95) 100%) !important;
+    }
+    .tenant-infinity .hero-glow-spot {
+      background: radial-gradient(circle, rgba(17, 24, 39, 0.03) 0%, transparent 65%) !important;
+    }
+    .tenant-infinity #heroLine1 {
+      color: #111827 !important;
+      text-shadow: none !important;
+      font-weight: 800 !important;
+    }
+    .tenant-infinity #heroLine2 {
+      color: #4B5563 !important;
+      text-shadow: none !important;
+    }
+    .tenant-infinity .hero-cta {
+      background: #111827 !important;
+      border-color: #111827 !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 14px rgba(17, 24, 39, 0.2) !important;
+    }
+    .tenant-infinity .hero-cta i { color: #ffffff !important; }
+    .tenant-infinity .hero-cta span { color: #ffffff !important; }
+    .tenant-infinity .hero-cta:hover {
+      background: #374151 !important;
+      border-color: #374151 !important;
+    }
+
+    /* PWA Card */
+    .tenant-infinity #pwaBigInstallCard {
+      background: rgba(255, 255, 255, 0.8) !important;
+      backdrop-filter: blur(12px) !important;
+      -webkit-backdrop-filter: blur(12px) !important;
+      border: 1px solid rgba(17, 24, 39, 0.06) !important;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02) !important;
+    }
+    .tenant-infinity .pwa-icon-bg {
+      background: rgba(17, 24, 39, 0.03) !important;
+      border-color: rgba(17, 24, 39, 0.06) !important;
+    }
+    .tenant-infinity #pwaBigInstallCard h3 { color: #111827 !important; }
+    .tenant-infinity #pwaBigInstallCard p { color: #4B5563 !important; }
+    .tenant-infinity #pwaBigInstallCard i.ph-caret-right { color: #4B5563 !important; }
+
+    /* Membership Card (Loyalty) */
+    .tenant-infinity .membership-pattern {
+      background-color: rgba(255, 255, 255, 0.8) !important;
+      backdrop-filter: blur(16px) saturate(140%) !important;
+      -webkit-backdrop-filter: blur(16px) saturate(140%) !important;
+      border: 1px solid rgba(17, 24, 39, 0.08) !important;
+      box-shadow: 0 12px 32px 0 rgba(0, 0, 0, 0.03), inset 0 1px 0 0 rgba(255,255,255,0.8) !important;
+    }
+    .tenant-infinity .membership-pattern::before {
+      background-image: repeating-linear-gradient(
+        -45deg, transparent, transparent 18px,
+        rgba(17, 24, 39, 0.015) 18px, rgba(17, 24, 39, 0.015) 19px
+      ) !important;
+    }
+    .tenant-infinity .membership-glow {
+      background: radial-gradient(circle, rgba(17, 24, 39, 0.04) 0%, transparent 70%) !important;
+    }
+    .tenant-infinity #membershipWatermark {
+      color: rgba(17, 24, 39, 0.02) !important;
+      font-size: 8rem !important;
+      right: 5% !important;
+      bottom: -10% !important;
+      font-family: system-ui, -apple-system, sans-serif !important;
+    }
+    .tenant-infinity #stampsCount { color: #111827 !important; }
+    .tenant-infinity #stampsCount span { color: #4B5563 !important; }
+    .tenant-infinity #shopClubName { color: #111827 !important; }
+    .tenant-infinity #nextRewardName { color: #111827 !important; }
+
+    .tenant-infinity .membership-pattern .rounded-full.overflow-hidden.mb-3 {
+      background: rgba(17, 24, 39, 0.08) !important;
+    }
+
+    /* Stamps Grid */
+    .tenant-infinity #stampsGrid {
+      background-color: rgba(17, 24, 39, 0.02) !important;
+      border-color: rgba(17, 24, 39, 0.05) !important;
+    }
+    .tenant-infinity .stamp-cell {
+      background: rgba(255, 255, 255, 0.9) !important;
+      border-color: rgba(17, 24, 39, 0.08) !important;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02) !important;
+    }
+    .tenant-infinity .stamp-cell.empty {
+      background: rgba(255, 255, 255, 0.5) !important;
+      border-color: rgba(17, 24, 39, 0.06) !important;
+    }
+    .tenant-infinity .stamp-cell.filled {
+      background: #111827 !important;
+      border-color: #111827 !important;
+      box-shadow: 0 4px 10px rgba(17, 24, 39, 0.2) !important;
+    }
+    .tenant-infinity .stamp-cell.filled i {
+      color: #ffffff !important;
+    }
+    .tenant-infinity .stamp-cell.prize-filled {
+      background: rgba(17, 24, 39, 0.04) !important;
+      border-color: #111827 !important;
+      box-shadow: none !important;
+    }
+    .tenant-infinity .stamp-cell.prize-filled i {
+      color: #111827 !important;
+      filter: none !important;
+    }
+    .tenant-infinity #stampsBar {
+      background: #111827 !important;
+      box-shadow: 0 2px 8px rgba(17, 24, 39, 0.15) !important;
+    }
+
+    /* Next Reward & Premios */
+    .tenant-infinity .premio-icon { color: #111827 !important; }
+    .tenant-infinity #nextRewardText { color: #111827 !important; }
+    .tenant-infinity button[onclick="togglePremios()"] {
+      background: #111827 !important;
+      color: #FFFFFF !important;
+      border: 1px solid #111827 !important;
+      box-shadow: 0 4px 12px rgba(17, 24, 39, 0.15) !important;
+    }
+    .tenant-infinity button[onclick="togglePremios()"]:hover {
+      background: #374151 !important;
+      border-color: #374151 !important;
+    }
+
+    /* Perfil Visitas Card */
+    .tenant-infinity #perfilVisitasCard {
+      background-color: rgba(255, 255, 255, 0.8) !important;
+      backdrop-filter: blur(12px) !important;
+      -webkit-backdrop-filter: blur(12px) !important;
+      border-color: rgba(17, 24, 39, 0.06) !important;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02) !important;
+    }
+    .tenant-infinity #perfilServicio, .tenant-infinity #perfilBarbero { color: #111827 !important; }
+    .tenant-infinity .h-px.bg-white\\/5 { background-color: rgba(17, 24, 39, 0.06) !important; }
+
+    /* Featured Services & Products */
+    .tenant-infinity .service-card {
+      background: rgba(255, 255, 255, 0.8) !important;
+      backdrop-filter: blur(12px) !important;
+      -webkit-backdrop-filter: blur(12px) !important;
+      border: 1px solid rgba(17, 24, 39, 0.06) !important;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02) !important;
+    }
+    .tenant-infinity .service-card h4 { color: #111827 !important; }
+    .tenant-infinity .service-card p { color: #4B5563 !important; }
+
+    .tenant-infinity .bg-\\[\\#0d0d10\\] {
+      background-color: rgba(255, 255, 255, 0.8) !important;
+      backdrop-filter: blur(12px) !important;
+      -webkit-backdrop-filter: blur(12px) !important;
+      border-color: rgba(17, 24, 39, 0.08) !important;
+    }
+    .tenant-infinity .bg-\\[\\#1a1a1a\\] {
+      background-color: rgba(17, 24, 39, 0.04) !important;
+      border-color: rgba(17, 24, 39, 0.08) !important;
+    }
+
+    /* "Conoce al equipo" button */
+    .tenant-infinity button[onclick="abrirEquipoModal()"] {
+      background: rgba(255, 255, 255, 0.8) !important;
+      backdrop-filter: blur(12px) !important;
+      -webkit-backdrop-filter: blur(12px) !important;
+      border-color: rgba(17, 24, 39, 0.08) !important;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.01) !important;
+    }
+    .tenant-infinity button[onclick="abrirEquipoModal()"] .text-white { color: #111827 !important; }
+
+    /* Profile Tab & Forms */
+    .tenant-infinity #profileAvatar {
+      background: rgba(255, 255, 255, 0.9) !important;
+      border-color: #111827 !important;
+      box-shadow: 0 4px 14px rgba(17, 24, 39, 0.1) !important;
+    }
+    .tenant-infinity #profileName { color: #111827 !important; }
+    .tenant-infinity #profileVisitsCount, .tenant-infinity #profileStamps { color: #111827 !important; }
+
+    .tenant-infinity input.w-full {
+      background: rgba(255, 255, 255, 0.95) !important;
+      border-color: rgba(17, 24, 39, 0.12) !important;
+      color: #111827 !important;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.02) !important;
+    }
+    .tenant-infinity input.w-full::placeholder { color: #9CA3AF !important; }
+    .tenant-infinity input.w-full:focus {
+      border-color: #111827 !important;
+      box-shadow: 0 0 0 1px #111827 !important;
+    }
+    .tenant-infinity input[type="date"] { color-scheme: light !important; }
+    .tenant-infinity input#editEmail {
+      background: rgba(17, 24, 39, 0.03) !important;
+      color: #4B5563 !important;
+      border-color: rgba(17, 24, 39, 0.05) !important;
+    }
+
+    .tenant-infinity input:-webkit-autofill,
+    .tenant-infinity input:-webkit-autofill:hover,
+    .tenant-infinity input:-webkit-autofill:focus {
+      -webkit-box-shadow: 0 0 0 100px #FFFFFF inset !important;
+      -webkit-text-fill-color: #111827 !important;
+      caret-color: #111827 !important;
+    }
+
+    /* Action Buttons & FAB */
+    .tenant-infinity #btnGuardarPerfil {
+      background: #111827 !important;
+      color: #FFFFFF !important;
+      border-color: #111827 !important;
+      box-shadow: 0 4px 12px rgba(17, 24, 39, 0.15) !important;
+    }
+    .tenant-infinity #btnGuardarPerfil:hover {
+      background: #374151 !important;
+      border-color: #374151 !important;
+    }
+    .tenant-infinity button[onclick="signOut()"] {
+      background: rgba(255, 255, 255, 0.8) !important;
+      backdrop-filter: blur(8px) !important;
+      -webkit-backdrop-filter: blur(8px) !important;
+      border-color: rgba(17, 24, 39, 0.1) !important;
+      color: #4B5563 !important;
+    }
+    .tenant-infinity button[onclick="confirmDeleteAccount()"] {
+      background: #FEF2F2 !important;
+      border-color: #FECACA !important;
+      color: #DC2626 !important;
+    }
+
+    .tenant-infinity a[aria-label="Agendar Hora"] {
+      background: #111827 !important;
+      box-shadow: 0 6px 20px rgba(17, 24, 39, 0.25) !important;
+    }
+    .tenant-infinity a[aria-label="Agendar Hora"] i { color: #FFFFFF !important; }
+
+    /* Bottom Navigation Bar */
+    .tenant-infinity nav {
+      background-color: rgba(255, 255, 255, 0.85) !important;
+      backdrop-filter: blur(16px) !important;
+      -webkit-backdrop-filter: blur(16px) !important;
+      border-top-color: rgba(17, 24, 39, 0.06) !important;
+    }
+    .tenant-infinity .nav-tab .nav-icon, .tenant-infinity .nav-tab .nav-label { color: #6B7280 !important; }
+    .tenant-infinity .nav-tab.active .nav-icon, .tenant-infinity .nav-tab.active .nav-label {
+      color: #111827 !important;
+      filter: none !important;
+    }
+
+    /* Reagendar / Cancelar / Delete / Canje Modals */
+    .tenant-infinity #reagendarCitaModal > div,
+    .tenant-infinity #cancelCitaModal > div,
+    .tenant-infinity #deleteModal > div,
+    .tenant-infinity #canjeModal > div {
+      background-color: rgba(255, 255, 255, 0.95) !important;
+      backdrop-filter: blur(16px) !important;
+      -webkit-backdrop-filter: blur(16px) !important;
+      border-color: rgba(17, 24, 39, 0.08) !important;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.08) !important;
+    }
+    .tenant-infinity #btnConfirmarReagendamiento,
+    .tenant-infinity button[onclick="cerrarModalCanje()"] {
+      background: #111827 !important;
+      color: #FFFFFF !important;
+      box-shadow: none !important;
+    }
+    .tenant-infinity button[onclick="cerrarModalReagendar()"],
+    .tenant-infinity button[onclick="cerrarModalCancelar()"],
+    .tenant-infinity button[onclick="closeDeleteModal()"] {
+      background: rgba(255, 255, 255, 0.8) !important;
+      border-color: rgba(17, 24, 39, 0.1) !important;
+      color: #4B5563 !important;
+    }
+
+    .tenant-infinity .reagendar-proxima-btn {
+      border-color: rgba(17, 24, 39, 0.15) !important;
+      background: rgba(17, 24, 39, 0.03) !important;
+      color: #111827 !important;
+    }
+    .tenant-infinity .reagendar-hist-btn { color: rgba(17, 24, 39, 0.6) !important; }
+    .tenant-infinity .reagendar-hist-btn:hover { background: rgba(17, 24, 39, 0.04) !important; }
+    .tenant-infinity .proxima-estado-chip {
+      background: rgba(17, 24, 39, 0.06) !important;
+      color: #111827 !important;
+    }
+
+    /* Lookbook & Product Title Fonts */
+    .tenant-infinity #tabLookbook h2,
+    .tenant-infinity #tabProductos h2 {
+      color: #111827 !important;
+      font-family: system-ui, -apple-system, sans-serif !important;
+    }
+
+    /* Support Chat Widget & Popover */
+    .tenant-infinity #chatPopover {
+      background: rgba(255, 255, 255, 0.95) !important;
+      backdrop-filter: blur(16px) !important;
+      -webkit-backdrop-filter: blur(16px) !important;
+      border-color: rgba(17, 24, 39, 0.08) !important;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.1) !important;
+    }
+    .tenant-infinity #chatPopover [style*="background:#000"] {
+      background: #F4F4F5 !important;
+      border-color: rgba(17, 24, 39, 0.06) !important;
+    }
+    .tenant-infinity #chatHeaderNombre { color: #111827 !important; }
+    .tenant-infinity #chatMessages [style*="background:#1f2937"] {
+      background: #EFF4F8 !important;
+      color: #111827 !important;
+    }
+    .tenant-infinity #chatMessages [style*="background:#D4AF37"] {
+      background: #111827 !important;
+      color: #FFFFFF !important;
+    }
+    .tenant-infinity #chatInput {
+      background: #FFFFFF !important;
+      border-color: rgba(17, 24, 39, 0.1) !important;
+      color: #111827 !important;
+    }
+    .tenant-infinity #chatInput::placeholder { color: #9CA3AF !important; }
+    .tenant-infinity button[onclick="sendChatMessage()"] { background: #111827 !important; }
+    .tenant-infinity button[onclick="sendChatMessage()"] svg { fill: #FFFFFF !important; }
+
+    /* Modals (Producto, PWA iOS, Google Review) */
+    .tenant-infinity #productoModal { background: rgba(17, 24, 39, 0.4) !important; }
+    .tenant-infinity #productoModal > div {
+      background: rgba(255, 255, 255, 0.98) !important;
+      backdrop-filter: blur(16px) !important;
+      -webkit-backdrop-filter: blur(16px) !important;
+      border: 1px solid rgba(17, 24, 39, 0.08) !important;
+    }
+    .tenant-infinity #productoModal button.bg-black\/60 {
+      background: rgba(17, 24, 39, 0.06) !important;
+    }
+    .tenant-infinity #productoModal button.bg-black\/60 i { color: #111827 !important; }
+
+    .tenant-infinity #pwaModalIOS { background: rgba(17, 24, 39, 0.4) !important; }
+    .tenant-infinity #pwaModalIOS > div {
+      background: rgba(255, 255, 255, 0.98) !important;
+      backdrop-filter: blur(16px) !important;
+      -webkit-backdrop-filter: blur(16px) !important;
+      border-color: rgba(17, 24, 39, 0.08) !important;
+    }
+    .tenant-infinity #pwaModalIOS h3 { color: #111827 !important; }
+    .tenant-infinity #pwaModalIOS p  { color: #4B5563 !important; }
+    .tenant-infinity #pwaModalIOS strong { color: #111827 !important; }
+    .tenant-infinity #pwaModalIOS [style*="rgba(255,255,255,0.05)"] {
+      background: rgba(17, 24, 39, 0.03) !important;
+    }
+    .tenant-infinity #pwaModalIOS > div > button {
+      color: #4B5563 !important;
+      border-color: rgba(17, 24, 39, 0.08) !important;
+    }
+
+    .tenant-infinity #googleReviewModal { background: rgba(17, 24, 39, 0.4) !important; }
+    .tenant-infinity #googleReviewModal > div {
+      background: rgba(255, 255, 255, 0.98) !important;
+      backdrop-filter: blur(16px) !important;
+      -webkit-backdrop-filter: blur(16px) !important;
+      border-color: rgba(17, 24, 39, 0.08) !important;
+    }
+    .tenant-infinity #googleReviewModal [style*="rgba(201,168,76"] { background: rgba(17, 24, 39, 0.03) !important; }
+    .tenant-infinity #googleReviewModal .text-white { color: #111827 !important; }
+    .tenant-infinity #googleReviewModal p { color: #4B5563 !important; }
+
+    /* Other specific UI Overrides */
+    .tenant-infinity .border-neon {
+      border-color: #111827 !important;
+      box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.05) !important;
+    }
+    .tenant-infinity #premiosSection h3 { color: #4B5563 !important; }
+    .tenant-infinity #sfNoPhoto p:last-child { color: rgba(17, 24, 39, 0.3) !important; }
+
+    /* Modal backdrops overrides to white glassmorphism / luminous overlays */
+    .tenant-infinity #reagendarCitaModal,
+    .tenant-infinity #cancelCitaModal,
+    .tenant-infinity #deleteModal,
+    .tenant-infinity #canjeModal {
+      background: rgba(17, 24, 39, 0.25) !important;
+      backdrop-filter: blur(8px) !important;
+      -webkit-backdrop-filter: blur(8px) !important;
+    }
+    .tenant-infinity #equipoModal > div:first-child {
+      background: rgba(17, 24, 39, 0.25) !important;
+      backdrop-filter: blur(8px) !important;
+      -webkit-backdrop-filter: blur(8px) !important;
+    }
+    .tenant-infinity button[onclick="cerrarEquipoModal()"] {
+      background: rgba(17, 24, 39, 0.05) !important;
+      border-color: rgba(17, 24, 39, 0.08) !important;
+    }
+    .tenant-infinity button[onclick="cerrarEquipoModal()"] i {
+      color: #111827 !important;
+    }
+    .tenant-infinity #equipoModal .bg-white\/15 {
+      background-color: rgba(17, 24, 39, 0.15) !important;
+    }
+
+    /* Chat Toggle overrides */
+    .tenant-infinity #chatToggleBtn {
+      background: #111827 !important;
+      box-shadow: 0 4px 14px rgba(17, 24, 39, 0.2) !important;
+    }
+    .tenant-infinity #chatToggleBtn svg {
+      fill: #FFFFFF !important;
+    }
+    .tenant-infinity #chatToggleBtn svg path {
+      fill: #FFFFFF !important;
+    }
+    .tenant-infinity #chatUnreadDot {
+      border-color: #ffffff !important;
+    }
+
+    /* GPU-Accelerated Shimmer & Floating Animations specifically for Infinity Dashboard */
+    @keyframes infinity-shimmer {
+      0%   { transform: translate3d(-130%, 0, 0) skewX(-12deg); }
+      100% { transform: translate3d(230%, 0, 0) skewX(-12deg); }
+    }
+    @keyframes float-infinity-slow {
+      0% { transform: translate3d(0, 0, 0) rotate(0deg) scale(1); }
+      100% { transform: translate3d(40px, -60px, 0) rotate(15deg) scale(1.15); }
+    }
+    @keyframes float-infinity-fast {
+      0% { transform: translate3d(0, 0, 0) rotate(0deg) scale(1); }
+      100% { transform: translate3d(-50px, -80px, 0) rotate(-25deg) scale(0.9); }
+    }
+    .tenant-infinity .membership-pattern::after {
+      content: '';
+      position: absolute;
+      top: -10%;
+      left: 0;
+      width: 45%;
+      height: 120%;
+      background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255,255,255,0.4) 50%,
+        transparent 100%
+      );
+      animation: infinity-shimmer 6s ease-in-out 1s infinite;
+      pointer-events: none;
+      will-change: transform;
+    }
+
     /* ─────────────────────────────────────────────────────────────── */
 
     /* ========================================== */
@@ -1889,6 +2465,88 @@
       border-color: rgba(216, 180, 254, 0.4) !important;
       background: linear-gradient(135deg, rgba(216, 180, 254, 0.15) 0%, rgba(216, 180, 254, 0.03) 100%) !important;
       box-shadow: 0 2px 12px rgba(216, 180, 254, 0.15);
+    }
+
+    /* =============================================================== */
+    /*   INFINITY DASHBOARD OUT-OF-PLACE DARK ELEMENT & GOLD OVERRIDES   */
+    /* =============================================================== */
+
+    /* Global Utility overrides */
+    .tenant-infinity .bg-gray-900 { background-color: rgba(255, 255, 255, 0.95) !important; }
+    .tenant-infinity .bg-gray-800 { background-color: #ffffff !important; }
+    .tenant-infinity .bg-gray-700 { background-color: #F4F4F5 !important; }
+    .tenant-infinity .bg-white\\/10 { background-color: rgba(17, 24, 39, 0.08) !important; }
+    .tenant-infinity .bg-white\\/15 { background-color: rgba(17, 24, 39, 0.15) !important; }
+    .tenant-infinity .text-white\\/20 { color: rgba(17, 24, 39, 0.25) !important; }
+    .tenant-infinity .text-white\\/10 { color: rgba(17, 24, 39, 0.15) !important; }
+    .tenant-infinity .border-gray-600,
+    .tenant-infinity .border-gray-700,
+    .tenant-infinity .border-gray-800 { border-color: rgba(17, 24, 39, 0.08) !important; }
+
+    /* PWA Install Banner overrides */
+    .tenant-infinity #pwaBanner {
+      background: rgba(255, 255, 255, 0.95) !important;
+      backdrop-filter: blur(16px) !important;
+      -webkit-backdrop-filter: blur(16px) !important;
+      border-color: rgba(17, 24, 39, 0.08) !important;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(17, 24, 39, 0.02) !important;
+    }
+    .tenant-infinity #pwaBanner p { color: #111827 !important; }
+    .tenant-infinity #pwaBanner p.text-white\\/50 { color: #4B5563 !important; }
+    .tenant-infinity #pwaBtnInstall {
+      background: #111827 !important;
+      color: #FFFFFF !important;
+    }
+    .tenant-infinity #pwaBanner button[onclick="cerrarBannerPWA()"] {
+      background-color: rgba(17, 24, 39, 0.04) !important;
+      color: #4B5563 !important;
+    }
+
+    /* Product Modal overrides */
+    .tenant-infinity #productoModalPrecio { color: #111827 !important; }
+    .tenant-infinity #btnReservarProducto {
+      background: #111827 !important;
+      color: #FFFFFF !important;
+    }
+    .tenant-infinity #btnReservarProducto:hover { background: #374151 !important; }
+
+    /* Cross-Sell Banners overrides */
+    .tenant-infinity [style*="linear-gradient(to right,#111115"] {
+      background: linear-gradient(to right, rgba(17, 24, 39, 0.04), rgba(17, 24, 39, 0.01)) !important;
+      border-color: rgba(17, 24, 39, 0.08) !important;
+    }
+    .tenant-infinity [style*="linear-gradient(to right,#111115"] p[style*="rgba(212,175,55"] { color: #4B5563 !important; }
+    .tenant-infinity [style*="linear-gradient(to right,#111115"] p.text-gray-300 { color: #4B5563 !important; }
+    .tenant-infinity [style*="linear-gradient(to right,#111115"] button[style*="background:#D4AF37"] {
+      background: #111827 !important;
+      color: #FFFFFF !important;
+    }
+
+    /* Google Review Modal overrides */
+    .tenant-infinity #googleReviewBtn {
+      background: #111827 !important;
+      color: #FFFFFF !important;
+    }
+    .tenant-infinity button[onclick="cerrarGoogleReviewModal(false)"] {
+      border-color: rgba(17, 24, 39, 0.08) !important;
+      color: #4B5563 !important;
+    }
+
+    /* Canje Modal overrides */
+    .tenant-infinity #canjeModal [style*="rgba(212,175,55"] {
+      background: rgba(17, 24, 39, 0.04) !important;
+      border-color: rgba(17, 24, 39, 0.08) !important;
+    }
+    .tenant-infinity #canjeModal [style*="color:#D4AF37"] { color: #111827 !important; }
+    .tenant-infinity #canjeModal #canjeModalTitle { color: #111827 !important; }
+    .tenant-infinity #canjeModal .bg-\\[\\#1a1a1f\\] {
+      background: #F4F4F5 !important;
+      border-color: rgba(17, 24, 39, 0.08) !important;
+    }
+    .tenant-infinity #canjeModal p.text-gray-300 { color: #4B5563 !important; }
+    .tenant-infinity #canjeModal button[style*="background:#D4AF37"] {
+      background: #111827 !important;
+      color: #FFFFFF !important;
     }
   </style>
 
@@ -2906,7 +3564,9 @@ function dispararConfetti() {
     ? ['#C9A050', '#06b6d4', '#67e8f9', '#ffffff', '#0891b2']
     : window.CURRENT_TENANT_ID === 'aura'
       ? ['#9CA3AF', '#00285E', '#ffffff', '#8E9399', '#D4D4D8']
-      : ['#c9a84c', '#f0d080', '#ffffff', '#e8c060', '#ffd700'];
+      : window.CURRENT_TENANT_ID === 'infinity'
+        ? ['#ffffff', '#f3f4f6', '#4b5563', '#111827', '#9ca3af']
+        : ['#c9a84c', '#f0d080', '#ffffff', '#e8c060', '#ffd700'];
   confetti({ particleCount: 90, spread: 70, origin: { y: 0.55 }, colors, ticks: 220, scalar: 1.1 });
   setTimeout(() => {
     confetti({ particleCount: 45, spread: 80, angle: 60,  origin: { x: 0.15, y: 0.5 }, colors });
@@ -3777,132 +4437,6 @@ async function cargarCitasUsuario(user) {
     console.warn('[Perfil] Error cargando citas en tiempo real:', err.message);
     contenedor.innerHTML = `<p class="text-xs text-gray-600 text-center py-4">No se pudieron cargar las citas en tiempo real.</p>`;
   });
-}ModalCancelar('${proxima.id}')"
-              class="flex items-center justify-center gap-1.5 text-red-400/80 text-xs font-semibold py-2 rounded-xl border border-red-500/20 bg-red-950/20 active:scale-[0.98] transition-all hover:bg-red-950/40">
-              <i class="ph-bold ph-x-circle text-sm"></i> Cancelar
-            </button>
-          </div>
-        </div>`;
-    } else {
-      html += `
-        <div class="mb-3 bg-zinc-900 rounded-2xl px-5 py-4 flex items-center gap-3">
-          <i class="ph-fill ph-calendar-blank text-2xl text-white/20"></i>
-          <div>
-            <p class="text-sm font-bold text-white/50">Sin próximas citas</p>
-            <a href="index.html" class="text-xs font-bold" style="color:var(--gold);">Reservar ahora →</a>
-          </div>
-        </div>`;
-    }
-
-    // ─ Stats ─
-    html += `
-      <div class="grid grid-cols-3 gap-2 mb-3">
-        <div class="bg-zinc-900 rounded-2xl px-3 py-3 text-center">
-          <p class="text-2xl font-black text-white">${total}</p>
-          <p class="text-[9px] text-zinc-500 uppercase tracking-widest mt-1">Total</p>
-        </div>
-        <div class="bg-zinc-900 rounded-2xl px-3 py-3 text-center">
-          <p class="text-2xl font-black" style="color:var(--gold);">${futuras.length}</p>
-          <p class="text-[9px] text-zinc-500 uppercase tracking-widest mt-1">Próximas</p>
-        </div>
-        <div class="bg-zinc-900 rounded-2xl px-3 py-3 text-center">
-          <p class="text-2xl font-black text-white/50">${completadas}</p>
-          <p class="text-[9px] text-zinc-500 uppercase tracking-widest mt-1">Completadas</p>
-        </div>
-      </div>`;
-
-    // ─ Historial ─
-    html += `<div class="space-y-2">`;
-    for (const c of sorted.slice(0, 8)) {
-      const esFutura = futuras.some(f => f.id === c.id);
-      const iconE = c.estado === 'Completada' ? 'ph-check-circle'
-                  : c.estado === 'Cancelada'  ? 'ph-x-circle'
-                  : 'ph-clock';
-      const iconColor = c.estado === 'Completada' ? 'style="color:var(--gold);" cita-estado-completada'
-                      : c.estado === 'Cancelada'  ? 'class="text-red-400 cita-estado-cancelada"'
-                      : 'class="text-zinc-500 cita-estado-pendiente"';
-      const estadoBadge = c.estado === 'Cancelada'
-        ? `<span class="shrink-0 text-[9px] font-bold uppercase px-2 py-0.5 rounded-md bg-red-500/10 text-red-400 cita-estado-cancelada">${c.estado}</span>`
-        : c.estado === 'Completada'
-        ? `<span class="shrink-0 text-[9px] font-bold uppercase px-2 py-0.5 rounded-md cita-estado-completada" style="background:var(--gold-glow);color:var(--gold);">${c.estado}</span>`
-        : `<span class="shrink-0 text-[9px] font-bold uppercase px-2 py-0.5 rounded-md bg-white/6 text-zinc-400 cita-estado-pendiente">${c.estado || 'Agendada'}</span>`;
-      const cancelBtn = esFutura
-        ? `<div class="flex gap-1 shrink-0">
-             <button onclick="abrirModalReagendar('${c.id}')" title="Reagendar cita"
-               class="reagendar-hist-btn w-7 h-7 rounded-lg flex items-center justify-center transition-all active:scale-90">
-               <i class="ph-bold ph-calendar-dots text-sm"></i>
-             </button>
-             <button onclick="abrirModalCancelar('${c.id}')" title="Cancelar cita"
-               class="w-7 h-7 rounded-lg flex items-center justify-center text-red-400/60 hover:text-red-400 hover:bg-red-950/30 transition-all active:scale-90">
-               <i class="ph-bold ph-x text-sm"></i>
-             </button>
-           </div>`
-        : '';
-
-      html += `
-        <div class="bg-zinc-900 rounded-xl px-4 py-3 flex items-center gap-3">
-          <i class="ph-fill ${iconE} text-lg shrink-0" ${iconColor}></i>
-          <div class="flex-1 min-w-0">
-            <p class="text-sm font-semibold text-white truncate">${c.servicioNombre || 'Servicio'}</p>
-            <p class="text-xs text-zinc-500">${formatearFechaCita(c.fecha)} · ${c.hora}</p>
-          </div>
-          ${estadoBadge}
-          ${cancelBtn}
-        </div>`;
-    }
-    html += `</div>`;
-
-    // ─ Banner cross-selling post-cita ─
-    if (_isProductsEnabled && completadas > 0) {
-      html += `
-        <div class="mt-4 p-4 rounded-xl flex items-center justify-between gap-3"
-             style="background:linear-gradient(to right,#111115,#0a0a0d);border:1px solid rgba(212,175,55,0.28);">
-          <div class="flex-1 min-w-0">
-            <p class="text-[10px] font-black uppercase tracking-widest mb-1" style="color:rgba(212,175,55,0.6);">Para tu próxima cita</p>
-            <p class="text-xs text-gray-300 leading-snug">Mantén tu estilo como el primer día. Descubre nuestras ceras y pomadas.</p>
-          </div>
-          <button onclick="switchTab('productos')"
-            class="shrink-0 px-3 py-2 rounded-lg text-xs font-bold text-black active:scale-95 transition-all"
-            style="background:#D4AF37;">Ver Tienda</button>
-        </div>`;
-    }
-
-    contenedor.innerHTML = html;
-
-    // ─ Perfil de visitas ─
-    try {
-      const completadasArr = citas.filter(c => c.estado === 'Completada');
-      if (completadasArr.length > 0) {
-        const svcCount = {}, barCount = {};
-        completadasArr.forEach(c => {
-          if (c.servicioNombre) svcCount[c.servicioNombre] = (svcCount[c.servicioNombre] || 0) + 1;
-          if (c.barbero)        barCount[c.barbero]        = (barCount[c.barbero]        || 0) + 1;
-        });
-        const topSvc = Object.entries(svcCount).sort((a,b) => b[1]-a[1])[0]?.[0];
-        const topBar = Object.entries(barCount).sort((a,b) => b[1]-a[1])[0]?.[0];
-        if (topSvc || topBar) {
-          try {
-            await FDB.usersCol().doc(user.uid).update({
-              servicioFrecuente: topSvc || null,
-              barberoFrecuente:  topBar || null,
-            });
-          } catch (_) {}
-          const card = document.getElementById('perfilVisitasCard');
-          if (card) {
-            const el = document.getElementById('perfilServicio');
-            const eb = document.getElementById('perfilBarbero');
-            if (el) el.textContent = topSvc || '—';
-            if (eb) eb.textContent = topBar || '—';
-            card.classList.remove('hidden');
-          }
-        }
-      }
-    } catch (_) {}
-
-  } catch (e) {
-    console.warn('[Perfil] Error cargando citas:', e.message);
-    contenedor.innerHTML = `<p class="text-xs text-gray-600 text-center py-4">No se pudieron cargar las citas.</p>`;
-  }
 }
 
 function formatearFechaCita(fechaStr) {

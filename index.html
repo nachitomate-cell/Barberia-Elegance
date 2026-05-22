@@ -3610,6 +3610,7 @@
       font-weight: 300 !important;
       z-index: 0 !important;
       pointer-events: none !important;
+      will-change: transform !important;
       animation: float-infinity-slow 22s ease-in-out infinite alternate !important;
     }
     .tenant-infinity::after {
@@ -3622,6 +3623,7 @@
       font-weight: 300 !important;
       z-index: 0 !important;
       pointer-events: none !important;
+      will-change: transform !important;
       animation: float-infinity-fast 28s ease-in-out infinite alternate !important;
     }
     .tenant-infinity body {
@@ -3630,8 +3632,7 @@
         radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 1) 0%, rgba(243, 244, 246, 0.4) 100%),
         radial-gradient(circle at 10% 40%, rgba(255,255,255,1) 0%, rgba(249,250,251,0.7) 50%, transparent 100%),
         radial-gradient(circle at 90% 80%, rgba(255,255,255,1) 0%, rgba(243,244,246,0.6) 50%, transparent 100%) !important;
-      background-size: 200% 200% !important;
-      animation: infinity-bg-flow 15s ease infinite !important;
+      background-size: cover !important;
       color: #111827 !important;
       position: relative;
     }
@@ -4133,12 +4134,12 @@
       50% { background-position: 100% 50%; }
     }
     @keyframes float-infinity-slow {
-      0% { transform: translate(0, 0) rotate(0deg) scale(1); }
-      100% { transform: translate(40px, -60px) rotate(15deg) scale(1.15); }
+      0% { transform: translate3d(0, 0, 0) rotate(0deg) scale(1); }
+      100% { transform: translate3d(40px, -60px, 0) rotate(15deg) scale(1.15); }
     }
     @keyframes float-infinity-fast {
-      0% { transform: translate(0, 0) rotate(0deg) scale(1); }
-      100% { transform: translate(-50px, -80px) rotate(-25deg) scale(0.9); }
+      0% { transform: translate3d(0, 0, 0) rotate(0deg) scale(1); }
+      100% { transform: translate3d(-50px, -80px, 0) rotate(-25deg) scale(0.9); }
     }
     @keyframes progress-glow-sweep {
       0% { transform: translateX(-100%); }
