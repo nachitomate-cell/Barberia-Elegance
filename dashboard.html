@@ -2555,6 +2555,7 @@ let userStamps      = 0;
 let activeTab       = 'loyalty';
 let _premiosDynamic = [];
 let _userUnsub      = null;
+let _citasUnsub     = null;
 let _premiosUnsub   = null;
 let _lookbookUnsub  = null;
 let _sfUnsub        = null;
@@ -2635,6 +2636,7 @@ document.getElementById('shopClubName').textContent   = SHOP.club;
 auth.onAuthStateChanged(async user => {
   if (!user) {
     if (_userUnsub)     { _userUnsub();     _userUnsub     = null; }
+    if (_citasUnsub)    { _citasUnsub();    _citasUnsub    = null; }
     if (_premiosUnsub)  { _premiosUnsub();  _premiosUnsub  = null; }
     if (_lookbookUnsub) { _lookbookUnsub(); _lookbookUnsub = null; }
     if (_sfUnsub)       { _sfUnsub();       _sfUnsub       = null; }
@@ -3548,256 +3550,234 @@ async function revisarProximaCita() {
   const NOTIF_KEY = 'notif_sent_ids';
   const enviados  = JSON.parse(localStorage.getItem(NOTIF_KEY) || '[]');
 
-  for (const c of citas) {
-    const doc = { id: c.id, data: () => c };
-    if (c.estado === 'Cancelada') continue;
-    if (!fechas.includes(c.fecha)) continue;
-    if (enviados.includes(c.id)) continue;
-
-    const [hh, mm]  = (c.hora || '00:00').split(':').map(Number);
-    const [yy, mo, dd] = (c.fecha || '').split('-').map(Number);
-    const citaDate  = new Date(yy, mo - 1, dd, hh, mm);
-    const diffMin   = (citaDate - ahora) / 60000;
-
-    // Enviar notificación si faltan entre 25 y 35 minutos
-    if (diffMin >= 25 && diffMin <= 35) {
-      new Notification(`⏰ Tu cita se acerca — ${SHOP.nombreCorto}`, {
-        body:  `Tienes cita a las ${c.hora} (${c.servicioNombre || 'servicio'} con ${c.barbero || 'tu profesional'}). ¡Nos vemos pronto!`,
-        icon:  '/icons/icon-192.png',
-        badge: '/icons/icon-192.png',
-        tag:   c.id
-      });
-      enviados.push(c.id);
-      localStorage.setItem(NOTIF_KEY, JSON.stringify(enviados));
-    }
-  }
-}
-
-// ────────────────────────────────────────────────────────────────
-//  REAGENDAMIENTO DE CITAS
-// ────────────────────────────────────────────────────────────────
-let _reagendarTarget = null;
-
-function abrirModalReagendar(id) {
-  const c = _citaCache[id];
-  if (!c) return;
-  _reagendarTarget = id;
-  const fechaStr = formatearFechaCita(c.fecha);
-  document.getElementById('reagendarCitaInfo').innerHTML = `
-    <p class="text-sm font-black text-white">${c.servicioNombre || 'Servicio'}</p>
-    <p class="text-xs text-gray-400 mt-0.5">${c.barbero || ''} · ${c.hora} hrs · ${fechaStr}</p>`;
-  document.getElementById('reagendarCitaModal').classList.remove('hidden');
-}
-
-function cerrarModalReagendar() {
-  document.getElementById('reagendarCitaModal').classList.add('hidden');
-  _reagendarTarget = null;
-}
-
-async function confirmarReagendamiento() {
-  if (!_reagendarTarget) return;
-  const btn = document.getElementById('btnConfirmarReagendamiento');
-  btn.disabled    = true;
-  btn.textContent = 'Procesando...';
-  try {
-    await FDB.updateCitaEstado(_reagendarTarget, 'Cancelada');
-    cerrarModalReagendar();
-    window.location.href = 'index.html';
-  } catch (e) {
-    showToast('Error al reagendar. Intenta de nuevo.', 'err');
-    btn.disabled    = false;
-    btn.textContent = 'Sí, elegir nuevo horario';
-  }
-}
-
-// ────────────────────────────────────────────────────────────────
-//  DEEP LINK — recordatorio push (accion=confirmar|cancelar)
-// ────────────────────────────────────────────────────────────────
-async function manejarDeepLinkRecordatorio() {
-  const params   = new URLSearchParams(window.location.search);
-  const accion   = params.get('accion');
-  const citaId   = params.get('citaId');
-  if (!accion || !citaId) return;
-
-  // Limpiar params de la URL sin recargar
-  history.replaceState({}, '', window.location.pathname);
-
-  if (accion === 'confirmar') {
-    try {
-      await FDB.updateCitaEstado(citaId, 'Confirmada');
-      showToast('¡Cita confirmada! Nos vemos mañana 🙌', 'ok');
-      cargarCitasUsuario(currentUser);
-    } catch (e) {
-      showToast('No se pudo confirmar la cita. Intenta de nuevo.', 'err');
-    }
-    return;
-  }
-
-  if (accion === 'cancelar') {
-    try {
-      const snap = await FDB.citasCol().doc(citaId).get();
-      if (!snap.exists) { showToast('Cita no encontrada.', 'err'); return; }
-      _citaCache[citaId] = { id: citaId, ...snap.data() };
-      abrirModalCancelar(citaId);
-    } catch (e) {
-      showToast('No se pudo cargar la cita. Intenta de nuevo.', 'err');
-    }
-  }
-}
-
-// ────────────────────────────────────────────────────────────────
-//  CANCELACIÓN DE CITAS
-// ────────────────────────────────────────────────────────────────
-let _cancelTarget = null;
-const _citaCache  = {};
-
-function abrirModalCancelar(id) {
-  const c = _citaCache[id];
-  if (!c) return;
-  _cancelTarget = id;
-
-  const fechaStr = formatearFechaCita(c.fecha);
-  const [yy, mo, dd] = (c.fecha || '').split('-').map(Number);
-  const [hh, mm]     = (c.hora  || '00:00').split(':').map(Number);
-  const diffH = (new Date(yy, mo - 1, dd, hh, mm) - new Date()) / 3600000;
-  const aviso = diffH < 4
-    ? `<p class="text-[10px] text-amber-400 mt-2">La cita es pronto — avisa al local por WhatsApp también.</p>`
-    : '';
-
-  document.getElementById('cancelCitaInfo').innerHTML = `
-    <p class="text-sm font-black text-white">${c.servicioNombre || 'Servicio'}</p>
-    <p class="text-xs text-gray-400 mt-0.5">${c.barbero || ''} · ${c.hora} hrs · ${fechaStr}</p>
-    ${aviso}`;
-
-  document.getElementById('cancelCitaModal').classList.remove('hidden');
-}
-
-function cerrarModalCancelar() {
-  document.getElementById('cancelCitaModal').classList.add('hidden');
-  _cancelTarget = null;
-}
-
-async function confirmarCancelacion() {
-  if (!_cancelTarget) return;
-  const btn = document.getElementById('btnConfirmarCancelacion');
-  btn.disabled    = true;
-  btn.textContent = 'Cancelando...';
-  try {
-    await FDB.updateCitaEstado(_cancelTarget, 'Cancelada');
-    cerrarModalCancelar();
-    showToast('Cita cancelada', 'ok');
-    cargarCitasUsuario(currentUser);
-  } catch (e) {
-    showToast('Error al cancelar. Intenta de nuevo.', 'err');
-  } finally {
-    btn.disabled    = false;
-    btn.textContent = 'Sí, cancelar mi cita';
-  }
-}
-
-// ────────────────────────────────────────────────────────────────
-//  CITAS DEL USUARIO EN MI PERFIL
-// ────────────────────────────────────────────────────────────────
 async function cargarCitasUsuario(user) {
+  if (_citasUnsub) { _citasUnsub(); _citasUnsub = null; }
+
   const contenedor = document.getElementById('profileCitasContent');
   if (!contenedor) return;
 
   contenedor.innerHTML = `<div class="flex justify-center py-6"><div class="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div></div>`;
 
-  try {
-    const citas = await FDB.getCitasByCliente(user.email, user.uid);
+  _citasUnsub = FDB.onCitasByClienteChange(user.email, user.uid, async (citas) => {
+    try {
+      // Autocomplete: citas encontradas por clienteId sin email → parchear en Firestore
+      const citasSinEmail = citas.filter(c => c.clienteId === user.uid && !c.clienteEmail);
+      if (citasSinEmail.length) {
+        let perfilNombre = '', perfilTelefono = '';
+        try {
+          const usnap = await FDB.usersCol().doc(user.uid).get();
+          if (usnap.exists) {
+            perfilNombre   = usnap.data().nombre   || '';
+            perfilTelefono = usnap.data().telefono || '';
+          }
+        } catch (_) {}
+        await Promise.all(citasSinEmail.map(c => {
+          const patch = { clienteEmail: user.email };
+          if (!c.clienteNombre   && perfilNombre)   patch.clienteNombre   = perfilNombre;
+          if (!c.clienteTelefono && perfilTelefono) patch.clienteTelefono = perfilTelefono;
+          // refleja los cambios en el array local también
+          Object.assign(c, patch);
+          return FDB.citasCol().doc(c.id).update(patch);
+        }));
+      }
 
-    // Autocomplete: citas encontradas por clienteId sin email → parchear en Firestore
-    const citasSinEmail = citas.filter(c => c.clienteId === user.uid && !c.clienteEmail);
-    if (citasSinEmail.length) {
-      let perfilNombre = '', perfilTelefono = '';
-      try {
-        const usnap = await FDB.usersCol().doc(user.uid).get();
-        if (usnap.exists) {
-          perfilNombre   = usnap.data().nombre   || '';
-          perfilTelefono = usnap.data().telefono || '';
-        }
-      } catch (_) {}
-      await Promise.all(citasSinEmail.map(c => {
-        const patch = { clienteEmail: user.email };
-        if (!c.clienteNombre   && perfilNombre)   patch.clienteNombre   = perfilNombre;
-        if (!c.clienteTelefono && perfilTelefono) patch.clienteTelefono = perfilTelefono;
-        // refleja los cambios en el array local también
-        Object.assign(c, patch);
-        return FDB.citasCol().doc(c.id).update(patch);
-      }));
-    }
+      if (!citas.length) {
+        contenedor.innerHTML = `
+          <div class="bg-zinc-900 rounded-2xl px-5 py-8 text-center">
+            <i class="ph-fill ph-calendar-x text-4xl text-white/10 mb-3 block"></i>
+            <p class="text-sm text-zinc-500">Aún no tienes citas registradas.<br>¡Reserva tu primera cita!</p>
+            <a href="index.html" class="btn-reservar inline-block mt-5 px-5 py-2.5 rounded-xl text-xs font-bold" style="background:var(--gold);color:#050505;">Reservar ahora</a>
+          </div>`;
+        return;
+      }
 
-    if (!citas.length) {
-      contenedor.innerHTML = `
-        <div class="bg-zinc-900 rounded-2xl px-5 py-8 text-center">
-          <i class="ph-fill ph-calendar-x text-4xl text-white/10 mb-3 block"></i>
-          <p class="text-sm text-zinc-500">Aún no tienes citas registradas.<br>¡Reserva tu primera cita!</p>
-          <a href="index.html" class="btn-reservar inline-block mt-5 px-5 py-2.5 rounded-xl text-xs font-bold" style="background:var(--gold);color:#050505;">Reservar ahora</a>
-        </div>`;
-      return;
-    }
+      // Poblar caché para el modal
+      citas.forEach(c => { _citaCache[c.id] = c; });
 
-    // Poblar caché para el modal
-    citas.forEach(c => { _citaCache[c.id] = c; });
+      // Mostrar prompt de Google si hay una cita recién completada
+      const citaGoogleReview = citas.find(c => c.pendingGoogleReview === true);
+      if (citaGoogleReview) {
+        setTimeout(() => mostrarGoogleReviewModal(citaGoogleReview.id), 1200);
+      }
 
-    // Mostrar prompt de Google si hay una cita recién completada
-    const citaGoogleReview = citas.find(c => c.pendingGoogleReview === true);
-    if (citaGoogleReview) {
-      setTimeout(() => mostrarGoogleReviewModal(citaGoogleReview.id), 1200);
-    }
+      const ahora   = new Date();
+      const sorted  = [...citas].sort((a, b) =>
+        (b.fecha || '').localeCompare(a.fecha || '') || (b.hora || '').localeCompare(a.hora || ''));
 
-    const ahora   = new Date();
-    const sorted  = [...citas].sort((a, b) =>
-      (b.fecha || '').localeCompare(a.fecha || '') || (b.hora || '').localeCompare(a.hora || ''));
+      const futuras = citas.filter(c => {
+        const [yy, mo, dd] = (c.fecha || '').split('-').map(Number);
+        const [hh, mmm]    = (c.hora  || '00:00').split(':').map(Number);
+        return new Date(yy, mo - 1, dd, hh, mmm) > ahora && c.estado !== 'Cancelada';
+      }).sort((a, b) => a.fecha.localeCompare(b.fecha) || a.hora.localeCompare(b.hora));
 
-    const futuras = citas.filter(c => {
-      const [yy, mo, dd] = (c.fecha || '').split('-').map(Number);
-      const [hh, mmm]    = (c.hora  || '00:00').split(':').map(Number);
-      return new Date(yy, mo - 1, dd, hh, mmm) > ahora && c.estado !== 'Cancelada';
-    }).sort((a, b) => a.fecha.localeCompare(b.fecha) || a.hora.localeCompare(b.hora));
+      const proxima    = futuras[0] || null;
+      const total      = citas.length;
+      const completadas = citas.filter(c => c.estado === 'Completada').length;
+      let html = '';
 
-    const proxima    = futuras[0] || null;
-    const total      = citas.length;
-    const completadas = citas.filter(c => c.estado === 'Completada').length;
-    let html = '';
+      // ─ Tarjeta próxima cita ─
+      if (proxima) {
+        const fechaStr = formatearFechaCita(proxima.fecha);
+        const [_fy, _fm, _fd] = proxima.fecha.split('-').map(Number);
+        const [_fh, _fmin]    = proxima.hora.split(':').map(Number);
+        const diffMs  = new Date(_fy, _fm - 1, _fd, _fh, _fmin) - ahora;
+        const diffH   = Math.round(diffMs / 3600000);
+        const diffD   = Math.floor(diffMs / 86400000);
+        const enTiempo = diffH <= 2
+          ? `<span class="text-red-400 font-bold">¡En ${diffH <= 0 ? 'menos de 1h' : diffH + 'h'}!</span>`
+          : diffD === 0 ? `<span style="color:var(--gold)" class="font-bold">Hoy</span>`
+          : diffD === 1 ? `<span style="color:var(--gold)" class="font-bold">Mañana</span>`
+          : `En ${diffD} días`;
 
-    // ─ Tarjeta próxima cita ─
-    if (proxima) {
-      const fechaStr = formatearFechaCita(proxima.fecha);
-      const [_fy, _fm, _fd] = proxima.fecha.split('-').map(Number);
-      const [_fh, _fmin]    = proxima.hora.split(':').map(Number);
-      const diffMs  = new Date(_fy, _fm - 1, _fd, _fh, _fmin) - ahora;
-      const diffH   = Math.round(diffMs / 3600000);
-      const diffD   = Math.floor(diffMs / 86400000);
-      const enTiempo = diffH <= 2
-        ? `<span class="text-red-400 font-bold">¡En ${diffH <= 0 ? 'menos de 1h' : diffH + 'h'}!</span>`
-        : diffD === 0 ? `<span style="color:var(--gold)" class="font-bold">Hoy</span>`
-        : diffD === 1 ? `<span style="color:var(--gold)" class="font-bold">Mañana</span>`
-        : `En ${diffD} días`;
+        html += `
+          <div class="mb-3 rounded-2xl p-4 relative overflow-hidden" style="background:linear-gradient(135deg,rgba(201,168,76,0.1),rgba(201,168,76,0.04));border:1px solid rgba(201,168,76,0.35);">
+            <div class="absolute -right-4 -top-4 w-20 h-20 rounded-full blur-xl" style="background:rgba(201,168,76,0.1);"></div>
+            <p class="text-[9px] font-black uppercase tracking-widest mb-2" style="color:var(--gold);">📅 Próxima Cita</p>
+            <div class="flex items-start justify-between gap-3">
+              <div class="flex-1">
+                <p class="text-sm font-black text-white leading-tight">${proxima.servicioNombre || 'Servicio'}</p>
+                <p class="text-xs text-white/60 mt-0.5">${proxima.barbero || ''} · ${proxima.hora} hrs</p>
+                <p class="text-xs text-white/60">${fechaStr}</p>
+              </div>
+              <div class="text-right shrink-0">
+                <p class="text-xs">${enTiempo}</p>
+                <span class="proxima-estado-chip inline-block mt-1.5 text-[9px] font-bold px-2 py-1 rounded-md" style="background:rgba(201,168,76,0.15);color:var(--gold);">${proxima.estado || 'Confirmada'}</span>
+              </div>
+            </div>
+            <div class="mt-3 grid grid-cols-2 gap-2">
+              <button onclick="abrirModalReagendar('${proxima.id}')"
+                class="reagendar-proxima-btn flex items-center justify-center gap-1.5 text-xs font-semibold py-2 rounded-xl border active:scale-[0.98] transition-all"
+                style="color:var(--gold);">
+                <i class="ph-bold ph-calendar-dots text-sm"></i> Reagendar
+              </button>
+              <button onclick="abrirModalCancelar('${proxima.id}')"
+                class="flex items-center justify-center gap-1.5 text-red-400/80 text-xs font-semibold py-2 rounded-xl border border-red-500/20 bg-red-950/20 active:scale-[0.98] transition-all hover:bg-red-950/40">
+                <i class="ph-bold ph-x-circle text-sm"></i> Cancelar
+              </button>
+            </div>
+          </div>`;
+      } else {
+        html += `
+          <div class="mb-3 bg-zinc-900 rounded-2xl px-5 py-4 flex items-center gap-3">
+            <i class="ph-fill ph-calendar-blank text-2xl text-white/20"></i>
+            <div>
+              <p class="text-sm font-bold text-white/50">Sin próximas citas</p>
+              <a href="index.html" class="text-xs font-bold" style="color:var(--gold);">Reservar ahora →</a>
+            </div>
+          </div>`;
+      }
 
+      // ─ Stats ─
       html += `
-        <div class="mb-3 rounded-2xl p-4 relative overflow-hidden" style="background:linear-gradient(135deg,rgba(201,168,76,0.1),rgba(201,168,76,0.04));border:1px solid rgba(201,168,76,0.35);">
-          <div class="absolute -right-4 -top-4 w-20 h-20 rounded-full blur-xl" style="background:rgba(201,168,76,0.1);"></div>
-          <p class="text-[9px] font-black uppercase tracking-widest mb-2" style="color:var(--gold);">📅 Próxima Cita</p>
-          <div class="flex items-start justify-between gap-3">
-            <div class="flex-1">
-              <p class="text-sm font-black text-white leading-tight">${proxima.servicioNombre || 'Servicio'}</p>
-              <p class="text-xs text-white/60 mt-0.5">${proxima.barbero || ''} · ${proxima.hora} hrs</p>
-              <p class="text-xs text-white/60">${fechaStr}</p>
-            </div>
-            <div class="text-right shrink-0">
-              <p class="text-xs">${enTiempo}</p>
-              <span class="proxima-estado-chip inline-block mt-1.5 text-[9px] font-bold px-2 py-1 rounded-md" style="background:rgba(201,168,76,0.15);color:var(--gold);">${proxima.estado || 'Confirmada'}</span>
-            </div>
+        <div class="grid grid-cols-3 gap-2 mb-3">
+          <div class="bg-zinc-900 rounded-2xl px-3 py-3 text-center">
+            <p class="text-2xl font-black text-white">${total}</p>
+            <p class="text-[9px] text-zinc-500 uppercase tracking-widest mt-1">Total</p>
           </div>
-          <div class="mt-3 grid grid-cols-2 gap-2">
-            <button onclick="abrirModalReagendar('${proxima.id}')"
-              class="reagendar-proxima-btn flex items-center justify-center gap-1.5 text-xs font-semibold py-2 rounded-xl border active:scale-[0.98] transition-all"
-              style="color:var(--gold);">
-              <i class="ph-bold ph-calendar-dots text-sm"></i> Reagendar
-            </button>
-            <button onclick="abrirModalCancelar('${proxima.id}')"
+          <div class="bg-zinc-900 rounded-2xl px-3 py-3 text-center">
+            <p class="text-2xl font-black" style="color:var(--gold);">${futuras.length}</p>
+            <p class="text-[9px] text-zinc-500 uppercase tracking-widest mt-1">Próximas</p>
+          </div>
+          <div class="bg-zinc-900 rounded-2xl px-3 py-3 text-center">
+            <p class="text-2xl font-black text-white/50">${completadas}</p>
+            <p class="text-[9px] text-zinc-500 uppercase tracking-widest mt-1">Completadas</p>
+          </div>
+        </div>`;
+
+      // ─ Historial ─
+      html += `<div class="space-y-2">`;
+      for (const c of sorted.slice(0, 8)) {
+        const esFutura = futuras.some(f => f.id === c.id);
+        const iconE = c.estado === 'Completada' ? 'ph-check-circle'
+                    : c.estado === 'Cancelada'  ? 'ph-x-circle'
+                    : 'ph-clock';
+        const iconColor = c.estado === 'Completada' ? 'style="color:var(--gold);" cita-estado-completada'
+                        : c.estado === 'Cancelada'  ? 'class="text-red-400 cita-estado-cancelada"'
+                        : 'class="text-zinc-500 cita-estado-pendiente"';
+        const estadoBadge = c.estado === 'Cancelada'
+          ? `<span class="shrink-0 text-[9px] font-bold uppercase px-2 py-0.5 rounded-md bg-red-500/10 text-red-400 cita-estado-cancelada">${c.estado}</span>`
+          : c.estado === 'Completada'
+          ? `<span class="shrink-0 text-[9px] font-bold uppercase px-2 py-0.5 rounded-md cita-estado-completada" style="background:var(--gold-glow);color:var(--gold);">${c.estado}</span>`
+          : `<span class="shrink-0 text-[9px] font-bold uppercase px-2 py-0.5 rounded-md bg-white/6 text-zinc-400 cita-estado-pendiente">${c.estado || 'Agendada'}</span>`;
+        const cancelBtn = esFutura
+          ? `<div class="flex gap-1 shrink-0">
+               <button onclick="abrirModalReagendar('${c.id}')" title="Reagendar cita"
+                 class="reagendar-hist-btn w-7 h-7 rounded-lg flex items-center justify-center transition-all active:scale-90">
+                 <i class="ph-bold ph-calendar-dots text-sm"></i>
+               </button>
+               <button onclick="abrirModalCancelar('${c.id}')" title="Cancelar cita"
+                 class="w-7 h-7 rounded-lg flex items-center justify-center text-red-400/60 hover:text-red-400 hover:bg-red-950/30 transition-all active:scale-90">
+                 <i class="ph-bold ph-x text-sm"></i>
+               </button>
+             </div>`
+          : '';
+
+        html += `
+          <div class="bg-zinc-900 rounded-xl px-4 py-3 flex items-center gap-3">
+            <i class="ph-fill ${iconE} text-lg shrink-0" ${iconColor}></i>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-semibold text-white truncate">${c.servicioNombre || 'Servicio'}</p>
+              <p class="text-xs text-zinc-500">${formatearFechaCita(c.fecha)} · ${c.hora}</p>
+            </div>
+            ${estadoBadge}
+            ${cancelBtn}
+          </div>`;
+      }
+      html += `</div>`;
+
+      // ─ Banner cross-selling post-cita ─
+      if (_isProductsEnabled && completadas > 0) {
+        html += `
+          <div class="mt-4 p-4 rounded-xl flex items-center justify-between gap-3"
+               style="background:linear-gradient(to right,#111115,#0a0a0d);border:1px solid rgba(212,175,55,0.28);">
+            <div class="flex-1 min-w-0">
+              <p class="text-[10px] font-black uppercase tracking-widest mb-1" style="color:rgba(212,175,55,0.6);">Para tu próxima cita</p>
+              <p class="text-xs text-gray-300 leading-snug">Mantén tu estilo como el primer día. Descubre nuestras ceras y pomadas.</p>
+            </div>
+            <button onclick="switchTab('productos')"
+              class="shrink-0 px-3 py-2 rounded-lg text-xs font-bold text-black active:scale-95 transition-all"
+              style="background:#D4AF37;">Ver Tienda</button>
+          </div>`;
+      }
+
+      contenedor.innerHTML = html;
+
+      // ─ Perfil de visitas ─
+      const completadasArr = citas.filter(c => c.estado === 'Completada');
+      if (completadasArr.length > 0) {
+        const svcCount = {}, barCount = {};
+        completadasArr.forEach(c => {
+          if (c.servicioNombre) svcCount[c.servicioNombre] = (svcCount[c.servicioNombre] || 0) + 1;
+          if (c.barbero)        barCount[c.barbero]        = (barCount[c.barbero]        || 0) + 1;
+        });
+        const topSvc = Object.entries(svcCount).sort((a,b) => b[1]-a[1])[0]?.[0];
+        const topBar = Object.entries(barCount).sort((a,b) => b[1]-a[1])[0]?.[0];
+        if (topSvc || topBar) {
+          try {
+            await FDB.usersCol().doc(user.uid).update({
+              servicioFrecuente: topSvc || null,
+              barberoFrecuente:  topBar || null,
+            });
+          } catch (_) {}
+          const card = document.getElementById('perfilVisitasCard');
+          if (card) {
+            const el = document.getElementById('perfilServicio');
+            const eb = document.getElementById('perfilBarbero');
+            if (el) el.textContent = topSvc || '—';
+            if (eb) eb.textContent = topBar || '—';
+            card.classList.remove('hidden');
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('[Perfil] Error renderizando citas en tiempo real:', e.message);
+      contenedor.innerHTML = `<p class="text-xs text-gray-600 text-center py-4">Error al renderizar citas.</p>`;
+    }
+  }, (err) => {
+    console.warn('[Perfil] Error cargando citas en tiempo real:', err.message);
+    contenedor.innerHTML = `<p class="text-xs text-gray-600 text-center py-4">No se pudieron cargar las citas en tiempo real.</p>`;
+  });
+}ModalCancelar('${proxima.id}')"
               class="flex items-center justify-center gap-1.5 text-red-400/80 text-xs font-semibold py-2 rounded-xl border border-red-500/20 bg-red-950/20 active:scale-[0.98] transition-all hover:bg-red-950/40">
               <i class="ph-bold ph-x-circle text-sm"></i> Cancelar
             </button>

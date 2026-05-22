@@ -240,6 +240,7 @@ async function procesarSello({ tenantId, citaId, citaRef, cita }) {
     selloProcesado: true,
     selloProcesadoEn: Timestamp.now(),
     selloProcesadoTipo: membresia.aplicable ? 'membresia' : 'sello',
+    pendingGoogleReview: true,
   });
 
   logger.info(`[Sello] ${citaId}: procesado OK (${membresia.aplicable ? 'membresía' : 'sello'})`);

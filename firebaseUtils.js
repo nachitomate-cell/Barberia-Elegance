@@ -331,6 +331,54 @@ const FDB = (() => {
     return results;
   }
 
+  function onCitasByClienteChange(email, uid, callback) {
+    let snapEmailDocs = [];
+    let snapUidDocs = [];
+
+    function emit() {
+      const seen = new Set();
+      const results = [];
+      for (const d of snapEmailDocs) {
+        if (!seen.has(d.id)) {
+          seen.add(d.id);
+          results.push(d);
+        }
+      }
+      for (const d of snapUidDocs) {
+        if (!seen.has(d.id)) {
+          seen.add(d.id);
+          results.push(d);
+        }
+      }
+      callback(results);
+    }
+
+    const unsubEmail = tenantCol(COL.CITAS)
+      .where('clienteEmail', '==', email)
+      .limit(50)
+      .onSnapshot(snap => {
+        snapEmailDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        emit();
+      }, err => console.error('[FDB] onCitasByClienteChange email:', err));
+
+    let unsubUid = null;
+    if (uid) {
+      unsubUid = tenantCol(COL.CITAS)
+        .where('clienteId', '==', uid)
+        .limit(50)
+        .onSnapshot(snap => {
+          snapUidDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+          emit();
+        }, err => console.error('[FDB] onCitasByClienteChange uid:', err));
+    }
+
+    return () => {
+      if (unsubEmail) unsubEmail();
+      if (unsubUid) unsubUid();
+    };
+  }
+
+
   async function clearGoogleReviewFlag(citaId) {
     await tenantCol(COL.CITAS).doc(citaId).update({ pendingGoogleReview: false });
   }
@@ -1244,7 +1292,7 @@ const FDB = (() => {
     // Configuración por barbero
     getConfigBarbero, updateConfigBarbero, onConfigBarberoChange,
     // Citas
-    getCitas, getCitasMes, getCitasByCliente, addCita,
+    getCitas, getCitasMes, getCitasByCliente, onCitasByClienteChange, addCita,
     updateCitaEstado, updateCitaNota, deleteCita,
     onCitasDiaChange, clearGoogleReviewFlag,
     // Disponibilidad
