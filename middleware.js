@@ -379,6 +379,7 @@ const TENANT_META = {
         { src: '/aura.png',                    sizes: 'any',     type: 'image/png' },
         { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png' },
         { src: '/gestion-interna/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+      ],
     },
   },
   machos: {
