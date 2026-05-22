@@ -460,10 +460,10 @@ const TENANT_META = {
       ogDesc:      'Regístrate en Infinity Studio y disfruta de beneficios exclusivos.',
     },
     siteName:    'INFINITY STUDIO',
-    ogImage:     '/logo.jpg',
+    ogImage:     '/infinity.png',
     themeColor:  '#121214',
     appTitle:    'Infinity',
-    icon:        '/logo.jpg',
+    icon:        '/infinity.png',
     local: {
       telephone: '56985551234',
       streetAddress: 'Traslaviña 114',
@@ -490,7 +490,7 @@ const TENANT_META = {
       background_color: '#121214',
       start_url:        '/gestion-interna/?local=infinity',
       icons: [
-        { src: '/logo.jpg',                    sizes: 'any',     type: 'image/jpeg' },
+        { src: '/infinity.png',                 sizes: 'any',     type: 'image/png' },
         { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png' },
         { src: '/gestion-interna/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
       ],

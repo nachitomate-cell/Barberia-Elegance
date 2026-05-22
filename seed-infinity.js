@@ -174,7 +174,7 @@ async function seedProfile() {
     address:         "Traslaviña 114, Viña del Mar",
     scheduleText:    "Lunes a sábado 10:00-20:00",
     phone:           "56985551234",
-    logoUrl:         "/logo.jpg",
+    logoUrl:         "/infinity.png",
     instagram:       "https://www.instagram.com/infinitystudio23/",
     pageTitle:       "INFINITY STUDIO | Estilo y Confianza en Viña del Mar",
     metaDescription: "Reserva tu hora en Infinity Studio. Barbería y peluquería de primer nivel en Traslaviña 114, Viña del Mar. Calidad, estilo y un ambiente familiar.",

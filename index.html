@@ -5971,11 +5971,14 @@
           lumen: '/djones1.png',
           delnero: '/nero.jpg',
           aura: '/auralogin.png',
-          machos: '/machos_bg.png'
+          machos: '/machos_bg.png',
+          infinity: '/infinity_bg.png'
         };
         const bgUrl = bgImages[window.CURRENT_TENANT_ID] || SHOP.logo;
         heroImgEl.src = bgUrl;
-        heroImgEl.alt = window.CURRENT_TENANT_ID === 'machos' ? 'Interior industrial moderno de Macho´s Barbershop' : 'Interior de ' + (SHOP.nombreCorto || SHOP.nombre);
+        heroImgEl.alt = window.CURRENT_TENANT_ID === 'machos' ? 'Interior industrial moderno de Macho´s Barbershop' : 
+                        window.CURRENT_TENANT_ID === 'infinity' ? 'Interior elegante y familiar de Infinity Studio' : 
+                        'Interior de ' + (SHOP.nombreCorto || SHOP.nombre);
       }
 
       // Segundo logo (opcional)

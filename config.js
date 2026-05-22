@@ -317,7 +317,7 @@
       nombreCorto:     'Infinity',
       pageTitle:       'INFINITY STUDIO | Estilo y Confianza en Viña del Mar',
       slogan:          'Ambiente familiar y confianza son nuestra esencia. Resultados de alto nivel.',
-      logo:            '/logo.jpg',
+      logo:            '/infinity.png',
       direccion:       '📍 Traslaviña 114 | Viña del Mar',
       horario:         '🕒 Lun a Sáb: 10:00 – 20:00 hrs.',
       telefono:        '56985551234',
