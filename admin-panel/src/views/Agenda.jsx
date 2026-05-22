@@ -1034,8 +1034,10 @@ function DifusionPanel({ citas, bloqueos, barberos, dateStr }) {
   // Generate broadcast message
   const message = useMemo(() => {
     const titulo = `✂️ *Marcelo Palma* — ${fechaFmt.charAt(0).toUpperCase() + fechaFmt.slice(1)}`;
-    const ubicacion = shopSettings?.direccion ? `📍 ${shopSettings.direccion.replace(/^📍\s*/, '')}` : '📍 Curauma / Placilla';
-    const horarioTxt = shopSettings?.horario   ? `🕒 ${shopSettings.horario.replace(/^🕒\s*/, '')}` : '🕒 Lun a Sáb: 10:00 – 20:00 hrs.';
+    const ubicacion  = typeof shopSettings?.direccion === 'string' && shopSettings.direccion
+      ? `📍 ${shopSettings.direccion.replace(/^📍\s*/, '')}`
+      : '📍 Curauma / Placilla';
+    const horarioTxt = '🕒 Lun a Sáb: 10:00 – 20:00 hrs.';
     const cta = `📲 Agenda tu hora ahora:\n   marcelopalma.synaptechspa.cl`;
 
     if (freeSlots.length === 0) {
