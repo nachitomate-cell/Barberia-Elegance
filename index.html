@@ -3568,183 +3568,280 @@
        Paleta: Deep Obsidian (#121214) · Slate Charcoal (#3B3B3B) · Metallic Silver (#ffffff)
        ═══════════════════════════════════════════════════════════════ */
     .tenant-infinity {
-      --accent:   #3b3b3b;
-      --accent-r: 59; --accent-g: 59; --accent-b: 59;
+      --accent:   #ffffff;
+      --accent-r: 255; --accent-g: 255; --accent-b: 255;
       --neon-clr: #ffffff;
       --neon-r:   255; --neon-g: 255; --neon-b: 255;
-      --body-bg:  #121214;
+      --body-bg:  #ffffff;
     }
     .tenant-infinity body {
-      background-color: #121214 !important;
+      background-color: #ffffff !important;
       background-image:
-        radial-gradient(ellipse at 50% 0%, rgba(255,255,255,0.035) 0%, transparent 60%),
-        radial-gradient(ellipse at 100% 80%, rgba(59,59,59,0.05) 0%, transparent 50%) !important;
-      color: #f3f4f6 !important;
+        radial-gradient(circle at 50% 0%, rgba(255,255,255,1) 0%, rgba(243,244,246,0.6) 100%),
+        radial-gradient(ellipse at 100% 80%, rgba(243,244,246,0.7) 0%, transparent 60%),
+        linear-gradient(to bottom, #ffffff, #fcfcfd, #f8f9fa) !important;
+      color: #1f2937 !important;
     }
     .tenant-infinity .booking-hero {
-      background: linear-gradient(135deg, #1c1c1f, #2d2d34) !important;
-      border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+      background: linear-gradient(135deg, #ffffff, #f3f4f6) !important;
+      border-bottom: 1px solid rgba(0,0,0,0.06) !important;
     }
     .tenant-infinity .booking-hero-overlay {
-      background: radial-gradient(circle at center, transparent 30%, rgba(18,18,20,0.85) 100%) !important;
+      background: radial-gradient(circle at center, transparent 30%, rgba(255, 255, 255, 0.4) 100%) !important;
+    }
+    .tenant-infinity #shopNombre {
+      color: #111827 !important;
+      text-shadow: 0 2px 10px rgba(255,255,255,0.8) !important;
+    }
+    .tenant-infinity #shopNombre::after {
+      content: " ∞";
+      font-weight: 300;
+      color: rgba(17, 24, 39, 0.25);
+      font-size: 2.2rem;
+      vertical-align: middle;
+      display: inline-block;
+      animation: infinity-loop-spin 6s ease-in-out infinite !important;
+      margin-left: 8px;
+    }
+    .tenant-infinity #shopSlogan {
+      color: #4b5563 !important;
+    }
+    .tenant-infinity button[onclick="goBack()"] {
+      background: rgba(255,255,255,0.85) !important;
+      border: 1px solid rgba(0,0,0,0.08) !important;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.05) !important;
+    }
+    .tenant-infinity button[onclick="goBack()"] i {
+      color: #111827 !important;
+    }
+    .tenant-infinity #heroGoogleBadge {
+      background: rgba(255,255,255,0.85) !important;
+      border: 1px solid rgba(0,0,0,0.06) !important;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.05) !important;
+    }
+    .tenant-infinity #heroGoogleBadge span,
+    .tenant-infinity #heroGoogleBadge .text-white {
+      color: #111827 !important;
     }
     .tenant-infinity .info-strip {
-      background: rgba(255,255,255,0.03) !important;
-      border-top: 1px solid rgba(255,255,255,0.05) !important;
-      border-bottom: 1px solid rgba(255,255,255,0.05) !important;
+      background: rgba(255,255,255,0.7) !important;
+      border-top: 1px solid rgba(0,0,0,0.05) !important;
+      border-bottom: 1px solid rgba(0,0,0,0.05) !important;
       backdrop-filter: blur(8px) !important;
       -webkit-backdrop-filter: blur(8px) !important;
     }
     .tenant-infinity .info-strip i {
-      color: rgba(255,255,255,0.5) !important;
+      color: rgba(0,0,0,0.4) !important;
     }
     .tenant-infinity .info-strip a,
     .tenant-infinity .info-strip > div {
-      color: rgba(255,255,255,0.7) !important;
+      color: #374151 !important;
+      font-weight: 500 !important;
     }
     .tenant-infinity .hero-logo-ring {
-      background: linear-gradient(145deg, #252528, #121214) !important;
-      border: 2px solid rgba(255,255,255,0.1) !important;
-      box-shadow: 0 8px 30px rgba(0,0,0,0.4), inset 0 2px 5px rgba(255,255,255,0.05) !important;
+      background: #ffffff !important;
+      border: 3px solid #ffffff !important;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.06), 0 0 20px rgba(255,255,255,0.8), inset 0 2px 5px rgba(0,0,0,0.02) !important;
+      animation: infinity-breathe 4s ease-in-out infinite !important;
     }
     .tenant-infinity #progressBar {
-      background: linear-gradient(90deg, #3b3b3b, #888888, #ffffff) !important;
-      box-shadow: 0 0 12px rgba(255,255,255,0.3) !important;
+      background: linear-gradient(90deg, #d4d4d8, #e4e4e7, #ffffff) !important;
+      box-shadow: 0 0 15px rgba(255,255,255,1), 0 0 5px rgba(255,255,255,0.8) !important;
+      border: 1px solid rgba(255,255,255,0.5) !important;
     }
-    .tenant-infinity #progressTrack { background-color: rgba(255,255,255,0.05) !important; }
+    .tenant-infinity #progressTrack {
+      background-color: rgba(0,0,0,0.04) !important;
+      border: 1px solid rgba(0,0,0,0.02) !important;
+    }
     .tenant-infinity #stepIndicatorText {
-      color: #9ca3af !important;
+      color: #4b5563 !important;
+      font-weight: 600 !important;
     }
     .tenant-infinity .category-pill {
-      background: rgba(255,255,255,0.03) !important;
-      border: 1px solid rgba(255,255,255,0.06) !important;
-      color: #9ca3af !important;
-      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+      background: rgba(255, 255, 255, 0.6) !important;
+      border: 1px solid rgba(0, 0, 0, 0.06) !important;
+      color: #4b5563 !important;
+      backdrop-filter: blur(8px) !important;
+      -webkit-backdrop-filter: blur(8px) !important;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.02) !important;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
     }
     .tenant-infinity .category-pill:hover {
-      background: rgba(255,255,255,0.06) !important;
-      color: #ffffff !important;
-      border-color: rgba(255,255,255,0.15) !important;
+      background: rgba(255, 255, 255, 0.9) !important;
+      color: #111827 !important;
+      border-color: rgba(0, 0, 0, 0.12) !important;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.04) !important;
     }
     .tenant-infinity .category-pill.border-neon {
-      background: #3b3b3b !important;
-      border-color: rgba(255,255,255,0.2) !important;
-      box-shadow: 0 4px 15px rgba(255,255,255,0.08) !important;
+      background: #ffffff !important;
+      border-color: #111827 !important;
+      border-width: 2px !important;
+      color: #111827 !important;
+      font-weight: 700 !important;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.06), 0 0 10px rgba(255,255,255,1) !important;
     }
-    .tenant-infinity .category-pill.text-neon { color: #ffffff !important; }
+    .tenant-infinity .category-pill.text-neon { color: #111827 !important; }
     .tenant-infinity h2.text-neon {
-      color: #ffffff !important;
-      text-shadow: 0 0 15px rgba(255,255,255,0.1) !important;
+      color: #111827 !important;
+      text-shadow: 0 2px 10px rgba(255,255,255,0.8) !important;
     }
     .tenant-infinity .service-option {
-      background: rgba(30,30,35,0.55) !important;
-      border: 1px solid rgba(255,255,255,0.05) !important;
-      backdrop-filter: blur(12px) !important;
-      -webkit-backdrop-filter: blur(12px) !important;
+      background: rgba(255, 255, 255, 0.7) !important;
+      border: 1px solid rgba(255, 255, 255, 0.8) !important;
+      backdrop-filter: blur(20px) !important;
+      -webkit-backdrop-filter: blur(20px) !important;
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.03), inset 0 1px 0 0 rgba(255, 255, 255, 0.6) !important;
+      color: #1f2937 !important;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
     }
     .tenant-infinity .service-option:hover {
-      background: rgba(30,30,35,0.7) !important;
-      border-color: rgba(255,255,255,0.12) !important;
-      transform: translateY(-2px) !important;
+      background: rgba(255, 255, 255, 0.95) !important;
+      border-color: rgba(0, 0, 0, 0.12) !important;
+      transform: translateY(-3px) !important;
+      box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.06), 0 0 20px rgba(255, 255, 255, 0.9) !important;
     }
     .tenant-infinity .service-option.border-neon {
-      background: rgba(45,45,50,0.8) !important;
-      border-color: rgba(255,255,255,0.3) !important;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.35), 0 0 15px rgba(255,255,255,0.08) !important;
+      background: #ffffff !important;
+      border-color: #111827 !important;
+      border-width: 2px !important;
+      color: #111827 !important;
+      box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.08), 0 0 25px rgba(255, 255, 255, 1) !important;
+      animation: infinity-breathe-subtle 3s ease-in-out infinite !important;
     }
     .tenant-infinity .service-option .price-tag {
-      color: #ffffff !important;
-      font-weight: 700 !important;
+      color: #111827 !important;
+      font-weight: 800 !important;
     }
     .tenant-infinity .service-option .duration-tag {
-      color: #9ca3af !important;
-      background: rgba(255,255,255,0.04) !important;
-      border: 1px solid rgba(255,255,255,0.06) !important;
+      color: #4b5563 !important;
+      background: rgba(0,0,0,0.03) !important;
+      border: 1px solid rgba(0,0,0,0.04) !important;
+    }
+    .tenant-infinity .service-option p,
+    .tenant-infinity .service-option span,
+    .tenant-infinity .service-option div {
+      color: #1f2937 !important;
     }
     .tenant-infinity .barber-option {
-      background: rgba(30,30,35,0.55) !important;
-      border: 1px solid rgba(255,255,255,0.05) !important;
-      backdrop-filter: blur(12px) !important;
-      -webkit-backdrop-filter: blur(12px) !important;
+      background: rgba(255, 255, 255, 0.7) !important;
+      border: 1px solid rgba(255, 255, 255, 0.8) !important;
+      backdrop-filter: blur(20px) !important;
+      -webkit-backdrop-filter: blur(20px) !important;
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.03), inset 0 1px 0 0 rgba(255, 255, 255, 0.6) !important;
+      color: #1f2937 !important;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
     }
     .tenant-infinity .barber-option:hover {
-      background: rgba(30,30,35,0.7) !important;
-      border-color: rgba(255,255,255,0.12) !important;
-      transform: translateY(-2px) !important;
+      background: rgba(255, 255, 255, 0.95) !important;
+      border-color: rgba(0, 0, 0, 0.12) !important;
+      transform: translateY(-3px) !important;
+      box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.06), 0 0 20px rgba(255, 255, 255, 0.9) !important;
     }
     .tenant-infinity .barber-option.border-neon {
-      background: rgba(45,45,50,0.8) !important;
-      border-color: rgba(255,255,255,0.3) !important;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.35), 0 0 15px rgba(255,255,255,0.08) !important;
+      background: #ffffff !important;
+      border-color: #111827 !important;
+      border-width: 2px !important;
+      color: #111827 !important;
+      box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.08), 0 0 25px rgba(255, 255, 255, 1) !important;
+      animation: infinity-breathe-subtle 3s ease-in-out infinite !important;
+    }
+    .tenant-infinity .barber-name,
+    .tenant-infinity .barber-option p,
+    .tenant-infinity .barber-option span {
+      color: #1f2937 !important;
     }
     .tenant-infinity .text-brand-neon {
-      color: #ffffff !important;
+      color: #111827 !important;
+      font-weight: 700 !important;
     }
     .tenant-infinity .day-btn {
-      background: rgba(255,255,255,0.03) !important;
-      border: 1px solid rgba(255,255,255,0.05) !important;
-      color: #9ca3af !important;
+      background: rgba(255, 255, 255, 0.6) !important;
+      border: 1px solid rgba(0, 0, 0, 0.06) !important;
+      color: #4b5563 !important;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.01) !important;
       transition: all 0.25s !important;
     }
     .tenant-infinity .day-btn:hover {
-      background: rgba(255,255,255,0.06) !important;
-      color: #ffffff !important;
+      background: rgba(255, 255, 255, 0.95) !important;
+      color: #111827 !important;
+      border-color: rgba(0, 0, 0, 0.1) !important;
     }
     .tenant-infinity .day-btn.active,
     .tenant-infinity .day-btn.border-neon {
-      background: #3b3b3b !important;
-      border-color: rgba(255,255,255,0.2) !important;
-      color: #ffffff !important;
-      box-shadow: 0 4px 15px rgba(255,255,255,0.08) !important;
+      background: #ffffff !important;
+      border-color: #111827 !important;
+      border-width: 2px !important;
+      color: #111827 !important;
+      font-weight: 700 !important;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.06), 0 0 10px rgba(255,255,255,1) !important;
     }
     .tenant-infinity .time-pill {
-      background: rgba(255,255,255,0.03) !important;
-      border: 1px solid rgba(255,255,255,0.05) !important;
-      color: #9ca3af !important;
+      background: rgba(255, 255, 255, 0.6) !important;
+      border: 1px solid rgba(0, 0, 0, 0.06) !important;
+      color: #4b5563 !important;
       transition: all 0.25s !important;
     }
     .tenant-infinity .time-pill:hover:not(.disabled) {
-      background: rgba(255,255,255,0.06) !important;
-      color: #ffffff !important;
+      background: rgba(255, 255, 255, 0.95) !important;
+      color: #111827 !important;
+      border-color: rgba(0, 0, 0, 0.1) !important;
     }
     .tenant-infinity .time-pill.border-neon {
-      background: #3b3b3b !important;
-      border-color: rgba(255,255,255,0.2) !important;
-      color: #ffffff !important;
-      box-shadow: 0 4px 15px rgba(255,255,255,0.08) !important;
+      background: #ffffff !important;
+      border-color: #111827 !important;
+      border-width: 2px !important;
+      color: #111827 !important;
+      font-weight: 700 !important;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.06), 0 0 10px rgba(255,255,255,1) !important;
     }
     .tenant-infinity #btnContinue {
-      background: linear-gradient(135deg, #3b3b3b, #1e1e24) !important;
-      border: 1px solid rgba(255,255,255,0.12) !important;
-      color: #ffffff !important;
-      box-shadow: 0 8px 25px rgba(0,0,0,0.3) !important;
+      background: linear-gradient(135deg, #ffffff, #f3f4f6) !important;
+      border: 2px solid #ffffff !important;
+      color: #111827 !important;
+      font-weight: 800 !important;
+      letter-spacing: 0.03em !important;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.05), 0 0 25px rgba(255,255,255,1) !important;
       transition: all 0.3s ease !important;
+      animation: infinity-glow-btn 3s ease-in-out infinite !important;
+    }
+    .tenant-infinity #btnContinue::after {
+      content: " ∞";
+      font-weight: 300;
+      display: inline-block;
+      margin-left: 6px;
+      animation: infinity-breathe 2s ease-in-out infinite !important;
     }
     .tenant-infinity #btnContinue:hover:not(:disabled) {
       transform: translateY(-2px) !important;
-      box-shadow: 0 12px 30px rgba(0,0,0,0.4), 0 0 15px rgba(255,255,255,0.08) !important;
-      border-color: rgba(255,255,255,0.2) !important;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.08), 0 0 35px rgba(255,255,255,1) !important;
+      border-color: #111827 !important;
     }
     .tenant-infinity #btnContinueBar {
-      background: linear-gradient(135deg, #3b3b3b, #1e1e24) !important;
-      border: 1px solid rgba(255,255,255,0.12) !important;
-      color: #ffffff !important;
+      background: rgba(255, 255, 255, 0.8) !important;
+      border-top: 1px solid rgba(0, 0, 0, 0.05) !important;
+      backdrop-filter: blur(15px) !important;
+      -webkit-backdrop-filter: blur(15px) !important;
+    }
+    .tenant-infinity #btnContinueBar button {
+      background: linear-gradient(135deg, #ffffff, #f3f4f6) !important;
+      border: 1px solid rgba(0,0,0,0.08) !important;
+      color: #111827 !important;
+      font-weight: 700 !important;
     }
     .tenant-infinity #clientName,
     .tenant-infinity #clientPhone,
     .tenant-infinity #clientEmail {
-      background-color: rgba(255,255,255,0.03) !important;
-      border: 1px solid rgba(255,255,255,0.06) !important;
-      color: #ffffff !important;
+      background-color: rgba(255, 255, 255, 0.8) !important;
+      border: 1px solid rgba(0, 0, 0, 0.08) !important;
+      color: #111827 !important;
+      border-radius: 8px !important;
     }
     .tenant-infinity #clientName:focus,
     .tenant-infinity #clientPhone:focus,
     .tenant-infinity #clientEmail:focus {
-      border-color: rgba(255,255,255,0.25) !important;
-      background-color: rgba(255,255,255,0.05) !important;
-      box-shadow: 0 0 15px rgba(255,255,255,0.04) !important;
+      border-color: #111827 !important;
+      background-color: #ffffff !important;
+      box-shadow: 0 0 20px rgba(255, 255, 255, 1) !important;
     }
     .tenant-infinity #waBtnLink {
       background: #25D366 !important;
@@ -3752,22 +3849,122 @@
       box-shadow: 0 4px 15px rgba(37,211,102,0.3) !important;
     }
     .tenant-infinity #clubBanner {
-      background: rgba(255,255,255,0.03) !important;
-      border: 1px solid rgba(255,255,255,0.06) !important;
+      background: rgba(255, 255, 255, 0.8) !important;
+      border: 1px solid rgba(0,0,0,0.06) !important;
       backdrop-filter: blur(12px) !important;
       -webkit-backdrop-filter: blur(12px) !important;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.03) !important;
     }
     .tenant-infinity #clubBanner a {
-      background: #3b3b3b !important;
-      border: 1px solid rgba(255,255,255,0.12) !important;
-      color: #ffffff !important;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.2) !important;
+      background: #ffffff !important;
+      border: 1px solid rgba(0, 0, 0, 0.08) !important;
+      color: #111827 !important;
+      font-weight: 700 !important;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.04) !important;
     }
     .tenant-infinity #toastValidation {
-      background: #1e1e22 !important;
-      border: 1px solid rgba(239,68,68,0.4) !important;
+      background: #ffffff !important;
+      border: 1px solid rgba(239, 68, 68, 0.2) !important;
       color: #ef4444 !important;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5) !important;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08), 0 0 15px rgba(255,255,255,1) !important;
+    }
+    .tenant-infinity #success-state .bg-\[\#0a0a0d\] {
+      background: rgba(255, 255, 255, 0.8) !important;
+      border: 1px solid rgba(0, 0, 0, 0.06) !important;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.03) !important;
+    }
+    .tenant-infinity #success-state h2 {
+      color: #111827 !important;
+      text-shadow: 0 2px 10px rgba(255,255,255,0.8) !important;
+    }
+    .tenant-infinity #success-state .text-neon {
+      color: #111827 !important;
+    }
+    .tenant-infinity #success-state svg.text-neon {
+      color: #111827 !important;
+    }
+    .tenant-infinity #success-state .text-brand-text {
+      color: #111827 !important;
+    }
+    .tenant-infinity #success-state .text-brand-neon\/80 {
+      color: #4b5563 !important;
+    }
+    .tenant-infinity #successInstagram {
+      color: #4b5563 !important;
+    }
+    .tenant-infinity #successInstagram:hover {
+      color: #111827 !important;
+    }
+    .tenant-infinity #reviewsSection p,
+    .tenant-infinity #reviewsSection span,
+    .tenant-infinity #reviewsSection h3 {
+      color: #1f2937 !important;
+    }
+    .tenant-infinity #reviewsSection div[style*="color:var(--accent);"] {
+      color: #111827 !important;
+    }
+    .tenant-infinity #reviewsCtaBtn {
+      background: rgba(255,255,255,0.8) !important;
+      border: 1px solid rgba(0,0,0,0.08) !important;
+      color: #4b5563 !important;
+    }
+    .tenant-infinity #reviewsCtaBtn:hover {
+      color: #111827 !important;
+      background: #ffffff !important;
+    }
+    .tenant-infinity #reviewsGrid > div {
+      background: rgba(255,255,255,0.8) !important;
+      border: 1px solid rgba(0,0,0,0.06) !important;
+      color: #1f2937 !important;
+    }
+    .tenant-infinity #reviewsGrid > div * {
+      color: #1f2937 !important;
+    }
+
+    /* Keyframes para animaciones de infinito y respiración con destellos */
+    @keyframes infinity-breathe {
+      0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 8px 30px rgba(0,0,0,0.05), 0 0 15px rgba(255,255,255,0.7) !important;
+      }
+      50% {
+        transform: scale(1.05);
+        box-shadow: 0 12px 45px rgba(0,0,0,0.08), 0 0 35px rgba(255,255,255,1) !important;
+      }
+    }
+    @keyframes infinity-breathe-subtle {
+      0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 8px 30px rgba(0,0,0,0.03), 0 0 10px rgba(255,255,255,0.6) !important;
+      }
+      50% {
+        transform: scale(1.015);
+        box-shadow: 0 12px 40px rgba(0,0,0,0.06), 0 0 25px rgba(255,255,255,1) !important;
+      }
+    }
+    @keyframes infinity-glow-btn {
+      0%, 100% {
+        box-shadow: 0 10px 30px rgba(0,0,0,0.05), 0 0 20px rgba(255,255,255,0.8), inset 0 0 0 0px rgba(255,255,255,1) !important;
+      }
+      50% {
+        box-shadow: 0 15px 40px rgba(0,0,0,0.08), 0 0 40px rgba(255,255,255,1), inset 0 0 4px 1px rgba(255,255,255,1) !important;
+        transform: scale(1.02) !important;
+      }
+    }
+    @keyframes infinity-loop-spin {
+      0% {
+        transform: rotate(0deg) scale(1);
+        text-shadow: 0 0 5px rgba(255,255,255,0.5);
+      }
+      50% {
+        transform: rotate(180deg) scale(1.1);
+        text-shadow: 0 0 25px rgba(0,0,0,0.1), 0 0 10px rgba(255,255,255,1);
+        color: rgba(17, 24, 39, 0.4);
+      }
+      100% {
+        transform: rotate(360deg) scale(1);
+        text-shadow: 0 0 5px rgba(255,255,255,0.5);
+      }
     }
   </style>
 </head>
