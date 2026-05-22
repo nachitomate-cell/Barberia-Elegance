@@ -6398,8 +6398,9 @@
       if (currentStep === 0 || (currentStep === 1 && !window._hasSucursales)) {
         window.history.back();
       } else {
-        // delnero salta el paso 2 en ambas direcciones
-        const targetStep = (window.CURRENT_TENANT_ID === 'delnero' && currentStep === 3) ? 1 : currentStep - 1;
+        // delnero y marcelo_hairdressing saltan el paso 2 en ambas direcciones
+        const _skipStep2Tenants = ['delnero', 'marcelo_hairdressing'];
+        const targetStep = (_skipStep2Tenants.includes(window.CURRENT_TENANT_ID) && currentStep === 3) ? 1 : currentStep - 1;
         const currentStepEl = document.getElementById(`step${currentStep}`);
         const prevStepEl = document.getElementById(`step${targetStep}`);
 
@@ -6425,7 +6426,7 @@
         const labels = ['Sucursal',  'Servicios', paso2Label,   'Fecha y Hora','Confirmación'];
         percentage = pcts[currentStep];
         text = `Paso ${currentStep + 1} de 5: ${labels[currentStep]}`;
-      } else if (window.CURRENT_TENANT_ID === 'delnero') {
+      } else if (window.CURRENT_TENANT_ID === 'delnero' || window.CURRENT_TENANT_ID === 'marcelo_hairdressing') {
         // 3 pasos: Servicios → Fecha y Hora → Confirmación (sin Barbero)
         const map = { 1: ['25%', 1, 'Servicios'], 3: ['50%', 2, 'Fecha y Hora'], 4: ['100%', 3, 'Confirmación'] };
         const [pct, num, label] = map[currentStep] || ['25%', 1, 'Servicios'];
@@ -6473,7 +6474,7 @@
       } else if (currentStep === 1) {
         if (!selectedServiceObj) return showToast('Selecciona un servicio para continuar.');
 
-        if (window.CURRENT_TENANT_ID === 'delnero') {
+        if (window.CURRENT_TENANT_ID === 'delnero' || window.CURRENT_TENANT_ID === 'marcelo_hairdressing') {
           // Saltar directamente a Fecha y Hora — auto-asignar el único barbero
           const primerBarbero = (_fsBarberos || []).find(b => !b._mainDocId && b.disponible !== false && b.rol !== 'admin');
           window._selectedBarberId = primerBarbero ? primerBarbero.id : 'any';
