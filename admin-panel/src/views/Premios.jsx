@@ -55,7 +55,7 @@ export default function Premios() {
   const [moving,   setMoving]   = useState(false);
   const [error,    setError]    = useState('');
 
-  /* ── Elegance AI™ Advisor States ────────────────────────── */
+  /* ── Synaptech IA™ Advisor States ────────────────────────── */
   const [aiLoading, setAiLoading] = useState(false);
   const [aiStep, setAiStep]       = useState(0);
 
@@ -414,18 +414,18 @@ export default function Premios() {
           </div>
         </div>
 
-        {/* Columna Derecha (Elegance AI™ Advisor) - Toma 1 parte en escritorio */}
+        {/* Columna Derecha (Synaptech IA™ Advisor) - Toma 1 parte en escritorio */}
         <div className="lg:col-span-1">
           <div className="bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800/80 rounded-xl overflow-hidden shadow-lg sticky top-6">
             
             {/* Header del Asistente */}
             <div className="p-4 border-b border-slate-800/80 bg-gradient-to-r from-slate-900 via-slate-950 to-slate-900 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-[#D4AF37]/10 flex items-center justify-center border border-[#D4AF37]/20 text-[#D4AF37] animate-pulse">
-                  <Sparkles size={14} className="fill-[#D4AF37]/20" />
+                <div className="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center border border-slate-700 shrink-0">
+                  <img src="/logo1.png" alt="SynapTech" className="w-4 h-4 object-contain" />
                 </div>
                 <div>
-                  <h3 className="text-xs font-bold text-white tracking-wide">ELEGANCE AI™</h3>
+                  <h3 className="text-xs font-bold text-white tracking-wide">SYNAPTECH IA™</h3>
                   <p className="text-[9px] text-[#D4AF37] font-bold font-mono tracking-wider">PREDICTIVE ADVISOR v1.4</p>
                 </div>
               </div>
@@ -567,7 +567,7 @@ export default function Premios() {
             <li>Los clientes ven los premios disponibles y cuántos sellos les faltan en su app.</li>
             <li>Al alcanzar el umbral, el sistema notifica al cliente que tiene un premio disponible.</li>
             <li>Edita o elimina premios existentes según las promociones del local.</li>
-            <li><span className="text-white">Elegance AI™ Advisor</span> analiza tu catálogo en tiempo real para recomendarte la mejor estructura de incentivos basándose en la fidelización de enganche rápido, intermedia y VIP.</li>
+            <li><span className="text-white">Synaptech IA™ Advisor</span> analiza tu catálogo en tiempo real para recomendarte la mejor estructura de incentivos basándose en la fidelización de enganche rápido, intermedia y VIP.</li>
           </ul>
         </HelpModal>
       )}

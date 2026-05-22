@@ -149,13 +149,12 @@ function AsistenteIA({ stats, statsLoading }) {
         style={{ background: 'linear-gradient(135deg, #0f0f12 0%, #151200 100%)' }}
       >
         <div
-          className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-          style={{ background: 'rgba(212,175,55,0.15)', border: '1px solid rgba(212,175,55,0.25)' }}
+          className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center shrink-0 border border-slate-700"
         >
-          <Sparkles size={15} style={{ color: '#D4AF37' }} />
+          <img src="/logo1.png" alt="SynapTech" className="w-5 h-5 object-contain" />
         </div>
         <div>
-          <p className="text-sm font-bold text-white leading-none">Asistente IA Chat</p>
+          <p className="text-sm font-bold text-white leading-none">Asistente Synaptech IA</p>
           <p className="text-[10px] text-slate-500 mt-0.5">Caption e ideas para tus redes</p>
         </div>
         <div className="ml-auto flex items-center gap-1.5">
@@ -343,11 +342,11 @@ function RecomendadorBannersIA({ stats, statsLoading, onApply }) {
       {/* Header */}
       <div className="p-4 border-b border-slate-800 bg-gradient-to-r from-slate-900 via-slate-950 to-slate-900 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-[#D4AF37]/10 flex items-center justify-center border border-[#D4AF37]/20 text-[#D4AF37] animate-pulse">
-            <Megaphone size={14} className="fill-[#D4AF37]/20" />
+          <div className="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center border border-slate-700 shrink-0">
+            <img src="/logo1.png" alt="SynapTech" className="w-4 h-4 object-contain" />
           </div>
           <div>
-            <h3 className="text-xs font-bold text-white tracking-wide">ELEGANCE AI™</h3>
+            <h3 className="text-xs font-bold text-white tracking-wide">SYNAPTECH IA™</h3>
             <p className="text-[9px] text-[#D4AF37] font-bold font-mono tracking-wider">BANNER ADVISOR v1.2</p>
           </div>
         </div>
@@ -736,8 +735,8 @@ export default function Marketing() {
         <HelpModal title="Ayuda — Marketing" onClose={() => setShowHelp(false)}>
           <p>En <strong className="text-white">Marketing</strong> configuras el banner que aparece en la app de tus clientes.</p>
           <ul className="space-y-1.5 list-disc list-inside text-slate-400">
-            <li>El <span className="text-white">Asistente IA Chat</span> lee tus datos reales (reservas, clientes, servicios) y genera captions listos para copiar en tus publicaciones.</li>
-            <li>El <span className="text-white">Elegance AI™ Banner Advisor</span> analiza las reservas de tu local y propone estrategias promocionales y de nivelación de tráfico de alta conversión.</li>
+            <li>El <span className="text-white">Asistente Synaptech IA</span> lee tus datos reales (reservas, clientes, servicios) y genera captions listos para copiar en tus publicaciones.</li>
+            <li>El <span className="text-white">Synaptech IA™ Banner Advisor</span> analiza las reservas de tu local y propone estrategias promocionales y de nivelación de tráfico de alta conversión.</li>
             <li>Haz clic en <span className="text-[#D4AF37] font-semibold">auto-completar</span> sobre cualquier recomendación de campaña para rellenar los datos de tu anuncio de forma instantánea.</li>
             <li>Configura un <span className="text-white">anuncio activo</span> con imagen, título y enlace para captar la atención de tus clientes.</li>
           </ul>
