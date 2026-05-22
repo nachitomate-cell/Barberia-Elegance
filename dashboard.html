@@ -4210,6 +4210,29 @@ async function revisarProximaCita() {
   const NOTIF_KEY = 'notif_sent_ids';
   const enviados  = JSON.parse(localStorage.getItem(NOTIF_KEY) || '[]');
 
+  for (const c of citas) {
+    if (!fechas.includes(c.fecha)) continue;
+    if (enviados.includes(c.id)) continue;
+
+    const [hh, mm]  = (c.hora || '00:00').split(':').map(Number);
+    const [yy, mo, dd] = (c.fecha || '').split('-').map(Number);
+    const citaDate  = new Date(yy, mo - 1, dd, hh, mm);
+    const diffMin   = (citaDate - ahora) / 60000;
+
+    // Enviar notificación si faltan entre 25 y 35 minutos
+    if (diffMin >= 25 && diffMin <= 35) {
+      new Notification(`⏰ Tu cita se acerca — ${SHOP.nombreCorto || SHOP.nombre || 'Elegance'}`, {
+        body:  `Tienes cita a las ${c.hora} (${c.servicioNombre || 'servicio'} con ${c.barbero || 'tu barbero'}). ¡Nos vemos pronto!`,
+        icon:  SHOP.logo || '/icons/icon-192.png',
+        badge: SHOP.logo || '/icons/icon-192.png',
+        tag:   c.id
+      });
+      enviados.push(c.id);
+      localStorage.setItem(NOTIF_KEY, JSON.stringify(enviados));
+    }
+  }
+}
+
 async function cargarCitasUsuario(user) {
   if (_citasUnsub) { _citasUnsub(); _citasUnsub = null; }
 
