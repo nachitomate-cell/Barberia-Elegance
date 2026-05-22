@@ -45,7 +45,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
   <script src="config.js"></script>
   <script src="firebase-config.js?v=1.2"></script>
-  <script src="firebaseUtils.js?v=2.7"></script>
+  <script src="firebaseUtils.js?v=2.8"></script>
   <script src="js/services/professional.service.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
 
@@ -989,16 +989,17 @@
     .tenant-marcelo_hairdressing header { background-color: rgba(15,15,15,0.97) !important; border-bottom: 1px solid rgba(255,255,255,0.06) !important; }
     .tenant-marcelo_hairdressing #authGuard { background: #0F0F0F !important; }
 
-    /* Hero: no image background or clean minimal styling */
+    /* Hero: photo background with dark fade */
     .tenant-marcelo_hairdressing .hero-bg {
-      background-image: none !important;
-      background-color: #0F0F0F !important;
+      background-image: url('/marcelo.png') !important;
+      background-size: cover !important;
+      background-position: center 20% !important;
     }
     .tenant-marcelo_hairdressing .hero-overlay {
-      background: none !important;
+      background: linear-gradient(180deg, rgba(15,15,15,0.28) 0%, rgba(15,15,15,0.60) 55%, #0F0F0F 100%) !important;
     }
     .tenant-marcelo_hairdressing .hero-glow-spot {
-      background: radial-gradient(circle, rgba(255,255,255,0.03) 0%, transparent 65%) !important;
+      background: none !important;
     }
     /* Titular hero */
     .tenant-marcelo_hairdressing #heroLine1 {
@@ -1026,7 +1027,16 @@
     .tenant-marcelo_hairdressing .hero-cta span { color: #ffffff !important; }
     .tenant-marcelo_hairdressing .hero-cta:hover { background: rgba(255,255,255,0.1) !important; }
 
-    .tenant-marcelo_hairdressing #pwaBigInstallCard { display: none !important; }
+    .tenant-marcelo_hairdressing #pwaBigInstallCard {
+      background: linear-gradient(to right, rgba(255,255,255,0.05), rgba(255,255,255,0.02)) !important;
+      border-color: rgba(255,255,255,0.12) !important;
+      box-shadow: none !important;
+    }
+    .tenant-marcelo_hairdressing .pwa-icon-bg {
+      background: rgba(255,255,255,0.06) !important;
+      border-color: rgba(255,255,255,0.12) !important;
+      box-shadow: none !important;
+    }
 
     /* VIP Pass */
     .tenant-marcelo_hairdressing .membership-pattern {
@@ -3487,6 +3497,7 @@ document.getElementById('shopClubName').textContent   = SHOP.club;
   const isMapu        = tid === 'mapubarbershop';
   const isChameleon   = tid === 'chameleon';
   const isLumen       = tid === 'lumen';
+  const isMarcelo     = tid === 'marcelo_hairdressing';
 
   // Subtítulo header
   const sub = document.getElementById('shopHeaderSub');
@@ -3510,6 +3521,9 @@ document.getElementById('shopClubName').textContent   = SHOP.club;
   } else if (isLumen) {
     if (h1) h1.textContent = 'Estilo &';
     if (h2) h2.textContent = 'tradición.';
+  } else if (isMarcelo) {
+    if (h1) h1.style.display = 'none';
+    if (h2) h2.innerHTML = 'Tu imagen,<br>en las mejores manos.';
   }
 
   // Watermark
@@ -3519,10 +3533,16 @@ document.getElementById('shopClubName').textContent   = SHOP.club;
   // PWA install icons — usa SHOP.logo como fuente única de verdad (config.js).
   // pwaBigIcon está antes del script en el DOM → se puede actualizar ya.
   // pwaBannerIcon y pwaModalIcon están después → necesitan DOMContentLoaded.
-  const _pwaLogoSrc = window.SHOP?.logo || '/logo.jpg';
+  const _pwaLogoSrc = isMarcelo ? '/marcelo1.png' : (window.SHOP?.logo || '/logo.jpg');
   const _pwaLogoAlt = window.SHOP?.nombreCorto || 'App';
   const _pwaBigEl = document.getElementById('pwaBigIcon');
   if (_pwaBigEl) { _pwaBigEl.src = _pwaLogoSrc; _pwaBigEl.alt = _pwaLogoAlt; }
+  if (isMarcelo) {
+    const _appleIcon = document.querySelector('link[rel="apple-touch-icon"]');
+    if (_appleIcon) _appleIcon.href = '/marcelo1.png';
+    const _faviconEl = document.querySelector('link[rel="icon"]');
+    if (_faviconEl) { _faviconEl.href = '/marcelo1.png'; _faviconEl.type = 'image/png'; }
+  }
   document.addEventListener('DOMContentLoaded', function () {
     ['pwaBannerIcon', 'pwaModalIcon'].forEach(function (id) {
       const el = document.getElementById(id);

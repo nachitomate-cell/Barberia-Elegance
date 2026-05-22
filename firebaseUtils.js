@@ -353,13 +353,16 @@ const FDB = (() => {
       callback(results);
     }
 
-    const unsubEmail = tenantCol(COL.CITAS)
-      .where('clienteEmail', '==', email)
-      .limit(50)
-      .onSnapshot(snap => {
-        snapEmailDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        emit();
-      }, err => console.error('[FDB] onCitasByClienteChange email:', err));
+    let unsubEmail = null;
+    if (email) {
+      unsubEmail = tenantCol(COL.CITAS)
+        .where('clienteEmail', '==', email)
+        .limit(50)
+        .onSnapshot(snap => {
+          snapEmailDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+          emit();
+        }, err => console.error('[FDB] onCitasByClienteChange email:', err));
+    }
 
     let unsubUid = null;
     if (uid) {
