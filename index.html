@@ -2480,267 +2480,308 @@
 
 
     /* ══ MARCELO HAIRDRESSING ══
-       Aesthetic: Premium Dark Minimalist (Deep Dark background, Pure White/Light Grey text & borders, transparent/glassy cards)
+       Aesthetic: Premium Dark — Apple-inspired minimal
+       Background: #0A0A0A · Text: #FFF / #A0A0A0 · Cards: #141414
        ═══════════════════════════════════════════════════════════════ */
     .tenant-marcelo_hairdressing {
       --accent:   #ffffff;
       --accent-r: 255; --accent-g: 255; --accent-b: 255;
       --neon-clr: #ffffff;
       --neon-r:   255; --neon-g: 255; --neon-b: 255;
-      --body-bg:  #0F0F0F;
+      --body-bg:  #0A0A0A;
     }
     .tenant-marcelo_hairdressing body {
-      background-color: #0F0F0F !important;
+      background-color: #0A0A0A !important;
     }
 
-    /* Hero con marcelo.png de fondo */
+    /* ── Hero: flat dark — sin imagen de fondo ── */
     .tenant-marcelo_hairdressing .booking-hero {
-      background-image: url('/marcelo.png') !important;
-      background-color: #0F0F0F !important;
-      background-size: cover !important;
-      background-position: center 25% !important;
-      min-height: 155px !important;
+      background-image: none !important;
+      background-color: #0A0A0A !important;
+      min-height: auto !important;
       height: auto !important;
-      padding-top: 0 !important;
-      padding-bottom: 0 !important;
-      border-bottom: 1px solid rgba(255,255,255,0.08) !important;
+      padding: 0 !important;
+      border-bottom: none !important;
     }
     .tenant-marcelo_hairdressing .booking-hero-overlay {
-      display: block !important;
-      background: linear-gradient(160deg,
-        rgba(0,0,0,0.74) 0%, rgba(0,0,0,0.58) 50%, rgba(0,0,0,0.80) 100%) !important;
+      display: none !important;
     }
     .tenant-marcelo_hairdressing .booking-hero > .relative.z-10:not(#marceloHeader) {
       display: none !important;
     }
     .tenant-marcelo_hairdressing #marceloHeader {
       display: flex !important;
+      padding: 18px 22px 18px 22px !important;
+      border-bottom: 1px solid rgba(255,255,255,0.07) !important;
     }
     .tenant-marcelo_hairdressing #heroGoogleBadge {
       display: none !important;
     }
 
-    /* Info strip (we can hide it or make it transparent minimal) */
+    /* ── Info strip ── */
     .tenant-marcelo_hairdressing .info-strip {
-      background: rgba(255,255,255,0.02) !important;
-      border-color: rgba(255,255,255,0.06) !important;
+      background: #0A0A0A !important;
+      border-color: rgba(255,255,255,0.07) !important;
+    }
+    .tenant-marcelo_hairdressing .info-strip a,
+    .tenant-marcelo_hairdressing .info-strip > div {
+      color: #A0A0A0 !important;
     }
     .tenant-marcelo_hairdressing .info-strip i {
-      color: #ffffff !important;
-      opacity: 0.8;
+      color: rgba(255,255,255,0.35) !important;
     }
 
-    /* Barra de progreso */
-    .tenant-marcelo_hairdressing #progressBar {
-      background-color: #ffffff !important;
-      box-shadow: 0 0 10px rgba(255,255,255,0.3) !important;
-    }
+    /* ── Progress bar: thin, no glow ── */
     .tenant-marcelo_hairdressing #progressTrack {
       background-color: rgba(255,255,255,0.08) !important;
+      height: 1.5px !important;
+      border-radius: 999px !important;
+      overflow: visible !important;
+    }
+    .tenant-marcelo_hairdressing #progressBar {
+      background-color: #ffffff !important;
+      box-shadow: none !important;
+      height: 1.5px !important;
     }
     .tenant-marcelo_hairdressing #stepIndicatorText {
-      color: #ffffff !important;
+      color: rgba(255,255,255,0.35) !important;
       text-shadow: none !important;
+      font-size: 0.64rem !important;
+      letter-spacing: 0.14em !important;
+    }
+    .tenant-marcelo_hairdressing #progressPercentage {
+      display: none !important;
     }
 
-    /* Píldoras de categoría */
+    /* ── Category pills (hidden, but styled if shown) ── */
+    .tenant-marcelo_hairdressing #categoryPills {
+      display: none !important;
+    }
     .tenant-marcelo_hairdressing .category-pill {
       background: transparent !important;
-      border: 1px solid rgba(255,255,255,0.15) !important;
-      color: rgba(255,255,255,0.6) !important;
-      transition: all 0.3s cubic-bezier(0.16,1,0.3,1) !important;
+      border: 1px solid rgba(255,255,255,0.12) !important;
+      color: #A0A0A0 !important;
     }
     .tenant-marcelo_hairdressing .category-pill:hover {
-      border-color: rgba(255,255,255,0.4) !important;
+      border-color: rgba(255,255,255,0.3) !important;
       color: #ffffff !important;
     }
-    .tenant-marcelo_hairdressing .category-pill.border-neon {
-      background: rgba(255,255,255,0.08) !important;
+    .tenant-marcelo_hairdressing .category-pill.border-neon,
+    .tenant-marcelo_hairdressing .category-pill.text-neon {
+      background: rgba(255,255,255,0.06) !important;
       border-color: #ffffff !important;
       color: #ffffff !important;
       box-shadow: none !important;
     }
-    .tenant-marcelo_hairdressing .category-pill.text-neon {
-      color: #ffffff !important;
-    }
 
-    /* Heading paso 1 - 4 */
+    /* ── Step headings ── */
     .tenant-marcelo_hairdressing h2.text-neon {
       color: #ffffff !important;
       text-shadow: none !important;
-      font-family: inherit !important;
+    }
+    .tenant-marcelo_hairdressing #step1 > h2 {
+      color: #ffffff !important;
+      text-shadow: none !important;
+      font-size: 1.3rem !important;
+      font-weight: 700 !important;
+      letter-spacing: -0.02em !important;
+      margin-bottom: 1.25rem !important;
+    }
+    .tenant-marcelo_hairdressing .category-section h3 {
+      color: rgba(255,255,255,0.22) !important;
+      font-size: 0.65rem !important;
+      font-weight: 700 !important;
+      letter-spacing: 0.2em !important;
+      text-shadow: none !important;
     }
 
-    /* Tarjetas de servicio */
+    /* ── Service cards (row layout, #141414 bg) ── */
     .tenant-marcelo_hairdressing .service-option {
-      background: rgba(255,255,255,0.02) !important;
-      border-color: rgba(255,255,255,0.08) !important;
-      transition: all 0.3s cubic-bezier(0.16,1,0.3,1) !important;
+      background: #141414 !important;
+      border: 1px solid rgba(255,255,255,0.07) !important;
+      border-radius: 14px !important;
+      gap: 0.875rem !important;
+      box-shadow: none !important;
+      transition: border-color 0.2s ease, background 0.2s ease !important;
+      transform: none !important;
     }
     .tenant-marcelo_hairdressing .service-option:hover {
-      border-color: rgba(255,255,255,0.25) !important;
-      background: rgba(255,255,255,0.04) !important;
+      background: #1A1A1A !important;
+      border-color: rgba(255,255,255,0.16) !important;
       box-shadow: none !important;
+      transform: none !important;
     }
     .tenant-marcelo_hairdressing .service-option.border-neon {
-      border-color: #ffffff !important;
-      background: rgba(255,255,255,0.08) !important;
-      box-shadow: 0 0 0 1px #ffffff !important;
+      background: #1C1C1E !important;
+      border-color: rgba(255,255,255,0.75) !important;
+      box-shadow: none !important;
     }
-    .tenant-marcelo_hairdressing .service-option .svc-name {
-      color: #ffffff !important;
-    }
-    .tenant-marcelo_hairdressing .service-option .price-tag {
-      color: #ffffff !important;
-    }
-    .tenant-marcelo_hairdressing .service-option .duration-tag {
-      color: rgba(255,255,255,0.5) !important;
+    /* Icon */
+    .tenant-marcelo_hairdressing .service-option .icon-bg {
+      background: rgba(255,255,255,0.05) !important;
+      border: 1px solid rgba(255,255,255,0.09) !important;
+      border-radius: 10px !important;
+      width: 42px !important;
+      height: 42px !important;
+      box-shadow: none !important;
     }
     .tenant-marcelo_hairdressing .service-option.border-neon .icon-bg {
-      border-color: rgba(255,255,255,0.4) !important;
       background: rgba(255,255,255,0.08) !important;
-      box-shadow: none !important;
+      border-color: rgba(255,255,255,0.2) !important;
+    }
+    .tenant-marcelo_hairdressing .service-option .icon-svg {
+      color: rgba(255,255,255,0.48) !important;
+      filter: none !important;
+      text-shadow: none !important;
     }
     .tenant-marcelo_hairdressing .service-option.border-neon .icon-svg {
       color: #ffffff !important;
       filter: none !important;
     }
+    /* Name */
+    .tenant-marcelo_hairdressing .service-option .svc-name {
+      color: #f0f0f0 !important;
+      font-size: 0.88rem !important;
+      font-weight: 600 !important;
+    }
+    /* Price */
+    .tenant-marcelo_hairdressing .service-option .price-tag {
+      color: #ffffff !important;
+      text-shadow: none !important;
+      font-size: 0.875rem !important;
+      font-weight: 700 !important;
+    }
+    /* Duration */
+    .tenant-marcelo_hairdressing .service-option .duration-tag {
+      color: #A0A0A0 !important;
+    }
+    /* Radio */
+    .tenant-marcelo_hairdressing .service-option .svc-radio {
+      border-color: rgba(255,255,255,0.14) !important;
+      width: 18px !important;
+      height: 18px !important;
+      flex-shrink: 0 !important;
+    }
+    .tenant-marcelo_hairdressing .service-option.border-neon .svc-radio {
+      border-color: #ffffff !important;
+      background: #ffffff !important;
+      box-shadow: inset 0 0 0 3.5px #1C1C1E !important;
+    }
 
-    /* Tarjetas de barbero */
+    /* ── Barber cards ── */
     .tenant-marcelo_hairdressing .barber-option {
-      background: rgba(255,255,255,0.02) !important;
-      border-color: rgba(255,255,255,0.08) !important;
+      background: #141414 !important;
+      border-color: rgba(255,255,255,0.07) !important;
     }
     .tenant-marcelo_hairdressing .barber-option:hover {
-      border-color: rgba(255,255,255,0.25) !important;
-      background: rgba(255,255,255,0.04) !important;
+      background: #1A1A1A !important;
+      border-color: rgba(255,255,255,0.2) !important;
     }
     .tenant-marcelo_hairdressing .barber-option.border-neon {
+      background: #1C1C1E !important;
       border-color: #ffffff !important;
-      background: rgba(255,255,255,0.08) !important;
       box-shadow: none !important;
     }
     .tenant-marcelo_hairdressing .barber-option.bg-brand-neon\/10 {
-      background: rgba(255,255,255,0.08) !important;
+      background: rgba(255,255,255,0.06) !important;
     }
     .tenant-marcelo_hairdressing .text-brand-neon {
       color: #ffffff !important;
     }
 
-    /* Calendario */
+    /* ── Calendar day buttons ── */
     .tenant-marcelo_hairdressing .day-btn {
-      background: rgba(255,255,255,0.02) !important;
-      border-color: rgba(255,255,255,0.08) !important;
-      color: rgba(255,255,255,0.6) !important;
+      background: #141414 !important;
+      border-color: rgba(255,255,255,0.07) !important;
+      color: #A0A0A0 !important;
     }
     .tenant-marcelo_hairdressing .day-btn.active,
     .tenant-marcelo_hairdressing .day-btn.border-neon {
-      background: rgba(255,255,255,0.08) !important;
+      background: #1C1C1E !important;
       border-color: #ffffff !important;
       color: #ffffff !important;
       box-shadow: none !important;
     }
     .tenant-marcelo_hairdressing .day-btn .dot.bg-neon {
       background: #ffffff !important;
-      box-shadow: 0 0 6px rgba(255,255,255,0.4) !important;
+      box-shadow: none !important;
     }
 
-    /* Selector de hora */
+    /* ── Time pills ── */
     .tenant-marcelo_hairdressing .time-pill {
-      background: transparent !important;
-      border: 1px solid rgba(255,255,255,0.15) !important;
-      color: rgba(255,255,255,0.6) !important;
+      background: #141414 !important;
+      border: 1px solid rgba(255,255,255,0.10) !important;
+      color: #A0A0A0 !important;
     }
     .tenant-marcelo_hairdressing .time-pill:hover {
-      border-color: rgba(255,255,255,0.4) !important;
+      border-color: rgba(255,255,255,0.28) !important;
       color: #ffffff !important;
     }
     .tenant-marcelo_hairdressing .time-pill.bg-neon {
       background: #ffffff !important;
-      color: #0F0F0F !important;
-      box-shadow: 0 0 10px rgba(255,255,255,0.3) !important;
-      font-weight: 800 !important;
+      color: #0A0A0A !important;
+      box-shadow: none !important;
+      font-weight: 700 !important;
       border-color: #ffffff !important;
     }
     .tenant-marcelo_hairdressing .time-pill.border-neon {
-      border-color: #ffffff !important;
+      border-color: rgba(255,255,255,0.6) !important;
       color: #ffffff !important;
       box-shadow: none !important;
     }
 
-    /* Botón Continuar */
+    /* ── Continue button bar ── */
+    .tenant-marcelo_hairdressing #btnContinueBar {
+      background: rgba(10,10,10,0.88) !important;
+      backdrop-filter: blur(24px) !important;
+      -webkit-backdrop-filter: blur(24px) !important;
+      border-top: 1px solid rgba(255,255,255,0.07) !important;
+    }
     .tenant-marcelo_hairdressing #btnContinue {
-      background: transparent !important;
-      border: 1px solid #ffffff !important;
+      background: #141414 !important;
+      border: 1px solid rgba(255,255,255,0.28) !important;
       color: #ffffff !important;
       box-shadow: none !important;
-      transition: all 0.3s cubic-bezier(0.16,1,0.3,1) !important;
+      border-radius: 14px !important;
+      font-weight: 700 !important;
+      transition: background 0.2s ease, border-color 0.2s ease !important;
     }
     .tenant-marcelo_hairdressing #btnContinue:hover,
     .tenant-marcelo_hairdressing #btnContinue:active {
-      background: #ffffff !important;
-      color: #0F0F0F !important;
-      box-shadow: 0 0 15px rgba(255,255,255,0.4) !important;
-    }
-    .tenant-marcelo_hairdressing #btnContinueBar {
-      background: rgba(15,15,15,0.95) !important;
-      border-top: 1px solid rgba(255,255,255,0.06) !important;
+      background: #1C1C1E !important;
+      border-color: rgba(255,255,255,0.55) !important;
+      color: #ffffff !important;
+      box-shadow: none !important;
     }
 
-    /* Inputs datos personales */
+    /* ── Personal data inputs ── */
     .tenant-marcelo_hairdressing #clientName,
     .tenant-marcelo_hairdressing #clientPhone,
     .tenant-marcelo_hairdressing #clientEmail {
-      background: rgba(255,255,255,0.02) !important;
-      border: 1px solid rgba(255,255,255,0.1) !important;
+      background: #141414 !important;
+      border: 1px solid rgba(255,255,255,0.09) !important;
       color: #ffffff !important;
     }
     .tenant-marcelo_hairdressing #clientName:focus,
     .tenant-marcelo_hairdressing #clientPhone:focus,
     .tenant-marcelo_hairdressing #clientEmail:focus {
       outline: none !important;
-      border-color: #ffffff !important;
-      box-shadow: 0 0 0 2px rgba(255,255,255,0.1) !important;
+      border-color: rgba(255,255,255,0.38) !important;
+      box-shadow: 0 0 0 2px rgba(255,255,255,0.04) !important;
     }
     .tenant-marcelo_hairdressing #summaryPrice {
       color: #ffffff !important;
     }
 
-    /* Club banner */
+    /* ── Club banner: monochromatic premium ── */
     .tenant-marcelo_hairdressing #clubBanner a {
-      background: rgba(255,255,255,0.02) !important;
-      border-color: rgba(255,255,255,0.1) !important;
+      background: #141414 !important;
+      border-color: rgba(255,255,255,0.09) !important;
       color: #ffffff !important;
     }
     .tenant-marcelo_hairdressing #clubBanner .club-icon-wrap {
-      background: rgba(255,255,255,0.06) !important;
-      border-color: rgba(255,255,255,0.15) !important;
-      color: #ffffff !important;
-    }
-
-    /* Footer contacto */
-    .tenant-marcelo_hairdressing #footerContact > .rounded-2xl {
-      background: #121212 !important;
-      border-color: rgba(255,255,255,0.06) !important;
-    }
-    .tenant-marcelo_hairdressing #footerContact .w-10 {
       background: rgba(255,255,255,0.04) !important;
-      border-color: rgba(255,255,255,0.1) !important;
-      color: #ffffff !important;
-    }
-    .tenant-marcelo_hairdressing #shopHorarioGrid span.rounded-full {
-      background: rgba(255,255,255,0.6) !important;
-    }
-
-    /* Gold/neon divider */
-    .tenant-marcelo_hairdressing .gold-divider {
-      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent) !important;
-    }
-
-    /* Selection recap chips */
-    .tenant-marcelo_hairdressing #selectionRecap span {
-      background: rgba(255,255,255,0.04) !important;
-      border-color: rgba(255,255,255,0.1) !important;
+      border-color: rgba(255,255,255,0.11) !important;
       color: #ffffff !important;
     }
 
@@ -2749,106 +2790,40 @@
       display: block;
     }
     @keyframes mh-border-pulse {
-      0%, 100% { box-shadow: 0 0 0 1px rgba(255,255,255,0.12), 0 0 10px rgba(255,255,255,0.03); }
-      50%       { box-shadow: 0 0 0 1px rgba(255,255,255,0.28), 0 0 15px rgba(255,255,255,0.08); }
+      0%, 100% { box-shadow: 0 0 0 1px rgba(255,255,255,0.09); }
+      50%       { box-shadow: 0 0 0 1px rgba(255,255,255,0.22); }
     }
     .tenant-marcelo_hairdressing .dn-club-btn {
       animation: mh-border-pulse 3s ease-in-out infinite;
-      border-color: rgba(255,255,255,0.2) !important;
-      background: rgba(255,255,255,0.05) !important;
+      border-color: rgba(255,255,255,0.14) !important;
+      background: #141414 !important;
       color: #ffffff !important;
     }
-    /* Ocultar filtro de categorías en marcelo */
-    .tenant-marcelo_hairdressing #categoryPills {
-      display: none !important;
+
+    /* ── Footer contact ── */
+    .tenant-marcelo_hairdressing #footerContact > .rounded-2xl {
+      background: #141414 !important;
+      border-color: rgba(255,255,255,0.07) !important;
     }
-    /* ── Marcelo — Paso 1: Servicios ──────────────────────────── */
-    .tenant-marcelo_hairdressing #step1 > h2 {
-      font-family: 'Plus Jakarta Sans', sans-serif !important;
-      color: #f1f5f9 !important;
-      text-shadow: none !important;
-      font-size: 1.4rem !important;
-      letter-spacing: -0.02em !important;
-      margin-bottom: 1.25rem !important;
-    }
-    /* Etiqueta de categoría */
-    .tenant-marcelo_hairdressing .category-section h3 {
-      color: rgba(255,255,255,0.25) !important;
-      font-size: 0.67rem !important;
-      font-weight: 700 !important;
-      letter-spacing: 0.18em !important;
-      margin-bottom: 0.75rem !important;
-      text-shadow: none !important;
-    }
-    /* Tarjeta de servicio (row layout) */
-    .tenant-marcelo_hairdressing .service-option {
-      background: rgba(255,255,255,0.02) !important;
-      border: 1px solid rgba(255,255,255,0.08) !important;
-      border-radius: 0.875rem !important;
-      gap: 0.875rem !important;
-      transition: border-color 0.22s ease, background 0.22s ease !important;
-    }
-    .tenant-marcelo_hairdressing .service-option:hover {
-      background: rgba(255,255,255,0.045) !important;
-      border-color: rgba(255,255,255,0.18) !important;
-      box-shadow: none !important;
-      transform: none !important;
-    }
-    .tenant-marcelo_hairdressing .service-option.border-neon {
-      background: rgba(255,255,255,0.055) !important;
-      border-color: rgba(255,255,255,0.80) !important;
-      box-shadow: none !important;
-    }
-    /* Ícono cuadrado */
-    .tenant-marcelo_hairdressing .service-option .icon-bg {
+    .tenant-marcelo_hairdressing #footerContact .w-10 {
       background: rgba(255,255,255,0.04) !important;
-      border: 1px solid rgba(255,255,255,0.09) !important;
-      border-radius: 0.625rem !important;
-      width: 42px !important;
-      height: 42px !important;
-      box-shadow: none !important;
-    }
-    .tenant-marcelo_hairdressing .service-option.border-neon .icon-bg {
-      background: rgba(255,255,255,0.08) !important;
-      border-color: rgba(255,255,255,0.22) !important;
-    }
-    .tenant-marcelo_hairdressing .service-option .icon-svg {
-      color: rgba(255,255,255,0.60) !important;
-      filter: none !important;
-      text-shadow: none !important;
-    }
-    .tenant-marcelo_hairdressing .service-option.border-neon .icon-svg {
+      border-color: rgba(255,255,255,0.09) !important;
       color: #ffffff !important;
-      filter: none !important;
     }
-    /* Nombre del servicio */
-    .tenant-marcelo_hairdressing .service-option .svc-name {
-      color: #e5e7eb !important;
-      font-size: 0.9rem !important;
-      font-weight: 600 !important;
+    .tenant-marcelo_hairdressing #shopHorarioGrid span.rounded-full {
+      background: rgba(255,255,255,0.45) !important;
     }
-    /* Precio */
-    .tenant-marcelo_hairdressing .service-option .price-tag {
-      color: #ffffff !important;
-      text-shadow: none !important;
-      font-size: 0.875rem !important;
-      font-weight: 800 !important;
+
+    /* ── Divider ── */
+    .tenant-marcelo_hairdressing .gold-divider {
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.10), transparent) !important;
     }
-    /* Duración */
-    .tenant-marcelo_hairdressing .service-option .duration-tag {
-      color: rgba(255,255,255,0.35) !important;
-    }
-    /* Radio indicator — círculo */
-    .tenant-marcelo_hairdressing .service-option .svc-radio {
-      border-color: rgba(255,255,255,0.18) !important;
-      width: 18px !important;
-      height: 18px !important;
-      flex-shrink: 0 !important;
-    }
-    .tenant-marcelo_hairdressing .service-option.border-neon .svc-radio {
-      border-color: #ffffff !important;
-      background: #ffffff !important;
-      box-shadow: inset 0 0 0 3.5px #0f0f0f !important;
+
+    /* ── Selection recap chips ── */
+    .tenant-marcelo_hairdressing #selectionRecap span {
+      background: rgba(255,255,255,0.04) !important;
+      border-color: rgba(255,255,255,0.09) !important;
+      color: #A0A0A0 !important;
     }
     /* ────────────────────────────────────────────────────────────── */
     /* ═══════════════════════════════════════════════════════════════
@@ -5055,16 +5030,22 @@
       </a>
 
       <!-- Custom Header for Marcelo Hairdressing -->
-      <div id="marceloHeader" class="hidden relative z-10 w-full px-6 py-8" style="justify-content: space-between; align-items: center;">
-        <!-- Brand identity -->
-        <div class="flex flex-col text-left" style="gap:3px;">
-          <p class="text-[9px] font-bold uppercase" style="letter-spacing:0.22em;color:rgba(255,255,255,0.42);margin:0;">Hairdresser</p>
-          <h1 id="marceloHeaderName" class="font-black text-white leading-none" style="font-size:1.55rem;letter-spacing:-0.02em;margin:0;">Marcelo Palma</h1>
-          <p id="marceloHeaderSlogan" class="text-[9px] font-semibold uppercase" style="letter-spacing:0.14em;color:rgba(255,255,255,0.48);margin:0;">Hairdressing & Estilo</p>
+      <div id="marceloHeader" class="hidden relative z-10 w-full" style="justify-content:space-between;align-items:center;">
+        <!-- Brand identity left -->
+        <div style="display:flex;align-items:center;gap:12px;">
+          <!-- Logo mark: scissors icon -->
+          <div style="width:36px;height:36px;border-radius:9px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.10);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <i class="ph-bold ph-scissors" style="font-size:15px;color:rgba(255,255,255,0.7);"></i>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:2px;">
+            <p style="font-size:8.5px;font-weight:700;letter-spacing:0.22em;color:rgba(255,255,255,0.35);margin:0;text-transform:uppercase;">Hairdresser</p>
+            <h1 id="marceloHeaderName" style="font-size:1.35rem;font-weight:800;color:#ffffff;letter-spacing:-0.025em;line-height:1;margin:0;">Marcelo Palma</h1>
+            <p id="marceloHeaderSlogan" style="font-size:8.5px;font-weight:600;letter-spacing:0.15em;color:rgba(255,255,255,0.38);margin:0;text-transform:uppercase;">Hairdressing &amp; Estilo</p>
+          </div>
         </div>
-        <!-- Foto de perfil: marcelo1.png -->
-        <div class="rounded-full overflow-hidden shrink-0" style="width:58px;height:58px;border:2px solid rgba(255,255,255,0.38);box-shadow:0 4px 18px rgba(0,0,0,0.55);">
-          <img src="/marcelo1.png" alt="Marcelo Palma" class="w-full h-full object-cover object-top">
+        <!-- Profile photo right -->
+        <div style="width:50px;height:50px;border-radius:50%;overflow:hidden;flex-shrink:0;border:1.5px solid rgba(255,255,255,0.18);">
+          <img src="/marcelo1.png" alt="Marcelo Palma" style="width:100%;height:100%;object-fit:cover;object-position:top;">
         </div>
       </div>
 
