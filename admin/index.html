@@ -290,6 +290,38 @@
     }
     .ps-value.loaded { animation: countUp 0.45s cubic-bezier(0.16,1,0.3,1) both; }
 
+    /* ── Analytics (alertas + ranking) ── */
+    .analytics-eyebrow {
+      font-size: 0.6875rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.08em; color: #475569; margin: 0 0 0.25rem;
+    }
+    .analytics-title {
+      font-size: 1rem; font-weight: 700; color: #f1f5f9;
+      margin: 0; letter-spacing: -0.02em;
+    }
+    .alert-item {
+      display: flex; align-items: flex-start; gap: 0.625rem;
+      padding: 0.6875rem 0.875rem; border-radius: 0.75rem;
+      border: 1px solid; margin-bottom: 0.4375rem; transition: opacity 0.2s;
+    }
+    .alert-critical { background: rgba(248,113,113,0.05); border-color: rgba(248,113,113,0.18); }
+    .alert-warning  { background: rgba(245,158,11,0.05);  border-color: rgba(245,158,11,0.15);  }
+    .rk-row {
+      display: grid;
+      grid-template-columns: 28px 1fr 52px 62px 62px 62px 48px;
+      align-items: center; gap: 0.5rem;
+      padding: 0.5625rem 0.75rem; border-radius: 0.75rem;
+      border: 1px solid rgba(255,255,255,0.05);
+      background: rgba(255,255,255,0.02);
+      margin-bottom: 0.375rem; transition: background 0.15s; cursor: pointer;
+    }
+    .rk-row:hover { background: rgba(255,255,255,0.05); }
+    .rk-bar-wrap { height: 3px; border-radius: 2px; background: rgba(255,255,255,0.06); overflow: hidden; margin-top: 0.25rem; }
+    .rk-bar { height: 100%; border-radius: 2px; transition: width 0.7s cubic-bezier(0.16,1,0.3,1); }
+    .rk-medal { font-size: 0.9375rem; text-align: center; line-height: 1; }
+    .rk-pct { font-size: 0.75rem; font-weight: 700; text-align: right; }
+    .rk-score { font-size: 0.8125rem; font-weight: 800; text-align: center; padding: 0.1875rem 0.375rem; border-radius: 0.375rem; background: rgba(255,255,255,0.04); }
+
     /* ── Quick action links ── */
     .quick-link {
       display: flex; align-items: center; gap: 0.75rem;
@@ -572,6 +604,56 @@
     <div id="ps-loading" style="text-align:center; padding:0.75rem 0; color:#475569; font-size:0.75rem;">
       <i class="ph ph-spinner" style="animation:spin 1s linear infinite; display:inline-block; margin-right:0.25rem;"></i>
       Cargando estadísticas…
+    </div>
+  </div>
+
+  <!-- ── Alertas tempranas ── -->
+  <div style="width:100%; max-width:660px; margin-bottom:2rem;">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">
+      <div>
+        <p class="analytics-eyebrow">Alertas tempranas</p>
+        <h2 class="analytics-title">
+          Requieren atención
+          <span id="alertas-count-badge" style="display:none; margin-left:0.5rem; padding:0.125rem 0.5rem; border-radius:999px; font-size:0.6875rem; font-weight:700;"></span>
+        </h2>
+      </div>
+      <button onclick="loadAnalytics()" style="
+        display:flex; align-items:center; gap:0.375rem;
+        padding:0.375rem 0.75rem; border-radius:0.5rem;
+        background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08);
+        color:#64748b; font-size:0.75rem; cursor:pointer; transition:all 0.2s;
+      " onmouseover="this.style.color='#94a3b8'" onmouseout="this.style.color='#64748b'">
+        <i class="ph ph-arrows-clockwise"></i> Refrescar
+      </button>
+    </div>
+    <div id="alertas-content">
+      <div style="text-align:center; padding:1.5rem; color:#475569; font-size:0.8125rem;">
+        <i class="ph ph-spinner" style="animation:spin 1s linear infinite; display:inline-block; margin-right:0.25rem;"></i>
+        Analizando locales…
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Ranking de locales ── -->
+  <div style="width:100%; max-width:660px; margin-bottom:2rem;">
+    <div style="margin-bottom:0.875rem;">
+      <p class="analytics-eyebrow">Rendimiento comparativo</p>
+      <h2 class="analytics-title">Ranking de locales · <span style="color:#64748b; font-weight:500;">Últimos 30 días</span></h2>
+    </div>
+    <div style="display:grid; grid-template-columns:28px 1fr 52px 62px 62px 62px 48px; gap:0.5rem; padding:0 0.75rem; margin-bottom:0.375rem;">
+      <div></div>
+      <div style="font-size:0.5875rem; font-weight:700; text-transform:uppercase; letter-spacing:0.09em; color:#334155;">Local</div>
+      <div style="font-size:0.5875rem; font-weight:700; text-transform:uppercase; letter-spacing:0.09em; color:#334155; text-align:right;">Citas</div>
+      <div style="font-size:0.5875rem; font-weight:700; text-transform:uppercase; letter-spacing:0.09em; color:#334155; text-align:right;">Completas</div>
+      <div style="font-size:0.5875rem; font-weight:700; text-transform:uppercase; letter-spacing:0.09em; color:#334155; text-align:right;">Retención</div>
+      <div style="font-size:0.5875rem; font-weight:700; text-transform:uppercase; letter-spacing:0.09em; color:#334155; text-align:right;">Cancelac.</div>
+      <div style="font-size:0.5875rem; font-weight:700; text-transform:uppercase; letter-spacing:0.09em; color:#334155; text-align:center;">Score</div>
+    </div>
+    <div id="ranking-content">
+      <div style="text-align:center; padding:1.5rem; color:#475569; font-size:0.8125rem;">
+        <i class="ph ph-spinner" style="animation:spin 1s linear infinite; display:inline-block; margin-right:0.25rem;"></i>
+        Calculando ranking…
+      </div>
     </div>
   </div>
 
@@ -2644,6 +2726,180 @@
       }).catch(() => alert('Error al copiar: ' + text));
     }
 
+    // ── Analytics: alertas + ranking ─────────────────────────────
+    async function loadAnalytics() {
+      document.getElementById('alertas-content').innerHTML =
+        `<div style="text-align:center;padding:1.5rem;color:#475569;font-size:.8125rem;"><i class="ph ph-spinner" style="animation:spin 1s linear infinite;display:inline-block;margin-right:.25rem;"></i>Analizando locales…</div>`;
+      document.getElementById('ranking-content').innerHTML =
+        `<div style="text-align:center;padding:1.5rem;color:#475569;font-size:.8125rem;"><i class="ph ph-spinner" style="animation:spin 1s linear infinite;display:inline-block;margin-right:.25rem;"></i>Calculando ranking…</div>`;
+
+      const now = new Date();
+      const pad = n => String(n).padStart(2, '0');
+      const toDate = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+      const today         = toDate(now);
+      const thirtyDaysAgo = toDate(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30));
+      const sevenDaysAgo  = toDate(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7));
+
+      const tenantKeys = Object.keys(TENANTS);
+      const results = await Promise.allSettled(tenantKeys.map(async tid => {
+        const cfg = TENANTS[tid];
+        const [citasSnap, pendienteSnap, soporteSnap] = await Promise.allSettled([
+          cfg.citasCol().where('fecha', '>=', thirtyDaysAgo).get(),
+          cfg.citasCol().where('estado', '==', 'Pendiente').where('fecha', '<', today).get(),
+          cfg.soporteCol().where('leido', '==', false).get(),
+        ]);
+
+        const citas30            = citasSnap.status === 'fulfilled' ? citasSnap.value.docs.map(d => d.data()) : [];
+        const pendientesVencidas = pendienteSnap.status === 'fulfilled' ? pendienteSnap.value.size : 0;
+        const soporteSinLeer     = soporteSnap.status === 'fulfilled' ? soporteSnap.value.size : 0;
+
+        const total      = citas30.length;
+        const completadas = citas30.filter(c => c.estado === 'Completada').length;
+        const canceladas  = citas30.filter(c => c.estado === 'Cancelada').length;
+
+        const clientMap = {};
+        citas30.forEach(c => { if (c.clienteNombre) clientMap[c.clienteNombre] = (clientMap[c.clienteNombre] || 0) + 1; });
+        const uniqueClients    = Object.keys(clientMap).length;
+        const returningClients = Object.values(clientMap).filter(n => n >= 2).length;
+
+        const profMap = {};
+        citas30.forEach(c => { if (c.barberoNombre) profMap[c.barberoNombre] = (profMap[c.barberoNombre] || 0) + 1; });
+        const profEntries = Object.entries(profMap).sort((a, b) => b[1] - a[1]);
+        const topProfPct  = total > 0 && profEntries.length > 0 ? Math.round((profEntries[0][1] / total) * 100) : 0;
+        const topProfName = profEntries[0]?.[0] || null;
+
+        const hasRecentActivity = citas30.some(c => c.fecha >= sevenDaysAgo);
+        const completionRate = total > 0 ? Math.round((completadas / total) * 100) : 0;
+        const cancelRate     = total > 0 ? Math.round((canceladas  / total) * 100) : 0;
+        const retentionRate  = uniqueClients > 0 ? Math.round((returningClients / uniqueClients) * 100) : 0;
+        const score = total > 0
+          ? Math.round(completionRate * 0.35 + retentionRate * 0.35 + (100 - cancelRate) * 0.20 + Math.min(total / 80, 1) * 10)
+          : 0;
+
+        return {
+          tid, nombre: cfg.nombre, logo: cfg.logo, color: cfg.color, colorRgb: cfg.colorRgb,
+          total, completadas, canceladas, completionRate, cancelRate, retentionRate,
+          uniqueClients, returningClients, pendientesVencidas, soporteSinLeer,
+          hasRecentActivity, topProfPct, topProfName, score,
+        };
+      }));
+
+      const tenants = results.filter(r => r.status === 'fulfilled').map(r => r.value);
+      _renderAlerts(tenants);
+      _renderRanking(tenants);
+    }
+
+    function _renderAlerts(tenants) {
+      const alerts = [];
+      tenants.forEach(t => {
+        if (t.pendientesVencidas > 0)
+          alerts.push({ t, level: 'critical', icon: 'ph-warning',
+            msg: `${t.pendientesVencidas} cita${t.pendientesVencidas > 1 ? 's' : ''} vencida${t.pendientesVencidas > 1 ? 's' : ''} sin gestionar`,
+            hint: 'Citas en estado Pendiente cuya fecha ya pasó — necesitan resolución' });
+        if (t.soporteSinLeer > 0)
+          alerts.push({ t, level: 'critical', icon: 'ph-chat-dots',
+            msg: `${t.soporteSinLeer} mensaje${t.soporteSinLeer > 1 ? 's' : ''} de soporte sin leer`,
+            hint: 'Clientes esperando respuesta en el chat de soporte' });
+        if (!t.hasRecentActivity && t.total === 0)
+          alerts.push({ t, level: 'warning', icon: 'ph-clock',
+            msg: 'Sin citas en los últimos 7 días',
+            hint: 'Posible inactividad del local o problema de acceso' });
+        if (t.cancelRate > 30 && t.total >= 5)
+          alerts.push({ t, level: 'warning', icon: 'ph-x-circle',
+            msg: `Alta tasa de cancelación: ${t.cancelRate}%`,
+            hint: `${t.canceladas} de ${t.total} citas canceladas este mes` });
+        if (t.topProfPct >= 80 && t.total >= 10 && t.topProfName)
+          alerts.push({ t, level: 'warning', icon: 'ph-user-focus',
+            msg: `"${t.topProfName}" concentra el ${t.topProfPct}% de la agenda`,
+            hint: 'Riesgo si este profesional no está disponible' });
+      });
+
+      const badge = document.getElementById('alertas-count-badge');
+      const container = document.getElementById('alertas-content');
+
+      if (alerts.length === 0) {
+        badge.style.display = 'none';
+        container.innerHTML = `
+          <div style="display:flex;align-items:center;gap:0.625rem;padding:0.875rem 1rem;border-radius:0.75rem;background:rgba(52,211,153,0.04);border:1px solid rgba(52,211,153,0.12);">
+            <i class="ph-fill ph-check-circle" style="font-size:1.375rem;color:#34d399;flex-shrink:0;"></i>
+            <div>
+              <p style="font-size:0.875rem;font-weight:700;color:#34d399;margin:0 0 0.125rem;">Todo en orden</p>
+              <p style="font-size:0.75rem;color:#475569;margin:0;">Ningún local presenta alertas activas en este momento.</p>
+            </div>
+          </div>`;
+        return;
+      }
+
+      const criticals = alerts.filter(a => a.level === 'critical').length;
+      badge.textContent  = alerts.length;
+      badge.style.display = 'inline';
+      if (criticals > 0) {
+        badge.style.cssText += ';background:rgba(248,113,113,0.12);border:1px solid rgba(248,113,113,0.25);color:#f87171;';
+      } else {
+        badge.style.cssText += ';background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.25);color:#f59e0b;';
+      }
+
+      container.innerHTML = alerts.map(({ t, level, icon, msg, hint }) => {
+        const crit = level === 'critical';
+        return `
+          <div class="alert-item ${crit ? 'alert-critical' : 'alert-warning'}" onclick="openDrawer('${t.tid}')" style="cursor:pointer;">
+            <div style="width:34px;height:34px;border-radius:0.5rem;background:rgba(${t.colorRgb},0.1);border:1px solid rgba(${t.colorRgb},0.2);flex-shrink:0;overflow:hidden;">
+              <img src="${t.logo}" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentNode.style.display='flex';this.parentNode.style.alignItems='center';this.parentNode.style.justifyContent='center';this.style.display='none';">
+            </div>
+            <div style="flex:1;min-width:0;">
+              <div style="display:flex;align-items:center;gap:0.375rem;flex-wrap:wrap;margin-bottom:0.125rem;">
+                <span style="font-size:0.75rem;font-weight:700;color:#f1f5f9;">${escHtml(t.nombre)}</span>
+                <span style="padding:.1rem .4rem;border-radius:999px;font-size:.6rem;font-weight:800;letter-spacing:.06em;${crit?'background:rgba(248,113,113,.12);border:1px solid rgba(248,113,113,.25);color:#f87171;':'background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);color:#f59e0b;'}">${crit?'CRÍTICO':'ATENCIÓN'}</span>
+              </div>
+              <p style="font-size:.8125rem;color:${crit?'#f87171':'#f59e0b'};margin:0 0 .125rem;font-weight:600;">
+                <i class="ph-fill ${icon}" style="margin-right:.2rem;vertical-align:-.1em;"></i>${escHtml(msg)}
+              </p>
+              <p style="font-size:.7rem;color:#475569;margin:0;">${escHtml(hint)}</p>
+            </div>
+            <i class="ph ph-arrow-right" style="color:#334155;flex-shrink:0;font-size:0.875rem;"></i>
+          </div>`;
+      }).join('');
+    }
+
+    function _renderRanking(tenants) {
+      const sorted = [...tenants].sort((a, b) => b.score - a.score);
+      const maxCitas = Math.max(...sorted.map(t => t.total), 1);
+      const medals = ['🥇', '🥈', '🥉'];
+
+      const rows = sorted.map((t, i) => {
+        const medal = i < 3
+          ? `<span style="font-size:.9375rem;">${medals[i]}</span>`
+          : `<span style="font-size:.75rem;font-weight:700;color:#334155;">${i + 1}</span>`;
+        const clrComp  = t.completionRate >= 85 ? '#34d399' : t.completionRate >= 65 ? '#f59e0b' : '#f87171';
+        const clrRet   = t.retentionRate  >= 50 ? '#34d399' : t.retentionRate  >= 30 ? '#f59e0b' : '#94a3b8';
+        const clrCan   = t.cancelRate     <= 10 ? '#34d399' : t.cancelRate     <= 25 ? '#f59e0b' : '#f87171';
+        const clrScore = t.score          >= 70 ? '#34d399' : t.score          >= 50 ? '#f59e0b' : '#f87171';
+        const shortName = t.nombre.replace(/barbershop|barbería|barber|studio|salón|salon/gi, '').trim();
+        const noData = t.total === 0;
+        return `
+          <div class="rk-row" onclick="openDrawer('${t.tid}')">
+            <div class="rk-medal" style="text-align:center;">${medal}</div>
+            <div style="min-width:0;">
+              <div style="display:flex;align-items:center;gap:.375rem;margin-bottom:.1875rem;">
+                <img src="${t.logo}" style="width:16px;height:16px;border-radius:3px;object-fit:cover;flex-shrink:0;" onerror="this.style.display='none'">
+                <span style="font-size:.7rem;font-weight:700;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escHtml(shortName)}</span>
+              </div>
+              <div class="rk-bar-wrap">
+                <div class="rk-bar" style="width:${Math.round((t.total / maxCitas) * 100)}%;background:rgba(${t.colorRgb},.5);"></div>
+              </div>
+            </div>
+            <div class="rk-pct" style="color:#94a3b8;">${t.total}</div>
+            <div class="rk-pct" style="color:${noData?'#334155':clrComp};">${noData?'—':t.completionRate+'%'}</div>
+            <div class="rk-pct" style="color:${noData?'#334155':clrRet};">${noData?'—':t.retentionRate+'%'}</div>
+            <div class="rk-pct" style="color:${noData?'#334155':clrCan};">${noData?'—':t.cancelRate+'%'}</div>
+            <div class="rk-score" style="color:${noData?'#334155':clrScore};">${noData?'—':t.score}</div>
+          </div>`;
+      }).join('');
+
+      document.getElementById('ranking-content').innerHTML = rows
+        || '<p style="color:#475569;text-align:center;padding:1rem;">Sin datos disponibles</p>';
+    }
+
     // ── Auth check ────────────────────────────────────────────────
     firebase.auth().onAuthStateChanged(async (user) => {
       const screen = document.getElementById('unauthorized-screen');
@@ -2663,6 +2919,9 @@
         loadPlatformStats().catch(e => {
           console.warn('[Admin] loadPlatformStats error:', e);
           document.getElementById('ps-loading').textContent = 'Error al cargar estadísticas.';
+        });
+        loadAnalytics().catch(e => {
+          console.warn('[Admin] loadAnalytics error:', e);
         });
       }
     });
