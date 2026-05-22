@@ -269,12 +269,12 @@ const FDB = (() => {
       const cfgData   = cfgSnap.exists   ? cfgSnap.data()   : {};
       const barbData  = barbSnap.exists  ? barbSnap.data()  : {};
       const tenantCfg = tenantSnap.exists ? tenantSnap.data() : {};
-      // Orden de prioridad: default → tenant → barbero-específico → horario por día
+      // intervaloMinutos es un setting de tenant — siempre gana sobre barbero-específico
       return {
         ..._defaultConfig(),
-        ...(tenantCfg.intervaloMinutos != null ? { intervaloMinutos: tenantCfg.intervaloMinutos } : {}),
         ...cfgData,
         ...(barbData.horario ? { horario: barbData.horario } : {}),
+        ...(tenantCfg.intervaloMinutos != null ? { intervaloMinutos: tenantCfg.intervaloMinutos } : {}),
       };
     } catch (e) {
       console.error('[FDB] getConfigBarbero:', e);
@@ -298,9 +298,9 @@ const FDB = (() => {
         const tenantCfg = tenantSnap.exists ? tenantSnap.data() : {};
         callback({
           ..._defaultConfig(),
-          ...(tenantCfg.intervaloMinutos != null ? { intervaloMinutos: tenantCfg.intervaloMinutos } : {}),
           ...cfgData,
           ...(barbData.horario ? { horario: barbData.horario } : {}),
+          ...(tenantCfg.intervaloMinutos != null ? { intervaloMinutos: tenantCfg.intervaloMinutos } : {}),
         });
       } catch(_) {
         callback(snap.exists ? { ..._defaultConfig(), ...snap.data() } : _defaultConfig());
