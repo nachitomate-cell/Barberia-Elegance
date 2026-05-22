@@ -262,6 +262,34 @@
     @keyframes shimmer { 0% { background-position:200% 0; } 100% { background-position:-200% 0; } }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    /* ── Platform stats section ── */
+    .ps-card {
+      border-radius: 1rem;
+      padding: 1.125rem 1.25rem;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      display: flex; flex-direction: column; gap: 0.25rem;
+    }
+    .ps-value {
+      font-size: 1.75rem; font-weight: 800;
+      line-height: 1.1; letter-spacing: -0.03em;
+      color: #fff;
+    }
+    .ps-label {
+      font-size: 0.6875rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.09em;
+      color: #475569;
+    }
+    .ps-sub {
+      font-size: 0.75rem; color: #64748b;
+      margin-top: 0.125rem;
+    }
+    @keyframes countUp {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .ps-value.loaded { animation: countUp 0.45s cubic-bezier(0.16,1,0.3,1) both; }
+
     /* ── Quick action links ── */
     .quick-link {
       display: flex; align-items: center; gap: 0.75rem;
@@ -471,6 +499,80 @@
     <p style="color:#64748b; font-size:0.875rem; margin:0;">
       Selecciona un local para gestionar
     </p>
+  </div>
+
+  <!-- ── Platform Stats ── -->
+  <div id="platform-stats" style="width:100%; max-width:660px; margin-bottom:2rem;">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">
+      <div>
+        <p style="font-size:0.6875rem; font-weight:700; text-transform:uppercase; letter-spacing:0.08em; color:#475569; margin:0 0 0.25rem;">
+          Plataforma SynapTech
+        </p>
+        <h2 style="font-size:1rem; font-weight:700; color:#f1f5f9; margin:0; letter-spacing:-0.02em;">
+          Estadísticas globales · <span style="color:#64748b; font-weight:500;">Todos los locales</span>
+        </h2>
+      </div>
+      <button onclick="copyStatsSnippet()" id="copy-stats-btn" style="
+        display:flex; align-items:center; gap:0.375rem;
+        padding:0.4375rem 0.875rem; border-radius:0.5rem;
+        background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08);
+        color:#64748b; font-size:0.75rem; font-weight:600; cursor:pointer;
+        transition:all 0.2s; white-space:nowrap;
+      " onmouseover="this.style.color='#94a3b8';this.style.borderColor='rgba(255,255,255,0.15)'"
+         onmouseout="this.style.color='#64748b';this.style.borderColor='rgba(255,255,255,0.08)'">
+        <i class="ph ph-copy"></i> Copiar para web
+      </button>
+    </div>
+
+    <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:0.625rem; margin-bottom:0.625rem;">
+      <div class="ps-card">
+        <div id="ps-locales" class="ps-value">—</div>
+        <div class="ps-label">Locales activos</div>
+        <div class="ps-sub">en la plataforma</div>
+      </div>
+      <div class="ps-card">
+        <div id="ps-citas-total" class="ps-value">—</div>
+        <div class="ps-label">Citas gestionadas</div>
+        <div class="ps-sub">últimos 6 meses</div>
+      </div>
+      <div class="ps-card">
+        <div id="ps-citas-mes" class="ps-value">—</div>
+        <div class="ps-label">Citas este mes</div>
+        <div class="ps-sub" id="ps-mes-label">mes actual</div>
+      </div>
+      <div class="ps-card">
+        <div id="ps-clientes" class="ps-value">—</div>
+        <div class="ps-label">Clientes registrados</div>
+        <div class="ps-sub">club de fidelidad</div>
+      </div>
+    </div>
+    <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:0.625rem;">
+      <div class="ps-card">
+        <div id="ps-profesionales" class="ps-value">—</div>
+        <div class="ps-label">Profesionales</div>
+        <div class="ps-sub">en activo</div>
+      </div>
+      <div class="ps-card">
+        <div id="ps-retencion" class="ps-value">—</div>
+        <div class="ps-label">Tasa de retención</div>
+        <div class="ps-sub">clientes recurrentes</div>
+      </div>
+      <div class="ps-card">
+        <div id="ps-cancelacion" class="ps-value">—</div>
+        <div class="ps-label">Tasa cancelación</div>
+        <div class="ps-sub">sobre citas totales</div>
+      </div>
+      <div class="ps-card">
+        <div id="ps-servicios" class="ps-value">—</div>
+        <div class="ps-label">Servicios distintos</div>
+        <div class="ps-sub">ofrecidos en plataforma</div>
+      </div>
+    </div>
+
+    <div id="ps-loading" style="text-align:center; padding:0.75rem 0; color:#475569; font-size:0.75rem;">
+      <i class="ph ph-spinner" style="animation:spin 1s linear infinite; display:inline-block; margin-right:0.25rem;"></i>
+      Cargando estadísticas…
+    </div>
   </div>
 
   <!-- ── Tenant list ── -->
@@ -2440,6 +2542,108 @@
       }
     }
 
+    // ── Platform Stats ────────────────────────────────────────────
+    async function loadPlatformStats() {
+      const now = new Date();
+      const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 6, now.getDate())
+        .toISOString().slice(0, 10);
+      const thisMonthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+      const mesNames = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+      document.getElementById('ps-mes-label').textContent = mesNames[now.getMonth()];
+
+      const tenantKeys = Object.keys(TENANTS);
+      document.getElementById('ps-locales').textContent = tenantKeys.length;
+      document.getElementById('ps-locales').classList.add('loaded');
+
+      const results = await Promise.allSettled(tenantKeys.map(async tid => {
+        const cfg = TENANTS[tid];
+        const [citasSnap, usersSnap, profSnap] = await Promise.allSettled([
+          cfg.citasCol().where('fecha', '>=', sixMonthsAgo).get(),
+          cfg.usersCol().get(),
+          cfg.profCol().get(),
+        ]);
+
+        const citas = citasSnap.status === 'fulfilled' ? citasSnap.value.docs.map(d => d.data()) : [];
+        const userCount = usersSnap.status === 'fulfilled' ? usersSnap.value.size : 0;
+        const profCount = profSnap.status === 'fulfilled' ? profSnap.value.size : 0;
+
+        const citasMes = citas.filter(c => c.fecha >= thisMonthStart).length;
+        const canceladas = citas.filter(c => c.estado === 'Cancelada').length;
+
+        const clientMap = {};
+        const serviciosSet = new Set();
+        citas.forEach(c => {
+          if (c.clienteNombre) clientMap[c.clienteNombre] = (clientMap[c.clienteNombre] || 0) + 1;
+          if (c.servicioNombre) serviciosSet.add(c.servicioNombre);
+        });
+        const uniqueClients = Object.keys(clientMap).length;
+        const returningClients = Object.values(clientMap).filter(n => n >= 2).length;
+
+        return { citasTotal: citas.length, citasMes, canceladas, userCount, profCount, uniqueClients, returningClients, servicios: serviciosSet };
+      }));
+
+      let totCitas = 0, totCitasMes = 0, totCanceladas = 0, totUsers = 0, totProf = 0;
+      let totUnique = 0, totReturning = 0;
+      const allServicios = new Set();
+
+      results.forEach(r => {
+        if (r.status !== 'fulfilled') return;
+        const v = r.value;
+        totCitas      += v.citasTotal;
+        totCitasMes   += v.citasMes;
+        totCanceladas += v.canceladas;
+        totUsers      += v.userCount;
+        totProf       += v.profCount;
+        totUnique     += v.uniqueClients;
+        totReturning  += v.returningClients;
+        v.servicios.forEach(s => allServicios.add(s));
+      });
+
+      const retencion   = totUnique > 0 ? Math.round((totReturning / totUnique) * 100) : 0;
+      const cancelacion = totCitas  > 0 ? Math.round((totCanceladas / totCitas) * 100) : 0;
+
+      const setVal = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) { el.textContent = val; el.classList.add('loaded'); }
+      };
+
+      setVal('ps-citas-total',   totCitas.toLocaleString('es-CL'));
+      setVal('ps-citas-mes',     totCitasMes.toLocaleString('es-CL'));
+      setVal('ps-clientes',      totUsers.toLocaleString('es-CL'));
+      setVal('ps-profesionales', totProf);
+      setVal('ps-retencion',     retencion + '%');
+      setVal('ps-cancelacion',   cancelacion + '%');
+      setVal('ps-servicios',     allServicios.size);
+
+      document.getElementById('ps-loading').style.display = 'none';
+
+      // Store snapshot for copyStatsSnippet
+      window._platformStats = {
+        locales: tenantKeys.length, citasTotal: totCitas, citasMes: totCitasMes,
+        clientes: totUsers, profesionales: totProf, retencion, cancelacion,
+        servicios: allServicios.size, mes: mesNames[now.getMonth()],
+      };
+    }
+
+    function copyStatsSnippet() {
+      const s = window._platformStats;
+      if (!s) { alert('Las estadísticas aún se están cargando.'); return; }
+      const text = `+${s.citasTotal.toLocaleString('es-CL')} citas gestionadas · ${s.locales} locales activos · ${s.clientes.toLocaleString('es-CL')} clientes · ${s.profesionales} profesionales · ${s.retencion}% retención · ${s.cancelacion}% cancelación · ${s.servicios} servicios distintos`;
+      navigator.clipboard.writeText(text).then(() => {
+        const btn = document.getElementById('copy-stats-btn');
+        if (btn) {
+          btn.innerHTML = '<i class="ph ph-check"></i> ¡Copiado!';
+          btn.style.color = '#34d399';
+          btn.style.borderColor = 'rgba(52,211,153,0.3)';
+          setTimeout(() => {
+            btn.innerHTML = '<i class="ph ph-copy"></i> Copiar para web';
+            btn.style.color = '';
+            btn.style.borderColor = '';
+          }, 2500);
+        }
+      }).catch(() => alert('Error al copiar: ' + text));
+    }
+
     // ── Auth check ────────────────────────────────────────────────
     firebase.auth().onAuthStateChanged(async (user) => {
       const screen = document.getElementById('unauthorized-screen');
@@ -2456,6 +2660,10 @@
       } else {
         screen.style.display = 'none';
         console.log('[Admin] Acceso concedido:', user.email);
+        loadPlatformStats().catch(e => {
+          console.warn('[Admin] loadPlatformStats error:', e);
+          document.getElementById('ps-loading').textContent = 'Error al cargar estadísticas.';
+        });
       }
     });
   </script>
