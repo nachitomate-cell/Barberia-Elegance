@@ -42,7 +42,7 @@ const SERVICIOS = [
   
   // Combos / Packs
   { id: 'srv-m-03', nombre: 'Corte + Barba Premium',          precio: 18000, duracion: 60, categoria: 'Combos', icono: 'ph-star', activo: true, orden: 2 },
-  { id: 'srv-m-04', nombre: 'Experiencia Marcelo Palma',      precio: 25000, duracion: 90, categoria: 'Combos', icono: 'ph-crown', activo: true, orden: 3 },
+  { id: 'srv-m-04', nombre: 'Experiencia Ferraza',            precio: 25000, duracion: 90, categoria: 'Combos', icono: 'ph-crown', activo: true, orden: 3 },
   
   // Extras
   { id: 'srv-m-05', nombre: 'Lavado Capilar Premium',         precio: 4000,  duracion: 15, categoria: 'Extras', icono: 'ph-shower', activo: true, orden: 4 }
@@ -134,33 +134,33 @@ async function seedProfile() {
   separador('PERFIL & TEMA');
 
   await tenantRef.collection('profile').doc('main').set({
-    name:            "Marcelo Palma Hairdressing",
-    shortName:       "Marcelo Palma",
-    slogan:          'Estilo que define. Arte que trasciende.',
-    club:            "Club Marcelo Palma",
+    name:            "Barbería Ferraza",
+    shortName:       "Ferraza",
+    slogan:          'Ferraza es tu casa',
+    club:            "Club Ferraza",
     address:         '📍 Curauma / Placilla',
     scheduleText:    'Lunes a sábado 10:00-20:00',
     phone:           '56988888888',
     logoUrl:         '/nero.jpg',
     instagram:       '',
-    pageTitle:       "Marcelo Palma Hairdressing | Agenda tu hora",
-    metaDescription: "Reserva tu hora en Marcelo Palma Hairdressing. Cortes y barba de élite en Curauma / Placilla.",
+    pageTitle:       "Barbería Ferraza | Agenda tu hora",
+    metaDescription: "Reserva tu hora en Barbería Ferraza. Cortes y barba de élite en Curauma / Placilla.",
     updatedAt:       TS(),
   }, { merge: true });
 
-  // Neon lime green & black deep theme matching delnero exactly
+  // Premium Dark minimal theme with white/light grey accents and black/dark grey bg
   await tenantRef.collection('settings').doc('theme').set({
-    colorBg:            '#050505',
-    colorSurface:       '#0d0d0d',
-    colorSurfaceAlt:    '#121212',
-    colorPrimary:       '#39ff14',
-    colorAccent:        '#39ff14',
-    colorText:          '#f0ead6',
-    colorMuted:         '#71717a',
-    colorBorder:        'rgba(57,255,20,0.15)',
-    colorGlow:          'rgba(57,255,20,0.22)',
-    colorButtonText:    '#050505',
-    colorProgressTrack: 'rgba(57,255,20,0.08)',
+    colorBg:            '#0f0f0f',
+    colorSurface:       '#161616',
+    colorSurfaceAlt:    '#222222',
+    colorPrimary:       '#ffffff',
+    colorAccent:        '#ffffff',
+    colorText:          '#ffffff',
+    colorMuted:         '#a1a1aa',
+    colorBorder:        '#3f3f46',
+    colorGlow:          'rgba(255,255,255,0.08)',
+    colorButtonText:    '#0f0f0f',
+    colorProgressTrack: 'rgba(255,255,255,0.1)',
     updatedAt:          TS(),
   }, { merge: true });
 
