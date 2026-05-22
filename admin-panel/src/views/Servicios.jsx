@@ -1,12 +1,13 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { Plus, Tag } from 'lucide-react';
-import { addDoc, updateDoc, deleteDoc, deleteField, doc, writeBatch, serverTimestamp, orderBy } from 'firebase/firestore';
+import { addDoc, updateDoc, deleteDoc, deleteField, doc, writeBatch, serverTimestamp, orderBy, getDocs, query, limit } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { tenantCol } from '../lib/tenantUtils';
 import { useCollection } from '../hooks/useCollection';
 import { useConfig }     from '../hooks/useConfig';
 import SlideOver from '../components/ui/SlideOver';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
+import AIWatermark from '../components/ui/AIWatermark';
 
 const ICONS = [
   'ph-scissors','ph-user-focus','ph-mask-happy','ph-magic-wand',
@@ -55,6 +56,22 @@ export default function Servicios() {
   const { data: servicios, loading } = useCollection('servicios', [orderBy('orden')]);
   const { config, updateConfig }     = useConfig();
   const categorias = config.categoriasServicio ?? ['Otro'];
+
+  const [citasUsage, setCitasUsage] = useState({});
+  useEffect(() => {
+    getDocs(query(tenantCol('citas'), orderBy('creadoEn', 'desc'), limit(300)))
+      .then(snap => {
+        const cnt = {};
+        snap.forEach(d => { const n = d.data().servicioNombre; if (n) cnt[n] = (cnt[n] || 0) + 1; });
+        setCitasUsage(cnt);
+      })
+      .catch(() => {});
+  }, []);
+
+  const topServicio = useMemo(() => {
+    const sorted = Object.entries(citasUsage).sort((a, b) => b[1] - a[1]);
+    return sorted[0]?.[0] || null;
+  }, [citasUsage]);
 
   const [slide,     setSlide]     = useState(false);
   const [showHelp,  setShowHelp]  = useState(false);
@@ -170,6 +187,7 @@ export default function Servicios() {
         ) : servicios.length === 0 ? (
           <div className="flex flex-col items-center py-16 text-slate-600"><Tag size={32} className="mb-3" /><p className="text-sm">No hay servicios creados.</p></div>
         ) : (
+          <>
           <div className="space-y-2">
             {servicios.map(s => (
               <div key={s.id} draggable
@@ -196,6 +214,9 @@ export default function Servicios() {
                   <div className="flex items-center gap-2 flex-wrap">
                     <h4 className="font-bold text-white text-sm">{s.nombre}</h4>
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-slate-950 text-slate-400 border-slate-700">{s.categoria || 'Otro'}</span>
+                    {topServicio === s.nombre && (
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full border bg-violet-500/10 text-violet-400 border-violet-500/20">✦ Más solicitado</span>
+                    )}
                   </div>
                   <p className="text-xs text-slate-400 mt-0.5">
                     ${Number(s.precio || 0).toLocaleString('es-CL')} · {s.duracion} min
@@ -219,6 +240,13 @@ export default function Servicios() {
               </div>
             ))}
           </div>
+          {topServicio && (
+            <div className="flex items-center gap-2 mt-3 px-1">
+              <img src="/logo1.png" alt="SynapTech" className="h-3 w-auto opacity-30" />
+              <p className="text-[9px] text-slate-700">Motor analítico de SynapTech AI · Conclusiones basadas en los datos cargados</p>
+            </div>
+          )}
+          </>
         )}
       </div>
 

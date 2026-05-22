@@ -10,6 +10,7 @@ import {
 } from 'recharts';
 import { tenantCol } from '../lib/tenantUtils';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
+import AIWatermark from '../components/ui/AIWatermark';
 
 function localYearMonth() {
   const d = new Date();
@@ -318,6 +319,33 @@ export default function Metricas() {
       });
     }
 
+    // Servicio más solicitado (6 meses)
+    const svcCnt = {};
+    citas.filter(c => c.estado !== 'Cancelada' && c.servicioNombre).forEach(c => {
+      svcCnt[c.servicioNombre] = (svcCnt[c.servicioNombre] || 0) + 1;
+    });
+    const topSvc = Object.entries(svcCnt).sort((a, b) => b[1] - a[1])[0];
+    if (topSvc) {
+      insights.push({
+        type: 'info',
+        text: `"${topSvc[0]}" es el servicio más reservado, con ${topSvc[1]} solicitud${topSvc[1] !== 1 ? 'es' : ''} en los últimos 6 meses.`,
+      });
+    }
+
+    // Horario pico (6 meses)
+    const hourCnt = {};
+    citas.filter(c => c.estado !== 'Cancelada' && c.hora).forEach(c => {
+      const h = c.hora.split(':')[0];
+      if (h) hourCnt[h] = (hourCnt[h] || 0) + 1;
+    });
+    const bestHour = Object.entries(hourCnt).sort((a, b) => b[1] - a[1])[0];
+    if (bestHour) {
+      insights.push({
+        type: 'star',
+        text: `El horario pico es a las ${bestHour[0]}:00 h, con ${bestHour[1]} cita${bestHour[1] !== 1 ? 's' : ''} en 6 meses. Asegura disponibilidad en ese bloque.`,
+      });
+    }
+
     return insights;
   }, [citas, stats]);
 
@@ -380,6 +408,7 @@ export default function Metricas() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {aiInsights.map((ins, i) => <InsightCard key={i} {...ins} />)}
           </div>
+          <AIWatermark />
         </div>
       )}
 

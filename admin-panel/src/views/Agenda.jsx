@@ -6,7 +6,7 @@ import {
   Timer, MessageSquare, BadgeCheck, Search, ListFilter, MapPin,
 } from 'lucide-react';
 import {
-  addDoc, updateDoc, deleteDoc, doc, getDoc, serverTimestamp, where, orderBy, limit, writeBatch,
+  addDoc, updateDoc, deleteDoc, doc, getDoc, serverTimestamp, where, orderBy, limit, writeBatch, getDocs, query,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { tenantCol } from '../lib/tenantUtils';
@@ -14,6 +14,7 @@ import { useCollection } from '../hooks/useCollection';
 import { useTenant } from '../contexts/TenantContext';
 import ReviewModal from '../components/ReviewModal';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
+import AIWatermark from '../components/ui/AIWatermark';
 
 /* ── Constants ─────────────────────────────────────────────── */
 const HOUR_START  = 8;
@@ -109,6 +110,8 @@ function CitaModal({ cita, barberos, servicios, defaultHora, defaultBarberoId, d
     hora:            cita?.hora            || defaultHora || '09:00',
     estado:          cita?.estado          || 'Confirmada',
     nota:            cita?.nota            || '',
+    metodoPago:      cita?.metodoPago      || 'Efectivo',
+    propina:         cita?.propina != null ? Number(cita.propina) : '',
   });
   const [saving, setSaving] = useState(false);
   const [showSugg, setShowSugg] = useState(false);
@@ -382,13 +385,32 @@ function CitaModal({ cita, barberos, servicios, defaultHora, defaultBarberoId, d
         </div>
       </div>
       {!isNew && (
-        <div>
-          <label className={lbl}>Estado</label>
-          <select className={field} value={form.estado} onChange={e => set('estado', e.target.value)}>
-            <option>Confirmada</option>
-            <option>Completada</option>
-            <option>Cancelada</option>
-          </select>
+        <div className="space-y-3">
+          <div>
+            <label className={lbl}>Estado</label>
+            <select className={field} value={form.estado} onChange={e => set('estado', e.target.value)}>
+              <option>Confirmada</option>
+              <option>Completada</option>
+              <option>Cancelada</option>
+            </select>
+          </div>
+          
+          {form.estado === 'Completada' && (
+            <div className="grid grid-cols-2 gap-3 p-3 bg-slate-950 border border-slate-800/80 rounded-xl animate-in fade-in slide-in-from-top-1 duration-200">
+              <div>
+                <label className={lbl}>Método de Pago *</label>
+                <select className={field} value={form.metodoPago} onChange={e => set('metodoPago', e.target.value)}>
+                  <option value="Efectivo">Efectivo</option>
+                  <option value="Tarjeta">Tarjeta</option>
+                  <option value="Transferencia">Transferencia</option>
+                </select>
+              </div>
+              <div>
+                <label className={lbl}>Monto Propina ($)</label>
+                <input className={field} type="number" placeholder="0" min="0" value={form.propina} onChange={e => set('propina', e.target.value !== '' ? Number(e.target.value) : '')} />
+              </div>
+            </div>
+          )}
         </div>
       )}
       <div>
@@ -613,6 +635,26 @@ function Row({ icon: Icon, label, value }) {
 }
 
 function UltimaCitaModal({ cita, loading, onClose, titleText = 'Última cita agendada' }) {
+  const [clientHistory, setClientHistory] = useState(null);
+  useEffect(() => {
+    if (!cita?.clienteNombre || loading) { setClientHistory(null); return; }
+    getDocs(query(
+      tenantCol('citas'),
+      where('clienteNombre', '==', cita.clienteNombre),
+      orderBy('fecha', 'desc'),
+      limit(50),
+    ))
+      .then(snap => {
+        const rows = snap.docs.map(d => d.data());
+        const svcCnt = {};
+        rows.forEach(r => { if (r.servicioNombre) svcCnt[r.servicioNombre] = (svcCnt[r.servicioNombre] || 0) + 1; });
+        const favSvc = Object.entries(svcCnt).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+        const completadas = rows.filter(r => r.estado === 'Completada');
+        setClientHistory({ total: rows.length, favSvc, lastVisit: completadas[0]?.fecha || null });
+      })
+      .catch(() => {});
+  }, [cita?.clienteNombre, loading]);
+
   return (
     <Modal
       title={
@@ -675,6 +717,34 @@ function UltimaCitaModal({ cita, loading, onClose, titleText = 'Última cita age
           <p className="text-[10px] text-slate-600 text-right mt-2">
             Reservada el {fmtTimestamp(cita.creadoEn)}
           </p>
+
+          {clientHistory && (
+            <div className="relative overflow-hidden bg-slate-900 border border-violet-500/20 rounded-xl p-4 mt-4">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-violet-500/5 rounded-full blur-2xl pointer-events-none" />
+              <div className="flex items-center gap-1.5 mb-3">
+                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-violet-500/10 border border-violet-500/20">
+                  <div className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
+                  <span className="text-[9px] font-bold text-violet-400 uppercase tracking-wider">Historial IA</span>
+                </div>
+                <span className="text-[9px] text-slate-600 ml-auto">Basado en {clientHistory.total} visita{clientHistory.total !== 1 ? 's' : ''}</span>
+              </div>
+              <div className="grid grid-cols-3 gap-2 mb-3">
+                <div className="text-center bg-slate-800/60 rounded-lg py-2 px-1">
+                  <p className="text-lg font-bold text-white leading-none">{clientHistory.total}</p>
+                  <p className="text-[9px] text-slate-500 mt-1">citas totales</p>
+                </div>
+                <div className="text-center bg-slate-800/60 rounded-lg py-2 px-1">
+                  <p className="text-xs font-bold text-white truncate leading-tight">{clientHistory.favSvc || '—'}</p>
+                  <p className="text-[9px] text-slate-500 mt-1">servicio fav.</p>
+                </div>
+                <div className="text-center bg-slate-800/60 rounded-lg py-2 px-1">
+                  <p className="text-xs font-bold text-white leading-tight">{clientHistory.lastVisit || '—'}</p>
+                  <p className="text-[9px] text-slate-500 mt-1">última visita</p>
+                </div>
+              </div>
+              <AIWatermark />
+            </div>
+          )}
         </div>
       )}
     </Modal>
