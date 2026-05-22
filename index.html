@@ -2758,6 +2758,98 @@
       background: rgba(255,255,255,0.05) !important;
       color: #ffffff !important;
     }
+    /* Ocultar filtro de categorías en marcelo */
+    .tenant-marcelo_hairdressing #categoryPills {
+      display: none !important;
+    }
+    /* ── Marcelo — Paso 1: Servicios ──────────────────────────── */
+    .tenant-marcelo_hairdressing #step1 > h2 {
+      font-family: 'Plus Jakarta Sans', sans-serif !important;
+      color: #f1f5f9 !important;
+      text-shadow: none !important;
+      font-size: 1.4rem !important;
+      letter-spacing: -0.02em !important;
+      margin-bottom: 1.25rem !important;
+    }
+    /* Etiqueta de categoría */
+    .tenant-marcelo_hairdressing .category-section h3 {
+      color: rgba(255,255,255,0.25) !important;
+      font-size: 0.67rem !important;
+      font-weight: 700 !important;
+      letter-spacing: 0.18em !important;
+      margin-bottom: 0.75rem !important;
+      text-shadow: none !important;
+    }
+    /* Tarjeta de servicio (row layout) */
+    .tenant-marcelo_hairdressing .service-option {
+      background: rgba(255,255,255,0.02) !important;
+      border: 1px solid rgba(255,255,255,0.08) !important;
+      border-radius: 0.875rem !important;
+      gap: 0.875rem !important;
+      transition: border-color 0.22s ease, background 0.22s ease !important;
+    }
+    .tenant-marcelo_hairdressing .service-option:hover {
+      background: rgba(255,255,255,0.045) !important;
+      border-color: rgba(255,255,255,0.18) !important;
+      box-shadow: none !important;
+      transform: none !important;
+    }
+    .tenant-marcelo_hairdressing .service-option.border-neon {
+      background: rgba(255,255,255,0.055) !important;
+      border-color: rgba(255,255,255,0.80) !important;
+      box-shadow: none !important;
+    }
+    /* Ícono cuadrado */
+    .tenant-marcelo_hairdressing .service-option .icon-bg {
+      background: rgba(255,255,255,0.04) !important;
+      border: 1px solid rgba(255,255,255,0.09) !important;
+      border-radius: 0.625rem !important;
+      width: 42px !important;
+      height: 42px !important;
+      box-shadow: none !important;
+    }
+    .tenant-marcelo_hairdressing .service-option.border-neon .icon-bg {
+      background: rgba(255,255,255,0.08) !important;
+      border-color: rgba(255,255,255,0.22) !important;
+    }
+    .tenant-marcelo_hairdressing .service-option .icon-svg {
+      color: rgba(255,255,255,0.60) !important;
+      filter: none !important;
+      text-shadow: none !important;
+    }
+    .tenant-marcelo_hairdressing .service-option.border-neon .icon-svg {
+      color: #ffffff !important;
+      filter: none !important;
+    }
+    /* Nombre del servicio */
+    .tenant-marcelo_hairdressing .service-option .svc-name {
+      color: #e5e7eb !important;
+      font-size: 0.9rem !important;
+      font-weight: 600 !important;
+    }
+    /* Precio */
+    .tenant-marcelo_hairdressing .service-option .price-tag {
+      color: #ffffff !important;
+      text-shadow: none !important;
+      font-size: 0.875rem !important;
+      font-weight: 800 !important;
+    }
+    /* Duración */
+    .tenant-marcelo_hairdressing .service-option .duration-tag {
+      color: rgba(255,255,255,0.35) !important;
+    }
+    /* Radio indicator — círculo */
+    .tenant-marcelo_hairdressing .service-option .svc-radio {
+      border-color: rgba(255,255,255,0.18) !important;
+      width: 18px !important;
+      height: 18px !important;
+      flex-shrink: 0 !important;
+    }
+    .tenant-marcelo_hairdressing .service-option.border-neon .svc-radio {
+      border-color: #ffffff !important;
+      background: #ffffff !important;
+      box-shadow: inset 0 0 0 3.5px #0f0f0f !important;
+    }
     /* ────────────────────────────────────────────────────────────── */
     /* ═══════════════════════════════════════════════════════════════
        AURA SALÓN & MALE GROOMING
@@ -5617,7 +5709,7 @@
         categories[cat].push(s);
       });
 
-      const _isEleganceSvc  = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza' || window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'lumen' || window.CURRENT_TENANT_ID === 'machos' || window.CURRENT_TENANT_ID === 'sionbarberia';
+      const _isEleganceSvc  = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza' || window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'lumen' || window.CURRENT_TENANT_ID === 'machos' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'marcelo_hairdressing';
       const _isMapuSvc      = window.CURRENT_TENANT_ID === 'mapubarbershop';
       const _isChameleonSvc = window.CURRENT_TENANT_ID === 'chameleon';
       const _useRowLayout   = _isEleganceSvc || _isMapuSvc || _isChameleonSvc;
@@ -5646,7 +5738,7 @@
             const iconEl = _isMapuSvc
               ? `<span class="icon-svg mapu-icon block w-6 h-6">${_getMapuIcon(s.nombre, cat)}</span>`
               : `<i class="icon-svg ph ${icon} text-xl text-brand-neon transition-all"></i>`;
-            const radioClr = _isMapuSvc ? 'rgba(191,163,126,0.40)' : 'rgba(212,175,55,0.4)';
+            const radioClr = _isMapuSvc ? 'rgba(191,163,126,0.40)' : window.CURRENT_TENANT_ID === 'marcelo_hairdressing' ? 'rgba(255,255,255,0.18)' : 'rgba(212,175,55,0.4)';
             innerGrid.innerHTML += `
               <button onclick="selectService(this)" data-service-id="${s.id}" data-category="${cat}"
                 class="service-option relative flex flex-row items-center gap-4 p-4 rounded-2xl bg-[#0a0a0d] border border-brand-accent/20 active:scale-[0.99] transition-all overflow-hidden group w-full text-left">
