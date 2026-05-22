@@ -9,7 +9,7 @@ import { useCollection } from '../hooks/useCollection';
 import SlideOver from '../components/ui/SlideOver';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 
-const EMPTY = { nombre: '', descripcion: '', precio: '', precioOriginal: '', marca: '', categoria: '', stock: '', imagen: '', imagenPath: '', activo: true };
+const EMPTY = { nombre: '', descripcion: '', precio: '', precioOriginal: '', marca: '', categoria: '', stock: '', imagen: '', imagenPath: '', activo: true, precioCosto: '', stockMinimo: '' };
 
 function playProductChime() {
   try {
@@ -47,18 +47,31 @@ function ProductCard({ producto, onEdit, onDelete, isDeluxe }) {
   const off = producto.precioOriginal && producto.precio && producto.precioOriginal > producto.precio
     ? Math.round((1 - producto.precio / producto.precioOriginal) * 100) : 0;
 
+  const isCriticalStock = producto.stock !== undefined && producto.stock !== null && producto.stock !== '' && 
+                          producto.stockMinimo !== undefined && producto.stockMinimo !== null && producto.stockMinimo !== '' && 
+                          Number(producto.stock) <= Number(producto.stockMinimo);
+
   if (isDeluxe) {
     return (
       <div className={`group relative overflow-hidden rounded-2xl border border-amber-500/20 bg-black/40 backdrop-blur-sm
         hover:border-amber-500/40 hover:shadow-[0_0_20px_rgba(217,160,80,0.15)] hover:-translate-y-0.5
         transition-all duration-300 ${producto.activo === false ? 'opacity-60' : ''}`}>
 
-        {producto.activo === false && (
-          <div className="absolute top-2 left-2 z-10 flex items-center gap-1 bg-black/80 border border-amber-500/20 rounded-full px-2 py-0.5">
-            <EyeOff size={10} className="text-amber-600/70" />
-            <span className="text-[10px] text-amber-600/60 font-medium tracking-wide">Oculto</span>
-          </div>
-        )}
+        {/* Badges Flotantes */}
+        <div className="absolute top-2 left-2 z-10 flex flex-col gap-1.5">
+          {producto.activo === false && (
+            <div className="flex items-center gap-1 bg-black/80 border border-amber-500/20 rounded-full px-2 py-0.5 w-max">
+              <EyeOff size={10} className="text-amber-600/70" />
+              <span className="text-[10px] text-amber-600/60 font-medium tracking-wide">Oculto</span>
+            </div>
+          )}
+          {isCriticalStock && (
+            <div className="flex items-center gap-1 bg-amber-500 border border-amber-400/30 rounded-full px-2 py-0.5 w-max animate-pulse shadow-lg">
+              <AlertTriangle size={10} className="text-black" />
+              <span className="text-[9px] text-black font-extrabold tracking-wide">STOCK CRÍTICO ({producto.stock})</span>
+            </div>
+          )}
+        </div>
 
         {/* Botón editar flotante (esquina superior derecha) */}
         <button
@@ -114,6 +127,17 @@ function ProductCard({ producto, onEdit, onDelete, isDeluxe }) {
               <span className="text-[10px] font-semibold bg-amber-500/10 border border-amber-500/25 text-amber-500 rounded-full px-1.5 py-0.5">-{off}%</span>
             )}
           </div>
+          {producto.stock !== undefined && producto.stock !== null && producto.stock !== '' && (
+            <div className="mt-2">
+              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full border inline-block ${
+                isCriticalStock
+                  ? 'text-amber-400 border-amber-500/40 bg-amber-500/5'
+                  : Number(producto.stock) > 0
+                    ? 'text-amber-600/60 border-amber-500/15 bg-amber-500/5'
+                    : 'text-red-400 border-red-500/30 bg-red-500/5'
+              }`}>Stock: {producto.stock} {isCriticalStock && `(Min: ${producto.stockMinimo})`}</span>
+            </div>
+          )}
           <div className="mt-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
             <button
               onClick={() => onDelete(producto.id)}
@@ -131,12 +155,20 @@ function ProductCard({ producto, onEdit, onDelete, isDeluxe }) {
 
   return (
     <div className={`bg-slate-900 border rounded-xl overflow-hidden hover:border-slate-600 transition-all group relative ${producto.activo === false ? 'border-slate-800 opacity-60' : 'border-slate-800'}`}>
-      {producto.activo === false && (
-        <div className="absolute top-2 left-2 z-10 flex items-center gap-1 bg-slate-800/90 border border-slate-700 rounded-full px-2 py-0.5">
-          <EyeOff size={10} className="text-slate-400" />
-          <span className="text-[10px] text-slate-400 font-semibold">Oculto</span>
-        </div>
-      )}
+      <div className="absolute top-2 left-2 z-10 flex flex-col gap-1.5">
+        {producto.activo === false && (
+          <div className="flex items-center gap-1 bg-slate-800/90 border border-slate-700 rounded-full px-2 py-0.5 w-max">
+            <EyeOff size={10} className="text-slate-400" />
+            <span className="text-[10px] text-slate-400 font-semibold">Oculto</span>
+          </div>
+        )}
+        {isCriticalStock && (
+          <div className="flex items-center gap-1 bg-amber-500 border border-amber-400/30 rounded-full px-2 py-0.5 w-max animate-pulse shadow-lg text-black">
+            <AlertTriangle size={10} className="text-slate-950" />
+            <span className="text-[9px] font-extrabold tracking-wide text-slate-950">STOCK CRÍTICO ({producto.stock})</span>
+          </div>
+        )}
+      </div>
       <div className="aspect-[3/4] bg-slate-800 flex items-center justify-center overflow-hidden">
         {producto.imagen
           ? <img src={producto.imagen} alt={producto.nombre} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
@@ -158,8 +190,12 @@ function ProductCard({ producto, onEdit, onDelete, isDeluxe }) {
           )}
         </div>
         <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full border mt-1 inline-block ${
-          (producto.stock || 0) > 0 ? 'text-slate-500 border-slate-700' : 'text-red-400 border-red-500/30 bg-red-500/5'
-        }`}>Stock: {producto.stock ?? '—'}</span>
+          isCriticalStock
+            ? 'text-amber-400 border-amber-500/40 bg-amber-500/5'
+            : (producto.stock || 0) > 0
+              ? 'text-slate-500 border-slate-700'
+              : 'text-red-400 border-red-500/30 bg-red-500/5'
+        }`}>Stock: {producto.stock ?? '—'} {isCriticalStock && `(Min: ${producto.stockMinimo})`}</span>
         <div className="flex gap-2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
           <button onClick={() => onEdit(producto)} className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 rounded-lg text-xs font-semibold transition-colors">
             <Edit2 size={11} /> Editar
@@ -194,6 +230,84 @@ export default function Productos() {
   const fileRef = useRef(null);
   const initialized = useRef(false);
 
+  const [barberos, setBarberos] = useState([]);
+  const [ventaRapidaOpen, setVentaRapidaOpen] = useState(false);
+  const [vrForm, setVrForm] = useState({ productId: '', cantidad: 1, barberoId: '', metodoPago: 'Efectivo' });
+  const [vrSaving, setVrSaving] = useState(false);
+
+  // Delivery modal state
+  const [entregaModal, setEntregaModal] = useState(null); // reserva object or null
+  const [entregaForm, setEntregaForm] = useState({ metodoPago: 'Efectivo', barberoId: '' });
+  const [entregaSaving, setEntregaSaving] = useState(false);
+
+  // Load barbers for commissions
+  useEffect(() => {
+    const q = query(tenantCol('barberos'), where('activo', '==', true));
+    const unsub = onSnapshot(q, snap => {
+      setBarberos(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    }, () => {});
+    return unsub;
+  }, []);
+
+  const criticalProductsCount = productos ? productos.filter(p => {
+    return p.stock !== undefined && p.stock !== null && p.stock !== '' && 
+           p.stockMinimo !== undefined && p.stockMinimo !== null && p.stockMinimo !== '' && 
+           Number(p.stock) <= Number(p.stockMinimo);
+  }).length : 0;
+
+  const openVentaRapida = () => {
+    setVrForm({ productId: '', cantidad: 1, barberoId: '', metodoPago: 'Efectivo' });
+    setVentaRapidaOpen(true);
+  };
+
+  const handleVentaRapidaSave = async () => {
+    if (!vrForm.productId || !vrForm.barberoId || !vrForm.metodoPago || vrForm.cantidad <= 0) {
+      alert('Por favor, completa todos los campos.');
+      return;
+    }
+    const prod = productos.find(p => p.id === vrForm.productId);
+    const barb = barberos.find(b => b.id === vrForm.barberoId);
+    if (!prod || !barb) return;
+
+    setVrSaving(true);
+    try {
+      const batch = writeBatch(db);
+      const totalVenta = Number(prod.precio || 0) * Number(vrForm.cantidad);
+      
+      // Create delivered reservation representing direct sale
+      const reservationRef = doc(tenantCol('product_reservations'));
+      batch.set(reservationRef, {
+        productId: prod.id,
+        productName: prod.nombre,
+        precio: totalVenta,
+        cantidad: Number(vrForm.cantidad),
+        status: 'delivered',
+        userName: 'Venta Directa Local',
+        userEmail: 'admin@barberia.cl',
+        metodoPago: vrForm.metodoPago,
+        barberoId: barb.id,
+        barberoNombre: barb.nombre,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+
+      // Deduct stock
+      if (prod.stock !== undefined && prod.stock !== null && prod.stock !== '') {
+        const newStock = Math.max(0, Number(prod.stock) - Number(vrForm.cantidad));
+        batch.update(doc(tenantCol('productos'), prod.id), { stock: newStock });
+      }
+
+      await batch.commit();
+      setVentaRapidaOpen(false);
+      playProductChime();
+    } catch (err) {
+      console.error('Error en venta rápida:', err);
+      alert('Error al registrar la venta: ' + err.message);
+    } finally {
+      setVrSaving(false);
+    }
+  };
+
   const MAX_PRODUCTOS = isDeluxe ? 200 : 10;
 
   /* Reservas pendientes en tiempo real */
@@ -218,15 +332,26 @@ export default function Productos() {
     return unsub;
   }, []);
 
-  const marcarEntregado = async id => {
+  const openEntregaModal = (reserva) => {
+    setEntregaForm({ metodoPago: 'Efectivo', barberoId: barberos[0]?.id || '' });
+    setEntregaModal(reserva);
+  };
+
+  const handleEntregaConfirm = async () => {
+    if (!entregaModal) return;
+    if (!entregaForm.barberoId) { alert('Selecciona un barbero vendedor.'); return; }
+    setEntregaSaving(true);
     try {
-      const reserva = reservas.find(r => r.id === id);
-      if (!reserva) {
-        alert('Error: No se encontró la reserva seleccionada.');
-        return;
-      }
+      const reserva = entregaModal;
+      const barb = barberos.find(b => b.id === entregaForm.barberoId);
       const batch = writeBatch(db);
-      batch.update(doc(tenantCol('product_reservations'), id), { status: 'delivered', updatedAt: serverTimestamp() });
+      batch.update(doc(tenantCol('product_reservations'), reserva.id), {
+        status: 'delivered',
+        metodoPago: entregaForm.metodoPago,
+        barberoId: entregaForm.barberoId,
+        barberoNombre: barb?.nombre || '',
+        updatedAt: serverTimestamp(),
+      });
       if (reserva.productId) {
         const prod = productos.find(p => p.id === reserva.productId);
         if (prod && prod.stock !== undefined && prod.stock !== null && prod.stock !== '') {
@@ -237,9 +362,12 @@ export default function Productos() {
         }
       }
       await batch.commit();
+      setEntregaModal(null);
     } catch (err) {
       console.error('Error al entregar reserva:', err);
       alert('Hubo un error al marcar la entrega: ' + err.message);
+    } finally {
+      setEntregaSaving(false);
     }
   };
 
@@ -283,6 +411,8 @@ export default function Productos() {
       imagen:        p.imagen        || '',
       imagenPath:    p.imagenPath    || '',
       activo:        p.activo !== false,
+      precioCosto:   p.precioCosto   ?? '',
+      stockMinimo:   p.stockMinimo   ?? '',
     });
     setPreview(p.imagen || '');
     setSlide(true);
@@ -335,6 +465,8 @@ export default function Productos() {
         imagen:         form.imagen,
         imagenPath:     form.imagenPath || '',
         activo:         form.activo !== false,
+        precioCosto:    form.precioCosto !== '' ? Number(form.precioCosto) : null,
+        stockMinimo:    form.stockMinimo !== '' ? Number(form.stockMinimo) : null,
         updatedAt:      serverTimestamp(),
       };
       if (editing) {
@@ -379,15 +511,39 @@ export default function Productos() {
             )}
           </p>
         </div>
-        <button
-          onClick={openNew}
-          disabled={loading || productos.length >= MAX_PRODUCTOS}
-          title={productos.length >= MAX_PRODUCTOS ? 'Límite de 10 productos alcanzado' : ''}
-          className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
-        >
-          <Plus size={16} /> Agregar producto
-        </button>
+        <div className="flex gap-2.5">
+          <button
+            onClick={openVentaRapida}
+            disabled={loading}
+            className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-semibold px-4 py-2 rounded-lg border border-slate-700 hover:border-slate-600 transition-colors"
+          >
+            <ShoppingBag size={16} className="text-emerald-400" /> Venta Rápida
+          </button>
+          <button
+            onClick={openNew}
+            disabled={loading || productos.length >= MAX_PRODUCTOS}
+            title={productos.length >= MAX_PRODUCTOS ? 'Límite de 10 productos alcanzado' : ''}
+            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+          >
+            <Plus size={16} /> Agregar producto
+          </button>
+        </div>
       </div>
+
+      {/* Global Critical Stock Alert Banner */}
+      {criticalProductsCount > 0 && (
+        <div className="mb-6 flex items-start gap-4 px-5 py-4 rounded-xl border border-amber-500/30 bg-amber-500/5 animate-pulse shadow-md">
+          <AlertTriangle size={20} className="shrink-0 mt-0.5 text-amber-400" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-white">
+              Alerta de Inventario: <span className="text-amber-400">{criticalProductsCount} {criticalProductsCount === 1 ? 'producto requiere' : 'productos requieren'} reposición urgente.</span>
+            </p>
+            <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
+              Hay artículos cuyo stock actual está en o por debajo del stock mínimo configurado. Por favor, revisa las tarjetas marcadas con la alerta de Stock Crítico.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Activation banner */}
       {!activoLoad && (
@@ -503,7 +659,7 @@ export default function Productos() {
                 {/* Acciones */}
                 <div className="flex gap-2 shrink-0">
                   <button
-                    onClick={() => marcarEntregado(r.id)}
+                    onClick={() => openEntregaModal(r)}
                     className="flex items-center gap-1.5 px-3 py-1.5 bg-[#D4AF37]/10 border border-[#D4AF37]/40 text-[#D4AF37] hover:bg-[#D4AF37]/20 rounded-lg text-xs font-semibold transition-colors"
                   >
                     <CheckCircle2 size={12} /> Entregado
@@ -610,6 +766,40 @@ export default function Productos() {
             </div>
           )}
           {/* Deluxe: Visible en catálogo */}
+          {/* Inventario y Costos */}
+          <div className="bg-slate-900/60 p-4 border border-slate-850 rounded-xl space-y-3">
+            <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest border-b border-slate-800 pb-1.5 flex items-center gap-1.5">
+              <Package size={12} className="text-emerald-400" /> Costos e Inventario
+            </h4>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={lbl}>Precio de Costo ($)</label>
+                <input className={field} type="number" placeholder="5000" value={form.precioCosto} onChange={e => setForm(f => ({ ...f, precioCosto: e.target.value }))} />
+              </div>
+              <div>
+                <label className={lbl}>Stock Mínimo (Alerta)</label>
+                <input className={field} type="number" placeholder="2" min="0" value={form.stockMinimo} onChange={e => setForm(f => ({ ...f, stockMinimo: e.target.value }))} />
+              </div>
+            </div>
+            {isDeluxe && (
+              <div>
+                <label className={lbl}>Stock Disponible</label>
+                <input className={field} type="number" placeholder="0" min="0" value={form.stock} onChange={e => setForm(f => ({ ...f, stock: e.target.value }))} />
+              </div>
+            )}
+            {form.precio && form.precioCosto && Number(form.precio) > 0 && (
+              <div className="p-2.5 bg-slate-800/80 border border-slate-700/50 rounded-lg flex items-center justify-between text-xs">
+                <span className="font-semibold text-slate-400 uppercase tracking-wide">Margen de Ganancia Neto</span>
+                <span className={`font-bold ${
+                  ((Number(form.precio) - Number(form.precioCosto)) / Number(form.precio)) * 100 >= 30 ? 'text-emerald-400' : 'text-amber-400'
+                }`}>
+                  {(((Number(form.precio) - Number(form.precioCosto)) / Number(form.precio)) * 100).toFixed(1)}%
+                </span>
+              </div>
+            )}
+          </div>
+
+          {/* Deluxe: Visible en catálogo */}
           {isDeluxe && (
             <div className="flex items-center justify-between p-3 bg-slate-800/50 border border-slate-700 rounded-xl">
               <div>
@@ -642,6 +832,222 @@ export default function Productos() {
             <li>El stock se reduce automáticamente al aprobar una reserva.</li>
           </ul>
         </HelpModal>
+      )}
+
+      {/* Venta Rápida Modal */}
+      {ventaRapidaOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 shadow-2xl" style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }}>
+          <div className="w-full max-w-md bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="px-6 py-4 bg-slate-950 border-b border-slate-800 flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <ShoppingBag size={18} className="text-emerald-400 animate-bounce" />
+                <h3 className="font-bold text-white text-base">Venta Rápida de Producto</h3>
+              </div>
+              <button onClick={() => setVentaRapidaOpen(false)} className="text-slate-400 hover:text-white transition-colors">
+                <XCircle size={20} />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              {/* Seleccionar Producto */}
+              <div>
+                <label className={lbl}>Seleccionar Producto *</label>
+                <select 
+                  className={field} 
+                  value={vrForm.productId} 
+                  onChange={e => {
+                    setVrForm(f => ({ ...f, productId: e.target.value, cantidad: 1 }));
+                  }}
+                >
+                  <option value="">-- Elige un producto --</option>
+                  {productos.map(p => (
+                    <option key={p.id} value={p.id}>
+                      {p.nombre} {p.precio ? `($${Number(p.precio).toLocaleString('es-CL')})` : ''} - Stock: {p.stock ?? '—'}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Cantidad */}
+              {vrForm.productId && (
+                <div>
+                  <div className="flex justify-between items-center mb-1.5">
+                    <label className={lbl.replace('mb-1.5', '')}>Cantidad *</label>
+                    {(() => {
+                      const prod = productos.find(p => p.id === vrForm.productId);
+                      if (prod && prod.stock !== undefined && prod.stock !== null && prod.stock !== '') {
+                        return <span className={`text-[10px] font-bold ${Number(prod.stock) < vrForm.cantidad ? 'text-red-400' : 'text-slate-500'}`}>Máx en stock: {prod.stock}</span>;
+                      }
+                      return null;
+                    })()}
+                  </div>
+                  <input 
+                    className={field} 
+                    type="number" 
+                    min="1" 
+                    value={vrForm.cantidad} 
+                    onChange={e => setVrForm(f => ({ ...f, cantidad: Math.max(1, Number(e.target.value)) }))} 
+                  />
+                  {(() => {
+                    const prod = productos.find(p => p.id === vrForm.productId);
+                    if (prod && prod.stock !== undefined && prod.stock !== null && prod.stock !== '' && Number(prod.stock) < vrForm.cantidad) {
+                      return (
+                        <p className="text-[11px] text-amber-400 mt-1 flex items-center gap-1">
+                          <AlertTriangle size={12} /> Registrarás más unidades de las disponibles en stock físico.
+                        </p>
+                      );
+                    }
+                    return null;
+                  })()}
+                </div>
+              )}
+
+              {/* Seleccionar Barbero */}
+              <div>
+                <label className={lbl}>Barbero Vendedor *</label>
+                <select 
+                  className={field} 
+                  value={vrForm.barberoId} 
+                  onChange={e => setVrForm(f => ({ ...f, barberoId: e.target.value }))}
+                >
+                  <option value="">-- Asignar barbero --</option>
+                  {barberos.map(b => (
+                    <option key={b.id} value={b.id}>{b.nombre}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Método de Pago */}
+              <div>
+                <label className={lbl}>Método de Pago *</label>
+                <select 
+                  className={field} 
+                  value={vrForm.metodoPago} 
+                  onChange={e => setVrForm(f => ({ ...f, metodoPago: e.target.value }))}
+                >
+                  <option value="Efectivo">Efectivo</option>
+                  <option value="Tarjeta">Tarjeta de Débito/Crédito</option>
+                  <option value="Transferencia">Transferencia Bancaria</option>
+                </select>
+              </div>
+
+              {/* Resumen e Margen */}
+              {(() => {
+                const prod = productos.find(p => p.id === vrForm.productId);
+                if (!prod) return null;
+                const total = Number(prod.precio || 0) * Number(vrForm.cantidad);
+                const costoTotal = prod.precioCosto ? Number(prod.precioCosto) * Number(vrForm.cantidad) : 0;
+                const margen = total - costoTotal;
+                
+                return (
+                  <div className="bg-slate-950 p-4 border border-slate-800 rounded-xl space-y-2 text-xs">
+                    <div className="flex justify-between items-center text-slate-400">
+                      <span>Precio Unitario:</span>
+                      <span className="font-semibold text-white">${Number(prod.precio || 0).toLocaleString('es-CL')}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-slate-400">
+                      <span>Cantidad:</span>
+                      <span className="font-semibold text-white">{vrForm.cantidad}</span>
+                    </div>
+                    <div className="border-t border-slate-800 pt-2 flex justify-between items-center text-sm font-bold text-white">
+                      <span>Total Venta:</span>
+                      <span className="text-emerald-400">${total.toLocaleString('es-CL')}</span>
+                    </div>
+                    {prod.precioCosto && (
+                      <div className="border-t border-slate-900 pt-2 flex justify-between items-center text-[10px] text-slate-500 font-medium">
+                        <span>Margen Neto Estimado:</span>
+                        <span className="text-emerald-500/80">+${margen.toLocaleString('es-CL')} ({(((total - costoTotal) / total) * 100).toFixed(0)}%)</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+            </div>
+
+            <div className="px-6 py-4 bg-slate-950 border-t border-slate-800 flex gap-3 justify-end">
+              <button 
+                onClick={() => setVentaRapidaOpen(false)} 
+                className="px-4 py-2 text-sm text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-all"
+              >
+                Cancelar
+              </button>
+              <button 
+                onClick={handleVentaRapidaSave} 
+                disabled={vrSaving || !vrForm.productId || !vrForm.barberoId}
+                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-sm font-semibold rounded-lg transition-all flex items-center gap-2"
+              >
+                {vrSaving && <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+                Registrar Venta
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal de Entrega con Método de Pago ────────────────── */}
+      {entregaModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setEntregaModal(null)}>
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-5" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold text-white">Confirmar Entrega</h3>
+              <button onClick={() => setEntregaModal(null)} className="text-slate-500 hover:text-white transition-colors">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-3 bg-slate-800/60 border border-slate-700/60 rounded-xl">
+              <p className="text-sm text-white font-semibold">{entregaModal.productName || 'Producto'}</p>
+              <p className="text-xs text-slate-400 mt-0.5">Cliente: {entregaModal.userName || '—'}</p>
+              {entregaModal.precio && (
+                <p className="text-sm font-bold text-emerald-400 mt-1">${Number(entregaModal.precio).toLocaleString('es-CL')}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Método de Pago *</label>
+              <select
+                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500 transition-colors"
+                value={entregaForm.metodoPago}
+                onChange={e => setEntregaForm(f => ({ ...f, metodoPago: e.target.value }))}
+              >
+                <option value="Efectivo">Efectivo</option>
+                <option value="Tarjeta">Tarjeta</option>
+                <option value="Transferencia">Transferencia</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Barbero Vendedor *</label>
+              <select
+                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500 transition-colors"
+                value={entregaForm.barberoId}
+                onChange={e => setEntregaForm(f => ({ ...f, barberoId: e.target.value }))}
+              >
+                <option value="">— Seleccionar —</option>
+                {barberos.map(b => (
+                  <option key={b.id} value={b.id}>{b.nombre}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex gap-3 pt-1">
+              <button
+                onClick={() => setEntregaModal(null)}
+                className="flex-1 px-4 py-2.5 text-sm text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 border border-slate-700 transition-all"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleEntregaConfirm}
+                disabled={entregaSaving || !entregaForm.barberoId}
+                className="flex-1 px-4 py-2.5 bg-[#D4AF37] hover:bg-[#C4A030] disabled:opacity-40 text-black text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-2"
+              >
+                {entregaSaving && <span className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin" />}
+                <CheckCircle2 size={14} /> Confirmar Entrega
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

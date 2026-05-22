@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Megaphone, Image, Type, AlignLeft, Link2,
   ToggleLeft, ToggleRight, Save, Sparkles, Send,
+  Cpu, Plus, RefreshCw
 } from 'lucide-react';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 import { getDoc, getDocs, setDoc, serverTimestamp, query, where } from 'firebase/firestore';
@@ -140,7 +141,7 @@ function AsistenteIA({ stats, statsLoading }) {
   };
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+    <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-md">
 
       {/* Header */}
       <div
@@ -154,24 +155,23 @@ function AsistenteIA({ stats, statsLoading }) {
           <Sparkles size={15} style={{ color: '#D4AF37' }} />
         </div>
         <div>
-          <p className="text-sm font-bold text-white leading-none">Asistente IA</p>
-          <p className="text-[10px] text-slate-500 mt-0.5">Lee tus datos y aconseja sobre Instagram y WhatsApp</p>
+          <p className="text-sm font-bold text-white leading-none">Asistente IA Chat</p>
+          <p className="text-[10px] text-slate-500 mt-0.5">Caption e ideas para tus redes</p>
         </div>
         <div className="ml-auto flex items-center gap-1.5">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="text-[10px] text-slate-500">{statsLoading ? 'cargando…' : 'en línea'}</span>
+          <span className="text-[10px] text-slate-500">{statsLoading ? 'cargando…' : 'activo'}</span>
         </div>
       </div>
 
       {/* Chips de acceso rápido */}
-      <div className="flex flex-wrap gap-1.5 px-4 pt-3 pb-2">
+      <div className="flex flex-wrap gap-1.5 px-3 pt-3 pb-2 bg-slate-900/50">
         {AI_CHIPS.map(c => (
           <button
             key={c.id}
             onClick={() => !typing && sendAI(`${c.emoji} ${c.label}`, c.id)}
             disabled={typing || statsLoading}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all disabled:opacity-40 hover:border-[#D4AF37]/40 hover:text-[#D4AF37]"
-            style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', color: '#9ca3af' }}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-medium bg-slate-800/80 border border-slate-700/50 text-slate-300 hover:border-[#D4AF37]/40 hover:text-[#D4AF37] transition-all disabled:opacity-40"
           >
             <span>{c.emoji}</span> {c.label}
           </button>
@@ -179,23 +179,22 @@ function AsistenteIA({ stats, statsLoading }) {
       </div>
 
       {/* Mensajes */}
-      <div className="px-4 py-3 space-y-3 overflow-y-auto" style={{ maxHeight: 340 }}>
+      <div className="px-4 py-3 space-y-3 overflow-y-auto bg-slate-900/20" style={{ maxHeight: 220 }}>
         {msgs.map(msg => (
           <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} gap-2`}>
             {msg.role === 'ai' && (
               <div
-                className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5"
-                style={{ background: 'rgba(212,175,55,0.15)', border: '1px solid rgba(212,175,55,0.2)' }}
+                className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5 border border-[#D4AF37]/20 bg-[#D4AF37]/10"
               >
                 <Sparkles size={10} style={{ color: '#D4AF37' }} />
               </div>
             )}
             <div
-              className="max-w-[85%] px-3 py-2.5 rounded-2xl text-[13px] leading-relaxed"
+              className="max-w-[85%] px-3 py-2.5 rounded-2xl text-[12px] leading-relaxed"
               style={
                 msg.role === 'user'
                   ? { background: '#D4AF37', color: '#0a0807', borderBottomRightRadius: 4, fontWeight: 500 }
-                  : { background: 'rgba(255,255,255,0.05)', color: '#d1d5db', border: '1px solid rgba(255,255,255,0.07)', borderBottomLeftRadius: 4 }
+                  : { background: 'rgba(255,255,255,0.04)', color: '#d1d5db', border: '1px solid rgba(255,255,255,0.06)', borderBottomLeftRadius: 4 }
               }
             >
               {renderMd(msg.text)}
@@ -207,14 +206,13 @@ function AsistenteIA({ stats, statsLoading }) {
         {typing && (
           <div className="flex justify-start gap-2">
             <div
-              className="w-6 h-6 rounded-full flex items-center justify-center shrink-0"
-              style={{ background: 'rgba(212,175,55,0.15)', border: '1px solid rgba(212,175,55,0.2)' }}
+              className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 border border-[#D4AF37]/20 bg-[#D4AF37]/10"
             >
               <Sparkles size={10} style={{ color: '#D4AF37' }} />
             </div>
             <div
-              className="px-3 py-3 rounded-2xl"
-              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.07)', borderBottomLeftRadius: 4 }}
+              className="px-3 py-3 rounded-2xl bg-slate-800 border border-slate-700/60"
+              style={{ borderBottomLeftRadius: 4 }}
             >
               <div className="flex gap-1 items-center h-3">
                 {[0, 150, 300].map(delay => (
@@ -232,7 +230,7 @@ function AsistenteIA({ stats, statsLoading }) {
       </div>
 
       {/* Input */}
-      <div className="px-4 pb-4 pt-1 border-t border-slate-800/60">
+      <div className="px-4 pb-3 pt-2 border-t border-slate-800/60 bg-slate-900/50">
         <div className="flex gap-2">
           <input
             type="text"
@@ -241,20 +239,187 @@ function AsistenteIA({ stats, statsLoading }) {
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && !typing && input.trim() && (sendAI(input.trim()), setInput(''))}
             disabled={typing}
-            className="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[#D4AF37] transition-colors disabled:opacity-50"
+            className="flex-1 bg-gray-950 border border-gray-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-[#D4AF37] transition-colors disabled:opacity-50"
           />
           <button
             onClick={() => { if (input.trim() && !typing) { sendAI(input.trim()); setInput(''); } }}
             disabled={!input.trim() || typing}
-            className="w-10 flex items-center justify-center rounded-xl transition-all disabled:opacity-30"
+            className="w-8 h-8 flex items-center justify-center rounded-lg transition-all disabled:opacity-30 self-center"
             style={{
               background: input.trim() && !typing ? '#D4AF37' : 'rgba(255,255,255,0.05)',
               border: '1px solid rgba(255,255,255,0.08)',
             }}
           >
-            <Send size={14} style={{ color: input.trim() && !typing ? '#0a0807' : '#555' }} />
+            <Send size={12} style={{ color: input.trim() && !typing ? '#0a0807' : '#555' }} />
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── RecomendadorBannersIA (Módulo AI Nuevo) ────────────────── */
+function RecomendadorBannersIA({ stats, statsLoading, onApply }) {
+  const [loading, setLoading] = useState(false);
+  const [aiStep, setAiStep]   = useState(0);
+
+  const steps = [
+    'Leyendo métricas comerciales del local...',
+    'Comparando tasas de conversión por día...',
+    'Generando copys de alta persuasión...',
+    'Diseñando esquemas CTA optimizados...'
+  ];
+
+  const triggerScan = () => {
+    setLoading(true);
+    setAiStep(0);
+    let cur = 0;
+    const interval = setInterval(() => {
+      cur += 1;
+      if (cur < steps.length) {
+        setAiStep(cur);
+      } else {
+        clearInterval(interval);
+        setLoading(false);
+      }
+    }, 550);
+  };
+
+  useEffect(() => {
+    triggerScan();
+  }, []);
+
+  const campaigns = useMemo(() => {
+    const {
+      servicioTop = 'Corte clásico',
+      servicioTopPrecio = 0,
+      totalCitasMes = 0,
+      diaTopStr = 'Viernes',
+      totalMiembros = 0,
+    } = stats;
+
+    const precioStr = servicioTopPrecio ? ` a $${servicioTopPrecio.toLocaleString('es-CL')}` : '';
+
+    return [
+      {
+        id: 'star-service',
+        label: 'Campaña: Servicio Estrella',
+        titulo: '¡VIVE NUESTRO CORTE ESTRELLA!',
+        descripcion: `Prueba el servicio favorito de la casa: ${servicioTop}${precioStr}. ¡Reserva hoy!`,
+        imagen: 'https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&fit=crop&q=80&w=800',
+        ctaTexto: 'Reservar mi lugar',
+        ctaUrl: 'index.html',
+        tag: 'Alta Conversión',
+        analisis: `Promociona tu servicio más solicitado (${servicioTop}, con ${totalCitasMes} citas). Ideal para captar nuevos clientes con imagen de alta calidad.`
+      },
+      {
+        id: 'low-days',
+        label: 'Campaña: Nivelación de Tráfico',
+        titulo: 'CLUB DAYS: 10% DE DESCUENTO',
+        descripcion: `Agenda tu hora para Lunes o Martes y obtén un descuento exclusivo en tu cita de la semana.`,
+        imagen: 'https://images.unsplash.com/photo-1621605815971-fbc98d665033?auto=format&fit=crop&q=80&w=800',
+        ctaTexto: 'Reservar con 10% Off',
+        ctaUrl: 'index.html',
+        tag: 'Balancear Flujo',
+        analisis: `Tus días de mayor afluencia son los ${diaTopStr}. Sugerimos incentivar reservas a principios de semana para balancear la carga operativa.`
+      },
+      {
+        id: 'club-fidelidad',
+        label: 'Campaña: Club de Fidelidad',
+        titulo: '¡SÚMATE AL CLUB Y GANA!',
+        descripcion: `Acumula sellos en cada visita y canjéalos por cortes y productos gratis de regalo.`,
+        imagen: 'https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?auto=format&fit=crop&q=80&w=800',
+        ctaTexto: 'Registrarme al Club',
+        ctaUrl: 'registro.html',
+        tag: 'Fidelización',
+        analisis: `Tienes ${totalMiembros} clientes en el club. Este banner incentiva la lealtad y el valor del ciclo de vida del cliente frecuente.`
+      }
+    ];
+  }, [stats]);
+
+  return (
+    <div className="bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800/80 rounded-xl overflow-hidden shadow-lg">
+      
+      {/* Header */}
+      <div className="p-4 border-b border-slate-800 bg-gradient-to-r from-slate-900 via-slate-950 to-slate-900 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-lg bg-[#D4AF37]/10 flex items-center justify-center border border-[#D4AF37]/20 text-[#D4AF37] animate-pulse">
+            <Megaphone size={14} className="fill-[#D4AF37]/20" />
+          </div>
+          <div>
+            <h3 className="text-xs font-bold text-white tracking-wide">ELEGANCE AI™</h3>
+            <p className="text-[9px] text-[#D4AF37] font-bold font-mono tracking-wider">BANNER ADVISOR v1.2</p>
+          </div>
+        </div>
+        <button 
+          onClick={triggerScan} 
+          disabled={loading}
+          className="p-1.5 rounded-lg text-slate-500 hover:text-[#D4AF37] hover:bg-slate-800/50 transition-colors disabled:opacity-30"
+          title="Recalcular análisis">
+          <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
+        </button>
+      </div>
+
+      {/* Body */}
+      <div className="p-5 space-y-4">
+        {loading ? (
+          <div className="py-12 flex flex-col items-center justify-center space-y-4 text-center">
+            <div className="relative w-10 h-10 flex items-center justify-center">
+              <div className="absolute inset-0 rounded-full border border-[#D4AF37]/10 animate-ping" />
+              <Cpu size={20} className="text-[#D4AF37] animate-bounce" />
+            </div>
+            <div className="space-y-1.5">
+              <p className="text-xs font-bold text-white tracking-wide font-sans">Analizando agendas...</p>
+              <p className="text-[10px] text-slate-500 max-w-[200px] leading-relaxed animate-pulse">{steps[aiStep]}</p>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-[10px] text-slate-500 leading-normal">
+              Selecciona una plantilla de campaña recomendada para rellenar instantáneamente el banner promocional:
+            </p>
+
+            <div className="space-y-3">
+              {campaigns.map((camp) => (
+                <button
+                  key={camp.id}
+                  onClick={() => onApply(camp)}
+                  className="w-full text-left bg-slate-900/65 hover:bg-slate-800/40 border border-slate-800/80 hover:border-[#D4AF37]/35 rounded-xl p-3 flex flex-col gap-2 transition-all group relative overflow-hidden">
+                  
+                  <div className="absolute top-0 right-0 w-8 h-8 bg-gradient-to-br from-[#D4AF37]/5 to-transparent rounded-bl-2xl group-hover:from-[#D4AF37]/15 transition-all" />
+                  
+                  <div className="flex items-center justify-between w-full">
+                    <span className="text-[9px] font-bold text-[#D4AF37] uppercase tracking-wider">{camp.label}</span>
+                    <span className="text-[8px] px-1.5 py-0.5 bg-slate-800 border border-slate-700/60 rounded-full text-slate-400 group-hover:text-[#D4AF37] transition-all font-semibold font-mono">
+                      {camp.tag}
+                    </span>
+                  </div>
+
+                  <div className="space-y-1">
+                    <h5 className="text-xs font-bold text-white truncate group-hover:text-[#D4AF37] transition-colors">{camp.titulo}</h5>
+                    <p className="text-[10px] text-slate-400 leading-snug line-clamp-2">{camp.descripcion}</p>
+                  </div>
+
+                  <div className="border-t border-slate-800/60 my-0.5 pt-1.5">
+                    <p className="text-[9px] text-slate-500 leading-normal">
+                      <strong className="text-slate-400">Auditoría IA:</strong> {camp.analisis}
+                    </p>
+                  </div>
+
+                  <div className="absolute bottom-2 right-2 p-1 bg-slate-800 border border-slate-700 text-slate-400 group-hover:bg-[#D4AF37] group-hover:border-[#D4AF37] group-hover:text-black rounded-lg transition-all flex items-center justify-center">
+                    <Plus size={10} className="stroke-[3]" />
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Footer */}
+      <div className="p-3 bg-slate-950/70 border-t border-slate-800/60 flex items-center gap-1.5 text-[9px] text-slate-500 justify-center">
+        <span>🛡️</span>
+        <span>Recomendaciones cruzadas con el club de fidelidad y visitas.</span>
       </div>
     </div>
   );
@@ -361,6 +526,18 @@ export default function Marketing() {
     } finally { setSaving(false); }
   };
 
+  const handleApplyCampaign = (camp) => {
+    setForm(f => ({
+      ...f,
+      titulo: camp.titulo,
+      descripcion: camp.descripcion,
+      imagen: camp.imagen,
+      ctaTexto: camp.ctaTexto,
+      ctaUrl: camp.ctaUrl,
+      activo: true, // Lo activamos por defecto al aplicar para mayor comodidad
+    }));
+  };
+
   const field = 'w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] transition-colors';
   const lbl   = 'block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5';
 
@@ -373,170 +550,196 @@ export default function Marketing() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-
+    <div className="max-w-5xl mx-auto">
+      
       {/* Header */}
-      <div>
-        <div className="flex items-center gap-2">
-          <h1 className="text-xl font-bold text-white flex items-center gap-2">
-            <Megaphone size={20} className="text-[#D4AF37]" />
-            Marketing
-          </h1>
-          <HelpButton onClick={() => setShowHelp(true)} />
-        </div>
-        <p className="text-sm text-slate-500 mt-0.5">
-          Gestiona el banner publicitario y obtén ideas con el asistente IA.
-        </p>
-      </div>
-
-      {/* Asistente IA — oculto temporalmente */}
-      {/* <AsistenteIA stats={stats} statsLoading={statsLoading} /> */}
-
-      {/* Preview card */}
-      {form.imagen && (
-        <div
-          className="relative rounded-2xl overflow-hidden"
-          style={{ minHeight: 170, backgroundImage: `url('${form.imagen}')`, backgroundSize: 'cover', backgroundPosition: 'center' }}
-        >
-          <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.35) 60%, rgba(0,0,0,0.1) 100%)' }} />
-          <div className="relative z-10 p-5 flex flex-col justify-end" style={{ minHeight: 170 }}>
-            <p className="text-[9px] font-black uppercase tracking-widest mb-1 text-[#D4AF37]">Vista previa</p>
-            <p className="text-base font-black text-white leading-tight mb-1">{form.titulo || 'Título del anuncio'}</p>
-            <p className="text-xs text-white/60 leading-snug mb-3">{form.descripcion}</p>
-            <span
-              className="self-start inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-black"
-              style={{ background: '#D4AF37' }}
-            >
-              {form.ctaTexto || 'Reservar mi lugar'}
-            </span>
+      <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold text-white flex items-center gap-2">
+              <Megaphone size={20} className="text-[#D4AF37]" />
+              Marketing & Campañas
+            </h1>
+            <HelpButton onClick={() => setShowHelp(true)} />
           </div>
-        </div>
-      )}
-
-      {/* Form */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
-
-        <div className="flex items-center justify-between py-1">
-          <div>
-            <p className="text-sm font-semibold text-white">Publicar anuncio</p>
-            <p className="text-xs text-slate-500 mt-0.5">
-              {form.activo ? 'Visible para todos los clientes.' : 'Oculto — los clientes no lo ven.'}
-            </p>
-          </div>
-          <button
-            onClick={() => setForm(f => ({ ...f, activo: !f.activo }))}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm font-semibold transition-all ${
-              form.activo
-                ? 'bg-[#D4AF37]/10 border-[#D4AF37]/40 text-[#D4AF37]'
-                : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'
-            }`}
-          >
-            {form.activo
-              ? <><ToggleRight size={18} /> Activo</>
-              : <><ToggleLeft  size={18} /> Inactivo</>}
-          </button>
-        </div>
-
-        <div className="border-t border-slate-800" />
-
-        <div>
-          <label className={lbl}>
-            <span className="inline-flex items-center gap-1.5"><Type size={11} /> Título</span>
-          </label>
-          <input
-            className={field}
-            placeholder="¡VIVE EL MUNDIAL EN ELEGANCE!"
-            value={form.titulo}
-            onChange={e => setForm(f => ({ ...f, titulo: e.target.value }))}
-          />
-        </div>
-
-        <div>
-          <label className={lbl}>
-            <span className="inline-flex items-center gap-1.5"><AlignLeft size={11} /> Descripción</span>
-          </label>
-          <textarea
-            className={`${field} resize-none`}
-            rows={2}
-            placeholder="Ven a ver los partidos con tu barbero favorito."
-            value={form.descripcion}
-            onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))}
-          />
-        </div>
-
-        <div>
-          <label className={lbl}>
-            <span className="inline-flex items-center gap-1.5"><Image size={11} /> URL de la imagen</span>
-          </label>
-          <input
-            className={field}
-            placeholder="https://images.unsplash.com/..."
-            value={form.imagen}
-            onChange={e => setForm(f => ({ ...f, imagen: e.target.value }))}
-          />
-          <p className="text-[10px] text-slate-600 mt-1">
-            Usa una imagen horizontal (16:9 o 2:1) con sujeto en la parte superior.
+          <p className="text-sm text-slate-500 mt-0.5">
+            Gestiona el banner publicitario de la app y optimiza tus campañas con recomendaciones IA en tiempo real.
           </p>
         </div>
-
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className={lbl}>Texto del botón</label>
-            <input
-              className={field}
-              placeholder="Reservar mi lugar"
-              value={form.ctaTexto}
-              onChange={e => setForm(f => ({ ...f, ctaTexto: e.target.value }))}
-            />
-          </div>
-          <div>
-            <label className={lbl}>
-              <span className="inline-flex items-center gap-1.5"><Link2 size={11} /> URL del botón</span>
-            </label>
-            <input
-              className={field}
-              placeholder="index.html"
-              value={form.ctaUrl}
-              onChange={e => setForm(f => ({ ...f, ctaUrl: e.target.value }))}
-            />
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between pt-1">
-          {saved
-            ? <p className="text-xs font-semibold text-emerald-400">✓ Guardado — los clientes verán el cambio en su próxima carga.</p>
-            : <span />}
-          <button
-            onClick={handleSave}
-            disabled={saving || !form.titulo}
-            className="flex items-center gap-2 px-5 py-2 bg-[#D4AF37] hover:bg-yellow-500 disabled:opacity-40 text-black text-sm font-semibold rounded-lg transition-colors"
-          >
-            {saving
-              ? <span className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin" />
-              : <Save size={15} />}
-            {saving ? 'Guardando…' : 'Guardar y publicar'}
-          </button>
-        </div>
       </div>
 
-      {/* Info */}
-      <div className="flex items-start gap-3 px-4 py-3.5 bg-slate-900/60 border border-slate-800 rounded-xl text-xs text-slate-500 leading-relaxed">
-        <Megaphone size={14} className="text-slate-600 shrink-0 mt-0.5" />
-        <span>
-          Al publicar con el banner <strong className="text-slate-400">activo</strong> se genera un nuevo <strong className="text-slate-400">versionId</strong>.
-          Esto activa el punto rojo en el ícono de Fidelización de la app del cliente,
-          avisándole que hay un anuncio nuevo sin necesidad de push notifications.
-        </span>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        {/* Columna Izquierda: Formulario y Vista Previa (col-span-2) */}
+        <div className="lg:col-span-2 space-y-6">
+          
+          {/* Preview card */}
+          {form.imagen && (
+            <div
+              className="relative rounded-2xl overflow-hidden shadow-lg border border-slate-800"
+              style={{ minHeight: 180, backgroundImage: `url('${form.imagen}')`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+            >
+              <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.45) 60%, rgba(0,0,0,0.15) 100%)' }} />
+              <div className="relative z-10 p-5 flex flex-col justify-end" style={{ minHeight: 180 }}>
+                <p className="text-[9px] font-black uppercase tracking-widest mb-1 text-[#D4AF37] font-mono">Buzón de Anuncios — Vista Previa en Vivo</p>
+                <p className="text-base font-black text-white leading-tight mb-1">{form.titulo || 'Título del anuncio'}</p>
+                <p className="text-xs text-white/70 leading-snug mb-3 max-w-xl">{form.descripcion}</p>
+                <span
+                  className="self-start inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-black shadow-md hover:scale-105 transform transition-all cursor-default"
+                  style={{ background: '#D4AF37' }}
+                >
+                  {form.ctaTexto || 'Reservar mi lugar'}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Form */}
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4 shadow-md">
+
+            <div className="flex items-center justify-between py-1">
+              <div>
+                <p className="text-sm font-semibold text-white">Publicar Anuncio en App</p>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {form.activo ? 'El banner es visible de forma inmediata en la app de reservas de tus clientes.' : 'Oculto — los clientes no lo ven.'}
+                </p>
+              </div>
+              <button
+                onClick={() => setForm(f => ({ ...f, activo: !f.activo }))}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm font-semibold transition-all ${
+                  form.activo
+                    ? 'bg-[#D4AF37]/10 border-[#D4AF37]/40 text-[#D4AF37]'
+                    : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'
+                }`}
+              >
+                {form.activo
+                  ? <><ToggleRight size={18} /> Activo</>
+                  : <><ToggleLeft  size={18} /> Inactivo</>}
+              </button>
+            </div>
+
+            <div className="border-t border-slate-800/80" />
+
+            <div>
+              <label className={lbl}>
+                <span className="inline-flex items-center gap-1.5"><Type size={11} /> Título de Campaña</span>
+              </label>
+              <input
+                className={field}
+                placeholder="¡VIVE EL MUNDIAL EN ELEGANCE!"
+                value={form.titulo}
+                onChange={e => setForm(f => ({ ...f, titulo: e.target.value }))}
+              />
+            </div>
+
+            <div>
+              <label className={lbl}>
+                <span className="inline-flex items-center gap-1.5"><AlignLeft size={11} /> Mensaje / Descripción</span>
+              </label>
+              <textarea
+                className={`${field} resize-none`}
+                rows={2.5}
+                placeholder="Ven a ver los partidos con tu barbero favorito y una cerveza helada de cortesía."
+                value={form.descripcion}
+                onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))}
+              />
+            </div>
+
+            <div>
+              <label className={lbl}>
+                <span className="inline-flex items-center gap-1.5"><Image size={11} /> URL de la imagen promocional</span>
+              </label>
+              <input
+                className={field}
+                placeholder="https://images.unsplash.com/..."
+                value={form.imagen}
+                onChange={e => setForm(f => ({ ...f, imagen: e.target.value }))}
+              />
+              <p className="text-[10px] text-slate-600 mt-1">
+                Usa una imagen horizontal (16:9 o 2:1) con fondo despejado para legibilidad de textos.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={lbl}>Texto de Llamado a Acción (CTA)</label>
+                <input
+                  className={field}
+                  placeholder="Reservar mi lugar"
+                  value={form.ctaTexto}
+                  onChange={e => setForm(f => ({ ...f, ctaTexto: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className={lbl}>
+                  <span className="inline-flex items-center gap-1.5"><Link2 size={11} /> Enlace de destino (CTA URL)</span>
+                </label>
+                <input
+                  className={field}
+                  placeholder="index.html"
+                  value={form.ctaUrl}
+                  onChange={e => setForm(f => ({ ...f, ctaUrl: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between pt-1">
+              {saved
+                ? <p className="text-xs font-semibold text-emerald-400">✓ Anuncio guardado con éxito. Cambios aplicados en tiempo real.</p>
+                : <span />}
+              <button
+                onClick={handleSave}
+                disabled={saving || !form.titulo}
+                className="flex items-center gap-2 px-5 py-2 bg-[#D4AF37] hover:bg-yellow-500 disabled:opacity-40 text-black text-sm font-semibold rounded-lg transition-colors"
+              >
+                {saving
+                  ? <span className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin" />
+                  : <Save size={15} />}
+                {saving ? 'Guardando…' : 'Guardar y Publicar'}
+              </button>
+            </div>
+          </div>
+
+          {/* Info */}
+          <div className="flex items-start gap-3 px-4 py-3.5 bg-slate-900/60 border border-slate-800 rounded-xl text-xs text-slate-500 leading-relaxed shadow-sm">
+            <Megaphone size={14} className="text-slate-600 shrink-0 mt-0.5" />
+            <span>
+              Al guardar con el banner <strong className="text-slate-400">activo</strong> se genera un nuevo identificador de versión (<strong className="text-slate-400">versionId</strong>).
+              Esto dibuja automáticamente una notificación circular sobre el icono del Club en la app del cliente,
+              indicándole la existencia de una novedad comercial en el local.
+            </span>
+          </div>
+
+        </div>
+
+        {/* Columna Derecha: Asistente IA (Chat) y Recomendador de Banners (col-span-1) */}
+        <div className="lg:col-span-1 space-y-6">
+          
+          {/* Módulo Nuevo: Recomendador IA de Banners */}
+          <RecomendadorBannersIA 
+            stats={stats} 
+            statsLoading={statsLoading} 
+            onApply={handleApplyCampaign} 
+          />
+
+          {/* Asistente IA (Chat) de Marketing */}
+          <AsistenteIA 
+            stats={stats} 
+            statsLoading={statsLoading} 
+          />
+
+        </div>
+
       </div>
 
       {showHelp && (
         <HelpModal title="Ayuda — Marketing" onClose={() => setShowHelp(false)}>
           <p>En <strong className="text-white">Marketing</strong> configuras el banner que aparece en la app de tus clientes.</p>
           <ul className="space-y-1.5 list-disc list-inside text-slate-400">
-            <li>El <span className="text-white">Asistente IA</span> lee tus datos reales (reservas, clientes, servicios) y genera consejos para Instagram y WhatsApp.</li>
-            <li>Sube una <span className="text-white">imagen</span> de promoción (descuentos, nuevos servicios, eventos).</li>
-            <li>Agrega un <span className="text-white">título</span>, descripción y enlace opcional al que llevar al cliente.</li>
-            <li>Guarda los cambios para que el banner se actualice en tiempo real en la app pública.</li>
+            <li>El <span className="text-white">Asistente IA Chat</span> lee tus datos reales (reservas, clientes, servicios) y genera captions listos para copiar en tus publicaciones.</li>
+            <li>El <span className="text-white">Elegance AI™ Banner Advisor</span> analiza las reservas de tu local y propone estrategias promocionales y de nivelación de tráfico de alta conversión.</li>
+            <li>Haz clic en <span className="text-[#D4AF37] font-semibold">auto-completar</span> sobre cualquier recomendación de campaña para rellenar los datos de tu anuncio de forma instantánea.</li>
+            <li>Configura un <span className="text-white">anuncio activo</span> con imagen, título y enlace para captar la atención de tus clientes.</li>
           </ul>
         </HelpModal>
       )}

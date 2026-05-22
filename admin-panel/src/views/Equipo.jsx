@@ -4,8 +4,9 @@ import {
   Calendar, Edit2, Trash2, PowerOff, User, ShieldCheck, MessageCircle,
   Upload, ChevronDown, Plus, X, Phone, Mail, Percent, Scissors,
   CalendarOff, Clock, Check, KeyRound, Link2, Copy, GripVertical,
+  Users, Printer, Wallet, ArrowDownCircle, AlertTriangle, CheckCircle2, DollarSign,
 } from 'lucide-react';
-import { updateDoc, addDoc, deleteDoc, doc, serverTimestamp, deleteField, writeBatch } from 'firebase/firestore';
+import { updateDoc, addDoc, deleteDoc, doc, serverTimestamp, deleteField, writeBatch, Timestamp, query, where, getDocs } from 'firebase/firestore';
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors,
 } from '@dnd-kit/core';
@@ -18,6 +19,7 @@ import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage
 import { db, storage, auth } from '../lib/firebase';
 import { tenantCol, resolveTenantId } from '../lib/tenantUtils';
 import { useCollection } from '../hooks/useCollection';
+import { useAuth } from '../contexts/AuthContext';
 import { useSucursales } from '../hooks/useSucursales';
 import { useTenant } from '../contexts/TenantContext';
 import Badge        from '../components/ui/Badge';
@@ -71,6 +73,8 @@ const DEFAULT_HORARIO = () => ({
 const BARBER_EMPTY = {
   nombre:'', especialidad:'', foto:'', email:'', whatsapp:'',
   comision: 0,
+  sueldoBase: 0,
+  comisionProductos: 10,
   sucursalId: '',
   serviciosIds: [],
   horario: DEFAULT_HORARIO(),
@@ -297,11 +301,251 @@ export default function Equipo() {
   const navigate = useNavigate();
   const tenant   = useTenant();
   const waUrl    = buildWaUrl(tenant.name);
+  const { role } = useAuth();
+  const isAdmin  = role === 'admin' || role === 'jefe';
 
   const { data: rawBarberos, loading } = useCollection('barberos');
   const { data: servicios }            = useCollection('servicios');
   const sucursales                     = useSucursales();
   const barberos = rawBarberos.filter(b => !b._mainDocId);
+
+  /* ── Pestañas (Tabs) ── */
+  const [activeTab, setActiveTab] = useState('miembros');
+
+  /* ── Sueldos y Comisiones State ── */
+  const [sueldoBarberoId, setSueldoBarberoId] = useState('');
+  const [fechaInicio, setFechaInicio] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+  });
+  const [fechaFin, setFechaFin] = useState(localDateStr);
+  const [citasSueldos, setCitasSueldos] = useState([]);
+  const [ventasSueldos, setVentasSueldos] = useState([]);
+  const [loadingData, setLoadingData] = useState(false);
+
+  /* ── Payout Modal State ── */
+  const [payoutModal, setPayoutModal] = useState(null); // { amount, barberName }
+  const [payoutMetodo, setPayoutMetodo] = useState('Efectivo');
+  const [payoutSaving, setPayoutSaving] = useState(false);
+  const [payoutSuccess, setPayoutSuccess] = useState('');
+
+  /* ── Date range presets ── */
+  const setHoy = () => {
+    const t = localDateStr();
+    setFechaInicio(t);
+    setFechaFin(t);
+  };
+  const setEstaSemana = () => {
+    const d = new Date();
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    const monday = new Date(d.setDate(diff));
+    const startStr = `${monday.getFullYear()}-${String(monday.getMonth() + 1).padStart(2, '0')}-${String(monday.getDate()).padStart(2, '0')}`;
+    setFechaInicio(startStr);
+    setFechaFin(localDateStr());
+  };
+  const setEsteMes = () => {
+    const d = new Date();
+    setFechaInicio(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`);
+    setFechaFin(localDateStr());
+  };
+  const setMesPasado = () => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - 1);
+    const firstDay = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
+    const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+    const lastDayStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+    setFechaInicio(firstDay);
+    setFechaFin(lastDayStr);
+  };
+
+  /* ── Payout Handlers ── */
+  const handleOpenPayoutModal = (amount, barberName) => {
+    setPayoutModal({ amount, barberName });
+    setPayoutMetodo('Efectivo');
+    setPayoutSuccess('');
+  };
+
+  const handleConfirmPayout = async () => {
+    if (!payoutModal) return;
+    setPayoutSaving(true);
+    setPayoutSuccess('');
+    try {
+      const desc = `Pago Sueldo ${payoutModal.barberName} — Período ${fechaInicio} al ${fechaFin}`;
+      await addDoc(tenantCol('gastos'), {
+        descripcion: desc,
+        monto: payoutModal.amount,
+        categoria: 'Sueldos',
+        metodoPago: payoutMetodo,
+        fecha: Timestamp.now(),
+        creadoEn: serverTimestamp(),
+      });
+      setPayoutSuccess('✓ ¡Pago registrado en Gastos correctamente!');
+      setTimeout(() => {
+        setPayoutModal(null);
+        setPayoutSuccess('');
+      }, 2000);
+    } catch (err) {
+      console.error('Error al registrar gasto sueldo:', err);
+      alert('Error al registrar el gasto: ' + err.message);
+    } finally {
+      setPayoutSaving(false);
+    }
+  };
+
+  /* ── Load Sueldos Data ── */
+  const fetchSueldosData = async () => {
+    if (!sueldoBarberoId) return;
+    setLoadingData(true);
+    try {
+      // 1. Citas completadas en el rango
+      const qCitas = query(
+        tenantCol('citas'),
+        where('fecha', '>=', fechaInicio),
+        where('fecha', '<=', fechaFin)
+      );
+      const snapCitas = await getDocs(qCitas);
+      const allCitas = snapCitas.docs.map(d => ({ id: d.id, ...d.data() }));
+      const filteredCitas = allCitas.filter(c => c.barberoId === sueldoBarberoId && c.estado === 'Completada');
+      setCitasSueldos(filteredCitas);
+
+      // 2. Reservas de productos entregadas
+      const qVentas = query(
+        tenantCol('product_reservations'),
+        where('status', '==', 'delivered')
+      );
+      const snapVentas = await getDocs(qVentas);
+      const allVentas = snapVentas.docs.map(d => ({ id: d.id, ...d.data() }));
+      const filteredVentas = allVentas.filter(v => {
+        if (v.barberoId !== sueldoBarberoId) return false;
+        const vDate = v.fecha || v.createdAt || v.creadoEn;
+        if (!vDate) return false;
+        const dateStr = typeof vDate === 'string' ? vDate.slice(0, 10) : (vDate.toDate ? vDate.toDate().toISOString().slice(0, 10) : '');
+        return dateStr >= fechaInicio && dateStr <= fechaFin;
+      });
+      setVentasSueldos(filteredVentas);
+    } catch (err) {
+      console.error('Error al cargar datos de sueldos:', err);
+    } finally {
+      setLoadingData(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'sueldos' && sueldoBarberoId) {
+      fetchSueldosData();
+    }
+  }, [activeTab, sueldoBarberoId, fechaInicio, fechaFin]);
+
+  /* ── Helper para formatear moneda ── */
+  const fmtCurrency = (n) => {
+    return '$' + Math.round(n || 0).toLocaleString('es-CL');
+  };
+
+  /* ── Imprimir Liquidación ── */
+  const handlePrint = (barber, data, range) => {
+    const printWindow = window.open('', '_blank');
+    const content = `
+      <html>
+        <head>
+          <title>Liquidación de Sueldo - ${barber.nombre}</title>
+          <style>
+            body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333; margin: 40px; line-height: 1.6; }
+            .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #10b981; padding-bottom: 20px; }
+            .header h1 { margin: 0; color: #111; font-size: 24px; }
+            .header p { margin: 5px 0 0 0; color: #666; font-size: 14px; }
+            .info-table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+            .info-table td { padding: 8px 0; font-size: 14px; }
+            .info-table td.label { font-weight: bold; color: #555; width: 30%; }
+            .details-table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+            .details-table th { background: #f4f5f7; border-bottom: 2px solid #e2e8f0; padding: 12px; text-align: left; font-size: 12px; text-transform: uppercase; color: #4a5568; }
+            .details-table td { border-bottom: 1px solid #edf2f7; padding: 12px; font-size: 14px; }
+            .details-table tr.total td { font-weight: bold; font-size: 16px; border-top: 2px solid #e2e8f0; border-bottom: none; background: #fafafa; }
+            .footer { margin-top: 60px; display: flex; justify-content: space-between; }
+            .signature { border-top: 1px solid #ccc; width: 40%; text-align: center; padding-top: 10px; font-size: 12px; color: #666; }
+            .propina-note { margin-top: 20px; font-size: 12px; color: #eab308; font-style: italic; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>${tenant.name.toUpperCase()}</h1>
+            <p>Liquidación de Sueldos y Comisiones</p>
+          </div>
+          <table class="info-table">
+            <tr>
+              <td class="label">Empleado:</td>
+              <td>${barber.nombre}</td>
+              <td class="label">Período:</td>
+              <td>${range.start} al ${range.end}</td>
+            </tr>
+            <tr>
+              <td class="label">Especialidad:</td>
+              <td>${barber.especialidad || 'No especificada'}</td>
+              <td class="label">Fecha Emisión:</td>
+              <td>${new Date().toLocaleDateString('es-CL')}</td>
+            </tr>
+          </table>
+
+          <table class="details-table">
+            <thead>
+              <tr>
+                <th>Concepto</th>
+                <th style="text-align: right;">Base / Monto Bruto</th>
+                <th style="text-align: right;">Detalle / Porcentaje</th>
+                <th style="text-align: right;">Subtotal</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Sueldo Base Mensual</td>
+                <td style="text-align: right;">$${Math.round(barber.sueldoBase || 0).toLocaleString('es-CL')}</td>
+                <td style="text-align: right;">Fijo</td>
+                <td style="text-align: right;">$${Math.round(barber.sueldoBase || 0).toLocaleString('es-CL')}</td>
+              </tr>
+              <tr>
+                <td>Comisión por Servicios</td>
+                <td style="text-align: right;">$${Math.round(data.serviciosTotal).toLocaleString('es-CL')}</td>
+                <td style="text-align: right;">${barber.comision || 0}%</td>
+                <td style="text-align: right;">$${Math.round(data.serviciosComision).toLocaleString('es-CL')}</td>
+              </tr>
+              <tr>
+                <td>Comisión por Productos</td>
+                <td style="text-align: right;">$${Math.round(data.productosTotal).toLocaleString('es-CL')}</td>
+                <td style="text-align: right;">${barber.comisionProductos ?? 10}%</td>
+                <td style="text-align: right;">$${Math.round(data.productosComision).toLocaleString('es-CL')}</td>
+              </tr>
+              <tr class="total">
+                <td>Total Neto a Pagar</td>
+                <td></td>
+                <td></td>
+                <td style="text-align: right; color: #10b981;">$${Math.round(data.totalPagar).toLocaleString('es-CL')}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          ${data.propinasTotal > 0 ? `
+            <div class="propina-note">
+              * Nota: El empleado acumuló un total de $${Math.round(data.propinasTotal).toLocaleString('es-CL')} en propinas en este período, entregadas íntegramente por los clientes.
+            </div>
+          ` : ''}
+
+          <div class="footer" style="margin-top: 100px;">
+            <div class="signature">Firma del Empleador</div>
+            <div class="signature">Firma del Recibí Conforme</div>
+          </div>
+
+          <script>
+            window.onload = function() {
+              window.print();
+              window.onafterprint = function() { window.close(); };
+            }
+          </script>
+        </body>
+      </html>
+    `;
+    printWindow.document.write(content);
+    printWindow.document.close();
+  };
 
   const memberLabel = resolveTenantId() === 'gitana' ? 'profesional' : 'barbero';
   const memberLabelCap = memberLabel.charAt(0).toUpperCase() + memberLabel.slice(1);
@@ -385,6 +629,8 @@ export default function Equipo() {
       email:        b.email        || '',
       whatsapp:     b.whatsapp     || '',
       comision:     b.comision     ?? 0,
+      sueldoBase:   b.sueldoBase   ?? 0,
+      comisionProductos: b.comisionProductos ?? 10,
       sucursalId:   b.sucursalId   || '',
       serviciosIds: b.serviciosIds || [],
       horario:      initHorario(b),
@@ -483,27 +729,75 @@ export default function Equipo() {
   const field = 'w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors';
   const lbl   = 'block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5';
 
+  const selectedBarber = barberos.find(b => b.id === sueldoBarberoId);
+  const comisionServicioPorc = selectedBarber ? (selectedBarber.comision || 0) : 0;
+  const comisionProductoPorc = selectedBarber ? (selectedBarber.comisionProductos ?? 10) : 10;
+  const sueldoBaseMonto = selectedBarber ? (selectedBarber.sueldoBase || 0) : 0;
+
+  const serviciosBruto = citasSueldos.reduce((acc, curr) => acc + (curr.precio || 0), 0);
+  const serviciosComision = citasSueldos.reduce((acc, curr) => acc + ((curr.precio || 0) * comisionServicioPorc / 100), 0);
+
+  const productosBruto = ventasSueldos.reduce((acc, curr) => acc + (curr.precioTotal || curr.precio || 0), 0);
+  const productosComision = ventasSueldos.reduce((acc, curr) => acc + ((curr.precioTotal || curr.precio || 0) * comisionProductoPorc / 100), 0);
+
+  const propinasAcumuladas = citasSueldos.reduce((acc, curr) => acc + (curr.propina || 0), 0);
+  const totalPagarCalculado = serviciosComision + productosComision + sueldoBaseMonto;
+
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-bold text-white">Equipo</h1>
             <HelpButton onClick={() => setShowHelp(true)} />
           </div>
-          <p className="text-sm text-slate-500 mt-0.5">{barberos.length} miembros</p>
+          <p className="text-sm text-slate-500 mt-0.5">
+            {activeTab === 'miembros' ? `${barberos.length} miembros` : 'Liquidación de haberes y comisiones'}
+          </p>
         </div>
-        <button onClick={openNew}
-          className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
-          <Plus size={16} /> Nuevo {memberLabel}
-        </button>
+        {activeTab === 'miembros' && (
+          <button onClick={openNew}
+            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors self-start sm:self-auto">
+            <Plus size={16} /> Nuevo {memberLabel}
+          </button>
+        )}
       </div>
+
+      {isAdmin && (
+        <div className="flex space-x-1 p-1 bg-slate-900 border border-slate-800 rounded-lg mb-6 self-start w-fit">
+          <button
+            onClick={() => { setActiveTab('miembros'); setSueldoBarberoId(''); }}
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-md transition-all ${
+              activeTab === 'miembros'
+                ? 'bg-emerald-600 text-white shadow-lg'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            <Users size={16} /> Miembros del Equipo
+          </button>
+          <button
+            onClick={() => {
+              setActiveTab('sueldos');
+              if (barberos.length > 0 && !sueldoBarberoId) {
+                setSueldoBarberoId(barberos[0].id);
+              }
+            }}
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-md transition-all ${
+              activeTab === 'sueldos'
+                ? 'bg-emerald-600 text-white shadow-lg'
+                : 'text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            <Percent size={16} /> Liquidación de Sueldos
+          </button>
+        </div>
+      )}
 
       {loading ? (
         <div className="flex justify-center py-20">
           <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
         </div>
-      ) : (
+      ) : activeTab === 'miembros' ? (
         <>
           <p className="text-xs text-slate-600 mb-3 flex items-center gap-1.5">
             <GripVertical size={11} /> Arrastra las tarjetas para cambiar el orden en la vista de clientes
@@ -525,6 +819,227 @@ export default function Equipo() {
             </SortableContext>
           </DndContext>
         </>
+      ) : (
+        <div className="space-y-6">
+          {/* SECTOR DE SELECCIÓN DE BARBERO */}
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+            <h2 className="text-sm font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-2">
+              <Users size={16} className="text-emerald-500" /> Selecciona un Miembro del Equipo
+            </h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+              {barberos.map(b => {
+                const isSelected = sueldoBarberoId === b.id;
+                return (
+                  <button
+                    key={b.id}
+                    onClick={() => setSueldoBarberoId(b.id)}
+                    className={`flex flex-col items-center p-3 rounded-lg border text-center transition-all ${
+                      isSelected
+                        ? 'bg-emerald-500/10 border-emerald-500 shadow-md shadow-emerald-500/5'
+                        : 'bg-slate-800/40 border-slate-800 hover:border-slate-700'
+                    }`}
+                  >
+                    <div className="w-12 h-12 rounded-full overflow-hidden bg-slate-800 border border-slate-700 mb-2">
+                      {b.foto ? (
+                        <img src={b.foto} alt={b.nombre} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <User size={20} className="text-slate-500" />
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-xs font-semibold text-white truncate max-w-full">{b.nombre}</span>
+                    <span className="text-[10px] text-slate-500 truncate mt-0.5">{b.especialidad || memberLabelCap}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {selectedBarber ? (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* FILTROS Y RESUMEN */}
+              <div className="lg:col-span-1 space-y-6">
+                <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+                  <h3 className="text-sm font-bold text-white mb-4">Rango de Fechas</h3>
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Desde</label>
+                        <input
+                          type="date"
+                          value={fechaInicio}
+                          onChange={e => setFechaInicio(e.target.value)}
+                          className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Hasta</label>
+                        <input
+                          type="date"
+                          value={fechaFin}
+                          onChange={e => setFechaFin(e.target.value)}
+                          className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 pt-2">
+                      <button onClick={setHoy} className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-semibold rounded-md transition-colors">Hoy</button>
+                      <button onClick={setEstaSemana} className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-semibold rounded-md transition-colors">Esta Semana</button>
+                      <button onClick={setEsteMes} className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-semibold rounded-md transition-colors">Este Mes</button>
+                      <button onClick={setMesPasado} className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-semibold rounded-md transition-colors">Mes Pasado</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 space-y-4">
+                  <h3 className="text-sm font-bold text-white border-b border-slate-800 pb-2">Resumen de Liquidación</h3>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between text-slate-400">
+                      <span>Sueldo Base:</span>
+                      <span className="font-semibold text-white">{fmtCurrency(sueldoBaseMonto)}</span>
+                    </div>
+                    <div className="flex justify-between text-slate-400">
+                      <span>Comisión Servicios ({comisionServicioPorc}%):</span>
+                      <span className="font-semibold text-white">{fmtCurrency(serviciosComision)}</span>
+                    </div>
+                    <div className="flex justify-between text-slate-400">
+                      <span>Comisión Productos ({comisionProductoPorc}%):</span>
+                      <span className="font-semibold text-white">{fmtCurrency(productosComision)}</span>
+                    </div>
+                    <div className="flex justify-between text-slate-400 border-t border-slate-800 pt-2 font-bold text-white text-base">
+                      <span>Total a Pagar:</span>
+                      <span className="text-emerald-400">{fmtCurrency(totalPagarCalculado)}</span>
+                    </div>
+                    <div className="flex justify-between text-slate-500 text-xs border-t border-dashed border-slate-800 pt-2 italic">
+                      <span>Propinas Acumuladas *:</span>
+                      <span className="text-yellow-500 font-medium">{fmtCurrency(propinasAcumuladas)}</span>
+                    </div>
+                  </div>
+
+                  <p className="text-[10px] text-slate-600 leading-normal">
+                    * Las propinas se muestran a modo informativo y no forman parte del total neto a pagar por la empresa (son entregadas de forma directa).
+                  </p>
+
+                  <div className="flex gap-2.5 pt-2">
+                    <button
+                      onClick={() => handlePrint(selectedBarber, {
+                        serviciosTotal: serviciosBruto,
+                        serviciosComision: serviciosComision,
+                        productosTotal: productosBruto,
+                        productosComision: productosComision,
+                        totalPagar: totalPagarCalculado,
+                        propinasTotal: propinasAcumuladas,
+                      }, { start: fechaInicio, end: fechaFin })}
+                      className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700 transition-colors"
+                    >
+                      <Printer size={14} /> Imprimir
+                    </button>
+                    <button
+                      onClick={() => handleOpenPayoutModal(totalPagarCalculado, selectedBarber.nombre)}
+                      disabled={totalPagarCalculado <= 0}
+                      className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:hover:bg-emerald-600 text-white text-xs font-semibold rounded-lg transition-colors"
+                    >
+                      <Wallet size={14} /> Pagar Sueldo
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* DETALLES DE COMISIONES */}
+              <div className="lg:col-span-2 space-y-6">
+                {/* TABLA SERVICIOS */}
+                <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+                  <div className="flex items-center justify-between mb-4 border-b border-slate-800 pb-3">
+                    <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                      <Scissors size={16} className="text-emerald-500" /> Servicios Realizados ({citasSueldos.length})
+                    </h3>
+                    <span className="text-xs text-slate-400">Total Bruto: <strong className="text-white">{fmtCurrency(serviciosBruto)}</strong></span>
+                  </div>
+
+                  {loadingData ? (
+                    <div className="flex justify-center py-8">
+                      <div className="w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                    </div>
+                  ) : citasSueldos.length === 0 ? (
+                    <div className="text-center py-8 bg-slate-800/10 border border-dashed border-slate-800 rounded-lg">
+                      <AlertTriangle size={24} className="text-slate-600 mx-auto mb-2" />
+                      <p className="text-xs text-slate-500">No se encontraron servicios completados en este rango.</p>
+                    </div>
+                  ) : (
+                    <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
+                      {citasSueldos.map(c => {
+                        const comisionMonto = (c.precio || 0) * comisionServicioPorc / 100;
+                        return (
+                          <div key={c.id} className="flex justify-between items-center p-2.5 rounded-lg bg-slate-800/40 border border-slate-800/80 text-xs text-slate-300">
+                            <div>
+                              <p className="font-semibold text-white">{c.clienteNombre || 'Cliente sin nombre'}</p>
+                              <p className="text-[10px] text-slate-500 mt-0.5">{c.servicioNombre} • {c.fecha} {c.hora}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-bold text-white">{fmtCurrency(c.precio)}</p>
+                              <p className="text-[10px] text-emerald-400 mt-0.5">Comisión: {fmtCurrency(comisionMonto)}</p>
+                              {c.propina > 0 && <p className="text-[9px] text-yellow-500 mt-0.5">Propina: {fmtCurrency(c.propina)}</p>}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* TABLA PRODUCTOS */}
+                <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+                  <div className="flex items-center justify-between mb-4 border-b border-slate-800 pb-3">
+                    <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                      <Percent size={16} className="text-emerald-500" /> Productos Vendidos ({ventasSueldos.length})
+                    </h3>
+                    <span className="text-xs text-slate-400">Total Bruto: <strong className="text-white">{fmtCurrency(productosBruto)}</strong></span>
+                  </div>
+
+                  {loadingData ? (
+                    <div className="flex justify-center py-8">
+                      <div className="w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                    </div>
+                  ) : ventasSueldos.length === 0 ? (
+                    <div className="text-center py-8 bg-slate-800/10 border border-dashed border-slate-800 rounded-lg">
+                      <AlertTriangle size={24} className="text-slate-600 mx-auto mb-2" />
+                      <p className="text-xs text-slate-500">No se encontraron productos entregados en este rango.</p>
+                    </div>
+                  ) : (
+                    <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
+                      {ventasSueldos.map(v => {
+                        const precioVenta = v.precioTotal || v.precio || 0;
+                        const comisionMonto = precioVenta * comisionProductoPorc / 100;
+                        const itemDate = v.fecha || v.createdAt || v.creadoEn;
+                        const dateStr = typeof itemDate === 'string' ? itemDate.slice(0, 10) : (itemDate?.toDate ? itemDate.toDate().toLocaleDateString('es-CL') : '');
+                        return (
+                          <div key={v.id} className="flex justify-between items-center p-2.5 rounded-lg bg-slate-800/40 border border-slate-800/80 text-xs text-slate-300">
+                            <div>
+                              <p className="font-semibold text-white">{v.productName || v.productoNombre || 'Producto'}</p>
+                              <p className="text-[10px] text-slate-500 mt-0.5">Cant: {v.cantidad || 1} • {dateStr}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-bold text-white">{fmtCurrency(precioVenta)}</p>
+                              <p className="text-[10px] text-emerald-400 mt-0.5">Comisión: {fmtCurrency(comisionMonto)}</p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-20 bg-slate-900 border border-slate-800 rounded-xl">
+              <User size={48} className="text-slate-700 mx-auto mb-4 animate-pulse" />
+              <h3 className="text-sm font-bold text-slate-400">Sin Selección</h3>
+              <p className="text-xs text-slate-500 mt-1">Por favor selecciona un miembro del equipo para liquidar.</p>
+            </div>
+          )}
+        </div>
       )}
 
       {/* ── SlideOver ── */}
@@ -634,18 +1149,44 @@ export default function Equipo() {
           )}
 
           {/* ── Comisión ── */}
-          <Section title="Comisión" Icon={Percent}>
-            <div>
-              <label className={lbl}>Porcentaje de comisión por servicio</label>
-              <div className="relative">
-                <input className={field} type="number" min="0" max="100" step="1"
-                  placeholder="0" value={form.comision}
-                  onChange={e => set('comision', Number(e.target.value))} />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm font-bold">%</span>
+          {isAdmin && (
+            <Section title="Sueldo y Comisiones" Icon={Percent}>
+              <div className="space-y-4">
+                <div>
+                  <label className={lbl}>Porcentaje de comisión por servicio</label>
+                  <div className="relative">
+                    <input className={field} type="number" min="0" max="100" step="1"
+                      placeholder="0" value={form.comision}
+                      onChange={e => set('comision', Number(e.target.value))} />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm font-bold">%</span>
+                  </div>
+                  <p className="text-[10px] text-slate-600 mt-1">Porcentaje que recibe el barbero sobre cada servicio realizado.</p>
+                </div>
+
+                <div>
+                  <label className={lbl}>Porcentaje de comisión por productos</label>
+                  <div className="relative">
+                    <input className={field} type="number" min="0" max="100" step="1"
+                      placeholder="10" value={form.comisionProductos}
+                      onChange={e => set('comisionProductos', Number(e.target.value))} />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm font-bold">%</span>
+                  </div>
+                  <p className="text-[10px] text-slate-600 mt-1">Porcentaje que recibe el barbero sobre la venta de productos (por defecto 10%).</p>
+                </div>
+
+                <div>
+                  <label className={lbl}>Sueldo Base Mensual ($)</label>
+                  <div className="relative">
+                    <DollarSign size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                    <input className={`${field} pl-8`} type="number" min="0" step="100"
+                      placeholder="0" value={form.sueldoBase}
+                      onChange={e => set('sueldoBase', Number(e.target.value))} />
+                  </div>
+                  <p className="text-[10px] text-slate-600 mt-1">Sueldo fijo base mensual del barbero (para empleados con contrato mixto).</p>
+                </div>
               </div>
-              <p className="text-[10px] text-slate-600 mt-1">Porcentaje que recibe el barbero sobre cada servicio realizado.</p>
-            </div>
-          </Section>
+            </Section>
+          )}
 
           {/* ── Horario semanal ── */}
           <Section title="Horario semanal" Icon={Clock}>
@@ -719,6 +1260,66 @@ export default function Equipo() {
 
         </div>
       </SlideOver>
+      {payoutModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center gap-3 text-emerald-400">
+              <ArrowDownCircle size={24} />
+              <h3 className="text-base font-bold text-white">Confirmar Registro de Pago</h3>
+            </div>
+
+            <p className="text-sm text-slate-400 leading-normal">
+              Se registrará un egreso de <strong className="text-white">{fmtCurrency(payoutModal.amount)}</strong> en el sistema bajo la categoría <strong className="text-white">Sueldos</strong> para <strong className="text-white">{payoutModal.barberName}</strong>.
+            </p>
+
+            <div className="space-y-3 bg-slate-950/40 p-4 rounded-lg border border-slate-800/60 text-sm">
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase mb-1.5">Método de Pago</label>
+                <select
+                  value={payoutMetodo}
+                  onChange={e => setPayoutMetodo(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+                >
+                  <option value="Efectivo">Efectivo</option>
+                  <option value="Transferencia">Transferencia</option>
+                  <option value="Tarjeta">Tarjeta</option>
+                </select>
+                {payoutMetodo === 'Efectivo' && (
+                  <p className="text-[10px] text-amber-500 font-medium mt-1">
+                    ⚠️ Si seleccionas Efectivo, se restará automáticamente del saldo de la Caja Activa de hoy.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {payoutSuccess && (
+              <div className="flex items-center gap-2 text-xs font-semibold text-emerald-400 bg-emerald-500/10 p-2.5 rounded-lg border border-emerald-500/20">
+                <CheckCircle2 size={14} />
+                <span>{payoutSuccess}</span>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                onClick={() => setPayoutModal(null)}
+                disabled={payoutSaving}
+                className="px-4 py-2 text-sm text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleConfirmPayout}
+                disabled={payoutSaving}
+                className="flex items-center gap-2 px-5 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-sm font-semibold rounded-lg transition-colors"
+              >
+                {payoutSaving && <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+                Confirmar Pago
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showHelp && (
         <HelpModal title="Ayuda — Equipo" onClose={() => setShowHelp(false)}>
           <p>En <strong className="text-white">Equipo</strong> administras los barberos y sus configuraciones.</p>

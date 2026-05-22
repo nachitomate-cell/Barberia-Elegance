@@ -18,6 +18,7 @@ import Productos   from './views/Productos';
 import Lookbook       from './views/Lookbook';
 import Configuracion    from './views/Configuracion';
 import Gastos           from './views/Gastos';
+import Caja             from './views/Caja';
 import BookingFlow     from './views/BookingFlow';
 import AgendaBarbero    from './views/AgendaBarbero';
 import Chat            from './views/Chat';
@@ -78,6 +79,7 @@ function ProtectedApp() {
             <Route path="servicio-favorito" element={<ServicioFavorito />} />
             <Route path="metricas"        element={<Metricas />} />
             <Route path="gastos"          element={<Gastos />} />
+            <Route path="caja"            element={<Caja />} />
             <Route path="finanzas"        element={<Finanzas />} />
             <Route path="configuracion"   element={<Configuracion />} />
             <Route path="mensualidad"     element={<Mensualidad />} />
