@@ -14,6 +14,7 @@
     'aurasalon.synaptechspa.cl':          'aura',
     'aurasalonmalegrooming.synaptech.cl': 'aura',
     'aurasalonmalegrooming.synaptechspa.cl': 'aura',
+    'machos.synaptechspa.cl':             'machos',
   };
 
   const _tenants = {
@@ -280,6 +281,34 @@
         { author: 'Ignacio Ibaceta',    rating: 5, text: 'Súper buena atención! Servicio completo y perfecto para ir a relajarse, hasta un café ofrecieron al momento de atenderme!' },
       ],
       barberos: [],
+    },
+    machos: {
+      categoriasServicio: ['Cortes', 'Barba', 'Combos', 'Extras', 'Otros'],
+      nombre:          "Macho´s Barbershop",
+      nombreCorto:     "Macho's",
+      pageTitle:       "Macho´s Barbershop | Calidad y Asesoría Profesional",
+      slogan:          'En Barbería Machos ofrecemos servicios de calidad y contamos con profesionales de primer nivel.',
+      logo:            '/machos.png',
+      direccion:       '📍 4 Norte 477 local 5 | Viña del Mar',
+      horario:         '🕒 Lun a Sáb: 10:00 – 20:00 hrs | Dom y Feriados: 11:00 – 17:00 hrs',
+      telefono:        '56978390422',
+      club:            'Club Machos',
+      instagram:       'https://www.instagram.com/machos_barbershop.cl/',
+      instagramHandle: '@machos_barbershop.cl',
+      waEmoji:         '💈',
+      googleReviewUrl: '',
+      ratingGeneral: 4.9,
+      totalReviews:  32,
+      reviews: [
+        { author: 'Cristian E.', rating: 5, text: 'Excelente atención de los muchachos, profesionalismo en cada corte.' },
+        { author: 'Matías O.', rating: 5, text: 'Buen ambiente, limpio, acogedor y el corte impecable. Recomiendo totalmente.' },
+        { author: 'Gonzalo F.', rating: 5, text: 'Un agrado atenderse aquí. Muy cuidadosos con el rebaje de barba y toallas calientes.' },
+      ],
+      barberos: [
+        { nombre: 'Álvaro Muñoz', foto: null, disponible: true },
+        { nombre: 'Carlos Rivas', foto: null, disponible: true },
+        { nombre: 'Sebastián Jara', foto: null, disponible: true },
+      ],
     },
   };
 

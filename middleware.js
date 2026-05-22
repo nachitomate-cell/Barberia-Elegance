@@ -17,6 +17,7 @@ const DOMAIN_MAP = {
   'aurasalon.synaptechspa.cl':         'aura',
   'aurasalonmalegrooming.synaptech.cl':'aura',
   'aurasalonmalegrooming.synaptechspa.cl':'aura',
+  'machos.synaptechspa.cl':            'machos',
 };
 
 const TENANT_META = {
@@ -376,6 +377,62 @@ const TENANT_META = {
       start_url:        '/gestion-interna/?local=aura',
       icons: [
         { src: '/aura.png',                    sizes: 'any',     type: 'image/png' },
+        { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png' },
+        { src: '/gestion-interna/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+    },
+  },
+  machos: {
+    booking: {
+      title:       'Macho´s Barbershop | Agenda tu hora',
+      description: 'Reserva tu hora en Macho´s Barbershop. Cortes, barba y asesoría profesional en Viña del Mar.',
+      ogTitle:     'Agendar Hora | Macho´s Barbershop',
+      ogDesc:      'Reserva tu hora en Macho´s Barbershop. Calidad y Asesoría Profesional.',
+    },
+    dashboard: {
+      title:       'Mi Club | Macho´s Barbershop',
+      description: 'Tu panel personal en Macho´s Barbershop. Revisa tus sellos y canjea premios.',
+      ogTitle:     'Mi Club | Macho´s Barbershop',
+      ogDesc:      'Panel de fidelidad de Macho´s Barbershop. Acumula sellos y disfruta de servicios gratis.',
+    },
+    registro: {
+      title:       'Únete al Club | Macho´s Barbershop',
+      description: 'Crea tu cuenta en el Club Machos. Acumula sellos y canjea premios exclusivos.',
+      ogTitle:     'Únete al Club | Macho´s Barbershop',
+      ogDesc:      'Regístrate en Macho´s Barbershop y disfruta de beneficios exclusivos.',
+    },
+    siteName:    'Macho´s Barbershop',
+    ogImage:     '/machos.png',
+    themeColor:  '#090d16',
+    appTitle:    'Machos',
+    icon:        '/machos.png',
+    local: {
+      telephone: '56978390422',
+      streetAddress: '4 Norte 477 local 5',
+      addressLocality: 'Viña del Mar',
+      schemaType: 'HairSalon',
+      ratingGeneral: 4.9,
+      totalReviews: 32,
+      reviews: [
+        { author: 'Cristian E.', rating: 5, text: 'Excelente atención de los muchachos, profesionalismo en cada corte.' },
+        { author: 'Matías O.', rating: 5, text: 'Buen ambiente, limpio, acogedor y el corte impecable. Recomiendo totalmente.' },
+        { author: 'Gonzalo F.', rating: 5, text: 'Un agrado atenderse aquí. Muy cuidadosos con el rebaje de barba y toallas calientes.' }
+      ]
+    },
+    manifest: {
+      name:             'Macho´s Barbershop',
+      short_name:       'Machos',
+      theme_color:      '#090d16',
+      background_color: '#090d16',
+    },
+    adminManifest: {
+      name:             'Panel Admin · Machos',
+      short_name:       'Machos',
+      description:      'Panel de administración — Macho´s Barbershop',
+      theme_color:      '#f97316',
+      background_color: '#090d16',
+      start_url:        '/gestion-interna/?local=machos',
+      icons: [
+        { src: '/machos.png',                  sizes: 'any',     type: 'image/png' },
         { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png' },
         { src: '/gestion-interna/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
       ],

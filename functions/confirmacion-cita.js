@@ -95,6 +95,17 @@ const TENANT_CONFIG = {
     from:        'AURA SALÓN & MALE GROOMING <citas@synaptechspa.cl>',
     dashboardUrl:'https://aurasalon.synaptechspa.cl/dashboard',
   },
+  machos: {
+    nombre:      'Macho´s Barbershop',
+    slogan:      'Calidad y Asesoría Profesional',
+    direccion:   '4 Norte 477 local 5, Viña del Mar',
+    horario:     'Lun–Sáb: 10:00–20:00 hrs · Dom: 11:00–17:00 hrs',
+    color:       '#f97316',
+    instagram:   'https://www.instagram.com/machos_barbershop.cl/',
+    whatsapp:    '56978390422',
+    from:        'Macho´s Barbershop <citas@synaptechspa.cl>',
+    dashboardUrl:'https://machos.synaptechspa.cl/dashboard',
+  },
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

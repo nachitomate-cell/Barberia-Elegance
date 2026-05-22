@@ -3325,6 +3325,243 @@
     }
     .tenant-aura #aura-info-wa:hover  { color: rgba(255,255,255,0.80); }
     .tenant-aura #aura-info-wa:active { color: #ffffff; }
+
+    /* ═══════════════════════════════════════════════════════════════
+       MACHO'S BARBERSHOP — Modern Industrial Slate & Copper Orange
+       Paleta: Slate (#090d16) · Copper Orange (#f97316) · Charcoal Surface (#111827)
+       ═══════════════════════════════════════════════════════════════ */
+    .tenant-machos {
+      --accent:   #f97316;
+      --accent-r: 249; --accent-g: 115; --accent-b: 22;
+      --neon-clr: #f97316;
+      --neon-r:   249; --neon-g: 115; --neon-b: 22;
+      --body-bg:  #090d16;
+    }
+    .tenant-machos body {
+      background-color: #090d16 !important;
+      background-image:
+        linear-gradient(rgba(249,115,22,0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(249,115,22,0.015) 1px, transparent 1px);
+      background-size: 24px 24px !important;
+    }
+
+    /* Keyframes for micro-animations */
+    @keyframes machos-float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-4px); }
+    }
+    @keyframes copper-glow {
+      0%, 100% { box-shadow: 0 0 15px rgba(249,115,22,0.2); }
+      50% { box-shadow: 0 0 30px rgba(249,115,22,0.5); }
+    }
+
+    /* Hero visual background mapping */
+    .tenant-machos .booking-hero {
+      background-image: url('/machos_bg.png') !important;
+      background-size: cover !important;
+      background-position: center 30% !important;
+    }
+    .tenant-machos .booking-hero-overlay {
+      background: radial-gradient(circle at 50% 30%, rgba(249,115,22,0.06) 0%, rgba(9,13,22,0.7) 45%, rgba(9,13,22,0.98) 100%) !important;
+    }
+
+    /* Info strip */
+    .tenant-machos .info-strip {
+      background: rgba(17,24,39,0.95) !important;
+      border-bottom-color: rgba(249,115,22,0.12) !important;
+    }
+    .tenant-machos .info-strip i {
+      color: #f97316 !important;
+      filter: drop-shadow(0 0 2px rgba(249,115,22,0.4)) !important;
+    }
+    .tenant-machos .info-strip a,
+    .tenant-machos .info-strip > div {
+      color: #e2e8f0 !important;
+      border-color: rgba(249,115,22,0.08) !important;
+    }
+
+    /* Logo ring */
+    .tenant-machos .hero-logo-ring {
+      border: 2px solid #f97316 !important;
+      box-shadow:
+        0 0 0 1px rgba(249,115,22,0.2),
+        0 0 25px rgba(249,115,22,0.35),
+        0 0 45px rgba(0,0,0,0.85) !important;
+    }
+
+    /* Progress Bar */
+    .tenant-machos #progressBar {
+      background: linear-gradient(90deg, #ea580c, #f97316, #ea580c) !important;
+      box-shadow: 0 0 12px rgba(249,115,22,0.7), 0 0 20px rgba(249,115,22,0.3) !important;
+    }
+    .tenant-machos #progressTrack { background-color: rgba(249,115,22,0.08) !important; }
+    .tenant-machos #stepIndicatorText {
+      color: #f97316 !important;
+      text-shadow: 0 0 8px rgba(249,115,22,0.4) !important;
+    }
+
+    /* Category pills */
+    .tenant-machos .category-pill {
+      background: rgba(17,24,39,0.6) !important;
+      border: 1px solid rgba(249,115,22,0.15) !important;
+      color: #94a3b8 !important;
+      transition: all 0.3s ease !important;
+    }
+    .tenant-machos .category-pill:hover {
+      border-color: #f97316 !important;
+      color: #f8fafc !important;
+      transform: translateY(-2px) !important;
+    }
+    .tenant-machos .category-pill.border-neon {
+      background: rgba(249,115,22,0.1) !important;
+      border: 1px solid #f97316 !important;
+      color: #f97316 !important;
+      box-shadow: 0 0 12px rgba(249,115,22,0.25) !important;
+    }
+    .tenant-machos .category-pill.text-neon { color: #f97316 !important; }
+
+    /* Step Heading */
+    .tenant-machos h2.text-neon {
+      color: #f8fafc !important;
+      font-family: 'Plus Jakarta Sans', sans-serif !important;
+      text-shadow: none !important;
+    }
+
+    /* Service cards */
+    .tenant-machos .service-option {
+      background: rgba(17,24,39,0.7) !important;
+      border: 1px solid rgba(249,115,22,0.12) !important;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    }
+    .tenant-machos .service-option:hover {
+      border-color: rgba(249,115,22,0.45) !important;
+      background: rgba(17,24,39,0.9) !important;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3) !important;
+      transform: translateY(-2px) !important;
+    }
+    .tenant-machos .service-option.border-neon {
+      border: 1px solid #f97316 !important;
+      background: rgba(249,115,22,0.1) !important;
+      box-shadow: 0 0 15px rgba(249,115,22,0.2) !important;
+    }
+    .tenant-machos .service-option .price-tag {
+      color: #f97316 !important;
+    }
+    .tenant-machos .service-option .duration-tag {
+      color: #94a3b8 !important;
+    }
+
+    /* Barber cards */
+    .tenant-machos .barber-option {
+      background: rgba(17,24,39,0.7) !important;
+      border: 1px solid rgba(249,115,22,0.12) !important;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    }
+    .tenant-machos .barber-option:hover {
+      border-color: rgba(249,115,22,0.45) !important;
+      background: rgba(17,24,39,0.9) !important;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3) !important;
+      transform: translateY(-2px) !important;
+    }
+    .tenant-machos .barber-option.border-neon {
+      border: 1px solid #f97316 !important;
+      background: rgba(249,115,22,0.1) !important;
+      box-shadow: 0 0 15px rgba(249,115,22,0.2) !important;
+    }
+    .tenant-machos .text-brand-neon {
+      color: #f97316 !important;
+    }
+
+    /* Day selection buttons */
+    .tenant-machos .day-btn {
+      background: rgba(17,24,39,0.6) !important;
+      border: 1px solid rgba(249,115,22,0.12) !important;
+      transition: all 0.2s ease !important;
+    }
+    .tenant-machos .day-btn:hover {
+      border-color: rgba(249,115,22,0.4) !important;
+      color: #ffffff !important;
+    }
+    .tenant-machos .day-btn.active,
+    .tenant-machos .day-btn.border-neon {
+      background: #f97316 !important;
+      border-color: #f97316 !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 14px rgba(249,115,22,0.35) !important;
+    }
+
+    /* Time pill buttons */
+    .tenant-machos .time-pill {
+      background: rgba(17,24,39,0.6) !important;
+      border: 1px solid rgba(249,115,22,0.12) !important;
+      color: #e2e8f0 !important;
+    }
+    .tenant-machos .time-pill.border-neon {
+      background: #f97316 !important;
+      border-color: #f97316 !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 14px rgba(249,115,22,0.35) !important;
+    }
+
+    /* Primary buttons */
+    .tenant-machos #btnContinue {
+      background: linear-gradient(135deg,#f97316,#ea580c) !important;
+      color: #ffffff !important;
+      font-weight: 800 !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.05em !important;
+      box-shadow: 0 4px 20px rgba(249,115,22,0.3) !important;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    }
+    .tenant-machos #btnContinue:hover {
+      box-shadow: 0 8px 30px rgba(249,115,22,0.5) !important;
+      transform: translateY(-1px) !important;
+    }
+    .tenant-machos #btnContinueBar {
+      background: rgba(9,13,22,0.9) !important;
+      border-top-color: rgba(249,115,22,0.15) !important;
+    }
+
+    /* Inputs */
+    .tenant-machos #clientName,
+    .tenant-machos #clientPhone,
+    .tenant-machos #clientEmail {
+      background: rgba(17,24,39,0.8) !important;
+      border-color: rgba(249,115,22,0.15) !important;
+      color: #ffffff !important;
+    }
+    .tenant-machos #clientName:focus,
+    .tenant-machos #clientPhone:focus,
+    .tenant-machos #clientEmail:focus {
+      border-color: #f97316 !important;
+      box-shadow: 0 0 12px rgba(249,115,22,0.2) !important;
+    }
+
+    /* WhatsApp contact */
+    .tenant-machos #waBtnLink {
+      background: #25D366 !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 15px rgba(37,211,102,0.3) !important;
+    }
+
+    /* Loyalty Club banner */
+    .tenant-machos #clubBanner {
+      background: rgba(17,24,39,0.7) !important;
+      border: 1px solid rgba(249,115,22,0.15) !important;
+    }
+    .tenant-machos #clubBanner a {
+      background: #f97316 !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 15px rgba(249,115,22,0.3) !important;
+    }
+
+    /* Toast */
+    .tenant-machos #toastValidation {
+      background: #111827 !important;
+      border: 1px solid rgba(239,68,68,0.4) !important;
+      color: #ef4444 !important;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5) !important;
+    }
   </style>
 </head>
 
@@ -3997,7 +4234,7 @@
         categories[cat].push(s);
       });
 
-      const _isEleganceSvc  = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza' || window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'lumen';
+      const _isEleganceSvc  = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza' || window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'lumen' || window.CURRENT_TENANT_ID === 'machos';
       const _isMapuSvc      = window.CURRENT_TENANT_ID === 'mapubarbershop';
       const _isChameleonSvc = window.CURRENT_TENANT_ID === 'chameleon';
       const _useRowLayout   = _isEleganceSvc || _isMapuSvc || _isChameleonSvc;
@@ -4254,7 +4491,7 @@
          grid.innerHTML = '<p class="text-sm text-gray-500">No hay barberos disponibles en este momento.</p>';
          return;
       }
-      const _isElegance   = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza' || window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'lumen';
+      const _isElegance   = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza' || window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'lumen' || window.CURRENT_TENANT_ID === 'machos';
       const _isMapuB      = window.CURRENT_TENANT_ID === 'mapubarbershop';
       const _isChameleon  = window.CURRENT_TENANT_ID === 'chameleon';
       const anyStateClass = (window._selectedBarberId === 'any' || window._selectedBarber === 'any') ? 'border-neon bg-brand-neon/10' : 'border-brand-accent/20 bg-[#0a0a0d]';
@@ -4328,7 +4565,7 @@
       `;
 
       // Aura: shuffle barbers so no one gets a permanent "top" position
-      const _barberosOrden = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'lumen')
+      const _barberosOrden = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'lumen' || window.CURRENT_TENANT_ID === 'machos')
         ? [...barberos].sort(() => Math.random() - 0.5)
         : barberos;
 
@@ -5526,11 +5763,12 @@
           chameleon: '/fondolocal3.png',
           lumen: '/djones1.png',
           delnero: '/nero.jpg',
-          aura: '/auralogin.png'
+          aura: '/auralogin.png',
+          machos: '/machos_bg.png'
         };
         const bgUrl = bgImages[window.CURRENT_TENANT_ID] || SHOP.logo;
         heroImgEl.src = bgUrl;
-        heroImgEl.alt = 'Interior de ' + (SHOP.nombreCorto || SHOP.nombre);
+        heroImgEl.alt = window.CURRENT_TENANT_ID === 'machos' ? 'Interior industrial moderno de Macho´s Barbershop' : 'Interior de ' + (SHOP.nombreCorto || SHOP.nombre);
       }
 
       // Segundo logo (opcional)
