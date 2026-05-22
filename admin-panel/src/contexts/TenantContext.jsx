@@ -12,6 +12,7 @@ const TENANT_META = {
   deluxeperfumes: { name: 'Deluxe Perfumes',        accent: 'purple',  emoji: '🌸', logo: '/logo5.jpg'  },
   lumen:          { name: "D'Jones Barber",            accent: 'amber',   emoji: '⚓', logo: '/djones.png' },
   delnero:        { name: 'Del Nero Barber',         accent: 'lime',    emoji: '✂️', logo: '/nero.jpg'   },
+  marcelo_hairdressing: { name: 'Marcelo Palma Hairdressing', accent: 'lime', emoji: '✂️', logo: '/nero.jpg' },
   aura:           { name: 'AURA SALÓN & MALE GROOMING', accent: 'amber',   emoji: '✨', logo: '/aura.png'   },
   machos:         { name: 'Macho´s Barbershop',         accent: 'orange',  emoji: '💈', logo: '/machos.png'   },
   infinity:       { name: 'INFINITY STUDIO',            accent: 'zinc',    emoji: '💈', logo: '/logo.jpg'     },

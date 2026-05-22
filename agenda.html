@@ -575,7 +575,7 @@
 
                     try {
                         await loadBarberData(info.nombre);
-                        if (['chameleon', 'delnero'].includes(window.CURRENT_TENANT_ID)) {
+                        if (['chameleon', 'delnero', 'marcelo_hairdressing'].includes(window.CURRENT_TENANT_ID)) {
                             _initWeekView();
                         } else {
                             renderDaySelector();
@@ -1019,7 +1019,7 @@
             const extraClass = isNew ? 'cita-nueva-highlight' : '';
 
             const telLimpio = (cita.clienteTelefono || '').replace(/\D/g, '');
-            const isChameleon = ['chameleon', 'delnero'].includes(window.CURRENT_TENANT_ID || 'elegance');
+            const isChameleon = ['chameleon', 'delnero', 'marcelo_hairdressing'].includes(window.CURRENT_TENANT_ID || 'elegance');
             const waLink = telLimpio && !isChameleon ? `https://wa.me/${telLimpio}` : null;
             const notaIndicator = cita.nota ? `<span class="inline-flex items-center gap-1 text-[10px] text-white/40 mt-1.5 px-2 py-0.5 rounded-full bg-white/5"><i class="ph ph-note-pencil text-[10px]"></i>Nota adjunta</span>` : '';
             const initials = getInitials(cita.clienteNombre || 'Cliente');
@@ -1086,7 +1086,7 @@
             document.querySelectorAll('.cd-servicio').forEach(el => el.textContent = cita.servicioNombre || 'Servicio');
             document.querySelectorAll('.cd-horario').forEach(el => el.textContent  = `${cita.hora} · ${cita.duracionServicio || 30} min · ${cita.fecha || ''}`);
 
-            const _isChameleon = ['chameleon', 'delnero'].includes(window.CURRENT_TENANT_ID || 'elegance');
+            const _isChameleon = ['chameleon', 'delnero', 'marcelo_hairdressing'].includes(window.CURRENT_TENANT_ID || 'elegance');
             document.querySelectorAll('.cd-nombre').forEach(el => el.textContent = cita.clienteNombre || 'Cliente');
             document.querySelectorAll('.cd-tel').forEach(el => el.textContent    = _isChameleon ? '' : (cita.clienteTelefono || ''));
 
@@ -1691,7 +1691,7 @@
                                 <p class="text-xs text-white/80 font-medium flex items-center gap-1.5">
                                     <i class="ph ph-user-circle text-white/40"></i> ${cita.clienteNombre}
                                 </p>
-                                ${!['chameleon', 'delnero'].includes(window.CURRENT_TENANT_ID || 'elegance') ? `<p class="text-[10px] text-white/40 flex items-center gap-1.5">
+                                ${!['chameleon', 'delnero', 'marcelo_hairdressing'].includes(window.CURRENT_TENANT_ID || 'elegance') ? `<p class="text-[10px] text-white/40 flex items-center gap-1.5">
                                     <i class="ph ph-phone text-white/40"></i> ${cita.clienteTelefono}
                                 </p>` : ''}
                                 ${cita.clienteEmail ? `

@@ -805,43 +805,53 @@
     /* ══ DEL NERO BARBER — Verde Neón / Negro Profundo / Crema Serif ══
        Paleta: Verde neón (#39ff14) · Negro (#050505) · Crema (#f0ead6)
        ═══════════════════════════════════════════════════════════════ */
-    .tenant-delnero {
+    .tenant-delnero,
+    .tenant-marcelo_hairdressing {
       --gold:      #39ff14;
       --gold-dim:  rgba(57,255,20,0.35);
       --gold-glow: rgba(57,255,20,0.18);
     }
-    html.tenant-delnero body { background-color: #050505; }
-    .tenant-delnero header { background-color: rgba(5,5,5,0.97) !important; }
-    .tenant-delnero #authGuard { background: #050505 !important; }
+    html.tenant-delnero body,
+    html.tenant-marcelo_hairdressing body { background-color: #050505; }
+    .tenant-delnero header,
+    .tenant-marcelo_hairdressing header { background-color: rgba(5,5,5,0.97) !important; }
+    .tenant-delnero #authGuard,
+    .tenant-marcelo_hairdressing #authGuard { background: #050505 !important; }
 
     /* Hero: imagen del local con overlay oscuro fuerte */
-    .tenant-delnero .hero-bg {
+    .tenant-delnero .hero-bg,
+    .tenant-marcelo_hairdressing .hero-bg {
       background-image: url('/nero.jpg');
       background-size: cover;
       background-position: center 30%;
     }
-    .tenant-delnero .hero-overlay {
+    .tenant-delnero .hero-overlay,
+    .tenant-marcelo_hairdressing .hero-overlay {
       background: linear-gradient(160deg,
         rgba(0,0,0,0.70) 0%, rgba(0,0,0,0.55) 40%, rgba(0,0,0,0.94) 100%);
     }
-    .tenant-delnero .hero-glow-spot {
+    .tenant-delnero .hero-glow-spot,
+    .tenant-marcelo_hairdressing .hero-glow-spot {
       background: radial-gradient(circle, rgba(57,255,20,0.10) 0%, transparent 65%) !important;
     }
     /* Titular hero: serif crema, sin superposición de logo */
-    .tenant-delnero #heroLine1 {
+    .tenant-delnero #heroLine1,
+    .tenant-marcelo_hairdressing #heroLine1 {
       font-family: 'Playfair Display', Georgia, serif !important;
       color: #f0ead6 !important;
       font-style: normal !important;
       text-shadow: 0 2px 20px rgba(0,0,0,0.7) !important;
     }
-    .tenant-delnero #heroLine2 {
+    .tenant-delnero #heroLine2,
+    .tenant-marcelo_hairdressing #heroLine2 {
       font-family: 'Playfair Display', Georgia, serif !important;
       color: #39ff14 !important;
       font-style: normal !important;
       text-shadow: 0 0 20px rgba(57,255,20,0.40) !important;
     }
     /* Hero CTA: ghost outline verde neón */
-    .tenant-delnero .hero-cta {
+    .tenant-delnero .hero-cta,
+    .tenant-marcelo_hairdressing .hero-cta {
       background: transparent !important;
       border-color: #39ff14 !important;
       color: #39ff14 !important;
@@ -849,17 +859,22 @@
       backdrop-filter: none !important;
       -webkit-backdrop-filter: none !important;
     }
-    .tenant-delnero .hero-cta i    { color: #39ff14 !important; }
-    .tenant-delnero .hero-cta span { color: #39ff14 !important; }
-    .tenant-delnero .hero-cta:hover { background: rgba(57,255,20,0.08) !important; }
+    .tenant-delnero .hero-cta i,
+    .tenant-marcelo_hairdressing .hero-cta i    { color: #39ff14 !important; }
+    .tenant-delnero .hero-cta span,
+    .tenant-marcelo_hairdressing .hero-cta span { color: #39ff14 !important; }
+    .tenant-delnero .hero-cta:hover,
+    .tenant-marcelo_hairdressing .hero-cta:hover { background: rgba(57,255,20,0.08) !important; }
 
     /* Tarjeta central PWA — oculta (usamos solo el banner flotante) */
-    .tenant-delnero #pwaBigInstallCard { display: none !important; }
+    .tenant-delnero #pwaBigInstallCard,
+    .tenant-marcelo_hairdressing #pwaBigInstallCard { display: none !important; }
 
     /* ══ DEL NERO — Tarjeta VIP Pass ══════════════════════════════════ */
 
     /* Contenedor principal: gradiente profundo + sombra premium */
-    .tenant-delnero .membership-pattern {
+    .tenant-delnero .membership-pattern,
+    .tenant-marcelo_hairdressing .membership-pattern {
       background: linear-gradient(145deg, #0e0f0d 0%, #060706 60%, #050505 100%) !important;
       border-color: rgba(57,255,20,0.14) !important;
       box-shadow: 0 25px 50px rgba(0,0,0,0.85),
@@ -868,7 +883,8 @@
     }
 
     /* Grid: sin fondo plano, gap más ajustado */
-    .tenant-delnero #stampsGrid {
+    .tenant-delnero #stampsGrid,
+    .tenant-marcelo_hairdressing #stampsGrid {
       background: transparent !important;
       border: none !important;
       padding: 0 !important;
@@ -876,7 +892,8 @@
     }
 
     /* Sellos vacíos: ranura con profundidad (shadow-inner) */
-    .tenant-delnero .stamp-cell.empty {
+    .tenant-delnero .stamp-cell.empty,
+    .tenant-marcelo_hairdressing .stamp-cell.empty {
       background: #070708 !important;
       border: 1px solid rgba(57,255,20,0.10) !important;
       border-radius: 10px !important;
@@ -885,7 +902,8 @@
     }
 
     /* Sellos llenos: neón encendido */
-    .tenant-delnero .stamp-cell.filled {
+    .tenant-delnero .stamp-cell.filled,
+    .tenant-marcelo_hairdressing .stamp-cell.filled {
       background: rgba(57,255,20,0.07) !important;
       border: 2px solid #39ff14 !important;
       border-radius: 10px !important;
@@ -893,20 +911,23 @@
                   0 0 5px  rgba(57,255,20,0.18),
                   inset 0 0 8px rgba(57,255,20,0.04) !important;
     }
-    .tenant-delnero .stamp-cell.filled i {
+    .tenant-delnero .stamp-cell.filled i,
+    .tenant-marcelo_hairdressing .stamp-cell.filled i {
       color: #39ff14 !important;
       animation: stamp-breathe 2.6s ease-in-out infinite;
     }
 
     /* Décimo sello vacío: gran premio con borde dashed */
-    .tenant-delnero .stamp-cell.prize-empty {
+    .tenant-delnero .stamp-cell.prize-empty,
+    .tenant-marcelo_hairdressing .stamp-cell.prize-empty {
       background: #080808 !important;
       border: 2px dashed rgba(57,255,20,0.35) !important;
       border-radius: 10px !important;
       box-shadow: inset 0 2px 8px rgba(0,0,0,0.8),
                   0 0 8px rgba(57,255,20,0.06) !important;
     }
-    .tenant-delnero .stamp-cell.prize-filled {
+    .tenant-delnero .stamp-cell.prize-filled,
+    .tenant-marcelo_hairdressing .stamp-cell.prize-filled {
       background: rgba(57,255,20,0.12) !important;
       border: 2px solid #39ff14 !important;
       border-radius: 10px !important;
@@ -914,62 +935,80 @@
                   0 0 8px  rgba(57,255,20,0.30),
                   inset 0 0 12px rgba(57,255,20,0.06) !important;
     }
-    .tenant-delnero .stamp-cell.prize-filled i {
+    .tenant-delnero .stamp-cell.prize-filled i,
+    .tenant-marcelo_hairdressing .stamp-cell.prize-filled i {
       color: #39ff14 !important;
       animation: stamp-breathe 1.8s ease-in-out infinite;
     }
 
     /* Barra de progreso: neón más intenso */
-    .tenant-delnero #stampsBar {
+    .tenant-delnero #stampsBar,
+    .tenant-marcelo_hairdressing #stampsBar {
       background: linear-gradient(90deg, #1a8c00 0%, #39ff14 100%) !important;
       box-shadow: 0 0 12px rgba(57,255,20,0.65),
                   0 0 4px  rgba(57,255,20,0.40) !important;
     }
     /* ══════════════════════════════════════════════════════════════ */
     /* Membership card */
-    .tenant-delnero .membership-pattern::before {
+    .tenant-delnero .membership-pattern::before,
+    .tenant-marcelo_hairdressing .membership-pattern::before {
       background-image: repeating-linear-gradient(
         -45deg, transparent, transparent 18px,
         rgba(57,255,20,0.015) 18px, rgba(57,255,20,0.015) 19px
       );
     }
-    .tenant-delnero .membership-glow {
+    .tenant-delnero .membership-glow,
+    .tenant-marcelo_hairdressing .membership-glow {
       background: radial-gradient(circle, rgba(57,255,20,0.07) 0%, transparent 70%) !important;
     }
-    .tenant-delnero #membershipWatermark { color: rgba(57,255,20,0.04) !important; }
+    .tenant-delnero #membershipWatermark,
+    .tenant-marcelo_hairdressing #membershipWatermark { color: rgba(57,255,20,0.04) !important; }
     /* Tarjetas secundarias */
     .tenant-delnero #tabLoyalty .bg-\[#111115\],
-    .tenant-delnero #tabProfile .bg-\[#111115\] {
+    .tenant-delnero #tabProfile .bg-\[#111115\],
+    .tenant-marcelo_hairdressing #tabLoyalty .bg-\[#111115\],
+    .tenant-marcelo_hairdressing #tabProfile .bg-\[#111115\] {
       background-color: #0d0d0d !important;
       border-color: rgba(255,255,255,0.05) !important;
     }
 
     /* Nav activo: verde neón */
-    .tenant-delnero .nav-tab.active .nav-icon {
+    .tenant-delnero .nav-tab.active .nav-icon,
+    .tenant-marcelo_hairdressing .nav-tab.active .nav-icon {
       color: #39ff14;
       filter: drop-shadow(0 0 6px rgba(57,255,20,0.40));
     }
-    .tenant-delnero .nav-tab.active .nav-label { color: #39ff14; }
+    .tenant-delnero .nav-tab.active .nav-label,
+    .tenant-marcelo_hairdressing .nav-tab.active .nav-label { color: #39ff14; }
 
     /* Tier badges */
-    .tenant-delnero .tier-badge.gold     { color: #39ff14; border-color: rgba(57,255,20,0.35); }
-    .tenant-delnero .tier-badge.platinum { color: #a3e635; border-color: rgba(57,255,20,0.30); }
+    .tenant-delnero .tier-badge.gold,
+    .tenant-marcelo_hairdressing .tier-badge.gold     { color: #39ff14; border-color: rgba(57,255,20,0.35); }
+    .tenant-delnero .tier-badge.platinum,
+    .tenant-marcelo_hairdressing .tier-badge.platinum { color: #a3e635; border-color: rgba(57,255,20,0.30); }
 
     /* PWA */
-    .tenant-delnero #pwaBanner { border-color: rgba(57,255,20,0.28) !important; }
-    .tenant-delnero #pwaModalIOS > div { border-color: rgba(57,255,20,0.18) !important; }
-    .tenant-delnero .pwa-step-badge { background: #39ff14 !important; color: #050505 !important; }
+    .tenant-delnero #pwaBanner,
+    .tenant-marcelo_hairdressing #pwaBanner { border-color: rgba(57,255,20,0.28) !important; }
+    .tenant-delnero #pwaModalIOS > div,
+    .tenant-marcelo_hairdressing #pwaModalIOS > div { border-color: rgba(57,255,20,0.18) !important; }
+    .tenant-delnero .pwa-step-badge,
+    .tenant-marcelo_hairdressing .pwa-step-badge { background: #39ff14 !important; color: #050505 !important; }
 
     /* Botón chat y notificaciones: verde neón */
-    .tenant-delnero #chatToggleBtn {
+    .tenant-delnero #chatToggleBtn,
+    .tenant-marcelo_hairdressing #chatToggleBtn {
       background: #39ff14 !important;
       box-shadow: 0 0 16px rgba(57,255,20,0.40) !important;
     }
-    .tenant-delnero #chatToggleBtn svg path { fill: #050505 !important; }
+    .tenant-delnero #chatToggleBtn svg path,
+    .tenant-marcelo_hairdressing #chatToggleBtn svg path { fill: #050505 !important; }
 
     /* Botones de acción primarios */
     .tenant-delnero .btn-accion-primary,
-    .tenant-delnero a.btn-reservar {
+    .tenant-delnero a.btn-reservar,
+    .tenant-marcelo_hairdressing .btn-accion-primary,
+    .tenant-marcelo_hairdressing a.btn-reservar {
       background: transparent !important;
       border: 1.5px solid #39ff14 !important;
       color: #39ff14 !important;

@@ -50,6 +50,7 @@ const WA_SHOP_NAMES = {
   deluxeperfumes: 'Deluxe Perfumes',
   lumen:          "D'Jones Barber",
   delnero:        'Del Nero Barber',
+  marcelo_hairdressing: 'Marcelo Palma Hairdressing',
 };
 
 function buildWaConfirmMsg(tenantId, form, dateStr) {

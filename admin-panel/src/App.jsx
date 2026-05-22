@@ -108,6 +108,7 @@ const TENANT_MANIFESTS = {
   mapubarbershop:'/gestion-interna/manifest-mapubarber.webmanifest',
   chameleon:     '/gestion-interna/manifest-chameleon.webmanifest',
   delnero:       '/gestion-interna/manifest-delnero.webmanifest',
+  marcelo_hairdressing: '/gestion-interna/manifest-marcelo_hairdressing.webmanifest',
 };
 
 export default function App() {

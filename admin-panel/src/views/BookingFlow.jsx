@@ -7,7 +7,7 @@ import BookingFecha     from './BookingFecha';
 import BookingConfirmar from './BookingConfirmar';
 
 /* Tenants que tienen un solo barbero — el paso 2 se omite siempre */
-const SINGLE_BARBER_TENANTS = ['delnero'];
+const SINGLE_BARBER_TENANTS = ['delnero', 'marcelo_hairdressing'];
 
 /* ── Loading screen con color de tema ───────────────────────────── */
 function LoadingFlow({ accent }) {
