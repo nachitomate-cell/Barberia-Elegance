@@ -2315,7 +2315,7 @@
     }
 
 
-    /* ══ BARBERÍA FERRAZA (marcelo_hairdressing) ══
+    /* ══ MARCELO HAIRDRESSING ══
        Aesthetic: Premium Dark Minimalist (Deep Dark background, Pure White/Light Grey text & borders, transparent/glassy cards)
        ═══════════════════════════════════════════════════════════════ */
     .tenant-marcelo_hairdressing {
@@ -2329,18 +2329,22 @@
       background-color: #0F0F0F !important;
     }
 
-    /* Custom Header layout styles */
+    /* Hero con marcelo.png de fondo */
     .tenant-marcelo_hairdressing .booking-hero {
-      background-image: none !important;
+      background-image: url('/marcelo.png') !important;
       background-color: #0F0F0F !important;
-      min-height: auto !important;
+      background-size: cover !important;
+      background-position: center 25% !important;
+      min-height: 155px !important;
       height: auto !important;
-      padding-top: 10px !important;
-      padding-bottom: 10px !important;
-      border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+      padding-top: 0 !important;
+      padding-bottom: 0 !important;
+      border-bottom: 1px solid rgba(255,255,255,0.08) !important;
     }
     .tenant-marcelo_hairdressing .booking-hero-overlay {
-      display: none !important;
+      display: block !important;
+      background: linear-gradient(160deg,
+        rgba(0,0,0,0.74) 0%, rgba(0,0,0,0.58) 50%, rgba(0,0,0,0.80) 100%) !important;
     }
     .tenant-marcelo_hairdressing .booking-hero > .relative.z-10:not(#marceloHeader) {
       display: none !important;
@@ -4794,21 +4798,16 @@
         <span id="heroBadgeCount" class="text-white/55 font-medium" style="font-size:9px;margin-top:2px;white-space:nowrap;"></span>
       </a>
 
-      <!-- Custom Header for Marcelo Hairdressing / Barbería Ferraza -->
-      <div id="marceloHeader" class="hidden relative z-10 w-full px-6 py-6" style="justify-content: space-between; align-items: center;">
-        <div class="flex items-center gap-4">
-          <!-- Logo 'MH' -->
-          <div class="flex items-center justify-center font-black text-white border-2 border-white rounded-lg shadow-sm" style="width:46px;height:46px;font-size:18px;letter-spacing:-0.05em;background:rgba(255,255,255,0.05);">
-            MH
-          </div>
-          <!-- Title & Slogan -->
-          <div class="flex flex-col text-left">
-            <h1 class="text-lg font-bold text-white leading-tight tracking-tight">Barbería Ferraza</h1>
-            <p class="text-[9px] font-semibold tracking-[0.15em] text-white/60 uppercase">Ferraza es tu casa</p>
-          </div>
+      <!-- Custom Header for Marcelo Hairdressing -->
+      <div id="marceloHeader" class="hidden relative z-10 w-full px-6 py-8" style="justify-content: space-between; align-items: center;">
+        <!-- Brand identity -->
+        <div class="flex flex-col text-left" style="gap:3px;">
+          <p class="text-[9px] font-bold uppercase" style="letter-spacing:0.22em;color:rgba(255,255,255,0.42);margin:0;">Hairdresser</p>
+          <h1 id="marceloHeaderName" class="font-black text-white leading-none" style="font-size:1.55rem;letter-spacing:-0.02em;margin:0;">Marcelo Palma</h1>
+          <p id="marceloHeaderSlogan" class="text-[9px] font-semibold uppercase" style="letter-spacing:0.14em;color:rgba(255,255,255,0.48);margin:0;">Hairdressing & Estilo</p>
         </div>
-        <!-- Profile Picture Container -->
-        <div class="rounded-full overflow-hidden shrink-0 border border-white/30 shadow-sm" style="width:46px;height:46px;">
+        <!-- Foto de perfil: marcelo1.png -->
+        <div class="rounded-full overflow-hidden shrink-0" style="width:58px;height:58px;border:2px solid rgba(255,255,255,0.38);box-shadow:0 4px 18px rgba(0,0,0,0.55);">
           <img src="/marcelo1.png" alt="Marcelo Palma" class="w-full h-full object-cover object-top">
         </div>
       </div>
@@ -4935,7 +4934,7 @@
               <i class="ph-fill ph-medal text-lg" style="color:#39ff14;filter:drop-shadow(0 0 6px rgba(57,255,20,0.65));"></i>
             </div>
             <div class="flex-1 min-w-0">
-              <p class="text-[10px] font-bold uppercase tracking-widest mb-0.5" style="color:rgba(57,255,20,0.55);">Club Del Nero</p>
+              <p id="clubInviteLabel" class="text-[10px] font-bold uppercase tracking-widest mb-0.5" style="color:rgba(57,255,20,0.55);">Club Del Nero</p>
               <p class="text-sm font-semibold" style="color:rgba(255,255,255,0.88);">10 sellos = 1 corte gratis</p>
             </div>
             <span class="text-[11px] font-bold px-2.5 py-1 rounded-full flex-shrink-0" style="background:rgba(57,255,20,0.12);color:#39ff14;border:1px solid rgba(57,255,20,0.28);">Ver más</span>
@@ -7042,6 +7041,35 @@
       const appleIcon = document.querySelector('link[rel="apple-touch-icon"]');
       if (appleIcon) appleIcon.href = SHOP.logo;
 
+      // Favicon dinámico por tenant
+      const faviconEl = document.querySelector('link[rel="icon"]');
+      if (faviconEl) {
+        if (window.CURRENT_TENANT_ID === 'marcelo_hairdressing') {
+          faviconEl.href = '/marcelo1.png';
+          faviconEl.type = 'image/png';
+        } else {
+          faviconEl.href = SHOP.logo;
+        }
+      }
+
+      // Marcelo Hairdressing — actualizar header y textos del club
+      if (window.CURRENT_TENANT_ID === 'marcelo_hairdressing') {
+        const mhName = document.getElementById('marceloHeaderName');
+        if (mhName) mhName.textContent = SHOP.nombre;
+        const mhSlogan = document.getElementById('marceloHeaderSlogan');
+        if (mhSlogan) mhSlogan.textContent = SHOP.slogan;
+        const clubName = SHOP.club || 'Club Marcelo';
+        const shortName = SHOP.nombreCorto || 'Marcelo';
+        const el1 = document.getElementById('clubInviteLabel');
+        if (el1) el1.textContent = clubName;
+        const el2 = document.getElementById('clubModalCommunity');
+        if (el2) el2.textContent = `Cada visita suma. Acumula sellos, desbloquea beneficios y forma parte del ${clubName}.`;
+        const el3 = document.getElementById('clubModalFreeService');
+        if (el3) el3.textContent = `Al completar 10 sellos, tu próximo corte corre por cuenta de ${shortName}.`;
+        const el4 = document.getElementById('clubModalMembership');
+        if (el4) el4.textContent = `Descuentos y promociones exclusivas solo para miembros del ${clubName}.`;
+      }
+
       // Instagram
       const ig   = SHOP.instagram       || '#';
       const igh  = SHOP.instagramHandle || '';
@@ -7373,7 +7401,7 @@
         </div>
       </div>
 
-      <p style="font-size:13.5px;color:rgba(255,255,255,0.50);line-height:1.75;margin-bottom:24px;">
+      <p id="clubModalCommunity" style="font-size:13.5px;color:rgba(255,255,255,0.50);line-height:1.75;margin-bottom:24px;">
         Cada visita suma. Acumula sellos, desbloquea beneficios y forma parte de la comunidad Del Nero.
       </p>
 
@@ -7396,7 +7424,7 @@
           </div>
           <div>
             <p style="font-size:14px;font-weight:700;color:#f0ead6;margin:0 0 4px;">Cortes gratis</p>
-            <p style="font-size:12.5px;color:rgba(255,255,255,0.42);line-height:1.55;margin:0;">Al completar 10 sellos, tu próximo corte corre por cuenta de Del Nero.</p>
+            <p id="clubModalFreeService" style="font-size:12.5px;color:rgba(255,255,255,0.42);line-height:1.55;margin:0;">Al completar 10 sellos, tu próximo corte corre por cuenta de Del Nero.</p>
           </div>
         </div>
 
@@ -7426,7 +7454,7 @@
           </div>
           <div>
             <p style="font-size:14px;font-weight:700;color:#f0ead6;margin:0 0 4px;">Ofertas exclusivas</p>
-            <p style="font-size:12.5px;color:rgba(255,255,255,0.42);line-height:1.55;margin:0;">Descuentos y promociones especiales solo para miembros del Club Del Nero.</p>
+            <p id="clubModalMembership" style="font-size:12.5px;color:rgba(255,255,255,0.42);line-height:1.55;margin:0;">Descuentos y promociones especiales solo para miembros del Club Del Nero.</p>
           </div>
         </div>
 
