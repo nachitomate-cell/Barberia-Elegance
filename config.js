@@ -16,6 +16,7 @@
     'aurasalonmalegrooming.synaptechspa.cl': 'aura',
     'machos.synaptechspa.cl':             'machos',
     'infinity.synaptechspa.cl':           'infinity',
+    'sionbarberia.synaptechspa.cl':       'sionbarberia',
   };
 
   const _tenants = {
@@ -337,6 +338,33 @@
         { nombre: 'Elio Alfonso', foto: null, disponible: true },
         { nombre: 'Jose Luis Cordero', foto: null, disponible: true },
         { nombre: 'Mailo Serrano', foto: null, disponible: true },
+      ],
+    },
+    sionbarberia: {
+      categoriasServicio: ['Cortes', 'Barba', 'Combos', 'Color', 'Facial', 'Extras'],
+      nombre:          'Sion Barbería',
+      nombreCorto:     'Sion',
+      pageTitle:       'Sion Barbería | Calidad y Profesionalismo en Viña del Mar',
+      slogan:          'Una barbería destacada para brindar un servicio de primera calidad brindándote asesoría de imagen y profesionalismo.',
+      logo:            'https://dcx13p9dsx90t.cloudfront.net/uploads/logos/page_logo_378df61d67dfec81.png',
+      direccion:       '📍 Av. Libertad 123, Viña del Mar',
+      horario:         '🕒 Lunes a sábado 10:00-20:00',
+      telefono:        '56988888888',
+      club:            'Club Sion',
+      instagram:       'https://www.instagram.com/sionbarberia/',
+      instagramHandle: '@sionbarberia',
+      waEmoji:         '💈',
+      googleReviewUrl: '',
+      ratingGeneral: 4.9,
+      totalReviews:  18,
+      reviews: [
+        { author: 'Carlos Gutiérrez', rating: 5, text: 'Excelente atención y asesoría de imagen. El corte premium es fantástico.' },
+        { author: 'Andrés Vera', rating: 5, text: 'Un local limpio, moderno y los barberos son de primer nivel. Recomendado.' },
+      ],
+      barberos: [
+        { nombre: 'Nelson Barber', foto: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop', disponible: true },
+        { nombre: 'Ignacio Barber', foto: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=150&h=150&fit=crop', disponible: true },
+        { nombre: 'Marcelo Barber', foto: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop', disponible: true },
       ],
     },
   };

@@ -19,6 +19,7 @@ const DOMAIN_MAP = {
   'aurasalonmalegrooming.synaptechspa.cl':'aura',
   'machos.synaptechspa.cl':            'machos',
   'infinity.synaptechspa.cl':          'infinity',
+  'sionbarberia.synaptechspa.cl':      'sionbarberia',
 };
 
 const TENANT_META = {
@@ -491,6 +492,62 @@ const TENANT_META = {
       start_url:        '/gestion-interna/?local=infinity',
       icons: [
         { src: '/infinity.png',                 sizes: 'any',     type: 'image/png' },
+        { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png' },
+        { src: '/gestion-interna/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+      ],
+    },
+  },
+  sionbarberia: {
+    booking: {
+      title:       'Sion Barbería | Agenda tu hora',
+      description: 'Reserva tu hora en Sion Barbería. Cortes, barba y asesoría de imagen en Av. Libertad 123, Viña del Mar.',
+      ogTitle:     'Agendar Hora | Sion Barbería',
+      ogDesc:      'Reserva tu hora en Sion Barbería. Brindamos asesoría de imagen y servicios de barbería de primera calidad.',
+    },
+    dashboard: {
+      title:       'Mi Club | Sion Barbería',
+      description: 'Tu panel personal en el Club Sion. Revisa tus sellos y canjea premios.',
+      ogTitle:     'Mi Club | Sion Barbería',
+      ogDesc:      'Panel de fidelidad de Sion Barbería. Acumula sellos y disfruta de servicios gratis.',
+    },
+    registro: {
+      title:       'Únete al Club | Sion Barbería',
+      description: 'Crea tu cuenta en el Club Sion. Acumula sellos y canjea premios.',
+      ogTitle:     'Únete al Club | Sion Barbería',
+      ogDesc:      'Regístrate en Sion Barbería y disfruta de beneficios exclusivos.',
+    },
+    siteName:    'Sion Barbería',
+    ogImage:     'https://dcx13p9dsx90t.cloudfront.net/uploads/logos/page_logo_378df61d67dfec81.png',
+    themeColor:  '#2C3941',
+    appTitle:    'Sion',
+    icon:        'https://dcx13p9dsx90t.cloudfront.net/uploads/logos/page_logo_378df61d67dfec81.png',
+    local: {
+      telephone: '56988888888',
+      streetAddress: 'Av. Libertad 123',
+      addressLocality: 'Viña del Mar',
+      schemaType: 'HairSalon',
+      ratingGeneral: 4.9,
+      totalReviews: 18,
+      reviews: [
+        { author: 'Carlos Gutiérrez', rating: 5, text: 'Excelente atención y asesoría de imagen. El corte premium es fantástico.' },
+        { author: 'Andrés Vera', rating: 5, text: 'Un local limpio, moderno y los barberos son de primer nivel. Recomendado.' }
+      ]
+    },
+    manifest: {
+      name:             'Sion Barbería',
+      short_name:       'Sion',
+      theme_color:      '#2C3941',
+      background_color: '#2C3941',
+    },
+    adminManifest: {
+      name:             'Panel Admin · Sion',
+      short_name:       'Sion',
+      description:      'Panel de administración — Sion Barbería',
+      theme_color:      '#F57808',
+      background_color: '#2C3941',
+      start_url:        '/gestion-interna/?local=sionbarberia',
+      icons: [
+        { src: 'https://dcx13p9dsx90t.cloudfront.net/uploads/logos/page_logo_378df61d67dfec81.png', sizes: 'any',     type: 'image/png' },
         { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png' },
         { src: '/gestion-interna/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
       ],

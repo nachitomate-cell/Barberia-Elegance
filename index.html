@@ -4222,6 +4222,243 @@
         text-shadow: 0 0 5px rgba(255,255,255,0.5);
       }
     }
+
+    /* ═══════════════════════════════════════════════════════════════
+       SION BARBERÍA — Premium Industrial Dark Slate & Energetic Orange
+       Paleta: Deep Slate (#2C3941) · Dark Charcoal Slate (#1E282E) · Energetic Orange (#F57808)
+       ═══════════════════════════════════════════════════════════════ */
+    .tenant-sionbarberia {
+      --accent:   #F57808;
+      --accent-r: 245; --accent-g: 120; --accent-b: 8;
+      --neon-clr: #F57808;
+      --neon-r:   245; --neon-g: 120; --neon-b: 8;
+      --body-bg:  #2C3941;
+    }
+    .tenant-sionbarberia body {
+      background-color: #2C3941 !important;
+      background-image:
+        linear-gradient(rgba(245,120,8,0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(245,120,8,0.015) 1px, transparent 1px);
+      background-size: 24px 24px !important;
+    }
+
+    /* Keyframes for micro-animations */
+    @keyframes sion-float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-4px); }
+    }
+    @keyframes sion-glow {
+      0%, 100% { box-shadow: 0 0 15px rgba(245,120,8,0.2); }
+      50% { box-shadow: 0 0 30px rgba(245,120,8,0.5); }
+    }
+
+    /* Hero visual background mapping */
+    .tenant-sionbarberia .booking-hero {
+      background-image: url('https://dcx13p9dsx90t.cloudfront.net/uploads/logos/page_logo_378df61d67dfec81.png') !important;
+      background-size: cover !important;
+      background-position: center 30% !important;
+    }
+    .tenant-sionbarberia .booking-hero-overlay {
+      background: radial-gradient(circle at 50% 30%, rgba(245,120,8,0.06) 0%, rgba(30,40,46,0.7) 45%, rgba(44,57,65,0.98) 100%) !important;
+    }
+
+    /* Info strip */
+    .tenant-sionbarberia .info-strip {
+      background: rgba(30,40,46,0.95) !important;
+      border-bottom-color: rgba(245,120,8,0.12) !important;
+    }
+    .tenant-sionbarberia .info-strip i {
+      color: #F57808 !important;
+      filter: drop-shadow(0 0 2px rgba(245,120,8,0.4)) !important;
+    }
+    .tenant-sionbarberia .info-strip a,
+    .tenant-sionbarberia .info-strip > div {
+      color: #e2e8f0 !important;
+      border-color: rgba(245,120,8,0.08) !important;
+    }
+
+    /* Logo ring */
+    .tenant-sionbarberia .hero-logo-ring {
+      border: 2px solid #F57808 !important;
+      box-shadow:
+        0 0 0 1px rgba(245,120,8,0.2),
+        0 0 25px rgba(245,120,8,0.35),
+        0 0 45px rgba(0,0,0,0.85) !important;
+    }
+
+    /* Progress Bar */
+    .tenant-sionbarberia #progressBar {
+      background: linear-gradient(90deg, #e06a07, #F57808, #e06a07) !important;
+      box-shadow: 0 0 12px rgba(245,120,8,0.7), 0 0 20px rgba(245,120,8,0.3) !important;
+    }
+    .tenant-sionbarberia #progressTrack { background-color: rgba(245,120,8,0.08) !important; }
+    .tenant-sionbarberia #stepIndicatorText {
+      color: #F57808 !important;
+      text-shadow: 0 0 8px rgba(245,120,8,0.4) !important;
+    }
+
+    /* Category pills */
+    .tenant-sionbarberia .category-pill {
+      background: rgba(30,40,46,0.6) !important;
+      border: 1px solid rgba(245,120,8,0.15) !important;
+      color: #94a3b8 !important;
+      transition: all 0.3s ease !important;
+    }
+    .tenant-sionbarberia .category-pill:hover {
+      border-color: #F57808 !important;
+      color: #f8fafc !important;
+      transform: translateY(-2px) !important;
+    }
+    .tenant-sionbarberia .category-pill.border-neon {
+      background: rgba(245,120,8,0.1) !important;
+      border: 1px solid #F57808 !important;
+      color: #F57808 !important;
+      box-shadow: 0 0 12px rgba(245,120,8,0.25) !important;
+    }
+    .tenant-sionbarberia .category-pill.text-neon { color: #F57808 !important; }
+
+    /* Step Heading */
+    .tenant-sionbarberia h2.text-neon {
+      color: #f8fafc !important;
+      font-family: 'Plus Jakarta Sans', sans-serif !important;
+      text-shadow: none !important;
+    }
+
+    /* Service cards */
+    .tenant-sionbarberia .service-option {
+      background: rgba(30,40,46,0.7) !important;
+      border: 1px solid rgba(245,120,8,0.12) !important;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    }
+    .tenant-sionbarberia .service-option:hover {
+      border-color: rgba(245,120,8,0.45) !important;
+      background: rgba(30,40,46,0.9) !important;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3) !important;
+      transform: translateY(-2px) !important;
+    }
+    .tenant-sionbarberia .service-option.border-neon {
+      border: 1px solid #F57808 !important;
+      background: rgba(245,120,8,0.1) !important;
+      box-shadow: 0 0 15px rgba(245,120,8,0.2) !important;
+    }
+    .tenant-sionbarberia .service-option .price-tag {
+      color: #F57808 !important;
+    }
+    .tenant-sionbarberia .service-option .duration-tag {
+      color: #94a3b8 !important;
+    }
+
+    /* Barber cards */
+    .tenant-sionbarberia .barber-option {
+      background: rgba(30,40,46,0.7) !important;
+      border: 1px solid rgba(245,120,8,0.12) !important;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    }
+    .tenant-sionbarberia .barber-option:hover {
+      border-color: rgba(245,120,8,0.45) !important;
+      background: rgba(30,40,46,0.9) !important;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.3) !important;
+      transform: translateY(-2px) !important;
+    }
+    .tenant-sionbarberia .barber-option.border-neon {
+      border: 1px solid #F57808 !important;
+      background: rgba(245,120,8,0.1) !important;
+      box-shadow: 0 0 15px rgba(245,120,8,0.2) !important;
+    }
+    .tenant-sionbarberia .text-brand-neon {
+      color: #F57808 !important;
+    }
+
+    /* Day selection buttons */
+    .tenant-sionbarberia .day-btn {
+      background: rgba(30,40,46,0.6) !important;
+      border: 1px solid rgba(245,120,8,0.12) !important;
+      transition: all 0.2s ease !important;
+    }
+    .tenant-sionbarberia .day-btn:hover {
+      border-color: rgba(245,120,8,0.4) !important;
+      color: #ffffff !important;
+    }
+    .tenant-sionbarberia .day-btn.active,
+    .tenant-sionbarberia .day-btn.border-neon {
+      background: #F57808 !important;
+      border-color: #F57808 !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 14px rgba(245,120,8,0.35) !important;
+    }
+
+    /* Time pill buttons */
+    .tenant-sionbarberia .time-pill {
+      background: rgba(30,40,46,0.6) !important;
+      border: 1px solid rgba(245,120,8,0.12) !important;
+      color: #e2e8f0 !important;
+    }
+    .tenant-sionbarberia .time-pill.border-neon {
+      background: #F57808 !important;
+      border-color: #F57808 !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 14px rgba(245,120,8,0.35) !important;
+    }
+
+    /* Primary buttons */
+    .tenant-sionbarberia #btnContinue {
+      background: linear-gradient(135deg,#F57808,#e06a07) !important;
+      color: #ffffff !important;
+      font-weight: 800 !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.05em !important;
+      box-shadow: 0 4px 20px rgba(245,120,8,0.3) !important;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    }
+    .tenant-sionbarberia #btnContinue:hover {
+      box-shadow: 0 8px 30px rgba(245,120,8,0.5) !important;
+      transform: translateY(-1px) !important;
+    }
+    .tenant-sionbarberia #btnContinueBar {
+      background: rgba(44,57,65,0.9) !important;
+      border-top-color: rgba(245,120,8,0.15) !important;
+    }
+
+    /* Inputs */
+    .tenant-sionbarberia #clientName,
+    .tenant-sionbarberia #clientPhone,
+    .tenant-sionbarberia #clientEmail {
+      background: rgba(30,40,46,0.8) !important;
+      border-color: rgba(245,120,8,0.15) !important;
+      color: #ffffff !important;
+    }
+    .tenant-sionbarberia #clientName:focus,
+    .tenant-sionbarberia #clientPhone:focus,
+    .tenant-sionbarberia #clientEmail:focus {
+      border-color: #F57808 !important;
+      box-shadow: 0 0 12px rgba(245,120,8,0.2) !important;
+    }
+
+    /* WhatsApp contact */
+    .tenant-sionbarberia #waBtnLink {
+      background: #25D366 !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 15px rgba(37,211,102,0.3) !important;
+    }
+
+    /* Loyalty Club banner */
+    .tenant-sionbarberia #clubBanner {
+      background: rgba(30,40,46,0.7) !important;
+      border: 1px solid rgba(245,120,8,0.15) !important;
+    }
+    .tenant-sionbarberia #clubBanner a {
+      background: #F57808 !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 15px rgba(245,120,8,0.3) !important;
+    }
+
+    /* Toast */
+    .tenant-sionbarberia #toastValidation {
+      background: #1E282E !important;
+      border: 1px solid rgba(239,68,68,0.4) !important;
+      color: #ef4444 !important;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5) !important;
+    }
   </style>
 </head>
 
@@ -4894,7 +5131,7 @@
         categories[cat].push(s);
       });
 
-      const _isEleganceSvc  = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza' || window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'lumen' || window.CURRENT_TENANT_ID === 'machos';
+      const _isEleganceSvc  = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza' || window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'lumen' || window.CURRENT_TENANT_ID === 'machos' || window.CURRENT_TENANT_ID === 'sionbarberia';
       const _isMapuSvc      = window.CURRENT_TENANT_ID === 'mapubarbershop';
       const _isChameleonSvc = window.CURRENT_TENANT_ID === 'chameleon';
       const _useRowLayout   = _isEleganceSvc || _isMapuSvc || _isChameleonSvc;
@@ -5153,7 +5390,7 @@
          grid.innerHTML = '<p class="text-sm text-gray-500">No hay barberos disponibles en este momento.</p>';
          return;
       }
-      const _isElegance   = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza' || window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'lumen' || window.CURRENT_TENANT_ID === 'machos';
+      const _isElegance   = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza' || window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'lumen' || window.CURRENT_TENANT_ID === 'machos' || window.CURRENT_TENANT_ID === 'sionbarberia';
       const _isMapuB      = window.CURRENT_TENANT_ID === 'mapubarbershop';
       const _isChameleon  = window.CURRENT_TENANT_ID === 'chameleon';
       const anyStateClass = (window._selectedBarberId === 'any' || window._selectedBarber === 'any') ? 'border-neon bg-brand-neon/10' : 'border-brand-accent/20 bg-[#0a0a0d]';
@@ -5227,7 +5464,7 @@
       `;
 
       // Aura: shuffle barbers so no one gets a permanent "top" position
-      const _barberosOrden = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'lumen' || window.CURRENT_TENANT_ID === 'machos')
+      const _barberosOrden = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'lumen' || window.CURRENT_TENANT_ID === 'machos' || window.CURRENT_TENANT_ID === 'sionbarberia')
         ? [...barberos].sort(() => Math.random() - 0.5)
         : barberos;
 
@@ -6444,12 +6681,14 @@
           delnero: '/nero.jpg',
           aura: '/auralogin.png',
           machos: '/machos_bg.png',
-          infinity: '/infinity_bg.png'
+          infinity: '/infinity_bg.png',
+          sionbarberia: 'https://dcx13p9dsx90t.cloudfront.net/uploads/logos/page_logo_378df61d67dfec81.png'
         };
         const bgUrl = bgImages[window.CURRENT_TENANT_ID] || SHOP.logo;
         heroImgEl.src = bgUrl;
         heroImgEl.alt = window.CURRENT_TENANT_ID === 'machos' ? 'Interior industrial moderno de Macho´s Barbershop' : 
                         window.CURRENT_TENANT_ID === 'infinity' ? 'Interior elegante y familiar de Infinity Studio' : 
+                        window.CURRENT_TENANT_ID === 'sionbarberia' ? 'Logotipo y marca oficial de Sion Barbería' :
                         'Interior de ' + (SHOP.nombreCorto || SHOP.nombre);
       }
 

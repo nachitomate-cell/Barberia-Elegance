@@ -106,6 +106,16 @@ const TENANT_CONFIG = {
     from:        'Macho´s Barbershop <citas@synaptechspa.cl>',
     dashboardUrl:'https://machos.synaptechspa.cl/dashboard',
   },
+  sionbarberia: {
+    nombre:    'Sion Barbería',
+    direccion: 'Av. Libertad 123, Viña del Mar',
+    horario:   'Lun–Sáb: 10:00–20:00 hrs',
+    color:     '#F57808',
+    instagram: 'https://www.instagram.com/sionbarberia/',
+    whatsapp:  '56988888888',
+    from:      'Sion Barbería <citas@synaptechspa.cl>',
+    dashboardUrl: 'https://sionbarberia.synaptechspa.cl/dashboard',
+  },
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

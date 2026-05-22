@@ -681,18 +681,17 @@ function IAModal({ stats, shopName, onClose }) {
         style={{ background: '#0f0f18' }}>
 
         {/* Header */}
-        <div className="relative px-5 pt-5 pb-4 overflow-hidden"
-          style={{ background: 'linear-gradient(135deg, rgba(139,92,246,0.15) 0%, rgba(59,130,246,0.08) 100%)' }}>
+        <div className="relative px-5 pt-5 pb-4 overflow-hidden border-b border-slate-800"
+          style={{ background: 'linear-gradient(135deg, #0f0f12 0%, #151200 100%)' }}>
           <div className="absolute inset-0 pointer-events-none"
-            style={{ background: 'radial-gradient(ellipse at top right, rgba(139,92,246,0.12), transparent 70%)' }} />
+            style={{ background: 'radial-gradient(ellipse at top right, rgba(212,175,55,0.08), transparent 70%)' }} />
           <div className="flex items-center justify-between relative">
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center"
-                style={{ background: 'rgba(139,92,246,0.2)', border: '1px solid rgba(139,92,246,0.3)' }}>
-                <Bot size={16} className="text-violet-400" />
+              <div className="w-8 h-8 rounded-xl bg-slate-800 flex items-center justify-center shrink-0 border border-slate-700">
+                <img src="/logo1.png" alt="SynapTech" className="w-5 h-5 object-contain" />
               </div>
               <div>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-violet-400/70">Análisis IA</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-[#D4AF37]">Synaptech IA</p>
                 <h3 className="text-sm font-bold text-white leading-none">Recomendación para {shopName}</h3>
               </div>
             </div>
@@ -912,10 +911,10 @@ export default function Clientes() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowIA(true)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border border-violet-500/30 bg-violet-500/5 text-violet-400 hover:bg-violet-500/10 transition-all"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border border-[#D4AF37]/35 bg-[#D4AF37]/5 text-[#D4AF37] hover:bg-[#D4AF37]/10 transition-all"
           >
-            <Bot size={13} />
-            Pedir consejo
+            <img src="/logo1.png" alt="Synaptech" className="w-3.5 h-3.5 object-contain opacity-80" />
+            Synaptech IA
           </button>
           <button
           onClick={() => setShowSinRegistro(true)}
