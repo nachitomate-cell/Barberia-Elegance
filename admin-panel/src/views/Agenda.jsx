@@ -1028,16 +1028,16 @@ function DifusionPanel({ citas, bloqueos, barberos, dateStr }) {
   // Generate broadcast message
   const message = useMemo(() => {
     if (freeSlots.length === 0) {
-      return `✂️ *Barbería Ferraza* — ${fechaFmt.charAt(0).toUpperCase() + fechaFmt.slice(1)}\n\n` +
+      return `✂️ *Marcelo Palma* — ${fechaFmt.charAt(0).toUpperCase() + fechaFmt.slice(1)}\n\n` +
              `📵 La agenda para este día está *completa*.\n\n` +
              `Agenda tu hora en ➡️ marcelopalma.synaptechspa.cl`;
     }
     const horasStr = freeSlots.map(h => `   • ${h}`).join('\n');
     return (
-      `✂️ *Barbería Ferraza* — ${fechaFmt.charAt(0).toUpperCase() + fechaFmt.slice(1)}\n\n` +
+      `✂️ *Marcelo Palma* — ${fechaFmt.charAt(0).toUpperCase() + fechaFmt.slice(1)}\n\n` +
       `🟢 *Horas disponibles (${freeSlots.length}):*\n${horasStr}\n\n` +
       `📲 Agenda tu hora ahora:\n   marcelopalma.synaptechspa.cl\n\n` +
-      `_¡Te esperamos, Ferraza es tu casa!_ 🙌`
+      `_¡Te esperamos!_ ✂️🙌`
     );
   }, [freeSlots, fechaFmt]);
 
@@ -1087,11 +1087,11 @@ function DifusionPanel({ citas, bloqueos, barberos, dateStr }) {
     // Header
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 28px -apple-system, BlinkMacSystemFont, sans-serif';
-    ctx.fillText('Barbería Ferraza', PADDING, PADDING + 38);
+    ctx.fillText('Marcelo Palma', PADDING, PADDING + 38);
 
     ctx.fillStyle = 'rgba(255,255,255,0.5)';
     ctx.font = '14px -apple-system, BlinkMacSystemFont, sans-serif';
-    ctx.fillText(`Ferraza es tu casa  ·  ${fechaFmt.charAt(0).toUpperCase() + fechaFmt.slice(1)}`, PADDING, PADDING + 62);
+    ctx.fillText(`Hairdressing & Estilo  ·  ${fechaFmt.charAt(0).toUpperCase() + fechaFmt.slice(1)}`, PADDING, PADDING + 62);
 
     // Stats row
     const libre = freeSlots.length;
@@ -1188,7 +1188,7 @@ function DifusionPanel({ citas, bloqueos, barberos, dateStr }) {
 
     ctx.fillStyle = 'rgba(255,255,255,0.3)';
     ctx.font = '12px -apple-system, BlinkMacSystemFont, sans-serif';
-    ctx.fillText('marcelopalma.synaptechspa.cl  ·  Barbería Ferraza', PADDING, footerY + 26);
+    ctx.fillText('marcelopalma.synaptechspa.cl  ·  Marcelo Palma', PADDING, footerY + 26);
 
     ctx.fillStyle = 'rgba(255,255,255,0.15)';
     ctx.font = 'bold 11px -apple-system, BlinkMacSystemFont, sans-serif';
@@ -1202,7 +1202,7 @@ function DifusionPanel({ citas, bloqueos, barberos, dateStr }) {
 
     // Download
     const link = document.createElement('a');
-    link.download = `ferraza-agenda-${dateStr}.png`;
+    link.download = `marcelo-agenda-${dateStr}.png`;
     link.href = canvas.toDataURL('image/png');
     link.click();
   };
