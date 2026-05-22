@@ -2511,8 +2511,30 @@
     }
     .tenant-marcelo_hairdressing #marceloHeader {
       display: flex !important;
-      padding: 18px 22px 18px 22px !important;
-      border-bottom: 1px solid rgba(255,255,255,0.07) !important;
+      background-image: url('/marcelo.png') !important;
+      background-size: cover !important;
+      background-position: center 32% !important;
+      min-height: 190px !important;
+      padding: 0 22px 20px 22px !important;
+      align-items: flex-end !important;
+      border-bottom: 1px solid rgba(255,255,255,0.08) !important;
+      position: relative !important;
+      overflow: hidden !important;
+    }
+    .tenant-marcelo_hairdressing #marceloHeader::before {
+      content: '' !important;
+      position: absolute !important;
+      inset: 0 !important;
+      background: linear-gradient(180deg,
+        rgba(0,0,0,0.05) 0%,
+        rgba(0,0,0,0.38) 48%,
+        rgba(10,10,10,0.88) 72%,
+        #0A0A0A 100%) !important;
+      z-index: 0 !important;
+    }
+    .tenant-marcelo_hairdressing #marceloHeader > * {
+      position: relative !important;
+      z-index: 1 !important;
     }
     .tenant-marcelo_hairdressing #heroGoogleBadge {
       display: none !important;
@@ -5030,21 +5052,15 @@
       </a>
 
       <!-- Custom Header for Marcelo Hairdressing -->
-      <div id="marceloHeader" class="hidden relative z-10 w-full" style="justify-content:space-between;align-items:center;">
+      <div id="marceloHeader" class="hidden w-full" style="justify-content:space-between;">
         <!-- Brand identity left -->
-        <div style="display:flex;align-items:center;gap:12px;">
-          <!-- Logo mark: scissors icon -->
-          <div style="width:36px;height:36px;border-radius:9px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.10);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-            <i class="ph-bold ph-scissors" style="font-size:15px;color:rgba(255,255,255,0.7);"></i>
-          </div>
-          <div style="display:flex;flex-direction:column;gap:2px;">
-            <p style="font-size:8.5px;font-weight:700;letter-spacing:0.22em;color:rgba(255,255,255,0.35);margin:0;text-transform:uppercase;">Hairdresser</p>
-            <h1 id="marceloHeaderName" style="font-size:1.35rem;font-weight:800;color:#ffffff;letter-spacing:-0.025em;line-height:1;margin:0;">Marcelo Palma</h1>
-            <p id="marceloHeaderSlogan" style="font-size:8.5px;font-weight:600;letter-spacing:0.15em;color:rgba(255,255,255,0.38);margin:0;text-transform:uppercase;">Hairdressing &amp; Estilo</p>
-          </div>
+        <div style="display:flex;flex-direction:column;gap:3px;">
+          <p style="font-size:8px;font-weight:700;letter-spacing:0.24em;color:rgba(255,255,255,0.45);margin:0;text-transform:uppercase;">Hairdresser</p>
+          <h1 id="marceloHeaderName" style="font-size:1.5rem;font-weight:800;color:#ffffff;letter-spacing:-0.03em;line-height:1;margin:0;text-shadow:0 1px 12px rgba(0,0,0,0.6);">Marcelo Palma</h1>
+          <p id="marceloHeaderSlogan" style="font-size:8px;font-weight:600;letter-spacing:0.18em;color:rgba(255,255,255,0.42);margin:0;text-transform:uppercase;">Hairdressing &amp; Estilo</p>
         </div>
         <!-- Profile photo right -->
-        <div style="width:50px;height:50px;border-radius:50%;overflow:hidden;flex-shrink:0;border:1.5px solid rgba(255,255,255,0.18);">
+        <div style="width:54px;height:54px;border-radius:50%;overflow:hidden;flex-shrink:0;border:1.5px solid rgba(255,255,255,0.28);box-shadow:0 2px 16px rgba(0,0,0,0.5);">
           <img src="/marcelo1.png" alt="Marcelo Palma" style="width:100%;height:100%;object-fit:cover;object-position:top;">
         </div>
       </div>
