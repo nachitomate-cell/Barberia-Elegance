@@ -3568,145 +3568,197 @@
        Paleta: Deep Obsidian (#121214) · Slate Charcoal (#3B3B3B) · Metallic Silver (#ffffff)
        ═══════════════════════════════════════════════════════════════ */
     .tenant-infinity {
-      --accent:   #ffffff;
-      --accent-r: 255; --accent-g: 255; --accent-b: 255;
-      --neon-clr: #ffffff;
-      --neon-r:   255; --neon-g: 255; --neon-b: 255;
+      --accent:   #111827;
+      --accent-r: 17; --accent-g: 24; --accent-b: 39;
+      --neon-clr: #111827;
+      --neon-r:   17; --neon-g:   24; --neon-b:   39;
       --body-bg:  #ffffff;
+      position: relative;
+    }
+    .tenant-infinity::before {
+      content: "∞" !important;
+      position: fixed !important;
+      top: 12% !important;
+      left: -8% !important;
+      font-size: 22rem !important;
+      color: rgba(17, 24, 39, 0.015) !important;
+      font-weight: 300 !important;
+      z-index: 0 !important;
+      pointer-events: none !important;
+      animation: float-infinity-slow 22s ease-in-out infinite alternate !important;
+    }
+    .tenant-infinity::after {
+      content: "∞" !important;
+      position: fixed !important;
+      bottom: 8% !important;
+      right: -10% !important;
+      font-size: 28rem !important;
+      color: rgba(17, 24, 39, 0.018) !important;
+      font-weight: 300 !important;
+      z-index: 0 !important;
+      pointer-events: none !important;
+      animation: float-infinity-fast 28s ease-in-out infinite alternate !important;
     }
     .tenant-infinity body {
       background-color: #ffffff !important;
       background-image:
-        radial-gradient(circle at 50% 0%, rgba(255,255,255,1) 0%, rgba(243,244,246,0.6) 100%),
-        radial-gradient(ellipse at 100% 80%, rgba(243,244,246,0.7) 0%, transparent 60%),
-        linear-gradient(to bottom, #ffffff, #fcfcfd, #f8f9fa) !important;
-      color: #1f2937 !important;
+        radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 1) 0%, rgba(243, 244, 246, 0.4) 100%),
+        radial-gradient(circle at 10% 40%, rgba(255,255,255,1) 0%, rgba(249,250,251,0.7) 50%, transparent 100%),
+        radial-gradient(circle at 90% 80%, rgba(255,255,255,1) 0%, rgba(243,244,246,0.6) 50%, transparent 100%) !important;
+      background-size: 200% 200% !important;
+      animation: infinity-bg-flow 15s ease infinite !important;
+      color: #111827 !important;
+      position: relative;
     }
     .tenant-infinity .booking-hero {
-      background: linear-gradient(135deg, #ffffff, #f3f4f6) !important;
-      border-bottom: 1px solid rgba(0,0,0,0.06) !important;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(243, 244, 246, 0.8)) !important;
+      border-bottom: 1px solid rgba(17, 24, 39, 0.05) !important;
+      backdrop-filter: blur(20px) !important;
+      -webkit-backdrop-filter: blur(20px) !important;
     }
     .tenant-infinity .booking-hero-overlay {
-      background: radial-gradient(circle at center, transparent 30%, rgba(255, 255, 255, 0.4) 100%) !important;
+      background: radial-gradient(circle at center, transparent 30%, rgba(255, 255, 255, 0.6) 100%) !important;
     }
     .tenant-infinity #shopNombre {
       color: #111827 !important;
-      text-shadow: 0 2px 10px rgba(255,255,255,0.8) !important;
+      text-shadow: 0 4px 15px rgba(255, 255, 255, 0.9) !important;
+      font-weight: 900 !important;
     }
     .tenant-infinity #shopNombre::after {
       content: " ∞";
       font-weight: 300;
-      color: rgba(17, 24, 39, 0.25);
+      color: rgba(17, 24, 39, 0.35);
       font-size: 2.2rem;
       vertical-align: middle;
       display: inline-block;
-      animation: infinity-loop-spin 6s ease-in-out infinite !important;
+      animation: infinity-loop-spin 4s ease-in-out infinite !important;
       margin-left: 8px;
     }
     .tenant-infinity #shopSlogan {
       color: #4b5563 !important;
+      letter-spacing: 0.25em !important;
+      font-size: 10px !important;
     }
     .tenant-infinity button[onclick="goBack()"] {
-      background: rgba(255,255,255,0.85) !important;
-      border: 1px solid rgba(0,0,0,0.08) !important;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.05) !important;
+      background: rgba(255, 255, 255, 0.9) !important;
+      border: 1px solid rgba(17, 24, 39, 0.08) !important;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04) !important;
     }
     .tenant-infinity button[onclick="goBack()"] i {
       color: #111827 !important;
     }
     .tenant-infinity #heroGoogleBadge {
-      background: rgba(255,255,255,0.85) !important;
-      border: 1px solid rgba(0,0,0,0.06) !important;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.05) !important;
+      background: rgba(255, 255, 255, 0.9) !important;
+      border: 1px solid rgba(17, 24, 39, 0.06) !important;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04) !important;
     }
     .tenant-infinity #heroGoogleBadge span,
     .tenant-infinity #heroGoogleBadge .text-white {
       color: #111827 !important;
     }
     .tenant-infinity .info-strip {
-      background: rgba(255,255,255,0.7) !important;
-      border-top: 1px solid rgba(0,0,0,0.05) !important;
-      border-bottom: 1px solid rgba(0,0,0,0.05) !important;
-      backdrop-filter: blur(8px) !important;
-      -webkit-backdrop-filter: blur(8px) !important;
+      background: rgba(255, 255, 255, 0.85) !important;
+      border-top: 1px solid rgba(17, 24, 39, 0.04) !important;
+      border-bottom: 1px solid rgba(17, 24, 39, 0.04) !important;
+      backdrop-filter: blur(15px) !important;
+      -webkit-backdrop-filter: blur(15px) !important;
     }
     .tenant-infinity .info-strip i {
-      color: rgba(0,0,0,0.4) !important;
+      color: rgba(17, 24, 39, 0.45) !important;
     }
     .tenant-infinity .info-strip a,
     .tenant-infinity .info-strip > div {
-      color: #374151 !important;
-      font-weight: 500 !important;
+      color: #1f2937 !important;
+      font-weight: 600 !important;
     }
     .tenant-infinity .hero-logo-ring {
       background: #ffffff !important;
-      border: 3px solid #ffffff !important;
-      box-shadow: 0 8px 30px rgba(0,0,0,0.06), 0 0 20px rgba(255,255,255,0.8), inset 0 2px 5px rgba(0,0,0,0.02) !important;
+      border: 4px solid #ffffff !important;
+      box-shadow: 
+        0 10px 35px rgba(0, 0, 0, 0.05), 
+        0 0 25px rgba(255, 255, 255, 0.9), 
+        inset 0 2px 5px rgba(0, 0, 0, 0.02) !important;
       animation: infinity-breathe 4s ease-in-out infinite !important;
     }
     .tenant-infinity #progressBar {
-      background: linear-gradient(90deg, #d4d4d8, #e4e4e7, #ffffff) !important;
-      box-shadow: 0 0 15px rgba(255,255,255,1), 0 0 5px rgba(255,255,255,0.8) !important;
-      border: 1px solid rgba(255,255,255,0.5) !important;
+      background: linear-gradient(90deg, #111827, #374151, #111827) !important;
+      box-shadow: 0 0 20px rgba(255, 255, 255, 1), 0 0 8px rgba(255, 255, 255, 0.9) !important;
+      border: 1.5px solid rgba(255, 255, 255, 0.9) !important;
+      position: relative !important;
+      overflow: hidden !important;
+    }
+    .tenant-infinity #progressBar::after {
+      content: "" !important;
+      position: absolute !important;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent) !important;
+      animation: progress-glow-sweep 2s infinite linear !important;
     }
     .tenant-infinity #progressTrack {
-      background-color: rgba(0,0,0,0.04) !important;
-      border: 1px solid rgba(0,0,0,0.02) !important;
+      background-color: rgba(17, 24, 39, 0.04) !important;
+      border: 1px solid rgba(17, 24, 39, 0.02) !important;
     }
     .tenant-infinity #stepIndicatorText {
       color: #4b5563 !important;
-      font-weight: 600 !important;
+      font-weight: 700 !important;
+      letter-spacing: 0.05em !important;
     }
     .tenant-infinity .category-pill {
-      background: rgba(255, 255, 255, 0.6) !important;
-      border: 1px solid rgba(0, 0, 0, 0.06) !important;
+      background: rgba(255, 255, 255, 0.8) !important;
+      border: 1px solid rgba(17, 24, 39, 0.06) !important;
       color: #4b5563 !important;
-      backdrop-filter: blur(8px) !important;
-      -webkit-backdrop-filter: blur(8px) !important;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.02) !important;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+      backdrop-filter: blur(10px) !important;
+      -webkit-backdrop-filter: blur(10px) !important;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.01) !important;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
     }
     .tenant-infinity .category-pill:hover {
-      background: rgba(255, 255, 255, 0.9) !important;
+      background: rgba(255, 255, 255, 0.95) !important;
       color: #111827 !important;
-      border-color: rgba(0, 0, 0, 0.12) !important;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.04) !important;
+      border-color: rgba(17, 24, 39, 0.15) !important;
+      box-shadow: 0 6px 15px rgba(0, 0, 0, 0.02) !important;
+      transform: translateY(-1px) !important;
     }
     .tenant-infinity .category-pill.border-neon {
       background: #ffffff !important;
-      border-color: #111827 !important;
-      border-width: 2px !important;
+      border: 2px solid #111827 !important;
       color: #111827 !important;
-      font-weight: 700 !important;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.06), 0 0 10px rgba(255,255,255,1) !important;
+      font-weight: 800 !important;
+      box-shadow: 0 0 0 3px rgba(255, 255, 255, 1), 0 8px 25px rgba(0, 0, 0, 0.05), 0 0 15px rgba(255, 255, 255, 1) !important;
+      animation: infinity-breathe-subtle 3s ease-in-out infinite !important;
     }
     .tenant-infinity .category-pill.text-neon { color: #111827 !important; }
     .tenant-infinity h2.text-neon {
       color: #111827 !important;
-      text-shadow: 0 2px 10px rgba(255,255,255,0.8) !important;
+      text-shadow: 0 2px 10px rgba(255, 255, 255, 0.9) !important;
     }
-    .tenant-infinity .service-option {
-      background: rgba(255, 255, 255, 0.7) !important;
-      border: 1px solid rgba(255, 255, 255, 0.8) !important;
-      backdrop-filter: blur(20px) !important;
-      -webkit-backdrop-filter: blur(20px) !important;
-      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.03), inset 0 1px 0 0 rgba(255, 255, 255, 0.6) !important;
+    .tenant-infinity .service-option,
+    .tenant-infinity .barber-option {
+      background: linear-gradient(120deg, rgba(255, 255, 255, 0.8) 30%, rgba(255, 255, 255, 0.92) 50%, rgba(255, 255, 255, 0.8) 70%) !important;
+      background-size: 200% 100% !important;
+      border: 1.5px solid rgba(255, 255, 255, 0.9) !important;
+      backdrop-filter: blur(25px) !important;
+      -webkit-backdrop-filter: blur(25px) !important;
+      box-shadow: 0 8px 32px 0 rgba(17, 24, 39, 0.02), inset 0 1px 1px 0 rgba(255, 255, 255, 0.8) !important;
       color: #1f2937 !important;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
     }
-    .tenant-infinity .service-option:hover {
-      background: rgba(255, 255, 255, 0.95) !important;
-      border-color: rgba(0, 0, 0, 0.12) !important;
-      transform: translateY(-3px) !important;
-      box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.06), 0 0 20px rgba(255, 255, 255, 0.9) !important;
+    .tenant-infinity .service-option:hover,
+    .tenant-infinity .barber-option:hover {
+      animation: white-shimmer-sweep 2s infinite linear !important;
+      background: linear-gradient(120deg, rgba(255, 255, 255, 0.88) 30%, rgba(255, 255, 255, 1) 50%, rgba(255, 255, 255, 0.88) 70%) !important;
+      background-size: 200% 100% !important;
+      transform: translateY(-4px) scale(1.01) !important;
+      border-color: rgba(255, 255, 255, 1) !important;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.04), 0 0 15px rgba(255, 255, 255, 0.8) !important;
     }
-    .tenant-infinity .service-option.border-neon {
+    .tenant-infinity .service-option.border-neon,
+    .tenant-infinity .barber-option.border-neon {
       background: #ffffff !important;
-      border-color: #111827 !important;
-      border-width: 2px !important;
+      border: 2.5px solid #111827 !important;
       color: #111827 !important;
-      box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.08), 0 0 25px rgba(255, 255, 255, 1) !important;
-      animation: infinity-breathe-subtle 3s ease-in-out infinite !important;
+      box-shadow: 0 0 0 4px rgba(255, 255, 255, 1), 0 12px 35px rgba(0, 0, 0, 0.06), 0 0 25px rgba(255, 255, 255, 1) !important;
+      animation: infinity-selected-glow 2.5s ease-in-out infinite !important;
     }
     .tenant-infinity .service-option .price-tag {
       color: #111827 !important;
@@ -3714,36 +3766,13 @@
     }
     .tenant-infinity .service-option .duration-tag {
       color: #4b5563 !important;
-      background: rgba(0,0,0,0.03) !important;
-      border: 1px solid rgba(0,0,0,0.04) !important;
+      background: rgba(17, 24, 39, 0.03) !important;
+      border: 1px solid rgba(17, 24, 39, 0.04) !important;
     }
     .tenant-infinity .service-option p,
     .tenant-infinity .service-option span,
     .tenant-infinity .service-option div {
       color: #1f2937 !important;
-    }
-    .tenant-infinity .barber-option {
-      background: rgba(255, 255, 255, 0.7) !important;
-      border: 1px solid rgba(255, 255, 255, 0.8) !important;
-      backdrop-filter: blur(20px) !important;
-      -webkit-backdrop-filter: blur(20px) !important;
-      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.03), inset 0 1px 0 0 rgba(255, 255, 255, 0.6) !important;
-      color: #1f2937 !important;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    }
-    .tenant-infinity .barber-option:hover {
-      background: rgba(255, 255, 255, 0.95) !important;
-      border-color: rgba(0, 0, 0, 0.12) !important;
-      transform: translateY(-3px) !important;
-      box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.06), 0 0 20px rgba(255, 255, 255, 0.9) !important;
-    }
-    .tenant-infinity .barber-option.border-neon {
-      background: #ffffff !important;
-      border-color: #111827 !important;
-      border-width: 2px !important;
-      color: #111827 !important;
-      box-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.08), 0 0 25px rgba(255, 255, 255, 1) !important;
-      animation: infinity-breathe-subtle 3s ease-in-out infinite !important;
     }
     .tenant-infinity .barber-name,
     .tenant-infinity .barber-option p,
@@ -3752,56 +3781,58 @@
     }
     .tenant-infinity .text-brand-neon {
       color: #111827 !important;
-      font-weight: 700 !important;
+      font-weight: 800 !important;
     }
     .tenant-infinity .day-btn {
-      background: rgba(255, 255, 255, 0.6) !important;
-      border: 1px solid rgba(0, 0, 0, 0.06) !important;
+      background: rgba(255, 255, 255, 0.8) !important;
+      border: 1px solid rgba(17, 24, 39, 0.06) !important;
       color: #4b5563 !important;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.01) !important;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.01) !important;
       transition: all 0.25s !important;
     }
     .tenant-infinity .day-btn:hover {
       background: rgba(255, 255, 255, 0.95) !important;
       color: #111827 !important;
-      border-color: rgba(0, 0, 0, 0.1) !important;
+      border-color: rgba(17, 24, 39, 0.12) !important;
+      transform: translateY(-1px) !important;
     }
     .tenant-infinity .day-btn.active,
     .tenant-infinity .day-btn.border-neon {
       background: #ffffff !important;
-      border-color: #111827 !important;
-      border-width: 2px !important;
+      border: 2px solid #111827 !important;
       color: #111827 !important;
-      font-weight: 700 !important;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.06), 0 0 10px rgba(255,255,255,1) !important;
+      font-weight: 800 !important;
+      box-shadow: 0 0 0 3px rgba(255, 255, 255, 1), 0 6px 15px rgba(0, 0, 0, 0.04), 0 0 10px rgba(255, 255, 255, 1) !important;
     }
     .tenant-infinity .time-pill {
-      background: rgba(255, 255, 255, 0.6) !important;
-      border: 1px solid rgba(0, 0, 0, 0.06) !important;
+      background: rgba(255, 255, 255, 0.8) !important;
+      border: 1px solid rgba(17, 24, 39, 0.06) !important;
       color: #4b5563 !important;
       transition: all 0.25s !important;
     }
     .tenant-infinity .time-pill:hover:not(.disabled) {
       background: rgba(255, 255, 255, 0.95) !important;
       color: #111827 !important;
-      border-color: rgba(0, 0, 0, 0.1) !important;
+      border-color: rgba(17, 24, 39, 0.12) !important;
+      transform: translateY(-1px) !important;
     }
     .tenant-infinity .time-pill.border-neon {
       background: #ffffff !important;
-      border-color: #111827 !important;
-      border-width: 2px !important;
-      color: #111827 !important;
-      font-weight: 700 !important;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.06), 0 0 10px rgba(255,255,255,1) !important;
-    }
-    .tenant-infinity #btnContinue {
-      background: linear-gradient(135deg, #ffffff, #f3f4f6) !important;
-      border: 2px solid #ffffff !important;
+      border: 2px solid #111827 !important;
       color: #111827 !important;
       font-weight: 800 !important;
-      letter-spacing: 0.03em !important;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.05), 0 0 25px rgba(255,255,255,1) !important;
-      transition: all 0.3s ease !important;
+      box-shadow: 0 0 0 3px rgba(255, 255, 255, 1), 0 6px 15px rgba(0, 0, 0, 0.04), 0 0 10px rgba(255, 255, 255, 1) !important;
+    }
+    .tenant-infinity #btnContinue {
+      background: linear-gradient(135deg, #ffffff, #f9fafb, #f3f4f6) !important;
+      border: 2px solid #ffffff !important;
+      color: #111827 !important;
+      font-weight: 900 !important;
+      letter-spacing: 0.05em !important;
+      box-shadow: 
+        0 12px 35px rgba(0, 0, 0, 0.04), 
+        0 0 30px rgba(255, 255, 255, 1) !important;
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
       animation: infinity-glow-btn 3s ease-in-out infinite !important;
     }
     .tenant-infinity #btnContinue::after {
@@ -3812,70 +3843,77 @@
       animation: infinity-breathe 2s ease-in-out infinite !important;
     }
     .tenant-infinity #btnContinue:hover:not(:disabled) {
-      transform: translateY(-2px) !important;
-      box-shadow: 0 15px 35px rgba(0,0,0,0.08), 0 0 35px rgba(255,255,255,1) !important;
+      transform: translateY(-3px) scale(1.02) !important;
+      box-shadow: 
+        0 20px 45px rgba(0, 0, 0, 0.08), 
+        0 0 35px rgba(255, 255, 255, 1), 
+        0 0 0 4px rgba(255, 255, 255, 1) !important;
       border-color: #111827 !important;
     }
     .tenant-infinity #btnContinueBar {
-      background: rgba(255, 255, 255, 0.8) !important;
-      border-top: 1px solid rgba(0, 0, 0, 0.05) !important;
-      backdrop-filter: blur(15px) !important;
-      -webkit-backdrop-filter: blur(15px) !important;
+      background: rgba(255, 255, 255, 0.9) !important;
+      border-top: 1px solid rgba(17, 24, 39, 0.04) !important;
+      backdrop-filter: blur(20px) !important;
+      -webkit-backdrop-filter: blur(20px) !important;
     }
     .tenant-infinity #btnContinueBar button {
-      background: linear-gradient(135deg, #ffffff, #f3f4f6) !important;
-      border: 1px solid rgba(0,0,0,0.08) !important;
+      background: linear-gradient(135deg, #ffffff, #f9fafb, #f3f4f6) !important;
+      border: 1px solid rgba(17, 24, 39, 0.08) !important;
       color: #111827 !important;
-      font-weight: 700 !important;
+      font-weight: 800 !important;
     }
     .tenant-infinity #clientName,
     .tenant-infinity #clientPhone,
     .tenant-infinity #clientEmail {
-      background-color: rgba(255, 255, 255, 0.8) !important;
-      border: 1px solid rgba(0, 0, 0, 0.08) !important;
+      background-color: rgba(255, 255, 255, 0.9) !important;
+      border: 1px solid rgba(17, 24, 39, 0.08) !important;
       color: #111827 !important;
-      border-radius: 8px !important;
+      border-radius: 12px !important;
+      transition: all 0.3s !important;
     }
     .tenant-infinity #clientName:focus,
     .tenant-infinity #clientPhone:focus,
     .tenant-infinity #clientEmail:focus {
       border-color: #111827 !important;
       background-color: #ffffff !important;
-      box-shadow: 0 0 20px rgba(255, 255, 255, 1) !important;
+      box-shadow: 0 0 20px rgba(255, 255, 255, 1), 0 4px 12px rgba(0, 0, 0, 0.02) !important;
     }
     .tenant-infinity #waBtnLink {
       background: #25D366 !important;
       color: #ffffff !important;
-      box-shadow: 0 4px 15px rgba(37,211,102,0.3) !important;
+      box-shadow: 0 6px 20px rgba(37, 211, 102, 0.25) !important;
     }
     .tenant-infinity #clubBanner {
-      background: rgba(255, 255, 255, 0.8) !important;
-      border: 1px solid rgba(0,0,0,0.06) !important;
-      backdrop-filter: blur(12px) !important;
-      -webkit-backdrop-filter: blur(12px) !important;
-      box-shadow: 0 8px 30px rgba(0,0,0,0.03) !important;
+      background: rgba(255, 255, 255, 0.85) !important;
+      border: 1px solid rgba(17, 24, 39, 0.04) !important;
+      backdrop-filter: blur(15px) !important;
+      -webkit-backdrop-filter: blur(15px) !important;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.02) !important;
+      border-radius: 16px !important;
     }
     .tenant-infinity #clubBanner a {
       background: #ffffff !important;
-      border: 1px solid rgba(0, 0, 0, 0.08) !important;
+      border: 1px solid rgba(17, 24, 39, 0.08) !important;
+      border-radius: 12px !important;
       color: #111827 !important;
-      font-weight: 700 !important;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.04) !important;
+      font-weight: 800 !important;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02) !important;
     }
     .tenant-infinity #toastValidation {
       background: #ffffff !important;
-      border: 1px solid rgba(239, 68, 68, 0.2) !important;
+      border: 1px solid rgba(239, 68, 68, 0.15) !important;
       color: #ef4444 !important;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.08), 0 0 15px rgba(255,255,255,1) !important;
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.06), 0 0 15px rgba(255, 255, 255, 1) !important;
     }
     .tenant-infinity #success-state .bg-\[\#0a0a0d\] {
-      background: rgba(255, 255, 255, 0.8) !important;
-      border: 1px solid rgba(0, 0, 0, 0.06) !important;
-      box-shadow: 0 8px 30px rgba(0,0,0,0.03) !important;
+      background: rgba(255, 255, 255, 0.85) !important;
+      border: 1px solid rgba(17, 24, 39, 0.05) !important;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.02) !important;
+      border-radius: 20px !important;
     }
     .tenant-infinity #success-state h2 {
       color: #111827 !important;
-      text-shadow: 0 2px 10px rgba(255,255,255,0.8) !important;
+      text-shadow: 0 2px 10px rgba(255, 255, 255, 0.9) !important;
     }
     .tenant-infinity #success-state .text-neon {
       color: #111827 !important;
@@ -3904,51 +3942,106 @@
       color: #111827 !important;
     }
     .tenant-infinity #reviewsCtaBtn {
-      background: rgba(255,255,255,0.8) !important;
-      border: 1px solid rgba(0,0,0,0.08) !important;
+      background: rgba(255, 255, 255, 0.8) !important;
+      border: 1px solid rgba(17, 24, 39, 0.08) !important;
       color: #4b5563 !important;
     }
     .tenant-infinity #reviewsCtaBtn:hover {
       color: #111827 !important;
       background: #ffffff !important;
+      border-color: rgba(17, 24, 39, 0.15) !important;
     }
     .tenant-infinity #reviewsGrid > div {
-      background: rgba(255,255,255,0.8) !important;
-      border: 1px solid rgba(0,0,0,0.06) !important;
+      background: rgba(255, 255, 255, 0.85) !important;
+      border: 1px solid rgba(17, 24, 39, 0.05) !important;
       color: #1f2937 !important;
     }
     .tenant-infinity #reviewsGrid > div * {
       color: #1f2937 !important;
     }
+    .tenant-infinity .gold-divider {
+      width: 150px !important;
+      height: 2px !important;
+      background: linear-gradient(90deg, transparent, rgba(17, 24, 39, 0.15), #111827, rgba(17, 24, 39, 0.15), transparent) !important;
+      margin: 20px auto !important;
+      position: relative !important;
+      overflow: visible !important;
+      border: none !important;
+    }
+    .tenant-infinity .gold-divider::before {
+      content: "∞" !important;
+      position: absolute !important;
+      top: 50% !important;
+      left: 50% !important;
+      transform: translate(-50%, -50%) !important;
+      background: #ffffff !important;
+      padding: 0 12px !important;
+      color: #111827 !important;
+      font-size: 1.8rem !important;
+      font-weight: 300 !important;
+      line-height: 1 !important;
+      display: inline-block !important;
+      animation: infinity-loop-spin 4s ease-in-out infinite !important;
+    }
 
     /* Keyframes para animaciones de infinito y respiración con destellos */
+    @keyframes infinity-bg-flow {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+    @keyframes float-infinity-slow {
+      0% { transform: translate(0, 0) rotate(0deg) scale(1); }
+      100% { transform: translate(40px, -60px) rotate(15deg) scale(1.15); }
+    }
+    @keyframes float-infinity-fast {
+      0% { transform: translate(0, 0) rotate(0deg) scale(1); }
+      100% { transform: translate(-50px, -80px) rotate(-25deg) scale(0.9); }
+    }
+    @keyframes progress-glow-sweep {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(100%); }
+    }
+    @keyframes white-shimmer-sweep {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+    @keyframes infinity-selected-glow {
+      0%, 100% {
+        box-shadow: 0 0 0 3px rgba(255, 255, 255, 1), 0 8px 30px rgba(0, 0, 0, 0.05), 0 0 15px rgba(255, 255, 255, 0.8) !important;
+        transform: scale(1) !important;
+      }
+      50% {
+        box-shadow: 0 0 0 5px rgba(255, 255, 255, 1), 0 16px 45px rgba(0, 0, 0, 0.08), 0 0 30px rgba(255, 255, 255, 1) !important;
+        transform: scale(1.01) !important;
+      }
+    }
     @keyframes infinity-breathe {
       0%, 100% {
         transform: scale(1);
-        box-shadow: 0 8px 30px rgba(0,0,0,0.05), 0 0 15px rgba(255,255,255,0.7) !important;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.04), 0 0 15px rgba(255,255,255,0.7) !important;
       }
       50% {
         transform: scale(1.05);
-        box-shadow: 0 12px 45px rgba(0,0,0,0.08), 0 0 35px rgba(255,255,255,1) !important;
+        box-shadow: 0 12px 45px rgba(0,0,0,0.06), 0 0 35px rgba(255,255,255,1) !important;
       }
     }
     @keyframes infinity-breathe-subtle {
       0%, 100% {
         transform: scale(1);
-        box-shadow: 0 8px 30px rgba(0,0,0,0.03), 0 0 10px rgba(255,255,255,0.6) !important;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.03), 0 0 10px rgba(255,255,255,0.6) !important;
       }
       50% {
         transform: scale(1.015);
-        box-shadow: 0 12px 40px rgba(0,0,0,0.06), 0 0 25px rgba(255,255,255,1) !important;
+        box-shadow: 0 12px 35px rgba(0,0,0,0.05), 0 0 20px rgba(255,255,255,1) !important;
       }
     }
     @keyframes infinity-glow-btn {
       0%, 100% {
-        box-shadow: 0 10px 30px rgba(0,0,0,0.05), 0 0 20px rgba(255,255,255,0.8), inset 0 0 0 0px rgba(255,255,255,1) !important;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.03), 0 0 20px rgba(255,255,255,0.8), inset 0 0 0 0px rgba(255,255,255,1) !important;
       }
       50% {
-        box-shadow: 0 15px 40px rgba(0,0,0,0.08), 0 0 40px rgba(255,255,255,1), inset 0 0 4px 1px rgba(255,255,255,1) !important;
-        transform: scale(1.02) !important;
+        box-shadow: 0 15px 40px rgba(0,0,0,0.06), 0 0 40px rgba(255,255,255,1), inset 0 0 4px 1px rgba(255,255,255,1) !important;
+        transform: scale(1.01) !important;
       }
     }
     @keyframes infinity-loop-spin {
@@ -3957,9 +4050,9 @@
         text-shadow: 0 0 5px rgba(255,255,255,0.5);
       }
       50% {
-        transform: rotate(180deg) scale(1.1);
-        text-shadow: 0 0 25px rgba(0,0,0,0.1), 0 0 10px rgba(255,255,255,1);
-        color: rgba(17, 24, 39, 0.4);
+        transform: rotate(180deg) scale(1.15);
+        text-shadow: 0 0 25px rgba(0,0,0,0.05), 0 0 10px rgba(255,255,255,1);
+        color: rgba(17, 24, 39, 0.55);
       }
       100% {
         transform: rotate(360deg) scale(1);
