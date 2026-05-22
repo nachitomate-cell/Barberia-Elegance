@@ -3280,6 +3280,8 @@ let _sfUnsub        = null;
 let _prevStamps     = null;
 let _stampsSynced   = false;
 let _premiosVisible = false;
+var _citaCache      = window._citaCache || {};
+window._citaCache   = _citaCache;
 
 // ─── Aplicar Config ───────────────────────────────────────────
 document.title = `Mi ${SHOP.club}`;
@@ -4527,6 +4529,102 @@ function formatearFechaCita(fechaStr) {
   const [yy, mo, dd] = fechaStr.split('-').map(Number);
   const d = new Date(yy, mo - 1, dd);
   return d.toLocaleDateString('es-CL', { weekday: 'short', day: 'numeric', month: 'short' });
+}
+
+// ─── Modals de Citas (Reagendar / Cancelar) ──────────────────
+let _citaSeleccionadaId = null;
+
+function abrirModalReagendar(id) {
+  _citaSeleccionadaId = id;
+  const cache = window._citaCache || {};
+  const cita = cache[id] || null;
+  if (cita) {
+    const fechaStr = formatearFechaCita(cita.fecha);
+    const infoEl = document.getElementById('reagendarCitaInfo');
+    if (infoEl) {
+      infoEl.innerHTML = `
+        <p class="text-white font-bold text-sm">${cita.servicioNombre || 'Servicio'}</p>
+        <p class="text-[10px] text-zinc-400 mt-1">${fechaStr} a las ${cita.hora} hrs</p>
+      `;
+    }
+  }
+  const modalEl = document.getElementById('reagendarCitaModal');
+  if (modalEl) modalEl.classList.remove('hidden');
+}
+
+function cerrarModalReagendar() {
+  const modalEl = document.getElementById('reagendarCitaModal');
+  if (modalEl) modalEl.classList.add('hidden');
+}
+
+async function confirmarReagendamiento() {
+  if (!_citaSeleccionadaId) return;
+  const btn = document.getElementById('btnConfirmarReagendamiento');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Procesando...';
+  }
+  try {
+    await FDB.updateCitaEstado(_citaSeleccionadaId, 'Cancelada');
+    showToast('🔄 Cita cancelada. Redirigiendo...', 'ok');
+    cerrarModalReagendar();
+    setTimeout(() => {
+      window.location.href = 'index.html';
+    }, 1200);
+  } catch (e) {
+    console.error('[Reagendar] Error:', e);
+    showToast('No se pudo cancelar la cita anterior', 'err');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Sí, elegir nuevo horario';
+    }
+  }
+}
+
+function abrirModalCancelar(id) {
+  _citaSeleccionadaId = id;
+  const cache = window._citaCache || {};
+  const cita = cache[id] || null;
+  if (cita) {
+    const fechaStr = formatearFechaCita(cita.fecha);
+    const infoEl = document.getElementById('cancelCitaInfo');
+    if (infoEl) {
+      infoEl.innerHTML = `
+        <p class="text-white font-bold text-sm">${cita.servicioNombre || 'Servicio'}</p>
+        <p class="text-[10px] text-zinc-400 mt-1">${fechaStr} a las ${cita.hora} hrs</p>
+      `;
+    }
+  }
+  const modalEl = document.getElementById('cancelCitaModal');
+  if (modalEl) modalEl.classList.remove('hidden');
+}
+
+function cerrarModalCancelar() {
+  const modalEl = document.getElementById('cancelCitaModal');
+  if (modalEl) modalEl.classList.add('hidden');
+}
+
+async function confirmarCancelacion() {
+  if (!_citaSeleccionadaId) return;
+  const btn = document.getElementById('btnConfirmarCancelacion');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Cancelando...';
+  }
+  try {
+    await FDB.updateCitaEstado(_citaSeleccionadaId, 'Cancelada');
+    showToast('✅ Cita cancelada correctamente', 'ok');
+    cerrarModalCancelar();
+  } catch (e) {
+    console.error('[Cancelar] Error:', e);
+    showToast('No se pudo cancelar la cita', 'err');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Sí, cancelar mi cita';
+    }
+  }
 }
 
 // ─── Compresión de imagen (cliente) ──────────────────────────
