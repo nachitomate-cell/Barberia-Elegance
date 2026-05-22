@@ -7295,19 +7295,14 @@
       if (themeMeta) themeMeta.content = SHOP.bodyBg || (window.CURRENT_TENANT_ID === 'gitana' ? '#0a0508' : '#050505');
       const appleTitleMeta = document.querySelector('meta[name="apple-mobile-web-app-title"]');
       if (appleTitleMeta) appleTitleMeta.content = SHOP.nombreCorto;
-      const appleIcon = document.querySelector('link[rel="apple-touch-icon"]');
-      if (appleIcon) appleIcon.href = SHOP.logo;
+      const _isMarcelo = window.CURRENT_TENANT_ID === 'marcelo_hairdressing';
+      const _faviconSrc = _isMarcelo ? '/marcelo1.png' : SHOP.logo;
 
-      // Favicon dinámico por tenant
+      const appleIcon = document.querySelector('link[rel="apple-touch-icon"]');
+      if (appleIcon) { appleIcon.href = _faviconSrc; appleIcon.type = _isMarcelo ? 'image/png' : ''; }
+
       const faviconEl = document.querySelector('link[rel="icon"]');
-      if (faviconEl) {
-        if (window.CURRENT_TENANT_ID === 'marcelo_hairdressing') {
-          faviconEl.href = '/marcelo1.png';
-          faviconEl.type = 'image/png';
-        } else {
-          faviconEl.href = SHOP.logo;
-        }
-      }
+      if (faviconEl) { faviconEl.href = _faviconSrc; faviconEl.type = _isMarcelo ? 'image/png' : 'image/jpeg'; }
 
       // Marcelo Hairdressing — actualizar header y textos del club
       if (window.CURRENT_TENANT_ID === 'marcelo_hairdressing') {
