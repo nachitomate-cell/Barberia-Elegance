@@ -3573,8 +3573,33 @@
       --neon-clr: #111827;
       --neon-r:   17; --neon-g:   24; --neon-b:   39;
       --body-bg:  #ffffff;
+
+      /* Unificación de tokens de diseño para un entorno Luminous White perfecto */
+      --brand-bg: #ffffff !important;
+      --brand-surface: rgba(255, 255, 255, 0.75) !important;
+      --brand-surface-alt: rgba(255, 255, 255, 0.88) !important;
+      --brand-primary: #111827 !important;
+      --brand-accent: #4b5563 !important;
+      --brand-text: #1f2937 !important;
+      --brand-muted: #9ca3af !important;
+      --brand-border: rgba(17, 24, 39, 0.06) !important;
+      --brand-glow: rgba(255, 255, 255, 0.8) !important;
+      --brand-button-text: #111827 !important;
+      --brand-progress-track: rgba(17, 24, 39, 0.04) !important;
+
       position: relative;
     }
+
+    /* Intercepción global de utilidades de color blanco de Tailwind para legibilidad perfecta en tema claro */
+    .tenant-infinity .text-white\/50 { color: rgba(17, 24, 39, 0.5) !important; }
+    .tenant-infinity .text-white\/40 { color: rgba(17, 24, 39, 0.4) !important; }
+    .tenant-infinity .text-white\/30 { color: rgba(17, 24, 39, 0.3) !important; }
+    .tenant-infinity .text-white\/20 { color: rgba(17, 24, 39, 0.2) !important; }
+    .tenant-infinity .text-white\/10 { color: rgba(17, 24, 39, 0.1) !important; }
+    .tenant-infinity .text-white\/70 { color: rgba(17, 24, 39, 0.7) !important; }
+    .tenant-infinity .text-white\/80 { color: rgba(17, 24, 39, 0.8) !important; }
+    .tenant-infinity .text-white\/90 { color: rgba(17, 24, 39, 0.9) !important; }
+
     .tenant-infinity::before {
       content: "∞" !important;
       position: fixed !important;
@@ -3783,6 +3808,8 @@
       color: #111827 !important;
       font-weight: 800 !important;
     }
+
+    /* Configuración de legibilidad para el calendario y horarios */
     .tenant-infinity .day-btn {
       background: rgba(255, 255, 255, 0.8) !important;
       border: 1px solid rgba(17, 24, 39, 0.06) !important;
@@ -3790,11 +3817,20 @@
       box-shadow: 0 2px 5px rgba(0, 0, 0, 0.01) !important;
       transition: all 0.25s !important;
     }
+    .tenant-infinity .day-btn span,
+    .tenant-infinity .day-btn .day-num {
+      color: #4b5563 !important;
+      transition: all 0.2s !important;
+    }
     .tenant-infinity .day-btn:hover {
       background: rgba(255, 255, 255, 0.95) !important;
       color: #111827 !important;
       border-color: rgba(17, 24, 39, 0.12) !important;
       transform: translateY(-1px) !important;
+    }
+    .tenant-infinity .day-btn:hover span,
+    .tenant-infinity .day-btn:hover .day-num {
+      color: #111827 !important;
     }
     .tenant-infinity .day-btn.active,
     .tenant-infinity .day-btn.border-neon {
@@ -3804,6 +3840,18 @@
       font-weight: 800 !important;
       box-shadow: 0 0 0 3px rgba(255, 255, 255, 1), 0 6px 15px rgba(0, 0, 0, 0.04), 0 0 10px rgba(255, 255, 255, 1) !important;
     }
+    .tenant-infinity .day-btn.active span,
+    .tenant-infinity .day-btn.border-neon span {
+      color: #111827 !important;
+      font-weight: 800 !important;
+    }
+    .tenant-infinity .day-btn.active .day-num,
+    .tenant-infinity .day-btn.border-neon .day-num {
+      color: #111827 !important;
+      font-weight: 900 !important;
+      text-shadow: 0 0 8px rgba(255, 255, 255, 0.8) !important;
+    }
+
     .tenant-infinity .time-pill {
       background: rgba(255, 255, 255, 0.8) !important;
       border: 1px solid rgba(17, 24, 39, 0.06) !important;
@@ -3823,6 +3871,14 @@
       font-weight: 800 !important;
       box-shadow: 0 0 0 3px rgba(255, 255, 255, 1), 0 6px 15px rgba(0, 0, 0, 0.04), 0 0 10px rgba(255, 255, 255, 1) !important;
     }
+    .tenant-infinity .time-pill.disabled {
+      background: rgba(17, 24, 39, 0.02) !important;
+      border-color: rgba(17, 24, 39, 0.03) !important;
+      color: #9ca3af !important;
+      text-decoration: line-through !important;
+      opacity: 0.45 !important;
+    }
+
     .tenant-infinity #btnContinue {
       background: linear-gradient(135deg, #ffffff, #f9fafb, #f3f4f6) !important;
       border: 2px solid #ffffff !important;
@@ -3883,6 +3939,54 @@
       color: #ffffff !important;
       box-shadow: 0 6px 20px rgba(37, 211, 102, 0.25) !important;
     }
+
+    /* Paso 4 - Forzar legibilidad de etiquetas de formulario (originalmente text-white/50) */
+    .tenant-infinity #step4 label {
+      color: #4b5563 !important;
+      font-weight: 700 !important;
+      text-shadow: none !important;
+    }
+    .tenant-infinity #step4 label span {
+      color: #9ca3af !important;
+    }
+    
+    /* Paso 4 - Estilo de Tarjeta de Resumen (Originalmente fondo negro #0a0807) */
+    .tenant-infinity #step4 div[style*="background:#0a0807"] {
+      background: rgba(255, 255, 255, 0.75) !important;
+      border: 1px solid rgba(17, 24, 39, 0.08) !important;
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.02), inset 0 1px 1px rgba(255, 255, 255, 0.8) !important;
+      backdrop-filter: blur(12px) !important;
+      -webkit-backdrop-filter: blur(12px) !important;
+    }
+    .tenant-infinity #step4 div[style*="background:#0a0807"] p {
+      color: #1f2937 !important;
+    }
+    .tenant-infinity #step4 div[style*="background:#0a0807"] .text-white\/30 {
+      color: #9ca3af !important;
+      font-weight: 700 !important;
+    }
+    .tenant-infinity #step4 div[style*="background:#0a0807"] #summaryService,
+    .tenant-infinity #step4 div[style*="background:#0a0807"] #summaryPrice {
+      color: #111827 !important;
+      font-weight: 800 !important;
+    }
+    .tenant-infinity #step4 div[style*="background:#0a0807"] .bg-white\/5 {
+      background-color: rgba(17, 24, 39, 0.06) !important;
+    }
+    .tenant-infinity #step4 div[style*="background:#0a0807"] span,
+    .tenant-infinity #step4 div[style*="background:#0a0807"] #summaryBarber,
+    .tenant-infinity #step4 div[style*="background:#0a0807"] #summaryDateString {
+      color: #4b5563 !important;
+    }
+    .tenant-infinity #step4 div[style*="background:#0a0807"] #summaryTime {
+      color: #111827 !important;
+      font-weight: 700 !important;
+    }
+    .tenant-infinity #step4 div[style*="background:#0a0807"] i {
+      color: rgba(17, 24, 39, 0.3) !important;
+    }
+
+    /* Club de fidelidad Banner overrides */
     .tenant-infinity #clubBanner {
       background: rgba(255, 255, 255, 0.85) !important;
       border: 1px solid rgba(17, 24, 39, 0.04) !important;
@@ -3892,13 +3996,42 @@
       border-radius: 16px !important;
     }
     .tenant-infinity #clubBanner a {
-      background: #ffffff !important;
+      background: rgba(255, 255, 255, 0.8) !important;
       border: 1px solid rgba(17, 24, 39, 0.08) !important;
-      border-radius: 12px !important;
+      border-radius: 16px !important;
+      color: #111827 !important;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+      backdrop-filter: blur(10px) !important;
+      -webkit-backdrop-filter: blur(10px) !important;
+    }
+    .tenant-infinity #clubBanner a:hover {
+      transform: translateY(-2px) !important;
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.04) !important;
+      border-color: rgba(17, 24, 39, 0.15) !important;
+    }
+    .tenant-infinity #clubBanner .club-icon-wrap {
+      background: rgba(17, 24, 39, 0.03) !important;
+      border: 1px solid rgba(17, 24, 39, 0.08) !important;
+    }
+    .tenant-infinity #clubBanner i.ph-fill {
+      color: #111827 !important;
+      filter: none !important;
+    }
+    .tenant-infinity #clubBanner p#shopClubNombre {
+      color: #4b5563 !important;
+      font-weight: 700 !important;
+    }
+    .tenant-infinity #clubBanner a .text-white {
       color: #111827 !important;
       font-weight: 800 !important;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02) !important;
     }
+    .tenant-infinity #clubBanner a .text-gray-500 {
+      color: #4b5563 !important;
+    }
+    .tenant-infinity #clubBanner a i.ph-arrow-right {
+      color: rgba(17, 24, 39, 0.3) !important;
+    }
+
     .tenant-infinity #toastValidation {
       background: #ffffff !important;
       border: 1px solid rgba(239, 68, 68, 0.15) !important;
@@ -3906,10 +4039,12 @@
       box-shadow: 0 12px 35px rgba(0, 0, 0, 0.06), 0 0 15px rgba(255, 255, 255, 1) !important;
     }
     .tenant-infinity #success-state .bg-\[\#0a0a0d\] {
-      background: rgba(255, 255, 255, 0.85) !important;
-      border: 1px solid rgba(17, 24, 39, 0.05) !important;
-      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.02) !important;
+      background: rgba(255, 255, 255, 0.75) !important;
+      border: 1px solid rgba(17, 24, 39, 0.06) !important;
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.02) !important;
       border-radius: 20px !important;
+      backdrop-filter: blur(12px) !important;
+      -webkit-backdrop-filter: blur(12px) !important;
     }
     .tenant-infinity #success-state h2 {
       color: #111827 !important;
@@ -3926,6 +4061,14 @@
     }
     .tenant-infinity #success-state .text-brand-neon\/80 {
       color: #4b5563 !important;
+    }
+    .tenant-infinity #successSummaryService {
+      color: #111827 !important;
+      font-weight: 800 !important;
+    }
+    .tenant-infinity #successSummaryDate {
+      color: #111827 !important;
+      font-weight: 600 !important;
     }
     .tenant-infinity #successInstagram {
       color: #4b5563 !important;

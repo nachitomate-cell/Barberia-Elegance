@@ -182,17 +182,17 @@ async function seedProfile() {
   }, { merge: true });
 
   await tenantRef.collection('settings').doc('theme').set({
-    colorBg:            '#121214',
-    colorSurface:       '#1a1a1e',
-    colorSurfaceAlt:    '#25252b',
-    colorPrimary:       '#3b3b3b',
-    colorAccent:        '#5a5a5a',
-    colorText:          '#f3f4f6',
+    colorBg:            '#ffffff',
+    colorSurface:       'rgba(255,255,255,0.85)',
+    colorSurfaceAlt:    'rgba(255,255,255,0.92)',
+    colorPrimary:       '#111827',
+    colorAccent:        '#4b5563',
+    colorText:          '#1f2937',
     colorMuted:         '#9ca3af',
-    colorBorder:        'rgba(255,255,255,0.08)',
-    colorGlow:          'rgba(255,255,255,0.05)',
-    colorButtonText:    '#ffffff',
-    colorProgressTrack: 'rgba(255,255,255,0.04)',
+    colorBorder:        'rgba(17, 24, 39, 0.08)',
+    colorGlow:          'rgba(255,255,255,0.8)',
+    colorButtonText:    '#111827',
+    colorProgressTrack: 'rgba(17, 24, 39, 0.04)',
     updatedAt:          TS(),
   }, { merge: true });
 
