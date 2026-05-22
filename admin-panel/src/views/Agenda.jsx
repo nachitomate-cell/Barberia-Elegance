@@ -1,9 +1,10 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import {
   ChevronLeft, ChevronRight, Plus, X, Ban, CalendarOff,
   CheckCircle2, XCircle, Clock, Trash2, Lock, History,
   User, Phone, Mail, Scissors, CalendarDays, DollarSign,
   Timer, MessageSquare, BadgeCheck, Search, ListFilter, MapPin,
+  Send, Download, RefreshCw, Copy, Check,
 } from 'lucide-react';
 import {
   addDoc, updateDoc, deleteDoc, doc, getDoc, serverTimestamp, where, orderBy, limit, writeBatch, getDocs, query,
@@ -950,6 +951,322 @@ function UltimasCitasModal({ citas, loading, onClose }) {
   );
 }
 
+/* ── DifusionPanel (marcelo_hairdressing only) ───────────────── */
+function DifusionPanel({ citas, bloqueos, barberos, dateStr }) {
+  // Find the first available slot on the given date (or next working day)
+  const [copied, setCopied] = useState(false);
+  const canvasRef = useRef(null);
+
+  // Hours config
+  const SHOP_START = 10 * 60; // 10:00
+  const SHOP_END   = 20 * 60; // 20:00
+  const SLOT_M     = 30;
+
+  const allSlots = useMemo(() => {
+    const slots = [];
+    for (let m = SHOP_START; m < SHOP_END; m += SLOT_M) {
+      const h  = String(Math.floor(m / 60)).padStart(2, '0');
+      const mn = String(m % 60).padStart(2, '0');
+      slots.push(`${h}:${mn}`);
+    }
+    return slots;
+  }, []);
+
+  // Build occupied map: hora -> clienteNombre
+  const occupied = useMemo(() => {
+    const map = {};
+    (citas || []).forEach(c => {
+      if (c.estado !== 'Cancelada') {
+        const dur  = Number(c.duracion || c.duracionServicio || 30);
+        const base = c.hora;
+        const baseMin = parseInt(base.split(':')[0]) * 60 + parseInt(base.split(':')[1]);
+        for (let offset = 0; offset < dur; offset += SLOT_M) {
+          const m = baseMin + offset;
+          const key = `${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`;
+          map[key] = c.clienteNombre || 'Cliente';
+        }
+      }
+    });
+    // Mark bloqueos
+    (bloqueos || []).forEach(b => {
+      if (b.todo_el_dia) {
+        allSlots.forEach(s => { map[s] = 'BLOQUEADO'; });
+      } else if (b.hora_inicio && b.hora_fin) {
+        const ini = parseInt(b.hora_inicio.split(':')[0])*60 + parseInt(b.hora_inicio.split(':')[1]);
+        const fin = parseInt(b.hora_fin.split(':')[0])*60 + parseInt(b.hora_fin.split(':')[1]);
+        for (let m = ini; m < fin; m += SLOT_M) {
+          const key = `${String(Math.floor(m/60)).padStart(2,'0')}:${String(m%60).padStart(2,'0')}`;
+          map[key] = 'BLOQUEADO';
+        }
+      }
+    });
+    return map;
+  }, [citas, bloqueos, allSlots]);
+
+  const freeSlots = useMemo(() => allSlots.filter(s => !occupied[s]), [allSlots, occupied]);
+
+  const fechaFmt = useMemo(() => {
+    const [y, mo, d] = dateStr.split('-').map(Number);
+    return new Date(y, mo - 1, d).toLocaleDateString('es-CL', {
+      weekday: 'long', day: 'numeric', month: 'long'
+    });
+  }, [dateStr]);
+
+  // Generate broadcast message
+  const message = useMemo(() => {
+    if (freeSlots.length === 0) {
+      return `✂️ *Barbería Ferraza* — ${fechaFmt.charAt(0).toUpperCase() + fechaFmt.slice(1)}\n\n` +
+             `📵 La agenda para este día está *completa*.\n\n` +
+             `Agenda tu hora en ➡️ marcelopalma.synaptechspa.cl`;
+    }
+    const horasStr = freeSlots.map(h => `   • ${h}`).join('\n');
+    return (
+      `✂️ *Barbería Ferraza* — ${fechaFmt.charAt(0).toUpperCase() + fechaFmt.slice(1)}\n\n` +
+      `🟢 *Horas disponibles (${freeSlots.length}):*\n${horasStr}\n\n` +
+      `📲 Agenda tu hora ahora:\n   marcelopalma.synaptechspa.cl\n\n` +
+      `_¡Te esperamos, Ferraza es tu casa!_ 🙌`
+    );
+  }, [freeSlots, fechaFmt]);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(message).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+
+  // PNG export using Canvas
+  const handleExport = () => {
+    const CARD_W   = 800;
+    const SLOT_H   = 44;
+    const PADDING  = 32;
+    const HEADER_H = 110;
+    const FOOTER_H = 60;
+    const TOTAL_H  = HEADER_H + allSlots.length * SLOT_H + FOOTER_H + PADDING * 2;
+
+    const canvas  = document.createElement('canvas');
+    const DPR     = 2;
+    canvas.width  = CARD_W * DPR;
+    canvas.height = TOTAL_H * DPR;
+    canvas.style.width  = `${CARD_W}px`;
+    canvas.style.height = `${TOTAL_H}px`;
+    const ctx = canvas.getContext('2d');
+    ctx.scale(DPR, DPR);
+
+    // Background
+    ctx.fillStyle = '#0A0A0A';
+    ctx.fillRect(0, 0, CARD_W, TOTAL_H);
+
+    // Subtle grid pattern
+    ctx.strokeStyle = 'rgba(255,255,255,0.025)';
+    ctx.lineWidth = 1;
+    for (let x = 0; x < CARD_W; x += 40) {
+      ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, TOTAL_H); ctx.stroke();
+    }
+    for (let y = 0; y < TOTAL_H; y += 40) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(CARD_W, y); ctx.stroke();
+    }
+
+    // Top accent bar
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(PADDING, PADDING, CARD_W - PADDING * 2, 2);
+
+    // Header
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 28px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillText('Barbería Ferraza', PADDING, PADDING + 38);
+
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.font = '14px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillText(`Ferraza es tu casa  ·  ${fechaFmt.charAt(0).toUpperCase() + fechaFmt.slice(1)}`, PADDING, PADDING + 62);
+
+    // Stats row
+    const libre = freeSlots.length;
+    const ocup  = allSlots.length - libre;
+    ctx.fillStyle = 'rgba(255,255,255,0.06)';
+    ctx.beginPath();
+    ctx.roundRect(PADDING, PADDING + 74, 140, 28, 8);
+    ctx.fill();
+    ctx.fillStyle = '#4ade80';
+    ctx.font = 'bold 12px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillText(`🟢  ${libre} disponibles`, PADDING + 12, PADDING + 93);
+
+    ctx.fillStyle = 'rgba(255,255,255,0.06)';
+    ctx.beginPath();
+    ctx.roundRect(PADDING + 152, PADDING + 74, 130, 28, 8);
+    ctx.fill();
+    ctx.fillStyle = '#f87171';
+    ctx.font = 'bold 12px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillText(`🔴  ${ocup} ocupadas`, PADDING + 164, PADDING + 93);
+
+    // Divider
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(PADDING, HEADER_H + PADDING - 8);
+    ctx.lineTo(CARD_W - PADDING, HEADER_H + PADDING - 8);
+    ctx.stroke();
+
+    // Slot rows
+    const COL_TIME = PADDING;
+    const COL_STATUS = PADDING + 80;
+    const COL_NAME = PADDING + 170;
+    const ROW_W = CARD_W - PADDING * 2;
+
+    allSlots.forEach((slot, i) => {
+      const y = HEADER_H + PADDING + i * SLOT_H;
+      const isOcc = !!occupied[slot];
+      const isBloq = occupied[slot] === 'BLOQUEADO';
+      const isEven = i % 2 === 0;
+
+      // Row bg
+      if (isEven) {
+        ctx.fillStyle = 'rgba(255,255,255,0.02)';
+        ctx.fillRect(PADDING, y, ROW_W, SLOT_H - 1);
+      }
+
+      // Status pill
+      if (isOcc) {
+        ctx.fillStyle = isBloq ? 'rgba(251,191,36,0.15)' : 'rgba(248,113,113,0.15)';
+        ctx.beginPath();
+        ctx.roundRect(COL_STATUS - 4, y + 10, isBloq ? 72 : 60, 22, 6);
+        ctx.fill();
+        ctx.fillStyle = isBloq ? '#fbbf24' : '#f87171';
+        ctx.font = 'bold 11px -apple-system, BlinkMacSystemFont, sans-serif';
+        ctx.fillText(isBloq ? 'BLOQUEADO' : 'OCUPADO', COL_STATUS + 4, y + 25);
+      } else {
+        ctx.fillStyle = 'rgba(74,222,128,0.12)';
+        ctx.beginPath();
+        ctx.roundRect(COL_STATUS - 4, y + 10, 72, 22, 6);
+        ctx.fill();
+        ctx.fillStyle = '#4ade80';
+        ctx.font = 'bold 11px -apple-system, BlinkMacSystemFont, sans-serif';
+        ctx.fillText('LIBRE ✓', COL_STATUS + 4, y + 25);
+      }
+
+      // Time
+      ctx.fillStyle = isOcc ? 'rgba(255,255,255,0.5)' : '#ffffff';
+      ctx.font = `${isOcc ? '500' : 'bold'} 14px -apple-system, BlinkMacSystemFont, monospace`;
+      ctx.fillText(slot, COL_TIME, y + 27);
+
+      // Client name
+      if (isOcc && !isBloq && occupied[slot]) {
+        ctx.fillStyle = 'rgba(255,255,255,0.75)';
+        ctx.font = '13px -apple-system, BlinkMacSystemFont, sans-serif';
+        const name = occupied[slot];
+        ctx.fillText(name.length > 28 ? name.slice(0, 26) + '…' : name, COL_NAME, y + 27);
+      }
+
+      // Row bottom border
+      ctx.strokeStyle = 'rgba(255,255,255,0.04)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(PADDING, y + SLOT_H - 1);
+      ctx.lineTo(CARD_W - PADDING, y + SLOT_H - 1);
+      ctx.stroke();
+    });
+
+    // Footer
+    const footerY = HEADER_H + PADDING + allSlots.length * SLOT_H + 16;
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(PADDING, footerY); ctx.lineTo(CARD_W - PADDING, footerY); ctx.stroke();
+
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.font = '12px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.fillText('marcelopalma.synaptechspa.cl  ·  Barbería Ferraza', PADDING, footerY + 26);
+
+    ctx.fillStyle = 'rgba(255,255,255,0.15)';
+    ctx.font = 'bold 11px -apple-system, BlinkMacSystemFont, sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(`${new Date().toLocaleDateString('es-CL', {hour:'2-digit', minute:'2-digit'})}`, CARD_W - PADDING, footerY + 26);
+    ctx.textAlign = 'left';
+
+    // Bottom accent
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(PADDING, TOTAL_H - PADDING - 2, CARD_W - PADDING * 2, 2);
+
+    // Download
+    const link = document.createElement('a');
+    link.download = `ferraza-agenda-${dateStr}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  };
+
+  return (
+    <div className="shrink-0 rounded-xl border border-white/10 bg-[#0F0F0F] overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-white/06">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-lg bg-white/05 border border-white/10 flex items-center justify-center">
+            <Send size={13} className="text-white/70" />
+          </div>
+          <div>
+            <p className="text-xs font-bold text-white tracking-wide">Canal de difusión</p>
+            <p className="text-[10px] text-white/40">
+              {freeSlots.length} hora{freeSlots.length !== 1 ? 's' : ''} libre{freeSlots.length !== 1 ? 's' : ''} · {fechaFmt.charAt(0).toUpperCase() + fechaFmt.slice(1)}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={handleExport}
+            title="Exportar imagen PNG"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold border border-white/10 text-white/60 hover:text-white hover:border-white/30 transition-all"
+          >
+            <Download size={12} /> Imagen PNG
+          </button>
+          <button
+            onClick={handleCopy}
+            title="Copiar mensaje"
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-all ${
+              copied
+                ? 'border-green-500/40 bg-green-500/10 text-green-400'
+                : 'border-white/10 text-white/60 hover:text-white hover:border-white/30'
+            }`}
+          >
+            {copied ? <><Check size={12} /> Copiado</> : <><Copy size={12} /> Copiar</>}
+          </button>
+        </div>
+      </div>
+
+      {/* Message preview */}
+      <div className="px-4 py-3">
+        <pre
+          className="whitespace-pre-wrap font-sans text-[12px] leading-relaxed text-white/75 bg-white/[0.02] rounded-lg border border-white/05 px-4 py-3 max-h-[180px] overflow-y-auto"
+          style={{ fontFamily: 'inherit' }}
+        >
+          {message}
+        </pre>
+      </div>
+
+      {/* Mini slot preview chips */}
+      <div className="px-4 pb-3 flex flex-wrap gap-1.5">
+        {allSlots.map(slot => {
+          const isOcc  = !!occupied[slot];
+          const isBloq = occupied[slot] === 'BLOQUEADO';
+          return (
+            <span
+              key={slot}
+              title={isOcc ? (isBloq ? 'Bloqueado' : occupied[slot]) : 'Libre'}
+              className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-semibold border ${
+                isBloq
+                  ? 'border-amber-500/30 bg-amber-500/10 text-amber-400'
+                  : isOcc
+                    ? 'border-red-500/25 bg-red-500/08 text-red-400/70'
+                    : 'border-white/15 bg-white/04 text-white/70'
+              }`}
+            >
+              {slot}
+            </span>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 /* ── Main Agenda component ───────────────────────────────────── */
 const LS_LAST_SEEN = 'agenda_last_seen_cita';
 
@@ -1098,6 +1415,16 @@ export default function Agenda() {
           <Ban size={14} />
           <span>Modo bloqueo: haz clic en cualquier horario vacío para bloquearlo. Los bloqueados en rojo se pueden hacer clic para desbloquear.</span>
         </div>
+      )}
+
+      {/* Canal de Difusión — solo marcelo_hairdressing */}
+      {tenantId === 'marcelo_hairdressing' && (
+        <DifusionPanel
+          citas={citas}
+          bloqueos={bloqueos}
+          barberos={barberos}
+          dateStr={dateStr}
+        />
       )}
 
       {/* Swimlane */}
