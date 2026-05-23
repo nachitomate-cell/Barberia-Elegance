@@ -628,6 +628,8 @@ exports.selloCumpleanos = cumpleanos.selloCumpleanos;
 // ─────────────────────────────────────────────────────────────────
 const recordatorioCita = require('./recordatorio-cita');
 exports.recordatorioCita24h = recordatorioCita.recordatorioCita24h;
+exports.recordatorioCita1h   = recordatorioCita.recordatorioCita1h;
+
 
 // ─────────────────────────────────────────────────────────────────
 //  CONFIRMACIÓN DE CITA POR EMAIL — ver confirmacion-cita.js
