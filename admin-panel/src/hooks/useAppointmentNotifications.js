@@ -80,11 +80,17 @@ async function playAppointmentBell() {
   } catch (_) { /* autoplay bloqueado */ }
 }
 
-export function useAppointmentNotifications() {
+export function useAppointmentNotifications(onNewNotification) {
   const isInitialCitas    = useRef(true);
   const isInitialReservas = useRef(true);
   const citasUnsub        = useRef(null);
   const reservasUnsub     = useRef(null);
+  
+  // Guardamos la referencia en un ref para evitar que cambios en la función reconstruyan el useEffect
+  const callbackRef = useRef(onNewNotification);
+  useEffect(() => {
+    callbackRef.current = onNewNotification;
+  }, [onNewNotification]);
 
   useEffect(() => {
     // Limpiar badge al hacer foco o volver al panel
@@ -121,6 +127,15 @@ export function useAppointmentNotifications() {
 
           playAppointmentBell();
           if (document.visibilityState !== 'visible') addBadge();
+
+          // Notificar visualmente si hay un callback registrado y es una cita relevante
+          callbackRef.current?.({
+            id: change.doc.id + '-' + Date.now(),
+            type: 'appointment',
+            title: 'Nueva Cita Online',
+            description: `${data.clienteNombre || 'Cliente'} - ${data.servicioNombre || 'Servicio'} (${data.fecha} a las ${data.hora || '—'})`,
+            targetPath: 'agenda'
+          });
         });
       });
 
@@ -133,10 +148,20 @@ export function useAppointmentNotifications() {
 
         snap.docChanges().forEach(change => {
           if (change.type !== 'added') return;
-          if (change.doc.data().userId === user.uid) return;
+          const data = change.doc.data();
+          if (data.userId === user.uid) return;
 
           playAppointmentBell();
           if (document.visibilityState !== 'visible') addBadge();
+
+          // Notificar visualmente si hay un callback registrado
+          callbackRef.current?.({
+            id: change.doc.id + '-' + Date.now(),
+            type: 'reservation',
+            title: 'Nueva Reserva de Producto',
+            description: `${data.userName || data.userEmail || 'Cliente'} reservó ${data.productName || 'un producto'}`,
+            targetPath: 'productos'
+          });
         });
       });
     });

@@ -7,10 +7,11 @@ import {
   Megaphone, ImagePlus, CreditCard, Monitor, Headphones, Medal, Camera, GraduationCap, Wallet,
 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, where } from 'firebase/firestore';
 import { auth, db } from '../../lib/firebase';
 import { useTenant } from '../../contexts/TenantContext';
 import { useAuth }   from '../../contexts/AuthContext';
+import { useCollection } from '../../hooks/useCollection';
 
 /* ── Grupos de navegación ────────────────────────────────────────── */
 const NAV_GROUPS_DEFAULT = [
@@ -194,6 +195,13 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
   const hasAcademia     = useAcademiaEnabled();
   const location        = useLocation();
 
+  // Escuchar citas y reservas de producto pendientes en tiempo real
+  const { data: pendingCitas } = useCollection('citas', [where('estado', '==', 'Pendiente')]);
+  const { data: pendingReservas } = useCollection('product_reservations', [where('status', '==', 'pending')]);
+
+  const pendingCitasCount = pendingCitas?.length || 0;
+  const pendingReservasCount = pendingReservas?.length || 0;
+
   const NAV_GROUPS = (() => {
     const base = tenant.id === 'deluxeperfumes' ? NAV_GROUPS_DELUXE : NAV_GROUPS_DEFAULT;
     if (tenant.id === 'elegance' && hasAcademia) {
@@ -287,6 +295,8 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
           /* Indicador de notificación en el grupo */
           const groupDotColor =
             items.some(i => i.to === 'mensajes'   && unreadChats > 0)   ? 'bg-red-500'   :
+            items.some(i => i.to === 'agenda'     && pendingCitasCount > 0) ? 'bg-amber-500' :
+            items.some(i => i.to === 'productos'  && pendingReservasCount > 0) ? 'bg-emerald-500' :
             items.some(i => i.to === 'mensualidad' && hasBillingAlert)   ? 'bg-amber-400' :
             items.some(i => i.to === 'soporte'    && hasUnreadNews)      ? 'bg-red-500'   :
             null;
@@ -320,7 +330,21 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
                 <div className="space-y-0.5 pt-0.5 pb-1">
                   {items.map(({ to, label, Icon }) => {
                     const isMensajes    = to === 'mensajes';
-                    const hasBadge      = isMensajes && unreadChats > 0;
+                    const isAgenda      = to === 'agenda';
+                    const isProductos   = to === 'productos';
+
+                    const hasBadge      = (isMensajes && unreadChats > 0) || 
+                                          (isAgenda && pendingCitasCount > 0) ||
+                                          (isProductos && pendingReservasCount > 0);
+
+                    const badgeCount    = isMensajes ? unreadChats :
+                                          isAgenda ? pendingCitasCount :
+                                          isProductos ? pendingReservasCount : 0;
+
+                    const badgeColorClass = isMensajes ? 'bg-red-500 text-white' :
+                                            isAgenda ? 'bg-amber-500 text-amber-950 font-bold' :
+                                            isProductos ? 'bg-emerald-500 text-emerald-950 font-bold' : '';
+
                     const showNewsDot   = to === 'soporte'    && hasUnreadNews;
                     const showBillingDot = to === 'mensualidad' && hasBillingAlert;
                     return (
@@ -347,8 +371,8 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
                               <span className={`w-1.5 h-1.5 rounded-full animate-pulse shrink-0 ${showBillingDot ? 'bg-amber-400' : 'bg-red-500'}`} />
                             )}
                             {hasBadge && (
-                              <span className="ml-auto bg-red-500 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full">
-                                {unreadChats > 9 ? '9+' : unreadChats}
+                              <span className={`ml-auto text-xs w-5 h-5 flex items-center justify-center rounded-full shrink-0 ${badgeColorClass}`}>
+                                {badgeCount > 9 ? '9+' : badgeCount}
                               </span>
                             )}
                             {isActive && !hasBadge && !showNewsDot && !showBillingDot && (

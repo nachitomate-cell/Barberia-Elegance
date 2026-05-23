@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { Menu } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Menu, X, Calendar, ShoppingBag, ChevronRight } from 'lucide-react';
 import Sidebar    from './Sidebar';
 import PWABanner           from './PWABanner';
 import NotificationBanner  from './NotificationBanner';
@@ -7,13 +8,128 @@ import PendingAppointmentsBanner from '../PendingAppointmentsBanner';
 import { useChatNotifications }       from '../../hooks/useChatNotifications';
 import { useAppointmentNotifications } from '../../hooks/useAppointmentNotifications';
 
-export default function AdminLayout({ children }) {
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const unreadChats = useChatNotifications();
-  useAppointmentNotifications();
+// Tarjeta de notificación Toast interactiva y auto-animada
+function ToastCard({ id, type, title, description, targetPath, onDismiss }) {
+  const navigate = useNavigate();
+  const [progress, setProgress] = useState(100);
+
+  useEffect(() => {
+    const duration = 8000; // 8 segundos de auto-descarte
+    const intervalTime = 50;
+    const step = (intervalTime / duration) * 100;
+
+    const timer = setInterval(() => {
+      setProgress((prev) => {
+        if (prev <= 0) {
+          clearInterval(timer);
+          onDismiss(id);
+          return 0;
+        }
+        return prev - step;
+      });
+    }, intervalTime);
+
+    return () => clearInterval(timer);
+  }, [id, onDismiss]);
+
+  const handleAction = () => {
+    if (targetPath) {
+      navigate(targetPath);
+    }
+    onDismiss(id);
+  };
+
+  const Icon = type === 'appointment' ? Calendar : ShoppingBag;
+  const accentColor = type === 'appointment' ? 'bg-amber-500' : 'bg-emerald-500';
+  const accentBorder = type === 'appointment' ? 'border-amber-500/20' : 'border-emerald-500/20';
 
   return (
-    <div className="flex h-screen bg-slate-950 overflow-hidden">
+    <div className={`relative w-80 bg-slate-900/90 backdrop-blur-md border ${accentBorder} text-white rounded-xl shadow-2xl p-4 flex flex-col gap-2 transition-all duration-300 transform translate-y-0 animate-slide-in-right overflow-hidden pointer-events-auto`}>
+      {/* Barra de color lateral */}
+      <span className={`absolute left-0 top-0 bottom-0 w-1 ${accentColor}`} />
+
+      {/* Cabecera */}
+      <div className="flex items-start justify-between gap-2 pl-1.5">
+        <div className="flex items-center gap-2">
+          <Icon className={type === 'appointment' ? 'text-amber-400' : 'text-emerald-400'} size={16} />
+          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300">{title}</h4>
+        </div>
+        <button
+          onClick={() => onDismiss(id)}
+          className="text-slate-500 hover:text-white transition-colors p-0.5 rounded"
+        >
+          <X size={14} />
+        </button>
+      </div>
+
+      {/* Descripción / Mensaje */}
+      <p className="text-xs text-slate-400 pl-1.5 leading-relaxed font-medium">
+        {description}
+      </p>
+
+      {/* Botón de acción */}
+      <div className="flex justify-end mt-1">
+        <button
+          onClick={handleAction}
+          className="flex items-center gap-1 text-[11px] font-bold text-white px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 transition-all border border-slate-700/50"
+        >
+          <span>Ver detalles</span>
+          <ChevronRight size={12} />
+        </button>
+      </div>
+
+      {/* Barra de progreso de auto-descarte */}
+      <div className="absolute bottom-0 left-0 right-0 h-1 bg-slate-800">
+        <div 
+          className={`h-full ${accentColor} transition-all duration-75`} 
+          style={{ width: `${progress}%` }} 
+        />
+      </div>
+    </div>
+  );
+}
+
+export default function AdminLayout({ children }) {
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [toasts, setToasts] = useState([]);
+  const unreadChats = useChatNotifications();
+
+  // Función para inyectar nuevos Toasts
+  const handleAddToast = (toast) => {
+    setToasts((prev) => {
+      // Evitar duplicar el mismo toast si se emite repetidamente
+      if (prev.some(t => t.id.split('-')[0] === toast.id.split('-')[0])) return prev;
+      return [...prev, toast];
+    });
+  };
+
+  // Función para descartar Toasts
+  const handleDismissToast = (id) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  };
+
+  // Escuchar notificaciones y vincular el callback de Toasts
+  useAppointmentNotifications(handleAddToast);
+
+  return (
+    <div className="flex h-screen bg-slate-950 overflow-hidden relative">
+      
+      {/* Estilos CSS Inline autoprotegidos para micro-animaciones */}
+      <style>{`
+        @keyframes slideInRight {
+          from {
+            opacity: 0;
+            transform: translateX(100%) scale(0.9);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0) scale(1);
+          }
+        }
+        .animate-slide-in-right {
+          animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+      `}</style>
 
       {/* ── Desktop sidebar (always visible ≥ lg) ── */}
       <div className="hidden lg:flex lg:flex-col lg:w-60 lg:shrink-0">
@@ -76,6 +192,14 @@ export default function AdminLayout({ children }) {
         </main>
 
       </div>
+
+      {/* Contenedor de Alertas Toasts Flotantes */}
+      <div className="fixed bottom-5 right-5 z-[9999] flex flex-col gap-2.5 pointer-events-none">
+        {toasts.map((toast) => (
+          <ToastCard key={toast.id} {...toast} onDismiss={handleDismissToast} />
+        ))}
+      </div>
+
     </div>
   );
 }
