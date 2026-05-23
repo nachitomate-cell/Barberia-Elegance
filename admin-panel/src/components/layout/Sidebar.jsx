@@ -254,7 +254,10 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
         style={{ paddingTop: 'max(env(safe-area-inset-top), 1.5rem)' }}
       >
         <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
+          {tenant.logo && (
+            <img src={tenant.logo} alt="" className="w-9 h-9 rounded-lg object-cover shrink-0 mt-0.5" />
+          )}
+          <div className="min-w-0 flex-1">
             <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1">Panel Admin</p>
             <h1 className="text-sm font-bold text-white leading-tight truncate">{tenant.name}</h1>
           </div>
