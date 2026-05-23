@@ -3591,10 +3591,26 @@ document.getElementById('shopClubName').textContent   = SHOP.club;
   const isChameleon   = tid === 'chameleon';
   const isLumen       = tid === 'lumen';
   const isMarcelo     = tid === 'marcelo_hairdressing';
+  const isAura        = tid === 'aura';
 
   // Subtítulo header
   const sub = document.getElementById('shopHeaderSub');
   if (sub) sub.textContent = isGitana ? 'NAILS & STUDIO' : isChameleon ? 'BARBER STUDIO' : 'BARBERSHOP';
+
+  if (isAura) {
+    const nameEl = document.getElementById('shopHeaderName');
+    if (nameEl) {
+      nameEl.innerHTML = `
+        <div class="flex items-center justify-center gap-1.5">
+          <img src="${SHOP.logo || '/aura.png'}" alt="Aura Logo" class="w-5 h-5 object-contain rounded-md shrink-0" />
+          <span class="text-[11px] font-black tracking-[0.05em] text-[#00285E] whitespace-nowrap">AURA SALÓN & MALE GROOMING</span>
+        </div>
+      `;
+    }
+    if (sub) {
+      sub.style.display = 'none';
+    }
+  }
 
   // Hero copy
   const h1 = document.getElementById('heroLine1');
