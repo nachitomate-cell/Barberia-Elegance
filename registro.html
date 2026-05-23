@@ -854,7 +854,11 @@
     }
     /* Mostrar campos de contraseña en Aura si hay fallback de contraseña custom */
     html.tenant-aura body.show-password-fallback #panelLogin .relative,
-    html.tenant-aura body.show-password-fallback button[onclick="switchTab('reset')"] {
+    html.tenant-aura body.show-password-fallback button[onclick="switchTab('reset')"],
+    .tenant-aura.show-password-fallback #panelLogin .relative,
+    .tenant-aura.show-password-fallback button[onclick="switchTab('reset')"],
+    .show-password-fallback #panelLogin .relative,
+    .show-password-fallback button[onclick="switchTab('reset')"] {
       display: block !important;
     }
     /* Registro — Aura entrance animations */
@@ -1397,7 +1401,8 @@
       hideLoading();
       
       if (window.CURRENT_TENANT_ID === 'aura' && 
-          (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') && 
+          err.code !== 'auth/user-not-found' && 
+          err.code !== 'auth/invalid-email' && 
           !_auraForceCustomPassword) {
         _auraForceCustomPassword = true;
         document.body.classList.add('show-password-fallback');
