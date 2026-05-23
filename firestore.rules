@@ -98,11 +98,13 @@ service cloud.firestore {
 
     // ═══════════════════════════════════════════════════════════════
     //  _system — configuración global (versionamiento, kill switch)
-    //  Lectura para cualquier usuario autenticado.
+    //  Lectura pública: solo contiene metadata no sensible (versión
+    //  de app y estado del tenant). Los listeners de TenantContext y
+    //  VersionManager deben funcionar antes del login y tras logout.
     //  Escritura solo para bootstrap (SynapTech).
     // ═══════════════════════════════════════════════════════════════
     match /_system/{docId} {
-      allow read:  if autenticado();
+      allow read:  if true;
       allow write: if esBootstrap();
     }
 

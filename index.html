@@ -131,7 +131,7 @@
     .tenant-ferraza .category-pill { border-radius: 0.375rem !important; }
     .tenant-ferraza .barber-option { border-radius: 0.5rem !important; }
     .tenant-ferraza .barber-option .barber-name { font-family: 'Plus Jakarta Sans', sans-serif; }
-    .tenant-ferraza .day-btn { border-radius: 0.5rem !important; }
+
     .tenant-ferraza .cat-sep { display: flex !important; }
     .tenant-ferraza .cat-title { font-family: 'Plus Jakarta Sans', sans-serif; }
     /* Ferraza — club banner premium */
@@ -184,111 +184,7 @@
       font-size: 0.68rem !important;
     }
 
-    /* ── Ferraza — Paso 3: Carrusel de días ────────────────────── */
-    .tenant-ferraza #step3 > h2 {
-      font-family: 'Plus Jakarta Sans', sans-serif !important;
-      color: #f1f5f9 !important;
-      text-shadow: none !important;
-      font-size: 1.45rem !important;
-      letter-spacing: -0.02em !important;
-    }
-    .tenant-ferraza #step3 h3 {
-      font-family: 'Plus Jakarta Sans', sans-serif !important;
-      color: rgba(255,255,255,0.38) !important;
-      font-size: 0.72rem !important;
-      font-weight: 700 !important;
-      letter-spacing: 0.16em !important;
-      text-transform: uppercase !important;
-    }
-    /* Día inactivo */
-    .tenant-ferraza .day-btn {
-      background: rgba(255,255,255,0.025) !important;
-      border-color: rgba(255,255,255,0.10) !important;
-      border-radius: 0.75rem !important;
-      box-shadow: none !important;
-      transition: border-color 0.2s ease, background 0.2s ease !important;
-    }
-    .tenant-ferraza .day-btn:hover {
-      background: rgba(255,255,255,0.05) !important;
-      border-color: rgba(226,232,240,0.28) !important;
-    }
-    /* Día activo */
-    .tenant-ferraza .day-btn.active,
-    .tenant-ferraza .day-btn.border-neon {
-      background: rgba(226,232,240,0.07) !important;
-      border-color: #e2e8f0 !important;
-      box-shadow: 0 0 0 1px rgba(226,232,240,0.18),
-                  0 0 18px rgba(226,232,240,0.08) !important;
-    }
-    /* Texto del día (span 1: nombre, span 2: número) */
-    .tenant-ferraza .day-btn span {
-      color: rgba(255,255,255,0.35) !important;
-      text-shadow: none !important;
-      filter: none !important;
-    }
-    .tenant-ferraza .day-btn .day-num {
-      color: rgba(255,255,255,0.50) !important;
-      text-shadow: none !important;
-      filter: none !important;
-    }
-    .tenant-ferraza .day-btn.active span,
-    .tenant-ferraza .day-btn.border-neon span {
-      color: rgba(226,232,240,0.75) !important;
-      text-shadow: none !important;
-      filter: none !important;
-    }
-    .tenant-ferraza .day-btn.active .day-num,
-    .tenant-ferraza .day-btn.border-neon .day-num {
-      color: #ffffff !important;
-      text-shadow: none !important;
-      filter: none !important;
-    }
-    /* Punto indicador */
-    .tenant-ferraza .day-btn .dot {
-      background: transparent !important;
-      box-shadow: none !important;
-    }
-    .tenant-ferraza .day-btn .dot.bg-neon {
-      background: #e2e8f0 !important;
-      box-shadow: 0 0 5px rgba(226,232,240,0.55) !important;
-    }
 
-    /* ── Ferraza — Grilla de horas ─────────────────────────────── */
-    .tenant-ferraza #hoursGrid {
-      display: grid !important;
-      grid-template-columns: repeat(3, 1fr) !important;
-      gap: 10px !important;
-    }
-    /* Hora inactiva */
-    .tenant-ferraza .time-pill {
-      background: transparent !important;
-      border: 1px solid rgba(255,255,255,0.13) !important;
-      color: rgba(255,255,255,0.58) !important;
-      border-radius: 0.625rem !important;
-      font-size: 0.875rem !important;
-      font-weight: 600 !important;
-      transition: all 0.2s cubic-bezier(0.16,1,0.3,1) !important;
-      padding: 0.6rem 0 !important;
-      text-align: center !important;
-    }
-    .tenant-ferraza .time-pill:hover {
-      border-color: rgba(226,232,240,0.42) !important;
-      color: #e2e8f0 !important;
-      background: rgba(255,255,255,0.04) !important;
-    }
-    /* Hora seleccionada */
-    .tenant-ferraza .time-pill.bg-neon {
-      background: #e2e8f0 !important;
-      color: #080808 !important;
-      border-color: #e2e8f0 !important;
-      box-shadow: 0 0 0 1px rgba(226,232,240,0.30) !important;
-      font-weight: 800 !important;
-    }
-    .tenant-ferraza .time-pill.border-neon {
-      border-color: #e2e8f0 !important;
-      color: #ffffff !important;
-      box-shadow: none !important;
-    }
 
     /* ── Ferraza — Botón Continuar ─────────────────────────────── */
     .tenant-ferraza #btnContinueBar {
@@ -3328,9 +3224,10 @@
     .tenant-aura #success-state .bg-brand-neon\/10 { background: rgba(156,163,175,0.10) !important; }
     .tenant-aura #success-state svg.text-neon { color: #9CA3AF !important; }
     .tenant-aura #success-state #successSummaryDate { color: #9CA3AF !important; }
-    .tenant-aura #success-state .bg-\[#0a0a0d\] {
+    .tenant-aura #success-state .bg-\[\#0a0a0d\] {
       background: #FFFFFF !important;
-      border-color: rgba(156,163,175,0.25) !important;
+      border-color: rgba(156,163,175,0.30) !important;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.04) !important;
     }
     .tenant-aura #success-state .text-brand-text { color: #18181B !important; }
     .tenant-aura #success-state .text-brand-neon\/80 { color: #52525B !important; }
@@ -3536,9 +3433,10 @@
     }
 
     /* ── Success state: summary card bg-[#0a0a0d] ── */
-    .tenant-aura #success-state .bg-\[#0a0a0d\] {
+    .tenant-aura #success-state .bg-\[\#0a0a0d\] {
       background: #FFFFFF !important;
-      border-color: rgba(55,65,81,0.25) !important;
+      border-color: rgba(156,163,175,0.30) !important;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.04) !important;
     }
 
     /* ── Footer contact: inline style bg-[#0a0807] ── */

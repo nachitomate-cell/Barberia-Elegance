@@ -5,7 +5,7 @@ import {
   ShoppingBag, RefreshCcw, Activity, Crown, Star, User, Sparkles,
   TrendingDown, ArrowUpRight, ArrowDownRight, Layers, AlertCircle,
   HelpCircle, Eye, Info, Calendar, BarChart3, PieChart as PieIcon,
-  Tag, Percent, AlertTriangle, ArrowRight,
+  Tag, Percent, AlertTriangle, ArrowRight, Users, ChevronLeft,
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -81,6 +81,21 @@ function DarkTooltip({ active, payload, label, fmt }) {
   );
 }
 
+/* ── BarberAvatar ────────────────────────────────────────────────── */
+function BarberAvatar({ foto, nombre, size = 'md' }) {
+  const initial = (nombre || '?')[0].toUpperCase();
+  const szMap = { sm: 'w-9 h-9 text-sm', md: 'w-14 h-14 text-xl', lg: 'w-20 h-20 text-3xl' };
+  const cls = szMap[size] || szMap.md;
+  if (foto) {
+    return <img src={foto} alt={nombre} className={`${cls} rounded-full object-cover border-2 border-slate-700`} />;
+  }
+  return (
+    <div className={`${cls} rounded-full bg-emerald-500/20 border-2 border-emerald-500/30 flex items-center justify-center font-bold text-emerald-400`}>
+      {initial}
+    </div>
+  );
+}
+
 /* ── InsightCard ─────────────────────────────────────────────────── */
 const INSIGHT_STYLES = {
   success: { border: 'border-emerald-500/20', bg: 'bg-emerald-500/5',  dot: 'bg-emerald-400' },
@@ -106,8 +121,9 @@ export default function Metricas() {
   const { role } = useAuth();
   const isAdmin = role === 'admin' || role === 'jefe';
 
-  const [showHelp,  setShowHelp]  = useState(false);
-  const [activeTab, setActiveTab] = useState('comercial');
+  const [showHelp,         setShowHelp]         = useState(false);
+  const [activeTab,        setActiveTab]        = useState('comercial');
+  const [selectedBarberoId, setSelectedBarberoId] = useState(null);
 
   // Date range state
   const [fechaInicio, setFechaInicio] = useState(() => {
@@ -637,6 +653,74 @@ export default function Metricas() {
     };
   }, [productos]);
 
+  /* ── 4. Métricas por Barbero ── */
+  const barberoStats = useMemo(() => {
+    const rangeCitas = citas.filter(c => c.fecha >= fechaInicio && c.fecha <= fechaFin);
+
+    return barberos.map(b => {
+      const bCitas     = rangeCitas.filter(c => c.barberoId === b.id || c.barbero === b.nombre);
+      const completadas = bCitas.filter(c => c.estado === 'Completada');
+      const canceladas  = bCitas.filter(c => c.estado === 'Cancelada');
+      const ingresos    = completadas.reduce((s, c) => s + getPrice(c), 0);
+      const ticket      = completadas.length ? ingresos / completadas.length : 0;
+      const propinas    = completadas.reduce((s, c) => s + (Number(c.propina) || 0), 0);
+      const comisionPct = Number(b.comision) || 0;
+      const comisionGanada  = ingresos * comisionPct / 100;
+      const pctCancelacion  = bCitas.length ? Math.round((canceladas.length / bCitas.length) * 100) : 0;
+
+      const svcMap = {};
+      completadas.forEach(c => {
+        const k = c.servicioNombre || 'Sin especificar';
+        svcMap[k] = (svcMap[k] || 0) + 1;
+      });
+      const topServicios = Object.entries(svcMap)
+        .sort((a, x) => x[1] - a[1])
+        .slice(0, 6)
+        .map(([nombre, count]) => ({ nombre: nombre.length > 18 ? nombre.slice(0, 16) + '…' : nombre, count }));
+
+      const meses = [];
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(1);
+        d.setMonth(d.getMonth() - i);
+        const key   = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        const label = d.toLocaleDateString('es-CL', { month: 'short' });
+        const mc    = citas.filter(c =>
+          c.fecha?.startsWith(key) &&
+          c.estado === 'Completada' &&
+          (c.barberoId === b.id || c.barbero === b.nombre)
+        );
+        meses.push({ mes: label, citas: mc.length, ingresos: mc.reduce((s, c) => s + getPrice(c), 0) });
+      }
+
+      const clienteMap = {};
+      bCitas.forEach(c => {
+        const k = c.clienteNombre || 'Anónimo';
+        if (!clienteMap[k]) clienteMap[k] = { nombre: k, citas: 0 };
+        clienteMap[k].citas++;
+      });
+      const topClientes = Object.values(clienteMap)
+        .sort((a, x) => x.citas - a.citas)
+        .slice(0, 5);
+
+      return {
+        ...b,
+        total: bCitas.length,
+        completadas: completadas.length,
+        canceladas:  canceladas.length,
+        ingresos,
+        ticket,
+        propinas,
+        comisionGanada,
+        comisionPct,
+        pctCancelacion,
+        topServicios,
+        meses,
+        topClientes,
+      };
+    }).sort((a, x) => x.ingresos - a.ingresos || x.completadas - a.completadas);
+  }, [barberos, citas, fechaInicio, fechaFin, getPrice]);
+
   return (
     <div className="max-w-6xl mx-auto space-y-6">
 
@@ -735,6 +819,17 @@ export default function Metricas() {
           >
             <Layers size={13} />
             Rentabilidad de Inventario
+          </button>
+          <button
+            onClick={() => { setActiveTab('equipo'); setSelectedBarberoId(null); }}
+            className={`flex-1 min-w-[140px] px-4 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 ${
+              activeTab === 'equipo'
+                ? 'bg-slate-900 text-white border border-slate-800/60 shadow-lg shadow-black/10 text-emerald-400'
+                : 'text-slate-400 hover:text-white hover:bg-slate-900/30'
+            }`}
+          >
+            <Users size={13} />
+            Métricas por Barbero
           </button>
         </div>
       )}
@@ -1301,6 +1396,208 @@ export default function Metricas() {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* ── TAB 4: MÉTRICAS POR BARBERO ───────────────────────────────── */}
+      {activeTab === 'equipo' && isAdmin && (
+        <div className="space-y-6">
+
+          {/* Vista general: grid comparativo */}
+          {!selectedBarberoId && (
+            <>
+              {barberoStats.length === 0 ? (
+                <div className="flex items-center justify-center py-24">
+                  <p className="text-sm text-slate-500 italic">No hay barberos configurados en el equipo</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {barberoStats.map((b, i) => (
+                    <div
+                      key={b.id}
+                      className="bg-slate-900 border border-slate-800 rounded-xl p-5 hover:border-slate-700 transition-all cursor-pointer group"
+                      onClick={() => setSelectedBarberoId(b.id)}
+                    >
+                      <div className="flex items-start gap-4 mb-4">
+                        <div className="relative shrink-0">
+                          <BarberAvatar foto={b.foto} nombre={b.nombre} size="md" />
+                          {i < 3 && (
+                            <span className={`absolute -top-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold border border-slate-900 ${
+                              i === 0 ? 'bg-amber-400 text-slate-900' : i === 1 ? 'bg-slate-400 text-slate-900' : 'bg-amber-700 text-white'
+                            }`}>{i + 1}</span>
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-bold text-white truncate">{b.nombre}</p>
+                          {b.especialidad && (
+                            <p className="text-xs text-slate-500 truncate mt-0.5">{b.especialidad}</p>
+                          )}
+                          <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                            {b.comisionPct > 0 && (
+                              <span className="text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/15 px-1.5 py-0.5 rounded">
+                                {b.comisionPct}% comisión
+                              </span>
+                            )}
+                            {b.disponible === false && (
+                              <span className="text-[10px] font-bold bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded">Inactivo</span>
+                            )}
+                          </div>
+                        </div>
+                        <ArrowRight size={14} className="text-slate-600 group-hover:text-emerald-400 transition-colors shrink-0 mt-1" />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="bg-slate-950/60 rounded-lg px-3 py-2.5">
+                          <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wide">Citas</p>
+                          <p className="text-xl font-bold text-white">{b.completadas}</p>
+                          <p className="text-[10px] text-slate-600">{b.canceladas} canceladas</p>
+                        </div>
+                        <div className="bg-slate-950/60 rounded-lg px-3 py-2.5">
+                          <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wide">Ingresos</p>
+                          <p className="text-xl font-bold text-emerald-400">{fmtCLP(b.ingresos)}</p>
+                          <p className="text-[10px] text-slate-600">{b.ticket > 0 ? `Ticket: ${fmtCLP(b.ticket)}` : 'Sin precios'}</p>
+                        </div>
+                        <div className="bg-slate-950/60 rounded-lg px-3 py-2.5">
+                          <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wide">Cancelaciones</p>
+                          <p className={`text-xl font-bold ${b.pctCancelacion >= 20 ? 'text-red-400' : 'text-white'}`}>{b.pctCancelacion}%</p>
+                          <p className="text-[10px] text-slate-600">del total</p>
+                        </div>
+                        <div className="bg-slate-950/60 rounded-lg px-3 py-2.5">
+                          <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wide">Propinas</p>
+                          <p className="text-xl font-bold text-amber-400">{fmtCLP(b.propinas)}</p>
+                          <p className="text-[10px] text-slate-600">acumuladas</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Vista detalle: un barbero seleccionado */}
+          {selectedBarberoId && (() => {
+            const b = barberoStats.find(x => x.id === selectedBarberoId);
+            if (!b) return null;
+            const hayIngB = b.meses.some(m => m.ingresos > 0);
+            return (
+              <div className="space-y-6">
+
+                {/* Back */}
+                <button
+                  onClick={() => setSelectedBarberoId(null)}
+                  className="flex items-center gap-1.5 text-xs font-semibold text-slate-400 hover:text-white transition-colors"
+                >
+                  <ChevronLeft size={14} />
+                  Volver al equipo
+                </button>
+
+                {/* Perfil */}
+                <div className="bg-slate-900 border border-slate-800 rounded-xl p-6">
+                  <div className="flex items-center gap-5">
+                    <BarberAvatar foto={b.foto} nombre={b.nombre} size="lg" />
+                    <div>
+                      <h2 className="text-xl font-bold text-white">{b.nombre}</h2>
+                      {b.especialidad && <p className="text-sm text-slate-400 mt-0.5">{b.especialidad}</p>}
+                      <div className="flex items-center gap-2 mt-2 flex-wrap">
+                        {b.comisionPct > 0 && (
+                          <span className="text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/15 px-2 py-0.5 rounded">
+                            {b.comisionPct}% comisión servicios
+                          </span>
+                        )}
+                        {Number(b.sueldoBase) > 0 && (
+                          <span className="text-xs font-bold bg-blue-500/10 text-blue-400 border border-blue-500/15 px-2 py-0.5 rounded">
+                            {fmtCLP(b.sueldoBase)} sueldo base
+                          </span>
+                        )}
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded border ${
+                          b.disponible !== false
+                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/15'
+                            : 'bg-slate-800 text-slate-500 border-slate-700'
+                        }`}>
+                          {b.disponible !== false ? 'Activo' : 'Inactivo'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* KPIs */}
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                  <KpiCard Icon={CalendarCheck} label="Citas Completadas"    value={b.completadas}                         sub={`de ${b.total} agendadas`}           color="blue"    />
+                  <KpiCard Icon={DollarSign}    label="Ingresos Generados"   value={fmtCLP(b.ingresos)}                    sub="Servicios completados"                color="emerald" />
+                  <KpiCard Icon={TrendingUp}    label="Ticket Promedio"       value={b.ticket > 0 ? fmtCLP(b.ticket) : '—'} sub="Por cita completada"                  color="amber"   />
+                  <KpiCard Icon={XCircle}       label="Tasa de Cancelación"  value={`${b.pctCancelacion}%`}               sub={`${b.canceladas} citas canceladas`}  color={b.pctCancelacion >= 20 ? 'red' : 'cyan'} />
+                  <KpiCard Icon={Sparkles}      label="Propinas Recibidas"   value={fmtCLP(b.propinas)}                    sub="Flujo neutral al barbero"             color="rose"    />
+                  <KpiCard Icon={Percent}       label="Comisión Generada"    value={fmtCLP(b.comisionGanada)}              sub={`${b.comisionPct}% sobre ingresos`}  color="purple"  />
+                </div>
+
+                {/* Gráficos */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  <ChartCard title="Tendencia de Citas (6 meses)" subtitle="Últimos 6 meses históricos · citas e ingresos">
+                    <ResponsiveContainer width="100%" height={240}>
+                      <BarChart data={b.meses} barSize={14}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                        <XAxis dataKey="mes" tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} tickLine={false} />
+                        <YAxis yAxisId="left" tick={{ fill: '#64748b', fontSize: 10 }} axisLine={false} tickLine={false}
+                          tickFormatter={v => hayIngB ? `$${(v / 1000).toFixed(0)}k` : v} />
+                        <YAxis yAxisId="right" orientation="right" tick={{ fill: '#64748b', fontSize: 10 }} axisLine={false} tickLine={false} />
+                        <Tooltip content={<DarkTooltip fmt={hayIngB ? fmtCLP : undefined} />} />
+                        <Legend wrapperStyle={{ fontSize: 11, paddingTop: 12 }} />
+                        {hayIngB && <Bar yAxisId="left"  dataKey="ingresos" name="Ingresos ($)" fill="#10b981" radius={[4, 4, 0, 0]} />}
+                        <Bar yAxisId="right" dataKey="citas" name="Citas" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </ChartCard>
+
+                  <ChartCard title="Top Servicios Realizados" subtitle="Más frecuentes en el rango seleccionado">
+                    {b.topServicios.length === 0 ? (
+                      <div className="flex items-center justify-center h-40">
+                        <p className="text-xs text-slate-500 italic">Sin citas completadas en este período</p>
+                      </div>
+                    ) : (
+                      <ResponsiveContainer width="100%" height={Math.min(280, Math.max(140, b.topServicios.length * 44))}>
+                        <BarChart data={b.topServicios} layout="vertical" barSize={12}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" horizontal={false} />
+                          <XAxis type="number" tick={{ fill: '#64748b', fontSize: 10 }} axisLine={false} tickLine={false} />
+                          <YAxis type="category" dataKey="nombre" tick={{ fill: '#94a3b8', fontSize: 10 }}
+                            axisLine={false} tickLine={false} width={80} />
+                          <Tooltip content={<DarkTooltip fmt={v => `${v} citas`} />} />
+                          <Bar dataKey="count" name="Citas" fill="#f59e0b" radius={[0, 4, 4, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    )}
+                  </ChartCard>
+                </div>
+
+                {/* Top clientes del barbero */}
+                <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Crown size={16} className="text-amber-400" />
+                    <p className="text-sm font-semibold text-white">Top Clientes</p>
+                    <span className="text-xs text-slate-500 ml-auto">
+                      Más visitas con {b.nombre.split(' ')[0]} · en el rango
+                    </span>
+                  </div>
+                  {b.topClientes.length === 0 ? (
+                    <p className="text-xs text-slate-500 italic text-center py-8">Sin clientes en este período</p>
+                  ) : (
+                    <div className="space-y-1">
+                      {b.topClientes.map((c, i) => (
+                        <div key={i} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-800/40 transition-colors">
+                          <span className={`text-xs font-bold w-5 text-center shrink-0 ${rankColor(i)}`}>{i + 1}</span>
+                          <div className="w-7 h-7 rounded-full bg-slate-800/80 flex items-center justify-center shrink-0 border border-slate-750">
+                            <User size={13} className="text-slate-500" />
+                          </div>
+                          <p className="text-sm text-white flex-1 truncate">{c.nombre}</p>
+                          <p className="text-xs font-semibold text-slate-400">{c.citas} {c.citas === 1 ? 'cita' : 'citas'}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
         </div>
       )}
 

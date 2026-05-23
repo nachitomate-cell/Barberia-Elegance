@@ -48,7 +48,11 @@ export function useVersionManager() {
         localTs = firestoreTs; // Evita que el cierre llame a cleanupAndReload dos veces.
         cleanupAndReload(firestoreTs);
       }
-    }, err => console.warn('[VersionManager] listener:', err.message));
+    }, err => {
+      if (err.code !== 'permission-denied') {
+        console.warn('[VersionManager] listener:', err.message);
+      }
+    });
 
     return unsub;
   }, []);

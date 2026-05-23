@@ -200,7 +200,7 @@ const TENANT_META = {
       description:      'Panel de administración — Mapu Barbershop',
       theme_color:      '#3b82f6',
       background_color: '#0f172a',
-      start_url:        '/gestion-interna/?local=mapubarber',
+      start_url:        '/gestion-interna/?local=mapubarbershop',
       icons: [
         { src: '/mapu2.png',                   sizes: 'any',     type: 'image/png' },
         { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png' },
