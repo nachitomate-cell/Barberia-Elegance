@@ -129,7 +129,7 @@ export default function Caja() {
         setSesionActiva(null);
       }
       setLoadingSesion(false);
-    });
+    }, () => setLoadingSesion(false));
     return unsub;
   }, []);
 
@@ -146,7 +146,7 @@ export default function Caja() {
     );
     const unsub1 = onSnapshot(qCitas, snap => {
       setCitasHoy(snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(c => c.estado === 'Completada'));
-    });
+    }, () => {});
 
     // Productos vendidos hoy
     const qVentas = query(
@@ -161,7 +161,7 @@ export default function Caja() {
         const dateStr = typeof vDate === 'string' ? vDate.slice(0, 10) : (vDate.toDate ? vDate.toDate().toISOString().slice(0, 10) : '');
         return dateStr === today;
       }));
-    });
+    }, () => {});
 
     // Gastos de hoy
     const qGastos = query(
@@ -171,7 +171,7 @@ export default function Caja() {
     );
     const unsub3 = onSnapshot(qGastos, snap => {
       setGastosHoy(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-    });
+    }, () => {});
 
     return () => { unsub1(); unsub2(); unsub3(); };
   }, [sesionActiva]);

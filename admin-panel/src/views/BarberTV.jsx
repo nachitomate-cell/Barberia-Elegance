@@ -84,8 +84,8 @@ function BottomTicker({ servicios }) {
 
   const items  = servicios.filter(s => s.nombre && s.activo !== false);
   const content = items
-    .map(s => `✦  ${s.nombre}${s.precio ? `  ·  $${Number(s.precio).toLocaleString('es-CL')}` : ''}`)
-    .join('          ');
+    .map(s => `${s.nombre}${s.precio ? ` · $${Number(s.precio).toLocaleString('es-CL')}` : ''}`)
+    .join('    ✦    ');
 
   useEffect(() => {
     if (!ref.current || !content) return;
@@ -97,28 +97,36 @@ function BottomTicker({ servicios }) {
 
   if (!items.length) return null;
 
-  const duration = Math.max(22, content.length * 0.1);
+  const duration = Math.max(22, content.length * 0.15);
 
   return (
     <div
       className="shrink-0 overflow-hidden relative"
-      style={{ height: '2.25rem', borderTop: '1px solid rgba(212,175,55,0.07)', background: 'rgba(212,175,55,0.015)' }}
+      style={{ height: '2.5rem', borderTop: '1px solid rgba(212,175,55,0.07)', background: 'rgba(212,175,55,0.015)' }}
     >
-      <div className="absolute inset-y-0 left-0 w-16 z-10 pointer-events-none"
-        style={{ background: 'linear-gradient(to right, #050505, transparent)' }} />
-      <div className="absolute inset-y-0 right-0 w-16 z-10 pointer-events-none"
+      <div className="absolute inset-y-0 left-0 w-[140px] z-20 pointer-events-none"
+        style={{ background: 'linear-gradient(to right, #050505 30%, transparent)' }} />
+      <div className="absolute inset-y-0 right-0 w-20 z-10 pointer-events-none"
         style={{ background: 'linear-gradient(to left, #050505, transparent)' }} />
 
-      <div className="relative h-full flex items-center overflow-hidden">
+      {/* Live Badge fijo en el extremo izquierdo */}
+      <div className="absolute left-6 inset-y-0 z-30 flex items-center pr-3 bg-[#050505]">
+        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/25 text-emerald-400 font-bold tracking-wider text-[8px] uppercase select-none">
+          <span className="w-1 h-1 bg-emerald-400 rounded-full animate-ping" />
+          <span>Servicios</span>
+        </div>
+      </div>
+
+      <div className="relative h-full flex items-center overflow-hidden pl-[110px]">
         <motion.div
           ref={ref}
-          className="absolute flex whitespace-nowrap text-[11px] font-semibold tracking-[0.25em]"
+          className="absolute flex whitespace-nowrap text-[10px] font-semibold tracking-[0.25em]"
           style={{ color: `${GOLD}66` }}
           animate={offset ? { x: [0, -offset] } : {}}
           transition={{ duration, repeat: Infinity, ease: 'linear', repeatType: 'loop' }}
         >
-          <span className="pr-20">{content}</span>
-          <span className="pr-20">{content}</span>
+          <span className="pr-20">✦ &nbsp; {content}</span>
+          <span className="pr-20">✦ &nbsp; {content}</span>
         </motion.div>
       </div>
     </div>
@@ -158,7 +166,7 @@ function DigitalClock() {
 }
 
 // ── Panel de turnos (Opción A) ────────────────────────────────────
-function AppointmentPanel({ citas, totalHoy, completadasHoy, offline }) {
+function AppointmentPanel({ citas, totalHoy, completadasHoy, offline, barberos = [] }) {
   const [enSillon, ...siguientes] = citas.slice(0, 5);
 
   return (
@@ -236,33 +244,54 @@ function AppointmentPanel({ citas, totalHoy, completadasHoy, offline }) {
                 <motion.div
                   key={enSillon.id}
                   initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
+                  animate={{
+                    opacity: 1,
+                    y: 0,
+                    borderColor: [
+                      'rgba(212,175,55,0.3)',
+                      'rgba(212,175,55,0.7)',
+                      'rgba(212,175,55,0.3)'
+                    ],
+                    boxShadow: [
+                      '0 0 30px rgba(212,175,55,0.06) inset, 0 0 0px rgba(212,175,55,0)',
+                      '0 0 30px rgba(212,175,55,0.12) inset, 0 0 15px rgba(212,175,55,0.2)',
+                      '0 0 30px rgba(212,175,55,0.06) inset, 0 0 0px rgba(212,175,55,0)'
+                    ]
+                  }}
                   exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.4 }}
+                  transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
                   className="rounded-2xl p-4 relative overflow-hidden"
                   style={{
                     background: 'rgba(212,175,55,0.07)',
                     border:     `1px solid rgba(212,175,55,0.3)`,
-                    boxShadow:  `0 0 30px rgba(212,175,55,0.06) inset`,
                   }}
                 >
                   <div className="absolute top-0 left-0 right-0 h-px"
                     style={{ background: `linear-gradient(to right, transparent, ${GOLD}60, transparent)` }} />
 
                   {/* Barbero avatar */}
-                  {(enSillon.barbero || enSillon.barberoNombre) && (
-                    <div className="flex items-center gap-2 mb-3">
-                      <div
-                        className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0"
-                        style={{ background: 'rgba(212,175,55,0.15)', color: GOLD }}
-                      >
-                        {(enSillon.barbero || enSillon.barberoNombre)[0].toUpperCase()}
+                  {(enSillon.barbero || enSillon.barberoNombre) && (() => {
+                    const name = enSillon.barbero || enSillon.barberoNombre;
+                    const matched = barberos.find(b => b.nombre.toLowerCase().trim() === name.toLowerCase().trim());
+                    const resolvedUrl = matched ? (matched.foto || matched.fotoUrl) : null;
+                    const avatar = name ? name[0].toUpperCase() : '?';
+                    return (
+                      <div className="flex items-center gap-2 mb-3">
+                        <div
+                          className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 overflow-hidden relative"
+                          style={{ background: 'rgba(212,175,55,0.15)', color: GOLD, border: `1.5px solid rgba(212,175,55,0.25)` }}
+                        >
+                          <span>{avatar}</span>
+                          {resolvedUrl && (
+                            <img src={resolvedUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                          )}
+                        </div>
+                        <span className="text-[10px] font-semibold truncate" style={{ color: `${GOLD}AA` }}>
+                          {name}
+                        </span>
                       </div>
-                      <span className="text-[10px] font-semibold truncate" style={{ color: `${GOLD}AA` }}>
-                        {enSillon.barbero || enSillon.barberoNombre}
-                      </span>
-                    </div>
-                  )}
+                    );
+                  })()}
 
                   <p className="text-white font-black text-2xl leading-tight truncate">
                     {enSillon.clienteNombre || enSillon.nombre}
@@ -323,14 +352,23 @@ function AppointmentPanel({ citas, totalHoy, completadasHoy, offline }) {
                         {c.clienteNombre || c.nombre}
                       </p>
                       <div className="flex items-center gap-1.5 mt-0.5">
-                        {(c.barbero || c.barberoNombre) && (
-                          <span
-                            className="w-4 h-4 rounded-full inline-flex items-center justify-center text-[8px] font-black shrink-0"
-                            style={{ background: 'rgba(212,175,55,0.1)', color: `${GOLD}AA` }}
-                          >
-                            {(c.barbero || c.barberoNombre)[0].toUpperCase()}
-                          </span>
-                        )}
+                        {(c.barbero || c.barberoNombre) && (() => {
+                          const bName = c.barbero || c.barberoNombre;
+                          const matchedB = barberos.find(b => b.nombre.toLowerCase().trim() === bName.toLowerCase().trim());
+                          const resolvedUrlB = matchedB ? (matchedB.foto || matchedB.fotoUrl) : null;
+                          const avatarB = bName ? bName[0].toUpperCase() : '?';
+                          return (
+                            <div
+                              className="w-4 h-4 rounded-full inline-flex items-center justify-center text-[8px] font-black shrink-0 overflow-hidden relative"
+                              style={{ background: 'rgba(212,175,55,0.1)', color: `${GOLD}AA`, border: `0.5px solid rgba(212,175,55,0.2)` }}
+                            >
+                              <span>{avatarB}</span>
+                              {resolvedUrlB && (
+                                <img src={resolvedUrlB} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                              )}
+                            </div>
+                          );
+                        })()}
                         <p className="text-gray-600 text-[10px] truncate">
                           {c.servicioNombre || c.servicio || ''}
                         </p>
@@ -467,10 +505,16 @@ function SlideLookbook({ photos }) {
             className="absolute inset-0 w-full h-full object-cover"
             style={{ filter: 'blur(28px) brightness(0.35)', transform: 'scale(1.1)' }}
           />
-          <img
+          <motion.img
             src={photo.url}
             alt=""
-            className="absolute inset-0 w-full h-full object-contain"
+            className="absolute inset-0 w-full h-full object-contain pointer-events-none select-none"
+            animate={i === safe ? {
+              scale: [1, 1.04, 1.01, 1.03, 1],
+              x: [0, 8, -8, 4, 0],
+              y: [0, -5, 5, -3, 0]
+            } : {}}
+            transition={{ duration: PHOTO_MS / 1000, ease: 'linear', repeat: Infinity }}
           />
           <div
             className="absolute inset-0"
@@ -1011,11 +1055,21 @@ export default function BarberTV() {
       {/* ── Imagen de fondo ────────────────────────────────────── */}
       {backgroundUrl && (
         <>
-          <img
+          <motion.img
             src={backgroundUrl}
             alt=""
             aria-hidden="true"
             className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
+            animate={{
+              scale: [1, 1.05, 1.02, 1.06, 1],
+              x: [0, -15, 15, -8, 0],
+              y: [0, 8, -12, 8, 0]
+            }}
+            transition={{
+              duration: 45,
+              ease: 'linear',
+              repeat: Infinity
+            }}
             style={{ filter: 'brightness(0.25) saturate(0.65)', zIndex: 0 }}
           />
           <div
@@ -1064,6 +1118,7 @@ export default function BarberTV() {
             totalHoy={totalHoy}
             completadasHoy={completadasHoy}
             offline={offline}
+            barberos={barberos}
           />
         </aside>
 

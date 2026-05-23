@@ -341,6 +341,12 @@ service cloud.firestore {
       allow read, write: if esStaff('elegance');
     }
 
+    // ── /caja_sesiones ─────────────────────────────────────────────
+    // Sesiones de caja (apertura/cierre). Solo staff del local.
+    match /caja_sesiones/{docId} {
+      allow read, write: if esStaff('elegance');
+    }
+
     // ── /slotLocks ─────────────────────────────────────────────────
     // Fuente pública de ocupación para el widget de reservas (sin auth).
     // Los documentos incluyen fecha/hora/barberoId/duracion para que
@@ -590,6 +596,11 @@ service cloud.firestore {
         allow read, write: if esStaff(tid);
       }
       match /material_academia/{docId} {
+        allow read, write: if esStaff(tid);
+      }
+
+      // ── caja_sesiones ─────────────────────────────────────────────
+      match /caja_sesiones/{docId} {
         allow read, write: if esStaff(tid);
       }
 
