@@ -68,9 +68,11 @@ service firebase.storage {
       allow read: if true;
       allow write: if isAuth() && isUnder5MB() && isImage();
     }
-    match /tenants/{tenantId}/tv-bg.jpg {
-      allow read: if true;
-      allow write: if isAuth() && isUnder5MB() && isImage();
+    match /tenants/{tenantId}/{fileName} {
+      allow read: if fileName.matches('tv-bg\\..*');
+      allow write: if isAuth() 
+                   && fileName.matches('tv-bg\\..*') 
+                   && request.resource.size < 100 * 1024 * 1024;
     }
     match /tenants/{tenantId}/publicidad_tv/{imageId} {
       allow read: if true;
