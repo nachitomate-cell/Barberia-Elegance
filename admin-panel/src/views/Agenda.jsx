@@ -1346,6 +1346,7 @@ export default function Agenda() {
   const [showUltima,    setShowUltima]    = useState(false);
   const [showHistorial, setShowHistorial] = useState(false);
   const [draggedCita,   setDraggedCita]   = useState(null);
+  const [showDifusionModal, setShowDifusionModal] = useState(false);
 
   const { data: ultimasCitas, loading: loadingUltima } = useCollection(
     'citas',
@@ -1483,6 +1484,14 @@ export default function Agenda() {
         <div className="flex-1" />
 
         <button
+          onClick={() => setShowDifusionModal(true)}
+          className="p-1.5 rounded-lg border border-slate-700 text-slate-400 hover:text-white hover:border-slate-600 transition-all hover:bg-slate-800/40 shrink-0"
+          title="Canal de difusión"
+        >
+          <Send size={14} />
+        </button>
+
+        <button
           onClick={() => setBlockMode(v => !v)}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
             blockMode
@@ -1551,14 +1560,26 @@ export default function Agenda() {
         </div>
       )}
 
-      {/* Canal de Difusión — universal */}
-      <DifusionPanel
-        citas={citas}
-        bloqueos={bloqueos}
-        barberos={barberos}
-        dateStr={dateStr}
-        tenantId={tenantId}
-      />
+      {/* Canal de Difusión Modal — universal */}
+      {showDifusionModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto no-scrollbar rounded-xl shadow-2xl border border-slate-800 bg-[#0F0F0F]">
+            <button
+              onClick={() => setShowDifusionModal(false)}
+              className="absolute top-3 right-3 px-2.5 py-1 text-slate-400 hover:text-white bg-slate-900 border border-slate-800 rounded-lg text-xs font-black transition-all z-50 shadow-md animate-pulse"
+            >
+              ✕
+            </button>
+            <DifusionPanel
+              citas={citas}
+              bloqueos={bloqueos}
+              barberos={barberos}
+              dateStr={dateStr}
+              tenantId={tenantId}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Swimlane */}
       <div className="flex-1 bg-slate-900 border border-slate-800 rounded-xl overflow-auto no-scrollbar">
