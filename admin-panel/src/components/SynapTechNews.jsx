@@ -8,6 +8,38 @@ import { Sparkles, X, ChevronRight, Tag } from 'lucide-react';
 /* ── Mock data (reemplazar con Firestore `global_news` en el futuro) ── */
 const newsFeed = [
   {
+    id: 'v4-realtime-notifications',
+    date: '2026-05-23',
+    category: 'nueva-funcion',
+    title: 'Alertas en Tiempo Real y Live Badges',
+    summary: 'Globos numéricos persistentes en el menú y toasts flotantes de cristal en primer plano con barra de progreso.',
+    detail: 'Nunca dejes pasar una cita o reserva nueva. Agregamos globos numéricos interactivos en el sidebar al lado de Agenda (citas en estado Pendiente) y Productos (reservas en estado pending), activos incluso si el menú está colapsado. Además, implementamos Toasts flotantes premium semi-transparentes de estilo cristal en la esquina inferior derecha con barras de progreso de descarte de 8s que te permiten ver y saltar directamente al detalle de las nuevas solicitudes acompañados de alertas auditivas robustas en segundo plano.',
+  },
+  {
+    id: 'v4-interactive-feedback',
+    date: '2026-05-21',
+    category: 'nueva-funcion',
+    title: 'Calificaciones y Propinas en 1-Click',
+    summary: 'Fidelización post-cita con estrellas reactivas, chips de opinión rápida, selector de propina para barberos y filtrado NPS.',
+    detail: 'Implementamos en el dashboard del cliente una tarjeta interactiva premium de feedback post-cita. Se levanta automáticamente cuando un barbero marca una cita como "Completada". Permite calificar con estrellas animadas, seleccionar tags rápidas y dejar propinas integradas. Cuenta con protección NPS: valoraciones de 4-5 estrellas celebran con confeti y enlazan a Google Reviews, mientras que las de 1-3 estrellas se registran internamente de manera discreta para proteger tu reputación pública en la web.',
+  },
+  {
+    id: 'v4-tv-signage-multimedia',
+    date: '2026-05-18',
+    category: 'mejora',
+    title: 'Música y Video de Fondo en Barber TV',
+    summary: 'Soporte para videos MP4/WebM de fondo y música de YouTube sincronizada con control flotante inteligente de audio.',
+    detail: 'Optimizamos la Barber TV (/tv) para salas de espera. Ahora puedes cargar videos crudos de fondo (MP4/WebM) silenciados en bucle con contraste protegido, y conectar música de fondo pegando cualquier enlace de YouTube. El sistema carga de forma invisible el SDK de YouTube e incluye un botón flotante neón en la esquina de la TV para que los barberos o la recepción puedan activar, silenciar o regular el audio fácilmente sorteando el bloqueo de autoplay de los navegadores.',
+  },
+  {
+    id: 'v4-billing-synaptech',
+    date: '2026-05-16',
+    category: 'mejora',
+    title: 'Facturación y Respuestas de Cobro Rápidas',
+    summary: 'Panel de cobro con datos bancarios copiables, integración de envío de comprobante por WhatsApp y logo SynapTech S.P.A.',
+    detail: 'Re-diseñamos el panel de mensualidades. Ahora muestra los datos de transferencia oficial de Ignacio Mateluna con botón de copiado rápido al portapapeles con alertas de éxito, y un botón directo para enviar el comprobante de transferencia con plantilla auto-completada a WhatsApp. Si estás al día, se despliega una hermosa tarjeta premium con el lema "Gracias por confiar en el futuro" y el logotipo SVG geométrico animado de SynapTech.',
+  },
+  {
     id: 'v3-ai-features',
     date: '2026-05-13',
     category: 'nueva-funcion',

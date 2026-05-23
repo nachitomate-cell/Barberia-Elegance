@@ -140,7 +140,7 @@ function useBillingAlert() {
 }
 
 const LS_KEY_NEWS      = 'synaptech_last_seen_news';
-const LATEST_NEWS_DATE = '2026-05-13';
+const LATEST_NEWS_DATE = '2026-05-23';
 
 function useAcademiaEnabled() {
   const { id: tenantId } = useTenant();
