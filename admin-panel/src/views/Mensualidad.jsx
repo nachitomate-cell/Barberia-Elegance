@@ -11,7 +11,7 @@ const STATUS_CFG = {
   al_dia:   { 
     label: 'Al día', 
     Icon: CheckCircle2, 
-    color: 'text-emerald-450', 
+    color: 'text-emerald-400', 
     glow: 'shadow-emerald-500/10 border-emerald-500/30', 
     bg: 'bg-emerald-500/10' 
   },
@@ -81,7 +81,7 @@ export default function Mensualidad() {
   const primerPendiente = cuotas.find(c => !c.pagada);
   const mesMensaje = primerPendiente ? mesLabel(primerPendiente.mes) : '';
   
-  const waphone = billing?.whatsappAdmin || '56966153086'; // WhatsApp de soporte oficial
+  const waphone = billing?.whatsappAdmin || '56983568212'; // Teléfono oficial corregido de Ignacio
   const txtMensaje = encodeURIComponent(
     `¡Hola Ignacio! Acabo de realizar la transferencia de la mensualidad del local *${tenantName || tenantId}*` +
     (mesMensaje ? ` correspondiente al mes de *${mesMensaje}*.` : '.') + 
@@ -149,74 +149,105 @@ export default function Mensualidad() {
             )}
           </div>
 
-          {/* Datos de Transferencia Bancaria */}
-          <div className="bg-slate-800/40 border border-slate-700/60 rounded-2xl p-5 shadow-lg relative overflow-hidden">
-            <div className="absolute -top-10 -right-10 w-28 h-28 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
-            <div className="flex items-center justify-between mb-4 border-b border-slate-800/80 pb-3">
-              <div>
-                <p className="text-xs font-bold text-white tracking-tight flex items-center gap-1.5">
-                  🏦 Datos de Transferencia Bancaria
+          {/* Renderizado condicional del panel según estado de pago */}
+          {estado === 'al_dia' ? (
+            /* Tarjeta de Agradecimiento SynapTech (Al día) */
+            <div className="bg-gradient-to-b from-slate-800/60 to-slate-900/60 border border-emerald-500/20 rounded-2xl p-8 shadow-xl relative overflow-hidden text-center flex flex-col items-center justify-center space-y-4">
+              <div className="absolute -top-12 -left-12 w-36 h-36 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
+              
+              {/* Futuristic SynapTech Digital Logo */}
+              <div className="flex flex-col items-center gap-2 mb-2 animate-bounce-slow">
+                <div className="relative flex items-center justify-center w-16 h-16 bg-gradient-to-tr from-emerald-500/20 via-teal-500/10 to-transparent border border-emerald-500/30 rounded-2xl shadow-lg shadow-emerald-500/5">
+                  <div className="absolute inset-0.5 rounded-2xl bg-slate-900 border border-slate-800" />
+                  <svg className="w-8 h-8 text-emerald-400 relative z-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+                  </svg>
+                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-450 rounded-full border-2 border-slate-900 animate-pulse" />
+                </div>
+                <div>
+                  <p className="text-sm font-black text-white tracking-[0.25em] uppercase">SynapTech</p>
+                  <p className="text-[8px] font-black text-emerald-450 tracking-[0.4em] uppercase opacity-80 mt-0.5">S P A</p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <h3 className="text-lg font-extrabold text-white tracking-tight">¡Suscripción al día!</h3>
+                <p className="text-emerald-400 font-bold italic text-base">“Gracias por confiar en el futuro”</p>
+                <p className="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
+                  Tu cuenta se encuentra totalmente al día y todos nuestros servicios están activos. Agradecemos enormemente tu compromiso de pago y preferencia con nosotros. ¡Sigamos creciendo juntos!
                 </p>
-                <p className="text-[10px] text-slate-500 mt-0.5">Realiza tu pago directamente a los siguientes datos:</p>
               </div>
-              <button
-                onClick={handleCopiarDatos}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 border border-slate-700 text-slate-400 hover:text-white text-xs font-bold rounded-xl transition-all active:scale-95 shadow-inner"
-              >
-                {copiado ? (
-                  <>
-                    <Check size={13} className="text-emerald-400" />
-                    <span className="text-emerald-400 font-bold">Copiado</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy size={13} />
-                    <span>Copiar Datos</span>
-                  </>
-                )}
-              </button>
             </div>
+          ) : (
+            /* Datos de Transferencia Bancaria (Si tiene deudas/pendientes) */
+            <div className="bg-slate-800/40 border border-slate-700/60 rounded-2xl p-5 shadow-lg relative overflow-hidden">
+              <div className="absolute -top-10 -right-10 w-28 h-28 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
+              <div className="flex items-center justify-between mb-4 border-b border-slate-800/80 pb-3">
+                <div>
+                  <p className="text-xs font-bold text-white tracking-tight flex items-center gap-1.5">
+                    🏦 Datos de Transferencia Bancaria
+                  </p>
+                  <p className="text-[10px] text-slate-500 mt-0.5">Realiza tu pago directamente a los siguientes datos:</p>
+                </div>
+                <button
+                  onClick={handleCopiarDatos}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 border border-slate-700 text-slate-400 hover:text-white text-xs font-bold rounded-xl transition-all active:scale-95 shadow-inner"
+                >
+                  {copiado ? (
+                    <>
+                      <Check size={13} className="text-emerald-400" />
+                      <span className="text-emerald-400 font-bold">Copiado</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy size={13} />
+                      <span>Copiar Datos</span>
+                    </>
+                  )}
+                </button>
+              </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
-              <div className="space-y-1">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Nombre</span>
-                <span className="font-semibold text-slate-200">Ignacio Mateluna</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Nombre</span>
+                  <span className="font-semibold text-slate-200">Ignacio Mateluna</span>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">RUT</span>
+                  <span className="font-semibold text-slate-200">20.988.528-K</span>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Banco</span>
+                  <span className="font-semibold text-slate-200">Banco Falabella</span>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Tipo de Cuenta</span>
+                  <span className="font-semibold text-slate-200">Cuenta Corriente</span>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Número de Cuenta</span>
+                  <span className="font-bold text-slate-200 font-mono">19831360665</span>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Correo de confirmación</span>
+                  <span className="font-semibold text-slate-200">ignaciiio.mate@gmail.com</span>
+                </div>
               </div>
-              <div className="space-y-1">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">RUT</span>
-                <span className="font-semibold text-slate-200">20.988.528-K</span>
-              </div>
-              <div className="space-y-1">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Banco</span>
-                <span className="font-semibold text-slate-200">Banco Falabella</span>
-              </div>
-              <div className="space-y-1">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Tipo de Cuenta</span>
-                <span className="font-semibold text-slate-200">Cuenta Corriente</span>
-              </div>
-              <div className="space-y-1">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Número de Cuenta</span>
-                <span className="font-bold text-slate-200 font-mono">19831360665</span>
-              </div>
-              <div className="space-y-1">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Correo de confirmación</span>
-                <span className="font-semibold text-slate-200">ignaciiio.mate@gmail.com</span>
-              </div>
-            </div>
 
-            {/* Botón de Envío por WhatsApp */}
-            <div className="pt-5 mt-5 border-t border-slate-800/80">
-              <a
-                href={`https://wa.me/${waphone}?text=${txtMensaje}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm rounded-xl transition-all shadow-md shadow-emerald-950/20 active:scale-98 flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <Send size={15} />
-                <span>Enviar Comprobante por WhatsApp</span>
-              </a>
+              {/* Botón de Envío por WhatsApp */}
+              <div className="pt-5 mt-5 border-t border-slate-800/80">
+                <a
+                  href={`https://wa.me/${waphone}?text=${txtMensaje}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm rounded-xl transition-all shadow-md shadow-emerald-950/20 active:scale-98 flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Send size={15} />
+                  <span>Enviar Comprobante por WhatsApp</span>
+                </a>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Cuotas */}
           {cuotas.length > 0 && (
