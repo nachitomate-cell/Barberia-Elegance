@@ -181,7 +181,7 @@ export default function Caja() {
     const q = query(tenantCol('caja_sesiones'), where('estado', '==', 'cerrada'), orderBy('fechaCierre', 'desc'), limit(20));
     const unsub = onSnapshot(q, snap => {
       setHistorial(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-    });
+    }, () => {});
     return unsub;
   }, []);
 
