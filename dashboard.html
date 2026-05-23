@@ -500,6 +500,28 @@
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
+    /* Feedback & Tips premium styling */
+    .review-chip.active-chip {
+      border-color: var(--gold) !important;
+      color: var(--gold) !important;
+      background: rgba(201, 168, 76, 0.08) !important;
+    }
+    .tenant-aura .review-chip.active-chip {
+      border-color: #111827 !important;
+      color: #111827 !important;
+      background: rgba(17, 24, 39, 0.06) !important;
+    }
+    .tip-btn.active-tip {
+      border-color: var(--gold) !important;
+      color: var(--gold) !important;
+      background: rgba(201, 168, 76, 0.08) !important;
+    }
+    .tenant-aura .tip-btn.active-tip {
+      border-color: #111827 !important;
+      color: #111827 !important;
+      background: rgba(17, 24, 39, 0.06) !important;
+    }
+
     /* Masonry grid para Lookbook */
     .masonry-grid { columns: 2; column-gap: 0.75rem; }
     .masonry-item { break-inside: avoid; margin-bottom: 0.75rem; }
@@ -2836,6 +2858,77 @@
         </div>
       </div>
 
+      <!-- ── TARJETA INTERACTIVA DE VALORACIÓN Y PROPINA (Quick Feedback & Tips) ── -->
+      <div id="interactiveFeedbackContainer" class="hidden mx-4 mb-5 animate-[fadeSlideUp_0.45s_cubic-bezier(0.16,1,0.3,1)_forwards]">
+        <div class="rounded-3xl p-5 relative overflow-hidden" style="background:linear-gradient(135deg,rgba(201,168,76,0.1),rgba(201,168,76,0.04));border:1px solid var(--gold-dim);">
+          <!-- Background glow -->
+          <div class="absolute -right-6 -top-6 w-24 h-24 rounded-full blur-xl pointer-events-none" style="background:var(--gold-glow);"></div>
+          
+          <div class="relative z-10 text-center">
+            <p class="text-[10px] font-black uppercase tracking-[0.2em] mb-1" style="color:var(--gold);">VALORA TU VISITA</p>
+            <h3 class="text-white font-bold text-base leading-tight">¿Qué tal estuvo tu cita con <span id="feedbackBarberoNombre" class="text-white">tu profesional</span>?</h3>
+            <p class="text-[11px] text-zinc-400 mt-1 leading-snug">Califica y premia el servicio en un click.</p>
+            
+            <!-- Star rating selector -->
+            <div class="flex justify-center gap-2 mt-4 mb-3">
+              <button onclick="setFeedbackRating(1)" onmouseover="hoverFeedbackRating(1)" onmouseout="resetFeedbackRating()" class="star-btn p-1 transition-transform active:scale-95">
+                <i id="feedbackStar-1" class="ph-bold ph-star text-2xl text-zinc-600"></i>
+              </button>
+              <button onclick="setFeedbackRating(2)" onmouseover="hoverFeedbackRating(2)" onmouseout="resetFeedbackRating()" class="star-btn p-1 transition-transform active:scale-95">
+                <i id="feedbackStar-2" class="ph-bold ph-star text-2xl text-zinc-600"></i>
+              </button>
+              <button onclick="setFeedbackRating(3)" onmouseover="hoverFeedbackRating(3)" onmouseout="resetFeedbackRating()" class="star-btn p-1 transition-transform active:scale-95">
+                <i id="feedbackStar-3" class="ph-bold ph-star text-2xl text-zinc-600"></i>
+              </button>
+              <button onclick="setFeedbackRating(4)" onmouseover="hoverFeedbackRating(4)" onmouseout="resetFeedbackRating()" class="star-btn p-1 transition-transform active:scale-95">
+                <i id="feedbackStar-4" class="ph-bold ph-star text-2xl text-zinc-600"></i>
+              </button>
+              <button onclick="setFeedbackRating(5)" onmouseover="hoverFeedbackRating(5)" onmouseout="resetFeedbackRating()" class="star-btn p-1 transition-transform active:scale-95">
+                <i id="feedbackStar-5" class="ph-bold ph-star text-2xl text-zinc-600"></i>
+              </button>
+            </div>
+            
+            <!-- Feedback Form -->
+            <div id="feedbackFormContent" class="hidden mt-4 space-y-3">
+              <!-- Quick review chip selector -->
+              <div class="flex flex-wrap justify-center gap-1.5 mb-2">
+                <button onclick="toggleFeedbackChip(this)" class="review-chip text-[10px] font-bold text-zinc-400 bg-zinc-900/60 border border-zinc-800 px-3 py-1.5 rounded-full hover:border-zinc-700 active:scale-95 transition-all">Excelente atención</button>
+                <button onclick="toggleFeedbackChip(this)" class="review-chip text-[10px] font-bold text-zinc-400 bg-zinc-900/60 border border-zinc-800 px-3 py-1.5 rounded-full hover:border-zinc-700 active:scale-95 transition-all">Puntual y rápido</button>
+                <button onclick="toggleFeedbackChip(this)" class="review-chip text-[10px] font-bold text-zinc-400 bg-zinc-900/60 border border-zinc-800 px-3 py-1.5 rounded-full hover:border-zinc-700 active:scale-95 transition-all">Gran corte de pelo</button>
+                <button onclick="toggleFeedbackChip(this)" class="review-chip text-[10px] font-bold text-zinc-400 bg-zinc-900/60 border border-zinc-800 px-3 py-1.5 rounded-full hover:border-zinc-700 active:scale-95 transition-all">Súper profesional</button>
+              </div>
+
+              <!-- Comment input -->
+              <textarea id="feedbackComment" placeholder="Escribe un mensaje de agradecimiento (opcional)..." class="w-full text-xs text-white bg-zinc-950/60 border border-zinc-800 rounded-xl p-3 placeholder-zinc-600 outline-none focus:border-amber-500/50 resize-none h-16 transition-all"></textarea>
+              
+              <!-- Tip selector section -->
+              <div class="pt-2 border-t border-zinc-800/60">
+                <p class="text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-2">Agregar propina para el profesional</p>
+                <div class="grid grid-cols-4 gap-1.5">
+                  <button onclick="setFeedbackTip(1000, this)" class="tip-btn text-xs font-bold py-2 rounded-xl text-zinc-400 bg-zinc-900/60 border border-zinc-800 hover:border-zinc-700 active:scale-95 transition-all">$1.000</button>
+                  <button onclick="setFeedbackTip(2000, this)" class="tip-btn text-xs font-bold py-2 rounded-xl text-zinc-400 bg-zinc-900/60 border border-zinc-800 hover:border-zinc-700 active:scale-95 transition-all">$2.000</button>
+                  <button onclick="setFeedbackTip(3000, this)" class="tip-btn text-xs font-bold py-2 rounded-xl text-zinc-400 bg-zinc-900/60 border border-zinc-800 hover:border-zinc-700 active:scale-95 transition-all">$3.000</button>
+                  <button id="tipBtnCustom" onclick="setFeedbackTip(-1, this)" class="tip-btn text-xs font-bold py-2 rounded-xl text-zinc-400 bg-zinc-900/60 border border-zinc-800 hover:border-zinc-700 active:scale-95 transition-all">Otro</button>
+                </div>
+                <!-- Custom tip input -->
+                <div id="customTipContainer" class="hidden mt-2 relative">
+                  <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-zinc-500 font-bold">$</span>
+                  <input type="number" id="feedbackCustomTip" placeholder="Monto personalizado" class="w-full text-xs text-white bg-zinc-950/60 border border-zinc-800 rounded-xl py-2 pl-6 pr-3 placeholder-zinc-600 outline-none focus:border-amber-500/50" oninput="updateCustomTipValue(this)">
+                </div>
+              </div>
+              
+              <!-- Send buttons -->
+              <div class="flex gap-2 pt-2">
+                <button onclick="cerrarFeedbackCard()" class="flex-1 py-3 rounded-xl text-zinc-500 text-xs font-medium border border-zinc-800 hover:bg-zinc-900/40 active:scale-[0.98] transition-all">Ahora no</button>
+                <button onclick="enviarFeedbackYPropina()" class="flex-1 py-3 rounded-xl text-xs font-bold text-black active:scale-[0.98] transition-all flex items-center justify-center gap-1.5" style="background:var(--gold);">
+                  <i class="ph-bold ph-paper-plane-right"></i> Enviar calificación
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- ── INSTALAR APP BANNER (Big) ── -->
       <div id="pwaBigInstallCard" class="hidden mx-4 mb-5 rounded-3xl p-5 relative overflow-hidden cursor-pointer active:scale-95 transition-all shadow-[0_0_20px_rgba(201,168,76,0.1)]" style="background:linear-gradient(to right, rgba(201,168,76,0.12), rgba(201,168,76,0.04)); border: 1px solid rgba(201,168,76,0.3);" onclick="instalarPWA()">
         <div class="absolute -right-6 -top-6 w-24 h-24 rounded-full blur-xl pointer-events-none" style="background:rgba(201,168,76,0.15);"></div>
@@ -4540,10 +4633,13 @@ async function cargarCitasUsuario(user) {
       // Poblar caché para el modal
       citas.forEach(c => { _citaCache[c.id] = c; });
 
-      // Mostrar prompt de Google si hay una cita recién completada
+      // Mostrar tarjeta interactiva de valoración si hay una cita recién completada
       const citaGoogleReview = citas.find(c => c.pendingGoogleReview === true);
       if (citaGoogleReview) {
-        setTimeout(() => mostrarGoogleReviewModal(citaGoogleReview.id), 1200);
+        initFeedbackCard(citaGoogleReview);
+      } else {
+        const fContainer = document.getElementById('interactiveFeedbackContainer');
+        if (fContainer) fContainer.classList.add('hidden');
       }
 
       const ahora   = new Date();
@@ -5472,6 +5568,180 @@ function auraCountUp(targetNum, totalTarget) {
 
   <script>
     let _googleReviewCitaId = null;
+    let _selectedFeedbackRating = 0;
+    let _selectedFeedbackTipAmount = 0;
+    let _selectedFeedbackCitaId = null;
+
+    function initFeedbackCard(cita) {
+      _selectedFeedbackCitaId = cita.id;
+      _selectedFeedbackRating = 0;
+      _selectedFeedbackTipAmount = 0;
+      
+      // Reset styles and values
+      const barberoNameSpan = document.getElementById('feedbackBarberoNombre');
+      if (barberoNameSpan) barberoNameSpan.textContent = cita.barbero || 'tu profesional';
+      
+      const commentTextarea = document.getElementById('feedbackComment');
+      if (commentTextarea) commentTextarea.value = '';
+      
+      const formContent = document.getElementById('feedbackFormContent');
+      if (formContent) formContent.classList.add('hidden');
+      
+      // Reset stars
+      for (let i = 1; i <= 5; i++) {
+        const star = document.getElementById(`feedbackStar-${i}`);
+        if (star) star.className = 'ph-bold ph-star text-2xl text-zinc-600';
+      }
+      
+      // Reset chips
+      document.querySelectorAll('.review-chip').forEach(c => c.classList.remove('active-chip'));
+      
+      // Reset tips
+      document.querySelectorAll('.tip-btn').forEach(b => b.classList.remove('active-tip'));
+      const customTipContainer = document.getElementById('customTipContainer');
+      if (customTipContainer) customTipContainer.classList.add('hidden');
+      
+      const customTipInput = document.getElementById('feedbackCustomTip');
+      if (customTipInput) customTipInput.value = '';
+      
+      // Show container
+      const fContainer = document.getElementById('interactiveFeedbackContainer');
+      if (fContainer) fContainer.classList.remove('hidden');
+    }
+
+    function hoverFeedbackRating(rating) {
+      if (_selectedFeedbackRating > 0) return;
+      for (let i = 1; i <= 5; i++) {
+        const star = document.getElementById(`feedbackStar-${i}`);
+        if (star) {
+          if (i <= rating) {
+            star.className = 'ph-fill ph-star text-2xl text-amber-400';
+          } else {
+            star.className = 'ph-bold ph-star text-2xl text-zinc-600';
+          }
+        }
+      }
+    }
+
+    function resetFeedbackRating() {
+      if (_selectedFeedbackRating > 0) return;
+      for (let i = 1; i <= 5; i++) {
+        const star = document.getElementById(`feedbackStar-${i}`);
+        if (star) star.className = 'ph-bold ph-star text-2xl text-zinc-600';
+      }
+    }
+
+    function setFeedbackRating(rating) {
+      _selectedFeedbackRating = rating;
+      
+      // Color stars permanently
+      for (let i = 1; i <= 5; i++) {
+        const star = document.getElementById(`feedbackStar-${i}`);
+        if (star) {
+          if (i <= rating) {
+            star.className = 'ph-fill ph-star text-2xl text-amber-400';
+          } else {
+            star.className = 'ph-bold ph-star text-2xl text-zinc-600';
+          }
+        }
+      }
+      
+      // Expand form
+      const formContent = document.getElementById('feedbackFormContent');
+      if (formContent) formContent.classList.remove('hidden');
+    }
+
+    function toggleFeedbackChip(btn) {
+      btn.classList.toggle('active-chip');
+    }
+
+    function setFeedbackTip(amount, btn) {
+      // Clear other tips active class
+      document.querySelectorAll('.tip-btn').forEach(b => b.classList.remove('active-tip'));
+      btn.classList.add('active-tip');
+      
+      const customTipContainer = document.getElementById('customTipContainer');
+      if (amount === -1) {
+        // Custom
+        if (customTipContainer) customTipContainer.classList.remove('hidden');
+        const customTipInput = document.getElementById('feedbackCustomTip');
+        _selectedFeedbackTipAmount = customTipInput ? (Number(customTipInput.value) || 0) : 0;
+      } else {
+        if (customTipContainer) customTipContainer.classList.add('hidden');
+        _selectedFeedbackTipAmount = amount;
+      }
+    }
+
+    function updateCustomTipValue(input) {
+      _selectedFeedbackTipAmount = Number(input.value) || 0;
+    }
+
+    async function cerrarFeedbackCard() {
+      if (!_selectedFeedbackCitaId) return;
+      showLoading('Cerrando...');
+      try {
+        await FDB.citasCol().doc(_selectedFeedbackCitaId).update({ pendingGoogleReview: false });
+        const fContainer = document.getElementById('interactiveFeedbackContainer');
+        if (fContainer) fContainer.classList.add('hidden');
+      } catch (e) {
+        console.warn('[Feedback] Error al ocultar banner:', e.message);
+      } finally {
+        hideLoading();
+      }
+    }
+
+    async function enviarFeedbackYPropina() {
+      if (!_selectedFeedbackCitaId) return;
+      if (_selectedFeedbackRating === 0) return alert('Por favor, selecciona una calificación.');
+      
+      showLoading('Enviando valoración...');
+      
+      // Gather active chips
+      const chips = [];
+      document.querySelectorAll('.review-chip.active-chip').forEach(c => chips.push(c.textContent));
+      
+      // Gather comment
+      const commentInput = document.getElementById('feedbackComment');
+      let comment = commentInput ? commentInput.value.trim() : '';
+      if (chips.length > 0) {
+        const chipStr = chips.join(', ');
+        comment = comment ? `${chipStr}. ${comment}` : chipStr;
+      }
+      
+      try {
+        await FDB.citasCol().doc(_selectedFeedbackCitaId).update({
+          rating: Number(_selectedFeedbackRating),
+          ratingComments: comment,
+          ratingTip: Number(_selectedFeedbackTipAmount),
+          ratingCreatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          pendingGoogleReview: false
+        });
+        
+        hideLoading();
+        
+        // Burst Confetti!
+        if (typeof confetti === 'function') {
+          confetti({
+            particleCount: 100,
+            spread: 70,
+            origin: { y: 0.8 }
+          });
+        }
+        
+        // Hide card immediately
+        const fContainer = document.getElementById('interactiveFeedbackContainer');
+        if (fContainer) fContainer.classList.add('hidden');
+        
+        // If rating is positive (4 or 5 stars), prompt for Google Review modal
+        if (_selectedFeedbackRating >= 4) {
+          setTimeout(() => mostrarGoogleReviewModal(_selectedFeedbackCitaId), 800);
+        }
+        
+      } catch (err) {
+        hideLoading();
+        alert('No se pudo enviar tu valoración. Intenta de nuevo.');
+      }
+    }
 
     function mostrarGoogleReviewModal(citaId) {
       const url = (window.SHOP && window.SHOP.googleReviewUrl) || '';
