@@ -5133,6 +5133,8 @@
           </div>
         </div>
 
+        <div id="smartSlotsContainer" class="hidden mb-6"></div>
+
         <div>
           <h3 class="font-semibold text-brand-text text-lg mb-4">Horas Disponibles</h3>
           <div class="flex flex-wrap gap-2.5" id="hoursGrid">
@@ -5398,6 +5400,160 @@
     let _fsProducts = [];
     let _isProductsEnabled = false;
     let _selectedProducts = [];
+
+    // Up-selling complementary services
+    const AURA_ADDONS = [
+      { id: 'addon_mask', nombre: 'Exfoliante Facial Carbón Activo', precio: 4000, duracion: 15, desc: 'Elimina impurezas y renueva el brillo natural de tu rostro.' },
+      { id: 'addon_massage', nombre: 'Masaje Capilar Purificante', precio: 3000, duracion: 10, desc: 'Masaje relajante con champú purificante y estimulación capilar.' },
+      { id: 'addon_hot_towel', nombre: 'Toalla Caliente & Aceites', precio: 3000, duracion: 10, desc: 'Tratamiento relajante de toalla caliente con vaporización de mentol.' },
+      { id: 'addon_cejas', nombre: 'Perfilado de Cejas con Navaja', precio: 3000, duracion: 10, desc: 'Diseño y afeitado de cejas de acuerdo a tu fisonomía facial.' }
+    ];
+    let selectedAddons = [];
+    window._upsellShowed = false;
+
+    function openAuraUpsell() {
+      const m = document.getElementById('aura-upsell-modal');
+      const sheet = document.getElementById('aura-upsell-sheet');
+      if (!m || !sheet) return;
+      m.classList.remove('hidden');
+      m.classList.add('flex');
+      _renderAuraAddons();
+      setTimeout(() => {
+        m.classList.add('opacity-100');
+        sheet.classList.remove('translate-y-8');
+      }, 20);
+    }
+
+    function closeAuraUpsell() {
+      const m = document.getElementById('aura-upsell-modal');
+      const sheet = document.getElementById('aura-upsell-sheet');
+      if (!m || !sheet) return;
+      m.classList.remove('opacity-100');
+      sheet.classList.add('translate-y-8');
+      setTimeout(() => {
+        m.classList.remove('flex');
+        m.classList.add('hidden');
+      }, 300);
+    }
+
+    window.confirmAuraUpsell = () => {
+      closeAuraUpsell();
+      nextStep();
+    };
+
+    window.cancelAuraUpsell = () => {
+      selectedAddons = [];
+      closeAuraUpsell();
+      nextStep();
+    };
+
+    function _renderAuraAddons() {
+      const listEl = document.getElementById('auraUpsellList');
+      if (!listEl) return;
+      listEl.innerHTML = AURA_ADDONS.map(a => {
+        const isSel = selectedAddons.some(x => x.id === a.id);
+        return `
+          <div 
+            onclick="toggleAuraAddon('${a.id}')"
+            class="p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 select-none"
+            style="background: ${isSel ? 'rgba(212,175,55,0.06)' : 'rgba(255,255,255,0.01)'}; border-color: ${isSel ? '#D4AF37' : 'rgba(255,255,255,0.06)'};"
+          >
+            <div class="min-w-0 flex-1">
+              <p class="text-xs font-bold text-white leading-tight">${a.nombre}</p>
+              <p class="text-[10px] text-white/40 mt-1 line-clamp-1 leading-snug">${a.desc}</p>
+              <p class="text-[10px] text-white/30 mt-0.5 font-medium">🕒 +${a.duracion} min</p>
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+              <span class="text-xs font-black" style="color: #D4AF37;">$${a.precio.toLocaleString('es-CL')}</span>
+              <div 
+                class="w-4 h-4 rounded-full border flex items-center justify-center transition-all"
+                style="border-color: ${isSel ? '#D4AF37' : 'rgba(255,255,255,0.2)'}; background: ${isSel ? '#D4AF37' : 'transparent'};"
+              >
+                ${isSel ? '<span class="text-[8px] font-black text-black">✓</span>' : ''}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    window.toggleAuraAddon = (id) => {
+      const addon = AURA_ADDONS.find(a => a.id === id);
+      const idx = selectedAddons.findIndex(a => a.id === id);
+      if (idx === -1) {
+        selectedAddons.push(addon);
+      } else {
+        selectedAddons.splice(idx, 1);
+      }
+      _renderAuraAddons();
+    };
+
+    function _renderSmartSlots(hours) {
+      const container = document.getElementById('smartSlotsContainer');
+      if (!container) return;
+
+      const avail = (hours || []).filter(h => !h.occupied);
+      if (avail.length === 0) {
+        container.innerHTML = '';
+        container.classList.add('hidden');
+        return;
+      }
+
+      const recommendations = avail.slice(0, 3);
+      const accentColor = '#D4AF37'; 
+      const bgAccent = 'rgba(212,175,55,0.06)';
+      const borderAccent = 'rgba(212,175,55,0.25)';
+
+      container.innerHTML = `
+        <div class="p-4 rounded-2xl border transition-all" style="background:${bgAccent}; border-color:${borderAccent};">
+          <p class="text-xs font-bold uppercase tracking-wider mb-2.5 flex items-center gap-1.5" style="color:${accentColor};">
+            <i class="ph-fill ph-lightning text-sm animate-pulse"></i> Horas recomendadas (Smart Slots)
+          </p>
+          <p class="text-xs text-white/50 mb-3.5">
+            ¿Tienes prisa? Agenda al instante uno de estos bloques recomendados para hoy:
+          </p>
+          <div class="grid grid-cols-3 gap-2.5">
+            ${recommendations.map(r => `
+              <button 
+                onclick="selectSmartSlot('${r.time}')" 
+                class="smart-slot-pill py-2.5 px-3 rounded-xl border text-xs font-bold text-center transition-all bg-[#0F0F12] border-white/10 text-white hover:border-[#D4AF37] focus:outline-none"
+              >
+                ${r.time}
+              </button>
+            `).join('')}
+          </div>
+        </div>
+      `;
+      container.classList.remove('hidden');
+    }
+
+    window.selectSmartSlot = (time) => {
+      const pills = document.querySelectorAll('#hoursGrid .time-pill');
+      let found = false;
+      pills.forEach(p => {
+        if (p.textContent.trim() === time) {
+          p.click();
+          found = true;
+        }
+      });
+      if (!found) {
+        selectedTimeStr = time;
+        updateContinueBtn();
+        updateSelectionRecap();
+      }
+
+      document.querySelectorAll('.smart-slot-pill').forEach(btn => {
+        if (btn.textContent.trim() === time) {
+          btn.style.background = '#D4AF37';
+          btn.style.color = '#000';
+          btn.style.borderColor = '#D4AF37';
+        } else {
+          btn.style.background = '#0F0F12';
+          btn.style.color = '#fff';
+          btn.style.borderColor = 'rgba(255,255,255,0.1)';
+        }
+      });
+    };
 
     function _tenantProductos() {
       const tid = window.CURRENT_TENANT_ID || 'elegance';
@@ -6356,6 +6512,7 @@
       }
 
       grid.innerHTML = '';
+      _renderSmartSlots(hours);
 
       // Filtrar horas pasadas si es hoy
       const now = new Date();
@@ -6474,6 +6631,9 @@
 
       selectedServiceObj = (window._fsServices || _fsServices || []).find(s => String(s.id) === String(id))
         || DB.getServices().find(s => String(s.id) === String(id));
+
+      window._upsellShowed = false;
+      selectedAddons = [];
 
       // Filtrar barberos que realizan este servicio (respetando sucursal activa)
       const _base = (_activeBarberos.length ? _activeBarberos : _fsBarberos) || [];
@@ -6699,9 +6859,16 @@
         // Liberar listener al avanzar al paso 4
         if (_unsubSlotLocks) { _unsubSlotLocks(); _unsubSlotLocks = null; }
 
-        document.getElementById('summaryService').innerText = selectedServiceObj.nombre;
-        const _precioEfectivo = _getPrecioEfectivo(selectedServiceObj, new Date(currentDateStr + 'T00:00:00').getDay());
-        document.getElementById('summaryPrice').innerText = "$" + _precioEfectivo.toLocaleString('es-CL');
+        let serviceNameText = selectedServiceObj.nombre;
+        let totalCost = _getPrecioEfectivo(selectedServiceObj, new Date(currentDateStr + 'T00:00:00').getDay()) || 0;
+
+        if (selectedAddons && selectedAddons.length > 0) {
+          serviceNameText += " + " + selectedAddons.map(a => a.nombre).join(" + ");
+          totalCost += selectedAddons.reduce((sum, a) => sum + a.precio, 0);
+        }
+
+        document.getElementById('summaryService').innerText = serviceNameText;
+        document.getElementById('summaryPrice').innerText = "$" + totalCost.toLocaleString('es-CL');
         document.getElementById('summaryDateString').innerText = currentDateStr;
         document.getElementById('summaryTime').innerText = selectedTimeStr;
 
@@ -7003,9 +7170,9 @@
             clienteNombre:    nombre,
             clienteTelefono:  tel,
             clienteEmail:     email,
-            servicioNombre:   selectedServiceObj.nombre,
-            duracionServicio: selectedServiceObj.duracion,
-            precio:           _getPrecioEfectivo(selectedServiceObj, new Date(currentDateStr + 'T00:00:00').getDay()) || 0,
+            servicioNombre:   selectedServiceObj.nombre + (selectedAddons.length > 0 ? " + " + selectedAddons.map(a => a.nombre).join(" + ") : ""),
+            duracionServicio: selectedServiceObj.duracion + selectedAddons.reduce((sum, a) => sum + a.duracion, 0),
+            precio:           (_getPrecioEfectivo(selectedServiceObj, new Date(currentDateStr + 'T00:00:00').getDay()) || 0) + selectedAddons.reduce((sum, a) => sum + a.precio, 0),
             barbero:          barberoNombreFinal,
             barberoId:        barberoIdFinal,
             ...(window._selectedSucursal ? {
@@ -7030,7 +7197,8 @@
           DB.saveBooking({
             fecha: currentDateStr, hora: selectedTimeStr,
             clienteNombre: nombre, clienteTelefono: tel, clienteEmail: email,
-            servicioNombre: selectedServiceObj.nombre, duracionServicio: selectedServiceObj.duracion,
+            servicioNombre: selectedServiceObj.nombre + (selectedAddons.length > 0 ? " + " + selectedAddons.map(a => a.nombre).join(" + ") : ""),
+            duracionServicio: selectedServiceObj.duracion + selectedAddons.reduce((sum, a) => sum + a.duracion, 0),
             barbero:   barberoNombreFinal || SHOP.barberos[0]?.nombre || '',
             barberoId: barberoIdFinal || null,
           });
@@ -7639,6 +7807,30 @@
       <div id="aura-sobre-title">Quiénes Somos</div>
       <p id="aura-sobre-body"></p>
       <button id="aura-sobre-close" onclick="closeAuraSobre()">Cerrar</button>
+    </div>
+  </div>
+
+  <!-- Up-selling & Cross-selling de Servicios (Aura only) -->
+  <div id="aura-upsell-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-black/70 backdrop-blur-sm transition-all duration-300 opacity-0" onclick="if(event.target===this)cancelAuraUpsell()">
+    <div class="relative w-full max-w-lg rounded-3xl border border-white/10 bg-[#0A0A0C] p-6 shadow-2xl overflow-hidden translate-y-8 transition-transform duration-300" id="aura-upsell-sheet" style="border-color: rgba(212,175,55,0.25);">
+      <div class="absolute inset-0 pointer-events-none" style="background: radial-gradient(ellipse 60% 60% at 50% -10%, rgba(212,175,55,0.06) 0%, transparent 80%);"></div>
+      <div class="relative z-10">
+        <h3 class="text-lg font-black text-center uppercase tracking-widest mb-1.5" style="color: #D4AF37;">
+          ✦ Completa tu Experiencia Aura ✦
+        </h3>
+        <p class="text-xs text-white/50 text-center mb-6">
+          Añade uno de nuestros tratamientos complementarios signature a tu reserva:
+        </p>
+        <div class="flex flex-col gap-3 mb-6" id="auraUpsellList"></div>
+        <div class="flex flex-col gap-2.5">
+          <button onclick="confirmAuraUpsell()" class="w-full py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider text-center transition-all bg-[#D4AF37] text-black hover:bg-[#FDE047] active:scale-95 shadow-[0_0_20px_rgba(212,175,55,0.18)]">
+            Continuar con mi reserva
+          </button>
+          <button onclick="cancelAuraUpsell()" class="w-full py-3 rounded-2xl text-xs font-bold text-center border border-white/5 text-white/40 hover:text-white/60 hover:bg-white/5 transition-all">
+            No, gracias
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
