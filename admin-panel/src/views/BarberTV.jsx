@@ -897,6 +897,8 @@ export default function BarberTV() {
   const [youtubeUrl,     setYoutubeUrl]     = useState('');
   const [ytPlayer,       setYtPlayer]       = useState(null);
   const [audioState,     setAudioState]     = useState('paused'); // 'paused', 'playing', 'blocked'
+  const [hideSlideshow,  setHideSlideshow]  = useState(false);
+  const [rawVideoBg,     setRawVideoBg]     = useState(false);
 
   GOLD = accentColor || TENANT_ACCENT[tenantId] || '#D4AF37';
 
@@ -1049,6 +1051,8 @@ export default function BarberTV() {
       if (d.qr)            setQrConfig(prev => ({ ...prev, ...d.qr }));
       setBackgroundUrl(d.backgroundUrl || '');
       setYoutubeUrl(d.youtubeUrl || '');
+      setHideSlideshow(!!d.hideSlideshow);
+      setRawVideoBg(!!d.rawVideoBg);
     }, () => {});
   }, [tenantId]);
 
@@ -1167,7 +1171,7 @@ export default function BarberTV() {
               playsInline
               aria-hidden="true"
               className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
-              style={{ filter: 'brightness(0.68) saturate(0.85)', zIndex: 0 }}
+              style={{ filter: rawVideoBg ? 'none' : 'brightness(0.68) saturate(0.85)', zIndex: 0 }}
             />
           ) : (
             <motion.img
@@ -1185,13 +1189,15 @@ export default function BarberTV() {
                 ease: 'linear',
                 repeat: Infinity
               }}
-              style={{ filter: 'brightness(0.7) saturate(0.85)', zIndex: 0 }}
+              style={{ filter: rawVideoBg ? 'none' : 'brightness(0.7) saturate(0.85)', zIndex: 0 }}
             />
           )}
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{ background: 'rgba(5,5,5,0.22)', zIndex: 0 }}
-          />
+          {!rawVideoBg && (
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{ background: 'rgba(5,5,5,0.22)', zIndex: 0 }}
+            />
+          )}
         </>
       )}
 
@@ -1240,12 +1246,14 @@ export default function BarberTV() {
 
         {/* Carrusel — 74% */}
         <main className="flex-1 relative overflow-hidden" onClick={handleCarouselClick}>
-          <div className="absolute inset-0"
-            style={{ background: 'radial-gradient(ellipse 100% 80% at 50% 100%, rgba(212,175,55,0.03) 0%, transparent 60%)' }}
-          />
+          {!rawVideoBg && (
+            <div className="absolute inset-0"
+              style={{ background: 'radial-gradient(ellipse 100% 80% at 50% 100%, rgba(212,175,55,0.03) 0%, transparent 60%)' }}
+            />
+          )}
 
           {/* Slides — Opción C: parallax opacity+scale+x ─────── */}
-          {visibleDefs.map((def, i) => {
+          {!hideSlideshow && visibleDefs.map((def, i) => {
             const isCurrent = i === safeSlide;
             return (
               <motion.div
@@ -1264,17 +1272,19 @@ export default function BarberTV() {
             );
           })}
 
-          <SlideIndicators
-            labels={slideLabels}
-            active={safeSlide}
-            paused={paused}
-            onChange={handleSlideChange}
-          />
+          {!hideSlideshow && (
+            <SlideIndicators
+              labels={slideLabels}
+              active={safeSlide}
+              paused={paused}
+              onChange={handleSlideChange}
+            />
+          )}
 
           <QrOverlay qrUrl={qrUrl} qrColor={qrConfig.color} qrSize={qrConfig.size} />
 
           {/* Barra de progreso — Opción B ─────────────────────── */}
-          <SlideProgressBar slideKey={safeSlide} duration={duracion} paused={paused} />
+          {!hideSlideshow && <SlideProgressBar slideKey={safeSlide} duration={duracion} paused={paused} />}
         </main>
 
       </div>

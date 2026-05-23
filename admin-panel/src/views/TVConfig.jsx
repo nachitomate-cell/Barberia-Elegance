@@ -56,6 +56,8 @@ const CONFIG_DEFAULT = {
   accentColor:   '',
   qr:            { color: '', size: 160 },
   youtubeUrl:    '',
+  hideSlideshow: false,
+  rawVideoBg:    false,
 };
 
 const QR_SIZE_STEPS = [100, 120, 140, 160, 180, 200, 220, 240];
@@ -326,7 +328,7 @@ function TVSimulator({ config, bgUrl, tenantId }) {
                 playsInline
                 className="absolute inset-0 w-full h-full object-cover pointer-events-none"
                 style={{
-                  filter: 'brightness(0.24) saturate(0.6)',
+                  filter: config.rawVideoBg ? 'none' : 'brightness(0.24) saturate(0.6)',
                   zIndex: 0
                 }}
               />
@@ -336,13 +338,13 @@ function TVSimulator({ config, bgUrl, tenantId }) {
                 alt=""
                 className="absolute inset-0 w-full h-full object-cover pointer-events-none"
                 style={{
-                  filter: 'brightness(0.24) saturate(0.6)',
+                  filter: config.rawVideoBg ? 'none' : 'brightness(0.24) saturate(0.6)',
                   animation: 'kb-pan-zoom 40s infinite ease-in-out',
                   zIndex: 0
                 }}
               />
             )}
-            <div className="absolute inset-0 bg-black/45" style={{ zIndex: 0 }} />
+            {!config.rawVideoBg && <div className="absolute inset-0 bg-black/45" style={{ zIndex: 0 }} />}
           </>
         ) : (
           <div className="absolute inset-0 bg-gradient-to-tr from-slate-950 via-slate-900 to-slate-950" style={{ zIndex: 0 }} />
@@ -439,112 +441,120 @@ function TVSimulator({ config, bgUrl, tenantId }) {
 
             <div className="w-full h-full relative flex items-center justify-center z-10">
               
-              {activeTab === 'oferta' && (
-                <div className="text-center max-w-[85%] flex flex-col items-center">
-                  <p className="text-[5.5px] font-black tracking-[0.4em] uppercase mb-1" style={{ color: gold }}>
-                    ✦ {o.etiqueta} ✦
-                  </p>
-                  <h2 className="font-black text-white text-[12px] leading-tight tracking-tight">
-                    {o.titulo1}
-                  </h2>
-                  <h2 className="font-black text-[12px] leading-tight tracking-tight" style={{ color: gold }}>
-                    {o.titulo2}
-                  </h2>
-                  <p className="text-slate-400 text-[5px] mt-1 line-clamp-2 max-w-[140px] text-center leading-normal whitespace-pre-line">
-                    {o.descripcion}
-                  </p>
-                  <div 
-                    className="inline-flex items-center rounded-full px-2 py-0.5 mt-2" 
-                    style={{ border: `0.5px solid ${gold}66`, background: `${gold}15` }}
-                  >
-                    <span className="font-bold text-[4.5px] tracking-wider" style={{ color: gold }}>
-                      {o.cta}
-                    </span>
-                  </div>
-                </div>
-              )}
-
-              {activeTab === 'lookbook' && (
-                <div className="w-full h-full flex flex-col items-center justify-center relative">
-                  <div className="absolute top-0 inset-x-0 text-center">
-                    <p className="text-[5px] font-black tracking-[0.4em] uppercase" style={{ color: gold }}>
-                      ✦ Nuestros Trabajos ✦
-                    </p>
-                  </div>
-                  <div className="w-[85%] h-[75%] rounded-lg overflow-hidden border border-white/10 shadow-lg relative bg-slate-950 mt-1">
-                    <img 
-                      src={SIM_LOOKBOOK[0].url} 
-                      alt="" 
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
-                    <div className="absolute bottom-1 right-2">
-                      <span className="font-mono text-[6px] font-black text-white/80">1 / 9</span>
+              {!config.hideSlideshow ? (
+                <>
+                  {activeTab === 'oferta' && (
+                    <div className="text-center max-w-[85%] flex flex-col items-center">
+                      <p className="text-[5.5px] font-black tracking-[0.4em] uppercase mb-1" style={{ color: gold }}>
+                        ✦ {o.etiqueta} ✦
+                      </p>
+                      <h2 className="font-black text-white text-[12px] leading-tight tracking-tight">
+                        {o.titulo1}
+                      </h2>
+                      <h2 className="font-black text-[12px] leading-tight tracking-tight" style={{ color: gold }}>
+                        {o.titulo2}
+                      </h2>
+                      <p className="text-slate-400 text-[5px] mt-1 line-clamp-2 max-w-[140px] text-center leading-normal whitespace-pre-line">
+                        {o.descripcion}
+                      </p>
+                      <div 
+                        className="inline-flex items-center rounded-full px-2 py-0.5 mt-2" 
+                        style={{ border: `0.5px solid ${gold}66`, background: `${gold}15` }}
+                      >
+                        <span className="font-bold text-[4.5px] tracking-wider" style={{ color: gold }}>
+                          {o.cta}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                </div>
-              )}
+                  )}
 
-              {activeTab === 'equipo' && (
-                <div className="w-full h-full flex flex-col items-center justify-center">
-                  <p className="text-[5px] font-black tracking-[0.4em] uppercase mb-1.5" style={{ color: gold }}>
-                    ✦ Nuestro Equipo ✦
-                  </p>
-                  <div className="grid grid-cols-3 gap-2 w-[85%]">
-                    {SIM_BARBEROS.map(b => (
-                      <div key={b.id} className="bg-white/[0.01] border border-white/5 rounded-lg py-2 px-1 text-center flex flex-col items-center gap-1 shadow-sm">
-                        <div className="w-7 h-7 rounded-full overflow-hidden border border-gold/30 shrink-0 bg-slate-800">
-                          <img src={b.foto} alt="" className="w-full h-full object-cover" />
-                        </div>
-                        <div className="min-w-0 w-full">
-                          <p className="text-white font-bold text-[5.5px] truncate leading-none">{b.nombre}</p>
-                          <p className="text-slate-500 text-[4px] truncate mt-0.5 leading-none">{b.specialty}</p>
+                  {activeTab === 'lookbook' && (
+                    <div className="w-full h-full flex flex-col items-center justify-center relative">
+                      <div className="absolute top-0 inset-x-0 text-center">
+                        <p className="text-[5px] font-black tracking-[0.4em] uppercase" style={{ color: gold }}>
+                          ✦ Nuestros Trabajos ✦
+                        </p>
+                      </div>
+                      <div className="w-[85%] h-[75%] rounded-lg overflow-hidden border border-white/10 shadow-lg relative bg-slate-950 mt-1">
+                        <img 
+                          src={SIM_LOOKBOOK[0].url} 
+                          alt="" 
+                          className="absolute inset-0 w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
+                        <div className="absolute bottom-1 right-2">
+                          <span className="font-mono text-[6px] font-black text-white/80">1 / 9</span>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+                    </div>
+                  )}
 
-              {activeTab === 'productos' && (
-                <div className="w-full h-full flex flex-col items-center justify-center">
-                  <p className="text-[5px] font-black tracking-[0.4em] uppercase mb-1.5" style={{ color: gold }}>
-                    ✦ Productos Premium ✦
-                  </p>
-                  <div className="grid grid-cols-3 gap-2 w-[90%]">
-                    {SIM_PRODUCTOS.map(p => (
-                      <div key={p.id} className="bg-white/[0.01] border border-gold/15 rounded-lg overflow-hidden flex flex-col shadow-sm">
-                        <div className="aspect-square bg-black overflow-hidden relative shrink-0">
-                          <img src={p.imagen} alt="" className="w-full h-full object-cover" />
-                        </div>
-                        <div className="p-1 min-w-0 flex flex-col gap-0.5">
-                          <p className="text-white font-bold text-[5px] truncate leading-tight">{p.nombre}</p>
-                          <p className="text-[5px] font-black" style={{ color: gold }}>${Number(p.precio).toLocaleString('es-CL')}</p>
-                          <div className="flex items-center gap-0.5 mt-0.5">
-                            <div className={`w-0.8 h-0.8 rounded-full ${p.stock > 0 ? 'bg-emerald-400' : 'bg-red-400'}`} />
-                            <span className="text-[3.5px] font-bold text-slate-500">{p.stock > 0 ? 'Stock' : 'Agotado'}</span>
+                  {activeTab === 'equipo' && (
+                    <div className="w-full h-full flex flex-col items-center justify-center">
+                      <p className="text-[5px] font-black tracking-[0.4em] uppercase mb-1.5" style={{ color: gold }}>
+                        ✦ Nuestro Equipo ✦
+                      </p>
+                      <div className="grid grid-cols-3 gap-2 w-[85%]">
+                        {SIM_BARBEROS.map(b => (
+                          <div key={b.id} className="bg-white/[0.01] border border-white/5 rounded-lg py-2 px-1 text-center flex flex-col items-center gap-1 shadow-sm">
+                            <div className="w-7 h-7 rounded-full overflow-hidden border border-gold/30 shrink-0 bg-slate-800">
+                              <img src={b.foto} alt="" className="w-full h-full object-cover" />
+                            </div>
+                            <div className="min-w-0 w-full">
+                              <p className="text-white font-bold text-[5.5px] truncate leading-none">{b.nombre}</p>
+                              <p className="text-slate-500 text-[4px] truncate mt-0.5 leading-none">{b.specialty}</p>
+                            </div>
                           </div>
-                        </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+                    </div>
+                  )}
 
-              {activeTab === 'marcas' && (
-                <div className="w-full h-full flex flex-col items-center justify-center">
-                  <p className="text-[5px] font-black tracking-[0.4em] uppercase mb-2" style={{ color: gold }}>
-                    ✦ Marcas Asociadas ✦
-                  </p>
-                  <div className="grid grid-cols-2 gap-2 w-[70%]">
-                    {SIM_MARCAS.map(m => (
-                      <div key={m.id} className="bg-white/[0.01] border border-white/5 rounded-lg p-1 text-center flex flex-col items-center justify-center gap-1 shadow-sm">
-                        <div className="w-full h-6 rounded bg-slate-950 flex items-center justify-center p-0.5">
-                          <span className="text-[5px] font-black text-slate-400 truncate">{m.nombre}</span>
-                        </div>
+                  {activeTab === 'productos' && (
+                    <div className="w-full h-full flex flex-col items-center justify-center">
+                      <p className="text-[5px] font-black tracking-[0.4em] uppercase mb-1.5" style={{ color: gold }}>
+                        ✦ Productos Premium ✦
+                      </p>
+                      <div className="grid grid-cols-3 gap-2 w-[90%]">
+                        {SIM_PRODUCTOS.map(p => (
+                          <div key={p.id} className="bg-white/[0.01] border border-gold/15 rounded-lg overflow-hidden flex flex-col shadow-sm">
+                            <div className="aspect-square bg-black overflow-hidden relative shrink-0">
+                              <img src={p.imagen} alt="" className="w-full h-full object-cover" />
+                            </div>
+                            <div className="p-1 min-w-0 flex flex-col gap-0.5">
+                              <p className="text-white font-bold text-[5px] truncate leading-tight">{p.nombre}</p>
+                              <p className="text-[5px] font-black" style={{ color: gold }}>${Number(p.precio).toLocaleString('es-CL')}</p>
+                              <div className="flex items-center gap-0.5 mt-0.5">
+                                <div className={`w-0.8 h-0.8 rounded-full ${p.stock > 0 ? 'bg-emerald-400' : 'bg-red-400'}`} />
+                                <span className="text-[3.5px] font-bold text-slate-500">{p.stock > 0 ? 'Stock' : 'Agotado'}</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  )}
+
+                  {activeTab === 'marcas' && (
+                    <div className="w-full h-full flex flex-col items-center justify-center">
+                      <p className="text-[5px] font-black tracking-[0.4em] uppercase mb-2" style={{ color: gold }}>
+                        ✦ Marcas Asociadas ✦
+                      </p>
+                      <div className="grid grid-cols-2 gap-2 w-[70%]">
+                        {SIM_MARCAS.map(m => (
+                          <div key={m.id} className="bg-white/[0.01] border border-white/5 rounded-lg p-1 text-center flex flex-col items-center justify-center gap-1 shadow-sm">
+                            <div className="w-full h-6 rounded bg-slate-950 flex items-center justify-center p-0.5">
+                              <span className="text-[5px] font-black text-slate-400 truncate">{m.nombre}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="text-center text-slate-400 text-[8px] font-bold bg-black/60 px-3 py-1.5 rounded-xl border border-white/5 backdrop-blur-sm shadow-xl">
+                  Modo Solo Video Activo
                 </div>
               )}
 
@@ -573,24 +583,26 @@ function TVSimulator({ config, bgUrl, tenantId }) {
             </div>
 
             {/* Slide Indicators */}
-            <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex items-center gap-1 z-10 shrink-0">
-              {tabs.map((t) => {
-                const active = activeTab === t.id;
-                const activeInSettings = isTabActive(t.id);
-                return (
-                  <div
-                    key={t.id}
-                    className="h-[2px] rounded-full transition-all duration-300"
-                    style={{
-                      width: active ? '8px' : '3px',
-                      background: active 
-                        ? `linear-gradient(to right, ${gold}, #FDE047)` 
-                        : activeInSettings ? 'rgba(255,255,255,0.2)' : 'rgba(255,0,0,0.25)',
-                    }}
-                  />
-                );
-              })}
-            </div>
+            {!config.hideSlideshow && (
+              <div className="absolute bottom-1 left-1/2 -translate-x-1/2 flex items-center gap-1 z-10 shrink-0">
+                {tabs.map((t) => {
+                  const active = activeTab === t.id;
+                  const activeInSettings = isTabActive(t.id);
+                  return (
+                    <div
+                      key={t.id}
+                      className="h-[2px] rounded-full transition-all duration-300"
+                      style={{
+                        width: active ? '8px' : '3px',
+                        background: active 
+                          ? `linear-gradient(to right, ${gold}, #FDE047)` 
+                          : activeInSettings ? 'rgba(255,255,255,0.2)' : 'rgba(255,0,0,0.25)',
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            )}
 
           </main>
         </div>
@@ -621,29 +633,31 @@ function TVSimulator({ config, bgUrl, tenantId }) {
       </div>
 
       {/* Simulator navigation controls */}
-      <div className="space-y-1.5 mt-2">
-        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">Toca un slide para previsualizar:</p>
-        <div className="flex flex-wrap gap-1.5 justify-center">
-          {tabs.map(t => {
-            const active = isTabActive(t.id);
-            return (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => setActiveTab(t.id)}
-                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border flex items-center gap-1.5 transition-all ${
-                  activeTab === t.id
-                    ? 'bg-emerald-600 border-emerald-500 text-white shadow-lg shadow-emerald-950/20'
-                    : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white hover:border-slate-600'
-                }`}
-              >
-                <span className={`w-1 h-1 rounded-full ${active ? 'bg-emerald-400 animate-pulse' : 'bg-red-500'}`} />
-                {t.label}
-              </button>
-            );
-          })}
+      {!config.hideSlideshow && (
+        <div className="space-y-1.5 mt-2">
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest text-center">Toca un slide para previsualizar:</p>
+          <div className="flex flex-wrap gap-1.5 justify-center">
+            {tabs.map(t => {
+              const active = isTabActive(t.id);
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setActiveTab(t.id)}
+                  className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border flex items-center gap-1.5 transition-all ${
+                    activeTab === t.id
+                      ? 'bg-emerald-600 border-emerald-500 text-white shadow-lg shadow-emerald-950/20'
+                      : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white hover:border-slate-600'
+                  }`}
+                >
+                  <span className={`w-1 h-1 rounded-full ${active ? 'bg-emerald-400 animate-pulse' : 'bg-red-500'}`} />
+                  {t.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -696,6 +710,8 @@ export default function TVConfig() {
             accentColor:   d.accentColor || '',
             qr:            { color: '', size: 160, ...(d.qr || {}) },
             youtubeUrl:    d.youtubeUrl || '',
+            hideSlideshow: !!d.hideSlideshow,
+            rawVideoBg:    !!d.rawVideoBg,
           });
           if (d.backgroundUrl) setBgUrl(d.backgroundUrl);
         }
@@ -856,6 +872,8 @@ export default function TVConfig() {
         accentColor:   config.accentColor,
         qr:            config.qr,
         youtubeUrl:    config.youtubeUrl || '',
+        hideSlideshow: !!config.hideSlideshow,
+        rawVideoBg:    !!config.rawVideoBg,
       }, { merge: true });
       setSaved(true);
       setDirty(false);
@@ -1045,6 +1063,23 @@ export default function TVConfig() {
 
           {/* ── General ───────────────────────────────────────────────── */}
           <Card icon={Monitor} title="Configuración General">
+
+            <Field label="Opciones de Visualización Especial">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-2">
+                <SlideToggle
+                  checked={config.hideSlideshow || false}
+                  onChange={v => update('hideSlideshow', v)}
+                  label="Ocultar Diapositivas"
+                  sublabel="Oculta el carrusel y muestra solo el fondo de video/imagen"
+                />
+                <SlideToggle
+                  checked={config.rawVideoBg || false}
+                  onChange={v => update('rawVideoBg', v)}
+                  label="Video sin Filtros (Color Real)"
+                  sublabel="Muestra el fondo con su brillo y color original sin sombras"
+                />
+              </div>
+            </Field>
 
             <Field
               label="Duración de cada slide"
