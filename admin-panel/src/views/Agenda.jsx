@@ -579,7 +579,7 @@ function BloqueoBlock({ bloqueo, onDelete }) {
 }
 
 /* ── AppointmentBlock ────────────────────────────────────────── */
-function AppointmentBlock({ cita, colIndex, colTotal, onClick }) {
+function AppointmentBlock({ cita, colIndex, colTotal, onClick, onDragStart }) {
   const { slotIdx, totalSlots, slotMins } = useContext(AgendaCtx);
   const slot  = Math.max(0, Math.min(totalSlots - 1, slotIdx(cita.hora)));
   const spans = Math.max(1, Math.min(totalSlots - slot, Math.round((cita.duracion || cita.duracionServicio || 30) / slotMins)));
@@ -589,7 +589,9 @@ function AppointmentBlock({ cita, colIndex, colTotal, onClick }) {
   return (
     <div
       onClick={() => onClick(cita)}
-      className={`absolute rounded-md border px-2 py-1 overflow-hidden cursor-pointer hover:brightness-125 transition-all text-xs ${color}`}
+      draggable={cita.estado !== 'Cancelada' && cita.estado !== 'Completada'}
+      onDragStart={(e) => onDragStart && onDragStart(e, cita)}
+      className={`absolute rounded-md border px-2 py-1 overflow-hidden cursor-grab active:cursor-grabbing hover:brightness-125 transition-all text-xs ${color}`}
       style={{
         top:    `${slot * 40}px`,
         height: `${spans * 40 - 4}px`,
@@ -605,15 +607,17 @@ function AppointmentBlock({ cita, colIndex, colTotal, onClick }) {
 }
 
 /* ── SlotRow (clickable empty slot) ─────────────────────────── */
-function SlotRow({ idx, barberoId, dateStr, onNewCita, onNewBloqueo, blockMode }) {
+function SlotRow({ idx, barberoId, dateStr, onNewCita, onNewBloqueo, blockMode, onDragOver, onDrop }) {
   const { timeLabels } = useContext(AgendaCtx);
   const hora = timeLabels[idx];
   return (
     <div
       onClick={() => blockMode ? onNewBloqueo(barberoId, hora) : onNewCita(barberoId, hora)}
+      onDragOver={onDragOver}
+      onDrop={() => onDrop && onDrop(barberoId, hora)}
       className={`absolute inset-x-0 h-10 border-b border-slate-800/40 transition-colors ${
         idx % 2 === 0 ? '' : 'bg-slate-800/10'
-      } ${blockMode ? 'hover:bg-red-950/20 cursor-crosshair' : 'hover:bg-emerald-900/10 cursor-pointer'}`}
+      } ${blockMode ? 'hover:bg-red-950/20 cursor-crosshair' : 'hover:bg-emerald-900/10 hover:border-dashed hover:border-emerald-500/30 cursor-pointer'}`}
       style={{ top: `${idx * 40}px` }}
     />
   );
@@ -665,7 +669,8 @@ function UltimaCitaModal({ cita, loading, onClose, titleText = 'Última cita age
         rows.forEach(r => { if (r.servicioNombre) svcCnt[r.servicioNombre] = (svcCnt[r.servicioNombre] || 0) + 1; });
         const favSvc = Object.entries(svcCnt).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
         const completadas = rows.filter(r => r.estado === 'Completada');
-        setClientHistory({ total: rows.length, favSvc, lastVisit: completadas[0]?.fecha || null });
+        const canceladas = rows.filter(r => r.estado === 'Cancelada').length;
+        setClientHistory({ total: rows.length, favSvc, lastVisit: completadas[0]?.fecha || null, canceladas });
       })
       .catch(() => {});
   }, [cita?.clienteNombre, loading]);
@@ -733,33 +738,54 @@ function UltimaCitaModal({ cita, loading, onClose, titleText = 'Última cita age
             Reservada el {fmtTimestamp(cita.creadoEn)}
           </p>
 
-          {clientHistory && (
-            <div className="relative overflow-hidden bg-slate-900 border border-violet-500/20 rounded-xl p-4 mt-4">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-violet-500/5 rounded-full blur-2xl pointer-events-none" />
-              <div className="flex items-center gap-1.5 mb-3">
-                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-violet-500/10 border border-violet-500/20">
-                  <div className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
-                  <span className="text-[9px] font-bold text-violet-400 uppercase tracking-wider">Historial IA</span>
+          {clientHistory && (() => {
+            const rate = clientHistory.total > 0 ? Math.round((clientHistory.canceladas / clientHistory.total) * 100) : 0;
+            const isHighRisk = rate >= 25 && clientHistory.total >= 3;
+            return (
+              <>
+                {isHighRisk && (
+                  <div className="relative overflow-hidden bg-red-950/20 border border-red-500/30 rounded-xl p-4 mt-3 shadow-lg shadow-red-950/20">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/5 rounded-full blur-2xl pointer-events-none" />
+                    <div className="flex items-center gap-2 mb-2">
+                      <Ban className="text-red-400 shrink-0 animate-pulse" size={14} />
+                      <span className="text-[10px] font-black text-red-400 uppercase tracking-widest">
+                        Riesgo de Inasistencia Alto
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-300 leading-normal">
+                      Este cliente ha cancelado el <strong className="text-red-400">{rate}%</strong> de sus citas ({clientHistory.canceladas} de {clientHistory.total}). Se recomienda reconfirmar asistencia antes del servicio.
+                    </p>
+                  </div>
+                )}
+
+                <div className="relative overflow-hidden bg-slate-900 border border-violet-500/20 rounded-xl p-4 mt-4">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-violet-500/5 rounded-full blur-2xl pointer-events-none" />
+                  <div className="flex items-center gap-1.5 mb-3">
+                    <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-violet-500/10 border border-violet-500/20">
+                      <div className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
+                      <span className="text-[9px] font-bold text-violet-400 uppercase tracking-wider">Historial IA</span>
+                    </div>
+                    <span className="text-[9px] text-slate-600 ml-auto">Basado en {clientHistory.total} visita{clientHistory.total !== 1 ? 's' : ''}</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 mb-3">
+                    <div className="text-center bg-slate-800/60 rounded-lg py-2 px-1">
+                      <p className="text-lg font-bold text-white leading-none">{clientHistory.total}</p>
+                      <p className="text-[9px] text-slate-500 mt-1">citas totales</p>
+                    </div>
+                    <div className="text-center bg-slate-800/60 rounded-lg py-2 px-1">
+                      <p className="text-xs font-bold text-white truncate leading-tight">{clientHistory.favSvc || '—'}</p>
+                      <p className="text-[9px] text-slate-500 mt-1">servicio fav.</p>
+                    </div>
+                    <div className="text-center bg-slate-800/60 rounded-lg py-2 px-1">
+                      <p className="text-xs font-bold text-white leading-tight">{clientHistory.lastVisit || '—'}</p>
+                      <p className="text-[9px] text-slate-500 mt-1">última visita</p>
+                    </div>
+                  </div>
+                  <AIWatermark />
                 </div>
-                <span className="text-[9px] text-slate-600 ml-auto">Basado en {clientHistory.total} visita{clientHistory.total !== 1 ? 's' : ''}</span>
-              </div>
-              <div className="grid grid-cols-3 gap-2 mb-3">
-                <div className="text-center bg-slate-800/60 rounded-lg py-2 px-1">
-                  <p className="text-lg font-bold text-white leading-none">{clientHistory.total}</p>
-                  <p className="text-[9px] text-slate-500 mt-1">citas totales</p>
-                </div>
-                <div className="text-center bg-slate-800/60 rounded-lg py-2 px-1">
-                  <p className="text-xs font-bold text-white truncate leading-tight">{clientHistory.favSvc || '—'}</p>
-                  <p className="text-[9px] text-slate-500 mt-1">servicio fav.</p>
-                </div>
-                <div className="text-center bg-slate-800/60 rounded-lg py-2 px-1">
-                  <p className="text-xs font-bold text-white leading-tight">{clientHistory.lastVisit || '—'}</p>
-                  <p className="text-[9px] text-slate-500 mt-1">última visita</p>
-                </div>
-              </div>
-              <AIWatermark />
-            </div>
-          )}
+              </>
+            );
+          })()}
         </div>
       )}
     </Modal>
@@ -964,10 +990,9 @@ function UltimasCitasModal({ citas, loading, onClose }) {
   );
 }
 
-/* ── DifusionPanel (marcelo_hairdressing only) ───────────────── */
-function DifusionPanel({ citas, bloqueos, barberos, dateStr }) {
+/* ── DifusionPanel (Universal & Tematizado) ───────────────── */
+function DifusionPanel({ citas, bloqueos, barberos, dateStr, tenantId }) {
   const [copied, setCopied] = useState(false);
-  const canvasRef = useRef(null);
   const [shopSettings, setShopSettings] = useState(null);
 
   useEffect(() => {
@@ -1031,18 +1056,29 @@ function DifusionPanel({ citas, bloqueos, barberos, dateStr }) {
     });
   }, [dateStr]);
 
+  const shopName = WA_SHOP_NAMES[tenantId] || 'tu negocio';
+  const TENANT_ACCENTS = {
+    elegance: '#D4AF37',
+    ferraza: '#e2e8f0',
+    lumen: '#C9A050',
+    gitana: '#f43f5e',
+    chameleon: '#00C8FF',
+  };
+  const accentColor = TENANT_ACCENTS[tenantId] || '#D4AF37';
+
   // Generate broadcast message
   const message = useMemo(() => {
-    const titulo = `✂️ *Marcelo Palma* — ${fechaFmt.charAt(0).toUpperCase() + fechaFmt.slice(1)}`;
+    const domain = `${tenantId}.synaptechspa.cl`;
+    const titulo = `✂️ *${shopName}* — ${fechaFmt.charAt(0).toUpperCase() + fechaFmt.slice(1)}`;
     const ubicacion  = typeof shopSettings?.direccion === 'string' && shopSettings.direccion
       ? `📍 ${shopSettings.direccion.replace(/^📍\s*/, '')}`
-      : '📍 Curauma / Placilla';
+      : '📍 tu local';
     const horarioTxt = '🕒 Lun a Sáb: 10:00 – 20:00 hrs.';
-    const cta = `📲 Agenda tu hora ahora:\n   marcelopalma.synaptechspa.cl`;
+    const cta = `📲 Agenda tu hora ahora:\n   ${domain}`;
 
     if (freeSlots.length === 0) {
       return `${titulo}\n\n` +
-             `📵 La agenda para este día está *completa*.\n\n` +
+             `La agenda para este día está *completa*.\n\n` +
              `${ubicacion}\n${horarioTxt}\n\n` +
              `${cta}\n\n_¡Te esperamos!_ ✂️🙌`;
     }
@@ -1053,7 +1089,7 @@ function DifusionPanel({ citas, bloqueos, barberos, dateStr }) {
       `${ubicacion}\n${horarioTxt}\n\n` +
       `${cta}\n\n_¡Te esperamos!_ ✂️🙌`
     );
-  }, [freeSlots, fechaFmt, shopSettings]);
+  }, [freeSlots, fechaFmt, shopSettings, tenantId, shopName]);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(message).then(() => {
@@ -1095,17 +1131,17 @@ function DifusionPanel({ citas, bloqueos, barberos, dateStr }) {
     }
 
     // Top accent bar
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = accentColor;
     ctx.fillRect(PADDING, PADDING, CARD_W - PADDING * 2, 2);
 
     // Header
     ctx.fillStyle = '#ffffff';
     ctx.font = 'bold 28px -apple-system, BlinkMacSystemFont, sans-serif';
-    ctx.fillText('Marcelo Palma', PADDING, PADDING + 38);
+    ctx.fillText(shopName, PADDING, PADDING + 38);
 
     ctx.fillStyle = 'rgba(255,255,255,0.5)';
     ctx.font = '14px -apple-system, BlinkMacSystemFont, sans-serif';
-    ctx.fillText(`Hairdressing & Estilo  ·  ${fechaFmt.charAt(0).toUpperCase() + fechaFmt.slice(1)}`, PADDING, PADDING + 62);
+    ctx.fillText(`Horarios Disponibles  ·  ${fechaFmt.charAt(0).toUpperCase() + fechaFmt.slice(1)}`, PADDING, PADDING + 62);
 
     // Stats row
     const libre = freeSlots.length;
@@ -1202,7 +1238,7 @@ function DifusionPanel({ citas, bloqueos, barberos, dateStr }) {
 
     ctx.fillStyle = 'rgba(255,255,255,0.3)';
     ctx.font = '12px -apple-system, BlinkMacSystemFont, sans-serif';
-    ctx.fillText('marcelopalma.synaptechspa.cl  ·  Marcelo Palma', PADDING, footerY + 26);
+    ctx.fillText(`${tenantId}.synaptechspa.cl  ·  ${shopName}`, PADDING, footerY + 26);
 
     ctx.fillStyle = 'rgba(255,255,255,0.15)';
     ctx.font = 'bold 11px -apple-system, BlinkMacSystemFont, sans-serif';
@@ -1309,6 +1345,7 @@ export default function Agenda() {
   const [reviewCita,    setReviewCita]    = useState(null);
   const [showUltima,    setShowUltima]    = useState(false);
   const [showHistorial, setShowHistorial] = useState(false);
+  const [draggedCita,   setDraggedCita]   = useState(null);
 
   const { data: ultimasCitas, loading: loadingUltima } = useCollection(
     'citas',
@@ -1357,6 +1394,61 @@ export default function Agenda() {
     }
     await batch.commit();
   }, []);
+
+  const handleDrop = async (barberoId, hora) => {
+    if (!draggedCita) return;
+    
+    // Prevent dropping on the same slot
+    if (draggedCita.barberoId === barberoId && draggedCita.hora === hora) {
+      setDraggedCita(null);
+      return;
+    }
+
+    const targetBarbero = barberos.find(b => b.id === barberoId);
+    const barberoNombre = targetBarbero?.nombre || '';
+
+    if (confirm(`¿Reagendar cita de ${draggedCita.clienteNombre} para las ${hora} con ${barberoNombre}?`)) {
+      try {
+        const safeHora = hora.replace(':', '');
+        const safeBid  = String(barberoId).replace(/[^a-zA-Z0-9_-]/g, '_');
+        const nextLockId = `${safeBid}_${dateStr}_${safeHora}`;
+
+        const batch = writeBatch(db);
+        const citaRef = doc(db, `${tenantCol('citas').path}/${draggedCita.id}`);
+
+        const payload = {
+          barberoId,
+          barbero: barberoNombre,
+          hora,
+          slotLockId: nextLockId,
+          updatedAt: serverTimestamp(),
+        };
+
+        batch.update(citaRef, payload);
+
+        // Delete previous slot lock
+        if (draggedCita.slotLockId) {
+          batch.delete(doc(db, `${tenantCol('slotLocks').path}/${draggedCita.slotLockId}`));
+        }
+
+        // Create new slot lock
+        batch.set(doc(db, `${tenantCol('slotLocks').path}/${nextLockId}`), {
+          citaId:    draggedCita.id,
+          fecha:     dateStr,
+          hora:      hora,
+          barberoId: barberoId,
+          duracion:  Number(draggedCita.duracion || draggedCita.duracionServicio || 30),
+          creadoEn:  serverTimestamp(),
+        });
+
+        await batch.commit();
+      } catch (err) {
+        console.error("Error al reagendar cita:", err);
+        alert("No se pudo reagendar la cita.");
+      }
+    }
+    setDraggedCita(null);
+  };
 
   const openNewCita    = (barberoId, hora) => setCitaModal({ cita: null, barberoId, hora });
   const openEditCita   = (cita)            => setCitaModal({ cita, barberoId: cita.barberoId, hora: cita.hora });
@@ -1459,15 +1551,14 @@ export default function Agenda() {
         </div>
       )}
 
-      {/* Canal de Difusión — solo marcelo_hairdressing */}
-      {tenantId === 'marcelo_hairdressing' && (
-        <DifusionPanel
-          citas={citas}
-          bloqueos={bloqueos}
-          barberos={barberos}
-          dateStr={dateStr}
-        />
-      )}
+      {/* Canal de Difusión — universal */}
+      <DifusionPanel
+        citas={citas}
+        bloqueos={bloqueos}
+        barberos={barberos}
+        dateStr={dateStr}
+        tenantId={tenantId}
+      />
 
       {/* Swimlane */}
       <div className="flex-1 bg-slate-900 border border-slate-800 rounded-xl overflow-auto no-scrollbar">
@@ -1525,6 +1616,8 @@ export default function Agenda() {
                       blockMode={blockMode}
                       onNewCita={openNewCita}
                       onNewBloqueo={openNewBloqueo}
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={handleDrop}
                     />
                   ))}
                   {barberBloqueos.map(blq => (
@@ -1537,6 +1630,7 @@ export default function Agenda() {
                       colIndex={colIndex}
                       colTotal={colTotal}
                       onClick={openEditCita}
+                      onDragStart={(e, c) => setDraggedCita(c)}
                     />
                   ))}
                 </div>
