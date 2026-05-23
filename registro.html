@@ -852,6 +852,11 @@
     .tenant-aura button[onclick="switchTab('reset')"] {
       display: none !important;
     }
+    /* Mostrar campos de contraseña en Aura si hay fallback de contraseña custom */
+    html.tenant-aura body.show-password-fallback #panelLogin .relative,
+    html.tenant-aura body.show-password-fallback button[onclick="switchTab('reset')"] {
+      display: block !important;
+    }
     /* Registro — Aura entrance animations */
     @keyframes aura-reg-logo {
       from { opacity: 0; transform: scale(0.78); }
@@ -1327,6 +1332,7 @@
   // _registering evita que onAuthStateChanged redirija antes de
   // que ensureUserDoc termine de guardar el nombre y teléfono.
   let _registering = false;
+  let _auraForceCustomPassword = false;
   auth.onAuthStateChanged(user => {
     if (user && !_registering) goToDashboard();
   });
@@ -1364,7 +1370,7 @@
     const email    = document.getElementById('loginEmail').value.trim();
     let password = document.getElementById('loginPassword').value;
 
-    if (window.CURRENT_TENANT_ID === 'aura') {
+    if (window.CURRENT_TENANT_ID === 'aura' && !_auraForceCustomPassword) {
       password = 'AuraLoyaltyPassword2026!';
     }
 
@@ -1372,11 +1378,34 @@
     showLoading();
     try {
       const cred = await auth.signInWithEmailAndPassword(email, password);
+      
+      // Si estamos en Aura y el usuario ingresó con contraseña personalizada (porque _auraForceCustomPassword es true),
+      // migramos su contraseña en segundo plano al valor por defecto de Aura para que en el futuro no la necesite más.
+      if (window.CURRENT_TENANT_ID === 'aura' && _auraForceCustomPassword) {
+        try {
+          await cred.user.updatePassword('AuraLoyaltyPassword2026!');
+          console.log('[Aura Auth] Contraseña migrada exitosamente al estándar password-free.');
+        } catch (pwErr) {
+          console.warn('[Aura Auth] No se pudo migrar la contraseña automáticamente:', pwErr);
+        }
+      }
+
       // Garantizar que el documento exista (puede faltar si fue creado antes)
       await ensureUserDoc(cred.user);
       goToDashboard();
     } catch (err) {
       hideLoading();
+      
+      if (window.CURRENT_TENANT_ID === 'aura' && 
+          (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') && 
+          !_auraForceCustomPassword) {
+        _auraForceCustomPassword = true;
+        document.body.classList.add('show-password-fallback');
+        document.getElementById('loginPassword').value = '';
+        showAlert('Tu cuenta ya está registrada y requiere tu contraseña registrada (solo por esta vez para migrarla).', false);
+        return;
+      }
+      
       showAlert(friendlyError(err.code));
     }
   }
@@ -1484,6 +1513,14 @@
       goToDashboard();
     } catch (err) {
       hideLoading();
+      if (window.CURRENT_TENANT_ID === 'aura' && err.code === 'auth/email-already-in-use') {
+        _auraForceCustomPassword = true;
+        document.body.classList.add('show-password-fallback');
+        switchTab('login');
+        document.getElementById('loginEmail').value = email;
+        showAlert('Esta cuenta ya existe. Por favor, ingresa tu contraseña para acceder (se migrará automáticamente).', false);
+        return;
+      }
       showAlert(friendlyError(err.code));
     } finally {
       _registering = false;
