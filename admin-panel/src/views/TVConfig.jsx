@@ -261,6 +261,14 @@ function TVSimulator({ config, bgUrl, tenantId }) {
     return config.slidesActivos[tabId] !== false;
   };
 
+  const isVideoBg = bgUrl && (
+    bgUrl.includes('.mp4') ||
+    bgUrl.includes('.webm') ||
+    bgUrl.includes('.mov') ||
+    bgUrl.split('?')[0].endsWith('.mp4') ||
+    bgUrl.split('?')[0].endsWith('.webm')
+  );
+
   const tabs = [
     { id: 'oferta', label: 'Oferta' },
     { id: 'lookbook', label: 'Trabajos' },
@@ -308,16 +316,31 @@ function TVSimulator({ config, bgUrl, tenantId }) {
         
         {bgUrl ? (
           <>
-            <img
-              src={bgUrl}
-              alt=""
-              className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-              style={{
-                filter: 'brightness(0.24) saturate(0.6)',
-                animation: 'kb-pan-zoom 40s infinite ease-in-out',
-                zIndex: 0
-              }}
-            />
+            {isVideoBg ? (
+              <video
+                src={bgUrl}
+                autoPlay
+                loop
+                muted
+                playsInline
+                className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+                style={{
+                  filter: 'brightness(0.24) saturate(0.6)',
+                  zIndex: 0
+                }}
+              />
+            ) : (
+              <img
+                src={bgUrl}
+                alt=""
+                className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+                style={{
+                  filter: 'brightness(0.24) saturate(0.6)',
+                  animation: 'kb-pan-zoom 40s infinite ease-in-out',
+                  zIndex: 0
+                }}
+              />
+            )}
             <div className="absolute inset-0 bg-black/45" style={{ zIndex: 0 }} />
           </>
         ) : (
@@ -652,6 +675,14 @@ export default function TVConfig() {
   const [bgErr,       setBgErr]       = useState('');
   const bgInputRef = useRef(null);
 
+  const isVideoBg = bgUrl && (
+    bgUrl.includes('.mp4') ||
+    bgUrl.includes('.webm') ||
+    bgUrl.includes('.mov') ||
+    bgUrl.split('?')[0].endsWith('.mp4') ||
+    bgUrl.split('?')[0].endsWith('.webm')
+  );
+
   useEffect(() => {
     getDoc(tenantDoc('configuracion', 'tv'))
       .then(snap => {
@@ -716,15 +747,18 @@ export default function TVConfig() {
     setBgErr('');
     setBgUploading(true);
     try {
-      const blob      = await compressImage(file, { maxPx: 1280, quality: 0.7 });
-      const tid       = resolveTenantId();
-      const sRef      = storageRef(storage, `tenants/${tid}/tv-bg.jpg`);
-      await uploadBytes(sRef, blob, { contentType: 'image/jpeg' });
-      const url       = await getDownloadURL(sRef);
+      const isVideo = file.type.startsWith('video/');
+      const ext = file.name.split('.').pop().toLowerCase() || (isVideo ? 'mp4' : 'jpg');
+      const blob = isVideo ? file : await compressImage(file, { maxPx: 1280, quality: 0.7 });
+      const contentType = isVideo ? file.type : 'image/jpeg';
+      const tid = resolveTenantId();
+      const sRef = storageRef(storage, `tenants/${tid}/tv-bg.${ext}`);
+      await uploadBytes(sRef, blob, { contentType });
+      const url = await getDownloadURL(sRef);
       await setDoc(tenantDoc('configuracion', 'tv'), { backgroundUrl: url }, { merge: true });
       setBgUrl(url);
     } catch (err) {
-      setBgErr('Error al subir la imagen. Intenta con una imagen más pequeña.');
+      setBgErr('Error al subir el archivo. Intenta con un archivo más liviano o pequeño.');
       console.error(err);
     } finally {
       setBgUploading(false);
@@ -736,12 +770,28 @@ export default function TVConfig() {
     setBgErr('');
     try {
       const tid  = resolveTenantId();
-      const sRef = storageRef(storage, `tenants/${tid}/tv-bg.jpg`);
-      await deleteObject(sRef).catch(() => {});
+      let ext = 'jpg';
+      if (bgUrl) {
+        const decodedUrl = decodeURIComponent(bgUrl);
+        const match = decodedUrl.match(/tv-bg\.([a-zA-Z0-9]+)/);
+        if (match && match[1]) {
+          ext = match[1].toLowerCase();
+        }
+      }
+      const mainRef = storageRef(storage, `tenants/${tid}/tv-bg.${ext}`);
+      await deleteObject(mainRef).catch(() => {});
+
+      // Borrado preventivo de otras extensiones comunes por si quedan fantasmas
+      const extraExts = ['jpg', 'jpeg', 'png', 'mp4', 'webm', 'mov'].filter(e => e !== ext);
+      for (const e of extraExts) {
+        const ref = storageRef(storage, `tenants/${tid}/tv-bg.${e}`);
+        await deleteObject(ref).catch(() => {});
+      }
+
       await setDoc(tenantDoc('configuracion', 'tv'), { backgroundUrl: '' }, { merge: true });
       setBgUrl('');
     } catch (err) {
-      setBgErr('No se pudo eliminar la imagen.');
+      setBgErr('No se pudo eliminar el archivo.');
       console.error(err);
     }
   };
@@ -883,11 +933,11 @@ export default function TVConfig() {
         {/* COLUMNA IZQUIERDA: FORMULARIOS (Col 7) */}
         <div className="lg:col-span-7 space-y-6">
 
-          {/* ── Imagen de fondo ───────────────────────────────────────── */}
-          <Card icon={ImagePlus} title="Imagen de Fondo">
+          {/* ── Fondo de pantalla TV ───────────────────────────────────────── */}
+          <Card icon={ImagePlus} title="Fondo de Pantalla TV">
             <p className="text-xs text-slate-500 -mt-1">
               Se aplica en toda la pantalla TV con brillo reducido para no tapar el contenido.
-              La imagen se comprime automáticamente a máx. 1280px y calidad 70%.
+              Soporta imágenes (comprimidas automáticamente) y videos (se suben crudos para mantener la calidad).
             </p>
 
             {bgErr && (
@@ -901,12 +951,24 @@ export default function TVConfig() {
               <div className="space-y-3">
                 {/* Preview */}
                 <div className="relative rounded-xl overflow-hidden" style={{ aspectRatio: '16/5' }}>
-                  <img
-                    src={bgUrl}
-                    alt="Fondo TV"
-                    className="absolute inset-0 w-full h-full object-cover"
-                    style={{ filter: 'brightness(0.28) saturate(0.7)' }}
-                  />
+                  {isVideoBg ? (
+                    <video
+                      src={bgUrl}
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      className="absolute inset-0 w-full h-full object-cover"
+                      style={{ filter: 'brightness(0.28) saturate(0.7)' }}
+                    />
+                  ) : (
+                    <img
+                      src={bgUrl}
+                      alt="Fondo TV"
+                      className="absolute inset-0 w-full h-full object-cover"
+                      style={{ filter: 'brightness(0.28) saturate(0.7)' }}
+                    />
+                  )}
                   <div className="absolute inset-0" style={{ background: 'rgba(5,5,5,0.45)' }} />
                   <div className="absolute inset-0 flex items-center justify-center">
                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-black/40 px-3 py-1 rounded-full border border-white/5 backdrop-blur-sm">
@@ -917,8 +979,8 @@ export default function TVConfig() {
                 <div className="flex items-center gap-2">
                   <label className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-700 text-xs font-semibold text-slate-400 hover:text-white hover:border-slate-600 cursor-pointer transition-all">
                     <Upload size={13} />
-                    Cambiar imagen
-                    <input ref={bgInputRef} type="file" accept="image/*" className="hidden" onChange={handleBgUpload} disabled={bgUploading} />
+                    Cambiar archivo
+                    <input ref={bgInputRef} type="file" accept="image/*,video/*" className="hidden" onChange={handleBgUpload} disabled={bgUploading} />
                   </label>
                   <button
                     onClick={handleBgRemove}
@@ -937,7 +999,7 @@ export default function TVConfig() {
                 {bgUploading ? (
                   <>
                     <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-                    <p className="text-xs text-slate-500">Comprimiendo y subiendo…</p>
+                    <p className="text-xs text-slate-500">Subiendo archivo…</p>
                   </>
                 ) : (
                   <>
@@ -945,12 +1007,12 @@ export default function TVConfig() {
                       <ImagePlus size={22} className="text-slate-500" />
                     </div>
                     <div className="text-center">
-                      <p className="text-sm font-semibold text-slate-400">Subir imagen de fondo</p>
-                      <p className="text-xs text-slate-600 mt-0.5">JPG, PNG · se comprime automáticamente</p>
+                      <p className="text-sm font-semibold text-slate-400">Subir fondo de pantalla</p>
+                      <p className="text-xs text-slate-600 mt-0.5">Imágenes (JPG, PNG) o Videos (MP4, WEBM)</p>
                     </div>
                   </>
                 )}
-                <input ref={bgInputRef} type="file" accept="image/*" className="hidden" onChange={handleBgUpload} disabled={bgUploading} />
+                <input ref={bgInputRef} type="file" accept="image/*,video/*" className="hidden" onChange={handleBgUpload} disabled={bgUploading} />
               </label>
             )}
           </Card>

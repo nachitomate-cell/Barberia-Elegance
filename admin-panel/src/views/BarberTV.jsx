@@ -886,6 +886,14 @@ export default function BarberTV() {
 
   GOLD = accentColor || TENANT_ACCENT[tenantId] || '#D4AF37';
 
+  const isVideoBg = backgroundUrl && (
+    backgroundUrl.includes('.mp4') ||
+    backgroundUrl.includes('.webm') ||
+    backgroundUrl.includes('.mov') ||
+    backgroundUrl.split('?')[0].endsWith('.mp4') ||
+    backgroundUrl.split('?')[0].endsWith('.webm')
+  );
+
   const preloadedRef   = useRef(new Set());
   const activeCountRef = useRef(4);
   const visitedRef     = useRef(new Set([0]));
@@ -1053,25 +1061,39 @@ export default function BarberTV() {
       style={{ background: '#050505' }}
     >
       {/* ── Imagen de fondo ────────────────────────────────────── */}
+      {/* ── Imagen/Video de fondo ────────────────────────────────────── */}
       {backgroundUrl && (
         <>
-          <motion.img
-            src={backgroundUrl}
-            alt=""
-            aria-hidden="true"
-            className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
-            animate={{
-              scale: [1, 1.05, 1.02, 1.06, 1],
-              x: [0, -15, 15, -8, 0],
-              y: [0, 8, -12, 8, 0]
-            }}
-            transition={{
-              duration: 45,
-              ease: 'linear',
-              repeat: Infinity
-            }}
-            style={{ filter: 'brightness(0.25) saturate(0.65)', zIndex: 0 }}
-          />
+          {isVideoBg ? (
+            <video
+              src={backgroundUrl}
+              autoPlay
+              loop
+              muted
+              playsInline
+              aria-hidden="true"
+              className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
+              style={{ filter: 'brightness(0.24) saturate(0.65)', zIndex: 0 }}
+            />
+          ) : (
+            <motion.img
+              src={backgroundUrl}
+              alt=""
+              aria-hidden="true"
+              className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
+              animate={{
+                scale: [1, 1.05, 1.02, 1.06, 1],
+                x: [0, -15, 15, -8, 0],
+                y: [0, 8, -12, 8, 0]
+              }}
+              transition={{
+                duration: 45,
+                ease: 'linear',
+                repeat: Infinity
+              }}
+              style={{ filter: 'brightness(0.25) saturate(0.65)', zIndex: 0 }}
+            />
+          )}
           <div
             className="absolute inset-0 pointer-events-none"
             style={{ background: 'rgba(5,5,5,0.52)', zIndex: 0 }}
