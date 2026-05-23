@@ -7,6 +7,7 @@ import { QRCodeSVG }                                from 'qrcode.react';
 import { query, getDocs, onSnapshot, where, orderBy } from 'firebase/firestore';
 import { useTenant }                                from '../contexts/TenantContext';
 import { tenantCol, tenantDoc, resolveTenantId }    from '../lib/tenantUtils';
+import { Volume2, VolumeX }                         from 'lucide-react';
 
 // ── Constantes ────────────────────────────────────────────────────
 const TENANT_ACCENT = { ferraza: '#e2e8f0', lumen: '#C9A050' };
@@ -852,6 +853,13 @@ function SlideIndicators({ labels, active, paused, onChange }) {
   );
 }
 
+function getYouTubeId(url) {
+  if (!url) return '';
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[2].length === 11) ? match[2] : '';
+}
+
 // ── Componente principal ──────────────────────────────────────────
 export default function BarberTV() {
   const { id: tenantId, name: tenantName, logo: tenantLogo } = useTenant();
@@ -883,6 +891,9 @@ export default function BarberTV() {
   const [accentColor,    setAccentColor]    = useState('');
   const [qrConfig,       setQrConfig]       = useState({ color: '', size: 160 });
   const [backgroundUrl,  setBackgroundUrl]  = useState('');
+  const [youtubeUrl,     setYoutubeUrl]     = useState('');
+  const [ytPlayer,       setYtPlayer]       = useState(null);
+  const [audioState,     setAudioState]     = useState('paused'); // 'paused', 'playing', 'blocked'
 
   GOLD = accentColor || TENANT_ACCENT[tenantId] || '#D4AF37';
 
@@ -893,6 +904,85 @@ export default function BarberTV() {
     backgroundUrl.split('?')[0].endsWith('.mp4') ||
     backgroundUrl.split('?')[0].endsWith('.webm')
   );
+
+  const ytVideoId = getYouTubeId(youtubeUrl);
+
+  useEffect(() => {
+    if (!ytVideoId) return;
+
+    let playerInstance = null;
+
+    const initPlayer = () => {
+      if (!window.YT || !window.YT.Player) return;
+      
+      playerInstance = new window.YT.Player('yt-audio-player', {
+        videoId: ytVideoId,
+        playerVars: {
+          autoplay: 1,
+          loop: 1,
+          playlist: ytVideoId,
+          controls: 0,
+          disablekb: 1,
+          fs: 0,
+          modestbranding: 1,
+          rel: 0,
+          showinfo: 0,
+        },
+        events: {
+          onReady: (event) => {
+            setYtPlayer(event.target);
+            event.target.playVideo();
+            // Comprobamos si el autoplay funcionó un momento después
+            setTimeout(() => {
+              if (event.target.getPlayerState() === window.YT.PlayerState.PLAYING) {
+                setAudioState('playing');
+              } else {
+                setAudioState('blocked');
+              }
+            }, 1200);
+          },
+          onStateChange: (event) => {
+            if (event.data === window.YT.PlayerState.PLAYING) {
+              setAudioState('playing');
+            } else if (event.data === window.YT.PlayerState.PAUSED) {
+              setAudioState('paused');
+            }
+          }
+        }
+      });
+    };
+
+    if (!window.YT) {
+      const tag = document.createElement('script');
+      tag.src = 'https://www.youtube.com/iframe_api';
+      const firstScriptTag = document.getElementsByTagName('script')[0];
+      firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+      window.onYouTubeIframeAPIReady = initPlayer;
+    } else {
+      initPlayer();
+    }
+
+    return () => {
+      if (playerInstance && typeof playerInstance.destroy === 'function') {
+        playerInstance.destroy();
+      }
+      setYtPlayer(null);
+    };
+  }, [ytVideoId]);
+
+  const toggleMute = () => {
+    if (!ytPlayer) return;
+    if (audioState === 'playing') {
+      ytPlayer.mute();
+      setAudioState('paused');
+    } else {
+      ytPlayer.unMute();
+      ytPlayer.setVolume(50);
+      ytPlayer.playVideo();
+      setAudioState('playing');
+    }
+  };
 
   const preloadedRef   = useRef(new Set());
   const activeCountRef = useRef(4);
@@ -955,6 +1045,7 @@ export default function BarberTV() {
       setAccentColor(d.accentColor || '');
       if (d.qr)            setQrConfig(prev => ({ ...prev, ...d.qr }));
       setBackgroundUrl(d.backgroundUrl || '');
+      setYoutubeUrl(d.youtubeUrl || '');
     }, () => {});
   }, [tenantId]);
 
@@ -1189,6 +1280,48 @@ export default function BarberTV() {
       <div className="relative z-10">
         <BottomTicker servicios={servicios} />
       </div>
+
+      {/* Contenedor del reproductor de YouTube (oculto) */}
+      <div id="yt-audio-player" className="hidden pointer-events-none absolute w-0 h-0" />
+
+      {/* Botón flotante de audio premium en la esquina inferior izquierda */}
+      {ytVideoId && (
+        <div className="fixed bottom-16 left-6 z-50">
+          <motion.button
+            onClick={toggleMute}
+            className="flex items-center gap-2.5 px-4.5 py-3 rounded-2xl border text-xs font-extrabold tracking-wider uppercase backdrop-blur-md shadow-2xl transition-all"
+            style={{
+              background: audioState === 'playing' ? 'rgba(5,5,5,0.72)' : `rgba(212,175,55,0.12)`,
+              borderColor: audioState === 'playing' ? 'rgba(255,255,255,0.12)' : `rgba(212,175,55,0.45)`,
+              color: audioState === 'playing' ? 'rgba(255,255,255,0.65)' : GOLD,
+              boxShadow: audioState === 'playing' ? 'none' : `0 0 25px rgba(212,175,55,0.18)`,
+            }}
+            animate={audioState !== 'playing' ? {
+              scale: [1, 1.05, 1],
+              boxShadow: [
+                `0 0 15px rgba(212,175,55,0.1)`,
+                `0 0 30px rgba(212,175,55,0.3)`,
+                `0 0 15px rgba(212,175,55,0.1)`,
+              ]
+            } : { scale: 1 }}
+            transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            {audioState === 'playing' ? (
+              <>
+                <Volume2 size={14} className="animate-pulse" />
+                <span>Silenciar Música</span>
+              </>
+            ) : (
+              <>
+                <VolumeX size={14} />
+                <span>Activar Música</span>
+              </>
+            )}
+          </motion.button>
+        </div>
+      )}
 
     </div>
   );

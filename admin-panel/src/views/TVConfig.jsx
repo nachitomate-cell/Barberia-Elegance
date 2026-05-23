@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import {
   Monitor, ExternalLink, Save, Check, ChevronRight,
   AlertCircle, Eye, Palette, Images, Users, Megaphone, ShoppingBag, QrCode,
-  ImagePlus, Trash2, Upload,
+  ImagePlus, Trash2, Upload, Music,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { getDoc, setDoc, getDocs, query, where, doc, deleteDoc } from 'firebase/firestore';
@@ -55,6 +55,7 @@ const CONFIG_DEFAULT = {
   slidesActivos: { oferta: true, lookbook: true, equipo: true, productos: true },
   accentColor:   '',
   qr:            { color: '', size: 160 },
+  youtubeUrl:    '',
 };
 
 const QR_SIZE_STEPS = [100, 120, 140, 160, 180, 200, 220, 240];
@@ -694,6 +695,7 @@ export default function TVConfig() {
             slidesActivos: { oferta: true, lookbook: true, equipo: true, productos: true, ...(d.slidesActivos || {}) },
             accentColor:   d.accentColor || '',
             qr:            { color: '', size: 160, ...(d.qr || {}) },
+            youtubeUrl:    d.youtubeUrl || '',
           });
           if (d.backgroundUrl) setBgUrl(d.backgroundUrl);
         }
@@ -853,6 +855,7 @@ export default function TVConfig() {
         slidesActivos: config.slidesActivos,
         accentColor:   config.accentColor,
         qr:            config.qr,
+        youtubeUrl:    config.youtubeUrl || '',
       }, { merge: true });
       setSaved(true);
       setDirty(false);
@@ -1015,6 +1018,29 @@ export default function TVConfig() {
                 <input ref={bgInputRef} type="file" accept="image/*,video/*" className="hidden" onChange={handleBgUpload} disabled={bgUploading} />
               </label>
             )}
+          </Card>
+
+          {/* ── Música de Fondo (YouTube) ──────────────────────────────── */}
+          <Card icon={Music} title="Música de Fondo (YouTube)">
+            <p className="text-xs text-slate-500 -mt-1">
+              Permite reproducir transmisiones en vivo (ej. radios Lofi), playlists o cualquier video de YouTube de fondo con audio en la sala de espera.
+            </p>
+
+            <Field
+              label="URL o ID de YouTube"
+              hint="Pega la dirección del video de YouTube (ej. https://www.youtube.com/watch?v=5qap5aO4i9A)"
+            >
+              <input
+                className={inp}
+                placeholder="https://www.youtube.com/watch?v=..."
+                value={config.youtubeUrl || ''}
+                onChange={e => update('youtubeUrl', e.target.value)}
+              />
+            </Field>
+            
+            <p className="text-[10px] text-slate-600 bg-slate-800/30 rounded-xl px-3 py-2.5 leading-relaxed border border-slate-800">
+              💡 **Recomendación:** Utiliza streams continuos de música ambiental Lofi, jazz o chillout para mantener una atmósfera relajante en el local.
+            </p>
           </Card>
 
           {/* ── General ───────────────────────────────────────────────── */}
