@@ -293,10 +293,10 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
 
               {/* Cabecera del grupo */}
               <button
-                onClick={() => !hasActive && toggleGroup(group.id)}
+                onClick={() => toggleGroup(group.id)}
                 className="w-full flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-slate-800/40 transition-colors group/hdr"
               >
-                <span className="flex-1 text-left text-[10px] font-bold text-slate-600 uppercase tracking-widest group-hover/hdr:text-slate-400 transition-colors">
+                <span className="flex-1 text-left text-xs font-bold text-slate-400/80 uppercase tracking-widest group-hover/hdr:text-slate-200 transition-colors">
                   {group.label}
                 </span>
                 {/* Dot de notificación visible cuando está colapsado */}
@@ -326,16 +326,19 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
                         to={to}
                         onClick={onClose}
                         className={({ isActive }) =>
-                          `group/item flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                          `group/item relative flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                             isActive
-                              ? ac.active
+                              ? `${ac.active} pl-4`
                               : 'text-slate-400 hover:text-white hover:bg-slate-800'
                           }`
                         }
                       >
                         {({ isActive }) => (
                           <>
-                            <Icon size={16} strokeWidth={isActive ? 2.5 : 2} className="shrink-0" />
+                            {isActive && (
+                              <span className={`absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-md bg-current`} />
+                            )}
+                            <Icon size={16} strokeWidth={isActive ? 2.5 : 2} className="shrink-0 group-hover/item:scale-110 group-hover/item:translate-x-0.5 transition-transform duration-150" />
                             <span className="flex-1">{label}</span>
                             {(showNewsDot || showBillingDot) && !hasBadge && (
                               <span className={`w-1.5 h-1.5 rounded-full animate-pulse shrink-0 ${showBillingDot ? 'bg-amber-400' : 'bg-red-500'}`} />
@@ -374,14 +377,17 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
               to="membresias"
               onClick={onClose}
               className={({ isActive }) =>
-                `group/item flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                  isActive ? ac.active : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                `group/item relative flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                  isActive ? `${ac.active} pl-4` : 'text-slate-400 hover:text-white hover:bg-slate-800'
                 }`
               }
             >
               {({ isActive }) => (
                 <>
-                  <Medal size={16} strokeWidth={isActive ? 2.5 : 2} className="shrink-0" />
+                  {isActive && (
+                    <span className={`absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-md bg-current`} />
+                  )}
+                  <Medal size={16} strokeWidth={isActive ? 2.5 : 2} className="shrink-0 group-hover/item:scale-110 group-hover/item:translate-x-0.5 transition-transform duration-150" />
                   <span className="flex-1">Membresías</span>
                   {isActive && <ChevronRight size={14} className={`${ac.chevron} opacity-60`} />}
                 </>
@@ -393,7 +399,7 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
 
       {/* Footer */}
       <div
-        className="px-3 pt-4 border-t border-slate-800 space-y-1"
+        className="px-3 pt-4 border-t border-slate-800 space-y-2.5"
         style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 1rem)' }}
       >
         <a
@@ -404,27 +410,29 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
           }
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-slate-500 hover:text-white hover:bg-slate-800 transition-all"
+          className="flex items-center justify-center gap-2 w-full px-3 py-2.5 rounded-xl text-sm font-bold border border-slate-700/80 hover:border-slate-500 hover:bg-slate-800 text-white transition-all shadow-sm active:scale-[0.98]"
         >
-          <ExternalLink size={17} />
-          {tenant.id === 'deluxeperfumes' ? 'Ver catálogo' : 'Ver agenda pública'}
+          <ExternalLink size={15} />
+          <span>{tenant.id === 'deluxeperfumes' ? 'Ver catálogo' : 'Ver agenda pública'}</span>
         </a>
 
-        <button
-          onClick={() => setLight(v => !v)}
-          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-slate-500 hover:text-white hover:bg-slate-800 transition-all"
-        >
-          {light ? <Moon size={17} /> : <Sun size={17} />}
-          {light ? 'Modo oscuro' : 'Modo claro'}
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setLight(v => !v)}
+            title={light ? "Activar Modo Oscuro" : "Activar Modo Claro"}
+            className="flex-1 flex items-center justify-center py-2.5 rounded-xl bg-slate-800/40 border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800 transition-all active:scale-95"
+          >
+            {light ? <Moon size={16} /> : <Sun size={16} />}
+          </button>
 
-        <button
-          onClick={() => signOut(auth)}
-          className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm font-medium text-slate-500 hover:text-red-400 hover:bg-red-950/30 transition-all"
-        >
-          <LogOut size={17} />
-          Cerrar sesión
-        </button>
+          <button
+            onClick={() => signOut(auth)}
+            title="Cerrar sesión"
+            className="flex-1 flex items-center justify-center py-2.5 rounded-xl bg-red-950/10 border border-red-950/20 text-slate-500 hover:text-red-400 hover:bg-red-950/30 transition-all active:scale-95"
+          >
+            <LogOut size={16} />
+          </button>
+        </div>
 
         <div className="pt-3 mt-1 border-t border-slate-800/60 px-3">
           <a
