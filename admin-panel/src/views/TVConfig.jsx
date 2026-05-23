@@ -58,6 +58,9 @@ const CONFIG_DEFAULT = {
   youtubeUrl:    '',
   hideSlideshow: false,
   rawVideoBg:    false,
+  sidebarSize:   'md',
+  hideHeader:    false,
+  hideTicker:    false,
 };
 
 const QR_SIZE_STEPS = [100, 120, 140, 160, 180, 200, 220, 240];
@@ -351,7 +354,8 @@ function TVSimulator({ config, bgUrl, tenantId }) {
         )}
 
         {/* ── HEADER SIMULADO ── */}
-        <header className="h-[12%] border-b border-white/5 bg-black/35 backdrop-blur-[2px] flex items-center justify-between px-3 shrink-0 relative z-10">
+        {!config.hideHeader && (
+          <header className="h-[12%] border-b border-white/5 bg-black/35 backdrop-blur-[2px] flex items-center justify-between px-3 shrink-0 relative z-10">
           <div className="flex items-center gap-1.5">
             <div className="w-4 h-4 rounded-md overflow-hidden bg-slate-800 border border-white/10 shrink-0">
               <span className="text-[6px] font-black text-white flex items-center justify-center h-full">B</span>
@@ -374,11 +378,17 @@ function TVSimulator({ config, bgUrl, tenantId }) {
             </div>
           </div>
         </header>
+        )}
 
         {/* ── BODY SIMULADO ── */}
         <div className="flex-1 flex min-h-0 relative z-10 overflow-hidden">
           
-          <aside className="w-[26%] border-r border-white/5 bg-black/25 flex flex-col justify-between py-1.5 px-2 shrink-0">
+          <aside
+            className="border-r border-white/5 bg-black/25 flex flex-col justify-between py-1.5 px-2 shrink-0 transition-all"
+            style={{
+              width: config.sidebarSize === 'sm' ? '20%' : config.sidebarSize === 'lg' ? '32%' : '26%'
+            }}
+          >
             <div>
               <div className="flex items-center gap-1 mb-1">
                 <div className="w-0.5 h-2 rounded-full" style={{ background: gold }} />
@@ -608,27 +618,29 @@ function TVSimulator({ config, bgUrl, tenantId }) {
         </div>
 
         {/* Ticker inferior */}
-        <div className="h-[8%] border-t border-white/5 bg-black/45 flex items-center px-3 shrink-0 relative z-10 overflow-hidden">
-          <div className="absolute left-2 inset-y-0 z-30 flex items-center pr-1 bg-black">
-            <div className="flex items-center gap-0.5 px-1 py-0.2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-black tracking-wider text-[3.5px] uppercase rounded">
-              <span className="w-0.5 h-0.5 bg-emerald-400 rounded-full animate-ping" />
-              <span>Servicios</span>
+        {!config.hideTicker && (
+          <div className="h-[8%] border-t border-white/5 bg-black/45 flex items-center px-3 shrink-0 relative z-10 overflow-hidden">
+            <div className="absolute left-2 inset-y-0 z-30 flex items-center pr-1 bg-black">
+              <div className="flex items-center gap-0.5 px-1 py-0.2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-black tracking-wider text-[3.5px] uppercase rounded">
+                <span className="w-0.5 h-0.5 bg-emerald-400 rounded-full animate-ping" />
+                <span>Servicios</span>
+              </div>
+            </div>
+            
+            <div className="relative w-full h-full flex items-center overflow-hidden pl-11">
+              <div 
+                className="absolute flex whitespace-nowrap text-[4px] font-bold tracking-widest uppercase"
+                style={{ 
+                  color: `${gold}a0`,
+                  animation: 'sim-ticker-scroll 20s infinite linear'
+                }}
+              >
+                <span className="pr-10">✦ Corte Masculino: $12.000 &nbsp;✦ Barba Premium: $8.000 &nbsp;✦ Afeitado Navaja: $10.000 &nbsp;✦ Cejas: $4.000</span>
+                <span className="pr-10">✦ Corte Masculino: $12.000 &nbsp;✦ Barba Premium: $8.000 &nbsp;✦ Afeitado Navaja: $10.000 &nbsp;✦ Cejas: $4.000</span>
+              </div>
             </div>
           </div>
-          
-          <div className="relative w-full h-full flex items-center overflow-hidden pl-11">
-            <div 
-              className="absolute flex whitespace-nowrap text-[4px] font-bold tracking-widest uppercase"
-              style={{ 
-                color: `${gold}a0`,
-                animation: 'sim-ticker-scroll 20s infinite linear'
-              }}
-            >
-              <span className="pr-10">✦ Corte Masculino: $12.000 &nbsp;✦ Barba Premium: $8.000 &nbsp;✦ Afeitado Navaja: $10.000 &nbsp;✦ Cejas: $4.000</span>
-              <span className="pr-10">✦ Corte Masculino: $12.000 &nbsp;✦ Barba Premium: $8.000 &nbsp;✦ Afeitado Navaja: $10.000 &nbsp;✦ Cejas: $4.000</span>
-            </div>
-          </div>
-        </div>
+        )}
 
       </div>
 
@@ -710,8 +722,11 @@ export default function TVConfig() {
             accentColor:   d.accentColor || '',
             qr:            { color: '', size: 160, ...(d.qr || {}) },
             youtubeUrl:    d.youtubeUrl || '',
-            hideSlideshow: !!d.hideSlideshow,
-            rawVideoBg:    !!d.rawVideoBg,
+            hideSlideshow: d.hideSlideshow === true,
+            rawVideoBg:    d.rawVideoBg === true,
+            sidebarSize:   d.sidebarSize || 'md',
+            hideHeader:    d.hideHeader === true,
+            hideTicker:    d.hideTicker === true,
           });
           if (d.backgroundUrl) setBgUrl(d.backgroundUrl);
         }
@@ -872,8 +887,11 @@ export default function TVConfig() {
         accentColor:   config.accentColor,
         qr:            config.qr,
         youtubeUrl:    config.youtubeUrl || '',
-        hideSlideshow: !!config.hideSlideshow,
-        rawVideoBg:    !!config.rawVideoBg,
+        hideSlideshow: config.hideSlideshow === true,
+        rawVideoBg:    config.rawVideoBg === true,
+        sidebarSize:   config.sidebarSize || 'md',
+        hideHeader:    config.hideHeader === true,
+        hideTicker:    config.hideTicker === true,
       }, { merge: true });
       setSaved(true);
       setDirty(false);
@@ -1065,19 +1083,57 @@ export default function TVConfig() {
           <Card icon={Monitor} title="Configuración General">
 
             <Field label="Opciones de Visualización Especial">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-2">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
                 <SlideToggle
-                  checked={config.hideSlideshow || false}
+                  checked={config.hideSlideshow === true}
                   onChange={v => update('hideSlideshow', v)}
                   label="Ocultar Diapositivas"
                   sublabel="Oculta el carrusel y muestra solo el fondo de video/imagen"
                 />
                 <SlideToggle
-                  checked={config.rawVideoBg || false}
+                  checked={config.rawVideoBg === true}
                   onChange={v => update('rawVideoBg', v)}
                   label="Video sin Filtros (Color Real)"
                   sublabel="Muestra el fondo con su brillo y color original sin sombras"
                 />
+                <SlideToggle
+                  checked={config.hideHeader === true}
+                  onChange={v => update('hideHeader', v)}
+                  label="Ocultar Reloj y Encabezado"
+                  sublabel="Remueve la hora, fecha y logo de la parte superior"
+                />
+                <SlideToggle
+                  checked={config.hideTicker === true}
+                  onChange={v => update('hideTicker', v)}
+                  label="Ocultar Marquesina Inferior"
+                  sublabel="Remueve la barra de servicios del extremo inferior"
+                />
+              </div>
+            </Field>
+
+            <Field
+              label="Tamaño del Listado de Citas"
+              hint="Achica o agranda el panel lateral de citas para dejar más espacio al video de fondo"
+            >
+              <div className="flex gap-2 mb-4">
+                {[
+                  { value: 'sm', label: 'Achicado (20% ancho)' },
+                  { value: 'md', label: 'Normal (26% ancho)' },
+                  { value: 'lg', label: 'Agrandado (32% ancho)' },
+                ].map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => update('sidebarSize', opt.value)}
+                    className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all ${
+                      config.sidebarSize === opt.value
+                        ? 'bg-emerald-600 border-emerald-500 text-white shadow-md shadow-emerald-950/20'
+                        : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white hover:border-slate-600'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
               </div>
             </Field>
 

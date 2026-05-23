@@ -167,28 +167,36 @@ function DigitalClock() {
 }
 
 // ── Panel de turnos (Opción A) ────────────────────────────────────
-function AppointmentPanel({ citas, totalHoy, completadasHoy, offline, barberos = [] }) {
-  const [enSillon, ...siguientes] = citas.slice(0, 5);
+function AppointmentPanel({ citas, totalHoy, completadasHoy, offline, barberos = [], size = 'md' }) {
+  const [enSillon, ...siguientes] = citas.slice(0, size === 'sm' ? 4 : 5);
+
+  const padClass = size === 'sm' ? 'px-3 pt-3 pb-2' : size === 'lg' ? 'px-6 pt-6 pb-5' : 'px-5 pt-5 pb-4';
+  const cardPad = size === 'sm' ? 'p-2.5' : size === 'lg' ? 'p-5' : 'p-4';
+  const statsPad = size === 'sm' ? 'p-2' : size === 'lg' ? 'p-4' : 'p-3';
+  const statsNumSize = size === 'sm' ? 'text-2xl' : size === 'lg' ? 'text-4xl' : 'text-3xl';
+  const sillonTextSize = size === 'sm' ? 'text-lg' : size === 'lg' ? 'text-3xl' : 'text-2xl';
+  const nextItemPad = size === 'sm' ? 'px-2.5 py-1.5' : size === 'lg' ? 'px-4 py-3' : 'px-3 py-2.5';
+  const nextItemText = size === 'sm' ? 'text-xs' : size === 'lg' ? 'text-base' : 'text-sm';
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
 
       {/* ── Stats strip ─────────────────────────── */}
-      <div className="px-5 pt-5 pb-4 shrink-0">
+      <div className={`${padClass} shrink-0`}>
         <div className="flex items-center gap-2 mb-3">
           <div className="w-1 h-5 rounded-full shrink-0" style={{ background: GOLD }} />
           <span className="text-[10px] font-black tracking-[0.4em] uppercase text-gray-400">Agenda de Hoy</span>
           {offline && <span className="ml-auto text-[8px] text-yellow-700 tracking-widest uppercase">offline</span>}
         </div>
         <div className="grid grid-cols-2 gap-2">
-          <div className="rounded-xl p-3 text-center"
+          <div className={`rounded-xl ${statsPad} text-center`}
             style={{ background: 'rgba(212,175,55,0.05)', border: '1px solid rgba(212,175,55,0.1)' }}>
-            <p className="font-black text-3xl text-white leading-none">{totalHoy}</p>
+            <p className={`font-black ${statsNumSize} text-white leading-none`}>{totalHoy}</p>
             <p className="text-[9px] text-gray-600 uppercase tracking-widest mt-1">Total</p>
           </div>
-          <div className="rounded-xl p-3 text-center"
+          <div className={`rounded-xl ${statsPad} text-center`}
             style={{ background: 'rgba(34,197,94,0.05)', border: '1px solid rgba(34,197,94,0.1)' }}>
-            <p className="font-black text-3xl text-green-400 leading-none">{completadasHoy}</p>
+            <p className={`font-black ${statsNumSize} text-green-400 leading-none`}>{completadasHoy}</p>
             <p className="text-[9px] text-gray-600 uppercase tracking-widest mt-1">Listas</p>
           </div>
         </div>
@@ -224,7 +232,7 @@ function AppointmentPanel({ citas, totalHoy, completadasHoy, offline, barberos =
           </div>
         </motion.div>
       ) : (
-        <div className="flex-1 flex flex-col px-5 py-4 gap-4 overflow-hidden">
+        <div className={`flex-1 flex flex-col ${size === 'sm' ? 'px-3.5 py-2.5 gap-2.5' : size === 'lg' ? 'px-6 py-5 gap-5' : 'px-5 py-4 gap-4'} overflow-hidden`}>
 
           {/* En Sillón */}
           <div className="shrink-0">
@@ -261,7 +269,7 @@ function AppointmentPanel({ citas, totalHoy, completadasHoy, offline, barberos =
                   }}
                   exit={{ opacity: 0, y: -8 }}
                   transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-                  className="rounded-2xl p-4 relative overflow-hidden"
+                  className={`rounded-2xl ${cardPad} relative overflow-hidden`}
                   style={{
                     background: 'rgba(212,175,55,0.07)',
                     border:     `1px solid rgba(212,175,55,0.3)`,
@@ -294,7 +302,7 @@ function AppointmentPanel({ citas, totalHoy, completadasHoy, offline, barberos =
                     );
                   })()}
 
-                  <p className="text-white font-black text-2xl leading-tight truncate">
+                  <p className={`text-white font-black ${sillonTextSize} leading-tight truncate`}>
                     {enSillon.clienteNombre || enSillon.nombre}
                   </p>
                   <p className="text-gray-500 text-xs truncate mt-0.5">
@@ -339,7 +347,7 @@ function AppointmentPanel({ citas, totalHoy, completadasHoy, offline, barberos =
                     initial={{ opacity: 0, x: -12 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: i * 0.08, duration: 0.3 }}
-                    className="flex items-center gap-3 rounded-xl px-3 py-2.5"
+                    className={`flex items-center gap-3 rounded-xl ${nextItemPad}`}
                     style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}
                   >
                     <div
@@ -349,7 +357,7 @@ function AppointmentPanel({ citas, totalHoy, completadasHoy, offline, barberos =
                       {i + 1}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-white font-semibold text-sm truncate">
+                      <p className={`text-white font-semibold ${nextItemText} truncate`}>
                         {c.clienteNombre || c.nombre}
                       </p>
                       <div className="flex items-center gap-1.5 mt-0.5">
@@ -899,6 +907,9 @@ export default function BarberTV() {
   const [audioState,     setAudioState]     = useState('paused'); // 'paused', 'playing', 'blocked'
   const [hideSlideshow,  setHideSlideshow]  = useState(false);
   const [rawVideoBg,     setRawVideoBg]     = useState(false);
+  const [sidebarSize,    setSidebarSize]    = useState('md');
+  const [hideHeader,     setHideHeader]     = useState(false);
+  const [hideTicker,     setHideTicker]     = useState(false);
 
   GOLD = accentColor || TENANT_ACCENT[tenantId] || '#D4AF37';
 
@@ -1051,8 +1062,11 @@ export default function BarberTV() {
       if (d.qr)            setQrConfig(prev => ({ ...prev, ...d.qr }));
       setBackgroundUrl(d.backgroundUrl || '');
       setYoutubeUrl(d.youtubeUrl || '');
-      setHideSlideshow(!!d.hideSlideshow);
-      setRawVideoBg(!!d.rawVideoBg);
+      setHideSlideshow(d.hideSlideshow === true);
+      setRawVideoBg(d.rawVideoBg === true);
+      setSidebarSize(d.sidebarSize || 'md');
+      setHideHeader(d.hideHeader === true);
+      setHideTicker(d.hideTicker === true);
     }, () => {});
   }, [tenantId]);
 
@@ -1202,38 +1216,43 @@ export default function BarberTV() {
       )}
 
       {/* ── Header ─────────────────────────────────────────────── */}
-      <header
-        className="flex items-center justify-between px-10 py-5 shrink-0 relative z-10"
-        style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
-      >
-        <div className="absolute bottom-0 left-0 right-0 h-px"
-          style={{ background: 'linear-gradient(to right, transparent, rgba(212,175,55,0.2), transparent)' }} />
+      {!hideHeader && (
+        <header
+          className="flex items-center justify-between px-10 py-5 shrink-0 relative z-10"
+          style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
+        >
+          <div className="absolute bottom-0 left-0 right-0 h-px"
+            style={{ background: 'linear-gradient(to right, transparent, rgba(212,175,55,0.2), transparent)' }} />
 
-        <div className="flex items-center gap-4">
-          <div
-            className="relative w-12 h-12 rounded-2xl overflow-hidden"
-            style={{ boxShadow: `0 0 20px rgba(212,175,55,0.2), 0 0 0 1px rgba(212,175,55,0.15)` }}
-          >
-            <img src={tenantLogo || '/logo.jpg'} alt={tenantName} className="w-full h-full object-cover" />
-          </div>
-          <div>
-            <div className="text-white font-black text-xl tracking-tight leading-none">{tenantName}</div>
-            <div className="text-[9px] tracking-[0.4em] uppercase mt-0.5" style={{ color: GOLD }}>
-              Premium Barbershop
+          <div className="flex items-center gap-4">
+            <div
+              className="relative w-12 h-12 rounded-2xl overflow-hidden"
+              style={{ boxShadow: `0 0 20px rgba(212,175,55,0.2), 0 0 0 1px rgba(212,175,55,0.15)` }}
+            >
+              <img src={tenantLogo || '/logo.jpg'} alt={tenantName} className="w-full h-full object-cover" />
+            </div>
+            <div>
+              <div className="text-white font-black text-xl tracking-tight leading-none">{tenantName}</div>
+              <div className="text-[9px] tracking-[0.4em] uppercase mt-0.5" style={{ color: GOLD }}>
+                Premium Barbershop
+              </div>
             </div>
           </div>
-        </div>
 
-        <DigitalClock />
-      </header>
+          <DigitalClock />
+        </header>
+      )}
 
       {/* ── Body ───────────────────────────────────────────────── */}
       <div className="flex flex-1 min-h-0 overflow-hidden relative z-10">
 
-        {/* Panel turnos — 26% */}
+        {/* Panel turnos — 26% (Configurable size) */}
         <aside
-          className="w-[26%] overflow-hidden shrink-0"
-          style={{ borderRight: '1px solid rgba(255,255,255,0.04)' }}
+          className="overflow-hidden shrink-0 transition-all duration-300"
+          style={{
+            width: sidebarSize === 'sm' ? '20%' : sidebarSize === 'lg' ? '32%' : '26%',
+            borderRight: '1px solid rgba(255,255,255,0.04)',
+          }}
         >
           <AppointmentPanel
             citas={citas}
@@ -1241,6 +1260,7 @@ export default function BarberTV() {
             completadasHoy={completadasHoy}
             offline={offline}
             barberos={barberos}
+            size={sidebarSize}
           />
         </aside>
 
@@ -1290,9 +1310,11 @@ export default function BarberTV() {
       </div>
 
       {/* ── Ticker inferior de servicios — Opción B ────────────── */}
-      <div className="relative z-10">
-        <BottomTicker servicios={servicios} />
-      </div>
+      {!hideTicker && (
+        <div className="relative z-10">
+          <BottomTicker servicios={servicios} />
+        </div>
+      )}
 
       {/* Contenedor del reproductor de YouTube (oculto) */}
       <div id="yt-audio-player" className="hidden pointer-events-none absolute w-0 h-0" />
