@@ -17,25 +17,90 @@ const TENANT_CONFIG = {
     nombre:   'Elegance Barbershop',
     color:    '#D4AF37',
     from:     'Elegance Barbershop <citas@synaptechspa.cl>',
-    loginUrl:'https://barberiaelegance.synaptechspa.cl/registro',
+    loginUrl: 'https://barberiaelegance.synaptechspa.cl/registro',
   },
   ferraza: {
     nombre:   'Barbería Ferraza',
-    color:    '#e2e8f0',
+    color:    '#C0392B',
     from:     'Barbería Ferraza <citas@synaptechspa.cl>',
-    loginUrl:'https://barberiaferraza.synaptechspa.cl/registro',
+    loginUrl: 'https://barberiaferraza.synaptechspa.cl/registro',
   },
   gitana: {
     nombre:   'Gitana Nails Studio',
-    color:    '#f472b6',
+    color:    '#8E44AD',
     from:     'Gitana Nails Studio <citas@synaptechspa.cl>',
-    loginUrl:'https://gitananails.synaptechspa.cl/registro',
+    loginUrl: 'https://gitananails.synaptechspa.cl/registro',
   },
   mapubarbershop: {
     nombre:   'Mapu Barber Shop',
     color:    '#BFA37E',
     from:     'Mapu Barber Shop <citas@synaptechspa.cl>',
-    loginUrl:'https://mapubarbershop.synaptechspa.cl/registro',
+    loginUrl: 'https://mapubarbershop.synaptechspa.cl/registro',
+  },
+  chameleon: {
+    nombre:   'Chameleon Barber Studio',
+    slogan:   'Clásico y moderno, perfecto para tí!',
+    color:    '#DAA520',
+    from:     'Chameleon Barber Studio <citas@synaptechspa.cl>',
+    loginUrl: 'https://chameleonbarber.synaptechspa.cl/registro',
+  },
+  lumen: {
+    nombre:     "D'Jones Barber",
+    slogan:     'Estilo y tradición',
+    color:      '#C9A050',
+    darkHeader: true,
+    from:       "D'Jones Barber <citas@synaptechspa.cl>",
+    loginUrl:   'https://barberiadjones.synaptechspa.cl/registro',
+  },
+  delnero: {
+    nombre:   'Del Nero Barber',
+    slogan:   'Estilo que define. Arte que trasciende.',
+    color:    '#DAA520',
+    from:     'Del Nero Barber <citas@synaptechspa.cl>',
+    loginUrl: 'https://delnerobarber.synaptechspa.cl/registro',
+  },
+  marcelo_hairdressing: {
+    nombre:   'Marcelo Palma',
+    slogan:   'Hairdressing & Estilo',
+    color:    '#ffffff',
+    darkHeader: true,
+    from:     'Marcelo Palma <citas@synaptechspa.cl>',
+    loginUrl: 'https://marcelohairdressing.synaptechspa.cl/registro',
+  },
+  aura: {
+    nombre:     'AURA SALÓN & MALE GROOMING',
+    slogan:     'Eleva Tu Aura',
+    color:      '#6CABDD',
+    from:       'AURA SALÓN & MALE GROOMING <citas@synaptechspa.cl>',
+    loginUrl:   'https://aurasalon.synaptechspa.cl/registro',
+  },
+  machos: {
+    nombre:   "Macho´s Barbershop",
+    slogan:   'Calidad y Asesoría Profesional',
+    color:    '#f97316',
+    from:     "Macho´s Barbershop <citas@synaptechspa.cl>",
+    loginUrl: 'https://machos.synaptechspa.cl/registro',
+  },
+  deluxeperfumes: {
+    nombre:   'Deluxe Perfumes',
+    slogan:   'Tu fragancia perfecta',
+    color:    '#D4AF37',
+    from:     'Deluxe Perfumes <citas@synaptechspa.cl>',
+    loginUrl: 'https://deluxeperfumes.synaptechspa.cl/registro',
+  },
+  infinity: {
+    nombre:   'INFINITY STUDIO',
+    slogan:   'Ambiente familiar y confianza',
+    color:    '#6366f1',
+    from:     'INFINITY STUDIO <citas@synaptechspa.cl>',
+    loginUrl: 'https://infinity.synaptechspa.cl/registro',
+  },
+  sionbarberia: {
+    nombre:   'Sion Barbería',
+    slogan:   'Calidad y Profesionalismo',
+    color:    '#F57808',
+    from:     'Sion Barbería <citas@synaptechspa.cl>',
+    loginUrl: 'https://barberiasion.synaptechspa.cl/registro',
   },
 };
 
@@ -52,7 +117,8 @@ async function sendResend(apiKey, payload) {
 
 function buildResetEmailHtml({ cfg, resetLink }) {
   const btnColor   = cfg.color;
-  const btnTextClr = cfg.color === '#e2e8f0' ? '#0f172a' : '#000000';
+  const isDark     = !!cfg.darkHeader;
+  const btnTextClr = isDark ? '#0f172a' : '#000000';
 
   return `<!DOCTYPE html>
 <html lang="es">
@@ -67,9 +133,10 @@ function buildResetEmailHtml({ cfg, resetLink }) {
       <table width="100%" style="max-width:520px;background:#111115;border-radius:16px;overflow:hidden;border:1px solid #222228;">
 
         <tr>
-          <td style="background:${btnColor};padding:32px 36px 28px;">
-            <p style="margin:0 0 4px;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:rgba(0,0,0,0.5);">${cfg.nombre}</p>
-            <h1 style="margin:0;font-size:24px;font-weight:900;color:#000;letter-spacing:-0.3px;">Recuperar contraseña</h1>
+          <td style="background:${isDark ? '#030f1a' : btnColor};padding:32px 36px 28px;${isDark ? `border-bottom:2px solid ${btnColor};` : ''}">
+            <p style="margin:0 0 4px;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:${isDark ? btnColor : 'rgba(0,0,0,0.55)'};">${cfg.nombre}</p>
+            <h1 style="margin:0;font-size:24px;font-weight:900;color:${isDark ? '#f1f5f9' : '#000'};letter-spacing:-0.3px;">Recuperar contraseña</h1>
+            ${cfg.slogan ? `<p style="margin:8px 0 0;font-size:12px;letter-spacing:2px;font-style:italic;color:${isDark ? btnColor + 'bb' : 'rgba(0,0,0,0.4)'};">${cfg.slogan}</p>` : ''}
           </td>
         </tr>
 
