@@ -480,10 +480,11 @@ function SlideLookbook({ photos }) {
 
   if (!photos.length) {
     return (
-      <div className="w-full h-full flex items-center justify-center text-gray-800">
-        <div className="text-center">
-          <p className="text-7xl mb-4 opacity-20">📷</p>
-          <p className="text-xl">Lookbook en construcción</p>
+      <div className="w-full h-full flex items-center justify-center text-slate-300">
+        <div className="text-center bg-slate-950/65 backdrop-blur-md border border-white/10 rounded-3xl p-10 max-w-sm shadow-2xl animate-fade-in relative z-20">
+          <p className="text-6xl mb-4 opacity-30">📷</p>
+          <p className="text-lg font-bold tracking-wide">Lookbook en construcción</p>
+          <p className="text-xs text-slate-500 mt-2">Pronto compartiremos nuestros mejores trabajos y cortes aquí.</p>
         </div>
       </div>
     );
@@ -643,10 +644,11 @@ function SlideProductos({ productos, skipAnimation }) {
 
   if (!visible.length) {
     return (
-      <div className="w-full h-full flex items-center justify-center text-gray-800">
-        <div className="text-center">
-          <p className="text-7xl mb-4 opacity-20">🛍️</p>
-          <p className="text-xl">Sin productos disponibles</p>
+      <div className="w-full h-full flex items-center justify-center text-slate-300">
+        <div className="text-center bg-slate-950/65 backdrop-blur-md border border-white/10 rounded-3xl p-10 max-w-sm shadow-2xl animate-fade-in relative z-20">
+          <p className="text-6xl mb-4 opacity-30">🛍️</p>
+          <p className="text-lg font-bold tracking-wide">Sin productos disponibles</p>
+          <p className="text-xs text-slate-500 mt-2">Próximamente agregaremos nuestra línea de productos exclusivos.</p>
         </div>
       </div>
     );
@@ -723,10 +725,11 @@ function SlideMarcas({ marcas, skipAnimation }) {
 
   if (!visible.length) {
     return (
-      <div className="w-full h-full flex items-center justify-center text-gray-800">
-        <div className="text-center">
-          <p className="text-7xl mb-4 opacity-20">🏆</p>
-          <p className="text-xl">Nuestras Marcas</p>
+      <div className="w-full h-full flex items-center justify-center text-slate-300">
+        <div className="text-center bg-slate-950/65 backdrop-blur-md border border-white/10 rounded-3xl p-10 max-w-sm shadow-2xl animate-fade-in relative z-20">
+          <p className="text-6xl mb-4 opacity-30">🏆</p>
+          <p className="text-lg font-bold tracking-wide">Nuestras Marcas</p>
+          <p className="text-xs text-slate-500 mt-2">Próximamente listaremos las marcas y auspiciadores del local.</p>
         </div>
       </div>
     );
@@ -1164,7 +1167,7 @@ export default function BarberTV() {
               playsInline
               aria-hidden="true"
               className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
-              style={{ filter: 'brightness(0.24) saturate(0.65)', zIndex: 0 }}
+              style={{ filter: 'brightness(0.68) saturate(0.85)', zIndex: 0 }}
             />
           ) : (
             <motion.img
@@ -1182,12 +1185,12 @@ export default function BarberTV() {
                 ease: 'linear',
                 repeat: Infinity
               }}
-              style={{ filter: 'brightness(0.25) saturate(0.65)', zIndex: 0 }}
+              style={{ filter: 'brightness(0.7) saturate(0.85)', zIndex: 0 }}
             />
           )}
           <div
             className="absolute inset-0 pointer-events-none"
-            style={{ background: 'rgba(5,5,5,0.52)', zIndex: 0 }}
+            style={{ background: 'rgba(5,5,5,0.22)', zIndex: 0 }}
           />
         </>
       )}
