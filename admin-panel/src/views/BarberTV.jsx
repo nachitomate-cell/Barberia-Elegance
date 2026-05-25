@@ -1242,9 +1242,6 @@ export default function BarberTV() {
             </div>
             <div>
               <div className="text-white font-black text-xl tracking-tight leading-none">{tenantName}</div>
-              <div className="text-[9px] tracking-[0.4em] uppercase mt-0.5" style={{ color: GOLD }}>
-                Premium Barbershop
-              </div>
             </div>
           </div>
 
