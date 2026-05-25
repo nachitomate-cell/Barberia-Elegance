@@ -1607,6 +1607,36 @@ export default function TVConfig() {
 
       </div>
 
+      {/* Barra de Guardado Flotante (se activa al detectar cambios sin guardar) */}
+      <div 
+        className={`fixed bottom-6 left-4 right-4 sm:left-1/2 sm:-translate-x-1/2 sm:w-[480px] z-50 bg-slate-900/95 border border-emerald-500/40 backdrop-blur-md rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] p-4 flex items-center justify-between gap-4 transition-all duration-300 transform ${
+          dirty && !saved
+            ? 'translate-y-0 opacity-100'
+            : 'translate-y-12 opacity-0 pointer-events-none'
+        }`}
+      >
+        <div className="flex items-center gap-2.5">
+          <span className="flex h-2.5 w-2.5 relative shrink-0">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+          </span>
+          <div className="min-w-0">
+            <p className="text-xs font-bold text-white leading-tight">Cambios sin guardar</p>
+            <p className="text-[10px] text-slate-400 mt-0.5 font-medium">Tienes modificaciones pendientes en la configuración.</p>
+          </div>
+        </div>
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="flex items-center gap-2 px-4.5 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition-all shadow-md shrink-0 active:scale-95"
+        >
+          {saving
+            ? <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            : <Save size={13} />}
+          <span>Guardar Cambios</span>
+        </button>
+      </div>
+
     </div>
   );
 }
