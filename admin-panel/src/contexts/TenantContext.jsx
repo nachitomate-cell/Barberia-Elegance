@@ -5,18 +5,18 @@ import { resolveTenantId } from '../lib/tenantUtils';
 
 const TENANT_META = {
   elegance:       { name: '𝐄𝐥𝐞𝐠𝐚𝐧𝐜𝐞 𝐁𝐚𝐫𝐛𝐞𝐫𝐬𝐡𝐨𝐩', accent: 'emerald', emoji: '✂️', logo: '/logo.jpg'   },
-  ferraza:        { name: 'Barbería Ferraza',       accent: 'slate',   emoji: '✂️', logo: '/local1.jpg' },
-  gitana:         { name: 'Gitana Nails Studio',    accent: 'pink',    emoji: '💅', logo: '/local2.jpg' },
-  mapubarbershop: { name: 'Mapu Barber Shop',       accent: 'emerald', emoji: '✂️', logo: '/mapu.jfif'  },
-  chameleon:      { name: 'Chameleon Barber Studio', accent: 'cyan',   emoji: '✂️', logo: '/local3.jpg' },
+  ferraza:        { name: 'Barbería Ferraza',       accent: 'slate',   emoji: '✂️', logo: '/ferraza.png' },
+  gitana:         { name: 'Gitana Nails Studio',    accent: 'pink',    emoji: '💅', logo: '/gitana.png' },
+  mapubarbershop: { name: 'Mapu Barber Shop',       accent: 'emerald', emoji: '✂️', logo: '/mapu2.png'  },
+  chameleon:      { name: 'Chameleon Barber Studio', accent: 'cyan',   emoji: '✂️', logo: '/sellochamaleon.png' },
   deluxeperfumes: { name: 'Deluxe Perfumes',        accent: 'purple',  emoji: '🌸', logo: '/logo5.jpg'  },
   lumen:          { name: "D'Jones Barber",            accent: 'amber',   emoji: '⚓', logo: '/djones.png' },
   delnero:        { name: 'Del Nero Barber',         accent: 'lime',    emoji: '✂️', logo: '/nero.jpg'   },
-  marcelo_hairdressing: { name: 'Marcelo Palma Hairdressing', accent: 'lime', emoji: '✂️', logo: '/nero.jpg' },
-  aura:           { name: 'AURA SALÓN & MALE GROOMING', accent: 'amber',   emoji: '✨', logo: '/aura.png'   },
+  marcelo_hairdressing: { name: 'Marcelo Palma Hairdressing', accent: 'lime', emoji: '✂️', logo: '/marcelo1.png' },
+  aura:           { name: 'AURA SALÓN & MALE GROOMING', accent: 'amber',   emoji: '✨', logo: '/aura2.png'  },
   machos:         { name: 'Macho´s Barbershop',         accent: 'orange',  emoji: '💈', logo: '/machos.png'   },
-  infinity:       { name: 'INFINITY STUDIO',            accent: 'zinc',    emoji: '💈', logo: '/logo.jpg'     },
-  sionbarberia:   { name: 'Sion Barbería',              accent: 'orange',  emoji: '💈', logo: 'https://dcx13p9dsx90t.cloudfront.net/uploads/logos/page_logo_378df61d67dfec81.png' },
+  infinity:       { name: 'INFINITY STUDIO',            accent: 'zinc',    emoji: '💈', logo: '/infinity.png'     },
+  sionbarberia:   { name: 'Sion Barbería',              accent: 'orange',  emoji: '💈', logo: '/sion.png' },
 };
 
 const TenantContext = createContext(null);
@@ -36,6 +36,34 @@ export function TenantProvider({ children }) {
     );
     return unsub;
   }, [id]);
+
+  useEffect(() => {
+    if (!meta) return;
+    document.title = `Panel Admin · ${meta.name}`;
+
+    if (meta.logo) {
+      let favicon = document.querySelector('link[rel="icon"]');
+      if (!favicon) {
+        favicon = document.createElement('link');
+        favicon.rel = 'icon';
+        document.head.appendChild(favicon);
+      }
+      favicon.href = meta.logo;
+      if (meta.logo.endsWith('.png')) {
+        favicon.type = 'image/png';
+      } else if (meta.logo.endsWith('.jpg') || meta.logo.endsWith('.jpeg')) {
+        favicon.type = 'image/jpeg';
+      }
+
+      let touchIcon = document.querySelector('link[rel="apple-touch-icon"]');
+      if (!touchIcon) {
+        touchIcon = document.createElement('link');
+        touchIcon.rel = 'apple-touch-icon';
+        document.head.appendChild(touchIcon);
+      }
+      touchIcon.href = meta.logo;
+    }
+  }, [id, meta]);
 
   return (
     <TenantContext.Provider value={{ id, ...meta, suspended }}>

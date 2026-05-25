@@ -95,7 +95,7 @@ const TENANT_META = {
     ogImage:     '/local1.jpg',
     themeColor:  '#000000',
     appTitle:    'Ferraza',
-    icon:        '/local1.jpg',
+    icon:        '/ferraza.png',
     local: { telephone: '', streetAddress: 'Av. Libertad 63, Local 28', addressLocality: 'Valparaíso', schemaType: 'HairSalon', ratingGeneral: 4.8, totalReviews: 46, reviews: [{ author: 'Iván Klemencic', rating: 5, text: 'Excelente atención. Quien atiende demuestra profesionalismo en lo que hace, lo recomiendo totalmente. Además está la posibilidad de agendar para el mismo día.' }, { author: 'Juan P. Mesa', rating: 5, text: 'Primero que todo, excelente servicio. Lugar muy grato, limpio y muy buena disposición de Nicolás. Me atendieron al tiro, excelente corte de cabello. Recomendable 100%.' }, { author: 'Nicolas Pardo', rating: 5, text: 'Excelente servicio por parte de Nico, lugar con un muy buen ambiente y atención. Para relajarse un rato. Recomendado!' }] },
     manifest: {
       name:             'Barbería Ferraza',
@@ -140,7 +140,7 @@ const TENANT_META = {
     ogImage:     '/local2.jpg',
     themeColor:  '#050505',
     appTitle:    'Gitana',
-    icon:        '/local2.jpg',
+    icon:        '/gitana.png',
     local: { telephone: '', streetAddress: 'Las Encinas 1390', addressLocality: 'Concón', schemaType: 'BeautySalon' },
     manifest: {
       name:             'Gitana Nails Studio',
@@ -231,7 +231,7 @@ const TENANT_META = {
     ogImage:     '/local3.jpg',
     themeColor:  '#c9a84c',
     appTitle:    'Chameleon',
-    icon:        '/local3.jpg',
+    icon:        '/sellochamaleon.png',
     local: { telephone: '', streetAddress: 'Av. Libertad 868', addressLocality: 'Viña del Mar', schemaType: 'HairSalon', ratingGeneral: 5.0, totalReviews: 226, reviews: [{ author: 'Carlos Andrés Yáñez', rating: 5, text: 'Excelente servicio! Vengo de Santiago y confié en esta barbería para cortarme el pelo más barba, el barbero supo cortarme tal cual lo solicitado. Muy profesional!' }, { author: 'Cristian Veas', rating: 5, text: 'Profesionales del corte de pelo y barba. Amables y buena onda, ambiente muy agradable y precio acorde al resultado.' }, { author: 'Jorge Miranda', rating: 5, text: 'Me atendí con Omar, un crack, muy amable y gentil al usar las tijeras. Primera vez que voy y volvería a ir.' }] },
     manifest: {
       name:             'Chameleon Barber Studio',
@@ -247,7 +247,7 @@ const TENANT_META = {
       background_color: '#0f172a',
       start_url:        '/gestion-interna/?local=chameleon',
       icons: [
-        { src: '/local3.jpg',                  sizes: 'any',     type: 'image/jpeg' },
+        { src: '/sellochamaleon.png',                  sizes: 'any',     type: 'image/png' },
         { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png' },
         { src: '/gestion-interna/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
       ],
@@ -321,7 +321,7 @@ const TENANT_META = {
     ogImage:     '/nero.jpg',
     themeColor:  '#050505',
     appTitle:    'Marcelo Palma',
-    icon:        '/nero.jpg',
+    icon:        '/marcelo1.png',
     local: { telephone: '', streetAddress: '', addressLocality: 'Placilla', schemaType: 'HairSalon' },
     manifest: {
       name:             'Marcelo Palma Hairdressing',
@@ -337,7 +337,7 @@ const TENANT_META = {
       background_color: '#050505',
       start_url:        '/gestion-interna/?local=marcelo_hairdressing',
       icons: [
-        { src: '/nero.jpg',                    sizes: 'any',     type: 'image/jpeg' },
+        { src: '/marcelo1.png',                    sizes: 'any',     type: 'image/png' },
         { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png' },
         { src: '/gestion-interna/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
       ],
@@ -569,7 +569,7 @@ const TENANT_META = {
     ogImage:     'https://dcx13p9dsx90t.cloudfront.net/uploads/logos/page_logo_378df61d67dfec81.png',
     themeColor:  '#2C3941',
     appTitle:    'Sion',
-    icon:        'https://dcx13p9dsx90t.cloudfront.net/uploads/logos/page_logo_378df61d67dfec81.png',
+    icon:        '/sion.png',
     local: {
       telephone: '56988888888',
       streetAddress: 'Av. Libertad 123',
@@ -596,7 +596,7 @@ const TENANT_META = {
       background_color: '#2C3941',
       start_url:        '/gestion-interna/?local=sionbarberia',
       icons: [
-        { src: 'https://dcx13p9dsx90t.cloudfront.net/uploads/logos/page_logo_378df61d67dfec81.png', sizes: 'any',     type: 'image/png' },
+        { src: '/sion.png', sizes: 'any',     type: 'image/png' },
         { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png' },
         { src: '/gestion-interna/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
       ],

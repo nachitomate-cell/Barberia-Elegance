@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <script>!function(){var m={'marcelopalma.synaptechspa.cl':'/marcelo1.png','marcelohairdressing.synaptechspa.cl':'/marcelo1.png','marcelo-hairdressing.synaptechspa.cl':'/marcelo1.png'};var s=m[location.hostname]||'/favicon.ico';var l=document.createElement('link');l.rel='icon';l.href=s;if(s!='/favicon.ico')l.type='image/png';document.head.appendChild(l);}();</script>
+  <script>!function(){var m={'marcelopalma.synaptechspa.cl':'/marcelo1.png','marcelohairdressing.synaptechspa.cl':'/marcelo1.png','marcelo-hairdressing.synaptechspa.cl':'/marcelo1.png','aurasalon.synaptechspa.cl':'/aura.png','aurasalonmalegrooming.synaptech.cl':'/aura.png','aurasalonmalegrooming.synaptechspa.cl':'/aura.png'};var s=m[location.hostname]||'/favicon.ico';var l=document.createElement('link');l.rel='icon';l.href=s;if(s!='/favicon.ico')l.type='image/png';document.head.appendChild(l);}();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
@@ -1571,6 +1571,18 @@
       from { opacity: 0; transform: translateY(14px); }
       to   { opacity: 1; transform: translateY(0); }
     }
+    #premiosSection {
+      transition: max-height 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      max-height: 0;
+      opacity: 0;
+      transform: translateY(-10px);
+      overflow: hidden;
+    }
+    #premiosSection.visible {
+      max-height: 1000px;
+      opacity: 1;
+      transform: translateY(0);
+    }
     #editEmail:-webkit-autofill:-webkit-autofill,
     #editEmail:-webkit-autofill:hover,
     #editEmail:-webkit-autofill:focus {
@@ -2947,6 +2959,9 @@
       <!-- ── HERO BANNER (anuncio dinámico desde Firestore) ── -->
       <div id="heroBanner" class="hidden mx-4 mb-4 rounded-2xl overflow-hidden relative active:scale-[0.99] transition-all" style="min-height:170px;"></div>
 
+      <!-- ── HERO PRÓXIMA CITA CARD (Dynamic) ── -->
+      <div id="heroProximaCitaCard" class="hidden mx-4 mb-5 animate-[fadeSlideUp_0.45s_cubic-bezier(0.16,1,0.3,1)_forwards]"></div>
+
       <!-- ── MEMBERSHIP CARD ── -->
       <div data-aura-stagger class="membership-pattern relative mx-4 rounded-3xl bg-[#111115] border border-white/8 p-6 mb-4 overflow-hidden">
         <div class="membership-glow absolute -top-10 -right-10 w-36 h-36 rounded-full pointer-events-none" style="background:radial-gradient(circle,rgba(201,168,76,0.08) 0%,transparent 70%);"></div>
@@ -4002,7 +4017,17 @@ function cerrarModalCanje() {
 function togglePremios() {
   const section = document.getElementById('premiosSection');
   _premiosVisible = !_premiosVisible;
-  section.classList.toggle('hidden', !_premiosVisible);
+  
+  if (_premiosVisible) {
+    section.classList.remove('hidden');
+    void section.offsetHeight; // Forzar reflow para habilitar transición
+    section.classList.add('visible');
+  } else {
+    section.classList.remove('visible');
+    setTimeout(() => {
+      if (!_premiosVisible) section.classList.add('hidden');
+    }, 400);
+  }
 }
 
 // ─── Renderizar sellos ────────────────────────────────────────
@@ -4671,6 +4696,74 @@ async function cargarCitasUsuario(user) {
       }).sort((a, b) => a.fecha.localeCompare(b.fecha) || a.hora.localeCompare(b.hora));
 
       const proxima    = futuras[0] || null;
+
+      // ─── Tarjeta Hero de Próxima Cita Activa en Pestaña Fidelización ───
+      const heroCardEl = document.getElementById('heroProximaCitaCard');
+      if (heroCardEl) {
+        if (proxima) {
+          const fechaStr = formatearFechaCita(proxima.fecha);
+          const [_fy, _fm, _fd] = proxima.fecha.split('-').map(Number);
+          const [_fh, _fmin]    = proxima.hora.split(':').map(Number);
+          const diffMs  = new Date(_fy, _fm - 1, _fd, _fh, _fmin) - ahora;
+          const diffH   = Math.round(diffMs / 3600000);
+          const diffD   = Math.floor(diffMs / 86400000);
+          const enTiempo = diffH <= 2
+            ? `<span class="text-red-400 font-bold">¡En ${diffH <= 0 ? 'menos de 1h' : diffH + 'h'}!</span>`
+            : diffD === 0 ? `<span style="color:var(--gold)" class="font-bold">Hoy</span>`
+            : diffD === 1 ? `<span style="color:var(--gold)" class="font-bold">Mañana</span>`
+            : `En ${diffD} días`;
+
+          heroCardEl.innerHTML = `
+            <div class="rounded-3xl p-5 relative overflow-hidden shadow-lg mb-5"
+                 style="background:linear-gradient(135deg, rgba(201,168,76,0.1), rgba(201,168,76,0.04)); border:1px solid var(--gold-dim);">
+              <div class="absolute -right-6 -top-6 w-24 h-24 rounded-full blur-xl pointer-events-none" style="background:var(--gold-glow);"></div>
+              <div class="relative z-10">
+                <div class="flex items-center justify-between mb-3.5">
+                  <p class="text-[9px] font-black uppercase tracking-[0.2em]" style="color:var(--gold);">📅 Tu Próxima Cita</p>
+                  <span class="text-[9px] font-bold px-2 py-0.5 rounded-full animate-pulse" style="background:var(--gold-glow); color:var(--gold); border:1px solid var(--gold-dim);">
+                    ${proxima.estado || 'Confirmada'}
+                  </span>
+                </div>
+                <div class="flex items-start gap-4 mb-4">
+                  <div class="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0" style="background:var(--gold-glow); border:1px solid var(--gold-dim);">
+                    <i class="ph-fill ph-calendar-blank text-xl" style="color:var(--gold);"></i>
+                  </div>
+                  <div class="flex-1 min-w-0 text-left">
+                    <h4 class="text-sm font-black text-white leading-tight truncate">${proxima.servicioNombre || 'Servicio'}</h4>
+                    <p class="text-xs text-white/70 mt-1.5 flex items-center gap-1">
+                      <i class="ph-fill ph-user-circle text-[13px] text-zinc-400"></i> ${proxima.barbero || 'Profesional'}
+                    </p>
+                    <p class="text-xs text-white/50 mt-0.5 flex items-center gap-1">
+                      <i class="ph-fill ph-clock text-[13px] text-zinc-400"></i> ${fechaStr} a las ${proxima.hora} hrs
+                    </p>
+                  </div>
+                  <div class="text-right shrink-0">
+                    <p class="text-xs text-zinc-300 font-bold leading-tight">${enTiempo}</p>
+                  </div>
+                </div>
+                <div class="grid grid-cols-3 gap-2">
+                  <button onclick="abrirModalReagendar('${proxima.id}')"
+                          class="flex items-center justify-center gap-1.5 text-[10px] font-bold py-2.5 rounded-xl border border-zinc-800 hover:border-zinc-700 bg-zinc-950/20 active:scale-[0.98] transition-all text-white">
+                    <i class="ph-bold ph-calendar-dots text-sm"></i> Reagendar
+                  </button>
+                  <button onclick="abrirModalCancelar('${proxima.id}')"
+                          class="flex items-center justify-center gap-1.5 text-[10px] font-bold py-2.5 rounded-xl border border-red-500/20 bg-red-950/15 active:scale-[0.98] transition-all text-red-400 hover:bg-red-950/30">
+                    <i class="ph-bold ph-x-circle text-sm"></i> Cancelar
+                  </button>
+                  <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(window.SHOP?.nombre + ' ' + (window.SHOP?.direccion || ''))}"
+                     target="_blank"
+                     class="flex items-center justify-center gap-1.5 text-[10px] font-bold py-2.5 rounded-xl border border-zinc-800 hover:border-zinc-700 bg-zinc-950/20 active:scale-[0.98] transition-all text-white">
+                    <i class="ph-bold ph-map-pin text-sm"></i> Cómo llegar
+                  </a>
+                </div>
+              </div>
+            </div>`;
+          heroCardEl.classList.remove('hidden');
+        } else {
+          heroCardEl.classList.add('hidden');
+        }
+      }
+
       const total      = citas.length;
       const completadas = citas.filter(c => c.estado === 'Completada').length;
       let html = '';
