@@ -34,6 +34,115 @@
       --r-pill: 999px;
     }
 
+    /* ── Aura Salon Overrides (Light Minimalist Theme) ───────────────── */
+    .tenant-aura {
+      --gold: #00285E; /* Deep navy blue for active elements */
+      --gold-rgb: 0, 40, 94;
+      --gold-light: #00285E;
+      --gold-dim: rgba(0, 40, 94, 0.08);
+      --gold-border: rgba(156, 163, 175, 0.3);
+      --bg: #F9FAFB; /* Clean white-gray bg */
+      --surface: #FFFFFF; /* Pure white cards */
+      --card: #FFFFFF;
+      --border: rgba(156, 163, 175, 0.16);
+      --text: #18181B; /* Dark text */
+      --text-sec: #4B5563; /* Steel gray text */
+      --text-muted: #8E9399; /* Muted gray text */
+      --serif: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    }
+
+    .tenant-aura body {
+      background: var(--bg) !important;
+      color: var(--text) !important;
+    }
+
+    .tenant-aura .header {
+      background: rgba(249, 250, 251, 0.94) !important;
+      border-bottom: 1px solid var(--gold-border) !important;
+    }
+
+    .tenant-aura .header-name {
+      color: #00285E !important;
+      font-family: var(--sans) !important;
+      font-weight: 800 !important;
+    }
+
+    .tenant-aura .btn-primary {
+      background: linear-gradient(135deg, #00285E 0%, #1e3a8a 100%) !important;
+      color: #FFFFFF !important;
+    }
+
+    .tenant-aura .btn-outline {
+      border: 1.5px solid rgba(0, 40, 94, 0.25) !important;
+      color: #00285E !important;
+    }
+
+    .tenant-aura .btn-outline:hover {
+      background: rgba(0, 40, 94, 0.05) !important;
+    }
+
+    .tenant-aura .gate-card,
+    .tenant-aura .modal-content,
+    .tenant-aura .olf-option {
+      background: #FFFFFF !important;
+      border: 1px solid rgba(156, 163, 175, 0.25) !important;
+    }
+
+    .tenant-aura .gate-icon {
+      background: rgba(0, 40, 94, 0.08) !important;
+      color: #00285E !important;
+      border-color: rgba(0, 40, 94, 0.15) !important;
+    }
+
+    .tenant-aura .period-btn.active {
+      background: #00285E !important;
+      color: #FFFFFF !important;
+      border-color: #00285E !important;
+    }
+
+    .tenant-aura .plan-card {
+      background: #FFFFFF !important;
+      border: 1.5px solid rgba(156, 163, 175, 0.25) !important;
+    }
+
+    .tenant-aura .plan-card.highlight {
+      border-color: #00285E !important;
+      box-shadow: 0 10px 30px rgba(0, 40, 94, 0.06) !important;
+    }
+
+    .tenant-aura .plan-badge {
+      background: #00285E !important;
+      color: #FFFFFF !important;
+    }
+
+    .tenant-aura .modal-cancel-box,
+    .tenant-aura .olf-progress {
+      background: #F3F4F6 !important;
+      border-color: rgba(156, 163, 175, 0.2) !important;
+    }
+
+    .tenant-aura .profile-card {
+      background: #FFFFFF !important;
+      border: 1.5px solid rgba(156, 163, 175, 0.2) !important;
+    }
+
+    .tenant-aura .status-badge.active {
+      background: rgba(16, 185, 129, 0.15) !important;
+      color: #10B981 !important;
+    }
+
+    .tenant-aura .plan-price {
+      color: #00285E !important;
+      font-family: var(--sans) !important;
+      font-weight: 800 !important;
+    }
+
+    .tenant-aura .plan-title {
+      font-family: var(--sans) !important;
+      font-weight: 700 !important;
+      color: #18181B !important;
+    }
+
     *,
     *::before,
     *::after {
@@ -1240,6 +1349,7 @@
   <script>
     /* ── Constants ─────────────────────────────────────────────────── */
     const TENANT_ID = window.CURRENT_TENANT_ID || 'elegance';
+    document.documentElement.classList.add('tenant-' + TENANT_ID);
     const SHOP = window.SHOP || {};
     const IS_DELUXE = TENANT_ID === 'deluxeperfumes';
     const BOOTSTRAP_ADMINS = ['ignaciiio.mate@gmail.com'];

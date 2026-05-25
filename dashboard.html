@@ -3004,6 +3004,34 @@
         </div>
       </div>
 
+      <!-- ── AURA PREMIUM CLUB / SUBSCRIPTIONS PROMO CARD (Aura Only) ── -->
+      <div id="auraMembresiaPromoCard" data-aura-stagger class="hidden mx-4 mb-5 rounded-3xl p-5 relative overflow-hidden transition-all active:scale-[0.99] border cursor-pointer font-sans"
+           onclick="abrirAuraMembresiaModal()"
+           style="background: linear-gradient(135deg, #00285E, #001C44); border-color: rgba(255,255,255,0.1); box-shadow: 0 10px 25px -5px rgba(0, 40, 94, 0.3);">
+        <!-- Subtle abstract background circle -->
+        <div class="absolute -right-10 -bottom-10 w-40 h-40 rounded-full pointer-events-none" style="background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);"></div>
+        <div class="absolute -left-6 -top-6 w-24 h-24 rounded-full pointer-events-none" style="background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 60%);"></div>
+        
+        <div class="flex items-center justify-between relative z-10">
+          <div class="flex-1 pr-4">
+            <span class="text-[9px] font-black uppercase tracking-[0.2em] px-2.5 py-1 rounded-full bg-white/10 text-white/95 mb-2.5 inline-block">AURA PREMIUM PASS</span>
+            <h3 class="text-white font-bold text-lg leading-tight mb-1.5">Club de Suscripciones</h3>
+            <p class="text-xs text-white/85 leading-relaxed">Suscripción mensual con cortes ilimitados, peinados y beneficios VIP exclusivos.</p>
+          </div>
+          <div class="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 bg-white/15 border border-white/10 text-white shadow-lg">
+            <i class="ph-bold ph-sparkle text-2xl animate-pulse"></i>
+          </div>
+        </div>
+        
+        <div class="mt-4 pt-3 border-t border-white/10 flex items-center justify-between text-xs text-white/90 font-bold relative z-10">
+          <span>Ver planes disponibles</span>
+          <div class="flex items-center gap-1">
+            <span>Explorar Club</span>
+            <i class="ph-bold ph-arrow-right text-xs"></i>
+          </div>
+        </div>
+      </div>
+
       <!-- ── PRÓXIMO PREMIO ── -->
       <div data-aura-stagger class="next-reward-card mx-4 mb-5 rounded-2xl bg-[#111115] border border-white/8 px-5 py-4 flex items-center gap-4">
         <!-- Product icon -->
@@ -5339,13 +5367,145 @@ async function guardarFocalSelector() {
   }
 }
 
-// ── Aura Premium Animations ───────────────────────────────────
+// ── Aura Premium Animations & Membership ───────────────────────
+function esc(str) {
+  if (!str) return '';
+  return str.replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+}
+
+function abrirAuraMembresiaModal() {
+  const modal = document.getElementById('auraMembresiaModal');
+  if (modal) {
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+  }
+}
+
+function cerrarAuraMembresiaModal() {
+  const modal = document.getElementById('auraMembresiaModal');
+  if (modal) {
+    modal.classList.add('hidden');
+    document.body.style.overflow = '';
+  }
+}
+
+async function loadAuraMembresiaPlanes() {
+  const tid = window.CURRENT_TENANT_ID || 'elegance';
+  if (tid !== 'aura') return;
+  
+  try {
+    const snap = await db.collection('tenants').doc(tid)
+      .collection('configuracion').doc('membresia').get();
+      
+    if (snap.exists) {
+      const data = snap.data();
+      const planes = (data.planes || [])
+        .filter(p => p.id && p.nombre)
+        .sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0));
+        
+      renderAuraMembresiaPlanesModal(planes);
+    } else {
+      const container = document.getElementById('auraMembresiaPlanesList');
+      if (container) {
+        container.innerHTML = `
+          <div class="text-center py-8">
+            <i class="ph-bold ph-info text-3xl text-gray-400 mb-2"></i>
+            <p class="text-sm text-gray-500 font-sans">No hay planes de suscripción configurados en este momento.</p>
+          </div>
+        `;
+      }
+    }
+  } catch (err) {
+    console.error('[Aura Membresia Modal] Error loading plans:', err);
+    const container = document.getElementById('auraMembresiaPlanesList');
+    if (container) {
+      container.innerHTML = `
+        <div class="text-center py-8">
+          <i class="ph-bold ph-warning-octagon text-3xl text-red-500 mb-2"></i>
+          <p class="text-sm text-gray-500 font-sans">Hubo un problema al cargar los planes. Intente de nuevo más tarde.</p>
+        </div>
+      `;
+    }
+  }
+}
+
+function renderAuraMembresiaPlanesModal(planes) {
+  const container = document.getElementById('auraMembresiaPlanesList');
+  if (!container) return;
+  
+  if (!planes || planes.length === 0) {
+    container.innerHTML = `
+      <div class="text-center py-8">
+        <i class="ph-bold ph-info text-3xl text-gray-400 mb-2"></i>
+        <p class="text-sm text-gray-500 font-sans">No hay planes de suscripción configurados en este momento.</p>
+      </div>
+    `;
+    return;
+  }
+  
+  container.innerHTML = planes.map((plan, idx) => {
+    const isPopular = planes.length > 1 && idx === planes.length - 2;
+    const formattedPrice = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(plan.precioMensual || 0);
+    const benefits = (plan.caracteristicas || []).map(benefit => `
+      <li class="flex items-start gap-2 text-xs text-gray-600 font-sans">
+        <i class="ph-fill ph-check-circle text-[#00285E] text-base shrink-0 mt-0.5" style="color: #00285E !important;"></i>
+        <span class="leading-tight">${esc(benefit)}</span>
+      </li>
+    `).join('');
+    
+    return `
+      <div class="relative rounded-2xl p-5 border-2 transition-all duration-300 bg-white ${isPopular ? 'border-[#00285E]' : 'border-gray-200'}"
+           style="box-shadow: ${isPopular ? '0 8px 24px rgba(0, 40, 94, 0.05)' : 'none'};">
+        ${isPopular ? `
+          <span class="absolute -top-3 right-4 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider text-white" 
+                style="background: linear-gradient(135deg, #00285E 0%, #1e3a8a 100%);">
+            Más Popular
+          </span>
+        ` : ''}
+        
+        <div class="flex items-start justify-between mb-2">
+          <div>
+            <h4 class="text-base font-extrabold text-[#00285E] font-sans">${esc(plan.nombre)}</h4>
+            <p class="text-[11px] text-gray-400 font-sans mt-0.5">${esc(plan.descripcion || 'Plan mensual')}</p>
+          </div>
+          <div class="text-right shrink-0 ml-4">
+            <span class="text-lg font-black text-[#00285E] font-sans">${formattedPrice}</span>
+            <span class="text-[10px] text-gray-400 font-sans">/mes</span>
+          </div>
+        </div>
+        
+        <div class="h-px bg-gray-100 my-3"></div>
+        
+        <ul class="space-y-2 mb-4">
+          ${benefits}
+        </ul>
+        
+        <a href="membresia.html?plan=${plan.id}" class="w-full py-2.5 rounded-xl text-xs font-bold font-sans flex items-center justify-center gap-1.5 transition-all active:scale-[0.98] ${isPopular ? 'text-white' : 'text-[#00285E]'}"
+           style="${isPopular ? 'background: linear-gradient(135deg, #00285E 0%, #1e3a8a 100%); border: none;' : 'background: rgba(0, 40, 94, 0.03); border: 1.5px solid rgba(0, 40, 94, 0.25);'}">
+          <span>Seleccionar Plan</span>
+          <i class="ph-bold ph-arrow-right text-xs"></i>
+        </a>
+      </div>
+    `;
+  }).join('');
+}
+
 function initAuraAnimations() {
   if (!document.documentElement.classList.contains('tenant-aura')) return;
   const els = document.querySelectorAll('[data-aura-stagger]');
   els.forEach((el, i) => {
     el.classList.add('aura-animate', `aura-d${Math.min(i, 4)}`);
   });
+  
+  const promoCard = document.getElementById('auraMembresiaPromoCard');
+  if (promoCard) {
+    promoCard.classList.remove('hidden');
+    loadAuraMembresiaPlanes();
+  }
 }
 
 function auraCountUp(targetNum, totalTarget) {
@@ -5487,6 +5647,49 @@ function auraCountUp(targetNum, totalTarget) {
             Reservar Producto
           </button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── MODAL MEMBRESÍAS AURA SALON ── -->
+  <div id="auraMembresiaModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(0,0,0,0.65);backdrop-filter:blur(8px);">
+    <div class="w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl animate-[fadeSlideUp_0.4s_cubic-bezier(0.16,1,0.3,1)_forwards]" 
+         style="background:#F9FAFB; border:1px solid rgba(156,163,175,0.35); max-height: 90vh; display: flex; flex-direction: column;">
+      
+      <!-- Header -->
+      <div class="px-6 py-5 border-b border-gray-200 flex items-center justify-between shrink-0" style="background:#FFFFFF;">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl flex items-center justify-center bg-[#00285E]/10 text-[#00285E]">
+            <i class="ph-bold ph-sparkle text-lg"></i>
+          </div>
+          <div class="text-left">
+            <h3 class="text-base font-extrabold text-[#00285E] font-sans">Membresías Aura Salon</h3>
+            <p class="text-[11px] text-gray-500 font-sans mt-0.5">Elige tu plan ideal y disfruta de cortes ilimitados</p>
+          </div>
+        </div>
+        <button onclick="cerrarAuraMembresiaModal()" class="w-8 h-8 rounded-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 active:scale-90 transition-all text-gray-500">
+          <i class="ph-bold ph-x text-sm"></i>
+        </button>
+      </div>
+      
+      <!-- Content (Scrollable list of plans) -->
+      <div id="auraMembresiaPlanesList" class="p-6 overflow-y-auto space-y-4 flex-1 text-left" style="background:#F9FAFB;">
+        <!-- Planes will be rendered here dynamically -->
+        <div class="flex justify-center py-12">
+          <div class="w-6 h-6 border-2 border-[#00285E]/20 border-t-[#00285E] rounded-full animate-spin"></div>
+        </div>
+      </div>
+      
+      <!-- Footer -->
+      <div class="px-6 py-4 border-t border-gray-200 flex items-center justify-between gap-4 shrink-0" style="background:#FFFFFF;">
+        <button onclick="cerrarAuraMembresiaModal()" class="px-5 py-3 rounded-2xl text-xs font-bold text-gray-500 hover:text-gray-700 transition-colors font-sans">
+          Cerrar
+        </button>
+        <a href="membresia.html" class="px-6 py-3 rounded-2xl text-xs font-bold text-white transition-all active:scale-95 font-sans flex items-center gap-1.5" 
+           style="background: linear-gradient(135deg, #00285E 0%, #1e3a8a 100%); box-shadow: 0 4px 12px rgba(0, 40, 94, 0.25);">
+          <span>Gestionar Suscripción</span>
+          <i class="ph-bold ph-arrow-square-out text-sm"></i>
+        </a>
       </div>
     </div>
   </div>
