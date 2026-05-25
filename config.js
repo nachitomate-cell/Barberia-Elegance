@@ -102,7 +102,7 @@
       nombreCorto:     'Chameleon',
       pageTitle:       'Chameleon Barber Studio | Agenda tu hora',
       slogan:          'Clásico y moderno, perfecto para tí!',
-      logo:            '/sellochamaleon.png',
+      logo:            '/local3.jpg',
       direccion:       '📍 Av. Libertad 868 | Viña del Mar',
       horario:         '🕒 Lun a Sáb: 10:30 – 20:00 hrs.',
       telefono:        '56928186861',

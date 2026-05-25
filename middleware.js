@@ -231,7 +231,7 @@ const TENANT_META = {
     ogImage:     '/local3.jpg',
     themeColor:  '#c9a84c',
     appTitle:    'Chameleon',
-    icon:        '/sellochamaleon.png',
+    icon:        '/local3.jpg',
     local: { telephone: '', streetAddress: 'Av. Libertad 868', addressLocality: 'Viña del Mar', schemaType: 'HairSalon', ratingGeneral: 5.0, totalReviews: 226, reviews: [{ author: 'Carlos Andrés Yáñez', rating: 5, text: 'Excelente servicio! Vengo de Santiago y confié en esta barbería para cortarme el pelo más barba, el barbero supo cortarme tal cual lo solicitado. Muy profesional!' }, { author: 'Cristian Veas', rating: 5, text: 'Profesionales del corte de pelo y barba. Amables y buena onda, ambiente muy agradable y precio acorde al resultado.' }, { author: 'Jorge Miranda', rating: 5, text: 'Me atendí con Omar, un crack, muy amable y gentil al usar las tijeras. Primera vez que voy y volvería a ir.' }] },
     manifest: {
       name:             'Chameleon Barber Studio',
@@ -247,7 +247,7 @@ const TENANT_META = {
       background_color: '#0f172a',
       start_url:        '/gestion-interna/?local=chameleon',
       icons: [
-        { src: '/sellochamaleon.png',                  sizes: 'any',     type: 'image/png' },
+        { src: '/local3.jpg',                  sizes: 'any',     type: 'image/jpeg' },
         { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png' },
         { src: '/gestion-interna/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
       ],
