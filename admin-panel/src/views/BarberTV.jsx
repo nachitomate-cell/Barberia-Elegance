@@ -285,19 +285,22 @@ function AppointmentPanel({ citas, totalHoy, completadasHoy, offline, barberos =
                     const resolvedUrl = matched ? (matched.foto || matched.fotoUrl) : null;
                     const avatar = name ? name[0].toUpperCase() : '?';
                     return (
-                      <div className="flex items-center gap-2 mb-3">
+                      <div className="flex items-center gap-2.5 mb-3.5 bg-slate-950/45 border border-slate-800/80 rounded-xl px-3 py-1.5 w-fit">
                         <div
-                          className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black shrink-0 overflow-hidden relative"
-                          style={{ background: 'rgba(212,175,55,0.15)', color: GOLD, border: `1.5px solid rgba(212,175,55,0.25)` }}
+                          className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-black shrink-0 overflow-hidden relative"
+                          style={{ background: 'rgba(212,175,55,0.2)', color: GOLD, border: `1.5px solid rgba(212,175,55,0.4)` }}
                         >
                           <span>{avatar}</span>
                           {resolvedUrl && (
                             <img src={resolvedUrl} alt="" className="absolute inset-0 w-full h-full object-cover" />
                           )}
                         </div>
-                        <span className="text-[10px] font-semibold truncate" style={{ color: `${GOLD}AA` }}>
-                          {name}
-                        </span>
+                        <div className="flex flex-col min-w-0">
+                          <span className="text-[8px] font-bold text-gray-500 uppercase tracking-widest leading-none mb-0.5">Barbero</span>
+                          <span className="text-xs sm:text-sm font-black truncate text-white leading-tight">
+                            {name}
+                          </span>
+                        </div>
                       </div>
                     );
                   })()}
@@ -360,25 +363,31 @@ function AppointmentPanel({ citas, totalHoy, completadasHoy, offline, barberos =
                       <p className={`text-white font-semibold ${nextItemText} truncate`}>
                         {c.clienteNombre || c.nombre}
                       </p>
-                      <div className="flex items-center gap-1.5 mt-0.5">
+                      <div className="flex items-center gap-1.5 mt-1 flex-wrap">
                         {(c.barbero || c.barberoNombre) && (() => {
                           const bName = c.barbero || c.barberoNombre;
                           const matchedB = barberos.find(b => b.nombre.toLowerCase().trim() === bName.toLowerCase().trim());
                           const resolvedUrlB = matchedB ? (matchedB.foto || matchedB.fotoUrl) : null;
                           const avatarB = bName ? bName[0].toUpperCase() : '?';
                           return (
-                            <div
-                              className="w-4 h-4 rounded-full inline-flex items-center justify-center text-[8px] font-black shrink-0 overflow-hidden relative"
-                              style={{ background: 'rgba(212,175,55,0.1)', color: `${GOLD}AA`, border: `0.5px solid rgba(212,175,55,0.2)` }}
-                            >
-                              <span>{avatarB}</span>
-                              {resolvedUrlB && (
-                                <img src={resolvedUrlB} alt="" className="absolute inset-0 w-full h-full object-cover" />
-                              )}
+                            <div className="flex items-center gap-1 shrink-0 bg-slate-950/30 border border-slate-800/60 rounded px-1.5 py-0.5">
+                              <div
+                                className="w-3.5 h-3.5 rounded-full inline-flex items-center justify-center text-[7px] font-black shrink-0 overflow-hidden relative"
+                                style={{ background: 'rgba(212,175,55,0.15)', color: GOLD, border: `0.5px solid rgba(212,175,55,0.35)` }}
+                              >
+                                <span>{avatarB}</span>
+                                {resolvedUrlB && (
+                                  <img src={resolvedUrlB} alt="" className="absolute inset-0 w-full h-full object-cover" />
+                                )}
+                              </div>
+                              <span className="text-[9px] font-bold text-gray-200 uppercase tracking-wider">
+                                {bName}
+                              </span>
                             </div>
                           );
                         })()}
-                        <p className="text-gray-600 text-[10px] truncate">
+                        <span className="text-gray-800 text-[9px] select-none shrink-0">•</span>
+                        <p className="text-gray-500 text-[10px] truncate">
                           {c.servicioNombre || c.servicio || ''}
                         </p>
                       </div>
