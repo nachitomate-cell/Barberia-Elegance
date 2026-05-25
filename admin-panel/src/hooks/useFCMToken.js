@@ -4,7 +4,7 @@ import { getApps } from 'firebase/app';
 import { db } from '../lib/firebase';
 
 export const VAPID_KEY = import.meta.env.VITE_VAPID_KEY;
-const SW_URL = '/gestion-interna/firebase-messaging-sw.js';
+const SW_URL = '/gestion-interna/sw.js';
 
 /**
  * Solicita permiso, registra el SW de FCM y guarda el token en Firestore.

@@ -36,6 +36,7 @@ export default defineConfig({
         ],
       },
       workbox: {
+        importScripts: ['/gestion-interna/firebase-messaging-sw.js'],
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         navigateFallback: '/gestion-interna/index.html',
         navigateFallbackAllowlist: [/^\/gestion-interna/],
