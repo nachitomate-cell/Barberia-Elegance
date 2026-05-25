@@ -69,7 +69,7 @@ const BARBEROS = [
   { id: 'aura-jocce',    nombre: 'Jocce Garcia (JG)', foto: null, disponible: true, activo: true, rol: 'profesional', orden: 1 },
   { id: 'aura-chiky',    nombre: 'Chiky barber',      foto: null, disponible: true, activo: true, rol: 'profesional', orden: 2 },
   { id: 'aura-matiaz',   nombre: 'Matiaz cutz',       foto: null, disponible: true, activo: true, rol: 'profesional', orden: 3 },
-  { id: 'aura-lina',     nombre: 'Lina',              foto: null, disponible: true, activo: true, rol: 'profesional', orden: 4 },
+  { id: 'aura-lina',     nombre: 'Maximiliano',       foto: null, disponible: true, activo: true, rol: 'profesional', orden: 4 },
 ];
 
 // ── Configuración de horarios ────────────────────────────────────────────────
