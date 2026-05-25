@@ -193,7 +193,7 @@ export default function Metricas() {
       setClientes(clientesSnap.docs.map(d => ({ id: d.id, ...d.data() })));
       setVentas(ventasSnap.docs.map(d => ({ id: d.id, ...d.data() })));
       setGastos(gastosSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-      setBarberos(barberosSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setBarberos(barberosSnap.docs.map(d => ({ id: d.id, ...d.data() })).filter(b => !b._mainDocId));
       setProductos(productosSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     } catch (e) {
       console.error('Metricas fetchData:', e);
