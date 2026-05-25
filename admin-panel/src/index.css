@@ -3,10 +3,18 @@
 @tailwind utilities;
 
 @layer base {
-  * { box-sizing: border-box; }
+  * {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+  }
   ::-webkit-scrollbar { width: 4px; height: 4px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: #334155; border-radius: 2px; }
+
+  button, a, select, input[type="button"], input[type="submit"] {
+    -webkit-user-select: none;
+    user-select: none;
+  }
 }
 
 @layer utilities {
@@ -36,3 +44,11 @@ html.light textarea,
 html.light select { background-color: #f1f5f9 !important; color: #0f172a !important; border-color: #cbd5e1 !important; }
 html.light .divide-slate-800 > * + * { border-color: #e2e8f0 !important; }
 html.light .divide-y > * + * { border-color: #e2e8f0 !important; }
+
+/* Evitar auto-zoom en iOS Safari al enfocar campos de formulario en pantallas móviles */
+@media (max-width: 767px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
+
