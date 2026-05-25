@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import {
-  Camera, Trash2, Upload, Power, AlertTriangle, Search, X, Plus, UserCircle,
+  Camera, Trash2, Upload, Power, AlertTriangle, Search, X, Plus, UserCircle, Crosshair,
 } from 'lucide-react';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 import {
@@ -54,6 +54,43 @@ export default function ServicioFavorito() {
   const [addPreview,    setAddPreview]    = useState(null);
   const [addErr,        setAddErr]        = useState('');
   const fileRef = useRef(null);
+
+  const [focalTarget, setFocalTarget] = useState(null);
+  const [tempFocal, setTempFocal] = useState({ x: 50, y: 50 });
+  const [savingFocal, setSavingFocal] = useState(false);
+
+  const handleOpenFocalModal = (e, entrada) => {
+    e.stopPropagation();
+    setFocalTarget(entrada);
+    setTempFocal({
+      x: entrada.focalX ?? 50,
+      y: entrada.focalY ?? 50
+    });
+  };
+
+  const handleImageClick = e => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = Math.max(0, Math.min(100, Math.round(((e.clientX - rect.left) / rect.width) * 100)));
+    const y = Math.max(0, Math.min(100, Math.round(((e.clientY - rect.top) / rect.height) * 100)));
+    setTempFocal({ x, y });
+  };
+
+  const handleSaveFocal = async () => {
+    if (!focalTarget) return;
+    setSavingFocal(true);
+    try {
+      await updateDoc(doc(tenantCol('servicioFavorito'), focalTarget.id), {
+        focalX: tempFocal.x,
+        focalY: tempFocal.y
+      });
+      setFocalTarget(null);
+    } catch (err) {
+      console.error('[Save focal SF]', err);
+      alert('Error al guardar el punto focal.');
+    } finally {
+      setSavingFocal(false);
+    }
+  };
 
   useEffect(() => {
     getDoc(tenantDoc('config', 'ui'))
@@ -381,9 +418,16 @@ export default function ServicioFavorito() {
                 className="flex items-center gap-3 bg-slate-900 border border-slate-800 rounded-xl p-3 hover:border-slate-700 transition-all"
               >
                 {/* Thumbnail */}
-                <div className="w-14 h-14 rounded-lg overflow-hidden shrink-0 bg-slate-800 flex items-center justify-center">
+                <div className="w-14 h-14 rounded-lg overflow-hidden shrink-0 bg-slate-800 flex items-center justify-center relative">
                   {displayUrl
-                    ? <img src={displayUrl} alt="" className="w-full h-full object-cover" />
+                    ? <img
+                        src={displayUrl}
+                        alt=""
+                        className="w-full h-full object-cover"
+                        style={{
+                          objectPosition: `${entrada.focalX ?? 50}% ${entrada.focalY ?? 50}%`
+                        }}
+                      />
                     : <UserCircle size={24} className="text-slate-600" />}
                 </div>
 
@@ -404,14 +448,25 @@ export default function ServicioFavorito() {
                   </div>
                 </div>
 
-                {/* Delete */}
-                <button
-                  onClick={() => handleDelete(entrada)}
-                  className="p-2 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-950/30 transition-all shrink-0"
-                  title="Eliminar"
-                >
-                  <Trash2 size={15} />
-                </button>
+                {/* Actions */}
+                <div className="flex items-center gap-1">
+                  {displayUrl && (
+                    <button
+                      onClick={e => handleOpenFocalModal(e, entrada)}
+                      className="p-2 rounded-lg text-slate-500 hover:text-amber-400 hover:bg-amber-950/20 transition-all shrink-0"
+                      title="Ajustar Enfoque"
+                    >
+                      <Crosshair size={15} />
+                    </button>
+                  )}
+                  <button
+                    onClick={() => handleDelete(entrada)}
+                    className="p-2 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-950/30 transition-all shrink-0"
+                    title="Eliminar"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
               </div>
             );
           })}
@@ -435,6 +490,66 @@ export default function ServicioFavorito() {
             <li>Desactivarla oculta la sección sin borrar las fotos guardadas.</li>
           </ul>
         </HelpModal>
+      )}
+      {/* Modal de Punto Focal */}
+      {focalTarget && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in"
+          style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(6px)' }}
+        >
+          <div className="w-full max-w-lg bg-slate-900 border border-slate-700 rounded-2xl p-6 shadow-2xl">
+            <div className="flex items-center gap-2 mb-2">
+              <Crosshair className="text-amber-400 shrink-0" size={20} />
+              <h3 className="font-semibold text-white text-lg">
+                Ajustar Punto Focal
+              </h3>
+            </div>
+            <p className="text-xs text-slate-400 mb-4">
+              Haz clic o toca en la imagen de estilo favorito del cliente para definir el centro de interés. Este punto se mantendrá visible en el dashboard y las Historias de Instagram.
+            </p>
+
+            <div className="relative border border-slate-800 rounded-xl overflow-hidden bg-slate-950 flex items-center justify-center select-none" style={{ maxHeight: '350px' }}>
+              <img
+                src={focalTarget.adminUrl || focalTarget.clienteUrl}
+                alt="Ajustar enfoque"
+                className="max-w-full max-h-[350px] object-contain cursor-crosshair"
+                onClick={handleImageClick}
+              />
+              {/* Visor de Enfoque */}
+              <div
+                className="absolute w-8 h-8 -mt-4 -ml-4 rounded-full border-2 border-amber-400 bg-amber-400/20 shadow-[0_0_15px_rgba(251,191,36,0.6)] pointer-events-none transition-all duration-150 flex items-center justify-center"
+                style={{
+                  left: `${tempFocal.x}%`,
+                  top: `${tempFocal.y}%`
+                }}
+              >
+                <div className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+              </div>
+            </div>
+
+            <div className="flex justify-between items-center mt-5">
+              <span className="text-xs text-slate-500 font-mono">
+                Coordenadas: X: {tempFocal.x}% · Y: {tempFocal.y}%
+              </span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setFocalTarget(null)}
+                  disabled={savingFocal}
+                  className="px-4 py-2 text-sm text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-all"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleSaveFocal}
+                  disabled={savingFocal}
+                  className="px-5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-sm font-bold rounded-lg transition-all flex items-center gap-1.5 disabled:opacity-40"
+                >
+                  {savingFocal ? 'Guardando...' : 'Guardar Enfoque'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

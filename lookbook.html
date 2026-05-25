@@ -246,6 +246,7 @@
             <div class="w-full ${ratio} bg-gray-100 overflow-hidden">
               <img src="${esc(url)}" loading="lazy"
                    class="w-full h-full object-cover"
+                   style="object-position: ${d.focalX !== undefined ? d.focalX : 50}% ${d.focalY !== undefined ? d.focalY : 50}%;"
                    onerror="this.parentElement.parentElement.remove()">
             </div>
             <div class="style-overlay absolute inset-0 bg-black/60 opacity-0 transition-opacity duration-300 z-10"></div>

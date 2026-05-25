@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
-import { Images, Trash2, Upload, Plus, GripVertical, Power, AlertTriangle } from 'lucide-react';
+import { Images, Trash2, Upload, Plus, GripVertical, Power, AlertTriangle, Crosshair } from 'lucide-react';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 import {
   addDoc, deleteDoc, doc, orderBy,
-  serverTimestamp, getDocs, writeBatch, getDoc, setDoc,
+  serverTimestamp, getDocs, writeBatch, getDoc, setDoc, updateDoc,
 } from 'firebase/firestore';
 import {
   ref as storageRef, uploadBytesResumable,
@@ -52,6 +52,43 @@ export default function Lookbook() {
   const [confirmOn,     setConfirmOn]     = useState(false);
   const fileRef  = useRef(null);
   const dragFrom = useRef(null);
+
+  const [focalTarget, setFocalTarget] = useState(null);
+  const [tempFocal, setTempFocal] = useState({ x: 50, y: 50 });
+  const [savingFocal, setSavingFocal] = useState(false);
+
+  const handleOpenFocalModal = (e, foto) => {
+    e.stopPropagation();
+    setFocalTarget(foto);
+    setTempFocal({
+      x: foto.focalX ?? 50,
+      y: foto.focalY ?? 50
+    });
+  };
+
+  const handleImageClick = e => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = Math.max(0, Math.min(100, Math.round(((e.clientX - rect.left) / rect.width) * 100)));
+    const y = Math.max(0, Math.min(100, Math.round(((e.clientY - rect.top) / rect.height) * 100)));
+    setTempFocal({ x, y });
+  };
+
+  const handleSaveFocal = async () => {
+    if (!focalTarget) return;
+    setSavingFocal(true);
+    try {
+      await updateDoc(doc(tenantCol('lookbook'), focalTarget.id), {
+        focalX: tempFocal.x,
+        focalY: tempFocal.y
+      });
+      setFocalTarget(null);
+    } catch (err) {
+      console.error('[Save focal]', err);
+      alert('Error al guardar el punto focal.');
+    } finally {
+      setSavingFocal(false);
+    }
+  };
 
   useEffect(() => {
     getDoc(tenantDoc('config', 'ui'))
@@ -335,20 +372,43 @@ export default function Lookbook() {
                   src={foto.url}
                   alt=""
                   loading="lazy"
-                  className="w-full object-cover rounded-xl"
+                  className="w-full object-cover rounded-xl aspect-[3/4]"
+                  style={{
+                    objectPosition: `${foto.focalX ?? 50}% ${foto.focalY ?? 50}%`
+                  }}
                 />
+                {/* Punto Focal Indicador en miniatura (sutil) */}
+                {foto.focalY !== undefined && (
+                  <div
+                    className="absolute w-2 h-2 -mt-1 -ml-1 rounded-full bg-amber-400 shadow-[0_0_6px_rgba(251,191,36,0.9)] pointer-events-none group-hover:scale-150 transition-all duration-300"
+                    style={{
+                      left: `${foto.focalX}%`,
+                      top: `${foto.focalY}%`
+                    }}
+                  />
+                )}
                 {/* Overlay con controles */}
-                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center gap-2">
-                  <div className="flex items-center gap-1 px-2 py-1.5 bg-black/40 rounded-lg text-white/50 text-xs select-none">
+                <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex flex-col items-center justify-center gap-2">
+                  <div className="flex items-center gap-1.5 px-2 py-1.5 bg-black/40 rounded-lg text-white/50 text-xs select-none">
                     <GripVertical size={12} />
                     <span>{idx + 1}</span>
                   </div>
-                  <button
-                    onClick={() => handleDelete(foto)}
-                    className="flex items-center gap-1.5 px-3 py-2 bg-red-600 hover:bg-red-500 text-white text-xs font-semibold rounded-lg transition-colors"
-                  >
-                    <Trash2 size={13} /> Eliminar
-                  </button>
+                  <div className="flex gap-1.5 mt-1">
+                    <button
+                      onClick={e => handleOpenFocalModal(e, foto)}
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 bg-amber-600 hover:bg-amber-500 text-white text-[11px] font-semibold rounded-lg transition-colors"
+                      title="Ajustar Enfoque"
+                    >
+                      <Crosshair size={12} /> Foco
+                    </button>
+                    <button
+                      onClick={() => handleDelete(foto)}
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 bg-red-600 hover:bg-red-500 text-white text-[11px] font-semibold rounded-lg transition-colors"
+                      title="Eliminar"
+                    >
+                      <Trash2 size={12} /> Eliminar
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -379,6 +439,66 @@ export default function Lookbook() {
             <li>El ícono de basura elimina una foto del lookbook y del almacenamiento.</li>
           </ul>
         </HelpModal>
+      )}
+      {/* Modal de Punto Focal */}
+      {focalTarget && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in"
+          style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(6px)' }}
+        >
+          <div className="w-full max-w-lg bg-slate-900 border border-slate-700 rounded-2xl p-6 shadow-2xl">
+            <div className="flex items-center gap-2 mb-2">
+              <Crosshair className="text-amber-400 shrink-0" size={20} />
+              <h3 className="font-semibold text-white text-lg">
+                Ajustar Punto Focal
+              </h3>
+            </div>
+            <p className="text-xs text-slate-400 mb-4">
+              Haz clic o toca en la imagen para definir el centro de interés. Este punto permanecerá siempre visible en cortes cuadrados o verticales.
+            </p>
+
+            <div className="relative border border-slate-800 rounded-xl overflow-hidden bg-slate-950 flex items-center justify-center select-none" style={{ maxHeight: '350px' }}>
+              <img
+                src={focalTarget.url}
+                alt="Ajustar enfoque"
+                className="max-w-full max-h-[350px] object-contain cursor-crosshair"
+                onClick={handleImageClick}
+              />
+              {/* Visor de Enfoque */}
+              <div
+                className="absolute w-8 h-8 -mt-4 -ml-4 rounded-full border-2 border-amber-400 bg-amber-400/20 shadow-[0_0_15px_rgba(251,191,36,0.6)] pointer-events-none transition-all duration-150 flex items-center justify-center"
+                style={{
+                  left: `${tempFocal.x}%`,
+                  top: `${tempFocal.y}%`
+                }}
+              >
+                <div className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+              </div>
+            </div>
+
+            <div className="flex justify-between items-center mt-5">
+              <span className="text-xs text-slate-500 font-mono">
+                Coordenadas: X: {tempFocal.x}% · Y: {tempFocal.y}%
+              </span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setFocalTarget(null)}
+                  disabled={savingFocal}
+                  className="px-4 py-2 text-sm text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-all"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleSaveFocal}
+                  disabled={savingFocal}
+                  className="px-5 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 text-sm font-bold rounded-lg transition-all flex items-center gap-1.5 disabled:opacity-40"
+                >
+                  {savingFocal ? 'Guardando...' : 'Guardar Enfoque'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

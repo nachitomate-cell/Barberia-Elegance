@@ -3070,13 +3070,22 @@
             <div class="w-full rounded-xl overflow-hidden" style="max-height:300px;">
               <img id="sfPhoto" src="" alt="Foto favorita" class="w-full object-cover rounded-xl">
             </div>
-            <button
-              onclick="compartirEstiloStory()"
-              class="w-full mt-3.5 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-white/10 hover:border-white/20 bg-white/5 active:scale-[0.98] transition-all text-[11px] font-bold text-white"
-            >
-              <i class="ph-bold ph-instagram-logo text-sm" style="color:var(--gold);"></i>
-              Compartir estilo para Instagram Stories
-            </button>
+            <div class="flex gap-2.5 mt-3">
+              <button
+                onclick="abrirFocalSelector()"
+                class="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-white/10 hover:border-white/20 bg-white/5 active:scale-[0.98] transition-all text-[11.5px] font-bold text-white"
+              >
+                <i class="ph-bold ph-crop text-sm" style="color:var(--gold);"></i>
+                Encuadre
+              </button>
+              <button
+                onclick="compartirEstiloStory()"
+                class="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-white/10 hover:border-white/20 bg-white/5 active:scale-[0.98] transition-all text-[11.5px] font-bold text-white"
+              >
+                <i class="ph-bold ph-instagram-logo text-sm" style="color:var(--gold);"></i>
+                Compartir Story
+              </button>
+            </div>
           </div>
           <!-- Sin foto — subir la propia -->
           <div id="sfNoPhoto" class="hidden">
@@ -3512,6 +3521,40 @@
     </div>
   </div>
 
+  <!-- Modal: Ajustar Punto Focal / Encuadre -->
+  <div id="focalSelectorModal" class="hidden fixed inset-0 bg-[#050505]/95 backdrop-blur-sm z-50 flex items-center justify-center px-5" onclick="if(event.target===this)cerrarFocalSelector()">
+    <div class="w-full max-w-sm bg-[#111115] border border-white/10 rounded-3xl p-5 shadow-2xl relative flex flex-col items-center animate-[fadeSlideUp_0.3s_cubic-bezier(0.16,1,0.3,1)_forwards]">
+      <div class="flex items-center justify-between w-full mb-3.5">
+        <p class="text-[9px] font-black uppercase tracking-widest text-left" style="color:var(--gold);">🎯 Ajustar Enfoque</p>
+        <button onclick="cerrarFocalSelector()" class="text-xs text-white/40 hover:text-white transition-colors">
+          <i class="ph-bold ph-x text-base"></i>
+        </button>
+      </div>
+      
+      <p class="text-[10px] text-white/50 text-center mb-3.5 leading-normal">
+        Toca en la parte de la foto que quieras mantener visible (por ejemplo, tu cara o el corte de pelo).
+      </p>
+
+      <div class="w-full relative rounded-2xl overflow-hidden bg-black border border-white/5 shadow-inner flex items-center justify-center cursor-crosshair select-none" style="max-height: 320px;" id="focalAreaSelector">
+        <img id="focalSelectorImg" class="max-w-full max-h-[320px] object-contain" alt="Ajustar enfoque" onclick="handleFocalClick(event)" />
+        <!-- Visor del Punto Focal -->
+        <div id="focalSelectorDot" class="absolute w-7 h-7 -mt-3.5 -ml-3.5 rounded-full border-2 border-white bg-white/20 shadow-[0_0_12px_rgba(255,255,255,0.7)] pointer-events-none transition-all duration-150 flex items-center justify-center">
+          <div class="w-1.5 h-1.5 rounded-full bg-white animate-ping"></div>
+        </div>
+      </div>
+      
+      <div class="grid grid-cols-2 gap-2.5 w-full mt-4">
+        <button onclick="cerrarFocalSelector()" class="font-bold py-3 rounded-xl transition-all active:scale-[0.98] text-xs text-white border border-white/10 bg-white/5">
+          Cancelar
+        </button>
+        <button onclick="guardarFocalSelector()" id="btnGuardarFocal" class="font-bold py-3 rounded-xl transition-all active:scale-[0.98] text-xs text-black flex items-center justify-center gap-1.5" style="background:var(--gold);">
+          <span id="btnGuardarFocalText">Fijar Enfoque</span>
+          <span id="btnGuardarFocalSpin" class="hidden w-3 h-3 border-2 border-black/20 border-t-black rounded-full animate-spin"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- ═══ Modal: Conoce al equipo ═══ -->
   <div id="equipoModal" class="hidden fixed inset-0 z-50 flex flex-col">
     <div class="absolute inset-0 bg-[#050505]/90 backdrop-blur-sm" onclick="cerrarEquipoModal()"></div>
@@ -3619,6 +3662,7 @@ let _citasUnsub     = null;
 let _premiosUnsub   = null;
 let _lookbookUnsub  = null;
 let _sfUnsub        = null;
+let _sfCurrentDoc   = null;
 let _prevStamps     = null;
 let _stampsSynced   = false;
 let _premiosVisible = false;
@@ -5117,18 +5161,20 @@ async function initServicioFavorito(user) {
     const email = user.email.toLowerCase();
     if (_sfUnsub) { _sfUnsub(); _sfUnsub = null; }
 
-    _sfUnsub = _tenantCol('servicioFavorito')
+      _sfUnsub = _tenantCol('servicioFavorito')
       .where('email', '==', email)
       .onSnapshot(qs => {
         _sfSetLoading(false);
         if (qs.empty) {
+          _sfCurrentDoc = null;
           _sfShowNoPhoto();
           if (cambiarBtn) cambiarBtn.classList.add('hidden');
         } else {
-          const data = qs.docs[0].data();
+          _sfCurrentDoc = qs.docs[0];
+          const data = _sfCurrentDoc.data();
           const url = data.adminUrl || data.clienteUrl || null;
           if (url) {
-            _sfShowPhoto(url);
+            _sfShowPhoto(url, data.focalX, data.focalY);
             if (cambiarBtn) cambiarBtn.classList.remove('hidden');
           } else {
             _sfShowNoPhoto();
@@ -5153,15 +5199,19 @@ function _sfSetLoading(on) {
   }
 }
 
-function _sfShowPhoto(url) {
+function _sfShowPhoto(url, focalX, focalY) {
   const img = document.getElementById('sfPhoto');
-  if (img) img.src = url;
+  if (img) {
+    img.src = url;
+    img.style.objectPosition = `${focalX !== undefined ? focalX : 50}% ${focalY !== undefined ? focalY : 50}%`;
+  }
   document.getElementById('sfWithPhoto')?.classList.remove('hidden');
   document.getElementById('sfNoPhoto')?.classList.add('hidden');
   document.getElementById('sfLoading')?.classList.add('hidden');
 }
 
 function _sfShowNoPhoto() {
+  _sfCurrentDoc = null;
   document.getElementById('sfWithPhoto')?.classList.add('hidden');
   document.getElementById('sfNoPhoto')?.classList.remove('hidden');
   document.getElementById('sfLoading')?.classList.add('hidden');
@@ -5205,12 +5255,89 @@ document.getElementById('sfFileInput').addEventListener('change', async function
       });
     }
     showToast('Foto guardada', 'ok');
+    // Auto-abrir el selector de enfoque después de guardar para mejorar UX
+    setTimeout(() => {
+      abrirFocalSelector();
+    }, 1200);
   } catch (err) {
     console.error('[SF cliente upload]', err);
     showToast(err.code === 'storage/unauthorized' ? 'Sin permiso para subir.' : 'Error al subir la foto.', 'err');
     _sfSetLoading(false);
   }
 });
+
+// ─── Funciones del Selector de Punto Focal (Cliente) ───────────
+let _tempFocalX = 50;
+let _tempFocalY = 50;
+
+function abrirFocalSelector() {
+  if (!_sfCurrentDoc) {
+    showToast('Sube una foto primero', 'err');
+    return;
+  }
+  const data = _sfCurrentDoc.data();
+  const url = data.adminUrl || data.clienteUrl || null;
+  if (!url) return;
+
+  const img = document.getElementById('focalSelectorImg');
+  if (img) img.src = url;
+
+  _tempFocalX = data.focalX !== undefined ? data.focalX : 50;
+  _tempFocalY = data.focalY !== undefined ? data.focalY : 50;
+
+  _updateFocalSelectorDot();
+
+  document.getElementById('focalSelectorModal')?.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+function cerrarFocalSelector() {
+  document.getElementById('focalSelectorModal')?.classList.add('hidden');
+  document.body.style.overflow = '';
+}
+
+function handleFocalClick(e) {
+  const rect = e.currentTarget.getBoundingClientRect();
+  _tempFocalX = Math.max(0, Math.min(100, Math.round(((e.clientX - rect.left) / rect.width) * 100)));
+  _tempFocalY = Math.max(0, Math.min(100, Math.round(((e.clientY - rect.top) / rect.height) * 100)));
+  _updateFocalSelectorDot();
+}
+
+function _updateFocalSelectorDot() {
+  const dot = document.getElementById('focalSelectorDot');
+  if (dot) {
+    dot.style.left = `${_tempFocalX}%`;
+    dot.style.top = `${_tempFocalY}%`;
+  }
+}
+
+async function guardarFocalSelector() {
+  if (!_sfCurrentDoc) return;
+  const btn = document.getElementById('btnGuardarFocal');
+  const spin = document.getElementById('btnGuardarFocalSpin');
+  const txt = document.getElementById('btnGuardarFocalText');
+  
+  if (btn) btn.disabled = true;
+  if (spin) spin.classList.remove('hidden');
+  if (txt) txt.textContent = 'Guardando...';
+
+  try {
+    await _sfCurrentDoc.ref.update({
+      focalX: _tempFocalX,
+      focalY: _tempFocalY,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    showToast('Enfoque guardado', 'ok');
+    cerrarFocalSelector();
+  } catch (err) {
+    console.error('[Save client focal]', err);
+    showToast('Error al guardar el enfoque.', 'err');
+  } finally {
+    if (btn) btn.disabled = false;
+    if (spin) spin.classList.add('hidden');
+    if (txt) txt.textContent = 'Fijar Enfoque';
+  }
+}
 
 // ── Aura Premium Animations ───────────────────────────────────
 function initAuraAnimations() {
@@ -6011,16 +6138,24 @@ function auraCountUp(targetNum, totalTarget) {
         const frameRatio = frameW / frameH;
         let drawW, drawH, drawX, drawY;
         
+        let fX = 0.5;
+        let fY = 0.5;
+        if (_sfCurrentDoc) {
+          const sfData = _sfCurrentDoc.data();
+          if (sfData.focalX !== undefined) fX = sfData.focalX / 100;
+          if (sfData.focalY !== undefined) fY = sfData.focalY / 100;
+        }
+        
         if (imgRatio > frameRatio) {
           drawH = frameH;
           drawW = frameH * imgRatio;
-          drawX = frameX + (frameW - drawW) / 2;
+          drawX = frameX + (frameW - drawW) * fX;
           drawY = frameY;
         } else {
           drawW = frameW;
           drawH = frameW / imgRatio;
           drawX = frameX;
-          drawY = frameY + (frameH - drawH) / 2;
+          drawY = frameY + (frameH - drawH) * fY;
         }
         
         ctx.drawImage(clientImg, drawX, drawY, drawW, drawH);
@@ -6124,7 +6259,14 @@ function auraCountUp(targetNum, totalTarget) {
         img.crossOrigin = 'anonymous'; // Permitir orígenes cruzados en storage de Firebase
         img.onload = () => resolve(img);
         img.onerror = (e) => reject(e);
-        img.src = src;
+        
+        // Evita el bug de caché de CORS del navegador agregando un parámetro único
+        let finalSrc = src;
+        if (src && src.includes('firebasestorage.googleapis.com')) {
+          const sep = src.includes('?') ? '&' : '?';
+          finalSrc = `${src}${sep}cb_cors=${Date.now()}`;
+        }
+        img.src = finalSrc;
       });
     }
 
