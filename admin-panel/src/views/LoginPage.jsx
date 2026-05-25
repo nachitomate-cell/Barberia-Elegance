@@ -13,6 +13,7 @@ const LOGIN_IMAGE = {
   ferraza:        '/loginferraza.webp',
   mapubarbershop: '/loginmapu.png',
   chameleon:      '/loginchameleon.webp',
+  aura:           '/aura2.png',
 };
 
 export default function LoginPage() {
