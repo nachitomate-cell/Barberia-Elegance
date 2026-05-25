@@ -5,7 +5,7 @@ import { resolveTenantId } from '../lib/tenantUtils';
 
 const TENANT_META = {
   elegance:       { name: '𝐄𝐥𝐞𝐠𝐚𝐧𝐜𝐞 𝐁𝐚𝐫𝐛𝐞𝐫𝐬𝐡𝐨𝐩', accent: 'emerald', emoji: '✂️', logo: '/logo.jpg'   },
-  ferraza:        { name: 'Barbería Ferraza',       accent: 'slate',   emoji: '✂️', logo: '/ferraza.png' },
+  ferraza:        { name: 'Barbería Ferraza',       accent: 'slate',   emoji: '✂️', logo: '/local1.jpg' },
   gitana:         { name: 'Gitana Nails Studio',    accent: 'pink',    emoji: '💅', logo: '/gitana.png' },
   mapubarbershop: { name: 'Mapu Barber Shop',       accent: 'emerald', emoji: '✂️', logo: '/mapu2.png'  },
   chameleon:      { name: 'Chameleon Barber Studio', accent: 'cyan',   emoji: '✂️', logo: '/sellochamaleon.png' },
