@@ -40,6 +40,21 @@
     <script src="/js/guards/version-manager.js?v=1.0"></script>
 
     <style>
+        * {
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        button, a, select, input[type="button"], input[type="submit"] {
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        @media (max-width: 767px) {
+            input, select, textarea {
+                font-size: 16px !important;
+            }
+        }
+
         body {
             background-color: #050505;
             color: #f8fafc;
@@ -1448,9 +1463,9 @@
             ].join(';');
 
             // ── Fila 1: Cabeceras de día (sticky) ──
-            // Celda vacía en columna de tiempo
+            // Celda vacía en columna de tiempo (sticky top y left para ser la intersección perfecta)
             const emptyHdr = document.createElement('div');
-            emptyHdr.style.cssText = `grid-column:1;grid-row:1;position:sticky;top:0;z-index:10;background:#141418;padding:8px 0 8px;border-bottom:1px solid rgba(255,255,255,0.14);`;
+            emptyHdr.style.cssText = `grid-column:1;grid-row:1;position:sticky;top:0;left:0;z-index:30;background:#141418;padding:8px 0 8px;border-bottom:1px solid rgba(255,255,255,0.14);`;
             grid.appendChild(emptyHdr);
 
             for (let i = 0; i < 7; i++) {
@@ -1467,7 +1482,7 @@
                     'position:sticky',
                     'top:0',
                     'z-index:10',
-                    `background:${isToday ? 'rgba(201,168,76,0.07)' : '#141418'}`,
+                    `background:${isToday ? '#1c1810' : '#141418'}`,
                     'text-align:center',
                     'padding:6px 2px 8px',
                     `border-bottom:${isToday ? '2px solid '+GOLD : '1px solid rgba(255,255,255,0.14)'}`,
@@ -1486,11 +1501,15 @@
                 const horaStr = fromMin(cur);
                 const gridRow = si + 2; // fila 1 = header
 
-                // Etiqueta de hora (columna 1)
+                // Etiqueta de hora (columna 1, sticky left)
                 const timeCell = document.createElement('div');
                 timeCell.style.cssText = [
                     `grid-column:1`,
                     `grid-row:${gridRow}`,
+                    'position:sticky',
+                    'left:0',
+                    'z-index:20',
+                    'background:#141418',
                     'display:flex',
                     'align-items:flex-start',
                     'justify-content:flex-end',
