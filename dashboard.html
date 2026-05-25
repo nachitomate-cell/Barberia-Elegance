@@ -3070,6 +3070,13 @@
             <div class="w-full rounded-xl overflow-hidden" style="max-height:300px;">
               <img id="sfPhoto" src="" alt="Foto favorita" class="w-full object-cover rounded-xl">
             </div>
+            <button
+              onclick="compartirEstiloStory()"
+              class="w-full mt-3.5 flex items-center justify-center gap-1.5 py-2.5 rounded-xl border border-white/10 hover:border-white/20 bg-white/5 active:scale-[0.98] transition-all text-[11px] font-bold text-white"
+            >
+              <i class="ph-bold ph-instagram-logo text-sm" style="color:var(--gold);"></i>
+              Compartir estilo para Instagram Stories
+            </button>
           </div>
           <!-- Sin foto — subir la propia -->
           <div id="sfNoPhoto" class="hidden">
@@ -3466,6 +3473,42 @@
         style="background:#D4AF37;">
         Entendido
       </button>
+    </div>
+  </div>
+
+  <!-- Modal: Compartir Estilo en Instagram Stories -->
+  <div id="compartirStoryModal" class="hidden fixed inset-0 bg-[#050505]/92 backdrop-blur-sm z-50 flex items-center justify-center px-5" onclick="if(event.target===this)cerrarModalCompartir()">
+    <div class="w-full max-w-sm bg-[#111115] border border-white/10 rounded-3xl p-5 shadow-2xl relative flex flex-col items-center animate-[fadeSlideUp_0.3s_cubic-bezier(0.16,1,0.3,1)_forwards]">
+      <div class="flex items-center justify-between w-full mb-3.5">
+        <p class="text-[9px] font-black uppercase tracking-widest text-left" style="color:var(--gold);">📲 Vista Previa de Story</p>
+        <button onclick="cerrarModalCompartir()" class="text-xs text-white/40 hover:text-white transition-colors">
+          <i class="ph-bold ph-x text-base"></i>
+        </button>
+      </div>
+      
+      <div class="w-full relative aspect-[9/16] rounded-2xl overflow-hidden bg-black border border-white/5 shadow-inner flex items-center justify-center" style="max-height: 400px;">
+        <canvas id="storyCanvas" class="hidden"></canvas>
+        <img id="storyPreviewImg" class="w-full h-full object-contain" alt="Story preview" />
+        <div id="storyCanvasLoading" class="absolute inset-0 flex flex-col items-center justify-center bg-black/80 gap-3">
+          <div class="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+          <p class="text-[10px] text-white/50">Generando Story premium...</p>
+        </div>
+      </div>
+      
+      <p class="text-[10.5px] text-center text-white/50 mt-3.5 mb-4 leading-normal px-2">
+        Tarjeta adaptada a resolución 1080x1920 con el logo de tu local. Descárgala o compártela directamente.
+      </p>
+      
+      <div class="grid grid-cols-2 gap-2.5 w-full">
+        <button onclick="descargarStoryImage()" class="font-bold py-3 rounded-xl transition-all active:scale-[0.98] text-xs text-white border border-white/10 bg-white/5">
+          <i class="ph-bold ph-download text-sm mr-1 inline-block align-middle"></i>
+          Descargar
+        </button>
+        <button onclick="compartirStoryNativo()" id="btnStoryNativo" class="font-bold py-3 rounded-xl transition-all active:scale-[0.98] text-xs text-black" style="background:var(--gold);">
+          <i class="ph-bold ph-share-network text-sm mr-1 inline-block align-middle"></i>
+          Compartir
+        </button>
+      </div>
     </div>
   </div>
 
@@ -5872,6 +5915,273 @@ function auraCountUp(targetNum, totalTarget) {
           console.warn('[GoogleReview] No se pudo limpiar flag:', e.message);
         }
         _googleReviewCitaId = null;
+      }
+    }
+
+    // ─── Funciones para Compartir Estilo en Instagram Stories ───
+    let _storyImageBlob = null;
+    let _storyImageUrl = null;
+
+    function cerrarModalCompartir() {
+      document.getElementById('compartirStoryModal')?.classList.add('hidden');
+      document.body.style.overflow = '';
+    }
+
+    async function compartirEstiloStory() {
+      const modal = document.getElementById('compartirStoryModal');
+      if (!modal) return;
+      modal.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+      
+      const canvas = document.getElementById('storyCanvas');
+      const previewImg = document.getElementById('storyPreviewImg');
+      const loadingEl = document.getElementById('storyCanvasLoading');
+      const btnNativo = document.getElementById('btnStoryNativo');
+      
+      if (!canvas || !previewImg || !loadingEl) return;
+      
+      loadingEl.classList.remove('hidden');
+      previewImg.classList.add('opacity-0');
+      
+      try {
+        const ctx = canvas.getContext('2d');
+        const width = 1080;
+        const height = 1920;
+        canvas.width = width;
+        canvas.height = height;
+        
+        // 1. Fondo gradiente oscuro elegante
+        const gradient = ctx.createLinearGradient(0, 0, 0, height);
+        gradient.addColorStop(0, '#0a0a0d');
+        gradient.addColorStop(0.5, '#121217');
+        gradient.addColorStop(1, '#070709');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, width, height);
+        
+        // 2. Círculos de luz cálida difuminados (glow)
+        ctx.save();
+        ctx.filter = 'blur(150px)';
+        ctx.fillStyle = 'rgba(201, 168, 76, 0.16)';
+        ctx.beginPath();
+        ctx.arc(width / 2, 250, 200, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.fillStyle = 'rgba(201, 168, 76, 0.08)';
+        ctx.beginPath();
+        ctx.arc(width / 2, height - 300, 250, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+        
+        // 3. Bordes dorados estéticos
+        ctx.strokeStyle = 'rgba(201, 168, 76, 0.22)';
+        ctx.lineWidth = 14;
+        ctx.strokeRect(30, 30, width - 60, height - 60);
+        
+        ctx.strokeStyle = 'rgba(201, 168, 76, 0.08)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(50, 50, width - 100, height - 100);
+        
+        // 4. Cargar y dibujar la foto favorita del cliente en el centro
+        const photoUrl = document.getElementById('sfPhoto')?.src;
+        if (!photoUrl) throw new Error('No favorite photo URL found');
+        
+        const clientImg = await _loadImage(photoUrl);
+        
+        const frameX = 100;
+        const frameY = 440;
+        const frameW = width - 200;
+        const frameH = 1000;
+        
+        // Sombra de la foto
+        ctx.save();
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.75)';
+        ctx.shadowBlur = 40;
+        ctx.shadowOffsetY = 15;
+        ctx.fillStyle = '#17171d';
+        _drawRoundedRect(ctx, frameX, frameY, frameW, frameH, 30);
+        ctx.fill();
+        ctx.restore();
+        
+        // Clip para redondear la imagen
+        ctx.save();
+        _drawRoundedRect(ctx, frameX, frameY, frameW, frameH, 30);
+        ctx.clip();
+        
+        const imgRatio = clientImg.width / clientImg.height;
+        const frameRatio = frameW / frameH;
+        let drawW, drawH, drawX, drawY;
+        
+        if (imgRatio > frameRatio) {
+          drawH = frameH;
+          drawW = frameH * imgRatio;
+          drawX = frameX + (frameW - drawW) / 2;
+          drawY = frameY;
+        } else {
+          drawW = frameW;
+          drawH = frameW / imgRatio;
+          drawX = frameX;
+          drawY = frameY + (frameH - drawH) / 2;
+        }
+        
+        ctx.drawImage(clientImg, drawX, drawY, drawW, drawH);
+        ctx.restore();
+        
+        // Borde dorado fino a la foto
+        ctx.strokeStyle = 'rgba(201, 168, 76, 0.35)';
+        ctx.lineWidth = 4;
+        ctx.save();
+        _drawRoundedRect(ctx, frameX, frameY, frameW, frameH, 30);
+        ctx.stroke();
+        ctx.restore();
+        
+        // 5. Cargar y dibujar el logotipo del local arriba
+        const shopLogoUrl = window.SHOP?.logo || '/logo.jpg';
+        try {
+          const logoImg = await _loadImage(shopLogoUrl);
+          const logoSize = 130;
+          const logoX = (width - logoSize) / 2;
+          const logoY = 120;
+          
+          ctx.save();
+          _drawRoundedRect(ctx, logoX, logoY, logoSize, logoSize, 25);
+          ctx.clip();
+          ctx.drawImage(logoImg, logoX, logoY, logoSize, logoSize);
+          ctx.restore();
+          
+          ctx.strokeStyle = 'rgba(201, 168, 76, 0.4)';
+          ctx.lineWidth = 3;
+          ctx.save();
+          _drawRoundedRect(ctx, logoX, logoY, logoSize, logoSize, 25);
+          ctx.stroke();
+          ctx.restore();
+        } catch (_) {}
+        
+        // 6. Textos y Tipografías Elegantes
+        ctx.fillStyle = '#fff';
+        ctx.textAlign = 'center';
+        
+        // Nombre del Local
+        ctx.font = 'bold 36px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText((window.SHOP?.nombre || 'Mi Barbería').toUpperCase(), width / 2, 305);
+        
+        // Eslogan / Badge
+        ctx.fillStyle = '#D4AF37';
+        ctx.font = 'bold 23px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText('• MI ESTILO RECOMENDADO •', width / 2, 355);
+        
+        // Ceja Superior
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.45)';
+        ctx.font = 'medium 20px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText((window.SHOP?.club || 'CLUB DE FIDELIDAD').toUpperCase(), width / 2, 95);
+        
+        // Mensaje inferior
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 36px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText('NUEVO CAMBIO DE ESTILO', width / 2, 1530);
+        
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.55)';
+        ctx.font = 'medium 25px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText('Agenda tu cita y eleva tu aura en', width / 2, 1585);
+        
+        ctx.fillStyle = '#D4AF37';
+        ctx.font = 'bold 27px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText(location.hostname, width / 2, 1635);
+        
+        // Marca de agua Synaptech
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+        ctx.font = '20px "Plus Jakarta Sans", sans-serif';
+        ctx.fillText('Powered by SynapTech', width / 2, 1850);
+        
+        // 7. Renderizar en la imagen preview
+        canvas.toBlob(blob => {
+          _storyImageBlob = blob;
+          if (_storyImageUrl) URL.revokeObjectURL(_storyImageUrl);
+          _storyImageUrl = URL.createObjectURL(blob);
+          
+          previewImg.src = _storyImageUrl;
+          previewImg.classList.remove('opacity-0');
+          loadingEl.classList.add('hidden');
+          
+          // Soporta compartir archivos nativos (Android/iOS)
+          const canShare = navigator.share && navigator.canShare && navigator.canShare({ files: [new File([blob], 'story.png', { type: 'image/png' })] });
+          if (btnNativo) {
+            btnNativo.innerHTML = canShare 
+              ? `<i class="ph-bold ph-share-network text-sm mr-1 inline-block align-middle"></i> Compartir`
+              : `<i class="ph-bold ph-share text-sm mr-1 inline-block align-middle"></i> Compartir App`;
+          }
+        }, 'image/png');
+        
+      } catch (err) {
+        console.error('[Story Canvas Generator]', err);
+        showToast('No se pudo generar la tarjeta', 'err');
+        cerrarModalCompartir();
+      }
+    }
+
+    function _loadImage(src) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous'; // Permitir orígenes cruzados en storage de Firebase
+        img.onload = () => resolve(img);
+        img.onerror = (e) => reject(e);
+        img.src = src;
+      });
+    }
+
+    function _drawRoundedRect(ctx, x, y, width, height, radius) {
+      ctx.beginPath();
+      ctx.moveTo(x + radius, y);
+      ctx.lineTo(x + width - radius, y);
+      ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+      ctx.lineTo(x + width, y + height - radius);
+      ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+      ctx.lineTo(x + radius, y + height);
+      ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+      ctx.lineTo(x, y + radius);
+      ctx.quadraticCurveTo(x, y, x + radius, y);
+      ctx.closePath();
+    }
+
+    function descargarStoryImage() {
+      if (!_storyImageUrl) return;
+      const a = document.createElement('a');
+      a.href = _storyImageUrl;
+      a.download = `estilo_${window.SHOP?.nombreCorto || 'corte'}_story.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      showToast('Imagen guardada en tu dispositivo', 'ok');
+    }
+
+    async function compartirStoryNativo() {
+      if (!_storyImageBlob) return;
+      
+      const file = new File([_storyImageBlob], 'story.png', { type: 'image/png' });
+      const shareData = {
+        title: 'Mi estilo recomendado',
+        text: `¡Mira mi estilo recomendado en ${window.SHOP?.nombre || 'mi barbería'}!`,
+        url: window.location.origin + '/registro?redirect=dashboard',
+      };
+      
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({
+            ...shareData,
+            files: [file],
+          });
+          showToast('Compartido con éxito', 'ok');
+        } catch (err) {
+          if (err.name !== 'AbortError') console.error('[Share files]', err);
+        }
+      } else if (navigator.share) {
+        try {
+          await navigator.share(shareData);
+        } catch (err) {
+          if (err.name !== 'AbortError') console.error('[Share text]', err);
+        }
+      } else {
+        navigator.clipboard.writeText(shareData.url);
+        showToast('Enlace copiado al portapapeles', 'ok');
       }
     }
   </script>

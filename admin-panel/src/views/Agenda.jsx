@@ -129,6 +129,29 @@ function CitaModal({ cita, barberos, servicios, defaultHora, defaultBarberoId, d
   const [telError, setTelError] = useState(false);
 
   const { data: clientes } = useCollection('clientes');
+  const [fotoFavorita, setFotoFavorita] = useState(null);
+
+  useEffect(() => {
+    const email = form.clienteEmail?.trim().toLowerCase();
+    if (!email) {
+      setFotoFavorita(null);
+      return;
+    }
+    const q = query(tenantCol('servicioFavorito'), where('email', '==', email));
+    getDocs(q)
+      .then(qs => {
+        if (!qs.empty) {
+          const data = qs.docs[0].data();
+          setFotoFavorita(data.adminUrl || data.clienteUrl || null);
+        } else {
+          setFotoFavorita(null);
+        }
+      })
+      .catch(err => {
+        console.warn('[Agenda SF]', err);
+        setFotoFavorita(null);
+      });
+  }, [form.clienteEmail]);
 
   const suggestions = useMemo(() => {
     const norm = s => (s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
@@ -374,6 +397,25 @@ function CitaModal({ cita, barberos, servicios, defaultHora, defaultBarberoId, d
           )}
         </div>
       </div>
+      {fotoFavorita && (
+        <div className="p-3 bg-slate-900 border border-slate-750/70 rounded-xl flex items-center gap-3.5 my-2">
+          <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 bg-slate-800 border border-slate-750">
+            <img src={fotoFavorita} alt="Foto favorita" className="w-full h-full object-cover" />
+          </div>
+          <div className="flex-1 min-w-0 text-left">
+            <p className="text-[9px] font-black text-amber-400 uppercase tracking-widest leading-none">📸 Estilo de Referencia</p>
+            <p className="text-[11px] text-slate-400 mt-1.5 leading-normal">El cliente cargó una foto favorita para su servicio.</p>
+          </div>
+          <a
+            href={fotoFavorita}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-750 text-[10px] font-bold text-white rounded-lg transition-colors border border-slate-700 shrink-0"
+          >
+            Ver grande
+          </a>
+        </div>
+      )}
       <div>
         <label className={lbl}>Servicio</label>
         <select className={field} value={form.servicioId} onChange={e => onServicioChange(e.target.value)}>
