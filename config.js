@@ -52,7 +52,7 @@
       pageTitle:       'Barbería Ferraza | El cambio comienza por ti',
       bodyBg:          '#000000',
       slogan:          'El cambio comienza por ti',
-      logo:            '/ferraza.png',
+      logo:            '/local1.jpg',
       direccion:       '📍 Av. Libertad 63 / Local 28',
       horario:         '🕒 Lun a Sáb: 10:00 – 20:00 hrs.',
       telefono:        '56994269228',

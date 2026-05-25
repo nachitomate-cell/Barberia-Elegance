@@ -95,7 +95,7 @@ const TENANT_META = {
     ogImage:     '/local1.jpg',
     themeColor:  '#000000',
     appTitle:    'Ferraza',
-    icon:        '/ferraza.png',
+    icon:        '/local1.jpg',
     local: { telephone: '', streetAddress: 'Av. Libertad 63, Local 28', addressLocality: 'Valparaíso', schemaType: 'HairSalon', ratingGeneral: 4.8, totalReviews: 46, reviews: [{ author: 'Iván Klemencic', rating: 5, text: 'Excelente atención. Quien atiende demuestra profesionalismo en lo que hace, lo recomiendo totalmente. Además está la posibilidad de agendar para el mismo día.' }, { author: 'Juan P. Mesa', rating: 5, text: 'Primero que todo, excelente servicio. Lugar muy grato, limpio y muy buena disposición de Nicolás. Me atendieron al tiro, excelente corte de cabello. Recomendable 100%.' }, { author: 'Nicolas Pardo', rating: 5, text: 'Excelente servicio por parte de Nico, lugar con un muy buen ambiente y atención. Para relajarse un rato. Recomendado!' }] },
     manifest: {
       name:             'Barbería Ferraza',
@@ -111,7 +111,7 @@ const TENANT_META = {
       background_color: '#0f172a',
       start_url:        '/gestion-interna/?local=ferraza',
       icons: [
-        { src: '/ferraza.png',                 sizes: 'any',     type: 'image/png' },
+        { src: '/local1.jpg',                 sizes: 'any',     type: 'image/png' },
         { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png' },
         { src: '/gestion-interna/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
       ],
