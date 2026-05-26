@@ -123,6 +123,7 @@ function CitaModal({ cita, barberos, servicios, defaultHora, defaultBarberoId, d
     nota:            cita?.nota            || '',
     metodoPago:      cita?.metodoPago      || 'Efectivo',
     propina:         cita?.propina != null ? Number(cita.propina) : '',
+    porcentajeDescuento: cita?.porcentajeDescuento != null ? Number(cita.porcentajeDescuento) : '',
   });
   const [saving, setSaving] = useState(false);
   const [showSugg, setShowSugg] = useState(false);
@@ -211,12 +212,26 @@ function CitaModal({ cita, barberos, servicios, defaultHora, defaultBarberoId, d
 
   const onServicioChange = id => {
     const s = servicios.find(s => s.id === id);
+    const basePrice = Number(s?.precio) || 0;
+    const pct = Number(form.porcentajeDescuento) || 0;
+    const discountedPrice = Math.round(basePrice * (1 - pct / 100));
     setForm(f => ({
       ...f,
       servicioId:     id,
       servicioNombre: s?.nombre   || '',
-      precio:         Number(s?.precio)   || 0,
+      precio:         discountedPrice,
       duracion:       Number(s?.duracion) || 30,
+    }));
+  };
+
+  const handleDiscountChange = val => {
+    const pct = val === '' ? 0 : Math.max(0, Math.min(100, Number(val)));
+    const basePrice = Number(servicios.find(s => s.id === form.servicioId)?.precio) || 0;
+    const discountedPrice = Math.round(basePrice * (1 - pct / 100));
+    setForm(f => ({
+      ...f,
+      porcentajeDescuento: val === '' ? '' : pct,
+      precio: discountedPrice,
     }));
   };
 
@@ -422,6 +437,16 @@ function CitaModal({ cita, barberos, servicios, defaultHora, defaultBarberoId, d
           {servicios.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
           {servicios.length === 0 && <option value="">Sin servicios</option>}
         </select>
+      </div>
+      <div className="grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-top-1 duration-200">
+        <div>
+          <label className={lbl}>Precio ($)</label>
+          <input className={field} type="number" placeholder="Precio" value={form.precio} onChange={e => set('precio', Number(e.target.value))} />
+        </div>
+        <div>
+          <label className={lbl}>Descuento (%)</label>
+          <input className={field} type="number" placeholder="0" min="0" max="100" value={form.porcentajeDescuento || ''} onChange={e => handleDiscountChange(e.target.value)} />
+        </div>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
@@ -764,6 +789,7 @@ function UltimaCitaModal({ cita, loading, onClose, titleText = 'Última cita age
             {cita.sucursalNombre && <Row icon={MapPin} label="Sede" value={cita.sucursalNombre} />}
             <Row icon={Timer}        label="Duración"  value={cita.duracion ? `${cita.duracion} min` : null} />
             <Row icon={DollarSign}   label="Precio"    value={cita.precio != null ? `$${Number(cita.precio).toLocaleString('es-CL')}` : null} />
+            {cita.porcentajeDescuento > 0 && <Row icon={DollarSign} label="Descuento" value={`${cita.porcentajeDescuento}%`} />}
           </div>
 
           {/* Nota y fecha de reserva */}
