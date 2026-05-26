@@ -1403,17 +1403,55 @@
       goToDashboard();
     } catch (err) {
       hideLoading();
-      
-      // Caso 1: Estamos en Aura y falló el login con la contraseña por defecto
-      if (window.CURRENT_TENANT_ID === 'aura' && 
-          err.code !== 'auth/user-not-found' && 
-          err.code !== 'auth/invalid-email' && 
+
+      // Caso 1: Aura y fallo el login con la password por defecto.
+      // Firebase Auth con email-enumeration-protection ahora devuelve siempre
+      // 'auth/invalid-credential' y no distingue user-not-found de wrong-password.
+      // Verificamos EXPLICITAMENTE si la cuenta existe antes de mostrar el mensaje
+      // de "ya esta registrada" (que confundia a clientes migrados sin cuenta Auth).
+      if (window.CURRENT_TENANT_ID === 'aura' &&
+          err.code !== 'auth/invalid-email' &&
           !_auraForceCustomPassword) {
-        _auraForceCustomPassword = true;
-        document.body.classList.add('show-password-fallback');
-        document.getElementById('loginPassword').value = '';
-        showAlert('Tu cuenta ya está registrada y requiere tu contraseña registrada (solo por esta vez para migrarla).', false);
-        return;
+        try {
+          const methods = await auth.fetchSignInMethodsForEmail(email);
+          if (!methods || methods.length === 0) {
+            // No existe cuenta Auth para este email → crearla on-the-fly con la
+            // password default de Aura. Cliente migrado entra al Club sin friction.
+            showLoading('Creando tu acceso al Club...');
+            try {
+              const cred = await auth.createUserWithEmailAndPassword(email, 'AuraLoyaltyPassword2026!');
+              await ensureUserDoc(cred.user);
+              goToDashboard();
+              return;
+            } catch (createErr) {
+              hideLoading();
+              // Race condition: alguien la creó entre fetchMethods y createUser
+              if (createErr.code === 'auth/email-already-in-use') {
+                _auraForceCustomPassword = true;
+                document.body.classList.add('show-password-fallback');
+                document.getElementById('loginPassword').value = '';
+                showAlert('Tu cuenta ya está registrada y requiere tu contraseña registrada (solo por esta vez para migrarla).', false);
+                return;
+              }
+              showAlert(friendlyError(createErr.code));
+              return;
+            }
+          }
+          // Existe cuenta pero password distinta → pedir password real al usuario.
+          _auraForceCustomPassword = true;
+          document.body.classList.add('show-password-fallback');
+          document.getElementById('loginPassword').value = '';
+          showAlert('Tu cuenta ya está registrada y requiere tu contraseña registrada (solo por esta vez para migrarla).', false);
+          return;
+        } catch (fetchErr) {
+          // Si fetchSignInMethodsForEmail falla (p.ej. CORS/red), caer al flujo legacy.
+          console.warn('[Aura Auth] fetchSignInMethodsForEmail falló:', fetchErr.code);
+          _auraForceCustomPassword = true;
+          document.body.classList.add('show-password-fallback');
+          document.getElementById('loginPassword').value = '';
+          showAlert('Tu cuenta ya está registrada y requiere tu contraseña registrada (solo por esta vez para migrarla).', false);
+          return;
+        }
       }
       
       // Caso 2: Estamos en otro tenant (no aura), falló el login y podría deberse a una migración previa en Aura
