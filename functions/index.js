@@ -665,3 +665,12 @@ const instagramSync = require('./instagram-sync');
 exports.instagramOAuthCallback   = instagramSync.instagramOAuthCallback;
 exports.instagramSyncScheduled   = instagramSync.instagramSyncScheduled;
 exports.instagramSyncManual      = instagramSync.instagramSyncManual;
+
+// ─────────────────────────────────────────────────────────────────
+//  DEDUP CLIENTE — ver dedupe-cliente-onCreate.js
+//  Al registrarse un cliente, fusiona automáticamente con su perfil
+//  legacy (creado por la migración de AgendaPro) si comparte email.
+// ─────────────────────────────────────────────────────────────────
+const dedupeCliente = require('./dedupe-cliente-onCreate');
+exports.dedupeOnCreateElegance = dedupeCliente.dedupeOnCreateElegance;
+exports.dedupeOnCreateTenant   = dedupeCliente.dedupeOnCreateTenant;
