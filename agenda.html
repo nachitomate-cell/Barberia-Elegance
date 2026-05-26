@@ -194,7 +194,7 @@
     <main class="max-w-lg lg:max-w-7xl mx-auto px-6 pt-8 hidden lg:grid lg:grid-cols-12 lg:gap-10 lg:h-[calc(100vh-80px)]" id="mainApp">
         
         <!-- COLUMNA IZQUIERDA -->
-        <div class="lg:col-span-7 flex flex-col h-full overflow-y-auto pb-24 lg:pr-2" style="scrollbar-width: none;">
+        <div class="lg:col-span-7 flex flex-col lg:h-full lg:overflow-y-auto pb-24 lg:pr-2" style="scrollbar-width: none;">
         <!-- ── INSTALAR APP BANNER (Big) ── -->
         <div id="pwaBigInstallCard" class="hidden mb-8 rounded-3xl p-5 relative overflow-hidden cursor-pointer active:scale-95 transition-all shadow-[0_0_20px_rgba(201,168,76,0.1)] animate-fade-in" style="background:linear-gradient(to right, rgba(201,168,76,0.12), rgba(201,168,76,0.04)); border: 1px solid rgba(201,168,76,0.3);" onclick="triggerPWAInstall()">
             <div class="absolute -right-6 -top-6 w-24 h-24 rounded-full blur-xl pointer-events-none" style="background:rgba(201,168,76,0.15);"></div>
@@ -1475,17 +1475,35 @@
             const gapW     = 2;
             const totalW   = timeColW + 7 * dayColW + 6 * gapW;
 
-            // ── Contenedor externo (scroll bidireccional) ──
+            // Fila altura dinámica según el dispositivo (44px móvil para toques cómodos, 36px desktop)
+            const isMobile = window.innerWidth < 1024;
+            const rowH     = isMobile ? 44 : 36;
+
+            // ── Contenedor externo (scroll bidireccional fluido sin trabas) ──
             container.style.cssText = [
                 'overflow:auto',
-                'max-height:72vh',
+                'max-height:65vh',
                 'margin:0 -24px',
                 'scrollbar-width:none',
                 '-ms-overflow-style:none',
                 '-webkit-overflow-scrolling:touch',
+                'overscroll-behavior-x:contain',
+                'overscroll-behavior-y:auto',
+                'touch-action:pan-x pan-y',
             ].join(';');
 
             container.innerHTML = '';
+
+            // Flag y timeout para evitar clics accidentales mientras se arrastra/scrollea
+            let isScrollingWeek = false;
+            let scrollWeekTimeout = null;
+            container.onscroll = () => {
+                isScrollingWeek = true;
+                if (scrollWeekTimeout) clearTimeout(scrollWeekTimeout);
+                scrollWeekTimeout = setTimeout(() => {
+                    isScrollingWeek = false;
+                }, 120);
+            };
 
             const wrapper = document.createElement('div');
             wrapper.style.cssText = `min-width:${totalW}px;padding:0 24px;`;
@@ -1495,7 +1513,7 @@
             grid.style.cssText = [
                 'display:grid',
                 `grid-template-columns:${timeColW}px repeat(7,${dayColW}px)`,
-                `grid-template-rows:auto repeat(${totalSlots},34px)`,
+                `grid-template-rows:auto repeat(${totalSlots},${rowH}px)`,
                 `gap:0 ${gapW}px`,
                 'position:relative',
             ].join(';');
@@ -1583,7 +1601,7 @@
                     if (contCita) {
                         // Celda de continuación (parte de una cita multi-slot)
                         const cell = document.createElement('div');
-                        cell.style.cssText = `grid-column:${di+2};grid-row:${gridRow};height:34px;${isNowRow && _fmtDate(d) === todayStr ? 'border-top:1px solid rgba(239,68,68,0.4);' : ''}`;
+                        cell.style.cssText = `grid-column:${di+2};grid-row:${gridRow};height:${rowH}px;${isNowRow && _fmtDate(d) === todayStr ? 'border-top:1px solid rgba(239,68,68,0.4);' : ''}`;
                         grid.appendChild(cell);
                         continue;
                     }
@@ -1591,7 +1609,7 @@
                     if (!inRange) {
                         // Fuera de horario o día no laborable
                         const cell = document.createElement('div');
-                        cell.style.cssText = `grid-column:${di+2};grid-row:${gridRow};height:34px;background:rgba(0,0,0,0.35);border-bottom:1px solid rgba(255,255,255,0.04);`;
+                        cell.style.cssText = `grid-column:${di+2};grid-row:${gridRow};height:${rowH}px;background:rgba(0,0,0,0.35);border-bottom:1px solid rgba(255,255,255,0.04);`;
                         grid.appendChild(cell);
                         continue;
                     }
@@ -1599,7 +1617,7 @@
                     // Colación
                     if (cfg.colacion && cur >= toMins(cfg.colacion.inicio) && cur < toMins(cfg.colacion.fin)) {
                         const cell = document.createElement('div');
-                        cell.style.cssText = `grid-column:${di+2};grid-row:${gridRow};height:34px;background:rgba(255,174,0,0.06);border-bottom:1px solid rgba(255,174,0,0.08);display:flex;align-items:center;justify-content:center;`;
+                        cell.style.cssText = `grid-column:${di+2};grid-row:${gridRow};height:${rowH}px;background:rgba(255,174,0,0.06);border-bottom:1px solid rgba(255,174,0,0.08);display:flex;align-items:center;justify-content:center;`;
                         cell.innerHTML = `<i class="ph-bold ph-coffee" style="font-size:10px;color:rgba(255,174,0,0.45);"></i>`;
                         grid.appendChild(cell);
                         continue;
@@ -1614,8 +1632,8 @@
                     });
                     if (bloqueo) {
                         const cell = document.createElement('div');
-                        cell.style.cssText = `grid-column:${di+2};grid-row:${gridRow};height:34px;background:rgba(239,68,68,0.13);border-left:2px solid rgba(239,68,68,0.45);border-bottom:1px solid rgba(239,68,68,0.08);display:flex;align-items:center;justify-content:center;cursor:pointer;`;
-                        cell.onclick = () => removerBloqueoRapido(bloqueo.id, bloqueo.slotLockId || '', horaStr, fechaStr);
+                        cell.style.cssText = `grid-column:${di+2};grid-row:${gridRow};height:${rowH}px;background:rgba(239,68,68,0.13);border-left:2px solid rgba(239,68,68,0.45);border-bottom:1px solid rgba(239,68,68,0.08);display:flex;align-items:center;justify-content:center;cursor:pointer;`;
+                        cell.onclick = () => { if (isScrollingWeek) return; removerBloqueoRapido(bloqueo.id, bloqueo.slotLockId || '', horaStr, fechaStr); };
                         cell.innerHTML = `<i class="ph-bold ph-lock" style="font-size:10px;color:rgba(239,68,68,0.65);"></i>`;
                         grid.appendChild(cell);
                         continue;
@@ -1630,7 +1648,7 @@
                         const bgColor     = isCompleted ? 'rgba(16,185,129,0.14)' : isConfirmed ? 'rgba(108,171,221,0.14)' : 'rgba(234,179,8,0.14)';
                         const durMins     = parseInt(cita.duracionServicio || interval);
                         const spans       = Math.max(1, Math.ceil(durMins / interval));
-                        const citaH       = spans * 34 - 1;
+                        const citaH       = spans * rowH - 1;
 
                         const cell = document.createElement('div');
                         cell.style.cssText = [
@@ -1646,7 +1664,7 @@
                             'margin:1px 1px 0 0',
                             'z-index:1',
                         ].join(';');
-                        cell.onclick = () => abrirDetalleCitaWeek(fechaStr, cita.id);
+                        cell.onclick = () => { if (isScrollingWeek) return; abrirDetalleCitaWeek(fechaStr, cita.id); };
                         cell.innerHTML = `
                             <p style="font-size:10px;font-weight:800;color:#fff;line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${cita.clienteNombre || 'Cliente'}</p>
                             ${spans >= 2 ? `<p style="font-size:8px;color:rgba(255,255,255,0.65);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${cita.servicioNombre || ''}</p>` : ''}
@@ -1661,7 +1679,7 @@
                     cell.style.cssText = [
                         `grid-column:${di+2}`,
                         `grid-row:${gridRow}`,
-                        'height:34px',
+                        `height:${rowH}px`,
                         'cursor:pointer',
                         `border-bottom:1px solid rgba(255,255,255,${now ? '0' : '0.07'})`,
                         `border-top:${now ? '2px solid rgba(239,68,68,0.7)' : 'none'}`,
@@ -1672,7 +1690,7 @@
                     ].join(';');
                     cell.onmouseenter = function() { this.style.background='rgba(201,168,76,0.12)'; };
                     cell.onmouseleave = function() { this.style.background=''; };
-                    cell.onclick = () => abrirOpcionesSlotSemana(fechaStr, horaStr);
+                    cell.onclick = () => { if (isScrollingWeek) return; abrirOpcionesSlotSemana(fechaStr, horaStr); };
                     cell.innerHTML = `<i class="ph-bold ph-plus" style="font-size:9px;color:rgba(255,255,255,0.18);pointer-events:none;"></i>`;
                     grid.appendChild(cell);
                 }
