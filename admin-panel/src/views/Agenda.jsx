@@ -107,14 +107,34 @@ function CitaModal({ cita, barberos, servicios, defaultHora, defaultBarberoId, d
   const { id: tenantId } = useTenant();
   const defaultBarb = defaultBarberoId || barberos[0]?.id || '';
   const firstSvc = servicios[0];
+
+  const matchedSvc = (() => {
+    if (!cita) return null;
+    if (cita.servicioId) {
+      const found = servicios.find(s => s.id === cita.servicioId);
+      if (found) return found;
+    }
+    if (cita.servicioNombre) {
+      const nameL = cita.servicioNombre.toLowerCase().trim();
+      const exact = servicios.find(s => s.nombre.toLowerCase().trim() === nameL);
+      if (exact) return exact;
+      const partial = servicios.find(s => s.nombre.toLowerCase().includes(nameL) || nameL.includes(s.nombre.toLowerCase()));
+      if (partial) return partial;
+    }
+    return null;
+  })();
+
+  const initialSvcId = matchedSvc?.id || cita?.servicioId || firstSvc?.id || '';
+  const initialSvcNombre = matchedSvc?.nombre || cita?.servicioNombre || firstSvc?.nombre || '';
+
   const [form, setForm] = useState({
     clienteNombre:   cita?.clienteNombre   || '',
     clienteEmail:    cita?.clienteEmail    || '',
     clienteTelefono: cita?.clienteTelefono || '',
     clienteId:       cita?.clienteId       || null,
-    servicioId:      cita?.servicioId      || firstSvc?.id       || '',
-    servicioNombre:  cita?.servicioNombre  || firstSvc?.nombre   || '',
-    precio:          cita?.precio != null ? Number(cita.precio) : (Number(firstSvc?.precio) || 0),
+    servicioId:      initialSvcId,
+    servicioNombre:  initialSvcNombre,
+    precio:          cita?.precio != null ? Number(cita.precio) : (Number(matchedSvc?.precio || firstSvc?.precio) || 0),
     duracion:        Number(cita?.duracion || cita?.duracionServicio || firstSvc?.duracion) || 30,
     barberoId:       cita?.barberoId       || defaultBarb,
     barbero:         cita?.barbero         || barberos.find(b => b.id === defaultBarb)?.nombre || '',
