@@ -3,9 +3,9 @@ import { getDocs, query, where } from 'firebase/firestore';
 import {
   TrendingUp, CalendarCheck, XCircle, DollarSign,
   ShoppingBag, RefreshCcw, Activity, Crown, Star, User, Sparkles,
-  TrendingDown, ArrowUpRight, ArrowDownRight, Layers, AlertCircle,
-  HelpCircle, Eye, Info, Calendar, BarChart3, PieChart as PieIcon,
-  Tag, Percent, AlertTriangle, ArrowRight, Users, ChevronLeft,
+  TrendingDown, ArrowUpRight, ArrowDownRight, Layers,
+  Calendar, BarChart3, Banknote, CreditCard, Landmark, Wallet,
+  Tag, Percent, ArrowRight, Users, ChevronLeft,
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -615,43 +615,60 @@ export default function Metricas() {
     });
   }, [citas, ventas, productos, barberos, gastos, getPrice, parseDateStr]);
 
-  /* ── 3. Rentabilidad de Inventario Memoized KPIs and Table ── */
-  const inventoryStats = useMemo(() => {
-    let totalValorVenta = 0;
-    let totalValorCosto = 0;
+  /* ── 3. Desglose por Método de Pago ─────────────────────────────── */
+  const paymentBreakdown = useMemo(() => {
+    const rangeCompletadas = citas.filter(c =>
+      c.fecha >= fechaInicio && c.fecha <= fechaFin && c.estado === 'Completada'
+    );
 
-    const items = productos.map(p => {
-      const stock = Number(p.stock) || 0;
-      const precio = Number(p.precio) || 0;
-      const costo = Number(p.precioCosto) || 0;
-
-      totalValorVenta += precio * stock;
-      totalValorCosto += costo * stock;
-
-      const margenAbs = precio - costo;
-      const margenPct = precio > 0 ? (margenAbs / precio) * 100 : 0;
-
-      return {
-        ...p,
-        stock,
-        precio,
-        costo,
-        margenAbs,
-        margenPct,
-      };
-    }).sort((a, b) => b.margenAbs - a.margenAbs);
-
-    const margenPotencial = totalValorVenta - totalValorCosto;
-    const margenPotencialPct = totalValorVenta > 0 ? (margenPotencial / totalValorVenta) * 100 : 0;
-
-    return {
-      items,
-      totalValorVenta,
-      totalValorCosto,
-      margenPotencial,
-      margenPotencialPct,
+    const normalize = m => {
+      const v = (m || '').toString().trim().toLowerCase();
+      if (v === 'efectivo' || v === 'cash')             return 'Efectivo';
+      if (v === 'débito' || v === 'debito')             return 'Débito';
+      if (v === 'crédito' || v === 'credito')           return 'Crédito';
+      if (v === 'transferencia' || v === 'transfer')    return 'Transferencia';
+      if (v === 'tarjeta' || v === 'card')              return 'Tarjeta (sin especificar)';
+      return 'Sin especificar';
     };
-  }, [productos]);
+
+    const acc = {
+      'Efectivo':                  { servicios: 0, productos: 0, count: 0 },
+      'Débito':                    { servicios: 0, productos: 0, count: 0 },
+      'Crédito':                   { servicios: 0, productos: 0, count: 0 },
+      'Transferencia':             { servicios: 0, productos: 0, count: 0 },
+      'Tarjeta (sin especificar)': { servicios: 0, productos: 0, count: 0 },
+      'Sin especificar':           { servicios: 0, productos: 0, count: 0 },
+    };
+
+    rangeCompletadas.forEach(c => {
+      const k = normalize(c.metodoPago);
+      acc[k].servicios += getPrice(c);
+      acc[k].count     += 1;
+    });
+
+    rangeVentas.forEach(v => {
+      const k = normalize(v.metodoPago);
+      const monto = Number(v.precio) || Number(v.total) || 0;
+      const qty   = Number(v.cantidad) || 1;
+      acc[k].productos += monto * (v.total ? 1 : qty);
+      acc[k].count     += 1;
+    });
+
+    const total = Object.values(acc).reduce((s, r) => s + r.servicios + r.productos, 0);
+
+    const rows = Object.entries(acc)
+      .map(([nombre, r]) => ({
+        nombre,
+        servicios: r.servicios,
+        productos: r.productos,
+        total:     r.servicios + r.productos,
+        count:     r.count,
+        pct:       total > 0 ? ((r.servicios + r.productos) / total) * 100 : 0,
+      }))
+      .filter(r => r.total > 0 || ['Efectivo', 'Débito', 'Crédito', 'Transferencia'].includes(r.nombre));
+
+    return { rows, total };
+  }, [citas, fechaInicio, fechaFin, rangeVentas, getPrice]);
 
   /* ── 4. Métricas por Barbero ── */
   const barberoStats = useMemo(() => {
@@ -808,17 +825,6 @@ export default function Metricas() {
           >
             <DollarSign size={13} />
             Pérdidas y Ganancias (P&L)
-          </button>
-          <button
-            onClick={() => setActiveTab('inventario')}
-            className={`flex-1 min-w-[140px] px-4 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 ${
-              activeTab === 'inventario'
-                ? 'bg-slate-900 text-white border border-slate-800/60 shadow-lg shadow-black/10 text-emerald-400'
-                : 'text-slate-400 hover:text-white hover:bg-slate-900/30'
-            }`}
-          >
-            <Layers size={13} />
-            Rentabilidad de Inventario
           </button>
           <button
             onClick={() => { setActiveTab('equipo'); setSelectedBarberoId(null); }}
@@ -1156,6 +1162,76 @@ export default function Metricas() {
             />
           </div>
 
+          {/* Desglose por Método de Pago */}
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+            <div className="flex items-center justify-between mb-4 border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <Wallet size={16} className="text-emerald-400" />
+                <div>
+                  <p className="text-sm font-semibold text-white">Desglose por Método de Pago</p>
+                  <p className="text-xs text-slate-500 mt-0.5">Ingresos cobrados en el período según forma de pago</p>
+                </div>
+              </div>
+              <span className="text-[10px] bg-slate-950 border border-slate-850 px-2 py-0.5 rounded-full text-slate-400 font-bold">
+                Total: {fmtCLP(paymentBreakdown.total)}
+              </span>
+            </div>
+
+            {/* KPIs principales (4 métodos canónicos) */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {[
+                { key: 'Efectivo',      Icon: Banknote,   color: 'emerald' },
+                { key: 'Débito',        Icon: CreditCard, color: 'blue'    },
+                { key: 'Crédito',       Icon: CreditCard, color: 'purple'  },
+                { key: 'Transferencia', Icon: Landmark,   color: 'amber'   },
+              ].map(({ key, Icon, color }) => {
+                const r = paymentBreakdown.rows.find(x => x.nombre === key) || { total: 0, count: 0, pct: 0 };
+                return (
+                  <KpiCard
+                    key={key}
+                    Icon={Icon}
+                    label={key}
+                    value={fmtCLP(r.total)}
+                    sub={`${r.count} cobro${r.count !== 1 ? 's' : ''} · ${r.pct.toFixed(1)}%`}
+                    color={color}
+                  />
+                );
+              })}
+            </div>
+
+            {/* Tabla detallada con servicios vs productos */}
+            <div className="mt-5 overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-800 text-slate-500 uppercase tracking-wide font-bold">
+                    <th className="py-2.5">Método</th>
+                    <th className="py-2.5 text-right">Servicios</th>
+                    <th className="py-2.5 text-right">Productos</th>
+                    <th className="py-2.5 text-right">Total</th>
+                    <th className="py-2.5 text-right">% del Total</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/50">
+                  {paymentBreakdown.rows.length === 0 ? (
+                    <tr><td colSpan={5} className="py-6 text-center text-xs text-slate-650 italic">Sin cobros registrados en el período</td></tr>
+                  ) : paymentBreakdown.rows.map(r => (
+                    <tr key={r.nombre} className="hover:bg-slate-800/10 text-slate-300 transition-colors">
+                      <td className="py-2.5 pr-3 font-medium text-white">{r.nombre}</td>
+                      <td className="py-2.5 text-right text-slate-400">{fmtCLP(r.servicios)}</td>
+                      <td className="py-2.5 text-right text-slate-400">{fmtCLP(r.productos)}</td>
+                      <td className="py-2.5 text-right font-bold text-white">{fmtCLP(r.total)}</td>
+                      <td className="py-2.5 text-right">
+                        <span className="text-[10px] bg-slate-800 text-slate-300 font-bold px-2 py-0.5 rounded">
+                          {r.pct.toFixed(1)}%
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
           {/* Panel Informativo de Propinas */}
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-center justify-between gap-4">
             <div className="flex items-center gap-2.5">
@@ -1301,105 +1377,7 @@ export default function Metricas() {
         </div>
       )}
 
-      {/* ── TAB 3: RENTABILIDAD DE INVENTARIO ──────────────────────────── */}
-      {activeTab === 'inventario' && isAdmin && (
-        <div className="space-y-6">
-          {/* KPIs de Inventario */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <KpiCard Icon={ShoppingBag} label="Valor del Stock a Venta"
-              value={fmtCLP(inventoryStats.totalValorVenta)}
-              sub="Precio Venta * Stock actual"
-              color="emerald" />
-            <KpiCard Icon={Tag} label="Valor del Stock a Costo"
-              value={fmtCLP(inventoryStats.totalValorCosto)}
-              sub="Precio Costo * Stock actual"
-              color="amber" />
-            <KpiCard Icon={TrendingUp} label="Margen Bruto Potencial"
-              value={fmtCLP(inventoryStats.margenPotencial)}
-              sub="Margen potencial absoluto"
-              color="cyan" />
-            <KpiCard Icon={Percent} label="Margen Proyectado Promedio"
-              value={`${inventoryStats.margenPotencialPct.toFixed(1)}%`}
-              sub="Porcentaje de retorno proyectado"
-              color="purple" />
-          </div>
-
-          {/* Tabla de Márgenes por Producto */}
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-            <div className="flex items-center gap-2 mb-4 border-b border-slate-800 pb-3">
-              <Layers size={16} className="text-slate-400" />
-              <div>
-                <p className="text-sm font-semibold text-white">Análisis de Rentabilidad por Producto</p>
-                <p className="text-xs text-slate-500 mt-0.5">Ordenados de mayor a menor margen bruto absoluto de ganancia unitaria</p>
-              </div>
-            </div>
-            {inventoryStats.items.length === 0 ? (
-              <p className="text-xs text-slate-650 italic text-center py-10">Sin productos guardados en inventario</p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse">
-                  <thead>
-                    <tr className="border-b border-slate-800 text-slate-550 uppercase tracking-wide font-bold">
-                      <th className="py-2.5">Producto</th>
-                      <th className="py-2.5 text-center">Stock</th>
-                      <th className="py-2.5 text-right">Precio Costo</th>
-                      <th className="py-2.5 text-right">Precio Venta</th>
-                      <th className="py-2.5 text-right">Margen Neto ($)</th>
-                      <th className="py-2.5 text-right">Margen Neto (%)</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-800/50">
-                    {inventoryStats.items.map(p => {
-                      const isLowStock = p.stock <= (p.stockMinimo || 0);
-                      const isMissingCost = p.costo === 0;
-                      return (
-                        <tr key={p.id} className="hover:bg-slate-800/10 text-slate-350 transition-colors">
-                          <td className="py-3 pr-3 font-medium text-white">
-                            <div className="flex flex-col sm:flex-row sm:items-center gap-1.5">
-                              <span className="truncate max-w-[240px]">{p.nombre}</span>
-                              <div className="flex flex-wrap items-center gap-1">
-                                {isLowStock && (
-                                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-500 text-[9px] font-bold border border-amber-500/10">
-                                    <AlertTriangle size={8} /> Stock Crítico
-                                  </span>
-                                )}
-                                {isMissingCost && (
-                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-rose-500/10 text-rose-450 text-[9px] font-semibold border border-rose-500/10">
-                                    Sin Costo Cargado
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </td>
-                          <td className={`py-3 text-center font-bold ${isLowStock ? 'text-amber-500' : 'text-slate-300'}`}>
-                            {p.stock}
-                          </td>
-                          <td className={`py-3 text-right ${isMissingCost ? 'text-slate-600 italic' : 'text-slate-350'}`}>
-                            {isMissingCost ? '$0' : fmtCLP(p.costo)}
-                          </td>
-                          <td className="py-3 text-right text-white font-medium">{fmtCLP(p.precio)}</td>
-                          <td className={`py-3 text-right font-bold ${p.margenAbs > 0 ? 'text-emerald-400' : 'text-slate-500'}`}>
-                            {fmtCLP(p.margenAbs)}
-                          </td>
-                          <td className="py-3 text-right">
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                              p.margenPct >= 50 ? 'bg-emerald-500/10 text-emerald-400' : p.margenPct >= 20 ? 'bg-blue-500/10 text-blue-400' : 'bg-slate-800 text-slate-400'
-                            }`}>
-                              {p.margenPct.toFixed(0)}%
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* ── TAB 4: MÉTRICAS POR BARBERO ───────────────────────────────── */}
+      {/* ── TAB 3: MÉTRICAS POR BARBERO ───────────────────────────────── */}
       {activeTab === 'equipo' && isAdmin && (
         <div className="space-y-6">
 
@@ -1630,11 +1608,12 @@ export default function Metricas() {
               </p>
 
               <p className="font-bold text-white flex items-center gap-1">
-                <Layers size={12} className="text-emerald-400" />
-                Rentabilidad de Inventario:
+                <Wallet size={12} className="text-emerald-400" />
+                Desglose por Método de Pago:
               </p>
               <p className="pl-4">
-                Valora tu stock físico a precio de costo y venta. Genera un ranking de rentabilidad unitaria por producto para identificar los artículos con mayor margen de ganancia.
+                Dentro del P&L verás cuánto dinero entró según forma de cobro: <strong className="text-white">Efectivo</strong>, <strong className="text-white">Débito</strong>, <strong className="text-white">Crédito</strong> y <strong className="text-white">Transferencia</strong>. Suma servicios completados y productos vendidos en el período.
+                <br />La rentabilidad de inventario ahora vive en su propia sección del sidebar.
               </p>
             </div>
           </div>

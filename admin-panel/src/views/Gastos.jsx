@@ -13,7 +13,7 @@ import { tenantCol } from '../lib/tenantUtils';
 
 /* ─── Constants ─────────────────────────────────────────────── */
 const CATEGORIAS   = ['Insumos', 'Sueldos', 'Arriendo', 'Servicios Básicos', 'Equipamiento', 'Marketing', 'Otros'];
-const METODOS_PAGO = ['Efectivo', 'Transferencia', 'Tarjeta'];
+const METODOS_PAGO = ['Efectivo', 'Débito', 'Crédito', 'Transferencia'];
 
 const CAT_COLORS = {
   Insumos:            'bg-blue-500/20 text-blue-400',
@@ -138,6 +138,9 @@ function GastoModal({ onClose, onSaved }) {
                 <select value={form.metodoPago} onChange={e => set('metodoPago', e.target.value)}
                   className={`${inp} appearance-none pr-8`}>
                   {METODOS_PAGO.map(m => <option key={m}>{m}</option>)}
+                  {form.metodoPago === 'Tarjeta' && (
+                    <option value="Tarjeta">Tarjeta (legacy)</option>
+                  )}
                 </select>
                 <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
               </div>

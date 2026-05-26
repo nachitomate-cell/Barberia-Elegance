@@ -920,14 +920,18 @@ export default function Productos() {
               {/* Método de Pago */}
               <div>
                 <label className={lbl}>Método de Pago *</label>
-                <select 
-                  className={field} 
-                  value={vrForm.metodoPago} 
+                <select
+                  className={field}
+                  value={vrForm.metodoPago}
                   onChange={e => setVrForm(f => ({ ...f, metodoPago: e.target.value }))}
                 >
                   <option value="Efectivo">Efectivo</option>
-                  <option value="Tarjeta">Tarjeta de Débito/Crédito</option>
-                  <option value="Transferencia">Transferencia Bancaria</option>
+                  <option value="Débito">Débito</option>
+                  <option value="Crédito">Crédito</option>
+                  <option value="Transferencia">Transferencia</option>
+                  {vrForm.metodoPago === 'Tarjeta' && (
+                    <option value="Tarjeta">Tarjeta (legacy)</option>
+                  )}
                 </select>
               </div>
 
@@ -1011,8 +1015,12 @@ export default function Productos() {
                 onChange={e => setEntregaForm(f => ({ ...f, metodoPago: e.target.value }))}
               >
                 <option value="Efectivo">Efectivo</option>
-                <option value="Tarjeta">Tarjeta</option>
+                <option value="Débito">Débito</option>
+                <option value="Crédito">Crédito</option>
                 <option value="Transferencia">Transferencia</option>
+                {entregaForm.metodoPago === 'Tarjeta' && (
+                  <option value="Tarjeta">Tarjeta (legacy)</option>
+                )}
               </select>
             </div>
 

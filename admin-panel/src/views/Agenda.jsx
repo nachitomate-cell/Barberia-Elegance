@@ -499,8 +499,12 @@ function CitaModal({ cita, barberos, servicios, defaultHora, defaultBarberoId, d
                 <label className={lbl}>Método de Pago *</label>
                 <select className={field} value={form.metodoPago} onChange={e => set('metodoPago', e.target.value)}>
                   <option value="Efectivo">Efectivo</option>
-                  <option value="Tarjeta">Tarjeta</option>
+                  <option value="Débito">Débito</option>
+                  <option value="Crédito">Crédito</option>
                   <option value="Transferencia">Transferencia</option>
+                  {form.metodoPago === 'Tarjeta' && (
+                    <option value="Tarjeta">Tarjeta (legacy)</option>
+                  )}
                 </select>
               </div>
               <div>

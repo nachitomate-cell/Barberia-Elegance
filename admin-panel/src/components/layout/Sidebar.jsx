@@ -4,7 +4,7 @@ import {
   CalendarDays, Scissors, Users, Star, BarChart3,
   Trophy, ShoppingBag, Images, LogOut, ChevronRight, ChevronDown,
   Sun, Moon, ExternalLink, Settings, TrendingDown, MessageCircle, X,
-  Megaphone, ImagePlus, CreditCard, Monitor, Headphones, Medal, Camera, GraduationCap, Wallet,
+  Megaphone, ImagePlus, CreditCard, Monitor, Headphones, Medal, Camera, GraduationCap, Wallet, Package,
 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { doc, onSnapshot, where } from 'firebase/firestore';
@@ -47,9 +47,10 @@ const NAV_GROUPS_DEFAULT = [
     id: 'analisis',
     label: 'Análisis',
     items: [
-      { to: 'metricas', label: 'Métricas', Icon: BarChart3                        },
-      { to: 'gastos',   label: 'Gastos',   Icon: TrendingDown, adminOnly: true     },
-      { to: 'caja',     label: 'Control de Caja', Icon: Wallet, adminOnly: true    },
+      { to: 'metricas',   label: 'Métricas',         Icon: BarChart3                     },
+      { to: 'inventario', label: 'Inventario',       Icon: Package,    adminOnly: true   },
+      { to: 'gastos',     label: 'Gastos',           Icon: TrendingDown, adminOnly: true  },
+      { to: 'caja',       label: 'Control de Caja',  Icon: Wallet,     adminOnly: true   },
     ],
   },
   {
