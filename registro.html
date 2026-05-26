@@ -1639,6 +1639,17 @@
     // Priorizar registro por defecto al cargar
     switchTab('register');
 
+    // Prefill desde query string (cuando llegan desde barbero.html post-reserva)
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const qName  = params.get('nombre');
+      const qEmail = params.get('email');
+      const qTel   = params.get('tel') || params.get('telefono');
+      if (qName)  document.getElementById('regNombre').value   = qName;
+      if (qEmail) document.getElementById('regEmail').value    = qEmail;
+      if (qTel)   document.getElementById('regTelefono').value = qTel;
+    } catch (_) {}
+
     // Back link / Booking CTA: perfume store goes to /catalogo, others go to index
     const tid = window.CURRENT_TENANT_ID;
     if (tid === 'deluxeperfumes') {

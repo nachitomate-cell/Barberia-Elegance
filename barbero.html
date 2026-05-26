@@ -572,6 +572,62 @@
   </main>
 </div><!-- /mainContent -->
 
+<!-- ═══════ MODAL DE INVITACIÓN AL CLUB ═══════ -->
+<div id="clubInviteModal" class="hidden fixed inset-0 z-[200] flex items-end sm:items-center justify-center p-4 fade-up"
+     style="background:rgba(0,0,0,0.78);backdrop-filter:blur(8px);" onclick="onClubModalBackdrop(event)">
+  <div class="w-full max-w-sm rounded-3xl p-7 text-center relative"
+       style="background:linear-gradient(180deg,#13110d 0%,#0a0907 100%);
+              border:1px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.3);
+              box-shadow:0 20px 60px rgba(0,0,0,0.6), 0 0 40px rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.12);">
+
+    <!-- Cerrar -->
+    <button onclick="dismissClubModal()" aria-label="Cerrar"
+            class="absolute top-4 right-4 w-7 h-7 rounded-full flex items-center justify-center text-white/40 hover:text-white hover:bg-white/5 transition-all">
+      <i class="ph-bold ph-x text-lg"></i>
+    </button>
+
+    <!-- Icono -->
+    <div class="w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center relative"
+         style="background:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.12);
+                border:1px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.3);">
+      <i id="clubModalIcon" class="ph-fill ph-medal text-3xl" style="color:var(--accent);"></i>
+    </div>
+
+    <!-- Copy -->
+    <p id="clubModalEyebrow" class="text-[10px] font-bold uppercase tracking-[0.2em] mb-2"
+       style="color:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.7);"></p>
+    <h2 id="clubModalTitle" class="text-xl font-bold text-white mb-2 tracking-tight"></h2>
+    <p id="clubModalBody" class="text-sm text-white/60 mb-6 leading-relaxed"></p>
+
+    <!-- Beneficios -->
+    <div class="space-y-2 mb-6 text-left">
+      <div class="flex items-center gap-3 px-3 py-2 rounded-xl" style="background:rgba(255,255,255,0.03);">
+        <i class="ph-fill ph-medal text-base shrink-0" style="color:var(--accent);"></i>
+        <p class="text-xs text-white/80">1 sello por cada corte</p>
+      </div>
+      <div class="flex items-center gap-3 px-3 py-2 rounded-xl" style="background:rgba(255,255,255,0.03);">
+        <i class="ph-fill ph-gift text-base shrink-0" style="color:var(--accent);"></i>
+        <p class="text-xs text-white/80">Cortes y servicios gratis al canjear</p>
+      </div>
+      <div class="flex items-center gap-3 px-3 py-2 rounded-xl" style="background:rgba(255,255,255,0.03);">
+        <i class="ph-fill ph-cake text-base shrink-0" style="color:var(--accent);"></i>
+        <p class="text-xs text-white/80">Regalo de cumpleaños automático</p>
+      </div>
+    </div>
+
+    <!-- CTAs -->
+    <a id="clubModalCTA" href="/registro.html"
+       class="block w-full py-3.5 rounded-2xl font-bold text-base active:scale-[0.98] transition-all mb-3"
+       style="background:var(--accent);color:#000;
+              box-shadow:0 6px 20px rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.35);">
+      <span id="clubModalCTALabel">Unirme al Club gratis</span>
+    </a>
+    <button onclick="dismissClubModal()" class="text-xs font-semibold text-white/40 hover:text-white transition-colors">
+      <span id="clubModalSkipLabel">Quizás después</span>
+    </button>
+  </div>
+</div>
+
 </div><!-- /scrollContent -->
 
 <!-- Continue button bar -->
@@ -1233,6 +1289,18 @@
     document.getElementById('successIGHandle').textContent = igh;
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    // Modal de invitación al Club tras la reserva — solo si no es miembro ya.
+    if (!alreadyClubMember()) {
+      const email = (document.getElementById('clientEmail')?.value || '').trim();
+      setTimeout(() => {
+        showClubModal('postReserva', {
+          nombre:   clienteNombre,
+          telefono: clienteTelefono,
+          email,
+        });
+      }, 1400);
+    }
   }
 
   /* ── Page initialization ────────────────────────────────────────── */
@@ -1346,7 +1414,110 @@
       document.getElementById('loadingState').classList.add('hidden');
       document.getElementById('notFoundState').classList.remove('hidden');
     });
+    // Welcome del Club (tras 1.8s, una vez por cada 24h por tenant)
+    setTimeout(maybeShowClubWelcome, 1800);
   });
+
+  /* ═══════ INVITACIÓN AL CLUB DE FIDELIDAD ═══════ */
+  /* Un solo modal reutilizable con dos modos:
+       - 'welcome'    → al cargar la página, si no es miembro y no se mostró en 24h
+       - 'postReserva' → después de confirmar, con prefill al registro */
+
+  let _clubModalMode = 'welcome';
+  let _postReservaPrefill = null;
+
+  function alreadyClubMember() {
+    // Heurística rápida: si hay sesión Firebase activa, asumimos que ya es miembro del Club.
+    // (No bloqueante: si no hay firebase.auth() listo, devuelve false → muestra el modal igual.)
+    try {
+      return !!(window.firebase && firebase.auth && firebase.auth().currentUser);
+    } catch (_) { return false; }
+  }
+
+  function clubWelcomeCooldownKey() {
+    return `${window.CURRENT_TENANT_ID || 'elegance'}_club_welcome_dismissed`;
+  }
+
+  function maybeShowClubWelcome() {
+    const decide = () => {
+      if (alreadyClubMember()) return;
+      const key = clubWelcomeCooldownKey();
+      const lastTs = Number(localStorage.getItem(key) || 0);
+      if (Date.now() - lastTs < 24 * 60 * 60 * 1000) return; // cooldown 24h
+      showClubModal('welcome');
+    };
+    // Esperar al menos un evento de auth para que `currentUser` esté restaurado
+    // (de sesión persistente). Timeout de seguridad: 2s y procedemos.
+    try {
+      if (window.firebase && firebase.auth) {
+        let decided = false;
+        const unsub = firebase.auth().onAuthStateChanged(() => {
+          if (decided) return;
+          decided = true;
+          unsub();
+          decide();
+        });
+        setTimeout(() => { if (!decided) { decided = true; try { unsub(); } catch(_){} decide(); } }, 2000);
+      } else {
+        decide();
+      }
+    } catch (_) { decide(); }
+  }
+
+  function showClubModal(mode, prefill) {
+    _clubModalMode = mode;
+    _postReservaPrefill = prefill || null;
+
+    const shopClub = (typeof SHOP !== 'undefined' && SHOP.club) ? SHOP.club : 'Club de Fidelidad';
+    const eyebrow  = document.getElementById('clubModalEyebrow');
+    const title    = document.getElementById('clubModalTitle');
+    const body     = document.getElementById('clubModalBody');
+    const ctaLabel = document.getElementById('clubModalCTALabel');
+    const skipLbl  = document.getElementById('clubModalSkipLabel');
+    const cta      = document.getElementById('clubModalCTA');
+    const icon     = document.getElementById('clubModalIcon');
+
+    if (mode === 'postReserva') {
+      icon.className     = 'ph-fill ph-confetti text-3xl';
+      eyebrow.textContent = '¡Reserva confirmada!';
+      title.textContent   = 'Ahora, ¿activamos tu Club?';
+      body.innerHTML      = `Tu próxima visita ya puede sumar tu <strong class="text-white">primer sello</strong> automáticamente. Demora 1 minuto.`;
+      ctaLabel.textContent = 'Crear mi cuenta del Club';
+      skipLbl.textContent  = 'Más tarde, gracias';
+    } else {
+      icon.className     = 'ph-fill ph-medal text-3xl';
+      eyebrow.textContent = shopClub;
+      title.textContent   = '¿Querés cortes gratis?';
+      body.innerHTML      = `Sumate al Club de <span class="text-white font-semibold">${shopClub}</span>. Es gratis y por cada visita acumulás un sello para canjear premios 🎁`;
+      ctaLabel.textContent = 'Unirme al Club gratis';
+      skipLbl.textContent  = 'Quizás después';
+    }
+
+    // Prefill CTA si hay datos del cliente
+    let href = '/registro.html';
+    if (prefill) {
+      const params = new URLSearchParams();
+      if (prefill.nombre)   params.set('nombre',   prefill.nombre);
+      if (prefill.email)    params.set('email',    prefill.email);
+      if (prefill.telefono) params.set('tel',      prefill.telefono);
+      const qs = params.toString();
+      if (qs) href += '?' + qs;
+    }
+    cta.href = href;
+
+    document.getElementById('clubInviteModal').classList.remove('hidden');
+  }
+
+  function dismissClubModal() {
+    document.getElementById('clubInviteModal').classList.add('hidden');
+    if (_clubModalMode === 'welcome') {
+      try { localStorage.setItem(clubWelcomeCooldownKey(), String(Date.now())); } catch (_) {}
+    }
+  }
+
+  function onClubModalBackdrop(e) {
+    if (e.target === e.currentTarget) dismissClubModal();
+  }
 </script>
 </body>
 </html>
