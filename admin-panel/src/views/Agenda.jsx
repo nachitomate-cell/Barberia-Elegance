@@ -300,15 +300,43 @@ function CitaModal({ cita, barberos, servicios, defaultHora, defaultBarberoId, d
         if (form.estado === 'Completada' && !yaEraCompletada) {
           payload.pendingGoogleReview = true;
         }
-        // Si se cancela, borrar el slotLock para liberar el horario en el flujo de reserva
-        if (form.estado === 'Cancelada' && cita?.estado !== 'Cancelada' && cita?.slotLockId) {
+
+        const citaRef = doc(db, `${tenantCol('citas').path}/${cita.id}`);
+        const oldLockId = cita?.slotLockId || null;
+
+        // Calcular el lockId que correspondería al estado nuevo
+        const needsLock = form.estado !== 'Cancelada' && !!form.barberoId;
+        let nextLockId = null;
+        if (needsLock) {
+          const safeHora = (form.hora || '').replace(':', '');
+          const safeBid  = String(form.barberoId).replace(/[^a-zA-Z0-9_-]/g, '_');
+          nextLockId = `${safeBid}_${dateStr}_${safeHora}`;
+        }
+
+        const lockChanged = oldLockId !== nextLockId;
+
+        if (lockChanged) {
           const batch = writeBatch(db);
-          batch.update(doc(db, `${tenantCol('citas').path}/${cita.id}`), payload);
-          batch.delete(doc(db, `${tenantCol('slotLocks').path}/${cita.slotLockId}`));
+          payload.slotLockId = nextLockId;
+          batch.update(citaRef, payload);
+          if (oldLockId) {
+            batch.delete(doc(db, `${tenantCol('slotLocks').path}/${oldLockId}`));
+          }
+          if (nextLockId) {
+            batch.set(doc(db, `${tenantCol('slotLocks').path}/${nextLockId}`), {
+              citaId:    cita.id,
+              fecha:     dateStr,
+              hora:      form.hora,
+              barberoId: form.barberoId,
+              duracion:  Number(form.duracion) || 30,
+              creadoEn:  serverTimestamp(),
+            });
+          }
           await batch.commit();
         } else {
-          await updateDoc(doc(db, `${tenantCol('citas').path}/${cita.id}`), payload);
+          await updateDoc(citaRef, payload);
         }
+
         if (form.estado === 'Completada' && !yaEraCompletada && onComplete) {
           onComplete({ ...cita, ...payload });
         } else {
