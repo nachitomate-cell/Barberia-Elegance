@@ -780,6 +780,10 @@ export default function Clientes() {
 
   const sellos = c => c.sellosDisponibles ?? c.stamps ?? 0;
 
+  // Cliente "legacy" = migrado de AgendaPro, no se ha registrado en el Club todavía.
+  // Detectable porque el doc se creó con uid === id (telefono) o tiene la marca importedFrom.
+  const isLegacy = c => c?.uid === c?.id || c?.importedFrom === 'agendapro';
+
   const citasPorEmail = useMemo(() => {
     const map = {};
     todasCitas.forEach(c => {
@@ -847,6 +851,8 @@ export default function Clientes() {
 
   const applyFiltro = c => {
     if (filtro === 'todos') return true;
+    if (filtro === 'migrados')    return isLegacy(c);
+    if (filtro === 'registrados') return !isLegacy(c);
     const disponibles = c.sellosDisponibles ?? c.stamps ?? 0;
     const historicos  = c.sellosHistoricos  ?? c.stamps ?? 0;
     if (filtro === 'premio') return premios.some(p => disponibles >= p.costoSellos);
@@ -1032,7 +1038,9 @@ export default function Clientes() {
       {/* Filtros */}
       <div className="flex gap-1.5 mb-4 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
         {[
-          { id: 'todos',    label: 'Todos' },
+          { id: 'todos',       label: 'Todos' },
+          { id: 'registrados', label: 'Registrados Club' },
+          { id: 'migrados',    label: 'Migrados' },
           { id: 'premio',   label: '🏆 Con premio' },
           { id: 'cumple',   label: `🎂 Cumple en ${new Date().toLocaleString('es-CL', { month: 'long' })}` },
           { id: 'sin30',    label: 'Sin visita 30d' },
@@ -1047,6 +1055,8 @@ export default function Clientes() {
             f.id === 'platinum' ? (active ? 'bg-violet-500/20 border-violet-400 text-violet-300' : 'border-violet-400/20 text-violet-400 hover:bg-violet-500/10') :
             f.id === 'gold'     ? (active ? 'bg-yellow-500/20 border-yellow-400 text-yellow-300' : 'border-yellow-400/20 text-yellow-400 hover:bg-yellow-500/10') :
             f.id === 'silver'   ? (active ? 'bg-slate-500/40 border-slate-400 text-slate-200'    : 'border-slate-600 text-slate-400 hover:bg-slate-700') :
+            f.id === 'migrados' ? (active ? 'bg-amber-500/20 border-amber-400 text-amber-300'    : 'border-amber-400/25 text-amber-400/90 hover:bg-amber-500/10') :
+            f.id === 'registrados' ? (active ? 'bg-blue-500/20 border-blue-400 text-blue-300'    : 'border-blue-400/25 text-blue-400/90 hover:bg-blue-500/10') :
             active ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300' : 'border-slate-700 text-slate-400 hover:bg-slate-800';
           return (
             <button key={f.id} onClick={() => setFiltro(f.id)}
@@ -1096,7 +1106,17 @@ export default function Clientes() {
                         : <span className="text-xs font-bold text-slate-400">{initials(c.nombre || c.email || '?')}</span>}
                     </div>
                     <div className="min-w-0">
-                      <p className="font-semibold text-white text-sm truncate group-hover:text-emerald-400 transition-colors">{c.nombre || '—'}</p>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <p className="font-semibold text-white text-sm truncate group-hover:text-emerald-400 transition-colors">{c.nombre || '—'}</p>
+                        {isLegacy(c) && (
+                          <span
+                            title="Cliente importado desde AgendaPro. Aún no se ha registrado en el Club."
+                            className="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded border border-amber-500/40 bg-amber-500/10 text-amber-300 uppercase tracking-wider"
+                          >
+                            Migrado
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs text-slate-500 truncate">{c.email}</p>
                       {numCitas > 0 && (
                         <p className="text-[10px] text-blue-400/70 font-semibold">{numCitas} cita{numCitas !== 1 ? 's' : ''}</p>
