@@ -5,6 +5,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useTenant } from '../contexts/TenantContext';
+import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 import {
   Users, UserCheck, AlertTriangle, Plus, XCircle,
   RefreshCw, Settings, Trash2, GripVertical, Search,
@@ -576,6 +577,7 @@ export default function Membresias() {
   const [miembros,     setMiembros]     = useState([]);
   const [planes,       setPlanes]       = useState([]);
   const [loadingM,     setLoadingM]     = useState(true);
+  const [showHelp,     setShowHelp]     = useState(false);
   const [modalActivar, setModalActivar] = useState(false);
   const [modalPlanes,  setModalPlanes]  = useState(false);
 
@@ -668,7 +670,10 @@ export default function Membresias() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">{tenant.name}</p>
-          <h1 className="text-2xl font-black text-white tracking-tight">Membresías</h1>
+          <h1 className="text-2xl font-black text-white tracking-tight flex items-center gap-2">
+            Membresías
+            <HelpButton onClick={() => setShowHelp(true)} />
+          </h1>
         </div>
         <button
           onClick={() => setModalPlanes(true)}
@@ -852,6 +857,38 @@ export default function Membresias() {
             // Mostrar sutil alert o notificación
           }}
         />
+      )}
+
+      {showHelp && (
+        <HelpModal title="Cómo funcionan las Membresías" onClose={() => setShowHelp(false)}>
+          <p>Vendés <strong className="text-white">planes mensuales</strong> (ej. "3 cortes al mes por $X") y los clientes pagan una cuota fija. Sus visitas se descuentan automáticamente al marcar la cita como Completada.</p>
+
+          <div>
+            <p className="font-semibold text-emerald-400 mb-1">1. Crear planes</p>
+            <p>Tocá <em>"Configurar planes"</em> y definí: nombre, precio mensual, y cuántos servicios incluye por categoría (cortes, barba, masaje). Activá el plan para que aparezca como opción.</p>
+          </div>
+
+          <div>
+            <p className="font-semibold text-emerald-400 mb-1">2. Asignar plan a un cliente</p>
+            <p>En la lista de miembros, tocá un cliente para asignarle un plan y fecha de inicio. El sistema calcula automáticamente la fecha de vencimiento (30 días) y los servicios restantes.</p>
+          </div>
+
+          <div>
+            <p className="font-semibold text-emerald-400 mb-1">3. Uso automático</p>
+            <p>Cuando el cliente complete una cita en /agenda, la Cloud Function <em>sello-automatico</em> detecta su membresía activa y <strong className="text-white">descuenta 1 uso</strong> del servicio correspondiente (en lugar de sumar un sello de fidelidad).</p>
+          </div>
+
+          <div>
+            <p className="font-semibold text-emerald-400 mb-1">4. Estados</p>
+            <ul className="list-disc ml-4 space-y-1">
+              <li><span className="text-emerald-400">Activa</span>: cliente con cuota al día y usos disponibles.</li>
+              <li><span className="text-amber-400">Por vencer</span>: ≤7 días para renovar.</li>
+              <li><span className="text-rose-400">Vencida</span>: superó la fecha de fin. Las citas vuelven a contar como sello normal.</li>
+            </ul>
+          </div>
+
+          <p className="text-xs text-amber-400 bg-amber-400/5 border border-amber-400/20 rounded-lg px-3 py-2">💡 Las métricas globales (MRR, churn, ARPU) las ves en <em>/finanzas</em>. Esta vista es para el día a día operativo de cada cliente.</p>
+        </HelpModal>
       )}
     </div>
   );

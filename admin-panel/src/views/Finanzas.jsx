@@ -12,6 +12,7 @@ import {
 } from 'recharts';
 import { getDocs } from 'firebase/firestore';
 import { tenantCol, resolveTenantId } from '../lib/tenantUtils';
+import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 import { PLANES, formatPrecio } from '../lib/plans';
 import {
   activarSuscripcion, cancelarSuscripcion,
@@ -185,9 +186,10 @@ function GestionPanel({ users, tenantId, onActivar }) {
 
 /* ── Componente principal ─────────────────────────────────────── */
 export default function Finanzas() {
-  const [users,   setUsers]   = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [tab,     setTab]     = useState('dashboard'); // 'dashboard' | 'clientes'
+  const [users,    setUsers]    = useState([]);
+  const [loading,  setLoading]  = useState(true);
+  const [tab,      setTab]      = useState('dashboard'); // 'dashboard' | 'clientes'
+  const [showHelp, setShowHelp] = useState(false);
 
   useEffect(() => {
     getDocs(tenantCol('users'))
@@ -250,7 +252,10 @@ export default function Finanzas() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-black text-white">Finanzas · MRR</h1>
+          <h1 className="text-xl font-black text-white flex items-center gap-2">
+            Finanzas · MRR
+            <HelpButton onClick={() => setShowHelp(true)} />
+          </h1>
           <p className="text-slate-500 text-sm mt-0.5">Ingresos Recurrentes Mensuales</p>
         </div>
         <div className="flex bg-slate-900 border border-slate-800 rounded-xl p-1 gap-1">
@@ -412,6 +417,34 @@ export default function Finanzas() {
           </div>
           <GestionPanel users={users} onActivar={handleActivar} />
         </div>
+      )}
+
+      {showHelp && (
+        <HelpModal title="Cómo leer Finanzas · MRR" onClose={() => setShowHelp(false)}>
+          <p>Esta vista mide la salud de tu <strong className="text-white">recurrencia</strong>: cuánto te entra cada mes de forma predecible por las membresías activas. No incluye cortes sueltos (eso es en <em>/metricas</em>).</p>
+
+          <div>
+            <p className="font-semibold text-emerald-400 mb-1">MRR</p>
+            <p><strong className="text-white">Monthly Recurring Revenue</strong>: la suma de las cuotas mensuales de todos los clientes con suscripción activa. Es tu "piso garantizado" de ingresos.</p>
+          </div>
+
+          <div>
+            <p className="font-semibold text-emerald-400 mb-1">ARPU</p>
+            <p><strong className="text-white">Average Revenue Per User</strong>: MRR dividido por número de suscriptores. Te dice cuánto vale en promedio cada cliente. Subirlo = vender planes más caros u ofrecer add-ons.</p>
+          </div>
+
+          <div>
+            <p className="font-semibold text-emerald-400 mb-1">Churn / Retención</p>
+            <p>Porcentaje de clientes que cancelaron en el período. Si churn ≥ 8% mensual, es alarma — los clientes se están yendo más rápido de lo que entran.</p>
+          </div>
+
+          <div>
+            <p className="font-semibold text-emerald-400 mb-1">Pestaña "Gestión"</p>
+            <p>Lista todos los suscriptores activos con su plan, fecha de inicio y vencimiento. Útil para contactarlos antes de que se les venza la suscripción.</p>
+          </div>
+
+          <p className="text-xs text-amber-400 bg-amber-400/5 border border-amber-400/20 rounded-lg px-3 py-2">💡 Esta vista solo es relevante si vendés membresías mensuales. Si solo cobrás corte por corte, mirá <em>/metricas</em> en su lugar.</p>
+        </HelpModal>
       )}
     </div>
   );

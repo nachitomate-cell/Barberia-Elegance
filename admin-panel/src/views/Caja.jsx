@@ -384,7 +384,10 @@ export default function Caja() {
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-emerald-500/10 border-2 border-emerald-500/30 mb-4">
             <Wallet size={36} className="text-emerald-400" />
           </div>
-          <h1 className="text-2xl font-black text-white mb-1">Control de Caja</h1>
+          <div className="flex items-center justify-center gap-2 mb-1">
+            <h1 className="text-2xl font-black text-white">Control de Caja</h1>
+            <HelpButton onClick={() => setShowHelp(true)} />
+          </div>
           <p className="text-slate-400 text-sm">Abre la caja para comenzar a registrar las transacciones del día.</p>
         </div>
 
@@ -463,6 +466,7 @@ export default function Caja() {
         <div>
           <h1 className="text-xl font-black text-white flex items-center gap-2">
             <Wallet size={22} className="text-emerald-400" /> Caja Activa
+            <HelpButton onClick={() => setShowHelp(true)} />
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
             Abierta por {sesionActiva.usuarioApertura || '-'} a las {fmtTime(sesionActiva.fechaApertura)} · Apertura: {fmtCurrency(kpis.apertura)}
@@ -686,6 +690,34 @@ export default function Caja() {
             </button>
           </div>
         </MiniModal>
+      )}
+
+      {/* Modal de ayuda */}
+      {showHelp && (
+        <HelpModal title="Cómo usar la Caja" onClose={() => setShowHelp(false)}>
+          <p><strong className="text-white">La caja</strong> centraliza todo el dinero del día: cierres, propinas, productos, gastos y retiros — todo en un solo sitio.</p>
+
+          <div>
+            <p className="font-semibold text-emerald-400 mb-1">1. Abrir la caja</p>
+            <p>Al inicio del día tocá <em>"Abrir Caja"</em> e ingresá el <strong className="text-white">monto inicial en efectivo</strong> (lo que tenés físico en el cajón). Sin caja abierta no se registran transacciones del día.</p>
+          </div>
+
+          <div>
+            <p className="font-semibold text-emerald-400 mb-1">2. Durante el día</p>
+            <ul className="list-disc ml-4 space-y-1">
+              <li>Las <strong className="text-white">citas completadas</strong> en /agenda suman automáticamente.</li>
+              <li>Las <strong className="text-white">ventas de productos</strong> (rápidas o en el ticket de cita) también se cuentan solas.</li>
+              <li>Si retirás efectivo (banco, gasto urgente, etc.), tocá <em>"Egreso / Retiro"</em> para dejarlo registrado.</li>
+            </ul>
+          </div>
+
+          <div>
+            <p className="font-semibold text-emerald-400 mb-1">3. Cerrar la caja</p>
+            <p>Al final del día, tocá <em>"Cerrar Caja"</em> e ingresá lo que <strong className="text-white">contaste físicamente en efectivo</strong>. El sistema compara con lo esperado y muestra el <strong className="text-white">descuadre</strong> (positivo = sobrante, negativo = faltante). Queda en historial para auditar.</p>
+          </div>
+
+          <p className="text-xs text-amber-400 bg-amber-400/5 border border-amber-400/20 rounded-lg px-3 py-2">💡 Solo puede haber <strong>una caja abierta a la vez</strong>. Si olvidaste cerrar la del día anterior, ciérrala antes de abrir la de hoy.</p>
+        </HelpModal>
       )}
     </div>
   );

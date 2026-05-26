@@ -437,8 +437,11 @@ function ClientePanel({ cliente: init, premios, onClose }) {
 }
 
 /* ── Modal: clientes sin registro ───────────────────────────────── */
-function SinRegistroModal({ sinRegistro, shopName, registroUrl, onClose }) {
+function SinRegistroModal({ sinRegistro, shopName, registroUrl, onClose, mode = 'sinRegistro' }) {
   const [search, setSearch] = useState('');
+  const [sendingKey, setSendingKey] = useState(null);
+
+  const isMigrados = mode === 'migrados';
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -451,8 +454,10 @@ function SinRegistroModal({ sinRegistro, shopName, registroUrl, onClose }) {
 
   const waMsg = (nombre) => {
     const name = shopName.normalize('NFKC');
-    const msg = `¡Hola ${nombre || 'ahí'}! 👋 Gracias por visitarnos en ${name}. Tenemos un club de fidelidad donde acumulas sellos y ganas premios gratis 🎁. ¡Únete registrándote aquí! 👉 ${registroUrl}`;
-    return msg;
+    if (isMigrados) {
+      return `¡Hola ${nombre || 'ahí'}! 👋 Soy de *${name}*. Estamos estrenando nuestro Club de Fidelidad nuevo y, como ya eres cliente, te invitamos a unirte 🎁\n\nEs gratis: por cada visita acumulas sellos que canjeas por premios. Te demoras 1 minuto en activarte 👉 ${registroUrl}\n\n¡Te esperamos!`;
+    }
+    return `¡Hola ${nombre || 'ahí'}! 👋 Gracias por visitarnos en ${name}. Tenemos un club de fidelidad donde acumulas sellos y ganas premios gratis 🎁. ¡Únete registrándote aquí! 👉 ${registroUrl}`;
   };
 
   const waUrl = (telefono, nombre) => {
@@ -461,6 +466,34 @@ function SinRegistroModal({ sinRegistro, shopName, registroUrl, onClose }) {
     const num = raw.startsWith('56') ? raw : `56${raw}`;
     return `https://wa.me/${num}?text=${encodeURIComponent(waMsg(nombre))}`;
   };
+
+  // Solo persistimos en Firestore para clientes migrados (su key === id del doc en users/).
+  // Para "sin registro" (clientes sin doc en users/), no hay nada donde persistir.
+  const persistirInvitacion = async (key) => {
+    if (!isMigrados || !key) return;
+    setSendingKey(key);
+    try {
+      await updateDoc(doc(tenantCol('users'), key), {
+        invitacionEnviadaAt: serverTimestamp(),
+      });
+    } catch (e) {
+      console.warn('[invitar] no se pudo persistir invitacionEnviadaAt:', e.message);
+    } finally {
+      setSendingKey(null);
+    }
+  };
+
+  const fechaCorta = (ts) => {
+    if (!ts) return '';
+    const d = ts.toDate ? ts.toDate() : new Date(ts);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('es-CL', { day: '2-digit', month: 'short' });
+  };
+
+  const enviadosCount = useMemo(
+    () => sinRegistro.filter(c => c.invitacionEnviadaAt).length,
+    [sinRegistro],
+  );
 
   return (
     <div
@@ -474,13 +507,23 @@ function SinRegistroModal({ sinRegistro, shopName, registroUrl, onClose }) {
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800">
           <div>
             <div className="flex items-center gap-2">
-              <UserX size={15} className="text-amber-400" />
-              <h3 className="font-semibold text-white">Clientes sin registro</h3>
+              {isMigrados ? (
+                <Send size={15} className="text-amber-400" />
+              ) : (
+                <UserX size={15} className="text-amber-400" />
+              )}
+              <h3 className="font-semibold text-white">
+                {isMigrados ? 'Invitar clientes migrados' : 'Clientes sin registro'}
+              </h3>
               <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-400/10 border border-amber-400/30 text-amber-400">
                 {sinRegistro.length}
               </span>
             </div>
-            <p className="text-xs text-slate-500 mt-0.5">Han agendado pero no se han unido al club de fidelidad</p>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {isMigrados
+                ? 'Clientes traídos de AgendaPro. Aún no se han unido al Club.'
+                : 'Han agendado pero no se han unido al club de fidelidad'}
+            </p>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-slate-800 transition-all">
             <X size={16} />
@@ -498,7 +541,14 @@ function SinRegistroModal({ sinRegistro, shopName, registroUrl, onClose }) {
               className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-8 pr-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-slate-500 transition-colors"
             />
           </div>
-          <p className="text-xs text-slate-600 mt-2 mb-1">{filtered.length} cliente{filtered.length !== 1 ? 's' : ''}</p>
+          <div className="flex items-center justify-between mt-2 mb-1">
+            <p className="text-xs text-slate-600">{filtered.length} cliente{filtered.length !== 1 ? 's' : ''}</p>
+            {isMigrados && enviadosCount > 0 && (
+              <p className="text-xs text-emerald-400 font-semibold">
+                {enviadosCount} / {sinRegistro.length} ya invitado{enviadosCount !== 1 ? 's' : ''}
+              </p>
+            )}
+          </div>
         </div>
 
         {/* Lista */}
@@ -510,8 +560,11 @@ function SinRegistroModal({ sinRegistro, shopName, registroUrl, onClose }) {
             </div>
           ) : filtered.map(c => {
             const url = waUrl(c.telefono, c.nombre);
+            const yaEnviado = !!c.invitacionEnviadaAt;
+            const fecha = yaEnviado ? fechaCorta(c.invitacionEnviadaAt) : '';
+            const sending = sendingKey === c.key;
             return (
-              <div key={c.key} className="flex items-center gap-3 bg-slate-800/50 border border-slate-800 rounded-xl px-4 py-3">
+              <div key={c.key} className={`flex items-center gap-3 bg-slate-800/50 border rounded-xl px-4 py-3 transition-all ${yaEnviado ? 'border-emerald-500/30 opacity-70' : 'border-slate-800'}`}>
                 {/* Avatar */}
                 <div className="w-9 h-9 rounded-full bg-slate-700 flex items-center justify-center shrink-0">
                   <span className="text-xs font-bold text-slate-300">
@@ -524,7 +577,15 @@ function SinRegistroModal({ sinRegistro, shopName, registroUrl, onClose }) {
                   <p className="text-sm font-semibold text-white truncate">{c.nombre || 'Sin nombre'}</p>
                   <div className="flex items-center gap-2 mt-0.5">
                     {c.telefono && <span className="text-[10px] text-slate-500">{c.telefono}</span>}
-                    <span className="text-[10px] font-bold text-blue-400/80">{c.count} cita{c.count !== 1 ? 's' : ''}</span>
+                    {!isMigrados && c.count != null && (
+                      <span className="text-[10px] font-bold text-blue-400/80">{c.count} cita{c.count !== 1 ? 's' : ''}</span>
+                    )}
+                    {isMigrados && c.email && (
+                      <span className="text-[10px] text-slate-600 truncate">{c.email}</span>
+                    )}
+                    {isMigrados && yaEnviado && fecha && (
+                      <span className="text-[10px] font-bold text-emerald-400/90">✓ {fecha}</span>
+                    )}
                   </div>
                 </div>
 
@@ -534,12 +595,15 @@ function SinRegistroModal({ sinRegistro, shopName, registroUrl, onClose }) {
                     href={url}
                     target="_blank"
                     rel="noreferrer"
+                    onClick={() => persistirInvitacion(c.key)}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold shrink-0 transition-all hover:opacity-90 active:scale-95"
-                    style={{ background: '#25D366', color: '#fff' }}
+                    style={yaEnviado
+                      ? { background: 'rgba(16,185,129,0.15)', color: '#34d399', border: '1px solid rgba(16,185,129,0.4)' }
+                      : { background: '#25D366', color: '#fff' }}
                     title={`Enviar invitación a ${c.nombre}`}
                   >
                     <Send size={11} />
-                    Invitar
+                    {sending ? '...' : (yaEnviado ? 'Reenviar' : 'Invitar')}
                   </a>
                 ) : (
                   <span className="text-[10px] text-slate-600 shrink-0">Sin teléfono</span>
@@ -551,9 +615,9 @@ function SinRegistroModal({ sinRegistro, shopName, registroUrl, onClose }) {
 
         {/* Footer: mensaje de referencia */}
         <div className="px-5 py-3 border-t border-slate-800 bg-slate-800/20 rounded-b-2xl">
-          <p className="text-[10px] text-slate-600 leading-relaxed">
-            <span className="text-slate-500 font-semibold">Mensaje enviado:</span>{' '}
-            "¡Hola! 👋 Gracias por visitarnos en {shopName}. Únete al club de fidelidad y gana premios 🎁 👉 {registroUrl}"
+          <p className="text-[10px] text-slate-500 font-semibold mb-1">Mensaje que se enviará:</p>
+          <p className="text-[10px] text-slate-600 leading-relaxed whitespace-pre-wrap">
+            {waMsg('{nombre}').replace(registroUrl, '👉 ' + registroUrl)}
           </p>
         </div>
 
@@ -572,7 +636,18 @@ const LOADING_PHRASES = [
 
 function buildRecommendations(stats) {
   const recs = [];
-  const { total, avg, riesgo, conPremio, totalCitas, cumple, silver, gold, platinum } = stats;
+  const { total, avg, riesgo, conPremio, totalCitas, cumple, silver, gold, platinum, migradosPendientes, migradosInvitados } = stats;
+
+  if (migradosPendientes >= 10) {
+    const pctEstimado = Math.round(migradosPendientes * 0.15);
+    recs.push(
+      `Tenés ${migradosPendientes} clientes migrados de AgendaPro que aún no se unieron al Club` +
+      (migradosInvitados > 0 ? ` (${migradosInvitados} ya invitados).` : '.') +
+      ` Activarlos con una campaña de WhatsApp puede convertir ${pctEstimado}–${Math.round(migradosPendientes * 0.25)} ` +
+      `en miembros activos esta semana, sumando base de fidelización sin costo de adquisición. ` +
+      `Usá el botón "Invitar migrados" arriba para enviarles el link de registro.`
+    );
+  }
 
   if (riesgo >= 3) {
     recs.push(
@@ -694,6 +769,12 @@ function IAModal({ stats, shopName, onClose }) {
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-[#D4AF37]">Synaptech IA</p>
                 <h3 className="text-sm font-bold text-white leading-none">Recomendación para {shopName}</h3>
+                <p className="text-[9px] text-slate-500 mt-1.5">
+                  Analiza {stats.total} cliente{stats.total !== 1 ? 's' : ''} del Club
+                  {(stats.migradosPendientes + stats.migradosInvitados) > 0 && (
+                    <> · {stats.migradosPendientes + stats.migradosInvitados} migrado{(stats.migradosPendientes + stats.migradosInvitados) !== 1 ? 's' : ''} excluido{(stats.migradosPendientes + stats.migradosInvitados) !== 1 ? 's' : ''}</>
+                  )}
+                </p>
               </div>
             </div>
             <button onClick={onClose}
@@ -766,19 +847,27 @@ export default function Clientes() {
       .catch(() => {});
   }, []);
 
-  const [search,          setSearch]          = useState('');
-  const [filtro,          setFiltro]          = useState('todos');
-  const [showHelp,        setShowHelp]        = useState(false);
-  const [selected,        setSelected]        = useState(null);
-  const [showSinRegistro, setShowSinRegistro] = useState(false);
-  const [showIA,          setShowIA]          = useState(false);
-  const [page,            setPage]            = useState(1);
+  const [search,                setSearch]                = useState('');
+  const [filtro,                setFiltro]                = useState('todos');
+  const [showHelp,              setShowHelp]              = useState(false);
+  const [selected,              setSelected]              = useState(null);
+  const [showSinRegistro,       setShowSinRegistro]       = useState(false);
+  const [showInvitarMigrados,   setShowInvitarMigrados]   = useState(false);
+  const [showIA,                setShowIA]                = useState(false);
+  const [page,                  setPage]                  = useState(1);
 
   useEffect(() => { setPage(1); }, [search, filtro]);
 
   const registroUrl = `${PROD_DOMAINS[tenantId] || window.location.origin}/registro.html`;
 
   const sellos = c => c.sellosDisponibles ?? c.stamps ?? 0;
+
+  // Cliente "legacy" = migrado de AgendaPro, NUNCA se registró en el Club.
+  // El doc legacy se creó con uid === id (telefono) por la migración. El doc del
+  // registro real nunca tiene campo `uid` (Firebase Auth no lo escribe), así que
+  // ésta es la única señal univoca. NO usar importedFrom: la dedup-script lo
+  // copia al doc real como marca histórica → daría falsos positivos.
+  const isLegacy = c => !!c?.uid && c?.uid === c?.id;
 
   const citasPorEmail = useMemo(() => {
     const map = {};
@@ -787,6 +876,28 @@ export default function Clientes() {
     });
     return map;
   }, [todasCitas]);
+
+  /* Clientes migrados (legacy de AgendaPro, no se han unido al Club).
+     Ordena: NO invitados primero (para que el admin retome donde dejó). */
+  const migrados = useMemo(() =>
+    clientes
+      .filter(isLegacy)
+      .map(c => ({
+        key:                  c.id,
+        nombre:               c.nombre   || '',
+        telefono:             c.telefono || c.id || '',
+        email:                c.email    || '',
+        invitacionEnviadaAt:  c.invitacionEnviadaAt || null,
+      }))
+      .sort((a, b) => {
+        const aDone = !!a.invitacionEnviadaAt;
+        const bDone = !!b.invitacionEnviadaAt;
+        if (aDone !== bDone) return aDone ? 1 : -1; // pendientes primero
+        return (a.nombre || '').localeCompare(b.nombre || '');
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [clientes]
+  );
 
   /* Clientes sin registro: han agendado pero no están en /users */
   const sinRegistro = useMemo(() => {
@@ -820,9 +931,14 @@ export default function Clientes() {
     return Object.values(map).sort((a, b) => b.count - a.count);
   }, [todasCitas, clientes]);
 
+  /* Clientes "reales" del Club = excluye legacies migrados de AgendaPro.
+     Se usa para todas las métricas de fidelización (IA, riesgo, tiers, avg de sellos).
+     Los legacies inflan el total y meten ceros en el promedio porque NUNCA usaron el Club. */
+  const clientesReales = useMemo(() => clientes.filter(c => !isLegacy(c)), [clientes]);
+
   const clientesEnRiesgo = useMemo(() => {
     const ahora = Date.now();
-    return clientes
+    return clientesReales
       .filter(c => {
         if (!c.ultimoSello) return false;
         const historicos = c.sellosHistoricos ?? c.stamps ?? 0;
@@ -836,7 +952,7 @@ export default function Clientes() {
       }))
       .sort((a, b) => b.diasSinVisita - a.diasSinVisita)
       .slice(0, 5);
-  }, [clientes]);
+  }, [clientesReales]);
 
   const sorted = useMemo(() =>
     [...clientes].sort((a, b) => sellos(b) - sellos(a) || (a.nombre || '').localeCompare(b.nombre || '')),
@@ -847,6 +963,8 @@ export default function Clientes() {
 
   const applyFiltro = c => {
     if (filtro === 'todos') return true;
+    if (filtro === 'migrados')    return isLegacy(c);
+    if (filtro === 'registrados') return !isLegacy(c);
     const disponibles = c.sellosDisponibles ?? c.stamps ?? 0;
     const historicos  = c.sellosHistoricos  ?? c.stamps ?? 0;
     if (filtro === 'premio') return premios.some(p => disponibles >= p.costoSellos);
@@ -878,6 +996,8 @@ export default function Clientes() {
   const pageCount = Math.ceil(filtered.length / PAGE_SIZE);
   const paged     = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
+  /* KPIs visibles del panel: incluyen TODOS los clientes (registrados + migrados).
+     Es la metrica de "tamaño de la base de contactos" del local. */
   const total  = clientes.length;
   const avg    = total ? (clientes.reduce((s, c) => s + sellos(c), 0) / total).toFixed(1) : 0;
   const conPremio = premios.length
@@ -885,18 +1005,33 @@ export default function Clientes() {
     : clientes.filter(c => sellos(c) >= 5).length;
   const totalCitasGlobal = todasCitas.length;
 
-  const iaStats = useMemo(() => ({
-    total,
-    avg,
-    riesgo:     clientesEnRiesgo.length,
-    conPremio,
-    totalCitas: totalCitasGlobal,
-    cumple:     clientes.filter(c => c.cumpleDia?.startsWith(mesActual + '-')).length,
-    silver:     clientes.filter(c => calcTier(c.sellosHistoricos ?? c.stamps ?? 0) === 'SILVER').length,
-    gold:       clientes.filter(c => calcTier(c.sellosHistoricos ?? c.stamps ?? 0) === 'GOLD').length,
-    platinum:   clientes.filter(c => calcTier(c.sellosHistoricos ?? c.stamps ?? 0) === 'PLATINUM').length,
+  /* Stats para el analisis IA: SOLO clientes reales del Club (no migrados).
+     Asi avg, tiers, cumple, etc. no se inflan con los 595 legacies en 0 sellos.
+     migradosPendientes/Invitados se exponen para la recomendacion especifica. */
+  const iaStats = useMemo(() => {
+    const totalReales      = clientesReales.length;
+    const sumSellos        = clientesReales.reduce((s, c) => s + sellos(c), 0);
+    const avgReales        = totalReales ? (sumSellos / totalReales).toFixed(1) : 0;
+    const conPremioReales  = premios.length
+      ? clientesReales.filter(c => sellos(c) >= premios[0]?.costoSellos).length
+      : clientesReales.filter(c => sellos(c) >= 5).length;
+    const totalMigrados    = clientes.length - totalReales;
+    const yaInvitados      = clientes.filter(c => isLegacy(c) && c.invitacionEnviadaAt).length;
+    return {
+      total:              totalReales,
+      avg:                avgReales,
+      riesgo:             clientesEnRiesgo.length,
+      conPremio:          conPremioReales,
+      totalCitas:         totalCitasGlobal,
+      cumple:             clientesReales.filter(c => c.cumpleDia?.startsWith(mesActual + '-')).length,
+      silver:             clientesReales.filter(c => calcTier(c.sellosHistoricos ?? c.stamps ?? 0) === 'SILVER').length,
+      gold:               clientesReales.filter(c => calcTier(c.sellosHistoricos ?? c.stamps ?? 0) === 'GOLD').length,
+      platinum:           clientesReales.filter(c => calcTier(c.sellosHistoricos ?? c.stamps ?? 0) === 'PLATINUM').length,
+      migradosPendientes: totalMigrados - yaInvitados,
+      migradosInvitados:  yaInvitados,
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [total, avg, clientesEnRiesgo.length, conPremio, totalCitasGlobal, clientes.length]);
+  }, [clientes, clientesReales, clientesEnRiesgo.length, totalCitasGlobal, mesActual, premios]);
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -917,6 +1052,19 @@ export default function Clientes() {
             <img src="/logo1.png" alt="Synaptech" className="w-3.5 h-3.5 object-contain opacity-80" />
             Synaptech IA
           </button>
+          {migrados.length > 0 && (
+            <button
+              onClick={() => setShowInvitarMigrados(true)}
+              className="relative flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold border border-emerald-500/30 bg-emerald-500/5 text-emerald-400 hover:bg-emerald-500/10 transition-all shrink-0"
+              title="Enviar invitación al Club a clientes migrados de AgendaPro"
+            >
+              <Send size={13} />
+              Invitar migrados
+              <span className="ml-0.5 px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-black text-[10px]">
+                {migrados.length}
+              </span>
+            </button>
+          )}
           <button
           onClick={() => setShowSinRegistro(true)}
           className="relative flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold border border-amber-500/30 bg-amber-400/5 text-amber-400 hover:bg-amber-400/10 transition-all shrink-0"
@@ -1032,7 +1180,9 @@ export default function Clientes() {
       {/* Filtros */}
       <div className="flex gap-1.5 mb-4 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
         {[
-          { id: 'todos',    label: 'Todos' },
+          { id: 'todos',       label: 'Todos' },
+          { id: 'registrados', label: 'Registrados Club' },
+          { id: 'migrados',    label: 'Migrados' },
           { id: 'premio',   label: '🏆 Con premio' },
           { id: 'cumple',   label: `🎂 Cumple en ${new Date().toLocaleString('es-CL', { month: 'long' })}` },
           { id: 'sin30',    label: 'Sin visita 30d' },
@@ -1047,6 +1197,8 @@ export default function Clientes() {
             f.id === 'platinum' ? (active ? 'bg-violet-500/20 border-violet-400 text-violet-300' : 'border-violet-400/20 text-violet-400 hover:bg-violet-500/10') :
             f.id === 'gold'     ? (active ? 'bg-yellow-500/20 border-yellow-400 text-yellow-300' : 'border-yellow-400/20 text-yellow-400 hover:bg-yellow-500/10') :
             f.id === 'silver'   ? (active ? 'bg-slate-500/40 border-slate-400 text-slate-200'    : 'border-slate-600 text-slate-400 hover:bg-slate-700') :
+            f.id === 'migrados' ? (active ? 'bg-amber-500/20 border-amber-400 text-amber-300'    : 'border-amber-400/25 text-amber-400/90 hover:bg-amber-500/10') :
+            f.id === 'registrados' ? (active ? 'bg-blue-500/20 border-blue-400 text-blue-300'    : 'border-blue-400/25 text-blue-400/90 hover:bg-blue-500/10') :
             active ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300' : 'border-slate-700 text-slate-400 hover:bg-slate-800';
           return (
             <button key={f.id} onClick={() => setFiltro(f.id)}
@@ -1096,7 +1248,17 @@ export default function Clientes() {
                         : <span className="text-xs font-bold text-slate-400">{initials(c.nombre || c.email || '?')}</span>}
                     </div>
                     <div className="min-w-0">
-                      <p className="font-semibold text-white text-sm truncate group-hover:text-emerald-400 transition-colors">{c.nombre || '—'}</p>
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <p className="font-semibold text-white text-sm truncate group-hover:text-emerald-400 transition-colors">{c.nombre || '—'}</p>
+                        {isLegacy(c) && (
+                          <span
+                            title="Cliente importado desde AgendaPro. Aún no se ha registrado en el Club."
+                            className="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded border border-amber-500/40 bg-amber-500/10 text-amber-300 uppercase tracking-wider"
+                          >
+                            Migrado
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs text-slate-500 truncate">{c.email}</p>
                       {numCitas > 0 && (
                         <p className="text-[10px] text-blue-400/70 font-semibold">{numCitas} cita{numCitas !== 1 ? 's' : ''}</p>
@@ -1158,6 +1320,17 @@ export default function Clientes() {
         />
       )}
 
+      {/* Modal invitar migrados al Club */}
+      {showInvitarMigrados && (
+        <SinRegistroModal
+          mode="migrados"
+          sinRegistro={migrados}
+          shopName={shopName}
+          registroUrl={registroUrl}
+          onClose={() => setShowInvitarMigrados(false)}
+        />
+      )}
+
       {/* Client detail SlideOver */}
       <SlideOver isOpen={!!selected} onClose={() => setSelected(null)}
         title={selected?.nombre || 'Cliente'}
@@ -1181,15 +1354,44 @@ export default function Clientes() {
       )}
 
       {showHelp && (
-        <HelpModal title="Ayuda — Clientes y Fidelización" onClose={() => setShowHelp(false)}>
-          <p>En <strong className="text-white">Clientes</strong> gestionas el programa de fidelización por sellos.</p>
-          <ul className="space-y-1.5 list-disc list-inside text-slate-400">
-            <li>Busca clientes por nombre o teléfono con la barra de búsqueda.</li>
-            <li>Haz clic en un cliente para ver su historial y <span className="text-white">agregar o retirar sellos</span> manualmente.</li>
-            <li>Los sellos se acumulan automáticamente al completar citas con precio definido.</li>
-            <li>Al alcanzar el costo de un <span className="text-white">Premio</span>, el sistema lo desbloquea para el cliente.</li>
-            <li>El sello de <span className="text-white">cumpleaños</span> se otorga automáticamente el día del cumpleaños del cliente.</li>
-          </ul>
+        <HelpModal title="Cómo usar Clientes y Fidelización" onClose={() => setShowHelp(false)}>
+          <p>Acá vivís el día a día del <strong className="text-white">Club de Fidelidad</strong>: sellos, premios y campañas para activar a tus clientes.</p>
+
+          <div>
+            <p className="font-semibold text-emerald-400 mb-1">Buscar y filtrar</p>
+            <ul className="list-disc ml-4 space-y-1">
+              <li>Buscá por <strong className="text-white">nombre, email o teléfono</strong>.</li>
+              <li>Filtros: <em>Registrados Club</em> (azul) vs <em>Migrados</em> (ámbar), tiers SILVER/GOLD/PLATINUM, con premio, cumple en este mes, sin visita 30/60/90 días.</li>
+              <li>Tocá una fila para abrir el detalle: historial, sellos manuales (suma/resta) y canje de premios.</li>
+            </ul>
+          </div>
+
+          <div>
+            <p className="font-semibold text-emerald-400 mb-1">Sellos automáticos</p>
+            <p>Al marcar una cita como <strong className="text-white">Completada</strong> en /agenda, la Cloud Function suma 1 sello al cliente (o descuenta un uso si tiene membresía activa). El sello de <strong className="text-white">cumpleaños</strong> se otorga automáticamente.</p>
+          </div>
+
+          <div>
+            <p className="font-semibold text-emerald-400 mb-1">Badge "MIGRADO" (ámbar)</p>
+            <p>Cliente importado de AgendaPro que <strong className="text-white">aún no se registró en el Club</strong>. Cuando se registre, el badge desaparece y sus datos se fusionan automáticamente (sellos, antigüedad).</p>
+          </div>
+
+          <div>
+            <p className="font-semibold text-emerald-400 mb-1">Botón "Invitar migrados" (verde)</p>
+            <p>Lista de migrados con un botón WhatsApp por cliente. Mensaje precargado con link de registro. Marca persistente en Firestore — al volver, ya sabés a quién enviaste invitación.</p>
+          </div>
+
+          <div>
+            <p className="font-semibold text-emerald-400 mb-1">Botón "Sin registro" (ámbar)</p>
+            <p>Clientes que ya agendaron pero <strong>no abrieron cuenta en el Club</strong>. Misma campaña, mensaje distinto ("gracias por visitarnos").</p>
+          </div>
+
+          <div>
+            <p className="font-semibold text-emerald-400 mb-1">Synaptech IA</p>
+            <p>Te da recomendaciones accionables (recuperar clientes en riesgo, contactar a los que tienen premio sin canjear, etc.). Analiza <strong className="text-white">solo clientes reales del Club</strong> — excluye migrados para no sesgar promedios.</p>
+          </div>
+
+          <p className="text-xs text-amber-400 bg-amber-400/5 border border-amber-400/20 rounded-lg px-3 py-2">💡 Los <strong>KPIs superiores</strong> (Clientes, Avg sellos) sí incluyen migrados — representan el tamaño total de tu base. Si querés activarlos, "Invitar migrados" es tu palanca.</p>
         </HelpModal>
       )}
     </div>

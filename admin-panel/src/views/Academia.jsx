@@ -6,6 +6,7 @@ import {
 import { getDocs, query, orderBy, setDoc, doc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { tenantCol } from '../lib/tenantUtils';
+import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 
 /* ── Componentes de UI ───────────────────────────────────────────── */
 function Card({ children, className = '' }) {
@@ -24,6 +25,7 @@ const TABS = [
 
 export default function Academia() {
   const [activeTab, setActiveTab] = useState('cursos');
+  const [showHelp,  setShowHelp]  = useState(false);
 
   return (
     <div className="max-w-6xl mx-auto flex flex-col h-[calc(100vh-theme(spacing.20))]">
@@ -32,6 +34,7 @@ export default function Academia() {
         <h1 className="text-2xl font-bold text-white mb-2 flex items-center gap-3">
           <GraduationCap className="text-emerald-500" size={28} />
           Academia
+          <HelpButton onClick={() => setShowHelp(true)} />
         </h1>
         <p className="text-sm text-slate-400">
           Gestiona tus cursos, alumnos inscritos y material de estudio.
@@ -64,6 +67,29 @@ export default function Academia() {
         {activeTab === 'alumnos' && <TabAlumnos />}
         {activeTab === 'material' && <TabMaterial />}
       </div>
+
+      {showHelp && (
+        <HelpModal title="Cómo usar la Academia" onClose={() => setShowHelp(false)}>
+          <p>Acá organizás los <strong className="text-white">cursos que impartís</strong> en tu barbería: alumnos inscritos, material de estudio y seguimiento de avance.</p>
+
+          <div>
+            <p className="font-semibold text-emerald-400 mb-1">Pestaña "Cursos"</p>
+            <p>Creá cursos con nombre, descripción, fecha de inicio/fin y precio. Cada curso es un programa formativo (ej. "Fade nivel intermedio", "Barba clásica").</p>
+          </div>
+
+          <div>
+            <p className="font-semibold text-emerald-400 mb-1">Pestaña "Alumnos"</p>
+            <p>Lista de personas inscritas con su email, teléfono y al curso al que pertenecen. Útil para enviarles material o avisos.</p>
+          </div>
+
+          <div>
+            <p className="font-semibold text-emerald-400 mb-1">Pestaña "Material"</p>
+            <p>Subí PDFs, links a videos o documentos que los alumnos puedan consultar. Cada material se asocia a un curso.</p>
+          </div>
+
+          <p className="text-xs text-amber-400 bg-amber-400/5 border border-amber-400/20 rounded-lg px-3 py-2">💡 Esta sección es independiente del flujo de citas/fidelización. Los alumnos no se vuelven automáticamente miembros del Club — son contactos separados.</p>
+        </HelpModal>
+      )}
     </div>
   );
 }

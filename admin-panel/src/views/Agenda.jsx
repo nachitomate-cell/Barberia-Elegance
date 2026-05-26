@@ -244,17 +244,22 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
   }, [clientes, form.clienteNombre]);
 
   const selectCliente = async c => {
+    // Cliente legacy = migrado de AgendaPro, sin cuenta real en el Club.
+    // Solo `uid === id` lo identifica unívocamente (uid generado por la migración
+    // == telefono == id del doc). NO usar importedFrom: la dedup lo agrega al doc
+    // real como marca histórica → daría falso positivo en clientes ya registrados.
+    const esLegacy = !!c?.uid && c?.uid === c?.id;
     setForm(f => ({
       ...f,
       clienteNombre:   c.nombre   || '',
       clienteEmail:    c.email    || '',
       clienteTelefono: c.telefono || '',
-      clienteId:       c.id,
+      clienteId:       esLegacy ? null : c.id,
     }));
     setShowSugg(false);
 
-    // Si el cliente tiene cuenta registrada, enriquecer con datos más completos del perfil
-    if (c.uid) {
+    // Si el cliente tiene cuenta registrada (no legacy), enriquecer con datos más completos
+    if (c.uid && !esLegacy) {
       try {
         const snap = await getDoc(doc(tenantCol('users'), c.uid));
         if (snap.exists()) {
@@ -516,9 +521,12 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
                   <p className="text-sm text-white font-medium truncate">{c.nombre}</p>
                   {c.telefono && <p className="text-xs text-slate-500 truncate">{c.telefono}</p>}
                 </div>
-                {c.uid && (
-                  <span className="text-[10px] text-emerald-500/80 font-semibold shrink-0">Club</span>
-                )}
+                {(() => {
+                  const esLegacy = !!c.uid && c.uid === c.id;
+                  if (esLegacy) return <span className="text-[10px] text-amber-400/80 font-semibold shrink-0">Migrado</span>;
+                  if (c.uid)    return <span className="text-[10px] text-emerald-500/80 font-semibold shrink-0">Club</span>;
+                  return null;
+                })()}
               </button>
             ))}
           </div>
@@ -2043,15 +2051,48 @@ export default function Agenda() {
         <HistorialModal onClose={() => setShowHistorial(false)} />
       )}
       {showHelp && (
-        <HelpModal title="Ayuda — Agenda" onClose={() => setShowHelp(false)}>
-          <p>La <strong className="text-white">Agenda</strong> muestra las citas del día organizadas por barbero en columnas.</p>
-          <ul className="space-y-1.5 list-disc list-inside text-slate-400">
-            <li>Navega entre días con las flechas o el botón <span className="text-white">Hoy</span>.</li>
-            <li>Haz clic en un horario vacío para <span className="text-white">crear una cita</span>.</li>
-            <li>Haz clic en una cita existente para <span className="text-white">editar su estado</span> (Confirmada, Completada, Cancelada) o eliminarla.</li>
-            <li>Usa <span className="text-white">Bloquear</span> para marcar horas no disponibles (día libre, vacaciones, etc.).</li>
-            <li>Al completar una cita se solicitará reseña al cliente automáticamente.</li>
-          </ul>
+        <HelpModal title="Cómo usar la Agenda" onClose={() => setShowHelp(false)}>
+          <p>La <strong className="text-white">Agenda</strong> muestra las citas del día por barbero en columnas. Es tu pantalla central de operación.</p>
+
+          <div>
+            <p className="font-semibold text-emerald-400 mb-1">Navegación</p>
+            <ul className="list-disc ml-4 space-y-1">
+              <li>Flechas ◀ ▶ o botón <em>Hoy</em> para cambiar de día.</li>
+              <li>En móvil, los barberos quedan en pestañas; en desktop ves columnas paralelas.</li>
+            </ul>
+          </div>
+
+          <div>
+            <p className="font-semibold text-emerald-400 mb-1">Crear cita</p>
+            <p>Tocá un horario vacío. Si escribís un nombre con coincidencia, autocompleta. Si el cliente es <strong className="text-white">"Migrado"</strong>, autocompleta datos pero NO se marca como "Vinculado" al Club (no se ha registrado aún).</p>
+          </div>
+
+          <div>
+            <p className="font-semibold text-emerald-400 mb-1">Editar cita</p>
+            <p>Tocá una cita existente para cambiar barbero, hora, estado, etc. <strong className="text-white">Cambios de barbero u hora también actualizan el bloqueo del slot</strong> automáticamente (no queda el slot viejo bloqueado).</p>
+          </div>
+
+          <div>
+            <p className="font-semibold text-emerald-400 mb-1">Productos del Ticket</p>
+            <p>En el modal de edición, abajo del Estado, hay una sección <strong className="text-white">"Productos del Ticket"</strong> para sumar productos vendidos junto al servicio. Descuenta stock y se cuentan en Caja/Métricas como ventas reales.</p>
+          </div>
+
+          <div>
+            <p className="font-semibold text-emerald-400 mb-1">Marcar como Completada</p>
+            <p>Cambiá el estado a <em>Completada</em> al final de la atención. Esto dispara:</p>
+            <ul className="list-disc ml-4 space-y-1 mt-1">
+              <li>+1 sello al cliente (o descuenta uso de membresía).</li>
+              <li>Modal de <strong className="text-white">calificación Google</strong> al cliente cuando entre a su dashboard.</li>
+              <li>Cita pasa al historial y al cierre del día en Caja.</li>
+            </ul>
+          </div>
+
+          <div>
+            <p className="font-semibold text-emerald-400 mb-1">Bloqueos</p>
+            <p>Botón <em>Bloquear</em> para marcar día libre, vacaciones u horas no disponibles. Se ve en el booking público también para evitar reservas.</p>
+          </div>
+
+          <p className="text-xs text-amber-400 bg-amber-400/5 border border-amber-400/20 rounded-lg px-3 py-2">💡 Botón verde <strong>WhatsApp</strong> arriba a la derecha = soporte directo a SynapTech si algo no funciona.</p>
         </HelpModal>
       )}
     </div>
