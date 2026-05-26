@@ -102,8 +102,21 @@ async function procesarSello({ tenantId, citaId, citaRef, cita }) {
   const barberoId      = cita.barberoId  || null;
 
   if (!telefono) {
-    logger.warn(`[Sello] ${citaId}: sin teléfono en la cita, saltando sin marcar procesado.`);
-    return; // no marcar selloProcesado para que reintente si se actualiza el teléfono
+    logger.warn(`[Sello] ${citaId}: sin teléfono en la cita. No suma sello pero igual habilita el modal de Google review.`);
+    // Aun sin teléfono, asegurar que el cliente vea la pantalla de calificación al abrir su dashboard.
+    // Marcamos selloProcesado=true para no reintentar (la cita ya no cambiará de teléfono retroactivamente
+    // en flujos normales; si el admin lo agrega después puede usar el botón "Añadir sello" manual).
+    try {
+      await citaRef.update({
+        selloProcesado:      true,
+        selloProcesadoEn:    Timestamp.now(),
+        selloProcesadoTipo:  'omitido_sin_telefono',
+        pendingGoogleReview: true,
+      });
+    } catch (e) {
+      logger.error(`[Sello] ${citaId}: no se pudo marcar pendingGoogleReview sin teléfono:`, e);
+    }
+    return;
   }
 
   const servicioKey = servicioAKey(servicioNombre);
@@ -264,6 +277,17 @@ function debesProcesar(before, after, citaId) {
   return true;
 }
 
+// Si el flujo principal falla, al menos garantizamos que el cliente vea
+// el modal de Google review al abrir su dashboard.
+async function asegurarPendingGoogleReview(citaRef, citaId, scope = '') {
+  try {
+    await citaRef.update({ pendingGoogleReview: true });
+    logger.info(`[Sello] ${citaId}${scope}: pendingGoogleReview=true asegurado tras error.`);
+  } catch (e) {
+    logger.error(`[Sello] ${citaId}${scope}: no se pudo asegurar pendingGoogleReview:`, e);
+  }
+}
+
 // ── Export 1: elegance root (/citas/{citaId}) ─────────────────────
 exports.sellosElegance = onDocumentWritten('citas/{citaId}', async (event) => {
   const citaId = event.params.citaId;
@@ -281,6 +305,7 @@ exports.sellosElegance = onDocumentWritten('citas/{citaId}', async (event) => {
     });
   } catch (err) {
     logger.error(`[Sello] ${citaId}: error inesperado:`, err);
+    await asegurarPendingGoogleReview(event.data.after.ref, citaId);
   }
 
   return null;
@@ -305,6 +330,7 @@ exports.sellosTenant = onDocumentWritten(
       });
     } catch (err) {
       logger.error(`[Sello] ${citaId} (${tid}): error inesperado:`, err);
+      await asegurarPendingGoogleReview(event.data.after.ref, citaId, ` (${tid})`);
     }
 
     return null;

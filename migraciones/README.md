@@ -48,3 +48,28 @@ node migraciones/migrate-chameleon-clientes.js --commit
 ## Después de migrar
 
 Andá a `/gestion-interna/clientes` (tenant chameleon) y los 595 clientes aparecerán listados. Como no hay registro de uid del Club Chameleon, los clientes se ven sin enlace al club hasta que se registren ellos mismos vía `registro.html`. En ese momento, si su teléfono coincide, el sistema los une automáticamente al doc existente.
+
+---
+
+# Dedup retroactivo: `dedupe-chameleon-clientes.js`
+
+Cuando un cliente migrado se registra en el Club con un teléfono distinto al que tenía en AgendaPro, queda con dos perfiles en `tenants/chameleon/users/`:
+
+- **Legacy**: `users/{telefono}` con `uid === telefono` (creado por la migración).
+- **Real**: `users/{firebaseAuthUid}` con `uid === firebaseAuthUid` (creado al registrarse).
+
+Este script:
+1. Agrupa docs de `users/` por email.
+2. Cuando hay 1 real + 1+ legacies → fusiona sellos/historial/fechaRegistroOriginal/telefonoAnterior en el real y borra los legacy (de `users/` y de `clientes/`).
+3. Cuando solo hay legacies (cliente nunca se registró): no toca.
+4. Cuando solo hay reales (cliente nuevo, sin migración): no toca.
+
+```bash
+# Dry run primero — muestra qué haría
+node migraciones/dedupe-chameleon-clientes.js
+
+# Cuando estés conforme:
+node migraciones/dedupe-chameleon-clientes.js --commit
+```
+
+Idempotente: se puede correr múltiples veces. Es seguro correrlo periódicamente o tras cada lote de nuevos registros.

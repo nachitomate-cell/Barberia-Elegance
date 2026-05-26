@@ -1303,6 +1303,10 @@
       };
       if (extra.fechaNacimiento) data.fechaNacimiento = extra.fechaNacimiento;
       await ref.set(data);
+      // El merge con perfiles legacy de AgendaPro (users/{telefono} con uid==telefono)
+      // lo hace el admin con migraciones/dedupe-chameleon-clientes.js. El frontend del
+      // cliente no tiene permisos para borrar el legacy ni leer otros docs por email,
+      // así que el dedup se hace server-side cuando el admin lo ejecuta.
     } else if (user.photoURL && snap.data().photoURL !== user.photoURL) {
       await ref.update({ photoURL: user.photoURL });
     }
