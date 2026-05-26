@@ -439,7 +439,7 @@ function ClientePanel({ cliente: init, premios, onClose }) {
 /* ── Modal: clientes sin registro ───────────────────────────────── */
 function SinRegistroModal({ sinRegistro, shopName, registroUrl, onClose, mode = 'sinRegistro' }) {
   const [search, setSearch] = useState('');
-  const [enviados, setEnviados] = useState(() => new Set());
+  const [sendingKey, setSendingKey] = useState(null);
 
   const isMigrados = mode === 'migrados';
 
@@ -467,7 +467,33 @@ function SinRegistroModal({ sinRegistro, shopName, registroUrl, onClose, mode = 
     return `https://wa.me/${num}?text=${encodeURIComponent(waMsg(nombre))}`;
   };
 
-  const marcarEnviado = (key) => setEnviados(s => new Set([...s, key]));
+  // Solo persistimos en Firestore para clientes migrados (su key === id del doc en users/).
+  // Para "sin registro" (clientes sin doc en users/), no hay nada donde persistir.
+  const persistirInvitacion = async (key) => {
+    if (!isMigrados || !key) return;
+    setSendingKey(key);
+    try {
+      await updateDoc(doc(tenantCol('users'), key), {
+        invitacionEnviadaAt: serverTimestamp(),
+      });
+    } catch (e) {
+      console.warn('[invitar] no se pudo persistir invitacionEnviadaAt:', e.message);
+    } finally {
+      setSendingKey(null);
+    }
+  };
+
+  const fechaCorta = (ts) => {
+    if (!ts) return '';
+    const d = ts.toDate ? ts.toDate() : new Date(ts);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('es-CL', { day: '2-digit', month: 'short' });
+  };
+
+  const enviadosCount = useMemo(
+    () => sinRegistro.filter(c => c.invitacionEnviadaAt).length,
+    [sinRegistro],
+  );
 
   return (
     <div
@@ -517,8 +543,10 @@ function SinRegistroModal({ sinRegistro, shopName, registroUrl, onClose, mode = 
           </div>
           <div className="flex items-center justify-between mt-2 mb-1">
             <p className="text-xs text-slate-600">{filtered.length} cliente{filtered.length !== 1 ? 's' : ''}</p>
-            {isMigrados && enviados.size > 0 && (
-              <p className="text-xs text-emerald-400 font-semibold">{enviados.size} invitación{enviados.size !== 1 ? 'es' : ''} enviada{enviados.size !== 1 ? 's' : ''}</p>
+            {isMigrados && enviadosCount > 0 && (
+              <p className="text-xs text-emerald-400 font-semibold">
+                {enviadosCount} / {sinRegistro.length} ya invitado{enviadosCount !== 1 ? 's' : ''}
+              </p>
             )}
           </div>
         </div>
@@ -532,9 +560,11 @@ function SinRegistroModal({ sinRegistro, shopName, registroUrl, onClose, mode = 
             </div>
           ) : filtered.map(c => {
             const url = waUrl(c.telefono, c.nombre);
-            const yaEnviado = enviados.has(c.key);
+            const yaEnviado = !!c.invitacionEnviadaAt;
+            const fecha = yaEnviado ? fechaCorta(c.invitacionEnviadaAt) : '';
+            const sending = sendingKey === c.key;
             return (
-              <div key={c.key} className={`flex items-center gap-3 bg-slate-800/50 border rounded-xl px-4 py-3 transition-all ${yaEnviado ? 'border-emerald-500/30 opacity-60' : 'border-slate-800'}`}>
+              <div key={c.key} className={`flex items-center gap-3 bg-slate-800/50 border rounded-xl px-4 py-3 transition-all ${yaEnviado ? 'border-emerald-500/30 opacity-70' : 'border-slate-800'}`}>
                 {/* Avatar */}
                 <div className="w-9 h-9 rounded-full bg-slate-700 flex items-center justify-center shrink-0">
                   <span className="text-xs font-bold text-slate-300">
@@ -553,6 +583,9 @@ function SinRegistroModal({ sinRegistro, shopName, registroUrl, onClose, mode = 
                     {isMigrados && c.email && (
                       <span className="text-[10px] text-slate-600 truncate">{c.email}</span>
                     )}
+                    {isMigrados && yaEnviado && fecha && (
+                      <span className="text-[10px] font-bold text-emerald-400/90">✓ {fecha}</span>
+                    )}
                   </div>
                 </div>
 
@@ -562,7 +595,7 @@ function SinRegistroModal({ sinRegistro, shopName, registroUrl, onClose, mode = 
                     href={url}
                     target="_blank"
                     rel="noreferrer"
-                    onClick={() => marcarEnviado(c.key)}
+                    onClick={() => persistirInvitacion(c.key)}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold shrink-0 transition-all hover:opacity-90 active:scale-95"
                     style={yaEnviado
                       ? { background: 'rgba(16,185,129,0.15)', color: '#34d399', border: '1px solid rgba(16,185,129,0.4)' }
@@ -570,7 +603,7 @@ function SinRegistroModal({ sinRegistro, shopName, registroUrl, onClose, mode = 
                     title={`Enviar invitación a ${c.nombre}`}
                   >
                     <Send size={11} />
-                    {yaEnviado ? 'Reenviar' : 'Invitar'}
+                    {sending ? '...' : (yaEnviado ? 'Reenviar' : 'Invitar')}
                   </a>
                 ) : (
                   <span className="text-[10px] text-slate-600 shrink-0">Sin teléfono</span>
@@ -827,17 +860,24 @@ export default function Clientes() {
     return map;
   }, [todasCitas]);
 
-  /* Clientes migrados (legacy de AgendaPro, no se han unido al Club) */
+  /* Clientes migrados (legacy de AgendaPro, no se han unido al Club).
+     Ordena: NO invitados primero (para que el admin retome donde dejó). */
   const migrados = useMemo(() =>
     clientes
       .filter(isLegacy)
       .map(c => ({
-        key:      c.id,
-        nombre:   c.nombre   || '',
-        telefono: c.telefono || c.id || '',
-        email:    c.email    || '',
+        key:                  c.id,
+        nombre:               c.nombre   || '',
+        telefono:             c.telefono || c.id || '',
+        email:                c.email    || '',
+        invitacionEnviadaAt:  c.invitacionEnviadaAt || null,
       }))
-      .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '')),
+      .sort((a, b) => {
+        const aDone = !!a.invitacionEnviadaAt;
+        const bDone = !!b.invitacionEnviadaAt;
+        if (aDone !== bDone) return aDone ? 1 : -1; // pendientes primero
+        return (a.nombre || '').localeCompare(b.nombre || '');
+      }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [clientes]
   );
