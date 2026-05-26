@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta name="theme-color" content="#050505">
   <title>Agendar hora</title>
   <script>!function(){var m={'marcelopalma.synaptechspa.cl':'/marcelo1.png','marcelohairdressing.synaptechspa.cl':'/marcelo1.png','marcelo-hairdressing.synaptechspa.cl':'/marcelo1.png','aurasalon.synaptechspa.cl':'/aura.png','aurasalonmalegrooming.synaptech.cl':'/aura.png','aurasalonmalegrooming.synaptechspa.cl':'/aura.png'};var s=m[location.hostname]||'/favicon.ico';var l=document.createElement('link');l.rel='icon';l.href=s;if(s!='/favicon.ico')l.type='image/png';document.head.appendChild(l);}();</script>
@@ -12,8 +11,13 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
+  <!-- Preconnect / DNS prefetch para reducir RTT en 3G/4G -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+  <link rel="dns-prefetch" href="https://firebaseinstallations.googleapis.com">
+
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
   <link href="/output.css" rel="stylesheet">
@@ -976,27 +980,47 @@
   }
 
   /* ── Hours ──────────────────────────────────────────────────────── */
+  // Cache de horas por (fecha + duracion). Evita re-llamar Firestore si el
+  // usuario vuelve a una fecha que ya consultó.
+  const _hoursCache = new Map();
+  function _hoursCacheKey(date, dur) { return `${date}__${dur}`; }
+
   async function renderHours() {
     if (!_selectedService) return;
     const section = document.getElementById('hoursSection');
-    section.innerHTML = `<div class="flex flex-wrap gap-2 mt-2">
-      ${[1,2,3,4,5].map(i => `<div class="h-10 w-20 bg-white/5 rounded-xl animate-pulse opacity-${100-i*15}"></div>`).join('')}
-    </div>`;
+    const cacheKey = _hoursCacheKey(_selectedDate, _selectedService.duracion);
+    const cached = _hoursCache.get(cacheKey);
+
+    if (!cached) {
+      section.innerHTML = `<div class="flex flex-wrap gap-2 mt-2">
+        ${[1,2,3,4,5].map(i => `<div class="h-10 w-20 bg-white/5 rounded-xl animate-pulse opacity-${100-i*15}"></div>`).join('')}
+      </div>`;
+    }
 
     const cfg = _barberConfig || _fsConfig;
-    let hours = [];
-    try {
-      hours = await FDB.getHorasDisponibles(
-        _selectedDate, _selectedService.duracion, cfg, _barberoId
-      );
-    } catch(e) {
-      section.innerHTML = `
-        <div class="flex flex-col items-center py-10 gap-3 text-center">
-          <i class="ph ph-wifi-slash text-3xl text-white/20"></i>
-          <p class="text-sm text-white/40">No se pudo cargar disponibilidad</p>
-          <button onclick="renderHours()" class="px-4 py-2 rounded-xl text-xs font-bold border border-white/10 text-white/50 hover:border-white/30 transition-colors">Reintentar</button>
-        </div>`;
-      return;
+    let hours = cached;
+    if (!hours) {
+      try {
+        hours = await FDB.getHorasDisponibles(
+          _selectedDate, _selectedService.duracion, cfg, _barberoId
+        );
+        // Cache:
+        //   - 10s si es hoy (los slots futuros expiran rápido)
+        //   - 60s para fechas futuras (cambios externos raros)
+        const _now = new Date();
+        const _todayStr = `${_now.getFullYear()}-${String(_now.getMonth()+1).padStart(2,'0')}-${String(_now.getDate()).padStart(2,'0')}`;
+        const ttl = _selectedDate === _todayStr ? 10000 : 60000;
+        _hoursCache.set(cacheKey, hours);
+        setTimeout(() => _hoursCache.delete(cacheKey), ttl);
+      } catch(e) {
+        section.innerHTML = `
+          <div class="flex flex-col items-center py-10 gap-3 text-center">
+            <i class="ph ph-wifi-slash text-3xl text-white/20"></i>
+            <p class="text-sm text-white/40">No se pudo cargar disponibilidad</p>
+            <button onclick="renderHours()" class="px-4 py-2 rounded-xl text-xs font-bold border border-white/10 text-white/50 hover:border-white/30 transition-colors">Reintentar</button>
+          </div>`;
+        return;
+      }
     }
 
     // Filter past times if today
@@ -1070,6 +1094,8 @@
     if (!fecha || typeof FDB === 'undefined' || !FDB.onSlotLocksChange) return;
     _unsubSlotLocks = FDB.onSlotLocksChange(fecha, () => {
       if (currentStep !== 2) return;
+      // Invalidar el cache para esta fecha+duracion, ya que cambió la ocupación.
+      if (_selectedService) _hoursCache.delete(_hoursCacheKey(fecha, _selectedService.duracion));
       const prev = _selectedTime;
       renderHours();
       if (prev) {
@@ -1333,15 +1359,18 @@
       document.title = `Agendar hora | ${SHOP.nombre || ''}`;
     }
 
-    // Load barberos + config
+    // Cargar config + barberos + servicios EN PARALELO.
+    // Antes: getConfig+getBarberos (Promise.all) ⇒ luego getServicios serial. Ahora 1 sola RTT.
     let barberos = [];
+    let rawServices = [];
     try {
-      [_fsConfig, barberos] = await Promise.all([
+      [_fsConfig, barberos, rawServices] = await Promise.all([
         FDB.getConfig(),
         FDB.getBarberos(),
+        FDB.getServicios(),
       ]);
     } catch(e) {
-      barberos = [];
+      barberos = []; rawServices = [];
     }
 
     // Find the barber matching the slug
@@ -1363,7 +1392,7 @@
     _barberoId     = _barber.id;
     _barberoNombre = _barber.nombre;
 
-    // Render hero
+    // Render hero (con lazy-load + decoding async para no bloquear el primer paint)
     document.getElementById('barberName').textContent = _barber.nombre;
     const espEl = document.getElementById('barberEspecialidad');
     if (_barber.especialidad) {
@@ -1372,14 +1401,15 @@
     }
     const photoWrap = document.getElementById('barberPhotoWrap');
     if (_barber.foto) {
+      // Hero avatar: fetchpriority=high (above-the-fold) + width/height para evitar CLS.
       photoWrap.innerHTML =
-        `<img src="${_barber.foto}" alt="${_barber.nombre}" class="w-full h-full object-cover">`;
+        `<img src="${_barber.foto}" alt="${_barber.nombre}" width="96" height="96" fetchpriority="high" decoding="async" class="w-full h-full object-cover">`;
     }
     // Populate slim header
     document.getElementById('slimBarberName').textContent = _barber.nombre;
     if (_barber.foto) {
       document.getElementById('slimAvatar').innerHTML =
-        `<img src="${_barber.foto}" alt="${_barber.nombre}" style="width:100%;height:100%;object-fit:cover;">`;
+        `<img src="${_barber.foto}" alt="${_barber.nombre}" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover;">`;
     }
     if (_barber.disponible === false) {
       const badge = document.getElementById('disponibleBadge');
@@ -1389,8 +1419,6 @@
       badge.innerHTML = '<i class="ph-fill ph-x-circle text-sm"></i> Sin disponibilidad hoy';
     }
 
-    // Load services
-    const rawServices = await FDB.getServicios().catch(() => []);
     _allServices = rawServices.filter(s => s.activo !== false);
 
     renderCategories(_allServices);
@@ -1416,6 +1444,19 @@
     });
     // Welcome del Club (tras 1.8s, una vez por cada 24h por tenant)
     setTimeout(maybeShowClubWelcome, 1800);
+  });
+
+  // Liberar listeners de Firestore al cerrar/ocultar la página (evita memory leaks
+  // y cost overhead si el usuario deja la pestaña abierta horas).
+  window.addEventListener('pagehide', () => {
+    if (_unsubSlotLocks) { try { _unsubSlotLocks(); } catch(_){} _unsubSlotLocks = null; }
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden' && _unsubSlotLocks) {
+      try { _unsubSlotLocks(); } catch(_){} _unsubSlotLocks = null;
+    } else if (document.visibilityState === 'visible' && _selectedDate && currentStep === 2) {
+      subscribeSlotLocks(_selectedDate);
+    }
   });
 
   /* ═══════ INVITACIÓN AL CLUB DE FIDELIDAD ═══════ */
