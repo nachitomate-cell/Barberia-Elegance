@@ -780,9 +780,12 @@ export default function Clientes() {
 
   const sellos = c => c.sellosDisponibles ?? c.stamps ?? 0;
 
-  // Cliente "legacy" = migrado de AgendaPro, no se ha registrado en el Club todavía.
-  // Detectable porque el doc se creó con uid === id (telefono) o tiene la marca importedFrom.
-  const isLegacy = c => c?.uid === c?.id || c?.importedFrom === 'agendapro';
+  // Cliente "legacy" = migrado de AgendaPro, NUNCA se registró en el Club.
+  // El doc legacy se creó con uid === id (telefono) por la migración. El doc del
+  // registro real nunca tiene campo `uid` (Firebase Auth no lo escribe), así que
+  // ésta es la única señal univoca. NO usar importedFrom: la dedup-script lo
+  // copia al doc real como marca histórica → daría falsos positivos.
+  const isLegacy = c => !!c?.uid && c?.uid === c?.id;
 
   const citasPorEmail = useMemo(() => {
     const map = {};

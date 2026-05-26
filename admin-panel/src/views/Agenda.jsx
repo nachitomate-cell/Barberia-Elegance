@@ -245,10 +245,10 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
 
   const selectCliente = async c => {
     // Cliente legacy = migrado de AgendaPro, sin cuenta real en el Club.
-    // No lo marcamos como "Vinculado" porque NO tiene cuenta de Firebase Auth;
-    // recién se vincula cuando el cliente se registra y la CF dedupeOnCreate
-    // fusiona el doc legacy con el real.
-    const esLegacy = c?.uid === c?.id || c?.importedFrom === 'agendapro';
+    // Solo `uid === id` lo identifica unívocamente (uid generado por la migración
+    // == telefono == id del doc). NO usar importedFrom: la dedup lo agrega al doc
+    // real como marca histórica → daría falso positivo en clientes ya registrados.
+    const esLegacy = !!c?.uid && c?.uid === c?.id;
     setForm(f => ({
       ...f,
       clienteNombre:   c.nombre   || '',
@@ -522,7 +522,7 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
                   {c.telefono && <p className="text-xs text-slate-500 truncate">{c.telefono}</p>}
                 </div>
                 {(() => {
-                  const esLegacy = c.uid === c.id || c.importedFrom === 'agendapro';
+                  const esLegacy = !!c.uid && c.uid === c.id;
                   if (esLegacy) return <span className="text-[10px] text-amber-400/80 font-semibold shrink-0">Migrado</span>;
                   if (c.uid)    return <span className="text-[10px] text-emerald-500/80 font-semibold shrink-0">Club</span>;
                   return null;
