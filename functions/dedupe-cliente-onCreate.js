@@ -47,6 +47,34 @@ function normalizePhone(phone) {
   return (phone || '').replace(/\D/g, '');
 }
 
+// Devuelve TODAS las variantes razonables de un teléfono para hacer lookups
+// robustos. Esto cubre los casos:
+//   - Migración guardó IDs con '+' (ej. '+56982682794')
+//   - Nuevo registro usa otro formato (sin '+', con/sin código de país, con espacios)
+//   - Cliente escribió +56 9 8268 2794 vs +56982682794 vs 982682794
+function phoneVariants(rawPhone) {
+  const variants = new Set();
+  if (!rawPhone) return [];
+  const raw  = String(rawPhone).trim();
+  const norm = raw.replace(/\D/g, '');
+  if (raw)  variants.add(raw);
+  if (norm) {
+    variants.add(norm);
+    variants.add('+' + norm);
+    // Chile: 56XXXXXXXXX ↔ XXXXXXXXX (móvil 9 dígitos)
+    if (norm.startsWith('56') && norm.length >= 10) {
+      const sin56 = norm.slice(2);
+      variants.add(sin56);
+      variants.add('+' + sin56);
+    }
+    if (!norm.startsWith('56') && norm.length === 9) {
+      variants.add('56' + norm);
+      variants.add('+56' + norm);
+    }
+  }
+  return [...variants].filter(Boolean);
+}
+
 async function procesarDedup({ tenantId, uid, data }) {
   // Si el doc creado ES un legacy (lo creó la migración), no es un registro real.
   if (isLegacyDoc(uid, data)) {
@@ -75,17 +103,29 @@ async function procesarDedup({ tenantId, uid, data }) {
 
   // 2) Buscar legacies por teléfono normalizado (cuando el email es distinto o ausente,
   //    pero el cliente conserva el mismo número que tenía en AgendaPro).
-  if (telNorm) {
-    // El doc legacy se creó con id == telNorm (porque uid = telefono == id).
-    // Match directo por id:
-    const direct = await cols.users.doc(telNorm).get();
-    if (direct.exists && direct.id !== uid && isLegacyDoc(direct.id, direct.data())) {
-      legaciesMap.set(direct.id, direct);
-    }
-    // Match indirecto: por campo `telefono` (puede haber variantes con +/sin)
-    const q2 = await cols.users.where('telefono', '==', data.telefono).limit(10).get();
-    q2.docs.forEach(d => {
-      if (d.id !== uid && isLegacyDoc(d.id, d.data())) legaciesMap.set(d.id, d);
+  //    Probamos VARIAS variantes porque la migración usó el formato original
+  //    (con '+', sin normalizar) y el nuevo registro puede traer otro.
+  if (data.telefono) {
+    const variants = phoneVariants(data.telefono);
+
+    // 2a) Match por doc.id (el legacy tiene id == su telefono tal cual del Excel).
+    const idLookups = await Promise.all(variants.map(v => cols.users.doc(v).get().catch(() => null)));
+    idLookups.forEach(snap => {
+      if (snap && snap.exists && snap.id !== uid && isLegacyDoc(snap.id, snap.data())) {
+        legaciesMap.set(snap.id, snap);
+      }
+    });
+
+    // 2b) Match por campo `telefono` con cada variante (cubre formatos distintos).
+    const fieldLookups = await Promise.all(
+      variants.map(v =>
+        cols.users.where('telefono', '==', v).limit(5).get().catch(() => ({ docs: [] }))
+      )
+    );
+    fieldLookups.forEach(q => {
+      q.docs.forEach(d => {
+        if (d.id !== uid && isLegacyDoc(d.id, d.data())) legaciesMap.set(d.id, d);
+      });
     });
   }
 
