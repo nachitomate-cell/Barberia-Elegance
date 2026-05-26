@@ -1354,15 +1354,44 @@ export default function Clientes() {
       )}
 
       {showHelp && (
-        <HelpModal title="Ayuda — Clientes y Fidelización" onClose={() => setShowHelp(false)}>
-          <p>En <strong className="text-white">Clientes</strong> gestionas el programa de fidelización por sellos.</p>
-          <ul className="space-y-1.5 list-disc list-inside text-slate-400">
-            <li>Busca clientes por nombre o teléfono con la barra de búsqueda.</li>
-            <li>Haz clic en un cliente para ver su historial y <span className="text-white">agregar o retirar sellos</span> manualmente.</li>
-            <li>Los sellos se acumulan automáticamente al completar citas con precio definido.</li>
-            <li>Al alcanzar el costo de un <span className="text-white">Premio</span>, el sistema lo desbloquea para el cliente.</li>
-            <li>El sello de <span className="text-white">cumpleaños</span> se otorga automáticamente el día del cumpleaños del cliente.</li>
-          </ul>
+        <HelpModal title="Cómo usar Clientes y Fidelización" onClose={() => setShowHelp(false)}>
+          <p>Acá vivís el día a día del <strong className="text-white">Club de Fidelidad</strong>: sellos, premios y campañas para activar a tus clientes.</p>
+
+          <div>
+            <p className="font-semibold text-emerald-400 mb-1">Buscar y filtrar</p>
+            <ul className="list-disc ml-4 space-y-1">
+              <li>Buscá por <strong className="text-white">nombre, email o teléfono</strong>.</li>
+              <li>Filtros: <em>Registrados Club</em> (azul) vs <em>Migrados</em> (ámbar), tiers SILVER/GOLD/PLATINUM, con premio, cumple en este mes, sin visita 30/60/90 días.</li>
+              <li>Tocá una fila para abrir el detalle: historial, sellos manuales (suma/resta) y canje de premios.</li>
+            </ul>
+          </div>
+
+          <div>
+            <p className="font-semibold text-emerald-400 mb-1">Sellos automáticos</p>
+            <p>Al marcar una cita como <strong className="text-white">Completada</strong> en /agenda, la Cloud Function suma 1 sello al cliente (o descuenta un uso si tiene membresía activa). El sello de <strong className="text-white">cumpleaños</strong> se otorga automáticamente.</p>
+          </div>
+
+          <div>
+            <p className="font-semibold text-emerald-400 mb-1">Badge "MIGRADO" (ámbar)</p>
+            <p>Cliente importado de AgendaPro que <strong className="text-white">aún no se registró en el Club</strong>. Cuando se registre, el badge desaparece y sus datos se fusionan automáticamente (sellos, antigüedad).</p>
+          </div>
+
+          <div>
+            <p className="font-semibold text-emerald-400 mb-1">Botón "Invitar migrados" (verde)</p>
+            <p>Lista de migrados con un botón WhatsApp por cliente. Mensaje precargado con link de registro. Marca persistente en Firestore — al volver, ya sabés a quién enviaste invitación.</p>
+          </div>
+
+          <div>
+            <p className="font-semibold text-emerald-400 mb-1">Botón "Sin registro" (ámbar)</p>
+            <p>Clientes que ya agendaron pero <strong>no abrieron cuenta en el Club</strong>. Misma campaña, mensaje distinto ("gracias por visitarnos").</p>
+          </div>
+
+          <div>
+            <p className="font-semibold text-emerald-400 mb-1">Synaptech IA</p>
+            <p>Te da recomendaciones accionables (recuperar clientes en riesgo, contactar a los que tienen premio sin canjear, etc.). Analiza <strong className="text-white">solo clientes reales del Club</strong> — excluye migrados para no sesgar promedios.</p>
+          </div>
+
+          <p className="text-xs text-amber-400 bg-amber-400/5 border border-amber-400/20 rounded-lg px-3 py-2">💡 Los <strong>KPIs superiores</strong> (Clientes, Avg sellos) sí incluyen migrados — representan el tamaño total de tu base. Si querés activarlos, "Invitar migrados" es tu palanca.</p>
         </HelpModal>
       )}
     </div>
