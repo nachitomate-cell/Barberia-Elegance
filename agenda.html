@@ -1144,8 +1144,13 @@
             });
 
             const btns = [];
-            if (cita.estado !== 'Completada' && cita.estado !== 'Cancelada')
-                btns.push(`<button onclick="cambiarEstadoDesdeDetalle('${cita.id}','Completada')" class="w-full py-2.5 rounded-xl text-xs font-bold text-emerald-400 border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 active:scale-95 transition-all">Completar</button>`);
+            // "Editar / Completar" → abre el modal completo con todos los campos
+            // (servicio, precio, descuento, hora, método de pago, propina, productos del ticket).
+            // Si la cita ya está Completada, sigue siendo editable (sin re-marcar pendingGoogleReview).
+            if (cita.estado !== 'Cancelada') {
+                const labelEditar = cita.estado === 'Completada' ? 'Editar detalles' : 'Editar / Completar';
+                btns.push(`<button onclick="abrirEditarCita('${cita.id}')" class="w-full py-2.5 rounded-xl text-xs font-bold text-emerald-400 border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 active:scale-95 transition-all">${labelEditar}</button>`);
+            }
             if (cita.estado !== 'Cancelada')
                 btns.push(`<button onclick="cambiarEstadoDesdeDetalle('${cita.id}','Cancelada')" class="w-full py-2.5 rounded-xl text-xs font-bold text-red-400 border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 active:scale-95 transition-all">Cancelar</button>`);
             document.querySelectorAll('.cd-acciones').forEach(el => el.innerHTML = btns.join(''));
@@ -2152,10 +2157,153 @@
             <option value="120" style="background:#111">120 min</option>
           </select>
         </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="text-[11px] font-bold text-white/40 uppercase tracking-widest block mb-1">Precio ($)</label>
+            <input type="number" id="manualPrecio" placeholder="0" min="0" value="0" class="w-full rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);" oninput="_onManualPrecioInput()">
+          </div>
+          <div>
+            <label class="text-[11px] font-bold text-white/40 uppercase tracking-widest block mb-1">Descuento (%)</label>
+            <input type="number" id="manualDesc" placeholder="0" min="0" max="100" value="0" class="w-full rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);" oninput="_onManualDescInput()">
+          </div>
+        </div>
         <p id="manualError" class="text-red-400 text-xs hidden"></p>
         <button id="manualSaveBtn" onclick="guardarCitaManual()" class="w-full py-3.5 mt-2 rounded-xl text-sm font-bold text-black bg-brand-accent hover:opacity-90 active:scale-95 transition-all">
           Guardar Cita Confirmada
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ MODAL DE EDICIÓN / COMPLETAR CITA ═══════ -->
+  <div id="editCitaOverlay" class="hidden fixed inset-0 z-[6000]" style="background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);" onclick="if(event.target===this)cerrarEditarCita()">
+    <div id="editCitaSheet" class="absolute bottom-0 left-0 right-0 mx-auto max-w-md rounded-t-3xl overflow-hidden flex flex-col" style="background:#0d0d10;border-top:1px solid rgba(255,255,255,0.08);max-height:92dvh;">
+
+      <!-- Header -->
+      <div class="flex items-center justify-between px-5 py-4 border-b border-white/5 shrink-0">
+        <div>
+          <p id="editCitaEyebrow" class="text-[10px] font-bold text-white/40 uppercase tracking-widest"></p>
+          <h3 class="text-base font-bold text-white">Editar cita</h3>
+        </div>
+        <button onclick="cerrarEditarCita()" class="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center border border-white/10">
+          <i class="ph-bold ph-x text-white/50"></i>
+        </button>
+      </div>
+
+      <!-- Body scrollable -->
+      <div class="flex-1 overflow-y-auto px-5 py-4 space-y-3.5">
+
+        <!-- Cliente -->
+        <div>
+          <label class="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-1">Cliente</label>
+          <input type="text" id="ecNombre" placeholder="Nombre" class="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+        </div>
+        <div class="grid grid-cols-2 gap-2.5">
+          <div>
+            <label class="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-1">Teléfono <span id="ecTelReq" class="text-amber-400 hidden">*</span></label>
+            <input type="tel" id="ecTel" placeholder="+569..." class="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+          </div>
+          <div>
+            <label class="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-1">Email</label>
+            <input type="email" id="ecEmail" placeholder="—" class="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+          </div>
+        </div>
+
+        <!-- Servicio -->
+        <div>
+          <label class="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-1">Servicio</label>
+          <select id="ecServicio" onchange="_onEcServicioChange()" class="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none appearance-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);"></select>
+        </div>
+        <div class="grid grid-cols-2 gap-2.5">
+          <div>
+            <label class="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-1">Precio ($)</label>
+            <input type="number" id="ecPrecio" min="0" class="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+          </div>
+          <div>
+            <label class="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-1">Descuento (%)</label>
+            <input type="number" id="ecDesc" min="0" max="100" placeholder="0" oninput="_onEcDescInput()" class="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+          </div>
+        </div>
+
+        <!-- Hora / Duración -->
+        <div class="grid grid-cols-2 gap-2.5">
+          <div>
+            <label class="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-1">Hora</label>
+            <input type="time" id="ecHora" class="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+          </div>
+          <div>
+            <label class="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-1">Duración (min)</label>
+            <input type="number" id="ecDuracion" min="5" step="5" class="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+          </div>
+        </div>
+
+        <!-- Estado -->
+        <div>
+          <label class="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-1">Estado</label>
+          <select id="ecEstado" onchange="_onEcEstadoChange()" class="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none appearance-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+            <option value="Confirmada" style="background:#111">Confirmada</option>
+            <option value="Completada" style="background:#111">Completada</option>
+            <option value="Cancelada"  style="background:#111">Cancelada</option>
+          </select>
+        </div>
+
+        <!-- Pago + propina (solo si Completada) -->
+        <div id="ecPagoBox" class="hidden p-3 rounded-xl space-y-2.5" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);">
+          <div class="grid grid-cols-2 gap-2.5">
+            <div>
+              <label class="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-1">Método de pago *</label>
+              <select id="ecMetodoPago" class="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none appearance-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+                <option value="Efectivo" style="background:#111">Efectivo</option>
+                <option value="Débito" style="background:#111">Débito</option>
+                <option value="Crédito" style="background:#111">Crédito</option>
+                <option value="Transferencia" style="background:#111">Transferencia</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-1">Propina ($)</label>
+              <input type="number" id="ecPropina" min="0" placeholder="0" class="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+            </div>
+          </div>
+        </div>
+
+        <!-- Productos del ticket -->
+        <div class="p-3 rounded-xl space-y-2" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);">
+          <div class="flex items-center justify-between">
+            <p class="text-[10px] font-bold text-white/40 uppercase tracking-widest flex items-center gap-1.5">
+              <i class="ph-fill ph-shopping-bag text-emerald-400 text-sm"></i> Productos del ticket
+            </p>
+            <span id="ecTotalTicket" class="text-[10px] text-white/50"></span>
+          </div>
+          <div id="ecTicketPrev" class="space-y-1"></div>
+          <div id="ecTicketNuevos" class="space-y-1"></div>
+          <div id="ecAddProductoForm" class="hidden flex-wrap items-end gap-2 p-2 rounded-lg" style="background:rgba(0,0,0,0.3);">
+            <div class="flex-1 min-w-[120px]">
+              <label class="text-[9px] font-bold text-white/30 uppercase block mb-1">Producto</label>
+              <select id="ecProductoSel" class="w-full rounded-lg px-2 py-2 text-xs text-white outline-none appearance-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);"></select>
+            </div>
+            <div class="w-16">
+              <label class="text-[9px] font-bold text-white/30 uppercase block mb-1">Cant.</label>
+              <input type="number" id="ecProductoQty" min="1" value="1" class="w-full rounded-lg px-2 py-2 text-xs text-white outline-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+            </div>
+            <button onclick="ecConfirmarAddProducto()" class="px-2.5 py-2 rounded-lg text-xs font-bold text-emerald-300" style="background:rgba(16,185,129,0.15);border:1px solid rgba(16,185,129,0.3);">Agregar</button>
+            <button onclick="ecCancelarAddProducto()" class="px-2 py-2 text-xs text-white/40">×</button>
+          </div>
+          <button id="ecAddProductoBtn" onclick="ecAbrirAddProducto()" class="w-full py-2 rounded-lg text-xs font-semibold text-white/50 hover:text-emerald-400 transition-colors" style="border:1px dashed rgba(255,255,255,0.15);">+ Agregar producto al ticket</button>
+        </div>
+
+        <!-- Nota -->
+        <div>
+          <label class="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-1">Nota interna</label>
+          <textarea id="ecNota" rows="2" placeholder="—" class="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none resize-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);"></textarea>
+        </div>
+
+        <p id="ecError" class="text-red-400 text-xs hidden"></p>
+      </div>
+
+      <!-- Footer -->
+      <div class="px-5 py-3 border-t border-white/5 shrink-0 flex gap-2" style="background:rgba(0,0,0,0.3);">
+        <button onclick="cerrarEditarCita()" class="flex-1 py-3 rounded-xl text-sm font-bold text-white/60" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">Cancelar</button>
+        <button id="ecSaveBtn" onclick="guardarEdicionCita()" class="flex-[2] py-3 rounded-xl text-sm font-bold text-black bg-brand-accent active:scale-95 transition-all">Guardar cambios</button>
       </div>
     </div>
   </div>
@@ -2335,6 +2483,336 @@
         _populateServiciosSelect();
     }
 
+    // ═══════════════════════════════════════════════════════════════
+    //  MODAL DE EDICIÓN / COMPLETAR CITA — paridad con /gestion-interna/agenda
+    //  Soporta: cambiar servicio/precio/descuento/hora/duración, marcar como
+    //  Completada con método de pago + propina, agregar productos al ticket
+    //  (crea product_reservations y descuenta stock), batch slotLock al
+    //  cambiar slot. Idempotente con la CF sello-automatico.
+    // ═══════════════════════════════════════════════════════════════
+    let _ecCita = null;        // doc de la cita en edición
+    let _ecTicketPrev = [];    // productos ya guardados en cita.ticketProductos
+    let _ecTicketNuevos = [];  // productos a agregar en este guardado
+
+    async function abrirEditarCita(citaId, opts = {}) {
+        const cita = todayCitas.find(c => c.id === citaId);
+        if (!cita) return;
+        cerrarDetalleCita(); // ocultar el detail sheet si estaba
+
+        _ecCita = cita;
+        _ecTicketPrev   = Array.isArray(cita.ticketProductos) ? cita.ticketProductos.slice() : [];
+        _ecTicketNuevos = [];
+
+        // Cargar servicios y productos en paralelo
+        await Promise.all([_loadServicios(), _loadProductos()]);
+
+        document.getElementById('editCitaEyebrow').textContent = `${cita.hora || '—'} · ${cita.fecha || ''}`;
+
+        document.getElementById('ecNombre').value = cita.clienteNombre || '';
+        document.getElementById('ecTel').value    = cita.clienteTelefono || '';
+        document.getElementById('ecEmail').value  = cita.clienteEmail || '';
+
+        // Servicio: poblar select y seleccionar
+        const svcSel = document.getElementById('ecServicio');
+        svcSel.innerHTML = (_servicios || []).map(s =>
+            `<option value="${s.id}" data-precio="${Number(s.precio)||0}" data-dur="${Number(s.duracion)||30}" style="background:#111">${s.nombre}</option>`
+        ).join('');
+        // Match por id O por nombre (fix de Agenda.jsx para citas viejas sin serviceId)
+        let matched = (_servicios || []).find(s => s.id === cita.servicioId);
+        if (!matched && cita.servicioNombre) {
+            const n = cita.servicioNombre.toLowerCase().trim();
+            matched = (_servicios || []).find(s => (s.nombre || '').toLowerCase().trim() === n)
+                   || (_servicios || []).find(s => (s.nombre || '').toLowerCase().includes(n) || n.includes((s.nombre || '').toLowerCase()));
+        }
+        if (matched) svcSel.value = matched.id;
+
+        document.getElementById('ecPrecio').value   = cita.precio != null ? Number(cita.precio) : (Number(matched?.precio) || 0);
+        document.getElementById('ecDesc').value     = cita.porcentajeDescuento != null ? Number(cita.porcentajeDescuento) : 0;
+        document.getElementById('ecHora').value     = cita.hora || '09:00';
+        document.getElementById('ecDuracion').value = Number(cita.duracion || cita.duracionServicio || matched?.duracion) || 30;
+
+        const estadoInicial = opts.forceEstado || cita.estado || 'Confirmada';
+        document.getElementById('ecEstado').value      = estadoInicial;
+        document.getElementById('ecMetodoPago').value  = cita.metodoPago || 'Efectivo';
+        document.getElementById('ecPropina').value     = cita.propina != null ? Number(cita.propina) : '';
+        document.getElementById('ecNota').value        = cita.nota || '';
+
+        _onEcEstadoChange();
+        _ecRenderProductos();
+        ecCancelarAddProducto();
+        document.getElementById('ecError').classList.add('hidden');
+
+        document.getElementById('editCitaOverlay').classList.remove('hidden');
+    }
+
+    function cerrarEditarCita() {
+        document.getElementById('editCitaOverlay').classList.add('hidden');
+        _ecCita = null;
+        _ecTicketPrev = [];
+        _ecTicketNuevos = [];
+    }
+
+    function _onEcServicioChange() {
+        const sel = document.getElementById('ecServicio');
+        const opt = sel.options[sel.selectedIndex];
+        const precio = Number(opt?.getAttribute('data-precio')) || 0;
+        const dur    = Number(opt?.getAttribute('data-dur')) || 30;
+        document.getElementById('ecPrecio').value   = precio;
+        document.getElementById('ecDesc').value     = 0;
+        document.getElementById('ecDuracion').value = dur;
+    }
+
+    function _onEcDescInput() {
+        const sel = document.getElementById('ecServicio');
+        const opt = sel.options[sel.selectedIndex];
+        const base = Number(opt?.getAttribute('data-precio')) || 0;
+        const desc = Math.max(0, Math.min(100, Number(document.getElementById('ecDesc').value) || 0));
+        document.getElementById('ecPrecio').value = Math.round(base * (1 - desc / 100));
+    }
+
+    function _onEcEstadoChange() {
+        const estado = document.getElementById('ecEstado').value;
+        document.getElementById('ecPagoBox').classList.toggle('hidden', estado !== 'Completada');
+        document.getElementById('ecTelReq').classList.toggle('hidden', estado !== 'Completada');
+    }
+
+    function _ecRenderProductos() {
+        const prevDiv = document.getElementById('ecTicketPrev');
+        const nuevDiv = document.getElementById('ecTicketNuevos');
+        const totalEl = document.getElementById('ecTotalTicket');
+
+        prevDiv.innerHTML = _ecTicketPrev.map(p => `
+            <div class="flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs" style="background:rgba(255,255,255,0.04);">
+              <span class="text-white/70 truncate flex-1"><span class="text-white/30 mr-1.5">×${p.cantidad}</span>${p.nombre}</span>
+              <span class="text-white/50 font-medium shrink-0">$${Math.round(p.precio || 0).toLocaleString('es-CL')}</span>
+              <span class="text-[9px] text-white/30 px-1.5 py-0.5 ml-2 rounded" style="background:rgba(255,255,255,0.05);">Guardado</span>
+            </div>
+        `).join('');
+
+        nuevDiv.innerHTML = _ecTicketNuevos.map((p, i) => `
+            <div class="flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs" style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.2);">
+              <span class="text-white truncate flex-1"><span class="text-emerald-400/80 mr-1.5">×${p.cantidad}</span>${p.nombre}</span>
+              <span class="text-emerald-400 font-bold shrink-0">$${Math.round(p.totalLinea).toLocaleString('es-CL')}</span>
+              <button onclick="ecRemoveProductoNuevo(${i})" class="text-rose-400/70 ml-2"><i class="ph-bold ph-x text-xs"></i></button>
+            </div>
+        `).join('');
+
+        const precioServicio = Number(document.getElementById('ecPrecio').value) || 0;
+        const sumPrev = _ecTicketPrev.reduce((s, p) => s + (Number(p.precio) || 0), 0);
+        const sumNuevos = _ecTicketNuevos.reduce((s, p) => s + p.totalLinea, 0);
+        const total = precioServicio + sumPrev + sumNuevos;
+        totalEl.innerHTML = total > 0
+            ? `Total: <span class="text-emerald-400 font-bold">$${Math.round(total).toLocaleString('es-CL')}</span>`
+            : '';
+    }
+
+    function ecAbrirAddProducto() {
+        const form = document.getElementById('ecAddProductoForm');
+        const btn  = document.getElementById('ecAddProductoBtn');
+        const sel  = document.getElementById('ecProductoSel');
+
+        // Poblar select con stock disponible
+        sel.innerHTML = '<option value="" style="background:#111">— elegir —</option>' +
+            (_productos || []).map(p => {
+                const usados = _ecTicketNuevos.filter(n => n.productId === p.id).reduce((s, n) => s + n.cantidad, 0);
+                const stock  = Number(p.stock);
+                const disp   = !isNaN(stock) ? stock - usados : null;
+                const sinStock = disp !== null && disp <= 0;
+                const stockTxt = disp !== null ? (sinStock ? ' · sin stock' : ` · stock ${disp}`) : '';
+                return `<option value="${p.id}" ${sinStock ? 'disabled' : ''} style="background:#111">${p.nombre} — $${Math.round(Number(p.precio)||0).toLocaleString('es-CL')}${stockTxt}</option>`;
+            }).join('');
+
+        document.getElementById('ecProductoQty').value = 1;
+        form.classList.remove('hidden');
+        form.classList.add('flex');
+        btn.classList.add('hidden');
+    }
+
+    function ecCancelarAddProducto() {
+        const form = document.getElementById('ecAddProductoForm');
+        const btn  = document.getElementById('ecAddProductoBtn');
+        form.classList.add('hidden');
+        form.classList.remove('flex');
+        btn.classList.remove('hidden');
+    }
+
+    function ecConfirmarAddProducto() {
+        const pid = document.getElementById('ecProductoSel').value;
+        const qty = Math.max(1, Number(document.getElementById('ecProductoQty').value) || 1);
+        if (!pid) return;
+        const p = (_productos || []).find(x => x.id === pid);
+        if (!p) return;
+        const usados = _ecTicketNuevos.filter(n => n.productId === pid).reduce((s, n) => s + n.cantidad, 0);
+        const stock  = Number(p.stock);
+        if (!isNaN(stock) && qty + usados > stock) {
+            alert(`Stock insuficiente. Disponible: ${stock - usados}`);
+            return;
+        }
+        const precioUnit = Number(p.precio) || 0;
+        _ecTicketNuevos.push({
+            productId:     pid,
+            nombre:        p.nombre,
+            cantidad:      qty,
+            precioUnitario: precioUnit,
+            totalLinea:    precioUnit * qty,
+        });
+        ecCancelarAddProducto();
+        _ecRenderProductos();
+    }
+
+    function ecRemoveProductoNuevo(idx) {
+        _ecTicketNuevos.splice(idx, 1);
+        _ecRenderProductos();
+    }
+
+    async function guardarEdicionCita() {
+        if (!_ecCita) return;
+        const err = document.getElementById('ecError');
+        const btn = document.getElementById('ecSaveBtn');
+        err.classList.add('hidden');
+
+        const nombre   = document.getElementById('ecNombre').value.trim();
+        const telefono = document.getElementById('ecTel').value.trim();
+        const email    = document.getElementById('ecEmail').value.trim();
+        const svcSel   = document.getElementById('ecServicio');
+        const svcId    = svcSel.value;
+        const svcOpt   = svcSel.options[svcSel.selectedIndex];
+        const svcNom   = svcOpt?.text || '';
+        const precio   = Number(document.getElementById('ecPrecio').value) || 0;
+        const desc     = Math.max(0, Math.min(100, Number(document.getElementById('ecDesc').value) || 0));
+        const hora     = document.getElementById('ecHora').value;
+        const duracion = Math.max(5, Number(document.getElementById('ecDuracion').value) || 30);
+        const estado   = document.getElementById('ecEstado').value;
+        const metodo   = document.getElementById('ecMetodoPago').value;
+        const propina  = document.getElementById('ecPropina').value;
+        const nota     = document.getElementById('ecNota').value.trim();
+
+        if (!nombre) { err.textContent = 'El nombre es obligatorio.'; err.classList.remove('hidden'); return; }
+        if (estado === 'Completada' && !telefono) { err.textContent = 'Teléfono requerido para registrar el sello.'; err.classList.remove('hidden'); return; }
+
+        btn.disabled = true;
+        btn.textContent = 'Guardando...';
+
+        try {
+            const fecha    = _ecCita.fecha;
+            const oldLock  = _ecCita.slotLockId || null;
+            const needsLock = estado !== 'Cancelada' && !!_ecCita.barberoId;
+            let newLock = null;
+            if (needsLock) {
+                const safeH = (hora || '').replace(':', '');
+                const safeB = String(_ecCita.barberoId).replace(/[^a-zA-Z0-9_-]/g, '_');
+                newLock = `${safeB}_${fecha}_${safeH}`;
+            }
+            const lockChanged = oldLock !== newLock;
+            const yaEraCompletada = _ecCita.estado === 'Completada';
+
+            const payload = {
+                clienteNombre:        nombre,
+                clienteTelefono:      telefono,
+                clienteEmail:         email,
+                servicioId:           svcId,
+                servicioNombre:       svcNom,
+                precio:               precio,
+                porcentajeDescuento:  desc || 0,
+                hora:                 hora,
+                duracion:             duracion,
+                duracionServicio:     duracion,
+                estado:               estado,
+                metodoPago:           metodo || 'Efectivo',
+                propina:              propina !== '' ? Number(propina) : 0,
+                nota:                 nota,
+                updatedAt:            firebase.firestore.FieldValue.serverTimestamp(),
+            };
+            if (estado === 'Completada' && !yaEraCompletada) payload.pendingGoogleReview = true;
+
+            // Productos: crear reservations + descontar stock
+            const productosResumen = [];
+            const stockNeeded = {};
+            _ecTicketNuevos.forEach(n => { stockNeeded[n.productId] = (stockNeeded[n.productId] || 0) + n.cantidad; });
+
+            const hayProductos = _ecTicketNuevos.length > 0;
+            const batch = db.batch();
+            const citaRef = tenantCol('citas').doc(_ecCita.id);
+
+            if (hayProductos) {
+                _ecTicketNuevos.forEach(n => {
+                    const resRef = tenantCol('product_reservations').doc();
+                    batch.set(resRef, {
+                        productId:     n.productId,
+                        productName:   n.nombre,
+                        precio:        n.totalLinea,
+                        cantidad:      n.cantidad,
+                        status:        'delivered',
+                        userName:      nombre || 'Cliente',
+                        userEmail:     email || '',
+                        metodoPago:    metodo || 'Efectivo',
+                        barberoId:     _ecCita.barberoId,
+                        barberoNombre: _ecCita.barbero || '',
+                        citaId:        _ecCita.id,
+                        fecha:         fecha,
+                        createdAt:     firebase.firestore.FieldValue.serverTimestamp(),
+                        updatedAt:     firebase.firestore.FieldValue.serverTimestamp(),
+                    });
+                    productosResumen.push({
+                        productId:     n.productId,
+                        nombre:        n.nombre,
+                        cantidad:      n.cantidad,
+                        precio:        n.totalLinea,
+                        reservationId: resRef.id,
+                    });
+                });
+                Object.entries(stockNeeded).forEach(([pid, qty]) => {
+                    const p = (_productos || []).find(x => x.id === pid);
+                    const stockActual = Number(p?.stock);
+                    if (isNaN(stockActual)) return;
+                    batch.update(tenantCol('productos').doc(pid), { stock: Math.max(0, stockActual - qty) });
+                });
+                payload.ticketProductos = [..._ecTicketPrev, ...productosResumen];
+            }
+
+            if (lockChanged) payload.slotLockId = newLock;
+            batch.update(citaRef, payload);
+
+            if (lockChanged && oldLock) {
+                batch.delete(tenantCol('slotLocks').doc(oldLock));
+            }
+            if (lockChanged && newLock) {
+                batch.set(tenantCol('slotLocks').doc(newLock), {
+                    citaId:    _ecCita.id,
+                    fecha:     fecha,
+                    hora:      hora,
+                    barberoId: _ecCita.barberoId,
+                    duracion:  duracion,
+                    creadoEn:  firebase.firestore.FieldValue.serverTimestamp(),
+                });
+            }
+
+            await batch.commit();
+            cerrarEditarCita();
+        } catch(e) {
+            console.error('[guardarEdicionCita]', e);
+            err.textContent = 'Error: ' + e.message;
+            err.classList.remove('hidden');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Guardar cambios';
+        }
+    }
+
+    // ── PRODUCTOS DESDE FIRESTORE (cache) ───────────────────────────
+    let _productos = null;
+    async function _loadProductos() {
+        if (_productos !== null) return _productos;
+        try {
+            const snap = await tenantCol('productos').get();
+            _productos = snap.docs
+                .map(d => ({ id: d.id, ...d.data() }))
+                .filter(p => p.nombre && Number(p.precio) > 0)
+                .sort((a, b) => (a.nombre || '').localeCompare(b.nombre || '', 'es'));
+        } catch (_e) { _productos = []; }
+        return _productos;
+    }
+
     function _populateServiciosSelect() {
         const sel = document.getElementById('manualServiceSelect');
         if (!sel || !_servicios) return;
@@ -2353,6 +2831,12 @@
         if (!sel || !sel.value) return;
         const opt = sel.options[sel.selectedIndex];
         const dur = parseInt(opt.getAttribute('data-dur')) || 30;
+        // Autocompletar precio base del servicio (y resetear descuento)
+        const svcObj = (_servicios || []).find(s => s.id === sel.value);
+        const precioInput = document.getElementById('manualPrecio');
+        const descInput   = document.getElementById('manualDesc');
+        if (precioInput) precioInput.value = Number(svcObj?.precio) || 0;
+        if (descInput)   descInput.value   = 0;
         const durSel = document.getElementById('manualDuration');
         if (!durSel) return;
         durSel.value = dur;
@@ -2371,6 +2855,23 @@
         }
     }
 
+    // Cuando cambia el servicio en el modal, autocompletar precio base
+    const _origOnManualServiceChange = typeof _onManualServiceChange === 'function' ? _onManualServiceChange : null;
+
+    function _onManualPrecioInput() {
+        // Si el usuario edita el precio manualmente, resetear descuento a 0 para no enredarse
+        const desc = document.getElementById('manualDesc');
+        if (desc && desc.value !== '0') desc.value = '0';
+    }
+    function _onManualDescInput() {
+        const svcSel = document.getElementById('manualServiceSelect');
+        const svcObj = (_servicios || []).find(s => s.id === (svcSel?.value || ''));
+        const base = Number(svcObj?.precio) || 0;
+        const desc = Math.max(0, Math.min(100, Number(document.getElementById('manualDesc').value) || 0));
+        const precioFinal = Math.round(base * (1 - desc / 100));
+        document.getElementById('manualPrecio').value = precioFinal;
+    }
+
     async function guardarCitaManual() {
         const btn = document.getElementById('manualSaveBtn');
         const err = document.getElementById('manualError');
@@ -2382,7 +2883,8 @@
         const svcObj   = (_servicios || []).find(s => s.id === servicioId);
         const service  = svcObj?.nombre || '';
         const duration = parseInt(document.getElementById('manualDuration').value) || 30;
-        const precio   = Number(svcObj?.precio) || 0;
+        const precio   = Number(document.getElementById('manualPrecio').value) || Number(svcObj?.precio) || 0;
+        const desc     = Math.max(0, Math.min(100, Number(document.getElementById('manualDesc').value) || 0));
 
         if (!name || !servicioId) {
             err.textContent = 'Nombre y Servicio son obligatorios.';
@@ -2392,12 +2894,17 @@
 
         btn.disabled = true;
         btn.textContent = 'Guardando...';
-        
+
         try {
             const yyyy = currentDate.getFullYear();
             const mm = String(currentDate.getMonth() + 1).padStart(2, '0');
             const dd = String(currentDate.getDate()).padStart(2, '0');
             const fechaStr = `${yyyy}-${mm}-${dd}`;
+
+            // SlotLock para evitar doble reserva desde el booking publico (mismo patron que Agenda.jsx).
+            const safeHora = (_timeSlotSeleccionado || '').replace(':', '');
+            const safeBid  = String(barberId || '').replace(/[^a-zA-Z0-9_-]/g, '_');
+            const lockId   = barberId ? `${safeBid}_${fechaStr}_${safeHora}` : null;
 
             const docData = {
                 barberoId: barberId,
@@ -2408,16 +2915,36 @@
                 fecha: fechaStr,
                 hora: _timeSlotSeleccionado,
                 duracionServicio: duration,
+                duracion: duration,
                 servicioNombre: service,
                 servicioId: servicioId,
                 precio: precio,
+                porcentajeDescuento: desc || 0,
+                metodoPago: 'Efectivo',
                 creadoEn: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
                 origen: 'agenda_manual',
                 tenantId: window.CURRENT_TENANT_ID || 'elegance'
             };
             if (_selectedClienteId) docData.clienteId = _selectedClienteId;
+            if (lockId) docData.slotLockId = lockId;
 
-            await tenantCol('citas').add(docData);
+            if (lockId) {
+                const batch = db.batch();
+                const citaRef = tenantCol('citas').doc();
+                batch.set(citaRef, docData);
+                batch.set(tenantCol('slotLocks').doc(lockId), {
+                    citaId:    citaRef.id,
+                    fecha:     fechaStr,
+                    hora:      _timeSlotSeleccionado,
+                    barberoId: barberId,
+                    duracion:  duration,
+                    creadoEn:  firebase.firestore.FieldValue.serverTimestamp(),
+                });
+                await batch.commit();
+            } else {
+                await tenantCol('citas').add(docData);
+            }
             cerrarAgendarModal();
         } catch(e) {
             console.error(e);
