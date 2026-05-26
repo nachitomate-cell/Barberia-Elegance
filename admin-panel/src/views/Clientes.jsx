@@ -636,7 +636,18 @@ const LOADING_PHRASES = [
 
 function buildRecommendations(stats) {
   const recs = [];
-  const { total, avg, riesgo, conPremio, totalCitas, cumple, silver, gold, platinum } = stats;
+  const { total, avg, riesgo, conPremio, totalCitas, cumple, silver, gold, platinum, migradosPendientes, migradosInvitados } = stats;
+
+  if (migradosPendientes >= 10) {
+    const pctEstimado = Math.round(migradosPendientes * 0.15);
+    recs.push(
+      `Tenés ${migradosPendientes} clientes migrados de AgendaPro que aún no se unieron al Club` +
+      (migradosInvitados > 0 ? ` (${migradosInvitados} ya invitados).` : '.') +
+      ` Activarlos con una campaña de WhatsApp puede convertir ${pctEstimado}–${Math.round(migradosPendientes * 0.25)} ` +
+      `en miembros activos esta semana, sumando base de fidelización sin costo de adquisición. ` +
+      `Usá el botón "Invitar migrados" arriba para enviarles el link de registro.`
+    );
+  }
 
   if (riesgo >= 3) {
     recs.push(
@@ -758,6 +769,12 @@ function IAModal({ stats, shopName, onClose }) {
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-widest text-[#D4AF37]">Synaptech IA</p>
                 <h3 className="text-sm font-bold text-white leading-none">Recomendación para {shopName}</h3>
+                <p className="text-[9px] text-slate-500 mt-1.5">
+                  Analiza {stats.total} cliente{stats.total !== 1 ? 's' : ''} del Club
+                  {(stats.migradosPendientes + stats.migradosInvitados) > 0 && (
+                    <> · {stats.migradosPendientes + stats.migradosInvitados} migrado{(stats.migradosPendientes + stats.migradosInvitados) !== 1 ? 's' : ''} excluido{(stats.migradosPendientes + stats.migradosInvitados) !== 1 ? 's' : ''}</>
+                  )}
+                </p>
               </div>
             </div>
             <button onClick={onClose}
@@ -914,9 +931,14 @@ export default function Clientes() {
     return Object.values(map).sort((a, b) => b.count - a.count);
   }, [todasCitas, clientes]);
 
+  /* Clientes "reales" del Club = excluye legacies migrados de AgendaPro.
+     Se usa para todas las métricas de fidelización (IA, riesgo, tiers, avg de sellos).
+     Los legacies inflan el total y meten ceros en el promedio porque NUNCA usaron el Club. */
+  const clientesReales = useMemo(() => clientes.filter(c => !isLegacy(c)), [clientes]);
+
   const clientesEnRiesgo = useMemo(() => {
     const ahora = Date.now();
-    return clientes
+    return clientesReales
       .filter(c => {
         if (!c.ultimoSello) return false;
         const historicos = c.sellosHistoricos ?? c.stamps ?? 0;
@@ -930,7 +952,7 @@ export default function Clientes() {
       }))
       .sort((a, b) => b.diasSinVisita - a.diasSinVisita)
       .slice(0, 5);
-  }, [clientes]);
+  }, [clientesReales]);
 
   const sorted = useMemo(() =>
     [...clientes].sort((a, b) => sellos(b) - sellos(a) || (a.nombre || '').localeCompare(b.nombre || '')),
@@ -974,6 +996,8 @@ export default function Clientes() {
   const pageCount = Math.ceil(filtered.length / PAGE_SIZE);
   const paged     = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
+  /* KPIs visibles del panel: incluyen TODOS los clientes (registrados + migrados).
+     Es la metrica de "tamaño de la base de contactos" del local. */
   const total  = clientes.length;
   const avg    = total ? (clientes.reduce((s, c) => s + sellos(c), 0) / total).toFixed(1) : 0;
   const conPremio = premios.length
@@ -981,18 +1005,33 @@ export default function Clientes() {
     : clientes.filter(c => sellos(c) >= 5).length;
   const totalCitasGlobal = todasCitas.length;
 
-  const iaStats = useMemo(() => ({
-    total,
-    avg,
-    riesgo:     clientesEnRiesgo.length,
-    conPremio,
-    totalCitas: totalCitasGlobal,
-    cumple:     clientes.filter(c => c.cumpleDia?.startsWith(mesActual + '-')).length,
-    silver:     clientes.filter(c => calcTier(c.sellosHistoricos ?? c.stamps ?? 0) === 'SILVER').length,
-    gold:       clientes.filter(c => calcTier(c.sellosHistoricos ?? c.stamps ?? 0) === 'GOLD').length,
-    platinum:   clientes.filter(c => calcTier(c.sellosHistoricos ?? c.stamps ?? 0) === 'PLATINUM').length,
+  /* Stats para el analisis IA: SOLO clientes reales del Club (no migrados).
+     Asi avg, tiers, cumple, etc. no se inflan con los 595 legacies en 0 sellos.
+     migradosPendientes/Invitados se exponen para la recomendacion especifica. */
+  const iaStats = useMemo(() => {
+    const totalReales      = clientesReales.length;
+    const sumSellos        = clientesReales.reduce((s, c) => s + sellos(c), 0);
+    const avgReales        = totalReales ? (sumSellos / totalReales).toFixed(1) : 0;
+    const conPremioReales  = premios.length
+      ? clientesReales.filter(c => sellos(c) >= premios[0]?.costoSellos).length
+      : clientesReales.filter(c => sellos(c) >= 5).length;
+    const totalMigrados    = clientes.length - totalReales;
+    const yaInvitados      = clientes.filter(c => isLegacy(c) && c.invitacionEnviadaAt).length;
+    return {
+      total:              totalReales,
+      avg:                avgReales,
+      riesgo:             clientesEnRiesgo.length,
+      conPremio:          conPremioReales,
+      totalCitas:         totalCitasGlobal,
+      cumple:             clientesReales.filter(c => c.cumpleDia?.startsWith(mesActual + '-')).length,
+      silver:             clientesReales.filter(c => calcTier(c.sellosHistoricos ?? c.stamps ?? 0) === 'SILVER').length,
+      gold:               clientesReales.filter(c => calcTier(c.sellosHistoricos ?? c.stamps ?? 0) === 'GOLD').length,
+      platinum:           clientesReales.filter(c => calcTier(c.sellosHistoricos ?? c.stamps ?? 0) === 'PLATINUM').length,
+      migradosPendientes: totalMigrados - yaInvitados,
+      migradosInvitados:  yaInvitados,
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [total, avg, clientesEnRiesgo.length, conPremio, totalCitasGlobal, clientes.length]);
+  }, [clientes, clientesReales, clientesEnRiesgo.length, totalCitasGlobal, mesActual, premios]);
 
   return (
     <div className="max-w-4xl mx-auto">
