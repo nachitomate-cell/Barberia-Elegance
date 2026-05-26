@@ -5506,23 +5506,27 @@
       }
 
       const recommendations = avail.slice(0, 3);
-      const accentColor = '#D4AF37'; 
-      const bgAccent = 'rgba(212,175,55,0.06)';
-      const borderAccent = 'rgba(212,175,55,0.25)';
-
       container.innerHTML = `
-        <div class="p-4 rounded-2xl border transition-all" style="background:${bgAccent}; border-color:${borderAccent};">
-          <p class="text-xs font-bold uppercase tracking-wider mb-2.5 flex items-center gap-1.5" style="color:${accentColor};">
-            <i class="ph-fill ph-lightning text-sm animate-pulse"></i> Horas recomendadas (Smart Slots)
+        <div class="p-4 rounded-2xl border transition-all relative overflow-hidden"
+             style="background: linear-gradient(135deg, rgba(251,191,36,0.08) 0%, rgba(245,158,11,0.12) 50%, rgba(217,119,6,0.06) 100%);
+                    border-color: rgba(251,191,36,0.30);
+                    box-shadow: 0 0 20px rgba(251,191,36,0.06), inset 0 1px 0 rgba(255,255,255,0.04);">
+          <div style="position:absolute;top:-30px;right:-30px;width:100px;height:100px;background:radial-gradient(circle,rgba(251,191,36,0.12) 0%,transparent 70%);pointer-events:none;"></div>
+          <p class="text-xs font-bold uppercase tracking-wider mb-2.5 flex items-center gap-1.5"
+             style="background:linear-gradient(90deg,#FBBF24,#F59E0B,#D97706);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
+            <i class="ph-fill ph-lightning text-sm animate-pulse" style="-webkit-text-fill-color:#FBBF24;color:#FBBF24;filter:drop-shadow(0 0 4px rgba(251,191,36,0.5));"></i> Horas recomendadas (Smart Slots)
           </p>
-          <p class="text-xs text-white/50 mb-3.5">
+          <p class="text-xs mb-3.5" style="color:rgba(255,255,255,0.65);">
             ¿Tienes prisa? Agenda al instante uno de estos bloques recomendados para hoy:
           </p>
           <div class="grid grid-cols-3 gap-2.5">
             ${recommendations.map(r => `
               <button 
                 onclick="selectSmartSlot('${r.time}')" 
-                class="smart-slot-pill py-2.5 px-3 rounded-xl border text-xs font-bold text-center transition-all bg-[#0F0F12] border-white/10 text-white hover:border-[#D4AF37] focus:outline-none"
+                class="smart-slot-pill py-2.5 px-3 rounded-xl border text-xs font-bold text-center transition-all focus:outline-none"
+                style="background:rgba(251,191,36,0.08); border-color:rgba(251,191,36,0.25); color:#FBBF24;"
+                onmouseover="this.style.background='rgba(251,191,36,0.18)';this.style.borderColor='rgba(251,191,36,0.5)';this.style.boxShadow='0 0 12px rgba(251,191,36,0.15)';"
+                onmouseout="if(!this.dataset.active){this.style.background='rgba(251,191,36,0.08)';this.style.borderColor='rgba(251,191,36,0.25)';this.style.boxShadow='none';}"
               >
                 ${r.time}
               </button>
@@ -5550,13 +5554,17 @@
 
       document.querySelectorAll('.smart-slot-pill').forEach(btn => {
         if (btn.textContent.trim() === time) {
-          btn.style.background = '#D4AF37';
+          btn.style.background = 'linear-gradient(135deg,#FBBF24,#F59E0B)';
           btn.style.color = '#000';
-          btn.style.borderColor = '#D4AF37';
+          btn.style.borderColor = '#FBBF24';
+          btn.style.boxShadow = '0 0 14px rgba(251,191,36,0.3)';
+          btn.dataset.active = '1';
         } else {
-          btn.style.background = '#0F0F12';
-          btn.style.color = '#fff';
-          btn.style.borderColor = 'rgba(255,255,255,0.1)';
+          btn.style.background = 'rgba(251,191,36,0.08)';
+          btn.style.color = '#FBBF24';
+          btn.style.borderColor = 'rgba(251,191,36,0.25)';
+          btn.style.boxShadow = 'none';
+          delete btn.dataset.active;
         }
       });
     };
