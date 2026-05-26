@@ -4792,12 +4792,27 @@ async function cargarCitasUsuario(user) {
       // Poblar caché para el modal
       citas.forEach(c => { _citaCache[c.id] = c; });
 
-      // Mostrar tarjeta interactiva de valoración si hay una cita recién completada
+      // Si hay una cita recién completada (pendingGoogleReview=true) y el
+      // tenant tiene URL de Google configurada → mostrar el modal de Google
+      // DIRECTO, sin pasar por la tarjeta intermedia de feedback. Una sola
+      // vez por sesión para no spammear al cliente cuando cambian las citas.
+      // Fallback: si el tenant no tiene googleReviewUrl, mostrar el feedback
+      // card original como antes.
       const citaGoogleReview = citas.find(c => c.pendingGoogleReview === true);
-      if (citaGoogleReview) {
+      const fContainer = document.getElementById('interactiveFeedbackContainer');
+      const hasGoogleUrl = !!(window.SHOP && window.SHOP.googleReviewUrl);
+
+      if (citaGoogleReview && hasGoogleUrl) {
+        if (fContainer) fContainer.classList.add('hidden');
+        if (!window._googleModalShownSession) {
+          window._googleModalShownSession = true;
+          // Pequeño delay para que el dashboard termine de renderizar antes del modal.
+          setTimeout(() => mostrarGoogleReviewModal(citaGoogleReview.id), 1500);
+        }
+      } else if (citaGoogleReview) {
+        // Tenant sin Google review URL → comportamiento original (feedback card)
         initFeedbackCard(citaGoogleReview);
       } else {
-        const fContainer = document.getElementById('interactiveFeedbackContainer');
         if (fContainer) fContainer.classList.add('hidden');
       }
 
