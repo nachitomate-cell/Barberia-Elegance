@@ -1470,7 +1470,7 @@
             if (!totalSlots) return;
 
             // Anchos de columna
-            const timeColW = 42;
+            const timeColW = 56;
             const dayColW  = 128;
             const gapW     = 2;
             const totalW   = timeColW + 7 * dayColW + 6 * gapW;
@@ -1550,8 +1550,8 @@
                     'background:#141418',
                     'display:flex',
                     'align-items:flex-start',
-                    'justify-content:flex-end',
-                    'padding:2px 5px 0 0',
+                    'justify-content:center',
+                    'padding:2px 0 0 0',
                     'border-bottom:1px solid rgba(255,255,255,0.06)',
                 ].join(';');
                 const showTime = cur % 60 === 0; // mostrar solo horas en punto
