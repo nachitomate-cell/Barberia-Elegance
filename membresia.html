@@ -1352,6 +1352,9 @@
     document.documentElement.classList.add('tenant-' + TENANT_ID);
     const SHOP = window.SHOP || {};
     const IS_DELUXE = TENANT_ID === 'deluxeperfumes';
+    // Aura permite explorar la membresia SIN iniciar sesion: los planes son
+    // publicos y "Suscribirme" abre WhatsApp al local (no requiere auth).
+    const IS_AURA   = TENANT_ID === 'aura';
     const BOOTSTRAP_ADMINS = ['ignaciiio.mate@gmail.com'];
 
     let currentUser = null;
@@ -1431,6 +1434,14 @@
     /* ── Firebase auth flow ────────────────────────────────────────── */
     firebase.auth().onAuthStateChanged(async (user) => {
       if (!user) {
+        // Aura: vista publica de planes sin login. Si el cliente quiere
+        // suscribirse toca 'Suscribirme' y abre WhatsApp al local.
+        if (IS_AURA) {
+          await Promise.all([loadSettings(), loadPlanes()]);
+          renderPlans();
+          showView('plans');
+          return;
+        }
         showView('gate');
         return;
       }
@@ -1635,13 +1646,17 @@
       const precioAnual = Number(planData.precioAnual) || precioMensual * 10;
       const precio = periodo === 'mensual' ? precioMensual : precioAnual;
       const shopName = SHOP.nombreCorto || SHOP.nombre || 'el equipo';
+      // Si no hay sesión (caso Aura público), omitir las líneas Nombre/Email
+      // para que no queden en blanco; el cliente se identifica en el chat.
+      const lineasIdent = currentUser
+        ? '\nNombre: ' + (currentUser.displayName || '') + '\nEmail: ' + (currentUser.email || '')
+        : '';
       const msg = encodeURIComponent(
         'Hola ' + shopName + '! Quiero suscribirme ' + (SHOP.waEmoji || '✨') + '\n\n' +
         'Plan: ' + planData.nombre + '\n' +
         'Período: ' + (periodo === 'mensual' ? 'Mensual' : 'Anual') + '\n' +
-        'Precio: ' + fmtPrice(precio) + '\n\n' +
-        'Nombre: ' + (currentUser?.displayName || '') + '\n' +
-        'Email: ' + (currentUser?.email || '')
+        'Precio: ' + fmtPrice(precio) +
+        lineasIdent
       );
       const phone = waPhone || SHOP.telefono || '56900000000';
       window.open('https://wa.me/' + phone + '?text=' + msg, '_blank');
