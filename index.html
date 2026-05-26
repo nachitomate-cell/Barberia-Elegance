@@ -7506,12 +7506,7 @@
       const section = document.getElementById('extrasSection');
       if (!section) return;
       const f = SHOP.features;
-      if (!f) { section.classList.add('hidden'); return; }
-
-      const cards = [];
-      if (f.hasCourses     && f.courses)     cards.push({ icon: 'ph-graduation-cap', data: f.courses });
-      if (f.hasChairRental && f.chairRental) cards.push({ icon: 'ph-scissors',       data: f.chairRental });
-      if (!cards.length) { section.classList.add('hidden'); return; }
+      if (!f && window.CURRENT_TENANT_ID !== 'chameleon') { section.classList.add('hidden'); return; }
 
       const grid = document.getElementById('extrasGrid');
       if (!grid) return;
@@ -7519,31 +7514,61 @@
       const nameEl = document.getElementById('extrasShopName');
       if (nameEl) nameEl.textContent = SHOP.nombreCorto;
 
-      const phone = (SHOP.telefono || '').replace(/\D/g, '');
-      grid.innerHTML = cards.map(({ icon, data }) => {
-        const waHref = phone
-          ? 'https://wa.me/' + phone + '?text=' + encodeURIComponent(data.ctaMsg)
-          : '#';
-        return `
-          <div class="rounded-2xl" style="background:#0a0807;border:1px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.18);">
-            <div class="px-5 py-5">
-              <div class="flex items-center gap-3 mb-3">
-                <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                  style="background:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.10);border:1px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.22);">
-                  <i class="ph-fill ${icon} text-xl" style="color:var(--accent);"></i>
-                </div>
-                <h3 class="text-sm font-bold text-white">${data.title}</h3>
-              </div>
-              <p class="text-xs text-gray-400 leading-relaxed mb-4">${data.description}</p>
-              <a href="${waHref}" target="_blank" rel="noopener"
-                class="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-bold active:scale-[0.98] transition-all"
-                style="background:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.12);border:1px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.30);color:var(--accent);">
-                <i class="ph-bold ph-whatsapp-logo text-base"></i>
-                Quiero información
-              </a>
+      if (window.CURRENT_TENANT_ID === 'chameleon') {
+        grid.className = "grid grid-cols-2 gap-3";
+        grid.innerHTML = `
+          <div class="rounded-2xl cursor-pointer active:scale-95 transition-all flex flex-col items-center justify-center p-4 text-center min-h-[110px]"
+               style="background:#0a0807;border:1px solid rgba(201,168,76,0.18);"
+               onclick="openChameleonExtrasModal('Cursos de Barbería', 'Aprende con los mejores. Formamos a los próximos profesionales del arte de la barbería con técnicas clásicas y modernas, desde cero hasta nivel avanzado.', 'Hola Chameleon! Quiero información sobre los cursos de barbería 🎓')">
+            <div class="w-9 h-9 rounded-xl flex items-center justify-center mb-2 shrink-0"
+                 style="background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.22);">
+              <i class="ph-bold ph-graduation-cap text-lg" style="color:#c9a84c;"></i>
             </div>
+            <span class="text-[12px] font-bold text-white leading-tight">Cursos de Barbería</span>
+          </div>
+          
+          <div class="rounded-2xl cursor-pointer active:scale-95 transition-all flex flex-col items-center justify-center p-4 text-center min-h-[110px]"
+               style="background:#0a0807;border:1px solid rgba(201,168,76,0.18);"
+               onclick="openChameleonExtrasModal('Servicio a Domicilio', 'Contáctanos para más información sobre nuestros servicios exclusivos a domicilio, tarifas y disponibilidad.', 'Hola Chameleon! Quiero información sobre el servicio a domicilio 🏠')">
+            <div class="w-9 h-9 rounded-xl flex items-center justify-center mb-2 shrink-0"
+                 style="background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.22);">
+              <i class="ph-bold ph-house text-lg" style="color:#c9a84c;"></i>
+            </div>
+            <span class="text-[12px] font-bold text-white leading-tight">Servicio a Domicilio</span>
           </div>`;
-      }).join('');
+      } else {
+        const cards = [];
+        if (f && f.hasCourses     && f.courses)     cards.push({ icon: 'ph-graduation-cap', data: f.courses });
+        if (f && f.hasChairRental && f.chairRental) cards.push({ icon: 'ph-scissors',       data: f.chairRental });
+        if (!cards.length) { section.classList.add('hidden'); return; }
+
+        grid.className = "grid grid-cols-1 gap-3 sm:grid-cols-2";
+        const phone = (SHOP.telefono || '').replace(/\D/g, '');
+        grid.innerHTML = cards.map(({ icon, data }) => {
+          const waHref = phone
+            ? 'https://wa.me/' + phone + '?text=' + encodeURIComponent(data.ctaMsg)
+            : '#';
+          return `
+            <div class="rounded-2xl" style="background:#0a0807;border:1px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.18);">
+              <div class="px-5 py-5">
+                <div class="flex items-center gap-3 mb-3">
+                  <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                    style="background:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.10);border:1px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.22);">
+                    <i class="ph-fill ${icon} text-xl" style="color:var(--accent);"></i>
+                  </div>
+                  <h3 class="text-sm font-bold text-white">${data.title}</h3>
+                </div>
+                <p class="text-xs text-gray-400 leading-relaxed mb-4">${data.description}</p>
+                <a href="${waHref}" target="_blank" rel="noopener"
+                  class="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-sm font-bold active:scale-[0.98] transition-all"
+                  style="background:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.12);border:1px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.30);color:var(--accent);">
+                  <i class="ph-bold ph-whatsapp-logo text-base"></i>
+                  Quiero información
+                </a>
+              </div>
+            </div>`;
+        }).join('');
+      }
 
       section.classList.remove('hidden');
     }
@@ -7682,6 +7707,48 @@
       m.addEventListener('transitionend', () => m.classList.remove('open'), { once: true });
     }
 
+    // ── Extras modal (Chameleon only) ──────────────────────────────────────────
+    function openChameleonExtrasModal(title, bodyText, ctaText) {
+      const modal = document.getElementById('chameleon-extras-modal');
+      const sheet = document.getElementById('chameleon-extras-sheet');
+      if (!modal || !sheet) return;
+
+      document.getElementById('chameleon-extras-title').textContent = title;
+      document.getElementById('chameleon-extras-body').textContent = bodyText;
+
+      const phone = (SHOP.telefono || '').replace(/\D/g, '');
+      const waBtn = document.getElementById('chameleon-extras-wa-btn');
+      if (waBtn) {
+        waBtn.href = phone 
+          ? 'https://wa.me/' + phone + '?text=' + encodeURIComponent(ctaText)
+          : '#';
+      }
+
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+      document.body.style.overflow = 'hidden';
+      setTimeout(() => {
+        modal.classList.remove('opacity-0');
+        sheet.classList.remove('translate-y-8');
+        sheet.classList.add('translate-y-0');
+      }, 20);
+    }
+
+    function closeChameleonExtrasModal() {
+      const modal = document.getElementById('chameleon-extras-modal');
+      const sheet = document.getElementById('chameleon-extras-sheet');
+      if (!modal || !sheet) return;
+
+      modal.classList.add('opacity-0');
+      sheet.classList.remove('translate-y-0');
+      sheet.classList.add('translate-y-8');
+      document.body.style.overflow = '';
+      setTimeout(() => {
+        modal.classList.remove('flex');
+        modal.classList.add('hidden');
+      }, 300);
+    }
+
     // Populate "Sobre Nosotros" modal body from config — text must NOT be hardcoded in
     // the static HTML because Google indexes display:none content and blends it into
     // snippets for other tenants (cross-tenant SEO bleed).
@@ -7807,6 +7874,37 @@
       <div id="aura-sobre-title">Quiénes Somos</div>
       <p id="aura-sobre-body"></p>
       <button id="aura-sobre-close" onclick="closeAuraSobre()">Cerrar</button>
+    </div>
+  </div>
+
+  <!-- Modal Extras Chameleon -->
+  <div id="chameleon-extras-modal" class="fixed inset-0 z-[9999] hidden items-center justify-center p-4 bg-black/80 backdrop-blur-md transition-all duration-300 opacity-0" onclick="if(event.target===this)closeChameleonExtrasModal()">
+    <div class="relative w-full max-w-sm rounded-3xl border bg-[#0a0807] p-6 shadow-2xl overflow-hidden translate-y-8 transition-transform duration-300" id="chameleon-extras-sheet" style="border-color: rgba(201,168,76,0.35);">
+      <div class="absolute inset-0 pointer-events-none animate-pulse" style="background: radial-gradient(ellipse 60% 60% at 50% -10%, rgba(201,168,76,0.06) 0%, transparent 80%);"></div>
+      <div class="relative z-10">
+        <!-- Pull-to-close handle indicator -->
+        <div class="w-12 h-1 rounded-full bg-white/10 mx-auto mb-5"></div>
+        
+        <!-- Title -->
+        <h3 id="chameleon-extras-title" class="text-lg font-black text-white tracking-tight mb-3 text-center"></h3>
+        
+        <!-- Description -->
+        <p id="chameleon-extras-body" class="text-xs text-gray-400 leading-relaxed mb-6 text-center"></p>
+        
+        <!-- Buttons -->
+        <div class="flex flex-col gap-2.5">
+          <a id="chameleon-extras-wa-btn" href="#" target="_blank" rel="noopener"
+            class="flex items-center justify-center gap-2 w-full py-3.5 rounded-2xl text-sm font-bold text-black bg-[#c9a84c] hover:bg-[#c9a84c]/90 active:scale-[0.98] transition-all shadow-[0_0_20px_rgba(201,168,76,0.2)]">
+            <i class="ph-bold ph-whatsapp-logo text-lg"></i>
+            Contactar por WhatsApp
+          </a>
+          <button onclick="closeChameleonExtrasModal()" 
+            class="w-full py-3.5 rounded-2xl text-xs font-bold text-white/40 hover:text-white/60 active:scale-[0.98] transition-all"
+            style="background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06);">
+            Cerrar
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
