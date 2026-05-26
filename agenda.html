@@ -990,6 +990,9 @@
                 });
 
                 if (bloqueo) {
+                    const html = buildBlockedSlot(horaStr, bloqueo);
+                    if (isAfternoon) { aSlots.insertAdjacentHTML('beforeend', html); hasAfternoon = true; }
+                    else { mSlots.insertAdjacentHTML('beforeend', html); hasMorning = true; }
                     cur += interval;
                     continue;
                 }
@@ -1246,6 +1249,22 @@
             </div>`;
         }
 
+        function buildBlockedSlot(time, bloqueo) {
+            return `
+            <div class="flex items-center gap-4 py-2.5 border-b border-white/[0.06] hover:border-white/10 transition-colors group cursor-pointer" onclick="removerBloqueoRapido('${bloqueo.id}', '${bloqueo.slotLockId || ''}', '${time}')">
+                <div class="text-center min-w-[50px] shrink-0">
+                    <p class="text-sm font-bold text-red-400/50">${time}</p>
+                </div>
+                <div class="h-6 w-[1px] bg-white/5 shrink-0"></div>
+                <p class="flex-1 text-xs font-medium text-red-400/40 group-hover:text-red-400/60 transition-colors flex items-center gap-1.5">
+                    <i class="ph-bold ph-lock text-[11px]"></i> Horario bloqueado
+                </p>
+                <span class="relative w-8 h-8 flex items-center justify-center shrink-0 bg-red-500/10 rounded-lg border border-red-500/20 text-red-400 group-hover:bg-red-500/20 transition-all" title="Desbloquear horario">
+                    <i class="ph-bold ph-lock-simple-open text-xs"></i>
+                </span>
+            </div>`;
+        }
+
         async function agregarBloqueoRapido(time) {
             if (!window.confirm(`¿Deseas bloquear el horario de las ${time}?`)) return;
 
@@ -1290,6 +1309,30 @@
                 creadoEn:  firebase.firestore.FieldValue.serverTimestamp(),
             });
             await batch.commit();
+        }
+
+        async function removerBloqueoRapido(bloqueoId, slotLockId, time, fecha) {
+            const labelStr = fecha ? `el ${fecha} a las ${time}` : `a las ${time}`;
+            if (!window.confirm(`¿Deseas desbloquear el horario de las ${labelStr}?`)) return;
+
+            try {
+                const batch = db.batch();
+                if (bloqueoId) {
+                    batch.delete(tenantCol('bloqueos').doc(bloqueoId));
+                }
+                if (slotLockId) {
+                    batch.delete(tenantCol('slotLocks').doc(slotLockId));
+                } else {
+                    const safeHora = time.replace(':', '');
+                    const safeBid  = String(barberId).replace(/[^a-zA-Z0-9_-]/g, '_');
+                    const deducidoId = `bloqueo_${safeBid}_${fecha || _fmtDate(currentDate)}_${safeHora}`;
+                    batch.delete(tenantCol('slotLocks').doc(deducidoId));
+                }
+                await batch.commit();
+            } catch (err) {
+                console.error("Error al desbloquear el horario:", err);
+                alert("Ocurrió un error al intentar desbloquear el horario.");
+            }
         }
 
         // ── VISTA SEMANAL COMPLETA (Chameleon) ───────────────────────────
@@ -1576,7 +1619,8 @@
                     });
                     if (bloqueo) {
                         const cell = document.createElement('div');
-                        cell.style.cssText = `grid-column:${di+2};grid-row:${gridRow};height:34px;background:rgba(239,68,68,0.13);border-left:2px solid rgba(239,68,68,0.45);border-bottom:1px solid rgba(239,68,68,0.08);display:flex;align-items:center;justify-content:center;`;
+                        cell.style.cssText = `grid-column:${di+2};grid-row:${gridRow};height:34px;background:rgba(239,68,68,0.13);border-left:2px solid rgba(239,68,68,0.45);border-bottom:1px solid rgba(239,68,68,0.08);display:flex;align-items:center;justify-content:center;cursor:pointer;`;
+                        cell.onclick = () => removerBloqueoRapido(bloqueo.id, bloqueo.slotLockId || '', horaStr, fechaStr);
                         cell.innerHTML = `<i class="ph-bold ph-lock" style="font-size:10px;color:rgba(239,68,68,0.65);"></i>`;
                         grid.appendChild(cell);
                         continue;
