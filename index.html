@@ -6233,6 +6233,34 @@
       const strip = document.getElementById('featuresStrip');
       if (!strip) return;
 
+      if (window.CURRENT_TENANT_ID === 'chameleon') {
+        strip.innerHTML = `
+          <div class="grid grid-cols-2 gap-3 w-full">
+            <div class="rounded-2xl cursor-pointer active:scale-95 transition-all flex flex-col items-center justify-center p-4 text-center min-h-[110px]"
+                 style="background:#0a0807;border:1px solid rgba(201,168,76,0.18);"
+                 onclick="openChameleonExtrasModal('Cursos de Barbería', 'Aprende con los mejores. Formamos a los próximos profesionales del arte de la barbería con técnicas clásicas y modernas, desde cero hasta nivel avanzado.', 'Hola Chameleon! Quiero información sobre los cursos de barbería 🎓')">
+              <div class="w-9 h-9 rounded-xl flex items-center justify-center mb-2 shrink-0"
+                   style="background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.22);">
+                <i class="ph-bold ph-graduation-cap text-lg" style="color:#c9a84c;"></i>
+              </div>
+              <span class="text-[12px] font-bold text-white leading-tight">Cursos de Barbería</span>
+            </div>
+            
+            <div class="rounded-2xl cursor-pointer active:scale-95 transition-all flex flex-col items-center justify-center p-4 text-center min-h-[110px]"
+                 style="background:#0a0807;border:1px solid rgba(201,168,76,0.18);"
+                 onclick="openChameleonExtrasModal('Servicio a Domicilio', 'Contáctanos para más información sobre nuestros servicios exclusivos a domicilio, tarifas y disponibilidad.', 'Hola Chameleon! Quiero información sobre el servicio a domicilio 🏠')">
+              <div class="w-9 h-9 rounded-xl flex items-center justify-center mb-2 shrink-0"
+                   style="background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.22);">
+                <i class="ph-bold ph-house text-lg" style="color:#c9a84c;"></i>
+              </div>
+              <span class="text-[12px] font-bold text-white leading-tight">Servicio a Domicilio</span>
+            </div>
+          </div>
+        `;
+        strip.classList.remove('hidden');
+        return;
+      }
+
       // Firestore tiene precedencia; fallback a config.js
       const shopFeat = SHOP.features || {};
       const feat = Object.assign({}, shopFeat, fsFeatures || {});
@@ -7505,6 +7533,12 @@
     function renderExtrasSection() {
       const section = document.getElementById('extrasSection');
       if (!section) return;
+
+      if (window.CURRENT_TENANT_ID === 'chameleon') {
+        section.classList.add('hidden');
+        return;
+      }
+
       const f = SHOP.features;
       if (!f && window.CURRENT_TENANT_ID !== 'chameleon') { section.classList.add('hidden'); return; }
 
