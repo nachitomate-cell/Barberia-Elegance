@@ -4,7 +4,7 @@ import {
   CheckCircle2, XCircle, Clock, Trash2, Lock, History,
   User, Phone, Mail, Scissors, CalendarDays, DollarSign,
   Timer, MessageSquare, BadgeCheck, Search, ListFilter, MapPin,
-  Send, Download, RefreshCw, Copy, Check,
+  Send, Download, RefreshCw, Copy, Check, ShoppingBag,
 } from 'lucide-react';
 import {
   addDoc, updateDoc, deleteDoc, doc, getDoc, serverTimestamp, where, orderBy, limit, writeBatch, getDocs, query,
@@ -101,7 +101,7 @@ function Modal({ title, onClose, children, footer, maxW = 'max-w-md' }) {
 }
 
 /* ── CitaModal (create / edit) ───────────────────────────────── */
-function CitaModal({ cita, barberos, servicios, defaultHora, defaultBarberoId, dateStr, onClose, onComplete }) {
+function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, defaultBarberoId, dateStr, onClose, onComplete }) {
   const { timeLabels } = useContext(AgendaCtx);
   const isNew = !cita;
   const { id: tenantId } = useTenant();
@@ -148,6 +148,48 @@ function CitaModal({ cita, barberos, servicios, defaultHora, defaultBarberoId, d
   const [saving, setSaving] = useState(false);
   const [showSugg, setShowSugg] = useState(false);
   const [telError, setTelError] = useState(false);
+
+  /* Productos vendidos junto a esta cita */
+  const ticketPrev = useMemo(() => Array.isArray(cita?.ticketProductos) ? cita.ticketProductos : [], [cita]);
+  const [ticketNuevos, setTicketNuevos]   = useState([]); // [{ productId, nombre, cantidad, precioUnitario, totalLinea }]
+  const [addingProducto, setAddingProducto] = useState(false);
+  const [newProductId, setNewProductId]   = useState('');
+  const [newProductQty, setNewProductQty] = useState(1);
+
+  const productosDisponibles = useMemo(() => productos.filter(p => Number(p.precio) > 0), [productos]);
+
+  function addProductoAlTicket() {
+    const p = productosDisponibles.find(x => x.id === newProductId);
+    if (!p || newProductQty <= 0) return;
+    const usadosEnNuevos = ticketNuevos
+      .filter(n => n.productId === p.id)
+      .reduce((s, n) => s + n.cantidad, 0);
+    const stockActual = Number(p.stock);
+    const stockManaged = !isNaN(stockActual);
+    if (stockManaged && newProductQty + usadosEnNuevos > stockActual) {
+      alert(`Stock insuficiente. Disponible: ${stockActual - usadosEnNuevos} unidad${stockActual - usadosEnNuevos !== 1 ? 'es' : ''}.`);
+      return;
+    }
+    const precioUnitario = Number(p.precio) || 0;
+    setTicketNuevos(arr => [...arr, {
+      productId: p.id,
+      nombre: p.nombre,
+      cantidad: Number(newProductQty),
+      precioUnitario,
+      totalLinea: precioUnitario * Number(newProductQty),
+    }]);
+    setNewProductId('');
+    setNewProductQty(1);
+    setAddingProducto(false);
+  }
+
+  function removeProductoNuevo(idx) {
+    setTicketNuevos(arr => arr.filter((_, i) => i !== idx));
+  }
+
+  const totalProductosPrev   = ticketPrev.reduce((s, p) => s + (Number(p.precio) || 0), 0);
+  const totalProductosNuevos = ticketNuevos.reduce((s, p) => s + p.totalLinea, 0);
+  const totalTicket          = (Number(form.precio) || 0) + totalProductosPrev + totalProductosNuevos;
 
   const { data: clientes } = useCollection('clientes');
   const [fotoFavorita, setFotoFavorita] = useState(null);
@@ -314,15 +356,69 @@ function CitaModal({ cita, barberos, servicios, defaultHora, defaultBarberoId, d
         }
 
         const lockChanged = oldLockId !== nextLockId;
+        const hayProductos = ticketNuevos.length > 0;
 
-        if (lockChanged) {
+        // Preparar resumen de productos y agregarlo al payload de la cita
+        const productosResumen = [];
+        const stockNeeded = {};
+        if (hayProductos) {
+          ticketNuevos.forEach(n => {
+            stockNeeded[n.productId] = (stockNeeded[n.productId] || 0) + n.cantidad;
+          });
+        }
+
+        if (lockChanged || hayProductos) {
           const batch = writeBatch(db);
-          payload.slotLockId = nextLockId;
+
+          // Productos: crear reservations
+          if (hayProductos) {
+            ticketNuevos.forEach(n => {
+              const reservationRef = doc(tenantCol('product_reservations'));
+              batch.set(reservationRef, {
+                productId:     n.productId,
+                productName:   n.nombre,
+                precio:        n.totalLinea,
+                cantidad:      n.cantidad,
+                status:        'delivered',
+                userName:      form.clienteNombre || 'Cliente',
+                userEmail:     form.clienteEmail  || '',
+                metodoPago:    form.metodoPago    || 'Efectivo',
+                barberoId:     form.barberoId,
+                barberoNombre: form.barbero,
+                citaId:        cita.id,
+                fecha:         dateStr,
+                createdAt:     serverTimestamp(),
+                updatedAt:     serverTimestamp(),
+              });
+              productosResumen.push({
+                productId:     n.productId,
+                nombre:        n.nombre,
+                cantidad:      n.cantidad,
+                precio:        n.totalLinea,
+                reservationId: reservationRef.id,
+              });
+            });
+
+            // Descontar stock una sola vez por producto
+            Object.entries(stockNeeded).forEach(([pid, qty]) => {
+              const p = productos.find(x => x.id === pid);
+              if (!p) return;
+              const stockActual = Number(p.stock);
+              if (isNaN(stockActual)) return;
+              const newStock = Math.max(0, stockActual - qty);
+              batch.update(doc(tenantCol('productos'), pid), { stock: newStock });
+            });
+
+            payload.ticketProductos = [...ticketPrev, ...productosResumen];
+          }
+
+          if (lockChanged) payload.slotLockId = nextLockId;
           batch.update(citaRef, payload);
-          if (oldLockId) {
+
+          if (lockChanged && oldLockId) {
             batch.delete(doc(db, `${tenantCol('slotLocks').path}/${oldLockId}`));
           }
-          if (nextLockId) {
+          if (lockChanged && nextLockId) {
             batch.set(doc(db, `${tenantCol('slotLocks').path}/${nextLockId}`), {
               citaId:    cita.id,
               fecha:     dateStr,
@@ -332,7 +428,9 @@ function CitaModal({ cita, barberos, servicios, defaultHora, defaultBarberoId, d
               creadoEn:  serverTimestamp(),
             });
           }
+
           await batch.commit();
+          if (hayProductos) setTicketNuevos([]);
         } else {
           await updateDoc(citaRef, payload);
         }
@@ -541,6 +639,127 @@ function CitaModal({ cita, barberos, servicios, defaultHora, defaultBarberoId, d
               </div>
             </div>
           )}
+
+          {/* Productos vendidos junto a la cita */}
+          <div className="p-3 bg-slate-950 border border-slate-800/80 rounded-xl space-y-2.5">
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                <ShoppingBag size={11} className="text-emerald-400" />
+                Productos del Ticket
+              </p>
+              {totalTicket > 0 && (
+                <span className="text-[10px] text-slate-500">
+                  Total: <span className="text-emerald-400 font-bold">${Math.round(totalTicket).toLocaleString('es-CL')}</span>
+                </span>
+              )}
+            </div>
+
+            {/* Lista de productos ya vendidos en cargas previas */}
+            {ticketPrev.length > 0 && (
+              <div className="space-y-1">
+                {ticketPrev.map((p, i) => (
+                  <div key={`prev-${i}`} className="flex items-center justify-between gap-2 px-2.5 py-1.5 bg-slate-900/60 border border-slate-800/60 rounded-lg text-xs">
+                    <span className="text-slate-300 truncate flex-1">
+                      <span className="text-slate-600 mr-1.5">×{p.cantidad}</span>
+                      {p.nombre}
+                    </span>
+                    <span className="text-slate-400 font-medium shrink-0">${Math.round(p.precio || 0).toLocaleString('es-CL')}</span>
+                    <span className="text-[9px] bg-slate-800 text-slate-500 px-1.5 py-0.5 rounded shrink-0">Guardado</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Lista de productos pendientes (nuevos en esta edición) */}
+            {ticketNuevos.length > 0 && (
+              <div className="space-y-1">
+                {ticketNuevos.map((p, i) => (
+                  <div key={`new-${i}`} className="flex items-center justify-between gap-2 px-2.5 py-1.5 bg-emerald-500/5 border border-emerald-500/20 rounded-lg text-xs">
+                    <span className="text-white truncate flex-1">
+                      <span className="text-emerald-400/80 mr-1.5">×{p.cantidad}</span>
+                      {p.nombre}
+                    </span>
+                    <span className="text-emerald-400 font-bold shrink-0">${Math.round(p.totalLinea).toLocaleString('es-CL')}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeProductoNuevo(i)}
+                      className="text-rose-400/70 hover:text-rose-400 shrink-0 p-0.5"
+                      title="Quitar"
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Form para agregar producto */}
+            {addingProducto ? (
+              <div className="flex flex-wrap items-end gap-2 p-2.5 bg-slate-900 border border-slate-800 rounded-lg">
+                <div className="flex-1 min-w-[140px]">
+                  <label className="block text-[9px] font-bold text-slate-500 uppercase mb-1">Producto</label>
+                  <select
+                    className={field}
+                    value={newProductId}
+                    onChange={e => setNewProductId(e.target.value)}
+                  >
+                    <option value="">— elegir —</option>
+                    {productosDisponibles.map(p => {
+                      const usados = ticketNuevos.filter(n => n.productId === p.id).reduce((s, n) => s + n.cantidad, 0);
+                      const stockShown = !isNaN(Number(p.stock)) ? Number(p.stock) - usados : null;
+                      const sinStock   = stockShown !== null && stockShown <= 0;
+                      return (
+                        <option key={p.id} value={p.id} disabled={sinStock}>
+                          {p.nombre} — ${Math.round(Number(p.precio) || 0).toLocaleString('es-CL')}
+                          {stockShown !== null ? (sinStock ? ' · sin stock' : ` · stock ${stockShown}`) : ''}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+                <div className="w-20">
+                  <label className="block text-[9px] font-bold text-slate-500 uppercase mb-1">Cant.</label>
+                  <input
+                    type="number"
+                    min="1"
+                    className={field}
+                    value={newProductQty}
+                    onChange={e => setNewProductQty(Math.max(1, Number(e.target.value) || 1))}
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={addProductoAlTicket}
+                  disabled={!newProductId}
+                  className="px-3 py-2 rounded-lg bg-emerald-600/20 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-600/30 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-bold transition-all"
+                >
+                  Agregar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setAddingProducto(false); setNewProductId(''); setNewProductQty(1); }}
+                  className="px-2 py-2 rounded-lg text-slate-500 hover:text-white text-xs transition-colors"
+                >
+                  Cancelar
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setAddingProducto(true)}
+                disabled={productosDisponibles.length === 0}
+                className="w-full px-3 py-2 rounded-lg border border-dashed border-slate-700 text-slate-400 hover:border-emerald-500/40 hover:text-emerald-400 text-xs font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                + Agregar producto al ticket
+              </button>
+            )}
+
+            {ticketNuevos.length > 0 && (
+              <p className="text-[10px] text-slate-500 italic">
+                Al guardar se crearán {ticketNuevos.length} venta{ticketNuevos.length !== 1 ? 's' : ''} y se descontará el stock correspondiente.
+              </p>
+            )}
+          </div>
         </div>
       )}
       <div>
@@ -1500,6 +1719,7 @@ export default function Agenda() {
   const { data: citas }       = useCollection('citas',    [where('fecha', '==', dateStr)], [dateStr]);
   const { data: bloqueos }    = useCollection('bloqueos', [where('fecha', '==', dateStr)], [dateStr]);
   const { data: servicios }   = useCollection('servicios');
+  const { data: productos }   = useCollection('productos');
 
   const barberos = useMemo(() =>
     rawBarberos.filter(b => !b._mainDocId && b.disponible !== false && b.rol !== 'admin'),
@@ -1794,6 +2014,7 @@ export default function Agenda() {
           cita={citaModal.cita}
           barberos={barberos}
           servicios={servicios}
+          productos={productos}
           defaultHora={citaModal.hora}
           defaultBarberoId={citaModal.barberoId}
           dateStr={dateStr}
