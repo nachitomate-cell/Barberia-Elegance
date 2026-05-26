@@ -541,6 +541,30 @@
         Enviar WhatsApp <i class="ph-bold ph-whatsapp-logo text-2xl"></i>
       </a>
 
+      <!-- Banner Club post-reserva (permanente). Aparece SIEMPRE en successState
+           para clientes no-miembros. Complementa el modal popup que sale a los 1.4s. -->
+      <a id="successClubBanner" href="/registro.html" class="hidden w-full max-w-sm rounded-2xl px-4 py-4 mb-5 active:scale-[0.98] transition-all relative overflow-hidden"
+         style="background:linear-gradient(135deg, rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.16) 0%, rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.04) 100%);
+                border:1.5px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.4);">
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 rounded-full flex items-center justify-center shrink-0"
+               style="background:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.18);
+                      border:1px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.45);">
+            <i class="ph-fill ph-medal text-2xl" style="color:var(--accent);"></i>
+          </div>
+          <div class="flex-1 min-w-0 text-left">
+            <p class="text-[9px] font-black uppercase tracking-[0.2em] mb-0.5" style="color:var(--accent);">
+              Sumá tu sello
+            </p>
+            <p class="text-sm font-bold text-white leading-tight">Activá tu cuenta del Club</p>
+            <p class="text-[11px] text-white/55 mt-1 leading-snug">
+              Tu próxima visita ya cuenta para premios. Te toma 1 minuto.
+            </p>
+          </div>
+          <i class="ph-bold ph-arrow-right text-lg shrink-0" style="color:var(--accent);"></i>
+        </div>
+      </a>
+
       <a id="successIG" href="#" target="_blank" rel="noopener"
         class="flex items-center justify-center gap-2 text-sm font-semibold text-white/40 hover:text-white transition-colors mb-6">
         <i class="ph-fill ph-instagram-logo text-lg"></i>
@@ -1316,9 +1340,22 @@
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
-    // Modal de invitación al Club tras la reserva — solo si no es miembro ya.
-    if (!alreadyClubMember()) {
-      const email = (document.getElementById('clientEmail')?.value || '').trim();
+    // Banner permanente del Club en el success — solo si no es miembro.
+    // Modal popup (1.4s) refuerza el CTA con un overlay; el banner queda
+    // visible incluso si el cliente cierra el modal con "Más tarde".
+    const email = (document.getElementById('clientEmail')?.value || '').trim();
+    const esMiembro = alreadyClubMember();
+    if (!esMiembro) {
+      const banner = document.getElementById('successClubBanner');
+      if (banner) {
+        const params = new URLSearchParams();
+        if (clienteNombre)   params.set('nombre',   clienteNombre);
+        if (email)           params.set('email',    email);
+        if (clienteTelefono) params.set('tel',      clienteTelefono);
+        const qs = params.toString();
+        banner.href = '/registro.html' + (qs ? '?' + qs : '');
+        banner.classList.remove('hidden');
+      }
       setTimeout(() => {
         showClubModal('postReserva', {
           nombre:   clienteNombre,
