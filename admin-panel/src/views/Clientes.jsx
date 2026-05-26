@@ -463,28 +463,83 @@ function ClientePanel({ cliente: init, premios, onClose }) {
 }
 
 /* ── Modal: clientes sin registro ───────────────────────────────── */
-function SinRegistroModal({ sinRegistro, shopName, registroUrl, onClose, mode = 'sinRegistro' }) {
+function SinRegistroModal({ sinRegistro, shopName, registroUrl, onClose, mode = 'sinRegistro', tenantId }) {
   const [search, setSearch] = useState('');
   const [sendingKey, setSendingKey] = useState(null);
+  const [filtroAntig, setFiltroAntig] = useState('todos'); // 'todos' | 'inactivos90' | 'inactivos180'
 
   const isMigrados = mode === 'migrados';
 
+  // ── Plantillas de mensaje ──────────────────────────────────────
+  const name = shopName.normalize('NFKC');
+
+  const TEMPLATES = isMigrados
+    ? {
+        estandar:    `¡Hola {nombre}! 👋 Soy de *${name}*. Estamos estrenando nuestro Club de Fidelidad nuevo y, como ya eres cliente, te invitamos a unirte 🎁\n\nEs gratis: por cada visita acumulas sellos que canjeas por premios. Te demoras 1 minuto en activarte 👉 ${registroUrl}\n\n¡Te esperamos!`,
+        descuento:   `¡Hola {nombre}! 👋 Soy de *${name}*. Nos dimos cuenta que hace tiempo no nos vemos y queremos invitarte a volver 🤝\n\nTe regalamos un *20% de descuento* en tu próximo corte. Además estamos estrenando nuestro Club de Fidelidad: sumate y por cada visita acumulas sellos para premios gratis 🎁\n\nReclama tu descuento registrándote acá (1 minuto) 👉 ${registroUrl}\n\n¡Te esperamos!`,
+        reactivar:   `¡Hola {nombre}! 👋 Soy de *${name}*. Hace un buen rato que no nos vemos por acá y queríamos saber cómo estás 🤝\n\nEstamos con novedades: nuevos servicios, productos exclusivos y un Club de Fidelidad con premios gratis por cada visita.\n\n*Te invitamos a volver con un beneficio especial* — escribinos por acá y te coordinamos. Mientras tanto sumate al Club en 1 minuto 👉 ${registroUrl}`,
+      }
+    : {
+        estandar:    `¡Hola {nombre}! 👋 Gracias por visitarnos en ${name}. Tenemos un club de fidelidad donde acumulas sellos y ganas premios gratis 🎁. ¡Únete registrándote aquí! 👉 ${registroUrl}`,
+        descuento:   `¡Hola {nombre}! 👋 Gracias por visitarnos en ${name}. Como te extrañamos te regalamos un *20% de descuento* en tu próximo corte 🎁. Activá tu Club acá y aprovechá el beneficio 👉 ${registroUrl}`,
+      };
+
+  // Persistir el template elegido + custom message en localStorage por tenant.
+  const storageKey = `${tenantId || 'elegance'}_invite_msg_${mode}`;
+  const [templateId, setTemplateId] = useState(() => {
+    try { return localStorage.getItem(storageKey + '_tpl') || 'estandar'; }
+    catch { return 'estandar'; }
+  });
+  const [customMsg, setCustomMsg] = useState(() => {
+    try { return localStorage.getItem(storageKey) || TEMPLATES[templateId] || TEMPLATES.estandar; }
+    catch { return TEMPLATES.estandar; }
+  });
+
+  function aplicarTemplate(id) {
+    setTemplateId(id);
+    setCustomMsg(TEMPLATES[id] || TEMPLATES.estandar);
+    try {
+      localStorage.setItem(storageKey + '_tpl', id);
+      localStorage.setItem(storageKey, TEMPLATES[id] || TEMPLATES.estandar);
+    } catch (_) {}
+  }
+
+  function onMsgChange(v) {
+    setCustomMsg(v);
+    try { localStorage.setItem(storageKey, v); } catch (_) {}
+  }
+
+  // ── Filtro por antigüedad (solo aplica a migrados con fechaRegistroOriginal) ──
+  function parseFechaAgendapro(s) {
+    // Formato "DD/MM/YYYY" del export. Robusto a formatos cercanos.
+    if (!s) return null;
+    const m = String(s).match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+    if (!m) return null;
+    const d = Number(m[1]), mo = Number(m[2]) - 1;
+    let y = Number(m[3]); if (y < 100) y += 2000;
+    const dt = new Date(y, mo, d);
+    return isNaN(dt.getTime()) ? null : dt;
+  }
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return sinRegistro;
-    return sinRegistro.filter(c =>
-      c.nombre?.toLowerCase().includes(q) ||
-      c.telefono?.includes(q)
-    );
-  }, [sinRegistro, search]);
+    const ahora = Date.now();
+    const cutoff =
+      filtroAntig === 'inactivos90'  ? ahora - 90  * 864e5 :
+      filtroAntig === 'inactivos180' ? ahora - 180 * 864e5 : null;
 
-  const waMsg = (nombre) => {
-    const name = shopName.normalize('NFKC');
-    if (isMigrados) {
-      return `¡Hola ${nombre || 'ahí'}! 👋 Soy de *${name}*. Estamos estrenando nuestro Club de Fidelidad nuevo y, como ya eres cliente, te invitamos a unirte 🎁\n\nEs gratis: por cada visita acumulas sellos que canjeas por premios. Te demoras 1 minuto en activarte 👉 ${registroUrl}\n\n¡Te esperamos!`;
-    }
-    return `¡Hola ${nombre || 'ahí'}! 👋 Gracias por visitarnos en ${name}. Tenemos un club de fidelidad donde acumulas sellos y ganas premios gratis 🎁. ¡Únete registrándote aquí! 👉 ${registroUrl}`;
-  };
+    return sinRegistro.filter(c => {
+      if (q && !(c.nombre?.toLowerCase().includes(q) || c.telefono?.includes(q))) return false;
+      if (cutoff !== null && isMigrados) {
+        const fecha = parseFechaAgendapro(c.fechaRegistroOriginal);
+        // Si no hay fecha, asumir antiguo (mostrar en inactivos para no descartarlo)
+        if (fecha && fecha.getTime() > cutoff) return false;
+      }
+      return true;
+    });
+  }, [sinRegistro, search, filtroAntig, isMigrados]);
+
+  const waMsg = (nombre) => (customMsg || TEMPLATES.estandar).replace(/\{nombre\}/g, nombre || 'ahí');
 
   const waUrl = (telefono, nombre) => {
     const raw = (telefono || '').replace(/\D/g, '');
@@ -639,12 +694,75 @@ function SinRegistroModal({ sinRegistro, shopName, registroUrl, onClose, mode = 
           })}
         </div>
 
-        {/* Footer: mensaje de referencia */}
-        <div className="px-5 py-3 border-t border-slate-800 bg-slate-800/20 rounded-b-2xl">
-          <p className="text-[10px] text-slate-500 font-semibold mb-1">Mensaje que se enviará:</p>
-          <p className="text-[10px] text-slate-600 leading-relaxed whitespace-pre-wrap">
-            {waMsg('{nombre}').replace(registroUrl, '👉 ' + registroUrl)}
-          </p>
+        {/* Footer: editor del mensaje + plantillas + filtros */}
+        <div className="px-5 py-3 border-t border-slate-800 bg-slate-800/20 rounded-b-2xl space-y-2">
+          {/* Filtros por antigüedad (solo migrados) */}
+          {isMigrados && (
+            <div className="flex gap-1.5 flex-wrap">
+              {[
+                { id: 'todos',         label: 'Todos',                   cls: 'emerald' },
+                { id: 'inactivos90',   label: 'Inactivos +90d',          cls: 'amber'   },
+                { id: 'inactivos180',  label: 'Inactivos +180d',         cls: 'rose'    },
+              ].map(f => {
+                const active = filtroAntig === f.id;
+                const cls = f.cls;
+                return (
+                  <button
+                    key={f.id}
+                    onClick={() => setFiltroAntig(f.id)}
+                    className={`px-2.5 py-1 rounded-full border text-[10px] font-bold transition-all ${
+                      active
+                        ? cls === 'emerald' ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300'
+                          : cls === 'amber' ? 'bg-amber-500/20 border-amber-400 text-amber-300'
+                          : 'bg-rose-500/20 border-rose-400 text-rose-300'
+                        : 'border-slate-700 text-slate-400 hover:bg-slate-800'
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Selector de plantilla */}
+          <div className="flex gap-1.5 flex-wrap items-center">
+            <span className="text-[10px] text-slate-500 font-semibold uppercase">Plantilla:</span>
+            <button
+              onClick={() => aplicarTemplate('estandar')}
+              className={`px-2.5 py-1 rounded-md text-[10px] font-semibold border transition-all ${templateId === 'estandar' ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300' : 'border-slate-700 text-slate-400 hover:bg-slate-800'}`}
+            >
+              Estándar
+            </button>
+            <button
+              onClick={() => aplicarTemplate('descuento')}
+              className={`px-2.5 py-1 rounded-md text-[10px] font-semibold border transition-all ${templateId === 'descuento' ? 'bg-amber-500/15 border-amber-500/40 text-amber-300' : 'border-slate-700 text-slate-400 hover:bg-slate-800'}`}
+            >
+              Con descuento 20%
+            </button>
+            {isMigrados && (
+              <button
+                onClick={() => aplicarTemplate('reactivar')}
+                className={`px-2.5 py-1 rounded-md text-[10px] font-semibold border transition-all ${templateId === 'reactivar' ? 'bg-rose-500/15 border-rose-500/40 text-rose-300' : 'border-slate-700 text-slate-400 hover:bg-slate-800'}`}
+              >
+                Reactivación VIP
+              </button>
+            )}
+          </div>
+
+          {/* Textarea editable */}
+          <div>
+            <textarea
+              value={customMsg}
+              onChange={e => onMsgChange(e.target.value)}
+              rows={5}
+              placeholder="Mensaje que se enviará por WhatsApp…"
+              className="w-full bg-slate-950/60 border border-slate-700/60 rounded-lg px-2.5 py-2 text-[11px] text-slate-300 leading-relaxed focus:outline-none focus:border-slate-500 resize-y font-mono"
+            />
+            <p className="text-[9px] text-slate-600 mt-1">
+              <code className="text-emerald-400/80">{'{nombre}'}</code> se reemplaza por el nombre real del cliente al enviar. El mensaje se guarda automáticamente para la próxima vez.
+            </p>
+          </div>
         </div>
 
       </div>
@@ -909,11 +1027,12 @@ export default function Clientes() {
     clientes
       .filter(isLegacy)
       .map(c => ({
-        key:                  c.id,
-        nombre:               c.nombre   || '',
-        telefono:             c.telefono || c.id || '',
-        email:                c.email    || '',
-        invitacionEnviadaAt:  c.invitacionEnviadaAt || null,
+        key:                   c.id,
+        nombre:                c.nombre   || '',
+        telefono:              c.telefono || c.id || '',
+        email:                 c.email    || '',
+        fechaRegistroOriginal: c.fechaRegistroOriginal || null,
+        invitacionEnviadaAt:   c.invitacionEnviadaAt || null,
       }))
       .sort((a, b) => {
         const aDone = !!a.invitacionEnviadaAt;
@@ -1350,6 +1469,7 @@ export default function Clientes() {
       {showInvitarMigrados && (
         <SinRegistroModal
           mode="migrados"
+          tenantId={tenantId}
           sinRegistro={migrados}
           shopName={shopName}
           registroUrl={registroUrl}
