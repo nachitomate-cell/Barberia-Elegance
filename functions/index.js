@@ -694,3 +694,12 @@ exports.pushCitaConfirmadaElegance = pushCliente.pushCitaConfirmadaElegance;
 exports.pushCitaConfirmadaTenant   = pushCliente.pushCitaConfirmadaTenant;
 exports.pushSelloGanadoElegance    = pushCliente.pushSelloGanadoElegance;
 exports.pushSelloGanadoTenant      = pushCliente.pushSelloGanadoTenant;
+
+// ─────────────────────────────────────────────────────────────────
+//  AUTO-ENROLL AL CLUB — ver auto-enroll-cliente.js
+//  Tenants opt-in (hardcoded en AUTO_ENROLL_TENANTS): cada cita nueva
+//  crea automáticamente el perfil del cliente en users/ para que la
+//  CF sello-automatico le sume sellos al completar. Hoy: aura.
+// ─────────────────────────────────────────────────────────────────
+const autoEnroll = require('./auto-enroll-cliente');
+exports.autoEnrollTenant = autoEnroll.autoEnrollTenant;
