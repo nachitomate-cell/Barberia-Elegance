@@ -194,7 +194,12 @@ service cloud.firestore {
     // ── /productos ─────────────────────────────────────────────────
     match /productos/{docId} {
       allow read: if true;
-      allow write: if esAdmin('elegance');
+      allow create, delete: if esAdmin('elegance');
+      // Staff (incl. barbero) solo puede modificar el stock al vender.
+      // Admin mantiene control de precio, nombre y demás campos.
+      allow update: if esAdmin('elegance')
+                    || (esStaff('elegance')
+                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stock']));
     }
 
     // ── /lookbook ──────────────────────────────────────────────────
@@ -359,15 +364,18 @@ service cloud.firestore {
     }
 
     // ── /product_reservations ──────────────────────────────────────
-    // Cliente crea su propia reserva. Staff lee y actualiza el estado.
+    // Cliente crea su propia reserva (status='pending').
+    // Staff puede crear ventas directas (status='delivered') desde el panel
+    // (Venta Rápida en Productos o Productos del Ticket en Agenda) y
+    // actualizar el estado o cualquier campo de la reserva.
     match /product_reservations/{docId} {
       allow read:   if autenticado() && (resource.data.get('userId', '') == uid() || esStaff('elegance'));
-      allow create: if autenticado()
-                    && request.resource.data.userId == uid()
-                    && request.resource.data.status == 'pending'
-                    && !request.resource.data.keys().hasAny(['role', 'tenantId', 'adminOverride']);
-      allow update: if esStaff('elegance')
-                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']);
+      allow create: if esStaff('elegance')
+                    || (autenticado()
+                        && request.resource.data.userId == uid()
+                        && request.resource.data.status == 'pending'
+                        && !request.resource.data.keys().hasAny(['role', 'tenantId', 'adminOverride']));
+      allow update: if esStaff('elegance');
       allow delete: if esAdmin('elegance');
     }
 
@@ -462,9 +470,14 @@ service cloud.firestore {
       }
 
       // ── productos ─────────────────────────────────────────────────
+      // Admin controla precio/nombre/stock; staff puede decrementar stock
+      // al vender (solo modifica el campo `stock`).
       match /productos/{docId} {
         allow read: if true;
-        allow write: if esAdmin(tid);
+        allow create, delete: if esAdmin(tid);
+        allow update: if esAdmin(tid)
+                      || (esStaff(tid)
+                          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stock']));
       }
 
       // ── lookbook ──────────────────────────────────────────────────
@@ -563,14 +576,18 @@ service cloud.firestore {
       }
 
       // ── product_reservations ──────────────────────────────────────
+      // Cliente crea su propia reserva (status='pending').
+      // Staff puede crear ventas directas (status='delivered') desde el panel
+      // (Venta Rápida en Productos o Productos del Ticket en Agenda) y
+      // actualizar el estado o cualquier campo de la reserva.
       match /product_reservations/{docId} {
         allow read:   if autenticado() && (resource.data.get('userId', '') == uid() || esStaff(tid));
-        allow create: if autenticado()
-                      && request.resource.data.userId == uid()
-                      && request.resource.data.status == 'pending'
-                      && !request.resource.data.keys().hasAny(['role', 'tenantId', 'adminOverride']);
-        allow update: if esStaff(tid)
-                      && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt']);
+        allow create: if esStaff(tid)
+                      || (autenticado()
+                          && request.resource.data.userId == uid()
+                          && request.resource.data.status == 'pending'
+                          && !request.resource.data.keys().hasAny(['role', 'tenantId', 'adminOverride']));
+        allow update: if esStaff(tid);
         allow delete: if esAdmin(tid);
       }
 
