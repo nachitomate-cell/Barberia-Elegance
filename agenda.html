@@ -1078,13 +1078,22 @@
             if (!confirm(`¿${labels[nuevoEstado] || nuevoEstado} esta cita?`)) return;
             try {
                 const cita = todayCitas.find(c => c.id === id);
+                const yaCompletada = cita?.estado === 'Completada';
+                const payload = { estado: nuevoEstado };
+                // Al completar, marcar pendingGoogleReview para que el cliente vea el
+                // modal de calificación al abrir su dashboard. La Cloud Function
+                // sello-automatico ya lo setea también, pero esto garantiza el flag
+                // aunque la CF tarde o falle (defensa en profundidad).
+                if (nuevoEstado === 'Completada' && !yaCompletada) {
+                    payload.pendingGoogleReview = true;
+                }
                 if (nuevoEstado === 'Cancelada' && cita?.slotLockId) {
                     const batch = db.batch();
-                    batch.update(tenantCol('citas').doc(id), { estado: nuevoEstado });
+                    batch.update(tenantCol('citas').doc(id), payload);
                     batch.delete(tenantCol('slotLocks').doc(cita.slotLockId));
                     await batch.commit();
                 } else {
-                    await tenantCol('citas').doc(id).update({ estado: nuevoEstado });
+                    await tenantCol('citas').doc(id).update(payload);
                 }
             } catch(e) {
                 alert('Error al actualizar la cita: ' + e.message);
@@ -1209,13 +1218,18 @@
         async function cambiarEstadoDesdeDetalle(id, nuevoEstado) {
             try {
                 const cita = todayCitas.find(c => c.id === id);
+                const yaCompletada = cita?.estado === 'Completada';
+                const payload = { estado: nuevoEstado };
+                if (nuevoEstado === 'Completada' && !yaCompletada) {
+                    payload.pendingGoogleReview = true;
+                }
                 if (nuevoEstado === 'Cancelada' && cita?.slotLockId) {
                     const batch = db.batch();
-                    batch.update(tenantCol('citas').doc(id), { estado: nuevoEstado });
+                    batch.update(tenantCol('citas').doc(id), payload);
                     batch.delete(tenantCol('slotLocks').doc(cita.slotLockId));
                     await batch.commit();
                 } else {
-                    await tenantCol('citas').doc(id).update({ estado: nuevoEstado });
+                    await tenantCol('citas').doc(id).update(payload);
                 }
                 const localCita = todayCitas.find(c => c.id === id);
                 if (localCita) localCita.estado = nuevoEstado;
