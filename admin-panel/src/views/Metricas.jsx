@@ -5,7 +5,8 @@ import {
   ShoppingBag, RefreshCcw, Activity, Crown, Star, User, Sparkles,
   TrendingDown, ArrowUpRight, ArrowDownRight, Layers,
   Calendar, BarChart3, Banknote, CreditCard, Landmark, Wallet,
-  Tag, Percent, ArrowRight, Users, ChevronLeft,
+  Tag, Percent, ArrowRight, Users, ChevronLeft, ChevronDown, ChevronUp,
+  Download, Printer, X, Brain,
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -21,6 +22,10 @@ function localDateStr() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+function dateToStr(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 function getSixMonthsAgo() {
   const d = new Date();
   d.setDate(1);
@@ -28,6 +33,34 @@ function getSixMonthsAgo() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`;
 }
 const SIX_MONTHS_AGO = getSixMonthsAgo();
+
+/* Calcula el período anterior equivalente (misma duración, terminando un día antes de fechaInicio) */
+function getPrevRange(fechaInicio, fechaFin) {
+  const start = new Date(fechaInicio + 'T12:00:00');
+  const end   = new Date(fechaFin    + 'T12:00:00');
+  const days  = Math.round((end - start) / 86400000) + 1;
+  const prevEnd   = new Date(start.getTime() - 86400000);
+  const prevStart = new Date(prevEnd.getTime() - (days - 1) * 86400000);
+  return { inicio: dateToStr(prevStart), fin: dateToStr(prevEnd), days };
+}
+
+/* Convierte cualquier número a CSV-safe */
+function csvEscape(v) {
+  if (v === null || v === undefined) return '';
+  const s = String(v);
+  if (/[",\n;]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+  return s;
+}
+function downloadCSV(filename, rows) {
+  const csv = rows.map(r => r.map(csvEscape).join(',')).join('\n');
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
 
 /* ── KpiCard ─────────────────────────────────────────────────────── */
 const KPI_COLORS = {
@@ -40,16 +73,114 @@ const KPI_COLORS = {
   rose:    'bg-rose-500/10    text-rose-400    border-rose-500/10',
 };
 
-function KpiCard({ Icon, label, value, sub, color = 'emerald' }) {
+function DeltaBadge({ delta, invert = false }) {
+  if (delta === null || delta === undefined || !isFinite(delta)) return null;
+  const isUp = delta > 0;
+  const isFlat = Math.abs(delta) < 0.5;
+  // invert=true → para métricas donde subir es malo (cancelaciones, gastos)
+  const good = isFlat ? null : invert ? !isUp : isUp;
+  const cls = isFlat
+    ? 'bg-slate-800 text-slate-400 border-slate-700'
+    : good
+      ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/15'
+      : 'bg-rose-500/10 text-rose-400 border-rose-500/15';
+  const Arrow = isFlat ? null : isUp ? ArrowUpRight : ArrowDownRight;
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 flex items-start gap-4 hover:border-slate-700 transition-all">
+    <span className={`inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded border ${cls}`}>
+      {Arrow && <Arrow size={10} />}
+      {isFlat ? '0%' : `${Math.abs(delta).toFixed(1)}%`}
+    </span>
+  );
+}
+
+function KpiCard({ Icon, label, value, sub, color = 'emerald', delta, invertDelta = false, onClick }) {
+  const interactive = typeof onClick === 'function';
+  return (
+    <div
+      onClick={onClick}
+      className={`bg-slate-900 border border-slate-800 rounded-xl p-5 flex items-start gap-4 transition-all ${
+        interactive ? 'hover:border-emerald-500/30 hover:bg-slate-900/80 cursor-pointer active:scale-[0.98]' : 'hover:border-slate-700'
+      }`}
+    >
       <div className={`p-2.5 rounded-lg shrink-0 ${KPI_COLORS[color]} border`}>
         <Icon size={20} />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{label}</p>
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide truncate">{label}</p>
+          <DeltaBadge delta={delta} invert={invertDelta} />
+        </div>
         <p className="text-2xl font-bold text-white mt-0.5 truncate">{value}</p>
         {sub && <p className="text-xs text-slate-500 mt-0.5 truncate">{sub}</p>}
+      </div>
+    </div>
+  );
+}
+
+/* Mini sparkline para el hero */
+function Sparkline({ data, color = '#10b981' }) {
+  if (!data?.length) return null;
+  return (
+    <ResponsiveContainer width="100%" height={56}>
+      <AreaChart data={data} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
+        <defs>
+          <linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity={0.4} />
+            <stop offset="100%" stopColor={color} stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <Area type="monotone" dataKey="v" stroke={color} strokeWidth={2} fill="url(#sparkGrad)" />
+      </AreaChart>
+    </ResponsiveContainer>
+  );
+}
+
+/* Modal de drill-down */
+function DrillDownModal({ open, title, subtitle, rows, columns, onClose, emptyMsg = 'Sin datos en el período' }) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-slate-900 border border-slate-800 rounded-xl w-full max-w-4xl max-h-[85vh] flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="flex items-start justify-between p-5 border-b border-slate-800">
+          <div className="min-w-0">
+            <h3 className="text-base font-bold text-white">{title}</h3>
+            {subtitle && <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>}
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-slate-800 transition-colors shrink-0">
+            <X size={16} />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-5">
+          {rows.length === 0 ? (
+            <p className="text-sm text-slate-500 italic text-center py-12">{emptyMsg}</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-800 text-slate-500 uppercase tracking-wide font-bold">
+                    {columns.map(c => (
+                      <th key={c.key} className={`py-2.5 ${c.align === 'right' ? 'text-right' : ''}`}>{c.label}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/50">
+                  {rows.map((r, i) => (
+                    <tr key={i} className="hover:bg-slate-800/20 text-slate-300">
+                      {columns.map(c => (
+                        <td key={c.key} className={`py-2 pr-3 ${c.align === 'right' ? 'text-right' : ''} ${c.bold ? 'font-bold text-white' : ''}`}>
+                          {c.render ? c.render(r) : r[c.key]}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+        <div className="p-3 border-t border-slate-800 text-right">
+          <span className="text-xs text-slate-500">{rows.length} registro{rows.length !== 1 ? 's' : ''}</span>
+        </div>
       </div>
     </div>
   );
@@ -124,6 +255,8 @@ export default function Metricas() {
   const [showHelp,         setShowHelp]         = useState(false);
   const [activeTab,        setActiveTab]        = useState('comercial');
   const [selectedBarberoId, setSelectedBarberoId] = useState(null);
+  const [showMoreKpis,     setShowMoreKpis]     = useState(false);
+  const [drillDown,        setDrillDown]        = useState(null); // { type, title, subtitle, rows, columns }
 
   // Date range state
   const [fechaInicio, setFechaInicio] = useState(() => {
@@ -178,7 +311,9 @@ export default function Metricas() {
   const fetchData = useCallback(async () => {
     setFetching(true);
     try {
-      const queryStart = fechaInicio < SIX_MONTHS_AGO ? fechaInicio : SIX_MONTHS_AGO;
+      const prevR = getPrevRange(fechaInicio, fechaFin);
+      const candidates = [fechaInicio, SIX_MONTHS_AGO, prevR.inicio];
+      const queryStart = candidates.sort()[0];
       const [citasSnap, serviciosSnap, clientesSnap, ventasSnap, gastosSnap, barberosSnap, productosSnap] = await Promise.all([
         getDocs(query(tenantCol('citas'), where('fecha', '>=', queryStart))),
         getDocs(tenantCol('servicios')),
@@ -200,7 +335,7 @@ export default function Metricas() {
     } finally {
       setFetching(false);
     }
-  }, [fechaInicio]);
+  }, [fechaInicio, fechaFin]);
 
   useEffect(() => {
     fetchData();
@@ -301,6 +436,38 @@ export default function Metricas() {
       ingresosBar,
     };
   }, [citas, fechaInicio, fechaFin, getPrice]);
+
+  /* ── Período anterior equivalente (para deltas) ── */
+  const prevRange = useMemo(() => getPrevRange(fechaInicio, fechaFin), [fechaInicio, fechaFin]);
+
+  const prevStats = useMemo(() => {
+    const r = citas.filter(c => c.fecha >= prevRange.inicio && c.fecha <= prevRange.fin);
+    const completadas = r.filter(c => c.estado === 'Completada');
+    const canceladas  = r.filter(c => c.estado === 'Cancelada');
+    const ingresos    = completadas.reduce((s, c) => s + getPrice(c), 0);
+    const ticket      = completadas.length ? ingresos / completadas.length : 0;
+    const ocupacion   = r.length ? (completadas.length / r.length) * 100 : 0;
+    return { total: r.length, completadas: completadas.length, canceladas: canceladas.length, ingresos, ticket, ocupacion };
+  }, [citas, prevRange, getPrice]);
+
+  /* Calcula delta % entre actual y previo */
+  const pctDelta = useCallback((curr, prev) => {
+    if (!prev || prev === 0) return curr > 0 ? 100 : null;
+    return ((curr - prev) / prev) * 100;
+  }, []);
+
+  /* Sparkline ingresos últimos 7 días dentro del rango (o relativos a fechaFin) */
+  const sparkData = useMemo(() => {
+    const end = new Date(fechaFin + 'T12:00:00');
+    const out = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(end.getTime() - i * 86400000);
+      const key = dateToStr(d);
+      const dayCitas = citas.filter(c => c.fecha === key && c.estado === 'Completada');
+      out.push({ fecha: key, v: dayCitas.reduce((s, c) => s + getPrice(c), 0) });
+    }
+    return out;
+  }, [citas, fechaFin, getPrice]);
 
   // Product sales inside range
   const rangeVentas = useMemo(() => {
@@ -738,6 +905,89 @@ export default function Metricas() {
     }).sort((a, x) => x.ingresos - a.ingresos || x.completadas - a.completadas);
   }, [barberos, citas, fechaInicio, fechaFin, getPrice]);
 
+  /* ── Export CSV / Print ── */
+  const exportCSV = useCallback(() => {
+    const rangeCitas = citas
+      .filter(c => c.fecha >= fechaInicio && c.fecha <= fechaFin)
+      .sort((a, b) => (a.fecha + (a.hora || '')).localeCompare(b.fecha + (b.hora || '')));
+    const rows = [
+      ['Fecha', 'Hora', 'Cliente', 'Barbero', 'Servicio', 'Precio', 'Método de Pago', 'Propina', 'Estado'],
+      ...rangeCitas.map(c => [
+        c.fecha || '',
+        c.hora || '',
+        c.clienteNombre || '',
+        c.barbero || '',
+        c.servicioNombre || '',
+        getPrice(c),
+        c.metodoPago || '',
+        Number(c.propina) || 0,
+        c.estado || '',
+      ]),
+    ];
+    downloadCSV(`metricas_citas_${fechaInicio}_${fechaFin}.csv`, rows);
+  }, [citas, fechaInicio, fechaFin, getPrice]);
+
+  const handlePrint = useCallback(() => window.print(), []);
+
+  /* ── Drill-down builders ── */
+  const openDrill = useCallback((type) => {
+    const rangeCitas = citas.filter(c => c.fecha >= fechaInicio && c.fecha <= fechaFin);
+
+    if (type === 'ingresos' || type === 'completadas') {
+      const rows = rangeCitas.filter(c => c.estado === 'Completada')
+        .sort((a, b) => (b.fecha + (b.hora || '')).localeCompare(a.fecha + (a.hora || '')));
+      setDrillDown({
+        title: type === 'ingresos' ? 'Detalle de Ingresos · Servicios completados' : 'Citas Completadas',
+        subtitle: `${rows.length} cita${rows.length !== 1 ? 's' : ''} entre ${fechaInicio} y ${fechaFin}`,
+        rows,
+        columns: [
+          { key: 'fecha',          label: 'Fecha' },
+          { key: 'hora',           label: 'Hora' },
+          { key: 'clienteNombre',  label: 'Cliente', bold: true },
+          { key: 'barbero',        label: 'Barbero' },
+          { key: 'servicioNombre', label: 'Servicio' },
+          { key: 'metodoPago',     label: 'Pago' },
+          { key: 'precio',         label: 'Precio', align: 'right', render: c => fmtCLP(getPrice(c)) },
+        ],
+      });
+      return;
+    }
+    if (type === 'canceladas') {
+      const rows = rangeCitas.filter(c => c.estado === 'Cancelada')
+        .sort((a, b) => (b.fecha + (b.hora || '')).localeCompare(a.fecha + (a.hora || '')));
+      setDrillDown({
+        title: 'Citas Canceladas',
+        subtitle: `${rows.length} cancelación${rows.length !== 1 ? 'es' : ''} entre ${fechaInicio} y ${fechaFin}`,
+        rows,
+        columns: [
+          { key: 'fecha',          label: 'Fecha' },
+          { key: 'hora',           label: 'Hora' },
+          { key: 'clienteNombre',  label: 'Cliente', bold: true },
+          { key: 'barbero',        label: 'Barbero' },
+          { key: 'servicioNombre', label: 'Servicio' },
+          { key: 'precio',         label: 'Precio', align: 'right', render: c => fmtCLP(getPrice(c)) },
+        ],
+      });
+      return;
+    }
+    if (type === 'productos') {
+      setDrillDown({
+        title: 'Ventas de Productos',
+        subtitle: `${rangeVentas.length} reserva${rangeVentas.length !== 1 ? 's' : ''} confirmadas en el período`,
+        rows: rangeVentas,
+        columns: [
+          { key: 'fecha',        label: 'Fecha', render: v => parseDateStr(v.fecha || v.createdAt || v.creadoEn) },
+          { key: 'productName',  label: 'Producto', bold: true, render: v => v.productName || v.productNombre || v.nombreProducto || '—' },
+          { key: 'cantidad',     label: 'Cant.', align: 'right' },
+          { key: 'barberoNombre',label: 'Barbero' },
+          { key: 'metodoPago',   label: 'Pago' },
+          { key: 'precio',       label: 'Total', align: 'right', render: v => fmtCLP(Number(v.precio) || Number(v.total) || 0) },
+        ],
+      });
+      return;
+    }
+  }, [citas, rangeVentas, fechaInicio, fechaFin, getPrice, parseDateStr]);
+
   return (
     <div className="max-w-6xl mx-auto space-y-6">
 
@@ -755,55 +1005,136 @@ export default function Metricas() {
             Analítica avanzada y estados de pérdidas y ganancias en tiempo real.
           </p>
         </div>
-        <button
-          onClick={fetchData}
-          disabled={fetching}
-          className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border border-slate-800 bg-slate-900 text-slate-400 hover:text-white hover:border-slate-700 disabled:opacity-40 transition-all self-start sm:self-center"
-        >
-          <RefreshCcw size={12} className={fetching ? 'animate-spin' : ''} />
-          Actualizar Datos
-        </button>
+        <div className="flex flex-wrap items-center gap-2 print:hidden">
+          <button
+            onClick={exportCSV}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border border-slate-800 bg-slate-900 text-slate-400 hover:text-emerald-400 hover:border-emerald-500/40 transition-all"
+            title="Descargar citas del período en CSV"
+          >
+            <Download size={12} />
+            CSV
+          </button>
+          <button
+            onClick={handlePrint}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border border-slate-800 bg-slate-900 text-slate-400 hover:text-white hover:border-slate-700 transition-all"
+            title="Imprimir o guardar como PDF"
+          >
+            <Printer size={12} />
+            Imprimir
+          </button>
+          <button
+            onClick={fetchData}
+            disabled={fetching}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border border-slate-800 bg-slate-900 text-slate-400 hover:text-white hover:border-slate-700 disabled:opacity-40 transition-all"
+          >
+            <RefreshCcw size={12} className={fetching ? 'animate-spin' : ''} />
+            Actualizar
+          </button>
+        </div>
       </div>
 
-      {/* Date Range Selector Bar */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div className="min-w-0">
-          <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-            <Calendar size={13} className="text-emerald-500" />
-            Filtro de Período
-          </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Mostrando resultados desde <span className="text-white font-medium">{fechaInicio}</span> hasta <span className="text-white font-medium">{fechaFin}</span>
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2">
+      {/* Date Range Selector Bar — sticky compact */}
+      <div className="sticky top-0 z-20 -mx-4 sm:mx-0 px-4 sm:px-0 py-2 bg-slate-950/80 backdrop-blur-md print:hidden">
+        <div className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 flex flex-wrap items-center gap-2">
+          <Calendar size={13} className="text-emerald-500 shrink-0" />
+          <div className="flex items-center gap-1.5">
             <input
               type="date"
               value={fechaInicio}
               onChange={e => setFechaInicio(e.target.value)}
-              className="bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500"
+              className="bg-slate-800 border border-slate-700 rounded-md px-2 py-1 text-xs text-white focus:outline-none focus:border-emerald-500"
             />
             <span className="text-slate-650 text-xs">—</span>
             <input
               type="date"
               value={fechaFin}
               onChange={e => setFechaFin(e.target.value)}
-              className="bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500"
+              className="bg-slate-800 border border-slate-700 rounded-md px-2 py-1 text-xs text-white focus:outline-none focus:border-emerald-500"
             />
           </div>
-          <div className="flex items-center gap-1 bg-slate-950 p-0.5 rounded-lg border border-slate-800/80">
-            <button onClick={setHoy} className="px-2 py-1 hover:bg-slate-900 text-slate-400 hover:text-white text-[10px] font-bold rounded transition-all">Hoy</button>
-            <button onClick={setEstaSemana} className="px-2 py-1 hover:bg-slate-900 text-slate-400 hover:text-white text-[10px] font-bold rounded transition-all">Semana</button>
-            <button onClick={setEsteMes} className="px-2 py-1 hover:bg-slate-900 text-slate-400 hover:text-white text-[10px] font-bold rounded transition-all">Mes</button>
-            <button onClick={setMesPasado} className="px-2 py-1 hover:bg-slate-900 text-slate-400 hover:text-white text-[10px] font-bold rounded transition-all">Mes Pasado</button>
-          </div>
+          {(() => {
+            const PRESETS = [
+              { id: 'hoy',       label: 'Hoy',         fn: setHoy },
+              { id: 'semana',    label: 'Semana',      fn: setEstaSemana },
+              { id: 'mes',       label: 'Mes',         fn: setEsteMes },
+              { id: 'mesPasado', label: 'Mes Pasado',  fn: setMesPasado },
+            ];
+            const today = localDateStr();
+            const monthFirst = `${today.slice(0,7)}-01`;
+            const activePreset =
+              (fechaInicio === today && fechaFin === today) ? 'hoy' :
+              (fechaInicio === monthFirst && fechaFin === today) ? 'mes' :
+              null;
+            return (
+              <div className="flex items-center gap-1 bg-slate-950 p-0.5 rounded-md border border-slate-800/80 ml-auto">
+                {PRESETS.map(p => (
+                  <button
+                    key={p.id}
+                    onClick={p.fn}
+                    className={`px-2 py-1 text-[10px] font-bold rounded transition-all ${
+                      activePreset === p.id
+                        ? 'bg-emerald-500/10 text-emerald-400'
+                        : 'text-slate-400 hover:text-white hover:bg-slate-900'
+                    }`}
+                  >{p.label}</button>
+                ))}
+              </div>
+            );
+          })()}
+          <span className="basis-full text-[10px] text-slate-500 px-1">
+            Comparando vs período anterior: <span className="text-slate-400 font-medium">{prevRange.inicio}</span> → <span className="text-slate-400 font-medium">{prevRange.fin}</span> ({prevRange.days} día{prevRange.days !== 1 ? 's' : ''})
+          </span>
         </div>
       </div>
 
+      {/* Hero: ingresos totales + delta + sparkline */}
+      {(() => {
+        const ingresosTotales = stats.ingresos + ingresosProductos;
+        const ingresosPrev    = prevStats.ingresos;
+        const delta           = pctDelta(stats.ingresos, ingresosPrev);
+        const isUp = delta != null && delta > 0;
+        return (
+          <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 to-slate-900/40 border border-slate-800 rounded-2xl p-5 sm:p-6">
+            <div className="absolute -top-12 -right-12 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-center relative">
+              <div className="md:col-span-2 space-y-1">
+                <p className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">
+                  Ingresos totales del período
+                </p>
+                <div className="flex flex-wrap items-baseline gap-3">
+                  <h2 className="text-4xl sm:text-5xl font-bold text-white tracking-tight">
+                    {fmtCLP(ingresosTotales)}
+                  </h2>
+                  <DeltaBadge delta={delta} />
+                </div>
+                <p className="text-xs text-slate-500">
+                  Servicios <span className="text-slate-300 font-medium">{fmtCLP(stats.ingresos)}</span>
+                  <span className="text-slate-700 mx-1.5">·</span>
+                  Productos <span className="text-slate-300 font-medium">{fmtCLP(ingresosProductos)}</span>
+                  {delta != null && (
+                    <>
+                      <span className="text-slate-700 mx-1.5">·</span>
+                      <span className={isUp ? 'text-emerald-400' : 'text-rose-400'}>
+                        {isUp ? '+' : ''}{fmtCLP(stats.ingresos - ingresosPrev)} vs {fmtCLP(ingresosPrev)} ant.
+                      </span>
+                    </>
+                  )}
+                </p>
+              </div>
+              <div className="md:border-l md:border-slate-800/60 md:pl-5">
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">
+                  Últimos 7 días
+                </p>
+                <Sparkline data={sparkData} color={isUp || delta == null ? '#10b981' : '#f43f5e'} />
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Selector de Pestañas (Tabs Switch) */}
       {isAdmin && (
-        <div className="flex flex-wrap gap-1 bg-slate-950/40 p-1 rounded-xl border border-slate-800/60">
+        <div className="flex flex-wrap gap-1 bg-slate-950/40 p-1 rounded-xl border border-slate-800/60 print:hidden">
           <button
             onClick={() => setActiveTab('comercial')}
             className={`flex-1 min-w-[140px] px-4 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 ${
@@ -837,65 +1168,79 @@ export default function Metricas() {
             <Users size={13} />
             Métricas por Barbero
           </button>
+          <button
+            onClick={() => setActiveTab('insights')}
+            className={`flex-1 min-w-[140px] px-4 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 ${
+              activeTab === 'insights'
+                ? 'bg-slate-900 text-white border border-slate-800/60 shadow-lg shadow-black/10 text-emerald-400'
+                : 'text-slate-400 hover:text-white hover:bg-slate-900/30'
+            }`}
+          >
+            <Brain size={13} />
+            Insights & Patrones
+          </button>
         </div>
       )}
 
       {/* ── TAB 1: RENDIMIENTO COMERCIAL ───────────────────────────────── */}
       {activeTab === 'comercial' && (
         <div className="space-y-6">
-          {/* Panel IA */}
-          {aiInsights.length > 0 && (
-            <div className="relative overflow-hidden bg-slate-900 border border-violet-500/25 rounded-xl p-5 shadow-lg shadow-violet-950/5">
-              <div className="absolute top-0 right-0 w-56 h-56 bg-violet-500/5 rounded-full blur-3xl pointer-events-none" />
-              <div className="flex items-center gap-2 mb-4">
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-violet-500/10 border border-violet-500/20">
-                  <div className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
-                  <Sparkles size={11} className="text-violet-400" />
-                  <span className="text-[10px] font-bold text-violet-400 uppercase tracking-wider">Análisis Inteligente IA</span>
-                </div>
-                <span className="text-[10px] text-slate-500 ml-auto">Generado a partir de tus datos reales</span>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {aiInsights.map((ins, i) => <InsightCard key={i} {...ins} />)}
-              </div>
-              <AIWatermark />
-            </div>
-          )}
 
-          {/* KPIs — fila 1 */}
+          {/* KPIs principales (4) — con delta y drill-down */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
             <KpiCard Icon={DollarSign} label="Ingresos Servicios"
-              value={`$${Math.round(stats.ingresos).toLocaleString('es-CL')}`}
-              sub={hayPrecios ? 'Citas completadas' : 'Configura precios en Servicios'}
-              color="emerald" />
-            <KpiCard Icon={CalendarCheck} label="Citas"
+              value={fmtCLP(stats.ingresos)}
+              sub={hayPrecios ? `vs ${fmtCLP(prevStats.ingresos)} ant.` : 'Configura precios en Servicios'}
+              color="emerald"
+              delta={pctDelta(stats.ingresos, prevStats.ingresos)}
+              onClick={() => openDrill('ingresos')} />
+            <KpiCard Icon={CalendarCheck} label="Citas Completadas"
               value={stats.completadas}
-              sub={`${stats.total} agendadas`}
-              color="blue" />
-            <KpiCard Icon={TrendingUp} label="Ticket prom."
-              value={`$${Math.round(stats.ticket).toLocaleString('es-CL')}`}
-              sub="Por servicio completado"
-              color="amber" />
+              sub={`${stats.total} agendadas · ${prevStats.completadas} ant.`}
+              color="blue"
+              delta={pctDelta(stats.completadas, prevStats.completadas)}
+              onClick={() => openDrill('completadas')} />
+            <KpiCard Icon={TrendingUp} label="Ticket Promedio"
+              value={fmtCLP(stats.ticket)}
+              sub={`vs ${fmtCLP(prevStats.ticket)} ant.`}
+              color="amber"
+              delta={pctDelta(stats.ticket, prevStats.ticket)} />
             <KpiCard Icon={XCircle} label="Cancelaciones"
               value={stats.canceladas}
               sub={stats.total ? `${Math.round((stats.canceladas / stats.total) * 100)}% del total` : '—'}
-              color="red" />
+              color="red"
+              delta={pctDelta(stats.canceladas, prevStats.canceladas)}
+              invertDelta
+              onClick={() => openDrill('canceladas')} />
           </div>
 
-          {/* KPIs — fila 2 */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <KpiCard Icon={ShoppingBag} label="Ingresos Productos"
-              value={`$${Math.round(ingresosProductos).toLocaleString('es-CL')}`}
-              sub="Reservas confirmadas / Ventas directas"
-              color="purple" />
-            <KpiCard Icon={RefreshCcw} label="Clientes Recurrentes"
-              value={`${stats.pctRecurr}%`}
-              sub="Con más de 1 visita (total histórico)"
-              color="cyan" />
-            <KpiCard Icon={Activity} label="Tasa de Ocupación"
-              value={`${stats.ocupacion}%`}
-              sub="Completadas vs agendadas"
-              color="rose" />
+          {/* KPIs secundarios — colapsable */}
+          <div>
+            <button
+              onClick={() => setShowMoreKpis(v => !v)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold text-slate-400 hover:text-white hover:bg-slate-800/40 transition-colors"
+            >
+              {showMoreKpis ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+              {showMoreKpis ? 'Ocultar métricas adicionales' : 'Ver métricas adicionales'}
+            </button>
+            {showMoreKpis && (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-3">
+                <KpiCard Icon={ShoppingBag} label="Ingresos Productos"
+                  value={fmtCLP(ingresosProductos)}
+                  sub="Reservas confirmadas / Ventas directas"
+                  color="purple"
+                  onClick={() => openDrill('productos')} />
+                <KpiCard Icon={RefreshCcw} label="Clientes Recurrentes"
+                  value={`${stats.pctRecurr}%`}
+                  sub="Con más de 1 visita (histórico)"
+                  color="cyan" />
+                <KpiCard Icon={Activity} label="Tasa de Ocupación"
+                  value={`${stats.ocupacion}%`}
+                  sub={`vs ${prevStats.ocupacion.toFixed(0)}% ant.`}
+                  color="rose"
+                  delta={pctDelta(stats.ocupacion, prevStats.ocupacion)} />
+              </div>
+            )}
           </div>
 
           {/* Rankings */}
@@ -1082,53 +1427,83 @@ export default function Metricas() {
               )}
             </ChartCard>
 
-            {/* Heatmap demanda */}
-            <ChartCard title="Mapa de Demanda Semanal" subtitle="Frecuencia acumulada de citas por día y hora · últimos 6 meses" fullWidth>
-              <div className="flex items-center gap-1.5 mb-3">
-                <Sparkles size={11} className="text-violet-400" />
-                <span className="text-[10px] font-semibold text-violet-400">Patrón térmico analizado</span>
+          </div>
+        </div>
+      )}
+
+      {/* ── TAB INSIGHTS: IA + HEATMAP ────────────────────────────────── */}
+      {activeTab === 'insights' && isAdmin && (
+        <div className="space-y-6">
+          {/* Panel IA */}
+          {aiInsights.length > 0 ? (
+            <div className="relative overflow-hidden bg-slate-900 border border-violet-500/25 rounded-xl p-5 shadow-lg shadow-violet-950/5">
+              <div className="absolute top-0 right-0 w-56 h-56 bg-violet-500/5 rounded-full blur-3xl pointer-events-none" />
+              <div className="flex items-center gap-2 mb-4">
+                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-violet-500/10 border border-violet-500/20">
+                  <div className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
+                  <Sparkles size={11} className="text-violet-400" />
+                  <span className="text-[10px] font-bold text-violet-400 uppercase tracking-wider">Análisis Inteligente IA</span>
+                </div>
+                <span className="text-[10px] text-slate-500 ml-auto">Generado a partir de tus datos reales</span>
               </div>
-              <div className="overflow-x-auto">
-                <div style={{ minWidth: 480 }}>
-                  <div className="flex items-center mb-1 ml-9">
-                    {heatmapData.HOURS.map(h => (
-                      <div key={h} className="flex-1 text-center text-[9px] text-slate-600">{h}h</div>
-                    ))}
-                  </div>
-                  {heatmapData.DAYS.map((day, di) => (
-                    <div key={di} className="flex items-center gap-0.5 mb-0.5">
-                      <div className="w-9 text-[10px] text-slate-500 shrink-0 text-right pr-1.5">{day}</div>
-                      {heatmapData.HOURS.map(h => {
-                        const count     = heatmapData.counts[`${di}-${h}`] || 0;
-                        const intensity = count / heatmapData.maxVal;
-                        return (
-                          <div
-                            key={h}
-                            className="flex-1 h-5 rounded-sm transition-colors duration-150 hover:ring-1 hover:ring-emerald-400 cursor-help"
-                            style={{
-                              background: count === 0
-                                ? 'rgba(255,255,255,0.03)'
-                                : `rgba(16,185,129,${(0.15 + intensity * 0.75).toFixed(2)})`,
-                            }}
-                            title={`${day} ${h}:00 — ${count} cita${count !== 1 ? 's' : ''}`}
-                          />
-                        );
-                      })}
-                    </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {aiInsights.map((ins, i) => <InsightCard key={i} {...ins} />)}
+              </div>
+              <AIWatermark />
+            </div>
+          ) : (
+            <div className="bg-slate-900 border border-slate-800 rounded-xl p-8 text-center">
+              <Brain size={24} className="text-slate-700 mx-auto mb-2" />
+              <p className="text-sm text-slate-500">Aún no hay suficientes datos para generar insights.</p>
+            </div>
+          )}
+
+          {/* Heatmap */}
+          <ChartCard title="Mapa de Demanda Semanal" subtitle="Frecuencia acumulada de citas por día y hora · últimos 6 meses" fullWidth>
+            <div className="flex items-center gap-1.5 mb-3">
+              <Sparkles size={11} className="text-violet-400" />
+              <span className="text-[10px] font-semibold text-violet-400">Patrón térmico analizado</span>
+            </div>
+            <div className="overflow-x-auto">
+              <div style={{ minWidth: 480 }}>
+                <div className="flex items-center mb-1 ml-9">
+                  {heatmapData.HOURS.map(h => (
+                    <div key={h} className="flex-1 text-center text-[9px] text-slate-600">{h}h</div>
                   ))}
-                  <div className="flex items-center gap-1.5 mt-3 ml-9">
-                    <span className="text-[9px] text-slate-650">Baja frecuencia</span>
-                    {[0, 0.25, 0.5, 0.75, 1].map(v => (
-                      <div key={v} className="w-3 h-3 rounded-sm"
-                        style={{ background: v === 0 ? 'rgba(255,255,255,0.03)' : `rgba(16,185,129,${(0.15 + v * 0.75).toFixed(2)})` }}
-                      />
-                    ))}
-                    <span className="text-[9px] text-slate-650">Alta frecuencia</span>
+                </div>
+                {heatmapData.DAYS.map((day, di) => (
+                  <div key={di} className="flex items-center gap-0.5 mb-0.5">
+                    <div className="w-9 text-[10px] text-slate-500 shrink-0 text-right pr-1.5">{day}</div>
+                    {heatmapData.HOURS.map(h => {
+                      const count     = heatmapData.counts[`${di}-${h}`] || 0;
+                      const intensity = count / heatmapData.maxVal;
+                      return (
+                        <div
+                          key={h}
+                          className="flex-1 h-5 rounded-sm transition-colors duration-150 hover:ring-1 hover:ring-emerald-400 cursor-help"
+                          style={{
+                            background: count === 0
+                              ? 'rgba(255,255,255,0.03)'
+                              : `rgba(16,185,129,${(0.15 + intensity * 0.75).toFixed(2)})`,
+                          }}
+                          title={`${day} ${h}:00 — ${count} cita${count !== 1 ? 's' : ''}`}
+                        />
+                      );
+                    })}
                   </div>
+                ))}
+                <div className="flex items-center gap-1.5 mt-3 ml-9">
+                  <span className="text-[9px] text-slate-650">Baja frecuencia</span>
+                  {[0, 0.25, 0.5, 0.75, 1].map(v => (
+                    <div key={v} className="w-3 h-3 rounded-sm"
+                      style={{ background: v === 0 ? 'rgba(255,255,255,0.03)' : `rgba(16,185,129,${(0.15 + v * 0.75).toFixed(2)})` }}
+                    />
+                  ))}
+                  <span className="text-[9px] text-slate-650">Alta frecuencia</span>
                 </div>
               </div>
-            </ChartCard>
-          </div>
+            </div>
+          </ChartCard>
         </div>
       )}
 
@@ -1139,8 +1514,9 @@ export default function Metricas() {
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
             <KpiCard Icon={DollarSign} label="Ingresos Brutos"
               value={fmtCLP(pnl.ingresosBrutos)}
-              sub={`Servicios + Ventas Prod.`}
-              color="blue" />
+              sub="Servicios + Ventas Prod."
+              color="blue"
+              delta={pctDelta(stats.ingresos, prevStats.ingresos)} />
             <KpiCard Icon={Tag} label="Costo Ventas (COGS)"
               value={fmtCLP(pnl.totalCogs)}
               sub="Costo de stock vendido"
@@ -1152,7 +1528,8 @@ export default function Metricas() {
             <KpiCard Icon={TrendingDown} label="Gastos (OPEX)"
               value={fmtCLP(pnl.totalOpex)}
               sub="Otros Gastos + Nómina"
-              color="red" />
+              color="red"
+              invertDelta />
             <KpiCard
               Icon={pnl.utilidadNeta >= 0 ? ArrowUpRight : ArrowDownRight}
               label="Utilidad Neta (P&L)"
@@ -1578,6 +1955,16 @@ export default function Metricas() {
           })()}
         </div>
       )}
+
+      {/* Drill-down modal */}
+      <DrillDownModal
+        open={!!drillDown}
+        title={drillDown?.title}
+        subtitle={drillDown?.subtitle}
+        rows={drillDown?.rows || []}
+        columns={drillDown?.columns || []}
+        onClose={() => setDrillDown(null)}
+      />
 
       {/* Help Modal */}
       {showHelp && (

@@ -52,3 +52,15 @@ html.light .divide-y > * + * { border-color: #e2e8f0 !important; }
   }
 }
 
+/* Estilos de impresión para reportes (Métricas, etc.) */
+@media print {
+  body { background: white !important; color: black !important; }
+  aside, .print\:hidden { display: none !important; }
+  .bg-slate-900, .bg-slate-950, .bg-slate-800 { background: white !important; border-color: #cbd5e1 !important; }
+  .text-white, .text-slate-300, .text-slate-400 { color: #0f172a !important; }
+  .text-slate-500, .text-slate-600 { color: #475569 !important; }
+  .border-slate-800, .border-slate-700 { border-color: #cbd5e1 !important; }
+  .shadow-lg, .shadow-2xl { box-shadow: none !important; }
+  .sticky { position: static !important; }
+}
+
