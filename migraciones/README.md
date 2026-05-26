@@ -92,8 +92,14 @@ El cliente queda 100% enrolado al Club automáticamente. La CF `sello-automatico
 | Filas originales | 708 |
 | − Sin teléfono ni email | -1 |
 | − Teléfonos inválidos (muy cortos, todo ceros, dígitos repetidos) | -9 |
-| − Duplicados por teléfono (fusionados al más completo) | -86 |
-| **Resultado** | **612** |
+| − Duplicados estrictos (mismo teléfono **y** mismo nombre normalizado) | -63 |
+| **Resultado** | **635** |
+
+**Manejo de familiares** (mismo teléfono, nombres distintos): 23 personas adicionales se preservan con docId sufijado:
+  - El cliente principal mantiene `docId = telefono` (compatible con el sello-automatico)
+  - Familiares: `docId = telefono__nombre-slug`, con flags `compartesTelefono: true` y `telefonoPrincipalDocId`
+
+Esto cubre casos típicos como Sebastián + Cristóbal Aravena con mismo número (hermanos), o Hugo Verdugo + Hugo "." (tipeos sutiles que NO se fusionan).
 
 ## Cómo correr
 

@@ -73,18 +73,31 @@ async function main() {
 
     for (const c of chunk) {
       const telefono = String(c.telefono || '').trim();
-      if (!telefono || telefono.includes('/') || telefono === '.' || telefono === '..') {
+      // docId: el principal queda con id=telefono; familiares con id=telefono__nombre-slug.
+      // Esto permite que distintas personas con mismo telefono (padre/hijo, hermanos)
+      // tengan perfiles separados en el panel admin.
+      const docId = String(c.docId || telefono).trim();
+      if (!docId || docId.includes('/') || docId === '.' || docId === '..') {
         skipped++;
         errors.push({ row: i + inBatch, reason: 'ID inválido', data: c });
         continue;
       }
 
+      // Campos de relación familiar (si aplica)
+      const familiarFields = c.compartesTelefono
+        ? {
+            compartesTelefono:        true,
+            telefonoPrincipalDocId:   c.telefonoPrincipalDocId || telefono,
+          }
+        : {};
+
       const dataCliente = {
         nombre:    c.nombre || 'Cliente',
         telefono,
         ...(c.email ? { email: c.email } : {}),
-        uid:       telefono, // marca de perfil pasivo
+        uid:       docId, // marca de perfil pasivo (uid === docId)
         ...(c.fechaRegistroOriginal ? { fechaRegistroOriginal: c.fechaRegistroOriginal } : {}),
+        ...familiarFields,
         sellosDisponibles:  INC(0),
         sellosHistoricos:   INC(0),
         stamps:             INC(0),
@@ -94,11 +107,12 @@ async function main() {
       };
 
       const dataUser = {
-        uid:                telefono, // uid===id → perfil pasivo (mismo patrón que autoEnroll)
+        uid:                docId, // uid===id → perfil pasivo (mismo patrón que autoEnroll)
         nombre:             c.nombre || 'Cliente',
         telefono,
         ...(c.email ? { email: c.email } : {}),
         ...(c.fechaRegistroOriginal ? { fechaRegistroOriginal: c.fechaRegistroOriginal } : {}),
+        ...familiarFields,
         sellosDisponibles:  INC(0),
         sellosHistoricos:   INC(0),
         stamps:             INC(0),
@@ -107,8 +121,8 @@ async function main() {
         updatedAt:          TS(),
       };
 
-      batch.set(colClientes.doc(telefono), dataCliente, { merge: true });
-      batch.set(colUsers.doc(telefono),    dataUser,    { merge: true });
+      batch.set(colClientes.doc(docId), dataCliente, { merge: true });
+      batch.set(colUsers.doc(docId),    dataUser,    { merge: true });
       inBatch++;
     }
 
