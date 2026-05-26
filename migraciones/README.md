@@ -73,3 +73,42 @@ node migraciones/dedupe-chameleon-clientes.js --commit
 ```
 
 Idempotente: se puede correr múltiples veces. Es seguro correrlo periódicamente o tras cada lote de nuevos registros.
+
+---
+
+# Migración Aura (sin contraseña al Club): `migrate-aura-clientes.js`
+
+Aura tiene **612 clientes** importados de AgendaPro y **NO requiere contraseña** para el Club de Fidelidad. El script crea ambas colecciones en una sola corrida:
+
+  - `tenants/aura/clientes/{telefono}` — lookups rápidos
+  - `tenants/aura/users/{telefono}` — perfil "pasivo" con `uid=telefono`
+
+El cliente queda 100% enrolado al Club automáticamente. La CF `sello-automatico` le suma sello al completar citas aunque nunca se registre activamente. Si en el futuro se registra con email+password, la CF `dedupeOnCreateTenant` mergea sellos/historial.
+
+## Filtros aplicados
+
+| Regla | Filas |
+|---|---|
+| Filas originales | 708 |
+| − Sin teléfono ni email | -1 |
+| − Teléfonos inválidos (muy cortos, todo ceros, dígitos repetidos) | -9 |
+| − Duplicados por teléfono (fusionados al más completo) | -86 |
+| **Resultado** | **612** |
+
+## Cómo correr
+
+```bash
+# Dry run
+node migraciones/migrate-aura-clientes.js
+
+# Commit (crea 612×2 = 1.224 docs)
+node migraciones/migrate-aura-clientes.js --commit
+```
+
+Tiempo: ~5-8 segundos. Costo: ~$0.002 USD.
+
+## Resultado en el panel
+
+- 612 clientes aparecen en `/gestion-interna/clientes` con badge **MIGRADO** (ámbar).
+- Botón **"Invitar migrados"** funciona igual que con Chameleon: WhatsApp masivo con templates.
+- Como Aura tiene **auto-enroll** activado (CF `autoEnrollTenant`), los clientes nuevos que reserven también entrarán al Club automáticamente.
