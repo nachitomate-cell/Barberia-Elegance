@@ -48,10 +48,7 @@ async function tokensDe(tenantId, uid) {
 
 async function enviarPush(tenantId, uid, { title, body, data = {} }) {
   const tokens = await tokensDe(tenantId, uid);
-  if (tokens.length === 0) {
-    logger.info(`[Push] ${tenantId}/${uid}: sin tokens activos, skipped.`);
-    return 0;
-  }
+  if (tokens.length === 0) return 0; // silencioso: dispara en cada evento sin acción
   const message = {
     notification: { title, body },
     data: Object.fromEntries(Object.entries(data).map(([k, v]) => [k, String(v)])),

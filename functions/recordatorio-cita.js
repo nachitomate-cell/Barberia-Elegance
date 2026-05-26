@@ -484,10 +484,19 @@ exports.recordatorioCita24h = onSchedule(
   },
 );
 
-// ── Cron 2: Cada 15 Minutos — enviar recordatorios por Email 1 hora antes ──────
+// ── Cron 2: cada 30 min (07:00–22:30 Santiago) — recordatorios por Email 1h antes ──
+//
+// OPTIMIZACION DE COSTO (mayo 2026):
+//   - Antes: '*/15 * * * *' (96 ejecuciones/dia, 24/7) → ~2880 invocaciones/mes
+//   - Ahora: '*/30 7-22 * * *' (32 ejecuciones/dia, solo horario operativo)
+//     → ~960 invocaciones/mes = 67% menos.
+//   - La ventana de envio es 30-90 min antes de la cita, asi que cada 30 min
+//     cubre todas las citas posibles. No se pierde ninguna.
+//   - Salir temprano si no hay citas (sin logger.info verboso) reduce
+//     Cloud Logging que cobra por GB ingerido.
 exports.recordatorioCita1h = onSchedule(
   {
-    schedule: '*/15 * * * *',
+    schedule: '*/30 7-22 * * *',
     timeZone: TIMEZONE,
     secrets:  [RESEND_API_KEY],
   },
@@ -496,7 +505,8 @@ exports.recordatorioCita1h = onSchedule(
     const tomorrowStr = getSantiagoDateString(1);
     const nowParts    = getSantiagoNowParts();
 
-    logger.info(`[Recordatorio 1h] Buscando citas. Hoy: ${todayStr}, Mañana: ${tomorrowStr}`);
+    // Sin logger.info al inicio: corre 32 veces al dia. Solo loggeamos cuando
+    // efectivamente hay algo que enviar (mas abajo).
 
     const promises = [];
 
@@ -563,7 +573,8 @@ exports.recordatorioCita1h = onSchedule(
     }
 
     if (toSend.length === 0) {
-      logger.info(`[Recordatorio 1h] Sin citas para notificar en la ventana actual`);
+      // Salir silencioso — el cron corre 32 veces al dia y la mayoria no tendra citas
+      // en la ventana de 30-90 min. Loggear cada vez infla Cloud Logging.
       return;
     }
 

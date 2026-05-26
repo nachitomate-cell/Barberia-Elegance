@@ -76,19 +76,11 @@ function phoneVariants(rawPhone) {
 }
 
 async function procesarDedup({ tenantId, uid, data }) {
-  // Si el doc creado ES un legacy (lo creó la migración), no es un registro real.
-  if (isLegacyDoc(uid, data)) {
-    logger.info(`[Dedup] ${tenantId}/${uid}: doc legacy, sin acción.`);
-    return;
-  }
-
+  // Silenciosos (estos paths disparan en cada user create sin hacer nada):
+  if (isLegacyDoc(uid, data)) return;
   const email   = (data.email    || '').toLowerCase().trim();
   const telNorm = normalizePhone(data.telefono);
-
-  if (!email && !telNorm) {
-    logger.info(`[Dedup] ${tenantId}/${uid}: sin email ni teléfono, no se puede dedupar.`);
-    return;
-  }
+  if (!email && !telNorm) return;
 
   const cols = colecciones(tenantId);
   const legaciesMap = new Map(); // dedup por doc.id en caso de match cruzado
@@ -131,10 +123,7 @@ async function procesarDedup({ tenantId, uid, data }) {
 
   const legacies = [...legaciesMap.values()];
 
-  if (legacies.length === 0) {
-    logger.info(`[Dedup] ${tenantId}/${uid}: sin perfiles legacy para email='${email}' tel='${telNorm}'.`);
-    return;
-  }
+  if (legacies.length === 0) return; // silencioso: ningún legacy = caso esperado
 
   logger.info(`[Dedup] ${tenantId}/${uid}: encontrados ${legacies.length} legacy(s) (match email/tel). Fusionando…`);
 

@@ -109,26 +109,10 @@ async function autoEnroll(tid, citaId, cita) {
   const email  = (cita.clienteEmail || '').toLowerCase().trim();
   const nombre = String(cita.clienteNombre || '').trim();
 
-  // Necesitamos al menos uno de los dos para vincular al cliente.
-  if (!telN && !email) {
-    logger.info(`[AutoEnroll] ${tid}/${citaId}: sin teléfono ni email, omitido.`);
-    return;
-  }
-
-  // Si ya existe el cliente (legacy migrado, otra cita previa, o registro real),
-  // no creamos nada. La CF sello-automatico se ocupa de sumar sellos al completar.
-  if (await existeClienteEnUsers(tid, telRaw, email)) {
-    logger.info(`[AutoEnroll] ${tid}/${citaId}: cliente ya existe en users/, omitido.`);
-    return;
-  }
-
-  // Sin teléfono no podemos usar doc.id estándar (id = telefono).
-  // Para auto-enroll exigimos teléfono — sin él no podemos cobrar sellos
-  // ni dedupar con futuras cuentas Auth.
-  if (!telN) {
-    logger.info(`[AutoEnroll] ${tid}/${citaId}: solo email sin teléfono, omitido.`);
-    return;
-  }
+  // Silenciosos (estos paths disparan en cada cita sin hacer nada):
+  if (!telN && !email) return;
+  if (await existeClienteEnUsers(tid, telRaw, email)) return; // ya existe, OK
+  if (!telN) return; // sólo email sin tel: no podemos crear doc
 
   const docId = telRaw || telN; // preferimos el formato original del cliente
   const userRef = db.collection(`tenants/${tid}/users`).doc(docId);

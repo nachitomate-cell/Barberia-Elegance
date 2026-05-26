@@ -155,7 +155,6 @@ async function procesarSello({ tenantId, citaId, citaRef, cita }) {
       creadoEn:           Timestamp.now(),
       updatedAt:          Timestamp.now(),
     });
-    logger.info(`[Sello] ${citaId}: cliente creado → ${clienteRef.id}`);
   }
 
   let uid = clienteData?.uid ?? null;
@@ -171,7 +170,6 @@ async function procesarSello({ tenantId, citaId, citaRef, cita }) {
         if (!q.empty) {
           uid = q.docs[0].id;
           await clienteRef.update({ uid });
-          logger.info(`[Sello] ${citaId}: uid resuelto por teléfono → ${uid}`);
           break;
         }
       }
@@ -199,8 +197,6 @@ async function procesarSello({ tenantId, citaId, citaRef, cita }) {
 
   if (membresia.aplicable) {
     // ── Rama A: descontar uso de membresía ──────────────────────
-    logger.info(`[Sello] ${citaId}: membresía activa → desconta ${servicioKey} para uid=${uid}`);
-
     const userRef = cols.users.doc(uid);
     await userRef.update({
       [`subscription.remainingServices.${servicioKey}`]: FieldValue.increment(-1),
@@ -211,12 +207,8 @@ async function procesarSello({ tenantId, citaId, citaRef, cita }) {
       historial: FieldValue.arrayUnion(entradaHistorial),
       updatedAt: Timestamp.now(),
     });
-
-    logger.info(`[Sello] ${citaId}: membresía descontada (${servicioKey}). Restantes: ${membresia.restantes - 1}`);
   } else {
     // ── Rama B: sumar sello de fidelidad ───────────────────────
-    logger.info(`[Sello] ${citaId}: sin membresía activa → sumando sello a ${telefono}`);
-
     // Actualizar clientes/{phone} (lookup por teléfono, fuente de verdad para flujos web)
     await clienteRef.update({
       sellosDisponibles:  FieldValue.increment(1),
@@ -242,10 +234,7 @@ async function procesarSello({ tenantId, citaId, citaRef, cita }) {
           citaId,
         }),
       });
-      logger.info(`[Sello] ${citaId}: sello sincronizado en users/${uid}`);
     }
-
-    logger.info(`[Sello] ${citaId}: +1 sello para ${clienteNombre} (${telefono})`);
   }
 
   // ── 3. Marcar la cita como procesada (idempotencia) ────────────
@@ -269,8 +258,7 @@ function debesProcesar(before, after, citaId) {
   if (estadoDespues !== 'completada') return false;   // no es completada
   if (estadoAntes   === 'completada') return false;   // ya estaba completada
 
-  if (after.selloProcesado === true) {                 // idempotencia
-    logger.info(`[Sello] ${citaId}: ya procesado, ignorando.`);
+  if (after.selloProcesado === true) {                 // idempotencia (silencioso)
     return false;
   }
 
