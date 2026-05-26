@@ -12,6 +12,7 @@ import { tenantCol } from '../lib/tenantUtils';
 import { useCollection } from '../hooks/useCollection';
 import { useTenant } from '../contexts/TenantContext';
 import { useAuth }   from '../contexts/AuthContext';
+import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 import SlideOver from '../components/ui/SlideOver';
 
 /* ── Utilidades ── */
@@ -303,7 +304,8 @@ function VisitCard({ v }) {
 /* ── Vista principal ── */
 export default function HistorialCortes() {
   const { id: tenantId } = useTenant();
-  const [open,  setOpen]  = useState(false);
+  const [open,     setOpen]     = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const [q,     setQ]     = useState('');
   const [visits, setVisits] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -345,7 +347,10 @@ export default function HistorialCortes() {
       {/* Header */}
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-white">Historial de cortes</h1>
+          <h1 className="text-xl font-bold text-white flex items-center gap-2">
+            Historial de cortes
+            <HelpButton onClick={() => setShowHelp(true)} />
+          </h1>
           <p className="text-sm text-slate-400 mt-0.5">
             {visits.length} visita{visits.length !== 1 ? 's' : ''} registrada{visits.length !== 1 ? 's' : ''}
           </p>
@@ -414,6 +419,28 @@ export default function HistorialCortes() {
           onClose={() => setOpen(false)}
         />
       </SlideOver>
+
+      {showHelp && (
+        <HelpModal title="Cómo leer el historial de cortes" onClose={() => setShowHelp(false)}>
+          <p>Esta vista muestra <strong className="text-white">todas las visitas completadas</strong> de la barbería en orden cronológico. Es el registro auditable del trabajo realizado.</p>
+
+          <div>
+            <p className="font-semibold text-emerald-400 mb-1">Qué ves en cada fila</p>
+            <ul className="list-disc ml-4 space-y-1">
+              <li><strong className="text-white">Cliente, servicio, barbero</strong>, fecha y hora exacta.</li>
+              <li><strong className="text-white">Precio cobrado</strong> y método de pago.</li>
+              <li><strong className="text-white">Propina</strong> y productos vendidos en el ticket, si los hubo.</li>
+            </ul>
+          </div>
+
+          <div>
+            <p className="font-semibold text-emerald-400 mb-1">Click en una fila</p>
+            <p>Abre el detalle completo: cliente vinculado al Club, nota interna, productos vendidos en ese corte, total del ticket.</p>
+          </div>
+
+          <p className="text-xs text-amber-400 bg-amber-400/5 border border-amber-400/20 rounded-lg px-3 py-2">💡 Solo aparecen citas marcadas como <strong>Completada</strong> en /agenda. Las canceladas o pendientes no figuran acá.</p>
+        </HelpModal>
+      )}
     </div>
   );
 }

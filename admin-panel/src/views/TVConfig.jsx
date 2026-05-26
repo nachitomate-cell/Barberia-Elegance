@@ -11,6 +11,7 @@ import { getDoc, setDoc, getDocs, query, where, doc, deleteDoc } from 'firebase/
 import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { storage } from '../lib/firebase';
 import { tenantDoc, tenantCol, resolveTenantId } from '../lib/tenantUtils';
+import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 
 /* ── Compresión de imagen vía canvas ─────────────────────────────── */
 async function compressImage(file, { maxPx = 1280, quality = 0.7 } = {}) {
@@ -678,6 +679,7 @@ function TVSimulator({ config, bgUrl, tenantId }) {
 
 export default function TVConfig() {
   const [config,        setConfig]        = useState(CONFIG_DEFAULT);
+  const [showHelp,      setShowHelp]      = useState(false);
   const [loading,       setLoading]       = useState(true);
   const [saving,        setSaving]        = useState(false);
   const [saved,         setSaved]         = useState(false);
@@ -928,6 +930,7 @@ export default function TVConfig() {
           <h1 className="text-xl font-black text-white flex items-center gap-2.5">
             <Monitor className="text-emerald-500" size={22} />
             Pantalla TV
+            <HelpButton onClick={() => setShowHelp(true)} />
           </h1>
           <p className="text-sm text-slate-400 mt-1">
             Configura el contenido de la pantalla del local en tiempo real con vista previa en vivo
@@ -1637,6 +1640,33 @@ export default function TVConfig() {
         </button>
       </div>
 
+      {showHelp && (
+        <HelpModal title="Cómo configurar la Pantalla TV" onClose={() => setShowHelp(false)}>
+          <p>Esta es la pantalla pública que ponés en una TV del local. Muestra el lookbook, ofertas, promos y el QR para reservar — todo se actualiza en tiempo real desde acá.</p>
+
+          <div>
+            <p className="font-semibold text-emerald-400 mb-1">1. Conectar la TV</p>
+            <p>Abrí en la TV (Smart TV, Chromecast o un mini PC) la URL <em>/tv?id=&lt;codigo&gt;</em> que aparece arriba. El código se genera automáticamente y queda fijo.</p>
+          </div>
+
+          <div>
+            <p className="font-semibold text-emerald-400 mb-1">2. Bloques de contenido</p>
+            <ul className="list-disc ml-4 space-y-1">
+              <li><strong className="text-white">Lookbook</strong>: rota tus mejores fotos cada N segundos.</li>
+              <li><strong className="text-white">Promos / Publicidad</strong>: subí imágenes propias con duración custom.</li>
+              <li><strong className="text-white">QR de reservas</strong>: link a tu booking público, escaneable desde el celular.</li>
+              <li><strong className="text-white">Próximas citas</strong>: cola del día (cuándo entra cada cliente, opcional).</li>
+            </ul>
+          </div>
+
+          <div>
+            <p className="font-semibold text-emerald-400 mb-1">3. Cambios en vivo</p>
+            <p>Todo cambio que hagas acá se refleja en la TV <strong className="text-white">sin reiniciar</strong>. La pantalla escucha Firestore en tiempo real.</p>
+          </div>
+
+          <p className="text-xs text-amber-400 bg-amber-400/5 border border-amber-400/20 rounded-lg px-3 py-2">💡 Si la TV es vieja, abrí el navegador en kiosk mode (Chrome: <code>--kiosk</code>) para que ocupe la pantalla completa sin barra de URL.</p>
+        </HelpModal>
+      )}
     </div>
   );
 }

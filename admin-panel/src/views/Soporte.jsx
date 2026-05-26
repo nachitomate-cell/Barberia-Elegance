@@ -3,6 +3,7 @@ import { addDoc, query, orderBy, limit, onSnapshot, serverTimestamp } from 'fire
 import { Headphones, Send, Check, MessageSquare } from 'lucide-react';
 import SynapTechNews from '../components/SynapTechNews';
 import { tenantCol } from '../lib/tenantUtils';
+import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 
 const TIPOS = [
   { id: 'sugerencia', label: 'Sugerencia', color: '#10b981', bg: 'rgba(16,185,129,0.1)',  border: 'rgba(16,185,129,0.25)'  },
@@ -26,6 +27,7 @@ function formatDate(ts) {
 export default function Soporte() {
   const [tipo,      setTipo]      = useState('sugerencia');
   const [mensaje,   setMensaje]   = useState('');
+  const [showHelp,  setShowHelp]  = useState(false);
   const [sending,   setSending]   = useState(false);
   const [sent,      setSent]      = useState(false);
   const [sendErr,   setSendErr]   = useState('');
@@ -68,7 +70,10 @@ export default function Soporte() {
 
       {/* Header */}
       <div>
-        <h1 className="text-xl font-bold text-white">Soporte</h1>
+        <h1 className="text-xl font-bold text-white flex items-center gap-2">
+          Soporte
+          <HelpButton onClick={() => setShowHelp(true)} />
+        </h1>
         <p className="text-sm text-slate-500 mt-0.5">
           Envía sugerencias, reclamos o consultas directamente a SynapTech
         </p>
@@ -172,6 +177,32 @@ export default function Soporte() {
       {/* ── Novedades SynapTech ───────────────────────────────── */}
       <SynapTechNews />
 
+      {showHelp && (
+        <HelpModal title="Cómo contactarnos" onClose={() => setShowHelp(false)}>
+          <p>Acá podés enviarnos sugerencias, reportar errores o pedir nuevas funciones. Llegan directo a nuestro equipo en SynapTech.</p>
+
+          <div>
+            <p className="font-semibold text-emerald-400 mb-1">Tipos de mensaje</p>
+            <ul className="list-disc ml-4 space-y-1">
+              <li><strong className="text-white">Sugerencia</strong>: idea o mejora que se te ocurra.</li>
+              <li><strong className="text-white">Reclamo</strong>: algo no funciona o no te gusta cómo está hecho.</li>
+              <li><strong className="text-white">Consulta</strong>: pregunta operativa o de configuración.</li>
+            </ul>
+          </div>
+
+          <div>
+            <p className="font-semibold text-emerald-400 mb-1">Tiempos de respuesta</p>
+            <p>Reportes urgentes: respuesta en <strong className="text-white">horas</strong>. Mejoras y sugerencias: las priorizamos según impacto y volumen. Si es bloqueante, marcalo como reclamo.</p>
+          </div>
+
+          <div>
+            <p className="font-semibold text-emerald-400 mb-1">Más rápido por WhatsApp</p>
+            <p>Para algo urgente: <strong className="text-white">+56 9 8356 8212</strong>. El mismo número aparece en el botón verde de WA en /agenda.html.</p>
+          </div>
+
+          <p className="text-xs text-amber-400 bg-amber-400/5 border border-amber-400/20 rounded-lg px-3 py-2">💡 Abajo podés ver el feed de novedades (SynapTech News) — actualizaciones, features nuevas y avisos importantes del producto.</p>
+        </HelpModal>
+      )}
     </div>
   );
 }

@@ -8,6 +8,7 @@ import {
 import { db } from '../lib/firebase';
 import { useTenant } from '../contexts/TenantContext';
 import { useAuth }   from '../contexts/AuthContext';
+import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 
 const CALLBACK_URL = 'https://us-central1-barberia-elegance.cloudfunctions.net/instagramOAuthCallback';
 
@@ -26,6 +27,7 @@ export default function InstagramPage() {
   const { id: tenantId } = useTenant();
   const { role }         = useAuth();
   const isAdmin          = role === 'admin' || role === 'jefe';
+  const [showHelp, setShowHelp] = useState(false);
 
   const [igConfig, setIgConfig] = useState(null);
   const [appId,    setAppId]    = useState(null);
@@ -110,6 +112,7 @@ export default function InstagramPage() {
         <h1 className="text-xl font-bold text-white mb-1 flex items-center gap-2">
           <IgIcon size={22} className="text-pink-400" />
           Instagram
+          <HelpButton onClick={() => setShowHelp(true)} />
         </h1>
         <p className="text-sm text-slate-400">
           Conecta tu cuenta de Instagram para importar tus posts automáticamente al Lookbook.
@@ -247,6 +250,28 @@ export default function InstagramPage() {
         </ul>
       </div>
 
+      {showHelp && (
+        <HelpModal title="Cómo usar la integración con Instagram" onClose={() => setShowHelp(false)}>
+          <p>Conectá tu cuenta de Instagram para que el Lookbook de la barbería se llene automáticamente con tus posts. Tus clientes ven los cortes recientes sin que tengas que subir cada foto a mano.</p>
+
+          <div>
+            <p className="font-semibold text-emerald-400 mb-1">1. Conectar cuenta</p>
+            <p>Tocá <em>"Conectar Instagram"</em> y autoriza el acceso. Solo lectura de tus posts públicos — no podemos publicar ni borrar nada.</p>
+          </div>
+
+          <div>
+            <p className="font-semibold text-emerald-400 mb-1">2. Sincronización automática</p>
+            <p>Cada 6 horas un cron baja tus últimos 25 posts. También podés tocar <em>"Sincronizar ahora"</em> para forzar la importación inmediata.</p>
+          </div>
+
+          <div>
+            <p className="font-semibold text-emerald-400 mb-1">3. Aparecen en el Lookbook</p>
+            <p>Los posts se ven automáticamente en <em>/lookbook</em> y en la app pública. Podés desactivar posts individuales si no querés que aparezcan.</p>
+          </div>
+
+          <p className="text-xs text-amber-400 bg-amber-400/5 border border-amber-400/20 rounded-lg px-3 py-2">💡 Solo admins/jefes pueden conectar y desconectar. La token expira a los 60 días — se renueva sola si seguís activo. Si caduca, vas a tener que reconectar.</p>
+        </HelpModal>
+      )}
     </div>
   );
 }

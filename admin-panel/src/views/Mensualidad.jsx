@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useTenant } from '../contexts/TenantContext';
+import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 import { 
   CheckCircle2, AlertCircle, XCircle, MessageSquare, 
   ExternalLink, CreditCard, Sparkles, Copy, Check, Send 
@@ -40,7 +41,8 @@ function mesLabel(mes) {
 
 export default function Mensualidad() {
   const { id: tenantId, name: tenantName } = useTenant();
-  const [billing, setBilling] = useState(null);
+  const [billing,  setBilling]  = useState(null);
+  const [showHelp, setShowHelp] = useState(false);
   const [loading, setLoading] = useState(true);
   const [copiado, setCopiado] = useState(false);
 
@@ -96,7 +98,10 @@ export default function Mensualidad() {
           <CreditCard size={20} className="text-emerald-450" />
         </div>
         <div>
-          <h1 className="text-xl font-bold text-white tracking-tight">Mensualidad</h1>
+          <h1 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
+            Mensualidad
+            <HelpButton onClick={() => setShowHelp(true)} />
+          </h1>
           <p className="text-xs text-slate-500">Estado de tu suscripción con SynapTech</p>
         </div>
       </div>
@@ -325,6 +330,28 @@ export default function Mensualidad() {
             </a>
           </div>
         </>
+      )}
+
+      {showHelp && (
+        <HelpModal title="Tu suscripción con SynapTech" onClose={() => setShowHelp(false)}>
+          <p>Acá ves el estado de tu plan SynapTech: vigencia, fecha de próximo cobro y método de pago. Para cambios de plan o consultas, escribinos por WhatsApp.</p>
+
+          <div>
+            <p className="font-semibold text-emerald-400 mb-1">Estados</p>
+            <ul className="list-disc ml-4 space-y-1">
+              <li><span className="text-emerald-400">Al día</span>: tu suscripción está activa y la próxima cuota se cobra en la fecha indicada.</li>
+              <li><span className="text-amber-400">Por vencer</span>: faltan ≤7 días para el cobro. Asegurate de tener fondos.</li>
+              <li><span className="text-rose-400">Vencida</span>: el cobro no se procesó. Algunas funciones se pausan hasta regularizar.</li>
+            </ul>
+          </div>
+
+          <div>
+            <p className="font-semibold text-emerald-400 mb-1">¿Querés cambiar de plan?</p>
+            <p>Escribinos por <strong className="text-white">WhatsApp +56 9 8356 8212</strong>. Te ayudamos a evaluar opciones según el crecimiento del local.</p>
+          </div>
+
+          <p className="text-xs text-amber-400 bg-amber-400/5 border border-amber-400/20 rounded-lg px-3 py-2">💡 Si ves "Vencida" pero ya pagaste, esperá unos minutos a que el banco procese y refresca. Si persiste, escribinos.</p>
+        </HelpModal>
       )}
     </div>
   );
