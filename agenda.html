@@ -564,11 +564,11 @@
                         return;
                     }
 
-                    // Admin y Jefe van al panel de gestión, nunca a /agenda
-                    if (info.isAdmin) {
-                        window.location.href = '/gestion-interna/';
-                        return;
-                    }
+                    // Antes: si era admin/jefe → redirigir a /gestion-interna automaticamente.
+                    // Eso rompia el caso "barbero-jefe que tiene ambas PWAs instaladas":
+                    // al abrir la PWA de agenda los lanzaba al admin. Ahora cada PWA respeta
+                    // su contexto. Si un admin quiere ir al panel, abre /gestion-interna
+                    // manualmente (o desde la otra PWA).
 
                     // Barbero normal: su URL permanente es /agenda/{barberoId}
                     const myBarberoId = info.barberoId || user.uid;
