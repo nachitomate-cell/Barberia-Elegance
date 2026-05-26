@@ -1,10 +1,13 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { getDocs } from 'firebase/firestore';
+import { getDocs, query, where } from 'firebase/firestore';
 import {
-  Layers, ShoppingBag, Tag, TrendingUp, Percent, AlertTriangle, RefreshCcw,
+  Layers, ShoppingBag, Tag, TrendingUp, Percent, AlertTriangle, RefreshCcw, Flame,
 } from 'lucide-react';
 import { tenantCol } from '../lib/tenantUtils';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
+
+// Ventana de ventas usada para ranking de "más vendidos" y rotación de stock.
+const SALES_WINDOW_DAYS = 30;
 
 const KPI_COLORS = {
   emerald: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/10',
@@ -32,14 +35,26 @@ const fmtCLP = v => `$${Math.round(v || 0).toLocaleString('es-CL')}`;
 
 export default function Inventario() {
   const [productos, setProductos] = useState([]);
-  const [fetching, setFetching] = useState(false);
-  const [showHelp, setShowHelp] = useState(false);
+  const [ventas,    setVentas]    = useState([]); // product_reservations entregadas en la ventana
+  const [fetching,  setFetching]  = useState(false);
+  const [showHelp,  setShowHelp]  = useState(false);
 
   const fetchData = useCallback(async () => {
     setFetching(true);
     try {
-      const snap = await getDocs(tenantCol('productos'));
-      setProductos(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      // Productos
+      const pSnap = await getDocs(tenantCol('productos'));
+      setProductos(pSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+
+      // Ventas en ventana: status 'delivered' creadas en los últimos N días.
+      // Sin orderBy/limit para evitar índices compuestos; filtramos en cliente.
+      const cutoff = new Date(Date.now() - SALES_WINDOW_DAYS * 864e5);
+      const vSnap = await getDocs(query(tenantCol('product_reservations'), where('status', '==', 'delivered')));
+      const docs = vSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setVentas(docs.filter(v => {
+        const ts = v.createdAt?.toDate?.() || (v.fecha ? new Date(v.fecha) : null);
+        return ts && ts >= cutoff;
+      }));
     } catch (e) {
       console.error('Inventario fetchData:', e);
     } finally {
@@ -72,6 +87,42 @@ export default function Inventario() {
 
     return { items, totalValorVenta, totalValorCosto, margenPotencial, margenPotencialPct };
   }, [productos]);
+
+  // Ranking de "Más vendidos" + rotación de stock en la ventana.
+  const ventasStats = useMemo(() => {
+    const agg = new Map(); // productId -> { unidades, ingresos }
+    for (const v of ventas) {
+      const pid = v.productId;
+      if (!pid) continue;
+      const cur = agg.get(pid) || { unidades: 0, ingresos: 0, nombre: v.productName || '—' };
+      cur.unidades += Number(v.cantidad) || 0;
+      cur.ingresos += Number(v.precio)   || 0; // ya viene como total de la linea
+      cur.nombre    = v.productName || cur.nombre;
+      agg.set(pid, cur);
+    }
+
+    const productosMap = new Map(productos.map(p => [p.id, p]));
+    const filas = [...agg.entries()].map(([pid, v]) => {
+      const p = productosMap.get(pid);
+      const stockActual = Number(p?.stock) || 0;
+      const diasParaAgotar = v.unidades > 0
+        ? Math.round((stockActual / v.unidades) * SALES_WINDOW_DAYS)
+        : null;
+      return {
+        productId:      pid,
+        nombre:         v.nombre,
+        unidades:       v.unidades,
+        ingresos:       v.ingresos,
+        stockActual,
+        diasParaAgotar, // null = no se calcula (sin ventas), 0 = sin stock
+      };
+    }).sort((a, b) => b.unidades - a.unidades);
+
+    const totalUnidades = filas.reduce((s, r) => s + r.unidades, 0);
+    const totalIngresos = filas.reduce((s, r) => s + r.ingresos, 0);
+
+    return { filas, totalUnidades, totalIngresos };
+  }, [ventas, productos]);
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -116,6 +167,73 @@ export default function Inventario() {
           value={`${inventoryStats.margenPotencialPct.toFixed(1)}%`}
           sub="Porcentaje de retorno proyectado"
           color="purple" />
+      </div>
+
+      {/* Más vendidos + Rotación de stock */}
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+        <div className="flex items-center justify-between mb-4 border-b border-slate-800 pb-3">
+          <div className="flex items-center gap-2">
+            <Flame size={16} className="text-rose-400" />
+            <div>
+              <p className="text-sm font-semibold text-white">Más vendidos · últimos {SALES_WINDOW_DAYS} días</p>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Velocidad de rotación y proyección de días hasta agotarse.
+              </p>
+            </div>
+          </div>
+          {ventasStats.totalUnidades > 0 && (
+            <div className="text-right">
+              <p className="text-xs text-slate-500">Total</p>
+              <p className="text-sm font-bold text-white">{ventasStats.totalUnidades} u · ${Math.round(ventasStats.totalIngresos).toLocaleString('es-CL')}</p>
+            </div>
+          )}
+        </div>
+        {ventasStats.filas.length === 0 ? (
+          <p className="text-xs text-slate-500 italic text-center py-8">
+            Sin ventas registradas en los últimos {SALES_WINDOW_DAYS} días.
+          </p>
+        ) : (
+          <div className="space-y-1.5">
+            {ventasStats.filas.slice(0, 10).map((r, i) => {
+              const sinStock   = r.stockActual === 0;
+              const rotacionCls =
+                r.diasParaAgotar === null ? 'text-slate-600' :
+                r.diasParaAgotar <= 7     ? 'text-rose-400'   :
+                r.diasParaAgotar <= 21    ? 'text-amber-400'  :
+                                            'text-emerald-400';
+              return (
+                <div key={r.productId} className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-white/3 transition-colors">
+                  <span className="w-6 text-xs font-bold text-slate-500 shrink-0">{i + 1}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-white truncate">{r.nombre}</p>
+                    <p className="text-[11px] text-slate-500">
+                      {r.unidades} vendido{r.unidades !== 1 ? 's' : ''} · ${Math.round(r.ingresos).toLocaleString('es-CL')}
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    {sinStock ? (
+                      <p className="text-[11px] font-bold text-rose-400 flex items-center gap-1">
+                        <AlertTriangle size={11} /> Sin stock
+                      </p>
+                    ) : r.diasParaAgotar === null ? (
+                      <p className="text-[11px] text-slate-600">—</p>
+                    ) : (
+                      <>
+                        <p className={`text-[11px] font-bold ${rotacionCls}`}>{r.diasParaAgotar}d hasta agotar</p>
+                        <p className="text-[10px] text-slate-600">{r.stockActual} en stock</p>
+                      </>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+            {ventasStats.filas.length > 10 && (
+              <p className="text-[11px] text-slate-600 text-center pt-2">
+                +{ventasStats.filas.length - 10} productos más vendidos. Top 10 mostrados.
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Tabla */}
@@ -207,7 +325,17 @@ export default function Inventario() {
           </div>
 
           <div>
-            <p className="font-semibold text-emerald-400 mb-1">Ranking de productos</p>
+            <p className="font-semibold text-emerald-400 mb-1">Más vendidos · últimos 30 días</p>
+            <p>Ranking por unidades vendidas. La columna "Xd hasta agotar" proyecta cuántos días te dura el stock al ritmo actual:</p>
+            <ul className="list-disc ml-4 space-y-0.5 text-xs">
+              <li><span className="text-rose-400">≤ 7 días</span>: reponer urgente</li>
+              <li><span className="text-amber-400">8-21 días</span>: planificar compra</li>
+              <li><span className="text-emerald-400">&gt; 21 días</span>: stock saludable</li>
+            </ul>
+          </div>
+
+          <div>
+            <p className="font-semibold text-emerald-400 mb-1">Ranking por rentabilidad</p>
             <p>Ordenado por <strong className="text-white">margen unitario</strong> ($) y <strong className="text-white">% de margen</strong>. Los de arriba son los que más plata te dejan por unidad — promocionarlos primero.</p>
           </div>
 

@@ -499,16 +499,11 @@ const FDB = (() => {
 
   async function updateCitaEstado(id, estado) {
     const citaRef = tenantCol(COL.CITAS).doc(id);
-    if (estado === 'Cancelada') {
-      const snap = await citaRef.get();
-      const lockId = snap.exists ? snap.data().slotLockId : null;
-      const batch = db.batch();
-      batch.update(citaRef, { estado });
-      if (lockId) batch.delete(tenantCol('slotLocks').doc(lockId));
-      await batch.commit();
-    } else {
-      await citaRef.update({ estado });
-    }
+    // Solo actualiza el estado. Si pasa a Cancelada, la Cloud Function
+    // liberarSlot{Elegance,Tenant} libera el slotLock asociado. Esto evita
+    // que el cliente (que no tiene permisos para borrar slotLocks) falle
+    // al intentar hacerlo desde su dashboard.
+    await citaRef.update({ estado });
   }
 
   async function updateCitaNota(id, nota) {

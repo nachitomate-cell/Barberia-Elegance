@@ -6066,6 +6066,37 @@ function auraCountUp(targetNum, totalTarget) {
     </div>
   </div>
 
+  <!-- Mini-modal feedback privado post-Google -->
+  <div id="privateFeedbackModal" class="hidden fixed inset-0 z-[71] flex items-end sm:items-center justify-center p-4" style="background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);">
+    <div class="w-full max-w-sm bg-[#111115] border border-white/10 rounded-3xl p-6 animate-[fadeSlideUp_0.3s_cubic-bezier(0.16,1,0.3,1)_forwards]">
+      <div class="text-center mb-4">
+        <div class="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mx-auto mb-3">
+          <i class="ph-fill ph-chat-circle-text text-white/60 text-xl"></i>
+        </div>
+        <h3 class="text-base font-bold text-white mb-1">¿Cómo estuvo todo?</h3>
+        <p class="text-xs text-gray-500">Tu opinión es privada — solo la ve el dueño del local.</p>
+      </div>
+
+      <!-- Estrellas -->
+      <div class="flex justify-center gap-2 mb-4" id="pfStars">
+        <button onclick="pfSetRating(1)" id="pfStar-1" class="w-9 h-9 flex items-center justify-center transition-all active:scale-90"><i class="ph-bold ph-star text-2xl text-zinc-600"></i></button>
+        <button onclick="pfSetRating(2)" id="pfStar-2" class="w-9 h-9 flex items-center justify-center transition-all active:scale-90"><i class="ph-bold ph-star text-2xl text-zinc-600"></i></button>
+        <button onclick="pfSetRating(3)" id="pfStar-3" class="w-9 h-9 flex items-center justify-center transition-all active:scale-90"><i class="ph-bold ph-star text-2xl text-zinc-600"></i></button>
+        <button onclick="pfSetRating(4)" id="pfStar-4" class="w-9 h-9 flex items-center justify-center transition-all active:scale-90"><i class="ph-bold ph-star text-2xl text-zinc-600"></i></button>
+        <button onclick="pfSetRating(5)" id="pfStar-5" class="w-9 h-9 flex items-center justify-center transition-all active:scale-90"><i class="ph-bold ph-star text-2xl text-zinc-600"></i></button>
+      </div>
+
+      <!-- Comentario opcional -->
+      <textarea id="pfComment" rows="2" placeholder="¿Algo que mejorar? (opcional)"
+        class="w-full bg-[#0a0a0e] border border-white/8 rounded-xl px-3 py-2.5 text-sm text-white placeholder-gray-600 mb-4 resize-none focus:outline-none focus:border-white/20"></textarea>
+
+      <div class="flex gap-2">
+        <button onclick="cerrarPrivateFeedback(false)" class="flex-1 py-3 rounded-xl text-xs font-semibold text-gray-400 bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">Saltar</button>
+        <button id="pfSendBtn" onclick="enviarPrivateFeedback()" disabled class="flex-[2] py-3 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">Enviar</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     let _googleReviewCitaId = null;
     let _selectedFeedbackRating = 0;
@@ -6254,6 +6285,7 @@ function auraCountUp(targetNum, totalTarget) {
 
     async function cerrarGoogleReviewModal(clicked) {
       document.getElementById('googleReviewModal').classList.add('hidden');
+      const citaIdParaFeedback = _googleReviewCitaId;
       if (_googleReviewCitaId) {
         try {
           await FDB.clearGoogleReviewFlag(_googleReviewCitaId);
@@ -6261,6 +6293,70 @@ function auraCountUp(targetNum, totalTarget) {
           console.warn('[GoogleReview] No se pudo limpiar flag:', e.message);
         }
         _googleReviewCitaId = null;
+      }
+      // Si no clickeó el modal de Google (o lo cerró), pedir feedback privado
+      // para no perder señal operativa de clientes con experiencia regular/mala.
+      if (citaIdParaFeedback) {
+        setTimeout(() => abrirPrivateFeedback(citaIdParaFeedback), 400);
+      }
+    }
+
+    /* ═══════ FEEDBACK PRIVADO POST-GOOGLE ═══════ */
+    let _pfCitaId = null;
+    let _pfRating = 0;
+
+    function abrirPrivateFeedback(citaId) {
+      _pfCitaId = citaId;
+      _pfRating = 0;
+      document.getElementById('pfComment').value = '';
+      document.getElementById('pfSendBtn').disabled = true;
+      // Reset estrellas
+      for (let i = 1; i <= 5; i++) {
+        const star = document.getElementById('pfStar-' + i);
+        if (star) star.firstElementChild.className = 'ph-bold ph-star text-2xl text-zinc-600';
+      }
+      document.getElementById('privateFeedbackModal').classList.remove('hidden');
+    }
+
+    function pfSetRating(n) {
+      _pfRating = n;
+      for (let i = 1; i <= 5; i++) {
+        const star = document.getElementById('pfStar-' + i);
+        if (!star) continue;
+        star.firstElementChild.className = i <= n
+          ? 'ph-fill ph-star text-2xl text-amber-400'
+          : 'ph-bold ph-star text-2xl text-zinc-600';
+      }
+      document.getElementById('pfSendBtn').disabled = _pfRating === 0;
+    }
+
+    async function enviarPrivateFeedback() {
+      if (!_pfCitaId || _pfRating === 0) return;
+      const btn = document.getElementById('pfSendBtn');
+      btn.disabled = true;
+      btn.textContent = 'Enviando...';
+      const comment = document.getElementById('pfComment').value.trim();
+      try {
+        await FDB.citasCol().doc(_pfCitaId).update({
+          feedbackPrivadoRating:    Number(_pfRating),
+          feedbackPrivadoComment:   comment,
+          feedbackPrivadoCreatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+      } catch (e) {
+        console.warn('[FeedbackPrivado] error:', e.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Enviar';
+        cerrarPrivateFeedback(true);
+      }
+    }
+
+    function cerrarPrivateFeedback(sent) {
+      document.getElementById('privateFeedbackModal').classList.add('hidden');
+      _pfCitaId = null;
+      _pfRating = 0;
+      if (sent && typeof showToast === 'function') {
+        try { showToast('¡Gracias por tu feedback! 🙏', 'ok'); } catch (_) {}
       }
     }
 

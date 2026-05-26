@@ -262,6 +262,32 @@ function ClientePanel({ cliente: init, premios, onClose }) {
         </div>
       </div>
 
+      {/* Pasado del cliente: AgendaPro / merge legacy */}
+      {(data.importedFrom === 'agendapro' || data.fechaRegistroOriginal || data.telefonoAnterior) && (
+        <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl px-4 py-3 text-xs space-y-1.5">
+          <div className="flex items-center gap-1.5 mb-1">
+            <span className="text-[9px] font-black uppercase tracking-widest text-amber-400">Origen AgendaPro</span>
+          </div>
+          {data.fechaRegistroOriginal && (
+            <p className="text-slate-300">
+              <span className="text-slate-500">Cliente desde:</span>{' '}
+              <span className="font-semibold text-white">{data.fechaRegistroOriginal}</span>
+              <span className="text-slate-600 ml-1">(traído de AgendaPro)</span>
+            </p>
+          )}
+          {data.telefonoAnterior && (
+            <p className="text-slate-300">
+              <span className="text-slate-500">Teléfono anterior:</span>{' '}
+              <span className="font-mono text-white">{data.telefonoAnterior}</span>
+              <span className="text-slate-600 ml-1">(antes de registrarse en el Club)</span>
+            </p>
+          )}
+          {data.importedFrom === 'agendapro' && !data.fechaRegistroOriginal && (
+            <p className="text-slate-400">Este cliente fue importado desde AgendaPro y fusionado con su cuenta del Club.</p>
+          )}
+        </div>
+      )}
+
       {/* Fecha de nacimiento */}
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
         <div className="flex items-center gap-2 mb-3">

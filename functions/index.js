@@ -674,3 +674,23 @@ exports.instagramSyncManual      = instagramSync.instagramSyncManual;
 const dedupeCliente = require('./dedupe-cliente-onCreate');
 exports.dedupeOnCreateElegance = dedupeCliente.dedupeOnCreateElegance;
 exports.dedupeOnCreateTenant   = dedupeCliente.dedupeOnCreateTenant;
+
+// ─────────────────────────────────────────────────────────────────
+//  LIBERAR SLOT AL CANCELAR — ver liberar-slot-on-cancel.js
+//  Cliente puede cancelar pero no tiene permiso para borrar slotLocks.
+//  Esta CF lo libera server-side cuando una cita pasa a Cancelada.
+// ─────────────────────────────────────────────────────────────────
+const liberarSlot = require('./liberar-slot-on-cancel');
+exports.liberarSlotElegance = liberarSlot.liberarSlotElegance;
+exports.liberarSlotTenant   = liberarSlot.liberarSlotTenant;
+
+// ─────────────────────────────────────────────────────────────────
+//  PUSH AL CLIENTE — ver push-cliente.js
+//  Notifica al cliente cuando: (1) su cita es creada/confirmada,
+//  (2) gana un sello / desbloquea un premio.
+// ─────────────────────────────────────────────────────────────────
+const pushCliente = require('./push-cliente');
+exports.pushCitaConfirmadaElegance = pushCliente.pushCitaConfirmadaElegance;
+exports.pushCitaConfirmadaTenant   = pushCliente.pushCitaConfirmadaTenant;
+exports.pushSelloGanadoElegance    = pushCliente.pushSelloGanadoElegance;
+exports.pushSelloGanadoTenant      = pushCliente.pushSelloGanadoTenant;

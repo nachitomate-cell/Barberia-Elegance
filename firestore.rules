@@ -169,7 +169,9 @@ service cloud.firestore {
                         && request.resource.data.estado == 'Cancelada')
                     || (esCliente(resource.data)
                         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['pendingGoogleReview'])
-                        && request.resource.data.pendingGoogleReview == false);
+                        && request.resource.data.pendingGoogleReview == false)
+                    || (esCliente(resource.data)
+                        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['feedbackPrivadoRating', 'feedbackPrivadoComment', 'feedbackPrivadoCreatedAt']));
       allow delete: if esAdmin('elegance');
     }
 
@@ -436,7 +438,9 @@ service cloud.firestore {
                           && request.resource.data.estado == 'Cancelada')
                       || (esCliente(resource.data)
                           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['pendingGoogleReview'])
-                          && request.resource.data.pendingGoogleReview == false);
+                          && request.resource.data.pendingGoogleReview == false)
+                      || (esCliente(resource.data)
+                          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['feedbackPrivadoRating', 'feedbackPrivadoComment', 'feedbackPrivadoCreatedAt']));
         allow delete: if esAdmin(tid);
       }
 

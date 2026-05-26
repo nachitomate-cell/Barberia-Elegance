@@ -54,24 +54,49 @@ async function procesarDedup({ tenantId, uid, data }) {
     return;
   }
 
-  const email = (data.email || '').toLowerCase().trim();
-  if (!email) {
-    logger.info(`[Dedup] ${tenantId}/${uid}: sin email, no se puede dedupar.`);
+  const email   = (data.email    || '').toLowerCase().trim();
+  const telNorm = normalizePhone(data.telefono);
+
+  if (!email && !telNorm) {
+    logger.info(`[Dedup] ${tenantId}/${uid}: sin email ni teléfono, no se puede dedupar.`);
     return;
   }
 
   const cols = colecciones(tenantId);
+  const legaciesMap = new Map(); // dedup por doc.id en caso de match cruzado
 
-  // Buscar otros docs con el mismo email
-  const q = await cols.users.where('email', '==', email).limit(10).get();
-  const legacies = q.docs.filter(d => d.id !== uid && isLegacyDoc(d.id, d.data()));
+  // 1) Buscar legacies por email (cuando el cliente conserva email)
+  if (email) {
+    const q = await cols.users.where('email', '==', email).limit(10).get();
+    q.docs.forEach(d => {
+      if (d.id !== uid && isLegacyDoc(d.id, d.data())) legaciesMap.set(d.id, d);
+    });
+  }
+
+  // 2) Buscar legacies por teléfono normalizado (cuando el email es distinto o ausente,
+  //    pero el cliente conserva el mismo número que tenía en AgendaPro).
+  if (telNorm) {
+    // El doc legacy se creó con id == telNorm (porque uid = telefono == id).
+    // Match directo por id:
+    const direct = await cols.users.doc(telNorm).get();
+    if (direct.exists && direct.id !== uid && isLegacyDoc(direct.id, direct.data())) {
+      legaciesMap.set(direct.id, direct);
+    }
+    // Match indirecto: por campo `telefono` (puede haber variantes con +/sin)
+    const q2 = await cols.users.where('telefono', '==', data.telefono).limit(10).get();
+    q2.docs.forEach(d => {
+      if (d.id !== uid && isLegacyDoc(d.id, d.data())) legaciesMap.set(d.id, d);
+    });
+  }
+
+  const legacies = [...legaciesMap.values()];
 
   if (legacies.length === 0) {
-    logger.info(`[Dedup] ${tenantId}/${uid}: sin perfiles legacy para email ${email}.`);
+    logger.info(`[Dedup] ${tenantId}/${uid}: sin perfiles legacy para email='${email}' tel='${telNorm}'.`);
     return;
   }
 
-  logger.info(`[Dedup] ${tenantId}/${uid}: encontrados ${legacies.length} legacy(s) para email ${email}. Fusionando…`);
+  logger.info(`[Dedup] ${tenantId}/${uid}: encontrados ${legacies.length} legacy(s) (match email/tel). Fusionando…`);
 
   // Acumular cambios
   const sellosHist = legacies.reduce((s, l) => s + (Number(l.data().sellosHistoricos) || 0), 0);
