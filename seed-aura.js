@@ -118,7 +118,10 @@ async function seedBarberos() {
   const batch = db.batch();
   for (const b of BARBEROS) {
     const { id, ...data } = b;
-    batch.set(col('barberos').doc(id), { ...data, creadoEn: TS() }, { merge: true });
+    const existingDoc = await col('barberos').doc(id).get();
+    const existingData = existingDoc.exists ? existingDoc.data() : {};
+    const foto = existingData.foto || data.foto;
+    batch.set(col('barberos').doc(id), { ...data, foto, creadoEn: TS() }, { merge: true });
     console.log(`  → ${data.nombre} (${data.rol})`);
   }
   await batch.commit();
