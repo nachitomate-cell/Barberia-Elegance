@@ -3190,6 +3190,22 @@
         </button>
       </div>
 
+      <!-- Compartir agenda -->
+      <div data-aura-stagger class="px-5 mb-6">
+        <button onclick="compartirAgenda()" class="w-full flex items-center justify-between bg-zinc-900/80 border border-zinc-800 rounded-2xl px-4 py-3.5 transition-all duration-200 active:scale-[0.97] hover:border-[var(--gold-dim)]">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style="background:var(--gold-glow);border:1px solid var(--gold-dim);">
+              <i class="ph-bold ph-share-network text-lg" style="color:var(--gold);"></i>
+            </div>
+            <div class="text-left">
+              <p class="text-sm font-bold text-white">Compartir agenda</p>
+              <p class="text-[11px] text-zinc-500">Invita a un amigo a agendar</p>
+            </div>
+          </div>
+          <i class="ph-bold ph-caret-right text-zinc-600 text-base shrink-0"></i>
+        </button>
+      </div>
+
     </section>
 
     <!-- ═══════ PESTAÑA 2: LOOKBOOK ═══════ -->
@@ -6640,6 +6656,19 @@ function auraCountUp(targetNum, totalTarget) {
         navigator.clipboard.writeText(shareData.url);
         showToast('Enlace copiado al portapapeles', 'ok');
       }
+    }
+
+    async function compartirAgenda() {
+      const shop = window.SHOP || {};
+      const url  = window.location.origin;
+      const text = `¡Agenda tu hora en ${shop.nombre || 'nuestra barbería'}! ${shop.slogan || ''}\n👉 ${url}`.trim();
+      if (navigator.share) {
+        try { await navigator.share({ title: shop.nombre || 'Agenda', text, url }); return; } catch (e) { if (e.name === 'AbortError') return; }
+      }
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast('¡Link copiado al portapapeles!', 'ok');
+      } catch (_) {}
     }
   </script>
 </body>

@@ -5275,10 +5275,16 @@
             class="ph-bold ph-whatsapp-logo text-2xl drop-shadow-[0_0_5px_rgba(37,211,102,0.8)]"></i>
         </a>
         <a id="successInstagram" href="#" target="_blank" rel="noopener"
-          class="flex items-center justify-center gap-2 text-sm font-semibold text-white/50 hover:text-white transition-colors mb-8">
+          class="flex items-center justify-center gap-2 text-sm font-semibold text-white/50 hover:text-white transition-colors mb-4">
           <i class="ph-fill ph-instagram-logo text-lg"></i>
           <span id="successInstagramHandle"></span>
         </a>
+
+        <button id="btnCompartirAgenda" onclick="compartirAgenda()"
+          class="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold text-white/50 hover:text-white/80 transition-all active:scale-[0.98] mb-8"
+          style="border:1px solid rgba(255,255,255,0.08);">
+          <i class="ph-bold ph-share-network"></i>Compartir agenda
+        </button>
 
         <!-- ── RESEÑAS DE CLIENTES ── -->
         <div id="reviewsSection" class="hidden w-full text-left mb-8">
@@ -7815,6 +7821,19 @@
       }
     }
     window.addEventListener('DOMContentLoaded', initSobreModals);
+
+    async function compartirAgenda() {
+      const url  = window.location.origin;
+      const text = `¡Agenda tu hora en ${SHOP.nombre}! ${SHOP.slogan}\n👉 ${url}`;
+      if (navigator.share) {
+        try { await navigator.share({ title: SHOP.nombre, text, url }); return; } catch (_) {}
+      }
+      try {
+        await navigator.clipboard.writeText(text);
+        const btn = document.getElementById('btnCompartirAgenda');
+        if (btn) { btn.textContent = '¡Link copiado!'; setTimeout(() => { btn.innerHTML = '<i class="ph-bold ph-share-network mr-1.5"></i>Compartir agenda'; }, 2000); }
+      } catch (_) {}
+    }
 
   </script>
 

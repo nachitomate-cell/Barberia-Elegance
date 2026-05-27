@@ -409,8 +409,10 @@ export default function Metricas() {
     // Ranking barberos del rango
     const barberoMap = {};
     completadas.forEach(c => {
-      const k = c.barbero || c.barberoId || 'Sin asignar';
-      if (!barberoMap[k]) barberoMap[k] = { nombre: k, citas: 0, ingresos: 0 };
+      const bObj = barberos.find(b => b.id === c.barberoId || b.nombre === c.barbero);
+      const k    = bObj ? bObj.id : (c.barberoId || c.barbero || 'Sin asignar');
+      const nombre = bObj ? bObj.nombre : (c.barbero || c.barberoId || 'Sin asignar');
+      if (!barberoMap[k]) barberoMap[k] = { nombre, citas: 0, ingresos: 0 };
       barberoMap[k].citas++;
       barberoMap[k].ingresos += getPrice(c);
     });
