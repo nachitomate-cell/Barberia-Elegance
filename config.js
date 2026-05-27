@@ -2,6 +2,14 @@
 // El tenant se resuelve desde ?local= en la URL o desde el dominio.
 
 (function () {
+  const _g = 'color:#C9A84C;font-weight:900;';
+  const _s = 'color:#888;font-size:12px;';
+  console.log('%c  SynapTech  ', `${_g}font-size:28px;background:#0a0a0d;padding:6px 18px;border-radius:8px;letter-spacing:2px;`);
+  console.log('%c  Desarrollado por SynapTech SpA · synaptechspa.cl', _s);
+  console.log('%c  ¿Curioso/a? Contáctanos y construyamos algo juntos. 🚀', _s);
+})();
+
+(function () {
   const _domainMap = {
     'gitananails.synaptechspa.cl':        'gitana',
     'barberiaelegance.synaptechspa.cl':   'elegance',
