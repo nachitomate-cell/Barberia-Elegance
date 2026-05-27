@@ -156,7 +156,7 @@ async function seedProductos() {
   const batch = db.batch();
   for (const prod of PRODUCTOS) {
     const { id, ...data } = prod;
-    batch.set(col('productos').doc(id), { ...data, creadoEn: TS(), updatedAt: TS() }, { merge: true });
+    batch.set(col('productos').doc(id), { ...data, createdAt: TS(), creadoEn: TS(), updatedAt: TS() }, { merge: true });
     console.log(`  → ${data.nombre} (${data.descripcion}) - $${data.precio} - Stock: ${data.stock}`);
   }
   await batch.commit();
