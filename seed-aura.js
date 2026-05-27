@@ -90,6 +90,16 @@ const PREMIOS = [
   { id: 'aura-premio-2', nombre: 'Corte de Cabello Gratis', costoSellos: 15, activo: true },
 ];
 
+// ── Productos ────────────────────────────────────────────────────────────────
+const PRODUCTOS = [
+  { id: 'aura-prod-01', nombre: 'Lightwork',             descripcion: 'Crema de peinado premium para una fijación flexible y un acabado natural.',           categoria: 'Crema de peinado',      precio: 25990, stock: 5, imagen: '', imagenPath: '', activo: true },
+  { id: 'aura-prod-02', nombre: 'Clay Pomade',           descripcion: 'Pomada de arcilla de alta fijación y efecto mate ideal para estructurar tu cabello.',  categoria: 'Pomada de arcilla',     precio: 25990, stock: 5, imagen: '', imagenPath: '', activo: true },
+  { id: 'aura-prod-03', nombre: 'Hair Styling Powder',   descripcion: 'Polvo texturizador ultra ligero que aporta volumen instantáneo y acabado mate de larga duración.', categoria: 'Polvo texturizador',    precio: 25990, stock: 5, imagen: '', imagenPath: '', activo: true },
+  { id: 'aura-prod-04', nombre: 'Cream Styler',          descripcion: 'Crema de fijación media con acondicionamiento para estilos clásicos y manejables.',    categoria: 'Crema de fijación',     precio: 25990, stock: 5, imagen: '', imagenPath: '', activo: true },
+  { id: 'aura-prod-05', nombre: 'Curl Cream',            descripcion: 'Crema nutritiva para definir, hidratar y dar elasticidad a tus rizos de forma natural.',  categoria: 'Crema para rizos',      precio: 25990, stock: 5, imagen: '', imagenPath: '', activo: true },
+  { id: 'aura-prod-06', nombre: 'Sea Salt Spray',        descripcion: 'Spray de sal marina que añade textura playera y volumen sin resecar tu cabello.',     categoria: 'Spray de sal marina',   precio: 27990, stock: 5, imagen: '', imagenPath: '', activo: true },
+];
+
 // ── Seed functions ────────────────────────────────────────────────────────────
 async function seedServicios() {
   separador('SERVICIOS');
@@ -124,8 +134,9 @@ async function seedBarberos() {
 
 async function seedConfiguracion() {
   separador('CONFIGURACIÓN');
-  await col('configuracion').doc('main').set({ ...CONFIG, updatedAt: TS() }, { merge: true });
-  console.log('✅ /configuracion/main lista.');
+  await col('configuracion').doc('main').set({ ...CONFIG, productosActivos: true, updatedAt: TS() }, { merge: true });
+  await col('config').doc('ui').set({ productosActivos: true, updatedAt: TS() }, { merge: true });
+  console.log('✅ /configuracion/main y /config/ui listos.');
 }
 
 async function seedPremios() {
@@ -138,6 +149,18 @@ async function seedPremios() {
   }
   await batch.commit();
   console.log(`✅ ${PREMIOS.length} premios creados.`);
+}
+
+async function seedProductos() {
+  separador('PRODUCTOS');
+  const batch = db.batch();
+  for (const prod of PRODUCTOS) {
+    const { id, ...data } = prod;
+    batch.set(col('productos').doc(id), { ...data, creadoEn: TS(), updatedAt: TS() }, { merge: true });
+    console.log(`  → ${data.nombre} (${data.descripcion}) - $${data.precio} - Stock: ${data.stock}`);
+  }
+  await batch.commit();
+  console.log(`✅ ${PRODUCTOS.length} productos creados.`);
 }
 
 async function seedProfile() {
@@ -197,6 +220,7 @@ async function seed() {
   await seedBarberos();
   await seedConfiguracion();
   await seedPremios();
+  await seedProductos();
   await seedProfile();
 
   console.log('\n✅ Seed completado con éxito');
