@@ -200,7 +200,7 @@
       instagram:       '',
       instagramHandle: '',
       waEmoji:         '✂️',
-      googleReviewUrl: '',
+      googleReviewUrl: 'https://g.page/r/CZ39qJYmBtlqEBM/review',
       ratingGeneral: 0,
       totalReviews:  0,
       reviews:       [],

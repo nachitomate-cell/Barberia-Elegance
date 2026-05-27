@@ -1009,6 +1009,7 @@ export default function BarberTV() {
     }
   };
 
+  const bgVideoRef     = useRef(null);
   const preloadedRef   = useRef(new Set());
   const activeCountRef = useRef(4);
   const visitedRef     = useRef(new Set([0]));
@@ -1187,6 +1188,7 @@ export default function BarberTV() {
         <>
           {isVideoBg ? (
             <video
+              ref={bgVideoRef}
               src={backgroundUrl}
               autoPlay
               loop
@@ -1195,6 +1197,7 @@ export default function BarberTV() {
               aria-hidden="true"
               className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
               style={{ filter: rawVideoBg ? 'none' : 'brightness(0.68) saturate(0.85)', zIndex: 0 }}
+              onEnded={() => { bgVideoRef.current?.load(); bgVideoRef.current?.play(); }}
             />
           ) : (
             <motion.img
