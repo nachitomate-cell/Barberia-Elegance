@@ -2870,6 +2870,9 @@
         </div>
       </div>
 
+      <!-- ── PRÓXIMA CITA ── -->
+      <div id="heroProximaCitaCard" class="hidden mx-4 mb-5 animate-[fadeSlideUp_0.45s_cubic-bezier(0.16,1,0.3,1)_forwards]"></div>
+
       <!-- ── TARJETA INTERACTIVA DE VALORACIÓN Y PROPINA (Quick Feedback & Tips) ── -->
       <div id="interactiveFeedbackContainer" class="hidden mx-4 mb-5 animate-[fadeSlideUp_0.45s_cubic-bezier(0.16,1,0.3,1)_forwards]">
         <div class="rounded-3xl p-5 relative overflow-hidden" style="background:linear-gradient(135deg,rgba(201,168,76,0.1),rgba(201,168,76,0.04));border:1px solid var(--gold-dim);">
@@ -2960,8 +2963,6 @@
       <div id="heroBanner" class="hidden mx-4 mb-4 rounded-2xl overflow-hidden relative active:scale-[0.99] transition-all" style="min-height:170px;"></div>
 
       <!-- ── HERO PRÓXIMA CITA CARD (Dynamic) ── -->
-      <div id="heroProximaCitaCard" class="hidden mx-4 mb-5 animate-[fadeSlideUp_0.45s_cubic-bezier(0.16,1,0.3,1)_forwards]"></div>
-
       <!-- ── MEMBERSHIP CARD ── -->
       <div data-aura-stagger class="membership-pattern relative mx-4 rounded-3xl bg-[#111115] border border-white/8 p-6 mb-4 overflow-hidden">
         <div class="membership-glow absolute -top-10 -right-10 w-36 h-36 rounded-full pointer-events-none" style="background:radial-gradient(circle,rgba(201,168,76,0.08) 0%,transparent 70%);"></div>
@@ -2987,7 +2988,13 @@
         </div>
 
         <!-- Stamps grid — physical card -->
-        <div id="stampsGrid" class="grid grid-cols-5 gap-2 mb-5 bg-[#0a0a0e] rounded-lg p-3 border border-zinc-800/80"></div>
+        <div id="stampsGrid" class="grid grid-cols-5 gap-2 mb-3 bg-[#0a0a0e] rounded-lg p-3 border border-zinc-800/80"></div>
+
+        <!-- Onboarding hint — solo visible con 0 sellos -->
+        <div id="sellosOnboarding" class="hidden mb-4 flex items-start gap-2.5 rounded-xl px-3 py-2.5" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);">
+          <i class="ph-fill ph-info text-sm shrink-0 mt-0.5" style="color:var(--gold);opacity:0.6;"></i>
+          <p class="text-[11px] leading-snug" style="color:rgba(255,255,255,0.4);">Cada visita a la barbería suma un sello. ¡Con <span class="font-bold text-white/70">5 sellos</span> ganás un premio gratis!</p>
+        </div>
 
         <!-- Progress bar -->
         <div class="w-full rounded-full overflow-hidden mb-3" style="background:rgba(255,255,255,0.05);height:3px;">
@@ -3106,6 +3113,12 @@
         </div>
       </div>
 
+      <!-- ── ÚLTIMAS VISITAS ── -->
+      <div id="ultimasVisitasSection" class="hidden mx-4 mb-5">
+        <p class="text-[9px] font-black uppercase tracking-widest mb-3 px-1" style="color:var(--gold);">Últimas visitas</p>
+        <div id="ultimasVisitasList" class="space-y-2"></div>
+      </div>
+
       <!-- ── SERVICIO FAVORITO ── -->
       <div id="servicioFavoritoCard" class="hidden mx-4 mb-5 rounded-2xl bg-[#111115] border border-white/8 overflow-hidden">
         <div class="px-5 pt-4 pb-3 flex items-center justify-between">
@@ -3211,7 +3224,7 @@
     <!-- ═══════ PESTAÑA 2: LOOKBOOK ═══════ -->
     <section id="tabLookbook" class="tab-panel hidden px-5 pt-6 animate-[fadeSlideUp_0.45s_cubic-bezier(0.16,1,0.3,1)_forwards]">
       <div class="mb-5">
-        <h2 class="text-2xl font-bold text-white tracking-tight">Lookbook</h2>
+        <h2 class="text-2xl font-bold text-white tracking-tight">Estilos</h2>
         <p class="text-sm text-gray-500 mt-1">Cortes y estilos de la barbería.</p>
       </div>
       <div class="masonry-grid" id="lookbookGrid"></div>
@@ -3410,7 +3423,7 @@
       <button class="nav-tab hidden flex-1 flex flex-col items-center justify-center gap-1 py-3 px-1"
         onclick="switchTab('lookbook')" id="navLookbook">
         <i class="nav-icon ph-fill ph-squares-four text-2xl transition-all"></i>
-        <span class="nav-label text-[9px] font-bold uppercase tracking-widest transition-all">Lookbook</span>
+        <span class="nav-label text-[9px] font-bold uppercase tracking-widest transition-all">Estilos</span>
       </button>
 
       <button class="nav-tab hidden flex-1 flex flex-col items-center justify-center gap-1 py-3 px-1"
@@ -4220,6 +4233,10 @@ function renderStamps(count, historicos) {
     `${count}<span style="font-size:0.875rem;color:rgba(255,255,255,0.3);">/${target}</span>`;
   auraCountUp(count, target);
 
+  // Onboarding hint para usuarios nuevos sin sellos
+  const onboardingEl = document.getElementById('sellosOnboarding');
+  if (onboardingEl) onboardingEl.classList.toggle('hidden', count > 0);
+
   // Progress bar
   const pct = Math.min((count / target) * 100, 100);
   document.getElementById('stampsBar').style.width = pct + '%';
@@ -4908,6 +4925,29 @@ async function cargarCitasUsuario(user) {
           heroCardEl.classList.remove('hidden');
         } else {
           heroCardEl.classList.add('hidden');
+        }
+      }
+
+      // Últimas visitas en tab Lealtad
+      const uvSection = document.getElementById('ultimasVisitasSection');
+      const uvList    = document.getElementById('ultimasVisitasList');
+      if (uvSection && uvList) {
+        const ultimas = sorted.filter(c => c.estado === 'Completada').slice(0, 3);
+        if (ultimas.length > 0) {
+          uvList.innerHTML = ultimas.map(c => `
+            <div class="flex items-center gap-3 rounded-xl px-4 py-3" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);">
+              <div class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style="background:var(--gold-glow);border:1px solid var(--gold-dim);">
+                <i class="ph-fill ph-scissors text-sm" style="color:var(--gold);"></i>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-bold text-white truncate">${c.servicioNombre || 'Servicio'}</p>
+                <p class="text-[11px]" style="color:rgba(255,255,255,0.35);">${c.barbero ? c.barbero + ' · ' : ''}${formatearFechaCita(c.fecha)}</p>
+              </div>
+              <i class="ph-fill ph-check-circle text-sm shrink-0" style="color:var(--gold);opacity:0.45;"></i>
+            </div>`).join('');
+          uvSection.classList.remove('hidden');
+        } else {
+          uvSection.classList.add('hidden');
         }
       }
 
