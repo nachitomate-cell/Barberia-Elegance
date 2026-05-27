@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   CalendarDays, Scissors, Users, Star, BarChart3,
-  Trophy, ShoppingBag, Images, LogOut, ChevronRight, ChevronDown,
+  Trophy, ShoppingBag, Images, LogOut, ChevronRight,
   Sun, Moon, ExternalLink, Settings, TrendingDown, MessageCircle, X,
   Megaphone, ImagePlus, CreditCard, Monitor, Headphones, Medal, Camera, GraduationCap, Wallet, Package,
 } from 'lucide-react';
@@ -27,30 +27,36 @@ const NAV_GROUPS_DEFAULT = [
     id: 'equipo',
     label: 'Equipo',
     items: [
-      { to: 'equipo',            label: 'Equipo',         Icon: Users     },
-      { to: 'servicios',         label: 'Servicios',      Icon: Scissors  },
-      { to: 'lookbook',          label: 'Lookbook',       Icon: Images    },
-      { to: 'instagram',         label: 'Instagram',      Icon: Camera,   adminOnly: true },
-      { to: 'servicio-favorito', label: 'Serv. favorito', Icon: ImagePlus },
+      { to: 'equipo',    label: 'Equipo',    Icon: Users    },
+      { to: 'servicios', label: 'Servicios', Icon: Scissors },
+    ],
+  },
+  {
+    id: 'contenido',
+    label: 'Contenido',
+    items: [
+      { to: 'lookbook',          label: 'Lookbook',         Icon: Images    },
+      { to: 'instagram',         label: 'Instagram',        Icon: Camera,   adminOnly: true },
+      { to: 'servicio-favorito', label: 'Foto de servicio', Icon: ImagePlus },
     ],
   },
   {
     id: 'clientes',
     label: 'Clientes',
     items: [
-      { to: 'clientes',  label: 'Clientes',  Icon: Star          },
-      { to: 'premios',   label: 'Premios',   Icon: Trophy        },
-      { to: 'productos', label: 'Productos', Icon: ShoppingBag   },
+      { to: 'clientes',  label: 'Clientes',  Icon: Star        },
+      { to: 'premios',   label: 'Premios',   Icon: Trophy      },
+      { to: 'productos', label: 'Productos', Icon: ShoppingBag },
     ],
   },
   {
     id: 'analisis',
     label: 'Análisis',
     items: [
-      { to: 'metricas',   label: 'Métricas',         Icon: BarChart3                     },
-      { to: 'inventario', label: 'Inventario',       Icon: Package,    adminOnly: true   },
+      { to: 'metricas',   label: 'Métricas',        Icon: BarChart3,    adminOnly: false },
+      { to: 'inventario', label: 'Inventario',       Icon: Package,     adminOnly: true  },
       { to: 'gastos',     label: 'Gastos',           Icon: TrendingDown, adminOnly: true  },
-      { to: 'caja',       label: 'Control de Caja',  Icon: Wallet,     adminOnly: true   },
+      { to: 'caja',       label: 'Control de Caja',  Icon: Wallet,      adminOnly: true  },
     ],
   },
   {
@@ -72,7 +78,7 @@ const NAV_GROUPS_DELUXE = [
     id: 'catalogo',
     label: 'Catálogo',
     items: [
-      { to: 'productos',  label: 'Productos',   Icon: ShoppingBag },
+      { to: 'productos',  label: 'Productos',   Icon: ShoppingBag   },
       { to: 'mensajes',   label: 'Mensajes',    Icon: MessageCircle },
     ],
   },
@@ -89,7 +95,7 @@ const NAV_GROUPS_DELUXE = [
     id: 'analisis',
     label: 'Análisis',
     items: [
-      { to: 'metricas',   label: 'Métricas',    Icon: BarChart3                    },
+      { to: 'metricas',   label: 'Métricas',    Icon: BarChart3                     },
       { to: 'finanzas',   label: 'Finanzas',    Icon: TrendingDown, adminOnly: true },
     ],
   },
@@ -196,61 +202,38 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
   const hasAcademia     = useAcademiaEnabled();
   const location        = useLocation();
 
-  // Escuchar citas y reservas de producto pendientes en tiempo real
-  const { data: pendingCitas } = useCollection('citas', [where('estado', '==', 'Pendiente')]);
-  const { data: pendingReservas } = useCollection('product_reservations', [where('status', '==', 'pending')]);
+  const { data: pendingCitas }    = useCollection('citas',               [where('estado',  '==', 'Pendiente')]);
+  const { data: pendingReservas } = useCollection('product_reservations', [where('status',  '==', 'pending')]);
 
-  const pendingCitasCount = pendingCitas?.length || 0;
+  const pendingCitasCount    = pendingCitas?.length    || 0;
   const pendingReservasCount = pendingReservas?.length || 0;
 
   const NAV_GROUPS = (() => {
-    const base = tenant.id === 'deluxeperfumes' ? NAV_GROUPS_DELUXE : NAV_GROUPS_DEFAULT;
+    if (tenant.id === 'deluxeperfumes') return NAV_GROUPS_DELUXE;
+
+    let base = NAV_GROUPS_DEFAULT.map(group => {
+      if (group.id !== 'clientes') return group;
+      // Inyectar Membresías en Clientes para Chameleon
+      if (tenant.id !== 'chameleon') return group;
+      return {
+        ...group,
+        items: [
+          ...group.items,
+          { to: 'membresias', label: 'Membresías', Icon: Medal },
+        ],
+      };
+    });
+
     if (tenant.id === 'elegance' && hasAcademia) {
-      return [
+      base = [
         ...base.slice(0, 1),
-        {
-          id: 'academia',
-          label: 'Academia',
-          items: [
-            { to: 'academia', label: 'Academia', Icon: GraduationCap }
-          ]
-        },
-        ...base.slice(1)
+        { id: 'academia', label: 'Academia', items: [{ to: 'academia', label: 'Academia', Icon: GraduationCap }] },
+        ...base.slice(1),
       ];
     }
+
     return base;
   })();
-
-  /* Estado de grupos colapsados */
-  const [collapsed, setCollapsed] = useState(() => {
-    try {
-      const saved = localStorage.getItem('sidebar-collapsed-groups');
-      return saved ? JSON.parse(saved) : {};
-    } catch { return {}; }
-  });
-
-  function toggleGroup(id) {
-    setCollapsed(prev => {
-      const next = { ...prev, [id]: !prev[id] };
-      try { localStorage.setItem('sidebar-collapsed-groups', JSON.stringify(next)); } catch {}
-      return next;
-    });
-  }
-
-  /* Auto-expandir el grupo cuando se navega a una ruta dentro de él */
-  useEffect(() => {
-    const slug = location.pathname.split('/').filter(Boolean).pop();
-    NAV_GROUPS.forEach(group => {
-      if (group.items.some(item => item.to === slug)) {
-        setCollapsed(prev => {
-          if (!prev[group.id]) return prev;
-          const next = { ...prev, [group.id]: false };
-          try { localStorage.setItem('sidebar-collapsed-groups', JSON.stringify(next)); } catch {}
-          return next;
-        });
-      }
-    });
-  }, [location.pathname]);
 
   const currentSlug = location.pathname.split('/').filter(Boolean).pop();
 
@@ -289,141 +272,81 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
           if (items.length === 0) return null;
           if (group.adminOnly && !isAdminRole) return null;
 
-          const hasActive = items.some(item => item.to === currentSlug);
-          /* El grupo activo nunca se colapsa */
-          const isOpen = hasActive || !collapsed[group.id];
-
-          /* Indicador de notificación en el grupo */
-          const groupDotColor =
-            items.some(i => i.to === 'mensajes'   && unreadChats > 0)   ? 'bg-red-500'   :
-            items.some(i => i.to === 'agenda'     && pendingCitasCount > 0) ? 'bg-amber-500' :
-            items.some(i => i.to === 'productos'  && pendingReservasCount > 0) ? 'bg-emerald-500' :
-            items.some(i => i.to === 'mensualidad' && hasBillingAlert)   ? 'bg-amber-400' :
-            items.some(i => i.to === 'soporte'    && hasUnreadNews)      ? 'bg-red-500'   :
-            null;
-
           return (
-            <div key={group.id} className="mb-2">
+            <div key={group.id} className="mb-4">
 
-              {/* Cabecera del grupo */}
-              <button
-                onClick={() => toggleGroup(group.id)}
-                className="w-full flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-slate-800/40 transition-colors group/hdr"
-              >
-                <span className="flex-1 text-left text-xs font-bold text-slate-400/80 uppercase tracking-widest group-hover/hdr:text-slate-200 transition-colors">
+              {/* Cabecera del grupo — solo visual, sin colapso */}
+              <div className="flex items-center gap-2 px-3 mb-1">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
                   {group.label}
                 </span>
-                {/* Dot de notificación visible cuando está colapsado */}
-                {!isOpen && groupDotColor && (
-                  <span className={`w-1.5 h-1.5 rounded-full animate-pulse shrink-0 ${groupDotColor}`} />
-                )}
-                <ChevronDown
-                  size={12}
-                  className={`text-slate-700 group-hover/hdr:text-slate-500 transition-all duration-200 ${isOpen ? '' : '-rotate-90'}`}
-                />
-              </button>
+                <div className="flex-1 h-px bg-slate-800" />
+              </div>
 
-              {/* Items con animación de colapso */}
-              <div
-                className="overflow-hidden transition-all duration-200"
-                style={{ maxHeight: isOpen ? '20rem' : '0px', opacity: isOpen ? 1 : 0 }}
-              >
-                <div className="space-y-0.5 pt-0.5 pb-1">
-                  {items.map(({ to, label, Icon }) => {
-                    const isMensajes    = to === 'mensajes';
-                    const isAgenda      = to === 'agenda';
-                    const isProductos   = to === 'productos';
+              {/* Items */}
+              <div className="space-y-0.5">
+                {items.map(({ to, label, Icon }) => {
+                  const isMensajes  = to === 'mensajes';
+                  const isAgenda    = to === 'agenda';
+                  const isProductos = to === 'productos';
 
-                    const hasBadge      = (isMensajes && unreadChats > 0) || 
-                                          (isAgenda && pendingCitasCount > 0) ||
-                                          (isProductos && pendingReservasCount > 0);
+                  const hasBadge   = (isMensajes && unreadChats > 0) ||
+                                     (isAgenda && pendingCitasCount > 0) ||
+                                     (isProductos && pendingReservasCount > 0);
 
-                    const badgeCount    = isMensajes ? unreadChats :
-                                          isAgenda ? pendingCitasCount :
-                                          isProductos ? pendingReservasCount : 0;
+                  const badgeCount = isMensajes  ? unreadChats :
+                                     isAgenda    ? pendingCitasCount :
+                                     isProductos ? pendingReservasCount : 0;
 
-                    const badgeColorClass = isMensajes ? 'bg-red-500 text-white' :
-                                            isAgenda ? 'bg-amber-500 text-amber-950 font-bold' :
-                                            isProductos ? 'bg-emerald-500 text-emerald-950 font-bold' : '';
+                  const badgeColorClass = isMensajes  ? 'bg-red-500 text-white' :
+                                          isAgenda    ? 'bg-amber-500 text-amber-950 font-bold' :
+                                          isProductos ? 'bg-emerald-500 text-emerald-950 font-bold' : '';
 
-                    const showNewsDot   = to === 'soporte'    && hasUnreadNews;
-                    const showBillingDot = to === 'mensualidad' && hasBillingAlert;
-                    return (
-                      <NavLink
-                        key={to}
-                        to={to}
-                        onClick={onClose}
-                        className={({ isActive }) =>
-                          `group/item relative flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                            isActive
-                              ? `${ac.active} pl-4`
-                              : 'text-slate-400 hover:text-white hover:bg-slate-800'
-                          }`
-                        }
-                      >
-                        {({ isActive }) => (
-                          <>
-                            {isActive && (
-                              <span className={`absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-md bg-current`} />
-                            )}
-                            <Icon size={16} strokeWidth={isActive ? 2.5 : 2} className="shrink-0 group-hover/item:scale-110 group-hover/item:translate-x-0.5 transition-transform duration-150" />
-                            <span className="flex-1">{label}</span>
-                            {(showNewsDot || showBillingDot) && !hasBadge && (
-                              <span className={`w-1.5 h-1.5 rounded-full animate-pulse shrink-0 ${showBillingDot ? 'bg-amber-400' : 'bg-red-500'}`} />
-                            )}
-                            {hasBadge && (
-                              <span className={`ml-auto text-xs w-5 h-5 flex items-center justify-center rounded-full shrink-0 ${badgeColorClass}`}>
-                                {badgeCount > 9 ? '9+' : badgeCount}
-                              </span>
-                            )}
-                            {isActive && !hasBadge && !showNewsDot && !showBillingDot && (
-                              <ChevronRight size={14} className={`${ac.chevron} opacity-60`} />
-                            )}
-                          </>
-                        )}
-                      </NavLink>
-                    );
-                  })}
-                </div>
+                  const showNewsDot    = to === 'soporte'    && hasUnreadNews;
+                  const showBillingDot = to === 'mensualidad' && hasBillingAlert;
+
+                  return (
+                    <NavLink
+                      key={to}
+                      to={to}
+                      onClick={onClose}
+                      className={({ isActive }) =>
+                        `group/item relative flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                          isActive
+                            ? `${ac.active} pl-4`
+                            : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                        }`
+                      }
+                    >
+                      {({ isActive }) => (
+                        <>
+                          {isActive && (
+                            <span className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-md bg-current" />
+                          )}
+                          <Icon size={16} strokeWidth={isActive ? 2.5 : 2} className="shrink-0 group-hover/item:scale-110 group-hover/item:translate-x-0.5 transition-transform duration-150" />
+                          <span className="flex-1">{label}</span>
+                          {(showNewsDot || showBillingDot) && !hasBadge && (
+                            <span className={`w-1.5 h-1.5 rounded-full animate-pulse shrink-0 ${showBillingDot ? 'bg-amber-400' : 'bg-red-500'}`} />
+                          )}
+                          {hasBadge && (
+                            <span className={`ml-auto text-xs w-5 h-5 flex items-center justify-center rounded-full shrink-0 ${badgeColorClass}`}>
+                              {badgeCount > 9 ? '9+' : badgeCount}
+                            </span>
+                          )}
+                          {isActive && !hasBadge && !showNewsDot && !showBillingDot && (
+                            <ChevronRight size={14} className={`${ac.chevron} opacity-60`} />
+                          )}
+                        </>
+                      )}
+                    </NavLink>
+                  );
+                })}
               </div>
 
             </div>
           );
         })}
       </nav>
-
-      {/* Membresías — solo Chameleon */}
-      {tenant.id === 'chameleon' && (
-        <div className="mb-2">
-          <button className="w-full flex items-center gap-1.5 px-3 py-1.5 rounded-lg hover:bg-slate-800/40 transition-colors group/hdr">
-            <span className="flex-1 text-left text-[10px] font-bold text-slate-600 uppercase tracking-widest group-hover/hdr:text-slate-400 transition-colors">
-              Membresías
-            </span>
-          </button>
-          <div className="space-y-0.5 pt-0.5 pb-1">
-            <NavLink
-              to="membresias"
-              onClick={onClose}
-              className={({ isActive }) =>
-                `group/item relative flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                  isActive ? `${ac.active} pl-4` : 'text-slate-400 hover:text-white hover:bg-slate-800'
-                }`
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  {isActive && (
-                    <span className={`absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-md bg-current`} />
-                  )}
-                  <Medal size={16} strokeWidth={isActive ? 2.5 : 2} className="shrink-0 group-hover/item:scale-110 group-hover/item:translate-x-0.5 transition-transform duration-150" />
-                  <span className="flex-1">Membresías</span>
-                  {isActive && <ChevronRight size={14} className={`${ac.chevron} opacity-60`} />}
-                </>
-              )}
-            </NavLink>
-          </div>
-        </div>
-      )}
 
       {/* Footer */}
       <div
@@ -447,18 +370,20 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
         <div className="flex gap-2">
           <button
             onClick={() => setLight(v => !v)}
-            title={light ? "Activar Modo Oscuro" : "Activar Modo Claro"}
-            className="flex-1 flex items-center justify-center py-2.5 rounded-xl bg-slate-800/40 border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800 transition-all active:scale-95"
+            title={light ? 'Activar modo oscuro' : 'Activar modo claro'}
+            className="flex-1 flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl bg-slate-800/40 border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800 transition-all active:scale-95"
           >
             {light ? <Moon size={16} /> : <Sun size={16} />}
+            <span className="text-[10px] font-medium leading-none">{light ? 'Modo oscuro' : 'Modo claro'}</span>
           </button>
 
           <button
             onClick={() => signOut(auth)}
             title="Cerrar sesión"
-            className="flex-1 flex items-center justify-center py-2.5 rounded-xl bg-red-950/10 border border-red-950/20 text-slate-500 hover:text-red-400 hover:bg-red-950/30 transition-all active:scale-95"
+            className="flex-1 flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl bg-red-950/10 border border-red-950/20 text-slate-500 hover:text-red-400 hover:bg-red-950/30 transition-all active:scale-95"
           >
             <LogOut size={16} />
+            <span className="text-[10px] font-medium leading-none">Cerrar sesión</span>
           </button>
         </div>
 
