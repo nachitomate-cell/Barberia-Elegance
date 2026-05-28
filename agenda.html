@@ -443,6 +443,7 @@
 
         // ── ESTADO GLOBAL DE LA AGENDA ──
         let barberId = null;
+        let barberNombre = null;
         let newlyAddedCitas = new Set(); // IDs de citas recién ingresadas para animarlas
 
         let currentDate = new Date();
@@ -694,6 +695,7 @@
             barberConfig = rawBarberCfg; // null → renderSlots usa globalConfig
 
             if (nombre) {
+                barberNombre = nombre;
                 document.getElementById('barberNameHeader').textContent = 'Agenda ' + nombre;
             }
         }
@@ -852,6 +854,8 @@
                 .onSnapshot(snap => {
                     todayBloqueosGlobales = snap.docs.map(d => ({id: d.id, ...d.data()}));
                     scheduleRender();
+                }, err => {
+                    console.error('[Agenda] Error en onSnapshot bloqueos globales:', err.code);
                 });
 
             unsubs.push(unsubCitas, unsubBloq, unsubBloqGlob);
@@ -1325,7 +1329,12 @@
                 duracion:  interval,
                 creadoEn:  firebase.firestore.FieldValue.serverTimestamp(),
             });
-            await batch.commit();
+            try {
+                await batch.commit();
+            } catch(e) {
+                console.error('[Agenda] Error al bloquear horario:', e);
+                alert('Error al bloquear el horario: ' + e.message);
+            }
         }
 
         async function removerBloqueoRapido(bloqueoId, slotLockId, time, fecha) {
@@ -2746,7 +2755,7 @@
                         userEmail:     email || '',
                         metodoPago:    metodo || 'Efectivo',
                         barberoId:     _ecCita.barberoId,
-                        barberoNombre: _ecCita.barbero || '',
+                        barberoNombre: _ecCita.barberoNombre || _ecCita.barbero || barberNombre || '',
                         citaId:        _ecCita.id,
                         fecha:         fecha,
                         createdAt:     firebase.firestore.FieldValue.serverTimestamp(),
@@ -2907,6 +2916,7 @@
 
             const docData = {
                 barberoId: barberId,
+                barberoNombre: barberNombre || '',
                 clienteNombre: name,
                 clienteTelefono: phone || '',
                 clienteEmail: email,
