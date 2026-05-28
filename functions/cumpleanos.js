@@ -30,9 +30,19 @@ const messaging = admin.messaging();
 const TIMEZONE = 'America/Santiago';
 
 const TENANTS = [
-  { id: 'elegance', clientesPath: 'clientes',                 usersPath: 'users'                 },
-  { id: 'gitana',   clientesPath: 'tenants/gitana/clientes',  usersPath: 'tenants/gitana/users'  },
-  { id: 'ferraza',  clientesPath: 'tenants/ferraza/clientes', usersPath: 'tenants/ferraza/users'  },
+  { id: 'elegance',            clientesPath: 'clientes',                              usersPath: 'users'                              },
+  { id: 'gitana',              clientesPath: 'tenants/gitana/clientes',               usersPath: 'tenants/gitana/users'               },
+  { id: 'ferraza',             clientesPath: 'tenants/ferraza/clientes',              usersPath: 'tenants/ferraza/users'              },
+  { id: 'chameleon',           clientesPath: 'tenants/chameleon/clientes',            usersPath: 'tenants/chameleon/users'            },
+  { id: 'aura',                clientesPath: 'tenants/aura/clientes',                 usersPath: 'tenants/aura/users'                 },
+  { id: 'lumen',               clientesPath: 'tenants/lumen/clientes',                usersPath: 'tenants/lumen/users'                },
+  { id: 'mapubarbershop',      clientesPath: 'tenants/mapubarbershop/clientes',       usersPath: 'tenants/mapubarbershop/users'       },
+  { id: 'delnero',             clientesPath: 'tenants/delnero/clientes',              usersPath: 'tenants/delnero/users'              },
+  { id: 'marcelo_hairdressing',clientesPath: 'tenants/marcelo_hairdressing/clientes', usersPath: 'tenants/marcelo_hairdressing/users' },
+  { id: 'machos',              clientesPath: 'tenants/machos/clientes',               usersPath: 'tenants/machos/users'               },
+  { id: 'infinity',            clientesPath: 'tenants/infinity/clientes',             usersPath: 'tenants/infinity/users'             },
+  { id: 'sionbarberia',        clientesPath: 'tenants/sionbarberia/clientes',         usersPath: 'tenants/sionbarberia/users'         },
+  { id: 'deluxeperfumes',      clientesPath: 'tenants/deluxeperfumes/clientes',       usersPath: 'tenants/deluxeperfumes/users'       },
 ];
 
 exports.selloCumpleanos = onSchedule(

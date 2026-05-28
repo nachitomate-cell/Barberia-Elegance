@@ -32,9 +32,18 @@ const MAX_CITAS_AVG = 4;   // ventana de citas para el rolling average
 const TIMEZONE      = 'America/Santiago';
 
 const TENANTS = [
-  { id: 'elegance', citasPath: 'citas',                   clientesPath: 'clientes'                   },
-  { id: 'gitana',   citasPath: 'tenants/gitana/citas',    clientesPath: 'tenants/gitana/clientes'    },
-  { id: 'ferraza',  citasPath: 'tenants/ferraza/citas',   clientesPath: 'tenants/ferraza/clientes'   },
+  { id: 'elegance',            citasPath: 'citas',                              clientesPath: 'clientes'                              },
+  { id: 'gitana',              citasPath: 'tenants/gitana/citas',               clientesPath: 'tenants/gitana/clientes'               },
+  { id: 'ferraza',             citasPath: 'tenants/ferraza/citas',              clientesPath: 'tenants/ferraza/clientes'              },
+  { id: 'chameleon',           citasPath: 'tenants/chameleon/citas',            clientesPath: 'tenants/chameleon/clientes'            },
+  { id: 'aura',                citasPath: 'tenants/aura/citas',                 clientesPath: 'tenants/aura/clientes'                 },
+  { id: 'lumen',               citasPath: 'tenants/lumen/citas',                clientesPath: 'tenants/lumen/clientes'                },
+  { id: 'mapubarbershop',      citasPath: 'tenants/mapubarbershop/citas',       clientesPath: 'tenants/mapubarbershop/clientes'       },
+  { id: 'delnero',             citasPath: 'tenants/delnero/citas',              clientesPath: 'tenants/delnero/clientes'              },
+  { id: 'marcelo_hairdressing',citasPath: 'tenants/marcelo_hairdressing/citas', clientesPath: 'tenants/marcelo_hairdressing/clientes' },
+  { id: 'machos',              citasPath: 'tenants/machos/citas',               clientesPath: 'tenants/machos/clientes'               },
+  { id: 'infinity',            citasPath: 'tenants/infinity/citas',             clientesPath: 'tenants/infinity/clientes'             },
+  { id: 'sionbarberia',        citasPath: 'tenants/sionbarberia/citas',         clientesPath: 'tenants/sionbarberia/clientes'         },
 ];
 
 // ── Helpers ───────────────────────────────────────────────────────
