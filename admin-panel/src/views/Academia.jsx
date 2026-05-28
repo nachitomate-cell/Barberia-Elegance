@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import {
   GraduationCap, Users, BookOpen, Plus, Search, Edit2, Trash2, Check,
-  AlertCircle, DollarSign, Calendar, Link as LinkIcon
+  AlertCircle, DollarSign, Calendar, Link as LinkIcon, Sparkles,
 } from 'lucide-react';
 import { getDocs, query, orderBy, setDoc, doc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { tenantCol } from '../lib/tenantUtils';
+import { useTenant } from '../contexts/TenantContext';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
+import AcademiaModal from '../components/AcademiaModal';
 
 /* ── Componentes de UI ───────────────────────────────────────────── */
 function Card({ children, className = '' }) {
@@ -24,19 +26,34 @@ const TABS = [
 ];
 
 export default function Academia() {
-  const [activeTab, setActiveTab] = useState('cursos');
-  const [showHelp,  setShowHelp]  = useState(false);
+  const [activeTab,      setActiveTab]      = useState('cursos');
+  const [showHelp,       setShowHelp]       = useState(false);
+  const [showAcadModal,  setShowAcadModal]  = useState(false);
+  const { id: tenantId } = useTenant();
+  const esElegance = tenantId === 'elegance';
 
   return (
     <div className="max-w-6xl mx-auto flex flex-col h-[calc(100vh-theme(spacing.20))]">
       {/* ── Cabecera ── */}
       <div className="shrink-0 mb-6">
-        <h1 className="text-2xl font-bold text-white mb-2 flex items-center gap-3">
-          <GraduationCap className="text-emerald-500" size={28} />
-          Academia
-          <HelpButton onClick={() => setShowHelp(true)} />
-        </h1>
-        <p className="text-sm text-slate-400">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <h1 className="text-2xl font-bold text-white flex items-center gap-3">
+            <GraduationCap className="text-emerald-500" size={28} />
+            Academia
+            <HelpButton onClick={() => setShowHelp(true)} />
+          </h1>
+          {esElegance && (
+            <button
+              onClick={() => setShowAcadModal(true)}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all border"
+              style={{ color: '#D4AF37', borderColor: '#D4AF3740', background: '#D4AF3710' }}
+            >
+              <Sparkles size={15} strokeWidth={1.8} />
+              Academia Pichara
+            </button>
+          )}
+        </div>
+        <p className="text-sm text-slate-400 mt-2">
           Gestiona tus cursos, alumnos inscritos y material de estudio.
         </p>
       </div>
@@ -67,6 +84,10 @@ export default function Academia() {
         {activeTab === 'alumnos' && <TabAlumnos />}
         {activeTab === 'material' && <TabMaterial />}
       </div>
+
+      {esElegance && showAcadModal && (
+        <AcademiaModal onClose={() => setShowAcadModal(false)} />
+      )}
 
       {showHelp && (
         <HelpModal title="Cómo usar la Academia" onClose={() => setShowHelp(false)}>
