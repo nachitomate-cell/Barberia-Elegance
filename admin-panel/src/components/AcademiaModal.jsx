@@ -59,7 +59,7 @@ export default function AcademiaModal({ onClose }) {
                 Formación de Excelencia
               </p>
               <h2 className="text-lg font-bold text-white leading-tight">
-                Academia Pichara
+                Academia Elegance
               </h2>
             </div>
           </div>

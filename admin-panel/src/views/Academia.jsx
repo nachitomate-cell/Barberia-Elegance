@@ -49,7 +49,7 @@ export default function Academia() {
               style={{ color: '#D4AF37', borderColor: '#D4AF3740', background: '#D4AF3710' }}
             >
               <Sparkles size={15} strokeWidth={1.8} />
-              Academia Pichara
+              Academia Elegance
             </button>
           )}
         </div>
