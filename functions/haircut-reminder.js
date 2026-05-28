@@ -77,20 +77,35 @@ async function recalcularSuggestion(citasCol, clientesCol, telefono, clienteNomb
   const phone = normalizePhone(telefono);
   if (!phone) return;
 
-  // Últimas MAX_CITAS_AVG citas completadas de este cliente
-  const snap = await citasCol
-    .where('clienteTelefono', '==', telefono)
-    .where('estado', 'in', ['Completada', 'completada'])
-    .orderBy('fecha', 'desc')
-    .limit(MAX_CITAS_AVG)
-    .get();
+  // Buscar con ambos formatos (crudo y normalizado) para no perder citas históricas
+  const variantes = [...new Set([telefono, phone].filter(Boolean))];
+  const snaps = await Promise.all(
+    variantes.map(v =>
+      citasCol
+        .where('clienteTelefono', '==', v)
+        .where('estado', 'in', ['Completada', 'completada'])
+        .orderBy('fecha', 'desc')
+        .limit(MAX_CITAS_AVG)
+        .get()
+    )
+  );
 
-  if (snap.empty) return;
+  // Unir y deduplicar por id de doc
+  const seen = new Set();
+  const docs = [];
+  for (const snap of snaps) {
+    for (const d of snap.docs) {
+      if (!seen.has(d.id)) { seen.add(d.id); docs.push(d); }
+    }
+  }
 
-  const fechas = snap.docs
+  if (!docs.length) return;
+
+  const fechas = docs
     .map(d => toDate(d.data().fecha))
     .filter(Boolean)
-    .sort((a, b) => b - a);   // desc
+    .sort((a, b) => b - a)   // desc
+    .slice(0, MAX_CITAS_AVG);
 
   if (!fechas.length) return;
 
@@ -110,22 +125,21 @@ async function recalcularSuggestion(citasCol, clientesCol, telefono, clienteNomb
   // nextSuggestionDate = última cita + promedio - anticipo
   const nextDate = addDays(ultimaCitaFecha, avgIntervalDias - ADVANCE_DAYS);
 
-  await clientesCol.doc(phone).set({
+  // Una sola lectura: activar notificaciones solo si el campo no existe aún
+  const clienteRef    = clientesCol.doc(phone);
+  const existingSnap  = await clienteRef.get();
+  const writeData = {
     nombre:             clienteNombre || null,
     telefono,
     ultimaCitaFecha:    Timestamp.fromDate(ultimaCitaFecha),
     avgIntervalDias,
     nextSuggestionDate: Timestamp.fromDate(nextDate),
-    // notificacionesActivas: debe ser true para recibir recordatorios.
-    // Se respeta si ya existe; se establece true solo en la primera escritura.
     updatedAt:          Timestamp.now(),
-  }, { merge: true });
-
-  // En la primera escritura activa las notificaciones por defecto
-  const doc = await clientesCol.doc(phone).get();
-  if (!doc.data()?.notificacionesActivas) {
-    await clientesCol.doc(phone).update({ notificacionesActivas: true });
+  };
+  if (!existingSnap.exists || existingSnap.data()?.notificacionesActivas === undefined) {
+    writeData.notificacionesActivas = true;
   }
+  await clienteRef.set(writeData, { merge: true });
 
   logger.info(`[Haircut] ${phone} → avg=${avgIntervalDias}d next=${nextDate.toISOString().split('T')[0]}`);
 }
@@ -187,7 +201,9 @@ exports.enviarRecordatoriosCorte = onSchedule(
   async () => {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
-    const todayTs = Timestamp.fromDate(todayStart);
+    const todayTs  = Timestamp.fromDate(todayStart);
+    // fecha en citas se guarda como string "YYYY-MM-DD", no como Timestamp
+    const todayStr = todayStart.toISOString().split('T')[0];
 
     let totalEnviados = 0;
 
@@ -214,10 +230,11 @@ exports.enviarRecordatoriosCorte = onSchedule(
         const avgDias  = cliente.avgIntervalDias || 21;
 
         // Verificar que no tenga cita futura ya agendada
+        // fecha se compara como string "YYYY-MM-DD" (no como Timestamp)
         const futuraCita = await citasCol
           .where('clienteTelefono', '==', telefono)
           .where('estado', 'in', ['Pendiente', 'pendiente', 'Confirmada', 'confirmada', 'Confirmado'])
-          .where('fecha', '>', todayTs)
+          .where('fecha', '>', todayStr)
           .limit(1)
           .get();
 
