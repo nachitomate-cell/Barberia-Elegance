@@ -102,19 +102,67 @@ async function procesarSello({ tenantId, citaId, citaRef, cita }) {
   const barberoId      = cita.barberoId  || null;
 
   if (!telefono) {
-    logger.warn(`[Sello] ${citaId}: sin teléfono en la cita. No suma sello pero igual habilita el modal de Google review.`);
-    // Aun sin teléfono, asegurar que el cliente vea la pantalla de calificación al abrir su dashboard.
-    // Marcamos selloProcesado=true para no reintentar (la cita ya no cambiará de teléfono retroactivamente
-    // en flujos normales; si el admin lo agrega después puede usar el botón "Añadir sello" manual).
-    try {
+    // Sin teléfono: intentar resolver uid desde otros campos de la cita.
+    let uidSinTel = cita.clienteUid || null;
+    if (!uidSinTel && cita.clienteId && cita.clienteId.length > 12) uidSinTel = cita.clienteId;
+    if (!uidSinTel) {
+      const email = (cita.clienteEmail || '').toLowerCase().trim();
+      if (email) {
+        try {
+          const q = await cols.users.where('email', '==', email).limit(1).get();
+          if (!q.empty) uidSinTel = q.docs[0].id;
+        } catch (_) {}
+      }
+    }
+
+    if (uidSinTel) {
+      const svcNombre = cita.servicioNombre || cita.servicio || '';
+      const svcKey    = servicioAKey(svcNombre);
+      const membresia = svcKey
+        ? await verificarMembresia(cols.users, uidSinTel, svcKey)
+        : { aplicable: false };
+      const tipo = membresia.aplicable ? 'membresia' : 'sello';
+      const userRef = cols.users.doc(uidSinTel);
+
+      if (membresia.aplicable) {
+        await userRef.update({
+          [`subscription.remainingServices.${svcKey}`]: FieldValue.increment(-1),
+          'subscription.ultimoUso': Timestamp.now(),
+        });
+      } else {
+        await userRef.update({
+          sellosDisponibles: FieldValue.increment(1),
+          sellosHistoricos:  FieldValue.increment(1),
+          stamps:            FieldValue.increment(1),
+          ultimoSello:       Timestamp.now().toDate().toISOString(),
+          historialSellos:   FieldValue.arrayUnion({
+            fecha:    Timestamp.now().toDate().toISOString(),
+            tipo:     'suma',
+            cantidad: 1,
+            nota:     `Cita completada: ${svcNombre}`,
+            citaId,
+          }),
+        });
+      }
       await citaRef.update({
         selloProcesado:      true,
         selloProcesadoEn:    Timestamp.now(),
-        selloProcesadoTipo:  'omitido_sin_telefono',
+        selloProcesadoTipo:  tipo,
         pendingGoogleReview: true,
       });
-    } catch (e) {
-      logger.error(`[Sello] ${citaId}: no se pudo marcar pendingGoogleReview sin teléfono:`, e);
+      logger.info(`[Sello] ${citaId}: procesado sin teléfono (uid=${uidSinTel}, tipo=${tipo})`);
+    } else {
+      logger.warn(`[Sello] ${citaId}: sin teléfono ni uid identificable. No suma sello.`);
+      try {
+        await citaRef.update({
+          selloProcesado:      true,
+          selloProcesadoEn:    Timestamp.now(),
+          selloProcesadoTipo:  'omitido_sin_identificacion',
+          pendingGoogleReview: true,
+        });
+      } catch (e) {
+        logger.error(`[Sello] ${citaId}: no se pudo marcar pendingGoogleReview:`, e);
+      }
     }
     return;
   }

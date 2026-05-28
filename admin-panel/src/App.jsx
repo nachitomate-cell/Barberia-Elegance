@@ -34,6 +34,7 @@ import Soporte          from './views/Soporte';
 import HistorialCortes  from './views/HistorialCortes';
 import InstagramPage    from './views/Instagram';
 import Academia         from './views/Academia';
+import Resenas          from './views/Resenas';
 
 function TenantGate({ children }) {
   const { suspended } = useTenant();
@@ -90,6 +91,7 @@ function ProtectedApp() {
             <Route path="soporte"         element={<Soporte />} />
             <Route path="membresias"      element={<Membresias />} />
             <Route path="historial"       element={<HistorialCortes />} />
+            <Route path="resenas"         element={<Resenas />} />
             <Route path="instagram"       element={<InstagramPage />} />
             <Route path="academia"        element={<Academia />} />
             <Route path="booking-preview"   element={<BookingFlow />} />
