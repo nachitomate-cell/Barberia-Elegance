@@ -46,6 +46,7 @@ const db = admin.firestore();
 // Tenants con auto-enroll activado. Para sumar otro, agregar su tenantId acá.
 const AUTO_ENROLL_TENANTS = new Set([
   'aura',
+  'lumen', // D'Jones Barber (sin contraseña al Club, igual que aura)
 ]);
 
 function normalizePhone(phone) {

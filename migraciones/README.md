@@ -118,3 +118,39 @@ Tiempo: ~5-8 segundos. Costo: ~$0.002 USD.
 - 612 clientes aparecen en `/gestion-interna/clientes` con badge **MIGRADO** (ámbar).
 - Botón **"Invitar migrados"** funciona igual que con Chameleon: WhatsApp masivo con templates.
 - Como Aura tiene **auto-enroll** activado (CF `autoEnrollTenant`), los clientes nuevos que reserven también entrarán al Club automáticamente.
+
+---
+
+# Migración D'Jones Barber (tenantId interno = `lumen`)
+
+D'Jones Barber usa el tenantId interno **`lumen`** (no se renombró para evitar tocar ~250 referencias CSS/JS; el cliente final ve "D'Jones Barber" en todos lados). **No requiere contraseña** para el Club, igual que Aura.
+
+## Filtros aplicados
+
+| Regla | Filas |
+|---|---|
+| Filas originales | 810 |
+| − Sin teléfono | -1 |
+| − Teléfonos inválidos | -3 |
+| − Duplicados estrictos (tel + nombre) | -1 |
+| **Resultado** | **805** |
+
+## Cómo correr
+
+```bash
+node migraciones/migrate-djones-clientes.js          # dry run
+node migraciones/migrate-djones-clientes.js --commit # crea 805×2 docs en tenants/lumen/
+```
+
+Escribe a `tenants/lumen/clientes/{tel}` y `tenants/lumen/users/{tel}` (perfil pasivo, uid=tel).
+
+## Passwordless + auto-enroll
+
+- `lumen` está en `AUTO_ENROLL_TENANTS` (functions/auto-enroll-cliente.js): clientes nuevos que reserven entran al Club automáticamente.
+- `registro.html`: `lumen` está en `PASSWORDLESS_TENANTS` → login solo con email, password interna `DjonesLoyaltyPassword2026!`.
+
+## Deploy necesario tras esto
+
+```bash
+firebase deploy --only functions:autoEnrollTenant
+```
