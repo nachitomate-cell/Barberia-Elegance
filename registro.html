@@ -846,17 +846,24 @@
       background: rgba(17, 24, 39, 0.05) !important;
       color: #111827 !important;
     }
-    /* Ocultar campos de contraseña y botón de recuperar para Aura */
+    /* Ocultar campos de contraseña y botón de recuperar para Aura y D'Jones (lumen) */
     .tenant-aura #panelLogin .relative,
     .tenant-aura #panelRegister .relative,
-    .tenant-aura button[onclick="switchTab('reset')"] {
+    .tenant-aura button[onclick="switchTab('reset')"],
+    .tenant-lumen #panelLogin .relative,
+    .tenant-lumen #panelRegister .relative,
+    .tenant-lumen button[onclick="switchTab('reset')"] {
       display: none !important;
     }
-    /* Mostrar campos de contraseña en Aura si hay fallback de contraseña custom */
+    /* Mostrar campos de contraseña en Aura y Lumen si hay fallback de contraseña custom */
     html.tenant-aura body.show-password-fallback #panelLogin .relative,
     html.tenant-aura body.show-password-fallback button[onclick="switchTab('reset')"],
+    html.tenant-lumen body.show-password-fallback #panelLogin .relative,
+    html.tenant-lumen body.show-password-fallback button[onclick="switchTab('reset')"],
     .tenant-aura.show-password-fallback #panelLogin .relative,
     .tenant-aura.show-password-fallback button[onclick="switchTab('reset')"],
+    .tenant-lumen.show-password-fallback #panelLogin .relative,
+    .tenant-lumen.show-password-fallback button[onclick="switchTab('reset')"],
     .show-password-fallback #panelLogin .relative,
     .show-password-fallback button[onclick="switchTab('reset')"] {
       display: block !important;
