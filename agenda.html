@@ -2925,7 +2925,11 @@
                 origen: 'agenda_manual',
                 tenantId: window.CURRENT_TENANT_ID || 'elegance'
             };
-            if (_selectedClienteId) docData.clienteId = _selectedClienteId;
+            if (_selectedClienteId) {
+                docData.clienteId = _selectedClienteId;
+                const selCliente = (_clientes || []).find(c => c.id === _selectedClienteId);
+                if (selCliente?.uid) docData.clienteUid = selCliente.uid;
+            }
             if (lockId) docData.slotLockId = lockId;
 
             if (lockId) {

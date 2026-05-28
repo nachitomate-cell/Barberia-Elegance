@@ -104,7 +104,17 @@ async function procesarSello({ tenantId, citaId, citaRef, cita }) {
   if (!telefono) {
     // Sin teléfono: intentar resolver uid desde otros campos de la cita.
     let uidSinTel = cita.clienteUid || null;
-    if (!uidSinTel && cita.clienteId && cita.clienteId.length > 12) uidSinTel = cita.clienteId;
+    if (!uidSinTel && cita.clienteId) {
+      if (cita.clienteId.length > 20) {
+        uidSinTel = cita.clienteId; // Firebase UID
+      } else {
+        // Puede ser el teléfono usado como docId en clientes (e.g. "56999335412")
+        try {
+          const cliSnap = await cols.clientes.doc(cita.clienteId).get();
+          if (cliSnap.exists && cliSnap.data()?.uid) uidSinTel = cliSnap.data().uid;
+        } catch (_) {}
+      }
+    }
     if (!uidSinTel) {
       const email = (cita.clienteEmail || '').toLowerCase().trim();
       if (email) {
