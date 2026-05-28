@@ -115,7 +115,7 @@ async function autoEnroll(tid, citaId, cita) {
   if (await existeClienteEnUsers(tid, telRaw, email)) return; // ya existe, OK
   if (!telN) return; // sólo email sin tel: no podemos crear doc
 
-  const docId = telRaw || telN; // preferimos el formato original del cliente
+  const docId = telN || telRaw; // siempre usar teléfono normalizado como docId
   const userRef = db.collection(`tenants/${tid}/users`).doc(docId);
 
   const data = {

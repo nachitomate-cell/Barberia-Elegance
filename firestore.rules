@@ -76,7 +76,7 @@ service cloud.firestore {
     // ── Verificar si el usuario es el cliente de un documento de cita ──
     function esCliente(data) {
       return autenticado()
-          && (data.get('clienteEmail', '') == request.auth.token.email
+          && (data.get('clienteEmail', '').lower() == request.auth.token.email
               || data.get('clienteUid',  '') == request.auth.uid
               || data.get('clienteId',   '') == request.auth.uid);
     }
