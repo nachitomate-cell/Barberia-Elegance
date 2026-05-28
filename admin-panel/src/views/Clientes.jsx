@@ -462,6 +462,265 @@ function ClientePanel({ cliente: init, premios, onClose }) {
   );
 }
 
+/* ── Modal: agregar nuevo cliente al Club ── */
+function NuevoClienteModal({ premios, onClose }) {
+  const [nombre, setNombre] = useState('');
+  const [telefono, setTelefono] = useState('');
+  const [email, setEmail] = useState('');
+  const [fechaNacimiento, setFechaNacimiento] = useState('');
+  const [sellosIniciales, setSellosIniciales] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  // Auto prefix +56 9 when focus/input
+  const handlePhoneFocus = () => {
+    if (!telefono.startsWith('+56')) {
+      setTelefono('+56 9 ');
+    }
+  };
+
+  const handlePhoneChange = (e) => {
+    let val = e.target.value;
+    if (!val.startsWith('+56')) {
+      val = '+56 9 ';
+    }
+    setTelefono(val);
+  };
+
+  const handlePhoneKeyDown = (e) => {
+    if ((e.key === 'Backspace' || e.key === 'Delete') && telefono.length <= 7) {
+      e.preventDefault();
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+
+    const trimmedNombre = nombre.trim();
+    const trimmedEmail = email.trim().toLowerCase();
+    const cleanPhone = telefono.replace(/\D/g, ''); // 569XXXXXXXX
+
+    if (!trimmedNombre) return setError('El nombre es obligatorio.');
+    if (!cleanPhone || cleanPhone.length < 11) {
+      return setError('Ingresa un teléfono válido de Chile (ej: +56 9 1234 5678).');
+    }
+
+    setLoading(true);
+    try {
+      // 1. Verificar si el cliente ya existe en users o clientes
+      const userSnap = await getDocs(query(tenantCol('users'), where('telefono', '==', telefono.trim())));
+      
+      if (!userSnap.empty) {
+        throw new Error('Ya existe un miembro del Club con este número de teléfono.');
+      }
+
+      // 2. Si hay email, verificar que no esté repetido
+      if (trimmedEmail) {
+        const emailSnap = await getDocs(query(tenantCol('users'), where('email', '==', trimmedEmail)));
+        if (!emailSnap.empty) {
+          throw new Error('Ya existe un miembro del Club con este correo electrónico.');
+        }
+      }
+
+      const numStamps = parseInt(sellosIniciales) || 0;
+      const tNow = new Date().toISOString();
+
+      // 3. Preparar documento de users (passive profile: uid === id === cleanPhone)
+      const userData = {
+        uid: cleanPhone,
+        nombre: trimmedNombre,
+        telefono: telefono.trim(),
+        stamps: numStamps,
+        sellosDisponibles: numStamps,
+        sellosHistoricos: numStamps,
+        creadoEn: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        importedFrom: 'admin_manual',
+        historialSellos: numStamps > 0 ? [
+          {
+            fecha: tNow,
+            tipo: 'suma',
+            cantidad: numStamps,
+            nota: 'Sello inicial al crearse la cuenta manualmente',
+          }
+        ] : [],
+      };
+
+      if (fechaNacimiento) {
+        const [, m, d] = fechaNacimiento.split('-');
+        userData.fechaNacimiento = fechaNacimiento;
+        userData.cumpleDia = `${m}-${d}`;
+      }
+
+      // 4. Preparar documento de clientes
+      const clienteData = {
+        uid: cleanPhone,
+        nombre: trimmedNombre,
+        telefono: telefono.trim(),
+        stamps: numStamps,
+        sellosDisponibles: numStamps,
+        sellosHistoricos: numStamps,
+        creadoEn: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+        importedFrom: 'admin_manual',
+      };
+
+      if (trimmedEmail) {
+        userData.email = trimmedEmail;
+        clienteData.email = trimmedEmail;
+      }
+
+      if (fechaNacimiento) {
+        const [, m, d] = fechaNacimiento.split('-');
+        clienteData.fechaNacimiento = fechaNacimiento;
+        clienteData.cumpleDia = `${m}-${d}`;
+      }
+
+      // 5. Escribir en Firestore
+      await setDoc(doc(tenantCol('users'), cleanPhone), userData);
+      await setDoc(doc(tenantCol('clientes'), cleanPhone), clienteData);
+
+      setSuccess('✓ ¡Cliente agregado al Club exitosamente!');
+      
+      // Limpiar formulario
+      setNombre('');
+      setTelefono('');
+      setEmail('');
+      setFechaNacimiento('');
+      setSellosIniciales(0);
+      
+      setTimeout(() => {
+        onClose();
+      }, 1500);
+
+    } catch (err) {
+      setError(err.message || 'Ocurrió un error al guardar el cliente.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in"
+      style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="w-full max-w-md bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl flex flex-col animate-slide-in-right">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800">
+          <div className="flex items-center gap-2">
+            <Plus size={16} className="text-emerald-400" />
+            <h3 className="font-semibold text-white">Nuevo Cliente Club de Fidelidad</h3>
+          </div>
+          <button type="button" onClick={onClose} className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-slate-800 transition-all">
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* Formulario */}
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/30 rounded-xl px-4 py-3 text-xs text-red-400 font-semibold text-center">
+              {error}
+            </div>
+          )}
+          {success && (
+            <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl px-4 py-3 text-xs text-emerald-400 font-semibold text-center">
+              {success}
+            </div>
+          )}
+
+          <div>
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Nombre Completo *</label>
+            <input
+              type="text"
+              required
+              placeholder="Nicolás Fabián"
+              value={nombre}
+              onChange={e => setNombre(e.target.value)}
+              className="w-full bg-slate-850 border border-slate-750 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Teléfono *</label>
+              <input
+                type="tel"
+                required
+                placeholder="+56 9 1234 5678"
+                value={telefono}
+                onFocus={handlePhoneFocus}
+                onChange={handlePhoneChange}
+                onKeyDown={handlePhoneKeyDown}
+                className="w-full bg-slate-850 border border-slate-750 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors font-mono"
+              />
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Cumpleaños (Opcional)</label>
+              <input
+                type="date"
+                value={fechaNacimiento}
+                onChange={e => setFechaNacimiento(e.target.value)}
+                style={{ colorScheme: 'dark' }}
+                className="w-full bg-slate-850 border border-slate-750 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500 transition-colors"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Correo Electrónico (Opcional)</label>
+            <input
+              type="email"
+              placeholder="cliente@correo.com"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              className="w-full bg-slate-850 border border-slate-750 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Sellos Iniciales (Opcional)</label>
+            <div className="flex items-center gap-3">
+              <input
+                type="number"
+                min="0"
+                max="50"
+                value={sellosIniciales}
+                onChange={e => setSellosIniciales(parseInt(e.target.value) || 0)}
+                className="w-20 bg-slate-850 border border-slate-750 rounded-xl px-3 py-2 text-center text-sm text-white focus:outline-none focus:border-emerald-500 transition-colors"
+              />
+              <span className="text-xs text-slate-500">¿Deseas regalarle sellos de cortesía al unirse?</span>
+            </div>
+          </div>
+
+          <div className="pt-2 flex gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-grow py-3 rounded-xl border border-slate-750 text-slate-400 hover:text-white hover:bg-slate-800 transition-colors text-xs font-bold uppercase tracking-wider"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-grow py-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white rounded-xl transition-all text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2"
+            >
+              {loading && <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>}
+              Crear miembro
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 /* ── Modal: clientes sin registro ───────────────────────────────── */
 function SinRegistroModal({ sinRegistro, shopName, registroUrl, onClose, mode = 'sinRegistro', tenantId }) {
   const [search, setSearch] = useState('');
@@ -997,6 +1256,7 @@ export default function Clientes() {
   const [selected,              setSelected]              = useState(null);
   const [showSinRegistro,       setShowSinRegistro]       = useState(false);
   const [showInvitarMigrados,   setShowInvitarMigrados]   = useState(false);
+  const [showNuevoCliente,      setShowNuevoCliente]      = useState(false);
   const [showIA,                setShowIA]                = useState(false);
   const [page,                  setPage]                  = useState(1);
 
@@ -1190,6 +1450,13 @@ export default function Clientes() {
           <p className="text-sm text-slate-500 mt-0.5">Gestiona sellos y premios de cada cliente.</p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowNuevoCliente(true)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border border-slate-700 bg-slate-800 text-white hover:bg-slate-700 transition-all shrink-0"
+          >
+            <Plus size={13} />
+            Nuevo Cliente
+          </button>
           <button
             onClick={() => setShowIA(true)}
             className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border border-[#D4AF37]/35 bg-[#D4AF37]/5 text-[#D4AF37] hover:bg-[#D4AF37]/10 transition-all"
@@ -1454,6 +1721,14 @@ export default function Clientes() {
           </div>
         )}
       </div>
+
+      {/* Modal nuevo cliente */}
+      {showNuevoCliente && (
+        <NuevoClienteModal
+          premios={premios}
+          onClose={() => setShowNuevoCliente(false)}
+        />
+      )}
 
       {/* Modal sin registro */}
       {showSinRegistro && (
