@@ -2688,7 +2688,6 @@
         const nota     = document.getElementById('ecNota').value.trim();
 
         if (!nombre) { err.textContent = 'El nombre es obligatorio.'; err.classList.remove('hidden'); return; }
-        if (estado === 'Completada' && !telefono) { err.textContent = 'Teléfono requerido para registrar el sello.'; err.classList.remove('hidden'); return; }
 
         btn.disabled = true;
         btn.textContent = 'Guardando...';

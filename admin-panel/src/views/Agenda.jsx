@@ -310,11 +310,6 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
 
   const handleSave = async () => {
     if (!form.clienteNombre.trim()) return;
-    if (form.estado === 'Completada' && !form.clienteTelefono.trim()) {
-      setTelError(true);
-      return;
-    }
-    setTelError(false);
     setSaving(true);
     try {
       const payload = { ...form, duracionServicio: form.duracion, fecha: dateStr, updatedAt: serverTimestamp() };
@@ -540,7 +535,7 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
         <div>
           <label className={lbl}>
             Teléfono
-            {form.estado === 'Completada' && <span className="ml-1 text-amber-400 normal-case font-normal">— requerido para el sello</span>}
+            {form.estado === 'Completada' && <span className="ml-1 text-amber-400 normal-case font-normal">— opcional (requerido para el sello)</span>}
           </label>
           <div className="flex gap-1.5">
             <input
