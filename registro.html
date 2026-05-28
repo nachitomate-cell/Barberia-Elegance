@@ -846,17 +846,24 @@
       background: rgba(17, 24, 39, 0.05) !important;
       color: #111827 !important;
     }
-    /* Ocultar campos de contraseña y botón de recuperar para Aura */
+    /* Ocultar campos de contraseña y botón de recuperar para tenants sin contraseña (Aura, D'Jones) */
     .tenant-aura #panelLogin .relative,
     .tenant-aura #panelRegister .relative,
-    .tenant-aura button[onclick="switchTab('reset')"] {
+    .tenant-aura button[onclick="switchTab('reset')"],
+    .tenant-lumen #panelLogin .relative,
+    .tenant-lumen #panelRegister .relative,
+    .tenant-lumen button[onclick="switchTab('reset')"] {
       display: none !important;
     }
-    /* Mostrar campos de contraseña en Aura si hay fallback de contraseña custom */
+    /* Mostrar campos de contraseña si hay fallback de contraseña custom */
     html.tenant-aura body.show-password-fallback #panelLogin .relative,
     html.tenant-aura body.show-password-fallback button[onclick="switchTab('reset')"],
     .tenant-aura.show-password-fallback #panelLogin .relative,
     .tenant-aura.show-password-fallback button[onclick="switchTab('reset')"],
+    html.tenant-lumen body.show-password-fallback #panelLogin .relative,
+    html.tenant-lumen body.show-password-fallback button[onclick="switchTab('reset')"],
+    .tenant-lumen.show-password-fallback #panelLogin .relative,
+    .tenant-lumen.show-password-fallback button[onclick="switchTab('reset')"],
     .show-password-fallback #panelLogin .relative,
     .show-password-fallback button[onclick="switchTab('reset')"] {
       display: block !important;
@@ -1341,6 +1348,13 @@
   // que ensureUserDoc termine de guardar el nombre y teléfono.
   let _registering = false;
   let _auraForceCustomPassword = false;
+  // Tenants cuyo Club de Fidelidad funciona sin contraseña: el cliente solo
+  // ingresa con su email y se usa internamente una contraseña compartida.
+  const PASSWORDLESS_TENANTS = ['aura', 'lumen'];
+  const LOYALTY_DEFAULT_PASSWORD = 'AuraLoyaltyPassword2026!';
+  function isPasswordlessTenant() {
+    return PASSWORDLESS_TENANTS.includes(window.CURRENT_TENANT_ID);
+  }
   auth.onAuthStateChanged(user => {
     if (user && !_registering) goToDashboard();
   });
@@ -1378,8 +1392,8 @@
     const email    = document.getElementById('loginEmail').value.trim();
     let password = document.getElementById('loginPassword').value;
 
-    if (window.CURRENT_TENANT_ID === 'aura' && !_auraForceCustomPassword) {
-      password = 'AuraLoyaltyPassword2026!';
+    if (isPasswordlessTenant() && !_auraForceCustomPassword) {
+      password = LOYALTY_DEFAULT_PASSWORD;
     }
 
     if (!email || !password) return showAlert('Completa todos los campos.');
@@ -1389,12 +1403,12 @@
       
       // Si estamos en Aura y el usuario ingresó con contraseña personalizada (porque _auraForceCustomPassword es true),
       // migramos su contraseña en segundo plano al valor por defecto de Aura para que en el futuro no la necesite más.
-      if (window.CURRENT_TENANT_ID === 'aura' && _auraForceCustomPassword) {
+      if (isPasswordlessTenant() && _auraForceCustomPassword) {
         try {
-          await cred.user.updatePassword('AuraLoyaltyPassword2026!');
-          console.log('[Aura Auth] Contraseña migrada exitosamente al estándar password-free.');
+          await cred.user.updatePassword(LOYALTY_DEFAULT_PASSWORD);
+          console.log('[Loyalty Auth] Contraseña migrada exitosamente al estándar password-free.');
         } catch (pwErr) {
-          console.warn('[Aura Auth] No se pudo migrar la contraseña automáticamente:', pwErr);
+          console.warn('[Loyalty Auth] No se pudo migrar la contraseña automáticamente:', pwErr);
         }
       }
 
@@ -1409,7 +1423,7 @@
       // 'auth/invalid-credential' y no distingue user-not-found de wrong-password.
       // Verificamos EXPLICITAMENTE si la cuenta existe antes de mostrar el mensaje
       // de "ya esta registrada" (que confundia a clientes migrados sin cuenta Auth).
-      if (window.CURRENT_TENANT_ID === 'aura' &&
+      if (isPasswordlessTenant() &&
           err.code !== 'auth/invalid-email' &&
           !_auraForceCustomPassword) {
         try {
@@ -1419,7 +1433,7 @@
             // password default de Aura. Cliente migrado entra al Club sin friction.
             showLoading('Creando tu acceso al Club...');
             try {
-              const cred = await auth.createUserWithEmailAndPassword(email, 'AuraLoyaltyPassword2026!');
+              const cred = await auth.createUserWithEmailAndPassword(email, LOYALTY_DEFAULT_PASSWORD);
               await ensureUserDoc(cred.user);
               goToDashboard();
               return;
@@ -1445,7 +1459,7 @@
           return;
         } catch (fetchErr) {
           // Si fetchSignInMethodsForEmail falla (p.ej. CORS/red), caer al flujo legacy.
-          console.warn('[Aura Auth] fetchSignInMethodsForEmail falló:', fetchErr.code);
+          console.warn('[Loyalty Auth] fetchSignInMethodsForEmail falló:', fetchErr.code);
           _auraForceCustomPassword = true;
           document.body.classList.add('show-password-fallback');
           document.getElementById('loginPassword').value = '';
@@ -1454,13 +1468,13 @@
         }
       }
       
-      // Caso 2: Estamos en otro tenant (no aura), falló el login y podría deberse a una migración previa en Aura
-      if (window.CURRENT_TENANT_ID !== 'aura' && 
+      // Caso 2: Estamos en un tenant con contraseña, falló el login y podría deberse a una migración previa en un tenant password-free
+      if (!isPasswordlessTenant() &&
           (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential')) {
         showLoading('Verificando compatibilidad...');
         try {
-          // Intentar ingresar con la contraseña de Aura en el fondo
-          const backupCred = await auth.signInWithEmailAndPassword(email, 'AuraLoyaltyPassword2026!');
+          // Intentar ingresar con la contraseña por defecto del Club en el fondo
+          const backupCred = await auth.signInWithEmailAndPassword(email, LOYALTY_DEFAULT_PASSWORD);
           // Si tiene éxito, significa que su contraseña fue cambiada a la de Aura.
           // Inmediatamente la re-establecemos a la contraseña personalizada que el usuario acaba de escribir.
           await backupCred.user.updatePassword(password);
@@ -1541,8 +1555,8 @@
     let password        = document.getElementById('regPassword').value;
     const fechaNacimiento = document.getElementById('regFechaNacimiento').value || null; // "YYYY-MM-DD" o null
 
-    if (window.CURRENT_TENANT_ID === 'aura') {
-      password = 'AuraLoyaltyPassword2026!';
+    if (isPasswordlessTenant()) {
+      password = LOYALTY_DEFAULT_PASSWORD;
     }
 
     if (!nombre || !email || !telefono || !password)
@@ -1583,7 +1597,7 @@
       goToDashboard();
     } catch (err) {
       hideLoading();
-      if (window.CURRENT_TENANT_ID === 'aura' && err.code === 'auth/email-already-in-use') {
+      if (isPasswordlessTenant() && err.code === 'auth/email-already-in-use') {
         _auraForceCustomPassword = true;
         document.body.classList.add('show-password-fallback');
         switchTab('login');
