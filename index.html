@@ -6560,7 +6560,6 @@
       }
 
       grid.innerHTML = '';
-      _renderSmartSlots(hours);
 
       // Filtrar horas pasadas si es hoy
       const now = new Date();
@@ -6578,6 +6577,8 @@
           return diffMins >= 15;
         });
       }
+
+      _renderSmartSlots(hours);
 
       if (hours.length === 0) {
         grid.innerHTML = `
