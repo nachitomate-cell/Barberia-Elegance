@@ -118,3 +118,55 @@ Tiempo: ~5-8 segundos. Costo: ~$0.002 USD.
 - 612 clientes aparecen en `/gestion-interna/clientes` con badge **MIGRADO** (ámbar).
 - Botón **"Invitar migrados"** funciona igual que con Chameleon: WhatsApp masivo con templates.
 - Como Aura tiene **auto-enroll** activado (CF `autoEnrollTenant`), los clientes nuevos que reserven también entrarán al Club automáticamente.
+
+---
+
+# Migración D'Jones (sin contraseña al Club): `migrate-lumen-clientes.js`
+
+Migra los clientes de **D'Jones Barber** (tenant `lumen`) desde el export de
+AgendaPro. Igual que Aura, D'Jones **NO requiere contraseña** para el Club de
+Fidelidad, por lo que el script crea de una sola vez:
+
+  - `tenants/lumen/clientes/{telefono}` — lookups rápidos (cron cumpleaños, etc.)
+  - `tenants/lumen/users/{telefono}` — perfil "pasivo" con `uid=telefono`
+
+El cliente queda enrolado al Club automáticamente. La CF `sello-automatico` le
+suma sello al completar citas aunque nunca se registre activamente. Si luego se
+registra con su email en `registro.html`, la CF `dedupeOnCreateTenant` detecta el
+perfil pasivo (match por teléfono) y mergea sellos/historial.
+
+## Filtros aplicados al raw export
+
+| Regla | Filas |
+|-------|-------|
+| Filas originales | 810 |
+| − Sin teléfono (no se puede generar docId) | -1 |
+| − Duplicados estrictos (mismo teléfono **y** mismo nombre normalizado) | -1 |
+| **Resultado** | **808** |
+
+**Manejo de familiares** (mismo teléfono, nombres distintos): se preservan con
+docId sufijado — el principal mantiene `docId = telefono` y los demás usan
+`docId = telefono__nombre-slug` con `compartesTelefono: true` y
+`telefonoPrincipalDocId`. Los apellidos numéricos/basura se descartan al armar el
+nombre.
+
+## Cómo correr
+
+```bash
+# 1. service-account.json en la raíz del repo
+ls service-account.json
+
+# 2. Dry run (no escribe nada)
+node migraciones/migrate-lumen-clientes.js
+
+# 3. Commit real (crea 808×2 = 1.616 docs)
+node migraciones/migrate-lumen-clientes.js --commit
+```
+
+Idempotente (`set(..., merge: true)`): se puede correr varias veces sin pisar
+sellos ni el uid del Club. Tiempo ~5-8 s, costo ~$0.003 USD.
+
+## Resultado en el panel
+
+Los 808 clientes aparecen en `/gestion-interna/clientes` (tenant lumen) con badge
+**MIGRADO**.
