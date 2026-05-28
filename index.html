@@ -5512,34 +5512,67 @@
       }
 
       const recommendations = avail.slice(0, 3);
-      container.innerHTML = `
-        <div class="p-4 rounded-2xl border transition-all relative overflow-hidden"
-             style="background: linear-gradient(135deg, rgba(251,191,36,0.08) 0%, rgba(245,158,11,0.12) 50%, rgba(217,119,6,0.06) 100%);
-                    border-color: rgba(251,191,36,0.30);
-                    box-shadow: 0 0 20px rgba(251,191,36,0.06), inset 0 1px 0 rgba(255,255,255,0.04);">
-          <div style="position:absolute;top:-30px;right:-30px;width:100px;height:100px;background:radial-gradient(circle,rgba(251,191,36,0.12) 0%,transparent 70%);pointer-events:none;"></div>
-          <p class="text-xs font-bold uppercase tracking-wider mb-2.5 flex items-center gap-1.5"
-             style="background:linear-gradient(90deg,#FBBF24,#F59E0B,#D97706);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
-            <i class="ph-fill ph-lightning text-sm animate-pulse" style="-webkit-text-fill-color:#FBBF24;color:#FBBF24;filter:drop-shadow(0 0 4px rgba(251,191,36,0.5));"></i> Horas recomendadas (Smart Slots)
-          </p>
-          <p class="text-xs mb-3.5" style="color:rgba(255,255,255,0.65);">
-            ¿Tienes prisa? Agenda al instante uno de estos bloques recomendados para hoy:
-          </p>
-          <div class="grid grid-cols-3 gap-2.5">
-            ${recommendations.map(r => `
-              <button 
-                onclick="selectSmartSlot('${r.time}')" 
-                class="smart-slot-pill py-2.5 px-3 rounded-xl border text-xs font-bold text-center transition-all focus:outline-none"
-                style="background:rgba(251,191,36,0.08); border-color:rgba(251,191,36,0.25); color:#FBBF24;"
-                onmouseover="this.style.background='rgba(251,191,36,0.18)';this.style.borderColor='rgba(251,191,36,0.5)';this.style.boxShadow='0 0 12px rgba(251,191,36,0.15)';"
-                onmouseout="if(!this.dataset.active){this.style.background='rgba(251,191,36,0.08)';this.style.borderColor='rgba(251,191,36,0.25)';this.style.boxShadow='none';}"
-              >
-                ${r.time}
-              </button>
-            `).join('')}
+      const isAura = window.CURRENT_TENANT_ID === 'aura';
+
+      if (isAura) {
+        container.innerHTML = `
+          <div class="p-4 rounded-2xl border transition-all relative overflow-hidden animate-[fadeSlideUp_0.4s_cubic-bezier(0.16,1,0.3,1)_forwards]"
+               style="background: linear-gradient(135deg, rgba(255,255,255,0.7) 0%, rgba(243,244,246,0.8) 100%);
+                      border-color: rgba(17,24,39,0.12);
+                      box-shadow: 0 4px 18px rgba(0,0,0,0.03), inset 0 1px 0 rgba(255,255,255,0.8);">
+            <div style="position:absolute;top:-30px;right:-30px;width:100px;height:100px;background:radial-gradient(circle,rgba(255,142,166,0.15) 0%,transparent 70%);pointer-events:none;"></div>
+            <p class="text-xs font-bold uppercase tracking-wider mb-2 flex items-center gap-1.5"
+               style="color:#111827;">
+              <i class="ph-fill ph-lightning text-sm animate-pulse" style="color:#FF8EA6;filter:drop-shadow(0 0 3px rgba(255,142,166,0.45));"></i> Horas recomendadas (Smart Slots)
+            </p>
+            <p class="text-xs mb-3" style="color:#52525B; font-weight:500;">
+              ¿Tienes prisa? Agenda al instante uno de estos bloques recomendados para hoy:
+            </p>
+            <div class="grid grid-cols-3 gap-2.5">
+              ${recommendations.map(r => `
+                <button 
+                  onclick="selectSmartSlot('${r.time}')" 
+                  class="smart-slot-pill py-2.5 px-3 rounded-xl border text-xs font-bold text-center transition-all focus:outline-none active:scale-95"
+                  style="background:#FFFFFF; border-color:rgba(17,24,39,0.15); color:#111827;"
+                  onmouseover="this.style.background='rgba(17,24,39,0.04)';this.style.borderColor='rgba(17,24,39,0.3)';"
+                  onmouseout="if(!this.dataset.active){this.style.background='#FFFFFF';this.style.borderColor='rgba(17,24,39,0.15)';this.style.boxShadow='none';}"
+                >
+                  ${r.time}
+                </button>
+              `).join('')}
+            </div>
           </div>
-        </div>
-      `;
+        `;
+      } else {
+        container.innerHTML = `
+          <div class="p-4 rounded-2xl border transition-all relative overflow-hidden"
+               style="background: linear-gradient(135deg, rgba(251,191,36,0.08) 0%, rgba(245,158,11,0.12) 50%, rgba(217,119,6,0.06) 100%);
+                      border-color: rgba(251,191,36,0.30);
+                      box-shadow: 0 0 20px rgba(251,191,36,0.06), inset 0 1px 0 rgba(255,255,255,0.04);">
+            <div style="position:absolute;top:-30px;right:-30px;width:100px;height:100px;background:radial-gradient(circle,rgba(251,191,36,0.12) 0%,transparent 70%);pointer-events:none;"></div>
+            <p class="text-xs font-bold uppercase tracking-wider mb-2.5 flex items-center gap-1.5"
+               style="background:linear-gradient(90deg,#FBBF24,#F59E0B,#D97706);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
+              <i class="ph-fill ph-lightning text-sm animate-pulse" style="-webkit-text-fill-color:#FBBF24;color:#FBBF24;filter:drop-shadow(0 0 4px rgba(251,191,36,0.5));"></i> Horas recomendadas (Smart Slots)
+            </p>
+            <p class="text-xs mb-3.5" style="color:rgba(255,255,255,0.65);">
+              ¿Tienes prisa? Agenda al instante uno de estos bloques recomendados para hoy:
+            </p>
+            <div class="grid grid-cols-3 gap-2.5">
+              ${recommendations.map(r => `
+                <button 
+                  onclick="selectSmartSlot('${r.time}')" 
+                  class="smart-slot-pill py-2.5 px-3 rounded-xl border text-xs font-bold text-center transition-all focus:outline-none"
+                  style="background:rgba(251,191,36,0.08); border-color:rgba(251,191,36,0.25); color:#FBBF24;"
+                  onmouseover="this.style.background='rgba(251,191,36,0.18)';this.style.borderColor='rgba(251,191,36,0.5)';this.style.boxShadow='0 0 12px rgba(251,191,36,0.15)';"
+                  onmouseout="if(!this.dataset.active){this.style.background='rgba(251,191,36,0.08)';this.style.borderColor='rgba(251,191,36,0.25)';this.style.boxShadow='none';}"
+                >
+                  ${r.time}
+                </button>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
       container.classList.remove('hidden');
     }
 
@@ -5558,18 +5591,34 @@
         updateSelectionRecap();
       }
 
+      const isAura = window.CURRENT_TENANT_ID === 'aura';
+
       document.querySelectorAll('.smart-slot-pill').forEach(btn => {
         if (btn.textContent.trim() === time) {
-          btn.style.background = 'linear-gradient(135deg,#FBBF24,#F59E0B)';
-          btn.style.color = '#000';
-          btn.style.borderColor = '#FBBF24';
-          btn.style.boxShadow = '0 0 14px rgba(251,191,36,0.3)';
+          if (isAura) {
+            btn.style.background = '#111827';
+            btn.style.color = '#FFFFFF';
+            btn.style.borderColor = '#111827';
+            btn.style.boxShadow = '0 4px 12px rgba(17,24,39,0.15)';
+          } else {
+            btn.style.background = 'linear-gradient(135deg,#FBBF24,#F59E0B)';
+            btn.style.color = '#000';
+            btn.style.borderColor = '#FBBF24';
+            btn.style.boxShadow = '0 0 14px rgba(251,191,36,0.3)';
+          }
           btn.dataset.active = '1';
         } else {
-          btn.style.background = 'rgba(251,191,36,0.08)';
-          btn.style.color = '#FBBF24';
-          btn.style.borderColor = 'rgba(251,191,36,0.25)';
-          btn.style.boxShadow = 'none';
+          if (isAura) {
+            btn.style.background = '#FFFFFF';
+            btn.style.color = '#111827';
+            btn.style.borderColor = 'rgba(17,24,39,0.15)';
+            btn.style.boxShadow = 'none';
+          } else {
+            btn.style.background = 'rgba(251,191,36,0.08)';
+            btn.style.color = '#FBBF24';
+            btn.style.borderColor = 'rgba(251,191,36,0.25)';
+            btn.style.boxShadow = 'none';
+          }
           delete btn.dataset.active;
         }
       });
@@ -6925,43 +6974,80 @@
         const xsellEl = document.getElementById('step4XSell');
         if (xsellEl) {
           if (_isProductsEnabled && _fsProducts.length > 0) {
-            xsellEl.innerHTML = `
-              <p class="text-sm font-semibold mb-2.5" style="color:#D4AF37;">¿Te falta producto en casa? Añádelo a tu cita</p>
-              <div class="overflow-x-auto no-scrollbar -mx-6 px-6">
-                <div class="flex gap-3 pb-2">
-                  ${_fsProducts.map(p => `
-                    <div class="w-40 flex-shrink-0 bg-[#0d0d10] border border-gray-800 rounded-2xl overflow-hidden">
-                      <div class="bg-white p-2 flex items-center justify-center" style="aspect-ratio:1;">
-                        ${p.imagen
-                          ? `<img src="${p.imagen}" alt="${p.nombre || ''}" class="w-full h-full object-contain">`
-                          : `<i class="ph ph-shopping-bag text-3xl text-gray-300"></i>`}
+            const isAura = window.CURRENT_TENANT_ID === 'aura';
+
+            if (isAura) {
+              xsellEl.innerHTML = `
+                <p class="text-sm font-bold mb-3" style="color:#111827;">¿Te falta producto en casa? Añádelo a tu cita</p>
+                <div class="overflow-x-auto no-scrollbar -mx-6 px-6">
+                  <div class="flex gap-3 pb-2">
+                    ${_fsProducts.map(p => `
+                      <div class="w-40 flex-shrink-0 bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
+                        <div class="bg-gray-50 p-2 flex items-center justify-center border-b border-gray-100" style="aspect-ratio:1;">
+                          ${p.imagen
+                            ? `<img src="${p.imagen}" alt="${p.nombre || ''}" class="w-full h-full object-contain mix-blend-multiply">`
+                            : `<i class="ph ph-shopping-bag text-3xl text-gray-300"></i>`}
+                        </div>
+                        <div class="p-2.5 bg-white">
+                          <p class="text-xs font-semibold text-gray-800 truncate">${p.nombre || ''}</p>
+                          <p class="text-xs font-bold mt-0.5 text-gray-900">$${Number(p.precio||0).toLocaleString('es-CL')}</p>
+                          <button data-pid="${p.id}" data-pname="${(p.nombre||'').replace(/"/g,'&quot;')}" data-pprecio="${p.precio||0}" class="xsell-btn mt-2 w-full py-1.5 rounded-lg text-xs font-bold border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors active:scale-95">+ Añadir</button>
+                        </div>
                       </div>
-                      <div class="p-2.5">
-                        <p class="text-xs font-semibold text-white truncate">${p.nombre || ''}</p>
-                        <p class="text-xs font-bold mt-0.5" style="color:#D4AF37;">$${Number(p.precio||0).toLocaleString('es-CL')}</p>
-                        <button data-pid="${p.id}" data-pname="${(p.nombre||'').replace(/"/g,'&quot;')}" data-pprecio="${p.precio||0}" class="xsell-btn mt-2 w-full py-1.5 rounded-lg text-xs font-bold border border-[#D4AF37]/50 text-[#D4AF37] hover:bg-[#D4AF37] hover:text-black transition-colors active:scale-95">+ Añadir</button>
+                    `).join('')}
+                  </div>
+                </div>`;
+            } else {
+              xsellEl.innerHTML = `
+                <p class="text-sm font-semibold mb-2.5" style="color:#D4AF37;">¿Te falta producto en casa? Añádelo a tu cita</p>
+                <div class="overflow-x-auto no-scrollbar -mx-6 px-6">
+                  <div class="flex gap-3 pb-2">
+                    ${_fsProducts.map(p => `
+                      <div class="w-40 flex-shrink-0 bg-[#0d0d10] border border-gray-800 rounded-2xl overflow-hidden">
+                        <div class="bg-white p-2 flex items-center justify-center" style="aspect-ratio:1;">
+                          ${p.imagen
+                            ? `<img src="${p.imagen}" alt="${p.nombre || ''}" class="w-full h-full object-contain">`
+                            : `<i class="ph ph-shopping-bag text-3xl text-gray-300"></i>`}
+                        </div>
+                        <div class="p-2.5">
+                          <p class="text-xs font-semibold text-white truncate">${p.nombre || ''}</p>
+                          <p class="text-xs font-bold mt-0.5" style="color:#D4AF37;">$${Number(p.precio||0).toLocaleString('es-CL')}</p>
+                          <button data-pid="${p.id}" data-pname="${(p.nombre||'').replace(/"/g,'&quot;')}" data-pprecio="${p.precio||0}" class="xsell-btn mt-2 w-full py-1.5 rounded-lg text-xs font-bold border border-[#D4AF37]/50 text-[#D4AF37] hover:bg-[#D4AF37] hover:text-black transition-colors active:scale-95">+ Añadir</button>
+                        </div>
                       </div>
-                    </div>
-                  `).join('')}
-                </div>
-              </div>`;
+                    `).join('')}
+                  </div>
+                </div>`;
+            }
+
             xsellEl.classList.remove('hidden');
             _selectedProducts = [];
+
             xsellEl.onclick = e => {
               const btn = e.target.closest('button[data-pid]');
               if (!btn) return;
               const pid = btn.dataset.pid;
               const idx = _selectedProducts.findIndex(p => p.id === pid);
+              const isAuraTenant = window.CURRENT_TENANT_ID === 'aura';
+
               if (idx === -1) {
                 _selectedProducts.push({ id: pid, nombre: btn.dataset.pname, precio: Number(btn.dataset.pprecio) });
                 btn.textContent = '✓ Añadido';
-                btn.style.background = '#D4AF37';
-                btn.style.color = '#000';
+                if (isAuraTenant) {
+                  btn.style.background = '#111827';
+                  btn.style.color = '#FFFFFF';
+                  btn.style.borderColor = '#111827';
+                } else {
+                  btn.style.background = '#D4AF37';
+                  btn.style.color = '#000';
+                  btn.style.borderColor = '#D4AF37';
+                }
               } else {
                 _selectedProducts.splice(idx, 1);
                 btn.textContent = '+ Añadir';
                 btn.style.background = '';
                 btn.style.color = '';
+                btn.style.borderColor = '';
               }
             };
           } else {
