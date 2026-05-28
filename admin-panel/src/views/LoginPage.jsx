@@ -14,6 +14,7 @@ const LOGIN_IMAGE = {
   mapubarbershop: '/loginmapu.png',
   chameleon:      '/loginchameleon.webp',
   aura:           '/aura2.png',
+  lumen:          '/djones1.png',
 };
 
 export default function LoginPage() {
