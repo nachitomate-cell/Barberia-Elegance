@@ -91,6 +91,16 @@ export default defineConfig({
               cacheableResponse: { statuses: [0, 200] },
             },
           },
+          /* Phosphor Icons (unpkg CDN) — cache-first, versión fija */
+          {
+            urlPattern: /^https:\/\/unpkg\.com\/@phosphor-icons\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'phosphor-icons',
+              expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 },
+              cacheableResponse: { statuses: [0, 200] },
+            },
+          },
         ],
       },
       devOptions: {
