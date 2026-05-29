@@ -40,6 +40,7 @@ import Comisiones       from './views/Comisiones';
 import GiftCards        from './views/GiftCards';
 import ListaEspera      from './views/ListaEspera';
 import Sucursales       from './views/Sucursales';
+import SaldoGiftCard    from './views/SaldoGiftCard';
 
 function TenantGate({ children }) {
   const { suspended } = useTenant();
@@ -142,6 +143,7 @@ export default function App() {
           <AuthProvider>
             <BrowserRouter basename="/gestion-interna">
               <Routes>
+                <Route path="/saldo-gift-card" element={<SaldoGiftCard />} />
                 <Route path="/*" element={<ProtectedApp />} />
               </Routes>
             </BrowserRouter>

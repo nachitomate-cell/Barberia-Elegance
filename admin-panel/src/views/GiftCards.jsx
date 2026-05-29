@@ -7,11 +7,21 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTenant } from '../contexts/TenantContext';
 import {
   Gift, Plus, X, Copy, CheckCheck, AlertCircle, Search,
-  CreditCard, Banknote, CheckCircle2, Clock, XCircle,
+  CreditCard, Banknote, CheckCircle2, Clock, XCircle, MessageCircle, ExternalLink, QrCode,
 } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 
 /* ── Helpers ──────────────────────────────────────────────────────── */
 function formatCLP(n) { return `$${Math.round(n).toLocaleString('es-CL')}`; }
+function shareWa(gc, tenantName) {
+  const msg = encodeURIComponent(
+    `🎁 *Gift Card ${tenantName}*\n\n` +
+    `Hola ${gc.nombre}! Tienes una Gift Card de *${formatCLP(gc.valor)}* para usar en ${tenantName}.\n\n` +
+    `Tu código es: *${gc.codigo}*\n\n` +
+    `Preséntalo en caja al momento de pagar. ✂️`
+  );
+  window.open(`https://wa.me/?text=${msg}`, '_blank');
+}
 function genCode(prefix) {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
   const seg = () => Array.from({ length: 4 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
@@ -28,11 +38,12 @@ const STATUS_CONFIG = {
 };
 
 /* ── CreateModal ──────────────────────────────────────────────────── */
-function CreateModal({ tenantId, user, onClose, onCreated }) {
+function CreateModal({ tenantId, tenantName, user, onClose, onCreated }) {
   const [valor, setValor] = useState('');
   const [nombre, setNombre] = useState('');
   const [vence, setVence] = useState('');
   const [loading, setLoading] = useState(false);
+  const [created, setCreated] = useState(null);
   const [code] = useState(() => genCode(tenantId.slice(0, 4)));
 
   const submit = async (e) => {
@@ -40,7 +51,7 @@ function CreateModal({ tenantId, user, onClose, onCreated }) {
     if (!valor || isNaN(Number(valor)) || Number(valor) <= 0) return;
     setLoading(true);
     try {
-      await addDoc(tenantCol('giftCards'), {
+      const gc = {
         codigo: code,
         valor: Number(valor),
         saldo: Number(valor),
@@ -49,13 +60,42 @@ function CreateModal({ tenantId, user, onClose, onCreated }) {
         creadoPor: user?.uid || 'admin',
         creadoEn: serverTimestamp(),
         ...(vence ? { venceEn: vence } : {}),
-      });
+      };
+      await addDoc(tenantCol('giftCards'), gc);
       onCreated();
-      onClose();
+      setCreated({ ...gc, nombre: nombre.trim() || 'Sin nombre' });
     } finally {
       setLoading(false);
     }
   };
+
+  if (created) return (
+    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-slate-900 border border-slate-800 rounded-xl w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between p-5 border-b border-slate-800">
+          <p className="text-sm font-bold text-white">Gift Card creada ✓</p>
+          <button onClick={onClose} className="text-slate-500 hover:text-white"><X size={16} /></button>
+        </div>
+        <div className="p-5 space-y-4">
+          <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-4 text-center space-y-1">
+            <p className="text-xs text-slate-400">Código</p>
+            <p className="font-mono text-lg font-bold text-emerald-400">{created.codigo}</p>
+            <p className="text-xs text-slate-400">{created.nombre} · {formatCLP(created.valor)}</p>
+          </div>
+          <button
+            onClick={() => shareWa(created, tenantName)}
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold bg-green-500/15 text-green-400 hover:bg-green-500/25 border border-green-500/30 transition-all"
+          >
+            <MessageCircle size={15} />
+            Enviar por WhatsApp
+          </button>
+          <button onClick={onClose} className="w-full py-2 rounded-xl text-sm text-slate-400 hover:text-white transition-colors">
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
@@ -193,7 +233,7 @@ function RedeemModal({ giftCards, tenantId, user, onClose, onRedeemed }) {
 }
 
 /* ── GiftCardRow ──────────────────────────────────────────────────── */
-function GiftCardRow({ gc }) {
+function GiftCardRow({ gc, tenantName }) {
   const [copied, setCopied] = useState(false);
   const cfg = STATUS_CONFIG[gc.estado] || STATUS_CONFIG.activa;
   const { Icon } = cfg;
@@ -224,6 +264,11 @@ function GiftCardRow({ gc }) {
         {cfg.label}
       </span>
       {gc.venceEn && <p className="text-xs text-slate-500 shrink-0">Vence {gc.venceEn}</p>}
+      {(gc.estado === 'activa' || gc.estado === 'parcial') && (
+        <button onClick={() => shareWa(gc, tenantName)} className="text-slate-500 hover:text-green-400 transition-colors shrink-0" title="Enviar por WhatsApp">
+          <MessageCircle size={14} />
+        </button>
+      )}
     </div>
   );
 }
@@ -231,7 +276,8 @@ function GiftCardRow({ gc }) {
 /* ── Main view ────────────────────────────────────────────────────── */
 export default function GiftCards() {
   const { user } = useAuth();
-  const { id: tenantId } = useTenant();
+  const { id: tenantId, name: tenantName } = useTenant();
+  const saldoUrl = `${window.location.origin}/gestion-interna/saldo-gift-card`;
   const [showCreate, setShowCreate] = useState(false);
   const [showRedeem, setShowRedeem] = useState(false);
   const [filter, setFilter] = useState('todas');
@@ -327,13 +373,35 @@ export default function GiftCards() {
         </div>
       ) : (
         <div className="space-y-2">
-          {filtered.map(gc => <GiftCardRow key={gc.id} gc={gc} />)}
+          {filtered.map(gc => <GiftCardRow key={gc.id} gc={gc} tenantName={tenantName} />)}
         </div>
       )}
+
+      {/* Link consulta de saldo pública */}
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-center gap-4">
+        <div className="bg-white p-2 rounded-lg shrink-0">
+          <QRCodeSVG value={saldoUrl} size={64} level="M" includeMargin={false} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-bold text-white flex items-center gap-1.5">
+            <QrCode size={14} className="text-emerald-400" />
+            Consulta de saldo para clientes
+          </p>
+          <p className="text-xs text-slate-400 mt-0.5">
+            Comparte este QR para que tus clientes consulten su saldo sin llamar.
+          </p>
+          <a href={saldoUrl} target="_blank" rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 mt-1.5 text-xs text-emerald-400 hover:underline">
+            <ExternalLink size={10} />
+            Abrir página pública
+          </a>
+        </div>
+      </div>
 
       {showCreate && (
         <CreateModal
           tenantId={tenantId}
+          tenantName={tenantName}
           user={user}
           onClose={() => setShowCreate(false)}
           onCreated={() => refresh?.()}

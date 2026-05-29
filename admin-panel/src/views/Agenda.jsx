@@ -4,7 +4,7 @@ import {
   CheckCircle2, XCircle, Clock, Trash2, Lock, History,
   User, Phone, Mail, Scissors, CalendarDays, DollarSign,
   Timer, MessageSquare, BadgeCheck, Search, ListFilter, MapPin,
-  Send, Download, RefreshCw, Copy, Check, ShoppingBag,
+  Send, Download, RefreshCw, Copy, Check, ShoppingBag, Gift,
 } from 'lucide-react';
 import {
   addDoc, updateDoc, deleteDoc, doc, getDoc, serverTimestamp, where, orderBy, limit, writeBatch, getDocs, query,
@@ -148,6 +148,10 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
   const [saving, setSaving] = useState(false);
   const [showSugg, setShowSugg] = useState(false);
   const [telError, setTelError] = useState(false);
+  const [gcInput, setGcInput]         = useState(cita?.giftCardCodigo || '');
+  const [gcFound, setGcFound]         = useState(null);
+  const [gcSearching, setGcSearching] = useState(false);
+  const [gcErr, setGcErr]             = useState('');
 
   /* Productos vendidos junto a esta cita */
   const ticketPrev = useMemo(() => Array.isArray(cita?.ticketProductos) ? cita.ticketProductos : [], [cita]);
@@ -308,12 +312,36 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
     set('barbero', b?.nombre || '');
   };
 
+  const buscarGC = async () => {
+    const code = gcInput.trim().toUpperCase();
+    if (!code) return;
+    setGcSearching(true);
+    setGcErr('');
+    setGcFound(null);
+    try {
+      const snap = await getDocs(query(tenantCol('giftCards'), where('codigo', '==', code)));
+      if (snap.empty) { setGcErr('Código no encontrado'); return; }
+      const gc = { id: snap.docs[0].id, ...snap.docs[0].data() };
+      const todayStr = new Date().toISOString().slice(0, 10);
+      if (gc.estado === 'usada') { setGcErr('Gift card ya fue usada completamente'); return; }
+      if (gc.venceEn && gc.venceEn < todayStr) { setGcErr('Gift card vencida'); return; }
+      setGcFound(gc);
+    } catch { setGcErr('Error al buscar. Intenta nuevamente.'); }
+    finally { setGcSearching(false); }
+  };
+
   const handleSave = async () => {
     if (!form.clienteNombre.trim()) return;
     setSaving(true);
     try {
       const payload = { ...form, duracionServicio: form.duracion, fecha: dateStr, updatedAt: serverTimestamp() };
       if (!payload.clienteId) delete payload.clienteId;
+      const applyingGC = !isNew && gcFound && !cita?.giftCardCodigo;
+      if (applyingGC) {
+        const gcDescuento = Math.min(gcFound.saldo, totalTicket);
+        payload.giftCardCodigo    = gcFound.codigo;
+        payload.giftCardDescuento = gcDescuento;
+      }
       if (isNew) {
         payload.creadoEn = serverTimestamp();
         if (form.barberoId) {
@@ -433,6 +461,16 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
           if (hayProductos) setTicketNuevos([]);
         } else {
           await updateDoc(citaRef, payload);
+        }
+
+        if (applyingGC) {
+          const gcDescuento = Math.min(gcFound.saldo, totalTicket);
+          const nuevoSaldo  = Math.max(0, gcFound.saldo - gcDescuento);
+          await updateDoc(doc(db, `${tenantCol('giftCards').path}/${gcFound.id}`), {
+            saldo: nuevoSaldo,
+            estado: nuevoSaldo <= 0 ? 'usada' : 'parcial',
+            ultimoUso: serverTimestamp(),
+          }).catch(() => {});
         }
 
         if (form.estado === 'Completada' && !yaEraCompletada && onComplete) {
@@ -623,6 +661,7 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
           </div>
           
           {form.estado === 'Completada' && (
+            <>
             <div className="grid grid-cols-2 gap-3 p-3 bg-slate-950 border border-slate-800/80 rounded-xl animate-in fade-in slide-in-from-top-1 duration-200">
               <div>
                 <label className={lbl}>Método de Pago *</label>
@@ -641,6 +680,43 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
                 <input className={field} type="number" placeholder="0" min="0" value={form.propina} onChange={e => set('propina', e.target.value !== '' ? Number(e.target.value) : '')} />
               </div>
             </div>
+
+            {/* Gift Card */}
+            <div className="p-3 bg-slate-950 border border-slate-800/80 rounded-xl space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                <Gift size={11} className="text-emerald-400" />
+                Gift Card (opcional)
+              </p>
+              {cita?.giftCardCodigo ? (
+                <p className="font-mono text-xs text-emerald-400 bg-emerald-500/10 px-3 py-2 rounded-lg">
+                  {cita.giftCardCodigo} — −${(cita.giftCardDescuento || 0).toLocaleString('es-CL')} aplicado ✓
+                </p>
+              ) : (
+                <>
+                  <div className="flex gap-2">
+                    <input
+                      className={`${field} flex-1 font-mono uppercase`}
+                      placeholder="XXXX-XXXX-XXXX"
+                      value={gcInput}
+                      onChange={e => { setGcInput(e.target.value.toUpperCase()); setGcFound(null); setGcErr(''); }}
+                      onKeyDown={e => e.key === 'Enter' && buscarGC()}
+                    />
+                    <button type="button" onClick={buscarGC} disabled={gcSearching}
+                      className="px-3 py-2 rounded-lg bg-slate-700 text-slate-300 hover:bg-slate-600 text-xs font-semibold disabled:opacity-50 shrink-0">
+                      {gcSearching ? '...' : <Search size={13} />}
+                    </button>
+                  </div>
+                  {gcErr && <p className="text-xs text-red-400">{gcErr}</p>}
+                  {gcFound && (
+                    <div className="flex items-center justify-between bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2">
+                      <span className="text-xs text-emerald-400">{gcFound.nombre} · Saldo: ${gcFound.saldo.toLocaleString('es-CL')}</span>
+                      <span className="text-xs font-bold text-emerald-400">−${Math.min(gcFound.saldo, totalTicket).toLocaleString('es-CL')}</span>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+            </>
           )}
 
           {/* Productos vendidos junto a la cita */}
