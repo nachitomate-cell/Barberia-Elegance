@@ -8,6 +8,30 @@ import { Sparkles, X, ChevronRight, Tag } from 'lucide-react';
 /* ── Mock data (reemplazar con Firestore `global_news` en el futuro) ── */
 const newsFeed = [
   {
+    id: 'v5-vip-holographic-card',
+    date: '2026-05-29',
+    category: 'nueva-funcion',
+    title: 'Tarjeta VIP Holográfica por Niveles',
+    summary: 'Dashboard público con tarjeta holográfica 3D para clientes: Bronze, Silver, Gold y Platinum según visitas acumuladas.',
+    detail: 'Cada cliente puede acceder a /gestion-interna/dashboard, ingresar su número de teléfono y ver su tarjeta VIP personal. El sistema cuenta automáticamente sus citas completadas y asigna el nivel correspondiente: Bronze (1-4 visitas), Silver (5-9), Gold (10-19) o Platinum (20+). La tarjeta tiene efecto holográfico real: en escritorio gira en 3D siguiendo el mouse (±28°) con brillo radial que sigue el cursor; en mobile flota idle con una animación de sweep de luz cada 4 segundos. El nivel Platinum tiene un overlay de arcoíris animado con rotación de hue continua. Además muestra barra de progreso al siguiente nivel, beneficios exclusivos por nivel y las últimas 3 visitas del cliente.',
+  },
+  {
+    id: 'v5-gift-cards-complete',
+    date: '2026-05-29',
+    category: 'nueva-funcion',
+    title: 'Gift Cards Completas: WhatsApp, Checkout y Saldo Público',
+    summary: 'Las gift cards ahora se comparten por WhatsApp, se aplican al momento de cobrar una cita y los clientes pueden consultar su saldo desde un link público.',
+    detail: 'Tres mejoras en un solo update: (1) Al crear una gift card el modal muestra una pantalla de éxito con botón "Enviar por WhatsApp" que abre wa.me con el código y valor pre-cargado. Cada tarjeta activa en la lista también tiene un botón de compartir. (2) En la agenda, al marcar una cita como Completada aparece un campo opcional de Gift Card: se ingresa el código, el sistema valida el saldo disponible y al guardar descuenta automáticamente de la tarjeta actualizando su estado en Firestore. (3) Página pública en /gestion-interna/saldo-gift-card donde cualquier cliente puede ingresar su código y ver su saldo sin necesitar login. La vista de Gift Cards en el panel muestra un QR que apunta a esa página.',
+  },
+  {
+    id: 'v5-tv-performance',
+    date: '2026-05-29',
+    category: 'mejora',
+    title: 'Barber TV — Rendimiento Optimizado',
+    summary: 'Eliminamos el setInterval de 80ms de la barra de progreso, montaje lazy de slides y video de fondo instantáneo en reloads.',
+    detail: 'Tres optimizaciones para hardware de TV de bajo costo: (1) La barra de progreso de diapositivas dejó de usar setInterval cada 80ms (12.5 re-renders por segundo) y ahora usa animación CSS pura con @keyframes scaleX — cero carga en el hilo de JavaScript. (2) Los slides del carrusel ahora se montan de forma lazy: solo el slide actual y los visitados anteriormente están en el DOM, reduciendo el trabajo de render inicial. (3) La URL del video de fondo se cachea en sessionStorage por tenant — en cada recarga de la TV (común al reiniciar pantallas), el video empieza a descargarse inmediatamente en paralelo con la carga de configuración de Firestore en lugar de esperar a que esta llegue, eliminando el retraso visible.',
+  },
+  {
     id: 'v4-realtime-notifications',
     date: '2026-05-23',
     category: 'nueva-funcion',
