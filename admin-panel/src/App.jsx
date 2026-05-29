@@ -35,6 +35,11 @@ import HistorialCortes  from './views/HistorialCortes';
 import InstagramPage    from './views/Instagram';
 import Academia         from './views/Academia';
 import Resenas          from './views/Resenas';
+import ReservaPublica   from './views/ReservaPublica';
+import Comisiones       from './views/Comisiones';
+import GiftCards        from './views/GiftCards';
+import ListaEspera      from './views/ListaEspera';
+import Sucursales       from './views/Sucursales';
 
 function TenantGate({ children }) {
   const { suspended } = useTenant();
@@ -94,6 +99,11 @@ function ProtectedApp() {
             <Route path="resenas"         element={<Resenas />} />
             <Route path="instagram"       element={<InstagramPage />} />
             <Route path="academia"        element={<Academia />} />
+            <Route path="reserva-online"  element={<ReservaPublica />} />
+            <Route path="comisiones"      element={<Comisiones />} />
+            <Route path="gift-cards"      element={<GiftCards />} />
+            <Route path="lista-espera"    element={<ListaEspera />} />
+            <Route path="sucursales"      element={<Sucursales />} />
             <Route path="booking-preview"   element={<BookingFlow />} />
             <Route path="agenda-preview"    element={<AgendaBarbero barberoNombre="Joaquin Amiri" />} />
             <Route path="*"               element={<Navigate to={defaultRoute} replace />} />

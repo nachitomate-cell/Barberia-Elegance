@@ -5,6 +5,7 @@ import {
   Trophy, ShoppingBag, Images, LogOut, ChevronRight,
   Sun, Moon, ExternalLink, Settings, TrendingDown, MessageCircle, X,
   Megaphone, ImagePlus, CreditCard, Monitor, Headphones, Medal, Camera, GraduationCap, Wallet, Package, ThumbsUp,
+  Globe, Banknote, Gift, ClipboardList, Building2,
 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { doc, onSnapshot, where } from 'firebase/firestore';
@@ -19,8 +20,10 @@ const NAV_GROUPS_DEFAULT = [
     id: 'operaciones',
     label: 'Operaciones',
     items: [
-      { to: 'agenda',   label: 'Agenda',   Icon: CalendarDays  },
-      { to: 'mensajes', label: 'Mensajes', Icon: MessageCircle },
+      { to: 'agenda',         label: 'Agenda',          Icon: CalendarDays  },
+      { to: 'mensajes',       label: 'Mensajes',        Icon: MessageCircle },
+      { to: 'lista-espera',   label: 'Lista de espera', Icon: ClipboardList },
+      { to: 'reserva-online', label: 'Reserva online',  Icon: Globe         },
     ],
   },
   {
@@ -54,10 +57,11 @@ const NAV_GROUPS_DEFAULT = [
     id: 'analisis',
     label: 'Análisis',
     items: [
-      { to: 'metricas',   label: 'Métricas',        Icon: BarChart3,    adminOnly: false },
-      { to: 'inventario', label: 'Inventario',       Icon: Package,     adminOnly: true  },
-      { to: 'gastos',     label: 'Gastos',           Icon: TrendingDown, adminOnly: true  },
-      { to: 'caja',       label: 'Control de Caja',  Icon: Wallet,      adminOnly: true  },
+      { to: 'metricas',    label: 'Métricas',        Icon: BarChart3,    adminOnly: false },
+      { to: 'comisiones',  label: 'Comisiones',      Icon: Banknote,     adminOnly: true  },
+      { to: 'inventario',  label: 'Inventario',      Icon: Package,      adminOnly: true  },
+      { to: 'gastos',      label: 'Gastos',          Icon: TrendingDown, adminOnly: true  },
+      { to: 'caja',        label: 'Control de Caja', Icon: Wallet,       adminOnly: true  },
     ],
   },
   {
@@ -65,11 +69,13 @@ const NAV_GROUPS_DEFAULT = [
     label: 'Administración',
     adminOnly: true,
     items: [
-      { to: 'marketing',     label: 'Marketing',     Icon: Megaphone,  adminOnly: true },
-      { to: 'mensualidad',   label: 'Mensualidad',   Icon: CreditCard, adminOnly: true },
-      { to: 'tv-config',     label: 'Pantalla TV',   Icon: Monitor,    adminOnly: true },
-      { to: 'configuracion', label: 'Configuración', Icon: Settings,   adminOnly: true },
-      { to: 'soporte',       label: 'Soporte',       Icon: Headphones, adminOnly: true },
+      { to: 'marketing',     label: 'Marketing',      Icon: Megaphone,   adminOnly: true },
+      { to: 'gift-cards',    label: 'Gift Cards',     Icon: Gift,        adminOnly: true },
+      { to: 'sucursales',    label: 'Sucursales',     Icon: Building2,   adminOnly: true },
+      { to: 'mensualidad',   label: 'Mensualidad',    Icon: CreditCard,  adminOnly: true },
+      { to: 'tv-config',     label: 'Pantalla TV',    Icon: Monitor,     adminOnly: true },
+      { to: 'configuracion', label: 'Configuración',  Icon: Settings,    adminOnly: true },
+      { to: 'soporte',       label: 'Soporte',        Icon: Headphones,  adminOnly: true },
     ],
   },
 ];
