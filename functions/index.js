@@ -703,3 +703,11 @@ exports.pushSelloGanadoTenant      = pushCliente.pushSelloGanadoTenant;
 // ─────────────────────────────────────────────────────────────────
 const autoEnroll = require('./auto-enroll-cliente');
 exports.autoEnrollTenant = autoEnroll.autoEnrollTenant;
+
+// ─────────────────────────────────────────────────────────────────
+//  REACTIVACIÓN DE CLIENTES — ver reactivacion-clientes.js
+//  Cron diario a las 10:00 AM Santiago. Envía WhatsApp a clientes
+//  inactivos (+30 días sin cita) con link de reserva. Cooldown 30d.
+// ─────────────────────────────────────────────────────────────────
+const reactivacionClientes = require('./reactivacion-clientes');
+exports.reactivacionClientes = reactivacionClientes.reactivacionClientes;
