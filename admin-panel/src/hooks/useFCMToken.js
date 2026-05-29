@@ -21,9 +21,9 @@ export async function activarNotificaciones({ uid, tenantId }) {
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') return permission; // 'denied' | 'default'
 
-    const swReg = await navigator.serviceWorker.register(SW_URL, {
-      scope: '/gestion-interna/',
-    });
+    // Registrar SW y esperar a que esté activo antes de pedir token
+    navigator.serviceWorker.register(SW_URL, { scope: '/gestion-interna/' }).catch(() => {});
+    const swReg = await navigator.serviceWorker.ready;
 
     const messaging = getMessaging(getApps()[0]);
     const token = await getToken(messaging, {

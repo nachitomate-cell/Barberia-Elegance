@@ -12,11 +12,18 @@ export default function NotificationBanner() {
   const [status, setStatus] = useState('idle'); // idle | loading | error
 
   useEffect(() => {
-    if (!('Notification' in window)) return;
-    if (Notification.permission === 'granted') return;
-    if (localStorage.getItem(DISMISSED_KEY)) return;
-    setShow(true);
-  }, []);
+    if (!('Notification' in window) || !user) return;
+
+    if (Notification.permission === 'granted') {
+      // Permiso ya concedido: refrescar token silenciosamente en cada carga
+      activarNotificaciones({ uid: user.uid, tenantId: resolveTenantId() }).catch(() => {});
+      return;
+    }
+
+    if (!localStorage.getItem(DISMISSED_KEY)) {
+      setShow(true);
+    }
+  }, [user]);
 
   if (!show) return null;
 

@@ -21,6 +21,7 @@ export default defineConfig({
         orientation: 'portrait-primary',
         start_url: '/gestion-interna/',
         scope: '/gestion-interna/',
+        gcm_sender_id: '515311607907',
         icons: [
           {
             src: '/gestion-interna/pwa-192.png',
