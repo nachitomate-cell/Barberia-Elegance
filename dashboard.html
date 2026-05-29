@@ -6332,28 +6332,29 @@ function auraCountUp(targetNum, totalTarget) {
 
     async function cerrarFeedbackCard() {
       if (!_selectedFeedbackCitaId) return;
-      showLoading('Cerrando...');
+      const fContainer = document.getElementById('interactiveFeedbackContainer');
+      if (fContainer) fContainer.classList.add('hidden');
       try {
         await FDB.citasCol().doc(_selectedFeedbackCitaId).update({ pendingGoogleReview: false });
-        const fContainer = document.getElementById('interactiveFeedbackContainer');
-        if (fContainer) fContainer.classList.add('hidden');
       } catch (e) {
         console.warn('[Feedback] Error al ocultar banner:', e.message);
-      } finally {
-        hideLoading();
       }
     }
 
     async function enviarFeedbackYPropina() {
       if (!_selectedFeedbackCitaId) return;
       if (_selectedFeedbackRating === 0) return alert('Por favor, selecciona una calificación.');
-      
-      showLoading('Enviando valoración...');
-      
+
+      const btn = document.querySelector('[onclick="enviarFeedbackYPropina()"]');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="w-4 h-4 border-2 border-black/40 border-t-black rounded-full animate-spin inline-block"></span>';
+      }
+
       // Gather active chips
       const chips = [];
       document.querySelectorAll('.review-chip.active-chip').forEach(c => chips.push(c.textContent));
-      
+
       // Gather comment
       const commentInput = document.getElementById('feedbackComment');
       let comment = commentInput ? commentInput.value.trim() : '';
@@ -6361,7 +6362,7 @@ function auraCountUp(targetNum, totalTarget) {
         const chipStr = chips.join(', ');
         comment = comment ? `${chipStr}. ${comment}` : chipStr;
       }
-      
+
       try {
         await FDB.citasCol().doc(_selectedFeedbackCitaId).update({
           rating: Number(_selectedFeedbackRating),
@@ -6370,29 +6371,24 @@ function auraCountUp(targetNum, totalTarget) {
           ratingCreatedAt: firebase.firestore.FieldValue.serverTimestamp(),
           pendingGoogleReview: false
         });
-        
-        hideLoading();
-        
+
         // Burst Confetti!
         if (typeof confetti === 'function') {
-          confetti({
-            particleCount: 100,
-            spread: 70,
-            origin: { y: 0.8 }
-          });
+          confetti({ particleCount: 100, spread: 70, origin: { y: 0.8 } });
         }
-        
-        // Hide card immediately
+
         const fContainer = document.getElementById('interactiveFeedbackContainer');
         if (fContainer) fContainer.classList.add('hidden');
-        
-        // If rating is positive (4 or 5 stars), prompt for Google Review modal
+
         if (_selectedFeedbackRating >= 4) {
           setTimeout(() => mostrarGoogleReviewModal(_selectedFeedbackCitaId), 800);
         }
-        
+
       } catch (err) {
-        hideLoading();
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="ph-bold ph-paper-plane-right"></i> Enviar calificación';
+        }
         alert('No se pudo enviar tu valoración. Intenta de nuevo.');
       }
     }
