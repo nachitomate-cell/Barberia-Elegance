@@ -444,10 +444,11 @@ export default function Configuracion() {
             </a>
           </div>
           <p className="text-center text-xs text-slate-600">
-            Desarrollado con ❤️ por{' '}
+            ⚡ Engineered by{' '}
             <a href="https://www.synaptechspa.cl/" target="_blank" rel="noopener noreferrer" className="hover:text-slate-400 transition-colors" style={{ color: 'rgba(212,175,55,0.6)' }}>
               SynapTech SpA
             </a>
+            {' '}— software del futuro, hoy.
           </p>
         </div>
       </div>

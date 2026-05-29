@@ -1194,9 +1194,9 @@
        Paleta: Azul acero (#9CA3AF) · Navy (#00285E) · Blanco/Gris claro
        ═══════════════════════════════════════════════════════════════ */
     .tenant-aura {
-      --gold:      #9CA3AF;
-      --gold-dim:  rgba(156,163,175,0.25);
-      --gold-glow: rgba(156,163,175,0.12);
+      --gold:      #00285E;
+      --gold-dim:  rgba(0,40,94,0.08);
+      --gold-glow: rgba(0,40,94,0.12);
     }
     html.tenant-aura body { background-color: #F9FAFB; color: #18181B; }
 
@@ -1359,26 +1359,26 @@
     .tenant-aura .nav-tab .nav-icon  { color: #A1A1AA !important; filter: none !important; }
     .tenant-aura .nav-tab .nav-label { color: #A1A1AA !important; }
     .tenant-aura .nav-tab.active .nav-icon {
-      color: #9CA3AF !important;
+      color: #00285E !important;
       filter: none !important;
     }
-    .tenant-aura .nav-tab.active .nav-label { color: #9CA3AF !important; }
+    .tenant-aura .nav-tab.active .nav-label { color: #00285E !important; }
 
     /* Tier badges */
-    .tenant-aura .tier-badge.gold     { color: #9CA3AF; border-color: rgba(156,163,175,0.35); }
+    .tenant-aura .tier-badge.gold     { color: #00285E; border-color: rgba(0,40,94,0.30); }
     .tenant-aura .tier-badge.platinum { color: #00285E; border-color: rgba(0,40,94,0.28); }
 
     /* Botones de acción */
     .tenant-aura .btn-accion-primary {
-      background: #9CA3AF !important;
-      color: #18181B !important;
-      box-shadow: 0 4px 18px rgba(156,163,175,0.30) !important;
+      background: linear-gradient(135deg, #00285E 0%, #1e3a8a 100%) !important;
+      color: #FFFFFF !important;
+      box-shadow: 0 4px 18px rgba(0,40,94,0.22) !important;
       border: none !important;
     }
     .tenant-aura a.btn-reservar {
-      background: #9CA3AF !important;
-      color: #18181B !important;
-      box-shadow: 0 4px 18px rgba(156,163,175,0.30) !important;
+      background: linear-gradient(135deg, #00285E 0%, #1e3a8a 100%) !important;
+      color: #FFFFFF !important;
+      box-shadow: 0 4px 18px rgba(0,40,94,0.22) !important;
     }
 
     /* Autofill en edición de perfil */
@@ -1419,9 +1419,9 @@
     }
     /* "Ver premios" — botón blanco sobre card blanca: invisible */
     .tenant-aura button[onclick*="togglePremios"] {
-      background: #9CA3AF !important;
-      color: #ffffff !important;
-      box-shadow: 0 2px 10px rgba(156,163,175,0.25) !important;
+      background: linear-gradient(135deg, #00285E 0%, #1e3a8a 100%) !important;
+      color: #FFFFFF !important;
+      box-shadow: 0 2px 10px rgba(0,40,94,0.18) !important;
     }
     /* Botones reagendar (CSS base hardcodeado en dorado) */
     .tenant-aura .reagendar-proxima-btn {
@@ -1595,9 +1595,9 @@
        Paleta: Urbano-Industrial Light Mode (Cultura Deportiva)
        ═══════════════════════════════════════════════════════════════ */
     .tenant-aura {
-      --gold: #9CA3AF;
-      --gold-dim: rgba(156,163,175,0.35);
-      --gold-glow: rgba(156,163,175,0.18);
+      --gold: #00285E;
+      --gold-dim: rgba(0,40,94,0.08);
+      --gold-glow: rgba(0,40,94,0.12);
     }
     .tenant-aura body {
       background-color: #F9FAFB !important;
@@ -1650,14 +1650,15 @@
       background: radial-gradient(circle, rgba(156,163,175,0.25) 0%, transparent 65%) !important;
     }
     .tenant-aura #heroLine1 { color: #FFFFFF !important; text-shadow: none !important; }
-    .tenant-aura #heroLine2 { color: #9CA3AF !important; text-shadow: none !important; }
+    .tenant-aura #heroLine2 { color: rgba(255,255,255,0.72) !important; text-shadow: none !important; }
     .tenant-aura .hero-cta {
-      background: #9CA3AF !important;
-      border: 1px solid #9CA3AF !important;
-      color: #FFFFFF !important;
-      box-shadow: 0 4px 16px rgba(156,163,175,0.3) !important;
+      background: #FFFFFF !important;
+      border: 1px solid rgba(255,255,255,0.85) !important;
+      color: #00285E !important;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.18) !important;
     }
-    .tenant-aura .hero-cta i { color: #FFFFFF !important; }
+    .tenant-aura .hero-cta i { color: #00285E !important; }
+    .tenant-aura .hero-cta span { color: #00285E !important; }
     
     /* Instalar App Banner */
     .tenant-aura #pwaBigInstallCard {
@@ -1690,13 +1691,13 @@
       border-color: #9CA3AF !important;
       box-shadow: none !important;
     }
-    .tenant-aura .stamp-cell.prize-filled i { color: #9CA3AF !important; filter: none !important; }
-    .tenant-aura #stampsBar { background: #9CA3AF !important; box-shadow: none !important; }
-    
+    .tenant-aura .stamp-cell.prize-filled i { color: #00285E !important; filter: none !important; }
+    .tenant-aura #stampsBar { background: linear-gradient(90deg, #00285E, #1e3a8a) !important; box-shadow: none !important; }
+
     /* Próximo Premio */
-    .tenant-aura .premio-icon { color: #9CA3AF !important; }
+    .tenant-aura .premio-icon { color: #00285E !important; }
     .tenant-aura #nextRewardText { color: #18181B !important; }
-    .tenant-aura button[onclick="togglePremios()"] { background: #9CA3AF !important; color: #FFFFFF !important; }
+    .tenant-aura button[onclick="togglePremios()"] { background: linear-gradient(135deg, #00285E 0%, #1e3a8a 100%) !important; color: #FFFFFF !important; }
     
     /* Perfil Visitas */
     .tenant-aura #perfilVisitasCard { background-color: #FFFFFF !important; border-color: #D4D4D8 !important; }
@@ -1705,6 +1706,25 @@
     
     /* Servicios Destacados */
     .tenant-aura .service-card { background: #FFFFFF !important; border: 1px solid #D4D4D8 !important; }
+
+    /* Productos Tab — product cards (Lightwork) */
+    .tenant-aura #productosGrid > div {
+      background: #FFFFFF !important;
+      border-color: #E4E4E7 !important;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04) !important;
+    }
+    .tenant-aura #productosGrid > div:hover {
+      box-shadow: 0 4px 16px rgba(0,40,94,0.08) !important;
+      border-color: rgba(0,40,94,0.2) !important;
+    }
+    /* Precio dorado → navy */
+    .tenant-aura #productosGrid [style*="color:#D4AF37"] { color: #00285E !important; }
+    /* "Ver detalle" badge */
+    .tenant-aura #productosGrid .border-\[\#D4AF37\]\/60 {
+      border-color: rgba(0,40,94,0.22) !important;
+      color: #00285E !important;
+    }
+    .tenant-aura #productosGrid .text-\[\#D4AF37\] { color: #00285E !important; }
     
     /* Conoce al equipo btn */
     .tenant-aura button[onclick="abrirEquipoModal()"] {
@@ -1819,7 +1839,7 @@
       background: rgba(156,163,175,0.10) !important;
       border-color: rgba(156,163,175,0.30) !important;
     }
-    .tenant-aura #canjeModal [style*="color:#D4AF37"] { color: #9CA3AF !important; }
+    .tenant-aura #canjeModal [style*="color:#D4AF37"] { color: #00285E !important; }
     .tenant-aura #canjeModal #canjeModalTitle { color: #18181B !important; }
     .tenant-aura #canjeModal .bg-\[#1a1a1f\] {
       background: #F4F4F5 !important;
@@ -1949,7 +1969,7 @@
     }
 
     /* Chat toggle button */
-    .tenant-aura #chatToggleBtn { background: #9CA3AF !important; }
+    .tenant-aura #chatToggleBtn { background: linear-gradient(135deg, #00285E 0%, #1e3a8a 100%) !important; }
     .tenant-aura #chatToggleBtn svg { fill: #FFFFFF !important; }
 
     /* Chat popover */
@@ -1976,16 +1996,31 @@
       color: #18181B !important;
     }
     .tenant-aura #chatInput::placeholder { color: #A1A1AA !important; }
-    .tenant-aura button[onclick="sendChatMessage()"] { background: #9CA3AF !important; }
+    .tenant-aura button[onclick="sendChatMessage()"] { background: linear-gradient(135deg, #00285E 0%, #1e3a8a 100%) !important; }
     .tenant-aura button[onclick="sendChatMessage()"] svg { fill: #FFFFFF !important; }
 
     /* Producto modal */
-    .tenant-aura #productoModal { background: rgba(0,40,94,0.50) !important; }
-    .tenant-aura #productoModal > div { background: #FFFFFF !important; }
-    .tenant-aura #productoModal button.bg-black\/60 {
-      background: rgba(24,24,27,0.08) !important;
+    .tenant-aura #productoModal { background: rgba(0,28,68,0.55) !important; }
+    .tenant-aura #productoModal > div {
+      background: #FFFFFF !important;
+      border: 1px solid #E4E4E7 !important;
+      box-shadow: 0 24px 48px rgba(0,0,0,0.12) !important;
     }
-    .tenant-aura #productoModal button.bg-black\/60 i { color: #18181B !important; }
+    .tenant-aura #productoModal button.bg-black\/60 {
+      background: rgba(24,24,27,0.07) !important;
+      border: 1px solid #E4E4E7 !important;
+    }
+    .tenant-aura #productoModal button.bg-black\/60 i { color: #52525B !important; }
+    .tenant-aura #productoModalNombre { color: #18181B !important; }
+    .tenant-aura #productoModalDesc { color: #52525B !important; }
+    .tenant-aura #productoModalPrecio { color: #00285E !important; }
+    /* Botón agregar al carrito en modal de producto */
+    .tenant-aura #productoModal .bg-\[\#D4AF37\],
+    .tenant-aura #productoModal [style*="background:#D4AF37"],
+    .tenant-aura #productoModal [style*="background: #D4AF37"] {
+      background: linear-gradient(135deg, #00285E 0%, #1e3a8a 100%) !important;
+      box-shadow: 0 4px 14px rgba(0,40,94,0.25) !important;
+    }
 
     /* PWA iOS modal */
     .tenant-aura #pwaModalIOS { background: rgba(0,40,94,0.50) !important; }
@@ -3012,27 +3047,44 @@
       </div>
 
       <!-- ── AURA PREMIUM CLUB / SUBSCRIPTIONS PROMO CARD (Aura Only) ── -->
-      <div id="auraMembresiaPromoCard" data-aura-stagger class="hidden mx-4 mb-5 rounded-3xl p-5 relative overflow-hidden transition-all active:scale-[0.99] border cursor-pointer font-sans"
+      <div id="auraMembresiaPromoCard" data-aura-stagger class="hidden mx-4 mb-5 rounded-3xl relative overflow-hidden cursor-pointer font-sans transition-all duration-300 active:scale-[0.985]"
            onclick="abrirAuraMembresiaModal()"
-           style="background: linear-gradient(135deg, #00285E, #001C44); border-color: rgba(255,255,255,0.1); box-shadow: 0 10px 25px -5px rgba(0, 40, 94, 0.3);">
-        <!-- Subtle abstract background circle -->
-        <div class="absolute -right-10 -bottom-10 w-40 h-40 rounded-full pointer-events-none" style="background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);"></div>
-        <div class="absolute -left-6 -top-6 w-24 h-24 rounded-full pointer-events-none" style="background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 60%);"></div>
-        
-        <div class="flex items-center justify-between relative z-10">
-          <div class="flex-1 pr-4">
-            <span class="text-[9px] font-black uppercase tracking-[0.2em] px-2.5 py-1 rounded-full bg-white/10 text-white/95 mb-2.5 inline-block">AURA PREMIUM PASS</span>
-            <h3 class="text-white font-bold text-lg leading-tight mb-1.5">Club de Suscripciones</h3>
-            <p class="text-xs text-white/85 leading-relaxed">Suscripción mensual con cortes ilimitados, peinados y beneficios VIP exclusivos.</p>
+           style="background: linear-gradient(145deg, #001433 0%, #00285E 50%, #003580 100%); box-shadow: 0 12px 32px -6px rgba(0,28,68,0.45), inset 0 1px 0 rgba(255,255,255,0.08);">
+
+        <!-- Grid mesh overlay -->
+        <div class="absolute inset-0 pointer-events-none" style="background-image: linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px); background-size: 28px 28px;"></div>
+
+        <!-- Glow orbs -->
+        <div class="absolute -top-8 -right-8 w-44 h-44 rounded-full pointer-events-none" style="background: radial-gradient(circle, rgba(96,165,250,0.18) 0%, transparent 65%);"></div>
+        <div class="absolute -bottom-10 -left-10 w-36 h-36 rounded-full pointer-events-none" style="background: radial-gradient(circle, rgba(255,255,255,0.07) 0%, transparent 65%);"></div>
+
+        <!-- Top strip: badge + icon -->
+        <div class="relative z-10 flex items-center justify-between px-5 pt-5 pb-3">
+          <div class="flex items-center gap-2">
+            <div class="w-7 h-7 rounded-xl flex items-center justify-center" style="background:rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.15);">
+              <i class="ph-fill ph-crown text-sm text-white/90"></i>
+            </div>
+            <span class="text-[9px] font-black uppercase tracking-[0.22em] text-white/60">Aura Premium Pass</span>
           </div>
-          <div class="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 bg-white/15 border border-white/10 text-white shadow-lg">
-            <i class="ph-bold ph-sparkle text-2xl animate-pulse"></i>
-          </div>
+          <span class="text-[9px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full text-white/80" style="background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.12);">Nuevo</span>
         </div>
-        
-        <div class="mt-4 pt-3 border-t border-white/10 flex items-center justify-between text-xs text-white/90 font-bold relative z-10">
-          <span>Ver planes disponibles</span>
-          <div class="flex items-center gap-1">
+
+        <!-- Main content -->
+        <div class="relative z-10 px-5 pb-4">
+          <h3 class="text-white font-extrabold text-[1.35rem] leading-tight tracking-tight mb-1">Club de Suscripciones</h3>
+          <p class="text-[11px] leading-relaxed" style="color:rgba(255,255,255,0.55);">Cortes ilimitados · Peinados · Beneficios VIP exclusivos</p>
+        </div>
+
+        <!-- Divider -->
+        <div class="relative z-10 mx-5 h-px" style="background: linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent);"></div>
+
+        <!-- Footer CTA -->
+        <div class="relative z-10 flex items-center justify-between px-5 py-3.5">
+          <div class="flex items-center gap-1.5">
+            <i class="ph-fill ph-seal-check text-sm" style="color:rgba(147,197,253,0.8);"></i>
+            <span class="text-[11px] font-semibold" style="color:rgba(255,255,255,0.55);">Ver planes disponibles</span>
+          </div>
+          <div class="flex items-center gap-1.5 px-3.5 py-2 rounded-full font-bold text-[11px] text-[#00285E]" style="background:#FFFFFF; box-shadow: 0 2px 8px rgba(0,0,0,0.25);">
             <span>Explorar Club</span>
             <i class="ph-bold ph-arrow-right text-xs"></i>
           </div>
@@ -5520,47 +5572,60 @@ function renderAuraMembresiaPlanesModal(planes) {
   }
   
   container.innerHTML = planes.map((plan, idx) => {
-    const isPopular = planes.length > 1 && idx === planes.length - 2;
-    const formattedPrice = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(plan.precioMensual || 0);
+    const isPopular = planes.length > 1 && idx === planes.length - 1;
+    const rawPrice = plan.precio || plan.precioMensual || 0;
+    const formattedPrice = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(rawPrice);
     const benefits = (plan.caracteristicas || []).map(benefit => `
-      <li class="flex items-start gap-2 text-xs text-gray-600 font-sans">
-        <i class="ph-fill ph-check-circle text-[#00285E] text-base shrink-0 mt-0.5" style="color: #00285E !important;"></i>
-        <span class="leading-tight">${esc(benefit)}</span>
+      <li class="flex items-start gap-2 font-sans" style="font-size:11px; color:#52525B;">
+        <i class="ph-fill ph-check-circle shrink-0 mt-0.5" style="font-size:14px; color:#00285E;"></i>
+        <span class="leading-snug">${esc(benefit)}</span>
       </li>
     `).join('');
-    
+
     return `
-      <div class="relative rounded-2xl p-5 border-2 transition-all duration-300 bg-white ${isPopular ? 'border-[#00285E]' : 'border-gray-200'}"
-           style="box-shadow: ${isPopular ? '0 8px 24px rgba(0, 40, 94, 0.05)' : 'none'};">
+      <div class="relative rounded-2xl overflow-hidden transition-all duration-200 font-sans"
+           style="${isPopular
+             ? 'background: linear-gradient(145deg,#001433,#00285E); box-shadow: 0 10px 28px rgba(0,40,94,0.22);'
+             : 'background:#FFFFFF; border: 1.5px solid #E4E4E7; box-shadow: 0 2px 8px rgba(0,0,0,0.04);'}">
+
         ${isPopular ? `
-          <span class="absolute -top-3 right-4 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider text-white" 
-                style="background: linear-gradient(135deg, #00285E 0%, #1e3a8a 100%);">
-            Más Popular
-          </span>
+          <div style="background:rgba(255,255,255,0.10); padding:3px 10px 3px 12px; display:flex; align-items:center; gap:6px; border-bottom:1px solid rgba(255,255,255,0.10);">
+            <i class="ph-fill ph-star" style="font-size:10px; color:rgba(255,255,255,0.7);"></i>
+            <span style="font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:0.15em; color:rgba(255,255,255,0.75);">Más popular</span>
+          </div>
         ` : ''}
-        
-        <div class="flex items-start justify-between mb-2">
-          <div>
-            <h4 class="text-base font-extrabold text-[#00285E] font-sans">${esc(plan.nombre)}</h4>
-            <p class="text-[11px] text-gray-400 font-sans mt-0.5">${esc(plan.descripcion || 'Plan mensual')}</p>
+
+        <div style="padding: 14px 16px 6px;">
+          <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:10px;">
+            <h4 style="font-size:13px; font-weight:800; line-height:1.3; color:${isPopular ? '#FFFFFF' : '#00285E'};">${esc(plan.nombre)}</h4>
+            <div style="text-align:right; flex-shrink:0;">
+              <span style="font-size:20px; font-weight:900; color:${isPopular ? '#FFFFFF' : '#00285E'}; line-height:1;">${formattedPrice}</span>
+              <span style="font-size:10px; color:${isPopular ? 'rgba(255,255,255,0.55)' : '#9CA3AF'}; display:block; margin-top:1px;">/mes</span>
+            </div>
           </div>
-          <div class="text-right shrink-0 ml-4">
-            <span class="text-lg font-black text-[#00285E] font-sans">${formattedPrice}</span>
-            <span class="text-[10px] text-gray-400 font-sans">/mes</span>
-          </div>
+
+          <div style="height:1px; background:${isPopular ? 'rgba(255,255,255,0.12)' : '#F0F0F2'}; margin-bottom:10px;"></div>
+
+          <ul style="display:flex; flex-direction:column; gap:6px; margin-bottom:14px;">
+            ${isPopular
+              ? (plan.caracteristicas || []).map(b => `
+                  <li style="display:flex; align-items:flex-start; gap:7px; font-size:11px; color:rgba(255,255,255,0.80);">
+                    <i class="ph-fill ph-check-circle" style="font-size:13px; color:rgba(255,255,255,0.6); flex-shrink:0; margin-top:1px;"></i>
+                    <span style="line-height:1.4;">${esc(b)}</span>
+                  </li>`).join('')
+              : benefits}
+          </ul>
+
+          <a href="membresia.html?plan=${esc(plan.id)}"
+             style="display:flex; align-items:center; justify-content:center; gap:6px; width:100%; padding:9px 0; border-radius:10px; font-size:12px; font-weight:700; transition:opacity .15s;
+                    ${isPopular
+                      ? 'background:#FFFFFF; color:#00285E;'
+                      : 'background:rgba(0,40,94,0.05); border:1.5px solid rgba(0,40,94,0.22); color:#00285E;'}">
+            <span>Seleccionar</span>
+            <i class="ph-bold ph-arrow-right" style="font-size:11px;"></i>
+          </a>
         </div>
-        
-        <div class="h-px bg-gray-100 my-3"></div>
-        
-        <ul class="space-y-2 mb-4">
-          ${benefits}
-        </ul>
-        
-        <a href="membresia.html?plan=${plan.id}" class="w-full py-2.5 rounded-xl text-xs font-bold font-sans flex items-center justify-center gap-1.5 transition-all active:scale-[0.98] ${isPopular ? 'text-white' : 'text-[#00285E]'}"
-           style="${isPopular ? 'background: linear-gradient(135deg, #00285E 0%, #1e3a8a 100%); border: none;' : 'background: rgba(0, 40, 94, 0.03); border: 1.5px solid rgba(0, 40, 94, 0.25);'}">
-          <span>Seleccionar Plan</span>
-          <i class="ph-bold ph-arrow-right text-xs"></i>
-        </a>
+      </div>
       </div>
     `;
   }).join('');
@@ -5729,19 +5794,21 @@ function auraCountUp(targetNum, totalTarget) {
          style="background:#F9FAFB; border:1px solid rgba(156,163,175,0.35); max-height: 90vh; display: flex; flex-direction: column;">
       
       <!-- Header -->
-      <div class="px-6 py-5 border-b border-gray-200 flex items-center justify-between shrink-0" style="background:#FFFFFF;">
-        <div class="flex items-center gap-2.5">
-          <div class="w-9 h-9 rounded-xl flex items-center justify-center bg-[#00285E]/10 text-[#00285E]">
-            <i class="ph-bold ph-sparkle text-lg"></i>
+      <div class="shrink-0 relative overflow-hidden" style="background: linear-gradient(145deg, #001433, #00285E); padding: 20px 20px 18px;">
+        <div class="absolute -top-6 -right-6 w-32 h-32 rounded-full pointer-events-none" style="background: radial-gradient(circle, rgba(96,165,250,0.15) 0%, transparent 65%);"></div>
+        <div class="flex items-start justify-between relative z-10">
+          <div>
+            <div class="flex items-center gap-2 mb-1">
+              <i class="ph-fill ph-crown" style="font-size:13px; color:rgba(255,255,255,0.6);"></i>
+              <span style="font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:0.2em; color:rgba(255,255,255,0.5);">Aura Premium Pass</span>
+            </div>
+            <h3 class="font-sans" style="font-size:18px; font-weight:800; color:#FFFFFF; line-height:1.2;">Club de Suscripciones</h3>
+            <p class="font-sans" style="font-size:11px; color:rgba(255,255,255,0.55); margin-top:3px;">Elige el plan que mejor se adapte a tu estilo</p>
           </div>
-          <div class="text-left">
-            <h3 class="text-base font-extrabold text-[#00285E] font-sans">Membresías Aura Salon</h3>
-            <p class="text-[11px] text-gray-500 font-sans mt-0.5">Elige tu plan ideal y disfruta de cortes ilimitados</p>
-          </div>
+          <button onclick="cerrarAuraMembresiaModal()" style="width:30px; height:30px; border-radius:50%; background:rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.15); display:flex; align-items:center; justify-content:center; color:rgba(255,255,255,0.7); flex-shrink:0;" class="active:scale-90 transition-all">
+            <i class="ph-bold ph-x" style="font-size:12px;"></i>
+          </button>
         </div>
-        <button onclick="cerrarAuraMembresiaModal()" class="w-8 h-8 rounded-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 active:scale-90 transition-all text-gray-500">
-          <i class="ph-bold ph-x text-sm"></i>
-        </button>
       </div>
       
       <!-- Content (Scrollable list of plans) -->
@@ -5753,14 +5820,14 @@ function auraCountUp(targetNum, totalTarget) {
       </div>
       
       <!-- Footer -->
-      <div class="px-6 py-4 border-t border-gray-200 flex items-center justify-between gap-4 shrink-0" style="background:#FFFFFF;">
-        <button onclick="cerrarAuraMembresiaModal()" class="px-5 py-3 rounded-2xl text-xs font-bold text-gray-500 hover:text-gray-700 transition-colors font-sans">
+      <div class="shrink-0 flex items-center justify-between gap-3 font-sans" style="padding:12px 16px; border-top:1px solid #F0F0F2; background:#FAFAFA;">
+        <button onclick="cerrarAuraMembresiaModal()" style="font-size:12px; font-weight:600; color:#9CA3AF; padding:8px 14px;" class="transition-colors hover:text-gray-600">
           Cerrar
         </button>
-        <a href="membresia.html" class="px-6 py-3 rounded-2xl text-xs font-bold text-white transition-all active:scale-95 font-sans flex items-center gap-1.5" 
-           style="background: linear-gradient(135deg, #00285E 0%, #1e3a8a 100%); box-shadow: 0 4px 12px rgba(0, 40, 94, 0.25);">
+        <a href="membresia.html" class="flex items-center gap-1.5 active:scale-95 transition-all"
+           style="padding:9px 18px; border-radius:10px; font-size:12px; font-weight:700; color:#FFFFFF; background: linear-gradient(135deg, #00285E 0%, #1e3a8a 100%); box-shadow: 0 3px 10px rgba(0,40,94,0.22);">
           <span>Gestionar Suscripción</span>
-          <i class="ph-bold ph-arrow-square-out text-sm"></i>
+          <i class="ph-bold ph-arrow-square-out" style="font-size:12px;"></i>
         </a>
       </div>
     </div>
