@@ -26,7 +26,7 @@ const OFERTA_DEFAULT = {
 
 function lsCitasKey(tid) { return `barber_tv_citas_${tid}`; }
 
-// ── Partículas flotantes (posiciones deterministas) ───────────────
+// ── Partículas flotantes — CSS puro, sin JS en el loop de animación ──
 const PARTICLE_DATA = Array.from({ length: 22 }, (_, i) => ({
   id:    i,
   x:     ((i * 23 + 7)  % 90) + 5,
@@ -34,46 +34,65 @@ const PARTICLE_DATA = Array.from({ length: 22 }, (_, i) => ({
   size:  1 + (i % 3) * 0.8,
   dur:   10 + (i % 7) * 2.5,
   delay: (i * 1.7) % 9,
-  rise:  30 + (i % 25),
 }));
+
+const PARTICLE_STYLE = `
+  @keyframes tv-float {
+    0%   { opacity: 0; transform: translateY(0)    scale(0.5); }
+    50%  { opacity: 0.45; transform: translateY(-40px) scale(1.2); }
+    100% { opacity: 0; transform: translateY(-80px) scale(0.5); }
+  }
+  @keyframes tv-progress {
+    from { transform: scaleX(0); }
+    to   { transform: scaleX(1); }
+  }
+`;
 
 function FloatingParticles() {
   return (
-    <div className="absolute inset-0 pointer-events-none overflow-hidden">
-      {PARTICLE_DATA.map(p => (
-        <motion.div
-          key={p.id}
-          className="absolute rounded-full"
-          style={{ left: `${p.x}%`, top: `${p.y}%`, width: p.size, height: p.size, background: GOLD }}
-          animate={{ y: [0, -p.rise, 0], opacity: [0, 0.45, 0], scale: [0.5, 1.2, 0.5] }}
-          transition={{ duration: p.dur, delay: p.delay, repeat: Infinity, ease: 'easeInOut' }}
-        />
-      ))}
-    </div>
+    <>
+      <style>{PARTICLE_STYLE}</style>
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        {PARTICLE_DATA.map(p => (
+          <div
+            key={p.id}
+            className="absolute rounded-full"
+            style={{
+              left:            `${p.x}%`,
+              top:             `${p.y}%`,
+              width:           p.size,
+              height:          p.size,
+              background:      GOLD,
+              animationName:   'tv-float',
+              animationDuration: `${p.dur}s`,
+              animationDelay:  `${p.delay}s`,
+              animationTimingFunction: 'ease-in-out',
+              animationIterationCount: 'infinite',
+            }}
+          />
+        ))}
+      </div>
+    </>
   );
 }
 
-// ── Barra de progreso del slide ───────────────────────────────────
+// ── Barra de progreso del slide — CSS animation, sin setInterval ──
 function SlideProgressBar({ slideKey, duration, paused }) {
-  const [pct, setPct] = useState(0);
-  useEffect(() => {
-    setPct(0);
-    if (paused) return;
-    const start = Date.now();
-    const id = setInterval(() => {
-      setPct(Math.min(((Date.now() - start) / duration) * 100, 100));
-    }, 80);
-    return () => clearInterval(id);
-  }, [slideKey, paused, duration]);
-
   return (
     <div className="absolute bottom-0 left-0 right-0 h-[2px] z-20" style={{ background: 'rgba(255,255,255,0.04)' }}>
-      <div style={{
-        height: '100%',
-        width: `${pct}%`,
-        background: `linear-gradient(to right, ${GOLD}77, ${GOLD})`,
-        boxShadow: `0 0 6px rgba(212,175,55,0.45)`,
-      }} />
+      {!paused && (
+        <div
+          key={slideKey}
+          style={{
+            height:          '100%',
+            width:           '100%',
+            background:      `linear-gradient(to right, ${GOLD}77, ${GOLD})`,
+            boxShadow:       `0 0 6px rgba(212,175,55,0.45)`,
+            transformOrigin: 'left',
+            animation:       `tv-progress ${duration}ms linear forwards`,
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -1281,9 +1300,11 @@ export default function BarberTV() {
             />
           )}
 
-          {/* Slides — Opción C: parallax opacity+scale+x ─────── */}
+          {/* Slides — Opción C: parallax opacity+scale+x, lazy-mount ─ */}
           {!hideSlideshow && visibleDefs.map((def, i) => {
-            const isCurrent = i === safeSlide;
+            const isCurrent  = i === safeSlide;
+            const wasVisited = visitedRef.current.has(def.key) || visitedRef.current.has(i);
+            if (!isCurrent && !wasVisited) return null;
             return (
               <motion.div
                 key={def.key}
