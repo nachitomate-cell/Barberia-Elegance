@@ -2670,7 +2670,8 @@
       border-color: rgba(255,255,255,0.28) !important;
       color: #ffffff !important;
     }
-    .tenant-marcelo_hairdressing .time-pill.bg-neon {
+    .tenant-marcelo_hairdressing .time-pill.bg-neon,
+    .tenant-marcelo_hairdressing .time-pill[data-sel] {
       background: #ffffff !important;
       color: #0A0A0A !important;
       box-shadow: none !important;
@@ -3983,7 +3984,8 @@
       border: 1px solid rgba(249,115,22,0.12) !important;
       color: #e2e8f0 !important;
     }
-    .tenant-machos .time-pill.border-neon {
+    .tenant-machos .time-pill.border-neon,
+    .tenant-machos .time-pill[data-sel] {
       background: #f97316 !important;
       border-color: #f97316 !important;
       color: #ffffff !important;
@@ -4352,7 +4354,8 @@
       border-color: rgba(17, 24, 39, 0.12) !important;
       transform: translateY(-1px) !important;
     }
-    .tenant-infinity .time-pill.border-neon {
+    .tenant-infinity .time-pill.border-neon,
+    .tenant-infinity .time-pill[data-sel] {
       background: #ffffff !important;
       border: 2px solid #111827 !important;
       color: #111827 !important;
@@ -6730,7 +6733,13 @@
       const _isMapu   = window.CURRENT_TENANT_ID === 'mapubarbershop';
       const _isAura   = window.CURRENT_TENANT_ID === 'aura';
       const _isElegance = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance';
-      const _useRowSel  = _isElegance || _isMapu || _isAura;
+      const _useRowSel  = _isElegance || _isMapu || _isAura
+        || window.CURRENT_TENANT_ID === 'ferraza'
+        || window.CURRENT_TENANT_ID === 'lumen'
+        || window.CURRENT_TENANT_ID === 'machos'
+        || window.CURRENT_TENANT_ID === 'sionbarberia'
+        || window.CURRENT_TENANT_ID === 'marcelo_hairdressing'
+        || window.CURRENT_TENANT_ID === 'chameleon';
       const _radioDim   = _isMapu ? 'rgba(191,163,126,0.40)' : _isAura ? 'rgba(55,65,81,0.25)' : 'rgba(212,175,55,0.4)';
       const _radioSel   = _isMapu ? '#BFA37E' : _isAura ? '#1F2937' : '#D4AF37';
 
