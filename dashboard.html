@@ -2187,6 +2187,18 @@
       color: #4B5563 !important;
       text-shadow: none !important;
     }
+    /* Próxima cita card — chip y contenedor de ícono usan var(--gold) que en infinity
+       es #111827 (muy oscuro), generando bajo contraste sobre fondo blanco */
+    .tenant-infinity .proxima-cita-chip {
+      background: rgba(17,24,39,0.07) !important;
+      color: #374151 !important;
+      border-color: rgba(17,24,39,0.14) !important;
+    }
+    .tenant-infinity .proxima-cita-icon-wrap {
+      background: rgba(17,24,39,0.05) !important;
+      border-color: rgba(17,24,39,0.10) !important;
+    }
+    .tenant-infinity .proxima-cita-icon-wrap i { color: #4B5563 !important; }
     .tenant-infinity .hero-cta {
       background: #111827 !important;
       border-color: #111827 !important;
@@ -3790,10 +3802,16 @@ document.getElementById('shopClubName').textContent   = SHOP.club;
   const isLumen       = tid === 'lumen';
   const isMarcelo     = tid === 'marcelo_hairdressing';
   const isAura        = tid === 'aura';
+  const isDelnero     = tid === 'delnero';
+  const isInfinity    = tid === 'infinity';
 
   // Subtítulo header
   const sub = document.getElementById('shopHeaderSub');
-  if (sub) sub.textContent = isGitana ? 'NAILS & STUDIO' : isChameleon ? 'BARBER STUDIO' : 'BARBERSHOP';
+  if (sub) sub.textContent = isGitana ? 'NAILS & STUDIO'
+    : isChameleon ? 'BARBER STUDIO'
+    : isInfinity  ? 'STUDIO'
+    : isDelnero   ? 'BARBER'
+    : 'BARBERSHOP';
 
   if (isAura) {
     const nameEl = document.getElementById('shopHeaderName');
@@ -3833,11 +3851,17 @@ document.getElementById('shopClubName').textContent   = SHOP.club;
   } else if (isMarcelo) {
     if (h1) h1.style.display = 'none';
     if (h2) h2.innerHTML = 'Tu imagen,<br>en las mejores manos.';
+  } else if (isDelnero) {
+    if (h1) h1.textContent = 'Arte &';
+    if (h2) h2.textContent = 'Distinción.';
+  } else if (isInfinity) {
+    if (h1) h1.textContent = 'Estilo &';
+    if (h2) h2.textContent = 'Confianza.';
   }
 
   // Watermark
   const wm = document.getElementById('membershipWatermark');
-  if (wm) wm.textContent = isGitana ? 'G' : isFerraza ? 'F' : isMapu ? 'M' : isChameleon ? 'C' : isLumen ? '⚓' : 'É';
+  if (wm) wm.textContent = isGitana ? 'G' : isFerraza ? 'F' : isMapu ? 'M' : isChameleon ? 'C' : isLumen ? '⚓' : isDelnero ? 'N' : isInfinity ? '∞' : 'É';
 
   // PWA install icons — usa SHOP.logo como fuente única de verdad (config.js).
   // pwaBigIcon está antes del script en el DOM → se puede actualizar ya.
@@ -4948,12 +4972,12 @@ async function cargarCitasUsuario(user) {
               <div class="relative z-10">
                 <div class="flex items-center justify-between mb-3.5">
                   <p class="text-[9px] font-black uppercase tracking-[0.2em]" style="color:var(--gold);">📅 Tu Próxima Cita</p>
-                  <span class="text-[9px] font-bold px-2 py-0.5 rounded-full animate-pulse" style="background:var(--gold-glow); color:var(--gold); border:1px solid var(--gold-dim);">
+                  <span class="proxima-cita-chip text-[9px] font-bold px-2 py-0.5 rounded-full animate-pulse" style="background:var(--gold-glow); color:var(--gold); border:1px solid var(--gold-dim);">
                     ${proxima.estado || 'Confirmada'}
                   </span>
                 </div>
                 <div class="flex items-start gap-4 mb-4">
-                  <div class="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0" style="background:var(--gold-glow); border:1px solid var(--gold-dim);">
+                  <div class="proxima-cita-icon-wrap w-12 h-12 rounded-2xl flex items-center justify-center shrink-0" style="background:var(--gold-glow); border:1px solid var(--gold-dim);">
                     <i class="ph-fill ph-calendar-blank text-xl" style="color:var(--gold);"></i>
                   </div>
                   <div class="flex-1 min-w-0 text-left">
