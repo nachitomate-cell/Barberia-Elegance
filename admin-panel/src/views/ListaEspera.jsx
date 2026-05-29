@@ -23,23 +23,40 @@ const ESTADO_CFG = {
 /* ── AddModal ─────────────────────────────────────────────────────── */
 function AddModal({ onClose }) {
   const { data: barberos = [] } = useCollection('barberos');
-  const { data: servicios = [] } = useCollection('servicios');
-  const [form, setForm] = useState({ clienteNombre: '', clienteTelefono: '', fecha: today(), barberoId: '', servicioId: '', notas: '' });
+  const [flexible, setFlexible] = useState(true);
+  const [form, setForm] = useState({
+    clienteNombre: '', clienteTelefono: '', fecha: today(),
+    horaPreferida: '', barberoId: '', notas: '',
+  });
   const [loading, setLoading] = useState(false);
+  const [telError, setTelError] = useState('');
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
+  const validateTel = (v) => {
+    const digits = v.replace(/\D/g, '');
+    if (!digits) { setTelError('El teléfono es obligatorio para poder notificar al cliente.'); return false; }
+    if (digits.length < 8) { setTelError('Número muy corto.'); return false; }
+    setTelError('');
+    return true;
+  };
+
   const submit = async (e) => {
     e.preventDefault();
-    if (!form.clienteNombre || !form.fecha) return;
+    if (!form.clienteNombre.trim()) return;
+    if (!validateTel(form.clienteTelefono)) return;
     setLoading(true);
     try {
       const barbero = barberos.find(b => b.id === form.barberoId);
-      const servicio = servicios.find(s => s.id === form.servicioId);
       await addDoc(tenantCol('listaEspera'), {
-        ...form,
-        barberoNombre:   barbero?.nombre  || '',
-        servicioNombre:  servicio?.nombre || '',
+        clienteNombre:   form.clienteNombre.trim(),
+        clienteTelefono: form.clienteTelefono.trim(),
+        fecha:           flexible ? null : form.fecha,
+        flexible,
+        horaPreferida:   form.horaPreferida || '',
+        barberoId:       form.barberoId || '',
+        barberoNombre:   barbero?.nombre || '',
+        notas:           form.notas.trim(),
         estado:          'en_espera',
         creadoEn:        serverTimestamp(),
       });
@@ -57,56 +74,103 @@ function AddModal({ onClose }) {
           <button onClick={onClose} className="text-slate-500 hover:text-white"><X size={16} /></button>
         </div>
         <form onSubmit={submit} className="p-5 space-y-4">
-          <Field label="Nombre cliente" required>
-            <input type="text" value={form.clienteNombre} onChange={e => set('clienteNombre', e.target.value)}
-              placeholder="Ej: Juan Pérez" required
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none" />
-          </Field>
-          <Field label="Teléfono">
-            <input type="tel" value={form.clienteTelefono} onChange={e => set('clienteTelefono', e.target.value)}
-              placeholder="+56912345678"
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none" />
-          </Field>
-          <Field label="Fecha deseada" required>
-            <input type="date" value={form.fecha} onChange={e => set('fecha', e.target.value)} min={today()} required
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none" />
-          </Field>
-          <Field label="Barbero (opcional)">
+
+          {/* Nombre + Teléfono — siempre visibles y prioritarios */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="col-span-2">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">
+                Nombre <span className="text-red-400">*</span>
+              </label>
+              <input type="text" value={form.clienteNombre} onChange={e => set('clienteNombre', e.target.value)}
+                placeholder="Juan Pérez" required autoFocus
+                className="mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none" />
+            </div>
+            <div className="col-span-2">
+              <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">
+                Teléfono <span className="text-red-400">*</span>
+              </label>
+              <input
+                type="tel" value={form.clienteTelefono}
+                onChange={e => { set('clienteTelefono', e.target.value); if (telError) validateTel(e.target.value); }}
+                onBlur={e => validateTel(e.target.value)}
+                placeholder="+569 1234 5678"
+                className={`mt-1 w-full bg-slate-800 border rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none transition-colors ${
+                  telError ? 'border-red-500 focus:border-red-400' : 'border-slate-700 focus:border-emerald-500'
+                }`}
+              />
+              {telError && <p className="text-xs text-red-400 mt-1">{telError}</p>}
+            </div>
+          </div>
+
+          {/* ¿Flexible en fecha? */}
+          <div>
+            <label className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2 block">
+              Disponibilidad
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <button type="button" onClick={() => setFlexible(true)}
+                className={`py-2 rounded-lg text-sm font-semibold transition-all border ${
+                  flexible
+                    ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/40'
+                    : 'bg-slate-800 text-slate-400 border-slate-700 hover:border-slate-600'
+                }`}>
+                Lo antes posible
+              </button>
+              <button type="button" onClick={() => setFlexible(false)}
+                className={`py-2 rounded-lg text-sm font-semibold transition-all border ${
+                  !flexible
+                    ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/40'
+                    : 'bg-slate-800 text-slate-400 border-slate-700 hover:border-slate-600'
+                }`}>
+                Fecha específica
+              </button>
+            </div>
+          </div>
+
+          {/* Fecha + Hora — solo si elige fecha específica */}
+          {!flexible && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Fecha</label>
+                <input type="date" value={form.fecha} onChange={e => set('fecha', e.target.value)} min={today()}
+                  className="mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none" />
+              </div>
+              <div>
+                <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Hora pref.</label>
+                <select value={form.horaPreferida} onChange={e => set('horaPreferida', e.target.value)}
+                  className="mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none">
+                  <option value="">Sin pref.</option>
+                  <option value="mañana">Mañana</option>
+                  <option value="tarde">Tarde</option>
+                </select>
+              </div>
+            </div>
+          )}
+
+          {/* Barbero */}
+          <div>
+            <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Barbero</label>
             <select value={form.barberoId} onChange={e => set('barberoId', e.target.value)}
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none">
+              className="mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none">
               <option value="">Cualquiera</option>
               {barberos.map(b => <option key={b.id} value={b.id}>{b.nombre}</option>)}
             </select>
-          </Field>
-          <Field label="Servicio (opcional)">
-            <select value={form.servicioId} onChange={e => set('servicioId', e.target.value)}
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none">
-              <option value="">Sin especificar</option>
-              {servicios.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
-            </select>
-          </Field>
-          <Field label="Notas">
+          </div>
+
+          {/* Notas */}
+          <div>
+            <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Notas</label>
             <input type="text" value={form.notas} onChange={e => set('notas', e.target.value)}
-              placeholder="Ej: Prefiere mañanas"
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none" />
-          </Field>
+              placeholder="Ej: cliente VIP, lleva tiempo sin venir..."
+              className="mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none" />
+          </div>
+
           <button type="submit" disabled={loading}
             className="w-full py-2.5 rounded-xl text-sm font-bold bg-emerald-500 text-emerald-950 hover:bg-emerald-400 disabled:opacity-50 transition-all">
             {loading ? 'Agregando...' : 'Agregar a lista'}
           </button>
         </form>
       </div>
-    </div>
-  );
-}
-
-function Field({ label, required, children }) {
-  return (
-    <div>
-      <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">
-        {label}{required && <span className="text-red-400 ml-0.5">*</span>}
-      </label>
-      <div className="mt-1">{children}</div>
     </div>
   );
 }
@@ -143,19 +207,18 @@ function EntryCard({ entry, tenantId, onUpdate }) {
           </div>
           {entry.clienteTelefono && <p className="text-xs text-slate-500">{entry.clienteTelefono}</p>}
           <div className="flex flex-wrap gap-2 mt-1">
-            {entry.fecha && (
-              <span className="text-xs text-slate-400 bg-slate-800 px-2 py-0.5 rounded-md">
-                📅 {entry.fecha}
+            {entry.flexible ? (
+              <span className="text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md font-medium">
+                Lo antes posible
               </span>
-            )}
+            ) : entry.fecha ? (
+              <span className="text-xs text-slate-400 bg-slate-800 px-2 py-0.5 rounded-md">
+                📅 {entry.fecha}{entry.horaPreferida ? ` · ${entry.horaPreferida}` : ''}
+              </span>
+            ) : null}
             {entry.barberoNombre && (
               <span className="text-xs text-slate-400 bg-slate-800 px-2 py-0.5 rounded-md">
                 ✂️ {entry.barberoNombre}
-              </span>
-            )}
-            {entry.servicioNombre && (
-              <span className="text-xs text-slate-400 bg-slate-800 px-2 py-0.5 rounded-md">
-                {entry.servicioNombre}
               </span>
             )}
           </div>
