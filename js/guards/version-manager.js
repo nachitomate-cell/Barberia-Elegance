@@ -68,12 +68,18 @@
   // Si auth tarda más de 4 s, arrancar igual para no bloquear la detección de versión.
   let started = false;
   const timeout = setTimeout(() => { if (!started) { started = true; startListener(); } }, 4000);
-  const unsub = firebase.auth().onAuthStateChanged(user => {
+  try {
+    const unsub = firebase.auth().onAuthStateChanged(user => {
+      clearTimeout(timeout);
+      unsub();
+      if (!started) {
+        started = true;
+        startListener();
+      }
+    });
+  } catch (_) {
+    // firebase-auth-compat no disponible en esta página — arrancar directamente.
     clearTimeout(timeout);
-    unsub();
-    if (!started) {
-      started = true;
-      startListener();
-    }
-  });
+    startListener();
+  }
 })();
