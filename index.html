@@ -1133,6 +1133,37 @@
     /* 28. Sobre Nosotros button */
     #mapu-sobre-wrap { display: none; }
     .tenant-mapubarbershop #mapu-sobre-wrap { display: block !important; }
+
+    /* D'Jones — Visitar sitio web */
+    #lumen-web-wrap { display: none; }
+    .tenant-lumen #lumen-web-wrap { display: block !important; }
+    body[data-step="2"] #lumen-web-wrap,
+    body[data-step="3"] #lumen-web-wrap,
+    body[data-step="4"] #lumen-web-wrap { display: none !important; }
+    #lumen-web-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      width: 100%;
+      padding: 11px 16px;
+      border-radius: 14px;
+      border: 1px solid rgba(212,175,55,0.28);
+      background: rgba(212,175,55,0.06);
+      color: rgba(212,175,55,0.85);
+      font-family: system-ui, sans-serif;
+      font-size: 12.5px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s, color 0.2s;
+      text-decoration: none;
+    }
+    #lumen-web-btn:active {
+      background: rgba(212,175,55,0.14);
+      border-color: rgba(212,175,55,0.5);
+      color: #D4AF37;
+    }
     #mapu-sobre-btn {
       width: 100%;
       padding: 10px 16px;
@@ -5043,6 +5074,14 @@
         <i class="ph ph-info" style="font-size:15px;"></i>
         Sobre Nosotros
       </button>
+    </div>
+
+    <!-- Sitio web — D'Jones only -->
+    <div id="lumen-web-wrap" class="px-6 pt-4 pb-1">
+      <a id="lumen-web-btn" href="https://djones-barber.vercel.app/" target="_blank" rel="noopener">
+        <i class="ph ph-globe" style="font-size:15px;"></i>
+        Visita nuestro sitio web
+      </a>
     </div>
 
     <!-- Quiénes Somos — Aura only -->
