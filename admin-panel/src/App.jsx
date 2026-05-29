@@ -41,6 +41,7 @@ import GiftCards        from './views/GiftCards';
 import ListaEspera      from './views/ListaEspera';
 import Sucursales       from './views/Sucursales';
 import SaldoGiftCard    from './views/SaldoGiftCard';
+import VIPDashboard     from './views/VIPDashboard';
 
 function TenantGate({ children }) {
   const { suspended } = useTenant();
@@ -144,6 +145,7 @@ export default function App() {
             <BrowserRouter basename="/gestion-interna">
               <Routes>
                 <Route path="/saldo-gift-card" element={<SaldoGiftCard />} />
+                <Route path="/dashboard" element={<VIPDashboard />} />
                 <Route path="/*" element={<ProtectedApp />} />
               </Routes>
             </BrowserRouter>
