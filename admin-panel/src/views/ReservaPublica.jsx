@@ -7,7 +7,7 @@ export default function ReservaPublica() {
   const { id: tenantId, name } = useTenant();
   const [copied, setCopied] = useState(false);
 
-  const bookingUrl = `${window.location.origin}/index.html?local=${tenantId}`;
+  const bookingUrl = window.location.origin;
 
   const copy = async () => {
     try {
