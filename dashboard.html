@@ -511,16 +511,7 @@
       color: #111827 !important;
       background: rgba(17, 24, 39, 0.06) !important;
     }
-    .tip-btn.active-tip {
-      border-color: var(--gold) !important;
-      color: var(--gold) !important;
-      background: rgba(201, 168, 76, 0.08) !important;
-    }
-    .tenant-aura .tip-btn.active-tip {
-      border-color: #111827 !important;
-      color: #111827 !important;
-      background: rgba(17, 24, 39, 0.06) !important;
-    }
+
 
     /* Masonry grid para Lookbook */
     .masonry-grid { columns: 2; column-gap: 0.75rem; }
@@ -2950,22 +2941,6 @@
 
               <!-- Comment input -->
               <textarea id="feedbackComment" placeholder="Escribe un mensaje de agradecimiento (opcional)..." class="w-full text-xs text-white bg-zinc-950/60 border border-zinc-800 rounded-xl p-3 placeholder-zinc-600 outline-none focus:border-amber-500/50 resize-none h-16 transition-all"></textarea>
-              
-              <!-- Tip selector section -->
-              <div class="pt-2 border-t border-zinc-800/60">
-                <p class="text-[10px] font-bold uppercase tracking-wider text-zinc-500 mb-2">Agregar propina para el profesional</p>
-                <div class="grid grid-cols-4 gap-1.5">
-                  <button onclick="setFeedbackTip(1000, this)" class="tip-btn text-xs font-bold py-2 rounded-xl text-zinc-400 bg-zinc-900/60 border border-zinc-800 hover:border-zinc-700 active:scale-95 transition-all">$1.000</button>
-                  <button onclick="setFeedbackTip(2000, this)" class="tip-btn text-xs font-bold py-2 rounded-xl text-zinc-400 bg-zinc-900/60 border border-zinc-800 hover:border-zinc-700 active:scale-95 transition-all">$2.000</button>
-                  <button onclick="setFeedbackTip(3000, this)" class="tip-btn text-xs font-bold py-2 rounded-xl text-zinc-400 bg-zinc-900/60 border border-zinc-800 hover:border-zinc-700 active:scale-95 transition-all">$3.000</button>
-                  <button id="tipBtnCustom" onclick="setFeedbackTip(-1, this)" class="tip-btn text-xs font-bold py-2 rounded-xl text-zinc-400 bg-zinc-900/60 border border-zinc-800 hover:border-zinc-700 active:scale-95 transition-all">Otro</button>
-                </div>
-                <!-- Custom tip input -->
-                <div id="customTipContainer" class="hidden mt-2 relative">
-                  <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-zinc-500 font-bold">$</span>
-                  <input type="number" id="feedbackCustomTip" placeholder="Monto personalizado" class="w-full text-xs text-white bg-zinc-950/60 border border-zinc-800 rounded-xl py-2 pl-6 pr-3 placeholder-zinc-600 outline-none focus:border-amber-500/50" oninput="updateCustomTipValue(this)">
-                </div>
-              </div>
               
               <!-- Send buttons -->
               <div class="flex gap-3 pt-2">
@@ -6316,13 +6291,11 @@ function auraCountUp(targetNum, totalTarget) {
   <script>
     let _googleReviewCitaId = null;
     let _selectedFeedbackRating = 0;
-    let _selectedFeedbackTipAmount = 0;
     let _selectedFeedbackCitaId = null;
 
     function initFeedbackCard(cita) {
       _selectedFeedbackCitaId = cita.id;
       _selectedFeedbackRating = 0;
-      _selectedFeedbackTipAmount = 0;
       
       // Reset styles and values
       const barberoNameSpan = document.getElementById('feedbackBarberoNombre');
@@ -6343,10 +6316,6 @@ function auraCountUp(targetNum, totalTarget) {
       // Reset chips
       document.querySelectorAll('.review-chip').forEach(c => c.classList.remove('active-chip'));
       
-      // Reset tips
-      document.querySelectorAll('.tip-btn').forEach(b => b.classList.remove('active-tip'));
-      const customTipContainer = document.getElementById('customTipContainer');
-      if (customTipContainer) customTipContainer.classList.add('hidden');
       
       const customTipInput = document.getElementById('feedbackCustomTip');
       if (customTipInput) customTipInput.value = '';
@@ -6402,27 +6371,6 @@ function auraCountUp(targetNum, totalTarget) {
       btn.classList.toggle('active-chip');
     }
 
-    function setFeedbackTip(amount, btn) {
-      // Clear other tips active class
-      document.querySelectorAll('.tip-btn').forEach(b => b.classList.remove('active-tip'));
-      btn.classList.add('active-tip');
-      
-      const customTipContainer = document.getElementById('customTipContainer');
-      if (amount === -1) {
-        // Custom
-        if (customTipContainer) customTipContainer.classList.remove('hidden');
-        const customTipInput = document.getElementById('feedbackCustomTip');
-        _selectedFeedbackTipAmount = customTipInput ? (Number(customTipInput.value) || 0) : 0;
-      } else {
-        if (customTipContainer) customTipContainer.classList.add('hidden');
-        _selectedFeedbackTipAmount = amount;
-      }
-    }
-
-    function updateCustomTipValue(input) {
-      _selectedFeedbackTipAmount = Number(input.value) || 0;
-    }
-
     async function cerrarFeedbackCard() {
       if (!_selectedFeedbackCitaId) return;
       const fContainer = document.getElementById('interactiveFeedbackContainer');
@@ -6460,7 +6408,6 @@ function auraCountUp(targetNum, totalTarget) {
         await FDB.citasCol().doc(_selectedFeedbackCitaId).update({
           rating: Number(_selectedFeedbackRating),
           ratingComments: comment,
-          ratingTip: Number(_selectedFeedbackTipAmount),
           ratingCreatedAt: firebase.firestore.FieldValue.serverTimestamp(),
           pendingGoogleReview: false
         });
