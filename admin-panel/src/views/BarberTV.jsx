@@ -929,7 +929,7 @@ export default function BarberTV() {
   const [slidesActivos,  setSlidesActivos]  = useState({ oferta: true, lookbook: true, equipo: true, productos: true, marcas: true });
   const [accentColor,    setAccentColor]    = useState('');
   const [qrConfig,       setQrConfig]       = useState({ color: '', size: 160 });
-  const [backgroundUrl,  setBackgroundUrl]  = useState('');
+  const [backgroundUrl,  setBackgroundUrl]  = useState(() => sessionStorage.getItem(`tv_bg_${tenantId}`) || '');
   const [youtubeUrl,     setYoutubeUrl]     = useState('');
   const [ytPlayer,       setYtPlayer]       = useState(null);
   const [audioState,     setAudioState]     = useState('paused'); // 'paused', 'playing', 'blocked'
@@ -1089,7 +1089,10 @@ export default function BarberTV() {
       if (d.slidesActivos) setSlidesActivos(prev => ({ ...prev, ...d.slidesActivos }));
       setAccentColor(d.accentColor || '');
       if (d.qr)            setQrConfig(prev => ({ ...prev, ...d.qr }));
-      setBackgroundUrl(d.backgroundUrl || '');
+      const bgUrl = d.backgroundUrl || '';
+      setBackgroundUrl(bgUrl);
+      if (bgUrl) sessionStorage.setItem(`tv_bg_${tenantId}`, bgUrl);
+      else        sessionStorage.removeItem(`tv_bg_${tenantId}`);
       setYoutubeUrl(d.youtubeUrl || '');
       setHideSlideshow(d.hideSlideshow === true);
       setRawVideoBg(d.rawVideoBg === true);
@@ -1213,6 +1216,7 @@ export default function BarberTV() {
               loop
               muted
               playsInline
+              preload="auto"
               aria-hidden="true"
               className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
               style={{ filter: rawVideoBg ? 'none' : 'brightness(0.68) saturate(0.85)', zIndex: 0 }}
