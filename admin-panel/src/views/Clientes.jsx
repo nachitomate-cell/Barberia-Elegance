@@ -111,9 +111,12 @@ function ClientePanel({ cliente: init, premios, onClose }) {
     setCumpleLoad(true);
     try {
       // Escribe en users/{uid} para que la UI lo refleje en onSnapshot
-      await updateDoc(doc(tenantCol('users'), data.uid), {
-        fechaNacimiento: fechaCumple || null,
-      });
+      const userUpdate = { fechaNacimiento: fechaCumple || null, cumpleDia: null };
+      if (fechaCumple) {
+        const [, m, d] = fechaCumple.split('-');
+        userUpdate.cumpleDia = `${m}-${d}`;
+      }
+      await updateDoc(doc(tenantCol('users'), data.uid), userUpdate);
       // Escribe en clientes/{phone} para que el cron de cumpleaños pueda querying
       const clienteData = {
         nombre:    data.nombre    || '',
@@ -1373,11 +1376,16 @@ export default function Clientes() {
     const disponibles = c.sellosDisponibles ?? c.stamps ?? 0;
     const historicos  = c.sellosHistoricos  ?? c.stamps ?? 0;
     if (filtro === 'premio') return premios.some(p => disponibles >= p.costoSellos);
-    if (filtro === 'cumple') return c.cumpleDia?.startsWith(mesActual + '-');
+    if (filtro === 'cumple') {
+      if (c.cumpleDia) return c.cumpleDia.startsWith(mesActual + '-');
+      if (c.fechaNacimiento) return c.fechaNacimiento.split('-')[1] === mesActual;
+      return false;
+    }
     if (filtro === 'silver')   return calcTier(historicos) === 'SILVER';
     if (filtro === 'gold')     return calcTier(historicos) === 'GOLD';
     if (filtro === 'platinum') return calcTier(historicos) === 'PLATINUM';
     if (filtro === 'sin30' || filtro === 'sin60' || filtro === 'sin90') {
+      if (isLegacy(c)) return false;
       const dias = filtro === 'sin30' ? 30 : filtro === 'sin60' ? 60 : 90;
       const cutoff = new Date(Date.now() - dias * 864e5);
       const ultimo = c.ultimoSello ? new Date(c.ultimoSello) : null;
