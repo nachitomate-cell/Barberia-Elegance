@@ -295,13 +295,24 @@ async function procesarSello({ tenantId, citaId, citaRef, cita }) {
     }
   }
 
-  // ── 3. Marcar la cita como procesada (idempotencia) ────────────
-  await citaRef.update({
-    selloProcesado: true,
-    selloProcesadoEn: Timestamp.now(),
-    selloProcesadoTipo: membresia.aplicable ? 'membresia' : 'sello',
-    pendingGoogleReview: true,
+  // ── 3. Marcar la cita como procesada (idempotencia atómica) ─────
+  // Usamos transacción para evitar race condition si la CF se reintenta
+  // antes de que selloProcesado=true quede persistido.
+  const yaProc = await db.runTransaction(async tx => {
+    const snap = await tx.get(citaRef);
+    if (snap.data()?.selloProcesado === true) return true; // ya procesada
+    tx.update(citaRef, {
+      selloProcesado: true,
+      selloProcesadoEn: Timestamp.now(),
+      selloProcesadoTipo: membresia.aplicable ? 'membresia' : 'sello',
+      pendingGoogleReview: true,
+    });
+    return false;
   });
+  if (yaProc) {
+    logger.info(`[Sello] ${citaId}: transacción detectó selloProcesado ya escrito, abortando.`);
+    return;
+  }
 
   logger.info(`[Sello] ${citaId}: procesado OK (${membresia.aplicable ? 'membresía' : 'sello'})`);
 }

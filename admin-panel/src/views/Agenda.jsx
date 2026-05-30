@@ -102,7 +102,7 @@ function Modal({ title, onClose, children, footer, maxW = 'max-w-md' }) {
 }
 
 /* ── CitaModal (create / edit) ───────────────────────────────── */
-function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, defaultBarberoId, dateStr, onClose, onComplete }) {
+function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, defaultBarberoId, defaultEstado, dateStr, onClose, onComplete }) {
   const { timeLabels } = useContext(AgendaCtx);
   const isNew = !cita;
   const { id: tenantId } = useTenant();
@@ -140,7 +140,7 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
     barberoId:       cita?.barberoId       || defaultBarb,
     barbero:         cita?.barbero         || barberos.find(b => b.id === defaultBarb)?.nombre || '',
     hora:            cita?.hora            || defaultHora || '09:00',
-    estado:          cita?.estado          || 'Confirmada',
+    estado:          defaultEstado         || cita?.estado || 'Confirmada',
     nota:            cita?.nota            || '',
     metodoPago:      cita?.metodoPago      || 'Efectivo',
     propina:         cita?.propina != null ? Number(cita.propina) : '',
@@ -1777,7 +1777,7 @@ export default function Agenda() {
         const cita = { id: snap.id, ...snap.data() };
         const [y, m, d] = cita.fecha.split('-').map(Number);
         setDate(new Date(y, m - 1, d));
-        setCitaModal({ cita: { ...cita, estado: 'Completada' }, barberoId: cita.barberoId, hora: cita.hora });
+        setCitaModal({ cita, barberoId: cita.barberoId, hora: cita.hora, defaultEstado: 'Completada' });
         setSearchParams(p => { p.delete('completar'); return p; }, { replace: true });
       })
       .catch(() => {});
@@ -2114,6 +2114,7 @@ export default function Agenda() {
           productos={productos}
           defaultHora={citaModal.hora}
           defaultBarberoId={citaModal.barberoId}
+          defaultEstado={citaModal.defaultEstado}
           dateStr={dateStr}
           onClose={() => setCitaModal(null)}
           onComplete={cita => { setCitaModal(null); setReviewCita(cita); }}
