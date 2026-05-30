@@ -41,9 +41,16 @@ export default function ReviewModal({ cita, onClose }) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(6px)' }}
+      style={{
+        background: 'rgba(0,0,0,0.75)',
+        backdropFilter: 'blur(6px)',
+        paddingBottom: 'max(1rem, env(safe-area-inset-bottom))',
+      }}
     >
-      <div className="w-full max-w-sm bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden">
+      <div
+        className="w-full max-w-sm bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-y-auto"
+        style={{ maxHeight: 'calc(100dvh - env(safe-area-inset-bottom) - 2rem)' }}
+      >
         {/* Header */}
         <div className="relative px-6 py-5 border-b border-slate-800 text-center">
           <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mx-auto mb-3">
