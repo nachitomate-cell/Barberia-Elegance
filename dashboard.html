@@ -4681,10 +4681,15 @@ async function cargarServicios() {
     grid.innerHTML = muestra.map(s => {
       const precio = s.precio ? `$${Number(s.precio).toLocaleString('es-CL')}` : '';
       const icono  = s.icono || (window.CURRENT_TENANT_ID === 'gitana' ? 'ph-sparkle' : 'ph-scissors');
+      
+      const imgHtml = s.imagen
+        ? `<img src="${s.imagen}" alt="${s.nombre.replace(/"/g, '&quot;')}" class="absolute inset-0 w-full h-full object-cover opacity-60">`
+        : `<div class="absolute inset-0 flex items-center justify-center">
+            <i class="ph-fill ${icono} text-5xl" style="color:var(--gold);opacity:0.15;"></i>
+          </div>`;
+
       return `<a href="index.html" class="service-card snap-center flex-shrink-0 relative rounded-2xl overflow-hidden cursor-pointer" style="width:148px;height:188px;background:#18181b;text-decoration:none;">
-        <div class="absolute inset-0 flex items-center justify-center">
-          <i class="ph-fill ${icono} text-5xl" style="color:var(--gold);opacity:0.15;"></i>
-        </div>
+        ${imgHtml}
         <div class="absolute inset-0" style="background:linear-gradient(to top,rgba(0,0,0,0.92) 0%,rgba(0,0,0,0.10) 60%,transparent 100%);"></div>
         <div class="absolute bottom-0 left-0 right-0 p-3.5">
           <p class="text-[11px] font-black uppercase tracking-wider text-white leading-tight">${s.nombre}</p>

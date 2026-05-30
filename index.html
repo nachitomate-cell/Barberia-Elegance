@@ -6036,16 +6036,19 @@
 
         categories[cat].forEach((s, i) => {
           const icon = s.icono || (_useRowLayout ? _catIcon(cat, i) : _ICONS[i % _ICONS.length]);
+          const finalIconEl = s.imagen
+            ? `<img src="${s.imagen}" alt="" class="w-full h-full object-cover rounded-full">`
+            : (_isMapuSvc
+                ? `<span class="icon-svg mapu-icon block w-6 h-6">${_getMapuIcon(s.nombre, cat)}</span>`
+                : `<i class="icon-svg ph ${icon} text-xl text-brand-neon transition-all"></i>`);
+
           if (_useRowLayout) {
-            const iconEl = _isMapuSvc
-              ? `<span class="icon-svg mapu-icon block w-6 h-6">${_getMapuIcon(s.nombre, cat)}</span>`
-              : `<i class="icon-svg ph ${icon} text-xl text-brand-neon transition-all"></i>`;
             const radioClr = _isMapuSvc ? 'rgba(191,163,126,0.40)' : window.CURRENT_TENANT_ID === 'marcelo_hairdressing' ? 'rgba(255,255,255,0.18)' : 'rgba(212,175,55,0.4)';
             innerGrid.innerHTML += `
               <button onclick="selectService(this)" data-service-id="${s.id}" data-category="${cat}"
                 class="service-option relative flex flex-row items-center gap-4 p-4 rounded-2xl bg-[#0a0a0d] border border-brand-accent/20 active:scale-[0.99] transition-all overflow-hidden group w-full text-left">
                 <div class="icon-bg w-11 h-11 rounded-full bg-[#111115] border border-brand-accent/20 flex items-center justify-center shrink-0 transition-all">
-                  ${iconEl}
+                  ${finalIconEl}
                 </div>
                 <div class="flex-1 min-w-0">
                   <span class="svc-name font-bold text-gray-200 text-sm block tracking-wide" style="white-space:normal;">${s.nombre}</span>
@@ -6059,13 +6062,15 @@
                 <div class="svc-radio w-5 h-5 rounded-full border-2 shrink-0 transition-all" style="border-color:${radioClr}"></div>
               </button>`;
           } else {
-            const iconHtml = `<i class="icon-svg ph ${icon} text-3xl text-brand-neon drop-shadow-[0_0_5px_rgba(255,255,255,0.35)] transition-all"></i>`;
+            const finalIconHtml = s.imagen
+              ? `<img src="${s.imagen}" alt="" class="w-full h-full object-cover rounded-full">`
+              : `<i class="icon-svg ph ${icon} text-3xl text-brand-neon drop-shadow-[0_0_5px_rgba(255,255,255,0.35)] transition-all"></i>`;
             innerGrid.innerHTML += `
               <button onclick="selectService(this)" data-service-id="${s.id}" data-category="${cat}"
                 class="service-option relative flex flex-col items-center justify-center p-6 rounded-2xl bg-[#0a0a0d] border border-brand-accent/20 shadow-sm hover:border-brand-neon/50 hover:shadow-[0_0_15px_rgba(255,255,255,0.15)] active:scale-95 text-center transition-all overflow-hidden group">
                 <div class="absolute inset-0 bg-brand-neon/0 group-hover:bg-brand-neon/5 transition-colors"></div>
                 <div class="icon-bg w-14 h-14 rounded-full bg-[#111115] border border-brand-accent/20 shadow-[0_0_10px_rgba(255,255,255,0.05)] flex items-center justify-center mb-4 transition-all relative z-10">
-                  ${iconHtml}
+                  ${finalIconHtml}
                 </div>
                 <span class="svc-name font-bold text-gray-200 text-sm mb-1 relative z-10 tracking-wide">${s.nombre}</span>
                 ${window._topServiceNombre && s.nombre === window._topServiceNombre ? `<span class="inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-400 mb-1 relative z-10">✦ Más solicitado</span>` : ''}

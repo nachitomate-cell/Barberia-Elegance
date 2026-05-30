@@ -51,6 +51,12 @@ service firebase.storage {
       allow write: if isAuth() && isUnder5MB() && isImage();
     }
 
+    // Servicios (elegance root)
+    match /servicios/{servicioId}/{fileName} {
+      allow read: if true;
+      allow write: if isAuth() && isUnder5MB() && isImage();
+    }
+
     // Assets del local (logo, fondo, etc.)
     match /assets/{imageId} {
       allow read: if true;
