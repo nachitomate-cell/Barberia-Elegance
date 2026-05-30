@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect, useRef, createContext, useContext } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   ChevronLeft, ChevronRight, Plus, X, Ban, CalendarOff,
   CheckCircle2, XCircle, Clock, Trash2, Lock, History,
@@ -1765,6 +1766,23 @@ export default function Agenda() {
   const [showHistorial, setShowHistorial] = useState(false);
   const [draggedCita,   setDraggedCita]   = useState(null);
   const [showDifusionModal, setShowDifusionModal] = useState(false);
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    const completarId = searchParams.get('completar');
+    if (!completarId) return;
+    getDoc(doc(tenantCol('citas'), completarId))
+      .then(snap => {
+        if (!snap.exists()) return;
+        const cita = { id: snap.id, ...snap.data() };
+        const [y, m, d] = cita.fecha.split('-').map(Number);
+        setDate(new Date(y, m - 1, d));
+        setCitaModal({ cita: { ...cita, estado: 'Completada' }, barberoId: cita.barberoId, hora: cita.hora });
+        setSearchParams(p => { p.delete('completar'); return p; }, { replace: true });
+      })
+      .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const { data: ultimasCitas, loading: loadingUltima } = useCollection(
     'citas',

@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { AlertTriangle, ChevronRight, CheckCircle2, XCircle } from 'lucide-react';
 import { where, doc, updateDoc, writeBatch } from 'firebase/firestore';
+import { useNavigate } from 'react-router-dom';
 import { db } from '../lib/firebase';
 import { tenantCol } from '../lib/tenantUtils';
 import { useCollection } from '../hooks/useCollection';
@@ -8,13 +9,13 @@ import { useCollection } from '../hooks/useCollection';
 // Modal para gestionar citas pendientes rápidamente
 function PendingAppointmentsModal({ citas, onClose }) {
   const [loadingIds, setLoadingIds] = useState(new Set());
+  const navigate = useNavigate();
 
-  const handleUpdate = async (cita, newEstado) => {
+  const handleCancel = async (cita) => {
     setLoadingIds(prev => new Set(prev).add(cita.id));
     try {
-      const payload = { estado: newEstado };
-      // Si se cancela y tiene slotLock, liberarlo
-      if (newEstado === 'Cancelada' && cita.slotLockId) {
+      const payload = { estado: 'Cancelada' };
+      if (cita.slotLockId) {
         const batch = writeBatch(db);
         batch.update(doc(db, `${tenantCol('citas').path}/${cita.id}`), payload);
         batch.delete(doc(db, `${tenantCol('slotLocks').path}/${cita.slotLockId}`));
@@ -23,15 +24,16 @@ function PendingAppointmentsModal({ citas, onClose }) {
         await updateDoc(doc(db, `${tenantCol('citas').path}/${cita.id}`), payload);
       }
     } catch (err) {
-      console.error('Error al actualizar cita:', err);
-      alert('Error al actualizar la cita');
+      console.error('Error al cancelar cita:', err);
+      alert('Error al cancelar la cita');
     } finally {
-      setLoadingIds(prev => {
-        const next = new Set(prev);
-        next.delete(cita.id);
-        return next;
-      });
+      setLoadingIds(prev => { const next = new Set(prev); next.delete(cita.id); return next; });
     }
+  };
+
+  const handleComplete = (cita) => {
+    onClose();
+    navigate(`/agenda?completar=${cita.id}`);
   };
 
   return (
@@ -68,7 +70,7 @@ function PendingAppointmentsModal({ citas, onClose }) {
               <div className="flex items-center gap-1.5 shrink-0">
                 <button
                   disabled={loadingIds.has(cita.id)}
-                  onClick={() => handleUpdate(cita, 'Cancelada')}
+                  onClick={() => handleCancel(cita)}
                   className="w-9 h-9 flex items-center justify-center rounded-lg bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 disabled:opacity-50"
                   title="Cancelar cita"
                 >
@@ -76,11 +78,12 @@ function PendingAppointmentsModal({ citas, onClose }) {
                 </button>
                 <button
                   disabled={loadingIds.has(cita.id)}
-                  onClick={() => handleUpdate(cita, 'Completada')}
-                  className="w-9 h-9 flex items-center justify-center rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20 disabled:opacity-50"
-                  title="Completar cita"
+                  onClick={() => handleComplete(cita)}
+                  className="flex items-center gap-1.5 px-3 h-9 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20 disabled:opacity-50 text-xs font-semibold"
+                  title="Completar cita — abre formulario con método de pago y sello"
                 >
-                  <CheckCircle2 size={18} />
+                  <CheckCircle2 size={15} />
+                  Completar
                 </button>
               </div>
             </div>
