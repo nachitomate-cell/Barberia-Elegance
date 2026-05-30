@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useMemo } from 'react';
+import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { resolveTenantId } from '../lib/tenantUtils';
@@ -277,8 +277,16 @@ export default function VIPDashboard() {
   const [err, setErr]         = useState('');
   const [result, setResult]   = useState(null); // { client, visits, citas }
 
-  const tenantId = resolveTenantId();
-  const colPath  = tenantId === 'elegance' ? 'citas' : `tenants/${tenantId}/citas`;
+  const tenantId  = resolveTenantId();
+  const colPath   = tenantId === 'elegance' ? 'citas' : `tenants/${tenantId}/citas`;
+  const svcPath   = tenantId === 'elegance' ? 'servicios' : `tenants/${tenantId}/servicios`;
+
+  const [servicios, setServicios] = useState([]);
+  useEffect(() => {
+    getDocs(query(collection(db, svcPath), orderBy('orden')))
+      .then(snap => setServicios(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
+      .catch(() => {});
+  }, [svcPath]);
 
   const buscar = async () => {
     const raw = phone.trim();
@@ -436,6 +444,48 @@ export default function VIPDashboard() {
           >
             Buscar otro número
           </button>
+        </div>
+      )}
+
+      {/* ── Servicios ─────────────────────────────────────────────── */}
+      {servicios.length > 0 && (
+        <div className="w-full max-w-sm space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="flex-1 h-px bg-slate-800" />
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-600">Nuestros servicios</p>
+            <div className="flex-1 h-px bg-slate-800" />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            {servicios.map(s => (
+              <div key={s.id} className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+                {s.imagen ? (
+                  <div className="w-full overflow-hidden bg-slate-800" style={{ aspectRatio: '4/3' }}>
+                    <img
+                      src={s.imagen}
+                      alt={s.nombre}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                  </div>
+                ) : (
+                  <div className="w-full flex items-center justify-center bg-slate-800/60" style={{ aspectRatio: '4/3' }}>
+                    <i className={`ph ${s.icono || 'ph-scissors'} text-3xl text-slate-600`} />
+                  </div>
+                )}
+                <div className="p-3">
+                  <p className="text-white text-xs font-semibold leading-snug">{s.nombre}</p>
+                  {s.descripcion && (
+                    <p className="text-slate-500 text-[11px] mt-0.5 line-clamp-2 leading-snug">{s.descripcion}</p>
+                  )}
+                  <p className="text-slate-400 text-xs mt-1 font-bold">
+                    ${Number(s.precio || 0).toLocaleString('es-CL')}
+                    <span className="text-slate-600 font-normal ml-1">{s.duracion} min</span>
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </div>
