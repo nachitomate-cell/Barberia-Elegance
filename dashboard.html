@@ -4216,7 +4216,6 @@ auth.onAuthStateChanged(async user => {
     return;
   }
   currentUser = user;
-  document.getElementById('authGuard').style.display = 'none';
   initAuraAnimations();
   // Mostrar widget de chat (currentUser ya está asignado aquí)
   const _chatWidgetEl = document.getElementById('chatWidget');
@@ -4346,12 +4345,24 @@ async function ensureUserDoc(user, extra = {}) {
 
 // ─── Cargar datos del usuario en tiempo real ─────────────────
 async function subscribeUserData(user) {
-  await ensureUserDoc(user);
+  await ensureUserDoc(user).catch(() => {});
   if (_userUnsub) { _userUnsub(); _userUnsub = null; }
   _stampsSynced = false;
   _prevStamps   = null;
+  let _firstSnap = true;
+
+  function _hideAuthGuard() {
+    if (!_firstSnap) return;
+    _firstSnap = false;
+    document.getElementById('authGuard').style.display = 'none';
+  }
+
+  // Timeout de seguridad: si Firestore no responde en 8s, quitar la pantalla de carga
+  const _guardTimeout = setTimeout(_hideAuthGuard, 8000);
 
   _userUnsub = FDB.usersCol().doc(user.uid).onSnapshot(snap => {
+    clearTimeout(_guardTimeout);
+    _hideAuthGuard();
     if (!snap.exists) return;
     const data = snap.data();
 
@@ -4414,7 +4425,11 @@ async function subscribeUserData(user) {
 
     renderStamps(disponibles, historicos);
 
-  }, err => console.error('[Dashboard] onSnapshot usuario:', err));
+  }, err => {
+    clearTimeout(_guardTimeout);
+    _hideAuthGuard();
+    console.error('[Dashboard] onSnapshot usuario:', err);
+  });
 }
 
 // ─── Subida de foto de perfil ────────────────────────────────
