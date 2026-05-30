@@ -12,6 +12,7 @@ const { onSchedule }   = require('firebase-functions/v2/scheduler');
 const { defineSecret } = require('firebase-functions/params');
 const { logger }       = require('firebase-functions');
 const admin            = require('firebase-admin');
+const { writeNotifLog } = require('./lib/notif-log');
 
 const db        = admin.firestore();
 const messaging = admin.messaging();
@@ -430,6 +431,14 @@ exports.recordatorioCita24h = onSchedule(
             });
             logger.info(`[WA] ✓ ${nombre} (${telefono}) → cita ${citaId}`);
             totalWA++;
+            await writeNotifLog(db, {
+              tenantId: tenant.id,
+              type:    'whatsapp_24h',
+              channel: 'whatsapp',
+              status:  'sent',
+              to:      { nombre, telefono },
+              meta:    { citaId, fecha: mananaISO, hora },
+            });
           } catch (err) {
             logger.warn(`[WA] ✗ ${telefono} / ${citaId}: ${err.message}`);
           }
@@ -604,6 +613,14 @@ exports.recordatorioCita1h = onSchedule(
           html,
         });
         logger.info(`[Email 1H] ✓ Enviado exitosamente a ${email} para cita ${citaId} (${tenantId})`);
+        await writeNotifLog(db, {
+          tenantId,
+          type:    'email_recordatorio_1h',
+          channel: 'email',
+          status:  'sent',
+          to:      { nombre: cita.clienteNombre || '', email },
+          meta:    { citaId, servicio: cita.servicioNombre || '', fecha: cita.fecha || '', hora: cita.hora || '' },
+        });
       } catch (err) {
         // En caso de error de Resend, desmarcar para reintento en el siguiente ciclo
         await ref.update({ recordatorio1hEnviado: false });

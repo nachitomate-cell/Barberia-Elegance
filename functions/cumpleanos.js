@@ -23,6 +23,7 @@ const { onSchedule } = require('firebase-functions/v2/scheduler');
 const { logger }     = require('firebase-functions');
 const admin          = require('firebase-admin');
 const { FieldValue, Timestamp } = require('firebase-admin/firestore');
+const { writeNotifLog } = require('./lib/notif-log');
 
 const db        = admin.firestore();
 const messaging = admin.messaging();
@@ -154,6 +155,14 @@ exports.selloCumpleanos = onSchedule(
             },
           });
           logger.info(`[Cumple] Push enviado → ${nombre}`);
+          await writeNotifLog(db, {
+            tenantId: tenant.id,
+            type:    'push_cumpleanos',
+            channel: 'push',
+            status:  'sent',
+            to:      { nombre, telefono: phone },
+            meta:    {},
+          });
         } catch (err) {
           logger.warn(`[Cumple] Push fallido para ${phone}: ${err.code || err.message}`);
         }

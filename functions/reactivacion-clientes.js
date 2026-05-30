@@ -23,6 +23,7 @@ const { defineSecret } = require('firebase-functions/params');
 const { logger }       = require('firebase-functions');
 const admin            = require('firebase-admin');
 const { FieldValue }   = require('firebase-admin/firestore');
+const { writeNotifLog } = require('./lib/notif-log');
 
 const db = admin.firestore();
 
@@ -160,6 +161,14 @@ async function processTenant(tenant, twilioClient, waFrom) {
       });
       enviados++;
       toUpdate.push({ ref: userDoc.ref, data: { ultimaReactivacion: FieldValue.serverTimestamp() } });
+      await writeNotifLog(db, {
+        tenantId: tenant.id,
+        type:    'whatsapp_reactivacion',
+        channel: 'whatsapp',
+        status:  'sent',
+        to:      { nombre, telefono: waTo },
+        meta:    {},
+      });
 
       // Rate limit: 1 mensaje cada 500ms
       await new Promise(r => setTimeout(r, 500));

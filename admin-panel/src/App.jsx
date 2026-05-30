@@ -41,7 +41,8 @@ import GiftCards        from './views/GiftCards';
 import ListaEspera      from './views/ListaEspera';
 import Sucursales       from './views/Sucursales';
 import SaldoGiftCard    from './views/SaldoGiftCard';
-import VIPDashboard     from './views/VIPDashboard';
+import VIPDashboard        from './views/VIPDashboard';
+import NotificacionesLog   from './views/NotificacionesLog';
 
 function TenantGate({ children }) {
   const { suspended } = useTenant();
@@ -106,6 +107,7 @@ function ProtectedApp() {
             <Route path="gift-cards"      element={<GiftCards />} />
             <Route path="lista-espera"    element={<ListaEspera />} />
             <Route path="sucursales"      element={<Sucursales />} />
+            <Route path="notif-log"       element={<NotificacionesLog />} />
             <Route path="booking-preview"   element={<BookingFlow />} />
             <Route path="agenda-preview"    element={<AgendaBarbero barberoNombre="Joaquin Amiri" />} />
             <Route path="*"               element={<Navigate to={defaultRoute} replace />} />

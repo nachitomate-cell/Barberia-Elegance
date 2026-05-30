@@ -24,6 +24,7 @@
 const { onDocumentCreated, onDocumentWritten } = require('firebase-functions/v2/firestore');
 const { logger } = require('firebase-functions');
 const admin      = require('firebase-admin');
+const { writeNotifLog } = require('./lib/notif-log');
 
 const db        = admin.firestore();
 const messaging = admin.messaging();
@@ -119,6 +120,14 @@ async function notifCitaConfirmada(tenantId, citaId, cita) {
       const citaRef = db.collection(tenantId === 'elegance' ? 'citas' : `tenants/${tenantId}/citas`).doc(citaId);
       await citaRef.update({ notifConfirmadaEnviada: true });
     } catch (e) { logger.warn(`[Push] no se pudo marcar notifConfirmadaEnviada: ${e.message}`); }
+    await writeNotifLog(db, {
+      tenantId,
+      type:    'push_confirmacion',
+      channel: 'push',
+      status:  'sent',
+      to:      { nombre: cita.clienteNombre || '', email: cita.clienteEmail || '' },
+      meta:    { citaId, servicio: servicio, fecha, hora },
+    });
   }
 }
 
@@ -181,10 +190,20 @@ async function notifSelloGanado(tenantId, uid, before, after) {
     body  = `Total acumulado: ${dispDesp} sellos. ¡Gracias por tu visita!`;
   }
 
-  await enviarPush(tenantId, uid, {
+  const selloSent = await enviarPush(tenantId, uid, {
     title, body,
     data: { type: 'sello_ganado', sellos: dispDesp },
   });
+  if (selloSent > 0) {
+    await writeNotifLog(db, {
+      tenantId,
+      type:    'push_sello',
+      channel: 'push',
+      status:  'sent',
+      to:      { nombre: after.nombre || after.clienteNombre || '' },
+      meta:    { sellos: String(dispDesp) },
+    });
+  }
 }
 
 exports.pushSelloGanadoElegance = onDocumentWritten('users/{uid}', async (event) => {

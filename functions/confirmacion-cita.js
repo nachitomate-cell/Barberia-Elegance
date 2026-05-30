@@ -15,6 +15,7 @@ const { onDocumentCreated } = require('firebase-functions/v2/firestore');
 const { defineSecret }      = require('firebase-functions/params');
 const { logger }            = require('firebase-functions');
 const admin                 = require('firebase-admin');
+const { writeNotifLog }     = require('./lib/notif-log');
 
 const RESEND_API_KEY = defineSecret('RESEND_API_KEY');
 
@@ -286,6 +287,14 @@ async function enviarConfirmacion(citaId, data, tenantId) {
   });
 
   logger.info(`[Confirmacion] Email enviado a ${email} (cita ${citaId}, tenant ${tenantId})`);
+  await writeNotifLog(db, {
+    tenantId,
+    type:    'email_confirmacion',
+    channel: 'email',
+    status:  'sent',
+    to:      { nombre: data.clienteNombre || '', email },
+    meta:    { citaId, servicio: data.servicioNombre || '', fecha: data.fecha || '', hora: data.hora || '' },
+  });
 }
 
 // ── Triggers ──────────────────────────────────────────────────────────────────

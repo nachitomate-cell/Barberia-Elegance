@@ -22,6 +22,7 @@ const { onSchedule }        = require('firebase-functions/v2/scheduler');
 const { logger }            = require('firebase-functions');
 const admin                 = require('firebase-admin');
 const { Timestamp }         = require('firebase-admin/firestore');
+const { writeNotifLog }     = require('./lib/notif-log');
 
 const db        = admin.firestore();
 const messaging = admin.messaging();
@@ -277,7 +278,16 @@ exports.enviarRecordatoriosCorte = onSchedule(
               },
               fcmOptions: { link: '/' },
             },
-          }).catch(err => logger.warn(`[Haircut FCM] ${telefono}: ${err.code}`)),
+          })
+            .then(() => writeNotifLog(db, {
+              tenantId: tenant.id,
+              type:    'push_recordatorio_corte',
+              channel: 'push',
+              status:  'sent',
+              to:      { nombre, telefono },
+              meta:    {},
+            }))
+            .catch(err => logger.warn(`[Haircut FCM] ${telefono}: ${err.code}`)),
         );
       }
 
