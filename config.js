@@ -394,9 +394,9 @@
         { author: 'Andrés Vera', rating: 5, text: 'Un local limpio, moderno y los barberos son de primer nivel. Recomendado.' },
       ],
       barberos: [
-        { nombre: 'Nelson Barber', foto: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop', disponible: true },
-        { nombre: 'Ignacio Barber', foto: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=150&h=150&fit=crop', disponible: true },
-        { nombre: 'Marcelo Barber', foto: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop', disponible: true },
+        { nombre: 'Martín de los Santos', foto: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop', disponible: true },
+        { nombre: 'Matías Méndez', foto: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop', disponible: true },
+        { nombre: 'Heitor Barber', foto: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=150&h=150&fit=crop', disponible: true },
       ],
     },
   };

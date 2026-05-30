@@ -1606,22 +1606,22 @@
     .tenant-aura .text-gray-500 { color: #8E9399 !important; }
     .tenant-aura .text-gray-400 { color: #52525B !important; }
     .tenant-aura .text-gray-300 { color: #3F3F46 !important; }
-    .tenant-aura .bg-\\[\\#111115\\] { background-color: #FFFFFF !important; }
-    .tenant-aura .bg-\\[\\#050505\\] { background-color: #F9FAFB !important; }
-    .tenant-aura .bg-\\[\\#0a0a0d\\] { background-color: #FFFFFF !important; }
-    .tenant-aura .bg-\\[\\#1a1a1f\\] { background-color: #F4F4F5 !important; }
+    .tenant-aura .bg-\[\#111115\] { background-color: #FFFFFF !important; }
+    .tenant-aura .bg-\[\#050505\] { background-color: #F9FAFB !important; }
+    .tenant-aura .bg-\[\#0a0a0d\] { background-color: #FFFFFF !important; }
+    .tenant-aura .bg-\[\#1a1a1f\] { background-color: #F4F4F5 !important; }
     .tenant-aura .bg-zinc-900 { background-color: #F4F4F5 !important; }
-    .tenant-aura .bg-white\\/5 { background-color: rgba(156,163,175,0.06) !important; }
-    .tenant-aura .border-white\\/8,
-    .tenant-aura .border-white\\/10,
-    .tenant-aura .border-white\\/6,
+    .tenant-aura .bg-white\/5 { background-color: rgba(156,163,175,0.06) !important; }
+    .tenant-aura .border-white\/8,
+    .tenant-aura .border-white\/10,
+    .tenant-aura .border-white\/6,
     .tenant-aura .border-zinc-800,
-    .tenant-aura .border-zinc-800\\/80 { border-color: #D4D4D8 !important; }
+    .tenant-aura .border-zinc-800\/80 { border-color: #D4D4D8 !important; }
     
     /* Auth Guard */
     .tenant-aura #authGuard { background-color: #F9FAFB !important; }
     .tenant-aura #authGuard .border-t-white { border-top-color: #9CA3AF !important; }
-    .tenant-aura #authGuard .border-white\\/20 { border-color: rgba(156,163,175,0.2) !important; }
+    .tenant-aura #authGuard .border-white\/20 { border-color: rgba(156,163,175,0.2) !important; }
     
     /* Header */
     .tenant-aura header {
@@ -1838,14 +1838,67 @@
     }
     .tenant-aura #canjeModal [style*="color:#D4AF37"] { color: #00285E !important; }
     .tenant-aura #canjeModal #canjeModalTitle { color: #18181B !important; }
-    .tenant-aura #canjeModal .bg-\[#1a1a1f\] {
-      background: #F4F4F5 !important;
-      border-color: #E4E4E7 !important;
+    
+    /* Cuadro de instrucciones de canje de premios (Aura) */
+    .tenant-aura #canjeModal .space-y-3 {
+      background-color: #F4F4F5 !important;
+      border: 1px solid #E4E4E7 !important;
     }
-    .tenant-aura #canjeModal p.text-gray-300 { color: #52525B !important; }
-    .tenant-aura #canjeModal button[style*="background:#D4AF37"] {
-      background: #9CA3AF !important;
+    .tenant-aura #canjeModal .space-y-3 p {
+      color: #18181B !important;
+    }
+    .tenant-aura #canjeModal .space-y-3 i {
+      color: #00285E !important;
+    }
+    
+    /* Botón "Entendido" en modal de canje (Aura Navy Premium) */
+    .tenant-aura #canjeModal button[onclick="cerrarModalCanje()"] {
+      background: linear-gradient(135deg, #00285E 0%, #1e3a8a 100%) !important;
       color: #FFFFFF !important;
+      font-weight: 700 !important;
+      box-shadow: 0 4px 14px rgba(0,40,94,0.2) !important;
+    }
+
+    /* Asegurar texto blanco de alto contraste en el Banner de Anuncio Navy */
+    .tenant-aura #heroBanner h3,
+    .tenant-aura #heroBanner span,
+    .tenant-aura #heroBanner p,
+    .tenant-aura #heroBanner i {
+      color: #FFFFFF !important;
+    }
+    .tenant-aura #heroBanner a {
+      color: #001a40 !important;
+    }
+    .tenant-aura #heroBanner a i {
+      color: #001a40 !important;
+    }
+
+    /* Asegurar legibilidad extrema en la tarjeta de Próxima Cita (Aura) */
+    .tenant-aura #heroProximaCitaCard span {
+      color: rgba(255, 255, 255, 0.95) !important;
+    }
+    .tenant-aura #heroProximaCitaCard i {
+      color: rgba(255, 255, 255, 0.8) !important;
+    }
+    /* Restaurar colores acentuados del diseño original para los estados e iconos */
+    .tenant-aura #heroProximaCitaCard .proxima-cita-chip {
+      color: #86efac !important;
+      background: rgba(34, 197, 94, 0.15) !important;
+      border-color: rgba(34, 197, 94, 0.28) !important;
+    }
+    .tenant-aura #heroProximaCitaCard .ph-calendar-check,
+    .tenant-aura #heroProximaCitaCard .ph-calendar-blank,
+    .tenant-aura #heroProximaCitaCard .ph-calendar-dots {
+      color: #93c5fd !important;
+    }
+    .tenant-aura #heroProximaCitaCard .ph-map-pin {
+      color: #a7f3d0 !important;
+    }
+    .tenant-aura #heroProximaCitaCard .ph-x-circle {
+      color: #f87171 !important;
+    }
+    .tenant-aura #heroProximaCitaCard button[onclick*="abrirModalCancelar"] span {
+      color: #f87171 !important;
     }
 
     /* ── Aura: Premios + Legal ───────────────────────────────────── */

@@ -57,27 +57,27 @@ const SERVICIOS = [
 // ── Profesionales ────────────────────────────────────────────────────────────
 const BARBEROS = [
   { 
-    id: 'sion-nelson', 
-    nombre: 'Nelson Barber', 
-    foto: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop', 
+    id: 'sion-martin', 
+    nombre: 'Martín de los Santos', 
+    foto: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop', 
     disponible: true, 
     activo: true, 
     rol: 'profesional', 
     orden: 0 
   },
   { 
-    id: 'sion-ignacio', 
-    nombre: 'Ignacio Barber', 
-    foto: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=150&h=150&fit=crop', 
+    id: 'sion-matias', 
+    nombre: 'Matías Méndez', 
+    foto: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop', 
     disponible: true, 
     activo: true, 
     rol: 'profesional', 
     orden: 1 
   },
   { 
-    id: 'sion-marcelo', 
-    nombre: 'Marcelo Barber', 
-    foto: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop', 
+    id: 'sion-heitor', 
+    nombre: 'Heitor Barber', 
+    foto: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=150&h=150&fit=crop', 
     disponible: true, 
     activo: true, 
     rol: 'profesional', 
@@ -117,7 +117,26 @@ async function seedServicios() {
 }
 
 async function seedBarberos() {
-  separador('PROFESIONALES');
+  separador('PROFESIONALES (LIMPIEZA Y CARGA)');
+  
+  // 1. Obtener y eliminar barberos antiguos para evitar duplicados
+  const oldBarbers = await col('barberos').get();
+  if (!oldBarbers.empty) {
+    console.log(`  🗑️ Limpiando ${oldBarbers.size} barberos antiguos...`);
+    const cleanBatch = db.batch();
+    for (const doc of oldBarbers.docs) {
+      // Eliminar subcolección de configuración interna si existe
+      const oldConfig = await doc.ref.collection('configuracion').get();
+      for (const cfgDoc of oldConfig.docs) {
+        cleanBatch.delete(cfgDoc.ref);
+      }
+      cleanBatch.delete(doc.ref);
+    }
+    await cleanBatch.commit();
+    console.log('  ✅ Limpieza completada.');
+  }
+
+  // 2. Cargar los nuevos barberos reales
   const batch = db.batch();
   for (const b of BARBEROS) {
     const { id, ...data } = b;
@@ -126,14 +145,14 @@ async function seedBarberos() {
   }
   await batch.commit();
 
+  // 3. Aplicar configuración de horarios para cada uno
   for (const b of BARBEROS) {
-    // Aplicar la configuración individual de cada barbero
     await col('barberos').doc(b.id).collection('configuracion').doc('main').set({
       ...CONFIG,
       updatedAt: TS(),
     }, { merge: true });
   }
-  console.log(`✅ ${BARBEROS.length} profesionales creados con configuración.`);
+  console.log(`✅ ${BARBEROS.length} profesionales reales creados con configuración.`);
 }
 
 async function seedConfiguracion() {
