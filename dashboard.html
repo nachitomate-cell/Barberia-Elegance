@@ -3717,6 +3717,22 @@
         </button>
       </div>
 
+      <!-- Academia Elegance (solo elegance) -->
+      <div data-aura-stagger class="px-5 mb-6 hidden" id="academiaBtnWrapper">
+        <button onclick="abrirAcademiaModal()" class="w-full flex items-center justify-between rounded-2xl px-4 py-3.5 transition-all duration-200 active:scale-[0.97]" style="background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.25);">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style="background:var(--gold-glow);border:1px solid var(--gold-dim);">
+              <i class="ph-fill ph-graduation-cap text-lg" style="color:var(--gold);"></i>
+            </div>
+            <div class="text-left">
+              <p class="text-sm font-bold" style="color:var(--gold);">Academia Elegance</p>
+              <p class="text-[11px] text-zinc-500">Formación de excelencia</p>
+            </div>
+          </div>
+          <i class="ph-bold ph-caret-right text-base shrink-0" style="color:var(--gold);opacity:0.5;"></i>
+        </button>
+      </div>
+
     </section>
 
     <!-- ═══════ PESTAÑA 2: LOOKBOOK ═══════ -->
@@ -3938,6 +3954,83 @@
 
     </div>
   </nav>
+
+  <!-- ═══════ MODAL ACADEMIA ELEGANCE ═══════ -->
+  <div id="academiaModal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4" style="background:rgba(0,0,0,0.80);backdrop-filter:blur(6px);" onclick="if(event.target===this)cerrarAcademiaModal()">
+    <div class="w-full max-w-lg bg-[#0f172a] border border-white/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden" style="max-height:92dvh;">
+
+      <!-- Header -->
+      <div class="relative px-6 pt-6 pb-5 overflow-hidden" style="background:linear-gradient(135deg,#0f172a 60%,rgba(201,168,76,0.09));">
+        <div class="absolute -top-8 -right-8 w-32 h-32 rounded-full blur-3xl opacity-20 pointer-events-none" style="background:var(--gold);"></div>
+        <button onclick="cerrarAcademiaModal()" class="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-lg text-zinc-500 hover:text-white hover:bg-white/10 transition-all" aria-label="Cerrar">
+          <i class="ph-bold ph-x text-base"></i>
+        </button>
+        <div class="flex items-center gap-3 mb-3">
+          <div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style="background:rgba(201,168,76,0.12);border:1px solid rgba(201,168,76,0.35);">
+            <i class="ph-fill ph-graduation-cap text-2xl" style="color:var(--gold);"></i>
+          </div>
+          <div>
+            <p class="text-[10px] font-bold uppercase tracking-widest" style="color:var(--gold);">Formación de Excelencia</p>
+            <h2 class="text-lg font-bold text-white leading-tight">Academia Elegance</h2>
+          </div>
+        </div>
+        <p class="text-sm text-zinc-300 leading-relaxed border-l-2 pl-3" style="border-color:var(--gold);">El Motor de Nuestra Elegancia</p>
+      </div>
+
+      <!-- Body -->
+      <div class="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+        <p class="text-sm text-zinc-300 leading-relaxed">
+          Todo nuestro equipo en Viña del Mar está respaldado por el programa intensivo de
+          <span class="font-bold text-white">240 horas de Barbería Profesional</span>,
+          asegurando que cada servicio cumpla con la promesa:
+        </p>
+        <p class="text-center text-sm font-bold italic px-4 py-2.5 rounded-xl" style="color:var(--gold);background:rgba(201,168,76,0.07);border:1px solid rgba(201,168,76,0.2);">
+          "No es solo un corte. Es elegancia."
+        </p>
+
+        <div class="space-y-3 pt-1">
+          <!-- Card 1 -->
+          <div class="flex gap-4 p-4 rounded-xl bg-white/5 border border-white/8">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style="background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.2);">
+              <i class="ph-bold ph-scissors text-lg" style="color:var(--gold);"></i>
+            </div>
+            <div>
+              <p class="text-sm font-bold text-white mb-1">Maestría Técnica</p>
+              <p class="text-sm text-zinc-400 leading-relaxed">Capacitación experta detrás de nuestros servicios más solicitados: desde el Corte Tradicional hasta nuestro popular Corte Degradé y Corte con Textura.</p>
+            </div>
+          </div>
+          <!-- Card 2 -->
+          <div class="flex gap-4 p-4 rounded-xl bg-white/5 border border-white/8">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style="background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.2);">
+              <i class="ph-fill ph-shield-check text-lg" style="color:var(--gold);"></i>
+            </div>
+            <div>
+              <p class="text-sm font-bold text-white mb-1">Protocolos Premium</p>
+              <p class="text-sm text-zinc-400 leading-relaxed">Diagnóstico profesional del cabello y rostro, junto con estrictos estándares de higiene que garantizan una experiencia segura y de primer nivel.</p>
+            </div>
+          </div>
+          <!-- Card 3 -->
+          <div class="flex gap-4 p-4 rounded-xl bg-white/5 border border-white/8">
+            <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style="background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.2);">
+              <i class="ph-fill ph-medal text-lg" style="color:var(--gold);"></i>
+            </div>
+            <div>
+              <p class="text-sm font-bold text-white mb-1">Sinergia con tu Membresía</p>
+              <p class="text-sm text-zinc-400 leading-relaxed">La precisión en los tiempos de ejecución de nuestros barberos es lo que permite que el Club Elegance GOLD funcione a la perfección, garantizando tus recompensas siempre a tiempo.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="px-6 py-4 border-t border-white/8 flex justify-end">
+        <button onclick="cerrarAcademiaModal()" class="px-5 py-2 rounded-xl text-sm font-semibold transition-all" style="background:rgba(201,168,76,0.1);color:var(--gold);border:1px solid rgba(201,168,76,0.3);"
+          onmouseenter="this.style.background='rgba(201,168,76,0.2)'" onmouseleave="this.style.background='rgba(201,168,76,0.1)'">
+          Cerrar
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- Modal reagendar cita -->
   <div id="reagendarCitaModal" class="hidden fixed inset-0 bg-[#050505]/85 backdrop-blur-sm z-50 flex items-end justify-center px-5 pb-8">
@@ -7360,6 +7453,22 @@ function auraCountUp(targetNum, totalTarget) {
         navigator.clipboard.writeText(shareData.url);
         showToast('Enlace copiado al portapapeles', 'ok');
       }
+    }
+
+    // ─── Academia Elegance modal ──────────────────────────────
+    (function initAcademia() {
+      if ((window.CURRENT_TENANT_ID || 'elegance') !== 'elegance') return;
+      const wrapper = document.getElementById('academiaBtnWrapper');
+      if (wrapper) wrapper.classList.remove('hidden');
+    })();
+
+    function abrirAcademiaModal() {
+      const modal = document.getElementById('academiaModal');
+      if (modal) modal.classList.remove('hidden');
+    }
+    function cerrarAcademiaModal() {
+      const modal = document.getElementById('academiaModal');
+      if (modal) modal.classList.add('hidden');
     }
 
     async function compartirAgenda() {
