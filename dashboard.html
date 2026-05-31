@@ -4224,6 +4224,7 @@ let _stampsSynced   = false;
 let _premiosVisible = false;
 var _citaCache      = window._citaCache || {};
 window._citaCache   = _citaCache;
+window._minutosLimiteReagendar = 0;
 
 // ─── Aplicar Config ───────────────────────────────────────────
 document.title = `Mi ${SHOP.club}`;
@@ -4337,6 +4338,22 @@ document.getElementById('shopClubName').textContent   = SHOP.club;
     // Initialize premium active tab indicator
     updateNavIndicator(activeTab);
   });
+})();
+
+// ─── Cargar límite de cancelación/reagendamiento ──────────────
+(async function loadCancelLimitConfig() {
+  try {
+    const _tid = window.CURRENT_TENANT_ID || 'elegance';
+    const _ref = _tid === 'elegance'
+      ? db.collection('configuracion').doc('main')
+      : db.collection('tenants').doc(_tid).collection('configuracion').doc('main');
+    const _snap = await _ref.get();
+    if (_snap.exists && _snap.data().minutosLimiteReagendar) {
+      window._minutosLimiteReagendar = _snap.data().minutosLimiteReagendar;
+    }
+  } catch (_e) {
+    // config no crítica, no bloquear
+  }
 })();
 
 // ─── Auth Guard ───────────────────────────────────────────────
@@ -5428,6 +5445,8 @@ async function cargarCitasUsuario(user) {
       }).sort((a, b) => a.fecha.localeCompare(b.fecha) || a.hora.localeCompare(b.hora));
 
       const proxima    = futuras[0] || null;
+      const _blk       = proxima ? _limiteBloqueado(proxima.fecha, proxima.hora) : false;
+      const _blkCls    = _blk ? ' opacity-50 cursor-not-allowed' : '';
 
       // ─── Tarjeta Hero de Próxima Cita Activa en Pestaña Fidelización ───
       const heroCardEl = document.getElementById('heroProximaCitaCard');
@@ -5475,11 +5494,11 @@ async function cargarCitasUsuario(user) {
                 </div>
                 <div class="grid grid-cols-3 gap-2">
                   <button onclick="abrirModalReagendar('${proxima.id}')"
-                          class="flex items-center justify-center gap-1.5 text-[10px] font-bold py-2.5 rounded-xl border border-zinc-800 hover:border-zinc-700 bg-zinc-950/20 active:scale-[0.98] transition-all text-white">
+                          class="flex items-center justify-center gap-1.5 text-[10px] font-bold py-2.5 rounded-xl border border-zinc-800 hover:border-zinc-700 bg-zinc-950/20 active:scale-[0.98] transition-all text-white${_blkCls}">
                     <i class="ph-bold ph-calendar-dots text-sm"></i> Reagendar
                   </button>
                   <button onclick="abrirModalCancelar('${proxima.id}')"
-                          class="flex items-center justify-center gap-1.5 text-[10px] font-bold py-2.5 rounded-xl border border-red-500/20 bg-red-950/15 active:scale-[0.98] transition-all text-red-400 hover:bg-red-950/30">
+                          class="flex items-center justify-center gap-1.5 text-[10px] font-bold py-2.5 rounded-xl border border-red-500/20 bg-red-950/15 active:scale-[0.98] transition-all text-red-400 hover:bg-red-950/30${_blkCls}">
                     <i class="ph-bold ph-x-circle text-sm"></i> Cancelar
                   </button>
                   <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(window.SHOP?.nombre + ' ' + (window.SHOP?.direccion || ''))}"
@@ -5530,11 +5549,11 @@ async function cargarCitasUsuario(user) {
                     ${_aTiempo}
                   </div>
                   <div class="grid grid-cols-3 gap-2">
-                    <button onclick="abrirModalReagendar('${proxima.id}')" class="flex flex-col items-center gap-1 py-3 rounded-2xl active:scale-[0.96] transition-all" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);">
+                    <button onclick="abrirModalReagendar('${proxima.id}')" class="flex flex-col items-center gap-1 py-3 rounded-2xl active:scale-[0.96] transition-all${_blkCls}" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);">
                       <i class="ph-bold ph-calendar-dots" style="font-size:18px;color:rgba(147,197,253,0.85);"></i>
                       <span style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.04em;">Reagendar</span>
                     </button>
-                    <button onclick="abrirModalCancelar('${proxima.id}')" class="flex flex-col items-center gap-1 py-3 rounded-2xl active:scale-[0.96] transition-all" style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);">
+                    <button onclick="abrirModalCancelar('${proxima.id}')" class="flex flex-col items-center gap-1 py-3 rounded-2xl active:scale-[0.96] transition-all${_blkCls}" style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);">
                       <i class="ph-bold ph-x-circle" style="font-size:18px;color:rgba(248,113,113,0.85);"></i>
                       <span style="font-size:9px;font-weight:700;color:rgba(248,113,113,0.7);text-transform:uppercase;letter-spacing:0.04em;">Cancelar</span>
                     </button>
@@ -5610,12 +5629,12 @@ async function cargarCitasUsuario(user) {
             </div>
             <div class="mt-3 grid grid-cols-2 gap-2">
               <button onclick="abrirModalReagendar('${proxima.id}')"
-                class="reagendar-proxima-btn flex items-center justify-center gap-1.5 text-xs font-semibold py-2 rounded-xl border active:scale-[0.98] transition-all"
+                class="reagendar-proxima-btn flex items-center justify-center gap-1.5 text-xs font-semibold py-2 rounded-xl border active:scale-[0.98] transition-all${_blkCls}"
                 style="color:var(--gold);">
                 <i class="ph-bold ph-calendar-dots text-sm"></i> Reagendar
               </button>
               <button onclick="abrirModalCancelar('${proxima.id}')"
-                class="flex items-center justify-center gap-1.5 text-red-400/80 text-xs font-semibold py-2 rounded-xl border border-red-500/20 bg-red-950/20 active:scale-[0.98] transition-all hover:bg-red-950/40">
+                class="flex items-center justify-center gap-1.5 text-red-400/80 text-xs font-semibold py-2 rounded-xl border border-red-500/20 bg-red-950/20 active:scale-[0.98] transition-all hover:bg-red-950/40${_blkCls}">
                 <i class="ph-bold ph-x-circle text-sm"></i> Cancelar
               </button>
             </div>
@@ -5663,14 +5682,16 @@ async function cargarCitasUsuario(user) {
           : c.estado === 'Completada'
           ? `<span class="shrink-0 text-[9px] font-bold uppercase px-2 py-0.5 rounded-md cita-estado-completada" style="background:var(--gold-glow);color:var(--gold);">${c.estado}</span>`
           : `<span class="shrink-0 text-[9px] font-bold uppercase px-2 py-0.5 rounded-md bg-white/6 text-zinc-400 cita-estado-pendiente">${c.estado || 'Agendada'}</span>`;
+        const _blkC = esFutura ? _limiteBloqueado(c.fecha, c.hora) : false;
+        const _blkCC = _blkC ? ' opacity-50 cursor-not-allowed' : '';
         const cancelBtn = esFutura
           ? `<div class="flex gap-1 shrink-0">
                <button onclick="abrirModalReagendar('${c.id}')" title="Reagendar cita"
-                 class="reagendar-hist-btn w-7 h-7 rounded-lg flex items-center justify-center transition-all active:scale-90">
+                 class="reagendar-hist-btn w-7 h-7 rounded-lg flex items-center justify-center transition-all active:scale-90${_blkCC}">
                  <i class="ph-bold ph-calendar-dots text-sm"></i>
                </button>
                <button onclick="abrirModalCancelar('${c.id}')" title="Cancelar cita"
-                 class="w-7 h-7 rounded-lg flex items-center justify-center text-red-400/60 hover:text-red-400 hover:bg-red-950/30 transition-all active:scale-90">
+                 class="w-7 h-7 rounded-lg flex items-center justify-center text-red-400/60 hover:text-red-400 hover:bg-red-950/30 transition-all active:scale-90${_blkCC}">
                  <i class="ph-bold ph-x text-sm"></i>
                </button>
              </div>`
@@ -5753,10 +5774,26 @@ function formatearFechaCita(fechaStr) {
 // ─── Modals de Citas (Reagendar / Cancelar) ──────────────────
 let _citaSeleccionadaId = null;
 
+function _limiteBloqueado(fechaStr, horaStr) {
+  const lim = window._minutosLimiteReagendar || 0;
+  if (!lim || !fechaStr || !horaStr) return false;
+  const [y, m, d] = fechaStr.split('-').map(Number);
+  const [hh, mm] = horaStr.split(':').map(Number);
+  const diffMin = (new Date(y, m - 1, d, hh, mm) - Date.now()) / 60000;
+  return diffMin >= 0 && diffMin <= lim;
+}
+
 function abrirModalReagendar(id) {
   _citaSeleccionadaId = id;
   const cache = window._citaCache || {};
   const cita = cache[id] || null;
+  if (cita && _limiteBloqueado(cita.fecha, cita.hora)) {
+    const lim = window._minutosLimiteReagendar;
+    showToast(lim >= 60
+      ? `No puedes reagendar con menos de ${Math.round(lim / 60)}h de anticipación`
+      : `No puedes reagendar con menos de ${lim} min de anticipación`, 'err');
+    return;
+  }
   if (cita) {
     const fechaStr = formatearFechaCita(cita.fecha);
     const infoEl = document.getElementById('reagendarCitaInfo');
@@ -5805,6 +5842,13 @@ function abrirModalCancelar(id) {
   _citaSeleccionadaId = id;
   const cache = window._citaCache || {};
   const cita = cache[id] || null;
+  if (cita && _limiteBloqueado(cita.fecha, cita.hora)) {
+    const lim = window._minutosLimiteReagendar;
+    showToast(lim >= 60
+      ? `No puedes cancelar con menos de ${Math.round(lim / 60)}h de anticipación`
+      : `No puedes cancelar con menos de ${lim} min de anticipación`, 'err');
+    return;
+  }
   if (cita) {
     const fechaStr = formatearFechaCita(cita.fecha);
     const infoEl = document.getElementById('cancelCitaInfo');

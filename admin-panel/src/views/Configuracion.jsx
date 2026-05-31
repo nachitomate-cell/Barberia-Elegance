@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   Store, MapPin, Phone, Instagram, Image, Clock, Check, Save, HelpCircle, AlertCircle,
-  GraduationCap, Scissors,
+  GraduationCap, Scissors, Ban,
 } from 'lucide-react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -124,9 +124,10 @@ function DayRow({ diaKey, config, onChange }) {
 
 /* ─── Main component ─────────────────────────────────────────── */
 export default function Configuracion() {
-  const [form,      setForm]      = useState(DEFAULT_SETTINGS);
-  const [intervalo, setIntervalo] = useState(30);
-  const [loading,   setLoading]   = useState(true);
+  const [form,          setForm]          = useState(DEFAULT_SETTINGS);
+  const [intervalo,     setIntervalo]     = useState(30);
+  const [minutosLimite, setMinutosLimite] = useState(0);
+  const [loading,       setLoading]       = useState(true);
   const [saving,    setSaving]    = useState(false);
   const [saved,     setSaved]     = useState(false);
   const [dirty,     setDirty]     = useState(false);
@@ -150,8 +151,10 @@ export default function Configuracion() {
           features:  mergeFeatures(d.features),
         });
       }
-      if (confSnap.exists() && confSnap.data().intervaloMinutos) {
-        setIntervalo(confSnap.data().intervaloMinutos);
+      if (confSnap.exists()) {
+        const cd = confSnap.data();
+        if (cd.intervaloMinutos)          setIntervalo(cd.intervaloMinutos);
+        if (cd.minutosLimiteReagendar !== undefined) setMinutosLimite(cd.minutosLimiteReagendar);
       }
     }).finally(() => setLoading(false));
   }, []);
@@ -169,7 +172,7 @@ export default function Configuracion() {
     try {
       await Promise.all([
         setDoc(settingsRef(), form, { merge: true }),
-        setDoc(confRef(), { intervaloMinutos: intervalo }, { merge: true }),
+        setDoc(confRef(), { intervaloMinutos: intervalo, minutosLimiteReagendar: minutosLimite }, { merge: true }),
       ]);
       setSaved(true);
       setDirty(false);
@@ -303,6 +306,29 @@ export default function Configuracion() {
             >
               <span className="text-sm font-semibold">{label}</span>
               <span className={`text-[10px] mt-0.5 ${intervalo === mins ? 'text-emerald-500/70' : 'text-slate-600'}`}>{sub}</span>
+            </button>
+          ))}
+        </div>
+      </Card>
+
+      {/* Política de Cancelación */}
+      <Card Icon={Ban} title="Política de Cancelación">
+        <p className="text-xs text-slate-500 -mt-1">
+          Tiempo mínimo de anticipación requerido para que un cliente pueda reagendar o cancelar su cita. Con <strong className="text-slate-400">Sin límite</strong> los clientes pueden cancelar en cualquier momento.
+        </p>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {[[0,'Sin límite'],[60,'1 hora'],[120,'2 horas'],[240,'4 horas'],[360,'6 horas'],[480,'8 horas'],[720,'12 horas'],[1440,'24 horas']].map(([mins, label]) => (
+            <button
+              key={mins}
+              type="button"
+              onClick={() => { setMinutosLimite(mins); setDirty(true); }}
+              className={`flex flex-col items-center py-2.5 px-2 rounded-lg border transition-all ${
+                minutosLimite === mins
+                  ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400'
+                  : 'border-slate-700 text-slate-400 hover:text-white hover:border-slate-600'
+              }`}
+            >
+              <span className="text-sm font-semibold">{label}</span>
             </button>
           ))}
         </div>
