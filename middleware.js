@@ -24,6 +24,7 @@ const DOMAIN_MAP = {
   'infinity.synaptechspa.cl':          'infinity',
   'sionbarberia.synaptechspa.cl':      'sionbarberia',
   'barberiasion.synaptechspa.cl':      'sionbarberia',
+  'omegastudio.synaptechspa.cl':       'omegastudio',
 };
 
 const TENANT_META = {
@@ -541,6 +542,56 @@ const TENANT_META = {
       start_url:        '/gestion-interna/?local=infinity',
       icons: [
         { src: '/infinity.png',                 sizes: 'any',     type: 'image/png' },
+        { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png' },
+        { src: '/gestion-interna/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+      ],
+    },
+  },
+  omegastudio: {
+    booking: {
+      title:       'Omega Studio | Agenda tu hora',
+      description: 'Reserva tu hora en Omega Studio. Cortes, barba, facial y color en Av. Valparaíso 595, Local 53, Viña del Mar.',
+      ogTitle:     'Agendar Hora | Omega Studio',
+      ogDesc:      'Reserva tu hora en Omega Studio. Estudio atendido por profesionales en Viña del Mar.',
+    },
+    dashboard: {
+      title:       'Mi Club | Omega Studio',
+      description: 'Tu panel personal en el Club Omega. Revisa tus sellos y canjea premios.',
+      ogTitle:     'Mi Club | Omega Studio',
+      ogDesc:      'Panel de fidelidad de Omega Studio. Acumula sellos y disfruta de servicios gratis.',
+    },
+    registro: {
+      title:       'Únete al Club | Omega Studio',
+      description: 'Crea tu cuenta en el Club Omega. Acumula sellos y canjea premios exclusivos.',
+      ogTitle:     'Únete al Club | Omega Studio',
+      ogDesc:      'Regístrate en Omega Studio y disfruta de beneficios exclusivos.',
+    },
+    siteName:    'Omega Studio',
+    ogImage:     '/omega.jpg',
+    themeColor:  '#0c0c0e',
+    appTitle:    'Omega',
+    icon:        '/omega.jpg',
+    local: {
+      telephone:       '56972302811',
+      streetAddress:   'Av. Valparaíso 595, Local 53',
+      addressLocality: 'Viña del Mar',
+      schemaType:      'HairSalon',
+    },
+    manifest: {
+      name:             'Omega Studio',
+      short_name:       'Omega',
+      theme_color:      '#0c0c0e',
+      background_color: '#0c0c0e',
+    },
+    adminManifest: {
+      name:             'Panel Admin · Omega',
+      short_name:       'Omega',
+      description:      'Panel de administración — Omega Studio',
+      theme_color:      '#d4a96a',
+      background_color: '#0c0c0e',
+      start_url:        '/gestion-interna/?local=omegastudio',
+      icons: [
+        { src: '/omega.jpg',                   sizes: 'any',     type: 'image/jpeg' },
         { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png' },
         { src: '/gestion-interna/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
       ],

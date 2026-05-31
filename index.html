@@ -5092,6 +5092,233 @@
       color: #ef4444 !important;
       box-shadow: 0 10px 30px rgba(0,0,0,0.5) !important;
     }
+
+    /* ══════════════════════════════════════════════════════════
+       OMEGA STUDIO — tenant-omegastudio
+       Tema: oscuro inmersivo · acento champán cálido (#d4a96a)
+    ══════════════════════════════════════════════════════════ */
+    .tenant-omegastudio {
+      --accent:   #d4a96a;
+      --accent-r: 212; --accent-g: 169; --accent-b: 106;
+      --neon-clr: #d4a96a;
+      --neon-r:   212; --neon-g: 169; --neon-b: 106;
+      --body-bg:  #0c0c0e;
+    }
+    .tenant-omegastudio body {
+      background-color: #0c0c0e !important;
+      background-image: none !important;
+    }
+
+    /* Hero: fondo inmersivo omega2.avif con overlay oscuro */
+    .tenant-omegastudio header.booking-hero {
+      background-image: url('/omega2.avif') !important;
+      background-size: cover !important;
+      background-position: center !important;
+      min-height: 300px !important;
+    }
+    .tenant-omegastudio .booking-hero-overlay {
+      background: radial-gradient(ellipse at center, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.82) 100%) !important;
+    }
+
+    /* Logo ring — champán sutil */
+    .tenant-omegastudio .hero-logo-ring {
+      border: 1.5px solid rgba(212,169,106,0.30) !important;
+      box-shadow:
+        0 0 0 1px rgba(212,169,106,0.08),
+        0 0 40px rgba(0,0,0,0.80) !important;
+    }
+
+    /* Nombre — geométrico en mayúsculas, blanco puro */
+    .tenant-omegastudio #shopNombre {
+      color: #FFFFFF !important;
+      letter-spacing: 0.15em !important;
+      text-transform: uppercase !important;
+      font-weight: 800 !important;
+    }
+
+    /* ── Barra de progreso ── */
+    .tenant-omegastudio #progressBar {
+      background: linear-gradient(90deg, #d4a96a, #c08040) !important;
+      box-shadow: 0 0 10px rgba(212,169,106,0.30) !important;
+    }
+    .tenant-omegastudio #progressTrack { background-color: rgba(212,169,106,0.08) !important; }
+    .tenant-omegastudio #stepIndicatorText {
+      color: #d4a96a !important;
+      text-shadow: 0 0 8px rgba(212,169,106,0.25) !important;
+    }
+
+    /* ── Headings ── */
+    .tenant-omegastudio h2.text-neon {
+      color: #d4a96a !important;
+      text-shadow: 0 0 12px rgba(212,169,106,0.20) !important;
+    }
+
+    /* ── Category pills ── */
+    .tenant-omegastudio .category-pill {
+      background: rgba(212,169,106,0.06) !important;
+      border: 1px solid rgba(212,169,106,0.15) !important;
+      color: #9ca3af !important;
+    }
+    .tenant-omegastudio .category-pill:hover {
+      border-color: rgba(212,169,106,0.40) !important;
+      color: #d4a96a !important;
+    }
+    .tenant-omegastudio .category-pill.border-neon {
+      background: rgba(212,169,106,0.12) !important;
+      border: 1.5px solid rgba(212,169,106,0.50) !important;
+      color: #d4a96a !important;
+      box-shadow: 0 0 10px rgba(212,169,106,0.12) !important;
+      font-weight: 700 !important;
+    }
+    .tenant-omegastudio .category-pill.text-neon { color: #d4a96a !important; }
+
+    /* ── Service cards ── */
+    .tenant-omegastudio .service-option {
+      background: #141416 !important;
+      border: 1px solid rgba(212,169,106,0.10) !important;
+    }
+    .tenant-omegastudio .service-option:hover {
+      border-color: rgba(212,169,106,0.30) !important;
+      background: #18181c !important;
+      box-shadow: 0 0 16px rgba(212,169,106,0.08) !important;
+    }
+    .tenant-omegastudio .service-option.border-neon {
+      border: 1.5px solid rgba(212,169,106,0.55) !important;
+      background: rgba(212,169,106,0.05) !important;
+      box-shadow: 0 0 18px rgba(212,169,106,0.12) !important;
+    }
+    .tenant-omegastudio .service-option.border-neon .icon-bg {
+      background: rgba(212,169,106,0.10) !important;
+      border-color: rgba(212,169,106,0.28) !important;
+    }
+    .tenant-omegastudio .service-option .price-tag {
+      color: #d4a96a !important;
+      font-weight: 700 !important;
+    }
+    .tenant-omegastudio .service-option .duration-tag { color: #9ca3af !important; }
+
+    /* ── Barber cards ── */
+    .tenant-omegastudio .barber-option {
+      background: #141416 !important;
+      border: 1px solid rgba(212,169,106,0.10) !important;
+    }
+    .tenant-omegastudio .barber-option:hover {
+      border-color: rgba(212,169,106,0.30) !important;
+      background: #18181c !important;
+      box-shadow: 0 0 16px rgba(212,169,106,0.08) !important;
+    }
+    .tenant-omegastudio .barber-option.border-neon {
+      border: 1.5px solid rgba(212,169,106,0.55) !important;
+      background: rgba(212,169,106,0.05) !important;
+      box-shadow: 0 0 18px rgba(212,169,106,0.12) !important;
+    }
+    .tenant-omegastudio .text-brand-neon { color: #d4a96a !important; }
+
+    /* ── Day buttons ── */
+    .tenant-omegastudio .day-btn {
+      background: #141416 !important;
+      border: 1px solid rgba(212,169,106,0.10) !important;
+    }
+    .tenant-omegastudio .day-btn:hover {
+      border-color: rgba(212,169,106,0.35) !important;
+      color: #d4a96a !important;
+    }
+    .tenant-omegastudio .day-btn.active,
+    .tenant-omegastudio .day-btn.border-neon {
+      background: #d4a96a !important;
+      border-color: #d4a96a !important;
+      color: #0c0c0e !important;
+      box-shadow: 0 0 14px rgba(212,169,106,0.28) !important;
+    }
+
+    /* ── Time pills ── */
+    .tenant-omegastudio .time-pill {
+      background: #141416 !important;
+      border: 1px solid rgba(212,169,106,0.08) !important;
+      color: #d1d5db !important;
+    }
+    .tenant-omegastudio .time-pill:not(.slot-pill-busy):not([data-sel]):hover {
+      border-color: rgba(212,169,106,0.35) !important;
+      color: #d4a96a !important;
+    }
+    .tenant-omegastudio .time-pill.border-neon,
+    .tenant-omegastudio .time-pill[data-sel] {
+      background: #d4a96a !important;
+      border-color: #d4a96a !important;
+      color: #0c0c0e !important;
+      box-shadow: 0 0 14px rgba(212,169,106,0.28) !important;
+      font-weight: 700 !important;
+    }
+
+    /* ── CTA ── */
+    .tenant-omegastudio #btnContinueBar {
+      background: rgba(12,12,14,0.90) !important;
+      border-top: 1px solid rgba(212,169,106,0.10) !important;
+      backdrop-filter: blur(20px) !important;
+      -webkit-backdrop-filter: blur(20px) !important;
+    }
+    .tenant-omegastudio #btnContinue {
+      background: linear-gradient(135deg, #d4a96a, #c08040) !important;
+      color: #0c0c0e !important;
+      font-weight: 700 !important;
+      box-shadow: 0 4px 20px rgba(212,169,106,0.28) !important;
+      border-radius: 9999px !important;
+    }
+    .tenant-omegastudio #btnContinue:hover {
+      box-shadow: 0 4px 28px rgba(212,169,106,0.42) !important;
+      transform: scale(1.01) !important;
+    }
+    .tenant-omegastudio #btnContinue:disabled,
+    .tenant-omegastudio #btnContinue[disabled] {
+      background: #1e1e22 !important;
+      color: #555 !important;
+      box-shadow: none !important;
+    }
+
+    /* ── Inputs ── */
+    .tenant-omegastudio #clientName,
+    .tenant-omegastudio #clientPhone,
+    .tenant-omegastudio #clientEmail {
+      background: rgba(212,169,106,0.05) !important;
+      border: 1px solid rgba(212,169,106,0.15) !important;
+      color: #FFFFFF !important;
+    }
+    .tenant-omegastudio #clientName:focus,
+    .tenant-omegastudio #clientPhone:focus,
+    .tenant-omegastudio #clientEmail:focus {
+      border-color: rgba(212,169,106,0.50) !important;
+      box-shadow: 0 0 0 1px rgba(212,169,106,0.12) !important;
+    }
+
+    /* ── Club banner ── */
+    .tenant-omegastudio #clubBanner { background: transparent !important; border: none !important; }
+    .tenant-omegastudio #clubBanner a {
+      background: rgba(212,169,106,0.05) !important;
+      border: 1px solid rgba(212,169,106,0.15) !important;
+      box-shadow: none !important;
+    }
+    .tenant-omegastudio #clubBanner .club-icon-wrap {
+      background: rgba(212,169,106,0.08) !important;
+      border: 1px solid rgba(212,169,106,0.18) !important;
+    }
+    .tenant-omegastudio #clubBanner i.ph-fill { color: #d4a96a !important; filter: none !important; }
+    .tenant-omegastudio #shopClubNombre { color: #d4a96a !important; }
+
+    /* ── WhatsApp ── */
+    .tenant-omegastudio #waBtnLink {
+      background: rgba(37,211,102,0.08) !important;
+      border-color: rgba(37,211,102,0.50) !important;
+      color: #25D366 !important;
+      box-shadow: none !important;
+    }
+
+    /* ── Toast de error ── */
+    .tenant-omegastudio #toastValidation {
+      background: #160a0a !important;
+      border: 1px solid rgba(239,68,68,0.40) !important;
+      color: #ef4444 !important;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5) !important;
+    }
   </style>
 </head>
 
@@ -7652,13 +7879,15 @@
           aura: '/auralogin.png',
           machos: '/machos_bg.png',
           infinity: '/infinity_bg.png',
-          sionbarberia: 'https://dcx13p9dsx90t.cloudfront.net/uploads/logos/page_logo_378df61d67dfec81.png'
+          sionbarberia: 'https://dcx13p9dsx90t.cloudfront.net/uploads/logos/page_logo_378df61d67dfec81.png',
+          omegastudio:  '/omega2.avif',
         };
         const bgUrl = bgImages[window.CURRENT_TENANT_ID] || SHOP.logo;
         heroImgEl.src = bgUrl;
-        heroImgEl.alt = window.CURRENT_TENANT_ID === 'machos' ? 'Interior industrial moderno de Macho´s Barbershop' : 
-                        window.CURRENT_TENANT_ID === 'infinity' ? 'Interior elegante y familiar de Infinity Studio' : 
+        heroImgEl.alt = window.CURRENT_TENANT_ID === 'machos' ? 'Interior industrial moderno de Macho´s Barbershop' :
+                        window.CURRENT_TENANT_ID === 'infinity' ? 'Interior elegante y familiar de Infinity Studio' :
                         window.CURRENT_TENANT_ID === 'sionbarberia' ? 'Logotipo y marca oficial de Sion Barbería' :
+                        window.CURRENT_TENANT_ID === 'omegastudio' ? 'Interior de Omega Studio, estudio de barbería en Viña del Mar' :
                         'Interior de ' + (SHOP.nombreCorto || SHOP.nombre);
       }
 

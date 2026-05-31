@@ -29,6 +29,7 @@
     'infinity.synaptechspa.cl':           'infinity',
     'sionbarberia.synaptechspa.cl':       'sionbarberia',
     'barberiasion.synaptechspa.cl':       'sionbarberia',
+    'omegastudio.synaptechspa.cl':        'omegastudio',
   };
 
   const _tenants = {
@@ -370,6 +371,30 @@
         { nombre: 'Elio Alfonso', foto: null, disponible: true },
         { nombre: 'Jose Luis Cordero', foto: null, disponible: true },
         { nombre: 'Mailo Serrano', foto: null, disponible: true },
+      ],
+    },
+    omegastudio: {
+      categoriasServicio: ['Cortes', 'Barba', 'Combos', 'Facial', 'Color', 'Otros'],
+      nombre:          'OMEGA STUDIO',
+      nombreCorto:     'Omega',
+      pageTitle:       'Omega Studio | Agenda tu hora',
+      slogan:          'ESTUDIO ATENDIDO POR PROFESIONALES',
+      logo:            '/omega.jpg',
+      direccion:       '📍 Av. Valparaíso 595, Local 53, 2do Piso | Viña del Mar',
+      horario:         '🕒 Lunes a Sábado · Agenda tu hora',
+      telefono:        '56972302811',
+      club:            'Club Omega',
+      instagram:       'https://www.instagram.com/omegastudio.cl/',
+      instagramHandle: '@omegastudio.cl',
+      waEmoji:         '✂️',
+      googleReviewUrl: '',
+      ratingGeneral:   0,
+      totalReviews:    0,
+      reviews:         [],
+      barberos: [
+        { nombre: 'Julián Beltrán',  foto: null, disponible: true },
+        { nombre: 'Antonio Morales', foto: null, disponible: true },
+        { nombre: 'Thomas Castillo', foto: null, disponible: true },
       ],
     },
     sionbarberia: {
