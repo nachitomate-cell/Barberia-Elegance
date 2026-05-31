@@ -124,8 +124,9 @@ async function seedConfiguracion() {
   separador('CONFIGURACION');
   await db.collection('configuracion').doc('main').set({
     ...SHOP,
-    local:     LOCAL_ID,
-    updatedAt: TS(),
+    local:                 LOCAL_ID,
+    minutosLimiteReagendar: 0,
+    updatedAt:             TS(),
   }, { merge: true });
   console.log('✅ /configuracion/main lista.');
 }

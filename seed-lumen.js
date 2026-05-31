@@ -66,7 +66,8 @@ const BARBEROS = [
 const CONFIG = {
   horarioInicio:    '10:00',
   horarioFin:       '20:15',
-  intervaloMinutos: 30,
+  intervaloMinutos:      30,
+  minutosLimiteReagendar: 0,
   diasLaborales:    [1, 2, 3, 4, 5, 6, 0], // Lun-Dom (0 = Domingo)
   telefonoAdmin:    '56929808223',
   diasBloqueados:   [],

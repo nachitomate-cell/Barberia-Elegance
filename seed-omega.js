@@ -131,7 +131,8 @@ const BARBEROS = [
 const CONFIG = {
   horarioInicio:    '10:00',
   horarioFin:       '20:00',
-  intervaloMinutos: 30,
+  intervaloMinutos:      30,
+  minutosLimiteReagendar: 0,
   diasLaborales:    [1, 2, 3, 4, 5, 6], // Lun–Sáb
   telefonoAdmin:    '56972302811',
   diasBloqueados:   [],
