@@ -711,3 +711,12 @@ exports.autoEnrollTenant = autoEnroll.autoEnrollTenant;
 // ─────────────────────────────────────────────────────────────────
 const reactivacionClientes = require('./reactivacion-clientes');
 exports.reactivacionClientes = reactivacionClientes.reactivacionClientes;
+
+// ─────────────────────────────────────────────────────────────────
+//  RE-ENGANCHE POR INACTIVIDAD — ver push-reenganche.js
+//  Cron diario a las 11:00 AM Santiago. Envía push a clientes cuyo
+//  último sello fue hace exactamente 10, 15 o 25 días. Idempotente
+//  por período: users/{uid}.pushReenganche.{d10|d15|d25}.
+// ─────────────────────────────────────────────────────────────────
+const pushReenganche = require('./push-reenganche');
+exports.pushReengancheClientes = pushReenganche.pushReengancheClientes;

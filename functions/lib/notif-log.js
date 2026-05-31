@@ -11,6 +11,7 @@ const { Timestamp } = require('firebase-admin/firestore');
  *   tenantId: string,
  *   type:    'push_confirmacion'|'email_confirmacion'|'email_recordatorio_1h'|
  *            'push_sello'|'push_cumpleanos'|'push_recordatorio_corte'|
+ *            'push_reenganche'|
  *            'whatsapp_24h'|'whatsapp_reactivacion',
  *   channel: 'push'|'email'|'whatsapp',
  *   status:  'sent'|'failed',
