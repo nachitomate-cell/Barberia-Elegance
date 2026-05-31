@@ -6238,7 +6238,7 @@
         categories[cat].push(s);
       });
 
-      const _isEleganceSvc  = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza' || window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'lumen' || window.CURRENT_TENANT_ID === 'machos' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'marcelo_hairdressing';
+      const _isEleganceSvc  = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza' || window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'lumen' || window.CURRENT_TENANT_ID === 'machos' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'marcelo_hairdressing' || window.CURRENT_TENANT_ID === 'omegastudio';
       const _isMapuSvc      = window.CURRENT_TENANT_ID === 'mapubarbershop';
       const _isChameleonSvc = window.CURRENT_TENANT_ID === 'chameleon';
       const _useRowLayout   = _isEleganceSvc || _isMapuSvc || _isChameleonSvc;
@@ -6270,7 +6270,7 @@
                 : `<i class="icon-svg ph ${icon} text-xl text-brand-neon transition-all"></i>`);
 
           if (_useRowLayout) {
-            const radioClr = _isMapuSvc ? 'rgba(191,163,126,0.40)' : window.CURRENT_TENANT_ID === 'marcelo_hairdressing' ? 'rgba(255,255,255,0.18)' : 'rgba(212,175,55,0.4)';
+            const radioClr = _isMapuSvc ? 'rgba(191,163,126,0.40)' : window.CURRENT_TENANT_ID === 'marcelo_hairdressing' ? 'rgba(255,255,255,0.18)' : window.CURRENT_TENANT_ID === 'omegastudio' ? 'rgba(212,169,106,0.40)' : 'rgba(212,175,55,0.4)';
             innerGrid.innerHTML += `
               <button onclick="selectService(this)" data-service-id="${s.id}" data-category="${cat}"
                 class="service-option relative flex flex-row items-center gap-4 p-4 rounded-2xl bg-[#0a0a0d] border border-brand-accent/20 active:scale-[0.99] transition-all overflow-hidden group w-full text-left">
@@ -6502,7 +6502,7 @@
          grid.innerHTML = '<p class="text-sm text-gray-500">No hay barberos disponibles en este momento.</p>';
          return;
       }
-      const _isElegance   = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza' || window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'lumen' || window.CURRENT_TENANT_ID === 'machos' || window.CURRENT_TENANT_ID === 'sionbarberia';
+      const _isElegance   = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza' || window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'lumen' || window.CURRENT_TENANT_ID === 'machos' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'omegastudio';
       const _isMapuB      = window.CURRENT_TENANT_ID === 'mapubarbershop';
       const _isChameleon  = window.CURRENT_TENANT_ID === 'chameleon';
       const anyStateClass = (window._selectedBarberId === 'any' || window._selectedBarber === 'any') ? 'border-neon bg-brand-neon/10' : 'border-brand-accent/20 bg-[#0a0a0d]';
