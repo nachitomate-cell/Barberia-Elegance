@@ -5332,6 +5332,39 @@
       color: #ef4444 !important;
       box-shadow: 0 10px 30px rgba(0,0,0,0.5) !important;
     }
+
+    /* ══════════════════════════════════════════════════
+       MEMPHIS SALÓN — tenant-memphis
+    ══════════════════════════════════════════════════ */
+    .tenant-memphis .booking-hero {
+      background-image: url('/mem.png') !important;
+      background-size: cover !important;
+      background-position: center top !important;
+    }
+
+    /* Segunda imagen del carrusel: se crossfade sobre mem.png */
+    .tenant-memphis .booking-hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image: url('/mem2.png');
+      background-size: cover;
+      background-position: center top;
+      z-index: 0;
+      animation: memphisFade 10s ease-in-out infinite;
+    }
+
+    /* Overlay siempre por encima del carrusel */
+    .tenant-memphis .booking-hero-overlay { z-index: 1; }
+
+    @keyframes memphisFade {
+      0%, 40%  { opacity: 1; }
+      50%, 90% { opacity: 0; }
+      100%     { opacity: 1; }
+    }
+
+    /* Sin icono/logo en el hero */
+    .tenant-memphis #heroLogoArea { display: none !important; }
   </style>
 </head>
 
@@ -6247,7 +6280,7 @@
         categories[cat].push(s);
       });
 
-      const _isEleganceSvc  = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza' || window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'lumen' || window.CURRENT_TENANT_ID === 'machos' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'marcelo_hairdressing' || window.CURRENT_TENANT_ID === 'omegastudio';
+      const _isEleganceSvc  = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza' || window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'lumen' || window.CURRENT_TENANT_ID === 'machos' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'marcelo_hairdressing' || window.CURRENT_TENANT_ID === 'omegastudio' || window.CURRENT_TENANT_ID === 'memphis';
       const _isMapuSvc      = window.CURRENT_TENANT_ID === 'mapubarbershop';
       const _isChameleonSvc = window.CURRENT_TENANT_ID === 'chameleon';
       const _useRowLayout   = _isEleganceSvc || _isMapuSvc || _isChameleonSvc;
@@ -6511,7 +6544,7 @@
          grid.innerHTML = '<p class="text-sm text-gray-500">No hay barberos disponibles en este momento.</p>';
          return;
       }
-      const _isElegance   = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza' || window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'lumen' || window.CURRENT_TENANT_ID === 'machos' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'omegastudio';
+      const _isElegance   = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza' || window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'lumen' || window.CURRENT_TENANT_ID === 'machos' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'omegastudio' || window.CURRENT_TENANT_ID === 'memphis';
       const _isMapuB      = window.CURRENT_TENANT_ID === 'mapubarbershop';
       const _isChameleon  = window.CURRENT_TENANT_ID === 'chameleon';
       const anyStateClass = (window._selectedBarberId === 'any' || window._selectedBarber === 'any') ? 'border-neon bg-brand-neon/10' : 'border-brand-accent/20 bg-[#0a0a0d]';
@@ -6979,7 +7012,8 @@
       const _isEleganceHr = !window.CURRENT_TENANT_ID ||
         window.CURRENT_TENANT_ID === 'elegance' ||
         window.CURRENT_TENANT_ID === 'chameleon' ||
-        window.CURRENT_TENANT_ID === 'ferraza';
+        window.CURRENT_TENANT_ID === 'ferraza' ||
+        window.CURRENT_TENANT_ID === 'memphis';
       const grid = document.getElementById('hoursGrid');
       grid.className = _isEleganceHr
         ? 'w-full flex flex-col gap-0'
@@ -7117,7 +7151,8 @@
         || window.CURRENT_TENANT_ID === 'machos'
         || window.CURRENT_TENANT_ID === 'sionbarberia'
         || window.CURRENT_TENANT_ID === 'marcelo_hairdressing'
-        || window.CURRENT_TENANT_ID === 'chameleon';
+        || window.CURRENT_TENANT_ID === 'chameleon'
+        || window.CURRENT_TENANT_ID === 'memphis';
       const _radioDim   = _isMapu ? 'rgba(191,163,126,0.40)' : _isAura ? 'rgba(55,65,81,0.25)' : 'rgba(212,175,55,0.4)';
       const _radioSel   = _isMapu ? '#BFA37E' : _isAura ? '#1F2937' : '#D4AF37';
 
@@ -7891,6 +7926,7 @@
           infinity: '/infinity_bg.png',
           sionbarberia: 'https://dcx13p9dsx90t.cloudfront.net/uploads/logos/page_logo_378df61d67dfec81.png',
           omegastudio:  '/omega2.avif',
+          memphis:      '/mem.png',
         };
         const bgUrl = bgImages[window.CURRENT_TENANT_ID] || SHOP.logo;
         heroImgEl.src = bgUrl;
