@@ -8,6 +8,7 @@ import { useTenant } from '../contexts/TenantContext';
 import { useCollection } from '../hooks/useCollection';
 import SlideOver from '../components/ui/SlideOver';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
+import { STORY_FONT, STORY_BG_PRESETS, lum, loadImg, drawCover, ellipsize } from '../lib/storyCanvas';
 
 const EMPTY = { nombre: '', descripcion: '', precio: '', precioOriginal: '', marca: '', categoria: '', stock: '', imagen: '', imagenPath: '', activo: true, precioCosto: '', stockMinimo: '' };
 
@@ -210,55 +211,12 @@ function ProductCard({ producto, onEdit, onDelete, isDeluxe }) {
 }
 
 /* ── Generador de imagen para Historia de Instagram ─────────────── */
-const FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-const STORY_BG_PRESETS = ['#0F172A', '#000000', '#FFFFFF', '#1C1917', '#0A2540', '#3B0764', '#064E3B', '#7C2D12'];
-
-function _hexLum(hex) {
-  let h = String(hex).replace('#', '');
-  if (h.length === 3) h = h.split('').map(c => c + c).join('');
-  const n = parseInt(h, 16);
-  const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
-  return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-}
-
-function _ellipsize(ctx, text, maxW) {
-  if (ctx.measureText(text).width <= maxW) return text;
-  let t = text;
-  while (t.length > 1 && ctx.measureText(t + '…').width > maxW) t = t.slice(0, -1);
-  return t + '…';
-}
-
-function _drawCover(ctx, img, x, y, w, h, r) {
-  ctx.save();
-  ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(x, y, w, h, r); else ctx.rect(x, y, w, h);
-  ctx.clip();
-  const ir = img.width / img.height, tr = w / h;
-  let sw, sh, sx, sy;
-  if (ir > tr) { sh = img.height; sw = sh * tr; sx = (img.width - sw) / 2; sy = 0; }
-  else         { sw = img.width;  sh = sw / tr; sx = 0; sy = (img.height - sh) / 2; }
-  ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
-  ctx.restore();
-}
-
-// Carga una imagen con CORS anónimo. Resuelve a la imagen o null (si falla).
-function _loadImg(url) {
-  return new Promise(resolve => {
-    if (!url) return resolve(null);
-    const im = new Image();
-    im.crossOrigin = 'anonymous';
-    im.onload  = () => resolve(im);
-    im.onerror = () => resolve(null);
-    im.src = url + (url.includes('?') ? '&' : '?') + '_cb=1';
-  });
-}
-
 function drawStory(canvas, { productos, showPrice, showStock, showPhotos, bgColor, shopName, imgs = {}, logoImg = null }) {
   const W = 1080, H = 1920;
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext('2d');
 
-  const dark   = _hexLum(bgColor) > 0.6;            // fondo claro → texto oscuro
+  const dark   = lum(bgColor) > 0.6;            // fondo claro → texto oscuro
   const fg     = dark ? '#111827' : '#FFFFFF';
   const muted  = dark ? 'rgba(17,24,39,0.55)' : 'rgba(255,255,255,0.62)';
   const line   = dark ? 'rgba(17,24,39,0.12)' : 'rgba(255,255,255,0.14)';
@@ -276,19 +234,19 @@ function drawStory(canvas, { productos, showPrice, showStock, showPhotos, bgColo
   let tx = PAD;
   if (logoImg) {
     const LS = 120;
-    _drawCover(ctx, logoImg, PAD, 92, LS, LS, LS / 2);
+    drawCover(ctx, logoImg, PAD, 92, LS, LS, LS / 2);
     tx = PAD + LS + 30;
   }
   ctx.fillStyle = muted;
-  ctx.font = `700 30px ${FONT}`;
+  ctx.font = `700 30px ${STORY_FONT}`;
   ctx.fillText('CATÁLOGO', tx, 142);
 
   ctx.fillStyle = fg;
-  ctx.font = `800 60px ${FONT}`;
-  ctx.fillText(_ellipsize(ctx, shopName || '', W - tx - PAD), tx, 208);
+  ctx.font = `800 60px ${STORY_FONT}`;
+  ctx.fillText(ellipsize(ctx, shopName || '', W - tx - PAD), tx, 208);
 
   ctx.fillStyle = muted;
-  ctx.font = `400 32px ${FONT}`;
+  ctx.font = `400 32px ${STORY_FONT}`;
   ctx.fillText('Productos disponibles', tx, 256);
 
   ctx.strokeStyle = line; ctx.lineWidth = 2;
@@ -312,7 +270,7 @@ function drawStory(canvas, { productos, showPrice, showStock, showPhotos, bgColo
       const ty = y - thumb / 2;
       const im = imgs[p.imagen];
       if (im) {
-        _drawCover(ctx, im, PAD, ty, thumb, thumb, 22);
+        drawCover(ctx, im, PAD, ty, thumb, thumb, 22);
       } else {
         // Placeholder con la inicial del producto
         ctx.fillStyle = ph;
@@ -320,7 +278,7 @@ function drawStory(canvas, { productos, showPrice, showStock, showPhotos, bgColo
         if (ctx.roundRect) ctx.roundRect(PAD, ty, thumb, thumb, 22); else ctx.rect(PAD, ty, thumb, thumb);
         ctx.fill();
         ctx.fillStyle = muted;
-        ctx.font = `800 ${Math.round(thumb * 0.42)}px ${FONT}`;
+        ctx.font = `800 ${Math.round(thumb * 0.42)}px ${STORY_FONT}`;
         ctx.textAlign = 'center';
         ctx.fillText((p.nombre || '?').charAt(0).toUpperCase(), PAD + thumb / 2, y);
         ctx.textAlign = 'left';
@@ -334,7 +292,7 @@ function drawStory(canvas, { productos, showPrice, showStock, showPhotos, bgColo
       const s = Number(p.stock) || 0;
       ctx.textAlign = 'right';
       ctx.fillStyle = s > 0 ? okClr : offClr;
-      ctx.font = `700 ${Math.round(fs * 0.78)}px ${FONT}`;
+      ctx.font = `700 ${Math.round(fs * 0.78)}px ${STORY_FONT}`;
       const stxt = s > 0 ? `Stock ${s}` : 'Agotado';
       ctx.fillText(stxt, rightX, y);
       rightX -= ctx.measureText(stxt).width + 32;
@@ -342,7 +300,7 @@ function drawStory(canvas, { productos, showPrice, showStock, showPhotos, bgColo
     if (showPrice) {
       ctx.textAlign = 'right';
       ctx.fillStyle = fg;
-      ctx.font = `800 ${Math.round(fs)}px ${FONT}`;
+      ctx.font = `800 ${Math.round(fs)}px ${STORY_FONT}`;
       const ptxt = '$' + Number(p.precio || 0).toLocaleString('es-CL');
       ctx.fillText(ptxt, rightX, y);
       rightX -= ctx.measureText(ptxt).width + 40;
@@ -351,9 +309,9 @@ function drawStory(canvas, { productos, showPrice, showStock, showPhotos, bgColo
     // Nombre (recortado para no chocar con el precio)
     ctx.textAlign = 'left';
     ctx.fillStyle = fg;
-    ctx.font = `700 ${Math.round(fs)}px ${FONT}`;
+    ctx.font = `700 ${Math.round(fs)}px ${STORY_FONT}`;
     const nameMaxW = Math.max(120, rightX - nameX - 24);
-    ctx.fillText(_ellipsize(ctx, p.nombre || 'Producto', nameMaxW), nameX, y);
+    ctx.fillText(ellipsize(ctx, p.nombre || 'Producto', nameMaxW), nameX, y);
 
     // Separador de fila
     ctx.strokeStyle = line; ctx.lineWidth = 1;
@@ -363,7 +321,7 @@ function drawStory(canvas, { productos, showPrice, showStock, showPhotos, bgColo
   // Pie: marca abajo a la derecha
   ctx.textAlign = 'right'; ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = muted;
-  ctx.font = `700 30px ${FONT}`;
+  ctx.font = `700 30px ${STORY_FONT}`;
   ctx.fillText('SynapTech Spa', W - PAD, H - 90);
   ctx.textAlign = 'left';
 }
@@ -386,8 +344,8 @@ function StoryGenerator({ productos, shopName, logoUrl, onClose }) {
     setLoadingImgs(true);
     (async () => {
       const urls = [...new Set(disponibles.map(p => p.imagen).filter(Boolean))];
-      const pairs = await Promise.all(urls.map(async u => [u, await _loadImg(u)]));
-      const lg = await _loadImg(logoUrl);
+      const pairs = await Promise.all(urls.map(async u => [u, await loadImg(u)]));
+      const lg = await loadImg(logoUrl);
       if (!alive) return;
       const map = {};
       pairs.forEach(([u, im]) => { if (im) map[u] = im; });
