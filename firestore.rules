@@ -172,7 +172,7 @@ service cloud.firestore {
                         && request.resource.data.pendingGoogleReview == false)
                     || (esCliente(resource.data)
                         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['feedbackPrivadoRating', 'feedbackPrivadoComment', 'feedbackPrivadoCreatedAt']));
-      allow delete: if esAdmin('elegance');
+      allow delete: if esStaff('elegance');
     }
 
     // ── /servicios ─────────────────────────────────────────────────
@@ -362,6 +362,7 @@ service cloud.firestore {
       allow read:   if true;
       allow create: if esStaff('elegance')
                     || request.resource.data.keys().hasOnly(['citaId', 'creadoEn', 'fecha', 'hora', 'barberoId', 'duracion']);
+      allow update: if esStaff('elegance');
       allow delete: if esStaff('elegance');
     }
 
@@ -441,7 +442,7 @@ service cloud.firestore {
                           && request.resource.data.pendingGoogleReview == false)
                       || (esCliente(resource.data)
                           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['feedbackPrivadoRating', 'feedbackPrivadoComment', 'feedbackPrivadoCreatedAt']));
-        allow delete: if esAdmin(tid);
+        allow delete: if esStaff(tid);
       }
 
       // ── bookings (flujo público web) ──────────────────────────────
@@ -631,6 +632,7 @@ service cloud.firestore {
         allow read:   if true;
         allow create: if esStaff(tid)
                       || request.resource.data.keys().hasOnly(['citaId', 'creadoEn', 'fecha', 'hora', 'barberoId', 'duracion']);
+        allow update: if esStaff(tid);
         allow delete: if esStaff(tid);
       }
 
