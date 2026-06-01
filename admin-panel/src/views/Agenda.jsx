@@ -6,6 +6,7 @@ import {
   User, Phone, Mail, Scissors, CalendarDays, DollarSign,
   Timer, MessageSquare, BadgeCheck, Search, ListFilter, MapPin,
   Send, Download, RefreshCw, Copy, Check, ShoppingBag, Gift,
+  Users, Eye,
 } from 'lucide-react';
 import {
   addDoc, updateDoc, deleteDoc, doc, getDoc, serverTimestamp, where, orderBy, limit, writeBatch, getDocs, query,
@@ -1765,6 +1766,7 @@ export default function Agenda() {
   const [showHistorial, setShowHistorial] = useState(false);
   const [draggedCita,   setDraggedCita]   = useState(null);
   const [showDifusionModal, setShowDifusionModal] = useState(false);
+  const [soloBarbero,   setSoloBarbero]   = useState(null);   // id del barbero enfocado (null = todos)
 
   const [searchParams, setSearchParams] = useSearchParams();
   useEffect(() => {
@@ -1828,6 +1830,10 @@ export default function Agenda() {
   const barberos = useMemo(() =>
     rawBarberos.filter(b => !b._mainDocId && b.disponible !== false && b.rol !== 'admin'),
   [rawBarberos]);
+
+  // Filtro "ver solo la agenda de un barbero" (al tocar su cabecera)
+  const focusBarbero    = soloBarbero ? barberos.find(b => b.id === soloBarbero) : null;
+  const barberosVisibles = focusBarbero ? [focusBarbero] : barberos;
 
   const moveDay = delta => { const d = new Date(date); d.setDate(d.getDate() + delta); setDate(d); };
 
@@ -2025,6 +2031,19 @@ export default function Agenda() {
         </div>
       )}
 
+      {focusBarbero && (
+        <div className="flex items-center gap-2 px-4 py-2.5 bg-emerald-950/30 border border-emerald-500/30 rounded-xl text-xs text-emerald-400 shrink-0">
+          <User size={14} />
+          <span className="flex-1 font-medium">Mostrando solo la agenda de <strong className="font-bold">{focusBarbero.nombre}</strong></span>
+          <button
+            onClick={() => setSoloBarbero(null)}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10 font-semibold transition-colors"
+          >
+            <Users size={13} /> Ver todos
+          </button>
+        </div>
+      )}
+
       {/* Swimlane */}
       <div className="flex-1 bg-slate-900 border border-slate-800 rounded-xl overflow-auto no-scrollbar">
         <div className="flex min-w-max">
@@ -2044,7 +2063,7 @@ export default function Agenda() {
             <div className="flex-1 flex items-center justify-center py-20 text-slate-600 text-sm">
               Sin barberos activos
             </div>
-          ) : barberos.map(b => {
+          ) : barberosVisibles.map(b => {
             const barberCitas    = citas.filter(c => c.barberoId === b.id);
             const barberBloqueos = bloqueosPorBarbero(b.id);
 
@@ -2062,13 +2081,20 @@ export default function Agenda() {
 
             return (
               <div key={b.id} className="flex-1 min-w-[160px] border-r border-slate-800 last:border-r-0">
-                <div className="h-10 px-3 flex items-center gap-2 border-b border-slate-800 sticky top-0 bg-slate-900 z-10">
+                <div
+                  onClick={() => setSoloBarbero(prev => prev === b.id ? null : b.id)}
+                  title={focusBarbero?.id === b.id ? 'Mostrar todos los barberos' : `Ver solo la agenda de ${b.nombre}`}
+                  className="group h-10 px-3 flex items-center gap-2 border-b border-slate-800 sticky top-0 bg-slate-900 z-10 cursor-pointer hover:bg-slate-800/60 transition-colors"
+                >
                   <div className="w-6 h-6 rounded-full overflow-hidden bg-emerald-500/20 flex items-center justify-center shrink-0">
                     {b.foto
                       ? <img src={b.foto} alt={b.nombre} className="w-full h-full object-cover" />
                       : <span className="text-[10px] font-bold text-emerald-400">{b.nombre?.[0] ?? '?'}</span>}
                   </div>
                   <span className="text-xs font-semibold text-white truncate">{b.nombre}</span>
+                  {focusBarbero?.id === b.id
+                    ? <Users size={13} className="ml-auto shrink-0 text-emerald-400" />
+                    : <Eye size={13} className="ml-auto shrink-0 text-slate-600 group-hover:text-emerald-400 transition-colors" />}
                 </div>
 
                 <div className="relative" style={{ height: `${totalSlots * 40}px` }}>
@@ -2156,6 +2182,7 @@ export default function Agenda() {
             <ul className="list-disc ml-4 space-y-1">
               <li>Flechas ◀ ▶ o botón <em>Hoy</em> para cambiar de día.</li>
               <li>En móvil, los barberos quedan en pestañas; en desktop ves columnas paralelas.</li>
+              <li>Tocá la <strong className="text-white">cabecera de un barbero</strong> para ver solo su agenda; tocala de nuevo (o <em>Ver todos</em>) para volver.</li>
             </ul>
           </div>
 
