@@ -191,12 +191,12 @@ export default function Servicios() {
     setImgUploading(false);
     try {
       const tid        = resolveTenantId();
-      const basePrecio = Number(form.precio);
+      const basePrecio = Math.round(Number(form.precio)) || 0;   // CLP enteros, sin decimales
       const preciosPorDia = {};
       if (form.varPrecios) {
         DIAS.forEach(({ key }) => {
           const v = form.ppd[key];
-          if (v !== '' && v != null) preciosPorDia[String(key)] = Number(v);
+          if (v !== '' && v != null) preciosPorDia[String(key)] = Math.round(Number(v));
         });
       }
       const descripcion = form.descripcion.trim();
@@ -357,7 +357,7 @@ export default function Servicios() {
                       )}
                     </div>
                     <p className="text-xs text-slate-400 mt-0.5">
-                      ${Number(s.precio || 0).toLocaleString('es-CL')} · {s.duracion} min
+                      ${Math.round(Number(s.precio || 0)).toLocaleString('es-CL')} · {s.duracion} min
                       {s.preciosPorDia && Object.keys(s.preciosPorDia).length > 0 && (
                         <span className="ml-1.5 text-[10px] font-bold text-amber-400/70 bg-amber-400/10 border border-amber-400/20 rounded-full px-1.5 py-0.5">precio variable</span>
                       )}
@@ -442,8 +442,8 @@ export default function Servicios() {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className={lbl}>Precio ($)</label>
-              <input className={field} type="number" placeholder="12000" value={form.precio} onChange={e => setForm(f => ({ ...f, precio: e.target.value }))} />
+              <label className={lbl}>Precio (CLP)</label>
+              <input className={field} type="number" min="0" step="1" inputMode="numeric" placeholder="12000" value={form.precio} onChange={e => setForm(f => ({ ...f, precio: e.target.value.replace(/[^\d]/g, '') }))} />
             </div>
             <div>
               <label className={lbl}>Duración (min)</label>
@@ -544,9 +544,10 @@ export default function Servicios() {
                       <span className={`text-[10px] font-bold uppercase ${key === 0 || key === 6 ? 'text-amber-400' : 'text-slate-400'}`}>{label}</span>
                       <input
                         type="number"
+                        min="0" step="1" inputMode="numeric"
                         placeholder={form.precio || '–'}
                         value={form.ppd[key]}
-                        onChange={e => setForm(f => ({ ...f, ppd: { ...f.ppd, [key]: e.target.value } }))}
+                        onChange={e => setForm(f => ({ ...f, ppd: { ...f.ppd, [key]: e.target.value.replace(/[^\d]/g, '') } }))}
                         className="w-full bg-slate-900 border border-slate-700 rounded-lg px-1 py-1.5 text-[11px] text-center text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500 transition-colors"
                       />
                     </div>
