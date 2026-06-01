@@ -578,17 +578,24 @@ export default function Marketing() {
               className="relative rounded-2xl overflow-hidden shadow-lg border border-slate-800"
               style={{ minHeight: 180, backgroundImage: `url('${form.imagen}')`, backgroundSize: 'cover', backgroundPosition: 'center' }}
             >
-              <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.45) 60%, rgba(0,0,0,0.15) 100%)' }} />
-              <div className="relative z-10 p-5 flex flex-col justify-end" style={{ minHeight: 180 }}>
-                <p className="text-[9px] font-black uppercase tracking-widest mb-1 text-[#D4AF37] font-mono">Buzón de Anuncios — Vista Previa en Vivo</p>
-                <p className="text-base font-black text-white leading-tight mb-1">{form.titulo || 'Título del anuncio'}</p>
-                <p className="text-xs text-white/70 leading-snug mb-3 max-w-xl">{form.descripcion}</p>
-                <span
-                  className="self-start inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-black shadow-md hover:scale-105 transform transition-all cursor-default"
-                  style={{ background: '#D4AF37' }}
+              {/* Tinte suave general para unificar la imagen */}
+              <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.28)' }} />
+              <div className="relative z-10 p-4 flex flex-col justify-end" style={{ minHeight: 180 }}>
+                {/* Panel oscuro (glass) detrás del texto → legible sobre cualquier imagen */}
+                <div
+                  className="rounded-xl p-4"
+                  style={{ background: 'rgba(12,14,20,0.62)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', border: '1px solid rgba(255,255,255,0.12)' }}
                 >
-                  {form.ctaTexto || 'Reservar mi lugar'}
-                </span>
+                  <p className="text-[9px] font-black uppercase tracking-widest mb-1 text-[#D4AF37] font-mono">Buzón de Anuncios — Vista Previa en Vivo</p>
+                  <p className="text-base font-black text-white leading-tight mb-1">{form.titulo || 'Título del anuncio'}</p>
+                  {form.descripcion && <p className="text-xs text-white/75 leading-snug mb-3 max-w-xl">{form.descripcion}</p>}
+                  <span
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-black shadow-md cursor-default"
+                    style={{ background: '#D4AF37' }}
+                  >
+                    {form.ctaTexto || 'Reservar mi lugar'}
+                  </span>
+                </div>
               </div>
             </div>
           )}
@@ -655,7 +662,7 @@ export default function Marketing() {
                 onChange={e => setForm(f => ({ ...f, imagen: e.target.value }))}
               />
               <p className="text-[10px] text-slate-600 mt-1">
-                Usa una imagen horizontal (16:9 o 2:1) con fondo despejado para legibilidad de textos.
+                Usa una imagen horizontal (16:9 o 2:1). El texto va sobre un panel oscuro, así que se lee bien con cualquier imagen.
               </p>
             </div>
 

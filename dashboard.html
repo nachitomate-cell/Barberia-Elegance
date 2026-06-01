@@ -5126,21 +5126,19 @@ async function cargarAnuncio() {
         : 'background:linear-gradient(145deg,#001020 0%,#001a40 45%,#002d6b 100%);position:relative;overflow:hidden;';
       banner.style.cssText = bgStyle;
       banner.innerHTML = `
-        ${d.imagen 
-          ? `<div class="absolute inset-0 bg-[#001020]/75 backdrop-blur-[1px]"></div>` 
+        ${d.imagen
+          ? `<div class="absolute inset-0" style="background:rgba(0,16,32,0.35);"></div>`
           : `<div class="absolute inset-0 pointer-events-none" style="background-image:linear-gradient(rgba(255,255,255,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.02) 1px,transparent 1px);background-size:24px 24px;"></div>
              <div class="absolute -top-8 right-0 w-40 h-40 rounded-full pointer-events-none" style="background:radial-gradient(circle,rgba(96,165,250,0.18) 0%,transparent 60%);"></div>`
         }
-        <div class="relative z-10 px-5 py-5 flex flex-col justify-between" style="min-height:155px;">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-1.5">
-              <i class="ph-fill ph-megaphone" style="font-size:12px;color:rgba(147,197,253,0.75);"></i>
-              <span style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.18em;color:rgba(255,255,255,0.45);">Anuncio</span>
+        <div class="relative z-10 px-4 py-4 flex flex-col justify-end" style="min-height:155px;">
+          <div style="background:rgba(8,12,22,0.62);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,0.14);border-radius:16px;padding:14px 16px;">
+            <div class="flex items-center gap-1.5" style="margin-bottom:8px;">
+              <i class="ph-fill ph-megaphone" style="font-size:12px;color:rgba(147,197,253,0.9);"></i>
+              <span style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.18em;color:rgba(255,255,255,0.6);">Anuncio</span>
+              ${d.descripcion ? `<span style="margin-left:auto;font-size:10px;font-weight:700;color:#fff;background:rgba(255,255,255,0.14);border:1px solid rgba(255,255,255,0.2);padding:3px 10px;border-radius:100px;">${d.descripcion}</span>` : ''}
             </div>
-            ${d.descripcion ? `<span style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.85);background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.18);padding:3px 10px;border-radius:100px;">${d.descripcion}</span>` : ''}
-          </div>
-          <div>
-            <h3 class="text-white font-black leading-snug" style="font-size:1.15rem;margin-bottom:14px;">${d.titulo || ''}</h3>
+            <h3 class="text-white font-black leading-snug" style="font-size:1.12rem;margin-bottom:12px;text-shadow:0 1px 6px rgba(0,0,0,0.45);">${d.titulo || ''}</h3>
             <a href="${d.ctaUrl || 'index.html'}"
               class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold active:scale-95 transition-all"
               style="background:#FFFFFF;color:#001a40;">
@@ -5153,17 +5151,19 @@ async function cargarAnuncio() {
       const imgStyle = d.imagen ? `background-image:url('${d.imagen}');background-size:cover;background-position:center;` : 'background:#1a1208;';
       banner.style.cssText = `min-height:170px;${imgStyle}`;
       banner.innerHTML = `
-        <div class="absolute inset-0" style="background:linear-gradient(to top,rgba(0,0,0,0.88) 0%,rgba(0,0,0,0.45) 55%,rgba(0,0,0,0.12) 100%);"></div>
-        <div class="relative z-10 p-5 flex flex-col justify-end" style="min-height:170px;">
-          <p class="text-[9px] font-black uppercase tracking-widest mb-1" style="color:var(--gold);">Anuncio</p>
-          <h3 class="text-lg font-black text-white leading-tight mb-1">${d.titulo || ''}</h3>
-          ${d.descripcion ? `<p class="text-xs text-white/65 leading-snug mb-3">${d.descripcion}</p>` : '<div class="mb-3"></div>'}
-          <a href="${d.ctaUrl || 'index.html'}"
-            class="self-start inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-black active:scale-95 transition-all"
-            style="background:var(--gold);">
-            ${d.ctaTexto || 'Reservar mi lugar'}
-            <i class="ph-bold ph-arrow-right text-sm"></i>
-          </a>
+        <div class="absolute inset-0" style="background:rgba(0,0,0,0.30);"></div>
+        <div class="relative z-10 p-4 flex flex-col justify-end" style="min-height:170px;">
+          <div style="background:rgba(12,12,14,0.62);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,0.12);border-radius:14px;padding:14px 16px;">
+            <p class="text-[9px] font-black uppercase tracking-widest mb-1" style="color:var(--gold);">Anuncio</p>
+            <h3 class="text-lg font-black text-white leading-tight mb-1" style="text-shadow:0 1px 6px rgba(0,0,0,0.45);">${d.titulo || ''}</h3>
+            ${d.descripcion ? `<p class="text-xs text-white/70 leading-snug mb-3">${d.descripcion}</p>` : '<div class="mb-3"></div>'}
+            <a href="${d.ctaUrl || 'index.html'}"
+              class="self-start inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-black active:scale-95 transition-all"
+              style="background:var(--gold);">
+              ${d.ctaTexto || 'Reservar mi lugar'}
+              <i class="ph-bold ph-arrow-right text-sm"></i>
+            </a>
+          </div>
         </div>`;
     }
     banner.classList.remove('hidden');
