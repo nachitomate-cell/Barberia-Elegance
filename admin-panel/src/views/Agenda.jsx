@@ -19,20 +19,17 @@ import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 import AIWatermark from '../components/ui/AIWatermark';
 
 /* ── Constants ─────────────────────────────────────────────── */
-const HOUR_START = 8;
-const HOUR_END   = 20;
-
-function buildSlotCfg(slotMins) {
-  const totalSlots = (HOUR_END - HOUR_START) * (60 / slotMins);
+function buildSlotCfg(slotMins, hourStart = 8, hourEnd = 20) {
+  const totalSlots = (hourEnd - hourStart) * (60 / slotMins);
   const timeLabels = Array.from({ length: totalSlots }, (_, i) => {
-    const mins = HOUR_START * 60 + i * slotMins;
+    const mins = hourStart * 60 + i * slotMins;
     return `${String(Math.floor(mins / 60)).padStart(2,'0')}:${String(mins % 60).padStart(2,'0')}`;
   });
   return {
     slotMins,
     totalSlots,
     timeLabels,
-    slotIdx: t => { const [h, m] = t.split(':').map(Number); return Math.floor((h * 60 + m - HOUR_START * 60) / slotMins); },
+    slotIdx: t => { const [h, m] = t.split(':').map(Number); return Math.floor((h * 60 + m - hourStart * 60) / slotMins); },
   };
 }
 
@@ -1755,6 +1752,8 @@ const LS_LAST_SEEN = 'agenda_last_seen_cita';
 export default function Agenda() {
   const { id: tenantId } = useTenant();
   const [slotMins,      setSlotMins]      = useState(30);
+  const [hourStart,     setHourStart]     = useState(8);
+  const [hourEnd,       setHourEnd]       = useState(20);
   const [date,          setDate]          = useState(new Date());
   const [showHelp,      setShowHelp]      = useState(false);
   const [hasNewCita,    setHasNewCita]    = useState(false);
@@ -1800,14 +1799,22 @@ export default function Agenda() {
   useEffect(() => {
     getDoc(doc(tenantCol('configuracion'), 'main'))
       .then(snap => {
-        if (snap.exists() && snap.data().intervaloMinutos) {
-          setSlotMins(snap.data().intervaloMinutos);
+        if (!snap.exists()) return;
+        const data = snap.data();
+        if (data.intervaloMinutos) setSlotMins(data.intervaloMinutos);
+        if (data.horarioInicio) {
+          const [h] = data.horarioInicio.split(':').map(Number);
+          setHourStart(h);
+        }
+        if (data.horarioFin) {
+          const [h, m] = data.horarioFin.split(':').map(Number);
+          setHourEnd(m > 0 ? h + 1 : h);
         }
       })
       .catch(() => {});
   }, []);
 
-  const slotCfg = useMemo(() => buildSlotCfg(slotMins), [slotMins]);
+  const slotCfg = useMemo(() => buildSlotCfg(slotMins, hourStart, hourEnd), [slotMins, hourStart, hourEnd]);
   const { totalSlots, timeLabels } = slotCfg;
 
   const dateStr = fmt(date);
