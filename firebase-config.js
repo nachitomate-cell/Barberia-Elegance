@@ -23,6 +23,15 @@ try {
   console.warn('[Firebase] Auth SDK no disponible en esta página');
 }
 const db      = firebase.firestore();
+// Navegadores in-app (Instagram, Facebook, etc.) suelen romper el transporte
+// WebChannel/streaming de Firestore y la conexión queda colgada: los datos no
+// cargan y la página no se recupera. Auto-detectar long-polling lo resuelve —
+// Firestore cae a long-polling solo cuando el entorno lo necesita.
+try {
+  db.settings({ experimentalAutoDetectLongPolling: true });
+} catch (e) {
+  console.warn('[Firebase] No se pudo aplicar Firestore settings (long-polling):', e && e.message);
+}
 let storage;
 try {
   storage = firebase.storage();
