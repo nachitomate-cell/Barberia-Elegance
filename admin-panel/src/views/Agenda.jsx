@@ -6,7 +6,7 @@ import {
   User, Phone, Mail, Scissors, CalendarDays, DollarSign,
   Timer, MessageSquare, BadgeCheck, Search, ListFilter, MapPin,
   Send, Download, RefreshCw, Copy, Check, ShoppingBag, Gift,
-  Users, Eye,
+  Users, Eye, UserPlus,
 } from 'lucide-react';
 import {
   addDoc, updateDoc, deleteDoc, doc, getDoc, serverTimestamp, where, orderBy, limit, writeBatch, getDocs, query,
@@ -100,7 +100,7 @@ function Modal({ title, onClose, children, footer, maxW = 'max-w-md' }) {
 }
 
 /* ── CitaModal (create / edit) ───────────────────────────────── */
-function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, defaultBarberoId, defaultEstado, dateStr, onClose, onComplete }) {
+function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, defaultBarberoId, defaultEstado, sobrecupo = false, dateStr, onClose, onComplete }) {
   const { timeLabels } = useContext(AgendaCtx);
   const isNew = !cita;
   const { id: tenantId } = useTenant();
@@ -343,10 +343,14 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
       }
       if (isNew) {
         payload.creadoEn = serverTimestamp();
+        if (sobrecupo) payload.sobrecupo = true;
         if (form.barberoId) {
           const safeHora = (form.hora || '').replace(':', '');
           const safeBid  = String(form.barberoId).replace(/[^a-zA-Z0-9_-]/g, '_');
-          const lockId   = `${safeBid}_${dateStr}_${safeHora}`;
+          // Un sobrecupo usa un lockId único para no pisar el lock de la cita ya existente en ese horario.
+          const lockId   = sobrecupo
+            ? `${safeBid}_${dateStr}_${safeHora}_sc${Date.now().toString(36)}`
+            : `${safeBid}_${dateStr}_${safeHora}`;
           const citaRef  = doc(tenantCol('citas'));
           const lockRef  = doc(db, `${tenantCol('slotLocks').path}/${lockId}`);
           const batch    = writeBatch(db);
@@ -499,7 +503,7 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
 
   return (
     <Modal
-      title={isNew ? 'Nueva cita' : 'Editar cita'}
+      title={isNew ? (sobrecupo ? 'Nuevo sobrecupo' : 'Nueva cita') : 'Editar cita'}
       onClose={onClose}
       footer={
         <div className="flex items-center gap-2">
@@ -1015,7 +1019,10 @@ function AppointmentBlock({ cita, colIndex, colTotal, onClick, onDragStart }) {
         width:  `calc(${pct}% - 4px)`,
       }}
     >
-      <p className="font-semibold truncate leading-tight">{cita.clienteNombre || 'Cliente'}</p>
+      <p className="font-semibold truncate leading-tight">
+        {cita.sobrecupo && <span className="mr-1 px-1 py-px rounded bg-amber-500/25 text-amber-300 text-[8px] font-bold uppercase tracking-wide align-middle">Sobrecupo</span>}
+        {cita.clienteNombre || 'Cliente'}
+      </p>
       <p className="truncate text-[10px] opacity-75">{cita.servicioNombre}</p>
       <p className="truncate text-[10px] opacity-50">{cita.hora}{cita.sucursalNombre ? ` · ${cita.sucursalNombre}` : ''}</p>
     </div>
@@ -1989,6 +1996,14 @@ export default function Agenda() {
         </button>
 
         <button
+          onClick={() => setCitaModal({ cita: null, barberoId: barberos[0]?.id || '', hora: '09:00', sobrecupo: true })}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-amber-500/50 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 transition-all"
+          title="Agregar un sobrecupo (cita extra en un horario, sin bloquear disponibilidad)"
+        >
+          <UserPlus size={14} /> Sobrecupo
+        </button>
+
+        <button
           onClick={() => setCitaModal({ cita: null, barberoId: barberos[0]?.id || '', hora: '09:00' })}
           className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition-all"
         >
@@ -2148,6 +2163,7 @@ export default function Agenda() {
           defaultHora={citaModal.hora}
           defaultBarberoId={citaModal.barberoId}
           defaultEstado={citaModal.defaultEstado}
+          sobrecupo={citaModal.sobrecupo}
           dateStr={dateStr}
           onClose={() => setCitaModal(null)}
           onComplete={cita => { setCitaModal(null); setReviewCita(cita); }}
