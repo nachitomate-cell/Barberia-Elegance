@@ -1674,16 +1674,16 @@ function DifusionPanel({ citas, bloqueos, barberos, dateStr, tenantId }) {
   };
 
   return (
-    <div className="shrink-0 rounded-xl border border-white/10 bg-[#0F0F0F] overflow-hidden">
+    <div className="shrink-0 rounded-xl border border-slate-800 bg-slate-950 overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/06">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-800">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-white/05 border border-white/10 flex items-center justify-center">
-            <Send size={13} className="text-white/70" />
+          <div className="w-7 h-7 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center">
+            <Send size={13} className="text-slate-400" />
           </div>
           <div>
             <p className="text-xs font-bold text-white tracking-wide">Canal de difusión</p>
-            <p className="text-[10px] text-white/40">
+            <p className="text-[10px] text-slate-500">
               {freeSlots.length} hora{freeSlots.length !== 1 ? 's' : ''} libre{freeSlots.length !== 1 ? 's' : ''} · {fechaFmt.charAt(0).toUpperCase() + fechaFmt.slice(1)}
             </p>
           </div>
@@ -1692,7 +1692,7 @@ function DifusionPanel({ citas, bloqueos, barberos, dateStr, tenantId }) {
           <button
             onClick={handleExport}
             title="Exportar imagen PNG"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold border border-white/10 text-white/60 hover:text-white hover:border-white/30 transition-all"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold border border-slate-700 text-slate-400 hover:text-white hover:border-slate-600 transition-all"
           >
             <Download size={12} /> Imagen PNG
           </button>
@@ -1702,7 +1702,7 @@ function DifusionPanel({ citas, bloqueos, barberos, dateStr, tenantId }) {
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold border transition-all ${
               copied
                 ? 'border-green-500/40 bg-green-500/10 text-green-400'
-                : 'border-white/10 text-white/60 hover:text-white hover:border-white/30'
+                : 'border-slate-700 text-slate-400 hover:text-white hover:border-slate-600'
             }`}
           >
             {copied ? <><Check size={12} /> Copiado</> : <><Copy size={12} /> Copiar</>}
@@ -1713,7 +1713,7 @@ function DifusionPanel({ citas, bloqueos, barberos, dateStr, tenantId }) {
       {/* Message preview */}
       <div className="px-4 py-3">
         <pre
-          className="whitespace-pre-wrap font-sans text-[12px] leading-relaxed text-white/75 bg-white/[0.02] rounded-lg border border-white/05 px-4 py-3 max-h-[180px] overflow-y-auto"
+          className="whitespace-pre-wrap font-sans text-[12px] leading-relaxed text-slate-300 bg-slate-900 rounded-lg border border-slate-800 px-4 py-3 max-h-[180px] overflow-y-auto"
           style={{ fontFamily: 'inherit' }}
         >
           {message}
@@ -1734,7 +1734,7 @@ function DifusionPanel({ citas, bloqueos, barberos, dateStr, tenantId }) {
                   ? 'border-amber-500/30 bg-amber-500/10 text-amber-400'
                   : isOcc
                     ? 'border-red-500/25 bg-red-500/08 text-red-400/70'
-                    : 'border-white/15 bg-white/04 text-white/70'
+                    : 'border-slate-700 bg-slate-800 text-slate-300'
               }`}
             >
               {slot}

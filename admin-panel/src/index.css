@@ -45,6 +45,49 @@ html.light select { background-color: #f1f5f9 !important; color: #0f172a !import
 html.light .divide-slate-800 > * + * { border-color: #e2e8f0 !important; }
 html.light .divide-y > * + * { border-color: #e2e8f0 !important; }
 
+/* ── Light mode · utilidades con opacidad (Agenda y tarjetas) ──── */
+/* Fondos slate translúcidos → grises claros sutiles */
+html.light .bg-slate-900\/60 { background-color: rgba(248, 250, 252, 0.9) !important; }
+html.light .bg-slate-800\/10 { background-color: rgba(148, 163, 184, 0.08) !important; }
+html.light .bg-slate-800\/40 { background-color: rgba(148, 163, 184, 0.14) !important; }
+html.light .bg-slate-800\/50 { background-color: rgba(148, 163, 184, 0.16) !important; }
+html.light .bg-slate-800\/60 { background-color: rgba(148, 163, 184, 0.20) !important; }
+html.light .bg-slate-800\/80 { background-color: rgba(226, 232, 240, 0.9)  !important; }
+
+/* Bordes slate translúcidos → bordes claros */
+html.light .border-slate-800\/40,
+html.light .border-slate-800\/60,
+html.light .border-slate-800\/80,
+html.light .border-slate-750\/70 { border-color: #e2e8f0 !important; }
+
+/* Texto de color → tonos más oscuros legibles sobre fondo claro */
+html.light .text-emerald-300,
+html.light .text-emerald-400,
+html.light .text-emerald-500\/80,
+html.light .text-emerald-400\/80 { color: #047857 !important; }
+html.light .text-red-300,
+html.light .text-red-400,
+html.light .text-red-400\/70,
+html.light .text-red-400\/60 { color: #b91c1c !important; }
+html.light .text-blue-300,
+html.light .text-blue-400 { color: #1d4ed8 !important; }
+html.light .text-amber-300,
+html.light .text-amber-400,
+html.light .text-amber-400\/80 { color: #b45309 !important; }
+html.light .text-green-400 { color: #15803d !important; }
+/* slate-700 se usa para iconos/ilustraciones tenues: mantener tenue en claro */
+html.light .text-slate-700 { color: #94a3b8 !important; }
+
+/* Fondos de color oscuros (bloqueos, hover de slots) → tintes claros */
+html.light .bg-red-950\/20,
+html.light .hover\:bg-red-950\/20:hover { background-color: rgba(254, 226, 226, 0.7) !important; }
+html.light .bg-red-950\/40 { background-color: rgba(254, 202, 202, 0.8) !important; }
+html.light .bg-red-950\/60,
+html.light .hover\:bg-red-950\/60:hover { background-color: rgba(252, 165, 165, 0.55) !important; }
+html.light .bg-amber-950\/30 { background-color: rgba(254, 243, 199, 0.8) !important; }
+html.light .bg-emerald-900\/10,
+html.light .hover\:bg-emerald-900\/10:hover { background-color: rgba(209, 250, 229, 0.7) !important; }
+
 /* Evitar auto-zoom en iOS Safari al enfocar campos de formulario en pantallas móviles */
 @media (max-width: 767px) {
   input, select, textarea {
