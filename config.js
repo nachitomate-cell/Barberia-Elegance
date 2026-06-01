@@ -32,7 +32,6 @@
     'sionbarberia.synaptechspa.cl':       'sionbarberia',
     'barberiasion.synaptechspa.cl':       'sionbarberia',
     'omegastudio.synaptechspa.cl':        'omegastudio',
-    'memphissalon.synaptechspa.cl':       'memphis',
     'alfamen.synaptechspa.cl':            'alfamen',
   };
 
