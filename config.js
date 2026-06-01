@@ -30,6 +30,7 @@
     'sionbarberia.synaptechspa.cl':       'sionbarberia',
     'barberiasion.synaptechspa.cl':       'sionbarberia',
     'omegastudio.synaptechspa.cl':        'omegastudio',
+    'memphissalon.synaptechspa.cl':       'memphis',
   };
 
   const _tenants = {
@@ -395,6 +396,30 @@
         { nombre: 'Julián Beltrán',  foto: null, disponible: true },
         { nombre: 'Antonio Morales', foto: null, disponible: true },
         { nombre: 'Thomas Castillo', foto: null, disponible: true },
+      ],
+    },
+    memphis: {
+      categoriasServicio: ['Cortes', 'Barba', 'Combos', 'Facial', 'Color', 'Uñas', 'Estilismo', 'Tratamientos'],
+      nombre:          'Memphis Salón',
+      nombreCorto:     'Memphis',
+      pageTitle:       'Memphis Salón | Agenda tu hora',
+      slogan:          'Estilo y profesionalismo en Viña del Mar',
+      logo:            '/memphis.jpg',
+      direccion:       '📍 Viña del Mar',
+      horario:         '🕒 Lunes a Sábado · Agenda tu hora',
+      telefono:        '',
+      club:            'Club Memphis',
+      instagram:       'https://www.instagram.com/memphissalon',
+      instagramHandle: '@memphissalon',
+      waEmoji:         '✂️',
+      googleReviewUrl: '',
+      ratingGeneral:   0,
+      totalReviews:    0,
+      reviews:         [],
+      barberos: [
+        { nombre: 'Profesional 1', foto: null, disponible: true },
+        { nombre: 'Profesional 2', foto: null, disponible: true },
+        { nombre: 'Profesional 3', foto: null, disponible: true },
       ],
     },
     sionbarberia: {
