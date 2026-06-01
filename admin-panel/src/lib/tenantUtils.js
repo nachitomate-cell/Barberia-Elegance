@@ -21,6 +21,7 @@ const DOMAIN_MAP = {
   'sionbarberia.synaptechspa.cl':      'sionbarberia',
   'barberiasion.synaptechspa.cl':      'sionbarberia',
   'memphissalon.synaptechspa.cl':      'memphis',
+  'alfamen.synaptechspa.cl':           'alfamen',
 };
 
 export function resolveTenantId() {

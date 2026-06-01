@@ -31,6 +31,7 @@
     'barberiasion.synaptechspa.cl':       'sionbarberia',
     'omegastudio.synaptechspa.cl':        'omegastudio',
     'memphissalon.synaptechspa.cl':       'memphis',
+    'alfamen.synaptechspa.cl':            'alfamen',
   };
 
   const _tenants = {
@@ -396,6 +397,30 @@
         { nombre: 'Julián Beltrán',  foto: null, disponible: true },
         { nombre: 'Antonio Morales', foto: null, disponible: true },
         { nombre: 'Thomas Castillo', foto: null, disponible: true },
+      ],
+    },
+    alfamen: {
+      categoriasServicio: ['Cortes', 'Barba', 'Combos', 'Color', 'Extras'],
+      nombre:          'Barbería Alfa Men',
+      nombreCorto:     'Alfa Men',
+      pageTitle:       'Barbería Alfa Men | Agenda tu hora',
+      slogan:          'Since 2017 · Aesthetics For Men',
+      logo:            '/alfamen.jpg',
+      direccion:       '📍 Av. Valparaíso #694 L. 14 | Viña del Mar',
+      horario:         '🕒 Lun–Vie: 10:00–20:00 · Sáb: 10:00–18:00',
+      telefono:        '',
+      club:            'Club Alfa Men',
+      instagram:       'https://www.instagram.com/barberia_alfa/',
+      instagramHandle: '@barberia_alfa',
+      waEmoji:         '💈',
+      googleReviewUrl: '',
+      ratingGeneral:   0,
+      totalReviews:    0,
+      reviews:         [],
+      barberos: [
+        { nombre: 'Profesional 1', foto: null, disponible: true },
+        { nombre: 'Profesional 2', foto: null, disponible: true },
+        { nombre: 'Profesional 3', foto: null, disponible: true },
       ],
     },
     memphis: {
