@@ -6584,8 +6584,9 @@
         </button>
       `;
 
-      // Aura: shuffle barbers so no one gets a permanent "top" position
-      const _barberosOrden = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'lumen' || window.CURRENT_TENANT_ID === 'machos' || window.CURRENT_TENANT_ID === 'sionbarberia')
+      // Aura/Elegance: shuffle barbers so no one gets a permanent "top" position
+      const _shuffleBarberos = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'lumen' || window.CURRENT_TENANT_ID === 'machos' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'elegance' || !window.CURRENT_TENANT_ID);
+      const _barberosOrden = _shuffleBarberos
         ? [...barberos].sort(() => Math.random() - 0.5)
         : barberos;
 
