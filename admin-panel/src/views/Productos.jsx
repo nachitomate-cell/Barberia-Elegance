@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Plus, ShoppingBag, Edit2, Trash2, Upload, ImageOff, Power, AlertTriangle, CheckCircle2, XCircle, Clock, Eye, EyeOff, Tag, Package } from 'lucide-react';
+import { Plus, ShoppingBag, Edit2, Trash2, Upload, ImageOff, Power, AlertTriangle, CheckCircle2, XCircle, Clock, Eye, EyeOff, Tag, Package, Download, Share2, X } from 'lucide-react';
 import { addDoc, updateDoc, deleteDoc, doc, getDoc, setDoc, serverTimestamp, onSnapshot, query, where, orderBy, writeBatch } from 'firebase/firestore';
 import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { storage, db } from '../lib/firebase';
@@ -209,6 +209,210 @@ function ProductCard({ producto, onEdit, onDelete, isDeluxe }) {
   );
 }
 
+/* ── Generador de imagen para Historia de Instagram ─────────────── */
+const FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+const STORY_BG_PRESETS = ['#0F172A', '#000000', '#FFFFFF', '#1C1917', '#0A2540', '#3B0764', '#064E3B', '#7C2D12'];
+
+function _hexLum(hex) {
+  let h = String(hex).replace('#', '');
+  if (h.length === 3) h = h.split('').map(c => c + c).join('');
+  const n = parseInt(h, 16);
+  const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+}
+
+function _ellipsize(ctx, text, maxW) {
+  if (ctx.measureText(text).width <= maxW) return text;
+  let t = text;
+  while (t.length > 1 && ctx.measureText(t + '…').width > maxW) t = t.slice(0, -1);
+  return t + '…';
+}
+
+function drawStory(canvas, { productos, showPrice, showStock, bgColor, shopName }) {
+  const W = 1080, H = 1920;
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  const dark   = _hexLum(bgColor) > 0.6;            // fondo claro → texto oscuro
+  const fg     = dark ? '#111827' : '#FFFFFF';
+  const muted  = dark ? 'rgba(17,24,39,0.55)' : 'rgba(255,255,255,0.62)';
+  const line   = dark ? 'rgba(17,24,39,0.12)' : 'rgba(255,255,255,0.14)';
+  const okClr  = dark ? '#047857' : '#34D399';
+  const offClr = dark ? '#B91C1C' : '#FB7185';
+  const PAD = 90;
+
+  // Fondo
+  ctx.fillStyle = bgColor;
+  ctx.fillRect(0, 0, W, H);
+
+  // Cabecera
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = muted;
+  ctx.font = `700 30px ${FONT}`;
+  ctx.fillText('CATÁLOGO', PAD, 160);
+
+  ctx.fillStyle = fg;
+  ctx.font = `800 64px ${FONT}`;
+  ctx.fillText(_ellipsize(ctx, shopName || '', W - PAD * 2), PAD, 240);
+
+  ctx.fillStyle = muted;
+  ctx.font = `400 34px ${FONT}`;
+  ctx.fillText('Productos disponibles', PAD, 298);
+
+  ctx.strokeStyle = line; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(PAD, 350); ctx.lineTo(W - PAD, 350); ctx.stroke();
+
+  // Filas de productos
+  const top = 410, bottom = H - 210;
+  const n = Math.max(productos.length, 1);
+  const rowH = Math.min(150, (bottom - top) / n);
+  const fs   = Math.min(46, Math.max(26, rowH * 0.32));
+
+  productos.forEach((p, i) => {
+    const y = top + i * rowH + rowH / 2;
+    ctx.textBaseline = 'middle';
+
+    // Lado derecho: precio / stock (se dibuja primero para saber el ancho ocupado)
+    let rightX = W - PAD;
+    if (showStock) {
+      const s = Number(p.stock) || 0;
+      ctx.textAlign = 'right';
+      ctx.fillStyle = s > 0 ? okClr : offClr;
+      ctx.font = `700 ${Math.round(fs * 0.78)}px ${FONT}`;
+      const stxt = s > 0 ? `Stock ${s}` : 'Agotado';
+      ctx.fillText(stxt, rightX, y);
+      rightX -= ctx.measureText(stxt).width + 32;
+    }
+    if (showPrice) {
+      ctx.textAlign = 'right';
+      ctx.fillStyle = fg;
+      ctx.font = `800 ${Math.round(fs)}px ${FONT}`;
+      const ptxt = '$' + Number(p.precio || 0).toLocaleString('es-CL');
+      ctx.fillText(ptxt, rightX, y);
+      rightX -= ctx.measureText(ptxt).width + 40;
+    }
+
+    // Nombre (izquierda), recortado para no chocar con el precio
+    ctx.textAlign = 'left';
+    ctx.fillStyle = fg;
+    ctx.font = `700 ${Math.round(fs)}px ${FONT}`;
+    const nameMaxW = Math.max(120, rightX - PAD - 24);
+    ctx.fillText(_ellipsize(ctx, p.nombre || 'Producto', nameMaxW), PAD, y);
+
+    // Separador de fila
+    ctx.strokeStyle = line; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(PAD, top + (i + 1) * rowH); ctx.lineTo(W - PAD, top + (i + 1) * rowH); ctx.stroke();
+  });
+
+  // Pie: marca abajo a la derecha
+  ctx.textAlign = 'right'; ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = muted;
+  ctx.font = `700 30px ${FONT}`;
+  ctx.fillText('SynapTech Spa', W - PAD, H - 90);
+  ctx.textAlign = 'left';
+}
+
+function StoryGenerator({ productos, shopName, onClose }) {
+  const canvasRef = useRef(null);
+  const [showPrice, setShowPrice] = useState(true);
+  const [showStock, setShowStock] = useState(false);
+  const [bgColor,   setBgColor]   = useState('#0F172A');
+
+  const disponibles = productos.filter(p => p.activo !== false);
+
+  useEffect(() => {
+    if (canvasRef.current) {
+      drawStory(canvasRef.current, { productos: disponibles, showPrice, showStock, bgColor, shopName });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showPrice, showStock, bgColor, productos]);
+
+  const descargar = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const link = document.createElement('a');
+    link.download = `historia-productos-${new Date().toISOString().slice(0, 10)}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={onClose}>
+      <div className="relative w-full max-w-3xl max-h-[92vh] overflow-y-auto no-scrollbar rounded-2xl border border-slate-800 bg-slate-900 shadow-2xl" onClick={e => e.stopPropagation()}>
+        <button onClick={onClose} className="absolute top-3 right-3 z-10 w-8 h-8 flex items-center justify-center text-slate-400 hover:text-white bg-slate-800 border border-slate-700 rounded-lg transition-colors">
+          <X size={16} />
+        </button>
+
+        <div className="p-5 border-b border-slate-800">
+          <h3 className="text-lg font-bold text-white flex items-center gap-2"><Share2 size={18} className="text-emerald-400" /> Imagen para Historia</h3>
+          <p className="text-xs text-slate-500 mt-0.5">Genera una imagen 9:16 con tus productos disponibles para subir a Instagram.</p>
+        </div>
+
+        <div className="p-5 grid md:grid-cols-2 gap-6">
+          {/* Vista previa */}
+          <div className="flex justify-center">
+            <canvas
+              ref={canvasRef}
+              className="rounded-xl border border-slate-800 shadow-lg"
+              style={{ width: 260, height: 'auto' }}
+            />
+          </div>
+
+          {/* Controles */}
+          <div className="space-y-5">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-2">Mostrar</p>
+              <div className="space-y-2">
+                <label className="flex items-center justify-between gap-3 px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-lg cursor-pointer">
+                  <span className="text-sm text-white flex items-center gap-2"><Tag size={14} className="text-emerald-400" /> Precio</span>
+                  <input type="checkbox" checked={showPrice} onChange={e => setShowPrice(e.target.checked)} className="w-4 h-4 accent-emerald-500" />
+                </label>
+                <label className="flex items-center justify-between gap-3 px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-lg cursor-pointer">
+                  <span className="text-sm text-white flex items-center gap-2"><Package size={14} className="text-emerald-400" /> Stock</span>
+                  <input type="checkbox" checked={showStock} onChange={e => setShowStock(e.target.checked)} className="w-4 h-4 accent-emerald-500" />
+                </label>
+              </div>
+            </div>
+
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-2">Color de fondo</p>
+              <div className="flex flex-wrap gap-2 mb-3">
+                {STORY_BG_PRESETS.map(c => (
+                  <button
+                    key={c}
+                    onClick={() => setBgColor(c)}
+                    title={c}
+                    className={`w-8 h-8 rounded-lg border-2 transition-transform hover:scale-110 ${bgColor.toLowerCase() === c.toLowerCase() ? 'border-emerald-400' : 'border-slate-700'}`}
+                    style={{ background: c }}
+                  />
+                ))}
+              </div>
+              <label className="flex items-center gap-3 px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg cursor-pointer">
+                <input type="color" value={bgColor} onChange={e => setBgColor(e.target.value)} className="w-8 h-8 bg-transparent border-0 cursor-pointer" />
+                <span className="text-sm text-slate-300">Color personalizado</span>
+                <span className="ml-auto text-xs font-mono text-slate-500">{bgColor.toUpperCase()}</span>
+              </label>
+            </div>
+
+            {disponibles.length === 0 && (
+              <p className="text-xs text-amber-400 flex items-center gap-1.5"><AlertTriangle size={13} /> No hay productos disponibles para mostrar.</p>
+            )}
+
+            <button
+              onClick={descargar}
+              disabled={disponibles.length === 0}
+              className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition-colors"
+            >
+              <Download size={16} /> Descargar imagen (PNG)
+            </button>
+            <p className="text-[11px] text-slate-600 text-center">{disponibles.length} producto{disponibles.length !== 1 ? 's' : ''} · formato 1080×1920</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Productos() {
   const tenant = useTenant();
   const isDeluxe = tenant.id === 'deluxeperfumes';
@@ -217,6 +421,7 @@ export default function Productos() {
 
   const [slide,      setSlide]      = useState(false);
   const [showHelp,   setShowHelp]   = useState(false);
+  const [storyOpen,  setStoryOpen]  = useState(false);
   const [editing,    setEditing]    = useState(null);
   const [form,       setForm]       = useState(EMPTY);
   const [saving,     setSaving]     = useState(false);
@@ -512,6 +717,14 @@ export default function Productos() {
           </p>
         </div>
         <div className="flex gap-2.5">
+          <button
+            onClick={() => setStoryOpen(true)}
+            disabled={loading}
+            title="Generar imagen para historia de Instagram"
+            className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-semibold px-4 py-2 rounded-lg border border-slate-700 hover:border-slate-600 transition-colors"
+          >
+            <Share2 size={16} className="text-emerald-400" /> Imagen historia
+          </button>
           <button
             onClick={openVentaRapida}
             disabled={loading}
@@ -832,6 +1045,14 @@ export default function Productos() {
             <li>El stock se reduce automáticamente al aprobar una reserva.</li>
           </ul>
         </HelpModal>
+      )}
+
+      {storyOpen && (
+        <StoryGenerator
+          productos={productos}
+          shopName={tenant.name || 'Productos'}
+          onClose={() => setStoryOpen(false)}
+        />
       )}
 
       {/* Venta Rápida Modal */}
