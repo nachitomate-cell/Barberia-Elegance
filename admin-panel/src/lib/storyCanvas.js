@@ -13,10 +13,13 @@ export function lum(hex) {
 }
 
 // Carga una imagen con CORS anónimo. Resuelve a la imagen o null si falla.
+// Usamos createElement('img') en vez de `new Image()` para no depender del
+// binding global `Image` (lucide-react exporta un componente `Image` que, por
+// el scope-hoisting del bundler, puede sombrear al constructor del DOM).
 export function loadImg(url) {
   return new Promise(resolve => {
     if (!url) return resolve(null);
-    const im = new Image();
+    const im = document.createElement('img');
     im.crossOrigin = 'anonymous';
     im.onload  = () => resolve(im);
     im.onerror = () => resolve(null);
