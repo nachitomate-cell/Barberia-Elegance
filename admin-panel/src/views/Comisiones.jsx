@@ -129,14 +129,19 @@ export default function Comisiones() {
   const loadCitas = useCallback(async () => {
     setLoading(true);
     try {
+      // Solo filtramos por rango de fecha (índice de campo único, automático) y
+      // filtramos el estado en el cliente para no requerir un índice compuesto.
       const q = query(
         tenantCol('citas'),
-        where('estado', '==', 'Completada'),
         where('fecha', '>=', fechaInicio),
         where('fecha', '<=', fechaFin),
       );
       const snap = await getDocs(q);
-      setCitas(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setCitas(
+        snap.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .filter(c => c.estado === 'Completada'),
+      );
     } catch (e) {
       console.error('[Comisiones] error cargando citas:', e);
     } finally {
