@@ -26,6 +26,7 @@
     'aurasalon.synaptechspa.cl':          'aura',
     'aurasalonmalegrooming.synaptech.cl': 'aura',
     'aurasalonmalegrooming.synaptechspa.cl': 'aura',
+    'djonesbarberia.synaptechspa.cl':     'aura',
     'machos.synaptechspa.cl':             'machos',
     'infinity.synaptechspa.cl':           'infinity',
     'sionbarberia.synaptechspa.cl':       'sionbarberia',
