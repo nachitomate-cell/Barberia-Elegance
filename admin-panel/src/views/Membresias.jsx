@@ -170,7 +170,7 @@ function ModalPlanes({ tenantId, planesIniciales, onClose }) {
       const payload = validos.map((p, idx) => ({
         id:              String(p.id ?? idx),
         nombre:          p.nombre.trim(),
-        precio:          Number(p.precio) || 0,
+        precio:          Math.round(Number(p.precio)) || 0,
         orden:           idx,
         caracteristicas: p.caract.filter(c => c.trim()),
       }));
@@ -226,8 +226,9 @@ function ModalPlanes({ tenantId, planesIniciales, onClose }) {
                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Precio mensual (CLP)</label>
                     <input
                       type="number"
+                      min="0" step="1" inputMode="numeric"
                       value={plan.precio}
-                      onChange={e => updatePlan(pidx, 'precio', e.target.value)}
+                      onChange={e => updatePlan(pidx, 'precio', e.target.value.replace(/[^\d]/g, ''))}
                       placeholder="5900"
                       className={INPUT_CLS}
                     />

@@ -457,15 +457,15 @@ export default function Productos() {
       const payload = {
         nombre:         form.nombre,
         descripcion:    form.descripcion,
-        precio:         form.precio !== '' ? Number(form.precio) : null,
-        precioOriginal: form.precioOriginal !== '' ? Number(form.precioOriginal) : null,
+        precio:         form.precio !== '' ? Math.round(Number(form.precio)) : null,
+        precioOriginal: form.precioOriginal !== '' ? Math.round(Number(form.precioOriginal)) : null,
         marca:          form.marca   || null,
         categoria:      form.categoria || null,
         stock:          form.stock !== '' ? Number(form.stock) : null,
         imagen:         form.imagen,
         imagenPath:     form.imagenPath || '',
         activo:         form.activo !== false,
-        precioCosto:    form.precioCosto !== '' ? Number(form.precioCosto) : null,
+        precioCosto:    form.precioCosto !== '' ? Math.round(Number(form.precioCosto)) : null,
         stockMinimo:    form.stockMinimo !== '' ? Number(form.stockMinimo) : null,
         updatedAt:      serverTimestamp(),
       };
@@ -745,19 +745,19 @@ export default function Productos() {
           {isDeluxe ? (
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className={lbl}>Precio de venta ($)</label>
-                <input className={field} type="number" placeholder="45000" value={form.precio} onChange={e => setForm(f => ({ ...f, precio: e.target.value }))} />
+                <label className={lbl}>Precio de venta (CLP)</label>
+                <input className={field} type="number" min="0" step="1" inputMode="numeric" placeholder="45000" value={form.precio} onChange={e => setForm(f => ({ ...f, precio: e.target.value.replace(/[^\d]/g, '') }))} />
               </div>
               <div>
-                <label className={lbl}>Precio original ($) <span className="text-slate-600 normal-case tracking-normal font-normal">opcional</span></label>
-                <input className={field} type="number" placeholder="55000" value={form.precioOriginal} onChange={e => setForm(f => ({ ...f, precioOriginal: e.target.value }))} />
+                <label className={lbl}>Precio original (CLP) <span className="text-slate-600 normal-case tracking-normal font-normal">opcional</span></label>
+                <input className={field} type="number" min="0" step="1" inputMode="numeric" placeholder="55000" value={form.precioOriginal} onChange={e => setForm(f => ({ ...f, precioOriginal: e.target.value.replace(/[^\d]/g, '') }))} />
               </div>
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className={lbl}>Precio ($)</label>
-                <input className={field} type="number" placeholder="9900" value={form.precio} onChange={e => setForm(f => ({ ...f, precio: e.target.value }))} />
+                <label className={lbl}>Precio (CLP)</label>
+                <input className={field} type="number" min="0" step="1" inputMode="numeric" placeholder="9900" value={form.precio} onChange={e => setForm(f => ({ ...f, precio: e.target.value.replace(/[^\d]/g, '') }))} />
               </div>
               <div>
                 <label className={lbl}>Stock</label>
@@ -773,8 +773,8 @@ export default function Productos() {
             </h4>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className={lbl}>Precio de Costo ($)</label>
-                <input className={field} type="number" placeholder="5000" value={form.precioCosto} onChange={e => setForm(f => ({ ...f, precioCosto: e.target.value }))} />
+                <label className={lbl}>Precio de Costo (CLP)</label>
+                <input className={field} type="number" min="0" step="1" inputMode="numeric" placeholder="5000" value={form.precioCosto} onChange={e => setForm(f => ({ ...f, precioCosto: e.target.value.replace(/[^\d]/g, '') }))} />
               </div>
               <div>
                 <label className={lbl}>Stock Mínimo (Alerta)</label>
