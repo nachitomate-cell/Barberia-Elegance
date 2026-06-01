@@ -1631,7 +1631,7 @@
     showLoading('Enviando enlace...');
     try {
       const fn = firebase.functions().httpsCallable('enviarRecuperacionPassword');
-      await fn({ email, tenantId: window.CURRENT_TENANT_ID || 'elegance' });
+      await fn({ email, tenantId: window.CURRENT_TENANT_ID || 'elegance', host: window.location.hostname });
       hideLoading();
       showAlert('¡Listo! Revisa tu correo para restablecer tu contraseña.', false);
       switchTab('login');

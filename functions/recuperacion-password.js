@@ -102,7 +102,60 @@ const TENANT_CONFIG = {
     from:     'Sion Barbería <citas@synaptechspa.cl>',
     loginUrl: 'https://barberiasion.synaptechspa.cl/registro',
   },
+  omegastudio: {
+    nombre:   'OMEGA STUDIO',
+    slogan:   'Estudio atendido por profesionales',
+    color:    '#9CA3AF',
+    from:     'OMEGA STUDIO <citas@synaptechspa.cl>',
+    loginUrl: 'https://omegastudio.synaptechspa.cl/registro',
+  },
 };
+
+// Mapa dominio → tenant (espejo de config.js). Permite resolver el local
+// a partir del sitio real desde el que se hizo la petición (Origin/Referer),
+// que es más confiable que el tenantId que manda el cliente.
+const DOMAIN_MAP = {
+  'gitananails.synaptechspa.cl':            'gitana',
+  'barberiaelegance.synaptechspa.cl':       'elegance',
+  'barberiaferraza.synaptechspa.cl':        'ferraza',
+  'mapubarbershop.synaptechspa.cl':         'mapubarbershop',
+  'chameleonbarber.synaptechspa.cl':        'chameleon',
+  'deluxeperfumes.synaptechspa.cl':         'deluxeperfumes',
+  'barberiadjones.synaptechspa.cl':         'lumen',
+  'delnerobarber.synaptechspa.cl':          'delnero',
+  'marcelohairdressing.synaptechspa.cl':    'marcelo_hairdressing',
+  'marcelo-hairdressing.synaptechspa.cl':   'marcelo_hairdressing',
+  'marcelopalma.synaptechspa.cl':           'marcelo_hairdressing',
+  'aurasalon.synaptechspa.cl':              'aura',
+  'aurasalonmalegrooming.synaptech.cl':     'aura',
+  'aurasalonmalegrooming.synaptechspa.cl':  'aura',
+  'machos.synaptechspa.cl':                 'machos',
+  'infinity.synaptechspa.cl':               'infinity',
+  'sionbarberia.synaptechspa.cl':           'sionbarberia',
+  'barberiasion.synaptechspa.cl':           'sionbarberia',
+  'omegastudio.synaptechspa.cl':            'omegastudio',
+};
+
+// Extrae el hostname desde un header Origin/Referer (ej. "https://x.cl/registro" → "x.cl")
+function hostFromHeader(value) {
+  if (!value) return '';
+  try { return new URL(value).hostname.toLowerCase(); } catch { return ''; }
+}
+
+// Resuelve el tenant priorizando el dominio real de la petición, luego el
+// tenantId enviado por el cliente, y solo como último recurso "elegance".
+function resolveTenantId({ tenantId, hostHint, rawRequest }) {
+  const headers = rawRequest?.headers || {};
+  const host =
+    hostFromHeader(headers.origin) ||
+    hostFromHeader(headers.referer) ||
+    (hostHint ? String(hostHint).toLowerCase() : '');
+
+  const fromDomain = DOMAIN_MAP[host];
+  if (fromDomain && TENANT_CONFIG[fromDomain]) return fromDomain;
+  if (tenantId && TENANT_CONFIG[tenantId])     return tenantId;
+  return 'elegance';
+}
 
 async function sendResend(apiKey, payload) {
   const res = await fetch('https://api.resend.com/emails', {
@@ -183,13 +236,18 @@ function buildResetEmailHtml({ cfg, resetLink }) {
 exports.enviarRecuperacionPassword = onCall(
   { region: 'us-central1', secrets: [RESEND_API_KEY] },
   async (request) => {
-    const { email, tenantId } = request.data || {};
+    const { email, tenantId, host } = request.data || {};
 
     if (!email || !String(email).includes('@')) {
       throw new HttpsError('invalid-argument', 'Correo electrónico inválido.');
     }
 
-    const cfg = TENANT_CONFIG[tenantId] || TENANT_CONFIG.elegance;
+    const resolvedTenant = resolveTenantId({
+      tenantId,
+      hostHint:   host,
+      rawRequest: request.rawRequest,
+    });
+    const cfg = TENANT_CONFIG[resolvedTenant];
 
     // Generar enlace seguro via Firebase Admin
     let resetLink;
@@ -221,7 +279,7 @@ exports.enviarRecuperacionPassword = onCall(
       throw new HttpsError('internal', 'No se pudo enviar el correo. Intenta de nuevo.');
     }
 
-    logger.info(`[Reset] Email enviado a ${email} (tenant: ${tenantId})`);
+    logger.info(`[Reset] Email enviado a ${email} (tenant solicitado: ${tenantId || '—'} → resuelto: ${resolvedTenant})`);
     return { ok: true };
   },
 );
