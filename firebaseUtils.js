@@ -726,6 +726,9 @@ const FDB = (() => {
       ini = toMins(dc.inicio || barbCfg.horarioInicio || cfg.horarioInicio || '09:00');
       fin = toMins(dc.fin    || barbCfg.horarioFin    || cfg.horarioFin    || '20:00');
     } else {
+      // Sin config de barbero: verificar si el local está abierto ese día
+      const dl = cfg.diasLaborales;
+      if (Array.isArray(dl) && dl.length > 0 && !dl.includes(dw)) return [];
       const dc = (cfg.diasConfig || {})[dw] || {};
       ini = toMins(dc.inicio || cfg.horarioInicio || '09:00');
       fin = toMins(dc.fin    || cfg.horarioFin    || '20:00');

@@ -66,6 +66,11 @@
 
   function computeProfessionalSlots({ config, date, blocks, bookings, professional, serviceDurationMin }) {
     const dayOfWeek = new Date(`${date}T12:00:00`).getDay();
+
+    // Si el local tiene días laborales configurados y hoy no es uno, no hay slots
+    const dl = config.diasLaborales;
+    if (Array.isArray(dl) && dl.length > 0 && !dl.includes(dayOfWeek)) return [];
+
     const dayConfig = (config.diasConfig || {})[dayOfWeek] || {};
     const interval = Number(config.intervaloMinutos) || 30;
     const slotCount = Math.max(1, Math.ceil(Number(serviceDurationMin) / interval));

@@ -20,6 +20,7 @@ const DOMAIN_MAP = {
   'infinity.synaptechspa.cl':          'infinity',
   'sionbarberia.synaptechspa.cl':      'sionbarberia',
   'barberiasion.synaptechspa.cl':      'sionbarberia',
+  'memphissalon.synaptechspa.cl':      'memphis',
 };
 
 export function resolveTenantId() {

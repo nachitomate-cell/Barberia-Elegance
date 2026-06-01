@@ -170,9 +170,31 @@ export default function Configuracion() {
     setSaving(true);
     setSaveErr('');
     try {
+      // Convertir form.horario al formato que usa firebaseUtils / booking.service
+      const diasLaborales = [];
+      const diasConfig = {};
+      let horarioInicio = '09:00';
+      let horarioFin    = '20:00';
+      let primerDia = true;
+      Object.entries(form.horario).forEach(([dia, cfg]) => {
+        if (cfg.activo) {
+          const n = Number(dia);
+          diasLaborales.push(n);
+          diasConfig[n] = { inicio: cfg.inicio, fin: cfg.fin };
+          if (primerDia) { horarioInicio = cfg.inicio; horarioFin = cfg.fin; primerDia = false; }
+        }
+      });
+
       await Promise.all([
         setDoc(settingsRef(), form, { merge: true }),
-        setDoc(confRef(), { intervaloMinutos: intervalo, minutosLimiteReagendar: minutosLimite }, { merge: true }),
+        setDoc(confRef(), {
+          intervaloMinutos:        intervalo,
+          minutosLimiteReagendar:  minutosLimite,
+          diasLaborales,
+          diasConfig,
+          horarioInicio,
+          horarioFin,
+        }, { merge: true }),
       ]);
       setSaved(true);
       setDirty(false);
