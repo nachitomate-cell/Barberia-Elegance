@@ -8,6 +8,7 @@ import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 import { getDoc, getDocs, setDoc, serverTimestamp, query, where } from 'firebase/firestore';
 import { tenantDoc, tenantCol } from '../lib/tenantUtils';
 import { useTenant } from '../contexts/TenantContext';
+import { STORY_FONT, STORY_BG_PRESETS, lum, loadImg, drawCover, wrapLines } from '../lib/storyCanvas';
 
 /* ── Banner form default ────────────────────────────────────── */
 const EMPTY = {
@@ -436,65 +437,12 @@ function RecomendadorBannersIA({ stats, statsLoading, onApply }) {
 
 /* ── Marketing (componente principal) ───────────────────────── */
 /* ── Generador de imagen para Historia de Instagram (campaña) ───── */
-const STORY_FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
-const STORY_BG_PRESETS = ['#0F172A', '#000000', '#FFFFFF', '#1C1917', '#0A2540', '#3B0764', '#064E3B', '#7C2D12'];
-
-function _lum(hex) {
-  let h = String(hex).replace('#', '');
-  if (h.length === 3) h = h.split('').map(c => c + c).join('');
-  const n = parseInt(h, 16);
-  return ((0.299 * ((n >> 16) & 255)) + (0.587 * ((n >> 8) & 255)) + (0.114 * (n & 255))) / 255;
-}
-
-function _loadImg(url) {
-  return new Promise(resolve => {
-    if (!url) return resolve(null);
-    const im = new Image();
-    im.crossOrigin = 'anonymous';
-    im.onload  = () => resolve(im);
-    im.onerror = () => resolve(null);
-    im.src = url + (url.includes('?') ? '&' : '?') + '_cb=1';
-  });
-}
-
-function _drawCover(ctx, img, x, y, w, h, r) {
-  ctx.save();
-  ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(x, y, w, h, r); else ctx.rect(x, y, w, h);
-  ctx.clip();
-  const ir = img.width / img.height, tr = w / h;
-  let sw, sh, sx, sy;
-  if (ir > tr) { sh = img.height; sw = sh * tr; sx = (img.width - sw) / 2; sy = 0; }
-  else         { sw = img.width;  sh = sw / tr; sx = 0; sy = (img.height - sh) / 2; }
-  ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
-  ctx.restore();
-}
-
-function _wrapLines(ctx, text, maxW, maxLines) {
-  const words = String(text || '').split(/\s+/).filter(Boolean);
-  const lines = [];
-  let cur = '';
-  for (let i = 0; i < words.length; i++) {
-    const test = cur ? cur + ' ' + words[i] : words[i];
-    if (ctx.measureText(test).width <= maxW) cur = test;
-    else { if (cur) lines.push(cur); cur = words[i]; if (lines.length === maxLines) break; }
-  }
-  if (lines.length < maxLines && cur) lines.push(cur);
-  const used = lines.join(' ').split(/\s+/).filter(Boolean).length;
-  if (lines.length === maxLines && used < words.length) {
-    let last = lines[maxLines - 1];
-    while (last && ctx.measureText(last + '…').width > maxW) last = last.replace(/\s*\S+$/, '');
-    lines[maxLines - 1] = (last || '') + '…';
-  }
-  return lines;
-}
-
 function drawCampaignStory(canvas, { titulo, descripcion, ctaTexto, showCta, showDesc, bgColor, shopName, heroImg, logoImg }) {
   const W = 1080, H = 1920;
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext('2d');
 
-  const dark  = _lum(bgColor) > 0.6;
+  const dark  = lum(bgColor) > 0.6;
   const fg    = dark ? '#111827' : '#FFFFFF';
   const muted = dark ? 'rgba(17,24,39,0.6)' : 'rgba(255,255,255,0.65)';
   const ph    = dark ? 'rgba(17,24,39,0.08)' : 'rgba(255,255,255,0.10)';
@@ -508,16 +456,16 @@ function drawCampaignStory(canvas, { titulo, descripcion, ctaTexto, showCta, sho
   // Cabecera: logo + nombre
   ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
   let tx = PAD;
-  if (logoImg) { const LS = 88; _drawCover(ctx, logoImg, PAD, 96, LS, LS, LS / 2); tx = PAD + LS + 24; }
+  if (logoImg) { const LS = 88; drawCover(ctx, logoImg, PAD, 96, LS, LS, LS / 2); tx = PAD + LS + 24; }
   ctx.fillStyle = fg;
   ctx.font = `800 38px ${STORY_FONT}`;
-  ctx.fillText(_wrapLines(ctx, shopName || '', W - tx - PAD, 1)[0] || '', tx, 142);
+  ctx.fillText(wrapLines(ctx, shopName || '', W - tx - PAD, 1)[0] || '', tx, 142);
 
   // Hero (imagen de la campaña)
   let y = 230;
   const heroH = 760, heroW = W - PAD * 2;
   if (heroImg) {
-    _drawCover(ctx, heroImg, PAD, y, heroW, heroH, 36);
+    drawCover(ctx, heroImg, PAD, y, heroW, heroH, 36);
   } else {
     ctx.fillStyle = ph;
     ctx.beginPath();
@@ -537,14 +485,14 @@ function drawCampaignStory(canvas, { titulo, descripcion, ctaTexto, showCta, sho
 
   // Título (hasta 3 líneas)
   ctx.fillStyle = fg; ctx.font = `800 66px ${STORY_FONT}`;
-  const tLines = _wrapLines(ctx, titulo || 'Título de la campaña', W - PAD * 2, 3);
+  const tLines = wrapLines(ctx, titulo || 'Título de la campaña', W - PAD * 2, 3);
   tLines.forEach(l => { ctx.fillText(l, PAD, y); y += 78; });
   y += 8;
 
   // Descripción (hasta 4 líneas)
   if (showDesc && descripcion) {
     ctx.fillStyle = muted; ctx.font = `400 36px ${STORY_FONT}`;
-    const dLines = _wrapLines(ctx, descripcion, W - PAD * 2, 4);
+    const dLines = wrapLines(ctx, descripcion, W - PAD * 2, 4);
     dLines.forEach(l => { ctx.fillText(l, PAD, y); y += 50; });
     y += 16;
   }
@@ -587,7 +535,7 @@ function CampaignStoryGenerator({ campaign, shopName, logoUrl, onClose }) {
     let alive = true;
     setLoadingImgs(true);
     (async () => {
-      const [hero, lg] = await Promise.all([_loadImg(campaign.imagen), _loadImg(logoUrl)]);
+      const [hero, lg] = await Promise.all([loadImg(campaign.imagen), loadImg(logoUrl)]);
       if (!alive) return;
       setHeroImg(hero); setLogoImg(lg); setLoadingImgs(false);
     })();
