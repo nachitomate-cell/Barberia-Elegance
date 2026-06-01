@@ -15,8 +15,17 @@ const EMPTY = {
   imagen:      '',
   ctaTexto:    'Reservar mi lugar',
   ctaUrl:      'index.html',
+  estilo:      'panel',
   activo:      false,
 };
+
+/* Estilos de banner: cómo se trata el texto para que se lea sobre la imagen */
+const ESTILOS_BANNER = [
+  { id: 'panel',     label: 'Panel oscuro',    desc: 'Texto en recuadro glass' },
+  { id: 'degradado', label: 'Degradado',       desc: 'Foto + sombra de texto' },
+  { id: 'bloque',    label: 'Bloque de color', desc: 'Imagen arriba, color abajo' },
+  { id: 'wash',      label: 'Wash de marca',   desc: 'Lavado de color sobre foto' },
+];
 
 /* ── Helpers ────────────────────────────────────────────────── */
 const DIAS = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
@@ -573,32 +582,59 @@ export default function Marketing() {
         <div className="lg:col-span-2 space-y-6">
           
           {/* Preview card */}
-          {form.imagen && (
-            <div
-              className="relative rounded-2xl overflow-hidden shadow-lg border border-slate-800"
-              style={{ minHeight: 180, backgroundImage: `url('${form.imagen}')`, backgroundSize: 'cover', backgroundPosition: 'center' }}
-            >
-              {/* Tinte suave general para unificar la imagen */}
-              <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.28)' }} />
-              <div className="relative z-10 p-4 flex flex-col justify-end" style={{ minHeight: 180 }}>
-                {/* Panel oscuro (glass) detrás del texto → legible sobre cualquier imagen */}
-                <div
-                  className="rounded-xl p-4"
-                  style={{ background: 'rgba(12,14,20,0.62)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', border: '1px solid rgba(255,255,255,0.12)' }}
-                >
-                  <p className="text-[9px] font-black uppercase tracking-widest mb-1 text-[#D4AF37] font-mono">Buzón de Anuncios — Vista Previa en Vivo</p>
-                  <p className="text-base font-black text-white leading-tight mb-1">{form.titulo || 'Título del anuncio'}</p>
-                  {form.descripcion && <p className="text-xs text-white/75 leading-snug mb-3 max-w-xl">{form.descripcion}</p>}
-                  <span
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-black shadow-md cursor-default"
-                    style={{ background: '#D4AF37' }}
-                  >
-                    {form.ctaTexto || 'Reservar mi lugar'}
-                  </span>
+          {form.imagen && (() => {
+            const estilo = form.estilo || 'panel';
+            const GOLD = '#D4AF37', GOLD_RGB = '212,175,55', ON_GOLD = '#1a1208';
+            const bgImg = { backgroundImage: `url('${form.imagen}')`, backgroundSize: 'cover', backgroundPosition: 'center' };
+
+            // Contenido reutilizable (etiqueta, título, descripción, CTA)
+            const Content = ({ titleClr, descClr, eyebrowClr, ctaBg, ctaTxt, shadow }) => (
+              <>
+                <p className="text-[9px] font-black uppercase tracking-widest mb-1 font-mono" style={{ color: eyebrowClr }}>Buzón de Anuncios — Vista Previa en Vivo</p>
+                <p className="text-base font-black leading-tight mb-1" style={{ color: titleClr, textShadow: shadow ? '0 2px 8px rgba(0,0,0,0.7)' : undefined }}>{form.titulo || 'Título del anuncio'}</p>
+                {form.descripcion && <p className="text-xs leading-snug mb-3 max-w-xl" style={{ color: descClr, textShadow: shadow ? '0 1px 4px rgba(0,0,0,0.6)' : undefined }}>{form.descripcion}</p>}
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold shadow-md cursor-default" style={{ background: ctaBg, color: ctaTxt }}>
+                  {form.ctaTexto || 'Reservar mi lugar'}
+                </span>
+              </>
+            );
+
+            if (estilo === 'bloque') return (
+              <div className="rounded-2xl overflow-hidden shadow-lg border border-slate-800 flex flex-col">
+                <div style={{ height: 92, ...bgImg }} />
+                <div style={{ background: GOLD, padding: '14px 16px' }}>
+                  <Content titleClr={ON_GOLD} descClr="rgba(26,18,8,0.8)" eyebrowClr="rgba(26,18,8,0.6)" ctaBg="#111111" ctaTxt={GOLD} />
                 </div>
               </div>
-            </div>
-          )}
+            );
+            if (estilo === 'wash') return (
+              <div className="relative rounded-2xl overflow-hidden shadow-lg border border-slate-800" style={{ minHeight: 180, ...bgImg }}>
+                <div className="absolute inset-0" style={{ background: `linear-gradient(135deg, rgba(${GOLD_RGB},0.93) 0%, rgba(${GOLD_RGB},0.80) 100%)` }} />
+                <div className="relative z-10 p-5 flex flex-col justify-end" style={{ minHeight: 180 }}>
+                  <Content titleClr={ON_GOLD} descClr="rgba(26,18,8,0.8)" eyebrowClr="rgba(26,18,8,0.65)" ctaBg="#111111" ctaTxt={GOLD} />
+                </div>
+              </div>
+            );
+            if (estilo === 'degradado') return (
+              <div className="relative rounded-2xl overflow-hidden shadow-lg border border-slate-800" style={{ minHeight: 180, ...bgImg }}>
+                <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.55) 45%, rgba(0,0,0,0.15) 100%)' }} />
+                <div className="relative z-10 p-5 flex flex-col justify-end" style={{ minHeight: 180 }}>
+                  <Content titleClr="#fff" descClr="rgba(255,255,255,0.85)" eyebrowClr={GOLD} ctaBg={GOLD} ctaTxt={ON_GOLD} shadow />
+                </div>
+              </div>
+            );
+            // panel (por defecto)
+            return (
+              <div className="relative rounded-2xl overflow-hidden shadow-lg border border-slate-800" style={{ minHeight: 180, ...bgImg }}>
+                <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.30)' }} />
+                <div className="relative z-10 p-4 flex flex-col justify-end" style={{ minHeight: 180 }}>
+                  <div className="rounded-xl p-4" style={{ background: 'rgba(12,14,20,0.62)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)', border: '1px solid rgba(255,255,255,0.12)' }}>
+                    <Content titleClr="#fff" descClr="rgba(255,255,255,0.75)" eyebrowClr={GOLD} ctaBg={GOLD} ctaTxt={ON_GOLD} />
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Form */}
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4 shadow-md">
@@ -662,8 +698,29 @@ export default function Marketing() {
                 onChange={e => setForm(f => ({ ...f, imagen: e.target.value }))}
               />
               <p className="text-[10px] text-slate-600 mt-1">
-                Usa una imagen horizontal (16:9 o 2:1). El texto va sobre un panel oscuro, así que se lee bien con cualquier imagen.
+                Usa una imagen horizontal (16:9 o 2:1). El estilo de abajo asegura que el texto se lea con cualquier imagen.
               </p>
+            </div>
+
+            <div>
+              <label className={lbl}>Estilo del banner</label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {ESTILOS_BANNER.map(s => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => setForm(f => ({ ...f, estilo: s.id }))}
+                    className={`text-left px-3 py-2 rounded-lg border transition-colors ${
+                      (form.estilo || 'panel') === s.id
+                        ? 'border-[#D4AF37] bg-[#D4AF37]/10'
+                        : 'border-slate-700 hover:border-slate-600'
+                    }`}
+                  >
+                    <span className={`block text-xs font-bold ${(form.estilo || 'panel') === s.id ? 'text-white' : 'text-slate-300'}`}>{s.label}</span>
+                    <span className="block text-[10px] text-slate-500 leading-tight mt-0.5">{s.desc}</span>
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">

@@ -5118,53 +5118,100 @@ async function cargarAnuncio() {
     const banner = document.getElementById('heroBanner');
     if (!banner) return;
 
-    // Construir el banner con imagen + overlay + contenido
-    const _isAuraBanner = (tid === 'aura');
-    if (_isAuraBanner) {
-      const bgStyle = d.imagen
-        ? `background:url('${d.imagen}') center/cover no-repeat;position:relative;overflow:hidden;`
-        : 'background:linear-gradient(145deg,#001020 0%,#001a40 45%,#002d6b 100%);position:relative;overflow:hidden;';
-      banner.style.cssText = bgStyle;
-      banner.innerHTML = `
-        ${d.imagen
-          ? `<div class="absolute inset-0" style="background:rgba(0,16,32,0.35);"></div>`
-          : `<div class="absolute inset-0 pointer-events-none" style="background-image:linear-gradient(rgba(255,255,255,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.02) 1px,transparent 1px);background-size:24px 24px;"></div>
-             <div class="absolute -top-8 right-0 w-40 h-40 rounded-full pointer-events-none" style="background:radial-gradient(circle,rgba(96,165,250,0.18) 0%,transparent 60%);"></div>`
-        }
-        <div class="relative z-10 px-4 py-4 flex flex-col justify-end" style="min-height:155px;">
-          <div style="background:rgba(8,12,22,0.62);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,0.14);border-radius:16px;padding:14px 16px;">
-            <div class="flex items-center gap-1.5" style="margin-bottom:8px;">
-              <i class="ph-fill ph-megaphone" style="font-size:12px;color:rgba(147,197,253,0.9);"></i>
-              <span style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.18em;color:rgba(255,255,255,0.6);">Anuncio</span>
-              ${d.descripcion ? `<span style="margin-left:auto;font-size:10px;font-weight:700;color:#fff;background:rgba(255,255,255,0.14);border:1px solid rgba(255,255,255,0.2);padding:3px 10px;border-radius:100px;">${d.descripcion}</span>` : ''}
+    // Construir el banner con imagen + estilo seleccionable + contenido
+    const isAura  = (tid === 'aura');
+    const estilo  = d.estilo || 'panel';
+    const titulo  = d.titulo || '';
+    const desc    = d.descripcion || '';
+    const cta     = d.ctaTexto || 'Reservar mi lugar';
+    const ctaUrl  = d.ctaUrl || 'index.html';
+
+    if (!d.imagen) {
+      // ── Sin imagen: render por defecto de cada local ──
+      if (isAura) {
+        banner.style.cssText = 'background:linear-gradient(145deg,#001020 0%,#001a40 45%,#002d6b 100%);position:relative;overflow:hidden;';
+        banner.innerHTML = `
+          <div class="absolute inset-0 pointer-events-none" style="background-image:linear-gradient(rgba(255,255,255,0.02) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.02) 1px,transparent 1px);background-size:24px 24px;"></div>
+          <div class="absolute -top-8 right-0 w-40 h-40 rounded-full pointer-events-none" style="background:radial-gradient(circle,rgba(96,165,250,0.18) 0%,transparent 60%);"></div>
+          <div class="relative z-10 px-5 py-5 flex flex-col justify-between" style="min-height:155px;">
+            <div class="flex items-center gap-1.5">
+              <i class="ph-fill ph-megaphone" style="font-size:12px;color:rgba(147,197,253,0.75);"></i>
+              <span style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.18em;color:rgba(255,255,255,0.45);">Anuncio</span>
+              ${desc ? `<span style="margin-left:auto;font-size:10px;font-weight:700;color:rgba(255,255,255,0.85);background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.18);padding:3px 10px;border-radius:100px;">${desc}</span>` : ''}
             </div>
-            <h3 class="text-white font-black leading-snug" style="font-size:1.12rem;margin-bottom:12px;text-shadow:0 1px 6px rgba(0,0,0,0.45);">${d.titulo || ''}</h3>
-            <a href="${d.ctaUrl || 'index.html'}"
-              class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold active:scale-95 transition-all"
-              style="background:#FFFFFF;color:#001a40;">
-              ${d.ctaTexto || 'Reservar mi lugar'}
-              <i class="ph-bold ph-arrow-right" style="font-size:14px;"></i>
-            </a>
-          </div>
-        </div>`;
-    } else {
-      const imgStyle = d.imagen ? `background-image:url('${d.imagen}');background-size:cover;background-position:center;` : 'background:#1a1208;';
-      banner.style.cssText = `min-height:170px;${imgStyle}`;
-      banner.innerHTML = `
-        <div class="absolute inset-0" style="background:rgba(0,0,0,0.30);"></div>
-        <div class="relative z-10 p-4 flex flex-col justify-end" style="min-height:170px;">
-          <div style="background:rgba(12,12,14,0.62);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,0.12);border-radius:14px;padding:14px 16px;">
+            <div>
+              <h3 class="text-white font-black leading-snug" style="font-size:1.15rem;margin-bottom:14px;">${titulo}</h3>
+              <a href="${ctaUrl}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold active:scale-95 transition-all" style="background:#FFFFFF;color:#001a40;">${cta} <i class="ph-bold ph-arrow-right" style="font-size:14px;"></i></a>
+            </div>
+          </div>`;
+      } else {
+        banner.style.cssText = 'min-height:170px;background:#1a1208;position:relative;overflow:hidden;';
+        banner.innerHTML = `
+          <div class="relative z-10 p-5 flex flex-col justify-end" style="min-height:170px;">
             <p class="text-[9px] font-black uppercase tracking-widest mb-1" style="color:var(--gold);">Anuncio</p>
-            <h3 class="text-lg font-black text-white leading-tight mb-1" style="text-shadow:0 1px 6px rgba(0,0,0,0.45);">${d.titulo || ''}</h3>
-            ${d.descripcion ? `<p class="text-xs text-white/70 leading-snug mb-3">${d.descripcion}</p>` : '<div class="mb-3"></div>'}
-            <a href="${d.ctaUrl || 'index.html'}"
-              class="self-start inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-black active:scale-95 transition-all"
-              style="background:var(--gold);">
-              ${d.ctaTexto || 'Reservar mi lugar'}
-              <i class="ph-bold ph-arrow-right text-sm"></i>
-            </a>
-          </div>
-        </div>`;
+            <h3 class="text-lg font-black text-white leading-tight mb-1">${titulo}</h3>
+            ${desc ? `<p class="text-xs text-white/65 leading-snug mb-3">${desc}</p>` : '<div class="mb-3"></div>'}
+            <a href="${ctaUrl}" class="self-start inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold text-black active:scale-95 transition-all" style="background:var(--gold);">${cta} <i class="ph-bold ph-arrow-right text-sm"></i></a>
+          </div>`;
+      }
+    } else {
+      // ── Con imagen: estilo elegido en el panel (panel / degradado / bloque / wash) ──
+      const _hexToRgb = (h) => { h = String(h).replace('#',''); if (h.length === 3) h = h.split('').map(c => c+c).join(''); const n = parseInt(h, 16); return `${(n>>16)&255},${(n>>8)&255},${n&255}`; };
+      const _textOn   = (h) => { const [r,g,b] = _hexToRgb(h).split(',').map(Number); return (0.299*r + 0.587*g + 0.114*b)/255 > 0.62 ? '#1a1208' : '#ffffff'; };
+
+      const goldVar = (getComputedStyle(document.documentElement).getPropertyValue('--gold') || '').trim() || '#D4AF37';
+      const accent  = isAura ? '#0a2540' : goldVar;
+      const accRGB  = _hexToRgb(accent);
+      const onAcc   = isAura ? '#ffffff' : _textOn(goldVar);
+
+      let titleClr, descClr, eyebrowClr, ctaBg, ctaTxt, shadow = false;
+      if (estilo === 'wash' || estilo === 'bloque') {
+        titleClr   = onAcc;
+        descClr    = onAcc === '#ffffff' ? 'rgba(255,255,255,0.82)' : 'rgba(20,16,8,0.78)';
+        eyebrowClr = onAcc === '#ffffff' ? 'rgba(255,255,255,0.7)'  : 'rgba(20,16,8,0.6)';
+        ctaBg      = isAura ? '#ffffff' : (onAcc === '#ffffff' ? '#ffffff' : '#111111');
+        ctaTxt     = isAura ? '#001a40' : (onAcc === '#ffffff' ? accent : goldVar);
+      } else { // panel, degradado → texto sobre superficie oscura
+        titleClr   = '#ffffff';
+        descClr    = 'rgba(255,255,255,0.8)';
+        eyebrowClr = isAura ? 'rgba(147,197,253,0.9)' : goldVar;
+        ctaBg      = isAura ? '#ffffff' : goldVar;
+        ctaTxt     = isAura ? '#001a40' : _textOn(goldVar);
+        shadow     = (estilo === 'degradado');
+      }
+
+      const inner = `
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+          <i class="ph-fill ph-megaphone" style="font-size:12px;color:${eyebrowClr};"></i>
+          <span style="font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:0.16em;color:${eyebrowClr};">Anuncio</span>
+          ${desc ? `<span style="margin-left:auto;font-size:10px;font-weight:700;color:${titleClr};background:rgba(127,127,127,0.18);border:1px solid rgba(127,127,127,0.30);padding:3px 10px;border-radius:100px;">${desc}</span>` : ''}
+        </div>
+        <h3 class="font-black leading-snug" style="font-size:1.12rem;margin-bottom:12px;color:${titleClr};${shadow ? 'text-shadow:0 2px 8px rgba(0,0,0,0.7);' : ''}">${titulo}</h3>
+        <a href="${ctaUrl}" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold active:scale-95 transition-all" style="background:${ctaBg};color:${ctaTxt};">${cta} <i class="ph-bold ph-arrow-right" style="font-size:14px;"></i></a>`;
+
+      if (estilo === 'bloque') {
+        banner.style.cssText = `position:relative;overflow:hidden;min-height:200px;background:${accent};`;
+        banner.innerHTML = `
+          <div style="height:96px;background:url('${d.imagen}') center/cover no-repeat;"></div>
+          <div style="padding:14px 16px;background:${accent};">${inner}</div>`;
+      } else if (estilo === 'wash') {
+        banner.style.cssText = `position:relative;overflow:hidden;min-height:170px;background:url('${d.imagen}') center/cover no-repeat;`;
+        banner.innerHTML = `
+          <div class="absolute inset-0" style="background:linear-gradient(135deg, rgba(${accRGB},0.93) 0%, rgba(${accRGB},0.80) 100%);"></div>
+          <div class="relative z-10" style="padding:18px;display:flex;flex-direction:column;justify-content:flex-end;min-height:170px;">${inner}</div>`;
+      } else if (estilo === 'degradado') {
+        banner.style.cssText = `position:relative;overflow:hidden;min-height:170px;background:url('${d.imagen}') center/cover no-repeat;`;
+        banner.innerHTML = `
+          <div class="absolute inset-0" style="background:linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.55) 45%, rgba(0,0,0,0.15) 100%);"></div>
+          <div class="relative z-10" style="padding:18px;display:flex;flex-direction:column;justify-content:flex-end;min-height:170px;">${inner}</div>`;
+      } else { // panel
+        banner.style.cssText = `position:relative;overflow:hidden;min-height:170px;background:url('${d.imagen}') center/cover no-repeat;`;
+        banner.innerHTML = `
+          <div class="absolute inset-0" style="background:rgba(0,0,0,0.30);"></div>
+          <div class="relative z-10" style="padding:16px;display:flex;flex-direction:column;justify-content:flex-end;min-height:170px;">
+            <div style="background:rgba(10,12,20,0.62);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:1px solid rgba(255,255,255,0.14);border-radius:16px;padding:14px 16px;">${inner}</div>
+          </div>`;
+      }
     }
     banner.classList.remove('hidden');
 
