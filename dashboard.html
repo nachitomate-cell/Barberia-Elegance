@@ -3095,6 +3095,19 @@
       box-shadow: 0 2px 12px rgba(216, 180, 254, 0.15);
     }
 
+    /* Beneficios por rango (Mi Perfil) */
+    .tier-row { transition: border-color .25s, box-shadow .25s; }
+    .tier-row.is-current {
+      border-color: var(--gold) !important;
+      box-shadow: 0 0 0 1px var(--gold), 0 6px 18px rgba(0,0,0,0.18);
+    }
+    .tenant-aura #profileBenefits .tier-row { background: #FFFFFF !important; border-color: #E4E4E7 !important; }
+    .tenant-aura .tier-badge.silver {
+      color: #475569 !important;
+      border-color: rgba(71,85,105,0.25) !important;
+      background: linear-gradient(135deg, rgba(71,85,105,0.10) 0%, rgba(71,85,105,0.02) 100%) !important;
+    }
+
     /* =============================================================== */
     /*   INFINITY DASHBOARD OUT-OF-PLACE DARK ELEMENT & GOLD OVERRIDES   */
     /* =============================================================== */
@@ -3822,6 +3835,59 @@
           </div>
           <!-- Tier Progression message -->
           <div id="profileTierProgress" class="mt-2.5 px-1 text-[11px] text-zinc-400 font-medium"></div>
+        </div>
+      </div>
+
+      <!-- ── Beneficios por rango ── -->
+      <div id="profileBenefits" class="mb-6">
+        <h3 class="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-3 px-1">Beneficios del Club</h3>
+        <div class="space-y-2.5">
+
+          <div class="tier-row rounded-2xl border border-white/8 bg-white/5 p-4" data-tier="silver">
+            <div class="flex items-center justify-between mb-2.5">
+              <div class="flex items-center gap-2">
+                <span class="tier-badge silver">Silver</span>
+                <span class="text-[10px] text-white/40 font-bold uppercase tracking-wider">Toda visita</span>
+              </div>
+              <span class="tier-current-label hidden text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full" style="background:var(--gold-glow);color:var(--gold);">Tu rango</span>
+            </div>
+            <ul class="space-y-1.5">
+              <li class="flex items-center gap-2 text-[12.5px] text-white/70"><i class="ph-fill ph-seal-check text-[14px] shrink-0" style="color:var(--gold);"></i>Acumulás sellos en cada corte</li>
+              <li class="flex items-center gap-2 text-[12.5px] text-white/70"><i class="ph-fill ph-seal-check text-[14px] shrink-0" style="color:var(--gold);"></i>Canjeás premios del Club</li>
+              <li class="flex items-center gap-2 text-[12.5px] text-white/70"><i class="ph-fill ph-seal-check text-[14px] shrink-0" style="color:var(--gold);"></i>Recordatorios de tu próxima hora</li>
+            </ul>
+          </div>
+
+          <div class="tier-row rounded-2xl border border-white/8 bg-white/5 p-4" data-tier="gold">
+            <div class="flex items-center justify-between mb-2.5">
+              <div class="flex items-center gap-2">
+                <span class="tier-badge gold">Gold</span>
+                <span class="text-[10px] text-white/40 font-bold uppercase tracking-wider">Desde 10 visitas</span>
+              </div>
+              <span class="tier-current-label hidden text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full" style="background:var(--gold-glow);color:var(--gold);">Tu rango</span>
+            </div>
+            <ul class="space-y-1.5">
+              <li class="flex items-center gap-2 text-[12.5px] text-white/70"><i class="ph-fill ph-star text-[14px] shrink-0" style="color:var(--gold);"></i>Todos los beneficios Silver</li>
+              <li class="flex items-center gap-2 text-[12.5px] text-white/70"><i class="ph-fill ph-star text-[14px] shrink-0" style="color:var(--gold);"></i>10% de descuento en servicios</li>
+              <li class="flex items-center gap-2 text-[12.5px] text-white/70"><i class="ph-fill ph-star text-[14px] shrink-0" style="color:var(--gold);"></i>Sorpresa de cumpleaños 🎁</li>
+            </ul>
+          </div>
+
+          <div class="tier-row rounded-2xl border border-white/8 bg-white/5 p-4" data-tier="platinum">
+            <div class="flex items-center justify-between mb-2.5">
+              <div class="flex items-center gap-2">
+                <span class="tier-badge platinum">Platinum</span>
+                <span class="text-[10px] text-white/40 font-bold uppercase tracking-wider">Desde 25 visitas</span>
+              </div>
+              <span class="tier-current-label hidden text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full" style="background:var(--gold-glow);color:var(--gold);">Tu rango</span>
+            </div>
+            <ul class="space-y-1.5">
+              <li class="flex items-center gap-2 text-[12.5px] text-white/70"><i class="ph-fill ph-crown text-[14px] shrink-0" style="color:var(--gold);"></i>Todos los beneficios Gold</li>
+              <li class="flex items-center gap-2 text-[12.5px] text-white/70"><i class="ph-fill ph-crown text-[14px] shrink-0" style="color:var(--gold);"></i>15% de descuento en servicios</li>
+              <li class="flex items-center gap-2 text-[12.5px] text-white/70"><i class="ph-fill ph-crown text-[14px] shrink-0" style="color:var(--gold);"></i>Reserva con prioridad</li>
+            </ul>
+          </div>
+
         </div>
       </div>
 
@@ -4934,6 +5000,14 @@ function renderStamps(count, historicos) {
   if (profileVisitsEl) profileVisitsEl.textContent = historicos;
   const profileStampsEl = document.getElementById('profileStamps');
   if (profileStampsEl) profileStampsEl.textContent = count;
+
+  // Beneficios por rango — destacar el rango actual del cliente
+  document.querySelectorAll('#profileBenefits .tier-row').forEach(row => {
+    const isCurrent = row.dataset.tier === tierLabel.toLowerCase();
+    row.classList.toggle('is-current', isCurrent);
+    const lbl = row.querySelector('.tier-current-label');
+    if (lbl) lbl.classList.toggle('hidden', !isCurrent);
+  });
 
   // Dynamic Tier Progression message
   const profileTierProgressEl = document.getElementById('profileTierProgress');
