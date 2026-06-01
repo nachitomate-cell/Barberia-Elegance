@@ -228,7 +228,32 @@ function _ellipsize(ctx, text, maxW) {
   return t + '…';
 }
 
-function drawStory(canvas, { productos, showPrice, showStock, bgColor, shopName }) {
+function _drawCover(ctx, img, x, y, w, h, r) {
+  ctx.save();
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(x, y, w, h, r); else ctx.rect(x, y, w, h);
+  ctx.clip();
+  const ir = img.width / img.height, tr = w / h;
+  let sw, sh, sx, sy;
+  if (ir > tr) { sh = img.height; sw = sh * tr; sx = (img.width - sw) / 2; sy = 0; }
+  else         { sw = img.width;  sh = sw / tr; sx = 0; sy = (img.height - sh) / 2; }
+  ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
+  ctx.restore();
+}
+
+// Carga una imagen con CORS anónimo. Resuelve a la imagen o null (si falla).
+function _loadImg(url) {
+  return new Promise(resolve => {
+    if (!url) return resolve(null);
+    const im = new Image();
+    im.crossOrigin = 'anonymous';
+    im.onload  = () => resolve(im);
+    im.onerror = () => resolve(null);
+    im.src = url + (url.includes('?') ? '&' : '?') + '_cb=1';
+  });
+}
+
+function drawStory(canvas, { productos, showPrice, showStock, showPhotos, bgColor, shopName, imgs = {}, logoImg = null }) {
   const W = 1080, H = 1920;
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext('2d');
@@ -237,6 +262,7 @@ function drawStory(canvas, { productos, showPrice, showStock, bgColor, shopName 
   const fg     = dark ? '#111827' : '#FFFFFF';
   const muted  = dark ? 'rgba(17,24,39,0.55)' : 'rgba(255,255,255,0.62)';
   const line   = dark ? 'rgba(17,24,39,0.12)' : 'rgba(255,255,255,0.14)';
+  const ph     = dark ? 'rgba(17,24,39,0.08)' : 'rgba(255,255,255,0.10)';
   const okClr  = dark ? '#047857' : '#34D399';
   const offClr = dark ? '#B91C1C' : '#FB7185';
   const PAD = 90;
@@ -245,34 +271,64 @@ function drawStory(canvas, { productos, showPrice, showStock, bgColor, shopName 
   ctx.fillStyle = bgColor;
   ctx.fillRect(0, 0, W, H);
 
-  // Cabecera
+  // Cabecera (con logo si está disponible)
   ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  let tx = PAD;
+  if (logoImg) {
+    const LS = 120;
+    _drawCover(ctx, logoImg, PAD, 92, LS, LS, LS / 2);
+    tx = PAD + LS + 30;
+  }
   ctx.fillStyle = muted;
   ctx.font = `700 30px ${FONT}`;
-  ctx.fillText('CATÁLOGO', PAD, 160);
+  ctx.fillText('CATÁLOGO', tx, 142);
 
   ctx.fillStyle = fg;
-  ctx.font = `800 64px ${FONT}`;
-  ctx.fillText(_ellipsize(ctx, shopName || '', W - PAD * 2), PAD, 240);
+  ctx.font = `800 60px ${FONT}`;
+  ctx.fillText(_ellipsize(ctx, shopName || '', W - tx - PAD), tx, 208);
 
   ctx.fillStyle = muted;
-  ctx.font = `400 34px ${FONT}`;
-  ctx.fillText('Productos disponibles', PAD, 298);
+  ctx.font = `400 32px ${FONT}`;
+  ctx.fillText('Productos disponibles', tx, 256);
 
   ctx.strokeStyle = line; ctx.lineWidth = 2;
-  ctx.beginPath(); ctx.moveTo(PAD, 350); ctx.lineTo(W - PAD, 350); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(PAD, 320); ctx.lineTo(W - PAD, 320); ctx.stroke();
 
   // Filas de productos
-  const top = 410, bottom = H - 210;
+  const top = 380, bottom = H - 210;
   const n = Math.max(productos.length, 1);
-  const rowH = Math.min(150, (bottom - top) / n);
-  const fs   = Math.min(46, Math.max(26, rowH * 0.32));
+  const rowH = Math.min(160, (bottom - top) / n);
+  const fs   = Math.min(46, Math.max(26, rowH * 0.30));
+  const thumb = showPhotos ? Math.min(rowH * 0.74, 118) : 0;
 
   productos.forEach((p, i) => {
-    const y = top + i * rowH + rowH / 2;
+    const rowTop = top + i * rowH;
+    const y = rowTop + rowH / 2;
     ctx.textBaseline = 'middle';
 
-    // Lado derecho: precio / stock (se dibuja primero para saber el ancho ocupado)
+    // Miniatura (izquierda)
+    let nameX = PAD;
+    if (showPhotos) {
+      const ty = y - thumb / 2;
+      const im = imgs[p.imagen];
+      if (im) {
+        _drawCover(ctx, im, PAD, ty, thumb, thumb, 22);
+      } else {
+        // Placeholder con la inicial del producto
+        ctx.fillStyle = ph;
+        ctx.beginPath();
+        if (ctx.roundRect) ctx.roundRect(PAD, ty, thumb, thumb, 22); else ctx.rect(PAD, ty, thumb, thumb);
+        ctx.fill();
+        ctx.fillStyle = muted;
+        ctx.font = `800 ${Math.round(thumb * 0.42)}px ${FONT}`;
+        ctx.textAlign = 'center';
+        ctx.fillText((p.nombre || '?').charAt(0).toUpperCase(), PAD + thumb / 2, y);
+        ctx.textAlign = 'left';
+      }
+      nameX = PAD + thumb + 30;
+    }
+
+    // Lado derecho: precio / stock (primero, para conocer el ancho ocupado)
     let rightX = W - PAD;
     if (showStock) {
       const s = Number(p.stock) || 0;
@@ -292,16 +348,16 @@ function drawStory(canvas, { productos, showPrice, showStock, bgColor, shopName 
       rightX -= ctx.measureText(ptxt).width + 40;
     }
 
-    // Nombre (izquierda), recortado para no chocar con el precio
+    // Nombre (recortado para no chocar con el precio)
     ctx.textAlign = 'left';
     ctx.fillStyle = fg;
     ctx.font = `700 ${Math.round(fs)}px ${FONT}`;
-    const nameMaxW = Math.max(120, rightX - PAD - 24);
-    ctx.fillText(_ellipsize(ctx, p.nombre || 'Producto', nameMaxW), PAD, y);
+    const nameMaxW = Math.max(120, rightX - nameX - 24);
+    ctx.fillText(_ellipsize(ctx, p.nombre || 'Producto', nameMaxW), nameX, y);
 
     // Separador de fila
     ctx.strokeStyle = line; ctx.lineWidth = 1;
-    ctx.beginPath(); ctx.moveTo(PAD, top + (i + 1) * rowH); ctx.lineTo(W - PAD, top + (i + 1) * rowH); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(PAD, rowTop + rowH); ctx.lineTo(W - PAD, rowTop + rowH); ctx.stroke();
   });
 
   // Pie: marca abajo a la derecha
@@ -312,27 +368,60 @@ function drawStory(canvas, { productos, showPrice, showStock, bgColor, shopName 
   ctx.textAlign = 'left';
 }
 
-function StoryGenerator({ productos, shopName, onClose }) {
+function StoryGenerator({ productos, shopName, logoUrl, onClose }) {
   const canvasRef = useRef(null);
-  const [showPrice, setShowPrice] = useState(true);
-  const [showStock, setShowStock] = useState(false);
-  const [bgColor,   setBgColor]   = useState('#0F172A');
+  const [showPrice,  setShowPrice]  = useState(true);
+  const [showStock,  setShowStock]  = useState(false);
+  const [showPhotos, setShowPhotos] = useState(true);
+  const [bgColor,    setBgColor]    = useState('#0F172A');
+  const [imgs,       setImgs]       = useState({});      // url → HTMLImageElement
+  const [logoImg,    setLogoImg]    = useState(null);
+  const [loadingImgs, setLoadingImgs] = useState(true);
 
   const disponibles = productos.filter(p => p.activo !== false);
 
+  // Precarga de imágenes (fotos de productos + logo) con CORS anónimo
+  useEffect(() => {
+    let alive = true;
+    setLoadingImgs(true);
+    (async () => {
+      const urls = [...new Set(disponibles.map(p => p.imagen).filter(Boolean))];
+      const pairs = await Promise.all(urls.map(async u => [u, await _loadImg(u)]));
+      const lg = await _loadImg(logoUrl);
+      if (!alive) return;
+      const map = {};
+      pairs.forEach(([u, im]) => { if (im) map[u] = im; });
+      setImgs(map);
+      setLogoImg(lg);
+      setLoadingImgs(false);
+    })();
+    return () => { alive = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [productos, logoUrl]);
+
+  // Redibujar al cambiar opciones o cuando terminan de cargar las imágenes
   useEffect(() => {
     if (canvasRef.current) {
-      drawStory(canvasRef.current, { productos: disponibles, showPrice, showStock, bgColor, shopName });
+      drawStory(canvasRef.current, { productos: disponibles, showPrice, showStock, showPhotos, bgColor, shopName, imgs, logoImg });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showPrice, showStock, bgColor, productos]);
+  }, [showPrice, showStock, showPhotos, bgColor, productos, imgs, logoImg]);
 
   const descargar = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    let url;
+    try {
+      url = canvas.toDataURL('image/png');
+    } catch {
+      // Canvas contaminado (sin CORS) → reintentar sin fotos/logo
+      drawStory(canvas, { productos: disponibles, showPrice, showStock, showPhotos: false, bgColor, shopName, imgs: {}, logoImg: null });
+      try { url = canvas.toDataURL('image/png'); }
+      catch { alert('No se pudo exportar la imagen. Revisa la configuración de CORS del Storage.'); return; }
+    }
     const link = document.createElement('a');
     link.download = `historia-productos-${new Date().toISOString().slice(0, 10)}.png`;
-    link.href = canvas.toDataURL('image/png');
+    link.href = url;
     link.click();
   };
 
@@ -371,7 +460,16 @@ function StoryGenerator({ productos, shopName, onClose }) {
                   <span className="text-sm text-white flex items-center gap-2"><Package size={14} className="text-emerald-400" /> Stock</span>
                   <input type="checkbox" checked={showStock} onChange={e => setShowStock(e.target.checked)} className="w-4 h-4 accent-emerald-500" />
                 </label>
+                <label className="flex items-center justify-between gap-3 px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-lg cursor-pointer">
+                  <span className="text-sm text-white flex items-center gap-2"><ImageOff size={14} className="text-emerald-400" /> Fotos de productos</span>
+                  <input type="checkbox" checked={showPhotos} onChange={e => setShowPhotos(e.target.checked)} className="w-4 h-4 accent-emerald-500" />
+                </label>
               </div>
+              {showPhotos && loadingImgs && (
+                <p className="text-[11px] text-slate-500 mt-2 flex items-center gap-1.5">
+                  <span className="w-3 h-3 border-2 border-slate-600 border-t-emerald-400 rounded-full animate-spin" /> Cargando imágenes…
+                </p>
+              )}
             </div>
 
             <div>
@@ -1051,6 +1149,7 @@ export default function Productos() {
         <StoryGenerator
           productos={productos}
           shopName={tenant.name || 'Productos'}
+          logoUrl={tenant.logo || ''}
           onClose={() => setStoryOpen(false)}
         />
       )}
