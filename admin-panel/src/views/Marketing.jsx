@@ -2,11 +2,12 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Megaphone, Image, Type, AlignLeft, Link2,
   ToggleLeft, ToggleRight, Save, Sparkles, Send,
-  Cpu, Plus, RefreshCw
+  Cpu, Plus, RefreshCw, Share2, Download, X
 } from 'lucide-react';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 import { getDoc, getDocs, setDoc, serverTimestamp, query, where } from 'firebase/firestore';
 import { tenantDoc, tenantCol } from '../lib/tenantUtils';
+import { useTenant } from '../contexts/TenantContext';
 
 /* ── Banner form default ────────────────────────────────────── */
 const EMPTY = {
@@ -434,9 +435,258 @@ function RecomendadorBannersIA({ stats, statsLoading, onApply }) {
 }
 
 /* ── Marketing (componente principal) ───────────────────────── */
+/* ── Generador de imagen para Historia de Instagram (campaña) ───── */
+const STORY_FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+const STORY_BG_PRESETS = ['#0F172A', '#000000', '#FFFFFF', '#1C1917', '#0A2540', '#3B0764', '#064E3B', '#7C2D12'];
+
+function _lum(hex) {
+  let h = String(hex).replace('#', '');
+  if (h.length === 3) h = h.split('').map(c => c + c).join('');
+  const n = parseInt(h, 16);
+  return ((0.299 * ((n >> 16) & 255)) + (0.587 * ((n >> 8) & 255)) + (0.114 * (n & 255))) / 255;
+}
+
+function _loadImg(url) {
+  return new Promise(resolve => {
+    if (!url) return resolve(null);
+    const im = new Image();
+    im.crossOrigin = 'anonymous';
+    im.onload  = () => resolve(im);
+    im.onerror = () => resolve(null);
+    im.src = url + (url.includes('?') ? '&' : '?') + '_cb=1';
+  });
+}
+
+function _drawCover(ctx, img, x, y, w, h, r) {
+  ctx.save();
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(x, y, w, h, r); else ctx.rect(x, y, w, h);
+  ctx.clip();
+  const ir = img.width / img.height, tr = w / h;
+  let sw, sh, sx, sy;
+  if (ir > tr) { sh = img.height; sw = sh * tr; sx = (img.width - sw) / 2; sy = 0; }
+  else         { sw = img.width;  sh = sw / tr; sx = 0; sy = (img.height - sh) / 2; }
+  ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
+  ctx.restore();
+}
+
+function _wrapLines(ctx, text, maxW, maxLines) {
+  const words = String(text || '').split(/\s+/).filter(Boolean);
+  const lines = [];
+  let cur = '';
+  for (let i = 0; i < words.length; i++) {
+    const test = cur ? cur + ' ' + words[i] : words[i];
+    if (ctx.measureText(test).width <= maxW) cur = test;
+    else { if (cur) lines.push(cur); cur = words[i]; if (lines.length === maxLines) break; }
+  }
+  if (lines.length < maxLines && cur) lines.push(cur);
+  const used = lines.join(' ').split(/\s+/).filter(Boolean).length;
+  if (lines.length === maxLines && used < words.length) {
+    let last = lines[maxLines - 1];
+    while (last && ctx.measureText(last + '…').width > maxW) last = last.replace(/\s*\S+$/, '');
+    lines[maxLines - 1] = (last || '') + '…';
+  }
+  return lines;
+}
+
+function drawCampaignStory(canvas, { titulo, descripcion, ctaTexto, showCta, showDesc, bgColor, shopName, heroImg, logoImg }) {
+  const W = 1080, H = 1920;
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  const dark  = _lum(bgColor) > 0.6;
+  const fg    = dark ? '#111827' : '#FFFFFF';
+  const muted = dark ? 'rgba(17,24,39,0.6)' : 'rgba(255,255,255,0.65)';
+  const ph    = dark ? 'rgba(17,24,39,0.08)' : 'rgba(255,255,255,0.10)';
+  const ctaBg = dark ? '#111827' : '#FFFFFF';
+  const ctaTx = dark ? '#FFFFFF' : '#111827';
+  const PAD = 90;
+
+  ctx.fillStyle = bgColor;
+  ctx.fillRect(0, 0, W, H);
+
+  // Cabecera: logo + nombre
+  ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  let tx = PAD;
+  if (logoImg) { const LS = 88; _drawCover(ctx, logoImg, PAD, 96, LS, LS, LS / 2); tx = PAD + LS + 24; }
+  ctx.fillStyle = fg;
+  ctx.font = `800 38px ${STORY_FONT}`;
+  ctx.fillText(_wrapLines(ctx, shopName || '', W - tx - PAD, 1)[0] || '', tx, 142);
+
+  // Hero (imagen de la campaña)
+  let y = 230;
+  const heroH = 760, heroW = W - PAD * 2;
+  if (heroImg) {
+    _drawCover(ctx, heroImg, PAD, y, heroW, heroH, 36);
+  } else {
+    ctx.fillStyle = ph;
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(PAD, y, heroW, heroH, 36); else ctx.rect(PAD, y, heroW, heroH);
+    ctx.fill();
+    ctx.fillStyle = muted; ctx.textAlign = 'center'; ctx.font = `700 36px ${STORY_FONT}`;
+    ctx.fillText('Sin imagen', W / 2, y + heroH / 2);
+    ctx.textAlign = 'left';
+  }
+  y += heroH + 70;
+
+  // Eyebrow
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = muted; ctx.font = `800 28px ${STORY_FONT}`;
+  ctx.fillText('PROMOCIÓN', PAD, y);
+  y += 56;
+
+  // Título (hasta 3 líneas)
+  ctx.fillStyle = fg; ctx.font = `800 66px ${STORY_FONT}`;
+  const tLines = _wrapLines(ctx, titulo || 'Título de la campaña', W - PAD * 2, 3);
+  tLines.forEach(l => { ctx.fillText(l, PAD, y); y += 78; });
+  y += 8;
+
+  // Descripción (hasta 4 líneas)
+  if (showDesc && descripcion) {
+    ctx.fillStyle = muted; ctx.font = `400 36px ${STORY_FONT}`;
+    const dLines = _wrapLines(ctx, descripcion, W - PAD * 2, 4);
+    dLines.forEach(l => { ctx.fillText(l, PAD, y); y += 50; });
+    y += 16;
+  }
+
+  // CTA pill
+  if (showCta && (ctaTexto || '').trim()) {
+    const label = ctaTexto.trim();
+    ctx.font = `800 38px ${STORY_FONT}`;
+    const tw = ctx.measureText(label).width;
+    const padX = 44, pillH = 92, pillW = Math.min(W - PAD * 2, tw + padX * 2 + 50);
+    ctx.fillStyle = ctaBg;
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(PAD, y, pillW, pillH, pillH / 2); else ctx.rect(PAD, y, pillW, pillH);
+    ctx.fill();
+    ctx.fillStyle = ctaTx; ctx.textBaseline = 'middle';
+    ctx.fillText(label, PAD + padX, y + pillH / 2);
+    // flecha
+    ctx.font = `800 40px ${STORY_FONT}`;
+    ctx.fillText('→', PAD + padX + tw + 18, y + pillH / 2);
+    ctx.textBaseline = 'alphabetic';
+  }
+
+  // Pie: marca abajo a la derecha
+  ctx.textAlign = 'right';
+  ctx.fillStyle = muted; ctx.font = `700 30px ${STORY_FONT}`;
+  ctx.fillText('SynapTech Spa', W - PAD, H - 90);
+  ctx.textAlign = 'left';
+}
+
+function CampaignStoryGenerator({ campaign, shopName, logoUrl, onClose }) {
+  const canvasRef = useRef(null);
+  const [showCta,  setShowCta]  = useState(true);
+  const [showDesc, setShowDesc] = useState(true);
+  const [bgColor,  setBgColor]  = useState('#0F172A');
+  const [heroImg,  setHeroImg]  = useState(null);
+  const [logoImg,  setLogoImg]  = useState(null);
+  const [loadingImgs, setLoadingImgs] = useState(true);
+
+  useEffect(() => {
+    let alive = true;
+    setLoadingImgs(true);
+    (async () => {
+      const [hero, lg] = await Promise.all([_loadImg(campaign.imagen), _loadImg(logoUrl)]);
+      if (!alive) return;
+      setHeroImg(hero); setLogoImg(lg); setLoadingImgs(false);
+    })();
+    return () => { alive = false; };
+  }, [campaign.imagen, logoUrl]);
+
+  useEffect(() => {
+    if (canvasRef.current) {
+      drawCampaignStory(canvasRef.current, {
+        titulo: campaign.titulo, descripcion: campaign.descripcion, ctaTexto: campaign.ctaTexto,
+        showCta, showDesc, bgColor, shopName, heroImg, logoImg,
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showCta, showDesc, bgColor, campaign, heroImg, logoImg]);
+
+  const descargar = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    let url;
+    try { url = canvas.toDataURL('image/png'); }
+    catch {
+      drawCampaignStory(canvas, { titulo: campaign.titulo, descripcion: campaign.descripcion, ctaTexto: campaign.ctaTexto, showCta, showDesc, bgColor, shopName, heroImg: null, logoImg: null });
+      try { url = canvas.toDataURL('image/png'); } catch { alert('No se pudo exportar la imagen.'); return; }
+    }
+    const link = document.createElement('a');
+    link.download = `historia-campana-${new Date().toISOString().slice(0, 10)}.png`;
+    link.href = url; link.click();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4" onClick={onClose}>
+      <div className="relative w-full max-w-3xl max-h-[92vh] overflow-y-auto no-scrollbar rounded-2xl border border-slate-800 bg-slate-900 shadow-2xl" onClick={e => e.stopPropagation()}>
+        <button onClick={onClose} className="absolute top-3 right-3 z-10 w-8 h-8 flex items-center justify-center text-slate-400 hover:text-white bg-slate-800 border border-slate-700 rounded-lg transition-colors">
+          <X size={16} />
+        </button>
+
+        <div className="p-5 border-b border-slate-800">
+          <h3 className="text-lg font-bold text-white flex items-center gap-2"><Share2 size={18} className="text-[#D4AF37]" /> Imagen para Historia</h3>
+          <p className="text-xs text-slate-500 mt-0.5">Genera una imagen 9:16 de tu campaña para subir a Instagram.</p>
+        </div>
+
+        <div className="p-5 grid md:grid-cols-2 gap-6">
+          <div className="flex justify-center">
+            <canvas ref={canvasRef} className="rounded-xl border border-slate-800 shadow-lg" style={{ width: 260, height: 'auto' }} />
+          </div>
+
+          <div className="space-y-5">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-2">Mostrar</p>
+              <div className="space-y-2">
+                <label className="flex items-center justify-between gap-3 px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-lg cursor-pointer">
+                  <span className="text-sm text-white flex items-center gap-2"><AlignLeft size={14} className="text-[#D4AF37]" /> Descripción</span>
+                  <input type="checkbox" checked={showDesc} onChange={e => setShowDesc(e.target.checked)} className="w-4 h-4 accent-[#D4AF37]" />
+                </label>
+                <label className="flex items-center justify-between gap-3 px-3 py-2.5 bg-slate-950 border border-slate-800 rounded-lg cursor-pointer">
+                  <span className="text-sm text-white flex items-center gap-2"><Link2 size={14} className="text-[#D4AF37]" /> Botón (CTA)</span>
+                  <input type="checkbox" checked={showCta} onChange={e => setShowCta(e.target.checked)} className="w-4 h-4 accent-[#D4AF37]" />
+                </label>
+              </div>
+              {loadingImgs && (
+                <p className="text-[11px] text-slate-500 mt-2 flex items-center gap-1.5">
+                  <span className="w-3 h-3 border-2 border-slate-600 border-t-[#D4AF37] rounded-full animate-spin" /> Cargando imagen…
+                </p>
+              )}
+            </div>
+
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500 mb-2">Color de fondo</p>
+              <div className="flex flex-wrap gap-2 mb-3">
+                {STORY_BG_PRESETS.map(c => (
+                  <button key={c} onClick={() => setBgColor(c)} title={c}
+                    className={`w-8 h-8 rounded-lg border-2 transition-transform hover:scale-110 ${bgColor.toLowerCase() === c.toLowerCase() ? 'border-[#D4AF37]' : 'border-slate-700'}`}
+                    style={{ background: c }} />
+                ))}
+              </div>
+              <label className="flex items-center gap-3 px-3 py-2 bg-slate-950 border border-slate-800 rounded-lg cursor-pointer">
+                <input type="color" value={bgColor} onChange={e => setBgColor(e.target.value)} className="w-8 h-8 bg-transparent border-0 cursor-pointer" />
+                <span className="text-sm text-slate-300">Color personalizado</span>
+                <span className="ml-auto text-xs font-mono text-slate-500">{bgColor.toUpperCase()}</span>
+              </label>
+            </div>
+
+            <button onClick={descargar} className="w-full flex items-center justify-center gap-2 bg-[#D4AF37] hover:bg-yellow-500 text-black text-sm font-semibold px-4 py-2.5 rounded-lg transition-colors">
+              <Download size={16} /> Descargar imagen (PNG)
+            </button>
+            <p className="text-[11px] text-slate-600 text-center">Formato 1080×1920</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Marketing() {
+  const tenant = useTenant();
   const [form,         setForm]         = useState(EMPTY);
   const [showHelp,     setShowHelp]     = useState(false);
+  const [storyOpen,    setStoryOpen]    = useState(false);
   const [loading,      setLoading]      = useState(true);
   const [saving,       setSaving]       = useState(false);
   const [saved,        setSaved]        = useState(false);
@@ -574,7 +824,23 @@ export default function Marketing() {
             Gestiona el banner publicitario de la app y optimiza tus campañas con recomendaciones IA en tiempo real.
           </p>
         </div>
+        <button
+          onClick={() => setStoryOpen(true)}
+          title="Generar imagen para historia de Instagram"
+          className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-semibold px-4 py-2 rounded-lg border border-slate-700 hover:border-slate-600 transition-colors shrink-0"
+        >
+          <Share2 size={16} className="text-[#D4AF37]" /> Imagen historia
+        </button>
       </div>
+
+      {storyOpen && (
+        <CampaignStoryGenerator
+          campaign={form}
+          shopName={tenant.name || 'Campaña'}
+          logoUrl={tenant.logo || ''}
+          onClose={() => setStoryOpen(false)}
+        />
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
