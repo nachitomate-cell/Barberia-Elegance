@@ -3930,6 +3930,13 @@
         </div>
       </div>
 
+      <!-- Aviso perfil incompleto -->
+      <div id="perfilIncompletoAviso" class="hidden mb-3 rounded-xl px-4 py-2.5 flex items-center gap-3"
+           style="background:rgba(234,179,8,0.08);border:1px solid rgba(234,179,8,0.25);">
+        <i class="ph-fill ph-warning text-base shrink-0" style="color:#eab308;"></i>
+        <p id="perfilIncompletoMsg" class="text-[11px] font-semibold leading-snug" style="color:rgba(234,179,8,0.85);"></p>
+      </div>
+
       <!-- Datos editables -->
       <h3 class="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-3 px-1">Mi Cuenta</h3>
       <div class="space-y-3 mb-5">
@@ -4780,6 +4787,25 @@ async function subscribeUserData(user) {
     if (document.activeElement !== nombreInput) nombreInput.value = nombre;
     if (document.activeElement !== telInput)    telInput.value    = data.telefono || '';
     if (document.activeElement !== cumpleInput) cumpleInput.value = data.fechaNacimiento || '';
+
+    // Aviso de perfil incompleto
+    const _aviso = document.getElementById('perfilIncompletoAviso');
+    const _avisoMsg = document.getElementById('perfilIncompletoMsg');
+    if (_aviso && _avisoMsg) {
+      const faltaNombre  = !nombre || nombre === 'Cliente';
+      const faltaTel     = !data.telefono;
+      const faltaCumple  = !data.fechaNacimiento;
+      const faltantes = [];
+      if (faltaNombre) faltantes.push('tu nombre');
+      if (faltaTel)    faltantes.push('tu teléfono');
+      if (faltaCumple) faltantes.push('tu fecha de nacimiento');
+      if (faltantes.length) {
+        _avisoMsg.textContent = `Completa ${faltantes.join(', ')} para aprovechar todos los beneficios.`;
+        _aviso.classList.remove('hidden');
+      } else {
+        _aviso.classList.add('hidden');
+      }
+    }
     // Bloquear la fecha de nacimiento una vez guardada para evitar abuso del sello de cumpleaños
     if (data.fechaNacimiento) {
       cumpleInput.readOnly = true;
