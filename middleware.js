@@ -804,17 +804,22 @@ function injectMeta(html, meta, pageMeta, canonical, hostname, pageType, tenantI
 
 function injectAdminMeta(html, meta, hostname) {
   const am = meta.adminManifest;
-  
+
   // Clean all previous icon/apple icon tags and theme color tags first to avoid duplicates (attribute order-agnostic)
   html = html.replace(/<meta\s+[^>]*name=["']?theme-color["']?[^>]*>/gi, '');
   html = html.replace(/<link\s+[^>]*rel=["']?(?:shortcut\s+)?icon["']?[^>]*>/gi, '');
   html = html.replace(/<link\s+[^>]*rel=["']?apple-touch-icon["']?[^>]*>/gi, '');
   html = html.replace(/<meta\s+[^>]*name=["']?apple-mobile-web-app-title["']?[^>]*>/gi, '');
   html = html.replace(/<meta\s+[^>]*name=["']?application-name["']?[^>]*>/gi, '');
+  // Strip any pre-existing social tags to evitar que el preview muestre otro local
+  html = html.replace(/<meta\s+[^>]*property=["']?og:[^"']*["']?[^>]*>/gi, '');
+  html = html.replace(/<meta\s+[^>]*name=["']?twitter:[^"']*["']?[^>]*>/gi, '');
 
   const amIcon = am.icons && am.icons[0] ? am.icons[0].src : meta.icon;
   const mimeType = mimeFromSrc(amIcon);
   const absIcon = amIcon.startsWith('http') ? amIcon : `https://${hostname}${amIcon}`;
+  const absImage = meta.ogImage.startsWith('http') ? meta.ogImage : `https://${hostname}${meta.ogImage}`;
+  const title = `Panel Admin · ${meta.siteName}`;
 
   const adminHeadBlock = `
   <meta name="theme-color" content="${r(am.theme_color)}">
@@ -822,9 +827,18 @@ function injectAdminMeta(html, meta, hostname) {
   <meta name="application-name" content="${r(am.short_name)}">
   <link rel="icon" type="${mimeType}" href="${r(absIcon)}">
   <link rel="shortcut icon" type="${mimeType}" href="${r(absIcon)}">
-  <link rel="apple-touch-icon" href="${r(absIcon)}">`;
+  <link rel="apple-touch-icon" href="${r(absIcon)}">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="${r(title)}">
+  <meta property="og:description" content="${r(am.description || '')}">
+  <meta property="og:image" content="${r(absImage)}">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="${r(title)}">
+  <meta name="twitter:image" content="${r(absImage)}">`;
 
   html = html.replace('<head>', `<head>${adminHeadBlock}`);
+  // Título específico del local en vez del genérico "Barbería SaaS"
+  html = html.replace(/<title>[^<]*<\/title>/i, `<title>${r(title)}</title>`);
   return html;
 }
 
