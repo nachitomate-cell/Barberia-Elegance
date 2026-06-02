@@ -3907,9 +3907,11 @@
         <div class="rounded-2xl border border-white/8 bg-white/5 p-4">
           <div class="flex gap-2">
             <input id="amigoEmailInput" type="email" placeholder="Correo del amigo"
-              class="flex-1 bg-black/40 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white placeholder-white/25 focus:outline-none focus:border-white/30">
+              class="flex-1 rounded-xl px-3 py-2.5 text-sm focus:outline-none"
+              style="background:#111118;border:1px solid rgba(255,255,255,0.12);color:#ffffff;caret-color:#ffffff;"
+              onfocus="this.style.borderColor='rgba(255,255,255,0.3)'" onblur="this.style.borderColor='rgba(255,255,255,0.12)'">
             <button onclick="buscarAmigo()"
-              class="px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all active:scale-95"
+              class="px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all active:scale-95 shrink-0"
               style="background:var(--gold-glow);color:var(--gold);border:1px solid var(--gold-dim);">
               Buscar
             </button>
@@ -4716,9 +4718,12 @@ async function ensureUserDoc(user, extra = {}) {
     });
     return (await ref.get()).data();
   }
-  if (user.photoURL && snap.data().photoURL !== user.photoURL) {
-    await ref.update({ photoURL: user.photoURL });
-  }
+  // Asegurar campos que podrían faltar en documentos antiguos
+  const updates = {};
+  const d = snap.data();
+  if (!d.email    && user.email)    updates.email    = user.email;
+  if (!d.photoURL && user.photoURL) updates.photoURL = user.photoURL;
+  if (Object.keys(updates).length)  await ref.update(updates);
   return snap.data();
 }
 
