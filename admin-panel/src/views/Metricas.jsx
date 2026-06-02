@@ -367,7 +367,7 @@ export default function Metricas() {
   }, [servicios]);
 
   const getPrice = useCallback(c =>
-    Number(c.precio) || precioMap[c.servicioId] || precioMap[c.servicioNombre] || 0,
+    c.cortesia ? 0 : (Number(c.precio) || precioMap[c.servicioId] || precioMap[c.servicioNombre] || 0),
     [precioMap]
   );
 
