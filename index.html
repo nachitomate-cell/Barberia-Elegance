@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8">
-  <script>!function(){var m={'marcelopalma.synaptechspa.cl':'/marcelo1.png','marcelohairdressing.synaptechspa.cl':'/marcelo1.png','marcelo-hairdressing.synaptechspa.cl':'/marcelo1.png','aurasalon.synaptechspa.cl':'/aura.png','aurasalonmalegrooming.synaptech.cl':'/aura.png','aurasalonmalegrooming.synaptechspa.cl':'/aura.png'};var s=m[location.hostname]||'/favicon.ico';var l=document.createElement('link');l.rel='icon';l.href=s;if(s!='/favicon.ico')l.type='image/png';document.head.appendChild(l);}();</script>
+  <script>!function(){var m={'marcelopalma.synaptechspa.cl':'/marcelo1.png','marcelohairdressing.synaptechspa.cl':'/marcelo1.png','marcelo-hairdressing.synaptechspa.cl':'/marcelo1.png','aurasalon.synaptechspa.cl':'/aura.png','aurasalonmalegrooming.synaptech.cl':'/aura.png','aurasalonmalegrooming.synaptechspa.cl':'/aura.png'};var s=m[location.hostname]||'/favicon.ico';var l=document.createElement('link');l.rel='icon';l.href=s;if(s!='/favicon.ico')l.type='image/png';document.head.appendChild(l);var manifests={'delnerobarber.synaptechspa.cl':'/manifest-delnero.json'};var mf=manifests[location.hostname];if(mf){var ml=document.querySelector('link[rel="manifest"]');if(ml)ml.href=mf;};}();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
@@ -2304,25 +2304,53 @@
     }
     .tenant-delnero body { background-color: #050505; }
 
-    /* Hero: imagen del local + overlay oscuro fuerte */
+    /* Hero: flat dark — misma estructura que Marcelo Hairdressing */
     .tenant-delnero .booking-hero {
-      background-image: url('/nero.jpg') !important;
-      background-size: cover !important;
-      background-position: center 30% !important;
+      background-image: none !important;
+      background-color: #050505 !important;
+      min-height: auto !important;
+      height: auto !important;
+      padding: 0 !important;
+      border-bottom: none !important;
     }
     .tenant-delnero .booking-hero-overlay {
+      display: none !important;
+    }
+    .tenant-delnero .booking-hero > .relative.z-10:not(#marceloHeader) {
+      display: none !important;
+    }
+    .tenant-delnero #marceloHeader {
+      display: flex !important;
+      background-image: url('/maira.png') !important;
+      background-size: cover !important;
+      background-position: center 25% !important;
+      min-height: 190px !important;
+      padding: 0 22px 20px 22px !important;
+      align-items: flex-end !important;
+      border-bottom: none !important;
+      position: relative !important;
+    }
+    .tenant-delnero #marceloHeader::before {
+      content: '' !important;
+      position: absolute !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      bottom: -32px !important;
       background: linear-gradient(180deg,
-        rgba(0,0,0,0.70) 0%, rgba(0,0,0,0.55) 40%, rgba(0,0,0,0.94) 100%) !important;
+        rgba(0,0,0,0.00) 0%,
+        rgba(0,0,0,0.32) 42%,
+        rgba(5,5,5,0.85) 62%,
+        rgba(5,5,5,0.97) 76%,
+        #050505 88%) !important;
+      z-index: 0 !important;
+      pointer-events: none !important;
     }
-
-    /* Logo ring — verde neón */
-    .tenant-delnero .hero-logo-ring {
-      border-color: #39ff14 !important;
-      box-shadow:
-        0 0 0 1px rgba(57,255,20,0.15),
-        0 0 28px rgba(57,255,20,0.22),
-        0 0 50px rgba(57,255,20,0.08) !important;
+    .tenant-delnero #marceloHeader > * {
+      position: relative !important;
+      z-index: 1 !important;
     }
+    .tenant-delnero #heroGoogleBadge { display: none !important; }
 
     /* Nombre del local — serif crema */
     .tenant-delnero #shopNombre {
@@ -6336,7 +6364,7 @@
         categories[cat].push(s);
       });
 
-      const _isEleganceSvc  = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza' || window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'lumen' || window.CURRENT_TENANT_ID === 'machos' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'marcelo_hairdressing' || window.CURRENT_TENANT_ID === 'omegastudio' || window.CURRENT_TENANT_ID === 'memphis';
+      const _isEleganceSvc  = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza' || window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'lumen' || window.CURRENT_TENANT_ID === 'machos' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'marcelo_hairdressing' || window.CURRENT_TENANT_ID === 'omegastudio' || window.CURRENT_TENANT_ID === 'memphis' || window.CURRENT_TENANT_ID === 'delnero';
       const _isMapuSvc      = window.CURRENT_TENANT_ID === 'mapubarbershop';
       const _isChameleonSvc = window.CURRENT_TENANT_ID === 'chameleon';
       const _useRowLayout   = _isEleganceSvc || _isMapuSvc || _isChameleonSvc;
@@ -6600,7 +6628,7 @@
          grid.innerHTML = '<p class="text-sm text-gray-500">No hay barberos disponibles en este momento.</p>';
          return;
       }
-      const _isElegance   = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza' || window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'lumen' || window.CURRENT_TENANT_ID === 'machos' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'omegastudio' || window.CURRENT_TENANT_ID === 'memphis';
+      const _isElegance   = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza' || window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'lumen' || window.CURRENT_TENANT_ID === 'machos' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'omegastudio' || window.CURRENT_TENANT_ID === 'memphis' || window.CURRENT_TENANT_ID === 'delnero';
       const _isMapuB      = window.CURRENT_TENANT_ID === 'mapubarbershop';
       const _isChameleon  = window.CURRENT_TENANT_ID === 'chameleon';
       const anyStateClass = (window._selectedBarberId === 'any' || window._selectedBarber === 'any') ? 'border-neon bg-brand-neon/10' : 'border-brand-accent/20 bg-[#0a0a0d]';
@@ -7069,7 +7097,8 @@
         window.CURRENT_TENANT_ID === 'elegance' ||
         window.CURRENT_TENANT_ID === 'chameleon' ||
         window.CURRENT_TENANT_ID === 'ferraza' ||
-        window.CURRENT_TENANT_ID === 'memphis';
+        window.CURRENT_TENANT_ID === 'memphis' ||
+        window.CURRENT_TENANT_ID === 'delnero';
       const grid = document.getElementById('hoursGrid');
       grid.className = _isEleganceHr
         ? 'w-full flex flex-col gap-0'
@@ -7208,7 +7237,8 @@
         || window.CURRENT_TENANT_ID === 'sionbarberia'
         || window.CURRENT_TENANT_ID === 'marcelo_hairdressing'
         || window.CURRENT_TENANT_ID === 'chameleon'
-        || window.CURRENT_TENANT_ID === 'memphis';
+        || window.CURRENT_TENANT_ID === 'memphis'
+        || window.CURRENT_TENANT_ID === 'delnero';
       const _radioDim   = _isMapu ? 'rgba(191,163,126,0.40)' : _isAura ? 'rgba(55,65,81,0.25)' : 'rgba(212,175,55,0.4)';
       const _radioSel   = _isMapu ? '#BFA37E' : _isAura ? '#1F2937' : '#D4AF37';
 
@@ -8024,6 +8054,27 @@
 
       const faviconEl = document.querySelector('link[rel="icon"]');
       if (faviconEl) { faviconEl.href = _faviconSrc; faviconEl.type = _isMarcelo ? 'image/png' : 'image/jpeg'; }
+
+      // Delnero — header tipo Marcelo con nero.jpg (logo) + maira.png (profesional)
+      if (window.CURRENT_TENANT_ID === 'delnero') {
+        const dnHeader = document.getElementById('marceloHeader');
+        if (dnHeader) {
+          // Reemplazar lado izquierdo con logo nero.jpg + nombre/slogan
+          const leftDiv = dnHeader.querySelector('div:first-child');
+          if (leftDiv) leftDiv.outerHTML = `
+            <div style="display:flex;align-items:center;gap:10px;">
+              <img src="/nero.jpg" alt="Del Nero" style="width:42px;height:42px;border-radius:10px;object-fit:cover;border:1px solid rgba(57,255,20,0.28);box-shadow:0 0 10px rgba(57,255,20,0.15);">
+              <div style="display:flex;flex-direction:column;gap:2px;">
+                <p style="font-size:8px;font-weight:700;letter-spacing:0.24em;color:rgba(57,255,20,0.55);margin:0;text-transform:uppercase;">Barbería</p>
+                <h1 id="marceloHeaderName" style="font-size:1.3rem;font-weight:800;color:#ffffff;letter-spacing:-0.03em;line-height:1;margin:0;text-shadow:0 1px 12px rgba(0,0,0,0.6);">${SHOP.nombre}</h1>
+                <p id="marceloHeaderSlogan" style="font-size:8px;font-weight:600;letter-spacing:0.18em;color:rgba(57,255,20,0.50);margin:0;text-transform:uppercase;">${SHOP.slogan}</p>
+              </div>
+            </div>`;
+          // Ocultar foto de profesional (lado derecho)
+          const dnImgWrap = dnHeader.querySelector('div:last-child');
+          if (dnImgWrap && dnImgWrap.querySelector('img')) dnImgWrap.style.display = 'none';
+        }
+      }
 
       // Marcelo Hairdressing — actualizar header y textos del club
       if (window.CURRENT_TENANT_ID === 'marcelo_hairdressing') {
