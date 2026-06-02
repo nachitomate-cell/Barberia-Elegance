@@ -2407,10 +2407,19 @@
     }
 
     /* Tarjetas de servicio */
+    @keyframes delneroSvcBorder {
+      0%, 100% { border-color: #27272a; box-shadow: none; }
+      50%       { border-color: rgba(57,255,20,0.30); box-shadow: 0 0 8px rgba(57,255,20,0.10); }
+    }
     .tenant-delnero .service-option {
       background: rgba(57,255,20,0.02) !important;
-      border-color: #27272a !important;
+      animation: delneroSvcBorder 3s ease-in-out infinite !important;
     }
+    .tenant-delnero .service-option:nth-child(2) { animation-delay: 0.4s !important; }
+    .tenant-delnero .service-option:nth-child(3) { animation-delay: 0.8s !important; }
+    .tenant-delnero .service-option:nth-child(4) { animation-delay: 1.2s !important; }
+    .tenant-delnero .service-option:nth-child(5) { animation-delay: 1.6s !important; }
+    .tenant-delnero .service-option:nth-child(6) { animation-delay: 2.0s !important; }
     .tenant-delnero .service-option:hover {
       border-color: rgba(57,255,20,0.35) !important;
       background: rgba(57,255,20,0.04) !important;
@@ -2421,6 +2430,8 @@
       background: rgba(57,255,20,0.07) !important;
       box-shadow: 0 0 0 1px #39ff14, 0 0 15px rgba(57,255,20,0.15) !important;
     }
+    /* Sin radio circular a la derecha */
+    .tenant-delnero .service-option .svc-radio { display: none !important; }
     /* Nombre servicio: crema */
     .tenant-delnero .service-option .svc-name { color: #f0ead6 !important; }
     /* Precio: verde neón brillante */
