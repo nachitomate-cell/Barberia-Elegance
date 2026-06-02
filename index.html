@@ -7906,6 +7906,24 @@
           localStorage.setItem(SPAM_KEY, JSON.stringify(last24h));
         }
 
+        // Si el usuario está logueado en el Club y su perfil no tiene teléfono,
+        // guardar el que ingresó en la reserva para completar su perfil.
+        if (citaGuardada && typeof db !== 'undefined' && telDigitos.length >= 9) {
+          const authUser = firebase.auth().currentUser;
+          if (authUser) {
+            try {
+              const userRef = FDB.usersCol().doc(authUser.uid);
+              const snap    = await userRef.get();
+              const perfil  = snap.exists ? snap.data() : {};
+              if (!perfil.telefono) {
+                await userRef.set({ telefono: tel }, { merge: true });
+              }
+            } catch (e) {
+              console.warn('[Reserva] No se pudo guardar el teléfono en el perfil:', e);
+            }
+          }
+        }
+
         // Guardar reservas de productos seleccionados en cross-sell
         if (citaGuardada && _selectedProducts.length > 0) {
           const user = firebase.auth().currentUser;
