@@ -3578,24 +3578,40 @@
       <!-- ── CALIFICACIÓN GOOGLE ── -->
       <div id="googleReviewCard" class="hidden mx-4 mb-5">
         <a id="googleReviewCardBtn" href="#" target="_blank" rel="noopener"
-           class="w-full flex items-center justify-between rounded-2xl px-4 py-3.5 transition-all duration-200 active:scale-[0.97]"
-           style="background:linear-gradient(135deg,rgba(66,133,244,0.1) 0%,rgba(52,168,83,0.07) 50%,rgba(251,188,4,0.07) 100%);border:1px solid rgba(66,133,244,0.25);">
-          <div class="flex items-center gap-3">
-            <!-- Google G logo -->
-            <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-white">
-              <svg viewBox="0 0 48 48" width="22" height="22">
-                <path fill="#4285F4" d="M43.6 20H24v8h11.3C33.7 33.2 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.7 1.1 7.8 2.9l5.7-5.7C34.1 6.5 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c11 0 19.7-8 19.7-20 0-1.3-.1-2.7-.1-4z"/>
-                <path fill="#34A853" d="M6.3 14.7l6.6 4.8C14.5 15.1 18.9 12 24 12c3 0 5.7 1.1 7.8 2.9l5.7-5.7C34.1 6.5 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/>
-                <path fill="#FBBC04" d="M24 44c5.2 0 9.9-1.8 13.5-4.7l-6.2-5.2C29.5 35.9 26.9 37 24 37c-5.2 0-9.6-3.3-11.2-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/>
-                <path fill="#EA4335" d="M43.6 20H24v8h11.3c-.8 2.3-2.3 4.2-4.2 5.6l6.2 5.2C41.1 35.4 44 30.1 44 24c0-1.3-.1-2.7-.4-4z"/>
-              </svg>
+           class="w-full flex flex-col items-center rounded-2xl px-5 py-5 gap-4 transition-all duration-200 active:scale-[0.97]"
+           style="background:linear-gradient(145deg,#0d1b3e 0%,#0a1a10 50%,#2a1200 100%);border:2px solid rgba(66,133,244,0.45);box-shadow:0 0 0 1px rgba(52,168,83,0.15),0 8px 32px rgba(66,133,244,0.18),0 2px 8px rgba(0,0,0,0.5);">
+
+          <!-- Fila superior: logo Google grande + estrellas -->
+          <div class="flex items-center justify-between w-full">
+            <div class="flex items-center gap-3">
+              <!-- Google G logo grande -->
+              <div class="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 bg-white" style="box-shadow:0 2px 8px rgba(0,0,0,0.3);">
+                <svg viewBox="0 0 48 48" width="30" height="30">
+                  <path fill="#4285F4" d="M43.6 20H24v8h11.3C33.7 33.2 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.7 1.1 7.8 2.9l5.7-5.7C34.1 6.5 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20c11 0 19.7-8 19.7-20 0-1.3-.1-2.7-.1-4z"/>
+                  <path fill="#34A853" d="M6.3 14.7l6.6 4.8C14.5 15.1 18.9 12 24 12c3 0 5.7 1.1 7.8 2.9l5.7-5.7C34.1 6.5 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/>
+                  <path fill="#FBBC04" d="M24 44c5.2 0 9.9-1.8 13.5-4.7l-6.2-5.2C29.5 35.9 26.9 37 24 37c-5.2 0-9.6-3.3-11.2-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/>
+                  <path fill="#EA4335" d="M43.6 20H24v8h11.3c-.8 2.3-2.3 4.2-4.2 5.6l6.2 5.2C41.1 35.4 44 30.1 44 24c0-1.3-.1-2.7-.4-4z"/>
+                </svg>
+              </div>
+              <div class="text-left">
+                <p class="text-base font-black text-white tracking-tight">Calificanos en Google</p>
+                <div class="flex items-center gap-0.5 mt-0.5">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="#FBBC04"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="#FBBC04"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="#FBBC04"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="#FBBC04"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="#FBBC04"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                </div>
+              </div>
             </div>
-            <div class="text-left">
-              <p class="text-sm font-bold text-white">Calificanos en Google</p>
-              <p class="text-[11px] text-zinc-500">Tu reseña nos ayuda a crecer ⭐</p>
-            </div>
+            <i class="ph-bold ph-arrow-square-out text-xl shrink-0" style="color:rgba(66,133,244,0.7);"></i>
           </div>
-          <i class="ph-bold ph-caret-right text-zinc-600 text-base shrink-0"></i>
+
+          <!-- Separador -->
+          <div class="w-full h-px" style="background:linear-gradient(90deg,rgba(66,133,244,0.3),rgba(52,168,83,0.3),rgba(251,188,4,0.3),rgba(234,67,53,0.3));"></div>
+
+          <!-- Texto CTA -->
+          <p class="text-[12px] font-semibold text-center leading-snug" style="color:rgba(255,255,255,0.50);">Tu reseña nos ayuda a crecer y llegar a más personas</p>
         </a>
       </div>
 
