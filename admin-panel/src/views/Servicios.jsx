@@ -363,7 +363,7 @@ export default function Servicios() {
                       )}
                     </p>
                     {s.descripcion && (
-                      <p className="text-[11px] text-slate-600 mt-0.5 truncate">{s.descripcion}</p>
+                      <p className="hidden sm:block text-[11px] text-slate-600 mt-0.5 truncate">{s.descripcion}</p>
                     )}
                   </div>
 
