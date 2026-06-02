@@ -122,6 +122,7 @@ const DOMAIN_MAP = {
   'chameleonbarber.synaptechspa.cl':        'chameleon',
   'deluxeperfumes.synaptechspa.cl':         'deluxeperfumes',
   'barberiadjones.synaptechspa.cl':         'lumen',
+  'djonesbarberia.synaptechspa.cl':         'lumen',
   'delnerobarber.synaptechspa.cl':          'delnero',
   'marcelohairdressing.synaptechspa.cl':    'marcelo_hairdressing',
   'marcelo-hairdressing.synaptechspa.cl':   'marcelo_hairdressing',
