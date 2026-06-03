@@ -62,6 +62,7 @@
     { "source": "/favicon.ico", "has": [{ "type": "host", "value": "barberiaelegance.synaptechspa.cl" }],   "destination": "/logo.jpg" },
     { "source": "/favicon.ico", "has": [{ "type": "host", "value": "deluxeperfumes.synaptechspa.cl" }],     "destination": "/logo5.jpg" },
     { "source": "/favicon.ico", "has": [{ "type": "host", "value": "barberiadjones.synaptechspa.cl" }],     "destination": "/djones.png" },
+    { "source": "/favicon.ico", "has": [{ "type": "host", "value": "djonesbarberia.synaptechspa.cl" }],     "destination": "/djones.png" },
     { "source": "/favicon.ico", "has": [{ "type": "host", "value": "delnerobarber.synaptechspa.cl" }],      "destination": "/nero.jpg" },
     { "source": "/favicon.ico", "has": [{ "type": "host", "value": "machos.synaptechspa.cl" }],             "destination": "/machos.png" },
     { "source": "/favicon.ico", "has": [{ "type": "host", "value": "infinity.synaptechspa.cl" }],           "destination": "/infinity.png" },

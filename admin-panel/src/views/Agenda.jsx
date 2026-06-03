@@ -143,6 +143,7 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
     metodoPago:      cita?.metodoPago      || 'Efectivo',
     propina:         cita?.propina != null ? Number(cita.propina) : '',
     porcentajeDescuento: cita?.porcentajeDescuento != null ? Number(cita.porcentajeDescuento) : '',
+    cortesia:        cita?.cortesia || false,
   });
   const [saving, setSaving] = useState(false);
   const [showSugg, setShowSugg] = useState(false);
@@ -289,7 +290,7 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
       ...f,
       servicioId:     id,
       servicioNombre: s?.nombre   || '',
-      precio:         discountedPrice,
+      precio:         f.cortesia ? 0 : discountedPrice,
       duracion:       Number(s?.duracion) || 30,
     }));
   };
@@ -309,6 +310,16 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
     const b = barberos.find(b => b.id === id);
     set('barberoId', id);
     set('barbero', b?.nombre || '');
+  };
+
+  // Atención de cortesía: servicio gratis, pero la visita y el sello se registran igual.
+  const toggleCortesia = on => {
+    if (on) {
+      setForm(f => ({ ...f, cortesia: true, precio: 0, porcentajeDescuento: '', metodoPago: 'Cortesía', propina: '' }));
+    } else {
+      const base = Number(servicios.find(s => s.id === form.servicioId)?.precio) || 0;
+      setForm(f => ({ ...f, cortesia: false, precio: base, metodoPago: f.metodoPago === 'Cortesía' ? 'Efectivo' : f.metodoPago }));
+    }
   };
 
   const buscarGC = async () => {
@@ -631,11 +642,11 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
       <div className="grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-top-1 duration-200">
         <div>
           <label className={lbl}>Precio ($)</label>
-          <input className={field} type="number" placeholder="Precio" value={form.precio} onChange={e => set('precio', Number(e.target.value))} />
+          <input className={`${field} disabled:opacity-50 disabled:cursor-not-allowed`} type="number" placeholder="Precio" value={form.precio} disabled={form.cortesia} onChange={e => set('precio', Number(e.target.value))} />
         </div>
         <div>
           <label className={lbl}>Descuento (%)</label>
-          <input className={field} type="number" placeholder="0" min="0" max="100" value={form.porcentajeDescuento || ''} onChange={e => handleDiscountChange(e.target.value)} />
+          <input className={`${field} disabled:opacity-50 disabled:cursor-not-allowed`} type="number" placeholder="0" min="0" max="100" value={form.porcentajeDescuento || ''} disabled={form.cortesia} onChange={e => handleDiscountChange(e.target.value)} />
         </div>
       </div>
       <div className="grid grid-cols-2 gap-3">
@@ -664,6 +675,26 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
           </div>
           
           {form.estado === 'Completada' && (
+            <>
+            {/* Atención de cortesía (gratis) */}
+            <label className="flex items-start gap-3 p-3 bg-slate-950 border border-slate-800/80 rounded-xl cursor-pointer animate-in fade-in slide-in-from-top-1 duration-200">
+              <input
+                type="checkbox"
+                checked={form.cortesia}
+                onChange={e => toggleCortesia(e.target.checked)}
+                className="mt-0.5 w-4 h-4 shrink-0 accent-emerald-500 cursor-pointer"
+              />
+              <div>
+                <span className="text-sm font-semibold text-white">Atención de cortesía (gratis)</span>
+                <p className="text-[11px] text-slate-500 mt-0.5">No se cobra el servicio, pero la visita y el sello se registran igual. Usar solo en casos puntuales.</p>
+              </div>
+            </label>
+
+            {form.cortesia ? (
+              <div className="p-3 bg-amber-400/5 border border-amber-400/20 rounded-xl text-[11px] text-amber-300/90 leading-relaxed animate-in fade-in slide-in-from-top-1 duration-200">
+                Servicio gratuito: $0 en caja. Se cuenta la visita y se entrega el sello al cliente (el teléfono es obligatorio para registrarlo).
+              </div>
+            ) : (
             <>
             <div className="grid grid-cols-2 gap-3 p-3 bg-slate-950 border border-slate-800/80 rounded-xl animate-in fade-in slide-in-from-top-1 duration-200">
               <div>
@@ -719,6 +750,8 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
                 </>
               )}
             </div>
+            </>
+            )}
             </>
           )}
 
@@ -1144,8 +1177,8 @@ function UltimaCitaModal({ cita, loading, onClose, titleText = 'Última cita age
             <Row icon={BadgeCheck}   label="Barbero"   value={cita.barbero}         />
             {cita.sucursalNombre && <Row icon={MapPin} label="Sede" value={cita.sucursalNombre} />}
             <Row icon={Timer}        label="Duración"  value={cita.duracion ? `${cita.duracion} min` : null} />
-            <Row icon={DollarSign}   label="Precio"    value={cita.precio != null ? `$${Number(cita.precio).toLocaleString('es-CL')}` : null} />
-            {cita.porcentajeDescuento > 0 && <Row icon={DollarSign} label="Descuento" value={`${cita.porcentajeDescuento}%`} />}
+            <Row icon={DollarSign}   label="Precio"    value={cita.cortesia ? 'Cortesía (gratis)' : (cita.precio != null ? `$${Number(cita.precio).toLocaleString('es-CL')}` : null)} />
+            {!cita.cortesia && cita.porcentajeDescuento > 0 && <Row icon={DollarSign} label="Descuento" value={`${cita.porcentajeDescuento}%`} />}
           </div>
 
           {/* Nota y fecha de reserva */}

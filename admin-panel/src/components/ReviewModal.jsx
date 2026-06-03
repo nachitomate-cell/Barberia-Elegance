@@ -1,42 +1,7 @@
-import { useState } from 'react';
-import { Star, X, CheckCircle } from 'lucide-react';
-import { updateDoc, addDoc, serverTimestamp } from 'firebase/firestore';
-import { tenantCol, tenantDoc } from '../lib/tenantUtils';
+import { Stamp, MessageCircle, X, CheckCircle } from 'lucide-react';
 
 export default function ReviewModal({ cita, onClose }) {
-  const [rating,    setRating]    = useState(0);
-  const [hover,     setHover]     = useState(0);
-  const [saving,    setSaving]    = useState(false);
-  const [submitted, setSubmitted] = useState(false);
   const clienteNombre = cita.clienteNombre || cita.nombre || 'el cliente';
-
-  async function submitRating() {
-    if (!rating || saving) return;
-    setSaving(true);
-    try {
-      // 1. Guardar rating en el doc de la cita
-      await updateDoc(
-        tenantDoc('citas', cita.id),
-        { rating, ratingAt: serverTimestamp() },
-      );
-
-      // 2. Crear reseña en colección dedicada (útil para analytics)
-      await addDoc(tenantCol('resenas'), {
-        citaId:         cita.id,
-        clienteNombre:  cita.clienteNombre || '',
-        clienteTelefono: cita.clienteTelefono || '',
-        barberoId:      cita.barberoId     || '',
-        barberoNombre:  cita.barbero       || '',
-        servicioNombre: cita.servicioNombre || '',
-        rating,
-        createdAt:      serverTimestamp(),
-      });
-
-      setSubmitted(true);
-    } finally {
-      setSaving(false);
-    }
-  }
 
   return (
     <div
@@ -60,7 +25,7 @@ export default function ReviewModal({ cita, onClose }) {
             ¡Cita finalizada!
           </h3>
           <p className="text-slate-400 text-sm mt-1">
-            ¿Cómo quedó <span className="text-white font-semibold">{clienteNombre}</span>?
+            Cita de <span className="text-white font-semibold">{clienteNombre}</span> completada
           </p>
           <button
             onClick={onClose}
@@ -72,77 +37,39 @@ export default function ReviewModal({ cita, onClose }) {
 
         {/* Body */}
         <div className="px-6 py-6 space-y-5">
-          {!submitted ? (
-            <>
-              {/* Estrellas */}
-              <div className="flex justify-center gap-2">
-                {[1, 2, 3, 4, 5].map(n => (
-                  <button
-                    key={n}
-                    onMouseEnter={() => setHover(n)}
-                    onMouseLeave={() => setHover(0)}
-                    onClick={() => setRating(n)}
-                    className="transition-transform active:scale-90"
-                  >
-                    <Star
-                      size={36}
-                      className="transition-colors duration-150"
-                      fill={(hover || rating) >= n ? '#D4AF37' : 'none'}
-                      stroke={(hover || rating) >= n ? '#D4AF37' : '#475569'}
-                      strokeWidth={1.5}
-                    />
-                  </button>
-                ))}
+          <p className="text-center text-sm text-slate-300">
+            Al presionar <span className="text-white font-semibold">Completar</span> se le entregó el sello al cliente y se le enviará el mensaje para reseñarnos en Google.
+          </p>
+
+          <div className="space-y-3">
+            <div className="flex items-start gap-3 bg-slate-800/50 border border-slate-700/60 rounded-xl px-4 py-3">
+              <div className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center shrink-0">
+                <Stamp size={16} className="text-amber-400" />
               </div>
-
-              {rating > 0 && (
-                <p className="text-center text-sm text-slate-400">
-                  {['', 'Mal servicio', 'Podría mejorar', 'Estuvo bien', 'Muy bueno', '¡Excelente! 🔥'][rating]}
-                </p>
-              )}
-
-              <button
-                onClick={submitRating}
-                disabled={!rating || saving}
-                className="w-full py-3 rounded-xl font-semibold text-sm transition-all
-                  bg-emerald-600 hover:bg-emerald-500 text-white
-                  disabled:opacity-40 disabled:cursor-not-allowed
-                  flex items-center justify-center gap-2"
-              >
-                {saving && (
-                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                )}
-                Enviar calificación
-              </button>
-            </>
-          ) : (
-            <>
-              {/* Gracias */}
-              <div className="text-center space-y-2">
-                <div className="flex justify-center gap-1 mb-3">
-                  {[1, 2, 3, 4, 5].map(n => (
-                    <Star
-                      key={n}
-                      size={24}
-                      fill={n <= rating ? '#D4AF37' : 'none'}
-                      stroke={n <= rating ? '#D4AF37' : '#334155'}
-                      strokeWidth={1.5}
-                    />
-                  ))}
-                </div>
-                <p className="text-white font-semibold">¡Gracias por calificar!</p>
-                <p className="text-slate-400 text-sm">La reseña queda guardada.</p>
+              <div className="text-sm">
+                <p className="text-white font-semibold">Sello entregado</p>
+                <p className="text-slate-400 text-xs mt-0.5">Se sumó +1 sello al cliente (o se descontó su uso de membresía).</p>
               </div>
+            </div>
 
-              <button
-                onClick={onClose}
-                className="w-full py-2.5 rounded-xl text-slate-400 hover:text-white text-sm font-medium
-                  border border-slate-800 hover:border-slate-600 transition-all"
-              >
-                Cerrar
-              </button>
-            </>
-          )}
+            <div className="flex items-start gap-3 bg-slate-800/50 border border-slate-700/60 rounded-xl px-4 py-3">
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center shrink-0">
+                <MessageCircle size={16} className="text-emerald-400" />
+              </div>
+              <div className="text-sm">
+                <p className="text-white font-semibold">Reseña en Google</p>
+                <p className="text-slate-400 text-xs mt-0.5">Se le enviará el mensaje para que nos reseñe en Google.</p>
+              </div>
+            </div>
+          </div>
+
+          <button
+            onClick={onClose}
+            className="w-full py-3 rounded-xl font-semibold text-sm transition-all
+              bg-emerald-600 hover:bg-emerald-500 text-white"
+          >
+            Entendido
+          </button>
         </div>
       </div>
     </div>
