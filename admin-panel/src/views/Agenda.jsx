@@ -2099,11 +2099,28 @@ export default function Agenda() {
           {/* Time axis */}
           <div className="w-16 shrink-0 sticky left-0 bg-slate-900 z-10 border-r border-slate-800">
             <div className="h-10 border-b border-slate-800" />
-            {timeLabels.map((t, i) => (
-              <div key={i} className="h-10 flex items-center justify-end pr-3 text-[10px] font-mono text-slate-600 border-b border-slate-800/60">
-                {t.endsWith(':00') ? t : ''}
-              </div>
-            ))}
+            {timeLabels.map((t, i) => {
+              const [h, m] = t.split(':').map(Number);
+              const subMarks = [];
+              for (let sub = 15; sub < slotMins; sub += 15) {
+                const total = h * 60 + m + sub;
+                subMarks.push({
+                  label: `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`,
+                  pct: (sub / slotMins) * 100,
+                });
+              }
+              const labelColor = m === 0 ? 'text-slate-400' : m % 30 === 0 ? 'text-slate-500' : 'text-slate-600';
+              return (
+                <div key={i} className="h-10 relative border-b border-slate-800/60">
+                  <span className={`absolute right-3 top-0.5 text-[10px] font-mono ${labelColor}`}>{t}</span>
+                  {subMarks.map(({ label, pct }) => (
+                    <div key={label} className="absolute inset-x-0 flex items-center justify-end pr-3" style={{ top: `${pct}%`, transform: 'translateY(-50%)' }}>
+                      <span className="text-[9px] font-mono text-slate-700">{label}</span>
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
           </div>
 
           {/* Barber columns */}
