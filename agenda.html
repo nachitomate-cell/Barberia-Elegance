@@ -1142,9 +1142,24 @@
                 'Pendiente':  ['text-yellow-400 border-yellow-500/30 bg-yellow-500/10', 'Pendiente'],
             };
             const [cls, label] = estadoMap[cita.estado] || estadoMap['Pendiente'];
+
+            // El badge de estado es interactivo: al tocarlo avanza el estado de la cita.
+            //   · Pendiente  → Confirmada (un toque confirma la cita)
+            //   · Confirmada → abre el formulario para completarla
+            //   · Completada / Cancelada → estados finales, sin acción
+            const estadoAccionable = cita.estado === 'Pendiente' || cita.estado === 'Confirmada';
+            const estadoHintIcon = cita.estado === 'Pendiente'  ? '<i class="ph-bold ph-check-circle text-sm"></i>'
+                                 : cita.estado === 'Confirmada' ? '<i class="ph-bold ph-arrow-right text-sm"></i>'
+                                 : '';
+            const estadoHintTitle = cita.estado === 'Pendiente'  ? 'Tocar para confirmar la cita'
+                                  : cita.estado === 'Confirmada' ? 'Tocar para completar la cita'
+                                  : '';
             document.querySelectorAll('.cd-estado-badge').forEach(badge => {
-                badge.className = `cd-estado-badge px-3 py-1.5 rounded-lg text-xs font-bold border ${cls}`;
-                badge.textContent = label;
+                badge.className = `cd-estado-badge inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border ${cls}`
+                    + (estadoAccionable ? ' cursor-pointer hover:brightness-125 active:scale-95 transition-all' : '');
+                badge.innerHTML = `<span>${label}</span>${estadoAccionable ? estadoHintIcon : ''}`;
+                badge.title = estadoHintTitle;
+                badge.onclick = estadoAccionable ? () => avanzarEstadoCita(cita.id) : null;
             });
 
             const btns = [];
@@ -1248,6 +1263,22 @@
                 }
             } catch(e) {
                 alert('Error: ' + e.message);
+            }
+        }
+
+        // Avanza el estado de la cita al tocar el badge de "Estado".
+        //   Pendiente  → Confirmada (confirma directamente)
+        //   Confirmada → abre el formulario de edición para completarla
+        function avanzarEstadoCita(id) {
+            const cita = todayCitas.find(c => c.id === id)
+                || (_citaActiva && _citaActiva.id === id ? _citaActiva : null);
+            if (!cita) return;
+            if (cita.estado === 'Pendiente') {
+                cambiarEstadoDesdeDetalle(id, 'Confirmada');
+            } else if (cita.estado === 'Confirmada') {
+                // Abre el formulario ya en modo "Completada" para rellenar
+                // pago, propina y productos antes de cerrar la cita.
+                abrirEditarCita(id, { forceEstado: 'Completada' });
             }
         }
 
