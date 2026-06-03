@@ -274,6 +274,7 @@ service cloud.firestore {
       allow update: if esStaff('elegance')
                     || (autenticado()
                         && (resource.data.get('uid', '') == request.auth.uid
+                            || resource.data.get('uid', null) == null
                             || resource.data.get('uid', '') == '')
                         && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'adminOverride']));
       allow delete: if esAdmin('elegance');
@@ -539,6 +540,7 @@ service cloud.firestore {
         allow update: if esStaff(tid)
                       || (autenticado()
                           && (resource.data.get('uid', '') == request.auth.uid
+                              || resource.data.get('uid', null) == null
                               || resource.data.get('uid', '') == '')
                           && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'adminOverride']));
         allow delete: if esAdmin(tid);

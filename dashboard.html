@@ -5584,7 +5584,7 @@ async function guardarPerfil() {
     // Actualizar users/{uid}
     const updateData = { nombre, email, telefono };
     if (fechaNacimiento !== null) updateData.fechaNacimiento = fechaNacimiento;
-    await FDB.usersCol().doc(currentUser.uid).set(updateData, { merge: true });
+    await FDB.usersCol().doc(currentUser.uid).update(updateData);
     await currentUser.updateProfile({ displayName: nombre });
     if (email && email !== currentUser.email) await currentUser.updateEmail(email);
 
