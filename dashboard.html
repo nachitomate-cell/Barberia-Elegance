@@ -5291,7 +5291,11 @@ async function guardarPerfil() {
     await currentUser.updateProfile({ displayName: nombre });
     if (email && email !== currentUser.email) await currentUser.updateEmail(email);
 
-    // Actualizar clientes/{phone} con cumpleDia para el cron de cumpleaños
+    // Actualizar clientes/{phone} con cumpleDia para el cron de cumpleaños.
+    // Es best-effort: el doc de clientes está keyeado por teléfono y puede
+    // pertenecer a un perfil legacy (uid==telefono) que las reglas no permiten
+    // que el cliente modifique. Si falla por permisos NO debe abortar el guardado
+    // del perfil (mismo patrón que registro.html).
     const normalizedPhone = telefono.replace(/\D/g, '');
     if (normalizedPhone) {
       const clienteData = {
@@ -5305,7 +5309,11 @@ async function guardarPerfil() {
         clienteData.fechaNacimiento = fechaNacimiento;
         clienteData.cumpleDia       = `${parts[1]}-${parts[2]}`;
       }
-      await clientesDocRef(normalizedPhone).set(clienteData, { merge: true });
+      try {
+        await clientesDocRef(normalizedPhone).set(clienteData, { merge: true });
+      } catch (e) {
+        console.warn('[perfil] clientes write skipped:', e.code || e.message);
+      }
     }
 
     document.getElementById('profileName').textContent  = nombre;
