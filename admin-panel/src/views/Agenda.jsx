@@ -1807,6 +1807,7 @@ export default function Agenda() {
   const [draggedCita,   setDraggedCita]   = useState(null);
   const [showDifusionModal, setShowDifusionModal] = useState(false);
   const [soloBarbero,   setSoloBarbero]   = useState(null);   // id del barbero enfocado (null = todos)
+  const [labelStep,     setLabelStep]     = useState(15);     // minutos entre etiquetas visibles en el eje
 
   const [searchParams, setSearchParams] = useSearchParams();
   useEffect(() => {
@@ -1971,6 +1972,24 @@ export default function Agenda() {
           <button onClick={() => setDate(new Date())} className="ml-1 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-lg transition-all">Hoy</button>
         </div>
 
+        {/* Label-step selector */}
+        <div className="flex items-center gap-0.5 border border-slate-700 rounded-lg px-1.5 py-1 shrink-0" title="Intervalo de etiquetas horarias">
+          <Clock size={12} className="text-slate-500 mr-1 shrink-0" />
+          {[15, 30, 60].map(step => (
+            <button
+              key={step}
+              onClick={() => setLabelStep(step)}
+              className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold transition-all ${
+                labelStep === step
+                  ? 'bg-slate-700 text-white'
+                  : 'text-slate-500 hover:text-slate-300'
+              }`}
+            >
+              {step < 60 ? `${step}'` : '1h'}
+            </button>
+          ))}
+        </div>
+
         <div className="flex-1" />
 
         <button
@@ -2101,21 +2120,27 @@ export default function Agenda() {
             <div className="h-10 border-b border-slate-800" />
             {timeLabels.map((t, i) => {
               const [h, m] = t.split(':').map(Number);
+              const tMins = h * 60 + m;
+              const showLabel = tMins % labelStep === 0;
               const subMarks = [];
               for (let sub = 15; sub < slotMins; sub += 15) {
-                const total = h * 60 + m + sub;
-                subMarks.push({
-                  label: `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`,
-                  pct: (sub / slotMins) * 100,
-                });
+                const total = tMins + sub;
+                if (total % labelStep === 0) {
+                  subMarks.push({
+                    label: `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`,
+                    pct: (sub / slotMins) * 100,
+                  });
+                }
               }
               const labelColor = m === 0 ? 'text-slate-400' : m % 30 === 0 ? 'text-slate-500' : 'text-slate-600';
               return (
                 <div key={i} className="h-10 relative border-b border-slate-800/60">
-                  <span className={`absolute right-3 top-0.5 text-[10px] font-mono ${labelColor}`}>{t}</span>
+                  {showLabel && (
+                    <span className={`absolute right-3 top-0.5 text-[10px] font-mono ${labelColor}`}>{t}</span>
+                  )}
                   {subMarks.map(({ label, pct }) => (
                     <div key={label} className="absolute inset-x-0 flex items-center justify-end pr-3" style={{ top: `${pct}%`, transform: 'translateY(-50%)' }}>
-                      <span className="text-[9px] font-mono text-slate-700">{label}</span>
+                      <span className="text-[9px] font-mono text-slate-600">{label}</span>
                     </div>
                   ))}
                 </div>
