@@ -1,9 +1,10 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { Search, User, Phone, Trophy, Plus, Minus, Gift, X, RotateCcw, MessageCircle, Cake, UserX, Send, Sparkles, Bot, RefreshCw, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, User, Phone, Trophy, Plus, Minus, Gift, X, RotateCcw, MessageCircle, Cake, UserX, Send, Sparkles, Bot, RefreshCw, ChevronLeft, ChevronRight, Pencil, Check } from 'lucide-react';
 import {
-  onSnapshot, updateDoc, setDoc, doc, getDocs, query, where, orderBy as firestoreOrderBy,
+  onSnapshot, updateDoc, setDoc, deleteDoc, doc, getDocs, query, where, orderBy as firestoreOrderBy,
   increment, arrayUnion, serverTimestamp,
 } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 import { tenantCol } from '../lib/tenantUtils';
 import { useCollection } from '../hooks/useCollection';
 import { useTenant } from '../contexts/TenantContext';
@@ -90,6 +91,13 @@ function ClientePanel({ cliente: init, premios, onClose }) {
   const [cumpleMsg,   setCumpleMsg]   = useState('');
   const cumpleTimer = useRef(null);
 
+  const [editMode,    setEditMode]    = useState(false);
+  const [editNombre,  setEditNombre]  = useState(init.nombre   || '');
+  const [editEmail,   setEditEmail]   = useState(init.email    || '');
+  const [editTel,     setEditTel]     = useState(init.telefono || '');
+  const [editLoad,    setEditLoad]    = useState(false);
+  const [editMsg,     setEditMsg]     = useState('');
+
   /* Real-time subscription for this client */
   useEffect(() => {
     const ref = doc(tenantCol('users'), init.uid);
@@ -140,6 +148,38 @@ function ClientePanel({ cliente: init, premios, onClose }) {
       setCumpleMsg('Error: ' + e.message);
     } finally {
       setCumpleLoad(false);
+    }
+  };
+
+  const guardarEdicion = async () => {
+    const oldPhone = normalizePhone(data.telefono);
+    const newPhone = normalizePhone(editTel);
+    const nombre   = editNombre.trim();
+    const email    = editEmail.trim().toLowerCase();
+    const telefono = editTel.trim();
+
+    if (!nombre) { setEditMsg('El nombre no puede estar vacío.'); return; }
+    setEditLoad(true);
+    setEditMsg('');
+    try {
+      const userUpdate = { nombre, email, telefono, updatedAt: serverTimestamp() };
+      await updateDoc(doc(tenantCol('users'), data.uid), userUpdate);
+
+      const clienteUpdate = { nombre, email, telefono, uid: data.uid, updatedAt: serverTimestamp() };
+      if (oldPhone && newPhone && oldPhone !== newPhone) {
+        // Teléfono cambió → mover doc en clientes/
+        await setDoc(doc(tenantCol('clientes'), newPhone), clienteUpdate, { merge: true });
+        try { await deleteDoc(doc(tenantCol('clientes'), oldPhone)); } catch (_) {}
+      } else if (newPhone) {
+        await setDoc(doc(tenantCol('clientes'), newPhone), clienteUpdate, { merge: true });
+      }
+
+      setEditMode(false);
+      setEditMsg('');
+    } catch (e) {
+      setEditMsg('Error: ' + e.message);
+    } finally {
+      setEditLoad(false);
     }
   };
 
@@ -246,23 +286,77 @@ function ClientePanel({ cliente: init, premios, onClose }) {
             ? <img src={data.photoURL} alt="" className="w-full h-full object-cover" />
             : <span className="text-sm font-bold text-slate-400">{initials(data.nombre || data.email || '?')}</span>}
         </div>
-        <div className="flex-1 min-w-0">
-          <p className="font-semibold text-white">{data.nombre || '—'}</p>
-          <p className="text-xs text-slate-500 truncate">{data.email}</p>
-          {data.telefono && (
-            <div className="flex flex-wrap items-center gap-2 mt-1">
-              <p className="text-xs text-slate-400">{data.telefono}</p>
-              {waUrl && <a href={waUrl} target="_blank" rel="noreferrer" className="text-[10px] font-bold text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-md hover:bg-emerald-500/10 transition-colors">WA ↗</a>}
-              {waMsg && (
-                <a href={waMsg} target="_blank" rel="noreferrer"
-                  className="flex items-center gap-1 text-[10px] font-bold text-green-400 border border-green-500/30 px-2 py-0.5 rounded-md hover:bg-green-500/10 transition-colors">
-                  <MessageCircle size={10} /> Invitar
-                </a>
-              )}
+
+        {editMode ? (
+          <div className="flex-1 min-w-0 space-y-2">
+            <input
+              autoFocus
+              value={editNombre}
+              onChange={e => setEditNombre(e.target.value)}
+              placeholder="Nombre completo"
+              className="w-full bg-slate-800 border border-slate-700 focus:border-emerald-500 rounded-lg px-3 py-1.5 text-sm text-white placeholder-slate-500 outline-none transition-colors"
+            />
+            <input
+              type="email"
+              value={editEmail}
+              onChange={e => setEditEmail(e.target.value)}
+              placeholder="Correo electrónico"
+              className="w-full bg-slate-800 border border-slate-700 focus:border-emerald-500 rounded-lg px-3 py-1.5 text-sm text-white placeholder-slate-500 outline-none transition-colors"
+            />
+            <input
+              type="tel"
+              value={editTel}
+              onChange={e => setEditTel(e.target.value)}
+              placeholder="+56 9 1234 5678"
+              className="w-full bg-slate-800 border border-slate-700 focus:border-emerald-500 rounded-lg px-3 py-1.5 text-sm text-white font-mono placeholder-slate-500 outline-none transition-colors"
+            />
+            {editMsg && (
+              <p className={`text-xs font-semibold ${editMsg.startsWith('Error') ? 'text-red-400' : 'text-emerald-400'}`}>{editMsg}</p>
+            )}
+            <div className="flex gap-2 pt-1">
+              <button
+                onClick={guardarEdicion}
+                disabled={editLoad}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-xs font-bold rounded-lg transition-all"
+              >
+                <Check size={12} /> {editLoad ? 'Guardando…' : 'Guardar'}
+              </button>
+              <button
+                onClick={() => { setEditMode(false); setEditMsg(''); setEditNombre(data.nombre || ''); setEditEmail(data.email || ''); setEditTel(data.telefono || ''); }}
+                className="px-3 py-1.5 text-xs text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-all"
+              >
+                Cancelar
+              </button>
             </div>
-          )}
-          <p className="text-[10px] text-slate-600 mt-1">Miembro desde {formatFecha(data.creadoEn?.toDate ? data.creadoEn.toDate().toISOString() : data.creadoEn)}</p>
-        </div>
+          </div>
+        ) : (
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <p className="font-semibold text-white">{data.nombre || '—'}</p>
+              <button
+                onClick={() => { setEditNombre(data.nombre || ''); setEditEmail(data.email || ''); setEditTel(data.telefono || ''); setEditMsg(''); setEditMode(true); }}
+                className="p-1 rounded-md text-slate-600 hover:text-emerald-400 hover:bg-slate-800 transition-all"
+                title="Editar datos del cliente"
+              >
+                <Pencil size={12} />
+              </button>
+            </div>
+            <p className="text-xs text-slate-500 truncate">{data.email || <span className="italic text-slate-700">Sin correo</span>}</p>
+            {data.telefono && (
+              <div className="flex flex-wrap items-center gap-2 mt-1">
+                <p className="text-xs text-slate-400">{data.telefono}</p>
+                {waUrl && <a href={waUrl} target="_blank" rel="noreferrer" className="text-[10px] font-bold text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-md hover:bg-emerald-500/10 transition-colors">WA ↗</a>}
+                {waMsg && (
+                  <a href={waMsg} target="_blank" rel="noreferrer"
+                    className="flex items-center gap-1 text-[10px] font-bold text-green-400 border border-green-500/30 px-2 py-0.5 rounded-md hover:bg-green-500/10 transition-colors">
+                    <MessageCircle size={10} /> Invitar
+                  </a>
+                )}
+              </div>
+            )}
+            <p className="text-[10px] text-slate-600 mt-1">Miembro desde {formatFecha(data.creadoEn?.toDate ? data.creadoEn.toDate().toISOString() : data.creadoEn)}</p>
+          </div>
+        )}
       </div>
 
       {/* Pasado del cliente: AgendaPro / merge legacy */}
