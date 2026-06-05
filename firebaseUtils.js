@@ -1014,7 +1014,7 @@ const FDB = (() => {
           const nombre = d.nombre || d.displayName || (d.email ? d.email.split('@')[0] : null) || 'Barbero';
           return { id: doc.id, nombre, foto: d.foto || d.photoURL || null, disponible: d.disponible !== false, ...d };
         })
-        .filter(b => b.activo !== false && b.rol !== 'admin' && !b._mainDocId)
+        .filter(b => b.activo !== false && !b._mainDocId && (b.rol !== 'admin' || (window.CURRENT_TENANT_ID || 'elegance') === 'delnero'))
         .sort((a, b) => {
           // Priorizar docs cuyo id NO coincide con uid — son los docs "originales"
           // que ya tienen citas asignadas. Si el seed creó uno nuevo (uid===id) para
