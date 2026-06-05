@@ -1869,8 +1869,8 @@ export default function Agenda() {
   const { data: productos }   = useCollection('productos');
 
   const barberos = useMemo(() =>
-    rawBarberos.filter(b => !b._mainDocId && b.disponible !== false && b.rol !== 'admin'),
-  [rawBarberos]);
+    rawBarberos.filter(b => !b._mainDocId && b.disponible !== false && (b.rol !== 'admin' || tenantId === 'delnero')),
+  [rawBarberos, tenantId]);
 
   // Filtro "ver solo la agenda de un barbero" (al tocar su cabecera)
   const focusBarbero    = soloBarbero ? barberos.find(b => b.id === soloBarbero) : null;

@@ -212,9 +212,9 @@ function BookingUrlButton({ nombre }) {
 }
 
 /* ─── BarberCard ─────────────────────────────────────────── */
-function BarberCard({ barber, onEdit, waUrl, onVerAgenda, sucursales = [], dragHandleProps = null, isDragging = false }) {
+function BarberCard({ barber, onEdit, waUrl, onVerAgenda, sucursales = [], dragHandleProps = null, isDragging = false, allowAdminEdit = false }) {
   const isActive      = barber.disponible !== false;
-  const isStrictAdmin = barber.rol === 'admin';
+  const isStrictAdmin = barber.rol === 'admin' && !allowAdminEdit;
   const isAdmin       = barber.rol === 'admin' || barber.rol === 'jefe';
   const isSupportAdmin= (barber.email || '').toLowerCase().trim() === SUPPORT_EMAIL;
   const colPath       = tenantCol('barberos').path;
@@ -813,7 +813,8 @@ export default function Equipo() {
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
                 {orderedBarberos.map(b => (
                   <SortableBarberCard key={b.id} barber={b} onEdit={openEdit} waUrl={waUrl}
-                    sucursales={sucursales} onVerAgenda={() => navigate('/agenda')} />
+                    sucursales={sucursales} onVerAgenda={() => navigate('/agenda')}
+                    allowAdminEdit={tenant.id === 'delnero'} />
                 ))}
               </div>
             </SortableContext>
