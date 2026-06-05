@@ -24,5 +24,32 @@
 <link rel="manifest" href="/gestion-interna/manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="/gestion-interna/registerSW.js"></script></head>
 <body class="bg-slate-900 text-white antialiased">
   <div id="root"></div>
+
+  <!-- Acceso a la Guía de la App (manual de uso) — disponible en todos los locales -->
+  <style>
+    #guia-app-fab{
+      position:fixed; left:16px; bottom:16px; z-index:2147483000;
+      display:inline-flex; align-items:center; gap:8px;
+      padding:11px 16px; border-radius:999px;
+      background:linear-gradient(135deg,#c5a14a,#e0c88c);
+      color:#1a1305; font-family:'Inter',system-ui,sans-serif;
+      font-weight:600; font-size:14px; text-decoration:none;
+      box-shadow:0 6px 20px rgba(0,0,0,.35), 0 2px 8px rgba(197,161,74,.35);
+      transition:transform .18s ease, box-shadow .18s ease; cursor:pointer;
+    }
+    #guia-app-fab:hover{ transform:translateY(-2px);
+      box-shadow:0 10px 26px rgba(0,0,0,.42), 0 4px 12px rgba(197,161,74,.5); }
+    #guia-app-fab .gicon{ font-size:18px; line-height:1; }
+    @media (max-width:640px){
+      #guia-app-fab{ left:12px; bottom:12px; padding:11px; }
+      #guia-app-fab .glabel{ display:none; }
+    }
+    @media print{ #guia-app-fab{ display:none; } }
+  </style>
+  <a id="guia-app-fab" href="/gestion-interna/guia.html"
+     title="Abrir la Guía de uso de la App">
+    <i class="ph ph-book-open gicon" aria-hidden="true"></i>
+    <span class="glabel">Guía de la App</span>
+  </a>
 </body>
 </html>

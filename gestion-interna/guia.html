@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Guía de la App | Gestión Interna</title>
+  <meta name="theme-color" content="#0f172a" />
+  <link rel="icon" type="image/png" href="/logo1.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root{
+      --bg:#0b1120; --panel:#0f172a; --panel2:#111c33;
+      --border:#1e293b; --text:#e2e8f0; --muted:#94a3b8;
+      --gold:#c5a14a; --gold-soft:#e0c88c;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%}
+    body{
+      font-family:'Inter',system-ui,sans-serif;
+      background:var(--bg); color:var(--text);
+      display:flex; flex-direction:column; min-height:100vh;
+    }
+    header{
+      display:flex; align-items:center; gap:14px;
+      padding:14px 20px; background:var(--panel);
+      border-bottom:1px solid var(--border);
+      position:sticky; top:0; z-index:10;
+    }
+    .back{
+      display:inline-flex; align-items:center; gap:7px;
+      color:var(--muted); text-decoration:none; font-size:14px;
+      padding:8px 12px; border-radius:10px; border:1px solid var(--border);
+      transition:.18s;
+    }
+    .back:hover{color:var(--text); border-color:var(--gold); background:var(--panel2)}
+    .title-wrap{display:flex; flex-direction:column; line-height:1.2}
+    .title-wrap .eyebrow{font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--gold)}
+    .title-wrap h1{font-family:'Playfair Display',serif; font-size:18px; font-weight:700; color:#fff}
+    .spacer{flex:1}
+    .download{
+      display:inline-flex; align-items:center; gap:8px;
+      background:linear-gradient(135deg,var(--gold),var(--gold-soft));
+      color:#1a1305; font-weight:600; font-size:14px;
+      text-decoration:none; padding:10px 16px; border-radius:10px;
+      transition:.18s; box-shadow:0 4px 14px rgba(197,161,74,.25);
+    }
+    .download:hover{transform:translateY(-1px); box-shadow:0 6px 18px rgba(197,161,74,.38)}
+    main{flex:1; display:flex; padding:0}
+    .viewer{flex:1; width:100%; border:0; background:#1e293b}
+    .fallback{
+      display:none; flex-direction:column; align-items:center; justify-content:center;
+      gap:16px; text-align:center; padding:48px 24px; margin:auto;
+    }
+    .fallback h2{font-family:'Playfair Display',serif; color:#fff; font-size:22px}
+    .fallback p{color:var(--muted); max-width:420px}
+    @media (max-width:640px){
+      .title-wrap h1{font-size:15px}
+      .title-wrap .eyebrow{font-size:10px}
+      .download span.long{display:none}
+      header{padding:12px 14px; gap:10px}
+      /* En móvil los PDF embebidos suelen no renderizar: mostramos fallback */
+      .viewer{display:none}
+      .fallback{display:flex}
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a class="back" href="/gestion-interna" title="Volver al panel">
+      <i class="ph ph-arrow-left"></i>&larr; Volver al panel
+    </a>
+    <div class="title-wrap">
+      <span class="eyebrow">Manual de uso</span>
+      <h1>Guía de la App</h1>
+    </div>
+    <div class="spacer"></div>
+    <a class="download" href="guia-app.pdf" download="Guia-App-Barberia.pdf">
+      &darr; <span class="long">Descargar&nbsp;</span>PDF
+    </a>
+  </header>
+
+  <main>
+    <iframe class="viewer" src="guia-app.pdf#view=FitH" title="Guía de la App"></iframe>
+    <div class="fallback">
+      <h2>Guía de Uso de la App</h2>
+      <p>Tu dispositivo no muestra el PDF aquí directamente. Tócalo para abrirlo o descargarlo.</p>
+      <a class="download" href="guia-app.pdf" target="_blank" rel="noopener">Abrir la guía (PDF)</a>
+    </div>
+  </main>
+</body>
+</html>
