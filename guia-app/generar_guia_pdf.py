@@ -288,36 +288,36 @@ def build():
     pdf.rect(12, 12, 186, 273, "D")
     pdf.set_line_width(0.3)
     pdf.rect(14.5, 14.5, 181, 268, "D")
-    # logo (generado desde el logo del repositorio)
-    try:
-        from PIL import Image
-        base = os.path.dirname(os.path.abspath(__file__))
-        src = os.path.join(base, "..", "logo.jpg")
-        logo = os.path.join(base, "_cover_logo.jpg")
-        im = Image.open(src).convert("RGB")
-        im.thumbnail((600, 600))
-        im.save(logo, quality=90)
-        pdf.image(logo, x=80, y=42, w=50)
-    except Exception:
-        pass
-    pdf.set_y(100)
+    # ornamento dorado (genérico, sin logo de ninguna barbería)
+    def ornamento(y):
+        cx = 105
+        pdf.set_draw_color(*GOLD)
+        pdf.set_line_width(0.5)
+        pdf.line(cx - 30, y, cx - 6, y)
+        pdf.line(cx + 6, y, cx + 30, y)
+        pdf.set_fill_color(*GOLD)
+        pdf.polygon([(cx, y - 2.2), (cx + 2.2, y), (cx, y + 2.2), (cx - 2.2, y)],
+                    style="F")
+
+    ornamento(82)
+    pdf.set_y(108)
     pdf.set_font(SERIF, "", 13)
     pdf.set_text_color(*GOLD)
     pdf.cell(0, 8, "MANUAL DE USO DE LA APLICACION", align="C")
-    pdf.ln(10)
-    pdf.set_font(SERIF, "", 40)
+    pdf.ln(12)
+    pdf.set_font(SERIF, "", 42)
     pdf.set_text_color(*WHITE)
     pdf.cell(0, 18, "Guia de la App", align="C")
-    pdf.ln(20)
+    pdf.ln(22)
     pdf.set_font(SERIF, "", 22)
     pdf.set_text_color(*GOLD_SOFT)
     pdf.cell(0, 12, "para tu Barberia", align="C")
-    pdf.ln(22)
+    pdf.ln(24)
     # banda
     pdf.set_draw_color(*GOLD)
     pdf.set_line_width(0.5)
     pdf.line(55, pdf.get_y(), 155, pdf.get_y())
-    pdf.ln(8)
+    pdf.ln(9)
     pdf.set_font(FONT, "", 11)
     pdf.set_text_color(210, 205, 195)
     pdf.multi_cell(0, 6,
