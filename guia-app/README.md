@@ -19,8 +19,12 @@ pip install fpdf2 pillow
 ```bash
 python3 generar_guia_pdf.py
 ```
-El resultado se guarda en la raíz del repo como `Guia-App-Barberia.pdf`.
+Genera **dos versiones**:
+- `Guia-App-Barberia.pdf` (raíz del repo) — **con placeholders**. Es el máster que
+  descarga el dueño para personalizar la guía de cada local con sus propias capturas.
+- `gestion-interna/guia-app.pdf` — **sin placeholders**. Es la versión limpia que se
+  ve desde el panel (botón "Guía de la App"), igual para todos los locales.
 
 ## Personalizar por barbería
-- El logo de la portada se toma de `../logo.jpg`. Reemplázalo por el de cada local.
+- La portada usa un ornamento dorado neutral (sin logo), para que sirva a cualquier local.
 - Edita textos y precios de ejemplo en `contenido_guia.py`.

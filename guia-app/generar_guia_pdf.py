@@ -247,7 +247,7 @@ class Guide(FPDF):
 # ---------------------------------------------------------------------------
 # Render de un arbol de bloques
 # ---------------------------------------------------------------------------
-def render_blocks(pdf, blocks):
+def render_blocks(pdf, blocks, placeholders=True):
     for b in blocks:
         t = b[0]
         if t == "h2":
@@ -263,7 +263,8 @@ def render_blocks(pdf, blocks):
         elif t == "callout":
             pdf.callout(b[1], b[2])
         elif t == "ph":
-            pdf.placeholder(b[1], b[2] if len(b) > 2 else 58)
+            if placeholders:
+                pdf.placeholder(b[1], b[2] if len(b) > 2 else 58)
         elif t == "spacer":
             pdf.spacer(b[1] if len(b) > 1 else 2)
 
@@ -274,7 +275,7 @@ def render_blocks(pdf, blocks):
 from contenido_guia import SECCIONES, COVER  # noqa: E402
 
 
-def build():
+def build(out_path, placeholders=True):
     pdf = Guide()
 
     # ---------------- PORTADA ----------------
@@ -367,7 +368,7 @@ def build():
         pdf.current_section = sec["titulo"]
         pdf.section_divider(i, sec["titulo"], sec["subtitulo"])
         pdf.add_page()
-        render_blocks(pdf, sec["bloques"])
+        render_blocks(pdf, sec["bloques"], placeholders=placeholders)
 
     # ---------------- CIERRE ----------------
     pdf.current_section = "Soporte"
@@ -390,11 +391,14 @@ def build():
         "WhatsApp de soporte: +56 9 8356 8212   ·   Escribenos cuando lo necesites: "
         "te ayudamos con la configuracion, el uso diario y cualquier consulta sobre la app.")
 
-    out = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "Guia-App-Barberia.pdf")
-    out = os.path.normpath(out)
+    out = os.path.normpath(out_path)
     pdf.output(out)
-    print("OK ->", out)
+    print("OK ->", out, "(con placeholders)" if placeholders else "(sin placeholders)")
 
 
 if __name__ == "__main__":
-    build()
+    root = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+    # Máster que descarga el dueño para personalizar cada local: CON placeholders
+    build(os.path.join(root, "Guia-App-Barberia.pdf"), placeholders=True)
+    # Versión visible en el panel para todos los locales: SIN placeholders
+    build(os.path.join(root, "gestion-interna", "guia-app.pdf"), placeholders=False)
