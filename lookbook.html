@@ -18,6 +18,7 @@
 
   <!-- Firebase SDKs (para cargar fotos del lookbook) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
   <script src="config.js"></script>
@@ -150,8 +151,9 @@
     <!-- Panel Actions -->
     <div class="flex gap-4">
         <!-- Botón Guardar favorito -->
-        <button onclick="toggleLike(this)" class="w-14 h-14 rounded-[1.25rem] border-2 border-gray-100 flex flex-col items-center justify-center text-gray-400 hover:bg-gray-50 hover:border-gray-200 active:scale-95 transition-all outline-none shrink-0 group">
-          <i class="ph-fill ph-heart text-2xl group-hover:text-red-500 transition-colors pointer-events-none"></i>
+        <button id="likeBtn" onclick="toggleLike(this)" class="w-14 h-14 rounded-[1.25rem] border-2 border-gray-100 flex flex-col items-center justify-center text-gray-400 active:scale-95 transition-all outline-none shrink-0 group">
+          <i class="ph-fill ph-heart text-2xl transition-colors pointer-events-none"></i>
+          <span id="likeCount" class="text-[9px] font-bold leading-none mt-0.5 pointer-events-none"></span>
         </button>
         
         <!-- Botón Principal: Agendar este estilo -->
@@ -169,9 +171,40 @@
     let _lbDocs = [];
     let _activeFilter = 'todos';
     let currentActiveCard = null;
+    let currentPhotoDoc   = null;
 
     function esc(s) {
       return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+    }
+
+    // ── Likes — localStorage ───────────────────────────────────────
+    const _lbTid = window.CURRENT_TENANT_ID || 'elegance';
+    const _likesKey = 'lb_likes_' + _lbTid;
+
+    function getLikedIds() {
+      try { return JSON.parse(localStorage.getItem(_likesKey) || '[]'); }
+      catch { return []; }
+    }
+    function saveLikedIds(ids) {
+      localStorage.setItem(_likesKey, JSON.stringify(ids));
+    }
+
+    function setHeartState(btn, liked) {
+      const heart = btn.querySelector('i');
+      const countEl = btn.querySelector('#likeCount');
+      if (liked) {
+        heart.classList.add('text-red-500');
+        btn.classList.add('border-red-100', 'bg-red-50');
+        btn.classList.remove('text-gray-400');
+        btn.classList.add('text-red-500');
+      } else {
+        heart.classList.remove('text-red-500');
+        btn.classList.remove('border-red-100', 'bg-red-50', 'text-red-500');
+        btn.classList.add('text-gray-400');
+      }
+      // Actualizar contador en el sheet
+      const count = currentPhotoDoc?.likes || 0;
+      if (countEl) countEl.textContent = count > 0 ? count : '';
     }
 
     // ── Filtros ────────────────────────────────────────────────────
@@ -236,13 +269,23 @@
         return;
       }
 
+      const likedIds = getLikedIds();
       grid.innerHTML = visible.map((d, i) => {
         const { url, titulo, categoria } = d;
-        const ratio     = RATIOS[i % RATIOS.length];
-        const label     = titulo || categoria || 'Elegance';
+        const ratio   = RATIOS[i % RATIOS.length];
+        const label   = titulo || categoria || 'Elegance';
+        const likes   = d.likes || 0;
+        const isLiked = likedIds.includes(d.id);
+        const likeBadge = likes > 0
+          ? `<div class="absolute top-2.5 right-2.5 z-20 flex items-center gap-1 bg-black/50 backdrop-blur-sm text-white text-[10px] font-bold px-2 py-1 rounded-xl pointer-events-none">
+               <i class="ph-fill ph-heart ${isLiked ? 'text-red-400' : 'text-white/70'} leading-none" style="font-size:10px"></i>
+               <span class="like-badge-count">${likes}</span>
+             </div>`
+          : '';
         return `
           <div class="break-inside-avoid relative rounded-2xl overflow-hidden group active:scale-[0.97] transition-transform cursor-pointer shadow-sm border border-gray-100 mb-4"
-               onclick="openStyleCard(this,'${esc(label)}')">
+               data-photo-id="${esc(d.id)}"
+               onclick="openStyleCard(this,'${esc(label)}','${esc(d.id)}')">
             <div class="w-full ${ratio} bg-gray-100 overflow-hidden">
               <img src="${esc(url)}" loading="lazy"
                    class="w-full h-full object-cover"
@@ -250,6 +293,7 @@
                    onerror="this.parentElement.parentElement.remove()">
             </div>
             <div class="style-overlay absolute inset-0 bg-black/60 opacity-0 transition-opacity duration-300 z-10"></div>
+            ${likeBadge}
             <div class="absolute bottom-3 left-3 bg-white/95 backdrop-blur text-brand-text text-[10px] font-bold px-3 py-1.5 rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.1)] border border-white z-20">
               <span class="tracking-wide uppercase">${esc(label)}</span>
             </div>
@@ -258,23 +302,43 @@
     }
 
     // ── Cargar desde Firestore ─────────────────────────────────────
-    const _lbTid = window.CURRENT_TENANT_ID || 'elegance';
     const _lbCol = _lbTid === 'elegance'
       ? db.collection('lookbook')
       : db.collection('tenants').doc(_lbTid).collection('lookbook');
 
     _lbCol.orderBy('order', 'asc').onSnapshot(snap => {
       _lbDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      // Sincronizar el doc activo si el sheet está abierto
+      if (currentPhotoDoc) {
+        const updated = _lbDocs.find(d => d.id === currentPhotoDoc.id);
+        if (updated) currentPhotoDoc = updated;
+        const countEl = document.getElementById('likeCount');
+        if (countEl) countEl.textContent = (currentPhotoDoc.likes || 0) > 0 ? currentPhotoDoc.likes : '';
+      }
       buildFilters(_lbDocs);
       renderGrid();
     });
 
     // ── Bottom Sheet ───────────────────────────────────────────────
-    function openStyleCard(cardElement, styleName) {
+    function openStyleCard(cardElement, styleName, photoId) {
       document.querySelectorAll('.style-overlay').forEach(el => el.classList.remove('opacity-100'));
       currentActiveCard = cardElement;
-      cardElement.querySelector('.style-overlay').classList.add('opacity-100');
+      currentPhotoDoc   = _lbDocs.find(d => d.id === photoId) || null;
+      cardElement.querySelector('.style-overlay')?.classList.add('opacity-100');
       document.getElementById('sheetTitle').innerText = styleName;
+
+      // Inicializar estado del corazón
+      const likeBtn = document.getElementById('likeBtn');
+      const countEl = document.getElementById('likeCount');
+      if (likeBtn) {
+        const liked = getLikedIds().includes(photoId);
+        setHeartState(likeBtn, liked);
+        if (countEl) {
+          const n = currentPhotoDoc?.likes || 0;
+          countEl.textContent = n > 0 ? n : '';
+        }
+      }
+
       document.getElementById('backdrop').classList.remove('opacity-0', 'pointer-events-none');
       document.getElementById('bottomSheet').classList.remove('translate-y-full');
     }
@@ -283,19 +347,35 @@
       document.getElementById('backdrop').classList.add('opacity-0', 'pointer-events-none');
       document.getElementById('bottomSheet').classList.add('translate-y-full');
       if (currentActiveCard) {
-        currentActiveCard.querySelector('.style-overlay').classList.remove('opacity-100');
+        currentActiveCard.querySelector('.style-overlay')?.classList.remove('opacity-100');
         currentActiveCard = null;
       }
+      currentPhotoDoc = null;
     }
 
-    function toggleLike(btn) {
-      const heart = btn.querySelector('i');
-      if (heart.classList.contains('text-red-500')) {
-        heart.classList.remove('text-red-500');
-        btn.classList.remove('border-red-100', 'bg-red-50');
+    async function toggleLike(btn) {
+      if (!currentPhotoDoc) return;
+      const id      = currentPhotoDoc.id;
+      const liked   = getLikedIds();
+      const wasLiked = liked.includes(id);
+
+      // Actualizar localStorage y UI de forma optimista
+      if (wasLiked) {
+        saveLikedIds(liked.filter(x => x !== id));
+        currentPhotoDoc = { ...currentPhotoDoc, likes: Math.max(0, (currentPhotoDoc.likes || 0) - 1) };
       } else {
-        heart.classList.add('text-red-500');
-        btn.classList.add('border-red-100', 'bg-red-50');
+        saveLikedIds([...liked, id]);
+        currentPhotoDoc = { ...currentPhotoDoc, likes: (currentPhotoDoc.likes || 0) + 1 };
+      }
+      setHeartState(btn, !wasLiked);
+
+      // Persistir en Firestore (requiere estar autenticado)
+      try {
+        await _lbCol.doc(id).update({
+          likes: firebase.firestore.FieldValue.increment(wasLiked ? -1 : 1)
+        });
+      } catch (_) {
+        // Si falla (no auth o sin conexión), el like local queda igual
       }
     }
   </script>

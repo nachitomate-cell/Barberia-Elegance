@@ -207,7 +207,9 @@ service cloud.firestore {
     // ── /lookbook ──────────────────────────────────────────────────
     match /lookbook/{docId} {
       allow read: if true;
-      allow write: if esStaff('elegance');
+      allow create, delete: if esStaff('elegance');
+      allow update: if esStaff('elegance')
+        || (autenticado() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']));
     }
 
     // ── /settings ──────────────────────────────────────────────────
@@ -489,7 +491,9 @@ service cloud.firestore {
       // ── lookbook ──────────────────────────────────────────────────
       match /lookbook/{docId} {
         allow read: if true;
-        allow write: if esStaff(tid);
+        allow create, delete: if esStaff(tid);
+        allow update: if esStaff(tid)
+          || (autenticado() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes']));
       }
 
       // ── settings ──────────────────────────────────────────────────

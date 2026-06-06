@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Plus, ShoppingBag, Edit2, Trash2, Upload, ImageOff, Power, AlertTriangle, CheckCircle2, XCircle, Clock, Eye, EyeOff, Tag, Package, Download, Share2, X } from 'lucide-react';
+import { Plus, ShoppingBag, Edit2, Trash2, Upload, ImageOff, Power, AlertTriangle, CheckCircle2, XCircle, Clock, Eye, EyeOff, Tag, Package, Download, Share2, X, History, TrendingUp, User, CreditCard, ChevronDown } from 'lucide-react';
 import { addDoc, updateDoc, deleteDoc, doc, getDoc, setDoc, serverTimestamp, onSnapshot, query, where, orderBy, writeBatch } from 'firebase/firestore';
 import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { storage, db } from '../lib/firebase';
@@ -496,6 +496,12 @@ export default function Productos() {
   const [vrForm, setVrForm] = useState({ productId: '', cantidad: 1, barberoId: '', metodoPago: 'Efectivo' });
   const [vrSaving, setVrSaving] = useState(false);
 
+  // Historial de ventas
+  const [ventas,        setVentas]        = useState([]);
+  const [ventasLoading, setVentasLoading] = useState(true);
+  const [filtroPeriodo, setFiltroPeriodo] = useState('mes');  // hoy | semana | mes | todo
+  const [filtroBarberoH, setFiltroBarberoH] = useState('');
+
   // Delivery modal state
   const [entregaModal, setEntregaModal] = useState(null); // reserva object or null
   const [entregaForm, setEntregaForm] = useState({ metodoPago: 'Efectivo', barberoId: '' });
@@ -590,6 +596,18 @@ export default function Productos() {
       setReservas(docs);
       setReservasLoading(false);
     }, () => setReservasLoading(false));
+    return unsub;
+  }, []);
+
+  useEffect(() => {
+    const unsub = onSnapshot(
+      query(tenantCol('product_reservations'), where('status', '==', 'delivered'), orderBy('createdAt', 'desc')),
+      snap => {
+        setVentas(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+        setVentasLoading(false);
+      },
+      () => setVentasLoading(false),
+    );
     return unsub;
   }, []);
 
@@ -945,6 +963,190 @@ export default function Productos() {
           </div>
         )}
       </div>
+
+      {/* ── Historial de Ventas ─────────────────────────────────── */}
+      {(() => {
+        const now   = new Date();
+        const hoy   = now.toISOString().slice(0, 10);
+        const lunes = new Date(now); lunes.setDate(now.getDate() - now.getDay() + (now.getDay() === 0 ? -6 : 1)); const lunesStr = lunes.toISOString().slice(0, 10);
+        const primerDiaMes = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+
+        function fechaStr(v) {
+          if (!v) return '';
+          if (typeof v === 'string') return v.slice(0, 10);
+          if (v?.toDate) return v.toDate().toISOString().slice(0, 10);
+          return '';
+        }
+
+        const ventasFiltradas = ventas.filter(v => {
+          const f = v.fecha || fechaStr(v.createdAt);
+          if (filtroPeriodo === 'hoy'    && f !== hoy)      return false;
+          if (filtroPeriodo === 'semana' && f < lunesStr)   return false;
+          if (filtroPeriodo === 'mes'    && f < primerDiaMes) return false;
+          if (filtroBarberoH && v.barberoId !== filtroBarberoH) return false;
+          return true;
+        });
+
+        const totalMonto   = ventasFiltradas.reduce((s, v) => s + (Number(v.precio) || 0), 0);
+        const totalUnidades = ventasFiltradas.reduce((s, v) => s + (Number(v.cantidad) || 1), 0);
+
+        // Producto más vendido
+        const prodCount = {};
+        ventasFiltradas.forEach(v => { const n = v.productName || '—'; prodCount[n] = (prodCount[n] || 0) + (Number(v.cantidad) || 1); });
+        const topProd = Object.entries(prodCount).sort((a, b) => b[1] - a[1])[0];
+
+        const PERIODO_LABELS = { hoy: 'Hoy', semana: 'Esta semana', mes: 'Este mes', todo: 'Todo' };
+
+        return (
+          <div className="mt-10">
+            {/* Cabecera */}
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
+              <div className="flex items-center gap-2">
+                <History size={16} className="text-emerald-400" />
+                <h2 className="text-sm font-bold text-white uppercase tracking-wide">Historial de Ventas</h2>
+                {!ventasLoading && (
+                  <span className="ml-1 bg-slate-800 text-slate-400 text-xs font-bold px-2 py-0.5 rounded-full border border-slate-700">
+                    {ventasFiltradas.length}
+                  </span>
+                )}
+              </div>
+
+              {/* Filtros */}
+              <div className="flex items-center gap-2 flex-wrap">
+                {/* Período */}
+                <div className="relative">
+                  <select
+                    value={filtroPeriodo}
+                    onChange={e => setFiltroPeriodo(e.target.value)}
+                    className="appearance-none pl-3 pr-7 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-300 focus:outline-none focus:border-emerald-500 cursor-pointer"
+                  >
+                    {Object.entries(PERIODO_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+                  </select>
+                  <ChevronDown size={11} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+                </div>
+
+                {/* Barbero */}
+                {barberos.length > 0 && (
+                  <div className="relative">
+                    <select
+                      value={filtroBarberoH}
+                      onChange={e => setFiltroBarberoH(e.target.value)}
+                      className="appearance-none pl-3 pr-7 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs text-slate-300 focus:outline-none focus:border-emerald-500 cursor-pointer"
+                    >
+                      <option value="">Todos los barberos</option>
+                      {barberos.map(b => <option key={b.id} value={b.id}>{b.nombre}</option>)}
+                    </select>
+                    <ChevronDown size={11} className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* KPIs */}
+            {!ventasLoading && ventasFiltradas.length > 0 && (
+              <div className="grid grid-cols-3 gap-3 mb-5">
+                <div className="px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl">
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Total vendido</p>
+                  <p className="text-lg font-bold text-emerald-400">${totalMonto.toLocaleString('es-CL')}</p>
+                </div>
+                <div className="px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl">
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Unidades</p>
+                  <p className="text-lg font-bold text-white">{totalUnidades}</p>
+                </div>
+                <div className="px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl min-w-0">
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Más vendido</p>
+                  <p className="text-sm font-bold text-white truncate">{topProd ? `${topProd[0]} ×${topProd[1]}` : '—'}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Lista */}
+            {ventasLoading ? (
+              <div className="flex justify-center py-10">
+                <div className="w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : ventasFiltradas.length === 0 ? (
+              <div className="flex items-center gap-3 px-5 py-4 bg-slate-900 border border-slate-800 rounded-xl text-slate-500 text-sm">
+                <TrendingUp size={16} className="text-slate-600 shrink-0" />
+                Sin ventas en {PERIODO_LABELS[filtroPeriodo].toLowerCase()}{filtroBarberoH ? ` para ${barberos.find(b => b.id === filtroBarberoH)?.nombre || 'este barbero'}` : ''}.
+              </div>
+            ) : (
+              <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-800">
+                        <th className="text-left px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wide">Fecha</th>
+                        <th className="text-left px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wide">Producto</th>
+                        <th className="text-left px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wide hidden sm:table-cell">Cliente</th>
+                        <th className="text-left px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wide hidden md:table-cell">Barbero</th>
+                        <th className="text-left px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wide hidden md:table-cell">Pago</th>
+                        <th className="text-right px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wide">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/60">
+                      {ventasFiltradas.map(v => {
+                        const prod = productos?.find(p => p.id === v.productId);
+                        const fecha = v.fecha || fechaStr(v.createdAt);
+                        const qty   = Number(v.cantidad) || 1;
+                        const isDirecta = v.userEmail === 'admin@barberia.cl';
+                        return (
+                          <tr key={v.id} className="hover:bg-slate-800/40 transition-colors">
+                            <td className="px-4 py-3 text-xs text-slate-400 whitespace-nowrap">{fecha}</td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                {prod?.imagen
+                                  ? <img src={prod.imagen} alt="" className="w-7 h-7 rounded-md object-cover shrink-0 border border-slate-700" />
+                                  : <div className="w-7 h-7 rounded-md bg-slate-800 border border-slate-700 flex items-center justify-center shrink-0"><Package size={12} className="text-slate-600" /></div>
+                                }
+                                <div className="min-w-0">
+                                  <p className="text-sm font-medium text-white truncate">{v.productName || '—'}</p>
+                                  {qty > 1 && <p className="text-[10px] text-slate-500">×{qty} unidades</p>}
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 hidden sm:table-cell">
+                              <div className="flex items-center gap-1.5">
+                                <User size={11} className="text-slate-600 shrink-0" />
+                                <span className="text-xs text-slate-400 truncate max-w-[120px]">
+                                  {isDirecta ? 'Venta directa' : (v.userName || '—')}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 hidden md:table-cell">
+                              <span className="text-xs text-slate-400">{v.barberoNombre || '—'}</span>
+                            </td>
+                            <td className="px-4 py-3 hidden md:table-cell">
+                              {v.metodoPago ? (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border border-slate-700 text-slate-400">
+                                  <CreditCard size={9} />{v.metodoPago}
+                                </span>
+                              ) : <span className="text-xs text-slate-600">—</span>}
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              <span className="text-sm font-bold text-emerald-400 whitespace-nowrap">
+                                ${(Number(v.precio) || 0).toLocaleString('es-CL')}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                    {ventasFiltradas.length > 1 && (
+                      <tfoot>
+                        <tr className="border-t border-slate-700">
+                          <td colSpan={5} className="px-4 py-2.5 text-xs font-bold text-slate-400 uppercase tracking-wide">Total</td>
+                          <td className="px-4 py-2.5 text-right text-sm font-bold text-emerald-400">${totalMonto.toLocaleString('es-CL')}</td>
+                        </tr>
+                      </tfoot>
+                    )}
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* SlideOver */}
       <SlideOver isOpen={slide} onClose={() => setSlide(false)}

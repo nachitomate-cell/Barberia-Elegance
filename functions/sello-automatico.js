@@ -217,8 +217,9 @@ async function procesarSello({ tenantId, citaId, citaRef, cita }) {
 
   let uid = clienteData?.uid ?? null;
 
-  // Si el doc de clientes existe pero no tiene uid, buscar en users por teléfono.
-  // Esto ocurre cuando la cita fue creada con un formato de teléfono distinto al del registro.
+  // Si el doc de clientes existe pero no tiene uid, buscar en users por teléfono o email.
+  // Esto ocurre cuando la cita fue creada con un formato de teléfono distinto al del registro
+  // (ej: "+56977669503" vs "+56 9 77669503"), o cuando el user guardó su tel con espacios/+.
   if (!uid) {
     try {
       const rawPhone = (cita.clienteTelefono || '').trim();
@@ -233,6 +234,22 @@ async function procesarSello({ tenantId, citaId, citaRef, cita }) {
       }
     } catch (e) {
       logger.warn(`[Sello] ${citaId}: fallback uid por teléfono falló: ${e.message}`);
+    }
+  }
+
+  // Fallback final: buscar por email si aún no se encontró uid.
+  // Cubre el caso en que el teléfono almacenado en users tiene un formato
+  // diferente al de la cita (espacios, +, largo distinto).
+  if (!uid && clienteEmail) {
+    try {
+      const q = await cols.users.where('email', '==', clienteEmail.toLowerCase().trim()).limit(1).get();
+      if (!q.empty) {
+        uid = q.docs[0].id;
+        await clienteRef.update({ uid });
+        logger.info(`[Sello] ${citaId}: uid resuelto por email (${clienteEmail})`);
+      }
+    } catch (e) {
+      logger.warn(`[Sello] ${citaId}: fallback uid por email falló: ${e.message}`);
     }
   }
 

@@ -1437,27 +1437,16 @@
         try {
           const methods = await auth.fetchSignInMethodsForEmail(email);
           if (!methods || methods.length === 0) {
-            // No existe cuenta Auth para este email → crearla on-the-fly con la
-            // password default de Aura. Cliente migrado entra al Club sin friction.
-            showLoading('Creando tu acceso al Club...');
-            try {
-              const cred = await auth.createUserWithEmailAndPassword(email, clubPassword());
-              await ensureUserDoc(cred.user);
-              goToDashboard();
-              return;
-            } catch (createErr) {
-              hideLoading();
-              // Race condition: alguien la creó entre fetchMethods y createUser
-              if (createErr.code === 'auth/email-already-in-use') {
-                _auraForceCustomPassword = true;
-                document.body.classList.add('show-password-fallback');
-                document.getElementById('loginPassword').value = '';
-                showAlert('Tu cuenta ya está registrada y requiere tu contraseña registrada (solo por esta vez para migrarla).', false);
-                return;
-              }
-              showAlert(friendlyError(createErr.code));
-              return;
-            }
+            // No existe cuenta Auth para este email → redirigir a registro para
+            // que el cliente ingrese nombre y teléfono. Así evitamos crear docs
+            // sin nombre en la colección users.
+            hideLoading();
+            switchTab('register');
+            document.getElementById('regEmail').value = email;
+            document.getElementById('regEmail').dispatchEvent(new Event('input'));
+            showAlert('Parece que es tu primera vez. Completa tu nombre y teléfono para unirte al Club.', false);
+            setTimeout(() => document.getElementById('regNombre')?.focus(), 100);
+            return;
           }
           // Existe cuenta pero password distinta → pedir password real al usuario.
           _auraForceCustomPassword = true;

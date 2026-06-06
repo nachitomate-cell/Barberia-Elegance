@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Images, Trash2, Upload, Plus, GripVertical, Power, AlertTriangle, Crosshair } from 'lucide-react';
+import { Images, Trash2, Upload, Plus, GripVertical, Power, AlertTriangle, Crosshair, Heart } from 'lucide-react';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 import {
   addDoc, deleteDoc, doc, orderBy,
@@ -377,6 +377,13 @@ export default function Lookbook() {
                     objectPosition: `${foto.focalX ?? 50}% ${foto.focalY ?? 50}%`
                   }}
                 />
+                {/* Like count badge */}
+                {(foto.likes || 0) > 0 && (
+                  <div className="absolute top-2 left-2 z-10 flex items-center gap-1 bg-black/60 backdrop-blur-sm rounded-lg px-1.5 py-0.5 pointer-events-none">
+                    <Heart size={9} className="text-red-400 fill-red-400" />
+                    <span className="text-[10px] font-bold text-white">{foto.likes}</span>
+                  </div>
+                )}
                 {/* Punto Focal Indicador en miniatura (sutil) */}
                 {foto.focalY !== undefined && (
                   <div
