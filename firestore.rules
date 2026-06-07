@@ -307,6 +307,15 @@ service cloud.firestore {
       allow delete: if esAdmin('elegance');
     }
 
+    // ── /userPublic ────────────────────────────────────────────────
+    // Perfil PÚBLICO para "comparar con un amigo": solo campos no
+    // sensibles (nombre, sellos históricos, foto). Cada quien escribe
+    // el suyo (id == su uid); cualquier miembro autenticado puede leer.
+    match /userPublic/{userId} {
+      allow read:  if autenticado();
+      allow write: if autenticado() && (uid() == userId || esStaff('elegance'));
+    }
+
     // ── /resenas ───────────────────────────────────────────────────
     // Creadas desde el ReviewModal al completar una cita.
     // Staff lee para analytics; cualquier staff puede escribir.
@@ -571,6 +580,13 @@ service cloud.firestore {
                       && sinCambio('tenantId')
                       && sinCambio('rol');
         allow delete: if esAdmin(tid);
+      }
+
+      // ── userPublic ────────────────────────────────────────────────
+      // Perfil público para "comparar con un amigo" (campos no sensibles).
+      match /userPublic/{userId} {
+        allow read:  if autenticado();
+        allow write: if autenticado() && (uid() == userId || esStaff(tid));
       }
 
       // ── resenas ───────────────────────────────────────────────────

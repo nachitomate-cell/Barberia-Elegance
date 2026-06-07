@@ -3935,10 +3935,13 @@
       <div id="profileCompareSection" class="mb-6">
         <h3 class="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-3 px-1">Comparar con un amigo</h3>
         <div class="rounded-2xl border border-white/8 bg-white/5 p-4">
+          <!-- Mis amigos guardados (se llena dinámicamente) -->
+          <div id="amigosListContainer"></div>
           <div class="flex gap-2">
-            <input id="amigoEmailInput" type="email" placeholder="Correo del amigo"
+            <input id="amigoEmailInput" type="text" inputmode="search" placeholder="Nombre o correo del amigo"
               class="flex-1 rounded-xl px-3 py-2.5 text-sm focus:outline-none"
               style="background:#111118;border:1px solid rgba(255,255,255,0.12);color:#ffffff;caret-color:#ffffff;"
+              onkeydown="if(event.key==='Enter'){event.preventDefault();buscarAmigo();}"
               onfocus="this.style.borderColor='rgba(255,255,255,0.3)'" onblur="this.style.borderColor='rgba(255,255,255,0.12)'">
             <button onclick="buscarAmigo()"
               class="px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all active:scale-95 shrink-0"
@@ -4816,6 +4819,10 @@ async function subscribeUserData(user) {
     _stampsSynced = true;
     userStamps    = disponibles;
 
+    // Perfil público (para que amigos me encuentren/comparen) + mi lista de amigos
+    syncUserPublic(data);
+    renderAmigos(data.amigos || []);
+
     document.title = `Hola, ${nombre.split(' ')[0]} | ${SHOP.nombre}`;
 
     if (user.photoURL) {
@@ -5647,46 +5654,186 @@ function validatePhone(value) {
   return /^\+56\s?9\s?\d{4}\s?\d{4}$/.test(value.trim());
 }
 
-// ─── Comparar rango con amigo ─────────────────────────────────
+// ─── Comparar / amigos ────────────────────────────────────────
+// Helpers compartidos
+function _normalizarNombre(s) {
+  return (s || '')
+    .normalize('NFD').replace(/[̀-ͯ]/g, '') // quita acentos
+    .toLowerCase().trim().replace(/\s+/g, ' ');
+}
+function _tierInfo(historicos) {
+  const tierKey = historicos >= 25 ? 'platinum' : historicos >= 10 ? 'gold' : 'silver';
+  return { tierKey, tierLabel: tierKey.charAt(0).toUpperCase() + tierKey.slice(1) };
+}
+function _escAttr(s) {
+  return (s || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
+// Colección PÚBLICA (solo campos no sensibles) tenant-aware.
+function _userPublicCol() {
+  const tid = window.CURRENT_TENANT_ID || 'elegance';
+  return tid === 'elegance'
+    ? db.collection('userPublic')
+    : db.collection('tenants').doc(tid).collection('userPublic');
+}
+
+// Espeja mi perfil público para que mis amigos puedan encontrarme/compararme.
+// Se llama desde el snapshot de userUnsub; solo escribe si algo cambió.
+let _pubKey = null;
+async function syncUserPublic(data) {
+  if (!currentUser) return;
+  const nombre = data.nombre || currentUser.displayName || '';
+  const pub = {
+    uid:              currentUser.uid,
+    nombre,
+    nombreLower:      _normalizarNombre(nombre),
+    emailLower:       (currentUser.email || data.email || '').toLowerCase(),
+    sellosHistoricos: data.sellosHistoricos ?? data.stamps ?? 0,
+    photoURL:         currentUser.photoURL || data.photoURL || null,
+  };
+  const key = JSON.stringify(pub);
+  if (key === _pubKey) return; // sin cambios → no reescribir
+  _pubKey = key;
+  try { await _userPublicCol().doc(currentUser.uid).set(pub, { merge: true }); }
+  catch (e) { console.warn('[userPublic]', e.message); }
+}
+
+// Render de una fila (resultado de búsqueda o amigo guardado)
+function _amigoRowHtml({ uid, nombre, email, historicos, esAmigo }) {
+  const { tierKey, tierLabel } = _tierInfo(historicos);
+  const visitas   = historicos;
+  const iniciales = (nombre || '?').split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  const eU = _escAttr(uid), eN = _escAttr(nombre), eE = _escAttr(email);
+  const accion = esAmigo
+    ? `<button onclick="quitarAmigo('${eU}')" title="Quitar amigo"
+         class="shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-white/40 active:scale-95 transition-all"
+         style="border:1px solid rgba(255,255,255,0.12);"><i class="ph-bold ph-x text-sm"></i></button>`
+    : `<button onclick="agregarAmigo(this,'${eU}','${eN}','${eE}')"
+         class="shrink-0 px-3 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-wide transition-all active:scale-95"
+         style="background:var(--gold-glow);color:var(--gold);border:1px solid var(--gold-dim);">+ Amigo</button>`;
+  return `
+    <div class="flex items-center gap-3 p-3 rounded-xl bg-black/30 border border-white/8 mb-2">
+      <div class="w-11 h-11 rounded-full flex items-center justify-center shrink-0 font-black text-sm"
+        style="background:var(--gold-glow);color:var(--gold);border:1px solid var(--gold-dim);">${iniciales}</div>
+      <div class="flex-1 min-w-0">
+        <p class="font-bold text-white text-sm truncate">${nombre}</p>
+        ${email ? `<p class="text-[11px] text-white/35 truncate">${email}</p>` : ''}
+      </div>
+      <div class="flex flex-col items-end gap-1">
+        <span class="tier-badge ${tierKey}">${tierLabel}</span>
+        <span class="text-[10px] text-white/30">${visitas} visita${visitas !== 1 ? 's' : ''}</span>
+      </div>
+      ${accion}
+    </div>`;
+}
+
+// Buscar por NOMBRE (prefijo, sin mayúsculas/acentos) o por CORREO (exacto).
 async function buscarAmigo() {
-  const input = document.getElementById('amigoEmailInput');
+  const input  = document.getElementById('amigoEmailInput');
   const result = document.getElementById('amigoResult');
-  const email = (input.value || '').trim().toLowerCase();
-  if (!email) { input.focus(); return; }
+  const termRaw = (input.value || '').trim();
+  if (!termRaw) { input.focus(); return; }
 
   result.innerHTML = `<div class="flex justify-center py-4"><div class="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div></div>`;
   result.classList.remove('hidden');
 
   try {
-    const qs = await FDB.usersCol().where('email', '==', email).get();
-    if (qs.empty) {
-      result.innerHTML = `<p class="text-center text-sm text-white/35 py-2">No encontramos ningún usuario con ese correo.</p>`;
+    let docs = [];
+    if (termRaw.includes('@')) {
+      const qs = await _userPublicCol().where('emailLower', '==', termRaw.toLowerCase()).limit(10).get();
+      docs = qs.docs;
+    } else {
+      const norm = _normalizarNombre(termRaw);
+      const qs = await _userPublicCol()
+        .where('nombreLower', '>=', norm)
+        .where('nombreLower', '<=', norm + '')
+        .limit(10).get();
+      docs = qs.docs;
+    }
+
+    // Excluirme a mí mismo
+    docs = docs.filter(d => d.id !== (currentUser && currentUser.uid));
+
+    if (!docs.length) {
+      result.innerHTML = `<p class="text-center text-sm text-white/35 py-2">No encontramos a nadie con ${termRaw.includes('@') ? 'ese correo' : 'ese nombre'}.</p>`;
       return;
     }
-    const data = qs.docs[0].data();
-    const nombre = data.nombre || 'Usuario';
-    const historicos = data.sellosHistoricos ?? data.stamps ?? 0;
-    const tierKey = historicos >= 25 ? 'platinum' : historicos >= 10 ? 'gold' : 'silver';
-    const tierLabel = tierKey.charAt(0).toUpperCase() + tierKey.slice(1);
-    const visitas = historicos;
 
-    const iniciales = nombre.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
-
-    result.innerHTML = `
-      <div class="flex items-center gap-3 p-3 rounded-xl bg-black/30 border border-white/8">
-        <div class="w-11 h-11 rounded-full flex items-center justify-center shrink-0 font-black text-sm"
-          style="background:var(--gold-glow);color:var(--gold);border:1px solid var(--gold-dim);">${iniciales}</div>
-        <div class="flex-1 min-w-0">
-          <p class="font-bold text-white text-sm truncate">${nombre}</p>
-          <p class="text-[11px] text-white/35 truncate">${email}</p>
-        </div>
-        <div class="flex flex-col items-end gap-1">
-          <span class="tier-badge ${tierKey}">${tierLabel}</span>
-          <span class="text-[10px] text-white/30">${visitas} visita${visitas !== 1 ? 's' : ''}</span>
-        </div>
-      </div>`;
-  } catch(e) {
+    result.innerHTML = docs.map(doc => {
+      const d = doc.data();
+      return _amigoRowHtml({
+        uid:        doc.id,
+        nombre:     d.nombre || 'Usuario',
+        email:      d.emailLower || '',
+        historicos: d.sellosHistoricos ?? 0,
+        esAmigo:    _misAmigos.includes(doc.id),
+      });
+    }).join('');
+  } catch (e) {
+    console.warn('[buscarAmigo]', e.message);
     result.innerHTML = `<p class="text-center text-sm text-white/35 py-2">Error al buscar. Intenta de nuevo.</p>`;
+  }
+}
+
+// Agregar a mi lista personal de amigos (array en mi propio doc users/{uid}).
+async function agregarAmigo(btn, uid, nombre, email) {
+  if (!currentUser || !uid || uid === currentUser.uid) return;
+  if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; }
+  try {
+    await FDB.usersCol().doc(currentUser.uid).update({
+      amigos: firebase.firestore.FieldValue.arrayUnion(uid)
+    });
+    if (btn) btn.textContent = 'Agregado ✓';
+    showToast('Amigo agregado', 'ok');
+  } catch (e) {
+    if (btn) { btn.disabled = false; btn.style.opacity = ''; }
+    showToast('No se pudo agregar', 'err');
+  }
+}
+
+async function quitarAmigo(uid) {
+  if (!currentUser || !uid) return;
+  try {
+    await FDB.usersCol().doc(currentUser.uid).update({
+      amigos: firebase.firestore.FieldValue.arrayRemove(uid)
+    });
+    showToast('Amigo eliminado', 'info'); // la lista se refresca vía snapshot
+  } catch (_) { showToast('No se pudo quitar', 'err'); }
+}
+
+// Renderiza mi lista de amigos guardados con su nivel actual.
+// Se llama desde el snapshot de userUnsub; solo refetcha si la lista cambió.
+let _misAmigos  = [];
+let _amigosKey  = null;
+async function renderAmigos(amigosUids) {
+  _misAmigos = Array.isArray(amigosUids) ? amigosUids.filter(Boolean) : [];
+  const cont = document.getElementById('amigosListContainer');
+  if (!cont) return;
+
+  const key = JSON.stringify([..._misAmigos].sort());
+  if (key === _amigosKey) return; // sin cambios → no leer Firestore de nuevo
+  _amigosKey = key;
+
+  if (!_misAmigos.length) { cont.innerHTML = ''; return; }
+
+  cont.innerHTML = `<div class="flex justify-center py-3"><div class="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin"></div></div>`;
+  try {
+    const snaps = await Promise.all(_misAmigos.map(uid => _userPublicCol().doc(uid).get()));
+    const rows = snaps.filter(s => s.exists).map(s => {
+      const d = s.data();
+      return _amigoRowHtml({
+        uid:        s.id,
+        nombre:     d.nombre || 'Usuario',
+        email:      d.emailLower || '',
+        historicos: d.sellosHistoricos ?? 0,
+        esAmigo:    true,
+      });
+    });
+    cont.innerHTML = rows.length
+      ? `<p class="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-2 px-1">Tus amigos</p>${rows.join('')}`
+      : '';
+  } catch (_) {
+    cont.innerHTML = '';
   }
 }
 
