@@ -248,6 +248,15 @@ service cloud.firestore {
       allow read:  if esBootstrap();
     }
 
+    // ── /notification_logs ─────────────────────────────────────────
+    // Auditoría global de push/email/WhatsApp. Lo escriben las Cloud
+    // Functions (admin SDK, ignora reglas). Solo el superadmin lo lee
+    // desde el portal /admin.
+    match /notification_logs/{docId} {
+      allow read:  if esBootstrap();
+      allow write: if false;
+    }
+
     // ── /servicioFavorito ──────────────────────────────────────────
     // Foto personalizada por cliente. Staff asigna; cliente lee/sube la suya.
     match /servicioFavorito/{docId} {

@@ -345,15 +345,6 @@ export default function ListaEspera() {
         </div>
       )}
 
-      {/* Info box */}
-      <div className="flex items-start gap-3 p-4 rounded-xl bg-blue-500/5 border border-blue-500/15">
-        <Bell size={16} className="text-blue-400 mt-0.5 shrink-0" />
-        <p className="text-xs text-slate-400 leading-relaxed">
-          Cuando se cancela una cita, el sistema intenta notificar automáticamente al primer cliente
-          en espera para la misma fecha via WhatsApp si tiene teléfono registrado.
-        </p>
-      </div>
-
       {showAdd && <AddModal onClose={() => setShowAdd(false)} />}
     </div>
   );

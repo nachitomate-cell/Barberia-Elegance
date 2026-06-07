@@ -5,7 +5,7 @@ import {
   Trophy, ShoppingBag, Images, LogOut, ChevronRight,
   Sun, Moon, ExternalLink, Settings, TrendingDown, MessageCircle, X,
   Megaphone, ImagePlus, CreditCard, Monitor, Headphones, Medal, Camera, GraduationCap, Wallet, Package, ThumbsUp,
-  Globe, Banknote, Gift, ClipboardList, Building2, Bell,
+  Globe, Banknote, Gift, ClipboardList, Building2,
 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { doc, onSnapshot, where } from 'firebase/firestore';
@@ -76,7 +76,6 @@ const NAV_GROUPS_DEFAULT = [
       { to: 'tv-config',     label: 'Pantalla TV',    Icon: Monitor,     adminOnly: true },
       { to: 'configuracion', label: 'Configuración',  Icon: Settings,    adminOnly: true },
       { to: 'soporte',       label: 'Soporte',        Icon: Headphones,  adminOnly: true },
-      { to: 'notif-log',    label: 'Log Notif.',     Icon: Bell,        adminOnly: true },
     ],
   },
 ];

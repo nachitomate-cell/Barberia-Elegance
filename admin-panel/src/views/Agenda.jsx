@@ -6,7 +6,7 @@ import {
   User, Phone, Mail, Scissors, CalendarDays, DollarSign,
   Timer, MessageSquare, BadgeCheck, Search, ListFilter, MapPin,
   Send, Download, RefreshCw, Copy, Check, ShoppingBag, Gift,
-  Users, Eye, UserPlus,
+  Users, Eye, UserPlus, MoreHorizontal,
 } from 'lucide-react';
 import {
   addDoc, updateDoc, deleteDoc, doc, getDoc, serverTimestamp, where, orderBy, limit, writeBatch, getDocs, query,
@@ -1787,6 +1787,25 @@ function DifusionPanel({ citas, bloqueos, barberos, dateStr, tenantId }) {
   );
 }
 
+/* ── Toolbar overflow menu item ──────────────────────────────── */
+function MenuItem({ icon: Icon, label, onClick, active, badge, accent }) {
+  const tone = accent === 'amber'
+    ? 'text-amber-400 hover:bg-amber-500/10'
+    : active
+      ? 'text-red-400 bg-red-500/10'
+      : 'text-slate-300 hover:bg-slate-800 hover:text-white';
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${tone}`}
+    >
+      <Icon size={15} className="shrink-0" />
+      <span className="flex-1 text-left">{label}</span>
+      {badge && <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />}
+    </button>
+  );
+}
+
 /* ── Main Agenda component ───────────────────────────────────── */
 const LS_LAST_SEEN = 'agenda_last_seen_cita';
 
@@ -1808,6 +1827,15 @@ export default function Agenda() {
   const [showDifusionModal, setShowDifusionModal] = useState(false);
   const [soloBarbero,   setSoloBarbero]   = useState(null);   // id del barbero enfocado (null = todos)
   const [labelStep,     setLabelStep]     = useState(15);     // minutos entre etiquetas visibles en el eje
+  const [showMenu,      setShowMenu]      = useState(false);  // menú "Más" de acciones secundarias
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    if (!showMenu) return;
+    const handler = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setShowMenu(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showMenu]);
 
   const [searchParams, setSearchParams] = useSearchParams();
   useEffect(() => {
@@ -1992,75 +2020,77 @@ export default function Agenda() {
 
         <div className="flex-1" />
 
-        <button
-          onClick={() => setShowDifusionModal(true)}
-          className="p-1.5 rounded-lg border border-slate-700 text-slate-400 hover:text-white hover:border-slate-600 transition-all hover:bg-slate-800/40 shrink-0"
-          title="Canal de difusión"
-        >
-          <Send size={14} />
-        </button>
-
-        <button
-          onClick={() => setBlockMode(v => !v)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
-            blockMode
-              ? 'border-red-500/60 bg-red-500/10 text-red-400'
-              : 'border-slate-700 text-slate-400 hover:text-white hover:border-slate-600'
-          }`}
-        >
-          <Ban size={14} /> {blockMode ? 'Modo bloqueo activo' : 'Bloquear horas'}
-        </button>
-
-        <button
-          onClick={() => setBlqModal({ barberoId: '', hora: '', tipo: 'dia' })}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-700 text-slate-400 hover:text-red-400 hover:border-red-500/40 transition-all"
-        >
-          <CalendarOff size={14} /> Cerrar día
-        </button>
-
-        <button
-          onClick={() => {
-            setShowUltima(true);
-            if (ultimaCita?.id) {
-              localStorage.setItem(LS_LAST_SEEN, ultimaCita.id);
-              setHasNewCita(false);
-            }
-          }}
-          className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
-            hasNewCita
-              ? 'border-emerald-500/60 bg-emerald-500/10 text-emerald-400'
-              : 'border-slate-700 text-slate-400 hover:text-white hover:border-slate-600'
-          }`}
-          title="Últimas citas agendadas"
-        >
-          <History size={14} /> Últimas citas
-          {hasNewCita && (
-            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-slate-900 animate-pulse" />
-          )}
-        </button>
-
-        <button
-          onClick={() => setShowHistorial(true)}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-700 text-slate-400 hover:text-white hover:border-slate-600 transition-all"
-          title="Historial de citas"
-        >
-          <ListFilter size={14} /> Historial
-        </button>
-
-        <button
-          onClick={() => setCitaModal({ cita: null, barberoId: barberos[0]?.id || '', hora: '09:00', sobrecupo: true })}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border border-amber-500/50 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 transition-all"
-          title="Agregar un sobrecupo (cita extra en un horario, sin bloquear disponibilidad)"
-        >
-          <UserPlus size={14} /> Sobrecupo
-        </button>
-
+        {/* Acción primaria */}
         <button
           onClick={() => setCitaModal({ cita: null, barberoId: barberos[0]?.id || '', hora: '09:00' })}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition-all"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition-all shrink-0"
         >
           <Plus size={14} /> Nueva cita
         </button>
+
+        {/* Menú de acciones secundarias */}
+        <div className="relative shrink-0" ref={menuRef}>
+          <button
+            onClick={() => setShowMenu(v => !v)}
+            className={`relative flex items-center justify-center w-8 h-8 rounded-lg border transition-all ${
+              showMenu || blockMode
+                ? 'border-slate-600 bg-slate-800 text-white'
+                : 'border-slate-700 text-slate-400 hover:text-white hover:border-slate-600'
+            }`}
+            title="Más acciones"
+          >
+            <MoreHorizontal size={16} />
+            {(hasNewCita || blockMode) && !showMenu && (
+              <span className={`absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border-2 border-slate-900 animate-pulse ${blockMode ? 'bg-red-500' : 'bg-emerald-500'}`} />
+            )}
+          </button>
+
+          {showMenu && (
+            <div className="absolute right-0 top-full mt-1.5 w-56 rounded-xl border border-slate-700 bg-slate-900 shadow-2xl z-30 p-1.5">
+              <MenuItem
+                icon={UserPlus}
+                label="Sobrecupo"
+                accent="amber"
+                onClick={() => { setShowMenu(false); setCitaModal({ cita: null, barberoId: barberos[0]?.id || '', hora: '09:00', sobrecupo: true }); }}
+              />
+              <MenuItem
+                icon={Ban}
+                label={blockMode ? 'Modo bloqueo activo' : 'Bloquear horas'}
+                active={blockMode}
+                onClick={() => { setShowMenu(false); setBlockMode(v => !v); }}
+              />
+              <MenuItem
+                icon={CalendarOff}
+                label="Cerrar día"
+                onClick={() => { setShowMenu(false); setBlqModal({ barberoId: '', hora: '', tipo: 'dia' }); }}
+              />
+              <div className="h-px bg-slate-800 my-1" />
+              <MenuItem
+                icon={History}
+                label="Últimas citas"
+                badge={hasNewCita}
+                onClick={() => {
+                  setShowMenu(false);
+                  setShowUltima(true);
+                  if (ultimaCita?.id) {
+                    localStorage.setItem(LS_LAST_SEEN, ultimaCita.id);
+                    setHasNewCita(false);
+                  }
+                }}
+              />
+              <MenuItem
+                icon={ListFilter}
+                label="Historial"
+                onClick={() => { setShowMenu(false); setShowHistorial(true); }}
+              />
+              <MenuItem
+                icon={Send}
+                label="Canal de difusión"
+                onClick={() => { setShowMenu(false); setShowDifusionModal(true); }}
+              />
+            </div>
+          )}
+        </div>
       </div>
 
       {diaGlobalCerrado && (
