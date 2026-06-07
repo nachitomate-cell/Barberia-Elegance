@@ -19,6 +19,19 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
+// ── Confirmación de entrega/click ────────────────────────────────
+// Reporta al backend cuando una push se MUESTRA o se TOCA, para poder
+// visualizar en /admin que el cliente efectivamente recibió la alerta.
+const _CONFIRM_URL = 'https://us-central1-barberia-elegance.cloudfunctions.net/confirmarEntregaPush';
+function _reportPush(logId, evento) {
+  if (!logId) return Promise.resolve();
+  return fetch(_CONFIRM_URL, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({ logId, event: evento }),
+  }).catch(() => {});
+}
+
 // ── 3. CACHE ─────────────────────────────────────────────────────
 const CACHE_VERSION = 'saas-v21';
 const STATIC_ASSETS = [
@@ -153,6 +166,7 @@ messaging.onBackgroundMessage(payload => {
   const tipo       = payload.data?.tipo || null;
   const citaId     = payload.data?.citaId || null;
   const tenantId   = payload.data?.tenantId || null;
+  const logId      = payload.data?.logId || null;
 
   const notifTitle = payload.notification?.title || payload.data?.title || 'Nueva reserva';
   const body       = payload.notification?.body  || payload.data?.body  || 'Tienes una nueva cita agendada.';
@@ -184,6 +198,7 @@ messaging.onBackgroundMessage(payload => {
       citaId,
       tipo,
       tenantId,
+      logId,
     },
     actions,
   };
@@ -191,7 +206,11 @@ messaging.onBackgroundMessage(payload => {
   // Badge en el ícono de la PWA (reaparece aunque la app esté cerrada)
   self.navigator?.setAppBadge?.().catch?.(() => {});
 
-  return self.registration.showNotification(notifTitle, notifOptions);
+  // Mostrar la notificación y, en paralelo, confirmar la entrega.
+  return Promise.all([
+    self.registration.showNotification(notifTitle, notifOptions),
+    _reportPush(logId, 'delivered'),
+  ]);
 });
 
 // ── 5. CLIC EN LA NOTIFICACIÓN ───────────────────────────────────
@@ -205,6 +224,9 @@ self.addEventListener('notificationclick', event => {
   const tipo     = data.tipo;
   const citaId   = data.citaId;
   const tenantId = data.tenantId || '';
+
+  // Confirmar el click (también marca entregado) en paralelo a la navegación.
+  if (data.logId) event.waitUntil(_reportPush(data.logId, 'clicked'));
 
   let targetUrl;
   if (tipo === 'recordatorio' && citaId && (action === 'confirmar' || action === 'cancelar')) {

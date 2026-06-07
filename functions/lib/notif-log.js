@@ -23,7 +23,7 @@ const { Timestamp } = require('firebase-admin/firestore');
  */
 async function writeNotifLog(db, payload) {
   try {
-    await db.collection('notification_logs').add({
+    const ref = await db.collection('notification_logs').add({
       tenantId: payload.tenantId || '',
       type:     payload.type,
       channel:  payload.channel,
@@ -36,10 +36,18 @@ async function writeNotifLog(db, payload) {
       error:  payload.error || null,
       meta:   payload.meta  || {},
       sentAt: Timestamp.now(),
+      // Confirmación de entrega/click (solo push). Las actualiza la función
+      // confirmarEntregaPush cuando el Service Worker del cliente reporta.
+      delivered:   false,
+      deliveredAt: null,
+      clicked:     false,
+      clickedAt:   null,
     });
+    return ref.id;
   } catch (err) {
     const { logger } = require('firebase-functions');
     logger.warn('[notif-log] write failed:', err.message);
+    return null;
   }
 }
 

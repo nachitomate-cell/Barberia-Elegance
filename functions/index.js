@@ -631,6 +631,13 @@ exports.recordatorioCita24h   = recordatorioCita.recordatorioCita24h;
 exports.recordatorioCita1h    = recordatorioCita.recordatorioCita1h;
 exports.recordatorioCita30min = recordatorioCita.recordatorioCita30min;
 
+// ─────────────────────────────────────────────────────────────────
+//  CONFIRMACIÓN DE ENTREGA / CLICK DE PUSH — ver confirmar-entrega.js
+//  Endpoint HTTP que el Service Worker llama para marcar deliveredAt/clickedAt.
+// ─────────────────────────────────────────────────────────────────
+const confirmarEntrega = require('./confirmar-entrega');
+exports.confirmarEntregaPush = confirmarEntrega.confirmarEntregaPush;
+
 
 // ─────────────────────────────────────────────────────────────────
 //  CONFIRMACIÓN DE CITA POR EMAIL — ver confirmacion-cita.js

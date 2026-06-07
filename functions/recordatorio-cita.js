@@ -767,6 +767,17 @@ exports.recordatorioCita30min = onSchedule(
       const servicio = cita.servicioNombre || cita.servicio || '';
       const cuerpo   = `¡Hola ${nombre}! Tu cita${barbero ? ` con ${barbero}` : ''} es a las ${hora} hrs. ¡Te esperamos! 💈`;
 
+      // Crear el registro ANTES de enviar para incrustar su id (logId) en la
+      // push: así el Service Worker del cliente puede confirmar entrega/click.
+      const logId = await writeNotifLog(db, {
+        tenantId,
+        type:    'push_recordatorio_30min',
+        channel: 'push',
+        status:  'sent',
+        to:      { nombre, email: cita.clienteEmail || '' },
+        meta:    { citaId, servicio, fecha: cita.fecha || '', hora },
+      });
+
       const invalidos = [];
       let enviados = 0;
       await Promise.all(tokens.map(async (t) => {
@@ -781,6 +792,7 @@ exports.recordatorioCita30min = onSchedule(
               citaId,
               tipo:     'recordatorio',
               tenantId,
+              logId:    logId || '',
             },
             webpush: {
               headers: { Urgency: 'high' },
@@ -819,17 +831,11 @@ exports.recordatorioCita30min = onSchedule(
       }
 
       if (enviados > 0) {
-        logger.info(`[Recordatorio 30min] ✓ ${tenantId}/${citaId} → ${enviados} push`);
-        await writeNotifLog(db, {
-          tenantId,
-          type:    'push_recordatorio_30min',
-          channel: 'push',
-          status:  'sent',
-          to:      { nombre, email: cita.clienteEmail || '' },
-          meta:    { citaId, servicio, fecha: cita.fecha || '', hora },
-        });
+        logger.info(`[Recordatorio 30min] ✓ ${tenantId}/${citaId} → ${enviados} push (log ${logId || '-'})`);
       } else {
-        // Ningún envío exitoso → desmarcar para reintentar en el próximo ciclo.
+        // Ningún envío exitoso → marcar el log como fallido y desmarcar la cita
+        // para reintentar en el próximo ciclo.
+        if (logId) await db.collection('notification_logs').doc(logId).update({ status: 'failed' }).catch(() => {});
         await ref.update({ recordatorio30minEnviado: false }).catch(() => {});
       }
     }

@@ -3025,6 +3025,18 @@
           const estado = `<span class="notif-chip" style="background:rgba(${ok ? '52,211,153' : '248,113,113'},0.1);color:${ok ? '#34d399' : '#f87171'};">${ok ? 'Enviado' : 'Fallido'}</span>`
             + (log.error ? `<div style="font-size:.65rem;color:rgba(248,113,113,0.6);margin-top:.25rem;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escHtml(log.error)}">${escHtml(log.error)}</div>` : '');
 
+          // Entrega/click: solo las push tienen confirmación desde el Service Worker.
+          let entrega;
+          if (log.channel !== 'push') {
+            entrega = '<span style="color:#475569;">—</span>';
+          } else if (log.clickedAt) {
+            entrega = `<span class="notif-chip" style="background:rgba(96,165,250,0.12);color:#60a5fa;" title="${_notifFmtDT(log.clickedAt)}">👆 Clickeado</span>`;
+          } else if (log.deliveredAt) {
+            entrega = `<span class="notif-chip" style="background:rgba(52,211,153,0.12);color:#34d399;" title="${_notifFmtDT(log.deliveredAt)}">✓ Entregado</span>`;
+          } else {
+            entrega = `<span class="notif-chip" style="background:rgba(148,163,184,0.1);color:#94a3b8;">Sin confirmar</span>`;
+          }
+
           rows += `
             <tr>
               <td style="white-space:nowrap;font-family:monospace;font-size:.75rem;color:#64748b;">${_notifFmtDT(log.sentAt)}</td>
@@ -3033,6 +3045,7 @@
               <td style="min-width:140px;"><div style="color:#f1f5f9;font-size:.78rem;font-weight:500;">${destNombre}</div><div style="color:#64748b;font-size:.72rem;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${destSub}</div></td>
               <td style="font-size:.75rem;color:#94a3b8;white-space:nowrap;">${detalle}</td>
               <td>${estado}</td>
+              <td>${entrega}</td>
             </tr>`;
         }
 
@@ -3044,7 +3057,7 @@
           <div style="overflow-x:auto;border-radius:1rem;border:1px solid rgba(255,255,255,0.06);">
             <table class="err-table">
               <thead><tr>
-                <th>Fecha</th><th>Tenant</th><th>Tipo</th><th>Destinatario</th><th>Detalle</th><th>Estado</th>
+                <th>Fecha</th><th>Tenant</th><th>Tipo</th><th>Destinatario</th><th>Detalle</th><th>Estado</th><th>Entrega</th>
               </tr></thead>
               <tbody>${rows}</tbody>
             </table>

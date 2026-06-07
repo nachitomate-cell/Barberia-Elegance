@@ -5994,6 +5994,15 @@ async function registrarTokenPush() {
           tag:   payload.data?.citaId || 'recordatorio',
           data:  payload.data || {},
         });
+        // Confirmar entrega (app en primer plano).
+        const logId = payload.data?.logId;
+        if (logId) {
+          fetch('https://us-central1-barberia-elegance.cloudfunctions.net/confirmarEntregaPush', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ logId, event: 'delivered' }),
+          }).catch(() => {});
+        }
       });
     }
   } catch (e) {
