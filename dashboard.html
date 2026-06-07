@@ -5225,28 +5225,33 @@ async function initLookbook() {
     }
     empty.classList.add('hidden');
     empty.classList.remove('flex');
-    _lbDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const newDocs  = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     const likedIds = _lbGetLiked();
-    grid.innerHTML = _lbDocs.map(d => {
-      const url   = d.url;
-      const likes = d.likes || 0;
-      const liked = likedIds.includes(d.id);
-      const badge = likes > 0
-        ? `<div class="absolute z-20 flex items-center" style="top:0.6rem;right:0.6rem;gap:4px;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px;pointer-events:none;">
-             <i class="ph-fill ph-heart" style="font-size:10px;color:${liked ? '#f87171' : 'rgba(255,255,255,0.7)'}"></i>
-             <span>${likes}</span>
-           </div>`
-        : '';
-      return `
-        <div class="masonry-item rounded-md overflow-hidden border border-white/8 bg-[#111115] relative min-h-[180px] cursor-pointer active:opacity-80 transition-opacity"
-             onclick="abrirFotoLookbook('${url}','${d.id}')">
-          <div class="lk-sk absolute inset-0 bg-white/5 animate-pulse"></div>
-          <img src="${url}" loading="lazy" class="w-full object-cover block relative z-10 opacity-0 transition-opacity duration-500"
-               onload="this.style.opacity='1';const s=this.parentElement.querySelector('.lk-sk');if(s)s.remove();"
-               onerror="this.parentElement.remove()">
-          ${badge}
-        </div>`;
-    }).join('');
+    const changes  = snap.docChanges();
+
+    // Reconstruir el grid completo SOLO ante altas/bajas/cambios de orden o
+    // el primer render. Para un simple like (modified) actualizamos el badge
+    // en su lugar — sin recrear las <img>, que era lo que causaba el
+    // "recargado" tosco y el re-fade de todas las imágenes.
+    const domIds    = [...grid.querySelectorAll('[data-lb-id]')].map(n => n.getAttribute('data-lb-id'));
+    const newIds    = newDocs.map(d => d.id);
+    const sameOrder = domIds.length === newIds.length && domIds.every((id, i) => id === newIds[i]);
+    const structural = !domIds.length
+      || changes.some(c => c.type === 'added' || c.type === 'removed')
+      || !sameOrder;
+
+    _lbDocs = newDocs;
+
+    if (structural) {
+      grid.innerHTML = _lbDocs.map(d => _lbItemHtml(d, likedIds)).join('');
+    } else {
+      changes.forEach(c => {
+        const id   = c.doc.id;
+        const d    = _lbDocs.find(x => x.id === id);
+        const slot = grid.querySelector(`[data-lb-id="${CSS.escape(id)}"] .lb-badge-slot`);
+        if (d && slot) slot.innerHTML = _lbBadgeInner(d, likedIds.includes(id));
+      });
+    }
     if (_lbCurrentId) _lbSyncViewer();
   }, err => console.error('[Lookbook] onSnapshot:', err));
 }
@@ -5381,6 +5386,31 @@ function _lbCollection() {
 function _lbLikesKey() { return 'lb_likes_' + (window.CURRENT_TENANT_ID || 'elegance'); }
 function _lbGetLiked() { try { return JSON.parse(localStorage.getItem(_lbLikesKey()) || '[]'); } catch (_) { return []; } }
 function _lbSaveLiked(ids) { try { localStorage.setItem(_lbLikesKey(), JSON.stringify(ids)); } catch (_) {} }
+
+// Render del badge de likes (reutilizado en build y en updates en sitio).
+function _lbBadgeInner(d, liked) {
+  const likes = d.likes || 0;
+  if (likes <= 0) return '';
+  return `<div class="absolute z-20 flex items-center" style="top:0.6rem;right:0.6rem;gap:4px;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px;pointer-events:none;">
+            <i class="ph-fill ph-heart" style="font-size:10px;color:${liked ? '#f87171' : 'rgba(255,255,255,0.7)'}"></i>
+            <span>${likes}</span>
+          </div>`;
+}
+// Render de una sola tarjeta del lookbook.
+function _lbItemHtml(d, likedIds) {
+  const url   = d.url;
+  const liked = likedIds.includes(d.id);
+  return `
+    <div class="masonry-item rounded-md overflow-hidden border border-white/8 bg-[#111115] relative min-h-[180px] cursor-pointer active:opacity-80 transition-opacity"
+         data-lb-id="${d.id}"
+         onclick="abrirFotoLookbook('${url}','${d.id}')">
+      <div class="lk-sk absolute inset-0 bg-white/5 animate-pulse"></div>
+      <img src="${url}" loading="lazy" class="w-full object-cover block relative z-10 opacity-0 transition-opacity duration-500"
+           onload="this.style.opacity='1';const s=this.parentElement.querySelector('.lk-sk');if(s)s.remove();"
+           onerror="this.parentElement.remove()">
+      <div class="lb-badge-slot">${_lbBadgeInner(d, liked)}</div>
+    </div>`;
+}
 
 // Refresca el corazón y el contador del visor según el doc actual
 function _lbSyncViewer() {
