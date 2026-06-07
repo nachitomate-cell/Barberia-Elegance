@@ -1704,6 +1704,17 @@
     .tenant-aura .premio-icon { color: #00285E !important; }
     .tenant-aura #nextRewardText { color: #18181B !important; }
     .tenant-aura button[onclick="togglePremios()"] { background: linear-gradient(135deg, #00285E 0%, #1e3a8a 100%) !important; color: #FFFFFF !important; }
+
+    /* Fix Aura: la copa del Próximo Premio debe verse sobre la card clara */
+    .tenant-aura .next-reward-card > .rounded-full {
+      background: rgba(0,40,94,0.06) !important;
+      border-color: rgba(0,40,94,0.15) !important;
+    }
+    .tenant-aura .next-reward-card .premio-icon { color: #C8A24B !important; }
+
+    /* Fix Aura: la tarjeta de reseña Google tiene fondo oscuro propio,
+       su título no debe heredar el negro genérico de .text-white */
+    .tenant-aura #googleReviewCard .text-white { color: #FFFFFF !important; }
     
     /* Perfil Visitas */
     .tenant-aura #perfilVisitasCard { background-color: #FFFFFF !important; border-color: #D4D4D8 !important; }
@@ -3901,6 +3912,24 @@
         </div>
       </div>
 
+      <!-- ── INVITAR AMIGO AL CLUB ── -->
+      <div class="mb-6">
+        <h3 class="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-3 px-1">Invita a un amigo</h3>
+        <button onclick="invitarAmigoClub()"
+          class="w-full flex items-center justify-between rounded-2xl border border-white/8 bg-white/5 px-4 py-3.5 transition-all duration-200 active:scale-[0.97]">
+          <div class="flex items-center gap-3 text-left">
+            <div class="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style="background:var(--gold-glow);border:1px solid var(--gold-dim);">
+              <i class="ph-fill ph-gift text-lg" style="color:var(--gold);"></i>
+            </div>
+            <div>
+              <p class="text-sm font-bold text-white">Comparte el Club</p>
+              <p class="text-[11px] text-white/60">Invita a un amigo a sumar sellos y premios</p>
+            </div>
+          </div>
+          <i class="ph-bold ph-share-network text-lg text-white/60 shrink-0"></i>
+        </button>
+      </div>
+
       <!-- ── COMPARAR RANGO CON AMIGO ── -->
       <div id="profileCompareSection" class="mb-6">
         <h3 class="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-3 px-1">Comparar con un amigo</h3>
@@ -4392,6 +4421,15 @@
          draggable="false"
          onclick="cerrarLookbookViewer()"
          style="animation:fadeIn .3s ease;">
+
+    <!-- Botón de like: corazón + contador, centrado abajo -->
+    <button id="lbLikeBtn" onclick="event.stopPropagation();toggleLikeViewer()"
+            class="hidden fixed z-[81] bg-black/70 backdrop-blur-sm text-white rounded-full shadow-lg active:opacity-80 transition-opacity flex items-center"
+            style="bottom:calc(1.5rem + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);padding:0.7rem 1.25rem;gap:0.5rem;"
+            aria-label="Me gusta">
+      <i id="lbLikeIcon" class="ph-fill ph-heart" style="font-size:1.25rem;line-height:1;color:#ffffff;"></i>
+      <span id="lbLikeCount" style="font-size:0.875rem;font-weight:700;line-height:1;"></span>
+    </button>
   </div>
 
 <script>
@@ -4450,6 +4488,8 @@ let _userUnsub      = null;
 let _citasUnsub     = null;
 let _premiosUnsub   = null;
 let _lookbookUnsub  = null;
+let _lbDocs         = [];
+let _lbCurrentId    = null;
 let _sfUnsub        = null;
 let _sfCurrentDoc   = null;
 let _prevStamps     = null;
@@ -5171,6 +5211,7 @@ async function initLookbook() {
     : db.collection('tenants').doc(_lbTid).collection('lookbook');
   _lookbookUnsub = _lbCol.orderBy('order', 'asc').onSnapshot(snap => {
     if (snap.empty) {
+      _lbDocs = [];
       grid.innerHTML = '';
       empty.classList.remove('hidden');
       empty.classList.add('flex');
@@ -5178,17 +5219,29 @@ async function initLookbook() {
     }
     empty.classList.add('hidden');
     empty.classList.remove('flex');
-    grid.innerHTML = snap.docs.map(doc => {
-      const { url } = doc.data();
+    _lbDocs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const likedIds = _lbGetLiked();
+    grid.innerHTML = _lbDocs.map(d => {
+      const url   = d.url;
+      const likes = d.likes || 0;
+      const liked = likedIds.includes(d.id);
+      const badge = likes > 0
+        ? `<div class="absolute z-20 flex items-center" style="top:0.6rem;right:0.6rem;gap:4px;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px;pointer-events:none;">
+             <i class="ph-fill ph-heart" style="font-size:10px;color:${liked ? '#f87171' : 'rgba(255,255,255,0.7)'}"></i>
+             <span>${likes}</span>
+           </div>`
+        : '';
       return `
         <div class="masonry-item rounded-md overflow-hidden border border-white/8 bg-[#111115] relative min-h-[180px] cursor-pointer active:opacity-80 transition-opacity"
-             onclick="abrirFotoLookbook('${url}')">
+             onclick="abrirFotoLookbook('${url}','${d.id}')">
           <div class="lk-sk absolute inset-0 bg-white/5 animate-pulse"></div>
           <img src="${url}" loading="lazy" class="w-full object-cover block relative z-10 opacity-0 transition-opacity duration-500"
                onload="this.style.opacity='1';const s=this.parentElement.querySelector('.lk-sk');if(s)s.remove();"
                onerror="this.parentElement.remove()">
+          ${badge}
         </div>`;
     }).join('');
+    if (_lbCurrentId) _lbSyncViewer();
   }, err => console.error('[Lookbook] onSnapshot:', err));
 }
 
@@ -5298,15 +5351,62 @@ function cerrarBarberoBio() {
 }
 
 // ─── Visor Lookbook ───────────────────────────────────────────
-function abrirFotoLookbook(url) {
+function abrirFotoLookbook(url, photoId) {
   document.getElementById('lookbookViewerImg').src = url;
+  _lbCurrentId = photoId || null;
+  _lbSyncViewer();
   document.getElementById('lookbookViewer').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
 }
 function cerrarLookbookViewer() {
   document.getElementById('lookbookViewer').classList.add('hidden');
   document.getElementById('lookbookViewerImg').src = '';
+  _lbCurrentId = null;
   document.body.style.overflow = '';
+}
+
+// ─── Likes del Lookbook ───────────────────────────────────────
+function _lbCollection() {
+  const tid = window.CURRENT_TENANT_ID || 'elegance';
+  return tid === 'elegance'
+    ? db.collection('lookbook')
+    : db.collection('tenants').doc(tid).collection('lookbook');
+}
+function _lbLikesKey() { return 'lb_likes_' + (window.CURRENT_TENANT_ID || 'elegance'); }
+function _lbGetLiked() { try { return JSON.parse(localStorage.getItem(_lbLikesKey()) || '[]'); } catch (_) { return []; } }
+function _lbSaveLiked(ids) { try { localStorage.setItem(_lbLikesKey(), JSON.stringify(ids)); } catch (_) {} }
+
+// Refresca el corazón y el contador del visor según el doc actual
+function _lbSyncViewer() {
+  const btn   = document.getElementById('lbLikeBtn');
+  const icon  = document.getElementById('lbLikeIcon');
+  const count = document.getElementById('lbLikeCount');
+  if (!btn || !icon || !count) return;
+  if (!_lbCurrentId) { btn.classList.add('hidden'); return; }
+  btn.classList.remove('hidden');
+  const doc   = _lbDocs.find(d => d.id === _lbCurrentId);
+  const liked = _lbGetLiked().includes(_lbCurrentId);
+  const n     = (doc && doc.likes) || 0;
+  icon.style.color  = liked ? '#ef4444' : '#ffffff';
+  count.textContent = n > 0 ? n : '';
+}
+
+async function toggleLikeViewer() {
+  const id = _lbCurrentId;
+  if (!id) return;
+  const liked    = _lbGetLiked();
+  const wasLiked = liked.includes(id);
+  // Optimista: localStorage + cache local
+  _lbSaveLiked(wasLiked ? liked.filter(x => x !== id) : [...liked, id]);
+  const doc = _lbDocs.find(d => d.id === id);
+  if (doc) doc.likes = Math.max(0, (doc.likes || 0) + (wasLiked ? -1 : 1));
+  _lbSyncViewer();
+  // Persistir en Firestore (requiere estar autenticado)
+  try {
+    await _lbCollection().doc(id).update({
+      likes: firebase.firestore.FieldValue.increment(wasLiked ? -1 : 1)
+    });
+  } catch (_) { /* sin auth/conexión: el like local queda */ }
 }
 
 // ─── Anuncio dinámico (Hero Banner) ──────────────────────────
@@ -6657,11 +6757,13 @@ function initAuraAnimations() {
     });
   }, 1500);
 
-  const promoCard = document.getElementById('auraMembresiaPromoCard');
-  if (promoCard) {
-    promoCard.classList.remove('hidden');
-    loadAuraMembresiaPlanes();
-  }
+  // Club de Suscripciones (Aura Premium Pass) oculto temporalmente.
+  // Para reactivarlo: descomentar el bloque siguiente.
+  // const promoCard = document.getElementById('auraMembresiaPromoCard');
+  // if (promoCard) {
+  //   promoCard.classList.remove('hidden');
+  //   loadAuraMembresiaPlanes();
+  // }
 }
 
 function auraCountUp(targetNum, totalTarget) {
@@ -7778,6 +7880,22 @@ function auraCountUp(targetNum, totalTarget) {
       try {
         await navigator.clipboard.writeText(text);
         showToast('¡Link copiado al portapapeles!', 'ok');
+      } catch (_) {}
+    }
+
+    // Compartir el Club de Fidelidad — invita a un amigo a registrarse (/registro)
+    async function invitarAmigoClub() {
+      const shop   = window.SHOP || {};
+      const nombre = shop.nombre || 'nuestro club';
+      const url    = window.location.origin + '/registro';
+      const text   = `¡Únete al Club de ${nombre} y acumula sellos para premios! 🎁\nRegístrate aquí 👉 ${url}`;
+      if (navigator.share) {
+        try { await navigator.share({ title: `Club ${nombre}`, text, url }); return; }
+        catch (e) { if (e.name === 'AbortError') return; }
+      }
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast('¡Invitación copiada al portapapeles!', 'ok');
       } catch (_) {}
     }
   </script>
