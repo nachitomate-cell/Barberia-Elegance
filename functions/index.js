@@ -627,8 +627,9 @@ exports.selloCumpleanos = cumpleanos.selloCumpleanos;
 //  RECORDATORIO DE CITA 24H — ver recordatorio-cita.js para detalles
 // ─────────────────────────────────────────────────────────────────
 const recordatorioCita = require('./recordatorio-cita');
-exports.recordatorioCita24h = recordatorioCita.recordatorioCita24h;
-exports.recordatorioCita1h   = recordatorioCita.recordatorioCita1h;
+exports.recordatorioCita24h   = recordatorioCita.recordatorioCita24h;
+exports.recordatorioCita1h    = recordatorioCita.recordatorioCita1h;
+exports.recordatorioCita30min = recordatorioCita.recordatorioCita30min;
 
 
 // ─────────────────────────────────────────────────────────────────
@@ -665,6 +666,17 @@ const instagramSync = require('./instagram-sync');
 exports.instagramOAuthCallback   = instagramSync.instagramOAuthCallback;
 exports.instagramSyncScheduled   = instagramSync.instagramSyncScheduled;
 exports.instagramSyncManual      = instagramSync.instagramSyncManual;
+
+// ─────────────────────────────────────────────────────────────────
+//  GOOGLE REVIEWS SYNC — ver google-reviews-sync.js
+//  Cron diario + sync manual. Sincroniza rating/total/reseñas desde
+//  Google Places API hacia settings/googleReviews por tenant.
+//  Requiere secret: GOOGLE_PLACES_API_KEY
+//  Place ID (no secreto): tenants/{tid}/settings/googleReviews { placeId }
+// ─────────────────────────────────────────────────────────────────
+const googleReviews = require('./google-reviews-sync');
+exports.googleReviewsSyncScheduled = googleReviews.googleReviewsSyncScheduled;
+exports.googleReviewsSyncManual    = googleReviews.googleReviewsSyncManual;
 
 // ─────────────────────────────────────────────────────────────────
 //  DEDUP CLIENTE — ver dedupe-cliente-onCreate.js
