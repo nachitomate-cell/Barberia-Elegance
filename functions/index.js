@@ -638,6 +638,13 @@ exports.recordatorioCita30min = recordatorioCita.recordatorioCita30min;
 const confirmarEntrega = require('./confirmar-entrega');
 exports.confirmarEntregaPush = confirmarEntrega.confirmarEntregaPush;
 
+// ─────────────────────────────────────────────────────────────────
+//  ENVIAR PUSH DE PRUEBA — ver enviar-push-prueba.js
+//  Callable (solo superadmin) para probar push a un cliente desde /admin.
+// ─────────────────────────────────────────────────────────────────
+const enviarPushPrueba = require('./enviar-push-prueba');
+exports.enviarPushPrueba = enviarPushPrueba.enviarPushPrueba;
+
 
 // ─────────────────────────────────────────────────────────────────
 //  CONFIRMACIÓN DE CITA POR EMAIL — ver confirmacion-cita.js
