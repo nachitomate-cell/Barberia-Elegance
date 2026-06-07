@@ -1073,10 +1073,9 @@ export default async function middleware(request) {
     }
   }
 
-  // ── Elegance: servir original sin inyección sólo si NO es ruta dinámica ──────
-  if (tenantId === 'elegance' && !isDynamicRoute) {
-    return;
-  }
+  // Nota: elegance también pasa por la inyección de meta (antes se servía crudo).
+  // Así su <title>/description/JSON-LD/bloque semántico quedan controlados por el
+  // tenant correcto y Google no arma el snippet con texto de otros locales.
 
   // ── Inyección de Meta Tags en HTML ───────────────────────────────────────────
   const response = await fetch(new Request(request, { headers: new Headers([...request.headers, ['x-mw-bypass', '1']]) }));

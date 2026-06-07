@@ -5498,12 +5498,12 @@
         <!-- Brand identity left -->
         <div style="display:flex;flex-direction:column;gap:3px;">
           <p style="font-size:8px;font-weight:700;letter-spacing:0.24em;color:rgba(255,255,255,0.45);margin:0;text-transform:uppercase;">Hairdresser</p>
-          <h1 id="marceloHeaderName" style="font-size:1.5rem;font-weight:800;color:#ffffff;letter-spacing:-0.03em;line-height:1;margin:0;text-shadow:0 1px 12px rgba(0,0,0,0.6);">Marcelo Palma</h1>
-          <p id="marceloHeaderSlogan" style="font-size:8px;font-weight:600;letter-spacing:0.18em;color:rgba(255,255,255,0.42);margin:0;text-transform:uppercase;">Hairdressing &amp; Estilo</p>
+          <h1 id="marceloHeaderName" style="font-size:1.5rem;font-weight:800;color:#ffffff;letter-spacing:-0.03em;line-height:1;margin:0;text-shadow:0 1px 12px rgba(0,0,0,0.6);"></h1>
+          <p id="marceloHeaderSlogan" style="font-size:8px;font-weight:600;letter-spacing:0.18em;color:rgba(255,255,255,0.42);margin:0;text-transform:uppercase;"></p>
         </div>
         <!-- Profile photo right -->
         <div style="width:54px;height:54px;border-radius:50%;overflow:hidden;flex-shrink:0;border:1.5px solid rgba(255,255,255,0.28);box-shadow:0 2px 16px rgba(0,0,0,0.5);">
-          <img src="/marcelo1.png" alt="Marcelo Palma" style="width:100%;height:100%;object-fit:cover;object-position:top;">
+          <img src="/marcelo1.png" alt="" style="width:100%;height:100%;object-fit:cover;object-position:top;">
         </div>
       </div>
 
@@ -5541,9 +5541,9 @@
       </div>
       <!-- Center: logo + step info -->
       <div class="aura-slim-zone aura-slim-zone--center">
-        <img id="auraSlimLogo" src="/aura.png" alt="AURA">
+        <img id="auraSlimLogo" src="/aura.png" alt="">
         <div class="aura-slim-text">
-          <span class="aura-slim-name">AURA SALÓN</span>
+          <span class="aura-slim-name"></span>
           <span id="auraSlimStep" class="aura-slim-step"></span>
         </div>
       </div>
@@ -8123,6 +8123,13 @@
         if (el3) el3.textContent = `Al completar 10 sellos, tu próximo corte corre por cuenta de ${shortName}.`;
         const el4 = document.getElementById('clubModalMembership');
         if (el4) el4.textContent = `Descuentos y promociones exclusivas solo para miembros del ${clubName}.`;
+      }
+
+      // Aura — rellenar el nombre del slim header en runtime, así "AURA SALÓN" no
+      // viaja hardcodeado en el HTML que indexa Google para los demás locales.
+      if (window.CURRENT_TENANT_ID === 'aura') {
+        const slimName = document.querySelector('.aura-slim-name');
+        if (slimName) slimName.textContent = 'AURA SALÓN';
       }
 
       // Instagram
