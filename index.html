@@ -3785,7 +3785,7 @@
        ═══════════════════════════════════════════════════════════════ */
     #aura-sobre-wrap { display: none; }
     .tenant-aura #aura-sobre-wrap { display: block !important; }
-    #aura-sobre-btn, #aura-suscrip-btn {
+    #aura-sobre-btn, #aura-suscrip-btn, #aura-info-btn {
       width: 100%;
       padding: 10px 16px;
       border-radius: 12px;
@@ -3804,10 +3804,78 @@
       cursor: pointer;
       transition: background 0.2s, border-color 0.2s;
     }
-    #aura-sobre-btn:active, #aura-suscrip-btn:active {
+    #aura-sobre-btn:active, #aura-suscrip-btn:active, #aura-info-btn:active {
       background: rgba(156,163,175,0.14);
       border-color: rgba(156,163,175,0.45);
     }
+
+    /* ── Aura — "Información" image modal ── */
+    #aura-info-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 9998;
+      background: rgba(17,24,39,0.50);
+      backdrop-filter: blur(6px);
+      align-items: flex-end;
+      opacity: 0;
+      transition: opacity 0.28s ease;
+    }
+    #aura-info-modal.open    { display: flex; }
+    #aura-info-modal.visible { opacity: 1; }
+    #aura-info-sheet {
+      width: 100%;
+      max-height: 88vh;
+      overflow-y: auto;
+      background: #F9FAFB;
+      border-radius: 24px 24px 0 0;
+      border-top: 2px solid #9CA3AF;
+      padding: 0 16px 32px;
+      transform: translateY(100%);
+      transition: transform 0.48s cubic-bezier(0.16,1,0.3,1);
+    }
+    #aura-info-modal.visible #aura-info-sheet { transform: translateY(0); }
+    #aura-info-handle {
+      width: 36px; height: 4px;
+      background: #D4D4D8;
+      border-radius: 2px;
+      margin: 14px auto 18px;
+    }
+    #aura-info-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 22px;
+      font-weight: 700;
+      color: #18181B;
+      margin: 0 8px 16px;
+      line-height: 1.25;
+      text-align: center;
+    }
+    #aura-info-sheet .aura-info-img {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 14px;
+      margin-bottom: 14px;
+      border: 1px solid rgba(156,163,175,0.25);
+    }
+    #aura-info-close {
+      margin-top: 10px;
+      width: 100%;
+      padding: 13px;
+      border-radius: 12px;
+      background: #9CA3AF;
+      color: #18181B;
+      font-family: system-ui, sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      border: none;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+    #aura-info-close:hover  { background: #6B7280; color: #ffffff; }
+    #aura-info-close:active { opacity: 0.85; }
 
     #aura-sobre-modal {
       display: none;
@@ -5467,6 +5535,18 @@
 
 <body class="font-sans antialiased min-h-screen pb-32">
 
+  <!-- Boot loader: cubre el primer pintado (valores de config.js) hasta que la
+       config + servicios de Firestore estén listos, evitando el salto de contenido. -->
+  <div id="bootLoader" style="position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:#0a0a0a;transition:opacity .4s ease;">
+    <div style="width:42px;height:42px;border:3px solid rgba(255,255,255,0.14);border-top-color:rgba(255,255,255,0.85);border-radius:50%;animation:bootspin .8s linear infinite;"></div>
+  </div>
+  <style>@keyframes bootspin{to{transform:rotate(360deg)}}#bootLoader.boot-done{opacity:0;pointer-events:none;}</style>
+  <script>
+    function hideBootLoader(){ const l=document.getElementById('bootLoader'); if(!l) return; l.classList.add('boot-done'); setTimeout(()=>{ l.remove(); },450); }
+    // Red de seguridad: nunca dejar el loader pegado aunque la carga falle o tarde.
+    setTimeout(hideBootLoader, 6000);
+  </script>
+
   <div class="max-w-md mx-auto relative overflow-hidden">
 
     <!-- ── BOOKING HERO ── -->
@@ -5595,10 +5675,14 @@
 
     <!-- Quiénes Somos — Aura only -->
     <div id="aura-sobre-wrap" class="px-6 pt-4 pb-1">
-      <div class="grid grid-cols-1 gap-3">
+      <div class="grid grid-cols-2 gap-3">
         <button id="aura-sobre-btn" onclick="openAuraSobre()">
           <i class="ph ph-info" style="font-size:15px;"></i>
           Quiénes Somos
+        </button>
+        <button id="aura-info-btn" onclick="openAuraInfo()">
+          <i class="ph ph-image" style="font-size:15px;"></i>
+          Información
         </button>
       </div>
     </div>
@@ -8436,6 +8520,7 @@
       const _loadedSettings = await initServices();   // carga servicios y config desde Firestore
       await applySettingsOverrides(_loadedSettings); // reutiliza settings ya cargado, sin segunda lectura
       renderCalendar();       // ahora que _fsConfig está listo
+      hideBootLoader();       // todo listo: oculta el loader de arranque (sin salto de contenido)
     });
 
     // ── Club Del Nero modal ─────────────────────────────────────────────────────
@@ -8473,6 +8558,20 @@
     }
     function closeAuraSobre() {
       const m = document.getElementById('aura-sobre-modal');
+      m.classList.remove('visible');
+      document.body.style.overflow = '';
+      m.addEventListener('transitionend', () => m.classList.remove('open'), { once: true });
+    }
+
+    // ── Información (imágenes) modal (Aura only) ────────────────────────────────
+    function openAuraInfo() {
+      const m = document.getElementById('aura-info-modal');
+      m.classList.add('open');
+      document.body.style.overflow = 'hidden';
+      requestAnimationFrame(() => requestAnimationFrame(() => m.classList.add('visible')));
+    }
+    function closeAuraInfo() {
+      const m = document.getElementById('aura-info-modal');
       m.classList.remove('visible');
       document.body.style.overflow = '';
       m.addEventListener('transitionend', () => m.classList.remove('open'), { once: true });
@@ -8658,6 +8757,17 @@
       <div id="aura-sobre-title">Quiénes Somos</div>
       <p id="aura-sobre-body"></p>
       <button id="aura-sobre-close" onclick="closeAuraSobre()">Cerrar</button>
+    </div>
+  </div>
+
+  <!-- Información (imágenes) modal — Aura only -->
+  <div id="aura-info-modal" onclick="if(event.target===this)closeAuraInfo()">
+    <div id="aura-info-sheet">
+      <div id="aura-info-handle"></div>
+      <div id="aura-info-title">Información</div>
+      <img class="aura-info-img" src="/aura-info1.jpg" alt="Información Aura 1" loading="lazy">
+      <img class="aura-info-img" src="/aura-info2.jpg" alt="Información Aura 2" loading="lazy">
+      <button id="aura-info-close" onclick="closeAuraInfo()">Cerrar</button>
     </div>
   </div>
 
