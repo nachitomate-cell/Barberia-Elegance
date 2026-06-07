@@ -43,6 +43,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js"></script>
   <script src="config.js"></script>
   <script src="firebase-config.js?v=1.2"></script>
   <script src="firebaseUtils.js?v=2.9"></script>
@@ -4666,6 +4667,11 @@ auth.onAuthStateChanged(async user => {
   initProductosTab();
   cargarAnuncio();
   manejarDeepLinkRecordatorio();
+  // Si el cliente ya había concedido permiso en una sesión previa, asegurar
+  // que su token FCM esté registrado/fresco para recibir el push de 30 min.
+  if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+    registrarTokenPush();
+  }
 });
 
 /* ─── Productos tab ──────────────────────────────────────────── */
@@ -5752,6 +5758,72 @@ async function deleteAccount() {
 let _notifEnabled  = localStorage.getItem('notif_granted') === '1';
 let _notifSchedule = null; // intervalId
 
+// ── PUSH FCM DEL CLIENTE ─────────────────────────────────────
+// VAPID pública del proyecto (misma que usa agenda.html para barberos).
+const FCM_VAPID_KEY = 'BMi1HRp3bdiOqBNqXRrtFc1jlB7qPhYXtZDOLLncbUjxP_pcWSbfrz2ZfACtiJu3fo5riJibq9AGmnBd--kY5jU';
+let _fcmMsgInstance   = null;
+let _fcmForegroundInit = false;
+
+// Registra (o refresca) el token FCM del cliente en fcm_tokens.
+// Lo lee la Cloud Function que envía el recordatorio push de 30 min
+// (functions/recordatorio-cita.js → recordatorioCita30min) filtrando por userId.
+// Idempotente: se puede llamar en cada login sin duplicar.
+async function registrarTokenPush() {
+  try {
+    if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
+    if (Notification.permission !== 'granted') return;
+    if (!currentUser) return;
+    if (typeof firebase === 'undefined' || !firebase.messaging) {
+      console.warn('[FCM] SDK de messaging no disponible'); return;
+    }
+
+    const reg       = await navigator.serviceWorker.ready;
+    const messaging = _fcmMsgInstance || firebase.messaging();
+    _fcmMsgInstance = messaging;
+
+    const token = await messaging.getToken({
+      vapidKey: FCM_VAPID_KEY,
+      serviceWorkerRegistration: reg,
+    });
+    if (!token) { console.warn('[FCM] Token vacío — revisa la VAPID key'); return; }
+
+    const tid = window.CURRENT_TENANT_ID || 'elegance';
+    await _tenantCol('fcm_tokens').doc(token).set({
+      token,
+      userId:      currentUser.uid,   // ← la CF de push al cliente filtra por este campo
+      uid:         currentUser.uid,
+      tenantId:    tid,
+      activo:      true,
+      plataforma:  'web-cliente',
+      dispositivo: navigator.userAgent.substring(0, 120),
+      updatedAt:   firebase.firestore.FieldValue.serverTimestamp(),
+      creadoEn:    firebase.firestore.FieldValue.serverTimestamp(),
+    }, { merge: true });
+    console.log('[FCM] Token de cliente guardado');
+
+    // Notificaciones en primer plano (app abierta): FCM no las muestra solo.
+    if (!_fcmForegroundInit) {
+      _fcmForegroundInit = true;
+      messaging.onMessage(payload => {
+        const title = payload.notification?.title || payload.data?.title ||
+                      `${SHOP.nombreCorto || SHOP.nombre || 'Elegance'} 💈`;
+        const body  = payload.notification?.body  || payload.data?.body  ||
+                      'Tienes una notificación.';
+        reg.showNotification(title, {
+          body,
+          icon:  SHOP.logo || '/icons/icon-192.png',
+          badge: SHOP.logo || '/icons/icon-192.png',
+          // Mismo tag que el recordatorio local para que no se dupliquen en pantalla.
+          tag:   payload.data?.citaId || 'recordatorio',
+          data:  payload.data || {},
+        });
+      });
+    }
+  } catch (e) {
+    console.warn('[FCM]', e.message);
+  }
+}
+
 async function toggleNotificaciones() {
   if (_notifEnabled) {
     showToast('Notificaciones activas — recibirás aviso antes de tu cita', 'ok');
@@ -5770,6 +5842,7 @@ async function toggleNotificaciones() {
   localStorage.setItem('notif_granted', '1');
   actualizarIconoCampana(true);
   iniciarSchedulerRecordatorio();
+  registrarTokenPush(); // registra token FCM para recibir el push de 30 min
   showToast('¡Notificaciones activadas!', 'ok');
   new Notification(`${SHOP.nombre} 💈`, {
     body: '¡Listo! Te avisaremos antes de tu próxima cita.',

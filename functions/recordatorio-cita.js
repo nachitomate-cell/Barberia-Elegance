@@ -629,3 +629,205 @@ exports.recordatorioCita1h = onSchedule(
     }
   }
 );
+
+// ── Helpers para el push 30 min al cliente ───────────────────────
+function fcmTokensColPath(tenantId) {
+  return tenantId === 'elegance' ? 'fcm_tokens' : `tenants/${tenantId}/fcm_tokens`;
+}
+
+// Tokens del cliente (registrados desde dashboard.html con userId == uid).
+async function tokensClienteDe(tenantId, uid) {
+  if (!uid) return [];
+  try {
+    const snap = await db.collection(fcmTokensColPath(tenantId))
+      .where('userId', '==', uid)
+      .where('activo', '==', true)
+      .get();
+    return snap.docs.map(d => ({ id: d.id, token: d.data().token })).filter(t => t.token);
+  } catch (e) {
+    logger.warn(`[Recordatorio 30min] tokens ${tenantId}/${uid}: ${e.message}`);
+    return [];
+  }
+}
+
+// Resuelve el uid del cliente desde los campos posibles de la cita.
+async function resolverUidCliente(tenantId, cita) {
+  if (cita.clienteUid) return cita.clienteUid;
+  if (cita.clienteId && cita.clienteId.length > 12) return cita.clienteId; // probablemente firebaseUid
+  const email = (cita.clienteEmail || '').toLowerCase().trim();
+  if (!email) return null;
+  try {
+    const usersPath = tenantId === 'elegance' ? 'users' : `tenants/${tenantId}/users`;
+    const q = await db.collection(usersPath).where('email', '==', email).limit(1).get();
+    return q.empty ? null : q.docs[0].id;
+  } catch (_) { return null; }
+}
+
+// ── Cron 3: cada 10 min (07:00–22:00 Santiago) — recordatorio PUSH 30 min antes ──
+//
+//  Envía notificación push FCM al CLIENTE ~30 min antes de su cita.
+//  Reemplaza al recordatorio que antes solo existía como timer local en
+//  dashboard.html (que únicamente funcionaba con la pestaña abierta).
+//  WhatsApp 24h y Email 1h se mantienen como respaldo en sus propios crons.
+//
+//  Tokens del cliente: fcm_tokens (elegance) | tenants/{tid}/fcm_tokens,
+//  filtrando por userId == uid del cliente y activo == true.
+//  Idempotente por cita con el flag recordatorio30minEnviado.
+exports.recordatorioCita30min = onSchedule(
+  {
+    schedule: '*/10 7-22 * * *',
+    timeZone: TIMEZONE,
+  },
+  async () => {
+    const todayStr    = getSantiagoDateString(0);
+    const tomorrowStr = getSantiagoDateString(1);
+    const nowParts    = getSantiagoNowParts();
+
+    const promises = [];
+
+    // 1. Root Collection (Elegance)
+    promises.push((async () => {
+      try {
+        const snap = await db.collection('citas')
+          .where('fecha', 'in', [todayStr, tomorrowStr])
+          .get();
+        return { tenantId: 'elegance', docs: snap.docs };
+      } catch (err) {
+        logger.error('[Recordatorio 30min] Error root collection:', err.message);
+        return { tenantId: 'elegance', docs: [] };
+      }
+    })());
+
+    // 2. Tenant Collections
+    try {
+      const tenantsSnap = await db.collection('tenants').get();
+      for (const tenantDoc of tenantsSnap.docs) {
+        const tid = tenantDoc.id;
+        promises.push((async () => {
+          try {
+            const snap = await db.collection(`tenants/${tid}/citas`)
+              .where('fecha', 'in', [todayStr, tomorrowStr])
+              .get();
+            return { tenantId: tid, docs: snap.docs };
+          } catch (err) {
+            logger.error(`[Recordatorio 30min] Error tenant ${tid}:`, err.message);
+            return { tenantId: tid, docs: [] };
+          }
+        })());
+      }
+    } catch (err) {
+      logger.error('[Recordatorio 30min] Error fetching tenants:', err.message);
+    }
+
+    const results = await Promise.all(promises);
+    const toSend = [];
+
+    for (const res of results) {
+      const { tenantId, docs } = res;
+      for (const doc of docs) {
+        const cita = doc.data();
+        if (cita.recordatorio30minEnviado === true) continue;
+
+        const estado = (cita.estado || '').toLowerCase();
+        if (!['pendiente', 'confirmada', 'confirmado'].includes(estado)) continue;
+
+        const diff = getMinutesDiff(nowParts, cita.fecha, cita.hora);
+        if (diff === null) continue;
+
+        // Ventana 25–37 min: con cron cada 10 min + idempotencia, ninguna cita se escapa.
+        if (diff >= 25 && diff <= 37) {
+          toSend.push({ ref: doc.ref, tenantId, citaId: doc.id, cita });
+        }
+      }
+    }
+
+    if (toSend.length === 0) return; // salida silenciosa (corre muchas veces al día)
+
+    logger.info(`[Recordatorio 30min] Procesando ${toSend.length} cita(s)`);
+
+    for (const item of toSend) {
+      const { ref, tenantId, citaId, cita } = item;
+
+      const uid = await resolverUidCliente(tenantId, cita);
+      if (!uid) continue; // cliente no es miembro del Club / sin perfil
+
+      const tokens = await tokensClienteDe(tenantId, uid);
+      if (!tokens.length) continue; // cliente sin push activo (recibe WhatsApp/Email igual)
+
+      // Marcar antes de enviar para evitar duplicados entre ejecuciones solapadas.
+      await ref.update({ recordatorio30minEnviado: true });
+
+      const nombre   = cita.clienteNombre || cita.nombre || 'Cliente';
+      const hora     = cita.hora || '';
+      const barbero  = cita.barbero || cita.barberoNombre || '';
+      const servicio = cita.servicioNombre || cita.servicio || '';
+      const cuerpo   = `¡Hola ${nombre}! Tu cita${barbero ? ` con ${barbero}` : ''} es a las ${hora} hrs. ¡Te esperamos! 💈`;
+
+      const invalidos = [];
+      let enviados = 0;
+      await Promise.all(tokens.map(async (t) => {
+        try {
+          await messaging.send({
+            token: t.token,
+            notification: {
+              title: '⏰ Tu cita es en ~30 minutos',
+              body:  cuerpo,
+            },
+            data: {
+              citaId,
+              tipo:     'recordatorio',
+              tenantId,
+            },
+            webpush: {
+              headers: { Urgency: 'high' },
+              notification: {
+                icon:     '/icons/icon-192.png',
+                badge:    '/icons/icon-192.png',
+                tag:      `recordatorio-${citaId}`,
+                renotify: false,
+                vibrate:  [200, 100, 200],
+                actions:  [
+                  { action: 'confirmar', title: '✅ Confirmar' },
+                  { action: 'cancelar',  title: '❌ Cancelar'  },
+                ],
+              },
+              fcmOptions: { link: '/dashboard.html' },
+            },
+          });
+          enviados++;
+        } catch (err) {
+          const code = err.errorInfo?.code || err.code || '';
+          if (code === 'messaging/registration-token-not-registered' ||
+              code === 'messaging/invalid-registration-token' ||
+              code === 'messaging/invalid-argument') {
+            invalidos.push(t.id);
+          }
+          logger.warn(`[Recordatorio 30min] ✗ ${tenantId}/${citaId}: ${code || err.message}`);
+        }
+      }));
+
+      // Desactivar tokens muertos.
+      if (invalidos.length) {
+        const batch = db.batch();
+        invalidos.forEach((id) =>
+          batch.update(db.collection(fcmTokensColPath(tenantId)).doc(id), { activo: false }));
+        await batch.commit().catch(() => {});
+      }
+
+      if (enviados > 0) {
+        logger.info(`[Recordatorio 30min] ✓ ${tenantId}/${citaId} → ${enviados} push`);
+        await writeNotifLog(db, {
+          tenantId,
+          type:    'push_recordatorio_30min',
+          channel: 'push',
+          status:  'sent',
+          to:      { nombre, email: cita.clienteEmail || '' },
+          meta:    { citaId, servicio, fecha: cita.fecha || '', hora },
+        });
+      } else {
+        // Ningún envío exitoso → desmarcar para reintentar en el próximo ciclo.
+        await ref.update({ recordatorio30minEnviado: false }).catch(() => {});
+      }
+    }
+  }
+);

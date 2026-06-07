@@ -10,6 +10,7 @@ const { Timestamp } = require('firebase-admin/firestore');
  * @param {{
  *   tenantId: string,
  *   type:    'push_confirmacion'|'email_confirmacion'|'email_recordatorio_1h'|
+ *            'push_recordatorio_30min'|
  *            'push_sello'|'push_cumpleanos'|'push_recordatorio_corte'|
  *            'push_reenganche'|
  *            'whatsapp_24h'|'whatsapp_reactivacion',
