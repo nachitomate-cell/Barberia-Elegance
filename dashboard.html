@@ -3376,6 +3376,28 @@
       </div>
     </header>
 
+    <!-- ═══ BANNER: Activar notificaciones ═══ -->
+    <div id="notifBanner" class="hidden mx-4 mt-3 mb-1 rounded-2xl border p-4"
+         style="border-color:rgba(255,255,255,0.12);background:rgba(255,255,255,0.05);">
+      <div class="flex items-start gap-3">
+        <div class="shrink-0 w-10 h-10 rounded-full flex items-center justify-center" style="background:rgba(255,255,255,0.08);">
+          <i class="ph-fill ph-bell-ringing text-xl" style="color:var(--gold);"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p id="notifBannerTitle" class="text-sm font-bold text-white leading-snug">Activa tus recordatorios</p>
+          <p id="notifBannerText" class="text-xs text-white/55 mt-0.5 leading-snug">Te avisamos antes de tu cita para que no se te pase.</p>
+          <div id="notifBannerActions" class="flex items-center gap-2 mt-3">
+            <button id="notifBannerActivar" onclick="activarDesdeBanner()" class="px-4 py-2 rounded-xl text-xs font-bold text-black bg-white active:scale-95 transition-all">
+              Activar
+            </button>
+            <button onclick="posponerNotifBanner()" class="px-3 py-2 rounded-xl text-xs font-semibold text-white/50 active:scale-95 transition-all">
+              Ahora no
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- ═══════ PESTAÑA 1: FIDELIZACIÓN ═══════ -->
     <section id="tabLoyalty" class="tab-panel animate-[fadeSlideUp_0.45s_cubic-bezier(0.16,1,0.3,1)_forwards]">
 
@@ -4675,6 +4697,7 @@ auth.onAuthStateChanged(async user => {
   if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
     registrarTokenPush();
   }
+  initNotifBanner();
 });
 
 /* ─── Productos tab ──────────────────────────────────────────── */
@@ -6029,11 +6052,55 @@ async function toggleNotificaciones() {
   actualizarIconoCampana(true);
   iniciarSchedulerRecordatorio();
   registrarTokenPush(); // registra token FCM para recibir el push de 30 min
+  document.getElementById('notifBanner')?.classList.add('hidden');
   showToast('¡Notificaciones activadas!', 'ok');
   new Notification(`${SHOP.nombre} 💈`, {
     body: '¡Listo! Te avisaremos antes de tu próxima cita.',
     icon: '/icons/icon-192.png'
   });
+}
+
+// ── Banner para invitar a activar notificaciones ──────────────
+const NOTIF_SNOOZE_KEY  = 'notif_prompt_snooze';
+const NOTIF_SNOOZE_DAYS = 3;
+
+function notifBannerSnoozed() {
+  const t = parseInt(localStorage.getItem(NOTIF_SNOOZE_KEY) || '0', 10);
+  return t ? (Date.now() - t) < NOTIF_SNOOZE_DAYS * 86400000 : false;
+}
+
+function initNotifBanner() {
+  const banner = document.getElementById('notifBanner');
+  if (!banner) return;
+  // Sin soporte o ya concedido o pospuesto recientemente → no mostrar
+  if (!('Notification' in window) || Notification.permission === 'granted' || notifBannerSnoozed()) {
+    banner.classList.add('hidden');
+    return;
+  }
+  if (Notification.permission === 'denied') {
+    // El navegador no deja re-pedir: explicar cómo habilitarlo a mano
+    document.getElementById('notifBannerTitle').textContent = 'Notificaciones bloqueadas';
+    document.getElementById('notifBannerText').textContent  =
+      'Actívalas desde los ajustes del navegador (icono junto a la dirección) para recibir recordatorios.';
+    const btn = document.getElementById('notifBannerActivar');
+    if (btn) btn.style.display = 'none';
+  }
+  banner.classList.remove('hidden');
+}
+
+async function activarDesdeBanner() {
+  await toggleNotificaciones();
+  if (Notification.permission === 'granted') {
+    document.getElementById('notifBanner')?.classList.add('hidden');
+    localStorage.removeItem(NOTIF_SNOOZE_KEY);
+  } else {
+    initNotifBanner(); // si lo denegó, refrescar al estado "bloqueadas"
+  }
+}
+
+function posponerNotifBanner() {
+  localStorage.setItem(NOTIF_SNOOZE_KEY, String(Date.now()));
+  document.getElementById('notifBanner')?.classList.add('hidden');
 }
 
 function actualizarIconoCampana(activa) {
@@ -6061,6 +6128,7 @@ function actualizarIconoCampana(activa) {
     _notifEnabled = false;
     localStorage.removeItem('notif_granted');
   }
+  initNotifBanner();
 })();
 
 // ── Scheduler: revisar citas cada 5 min ──────────────────────
