@@ -32,11 +32,19 @@ export async function activarNotificaciones({ uid, tenantId }) {
     });
     if (!token) throw new Error('No se obtuvo token FCM');
 
-    await setDoc(doc(db, 'fcm_tokens', token), {
+    // Multi-tenant: el token debe guardarse en la MISMA ruta que leen las
+    // Cloud Functions de envío. elegance → raíz fcm_tokens; el resto →
+    // tenants/{tid}/fcm_tokens (getTokensActivosTenant en functions/index.js).
+    const tid = tenantId || 'elegance';
+    const tokenRef = tid === 'elegance'
+      ? doc(db, 'fcm_tokens', token)
+      : doc(db, 'tenants', tid, 'fcm_tokens', token);
+
+    await setDoc(tokenRef, {
       token,
       uid,
       barberoId:  uid,
-      tenantId,
+      tenantId:   tid,
       activo:     true,
       plataforma: 'web-admin',
       updatedAt:  serverTimestamp(),
