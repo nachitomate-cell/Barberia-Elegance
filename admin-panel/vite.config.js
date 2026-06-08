@@ -43,6 +43,15 @@ export default defineConfig({
         navigateFallback: '/gestion-interna/index.html',
         navigateFallbackAllowlist: [/^\/gestion-interna/],
         runtimeCaching: [
+          /* Video/audio — NUNCA cachear. Las peticiones de rango del <video>
+             devuelven 206 (Partial Content) y rompen Cache.put() con
+             "NetworkError: Cache.put() encountered a network error".
+             Debe ir ANTES de la regla de Firebase Storage (donde vive el
+             video del Fondo de Pantalla TV). Se sirven directo de la red. */
+          {
+            urlPattern: ({ request }) => request.destination === 'video' || request.destination === 'audio',
+            handler: 'NetworkOnly',
+          },
           /* Firebase Firestore / Auth — network-first */
           {
             urlPattern: /^https:\/\/firestore\.googleapis\.com\/.*/i,
