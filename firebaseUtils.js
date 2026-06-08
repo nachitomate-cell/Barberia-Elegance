@@ -457,7 +457,7 @@ const FDB = (() => {
       barberoId:        cita.barberoId        || null,
       estado:           'Confirmada',
       nota:             '',
-      origen:           'reserva_online',
+      origen:           cita.origen || 'reserva_online',
       slotLockId:       cita.barberoId ? lockId : null,
       creadoEn:         firebase.firestore.FieldValue.serverTimestamp(),
     };

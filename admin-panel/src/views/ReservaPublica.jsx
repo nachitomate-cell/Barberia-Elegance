@@ -8,9 +8,11 @@ import { getDocs, query, where } from 'firebase/firestore';
 import { tenantCol } from '../lib/tenantUtils';
 import { useTenant } from '../contexts/TenantContext';
 
-// Las citas creadas por el staff llevan estos `origen`. El resto (sin origen
-// o con un valor web) se considera reserva online. Ver index.html → FDB.addCita.
-const MANUAL_ORIGINS = ['agenda_manual', 'barbero-page'];
+// Solo la agenda del staff ('agenda_manual') es una carga manual/presencial.
+// Las reservas online del cliente vienen de /index ('reserva_online') y de la
+// página del barbero /barbero ('barbero-page'); ambas pasan por FDB.addCita.
+// El resto sin `origen` (citas antiguas) también se asume online.
+const MANUAL_ORIGINS = ['agenda_manual'];
 
 // Copia robusta: usa Clipboard API en contexto seguro y cae a execCommand.
 async function copyText(text) {
