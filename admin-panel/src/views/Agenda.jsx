@@ -1828,7 +1828,10 @@ export default function Agenda() {
   const [soloBarbero,   setSoloBarbero]   = useState(null);   // id del barbero enfocado (null = todos)
   const [labelStep,     setLabelStep]     = useState(15);     // minutos entre etiquetas visibles en el eje
   const [showMenu,      setShowMenu]      = useState(false);  // menú "Más" de acciones secundarias
+  const [now,           setNow]           = useState(() => new Date()); // hora actual (línea "ahora")
   const menuRef = useRef(null);
+  const swimRef = useRef(null);            // contenedor scrolleable de la grilla
+  const didAutoScroll = useRef(false);     // auto-scroll a "ahora" solo la primera vez
 
   useEffect(() => {
     if (!showMenu) return;
@@ -1836,6 +1839,12 @@ export default function Agenda() {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [showMenu]);
+
+  // Reloj en vivo: refresca cada 30s para mover la línea "ahora".
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 30000);
+    return () => clearInterval(id);
+  }, []);
 
   const [searchParams, setSearchParams] = useSearchParams();
   useEffect(() => {
@@ -1889,6 +1898,33 @@ export default function Agenda() {
   const { totalSlots, timeLabels } = slotCfg;
 
   const dateStr = fmt(date);
+
+  // ── Indicador "ahora" y salto a la hora actual ────────────────
+  const isToday     = fmt(now) === dateStr;
+  const nowMins     = now.getHours() * 60 + now.getMinutes();
+  const nowInRange  = nowMins >= hourStart * 60 && nowMins <= hourEnd * 60;
+  const nowOffsetPx = ((nowMins - hourStart * 60) / slotMins) * 40;
+  const nowLabel    = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  const showNowLine = isToday && nowInRange;
+
+  const scrollToNow = () => {
+    if (!isToday) setDate(new Date());
+    requestAnimationFrame(() => {
+      const el = swimRef.current;
+      if (!el) return;
+      const target = 40 + ((nowMins - hourStart * 60) / slotMins) * 40 - el.clientHeight / 2;
+      el.scrollTo({ top: Math.max(0, target), behavior: 'smooth' });
+    });
+  };
+
+  // Auto-scroll a la hora actual la primera vez que se ve el día de hoy.
+  useEffect(() => {
+    if (didAutoScroll.current || !showNowLine) return;
+    const el = swimRef.current;
+    if (!el) return;
+    didAutoScroll.current = true;
+    el.scrollTo({ top: Math.max(0, 40 + nowOffsetPx - el.clientHeight / 2), behavior: 'smooth' });
+  }, [showNowLine, nowOffsetPx]);
 
   const { data: rawBarberos } = useCollection('barberos');
   const { data: citas }       = useCollection('citas',    [where('fecha', '==', dateStr)], [dateStr]);
@@ -2000,22 +2036,35 @@ export default function Agenda() {
           <button onClick={() => setDate(new Date())} className="ml-1 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-lg transition-all">Hoy</button>
         </div>
 
-        {/* Label-step selector */}
-        <div className="flex items-center gap-0.5 border border-slate-700 rounded-lg px-1.5 py-1 shrink-0" title="Intervalo de etiquetas horarias">
-          <Clock size={12} className="text-slate-500 mr-1 shrink-0" />
-          {[15, 30, 60].map(step => (
-            <button
-              key={step}
-              onClick={() => setLabelStep(step)}
-              className={`px-2 py-0.5 rounded text-[10px] font-mono font-semibold transition-all ${
-                labelStep === step
-                  ? 'bg-slate-700 text-white'
-                  : 'text-slate-500 hover:text-slate-300'
-              }`}
-            >
-              {step < 60 ? `${step}'` : '1h'}
-            </button>
-          ))}
+        {/* Reloj en vivo + selector de intervalo */}
+        <div className="flex items-center gap-1 shrink-0">
+          <button
+            onClick={scrollToNow}
+            title={isToday ? 'Ir a la hora actual' : 'Volver a hoy y a la hora actual'}
+            className="group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-700 hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-all"
+          >
+            <span className="relative flex h-2 w-2">
+              {showNowLine && <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60 animate-ping" />}
+              <Clock size={13} className="text-emerald-400 -m-0.5" />
+            </span>
+            <span className="text-xs font-mono font-semibold text-slate-200 tabular-nums group-hover:text-white">{nowLabel}</span>
+          </button>
+
+          <div className="flex items-center gap-0.5 border border-slate-700 rounded-lg p-0.5" title="Intervalo de etiquetas horarias del eje">
+            {[15, 30, 60].map(step => (
+              <button
+                key={step}
+                onClick={() => setLabelStep(step)}
+                className={`px-2 py-1 rounded-md text-[10px] font-mono font-semibold transition-all ${
+                  labelStep === step
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'text-slate-500 hover:text-slate-200'
+                }`}
+              >
+                {step < 60 ? `${step}'` : '1h'}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="flex-1" />
@@ -2142,12 +2191,22 @@ export default function Agenda() {
       )}
 
       {/* Swimlane */}
-      <div className="flex-1 bg-slate-900 border border-slate-800 rounded-xl overflow-auto no-scrollbar">
+      <div ref={swimRef} className="flex-1 bg-slate-900 border border-slate-800 rounded-xl overflow-auto no-scrollbar">
         <div className="flex min-w-max">
 
           {/* Time axis */}
-          <div className="w-16 shrink-0 sticky left-0 bg-slate-900 z-10 border-r border-slate-800">
+          <div className="w-16 shrink-0 sticky left-0 bg-slate-900 z-20 border-r border-slate-800 relative">
             <div className="h-10 border-b border-slate-800" />
+            {showNowLine && (
+              <div
+                className="absolute right-0 z-30 flex justify-end pr-1 pointer-events-none"
+                style={{ top: `${40 + nowOffsetPx}px`, transform: 'translateY(-50%)' }}
+              >
+                <span className="text-[9px] font-mono font-bold text-white bg-red-500 rounded px-1 py-px shadow-[0_0_6px_rgba(239,68,68,0.6)]">
+                  {nowLabel}
+                </span>
+              </div>
+            )}
             {timeLabels.map((t, i) => {
               const [h, m] = t.split(':').map(Number);
               const tMins = h * 60 + m;
@@ -2244,6 +2303,16 @@ export default function Agenda() {
                       onDragStart={(e, c) => setDraggedCita(c)}
                     />
                   ))}
+                  {showNowLine && (
+                    <div
+                      className="absolute inset-x-0 z-20 pointer-events-none"
+                      style={{ top: `${nowOffsetPx}px` }}
+                    >
+                      <div className="relative h-px bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.6)]">
+                        <span className="absolute left-0 -top-[3px] w-1.5 h-1.5 rounded-full bg-red-500" />
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             );

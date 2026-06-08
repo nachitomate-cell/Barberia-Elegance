@@ -5894,7 +5894,11 @@ async function guardarPerfil() {
     await currentUser.updateProfile({ displayName: nombre });
     if (email && email !== currentUser.email) await currentUser.updateEmail(email);
 
-    // Actualizar clientes/{phone} con cumpleDia para el cron de cumpleaños
+    // Sincronizar clientes/{phone} con cumpleDia para el cron de cumpleaños.
+    // Es SECUNDARIO: si ese doc ya pertenece a otra cuenta (mismo teléfono,
+    // otro uid — p. ej. la cita se registró bajo otro usuario), las reglas
+    // rechazan la escritura. Eso NO debe bloquear el guardado del perfil,
+    // cuya fuente de verdad es users/{uid} (ya guardado arriba).
     const normalizedPhone = telefono.replace(/\D/g, '');
     if (normalizedPhone) {
       const clienteData = {
@@ -5908,7 +5912,11 @@ async function guardarPerfil() {
         clienteData.fechaNacimiento = fechaNacimiento;
         clienteData.cumpleDia       = `${parts[1]}-${parts[2]}`;
       }
-      await clientesDocRef(normalizedPhone).set(clienteData, { merge: true });
+      try {
+        await clientesDocRef(normalizedPhone).set(clienteData, { merge: true });
+      } catch (e2) {
+        console.warn(`[Perfil] No se pudo sincronizar clientes/${normalizedPhone} (probable colisión de teléfono con otra cuenta):`, e2.code || e2.message);
+      }
     }
 
     document.getElementById('profileName').textContent  = nombre;

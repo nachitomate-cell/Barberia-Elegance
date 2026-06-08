@@ -25,6 +25,12 @@ const CAT_COLORS = {
   Otros:              'bg-slate-500/20 text-slate-400',
 };
 
+// Gastos de personal generados desde Comisiones llevan un `tipo`.
+const TIPO_LABELS = {
+  adelanto:    { label: 'Adelanto',    color: 'bg-orange-500/20 text-orange-400' },
+  liquidacion: { label: 'Liquidación', color: 'bg-emerald-500/20 text-emerald-400' },
+};
+
 function localDateStr() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -309,9 +315,16 @@ export default function Gastos() {
                     </td>
                     <td className="px-5 py-3.5 text-white max-w-xs truncate">{g.descripcion}</td>
                     <td className="px-5 py-3.5">
-                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${CAT_COLORS[g.categoria] || CAT_COLORS.Otros}`}>
-                        <Tag size={9} /> {g.categoria}
-                      </span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold ${CAT_COLORS[g.categoria] || CAT_COLORS.Otros}`}>
+                          <Tag size={9} /> {g.categoria}
+                        </span>
+                        {TIPO_LABELS[g.tipo] && (
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${TIPO_LABELS[g.tipo].color}`}>
+                            {TIPO_LABELS[g.tipo].label}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-5 py-3.5">
                       <div className="flex items-center gap-1.5 text-slate-400 text-xs">
