@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import {
   Link2, Copy, CheckCheck, ExternalLink, Instagram, MapPin, MessageCircle,
-  Download, Globe, Share2, Printer, CalendarCheck, AlertCircle, FileCode, Scissors,
+  Download, Globe, Share2, Printer, CalendarCheck, AlertCircle, FileCode,
 } from 'lucide-react';
 import { getDocs, query, where } from 'firebase/firestore';
 import { tenantCol } from '../lib/tenantUtils';
@@ -48,7 +48,7 @@ export default function ReservaPublica() {
   const { id: tenantId, name } = useTenant();
   const [copiedKey, setCopiedKey] = useState(null);
   const [copyError, setCopyError] = useState(false);
-  const [stats, setStats] = useState(null);
+  const [onlineCount, setOnlineCount] = useState(null);
 
   // Link base limpio (para mostrar y copiar). Las variantes por canal llevan
   // UTM para medir el origen de las reservas en Vercel Analytics.
@@ -75,18 +75,14 @@ export default function ReservaPublica() {
           where('fecha', '>=', ini),
           where('fecha', '<=', fin),
         ));
-        const acc = { total: 0, pagina: 0, barbero: 0, otros: 0 };
-        snap.docs.map(d => d.data()).forEach(c => {
-          if (c.estado === 'Cancelada' || MANUAL_ORIGINS.includes(c.origen)) return;
-          acc.total++;
-          if (c.origen === 'reserva_online') acc.pagina++;
-          else if (c.origen === 'barbero-page') acc.barbero++;
-          else acc.otros++; // citas anteriores al etiquetado de origen
-        });
-        if (active) setStats(acc);
+        const count = snap.docs
+          .map(d => d.data())
+          .filter(c => c.estado !== 'Cancelada' && !MANUAL_ORIGINS.includes(c.origen))
+          .length;
+        if (active) setOnlineCount(count);
       } catch (e) {
         console.warn('[ReservaOnline] no se pudo contar reservas:', e.message);
-        if (active) setStats(null);
+        if (active) setOnlineCount(null);
       }
     })();
     return () => { active = false; };
@@ -232,35 +228,18 @@ export default function ReservaPublica() {
         </p>
       </div>
 
-      {/* Reservas online del mes + desglose por origen */}
-      {stats !== null && (
-        <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-4 space-y-3">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
-              <CalendarCheck size={18} className="text-emerald-400" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-white leading-none">{stats.total}</p>
-              <p className="text-xs text-slate-400 mt-1">
-                reserva{stats.total !== 1 ? 's' : ''} online este mes · cada una cae sola en tu agenda
-              </p>
-            </div>
+      {/* Reservas online del mes */}
+      {onlineCount !== null && (
+        <div className="flex items-center gap-3 bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-4">
+          <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
+            <CalendarCheck size={18} className="text-emerald-400" />
           </div>
-          {stats.total > 0 && (
-            <div className="flex flex-wrap gap-2 pt-1">
-              {[
-                { Icon: Globe,    color: 'text-emerald-400', label: 'Página general', value: stats.pagina },
-                { Icon: Scissors, color: 'text-sky-400',     label: 'Link de barbero', value: stats.barbero },
-                ...(stats.otros > 0 ? [{ Icon: CalendarCheck, color: 'text-slate-400', label: 'Sin etiquetar', value: stats.otros }] : []),
-              ].map(({ Icon, color, label, value }) => (
-                <div key={label} className="flex items-center gap-2 bg-slate-800/60 border border-slate-800 rounded-lg px-3 py-1.5">
-                  <Icon size={13} className={color} />
-                  <span className="text-xs text-slate-400">{label}</span>
-                  <span className="text-sm font-bold text-white">{value}</span>
-                </div>
-              ))}
-            </div>
-          )}
+          <div>
+            <p className="text-2xl font-bold text-white leading-none">{onlineCount}</p>
+            <p className="text-xs text-slate-400 mt-1">
+              reserva{onlineCount !== 1 ? 's' : ''} online este mes · cada una cae sola en tu agenda
+            </p>
+          </div>
         </div>
       )}
 
