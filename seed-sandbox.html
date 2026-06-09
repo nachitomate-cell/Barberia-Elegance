@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Seed · Barbería Demo (sandbox)</title>
+  <style>
+    body { font-family: monospace; background: #0a0a0a; color: #94a3b8; padding: 2rem; max-width: 880px; margin: 0 auto; }
+    h1   { color: #c9a84c; }
+    .muted { color:#64748b; font-size:.85rem; }
+    button { padding: .75rem 1.5rem; background: #c9a84c; color: #000; border: none;
+             border-radius: .5rem; font-size: 1rem; font-weight: 700; cursor: pointer; margin-top: 1rem; }
+    button.danger { background:#ef4444; color:#fff; margin-left:1rem; }
+    button:disabled { opacity: .4; cursor: not-allowed; }
+    pre  { background: #16161a; padding: 1rem; border-radius: .5rem; white-space: pre-wrap; margin-top: 1rem; max-height: 60vh; overflow:auto; }
+    .ok  { color: #34d399; }
+    .err { color: #f87171; }
+    .warn{ color: #f59e0b; }
+    #auth { margin-bottom: 1rem; padding: 1rem; background:#16161a; border-radius:.5rem; }
+    input { padding:.5rem; border-radius:.4rem; border:1px solid #333; background:#0a0a0a; color:#fff; }
+  </style>
+</head>
+<body>
+  <h1>Seed — Barbería Demo (sandbox)</h1>
+  <p class="muted">Popula <code>tenants/sandbox/</code> con barberos, servicios, configuración, premios y productos.
+  Escribe en el tenant de pruebas; <b>no toca ningún cliente real</b>.</p>
+  <p class="muted">Requiere estar logueado con un correo <b>bootstrap admin</b> (las reglas permiten escribir a cualquier tenant).</p>
+
+  <div id="auth">
+    <span id="authState" class="warn">Verificando sesión…</span>
+    <div id="loginBox" style="display:none; margin-top:.5rem;">
+      <input id="email" type="email" placeholder="correo">
+      <input id="pass" type="password" placeholder="contraseña">
+      <button onclick="doLogin()">Iniciar sesión</button>
+    </div>
+  </div>
+
+  <button id="btn" onclick="run()" disabled>▶ Ejecutar Seed completo</button>
+  <button id="btnReset" class="danger" onclick="resetData()" disabled>🗑 Borrar datos del sandbox</button>
+  <pre id="log">Listo para ejecutar…</pre>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="/firebase-config.js?v=1.3"></script>
+  <script>
+    const TID = 'sandbox';
+    const log = document.getElementById('log');
+    const btn = document.getElementById('btn');
+    const btnReset = document.getElementById('btnReset');
+
+    function write(msg, cls) { log.innerHTML += `<span class="${cls||''}">${msg}\n</span>`; }
+
+    // set('tenants/sandbox/servicios/x', {...}) — escribe por merge respetando la profundidad colección/doc
+    async function set(path, data) {
+      const parts = path.split('/');
+      let ref = db;
+      for (let i = 0; i < parts.length; i++) {
+        ref = i % 2 === 0 ? ref.collection(parts[i]) : ref.doc(parts[i]);
+      }
+      await ref.set(data, { merge: true });
+      write(`  ✓ ${path}`, 'ok');
+    }
+
+    // ── Auth gate ───────────────────────────────────────────────────
+    firebase.auth().onAuthStateChanged(user => {
+      const el = document.getElementById('authState');
+      const loginBox = document.getElementById('loginBox');
+      if (user) {
+        el.innerHTML = `Sesión: <b class="ok">${user.email}</b>`;
+        loginBox.style.display = 'none';
+        btn.disabled = false;
+        btnReset.disabled = false;
+      } else {
+        el.innerHTML = '<span class="warn">Sin sesión. Inicia con tu correo de admin.</span>';
+        loginBox.style.display = 'block';
+        btn.disabled = true;
+        btnReset.disabled = true;
+      }
+    });
+    async function doLogin() {
+      try {
+        await firebase.auth().signInWithEmailAndPassword(
+          document.getElementById('email').value.trim(),
+          document.getElementById('pass').value
+        );
+      } catch (e) { write(`❌ Login: ${e.message}`, 'err'); }
+    }
+
+    // ── Horario estándar Lun–Sáb ────────────────────────────────────
+    const H = (inicio, fin, sabFin) => ({
+      '1': { activo: true,  inicio, fin, descansos: [] },
+      '2': { activo: true,  inicio, fin, descansos: [] },
+      '3': { activo: true,  inicio, fin, descansos: [] },
+      '4': { activo: true,  inicio, fin, descansos: [] },
+      '5': { activo: true,  inicio, fin, descansos: [] },
+      '6': { activo: true,  inicio, fin: sabFin || fin, descansos: [] },
+      '0': { activo: false, inicio, fin, descansos: [] },
+    });
+
+    const CONFIG = {
+      horarioInicio:    '10:00',
+      horarioFin:       '20:00',
+      intervaloMinutos: 30,
+      diasLaborales:    [1, 2, 3, 4, 5, 6],
+      diasBloqueados:   [],
+      telefonoAdmin:    '',          // vacío a propósito: evita notificaciones reales
+      colacion:         null,
+      diasConfig:       {},
+      productosActivos: true,        // para probar la feature de productos
+    };
+
+    const BARBEROS = [
+      { id: 'demo-barbero-1', nombre: 'Barbero Demo 1', rol: 'jefe',    orden: 0, horario: H('10:00','20:00','17:00') },
+      { id: 'demo-barbero-2', nombre: 'Barbero Demo 2', rol: 'barbero', orden: 1, horario: H('11:00','19:00','16:00') },
+      { id: 'demo-barbero-3', nombre: 'Barbero Demo 3', rol: 'barbero', orden: 2, horario: H('10:30','18:30','15:00') },
+    ];
+
+    const SERVICIOS = [
+      { id: 'demo-srv-01', nombre: 'Corte de Cabello',        categoria: 'Cortes',  duracion: 40, precio: 12000, orden: 0, icono: 'ph-scissors', descripcion: 'Corte personalizado con lavado y peinado profesional.' },
+      { id: 'demo-srv-02', nombre: 'Corte + Diseño',          categoria: 'Cortes',  duracion: 50, precio: 15000, orden: 1, icono: 'ph-scissors', descripcion: 'Corte con diseño y líneas a tu medida.' },
+      { id: 'demo-srv-03', nombre: 'Arreglo de Barba',        categoria: 'Barba',   duracion: 25, precio: 8000,  orden: 2, icono: 'ph-mustache',  descripcion: 'Perfilado y rebalance de barba con máquina y navaja.' },
+      { id: 'demo-srv-04', nombre: 'Afeitado Tradicional',    categoria: 'Barba',   duracion: 30, precio: 10000, orden: 3, icono: 'ph-mustache',  descripcion: 'Ritual con toallas calientes y navaja.' },
+      { id: 'demo-srv-05', nombre: 'Corte + Barba',           categoria: 'Combos',  duracion: 60, precio: 18000, orden: 4, icono: 'ph-crown',     descripcion: 'Combo clásico: corte de cabello + arreglo de barba.' },
+      { id: 'demo-srv-06', nombre: 'Servicio Full',           categoria: 'Combos',  duracion: 90, precio: 28000, orden: 5, icono: 'ph-star',      descripcion: 'Corte, barba y tratamiento facial en una sesión.' },
+      { id: 'demo-srv-07', nombre: 'Perfilado de Cejas',      categoria: 'Extras',  duracion: 15, precio: 4000,  orden: 6, icono: 'ph-eye',       descripcion: 'Diseño y perfilado de cejas.' },
+      { id: 'demo-srv-08', nombre: 'Lavado + Peinado',        categoria: 'Extras',  duracion: 20, precio: 6000,  orden: 7, icono: 'ph-drop-half', descripcion: 'Lavado con productos profesionales y peinado.' },
+    ];
+
+    const PREMIOS = [
+      { id: 'demo-premio-1', nombre: 'Corte Gratis',          descripcion: 'Un corte de cabello gratis.', costoSellos: 10, icono: 'ph-scissors', activo: true },
+      { id: 'demo-premio-2', nombre: 'Arreglo de Barba Gratis', descripcion: 'Un arreglo de barba gratis.', costoSellos: 8,  icono: 'ph-mustache', activo: true },
+    ];
+
+    const PRODUCTOS = [
+      { nombre: 'Pomada Matte', descripcion: 'Control fuerte, acabado mate. 100 g.', precio: 9900, stock: 12, imagen: '' },
+      { nombre: 'Aceite para Barba', descripcion: 'Hidrata y suaviza. 30 ml.',       precio: 8500, stock: 6,  imagen: '' },
+      { nombre: 'Shampoo Anticaída', descripcion: 'Fortalecedor con cafeína. 250 ml.', precio: 7900, stock: 0,  imagen: '' },
+    ];
+
+    async function run() {
+      btn.disabled = true; btnReset.disabled = true;
+      log.innerHTML = '';
+      try {
+        write('── Configuración del local ──');
+        await set(`tenants/${TID}/configuracion/main`, { ...CONFIG, updatedAt: firebase.firestore.FieldValue.serverTimestamp() });
+        await set(`tenants/${TID}/settings/general`, {
+          nombre: 'Barbería Demo',
+          features: { hasCourses: false, hasChairRental: false, hasAcademiaInternal: false },
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+
+        write('\n── Barberos ──');
+        for (const b of BARBEROS) {
+          const { id, ...data } = b;
+          await set(`tenants/${TID}/barberos/${id}`, { ...data, activo: true, disponible: true, foto: null });
+          // Config por barbero (heredada del local; el horario va en el doc del barbero)
+          await set(`tenants/${TID}/barberos/${id}/configuracion/main`, { ...CONFIG });
+        }
+
+        write('\n── Servicios ──');
+        for (const s of SERVICIOS) {
+          const { id, ...data } = s;
+          await set(`tenants/${TID}/servicios/${id}`, { ...data, activo: true, disponible: true });
+        }
+
+        write('\n── Premios del club ──');
+        for (const p of PREMIOS) {
+          const { id, ...data } = p;
+          await set(`tenants/${TID}/premios/${id}`, data);
+        }
+
+        write('\n── Productos ──');
+        // Limpia productos previos para no duplicar en reseed
+        const prodSnap = await db.collection(`tenants/${TID}/productos`).get();
+        for (const d of prodSnap.docs) await d.ref.delete();
+        for (const p of PRODUCTOS) {
+          await db.collection(`tenants/${TID}/productos`).add({ ...p, createdAt: firebase.firestore.FieldValue.serverTimestamp() });
+          write(`  ✓ producto → "${p.nombre}"`, 'ok');
+        }
+
+        write('\n── Anuncio de marketing ──');
+        await set(`tenants/${TID}/config/anuncio`, {
+          titulo: 'Entorno de pruebas',
+          descripcion: 'Este es un tenant de demostración para probar features. Las reservas aquí no son reales.',
+          imagen: '', ctaTexto: 'Reservar', ctaUrl: '/', activo: true, versionId: Date.now().toString(),
+        });
+
+        write('\n✅ Seed del sandbox completado.', 'ok');
+        write('→ Público:  /?local=sandbox', 'ok');
+        write('→ Agenda:   /agenda?local=sandbox', 'ok');
+        write('→ Panel:    /gestion-interna?local=sandbox', 'ok');
+      } catch (e) {
+        write(`\n❌ Error: ${e.message}`, 'err');
+      }
+      btn.disabled = false; btnReset.disabled = false;
+    }
+
+    // ── Borrar todos los datos del sandbox (para reiniciar pruebas) ──
+    async function resetData() {
+      if (!confirm('¿Borrar TODOS los datos de tenants/sandbox/ (servicios, barberos, citas, productos, etc.)?')) return;
+      btn.disabled = true; btnReset.disabled = true;
+      log.innerHTML = '';
+      const cols = ['servicios','barberos','citas','bookings','productos','premios','config','configuracion','settings','clientes','slotLocks','bloqueos','resenas'];
+      try {
+        for (const c of cols) {
+          const snap = await db.collection(`tenants/${TID}/${c}`).get();
+          for (const d of snap.docs) {
+            // limpia subcolección configuracion de barberos
+            if (c === 'barberos') {
+              const sub = await d.ref.collection('configuracion').get();
+              for (const s of sub.docs) await s.ref.delete();
+            }
+            await d.ref.delete();
+          }
+          write(`  ✓ ${c}: ${snap.size} docs borrados`, 'warn');
+        }
+        write('\n✅ Sandbox vaciado.', 'ok');
+      } catch (e) {
+        write(`\n❌ Error: ${e.message}`, 'err');
+      }
+      btn.disabled = false; btnReset.disabled = false;
+    }
+  </script>
+</body>
+</html>

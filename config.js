@@ -33,9 +33,35 @@
     'barberiasion.synaptechspa.cl':       'sionbarberia',
     'omegastudio.synaptechspa.cl':        'omegastudio',
     'alfamen.synaptechspa.cl':            'alfamen',
+    'sandbox.synaptechspa.cl':            'sandbox',
   };
 
   const _tenants = {
+    // ── SANDBOX — tenant de pruebas (datos aislados en tenants/sandbox/) ──
+    // Acceso: ?local=sandbox  o  sandbox.synaptechspa.cl
+    // Para probar features en producción sin tocar clientes reales.
+    sandbox: {
+      categoriasServicio: ['Cortes', 'Barba', 'Combos', 'Extras', 'Otro'],
+      nombre:          'Barbería Demo',
+      nombreCorto:     'Demo',
+      pageTitle:       'Barbería Demo · Entorno de pruebas',
+      bodyBg:          '#0a0a0a',
+      slogan:          'Entorno de pruebas — Sandbox',
+      logo:            '/logo.jpg',
+      direccion:       '📍 Entorno de pruebas',
+      horario:         '🕒 Lun a Sáb · Demo',
+      telefono:        '',
+      club:            'Club Demo',
+      instagram:       '',
+      instagramHandle: '',
+      waEmoji:         '✂️',
+      googleReviewUrl: '',
+      ratingGeneral:   0,
+      totalReviews:    0,
+      reviews:         [],
+      barberos:        [],
+      _esSandbox:      true,
+    },
     elegance: {
       categoriasServicio: ['Cortes', 'Barba', 'Combos', 'Extras', 'Otro'],
       nombre:          '𝐄𝐥𝐞𝐠𝐚𝐧𝐜𝐞 𝐛𝐚𝐫𝐛𝐞𝐫𝐬𝐡𝐨𝐩',
