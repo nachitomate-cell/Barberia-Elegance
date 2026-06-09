@@ -204,7 +204,13 @@
     const $ = id => document.getElementById(id);
     const show = id => { ['loginView','loadingView','lobbyView'].forEach(v => $(v).classList.toggle('hidden', v !== id)); };
 
+    // Fallback anti-spinner: si Firebase no resuelve el estado en 3.5s
+    // (ej. dominio no autorizado / red lenta), mostramos el login igual.
+    let _authResolved = false;
+    setTimeout(() => { if (!_authResolved) show('loginView'); }, 3500);
+
     firebase.auth().onAuthStateChanged(user => {
+      _authResolved = true;
       if (user && ALLOWED.includes((user.email || '').toLowerCase())) {
         $('sessEmail').textContent = user.email;
         show('lobbyView');
@@ -242,6 +248,8 @@
           'auth/user-not-found':     'Correo o contraseña incorrectos.',
           'auth/invalid-email':      'Correo inválido.',
           'auth/too-many-requests':  'Demasiados intentos. Espera un momento.',
+          'auth/unauthorized-domain':'Dominio no autorizado en Firebase. Agrégalo en Authentication → Settings → Authorized domains.',
+          'auth/network-request-failed': 'Sin conexión. Revisa tu internet.',
         };
         $('loginErr').textContent = map[err.code] || 'No se pudo iniciar sesión. Intenta de nuevo.';
         btn.disabled = false; btn.textContent = 'Ingresar';
