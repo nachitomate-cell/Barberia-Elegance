@@ -746,3 +746,13 @@ exports.reactivacionClientes = reactivacionClientes.reactivacionClientes;
 // ─────────────────────────────────────────────────────────────────
 const pushReenganche = require('./push-reenganche');
 exports.pushReengancheClientes = pushReenganche.pushReengancheClientes;
+
+// ─────────────────────────────────────────────────────────────────
+//  PUSH DEL CHAT / MENSAJES DIRECTOS — ver push-chat.js
+//  Dispara en cada mensaje nuevo del chat en tiempo real:
+//    - admin responde desde /gestion-interna/mensajes → push al cliente.
+//    - cliente escribe desde su dashboard            → push a admins/jefes.
+// ─────────────────────────────────────────────────────────────────
+const pushChat = require('./push-chat');
+exports.pushChatMsgElegance = pushChat.pushChatMsgElegance;
+exports.pushChatMsgTenant   = pushChat.pushChatMsgTenant;
