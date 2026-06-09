@@ -21,6 +21,7 @@
     'Attempt to get records from database without an in-progress transaction',
     'Connection to Indexed Database server lost',
     'An internal error was encountered in the Indexed Database server',
+    'Database deleted by request of the user',
     'Script error.',
     'IDBDatabase.transaction',
   ];
