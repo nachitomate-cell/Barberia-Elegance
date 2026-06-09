@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Seed · Kronnos Woman</title>
+  <style>
+    body { font-family: monospace; background: #0a0a0a; color: #94a3b8; padding: 2rem; }
+    h1   { color: #ec4899; }
+    code { color: #f0a; }
+    button { padding: .75rem 1.5rem; background: #ec4899; color: #fff; border: none;
+             border-radius: .5rem; font-size: 1rem; font-weight: 700; cursor: pointer; margin-top: 1rem; }
+    button:disabled { opacity: .4; cursor: not-allowed; }
+    pre  { background: #1a1a1a; padding: 1rem; border-radius: .5rem; white-space: pre-wrap; margin-top: 1rem; }
+    .ok  { color: #34d399; } .err { color: #f87171; } .warn{ color: #fbbf24; }
+  </style>
+</head>
+<body>
+  <h1>Seed — Kronnos Woman</h1>
+  <p>Popula <code>tenants/kronnos_woman/</code> con equipo, servicios, premios y anuncio.</p>
+  <p class="warn">⚠ Catálogo parcial: 3 servicios reales confirmados (de ~86). El resto debe cargarlo el cliente desde el panel.</p>
+  <button id="btn" onclick="run()">▶ Ejecutar Seed</button>
+  <pre id="log">Listo para ejecutar…</pre>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="/firebase-config.js?v=1.3"></script>
+  <script>
+    const TENANT = 'kronnos_woman';
+    const log = document.getElementById('log'), btn = document.getElementById('btn');
+    function write(m, c) { log.innerHTML += `<span class="${c||''}">${m}\n</span>`; }
+    async function set(path, data) {
+      const parts = path.split('/'); let ref = db;
+      for (let i = 0; i < parts.length; i++) ref = i % 2 === 0 ? ref.collection(parts[i]) : ref.doc(parts[i]);
+      await ref.set(data, { merge: true }); write(`  ✓ ${path}`, 'ok');
+    }
+    // Horario Woman: Lun a Dom 09:30–23:00.
+    const horarioBase = {
+      '1': { activo: true, inicio: '09:30', fin: '23:00', descansos: [] },
+      '2': { activo: true, inicio: '09:30', fin: '23:00', descansos: [] },
+      '3': { activo: true, inicio: '09:30', fin: '23:00', descansos: [] },
+      '4': { activo: true, inicio: '09:30', fin: '23:00', descansos: [] },
+      '5': { activo: true, inicio: '09:30', fin: '23:00', descansos: [] },
+      '6': { activo: true, inicio: '09:30', fin: '23:00', descansos: [] },
+      '0': { activo: true, inicio: '09:30', fin: '23:00', descansos: [] },
+    };
+    async function run() {
+      btn.disabled = true; log.innerHTML = '';
+      try {
+        write('── Equipo ──');
+        await set(`tenants/${TENANT}/barberos/kelly`,   { nombre: 'Kelly',   especialidad: 'Manicurista', activo: true, disponible: true, foto: null, horario: horarioBase });
+        await set(`tenants/${TENANT}/barberos/ernesto`, { nombre: 'Ernesto', especialidad: 'Estilista',  activo: true, disponible: true, foto: null, horario: horarioBase });
+        await set(`tenants/${TENANT}/barberos/heydee`,  { nombre: 'Heydee',  especialidad: 'Estilista',  activo: true, disponible: true, foto: null, horario: horarioBase });
+
+        write('\n── Configuración general ──');
+        await set(`tenants/${TENANT}/configuracion/main`, {
+          horarioInicio:    '09:30',
+          horarioFin:       '23:00',
+          intervaloMinutos: 30,
+          diasLaborales:    [0, 1, 2, 3, 4, 5, 6],
+          telefonoAdmin:    '',
+          diasBloqueados:   [],
+          colacion:         null,
+          diasConfig:       {},
+        });
+
+        write('\n── Servicios ──');
+        await set(`tenants/${TENANT}/servicios/maquillaje-noche`, {
+          nombre: 'Maquillaje Noche', categoria: 'Maquillaje',
+          duracion: 70, precio: 35000, disponible: true, orden: 1,
+          descripcion: 'Maquillaje profesional para eventos de noche.',
+        });
+        await set(`tenants/${TENANT}/servicios/masaje-corporal`, {
+          nombre: 'Masaje Corporal', categoria: 'Masajes',
+          duracion: 70, precio: 29990, disponible: true, orden: 2,
+          descripcion: 'Masaje corporal relajante de cuerpo completo.',
+        });
+        await set(`tenants/${TENANT}/servicios/manicura-rusa`, {
+          nombre: 'Manicura Rusa', categoria: 'Manicura',
+          duracion: 45, precio: 15000, disponible: true, orden: 3,
+          descripcion: 'Manicura rusa con acabado profesional de larga duración.',
+        });
+        write('\n  (Catálogo parcial — faltan ~83 servicios por cargar)', 'warn');
+
+        write('\n── Premios (Club Kronnos Woman) ──');
+        const premSnap = await db.collection(`tenants/${TENANT}/premios`).get();
+        for (const d of premSnap.docs) await d.ref.delete();
+        if (premSnap.size) write(`  ✓ Premios anteriores eliminados (${premSnap.size})`, 'ok');
+        await db.collection(`tenants/${TENANT}/premios`).add({ nombre: 'Descuento 30%', descripcion: '30% de descuento en tu próximo servicio. Válido 30 días.', costoSellos: 5, icono: 'ph-tag', activo: true });
+        write('  ✓ Premio → "Descuento 30%" (5 sellos)', 'ok');
+        await db.collection(`tenants/${TENANT}/premios`).add({ nombre: 'Manicura gratis', descripcion: 'Una Manicura Rusa completamente gratis.', costoSellos: 10, icono: 'ph-hand-heart', activo: true });
+        write('  ✓ Premio → "Manicura gratis" (10 sellos)', 'ok');
+
+        write('\n── Anuncio ──');
+        await set(`tenants/${TENANT}/config/anuncio`, {
+          titulo: 'Belleza y estética en Limache', descripcion: 'Manicura, maquillaje, masajes y más, con profesionales de más de 12 años de experiencia. Agenda online.',
+          imagen: '', ctaTexto: 'Reservar ahora', ctaUrl: '/', activo: true, versionId: Date.now().toString(),
+        });
+
+        write('\n✅ Seed completado. Prueba: /?local=kronnos_woman', 'ok');
+      } catch (e) { write(`\n❌ Error: ${e.message}`, 'err'); }
+      btn.disabled = false;
+    }
+  </script>
+</body>
+</html>

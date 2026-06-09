@@ -2,11 +2,19 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { getDoc } from 'firebase/firestore';
 import { auth } from '../lib/firebase';
-import { tenantDoc } from '../lib/tenantUtils';
+import { tenantDoc, resolveTenantId } from '../lib/tenantUtils';
 
 const AuthContext = createContext(null);
 
 const SUPERADMIN_EMAIL = 'ignaciiio.mate@gmail.com';
+
+// ── Admins de marca ──────────────────────────────────────────────
+// Un dueño con acceso 'admin' a varias sedes (tenants) del mismo grupo,
+// sin necesidad de registrarlo como barbero en cada una. Con esto inicia
+// sesión una sola vez (mismo dominio + ?local=) y administra las 3 sedes.
+const BRAND_ADMINS = {
+  'administracionkronnos@gmail.com': ['kronnos_penablanca', 'kronnos_limache', 'kronnos_woman'],
+};
 
 export function AuthProvider({ children }) {
   const [user,    setUser]    = useState(undefined);
@@ -23,8 +31,17 @@ export function AuthProvider({ children }) {
       }
       setUser(firebaseUser);
 
+      const email = firebaseUser.email?.toLowerCase();
+
       // Superadmin de SynapTech — acceso total en cualquier tenant
-      if (firebaseUser.email?.toLowerCase() === SUPERADMIN_EMAIL) {
+      if (email === SUPERADMIN_EMAIL) {
+        setRole('admin');
+        setLoading(false);
+        return;
+      }
+
+      // Admin de marca — dueño con 'admin' en sus sedes (sin re-login al cambiar)
+      if (email && BRAND_ADMINS[email]?.includes(resolveTenantId())) {
         setRole('admin');
         setLoading(false);
         return;

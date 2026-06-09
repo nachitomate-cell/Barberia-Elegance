@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kronnos · Gestión Interna</title>
+  <link rel="icon" href="/kronnos/studio.jpg">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root { --red:#e11d2a; --orange:#f97316; --magenta:#ec4899; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0a0a0a; color: #f5f5f5; min-height: 100vh;
+      background-image: radial-gradient(circle at 20% 0%, rgba(225,29,42,.12), transparent 45%),
+                        radial-gradient(circle at 90% 100%, rgba(236,72,153,.10), transparent 45%);
+    }
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 3.5rem 1.5rem 4rem; }
+    header { text-align: center; margin-bottom: 3rem; }
+    .logo { width: 88px; height: 88px; border-radius: 20px; object-fit: contain; padding: 8px;
+            background: #000; border: 1px solid rgba(255,255,255,.08); margin-bottom: 1.2rem;
+            display: block; margin-left: auto; margin-right: auto; }
+    .kicker { display: inline-flex; align-items: center; gap: .4rem; font-size: .72rem; font-weight: 700;
+              text-transform: uppercase; letter-spacing: .12em; color: #9ca3af;
+              background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08);
+              padding: .35rem .8rem; border-radius: 999px; margin-bottom: 1rem; }
+    h1 { font-size: clamp(1.8rem, 5vw, 2.6rem); font-weight: 800; letter-spacing: -.02em; }
+    h1 span { color: var(--red); }
+    .tagline { color: #9ca3af; max-width: 560px; margin: .9rem auto 0; line-height: 1.55; font-size: .98rem; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.4rem; }
+    .card { background: #121212; border: 1px solid rgba(255,255,255,.07); border-radius: 18px;
+            overflow: hidden; display: flex; flex-direction: column;
+            transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease; }
+    .card:hover { transform: translateY(-4px); }
+    .card-top { height: 160px; display: flex; align-items: flex-end; justify-content: flex-start;
+                font-weight: 800; font-size: 1.5rem; letter-spacing: .04em; position: relative;
+                padding: 1rem; background-size: cover; background-position: center;
+                text-shadow: 0 2px 10px rgba(0,0,0,.85); color: #fff; }
+    .card-body { padding: 1.3rem 1.3rem 1.5rem; flex: 1; display: flex; flex-direction: column; }
+    .badge { display: inline-block; align-self: flex-start; font-size: .68rem; font-weight: 700;
+             text-transform: uppercase; letter-spacing: .06em; padding: .25rem .6rem; border-radius: 999px;
+             margin-bottom: .8rem; }
+    .card h2 { font-size: 1.25rem; font-weight: 700; margin-bottom: .5rem; }
+    .addr { color: #9ca3af; font-size: .88rem; line-height: 1.5; margin-bottom: 1.3rem; }
+    .btn { margin-top: auto; display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+           text-align: center; text-decoration: none; color: #fff; font-weight: 700;
+           padding: .8rem 1rem; border-radius: 12px; transition: filter .15s ease; border: none; cursor: pointer; font-size: 1rem; }
+    .btn:hover { filter: brightness(1.12); }
+    .btn svg { width: 17px; height: 17px; }
+    .red    .badge { background: rgba(225,29,42,.15); color: #fca5a5; }
+    .red    .btn  { background: var(--red); }
+    .red:hover { border-color: var(--red); box-shadow: 0 12px 30px -12px rgba(225,29,42,.5); }
+    .orange .badge { background: rgba(249,115,22,.15); color: #fdba74; }
+    .orange .btn  { background: var(--orange); }
+    .orange:hover { border-color: var(--orange); box-shadow: 0 12px 30px -12px rgba(249,115,22,.5); }
+    .magenta .badge { background: rgba(236,72,153,.15); color: #f9a8d4; }
+    .magenta .btn  { background: var(--magenta); }
+    .magenta:hover { border-color: var(--magenta); box-shadow: 0 12px 30px -12px rgba(236,72,153,.5); }
+    footer { text-align: center; margin-top: 3rem; color: #4b5563; font-size: .8rem; }
+    footer a { color: #6b7280; text-decoration: none; }
+
+    /* ── Sesión bar ── */
+    .session-bar { max-width: 1100px; margin: 0 auto; padding: 1rem 1.5rem 0;
+                   display: flex; justify-content: flex-end; align-items: center; gap: .8rem;
+                   font-size: .85rem; color: #9ca3af; }
+    .session-bar b { color: #e5e7eb; font-weight: 600; }
+    .logout { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); color: #cbd5e1;
+              padding: .4rem .8rem; border-radius: 10px; cursor: pointer; font-size: .82rem; font-weight: 600; }
+    .logout:hover { background: rgba(255,255,255,.12); }
+
+    /* ── Login ── */
+    .login-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1.5rem; }
+    .login-card { width: 100%; max-width: 400px; background: #121212; border: 1px solid rgba(255,255,255,.08);
+                  border-radius: 20px; padding: 2.4rem 2rem; text-align: center; }
+    .login-card .logo { margin-bottom: 1rem; }
+    .login-card h1 { font-size: 1.5rem; margin-bottom: .4rem; }
+    .login-card p { color: #9ca3af; font-size: .9rem; margin-bottom: 1.8rem; }
+    .field { text-align: left; margin-bottom: 1rem; }
+    .field label { display: block; font-size: .78rem; font-weight: 600; color: #9ca3af; margin-bottom: .4rem; }
+    .field input { width: 100%; background: #0a0a0a; border: 1px solid rgba(255,255,255,.12); color: #f5f5f5;
+                   padding: .8rem .9rem; border-radius: 12px; font-size: .95rem; outline: none; }
+    .field input:focus { border-color: var(--red); }
+    .login-btn { width: 100%; background: var(--red); color: #fff; font-weight: 700; font-size: 1rem;
+                 border: none; padding: .9rem; border-radius: 12px; cursor: pointer; margin-top: .5rem; }
+    .login-btn:hover { filter: brightness(1.1); }
+    .login-btn:disabled { opacity: .5; cursor: not-allowed; }
+    .login-err { color: #f87171; font-size: .85rem; margin-top: 1rem; min-height: 1.1rem; }
+    .remember { display: flex; align-items: center; gap: .55rem; margin: .2rem 0 .3rem; cursor: pointer;
+                font-size: .85rem; color: #cbd5e1; user-select: none; }
+    .remember input { width: 17px; height: 17px; accent-color: var(--red); cursor: pointer; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <!-- ══ LOGIN ══ -->
+  <div id="loginView" class="login-screen hidden">
+    <form class="login-card" onsubmit="return doLogin(event)">
+      <img src="/kronnos/studio.jpg" alt="Kronnos" class="logo" onerror="this.style.display='none'">
+      <h1><span style="color:var(--red)">KRONNOS</span> · Gestión</h1>
+      <p>Ingresa para administrar tus sucursales.</p>
+      <div class="field">
+        <label for="email">Correo</label>
+        <input id="email" type="email" autocomplete="username" placeholder="administracionkronnos@gmail.com" required>
+      </div>
+      <div class="field">
+        <label for="password">Contraseña</label>
+        <input id="password" type="password" autocomplete="current-password" placeholder="••••••••" required>
+      </div>
+      <label class="remember">
+        <input id="remember" type="checkbox" checked>
+        Mantener sesión iniciada
+      </label>
+      <button id="loginBtn" class="login-btn" type="submit">Ingresar</button>
+      <div id="loginErr" class="login-err"></div>
+    </form>
+  </div>
+
+  <!-- ══ LOADING ══ -->
+  <div id="loadingView" class="login-screen">
+    <div style="width:38px;height:38px;border:3px solid var(--red);border-top-color:transparent;border-radius:50%;animation:spin .8s linear infinite"></div>
+    <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+  </div>
+
+  <!-- ══ LOBBY (autenticado) ══ -->
+  <div id="lobbyView" class="hidden">
+    <div class="session-bar">
+      <span>Sesión: <b id="sessEmail"></b></span>
+      <button class="logout" onclick="doLogout()">Cerrar sesión</button>
+    </div>
+    <div class="wrap">
+      <header>
+        <img src="/kronnos/studio.jpg" alt="Kronnos" class="logo" onerror="this.style.display='none'">
+        <div class="kicker">🔐 Panel de administración</div>
+        <h1><span>KRONNOS</span> · Gestión Interna</h1>
+        <p class="tagline">Selecciona la sucursal que quieres administrar. Tu sesión se mantiene activa entre sedes.</p>
+      </header>
+
+      <main class="grid">
+        <!-- Peñablanca -->
+        <div class="card red">
+          <div class="card-top" style="background-image: linear-gradient(180deg, rgba(0,0,0,.15), rgba(0,0,0,.7)), url('/kronnos/kronospena.png')">PEÑABLANCA</div>
+          <div class="card-body">
+            <span class="badge">Barbería · Estilismo</span>
+            <h2>Kronnos Studio Peñablanca</h2>
+            <p class="addr">Av. Vicepresidente Bernardo Leighton 20, local 13 · Villa Alemana</p>
+            <a class="btn" href="/gestion-interna/?local=kronnos_penablanca">
+              Gestionar
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </a>
+          </div>
+        </div>
+
+        <!-- Limache -->
+        <div class="card orange">
+          <div class="card-top" style="background-image: linear-gradient(180deg, rgba(0,0,0,.15), rgba(0,0,0,.7)), url('/kronnos/kronoslima.png')">LIMACHE</div>
+          <div class="card-body">
+            <span class="badge">Barbería · Estilismo</span>
+            <h2>Kronnos Studio Limache</h2>
+            <p class="addr">Paseo Las Araucarias 405, local 5 · Limache</p>
+            <a class="btn" href="/gestion-interna/?local=kronnos_limache">
+              Gestionar
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </a>
+          </div>
+        </div>
+
+        <!-- Woman -->
+        <div class="card magenta">
+          <div class="card-top" style="background-image: linear-gradient(180deg, rgba(0,0,0,.15), rgba(0,0,0,.7)), url('/kronnos/kronoswoman.png')">WOMAN</div>
+          <div class="card-body">
+            <span class="badge">Belleza · Estética</span>
+            <h2>Kronnos Woman</h2>
+            <p class="addr">Palmira Romano Sur 405, local 3 · Limache</p>
+            <a class="btn" href="/gestion-interna/?local=kronnos_woman">
+              Gestionar
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+            </a>
+          </div>
+        </div>
+      </main>
+
+      <footer>
+        Powered by <a href="https://synaptechspa.cl" target="_blank" rel="noopener">SynapTech</a>
+      </footer>
+    </div>
+  </div>
+
+  <!-- ══ Firebase Auth ══ -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script>
+    // Mismo proyecto que el panel → la sesión (IndexedDB LOCAL) se comparte.
+    firebase.initializeApp({
+      apiKey:            'AIzaSyDqVkAhkXALm3hLcrmzjiaS3flUezPFe2Q',
+      authDomain:        'barberia-elegance.firebaseapp.com',
+      projectId:         'barberia-elegance',
+      storageBucket:     'barberia-elegance.firebasestorage.app',
+      messagingSenderId: '515311607907',
+      appId:             '1:515311607907:web:8add6005144015c5e85856',
+    });
+
+    // Quién puede ver/usar este lobby admin de Kronnos.
+    const ALLOWED = ['administracionkronnos@gmail.com', 'ignaciiio.mate@gmail.com'];
+
+    const $ = id => document.getElementById(id);
+    const show = id => { ['loginView','loadingView','lobbyView'].forEach(v => $(v).classList.toggle('hidden', v !== id)); };
+
+    firebase.auth().onAuthStateChanged(user => {
+      if (user && ALLOWED.includes((user.email || '').toLowerCase())) {
+        $('sessEmail').textContent = user.email;
+        show('lobbyView');
+      } else if (user) {
+        // Sesión de alguien no autorizado para este panel.
+        firebase.auth().signOut();
+        show('loginView');
+        $('loginErr').textContent = 'Esta cuenta no tiene acceso a la gestión de Kronnos.';
+      } else {
+        show('loginView');
+      }
+    });
+
+    async function doLogin(e) {
+      e.preventDefault();
+      const btn = $('loginBtn');
+      const email = $('email').value.trim().toLowerCase();
+      const pass  = $('password').value;
+      const remember = $('remember').checked;
+      $('loginErr').textContent = '';
+      btn.disabled = true; btn.textContent = 'Ingresando…';
+      try {
+        if (!ALLOWED.includes(email)) throw { code: 'auth/not-allowed' };
+        // Marcado → LOCAL (persiste tras cerrar el navegador). Sin marcar → SESSION (solo esta sesión).
+        // Ambas comparten la sesión con el panel mientras el navegador siga abierto.
+        const P = firebase.auth.Auth.Persistence;
+        await firebase.auth().setPersistence(remember ? P.LOCAL : P.SESSION);
+        await firebase.auth().signInWithEmailAndPassword(email, pass);
+        // onAuthStateChanged mostrará el lobby.
+      } catch (err) {
+        const map = {
+          'auth/not-allowed':        'Esta cuenta no tiene acceso a la gestión de Kronnos.',
+          'auth/invalid-credential': 'Correo o contraseña incorrectos.',
+          'auth/wrong-password':     'Correo o contraseña incorrectos.',
+          'auth/user-not-found':     'Correo o contraseña incorrectos.',
+          'auth/invalid-email':      'Correo inválido.',
+          'auth/too-many-requests':  'Demasiados intentos. Espera un momento.',
+        };
+        $('loginErr').textContent = map[err.code] || 'No se pudo iniciar sesión. Intenta de nuevo.';
+        btn.disabled = false; btn.textContent = 'Ingresar';
+      }
+      return false;
+    }
+
+    function doLogout() {
+      firebase.auth().signOut();
+    }
+  </script>
+</body>
+</html>

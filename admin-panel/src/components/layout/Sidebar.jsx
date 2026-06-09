@@ -196,6 +196,8 @@ const ACCENT_CLASSES = {
   pink:    { active: 'bg-pink-500/10 text-pink-400',       chevron: 'text-pink-500'    },
   purple:  { active: 'bg-purple-500/10 text-purple-400',   chevron: 'text-purple-500'  },
   slate:   { active: 'bg-slate-500/10 text-slate-300',     chevron: 'text-slate-400'   },
+  red:     { active: 'bg-red-500/10 text-red-400',         chevron: 'text-red-500'     },
+  orange:  { active: 'bg-orange-500/10 text-orange-400',   chevron: 'text-orange-500'  },
 };
 
 /* ── Sidebar ─────────────────────────────────────────────────────── */

@@ -1,5 +1,5 @@
 import { initializeApp, getApps } from 'firebase/app';
-import { initializeAuth, getAuth, indexedDBLocalPersistence, browserLocalPersistence } from 'firebase/auth';
+import { initializeAuth, getAuth, indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
@@ -19,7 +19,9 @@ const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
 let _auth;
 try {
   _auth = initializeAuth(app, {
-    persistence: [indexedDBLocalPersistence, browserLocalPersistence],
+    // session al final: permite reconocer logins "no recordar" hechos en el lobby
+    // (sessionStorage del mismo tab) sin perder la persistencia LOCAL por defecto.
+    persistence: [indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence],
   });
 } catch {
   _auth = getAuth(app);

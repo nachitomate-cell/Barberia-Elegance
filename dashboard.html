@@ -585,6 +585,14 @@
         rgba(5,5,5,0.90) 100%);
     }
 
+    /* ══ KRONNOS — Club de Fidelidad por sede (banner + acento) ══ */
+    .tenant-kronnos_penablanca { --gold:#e11d2a; --gold-dim:rgba(225,29,42,0.35); --gold-glow:rgba(225,29,42,0.18); }
+    .tenant-kronnos_penablanca .hero-bg { background-image:url('/kronnos/kronospena.png'); background-position:center 30%; }
+    .tenant-kronnos_limache    { --gold:#f97316; --gold-dim:rgba(249,115,22,0.35); --gold-glow:rgba(249,115,22,0.18); }
+    .tenant-kronnos_limache .hero-bg { background-image:url('/kronnos/kronoslima.png'); background-position:center 30%; }
+    .tenant-kronnos_woman      { --gold:#ec4899; --gold-dim:rgba(236,72,153,0.35); --gold-glow:rgba(236,72,153,0.18); }
+    .tenant-kronnos_woman .hero-bg { background-image:url('/kronnos/kronoswoman.png'); background-position:center 30%; }
+
     /* Service card image */
     .service-img {
       position: absolute;
@@ -4553,6 +4561,10 @@ document.getElementById('shopClubName').textContent   = SHOP.club;
   const isDelnero     = tid === 'delnero';
   const isInfinity    = tid === 'infinity';
   const isOmega       = tid === 'omegastudio';
+  const isKronnosPen   = tid === 'kronnos_penablanca';
+  const isKronnosLim   = tid === 'kronnos_limache';
+  const isKronnosWoman = tid === 'kronnos_woman';
+  const isKronnos      = isKronnosPen || isKronnosLim || isKronnosWoman;
 
   // Subtítulo header
   const sub = document.getElementById('shopHeaderSub');
@@ -4561,6 +4573,8 @@ document.getElementById('shopClubName').textContent   = SHOP.club;
     : isInfinity  ? 'STUDIO'
     : isDelnero   ? 'BARBER'
     : isOmega     ? 'STUDIO'
+    : isKronnosWoman ? 'BELLEZA & ESTÉTICA'
+    : isKronnos   ? 'STUDIO'
     : 'BARBERSHOP';
 
   if (isAura) {
@@ -4610,11 +4624,17 @@ document.getElementById('shopClubName').textContent   = SHOP.club;
   } else if (isOmega) {
     if (h1) h1.innerHTML = 'La puntualidad<br>es nuestro';
     if (h2) h2.textContent = 'estilo.';
+  } else if (isKronnosWoman) {
+    if (h1) h1.innerHTML = 'Belleza y';
+    if (h2) h2.textContent = 'estilo.';
+  } else if (isKronnos) {
+    if (h1) h1.innerHTML = 'Donde ambos<br>mundos';
+    if (h2) h2.textContent = 'convergen.';
   }
 
   // Watermark
   const wm = document.getElementById('membershipWatermark');
-  if (wm) wm.textContent = isGitana ? 'G' : isFerraza ? 'F' : isMapu ? 'M' : isChameleon ? 'C' : isLumen ? '⚓' : isDelnero ? 'N' : isInfinity ? '∞' : isOmega ? 'Ω' : 'É';
+  if (wm) wm.textContent = isGitana ? 'G' : isFerraza ? 'F' : isMapu ? 'M' : isChameleon ? 'C' : isLumen ? '⚓' : isDelnero ? 'N' : isInfinity ? '∞' : isOmega ? 'Ω' : isKronnos ? 'K' : 'É';
 
   // PWA install icons — usa SHOP.logo como fuente única de verdad (config.js).
   // pwaBigIcon está antes del script en el DOM → se puede actualizar ya.

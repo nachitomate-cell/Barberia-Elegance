@@ -1384,6 +1384,167 @@
       background: #3D2C31 !important;
     }
     /* ── Chameleon Barber Studio ── */
+    /* ══ KRONNOS STUDIO PEÑABLANCA — Rojo Neón / Negro ══ */
+    .tenant-kronnos_penablanca {
+      --accent:   #e11d2a;
+      --accent-r: 225; --accent-g: 29; --accent-b: 42;
+      --neon-clr: #e11d2a;
+      --neon-r:   225; --neon-g: 29; --neon-b: 42;
+      --body-bg:  #0a0a0a;
+    }
+    .tenant-kronnos_penablanca body { background-color: #0a0a0a; }
+    .tenant-kronnos_penablanca .booking-hero {
+      background-image: url('/kronnos/kronospena.png') !important;
+      background-size: cover !important;
+      background-position: center 30% !important;
+    }
+    .tenant-kronnos_penablanca .booking-hero-overlay {
+      background: linear-gradient(180deg,
+        rgba(0,0,0,0.40) 0%, rgba(0,0,0,0.25) 40%, rgba(10,10,10,0.94) 100%) !important;
+    }
+
+    /* ══ KRONNOS STUDIO LIMACHE — Naranja Neón / Negro ══ */
+    .tenant-kronnos_limache {
+      --accent:   #f97316;
+      --accent-r: 249; --accent-g: 115; --accent-b: 22;
+      --neon-clr: #f97316;
+      --neon-r:   249; --neon-g: 115; --neon-b: 22;
+      --body-bg:  #0a0a0a;
+    }
+    .tenant-kronnos_limache body { background-color: #0a0a0a; }
+    .tenant-kronnos_limache .booking-hero {
+      background-image: url('/kronnos/kronoslima.png') !important;
+      background-size: cover !important;
+      background-position: center 30% !important;
+    }
+    .tenant-kronnos_limache .booking-hero-overlay {
+      background: linear-gradient(180deg,
+        rgba(0,0,0,0.40) 0%, rgba(0,0,0,0.25) 40%, rgba(10,10,10,0.94) 100%) !important;
+    }
+
+    /* ══ KRONNOS WOMAN — Magenta Neón / Negro ══ */
+    .tenant-kronnos_woman {
+      --accent:   #ec4899;
+      --accent-r: 236; --accent-g: 72; --accent-b: 153;
+      --neon-clr: #ec4899;
+      --neon-r:   236; --neon-g: 72; --neon-b: 153;
+      --body-bg:  #0a0a0a;
+    }
+    .tenant-kronnos_woman body { background-color: #0a0a0a; }
+    .tenant-kronnos_woman .booking-hero {
+      background-image: url('/kronnos/kronoswoman.png') !important;
+      background-size: cover !important;
+      background-position: center 30% !important;
+    }
+    .tenant-kronnos_woman .booking-hero-overlay {
+      background: linear-gradient(180deg,
+        rgba(0,0,0,0.40) 0%, rgba(0,0,0,0.25) 40%, rgba(10,10,10,0.94) 100%) !important;
+    }
+
+    /* ── KRONNOS (3 sedes): botones del agendamiento = color del local + blanco ── */
+    .tenant-kronnos_penablanca #btnContinue,
+    .tenant-kronnos_limache #btnContinue,
+    .tenant-kronnos_woman #btnContinue {
+      background: var(--accent) !important;
+      color: #fff !important;
+      font-weight: 800 !important;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5),
+                  0 2px 14px rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.40) !important;
+    }
+    .tenant-kronnos_penablanca #btnContinue:not(:disabled):hover,
+    .tenant-kronnos_limache #btnContinue:not(:disabled):hover,
+    .tenant-kronnos_woman #btnContinue:not(:disabled):hover {
+      filter: brightness(1.08) !important;
+    }
+    .tenant-kronnos_penablanca #btnContinue:disabled, .tenant-kronnos_penablanca #btnContinue[disabled],
+    .tenant-kronnos_limache #btnContinue:disabled,    .tenant-kronnos_limache #btnContinue[disabled],
+    .tenant-kronnos_woman #btnContinue:disabled,      .tenant-kronnos_woman #btnContinue[disabled] {
+      background: rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.16) !important;
+      color: rgba(255,255,255,0.45) !important;
+      box-shadow: none !important;
+    }
+    .tenant-kronnos_penablanca #btnContinueBar,
+    .tenant-kronnos_limache #btnContinueBar,
+    .tenant-kronnos_woman #btnContinueBar {
+      background: rgba(10,10,10,0.92) !important;
+      border-top-color: rgba(255,255,255,0.05) !important;
+    }
+
+    /* ══ KRONNOS — Layout en filas (igual que AURA) en pasos 1 y 2.
+       Los radios de servicio/barbero usan el neón de cada sede en vez del
+       dorado por defecto que el JS aplica inline. ══ */
+    .tenant-kronnos_penablanca .svc-radio,
+    .tenant-kronnos_limache .svc-radio,
+    .tenant-kronnos_woman .svc-radio,
+    .tenant-kronnos_penablanca .barber-radio,
+    .tenant-kronnos_limache .barber-radio,
+    .tenant-kronnos_woman .barber-radio {
+      border-color: rgba(var(--neon-r),var(--neon-g),var(--neon-b),0.45) !important;
+      background: transparent !important;
+    }
+    .tenant-kronnos_penablanca .service-option.border-neon .svc-radio,
+    .tenant-kronnos_limache .service-option.border-neon .svc-radio,
+    .tenant-kronnos_woman .service-option.border-neon .svc-radio,
+    .tenant-kronnos_penablanca .barber-option.border-neon .barber-radio,
+    .tenant-kronnos_limache .barber-option.border-neon .barber-radio,
+    .tenant-kronnos_woman .barber-option.border-neon .barber-radio {
+      border-color: var(--neon-clr) !important;
+      background: var(--neon-clr) !important;
+    }
+
+    /* ── KRONNOS — Esquema de cada sede: acento (rojo / naranja / rosa) + blanco
+       sobre fondo oscuro. Reemplaza el dorado por defecto del tema Elegance. ── */
+    .tenant-kronnos_penablanca #progressBar,
+    .tenant-kronnos_limache #progressBar,
+    .tenant-kronnos_woman #progressBar {
+      background-color: var(--neon-clr) !important;
+    }
+    .tenant-kronnos_penablanca #btnContinue,
+    .tenant-kronnos_limache #btnContinue,
+    .tenant-kronnos_woman #btnContinue {
+      background-color: var(--neon-clr) !important;
+      color: #ffffff !important;
+    }
+    .tenant-kronnos_penablanca .service-option.border-neon,
+    .tenant-kronnos_limache .service-option.border-neon,
+    .tenant-kronnos_woman .service-option.border-neon,
+    .tenant-kronnos_penablanca .barber-option.border-neon,
+    .tenant-kronnos_limache .barber-option.border-neon,
+    .tenant-kronnos_woman .barber-option.border-neon {
+      border-color: var(--neon-clr) !important;
+      box-shadow: 0 0 10px rgba(var(--neon-r),var(--neon-g),var(--neon-b),0.25) !important;
+    }
+    .tenant-kronnos_penablanca .service-option.bg-brand-neon\/10,
+    .tenant-kronnos_limache .service-option.bg-brand-neon\/10,
+    .tenant-kronnos_woman .service-option.bg-brand-neon\/10,
+    .tenant-kronnos_penablanca .barber-option.bg-brand-neon\/10,
+    .tenant-kronnos_limache .barber-option.bg-brand-neon\/10,
+    .tenant-kronnos_woman .barber-option.bg-brand-neon\/10 {
+      background-color: rgba(var(--neon-r),var(--neon-g),var(--neon-b),0.10) !important;
+    }
+
+    /* ── KRONNOS — Ocultar el banner (hero + info strip) en pasos 2-4 y mostrar
+       el header delgado con botón Volver, igual que AURA pero en tema oscuro. ── */
+    :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) body:is([data-step="2"],[data-step="3"],[data-step="4"]) .booking-hero,
+    :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) body:is([data-step="2"],[data-step="3"],[data-step="4"]) .info-strip {
+      display: none !important;
+    }
+    :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) body:is([data-step="2"],[data-step="3"],[data-step="4"]) #aura-slim-header {
+      display: flex !important;
+    }
+    /* Slim header en tema oscuro + acento por sede */
+    :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) #aura-slim-header {
+      background: #0a0a0a !important;
+      border-bottom: 1px solid rgba(var(--neon-r),var(--neon-g),var(--neon-b),0.28) !important;
+    }
+    :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) .aura-slim-name { color: #ffffff !important; }
+    :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) .aura-slim-step { color: var(--neon-clr) !important; }
+    :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) #aura-slim-back,
+    :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) #aura-slim-back i { color: #ffffff !important; }
+    :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) #aura-slim-back:hover { background: rgba(255,255,255,0.08) !important; }
+    /* Kronnos no tiene WhatsApp configurado: ocultar ese botón del slim header */
+    :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) #aura-slim-wa { display: none !important; }
+
     .tenant-chameleon {
       --accent:   #DAA520;
       --accent-r: 218; --accent-g: 165; --accent-b: 32;
@@ -6505,7 +6666,8 @@
       const _isEleganceSvc  = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza' || window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'lumen' || window.CURRENT_TENANT_ID === 'machos' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'marcelo_hairdressing' || window.CURRENT_TENANT_ID === 'omegastudio' || window.CURRENT_TENANT_ID === 'memphis' || window.CURRENT_TENANT_ID === 'delnero';
       const _isMapuSvc      = window.CURRENT_TENANT_ID === 'mapubarbershop';
       const _isChameleonSvc = window.CURRENT_TENANT_ID === 'chameleon';
-      const _useRowLayout   = _isEleganceSvc || _isMapuSvc || _isChameleonSvc;
+      const _isKronnosSvc   = window.CURRENT_TENANT_ID === 'kronnos_penablanca' || window.CURRENT_TENANT_ID === 'kronnos_limache' || window.CURRENT_TENANT_ID === 'kronnos_woman';
+      const _useRowLayout   = _isEleganceSvc || _isMapuSvc || _isChameleonSvc || _isKronnosSvc;
 
       Object.keys(categories).forEach(cat => {
         const catContainer = document.createElement('div');
@@ -6766,7 +6928,7 @@
          grid.innerHTML = '<p class="text-sm text-gray-500">No hay barberos disponibles en este momento.</p>';
          return;
       }
-      const _isElegance   = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza' || window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'lumen' || window.CURRENT_TENANT_ID === 'machos' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'omegastudio' || window.CURRENT_TENANT_ID === 'memphis' || window.CURRENT_TENANT_ID === 'delnero';
+      const _isElegance   = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza' || window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'lumen' || window.CURRENT_TENANT_ID === 'machos' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'omegastudio' || window.CURRENT_TENANT_ID === 'memphis' || window.CURRENT_TENANT_ID === 'delnero' || window.CURRENT_TENANT_ID === 'kronnos_penablanca' || window.CURRENT_TENANT_ID === 'kronnos_limache' || window.CURRENT_TENANT_ID === 'kronnos_woman';
       const _isMapuB      = window.CURRENT_TENANT_ID === 'mapubarbershop';
       const _isChameleon  = window.CURRENT_TENANT_ID === 'chameleon';
       const anyStateClass = (window._selectedBarberId === 'any' || window._selectedBarber === 'any') ? 'border-neon bg-brand-neon/10' : 'border-brand-accent/20 bg-[#0a0a0d]';
@@ -6840,7 +7002,7 @@
       `;
 
       // Aura/Elegance: shuffle barbers so no one gets a permanent "top" position
-      const _shuffleBarberos = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'lumen' || window.CURRENT_TENANT_ID === 'machos' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'elegance' || !window.CURRENT_TENANT_ID);
+      const _shuffleBarberos = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'lumen' || window.CURRENT_TENANT_ID === 'machos' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'kronnos_penablanca' || window.CURRENT_TENANT_ID === 'kronnos_limache' || window.CURRENT_TENANT_ID === 'kronnos_woman' || !window.CURRENT_TENANT_ID);
       const _barberosOrden = _shuffleBarberos
         ? [...barberos].sort(() => Math.random() - 0.5)
         : barberos;
@@ -7373,8 +7535,9 @@
       const _isGitana = window.CURRENT_TENANT_ID === 'gitana';
       const _isMapu   = window.CURRENT_TENANT_ID === 'mapubarbershop';
       const _isAura   = window.CURRENT_TENANT_ID === 'aura';
+      const _isKronnos = window.CURRENT_TENANT_ID === 'kronnos_penablanca' || window.CURRENT_TENANT_ID === 'kronnos_limache' || window.CURRENT_TENANT_ID === 'kronnos_woman';
       const _isElegance = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance';
-      const _useRowSel  = _isElegance || _isMapu || _isAura
+      const _useRowSel  = _isElegance || _isMapu || _isAura || _isKronnos
         || window.CURRENT_TENANT_ID === 'ferraza'
         || window.CURRENT_TENANT_ID === 'lumen'
         || window.CURRENT_TENANT_ID === 'machos'
@@ -7403,7 +7566,7 @@
 
       btn.classList.add('border-2', 'border-neon', 'bg-brand-neon/10');
       if (!_isGitana && !_useRowSel) btn.classList.add('scale-105', 'shadow-[0_0_20px_rgba(255,255,255,0.2)]');
-      if (_useRowSel) btn.style.boxShadow = _isMapu || _isAura ? 'none' : '0 0 10px rgba(212,175,55,0.1)';
+      if (_useRowSel) btn.style.boxShadow = _isMapu || _isAura || _isKronnos ? 'none' : '0 0 10px rgba(212,175,55,0.1)';
       btn.classList.replace('border-brand-accent/20', 'border-neon');
       btn.classList.remove('border');
 
@@ -7467,6 +7630,9 @@
         lumen:          { bg: '#C9A050', cl: '#030712', sh: '0 0 14px rgba(201,160,80,0.40)' },
         delnero:        { bg: '#39ff14', cl: '#050505', sh: '0 0 14px rgba(57,255,20,0.55)' },
         aura:           { bg: '#1F2937', cl: '#ffffff',  sh: 'none' },
+        kronnos_penablanca: { bg: '#e11d2a', cl: '#ffffff', sh: '0 0 14px rgba(225,29,42,0.45)' },
+        kronnos_limache:    { bg: '#f97316', cl: '#ffffff', sh: '0 0 14px rgba(249,115,22,0.45)' },
+        kronnos_woman:      { bg: '#ec4899', cl: '#ffffff', sh: '0 0 14px rgba(236,72,153,0.45)' },
       };
       const s = SEL[tid] ?? SEL.elegance;
 
@@ -8261,6 +8427,14 @@
       if (window.CURRENT_TENANT_ID === 'aura') {
         const slimName = document.querySelector('.aura-slim-name');
         if (slimName) slimName.textContent = 'AURA SALÓN';
+      }
+
+      // Kronnos — rellenar nombre y logo del slim header (visible en pasos 2-4)
+      if (['kronnos_penablanca','kronnos_limache','kronnos_woman'].includes(window.CURRENT_TENANT_ID)) {
+        const slimName = document.querySelector('.aura-slim-name');
+        if (slimName) slimName.textContent = SHOP.nombreCorto || SHOP.nombre || '';
+        const slimLogo = document.getElementById('auraSlimLogo');
+        if (slimLogo && SHOP.logo) slimLogo.src = SHOP.logo;
       }
 
       // Instagram
