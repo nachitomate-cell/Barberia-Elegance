@@ -5538,9 +5538,34 @@
   <!-- Boot loader: cubre el primer pintado (valores de config.js) hasta que la
        config + servicios de Firestore estén listos, evitando el salto de contenido. -->
   <div id="bootLoader" style="position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:#0a0a0a;transition:opacity .4s ease;">
-    <div style="width:42px;height:42px;border:3px solid rgba(255,255,255,0.14);border-top-color:rgba(255,255,255,0.85);border-radius:50%;animation:bootspin .8s linear infinite;"></div>
+    <div style="position:relative;width:108px;height:108px;display:flex;align-items:center;justify-content:center;">
+      <!-- Anillo giratorio (color de marca) -->
+      <div id="bootRing" style="position:absolute;inset:0;border:3px solid rgba(255,255,255,0.10);border-top-color:rgba(255,255,255,0.85);border-radius:50%;animation:bootspin .8s linear infinite;"></div>
+      <!-- Logo central -->
+      <img id="bootLogo" src="" alt="" style="width:78px;height:78px;border-radius:50%;object-fit:cover;animation:bootpulse 1.8s ease-in-out infinite;" />
+    </div>
   </div>
-  <style>@keyframes bootspin{to{transform:rotate(360deg)}}#bootLoader.boot-done{opacity:0;pointer-events:none;}</style>
+  <style>
+    @keyframes bootspin{to{transform:rotate(360deg)}}
+    @keyframes bootpulse{0%,100%{opacity:.92;transform:scale(.98)}50%{opacity:1;transform:scale(1)}}
+    #bootLoader.boot-done{opacity:0;pointer-events:none;}
+  </style>
+  <script>
+    // El logo y el color de marca ya están disponibles (config.js corre síncrono antes de este punto).
+    (function(){
+      try {
+        var s = window.SHOP || {};
+        var img = document.getElementById('bootLogo');
+        if (img && s.logo) { img.src = s.logo; img.alt = s.nombre || ''; }
+        else if (img) { img.style.display = 'none'; } // sin logo: queda solo el anillo
+        var accent = s.color || s.accent;
+        if (accent) {
+          var ring = document.getElementById('bootRing');
+          if (ring) ring.style.borderTopColor = accent;
+        }
+      } catch(_) {}
+    })();
+  </script>
   <script>
     function hideBootLoader(){ const l=document.getElementById('bootLoader'); if(!l) return; l.classList.add('boot-done'); setTimeout(()=>{ l.remove(); },450); }
     // Red de seguridad: nunca dejar el loader pegado aunque la carga falle o tarde.
