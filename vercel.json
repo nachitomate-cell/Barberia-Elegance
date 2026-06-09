@@ -51,6 +51,18 @@
       "has": [{ "type": "host", "value": "deluxeperfumes.synaptechspa.cl" }],
       "destination": "/catalogo",
       "permanent": false
+    },
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "kronnos.synaptechspa.cl" }],
+      "destination": "/kronnos",
+      "permanent": false
+    },
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "admin.kronnos.synaptechspa.cl" }],
+      "destination": "/kronnos-admin",
+      "permanent": false
     }
   ],
   "rewrites": [
@@ -74,6 +86,9 @@
     { "source": "/favicon.ico", "has": [{ "type": "host", "value": "infinity.synaptechspa.cl" }],           "destination": "/infinity.png" },
     { "source": "/favicon.ico", "has": [{ "type": "host", "value": "sionbarberia.synaptechspa.cl" }],       "destination": "/sion.png" },
     { "source": "/favicon.ico", "has": [{ "type": "host", "value": "barberiasion.synaptechspa.cl" }],       "destination": "/sion.png" },
+    { "source": "/favicon.ico", "has": [{ "type": "host", "value": "kronnospenablanca.synaptechspa.cl" }],   "destination": "/kronnos/studio.jpg" },
+    { "source": "/favicon.ico", "has": [{ "type": "host", "value": "kronnoslimache.synaptechspa.cl" }],       "destination": "/kronnos/studio.jpg" },
+    { "source": "/favicon.ico", "has": [{ "type": "host", "value": "kronnoswoman.synaptechspa.cl" }],         "destination": "/kronnos/woman.jpg" },
     { "source": "/favicon.ico",            "destination": "/logo.jpg" },
     { "source": "/dashboard",              "destination": "/dashboard.html" },
     { "source": "/registro",               "destination": "/registro.html" },
@@ -86,6 +101,8 @@
     { "source": "/membresia",              "destination": "/membresia.html" },
     { "source": "/chat-miembros",          "destination": "/chat-miembros.html" },
     { "source": "/admin-membresias",       "destination": "/admin-membresias.html" },
+    { "source": "/kronnos",                "destination": "/kronnos.html" },
+    { "source": "/kronnos-admin",          "destination": "/kronnos-admin.html" },
     { "source": "/:slug",                  "destination": "/barbero.html" }
   ]
 }
