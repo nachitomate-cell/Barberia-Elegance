@@ -725,7 +725,7 @@
       <div class="ps-card">
         <div id="ps-locales" class="ps-value">—</div>
         <div class="ps-label">Locales activos</div>
-        <div class="ps-sub">en la plataforma</div>
+        <div class="ps-sub">no suspendidos</div>
       </div>
       <div class="ps-card">
         <div id="ps-citas-total" class="ps-value">—</div>
@@ -752,7 +752,7 @@
       <div class="ps-card">
         <div id="ps-retencion" class="ps-value">—</div>
         <div class="ps-label">Tasa de retención</div>
-        <div class="ps-sub">clientes recurrentes</div>
+        <div class="ps-sub">≥2 visitas · 6 meses</div>
       </div>
       <div class="ps-card">
         <div id="ps-cancelacion" class="ps-value">—</div>
@@ -762,7 +762,7 @@
       <div class="ps-card">
         <div id="ps-servicios" class="ps-value">—</div>
         <div class="ps-label">Servicios distintos</div>
-        <div class="ps-sub">ofrecidos en plataforma</div>
+        <div class="ps-sub">agendados · 6 meses</div>
       </div>
     </div>
 
@@ -3203,14 +3203,26 @@
     // ── Platform Stats ────────────────────────────────────────────
     async function loadPlatformStats() {
       const now = new Date();
+      const pad = n => String(n).padStart(2, '0');
+      const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
       const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 6, now.getDate())
         .toISOString().slice(0, 10);
-      const thisMonthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+      const thisMonthStart = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-01`;
+      const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      const nextMonthStart = `${nextMonth.getFullYear()}-${pad(nextMonth.getMonth() + 1)}-01`;
       const mesNames = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
       document.getElementById('ps-mes-label').textContent = mesNames[now.getMonth()];
 
       const tenantKeys = Object.keys(TENANTS);
-      document.getElementById('ps-locales').textContent = tenantKeys.length;
+
+      // Locales activos = tenants NO suspendidos en el Kill Switch (_system/{tid}.status)
+      const suspendedSet = new Set();
+      try {
+        const sysSnap = await db.collection('_system').get();
+        sysSnap.forEach(d => { if (d.data().status === 'suspended') suspendedSet.add(d.id); });
+      } catch (_) { /* sin _system legible: todos cuentan como activos */ }
+      const localesActivos = tenantKeys.filter(t => !suspendedSet.has(t)).length;
+      document.getElementById('ps-locales').textContent = localesActivos;
       document.getElementById('ps-locales').classList.add('loaded');
 
       const results = await Promise.allSettled(tenantKeys.map(async tid => {
@@ -3223,21 +3235,27 @@
 
         const citas = citasSnap.status === 'fulfilled' ? citasSnap.value.docs.map(d => d.data()) : [];
         const userCount = usersSnap.status === 'fulfilled' ? usersSnap.value.size : 0;
-        const profCount = profSnap.status === 'fulfilled' ? profSnap.value.size : 0;
+        // Excluir docs-enlace UID (_mainDocId) para no duplicar el conteo de barberos
+        const profCount = profSnap.status === 'fulfilled'
+          ? profSnap.value.docs.filter(d => !d.data()._mainDocId).length
+          : 0;
 
-        const citasMes = citas.filter(c => c.fecha >= thisMonthStart).length;
-        const canceladas = citas.filter(c => c.estado === 'Cancelada').length;
+        // "Gestionadas" = citas dentro de la ventana de 6 meses HASTA hoy (sin futuro)
+        const citasPasadas = citas.filter(c => c.fecha && c.fecha <= todayStr);
+        // "Este mes" = citas con fecha en [inicio de mes, inicio de mes siguiente)
+        const citasMes = citas.filter(c => c.fecha >= thisMonthStart && c.fecha < nextMonthStart).length;
+        const canceladas = citasPasadas.filter(c => c.estado === 'Cancelada').length;
 
         const clientMap = {};
         const serviciosSet = new Set();
-        citas.forEach(c => {
+        citasPasadas.forEach(c => {
           if (c.clienteNombre) clientMap[c.clienteNombre] = (clientMap[c.clienteNombre] || 0) + 1;
           if (c.servicioNombre) serviciosSet.add(c.servicioNombre);
         });
         const uniqueClients = Object.keys(clientMap).length;
         const returningClients = Object.values(clientMap).filter(n => n >= 2).length;
 
-        return { citasTotal: citas.length, citasMes, canceladas, userCount, profCount, uniqueClients, returningClients, servicios: serviciosSet };
+        return { citasTotal: citasPasadas.length, citasMes, canceladas, userCount, profCount, uniqueClients, returningClients, servicios: serviciosSet };
       }));
 
       let totCitas = 0, totCitasMes = 0, totCanceladas = 0, totUsers = 0, totProf = 0;
@@ -3277,7 +3295,7 @@
 
       // Store snapshot for copyStatsSnippet
       window._platformStats = {
-        locales: tenantKeys.length, citasTotal: totCitas, citasMes: totCitasMes,
+        locales: localesActivos, citasTotal: totCitas, citasMes: totCitasMes,
         clientes: totUsers, profesionales: totProf, retencion, cancelacion,
         servicios: allServicios.size, mes: mesNames[now.getMonth()],
       };
