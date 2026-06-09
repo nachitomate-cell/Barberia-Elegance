@@ -48,7 +48,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
   <script src="firebase-config.js?v=1.3"></script>
   <script src="/js/utils/error-logger.js?v=1.1"></script>
-  <script src="firebaseUtils.js?v=2.9"></script>
+  <script src="firebaseUtils.js?v=3.0"></script>
   <script src="/js/guards/tenant-status-guard.js?v=1.0"></script>
   <script src="/js/guards/version-manager.js?v=1.1"></script>
 
@@ -5569,7 +5569,9 @@
   <script>
     function hideBootLoader(){ const l=document.getElementById('bootLoader'); if(!l) return; l.classList.add('boot-done'); setTimeout(()=>{ l.remove(); },450); }
     // Red de seguridad: nunca dejar el loader pegado aunque la carga falle o tarde.
-    setTimeout(hideBootLoader, 6000);
+    // 12s: por encima de los timeouts de datos (SDK 5s + fallback REST), para que
+    // el camino limpio (initServices → hideBootLoader CON datos) gane normalmente.
+    setTimeout(hideBootLoader, 12000);
   </script>
 
   <div class="max-w-md mx-auto relative overflow-hidden">
@@ -7067,9 +7069,13 @@
       _fsSettings = _shopSettings;
       _renderFeaturesStrip(_shopSettings?.features);
 
-      // Cargar productos y bloqueos en paralelo
+      // Cargar productos y bloqueos en paralelo.
+      // Acotado con timeout: estas lecturas son de enriquecimiento (productos,
+      // bloqueos, servicio más pedido) y NO deben bloquear el render si el SDK
+      // de Firestore se cuelga (caso WebView in-app de Instagram/Facebook).
       _isProductsEnabled = !!_fsConfig?.productosActivos;
-      await Promise.allSettled([
+      await Promise.race([
+        Promise.allSettled([
         _isProductsEnabled
           ? _tenantProductos().limit(6).get()
               .then(snap => {
@@ -7096,6 +7102,8 @@
               .catch(() => {});
           } catch(_) { return Promise.resolve(); }
         })()
+        ]),
+        new Promise(r => setTimeout(r, 7000)) // tope: render asegurado pase lo que pase
       ]);
       renderCategories(_fsServices);
       _renderServicesGrid(_fsServices);

@@ -32,6 +32,68 @@ const FDB = (() => {
   const configRef = () => tenantCol(COL.CONFIG).doc('main');
 
   /* ──────────────────────────────────────────────────────────────
+     FALLBACK REST — para navegadores in-app (Instagram/Facebook, iOS)
+     donde el transporte del SDK de Firestore se cuelga sin resolver.
+     La REST API es un simple fetch HTTPS que funciona en cualquier
+     WebView y respeta las mismas reglas de seguridad (lectura pública).
+     Solo se usa cuando el SDK no responde dentro del timeout.
+     ────────────────────────────────────────────────────────────── */
+  function _withTimeout(promise, ms) {
+    return Promise.race([
+      promise,
+      new Promise((_, reject) => setTimeout(() => reject(new Error('fs-timeout')), ms)),
+    ]);
+  }
+
+  // Convierte un valor en formato REST de Firestore a JS plano.
+  function _restValue(v) {
+    if (v == null) return null;
+    if ('stringValue'    in v) return v.stringValue;
+    if ('integerValue'   in v) return Number(v.integerValue);
+    if ('doubleValue'    in v) return v.doubleValue;
+    if ('booleanValue'   in v) return v.booleanValue;
+    if ('nullValue'      in v) return null;
+    if ('timestampValue' in v) return v.timestampValue;
+    if ('arrayValue'     in v) return (v.arrayValue.values || []).map(_restValue);
+    if ('mapValue'       in v) return _restFields(v.mapValue.fields || {});
+    if ('geoPointValue'  in v) return v.geoPointValue;
+    if ('referenceValue' in v) return v.referenceValue;
+    return null;
+  }
+  function _restFields(fields) {
+    const o = {};
+    for (const k in fields) o[k] = _restValue(fields[k]);
+    return o;
+  }
+  function _restPath(relPath) {
+    const tid = window.CURRENT_TENANT_ID || 'elegance';
+    return (tid === 'elegance') ? relPath : ('tenants/' + tid + '/' + relPath);
+  }
+  function _restUrl(relPath, extra) {
+    const opt = firebase.app().options;
+    return 'https://firestore.googleapis.com/v1/projects/' + opt.projectId +
+           '/databases/(default)/documents/' + _restPath(relPath) +
+           '?key=' + opt.apiKey + (extra || '');
+  }
+  // Lee una colección del tenant vía REST → [{ id, ...data }]
+  async function _restGetCollection(colName) {
+    const res = await fetch(_restUrl(colName, '&pageSize=300'), { cache: 'no-store' });
+    if (!res.ok) throw new Error('REST ' + res.status);
+    const json = await res.json();
+    return (json.documents || []).map(d => Object.assign(
+      { id: d.name.split('/').pop() }, _restFields(d.fields || {})
+    ));
+  }
+  // Lee un documento del tenant vía REST → data (o null si no existe)
+  async function _restGetDoc(colName, docId) {
+    const res = await fetch(_restUrl(colName + '/' + docId), { cache: 'no-store' });
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error('REST ' + res.status);
+    const json = await res.json();
+    return _restFields(json.fields || {});
+  }
+
+  /* ──────────────────────────────────────────────────────────────
      MIGRACIÓN: localStorage → Firestore (se ejecuta solo 1 vez)
      Mueve datos existentes sin borrar nada de Firestore.
      ────────────────────────────────────────────────────────────── */
@@ -149,12 +211,18 @@ const FDB = (() => {
      ────────────────────────────────────────────────────────────── */
   async function getServicios() {
     try {
-      const snap = await tenantCol(COL.SERVICIOS).orderBy('orden').get();
+      const snap = await _withTimeout(tenantCol(COL.SERVICIOS).orderBy('orden').get(), 5000);
       return snap.docs.map(d => ({ id: d.id, ...d.data() }));
     } catch (_) {
       // Fallback si no existe campo 'orden' en los documentos
-      const snap = await tenantCol(COL.SERVICIOS).get();
-      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      try {
+        const snap = await _withTimeout(tenantCol(COL.SERVICIOS).get(), 5000);
+        return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      } catch (e) {
+        // Último recurso: REST API (el SDK se colgó, típico en WebView in-app).
+        const arr = await _restGetCollection(COL.SERVICIOS);
+        return arr.sort((a, b) => (a.orden || 0) - (b.orden || 0));
+      }
     }
   }
 
@@ -223,7 +291,7 @@ const FDB = (() => {
 
   async function getConfig() {
     try {
-      const snap = await configRef().get();
+      const snap = await _withTimeout(configRef().get(), 5000);
       if (!snap.exists) {
         // Solo intentar crear si estamos logueados y es posible escribir
         if (firebase.auth().currentUser) {
@@ -235,7 +303,12 @@ const FDB = (() => {
       }
       return { ..._defaultConfig(), ...snap.data() };
     } catch (e) {
-      // Si falla por permisos o red, devolver default para no romper la app
+      // SDK colgado/caído (típico en WebView in-app): intentar REST antes de
+      // caer al default, para no perder la configuración real del local.
+      try {
+        const data = await _restGetDoc(COL.CONFIG, 'main');
+        if (data && Object.keys(data).length) return { ..._defaultConfig(), ...data };
+      } catch (_) {}
       return _defaultConfig();
     }
   }
@@ -550,26 +623,40 @@ const FDB = (() => {
   }
 
   async function getBloqueosDia(fecha, barberoId = null) {
-    let snap;
+    let todos;
     try {
       const q = tenantCol(COL.BLOQUEOS).where('fecha', '==', fecha);
-      snap = await q.get();
+      const snap = await _withTimeout(q.get(), 5000);
+      todos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     } catch(e) {
-      console.warn('[FDB] getBloqueosDia falló, asumiendo sin bloqueos:', e.code || e.message);
-      return [];
+      // SDK colgado/caído (WebView in-app): REST de toda la colección, filtrada.
+      try {
+        const all = await _restGetCollection(COL.BLOQUEOS);
+        todos = all.filter(b => b.fecha === fecha);
+      } catch(_) {
+        console.warn('[FDB] getBloqueosDia falló, asumiendo sin bloqueos:', e.code || e.message);
+        return [];
+      }
     }
-    const todos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     if (!barberoId) return todos;
     // Retorna bloqueos globales (sin barberoId) + los del barbero específico
     return todos.filter(b => !b.barberoId || b.barberoId === barberoId);
   }
 
   async function getBloqueosMes(yyyyMM) {
-    const snap = await tenantCol(COL.BLOQUEOS)
-      .where('fecha', '>=', yyyyMM + '-01')
-      .where('fecha', '<=', yyyyMM + '-31')
-      .get();
-    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    try {
+      const snap = await _withTimeout(tenantCol(COL.BLOQUEOS)
+        .where('fecha', '>=', yyyyMM + '-01')
+        .where('fecha', '<=', yyyyMM + '-31')
+        .get(), 5000);
+      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch (e) {
+      // Fallback REST: traer la colección y filtrar por mes en el cliente.
+      try {
+        const all = await _restGetCollection(COL.BLOQUEOS);
+        return all.filter(b => typeof b.fecha === 'string' && b.fecha.startsWith(yyyyMM + '-'));
+      } catch (_) { return []; }
+    }
   }
 
   async function deleteBloqueo(id) {
@@ -1007,40 +1094,49 @@ const FDB = (() => {
      BARBEROS / PERMISOS
      ────────────────────────────────────────────────────────────── */
   async function getBarberos() {
+    // Adquisición de datos: SDK con timeout, con fallback a REST si se cuelga
+    // (caso del WebView in-app de Instagram/Facebook donde el streaming falla).
+    let rawDocs;
     try {
-      const snap = await tenantCol(COL.BARBEROS).get();
-      const todos = snap.docs
-        .map(doc => {
-          const d = doc.data();
-          const nombre = d.nombre || d.displayName || (d.email ? d.email.split('@')[0] : null) || 'Barbero';
-          return { id: doc.id, nombre, foto: d.foto || d.photoURL || null, disponible: d.disponible !== false, ...d };
-        })
-        .filter(b => b.activo !== false && !b._mainDocId && (b.rol !== 'admin' || (window.CURRENT_TENANT_ID || 'elegance') === 'delnero'))
-        .sort((a, b) => {
-          // Priorizar docs cuyo id NO coincide con uid — son los docs "originales"
-          // que ya tienen citas asignadas. Si el seed creó uno nuevo (uid===id) para
-          // el mismo barbero, ese va al final y será descartado al deduplicar.
-          const aOrig = (!a.uid || a.uid !== a.id) ? 0 : 1;
-          const bOrig = (!b.uid || b.uid !== b.id) ? 0 : 1;
-          return aOrig - bOrig || (a.orden || 0) - (b.orden || 0) || a.nombre.localeCompare(b.nombre);
-        });
+      const snap = await _withTimeout(tenantCol(COL.BARBEROS).get(), 5000);
+      rawDocs = snap.docs.map(doc => ({ id: doc.id, data: doc.data() }));
+    } catch (e) {
+      try {
+        const arr = await _restGetCollection(COL.BARBEROS);
+        rawDocs = arr.map(o => { const { id, ...data } = o; return { id, data }; });
+      } catch (e2) {
+        console.error('[FDB] Error obteniendo barberos:', e2);
+        return [];
+      }
+    }
 
-      // Deduplicar por email: conserva el primer doc (original) por cada email
-      const seenEmails = new Set();
-      const deduped = todos.filter(b => {
-        const key = b.email?.toLowerCase().trim();
-        if (!key) return true;
-        if (seenEmails.has(key)) return false;
-        seenEmails.add(key);
-        return true;
+    const todos = rawDocs
+      .map(({ id, data: d }) => {
+        const nombre = d.nombre || d.displayName || (d.email ? d.email.split('@')[0] : null) || 'Barbero';
+        return { id, nombre, foto: d.foto || d.photoURL || null, disponible: d.disponible !== false, ...d };
+      })
+      .filter(b => b.activo !== false && !b._mainDocId && (b.rol !== 'admin' || (window.CURRENT_TENANT_ID || 'elegance') === 'delnero'))
+      .sort((a, b) => {
+        // Priorizar docs cuyo id NO coincide con uid — son los docs "originales"
+        // que ya tienen citas asignadas. Si el seed creó uno nuevo (uid===id) para
+        // el mismo barbero, ese va al final y será descartado al deduplicar.
+        const aOrig = (!a.uid || a.uid !== a.id) ? 0 : 1;
+        const bOrig = (!b.uid || b.uid !== b.id) ? 0 : 1;
+        return aOrig - bOrig || (a.orden || 0) - (b.orden || 0) || a.nombre.localeCompare(b.nombre);
       });
 
-      // Re-ordenar por `orden` limpio (el sort anterior era solo para deduplicar)
-      return deduped.sort((a, b) => (a.orden ?? 9999) - (b.orden ?? 9999) || a.nombre.localeCompare(b.nombre));
-    } catch (e) {
-      console.error('[FDB] Error obteniendo barberos:', e);
-      return [];
-    }
+    // Deduplicar por email: conserva el primer doc (original) por cada email
+    const seenEmails = new Set();
+    const deduped = todos.filter(b => {
+      const key = b.email?.toLowerCase().trim();
+      if (!key) return true;
+      if (seenEmails.has(key)) return false;
+      seenEmails.add(key);
+      return true;
+    });
+
+    // Re-ordenar por `orden` limpio (el sort anterior era solo para deduplicar)
+    return deduped.sort((a, b) => (a.orden ?? 9999) - (b.orden ?? 9999) || a.nombre.localeCompare(b.nombre));
   }
 
   async function esBarbero(email, uid) {
