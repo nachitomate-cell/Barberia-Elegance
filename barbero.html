@@ -26,7 +26,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-  <script src="/firebase-config.js?v=1.2"></script>
+  <script src="/firebase-config.js?v=1.3"></script>
   <script src="/js/utils/error-logger.js?v=1.1"></script>
   <script src="/firebaseUtils.js?v=2.9"></script>
   <script src="/js/guards/tenant-status-guard.js?v=1.0"></script>
@@ -444,6 +444,16 @@
   <a href="/" class="mt-2 px-5 py-2.5 rounded-xl border border-white/10 text-sm font-semibold text-white/60 hover:text-white hover:border-white/30 transition-colors">
     Ver agenda completa
   </a>
+</div>
+
+<!-- Error de conexión (red lenta / WebView in-app que bloquea Firestore) -->
+<div id="connErrorState" class="hidden min-h-screen flex flex-col items-center justify-center text-center px-6 gap-4">
+  <i class="ph ph-wifi-slash text-5xl text-white/15"></i>
+  <h2 class="text-xl font-bold text-white/60">No pudimos cargar la página</h2>
+  <p class="text-sm text-gray-600">La conexión está tardando demasiado. Revisa tu internet e inténtalo de nuevo.</p>
+  <button onclick="location.reload()" class="mt-2 px-5 py-2.5 rounded-xl border border-white/10 text-sm font-semibold text-white/60 hover:text-white hover:border-white/30 transition-colors">
+    Reintentar
+  </button>
 </div>
 
 <!-- Main content (hidden until barber loaded) -->
@@ -1495,15 +1505,18 @@
     // Antes: getConfig+getBarberos (Promise.all) ⇒ luego getServicios serial. Ahora 1 sola RTT.
     let barberos = [];
     let rawServices = [];
-    try {
-      [_fsConfig, barberos, rawServices] = await Promise.all([
-        FDB.getConfig(),
-        FDB.getBarberos(),
-        FDB.getServicios(),
-      ]);
-    } catch(e) {
-      barberos = []; rawServices = [];
-    }
+    // Timeout de seguridad: si Firestore se cuelga (típico en WebView in-app que
+    // bloquea el streaming), no dejamos el spinner eterno — lanzamos para mostrar
+    // el estado de error con reintento. 15s tolera redes móviles lentas reales.
+    const withTimeout = (p, ms) => Promise.race([
+      p,
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), ms)),
+    ]);
+    [_fsConfig, barberos, rawServices] = await withTimeout(Promise.all([
+      FDB.getConfig(),
+      FDB.getBarberos(),
+      FDB.getServicios(),
+    ]), 15000);
 
     // Find the barber matching the slug
     _barber = barberos.find(b => slugify(b.nombre) === pathSlug) || null;
@@ -1572,7 +1585,9 @@
     initPage().catch(e => {
       console.error('[BarberoPage]', e);
       document.getElementById('loadingState').classList.add('hidden');
-      document.getElementById('notFoundState').classList.remove('hidden');
+      // Si falló la carga de datos (timeout / Firestore caído), es un problema de
+      // conexión, no un barbero inexistente: mostramos el estado con reintento.
+      document.getElementById('connErrorState').classList.remove('hidden');
     });
     // Welcome del Club (tras 1.8s, una vez por cada 24h por tenant)
     setTimeout(maybeShowClubWelcome, 1800);
