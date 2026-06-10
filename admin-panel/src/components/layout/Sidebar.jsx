@@ -5,7 +5,7 @@ import {
   Trophy, ShoppingBag, Images, LogOut, ChevronRight,
   Sun, Moon, ExternalLink, Settings, TrendingDown, MessageCircle, X,
   Megaphone, ImagePlus, CreditCard, Monitor, Headphones, Medal, Camera, GraduationCap, Wallet, Package, ThumbsUp,
-  Globe, Banknote, Gift, ClipboardList, Building2,
+  Globe, Banknote, Gift, ClipboardList, Building2, Home,
 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { doc, onSnapshot, where } from 'firebase/firestore';
@@ -20,6 +20,7 @@ const NAV_GROUPS_DEFAULT = [
     id: 'operaciones',
     label: 'Operaciones',
     items: [
+      { to: 'inicio',         label: 'Inicio',          Icon: Home          },
       { to: 'agenda',         label: 'Agenda',          Icon: CalendarDays  },
       { to: 'mensajes',       label: 'Mensajes',        Icon: MessageCircle },
       { to: 'lista-espera',   label: 'Lista de espera', Icon: ClipboardList },
@@ -86,6 +87,7 @@ const NAV_GROUPS_DELUXE = [
     id: 'catalogo',
     label: 'Catálogo',
     items: [
+      { to: 'inicio',     label: 'Inicio',      Icon: Home          },
       { to: 'productos',  label: 'Productos',   Icon: ShoppingBag   },
       { to: 'mensajes',   label: 'Mensajes',    Icon: MessageCircle },
     ],

@@ -1502,8 +1502,16 @@
     .tenant-kronnos_penablanca #btnContinue,
     .tenant-kronnos_limache #btnContinue,
     .tenant-kronnos_woman #btnContinue {
+      background-image: linear-gradient(180deg, rgba(255,255,255,0.16) 0%, rgba(0,0,0,0.18) 100%) !important;
       background-color: var(--neon-clr) !important;
       color: #ffffff !important;
+      border: none !important;
+      letter-spacing: 0.02em;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 6px 22px rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.38),
+                  inset 0 1px 0 rgba(255,255,255,0.28) !important;
+      transition: transform 0.14s ease, box-shadow 0.25s ease, filter 0.2s ease;
     }
     .tenant-kronnos_penablanca .service-option.border-neon,
     .tenant-kronnos_limache .service-option.border-neon,
@@ -1544,6 +1552,207 @@
     :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) #aura-slim-back:hover { background: rgba(255,255,255,0.08) !important; }
     /* Kronnos no tiene WhatsApp configurado: ocultar ese botón del slim header */
     :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) #aura-slim-wa { display: none !important; }
+
+    /* ════════════════════════════════════════════════════════════════
+       KRONNOS — Pulido premium: hero animado, glow de acento, shimmer
+       en tarjeta seleccionada, íconos consistentes y sello de éxito.
+       Todo en el neón de cada sede (rojo / naranjo / rosa).
+       ════════════════════════════════════════════════════════════════ */
+
+    /* (4) Íconos del info-strip en el acento (no dorado) */
+    :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) .info-strip i {
+      color: var(--accent) !important;
+    }
+
+    /* (1) Animaciones de entrada del hero */
+    @keyframes kronnos-logo-reveal {
+      from { opacity: 0; transform: scale(0.84) translateY(12px); filter: blur(10px); }
+      to   { opacity: 1; transform: scale(1)    translateY(0);    filter: blur(0);   }
+    }
+    @keyframes kronnos-ring-glow {
+      0%, 100% {
+        box-shadow: 0 0 0 1px rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.15),
+                    0 0 24px rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.25),
+                    0 0 50px rgba(0,0,0,0.6);
+      }
+      50% {
+        box-shadow: 0 0 0 2px rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.38),
+                    0 0 46px rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.55),
+                    0 0 70px rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.18);
+      }
+    }
+    @keyframes kronnos-fade-up {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes kronnos-slogan-appear {
+      from { opacity: 0; transform: translateY(8px); letter-spacing: 0.42em; }
+      to   { opacity: 1; transform: translateY(0);   letter-spacing: 0.25em; }
+    }
+    :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) #heroLogoArea {
+      animation: kronnos-logo-reveal 1s cubic-bezier(0.16,1,0.3,1) both;
+    }
+    :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) .hero-logo-ring {
+      animation: kronnos-ring-glow 3.6s ease-in-out 1.1s infinite;
+    }
+    :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) #shopNombre {
+      animation: kronnos-fade-up 0.7s cubic-bezier(0.16,1,0.3,1) 0.38s both;
+    }
+    :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) .gold-divider {
+      animation: kronnos-fade-up 0.5s ease-out 0.52s both;
+    }
+    :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) #shopSlogan {
+      display: inline-block;
+      animation: kronnos-slogan-appear 0.75s cubic-bezier(0.16,1,0.3,1) 0.62s both;
+    }
+
+    /* (2) Glow radial del acento detrás del logo del hero */
+    @keyframes kronnos-hero-glow {
+      0%, 100% { opacity: 0.45; }
+      50%       { opacity: 0.9; }
+    }
+    :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) .booking-hero::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 50%; transform: translateX(-50%);
+      width: 85%; height: 58%;
+      background: radial-gradient(ellipse at 50% 0%, rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.20) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 1;
+      animation: kronnos-hero-glow 5s ease-in-out infinite;
+    }
+
+    /* (3) Shimmer en la tarjeta seleccionada (servicio / barbero) */
+    :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) .service-option.border-neon::after,
+    :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) .barber-option.border-neon::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      transform: translateX(-120%);
+      background: linear-gradient(105deg, transparent 30%, rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.28) 50%, transparent 70%);
+      animation: aura-card-shimmer 0.65s cubic-bezier(0.25,0.46,0.45,0.94) 1;
+      pointer-events: none;
+    }
+
+    /* (6) Sello animado en la confirmación — reusa #aura-stamp-wrap en el acento */
+    :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) #success-state > div.w-24 {
+      display: none !important;
+    }
+    :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) #success-state #aura-stamp-wrap {
+      display: flex !important;
+    }
+    :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) #aura-stamp-wrap .aura-stamp-ring-1 {
+      border-color: rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.55) !important;
+    }
+    :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) #aura-stamp-wrap .aura-stamp-ring-2 {
+      border-color: rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.30) !important;
+    }
+    :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) #aura-stamp-wrap .aura-stamp-logo {
+      border-color: rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.45) !important;
+      box-shadow: 0 0 0 6px rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.10),
+                  0 8px 32px rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.28),
+                  0 2px 8px rgba(0,0,0,0.35) !important;
+    }
+
+    /* ════════════════════════════════════════════════════════════════
+       KRONNOS — PILAR 2 (profundidad/materia) + PILAR 3 (interacción)
+       ════════════════════════════════════════════════════════════════ */
+
+    /* ── P2: Profundidad — superficies elevadas + hairline highlight ── */
+    :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) .bg-\[\#0a0a0d\] {
+      background-color: #141419 !important;
+    }
+    :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) .service-option,
+    :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) .barber-option {
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 1px 2px rgba(0,0,0,0.55) !important;
+    }
+    :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) .service-option:hover,
+    :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) .barber-option:hover {
+      border-color: rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.45) !important;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 6px 16px rgba(0,0,0,0.55) !important;
+    }
+
+    /* ── P2: Grano de film sutil sobre todo el contenido (estático) ── */
+    :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      pointer-events: none;
+      opacity: 0.06;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-size: 140px 140px;
+    }
+
+    /* ── P2: Hero con tratamiento graduado (vignette cinematográfico + tinte de acento) ── */
+    :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) .booking-hero-overlay {
+      background:
+        radial-gradient(110% 75% at 50% -5%, rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.08) 0%, transparent 42%),
+        linear-gradient(180deg, rgba(0,0,0,0.52) 0%, rgba(0,0,0,0.28) 34%, rgba(10,10,10,0.97) 100%) !important;
+    }
+
+    /* ── P3: CTA — sheen periódico sutil + press táctil ── */
+    @keyframes kronnos-cta-sheen {
+      0%       { transform: translateX(-130%); }
+      55%,100% { transform: translateX(240%); }
+    }
+    :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) #btnContinue::after {
+      content: '';
+      position: absolute;
+      top: 0; bottom: 0; left: 0;
+      width: 55%;
+      background: linear-gradient(105deg, transparent 0%, rgba(255,255,255,0.22) 50%, transparent 100%);
+      transform: translateX(-130%);
+      animation: kronnos-cta-sheen 5.5s ease-in-out infinite;
+      pointer-events: none;
+    }
+    :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) #btnContinue:hover {
+      filter: brightness(1.06);
+      box-shadow: 0 8px 28px rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.50),
+                  inset 0 1px 0 rgba(255,255,255,0.30) !important;
+    }
+    :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) #btnContinue:active {
+      transform: scale(0.985);
+      filter: brightness(1.02);
+    }
+    /* CTA deshabilitado: apagado, sin sheen ni sombra */
+    :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) #btnContinue:disabled {
+      filter: grayscale(0.45) brightness(0.55);
+      box-shadow: none !important;
+    }
+    :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) #btnContinue:disabled::after {
+      display: none;
+    }
+
+    /* ── P3: Transición entre pasos — easing premium + focus-in (blur) ── */
+    :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) section[id^="step"] {
+      transition-timing-function: cubic-bezier(0.16,1,0.3,1) !important;
+    }
+    :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) section[id^="step"].opacity-0 {
+      filter: blur(7px) !important;
+    }
+
+    /* ── Accesibilidad: respetar prefers-reduced-motion (lujo bien hecho) ── */
+    @media (prefers-reduced-motion: reduce) {
+      :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) #heroLogoArea,
+      :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) .hero-logo-ring,
+      :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) #shopNombre,
+      :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) .gold-divider,
+      :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) #shopSlogan,
+      :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) .booking-hero::after,
+      :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) .service-option.border-neon::after,
+      :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) .barber-option.border-neon::after,
+      :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) #btnContinue::after,
+      :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) #aura-stamp-wrap .aura-stamp-logo,
+      :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) #aura-stamp-wrap .aura-stamp-ring-1,
+      :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) #aura-stamp-wrap .aura-stamp-ring-2,
+      :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) #aura-stamp-wrap .aura-stamp-shine {
+        animation: none !important;
+      }
+      :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) section[id^="step"].opacity-0 {
+        filter: none !important;
+      }
+    }
 
     .tenant-chameleon {
       --accent:   #DAA520;
@@ -5691,6 +5900,147 @@
 
     /* Sin icono/logo en el hero */
     .tenant-memphis #heroLogoArea { display: none !important; }
+
+    /* ════════════════════════════════════════════════════════════════
+       CHAMELEON — PILAR 2 (profundidad/materia) + PILAR 3 (interacción)
+       Tema oscuro · acento dorado (#DAA520) · CTA esmeralda (#004D40)
+       ════════════════════════════════════════════════════════════════ */
+
+    /* ── P2: Profundidad — superficies elevadas + hairline highlight ── */
+    .tenant-chameleon .bg-\[\#0a0a0d\] { background-color: #141210 !important; }
+    .tenant-chameleon .service-option,
+    .tenant-chameleon .barber-option {
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.045), 0 1px 2px rgba(0,0,0,0.6) !important;
+    }
+    .tenant-chameleon .service-option:hover,
+    .tenant-chameleon .barber-option:hover {
+      border-color: rgba(218,165,32,0.45) !important;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 6px 16px rgba(0,0,0,0.6) !important;
+    }
+
+    /* ── P2: Grano de film sutil (estático) ── */
+    .tenant-chameleon body::after {
+      content: '';
+      position: fixed; inset: 0; z-index: 30; pointer-events: none; opacity: 0.06;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-size: 140px 140px;
+    }
+
+    /* ── P2: Hero graduado — glow de acento dorado + vignette ── */
+    @keyframes cham-hero-glow { 0%,100% { opacity: 0.45; } 50% { opacity: 0.9; } }
+    .tenant-chameleon .booking-hero::after {
+      content: '';
+      position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+      width: 85%; height: 58%;
+      background: radial-gradient(ellipse at 50% 0%, rgba(218,165,32,0.16) 0%, transparent 70%);
+      pointer-events: none; z-index: 1;
+      animation: cham-hero-glow 5s ease-in-out infinite;
+    }
+    .tenant-chameleon .booking-hero-overlay {
+      background:
+        radial-gradient(110% 75% at 50% -5%, rgba(218,165,32,0.07) 0%, transparent 42%),
+        linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.28) 34%, rgba(0,0,0,0.97) 100%) !important;
+    }
+
+    /* ── P3: CTA esmeralda — glossy + sheen + press ── */
+    .tenant-chameleon #btnContinue {
+      background-image: linear-gradient(180deg, rgba(255,255,255,0.14) 0%, rgba(0,0,0,0.20) 100%) !important;
+      background-color: #004D40 !important;
+      position: relative; overflow: hidden;
+      box-shadow: 0 6px 22px rgba(0,77,64,0.45), inset 0 1px 0 rgba(255,255,255,0.18) !important;
+      transition: transform 0.14s ease, box-shadow 0.25s ease, filter 0.2s ease;
+    }
+    @keyframes cham-cta-sheen { 0% { transform: translateX(-130%); } 55%,100% { transform: translateX(240%); } }
+    .tenant-chameleon #btnContinue::after {
+      content: '';
+      position: absolute; top: 0; bottom: 0; left: 0; width: 55%;
+      background: linear-gradient(105deg, transparent 0%, rgba(255,255,255,0.20) 50%, transparent 100%);
+      transform: translateX(-130%);
+      animation: cham-cta-sheen 5.5s ease-in-out infinite;
+      pointer-events: none;
+    }
+    .tenant-chameleon #btnContinue:hover {
+      filter: brightness(1.08);
+      box-shadow: 0 8px 28px rgba(0,77,64,0.6), inset 0 1px 0 rgba(255,255,255,0.20) !important;
+    }
+    .tenant-chameleon #btnContinue:active { transform: scale(0.985); filter: brightness(1.02); }
+    .tenant-chameleon #btnContinue:disabled { filter: grayscale(0.45) brightness(0.55); box-shadow: none !important; }
+    .tenant-chameleon #btnContinue:disabled::after { display: none; }
+
+    /* ── P3: Transición entre pasos — easing premium + focus-in ── */
+    .tenant-chameleon section[id^="step"] { transition-timing-function: cubic-bezier(0.16,1,0.3,1) !important; }
+    .tenant-chameleon section[id^="step"].opacity-0 { filter: blur(7px) !important; }
+
+    /* ── Accesibilidad: prefers-reduced-motion ── */
+    @media (prefers-reduced-motion: reduce) {
+      .tenant-chameleon .booking-hero::after,
+      .tenant-chameleon .service-option.border-neon::after,
+      .tenant-chameleon .barber-option.border-neon::after,
+      .tenant-chameleon #btnContinue::after { animation: none !important; }
+      .tenant-chameleon section[id^="step"].opacity-0 { filter: none !important; }
+    }
+
+    /* ════════════════════════════════════════════════════════════════
+       AURA — PILAR 2 + PILAR 3 adaptados al tema CLARO (hero oscuro,
+       acento gris #9CA3AF, CTA negro). Profundidad por sombra, no grano.
+       ════════════════════════════════════════════════════════════════ */
+
+    /* ── P2: Profundidad en modo claro — sombra suave de reposo en tarjetas ── */
+    .tenant-aura .service-option,
+    .tenant-aura .barber-option {
+      box-shadow: 0 1px 2px rgba(24,24,27,0.05), 0 1px 3px rgba(24,24,27,0.03) !important;
+    }
+
+    /* ── P2: Hero graduado — glow de acento gris sobre el hero oscuro ── */
+    @keyframes aura-hero-glow { 0%,100% { opacity: 0.4; } 50% { opacity: 0.8; } }
+    .tenant-aura .booking-hero::after {
+      content: '';
+      position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+      width: 85%; height: 55%;
+      background: radial-gradient(ellipse at 50% 0%, rgba(156,163,175,0.12) 0%, transparent 70%);
+      pointer-events: none; z-index: 1;
+      animation: aura-hero-glow 5s ease-in-out infinite;
+    }
+
+    /* ── P3: CTA negro — sheen blanco sutil + press ── */
+    .tenant-aura #btnContinue {
+      position: relative; overflow: hidden;
+      transition: transform 0.14s ease, box-shadow 0.25s ease, filter 0.2s ease;
+    }
+    @keyframes aura-cta-sheen { 0% { transform: translateX(-130%); } 55%,100% { transform: translateX(240%); } }
+    .tenant-aura #btnContinue::after {
+      content: '';
+      position: absolute; top: 0; bottom: 0; left: 0; width: 55%;
+      background: linear-gradient(105deg, transparent 0%, rgba(255,255,255,0.16) 50%, transparent 100%);
+      transform: translateX(-130%);
+      animation: aura-cta-sheen 5.5s ease-in-out infinite;
+      pointer-events: none;
+    }
+    .tenant-aura #btnContinue:active { transform: scale(0.985); }
+    .tenant-aura #btnContinue:disabled { filter: grayscale(0.3) brightness(0.7); box-shadow: none !important; }
+    .tenant-aura #btnContinue:disabled::after { display: none; }
+
+    /* ── P3: Transición entre pasos — easing premium + focus-in ── */
+    .tenant-aura section[id^="step"] { transition-timing-function: cubic-bezier(0.16,1,0.3,1) !important; }
+    .tenant-aura section[id^="step"].opacity-0 { filter: blur(7px) !important; }
+
+    /* ── Accesibilidad: prefers-reduced-motion ── */
+    @media (prefers-reduced-motion: reduce) {
+      .tenant-aura #heroLogoArea,
+      .tenant-aura .hero-logo-ring,
+      .tenant-aura #shopNombre,
+      .tenant-aura .gold-divider,
+      .tenant-aura #shopSlogan,
+      .tenant-aura .booking-hero::after,
+      .tenant-aura .service-option.border-neon::after,
+      .tenant-aura .barber-option.border-neon::after,
+      .tenant-aura #btnContinue::after,
+      .tenant-aura #aura-stamp-wrap .aura-stamp-logo,
+      .tenant-aura #aura-stamp-wrap .aura-stamp-ring-1,
+      .tenant-aura #aura-stamp-wrap .aura-stamp-ring-2,
+      .tenant-aura #aura-stamp-wrap .aura-stamp-shine { animation: none !important; }
+      .tenant-aura section[id^="step"].opacity-0 { filter: none !important; }
+    }
   </style>
 </head>
 
@@ -8430,11 +8780,14 @@
       }
 
       // Kronnos — rellenar nombre y logo del slim header (visible en pasos 2-4)
+      // y el logo del sello animado de confirmación (#aura-stamp-wrap).
       if (['kronnos_penablanca','kronnos_limache','kronnos_woman'].includes(window.CURRENT_TENANT_ID)) {
         const slimName = document.querySelector('.aura-slim-name');
         if (slimName) slimName.textContent = SHOP.nombreCorto || SHOP.nombre || '';
         const slimLogo = document.getElementById('auraSlimLogo');
         if (slimLogo && SHOP.logo) slimLogo.src = SHOP.logo;
+        const stampImg = document.querySelector('#aura-stamp-wrap .aura-stamp-logo img');
+        if (stampImg && SHOP.logo) { stampImg.src = SHOP.logo; stampImg.alt = SHOP.nombre || 'Kronnos'; }
       }
 
       // Instagram

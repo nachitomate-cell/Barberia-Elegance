@@ -8,6 +8,7 @@ import SuspendedScreen from './components/SuspendedScreen';
 import { ErrorBoundaryWithTenant } from './components/ErrorBoundary';
 import { useVersionManager } from './hooks/useVersionManager';
 import AdminLayout from './components/layout/AdminLayout';
+import Inicio      from './views/Inicio';
 import Servicios   from './views/Servicios';
 import Agenda      from './views/Agenda';
 import Equipo      from './views/Equipo';
@@ -77,6 +78,7 @@ function ProtectedApp() {
         <AdminLayout>
           <Routes>
             <Route index                  element={<Navigate to={defaultRoute} replace />} />
+            <Route path="inicio"          element={<Inicio />} />
             <Route path="agenda"          element={<Agenda />} />
             <Route path="servicios"       element={<Servicios />} />
             <Route path="equipo"          element={<Equipo />} />
