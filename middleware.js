@@ -834,24 +834,11 @@ function buildJsonLd(meta, hostname) {
   if (local.postalCode)      addr.postalCode      = local.postalCode;
   schema.address = addr;
 
-  if (local.ratingGeneral && local.totalReviews) {
-    schema.aggregateRating = {
-      '@type':       'AggregateRating',
-      ratingValue:   String(local.ratingGeneral),
-      bestRating:    '5',
-      worstRating:   '1',
-      reviewCount:   String(local.totalReviews),
-    };
-  }
-
-  if (Array.isArray(local.reviews) && local.reviews.length) {
-    schema.review = local.reviews.map(r => ({
-      '@type':       'Review',
-      author:        { '@type': 'Person', name: r.author },
-      reviewRating:  { '@type': 'Rating', ratingValue: String(r.rating), bestRating: '5', worstRating: '1' },
-      reviewBody:    r.text,
-    }));
-  }
+  // NOTA: NO se emiten aggregateRating ni review en el JSON-LD. Marcar en tu propio
+  // sitio reseñas/notas copiadas de Google es "self-serving review markup", prohibido
+  // por las guías de Google (riesgo de penalización manual). El rating real vive en el
+  // Perfil de Empresa. Los campos ratingGeneral/totalReviews/reviews del objeto `local`
+  // quedan disponibles para uso interno (UI), pero no se exponen como structured data.
 
   return JSON.stringify(schema);
 }
