@@ -846,13 +846,22 @@
       background: rgba(17, 24, 39, 0.05) !important;
       color: #111827 !important;
     }
-    /* Ocultar campos de contraseña y botón de recuperar para Aura y D'Jones (lumen) */
+    /* Ocultar campos de contraseña y botón de recuperar para tenants passwordless (Aura, D'Jones, Kronnos) */
     .tenant-aura #panelLogin .relative,
     .tenant-aura #panelRegister .relative,
     .tenant-aura button[onclick="switchTab('reset')"],
     .tenant-lumen #panelLogin .relative,
     .tenant-lumen #panelRegister .relative,
-    .tenant-lumen button[onclick="switchTab('reset')"] {
+    .tenant-lumen button[onclick="switchTab('reset')"],
+    .tenant-kronnos_penablanca #panelLogin .relative,
+    .tenant-kronnos_penablanca #panelRegister .relative,
+    .tenant-kronnos_penablanca button[onclick="switchTab('reset')"],
+    .tenant-kronnos_limache #panelLogin .relative,
+    .tenant-kronnos_limache #panelRegister .relative,
+    .tenant-kronnos_limache button[onclick="switchTab('reset')"],
+    .tenant-kronnos_woman #panelLogin .relative,
+    .tenant-kronnos_woman #panelRegister .relative,
+    .tenant-kronnos_woman button[onclick="switchTab('reset')"] {
       display: none !important;
     }
     /* Mostrar campos de contraseña en Aura y Lumen si hay fallback de contraseña custom */
@@ -1372,16 +1381,18 @@
   // ── Tenants "passwordless" (Club sin contraseña): el cliente entra solo con
   // su email; el sistema usa una password fija interna por tenant. Hoy: aura y
   // lumen (D'Jones). Para sumar otro, agregarlo al array.
-  const PASSWORDLESS_TENANTS = ['aura', 'lumen'];
+  const PASSWORDLESS_TENANTS = ['aura', 'lumen', 'kronnos_penablanca', 'kronnos_limache', 'kronnos_woman'];
   function isPasswordless() {
     return PASSWORDLESS_TENANTS.includes(window.CURRENT_TENANT_ID);
   }
   function clubPassword() {
     // Password interna fija por tenant. NO cambiar las existentes (rompería
     // el login de cuentas ya creadas con ese valor).
-    return window.CURRENT_TENANT_ID === 'lumen'
-      ? 'DjonesLoyaltyPassword2026!'
-      : 'AuraLoyaltyPassword2026!';
+    const tid = window.CURRENT_TENANT_ID;
+    if (tid === 'lumen') return 'DjonesLoyaltyPassword2026!';
+    if (tid === 'kronnos_penablanca' || tid === 'kronnos_limache' || tid === 'kronnos_woman')
+      return 'KronnosLoyaltyPassword2026!';
+    return 'AuraLoyaltyPassword2026!';
   }
   auth.onAuthStateChanged(user => {
     if (user && !_registering) goToDashboard();
