@@ -58,7 +58,7 @@ const TENANT_META = {
     themeColor:  '#050505',
     appTitle:    'Elegance',
     icon:        '/logo.jpg',
-    local: { telephone: '', streetAddress: '', addressLocality: 'Valparaíso', schemaType: 'HairSalon' },
+    local: { telephone: '+56947999370', streetAddress: 'Ecuador 243', postalCode: '2520000', priceRange: '$$', addressLocality: 'Viña del Mar', schemaType: 'HairSalon' },
     manifest: {
       name:             'Elegance Barbershop',
       short_name:       'Elegance',
@@ -239,7 +239,7 @@ const TENANT_META = {
     themeColor:  '#c9a84c',
     appTitle:    'Chameleon',
     icon:        '/local3.jpg',
-    local: { telephone: '', streetAddress: 'Av. Libertad 868', addressLocality: 'Viña del Mar', schemaType: 'HairSalon', ratingGeneral: 5.0, totalReviews: 226, reviews: [{ author: 'Carlos Andrés Yáñez', rating: 5, text: 'Excelente servicio! Vengo de Santiago y confié en esta barbería para cortarme el pelo más barba, el barbero supo cortarme tal cual lo solicitado. Muy profesional!' }, { author: 'Cristian Veas', rating: 5, text: 'Profesionales del corte de pelo y barba. Amables y buena onda, ambiente muy agradable y precio acorde al resultado.' }, { author: 'Jorge Miranda', rating: 5, text: 'Me atendí con Omar, un crack, muy amable y gentil al usar las tijeras. Primera vez que voy y volvería a ir.' }] },
+    local: { telephone: '+56928186861', streetAddress: 'Av. Libertad 868', postalCode: '2520000', priceRange: '$$', addressLocality: 'Viña del Mar', schemaType: 'HairSalon', ratingGeneral: 5.0, totalReviews: 226, reviews: [{ author: 'Carlos Andrés Yáñez', rating: 5, text: 'Excelente servicio! Vengo de Santiago y confié en esta barbería para cortarme el pelo más barba, el barbero supo cortarme tal cual lo solicitado. Muy profesional!' }, { author: 'Cristian Veas', rating: 5, text: 'Profesionales del corte de pelo y barba. Amables y buena onda, ambiente muy agradable y precio acorde al resultado.' }, { author: 'Jorge Miranda', rating: 5, text: 'Me atendí con Omar, un crack, muy amable y gentil al usar las tijeras. Primera vez que voy y volvería a ir.' }] },
     manifest: {
       name:             'Chameleon Barber Studio',
       short_name:       'Chameleon',
@@ -374,7 +374,7 @@ const TENANT_META = {
     themeColor:  '#C9A050',
     appTitle:    "D'Jones",
     icon:        '/djones.png',
-    local: { telephone: '', streetAddress: '', addressLocality: 'Valparaíso', schemaType: 'HairSalon' },
+    local: { telephone: '+56929808223', streetAddress: 'Villanelo 279', postalCode: '2340000', priceRange: '$$', addressLocality: 'Viña del Mar', schemaType: 'HairSalon' },
     manifest: {
       name:             "D'Jones Barber",
       short_name:       "D'Jones",
@@ -419,7 +419,7 @@ const TENANT_META = {
     themeColor:  '#0a0a0a',
     appTitle:    'AURA',
     icon:        '/aura.png',
-    local: { telephone: '', streetAddress: '', addressLocality: 'Viña del Mar', schemaType: 'HairSalon', ratingGeneral: 5.0, totalReviews: 43, reviews: [{ author: 'Rafael Contador', rating: 5, text: 'Tremenda experiencia! Fui por un corte de pelo y a arreglarme la barba y quedé más que satisfecho. Chiky Barber me entendió perfectamente lo que quería y fue muy detallista. Definitivamente volveré.' }, { author: 'Luciano Bravo', rating: 5, text: 'Excelente experiencia y maravilloso servicio, pasar el rato con un cafecito y cortarse el pelo deja un Aura semanal.' }, { author: 'Ignacio Ibaceta', rating: 5, text: 'Súper buena atención! Servicio completo y perfecto para ir a relajarse, hasta un café ofrecieron al momento de atenderme!' }] },
+    local: { telephone: '+56966153086', streetAddress: '2 Oriente 124, Local 3', postalCode: '2520000', priceRange: '$$', addressLocality: 'Viña del Mar', schemaType: 'HairSalon', ratingGeneral: 5.0, totalReviews: 43, reviews: [{ author: 'Rafael Contador', rating: 5, text: 'Tremenda experiencia! Fui por un corte de pelo y a arreglarme la barba y quedé más que satisfecho. Chiky Barber me entendió perfectamente lo que quería y fue muy detallista. Definitivamente volveré.' }, { author: 'Luciano Bravo', rating: 5, text: 'Excelente experiencia y maravilloso servicio, pasar el rato con un cafecito y cortarse el pelo deja un Aura semanal.' }, { author: 'Ignacio Ibaceta', rating: 5, text: 'Súper buena atención! Servicio completo y perfecto para ir a relajarse, hasta un café ofrecieron al momento de atenderme!' }] },
     manifest: {
       name:             'AURA SALÓN & MALE GROOMING',
       short_name:       'AURA',
@@ -826,10 +826,12 @@ function buildJsonLd(meta, hostname) {
   };
 
   if (local.telephone) schema.telephone = local.telephone;
+  if (local.priceRange) schema.priceRange = local.priceRange;
 
   const addr = { '@type': 'PostalAddress', addressCountry: 'CL', addressRegion: 'Valparaíso' };
   if (local.streetAddress)   addr.streetAddress   = local.streetAddress;
   if (local.addressLocality) addr.addressLocality = local.addressLocality;
+  if (local.postalCode)      addr.postalCode      = local.postalCode;
   schema.address = addr;
 
   if (local.ratingGeneral && local.totalReviews) {
