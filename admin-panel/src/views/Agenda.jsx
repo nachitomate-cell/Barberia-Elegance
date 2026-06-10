@@ -11,6 +11,7 @@ import {
 import {
   addDoc, updateDoc, deleteDoc, doc, getDoc, serverTimestamp, where, orderBy, limit, writeBatch, getDocs, query,
 } from 'firebase/firestore';
+import { motion } from 'framer-motion';
 import { db } from '../lib/firebase';
 import { tenantCol } from '../lib/tenantUtils';
 import { useCollection } from '../hooks/useCollection';
@@ -21,15 +22,27 @@ import AIWatermark from '../components/ui/AIWatermark';
 
 /* ── Constants ─────────────────────────────────────────────── */
 function buildSlotCfg(slotMins, hourStart = 8, hourEnd = 20) {
-  const totalSlots = (hourEnd - hourStart) * (60 / slotMins);
+  // Math.ceil: con 45' el día puede no dividir exacto; redondeamos hacia arriba
+  // para no recortar la última franja horaria.
+  const totalSlots = Math.ceil((hourEnd - hourStart) * (60 / slotMins));
   const timeLabels = Array.from({ length: totalSlots }, (_, i) => {
     const mins = hourStart * 60 + i * slotMins;
+    return `${String(Math.floor(mins / 60)).padStart(2,'0')}:${String(mins % 60).padStart(2,'0')}`;
+  });
+  // Opciones de hora para los selects de los modales: SIEMPRE en pasos de 15 min,
+  // independientes de la resolución de la vista, para que cambiar el reloj nunca
+  // altere la hora de una cita abierta.
+  const pickerStep = 15;
+  const pickerSlots = (hourEnd - hourStart) * (60 / pickerStep);
+  const pickerLabels = Array.from({ length: pickerSlots }, (_, i) => {
+    const mins = hourStart * 60 + i * pickerStep;
     return `${String(Math.floor(mins / 60)).padStart(2,'0')}:${String(mins % 60).padStart(2,'0')}`;
   });
   return {
     slotMins,
     totalSlots,
     timeLabels,
+    pickerLabels,
     slotIdx: t => { const [h, m] = t.split(':').map(Number); return Math.floor((h * 60 + m - hourStart * 60) / slotMins); },
   };
 }
@@ -47,6 +60,47 @@ function fmt(d) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 function toMins(t) { const [h, m] = t.split(':').map(Number); return h * 60 + m; }
+
+/* ── Layout de columnas por solapamiento real ───────────────────
+ * Reparte las citas en columnas lado a lado cuando sus rangos de
+ * tiempo (inicio + duración) se solapan, NO solo cuando comparten la
+ * misma hora exacta. Devuelve [{ cita, colIndex, colTotal }].          */
+function computeOverlapLayout(citas) {
+  const events = citas
+    .map(c => {
+      const start = toMins(c.hora);
+      const dur   = Number(c.duracion || c.duracionServicio || 30) || 30;
+      return { cita: c, start, end: start + dur };
+    })
+    .sort((a, b) => a.start - b.start || a.end - b.end);
+
+  const result = [];
+  let cluster    = [];
+  let clusterEnd = -1;
+
+  const flush = () => {
+    if (!cluster.length) return;
+    const colEnds = []; // hora de término de la última cita en cada columna
+    cluster.forEach(ev => {
+      let col = colEnds.findIndex(end => end <= ev.start);
+      if (col === -1) { col = colEnds.length; colEnds.push(ev.end); }
+      else colEnds[col] = ev.end;
+      ev.colIndex = col;
+    });
+    const colTotal = colEnds.length;
+    cluster.forEach(ev => result.push({ cita: ev.cita, colIndex: ev.colIndex, colTotal }));
+    cluster    = [];
+    clusterEnd = -1;
+  };
+
+  events.forEach(ev => {
+    if (cluster.length && ev.start >= clusterEnd) flush(); // sin solape con el grupo actual
+    cluster.push(ev);
+    clusterEnd = Math.max(clusterEnd, ev.end);
+  });
+  flush();
+  return result;
+}
 
 /* ── WhatsApp confirmation helpers ──────────────────────────── */
 const WA_SHOP_NAMES = {
@@ -101,7 +155,7 @@ function Modal({ title, onClose, children, footer, maxW = 'max-w-md' }) {
 
 /* ── CitaModal (create / edit) ───────────────────────────────── */
 function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, defaultBarberoId, defaultEstado, sobrecupo = false, dateStr, onClose, onComplete }) {
-  const { timeLabels } = useContext(AgendaCtx);
+  const { pickerLabels } = useContext(AgendaCtx);
   const isNew = !cita;
   const { id: tenantId } = useTenant();
   const defaultBarb = defaultBarberoId || barberos[0]?.id || '';
@@ -659,7 +713,8 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
         <div>
           <label className={lbl}>Hora</label>
           <select className={field} value={form.hora} onChange={e => set('hora', e.target.value)}>
-            {timeLabels.map(t => <option key={t} value={t}>{t}</option>)}
+            {(pickerLabels.includes(form.hora) ? pickerLabels : [form.hora, ...pickerLabels].filter(Boolean))
+              .map(t => <option key={t} value={t}>{t}</option>)}
           </select>
         </div>
       </div>
@@ -887,13 +942,13 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
 
 /* ── BloqueoModal ────────────────────────────────────────────── */
 function BloqueoModal({ barberos, dateStr, defaultBarberoId, defaultHora, defaultTipo, onClose }) {
-  const { timeLabels } = useContext(AgendaCtx);
+  const { pickerLabels } = useContext(AgendaCtx);
   const [tipo, setTipo]     = useState(defaultTipo || 'parcial');
   const [barberoId, setBId] = useState(defaultBarberoId || '');
   const [horaIni,  setHIni] = useState(defaultHora || '09:00');
   const [horaFin,  setHFin] = useState(() => {
-    const idx = timeLabels.indexOf(defaultHora || '09:00');
-    return timeLabels[Math.min(idx + 2, timeLabels.length - 1)] || '10:00';
+    const idx = pickerLabels.indexOf(defaultHora || '09:00');
+    return pickerLabels[Math.min(idx + 4, pickerLabels.length - 1)] || '10:00';
   });
   const [nota, setNota]     = useState('');
   const [saving, setSaving] = useState(false);
@@ -986,13 +1041,13 @@ function BloqueoModal({ barberos, dateStr, defaultBarberoId, defaultHora, defaul
             <div>
               <label className={lbl}>Desde</label>
               <select className={field} value={horaIni} onChange={e => { setHIni(e.target.value); setHoraError(''); }}>
-                {timeLabels.map(t => <option key={t} value={t}>{t}</option>)}
+                {pickerLabels.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
             <div>
               <label className={lbl}>Hasta</label>
               <select className={field} value={horaFin} onChange={e => { setHFin(e.target.value); setHoraError(''); }}>
-                {timeLabels.map(t => <option key={t} value={t}>{t}</option>)}
+                {pickerLabels.map(t => <option key={t} value={t}>{t}</option>)}
               </select>
             </div>
           </div>
@@ -2050,20 +2105,28 @@ export default function Agenda() {
             <span className="text-xs font-mono font-semibold text-slate-200 tabular-nums group-hover:text-white">{nowLabel}</span>
           </button>
 
-          <div className="flex items-center gap-0.5 border border-slate-700 rounded-lg p-0.5" title="Intervalo de etiquetas horarias del eje">
-            {[15, 30, 60].map(step => (
-              <button
-                key={step}
-                onClick={() => setLabelStep(step)}
-                className={`px-2 py-1 rounded-md text-[10px] font-mono font-semibold transition-all ${
-                  labelStep === step
-                    ? 'bg-emerald-600 text-white shadow-sm'
-                    : 'text-slate-500 hover:text-slate-200'
-                }`}
-              >
-                {step < 60 ? `${step}'` : '1h'}
-              </button>
-            ))}
+          <div className="relative flex items-center gap-0.5 border border-slate-700 rounded-lg p-0.5" title="Resolución de la grilla: a menor intervalo, las citas se ordenan con más precisión">
+            {[15, 30, 45, 60].map(step => {
+              const active = slotMins === step;
+              return (
+                <button
+                  key={step}
+                  onClick={() => { setSlotMins(step); setLabelStep(step); }}
+                  className={`relative px-2 py-1 rounded-md text-[10px] font-mono font-semibold transition-colors ${
+                    active ? 'text-white' : 'text-slate-500 hover:text-slate-200'
+                  }`}
+                >
+                  {active && (
+                    <motion.span
+                      layoutId="slotmins-pill"
+                      className="absolute inset-0 rounded-md bg-emerald-600 shadow-sm"
+                      transition={{ type: 'spring', stiffness: 480, damping: 34 }}
+                    />
+                  )}
+                  <span className="relative z-10">{step < 60 ? `${step}'` : '1h'}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -2246,17 +2309,8 @@ export default function Agenda() {
             const barberCitas    = citas.filter(c => c.barberoId === b.id);
             const barberBloqueos = bloqueosPorBarbero(b.id);
 
-            // Group citas by start time to handle overlap layout
-            const horaGroups = {};
-            barberCitas.forEach(c => {
-              if (!horaGroups[c.hora]) horaGroups[c.hora] = [];
-              horaGroups[c.hora].push(c);
-            });
-            const layoutCitas = barberCitas.map(c => ({
-              cita:     c,
-              colIndex: horaGroups[c.hora].indexOf(c),
-              colTotal: horaGroups[c.hora].length,
-            }));
+            // Layout en columnas por solapamiento real de horarios (no solo misma hora)
+            const layoutCitas = computeOverlapLayout(barberCitas);
 
             return (
               <div key={b.id} className="flex-1 min-w-[160px] border-r border-slate-800 last:border-r-0">
