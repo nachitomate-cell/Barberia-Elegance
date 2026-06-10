@@ -23,6 +23,10 @@ const DOMAIN_MAP = {
   'barberiasion.synaptechspa.cl':      'sionbarberia',
   'memphissalon.synaptechspa.cl':      'memphis',
   'alfamen.synaptechspa.cl':           'alfamen',
+  // Kronnos — cada sede en su propio subdominio sirve también su gestión interna
+  'kronnospenablanca.synaptechspa.cl': 'kronnos_penablanca',
+  'kronnoslimache.synaptechspa.cl':    'kronnos_limache',
+  'kronnoswoman.synaptechspa.cl':      'kronnos_woman',
 };
 
 export function resolveTenantId() {

@@ -15,6 +15,9 @@ const LOGIN_IMAGE = {
   chameleon:      '/loginchameleon.webp',
   aura:           '/aura2.png',
   lumen:          '/djones1.png',
+  kronnos_penablanca: '/kronnos/kronospena.png',
+  kronnos_limache:    '/kronnos/kronoslima.png',
+  kronnos_woman:      '/kronnos/kronoswoman.png',
 };
 
 export default function LoginPage() {
@@ -26,6 +29,7 @@ export default function LoginPage() {
   const [loading,    setLoading]    = useState(false);
 
   const bgImage = LOGIN_IMAGE[tenant.id];
+  const brand   = tenant.brand;
 
   const field = 'w-full bg-black/40 backdrop-blur-sm border border-white/20 rounded-lg px-4 py-3 text-sm text-white placeholder-white/40 focus:outline-none focus:border-white/50 transition-colors';
 
@@ -61,13 +65,35 @@ export default function LoginPage() {
         <div className="absolute inset-0 bg-slate-950" />
       )}
 
+      {/* Tinte de marca por sede (Kronnos): lavado de color sobre el fondo */}
+      {brand && (
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{ background: `radial-gradient(120% 90% at 50% 0%, ${brand.hex}40 0%, ${brand.hex}14 35%, transparent 70%)` }}
+        />
+      )}
+
       {/* Content */}
       <div className="relative z-10 w-full max-w-sm">
 
         {/* Header */}
         <div className="flex flex-col items-center mb-8 text-center">
+          {brand && tenant.logo && (
+            <img
+              src={tenant.logo}
+              alt=""
+              className="w-16 h-16 rounded-2xl object-cover mb-4 shadow-lg"
+              style={{ boxShadow: `0 0 0 2px ${brand.hex}, 0 8px 30px ${brand.hex}55` }}
+            />
+          )}
           <h1 className="text-2xl font-black text-white tracking-tight">{tenant.name}</h1>
-          <p className="text-sm text-white/50 mt-1">Panel de administración</p>
+          {brand ? (
+            <p className="text-sm mt-1.5 font-semibold tracking-wide" style={{ color: brand.hex }}>
+              {brand.sede} · <span className="text-white/50 font-medium">{brand.tagline}</span>
+            </p>
+          ) : (
+            <p className="text-sm text-white/50 mt-1">Panel de administración</p>
+          )}
         </div>
 
         {/* Card */}
@@ -95,7 +121,8 @@ export default function LoginPage() {
                 id="rememberMe"
                 checked={rememberMe}
                 onChange={e => setRememberMe(e.target.checked)}
-                className="w-4 h-4 rounded border-gray-600 bg-gray-700 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-gray-900"
+                className="w-4 h-4 rounded border-gray-600 bg-gray-700 focus:ring-offset-gray-900"
+                style={brand ? { accentColor: brand.hex } : undefined}
               />
               <label htmlFor="rememberMe" className="ml-2 text-sm text-gray-400 select-none cursor-pointer">
                 Mantener sesión iniciada
@@ -106,9 +133,12 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-white hover:bg-white/90 disabled:opacity-50 text-black font-bold text-sm rounded-lg transition-all flex items-center justify-center gap-2 mt-1"
+              className={`w-full py-3 disabled:opacity-50 font-bold text-sm rounded-lg transition-all flex items-center justify-center gap-2 mt-1 ${
+                brand ? 'text-white hover:brightness-110' : 'bg-white hover:bg-white/90 text-black'
+              }`}
+              style={brand ? { backgroundColor: brand.hex, boxShadow: `0 6px 24px ${brand.hex}55` } : undefined}
             >
-              {loading && <span className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />}
+              {loading && <span className={`w-4 h-4 border-2 rounded-full animate-spin ${brand ? 'border-white border-t-transparent' : 'border-black border-t-transparent'}`} />}
               Ingresar
             </button>
           </form>
