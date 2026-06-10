@@ -419,7 +419,7 @@ const TENANT_META = {
     themeColor:  '#0a0a0a',
     appTitle:    'AURA',
     icon:        '/aura.png',
-    local: { telephone: '+56966153086', streetAddress: '2 Oriente 124, Local 3', postalCode: '2520000', priceRange: '$$', addressLocality: 'Viña del Mar', schemaType: 'HairSalon', ratingGeneral: 5.0, totalReviews: 43, reviews: [{ author: 'Rafael Contador', rating: 5, text: 'Tremenda experiencia! Fui por un corte de pelo y a arreglarme la barba y quedé más que satisfecho. Chiky Barber me entendió perfectamente lo que quería y fue muy detallista. Definitivamente volveré.' }, { author: 'Luciano Bravo', rating: 5, text: 'Excelente experiencia y maravilloso servicio, pasar el rato con un cafecito y cortarse el pelo deja un Aura semanal.' }, { author: 'Ignacio Ibaceta', rating: 5, text: 'Súper buena atención! Servicio completo y perfecto para ir a relajarse, hasta un café ofrecieron al momento de atenderme!' }] },
+    local: { telephone: '+56966153086', streetAddress: '2 Oriente 124, Local 3', postalCode: '2520000', priceRange: '$$', addressLocality: 'Viña del Mar', schemaType: 'HairSalon', instagram: 'https://www.instagram.com/aura.salon.cl', openingHours: ['Mo-Sa 10:00-20:00'], ratingGeneral: 5.0, totalReviews: 43, reviews: [{ author: 'Rafael Contador', rating: 5, text: 'Tremenda experiencia! Fui por un corte de pelo y a arreglarme la barba y quedé más que satisfecho. Chiky Barber me entendió perfectamente lo que quería y fue muy detallista. Definitivamente volveré.' }, { author: 'Luciano Bravo', rating: 5, text: 'Excelente experiencia y maravilloso servicio, pasar el rato con un cafecito y cortarse el pelo deja un Aura semanal.' }, { author: 'Ignacio Ibaceta', rating: 5, text: 'Súper buena atención! Servicio completo y perfecto para ir a relajarse, hasta un café ofrecieron al momento de atenderme!' }] },
     manifest: {
       name:             'AURA SALÓN & MALE GROOMING',
       short_name:       'AURA',
@@ -827,6 +827,8 @@ function buildJsonLd(meta, hostname) {
 
   if (local.telephone) schema.telephone = local.telephone;
   if (local.priceRange) schema.priceRange = local.priceRange;
+  if (local.instagram) schema.sameAs = [local.instagram];
+  if (Array.isArray(local.openingHours) && local.openingHours.length) schema.openingHours = local.openingHours;
 
   const addr = { '@type': 'PostalAddress', addressCountry: 'CL', addressRegion: 'Valparaíso' };
   if (local.streetAddress)   addr.streetAddress   = local.streetAddress;
