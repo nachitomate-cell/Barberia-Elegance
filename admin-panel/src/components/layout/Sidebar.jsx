@@ -73,7 +73,8 @@ const NAV_GROUPS_DEFAULT = [
     items: [
       { to: 'marketing',     label: 'Marketing',      Icon: Megaphone,   adminOnly: true },
       { to: 'gift-cards',    label: 'Gift Cards',     Icon: Gift,        adminOnly: true },
-      { to: 'sucursales',    label: 'Sucursales',     Icon: Building2,   adminOnly: true },
+      // Oculto del sidebar (la ruta /sucursales sigue activa si se accede directo).
+      // { to: 'sucursales',    label: 'Sucursales',     Icon: Building2,   adminOnly: true },
       { to: 'mensualidad',   label: 'Mensualidad',    Icon: CreditCard,  adminOnly: true },
       { to: 'tv-config',     label: 'Pantalla TV',    Icon: Monitor,     adminOnly: true },
       { to: 'configuracion', label: 'Configuración',  Icon: Settings,    adminOnly: true },

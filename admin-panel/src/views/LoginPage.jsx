@@ -20,12 +20,9 @@ const LOGIN_IMAGE = {
   kronnos_woman:      '/kronnos/kronoswoman.png',
 };
 
-/* Color de acento por sede (deriva de tenant.accent de TenantContext). */
-const ACCENT_HEX = {
-  emerald: '#10b981', slate:  '#64748b', pink:   '#ec4899', cyan:   '#06b6d4',
-  purple:  '#a855f7', amber:  '#f59e0b', lime:   '#84cc16', orange: '#f97316',
-  zinc:    '#71717a', red:    '#ef4444',
-};
+/* Colores de marca SynapTech (tomados del logo): verde lima + verde oscuro. */
+const SYNAPTECH_GREEN      = '#8BC53F';
+const SYNAPTECH_GREEN_DARK = '#5F9E2A';
 
 /* Texto legible (negro/blanco) según luminancia del acento — evita botones ilegibles. */
 function readableText(hex) {
@@ -76,11 +73,13 @@ export default function LoginPage() {
   const [error,        setError]        = useState('');
   const [loading,      setLoading]      = useState(false);
 
-  const bgImage = LOGIN_IMAGE[tenant.id];
-  const brand   = tenant.brand;
-  const accent  = brand?.hex || ACCENT_HEX[tenant.accent] || '#e5e7eb';
-  const logo    = tenant.logo;
-  const btnText = readableText(accent);
+  const bgImage   = LOGIN_IMAGE[tenant.id];
+  const brand     = tenant.brand;
+  // Acento de marca SynapTech (verde del logo) para todo el login de gestión interna.
+  const accent    = SYNAPTECH_GREEN;
+  const accentDark = SYNAPTECH_GREEN_DARK;
+  const logo      = tenant.logo;
+  const btnText   = readableText(accent);
 
   const field = 'lg-field w-full bg-black/40 backdrop-blur-sm border border-white/15 rounded-xl pl-11 pr-4 py-3 text-sm text-white placeholder-white/40 focus:outline-none transition-all';
 
@@ -246,7 +245,7 @@ export default function LoginPage() {
               type="submit"
               disabled={loading}
               className="w-full py-3 disabled:opacity-50 font-bold text-sm rounded-xl transition-all flex items-center justify-center gap-2 mt-1 hover:brightness-110 active:scale-[0.99]"
-              style={{ background: `linear-gradient(135deg, ${accent}, ${accent}cc)`, color: btnText, boxShadow: `0 8px 28px ${accent}44` }}
+              style={{ background: `linear-gradient(135deg, ${accent}, ${accentDark})`, color: btnText, boxShadow: `0 8px 28px ${accent}44` }}
             >
               {loading && (
                 <span
