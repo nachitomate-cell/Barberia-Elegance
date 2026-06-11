@@ -5,6 +5,7 @@ functions/package-lock.json
 service-account.json
 ferraza-service-account.json
 *-service-account.json
+seed-*creds*.js
 .claude/
 firebase-debug.log
 firestore-debug.log
