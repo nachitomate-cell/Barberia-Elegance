@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useEffect } from 'react';
 import { getDocs, query, where, addDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import {
   DollarSign, Download, RefreshCcw, ChevronDown, CheckCircle2,
-  Scissors, User, AlertCircle, Banknote, TrendingUp, Calendar, Wallet,
+  Scissors, User, AlertCircle, Banknote, TrendingUp, Calendar, Wallet, FileText,
 } from 'lucide-react';
 import { tenantCol } from '../lib/tenantUtils';
 import { useCollection } from '../hooks/useCollection';
@@ -37,7 +37,7 @@ function formatCLP(n) { return `$${Math.round(n).toLocaleString('es-CL')}`; }
 function csvEscape(v) {
   if (v === null || v === undefined) return '';
   const s = String(v);
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  return /[";,\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 // El `fecha` de un gasto puede ser Timestamp (Gastos.jsx) o string (legacy).
 // Normalizamos a 'YYYY-MM-DD' en hora local para comparar contra el rango.
@@ -239,7 +239,28 @@ export default function Comisiones() {
   const [adelantoTarget, setAdelantoTarget] = useState(null);
   const [pagados, setPagados] = useState(new Set());
 
+  // Parámetros para calcular el NETO de los pagos con tarjeta.
+  // El neto quita el IVA de la venta y descuenta la comisión del POS por tipo.
+  const [ivaPct, setIvaPct]         = useState(19);
+  const [comDebPct, setComDebPct]   = useState(1.19);
+  const [comCredPct, setComCredPct] = useState(2.95);
+
   const { data: barberos = [] } = useCollection('barberos');
+
+  // % de comisión del POS según el medio de pago (solo tarjeta).
+  const comisionPctDe = useCallback((metodo) => {
+    if (metodo === 'Débito') return Number(comDebPct) || 0;
+    if (metodo === 'Crédito') return Number(comCredPct) || 0;
+    return 0;
+  }, [comDebPct, comCredPct]);
+
+  // Neto de un monto bruto: bruto − IVA(venta) − comisión POS.
+  const netoDe = useCallback((bruto, metodo) => {
+    const iva = Number(ivaPct) || 0;
+    const sinIva = bruto / (1 + iva / 100);
+    const comision = bruto * (comisionPctDe(metodo) / 100);
+    return sinIva - comision;
+  }, [ivaPct, comisionPctDe]);
 
   const loadCitas = useCallback(async () => {
     setLoading(true);
@@ -397,15 +418,398 @@ export default function Comisiones() {
     await loadAdelantos();
   };
 
-  const downloadCSV = () => {
-    const headers = ['Barbero', 'Citas', 'Ingresos', 'Comisión %', 'Monto Comisión', 'Sueldo Base', 'Adelantos', 'Total a Pagar'];
-    const rows = data.map(b => [b.nombre, b.citas, b.ingresos, b.comisionPct, b.montoComision, b.sueldoBase, b.adelantos, b.total]);
-    rows.push(['TOTAL', totals.citas, totals.ingresos, '', totals.montoComision, totals.sueldoBase, totals.adelantos, totals.total]);
-    const csv = [headers, ...rows].map(r => r.map(csvEscape).join(',')).join('\n');
-    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+  // Dispara la descarga de un Blob como archivo.
+  const triggerDownload = (blob, filename) => {
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = `comisiones-${fechaInicio}-${fechaFin}.csv`;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadCSV = () => {
+    const lines = [];
+    const pushRow = (arr) => lines.push(arr.map(csvEscape).join(';'));
+    const blank = () => lines.push('');
+
+    pushRow([`Período: ${fechaInicio} al ${fechaFin}`]);
+    pushRow([`Neto = Bruto − IVA ${ivaPct}% − comisión POS (Débito ${comDebPct}%, Crédito ${comCredPct}%). Efectivo/transferencia solo descuentan IVA.`]);
+    blank();
+
+    /* ── Sección 1: Comisiones por barbero ── */
+    pushRow(['COMISIONES POR BARBERO']);
+    pushRow(['Barbero', 'Citas', 'Ingresos', 'Comisión %', 'Monto Comisión', 'Sueldo Base', 'Adelantos', 'Total a Pagar']);
+    data.forEach(b => pushRow([b.nombre, b.citas, b.ingresos, b.comisionPct, b.montoComision, b.sueldoBase, b.adelantos, b.total]));
+    pushRow(['TOTAL', totals.citas, totals.ingresos, '', totals.montoComision, totals.sueldoBase, totals.adelantos, totals.total]);
+
+    /* ── Desglose por medio de pago ── */
+    // Normaliza el método de pago de cada cita y resuelve los presentes.
+    const ORDEN_METODOS = ['Efectivo', 'Débito', 'Crédito', 'Transferencia'];
+    const normMetodo = (m) => {
+      const s = String(m || '').trim();
+      return s || 'No especificado';
+    };
+    const presentes = new Set(citas.map(c => normMetodo(c.metodoPago)));
+    const metodos = [
+      ...ORDEN_METODOS.filter(m => presentes.has(m)),
+      ...[...presentes].filter(m => !ORDEN_METODOS.includes(m)).sort(),
+    ];
+
+    // Nombre de barbero para una cita (misma lógica de resolución que `data`).
+    const barberoNombre = (c) => {
+      if (c.barberoId) {
+        const b = barberos.find(x => x.id === c.barberoId);
+        if (b) return b.nombre || 'Sin nombre';
+      }
+      if (c.barbero) return c.barbero;
+      return 'Sin barbero';
+    };
+
+    // Agrega cuántos servicios y cuánto monto hubo por cada llave × método de pago.
+    const construirDesglose = (keyFn) => {
+      const agg = {};
+      citas.forEach(c => {
+        const key = keyFn(c) || 'Sin dato';
+        const met = normMetodo(c.metodoPago);
+        const monto = getPrice(c);
+        if (!agg[key]) agg[key] = {};
+        if (!agg[key][met]) agg[key][met] = { count: 0, monto: 0 };
+        agg[key][met].count += 1;
+        agg[key][met].monto += monto;
+      });
+      return agg;
+    };
+
+    // Métodos que cuentan como "tarjeta" → se agregan en una columna combinada.
+    const metodosTarjeta = metodos.filter(m => m === 'Débito' || m === 'Crédito');
+    const incluyeTarjeta = metodosTarjeta.length > 0;
+
+    // Construye las filas de una tabla de desglose (servicio o trabajador).
+    const filasDesglose = (agg, etiquetaCol) => {
+      const header = [etiquetaCol];
+      metodos.forEach(m => { header.push(`${m} (n°)`, `${m} ($)`); });
+      if (incluyeTarjeta) header.push('Débito+Crédito (n°)', 'Débito+Crédito ($)', 'Débito+Crédito Neto ($)');
+      header.push('Total servicios', 'Total $');
+      pushRow(header);
+
+      const totalGeneral = { count: 0, monto: 0 };
+      const totalTarjeta = { count: 0, monto: 0, neto: 0 };
+      const totalPorMetodo = {};
+      metodos.forEach(m => { totalPorMetodo[m] = { count: 0, monto: 0 }; });
+
+      Object.entries(agg)
+        .map(([nombre, porMet]) => {
+          const totCount = Object.values(porMet).reduce((s, v) => s + v.count, 0);
+          const totMonto = Object.values(porMet).reduce((s, v) => s + v.monto, 0);
+          return { nombre, porMet, totCount, totMonto };
+        })
+        .sort((a, b) => b.totMonto - a.totMonto)
+        .forEach(({ nombre, porMet, totCount, totMonto }) => {
+          const row = [nombre];
+          metodos.forEach(m => {
+            const cell = porMet[m] || { count: 0, monto: 0 };
+            row.push(cell.count || '', cell.count ? Math.round(cell.monto) : '');
+            totalPorMetodo[m].count += cell.count;
+            totalPorMetodo[m].monto += cell.monto;
+          });
+          if (incluyeTarjeta) {
+            const tCount = metodosTarjeta.reduce((s, m) => s + (porMet[m]?.count || 0), 0);
+            const tMonto = metodosTarjeta.reduce((s, m) => s + (porMet[m]?.monto || 0), 0);
+            const tNeto  = metodosTarjeta.reduce((s, m) => s + netoDe(porMet[m]?.monto || 0, m), 0);
+            row.push(tCount || '', tCount ? Math.round(tMonto) : '', tCount ? Math.round(tNeto) : '');
+            totalTarjeta.count += tCount;
+            totalTarjeta.monto += tMonto;
+            totalTarjeta.neto  += tNeto;
+          }
+          row.push(totCount, Math.round(totMonto));
+          totalGeneral.count += totCount;
+          totalGeneral.monto += totMonto;
+          pushRow(row);
+        });
+
+      const totalRow = ['TOTAL'];
+      metodos.forEach(m => {
+        totalRow.push(totalPorMetodo[m].count, Math.round(totalPorMetodo[m].monto));
+      });
+      if (incluyeTarjeta) totalRow.push(totalTarjeta.count, Math.round(totalTarjeta.monto), Math.round(totalTarjeta.neto));
+      totalRow.push(totalGeneral.count, Math.round(totalGeneral.monto));
+      pushRow(totalRow);
+    };
+
+    /* ── Resumen compacto por barbero (solo montos $) ── */
+    // Pocas columnas → legible incluso en visores de CSV del teléfono.
+    blank();
+    pushRow(['RESUMEN POR BARBERO · MEDIOS DE PAGO ($)']);
+    {
+      const aggB = construirDesglose(barberoNombre);
+      const header = ['Barbero', ...metodos];
+      if (incluyeTarjeta) header.push('Débito+Crédito', 'Débito+Crédito Neto');
+      header.push('Total');
+      pushRow(header);
+
+      const tot = {};
+      metodos.forEach(m => { tot[m] = 0; });
+      let totTarjeta = 0, totTarjetaNeto = 0, totGeneral = 0;
+
+      Object.entries(aggB)
+        .map(([nombre, porMet]) => ({
+          nombre, porMet,
+          total: Object.values(porMet).reduce((s, v) => s + v.monto, 0),
+        }))
+        .sort((a, b) => b.total - a.total)
+        .forEach(({ nombre, porMet, total }) => {
+          const row = [nombre];
+          metodos.forEach(m => {
+            const monto = porMet[m]?.monto || 0;
+            row.push(Math.round(monto));
+            tot[m] += monto;
+          });
+          if (incluyeTarjeta) {
+            const t = metodosTarjeta.reduce((s, m) => s + (porMet[m]?.monto || 0), 0);
+            const tn = metodosTarjeta.reduce((s, m) => s + netoDe(porMet[m]?.monto || 0, m), 0);
+            row.push(Math.round(t), Math.round(tn));
+            totTarjeta += t;
+            totTarjetaNeto += tn;
+          }
+          row.push(Math.round(total));
+          totGeneral += total;
+          pushRow(row);
+        });
+
+      const totalRow = ['TOTAL', ...metodos.map(m => Math.round(tot[m]))];
+      if (incluyeTarjeta) totalRow.push(Math.round(totTarjeta), Math.round(totTarjetaNeto));
+      totalRow.push(Math.round(totGeneral));
+      pushRow(totalRow);
+    }
+
+    blank();
+    pushRow(['DESGLOSE POR SERVICIO Y MEDIO DE PAGO']);
+    filasDesglose(construirDesglose(c => c.servicioNombre), 'Servicio');
+
+    blank();
+    pushRow(['DESGLOSE POR TRABAJADOR Y MEDIO DE PAGO']);
+    filasDesglose(construirDesglose(barberoNombre), 'Trabajador');
+
+    /* ── Desglose por trabajador y servicio ── */
+    // Cuántas veces hizo cada servicio cada trabajador y cuánto facturó.
+    blank();
+    pushRow(['DESGLOSE POR TRABAJADOR Y SERVICIO']);
+    pushRow(['Trabajador', 'Servicio', 'Cantidad', 'Monto $']);
+    {
+      const agg = {}; // agg[trabajador][servicio] = { count, monto }
+      citas.forEach(c => {
+        const t = barberoNombre(c) || 'Sin barbero';
+        const s = c.servicioNombre || 'Sin servicio';
+        if (!agg[t]) agg[t] = {};
+        if (!agg[t][s]) agg[t][s] = { count: 0, monto: 0 };
+        agg[t][s].count += 1;
+        agg[t][s].monto += getPrice(c);
+      });
+      const totalGen = { count: 0, monto: 0 };
+      Object.entries(agg)
+        .map(([trabajador, servicios]) => {
+          const totCount = Object.values(servicios).reduce((acc, v) => acc + v.count, 0);
+          const totMonto = Object.values(servicios).reduce((acc, v) => acc + v.monto, 0);
+          return { trabajador, servicios, totCount, totMonto };
+        })
+        .sort((a, b) => b.totMonto - a.totMonto)
+        .forEach(({ trabajador, servicios, totCount, totMonto }) => {
+          Object.entries(servicios)
+            .sort((a, b) => b[1].monto - a[1].monto)
+            .forEach(([servicio, v]) => {
+              pushRow([trabajador, servicio, v.count, Math.round(v.monto)]);
+            });
+          pushRow([`Subtotal ${trabajador}`, '', totCount, Math.round(totMonto)]);
+          totalGen.count += totCount;
+          totalGen.monto += totMonto;
+        });
+      pushRow(['TOTAL', '', totalGen.count, Math.round(totalGen.monto)]);
+    }
+
+    // Separador ';' (predeterminado en Excel es-CL) + BOM UTF-8 para que los
+    // acentos se lean bien. OJO: no usar una línea `sep=;`, porque Excel la
+    // toma como señal para ignorar el BOM y leer en Latin-1 (rompe acentos).
+    const csv = lines.join('\n');
+    triggerDownload(
+      new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }),
+      `comisiones-${fechaInicio}-${fechaFin}.csv`,
+    );
+  };
+
+  /* ── Reporte HTML (responsivo, no se corta en el teléfono) ──────────── */
+  const downloadHTML = () => {
+    const esc = (v) => String(v ?? '').replace(/[&<>"]/g, c => (
+      { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]
+    ));
+    const ORDEN_METODOS = ['Efectivo', 'Débito', 'Crédito', 'Transferencia'];
+    const normMetodo = (m) => String(m || '').trim() || 'No especificado';
+    const presentes = new Set(citas.map(c => normMetodo(c.metodoPago)));
+    const metodos = [
+      ...ORDEN_METODOS.filter(m => presentes.has(m)),
+      ...[...presentes].filter(m => !ORDEN_METODOS.includes(m)).sort(),
+    ];
+    const metodosTarjeta = metodos.filter(m => m === 'Débito' || m === 'Crédito');
+    const barberoNombre = (c) => {
+      if (c.barberoId) {
+        const b = barberos.find(x => x.id === c.barberoId);
+        if (b) return b.nombre || 'Sin nombre';
+      }
+      return c.barbero || 'Sin barbero';
+    };
+
+    // Acumula medios de pago y servicios por barbero, y por servicio global.
+    const porBarbero = {};
+    const porServicio = {};
+    const totalMetodos = {};
+    citas.forEach(c => {
+      const n = barberoNombre(c);
+      const s = c.servicioNombre || 'Sin servicio';
+      const m = normMetodo(c.metodoPago);
+      const monto = getPrice(c);
+
+      if (!porBarbero[n]) porBarbero[n] = { metodos: {}, servicios: {} };
+      const pb = porBarbero[n];
+      if (!pb.metodos[m]) pb.metodos[m] = { count: 0, monto: 0 };
+      pb.metodos[m].count += 1; pb.metodos[m].monto += monto;
+      if (!pb.servicios[s]) pb.servicios[s] = { count: 0, monto: 0 };
+      pb.servicios[s].count += 1; pb.servicios[s].monto += monto;
+
+      if (!porServicio[s]) porServicio[s] = { metodos: {}, count: 0, monto: 0 };
+      porServicio[s].count += 1; porServicio[s].monto += monto;
+      if (!porServicio[s].metodos[m]) porServicio[s].metodos[m] = { count: 0, monto: 0 };
+      porServicio[s].metodos[m].count += 1; porServicio[s].metodos[m].monto += monto;
+
+      if (!totalMetodos[m]) totalMetodos[m] = { count: 0, monto: 0 };
+      totalMetodos[m].count += 1; totalMetodos[m].monto += monto;
+    });
+
+    // Tabla de medios de pago (cantidad + bruto + neto), con fila Déb+Créd.
+    const tablaMetodos = (porMet) => {
+      const rows = metodos
+        .filter(m => porMet[m])
+        .map(m => `<tr><td>${esc(m)}</td><td>${porMet[m].count}</td><td>${formatCLP(porMet[m].monto)}</td><td>${formatCLP(netoDe(porMet[m].monto, m))}</td></tr>`);
+      if (metodosTarjeta.length) {
+        const tc = metodosTarjeta.reduce((s, m) => s + (porMet[m]?.count || 0), 0);
+        const tm = metodosTarjeta.reduce((s, m) => s + (porMet[m]?.monto || 0), 0);
+        const tn = metodosTarjeta.reduce((s, m) => s + netoDe(porMet[m]?.monto || 0, m), 0);
+        if (tc) rows.push(`<tr class="hl"><td>Débito + Crédito</td><td>${tc}</td><td>${formatCLP(tm)}</td><td>${formatCLP(tn)}</td></tr>`);
+      }
+      return `<table><tr class="head"><td>Medio</td><td>N°</td><td>Bruto</td><td>Neto</td></tr>${rows.join('')}</table>`;
+    };
+
+    const tablaServicios = (servicios) => {
+      const rows = Object.entries(servicios)
+        .sort((a, b) => b[1].monto - a[1].monto)
+        .map(([s, v]) => `<tr><td>${esc(s)}</td><td>${v.count}</td><td>${formatCLP(v.monto)}</td></tr>`);
+      return `<table class="t3"><tr class="head"><td>Servicio</td><td>N°</td><td>Monto</td></tr>${rows.join('')}</table>`;
+    };
+
+    // Tarjeta por barbero (comisiones + medios de pago + servicios).
+    const cardsBarberos = data.map(b => {
+      const pb = porBarbero[b.nombre] || { metodos: {}, servicios: {} };
+      return `
+      <div class="card">
+        <h2>${esc(b.nombre)}</h2>
+        <p class="sub">${b.citas} cita${b.citas !== 1 ? 's' : ''}</p>
+        <div class="kv">
+          <span>Ingresos</span><b>${formatCLP(b.ingresos)}</b>
+          <span>Comisión (${b.comisionPct}%)</span><b>${formatCLP(b.montoComision)}</b>
+          <span>Sueldo base</span><b>${formatCLP(b.sueldoBase)}</b>
+          ${b.adelantos > 0 ? `<span>Adelantos</span><b class="neg">− ${formatCLP(b.adelantos)}</b>` : ''}
+          <span class="big">Total a pagar</span><b class="big pos">${formatCLP(b.total)}</b>
+        </div>
+        <h3>Medios de pago</h3>
+        ${tablaMetodos(pb.metodos)}
+        <h3>Servicios realizados</h3>
+        ${tablaServicios(pb.servicios)}
+      </div>`;
+    }).join('');
+
+    // Tarjeta por servicio (todo el local), con su desglose de medios de pago.
+    const cardsServicios = Object.entries(porServicio)
+      .sort((a, b) => b[1].monto - a[1].monto)
+      .map(([s, v]) => `
+      <div class="card">
+        <h2>${esc(s)}</h2>
+        <p class="sub">${v.count} realizado${v.count !== 1 ? 's' : ''} · ${formatCLP(v.monto)}</p>
+        ${tablaMetodos(v.metodos)}
+      </div>`).join('');
+
+    const resumenLocal = `
+      <div class="card hlcard">
+        <h2>Resumen del local</h2>
+        <div class="kv">
+          <span>Citas completadas</span><b>${totals.citas}</b>
+          <span>Ingresos totales</span><b>${formatCLP(totals.ingresos)}</b>
+          <span>Total comisiones</span><b>${formatCLP(totals.montoComision)}</b>
+          <span>Adelantos</span><b class="neg">− ${formatCLP(totals.adelantos)}</b>
+          <span class="big">Total a pagar</span><b class="big pos">${formatCLP(totals.total)}</b>
+        </div>
+        <h3>Medios de pago (todo el local)</h3>
+        ${tablaMetodos(totalMetodos)}
+      </div>`;
+
+    const html = `<!doctype html>
+<html lang="es"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Comisiones ${esc(fechaInicio)} a ${esc(fechaFin)}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#0f172a;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:16px;line-height:1.4;-webkit-text-size-adjust:100%}
+  .wrap{max-width:760px;margin:0 auto}
+  h1{font-size:20px;color:#fff;margin-bottom:2px}
+  .periodo{color:#94a3b8;font-size:13px;margin-bottom:18px}
+  .sechead{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#64748b;margin:22px 0 10px}
+  .card{background:#1e293b;border:1px solid #334155;border-radius:14px;padding:16px;margin-bottom:12px}
+  .hlcard{border-color:#10b981;background:#10281f}
+  .card h2{font-size:16px;color:#fff;margin-bottom:2px;word-break:break-word}
+  .sub{color:#94a3b8;font-size:12px;margin-bottom:12px}
+  .kv{display:grid;grid-template-columns:1fr auto;gap:6px 12px;font-size:14px;margin-bottom:6px}
+  .kv span{color:#94a3b8}
+  .kv b{font-weight:600;text-align:right;white-space:nowrap}
+  .kv .big{font-size:15px;font-weight:700;padding-top:8px;margin-top:4px;border-top:1px solid #334155}
+  .kv span.big{color:#cbd5e1}
+  .pos{color:#34d399}
+  .neg{color:#fb923c}
+  h3{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:#64748b;margin:14px 0 6px}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;table-layout:fixed}
+  td{padding:7px 0;border-bottom:1px solid #334155;vertical-align:top}
+  td:first-child{word-break:break-word;padding-right:6px}
+  td:nth-child(2){text-align:right;color:#94a3b8;width:34px;white-space:nowrap}
+  td:nth-child(3){text-align:right;font-weight:600;white-space:nowrap;padding-left:6px}
+  td:nth-child(4){text-align:right;color:#34d399;white-space:nowrap;padding-left:6px}
+  table.t3 td:nth-child(2){width:42px}
+  tr.head td{color:#64748b;font-size:10.5px;text-transform:uppercase;letter-spacing:.03em;font-weight:700;border-bottom:1px solid #475569}
+  tr.hl td{color:#34d399;font-weight:700;border-top:1px solid #475569}
+  tr.hl td:nth-child(4){color:#6ee7b7}
+  tr:last-child td{border-bottom:none}
+  .nota{background:#1e293b;border:1px dashed #475569;border-radius:12px;padding:12px 14px;font-size:12px;color:#94a3b8;margin-bottom:18px;line-height:1.5}
+  .nota b{color:#cbd5e1}
+  .foot{color:#475569;font-size:11px;text-align:center;margin-top:24px}
+</style></head>
+<body><div class="wrap">
+  <h1>Comisiones por barbero</h1>
+  <p class="periodo">Período: ${esc(fechaInicio)} al ${esc(fechaFin)}</p>
+  <div class="nota">
+    <b>Neto</b> = Bruto − IVA (${esc(ivaPct)}%) − comisión del POS
+    (Débito ${esc(comDebPct)}%, Crédito ${esc(comCredPct)}%).
+    El <b>Bruto</b> es el valor cobrado al cliente; el <b>Neto</b> es lo que queda
+    después de impuestos y comisión de tarjeta. Efectivo y transferencia solo
+    descuentan IVA.
+  </div>
+  ${resumenLocal}
+  <div class="sechead">Por barbero</div>
+  ${cardsBarberos}
+  <div class="sechead">Por servicio (todo el local)</div>
+  ${cardsServicios}
+  <p class="foot">Generado desde el panel · Barbería</p>
+</div></body></html>`;
+
+    triggerDownload(
+      new Blob([html], { type: 'text/html;charset=utf-8' }),
+      `comisiones-${fechaInicio}-${fechaFin}.html`,
+    );
   };
 
   return (
@@ -420,14 +824,24 @@ export default function Comisiones() {
           </div>
           <p className="text-sm text-slate-400">Desglose de pagos por barbero según período seleccionado.</p>
         </div>
-        <button
-          onClick={downloadCSV}
-          disabled={data.length === 0}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700 disabled:opacity-40 transition-all"
-        >
-          <Download size={14} />
-          Exportar CSV
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={downloadHTML}
+            disabled={data.length === 0}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 border border-emerald-500/30 disabled:opacity-40 transition-all"
+          >
+            <FileText size={14} />
+            Exportar reporte
+          </button>
+          <button
+            onClick={downloadCSV}
+            disabled={data.length === 0}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700 disabled:opacity-40 transition-all"
+          >
+            <Download size={14} />
+            Exportar CSV
+          </button>
+        </div>
       </div>
 
       {/* Date range */}
@@ -469,6 +883,34 @@ export default function Comisiones() {
             {loading ? 'Cargando...' : 'Actualizar'}
           </button>
         </div>
+      </div>
+
+      {/* Cálculo del neto (IVA + comisión POS) — se usa al exportar */}
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <DollarSign size={15} className="text-emerald-400" />
+          <p className="text-sm font-bold text-white">Cálculo del neto (para exportar)</p>
+        </div>
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">IVA %</label>
+            <input type="number" min="0" step="0.01" value={ivaPct} onChange={e => setIvaPct(e.target.value)}
+              className="w-24 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none" />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Comisión Débito %</label>
+            <input type="number" min="0" step="0.01" value={comDebPct} onChange={e => setComDebPct(e.target.value)}
+              className="w-28 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none" />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Comisión Crédito %</label>
+            <input type="number" min="0" step="0.01" value={comCredPct} onChange={e => setComCredPct(e.target.value)}
+              className="w-28 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:border-emerald-500 focus:outline-none" />
+          </div>
+        </div>
+        <p className="text-[11px] text-slate-500 mt-3 leading-relaxed">
+          El <span className="text-slate-300 font-medium">neto</span> = bruto − IVA − comisión del POS. La comisión solo se aplica a débito/crédito; efectivo y transferencia solo descuentan IVA. Ajusta los valores a los de tu comercio.
+        </p>
       </div>
 
       {/* Summary KPIs */}
