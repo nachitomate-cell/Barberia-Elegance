@@ -8406,13 +8406,13 @@
 
                   <!-- Logo AURA -->
                   <div class="club-anim-el flex justify-center mb-4" style="animation-delay:0ms;">
-                    <img id="clubPromoLogo" src="/aura.png" alt="AURA" style="height:36px;width:auto;object-fit:contain;opacity:0.88;">
+                    <img src="${window.SHOP?.logo || '/aura.png'}" alt="${window.SHOP?.nombreCorto || 'AURA'}" style="height:36px;width:auto;object-fit:contain;opacity:0.88;">
                   </div>
 
                   <!-- Stagger 1: eyebrow + titular -->
                   <div class="club-anim-el mb-4" style="animation-delay:100ms;">
                     <p class="text-[10px] font-bold uppercase tracking-widest mb-2.5 flex items-center justify-center gap-1.5" style="color:#9CA3AF;">
-                      <i class="ph-fill ph-sparkle"></i> Exclusivo · <span id="clubPromoClub">Club AURA</span>
+                      <i class="ph-fill ph-sparkle"></i> Exclusivo · ${window.SHOP?.club || 'Club AURA'}
                     </p>
                     <p class="text-[1.2rem] font-black leading-tight mb-2 text-center" style="color:#111827;letter-spacing:-0.02em;">
                       Cada visita te acerca<br>a un servicio gratis
@@ -8433,7 +8433,7 @@
                       <p class="text-[10px] font-semibold mt-1" style="color:#71717A;">por visita</p>
                     </div>
                     <div class="text-center py-3 rounded-xl" style="background:rgba(156,163,175,0.07);border:1px solid rgba(156,163,175,0.20);">
-                      <p class="text-base font-black leading-none" style="color:#9CA3AF;" id="clubPromoCanje">✂️</p>
+                      <p class="text-base font-black leading-none" style="color:#9CA3AF;">${window.CURRENT_TENANT_ID === 'latincaribe' ? '🎱' : '✂️'}</p>
                       <p class="text-[10px] font-semibold mt-1" style="color:#71717A;">canjeable</p>
                     </div>
                   </div>
@@ -8448,7 +8448,7 @@
                   <div class="club-anim-el" style="animation-delay:340ms;">
                     <a href="registro.html" class="aura-cta-btn flex items-center justify-center gap-2 w-full py-3.5 rounded-xl text-[13.5px] font-bold transition-all active:scale-[0.97]" style="background:#18181B;color:#FFFFFF;letter-spacing:0.01em;">
                       <i class="ph-bold ph-user-plus" style="color:#FFFFFF;"></i>
-                      Crear mi cuenta <span id="clubPromoCtaName">AURA</span> — es gratis
+                      Crear mi cuenta ${window.SHOP?.nombreCorto || 'AURA'} — es gratis
                     </a>
                   </div>
                 </div>
@@ -8869,14 +8869,8 @@
         if (slimLogo && SHOP.logo) slimLogo.src = SHOP.logo;
         const stampImg = document.querySelector('#aura-stamp-wrap .aura-stamp-logo img');
         if (stampImg && SHOP.logo) { stampImg.src = SHOP.logo; stampImg.alt = SHOP.nombre || 'The Latin Caribe'; }
-        const clubLogo = document.getElementById('clubPromoLogo');
-        if (clubLogo && SHOP.logo) { clubLogo.src = SHOP.logo; clubLogo.alt = SHOP.nombre || 'The Latin Caribe'; }
-        const clubClub = document.getElementById('clubPromoClub');
-        if (clubClub) clubClub.textContent = SHOP.club || 'Club Latin Caribe';
-        const clubCta = document.getElementById('clubPromoCtaName');
-        if (clubCta) clubCta.textContent = SHOP.nombreCorto || SHOP.nombre || '';
-        const clubCanje = document.getElementById('clubPromoCanje');
-        if (clubCanje) clubCanje.textContent = '🎱';
+        // El card de registro al club se inyecta dinámicamente (authContainer.innerHTML)
+        // y ya interpola SHOP.club / SHOP.nombreCorto / SHOP.logo en su template.
       }
 
       // Instagram
