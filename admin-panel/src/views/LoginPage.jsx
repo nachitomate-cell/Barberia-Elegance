@@ -15,6 +15,7 @@ const LOGIN_IMAGE = {
   chameleon:      '/loginchameleon.webp',
   aura:           '/aura2.png',
   latincaribe:    '/playa-login.jpg',
+  yugen:          '/yugen/yugen2.png',
   lumen:          '/djones1.png',
   kronnos_penablanca: '/kronnos/kronospena.png',
   kronnos_limache:    '/kronnos/kronoslima.png',
