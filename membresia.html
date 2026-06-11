@@ -1380,9 +1380,9 @@
     document.documentElement.classList.add('tenant-' + TENANT_ID);
     const SHOP = window.SHOP || {};
     const IS_DELUXE = TENANT_ID === 'deluxeperfumes';
-    // Aura permite explorar la membresia SIN iniciar sesion: los planes son
-    // publicos y "Suscribirme" abre WhatsApp al local (no requiere auth).
-    const IS_AURA   = TENANT_ID === 'aura';
+    // Aura/Latin Caribe permiten explorar la membresia SIN iniciar sesion: los
+    // planes son publicos y "Suscribirme" abre WhatsApp al local (no requiere auth).
+    const IS_AURA   = (TENANT_ID === 'aura' || TENANT_ID === 'latincaribe');
     const BOOTSTRAP_ADMINS = ['ignaciiio.mate@gmail.com'];
 
     let currentUser = null;
