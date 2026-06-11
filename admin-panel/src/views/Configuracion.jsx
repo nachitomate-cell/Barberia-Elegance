@@ -356,8 +356,10 @@ export default function Configuracion() {
         </div>
       </Card>
 
-      {/* Servicios Extra */}
+      {/* Servicios Extra — Cursos/Arriendo solo Chameleon · Academia solo Elegance */}
+      {(tenantId === 'chameleon' || tenantId === 'elegance') && (
       <Card Icon={GraduationCap} title="Servicios Extra">
+        {tenantId === 'chameleon' && (<>
         <p className="text-xs text-slate-500 -mt-1">
           Agrega secciones informativas con botón de WhatsApp en tu página pública.
         </p>
@@ -423,6 +425,7 @@ export default function Configuracion() {
             </div>
           )}
         </div>
+        </>)}
 
         {/* Módulo Academia Interno (Solo Elegance) */}
         {tenantId === 'elegance' && (
@@ -447,6 +450,7 @@ export default function Configuracion() {
           </div>
         )}
       </Card>
+      )}
 
       {/* Soporte Técnico */}
       <div

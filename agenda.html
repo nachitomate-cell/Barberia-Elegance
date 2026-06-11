@@ -95,6 +95,36 @@
             animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
 
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(18px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        /* ── Fundido suave al mostrar una vista (sin salto vertical) ── */
+        @keyframes viewIn { from { opacity: 0; } to { opacity: 1; } }
+        .view-in { animation: viewIn .18s ease; }
+
+        /* ── Transición direccional al cambiar de día ── */
+        @keyframes dayInNext { from { opacity: 0; transform: translateX(26px); } to { opacity: 1; transform: translateX(0); } }
+        @keyframes dayInPrev { from { opacity: 0; transform: translateX(-26px); } to { opacity: 1; transform: translateX(0); } }
+        .anim-day-next { animation: dayInNext .3s cubic-bezier(0.22, 1, 0.36, 1); }
+        .anim-day-prev { animation: dayInPrev .3s cubic-bezier(0.22, 1, 0.36, 1); }
+
+        /* ── Touch: respuesta inmediata en móvil (mata el delay de 300ms) ── */
+        button, a, .cita-card, [onclick] { touch-action: manipulation; }
+
+        /* Tarjetas de cita: feedback de presión snappy */
+        .cita-card {
+            -webkit-tap-highlight-color: transparent;
+            transition: transform .13s cubic-bezier(0.16,1,0.3,1), background-color .2s ease, box-shadow .2s ease;
+        }
+        .cita-card:active {
+            transform: scale(0.975);
+            box-shadow: 0 6px 22px rgba(0,0,0,0.35);
+        }
+        /* El handle del bottom sheet no debe scrollear la página al arrastrar */
+        #citaSheetHandle { touch-action: none; }
+
         /* ── Live Indicator & Highlight ── */
         @keyframes livePulse {
             0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
@@ -128,32 +158,63 @@
 
     <!-- Login Integrado -->
     <div id="loginOverlay" class="hidden fixed inset-0 z-[9000] flex flex-col items-center justify-center px-4"
-         style="background:linear-gradient(rgba(0,0,0,0.72),rgba(0,0,0,0.88)),url('/fondologin.webp') center/cover no-repeat;">
-        <div class="w-full max-w-sm">
-            <div class="flex flex-col items-center mb-8">
-                <img id="loginLogo" src="/logo.jpg" alt="Logo" class="w-20 h-20 object-contain rounded-full border-2 border-white/20 shadow-2xl mb-4">
-                <p class="text-[10px] text-white/40 font-bold uppercase tracking-[0.25em]">Agenda Barbero</p>
-                <h1 id="loginShopName" class="text-xl font-black text-white mt-1">Barbershop</h1>
+         style="background:linear-gradient(rgba(0,0,0,0.78),rgba(0,0,0,0.93)),url('/fondologin.webp') center/cover no-repeat;">
+        <!-- Glow ambiental superior -->
+        <div style="position:absolute;inset:0;pointer-events:none;background:radial-gradient(65% 45% at 50% 0%, rgba(255,255,255,0.07), transparent 70%);"></div>
+
+        <div class="w-full max-w-sm" style="position:relative;animation:fadeInUp .5s ease both;">
+            <!-- Marca -->
+            <div class="flex flex-col items-center" style="text-align:center;margin-bottom:1.75rem;">
+                <div style="position:relative;margin-bottom:1.1rem;">
+                    <div style="position:absolute;inset:-10px;border-radius:9999px;background:radial-gradient(circle, rgba(255,255,255,0.22), transparent 70%);filter:blur(10px);"></div>
+                    <img id="loginLogo" src="/logo.jpg" alt="Logo"
+                         style="position:relative;width:90px;height:90px;object-fit:cover;border-radius:9999px;border:1px solid rgba(255,255,255,0.25);box-shadow:0 10px 34px rgba(0,0,0,0.55);">
+                </div>
+                <p style="font-size:10px;color:rgba(255,255,255,0.45);font-weight:700;text-transform:uppercase;letter-spacing:0.3em;margin:0;">Agenda Barbero</p>
+                <h1 id="loginShopName" style="font-size:1.55rem;line-height:1.1;font-weight:900;color:#fff;margin:0.45rem 0 0;">Barbershop</h1>
+                <p id="loginSlogan" style="font-size:0.8rem;color:rgba(255,255,255,0.5);margin:0.35rem 0 0;"></p>
             </div>
-            <div class="rounded-2xl p-7 space-y-4" style="background:rgba(17,17,21,0.85);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08);">
-                <div>
-                    <label class="text-[11px] font-bold text-white/40 uppercase tracking-widest mb-1.5 block">Correo</label>
-                    <input id="agendaEmail" type="email" placeholder="correo@elegance.cl" autocomplete="email"
-                        class="w-full rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-white/30 transition-all"
-                        style="background:#fff;color:#000;" onkeydown="if(event.key==='Enter')loginBarbero()">
+
+            <!-- Tarjeta -->
+            <div style="border-radius:1.5rem;padding:1.6rem 1.5rem;background:rgba(14,14,18,0.82);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border:1px solid rgba(255,255,255,0.1);box-shadow:0 24px 60px rgba(0,0,0,0.55);">
+                <!-- Correo -->
+                <label style="display:block;font-size:11px;font-weight:700;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:0.14em;margin-bottom:0.45rem;">Correo</label>
+                <div style="position:relative;margin-bottom:1.1rem;">
+                    <i class="ph-bold ph-envelope-simple" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:1.05rem;color:rgba(255,255,255,0.4);pointer-events:none;"></i>
+                    <input id="agendaEmail" type="email" placeholder="tu@correo.com" autocomplete="email"
+                        onkeydown="if(event.key==='Enter')loginBarbero()"
+                        onfocus="this.style.borderColor='rgba(255,255,255,0.45)';this.style.boxShadow='0 0 0 3px rgba(255,255,255,0.08)';"
+                        onblur="this.style.borderColor='rgba(255,255,255,0.12)';this.style.boxShadow='none';"
+                        style="width:100%;border-radius:0.85rem;padding:0.8rem 0.95rem 0.8rem 2.7rem;font-size:0.9rem;color:#fff;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);outline:none;transition:border-color .2s, box-shadow .2s;">
                 </div>
-                <div>
-                    <label class="text-[11px] font-bold text-white/40 uppercase tracking-widest mb-1.5 block">Contraseña</label>
+                <!-- Contraseña -->
+                <label style="display:block;font-size:11px;font-weight:700;color:rgba(255,255,255,0.45);text-transform:uppercase;letter-spacing:0.14em;margin-bottom:0.45rem;">Contraseña</label>
+                <div style="position:relative;margin-bottom:0.4rem;">
+                    <i class="ph-bold ph-lock-simple" style="position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:1.05rem;color:rgba(255,255,255,0.4);pointer-events:none;"></i>
                     <input id="agendaPassword" type="password" placeholder="••••••••" autocomplete="current-password"
-                        class="w-full rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-white/30 transition-all"
-                        style="background:#fff;color:#000;" onkeydown="if(event.key==='Enter')loginBarbero()">
+                        onkeydown="if(event.key==='Enter')loginBarbero()"
+                        onfocus="this.style.borderColor='rgba(255,255,255,0.45)';this.style.boxShadow='0 0 0 3px rgba(255,255,255,0.08)';"
+                        onblur="this.style.borderColor='rgba(255,255,255,0.12)';this.style.boxShadow='none';"
+                        style="width:100%;border-radius:0.85rem;padding:0.8rem 2.8rem 0.8rem 2.7rem;font-size:0.9rem;color:#fff;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);outline:none;transition:border-color .2s, box-shadow .2s;">
+                    <button type="button" onclick="togglePwdVisibility(this)" tabindex="-1" aria-label="Mostrar u ocultar contraseña"
+                        style="position:absolute;right:8px;top:50%;transform:translateY(-50%);width:34px;height:34px;display:flex;align-items:center;justify-content:center;background:transparent;border:none;color:rgba(255,255,255,0.4);cursor:pointer;">
+                        <i class="ph-bold ph-eye" style="font-size:1.05rem;"></i>
+                    </button>
                 </div>
-                <p id="loginError" class="text-red-400 text-xs hidden"></p>
+                <p id="loginError" class="text-red-400 text-xs hidden" style="margin-top:0.35rem;"></p>
                 <button id="loginBtn" onclick="loginBarbero()"
-                    class="w-full py-3 rounded-xl text-sm font-bold text-black bg-white hover:bg-white/90 active:scale-95 transition-all mt-1">
-                    Ingresar a mi agenda
+                    onmouseover="if(!this.disabled)this.style.background='rgba(255,255,255,0.9)'" onmouseout="this.style.background='#fff'"
+                    onmousedown="if(!this.disabled)this.style.transform='scale(0.97)'" onmouseup="this.style.transform='scale(1)'"
+                    style="width:100%;margin-top:1.1rem;padding:0.85rem;border-radius:0.85rem;font-size:0.9rem;font-weight:700;color:#0a0a0a;background:#fff;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.5rem;transition:transform .1s, background .2s, opacity .2s;">
+                    <i class="ph-bold ph-sign-in" id="loginBtnIcon" style="font-size:1.05rem;"></i>
+                    <span id="loginBtnLabel">Ingresar a mi agenda</span>
                 </button>
             </div>
+
+            <!-- Pie -->
+            <p style="text-align:center;margin-top:1.5rem;font-size:10px;color:rgba(255,255,255,0.3);letter-spacing:0.04em;">
+                🔒 Acceso exclusivo para el equipo · <span style="color:rgba(255,255,255,0.5);font-weight:600;">SynapTech</span>
+            </p>
         </div>
     </div>
 
@@ -198,6 +259,17 @@
         
         <!-- COLUMNA IZQUIERDA -->
         <div class="lg:col-span-7 flex flex-col lg:h-full lg:overflow-y-auto pb-24 lg:pr-2" style="scrollbar-width: none;">
+        <!-- ── TOGGLE DE VISTA Día / Semana ── -->
+        <div class="flex items-center mb-6 animate-fade-in">
+            <div class="inline-flex items-center gap-0.5 rounded-xl p-0.5" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+                <button id="viewBtnDia" onclick="setAgendaView('dia')" class="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold transition-all">
+                    <i class="ph-bold ph-calendar-dot"></i> Día
+                </button>
+                <button id="viewBtnSemana" onclick="setAgendaView('semana')" class="flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-bold transition-all">
+                    <i class="ph-bold ph-calendar"></i> Semana
+                </button>
+            </div>
+        </div>
         <!-- ── INSTALAR APP BANNER (Big) ── -->
         <div id="pwaBigInstallCard" class="hidden mb-8 rounded-3xl p-5 relative overflow-hidden cursor-pointer active:scale-95 transition-all shadow-[0_0_20px_rgba(201,168,76,0.1)] animate-fade-in" style="background:linear-gradient(to right, rgba(201,168,76,0.12), rgba(201,168,76,0.04)); border: 1px solid rgba(201,168,76,0.3);" onclick="triggerPWAInstall()">
             <div class="absolute -right-6 -top-6 w-24 h-24 rounded-full blur-xl pointer-events-none" style="background:rgba(201,168,76,0.15);"></div>
@@ -214,7 +286,7 @@
         </div>
 
         <!-- Mini-Dashboard Diarias -->
-        <div id="dailyStatsDashboard" class="flex items-center gap-3 mb-6 bg-white/5 border border-white/10 rounded-2xl p-4 overflow-x-auto no-scrollbar animate-fade-in">
+        <div id="dailyStatsDashboard" class="flex items-center gap-3 mb-6 bg-white/5 border border-white/10 rounded-2xl p-4 overflow-x-auto no-scrollbar view-in">
             <div class="flex items-center gap-2 px-3 border-r border-white/10 shrink-0">
                 <i class="ph-fill ph-check-circle text-emerald-400 text-lg"></i>
                 <div class="flex flex-col">
@@ -239,7 +311,7 @@
         </div>
 
         <!-- Day Selector / Calendar Header -->
-        <div id="dayViewHeader" class="mb-10 animate-fade-in" style="animation-delay: 0.1s;">
+        <div id="dayViewHeader" class="mb-10 view-in">
             <div class="flex items-center justify-between mb-6">
                 <h2 class="text-2xl font-bold text-white tracking-tight cursor-pointer hover:text-brand-accent transition-colors flex items-center gap-2" id="currentDateDisplay" onclick="abrirMiniCalendario()">
                     <span id="currentDateText">Cargando...</span>
@@ -255,13 +327,24 @@
                 </div>
             </div>
             
+            <!-- Selector de intervalo de la grilla del día -->
+            <div class="flex items-center gap-2 mb-5" id="intervalSelectorWrap">
+                <span class="text-[10px] font-bold uppercase tracking-widest text-white/30 flex items-center gap-1.5"><i class="ph-bold ph-clock"></i>Intervalo</span>
+                <div class="inline-flex items-center gap-0.5 rounded-xl p-0.5" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+                    <button onclick="setSlotInterval(15)" data-int="15" class="int-btn px-3 py-1 rounded-lg text-[11px] font-mono font-bold transition-all">15'</button>
+                    <button onclick="setSlotInterval(30)" data-int="30" class="int-btn px-3 py-1 rounded-lg text-[11px] font-mono font-bold transition-all">30'</button>
+                    <button onclick="setSlotInterval(45)" data-int="45" class="int-btn px-3 py-1 rounded-lg text-[11px] font-mono font-bold transition-all">45'</button>
+                    <button onclick="setSlotInterval(60)" data-int="60" class="int-btn px-3 py-1 rounded-lg text-[11px] font-mono font-bold transition-all">1h</button>
+                </div>
+            </div>
+
             <div class="flex gap-3 overflow-x-auto pb-4 no-scrollbar -mx-6 px-6" id="daySelectorContainer">
                 <!-- Se llena dinámicamente -->
             </div>
         </div>
 
         <!-- Schedule Grid -->
-        <div id="dayViewGrid" class="space-y-2 animate-fade-in" style="animation-delay: 0.2s;">
+        <div id="dayViewGrid" class="space-y-2 view-in">
 
             <!-- Morning Section -->
             <div id="morningSection" class="hidden">
@@ -286,7 +369,7 @@
         </div>
 
         <!-- ── VISTA SEMANAL (solo Chameleon) ── -->
-        <div id="weekViewSection" class="hidden animate-fade-in mb-8" style="animation-delay: 0.1s;">
+        <div id="weekViewSection" class="hidden view-in mb-8">
             <div class="flex items-center justify-between mb-5">
                 <button onclick="cambiarSemana(-1)" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all active:scale-95">
                     <i class="ph-bold ph-caret-left text-white/60"></i>
@@ -406,6 +489,9 @@
             const loginShopName = document.getElementById('loginShopName');
             if (loginShopName) loginShopName.textContent = nombre;
 
+            const loginSlogan = document.getElementById('loginSlogan');
+            if (loginSlogan) loginSlogan.textContent = shop.slogan || '';
+
             const bannerLogo = document.getElementById('bannerLogo');
             if (bannerLogo) bannerLogo.src = logo;
 
@@ -450,11 +536,37 @@
         let barberConfig = null;
         let globalConfig = null;
         let todayCitas = [];
+        // Vista activa (día/semana) e intervalo de la grilla del día (0 = usa config)
+        let _agendaView   = (localStorage.getItem('agenda_view') === 'semana') ? 'semana' : 'dia';
+        let _slotInterval = parseInt(localStorage.getItem('agenda_interval')) || 0;
+        // Dirección de la animación al cambiar de día ('next' | 'prev' | null)
+        let _dayAnimDir = null;
+        function _dayDir(target) {
+            const a = currentDate, b = target;
+            const ad = a.getFullYear() * 10000 + a.getMonth() * 100 + a.getDate();
+            const bd = b.getFullYear() * 10000 + b.getMonth() * 100 + b.getDate();
+            return bd > ad ? 'next' : (bd < ad ? 'prev' : null);
+        }
         let todayBloqueosBarbero = [];   // Bloqueos específicos del barbero
         let todayBloqueosGlobales = [];  // Bloqueos globales (barberoId == null)
 
         // Combina ambos arrays sin race condition
         function getBloqueos() { return [...todayBloqueosBarbero, ...todayBloqueosGlobales]; }
+
+        // Tenants que ocultan el teléfono del cliente a los barberos (privacidad)
+        function _ocultaTelefono() {
+            const t = window.CURRENT_TENANT_ID || 'elegance';
+            return t === 'chameleon' || t === 'lumen';
+        }
+        // Oculta los campos de teléfono de los formularios crear/editar (conserva su
+        // valor en el DOM para que el guardado no pierda el dato del cliente).
+        function _aplicarPrivacidadTelefono() {
+            if (!_ocultaTelefono()) return;
+            ['manualPhoneWrap', 'ecTelWrap'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.style.display = 'none';
+            });
+        }
 
         // Suscripciones de Firestore para limpiarlas si cambia el día
         let unsubs = [];
@@ -551,6 +663,7 @@
         // ── INICIALIZACIÓN ──
         document.addEventListener('DOMContentLoaded', () => {
             _aplicarBranding();
+            _aplicarPrivacidadTelefono();
 
             firebase.auth().onAuthStateChanged(async (user) => {
                 if (user) {
@@ -594,13 +707,18 @@
 
                     try {
                         await loadBarberData(info.nombre);
-                        _initWeekView();
+                        setAgendaView(_agendaView);
                         loadLatestReservations();
                     } catch (err) {
                         console.error('Error al cargar datos de la agenda:', err);
                     } finally {
                         document.getElementById('loadingOverlay').classList.add('hidden');
                         document.getElementById('mainApp').classList.remove('hidden');
+                        // Saludo una sola vez por sesión (evita repetir en cada recarga)
+                        if (!sessionStorage.getItem('agenda_welcomed')) {
+                            sessionStorage.setItem('agenda_welcomed', '1');
+                            showWelcomeToast(info.nombre);
+                        }
                     }
 
                     // Gestión de notificaciones al abrir la PWA
@@ -641,17 +759,38 @@
             });
         });
 
+        function togglePwdVisibility(btn) {
+            const input = document.getElementById('agendaPassword');
+            const icon = btn.querySelector('i');
+            const hidden = input.type === 'password';
+            input.type = hidden ? 'text' : 'password';
+            if (icon) icon.className = 'ph-bold ' + (hidden ? 'ph-eye-slash' : 'ph-eye');
+        }
+
+        function _setLoginBtnLoading(loading) {
+            const btn = document.getElementById('loginBtn');
+            const label = document.getElementById('loginBtnLabel');
+            const icon = document.getElementById('loginBtnIcon');
+            if (!btn) return;
+            btn.disabled = loading;
+            btn.style.opacity = loading ? '0.65' : '1';
+            btn.style.cursor = loading ? 'wait' : 'pointer';
+            if (label) label.textContent = loading ? 'Ingresando…' : 'Ingresar a mi agenda';
+            if (icon) {
+                icon.className = loading ? 'ph-bold ph-circle-notch animate-spin' : 'ph-bold ph-sign-in';
+                icon.style.fontSize = '1.05rem';
+            }
+        }
+
         async function loginBarbero() {
             const email = document.getElementById('agendaEmail').value.trim();
             const password = document.getElementById('agendaPassword').value;
             const errEl = document.getElementById('loginError');
-            const btn = document.getElementById('loginBtn');
 
             if (!email || !password) return;
 
             errEl.classList.add('hidden');
-            btn.disabled = true;
-            btn.textContent = 'Ingresando…';
+            _setLoginBtnLoading(true);
 
             try {
                 await firebase.auth().signInWithEmailAndPassword(email, password);
@@ -663,8 +802,7 @@
                 else if (e.code === 'auth/too-many-requests') msg = 'Demasiados intentos. Intenta más tarde.';
                 errEl.textContent = msg;
                 errEl.classList.remove('hidden');
-                btn.disabled = false;
-                btn.textContent = 'Ingresar a mi agenda';
+                _setLoginBtnLoading(false);
             }
         }
 
@@ -702,12 +840,14 @@
 
         // ── MANEJO DE FECHAS ──
         function cambiarDia(offset) {
+            _dayAnimDir = offset >= 0 ? 'next' : 'prev';
             currentDate.setDate(currentDate.getDate() + offset);
             renderDaySelector();
             loadAgendaData();
         }
 
         function seleccionarDia(year, month, date) {
+            _dayAnimDir = _dayDir(new Date(year, month, date));
             currentDate = new Date(year, month, date);
             renderDaySelector();
             loadAgendaData();
@@ -862,6 +1002,17 @@
         }
 
         function renderSlots() {
+            // Animación direccional al cambiar de día (no en updates en vivo)
+            if (_dayAnimDir) {
+                const grid = document.getElementById('dayViewGrid');
+                if (grid) {
+                    grid.classList.remove('anim-day-next', 'anim-day-prev');
+                    void grid.offsetWidth; // reinicia la animación
+                    grid.classList.add(_dayAnimDir === 'prev' ? 'anim-day-prev' : 'anim-day-next');
+                }
+                _dayAnimDir = null;
+            }
+
             const mSec = document.getElementById('morningSection');
             const aSec = document.getElementById('afternoonSection');
             const eSec = document.getElementById('emptyAgenda');
@@ -920,9 +1071,13 @@
 
             const ini = toMins(dc.inicio || cfg.horarioInicio || '09:00');
             const fin = toMins(dc.fin    || cfg.horarioFin    || '20:00');
-            const interval = cfg.intervaloMinutos || 30;
+            // Intervalo elegido por el usuario (15/30/45/60) o el de la config
+            const interval = _slotInterval || cfg.intervaloMinutos || 30;
 
-            const citasOcupadas = todayCitas.filter(c => c.estado !== 'Cancelada');
+            // Ordenadas por hora de inicio para que el packing tome siempre la más temprana
+            const citasOcupadas = todayCitas
+                .filter(c => c.estado !== 'Cancelada')
+                .sort((a, b) => toMins(a.hora) - toMins(b.hora));
 
             // Current time indicator
             const nowDate = new Date();
@@ -934,15 +1089,24 @@
             const nowMins = nowDate.getHours() * 60 + nowDate.getMinutes();
             let nowInserted = false;
 
-            let cur = ini;
             let hasMorning = false;
             let hasAfternoon = false;
 
-            while (cur < fin) {
-                const horaStr = fromMin(cur);
+            const appendSlot = (isAfternoon, html) => {
+                if (isAfternoon) { aSlots.insertAdjacentHTML('beforeend', html); hasAfternoon = true; }
+                else { mSlots.insertAdjacentHTML('beforeend', html); hasMorning = true; }
+            };
+
+            // Packing robusto: las citas SIEMPRE se dibujan en su hora real, sin importar
+            // que el intervalo elegido (45/60) no calce con su hora de inicio. Así una cita
+            // reservada a las 13:30 no desaparece al pasar la grilla a 45' o 1h.
+            const renderedCitas = new Set();
+            let cur = ini;
+            let _guard = 0;
+            while (cur < fin && _guard++ < 600) {
                 const isAfternoon = cur >= 720;
 
-                // Now indicator: insert before the first slot after current time
+                // Indicador "ahora": antes del primer slot posterior a la hora actual
                 if (isViewingToday && !nowInserted && cur > nowMins) {
                     const hh = Math.floor(nowMins / 60).toString().padStart(2, '0');
                     const mn = (nowMins % 60).toString().padStart(2, '0');
@@ -957,53 +1121,46 @@
                     nowInserted = true;
                 }
 
-                // 1. Verificar Citas
+                // 1. Cita que empieza dentro de este paso [cur, cur+interval) o lo cubre
                 const citaSlot = citasOcupadas.find(c => {
+                    if (renderedCitas.has(c.id)) return false;
                     const cStart = toMins(c.hora);
                     const cEnd = cStart + parseInt(c.duracionServicio || interval);
-                    return cur >= cStart && cur < cEnd;
+                    return cStart < cur + interval && cEnd > cur;
                 });
-
                 if (citaSlot) {
-                    if (toMins(citaSlot.hora) === cur) {
-                        const html = buildCitaSlot(horaStr, citaSlot);
-                        if(isAfternoon) { aSlots.insertAdjacentHTML('beforeend', html); hasAfternoon = true; }
-                        else { mSlots.insertAdjacentHTML('beforeend', html); hasMorning = true; }
-                    }
-                    cur += interval;
+                    renderedCitas.add(citaSlot.id);
+                    const cStart = toMins(citaSlot.hora);
+                    const cEnd = cStart + parseInt(citaSlot.duracionServicio || interval);
+                    appendSlot(cStart >= 720, buildCitaSlot(citaSlot.hora, citaSlot));
+                    // Avanzar al fin de la cita alineado al paso (mínimo un paso),
+                    // para no pintar slots libres encima de su duración.
+                    const snappedEnd = Math.ceil(cEnd / interval) * interval;
+                    cur = Math.max(cur + interval, snappedEnd);
                     continue;
                 }
 
-                // 2. Verificar Colación
+                // 2. Colación
                 if (cfg.colacion) {
                     const colS = toMins(cfg.colacion.inicio);
                     const colE = toMins(cfg.colacion.fin);
-                    if (cur >= colS && cur < colE) {
-                        cur += interval;
-                        continue;
-                    }
+                    if (cur >= colS && cur < colE) { cur += interval; continue; }
                 }
 
-                // 3. Verificar Bloqueos
+                // 3. Bloqueo
                 const bloqueo = bloqueos.find(b => {
                     if (b.todo_el_dia) return true;
                     if (!b.hora_inicio || !b.hora_fin) return false;
                     return cur >= toMins(b.hora_inicio) && cur < toMins(b.hora_fin);
                 });
-
                 if (bloqueo) {
-                    const html = buildBlockedSlot(horaStr, bloqueo);
-                    if (isAfternoon) { aSlots.insertAdjacentHTML('beforeend', html); hasAfternoon = true; }
-                    else { mSlots.insertAdjacentHTML('beforeend', html); hasMorning = true; }
+                    appendSlot(isAfternoon, buildBlockedSlot(fromMin(cur), bloqueo));
                     cur += interval;
                     continue;
                 }
 
-                // Libre
-                const html = buildFreeSlot(horaStr);
-                if(isAfternoon) { aSlots.insertAdjacentHTML('beforeend', html); hasAfternoon = true; }
-                else { mSlots.insertAdjacentHTML('beforeend', html); hasMorning = true; }
-
+                // 4. Libre
+                appendSlot(isAfternoon, buildFreeSlot(fromMin(cur)));
                 cur += interval;
             }
 
@@ -1039,13 +1196,12 @@
             const extraClass = isNew ? 'cita-nueva-highlight' : '';
 
             const telLimpio = (cita.clienteTelefono || '').replace(/\D/g, '');
-            const isChameleon = (window.CURRENT_TENANT_ID || 'elegance') === 'chameleon';
-            const waLink = telLimpio && !isChameleon ? `https://wa.me/${telLimpio}` : null;
+            const waLink = telLimpio && !_ocultaTelefono() ? `https://wa.me/${telLimpio}` : null;
             const notaIndicator = cita.nota ? `<span class="inline-flex items-center gap-1 text-[10px] text-white/40 mt-1.5 px-2 py-0.5 rounded-full bg-white/5"><i class="ph ph-note-pencil text-[10px]"></i>Nota adjunta</span>` : '';
             const initials = getInitials(cita.clienteNombre || 'Cliente');
 
             return `
-            <div class="bg-[#1c1c24] rounded-2xl p-4 cursor-pointer transition-transform duration-200 hover:bg-[#22222c] ${isCancelled ? 'opacity-40 grayscale' : 'active:scale-[0.98]'} ${extraClass}"
+            <div class="cita-card bg-[#1c1c24] rounded-2xl p-4 cursor-pointer hover:bg-[#22222c] ${isCancelled ? 'opacity-40 grayscale' : ''} ${extraClass}"
                  style="border: 1px solid rgba(255,255,255,0.1); border-left: 4px solid ${leftBorderColor};"
                  onclick="abrirDetalleCita('${cita.id}')">
                 <div class="flex items-start justify-between gap-3">
@@ -1115,7 +1271,7 @@
             document.querySelectorAll('.cd-servicio').forEach(el => el.textContent = cita.servicioNombre || 'Servicio');
             document.querySelectorAll('.cd-horario').forEach(el => el.textContent  = `${cita.hora} · ${cita.duracionServicio || 30} min · ${cita.fecha || ''}`);
 
-            const _isChameleon = (window.CURRENT_TENANT_ID || 'elegance') === 'chameleon';
+            const _isChameleon = _ocultaTelefono();
             document.querySelectorAll('.cd-nombre').forEach(el => el.textContent = cita.clienteNombre || 'Cliente');
             document.querySelectorAll('.cd-tel').forEach(el => el.textContent    = _isChameleon ? '' : (cita.clienteTelefono || ''));
 
@@ -1187,10 +1343,89 @@
             }
 
             // Mostrar en mobile
+            _initSheetSwipe();
             document.getElementById('citaDetailOverlay').classList.remove('hidden');
             requestAnimationFrame(() => {
                 document.getElementById('citaDetailSheet').style.transform = 'translateY(0)';
             });
+        }
+
+        // Swipe hacia abajo para cerrar el bottom sheet (solo móvil)
+        let _sheetSwipeReady = false;
+        function _initSheetSwipe() {
+            if (_sheetSwipeReady) return;
+            const sheet  = document.getElementById('citaDetailSheet');
+            const handle = document.getElementById('citaSheetHandle');
+            if (!sheet || !handle) return;
+            _sheetSwipeReady = true;
+
+            let startY = 0, curY = 0, dragging = false;
+
+            handle.addEventListener('touchstart', (e) => {
+                dragging = true;
+                startY = curY = e.touches[0].clientY;
+                sheet.style.transition = 'none';
+            }, { passive: true });
+
+            handle.addEventListener('touchmove', (e) => {
+                if (!dragging) return;
+                curY = e.touches[0].clientY;
+                const dy = Math.max(0, curY - startY);       // solo hacia abajo
+                sheet.style.transform = `translateY(${dy}px)`;
+                if (dy > 0) e.preventDefault();
+            }, { passive: false });
+
+            const onEnd = () => {
+                if (!dragging) return;
+                dragging = false;
+                sheet.style.transition = '';                  // restaura el easing de la clase
+                const dy = curY - startY;
+                if (Math.abs(dy) < 6) {                        // tap = cerrar
+                    cerrarDetalleCita();
+                } else if (dy > 90) {                          // arrastre suficiente = cerrar
+                    cerrarDetalleCita();
+                } else {                                       // vuelve a su sitio
+                    sheet.style.transform = 'translateY(0)';
+                }
+            };
+            handle.addEventListener('touchend', onEnd);
+            handle.addEventListener('touchcancel', onEnd);
+        }
+
+        // Toast de bienvenida al iniciar sesión (una vez por sesión)
+        function showWelcomeToast(nombre) {
+            try {
+                const prev = document.getElementById('welcomeToast');
+                if (prev) prev.remove();
+
+                const shop = window.SHOP || {};
+                const logo = shop.logo || '/logo.jpg';
+                const firstName = (nombre || '').trim().split(/\s+/)[0] || '';
+                const saludo = firstName ? `¡Hola, ${firstName}! 👋` : '¡Bienvenido! 👋';
+
+                const t = document.createElement('div');
+                t.id = 'welcomeToast';
+                t.style.cssText = 'position:fixed;top:calc(env(safe-area-inset-top, 0px) + 14px);left:50%;transform:translateX(-50%) translateY(-160%);z-index:9500;display:flex;align-items:center;gap:11px;padding:9px 18px 9px 9px;border-radius:9999px;background:rgba(14,14,18,0.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.12);box-shadow:0 14px 40px rgba(0,0,0,0.5);max-width:calc(100vw - 24px);cursor:pointer;transition:transform .5s cubic-bezier(0.16,1,0.3,1), opacity .35s ease;';
+                t.innerHTML = `
+                    <img src="${logo}" alt="" style="width:38px;height:38px;border-radius:9999px;object-fit:cover;border:1px solid rgba(255,255,255,0.18);flex-shrink:0;">
+                    <div style="min-width:0;line-height:1.25;">
+                        <p style="margin:0;font-size:0.88rem;font-weight:800;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${saludo}</p>
+                        <p style="margin:0;font-size:0.7rem;color:rgba(255,255,255,0.5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Tu agenda está al día</p>
+                    </div>
+                    <i class="ph-fill ph-check-circle" style="color:#34d399;font-size:1.3rem;margin-left:4px;flex-shrink:0;"></i>`;
+
+                let hidden = false;
+                const hide = () => {
+                    if (hidden) return; hidden = true;
+                    t.style.transform = 'translateX(-50%) translateY(-160%)';
+                    t.style.opacity = '0';
+                    setTimeout(() => t.remove(), 520);
+                };
+                t.onclick = hide;
+                document.body.appendChild(t);
+                requestAnimationFrame(() => { t.style.transform = 'translateX(-50%) translateY(0)'; });
+                setTimeout(hide, 3800);
+            } catch (_) {}
         }
 
         function cerrarDetalleCita() {
@@ -1397,6 +1632,12 @@
         let _weekBloqueos = {};
         let _weekUnsubs   = [];
         let _currentWeekStart = null;
+        // Agrupa la ráfaga de snapshots (7 días × citas+bloqueos) en un solo render → sin parpadeo
+        let _weekRenderTimer = null;
+        function scheduleWeekRender() {
+            clearTimeout(_weekRenderTimer);
+            _weekRenderTimer = setTimeout(renderWeekView, 60);
+        }
 
         function _fmtDate(d) {
             return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -1420,8 +1661,8 @@
             const ws = new Date(_currentWeekStart);
             ws.setDate(ws.getDate() + offset * 7);
             _currentWeekStart = ws;
+            // El grid anterior permanece visible hasta el render con datos (sin flash vacío)
             loadWeekData();
-            renderWeekView();
         }
 
         function loadWeekData() {
@@ -1439,8 +1680,8 @@
                     .where('barberoId', '==', barberId)
                     .onSnapshot(snap => {
                         _weekCitas[fechaStr] = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                        renderWeekView();
-                    }, () => { _weekCitas[fechaStr] = []; renderWeekView(); });
+                        scheduleWeekRender();
+                    }, () => { _weekCitas[fechaStr] = []; scheduleWeekRender(); });
 
                 const uBloqBarb = tenantCol('bloqueos')
                     .where('fecha', '==', fechaStr)
@@ -1448,7 +1689,7 @@
                     .onSnapshot(snap => {
                         if (!_weekBloqueos[fechaStr]) _weekBloqueos[fechaStr] = {};
                         _weekBloqueos[fechaStr].barbero = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                        renderWeekView();
+                        scheduleWeekRender();
                     }, () => {});
 
                 const uBloqGlob = tenantCol('bloqueos')
@@ -1457,7 +1698,7 @@
                     .onSnapshot(snap => {
                         if (!_weekBloqueos[fechaStr]) _weekBloqueos[fechaStr] = {};
                         _weekBloqueos[fechaStr].global = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                        renderWeekView();
+                        scheduleWeekRender();
                     }, () => {});
 
                 _weekUnsubs.push(uCitas, uBloqBarb, uBloqGlob);
@@ -1776,6 +2017,63 @@
             renderWeekView();
         }
 
+        // ── TOGGLE DÍA / SEMANA ─────────────────────────────────────
+        function _updateViewToggleUI() {
+            const dia = _agendaView === 'dia';
+            const on  = 'background:#fff;color:#0a0a0a;';
+            const off = 'background:transparent;color:rgba(255,255,255,0.5);';
+            const bd = document.getElementById('viewBtnDia');
+            const bs = document.getElementById('viewBtnSemana');
+            if (bd) bd.style.cssText = (dia ? on : off);
+            if (bs) bs.style.cssText = (!dia ? on : off);
+        }
+
+        function setAgendaView(mode) {
+            _agendaView = (mode === 'semana') ? 'semana' : 'dia';
+            localStorage.setItem('agenda_view', _agendaView);
+            const dia = _agendaView === 'dia';
+            ['dayViewHeader', 'dayViewGrid', 'dailyStatsDashboard'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.classList.toggle('hidden', !dia);
+            });
+            const ws = document.getElementById('weekViewSection');
+            if (ws) ws.classList.toggle('hidden', dia);
+            _updateViewToggleUI();
+            if (dia) {
+                // Detener listeners de la semana (la vista oculta no debe re-renderizar)
+                _weekUnsubs.forEach(u => u()); _weekUnsubs = [];
+                renderDaySelector();
+                loadAgendaData();
+                _updateIntervalUI();
+            } else {
+                // Detener listeners del día
+                unsubs.forEach(u => u()); unsubs = [];
+                _currentWeekStart = _getWeekStart(new Date());
+                // Sin render inmediato: loadWeekData dispara los snapshots y un único
+                // render con datos (scheduleWeekRender). Evita el flash "semana vacía → llena".
+                loadWeekData();
+            }
+        }
+
+        // ── INTERVALO DE LA GRILLA DEL DÍA (15/30/45/60) ────────────
+        function _updateIntervalUI() {
+            const cfg = barberConfig || globalConfig || {};
+            const eff = _slotInterval || cfg.intervaloMinutos || 30;
+            document.querySelectorAll('.int-btn').forEach(b => {
+                const v = parseInt(b.dataset.int);
+                b.style.cssText = (v === eff)
+                    ? 'background:#fff;color:#0a0a0a;'
+                    : 'background:transparent;color:rgba(255,255,255,0.45);';
+            });
+        }
+
+        function setSlotInterval(min) {
+            _slotInterval = min;
+            localStorage.setItem('agenda_interval', String(min));
+            _updateIntervalUI();
+            renderSlots();
+        }
+
         // ── ÚLTIMAS RESERVAS ──
         function loadLatestReservations() {
             const container = document.getElementById('latestReservationsContainer');
@@ -1829,7 +2127,7 @@
                                 <p class="text-xs text-white/80 font-medium flex items-center gap-1.5">
                                     <i class="ph ph-user-circle text-white/40"></i> ${cita.clienteNombre}
                                 </p>
-                                ${(window.CURRENT_TENANT_ID || 'elegance') !== 'chameleon' ? `<p class="text-[10px] text-white/40 flex items-center gap-1.5">
+                                ${!_ocultaTelefono() ? `<p class="text-[10px] text-white/40 flex items-center gap-1.5">
                                     <i class="ph ph-phone text-white/40"></i> ${cita.clienteTelefono}
                                 </p>` : ''}
                                 ${cita.clienteEmail ? `
@@ -2053,9 +2351,9 @@
        ═══════════════════════════════════════════════════════════ -->
   <div id="citaDetailOverlay" class="hidden fixed inset-0 z-[300] lg:hidden" style="background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);" onclick="cerrarDetalleCita()"></div>
   <div id="citaDetailSheet" class="fixed bottom-0 left-0 right-0 z-[301] transition-transform duration-300 ease-out lg:hidden" style="transform:translateY(100%);max-height:90dvh;background:#0d0d10;border-top:1px solid rgba(255,255,255,0.08);border-radius:24px 24px 0 0;">
-    <!-- Handle -->
-    <div class="flex justify-center pt-3 pb-1 cursor-pointer" onclick="cerrarDetalleCita()">
-      <div class="w-10 h-1 rounded-full bg-white/20"></div>
+    <!-- Handle (arrastrable: deslizar hacia abajo cierra) -->
+    <div id="citaSheetHandle" class="flex justify-center pt-3.5 pb-2.5 cursor-grab active:cursor-grabbing">
+      <div class="w-11 h-1.5 rounded-full bg-white/25"></div>
     </div>
     <!-- Contenido scrolleable -->
     <div class="overflow-y-auto px-5 pb-10" style="max-height:calc(90dvh - 24px)">
@@ -2162,7 +2460,7 @@
             style="background:#1c1c26;border:1px solid rgba(255,255,255,0.12);box-shadow:0 8px 32px rgba(0,0,0,0.7);max-height:216px;">
           </div>
         </div>
-        <div>
+        <div id="manualPhoneWrap">
           <label class="text-[11px] font-bold text-white/40 uppercase tracking-widest block mb-1">Teléfono / WhatsApp</label>
           <input type="tel" id="manualPhone" placeholder="Opcional" class="w-full rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
         </div>
@@ -2239,7 +2537,7 @@
           <input type="text" id="ecNombre" placeholder="Nombre" class="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
         </div>
         <div class="grid grid-cols-2 gap-2.5">
-          <div>
+          <div id="ecTelWrap">
             <label class="text-[10px] font-bold text-white/40 uppercase tracking-widest block mb-1">Teléfono <span id="ecTelReq" class="text-amber-400 hidden">*</span></label>
             <input type="tel" id="ecTel" placeholder="+569..." class="w-full rounded-xl px-3 py-2.5 text-sm text-white outline-none" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
           </div>
@@ -2463,7 +2761,7 @@
                 </div>
                 <div class="min-w-0 flex-1">
                     <p class="text-sm text-white font-medium truncate">${_escHtml(c.nombre || '')}</p>
-                    ${c.telefono ? `<p class="text-xs truncate" style="color:rgba(255,255,255,0.35);">${_escHtml(c.telefono)}</p>` : ''}
+                    ${c.telefono && !_ocultaTelefono() ? `<p class="text-xs truncate" style="color:rgba(255,255,255,0.35);">${_escHtml(c.telefono)}</p>` : ''}
                 </div>
                 ${c.uid ? `<span style="font-size:0.575rem;font-weight:800;letter-spacing:0.05em;padding:0.15rem 0.45rem;border-radius:999px;color:${clr};background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.25);flex-shrink:0;">CLUB</span>` : ''}
             </button>
@@ -3052,8 +3350,10 @@
         }
     }
     function seleccionarDiaMini(y, m, d) {
+        _dayAnimDir = _dayDir(new Date(y, m, d));
         currentDate = new Date(y, m, d);
         cerrarMiniCalendario();
+        renderDaySelector();
         loadAgendaData();
     }
   </script>

@@ -128,7 +128,9 @@ export default function Inicio() {
       const [citasSnap, servSnap, cliSnap, gastosSnap, ventasSnap] = await Promise.all([
         getDocs(query(tenantCol('citas'), where('fecha', '>=', mesPrev.first))),
         getDocs(tenantCol('servicios')),
-        getDocs(tenantCol('clientes')),
+        // 'users' = colección canónica de clientes (igual que la vista Clientes). La antigua
+        // 'clientes' (por teléfono) NO recibe las actualizaciones de cumpleaños/sellos → quedaba desfasada.
+        getDocs(tenantCol('users')),
         getDocs(tenantCol('gastos')),
         getDocs(tenantCol('product_reservations')),
       ]);
@@ -211,7 +213,7 @@ export default function Inicio() {
       .slice(0, 7),
     [citas]);
 
-  /* ── Reservas de hoy ── */
+  /* ── Reservas de hoy (con filtro por trabajador) ── */
   const reservasHoy = useMemo(() => {
     const hoy = localDateStr();
     return citas
@@ -219,15 +221,28 @@ export default function Inicio() {
       .sort((a, b) => (a.hora || '').localeCompare(b.hora || ''));
   }, [citas]);
 
-  /* ── Fidelización (reemplaza "Edad de clientes") ── */
+  const [filtroTrabajador, setFiltroTrabajador] = useState('');
+  const trabajadoresHoy = useMemo(
+    () => [...new Set(reservasHoy.map(c => c.barbero).filter(Boolean))].sort((a, b) => a.localeCompare(b)),
+    [reservasHoy],
+  );
+  // Si el trabajador filtrado ya no tiene reservas hoy, no rompe: simplemente queda vacío.
+  const reservasHoyView = filtroTrabajador
+    ? reservasHoy.filter(c => c.barbero === filtroTrabajador)
+    : reservasHoy;
+
+  /* ── Fidelización del Club (solo socios registrados; excluye migrados de AgendaPro) ── */
   const fidelizacion = useMemo(() => {
+    // Migrado/legacy de AgendaPro (nunca se unió al Club): uid === id. Mismo criterio que la vista Clientes.
+    const isLegacy = c => !!c?.uid && c?.uid === c?.id;
+    const registrados = clientes.filter(c => !isLegacy(c));
     const sellos = c => c.sellosHistoricos ?? c.stamps ?? 0;
-    const con = clientes.filter(c => sellos(c) > 0).length;
-    const sin = clientes.length - con;
+    const con = registrados.filter(c => sellos(c) > 0).length;
+    const sin = registrados.length - con;
     return {
       data: [{ name: 'Con sellos', value: con }, { name: 'Sin sellos', value: sin }],
-      con, sin, total: clientes.length,
-      pct: clientes.length ? Math.round((con / clientes.length) * 100) : 0,
+      con, sin, total: registrados.length,
+      pct: registrados.length ? Math.round((con / registrados.length) * 100) : 0,
     };
   }, [clientes]);
 
@@ -349,16 +364,31 @@ export default function Inicio() {
           title="Reservas de hoy"
           className="lg:col-span-2"
           action={
-            <button onClick={() => navigate('/agenda')} className="flex items-center gap-1 text-xs font-semibold text-emerald-400 hover:text-emerald-300">
-              Ver agenda <ExternalLink size={12} />
-            </button>
+            <div className="flex items-center gap-2">
+              {trabajadoresHoy.length > 1 && (
+                <select
+                  value={filtroTrabajador}
+                  onChange={e => setFiltroTrabajador(e.target.value)}
+                  className="text-xs bg-slate-800 border border-slate-700 text-slate-300 rounded-lg px-2 py-1 max-w-[130px] focus:outline-none focus:border-slate-500"
+                  title="Filtrar reservas por trabajador"
+                >
+                  <option value="">Todos</option>
+                  {trabajadoresHoy.map(t => <option key={t} value={t}>{t}</option>)}
+                </select>
+              )}
+              <button onClick={() => navigate('/agenda')} className="flex items-center gap-1 text-xs font-semibold text-emerald-400 hover:text-emerald-300 whitespace-nowrap">
+                Ver agenda <ExternalLink size={12} />
+              </button>
+            </div>
           }
         >
-          {reservasHoy.length === 0 ? (
-            <p className="text-sm text-slate-500 italic text-center py-8">No hay reservas para hoy.</p>
+          {reservasHoyView.length === 0 ? (
+            <p className="text-sm text-slate-500 italic text-center py-8">
+              {filtroTrabajador ? `No hay reservas de ${filtroTrabajador} hoy.` : 'No hay reservas para hoy.'}
+            </p>
           ) : (
             <div className="space-y-2">
-              {reservasHoy.map((c, i) => (
+              {reservasHoyView.map((c, i) => (
                 <div key={c.id || i} className="flex items-center gap-3 p-3 rounded-xl bg-slate-800/40 border border-slate-800">
                   <div className="flex flex-col items-center justify-center w-14 shrink-0">
                     <Clock size={13} className="text-emerald-400 mb-0.5" />
@@ -405,6 +435,9 @@ export default function Inicio() {
                   <span className="flex items-center gap-2 text-slate-400"><span className="w-2.5 h-2.5 rounded-full bg-slate-600" />Sin sellos</span>
                   <span className="font-bold text-white">{fidelizacion.sin}</span>
                 </div>
+                <p className="text-[10px] text-slate-500 pt-1.5 mt-1 border-t border-slate-800">
+                  Sobre {fidelizacion.total} socio{fidelizacion.total !== 1 ? 's' : ''} registrado{fidelizacion.total !== 1 ? 's' : ''} del Club · no incluye clientes migrados de AgendaPro.
+                </p>
               </div>
             </>
           )}

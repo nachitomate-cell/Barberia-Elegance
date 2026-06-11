@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
-import { Star, Users, TrendingUp, Filter } from 'lucide-react';
+import { Star, Users, TrendingUp, Filter, Trash2 } from 'lucide-react';
+import { deleteDoc } from 'firebase/firestore';
 import { useCollection } from '../hooks/useCollection';
+import { tenantDoc } from '../lib/tenantUtils';
 
 const LABELS = ['', 'Mal servicio', 'Podría mejorar', 'Estuvo bien', 'Muy bueno', '¡Excelente!'];
 
@@ -35,6 +37,20 @@ export default function Resenas() {
 
   const [filtroBarbero, setFiltroBarbero] = useState('');
   const [filtroRating,  setFiltroRating]  = useState('');
+  const [confirmId,     setConfirmId]     = useState('');
+  const [deletingId,    setDeletingId]    = useState('');
+
+  const handleDelete = async id => {
+    setDeletingId(id);
+    try {
+      await deleteDoc(tenantDoc('resenas', id));
+    } catch (e) {
+      console.error('Error al eliminar la reseña:', e);
+    } finally {
+      setDeletingId('');
+      setConfirmId('');
+    }
+  };
 
   /* ── Barberos únicos para el filtro ──────────────────────── */
   const barberos = useMemo(() => {
@@ -233,6 +249,36 @@ export default function Resenas() {
                 {/* Fecha */}
                 {fechaStr && (
                   <p className="text-xs text-slate-600 shrink-0">{fechaStr}</p>
+                )}
+
+                {/* Eliminar */}
+                {confirmId === r.id ? (
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      onClick={() => handleDelete(r.id)}
+                      disabled={deletingId === r.id}
+                      className="flex items-center gap-1 text-[11px] font-bold text-red-400 border border-red-500/30 bg-red-500/10 px-2 py-1 rounded-md hover:bg-red-500/20 disabled:opacity-50 transition-colors"
+                    >
+                      {deletingId === r.id
+                        ? <span className="w-3 h-3 border-2 border-red-400 border-t-transparent rounded-full animate-spin" />
+                        : <Trash2 size={12} />}
+                      Eliminar
+                    </button>
+                    <button
+                      onClick={() => setConfirmId('')}
+                      className="text-[11px] text-slate-400 hover:text-white px-1.5 py-1 transition-colors"
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setConfirmId(r.id)}
+                    title="Eliminar reseña"
+                    className="p-1.5 rounded-lg text-slate-600 hover:text-red-400 hover:bg-red-500/10 transition-colors shrink-0"
+                  >
+                    <Trash2 size={14} />
+                  </button>
                 )}
               </div>
             );

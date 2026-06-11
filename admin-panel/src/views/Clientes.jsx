@@ -79,7 +79,7 @@ function StampGrid({ stamps, premios }) {
 }
 
 /* ── Panel de cliente (slide-over) ── */
-function ClientePanel({ cliente: init, premios, onClose }) {
+function ClientePanel({ cliente: init, premios, onClose, esMiembro = true }) {
   const [data,        setData]        = useState(init);
   const [citas,       setCitas]       = useState([]);
   const [selPremio,   setSelPremio]   = useState(null);
@@ -354,10 +354,22 @@ function ClientePanel({ cliente: init, premios, onClose }) {
                 )}
               </div>
             )}
-            <p className="text-[10px] text-slate-600 mt-1">Miembro desde {formatFecha(data.creadoEn?.toDate ? data.creadoEn.toDate().toISOString() : data.creadoEn)}</p>
           </div>
         )}
       </div>
+
+      {/* Miembro del Club: cuándo se unió */}
+      {esMiembro && data.creadoEn && (
+        <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl px-4 py-3 flex items-center gap-3">
+          <span className="w-9 h-9 rounded-lg bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center shrink-0">
+            <Sparkles size={16} className="text-emerald-400" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-[9px] font-black uppercase tracking-widest text-emerald-400">Miembro del Club</p>
+            <p className="text-sm text-white font-semibold">Se unió el {formatFecha(data.creadoEn?.toDate ? data.creadoEn.toDate().toISOString() : data.creadoEn)}</p>
+          </div>
+        </div>
+      )}
 
       {/* Pasado del cliente: AgendaPro / merge legacy */}
       {(data.importedFrom === 'agendapro' || data.fechaRegistroOriginal || data.telefonoAnterior) && (
@@ -1864,6 +1876,7 @@ export default function Clientes() {
             key={selected.uid || selected.id}
             cliente={{ uid: selected.uid || selected.id, ...selected }}
             premios={premios}
+            esMiembro={!isLegacy(selected)}
             onClose={() => setSelected(null)}
           />
         )}

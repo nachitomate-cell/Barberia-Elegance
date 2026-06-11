@@ -6,8 +6,11 @@ import {
   User, Phone, Mail, Scissors, CalendarDays, DollarSign,
   Timer, MessageSquare, BadgeCheck, Search, ListFilter, MapPin,
   Send, Download, RefreshCw, Copy, Check, ShoppingBag, Gift,
-  Users, Eye, UserPlus, MoreHorizontal,
+  Users, Eye, UserPlus, MoreHorizontal, GripVertical,
 } from 'lucide-react';
+import { DndContext, PointerSensor, useSensor, useSensors, closestCenter } from '@dnd-kit/core';
+import { SortableContext, horizontalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import {
   addDoc, updateDoc, deleteDoc, doc, getDoc, serverTimestamp, where, orderBy, limit, writeBatch, getDocs, query,
 } from 'firebase/firestore';
@@ -19,6 +22,20 @@ import { useTenant } from '../contexts/TenantContext';
 import ReviewModal from '../components/ReviewModal';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 import AIWatermark from '../components/ui/AIWatermark';
+
+/* ── Columna de barbero arrastrable (reordenar con tap+hold) ───
+ * Render-prop: expone setNodeRef/style/listeners para usar la cabecera
+ * como "manija" de arrastre. Soporta táctil (dnd-kit PointerSensor). */
+function SortableCol({ id, children }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 40 : undefined,
+    opacity: isDragging ? 0.9 : 1,
+  };
+  return children({ setNodeRef, style, listeners, attributes, isDragging });
+}
 
 /* ── Constants ─────────────────────────────────────────────── */
 function buildSlotCfg(slotMins, hourStart = 8, hourEnd = 20) {
@@ -1866,7 +1883,9 @@ const LS_LAST_SEEN = 'agenda_last_seen_cita';
 
 export default function Agenda() {
   const { id: tenantId } = useTenant();
-  const [slotMins,      setSlotMins]      = useState(30);
+  // Duración de franja cacheada por sede → evita el parpadeo del eje "denso" en la primera carga.
+  const SLOT_KEY = `agenda_slot_${tenantId}`;
+  const [slotMins,      setSlotMins]      = useState(() => Number(localStorage.getItem(SLOT_KEY)) || 30);
   const [hourStart,     setHourStart]     = useState(8);
   const [hourEnd,       setHourEnd]       = useState(20);
   const [date,          setDate]          = useState(new Date());
@@ -1881,7 +1900,7 @@ export default function Agenda() {
   const [draggedCita,   setDraggedCita]   = useState(null);
   const [showDifusionModal, setShowDifusionModal] = useState(false);
   const [soloBarbero,   setSoloBarbero]   = useState(null);   // id del barbero enfocado (null = todos)
-  const [labelStep,     setLabelStep]     = useState(15);     // minutos entre etiquetas visibles en el eje
+  const [labelStep,     setLabelStep]     = useState(() => Number(localStorage.getItem(SLOT_KEY)) || 15);     // minutos entre etiquetas visibles en el eje
   const [showMenu,      setShowMenu]      = useState(false);  // menú "Más" de acciones secundarias
   const [now,           setNow]           = useState(() => new Date()); // hora actual (línea "ahora")
   const menuRef = useRef(null);
@@ -1936,7 +1955,7 @@ export default function Agenda() {
       .then(snap => {
         if (!snap.exists()) return;
         const data = snap.data();
-        if (data.intervaloMinutos) setSlotMins(data.intervaloMinutos);
+        if (data.intervaloMinutos) { setSlotMins(data.intervaloMinutos); setLabelStep(data.intervaloMinutos); try { localStorage.setItem(SLOT_KEY, String(data.intervaloMinutos)); } catch { /* noop */ } }
         if (data.horarioInicio) {
           const [h] = data.horarioInicio.split(':').map(Number);
           setHourStart(h);
@@ -1981,7 +2000,7 @@ export default function Agenda() {
     el.scrollTo({ top: Math.max(0, 40 + nowOffsetPx - el.clientHeight / 2), behavior: 'smooth' });
   }, [showNowLine, nowOffsetPx]);
 
-  const { data: rawBarberos } = useCollection('barberos');
+  const { data: rawBarberos, loading: barberosLoading } = useCollection('barberos');
   const { data: citas }       = useCollection('citas',    [where('fecha', '==', dateStr)], [dateStr]);
   const { data: bloqueos }    = useCollection('bloqueos', [where('fecha', '==', dateStr)], [dateStr]);
   const { data: servicios }   = useCollection('servicios');
@@ -1991,9 +2010,32 @@ export default function Agenda() {
     rawBarberos.filter(b => !b._mainDocId && b.disponible !== false && (b.rol !== 'admin' || tenantId === 'delnero')),
   [rawBarberos, tenantId]);
 
+  // Orden manual de columnas (arrastrar la cabecera para reordenar), persistido por sede.
+  const ORDER_KEY = `agenda_barber_order_${tenantId}`;
+  const [barberOrder, setBarberOrder] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(ORDER_KEY)) || []; } catch { return []; }
+  });
+  const orderedBarberos = useMemo(() => {
+    if (!barberOrder.length) return barberos;
+    const pos = bid => { const i = barberOrder.indexOf(bid); return i === -1 ? Infinity : i; };
+    return [...barberos].sort((a, b) => pos(a.id) - pos(b.id));
+  }, [barberos, barberOrder]);
+
+  const dragSensors = useSensors(
+    // El arrastre solo arranca desde la manija (⠿) tras mover 6px → no choca con el tap.
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+  );
+  const handleReorderBarberos = ({ active, over }) => {
+    if (!over || active.id === over.id) return;
+    const ids  = orderedBarberos.map(b => b.id);
+    const next = arrayMove(ids, ids.indexOf(active.id), ids.indexOf(over.id));
+    setBarberOrder(next);
+    try { localStorage.setItem(ORDER_KEY, JSON.stringify(next)); } catch { /* noop */ }
+  };
+
   // Filtro "ver solo la agenda de un barbero" (al tocar su cabecera)
   const focusBarbero    = soloBarbero ? barberos.find(b => b.id === soloBarbero) : null;
-  const barberosVisibles = focusBarbero ? [focusBarbero] : barberos;
+  const barberosVisibles = focusBarbero ? [focusBarbero] : orderedBarberos;
 
   const moveDay = delta => { const d = new Date(date); d.setDate(d.getDate() + delta); setDate(d); };
 
@@ -2111,7 +2153,7 @@ export default function Agenda() {
               return (
                 <button
                   key={step}
-                  onClick={() => { setSlotMins(step); setLabelStep(step); }}
+                  onClick={() => { setSlotMins(step); setLabelStep(step); try { localStorage.setItem(SLOT_KEY, String(step)); } catch { /* noop */ } }}
                   className={`relative px-2 py-1 rounded-md text-[10px] font-mono font-semibold transition-colors ${
                     active ? 'text-white' : 'text-slate-500 hover:text-slate-200'
                   }`}
@@ -2130,8 +2172,8 @@ export default function Agenda() {
           </div>
         </div>
 
-        <div className="flex-1" />
-
+        {/* Acciones primarias — siempre pegadas a la derecha, incluso si la barra se envuelve */}
+        <div className="flex items-center gap-2 ml-auto shrink-0">
         {/* Acción primaria */}
         <button
           onClick={() => setCitaModal({ cita: null, barberoId: barberos[0]?.id || '', hora: '09:00' })}
@@ -2158,7 +2200,7 @@ export default function Agenda() {
           </button>
 
           {showMenu && (
-            <div className="absolute right-0 top-full mt-1.5 w-56 rounded-xl border border-slate-700 bg-slate-900 shadow-2xl z-30 p-1.5">
+            <div className="absolute right-0 top-full mt-1.5 w-56 max-w-[calc(100vw-1.5rem)] rounded-xl border border-slate-700 bg-slate-900 shadow-2xl z-30 p-1.5">
               <MenuItem
                 icon={UserPlus}
                 label="Sobrecupo"
@@ -2202,6 +2244,7 @@ export default function Agenda() {
               />
             </div>
           )}
+        </div>
         </div>
       </div>
 
@@ -2301,76 +2344,107 @@ export default function Agenda() {
           </div>
 
           {/* Barber columns */}
-          {barberos.length === 0 ? (
+          {barberosLoading ? (
+            <div className="flex-1 flex flex-col items-center justify-center py-20 gap-3 text-slate-500 text-sm">
+              <span className="w-5 h-5 border-2 border-slate-600 border-t-emerald-400 rounded-full animate-spin" />
+              Cargando agenda…
+            </div>
+          ) : barberos.length === 0 ? (
             <div className="flex-1 flex items-center justify-center py-20 text-slate-600 text-sm">
               Sin barberos activos
             </div>
-          ) : barberosVisibles.map(b => {
-            const barberCitas    = citas.filter(c => c.barberoId === b.id);
-            const barberBloqueos = bloqueosPorBarbero(b.id);
+          ) : (
+            <DndContext sensors={dragSensors} collisionDetection={closestCenter} onDragEnd={handleReorderBarberos}>
+              <SortableContext items={barberosVisibles.map(b => b.id)} strategy={horizontalListSortingStrategy}>
+                {barberosVisibles.map(b => {
+                  const barberCitas    = citas.filter(c => c.barberoId === b.id);
+                  const barberBloqueos = bloqueosPorBarbero(b.id);
 
-            // Layout en columnas por solapamiento real de horarios (no solo misma hora)
-            const layoutCitas = computeOverlapLayout(barberCitas);
+                  // Layout en columnas por solapamiento real de horarios (no solo misma hora)
+                  const layoutCitas = computeOverlapLayout(barberCitas);
 
-            return (
-              <div key={b.id} className="flex-1 min-w-[160px] border-r border-slate-800 last:border-r-0">
-                <div
-                  onClick={() => setSoloBarbero(prev => prev === b.id ? null : b.id)}
-                  title={focusBarbero?.id === b.id ? 'Mostrar todos los barberos' : `Ver solo la agenda de ${b.nombre}`}
-                  className="group h-10 px-3 flex items-center gap-2 border-b border-slate-800 sticky top-0 bg-slate-900 z-10 cursor-pointer hover:bg-slate-800/60 transition-colors"
-                >
-                  <div className="w-6 h-6 rounded-full overflow-hidden bg-emerald-500/20 flex items-center justify-center shrink-0">
-                    {b.foto
-                      ? <img src={b.foto} alt={b.nombre} className="w-full h-full object-cover" />
-                      : <span className="text-[10px] font-bold text-emerald-400">{b.nombre?.[0] ?? '?'}</span>}
-                  </div>
-                  <span className="text-xs font-semibold text-white truncate">{b.nombre}</span>
-                  {focusBarbero?.id === b.id
-                    ? <Users size={13} className="ml-auto shrink-0 text-emerald-400" />
-                    : <Eye size={13} className="ml-auto shrink-0 text-slate-600 group-hover:text-emerald-400 transition-colors" />}
-                </div>
+                  return (
+                    <SortableCol key={b.id} id={b.id}>
+                      {({ setNodeRef, style, listeners, attributes, isDragging }) => (
+                        <div
+                          ref={setNodeRef}
+                          style={style}
+                          className={`flex-1 min-w-[160px] border-r border-slate-800 last:border-r-0 ${isDragging ? 'shadow-2xl ring-1 ring-emerald-500/40' : ''}`}
+                        >
+                          {/* Cabecera: tocar = ver solo este barbero. La manija ⠿ (izquierda) = arrastrar para reordenar. */}
+                          <div
+                            onClick={() => setSoloBarbero(prev => prev === b.id ? null : b.id)}
+                            title={focusBarbero?.id === b.id ? 'Mostrar todos los barberos' : `Ver solo la agenda de ${b.nombre}`}
+                            className="group h-10 pr-3 flex items-center gap-1.5 border-b border-slate-800 sticky top-0 bg-slate-900 z-10 cursor-pointer hover:bg-slate-800/60 transition-colors"
+                          >
+                            {/* Manija de arrastre dedicada: aísla el reordenar del tap "ver solo" */}
+                            <span
+                              {...attributes}
+                              {...listeners}
+                              onClick={e => e.stopPropagation()}
+                              title="Mantén presionado y arrastra para reordenar"
+                              aria-label={`Reordenar a ${b.nombre}`}
+                              className="shrink-0 h-full pl-2 pr-1 flex items-center text-slate-600 hover:text-emerald-400 cursor-grab active:cursor-grabbing touch-none select-none"
+                            >
+                              <GripVertical size={15} />
+                            </span>
+                            <div className="w-6 h-6 rounded-full overflow-hidden bg-emerald-500/20 flex items-center justify-center shrink-0">
+                              {b.foto
+                                ? <img src={b.foto} alt={b.nombre} className="w-full h-full object-cover" />
+                                : <span className="text-[10px] font-bold text-emerald-400">{b.nombre?.[0] ?? '?'}</span>}
+                            </div>
+                            <span className="text-xs font-semibold text-white truncate">{b.nombre}</span>
+                            {focusBarbero?.id === b.id
+                              ? <Users size={13} className="ml-auto shrink-0 text-emerald-400" />
+                              : <Eye size={13} className="ml-auto shrink-0 text-slate-600 group-hover:text-emerald-400 transition-colors" />}
+                          </div>
 
-                <div className="relative" style={{ height: `${totalSlots * 40}px` }}>
-                  {timeLabels.map((_, i) => (
-                    <SlotRow
-                      key={i}
-                      idx={i}
-                      barberoId={b.id}
-                      dateStr={dateStr}
-                      blockMode={blockMode}
-                      onNewCita={openNewCita}
-                      onNewBloqueo={openNewBloqueo}
-                      onDragOver={(e) => e.preventDefault()}
-                      onDrop={handleDrop}
-                    />
-                  ))}
-                  {barberBloqueos.map(blq => (
-                    <BloqueoBlock key={blq.id} bloqueo={blq} onDelete={handleDeleteBloqueo} />
-                  ))}
-                  {layoutCitas.map(({ cita, colIndex, colTotal }) => (
-                    <AppointmentBlock
-                      key={cita.id}
-                      cita={cita}
-                      colIndex={colIndex}
-                      colTotal={colTotal}
-                      onClick={openEditCita}
-                      onDragStart={(e, c) => setDraggedCita(c)}
-                    />
-                  ))}
-                  {showNowLine && (
-                    <div
-                      className="absolute inset-x-0 z-20 pointer-events-none"
-                      style={{ top: `${nowOffsetPx}px` }}
-                    >
-                      <div className="relative h-px bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.6)]">
-                        <span className="absolute left-0 -top-[3px] w-1.5 h-1.5 rounded-full bg-red-500" />
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+                          <div className="relative" style={{ height: `${totalSlots * 40}px` }}>
+                            {timeLabels.map((_, i) => (
+                              <SlotRow
+                                key={i}
+                                idx={i}
+                                barberoId={b.id}
+                                dateStr={dateStr}
+                                blockMode={blockMode}
+                                onNewCita={openNewCita}
+                                onNewBloqueo={openNewBloqueo}
+                                onDragOver={(e) => e.preventDefault()}
+                                onDrop={handleDrop}
+                              />
+                            ))}
+                            {barberBloqueos.map(blq => (
+                              <BloqueoBlock key={blq.id} bloqueo={blq} onDelete={handleDeleteBloqueo} />
+                            ))}
+                            {layoutCitas.map(({ cita, colIndex, colTotal }) => (
+                              <AppointmentBlock
+                                key={cita.id}
+                                cita={cita}
+                                colIndex={colIndex}
+                                colTotal={colTotal}
+                                onClick={openEditCita}
+                                onDragStart={(e, c) => setDraggedCita(c)}
+                              />
+                            ))}
+                            {showNowLine && (
+                              <div
+                                className="absolute inset-x-0 z-20 pointer-events-none"
+                                style={{ top: `${nowOffsetPx}px` }}
+                              >
+                                <div className="relative h-px bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.6)]">
+                                  <span className="absolute left-0 -top-[3px] w-1.5 h-1.5 rounded-full bg-red-500" />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </SortableCol>
+                  );
+                })}
+              </SortableContext>
+            </DndContext>
+          )}
         </div>
       </div>
 
@@ -2427,6 +2501,7 @@ export default function Agenda() {
               <li>Flechas ◀ ▶ o botón <em>Hoy</em> para cambiar de día.</li>
               <li>En móvil, los barberos quedan en pestañas; en desktop ves columnas paralelas.</li>
               <li>Tocá la <strong className="text-white">cabecera de un barbero</strong> para ver solo su agenda; tocala de nuevo (o <em>Ver todos</em>) para volver.</li>
+              <li>Arrastrá la <strong className="text-white">manija ⠿</strong> (a la izquierda del nombre) para <strong className="text-white">reordenar las columnas</strong>. El orden se guarda en este dispositivo.</li>
             </ul>
           </div>
 

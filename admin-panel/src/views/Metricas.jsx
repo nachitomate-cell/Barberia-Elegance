@@ -317,7 +317,9 @@ export default function Metricas() {
       const [citasSnap, serviciosSnap, clientesSnap, ventasSnap, gastosSnap, barberosSnap, productosSnap] = await Promise.all([
         getDocs(query(tenantCol('citas'), where('fecha', '>=', queryStart))),
         getDocs(tenantCol('servicios')),
-        getDocs(tenantCol('clientes')),
+        // 'users' = colección canónica de clientes (igual que la vista Clientes y el Inicio).
+        // La antigua 'clientes' no recibe actualizaciones de sellos → retención desfasada.
+        getDocs(tenantCol('users')),
         getDocs(tenantCol('product_reservations')),
         getDocs(tenantCol('gastos')),
         getDocs(tenantCol('barberos')),
@@ -506,20 +508,23 @@ export default function Metricas() {
 
   const hayPrecios = chartData.some(d => d.servicios > 0);
 
-  // Client loyalty stamps retention
+  // Retención de sellos del Club (solo socios registrados; excluye migrados de AgendaPro)
   const retention = useMemo(() => {
-    if (!clientes.length) return null;
-    const conSellos = clientes.filter(c => (c.sellosHistoricos || c.stamps || 0) > 0).length;
-    const sinSellos = clientes.length - conSellos;
+    // Migrado/legacy de AgendaPro (nunca se unió al Club): uid === id. Mismo criterio que Clientes/Inicio.
+    const isLegacy = c => !!c?.uid && c?.uid === c?.id;
+    const registrados = clientes.filter(c => !isLegacy(c));
+    if (!registrados.length) return null;
+    const conSellos = registrados.filter(c => (c.sellosHistoricos || c.stamps || 0) > 0).length;
+    const sinSellos = registrados.length - conSellos;
     return {
       data: [
         { name: 'Con sellos', value: conSellos },
         { name: 'Sin sellos', value: sinSellos },
       ],
-      pct:       Math.round((conSellos / clientes.length) * 100),
+      pct:       Math.round((conSellos / registrados.length) * 100),
       conSellos,
       sinSellos,
-      total:     clientes.length,
+      total:     registrados.length,
     };
   }, [clientes]);
 
