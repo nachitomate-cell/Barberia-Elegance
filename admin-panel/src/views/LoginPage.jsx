@@ -14,7 +14,7 @@ const LOGIN_IMAGE = {
   mapubarbershop: '/loginmapu.png',
   chameleon:      '/loginchameleon.webp',
   aura:           '/aura2.png',
-  latincaribe:    '/latincaribe2.png',
+  latincaribe:    '/playa-login.jpg',
   lumen:          '/djones1.png',
   kronnos_penablanca: '/kronnos/kronospena.png',
   kronnos_limache:    '/kronnos/kronoslima.png',
