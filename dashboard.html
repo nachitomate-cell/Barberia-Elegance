@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <script>!function(){var m={'marcelopalma.synaptechspa.cl':'/marcelo1.png','marcelohairdressing.synaptechspa.cl':'/marcelo1.png','marcelo-hairdressing.synaptechspa.cl':'/marcelo1.png','aurasalon.synaptechspa.cl':'/aura.png','aurasalonmalegrooming.synaptech.cl':'/aura.png','aurasalonmalegrooming.synaptechspa.cl':'/aura.png'};var s=m[location.hostname]||'/favicon.ico';var l=document.createElement('link');l.rel='icon';l.href=s;if(s!='/favicon.ico')l.type='image/png';document.head.appendChild(l);}();</script>
+  <script>!function(){var m={'marcelopalma.synaptechspa.cl':'/marcelo1.png','marcelohairdressing.synaptechspa.cl':'/marcelo1.png','marcelo-hairdressing.synaptechspa.cl':'/marcelo1.png','aurasalon.synaptechspa.cl':'/aura.png','aurasalonmalegrooming.synaptech.cl':'/aura.png','aurasalonmalegrooming.synaptechspa.cl':'/aura.png','latincaribe.synaptechspa.cl':'/latincaribe.png','thelatincaribe.synaptechspa.cl':'/latincaribe.png'};var s=m[location.hostname]||'/favicon.ico';var l=document.createElement('link');l.rel='icon';l.href=s;if(s!='/favicon.ico')l.type='image/png';document.head.appendChild(l);}();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
@@ -516,7 +516,7 @@
       color: var(--gold) !important;
       background: rgba(201, 168, 76, 0.08) !important;
     }
-    .tenant-aura .review-chip.active-chip {
+    :is(.tenant-aura,.tenant-latincaribe) .review-chip.active-chip {
       border-color: #111827 !important;
       color: #111827 !important;
       background: rgba(17, 24, 39, 0.06) !important;
@@ -1202,55 +1202,55 @@
     /* ══ AURA SALON & MALE GROOMING — Light Mode ═══════════════════
        Paleta: Azul acero (#9CA3AF) · Navy (#00285E) · Blanco/Gris claro
        ═══════════════════════════════════════════════════════════════ */
-    .tenant-aura {
+    :is(.tenant-aura,.tenant-latincaribe) {
       --gold:      #00285E;
       --gold-dim:  rgba(0,40,94,0.08);
       --gold-glow: rgba(0,40,94,0.12);
     }
-    html.tenant-aura body { background-color: #F9FAFB; color: #18181B; }
+    html:is(.tenant-aura,.tenant-latincaribe) body { background-color: #F9FAFB; color: #18181B; }
 
     /* Header */
-    .tenant-aura header {
+    :is(.tenant-aura,.tenant-latincaribe) header {
       background-color: rgba(249,250,251,0.97) !important;
       border-bottom: 1px solid #E4E4E7 !important;
     }
-    .tenant-aura #authGuard { background: #F9FAFB !important; }
-    .tenant-aura #shopHeaderName { color: #00285E !important; }
-    .tenant-aura #shopHeaderSub  { color: rgba(0,40,94,0.45) !important; }
-    .tenant-aura #btnNotifBell {
+    :is(.tenant-aura,.tenant-latincaribe) #authGuard { background: #F9FAFB !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #shopHeaderName { color: #00285E !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #shopHeaderSub  { color: rgba(0,40,94,0.45) !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #btnNotifBell {
       background: #FFFFFF !important;
       border-color: #D4D4D8 !important;
     }
-    .tenant-aura #bellIcon { color: #52525B !important; }
-    .tenant-aura #avatarContainer {
+    :is(.tenant-aura,.tenant-latincaribe) #bellIcon { color: #52525B !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #avatarContainer {
       background: #FFFFFF !important;
       border-color: #D4D4D8 !important;
     }
 
     /* Hero */
-    .tenant-aura .hero-bg {
+    :is(.tenant-aura,.tenant-latincaribe) .hero-bg {
       background-image: url('/auralogin.png');
       background-color: #00285E;
       background-size: cover;
       background-position: center 30%;
     }
-    .tenant-aura .hero-overlay {
+    :is(.tenant-aura,.tenant-latincaribe) .hero-overlay {
       background: linear-gradient(160deg,
         rgba(0,40,94,0.40) 0%, rgba(0,40,94,0.28) 40%, rgba(0,40,94,0.90) 100%);
     }
-    .tenant-aura .hero-glow-spot {
+    :is(.tenant-aura,.tenant-latincaribe) .hero-glow-spot {
       background: radial-gradient(circle, rgba(156,163,175,0.18) 0%, transparent 65%) !important;
     }
-    .tenant-aura #heroLine1 {
+    :is(.tenant-aura,.tenant-latincaribe) #heroLine1 {
       color: #ffffff !important;
       text-shadow: 0 2px 20px rgba(0,0,0,0.35) !important;
     }
-    .tenant-aura #heroLine2 {
+    :is(.tenant-aura,.tenant-latincaribe) #heroLine2 {
       color: #9CA3AF !important;
       font-style: normal !important;
       text-shadow: none !important;
     }
-    .tenant-aura .hero-cta {
+    :is(.tenant-aura,.tenant-latincaribe) .hero-cta {
       background: #9CA3AF !important;
       border-color: #9CA3AF !important;
       color: #ffffff !important;
@@ -1258,230 +1258,230 @@
       backdrop-filter: none !important;
       -webkit-backdrop-filter: none !important;
     }
-    .tenant-aura .hero-cta i    { color: #ffffff !important; }
-    .tenant-aura .hero-cta span { color: #ffffff !important; }
-    .tenant-aura .hero-cta:hover {
+    :is(.tenant-aura,.tenant-latincaribe) .hero-cta i    { color: #ffffff !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .hero-cta span { color: #ffffff !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .hero-cta:hover {
       background: #00285E !important;
       border-color: #00285E !important;
     }
 
     /* PWA Install Card */
-    .tenant-aura #pwaBigInstallCard {
+    :is(.tenant-aura,.tenant-latincaribe) #pwaBigInstallCard {
       background: linear-gradient(to right, rgba(156,163,175,0.10), rgba(156,163,175,0.04)) !important;
       border: 1px solid rgba(156,163,175,0.25) !important;
       box-shadow: 0 1px 8px rgba(156,163,175,0.08) !important;
     }
-    .tenant-aura #pwaBigInstallCard h3 { color: #18181B !important; }
-    .tenant-aura #pwaBigInstallCard p  { color: #8E9399 !important; }
-    .tenant-aura .pwa-icon-bg {
+    :is(.tenant-aura,.tenant-latincaribe) #pwaBigInstallCard h3 { color: #18181B !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #pwaBigInstallCard p  { color: #8E9399 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .pwa-icon-bg {
       background: rgba(156,163,175,0.12) !important;
       border-color: rgba(156,163,175,0.28) !important;
       box-shadow: none !important;
     }
-    .tenant-aura #pwaBanner { border-color: rgba(156,163,175,0.28) !important; }
-    .tenant-aura #pwaModalIOS > div { border-color: rgba(156,163,175,0.18) !important; }
-    .tenant-aura .pwa-step-badge { background: #9CA3AF !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #pwaBanner { border-color: rgba(156,163,175,0.28) !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #pwaModalIOS > div { border-color: rgba(156,163,175,0.18) !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .pwa-step-badge { background: #9CA3AF !important; }
 
     /* Membership card */
-    .tenant-aura .membership-pattern {
+    :is(.tenant-aura,.tenant-latincaribe) .membership-pattern {
       background: #FFFFFF !important;
       border-color: #D4D4D8 !important;
       box-shadow: 0 1px 4px rgba(0,0,0,0.06) !important;
     }
-    .tenant-aura .membership-pattern::before {
+    :is(.tenant-aura,.tenant-latincaribe) .membership-pattern::before {
       background-image: repeating-linear-gradient(
         -45deg, transparent, transparent 18px,
         rgba(156,163,175,0.04) 18px, rgba(156,163,175,0.04) 19px
       );
     }
-    .tenant-aura .membership-glow {
+    :is(.tenant-aura,.tenant-latincaribe) .membership-glow {
       background: radial-gradient(circle, rgba(156,163,175,0.08) 0%, transparent 70%) !important;
     }
-    .tenant-aura #membershipWatermark { color: rgba(156,163,175,0.07) !important; }
-    .tenant-aura #shopClubName { color: #00285E !important; }
-    .tenant-aura #membershipDesc { color: #8E9399 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #membershipWatermark { color: rgba(156,163,175,0.07) !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #shopClubName { color: #00285E !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #membershipDesc { color: #8E9399 !important; }
 
     /* Stamps grid */
-    .tenant-aura #stampsGrid {
+    :is(.tenant-aura,.tenant-latincaribe) #stampsGrid {
       background: #EFF4F8 !important;
       border-color: #D4D4D8 !important;
     }
-    .tenant-aura .stamp-cell.empty {
+    :is(.tenant-aura,.tenant-latincaribe) .stamp-cell.empty {
       border: 1px solid #D4D4D8 !important;
       background: #FFFFFF !important;
     }
-    .tenant-aura .stamp-cell.filled {
+    :is(.tenant-aura,.tenant-latincaribe) .stamp-cell.filled {
       background: #9CA3AF !important;
       border: 1px solid #9CA3AF !important;
       box-shadow: 0 0 8px rgba(156,163,175,0.35) !important;
     }
-    .tenant-aura .stamp-cell.filled i { color: #ffffff !important; }
-    .tenant-aura #stampsBar {
+    :is(.tenant-aura,.tenant-latincaribe) .stamp-cell.filled i { color: #ffffff !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #stampsBar {
       background: #9CA3AF !important;
       box-shadow: none !important;
     }
 
     /* Cards secundarias */
-    .tenant-aura #tabLoyalty .bg-\[#111115\],
-    .tenant-aura #tabProfile .bg-\[#111115\] {
+    :is(.tenant-aura,.tenant-latincaribe) #tabLoyalty .bg-\[#111115\],
+    :is(.tenant-aura,.tenant-latincaribe) #tabProfile .bg-\[#111115\] {
       background-color: #FFFFFF !important;
       border-color: #D4D4D8 !important;
     }
-    .tenant-aura .border-white\/8 { border-color: #D4D4D8 !important; }
-    .tenant-aura .border-white\/12 { border-color: #D4D4D8 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .border-white\/8 { border-color: #D4D4D8 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .border-white\/12 { border-color: #D4D4D8 !important; }
 
     /* Hardcoded dark backgrounds */
-    .tenant-aura .bg-\[#111115\],
-    .tenant-aura .bg-\[#0a0a0e\],
-    .tenant-aura .bg-\[#1a1a1a\],
-    .tenant-aura .bg-\[#0d0d10\],
-    .tenant-aura .bg-\[#050505\] {
+    :is(.tenant-aura,.tenant-latincaribe) .bg-\[#111115\],
+    :is(.tenant-aura,.tenant-latincaribe) .bg-\[#0a0a0e\],
+    :is(.tenant-aura,.tenant-latincaribe) .bg-\[#1a1a1a\],
+    :is(.tenant-aura,.tenant-latincaribe) .bg-\[#0d0d10\],
+    :is(.tenant-aura,.tenant-latincaribe) .bg-\[#050505\] {
       background-color: #FFFFFF !important;
     }
-    .tenant-aura .bg-white\/5 { background-color: rgba(156,163,175,0.06) !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .bg-white\/5 { background-color: rgba(156,163,175,0.06) !important; }
 
     /* Generic text overrides */
-    .tenant-aura .text-white         { color: #18181B !important; }
-    .tenant-aura .text-white\/30     { color: rgba(24,24,27,0.40) !important; }
-    .tenant-aura .text-white\/60     { color: rgba(24,24,27,0.60) !important; }
-    .tenant-aura .text-gray-300      { color: #6B7280 !important; }
-    .tenant-aura .text-gray-400      { color: #71717A !important; }
-    .tenant-aura .text-gray-500      { color: #8E9399 !important; }
-    .tenant-aura .text-gray-600      { color: #71717A !important; }
-    .tenant-aura .text-zinc-400      { color: #71717A !important; }
-    .tenant-aura .text-zinc-500      { color: #8E9399 !important; }
-    .tenant-aura .text-zinc-600      { color: #8E9399 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .text-white         { color: #18181B !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .text-white\/30     { color: rgba(24,24,27,0.40) !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .text-white\/60     { color: rgba(24,24,27,0.60) !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .text-gray-300      { color: #6B7280 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .text-gray-400      { color: #71717A !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .text-gray-500      { color: #8E9399 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .text-gray-600      { color: #71717A !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .text-zinc-400      { color: #71717A !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .text-zinc-500      { color: #8E9399 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .text-zinc-600      { color: #8E9399 !important; }
 
     /* "Conoce al equipo" button card */
-    .tenant-aura .bg-zinc-900\/80 { background: #FFFFFF !important; }
-    .tenant-aura .border-zinc-800 { border-color: #D4D4D8 !important; }
-    .tenant-aura .text-zinc-500   { color: #8E9399 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .bg-zinc-900\/80 { background: #FFFFFF !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .border-zinc-800 { border-color: #D4D4D8 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .text-zinc-500   { color: #8E9399 !important; }
 
     /* Lookbook & Productos section titles */
-    .tenant-aura #tabLookbook h2,
-    .tenant-aura #tabProductos h2 { color: #00285E !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #tabLookbook h2,
+    :is(.tenant-aura,.tenant-latincaribe) #tabProductos h2 { color: #00285E !important; }
 
     /* Bottom navigation */
-    .tenant-aura nav {
+    :is(.tenant-aura,.tenant-latincaribe) nav {
       background-color: rgba(249,250,251,0.97) !important;
       border-top-color: #E4E4E7 !important;
     }
-    .tenant-aura .nav-tab .nav-icon  { color: #A1A1AA !important; filter: none !important; }
-    .tenant-aura .nav-tab .nav-label { color: #A1A1AA !important; }
-    .tenant-aura .nav-tab.active .nav-icon {
+    :is(.tenant-aura,.tenant-latincaribe) .nav-tab .nav-icon  { color: #A1A1AA !important; filter: none !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .nav-tab .nav-label { color: #A1A1AA !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .nav-tab.active .nav-icon {
       color: #00285E !important;
       filter: none !important;
     }
-    .tenant-aura .nav-tab.active .nav-label { color: #00285E !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .nav-tab.active .nav-label { color: #00285E !important; }
 
     /* Tier badges */
-    .tenant-aura .tier-badge.gold     { color: #00285E; border-color: rgba(0,40,94,0.30); }
-    .tenant-aura .tier-badge.platinum { color: #00285E; border-color: rgba(0,40,94,0.28); }
+    :is(.tenant-aura,.tenant-latincaribe) .tier-badge.gold     { color: #00285E; border-color: rgba(0,40,94,0.30); }
+    :is(.tenant-aura,.tenant-latincaribe) .tier-badge.platinum { color: #00285E; border-color: rgba(0,40,94,0.28); }
 
     /* Botones de acción */
-    .tenant-aura .btn-accion-primary {
+    :is(.tenant-aura,.tenant-latincaribe) .btn-accion-primary {
       background: linear-gradient(135deg, #00285E 0%, #1e3a8a 100%) !important;
       color: #FFFFFF !important;
       box-shadow: 0 4px 18px rgba(0,40,94,0.22) !important;
       border: none !important;
     }
-    .tenant-aura a.btn-reservar {
+    :is(.tenant-aura,.tenant-latincaribe) a.btn-reservar {
       background: linear-gradient(135deg, #00285E 0%, #1e3a8a 100%) !important;
       color: #FFFFFF !important;
       box-shadow: 0 4px 18px rgba(0,40,94,0.22) !important;
     }
 
     /* Autofill en edición de perfil */
-    .tenant-aura input:-webkit-autofill,
-    .tenant-aura input:-webkit-autofill:focus {
+    :is(.tenant-aura,.tenant-latincaribe) input:-webkit-autofill,
+    :is(.tenant-aura,.tenant-latincaribe) input:-webkit-autofill:focus {
       -webkit-box-shadow: 0 0 0 1000px #FFFFFF inset !important;
       -webkit-text-fill-color: #18181B !important;
     }
     /* Quitar glows de neón sobre fondo blanco */
-    .tenant-aura .text-gold  { text-shadow: none !important; }
-    .tenant-aura .border-gold { box-shadow: none !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .text-gold  { text-shadow: none !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .border-gold { box-shadow: none !important; }
     /* border-neon (usado en avatar de perfil y otros) → sky blue */
-    .tenant-aura .border-neon {
+    :is(.tenant-aura,.tenant-latincaribe) .border-neon {
       border-color: #9CA3AF !important;
       box-shadow: 0 0 0 3px rgba(156,163,175,0.12) !important;
     }
     /* Avatar de perfil */
-    .tenant-aura #profileAvatar {
+    :is(.tenant-aura,.tenant-latincaribe) #profileAvatar {
       border-color: #9CA3AF !important;
       box-shadow: 0 0 0 3px rgba(156,163,175,0.12) !important;
     }
     /* Contador de sellos → navy prominente */
-    .tenant-aura #stampsCount { color: #00285E !important; }
-    .tenant-aura #stampsCount span { color: #8E9399 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #stampsCount { color: #00285E !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #stampsCount span { color: #8E9399 !important; }
     /* Heading "Tabla de Premios" (tiene inline style) */
-    .tenant-aura #premiosSection h3 { color: #8E9399 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #premiosSection h3 { color: #8E9399 !important; }
     /* Hint text "Solo la verás vos" en sfNoPhoto (inline style blanco) */
-    .tenant-aura #sfNoPhoto p:last-child { color: rgba(24,24,27,0.30) !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #sfNoPhoto p:last-child { color: rgba(24,24,27,0.30) !important; }
     /* Tipografía moderna para headings del dashboard */
-    .tenant-aura #shopClubName,
-    .tenant-aura #tabLookbook h2,
-    .tenant-aura #tabProductos h2 {
+    :is(.tenant-aura,.tenant-latincaribe) #shopClubName,
+    :is(.tenant-aura,.tenant-latincaribe) #tabLookbook h2,
+    :is(.tenant-aura,.tenant-latincaribe) #tabProductos h2 {
       font-family: 'Plus Jakarta Sans', sans-serif !important;
     }
     /* Progress track de la membership card (inline bg blanco invisible) */
-    .tenant-aura .membership-pattern .rounded-full.overflow-hidden.mb-3 {
+    :is(.tenant-aura,.tenant-latincaribe) .membership-pattern .rounded-full.overflow-hidden.mb-3 {
       background: #D4D4D8 !important;
     }
     /* "Ver premios" — botón blanco sobre card blanca: invisible */
-    .tenant-aura button[onclick*="togglePremios"] {
+    :is(.tenant-aura,.tenant-latincaribe) button[onclick*="togglePremios"] {
       background: linear-gradient(135deg, #00285E 0%, #1e3a8a 100%) !important;
       color: #FFFFFF !important;
       box-shadow: 0 2px 10px rgba(0,40,94,0.18) !important;
     }
     /* Botones reagendar (CSS base hardcodeado en dorado) */
-    .tenant-aura .reagendar-proxima-btn {
+    :is(.tenant-aura,.tenant-latincaribe) .reagendar-proxima-btn {
       border-color: rgba(156,163,175,0.30) !important;
       background: rgba(156,163,175,0.06) !important;
     }
-    .tenant-aura .reagendar-hist-btn { color: rgba(156,163,175,0.65) !important; }
-    .tenant-aura .reagendar-hist-btn:hover { background: rgba(156,163,175,0.08) !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .reagendar-hist-btn { color: rgba(156,163,175,0.65) !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .reagendar-hist-btn:hover { background: rgba(156,163,175,0.08) !important; }
     /* Chip de estado próxima cita (generado por JS con inline gold) */
-    .tenant-aura .proxima-estado-chip {
+    :is(.tenant-aura,.tenant-latincaribe) .proxima-estado-chip {
       background: rgba(156,163,175,0.12) !important;
       color: #00285E !important;
     }
     /* ── Citas section: fondos oscuros ── */
-    .tenant-aura .bg-zinc-900 {
+    :is(.tenant-aura,.tenant-latincaribe) .bg-zinc-900 {
       background-color: #FFFFFF !important;
     }
     /* Próxima cita card — gradiente dorado inline → gris suave */
-    .tenant-aura #profileCitasContent [style*="linear-gradient(135deg,rgba(201,168,76"] {
+    :is(.tenant-aura,.tenant-latincaribe) #profileCitasContent [style*="linear-gradient(135deg,rgba(201,168,76"] {
       background: linear-gradient(135deg, rgba(156,163,175,0.08), rgba(156,163,175,0.03)) !important;
       border-color: rgba(156,163,175,0.30) !important;
     }
     /* Textos "var(--gold)" generados por JS en la sección de citas */
-    .tenant-aura #profileCitasContent [style*="color:var(--gold)"] {
+    :is(.tenant-aura,.tenant-latincaribe) #profileCitasContent [style*="color:var(--gold)"] {
       color: #9CA3AF !important;
     }
     /* Icono de estado completada inline */
-    .tenant-aura #profileCitasContent i[style*="color:var(--gold)"] {
+    :is(.tenant-aura,.tenant-latincaribe) #profileCitasContent i[style*="color:var(--gold)"] {
       color: #9CA3AF !important;
     }
     /* Badge estado Completada (inline gold-glow + gold) */
-    .tenant-aura .cita-estado-completada[style] {
+    :is(.tenant-aura,.tenant-latincaribe) .cita-estado-completada[style] {
       background: rgba(156,163,175,0.10) !important;
       color: #9CA3AF !important;
     }
     /* Cross-selling banner fondo oscuro inline */
-    .tenant-aura #profileCitasContent [style*="linear-gradient(to right,#111115"] {
+    :is(.tenant-aura,.tenant-latincaribe) #profileCitasContent [style*="linear-gradient(to right,#111115"] {
       background: rgba(156,163,175,0.05) !important;
       border-color: rgba(156,163,175,0.22) !important;
     }
-    .tenant-aura #profileCitasContent [style*="color:rgba(212,175,55"] {
+    :is(.tenant-aura,.tenant-latincaribe) #profileCitasContent [style*="color:rgba(212,175,55"] {
       color: #9CA3AF !important;
     }
-    .tenant-aura #profileCitasContent button[style*="background:#D4AF37"] {
+    :is(.tenant-aura,.tenant-latincaribe) #profileCitasContent button[style*="background:#D4AF37"] {
       background: #9CA3AF !important;
       color: #ffffff !important;
     }
     /* Dark-navy cards: restore white text overridden by the global .text-white rule */
-    .tenant-aura #auraMembresiaPromoCard .text-white,
-    .tenant-aura #heroProximaCitaCard .text-white {
+    :is(.tenant-aura,.tenant-latincaribe) #auraMembresiaPromoCard .text-white,
+    :is(.tenant-aura,.tenant-latincaribe) #heroProximaCitaCard .text-white {
       color: #FFFFFF !important;
     }
     /* ────────────────────────────────────────────────────────────── */
@@ -1502,8 +1502,8 @@
       to   { transform: scale(1.07) translate(-0.8%, 0.5%); }
     }
     /* Quitamos bg-image del elemento y lo movemos al ::before animable */
-    .tenant-aura .hero-bg { background-image: none !important; }
-    .tenant-aura .hero-bg::before {
+    :is(.tenant-aura,.tenant-latincaribe) .hero-bg { background-image: none !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .hero-bg::before {
       content: '';
       position: absolute;
       inset: 0;
@@ -1520,7 +1520,7 @@
       0%   { transform: translateX(-130%) skewX(-12deg); }
       100% { transform: translateX(230%) skewX(-12deg); }
     }
-    .tenant-aura .membership-pattern::after {
+    :is(.tenant-aura,.tenant-latincaribe) .membership-pattern::after {
       content: '';
       position: absolute;
       top: -10%;
@@ -1542,8 +1542,8 @@
       0%   { transform: scale(1);    opacity: 0.55; }
       100% { transform: scale(1.32); opacity: 0; }
     }
-    .tenant-aura .hero-cta { position: relative; }
-    .tenant-aura .hero-cta::before {
+    :is(.tenant-aura,.tenant-latincaribe) .hero-cta { position: relative; }
+    :is(.tenant-aura,.tenant-latincaribe) .hero-cta::before {
       content: '';
       position: absolute;
       inset: -5px;
@@ -1559,7 +1559,7 @@
       to   { opacity: 1; transform: translateY(0); }
     }
     /* Ocultamos inicialmente solo en Aura */
-    .tenant-aura [data-aura-stagger] { opacity: 0; }
+    :is(.tenant-aura,.tenant-latincaribe) [data-aura-stagger] { opacity: 0; }
     /* Clases aplicadas por JS post-auth */
     .aura-animate { animation: aura-fade-up 0.6s cubic-bezier(0.16,1,0.3,1) forwards; }
     .aura-d0 { animation-delay: 0.00s; }
@@ -1609,206 +1609,206 @@
        AURA SALÓN & MALE GROOMING - DASHBOARD
        Paleta: Urbano-Industrial Light Mode (Cultura Deportiva)
        ═══════════════════════════════════════════════════════════════ */
-    .tenant-aura {
+    :is(.tenant-aura,.tenant-latincaribe) {
       --gold: #00285E;
       --gold-dim: rgba(0,40,94,0.08);
       --gold-glow: rgba(0,40,94,0.12);
     }
-    .tenant-aura body {
+    :is(.tenant-aura,.tenant-latincaribe) body {
       background-color: #F9FAFB !important;
       color: #18181B !important;
     }
     
     /* Global Overrides de utilidades oscuras */
-    .tenant-aura .text-white { color: #18181B !important; }
-    .tenant-aura .text-gray-500 { color: #8E9399 !important; }
-    .tenant-aura .text-gray-400 { color: #52525B !important; }
-    .tenant-aura .text-gray-300 { color: #3F3F46 !important; }
-    .tenant-aura .bg-\[\#111115\] { background-color: #FFFFFF !important; }
-    .tenant-aura .bg-\[\#050505\] { background-color: #F9FAFB !important; }
-    .tenant-aura .bg-\[\#0a0a0d\] { background-color: #FFFFFF !important; }
-    .tenant-aura .bg-\[\#1a1a1f\] { background-color: #F4F4F5 !important; }
-    .tenant-aura .bg-zinc-900 { background-color: #F4F4F5 !important; }
-    .tenant-aura .bg-white\/5 { background-color: rgba(156,163,175,0.06) !important; }
-    .tenant-aura .border-white\/8,
-    .tenant-aura .border-white\/10,
-    .tenant-aura .border-white\/6,
-    .tenant-aura .border-zinc-800,
-    .tenant-aura .border-zinc-800\/80 { border-color: #D4D4D8 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .text-white { color: #18181B !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .text-gray-500 { color: #8E9399 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .text-gray-400 { color: #52525B !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .text-gray-300 { color: #3F3F46 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .bg-\[\#111115\] { background-color: #FFFFFF !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .bg-\[\#050505\] { background-color: #F9FAFB !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .bg-\[\#0a0a0d\] { background-color: #FFFFFF !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .bg-\[\#1a1a1f\] { background-color: #F4F4F5 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .bg-zinc-900 { background-color: #F4F4F5 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .bg-white\/5 { background-color: rgba(156,163,175,0.06) !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .border-white\/8,
+    :is(.tenant-aura,.tenant-latincaribe) .border-white\/10,
+    :is(.tenant-aura,.tenant-latincaribe) .border-white\/6,
+    :is(.tenant-aura,.tenant-latincaribe) .border-zinc-800,
+    :is(.tenant-aura,.tenant-latincaribe) .border-zinc-800\/80 { border-color: #D4D4D8 !important; }
     
     /* Auth Guard */
-    .tenant-aura #authGuard { background-color: #F9FAFB !important; }
-    .tenant-aura #authGuard .border-t-white { border-top-color: #9CA3AF !important; }
-    .tenant-aura #authGuard .border-white\/20 { border-color: rgba(156,163,175,0.2) !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #authGuard { background-color: #F9FAFB !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #authGuard .border-t-white { border-top-color: #9CA3AF !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #authGuard .border-white\/20 { border-color: rgba(156,163,175,0.2) !important; }
     
     /* Header */
-    .tenant-aura header {
+    :is(.tenant-aura,.tenant-latincaribe) header {
       background-color: rgba(249, 250, 251, 0.96) !important;
       border-bottom: 1px solid #E4E4E7;
     }
-    .tenant-aura #shopHeaderName { color: #18181B !important; }
-    .tenant-aura #shopHeaderSub { color: #8E9399 !important; }
-    .tenant-aura #btnNotifBell, .tenant-aura #avatarContainer {
+    :is(.tenant-aura,.tenant-latincaribe) #shopHeaderName { color: #18181B !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #shopHeaderSub { color: #8E9399 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #btnNotifBell, :is(.tenant-aura,.tenant-latincaribe) #avatarContainer {
       background-color: #FFFFFF !important;
       border-color: #D4D4D8 !important;
     }
-    .tenant-aura #btnNotifBell i, .tenant-aura #avatarContainer i { color: #8E9399 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #btnNotifBell i, :is(.tenant-aura,.tenant-latincaribe) #avatarContainer i { color: #8E9399 !important; }
     
     /* Hero Section - Forzar overlay y colores sobre la imagen */
-    .tenant-aura .hero-bg {
+    :is(.tenant-aura,.tenant-latincaribe) .hero-bg {
       background-image: url('auralogin.png') !important;
     }
-    .tenant-aura .hero-overlay {
+    :is(.tenant-aura,.tenant-latincaribe) .hero-overlay {
       background: linear-gradient(to top, #00285E 0%, rgba(0,40,94,0.4) 100%) !important;
     }
-    .tenant-aura .hero-glow-spot {
+    :is(.tenant-aura,.tenant-latincaribe) .hero-glow-spot {
       background: radial-gradient(circle, rgba(156,163,175,0.25) 0%, transparent 65%) !important;
     }
-    .tenant-aura #heroLine1 { color: #FFFFFF !important; text-shadow: none !important; }
-    .tenant-aura #heroLine2 { color: rgba(255,255,255,0.72) !important; text-shadow: none !important; }
-    .tenant-aura .hero-cta {
+    :is(.tenant-aura,.tenant-latincaribe) #heroLine1 { color: #FFFFFF !important; text-shadow: none !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #heroLine2 { color: rgba(255,255,255,0.72) !important; text-shadow: none !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .hero-cta {
       background: #FFFFFF !important;
       border: 1px solid rgba(255,255,255,0.85) !important;
       color: #00285E !important;
       box-shadow: 0 4px 20px rgba(0,0,0,0.18) !important;
     }
-    .tenant-aura .hero-cta i { color: #00285E !important; }
-    .tenant-aura .hero-cta span { color: #00285E !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .hero-cta i { color: #00285E !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .hero-cta span { color: #00285E !important; }
     
     /* Instalar App Banner */
-    .tenant-aura #pwaBigInstallCard {
+    :is(.tenant-aura,.tenant-latincaribe) #pwaBigInstallCard {
       background: #FFFFFF !important;
       border-color: #D4D4D8 !important;
       box-shadow: 0 4px 12px rgba(0,0,0,0.03) !important;
     }
-    .tenant-aura .pwa-icon-bg {
+    :is(.tenant-aura,.tenant-latincaribe) .pwa-icon-bg {
       background: rgba(156,163,175,0.1) !important;
       border-color: rgba(156,163,175,0.2) !important;
     }
-    .tenant-aura #pwaBigInstallCard h3 { color: #18181B !important; }
-    .tenant-aura #pwaBigInstallCard p { color: #8E9399 !important; }
-    .tenant-aura #pwaBigInstallCard i.ph-caret-right { color: #9CA3AF !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #pwaBigInstallCard h3 { color: #18181B !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #pwaBigInstallCard p { color: #8E9399 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #pwaBigInstallCard i.ph-caret-right { color: #9CA3AF !important; }
     
     /* Membership Card */
-    .tenant-aura .membership-pattern { background-color: #FFFFFF !important; border-color: #D4D4D8 !important; }
-    .tenant-aura .membership-glow { background: radial-gradient(circle, rgba(156,163,175,0.15) 0%, transparent 70%) !important; }
-    .tenant-aura #membershipWatermark { color: rgba(156,163,175,0.06) !important; }
-    .tenant-aura #stampsCount { color: #18181B !important; }
-    .tenant-aura #stampsCount span { color: #8E9399 !important; }
-    .tenant-aura #shopClubName { color: #18181B !important; }
-    .tenant-aura #nextRewardName { color: #18181B !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .membership-pattern { background-color: #FFFFFF !important; border-color: #D4D4D8 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .membership-glow { background: radial-gradient(circle, rgba(156,163,175,0.15) 0%, transparent 70%) !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #membershipWatermark { color: rgba(156,163,175,0.06) !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #stampsCount { color: #18181B !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #stampsCount span { color: #8E9399 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #shopClubName { color: #18181B !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #nextRewardName { color: #18181B !important; }
     
     /* Stamps Grid */
-    .tenant-aura #stampsGrid { background-color: #F4F4F5 !important; border-color: #E4E4E7 !important; }
-    .tenant-aura .stamp-cell { background: #FFFFFF !important; border-color: #D4D4D8 !important; }
-    .tenant-aura .stamp-cell.prize-filled {
+    :is(.tenant-aura,.tenant-latincaribe) #stampsGrid { background-color: #F4F4F5 !important; border-color: #E4E4E7 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .stamp-cell { background: #FFFFFF !important; border-color: #D4D4D8 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .stamp-cell.prize-filled {
       background: rgba(156,163,175,0.1) !important;
       border-color: #9CA3AF !important;
       box-shadow: none !important;
     }
-    .tenant-aura .stamp-cell.prize-filled i { color: #00285E !important; filter: none !important; }
-    .tenant-aura #stampsBar { background: linear-gradient(90deg, #00285E, #1e3a8a) !important; box-shadow: none !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .stamp-cell.prize-filled i { color: #00285E !important; filter: none !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #stampsBar { background: linear-gradient(90deg, #00285E, #1e3a8a) !important; box-shadow: none !important; }
 
     /* Próximo Premio */
-    .tenant-aura .premio-icon { color: #00285E !important; }
-    .tenant-aura #nextRewardText { color: #18181B !important; }
-    .tenant-aura button[onclick="togglePremios()"] { background: linear-gradient(135deg, #00285E 0%, #1e3a8a 100%) !important; color: #FFFFFF !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .premio-icon { color: #00285E !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #nextRewardText { color: #18181B !important; }
+    :is(.tenant-aura,.tenant-latincaribe) button[onclick="togglePremios()"] { background: linear-gradient(135deg, #00285E 0%, #1e3a8a 100%) !important; color: #FFFFFF !important; }
 
     /* Fix Aura: la copa del Próximo Premio debe verse sobre la card clara */
-    .tenant-aura .next-reward-card > .rounded-full {
+    :is(.tenant-aura,.tenant-latincaribe) .next-reward-card > .rounded-full {
       background: rgba(0,40,94,0.06) !important;
       border-color: rgba(0,40,94,0.15) !important;
     }
-    .tenant-aura .next-reward-card .premio-icon { color: #C8A24B !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .next-reward-card .premio-icon { color: #C8A24B !important; }
 
     /* Fix Aura: la tarjeta de reseña Google tiene fondo oscuro propio,
        su título no debe heredar el negro genérico de .text-white */
-    .tenant-aura #googleReviewCard .text-white { color: #FFFFFF !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #googleReviewCard .text-white { color: #FFFFFF !important; }
     
     /* Perfil Visitas */
-    .tenant-aura #perfilVisitasCard { background-color: #FFFFFF !important; border-color: #D4D4D8 !important; }
-    .tenant-aura #perfilServicio, .tenant-aura #perfilBarbero { color: #18181B !important; }
-    .tenant-aura .h-px.bg-white\\/5 { background-color: #E4E4E7 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #perfilVisitasCard { background-color: #FFFFFF !important; border-color: #D4D4D8 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #perfilServicio, :is(.tenant-aura,.tenant-latincaribe) #perfilBarbero { color: #18181B !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .h-px.bg-white\\/5 { background-color: #E4E4E7 !important; }
     
     /* Servicios Destacados */
-    .tenant-aura .service-card {
+    :is(.tenant-aura,.tenant-latincaribe) .service-card {
       background: #FFFFFF !important;
       border: 1px solid #E4E4E7 !important;
       box-shadow: 0 2px 10px rgba(0,40,94,0.06) !important;
     }
-    .tenant-aura .service-card:hover {
+    :is(.tenant-aura,.tenant-latincaribe) .service-card:hover {
       border-color: rgba(0,40,94,0.25) !important;
       box-shadow: 0 6px 18px rgba(0,40,94,0.10) !important;
     }
     /* El overlay oscuro (pensado para tema dark) embarra la tarjeta blanca:
        lo reemplazamos por un velo claro de abajo hacia arriba para que el
        texto navy se lea nítido sobre cualquier imagen. */
-    .tenant-aura .service-card div[style*="linear-gradient(to top"] {
+    :is(.tenant-aura,.tenant-latincaribe) .service-card div[style*="linear-gradient(to top"] {
       background: linear-gradient(to top, #FFFFFF 0%, rgba(255,255,255,0.92) 38%, rgba(255,255,255,0.55) 62%, rgba(255,255,255,0) 100%) !important;
     }
-    .tenant-aura .service-card img { opacity: 1 !important; }
-    .tenant-aura .service-card [style*="color:var(--gold)"] { color: #00285E !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .service-card img { opacity: 1 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .service-card [style*="color:var(--gold)"] { color: #00285E !important; }
 
     /* Productos Tab — product cards (Lightwork) */
-    .tenant-aura #productosGrid > div {
+    :is(.tenant-aura,.tenant-latincaribe) #productosGrid > div {
       background: #FFFFFF !important;
       border-color: #E4E4E7 !important;
       box-shadow: 0 2px 8px rgba(0,0,0,0.04) !important;
     }
-    .tenant-aura #productosGrid > div:hover {
+    :is(.tenant-aura,.tenant-latincaribe) #productosGrid > div:hover {
       box-shadow: 0 4px 16px rgba(0,40,94,0.08) !important;
       border-color: rgba(0,40,94,0.2) !important;
     }
     /* Precio dorado → navy */
-    .tenant-aura #productosGrid [style*="color:#D4AF37"] { color: #00285E !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #productosGrid [style*="color:#D4AF37"] { color: #00285E !important; }
     /* "Ver detalle" badge */
-    .tenant-aura #productosGrid .border-\[\#D4AF37\]\/60 {
+    :is(.tenant-aura,.tenant-latincaribe) #productosGrid .border-\[\#D4AF37\]\/60 {
       border-color: rgba(0,40,94,0.22) !important;
       color: #00285E !important;
     }
-    .tenant-aura #productosGrid .text-\[\#D4AF37\] { color: #00285E !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #productosGrid .text-\[\#D4AF37\] { color: #00285E !important; }
     
     /* Conoce al equipo btn */
-    .tenant-aura button[onclick="abrirEquipoModal()"] {
+    :is(.tenant-aura,.tenant-latincaribe) button[onclick="abrirEquipoModal()"] {
       background: #FFFFFF !important;
       border-color: #D4D4D8 !important;
     }
-    .tenant-aura button[onclick="abrirEquipoModal()"] .text-white { color: #18181B !important; }
+    :is(.tenant-aura,.tenant-latincaribe) button[onclick="abrirEquipoModal()"] .text-white { color: #18181B !important; }
     
     /* Mi Perfil Tab */
-    .tenant-aura #profileAvatar {
+    :is(.tenant-aura,.tenant-latincaribe) #profileAvatar {
       background: #FFFFFF !important;
       border-color: #9CA3AF !important;
       box-shadow: 0 4px 12px rgba(156,163,175,0.2) !important;
     }
-    .tenant-aura #profileName { color: #18181B !important; }
-    .tenant-aura #profileVisitsCount, .tenant-aura #profileStamps { color: #18181B !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #profileName { color: #18181B !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #profileVisitsCount, :is(.tenant-aura,.tenant-latincaribe) #profileStamps { color: #18181B !important; }
     
     /* Edit Fields */
-    .tenant-aura input.w-full {
+    :is(.tenant-aura,.tenant-latincaribe) input.w-full {
       background: #FFFFFF !important;
       border-color: #D4D4D8 !important;
       color: #18181B !important;
     }
-    .tenant-aura input.w-full::placeholder { color: #A1A1AA !important; }
-    .tenant-aura input.w-full:focus {
+    :is(.tenant-aura,.tenant-latincaribe) input.w-full::placeholder { color: #A1A1AA !important; }
+    :is(.tenant-aura,.tenant-latincaribe) input.w-full:focus {
       border-color: #9CA3AF !important;
       box-shadow: 0 0 0 1px #9CA3AF !important;
     }
-    .tenant-aura input[type="date"] { color-scheme: light !important; }
-    .tenant-aura input#editEmail { background: #F4F4F5 !important; color: #52525B !important; }
+    :is(.tenant-aura,.tenant-latincaribe) input[type="date"] { color-scheme: light !important; }
+    :is(.tenant-aura,.tenant-latincaribe) input#editEmail { background: #F4F4F5 !important; color: #52525B !important; }
     
     /* Autofill overrides */
-    .tenant-aura input:-webkit-autofill,
-    .tenant-aura input:-webkit-autofill:hover,
-    .tenant-aura input:-webkit-autofill:focus {
+    :is(.tenant-aura,.tenant-latincaribe) input:-webkit-autofill,
+    :is(.tenant-aura,.tenant-latincaribe) input:-webkit-autofill:hover,
+    :is(.tenant-aura,.tenant-latincaribe) input:-webkit-autofill:focus {
       -webkit-box-shadow: 0 0 0 100px #FFFFFF inset !important;
       -webkit-text-fill-color: #18181B !important;
       caret-color: #18181B !important;
     }
     
     /* Guardar / Logout / Eliminar */
-    .tenant-aura #btnGuardarPerfil {
+    :is(.tenant-aura,.tenant-latincaribe) #btnGuardarPerfil {
       background: linear-gradient(135deg, #00285E 0%, #1e3a8a 100%) !important;
       color: #FFFFFF !important;
       border: none !important;
@@ -1819,14 +1819,14 @@
       box-shadow: 0 4px 18px rgba(0,40,94,0.2) !important;
       transition: all 0.3s ease !important;
     }
-    .tenant-aura #btnGuardarPerfil:hover {
+    :is(.tenant-aura,.tenant-latincaribe) #btnGuardarPerfil:hover {
       transform: translateY(-1px) !important;
       box-shadow: 0 6px 22px rgba(0,40,94,0.28) !important;
     }
-    .tenant-aura #btnGuardarPerfil i {
+    :is(.tenant-aura,.tenant-latincaribe) #btnGuardarPerfil i {
       color: #FFFFFF !important;
     }
-    .tenant-aura button[onclick="signOut()"] {
+    :is(.tenant-aura,.tenant-latincaribe) button[onclick="signOut()"] {
       background: #FFFFFF !important;
       border: 1px solid #D4D4D8 !important;
       color: #18181B !important;
@@ -1835,13 +1835,13 @@
       transition: all 0.2s ease !important;
       box-shadow: 0 2px 8px rgba(0,0,0,0.02) !important;
     }
-    .tenant-aura button[onclick="signOut()"]:hover {
+    :is(.tenant-aura,.tenant-latincaribe) button[onclick="signOut()"]:hover {
       border-color: #00285E !important;
       color: #00285E !important;
       box-shadow: 0 4px 12px rgba(0,40,94,0.05) !important;
       transform: translateY(-1px) !important;
     }
-    .tenant-aura button[onclick="confirmDeleteAccount()"] {
+    :is(.tenant-aura,.tenant-latincaribe) button[onclick="confirmDeleteAccount()"] {
       background: #FEF2F2 !important;
       border: 1px solid #FECACA !important;
       color: #DC2626 !important;
@@ -1849,86 +1849,86 @@
       font-weight: 700 !important;
       transition: all 0.2s ease !important;
     }
-    .tenant-aura button[onclick="confirmDeleteAccount()"]:hover {
+    :is(.tenant-aura,.tenant-latincaribe) button[onclick="confirmDeleteAccount()"]:hover {
       background: #FEE2E2 !important;
       border-color: #FCA5A5 !important;
       transform: translateY(-1px) !important;
     }
     
     /* Bottom Nav */
-    .tenant-aura nav {
+    :is(.tenant-aura,.tenant-latincaribe) nav {
       background-color: rgba(255, 255, 255, 0.98) !important;
       border-top-color: #E4E4E7 !important;
     }
-    .tenant-aura .nav-tab .nav-icon, .tenant-aura .nav-tab .nav-label { color: #8E9399 !important; }
-    .tenant-aura .nav-tab.active .nav-icon, .tenant-aura .nav-tab.active .nav-label {
+    :is(.tenant-aura,.tenant-latincaribe) .nav-tab .nav-icon, :is(.tenant-aura,.tenant-latincaribe) .nav-tab .nav-label { color: #8E9399 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .nav-tab.active .nav-icon, :is(.tenant-aura,.tenant-latincaribe) .nav-tab.active .nav-label {
       color: #9CA3AF !important;
       filter: none !important;
     }
     
     /* FAB */
-    .tenant-aura a[aria-label="Agendar Hora"] {
+    :is(.tenant-aura,.tenant-latincaribe) a[aria-label="Agendar Hora"] {
       background: #9CA3AF !important;
       box-shadow: 0 4px 16px rgba(156,163,175,0.4) !important;
     }
-    .tenant-aura a[aria-label="Agendar Hora"] i { color: #FFFFFF !important; }
+    :is(.tenant-aura,.tenant-latincaribe) a[aria-label="Agendar Hora"] i { color: #FFFFFF !important; }
     
     /* Modals */
-    .tenant-aura #reagendarCitaModal > div,
-    .tenant-aura #cancelCitaModal > div,
-    .tenant-aura #deleteModal > div,
-    .tenant-aura #canjeModal > div {
+    :is(.tenant-aura,.tenant-latincaribe) #reagendarCitaModal > div,
+    :is(.tenant-aura,.tenant-latincaribe) #cancelCitaModal > div,
+    :is(.tenant-aura,.tenant-latincaribe) #deleteModal > div,
+    :is(.tenant-aura,.tenant-latincaribe) #canjeModal > div {
       background-color: #FFFFFF !important;
       border-color: #D4D4D8 !important;
     }
-    .tenant-aura .bg-\\[\\#1a1a1f\\] { background-color: #F4F4F5 !important; border-color: #E4E4E7 !important; }
-    .tenant-aura #btnConfirmarReagendamiento,
-    .tenant-aura button[onclick="cerrarModalCanje()"] {
+    :is(.tenant-aura,.tenant-latincaribe) .bg-\\[\\#1a1a1f\\] { background-color: #F4F4F5 !important; border-color: #E4E4E7 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #btnConfirmarReagendamiento,
+    :is(.tenant-aura,.tenant-latincaribe) button[onclick="cerrarModalCanje()"] {
       background: #9CA3AF !important;
       color: #FFFFFF !important;
       box-shadow: none !important;
     }
-    .tenant-aura button[onclick="cerrarModalReagendar()"],
-    .tenant-aura button[onclick="cerrarModalCancelar()"],
-    .tenant-aura button[onclick="closeDeleteModal()"] {
+    :is(.tenant-aura,.tenant-latincaribe) button[onclick="cerrarModalReagendar()"],
+    :is(.tenant-aura,.tenant-latincaribe) button[onclick="cerrarModalCancelar()"],
+    :is(.tenant-aura,.tenant-latincaribe) button[onclick="closeDeleteModal()"] {
       background: #FFFFFF !important;
       border-color: #D4D4D8 !important;
       color: #52525B !important;
     }
     
     /* Equipo Modal */
-    .tenant-aura #equipoModal > div:nth-child(2) {
+    :is(.tenant-aura,.tenant-latincaribe) #equipoModal > div:nth-child(2) {
       background-color: #FFFFFF !important;
       border-top-color: #D4D4D8 !important;
     }
-    .tenant-aura #equipoModal h3.text-white { color: #18181B !important; }
-    .tenant-aura #equipoModal .bg-white\\/15 { background-color: #D4D4D8 !important; }
-    .tenant-aura #equipoModal .border-white\\/6 { border-color: #E4E4E7 !important; }
-    .tenant-aura button[onclick="cerrarEquipoModal()"] { background: #F4F4F5 !important; border-color: #D4D4D8 !important; }
-    .tenant-aura button[onclick="cerrarEquipoModal()"] i { color: #18181B !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #equipoModal h3.text-white { color: #18181B !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #equipoModal .bg-white\\/15 { background-color: #D4D4D8 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #equipoModal .border-white\\/6 { border-color: #E4E4E7 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) button[onclick="cerrarEquipoModal()"] { background: #F4F4F5 !important; border-color: #D4D4D8 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) button[onclick="cerrarEquipoModal()"] i { color: #18181B !important; }
 
     /* Canje modal — inline gold → sky blue */
-    .tenant-aura #canjeModal [style*="rgba(212,175,55"] {
+    :is(.tenant-aura,.tenant-latincaribe) #canjeModal [style*="rgba(212,175,55"] {
       background: rgba(156,163,175,0.10) !important;
       border-color: rgba(156,163,175,0.30) !important;
     }
-    .tenant-aura #canjeModal [style*="color:#D4AF37"] { color: #00285E !important; }
-    .tenant-aura #canjeModal #canjeModalTitle { color: #18181B !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #canjeModal [style*="color:#D4AF37"] { color: #00285E !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #canjeModal #canjeModalTitle { color: #18181B !important; }
     
     /* Cuadro de instrucciones de canje de premios (Aura) */
-    .tenant-aura #canjeModal .space-y-3 {
+    :is(.tenant-aura,.tenant-latincaribe) #canjeModal .space-y-3 {
       background-color: #F4F4F5 !important;
       border: 1px solid #E4E4E7 !important;
     }
-    .tenant-aura #canjeModal .space-y-3 p {
+    :is(.tenant-aura,.tenant-latincaribe) #canjeModal .space-y-3 p {
       color: #18181B !important;
     }
-    .tenant-aura #canjeModal .space-y-3 i {
+    :is(.tenant-aura,.tenant-latincaribe) #canjeModal .space-y-3 i {
       color: #00285E !important;
     }
     
     /* Botón "Entendido" en modal de canje (Aura Navy Premium) */
-    .tenant-aura #canjeModal button[onclick="cerrarModalCanje()"] {
+    :is(.tenant-aura,.tenant-latincaribe) #canjeModal button[onclick="cerrarModalCanje()"] {
       background: linear-gradient(135deg, #00285E 0%, #1e3a8a 100%) !important;
       color: #FFFFFF !important;
       font-weight: 700 !important;
@@ -1936,86 +1936,86 @@
     }
 
     /* Asegurar texto blanco de alto contraste en el Banner de Anuncio Navy */
-    .tenant-aura #heroBanner h3,
-    .tenant-aura #heroBanner span,
-    .tenant-aura #heroBanner p,
-    .tenant-aura #heroBanner i {
+    :is(.tenant-aura,.tenant-latincaribe) #heroBanner h3,
+    :is(.tenant-aura,.tenant-latincaribe) #heroBanner span,
+    :is(.tenant-aura,.tenant-latincaribe) #heroBanner p,
+    :is(.tenant-aura,.tenant-latincaribe) #heroBanner i {
       color: #FFFFFF !important;
     }
-    .tenant-aura #heroBanner a {
+    :is(.tenant-aura,.tenant-latincaribe) #heroBanner a {
       color: #001a40 !important;
     }
-    .tenant-aura #heroBanner a i {
+    :is(.tenant-aura,.tenant-latincaribe) #heroBanner a i {
       color: #001a40 !important;
     }
 
     /* Asegurar legibilidad extrema en la tarjeta de Próxima Cita (Aura) */
-    .tenant-aura #heroProximaCitaCard span {
+    :is(.tenant-aura,.tenant-latincaribe) #heroProximaCitaCard span {
       color: rgba(255, 255, 255, 0.95) !important;
     }
-    .tenant-aura #heroProximaCitaCard i {
+    :is(.tenant-aura,.tenant-latincaribe) #heroProximaCitaCard i {
       color: rgba(255, 255, 255, 0.8) !important;
     }
     /* Restaurar colores acentuados del diseño original para los estados e iconos */
-    .tenant-aura #heroProximaCitaCard .proxima-cita-chip {
+    :is(.tenant-aura,.tenant-latincaribe) #heroProximaCitaCard .proxima-cita-chip {
       color: #86efac !important;
       background: rgba(34, 197, 94, 0.15) !important;
       border-color: rgba(34, 197, 94, 0.28) !important;
     }
-    .tenant-aura #heroProximaCitaCard .ph-calendar-check,
-    .tenant-aura #heroProximaCitaCard .ph-calendar-blank,
-    .tenant-aura #heroProximaCitaCard .ph-calendar-dots {
+    :is(.tenant-aura,.tenant-latincaribe) #heroProximaCitaCard .ph-calendar-check,
+    :is(.tenant-aura,.tenant-latincaribe) #heroProximaCitaCard .ph-calendar-blank,
+    :is(.tenant-aura,.tenant-latincaribe) #heroProximaCitaCard .ph-calendar-dots {
       color: #93c5fd !important;
     }
-    .tenant-aura #heroProximaCitaCard .ph-map-pin {
+    :is(.tenant-aura,.tenant-latincaribe) #heroProximaCitaCard .ph-map-pin {
       color: #a7f3d0 !important;
     }
-    .tenant-aura #heroProximaCitaCard .ph-x-circle {
+    :is(.tenant-aura,.tenant-latincaribe) #heroProximaCitaCard .ph-x-circle {
       color: #f87171 !important;
     }
-    .tenant-aura #heroProximaCitaCard button[onclick*="abrirModalCancelar"] span {
+    :is(.tenant-aura,.tenant-latincaribe) #heroProximaCitaCard button[onclick*="abrirModalCancelar"] span {
       color: #f87171 !important;
     }
 
     /* ── Aura: Premios + Legal ───────────────────────────────────── */
 
     /* Próximo Premio card */
-    .tenant-aura [data-aura-stagger].mx-4.mb-5.rounded-2xl {
+    :is(.tenant-aura,.tenant-latincaribe) [data-aura-stagger].mx-4.mb-5.rounded-2xl {
       background: #FFFFFF !important;
       border-color: #D4D4D8 !important;
     }
     /* Trophy icon bg inside próximo premio */
-    .tenant-aura .mx-4.mb-5.rounded-2xl .rounded-full.bg-\[#1a1a1a\] {
+    :is(.tenant-aura,.tenant-latincaribe) .mx-4.mb-5.rounded-2xl .rounded-full.bg-\[#1a1a1a\] {
       background: rgba(156,163,175,0.08) !important;
       border-color: rgba(156,163,175,0.20) !important;
     }
 
     /* premiosList rows (JS-generated, bg-[#111115]) */
-    .tenant-aura #premiosList > div {
+    :is(.tenant-aura,.tenant-latincaribe) #premiosList > div {
       background: #FFFFFF !important;
       border-color: #D4D4D8 !important;
     }
-    .tenant-aura #premiosList > div:hover { border-color: rgba(156,163,175,0.40) !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #premiosList > div:hover { border-color: rgba(156,163,175,0.40) !important; }
     /* Separador w-px bg-white/10 */
-    .tenant-aura #premiosList .w-px { background-color: #D4D4D8 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #premiosList .w-px { background-color: #D4D4D8 !important; }
     /* Número de sellos */
-    .tenant-aura #premiosList span.text-white { color: #00285E !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #premiosList span.text-white { color: #00285E !important; }
     /* "Sellos" label text-white/30 */
-    .tenant-aura #premiosList .text-white\/30 { color: #8E9399 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #premiosList .text-white\/30 { color: #8E9399 !important; }
     /* Nombre premio */
-    .tenant-aura #premiosList p.text-white { color: #18181B !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #premiosList p.text-white { color: #18181B !important; }
     /* Flecha text-white/20 */
-    .tenant-aura #premiosList .text-white\/20 { color: #D4D4D8 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #premiosList .text-white\/20 { color: #D4D4D8 !important; }
     /* Spinner skeleton */
-    .tenant-aura #premiosSection .animate-spin {
+    :is(.tenant-aura,.tenant-latincaribe) #premiosSection .animate-spin {
       border-color: #D4D4D8 !important;
       border-top-color: #9CA3AF !important;
     }
 
     /* Legal heading */
-    .tenant-aura #tabProfile h3.text-white\/30 { color: #8E9399 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #tabProfile h3.text-white\/30 { color: #8E9399 !important; }
     /* Legal links */
-    .tenant-aura #tabProfile a[href="privacidad.html"] {
+    :is(.tenant-aura,.tenant-latincaribe) #tabProfile a[href="privacidad.html"] {
       background: #FFFFFF !important;
       border: 1px solid #E4E4E7 !important;
       border-radius: 16px !important;
@@ -2023,204 +2023,204 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.02) !important;
       transition: all 0.2s ease !important;
     }
-    .tenant-aura #tabProfile a[href="privacidad.html"]:hover {
+    :is(.tenant-aura,.tenant-latincaribe) #tabProfile a[href="privacidad.html"]:hover {
       border-color: rgba(0,40,94,0.18) !important;
       box-shadow: 0 4px 14px rgba(0,40,94,0.05) !important;
       transform: translateY(-1px) !important;
     }
-    .tenant-aura #tabProfile a[href="privacidad.html"] span {
+    :is(.tenant-aura,.tenant-latincaribe) #tabProfile a[href="privacidad.html"] span {
       color: #18181B !important;
       font-weight: 700 !important;
     }
-    .tenant-aura #tabProfile a[href="privacidad.html"] i.ph-fill {
+    :is(.tenant-aura,.tenant-latincaribe) #tabProfile a[href="privacidad.html"] i.ph-fill {
       color: #00285E !important;
       font-size: 18px !important;
     }
-    .tenant-aura #tabProfile a[href="privacidad.html"] i.ph-bold {
+    :is(.tenant-aura,.tenant-latincaribe) #tabProfile a[href="privacidad.html"] i.ph-bold {
       color: #9CA3AF !important;
     }
 
     /* Global missing utility overrides */
-    .tenant-aura .bg-white\/10  { background-color: rgba(156,163,175,0.08) !important; }
-    .tenant-aura .text-white\/20 { color: rgba(24,24,27,0.25) !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .bg-white\/10  { background-color: rgba(156,163,175,0.08) !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .text-white\/20 { color: rgba(24,24,27,0.25) !important; }
 
     /* ── Aura: remaining dark artifact fixes ─────────────────────── */
 
     /* bg-gray-900 (productoModal) */
-    .tenant-aura .bg-gray-900 { background-color: #FFFFFF !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .bg-gray-900 { background-color: #FFFFFF !important; }
 
     /* bg-[#0d0d10] (product cards, googleReviewModal content) */
-    .tenant-aura .bg-\[#0d0d10\] { background-color: #FFFFFF !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .bg-\[#0d0d10\] { background-color: #FFFFFF !important; }
 
     /* bg-gray-800 / bg-gray-700 (camera upload button) */
-    .tenant-aura .bg-gray-800 { background-color: #FFFFFF !important; }
-    .tenant-aura .bg-gray-700 { background-color: #F4F4F5 !important; }
-    .tenant-aura .border-gray-600 { border-color: #D4D4D8 !important; }
-    .tenant-aura .border-gray-700 { border-color: #D4D4D8 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .bg-gray-800 { background-color: #FFFFFF !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .bg-gray-700 { background-color: #F4F4F5 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .border-gray-600 { border-color: #D4D4D8 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .border-gray-700 { border-color: #D4D4D8 !important; }
 
     /* Profile — Rango stat card (inline dark gradient) */
-    .tenant-aura [style*="#18181b"] {
+    :is(.tenant-aura,.tenant-latincaribe) [style*="#18181b"] {
       background: #F4F4F5 !important;
     }
 
     /* Modal backdrops — bg-[#050505]/85 etc. are distinct Tailwind classes; target by ID */
-    .tenant-aura #reagendarCitaModal,
-    .tenant-aura #cancelCitaModal,
-    .tenant-aura #deleteModal,
-    .tenant-aura #canjeModal {
+    :is(.tenant-aura,.tenant-latincaribe) #reagendarCitaModal,
+    :is(.tenant-aura,.tenant-latincaribe) #cancelCitaModal,
+    :is(.tenant-aura,.tenant-latincaribe) #deleteModal,
+    :is(.tenant-aura,.tenant-latincaribe) #canjeModal {
       background: rgba(0,40,94,0.45) !important;
       backdrop-filter: blur(6px) !important;
     }
-    .tenant-aura #equipoModal > div:first-child {
+    :is(.tenant-aura,.tenant-latincaribe) #equipoModal > div:first-child {
       background: rgba(0,40,94,0.45) !important;
     }
 
     /* Lookbook viewer */
-    .tenant-aura #lookbookViewer {
+    :is(.tenant-aura,.tenant-latincaribe) #lookbookViewer {
       background: rgba(0,40,94,0.88) !important;
     }
 
     /* Lookbook close button (bg-black/70) */
-    .tenant-aura #lookbookViewer > button {
+    :is(.tenant-aura,.tenant-latincaribe) #lookbookViewer > button {
       background: rgba(255,255,255,0.15) !important;
       color: #FFFFFF !important;
     }
 
     /* Cross-sell banner in history tab (JS inline dark gradient) */
-    .tenant-aura [style*="linear-gradient(to right,#111115"] {
+    :is(.tenant-aura,.tenant-latincaribe) [style*="linear-gradient(to right,#111115"] {
       background: linear-gradient(to right, rgba(156,163,175,0.08), rgba(156,163,175,0.03)) !important;
       border-color: rgba(156,163,175,0.28) !important;
     }
-    .tenant-aura [style*="linear-gradient(to right,#111115"] p[style*="rgba(212,175,55"] {
+    :is(.tenant-aura,.tenant-latincaribe) [style*="linear-gradient(to right,#111115"] p[style*="rgba(212,175,55"] {
       color: #9CA3AF !important;
     }
-    .tenant-aura [style*="linear-gradient(to right,#111115"] p.text-gray-300 { color: #52525B !important; }
-    .tenant-aura [style*="linear-gradient(to right,#111115"] button[style*="background:#D4AF37"] {
+    :is(.tenant-aura,.tenant-latincaribe) [style*="linear-gradient(to right,#111115"] p.text-gray-300 { color: #52525B !important; }
+    :is(.tenant-aura,.tenant-latincaribe) [style*="linear-gradient(to right,#111115"] button[style*="background:#D4AF37"] {
       background: #9CA3AF !important;
       color: #FFFFFF !important;
     }
 
     /* PWA Banner (inline style on element itself) */
-    .tenant-aura #pwaBanner {
+    :is(.tenant-aura,.tenant-latincaribe) #pwaBanner {
       background: #FFFFFF !important;
       box-shadow: 0 4px 20px rgba(156,163,175,0.15) !important;
     }
-    .tenant-aura #pwaBanner p { color: #18181B !important; }
-    .tenant-aura #pwaBanner button[style*="rgba(255,255,255,0.05)"] {
+    :is(.tenant-aura,.tenant-latincaribe) #pwaBanner p { color: #18181B !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #pwaBanner button[style*="rgba(255,255,255,0.05)"] {
       background: rgba(156,163,175,0.08) !important;
     }
 
     /* Chat toggle button */
-    .tenant-aura #chatToggleBtn { background: linear-gradient(135deg, #00285E 0%, #1e3a8a 100%) !important; }
-    .tenant-aura #chatToggleBtn svg { fill: #FFFFFF !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #chatToggleBtn { background: linear-gradient(135deg, #00285E 0%, #1e3a8a 100%) !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #chatToggleBtn svg { fill: #FFFFFF !important; }
 
     /* Chat popover */
-    .tenant-aura #chatPopover {
+    :is(.tenant-aura,.tenant-latincaribe) #chatPopover {
       background: #FFFFFF !important;
       border-color: #D4D4D8 !important;
     }
-    .tenant-aura #chatPopover [style*="background:#000"] {
+    :is(.tenant-aura,.tenant-latincaribe) #chatPopover [style*="background:#000"] {
       background: #F4F4F5 !important;
       border-color: #E4E4E7 !important;
     }
-    .tenant-aura #chatHeaderNombre { color: #18181B !important; }
-    .tenant-aura #chatMessages [style*="background:#1f2937"] {
+    :is(.tenant-aura,.tenant-latincaribe) #chatHeaderNombre { color: #18181B !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #chatMessages [style*="background:#1f2937"] {
       background: #EFF4F8 !important;
       color: #18181B !important;
     }
-    .tenant-aura #chatMessages [style*="background:#D4AF37"] {
+    :is(.tenant-aura,.tenant-latincaribe) #chatMessages [style*="background:#D4AF37"] {
       background: #9CA3AF !important;
       color: #FFFFFF !important;
     }
-    .tenant-aura #chatInput {
+    :is(.tenant-aura,.tenant-latincaribe) #chatInput {
       background: #FFFFFF !important;
       border-color: #D4D4D8 !important;
       color: #18181B !important;
     }
-    .tenant-aura #chatInput::placeholder { color: #A1A1AA !important; }
-    .tenant-aura button[onclick="sendChatMessage()"] { background: linear-gradient(135deg, #00285E 0%, #1e3a8a 100%) !important; }
-    .tenant-aura button[onclick="sendChatMessage()"] svg { fill: #FFFFFF !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #chatInput::placeholder { color: #A1A1AA !important; }
+    :is(.tenant-aura,.tenant-latincaribe) button[onclick="sendChatMessage()"] { background: linear-gradient(135deg, #00285E 0%, #1e3a8a 100%) !important; }
+    :is(.tenant-aura,.tenant-latincaribe) button[onclick="sendChatMessage()"] svg { fill: #FFFFFF !important; }
 
     /* Producto modal */
-    .tenant-aura #productoModal { background: rgba(0,28,68,0.55) !important; }
-    .tenant-aura #productoModal > div {
+    :is(.tenant-aura,.tenant-latincaribe) #productoModal { background: rgba(0,28,68,0.55) !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #productoModal > div {
       background: #FFFFFF !important;
       border: 1px solid #E4E4E7 !important;
       box-shadow: 0 24px 48px rgba(0,0,0,0.12) !important;
     }
-    .tenant-aura #productoModal button.bg-black\/60 {
+    :is(.tenant-aura,.tenant-latincaribe) #productoModal button.bg-black\/60 {
       background: rgba(24,24,27,0.07) !important;
       border: 1px solid #E4E4E7 !important;
     }
-    .tenant-aura #productoModal button.bg-black\/60 i { color: #52525B !important; }
-    .tenant-aura #productoModalNombre { color: #18181B !important; }
-    .tenant-aura #productoModalDesc { color: #52525B !important; }
-    .tenant-aura #productoModalPrecio { color: #00285E !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #productoModal button.bg-black\/60 i { color: #52525B !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #productoModalNombre { color: #18181B !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #productoModalDesc { color: #52525B !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #productoModalPrecio { color: #00285E !important; }
     /* Botón agregar al carrito en modal de producto */
-    .tenant-aura #productoModal .bg-\[\#D4AF37\],
-    .tenant-aura #productoModal [style*="background:#D4AF37"],
-    .tenant-aura #productoModal [style*="background: #D4AF37"] {
+    :is(.tenant-aura,.tenant-latincaribe) #productoModal .bg-\[\#D4AF37\],
+    :is(.tenant-aura,.tenant-latincaribe) #productoModal [style*="background:#D4AF37"],
+    :is(.tenant-aura,.tenant-latincaribe) #productoModal [style*="background: #D4AF37"] {
       background: linear-gradient(135deg, #00285E 0%, #1e3a8a 100%) !important;
       box-shadow: 0 4px 14px rgba(0,40,94,0.25) !important;
     }
 
     /* PWA iOS modal */
-    .tenant-aura #pwaModalIOS { background: rgba(0,40,94,0.50) !important; }
-    .tenant-aura #pwaModalIOS > div {
+    :is(.tenant-aura,.tenant-latincaribe) #pwaModalIOS { background: rgba(0,40,94,0.50) !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #pwaModalIOS > div {
       background: #FFFFFF !important;
       border-color: rgba(156,163,175,0.25) !important;
     }
-    .tenant-aura #pwaModalIOS h3 { color: #18181B !important; }
-    .tenant-aura #pwaModalIOS p  { color: #52525B !important; }
-    .tenant-aura #pwaModalIOS strong { color: #18181B !important; }
-    .tenant-aura #pwaModalIOS [style*="rgba(255,255,255,0.05)"] {
+    :is(.tenant-aura,.tenant-latincaribe) #pwaModalIOS h3 { color: #18181B !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #pwaModalIOS p  { color: #52525B !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #pwaModalIOS strong { color: #18181B !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #pwaModalIOS [style*="rgba(255,255,255,0.05)"] {
       background: rgba(156,163,175,0.06) !important;
     }
-    .tenant-aura #pwaModalIOS > div > button {
+    :is(.tenant-aura,.tenant-latincaribe) #pwaModalIOS > div > button {
       color: #8E9399 !important;
       border-color: #D4D4D8 !important;
     }
 
     /* Google Review modal */
-    .tenant-aura #googleReviewModal { background: rgba(0,40,94,0.50) !important; }
-    .tenant-aura #googleReviewModal > div {
+    :is(.tenant-aura,.tenant-latincaribe) #googleReviewModal { background: rgba(0,40,94,0.50) !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #googleReviewModal > div {
       background: #FFFFFF !important;
       border-color: #D4D4D8 !important;
     }
-    .tenant-aura #googleReviewModal [style*="rgba(201,168,76"] { background: rgba(156,163,175,0.05) !important; }
-    .tenant-aura #googleReviewModal .text-white { color: #18181B !important; }
-    .tenant-aura #googleReviewModal p { color: #52525B !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #googleReviewModal [style*="rgba(201,168,76"] { background: rgba(156,163,175,0.05) !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #googleReviewModal .text-white { color: #18181B !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #googleReviewModal p { color: #52525B !important; }
 
     /* ── AURA PROFILE TAB ("MI PERFIL") PREMIUM REDESIGN ── */
     
     /* Stats Cards: Rango, Visitas, Sellos en Mi Perfil */
-    .tenant-aura #tabProfile .flex-1.bg-zinc-900,
-    .tenant-aura #tabProfile [style*="#18181b"] {
+    :is(.tenant-aura,.tenant-latincaribe) #tabProfile .flex-1.bg-zinc-900,
+    :is(.tenant-aura,.tenant-latincaribe) #tabProfile [style*="#18181b"] {
       background: #FFFFFF !important;
       border: 1px solid #E4E4E7 !important;
       border-radius: 16px !important;
       box-shadow: 0 4px 14px rgba(0,40,94,0.03) !important;
       transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
     }
-    .tenant-aura #tabProfile .flex-1.bg-zinc-900:hover,
-    .tenant-aura #tabProfile [style*="#18181b"]:hover {
+    :is(.tenant-aura,.tenant-latincaribe) #tabProfile .flex-1.bg-zinc-900:hover,
+    :is(.tenant-aura,.tenant-latincaribe) #tabProfile [style*="#18181b"]:hover {
       transform: translateY(-2px) !important;
       box-shadow: 0 8px 24px rgba(0,40,94,0.07) !important;
       border-color: rgba(0,40,94,0.18) !important;
     }
-    .tenant-aura #profileTierBadge {
+    :is(.tenant-aura,.tenant-latincaribe) #profileTierBadge {
       color: #00285E !important;
       font-weight: 900 !important;
     }
-    .tenant-aura #profileVisitsCount {
+    :is(.tenant-aura,.tenant-latincaribe) #profileVisitsCount {
       color: #00285E !important;
       font-weight: 900 !important;
     }
-    .tenant-aura #profileStamps {
+    :is(.tenant-aura,.tenant-latincaribe) #profileStamps {
       color: #8E9399 !important;
       font-weight: 900 !important;
     }
-    .tenant-aura #tabProfile .text-zinc-500 {
+    :is(.tenant-aura,.tenant-latincaribe) #tabProfile .text-zinc-500 {
       color: #9CA3AF !important;
       font-size: 8px !important;
       font-weight: 800 !important;
@@ -2228,7 +2228,7 @@
     }
     
     /* Encabezados de Sección del Perfil (Mis Citas, Mi Cuenta, etc.) */
-    .tenant-aura #tabProfile h3 {
+    :is(.tenant-aura,.tenant-latincaribe) #tabProfile h3 {
       color: #00285E !important;
       font-size: 11px !important;
       font-weight: 800 !important;
@@ -2240,13 +2240,13 @@
     }
     
     /* Inputs y Campos de Texto de Cuenta */
-    .tenant-aura #tabProfile label {
+    :is(.tenant-aura,.tenant-latincaribe) #tabProfile label {
       color: #52525B !important;
       font-weight: 700 !important;
       font-size: 9px !important;
       letter-spacing: 0.08em !important;
     }
-    .tenant-aura #tabProfile input {
+    :is(.tenant-aura,.tenant-latincaribe) #tabProfile input {
       background: #FFFFFF !important;
       border: 1px solid #D4D4D8 !important;
       border-radius: 12px !important;
@@ -2255,43 +2255,43 @@
       font-size: 14px !important;
       transition: all 0.2s ease !important;
     }
-    .tenant-aura #tabProfile input:focus {
+    :is(.tenant-aura,.tenant-latincaribe) #tabProfile input:focus {
       border-color: #00285E !important;
       box-shadow: 0 0 0 3px rgba(0,40,94,0.08) !important;
     }
-    .tenant-aura #tabProfile input[readonly] {
+    :is(.tenant-aura,.tenant-latincaribe) #tabProfile input[readonly] {
       background: #F4F4F5 !important;
       color: #71717A !important;
       border-color: #E4E4E7 !important;
     }
-    .tenant-aura #nacimientoLockMsg {
+    :is(.tenant-aura,.tenant-latincaribe) #nacimientoLockMsg {
       color: #9CA3AF !important;
       font-size: 10px !important;
       font-weight: 600 !important;
     }
 
     /* Tarjeta de Próxima Cita Activa en Mi Perfil (Gris → Navy Oscuro Premium) */
-    .tenant-aura #profileCitasContent [style*="linear-gradient(135deg,rgba(201,168,76"] {
+    :is(.tenant-aura,.tenant-latincaribe) #profileCitasContent [style*="linear-gradient(135deg,rgba(201,168,76"] {
       background: linear-gradient(150deg, #0a1628 0%, #0d1f3c 60%, #001433 100%) !important;
       border: 1px solid rgba(255,255,255,0.08) !important;
       border-radius: 24px !important;
       box-shadow: 0 16px 36px rgba(0,20,60,0.2) !important;
     }
-    .tenant-aura #profileCitasContent [style*="linear-gradient(135deg,rgba(201,168,76"] p[style*="color:var(--gold)"] {
+    :is(.tenant-aura,.tenant-latincaribe) #profileCitasContent [style*="linear-gradient(135deg,rgba(201,168,76"] p[style*="color:var(--gold)"] {
       color: #93c5fd !important;
       font-weight: 800 !important;
     }
-    .tenant-aura #profileCitasContent [style*="linear-gradient(135deg,rgba(201,168,76"] .text-white {
+    :is(.tenant-aura,.tenant-latincaribe) #profileCitasContent [style*="linear-gradient(135deg,rgba(201,168,76"] .text-white {
       color: #FFFFFF !important;
     }
-    .tenant-aura #profileCitasContent [style*="linear-gradient(135deg,rgba(201,168,76"] p {
+    :is(.tenant-aura,.tenant-latincaribe) #profileCitasContent [style*="linear-gradient(135deg,rgba(201,168,76"] p {
       color: rgba(255, 255, 255, 0.7) !important;
     }
-    .tenant-aura #profileCitasContent [style*="linear-gradient(135deg,rgba(201,168,76"] .text-sm {
+    :is(.tenant-aura,.tenant-latincaribe) #profileCitasContent [style*="linear-gradient(135deg,rgba(201,168,76"] .text-sm {
       color: #FFFFFF !important;
       font-weight: 900 !important;
     }
-    .tenant-aura #profileCitasContent [style*="linear-gradient(135deg,rgba(201,168,76"] .proxima-estado-chip {
+    :is(.tenant-aura,.tenant-latincaribe) #profileCitasContent [style*="linear-gradient(135deg,rgba(201,168,76"] .proxima-estado-chip {
       background: rgba(34, 197, 94, 0.15) !important;
       color: #86efac !important;
       border: 1px solid rgba(34, 197, 94, 0.28) !important;
@@ -2299,43 +2299,43 @@
       padding: 3px 10px !important;
       font-weight: 700 !important;
     }
-    .tenant-aura #profileCitasContent .reagendar-proxima-btn {
+    :is(.tenant-aura,.tenant-latincaribe) #profileCitasContent .reagendar-proxima-btn {
       background: rgba(255, 255, 255, 0.06) !important;
       border: 1px solid rgba(255, 255, 255, 0.1) !important;
       color: #93c5fd !important;
       border-radius: 12px !important;
     }
-    .tenant-aura #profileCitasContent .reagendar-proxima-btn:hover {
+    :is(.tenant-aura,.tenant-latincaribe) #profileCitasContent .reagendar-proxima-btn:hover {
       background: rgba(255, 255, 255, 0.12) !important;
     }
-    .tenant-aura #profileCitasContent button[onclick*="abrirModalCancelar"] {
+    :is(.tenant-aura,.tenant-latincaribe) #profileCitasContent button[onclick*="abrirModalCancelar"] {
       background: rgba(239, 68, 68, 0.08) !important;
       border: 1px solid rgba(239, 68, 68, 0.2) !important;
       color: #f87171 !important;
       border-radius: 12px !important;
     }
-    .tenant-aura #profileCitasContent button[onclick*="abrirModalCancelar"]:hover {
+    :is(.tenant-aura,.tenant-latincaribe) #profileCitasContent button[onclick*="abrirModalCancelar"]:hover {
       background: rgba(239, 68, 68, 0.15) !important;
     }
 
     /* Grid de Estadísticas de Citas (Total, Próximas, Completadas) */
-    .tenant-aura #profileCitasContent .grid-cols-3 > div {
+    :is(.tenant-aura,.tenant-latincaribe) #profileCitasContent .grid-cols-3 > div {
       background: #FFFFFF !important;
       border: 1px solid #E4E4E7 !important;
       border-radius: 16px !important;
       box-shadow: 0 4px 12px rgba(0,40,94,0.03) !important;
       transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
     }
-    .tenant-aura #profileCitasContent .grid-cols-3 > div:hover {
+    :is(.tenant-aura,.tenant-latincaribe) #profileCitasContent .grid-cols-3 > div:hover {
       transform: translateY(-2px) !important;
       box-shadow: 0 8px 20px rgba(0,40,94,0.06) !important;
       border-color: rgba(0,40,94,0.15) !important;
     }
-    .tenant-aura #profileCitasContent .grid-cols-3 p.text-2xl {
+    :is(.tenant-aura,.tenant-latincaribe) #profileCitasContent .grid-cols-3 p.text-2xl {
       color: #00285E !important;
       font-weight: 900 !important;
     }
-    .tenant-aura #profileCitasContent .grid-cols-3 p.text-\[9px\] {
+    :is(.tenant-aura,.tenant-latincaribe) #profileCitasContent .grid-cols-3 p.text-\[9px\] {
       color: #9CA3AF !important;
       font-weight: 800 !important;
       font-size: 8px !important;
@@ -2343,7 +2343,7 @@
     }
 
     /* Filas del Historial de Citas Pasadas */
-    .tenant-aura #profileCitasContent .space-y-2 > div {
+    :is(.tenant-aura,.tenant-latincaribe) #profileCitasContent .space-y-2 > div {
       background: #FFFFFF !important;
       border: 1px solid #E4E4E7 !important;
       border-radius: 14px !important;
@@ -2351,52 +2351,52 @@
       padding: 12px 16px !important;
       transition: all 0.2s ease !important;
     }
-    .tenant-aura #profileCitasContent .space-y-2 > div:hover {
+    :is(.tenant-aura,.tenant-latincaribe) #profileCitasContent .space-y-2 > div:hover {
       border-color: rgba(0,40,94,0.18) !important;
       box-shadow: 0 4px 12px rgba(0,40,94,0.05) !important;
     }
-    .tenant-aura #profileCitasContent .space-y-2 p.text-sm {
+    :is(.tenant-aura,.tenant-latincaribe) #profileCitasContent .space-y-2 p.text-sm {
       color: #18181B !important;
       font-weight: 700 !important;
     }
-    .tenant-aura #profileCitasContent .space-y-2 p.text-xs {
+    :is(.tenant-aura,.tenant-latincaribe) #profileCitasContent .space-y-2 p.text-xs {
       color: #8E9399 !important;
     }
-    .tenant-aura #profileCitasContent .space-y-2 i.ph-fill {
+    :is(.tenant-aura,.tenant-latincaribe) #profileCitasContent .space-y-2 i.ph-fill {
       font-size: 20px !important;
     }
-    .tenant-aura #profileCitasContent .space-y-2 .cita-estado-completada {
+    :is(.tenant-aura,.tenant-latincaribe) #profileCitasContent .space-y-2 .cita-estado-completada {
       background: rgba(34, 197, 94, 0.1) !important;
       color: #22c55e !important;
       border-radius: 8px !important;
       font-weight: 700 !important;
     }
-    .tenant-aura #profileCitasContent .space-y-2 .cita-estado-cancelada {
+    :is(.tenant-aura,.tenant-latincaribe) #profileCitasContent .space-y-2 .cita-estado-cancelada {
       background: rgba(239, 68, 68, 0.1) !important;
       color: #ef4444 !important;
       border-radius: 8px !important;
       font-weight: 700 !important;
     }
-    .tenant-aura #profileCitasContent .space-y-2 .cita-estado-pendiente {
+    :is(.tenant-aura,.tenant-latincaribe) #profileCitasContent .space-y-2 .cita-estado-pendiente {
       background: rgba(59, 130, 246, 0.1) !important;
       color: #3b82f6 !important;
       border-radius: 8px !important;
       font-weight: 700 !important;
     }
-    .tenant-aura #profileCitasContent .space-y-2 .reagendar-hist-btn {
+    :is(.tenant-aura,.tenant-latincaribe) #profileCitasContent .space-y-2 .reagendar-hist-btn {
       color: #00285E !important;
       background: rgba(0, 40, 94, 0.05) !important;
       border-radius: 8px !important;
     }
-    .tenant-aura #profileCitasContent .space-y-2 .reagendar-hist-btn:hover {
+    :is(.tenant-aura,.tenant-latincaribe) #profileCitasContent .space-y-2 .reagendar-hist-btn:hover {
       background: rgba(0, 40, 94, 0.1) !important;
     }
-    .tenant-aura #profileCitasContent .space-y-2 button[onclick*="abrirModalCancelar"] {
+    :is(.tenant-aura,.tenant-latincaribe) #profileCitasContent .space-y-2 button[onclick*="abrirModalCancelar"] {
       color: #ef4444 !important;
       background: rgba(239, 68, 68, 0.05) !important;
       border-radius: 8px !important;
     }
-    .tenant-aura #profileCitasContent .space-y-2 button[onclick*="abrirModalCancelar"]:hover {
+    :is(.tenant-aura,.tenant-latincaribe) #profileCitasContent .space-y-2 button[onclick*="abrirModalCancelar"]:hover {
       background: rgba(239, 68, 68, 0.1) !important;
     }
 
@@ -3005,7 +3005,7 @@
     }
 
     /* Aura Glassmorphism light mode override */
-    .tenant-aura .membership-pattern, .tenant-aura .next-reward-card {
+    :is(.tenant-aura,.tenant-latincaribe) .membership-pattern, :is(.tenant-aura,.tenant-latincaribe) .next-reward-card {
       backdrop-filter: blur(16px) saturate(140%) !important;
       background-color: rgba(255, 255, 255, 0.8) !important;
       border: 1.5px solid rgba(0, 0, 0, 0.08) !important;
@@ -3038,7 +3038,7 @@
     }
 
     /* Light mode shimmer correction */
-    .tenant-aura .membership-pattern::after {
+    :is(.tenant-aura,.tenant-latincaribe) .membership-pattern::after {
       background: linear-gradient(
         115deg,
         rgba(255, 255, 255, 0) 0%,
@@ -3088,7 +3088,7 @@
     .stamp-cell:active {
       transform: scale(0.92) rotate(-2deg);
     }
-    .tenant-aura .stamp-cell:hover {
+    :is(.tenant-aura,.tenant-latincaribe) .stamp-cell:hover {
       box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
     }
 
@@ -3130,8 +3130,8 @@
       border-color: var(--gold) !important;
       box-shadow: 0 0 0 1px var(--gold), 0 6px 18px rgba(0,0,0,0.18);
     }
-    .tenant-aura #profileBenefits .tier-row { background: #FFFFFF !important; border-color: #E4E4E7 !important; }
-    .tenant-aura .tier-badge.silver {
+    :is(.tenant-aura,.tenant-latincaribe) #profileBenefits .tier-row { background: #FFFFFF !important; border-color: #E4E4E7 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .tier-badge.silver {
       color: #475569 !important;
       border-color: rgba(71,85,105,0.25) !important;
       background: linear-gradient(135deg, rgba(71,85,105,0.10) 0%, rgba(71,85,105,0.02) 100%) !important;
@@ -3350,6 +3350,43 @@
     .tenant-omegastudio .tier-badge.platinum {
       color: #e8d5ff !important;
       border-color: rgba(216,180,254,0.35) !important;
+    }
+
+    /* ═══ THE LATIN CARIBE — dashboard: banner propio + paleta del logo ═══ */
+    /* Acento de marca (cian) en vez del navy heredado de Aura */
+    .tenant-latincaribe {
+      --gold:      #0FA0A8;
+      --gold-dim:  rgba(15,160,168,0.12);
+      --gold-glow: rgba(53,221,230,0.18);
+    }
+    /* Banner: la imagen se pinta en ::before (Ken Burns) → ahí va la foto del local */
+    .tenant-latincaribe .hero-bg::before {
+      background-image: url('/thelatin/image.webp') !important;
+      background-position: center !important;
+    }
+    /* Overlay oscuro neutro (en vez del azul marino de Aura) */
+    .tenant-latincaribe .hero-overlay {
+      background: linear-gradient(to top, rgba(10,10,12,0.92) 0%, rgba(10,10,12,0.30) 100%) !important;
+    }
+    .tenant-latincaribe .hero-glow-spot {
+      background: radial-gradient(circle, rgba(53,221,230,0.22) 0%, transparent 65%) !important;
+    }
+    /* Segunda línea de la frase en cian de marca */
+    .tenant-latincaribe #heroLine2 { color: #35DDE6 !important; }
+    /* CTA "Reservar mi cita": texto/ícono y borde en cian de marca */
+    .tenant-latincaribe .hero-cta { border-color: rgba(15,160,168,0.45) !important; }
+    .tenant-latincaribe .hero-cta i,
+    .tenant-latincaribe .hero-cta span { color: #0B8A91 !important; }
+    /* Acentos navy → cian de marca */
+    .tenant-latincaribe #shopClubName  { color: #0B8A91 !important; }
+    .tenant-latincaribe #shopHeaderSub { color: rgba(11,138,145,0.6) !important; }
+    /* Sellos: celda llena oscura para lucir la bola de billar + barra cian→rosa */
+    .tenant-latincaribe .stamp-cell.filled {
+      background: #0a0a0e !important; border-color: #0a0a0e !important;
+      box-shadow: 0 0 8px rgba(53,221,230,0.40) !important;
+    }
+    .tenant-latincaribe #stampsBar {
+      background: linear-gradient(90deg, #35DDE6, #F35BA6) !important;
     }
   </style>
 
@@ -5113,6 +5150,8 @@ function renderStamps(count, historicos) {
         cell.innerHTML = `<i class="ph-fill ph-gift text-lg"></i>`;
       } else if (tid === 'aura') {
         cell.innerHTML = `<i class="ph-fill ph-basketball text-lg"></i>`;
+      } else if (tid === 'latincaribe') {
+        cell.innerHTML = `<span style="font-size:18px;line-height:1;">🎱</span>`;
       } else {
         cell.innerHTML = `<i class="ph-fill ph-scissors text-lg text-black"></i>`;
       }
@@ -7093,7 +7132,7 @@ function renderAuraMembresiaPlanesModal(planes) {
 }
 
 function initAuraAnimations() {
-  if (!document.documentElement.classList.contains('tenant-aura')) return;
+  if ((!document.documentElement.classList.contains('tenant-aura') && !document.documentElement.classList.contains('tenant-latincaribe'))) return;
   const els = document.querySelectorAll('[data-aura-stagger]');
   els.forEach((el, i) => {
     el.classList.add('aura-animate', `aura-d${Math.min(i, 4)}`);
@@ -7122,7 +7161,7 @@ function initAuraAnimations() {
 }
 
 function auraCountUp(targetNum, totalTarget) {
-  if (!document.documentElement.classList.contains('tenant-aura') || targetNum === 0) return;
+  if ((!document.documentElement.classList.contains('tenant-aura') && !document.documentElement.classList.contains('tenant-latincaribe')) || targetNum === 0) return;
   const el = document.getElementById('stampsCount');
   if (!el) return;
   const duration = 800;
@@ -8253,6 +8292,17 @@ function auraCountUp(targetNum, totalTarget) {
         showToast('¡Invitación copiada al portapapeles!', 'ok');
       } catch (_) {}
     }
+  </script>
+
+  <!-- The Latin Caribe — frase propia del hero del dashboard -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      if ((window.CURRENT_TENANT_ID || '') !== 'latincaribe') return;
+      var l1 = document.getElementById('heroLine1');
+      var l2 = document.getElementById('heroLine2');
+      if (l1) l1.innerHTML = 'Más que<br>un corte.';
+      if (l2) l2.textContent = 'Una experiencia.';
+    });
   </script>
 </body>
 </html>

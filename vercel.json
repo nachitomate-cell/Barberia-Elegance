@@ -72,6 +72,8 @@
     { "source": "/favicon.ico", "has": [{ "type": "host", "value": "aurasalon.synaptechspa.cl" }],        "destination": "/aura.png" },
     { "source": "/favicon.ico", "has": [{ "type": "host", "value": "aurasalonmalegrooming.synaptech.cl" }], "destination": "/aura.png" },
     { "source": "/favicon.ico", "has": [{ "type": "host", "value": "aurasalonmalegrooming.synaptechspa.cl" }],"destination": "/aura.png" },
+    { "source": "/favicon.ico", "has": [{ "type": "host", "value": "latincaribe.synaptechspa.cl" }],        "destination": "/latincaribe.png" },
+    { "source": "/favicon.ico", "has": [{ "type": "host", "value": "thelatincaribe.synaptechspa.cl" }],     "destination": "/latincaribe.png" },
     { "source": "/favicon.ico", "has": [{ "type": "host", "value": "chameleonbarber.synaptechspa.cl" }],    "destination": "/local3.jpg" },
     { "source": "/favicon.ico", "has": [{ "type": "host", "value": "barberiaferraza.synaptechspa.cl" }],    "destination": "/ferraza.png" },
     { "source": "/favicon.ico", "has": [{ "type": "host", "value": "ferrazabarber.synaptechspa.cl" }],     "destination": "/ferraza.png" },

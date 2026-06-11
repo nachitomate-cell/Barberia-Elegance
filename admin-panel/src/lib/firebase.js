@@ -1,6 +1,6 @@
 import { initializeApp, getApps } from 'firebase/app';
 import { initializeAuth, getAuth, indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { initializeFirestore, getFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
@@ -28,5 +28,17 @@ try {
 }
 export const auth = _auth;
 
-export const db      = getFirestore(app);
+// Cache local persistente (IndexedDB): las recargas y la navegación entre vistas
+// dentro de la sesión se sirven del cache → muchas menos lecturas a Firestore.
+// persistentMultipleTabManager: permite varias pestañas del panel a la vez.
+let _db;
+try {
+  _db = initializeFirestore(app, {
+    localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+  });
+} catch {
+  // Ya inicializado (HMR / doble import) o entorno sin IndexedDB → instancia normal.
+  _db = getFirestore(app);
+}
+export const db      = _db;
 export const storage = getStorage(app);

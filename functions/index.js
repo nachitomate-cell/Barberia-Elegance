@@ -624,6 +624,12 @@ const cumpleanos = require('./cumpleanos');
 exports.selloCumpleanos = cumpleanos.selloCumpleanos;
 
 // ─────────────────────────────────────────────────────────────────
+//  AGREGADOS DE CLIENTES — ver stats-aggregate.js (reduce lecturas)
+// ─────────────────────────────────────────────────────────────────
+const statsAggregate = require('./stats-aggregate');
+exports.agregarStatsClientes = statsAggregate.agregarStatsClientes;
+
+// ─────────────────────────────────────────────────────────────────
 //  RECORDATORIO DE CITA 24H — ver recordatorio-cita.js para detalles
 // ─────────────────────────────────────────────────────────────────
 const recordatorioCita = require('./recordatorio-cita');

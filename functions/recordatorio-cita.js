@@ -125,6 +125,18 @@ const TENANT_CONFIG = {
     from:        'AURA SALÓN & MALE GROOMING <citas@synaptechspa.cl>',
     dashboardUrl:'https://aurasalon.synaptechspa.cl/dashboard',
   },
+  latincaribe: {
+    nombre:      'The Latin Caribe',
+    slogan:      'Más que un corte, una experiencia.',
+    direccion:   'Manuel Rodríguez 299, Copiapó',
+    horario:     'Lun–Sáb: 11:00–21:00 · Dom: 12:00–20:00',
+    color:       '#35DDE6',
+    darkHeader:  true,
+    instagram:   '',
+    whatsapp:    '',
+    from:        'The Latin Caribe <citas@synaptechspa.cl>',
+    dashboardUrl:'https://latincaribe.synaptechspa.cl/dashboard',
+  },
   machos: {
     nombre:      "Macho´s Barbershop",
     slogan:      'Calidad y Asesoría Profesional',

@@ -1,13 +1,13 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getDocs, query, where } from 'firebase/firestore';
+import { getDocs, getDoc, query, where } from 'firebase/firestore';
 import {
   Users, TrendingDown, DollarSign, BarChart3, RefreshCcw,
   CalendarCheck, UserPlus, ClipboardList, Cake, MessageCircle,
   ArrowUpRight, ArrowDownRight, Sparkles, Clock, ExternalLink,
 } from 'lucide-react';
 import { ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { tenantCol } from '../lib/tenantUtils';
+import { tenantCol, tenantDoc } from '../lib/tenantUtils';
 import { useTenant } from '../contexts/TenantContext';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -114,6 +114,7 @@ export default function Inicio() {
   const [citas,     setCitas]     = useState([]);
   const [servicios, setServicios] = useState([]);
   const [clientes,  setClientes]  = useState([]);
+  const [aggStats,  setAggStats]  = useState(null);   // resumen precalculado (_stats/resumen)
   const [gastos,    setGastos]    = useState([]);
   const [ventas,    setVentas]    = useState([]);
   const [loading,   setLoading]   = useState(true);
@@ -125,20 +126,30 @@ export default function Inicio() {
   const fetchData = useCallback(async () => {
     setFetching(true);
     try {
-      const [citasSnap, servSnap, cliSnap, gastosSnap, ventasSnap] = await Promise.all([
+      // Resumen precalculado por la Cloud Function (1 lectura). Si existe, evitamos
+      // traer toda la colección de clientes (~700 lecturas) para los KPIs de clientes.
+      let stats = null;
+      try {
+        const statsSnap = await getDoc(tenantDoc('_stats', 'resumen'));
+        if (statsSnap.exists()) stats = statsSnap.data();
+      } catch { /* sin stats → fallback al fetch completo */ }
+      setAggStats(stats);
+
+      const tasks = [
         getDocs(query(tenantCol('citas'), where('fecha', '>=', mesPrev.first))),
         getDocs(tenantCol('servicios')),
-        // 'users' = colección canónica de clientes (igual que la vista Clientes). La antigua
-        // 'clientes' (por teléfono) NO recibe las actualizaciones de cumpleaños/sellos → quedaba desfasada.
-        getDocs(tenantCol('users')),
         getDocs(tenantCol('gastos')),
         getDocs(tenantCol('product_reservations')),
-      ]);
+      ];
+      // Fallback: solo traemos clientes si NO hay stats agregados todavía.
+      if (!stats) tasks.push(getDocs(tenantCol('users')));
+
+      const [citasSnap, servSnap, gastosSnap, ventasSnap, cliSnap] = await Promise.all(tasks);
       setCitas(citasSnap.docs.map(d => ({ id: d.id, ...d.data() })));
       setServicios(servSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-      setClientes(cliSnap.docs.map(d => ({ id: d.id, ...d.data() })));
       setGastos(gastosSnap.docs.map(d => ({ id: d.id, ...d.data() })));
       setVentas(ventasSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setClientes(cliSnap ? cliSnap.docs.map(d => ({ id: d.id, ...d.data() })) : []);
     } catch (e) {
       console.error('Inicio fetchData:', e);
     } finally {
@@ -199,11 +210,12 @@ export default function Inicio() {
 
   /* ── Nuevos clientes este mes (si hay timestamp de registro) ── */
   const nuevosMes = useMemo(() => {
+    if (aggStats) return aggStats.nuevosMes || 0;
     return clientes.filter(c => {
       const d = parseDateStr(c.creadoEn || c.createdAt || c.fechaRegistro || c.fechaRegistroOriginal);
       return d >= mesActual.first && d <= mesActual.last;
     }).length;
-  }, [clientes, mesActual]);
+  }, [aggStats, clientes, mesActual]);
 
   /* ── Últimas visitas (completadas más recientes) ── */
   const ultimasVisitas = useMemo(() =>
@@ -233,7 +245,18 @@ export default function Inicio() {
 
   /* ── Fidelización del Club (solo socios registrados; excluye migrados de AgendaPro) ── */
   const fidelizacion = useMemo(() => {
-    // Migrado/legacy de AgendaPro (nunca se unió al Club): uid === id. Mismo criterio que la vista Clientes.
+    // Resumen precalculado (1 lectura) en vez de recalcular sobre todos los clientes.
+    if (aggStats) {
+      const total = aggStats.registrados || 0;
+      const con   = aggStats.conSellos   || 0;
+      const sin   = aggStats.sinSellos ?? Math.max(0, total - con);
+      return {
+        data: [{ name: 'Con sellos', value: con }, { name: 'Sin sellos', value: sin }],
+        con, sin, total,
+        pct: total ? Math.round((con / total) * 100) : 0,
+      };
+    }
+    // Fallback: cálculo legacy-aware desde la colección completa.
     const isLegacy = c => !!c?.uid && c?.uid === c?.id;
     const registrados = clientes.filter(c => !isLegacy(c));
     const sellos = c => c.sellosHistoricos ?? c.stamps ?? 0;
@@ -244,10 +267,11 @@ export default function Inicio() {
       con, sin, total: registrados.length,
       pct: registrados.length ? Math.round((con / registrados.length) * 100) : 0,
     };
-  }, [clientes]);
+  }, [aggStats, clientes]);
 
   /* ── Cumpleaños del mes ── */
   const cumpleaneros = useMemo(() => {
+    if (aggStats) return (aggStats.cumpleanerosMes || []).map(c => ({ ...c, _dia: c.dia || 99 }));
     const mm = String(new Date().getMonth() + 1).padStart(2, '0');
     return clientes
       .filter(c => {
@@ -261,7 +285,7 @@ export default function Inicio() {
         return { ...c, _dia: Number(dia) || 99 };
       })
       .sort((a, b) => a._dia - b._dia);
-  }, [clientes]);
+  }, [aggStats, clientes]);
 
   const cumpleWaUrl = useCallback((c) => {
     const raw = (c.telefono || '').replace(/\D/g, '');
@@ -309,7 +333,7 @@ export default function Inicio() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <KpiCard
           Icon={Users} color="pink" label="Total clientes"
-          value={clientes.length.toLocaleString('es-CL')}
+          value={(aggStats ? aggStats.totalClientes : clientes.length).toLocaleString('es-CL')}
           sub={`${nuevosMes} nuevo${nuevosMes !== 1 ? 's' : ''} este mes`}
         />
         {isAdmin ? (

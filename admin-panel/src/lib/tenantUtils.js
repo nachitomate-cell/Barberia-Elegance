@@ -17,6 +17,8 @@ const DOMAIN_MAP = {
   'aurasalon.synaptechspa.cl':         'aura',
   'aurasalonmalegrooming.synaptech.cl':'aura',
   'aurasalonmalegrooming.synaptechspa.cl':'aura',
+  'latincaribe.synaptechspa.cl':       'latincaribe',
+  'thelatincaribe.synaptechspa.cl':    'latincaribe',
   'machos.synaptechspa.cl':            'machos',
   'infinity.synaptechspa.cl':          'infinity',
   'sionbarberia.synaptechspa.cl':      'sionbarberia',

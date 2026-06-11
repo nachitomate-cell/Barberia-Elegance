@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <script>!function(){var m={'marcelopalma.synaptechspa.cl':'/marcelo1.png','marcelohairdressing.synaptechspa.cl':'/marcelo1.png','marcelo-hairdressing.synaptechspa.cl':'/marcelo1.png','aurasalon.synaptechspa.cl':'/aura.png','aurasalonmalegrooming.synaptech.cl':'/aura.png','aurasalonmalegrooming.synaptechspa.cl':'/aura.png'};var s=m[location.hostname]||'/favicon.ico';var l=document.createElement('link');l.rel='icon';l.href=s;if(s!='/favicon.ico')l.type='image/png';document.head.appendChild(l);}();</script>
+  <script>!function(){var m={'marcelopalma.synaptechspa.cl':'/marcelo1.png','marcelohairdressing.synaptechspa.cl':'/marcelo1.png','marcelo-hairdressing.synaptechspa.cl':'/marcelo1.png','aurasalon.synaptechspa.cl':'/aura.png','aurasalonmalegrooming.synaptech.cl':'/aura.png','aurasalonmalegrooming.synaptechspa.cl':'/aura.png','latincaribe.synaptechspa.cl':'/latincaribe.png','thelatincaribe.synaptechspa.cl':'/latincaribe.png'};var s=m[location.hostname]||'/favicon.ico';var l=document.createElement('link');l.rel='icon';l.href=s;if(s!='/favicon.ico')l.type='image/png';document.head.appendChild(l);}();</script>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
@@ -710,146 +710,146 @@
     /* ────────────────────────────────────────────────────────── */
 
     /* ── Aura Salon & Male Grooming — Premium Monochromatic Light Mode ── */
-    .tenant-aura {
+    :is(.tenant-aura,.tenant-latincaribe) {
       --gold:     #111827; /* gray-900 */
       --gold-dim: rgba(17, 24, 39, 0.08);
     }
-    html.tenant-aura body,
-    .tenant-aura body {
+    html:is(.tenant-aura,.tenant-latincaribe) body,
+    :is(.tenant-aura,.tenant-latincaribe) body {
       background-color: #F9FAFB !important;
       color: #111827 !important;
     }
     /* Logo & Glow */
-    .tenant-aura .ambient-glow {
+    :is(.tenant-aura,.tenant-latincaribe) .ambient-glow {
       background: radial-gradient(circle, rgba(17, 24, 39, 0.02) 0%, transparent 65%);
     }
-    .tenant-aura .logo-ring {
+    :is(.tenant-aura,.tenant-latincaribe) .logo-ring {
       border: 2px solid #E5E7EB !important;
       box-shadow: 0 0 20px rgba(17, 24, 39, 0.05), 0 0 0 1px rgba(229, 231, 235, 0.15) !important;
     }
-    .tenant-aura .gold-divider {
+    :is(.tenant-aura,.tenant-latincaribe) .gold-divider {
       background: linear-gradient(90deg, transparent, #111827, transparent) !important;
     }
     /* Textos */
-    .tenant-aura #heroClubTitle {
+    :is(.tenant-aura,.tenant-latincaribe) #heroClubTitle {
       font-family: 'Plus Jakarta Sans', sans-serif !important;
       font-style: normal !important;
       font-weight: 700 !important;
       color: #111827 !important; /* text-gray-900 */
     }
-    .tenant-aura #heroClubSub { color: #6B7280 !important; }
-    .tenant-aura .sep-ornamental-gem { color: #9CA3AF !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #heroClubSub { color: #6B7280 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .sep-ornamental-gem { color: #9CA3AF !important; }
     /* Tabs */
-    .tenant-aura .tab-btn { color: #9CA3AF !important; border-bottom-color: transparent !important; }
-    .tenant-aura .tab-btn.active { color: #111827 !important; border-bottom-color: #111827 !important; }
-    .tenant-aura .border-b { border-color: #E5E7EB !important; }
-    .tenant-aura .border-b.border-white\/\\[0\.07\\] { border-color: #E5E7EB !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .tab-btn { color: #9CA3AF !important; border-bottom-color: transparent !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .tab-btn.active { color: #111827 !important; border-bottom-color: #111827 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .border-b { border-color: #E5E7EB !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .border-b.border-white\/\\[0\.07\\] { border-color: #E5E7EB !important; }
     /* Inputs */
-    .tenant-aura .field {
+    :is(.tenant-aura,.tenant-latincaribe) .field {
       background: #FFFFFF !important;
       border: 1px solid #D1D5DB !important;
       color: #111827 !important;
       border-radius: 14px !important;
     }
-    .tenant-aura .field::placeholder { color: #9CA3AF !important; }
-    .tenant-aura .field:focus {
+    :is(.tenant-aura,.tenant-latincaribe) .field::placeholder { color: #9CA3AF !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .field:focus {
       border-color: #111827 !important;
       box-shadow: 0 0 0 2px rgba(17, 24, 39, 0.1) !important;
     }
-    .tenant-aura input:-webkit-autofill,
-    .tenant-aura input:-webkit-autofill:hover,
-    .tenant-aura input:-webkit-autofill:focus {
+    :is(.tenant-aura,.tenant-latincaribe) input:-webkit-autofill,
+    :is(.tenant-aura,.tenant-latincaribe) input:-webkit-autofill:hover,
+    :is(.tenant-aura,.tenant-latincaribe) input:-webkit-autofill:focus {
       -webkit-box-shadow: 0 0 0 100px #FFFFFF inset !important;
       -webkit-text-fill-color: #111827 !important;
       caret-color: #111827 !important;
     }
-    .tenant-aura input[type="date"] { color-scheme: light !important; }
+    :is(.tenant-aura,.tenant-latincaribe) input[type="date"] { color-scheme: light !important; }
     /* Botón Formulario Sólido Oscuro ("Crear Cuenta") */
-    .tenant-aura .btn-primary {
+    :is(.tenant-aura,.tenant-latincaribe) .btn-primary {
       background: #111827 !important;
       border-color: #111827 !important;
       color: #FFFFFF !important;
       box-shadow: 0 4px 16px rgba(17, 24, 39, 0.08) !important;
     }
-    .tenant-aura .btn-primary:hover {
+    :is(.tenant-aura,.tenant-latincaribe) .btn-primary:hover {
       background: #1F2937 !important;
       border-color: #1F2937 !important;
     }
     /* Botón Google */
-    .tenant-aura .btn-google {
+    :is(.tenant-aura,.tenant-latincaribe) .btn-google {
       background: #FFFFFF !important;
       border-color: #D1D5DB !important;
       color: #111827 !important;
     }
-    .tenant-aura .btn-google:hover {
+    :is(.tenant-aura,.tenant-latincaribe) .btn-google:hover {
       background: #F9FAFB !important;
       border-color: #111827 !important;
     }
     /* Otros elementos */
-    .tenant-aura .eye-toggle { color: #9CA3AF !important; }
-    .tenant-aura .eye-toggle:hover { color: #111827 !important; }
-    .tenant-aura .spinner {
+    :is(.tenant-aura,.tenant-latincaribe) .eye-toggle { color: #9CA3AF !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .eye-toggle:hover { color: #111827 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .spinner {
       border-color: rgba(17, 24, 39, 0.1) !important;
       border-top-color: #111827 !important;
     }
-    .tenant-aura .text-gray-600 { color: #6B7280 !important; }
-    .tenant-aura .text-gray-600:hover { color: #111827 !important; }
-    .tenant-aura .border-gray-700 { border-color: #E5E7EB !important; }
-    .tenant-aura span.mx-4.text-gray-500 { color: #6B7280 !important; }
-    .tenant-aura .text-gray-400 { color: #4B5563 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .text-gray-600 { color: #6B7280 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .text-gray-600:hover { color: #111827 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .border-gray-700 { border-color: #E5E7EB !important; }
+    :is(.tenant-aura,.tenant-latincaribe) span.mx-4.text-gray-500 { color: #6B7280 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .text-gray-400 { color: #4B5563 !important; }
     /* Overlay */
-    .tenant-aura #loadingOverlay {
+    :is(.tenant-aura,.tenant-latincaribe) #loadingOverlay {
       background: rgba(249, 250, 251, 0.88) !important;
     }
-    .tenant-aura #loadingOverlay span { color: #111827 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #loadingOverlay span { color: #111827 !important; }
     /* Panel Deluxe -> Aura adaptations */
-    .tenant-aura #deluxe-member-panel p.text-white { color: #111827 !important; }
-    .tenant-aura #deluxe-member-panel .bg-white\/5,
-    .tenant-aura #deluxe-member-panel .bg-white\\/5 {
+    :is(.tenant-aura,.tenant-latincaribe) #deluxe-member-panel p.text-white { color: #111827 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #deluxe-member-panel .bg-white\/5,
+    :is(.tenant-aura,.tenant-latincaribe) #deluxe-member-panel .bg-white\\/5 {
       background: rgba(17, 24, 39, 0.02) !important;
       border-color: #E5E7EB !important;
     }
-    .tenant-aura .w-12.h-12.bg-white\/5,
-    .tenant-aura .w-12.h-12.bg-white\\/5 {
+    :is(.tenant-aura,.tenant-latincaribe) .w-12.h-12.bg-white\/5,
+    :is(.tenant-aura,.tenant-latincaribe) .w-12.h-12.bg-white\\/5 {
       background: rgba(17, 24, 39, 0.04) !important;
       border-color: rgba(17, 24, 39, 0.1) !important;
     }
-    .tenant-aura .w-12.h-12 i.text-white\/60 { color: #111827 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .w-12.h-12 i.text-white\/60 { color: #111827 !important; }
     /* Generic helpers */
-    .tenant-aura .bg-white\/5,
-    .tenant-aura .bg-white\\/5 {
+    :is(.tenant-aura,.tenant-latincaribe) .bg-white\/5,
+    :is(.tenant-aura,.tenant-latincaribe) .bg-white\\/5 {
       background-color: rgba(17, 24, 39, 0.04) !important;
     }
-    .tenant-aura .border-white\/10,
-    .tenant-aura .border-white\\/10 {
+    :is(.tenant-aura,.tenant-latincaribe) .border-white\/10,
+    :is(.tenant-aura,.tenant-latincaribe) .border-white\\/10 {
       border-color: #E5E7EB !important;
     }
     /* Alert banner — light mode */
-    .tenant-aura #alertBanner[class*="bg-red"] {
+    :is(.tenant-aura,.tenant-latincaribe) #alertBanner[class*="bg-red"] {
       background: #FEF2F2 !important;
       border-color: #FCA5A5 !important;
       color: #991B1B !important;
     }
-    .tenant-aura #alertBanner[class*="bg-emerald"] {
+    :is(.tenant-aura,.tenant-latincaribe) #alertBanner[class*="bg-emerald"] {
       background: #F0FDF4 !important;
       border-color: #86EFAC !important;
       color: #166534 !important;
     }
     /* Button Escape Outline for Aura */
-    .tenant-aura .btn-cta-reserva {
+    :is(.tenant-aura,.tenant-latincaribe) .btn-cta-reserva {
       background: transparent !important;
       border: 2px solid #111827 !important;
       color: #111827 !important;
       box-shadow: none !important;
     }
-    .tenant-aura .btn-cta-reserva:hover {
+    :is(.tenant-aura,.tenant-latincaribe) .btn-cta-reserva:hover {
       background: rgba(17, 24, 39, 0.05) !important;
       color: #111827 !important;
     }
     /* Ocultar campos de contraseña y botón de recuperar para tenants passwordless (Aura, D'Jones, Kronnos) */
-    .tenant-aura #panelLogin .relative,
-    .tenant-aura #panelRegister .relative,
-    .tenant-aura button[onclick="switchTab('reset')"],
+    :is(.tenant-aura,.tenant-latincaribe) #panelLogin .relative,
+    :is(.tenant-aura,.tenant-latincaribe) #panelRegister .relative,
+    :is(.tenant-aura,.tenant-latincaribe) button[onclick="switchTab('reset')"],
     .tenant-lumen #panelLogin .relative,
     .tenant-lumen #panelRegister .relative,
     .tenant-lumen button[onclick="switchTab('reset')"],
@@ -865,12 +865,12 @@
       display: none !important;
     }
     /* Mostrar campos de contraseña en Aura y Lumen si hay fallback de contraseña custom */
-    html.tenant-aura body.show-password-fallback #panelLogin .relative,
-    html.tenant-aura body.show-password-fallback button[onclick="switchTab('reset')"],
+    html:is(.tenant-aura,.tenant-latincaribe) body.show-password-fallback #panelLogin .relative,
+    html:is(.tenant-aura,.tenant-latincaribe) body.show-password-fallback button[onclick="switchTab('reset')"],
     html.tenant-lumen body.show-password-fallback #panelLogin .relative,
     html.tenant-lumen body.show-password-fallback button[onclick="switchTab('reset')"],
-    .tenant-aura.show-password-fallback #panelLogin .relative,
-    .tenant-aura.show-password-fallback button[onclick="switchTab('reset')"],
+    :is(.tenant-aura,.tenant-latincaribe).show-password-fallback #panelLogin .relative,
+    :is(.tenant-aura,.tenant-latincaribe).show-password-fallback button[onclick="switchTab('reset')"],
     .tenant-lumen.show-password-fallback #panelLogin .relative,
     .tenant-lumen.show-password-fallback button[onclick="switchTab('reset')"],
     .show-password-fallback #panelLogin .relative,
@@ -886,21 +886,21 @@
       from { opacity: 0; transform: translateY(18px); }
       to   { opacity: 1; transform: translateY(0); }
     }
-    .tenant-aura #shopLogo {
+    :is(.tenant-aura,.tenant-latincaribe) #shopLogo {
       animation: aura-reg-logo 0.55s cubic-bezier(0.16,1,0.3,1) forwards;
     }
-    .tenant-aura .gold-divider,
-    .tenant-aura .sep-ornamental,
-    .tenant-aura #heroClubTitle,
-    .tenant-aura #heroClubSub {
+    :is(.tenant-aura,.tenant-latincaribe) .gold-divider,
+    :is(.tenant-aura,.tenant-latincaribe) .sep-ornamental,
+    :is(.tenant-aura,.tenant-latincaribe) #heroClubTitle,
+    :is(.tenant-aura,.tenant-latincaribe) #heroClubSub {
       opacity: 0;
       animation: aura-reg-fade-up 0.55s cubic-bezier(0.16,1,0.3,1) forwards;
     }
-    .tenant-aura .gold-divider   { animation-delay: 0.12s; }
-    .tenant-aura .sep-ornamental { animation-delay: 0.20s; }
-    .tenant-aura #heroClubTitle  { animation-delay: 0.28s; }
-    .tenant-aura #heroClubSub    { animation-delay: 0.36s; }
-    .tenant-aura #auth-forms {
+    :is(.tenant-aura,.tenant-latincaribe) .gold-divider   { animation-delay: 0.12s; }
+    :is(.tenant-aura,.tenant-latincaribe) .sep-ornamental { animation-delay: 0.20s; }
+    :is(.tenant-aura,.tenant-latincaribe) #heroClubTitle  { animation-delay: 0.28s; }
+    :is(.tenant-aura,.tenant-latincaribe) #heroClubSub    { animation-delay: 0.36s; }
+    :is(.tenant-aura,.tenant-latincaribe) #auth-forms {
       opacity: 0;
       animation: aura-reg-fade-up 0.55s cubic-bezier(0.16,1,0.3,1) 0.44s forwards;
     }

@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { getDocs, query, where } from 'firebase/firestore';
+import { getDocs, getDoc, query, where } from 'firebase/firestore';
 import {
   TrendingUp, CalendarCheck, XCircle, DollarSign,
   ShoppingBag, RefreshCcw, Activity, Crown, Star, User, Sparkles,
@@ -12,7 +12,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
   ResponsiveContainer, PieChart, Pie, Cell, AreaChart, Area,
 } from 'recharts';
-import { tenantCol } from '../lib/tenantUtils';
+import { tenantCol, tenantDoc } from '../lib/tenantUtils';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 import AIWatermark from '../components/ui/AIWatermark';
 import { useAuth } from '../contexts/AuthContext';
@@ -269,6 +269,7 @@ export default function Metricas() {
   const [citas,     setCitas]     = useState([]);
   const [servicios, setServicios] = useState([]);
   const [clientes,  setClientes]  = useState([]);
+  const [aggStats,  setAggStats]  = useState(null);   // resumen precalculado (_stats/resumen)
   const [ventas,    setVentas]    = useState([]);
   const [gastos,    setGastos]    = useState([]);
   const [barberos,  setBarberos]  = useState([]);
@@ -314,20 +315,30 @@ export default function Metricas() {
       const prevR = getPrevRange(fechaInicio, fechaFin);
       const candidates = [fechaInicio, SIX_MONTHS_AGO, prevR.inicio];
       const queryStart = candidates.sort()[0];
-      const [citasSnap, serviciosSnap, clientesSnap, ventasSnap, gastosSnap, barberosSnap, productosSnap] = await Promise.all([
+
+      // Resumen precalculado (1 lectura). Si existe, no traemos toda la colección de clientes
+      // (que solo se usa para la retención de sellos legacy-aware).
+      let stats = null;
+      try {
+        const statsSnap = await getDoc(tenantDoc('_stats', 'resumen'));
+        if (statsSnap.exists()) stats = statsSnap.data();
+      } catch { /* sin stats → fallback */ }
+      setAggStats(stats);
+
+      const tasks = [
         getDocs(query(tenantCol('citas'), where('fecha', '>=', queryStart))),
         getDocs(tenantCol('servicios')),
-        // 'users' = colección canónica de clientes (igual que la vista Clientes y el Inicio).
-        // La antigua 'clientes' no recibe actualizaciones de sellos → retención desfasada.
-        getDocs(tenantCol('users')),
         getDocs(tenantCol('product_reservations')),
         getDocs(tenantCol('gastos')),
         getDocs(tenantCol('barberos')),
         getDocs(tenantCol('productos')),
-      ]);
+      ];
+      if (!stats) tasks.push(getDocs(tenantCol('users')));
+
+      const [citasSnap, serviciosSnap, ventasSnap, gastosSnap, barberosSnap, productosSnap, clientesSnap] = await Promise.all(tasks);
       setCitas(citasSnap.docs.map(d => ({ id: d.id, ...d.data() })));
       setServicios(serviciosSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-      setClientes(clientesSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      setClientes(clientesSnap ? clientesSnap.docs.map(d => ({ id: d.id, ...d.data() })) : []);
       setVentas(ventasSnap.docs.map(d => ({ id: d.id, ...d.data() })));
       setGastos(gastosSnap.docs.map(d => ({ id: d.id, ...d.data() })));
       setBarberos(barberosSnap.docs.map(d => ({ id: d.id, ...d.data() })).filter(b => !b._mainDocId));
@@ -510,7 +521,19 @@ export default function Metricas() {
 
   // Retención de sellos del Club (solo socios registrados; excluye migrados de AgendaPro)
   const retention = useMemo(() => {
-    // Migrado/legacy de AgendaPro (nunca se unió al Club): uid === id. Mismo criterio que Clientes/Inicio.
+    // Resumen precalculado (1 lectura) si está disponible.
+    if (aggStats) {
+      const total = aggStats.registrados || 0;
+      if (!total) return null;
+      const conSellos = aggStats.conSellos || 0;
+      const sinSellos = aggStats.sinSellos ?? Math.max(0, total - conSellos);
+      return {
+        data: [{ name: 'Con sellos', value: conSellos }, { name: 'Sin sellos', value: sinSellos }],
+        pct: Math.round((conSellos / total) * 100),
+        conSellos, sinSellos, total,
+      };
+    }
+    // Fallback: cálculo legacy-aware desde la colección completa.
     const isLegacy = c => !!c?.uid && c?.uid === c?.id;
     const registrados = clientes.filter(c => !isLegacy(c));
     if (!registrados.length) return null;
@@ -526,7 +549,7 @@ export default function Metricas() {
       sinSellos,
       total:     registrados.length,
     };
-  }, [clientes]);
+  }, [aggStats, clientes]);
 
   // AI Insights Engine
   const aiInsights = useMemo(() => {
