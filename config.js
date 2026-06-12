@@ -35,6 +35,8 @@
     'barberiasion.synaptechspa.cl':       'sionbarberia',
     'omegastudio.synaptechspa.cl':        'omegastudio',
     'alfamen.synaptechspa.cl':            'alfamen',
+    'yugenstudio.synaptechspa.cl':        'yugen',
+    'yugen.synaptechspa.cl':              'yugen',
     'sandbox.synaptechspa.cl':            'sandbox',
     'kronnospenablanca.synaptechspa.cl':  'kronnos_penablanca',
     'kronnos-penablanca.synaptechspa.cl': 'kronnos_penablanca',
@@ -630,6 +632,33 @@
         { nombre: 'Martín de los Santos', foto: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop', disponible: true },
         { nombre: 'Matías Méndez', foto: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop', disponible: true },
         { nombre: 'Heitor Barber', foto: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=150&h=150&fit=crop', disponible: true },
+      ],
+    },
+    // ── YŪGEN STUDIO — estudio dark/zen (negro · madera · greige · dorado) ──
+    // Acceso: ?local=yugen  o  yugenstudio.synaptechspa.cl
+    // ⚠️ Pendiente del cliente: logo, dirección, teléfono, Instagram, servicios+precios.
+    yugen: {
+      categoriasServicio: ['Barbería', 'Promociones', 'Colorimetría y Tratamientos'],
+      nombre:          'Yūgen Studio',
+      nombreCorto:     'Yūgen',
+      pageTitle:       'Yūgen Studio | Agenda tu hora',
+      bodyBg:          '#0b0a09',
+      slogan:          'La profundidad que no se explica, se experimenta',
+      sobreNosotros:   'Yūgen (幽玄) es un término japonés que habla de una belleza profunda, misteriosa e inefable, que no se puede describir con palabras, pero que se siente.<br><br>Es aquello que va más allá de lo evidente, donde la simplicidad esconde significado y el silencio revela emociones. En Yūgen Studio, cada detalle está diseñado para que vivas esa profundidad.',
+      logo:            '/yugen/yugen.jpg',
+      direccion:       '',
+      horario:         '🕒 Lun–Vie: 10:00–19:00 · Sáb: 10:00–18:00 · Dom: 10:00–14:00',
+      telefono:        '',
+      club:            'Club Yūgen',
+      instagram:       '',
+      instagramHandle: '',
+      waEmoji:         '☯',
+      googleReviewUrl: '',
+      ratingGeneral:   0,
+      totalReviews:    0,
+      reviews:         [],
+      barberos: [
+        { nombre: 'Yūgen', foto: null, disponible: true },
       ],
     },
   };

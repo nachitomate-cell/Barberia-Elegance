@@ -162,6 +162,20 @@ const TENANT_CONFIG = {
     from:        'Kronnos Woman <citas@synaptechspa.cl>',
     dashboardUrl:'https://kronnoswoman.synaptechspa.cl/dashboard',
   },
+  yugen: {
+    nombre:      'Yūgen Studio',
+    slogan:      'La profundidad que no se explica, se experimenta',
+    direccion:   '',
+    horario:     'Lun–Vie: 10:00–19:00 · Sáb: 10:00–18:00 · Dom: 10:00–14:00',
+    color:       '#d8d3ca',   // marfil/greige (acento)
+    darkHeader:  true,
+    headerBg:    '#0b0a09',    // negro cálido (identidad Yūgen)
+    intro:       'Hola {nombre}, tu espacio en Yūgen Studio está reservado. Te invitamos a desconectar del exterior y reconectarte contigo mismo. Te esperamos.',
+    instagram:   '',
+    whatsapp:    '',
+    from:        'Yūgen Studio <citas@synaptechspa.cl>',
+    dashboardUrl:'https://yugenstudio.synaptechspa.cl/dashboard',
+  },
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -220,7 +234,7 @@ function buildEmailHtml({ cfg, cita, cancelUrl }) {
 
         <!-- Header con color del tenant -->
         <tr>
-          <td style="background:${cfg.darkHeader ? '#030f1a' : cfg.color};padding:32px 36px 28px;${cfg.darkHeader ? `border-bottom:2px solid ${cfg.color};` : ''}">
+          <td style="background:${cfg.headerBg || (cfg.darkHeader ? '#030f1a' : cfg.color)};padding:32px 36px 28px;${cfg.darkHeader ? `border-bottom:2px solid ${cfg.color};` : ''}">
             <p style="margin:0 0 4px;font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:${cfg.darkHeader ? cfg.color : 'rgba(0,0,0,0.55)'};">${cfg.nombre}</p>
             <h1 style="margin:0;font-size:26px;font-weight:900;color:${cfg.darkHeader ? '#f1f5f9' : '#000'};letter-spacing:-0.5px;">¡Tu cita está confirmada!</h1>
             ${cfg.slogan ? `<p style="margin:8px 0 0;font-size:12px;letter-spacing:2px;font-style:italic;color:${cfg.darkHeader ? cfg.color + 'bb' : 'rgba(0,0,0,0.4)'};">${cfg.slogan}</p>` : ''}
@@ -231,7 +245,9 @@ function buildEmailHtml({ cfg, cita, cancelUrl }) {
         <tr>
           <td style="padding:28px 36px 0;">
             <p style="margin:0;font-size:15px;color:#cccccc;line-height:1.6;">
-              Hola <strong style="color:#fff;">${nombre}</strong>, tu reserva en <strong style="color:#fff;">${cfg.nombre}</strong> ha sido registrada exitosamente. Te esperamos.
+              ${cfg.intro
+                ? cfg.intro.replace('{nombre}', `<strong style="color:#fff;">${nombre}</strong>`)
+                : `Hola <strong style="color:#fff;">${nombre}</strong>, tu reserva en <strong style="color:#fff;">${cfg.nombre}</strong> ha sido registrada exitosamente. Te esperamos.`}
             </p>
           </td>
         </tr>

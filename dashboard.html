@@ -593,6 +593,117 @@
     .tenant-kronnos_woman      { --gold:#ec4899; --gold-dim:rgba(236,72,153,0.35); --gold-glow:rgba(236,72,153,0.18); }
     .tenant-kronnos_woman .hero-bg { background-image:url('/kronnos/kronoswoman.png'); background-position:center 30%; }
 
+    /* ══════════ YŪGEN STUDIO — Dark zen · marfil monocromático ══════════ */
+    .tenant-yugen {
+      --gold:      #f5f3ef;            /* marfil (como el logo) */
+      --gold-dim:  rgba(245,243,239,0.28);
+      --gold-glow: rgba(245,243,239,0.10);
+    }
+    .tenant-yugen body      { background-color: #0b0a09; }
+    .tenant-yugen header    { background-color: rgba(11,10,9,0.96) !important; }
+    .tenant-yugen #authGuard { background: #0b0a09 !important; }
+
+    /* Tipografía de marca: serif Playfair en títulos + tracking amplio */
+    .tenant-yugen h1,
+    .tenant-yugen h2,
+    .tenant-yugen #heroLine2 {
+      font-family: 'Playfair Display', Georgia, serif !important;
+      letter-spacing: 0.03em !important;
+      text-shadow: none !important;
+      font-style: normal !important;
+    }
+    .tenant-yugen #heroLine1 {
+      text-transform: uppercase;
+      letter-spacing: 0.34em !important;
+      color: rgba(245,243,239,0.55) !important;
+      font-weight: 500 !important;
+    }
+    .tenant-yugen #heroLine2 { color: #f5f3ef !important; font-weight: 600 !important; }
+    /* Sello ritual 玄 (bermellón) bajo el nombre del hero */
+    .tenant-yugen #heroLine2::after {
+      content: '玄';
+      display: block;
+      margin-top: 12px;
+      font-family: 'Yu Mincho','Hiragino Mincho ProN','Noto Serif JP',serif;
+      font-size: 18px;
+      line-height: 1;
+      color: #c0392b;
+      letter-spacing: 0;
+    }
+    .tenant-yugen .nav-label { letter-spacing: 0.16em !important; text-transform: uppercase; }
+
+    /* Hero: banner del bonsái */
+    .tenant-yugen .hero-bg {
+      background-image: url('/yugen/yugen2.png');
+      background-size: cover;
+      background-position: center 30%;
+      background-color: #0b0a09;
+    }
+    .tenant-yugen .hero-overlay {
+      background: linear-gradient(160deg,
+        rgba(8,7,6,0.40) 0%, rgba(8,7,6,0.30) 40%, rgba(11,10,9,0.94) 100%) !important;
+    }
+    .tenant-yugen .hero-glow-spot {
+      background: radial-gradient(circle, rgba(245,243,239,0.05) 0%, transparent 65%) !important;
+    }
+    .tenant-yugen .hero-cta {
+      background: #f5f3ef !important;
+      border-color: #f5f3ef !important;
+      color: #0b0a09 !important;
+      box-shadow: none !important;
+      backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
+    }
+    .tenant-yugen .hero-cta i, .tenant-yugen .hero-cta span { color: #0b0a09 !important; }
+
+    /* Tarjeta de membresía: carbón + ondas op-art como marca de agua */
+    .tenant-yugen .membership-pattern {
+      background: #15120e !important;
+      border-color: rgba(245,243,239,0.08) !important;
+    }
+    .tenant-yugen .membership-pattern::before {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='54'%3E%3Cpath d='M0,27 C37,6 73,48 110,27 C147,6 183,48 220,27' fill='none' stroke='%23f5f3ef' stroke-width='1.1'/%3E%3C/svg%3E");
+      background-repeat: repeat;
+      background-size: 220px 54px;
+      opacity: 0.06;
+    }
+    .tenant-yugen #membershipWatermark {
+      color: rgba(245,243,239,0.05) !important;
+      font-style: normal !important;
+      font-family: 'Yu Mincho','Hiragino Mincho ProN','Noto Serif JP',serif !important;
+    }
+    .tenant-yugen .membership-glow { background: radial-gradient(circle, rgba(245,243,239,0.07) 0%, transparent 70%) !important; }
+    .tenant-yugen #stampsGrid { background: #0a0807 !important; border-color: rgba(245,243,239,0.08) !important; }
+    .tenant-yugen .tier-badge { border-color: rgba(245,243,239,0.25) !important; color: #cdc8bf !important; }
+    .tenant-yugen #stampsBar { background: #f5f3ef !important; }
+
+    /* Sellos en marfil */
+    .tenant-yugen .stamp-cell.filled {
+      background: #f5f3ef !important;
+      border: 1px solid #f5f3ef !important;
+      box-shadow: 0 0 10px rgba(245,243,239,0.16) !important;
+    }
+    .tenant-yugen .stamp-cell.filled i { color: #0b0a09 !important; }
+    .tenant-yugen .stamp-cell.empty {
+      border: 1px solid rgba(245,243,239,0.12) !important;
+      background: rgba(245,243,239,0.03) !important;
+    }
+    .tenant-yugen #stampsBar { box-shadow: none !important; }
+
+    /* Sin glow dorado en clases globales */
+    .tenant-yugen .text-gold   { text-shadow: none !important; }
+    .tenant-yugen .border-gold { box-shadow: none !important; }
+    .tenant-yugen .nav-tab.active .nav-icon { filter: none !important; }
+    .tenant-yugen .premio-icon { color: rgba(245,243,239,0.7) !important; }
+
+    /* Botones reagendar → marfil */
+    .tenant-yugen .reagendar-proxima-btn {
+      border-color: rgba(245,243,239,0.18) !important;
+      background: rgba(245,243,239,0.04) !important;
+    }
+    .tenant-yugen .reagendar-hist-btn { color: rgba(245,243,239,0.55) !important; }
+    .tenant-yugen .reagendar-hist-btn:hover { background: rgba(245,243,239,0.08) !important; }
+    /* ══════════════════════════════════════════════════════════════════ */
+
     /* Service card image */
     .service-img {
       position: absolute;
@@ -4125,13 +4236,8 @@
 
   </div><!-- /max-w-md -->
 
-  <!-- ═══════ FAB: AGENDAR HORA ═══════ -->
-  <a href="index.html"
-     class="fixed bottom-[5.5rem] right-4 z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-[0_4px_24px_rgba(0,0,0,0.6)] active:scale-90 transition-all duration-150"
-     style="background:var(--gold);box-shadow:0 0 20px var(--gold-glow),0 4px_20px rgba(0,0,0,0.5);"
-     aria-label="Agendar Hora">
-    <i class="ph-bold ph-calendar-plus text-2xl" style="color:#050505;"></i>
-  </a>
+  <!-- FAB "Agendar Hora" removido: dejaba dos botones flotantes encimados
+       (chat + agenda). Se mantiene solo el de chat. -->
 
   <!-- ═══════ BOTTOM NAVIGATION BAR ═══════ -->
   <nav class="fixed bottom-0 left-0 right-0 z-50 bg-[#0a0a0d]/97 backdrop-blur-xl border-t border-white/6" style="padding-bottom: env(safe-area-inset-bottom);">
@@ -8302,6 +8408,20 @@ function auraCountUp(targetNum, totalTarget) {
       var l2 = document.getElementById('heroLine2');
       if (l1) l1.innerHTML = 'Más que<br>un corte.';
       if (l2) l2.textContent = 'Una experiencia.';
+    });
+  </script>
+
+  <!-- Yūgen Studio — frase propia del hero (tagline de marca) -->
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      if ((window.CURRENT_TENANT_ID || '') !== 'yugen') return;
+      var l1 = document.getElementById('heroLine1');
+      var l2 = document.getElementById('heroLine2');
+      if (l1) l1.innerHTML = 'Yūgen no<br>se ve,';
+      if (l2) l2.textContent = 'se siente.';
+      // Watermark de la tarjeta de fidelización → sello 玄
+      var wm = document.getElementById('membershipWatermark');
+      if (wm) wm.textContent = '玄';
     });
   </script>
 </body>

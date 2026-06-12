@@ -127,6 +127,7 @@ const TENANT_MANIFESTS = {
   chameleon:     '/gestion-interna/manifest-chameleon.webmanifest',
   delnero:       '/gestion-interna/manifest-delnero.webmanifest',
   marcelo_hairdressing: '/gestion-interna/manifest-marcelo_hairdressing.webmanifest',
+  yugen:         '/gestion-interna/manifest-yugen.webmanifest',
 };
 
 export default function App() {

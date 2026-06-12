@@ -1422,6 +1422,220 @@
         rgba(0,0,0,0.40) 0%, rgba(0,0,0,0.25) 40%, rgba(10,10,10,0.94) 100%) !important;
     }
 
+    /* ══ YŪGEN STUDIO — Dark zen · Negro / Madera / Greige / Dorado ══ */
+    .tenant-yugen {
+      --accent:   #f5f3ef;
+      --accent-r: 245; --accent-g: 243; --accent-b: 239;
+      --neon-clr: #f5f3ef;
+      --neon-r:   245; --neon-g: 243; --neon-b: 239;
+      --body-bg:  #0b0a09;
+    }
+    .tenant-yugen body { background-color: #0b0a09; }
+    .tenant-yugen .booking-hero {
+      background-image: url('/yugen/yugen2.png') !important;
+      background-size: cover !important;
+      background-position: center 30% !important;
+    }
+    .tenant-yugen .booking-hero-overlay {
+      background: linear-gradient(180deg,
+        rgba(8,7,6,0.32) 0%,
+        rgba(8,7,6,0.20) 26%,
+        rgba(11,10,9,0.72) 56%,
+        rgba(11,10,9,0.97) 100%) !important;
+    }
+    /* Hero alineado a la izquierda */
+    .tenant-yugen .booking-hero > div:has(#heroLogoArea) {
+      align-items: flex-start !important;
+      text-align: left !important;
+    }
+    .tenant-yugen #heroLogoArea {
+      justify-content: flex-start !important;
+      margin-bottom: 1.25rem;
+    }
+    .tenant-yugen .gold-divider { margin-left: 0 !important; margin-right: 0 !important; }
+    .tenant-yugen .booking-hero p:has(#shopSlogan) {
+      padding-left: 0 !important; padding-right: 0 !important; text-align: left !important;
+      text-transform: none !important;
+      letter-spacing: -0.005em !important;
+      font-size: 0.98rem !important;
+      line-height: 1.35 !important;
+      font-weight: 600 !important;
+    }
+    /* Sello ritual 玄 (bermellón) bajo el slogan */
+    .tenant-yugen .booking-hero p:has(#shopSlogan)::after {
+      content: '玄';
+      display: block;
+      margin-top: 14px;
+      font-family: 'Yu Mincho','Hiragino Mincho ProN','Noto Serif JP',serif;
+      font-size: 18px;
+      line-height: 1;
+      color: #c0392b;
+      -webkit-text-fill-color: #c0392b;
+    }
+    /* Logo sin borde dorado + efecto flotante */
+    .tenant-yugen .hero-logo-ring {
+      border: none !important;
+      box-shadow: none !important;
+      background: transparent !important;
+      animation: yugenFloat 4.5s ease-in-out infinite;
+      filter: drop-shadow(0 16px 22px rgba(0,0,0,0.55));
+    }
+    .tenant-yugen #shopNombre {
+      animation: yugenFloat 5.5s ease-in-out infinite;
+      animation-delay: .3s;
+      text-shadow: 0 2px 18px rgba(0,0,0,0.85), 0 1px 3px rgba(0,0,0,0.9);
+    }
+    @keyframes yugenFloat {
+      0%, 100% { transform: translateY(0); }
+      50%      { transform: translateY(-9px); }
+    }
+    /* Slogan — brillo dorado que recorre el texto */
+    .tenant-yugen #shopSlogan {
+      font-family: inherit;
+      background: linear-gradient(90deg,
+        rgba(245,243,239,0.55) 0%, rgba(245,243,239,0.55) 35%,
+        #ffffff 50%, rgba(245,243,239,0.55) 65%, rgba(245,243,239,0.55) 100%);
+      background-size: 220% auto;
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent; color: transparent;
+      animation: yugenShimmer 6.5s linear infinite;
+    }
+    @keyframes yugenShimmer {
+      0%   { background-position: 120% center; }
+      100% { background-position: -120% center; }
+    }
+    /* Ondas op-art animadas en el fondo del hero */
+    .yugen-waves { display: none; }
+    .tenant-yugen .yugen-waves {
+      display: block;
+      position: absolute; inset: 0; z-index: 1;
+      pointer-events: none; overflow: hidden;
+      opacity: 0.18;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='58'%3E%3Cpath d='M0,29 C40,7 80,51 120,29 C160,7 200,51 240,29' fill='none' stroke='%23f5f3ef' stroke-width='1.4'/%3E%3C/svg%3E");
+      background-repeat: repeat;
+      background-size: 240px 58px;
+      animation: yugenWaveDrift 16s linear infinite;
+      -webkit-mask-image: linear-gradient(180deg, transparent 0%, #000 28%, #000 72%, transparent 100%);
+      mask-image: linear-gradient(180deg, transparent 0%, #000 28%, #000 72%, transparent 100%);
+    }
+    @keyframes yugenWaveDrift {
+      from { background-position: 0 0; }
+      to   { background-position: 240px 0; }
+    }
+    /* Ondas sutiles en las tarjetas de servicio */
+    .tenant-yugen .service-option { position: relative; overflow: hidden; }
+    .tenant-yugen .service-option > * { position: relative; z-index: 1; }
+    .tenant-yugen .service-option::after {
+      content: ''; position: absolute; inset: 0; z-index: 0;
+      pointer-events: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='46'%3E%3Cpath d='M0,23 C33,6 66,40 100,23 C134,6 166,40 200,23' fill='none' stroke='%23f5f3ef' stroke-width='1.2'/%3E%3C/svg%3E");
+      background-repeat: repeat;
+      background-size: 200px 46px;
+      opacity: 0.10;
+      -webkit-mask-image: linear-gradient(90deg, #000 0%, rgba(0,0,0,0.35) 55%, transparent 92%);
+      mask-image: linear-gradient(90deg, #000 0%, rgba(0,0,0,0.35) 55%, transparent 92%);
+    }
+    /* Acentos dorados fijos → blanco */
+    .tenant-yugen #btnContinue { background-color: #f5f3ef !important; color: #0b0a09 !important; }
+    .tenant-yugen #progressBar { background-color: #f5f3ef !important; }
+    /* Confirmación: logo de Yūgen en el sello animado (reusa #aura-stamp-wrap) */
+    .tenant-yugen #success-state > div.w-24 { display: none !important; }
+    .tenant-yugen #success-state #aura-stamp-wrap { display: flex !important; }
+    .tenant-yugen #aura-stamp-wrap .aura-stamp-ring-1 { border-color: rgba(245,243,239,0.50) !important; }
+    .tenant-yugen #aura-stamp-wrap .aura-stamp-ring-2 { border-color: rgba(245,243,239,0.28) !important; }
+    .tenant-yugen #aura-stamp-wrap .aura-stamp-logo {
+      border-color: rgba(245,243,239,0.40) !important;
+      box-shadow: 0 0 0 6px rgba(245,243,239,0.08), 0 8px 32px rgba(0,0,0,0.45), 0 2px 8px rgba(0,0,0,0.25) !important;
+    }
+    .tenant-yugen .service-option.border-neon,
+    .tenant-yugen .barber-option.border-neon {
+      border-color: #f5f3ef !important;
+      box-shadow: 0 0 10px rgba(245,243,239,0.12) !important;
+    }
+    .tenant-yugen .service-option.bg-brand-neon\/10,
+    .tenant-yugen .barber-option.bg-brand-neon\/10 {
+      background-color: rgba(245,243,239,0.08) !important;
+    }
+    /* Info compacta: botones Ver horario / Ver ubicación */
+    .yugen-info { display: none; }
+    .tenant-yugen .info-strip { display: none !important; }
+    .tenant-yugen .yugen-info {
+      display: flex; flex-wrap: wrap; gap: 10px; padding: 14px 18px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      background: rgba(10,8,7,0.8);
+    }
+    .tenant-yugen .yugen-info .yg-full { flex-basis: 100%; }
+    .tenant-yugen .yugen-info button {
+      flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 11px 12px; border-radius: 12px;
+      background: rgba(245,243,239,0.05);
+      border: 1px solid rgba(245,243,239,0.14);
+      color: #f5f3ef; font-size: 12.5px; font-weight: 600; cursor: pointer;
+      transition: background .2s ease, border-color .2s ease, transform .15s ease;
+    }
+    .tenant-yugen .yugen-info button:hover { background: rgba(245,243,239,0.10); border-color: rgba(245,243,239,0.28); }
+    .tenant-yugen .yugen-info button:active { transform: scale(.97); }
+    .tenant-yugen .yugen-info button i { font-size: 15px; opacity: .85; }
+    /* Modal (bottom sheet) con animación simple */
+    .yugen-modal {
+      display: none; position: fixed; inset: 0; z-index: 120;
+      align-items: flex-end; justify-content: center;
+      background: rgba(0,0,0,0.6);
+      -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+      opacity: 0; transition: opacity .28s ease;
+    }
+    .yugen-modal.open { display: flex; opacity: 1; }
+    .yugen-modal-card {
+      width: 100%; max-width: 28rem;
+      background: #15120e; border: 1px solid rgba(245,243,239,0.12); border-bottom: none;
+      border-radius: 20px 20px 0 0;
+      padding: 20px 22px calc(24px + env(safe-area-inset-bottom));
+      max-height: 85vh; overflow-y: auto;
+      transform: translateY(26px); opacity: 0;
+      transition: transform .34s cubic-bezier(.16,1,.3,1), opacity .3s ease;
+    }
+    .yugen-modal.open .yugen-modal-card { transform: translateY(0); opacity: 1; }
+    .yugen-modal .ym-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+    .yugen-modal .ym-head h3 { display: flex; align-items: center; gap: 9px; font-size: 1.05rem; font-weight: 700; color: #f5f3ef; }
+    .yugen-modal .ym-head h3 i { font-size: 18px; }
+    .yugen-modal-x {
+      width: 32px; height: 32px; border-radius: 9px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(245,243,239,0.06); border: 1px solid rgba(245,243,239,0.12); color: #b7afa3;
+    }
+    .yugen-modal-x:hover { color: #f5f3ef; }
+    .yugen-modal-row { display: flex; justify-content: space-between; gap: 14px; padding: 11px 0; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 13.5px; }
+    .yugen-modal-row:last-child { border-bottom: none; }
+    .yugen-modal-row .d { color: #b7afa3; }
+    .yugen-modal-row .h { color: #f5f3ef; font-weight: 600; white-space: nowrap; }
+    .yugen-modal .ym-addr { color: #f5f3ef; font-size: 14px; line-height: 1.5; }
+    .yugen-modal .ym-empty { color: #b7afa3; font-size: 13.5px; }
+    .yugen-modal .ym-maps {
+      display: block; margin-top: 16px; text-align: center; padding: 12px;
+      border-radius: 12px; background: #f5f3ef; color: #0b0a09; font-weight: 700; font-size: 13px;
+      text-decoration: none;
+    }
+    /* Lista de valores */
+    .yugen-modal .ym-valor { display: flex; gap: 14px; align-items: flex-start; padding: 13px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
+    .yugen-modal .ym-valor:last-child { border-bottom: none; }
+    .yugen-modal .ym-valor-ic {
+      width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0;
+      border: 1px solid rgba(245,243,239,0.22);
+      display: flex; align-items: center; justify-content: center;
+      color: #f5f3ef; font-size: 19px;
+    }
+    .yugen-modal .ym-valor-ic .ym-kanji { color: #c0392b; font-family: 'Yu Mincho','Hiragino Mincho ProN','Noto Serif JP',serif; font-size: 19px; }
+    .yugen-modal .ym-valor-n { font-size: 12.5px; font-weight: 700; letter-spacing: 0.10em; text-transform: uppercase; color: #f5f3ef; margin-bottom: 3px; }
+    .yugen-modal .ym-valor-d { font-size: 12.5px; color: #b7afa3; line-height: 1.45; }
+    .yugen-modal .ym-pol-intro { font-size: 13px; color: rgba(245,243,239,0.78); line-height: 1.5; margin-bottom: 8px; }
+    @media (prefers-reduced-motion: reduce) {
+      .tenant-yugen .hero-logo-ring,
+      .tenant-yugen #shopNombre,
+      .tenant-yugen #shopSlogan,
+      .tenant-yugen .yugen-waves { animation: none !important; }
+      .yugen-modal, .yugen-modal-card { transition: none !important; }
+    }
+
     /* ══ KRONNOS WOMAN — Magenta Neón / Negro ══ */
     .tenant-kronnos_woman {
       --accent:   #ec4899;
@@ -6158,6 +6372,9 @@
       <img id="heroIndexingImg" class="sr-only" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;" src="" alt="">
       <div class="booking-hero-overlay"></div>
 
+      <!-- Yūgen — ondas op-art animadas (solo tenant-yugen) -->
+      <div class="yugen-waves" aria-hidden="true"></div>
+
       <!-- The Latin Caribe — decoración: palmeras (azul) -->
       <div class="lc-decor" aria-hidden="true">
         <i class="ph-fill ph-tree-palm lc-palm lc-palm-left"></i>
@@ -6262,6 +6479,84 @@
         <span>Consultas</span>
       </a>
     </div>
+
+    <!-- Yūgen — info compacta: botones Ver horario / Ver ubicación + modal -->
+    <div class="yugen-info">
+      <button type="button" onclick="openYugenModal('horario')"><i class="ph-fill ph-clock"></i> Ver horario</button>
+      <button type="button" onclick="openYugenModal('ubicacion')"><i class="ph-fill ph-map-pin"></i> Ver ubicación</button>
+      <button type="button" class="yg-full" onclick="openYugenModal('valores')"><i class="ph-fill ph-flower-lotus"></i> Valores</button>
+      <button type="button" class="yg-full" onclick="openYugenModal('politicas')"><i class="ph-fill ph-scroll"></i> Políticas de reserva</button>
+    </div>
+    <div id="yugenModal" class="yugen-modal" onclick="closeYugenModal(event)">
+      <div class="yugen-modal-card" onclick="event.stopPropagation()">
+        <div class="ym-head">
+          <h3><i id="yugenModalIcon" class="ph-fill ph-clock"></i> <span id="yugenModalTitle">Horario</span></h3>
+          <button type="button" class="yugen-modal-x" onclick="closeYugenModal(event)" aria-label="Cerrar"><i class="ph-bold ph-x"></i></button>
+        </div>
+        <div id="yugenModalBody"></div>
+      </div>
+    </div>
+    <script>
+      window.openYugenModal = function (type) {
+        var modal = document.getElementById('yugenModal');
+        var body  = document.getElementById('yugenModalBody');
+        var title = document.getElementById('yugenModalTitle');
+        var icon  = document.getElementById('yugenModalIcon');
+        var SHOP  = window.SHOP || {};
+        if (type === 'ubicacion') {
+          title.textContent = 'Ubicación';
+          icon.className = 'ph-fill ph-map-pin';
+          var dir = (SHOP.direccion || '').replace(/[📍]/g, '').trim();
+          body.innerHTML = dir
+            ? '<p class="ym-addr">' + dir + '</p><a class="ym-maps" target="_blank" rel="noopener" href="https://maps.google.com/?q=' + encodeURIComponent(dir) + '">Cómo llegar</a>'
+            : '<p class="ym-empty">Dirección por confirmar.</p>';
+        } else if (type === 'valores') {
+          title.textContent = 'Nuestros Valores';
+          icon.className = 'ph-fill ph-flower-lotus';
+          var vals = [
+            { ic: '<i class="ph ph-crown"></i>',       n: 'Excelencia',   d: 'Nos esforzamos por entregar resultados excepcionales en cada servicio.' },
+            { ic: '<span class="ym-kanji">玄</span>',   n: 'Profundidad',  d: 'Más que un cambio de look, ofrecemos una experiencia que transforma.' },
+            { ic: '<i class="ph ph-handshake"></i>',   n: 'Respeto',      d: 'Valoramos a cada persona, su tiempo y su esencia.' },
+            { ic: '<i class="ph ph-leaf"></i>',        n: 'Autenticidad', d: 'Estilo real, sin copias. Potenciamos tu mejor versión.' },
+            { ic: '<i class="ph ph-shield-check"></i>', n: 'Confianza',   d: 'Creamos un espacio seguro donde puedes ser tú mismo.' }
+          ];
+          body.innerHTML = vals.map(function (v) {
+            return '<div class="ym-valor"><div class="ym-valor-ic">' + v.ic + '</div><div><p class="ym-valor-n">' + v.n + '</p><p class="ym-valor-d">' + v.d + '</p></div></div>';
+          }).join('');
+        } else if (type === 'politicas') {
+          title.textContent = 'Políticas de reserva';
+          icon.className = 'ph-fill ph-scroll';
+          body.innerHTML =
+            '<p class="ym-pol-intro">¡Hola! Ya que decidiste agendar, te invito a leer las políticas de Yūgen Studio.</p>'
+            + '<div class="ym-valor"><div class="ym-valor-ic"><i class="ph ph-clock"></i></div><div><p class="ym-valor-n">Tolerancia</p><p class="ym-valor-d">Máximo 15 minutos de retraso permitido.</p></div></div>'
+            + '<div class="ym-valor"><div class="ym-valor-ic"><i class="ph ph-calendar-x"></i></div><div><p class="ym-valor-n">Reagendamiento</p><p class="ym-valor-d">Solo se permite reagendar 1 vez, y hasta 12 horas antes de tu cita.</p></div></div>';
+        } else {
+          title.textContent = 'Horario';
+          icon.className = 'ph-fill ph-clock';
+          var raw = (SHOP.horario || '').replace(/[🕒📍]/g, '').replace('¡Reserva ya!', '').trim();
+          var parts = raw.split('·').map(function (s) { return s.trim(); }).filter(Boolean);
+          body.innerHTML = parts.length
+            ? parts.map(function (p) {
+                var i = p.indexOf(':');
+                var d = i > 0 ? p.slice(0, i).trim() : p;
+                var h = i > 0 ? p.slice(i + 1).trim() : '';
+                return '<div class="yugen-modal-row"><span class="d">' + d + '</span><span class="h">' + h + '</span></div>';
+              }).join('')
+            : '<p class="ym-empty">Horario por confirmar.</p>';
+        }
+        modal.classList.add('open');
+      };
+      window.closeYugenModal = function () {
+        var m = document.getElementById('yugenModal');
+        if (m) m.classList.remove('open');
+      };
+      // Logo de Yūgen en el sello animado de la confirmación
+      document.addEventListener('DOMContentLoaded', function () {
+        if ((window.CURRENT_TENANT_ID || '') !== 'yugen') return;
+        var stampImg = document.querySelector('#aura-stamp-wrap .aura-stamp-logo img');
+        if (stampImg) { stampImg.src = '/yugen/yugen.jpg'; stampImg.alt = 'Yūgen Studio'; }
+      });
+    </script>
 
     <!-- Features strip: Cursos / Arriendo de Sillones (controlado desde Configuración) -->
     <div id="featuresStrip" class="hidden px-4 pt-4 pb-0 flex flex-col gap-3"></div>
@@ -6763,7 +7058,7 @@
       }
 
       const recommendations = avail.slice(0, 3);
-      const isAura = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'latincaribe');
+      const isAura = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'latincaribe' || window.CURRENT_TENANT_ID === 'yugen');
 
       if (isAura) {
         container.innerHTML = `
@@ -6842,7 +7137,7 @@
         updateSelectionRecap();
       }
 
-      const isAura = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'latincaribe');
+      const isAura = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'latincaribe' || window.CURRENT_TENANT_ID === 'yugen');
 
       document.querySelectorAll('.smart-slot-pill').forEach(btn => {
         if (btn.textContent.trim() === time) {
@@ -7084,7 +7379,7 @@
         categories[cat].push(s);
       });
 
-      const _isEleganceSvc  = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza' || (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'latincaribe') || window.CURRENT_TENANT_ID === 'lumen' || window.CURRENT_TENANT_ID === 'machos' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'marcelo_hairdressing' || window.CURRENT_TENANT_ID === 'omegastudio' || window.CURRENT_TENANT_ID === 'memphis' || window.CURRENT_TENANT_ID === 'delnero';
+      const _isEleganceSvc  = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'ferraza' || (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'latincaribe') || window.CURRENT_TENANT_ID === 'lumen' || window.CURRENT_TENANT_ID === 'machos' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'marcelo_hairdressing' || window.CURRENT_TENANT_ID === 'omegastudio' || window.CURRENT_TENANT_ID === 'memphis' || window.CURRENT_TENANT_ID === 'delnero' || window.CURRENT_TENANT_ID === 'yugen';
       const _isMapuSvc      = window.CURRENT_TENANT_ID === 'mapubarbershop';
       const _isChameleonSvc = window.CURRENT_TENANT_ID === 'chameleon';
       const _isKronnosSvc   = window.CURRENT_TENANT_ID === 'kronnos_penablanca' || window.CURRENT_TENANT_ID === 'kronnos_limache' || window.CURRENT_TENANT_ID === 'kronnos_woman';
@@ -7117,7 +7412,7 @@
                 : `<i class="icon-svg ph ${icon} text-xl text-brand-neon transition-all"></i>`);
 
           if (_useRowLayout) {
-            const radioClr = _isMapuSvc ? 'rgba(191,163,126,0.40)' : window.CURRENT_TENANT_ID === 'marcelo_hairdressing' ? 'rgba(255,255,255,0.18)' : window.CURRENT_TENANT_ID === 'omegastudio' ? 'rgba(212,169,106,0.40)' : window.CURRENT_TENANT_ID === 'latincaribe' ? 'rgba(53,221,230,0.40)' : 'rgba(212,175,55,0.4)';
+            const radioClr = _isMapuSvc ? 'rgba(191,163,126,0.40)' : window.CURRENT_TENANT_ID === 'marcelo_hairdressing' ? 'rgba(255,255,255,0.18)' : window.CURRENT_TENANT_ID === 'omegastudio' ? 'rgba(212,169,106,0.40)' : window.CURRENT_TENANT_ID === 'latincaribe' ? 'rgba(53,221,230,0.40)' : window.CURRENT_TENANT_ID === 'yugen' ? 'rgba(245,243,239,0.4)' : 'rgba(212,175,55,0.4)';
             innerGrid.innerHTML += `
               <button onclick="selectService(this)" data-service-id="${s.id}" data-category="${cat}"
                 class="service-option relative flex flex-row items-center gap-4 p-4 rounded-2xl bg-[#0a0a0d] border border-brand-accent/20 active:scale-[0.99] transition-all overflow-hidden group w-full text-left">
@@ -7394,6 +7689,49 @@
         }).join('');
 
         grid.innerHTML = anyCard + barberCards;
+        return;
+      }
+
+      // Yūgen: grilla 2 columnas (cubos chicos) — "Sin preferencia" ocupa ancho completo
+      if (window.CURRENT_TENANT_ID === 'yugen') {
+        grid.className = 'grid grid-cols-2 gap-3';
+        const anySelY = (window._selectedBarberId === 'any');
+        const anyStyleY = anySelY ? 'border-color:#f5f3ef;background:rgba(245,243,239,0.08);' : 'border-color:rgba(245,243,239,0.12);background:#15120e;';
+        const anyCardY = `
+          <button onclick="selectBarber(this, 'any', 'any')" class="barber-option col-span-2 relative flex flex-row items-center gap-3 p-3.5 rounded-2xl border-2 active:scale-[0.99] transition-all w-full text-left" style="${anyStyleY}">
+            <div class="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style="background:#1f1a14;border:1px solid rgba(245,243,239,0.16);">
+              <i class="ph-fill ph-shuffle" style="color:#f5f3ef;font-size:16px;"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <span class="barber-name font-bold text-gray-100 text-sm block">Sin preferencia</span>
+              <p class="text-[11px] font-medium mt-0.5" style="color:#b7afa3;">${_profLabel}</p>
+            </div>
+            <div class="barber-radio w-4 h-4 rounded-full border-2 shrink-0 transition-all" style="${anySelY ? 'background:#f5f3ef;border-color:#f5f3ef;' : 'border-color:rgba(245,243,239,0.4);'}"></div>
+          </button>`;
+
+        const barberCardsY = barberos.map(b => {
+          const isSelected = window._selectedBarber === b.nombre;
+          const cardStyle = isSelected ? 'border-color:#f5f3ef;background:rgba(245,243,239,0.08);' : 'border-color:rgba(245,243,239,0.12);background:#15120e;';
+          const foto = b.foto
+            ? `<img src="${b.foto}" alt="${b.nombre}" class="w-16 h-16 rounded-full object-cover mb-2" style="border:2px solid rgba(245,243,239,0.22);">`
+            : `<div class="w-16 h-16 rounded-full flex items-center justify-center mb-2" style="background:#1f1a14;border:2px solid rgba(245,243,239,0.16);"><i class="ph-fill ph-user" style="font-size:24px;color:rgba(245,243,239,0.5);"></i></div>`;
+          const radioStyle = isSelected ? 'background:#f5f3ef;border-color:#f5f3ef;' : 'background:transparent;border-color:rgba(245,243,239,0.4);';
+          const diasLabelY = _buildDiasLabel(b.horario);
+          const disponibleY = b.disponible !== false;
+          return `
+          <button onclick="selectBarber(this, '${b.id}', '${b.nombre}')" class="barber-option relative flex flex-col items-center p-3 pt-4 rounded-2xl border-2 active:scale-[0.98] transition-all overflow-hidden text-center" style="${cardStyle}">
+            ${foto}
+            <span class="barber-name font-semibold text-sm text-gray-100 leading-tight w-full text-center" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${b.nombre}</span>
+            ${b.especialidad ? `<p class="text-[10px] mt-0.5 w-full text-center truncate" style="color:rgba(245,243,239,0.5);">${b.especialidad}</p>` : ''}
+            ${diasLabelY ? `<p class="text-[9px] mt-0.5 w-full text-center truncate" style="color:rgba(245,243,239,0.4);"><i class="ph-fill ph-calendar-blank"></i> ${diasLabelY}</p>` : ''}
+            <span class="flex items-center justify-center gap-0.5 text-[9px] font-bold mt-1" style="color:${disponibleY ? '#f5f3ef' : 'rgba(245,243,239,0.35)'};">
+              <i class="ph-fill ph-${disponibleY ? 'check-circle' : 'x-circle'}" style="font-size:10px;"></i>${disponibleY ? 'Disponible' : 'Agenda llena'}
+            </span>
+            <div class="barber-radio w-4 h-4 rounded-full border-2 mt-1.5 transition-all" style="${radioStyle}"></div>
+          </button>`;
+        }).join('');
+
+        grid.innerHTML = anyCardY + barberCardsY;
         return;
       }
 
@@ -7825,7 +8163,8 @@
         window.CURRENT_TENANT_ID === 'chameleon' ||
         window.CURRENT_TENANT_ID === 'ferraza' ||
         window.CURRENT_TENANT_ID === 'memphis' ||
-        window.CURRENT_TENANT_ID === 'delnero';
+        window.CURRENT_TENANT_ID === 'delnero' ||
+        window.CURRENT_TENANT_ID === 'yugen';
       const grid = document.getElementById('hoursGrid');
       grid.className = _isEleganceHr
         ? 'w-full flex flex-col gap-0'
@@ -7966,10 +8305,12 @@
         || window.CURRENT_TENANT_ID === 'marcelo_hairdressing'
         || window.CURRENT_TENANT_ID === 'chameleon'
         || window.CURRENT_TENANT_ID === 'memphis'
-        || window.CURRENT_TENANT_ID === 'delnero';
+        || window.CURRENT_TENANT_ID === 'delnero'
+        || window.CURRENT_TENANT_ID === 'yugen';
       const _isLatin    = window.CURRENT_TENANT_ID === 'latincaribe';
-      const _radioDim   = _isMapu ? 'rgba(191,163,126,0.40)' : _isLatin ? 'rgba(53,221,230,0.35)' : _isAura ? 'rgba(55,65,81,0.25)' : 'rgba(212,175,55,0.4)';
-      const _radioSel   = _isMapu ? '#BFA37E' : _isLatin ? '#F35BA6' : _isAura ? '#1F2937' : '#D4AF37';
+      const _isYugen    = window.CURRENT_TENANT_ID === 'yugen';
+      const _radioDim   = _isMapu ? 'rgba(191,163,126,0.40)' : _isLatin ? 'rgba(53,221,230,0.35)' : _isAura ? 'rgba(55,65,81,0.25)' : _isYugen ? 'rgba(245,243,239,0.4)' : 'rgba(212,175,55,0.4)';
+      const _radioSel   = _isMapu ? '#BFA37E' : _isLatin ? '#F35BA6' : _isAura ? '#1F2937' : _isYugen ? '#f5f3ef' : '#D4AF37';
 
       document.querySelectorAll('.service-option').forEach(el => {
         el.classList.replace('border-neon', 'border-brand-accent/20');
@@ -7988,7 +8329,7 @@
 
       btn.classList.add('border-2', 'border-neon', 'bg-brand-neon/10');
       if (!_isGitana && !_useRowSel) btn.classList.add('scale-105', 'shadow-[0_0_20px_rgba(255,255,255,0.2)]');
-      if (_useRowSel) btn.style.boxShadow = _isMapu || _isAura || _isKronnos ? 'none' : '0 0 10px rgba(212,175,55,0.1)';
+      if (_useRowSel) btn.style.boxShadow = _isMapu || _isAura || _isKronnos || _isYugen ? 'none' : '0 0 10px rgba(212,175,55,0.1)';
       btn.classList.replace('border-brand-accent/20', 'border-neon');
       btn.classList.remove('border');
 
@@ -8494,11 +8835,11 @@
                     <p class="text-[10px] text-gray-500 font-semibold">por visita</p>
                   </div>
                   <div class="text-center py-2.5 rounded-xl" style="background:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.06);border:1px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.12);">
-                    <p class="text-lg font-black" style="color:var(--accent);">${_clubEmoji}</p>
+                    <p class="text-lg font-black" style="color:var(--accent);">${window.CURRENT_TENANT_ID === 'yugen' ? '<i class="ph-fill ph-scissors"></i>' : _clubEmoji}</p>
                     <p class="text-[10px] text-gray-500 font-semibold">gratis</p>
                   </div>
                   <div class="text-center py-2.5 rounded-xl" style="background:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.06);border:1px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.12);">
-                    <p class="text-lg font-black" style="color:var(--accent);">🎁</p>
+                    <p class="text-lg font-black" style="color:var(--accent);">${window.CURRENT_TENANT_ID === 'yugen' ? '<i class="ph-fill ph-gift"></i>' : '🎁'}</p>
                     <p class="text-[10px] text-gray-500 font-semibold">premios</p>
                   </div>
                 </div>
@@ -8674,6 +9015,12 @@
         successEl.classList.remove('hidden');
         successEl.classList.add('flex');
 
+        // Ajustar la vista al inicio de la confirmación (no al hero).
+        window.scrollTo({
+          top: Math.max(0, successEl.getBoundingClientRect().top + window.pageYOffset - 14),
+          behavior: 'smooth',
+        });
+
         renderReviewsSection();
 
         // Poblar el resumen dinámico
@@ -8728,6 +9075,15 @@
         oldEl.classList.remove('-translate-x-12', 'transition-all', 'duration-300', 'opacity-0');
 
         newEl.classList.remove('hidden');
+
+        // Ajustar la vista al inicio del paso (indicador "Paso X de 4"),
+        // no al hero, para que el cliente no quede perdido a media página.
+        const _anchor = document.getElementById('stepIndicatorText');
+        if (_anchor) {
+          const _y = _anchor.getBoundingClientRect().top + window.pageYOffset - 14;
+          window.scrollTo({ top: Math.max(0, _y), behavior: 'smooth' });
+        }
+
         newEl.classList.add('opacity-0', 'translate-x-12');
         void newEl.offsetWidth;
 
@@ -8763,6 +9119,7 @@
           sionbarberia: 'https://dcx13p9dsx90t.cloudfront.net/uploads/logos/page_logo_378df61d67dfec81.png',
           omegastudio:  '/omega2.avif',
           memphis:      '/mem.png',
+          yugen:        '/yugen/yugen2.png',
         };
         const bgUrl = bgImages[window.CURRENT_TENANT_ID] || SHOP.logo;
         heroImgEl.src = bgUrl;
