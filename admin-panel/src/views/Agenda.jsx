@@ -1111,17 +1111,21 @@ function AppointmentBlock({ cita, colIndex, colTotal, onClick, onDragStart, onDr
   const color = STATUS_STYLE[cita.estado] ?? STATUS_STYLE.Confirmada;
   const pct   = 100 / colTotal;
   const arrastrable = cita.estado !== 'Cancelada' && cita.estado !== 'Completada';
+  const [over, setOver] = useState(false);
 
   return (
     <div
       onClick={() => onClick(cita)}
       draggable={arrastrable}
       onDragStart={(e) => onDragStart && onDragStart(e, cita)}
-      onDragEnd={() => onDragEnd && onDragEnd()}
+      onDragEnd={() => { setOver(false); onDragEnd && onDragEnd(); }}
       onDragOver={(e) => { if (dragActive) e.preventDefault(); }}
-      onDrop={(e) => { e.stopPropagation(); e.preventDefault(); onDropOnCita && onDropOnCita(cita); }}
+      onDragEnter={() => { if (dragActive && !isDragged) setOver(true); }}
+      onDragLeave={() => setOver(false)}
+      onDrop={(e) => { e.stopPropagation(); e.preventDefault(); setOver(false); onDropOnCita && onDropOnCita(cita); }}
       className={`group absolute rounded-md border px-2 py-1 overflow-hidden ${arrastrable ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'} hover:brightness-125 transition-all text-xs ${color} ${
         isDragged ? 'opacity-40 ring-2 ring-emerald-400 z-30'
+                  : over ? 'ring-2 ring-amber-400 brightness-125 z-30'
                   : dragActive ? 'ring-1 ring-amber-400/50'
                   : ''
       }`}
@@ -1149,15 +1153,19 @@ function AppointmentBlock({ cita, colIndex, colTotal, onClick, onDragStart, onDr
 function SlotRow({ idx, barberoId, dateStr, onNewCita, onNewBloqueo, blockMode, onDragOver, onDrop, dragActive }) {
   const { timeLabels } = useContext(AgendaCtx);
   const hora = timeLabels[idx];
+  const [over, setOver] = useState(false);
   return (
     <div
       onClick={() => blockMode ? onNewBloqueo(barberoId, hora) : onNewCita(barberoId, hora)}
       onDragOver={onDragOver}
-      onDrop={() => onDrop && onDrop(barberoId, hora)}
+      onDragEnter={() => { if (dragActive) setOver(true); }}
+      onDragLeave={() => setOver(false)}
+      onDrop={() => { setOver(false); onDrop && onDrop(barberoId, hora); }}
       className={`absolute inset-x-0 h-10 border-b border-slate-800/40 transition-colors ${
         idx % 2 === 0 ? '' : 'bg-slate-800/10'
       } ${blockMode ? 'hover:bg-red-950/20 cursor-crosshair' : 'hover:bg-emerald-900/10 hover:border-dashed hover:border-emerald-500/30 cursor-pointer'} ${
-        dragActive && !blockMode ? 'bg-emerald-900/10 ring-1 ring-inset ring-emerald-500/25 hover:bg-emerald-700/25' : ''
+        over && dragActive ? '!bg-emerald-500/30 ring-2 ring-inset ring-emerald-400 z-10'
+          : dragActive && !blockMode ? 'bg-emerald-900/10 ring-1 ring-inset ring-emerald-500/25' : ''
       }`}
       style={{ top: `${idx * 40}px` }}
     />
@@ -1165,11 +1173,16 @@ function SlotRow({ idx, barberoId, dateStr, onNewCita, onNewBloqueo, blockMode, 
 }
 
 /* ── ReagendarModal — aviso de la app al mover una cita ─────────── */
-function ReagendarModal({ data, onConfirm, onClose }) {
+function ReagendarModal({ data, dateStr, onConfirm, onClose }) {
   const [loading, setLoading] = useState(false);
+  const [fecha, setFecha]     = useState(data?.fecha || dateStr);
   if (!data) return null;
-  const ocupada = data.ocupada;
-  const handle = async () => { setLoading(true); await onConfirm(); setLoading(false); };
+  const otroDia = fecha !== dateStr;
+  // La advertencia de sobrecupo solo aplica al día visible (no conocemos la ocupación de otros días).
+  const ocupada = data.ocupada && !otroDia;
+  const handle  = async () => { setLoading(true); await onConfirm(fecha); setLoading(false); };
+  const inp = 'w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500 transition-colors';
+
   return (
     <div className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
       <div className="bg-slate-900 border border-slate-800 rounded-xl w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
@@ -1185,8 +1198,15 @@ function ReagendarModal({ data, onConfirm, onClose }) {
           </div>
 
           <p className="text-sm text-slate-300">
-            ¿Mover la cita a las <span className="font-bold text-white">{data.hora}</span> con <span className="font-bold text-white">{data.barberoNombre}</span>?
+            Mover a las <span className="font-bold text-white">{data.hora}</span> con <span className="font-bold text-white">{data.barberoNombre}</span>
+            {otroDia && <> el <span className="font-bold text-white">{fecha}</span></>}.
           </p>
+
+          <div>
+            <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5">Fecha</label>
+            <input type="date" className={inp} value={fecha} onChange={e => setFecha(e.target.value)} />
+            <p className="text-[11px] text-slate-500 mt-1.5">Cambia la fecha para reagendar a otro día.</p>
+          </div>
 
           {ocupada && (
             <div className="flex items-start gap-2 text-amber-300 text-xs bg-amber-500/10 border border-amber-500/25 rounded-lg px-3 py-2.5">
@@ -1203,7 +1223,7 @@ function ReagendarModal({ data, onConfirm, onClose }) {
               className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all disabled:opacity-50 ${
                 ocupada ? 'text-amber-950 bg-amber-400 hover:bg-amber-300' : 'text-emerald-950 bg-emerald-400 hover:bg-emerald-300'
               }`}>
-              {loading ? 'Moviendo...' : ocupada ? 'Mover (sobrecupo)' : 'Mover cita'}
+              {loading ? 'Moviendo...' : ocupada ? 'Mover (sobrecupo)' : otroDia ? 'Mover a otro día' : 'Mover cita'}
             </button>
           </div>
         </div>
@@ -2135,13 +2155,17 @@ export default function Agenda() {
     setDraggedCita(null);
   };
 
-  const doReagendar = async () => {
+  const doReagendar = async (fechaElegida) => {
     const m = reagendarModal;
     if (!m) return;
+    const fecha       = fechaElegida || dateStr;
+    const mismaFecha  = fecha === dateStr;
+    // La ocupación solo se conoce en el día visible; al mover a otro día no es sobrecupo aquí.
+    const sobrecupo   = mismaFecha ? !!m.ocupada : false;
     try {
       const safeHora   = m.hora.replace(':', '');
       const safeBid    = String(m.barberoId).replace(/[^a-zA-Z0-9_-]/g, '_');
-      const nextLockId = `${safeBid}_${dateStr}_${safeHora}`;
+      const nextLockId = `${safeBid}_${fecha}_${safeHora}`;
 
       const batch   = writeBatch(db);
       const citaRef = doc(db, `${tenantCol('citas').path}/${m.cita.id}`);
@@ -2150,9 +2174,10 @@ export default function Agenda() {
         barberoId:  m.barberoId,
         barbero:    m.barberoNombre,
         hora:       m.hora,
-        sobrecupo:  !!m.ocupada,
+        fecha,
+        sobrecupo,
         // En sobrecupo NO tomamos un lock propio: el slot ya está reservado por la otra cita.
-        slotLockId: m.ocupada ? null : nextLockId,
+        slotLockId: sobrecupo ? null : nextLockId,
         updatedAt:  serverTimestamp(),
       });
 
@@ -2161,10 +2186,10 @@ export default function Agenda() {
         batch.delete(doc(db, `${tenantCol('slotLocks').path}/${m.cita.slotLockId}`));
       }
       // Crear lock del nuevo horario solo si NO es sobrecupo
-      if (!m.ocupada) {
+      if (!sobrecupo) {
         batch.set(doc(db, `${tenantCol('slotLocks').path}/${nextLockId}`), {
           citaId:    m.cita.id,
-          fecha:     dateStr,
+          fecha,
           hora:      m.hora,
           barberoId: m.barberoId,
           duracion:  Number(m.cita.duracion || m.cita.duracionServicio || 30),
@@ -2565,6 +2590,7 @@ export default function Agenda() {
       {reagendarModal && (
         <ReagendarModal
           data={reagendarModal}
+          dateStr={dateStr}
           onConfirm={doReagendar}
           onClose={() => setReagendarModal(null)}
         />
