@@ -43,31 +43,46 @@ function separador(titulo) {
 }
 
 // ── Horario por día ────────────────────────────────────────────────────────────
-// Lun–Vie 10:00–19:00 · Sáb 10:00–18:00 · Dom 10:00–14:00 (cierre por confirmar)
+// Según tabla de Yūgen (incluye horas con recargo). Colación 14:00–15:00 todos los días.
+// 'fin' es la hora de cierre (el servicio debe terminar antes); permite partir en la
+// última hora de la tabla para un servicio típico de 60 min.
 const HORARIO = {
-  '1': { activo: true,  inicio: '10:00', fin: '19:00' },
-  '2': { activo: true,  inicio: '10:00', fin: '19:00' },
-  '3': { activo: true,  inicio: '10:00', fin: '19:00' },
-  '4': { activo: true,  inicio: '10:00', fin: '19:00' },
-  '5': { activo: true,  inicio: '10:00', fin: '19:00' },
-  '6': { activo: true,  inicio: '10:00', fin: '18:00' },
-  '0': { activo: true,  inicio: '10:00', fin: '14:00' }, // ⚠️ confirmar cierre domingo
+  '1': { activo: true, inicio: '08:00', fin: '23:00' }, // Lunes
+  '2': { activo: true, inicio: '08:00', fin: '23:00' },
+  '3': { activo: true, inicio: '08:00', fin: '23:00' },
+  '4': { activo: true, inicio: '08:00', fin: '23:00' },
+  '5': { activo: true, inicio: '08:00', fin: '23:00' }, // Viernes
+  '6': { activo: true, inicio: '08:00', fin: '22:00' }, // Sábado
+  '0': { activo: true, inicio: '09:00', fin: '21:00' }, // Domingo/Feriado
 };
 
 const diasLaborales = Object.entries(HORARIO).filter(([, c]) => c.activo).map(([d]) => Number(d));
 const diasConfig = {};
 diasLaborales.forEach(d => { diasConfig[d] = { inicio: HORARIO[String(d)].inicio, fin: HORARIO[String(d)].fin }; });
 
+// ── Matriz de recargos por horario (día → { hora: recargo }) ────────────────────
+// Normal=0, Especial1=+2000, Especial2=+3000, Especial3=+4000, Especial4=+5000.
+// Las horas no listadas = sin recargo (horario normal).
+const RECARGOS_HORARIO = {
+  '1': { '8': 3000, '9': 2000, '19': 2000, '20': 3000, '21': 4000, '22': 5000 }, // Lun
+  '2': { '8': 3000, '9': 2000, '19': 2000, '20': 3000, '21': 4000, '22': 5000 },
+  '3': { '8': 3000, '9': 2000, '19': 2000, '20': 3000, '21': 4000, '22': 5000 },
+  '4': { '8': 3000, '9': 2000, '19': 2000, '20': 3000, '21': 4000, '22': 5000 },
+  '5': { '8': 3000, '9': 2000, '19': 2000, '20': 3000, '21': 4000, '22': 5000 }, // Vie
+  '6': { '8': 5000, '9': 4000, '10': 3000, '11': 2000, '18': 2000, '19': 3000, '20': 4000, '21': 5000 }, // Sáb
+  '0': { '9': 5000, '10': 4000, '11': 3000, '12': 2000, '13': 2000, '16': 2000, '17': 2000, '18': 3000, '19': 4000, '20': 5000 }, // Dom/Feriado
+};
+
 const CONFIG = {
-  horarioInicio:          '10:00',
-  horarioFin:             '19:00',
+  horarioInicio:          '08:00',
+  horarioFin:             '23:00',
   intervaloMinutos:       30,
   minutosLimiteReagendar: 720,        // 12 horas previas para reagendar
   diasLaborales,
   diasConfig,
   telefonoAdmin:          '56900000000', // ⚠️ placeholder
   diasBloqueados:         [],
-  colacion:               null,
+  colacion:               { inicio: '14:00', fin: '15:00' }, // colación todos los días
 };
 
 // ── Barbero / dueño (solo studio) ──────────────────────────────────────────────

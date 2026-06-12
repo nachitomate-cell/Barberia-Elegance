@@ -6,7 +6,7 @@ import {
   User, Phone, Mail, Scissors, CalendarDays, DollarSign,
   Timer, MessageSquare, BadgeCheck, Search, ListFilter, MapPin,
   Send, Download, RefreshCw, Copy, Check, ShoppingBag, Gift,
-  Users, Eye, UserPlus, MoreHorizontal, GripVertical,
+  Users, Eye, UserPlus, MoreHorizontal, GripVertical, AlertTriangle,
 } from 'lucide-react';
 import { DndContext, PointerSensor, useSensor, useSensors, closestCenter } from '@dnd-kit/core';
 import { SortableContext, horizontalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
@@ -1104,19 +1104,27 @@ function BloqueoBlock({ bloqueo, onDelete }) {
 }
 
 /* ── AppointmentBlock ────────────────────────────────────────── */
-function AppointmentBlock({ cita, colIndex, colTotal, onClick, onDragStart }) {
+function AppointmentBlock({ cita, colIndex, colTotal, onClick, onDragStart, onDragEnd, onDropOnCita, isDragged, dragActive }) {
   const { slotIdx, totalSlots, slotMins } = useContext(AgendaCtx);
   const slot  = Math.max(0, Math.min(totalSlots - 1, slotIdx(cita.hora)));
   const spans = Math.max(1, Math.min(totalSlots - slot, Math.round((cita.duracion || cita.duracionServicio || 30) / slotMins)));
   const color = STATUS_STYLE[cita.estado] ?? STATUS_STYLE.Confirmada;
   const pct   = 100 / colTotal;
+  const arrastrable = cita.estado !== 'Cancelada' && cita.estado !== 'Completada';
 
   return (
     <div
       onClick={() => onClick(cita)}
-      draggable={cita.estado !== 'Cancelada' && cita.estado !== 'Completada'}
+      draggable={arrastrable}
       onDragStart={(e) => onDragStart && onDragStart(e, cita)}
-      className={`absolute rounded-md border px-2 py-1 overflow-hidden cursor-grab active:cursor-grabbing hover:brightness-125 transition-all text-xs ${color}`}
+      onDragEnd={() => onDragEnd && onDragEnd()}
+      onDragOver={(e) => { if (dragActive) e.preventDefault(); }}
+      onDrop={(e) => { e.stopPropagation(); e.preventDefault(); onDropOnCita && onDropOnCita(cita); }}
+      className={`group absolute rounded-md border px-2 py-1 overflow-hidden ${arrastrable ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'} hover:brightness-125 transition-all text-xs ${color} ${
+        isDragged ? 'opacity-40 ring-2 ring-emerald-400 z-30'
+                  : dragActive ? 'ring-1 ring-amber-400/50'
+                  : ''
+      }`}
       style={{
         top:    `${slot * 40}px`,
         height: `${spans * 40 - 4}px`,
@@ -1124,6 +1132,9 @@ function AppointmentBlock({ cita, colIndex, colTotal, onClick, onDragStart }) {
         width:  `calc(${pct}% - 4px)`,
       }}
     >
+      {arrastrable && (
+        <GripVertical size={12} className="absolute top-1 right-1 text-white/45 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+      )}
       <p className="font-semibold truncate leading-tight">
         {cita.sobrecupo && <span className="mr-1 px-1 py-px rounded bg-amber-500/25 text-amber-300 text-[8px] font-bold uppercase tracking-wide align-middle">Sobrecupo</span>}
         {cita.clienteNombre || 'Cliente'}
@@ -1135,7 +1146,7 @@ function AppointmentBlock({ cita, colIndex, colTotal, onClick, onDragStart }) {
 }
 
 /* ── SlotRow (clickable empty slot) ─────────────────────────── */
-function SlotRow({ idx, barberoId, dateStr, onNewCita, onNewBloqueo, blockMode, onDragOver, onDrop }) {
+function SlotRow({ idx, barberoId, dateStr, onNewCita, onNewBloqueo, blockMode, onDragOver, onDrop, dragActive }) {
   const { timeLabels } = useContext(AgendaCtx);
   const hora = timeLabels[idx];
   return (
@@ -1145,9 +1156,59 @@ function SlotRow({ idx, barberoId, dateStr, onNewCita, onNewBloqueo, blockMode, 
       onDrop={() => onDrop && onDrop(barberoId, hora)}
       className={`absolute inset-x-0 h-10 border-b border-slate-800/40 transition-colors ${
         idx % 2 === 0 ? '' : 'bg-slate-800/10'
-      } ${blockMode ? 'hover:bg-red-950/20 cursor-crosshair' : 'hover:bg-emerald-900/10 hover:border-dashed hover:border-emerald-500/30 cursor-pointer'}`}
+      } ${blockMode ? 'hover:bg-red-950/20 cursor-crosshair' : 'hover:bg-emerald-900/10 hover:border-dashed hover:border-emerald-500/30 cursor-pointer'} ${
+        dragActive && !blockMode ? 'bg-emerald-900/10 ring-1 ring-inset ring-emerald-500/25 hover:bg-emerald-700/25' : ''
+      }`}
       style={{ top: `${idx * 40}px` }}
     />
+  );
+}
+
+/* ── ReagendarModal — aviso de la app al mover una cita ─────────── */
+function ReagendarModal({ data, onConfirm, onClose }) {
+  const [loading, setLoading] = useState(false);
+  if (!data) return null;
+  const ocupada = data.ocupada;
+  const handle = async () => { setLoading(true); await onConfirm(); setLoading(false); };
+  return (
+    <div className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-slate-900 border border-slate-800 rounded-xl w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="p-5 space-y-4">
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${ocupada ? 'bg-amber-500/15' : 'bg-emerald-500/15'}`}>
+              <CalendarDays size={20} className={ocupada ? 'text-amber-400' : 'text-emerald-400'} />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-white">Mover cita</p>
+              <p className="text-xs text-slate-500">{data.cita.clienteNombre || 'Cliente'}</p>
+            </div>
+          </div>
+
+          <p className="text-sm text-slate-300">
+            ¿Mover la cita a las <span className="font-bold text-white">{data.hora}</span> con <span className="font-bold text-white">{data.barberoNombre}</span>?
+          </p>
+
+          {ocupada && (
+            <div className="flex items-start gap-2 text-amber-300 text-xs bg-amber-500/10 border border-amber-500/25 rounded-lg px-3 py-2.5">
+              <AlertTriangle size={15} className="shrink-0 mt-0.5" />
+              <span>Ese horario <b>ya tiene una cita</b>. Quedará como <b>sobrecupo</b> (dos citas a la misma hora). Asegúrate de poder atender ambas.</span>
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            <button onClick={onClose} className="flex-1 py-2 rounded-lg text-sm font-semibold text-slate-400 bg-slate-800 hover:bg-slate-700 transition-all">
+              Cancelar
+            </button>
+            <button onClick={handle} disabled={loading}
+              className={`flex-1 py-2 rounded-lg text-sm font-bold transition-all disabled:opacity-50 ${
+                ocupada ? 'text-amber-950 bg-amber-400 hover:bg-amber-300' : 'text-emerald-950 bg-emerald-400 hover:bg-emerald-300'
+              }`}>
+              {loading ? 'Moviendo...' : ocupada ? 'Mover (sobrecupo)' : 'Mover cita'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -1898,6 +1959,7 @@ export default function Agenda() {
   const [showUltima,    setShowUltima]    = useState(false);
   const [showHistorial, setShowHistorial] = useState(false);
   const [draggedCita,   setDraggedCita]   = useState(null);
+  const [reagendarModal, setReagendarModal] = useState(null);
   const [showDifusionModal, setShowDifusionModal] = useState(false);
   const [soloBarbero,   setSoloBarbero]   = useState(null);   // id del barbero enfocado (null = todos)
   const [labelStep,     setLabelStep]     = useState(() => Number(localStorage.getItem(SLOT_KEY)) || 15);     // minutos entre etiquetas visibles en el eje
@@ -2048,10 +2110,12 @@ export default function Agenda() {
     await batch.commit();
   }, []);
 
-  const handleDrop = async (barberoId, hora) => {
+  // Al soltar una cita: abre el aviso de la app (no el confirm del navegador).
+  // Detecta si el horario destino ya está ocupado → sobrecupo (con precaución).
+  const handleDrop = (barberoId, hora) => {
     if (!draggedCita) return;
-    
-    // Prevent dropping on the same slot
+
+    // Mismo slot → no hacer nada
     if (draggedCita.barberoId === barberoId && draggedCita.hora === hora) {
       setDraggedCita(null);
       return;
@@ -2060,47 +2124,59 @@ export default function Agenda() {
     const targetBarbero = barberos.find(b => b.id === barberoId);
     const barberoNombre = targetBarbero?.nombre || '';
 
-    if (confirm(`¿Reagendar cita de ${draggedCita.clienteNombre} para las ${hora} con ${barberoNombre}?`)) {
-      try {
-        const safeHora = hora.replace(':', '');
-        const safeBid  = String(barberoId).replace(/[^a-zA-Z0-9_-]/g, '_');
-        const nextLockId = `${safeBid}_${dateStr}_${safeHora}`;
+    const ocupada = citas.some(c =>
+      c.id !== draggedCita.id &&
+      c.barberoId === barberoId &&
+      c.hora === hora &&
+      c.estado !== 'Cancelada',
+    );
 
-        const batch = writeBatch(db);
-        const citaRef = doc(db, `${tenantCol('citas').path}/${draggedCita.id}`);
+    setReagendarModal({ cita: draggedCita, barberoId, barberoNombre, hora, ocupada });
+    setDraggedCita(null);
+  };
 
-        const payload = {
-          barberoId,
-          barbero: barberoNombre,
-          hora,
-          slotLockId: nextLockId,
-          updatedAt: serverTimestamp(),
-        };
+  const doReagendar = async () => {
+    const m = reagendarModal;
+    if (!m) return;
+    try {
+      const safeHora   = m.hora.replace(':', '');
+      const safeBid    = String(m.barberoId).replace(/[^a-zA-Z0-9_-]/g, '_');
+      const nextLockId = `${safeBid}_${dateStr}_${safeHora}`;
 
-        batch.update(citaRef, payload);
+      const batch   = writeBatch(db);
+      const citaRef = doc(db, `${tenantCol('citas').path}/${m.cita.id}`);
 
-        // Delete previous slot lock
-        if (draggedCita.slotLockId) {
-          batch.delete(doc(db, `${tenantCol('slotLocks').path}/${draggedCita.slotLockId}`));
-        }
+      batch.update(citaRef, {
+        barberoId:  m.barberoId,
+        barbero:    m.barberoNombre,
+        hora:       m.hora,
+        sobrecupo:  !!m.ocupada,
+        // En sobrecupo NO tomamos un lock propio: el slot ya está reservado por la otra cita.
+        slotLockId: m.ocupada ? null : nextLockId,
+        updatedAt:  serverTimestamp(),
+      });
 
-        // Create new slot lock
+      // Liberar el lock del horario anterior
+      if (m.cita.slotLockId) {
+        batch.delete(doc(db, `${tenantCol('slotLocks').path}/${m.cita.slotLockId}`));
+      }
+      // Crear lock del nuevo horario solo si NO es sobrecupo
+      if (!m.ocupada) {
         batch.set(doc(db, `${tenantCol('slotLocks').path}/${nextLockId}`), {
-          citaId:    draggedCita.id,
+          citaId:    m.cita.id,
           fecha:     dateStr,
-          hora:      hora,
-          barberoId: barberoId,
-          duracion:  Number(draggedCita.duracion || draggedCita.duracionServicio || 30),
+          hora:      m.hora,
+          barberoId: m.barberoId,
+          duracion:  Number(m.cita.duracion || m.cita.duracionServicio || 30),
           creadoEn:  serverTimestamp(),
         });
-
-        await batch.commit();
-      } catch (err) {
-        console.error("Error al reagendar cita:", err);
-        alert("No se pudo reagendar la cita.");
       }
+
+      await batch.commit();
+    } catch (err) {
+      console.error('Error al reagendar cita:', err);
     }
-    setDraggedCita(null);
+    setReagendarModal(null);
   };
 
   const openNewCita    = (barberoId, hora) => setCitaModal({ cita: null, barberoId, hora });
@@ -2411,6 +2487,7 @@ export default function Agenda() {
                                 onNewBloqueo={openNewBloqueo}
                                 onDragOver={(e) => e.preventDefault()}
                                 onDrop={handleDrop}
+                                dragActive={!!draggedCita}
                               />
                             ))}
                             {barberBloqueos.map(blq => (
@@ -2424,6 +2501,10 @@ export default function Agenda() {
                                 colTotal={colTotal}
                                 onClick={openEditCita}
                                 onDragStart={(e, c) => setDraggedCita(c)}
+                                onDragEnd={() => setDraggedCita(null)}
+                                onDropOnCita={(c) => handleDrop(c.barberoId, c.hora)}
+                                isDragged={draggedCita?.id === cita.id}
+                                dragActive={!!draggedCita}
                               />
                             ))}
                             {showNowLine && (
@@ -2479,6 +2560,13 @@ export default function Agenda() {
           defaultHora={blqModal.hora}
           defaultTipo={blqModal.tipo}
           onClose={() => setBlqModal(null)}
+        />
+      )}
+      {reagendarModal && (
+        <ReagendarModal
+          data={reagendarModal}
+          onConfirm={doReagendar}
+          onClose={() => setReagendarModal(null)}
         />
       )}
       {showUltima && (

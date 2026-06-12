@@ -7518,6 +7518,16 @@
       return (p != null && p !== '') ? Number(p) : s.precio;
     }
 
+    // Recargo por horario según día de la semana (0=Dom…6=Sáb) y hora (entero).
+    // Genérico: solo aplica si el tenant tiene `recargosHorario` en su config.
+    // Estructura: { "6": { "8": 5000, "20": 4000 }, ... } (días/horas sin valor = 0).
+    function _getRecargoHorario(dow, hourInt) {
+      const r = _fsConfig && _fsConfig.recargosHorario;
+      if (!r) return 0;
+      const dia = r[String(dow)];
+      return dia ? (Number(dia[String(hourInt)]) || 0) : 0;
+    }
+
     // Actualiza los `.price-tag` del grid de servicios al día de la semana indicado.
     // Se llama al seleccionar una fecha en el calendario.
     function _updatePriceTags(dow) {
@@ -8244,6 +8254,22 @@
         return;
       }
 
+      // Recargo por horario (día + hora): aviso + badge "+$X" por hora.
+      const _dowSlots = new Date(currentDateStr + 'T00:00:00').getDay();
+      const _recBadge = (timeStr) => {
+        const r = _getRecargoHorario(_dowSlots, parseInt(timeStr, 10));
+        return r > 0
+          ? `<span style="display:block;text-align:center;font-size:9px;font-weight:700;line-height:1;margin-top:3px;color:#c0392b;">+$${r.toLocaleString('es-CL')}</span>`
+          : '';
+      };
+      if (hours.some(h => _getRecargoHorario(_dowSlots, parseInt(h.time, 10)) > 0)) {
+        const nota = document.createElement('div');
+        nota.className = 'col-span-full w-full mb-3 flex items-start gap-2 rounded-xl px-3 py-2.5';
+        nota.style.cssText = 'background:rgba(192,57,43,0.08);border:1px solid rgba(192,57,43,0.25);';
+        nota.innerHTML = `<i class="ph-fill ph-info" style="color:#c0392b;font-size:14px;margin-top:1px;flex-shrink:0;"></i><p style="font-size:11.5px;line-height:1.4;color:rgba(255,255,255,0.72);">Las horas marcadas con <b style="color:#c0392b;">+$</b> tienen un recargo que se suma al total del servicio.</p>`;
+        grid.appendChild(nota);
+      }
+
       if (_isEleganceHr) {
         const hourGroups = [
           { label: 'Mañana', hours: hours.filter(h => parseInt(h.time) < 12) },
@@ -8259,26 +8285,35 @@
           section.innerHTML = `<p class="text-xs font-bold text-gray-600 uppercase tracking-widest mb-2">${label}</p>`;
           groupHours.forEach(h => {
             const pill = document.createElement('button');
+            const badge = _recBadge(h.time);
             if (h.occupied) {
               pill.disabled = true;
-              pill.className = 'slot-pill-busy px-3 py-2.5 rounded-xl border text-sm font-medium';
+              pill.className = 'slot-pill-busy w-full px-3 py-2.5 rounded-xl border text-sm font-medium';
               pill.textContent = h.time;
             } else {
-              pill.className = 'time-pill px-3 py-2.5 rounded-xl border text-sm transition-[border-color,color,background] active:scale-95 focus:outline-none';
+              pill.className = 'time-pill w-full px-3 py-2.5 rounded-xl border text-sm transition-[border-color,color,background] active:scale-95 focus:outline-none';
               pill.textContent = h.time;
               pill.onclick = () => selectTime(pill, h.time);
             }
-            subGrid.appendChild(pill);
+            if (badge) {
+              const cell = document.createElement('div');
+              cell.appendChild(pill);
+              cell.insertAdjacentHTML('beforeend', badge);
+              subGrid.appendChild(cell);
+            } else {
+              subGrid.appendChild(pill);
+            }
           });
           section.appendChild(subGrid);
           grid.appendChild(section);
         });
       } else {
         hours.forEach(h => {
+          const badge = _recBadge(h.time);
           if (h.occupied) {
-            grid.innerHTML += `<button disabled class="slot-pill-busy w-full py-4 rounded-2xl border text-[15px] font-medium text-center">${h.time}</button>`;
+            grid.innerHTML += `<div><button disabled class="slot-pill-busy w-full py-4 rounded-2xl border text-[15px] font-medium text-center">${h.time}</button>${badge}</div>`;
           } else {
-            grid.innerHTML += `<button onclick="selectTime(this, '${h.time}')" class="time-pill w-full py-4 rounded-2xl border text-[15px] text-center transition-[border-color,color,background] active:scale-95 focus:outline-none">${h.time}</button>`;
+            grid.innerHTML += `<div><button onclick="selectTime(this, '${h.time}')" class="time-pill w-full py-4 rounded-2xl border text-[15px] text-center transition-[border-color,color,background] active:scale-95 focus:outline-none">${h.time}</button>${badge}</div>`;
           }
         });
       }
@@ -8578,11 +8613,19 @@
         if (_unsubSlotLocks) { _unsubSlotLocks(); _unsubSlotLocks = null; }
 
         let serviceNameText = selectedServiceObj.nombre;
-        let totalCost = _getPrecioEfectivo(selectedServiceObj, new Date(currentDateStr + 'T00:00:00').getDay()) || 0;
+        const _dowSel = new Date(currentDateStr + 'T00:00:00').getDay();
+        let totalCost = _getPrecioEfectivo(selectedServiceObj, _dowSel) || 0;
 
         if (selectedAddons && selectedAddons.length > 0) {
           serviceNameText += " + " + selectedAddons.map(a => a.nombre).join(" + ");
           totalCost += selectedAddons.reduce((sum, a) => sum + a.precio, 0);
+        }
+
+        // Recargo por horario (día + hora seleccionada) — transparente al cliente.
+        const _recargoSel = _getRecargoHorario(_dowSel, parseInt(selectedTimeStr, 10));
+        if (_recargoSel > 0) {
+          totalCost += _recargoSel;
+          serviceNameText += ` · +$${_recargoSel.toLocaleString('es-CL')} por horario`;
         }
 
         document.getElementById('summaryService').innerText = serviceNameText;
@@ -8927,7 +8970,7 @@
             clienteEmail:     email,
             servicioNombre:   selectedServiceObj.nombre + (selectedAddons.length > 0 ? " + " + selectedAddons.map(a => a.nombre).join(" + ") : ""),
             duracionServicio: selectedServiceObj.duracion + selectedAddons.reduce((sum, a) => sum + a.duracion, 0),
-            precio:           (_getPrecioEfectivo(selectedServiceObj, new Date(currentDateStr + 'T00:00:00').getDay()) || 0) + selectedAddons.reduce((sum, a) => sum + a.precio, 0),
+            precio:           (_getPrecioEfectivo(selectedServiceObj, new Date(currentDateStr + 'T00:00:00').getDay()) || 0) + selectedAddons.reduce((sum, a) => sum + a.precio, 0) + _getRecargoHorario(new Date(currentDateStr + 'T00:00:00').getDay(), parseInt(selectedTimeStr, 10)),
             barbero:          barberoNombreFinal,
             barberoId:        barberoIdFinal,
             ...(window._selectedSucursal ? {
