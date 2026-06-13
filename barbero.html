@@ -1370,6 +1370,45 @@
     btn.disabled = true;
     btn.innerHTML = '<div class="spinner" style="width:1.25rem;height:1.25rem;border-width:2px;margin:0 auto;"></div>';
 
+    // ── Pago online previo (tenants con pasarela Flow: yugen) ──────────
+    // El cliente paga ANTES de crear la cita; la cita la crea el webhook de Flow.
+    const _PAGO_TENANTS = ['yugen'];
+    if (_PAGO_TENANTS.includes(window.CURRENT_TENANT_ID)) {
+      try {
+        const _resp = await fetch('https://us-central1-barberia-elegance.cloudfunctions.net/flowCrearPago', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tenantId: window.CURRENT_TENANT_ID,
+            cita: {
+              fecha:            _selectedDate,
+              hora:             _selectedTime,
+              clienteNombre:    nombre,
+              clienteTelefono:  telefono,
+              clienteEmail:     email || '',
+              servicioNombre:   _selectedService.nombre,
+              servicioId:       _selectedService.id,
+              duracionServicio: _selectedService.duracion,
+              barbero:          _barberoNombre,
+              barberoId:        _barberoId,
+              precio:           _selectedService.precio,
+              origen:           'barbero-page',
+            },
+          }),
+        });
+        const _data = await _resp.json().catch(() => null);
+        if (_data && _data.url) { window.location.href = _data.url; return; }
+        console.error('[Flow] respuesta inesperada', _data);
+        showToast('No se pudo iniciar el pago. Intenta nuevamente.');
+      } catch (e) {
+        console.error('[Flow] error', e);
+        showToast('No se pudo conectar con la pasarela de pago. Revisa tu conexión.');
+      }
+      btn.disabled = false;
+      btn.innerHTML = 'Confirmar reserva <i class="ph-bold ph-check-circle text-lg"></i>';
+      return; // no creamos la cita si el pago no se inició
+    }
+
     try {
       await FDB.addCita({
         fecha:            _selectedDate,

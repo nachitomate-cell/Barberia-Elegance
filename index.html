@@ -8960,6 +8960,48 @@
           }
         }
 
+        // ── Pago online previo (tenants con pasarela Flow: yugen) ──────────
+        // El cliente paga ANTES de crear la cita; la cita la crea el webhook de
+        // Flow al confirmar el pago, disparando email + push como cualquier otra.
+        // El barbero agenda desde el panel (no pasa por aquí) → exento de pago.
+        const _PAGO_TENANTS = ['yugen'];
+        if (_PAGO_TENANTS.includes(window.CURRENT_TENANT_ID)) {
+          const _dowPago = new Date(currentDateStr + 'T00:00:00').getDay();
+          const _citaPago = {
+            fecha:            currentDateStr,
+            hora:             selectedTimeStr,
+            clienteNombre:    nombre,
+            clienteTelefono:  tel,
+            clienteEmail:     email,
+            servicioId:       selectedServiceObj.id,
+            servicioNombre:   selectedServiceObj.nombre + (selectedAddons.length > 0 ? " + " + selectedAddons.map(a => a.nombre).join(" + ") : ""),
+            duracionServicio: selectedServiceObj.duracion + selectedAddons.reduce((sum, a) => sum + a.duracion, 0),
+            precio:           (_getPrecioEfectivo(selectedServiceObj, _dowPago) || 0) + selectedAddons.reduce((sum, a) => sum + a.precio, 0) + _getRecargoHorario(_dowPago, parseInt(selectedTimeStr, 10)),
+            barbero:          barberoNombreFinal,
+            barberoId:        barberoIdFinal,
+            ...(window._selectedSucursal ? { sucursalId: window._selectedSucursal.id, sucursalNombre: window._selectedSucursal.nombre } : {}),
+          };
+          const _btnPago = document.getElementById('btnContinue');
+          const _btnHtmlPrev = _btnPago ? _btnPago.innerHTML : '';
+          if (_btnPago) { _btnPago.disabled = true; _btnPago.innerHTML = 'Redirigiendo al pago…'; }
+          try {
+            const _resp = await fetch('https://us-central1-barberia-elegance.cloudfunctions.net/flowCrearPago', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ tenantId: window.CURRENT_TENANT_ID, cita: _citaPago }),
+            });
+            const _data = await _resp.json().catch(() => null);
+            if (_data && _data.url) { window.location.href = _data.url; return; }
+            console.error('[Flow] respuesta inesperada', _data);
+            showToast('No se pudo iniciar el pago. Intenta nuevamente.');
+          } catch (e) {
+            console.error('[Flow] error', e);
+            showToast('No se pudo conectar con la pasarela de pago. Revisa tu conexión.');
+          }
+          if (_btnPago) { _btnPago.disabled = false; _btnPago.innerHTML = _btnHtmlPrev; }
+          return; // no creamos la cita si el pago no se inició
+        }
+
         let citaGuardada = false;
         try {
           await FDB.addCita({

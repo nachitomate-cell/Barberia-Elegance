@@ -768,3 +768,15 @@ exports.pushReengancheClientes = pushReenganche.pushReengancheClientes;
 const pushChat = require('./push-chat');
 exports.pushChatMsgElegance = pushChat.pushChatMsgElegance;
 exports.pushChatMsgTenant   = pushChat.pushChatMsgTenant;
+
+// ─────────────────────────────────────────────────────────────────
+//  PASARELA DE PAGO FLOW — ver flow-pago.js
+//  Cobro previo a la reserva (tenants opt-in: hoy yugen). La cita se
+//  crea recién al confirmar el pago (webhook), disparando email + push.
+//  Secrets: FLOW_API_KEY, FLOW_SECRET_KEY
+// ─────────────────────────────────────────────────────────────────
+const flowPago = require('./flow-pago');
+exports.flowCrearPago    = flowPago.flowCrearPago;
+exports.flowConfirmacion = flowPago.flowConfirmacion;
+exports.flowRetorno      = flowPago.flowRetorno;
+exports.flowReembolsar   = flowPago.flowReembolsar;
