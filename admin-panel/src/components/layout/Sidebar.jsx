@@ -145,7 +145,17 @@ function useBillingAlert() {
       snap => {
         if (snap.exists()) {
           const d = snap.data();
-          setHasPending(d.estadoPago === 'pendiente' || d.estadoPago === 'atrasado' || Number(d.montoPendiente) > 0);
+          // También se considera "pendiente" si la fecha de próximo pago ya venció.
+          let vencida = false;
+          if (d.fechaProximoPago) {
+            try {
+              const f = d.fechaProximoPago;
+              const dt = f.toDate ? f.toDate() : new Date(`${f}T00:00:00`);
+              const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+              vencida = !isNaN(dt.getTime()) && dt < hoy;
+            } catch { vencida = false; }
+          }
+          setHasPending(d.estadoPago === 'pendiente' || d.estadoPago === 'atrasado' || Number(d.montoPendiente) > 0 || vencida);
         } else {
           setHasPending(false);
         }

@@ -56,7 +56,21 @@ export default function Mensualidad() {
     return unsub;
   }, [tenantId]);
 
-  const estado = billing?.estadoPago || 'al_dia';
+  // ── Estado automático por fecha (solo lectura — NO modifica datos del tenant) ──
+  // Si la fecha de próximo pago ya venció, se muestra "atrasado" sin tocar Firestore.
+  const _fechaPP = billing?.fechaProximoPago;
+  const _dpp = (() => {
+    if (!_fechaPP) return null;
+    try {
+      const d = _fechaPP.toDate ? _fechaPP.toDate() : new Date(`${_fechaPP}T00:00:00`);
+      return isNaN(d.getTime()) ? null : d;
+    } catch { return null; }
+  })();
+  const _hoy = new Date(); _hoy.setHours(0, 0, 0, 0);
+  const vencida = _dpp ? _dpp < _hoy : false;
+  const diasVencido = vencida ? Math.floor((_hoy - _dpp) / 86400000) : 0;
+
+  const estado = vencida ? 'atrasado' : (billing?.estadoPago || 'al_dia');
   const cfg    = STATUS_CFG[estado] || STATUS_CFG.al_dia;
   const { Icon } = cfg;
 
@@ -146,8 +160,11 @@ export default function Mensualidad() {
                 </div>
                 {formatFecha(billing?.fechaProximoPago) && (
                   <div className="text-right">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Vencimiento</p>
-                    <p className="text-sm font-bold text-slate-200">{formatFecha(billing.fechaProximoPago)}</p>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">{vencida ? 'Venció' : 'Vencimiento'}</p>
+                    <p className={`text-sm font-bold ${vencida ? 'text-red-400' : 'text-slate-200'}`}>{formatFecha(billing.fechaProximoPago)}</p>
+                    {vencida && (
+                      <p className="text-[10px] font-semibold text-red-400/80 mt-0.5">Hace {diasVencido} día{diasVencido !== 1 ? 's' : ''}</p>
+                    )}
                   </div>
                 )}
               </div>
