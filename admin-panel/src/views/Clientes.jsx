@@ -7,6 +7,7 @@ import {
 import { db } from '../lib/firebase';
 import { tenantCol } from '../lib/tenantUtils';
 import { useCollection } from '../hooks/useCollection';
+import { useClubUsers } from '../hooks/useClubUsers';
 import { useTenant } from '../contexts/TenantContext';
 import SlideOver from '../components/ui/SlideOver';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
@@ -1349,7 +1350,7 @@ const PAGE_SIZE = 15;
 /* ── Vista principal Clientes ── */
 export default function Clientes() {
   const { id: tenantId, name: shopName } = useTenant();
-  const { data: clientes, loading } = useCollection('users');
+  const { data: clientes, loading } = useClubUsers();
   const { data: premios }           = useCollection('premios', [firestoreOrderBy('costoSellos')]);
   const [todasCitas, setTodasCitas] = useState([]);
 
