@@ -4,6 +4,7 @@ import { Menu, X, Calendar, ShoppingBag, ChevronRight } from 'lucide-react';
 import Sidebar    from './Sidebar';
 import PWABanner           from './PWABanner';
 import NotificationBanner  from './NotificationBanner';
+import BillingBanner       from './BillingBanner';
 import PendingAppointmentsBanner from '../PendingAppointmentsBanner';
 import { useChatNotifications }       from '../../hooks/useChatNotifications';
 import { useAppointmentNotifications } from '../../hooks/useAppointmentNotifications';
@@ -179,6 +180,9 @@ export default function AdminLayout({ children }) {
 
         {/* Push notification opt-in banner */}
         <NotificationBanner />
+
+        {/* Aviso de cobro (próximo a vencer / atrasado) */}
+        <BillingBanner />
 
         {/* End of day pending appointments banner */}
         <PendingAppointmentsBanner />
