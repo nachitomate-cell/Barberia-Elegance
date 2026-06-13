@@ -5,7 +5,7 @@ import {
   Trophy, ShoppingBag, Images, LogOut, ChevronRight,
   Sun, Moon, ExternalLink, Settings, TrendingDown, MessageCircle, X,
   Megaphone, ImagePlus, CreditCard, Monitor, Headphones, Medal, Camera, GraduationCap, Wallet, Package, ThumbsUp,
-  Globe, Banknote, Gift, ClipboardList, Building2, Home, Lock,
+  Globe, Banknote, Gift, ClipboardList, Building2, Home, Lock, HelpCircle,
 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { doc, onSnapshot, where } from 'firebase/firestore';
@@ -82,6 +82,7 @@ const NAV_GROUPS_DEFAULT = [
       { to: 'mensualidad',   label: 'Mensualidad',    Icon: CreditCard,  adminOnly: true },
       { to: 'tv-config',     label: 'Pantalla TV',    Icon: Monitor,     adminOnly: true },
       { to: 'configuracion', label: 'Configuración',  Icon: Settings,    adminOnly: true },
+      { to: 'consultas',     label: 'Consultas',      Icon: HelpCircle,  adminOnly: true },
       { to: 'soporte',       label: 'Soporte',        Icon: Headphones,  adminOnly: true },
     ],
   },
@@ -122,6 +123,7 @@ const NAV_GROUPS_DELUXE = [
       { to: 'marketing',     label: 'Marketing',     Icon: Megaphone,  adminOnly: true },
       { to: 'configuracion', label: 'Configuración', Icon: Settings,   adminOnly: true },
       { to: 'mensualidad',   label: 'Mensualidad',   Icon: CreditCard, adminOnly: true },
+      { to: 'consultas',     label: 'Consultas',     Icon: HelpCircle, adminOnly: true },
       { to: 'soporte',       label: 'Soporte',       Icon: Headphones, adminOnly: true },
     ],
   },

@@ -32,6 +32,7 @@ import TVConfig         from './views/TVConfig';
 import Finanzas         from './views/Finanzas';
 import Mensualidad      from './views/Mensualidad';
 import Soporte          from './views/Soporte';
+import Consultas        from './views/Consultas';
 import HistorialCortes  from './views/HistorialCortes';
 import InstagramPage    from './views/Instagram';
 import Academia         from './views/Academia';
@@ -99,6 +100,7 @@ function ProtectedApp() {
             <Route path="mensajes"        element={<Chat />} />
             <Route path="marketing"       element={<BillingGate><Marketing /></BillingGate>} />
             <Route path="soporte"         element={<Soporte />} />
+            <Route path="consultas"       element={<Consultas />} />
             <Route path="membresias"      element={<Membresias />} />
             <Route path="historial"       element={<HistorialCortes />} />
             <Route path="resenas"         element={<Resenas />} />
