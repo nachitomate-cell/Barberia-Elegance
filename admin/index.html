@@ -2099,7 +2099,7 @@
 
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.625rem;">
             <div>
-              <label style="${LBL}">Monto mensual ($)</label>
+              <label style="${LBL}">Monto mensual ($) <span onclick="showTarifas()" style="cursor:pointer;color:#a3e635;font-weight:600;font-size:0.68rem;margin-left:6px;">Ver tarifas ⓘ</span></label>
               <input id="bf-monto" type="number" min="0" step="100" value="${monto}" placeholder="ej: 29900" style="${IS}" />
             </div>
             <div>
@@ -2284,6 +2284,39 @@
       } catch(e) {
         if (fb) { fb.style.color='#f87171'; fb.textContent = `Error: ${e.message}`; }
       }
+    }
+
+    // ── Modal de Tarifas (referencia de precios reales) ───────────
+    function showTarifas() {
+      const ex = document.getElementById('tarifas-modal'); if (ex) ex.remove();
+      const card = (nombre, sub, mes, anual, pop) => `
+        <div style="background:${pop ? '#000' : 'rgba(255,255,255,0.03)'};border:1px solid ${pop ? '#84cc16' : 'rgba(255,255,255,0.08)'};border-radius:0.75rem;padding:0.875rem;margin-bottom:0.625rem;position:relative;">
+          ${pop ? '<span style="position:absolute;top:-9px;left:12px;background:#84cc16;color:#000;font-size:0.6rem;font-weight:800;padding:2px 8px;border-radius:99px;">MÁS POPULAR</span>' : ''}
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div><p style="margin:0;color:#fff;font-weight:700;font-size:0.9rem;">${nombre}</p><p style="margin:0;color:#64748b;font-size:0.72rem;">${sub}</p></div>
+            <div style="text-align:right;"><p style="margin:0;color:${pop ? '#a3e635' : '#fff'};font-weight:800;font-size:1.05rem;">$${mes}<span style="font-size:0.7rem;color:#64748b;font-weight:500;">/mes</span></p><p style="margin:0;color:#64748b;font-size:0.66rem;">anual $${anual}/mes</p></div>
+          </div>
+        </div>`;
+      const m = document.createElement('div');
+      m.id = 'tarifas-modal';
+      m.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:1rem;';
+      m.onclick = (e) => { if (e.target === m) m.remove(); };
+      m.innerHTML = `<div style="background:#0f172a;border:1px solid rgba(255,255,255,0.1);border-radius:1rem;max-width:420px;width:100%;max-height:88vh;overflow-y:auto;padding:1.5rem;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+          <h3 style="margin:0;color:#fff;font-size:1.05rem;font-weight:800;">Tarifas SynapTech</h3>
+          <button onclick="document.getElementById('tarifas-modal').remove()" style="background:none;border:none;color:#64748b;font-size:1.4rem;cursor:pointer;line-height:1;">&times;</button>
+        </div>
+        ${card('Individual', '1 barbero · trabajas solo', '14.900', '11.900', false)}
+        ${card('Local', 'Barberos ilimitados · por local', '29.900', '24.900', true)}
+        <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:0.75rem;padding:0.875rem;margin-bottom:0.625rem;">
+          <p style="margin:0 0 0.5rem;color:#fff;font-weight:700;font-size:0.9rem;">Cadena <span style="color:#64748b;font-weight:500;font-size:0.72rem;">· 3 o más locales</span></p>
+          <div style="display:flex;justify-content:space-between;font-size:0.8rem;color:#cbd5e1;padding:3px 0;"><span>1 local</span><b style="color:#fff;">$29.900 c/u</b></div>
+          <div style="display:flex;justify-content:space-between;font-size:0.8rem;color:#cbd5e1;padding:3px 0;"><span>2 locales</span><b style="color:#fff;">$25.900 c/u</b></div>
+          <div style="display:flex;justify-content:space-between;font-size:0.8rem;color:#a3e635;padding:3px 0;"><span>3 a 5 locales</span><b>$22.900 c/u</b></div>
+        </div>
+        <p style="margin:0.75rem 0 0;font-size:0.72rem;color:#64748b;line-height:1.55;text-align:center;">Primer mes gratis · sin instalación · migración gratis<br/>2° local: 50% off los primeros 3 meses</p>
+      </div>`;
+      document.body.appendChild(m);
     }
 
     // ── Monitor de Consumo ────────────────────────────────────────

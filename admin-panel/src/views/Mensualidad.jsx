@@ -39,10 +39,56 @@ function mesLabel(mes) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
+/* ── Modal de Planes y Tarifas (visible para el cliente) ───────── */
+function PlanCard({ nombre, sub, mes, anual, pop }) {
+  return (
+    <div className={`rounded-2xl p-4 border relative ${pop ? 'bg-black border-lime-500/60' : 'bg-slate-800/40 border-slate-700/60'}`}>
+      {pop && <span className="absolute -top-2.5 left-3 bg-lime-400 text-black text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wide">Más popular</span>}
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-white font-bold text-sm">{nombre}</p>
+          <p className="text-slate-500 text-[11px]">{sub}</p>
+        </div>
+        <div className="text-right">
+          <p className={`font-black text-lg ${pop ? 'text-lime-400' : 'text-white'}`}>${mes}<span className="text-[11px] text-slate-500 font-medium">/mes</span></p>
+          <p className="text-slate-500 text-[10px]">anual ${anual}/mes</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TarifasModal({ onClose }) {
+  return (
+    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-sm shadow-2xl max-h-[88vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="p-5 space-y-3">
+          <div className="flex items-center justify-between mb-1">
+            <h3 className="text-base font-bold text-white">Planes y tarifas</h3>
+            <button onClick={onClose} className="text-slate-500 hover:text-white text-2xl leading-none">&times;</button>
+          </div>
+          <PlanCard nombre="Individual" sub="1 barbero · trabajas solo" mes="14.900" anual="11.900" />
+          <PlanCard nombre="Local" sub="Barberos ilimitados · por local" mes="29.900" anual="24.900" pop />
+          <div className="rounded-2xl p-4 border bg-slate-800/40 border-slate-700/60">
+            <p className="text-white font-bold text-sm mb-1.5">Cadena <span className="text-slate-500 font-medium text-[11px]">· 3 o más locales</span></p>
+            <div className="flex justify-between text-[13px] text-slate-300 py-0.5"><span>1 local</span><b className="text-white">$29.900 c/u</b></div>
+            <div className="flex justify-between text-[13px] text-slate-300 py-0.5"><span>2 locales</span><b className="text-white">$25.900 c/u</b></div>
+            <div className="flex justify-between text-[13px] text-lime-400 py-0.5"><span>3 a 5 locales</span><b>$22.900 c/u</b></div>
+          </div>
+          <p className="text-[11px] text-slate-500 text-center leading-relaxed pt-1">
+            Primer mes gratis · sin instalación · migración gratis<br />2° local: 50% off los primeros 3 meses
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function Mensualidad() {
   const { id: tenantId, name: tenantName } = useTenant();
   const [billing,  setBilling]  = useState(null);
   const [showHelp, setShowHelp] = useState(false);
+  const [showTarifas, setShowTarifas] = useState(false);
   const [loading, setLoading] = useState(true);
   const [copiado, setCopiado] = useState(false);
 
@@ -170,6 +216,15 @@ export default function Mensualidad() {
               </div>
             )}
           </div>
+
+          {/* Ver planes y tarifas */}
+          <button
+            onClick={() => setShowTarifas(true)}
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-slate-300 bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 transition-all"
+          >
+            <Sparkles size={14} className="text-violet-400" /> Ver planes y tarifas
+          </button>
+          {showTarifas && <TarifasModal onClose={() => setShowTarifas(false)} />}
 
           {/* Renderizado condicional del panel según estado de pago */}
           {estado === 'al_dia' ? (
