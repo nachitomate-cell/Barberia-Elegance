@@ -130,7 +130,9 @@ exports.flowCrearPago = onRequest(
       if (!amount || amount < 500) return res.status(400).json({ error: 'monto_invalido' });
 
       const commerceOrder = `${tenantId}-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
-      const email = (cita.clienteEmail && /@/.test(cita.clienteEmail)) ? cita.clienteEmail : `pagos@${tenantId}studio.cl`;
+      // Flow valida el email (code 1620 si no es válido). Si el cliente no dio
+      // uno, usamos un dominio real nuestro como respaldo para el comprobante.
+      const email = (cita.clienteEmail && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(cita.clienteEmail)) ? cita.clienteEmail : 'citas@synaptechspa.cl';
 
       // Guardar la reserva pendiente (la cita real se crea recién al confirmar el pago)
       await pagosPendientesCol(tenantId).doc(commerceOrder).set({
@@ -342,7 +344,7 @@ exports.flowReembolsar = onCall(
 
     const params = {
       refundCommerceOrder: `${citaId}-refund`,
-      receiverEmail: cita.clienteEmail || `pagos@${tenantId}studio.cl`,
+      receiverEmail: (cita.clienteEmail && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(cita.clienteEmail)) ? cita.clienteEmail : 'citas@synaptechspa.cl',
       amount: String(montoReembolso),
       urlCallBack: `${FN_BASE}/flowConfirmacion`,
       flowOrder: String(cita.pago.flowOrder),
