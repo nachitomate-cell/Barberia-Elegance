@@ -217,14 +217,18 @@ export default function Mensualidad() {
             )}
           </div>
 
-          {/* Ver planes y tarifas */}
-          <button
-            onClick={() => setShowTarifas(true)}
-            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-slate-300 bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 transition-all"
-          >
-            <Sparkles size={14} className="text-violet-400" /> Ver planes y tarifas
-          </button>
-          {showTarifas && <TarifasModal onClose={() => setShowTarifas(false)} />}
+          {/* Ver planes y tarifas — oculto para tenants con arreglo especial */}
+          {!['elegance', 'ferraza'].includes(tenantId) && (
+            <>
+              <button
+                onClick={() => setShowTarifas(true)}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-slate-300 bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 transition-all"
+              >
+                <Sparkles size={14} className="text-violet-400" /> Ver planes y tarifas
+              </button>
+              {showTarifas && <TarifasModal onClose={() => setShowTarifas(false)} />}
+            </>
+          )}
 
           {/* Renderizado condicional del panel según estado de pago */}
           {estado === 'al_dia' ? (
