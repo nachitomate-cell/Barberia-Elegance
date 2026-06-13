@@ -19,18 +19,18 @@
   <link rel="dns-prefetch" href="https://firebaseinstallations.googleapis.com">
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <script defer src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
   <link href="/output.css" rel="stylesheet">
 
   <script src="/config.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-  <script src="/firebase-config.js?v=1.3"></script>
-  <script src="/js/utils/error-logger.js?v=1.1"></script>
-  <script src="/firebaseUtils.js?v=3.0"></script>
-  <script src="/js/guards/tenant-status-guard.js?v=1.0"></script>
-  <script src="/js/guards/version-manager.js?v=1.1"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script defer src="/firebase-config.js?v=1.3"></script>
+  <script defer src="/js/utils/error-logger.js?v=1.1"></script>
+  <script defer src="/firebaseUtils.js?v=3.0"></script>
+  <script defer src="/js/guards/tenant-status-guard.js?v=1.0"></script>
+  <script defer src="/js/guards/version-manager.js?v=1.1"></script>
 
   <style>
     :root {
@@ -1536,6 +1536,9 @@
 
     _barberoId     = _barber.id;
     _barberoNombre = _barber.nombre;
+
+    // Título dinámico con nombre del barbero (la pestaña; el preview/SEO lo inyecta el edge middleware)
+    document.title = `Agendar con ${_barber.nombre} | ${SHOP.nombre || ''}`.replace(/\s*\|\s*$/, '');
 
     // Render hero (con lazy-load + decoding async para no bloquear el primer paint)
     document.getElementById('barberName').textContent = _barber.nombre;
