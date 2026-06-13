@@ -451,31 +451,25 @@ function ModalActivar({ tenantId, planes, onClose }) {
             )}
             
             {searchVal && !selectedUser && suggestions.length === 0 && !buscando && (
-              <p className="text-[10px] text-slate-500 mt-1 pl-1">Presiona "Crear un nuevo cliente" si es una cuenta nueva, o busca otro término.</p>
+              <p className="text-[10px] text-amber-400/80 mt-1 pl-1">No encontramos ese cliente. Debe registrarse en el club primero para activarle la membresía.</p>
             )}
           </div>
 
-          {/* Campos de Nombre y UID (Lectura o edición manual si lo desean) */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Nombre</label>
-              <input 
-                value={nombre} 
-                onChange={e => setNombre(e.target.value)} 
-                placeholder="Nombre" 
-                className={INPUT_CLS + ' py-2'} 
-              />
+          {/* Cliente seleccionado — resumen claro, sin datos técnicos */}
+          {selectedUser && (
+            <div className="flex items-center gap-3 bg-emerald-500/5 border border-emerald-500/25 rounded-xl px-4 py-3">
+              <div className="w-9 h-9 rounded-full bg-emerald-500/15 flex items-center justify-center shrink-0">
+                <UserCheck size={17} className="text-emerald-400" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-semibold text-white truncate">{nombre}</p>
+                <p className="text-[11px] text-slate-400 truncate">
+                  {selectedUser.telefono ? `Tel: ${selectedUser.telefono}` : 'Cliente registrado'}
+                </p>
+              </div>
+              <Check size={16} className="text-emerald-400 shrink-0" />
             </div>
-            <div>
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">UID</label>
-              <input 
-                value={uid} 
-                onChange={e => setUid(e.target.value)} 
-                placeholder="Firebase UID" 
-                className={INPUT_CLS + ' py-2 text-slate-400 font-mono text-xs'} 
-              />
-            </div>
-          </div>
+          )}
 
           {/* Config de Plan y Periodo */}
           <div className="grid grid-cols-2 gap-3">
@@ -502,7 +496,7 @@ function ModalActivar({ tenantId, planes, onClose }) {
           <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-slate-700 text-slate-400 text-sm font-semibold hover:bg-slate-700 hover:text-white transition-all">
             Cancelar
           </button>
-          <button onClick={activar} disabled={loading || !planes.length}
+          <button onClick={activar} disabled={loading || !planes.length || !selectedUser}
             className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold transition-all disabled:opacity-50 shadow-lg shadow-emerald-950/20">
             {loading ? 'Activando…' : 'Activar'}
           </button>
