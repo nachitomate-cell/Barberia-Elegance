@@ -638,6 +638,12 @@ exports.recordatorioCita1h    = recordatorioCita.recordatorioCita1h;
 exports.recordatorioCita30min = recordatorioCita.recordatorioCita30min;
 
 // ─────────────────────────────────────────────────────────────────
+//  RECORDATORIO DE COBRO (mensualidad) — push al admin del local
+// ─────────────────────────────────────────────────────────────────
+const recordatorioCobro = require('./recordatorio-cobro');
+exports.recordatorioCobro = recordatorioCobro.recordatorioCobro;
+
+// ─────────────────────────────────────────────────────────────────
 //  CONFIRMACIÓN DE ENTREGA / CLICK DE PUSH — ver confirmar-entrega.js
 //  Endpoint HTTP que el Service Worker llama para marcar deliveredAt/clickedAt.
 // ─────────────────────────────────────────────────────────────────
