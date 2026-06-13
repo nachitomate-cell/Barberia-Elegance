@@ -121,8 +121,14 @@ export default function Mensualidad() {
   const { Icon } = cfg;
 
   const cuotas   = Array.isArray(billing?.cuotas) ? billing.cuotas : [];
-  const pagadas  = cuotas.filter(c => c.pagada).length;
-  const pendientes = cuotas.filter(c => !c.pagada).length;
+  // Mes actual YYYY-MM para clasificar cada cuota correctamente.
+  const _mesActual = `${_hoy.getFullYear()}-${String(_hoy.getMonth() + 1).padStart(2, '0')}`;
+  // Una cuota no pagada de un mes FUTURO no es deuda: es "próxima", no "pendiente".
+  // Solo cuentan como pendientes los meses ya vencidos o el mes en curso sin pagar.
+  const claseCuota = c => c.pagada ? 'pagada' : (c.mes && c.mes <= _mesActual ? 'pendiente' : 'proxima');
+  const pagadas    = cuotas.filter(c => c.pagada).length;
+  const pendientes = cuotas.filter(c => claseCuota(c) === 'pendiente').length;
+  const proximas   = cuotas.filter(c => claseCuota(c) === 'proxima').length;
 
   const formatFecha = raw => {
     if (!raw) return null;
@@ -139,8 +145,10 @@ export default function Mensualidad() {
     setTimeout(() => setCopiado(false), 2000);
   };
 
-  // Obtener el mes pendiente actual si existe para armar el mensaje de WhatsApp
-  const primerPendiente = cuotas.find(c => !c.pagada);
+  // Obtener el mes a pagar para el mensaje de WhatsApp: primero la deuda real
+  // (vencida/actual) y, si está al día, la próxima cuota por vencer.
+  const primerPendiente = cuotas.find(c => claseCuota(c) === 'pendiente')
+    || cuotas.find(c => claseCuota(c) === 'proxima');
   const mesMensaje = primerPendiente ? mesLabel(primerPendiente.mes) : '';
   
   const waphone = billing?.whatsappAdmin || '56983568212'; // Teléfono oficial corregido de Ignacio
@@ -340,31 +348,42 @@ export default function Mensualidad() {
                   {pendientes > 0 && (
                     <span className="ml-2.5 text-amber-400 font-bold">· {pendientes} pendiente{pendientes !== 1 ? 's' : ''}</span>
                   )}
+                  {proximas > 0 && (
+                    <span className="ml-2.5 text-slate-500">· {proximas} próxima{proximas !== 1 ? 's' : ''}</span>
+                  )}
                 </span>
               </div>
               <div className="space-y-2">
-                {cuotas.map((c, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-900/30 border border-slate-800/80 transition-all hover:bg-slate-900/50"
-                  >
-                    <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full flex-shrink-0 border ${
-                      c.pagada
-                        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                        : 'bg-amber-500/10 border-amber-500/25 text-amber-400'
-                    }`}>
-                      {c.pagada ? '✓ Pagado' : '○ Pendiente'}
-                    </span>
-                    <span className={`flex-1 text-sm font-semibold ${c.pagada ? 'text-slate-500 line-through' : 'text-slate-200'}`}>
-                      {mesLabel(c.mes)}
-                    </span>
-                    {c.monto > 0 && (
-                      <span className="text-xs font-black text-slate-400 flex-shrink-0 font-mono">
-                        ${Number(c.monto).toLocaleString('es-CL')}
+                {cuotas.map((c, i) => {
+                  const clase = claseCuota(c);
+                  const badge = clase === 'pagada'
+                    ? { cls: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400', txt: '✓ Pagado' }
+                    : clase === 'pendiente'
+                      ? { cls: 'bg-amber-500/10 border-amber-500/25 text-amber-400', txt: '○ Pendiente' }
+                      : { cls: 'bg-slate-500/10 border-slate-600/40 text-slate-400', txt: '◔ Próximo' };
+                  return (
+                    <div
+                      key={i}
+                      className="flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-900/30 border border-slate-800/80 transition-all hover:bg-slate-900/50"
+                    >
+                      <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full flex-shrink-0 border ${badge.cls}`}>
+                        {badge.txt}
                       </span>
-                    )}
-                  </div>
-                ))}
+                      <span className={`flex-1 text-sm font-semibold ${
+                        clase === 'pagada'    ? 'text-slate-500 line-through'
+                        : clase === 'pendiente' ? 'text-slate-200'
+                        : 'text-slate-400'
+                      }`}>
+                        {mesLabel(c.mes)}
+                      </span>
+                      {c.monto > 0 && (
+                        <span className="text-xs font-black text-slate-400 flex-shrink-0 font-mono">
+                          ${Number(c.monto).toLocaleString('es-CL')}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
