@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { db, auth } from '../lib/firebase';
 import { resolveTenantId } from '../lib/tenantUtils';
@@ -67,25 +67,26 @@ export function useChatNotifications() {
       }
 
       // ── Usuario confirmado: abrir listener de Firestore ──
+      // Solo escuchamos los chats NO leídos (no toda la colección). El badge es
+      // directamente el tamaño del resultado; un chat que pasa a no-leído entra
+      // como 'added' → suena la campana. Lecturas mínimas.
       initialized.current = false;
-      const q = query(chatsCol(), orderBy('updatedAt', 'desc'));
+      const q = query(chatsCol(), where('hasUnread', '==', true));
 
       firestoreUnsub.current = onSnapshot(q, snap => {
         // Primera carga: solo contar, no sonar
         if (!initialized.current) {
           initialized.current = true;
-          setUnreadCount(snap.docs.filter(d => d.data().hasUnread === true).length);
+          setUnreadCount(snap.size);
           return;
         }
 
-        // Cambios posteriores: detectar mensajes nuevos del cliente
+        // Cambios posteriores: un chat nuevo entra al set de no-leídos → suena
         snap.docChanges().forEach(change => {
-          if (change.type === 'modified' && change.doc.data().hasUnread === true) {
-            playBell();
-          }
+          if (change.type === 'added') playBell();
         });
 
-        setUnreadCount(snap.docs.filter(d => d.data().hasUnread === true).length);
+        setUnreadCount(snap.size);
       });
     });
 

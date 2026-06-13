@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { collection, query, orderBy, onSnapshot, where } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, where, Timestamp } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
 import { db, auth } from '../lib/firebase';
 import { resolveTenantId } from '../lib/tenantUtils';
@@ -113,8 +113,15 @@ export function useAppointmentNotifications(onNewNotification) {
       }
 
       // ── Listener de citas ──────────────────────────────────────────
+      // Solo escuchamos citas creadas DESDE que se abre el panel (no toda la
+      // historia). El snapshot inicial llega vacío → casi cero lecturas; solo
+      // se paga por las citas realmente nuevas que llegan en vivo.
       isInitialCitas.current = true;
-      const qCitas = query(citasCol(), orderBy('creadoEn', 'desc'));
+      const qCitas = query(
+        citasCol(),
+        where('creadoEn', '>=', Timestamp.now()),
+        orderBy('creadoEn', 'desc'),
+      );
 
       citasUnsub.current = onSnapshot(qCitas, snap => {
         if (isInitialCitas.current) { isInitialCitas.current = false; return; }

@@ -101,24 +101,37 @@ function PendingAppointmentsModal({ citas, onClose }) {
 }
 
 export default function PendingAppointmentsBanner() {
-  const { data: citas } = useCollection('citas', [where('estado', '==', 'Confirmada')]);
   const [modalOpen, setModalOpen] = useState(false);
 
   // Obtener fecha actual YYYY-MM-DD
   const now = new Date();
   const todayStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-  
+
   // Consideramos que es el "final del día" si son más de las 19:00 (hora local)
   const isEndOfDay = now.getHours() >= 19;
 
-  // Filtrar las citas que requieren atención
+  // Ventana acotada: solo los últimos 14 días (citas más viejas sin cerrar son irrelevantes).
+  // Evita leer TODA la historia de citas Confirmada en cada carga del panel.
+  const cutoff = new Date(now);
+  cutoff.setDate(cutoff.getDate() - 14);
+  const cutoffStr = `${cutoff.getFullYear()}-${String(cutoff.getMonth()+1).padStart(2,'0')}-${String(cutoff.getDate()).padStart(2,'0')}`;
+
+  const { data: citas } = useCollection(
+    'citas',
+    [where('fecha', '>=', cutoffStr), where('fecha', '<=', todayStr)],
+    [cutoffStr, todayStr],
+  );
+
+  // Filtrar las citas que requieren atención (estado se filtra en memoria)
   const pendingCitas = useMemo(() => {
     if (!citas) return [];
-    
+
     return citas.filter(cita => {
+      if (cita.estado !== 'Confirmada') return false;
+
       // Si la fecha es de días anteriores, siempre requiere atención
       if (cita.fecha < todayStr) return true;
-      
+
       // Si es hoy, requiere atención solo si es "final del día" (>= 19:00)
       if (cita.fecha === todayStr && isEndOfDay) return true;
 
