@@ -43,6 +43,7 @@ import ListaEspera      from './views/ListaEspera';
 import Sucursales       from './views/Sucursales';
 import SaldoGiftCard    from './views/SaldoGiftCard';
 import VIPDashboard        from './views/VIPDashboard';
+import BillingGate         from './components/BillingGate';
 
 function TenantGate({ children }) {
   const { suspended } = useTenant();
@@ -89,14 +90,14 @@ function ProtectedApp() {
             <Route path="lookbook"        element={<Lookbook />} />
             <Route path="tv-config"       element={<TVConfig />} />
             <Route path="servicio-favorito" element={<ServicioFavorito />} />
-            <Route path="metricas"        element={<Metricas />} />
-            <Route path="gastos"          element={<Gastos />} />
-            <Route path="caja"            element={<Caja />} />
-            <Route path="finanzas"        element={<Finanzas />} />
+            <Route path="metricas"        element={<BillingGate><Metricas /></BillingGate>} />
+            <Route path="gastos"          element={<BillingGate><Gastos /></BillingGate>} />
+            <Route path="caja"            element={<BillingGate><Caja /></BillingGate>} />
+            <Route path="finanzas"        element={<BillingGate><Finanzas /></BillingGate>} />
             <Route path="configuracion"   element={<Configuracion />} />
             <Route path="mensualidad"     element={<Mensualidad />} />
             <Route path="mensajes"        element={<Chat />} />
-            <Route path="marketing"       element={<Marketing />} />
+            <Route path="marketing"       element={<BillingGate><Marketing /></BillingGate>} />
             <Route path="soporte"         element={<Soporte />} />
             <Route path="membresias"      element={<Membresias />} />
             <Route path="historial"       element={<HistorialCortes />} />
@@ -104,7 +105,7 @@ function ProtectedApp() {
             <Route path="instagram"       element={<InstagramPage />} />
             <Route path="academia"        element={<Academia />} />
             <Route path="reserva-online"  element={<ReservaPublica />} />
-            <Route path="comisiones"      element={<Comisiones />} />
+            <Route path="comisiones"      element={<BillingGate><Comisiones /></BillingGate>} />
             <Route path="gift-cards"      element={<GiftCards />} />
             <Route path="lista-espera"    element={<ListaEspera />} />
             <Route path="sucursales"      element={<Sucursales />} />

@@ -5,7 +5,7 @@ import {
   Trophy, ShoppingBag, Images, LogOut, ChevronRight,
   Sun, Moon, ExternalLink, Settings, TrendingDown, MessageCircle, X,
   Megaphone, ImagePlus, CreditCard, Monitor, Headphones, Medal, Camera, GraduationCap, Wallet, Package, ThumbsUp,
-  Globe, Banknote, Gift, ClipboardList, Building2, Home,
+  Globe, Banknote, Gift, ClipboardList, Building2, Home, Lock,
 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { doc, onSnapshot, where } from 'firebase/firestore';
@@ -13,6 +13,10 @@ import { auth, db } from '../../lib/firebase';
 import { useTenant } from '../../contexts/TenantContext';
 import { useAuth }   from '../../contexts/AuthContext';
 import { useCollection } from '../../hooks/useCollection';
+import { useBillingRestriction } from '../BillingGate';
+
+// Secciones que se bloquean cuando el pago está muy atrasado (modo restringido).
+const SECCIONES_BLOQUEADAS = new Set(['metricas', 'comisiones', 'caja', 'gastos', 'marketing', 'finanzas']);
 
 /* ── Grupos de navegación ────────────────────────────────────────── */
 const NAV_GROUPS_DEFAULT = [
@@ -223,6 +227,7 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
   const hasUnreadNews   = useUnreadNews();
   const hasBillingAlert = useBillingAlert();
   const hasAcademia     = useAcademiaEnabled();
+  const { restringido } = useBillingRestriction();
   const location        = useLocation();
 
   const { data: pendingCitas }    = useCollection('citas',               [where('estado',  '==', 'Pendiente')]);
@@ -348,6 +353,9 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
                           )}
                           <Icon size={16} strokeWidth={isActive ? 2.5 : 2} className="shrink-0 group-hover/item:scale-110 group-hover/item:translate-x-0.5 transition-transform duration-150" />
                           <span className="flex-1">{label}</span>
+                          {restringido && SECCIONES_BLOQUEADAS.has(to) && (
+                            <Lock size={12} className="shrink-0 text-red-400/70" />
+                          )}
                           {(showNewsDot || showBillingDot) && !hasBadge && (
                             <span className={`w-1.5 h-1.5 rounded-full animate-pulse shrink-0 ${showBillingDot ? 'bg-amber-400' : 'bg-red-500'}`} />
                           )}

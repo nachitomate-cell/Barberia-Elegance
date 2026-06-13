@@ -2136,10 +2136,51 @@
             </a>
           </div>
           <p id="bf-feedback" style="font-size:0.8rem;text-align:center;margin:0;"></p>
+
+          <!-- ── Suspender / Reactivar cuenta (Kill Switch) ── -->
+          <div id="suspension-control" style="margin-top:0.875rem;padding-top:0.875rem;border-top:1px solid rgba(255,255,255,0.05);"></div>
         </div>`;
 
       renderPlanBtns();
       renderCuotasList();
+      loadSuspensionState();
+    }
+
+    // ── Kill Switch: suspender/reactivar (escribe en _system/{tenant}) ──
+    async function loadSuspensionState() {
+      const el = document.getElementById('suspension-control');
+      if (!el || !_activeTenant) return;
+      let suspended = false;
+      try {
+        const s = await db.collection('_system').doc(_activeTenant).get();
+        suspended = s.exists && s.data().status === 'suspended';
+      } catch (e) {}
+      el.innerHTML = suspended
+        ? `<div style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);border-radius:0.625rem;padding:0.75rem;display:flex;align-items:center;justify-content:space-between;gap:0.5rem;">
+             <span style="color:#f87171;font-size:0.8rem;font-weight:600;"><i class="ph-bold ph-lock-key"></i> Cuenta SUSPENDIDA — no puede entrar al panel</span>
+             <button onclick="toggleSuspension(false)" style="padding:0.5rem 0.875rem;border-radius:0.5rem;cursor:pointer;background:#22c55e;border:none;color:#052e16;font-size:0.78rem;font-weight:700;white-space:nowrap;">Reactivar</button>
+           </div>`
+        : `<button onclick="toggleSuspension(true)" style="width:100%;padding:0.65rem;border-radius:0.625rem;cursor:pointer;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);color:#f87171;font-size:0.8rem;font-weight:600;transition:all 0.2s;"
+             onmouseover="this.style.background='rgba(239,68,68,0.18)'" onmouseout="this.style.background='rgba(239,68,68,0.08)'">
+             <i class="ph-bold ph-prohibit" style="margin-right:0.375rem;"></i>Suspender cuenta (bloquea el panel)
+           </button>`;
+    }
+
+    async function toggleSuspension(suspend) {
+      if (!_activeTenant) return;
+      const msg = suspend
+        ? `¿SUSPENDER la cuenta de "${_activeTenant}"?\n\nEl local NO podrá entrar al panel hasta que lo reactives.`
+        : `¿REACTIVAR la cuenta de "${_activeTenant}"?`;
+      if (!confirm(msg)) return;
+      try {
+        await db.collection('_system').doc(_activeTenant).set(
+          suspend
+            ? { status: 'suspended', suspendedAt: firebase.firestore.FieldValue.serverTimestamp() }
+            : { status: 'active',    reactivatedAt: firebase.firestore.FieldValue.serverTimestamp() },
+          { merge: true },
+        );
+        loadSuspensionState();
+      } catch (e) { alert('Error: ' + e.message); }
     }
 
     function selectPlan(p) {
