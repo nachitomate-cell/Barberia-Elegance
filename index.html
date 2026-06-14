@@ -9240,13 +9240,16 @@
       const appleTitleMeta = document.querySelector('meta[name="apple-mobile-web-app-title"]');
       if (appleTitleMeta) appleTitleMeta.content = SHOP.nombreCorto;
       const _isMarcelo = window.CURRENT_TENANT_ID === 'marcelo_hairdressing';
-      const _faviconSrc = _isMarcelo ? '/marcelo1.png' : SHOP.logo;
+      const _isYugen   = window.CURRENT_TENANT_ID === 'yugen';
+      // Favicon optimizado por tenant (el logo de yugen pesa ~1MB → ícono liviano).
+      const _faviconSrc  = _isMarcelo ? '/marcelo1.png' : _isYugen ? '/yugen/favicon.png' : SHOP.logo;
+      const _faviconType = (_isMarcelo || _isYugen) ? 'image/png' : 'image/jpeg';
 
       const appleIcon = document.querySelector('link[rel="apple-touch-icon"]');
-      if (appleIcon) { appleIcon.href = _faviconSrc; appleIcon.type = _isMarcelo ? 'image/png' : ''; }
+      if (appleIcon) { appleIcon.href = _isYugen ? '/yugen/apple-touch.png' : _faviconSrc; appleIcon.type = (_isMarcelo || _isYugen) ? 'image/png' : ''; }
 
       const faviconEl = document.querySelector('link[rel="icon"]');
-      if (faviconEl) { faviconEl.href = _faviconSrc; faviconEl.type = _isMarcelo ? 'image/png' : 'image/jpeg'; }
+      if (faviconEl) { faviconEl.href = _faviconSrc; faviconEl.type = _faviconType; }
 
       // Delnero — header tipo Marcelo con nero.jpg (logo) + maira.png (profesional)
       if (window.CURRENT_TENANT_ID === 'delnero') {

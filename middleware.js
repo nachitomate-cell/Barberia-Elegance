@@ -512,7 +512,7 @@ const TENANT_META = {
     ogImage:     '/yugen/yugen2.png',
     themeColor:  '#0b0a09',
     appTitle:    'Yūgen',
-    icon:        '/yugen/yugen.jpg',
+    icon:        '/yugen/favicon.png',
     local: { streetAddress: '', priceRange: '$$', addressLocality: '', schemaType: 'HairSalon', openingHours: ['Mo-Fr 08:00-23:00', 'Sa 08:00-22:00', 'Su 09:00-21:00'], ratingGeneral: 0, totalReviews: 0, reviews: [] },
     manifest: {
       name:             'Yūgen Studio',
@@ -528,7 +528,7 @@ const TENANT_META = {
       background_color: '#0b0a09',
       start_url:        '/gestion-interna/?local=yugen',
       icons: [
-        { src: '/yugen/yugen.jpg',             sizes: 'any',     type: 'image/jpeg' },
+        { src: '/yugen/favicon.png',           sizes: '256x256', type: 'image/png' },
         { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png' },
         { src: '/gestion-interna/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
       ],
