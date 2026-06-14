@@ -19,7 +19,6 @@ const DOMAIN_MAP = {
   'marcelo-hairdressing.synaptechspa.cl': 'marcelo_hairdressing',
   'marcelopalma.synaptechspa.cl':       'marcelo_hairdressing',
   'aurasalon.synaptechspa.cl':         'aura',
-  'aurasalonmalegrooming.synaptech.cl':'aura',
   'aurasalonmalegrooming.synaptechspa.cl':'aura',
   'latincaribe.synaptechspa.cl':       'latincaribe',
   'thelatincaribe.synaptechspa.cl':    'latincaribe',
@@ -107,7 +106,7 @@ const TENANT_META = {
     themeColor:  '#000000',
     appTitle:    'Ferraza',
     icon:        '/local1.jpg',
-    local: { telephone: '', streetAddress: 'Av. Libertad 63, Local 28', addressLocality: 'Valparaíso', schemaType: 'HairSalon', ratingGeneral: 4.8, totalReviews: 46, reviews: [{ author: 'Iván Klemencic', rating: 5, text: 'Excelente atención. Quien atiende demuestra profesionalismo en lo que hace, lo recomiendo totalmente. Además está la posibilidad de agendar para el mismo día.' }, { author: 'Juan P. Mesa', rating: 5, text: 'Primero que todo, excelente servicio. Lugar muy grato, limpio y muy buena disposición de Nicolás. Me atendieron al tiro, excelente corte de cabello. Recomendable 100%.' }, { author: 'Nicolas Pardo', rating: 5, text: 'Excelente servicio por parte de Nico, lugar con un muy buen ambiente y atención. Para relajarse un rato. Recomendado!' }] },
+    local: { telephone: '+56994269228', streetAddress: 'Av. Libertad 63, Local 28', addressLocality: 'Viña del Mar', schemaType: 'HairSalon', ratingGeneral: 4.8, totalReviews: 46, reviews: [{ author: 'Iván Klemencic', rating: 5, text: 'Excelente atención. Quien atiende demuestra profesionalismo en lo que hace, lo recomiendo totalmente. Además está la posibilidad de agendar para el mismo día.' }, { author: 'Juan P. Mesa', rating: 5, text: 'Primero que todo, excelente servicio. Lugar muy grato, limpio y muy buena disposición de Nicolás. Me atendieron al tiro, excelente corte de cabello. Recomendable 100%.' }, { author: 'Nicolas Pardo', rating: 5, text: 'Excelente servicio por parte de Nico, lugar con un muy buen ambiente y atención. Para relajarse un rato. Recomendado!' }] },
     manifest: {
       name:             'Barbería Ferraza',
       short_name:       'Ferraza',
@@ -122,7 +121,7 @@ const TENANT_META = {
       background_color: '#0f172a',
       start_url:        '/gestion-interna/?local=ferraza',
       icons: [
-        { src: '/local1.jpg',                 sizes: 'any',     type: 'image/png' },
+        { src: '/local1.jpg',                 sizes: 'any',     type: 'image/jpeg' },
         { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png' },
         { src: '/gestion-interna/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
       ],
@@ -464,10 +463,10 @@ const TENANT_META = {
       ogDesc:      'Regístrate en The Latin Caribe y disfruta de beneficios exclusivos.',
     },
     siteName:    'The Latin Caribe',
-    ogImage:     '/latincaribe.png',
+    ogImage:     '/thelatin/latin.png',
     themeColor:  '#0a0a0a',
     appTitle:    'Latin Caribe',
-    icon:        '/latincaribe.png',
+    icon:        '/thelatin/latin.png',
     local: { streetAddress: '', priceRange: '$$', addressLocality: 'Viña del Mar', schemaType: 'HairSalon', openingHours: ['Mo-Sa 10:00-20:00'], ratingGeneral: 0, totalReviews: 0, reviews: [] },
     manifest: {
       name:             'The Latin Caribe',
@@ -483,7 +482,7 @@ const TENANT_META = {
       background_color: '#0a0a0a',
       start_url:        '/gestion-interna/?local=latincaribe',
       icons: [
-        { src: '/latincaribe.png',             sizes: 'any',     type: 'image/png' },
+        { src: '/thelatin/latin.png',             sizes: 'any',     type: 'image/png' },
         { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png' },
         { src: '/gestion-interna/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
       ],

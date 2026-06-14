@@ -45,6 +45,7 @@ import Sucursales       from './views/Sucursales';
 import SaldoGiftCard    from './views/SaldoGiftCard';
 import VIPDashboard        from './views/VIPDashboard';
 import BillingGate         from './components/BillingGate';
+import ConfirmHost         from './components/ui/ConfirmHost';
 
 function TenantGate({ children }) {
   const { suspended } = useTenant();
@@ -138,9 +139,12 @@ export default function App() {
 
   useEffect(() => {
     const tid  = resolveTenantId();
-    const href = TENANT_MANIFESTS[tid] ?? TENANT_MANIFESTS.elegance;
+    // Solo sobrescribimos a un manifest ESTÁTICO si existe para este tenant.
+    // Los demás conservan el manifest dinámico que el middleware ya sirve por
+    // dominio (con su identidad correcta) → evita que se instalen como "Elegance".
+    const href = TENANT_MANIFESTS[tid];
     const link = document.querySelector('link[rel="manifest"]');
-    if (link) link.setAttribute('href', href);
+    if (href && link) link.setAttribute('href', href);
   }, []);
 
   return (
@@ -155,6 +159,7 @@ export default function App() {
                 <Route path="/*" element={<ProtectedApp />} />
               </Routes>
             </BrowserRouter>
+            <ConfirmHost />
           </AuthProvider>
         </TenantGate>
       </ErrorBoundaryWithTenant>

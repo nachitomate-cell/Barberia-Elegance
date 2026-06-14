@@ -9,7 +9,7 @@
   "start_url": "/gestion-interna/?local=ferraza",
   "scope": "/gestion-interna/",
   "icons": [
-    { "src": "/local1.jpg",                     "sizes": "any",     "type": "image/png" },
+    { "src": "/local1.jpg",                     "sizes": "any",     "type": "image/jpeg" },
     { "src": "/gestion-interna/pwa-192.png",     "sizes": "192x192", "type": "image/png" },
     { "src": "/gestion-interna/pwa-512.png",     "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
   ]

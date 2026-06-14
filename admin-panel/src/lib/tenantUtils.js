@@ -15,7 +15,6 @@ const DOMAIN_MAP = {
   'marcelo-hairdressing.synaptechspa.cl': 'marcelo_hairdressing',
   'marcelopalma.synaptechspa.cl':       'marcelo_hairdressing',
   'aurasalon.synaptechspa.cl':         'aura',
-  'aurasalonmalegrooming.synaptech.cl':'aura',
   'aurasalonmalegrooming.synaptechspa.cl':'aura',
   'latincaribe.synaptechspa.cl':       'latincaribe',
   'thelatincaribe.synaptechspa.cl':    'latincaribe',
