@@ -18,6 +18,9 @@ import { useBillingRestriction } from '../BillingGate';
 // Secciones que se bloquean cuando el pago está muy atrasado (modo restringido).
 const SECCIONES_BLOQUEADAS = new Set(['metricas', 'comisiones', 'caja', 'gastos', 'marketing', 'finanzas']);
 
+// Tenants con módulo de Membresías (suscripción) activo en el panel.
+const MEMBRESIAS_TENANTS = new Set(['chameleon', 'yugen']);
+
 /* ── Grupos de navegación ────────────────────────────────────────── */
 const NAV_GROUPS_DEFAULT = [
   {
@@ -243,8 +246,8 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
 
     let base = NAV_GROUPS_DEFAULT.map(group => {
       if (group.id !== 'clientes') return group;
-      // Inyectar Membresías en Clientes para Chameleon
-      if (tenant.id !== 'chameleon') return group;
+      // Inyectar Membresías en Clientes para los tenants con suscripción activa.
+      if (!MEMBRESIAS_TENANTS.has(tenant.id)) return group;
       return {
         ...group,
         items: [
