@@ -11,6 +11,7 @@ import { getDoc, setDoc, getDocs, query, where, doc, deleteDoc } from 'firebase/
 import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { storage } from '../lib/firebase';
 import { tenantDoc, tenantCol, resolveTenantId } from '../lib/tenantUtils';
+import { confirmDialog } from '../lib/confirmDialog';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 
 /* ── Compresión de imagen vía canvas ─────────────────────────────── */
@@ -869,7 +870,7 @@ export default function TVConfig() {
   };
 
   const handleDeleteMarca = async (m) => {
-    if (!confirm('¿Eliminar esta marca?')) return;
+    if (!(await confirmDialog('¿Eliminar esta marca?'))) return;
     await deleteDoc(doc(tenantCol('publicidad_tv'), m.id));
     try {
       await deleteObject(storageRef(storage, `tenants/${tenantId}/publicidad_tv/${m.id}.jpg`));

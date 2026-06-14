@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import { addDoc, deleteDoc, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { tenantCol } from '../lib/tenantUtils';
+import { confirmDialog } from '../lib/confirmDialog';
 import { useCollection } from '../hooks/useCollection';
 import { useAuth } from '../contexts/AuthContext';
 import { useTenant } from '../contexts/TenantContext';
@@ -188,7 +189,7 @@ function EntryCard({ entry, tenantId, onUpdate }) {
   };
 
   const remove = async () => {
-    if (!confirm(`¿Eliminar a ${entry.clienteNombre} de la lista?`)) return;
+    if (!(await confirmDialog(`¿Eliminar a ${entry.clienteNombre} de la lista?`))) return;
     setDeleting(true);
     const path = tenantId === 'elegance' ? `listaEspera/${entry.id}` : `tenants/${tenantId}/listaEspera/${entry.id}`;
     await deleteDoc(doc(db, path));

@@ -5,6 +5,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useTenant } from '../contexts/TenantContext';
+import { confirmDialog } from '../lib/confirmDialog';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 import {
   Users, UserCheck, AlertTriangle, Plus, XCircle,
@@ -649,7 +650,7 @@ export default function Membresias() {
   }, [miembros, statusFilter, searchTerm, ahora]);
 
   async function handleDesactivarMiembro(miembro) {
-    if (!window.confirm(`¿Seguro que deseas desactivar la membresía de ${miembro.nombre || miembro.uid}?`)) return;
+    if (!(await confirmDialog(`¿Seguro que deseas desactivar la membresía de ${miembro.nombre || miembro.uid}?`))) return;
     try {
       await updateDoc(doc(db, 'tenants', tenant.id, 'users', miembro.uid), { esMiembro: false });
     } catch (e) {

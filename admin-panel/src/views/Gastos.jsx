@@ -10,6 +10,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { tenantCol } from '../lib/tenantUtils';
+import { confirmDialog } from '../lib/confirmDialog';
 
 /* ─── Constants ─────────────────────────────────────────────── */
 const CATEGORIAS   = ['Insumos', 'Sueldos', 'Arriendo', 'Servicios Básicos', 'Equipamiento', 'Marketing', 'Otros'];
@@ -215,7 +216,7 @@ export default function Gastos() {
   }, []);
 
   const handleDelete = async (id) => {
-    if (!window.confirm('¿Estás seguro de eliminar este gasto?')) return;
+    if (!(await confirmDialog('¿Estás seguro de eliminar este gasto?'))) return;
     try {
       await deleteDoc(doc(gastosCol(), id));
     } catch (e) {

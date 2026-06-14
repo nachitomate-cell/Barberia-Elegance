@@ -12,6 +12,7 @@ import {
 } from 'firebase/storage';
 import { db, storage } from '../lib/firebase';
 import { tenantCol, tenantDoc, resolveTenantId } from '../lib/tenantUtils';
+import { confirmDialog } from '../lib/confirmDialog';
 import { useCollection } from '../hooks/useCollection';
 
 const MAX_SIZE = 10 * 1024 * 1024;
@@ -200,7 +201,7 @@ export default function ServicioFavorito() {
   };
 
   const handleDelete = async entrada => {
-    if (!confirm(`¿Eliminar la foto de ${entrada.email}?`)) return;
+    if (!(await confirmDialog(`¿Eliminar la foto de ${entrada.email}?`))) return;
     try {
       const emailKey = entrada.email.replace(/[^a-z0-9]/g, '_');
       await deleteDoc(doc(tenantCol('servicioFavorito'), entrada.id));

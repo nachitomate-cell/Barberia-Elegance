@@ -14,6 +14,7 @@ import { getDocs } from 'firebase/firestore';
 import { tenantCol, resolveTenantId } from '../lib/tenantUtils';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 import { PLANES, formatPrecio } from '../lib/plans';
+import { confirmDialog } from '../lib/confirmDialog';
 import {
   activarSuscripcion, cancelarSuscripcion,
 } from '../lib/subscriptionUtils';
@@ -235,7 +236,7 @@ export default function Finanzas() {
   };
 
   const handleCancelar = async (uid) => {
-    if (!confirm('¿Cancelar esta suscripción?')) return;
+    if (!(await confirmDialog('¿Cancelar esta suscripción?'))) return;
     await cancelarSuscripcion(resolveTenantId(), uid);
   };
 

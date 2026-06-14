@@ -18,6 +18,7 @@ import { sendPasswordResetEmail } from 'firebase/auth';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage, auth } from '../lib/firebase';
 import { tenantCol, resolveTenantId } from '../lib/tenantUtils';
+import { confirmDialog } from '../lib/confirmDialog';
 import { useCollection } from '../hooks/useCollection';
 import { useAuth } from '../contexts/AuthContext';
 import { useSucursales } from '../hooks/useSucursales';
@@ -221,7 +222,7 @@ function BarberCard({ barber, onEdit, waUrl, onVerAgenda, sucursales = [], dragH
 
   const toggleStatus = () => updateDoc(doc(db,`${colPath}/${barber.id}`),{ disponible:!isActive });
   const handleDelete = async () => {
-    if (!confirm(`¿Eliminar a ${barber.nombre}?`)) return;
+    if (!(await confirmDialog(`¿Eliminar a ${barber.nombre}?`))) return;
     await deleteDoc(doc(db,`${colPath}/${barber.id}`));
   };
 

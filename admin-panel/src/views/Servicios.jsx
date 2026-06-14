@@ -9,6 +9,7 @@ import {
 } from 'firebase/storage';
 import { db, storage } from '../lib/firebase';
 import { tenantCol, resolveTenantId } from '../lib/tenantUtils';
+import { confirmDialog } from '../lib/confirmDialog';
 import { useCollection } from '../hooks/useCollection';
 import { useConfig }     from '../hooks/useConfig';
 import SlideOver from '../components/ui/SlideOver';
@@ -247,7 +248,7 @@ export default function Servicios() {
   };
 
   const handleDelete = async id => {
-    if (!confirm('¿Eliminar este servicio?')) return;
+    if (!(await confirmDialog('¿Eliminar este servicio?'))) return;
     await deleteDoc(doc(tenantCol('servicios'), id));
   };
 

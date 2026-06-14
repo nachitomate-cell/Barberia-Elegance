@@ -11,6 +11,7 @@ import {
 } from 'firebase/storage';
 import { db, storage } from '../lib/firebase';
 import { tenantCol, tenantDoc, resolveTenantId } from '../lib/tenantUtils';
+import { confirmDialog } from '../lib/confirmDialog';
 import { useCollection } from '../hooks/useCollection';
 
 const MAX_PHOTOS = 8;
@@ -175,7 +176,7 @@ export default function Lookbook() {
 
   /* ── Eliminar — borra Firestore Y Storage ──────────────────────── */
   const handleDelete = async foto => {
-    if (!confirm('¿Eliminar esta foto del lookbook?')) return;
+    if (!(await confirmDialog('¿Eliminar esta foto del lookbook?'))) return;
     try {
       await deleteDoc(doc(tenantCol('lookbook'), foto.id));
       if (foto.filename) {

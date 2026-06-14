@@ -6,6 +6,7 @@ import {
   RefreshCw, Link2Off, CheckCircle2, AlertCircle, Camera,
 } from 'lucide-react';
 import { db } from '../lib/firebase';
+import { confirmDialog } from '../lib/confirmDialog';
 import { useTenant } from '../contexts/TenantContext';
 import { useAuth }   from '../contexts/AuthContext';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
@@ -77,7 +78,7 @@ export default function InstagramPage() {
   }
 
   async function handleDisconnect() {
-    if (!confirm('¿Desconectar Instagram?\nLos posts ya importados permanecen en el Lookbook.')) return;
+    if (!(await confirmDialog({ title: 'Desconectar Instagram', message: 'Los posts ya importados permanecen en el Lookbook.', confirmText: 'Desconectar' }))) return;
     await updateDoc(doc(db, '_system', `instagram_${tenantId}`), { enabled: false });
     setMsg({ ok: true, text: 'Instagram desconectado.' });
   }

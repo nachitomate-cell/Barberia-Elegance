@@ -4,6 +4,7 @@ import { addDoc, updateDoc, deleteDoc, doc, getDoc, setDoc, serverTimestamp, onS
 import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { storage, db } from '../lib/firebase';
 import { tenantCol, tenantDoc, resolveTenantId } from '../lib/tenantUtils';
+import { confirmDialog } from '../lib/confirmDialog';
 import { useTenant } from '../contexts/TenantContext';
 import { useCollection } from '../hooks/useCollection';
 import SlideOver from '../components/ui/SlideOver';
@@ -762,7 +763,7 @@ export default function Productos() {
   };
 
   const handleDelete = async id => {
-    if (!confirm('¿Eliminar este producto?')) return;
+    if (!(await confirmDialog('¿Eliminar este producto?'))) return;
     const prod = productos.find(p => p.id === id);
     await deleteDoc(doc(tenantCol('productos'), id));
     if (prod?.imagenPath) {

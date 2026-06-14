@@ -9,6 +9,7 @@ import { tenantCol } from '../lib/tenantUtils';
 import { useTenant } from '../contexts/TenantContext';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 import AcademiaModal from '../components/AcademiaModal';
+import { confirmDialog } from '../lib/confirmDialog';
 
 /* ── Componentes de UI ───────────────────────────────────────────── */
 function Card({ children, className = '' }) {
@@ -151,7 +152,7 @@ function TabCursos() {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('¿Eliminar este curso?')) return;
+    if (!(await confirmDialog('¿Eliminar este curso?'))) return;
     try {
       await deleteDoc(doc(tenantCol('cursos_academia'), id));
       fetchData();
@@ -292,7 +293,7 @@ function TabAlumnos() {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('¿Eliminar este alumno?')) return;
+    if (!(await confirmDialog('¿Eliminar este alumno?'))) return;
     try {
       await deleteDoc(doc(tenantCol('alumnos_academia'), id));
       fetchData();
@@ -452,7 +453,7 @@ function TabMaterial() {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('¿Eliminar este material?')) return;
+    if (!(await confirmDialog('¿Eliminar este material?'))) return;
     try {
       await deleteDoc(doc(tenantCol('material_academia'), id));
       fetchData();

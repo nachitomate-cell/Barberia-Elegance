@@ -22,6 +22,10 @@ export default {
       animation: {
         'slide-in-right': 'slideInRight 0.25s cubic-bezier(0.16,1,0.3,1)',
         'fade-in':        'fadeIn 0.15s ease',
+        'confirm-fade':   'fadeIn 0.18s ease',
+        'confirm-pop':    'confirmPop 0.38s cubic-bezier(0.34,1.56,0.64,1)',
+        'confirm-logo':   'confirmLogo 0.6s cubic-bezier(0.34,1.56,0.64,1) both',
+        'confirm-ring':   'confirmRing 1.9s ease-out infinite',
       },
       keyframes: {
         slideInRight: {
@@ -31,6 +35,19 @@ export default {
         fadeIn: {
           from: { opacity: 0 },
           to:   { opacity: 1 },
+        },
+        confirmPop: {
+          '0%':   { opacity: 0, transform: 'scale(0.92) translateY(12px)' },
+          '100%': { opacity: 1, transform: 'scale(1) translateY(0)' },
+        },
+        confirmLogo: {
+          '0%':   { opacity: 0, transform: 'scale(0.4) rotate(-15deg)' },
+          '60%':  { opacity: 1, transform: 'scale(1.12) rotate(5deg)' },
+          '100%': { opacity: 1, transform: 'scale(1) rotate(0deg)' },
+        },
+        confirmRing: {
+          '0%':   { opacity: 0.55, transform: 'scale(0.85)' },
+          '100%': { opacity: 0, transform: 'scale(1.75)' },
         },
       },
     },

@@ -17,6 +17,7 @@ import {
 import { motion } from 'framer-motion';
 import { db } from '../lib/firebase';
 import { tenantCol } from '../lib/tenantUtils';
+import { confirmDialog } from '../lib/confirmDialog';
 import { useCollection } from '../hooks/useCollection';
 import { useTenant } from '../contexts/TenantContext';
 import ReviewModal from '../components/ReviewModal';
@@ -568,7 +569,7 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
   };
 
   const handleDelete = async () => {
-    if (!confirm('¿Eliminar esta cita?')) return;
+    if (!(await confirmDialog('¿Eliminar esta cita?'))) return;
     if (cita.slotLockId) {
       const batch = writeBatch(db);
       batch.delete(doc(db, `${tenantCol('citas').path}/${cita.id}`));
@@ -1090,7 +1091,7 @@ function BloqueoBlock({ bloqueo, onDelete }) {
   return (
     <div
       title={`Bloqueado${bloqueo.nota ? ': ' + bloqueo.nota : ''}`}
-      onClick={() => { if (confirm('¿Desbloquear este horario?')) onDelete(bloqueo); }}
+      onClick={async () => { if (await confirmDialog('¿Desbloquear este horario?')) onDelete(bloqueo); }}
       className="absolute inset-x-0.5 rounded-md border border-red-500/30 bg-red-950/40 px-2 py-1 overflow-hidden cursor-pointer hover:bg-red-950/60 transition-all"
       style={{ top: `${startIdx * 40}px`, height: `${spans * 40 - 4}px` }}
     >

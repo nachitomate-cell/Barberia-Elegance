@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { updateDoc } from 'firebase/firestore';
 import { tenantDoc } from '../lib/tenantUtils';
+import { confirmDialog } from '../lib/confirmDialog';
 import { useSucursales } from '../hooks/useSucursales';
 import { useAuth } from '../contexts/AuthContext';
 import { Building2, Plus, X, Pencil, Trash2, MapPin, Phone, Clock, AlertCircle } from 'lucide-react';
@@ -159,7 +160,7 @@ export default function Sucursales() {
   };
 
   const handleDelete = async (suc) => {
-    if (!confirm(`¿Eliminar la sucursal "${suc.nombre}"?`)) return;
+    if (!(await confirmDialog(`¿Eliminar la sucursal "${suc.nombre}"?`))) return;
     await persist(sucursales.filter(s => s.id !== suc.id));
   };
 

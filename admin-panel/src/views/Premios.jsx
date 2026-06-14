@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { Plus, Trophy, ChevronUp, ChevronDown, Sparkles, Brain, Cpu, RefreshCw, Check, Lightbulb, Zap, HelpCircle } from 'lucide-react';
 import { addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { tenantCol } from '../lib/tenantUtils';
+import { confirmDialog } from '../lib/confirmDialog';
 import { useCollection } from '../hooks/useCollection';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 
@@ -235,7 +236,7 @@ export default function Premios() {
   };
 
   const handleDelete = async id => {
-    if (!confirm('¿Eliminar este premio?')) return;
+    if (!(await confirmDialog('¿Eliminar este premio?'))) return;
     await deleteDoc(doc(tenantCol('premios'), id));
     triggerAiScan();
   };
