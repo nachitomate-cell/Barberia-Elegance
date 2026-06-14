@@ -842,6 +842,23 @@
     _toastTimer = setTimeout(() => el.classList.remove('show'), 3200);
   }
 
+  /* ── Recargo por horario (matriz día×hora en _fsConfig.recargosHorario) ──
+     Solo aplica a tenants que lo tengan configurado (hoy: yugen). 0 si no. */
+  function _getRecargoHorario(dow, hourInt) {
+    const r = _fsConfig && _fsConfig.recargosHorario;
+    if (!r) return 0;
+    const dia = r[String(dow)];
+    return dia ? (Number(dia[String(hourInt)]) || 0) : 0;
+  }
+  function _recargoActual() {
+    if (!_selectedDate || !_selectedTime) return 0;
+    const dow = new Date(_selectedDate + 'T12:00:00').getDay();
+    return _getRecargoHorario(dow, parseInt(_selectedTime, 10));
+  }
+  function _precioEfectivo() {
+    return (Number(_selectedService && _selectedService.precio) || 0) + _recargoActual();
+  }
+
   function updateRecap() {
     const el = document.getElementById('selectionRecap');
     const parts = [];
@@ -1172,23 +1189,34 @@
       return;
     }
 
+    const _dow = new Date(_selectedDate + 'T12:00:00').getDay();
+    const _hayRecargo = hours.some(h => _getRecargoHorario(_dow, parseInt(h.time, 10)) > 0);
+
     const groups = [
       { label: 'Mañana', hours: hours.filter(h => parseInt(h.time) < 12) },
       { label: 'Tarde',  hours: hours.filter(h => { const hr = parseInt(h.time); return hr >= 12 && hr < 18; }) },
       { label: 'Noche',  hours: hours.filter(h => parseInt(h.time) >= 18) },
     ];
 
-    section.innerHTML = groups.filter(g => g.hours.length).map(g => `
+    const aviso = _hayRecargo
+      ? `<div class="flex items-start gap-2 mb-4 px-3 py-2.5 rounded-xl text-[11px] leading-snug" style="background:rgba(192,57,43,0.08);border:1px solid rgba(192,57,43,0.25);color:#e08e86;">
+           <i class="ph-fill ph-info text-sm shrink-0 mt-0.5" style="color:#c0392b;"></i>
+           <span>Las horas marcadas con <b style="color:#c0392b;">+$</b> tienen un recargo que se suma al total del servicio.</span>
+         </div>`
+      : '';
+
+    section.innerHTML = aviso + groups.filter(g => g.hours.length).map(g => `
       <div class="mb-5">
         <p class="text-xs font-bold uppercase tracking-widest mb-3" style="color:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.5);">${g.label}</p>
-        <div class="flex flex-wrap gap-2">
+        <div class="flex flex-wrap gap-2 items-start">
           ${g.hours.map(h => {
             const occupied = h.occupied;
+            const rec = _getRecargoHorario(_dow, parseInt(h.time, 10));
             return `<button onclick="${occupied ? '' : `selectTime(this,'${h.time}')`}"
-              class="time-pill ${occupied ? '' : ''}"
+              class="time-pill text-center"
               ${occupied ? 'disabled' : ''}
               data-time="${h.time}">
-              ${h.time}
+              ${h.time}${rec > 0 ? `<span class="block text-[9px] font-bold leading-none mt-0.5" style="color:#c0392b;">+$${rec.toLocaleString('es-CL')}</span>` : ''}
             </button>`;
           }).join('')}
         </div>
@@ -1314,7 +1342,7 @@
       if (_unsubSlotLocks) { _unsubSlotLocks(); _unsubSlotLocks = null; }
 
       document.getElementById('summaryService').textContent = _selectedService.nombre;
-      document.getElementById('summaryPrice').textContent   = formatPrice(_selectedService.precio);
+      document.getElementById('summaryPrice').textContent   = formatPrice(_precioEfectivo());
       document.getElementById('summaryBarber').textContent  = _barberoNombre;
       const [sy, sm, sd] = _selectedDate.split('-');
       const DIAS_ES = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
@@ -1391,7 +1419,7 @@
               duracionServicio: _selectedService.duracion,
               barbero:          _barberoNombre,
               barberoId:        _barberoId,
-              precio:           _selectedService.precio,
+              precio:           _precioEfectivo(),
               origen:           'barbero-page',
             },
           }),
@@ -1421,7 +1449,7 @@
         duracionServicio: _selectedService.duracion,
         barbero:          _barberoNombre,
         barberoId:        _barberoId,
-        precio:           _selectedService.precio,
+        precio:           _precioEfectivo(),
         estado:           'Confirmada',
         origen:           'barbero-page',
       });
