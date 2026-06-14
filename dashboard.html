@@ -619,16 +619,16 @@
       font-weight: 500 !important;
     }
     .tenant-yugen #heroLine2 { color: #f5f3ef !important; font-weight: 600 !important; }
-    /* Sello ritual 玄 (bermellón) bajo el nombre del hero */
+    /* Sello ritual 幽玄 (bermellón) bajo el nombre del hero */
     .tenant-yugen #heroLine2::after {
-      content: '玄';
+      content: '幽玄';
       display: block;
       margin-top: 12px;
       font-family: 'Yu Mincho','Hiragino Mincho ProN','Noto Serif JP',serif;
       font-size: 18px;
       line-height: 1;
       color: #c0392b;
-      letter-spacing: 0;
+      letter-spacing: 0.18em;
     }
     .tenant-yugen .nav-label { letter-spacing: 0.16em !important; text-transform: uppercase; }
 
@@ -670,6 +670,8 @@
       color: rgba(245,243,239,0.05) !important;
       font-style: normal !important;
       font-family: 'Yu Mincho','Hiragino Mincho ProN','Noto Serif JP',serif !important;
+      font-size: 4.6rem !important;
+      letter-spacing: 0.1em !important;
     }
     .tenant-yugen .membership-glow { background: radial-gradient(circle, rgba(245,243,239,0.07) 0%, transparent 70%) !important; }
     .tenant-yugen #stampsGrid { background: #0a0807 !important; border-color: rgba(245,243,239,0.08) !important; }
@@ -8419,9 +8421,9 @@ function auraCountUp(targetNum, totalTarget) {
       var l2 = document.getElementById('heroLine2');
       if (l1) l1.innerHTML = 'Yūgen no<br>se ve,';
       if (l2) l2.textContent = 'se siente.';
-      // Watermark de la tarjeta de fidelización → sello 玄
+      // Watermark de la tarjeta de fidelización → sello 幽玄
       var wm = document.getElementById('membershipWatermark');
-      if (wm) wm.textContent = '玄';
+      if (wm) wm.textContent = '幽玄';
     });
   </script>
 </body>

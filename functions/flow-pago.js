@@ -270,7 +270,7 @@ function paginaResultado({ ok, sitio, mensaje }) {
     <h1>${titulo}</h1>
     <p>${sub}</p>
     <a href="${sitio}">Volver a Yūgen Studio</a>
-    <div class="seal">玄</div>
+    <div class="seal">幽玄</div>
   </div>
 </body></html>`;
 }
