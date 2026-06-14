@@ -8,6 +8,10 @@ import { Lock, ChevronRight } from 'lucide-react';
 // Días de atraso a partir de los cuales se restringen las secciones premium.
 export const DIAS_RESTRINGIDO = 8;
 
+// Tenants exentos del modo restringido (arreglo de billing especial).
+// Nunca se les bloquean las secciones premium aunque figuren atrasados.
+const SIN_RESTRICCION = new Set(['ferraza']);
+
 function parseFecha(f) {
   if (!f) return null;
   try {
@@ -37,7 +41,7 @@ export function useBillingRestriction() {
     return unsub;
   }, [id]);
 
-  return { diasAtraso: dias, restringido: dias >= DIAS_RESTRINGIDO };
+  return { diasAtraso: dias, restringido: !SIN_RESTRICCION.has(id) && dias >= DIAS_RESTRINGIDO };
 }
 
 // Envuelve una vista premium: si el pago está muy atrasado, la bloquea.
