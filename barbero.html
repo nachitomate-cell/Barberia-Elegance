@@ -1636,6 +1636,13 @@
 
     _allServices = rawServices.filter(s => s.activo !== false);
 
+    // Filtrar por los servicios que realiza este barbero (igual que index.html).
+    // Sin serviciosIds o vacío = realiza todos (regla del panel "Servicios que realiza").
+    if (Array.isArray(_barber.serviciosIds) && _barber.serviciosIds.length) {
+      const _svc = new Set(_barber.serviciosIds.map(String));
+      _allServices = _allServices.filter(s => _svc.has(String(s.id)));
+    }
+
     renderCategories(_allServices);
     renderServices(_allServices);
 
