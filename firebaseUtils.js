@@ -823,6 +823,21 @@ const FDB = (() => {
     }
     interval = (barbCfg?.intervaloMinutos || cfg.intervaloMinutos || 30);
 
+    // Descansos por día configurados en el panel (Equipo → horario[dia].descansos).
+    // Antes solo se respetaba cfg.colacion (global), por eso los descansos del
+    // barbero no se aplicaban en la reserva pública.
+    let descansosDia = [];
+    if (barbCfg && barbCfg.horario && barbCfg.horario[String(dw)]) {
+      descansosDia = barbCfg.horario[String(dw)].descansos || [];
+    } else if (barbCfg) {
+      descansosDia = ((barbCfg.diasConfig || {})[dw] || {}).descansos || [];
+    } else {
+      descansosDia = ((cfg.diasConfig || {})[dw] || {}).descansos || [];
+    }
+    const descansoRanges = (Array.isArray(descansosDia) ? descansosDia : [])
+      .filter(d => d && d.inicio && d.fin)
+      .map(d => ({ start: toMins(d.inicio), end: toMins(d.fin) }));
+
     // Todas las horas posibles del día (para fallback old-format en getSlotLocksDia)
     const allHoras = [];
     for (let t = ini; t < fin; t += interval) allHoras.push(fromMin(t));
@@ -846,7 +861,9 @@ const FDB = (() => {
       .filter(b => !b.todo_el_dia && b.hora_inicio && b.hora_fin)
       .map(b => ({ start: toMins(b.hora_inicio), end: toMins(b.hora_fin) }));
 
-    const col   = cfg.colacion;
+    // Si el barbero tiene descansos por día configurados, esos mandan: se ignora
+    // la colación global del local (que de otro modo aplicaría un break oculto).
+    const col   = descansoRanges.length ? null : cfg.colacion;
     const slots = [];
     let cur = ini;
 
@@ -856,6 +873,8 @@ const FDB = (() => {
         const colS = toMins(col.inicio), colE = toMins(col.fin);
         if (cur < colE && (cur + parseInt(duracionServicio)) > colS) { cur += interval; continue; }
       }
+      // Saltar descansos del día (panel): omite slots que solapan algún descanso
+      if (descansoRanges.some(r => cur < r.end && (cur + parseInt(duracionServicio)) > r.start)) { cur += interval; continue; }
       // Saltar bloqueo manual: omite el slot si el servicio solaparía el rango
       const bloqueado = rangosBloq.some(r =>
         cur < r.end && (cur + parseInt(duracionServicio)) > r.start
@@ -928,6 +947,15 @@ const FDB = (() => {
     const interval = cfg.intervaloMinutos || 30;
     const dur = parseInt(duracionServicio);
     const col = cfg.colacion;
+    // Si algún barbero tiene descansos por día, esos mandan y se ignora la
+    // colación global del local (que de otro modo aplicaría un break oculto).
+    const anyDescansos = barberos.some(b => {
+      const bc = barberoConfigs.get(b.id);
+      let dd;
+      if (bc && bc.horario && bc.horario[String(dw)]) dd = bc.horario[String(dw)].descansos;
+      else if (bc) dd = ((bc.diasConfig || {})[dw] || {}).descansos;
+      return Array.isArray(dd) && dd.length > 0;
+    });
 
     // Todas las horas posibles del día (rango global)
     const allHoras = [];
@@ -960,7 +988,7 @@ const FDB = (() => {
     const result = [];
 
     for (let cur = globalIni; cur + dur <= globalFin; cur += interval) {
-      if (col) {
+      if (col && !anyDescansos) {
         const colS = toMins(col.inicio), colE = toMins(col.fin);
         if (cur < colE && (cur + dur) > colS) continue;
       }
@@ -990,6 +1018,15 @@ const FDB = (() => {
           bFin = toMins(dc.fin    || cfg.horarioFin    || '20:00');
         }
         if (cur < bIni || cur + dur > bFin) continue; // fuera del horario del barbero
+
+        // Descansos del día de este barbero (panel → horario[dia].descansos)
+        let barDescansos = [];
+        if (bc && bc.horario && bc.horario[String(dw)]) barDescansos = bc.horario[String(dw)].descansos || [];
+        else if (bc) barDescansos = ((bc.diasConfig || {})[dw] || {}).descansos || [];
+        const barDescRanges = (Array.isArray(barDescansos) ? barDescansos : [])
+          .filter(d => d && d.inicio && d.fin)
+          .map(d => ({ start: toMins(d.inicio), end: toMins(d.fin) }));
+        if (barDescRanges.some(r => cur < r.end && (cur + dur) > r.start)) continue; // barbero en descanso
 
         const barBloqs = todosBloqueos
           .filter(b => !b.todo_el_dia && b.barberoId === barbero.id && b.hora_inicio && b.hora_fin)
