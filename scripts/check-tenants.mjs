@@ -20,8 +20,20 @@ import { dirname, join } from 'node:path';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
-// Tenants de prueba/scaffold que NO exigimos en todos los registros.
-const IGNORE = new Set(['sandbox']);
+// Tenants aún en PRUEBA / no lanzados: se permiten parcialmente presentes (no
+// se exige que estén en todos los registros). Cuando lances uno, SÁCALO de aquí
+// y el guard empezará a exigir que esté en config.js, middleware y el panel.
+const PRELAUNCH = new Set([
+  'sandbox',
+  'alfamen',
+  'memphis',
+  'deluxeperfumes',
+  'omegastudio',
+  'kronnos_penablanca',
+  'kronnos_limache',
+  'kronnos_woman',
+  'kronnos_lobby',
+]);
 
 // Alias: ids distintos que apuntan al MISMO tenant (se colapsan para comparar).
 const ALIAS = { mapubarber: 'mapubarbershop' };
@@ -124,7 +136,8 @@ for (const s of SOURCES) {
   if (body === null) { console.error(`✗ No pude leer ${s.name} (marcador "${s.marker}")`); process.exitCode = 1; continue; }
   const entries = topLevelEntries(body);
   if (s.kind === 'domains') {
-    registries.push({ ...s, hosts: entries.map(e => e[0]), tenants: [...new Set(entries.map(e => canonId(e[1])))] });
+    const pairs = entries.map(e => [e[0], canonId(e[1])]);
+    registries.push({ ...s, hosts: pairs.map(p => p[0]), pairs, tenants: [...new Set(pairs.map(p => p[1]))] });
   } else {
     registries.push({ ...s, hosts: null, tenants: entries.map(e => canonId(e[0])) });
   }
@@ -132,7 +145,7 @@ for (const s of SOURCES) {
 
 // ── Conjunto canónico de tenants (unión de todo lo visto) ───────────────────
 const allTenants = new Set();
-for (const r of registries) for (const t of r.tenants) if (!IGNORE.has(t)) allTenants.add(t);
+for (const r of registries) for (const t of r.tenants) if (!PRELAUNCH.has(t)) allTenants.add(t);
 const canon = [...allTenants].sort();
 
 // ── Reporte de tenants faltantes por registro ───────────────────────────────
@@ -149,12 +162,13 @@ for (const r of registries) {
 
 // ── Drift de dominios (hosts presentes en un domain-map pero no en otro) ─────
 const domainRegs = registries.filter(r => r.hosts);
-const allHosts = new Set();
-for (const r of domainRegs) for (const h of r.hosts) allHosts.add(h);
-console.log('\n── Cobertura de dominios (host → tenant) ───────────────────────');
+// Solo exigimos consistencia para hosts que apuntan a tenants EN VIVO.
+const liveHosts = new Set();
+for (const r of domainRegs) for (const [h, t] of r.pairs) if (!PRELAUNCH.has(t)) liveHosts.add(h);
+console.log('\n── Cobertura de dominios en vivo (host → tenant) ───────────────');
 for (const r of domainRegs) {
   const present = new Set(r.hosts);
-  const missing = [...allHosts].filter(h => !present.has(h)).sort();
+  const missing = [...liveHosts].filter(h => !present.has(h)).sort();
   if (missing.length) { problems++; console.log(`✗ ${r.name}\n     falta: ${missing.join(', ')}`); }
   else console.log(`✓ ${r.name}`);
 }
