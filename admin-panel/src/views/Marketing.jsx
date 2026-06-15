@@ -50,34 +50,109 @@ const AI_CHIPS = [
   { id: 'fidelizar', emoji: '🎯', label: 'Fidelizar clientes'  },
 ];
 
-/* ── AI: genera respuestas con datos reales ─────────────────── */
-function buildResponses(stats) {
+/* ── AI: variantes de respuestas pre-hechas (con datos reales) ──
+   Cada categoría devuelve varias variantes; el asistente rota entre
+   ellas para que cada consulta se sienta distinta, fresca y útil. */
+function buildResponseVariants(stats) {
   const {
-    servicioTop      = 'Corte clásico',
+    servicioTop       = 'Corte clásico',
     servicioTopPrecio = 0,
-    totalCitasMes    = 0,
-    diaTopStr        = 'Viernes',
-    diaPublicarStr   = 'Jueves',
-    totalMiembros    = 0,
-    barberoNombres   = [],
+    totalCitasMes     = 0,
+    diaTopStr         = 'Viernes',
+    diaPublicarStr    = 'Jueves',
+    totalMiembros     = 0,
+    barberoNombres    = [],
   } = stats;
 
   const precioStr   = servicioTopPrecio ? `$${servicioTopPrecio.toLocaleString('es-CL')}` : '';
   const precioLabel = precioStr ? ` a ${precioStr}` : '';
-  const barberoEj   = barberoNombres[0] || 'tu barbero';
+
+  // Evita usar cuentas administrativas como "ejemplo de barbero"
+  const adminRe        = /admin|administ|recep|geren|due[ñn]|owner|staff|sistema|equipo/i;
+  const barberosReales = barberoNombres.filter(n => n && !adminRe.test(n));
+  const barberoEj      = barberosReales[0] || 'tu barbero';
+  const barbero2       = barberosReales[1] || barberosReales[0] || 'tu equipo';
 
   return {
-    'post-ig': `Tu servicio más solicitado este mes es **${servicioTop}**${precioLabel} — exactamente lo que hay que mostrar.\n\nCaption sugerido:\n\n"El favorito del mes no falla. ✂️ ${servicioTop}${precioLabel} y con hora libre esta semana.\n📍 [Tu dirección] — Reserva por el link en bio 👆"\n\n**Mejor momento para publicar:** el día antes de tu día más ocupado. Según tus reservas, ese es el **${diaPublicarStr}** entre 18:00 y 20:30.`,
+    'post-ig': [
+      `Tu servicio estrella este mes es **${servicioTop}**${precioLabel}. Eso es lo que la gente quiere ver.\n\n📸 **Caption listo:**\n"Hay cortes que hablan por ti. ✂️\n${servicioTop} — y todavía queda hora esta semana.\n📍 Reserva por el link en bio 👆"\n\n**Publica el ${diaPublicarStr}** entre 18:00 y 20:30: es la antesala de tu día más cargado (${diaTopStr}) y ahí la gente agenda.`,
 
-    'reel': `El formato que más funciona en barberías es **transformación en 15 segundos**.\n\nEstructura:\n1. 2s — cliente llega\n2. 3s — manos de **${barberoEj}** trabajando\n3. 3s — resultado final con zoom out\n4. Texto en pantalla: "¿El tuyo? 👀 Link en bio"\n\n**Audio:** busca en Reels qué canción está "en auge" en Chile esta semana y úsala directamente — Instagram la prioriza en el alcance.`,
+      `Formato que más guarda la gente: **carrusel antes/después**.\n\n🖼️ **Estructura (3 fotos):**\n1. El "antes", sin filtro, con luz natural\n2. Una toma a mitad del proceso\n3. El resultado final en primer plano\n\n**Caption:**\n"El cambio está en los detalles. ${servicioTop} por ${barberoEj}.\n¿Te toca a ti? Link en bio."\n\nLos carruseles ganan más alcance que una foto sola: Instagram los vuelve a mostrar a quien no deslizó la primera vez.`,
 
-    'wsp': `Tienes **${totalMiembros} clientes** con tu número guardado. El estado de WhatsApp Business los alcanza a todos gratis.\n\nIdeas para esta semana:\n\n• "✂️ Horas disponibles **${diaTopStr}** — quedan pocos lugares: [link]"\n• Foto del mejor corte del día + "¿El tuyo para cuándo? 📲"\n• "Solo hoy: trae a un amigo y el segundo tiene 10% off"\n\n**Regla:** 1 estado por día publicado entre 10:00 y 12:00.`,
+      `No todo es el corte: **vende la experiencia**.\n\n📸 Sube una foto cercana de un detalle — la línea de la barba, el degradado, las herramientas sobre la toalla.\n\n**Caption:**\n"Precisión en cada pasada. Así trabajamos en cada cita.\n${servicioTop}${precioLabel} · Reserva en bio."\n\nEste tipo de post construye marca y justifica tu precio sin tener que hablar de descuentos.`,
 
-    'promo': `Con **${totalCitasMes} reservas** este mes tienes una base activa. La fórmula que convierte: **urgencia + beneficio claro + cupos limitados**.\n\nTexto listo para copiar:\n\n"🔥 Solo esta semana:\n${servicioTop}${precioLabel} con 15% de descuento.\n\nÚnicamente **5 cupos** — primero en reservar se lo lleva.\n👉 Agenda ahora: [link de reserva]\n📲 O escribe directo al WhatsApp"\n\n**Tip:** ponle siempre una fecha de término. Sin fecha límite nadie actúa.`,
+      `Tienes **${totalCitasMes} reservas** este mes — úsalas como prueba social.\n\n📸 **Idea:** foto del local con gente + caption de comunidad:\n"Gracias a los ${totalCitasMes} que pasaron este mes por la silla. 🙌\nLa próxima semana hay horas nuevas — agéndate en bio."\n\nMostrar que estás lleno genera más reservas que cualquier oferta: la gente quiere ir donde ya van otros.`,
+    ],
 
-    'hashtags': `Los hashtags de nicho funcionan mejor que los genéricos. Apunta a rangos de **100K–500K** publicaciones.\n\nSet recomendado:\n**Grandes:** #barbershop #barber #haircut\n**Medianos:** #barberia #cortedecabello #barberlife\n**Local:** #barberiachile #cortemasculino #barberviña\n\n**Regla:** usa entre 8 y 12. Ponlos al final del caption separados con puntos. El primer comentario ya no funciona.`,
+    'reel': [
+      `El formato rey en barbería: **transformación en 15 segundos**.\n\n🎬 **Guion:**\n1. 2s — cliente llega serio\n2. 3s — manos de **${barberoEj}** trabajando (close-up)\n3. 3s — detalle del degradado\n4. 4s — giro final + sonrisa\n5. Texto: "¿El tuyo? 👀 Link en bio"\n\n🎵 **Audio:** usa una canción que esté en tendencia en Reels esta semana — Instagram prioriza el alcance de los audios en auge.`,
 
-    'fidelizar': `El **80% de tus ingresos** viene de quienes ya te conocen — y tienes **${totalMiembros} clientes** en el club.\n\nSecuencia de WhatsApp de 3 pasos:\n\n1. **2h después del corte:** "¿Cómo quedaste, [nombre]? 💈"\n2. **Cada 3-4 semanas:** "Ya va siendo hora del próximo corte 😄"\n3. **Exclusiva frecuentes:** "Esta semana 10% off — solo di el código al llegar"\n\n**Instagram:** pídele al cliente permiso para mencionar su corte. Que él lo comparta es el mejor marketing gratuito que existe.`,
+      `Tendencia que funciona: **Reel en POV (primera persona)**.\n\n🎬 Graba desde el punto de vista del cliente: entra al local, lo reciben, se sienta, ve el resultado en el espejo.\n\n**Texto al inicio:** "POV: por fin encontraste tu barbería"\n**Cierre:** "${servicioTop} — reserva en bio"\n\nEl POV genera identificación inmediata: quien mira se imagina ahí. Que dure máximo 12s.`,
+
+      `Reel **ASMR de barbería** — corto y adictivo.\n\n🎬 Solo sonidos reales: la tijera, la máquina, el cepillo, el spray final. Sin música, audio limpio.\n\nTomas:\n• Tijera cortando en cámara lenta\n• La máquina perfilando la nuca\n• La toalla caliente\n\n**Texto final:** "Tu momento de la semana. Reserva en bio."\n\nEste contenido retiene hasta el final, y la retención es lo que más empuja el alcance.`,
+
+      `Reel que te posiciona como experto: **un tip rápido**.\n\n🎬 Ejemplo: "3 errores al pedir un degradado" o "Cómo estirar tu corte 2 semanas más".\n\nFormato: tú a cámara, texto grande, 1 idea por toma, máximo 20s.\n\n**Cierre:** "¿Quieres el tuyo bien hecho? Agenda con ${barberoEj} en bio."\n\nEl contenido educativo se comparte por privado — y cada vez que alguien lo manda a un amigo, es un cliente nuevo potencial.`,
+    ],
+
+    'wsp': [
+      `Tienes **${totalMiembros} clientes** con tu número guardado. El estado de WhatsApp los alcanza gratis a todos.\n\n💬 **Estado de hoy:**\n"✂️ Quedan pocas horas para el ${diaTopStr}.\nSi no quieres quedar fuera, escríbeme ahora 👇"\n\n+ foto del mejor corte del día.\n\n**Regla de oro:** 1 estado al día, entre 10:00 y 12:00, cuando la gente revisa el teléfono en el primer break.`,
+
+      `El estado no siempre tiene que vender — **muestra el día a día**.\n\n💬 Ideas para esta semana:\n• Video corto del local abriendo: "Listos para hoy 💈"\n• El café antes del primer cliente\n• Un corte en proceso: "Trabajo en curso…"\n\nGenera cercanía y te mantiene presente sin parecer publicidad. Deja la venta directa para 1 de cada 3 estados.`,
+
+      `El estado es perfecto para **ofertas relámpago** que no quieres dejar fijas en Instagram.\n\n💬 "🔥 Solo por hoy: trae a un amigo y el segundo corte tiene 20% off.\nVálido hasta el cierre. Escríbeme para tu hora."\n\nLa urgencia del "solo hoy" + que desaparece en 24h hace que la gente actúe. Úsalo en tus días flojos, no el ${diaTopStr}.`,
+
+      `Usa el estado para **traer de vuelta a los que ya conoces**.\n\n💬 "¿Hace cuánto no pasas? 👀\nUn buen corte dura 3 semanas. Si ya va siendo hora, tengo cupos esta semana."\n\nDe tus ${totalMiembros} contactos siempre hay un grupo "vencido". Este mensaje los activa sin sonar insistente — habla de su corte, no de tu agenda.`,
+    ],
+
+    'promo': [
+      `Con **${totalCitasMes} reservas** este mes tienes base activa. La fórmula que convierte: **urgencia + beneficio claro + cupos limitados**.\n\n🔥 **Texto listo:**\n"Solo esta semana:\n${servicioTop}${precioLabel} con 15% de descuento.\nÚnicamente **5 cupos** — primero en reservar, primero en la silla.\n👉 Agenda en bio."\n\n**Tip:** ponle siempre fecha de término. Sin deadline, nadie actúa.`,
+
+      `En vez de bajar el precio, **sube el valor**: arma un combo.\n\n🔥 "Pack completo: ${servicioTop} + perfilado de barba + lavado.\nTodo junto, precio especial solo este mes."\n\nEl combo aumenta tu ticket promedio sin sentir que regalas tu trabajo. El cliente percibe que gana más, no que pagas menos.`,
+
+      `Tu día más cargado es el **${diaTopStr}**. La promo no va ahí — va a llenar los días vacíos.\n\n🔥 "CLUB DAYS: lunes y martes con 10% off.\nMismos cortes, misma calidad, mejor precio por venir temprano en la semana."\n\nMover reservas del ${diaTopStr} a inicios de semana equilibra tu carga y te deja huecos premium para clientes nuevos en tu día fuerte.`,
+
+      `Capta clientes nuevos con una **oferta de primera visita**.\n\n🔥 "¿Primera vez con nosotros? Tu ${servicioTop} con 20% off.\nVente, y si te gusta, te quedas."\n\nEse descuento es marketing puro: si el corte es bueno, vuelve a precio completo. Un cliente nuevo vale mucho más que una sola visita.`,
+    ],
+
+    'hashtags': [
+      `Los hashtags de nicho rinden más que los genéricos. Apunta a **100K–500K** publicaciones.\n\n#️⃣ **Set general:**\n**Grandes:** #barbershop #barber #haircut\n**Medianos:** #barberia #cortedecabello #barberlife\n**Local:** #barberiachile #cortemasculino #fadechile\n\n**Regla:** 8 a 12, al final del caption, separados con puntos. El primer comentario ya no rinde como antes.`,
+
+      `Set enfocado en **degradados y estilo** (para cuando subes un buen fade):\n\n#️⃣ #fade #fadehaircut #degradado #skinfade #barberlife #barbershopconnect #menshair #cortehombre #barberiachile #peluqueriamasculina\n\nMezcla siempre 1 término local. Eso te pone frente a gente que sí puede llegar a tu silla, no solo a likes de otro país.`,
+
+      `Set para contenido de **barba y afeitado**:\n\n#️⃣ #barba #beard #beardstyle #afeitado #barberia #barbergang #beardgang #cuidadodebarba #barbalook #barberiachile\n\n**Pro tip:** rota tus sets. Instagram penaliza repetir exactamente los mismos hashtags en cada post — ten 3 o 4 listas y ve cambiando.`,
+    ],
+
+    'fidelizar': [
+      `El **80% de tus ingresos** viene de quienes ya te conocen — y tienes **${totalMiembros}** en el club.\n\n🎯 **Secuencia de WhatsApp (3 pasos):**\n1. **2h después del corte:** "¿Cómo quedaste, [nombre]? 💈"\n2. **A las 3 semanas:** "Ya va siendo hora del próximo 😄"\n3. **Al frecuente:** "Esta semana 10% off, solo di tu nombre al llegar."\n\nNada de esto es magia automática: agéndalo en tu calendario y conviértelo en hábito.`,
+
+      `Convierte visitas sueltas en **costumbre** con un sistema de sellos.\n\n🎯 "Cada 5 cortes, el 6º va por la casa."\n\nDe tus ${totalMiembros} clientes, quienes entran al sistema visitan más seguido para "no perder el avance". El truco: regala el primer sello al inscribirse — sentir que ya empezaron los hace volver.`,
+
+      `El mensaje que más cariño genera: el de **cumpleaños**.\n\n🎯 "¡Feliz cumpleaños, [nombre]! 🎉 Este mes tu corte tiene un regalo de nuestra parte. Pásate cuando quieras."\n\nPide la fecha al registrar al cliente. Es un detalle que casi nadie hace en barbería y que la gente recuerda — y comenta.`,
+
+      `Mira quién **no vuelve hace 2 meses** y recupéralo antes de perderlo.\n\n🎯 "Te tenemos abandonado 😅. Tu silla sigue aquí — esta semana, un 15% por volver."\n\nRecuperar a un cliente que ya te conoció cuesta mucho menos que conseguir uno nuevo. Ese grupo es oro que ya tienes guardado en el teléfono.`,
+    ],
+
+    'precios': [
+      `Hablar de precios es hablar de **valor percibido**, no de números.\n\n💰 Tres reglas:\n1. Nunca pongas el precio solo — ponlo junto a lo que incluye.\n2. Ofrece 3 opciones (básico / completo / premium): la mayoría elige la del medio.\n3. Sube precios de a poco y avisa con anticipación a tus frecuentes.\n\nTu ${servicioTop}${precioLabel} es tu ancla — el resto se compara contra él.`,
+
+      `Si sientes que cobras poco, **no bajes — diferénciate**.\n\n💰 El cliente paga más por: puntualidad, un local cuidado, que recuerdes su nombre y su corte, y una experiencia (música, bebida, conversación).\n\nNada de eso cuesta mucho, y todo justifica un precio más alto que el de la esquina. Compite por experiencia, no por ser el más barato.`,
+    ],
+
+    'agenda': [
+      `¿Huecos en la agenda? Llénalos sin malgastar tu día fuerte.\n\n📅 Jugadas:\n• Estado de WhatsApp: "Tengo 3 horas libres hoy, primero que escriba"\n• Ofertas SOLO para lunes/martes\n• "Happy hour": descuento en el horario más muerto del día\n\nTus ${totalCitasMes} reservas se concentran el ${diaTopStr}; el objetivo es repartir, no amontonar.`,
+
+      `La agenda vacía se llena con **anticipación, no con suerte**.\n\n📅 Al terminar cada corte, agenda el siguiente ahí mismo: "¿Te dejo la hora para dentro de 3 semanas?".\n\nEs la técnica que más estabiliza una barbería: en vez de esperar que el cliente se acuerde, sales de la cita con la próxima ya reservada. Pruébalo una semana y mira la diferencia.`,
+    ],
+
+    'general': [
+      `Para tu barbería, las dos jugadas de mayor impacto ahora mismo:\n\n1. Un **antes/después** en Instagram esta semana, con ${servicioTop} de protagonista.\n2. Un **estado de WhatsApp** con los cupos del ${diaTopStr}.\n\nUsa los accesos rápidos de arriba para el texto exacto de cada uno.`,
+
+      `Te lo ordeno por prioridad según tus datos:\n\n📅 **Esta semana:** publica el ${diaPublicarStr} (antesala de tu día fuerte).\n💬 **Diario:** 1 estado de WhatsApp entre 10:00 y 12:00.\n🎯 **De fondo:** una secuencia de fidelización para tus ${totalMiembros} clientes.\n\n¿Por cuál partimos? Toca un acceso rápido y te doy el contenido listo.`,
+
+      `Pregúntame lo que necesites y te doy contenido listo para copiar. Ejemplos:\n\n• "Dame un caption para Instagram"\n• "Idea de Reel para esta semana"\n• "Texto de promoción para el ${diaTopStr}"\n• "Cómo hago volver a mis clientes"\n\nTodo lo armo con tus datos reales: ${totalCitasMes} reservas y ${totalMiembros} clientes en el club.`,
+
+      `Mi recomendación base, sin importar el día: **constancia**.\n\n3 publicaciones a la semana > 10 publicaciones un día y nada el resto. El algoritmo premia a quien aparece seguido.\n\nUn plan simple:\n• Lun: Reel\n• Mié: antes/después\n• Vie: estado de WhatsApp con los cupos del finde\n\nToca un acceso rápido y te doy el contenido de cada uno.`,
+    ],
   };
 }
 
@@ -113,10 +188,15 @@ function AsistenteIA({ stats, statsLoading }) {
       const top     = stats.servicioTop     || 'Corte clásico';
       const citas   = stats.totalCitasMes   || 0;
       const members = stats.totalMiembros   || 0;
+      const welcomes = [
+        `Hola, revisé tus números del último mes 👀. Tu servicio más pedido es **${top}** con **${citas} reservas**, y tienes **${members} clientes** en el club de fidelidad. ¿Qué armamos hoy?`,
+        `Listo, ya analicé tu mes 💈. **${citas} reservas**, **${members} clientes** en el club y **${top}** como tu corte estrella. Dime qué necesitas o toca un acceso rápido.`,
+        `Hola 👋. Con tus datos a mano: **${top}** lidera tus reservas (**${citas}** este mes) y tu club ya suma **${members} clientes**. ¿Por dónde partimos — Instagram, WhatsApp o fidelización?`,
+      ];
       setMsgs(prev => [
         {
           ...prev[0],
-          text: `Hola, revisé tus datos del último mes. Tu servicio más solicitado es **${top}** con **${citas} reservas** y tienes **${members} clientes** en el club de fidelidad. ¿Qué trabajamos hoy?`,
+          text: welcomes[Math.floor(Math.random() * welcomes.length)],
         },
         ...prev.slice(1),
       ]);
@@ -127,26 +207,40 @@ function AsistenteIA({ stats, statsLoading }) {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [msgs, typing]);
 
+  // Rota entre las variantes de cada categoría evitando repetir la última
+  const variantIdx = useRef({});
+  const pickVariant = (id, variants) => {
+    const arr = variants[id] || variants['general'];
+    if (!arr || !arr.length) return '';
+    const last = variantIdx.current[id] ?? -1;
+    let next = Math.floor(Math.random() * arr.length);
+    if (arr.length > 1 && next === last) next = (next + 1) % arr.length;
+    variantIdx.current[id] = next;
+    return arr[next];
+  };
+
+  // Detecta la intención de un mensaje libre y la mapea a una categoría
+  const routeIntent = (text) => {
+    const t = text.toLowerCase();
+    if      (/instagram|post|foto|feed|publicaci/.test(t))            return 'post-ig';
+    else if (/reel|video|reels|tiktok|grabar/.test(t))               return 'reel';
+    else if (/whatsapp|wsp|estado|difus|status/.test(t))             return 'wsp';
+    else if (/promo|descuent|oferta|rebaja|2x1|cup[oó]n/.test(t))     return 'promo';
+    else if (/hashtag|#|etiqueta/.test(t))                           return 'hashtags';
+    else if (/fidel|client|membr|club|lealtad|recurr|vuelv/.test(t)) return 'fidelizar';
+    else if (/precio|cobr|tarifa|valor|caro|barato/.test(t))         return 'precios';
+    else if (/agenda|hora libre|cupo|vac[ií]o|llenar|flojo/.test(t)) return 'agenda';
+    return 'general';
+  };
+
   const sendAI = (userText, promptId = null) => {
     setMsgs(m => [...m, { id: Date.now(), role: 'user', text: userText }]);
     setTyping(true);
 
     setTimeout(() => {
-      const responses = buildResponses(stats);
-      let reply;
-
-      if (promptId && responses[promptId]) {
-        reply = responses[promptId];
-      } else {
-        const t = userText.toLowerCase();
-        if      (t.includes('instagram') || t.includes('post') || t.includes('foto'))             reply = responses['post-ig'];
-        else if (t.includes('reel') || t.includes('video') || t.includes('reels'))               reply = responses['reel'];
-        else if (t.includes('whatsapp') || t.includes('wsp') || t.includes('estado'))            reply = responses['wsp'];
-        else if (t.includes('promo') || t.includes('descuento') || t.includes('oferta'))         reply = responses['promo'];
-        else if (t.includes('hashtag') || t.includes('#'))                                        reply = responses['hashtags'];
-        else if (t.includes('fidel') || t.includes('cliente') || t.includes('membr'))            reply = responses['fidelizar'];
-        else reply = `Para tu barbería, las dos acciones de mayor impacto ahora mismo son:\n\n1. Publicar un **antes/después** en Instagram esta semana\n2. Enviar un estado de WhatsApp con los cupos del **${stats.diaTopStr || 'viernes'}**\n\nUsa los accesos rápidos de arriba para obtener el texto exacto.`;
-      }
+      const variants = buildResponseVariants(stats);
+      const id = (promptId && variants[promptId]) ? promptId : routeIntent(userText);
+      const reply = pickVariant(id, variants);
 
       setTyping(false);
       setMsgs(m => [...m, { id: Date.now() + 1, role: 'ai', text: reply }]);
