@@ -238,8 +238,8 @@ export default function Mensualidad() {
             </>
           )}
 
-          {/* Renderizado condicional del panel según estado de pago */}
-          {estado === 'al_dia' ? (
+          {/* Tarjeta de agradecimiento solo cuando está al día */}
+          {estado === 'al_dia' && (
             /* Tarjeta de Agradecimiento SynapTech (Al día) */
             <div className="bg-gradient-to-b from-slate-800/60 to-slate-900/60 border border-emerald-500/20 rounded-2xl p-8 shadow-xl relative overflow-hidden text-center flex flex-col items-center justify-center space-y-4">
               <div className="absolute -top-12 -left-12 w-36 h-36 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
@@ -267,9 +267,10 @@ export default function Mensualidad() {
                 </p>
               </div>
             </div>
-          ) : (
-            /* Datos de Transferencia Bancaria (Si tiene deudas/pendientes) */
-            <div className="bg-slate-800/40 border border-slate-700/60 rounded-2xl p-5 shadow-lg relative overflow-hidden">
+          )}
+
+          {/* Datos de Transferencia Bancaria — SIEMPRE visible, en todos los tenants */}
+          <div className="bg-slate-800/40 border border-slate-700/60 rounded-2xl p-5 shadow-lg relative overflow-hidden">
               <div className="absolute -top-10 -right-10 w-28 h-28 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
               <div className="flex items-center justify-between mb-4 border-b border-slate-800/80 pb-3">
                 <div>
@@ -336,7 +337,6 @@ export default function Mensualidad() {
                 </a>
               </div>
             </div>
-          )}
 
           {/* Cuotas */}
           {cuotas.length > 0 && (
