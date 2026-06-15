@@ -2,11 +2,13 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Megaphone, Image, Type, AlignLeft, Link2,
   ToggleLeft, ToggleRight, Save, Sparkles, Send,
-  Cpu, Plus, RefreshCw, Share2, Download, X
+  Cpu, Plus, RefreshCw, Share2, Download, X, Upload
 } from 'lucide-react';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 import { getDoc, getDocs, setDoc, serverTimestamp, query, where } from 'firebase/firestore';
-import { tenantDoc, tenantCol } from '../lib/tenantUtils';
+import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage } from '../lib/firebase';
+import { tenantDoc, tenantCol, resolveTenantId } from '../lib/tenantUtils';
 import { useTenant } from '../contexts/TenantContext';
 import { STORY_FONT, STORY_BG_PRESETS, lum, loadImg, drawCover, wrapLines } from '../lib/storyCanvas';
 
@@ -156,7 +158,7 @@ function AsistenteIA({ stats, statsLoading }) {
 
       {/* Header */}
       <div
-        className="flex items-center gap-2.5 px-4 py-3 border-b border-slate-800"
+        className="chat-header-synaptech flex items-center gap-2.5 px-4 py-3 border-b border-slate-800"
         style={{ background: 'linear-gradient(135deg, #0f0f12 0%, #151200 100%)' }}
       >
         <div
@@ -200,7 +202,7 @@ function AsistenteIA({ stats, statsLoading }) {
               </div>
             )}
             <div
-              className="max-w-[85%] px-3 py-2.5 rounded-2xl text-[12px] leading-relaxed"
+              className={`max-w-[85%] px-3 py-2.5 rounded-2xl text-[12px] leading-relaxed ${msg.role === 'ai' ? 'chat-bubble-ai' : ''}`}
               style={
                 msg.role === 'user'
                   ? { background: '#D4AF37', color: '#0a0807', borderBottomRightRadius: 4, fontWeight: 500 }
@@ -640,6 +642,9 @@ export default function Marketing() {
   const [saved,        setSaved]        = useState(false);
   const [stats,        setStats]        = useState({});
   const [statsLoading, setStatsLoading] = useState(true);
+  const [uploading,    setUploading]    = useState(false);
+  const [uploadError,  setUploadError]  = useState('');
+  const fileInputRef = useRef(null);
   const savedTimer = useRef(null);
 
   /* Carga config del banner */
@@ -730,6 +735,45 @@ export default function Marketing() {
       if (savedTimer.current) clearTimeout(savedTimer.current);
       savedTimer.current = setTimeout(() => setSaved(false), 3000);
     } finally { setSaving(false); }
+  };
+
+  /* Sube una imagen desde el dispositivo a Storage y la usa como imagen del banner */
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadError('');
+    if (!file.type.startsWith('image/')) {
+      setUploadError('El archivo debe ser una imagen.');
+      if (e.target) e.target.value = '';
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError('La imagen supera los 5 MB. Usa una más liviana.');
+      if (e.target) e.target.value = '';
+      return;
+    }
+    setUploading(true);
+    try {
+      const tid      = resolveTenantId();
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const prefix   = tid === 'elegance' ? '' : `tenants/${tid}/`;
+      const path     = `${prefix}marketing/${Date.now()}_${safeName}`;
+      const snap     = await uploadBytes(
+        storageRef(storage, path),
+        file,
+        { contentType: file.type || 'image/jpeg' },
+      );
+      const url = await getDownloadURL(snap.ref);
+      setForm(f => ({ ...f, imagen: url }));
+    } catch (err) {
+      console.error('Upload error:', err);
+      setUploadError(err.code === 'storage/unauthorized'
+        ? 'Sin permiso para subir. Verifica que tu sesión esté activa.'
+        : `Error al subir: ${err.message}`);
+    } finally {
+      setUploading(false);
+      if (e.target) e.target.value = '';
+    }
   };
 
   const handleApplyCampaign = (camp) => {
@@ -903,17 +947,42 @@ export default function Marketing() {
 
             <div>
               <label className={lbl}>
-                <span className="inline-flex items-center gap-1.5"><Image size={11} /> URL de la imagen promocional</span>
+                <span className="inline-flex items-center gap-1.5"><Image size={11} /> Imagen promocional</span>
               </label>
-              <input
-                className={field}
-                placeholder="https://images.unsplash.com/..."
-                value={form.imagen}
-                onChange={e => setForm(f => ({ ...f, imagen: e.target.value }))}
-              />
-              <p className="text-[10px] text-slate-600 mt-1">
-                Usa una imagen horizontal (16:9 o 2:1). El estilo de abajo asegura que el texto se lea con cualquier imagen.
-              </p>
+
+              {/* Dos opciones disponibles: subir un archivo del dispositivo o pegar una URL */}
+              <div className="flex flex-col sm:flex-row gap-2">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                  className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg border border-slate-700 bg-slate-800 text-sm font-semibold text-slate-300 hover:text-white hover:border-slate-600 transition-colors disabled:opacity-50 shrink-0"
+                >
+                  {uploading
+                    ? <span className="w-3.5 h-3.5 border-2 border-[#D4AF37] border-t-transparent rounded-full animate-spin" />
+                    : <Upload size={14} />}
+                  {uploading ? 'Subiendo…' : 'Subir imagen'}
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleImageUpload}
+                />
+                <input
+                  className={field}
+                  placeholder="…o pega una URL: https://images.unsplash.com/..."
+                  value={form.imagen}
+                  onChange={e => setForm(f => ({ ...f, imagen: e.target.value }))}
+                />
+              </div>
+
+              {uploadError
+                ? <p className="text-[10px] text-red-400 mt-1">{uploadError}</p>
+                : <p className="text-[10px] text-slate-600 mt-1">
+                    Sube una foto desde tu dispositivo o pega una URL. Usa una imagen horizontal (16:9 o 2:1); el estilo de abajo asegura que el texto se lea con cualquier imagen.
+                  </p>}
             </div>
 
             <div>

@@ -63,6 +63,12 @@ service firebase.storage {
       allow write: if isAuth() && isUnder5MB() && isImage();
     }
 
+    // Imágenes de banners/campañas de Marketing (elegance root)
+    match /marketing/{imageId} {
+      allow read: if true;
+      allow write: if isAuth() && isUnder5MB() && isImage();
+    }
+
     // Rutas multi-tenant (ferraza, gitana, etc.)
     match /tenants/{tenantId}/barberos/{imageId} {
       allow read: if true;
@@ -73,6 +79,10 @@ service firebase.storage {
       allow write: if isAuth() && isUnder10MB() && isImage();
     }
     match /tenants/{tenantId}/productos/{imageId} {
+      allow read: if true;
+      allow write: if isAuth() && isUnder5MB() && isImage();
+    }
+    match /tenants/{tenantId}/marketing/{imageId} {
       allow read: if true;
       allow write: if isAuth() && isUnder5MB() && isImage();
     }

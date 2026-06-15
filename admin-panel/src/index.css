@@ -117,6 +117,20 @@ html.light .border-slate-800\/50,
 html.light .border-slate-700\/60,
 html.light .border-slate-700\/50 { border-color: #e2e8f0 !important; }
 
+/* ── Light mode · Asistente IA de Marketing (chat con estilos inline) ── */
+/* El header y las burbujas de IA usan estilos inline oscuros que el remapeo de
+   clases no alcanza; aquí se fuerzan colores claros legibles en modo claro. */
+html.light .chat-header-synaptech {
+  background: linear-gradient(135deg, #f8fafc 0%, #fdf6e3 100%) !important;
+}
+html.light .chat-bubble-ai {
+  background: #f1f5f9 !important;
+  color: #334155 !important;
+  border-color: #e2e8f0 !important;
+}
+html.light .bg-slate-900\/50 { background-color: rgba(148, 163, 184, 0.12) !important; }
+html.light .bg-slate-900\/20 { background-color: rgba(148, 163, 184, 0.06) !important; }
+
 /* Evitar auto-zoom en iOS Safari al enfocar campos de formulario en pantallas móviles */
 @media (max-width: 767px) {
   input, select, textarea {
