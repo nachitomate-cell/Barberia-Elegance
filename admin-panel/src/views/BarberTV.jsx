@@ -756,8 +756,8 @@ function SlideProductos({ productos, skipAnimation }) {
 
 // ── Slide 5: Marcas / Publicidad (Solo Elegance) ──────────────────
 function SlideMarcas({ marcas, skipAnimation }) {
-  const visible = marcas.filter(m => m.activo !== false).slice(0, 12);
-  const cols = visible.length > 8 ? 'grid-cols-4' : (visible.length > 4 ? 'grid-cols-3' : 'grid-cols-2');
+  const visible = marcas.filter(m => m.activo !== false).slice(0, 4);
+  const cols = visible.length === 1 ? 'grid-cols-1' : 'grid-cols-2';
 
   if (!visible.length) {
     return (
@@ -785,24 +785,32 @@ function SlideMarcas({ marcas, skipAnimation }) {
         ✦ &nbsp; Marcas Asociadas &nbsp; ✦
       </motion.p>
 
-      <div className={`grid ${cols} gap-8 w-full max-w-5xl relative z-10`}>
+      <div className={`grid ${cols} gap-10 w-full max-w-5xl relative z-10`}>
         {visible.map((m, i) => (
           <motion.div
             key={m.id || i}
-            className="flex flex-col items-center justify-center rounded-2xl overflow-hidden p-6"
-            style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid rgba(212,175,55,0.1)`, boxShadow: '0 4px 24px rgba(0,0,0,0.2)' }}
+            className="flex flex-col items-center justify-center gap-5"
             initial={skipAnimation ? false : { opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={skipAnimation ? {} : { delay: i * 0.08, duration: 0.4 }}
+            transition={skipAnimation ? {} : { delay: i * 0.1, duration: 0.45 }}
           >
-            <div className="w-full h-24 flex items-center justify-center mb-4">
+            {/* Marco claro para que el logo resalte sobre el fondo oscuro */}
+            <div
+              className="w-full flex items-center justify-center rounded-3xl overflow-hidden p-10"
+              style={{
+                height: visible.length === 1 ? '20rem' : '14rem',
+                background: 'linear-gradient(160deg, #ffffff 0%, #f1f1f0 100%)',
+                border: `2px solid ${GOLD}`,
+                boxShadow: `0 12px 40px rgba(0,0,0,0.45), 0 0 0 6px rgba(212,175,55,0.08)`,
+              }}
+            >
               {m.logoUrl ? (
-                <img src={m.logoUrl} alt={m.nombre} className="max-w-full max-h-full object-contain" style={{ filter: 'drop-shadow(0 0 10px rgba(255,255,255,0.1))' }} />
+                <img src={m.logoUrl} alt={m.nombre} className="max-w-full max-h-full object-contain" />
               ) : (
-                <span className="text-4xl opacity-20">🏆</span>
+                <span className="text-7xl opacity-20">🏆</span>
               )}
             </div>
-            <p className="text-white font-bold text-sm tracking-wide text-center uppercase">{m.nombre}</p>
+            <p className="text-white font-bold text-lg tracking-[0.15em] text-center uppercase">{m.nombre}</p>
           </motion.div>
         ))}
       </div>

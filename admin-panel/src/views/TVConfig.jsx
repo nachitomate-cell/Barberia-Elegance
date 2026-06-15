@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import {
   Monitor, ExternalLink, Save, Check, ChevronRight,
   AlertCircle, Eye, Palette, Images, Users, Megaphone, ShoppingBag, QrCode,
-  ImagePlus, Trash2, Upload, Music,
+  ImagePlus, Trash2, Upload, Music, Cable, Wifi, X,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { getDoc, setDoc, getDocs, query, where, doc, deleteDoc } from 'firebase/firestore';
@@ -681,6 +681,8 @@ function TVSimulator({ config, bgUrl, tenantId }) {
 export default function TVConfig() {
   const [config,        setConfig]        = useState(CONFIG_DEFAULT);
   const [showHelp,      setShowHelp]      = useState(false);
+  const [showConnect,   setShowConnect]   = useState(false);
+  const [connectTab,    setConnectTab]    = useState('cable');
   const [loading,       setLoading]       = useState(true);
   const [saving,        setSaving]        = useState(false);
   const [saved,         setSaved]         = useState(false);
@@ -840,6 +842,10 @@ export default function TVConfig() {
 
   const handleAddMarca = async () => {
     if (!marcaNombre || !marcaImg || marcaUploading) return;
+    if (marcas.length >= 4) {
+      alert('Solo puedes mostrar hasta 4 marcas en la pantalla. Elimina una para agregar otra.');
+      return;
+    }
     setMarcaUploading(true);
     try {
       const blob = await compressImage(marcaImg, { maxPx: 800, quality: 0.8 });
@@ -938,6 +944,12 @@ export default function TVConfig() {
           </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => setShowConnect(true)}
+            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-emerald-400 border border-emerald-500/40 hover:text-white hover:bg-emerald-600 hover:border-emerald-500 transition-all bg-emerald-500/10 shadow-sm"
+          >
+            <Cable size={13} /> ¿Cómo lo conecto?
+          </button>
           <a
             href="/gestion-interna/tv"
             target="_blank"
@@ -1668,6 +1680,135 @@ export default function TVConfig() {
           <p className="text-xs text-amber-400 bg-amber-400/5 border border-amber-400/20 rounded-lg px-3 py-2">💡 Si la TV es vieja, abrí el navegador en kiosk mode (Chrome: <code>--kiosk</code>) para que ocupe la pantalla completa sin barra de URL.</p>
         </HelpModal>
       )}
+
+      {showConnect && (
+        <ConnectModal
+          tab={connectTab}
+          setTab={setConnectTab}
+          onClose={() => setShowConnect(false)}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ── Modal: Cómo conectar el PC a la TV (Cable / Wi-Fi) ───────────── */
+function ConnectModal({ tab, setTab, onClose }) {
+  const Step = ({ n, title, children }) => (
+    <div className="flex gap-3">
+      <span className="shrink-0 w-6 h-6 rounded-full bg-emerald-500/15 text-emerald-400 text-xs font-black flex items-center justify-center mt-0.5">{n}</span>
+      <div className="flex-1 space-y-1">
+        <p className="font-semibold text-white">{title}</p>
+        <div className="text-slate-300 space-y-1.5 leading-relaxed">{children}</div>
+      </div>
+    </div>
+  );
+  const Note = ({ children }) => (
+    <p className="text-xs text-amber-300 bg-amber-400/5 border border-amber-400/20 rounded-lg px-3 py-2">{children}</p>
+  );
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-lg bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl flex flex-col max-h-[88vh]"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800">
+          <div className="flex items-center gap-2">
+            <Monitor size={16} className="text-emerald-400 shrink-0" />
+            <h3 className="font-semibold text-white">¿Cómo conecto el PC a la TV?</h3>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-slate-800 transition-all">
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-2 px-5 pt-4">
+          <button
+            onClick={() => setTab('cable')}
+            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition-all ${tab === 'cable' ? 'bg-emerald-600 text-white shadow-md' : 'bg-slate-800 text-slate-400 hover:text-white'}`}
+          >
+            <Cable size={14} /> Por cable (HDMI)
+          </button>
+          <button
+            onClick={() => setTab('wifi')}
+            className={`flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-bold transition-all ${tab === 'wifi' ? 'bg-emerald-600 text-white shadow-md' : 'bg-slate-800 text-slate-400 hover:text-white'}`}
+          >
+            <Wifi size={14} /> Por Wi-Fi
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 text-sm">
+          {tab === 'cable' ? (
+            <>
+              <p className="text-slate-400">Conectar el PC a la TV por HDMI es lo más rápido y estable, sin retrasos (ideal para alta calidad de imagen).</p>
+
+              <Step n="1" title="Conecta el cable">
+                <p>Identifica el puerto HDMI en tu PC y en tu televisor. Conecta un extremo al PC y el otro a la TV — puedes hacerlo con ambos equipos encendidos.</p>
+                <Note>⚠️ Si tienes un PC de escritorio con tarjeta de video dedicada (gamer/diseño), conecta el cable a la <strong>tarjeta de video</strong>, no a la placa madre de la parte superior.</Note>
+              </Step>
+
+              <Step n="2" title="Selecciona la entrada en la TV">
+                <p>Con el control remoto, busca el botón <strong className="text-white">Source</strong> o <strong className="text-white">Input</strong> (ícono de un cuadrado con una flecha hacia adentro) y elige el puerto HDMI donde conectaste el cable (HDMI 1, HDMI 2, etc.).</p>
+              </Step>
+
+              <Step n="3" title="Configura la pantalla en tu PC">
+                <p><strong className="text-white">En Windows:</strong> normalmente la imagen aparece sola. Si no, presiona <kbd className="px-1.5 py-0.5 bg-slate-800 border border-slate-700 rounded text-xs text-white">Windows + P</kbd> y elige:</p>
+                <ul className="list-disc ml-4 space-y-1">
+                  <li><strong className="text-white">Duplicar:</strong> lo mismo en el PC y la TV.</li>
+                  <li><strong className="text-white">Ampliar:</strong> la TV como segundo monitor independiente.</li>
+                  <li><strong className="text-white">Solo segunda pantalla:</strong> se apaga el PC y solo usas la TV.</li>
+                </ul>
+                <p className="mt-1"><strong className="text-white">En Mac:</strong> menú Apple () › Configuración del Sistema › <strong className="text-white">Pantallas</strong>. El Mac detecta la TV automáticamente y puedes duplicar o extender.</p>
+              </Step>
+
+              <Note>💡 ¿Hay imagen pero no sonido? <strong>Windows:</strong> clic en el ícono del parlante (abajo a la derecha) y selecciona la TV como dispositivo de salida. <strong>Mac:</strong> Centro de control › Sonido › elige tu TV.</Note>
+            </>
+          ) : (
+            <>
+              <p className="text-slate-400">Transmitir la pantalla por Wi-Fi es directo, pero los pasos dependen de tu sistema y tu TV. Estas son las 3 formas más comunes.</p>
+
+              <Step n="1" title="Windows 10 u 11 (Miracast)">
+                <p>Opción nativa para la mayoría de PCs con Windows y Smart TVs modernas (Samsung, LG, Sony…).</p>
+                <ul className="list-disc ml-4 space-y-1">
+                  <li>Verifica que el PC y la TV estén en la <strong className="text-white">misma red Wi-Fi</strong>.</li>
+                  <li>Presiona <kbd className="px-1.5 py-0.5 bg-slate-800 border border-slate-700 rounded text-xs text-white">Windows + K</kbd> para abrir el panel "Transmitir".</li>
+                  <li>Haz clic en el nombre de tu TV y acepta en la TV si pide permiso.</li>
+                  <li>Elige <strong className="text-white">Duplicar</strong> o <strong className="text-white">Ampliar</strong> desde el mismo panel.</li>
+                </ul>
+              </Step>
+
+              <Step n="2" title="Cualquier PC con Google Chrome (Chromecast)">
+                <p>Ideal si tienes un Chromecast o TV con Google TV / Android TV.</p>
+                <ul className="list-disc ml-4 space-y-1">
+                  <li>Ambos equipos en la misma red Wi-Fi.</li>
+                  <li>En Chrome, clic en los <strong className="text-white">tres puntos</strong> (arriba a la derecha) › Guardar y compartir › <strong className="text-white">Transmitir…</strong></li>
+                  <li>En "Fuentes" cambia de <em>Transmitir pestaña</em> a <strong className="text-white">Transmitir pantalla</strong>.</li>
+                  <li>Haz clic en el nombre de tu TV o Chromecast.</li>
+                </ul>
+              </Step>
+
+              <Step n="3" title="Mac (AirPlay)">
+                <p>Para Mac con Apple TV o Smart TV compatible con AirPlay 2 (LG, Samsung, Roku recientes).</p>
+                <ul className="list-disc ml-4 space-y-1">
+                  <li>Mac y TV en la misma red Wi-Fi.</li>
+                  <li>Abre el <strong className="text-white">Centro de control</strong> (arriba a la derecha) › <strong className="text-white">Duplicar pantalla</strong>.</li>
+                  <li>Selecciona tu TV. La primera vez puede mostrar un código de 4 dígitos para ingresar en el Mac.</li>
+                </ul>
+              </Step>
+
+              <Note>💡 Para la pantalla del local, el cable HDMI es más estable que el Wi-Fi y evita cortes. Usa Wi-Fi solo si no puedes pasar un cable.</Note>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
