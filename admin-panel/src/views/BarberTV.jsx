@@ -154,7 +154,7 @@ function BottomTicker({ servicios }) {
 }
 
 // ── Reloj con fecha ───────────────────────────────────────────────
-function DigitalClock() {
+function DigitalClock({ compact = false }) {
   const [now, setNow] = useState(new Date());
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000);
@@ -168,19 +168,19 @@ function DigitalClock() {
   return (
     <div className="text-right">
       <div className="flex items-end justify-end gap-1">
-        <span className="font-mono font-black text-white leading-none" style={{ fontSize: 'clamp(2.5rem,5vw,4rem)' }}>
+        <span className="font-mono font-black text-white leading-none" style={{ fontSize: compact ? 'clamp(1.4rem,2.6vw,2.1rem)' : 'clamp(2.5rem,5vw,4rem)' }}>
           {hora}
         </span>
         <motion.span
-          className="font-mono font-black leading-none pb-1"
-          style={{ fontSize: 'clamp(1.25rem,2.5vw,2rem)', color: GOLD }}
+          className={`font-mono font-black leading-none ${compact ? 'pb-0.5' : 'pb-1'}`}
+          style={{ fontSize: compact ? 'clamp(0.8rem,1.4vw,1.1rem)' : 'clamp(1.25rem,2.5vw,2rem)', color: GOLD }}
           animate={{ opacity: [1, 0.2, 1] }}
           transition={{ duration: 1, repeat: Infinity, ease: 'easeInOut' }}
         >
           :{secs}
         </motion.span>
       </div>
-      <p className="text-gray-500 text-sm tracking-wide capitalize mt-1">{fecha}</p>
+      <p className={`text-gray-500 tracking-wide capitalize ${compact ? 'text-[10px] mt-0.5' : 'text-sm mt-1'}`}>{fecha}</p>
     </div>
   );
 }
@@ -952,6 +952,7 @@ export default function BarberTV() {
   const [rawVideoBg,     setRawVideoBg]     = useState(false);
   const [sidebarSize,    setSidebarSize]    = useState('md');
   const [hideHeader,     setHideHeader]     = useState(false);
+  const [headerSize,     setHeaderSize]     = useState('md');
   const [hideTicker,     setHideTicker]     = useState(false);
   const [cardsFondo,     setCardsFondo]     = useState(false);
 
@@ -1114,6 +1115,7 @@ export default function BarberTV() {
       setRawVideoBg(d.rawVideoBg === true);
       setSidebarSize(d.sidebarSize || 'md');
       setHideHeader(d.hideHeader === true);
+      setHeaderSize(d.headerSize || 'md');
       setHideTicker(d.hideTicker === true);
       setCardsFondo(d.cardsFondo === true);
     }, () => {});
@@ -1227,25 +1229,25 @@ export default function BarberTV() {
       {/* ── Header ─────────────────────────────────────────────── */}
       {!hideHeader && (
         <header
-          className="flex items-center justify-between px-10 py-5 shrink-0 relative z-10"
+          className={`flex items-center justify-between shrink-0 relative z-10 ${headerSize === 'sm' ? 'px-6 py-2.5' : 'px-10 py-5'}`}
           style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}
         >
           <div className="absolute bottom-0 left-0 right-0 h-px"
             style={{ background: 'linear-gradient(to right, transparent, rgba(212,175,55,0.2), transparent)' }} />
 
-          <div className="flex items-center gap-4">
+          <div className={`flex items-center ${headerSize === 'sm' ? 'gap-2.5' : 'gap-4'}`}>
             <div
-              className="relative w-12 h-12 rounded-2xl overflow-hidden"
+              className={`relative overflow-hidden ${headerSize === 'sm' ? 'w-9 h-9 rounded-xl' : 'w-12 h-12 rounded-2xl'}`}
               style={{ boxShadow: `0 0 20px rgba(212,175,55,0.2), 0 0 0 1px rgba(212,175,55,0.15)` }}
             >
               <img src={tenantLogo || '/logo.jpg'} alt={tenantName} className="w-full h-full object-cover" />
             </div>
             <div>
-              <div className="text-white font-black text-xl tracking-tight leading-none">{tenantName}</div>
+              <div className={`text-white font-black tracking-tight leading-none ${headerSize === 'sm' ? 'text-base' : 'text-xl'}`}>{tenantName}</div>
             </div>
           </div>
 
-          <DigitalClock />
+          <DigitalClock compact={headerSize === 'sm'} />
         </header>
       )}
 

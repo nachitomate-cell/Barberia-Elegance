@@ -62,6 +62,7 @@ const CONFIG_DEFAULT = {
   rawVideoBg:    false,
   sidebarSize:   'md',
   hideHeader:    false,
+  headerSize:    'md',
   hideTicker:    false,
   cardsFondo:    false,
 };
@@ -322,58 +323,29 @@ function TVSimulator({ config, bgUrl, tenantId }) {
       </div>
 
       <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-[#050505] border-4 border-slate-950 shadow-2xl flex flex-col select-none">
-        
-        {bgUrl ? (
-          <>
-            {isVideoBg ? (
-              <video
-                src={bgUrl}
-                autoPlay
-                loop
-                muted
-                playsInline
-                className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-                style={{
-                  filter: config.rawVideoBg ? 'none' : 'brightness(0.24) saturate(0.6)',
-                  zIndex: 0
-                }}
-              />
-            ) : (
-              <img
-                src={bgUrl}
-                alt=""
-                className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-                style={{
-                  filter: config.rawVideoBg ? 'none' : 'brightness(0.24) saturate(0.6)',
-                  animation: 'kb-pan-zoom 40s infinite ease-in-out',
-                  zIndex: 0
-                }}
-              />
-            )}
-            {!config.rawVideoBg && <div className="absolute inset-0 bg-black/45" style={{ zIndex: 0 }} />}
-          </>
-        ) : (
-          <div className="absolute inset-0 bg-gradient-to-tr from-slate-950 via-slate-900 to-slate-950" style={{ zIndex: 0 }} />
-        )}
+
+        {/* El fondo (imagen/video) se renderiza dentro de <main>, igual que en la TV real */}
 
         {/* ── HEADER SIMULADO ── */}
         {!config.hideHeader && (
-          <header className="h-[12%] border-b border-white/5 bg-black/35 backdrop-blur-[2px] flex items-center justify-between px-3 shrink-0 relative z-10">
+          <header className={`border-b border-white/5 bg-[#070809] flex items-center justify-between px-3 shrink-0 relative z-10 ${config.headerSize === 'sm' ? 'h-[8%]' : 'h-[12%]'}`}>
           <div className="flex items-center gap-1.5">
-            <div className="w-4 h-4 rounded-md overflow-hidden bg-slate-800 border border-white/10 shrink-0">
+            <div className={`rounded-md overflow-hidden bg-slate-800 border border-white/10 shrink-0 ${config.headerSize === 'sm' ? 'w-3 h-3' : 'w-4 h-4'}`}>
               <span className="text-[6px] font-black text-white flex items-center justify-center h-full">B</span>
             </div>
             <div>
-              <div className="text-white font-extrabold text-[7.5px] tracking-tight leading-none">
+              <div className={`text-white font-extrabold tracking-tight leading-none ${config.headerSize === 'sm' ? 'text-[6px]' : 'text-[7.5px]'}`}>
                 {tenantId === 'elegance' ? 'Barber Elegance' : 'Barber Ferraza'}
               </div>
-              <div className="text-[4px] font-bold tracking-[0.25em] uppercase mt-0.5" style={{ color: gold }}>
-                Premium Signage
-              </div>
+              {config.headerSize !== 'sm' && (
+                <div className="text-[4px] font-bold tracking-[0.25em] uppercase mt-0.5" style={{ color: gold }}>
+                  Premium Signage
+                </div>
+              )}
             </div>
           </div>
           <div className="text-right">
-            <div className="text-[8px] font-mono font-black text-white leading-none">
+            <div className={`font-mono font-black text-white leading-none ${config.headerSize === 'sm' ? 'text-[6px]' : 'text-[8px]'}`}>
               {clockText}
             </div>
             <div className="text-[5px] text-slate-500 font-medium tracking-wide uppercase mt-0.5">
@@ -387,9 +359,10 @@ function TVSimulator({ config, bgUrl, tenantId }) {
         <div className="flex-1 flex min-h-0 relative z-10 overflow-hidden">
           
           <aside
-            className="border-r border-white/5 bg-black/25 flex flex-col justify-between py-1.5 px-2 shrink-0 transition-all"
+            className="border-r border-white/5 flex flex-col justify-between py-1.5 px-2 shrink-0 transition-all"
             style={{
-              width: config.sidebarSize === 'sm' ? '20%' : config.sidebarSize === 'lg' ? '32%' : '26%'
+              width: config.sidebarSize === 'sm' ? '20%' : config.sidebarSize === 'lg' ? '32%' : '26%',
+              background: 'linear-gradient(180deg, #0b0d13 0%, #08090d 100%)',
             }}
           >
             <div>
@@ -447,6 +420,34 @@ function TVSimulator({ config, bgUrl, tenantId }) {
           </aside>
 
           <main className="flex-1 relative flex flex-col justify-center items-center p-3 overflow-hidden">
+
+            {/* Fondo (imagen/video) — solo dentro del área de carrusel */}
+            {bgUrl ? (
+              <>
+                {isVideoBg ? (
+                  <video
+                    src={bgUrl}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+                    style={{ filter: config.rawVideoBg ? 'none' : 'brightness(0.24) saturate(0.6)', zIndex: 0 }}
+                  />
+                ) : (
+                  <img
+                    src={bgUrl}
+                    alt=""
+                    className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+                    style={{ filter: config.rawVideoBg ? 'none' : 'brightness(0.24) saturate(0.6)', animation: 'kb-pan-zoom 40s infinite ease-in-out', zIndex: 0 }}
+                  />
+                )}
+                {!config.rawVideoBg && <div className="absolute inset-0 bg-black/45" style={{ zIndex: 0 }} />}
+              </>
+            ) : (
+              <div className="absolute inset-0 bg-gradient-to-tr from-slate-950 via-slate-900 to-slate-950" style={{ zIndex: 0 }} />
+            )}
+
             <div className="absolute inset-0 pointer-events-none" style={{
               backgroundImage: `radial-gradient(ellipse 70% 70% at 50% 100%, ${gold}07 0%, transparent 60%)`,
               zIndex: 0
@@ -509,7 +510,7 @@ function TVSimulator({ config, bgUrl, tenantId }) {
                       </p>
                       <div className="grid grid-cols-3 gap-2 w-[85%]">
                         {SIM_BARBEROS.map(b => (
-                          <div key={b.id} className="bg-white/[0.01] border border-white/5 rounded-lg py-2 px-1 text-center flex flex-col items-center gap-1 shadow-sm">
+                          <div key={b.id} className="bg-[#12151d] border border-[#D4AF37]/20 rounded-lg py-2 px-1 text-center flex flex-col items-center gap-1 shadow-sm">
                             <div className="w-7 h-7 rounded-full overflow-hidden border border-gold/30 shrink-0 bg-slate-800">
                               <img src={b.foto} alt="" className="w-full h-full object-cover" />
                             </div>
@@ -530,7 +531,7 @@ function TVSimulator({ config, bgUrl, tenantId }) {
                       </p>
                       <div className="grid grid-cols-3 gap-2 w-[90%]">
                         {SIM_PRODUCTOS.map(p => (
-                          <div key={p.id} className="bg-white/[0.01] border border-gold/15 rounded-lg overflow-hidden flex flex-col shadow-sm">
+                          <div key={p.id} className="bg-[#12151d] border border-[#D4AF37]/20 rounded-lg overflow-hidden flex flex-col shadow-sm">
                             <div className="aspect-square bg-black overflow-hidden relative shrink-0">
                               <img src={p.imagen} alt="" className="w-full h-full object-cover" />
                             </div>
@@ -733,6 +734,7 @@ export default function TVConfig() {
             rawVideoBg:    d.rawVideoBg === true,
             sidebarSize:   d.sidebarSize || 'md',
             hideHeader:    d.hideHeader === true,
+            headerSize:    d.headerSize || 'md',
             hideTicker:    d.hideTicker === true,
             cardsFondo:    d.cardsFondo === true,
           });
@@ -911,6 +913,7 @@ export default function TVConfig() {
         rawVideoBg:    config.rawVideoBg === true,
         sidebarSize:   config.sidebarSize || 'md',
         hideHeader:    config.hideHeader === true,
+        headerSize:    config.headerSize || 'md',
         hideTicker:    config.hideTicker === true,
         cardsFondo:    config.cardsFondo === true,
       }, { merge: true });
@@ -1169,6 +1172,35 @@ export default function TVConfig() {
                   </button>
                 ))}
               </div>
+            </Field>
+
+            <Field
+              label="Tamaño del Encabezado"
+              hint="Hazlo compacto para reducir el alto del logo, nombre y reloj de la parte superior"
+            >
+              <div className="flex gap-2 mb-4">
+                {[
+                  { value: 'sm', label: 'Compacto' },
+                  { value: 'md', label: 'Normal' },
+                ].map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => update('headerSize', opt.value)}
+                    disabled={config.hideHeader === true}
+                    className={`flex-1 py-2 rounded-xl text-xs font-bold border transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
+                      config.headerSize === opt.value
+                        ? 'bg-emerald-600 border-emerald-500 text-white shadow-md shadow-emerald-950/20'
+                        : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white hover:border-slate-600'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              {config.hideHeader === true && (
+                <p className="text-[11px] text-slate-600 -mt-2">El encabezado está oculto. Desactiva «Ocultar Reloj y Encabezado» para ajustar su tamaño.</p>
+              )}
             </Field>
 
             <Field
