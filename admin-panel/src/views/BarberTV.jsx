@@ -595,8 +595,11 @@ function SlideLookbook({ photos }) {
 }
 
 // ── Slide 3: Equipo (Opción C — cards con fondo) ──────────────────
-function SlideEquipo({ barberos, imageCache, skipAnimation }) {
+function SlideEquipo({ barberos, imageCache, cardsFondo, skipAnimation }) {
   const team = barberos.slice(0, 8);
+  const cardStyle = cardsFondo
+    ? { background: '#11141d', border: '1px solid rgba(212,175,55,0.32)', boxShadow: '0 8px 32px rgba(0,0,0,0.55)' }
+    : { background: '#0e1018', border: '1px solid rgba(212,175,55,0.18)', boxShadow: '0 6px 24px rgba(0,0,0,0.4)' };
   const cols =
     team.length >= 7 ? 'grid-cols-4' :
     team.length >= 4 ? 'grid-cols-3' :
@@ -626,11 +629,7 @@ function SlideEquipo({ barberos, imageCache, skipAnimation }) {
             <motion.div
               key={b.id || i}
               className="flex flex-col items-center text-center gap-3 rounded-2xl py-6 px-4"
-              style={{
-                background: 'rgba(255,255,255,0.02)',
-                border:     '1px solid rgba(212,175,55,0.1)',
-                boxShadow:  '0 4px 24px rgba(0,0,0,0.25)',
-              }}
+              style={cardStyle}
               initial={skipAnimation ? false : { opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={skipAnimation ? {} : { delay: i * 0.08, duration: 0.4 }}
@@ -674,9 +673,12 @@ function SlideEquipo({ barberos, imageCache, skipAnimation }) {
 }
 
 // ── Slide 4: Productos ────────────────────────────────────────────
-function SlideProductos({ productos, skipAnimation }) {
+function SlideProductos({ productos, cardsFondo, skipAnimation }) {
   const visible = productos.slice(0, 8);
   const cols    = visible.length > 6 ? 'grid-cols-4' : 'grid-cols-3';
+  const cardStyle = cardsFondo
+    ? { background: '#11141d', border: '1px solid rgba(212,175,55,0.32)', boxShadow: '0 8px 32px rgba(0,0,0,0.55)' }
+    : { background: '#0e1018', border: '1px solid rgba(212,175,55,0.18)', boxShadow: '0 6px 24px rgba(0,0,0,0.4)' };
 
   if (!visible.length) {
     return (
@@ -711,7 +713,7 @@ function SlideProductos({ productos, skipAnimation }) {
             <motion.div
               key={p.id || i}
               className="flex flex-col rounded-2xl overflow-hidden"
-              style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid rgba(212,175,55,0.15)`, boxShadow: '0 4px 24px rgba(0,0,0,0.3)' }}
+              style={cardStyle}
               initial={skipAnimation ? false : { opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={skipAnimation ? {} : { delay: i * 0.07, duration: 0.4 }}
@@ -810,7 +812,12 @@ function SlideMarcas({ marcas, skipAnimation }) {
                 <span className="text-7xl opacity-20">🏆</span>
               )}
             </div>
-            <p className="text-white font-bold text-lg tracking-[0.15em] text-center uppercase">{m.nombre}</p>
+            <div className="flex flex-col items-center gap-1.5">
+              <p className="text-white font-bold text-lg tracking-[0.15em] text-center uppercase">{m.nombre}</p>
+              {m.descripcion && (
+                <p className="text-slate-300 text-sm text-center max-w-xs leading-snug">{m.descripcion}</p>
+              )}
+            </div>
           </motion.div>
         ))}
       </div>
@@ -946,6 +953,7 @@ export default function BarberTV() {
   const [sidebarSize,    setSidebarSize]    = useState('md');
   const [hideHeader,     setHideHeader]     = useState(false);
   const [hideTicker,     setHideTicker]     = useState(false);
+  const [cardsFondo,     setCardsFondo]     = useState(false);
 
   GOLD = accentColor || TENANT_ACCENT[tenantId] || '#D4AF37';
 
@@ -1107,6 +1115,7 @@ export default function BarberTV() {
       setSidebarSize(d.sidebarSize || 'md');
       setHideHeader(d.hideHeader === true);
       setHideTicker(d.hideTicker === true);
+      setCardsFondo(d.cardsFondo === true);
     }, () => {});
   }, [tenantId]);
 
@@ -1195,8 +1204,8 @@ export default function BarberTV() {
   const ALL_DEFS = [
     { key: 'oferta',    label: 'Oferta',    el: <SlidePublicidad key="pub"  oferta={oferta} /> },
     { key: 'lookbook',  label: 'Trabajos',  el: <SlideLookbook   key="look" photos={photos} /> },
-    { key: 'equipo',    label: 'Equipo',    el: <SlideEquipo     key="team" barberos={barberos} imageCache={imageCache} skipAnimation={visitedRef.current.has(2)} /> },
-    { key: 'productos', label: 'Productos', el: <SlideProductos  key="prod" productos={productos} skipAnimation={visitedRef.current.has(3)} /> },
+    { key: 'equipo',    label: 'Equipo',    el: <SlideEquipo     key="team" barberos={barberos} imageCache={imageCache} cardsFondo={cardsFondo} skipAnimation={visitedRef.current.has(2)} /> },
+    { key: 'productos', label: 'Productos', el: <SlideProductos  key="prod" productos={productos} cardsFondo={cardsFondo} skipAnimation={visitedRef.current.has(3)} /> },
   ];
   if (tenantId === 'elegance') {
     ALL_DEFS.push({ key: 'marcas', label: 'Marcas', el: <SlideMarcas key="marcas" marcas={marcas} skipAnimation={visitedRef.current.has('marcas')} /> });
@@ -1291,7 +1300,8 @@ export default function BarberTV() {
           className="overflow-hidden shrink-0 transition-all duration-300"
           style={{
             width: sidebarSize === 'sm' ? '20%' : sidebarSize === 'lg' ? '32%' : '26%',
-            borderRight: '1px solid rgba(255,255,255,0.04)',
+            borderRight: '1px solid rgba(212,175,55,0.14)',
+            background: 'linear-gradient(180deg, #0b0d13 0%, #08090d 100%)',
           }}
         >
           <AppointmentPanel
