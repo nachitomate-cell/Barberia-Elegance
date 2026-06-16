@@ -47,8 +47,7 @@ const NAV_GROUPS_DEFAULT = [
     label: 'Contenido',
     items: [
       { to: 'lookbook',          label: 'Lookbook',         Icon: Images    },
-      // Oculto temporalmente mientras se configura Instagram con los locales.
-      // { to: 'instagram',         label: 'Instagram',        Icon: Camera,   adminOnly: true },
+      { to: 'instagram',         label: 'Instagram',        Icon: Camera,   adminOnly: true },
       { to: 'servicio-favorito', label: 'Foto de servicio', Icon: ImagePlus },
     ],
   },
