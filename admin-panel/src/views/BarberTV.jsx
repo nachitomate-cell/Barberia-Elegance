@@ -1221,51 +1221,8 @@ export default function BarberTV() {
       className="relative w-screen h-screen overflow-hidden flex flex-col select-none cursor-none"
       style={{ background: '#050505' }}
     >
-      {/* ── Imagen de fondo ────────────────────────────────────── */}
-      {/* ── Imagen/Video de fondo ────────────────────────────────────── */}
-      {backgroundUrl && (
-        <>
-          {isVideoBg ? (
-            <video
-              ref={bgVideoRef}
-              src={backgroundUrl}
-              autoPlay
-              loop
-              muted
-              playsInline
-              preload="auto"
-              aria-hidden="true"
-              className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
-              style={{ filter: rawVideoBg ? 'none' : 'brightness(0.68) saturate(0.85)', zIndex: 0 }}
-              onEnded={() => { bgVideoRef.current?.load(); bgVideoRef.current?.play(); }}
-            />
-          ) : (
-            <motion.img
-              src={backgroundUrl}
-              alt=""
-              aria-hidden="true"
-              className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
-              animate={{
-                scale: [1, 1.05, 1.02, 1.06, 1],
-                x: [0, -15, 15, -8, 0],
-                y: [0, 8, -12, 8, 0]
-              }}
-              transition={{
-                duration: 45,
-                ease: 'linear',
-                repeat: Infinity
-              }}
-              style={{ filter: rawVideoBg ? 'none' : 'brightness(0.7) saturate(0.85)', zIndex: 0 }}
-            />
-          )}
-          {!rawVideoBg && (
-            <div
-              className="absolute inset-0 pointer-events-none"
-              style={{ background: 'rgba(5,5,5,0.22)', zIndex: 0 }}
-            />
-          )}
-        </>
-      )}
+      {/* La imagen/video de fondo se renderiza dentro de <main> para que
+          quede a la derecha de la columna izquierda (no detrás de ella ni del header). */}
 
       {/* ── Header ─────────────────────────────────────────────── */}
       {!hideHeader && (
@@ -1316,6 +1273,52 @@ export default function BarberTV() {
 
         {/* Carrusel — 74% */}
         <main className="flex-1 relative overflow-hidden" onClick={handleCarouselClick}>
+
+          {/* ── Imagen/Video de fondo (solo dentro del área de carrusel) ── */}
+          {backgroundUrl && (
+            <>
+              {isVideoBg ? (
+                <video
+                  ref={bgVideoRef}
+                  src={backgroundUrl}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  preload="auto"
+                  aria-hidden="true"
+                  className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
+                  style={{ filter: rawVideoBg ? 'none' : 'brightness(0.68) saturate(0.85)', zIndex: 0 }}
+                  onEnded={() => { bgVideoRef.current?.load(); bgVideoRef.current?.play(); }}
+                />
+              ) : (
+                <motion.img
+                  src={backgroundUrl}
+                  alt=""
+                  aria-hidden="true"
+                  className="absolute inset-0 w-full h-full object-cover pointer-events-none select-none"
+                  animate={{
+                    scale: [1, 1.05, 1.02, 1.06, 1],
+                    x: [0, -15, 15, -8, 0],
+                    y: [0, 8, -12, 8, 0]
+                  }}
+                  transition={{
+                    duration: 45,
+                    ease: 'linear',
+                    repeat: Infinity
+                  }}
+                  style={{ filter: rawVideoBg ? 'none' : 'brightness(0.7) saturate(0.85)', zIndex: 0 }}
+                />
+              )}
+              {!rawVideoBg && (
+                <div
+                  className="absolute inset-0 pointer-events-none"
+                  style={{ background: 'rgba(5,5,5,0.22)', zIndex: 0 }}
+                />
+              )}
+            </>
+          )}
+
           {!rawVideoBg && (
             <div className="absolute inset-0"
               style={{ background: 'radial-gradient(ellipse 100% 80% at 50% 100%, rgba(212,175,55,0.03) 0%, transparent 60%)' }}
