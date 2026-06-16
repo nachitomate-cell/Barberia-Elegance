@@ -536,6 +536,13 @@ const FDB = (() => {
     };
     if (cita.sucursalId)     citaData.sucursalId     = cita.sucursalId;
     if (cita.sucursalNombre) citaData.sucursalNombre = cita.sucursalNombre;
+    // Productos reservados en el cross-sell del paso final (entrega/pago presencial).
+    if (Array.isArray(cita.productosReservados) && cita.productosReservados.length) {
+      citaData.productosReservados = cita.productosReservados.map(p => ({
+        nombre: String(p.nombre || ''),
+        precio: Number(p.precio) || 0,
+      }));
+    }
 
     if (cita.barberoId) {
       try {

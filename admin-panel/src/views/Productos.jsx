@@ -494,7 +494,7 @@ export default function Productos() {
 
   const [barberos, setBarberos] = useState([]);
   const [ventaRapidaOpen, setVentaRapidaOpen] = useState(false);
-  const [vrForm, setVrForm] = useState({ productId: '', cantidad: 1, barberoId: '', metodoPago: 'Efectivo' });
+  const [vrForm, setVrForm] = useState({ productId: '', cantidad: 1, descuento: 0, barberoId: '', metodoPago: 'Efectivo' });
   const [vrSaving, setVrSaving] = useState(false);
 
   // Historial de ventas
@@ -524,7 +524,7 @@ export default function Productos() {
   }).length : 0;
 
   const openVentaRapida = () => {
-    setVrForm({ productId: '', cantidad: 1, barberoId: '', metodoPago: 'Efectivo' });
+    setVrForm({ productId: '', cantidad: 1, descuento: 0, barberoId: '', metodoPago: 'Efectivo' });
     setVentaRapidaOpen(true);
   };
 
@@ -540,14 +540,18 @@ export default function Productos() {
     setVrSaving(true);
     try {
       const batch = writeBatch(db);
-      const totalVenta = Number(prod.precio || 0) * Number(vrForm.cantidad);
-      
+      const descuento = Math.min(100, Math.max(0, Number(vrForm.descuento) || 0));
+      const subtotalVenta = Number(prod.precio || 0) * Number(vrForm.cantidad);
+      const totalVenta = Math.round(subtotalVenta * (1 - descuento / 100));
+
       // Create delivered reservation representing direct sale
       const reservationRef = doc(tenantCol('product_reservations'));
       batch.set(reservationRef, {
         productId: prod.id,
         productName: prod.nombre,
         precio: totalVenta,
+        subtotal: subtotalVenta,
+        descuento,
         cantidad: Number(vrForm.cantidad),
         status: 'delivered',
         userName: 'Venta Directa Local',
@@ -1383,6 +1387,23 @@ export default function Productos() {
                 </div>
               )}
 
+              {/* Descuento (%) */}
+              {vrForm.productId && (
+                <div>
+                  <label className={lbl}>Descuento (%)</label>
+                  <input
+                    className={field}
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="1"
+                    value={vrForm.descuento}
+                    onChange={e => setVrForm(f => ({ ...f, descuento: Math.min(100, Math.max(0, Number(e.target.value) || 0)) }))}
+                    placeholder="0"
+                  />
+                </div>
+              )}
+
               {/* Seleccionar Barbero */}
               <div>
                 <label className={lbl}>Barbero Vendedor *</label>
@@ -1420,10 +1441,12 @@ export default function Productos() {
               {(() => {
                 const prod = productos.find(p => p.id === vrForm.productId);
                 if (!prod) return null;
-                const total = Number(prod.precio || 0) * Number(vrForm.cantidad);
+                const descuento = Math.min(100, Math.max(0, Number(vrForm.descuento) || 0));
+                const subtotal = Number(prod.precio || 0) * Number(vrForm.cantidad);
+                const total = Math.round(subtotal * (1 - descuento / 100));
                 const costoTotal = prod.precioCosto ? Number(prod.precioCosto) * Number(vrForm.cantidad) : 0;
                 const margen = total - costoTotal;
-                
+
                 return (
                   <div className="bg-slate-950 p-4 border border-slate-800 rounded-xl space-y-2 text-xs">
                     <div className="flex justify-between items-center text-slate-400">
@@ -1434,6 +1457,18 @@ export default function Productos() {
                       <span>Cantidad:</span>
                       <span className="font-semibold text-white">{vrForm.cantidad}</span>
                     </div>
+                    {descuento > 0 && (
+                      <>
+                        <div className="flex justify-between items-center text-slate-400">
+                          <span>Subtotal:</span>
+                          <span className="font-semibold text-white">${subtotal.toLocaleString('es-CL')}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-amber-400">
+                          <span>Descuento ({descuento}%):</span>
+                          <span className="font-semibold">−${(subtotal - total).toLocaleString('es-CL')}</span>
+                        </div>
+                      </>
+                    )}
                     <div className="border-t border-slate-800 pt-2 flex justify-between items-center text-sm font-bold text-white">
                       <span>Total Venta:</span>
                       <span className="text-emerald-400">${total.toLocaleString('es-CL')}</span>

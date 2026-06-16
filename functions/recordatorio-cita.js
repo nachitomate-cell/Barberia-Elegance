@@ -578,10 +578,15 @@ exports.recordatorioCita1h = onSchedule(
     })());
 
     // 2. Tenant Collections
+    // OJO: los docs padre tenants/{id} NO existen como documentos (solo tienen
+    // subcolecciones), por eso collection('tenants').get() devuelve 0 y se
+    // saltaban TODOS los tenants (solo elegance recibía el correo 1h).
+    // listDocuments() sí lista esas referencias.
     try {
-      const tenantsSnap = await db.collection('tenants').get();
-      for (const tenantDoc of tenantsSnap.docs) {
-        const tid = tenantDoc.id;
+      const tenantRefs = await db.collection('tenants').listDocuments();
+      for (const tenantRef of tenantRefs) {
+        const tid = tenantRef.id;
+        if (tid === 'elegance') continue; // ya cubierto por la colección root
         promises.push((async () => {
           try {
             const snap = await db.collection(`tenants/${tid}/citas`)

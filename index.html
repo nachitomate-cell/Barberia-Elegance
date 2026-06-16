@@ -1461,7 +1461,7 @@
       line-height: 1.35 !important;
       font-weight: 600 !important;
     }
-    /* Sello ritual 幽玄 (bermellón) bajo el slogan */
+    /* Sello ritual 幽玄 (幽 blanco + 玄 bermellón) bajo el slogan */
     .tenant-yugen .booking-hero p:has(#shopSlogan)::after {
       content: '幽玄';
       display: block;
@@ -1470,8 +1470,11 @@
       font-size: 18px;
       line-height: 1;
       letter-spacing: 0.18em;
-      color: #c0392b;
-      -webkit-text-fill-color: #c0392b;
+      background: linear-gradient(90deg, #ffffff 0 50%, #c0392b 50% 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      -webkit-text-fill-color: transparent;
     }
     /* Logo sin borde dorado + efecto flotante */
     .tenant-yugen .hero-logo-ring {
@@ -6723,6 +6726,8 @@
             <span class="font-bold text-white text-[15px]" id="summaryService"></span>
             <span class="font-black text-white text-[15px]" id="summaryPrice"></span>
           </div>
+          <!-- Productos añadidos en el cross-sell + total (lo llena refreshReservaTotal) -->
+          <div id="summaryProductsWrap" class="hidden"></div>
           <div class="h-px bg-white/5 mb-2"></div>
           <div class="flex items-center gap-2 text-sm text-gray-500 font-medium mb-1">
             <i class="ph-fill ph-user text-white/20 text-base"></i>
@@ -8634,6 +8639,36 @@
         document.getElementById('summaryDateString').innerText = currentDateStr;
         document.getElementById('summaryTime').innerText = selectedTimeStr;
 
+        // Recalcula el resumen sumando los productos del cross-sell. Se vuelve a
+        // llamar cada vez que el cliente añade/quita un producto.
+        const refreshReservaTotal = () => {
+          const wrap = document.getElementById('summaryProductsWrap');
+          if (!wrap) return;
+          if (!_selectedProducts.length) {
+            wrap.classList.add('hidden');
+            wrap.innerHTML = '';
+            return;
+          }
+          const prodTotal = _selectedProducts.reduce((s, p) => s + (Number(p.precio) || 0), 0);
+          const grand = totalCost + prodTotal;
+          wrap.innerHTML = `
+            <div class="h-px bg-white/5 my-2"></div>
+            ${_selectedProducts.map(p => `
+              <div class="flex justify-between items-center mb-1 text-[13px]">
+                <span class="text-gray-500 flex items-center gap-1.5"><i class="ph-fill ph-shopping-bag text-white/20 text-sm"></i>${p.nombre}</span>
+                <span class="text-white font-semibold">$${(Number(p.precio) || 0).toLocaleString('es-CL')}</span>
+              </div>`).join('')}
+            <div class="flex justify-between items-center mt-2 pt-2 border-t border-white/10">
+              <span class="font-bold text-white text-[15px]">Total</span>
+              <span class="font-black text-white text-[15px]">$${grand.toLocaleString('es-CL')}</span>
+            </div>
+            <p class="mt-2 text-[11px] text-gray-500 leading-snug flex items-start gap-1.5">
+              <i class="ph-fill ph-storefront text-white/30 text-sm mt-0.5"></i>
+              <span>Los productos los <b class="text-gray-400">apartamos para ti</b>: la entrega y el pago son presenciales en el local. ¡Así nadie te los gana! 💈</span>
+            </p>`;
+          wrap.classList.remove('hidden');
+        };
+
         // ── Cross-selling carousel ──
         const xsellEl = document.getElementById('step4XSell');
         if (xsellEl) {
@@ -8686,6 +8721,7 @@
 
             xsellEl.classList.remove('hidden');
             _selectedProducts = [];
+            refreshReservaTotal();
 
             xsellEl.onclick = e => {
               const btn = e.target.closest('button[data-pid]');
@@ -8706,6 +8742,7 @@
                   btn.style.color = '#000';
                   btn.style.borderColor = '#D4AF37';
                 }
+                showToast(`🛍️ "${btn.dataset.pname}" apartado. Lo retiras y pagas en el local — ¡te lo dejamos separado!`);
               } else {
                 _selectedProducts.splice(idx, 1);
                 btn.textContent = '+ Añadir';
@@ -8713,6 +8750,7 @@
                 btn.style.color = '';
                 btn.style.borderColor = '';
               }
+              refreshReservaTotal();
             };
           } else {
             xsellEl.classList.add('hidden');
@@ -9019,6 +9057,9 @@
             ...(window._selectedSucursal ? {
               sucursalId:     window._selectedSucursal.id,
               sucursalNombre: window._selectedSucursal.nombre,
+            } : {}),
+            ...(_selectedProducts.length ? {
+              productosReservados: _selectedProducts.map(p => ({ nombre: p.nombre, precio: Number(p.precio) || 0 })),
             } : {}),
           });
           citaGuardada = true;

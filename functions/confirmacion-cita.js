@@ -219,6 +219,36 @@ function buildEmailHtml({ cfg, cita, cancelUrl }) {
       <td style="padding:6px 0;color:#ffffff;font-size:13px;font-weight:600;">${value}</td>
     </tr>` : '';
 
+  // Productos reservados en el cross-sell (entrega/pago presencial en el local).
+  const prods = Array.isArray(cita.productosReservados) ? cita.productosReservados : [];
+  const prodsTotal = prods.reduce((s, p) => s + (Number(p.precio) || 0), 0);
+  const productosHtml = prods.length ? `
+        <tr>
+          <td style="padding:0 36px 24px;">
+            <table width="100%" cellpadding="0" cellspacing="0"
+              style="background:#1a1a1f;border-radius:12px;border:1px solid #2a2a30;padding:20px 24px;">
+              <tr><td>
+                <p style="margin:0 0 14px;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:${cfg.color};">🛍️ Productos reservados</p>
+                <table width="100%" cellpadding="0" cellspacing="0">
+                  ${prods.map(p => `
+                    <tr>
+                      <td style="padding:5px 0;color:#cccccc;font-size:13px;">${p.nombre || 'Producto'}</td>
+                      <td style="padding:5px 0;color:#ffffff;font-size:13px;font-weight:600;text-align:right;">${fmtPrecio(p.precio) || '$0'}</td>
+                    </tr>`).join('')}
+                  <tr><td colspan="2" style="border-top:1px solid #2a2a30;height:10px;"></td></tr>
+                  <tr>
+                    <td style="padding:2px 0;color:#999;font-size:13px;">Total productos</td>
+                    <td style="padding:2px 0;color:${cfg.color};font-size:14px;font-weight:800;text-align:right;">${fmtPrecio(prodsTotal) || '$0'}</td>
+                  </tr>
+                </table>
+                <p style="margin:14px 0 0;font-size:12px;color:#888;line-height:1.5;">
+                  📍 Los apartamos para ti: la <strong style="color:#bbb;">entrega y el pago son presenciales</strong> en el local, al momento de tu cita.
+                </p>
+              </td></tr>
+            </table>
+          </td>
+        </tr>` : '';
+
   return `<!DOCTYPE html>
 <html lang="es">
 <head>
@@ -274,7 +304,7 @@ function buildEmailHtml({ cfg, cita, cancelUrl }) {
             </table>
           </td>
         </tr>
-
+${productosHtml}
         <!-- Info del local -->
         ${(cfg.direccion || cfg.horario || cita.sucursalNombre) ? `
         <tr>

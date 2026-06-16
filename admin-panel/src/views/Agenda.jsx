@@ -231,6 +231,7 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
   const [addingProducto, setAddingProducto] = useState(false);
   const [newProductId, setNewProductId]   = useState('');
   const [newProductQty, setNewProductQty] = useState(1);
+  const [newProductDesc, setNewProductDesc] = useState(0); // % descuento de la línea
 
   const productosDisponibles = useMemo(() => productos.filter(p => Number(p.precio) > 0), [productos]);
 
@@ -247,15 +248,20 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
       return;
     }
     const precioUnitario = Number(p.precio) || 0;
+    const descuento = Math.min(100, Math.max(0, Number(newProductDesc) || 0));
+    const subtotalLinea = precioUnitario * Number(newProductQty);
     setTicketNuevos(arr => [...arr, {
       productId: p.id,
       nombre: p.nombre,
       cantidad: Number(newProductQty),
       precioUnitario,
-      totalLinea: precioUnitario * Number(newProductQty),
+      descuento,
+      subtotalLinea,
+      totalLinea: Math.round(subtotalLinea * (1 - descuento / 100)),
     }]);
     setNewProductId('');
     setNewProductQty(1);
+    setNewProductDesc(0);
     setAddingProducto(false);
   }
 
@@ -492,6 +498,8 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
                 productId:     n.productId,
                 productName:   n.nombre,
                 precio:        n.totalLinea,
+                subtotal:      n.subtotalLinea ?? n.totalLinea,
+                descuento:     n.descuento || 0,
                 cantidad:      n.cantidad,
                 status:        'delivered',
                 userName:      form.clienteNombre || 'Cliente',
@@ -509,6 +517,8 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
                 nombre:        n.nombre,
                 cantidad:      n.cantidad,
                 precio:        n.totalLinea,
+                subtotal:      n.subtotalLinea ?? n.totalLinea,
+                descuento:     n.descuento || 0,
                 reservationId: reservationRef.id,
               });
             });
@@ -591,14 +601,14 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
       footer={
         <div className="flex items-center gap-2">
           {!isNew && (
-            <button onClick={handleDelete} className="p-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-colors">
-              <Trash2 size={15} />
+            <button onClick={handleDelete} className="shrink-0 p-2.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-colors">
+              <Trash2 size={16} />
             </button>
           )}
-          <div className="flex-1" />
-          <button onClick={onClose} className="px-4 py-2 text-sm text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-all">Cancelar</button>
+          <div className="hidden sm:block sm:flex-1" />
+          <button onClick={onClose} className="shrink-0 px-4 py-2.5 text-sm text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-all">Cancelar</button>
           <button onClick={handleSave} disabled={saving || !form.clienteNombre}
-            className="flex items-center gap-2 px-5 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-sm font-semibold rounded-lg transition-all">
+            className="flex-1 sm:flex-none justify-center flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-sm font-semibold rounded-lg transition-all">
             {saving && <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
             {isNew ? 'Crear cita' : 'Guardar'}
           </button>
@@ -651,10 +661,10 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
           </div>
         )}
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className={lbl}>Email</label>
-          <input className={field} type="email" placeholder="juan@email.com" value={form.clienteEmail} onChange={e => set('clienteEmail', e.target.value)} />
+          <input className={field} type="email" inputMode="email" placeholder="juan@email.com" value={form.clienteEmail} onChange={e => set('clienteEmail', e.target.value)} />
         </div>
         <div>
           <label className={lbl}>
@@ -664,6 +674,8 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
           <div className="flex gap-1.5">
             <input
               className={`${field} ${telError ? 'border-red-500 focus:border-red-400' : ''}`}
+              type="tel"
+              inputMode="tel"
               placeholder="+569..."
               value={form.clienteTelefono}
               onChange={e => { set('clienteTelefono', e.target.value); if (telError) setTelError(false); }}
@@ -714,11 +726,11 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
       <div className="grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-top-1 duration-200">
         <div>
           <label className={lbl}>Precio ($)</label>
-          <input className={`${field} disabled:opacity-50 disabled:cursor-not-allowed`} type="number" placeholder="Precio" value={form.precio} disabled={form.cortesia} onChange={e => set('precio', Number(e.target.value))} />
+          <input className={`${field} disabled:opacity-50 disabled:cursor-not-allowed`} type="number" inputMode="numeric" placeholder="Precio" value={form.precio} disabled={form.cortesia} onChange={e => set('precio', Number(e.target.value))} />
         </div>
         <div>
           <label className={lbl}>Descuento (%)</label>
-          <input className={`${field} disabled:opacity-50 disabled:cursor-not-allowed`} type="number" placeholder="0" min="0" max="100" value={form.porcentajeDescuento || ''} disabled={form.cortesia} onChange={e => handleDiscountChange(e.target.value)} />
+          <input className={`${field} disabled:opacity-50 disabled:cursor-not-allowed`} type="number" inputMode="numeric" placeholder="0" min="0" max="100" value={form.porcentajeDescuento || ''} disabled={form.cortesia} onChange={e => handleDiscountChange(e.target.value)} />
         </div>
       </div>
       <div className="grid grid-cols-2 gap-3">
@@ -784,7 +796,7 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
               </div>
               <div>
                 <label className={lbl}>Monto Propina ($)</label>
-                <input className={field} type="number" placeholder="0" min="0" value={form.propina} onChange={e => set('propina', e.target.value !== '' ? Number(e.target.value) : '')} />
+                <input className={field} type="number" inputMode="numeric" placeholder="0" min="0" value={form.propina} onChange={e => set('propina', e.target.value !== '' ? Number(e.target.value) : '')} />
               </div>
             </div>
 
@@ -866,7 +878,13 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
                     <span className="text-white truncate flex-1">
                       <span className="text-emerald-400/80 mr-1.5">×{p.cantidad}</span>
                       {p.nombre}
+                      {p.descuento > 0 && (
+                        <span className="ml-1.5 text-[9px] font-bold text-amber-400 bg-amber-400/10 px-1 py-0.5 rounded">-{p.descuento}%</span>
+                      )}
                     </span>
+                    {p.descuento > 0 && (
+                      <span className="text-slate-500 line-through text-[10px] shrink-0">${Math.round(p.subtotalLinea).toLocaleString('es-CL')}</span>
+                    )}
                     <span className="text-emerald-400 font-bold shrink-0">${Math.round(p.totalLinea).toLocaleString('es-CL')}</span>
                     <button
                       type="button"
@@ -881,11 +899,12 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
               </div>
             )}
 
-            {/* Form para agregar producto */}
+            {/* Form para agregar producto — layout apilado, cómodo en teléfono */}
             {addingProducto ? (
-              <div className="flex flex-wrap items-end gap-2 p-2.5 bg-slate-900 border border-slate-800 rounded-lg">
-                <div className="flex-1 min-w-[140px]">
-                  <label className="block text-[9px] font-bold text-slate-500 uppercase mb-1">Producto</label>
+              <div className="space-y-2.5 p-3 bg-slate-900 border border-slate-800 rounded-xl">
+                {/* Producto: fila completa */}
+                <div>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Producto</label>
                   <select
                     className={field}
                     value={newProductId}
@@ -905,31 +924,50 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
                     })}
                   </select>
                 </div>
-                <div className="w-20">
-                  <label className="block text-[9px] font-bold text-slate-500 uppercase mb-1">Cant.</label>
-                  <input
-                    type="number"
-                    min="1"
-                    className={field}
-                    value={newProductQty}
-                    onChange={e => setNewProductQty(Math.max(1, Number(e.target.value) || 1))}
-                  />
+                {/* Cantidad y descuento: dos columnas */}
+                <div className="grid grid-cols-2 gap-2.5">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Cantidad</label>
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      min="1"
+                      className={field}
+                      value={newProductQty}
+                      onChange={e => setNewProductQty(Math.max(1, Number(e.target.value) || 1))}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Descuento %</label>
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      min="0"
+                      max="100"
+                      className={field}
+                      value={newProductDesc}
+                      onChange={e => setNewProductDesc(Math.min(100, Math.max(0, Number(e.target.value) || 0)))}
+                    />
+                  </div>
                 </div>
-                <button
-                  type="button"
-                  onClick={addProductoAlTicket}
-                  disabled={!newProductId}
-                  className="px-3 py-2 rounded-lg bg-emerald-600/20 border border-emerald-500/40 text-emerald-300 hover:bg-emerald-600/30 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-bold transition-all"
-                >
-                  Agregar
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setAddingProducto(false); setNewProductId(''); setNewProductQty(1); }}
-                  className="px-2 py-2 rounded-lg text-slate-500 hover:text-white text-xs transition-colors"
-                >
-                  Cancelar
-                </button>
+                {/* Acciones: Agregar amplio + Cancelar */}
+                <div className="flex items-center gap-2 pt-0.5">
+                  <button
+                    type="button"
+                    onClick={addProductoAlTicket}
+                    disabled={!newProductId}
+                    className="flex-1 px-3 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white disabled:opacity-40 disabled:cursor-not-allowed text-sm font-bold transition-all flex items-center justify-center gap-1.5"
+                  >
+                    <ShoppingBag size={14} /> Agregar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setAddingProducto(false); setNewProductId(''); setNewProductQty(1); setNewProductDesc(0); }}
+                    className="px-4 py-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 text-sm font-medium transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                </div>
               </div>
             ) : (
               <button

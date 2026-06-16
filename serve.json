@@ -1,10 +1,21 @@
 {
   "cleanUrls": true,
+  "headers": [
+    {
+      "source": "**/*.html",
+      "headers": [{ "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }]
+    },
+    {
+      "source": "/:slug",
+      "headers": [{ "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }]
+    }
+  ],
   "rewrites": [
     { "source": "/agenda/**", "destination": "/agenda.html" },
     { "source": "/agenda", "destination": "/agenda.html" },
     { "source": "/servicios", "destination": "/index.html" },
     { "source": "/gestion-interna/**", "destination": "/gestion-interna/index.html" },
-    { "source": "/gestion-interna", "destination": "/gestion-interna/index.html" }
+    { "source": "/gestion-interna", "destination": "/gestion-interna/index.html" },
+    { "source": "/:slug", "destination": "/barbero.html" }
   ]
 }

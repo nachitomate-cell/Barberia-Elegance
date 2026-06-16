@@ -87,7 +87,7 @@
     .svc-card {
       background: #0a0a0d;
       border: 1.5px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.18);
-      border-radius: 1.25rem;
+      border-radius: 0.9rem;
       transition: border-color 0.2s, background 0.2s;
       cursor: pointer;
       user-select: none;
@@ -317,12 +317,36 @@
     :is(.tenant-aura,.tenant-latincaribe) #slimHeader { background: rgba(249,250,251,0.92) !important; border-bottom-color: #E5E7EB !important; }
     :is(.tenant-aura,.tenant-latincaribe) #slimHeader button { background: #FFFFFF !important; border-color: #E5E7EB !important; color: #374151 !important; }
     :is(.tenant-aura,.tenant-latincaribe) #slimAvatar { background: #E5E7EB !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #slimBarberName { color: #18181B !important; }
     :is(.tenant-aura,.tenant-latincaribe) #serviceChip { background: rgba(249,250,251,0.92) !important; border-bottom-color: #E5E7EB !important; }
 
-    /* Hero del barbero */
-    :is(.tenant-aura,.tenant-latincaribe) .barber-hero-bg { background: linear-gradient(180deg, #FFFFFF 0%, #F9FAFB 100%) !important; }
-    :is(.tenant-aura,.tenant-latincaribe) #barberHero { border-bottom-color: #E5E7EB !important; }
-    :is(.tenant-aura,.tenant-latincaribe) #barberPhotoWrap { background: #FFFFFF !important; }
+    /* Hero del barbero — imagen del local (igual al hero del index), TODOS los tenants */
+    #barberHero { background-color: #141414; }
+    /* Imagen del local como <img> real: object-fit:cover nunca deforma la
+       proporción, ni siquiera mientras la imagen aún está decodificando. */
+    #barberHeroImg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center 30%;
+      z-index: 0;
+    }
+    /* Overlay oscuro para legibilidad (igual al .booking-hero-overlay del index) */
+    #barberHero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      background: linear-gradient(180deg, rgba(20,20,20,0.72) 0%, rgba(20,20,20,0.93) 100%);
+      pointer-events: none;
+    }
+    /* Texto del header SIEMPRE blanco sobre la imagen oscura (también en tenants claros) */
+    #barberHero #shopNameLabel    { color: rgba(255,255,255,0.55) !important; }
+    #barberHero #barberName       { color: #FFFFFF !important; text-shadow: 0 1px 14px rgba(0,0,0,0.55); }
+    #barberHero #barberEspecialidad { color: rgba(255,255,255,0.92) !important; }
+    #barberPhotoWrap { background: #111 !important; }
 
     /* Barra de progreso */
     :is(.tenant-aura,.tenant-latincaribe) #progressTrack { background: #E5E7EB !important; }
@@ -462,9 +486,40 @@
   <!-- Hero barber card -->
   <div id="barberHero" class="relative overflow-hidden"
     style="border-bottom: 1px solid rgba(255,255,255,0.04); padding: 2.25rem 1.5rem 1.75rem;">
-    <div class="absolute inset-0 pointer-events-none"
-      style="background: radial-gradient(ellipse at 50% -20%, rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.1) 0%, transparent 65%);"></div>
-    <div class="relative flex flex-col items-center text-center gap-3">
+    <!-- Imagen del local (todos los tenants). object-fit:cover evita deformación al cargar. -->
+    <img id="barberHeroImg" alt="" aria-hidden="true" decoding="async" fetchpriority="high"
+      style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center 30%;z-index:0;">
+    <script>
+      (function () {
+        // Imagen de hero por tenant — misma que usa el index (heroIndexingImg / .booking-hero).
+        var heroImgByTenant = {
+          elegance:           '/elegance.png',
+          ferraza:            '/ferraza1.webp',
+          gitana:             '/gitana.png',
+          mapubarbershop:     '/mapu3.png',
+          chameleon:          '/fondolocal3.png',
+          lumen:              '/djones1.png',
+          delnero:            '/nero.jpg',
+          aura:               '/auralogin.png',
+          latincaribe:        '/auralogin.png',
+          machos:             '/machos_bg.png',
+          infinity:           '/infinity_bg.png',
+          sionbarberia:       'https://dcx13p9dsx90t.cloudfront.net/uploads/logos/page_logo_378df61d67dfec81.png',
+          omegastudio:        '/omega2.avif',
+          memphis:            '/mem.png',
+          yugen:              '/yugen/yugen2.png',
+          kronnos_penablanca: '/kronnos/kronospena.png',
+          kronnos_limache:    '/kronnos/kronoslima.png',
+          kronnos_woman:      '/kronnos/kronoswoman.png',
+        };
+        // Fallback al logo del tenant si no hay imagen de hero curada.
+        var src = heroImgByTenant[window.CURRENT_TENANT_ID] || (window.SHOP && window.SHOP.logo) || '';
+        if (src) document.getElementById('barberHeroImg').src = src;
+      })();
+    </script>
+    <div class="absolute inset-0 pointer-events-none" style="z-index:1;
+      background: radial-gradient(ellipse at 50% -20%, rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.1) 0%, transparent 65%);"></div>
+    <div class="relative flex flex-col items-center text-center gap-3" style="z-index:2;">
       <!-- Photo — larger, centered -->
       <div id="barberPhotoWrap"
         class="w-24 h-24 rounded-full overflow-hidden flex items-center justify-center"
@@ -512,15 +567,15 @@
       <div id="catPills" class="flex gap-2 overflow-x-auto pb-4 mb-4 no-scrollbar -mx-6 px-6"></div>
 
       <!-- Skeleton -->
-      <div id="svcSkeleton" class="grid grid-cols-2 gap-3">
-        <div class="h-32 bg-white/5 rounded-2xl animate-pulse"></div>
-        <div class="h-32 bg-white/5 rounded-2xl animate-pulse opacity-80"></div>
-        <div class="h-32 bg-white/5 rounded-2xl animate-pulse opacity-60"></div>
-        <div class="h-32 bg-white/5 rounded-2xl animate-pulse opacity-40"></div>
+      <div id="svcSkeleton" class="grid grid-cols-2 gap-2.5">
+        <div class="h-24 bg-white/5 rounded-xl animate-pulse"></div>
+        <div class="h-24 bg-white/5 rounded-xl animate-pulse opacity-80"></div>
+        <div class="h-24 bg-white/5 rounded-xl animate-pulse opacity-60"></div>
+        <div class="h-24 bg-white/5 rounded-xl animate-pulse opacity-40"></div>
       </div>
 
       <!-- Services grid (filled by JS) -->
-      <div id="svcGrid" class="grid grid-cols-2 gap-3"></div>
+      <div id="svcGrid" class="grid grid-cols-2 gap-2.5"></div>
     </section>
 
     <!-- STEP 2: Fecha y Hora -->
@@ -952,12 +1007,12 @@
       const isSelected = _selectedService?.id === s.id;
       return `
       <button onclick="selectService(this, '${s.id}')"
-        class="svc-card ${isSelected ? 'selected' : ''} text-left p-4 flex flex-col gap-2 active:scale-[0.98]"
+        class="svc-card ${isSelected ? 'selected' : ''} text-left p-3 flex flex-col gap-1.5 active:scale-[0.98]"
         data-id="${s.id}">
-        <div class="icon-wrap w-10 h-10 rounded-xl flex items-center justify-center">
-          <i class="ph-fill ${icon} text-xl" style="color:var(--accent);"></i>
+        <div class="icon-wrap w-8 h-8 rounded-lg flex items-center justify-center">
+          <i class="ph-fill ${icon} text-base" style="color:var(--accent);"></i>
         </div>
-        <p class="text-sm font-bold text-white leading-snug">${s.nombre}</p>
+        <p class="text-[13px] font-bold text-white leading-snug">${s.nombre}</p>
         ${s.descripcion ? `<span class="svc-desc text-[11px] text-gray-500 leading-snug -mt-1 block">${s.descripcion}</span><span onclick="toggleSvcDesc(this,event)" class="svc-desc-toggle text-[10px] font-medium text-gray-600 hover:text-gray-300 hover:underline underline-offset-2 mt-0.5 block transition-colors">Ver más</span>` : ''}
         <div class="flex items-center gap-2 mt-auto">
           <span class="text-sm font-black" style="color:var(--accent);">${formatPrice(s.precio)}</span>
@@ -1034,7 +1089,18 @@
   function renderCalendar() {
     const today  = new Date();
     const cfg    = _barberConfig || _fsConfig;
-    const diasLaborales = cfg?.diasLaborales ?? [1,2,3,4,5,6];
+    // Días que realmente trabaja el barbero: se derivan de su horario semanal
+    // (panel Equipo → horario[dia].activo). Solo si no hay horario configurado se
+    // usa diasLaborales / el default Lun–Sáb, para no dejar el calendario vacío.
+    let diasLaborales;
+    if (cfg?.horario && typeof cfg.horario === 'object') {
+      diasLaborales = Object.keys(cfg.horario)
+        .filter(k => cfg.horario[k] && cfg.horario[k].activo === true)
+        .map(Number);
+      if (!diasLaborales.length) diasLaborales = cfg?.diasLaborales ?? [1,2,3,4,5,6];
+    } else {
+      diasLaborales = cfg?.diasLaborales ?? [1,2,3,4,5,6];
+    }
     const diasBloq      = cfg?.diasBloqueados ?? [];
     const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
                     'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -1070,7 +1136,10 @@
     }
 
     let firstAvailableStr = null;
-    const html = cells.map(date => {
+    // Descriptor por celda: solo se MUESTRAN los días seleccionables. Los días
+    // pasados / no laborables / bloqueados quedan como celda vacía (no se ven),
+    // conservando la alineación de columnas L-M-M-J-V-S-D.
+    const cellData = cells.map(date => {
       const str            = dateToStr(date);
       const dw             = date.getDay();
       const isCurrentMonth = date.getMonth() === targetMonth;
@@ -1078,19 +1147,26 @@
       const isWorkday      = diasLaborales.includes(dw);
       const isBlocked      = diasBloq.includes(str) || !!_bloqueosProximos[str];
       const isAvailable    = isCurrentMonth && !isPast && isWorkday && !isBlocked;
-      const isToday        = str === todayStr;
-      const num            = date.getDate();
+      return { str, num: date.getDate(), isAvailable, isToday: str === todayStr };
+    });
 
-      if (!isAvailable) {
-        const op = isCurrentMonth ? 'opacity:0.18;' : 'opacity:0.07;';
-        return `<div class="week-day-btn unavailable" style="${op}">${num}</div>`;
+    // Agrupar en semanas (filas de 7) y descartar las semanas iniciales/finales
+    // sin ningún día disponible, para no dejar filas vacías arriba/abajo.
+    const weeks = [];
+    for (let i = 0; i < cellData.length; i += 7) weeks.push(cellData.slice(i, i + 7));
+    while (weeks.length && !weeks[0].some(c => c.isAvailable)) weeks.shift();
+    while (weeks.length && !weeks[weeks.length - 1].some(c => c.isAvailable)) weeks.pop();
+
+    const html = weeks.flat().map(c => {
+      if (!c.isAvailable) {
+        return `<div class="week-day-btn empty" aria-hidden="true"></div>`;
       }
-      if (!firstAvailableStr) firstAvailableStr = str;
-      const isActive   = str === _selectedDate;
-      const todayMark  = isToday ? `<span class="today-label">hoy</span>` : '';
-      return `<button onclick="handleDayClick(this,'${str}')"
+      if (!firstAvailableStr) firstAvailableStr = c.str;
+      const isActive  = c.str === _selectedDate;
+      const todayMark = c.isToday ? `<span class="today-label">hoy</span>` : '';
+      return `<button onclick="handleDayClick(this,'${c.str}')"
         class="week-day-btn available${isActive ? ' active' : ''}"
-        data-date="${str}">${todayMark}${num}</button>`;
+        data-date="${c.str}">${todayMark}${c.num}</button>`;
     }).join('');
 
     document.getElementById('daysGrid').innerHTML = html;
@@ -1617,8 +1693,10 @@
     const photoWrap = document.getElementById('barberPhotoWrap');
     if (_barber.foto) {
       // Hero avatar: fetchpriority=high (above-the-fold) + width/height para evitar CLS.
+      // object-fit:cover INLINE (no solo la clase Tailwind) para que la cara no se
+      // estire si la imagen pinta antes de aplicarse la hoja de Tailwind.
       photoWrap.innerHTML =
-        `<img src="${_barber.foto}" alt="${_barber.nombre}" width="96" height="96" fetchpriority="high" decoding="async" class="w-full h-full object-cover">`;
+        `<img src="${_barber.foto}" alt="${_barber.nombre}" width="96" height="96" fetchpriority="high" decoding="async" class="w-full h-full object-cover" style="width:100%;height:100%;object-fit:cover;">`;
     }
     // Populate slim header
     document.getElementById('slimBarberName').textContent = _barber.nombre;
