@@ -133,8 +133,11 @@ export default function Mensualidad() {
   const formatFecha = raw => {
     if (!raw) return null;
     try {
-      const d = raw.toDate ? raw.toDate() : new Date(raw);
-      return d.toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' });
+      // Importante: las fechas peladas "YYYY-MM-DD" se parsean como UTC y en
+      // Chile (UTC-4) se corren un día atrás. Forzamos hora local con T00:00:00,
+      // igual que el banner y el cálculo de estado, para que la fecha coincida.
+      const d = raw.toDate ? raw.toDate() : new Date(`${raw}T00:00:00`);
+      return isNaN(d.getTime()) ? null : d.toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' });
     } catch { return null; }
   };
 

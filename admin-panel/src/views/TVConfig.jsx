@@ -63,6 +63,7 @@ const CONFIG_DEFAULT = {
   sidebarSize:   'md',
   hideHeader:    false,
   hideTicker:    false,
+  cardsFondo:    false,
 };
 
 const QR_SIZE_STEPS = [100, 120, 140, 160, 180, 200, 220, 240];
@@ -697,6 +698,7 @@ export default function TVConfig() {
 
   const [marcas, setMarcas] = useState([]);
   const [marcaNombre, setMarcaNombre] = useState('');
+  const [marcaDesc, setMarcaDesc] = useState('');
   const [marcaImg, setMarcaImg] = useState(null);
   const [marcaUploading, setMarcaUploading] = useState(false);
   const marcaInputRef = useRef(null);
@@ -732,6 +734,7 @@ export default function TVConfig() {
             sidebarSize:   d.sidebarSize || 'md',
             hideHeader:    d.hideHeader === true,
             hideTicker:    d.hideTicker === true,
+            cardsFondo:    d.cardsFondo === true,
           });
           if (d.backgroundUrl) setBgUrl(d.backgroundUrl);
         }
@@ -854,11 +857,12 @@ export default function TVConfig() {
       await uploadBytes(sRef, blob, { contentType: 'image/jpeg' });
       const url = await getDownloadURL(sRef);
       
-      const newMarca = { id, nombre: marcaNombre, logoUrl: url, activo: true, createdAt: new Date().toISOString() };
+      const newMarca = { id, nombre: marcaNombre, descripcion: marcaDesc.trim(), logoUrl: url, activo: true, createdAt: new Date().toISOString() };
       await setDoc(doc(tenantCol('publicidad_tv'), id), newMarca);
-      
+
       setMarcas(prev => [...prev, newMarca]);
       setMarcaNombre('');
+      setMarcaDesc('');
       setMarcaImg(null);
       if (marcaInputRef.current) marcaInputRef.current.value = '';
     } catch (err) {
@@ -867,6 +871,13 @@ export default function TVConfig() {
     } finally {
       setMarcaUploading(false);
     }
+  };
+
+  const handleMarcaDescBlur = async (m, value) => {
+    const desc = (value || '').trim();
+    if (desc === (m.descripcion || '')) return;
+    await setDoc(doc(tenantCol('publicidad_tv'), m.id), { descripcion: desc }, { merge: true });
+    setMarcas(prev => prev.map(x => x.id === m.id ? { ...x, descripcion: desc } : x));
   };
 
   const handleToggleMarca = async (m) => {
@@ -901,6 +912,7 @@ export default function TVConfig() {
         sidebarSize:   config.sidebarSize || 'md',
         hideHeader:    config.hideHeader === true,
         hideTicker:    config.hideTicker === true,
+        cardsFondo:    config.cardsFondo === true,
       }, { merge: true });
       setSaved(true);
       setDirty(false);
@@ -1123,6 +1135,12 @@ export default function TVConfig() {
                   onChange={v => update('hideTicker', v)}
                   label="Ocultar Marquesina Inferior"
                   sublabel="Remueve la barra de servicios del extremo inferior"
+                />
+                <SlideToggle
+                  checked={config.cardsFondo === true}
+                  onChange={v => update('cardsFondo', v)}
+                  label="Fondo en las Tarjetas"
+                  sublabel="Agrega un fondo oscuro a las tarjetas de Equipo y Productos para que resalten sobre la imagen de fondo"
                 />
               </div>
             </Field>
@@ -1580,6 +1598,14 @@ export default function TVConfig() {
                     </button>
                   </div>
                 </div>
+                <input
+                  type="text"
+                  placeholder="Descripción (opcional) — ej: Productos premium para barba"
+                  maxLength={80}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+                  value={marcaDesc}
+                  onChange={e => setMarcaDesc(e.target.value)}
+                />
               </div>
 
               {/* Lista de marcas */}
@@ -1591,7 +1617,15 @@ export default function TVConfig() {
                         <img src={m.logoUrl} alt={m.nombre} className="max-w-full max-h-full object-contain" />
                       </div>
                       <p className="text-xs font-semibold text-white text-center truncate w-full">{m.nombre}</p>
-                      
+                      <input
+                        type="text"
+                        defaultValue={m.descripcion || ''}
+                        placeholder="Descripción (opcional)"
+                        maxLength={80}
+                        onBlur={e => handleMarcaDescBlur(m, e.target.value)}
+                        className="w-full bg-slate-950/60 border border-slate-800 rounded-md px-2 py-1 text-[10px] text-slate-300 text-center placeholder:text-slate-600 focus:outline-none focus:border-emerald-500"
+                      />
+
                       <div className="flex items-center gap-2 w-full mt-1">
                         <button
                           onClick={() => handleToggleMarca(m)}

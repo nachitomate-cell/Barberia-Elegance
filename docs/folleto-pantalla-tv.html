@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pantalla TV — Folleto para el equipo</title>
+<style>
+  @page { size: A4; margin: 12mm; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    color: #15171c;
+    background: #fff;
+    line-height: 1.35;
+  }
+  .sheet {
+    width: 186mm;
+    margin: 0 auto;
+    padding: 4mm 2mm;
+  }
+  /* Header */
+  .head {
+    text-align: center;
+    border-bottom: 3px solid #D4AF37;
+    padding-bottom: 10px;
+    margin-bottom: 16px;
+  }
+  .head .kicker {
+    font-size: 10px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: #9a7d22;
+    font-weight: 800;
+  }
+  .head h1 {
+    font-size: 26px;
+    font-weight: 900;
+    margin-top: 4px;
+    color: #15171c;
+  }
+  .head p {
+    font-size: 12px;
+    color: #555;
+    margin-top: 5px;
+    max-width: 150mm;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  /* Section title */
+  .sec-title {
+    font-size: 14px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #15171c;
+    margin: 16px 0 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .sec-title::before {
+    content: '';
+    width: 16px; height: 16px;
+    background: #D4AF37;
+    border-radius: 3px;
+    display: inline-block;
+  }
+  /* Cards grid */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .card {
+    border: 1px solid #e6e3d8;
+    border-left: 4px solid #D4AF37;
+    border-radius: 8px;
+    padding: 9px 11px;
+    background: #fcfbf6;
+  }
+  .card h3 {
+    font-size: 12.5px;
+    font-weight: 800;
+    color: #15171c;
+    margin-bottom: 2px;
+  }
+  .card p {
+    font-size: 10.5px;
+    color: #555;
+  }
+  .emoji { font-size: 13px; }
+  /* Always-on strip */
+  .always {
+    background: #15171c;
+    color: #fff;
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-top: 4px;
+  }
+  .always .row {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    margin-bottom: 8px;
+  }
+  .always .row:last-child { margin-bottom: 0; }
+  .always .ico {
+    font-size: 15px;
+    width: 22px;
+    flex-shrink: 0;
+    text-align: center;
+  }
+  .always .txt b { color: #D4AF37; font-size: 11.5px; }
+  .always .txt span { color: #cfd2d8; font-size: 10.5px; display: block; }
+  /* Benefits */
+  .benefits {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 18px;
+    margin-top: 4px;
+  }
+  .benefit {
+    font-size: 11px;
+    color: #2a2d34;
+    display: flex;
+    gap: 7px;
+    align-items: baseline;
+  }
+  .benefit::before {
+    content: '✓';
+    color: #1a9c5b;
+    font-weight: 900;
+    font-size: 12px;
+  }
+  .benefit b { color: #15171c; }
+  /* Footer */
+  .foot {
+    margin-top: 18px;
+    text-align: center;
+    border-top: 1px solid #e6e3d8;
+    padding-top: 10px;
+    font-size: 10px;
+    color: #888;
+  }
+  .foot b { color: #9a7d22; }
+  .highlight {
+    background: #fff7df;
+    border: 1px dashed #D4AF37;
+    border-radius: 8px;
+    padding: 9px 13px;
+    margin-top: 12px;
+    font-size: 11.5px;
+    color: #5a4a12;
+    text-align: center;
+  }
+  .highlight b { color: #15171c; }
+</style>
+</head>
+<body>
+  <div class="sheet">
+
+    <div class="head">
+      <div class="kicker">Barbería &middot; Pantalla del Local</div>
+      <h1>La TV trabaja para nosotros</h1>
+      <p>Una pantalla que se actualiza sola, en tiempo real. Mientras el cliente espera, vende, llena la agenda y nos hace ver más profesionales. Ustedes no tienen que hacer nada.</p>
+    </div>
+
+    <div class="sec-title">Lo que ve el cliente (va rotando solo)</div>
+    <div class="grid">
+      <div class="card">
+        <h3><span class="emoji">🎯</span> Oferta del Mes</h3>
+        <p>La promoción destacada del momento. El cliente que espera se entera y pide más servicios.</p>
+      </div>
+      <div class="card">
+        <h3><span class="emoji">✂️</span> Nuestros Trabajos</h3>
+        <p>Galería rotativa con las mejores fotos de cortes. La mejor publicidad de la calidad del local.</p>
+      </div>
+      <div class="card">
+        <h3><span class="emoji">👥</span> Nuestro Equipo</h3>
+        <p>Cada barbero con su foto, nombre y especialidad. El cliente conoce quién lo atiende y pide por nombre.</p>
+      </div>
+      <div class="card">
+        <h3><span class="emoji">🛍️</span> Nuestros Productos</h3>
+        <p>Ceras, shampoos y más con precio y stock. Se venden solos, sin tener que ofrecerlos uno por uno.</p>
+      </div>
+    </div>
+
+    <div class="sec-title">Siempre en pantalla</div>
+    <div class="always">
+      <div class="row">
+        <div class="ico">📋</div>
+        <div class="txt"><b>Próximas citas (en vivo)</b><span>Quién está en el sillón ahora y los siguientes turnos del día. La cola se ve sola, sin sacar el celular.</span></div>
+      </div>
+      <div class="row">
+        <div class="ico">📱</div>
+        <div class="txt"><b>Código QR para reservar</b><span>El cliente lo escanea y agenda su próxima cita al instante, sin descargar nada.</span></div>
+      </div>
+      <div class="row">
+        <div class="ico">⏰</div>
+        <div class="txt"><b>Reloj, fecha y barra de servicios</b><span>La hora, el logo del local y una cinta con todos los servicios y sus precios.</span></div>
+      </div>
+    </div>
+
+    <div class="sec-title">Por qué nos conviene</div>
+    <div class="benefits">
+      <div class="benefit"><span><b>Vende solo:</b> ofertas y productos se promocionan sin hablar.</span></div>
+      <div class="benefit"><span><b>Llena la agenda:</b> el QR convierte la espera en una reserva.</span></div>
+      <div class="benefit"><span><b>Da estatus:</b> el local se ve premium y serio.</span></div>
+      <div class="benefit"><span><b>Protagonismo:</b> cada barbero sale con foto y especialidad.</span></div>
+    </div>
+
+    <div class="highlight">
+      <b>Cero trabajo extra para ustedes.</b> Todo se maneja desde el panel y la pantalla se actualiza sola: si se sube una foto o se cambia una oferta, aparece al toque sin reiniciar nada.
+    </div>
+
+    <div class="foot">
+      Desarrollado por <b>SynapTech</b> &nbsp;&middot;&nbsp; La pantalla es una herramienta de venta, no solo decoración.
+    </div>
+
+  </div>
+</body>
+</html>
