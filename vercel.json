@@ -92,6 +92,13 @@
     { "source": "/favicon.ico", "has": [{ "type": "host", "value": "kronnoslimache.synaptechspa.cl" }],       "destination": "/kronnos/studio.jpg" },
     { "source": "/favicon.ico", "has": [{ "type": "host", "value": "kronnoswoman.synaptechspa.cl" }],         "destination": "/kronnos/woman.jpg" },
     { "source": "/favicon.ico",            "destination": "/logo.jpg" },
+
+    { "source": "/favicon.ico", "has": [{ "type": "host", "value": "links.synaptechspa.cl" }], "destination": "/syn.webp" },
+    { "source": "/",            "has": [{ "type": "host", "value": "links.synaptechspa.cl" }], "destination": "/links/index.html" },
+    { "source": "/registro",    "has": [{ "type": "host", "value": "links.synaptechspa.cl" }], "destination": "/links/registro.html" },
+    { "source": "/editor",      "has": [{ "type": "host", "value": "links.synaptechspa.cl" }], "destination": "/links/editor.html" },
+    { "source": "/:user",       "has": [{ "type": "host", "value": "links.synaptechspa.cl" }], "destination": "/links/u.html" },
+
     { "source": "/dashboard",              "destination": "/dashboard.html" },
     { "source": "/registro",               "destination": "/registro.html" },
     { "source": "/agenda",                 "destination": "/agenda.html" },

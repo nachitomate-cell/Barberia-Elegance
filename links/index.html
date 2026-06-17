@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>SynapTech Links · Tu link en bio</title>
+<meta name="description" content="Una sola página con todos tus enlaces. Crea tu link en bio gratis con SynapTech Links." />
+<meta name="theme-color" content="#92c83a" />
+<link rel="icon" href="/syn-128.webp" />
+<style>
+  :root{
+    --green:#92c83a; --green-2:#a3d94a; --green-d:#2c5a17;
+    --ink:#15240b; --soft:#3f5230; --white:#ffffff; --line:#cfe0a8;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--green);color:var(--ink);}
+  body{min-height:100dvh;display:flex;flex-direction:column;}
+  a{color:inherit;}
+
+  header{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:800;font-size:19px;letter-spacing:-.4px;}
+  .brand img{width:30px;height:30px;border-radius:8px;object-fit:contain;background:#fff;padding:3px;box-shadow:0 1px 6px rgba(21,36,11,.12);}
+  .brand .t2{font-weight:500;color:var(--green-d);}
+  .login-link{font-size:14px;font-weight:700;text-decoration:none;background:rgba(21,36,11,.10);padding:9px 16px;border-radius:100px;}
+  .login-link:hover{background:rgba(21,36,11,.16);}
+
+  main{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:14px 22px 40px;}
+  h1{font-size:clamp(34px,8vw,58px);line-height:1.03;font-weight:800;letter-spacing:-1.5px;max-width:15ch;margin:0 auto 18px;}
+  .sub{font-size:clamp(15px,4vw,18px);line-height:1.5;max-width:32ch;color:var(--soft);margin-bottom:32px;}
+
+  .claim{width:100%;max-width:440px;display:flex;flex-direction:column;gap:13px;}
+  .field{display:flex;align-items:center;background:var(--white);border-radius:14px;padding:0 6px 0 16px;height:62px;box-shadow:0 2px 12px rgba(21,36,11,.10);}
+  .field .pfx{font-size:15px;color:#6f7c63;font-weight:600;white-space:nowrap;}
+  .field input{flex:1;border:0;outline:0;background:transparent;font-size:16px;font-weight:600;color:var(--ink);min-width:0;padding:0 6px;}
+  .field input::placeholder{color:#9aa88c;font-weight:500;}
+  .btn{height:62px;border:0;border-radius:14px;background:var(--green-d);color:#fff;font-size:17px;font-weight:800;cursor:pointer;transition:.15s;letter-spacing:.2px;}
+  .btn:hover{background:#234b12;transform:translateY(-1px);}
+  .btn:active{transform:translateY(0);}
+  .hint{font-size:12.5px;color:var(--green-d);min-height:18px;font-weight:700;}
+  .hint.err{color:#a3220f;}
+
+  .mock{margin-top:36px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;max-width:440px;}
+  .chip{background:var(--white);border-radius:100px;padding:8px 14px;font-size:13px;font-weight:700;display:inline-flex;align-items:center;gap:7px;box-shadow:0 2px 10px rgba(21,36,11,.08);}
+  .chip i{width:7px;height:7px;border-radius:50%;background:var(--green-d);}
+
+  .foot{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:6px 14px;padding:20px;font-size:12px;color:var(--soft);}
+  .foot a{text-decoration:none;display:inline-flex;align-items:center;gap:6px;font-weight:600;}
+  .foot img{width:16px;height:16px;border-radius:4px;object-fit:contain;background:#fff;padding:2px;}
+</style>
+</head>
+<body>
+  <header>
+    <div class="brand"><img src="/syn-64.webp" alt="SynapTech" /> SynapTech <span class="t2">Links</span></div>
+    <a class="login-link" href="/registro?modo=login">Iniciar sesión</a>
+  </header>
+
+  <main>
+    <h1>Un solo link para todo lo que eres.</h1>
+    <p class="sub">Reúne tus redes, tu WhatsApp, tu catálogo y más en una sola página. Compártela en Instagram, TikTok y donde quieras.</p>
+
+    <form class="claim" id="claimForm" autocomplete="off">
+      <div class="field">
+        <span class="pfx">links.synaptechspa.cl/</span>
+        <input id="user" type="text" inputmode="text" placeholder="tunombre" maxlength="30" aria-label="Tu usuario" />
+      </div>
+      <button class="btn" type="submit">Reclama tu Links — es gratis</button>
+      <div class="hint" id="hint">Letras, números, punto, guion y guion bajo · 3 a 30 caracteres.</div>
+    </form>
+
+    <div class="mock">
+      <span class="chip"><i></i> Gratis para siempre</span>
+      <span class="chip"><i></i> Sin tarjeta</span>
+      <span class="chip"><i></i> Listo en 1 minuto</span>
+    </div>
+  </main>
+
+  <div class="foot">
+    <a href="https://synaptechspa.cl" target="_blank" rel="noopener"><img src="/syn-64.webp" alt="" /> SynapTech SpA</a>
+    <span>·</span>
+    <a href="/registro?modo=login">Iniciar sesión</a>
+    <span>·</span>
+    <span>© 2026</span>
+  </div>
+
+<script>
+  // Navegación consciente del entorno: en producción las páginas viven en la
+  // raíz del subdominio (/registro, /editor, /usuario); en local bajo /links/*.html
+  function LBASE(){ return location.pathname.indexOf('/links/') === 0 ? '/links/' : '/'; }
+  function goPage(page, qs){ var b=LBASE(); location.href = b + page + (b==='/links/'?'.html':'') + (qs||''); }
+
+  (function () {
+    'use strict';
+    // Reescribe enlaces internos (/registro…) según el entorno.
+    Array.prototype.forEach.call(document.querySelectorAll('a[href^="/registro"]'), function(a){
+      var qs = a.getAttribute('href').replace(/^\/registro/, '');
+      a.setAttribute('href', LBASE() + 'registro' + (LBASE()==='/links/'?'.html':'') + qs);
+    });
+    var input = document.getElementById('user');
+    var hint  = document.getElementById('hint');
+    var form  = document.getElementById('claimForm');
+
+    var RESERVED = ['registro','login','editor','admin','api','bio','dashboard','agenda',
+      'app','www','links','synaptech','soporte','ayuda','help','about','terminos','privacidad'];
+
+    function normalize(v){
+      return String(v||'').toLowerCase()
+        .normalize('NFD').replace(/[̀-ͯ]/g,'')
+        .replace(/[^a-z0-9._-]/g,'')
+        .replace(/^[._-]+/, '');
+    }
+    function valid(v){
+      return v.length >= 3 && v.length <= 30 && /^[a-z0-9][a-z0-9._-]{2,29}$/.test(v) && RESERVED.indexOf(v) === -1;
+    }
+
+    input.addEventListener('input', function(){
+      var n = normalize(input.value);
+      if (n !== input.value) input.value = n;
+      if (!input.value){ hint.className='hint'; hint.textContent='Letras, números, punto, guion y guion bajo · 3 a 30 caracteres.'; return; }
+      if (RESERVED.indexOf(input.value) !== -1){ hint.className='hint err'; hint.textContent='Ese nombre está reservado, prueba otro.'; return; }
+      if (!valid(input.value)){ hint.className='hint err'; hint.textContent='Mínimo 3 caracteres. Empieza con letra o número.'; return; }
+      hint.className='hint'; hint.textContent='✓ links.synaptechspa.cl/' + input.value + ' está disponible para reclamar.';
+    });
+
+    form.addEventListener('submit', function(e){
+      e.preventDefault();
+      var n = normalize(input.value);
+      if (!valid(n)){ input.focus(); hint.className='hint err'; hint.textContent='Elige un usuario válido para continuar.'; return; }
+      goPage('registro', '?u=' + encodeURIComponent(n));
+    });
+  })();
+</script>
+</body>
+</html>

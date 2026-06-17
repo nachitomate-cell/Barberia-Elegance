@@ -11,6 +11,7 @@ import AdminLayout from './components/layout/AdminLayout';
 import Inicio      from './views/Inicio';
 import Servicios   from './views/Servicios';
 import Agenda      from './views/Agenda';
+import CitasPorCerrar from './views/CitasPorCerrar';
 import Equipo      from './views/Equipo';
 import Clientes    from './views/Clientes';
 import Metricas    from './views/Metricas';
@@ -84,6 +85,7 @@ function ProtectedApp() {
             <Route index                  element={<Navigate to={defaultRoute} replace />} />
             <Route path="inicio"          element={<Inicio />} />
             <Route path="agenda"          element={<Agenda />} />
+            <Route path="por-cerrar"      element={<CitasPorCerrar />} />
             <Route path="servicios"       element={<Servicios />} />
             <Route path="equipo"          element={<Equipo />} />
             <Route path="clientes"        element={<Clientes />} />

@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Crea tu cuenta · SynapTech Links</title>
+<meta name="theme-color" content="#d2f34c" />
+<link rel="icon" href="/syn-128.webp" />
+<style>
+  :root{ --green:#92c83a; --green-2:#a3d94a; --green-d:#2c5a17; --ink:#15240b; --soft:#5b6a4e; --field:#f4f6ee; --line:#e0e6d4; }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#fff;color:var(--ink);}
+  body{min-height:100dvh;display:flex;flex-direction:column;}
+  header{padding:18px 22px;}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:800;font-size:19px;letter-spacing:-.5px;text-decoration:none;color:var(--ink);}
+  .brand img{width:28px;height:28px;border-radius:7px;object-fit:contain;background:#fff;padding:2px;box-shadow:0 1px 5px rgba(21,36,11,.12);}
+  .brand .t2{font-weight:500;color:var(--green-d);}
+  main{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:8px 22px 48px;}
+  .box{width:100%;max-width:400px;}
+  h1{font-size:28px;font-weight:800;letter-spacing:-.8px;margin-bottom:6px;}
+  .lead{font-size:14.5px;color:var(--soft);margin-bottom:22px;}
+  .claimed{background:rgba(146,200,58,.16);border:1px solid var(--green);border-radius:12px;padding:11px 14px;font-size:13.5px;font-weight:700;margin-bottom:22px;display:flex;align-items:center;gap:8px;color:var(--green-d);}
+  .claimed img{width:18px;height:18px;border-radius:5px;background:#fff;padding:2px;}
+  .claimed b{font-weight:800;color:var(--ink);}
+  label{font-size:12.5px;font-weight:700;color:#41513e;display:block;margin:14px 0 6px;}
+  input{width:100%;height:54px;border:1px solid var(--line);border-radius:12px;background:var(--field);padding:0 16px;font-size:15px;font-weight:600;color:var(--ink);outline:0;}
+  input:focus{border-color:var(--green);background:#fff;}
+  .btn{width:100%;height:54px;border:0;border-radius:12px;background:var(--green-d);color:#fff;font-size:16px;font-weight:800;cursor:pointer;margin-top:18px;transition:.15s;}
+  .btn:hover{background:#234b12;}
+  .btn:disabled{opacity:.6;cursor:default;}
+  .or{display:flex;align-items:center;gap:12px;color:#9aa88c;font-size:12px;font-weight:700;margin:20px 0;}
+  .or::before,.or::after{content:"";flex:1;height:1px;background:var(--line);}
+  .sso{width:100%;height:54px;border:1px solid var(--line);border-radius:12px;background:#fff;color:#1a1a1a;display:flex;align-items:center;justify-content:center;gap:10px;font-size:15px;font-weight:700;cursor:pointer;}
+  .sso:hover{background:#f7f8f4;}
+  .sso img{width:20px;height:20px;}
+  .switch{text-align:center;font-size:13.5px;color:var(--soft);margin-top:22px;}
+  .switch a{color:var(--green-d);font-weight:800;text-decoration:none;cursor:pointer;}
+  .msg{font-size:13px;font-weight:700;min-height:18px;margin-top:12px;text-align:center;}
+  .msg.err{color:#a3220f;} .msg.ok{color:var(--green-d);}
+</style>
+</head>
+<body>
+  <header><a class="brand" href="/"><img src="/syn-64.webp" alt="SynapTech" /> SynapTech <span class="t2">Links</span></a></header>
+  <main>
+    <div class="box">
+      <h1 id="ttl">Crea tu cuenta</h1>
+      <p class="lead" id="lead">Reclama tu usuario y empieza a editar tu página.</p>
+      <div class="claimed" id="claimedBox" style="display:none;"><img src="/syn-64.webp" alt="" /> <span>links.synaptechspa.cl/<b id="claimedUser"></b></span></div>
+
+      <button class="sso" id="googleBtn">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="" />
+        Continuar con Google
+      </button>
+
+      <div class="or">o</div>
+
+      <form id="emailForm" autocomplete="on">
+        <label for="email">Correo electrónico</label>
+        <input id="email" type="email" inputmode="email" placeholder="tucorreo@ejemplo.com" required />
+        <label for="pass">Contraseña</label>
+        <input id="pass" type="password" placeholder="Mínimo 6 caracteres" minlength="6" required />
+        <button class="btn" id="emailBtn" type="submit">Crear cuenta</button>
+      </form>
+
+      <p class="msg" id="msg"></p>
+      <p class="switch" id="switch">¿Ya tienes cuenta? <a id="toggle">Inicia sesión</a></p>
+    </div>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="/firebase-config.js"></script>
+  <script>
+  (function(){
+    'use strict';
+    var params = new URLSearchParams(location.search);
+    var desiredUser = (params.get('u') || '').toLowerCase().replace(/[^a-z0-9._-]/g,'');
+    var modo = params.get('modo') === 'login' ? 'login' : 'signup';
+
+    // Navegación consciente del entorno (raíz del subdominio en prod, /links/*.html en local).
+    function LBASE(){ return location.pathname.indexOf('/links/') === 0 ? '/links/' : '/'; }
+    function goEditor(){ location.href = LBASE() + 'editor' + (LBASE()==='/links/'?'.html':''); }
+
+    var RESERVED = ['registro','login','editor','admin','api','bio','dashboard','agenda','app','www','links','synaptech','soporte','ayuda','help','about','terminos','privacidad'];
+    function validUser(v){ return v.length>=3 && v.length<=30 && /^[a-z0-9][a-z0-9._-]{2,29}$/.test(v) && RESERVED.indexOf(v)===-1; }
+
+    var msg = document.getElementById('msg');
+    function showMsg(t, ok){ msg.textContent = t; msg.className = 'msg ' + (ok ? 'ok' : 'err'); }
+    function clearMsg(){ msg.textContent=''; msg.className='msg'; }
+
+    // Estado UI según modo y usuario reclamado
+    function paintMode(){
+      var isLogin = (modo === 'login');
+      document.getElementById('ttl').textContent  = isLogin ? 'Inicia sesión' : 'Crea tu cuenta';
+      document.getElementById('lead').textContent = isLogin ? 'Entra para editar tu página de enlaces.' : 'Reclama tu usuario y empieza a editar tu página.';
+      document.getElementById('emailBtn').textContent = isLogin ? 'Iniciar sesión' : 'Crear cuenta';
+      document.getElementById('switch').innerHTML = isLogin
+        ? '¿No tienes cuenta? <a id="toggle">Regístrate</a>'
+        : '¿Ya tienes cuenta? <a id="toggle">Inicia sesión</a>';
+      document.getElementById('toggle').onclick = function(){ modo = isLogin ? 'signup' : 'login'; paintMode(); clearMsg(); };
+      var cb = document.getElementById('claimedBox');
+      if (!isLogin && desiredUser && validUser(desiredUser)) {
+        document.getElementById('claimedUser').textContent = desiredUser;
+        cb.style.display = 'flex';
+      } else { cb.style.display = 'none'; }
+    }
+    paintMode();
+
+    // ── Reclamar usuario de forma atómica (doc id = username) ──
+    function claimUsername(uid, email){
+      var user = desiredUser;
+      if (!validUser(user)) {
+        // Sin usuario válido en la URL: derivar uno del email y dejar que lo cambie en el editor.
+        user = (email || ('user' + uid.slice(0,6))).split('@')[0].toLowerCase().replace(/[^a-z0-9._-]/g,'').slice(0,30);
+        if (!validUser(user)) user = 'user' + uid.slice(0,8).toLowerCase();
+      }
+      var bioRef  = db.collection('bios').doc(user);
+      var userRef = db.collection('bio_users').doc(uid);
+      return db.runTransaction(function(tx){
+        return tx.get(userRef).then(function(uDoc){
+          // Si el usuario ya tiene una bio, lo mandamos directo a su editor.
+          if (uDoc.exists && uDoc.data().username) { return { username: uDoc.data().username, already: true }; }
+          return tx.get(bioRef).then(function(bDoc){
+            if (bDoc.exists) { var e = new Error('taken'); e.code='taken'; throw e; }
+            var now = firebase.firestore.FieldValue.serverTimestamp();
+            tx.set(bioRef, {
+              uid: uid, username: user,
+              perfil: { titulo: '@' + user, subtitulo: '', avatar: '' },
+              bloques: [], theme: 'lime', views: 0,
+              createdAt: now, updatedAt: now
+            });
+            tx.set(userRef, { username: user, email: email || '', createdAt: now });
+            return { username: user, already: false };
+          });
+        });
+      });
+    }
+
+    function afterAuth(cred){
+      var u = cred.user;
+      if (modo === 'login') {
+        // En login solo entramos al editor; si no tiene bio, el editor la crea.
+        goEditor();
+        return;
+      }
+      showMsg('Reclamando tu usuario…', true);
+      claimUsername(u.uid, u.email).then(function(res){
+        goEditor();
+      }).catch(function(err){
+        if (err && err.code === 'taken') {
+          showMsg('El usuario "' + desiredUser + '" ya está tomado. Entra al editor y elige otro.', false);
+          setTimeout(goEditor, 1800);
+        } else {
+          console.error(err);
+          showMsg('Cuenta creada, pero hubo un problema al reservar el usuario. Continúa en el editor.', false);
+          setTimeout(goEditor, 1800);
+        }
+      });
+    }
+
+    // ── Google ──
+    document.getElementById('googleBtn').addEventListener('click', function(){
+      clearMsg();
+      var provider = new firebase.auth.GoogleAuthProvider();
+      auth.signInWithPopup(provider).then(afterAuth).catch(function(e){
+        showMsg(mapError(e), false);
+      });
+    });
+
+    // ── Email/contraseña ──
+    document.getElementById('emailForm').addEventListener('submit', function(e){
+      e.preventDefault();
+      clearMsg();
+      var email = document.getElementById('email').value.trim();
+      var pass  = document.getElementById('pass').value;
+      var btn   = document.getElementById('emailBtn');
+      btn.disabled = true;
+      var op = (modo === 'login')
+        ? auth.signInWithEmailAndPassword(email, pass)
+        : auth.createUserWithEmailAndPassword(email, pass);
+      op.then(afterAuth).catch(function(err){
+        btn.disabled = false;
+        showMsg(mapError(err), false);
+      });
+    });
+
+    function mapError(e){
+      var c = (e && e.code) || '';
+      if (c === 'auth/email-already-in-use') return 'Ese correo ya tiene cuenta. Inicia sesión.';
+      if (c === 'auth/invalid-email')        return 'Correo inválido.';
+      if (c === 'auth/weak-password')        return 'La contraseña debe tener al menos 6 caracteres.';
+      if (c === 'auth/wrong-password' || c === 'auth/invalid-credential') return 'Correo o contraseña incorrectos.';
+      if (c === 'auth/user-not-found')       return 'No existe una cuenta con ese correo.';
+      if (c === 'auth/popup-closed-by-user') return 'Cerraste la ventana de Google. Intenta de nuevo.';
+      return 'No se pudo completar. Intenta nuevamente.';
+    }
+
+    // Si ya está logueado y entra a /registro, lo llevamos al editor.
+    auth.onAuthStateChanged(function(user){ if (user && modo !== 'login') { /* deja claim manual */ } });
+  })();
+  </script>
+</body>
+</html>

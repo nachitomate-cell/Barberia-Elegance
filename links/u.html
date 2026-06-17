@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>SynapTech Links</title>
+<meta name="theme-color" content="#92c83a" />
+<link rel="icon" href="/syn-128.webp" />
+<link rel="apple-touch-icon" href="/syn-180.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="Links" />
+<link rel="manifest" id="manifestLink" />
+<style>
+  :root{ --green:#92c83a; --green-d:#2c5a17; --ink:#15240b; --soft:#3f5230; --white:#ffffff; --line:#cfe0a8; }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--green);color:var(--ink);}
+  body{min-height:100dvh;display:flex;flex-direction:column;align-items:center;padding:56px 20px 30px;}
+  .wrap{position:relative;z-index:1;width:100%;max-width:560px;display:flex;flex-direction:column;align-items:center;}
+  .avatar{width:96px;height:96px;border-radius:50%;overflow:hidden;background:var(--white);border:3px solid rgba(255,255,255,.7);display:grid;place-items:center;box-shadow:0 4px 18px rgba(21,36,11,.15);}
+  .avatar img{width:100%;height:100%;object-fit:cover;}
+  h1{font-size:21px;font-weight:800;letter-spacing:-.3px;margin-top:16px;text-align:center;}
+  .sub{font-size:14px;color:var(--soft);margin-top:6px;text-align:center;max-width:34ch;line-height:1.45;}
+  .blocks{width:100%;display:flex;flex-direction:column;gap:13px;margin-top:28px;}
+  .btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;background:var(--white);border:0;
+    border-radius:14px;padding:17px 18px;font-size:15.5px;font-weight:700;color:var(--ink);text-decoration:none;transition:.13s;position:relative;box-shadow:0 2px 10px rgba(21,36,11,.10);}
+  .btn:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(21,36,11,.16);}
+  .btn:active{transform:translateY(0);}
+  .empty{margin-top:22vh;text-align:center;color:var(--soft);}
+  .empty h2{font-size:18px;color:var(--ink);margin-bottom:8px;}
+  .empty a{color:var(--green-d);font-weight:800;text-decoration:underline;}
+  .loading{margin-top:30vh;}
+  .spin{width:30px;height:30px;border:3px solid rgba(255,255,255,.5);border-top-color:var(--green-d);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .foot{position:relative;z-index:1;margin-top:auto;padding-top:34px;}
+  .foot a{display:inline-flex;align-items:center;gap:7px;text-decoration:none;color:var(--ink);font-size:12px;font-weight:700;
+    background:var(--white);padding:7px 14px;border-radius:100px;box-shadow:0 2px 10px rgba(21,36,11,.10);}
+  .foot img{width:15px;height:15px;border-radius:4px;object-fit:contain;}
+  .fade{opacity:0;transform:translateY(8px);animation:fade .45s ease forwards;}
+  @keyframes fade{to{opacity:1;transform:none;}}
+
+  /* ── Topbar: logo (izq) + compartir (der) ── */
+  .topbar{position:fixed;top:0;left:0;right:0;z-index:6;display:flex;justify-content:space-between;padding:14px;pointer-events:none;}
+  .chip-btn{pointer-events:auto;width:44px;height:44px;border-radius:13px;background:var(--white);border:0;display:grid;place-items:center;cursor:pointer;box-shadow:0 2px 12px rgba(21,36,11,.14);transition:.13s;text-decoration:none;}
+  .chip-btn:active{transform:scale(.93);}
+  .chip-btn img{width:24px;height:24px;border-radius:6px;object-fit:contain;}
+  .chip-btn svg{width:22px;height:22px;color:var(--ink);}
+
+  /* ── Modal compartir ── */
+  .share-modal{position:fixed;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(21,36,11,.45);backdrop-filter:blur(4px);}
+  .share-sheet{width:100%;max-width:430px;background:#fff;border-radius:22px;overflow:hidden;animation:sheetIn .25s ease;max-height:92dvh;overflow-y:auto;}
+  @keyframes sheetIn{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:none;}}
+  .share-head{display:flex;align-items:center;justify-content:center;position:relative;padding:18px;font-size:17px;font-weight:800;color:var(--ink);}
+  .share-head button{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:transparent;border:0;font-size:22px;line-height:1;color:#6f7c63;cursor:pointer;padding:4px;}
+  .share-card{margin:0 18px 22px;border-radius:18px;background:var(--ink);padding:26px 20px 22px;text-align:center;color:#fff;}
+  .share-card .av{width:96px;height:96px;border-radius:50%;margin:0 auto 12px;overflow:hidden;background:#fff;display:grid;place-items:center;border:3px solid rgba(255,255,255,.18);}
+  .share-card .av img{width:100%;height:100%;object-fit:cover;}
+  .share-card .un{font-size:21px;font-weight:800;letter-spacing:-.3px;}
+  .share-card .hd{display:inline-flex;align-items:center;gap:5px;font-size:13px;font-weight:600;color:rgba(255,255,255,.72);margin-top:4px;}
+  .share-card .hd img{width:14px;height:14px;border-radius:4px;background:#fff;padding:1px;}
+
+  .share-targets{display:grid;grid-template-columns:repeat(4,1fr);gap:16px 6px;padding:6px 18px 20px;}
+  .share-targets a,.share-targets button{background:transparent;border:0;cursor:pointer;text-decoration:none;display:flex;flex-direction:column;align-items:center;gap:7px;font-size:10.5px;font-weight:600;color:#41513e;}
+  .share-targets .ic{width:50px;height:50px;border-radius:50%;display:grid;place-items:center;}
+  .share-targets .ic svg{width:23px;height:23px;}
+  .ic-copy{background:#e7ebde;color:var(--ink);} .ic-x{background:#000;color:#fff;} .ic-fb{background:#1877F2;color:#fff;}
+  .ic-wa{background:#25D366;color:#fff;} .ic-in{background:#0A66C2;color:#fff;} .ic-tg{background:#26A5E4;color:#fff;}
+  .ic-ig{background:radial-gradient(circle at 30% 107%,#fdf497 0%,#fdf497 5%,#fd5949 45%,#d6249f 60%,#285AEB 90%);color:#fff;}
+  .ic-mail{background:#5b6a4e;color:#fff;}
+
+  .a2hs-wrap{padding:0 18px 18px;}
+  .a2hs{width:100%;display:flex;align-items:center;justify-content:center;gap:9px;background:var(--field);border:1px solid var(--line);color:var(--ink);border-radius:14px;padding:14px;font-size:14px;font-weight:800;cursor:pointer;}
+  .a2hs:hover{border-color:var(--green);}
+  .a2hs svg{width:19px;height:19px;}
+  .a2hs-tip{background:rgba(146,200,58,.12);border:1px solid var(--green);border-radius:12px;padding:13px 15px;margin-top:10px;font-size:12.5px;line-height:1.5;color:var(--ink);display:none;}
+  .a2hs-tip.show{display:block;}
+  .a2hs-tip b{font-weight:800;}
+  .a2hs-tip .ios-share{display:inline-block;vertical-align:-3px;}
+
+  .share-foot{border-top:1px solid #eceee6;padding:20px 22px 24px;}
+  .share-foot h3{font-size:18px;font-weight:800;color:var(--ink);margin-bottom:6px;letter-spacing:-.3px;}
+  .share-foot p{font-size:13px;color:var(--soft);line-height:1.5;margin-bottom:16px;}
+  .share-cta-btns{display:flex;gap:10px;}
+  .share-cta-btns a{flex:1;text-align:center;padding:14px;border-radius:100px;font-size:14px;font-weight:800;text-decoration:none;}
+  .cta-fill{background:var(--green-d);color:#fff;}
+  .cta-out{background:#fff;color:var(--ink);border:1.5px solid #d7ddc9;}
+  .copied{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:var(--ink);color:#fff;font-weight:700;font-size:13px;padding:10px 18px;border-radius:100px;z-index:40;opacity:0;transition:.2s;pointer-events:none;}
+  .copied.show{opacity:1;}
+</style>
+</head>
+<body>
+  <div class="topbar" id="topbar" style="display:none;">
+    <a class="chip-btn" href="https://links.synaptechspa.cl" target="_blank" rel="noopener" title="SynapTech Links"><img src="/syn-64.webp" alt="SynapTech Links" /></a>
+    <button class="chip-btn" id="shareBtn" title="Compartir" aria-label="Compartir">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M12 3v13"/><path d="m8 7 4-4 4 4"/></svg>
+    </button>
+  </div>
+
+  <div class="wrap" id="wrap">
+    <div class="loading" id="loading"><div class="spin"></div></div>
+  </div>
+
+  <!-- Modal compartir (estilo Linktree, marca SynapTech) -->
+  <div class="share-modal" id="shareModal" style="display:none;">
+    <div class="share-sheet">
+      <div class="share-head"><span>Compartir</span><button id="shareClose" aria-label="Cerrar">✕</button></div>
+      <div class="share-card">
+        <div class="av" id="shAv"></div>
+        <div class="un" id="shUser">@usuario</div>
+        <div class="hd"><img src="/syn-64.webp" alt="" />/<span id="shHandle">usuario</span></div>
+      </div>
+      <div class="share-targets">
+        <button data-share="copy"><span class="ic ic-copy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg></span>Copiar</button>
+        <a data-share="x" target="_blank" rel="noopener"><span class="ic ic-x"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231 5.45-6.231Zm-1.161 17.52h1.833L7.084 4.126H5.117L17.083 19.77Z"/></svg></span>X</a>
+        <a data-share="fb" target="_blank" rel="noopener"><span class="ic ic-fb"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.07C24 5.4 18.63 0 12 0S0 5.4 0 12.07C0 18.1 4.39 23.1 10.13 24v-8.44H7.08v-3.49h3.05V9.41c0-3.02 1.79-4.69 4.53-4.69 1.31 0 2.68.24 2.68.24v2.97h-1.51c-1.49 0-1.96.93-1.96 1.89v2.25h3.33l-.53 3.49h-2.8V24C19.61 23.1 24 18.1 24 12.07Z"/></svg></span>Facebook</a>
+        <a data-share="wa" target="_blank" rel="noopener"><span class="ic ic-wa"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M.057 24l1.687-6.163a11.867 11.867 0 0 1-1.587-5.946C.16 5.335 5.495 0 12.05 0a11.82 11.82 0 0 1 8.413 3.488 11.82 11.82 0 0 1 3.48 8.414c-.003 6.557-5.338 11.892-11.893 11.892a11.9 11.9 0 0 1-5.688-1.448L.057 24Zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884a9.86 9.86 0 0 0 1.51 5.26l-.999 3.648 3.978-1.607Zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414Z"/></svg></span>WhatsApp</a>
+        <a data-share="in" target="_blank" rel="noopener"><span class="ic ic-in"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.34V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.45v6.29ZM5.34 7.43a2.07 2.07 0 1 1 0-4.14 2.07 2.07 0 0 1 0 4.14ZM7.12 20.45H3.56V9h3.56v11.45ZM22.22 0H1.77C.79 0 0 .77 0 1.73v20.54C0 23.22.79 24 1.77 24h20.45c.98 0 1.78-.78 1.78-1.73V1.73C24 .77 23.2 0 22.22 0Z"/></svg></span>LinkedIn</a>
+        <button data-share="ig"><span class="ic ic-ig"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.16c3.2 0 3.58.01 4.85.07 1.17.05 1.8.25 2.23.41.56.22.96.48 1.38.9.42.42.68.82.9 1.38.16.42.36 1.06.41 2.23.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.05 1.17-.25 1.8-.41 2.23-.22.56-.48.96-.9 1.38-.42.42-.82.68-1.38.9-.42.16-1.06.36-2.23.41-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-1.17-.05-1.8-.25-2.23-.41a3.7 3.7 0 0 1-1.38-.9 3.7 3.7 0 0 1-.9-1.38c-.16-.42-.36-1.06-.41-2.23C2.17 15.58 2.16 15.2 2.16 12s.01-3.58.07-4.85c.05-1.17.25-1.8.41-2.23.22-.56.48-.96.9-1.38.42-.42.82-.68 1.38-.9.42-.16 1.06-.36 2.23-.41C8.42 2.17 8.8 2.16 12 2.16Zm0 3.68A6.16 6.16 0 1 0 18.16 12 6.16 6.16 0 0 0 12 5.84Zm0 10.16A4 4 0 1 1 16 12a4 4 0 0 1-4 4Zm6.41-10.4a1.44 1.44 0 1 0 1.44 1.44 1.44 1.44 0 0 0-1.44-1.44Z"/></svg></span>Instagram</button>
+        <a data-share="tg" target="_blank" rel="noopener"><span class="ic ic-tg"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42Z"/></svg></span>Telegram</a>
+        <a data-share="mail"><span class="ic ic-mail"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/></svg></span>Email</a>
+      </div>
+
+      <div class="a2hs-wrap">
+        <button class="a2hs" id="a2hsBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+          Añadir a pantalla de inicio
+        </button>
+        <div class="a2hs-tip" id="a2hsTip"></div>
+      </div>
+      <div class="share-foot">
+        <h3 id="shCta">Crea tu propio Links</h3>
+        <p>Obtén tu propia página de enlaces gratis. Reúne todo lo que eres en un solo link.</p>
+        <div class="share-cta-btns">
+          <a class="cta-fill" id="shReg" href="https://links.synaptechspa.cl/registro" target="_blank" rel="noopener">Regístrate gratis</a>
+          <a class="cta-out" href="https://links.synaptechspa.cl" target="_blank" rel="noopener">Descubre más</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="copied" id="copied">¡Link copiado!</div>
+
+  <div class="foot" id="foot" style="display:none;">
+    <a href="https://links.synaptechspa.cl" target="_blank" rel="noopener"><img src="/syn-64.webp" alt="" /> Crea tu propio Links</a>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="/firebase-config.js"></script>
+  <script>
+  // Captura el evento de instalación (Android/Chrome) para el botón "Añadir a pantalla de inicio".
+  window.addEventListener('beforeinstallprompt', function(e){ e.preventDefault(); window._deferredA2HS = e; });
+
+  (function(){
+    'use strict';
+    function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];}); }
+
+    // Genera un manifest al vuelo para que la app instalada use el nombre y la URL del usuario.
+    function setManifest(uname, titulo){
+      try {
+        var m = {
+          name: titulo || ('@'+uname), short_name: (titulo || uname).slice(0,12),
+          start_url: 'https://links.synaptechspa.cl/' + uname, scope: '/',
+          display: 'standalone', background_color: '#92c83a', theme_color: '#92c83a',
+          icons: [
+            { src: 'https://links.synaptechspa.cl/syn-192.png', sizes:'192x192', type:'image/png' },
+            { src: 'https://links.synaptechspa.cl/syn-512.png', sizes:'512x512', type:'image/png', purpose:'any maskable' }
+          ]
+        };
+        var blob = new Blob([JSON.stringify(m)], { type:'application/manifest+json' });
+        var link = document.getElementById('manifestLink');
+        if (link) link.href = URL.createObjectURL(blob);
+      } catch(e){}
+    }
+
+    // Usuario: del path (/usuario en prod) o de ?u= (local).
+    function getUser(){
+      var q = new URLSearchParams(location.search).get('u');
+      if (q) return q.toLowerCase().replace(/[^a-z0-9._-]/g,'');
+      var seg = location.pathname.replace(/^\/+|\/+$/g,'').split('/');
+      var last = seg[seg.length-1] || '';
+      if (last === 'u.html' || last === '') return '';
+      return last.toLowerCase().replace(/[^a-z0-9._-]/g,'');
+    }
+
+    // Normaliza una URL de botón: http(s), wa.me, mailto, tel.
+    function resolveUrl(raw){
+      var u = String(raw||'').trim();
+      if (!u) return null;
+      if (/^(https?:|mailto:|tel:)/i.test(u)) return u;
+      if (/^wa\.me\//i.test(u) || /^\+?\d[\d\s-]{7,}$/.test(u)) {
+        var digits = u.replace(/\D/g,'');
+        if (digits.length >= 8) return 'https://wa.me/' + digits;
+      }
+      if (/^[\w.-]+\.[a-z]{2,}(\/|$)/i.test(u)) return 'https://' + u;
+      return u;
+    }
+
+    var user = getUser();
+    var wrap = document.getElementById('wrap');
+
+    function showEmpty(title, sub, cta){
+      document.getElementById('loading').style.display='none';
+      wrap.innerHTML = '<div class="empty fade"><h2>'+esc(title)+'</h2><p>'+esc(sub)+'</p>'+(cta||'')+'</div>';
+      document.getElementById('foot').style.display='block';
+    }
+
+    // Modo demo: previsualiza la página y el botón compartir sin Firestore (?demo=1).
+    if (new URLSearchParams(location.search).get('demo') === '1'){
+      user = user || 'demo';
+      render({ perfil:{ titulo:'@'+user, subtitulo:'Mi página de enlaces ✦ ejemplo', avatar:'' },
+        bloques:[
+          { tipo:'link', label:'Sígueme en Instagram', url:'https://instagram.com', activo:true },
+          { tipo:'link', label:'Escríbeme por WhatsApp', url:'wa.me/56912345678', activo:true },
+          { tipo:'link', label:'Mi sitio web', url:'https://synaptechspa.cl', activo:true }
+        ] });
+      return;
+    }
+
+    if (!user){ showEmpty('Página no encontrada', 'No se indicó un usuario.', '<p style="margin-top:14px;"><a href="https://links.synaptechspa.cl">Crea tu Links</a></p>'); return; }
+
+    db.collection('bios').doc(user).get().then(function(doc){
+      if (!doc.exists){
+        showEmpty('Este nombre está libre', 'links.synaptechspa.cl/'+user+' aún no existe.',
+          '<p style="margin-top:14px;"><a href="https://links.synaptechspa.cl/registro?u='+encodeURIComponent(user)+'">Reclámalo ahora →</a></p>');
+        return;
+      }
+      render(doc.data());
+      // Vista (best-effort; si las reglas no lo permiten, falla en silencio).
+      doc.ref.update({ views: firebase.firestore.FieldValue.increment(1) }).catch(function(){});
+    }).catch(function(e){
+      console.error(e);
+      showEmpty('No se pudo cargar', 'Intenta de nuevo en unos segundos.', '');
+    });
+
+    function render(data){
+      var perfil = data.perfil || {};
+      var bloques = (data.bloques||[]).filter(function(b){ return b.activo!==false && (b.url||'').trim(); });
+      document.title = (perfil.titulo || ('@'+user)) + ' · Links';
+      document.getElementById('loading').style.display='none';
+
+      var html = '';
+      html += '<div class="avatar fade">' + (perfil.avatar
+        ? '<img src="'+esc(perfil.avatar)+'" alt="'+esc(perfil.titulo)+'">'
+        : '<span style="font-size:38px;font-weight:800;color:#6b7768;">'+esc((perfil.titulo||user).charAt(0).toUpperCase())+'</span>') + '</div>';
+      html += '<h1 class="fade" style="animation-delay:.04s;">'+esc(perfil.titulo || ('@'+user))+'</h1>';
+      if (perfil.subtitulo) html += '<p class="sub fade" style="animation-delay:.08s;">'+esc(perfil.subtitulo)+'</p>';
+
+      if (bloques.length){
+        html += '<div class="blocks">';
+        bloques.forEach(function(b, i){
+          var url = resolveUrl(b.url); if (!url) return;
+          html += '<a class="btn fade" style="animation-delay:'+(0.1 + i*0.04)+'s;" href="'+esc(url)+'" target="_blank" rel="noopener">'+esc(b.label||url)+'</a>';
+        });
+        html += '</div>';
+      } else {
+        html += '<p class="sub fade" style="margin-top:26px;animation-delay:.1s;">Aún no hay enlaces aquí.</p>';
+      }
+      wrap.innerHTML = html;
+      document.getElementById('foot').style.display='block';
+      setupShare(perfil);
+    }
+
+    function setupShare(perfil){
+      var pageUrl = 'https://links.synaptechspa.cl/' + user;
+      var topbar = document.getElementById('topbar');
+      var modal  = document.getElementById('shareModal');
+      topbar.style.display = 'flex';
+      setManifest(user, perfil.titulo);
+
+      // Tarjeta del modal
+      var avBox = document.getElementById('shAv');
+      avBox.innerHTML = perfil.avatar
+        ? '<img src="'+esc(perfil.avatar)+'" alt="">'
+        : '<span style="font-size:38px;font-weight:800;color:#6b7768;">'+esc((perfil.titulo||user).charAt(0).toUpperCase())+'</span>';
+      document.getElementById('shUser').textContent = perfil.titulo || ('@'+user);
+      document.getElementById('shHandle').textContent = user;
+      document.getElementById('shCta').textContent = 'Únete a @' + user + ' en Links';
+      document.getElementById('shReg').href = 'https://links.synaptechspa.cl/registro';
+
+      // Targets
+      var enc = encodeURIComponent(pageUrl);
+      var txt = encodeURIComponent((perfil.titulo || ('@'+user)) + ' · Mira mi página de enlaces');
+      var urls = {
+        x:   'https://twitter.com/intent/tweet?url=' + enc + '&text=' + txt,
+        fb:  'https://www.facebook.com/sharer/sharer.php?u=' + enc,
+        wa:  'https://wa.me/?text=' + txt + '%20' + enc,
+        in:  'https://www.linkedin.com/sharing/share-offsite/?url=' + enc,
+        tg:  'https://t.me/share/url?url=' + enc + '&text=' + txt,
+        mail:'mailto:?subject=' + txt + '&body=' + enc
+      };
+      Array.prototype.forEach.call(modal.querySelectorAll('a[data-share]'), function(a){
+        a.href = urls[a.getAttribute('data-share')] || pageUrl;
+      });
+
+      // Instagram no tiene URL de compartir web: copiamos el link para pegar en historia/DM.
+      modal.querySelector('[data-share="ig"]').onclick = function(){
+        copyLink(); showCopiedMsg('Link copiado — pégalo en tu historia o bio de Instagram');
+      };
+
+      function open(){ modal.style.display = 'flex'; }
+      function close(){ modal.style.display = 'none'; }
+      document.getElementById('shareBtn').onclick = open;
+      document.getElementById('shareClose').onclick = close;
+      modal.addEventListener('click', function(e){ if (e.target === modal) close(); });
+
+      // Copiar
+      function copyLink(){
+        if (navigator.clipboard) navigator.clipboard.writeText(pageUrl).catch(function(){});
+        else { var t=document.createElement('textarea'); t.value=pageUrl; document.body.appendChild(t); t.select(); try{document.execCommand('copy');}catch(e){} t.remove(); }
+      }
+      function showCopiedMsg(t){ var c=document.getElementById('copied'); c.textContent=t||'¡Link copiado!'; c.classList.add('show'); setTimeout(function(){c.classList.remove('show');},2200); }
+      modal.querySelector('[data-share="copy"]').onclick = function(){ copyLink(); showCopiedMsg('¡Link copiado!'); };
+
+      // Añadir a pantalla de inicio
+      var tip = document.getElementById('a2hsTip');
+      var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+      var standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+      document.getElementById('a2hsBtn').onclick = function(){
+        if (standalone){ showCopiedMsg('Ya tienes la app instalada 🎉'); return; }
+        if (window._deferredA2HS){
+          window._deferredA2HS.prompt();
+          window._deferredA2HS.userChoice.finally(function(){ window._deferredA2HS = null; });
+          return;
+        }
+        if (isIOS){
+          tip.innerHTML = 'En iPhone/iPad: toca <b>Compartir</b> <span class="ios-share"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M12 3v13"/><path d="m8 7 4-4 4 4"/></svg></span> en la barra de Safari y luego <b>“Añadir a pantalla de inicio”</b>.';
+        } else {
+          tip.innerHTML = 'Abre el <b>menú del navegador</b> (⋮) y elige <b>“Instalar app”</b> o <b>“Añadir a pantalla de inicio”</b>.';
+        }
+        tip.classList.add('show');
+      };
+    }
+  })();
+  </script>
+</body>
+</html>

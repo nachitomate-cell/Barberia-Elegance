@@ -154,6 +154,7 @@ exports.actualizarSuggestionElegance = onDocumentWritten('citas/{citaId}', async
   if (!after)                                              return null; // doc eliminado
   if (!['Completada', 'completada'].includes(after.estado)) return null;
   if (['Completada', 'completada'].includes(before?.estado)) return null;
+  if (after.cierreMasivo) return null; // cierre retroactivo en lote — no recalcular recordatorios
 
   const telefono      = after.clienteTelefono;
   const clienteNombre = after.clienteNombre || after.nombre || '';
@@ -179,6 +180,7 @@ exports.actualizarSuggestionTenant = onDocumentWritten(
     if (!after)                                               return null;
     if (!['Completada', 'completada'].includes(after.estado))  return null;
     if (['Completada', 'completada'].includes(before?.estado))  return null;
+    if (after.cierreMasivo) return null; // cierre retroactivo en lote — no recalcular recordatorios
 
     const { tid }       = event.params;
     const telefono      = after.clienteTelefono;

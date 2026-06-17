@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
-  CalendarDays, Scissors, Users, Star, BarChart3,
+  CalendarDays, CalendarClock, Scissors, Users, Star, BarChart3,
   Trophy, ShoppingBag, Images, LogOut, ChevronRight,
   Sun, Moon, ExternalLink, Settings, TrendingDown, MessageCircle, X,
   Megaphone, ImagePlus, CreditCard, Monitor, Headphones, Medal, Camera, GraduationCap, Wallet, Package, ThumbsUp,
@@ -29,6 +29,7 @@ const NAV_GROUPS_DEFAULT = [
     items: [
       { to: 'inicio',         label: 'Inicio',          Icon: Home          },
       { to: 'agenda',         label: 'Agenda',          Icon: CalendarDays  },
+      { to: 'por-cerrar',     label: 'Por cerrar',      Icon: CalendarClock },
       { to: 'mensajes',       label: 'Mensajes',        Icon: MessageCircle },
       { to: 'lista-espera',   label: 'Lista de espera', Icon: ClipboardList },
       { to: 'reserva-online', label: 'Reserva online',  Icon: Globe         },
@@ -237,9 +238,17 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
 
   const { data: pendingCitas }    = useCollection('citas',               [where('estado',  '==', 'Pendiente')]);
   const { data: pendingReservas } = useCollection('product_reservations', [where('status',  '==', 'pending')]);
+  // Citas "abiertas" (Confirmada/Pendiente) — el backlog son las de fecha pasada.
+  const { data: openCitas }       = useCollection('citas',               [where('estado',  'in', ['Confirmada', 'Pendiente'])]);
 
   const pendingCitasCount    = pendingCitas?.length    || 0;
   const pendingReservasCount = pendingReservas?.length || 0;
+
+  const hoyStr = (() => {
+    const n = new Date();
+    return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
+  })();
+  const porCerrarCount = (openCitas || []).filter(c => c.fecha && c.fecha < hoyStr).length;
 
   const NAV_GROUPS = (() => {
     if (tenant.id === 'deluxeperfumes') return NAV_GROUPS_DELUXE;
@@ -322,18 +331,22 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
                   const isMensajes  = to === 'mensajes';
                   const isAgenda    = to === 'agenda';
                   const isProductos = to === 'productos';
+                  const isPorCerrar = to === 'por-cerrar';
 
                   const hasBadge   = (isMensajes && unreadChats > 0) ||
                                      (isAgenda && pendingCitasCount > 0) ||
-                                     (isProductos && pendingReservasCount > 0);
+                                     (isProductos && pendingReservasCount > 0) ||
+                                     (isPorCerrar && porCerrarCount > 0);
 
                   const badgeCount = isMensajes  ? unreadChats :
                                      isAgenda    ? pendingCitasCount :
-                                     isProductos ? pendingReservasCount : 0;
+                                     isProductos ? pendingReservasCount :
+                                     isPorCerrar ? porCerrarCount : 0;
 
                   const badgeColorClass = isMensajes  ? 'bg-red-500 text-white' :
                                           isAgenda    ? 'bg-amber-500 text-amber-950 font-bold' :
-                                          isProductos ? 'bg-emerald-500 text-emerald-950 font-bold' : '';
+                                          isProductos ? 'bg-emerald-500 text-emerald-950 font-bold' :
+                                          isPorCerrar ? 'bg-amber-500 text-amber-950 font-bold' : '';
 
                   const showNewsDot    = to === 'soporte'    && hasUnreadNews;
                   const showBillingDot = to === 'mensualidad' && hasBillingAlert;

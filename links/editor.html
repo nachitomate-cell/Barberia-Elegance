@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Editor · SynapTech Links</title>
+<meta name="theme-color" content="#ffffff" />
+<link rel="icon" href="/syn-128.webp" />
+<style>
+  :root{ --green:#92c83a; --green-2:#a3d94a; --green-d:#2c5a17; --ink:#15240b; --bg:#f7f8f3; --panel:#ffffff; --line:#e4e8da; --soft:#5b6a4e; --field:#f4f6ee; }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);}
+  body{min-height:100dvh;}
+  a{color:inherit;}
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:13px 20px;border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);z-index:5;}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:800;font-size:17px;letter-spacing:-.4px;}
+  .brand img{width:26px;height:26px;border-radius:7px;object-fit:contain;background:#fff;padding:2px;box-shadow:0 1px 5px rgba(21,36,11,.12);}
+  .brand .t2{font-weight:500;color:var(--green-d);}
+  .top-actions{display:flex;align-items:center;gap:10px;}
+  .ghost{background:transparent;border:1px solid var(--line);color:var(--soft);border-radius:10px;padding:9px 14px;font-size:13px;font-weight:700;cursor:pointer;text-decoration:none;}
+  .ghost:hover{border-color:var(--green);color:var(--ink);}
+  .save{background:var(--green);border:0;color:var(--ink);border-radius:10px;padding:9px 20px;font-size:13.5px;font-weight:800;cursor:pointer;}
+  .save:hover{background:var(--green-2);}
+  .save:disabled{opacity:.55;cursor:default;}
+
+  .wrap{max-width:620px;margin:0 auto;padding:22px 18px 80px;}
+  .pubrow{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:20px;flex-wrap:wrap;}
+  .pubrow .lnk{font-size:13.5px;font-weight:800;color:var(--green-d);word-break:break-all;}
+  .pubrow .acts{margin-left:auto;display:flex;gap:8px;}
+  .mini{font-size:12px;font-weight:700;border:1px solid var(--line);background:#fff;color:var(--soft);border-radius:8px;padding:7px 11px;cursor:pointer;text-decoration:none;}
+  .mini:hover{border-color:var(--green);}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:16px;box-shadow:0 1px 3px rgba(21,36,11,.04);}
+  .card h2{font-size:13px;text-transform:uppercase;letter-spacing:1.5px;color:var(--soft);margin-bottom:14px;font-weight:800;}
+  label{display:block;font-size:12.5px;font-weight:700;color:#41513e;margin:12px 0 6px;}
+  label:first-of-type{margin-top:0;}
+  input,textarea{width:100%;background:var(--field);border:1px solid var(--line);border-radius:10px;padding:12px 14px;color:var(--ink);font-size:14.5px;font-weight:600;outline:0;font-family:inherit;}
+  input:focus,textarea:focus{border-color:var(--green);background:#fff;}
+  textarea{resize:vertical;min-height:60px;}
+  .avatar-row{display:flex;align-items:center;gap:14px;}
+  .avatar-prev{width:64px;height:64px;border-radius:50%;background:var(--field);border:1px solid var(--line);object-fit:cover;flex:none;}
+  .help{font-size:11.5px;color:var(--soft);margin-top:5px;}
+
+  .link-item{display:flex;align-items:center;gap:8px;background:var(--field);border:1px solid var(--line);border-radius:12px;padding:10px;margin-bottom:10px;}
+  .link-item .grip{cursor:grab;color:#9aa88c;font-size:18px;padding:0 2px;user-select:none;}
+  .link-item .fields{flex:1;display:flex;flex-direction:column;gap:7px;min-width:0;}
+  .link-item input{padding:9px 11px;font-size:13.5px;background:#fff;}
+  .link-item .del{background:transparent;border:0;color:#c0492f;font-size:18px;cursor:pointer;padding:4px 8px;}
+  .link-item.drag{opacity:.5;}
+  .add{width:100%;border:1px dashed var(--green);background:rgba(146,200,58,.06);color:var(--green-d);border-radius:12px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;}
+  .add:hover{background:rgba(146,200,58,.12);}
+
+  .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--green-d);color:#fff;font-weight:800;font-size:13.5px;padding:11px 20px;border-radius:100px;opacity:0;pointer-events:none;transition:.25s;z-index:20;}
+  .toast.show{opacity:1;}
+  .gate{min-height:100dvh;display:flex;align-items:center;justify-content:center;color:var(--soft);font-size:14px;}
+  .hidden{display:none !important;}
+  .uname-wrap{display:flex;align-items:center;background:var(--field);border:1px solid var(--line);border-radius:10px;padding:0 4px 0 12px;}
+  .uname-wrap:focus-within{border-color:var(--green);}
+  .uname-wrap .pfx{font-size:13px;color:var(--soft);white-space:nowrap;}
+  .uname-wrap input{border:0;background:transparent;}
+</style>
+</head>
+<body>
+  <div id="gate" class="gate">Cargando tu cuenta…</div>
+
+  <div id="app" class="hidden">
+    <div class="topbar">
+      <div class="brand"><img src="/syn-64.webp" alt="SynapTech" /> SynapTech <span class="t2">Links</span></div>
+      <div class="top-actions">
+        <a class="ghost" id="logout">Salir</a>
+        <button class="save" id="saveBtn">Guardar</button>
+      </div>
+    </div>
+
+    <div class="wrap">
+      <div class="pubrow">
+        <span class="lnk" id="pubLink">links.synaptechspa.cl/…</span>
+        <div class="acts">
+          <button class="mini" id="copyBtn">Copiar</button>
+          <a class="mini" id="viewBtn" target="_blank" rel="noopener">Ver página ↗</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Tu perfil</h2>
+        <div class="avatar-row">
+          <img class="avatar-prev" id="avatarPrev" alt="" />
+          <div style="flex:1;">
+            <label for="avatar">Foto (URL de imagen)</label>
+            <input id="avatar" type="url" placeholder="https://… (pega el enlace de tu foto)" />
+          </div>
+        </div>
+        <label for="titulo">Nombre que se muestra</label>
+        <input id="titulo" type="text" maxlength="60" placeholder="Tu nombre o marca" />
+        <label for="subtitulo">Bio / descripción</label>
+        <textarea id="subtitulo" maxlength="160" placeholder="Cuéntale al mundo quién eres en una línea."></textarea>
+        <label for="username">Tu usuario (URL)</label>
+        <div class="uname-wrap">
+          <span class="pfx">links.synaptechspa.cl/</span>
+          <input id="username" type="text" maxlength="30" placeholder="tunombre" />
+        </div>
+        <div class="help" id="userHelp">Si lo cambias, tu link anterior dejará de funcionar.</div>
+      </div>
+
+      <div class="card">
+        <h2>Tus enlaces</h2>
+        <div id="links"></div>
+        <button class="add" id="addLink">+ Agregar enlace</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="/firebase-config.js"></script>
+  <script>
+  (function(){
+    'use strict';
+    var RESERVED = ['registro','login','editor','admin','api','bio','dashboard','agenda','app','www','links','synaptech','soporte','ayuda','help','about','terminos','privacidad'];
+    function validUser(v){ return v.length>=3 && v.length<=30 && /^[a-z0-9][a-z0-9._-]{2,29}$/.test(v) && RESERVED.indexOf(v)===-1; }
+    // Navegación consciente del entorno (raíz del subdominio en prod, /links/*.html en local).
+    function LBASE(){ return location.pathname.indexOf('/links/') === 0 ? '/links/' : '/'; }
+    function urlPublica(u){ return LBASE()==='/links/' ? ('/links/u.html?u='+u) : ('/'+u); }
+    function urlRegistroLogin(){ return LBASE() + 'registro' + (LBASE()==='/links/'?'.html':'') + '?modo=login'; }
+    function urlHome(){ return LBASE()==='/links/' ? '/links/index.html' : '/'; }
+    function normUser(v){ return String(v||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9._-]/g,''); }
+    function esc(s){ return String(s==null?'':s); }
+
+    var state = { uid:null, email:null, username:null, originalUsername:null, perfil:{titulo:'',subtitulo:'',avatar:''}, bloques:[] };
+
+    var $ = function(id){ return document.getElementById(id); };
+    function toast(t){ var el=$('toast'); el.textContent=t; el.classList.add('show'); setTimeout(function(){el.classList.remove('show');},1900); }
+
+    // ── Auth gate ──
+    auth.onAuthStateChanged(function(user){
+      if (!user){ location.href = urlRegistroLogin(); return; }
+      state.uid = user.uid; state.email = user.email;
+      loadOrCreateBio();
+    });
+
+    function loadOrCreateBio(){
+      db.collection('bio_users').doc(state.uid).get().then(function(uDoc){
+        if (uDoc.exists && uDoc.data().username){
+          var uname = uDoc.data().username;
+          return db.collection('bios').doc(uname).get().then(function(b){
+            if (b.exists){ hydrate(uname, b.data()); }
+            else { createFreshBio(); }
+          });
+        }
+        createFreshBio();
+      }).catch(function(e){ console.error(e); $('gate').textContent = 'Error cargando tu cuenta. Recarga la página.'; });
+    }
+
+    function createFreshBio(){
+      // Usuario sin bio (p.ej. entró por login directo): genera uno desde el email.
+      var base = (state.email||('user'+state.uid.slice(0,6))).split('@')[0].toLowerCase().replace(/[^a-z0-9._-]/g,'').slice(0,30);
+      if (!validUser(base)) base = 'user' + state.uid.slice(0,8).toLowerCase();
+      tryClaimFresh(base, 0);
+    }
+    function tryClaimFresh(base, n){
+      var cand = n === 0 ? base : (base + n);
+      var ref = db.collection('bios').doc(cand);
+      ref.get().then(function(d){
+        if (d.exists){ if (n < 50) tryClaimFresh(base, n+1); else { $('gate').textContent='No se pudo crear tu página.'; } return; }
+        var now = firebase.firestore.FieldValue.serverTimestamp();
+        var data = { uid: state.uid, username: cand, perfil:{titulo:'@'+cand,subtitulo:'',avatar:''}, bloques:[], theme:'lime', views:0, createdAt:now, updatedAt:now };
+        ref.set(data).then(function(){
+          db.collection('bio_users').doc(state.uid).set({ username: cand, email: state.email||'', createdAt: now });
+          hydrate(cand, data);
+        });
+      });
+    }
+
+    function hydrate(uname, data){
+      state.username = uname; state.originalUsername = uname;
+      state.perfil = data.perfil || {titulo:'',subtitulo:'',avatar:''};
+      state.bloques = Array.isArray(data.bloques) ? data.bloques : [];
+      $('titulo').value = state.perfil.titulo || '';
+      $('subtitulo').value = state.perfil.subtitulo || '';
+      $('avatar').value = state.perfil.avatar || '';
+      $('username').value = uname;
+      paintAvatar(); paintPubLink(); renderLinks();
+      $('gate').classList.add('hidden'); $('app').classList.remove('hidden');
+    }
+
+    function paintAvatar(){
+      var v = $('avatar').value.trim();
+      $('avatarPrev').src = v || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="64" height="64"%3E%3Crect width="64" height="64" fill="%231f261f"/%3E%3C/svg%3E';
+    }
+    function paintPubLink(){
+      var u = normUser($('username').value) || state.username;
+      $('pubLink').textContent = 'links.synaptechspa.cl/' + u;
+      $('viewBtn').href = urlPublica(u);
+    }
+
+    // ── Render de enlaces (con drag & drop simple) ──
+    function renderLinks(){
+      var host = $('links'); host.innerHTML = '';
+      state.bloques.forEach(function(blk, i){
+        var row = document.createElement('div');
+        row.className = 'link-item'; row.draggable = true; row.dataset.i = i;
+        row.innerHTML =
+          '<span class="grip">⠿</span>' +
+          '<div class="fields">' +
+            '<input data-f="label" placeholder="Título del botón (ej. Instagram)" value="'+ esc(blk.label).replace(/"/g,'&quot;') +'">' +
+            '<input data-f="url" placeholder="https://… o wa.me/569…" value="'+ esc(blk.url).replace(/"/g,'&quot;') +'">' +
+          '</div>' +
+          '<button class="del" title="Eliminar">✕</button>';
+        row.querySelector('[data-f=label]').addEventListener('input', function(e){ state.bloques[i].label = e.target.value; });
+        row.querySelector('[data-f=url]').addEventListener('input', function(e){ state.bloques[i].url = e.target.value; });
+        row.querySelector('.del').addEventListener('click', function(){ state.bloques.splice(i,1); renderLinks(); });
+        // Drag & drop
+        row.addEventListener('dragstart', function(){ row.classList.add('drag'); window._dragI = i; });
+        row.addEventListener('dragend', function(){ row.classList.remove('drag'); });
+        row.addEventListener('dragover', function(e){ e.preventDefault(); });
+        row.addEventListener('drop', function(e){ e.preventDefault(); var from=window._dragI, to=i; if(from===to)return; var m=state.bloques.splice(from,1)[0]; state.bloques.splice(to,0,m); renderLinks(); });
+        host.appendChild(row);
+      });
+    }
+
+    $('addLink').addEventListener('click', function(){
+      state.bloques.push({ id:'l'+Date.now(), tipo:'link', label:'', url:'', activo:true });
+      renderLinks();
+      var inputs = $('links').querySelectorAll('.link-item:last-child input'); if (inputs[0]) inputs[0].focus();
+    });
+
+    $('avatar').addEventListener('input', paintAvatar);
+    $('username').addEventListener('input', function(){ var n=normUser($('username').value); if(n!==$('username').value)$('username').value=n; paintPubLink(); });
+
+    // ── Copiar / ver ──
+    $('copyBtn').addEventListener('click', function(){
+      var url = 'https://links.synaptechspa.cl/' + (normUser($('username').value)||state.username);
+      navigator.clipboard && navigator.clipboard.writeText(url).then(function(){ toast('Link copiado ✓'); });
+    });
+    $('logout').addEventListener('click', function(e){ e.preventDefault(); auth.signOut().then(function(){ location.href=urlHome(); }); });
+
+    // ── Guardar ──
+    $('saveBtn').addEventListener('click', function(){
+      var btn = $('saveBtn'); btn.disabled = true; btn.textContent='Guardando…';
+      var newUser = normUser($('username').value);
+      state.perfil = { titulo: $('titulo').value.trim(), subtitulo: $('subtitulo').value.trim(), avatar: $('avatar').value.trim() };
+      var bloques = state.bloques.filter(function(b){ return (b.label||'').trim() || (b.url||'').trim(); });
+
+      function done(savedUser){
+        state.username = savedUser; state.originalUsername = savedUser;
+        btn.disabled=false; btn.textContent='Guardar'; paintPubLink(); toast('Cambios guardados ✓');
+      }
+      function fail(t){ btn.disabled=false; btn.textContent='Guardar'; toast(t||'No se pudo guardar'); }
+
+      var now = firebase.firestore.FieldValue.serverTimestamp();
+
+      // ¿Cambió el usuario? → mover el doc (crear nuevo + borrar viejo) de forma segura.
+      if (newUser && newUser !== state.originalUsername){
+        if (!validUser(newUser)){ fail('Usuario inválido o reservado'); return; }
+        var newRef = db.collection('bios').doc(newUser);
+        newRef.get().then(function(d){
+          if (d.exists){ fail('Ese usuario ya está tomado'); return; }
+          var data = { uid: state.uid, username:newUser, perfil:state.perfil, bloques:bloques, theme:'lime', views:0, createdAt:now, updatedAt:now };
+          newRef.set(data).then(function(){
+            return db.collection('bio_users').doc(state.uid).set({ username:newUser, email:state.email||'', createdAt:now }, {merge:true});
+          }).then(function(){
+            // Borrar el doc antiguo (best-effort; reglas permiten al dueño).
+            return db.collection('bios').doc(state.originalUsername).delete().catch(function(){});
+          }).then(function(){ done(newUser); }).catch(function(e){ console.error(e); fail(); });
+        }).catch(function(e){ console.error(e); fail(); });
+        return;
+      }
+
+      // Guardado normal (mismo usuario).
+      db.collection('bios').doc(state.username).set({
+        uid: state.uid, username: state.username, perfil: state.perfil, bloques: bloques, updatedAt: now
+      }, { merge:true }).then(function(){ done(state.username); }).catch(function(e){ console.error(e); fail(); });
+    });
+  })();
+  </script>
+</body>
+</html>
