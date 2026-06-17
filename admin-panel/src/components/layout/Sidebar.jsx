@@ -5,7 +5,7 @@ import {
   Trophy, ShoppingBag, Images, LogOut, ChevronRight,
   Sun, Moon, ExternalLink, Settings, TrendingDown, MessageCircle, X,
   Megaphone, ImagePlus, CreditCard, Monitor, Headphones, Medal, Camera, GraduationCap, Wallet, Package, ThumbsUp,
-  Globe, Banknote, Gift, ClipboardList, Building2, Home, Lock, HelpCircle,
+  Globe, Banknote, Gift, ClipboardList, Building2, Home, Lock, HelpCircle, Link2,
 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { doc, onSnapshot, where } from 'firebase/firestore';
@@ -48,6 +48,7 @@ const NAV_GROUPS_DEFAULT = [
     items: [
       { to: 'lookbook',          label: 'Lookbook',         Icon: Images    },
       { to: 'instagram',         label: 'Instagram',        Icon: Camera,   adminOnly: true },
+      { to: 'link-bio',          label: 'Link in Bio',      Icon: Link2,    adminOnly: true },
       { to: 'servicio-favorito', label: 'Foto de servicio', Icon: ImagePlus },
     ],
   },

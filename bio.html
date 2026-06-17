@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#050505">
+  <title>Links</title>
+  <script>!function(){var m={'aurasalon.synaptechspa.cl':'/aura.png','aurasalonmalegrooming.synaptechspa.cl':'/aura.png','latincaribe.synaptechspa.cl':'/latincaribe.png','thelatincaribe.synaptechspa.cl':'/latincaribe.png'};var s=m[location.hostname]||'/favicon.ico';var l=document.createElement('link');l.rel='icon';l.href=s;if(s!='/favicon.ico')l.type='image/png';document.head.appendChild(l);}();</script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <script defer src="https://unpkg.com/@phosphor-icons/web@2.1.1"></script>
+
+  <script src="/config.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script defer src="/firebase-config.js?v=1.3"></script>
+
+  <style>
+    :root{
+      --accent: rgb(201,168,76);
+      --accent-r:201; --accent-g:168; --accent-b:76;
+      --bg:#0a0a0d; --bg2:#111118;
+      --text:#ffffff; --text-soft:rgba(255,255,255,0.62); --text-faint:rgba(255,255,255,0.38);
+      --card:rgba(255,255,255,0.05); --card-hover:rgba(255,255,255,0.09); --border:rgba(255,255,255,0.10);
+    }
+    /* Tema claro (aura / latincaribe) */
+    html[data-theme="light"]{
+      --bg:#F9FAFB; --bg2:#FFFFFF;
+      --text:#18181B; --text-soft:#52525B; --text-faint:#A1A1AA;
+      --card:#FFFFFF; --card-hover:#F4F4F5; --border:#E4E4E7;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+    html,body{height:100%;}
+    body{
+      font-family:'Inter',system-ui,sans-serif;
+      background:var(--bg);
+      color:var(--text);
+      min-height:100dvh;
+      display:flex; flex-direction:column; align-items:center;
+      padding:2.5rem 1.25rem 3.5rem;
+    }
+    .wrap{width:100%;max-width:520px;display:flex;flex-direction:column;align-items:center;}
+
+    /* Fondo decorativo con el accent */
+    .glow{position:fixed;inset:0;pointer-events:none;z-index:0;
+      background:radial-gradient(ellipse 80% 40% at 50% -5%, rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.18) 0%, transparent 70%);}
+    .wrap, .footer{position:relative;z-index:1;}
+
+    /* Perfil */
+    .avatar{width:96px;height:96px;border-radius:9999px;overflow:hidden;
+      border:3px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.55);
+      box-shadow:0 8px 30px rgba(0,0,0,0.35), 0 0 40px rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.20);
+      background:var(--bg2);display:flex;align-items:center;justify-content:center;}
+    .avatar img{width:100%;height:100%;object-fit:cover;}
+    .avatar i{font-size:2.5rem;color:var(--text-faint);}
+    .title{font-size:1.6rem;font-weight:900;letter-spacing:-0.02em;margin-top:1rem;text-align:center;line-height:1.15;}
+    .subtitle{font-size:0.92rem;color:var(--text-soft);margin-top:0.4rem;text-align:center;max-width:24rem;line-height:1.45;}
+
+    /* Lista de bloques */
+    .blocks{width:100%;display:flex;flex-direction:column;gap:0.7rem;margin-top:1.9rem;}
+
+    .btn{width:100%;display:flex;align-items:center;gap:0.85rem;
+      background:var(--card);border:1px solid var(--border);border-radius:1rem;
+      padding:0.95rem 1.05rem;color:var(--text);text-decoration:none;font-weight:600;font-size:0.95rem;
+      transition:transform .12s ease, background .15s ease, border-color .15s ease;cursor:pointer;}
+    .btn:hover{background:var(--card-hover);border-color:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.45);}
+    .btn:active{transform:scale(0.985);}
+    .btn .ic{width:38px;height:38px;border-radius:0.7rem;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+      background:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.12);
+      border:1px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.22);}
+    .btn .ic i{font-size:1.2rem;color:var(--accent);}
+    .btn .lbl{flex:1;min-width:0;}
+    .btn .chev{color:var(--text-faint);font-size:1rem;flex-shrink:0;}
+    .btn.featured{background:var(--accent);border-color:var(--accent);color:#0a0a0d;}
+    html[data-theme="light"] .btn.featured{color:#fff;}
+    .btn.featured .ic{background:rgba(0,0,0,0.12);border-color:rgba(0,0,0,0.15);}
+    .btn.featured .ic i, .btn.featured .chev{color:inherit;}
+
+    /* Heading / paragraph */
+    .b-heading{font-size:0.78rem;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;color:var(--text-faint);
+      margin:0.6rem 0 -0.1rem;text-align:center;}
+    .b-text{font-size:0.86rem;color:var(--text-soft);text-align:center;line-height:1.5;padding:0 0.5rem;}
+
+    /* Social row */
+    .socials{display:flex;justify-content:center;gap:0.6rem;flex-wrap:wrap;margin-top:0.2rem;}
+    .soc{width:46px;height:46px;border-radius:9999px;display:flex;align-items:center;justify-content:center;
+      background:var(--card);border:1px solid var(--border);color:var(--text);font-size:1.25rem;transition:.15s;}
+    .soc:hover{background:var(--card-hover);color:var(--accent);border-color:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.45);transform:translateY(-2px);}
+
+    /* Instagram grid */
+    .ig-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;width:100%;border-radius:1rem;overflow:hidden;}
+    .ig-grid a{aspect-ratio:1;overflow:hidden;background:var(--bg2);}
+    .ig-grid img{width:100%;height:100%;object-fit:cover;transition:.2s;}
+    .ig-grid a:hover img{transform:scale(1.06);}
+
+    /* Video */
+    .b-video{width:100%;aspect-ratio:16/9;border-radius:1rem;overflow:hidden;border:1px solid var(--border);}
+    .b-video iframe{width:100%;height:100%;border:0;}
+
+    /* Estados */
+    .loading{margin-top:30vh;color:var(--text-faint);}
+    .spin{width:30px;height:30px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;
+      animation:spin .8s linear infinite;margin:0 auto;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+    .empty{margin-top:24vh;text-align:center;color:var(--text-soft);}
+
+    /* Marca SynapTech — logo pequeño arriba a la izquierda (free + pro) */
+    #synBadge{position:fixed;top:12px;left:12px;z-index:6;width:38px;height:38px;border-radius:10px;overflow:hidden;
+      background:var(--card);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;
+      box-shadow:0 2px 10px rgba(0,0,0,0.18);transition:.15s;}
+    #synBadge:hover{transform:translateY(-1px);}
+    #synBadge img{width:78%;height:78%;object-fit:contain;}
+    /* Marca grande "Desarrollado por SynapTech SpA" (solo free) */
+    .syn-footer{margin-top:2.75rem;text-align:center;}
+    .syn-footer a{display:inline-flex;flex-direction:column;align-items:center;gap:0.7rem;text-decoration:none;color:var(--text-soft);}
+    .syn-logo-big{width:84px;height:84px;object-fit:contain;border-radius:18px;
+      background:var(--card);border:1px solid var(--border);padding:8px;box-shadow:0 6px 24px rgba(0,0,0,0.18);}
+    .syn-dev-text{font-size:0.95rem;line-height:1.35;letter-spacing:0.01em;}
+    .syn-dev-text b{font-size:1.45rem;font-weight:900;color:var(--text);display:block;margin-top:0.1rem;letter-spacing:-0.01em;}
+
+    .fade-in{animation:fadeUp .45s cubic-bezier(0.16,1,0.3,1) both;}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+
+    /* ── Studio: Reserva con tu barbero ── */
+    .barb-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0.6rem;width:100%;}
+    .barb-card{display:flex;flex-direction:column;align-items:center;text-align:center;gap:0.3rem;padding:0.7rem 0.4rem;
+      background:var(--card);border:1px solid var(--border);border-radius:0.9rem;color:var(--text);text-decoration:none;transition:.15s;}
+    .barb-card:hover{background:var(--card-hover);border-color:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.45);transform:translateY(-2px);}
+    .barb-ph{width:54px;height:54px;border-radius:9999px;overflow:hidden;background:var(--bg2);
+      border:2px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.4);display:flex;align-items:center;justify-content:center;}
+    .barb-ph img{width:100%;height:100%;object-fit:cover;}
+    .barb-ph i{font-size:1.4rem;color:var(--text-faint);}
+    .barb-name{font-size:0.72rem;font-weight:700;line-height:1.1;}
+    .barb-esp{font-size:0.6rem;color:var(--text-faint);}
+
+    /* ── Studio: Carrusel de reseñas ── */
+    .reviews-wrap{width:100%;}
+    .rev-head{display:flex;align-items:center;gap:0.4rem;justify-content:center;font-size:0.8rem;color:var(--text-soft);margin-bottom:0.6rem;}
+    .rev-head b{color:var(--text);}
+    .rev-stars{color:#fbbf24;letter-spacing:1px;}
+    .rev-count{color:var(--text-faint);font-size:0.72rem;}
+    .rev-track{display:flex;gap:0.7rem;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:0.4rem;margin:0 -0.2rem;}
+    .rev-track::-webkit-scrollbar{display:none;}
+    .rev-card{flex:0 0 80%;scroll-snap-align:center;background:var(--card);border:1px solid var(--border);border-radius:1rem;padding:0.9rem 1rem;}
+    .rev-card .rev-stars{font-size:0.8rem;}
+    .rev-text{font-size:0.8rem;color:var(--text-soft);line-height:1.4;margin:0.4rem 0;}
+    .rev-author{font-size:0.72rem;font-weight:600;color:var(--text);}
+
+    /* ── Studio: Captura de leads ── */
+    .leads-card{width:100%;background:var(--card);border:1px solid var(--border);border-radius:1rem;padding:1rem;display:flex;flex-direction:column;gap:0.55rem;}
+    .leads-title{font-size:0.92rem;font-weight:700;text-align:center;}
+    .leads-input{width:100%;padding:0.7rem 0.85rem;border-radius:0.7rem;border:1px solid var(--border);background:var(--bg2);color:var(--text);font-size:0.88rem;outline:none;}
+    .leads-input::placeholder{color:var(--text-faint);}
+    .leads-input:focus{border-color:var(--accent);}
+    .leads-btn{width:100%;padding:0.75rem;border:0;border-radius:0.7rem;background:var(--accent);color:#0a0a0d;font-weight:800;font-size:0.9rem;cursor:pointer;transition:.15s;}
+    html[data-theme="light"] .leads-btn{color:#fff;}
+    .leads-btn:disabled{opacity:.6;}
+    .leads-msg{font-size:0.78rem;text-align:center;margin-top:0.1rem;}
+
+    /* ── Studio: Multi-sede ── */
+    .sede-card{width:100%;display:flex;align-items:center;gap:0.85rem;background:var(--card);border:1px solid var(--border);
+      border-radius:1rem;padding:0.85rem 1.05rem;color:var(--text);text-decoration:none;transition:.15s;}
+    .sede-card:hover{background:var(--card-hover);border-color:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.45);}
+    .sede-card .lbl{flex:1;font-size:0.9rem;font-weight:600;line-height:1.25;}
+    .sede-addr{font-weight:400;font-size:0.74rem;color:var(--text-faint);}
+  </style>
+</head>
+<body>
+  <div class="glow"></div>
+
+  <div id="loading" class="loading"><div class="spin"></div></div>
+
+  <div id="content" class="wrap" style="display:none;">
+    <div class="avatar fade-in" id="avatar"><i class="ph-fill ph-storefront"></i></div>
+    <h1 class="title fade-in" id="title"></h1>
+    <p class="subtitle fade-in" id="subtitle"></p>
+    <div class="blocks" id="blocks"></div>
+  </div>
+
+  <div id="empty" class="empty" style="display:none;">
+    <i class="ph ph-link-simple" style="font-size:2.5rem;opacity:.4;"></i>
+    <p style="margin-top:0.75rem;">Esta página aún no tiene enlaces.</p>
+  </div>
+
+  <!-- Marca SynapTech según el plan (la controla render()) -->
+  <a id="synBadge" href="https://synaptechspa.cl" target="_blank" rel="noopener" aria-label="SynapTech SpA" style="display:none;">
+    <img src="/syn.webp" alt="SynapTech">
+  </a>
+  <div class="syn-footer" id="synFooter" style="display:none;">
+    <a href="https://synaptechspa.cl" target="_blank" rel="noopener">
+      <img src="/syn.webp" alt="SynapTech SpA" class="syn-logo-big">
+      <span class="syn-dev-text">Desarrollado por <b>SynapTech SpA</b></span>
+    </a>
+  </div>
+
+  <script>
+  (function () {
+    'use strict';
+    var SHOP = window.SHOP || {};
+    var TID  = window.CURRENT_TENANT_ID || 'elegance';
+
+    // ── Tema + accent (mismo mapa que el resto del sitio) ──
+    var accentMap = {
+      elegance:{r:201,g:168,b:76}, chameleon:{r:201,g:168,b:76}, ferraza:{r:226,g:232,b:240},
+      gitana:{r:236,g:72,b:153}, mapubarbershop:{r:191,g:163,b:126}, aura:{r:17,g:24,b:39},
+      latincaribe:{r:17,g:24,b:39},
+    };
+    var ac = accentMap[TID] || accentMap.elegance;
+    var root = document.documentElement;
+    root.style.setProperty('--accent', 'rgb('+ac.r+','+ac.g+','+ac.b+')');
+    root.style.setProperty('--accent-r', ac.r);
+    root.style.setProperty('--accent-g', ac.g);
+    root.style.setProperty('--accent-b', ac.b);
+    var lightTenants = { aura:1, latincaribe:1 };
+    if (lightTenants[TID]) root.setAttribute('data-theme', 'light');
+    var bg = (root.getAttribute('data-theme') === 'light') ? '#F9FAFB' : (SHOP.bodyBg || '#0a0a0d');
+    var tc = document.querySelector('meta[name="theme-color"]'); if (tc) tc.content = bg;
+
+    // ── Helpers ──
+    function waLink(phone, msg) {
+      var d = String(phone || '').replace(/\D/g, '');
+      if (d.length < 8) return null;
+      return 'https://wa.me/' + d + (msg ? ('?text=' + encodeURIComponent(msg)) : '');
+    }
+    function mapsLink(dir) {
+      var clean = String(dir || '').replace(/^📍\s*/, '').trim();
+      if (!clean) return null;
+      return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(clean + ' ' + (SHOP.nombre || ''));
+    }
+    function ytEmbed(url) {
+      var m = String(url || '').match(/(?:youtu\.be\/|v=|embed\/|shorts\/)([\w-]{11})/);
+      return m ? ('https://www.youtube.com/embed/' + m[1]) : null;
+    }
+    function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]; }); }
+    function slugify(s){ return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,''); }
+
+    // ── Bloques por defecto (si el tenant no configuró nada todavía) ──
+    function defaultBlocks() {
+      var b = [];
+      b.push({ id:'reserva', tipo:'reserva', label:'Reservar hora', activo:true, featured:true });
+      var wa = waLink(SHOP.telefono, 'Hola ' + (SHOP.nombreCorto || SHOP.nombre || '') + '! Quiero más información.');
+      if (wa) b.push({ id:'whatsapp', tipo:'whatsapp', label:'Escríbenos por WhatsApp', activo:true });
+      if (SHOP.instagram) b.push({ id:'instagram', tipo:'instagram', label:'Síguenos en Instagram', activo:true });
+      if (SHOP.googleReviewUrl) b.push({ id:'reviews', tipo:'reviews', label:'Déjanos tu reseña ⭐', activo:true });
+      if (SHOP.direccion) b.push({ id:'maps', tipo:'maps', label:'Cómo llegar', activo:true });
+      return b;
+    }
+
+    // ── Resolver URL e ícono de cada bloque ──
+    function resolveBlock(blk) {
+      var t = blk.tipo, url = blk.url || '', icon = blk.icon || '';
+      switch (t) {
+        case 'reserva':   url = blk.url || '/';                              icon = icon || 'ph-calendar-check'; break;
+        case 'whatsapp':  url = waLink(blk.telefono || SHOP.telefono, blk.mensaje || ('Hola ' + (SHOP.nombreCorto || '') + '!')); icon = icon || 'ph-whatsapp-logo'; break;
+        case 'instagram': url = blk.url || SHOP.instagram;                   icon = icon || 'ph-instagram-logo'; break;
+        case 'reviews':   url = blk.url || SHOP.googleReviewUrl;             icon = icon || 'ph-star'; break;
+        case 'maps':      url = blk.url || mapsLink(blk.direccion || SHOP.direccion); icon = icon || 'ph-map-pin'; break;
+        default:          icon = icon || 'ph-link-simple';
+      }
+      return { url: url, icon: icon };
+    }
+
+    // ── Tracking best-effort (incrementa views/clicks en el doc) ──
+    // OJO: docRef se asigna dentro de boot(), porque `db` lo define firebase-config.js
+    // (defer) y este script inline corre durante el parseo (db aún undefined aquí).
+    var docRef = null;
+    function track(field) {
+      if (!docRef) return;
+      try {
+        var inc = firebase.firestore.FieldValue.increment(1);
+        var upd;
+        if (field.indexOf('clicks.') === 0) {
+          // Anidar dentro del mapa clicks (set+merge no interpreta la clave con punto).
+          upd = { clicks: {} }; upd.clicks[field.slice(7)] = inc;
+        } else {
+          upd = {}; upd[field] = inc;
+        }
+        docRef.set(upd, { merge: true }).catch(function(){});
+      } catch (e) {}
+    }
+
+    // ── Render ──
+    function render(cfg) {
+      var perfil  = cfg.perfil || {};
+      var bloques = (cfg.bloques || []).filter(function(b){ return b.activo !== false; });
+      // Plan free (lo decide el superadmin en _system/{tenant}.bioPro): máximo 6 bloques.
+      if (!cfg._pro) bloques = bloques.slice(0, 6);
+
+      document.getElementById('title').textContent = perfil.titulo || SHOP.nombre || '';
+      var sub = (perfil.subtitulo != null) ? perfil.subtitulo : (SHOP.slogan || '');
+      var subEl = document.getElementById('subtitle');
+      if (sub) subEl.textContent = sub; else subEl.style.display = 'none';
+      document.title = (perfil.titulo || SHOP.nombre || 'Links');
+
+      var avatarSrc = perfil.avatar || SHOP.logo;
+      if (avatarSrc) document.getElementById('avatar').innerHTML =
+        '<img src="' + esc(avatarSrc) + '" alt="' + esc(perfil.titulo || SHOP.nombre) + '">';
+
+      var host = document.getElementById('blocks');
+      if (!bloques.length) {
+        document.getElementById('content').style.display = '';
+        host.style.display = 'none';
+      }
+
+      bloques.forEach(function (blk, i) {
+        var el;
+        var delay = 'animation-delay:' + (0.05 + i * 0.04) + 's;';
+
+        // Bloques exclusivos de Studio: si el plan no es Studio, no se muestran.
+        var studioOnly = (blk.tipo === 'barberos' || blk.tipo === 'leads' || blk.tipo === 'sedes' || blk.tipo === 'reviewsCarousel');
+        if (studioOnly && !cfg._studio) return;
+
+        if (blk.tipo === 'barberos') {
+          el = document.createElement('div'); el.className = 'fade-in'; el.style = delay; el.style.width = '100%';
+          el.style.display = 'flex'; el.style.flexDirection = 'column'; el.style.gap = '0.6rem';
+          if (blk.label) { var hb = document.createElement('div'); hb.className = 'b-heading'; hb.textContent = blk.label; el.appendChild(hb); }
+          var bgrid = document.createElement('div'); bgrid.className = 'barb-grid';
+          (cfg._barberos || []).forEach(function (b) {
+            var a = document.createElement('a'); a.className = 'barb-card'; a.href = '/' + slugify(b.nombre);
+            a.innerHTML = '<span class="barb-ph">' + (b.foto ? '<img src="' + esc(b.foto) + '" alt="" loading="lazy">' : '<i class="ph-fill ph-user"></i>') + '</span>' +
+              '<span class="barb-name">' + esc(b.nombre) + '</span>' +
+              (b.especialidad ? '<span class="barb-esp">' + esc(b.especialidad) + '</span>' : '');
+            a.addEventListener('click', function () { track('clicks.barbero_' + slugify(b.nombre)); });
+            bgrid.appendChild(a);
+          });
+          el.appendChild(bgrid);
+        }
+        else if (blk.tipo === 'reviewsCarousel') {
+          var revs = (SHOP.reviews || []);
+          if (!revs.length) return;
+          el = document.createElement('div'); el.className = 'reviews-wrap fade-in'; el.style = delay;
+          var rating = Number(SHOP.ratingGeneral || 5).toFixed(1);
+          var head = '<div class="rev-head"><span class="rev-stars">★★★★★</span> <b>' + rating + '</b> <span class="rev-count">' + (SHOP.totalReviews || revs.length) + ' reseñas · Google</span></div>';
+          var cards = '<div class="rev-track">' + revs.map(function (r) {
+            return '<div class="rev-card"><div class="rev-stars">' + '★'.repeat(Math.round(r.rating || 5)) + '</div><p class="rev-text">' + esc(r.text) + '</p><p class="rev-author">— ' + esc(r.author) + '</p></div>';
+          }).join('') + '</div>';
+          el.innerHTML = head + cards;
+        }
+        else if (blk.tipo === 'leads') {
+          el = document.createElement('div'); el.className = 'leads-card fade-in'; el.style = delay;
+          el.innerHTML =
+            '<p class="leads-title">' + esc(blk.label || '¡Únete y entérate de promos!') + '</p>' +
+            '<input class="leads-input" type="text" placeholder="Tu nombre" data-f="nombre">' +
+            '<input class="leads-input" type="email" inputmode="email" placeholder="Tu correo" data-f="email">' +
+            '<input class="leads-input" type="tel" inputmode="tel" placeholder="Tu WhatsApp (opcional)" data-f="telefono">' +
+            '<button class="leads-btn">' + esc(blk.cta || 'Quiero enterarme') + '</button>' +
+            '<p class="leads-msg"></p>';
+          var lbtn = el.querySelector('.leads-btn'), lmsg = el.querySelector('.leads-msg');
+          lbtn.addEventListener('click', function () {
+            var nombre = el.querySelector('[data-f=nombre]').value.trim();
+            var email  = el.querySelector('[data-f=email]').value.trim();
+            var tel    = el.querySelector('[data-f=telefono]').value.trim();
+            if (!email && !tel) { lmsg.style.color = '#f87171'; lmsg.textContent = 'Deja tu correo o WhatsApp.'; return; }
+            lbtn.disabled = true; var orig = lbtn.textContent; lbtn.textContent = 'Enviando…';
+            // Colección raíz (no la subcolección de tenant, que es de lectura pública).
+            db.collection('bio_leads').add({ nombre: nombre, email: email, telefono: tel, tenantId: TID, origen: 'linkbio', createdAt: firebase.firestore.FieldValue.serverTimestamp() })
+              .then(function () { lmsg.style.color = '#10b981'; lmsg.textContent = '¡Listo! Gracias 🙌'; el.querySelectorAll('.leads-input').forEach(function (x) { x.value = ''; }); track('clicks.lead_' + (blk.id || 'leads')); })
+              .catch(function () { lmsg.style.color = '#f87171'; lmsg.textContent = 'No se pudo enviar, intenta de nuevo.'; })
+              .finally(function () { lbtn.disabled = false; lbtn.textContent = orig; });
+          });
+        }
+        else if (blk.tipo === 'sedes') {
+          var sucs = (SHOP.sucursales || []);
+          if (!sucs.length) return;
+          el = document.createElement('div'); el.className = 'fade-in'; el.style = delay; el.style.width = '100%';
+          el.style.display = 'flex'; el.style.flexDirection = 'column'; el.style.gap = '0.6rem';
+          if (blk.label) { var hsd = document.createElement('div'); hsd.className = 'b-heading'; hsd.textContent = blk.label; el.appendChild(hsd); }
+          sucs.forEach(function (s) {
+            var a = document.createElement('a'); a.className = 'sede-card'; a.target = '_blank'; a.rel = 'noopener';
+            a.href = s.mapsUrl || mapsLink((s.calle || '') + ' ' + (s.ciudad || '')) || '#';
+            a.innerHTML = '<span class="ic"><i class="ph-fill ph-map-pin"></i></span>' +
+              '<span class="lbl">' + esc(s.nombre || 'Sede') + '<span class="sede-addr">' + esc((s.calle || '') + (s.ciudad ? (' · ' + s.ciudad) : '')) + '</span></span>' +
+              '<span class="chev"><i class="ph-bold ph-caret-right"></i></span>';
+            a.addEventListener('click', function () { track('clicks.sede_' + (s.id || slugify(s.nombre || ''))); });
+            el.appendChild(a);
+          });
+        }
+        else if (blk.tipo === 'heading') {
+          el = document.createElement('div'); el.className = 'b-heading fade-in'; el.style = delay;
+          el.textContent = blk.label || blk.texto || '';
+        }
+        else if (blk.tipo === 'paragraph' || blk.tipo === 'texto') {
+          el = document.createElement('div'); el.className = 'b-text fade-in'; el.style = delay;
+          el.textContent = blk.texto || blk.label || '';
+        }
+        else if (blk.tipo === 'socials') {
+          el = document.createElement('div'); el.className = 'socials fade-in'; el.style = delay;
+          (blk.redes || []).forEach(function (r) {
+            if (!r.url) return;
+            var iconByNet = { instagram:'ph-instagram-logo', facebook:'ph-facebook-logo', tiktok:'ph-tiktok-logo',
+              youtube:'ph-youtube-logo', whatsapp:'ph-whatsapp-logo', x:'ph-x-logo', web:'ph-globe', email:'ph-envelope-simple' };
+            var a = document.createElement('a'); a.className = 'soc'; a.href = r.url; a.target = '_blank'; a.rel = 'noopener';
+            a.innerHTML = '<i class="ph-fill ' + (iconByNet[r.red] || 'ph-link-simple') + '"></i>';
+            a.addEventListener('click', function(){ track('clicks.' + (blk.id || 'soc') + '_' + r.red); });
+            el.appendChild(a);
+          });
+        }
+        else if (blk.tipo === 'video') {
+          var emb = ytEmbed(blk.url);
+          if (!emb) return;
+          el = document.createElement('div'); el.className = 'b-video fade-in'; el.style = delay;
+          el.innerHTML = '<iframe src="' + esc(emb) + '" allowfullscreen loading="lazy"></iframe>';
+        }
+        else if (blk.tipo === 'instagram' && blk.grid) {
+          // Grilla con últimas fotos del lookbook + link al perfil
+          el = document.createElement('div'); el.className = 'fade-in'; el.style = delay;
+          el.style.width = '100%'; el.style.display = 'flex'; el.style.flexDirection = 'column'; el.style.gap = '0.7rem';
+          var grid = document.createElement('div'); grid.className = 'ig-grid';
+          (cfg._fotos || []).slice(0, 6).forEach(function (f) {
+            var a = document.createElement('a'); a.href = blk.url || SHOP.instagram || '#'; a.target = '_blank'; a.rel = 'noopener';
+            a.innerHTML = '<img src="' + esc(f.url) + '" alt="" loading="lazy">';
+            grid.appendChild(a);
+          });
+          el.appendChild(grid);
+          el.appendChild(makeButton(blk, delay, true));
+        }
+        else {
+          el = makeButton(blk, delay, false);
+        }
+        if (el) host.appendChild(el);
+      });
+
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('content').style.display = '';
+
+      // Marca SynapTech según el plan:
+      //  · Free   → logo pequeño (arriba-izq) + "Desarrollado por SynapTech SpA" grande abajo
+      //  · Pro    → solo el logo pequeño arriba-izq
+      //  · Studio → sin marca
+      if (!cfg._studio) document.getElementById('synBadge').style.display = 'flex';
+      if (!cfg._pro)    document.getElementById('synFooter').style.display = 'block';
+    }
+
+    function makeButton(blk, delay, noWrapClass) {
+      var r = resolveBlock(blk);
+      if (!r.url) return document.createComment('no-url');
+      var a = document.createElement('a');
+      a.className = 'btn fade-in' + (blk.featured ? ' featured' : '');
+      a.style = delay;
+      a.href = r.url;
+      var external = /^https?:/i.test(r.url) || /^wa\.me|^mailto:|^tel:/i.test(r.url);
+      if (external) { a.target = '_blank'; a.rel = 'noopener'; }
+      a.innerHTML =
+        '<span class="ic"><i class="ph-fill ' + esc(r.icon) + '"></i></span>' +
+        '<span class="lbl">' + esc(blk.label || blk.titulo || '') + '</span>' +
+        '<span class="chev"><i class="ph-bold ph-caret-right"></i></span>';
+      a.addEventListener('click', function () { track('clicks.' + (blk.id || blk.tipo)); });
+      return a;
+    }
+
+    // ── Carga ──
+    // Lectura robusta: con experimentalAutoDetectLongPolling, el primer get() en
+    // frío resuelve desde caché (fromCache=true, vacío → defaults) o el listen
+    // erra mientras el cliente conecta. Reintentamos get() mientras venga de
+    // caché, hasta tener un snapshot confirmado por el SERVIDOR.
+    function getFresh(ref, tries) {
+      tries = tries || 0;
+      var wait = function () { return new Promise(function (r) { setTimeout(r, 400); }); };
+      return ref.get().then(function (s) {
+        if (s.metadata && s.metadata.fromCache && tries < 8) {
+          return wait().then(function () { return getFresh(ref, tries + 1); });
+        }
+        return s;
+      }).catch(function () {
+        if (tries < 8) return wait().then(function () { return getFresh(ref, tries + 1); });
+        return null;
+      });
+    }
+
+    function boot() {
+      if (typeof db === 'undefined') { setTimeout(boot, 60); return; }
+      // Ahora que db existe, resolvemos el doc de la config.
+      if (!docRef) {
+        try {
+          docRef = (TID === 'elegance')
+            ? db.collection('settings').doc('linkbio')
+            : db.collection('tenants').doc(TID).collection('settings').doc('linkbio');
+        } catch (e) {}
+      }
+      // El plan (free/pro/studio) lo decide el superadmin en _system/{tenant} (lectura pública).
+      var sysP = getFresh(db.collection('_system').doc(TID))
+        .then(function (s) {
+          var d = (s && s.exists && s.data()) || {};
+          return d.bioPlan || (d.bioPro === true ? 'pro' : 'free');
+        })
+        .catch(function () { return 'free'; });
+      var cfgP = docRef ? getFresh(docRef) : Promise.resolve(null);
+      Promise.all([cfgP, sysP]).then(function (res) {
+        track('views');   // ya leímos la config; ahora sí contamos la vista
+        var snap = res[0], plan = res[1];
+        var cfg = (snap && snap.exists) ? snap.data() : null;
+        if (!cfg || cfg.enabled === false || !(cfg.bloques && cfg.bloques.length)) {
+          // Fallback: bloques por defecto desde la config del local
+          cfg = Object.assign({ perfil: {} }, cfg || {});
+          cfg.bloques = (cfg && cfg.bloques && cfg.bloques.length) ? cfg.bloques : defaultBlocks();
+        }
+        cfg._pro    = (plan === 'pro' || plan === 'studio');
+        cfg._studio = (plan === 'studio');
+
+        var b2 = (TID === 'elegance') ? db.collection('barberos') : db.collection('tenants').doc(TID).collection('barberos');
+        var lb = (TID === 'elegance') ? db.collection('lookbook') : db.collection('tenants').doc(TID).collection('lookbook');
+        var loaders = [];
+        if (cfg._studio && (cfg.bloques || []).some(function (b) { return b.tipo === 'barberos'; })) {
+          loaders.push(b2.limit(60).get()
+            .then(function (s) { cfg._barberos = s.docs.map(function (d) { return d.data(); }).filter(function (b) { return b.activo !== false; }); })
+            .catch(function () { cfg._barberos = []; }));
+        }
+        if (cfg._pro && (cfg.bloques || []).some(function (b) { return b.tipo === 'instagram' && b.grid; })) {
+          loaders.push(lb.orderBy('order', 'desc').limit(6).get()
+            .then(function (s) { cfg._fotos = s.docs.map(function (d) { return d.data(); }); })
+            .catch(function () { cfg._fotos = []; }));
+        }
+        Promise.all(loaders).finally(function () { render(cfg); });
+      }).catch(function (e) {
+        console.warn('[bio] error cargando config:', e && e.message);
+        render({ perfil: {}, bloques: defaultBlocks() });
+      });
+    }
+    boot();
+  })();
+  </script>
+</body>
+</html>

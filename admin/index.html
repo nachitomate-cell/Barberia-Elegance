@@ -1158,6 +1158,24 @@
           </div>
         </div>
 
+        <!-- Link in Bio — Plan -->
+        <div class="stat-card" style="align-items: center; gap: 0.75rem;">
+          <div class="stat-icon" id="bioplan-icon" style="background:rgba(148,163,184,0.1);border:1px solid rgba(148,163,184,0.2);width:44px;height:44px;border-radius:0.75rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <i class="ph-fill ph-link" style="font-size:1.25rem;color:#94a3b8;"></i>
+          </div>
+          <div style="flex:1;">
+            <p style="font-size:0.7rem;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;color:#64748b;margin:0 0 0.25rem;">Link in Bio — Plan</p>
+            <select id="bioplan-select" onchange="updateBioPlan()" style="
+              width:100%;box-sizing:border-box;padding:0.35rem 0.5rem;
+              background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);
+              border-radius:0.5rem;color:#e2e8f0;font-size:0.8125rem;outline:none;cursor:pointer;">
+              <option value="free">Free</option>
+              <option value="pro">Pro — $4.990</option>
+              <option value="studio">Studio — $9.990</option>
+            </select>
+          </div>
+        </div>
+
       </div>
     </div>
 
@@ -2479,6 +2497,14 @@
         const selectEl = document.getElementById('comercial-status-select');
         if (selectEl) selectEl.value = estadoComercial;
         updateComercialStatusIconColor(estadoComercial);
+
+        // Cargar plan de Link in Bio (puede vivir en otro id que el del panel)
+        const _bioId = bioIdDe(tenantId);
+        let _planData = data;
+        if (_bioId !== tenantId) {
+          try { const bs = await db.collection('_system').doc(_bioId).get(); _planData = bs.exists ? bs.data() : {}; } catch(_) { _planData = {}; }
+        }
+        renderBioPlan(planDe(_planData));
       } catch(e) {
         document.getElementById('kill-switch-status').innerHTML =
           `<span style="font-size:0.75rem;color:#f87171;">Sin datos</span>`;
@@ -2498,6 +2524,48 @@
       const c = colors[estado] || colors.activo_100;
       iconEl.style.cssText = `background:rgba(${c.rgb},0.1);border:1px solid rgba(${c.rgb},0.2);width:44px;height:44px;border-radius:0.75rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;`;
       iconEl.innerHTML = `<i class="ph-fill ph-briefcase" style="font-size:1.25rem;color:${c.color};"></i>`;
+    }
+
+    // ── Link in Bio — Plan (free / pro / studio) ──────────────────
+    // El bio/público lee _system/{id-del-bio}; en el panel mapu usa otro id.
+    const BIO_TENANT_ID = { mapubarber: 'mapubarbershop' };
+    const bioIdDe = t => BIO_TENANT_ID[t] || t;
+    function planDe(data) { return data.bioPlan || (data.bioPro === true ? 'pro' : 'free'); }
+    function renderBioPlan(plan) {
+      const icon = document.getElementById('bioplan-icon');
+      const sel  = document.getElementById('bioplan-select');
+      if (sel) sel.value = plan;
+      if (!icon) return;
+      const c = plan === 'studio' ? { rgb:'245,158,11', color:'#f59e0b' }
+              : plan === 'pro'    ? { rgb:'16,185,129', color:'#10b981' }
+              : { rgb:'148,163,184', color:'#94a3b8' };
+      icon.style.cssText = `background:rgba(${c.rgb},0.1);border:1px solid rgba(${c.rgb},0.2);width:44px;height:44px;border-radius:0.75rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;`;
+      icon.innerHTML = `<i class="ph-fill ph-link" style="font-size:1.25rem;color:${c.color};"></i>`;
+    }
+    async function updateBioPlan() {
+      if (!_activeTenant) return;
+      const sel = document.getElementById('bioplan-select');
+      if (!sel) return;
+      const val = sel.value;
+      const cfg = TENANTS[_activeTenant];
+      const sourceEl = document.getElementById('data-source-label');
+      const prev = sourceEl ? sourceEl.textContent : '';
+      try {
+        if (sourceEl) sourceEl.textContent = 'Actualizando plan de Link in Bio…';
+        await firebase.auth().currentUser?.getIdToken(true);
+        await db.collection('_system').doc(bioIdDe(_activeTenant)).set({
+          bioPlan:    val,
+          bioPro:     val !== 'free',          // compat hacia atrás
+          tenantName: cfg ? cfg.nombre : _activeTenant,
+          updatedAt:  firebase.firestore.FieldValue.serverTimestamp(),
+          updatedBy:  firebase.auth().currentUser?.email || 'superadmin',
+        }, { merge: true });
+        renderBioPlan(val);
+        if (sourceEl) sourceEl.textContent = `Plan Link in Bio: ${val}`;
+      } catch(e) {
+        alert('Error al cambiar el plan de Link in Bio: ' + e.message);
+        if (sourceEl) sourceEl.textContent = prev;
+      }
     }
 
     async function updateComercialStatus() {

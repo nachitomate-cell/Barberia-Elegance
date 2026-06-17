@@ -16,6 +16,7 @@
     { "source": "/servicios", "destination": "/index.html" },
     { "source": "/gestion-interna/**", "destination": "/gestion-interna/index.html" },
     { "source": "/gestion-interna", "destination": "/gestion-interna/index.html" },
-    { "source": "/:slug", "destination": "/barbero.html" }
+    { "source": "/bio", "destination": "/bio.html" },
+    { "source": "/:slug([^.]+)", "destination": "/barbero.html" }
   ]
 }

@@ -153,6 +153,12 @@ service cloud.firestore {
         allow read: if true;
         allow write: if esStaff('elegance');
       }
+
+      // Link in Bio: la página pública (sin auth) incrementa SOLO views/clicks.
+      match /settings/linkbio {
+        allow update: if resource != null
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views', 'clicks']);
+      }
     }
 
     // ── /citas ─────────────────────────────────────────────────────
@@ -218,6 +224,22 @@ service cloud.firestore {
     match /settings/{docId} {
       allow read: if true;
       allow write: if esAdmin('elegance');
+    }
+    // Link in Bio (tenant elegance): incremento público de SOLO views/clicks.
+    match /settings/linkbio {
+      allow update: if resource != null
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views', 'clicks']);
+    }
+
+    // ── /bio_leads — captura de leads del Link in Bio (todos los tenants) ──
+    // Creación pública validada (formulario sin auth); lectura solo del staff
+    // del tenant dueño. Guarda PII, por eso NO es de lectura pública.
+    match /bio_leads/{docId} {
+      allow create: if request.resource.data.keys().hasOnly(['nombre', 'email', 'telefono', 'tenantId', 'origen', 'createdAt'])
+                    && request.resource.data.origen == 'linkbio'
+                    && request.resource.data.tenantId is string
+                    && request.resource.data.tenantId.size() < 40;
+      allow read, update, delete: if esBootstrap() || esStaff(resource.data.tenantId);
     }
 
     // ── /gastos ────────────────────────────────────────────────────

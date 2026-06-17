@@ -18,6 +18,7 @@ import Premios     from './views/Premios';
 import Productos   from './views/Productos';
 import Inventario  from './views/Inventario';
 import Lookbook       from './views/Lookbook';
+import LinkBio        from './views/LinkBio';
 import Configuracion    from './views/Configuracion';
 import Gastos           from './views/Gastos';
 import Caja             from './views/Caja';
@@ -90,6 +91,7 @@ function ProtectedApp() {
             <Route path="productos"       element={<Productos />} />
             <Route path="inventario"      element={<Inventario />} />
             <Route path="lookbook"        element={<Lookbook />} />
+            <Route path="link-bio"        element={<LinkBio />} />
             <Route path="tv-config"       element={<TVConfig />} />
             <Route path="servicio-favorito" element={<ServicioFavorito />} />
             <Route path="metricas"        element={<BillingGate><Metricas /></BillingGate>} />
