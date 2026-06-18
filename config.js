@@ -661,8 +661,10 @@
 
   // Resolver tenant: query param > dominio > sessionStorage > default
   let tenantId = '';
+  // Tenant forzado por el edge middleware (bioo.cl/<handle> sirve la bio de un local).
+  try { if (window.__FORCE_TENANT__ && _tenants[window.__FORCE_TENANT__]) tenantId = window.__FORCE_TENANT__; } catch (_) {}
   try {
-    tenantId = new URL(window.location.href).searchParams.get('local') || '';
+    if (!tenantId) tenantId = new URL(window.location.href).searchParams.get('local') || '';
   } catch (_) {}
 
   // Si llega por URL, persistir en sessionStorage para esta pestaña

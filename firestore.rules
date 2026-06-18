@@ -251,7 +251,8 @@ service cloud.firestore {
       allow read: if true;
       allow create: if autenticado()
                     && request.resource.data.uid == uid()
-                    && request.resource.data.username is string;
+                    && request.resource.data.username is string
+                    && !exists(/databases/$(database)/documents/bio_handles/$(username));
       allow update: if (autenticado() && resource.data.uid == uid())
                     || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views', 'clicks']);
       allow delete: if autenticado() && resource.data.uid == uid();
@@ -260,6 +261,19 @@ service cloud.firestore {
     // ── /bio_users — mapeo uid → username (privado del dueño) ──────
     match /bio_users/{userId} {
       allow read, write: if autenticado() && uid() == userId;
+    }
+
+    // ── /bio_handles — alias bioo.cl/<handle> → tenant (bio de locales) ──
+    // Mapea un handle público a un tenant para servir su Link in Bio en
+    // bioo.cl sin redirect. Lectura pública (la usa el edge middleware sin
+    // auth). Escritura solo del staff del tenant dueño; no se puede tomar un
+    // handle ya usado como usuario self-serve (colisión con /bios).
+    match /bio_handles/{handle} {
+      allow read: if true;
+      allow create: if esStaff(request.resource.data.tenantId)
+                    && request.resource.data.tenantId is string
+                    && !exists(/databases/$(database)/documents/bios/$(handle));
+      allow update, delete: if esStaff(resource.data.tenantId);
     }
 
     // ── /gastos ────────────────────────────────────────────────────

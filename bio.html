@@ -375,6 +375,9 @@
         case 'maps':      url = blk.url || mapsLink(blk.direccion || SHOP.direccion); icon = icon || 'ph-map-pin'; break;
         default:          icon = icon || 'ph-link-simple';
       }
+      // En bioo.cl/<handle> los links relativos (ej. reserva '/') deben apuntar
+      // al dominio propio del local, no a bioo.cl.
+      if (url && url.charAt(0) === '/' && window.__BIO_HOST__) url = 'https://' + window.__BIO_HOST__ + url;
       return { url: url, icon: icon };
     }
 

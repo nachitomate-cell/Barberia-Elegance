@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Link2, Calendar, MessageCircle, Instagram, Star, MapPin, Type, AlignLeft,
   Share2, Youtube, Plus, Trash2, ArrowUp, ArrowDown, Eye, EyeOff, Lock,
@@ -6,7 +6,7 @@ import {
   Users, Mail, Building2, QrCode, Download, Crown,
 } from 'lucide-react';
 import QRCode from 'qrcode';
-import { doc, getDoc, setDoc, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, setDoc, deleteDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { tenantDoc, resolveTenantId } from '../lib/tenantUtils';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
@@ -33,6 +33,11 @@ const TIER_RANK = { free: 0, pro: 1, studio: 2 };
 const REDES = ['instagram', 'facebook', 'tiktok', 'youtube', 'whatsapp', 'x', 'web', 'email'];
 
 const uid = () => 'b_' + Math.random().toString(36).slice(2, 9);
+
+/* ── Handle público para bioo.cl/<handle> ── */
+const RESERVED_HANDLES = ['registro','login','editor','admin','api','bio','dashboard','agenda','app','www','links','synaptech','bioo','soporte','ayuda','help','about','terminos','privacidad','catalogo','membresia','kronnos'];
+const normHandle  = v => String(v || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9._-]/g, '');
+const validHandle = v => v.length >= 3 && v.length <= 30 && /^[a-z0-9][a-z0-9._-]{2,29}$/.test(v) && !RESERVED_HANDLES.includes(v);
 
 function labelDefault(tipo) {
   return ({
@@ -77,6 +82,7 @@ export default function LinkBio() {
   const [addOpen, setAddOpen] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [stats, setStats]   = useState({ views: 0, clicks: {} });
+  const origHandleRef = useRef('');   // handle guardado (para detectar cambios)
 
   // Carga inicial: config del bio + estado Pro (controlado por el superadmin)
   useEffect(() => {
@@ -91,13 +97,15 @@ export default function LinkBio() {
     getDoc(ref).then(snap => {
       if (!alive) return;
       const d = snap.exists() ? snap.data() : {};
+      origHandleRef.current = d.handle || '';
       setCfg({
         perfil:  d.perfil  || {},
         bloques: (Array.isArray(d.bloques) && d.bloques.length) ? d.bloques : seedDefault(),
         enabled: d.enabled !== false,
+        handle:  d.handle || '',
       });
       setLoad(false);
-    }).catch(() => { setCfg({ perfil: {}, bloques: seedDefault(), enabled: true }); setLoad(false); });
+    }).catch(() => { setCfg({ perfil: {}, bloques: seedDefault(), enabled: true, handle: '' }); setLoad(false); });
     return () => { alive = false; };
   }, [ref, tid]);
 
@@ -132,6 +140,11 @@ export default function LinkBio() {
   };
 
   const save = async () => {
+    const h = (cfg.handle || '').trim();
+    if (h && !validHandle(h)) {
+      alert('El nombre para bioo.cl debe tener 3 a 30 caracteres (letras, números, punto o guion), empezar con letra/número y no ser una palabra reservada.');
+      return;
+    }
     setSaving(true);
     try {
       // No tocamos clicks/views (página pública) ni pro (lo controla el superadmin).
@@ -139,14 +152,29 @@ export default function LinkBio() {
         perfil:  cfg.perfil || {},
         bloques: cfg.bloques,
         enabled: cfg.enabled !== false,
+        handle:  h || null,
       }, { merge: true });
+
+      // Registro público del handle → bioo.cl/<handle>
+      const prev = origHandleRef.current;
+      if (h && h !== prev) {
+        await setDoc(doc(db, 'bio_handles', h), { tenantId: tid, host: window.location.host, createdAt: serverTimestamp() });
+        if (prev && prev !== h) await deleteDoc(doc(db, 'bio_handles', prev)).catch(() => {});
+        origHandleRef.current = h;
+      } else if (!h && prev) {
+        await deleteDoc(doc(db, 'bio_handles', prev)).catch(() => {});
+        origHandleRef.current = '';
+      }
       setDirty(false);
     } catch (e) {
-      alert('No se pudo guardar: ' + e.message);
+      alert(e.code === 'permission-denied'
+        ? `El nombre "bioo.cl/${h}" ya está en uso por otra cuenta. Prueba con otro.`
+        : 'No se pudo guardar: ' + e.message);
     } finally { setSaving(false); }
   };
 
-  const bioUrl = `${window.location.origin}/bio`;
+  const handle = (cfg.handle || '').trim();
+  const bioUrl = handle ? `https://bioo.cl/${handle}` : `${window.location.origin}/bio`;
   const copyLink = () => {
     navigator.clipboard.writeText(bioUrl).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1500); });
   };
@@ -205,10 +233,30 @@ export default function LinkBio() {
           <button onClick={copyLink} className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-300 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors">
             {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />} {copied ? 'Copiado' : 'Copiar link'}
           </button>
-          <a href="/bio" target="_blank" rel="noopener" className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-300 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors">
+          <a href={bioUrl} target="_blank" rel="noopener" className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-300 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors">
             <ExternalLink size={14} /> Ver página
           </a>
         </div>
+      </div>
+
+      {/* Dirección pública en bioo.cl */}
+      <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 mb-4">
+        <label className={lbl}>Tu dirección en bioo.cl</label>
+        <div className="flex items-center bg-slate-800 border border-slate-700 rounded-lg px-3 focus-within:border-emerald-500 transition-colors">
+          <span className="text-sm text-slate-500 select-none">bioo.cl/</span>
+          <input
+            className="flex-1 bg-transparent py-2.5 pl-0.5 text-sm text-white placeholder-slate-500 focus:outline-none"
+            value={cfg.handle || ''}
+            placeholder="tunegocio"
+            maxLength={30}
+            onChange={e => update({ handle: normHandle(e.target.value) })}
+          />
+        </div>
+        <p className="text-[11px] text-slate-500 mt-1.5">
+          {cfg.handle
+            ? <>Tu link público será <span className="text-emerald-400 font-semibold">bioo.cl/{cfg.handle}</span> (guarda para aplicarlo).</>
+            : <>Elige un nombre corto para compartir. Mientras tanto tu link sigue siendo el de tu subdominio.</>}
+        </p>
       </div>
 
       {/* Pantalla de planes / upsell (solo en Free) */}

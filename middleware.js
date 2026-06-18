@@ -1105,15 +1105,36 @@ export default async function middleware(request) {
     return Response.redirect('https://bioo.cl' + url.pathname + url.search, 308);
   }
   if (hostname === 'bioo.cl') {
-    // La raíz debe servir la landing de Links. Como existe un index.html en la
-    // raíz del repo (la barbería), el rewrite de vercel.json (afterFiles) no lo
-    // sobrescribe; por eso servimos /links/index.html desde aquí, que corre
-    // antes del filesystem. El resto de rutas (/registro, /editor, /:user) las
-    // resuelven los rewrites de vercel.json.
+    // La raíz sirve la landing de Links (un index.html en la raíz del repo tapa
+    // el rewrite afterFiles de vercel.json, así que lo servimos desde aquí).
     if (url.pathname === '/' || url.pathname === '/index.html') {
       const rw  = new URL('/links/index.html', request.url);
       const res = await fetch(new Request(rw, { headers: new Headers([...request.headers, ['x-mw-bypass', '1']]) }));
       return new Response(res.body, { status: res.status, headers: res.headers });
+    }
+    // ¿El slug es el handle de un local (colección bio_handles)? → servimos su
+    // bio.html en bioo.cl/<handle> SIN redirect, inyectando el tenant. Si no lo
+    // es, sigue al producto self-serve (u.html via rewrite de vercel.json).
+    const slug = url.pathname.replace(/^\/+|\/+$/g, '');
+    if (slug && slug.indexOf('/') < 0 && slug.indexOf('.') < 0 && ['registro', 'editor', 'favicon.ico'].indexOf(slug) < 0) {
+      try {
+        const projectId = process.env.FIREBASE_PROJECT_ID || 'barberia-elegance';
+        const docUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/bio_handles/${encodeURIComponent(slug)}`;
+        const r = await fetch(docUrl);
+        if (r.ok) {
+          const f     = ((await r.json()).fields) || {};
+          const tid   = f.tenantId && f.tenantId.stringValue;
+          const bhost = (f.host && f.host.stringValue) || '';
+          if (tid) {
+            const rw  = new URL('/bio.html', request.url);
+            const res = await fetch(new Request(rw, { headers: new Headers([...request.headers, ['x-mw-bypass', '1']]) }));
+            let html  = await res.text();
+            const inj = '<script>window.__FORCE_TENANT__=' + JSON.stringify(tid) + ';window.__BIO_HOST__=' + JSON.stringify(bhost) + ';</script>';
+            html = html.replace('<head>', '<head>' + inj);
+            return new Response(html, { status: 200, headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-cache, must-revalidate' } });
+          }
+        }
+      } catch (e) { /* si falla la consulta, cae al self-serve */ }
     }
     return;
   }
