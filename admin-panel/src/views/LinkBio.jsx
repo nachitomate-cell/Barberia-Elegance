@@ -324,7 +324,7 @@ const PLANES = [
   },
   {
     id: 'pro', nombre: 'Pro', precio: '$4.990', periodo: '/mes', destacado: true,
-    beneficios: ['Bloques ilimitados', 'Links, video, redes y texto', 'Sin marca SynapTech', 'Analytics por botón + QR', 'Colores propios'],
+    beneficios: ['Bloques ilimitados', 'Links, video, redes y texto', 'Sin marca bioo', 'Analytics por botón + QR', 'Colores propios'],
   },
   {
     id: 'studio', nombre: 'Studio', precio: '$9.990', periodo: '/mes', destacado: false,

@@ -245,26 +245,26 @@
     <p style="margin-top:0.75rem;">Esta página aún no tiene enlaces.</p>
   </div>
 
-  <!-- Marca SynapTech según el plan (la controla render()) -->
-  <button id="synBadge" type="button" aria-label="SynapTech SpA" style="display:none;">
-    <img src="/syn.webp" alt="SynapTech">
+  <!-- Marca bioo según el plan (la controla render()) -->
+  <button id="synBadge" type="button" aria-label="bioo" style="display:none;">
+    <img src="/syn.webp" alt="bioo">
   </button>
 
   <!-- Modal de captación (se abre al tocar el logo en plan Free) -->
   <div id="synModal" class="syn-modal" style="display:none;">
     <div class="syn-modal-card">
       <button class="syn-modal-close" id="synModalClose" type="button" aria-label="Cerrar"><i class="ph ph-x"></i></button>
-      <img src="/syn.webp" alt="SynapTech" class="syn-modal-logo">
+      <img src="/syn.webp" alt="bioo" class="syn-modal-logo">
       <h2 class="syn-modal-title">¿Quieres una página así para tu negocio?</h2>
-      <p class="syn-modal-sub">Una sola página con tu <b>reserva online</b>, WhatsApp, Instagram, reseñas y más. Hecha por <b>SynapTech&nbsp;SpA</b>.</p>
-      <a class="syn-modal-cta" href="https://synaptechspa.cl" target="_blank" rel="noopener">Quiero el mío 🚀</a>
-      <a class="syn-modal-link" href="https://www.instagram.com/synaptechspa" target="_blank" rel="noopener">@synaptechspa</a>
+      <p class="syn-modal-sub">Reúne tu <b>reserva online</b>, WhatsApp, Instagram, reseñas y más en un solo link. Créala gratis en <b>bioo.cl</b>.</p>
+      <a class="syn-modal-cta" href="https://bioo.cl" target="_blank" rel="noopener">Quiero el mío 🚀</a>
+      <a class="syn-modal-link" href="https://bioo.cl" target="_blank" rel="noopener">bioo.cl</a>
     </div>
   </div>
   <div class="syn-footer" id="synFooter" style="display:none;">
-    <a href="https://synaptechspa.cl" target="_blank" rel="noopener">
-      <img src="/syn.webp" alt="SynapTech SpA" class="syn-logo-big">
-      <span class="syn-dev-text">Desarrollado por <b>SynapTech SpA</b></span>
+    <a href="https://bioo.cl" target="_blank" rel="noopener">
+      <img src="/syn.webp" alt="bioo" class="syn-logo-big">
+      <span class="syn-dev-text">Hecho con <b>bioo</b></span>
     </a>
   </div>
 
@@ -301,8 +301,8 @@
       </div>
       <div class="share-foot" id="shareFoot" style="display:none;">
         <h3>¿Quieres una página así?</h3>
-        <p>Reserva online, WhatsApp, redes y reseñas en un solo link. Hecha por SynapTech SpA.</p>
-        <a class="cta" href="https://synaptechspa.cl" target="_blank" rel="noopener">Quiero la mía 🚀</a>
+        <p>Reserva online, WhatsApp, redes y reseñas en un solo link. Créala gratis en bioo.cl.</p>
+        <a class="cta" href="https://bioo.cl" target="_blank" rel="noopener">Quiero la mía 🚀</a>
       </div>
     </div>
   </div>
@@ -541,9 +541,9 @@
       document.getElementById('loading').style.display = 'none';
       document.getElementById('content').style.display = '';
 
-      // Marca SynapTech según el plan:
-      //  · Free   → logo pequeño (abre modal de captación) + "Desarrollado por SynapTech SpA" grande abajo
-      //  · Pro    → solo el logo pequeño (link discreto a synaptechspa.cl, sin modal)
+      // Marca bioo según el plan:
+      //  · Free   → logo pequeño (abre modal de captación) + "Hecho con bioo" grande abajo
+      //  · Pro    → solo el logo pequeño (link discreto a bioo.cl, sin modal)
       //  · Studio → sin marca
       if (!cfg._studio) {
         var badge = document.getElementById('synBadge');
@@ -551,7 +551,7 @@
         if (!cfg._pro) {
           badge.onclick = function () { document.getElementById('synModal').style.display = 'flex'; };
         } else {
-          badge.onclick = function () { window.open('https://synaptechspa.cl', '_blank', 'noopener'); };
+          badge.onclick = function () { window.open('https://bioo.cl', '_blank', 'noopener'); };
         }
       }
       if (!cfg._pro) document.getElementById('synFooter').style.display = 'block';
