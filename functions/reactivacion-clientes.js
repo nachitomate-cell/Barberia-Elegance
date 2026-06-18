@@ -55,14 +55,14 @@ const TENANTS = [
     citasPath:   'tenants/lumen/citas',
     usersPath:   'tenants/lumen/clientes',
     nombre:      "D'Jones Barber",
-    bookingUrl:  'https://barberiadjones.synaptechspa.cl',
+    bookingUrl:  'https://djonesbarberia.synaptechspa.cl',
   },
   {
     id:          'aura',
     citasPath:   'tenants/aura/citas',
     usersPath:   'tenants/aura/clientes',
     nombre:      'Aura Salon',
-    bookingUrl:  'https://aurasalon.synaptechspa.cl',
+    bookingUrl:  'https://aurasalonmalegrooming.synaptechspa.cl',
   },
   {
     id:          'mapubarbershop',

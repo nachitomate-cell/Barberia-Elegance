@@ -93,7 +93,7 @@ const TENANT_CONFIG = {
     instagram:   'https://www.instagram.com/d.jonesbarberia/',
     whatsapp:    '56929808223',
     from:        "D'Jones Barber <citas@synaptechspa.cl>",
-    dashboardUrl:'https://barberiadjones.synaptechspa.cl/dashboard',
+    dashboardUrl:'https://djonesbarberia.synaptechspa.cl/dashboard',
   },
   delnero: {
     nombre:   'Del Nero Barber',
@@ -123,7 +123,7 @@ const TENANT_CONFIG = {
     instagram:   'https://www.instagram.com/aura.salon.cl/',
     whatsapp:    '56966153086',
     from:        'AURA SALÓN & MALE GROOMING <citas@synaptechspa.cl>',
-    dashboardUrl:'https://aurasalon.synaptechspa.cl/dashboard',
+    dashboardUrl:'https://aurasalonmalegrooming.synaptechspa.cl/dashboard',
   },
   latincaribe: {
     nombre:      'The Latin Caribe',
@@ -135,7 +135,7 @@ const TENANT_CONFIG = {
     instagram:   '',
     whatsapp:    '',
     from:        'The Latin Caribe <citas@synaptechspa.cl>',
-    dashboardUrl:'https://latincaribe.synaptechspa.cl/dashboard',
+    dashboardUrl:'https://thelatincaribe.synaptechspa.cl/dashboard',
   },
   machos: {
     nombre:      "Macho´s Barbershop",

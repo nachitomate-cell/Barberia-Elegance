@@ -33,8 +33,8 @@ const TIMEZONE = 'America/Santiago';
 const TENANTS = [
   { id: 'elegance',       usersPath: 'users',                             nombre: 'Elegance Barbershop',     bookingUrl: 'https://barberiaelegance.synaptechspa.cl' },
   { id: 'chameleon',      usersPath: 'tenants/chameleon/users',           nombre: 'Chameleon Barber Studio', bookingUrl: 'https://chameleonbarber.synaptechspa.cl' },
-  { id: 'lumen',          usersPath: 'tenants/lumen/users',               nombre: "D'Jones Barber",          bookingUrl: 'https://barberiadjones.synaptechspa.cl' },
-  { id: 'aura',           usersPath: 'tenants/aura/users',                nombre: 'Aura Salon',              bookingUrl: 'https://aurasalon.synaptechspa.cl' },
+  { id: 'lumen',          usersPath: 'tenants/lumen/users',               nombre: "D'Jones Barber",          bookingUrl: 'https://djonesbarberia.synaptechspa.cl' },
+  { id: 'aura',           usersPath: 'tenants/aura/users',                nombre: 'Aura Salon',              bookingUrl: 'https://aurasalonmalegrooming.synaptechspa.cl' },
   { id: 'mapubarbershop', usersPath: 'tenants/mapubarbershop/users',      nombre: 'Mapu Barber Shop',        bookingUrl: 'https://mapubarbershop.synaptechspa.cl' },
   { id: 'delnero',        usersPath: 'tenants/delnero/users',             nombre: 'Del Nero Barber',         bookingUrl: 'https://delnerobarber.synaptechspa.cl' },
   { id: 'omegastudio',    usersPath: 'tenants/omegastudio/users',         nombre: 'Omega Studio',            bookingUrl: 'https://omegastudio.synaptechspa.cl' },

@@ -50,7 +50,7 @@ const TENANT_CONFIG = {
     color:      '#C9A050',
     darkHeader: true,
     from:       "D'Jones Barber <citas@synaptechspa.cl>",
-    loginUrl:   'https://barberiadjones.synaptechspa.cl/registro',
+    loginUrl:   'https://djonesbarberia.synaptechspa.cl/registro',
   },
   delnero: {
     nombre:   'Del Nero Barber',
@@ -72,7 +72,7 @@ const TENANT_CONFIG = {
     slogan:     'Eleva Tu Aura',
     color:      '#6CABDD',
     from:       'AURA SALÓN & MALE GROOMING <citas@synaptechspa.cl>',
-    loginUrl:   'https://aurasalon.synaptechspa.cl/registro',
+    loginUrl:   'https://aurasalonmalegrooming.synaptechspa.cl/registro',
   },
   machos: {
     nombre:   "Macho´s Barbershop",
