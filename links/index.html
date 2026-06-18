@@ -43,6 +43,12 @@
   .chip{background:var(--white);border-radius:100px;padding:8px 14px;font-size:13px;font-weight:700;display:inline-flex;align-items:center;gap:7px;box-shadow:0 2px 10px rgba(21,36,11,.08);}
   .chip i{width:7px;height:7px;border-radius:50%;background:var(--green-d);}
 
+  .stat{margin-top:22px;min-height:20px;font-size:13.5px;font-weight:700;color:var(--green-d);display:flex;align-items:center;justify-content:center;gap:8px;opacity:0;transition:opacity .5s;}
+  .stat.show{opacity:1;}
+  .stat .dot{width:8px;height:8px;border-radius:50%;background:var(--green-d);flex:none;animation:pulse 2s infinite;}
+  .stat b{color:var(--ink);}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(44,90,23,.45);}70%{box-shadow:0 0 0 8px rgba(44,90,23,0);}100%{box-shadow:0 0 0 0 rgba(44,90,23,0);}}
+
   .foot{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:6px 14px;padding:20px;font-size:12px;color:var(--soft);}
   .foot a{text-decoration:none;display:inline-flex;align-items:center;gap:6px;font-weight:600;}
   .foot img{width:16px;height:16px;border-radius:4px;object-fit:contain;background:#fff;padding:2px;}
@@ -72,6 +78,8 @@
       <span class="chip"><i></i> Sin tarjeta</span>
       <span class="chip"><i></i> Listo en 1 minuto</span>
     </div>
+
+    <p class="stat" id="stat" aria-live="polite"><span class="dot"></span><span id="statTxt"></span></p>
   </main>
 
   <div class="foot">
@@ -127,6 +135,44 @@
       if (!valid(n)){ input.focus(); hint.className='hint err'; hint.textContent='Elige un usuario válido para continuar.'; return; }
       goPage('registro', '?u=' + encodeURIComponent(n));
     });
+  })();
+
+  // ── Contador de páginas creadas (social proof) ──────────────────────────────
+  // Conteo REAL vía agregación REST de Firestore (las reglas permiten leer `bios`)
+  // + una base inicial para arrancar con tracción. Cambia BASE_INICIAL a gusto.
+  (function(){
+    'use strict';
+    var BASE_INICIAL = 200; // ← ajustable
+    var PROJECT = 'barberia-elegance';
+    var API_KEY = 'AIzaSyDqVkAhkXALm3hLcrmzjiaS3flUezPFe2Q';
+    var el  = document.getElementById('stat');
+    var txt = document.getElementById('statTxt');
+    if (!el || !txt) return;
+
+    function fmt(n){ return n.toLocaleString('es-CL'); }
+    function animar(total){
+      var dur = 900, ini = null, desde = Math.max(0, total - 60);
+      el.classList.add('show');
+      requestAnimationFrame(function step(ts){
+        if (ini === null) ini = ts;
+        var p = Math.min(1, (ts - ini) / dur);
+        var val = Math.round(desde + (total - desde) * (1 - Math.pow(1 - p, 3)));
+        txt.innerHTML = 'Ya son <b>' + fmt(val) + '</b> páginas creadas con SynapTech Links';
+        if (p < 1) requestAnimationFrame(step);
+      });
+    }
+
+    fetch('https://firestore.googleapis.com/v1/projects/' + PROJECT + '/databases/(default)/documents:runAggregationQuery?key=' + API_KEY, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ structuredAggregationQuery: { structuredQuery: { from: [{ collectionId: 'bios' }] }, aggregations: [{ alias: 'count', count: {} }] } })
+    })
+    .then(function(r){ return r.json(); })
+    .then(function(j){
+      var c = 0;
+      try { c = parseInt(j[0].result.aggregateFields.count.integerValue, 10) || 0; } catch(e){}
+      animar(c + BASE_INICIAL);
+    })
+    .catch(function(){ /* si falla, no mostramos nada */ });
   })();
 </script>
 </body>
