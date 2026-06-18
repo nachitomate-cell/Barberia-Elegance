@@ -245,15 +245,15 @@ service cloud.firestore {
     // ── /bios — Link in bio self-serve (SynapTech Links) ───────────
     // Páginas de usuarios SIN local. doc id = username (único por colisión
     // natural del id). Lectura pública (es una página pública). Escritura
-    // solo del dueño (uid). Excepción: cualquiera puede incrementar el
-    // contador de vistas (solo el campo `views`).
+    // solo del dueño (uid). Excepción: cualquiera puede incrementar los
+    // contadores de analítica (`views` de la página y `clicks` por enlace).
     match /bios/{username} {
       allow read: if true;
       allow create: if autenticado()
                     && request.resource.data.uid == uid()
                     && request.resource.data.username is string;
       allow update: if (autenticado() && resource.data.uid == uid())
-                    || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views']);
+                    || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views', 'clicks']);
       allow delete: if autenticado() && resource.data.uid == uid();
     }
 

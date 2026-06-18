@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>SynapTech Links · Tu link en bio</title>
-<meta name="description" content="Una sola página con todos tus enlaces. Crea tu link en bio gratis con SynapTech Links." />
+<title>bioo · Tu link en bio</title>
+<meta name="description" content="Una sola página con todos tus enlaces. Crea tu link en bio gratis con bioo." />
 <meta name="theme-color" content="#92c83a" />
 <link rel="icon" href="/syn-128.webp" />
 <style>
@@ -56,7 +56,7 @@
 </head>
 <body>
   <header>
-    <div class="brand"><img src="/syn-64.webp" alt="SynapTech" /> SynapTech <span class="t2">Links</span></div>
+    <div class="brand"><img src="/syn-64.webp" alt="bioo" /> bioo</div>
     <a class="login-link" href="/registro?modo=login">Iniciar sesión</a>
   </header>
 
@@ -69,7 +69,7 @@
         <span class="pfx">bioo.cl/</span>
         <input id="user" type="text" inputmode="text" placeholder="tunombre" maxlength="30" aria-label="Tu usuario" />
       </div>
-      <button class="btn" type="submit">Reclama tu Links — es gratis</button>
+      <button class="btn" type="submit">Reclama tu bioo — es gratis</button>
       <div class="hint" id="hint">Letras, números, punto, guion y guion bajo · 3 a 30 caracteres.</div>
     </form>
 
@@ -157,7 +157,7 @@
         if (ini === null) ini = ts;
         var p = Math.min(1, (ts - ini) / dur);
         var val = Math.round(desde + (total - desde) * (1 - Math.pow(1 - p, 3)));
-        txt.innerHTML = 'Ya son <b>' + fmt(val) + '</b> páginas creadas con SynapTech Links';
+        txt.innerHTML = 'Ya son <b>' + fmt(val) + '</b> páginas creadas con bioo';
         if (p < 1) requestAnimationFrame(step);
       });
     }

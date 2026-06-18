@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>SynapTech Links</title>
+<title>bioo</title>
 <meta name="theme-color" content="#92c83a" />
 <link rel="icon" href="/syn-128.webp" />
 <link rel="apple-touch-icon" href="/syn-180.png" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-<meta name="apple-mobile-web-app-title" content="Links" />
+<meta name="apple-mobile-web-app-title" content="bioo" />
 <link rel="manifest" id="manifestLink" />
 <style>
   :root{ --green:#92c83a; --green-d:#2c5a17; --ink:#15240b; --soft:#3f5230; --white:#ffffff; --line:#cfe0a8; }
@@ -91,7 +91,7 @@
 </head>
 <body>
   <div class="topbar" id="topbar" style="display:none;">
-    <a class="chip-btn" href="https://bioo.cl" target="_blank" rel="noopener" title="SynapTech Links"><img src="/syn-64.webp" alt="SynapTech Links" /></a>
+    <a class="chip-btn" href="https://bioo.cl" target="_blank" rel="noopener" title="bioo"><img src="/syn-64.webp" alt="bioo" /></a>
     <button class="chip-btn" id="shareBtn" title="Compartir" aria-label="Compartir">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M12 3v13"/><path d="m8 7 4-4 4 4"/></svg>
     </button>
@@ -101,7 +101,7 @@
     <div class="loading" id="loading"><div class="spin"></div></div>
   </div>
 
-  <!-- Modal compartir (estilo Linktree, marca SynapTech) -->
+  <!-- Modal compartir (estilo Linktree, marca bioo) -->
   <div class="share-modal" id="shareModal" style="display:none;">
     <div class="share-sheet">
       <div class="share-head"><span>Compartir</span><button id="shareClose" aria-label="Cerrar">✕</button></div>
@@ -129,7 +129,7 @@
         <div class="a2hs-tip" id="a2hsTip"></div>
       </div>
       <div class="share-foot">
-        <h3 id="shCta">Crea tu propio Links</h3>
+        <h3 id="shCta">Crea tu propio bioo</h3>
         <p>Obtén tu propia página de enlaces gratis. Reúne todo lo que eres en un solo link.</p>
         <div class="share-cta-btns">
           <a class="cta-fill" id="shReg" href="https://bioo.cl/registro" target="_blank" rel="noopener">Regístrate gratis</a>
@@ -142,7 +142,7 @@
   <div class="copied" id="copied">¡Link copiado!</div>
 
   <div class="foot" id="foot" style="display:none;">
-    <a href="https://bioo.cl" target="_blank" rel="noopener"><img src="/syn-64.webp" alt="" /> Crea tu propio Links</a>
+    <a href="https://bioo.cl" target="_blank" rel="noopener"><img src="/syn-64.webp" alt="" /> Crea tu propio bioo</a>
   </div>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -155,6 +155,31 @@
   (function(){
     'use strict';
     function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];}); }
+
+    // ── Temas (debe coincidir con editor.html) ──
+    var THEMES = {
+      lime:   { bg:'#92c83a', text:'#15240b', sub:'#3f5230', btnBg:'#ffffff', btnText:'#15240b', btnBorder:'transparent' },
+      forest: { bg:'#15240b', text:'#eef6e3', sub:'#aac08e', btnBg:'rgba(255,255,255,.12)', btnText:'#ffffff', btnBorder:'rgba(255,255,255,.28)' },
+      snow:   { bg:'#f4f6ee', text:'#15240b', sub:'#5b6a4e', btnBg:'#ffffff', btnText:'#15240b', btnBorder:'#e0e6d4' },
+      ocean:  { bg:'linear-gradient(165deg,#1f6feb,#0b3d91)', text:'#ffffff', sub:'rgba(255,255,255,.82)', btnBg:'#ffffff', btnText:'#0b3d91', btnBorder:'transparent' },
+      sunset: { bg:'linear-gradient(165deg,#ff8a3d,#d6249f)', text:'#ffffff', sub:'rgba(255,255,255,.88)', btnBg:'rgba(255,255,255,.96)', btnText:'#b3208a', btnBorder:'transparent' },
+      grape:  { bg:'linear-gradient(165deg,#7c3aed,#3b1d8f)', text:'#ffffff', sub:'rgba(255,255,255,.82)', btnBg:'#ffffff', btnText:'#3b1d8f', btnBorder:'transparent' },
+      rose:   { bg:'#dd19bb', text:'#ffffff', sub:'rgba(255,255,255,.88)', btnBg:'#ffffff', btnText:'#a3148a', btnBorder:'transparent' },
+      night:  { bg:'#0e0e10', text:'#ffffff', sub:'#9aa3ad', btnBg:'rgba(255,255,255,.10)', btnText:'#ffffff', btnBorder:'rgba(255,255,255,.22)' }
+    };
+    var SHAPES = { rounded:'14px', pill:'100px', sharp:'4px' };
+    function normalizeTheme(raw){
+      if (raw && typeof raw === 'object') return { preset: THEMES[raw.preset]?raw.preset:'lime', shape: SHAPES[raw.shape]?raw.shape:'rounded', fill: (raw.fill==='outline')?'outline':'solid' };
+      return { preset: (typeof raw==='string' && THEMES[raw])?raw:'lime', shape:'rounded', fill:'solid' };
+    }
+    function themeCss(t){
+      var p = THEMES[t.preset], radius = SHAPES[t.shape], btn;
+      if (t.fill === 'outline') btn = 'background:transparent;color:'+p.text+';border:1.5px solid '+p.text+';';
+      else btn = 'background:'+p.btnBg+';color:'+p.btnText+';border:1.5px solid '+p.btnBorder+';';
+      btn += 'border-radius:'+radius+';';
+      return { p:p, btn:btn };
+    }
+    var bioRef = null;
 
     // Genera un manifest al vuelo para que la app instalada use el nombre y la URL del usuario.
     function setManifest(uname, titulo){
@@ -218,9 +243,10 @@
       return;
     }
 
-    if (!user){ showEmpty('Página no encontrada', 'No se indicó un usuario.', '<p style="margin-top:14px;"><a href="https://bioo.cl">Crea tu Links</a></p>'); return; }
+    if (!user){ showEmpty('Página no encontrada', 'No se indicó un usuario.', '<p style="margin-top:14px;"><a href="https://bioo.cl">Crea tu bioo</a></p>'); return; }
 
-    db.collection('bios').doc(user).get().then(function(doc){
+    bioRef = db.collection('bios').doc(user);
+    bioRef.get().then(function(doc){
       if (!doc.exists){
         showEmpty('Este nombre está libre', 'bioo.cl/'+user+' aún no existe.',
           '<p style="margin-top:14px;"><a href="https://bioo.cl/registro?u='+encodeURIComponent(user)+'">Reclámalo ahora →</a></p>');
@@ -228,7 +254,7 @@
       }
       render(doc.data());
       // Vista (best-effort; si las reglas no lo permiten, falla en silencio).
-      doc.ref.update({ views: firebase.firestore.FieldValue.increment(1) }).catch(function(){});
+      bioRef.update({ views: firebase.firestore.FieldValue.increment(1) }).catch(function(){});
     }).catch(function(e){
       console.error(e);
       showEmpty('No se pudo cargar', 'Intenta de nuevo en unos segundos.', '');
@@ -237,28 +263,43 @@
     function render(data){
       var perfil = data.perfil || {};
       var bloques = (data.bloques||[]).filter(function(b){ return b.activo!==false && (b.url||'').trim(); });
-      document.title = (perfil.titulo || ('@'+user)) + ' · Links';
+      document.title = (perfil.titulo || ('@'+user)) + ' · bioo';
       document.getElementById('loading').style.display='none';
+
+      // Tema
+      var t = normalizeTheme(data.theme), css = themeCss(t), p = css.p;
+      document.body.style.background = p.bg;
+      var mt = document.querySelector('meta[name="theme-color"]'); if (mt && p.bg.indexOf('gradient')<0) mt.setAttribute('content', p.bg);
 
       var html = '';
       html += '<div class="avatar fade">' + (perfil.avatar
         ? '<img src="'+esc(perfil.avatar)+'" alt="'+esc(perfil.titulo)+'">'
         : '<span style="font-size:38px;font-weight:800;color:#6b7768;">'+esc((perfil.titulo||user).charAt(0).toUpperCase())+'</span>') + '</div>';
-      html += '<h1 class="fade" style="animation-delay:.04s;">'+esc(perfil.titulo || ('@'+user))+'</h1>';
-      if (perfil.subtitulo) html += '<p class="sub fade" style="animation-delay:.08s;">'+esc(perfil.subtitulo)+'</p>';
+      html += '<h1 class="fade" style="animation-delay:.04s;color:'+p.text+';">'+esc(perfil.titulo || ('@'+user))+'</h1>';
+      if (perfil.subtitulo) html += '<p class="sub fade" style="animation-delay:.08s;color:'+p.sub+';">'+esc(perfil.subtitulo)+'</p>';
 
       if (bloques.length){
         html += '<div class="blocks">';
         bloques.forEach(function(b, i){
           var url = resolveUrl(b.url); if (!url) return;
-          html += '<a class="btn fade" style="animation-delay:'+(0.1 + i*0.04)+'s;" href="'+esc(url)+'" target="_blank" rel="noopener">'+esc(b.label||url)+'</a>';
+          html += '<a class="btn fade" data-id="'+esc(b.id||'')+'" style="animation-delay:'+(0.1 + i*0.04)+'s;'+css.btn+'" href="'+esc(url)+'" target="_blank" rel="noopener">'+esc(b.label||url)+'</a>';
         });
         html += '</div>';
       } else {
-        html += '<p class="sub fade" style="margin-top:26px;animation-delay:.1s;">Aún no hay enlaces aquí.</p>';
+        html += '<p class="sub fade" style="margin-top:26px;animation-delay:.1s;color:'+p.sub+';">Aún no hay enlaces aquí.</p>';
       }
       wrap.innerHTML = html;
       document.getElementById('foot').style.display='block';
+
+      // Conteo de clics por enlace (best-effort; las reglas permiten incrementar `clicks`).
+      Array.prototype.forEach.call(wrap.querySelectorAll('a.btn[data-id]'), function(a){
+        a.addEventListener('click', function(){
+          var id = a.getAttribute('data-id'); if (!id || !bioRef) return;
+          var upd = {}; upd['clicks.'+id] = firebase.firestore.FieldValue.increment(1);
+          bioRef.update(upd).catch(function(){});
+        });
+      });
+
       setupShare(perfil);
     }
 
@@ -276,7 +317,7 @@
         : '<span style="font-size:38px;font-weight:800;color:#6b7768;">'+esc((perfil.titulo||user).charAt(0).toUpperCase())+'</span>';
       document.getElementById('shUser').textContent = perfil.titulo || ('@'+user);
       document.getElementById('shHandle').textContent = user;
-      document.getElementById('shCta').textContent = 'Únete a @' + user + ' en Links';
+      document.getElementById('shCta').textContent = 'Únete a @' + user + ' en bioo';
       document.getElementById('shReg').href = 'https://bioo.cl/registro';
 
       // Targets
