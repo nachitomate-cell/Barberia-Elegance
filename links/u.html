@@ -91,7 +91,7 @@
 </head>
 <body>
   <div class="topbar" id="topbar" style="display:none;">
-    <a class="chip-btn" href="https://links.synaptechspa.cl" target="_blank" rel="noopener" title="SynapTech Links"><img src="/syn-64.webp" alt="SynapTech Links" /></a>
+    <a class="chip-btn" href="https://bioo.cl" target="_blank" rel="noopener" title="SynapTech Links"><img src="/syn-64.webp" alt="SynapTech Links" /></a>
     <button class="chip-btn" id="shareBtn" title="Compartir" aria-label="Compartir">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M12 3v13"/><path d="m8 7 4-4 4 4"/></svg>
     </button>
@@ -132,8 +132,8 @@
         <h3 id="shCta">Crea tu propio Links</h3>
         <p>Obtén tu propia página de enlaces gratis. Reúne todo lo que eres en un solo link.</p>
         <div class="share-cta-btns">
-          <a class="cta-fill" id="shReg" href="https://links.synaptechspa.cl/registro" target="_blank" rel="noopener">Regístrate gratis</a>
-          <a class="cta-out" href="https://links.synaptechspa.cl" target="_blank" rel="noopener">Descubre más</a>
+          <a class="cta-fill" id="shReg" href="https://bioo.cl/registro" target="_blank" rel="noopener">Regístrate gratis</a>
+          <a class="cta-out" href="https://bioo.cl" target="_blank" rel="noopener">Descubre más</a>
         </div>
       </div>
     </div>
@@ -142,7 +142,7 @@
   <div class="copied" id="copied">¡Link copiado!</div>
 
   <div class="foot" id="foot" style="display:none;">
-    <a href="https://links.synaptechspa.cl" target="_blank" rel="noopener"><img src="/syn-64.webp" alt="" /> Crea tu propio Links</a>
+    <a href="https://bioo.cl" target="_blank" rel="noopener"><img src="/syn-64.webp" alt="" /> Crea tu propio Links</a>
   </div>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -161,11 +161,11 @@
       try {
         var m = {
           name: titulo || ('@'+uname), short_name: (titulo || uname).slice(0,12),
-          start_url: 'https://links.synaptechspa.cl/' + uname, scope: '/',
+          start_url: 'https://bioo.cl/' + uname, scope: '/',
           display: 'standalone', background_color: '#92c83a', theme_color: '#92c83a',
           icons: [
-            { src: 'https://links.synaptechspa.cl/syn-192.png', sizes:'192x192', type:'image/png' },
-            { src: 'https://links.synaptechspa.cl/syn-512.png', sizes:'512x512', type:'image/png', purpose:'any maskable' }
+            { src: 'https://bioo.cl/syn-192.png', sizes:'192x192', type:'image/png' },
+            { src: 'https://bioo.cl/syn-512.png', sizes:'512x512', type:'image/png', purpose:'any maskable' }
           ]
         };
         var blob = new Blob([JSON.stringify(m)], { type:'application/manifest+json' });
@@ -218,12 +218,12 @@
       return;
     }
 
-    if (!user){ showEmpty('Página no encontrada', 'No se indicó un usuario.', '<p style="margin-top:14px;"><a href="https://links.synaptechspa.cl">Crea tu Links</a></p>'); return; }
+    if (!user){ showEmpty('Página no encontrada', 'No se indicó un usuario.', '<p style="margin-top:14px;"><a href="https://bioo.cl">Crea tu Links</a></p>'); return; }
 
     db.collection('bios').doc(user).get().then(function(doc){
       if (!doc.exists){
-        showEmpty('Este nombre está libre', 'links.synaptechspa.cl/'+user+' aún no existe.',
-          '<p style="margin-top:14px;"><a href="https://links.synaptechspa.cl/registro?u='+encodeURIComponent(user)+'">Reclámalo ahora →</a></p>');
+        showEmpty('Este nombre está libre', 'bioo.cl/'+user+' aún no existe.',
+          '<p style="margin-top:14px;"><a href="https://bioo.cl/registro?u='+encodeURIComponent(user)+'">Reclámalo ahora →</a></p>');
         return;
       }
       render(doc.data());
@@ -263,7 +263,7 @@
     }
 
     function setupShare(perfil){
-      var pageUrl = 'https://links.synaptechspa.cl/' + user;
+      var pageUrl = 'https://bioo.cl/' + user;
       var topbar = document.getElementById('topbar');
       var modal  = document.getElementById('shareModal');
       topbar.style.display = 'flex';
@@ -277,7 +277,7 @@
       document.getElementById('shUser').textContent = perfil.titulo || ('@'+user);
       document.getElementById('shHandle').textContent = user;
       document.getElementById('shCta').textContent = 'Únete a @' + user + ' en Links';
-      document.getElementById('shReg').href = 'https://links.synaptechspa.cl/registro';
+      document.getElementById('shReg').href = 'https://bioo.cl/registro';
 
       // Targets
       var enc = encodeURIComponent(pageUrl);

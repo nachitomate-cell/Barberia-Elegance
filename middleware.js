@@ -1096,11 +1096,13 @@ export default async function middleware(request) {
   const url      = new URL(request.url);
   const hostname = (request.headers.get('host') || '').replace(/:\d+$/, '');
 
-  // ── SynapTech Links (producto self-serve, links.synaptechspa.cl) ──────────────
+  // ── SynapTech Links (producto self-serve, bioo.cl) ────────────────────────────
   // No es un tenant: las páginas de /links sirven su propio <head>, íconos y
   // manifest dinámico. Si dejáramos seguir, el middleware caería al default
   // 'elegance' e inyectaría su SEO/og:image/favicon en las bios de los usuarios.
-  if (hostname === 'links.synaptechspa.cl') return;
+  // Se mantiene el host viejo (links.synaptechspa.cl) por si llega antes del
+  // redirect 301 de vercel.json hacia bioo.cl.
+  if (hostname === 'bioo.cl' || hostname === 'links.synaptechspa.cl') return;
 
   const tenantId = DOMAIN_MAP[hostname] || 'elegance';
 

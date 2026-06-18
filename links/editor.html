@@ -74,7 +74,7 @@
 
     <div class="wrap">
       <div class="pubrow">
-        <span class="lnk" id="pubLink">links.synaptechspa.cl/…</span>
+        <span class="lnk" id="pubLink">bioo.cl/…</span>
         <div class="acts">
           <button class="mini" id="copyBtn">Copiar</button>
           <a class="mini" id="viewBtn" target="_blank" rel="noopener">Ver página ↗</a>
@@ -96,7 +96,7 @@
         <textarea id="subtitulo" maxlength="160" placeholder="Cuéntale al mundo quién eres en una línea."></textarea>
         <label for="username">Tu usuario (URL)</label>
         <div class="uname-wrap">
-          <span class="pfx">links.synaptechspa.cl/</span>
+          <span class="pfx">bioo.cl/</span>
           <input id="username" type="text" maxlength="30" placeholder="tunombre" />
         </div>
         <div class="help" id="userHelp">Si lo cambias, tu link anterior dejará de funcionar.</div>
@@ -192,7 +192,7 @@
     }
     function paintPubLink(){
       var u = normUser($('username').value) || state.username;
-      $('pubLink').textContent = 'links.synaptechspa.cl/' + u;
+      $('pubLink').textContent = 'bioo.cl/' + u;
       $('viewBtn').href = urlPublica(u);
     }
 
@@ -232,7 +232,7 @@
 
     // ── Copiar / ver ──
     $('copyBtn').addEventListener('click', function(){
-      var url = 'https://links.synaptechspa.cl/' + (normUser($('username').value)||state.username);
+      var url = 'https://bioo.cl/' + (normUser($('username').value)||state.username);
       navigator.clipboard && navigator.clipboard.writeText(url).then(function(){ toast('Link copiado ✓'); });
     });
     $('logout').addEventListener('click', function(e){ e.preventDefault(); auth.signOut().then(function(){ location.href=urlHome(); }); });

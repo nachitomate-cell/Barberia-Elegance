@@ -60,7 +60,7 @@
 
     <form class="claim" id="claimForm" autocomplete="off">
       <div class="field">
-        <span class="pfx">links.synaptechspa.cl/</span>
+        <span class="pfx">bioo.cl/</span>
         <input id="user" type="text" inputmode="text" placeholder="tunombre" maxlength="30" aria-label="Tu usuario" />
       </div>
       <button class="btn" type="submit">Reclama tu Links — es gratis</button>
@@ -118,7 +118,7 @@
       if (!input.value){ hint.className='hint'; hint.textContent='Letras, números, punto, guion y guion bajo · 3 a 30 caracteres.'; return; }
       if (RESERVED.indexOf(input.value) !== -1){ hint.className='hint err'; hint.textContent='Ese nombre está reservado, prueba otro.'; return; }
       if (!valid(input.value)){ hint.className='hint err'; hint.textContent='Mínimo 3 caracteres. Empieza con letra o número.'; return; }
-      hint.className='hint'; hint.textContent='✓ links.synaptechspa.cl/' + input.value + ' está disponible para reclamar.';
+      hint.className='hint'; hint.textContent='✓ bioo.cl/' + input.value + ' está disponible para reclamar.';
     });
 
     form.addEventListener('submit', function(e){
