@@ -213,6 +213,14 @@ function buildEmailHtml({ cfg, cita, cancelUrl }) {
   const duracion = cita.duracion ? `${cita.duracion} min` : null;
   const nombre   = cita.clienteNombre || 'Cliente';
 
+  // Corte al Lápiz (Yūgen): reserva sin pago, se carga a la cuenta del cliente.
+  const esCorteLapiz = cita.corteLapiz === true;
+  const clTotal = esCorteLapiz
+    ? fmtPrecio(cita.corteLapizTotal != null
+        ? cita.corteLapizTotal
+        : (Number(cita.precio) || 0) + (Number(cita.corteLapizRecargo) || 0))
+    : null;
+
   const filaExtra = (label, value) => value ? `
     <tr>
       <td style="padding:6px 0;color:#999;font-size:13px;width:130px;">${label}</td>
@@ -298,12 +306,28 @@ function buildEmailHtml({ cfg, cita, cancelUrl }) {
                     ${filaExtra('📍 Sede',      cita.sucursalNombre || null)}
                     ${filaExtra('⏱ Duración',  duracion)}
                     ${filaExtra('💰 Precio',    precio)}
+                    ${esCorteLapiz ? filaExtra('💳 Pago', 'Corte al Lápiz · a fin de mes') : ''}
                   </table>
                 </td>
               </tr>
             </table>
           </td>
         </tr>
+${esCorteLapiz ? `
+        <tr>
+          <td style="padding:0 36px 24px;">
+            <table width="100%" cellpadding="0" cellspacing="0"
+              style="background:#1a1a1f;border-radius:12px;border:1px solid ${cfg.color}55;padding:18px 22px;">
+              <tr><td>
+                <p style="margin:0 0 6px;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:${cfg.color};">✏️ Corte al Lápiz</p>
+                <p style="margin:0;font-size:13px;color:#cccccc;line-height:1.6;">
+                  Reservaste con <strong style="color:#fff;">Corte al Lápiz</strong>: no pagas ahora.
+                  ${clTotal ? `Se suman <strong style="color:#fff;">${clTotal}</strong> a tu cuenta` : 'El valor se suma a tu cuenta'} y lo pagas a fin de mes.
+                </p>
+              </td></tr>
+            </table>
+          </td>
+        </tr>` : ''}
 ${productosHtml}
         <!-- Info del local -->
         ${(cfg.direccion || cfg.horario || cita.sucursalNombre) ? `

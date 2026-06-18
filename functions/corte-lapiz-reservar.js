@@ -70,15 +70,26 @@ exports.corteLapizReservar = onRequest(
         if (ocupado) return res.status(409).json({ error: 'slot-taken' });
       }
 
+      // ── Recargo configurable (para mostrar el total en el correo) ────────
+      let recargo = 5000;
+      try {
+        const cfg = await db.doc(`tenants/${tenantId}/configuracion/corteLapiz`).get();
+        const r = cfg.exists ? Number(cfg.data().recargo ?? cfg.data().monto) : NaN;
+        if (Number.isFinite(r) && r >= 0) recargo = Math.round(r);
+      } catch (_) {}
+      const precio = Math.round(Number(cita.precio) || 0);
+
       // ── Crear la cita ────────────────────────────────────────────────────
       const citaRef = citasCol(tenantId).doc();
       await citaRef.set({
         ...cita,
-        estado:     'Confirmada',
-        origen:     'web-corte-lapiz',
-        corteLapiz: true,
-        clienteUid: uid,
-        creadoEn:   FieldValue.serverTimestamp(),
+        estado:            'Confirmada',
+        origen:            'web-corte-lapiz',
+        corteLapiz:        true,
+        corteLapizRecargo: recargo,
+        corteLapizTotal:   precio + recargo,
+        clienteUid:        uid,
+        creadoEn:          FieldValue.serverTimestamp(),
       });
 
       logger.info(`[CorteLapiz] reserva creada ${citaRef.id} (${tenantId}) uid=${uid}`);
