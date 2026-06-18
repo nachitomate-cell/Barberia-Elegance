@@ -173,7 +173,7 @@ export default function LinkBio() {
     } finally { setSaving(false); }
   };
 
-  const handle = (cfg.handle || '').trim();
+  const handle = (cfg?.handle || '').trim();
   const bioUrl = handle ? `https://bioo.cl/${handle}` : `${window.location.origin}/bio`;
   const copyLink = () => {
     navigator.clipboard.writeText(bioUrl).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1500); });
