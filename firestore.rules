@@ -637,6 +637,19 @@ service cloud.firestore {
         allow write: if esStaff(tid);
       }
 
+      // ── corteLapiz (membresía a cuenta corriente · Yūgen) ─────────
+      // Cuenta corriente por cliente. El staff la gestiona desde el panel;
+      // la Cloud Function (admin SDK) le suma el cargo al completar la cita.
+      // El propio cliente logueado puede LEER su cuenta (para saber, al
+      // reservar en la web, si tiene la membresía activa) pero no escribirla.
+      match /corteLapiz/{uid} {
+        allow read:  if esStaff(tid) || (autenticado() && uid() == uid);
+        allow write: if esStaff(tid);
+        match /pagos/{pagoId} {
+          allow read, write: if esStaff(tid);
+        }
+      }
+
       // ── admin_notes ───────────────────────────────────────────────
       match /admin_notes/{docId} {
         allow read, write: if esStaff(tid);

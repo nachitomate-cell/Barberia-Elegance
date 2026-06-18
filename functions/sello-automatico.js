@@ -90,6 +90,73 @@ async function verificarMembresia(usersCol, uid, servicioKey) {
   return { aplicable: true, restantes };
 }
 
+// ── Corte al Lápiz (Yūgen): membresía a cuenta corriente ──────────
+//  Si el cliente que completa la cita tiene una cuenta Corte al Lápiz
+//  activa, le sumamos a su cuota el PRECIO del servicio + un recargo
+//  (default $5.000 por usar el crédito). Paga el total a fin de mes.
+//  Idempotente por citaId: si la cuenta ya tiene un cargo de esta cita,
+//  no vuelve a sumar. La cuenta vive en tenants/{tid}/corteLapiz/{uid}.
+const CORTE_LAPIZ_RECARGO_DEFAULT = 5000;
+// Tenants con la membresía Corte al Lápiz activa (evita lecturas extra en el resto).
+const CORTE_LAPIZ_TENANTS = new Set(['yugen']);
+
+async function acreditarCorteLapiz({ tenantId, uid, telefono, cita, citaId }) {
+  if (!CORTE_LAPIZ_TENANTS.has(tenantId)) return;
+  try {
+    const col = db.collection(`tenants/${tenantId}/corteLapiz`);
+
+    // Buscar la cuenta: primero por uid (resuelto o el clienteUid de la cita),
+    // luego por teléfono normalizado.
+    let cuentaRef = null;
+    for (const u of [uid, cita.clienteUid].filter(Boolean)) {
+      const d = await col.doc(u).get();
+      if (d.exists) { cuentaRef = d.ref; break; }
+    }
+    if (!cuentaRef && telefono) {
+      const q = await col.where('telefonoNorm', '==', telefono).limit(1).get();
+      if (!q.empty) cuentaRef = q.docs[0].ref;
+    }
+    if (!cuentaRef) return; // el cliente no es miembro Corte al Lápiz
+
+    // Recargo configurable (tenants/{tid}/configuracion/corteLapiz.recargo).
+    let recargo = CORTE_LAPIZ_RECARGO_DEFAULT;
+    try {
+      const cfg = await db.doc(`tenants/${tenantId}/configuracion/corteLapiz`).get();
+      // Soporta el campo nuevo (recargo) y el antiguo (monto).
+      const r = cfg.exists ? Number(cfg.data().recargo ?? cfg.data().monto) : NaN;
+      if (Number.isFinite(r) && r >= 0) recargo = Math.round(r);
+    } catch (_) {}
+
+    const precio = Math.round(Number(cita.precio) || 0);
+    const total  = precio + recargo;
+
+    await db.runTransaction(async (tx) => {
+      const snap = await tx.get(cuentaRef);
+      if (!snap.exists) return;
+      const data = snap.data();
+      if (data.activo === false) return;                                   // membresía desactivada
+      if ((data.servicios || []).some(s => s.citaId === citaId)) return;   // ya cargado (idempotente)
+
+      tx.update(cuentaRef, {
+        saldo: FieldValue.increment(total),
+        servicios: FieldValue.arrayUnion({
+          citaId,
+          fecha:          cita.fecha || Timestamp.now().toDate().toISOString().split('T')[0],
+          servicioNombre: cita.servicioNombre || cita.servicio || '',
+          precio,
+          recargo,
+          monto: total,
+          ts: Timestamp.now(),
+        }),
+        updatedAt: Timestamp.now(),
+      });
+    });
+    logger.info(`[CorteLapiz] ${citaId} (${tenantId}): +$${total} (precio $${precio} + recargo $${recargo}) a la cuota de ${cuentaRef.id}`);
+  } catch (e) {
+    logger.error(`[CorteLapiz] ${citaId} (${tenantId}): error acreditando cuota:`, e);
+  }
+}
+
 // ── Lógica principal ──────────────────────────────────────────────
 async function procesarSello({ tenantId, citaId, citaRef, cita }) {
   const cols = colecciones(tenantId);
@@ -126,6 +193,9 @@ async function procesarSello({ tenantId, citaId, citaRef, cita }) {
     }
 
     if (uidSinTel) {
+      // Corte al Lápiz: sumar el servicio a la cuota del miembro (sin teléfono).
+      await acreditarCorteLapiz({ tenantId, uid: uidSinTel, telefono: null, cita, citaId });
+
       const svcNombre = cita.servicioNombre || cita.servicio || '';
       const svcKey    = servicioAKey(svcNombre);
       const membresia = svcKey
@@ -252,6 +322,9 @@ async function procesarSello({ tenantId, citaId, citaRef, cita }) {
       logger.warn(`[Sello] ${citaId}: fallback uid por email falló: ${e.message}`);
     }
   }
+
+  // ── Corte al Lápiz: sumar el servicio a la cuota del miembro ────
+  await acreditarCorteLapiz({ tenantId, uid, telefono, cita, citaId });
 
   // ── 2. Verificar membresía ─────────────────────────────────────
   const membresia = uid && servicioKey

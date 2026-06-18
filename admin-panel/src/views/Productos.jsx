@@ -673,7 +673,13 @@ export default function Productos() {
   }, []);
 
   const toggleActivo = async (newVal) => {
-    await setDoc(tenantDoc('config', 'ui'), { productosActivos: newVal }, { merge: true });
+    // La bandera vive en dos documentos: config/ui (lo lee el perfil del club)
+    // y configuracion/main (lo lee el sitio público de reserva). Hay que
+    // escribir en ambos para que productos se vean en las dos vistas.
+    await Promise.all([
+      setDoc(tenantDoc('config', 'ui'),          { productosActivos: newVal }, { merge: true }),
+      setDoc(tenantDoc('configuracion', 'main'), { productosActivos: newVal }, { merge: true }),
+    ]);
     setActivo(newVal);
     setConfirmOn(false);
   };

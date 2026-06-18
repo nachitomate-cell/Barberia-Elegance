@@ -18,8 +18,13 @@ import { useBillingRestriction } from '../BillingGate';
 // Secciones que se bloquean cuando el pago está muy atrasado (modo restringido).
 const SECCIONES_BLOQUEADAS = new Set(['metricas', 'comisiones', 'caja', 'gastos', 'marketing', 'finanzas']);
 
-// Tenants con módulo de Membresías (suscripción) activo en el panel.
-const MEMBRESIAS_TENANTS = new Set(['chameleon', 'yugen']);
+// Ítem de membresía por tenant (se inyecta en el grupo "Clientes").
+// Chameleon usa el módulo clásico de planes; Yūgen usa "Corte al Lápiz"
+// (sistema de cuota/crédito con su propia vista).
+const MEMBRESIAS_ITEM = {
+  chameleon: { to: 'membresias',     label: 'Membresías',     Icon: Medal },
+  yugen:     { to: 'corte-al-lapiz', label: 'Corte al Lápiz', Icon: Medal },
+};
 
 /* ── Grupos de navegación ────────────────────────────────────────── */
 const NAV_GROUPS_DEFAULT = [
@@ -255,14 +260,12 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
 
     let base = NAV_GROUPS_DEFAULT.map(group => {
       if (group.id !== 'clientes') return group;
-      // Inyectar Membresías en Clientes para los tenants con suscripción activa.
-      if (!MEMBRESIAS_TENANTS.has(tenant.id)) return group;
+      // Inyectar el ítem de membresía en Clientes para los tenants con módulo activo.
+      const membItem = MEMBRESIAS_ITEM[tenant.id];
+      if (!membItem) return group;
       return {
         ...group,
-        items: [
-          ...group.items,
-          { to: 'membresias', label: 'Membresías', Icon: Medal },
-        ],
+        items: [...group.items, membItem],
       };
     });
 

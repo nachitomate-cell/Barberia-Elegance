@@ -1,0 +1,536 @@
+import { useState, useEffect, useMemo } from 'react';
+import {
+  collection, onSnapshot, query,
+  doc, updateDoc, setDoc, addDoc, Timestamp,
+} from 'firebase/firestore';
+import { db } from '../lib/firebase';
+import { useTenant } from '../contexts/TenantContext';
+import { confirmDialog } from '../lib/confirmDialog';
+import HelpModal, { HelpButton } from '../components/ui/HelpModal';
+import {
+  Users, UserCheck, Plus, XCircle, Search, Check, ShieldCheck,
+  Pencil, Wallet, HandCoins, Receipt, HelpCircle,
+} from 'lucide-react';
+
+const RECARGO_DEFAULT = 5000;
+
+const INPUT_CLS = 'w-full bg-slate-900 border border-slate-700/60 rounded-xl px-3.5 py-2.5 text-white text-sm focus:outline-none focus:border-amber-500/80 transition-all shadow-inner placeholder:text-slate-500';
+
+const fmt = n => `$${(Number(n) || 0).toLocaleString('es-CL')}`;
+const normalizePhone = p => (p || '').replace(/\D/g, '');
+
+/* ── Modal: Activar membresía (buscar cliente registrado) ─────────── */
+function ModalActivar({ tenantId, cuentasUids, onClose }) {
+  const [todosUsuarios, setTodosUsuarios] = useState([]);
+  const [buscando, setBuscando]   = useState(false);
+  const [searchVal, setSearchVal] = useState('');
+  const [focused, setFocused]     = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error,   setError]   = useState('');
+
+  useEffect(() => {
+    setBuscando(true);
+    const ref = collection(db, 'tenants', tenantId, 'users');
+    const unsub = onSnapshot(ref, snap => {
+      const list = snap.docs.map(d => ({
+        uid:      d.id,
+        nombre:   d.data().nombre || 'Cliente sin nombre',
+        telefono: d.data().telefono || '',
+      }));
+      list.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+      setTodosUsuarios(list);
+      setBuscando(false);
+    }, () => setBuscando(false));
+    return unsub;
+  }, [tenantId]);
+
+  // Clientes del club que aún no son miembros Corte al Lápiz.
+  const disponibles = useMemo(
+    () => todosUsuarios.filter(u => !cuentasUids.has(u.uid)),
+    [todosUsuarios, cuentasUids],
+  );
+
+  // Muestra coincidencias al escribir; si el campo está enfocado y vacío,
+  // muestra los primeros clientes del club para poder elegir directo.
+  const suggestions = useMemo(() => {
+    if (selectedUser) return [];
+    const term = searchVal.toLowerCase().trim();
+    if (!term) return focused ? disponibles.slice(0, 8) : [];
+    return disponibles
+      .filter(u =>
+        u.nombre.toLowerCase().includes(term) ||
+        u.uid.toLowerCase().includes(term) ||
+        normalizePhone(u.telefono).includes(normalizePhone(term)))
+      .slice(0, 8);
+  }, [searchVal, disponibles, selectedUser, focused]);
+
+  async function activar() {
+    if (!selectedUser) { setError('Selecciona un cliente válido.'); return; }
+    setLoading(true); setError('');
+    try {
+      await setDoc(doc(db, 'tenants', tenantId, 'corteLapiz', selectedUser.uid), {
+        uid:          selectedUser.uid,
+        nombre:       selectedUser.nombre,
+        telefono:     selectedUser.telefono || '',
+        telefonoNorm: normalizePhone(selectedUser.telefono),
+        activo:       true,
+        saldo:        0,
+        servicios:    [],
+        creadoEn:     Timestamp.now(),
+        updatedAt:    Timestamp.now(),
+      }, { merge: true });
+      onClose();
+    } catch (e) {
+      setError(e.message || 'Error al activar la membresía.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+      <div className="w-full max-w-md bg-slate-800 border border-slate-700 rounded-2xl p-6 space-y-4 shadow-2xl relative">
+        <h3 className="text-white font-bold text-lg flex items-center gap-2">
+          <ShieldCheck className="text-amber-400" size={20} />
+          Activar Corte al Lápiz
+        </h3>
+        {error && <p className="text-red-400 text-xs bg-red-950/20 border border-red-900/30 rounded-lg px-3 py-2">{error}</p>}
+
+        <div className="relative">
+          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Buscar cliente</label>
+          <div className="relative">
+            <input
+              value={searchVal}
+              onChange={e => { setSearchVal(e.target.value); if (selectedUser) { setSelectedUser(null); } }}
+              onFocus={() => setFocused(true)}
+              onBlur={() => setTimeout(() => setFocused(false), 150)}
+              disabled={buscando}
+              placeholder={buscando ? 'Cargando clientes del club…' : 'Escribe o toca para ver los clientes…'}
+              className={INPUT_CLS + (selectedUser ? ' border-amber-500/80 pr-10 text-amber-400 font-semibold' : ' pr-8')}
+            />
+            {selectedUser ? (
+              <button onClick={() => { setSelectedUser(null); setSearchVal(''); }}
+                className="absolute right-3 top-2.5 text-slate-400 hover:text-red-400 text-xs font-bold transition-all p-0.5 rounded">
+                Cambiar
+              </button>
+            ) : (
+              <Search size={16} className="absolute right-3 top-3 text-slate-500 pointer-events-none" />
+            )}
+          </div>
+
+          {suggestions.length > 0 && (
+            <div className="absolute z-10 left-0 right-0 mt-1.5 bg-slate-900 border border-slate-750 rounded-xl overflow-hidden shadow-2xl max-h-48 overflow-y-auto">
+              {suggestions.map(u => (
+                <button key={u.uid}
+                  onClick={() => { setSelectedUser(u); setSearchVal(u.nombre); }}
+                  className="w-full text-left px-4 py-2.5 hover:bg-slate-800 text-sm text-slate-300 flex flex-col transition-colors border-b border-slate-800/40">
+                  <span className="font-semibold text-white">{u.nombre}</span>
+                  <span className="text-[10px] text-slate-500 mt-0.5">{u.telefono ? `Tel: ${u.telefono}` : `UID: ${u.uid.slice(0, 10)}…`}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {searchVal && !selectedUser && suggestions.length === 0 && !buscando && (
+            <p className="text-[10px] text-amber-400/80 mt-1 pl-1">No encontramos ese cliente. Debe registrarse en el club de fidelidad primero para activarle la membresía.</p>
+          )}
+          {!searchVal && !selectedUser && focused && !buscando && disponibles.length === 0 && (
+            <p className="text-[10px] text-slate-500 mt-1 pl-1">No hay clientes del club disponibles para activar todavía.</p>
+          )}
+        </div>
+
+        {selectedUser && (
+          <div className="flex items-center gap-3 bg-amber-500/5 border border-amber-500/25 rounded-xl px-4 py-3">
+            <div className="w-9 h-9 rounded-full bg-amber-500/15 flex items-center justify-center shrink-0">
+              <UserCheck size={17} className="text-amber-400" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-white truncate">{selectedUser.nombre}</p>
+              <p className="text-[11px] text-slate-400 truncate">{selectedUser.telefono ? `Tel: ${selectedUser.telefono}` : 'Cliente registrado'}</p>
+            </div>
+            <Check size={16} className="text-amber-400 shrink-0" />
+          </div>
+        )}
+
+        <div className="flex gap-3 pt-2">
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-slate-700 text-slate-400 text-sm font-semibold hover:bg-slate-700 hover:text-white transition-all">
+            Cancelar
+          </button>
+          <button onClick={activar} disabled={loading || !selectedUser}
+            className="flex-1 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-sm font-bold transition-all disabled:opacity-50 shadow-lg shadow-amber-950/20">
+            {loading ? 'Activando…' : 'Activar'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Modal: Saldar cuota del mes ─────────────────────────────────── */
+function ModalSaldar({ cuenta, tenantId, onClose }) {
+  const [metodo, setMetodo]   = useState('efectivo');
+  const [loading, setLoading] = useState(false);
+  const saldo     = Number(cuenta.saldo) || 0;
+  const servicios = cuenta.servicios || [];
+
+  async function saldar() {
+    setLoading(true);
+    try {
+      // 1. Registrar el pago (queda como historial de la cuenta)
+      await addDoc(collection(db, 'tenants', tenantId, 'corteLapiz', cuenta.uid, 'pagos'), {
+        monto:            saldo,
+        cantidadServicios: servicios.length,
+        servicios,
+        metodoPago:       metodo,
+        fechaPago:        Timestamp.now(),
+      });
+      // 2. Reiniciar la cuota del cliente a $0
+      await updateDoc(doc(db, 'tenants', tenantId, 'corteLapiz', cuenta.uid), {
+        saldo:     0,
+        servicios: [],
+        ultimoPago: Timestamp.now(),
+        updatedAt:  Timestamp.now(),
+      });
+      onClose();
+    } catch (e) {
+      console.error(e);
+      alert('Error al saldar la cuota.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4">
+      <div className="w-full max-w-md bg-slate-800 border border-slate-700/80 rounded-2xl p-6 space-y-4 shadow-2xl relative overflow-hidden">
+        <div className="absolute -top-10 -right-10 w-32 h-32 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="space-y-1">
+          <h3 className="text-white font-bold text-lg flex items-center gap-2">
+            <HandCoins size={18} className="text-amber-400" />
+            Saldar cuota
+          </h3>
+          <p className="text-xs text-slate-400">Cliente: <strong className="text-white">{cuenta.nombre || '—'}</strong></p>
+        </div>
+
+        <div className="bg-slate-900/80 border border-slate-700/40 rounded-xl p-4 space-y-2.5">
+          <div className="flex justify-between items-center">
+            <span className="text-xs text-slate-500 uppercase tracking-wider font-bold">Servicios del período:</span>
+            <span className="font-semibold text-slate-200">{servicios.length}</span>
+          </div>
+          <div className="flex justify-between items-center pt-2.5 border-t border-slate-800">
+            <span className="text-xs text-slate-500 uppercase tracking-wider font-bold">Total a cobrar:</span>
+            <span className="font-black text-white text-lg">{fmt(saldo)}</span>
+          </div>
+        </div>
+
+        {servicios.length > 0 && (
+          <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1">
+            {servicios.map((s, i) => (
+              <div key={i} className="flex justify-between items-center text-xs bg-slate-900/40 border border-slate-800/60 rounded-lg px-3 py-2">
+                <span className="text-slate-300 truncate">
+                  {s.servicioNombre || 'Servicio'} <span className="text-slate-600">· {s.fecha || ''}</span>
+                  {(s.precio != null && s.recargo != null) && (
+                    <span className="block text-[10px] text-slate-600">{fmt(s.precio)} + {fmt(s.recargo)} recargo</span>
+                  )}
+                </span>
+                <span className="text-slate-400 font-semibold shrink-0 ml-2">{fmt(s.monto)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="space-y-2">
+          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Método de pago</label>
+          <select value={metodo} onChange={e => setMetodo(e.target.value)} className={INPUT_CLS}>
+            <option value="efectivo">💵 Efectivo</option>
+            <option value="transferencia">📲 Transferencia Bancaria</option>
+            <option value="tarjeta">💳 Tarjeta de Débito/Crédito</option>
+          </select>
+        </div>
+
+        <div className="flex gap-3 pt-2">
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-slate-700 text-slate-400 text-sm font-semibold hover:bg-slate-700 hover:text-white transition-all">
+            Cancelar
+          </button>
+          <button onClick={saldar} disabled={loading || saldo <= 0}
+            className="flex-1 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-sm font-bold transition-all shadow-lg shadow-amber-950/20 disabled:opacity-50">
+            {loading ? 'Procesando…' : 'Confirmar pago'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Modal: Configurar recargo por servicio ──────────────────────── */
+function ModalRecargo({ tenantId, recargoActual, onClose }) {
+  const [recargo, setRecargo] = useState(String(recargoActual ?? RECARGO_DEFAULT));
+  const [loading, setLoading] = useState(false);
+
+  async function guardar() {
+    setLoading(true);
+    try {
+      await setDoc(doc(db, 'tenants', tenantId, 'configuracion', 'corteLapiz'),
+        { recargo: Math.round(Number(recargo)) || 0, updatedAt: Timestamp.now() },
+        { merge: true });
+      onClose();
+    } catch (e) {
+      console.error(e);
+      alert('Error al guardar el recargo.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4">
+      <div className="w-full max-w-sm bg-slate-800 border border-slate-700/80 rounded-2xl p-6 space-y-4 shadow-2xl">
+        <h3 className="text-white font-bold text-lg flex items-center gap-2">
+          <Pencil size={17} className="text-amber-400" /> Recargo por servicio
+        </h3>
+        <p className="text-xs text-slate-400">Se suma al <strong className="text-slate-200">precio del servicio</strong> cada vez que el miembro completa una cita. La cuota acumula <strong className="text-slate-200">precio + recargo</strong>.</p>
+        <div>
+          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Recargo (CLP)</label>
+          <input type="number" min="0" step="100" inputMode="numeric"
+            value={recargo}
+            onChange={e => setRecargo(e.target.value.replace(/[^\d]/g, ''))}
+            className={INPUT_CLS} />
+        </div>
+        <div className="flex gap-3 pt-1">
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-slate-700 text-slate-400 text-sm font-semibold hover:bg-slate-700 hover:text-white transition-all">
+            Cancelar
+          </button>
+          <button onClick={guardar} disabled={loading}
+            className="flex-1 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-sm font-bold transition-all disabled:opacity-50">
+            {loading ? 'Guardando…' : 'Guardar'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Vista principal ─────────────────────────────────────────────── */
+export default function CorteAlLapiz() {
+  const tenant = useTenant();
+  const [cuentas, setCuentas] = useState([]);
+  const [recargo, setRecargo] = useState(RECARGO_DEFAULT);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showHelp,     setShowHelp]     = useState(false);
+  const [modalActivar, setModalActivar] = useState(false);
+  const [modalRecargo, setModalRecargo] = useState(false);
+  const [cuentaSaldar, setCuentaSaldar] = useState(null);
+
+  // Recargo por servicio configurable
+  useEffect(() => {
+    const ref = doc(db, 'tenants', tenant.id, 'configuracion', 'corteLapiz');
+    const unsub = onSnapshot(ref, snap => {
+      // Soporta el campo nuevo (recargo) y el antiguo (monto).
+      const r = snap.exists() ? Number(snap.data().recargo ?? snap.data().monto) : NaN;
+      setRecargo(Number.isFinite(r) && r >= 0 ? r : RECARGO_DEFAULT);
+    });
+    return unsub;
+  }, [tenant.id]);
+
+  // Cuentas (miembros)
+  useEffect(() => {
+    const q = query(collection(db, 'tenants', tenant.id, 'corteLapiz'));
+    const unsub = onSnapshot(q, snap => {
+      const docs = snap.docs.map(d => ({ uid: d.id, ...d.data() }));
+      docs.sort((a, b) => (Number(b.saldo) || 0) - (Number(a.saldo) || 0));
+      setCuentas(docs);
+      setLoading(false);
+    }, () => setLoading(false));
+    return unsub;
+  }, [tenant.id]);
+
+  const activas = useMemo(() => cuentas.filter(c => c.activo !== false), [cuentas]);
+  const cuentasUids = useMemo(() => new Set(activas.map(c => c.uid)), [activas]);
+
+  const totalPorCobrar = useMemo(() => activas.reduce((s, c) => s + (Number(c.saldo) || 0), 0), [activas]);
+  const serviciosMes   = useMemo(() => activas.reduce((s, c) => s + (c.servicios?.length || 0), 0), [activas]);
+
+  const filtradas = useMemo(() => {
+    const term = searchTerm.toLowerCase().trim();
+    if (!term) return activas;
+    return activas.filter(c =>
+      (c.nombre || '').toLowerCase().includes(term) ||
+      (c.telefono || '').includes(term) ||
+      c.uid.toLowerCase().includes(term));
+  }, [activas, searchTerm]);
+
+  async function handleDesactivar(cuenta) {
+    const saldo = Number(cuenta.saldo) || 0;
+    const msg = saldo > 0
+      ? `${cuenta.nombre || 'Este cliente'} tiene una cuota pendiente de ${fmt(saldo)}. Si desactivas la membresía, la cuota quedará sin saldar. ¿Continuar?`
+      : `¿Desactivar la membresía Corte al Lápiz de ${cuenta.nombre || cuenta.uid}?`;
+    if (!(await confirmDialog(msg))) return;
+    try {
+      await updateDoc(doc(db, 'tenants', tenant.id, 'corteLapiz', cuenta.uid), {
+        activo: false, updatedAt: Timestamp.now(),
+      });
+    } catch (e) {
+      console.error(e);
+      alert('Error al desactivar la membresía.');
+    }
+  }
+
+  return (
+    <div className="p-4 md:p-6 max-w-4xl mx-auto space-y-6">
+
+      {/* Encabezado */}
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">{tenant.name}</p>
+          <h1 className="text-2xl font-black text-white tracking-tight flex items-center gap-2">
+            Corte al Lápiz
+            <HelpButton onClick={() => setShowHelp(true)} />
+          </h1>
+          <p className="text-xs text-slate-500 mt-1">Membresía a cuenta corriente · precio del servicio + {fmt(recargo)}</p>
+        </div>
+        <button onClick={() => setModalRecargo(true)}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-700/80 text-slate-400 text-sm font-semibold hover:text-white hover:border-slate-500 hover:bg-slate-900/40 transition-all shadow-sm shrink-0">
+          <Pencil size={15} /> Recargo por servicio
+        </button>
+      </div>
+
+      {/* Métricas */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div className="bg-slate-800/40 border border-slate-700/60 rounded-2xl p-4 shadow-md relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full blur-2xl group-hover:bg-amber-500/10 transition-all" />
+          <div className="flex items-center gap-2 text-amber-400 mb-1">
+            <Wallet size={15} /><span className="text-[10px] font-bold uppercase tracking-widest">Total por cobrar</span>
+          </div>
+          <p className="text-xl md:text-2xl font-black text-white">{fmt(totalPorCobrar)}</p>
+        </div>
+        <div className="bg-slate-800/40 border border-slate-700/60 rounded-2xl p-4 shadow-md relative overflow-hidden group">
+          <div className="flex items-center gap-2 text-emerald-400 mb-1">
+            <UserCheck size={15} /><span className="text-[10px] font-bold uppercase tracking-widest">Miembros</span>
+          </div>
+          <p className="text-2xl font-black text-white">{activas.length}</p>
+        </div>
+        <div className="bg-slate-800/40 border border-slate-700/60 rounded-2xl p-4 shadow-md relative overflow-hidden group col-span-2 md:col-span-1">
+          <div className="flex items-center gap-2 text-indigo-400 mb-1">
+            <Receipt size={15} /><span className="text-[10px] font-bold uppercase tracking-widest">Servicios sin saldar</span>
+          </div>
+          <p className="text-2xl font-black text-white">{serviciosMes}</p>
+        </div>
+      </div>
+
+      {/* Tabla de miembros */}
+      <div className="bg-slate-800/40 border border-slate-700/80 rounded-2xl overflow-hidden shadow-2xl backdrop-blur-sm">
+        <div className="px-5 py-4 border-b border-slate-750 flex flex-col gap-3.5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Users size={16} className="text-slate-400" />
+              <span className="text-sm font-bold text-white">Miembros Corte al Lápiz</span>
+            </div>
+            <button onClick={() => setModalActivar(true)}
+              className="flex items-center gap-1.5 px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-amber-950/20 active:scale-95">
+              <Plus size={14} /> Activar membresía
+            </button>
+          </div>
+          <div className="relative">
+            <input value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+              placeholder="Buscar por cliente o teléfono…"
+              className={INPUT_CLS + ' py-2 pl-9 pr-4 text-xs'} />
+            <Search size={14} className="absolute left-3.5 top-3 text-slate-500" />
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="p-12 flex justify-center">
+            <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : filtradas.length === 0 ? (
+          <div className="p-12 text-center text-slate-500 text-sm flex flex-col items-center justify-center gap-2.5">
+            <HelpCircle size={24} className="text-slate-600" />
+            <span>Aún no hay miembros de Corte al Lápiz. Toca "Activar membresía" para agregar uno.</span>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="border-b border-slate-800 text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-900/10">
+                  <th className="px-4 py-2.5">Cliente</th>
+                  <th className="px-4 py-2.5">Servicios</th>
+                  <th className="px-4 py-2.5">Cuota a fin de mes</th>
+                  <th className="px-4 py-2.5">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtradas.map(c => {
+                  const saldo = Number(c.saldo) || 0;
+                  return (
+                    <tr key={c.uid} className={`border-b border-slate-800/60 hover:bg-slate-800/10 transition-all ${saldo > 0 ? 'bg-amber-950/10' : ''}`}>
+                      <td className="px-4 py-3.5">
+                        <p className="text-sm font-semibold text-white">{c.nombre || '—'}</p>
+                        <p className="text-[10px] text-slate-500 mt-0.5">{c.telefono || c.uid.slice(0, 12) + '…'}</p>
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 border border-slate-700 text-slate-300">
+                          {c.servicios?.length || 0}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <span className={`font-black text-sm ${saldo > 0 ? 'text-amber-400' : 'text-slate-500'}`}>{fmt(saldo)}</span>
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => setCuentaSaldar(c)} disabled={saldo <= 0}
+                            title="Saldar cuota"
+                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold text-amber-400 hover:text-white hover:bg-amber-600 transition-all disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-amber-400">
+                            <HandCoins size={13} /> Saldar
+                          </button>
+                          <button onClick={() => handleDesactivar(c)}
+                            title="Desactivar membresía"
+                            className="p-2 rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-950/30 transition-all">
+                            <XCircle size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Modales */}
+      {modalActivar && <ModalActivar tenantId={tenant.id} cuentasUids={cuentasUids} onClose={() => setModalActivar(false)} />}
+      {modalRecargo && <ModalRecargo tenantId={tenant.id} recargoActual={recargo}    onClose={() => setModalRecargo(false)} />}
+      {cuentaSaldar && <ModalSaldar  cuenta={cuentaSaldar} tenantId={tenant.id}       onClose={() => setCuentaSaldar(null)} />}
+
+      {showHelp && (
+        <HelpModal title="Cómo funciona Corte al Lápiz" onClose={() => setShowHelp(false)}>
+          <p>Es una membresía <strong className="text-white">a cuenta corriente</strong> (tipo crédito). El cliente miembro agenda sin pagar en el momento y cada servicio que completa se le suma a una cuota que paga a fin de mes.</p>
+
+          <div>
+            <p className="font-semibold text-amber-400 mb-1">1. Activar la membresía</p>
+            <p>Toca <em>"Activar membresía"</em> y busca al cliente (debe estar registrado en el club). Desde ese momento queda como miembro Corte al Lápiz.</p>
+          </div>
+
+          <div>
+            <p className="font-semibold text-amber-400 mb-1">2. Agendar</p>
+            <p>El miembro lo agendas tú desde el panel (Agenda), igual que cualquier cita. No pasa por la pasarela de pago.</p>
+          </div>
+
+          <div>
+            <p className="font-semibold text-amber-400 mb-1">3. Acumulación automática</p>
+            <p>Cuando marcas la cita como <strong className="text-white">Completada</strong>, el sistema le suma a su cuota el <strong className="text-white">precio del servicio + {fmt(recargo)}</strong> de recargo, automáticamente. Puedes cambiar el recargo con el botón <em>"Recargo por servicio"</em>.</p>
+          </div>
+
+          <div>
+            <p className="font-semibold text-amber-400 mb-1">4. Saldar a fin de mes</p>
+            <p>Cuando el cliente paga, toca <em>"Saldar"</em>, elige el método de pago y la cuota vuelve a $0. El pago queda registrado en su historial.</p>
+          </div>
+        </HelpModal>
+      )}
+    </div>
+  );
+}
