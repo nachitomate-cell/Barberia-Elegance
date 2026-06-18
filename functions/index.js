@@ -770,13 +770,22 @@ exports.pushChatMsgElegance = pushChat.pushChatMsgElegance;
 exports.pushChatMsgTenant   = pushChat.pushChatMsgTenant;
 
 // ─────────────────────────────────────────────────────────────────
-//  PASARELA DE PAGO FLOW — ver flow-pago.js
+//  PASARELA DE PAGO MERCADO PAGO — ver mercadopago-pago.js
 //  Cobro previo a la reserva (tenants opt-in: hoy yugen). La cita se
 //  crea recién al confirmar el pago (webhook), disparando email + push.
-//  Secrets: FLOW_API_KEY, FLOW_SECRET_KEY
+//  Reemplazó a Flow como única pasarela. Secret: MP_ACCESS_TOKEN.
+//  (El módulo flow-pago.js queda en el repo para referencia/rollback.)
 // ─────────────────────────────────────────────────────────────────
-const flowPago = require('./flow-pago');
-exports.flowCrearPago    = flowPago.flowCrearPago;
-exports.flowConfirmacion = flowPago.flowConfirmacion;
-exports.flowRetorno      = flowPago.flowRetorno;
-exports.flowReembolsar   = flowPago.flowReembolsar;
+const mpPago = require('./mercadopago-pago');
+exports.mpCrearPago = mpPago.mpCrearPago;
+exports.mpWebhook   = mpPago.mpWebhook;
+exports.mpRetorno   = mpPago.mpRetorno;
+exports.mpReembolsar = mpPago.mpReembolsar;
+
+// ─────────────────────────────────────────────────────────────────
+//  CORTE AL LÁPIZ — reserva sin pasarela para miembros (Yūgen)
+//  ver corte-lapiz-reservar.js. La acumulación a la cuenta corriente
+//  la hace sello-automatico al completar la cita.
+// ─────────────────────────────────────────────────────────────────
+const corteLapizReservar = require('./corte-lapiz-reservar');
+exports.corteLapizReservar = corteLapizReservar.corteLapizReservar;

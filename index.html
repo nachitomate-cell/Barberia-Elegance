@@ -8822,10 +8822,15 @@
           }
         }
 
-        // ── Pago online previo (tenants con pasarela Flow: yugen) ──────────
+        // ── Pago online previo (tenants con pasarela Mercado Pago: yugen) ──
         // El cliente paga ANTES de crear la cita; la cita la crea el webhook de
-        // Flow al confirmar el pago, disparando email + push como cualquier otra.
+        // Mercado Pago al confirmar el pago, disparando email + push como cualquier otra.
         // El barbero agenda desde el panel (no pasa por aquí) → exento de pago.
+        //
+        // Excepción: un cliente LOGUEADO con membresía "Corte al Lápiz" activa
+        // puede elegir agendar sin pasar por la pasarela; el servicio se suma a
+        // su cuenta corriente (precio + recargo) y lo paga a fin de mes.
+        let citaGuardada = false;
         const _PAGO_TENANTS = ['yugen'];
         if (_PAGO_TENANTS.includes(window.CURRENT_TENANT_ID)) {
           const _dowPago = new Date(currentDateStr + 'T00:00:00').getDay();
@@ -8845,26 +8850,85 @@
           };
           const _btnPago = document.getElementById('btnContinue');
           const _btnHtmlPrev = _btnPago ? _btnPago.innerHTML : '';
-          if (_btnPago) { _btnPago.disabled = true; _btnPago.innerHTML = 'Redirigiendo al pago…'; }
+
+          // ¿El cliente logueado es miembro Corte al Lápiz activo? Le ofrecemos elegir.
+          let _usarCorteLapiz = false;
           try {
-            const _resp = await fetch('https://us-central1-barberia-elegance.cloudfunctions.net/flowCrearPago', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ tenantId: window.CURRENT_TENANT_ID, cita: _citaPago }),
-            });
-            const _data = await _resp.json().catch(() => null);
-            if (_data && _data.url) { window.location.href = _data.url; return; }
-            console.error('[Flow] respuesta inesperada', _data);
-            showToast('No se pudo iniciar el pago. Intenta nuevamente.');
-          } catch (e) {
-            console.error('[Flow] error', e);
-            showToast('No se pudo conectar con la pasarela de pago. Revisa tu conexión.');
+            const _authUser = firebase.auth().currentUser;
+            if (_authUser) {
+              const _clSnap = await db.collection('tenants').doc(window.CURRENT_TENANT_ID)
+                .collection('corteLapiz').doc(_authUser.uid).get();
+              if (_clSnap.exists && _clSnap.data().activo !== false) {
+                let _recargo = 5000;
+                try {
+                  const _cfg = await db.collection('tenants').doc(window.CURRENT_TENANT_ID)
+                    .collection('configuracion').doc('corteLapiz').get();
+                  const _r = _cfg.exists ? Number(_cfg.data().recargo ?? _cfg.data().monto) : NaN;
+                  if (Number.isFinite(_r) && _r >= 0) _recargo = Math.round(_r);
+                } catch (_) {}
+                const _op = await _preguntarCorteLapiz(_citaPago.precio, _recargo);
+                if (_op === null) return;          // canceló: no agenda ni paga
+                _usarCorteLapiz = (_op === 'corte');
+              }
+            }
+          } catch (e) { console.warn('[CorteLapiz] verificación de membresía falló', e); }
+
+          if (_usarCorteLapiz) {
+            // Crear la cita sin pasarela (la CF verifica la membresía server-side).
+            if (_btnPago) { _btnPago.disabled = true; _btnPago.innerHTML = 'Agendando…'; }
+            try {
+              const _token = await firebase.auth().currentUser.getIdToken();
+              const _resp = await fetch('https://us-central1-barberia-elegance.cloudfunctions.net/corteLapizReservar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _token },
+                body: JSON.stringify({ tenantId: window.CURRENT_TENANT_ID, cita: _citaPago }),
+              });
+              const _data = await _resp.json().catch(() => null);
+              if (_resp.ok && _data && _data.ok) {
+                citaGuardada = true;               // continúa al bloque de confirmación de abajo
+              } else if (_data && _data.error === 'slot-taken') {
+                showToast('Esa hora fue tomada por otro cliente. Por favor elige otro horario.');
+                selectedTimeStr = null;
+                transitionStep(4, 3); currentStep = 3; updateProgress(); updateContinueBtn();
+                renderHours(_activeBarberConfig); _subscribeSlotLocks(currentDateStr);
+                if (_btnPago) { _btnPago.disabled = false; _btnPago.innerHTML = _btnHtmlPrev; }
+                return;
+              } else {
+                console.error('[CorteLapiz] respuesta inesperada', _data);
+                showToast('No se pudo agendar con Corte al Lápiz. Intenta nuevamente.');
+                if (_btnPago) { _btnPago.disabled = false; _btnPago.innerHTML = _btnHtmlPrev; }
+                return;
+              }
+            } catch (e) {
+              console.error('[CorteLapiz] error', e);
+              showToast('No se pudo conectar. Revisa tu conexión.');
+              if (_btnPago) { _btnPago.disabled = false; _btnPago.innerHTML = _btnHtmlPrev; }
+              return;
+            }
+            // citaGuardada === true → NO retornamos: cae al bloque de éxito de abajo.
+          } else {
+            // ── Pago online con Mercado Pago (pasarela) ──
+            if (_btnPago) { _btnPago.disabled = true; _btnPago.innerHTML = 'Redirigiendo al pago…'; }
+            try {
+              const _resp = await fetch('https://us-central1-barberia-elegance.cloudfunctions.net/mpCrearPago', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tenantId: window.CURRENT_TENANT_ID, cita: _citaPago }),
+              });
+              const _data = await _resp.json().catch(() => null);
+              if (_data && _data.url) { window.location.href = _data.url; return; }
+              console.error('[MP] respuesta inesperada', _data);
+              showToast('No se pudo iniciar el pago. Intenta nuevamente.');
+            } catch (e) {
+              console.error('[MP] error', e);
+              showToast('No se pudo conectar con la pasarela de pago. Revisa tu conexión.');
+            }
+            if (_btnPago) { _btnPago.disabled = false; _btnPago.innerHTML = _btnHtmlPrev; }
+            return; // no creamos la cita si el pago no se inició
           }
-          if (_btnPago) { _btnPago.disabled = false; _btnPago.innerHTML = _btnHtmlPrev; }
-          return; // no creamos la cita si el pago no se inició
         }
 
-        let citaGuardada = false;
+        if (!citaGuardada) {
         try {
           await FDB.addCita({
             fecha:            currentDateStr,
@@ -8909,6 +8973,7 @@
           });
           citaGuardada = true;
         }
+        } // fin if (!citaGuardada): los miembros Corte al Lápiz ya crearon su cita arriba
 
         // Registrar timestamp solo si la reserva se guardó correctamente
         if (citaGuardada) {
@@ -9006,6 +9071,38 @@
           waBtnLink.style.display = 'none';
         }
       }
+    }
+
+    // Modal de elección para miembros Corte al Lápiz (Yūgen).
+    // Devuelve 'corte' (agendar y pagar a fin de mes), 'pagar' (ir a la
+    // pasarela) o null (canceló).
+    function _preguntarCorteLapiz(precio, recargo) {
+      return new Promise(resolve => {
+        const f = n => '$' + (Number(n) || 0).toLocaleString('es-CL');
+        const total = (Number(precio) || 0) + (Number(recargo) || 0);
+        const ov = document.createElement('div');
+        ov.style.cssText = 'position:fixed;inset:0;z-index:99999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.72);backdrop-filter:blur(4px);padding:20px;';
+        ov.innerHTML = `
+          <div style="max-width:380px;width:100%;background:#141210;border:1px solid #2a2622;border-radius:20px;padding:24px;color:#efeae2;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;">
+            <h3 style="font-size:18px;font-weight:700;margin:0 0 6px;">¿Cómo quieres pagar?</h3>
+            <p style="font-size:13px;color:#b8b0a4;margin:0 0 18px;line-height:1.5;">Tienes <b style="color:#efeae2;">Corte al Lápiz</b> activo. Puedes agendar ahora y pagar a fin de mes.</p>
+            <button id="_clCorte" style="display:block;width:100%;text-align:left;background:#1f1a14;border:1px solid #a9885f;border-radius:14px;padding:14px 16px;margin-bottom:10px;color:#efeae2;cursor:pointer;font:inherit;">
+              <div style="font-weight:700;font-size:14px;">Corte al Lápiz · pago a fin de mes</div>
+              <div style="font-size:12px;color:#b8b0a4;margin-top:3px;">Se suma ${f(total)} a tu cuenta (${f(precio)} + ${f(recargo)} de recargo)</div>
+            </button>
+            <button id="_clPagar" style="display:block;width:100%;text-align:left;background:#1f1a14;border:1px solid #2a2622;border-radius:14px;padding:14px 16px;color:#efeae2;cursor:pointer;font:inherit;">
+              <div style="font-weight:700;font-size:14px;">Pagar ahora · ${f(precio)}</div>
+              <div style="font-size:12px;color:#b8b0a4;margin-top:3px;">Con tarjeta o transferencia en la pasarela</div>
+            </button>
+            <button id="_clCancel" style="display:block;width:100%;background:none;border:none;color:#6b645b;font-size:13px;margin-top:14px;cursor:pointer;font:inherit;">Cancelar</button>
+          </div>`;
+        document.body.appendChild(ov);
+        const done = v => { ov.remove(); resolve(v); };
+        ov.querySelector('#_clCorte').onclick  = () => done('corte');
+        ov.querySelector('#_clPagar').onclick  = () => done('pagar');
+        ov.querySelector('#_clCancel').onclick = () => done(null);
+        ov.addEventListener('click', e => { if (e.target === ov) done(null); });
+      });
     }
 
     function transitionStep(oldI, newI) {
