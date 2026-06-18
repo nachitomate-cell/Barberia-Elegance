@@ -102,6 +102,10 @@ const CORTE_LAPIZ_TENANTS = new Set(['yugen']);
 
 async function acreditarCorteLapiz({ tenantId, uid, telefono, cita, citaId }) {
   if (!CORTE_LAPIZ_TENANTS.has(tenantId)) return;
+  // Solo se acredita si la cita se marcó explícitamente como Corte al Lápiz
+  // (reserva online con la opción, o el barbero la cobró "a fin de mes").
+  // Así un miembro que paga normal ese día NO se carga a su cuota.
+  if (cita.corteLapiz !== true) return;
   try {
     const col = db.collection(`tenants/${tenantId}/corteLapiz`);
 

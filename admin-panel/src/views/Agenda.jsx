@@ -235,6 +235,40 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
 
   const productosDisponibles = useMemo(() => productos.filter(p => Number(p.precio) > 0), [productos]);
 
+  /* ── Corte al Lápiz (Yūgen): membresía a cuenta corriente del cliente ── */
+  const esTenantCL = ['yugen'].includes(tenantId);
+  const [clCuentas, setClCuentas] = useState([]);
+  const [clRecargo, setClRecargo] = useState(5000);
+  const [usarCorteLapiz, setUsarCorteLapiz] = useState(cita?.corteLapiz === true);
+
+  useEffect(() => {
+    if (!esTenantCL) return;
+    let cancel = false;
+    (async () => {
+      try {
+        const qs = await getDocs(tenantCol('corteLapiz'));
+        if (!cancel) setClCuentas(qs.docs.map(d => ({ id: d.id, ...d.data() })));
+      } catch { /* sin permiso o vacío */ }
+      try {
+        const cfg = await getDoc(doc(tenantCol('configuracion'), 'corteLapiz'));
+        const r = cfg.exists() ? Number(cfg.data().recargo ?? cfg.data().monto) : NaN;
+        if (!cancel && Number.isFinite(r) && r >= 0) setClRecargo(Math.round(r));
+      } catch { /* usa default */ }
+    })();
+    return () => { cancel = true; };
+  }, [esTenantCL, tenantId]);
+
+  // Cuenta Corte al Lápiz activa que corresponde a este cliente (por uid o teléfono).
+  const clMember = useMemo(() => {
+    if (!esTenantCL || !clCuentas.length) return null;
+    const tn = (form.clienteTelefono || '').replace(/\D/g, '');
+    return clCuentas.find(c => c.activo !== false && (
+      (form.clienteId && c.id === form.clienteId) ||
+      (tn && c.telefonoNorm === tn)
+    )) || null;
+  }, [esTenantCL, clCuentas, form.clienteId, form.clienteTelefono]);
+  const clFmt = n => '$' + (Number(n) || 0).toLocaleString('es-CL');
+
   function addProductoAlTicket() {
     const p = productosDisponibles.find(x => x.id === newProductId);
     if (!p || newProductQty <= 0) return;
@@ -424,6 +458,17 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
     try {
       const payload = { ...form, duracionServicio: form.duracion, fecha: dateStr, updatedAt: serverTimestamp() };
       if (!payload.clienteId) delete payload.clienteId;
+
+      // Corte al Lápiz: si el cliente es miembro y se cobra "a fin de mes",
+      // marcamos la cita para que la CF acredite precio + recargo a su cuota.
+      const cobrarCorteLapiz = !!clMember && form.estado === 'Completada' && !form.cortesia && usarCorteLapiz;
+      if (cobrarCorteLapiz) {
+        payload.corteLapiz = true;
+        payload.metodoPago = 'Corte al Lápiz';
+        payload.clienteUid = clMember.id;
+      } else if (cita?.corteLapiz) {
+        payload.corteLapiz = false; // se desmarcó: que no acredite
+      }
       const applyingGC = !isNew && gcFound && !cita?.giftCardCodigo;
       if (applyingGC) {
         const gcDescuento = Math.min(gcFound.saldo, totalTicket);
@@ -661,6 +706,17 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
           </div>
         )}
       </div>
+      {clMember && (
+        <div className="flex items-center gap-2.5 p-3 bg-amber-500/5 border border-amber-500/30 rounded-xl">
+          <div className="w-8 h-8 rounded-lg bg-amber-500/15 flex items-center justify-center shrink-0">
+            <BadgeCheck size={16} className="text-amber-400" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-bold text-amber-400">Cliente Corte al Lápiz</p>
+            <p className="text-[11px] text-slate-400">Cuota actual: {clFmt(clMember.saldo)} · paga a fin de mes</p>
+          </div>
+        </div>
+      )}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className={lbl}>Email</label>
@@ -775,12 +831,33 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
               </div>
             </label>
 
+            {/* Cobro a Corte al Lápiz (solo clientes miembros) */}
+            {clMember && !form.cortesia && (
+              <label className="flex items-start gap-3 p-3 bg-slate-950 border border-amber-500/30 rounded-xl cursor-pointer animate-in fade-in slide-in-from-top-1 duration-200">
+                <input
+                  type="checkbox"
+                  checked={usarCorteLapiz}
+                  onChange={e => setUsarCorteLapiz(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 shrink-0 accent-amber-500 cursor-pointer"
+                />
+                <div>
+                  <span className="text-sm font-semibold text-white">Cobrar a Corte al Lápiz (pago a fin de mes)</span>
+                  <p className="text-[11px] text-slate-500 mt-0.5">No se cobra ahora. Se suma el servicio + recargo a su cuenta corriente.</p>
+                </div>
+              </label>
+            )}
+
             {form.cortesia ? (
               <div className="p-3 bg-amber-400/5 border border-amber-400/20 rounded-xl text-[11px] text-amber-300/90 leading-relaxed animate-in fade-in slide-in-from-top-1 duration-200">
                 Servicio gratuito: $0 en caja. Se cuenta la visita y se entrega el sello al cliente (el teléfono es obligatorio para registrarlo).
               </div>
             ) : (
             <>
+            {usarCorteLapiz ? (
+              <div className="p-3 bg-amber-400/5 border border-amber-400/30 rounded-xl text-[12px] text-amber-300/90 leading-relaxed animate-in fade-in slide-in-from-top-1 duration-200">
+                Se cargará a la cuenta de <b className="text-white">{form.clienteNombre || 'el cliente'}</b>: {clFmt(Number(form.precio) || 0)} + {clFmt(clRecargo)} de recargo = <b className="text-white">{clFmt((Number(form.precio) || 0) + clRecargo)}</b>. No se cobra ahora; lo paga a fin de mes.
+              </div>
+            ) : (
             <div className="grid grid-cols-2 gap-3 p-3 bg-slate-950 border border-slate-800/80 rounded-xl animate-in fade-in slide-in-from-top-1 duration-200">
               <div>
                 <label className={lbl}>Método de Pago *</label>
@@ -799,6 +876,7 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
                 <input className={field} type="number" inputMode="numeric" placeholder="0" min="0" value={form.propina} onChange={e => set('propina', e.target.value !== '' ? Number(e.target.value) : '')} />
               </div>
             </div>
+            )}
 
             {/* Gift Card */}
             <div className="p-3 bg-slate-950 border border-slate-800/80 rounded-xl space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
