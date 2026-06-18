@@ -1098,11 +1098,25 @@ export default async function middleware(request) {
 
   // ── SynapTech Links (producto self-serve, bioo.cl) ────────────────────────────
   // No es un tenant: las páginas de /links sirven su propio <head>, íconos y
-  // manifest dinámico. Si dejáramos seguir, el middleware caería al default
-  // 'elegance' e inyectaría su SEO/og:image/favicon en las bios de los usuarios.
-  // Se mantiene el host viejo (links.synaptechspa.cl) por si llega antes del
-  // redirect 301 de vercel.json hacia bioo.cl.
-  if (hostname === 'bioo.cl' || hostname === 'links.synaptechspa.cl') return;
+  // manifest dinámico, así que NO inyectamos el SEO de ningún tenant aquí.
+  // Dominio viejo → redirige todo a bioo.cl (incluida la raíz, que el redirect
+  // de vercel.json con `/:path*` no alcanza a matchear).
+  if (hostname === 'links.synaptechspa.cl') {
+    return Response.redirect('https://bioo.cl' + url.pathname + url.search, 308);
+  }
+  if (hostname === 'bioo.cl') {
+    // La raíz debe servir la landing de Links. Como existe un index.html en la
+    // raíz del repo (la barbería), el rewrite de vercel.json (afterFiles) no lo
+    // sobrescribe; por eso servimos /links/index.html desde aquí, que corre
+    // antes del filesystem. El resto de rutas (/registro, /editor, /:user) las
+    // resuelven los rewrites de vercel.json.
+    if (url.pathname === '/' || url.pathname === '/index.html') {
+      const rw  = new URL('/links/index.html', request.url);
+      const res = await fetch(new Request(rw, { headers: new Headers([...request.headers, ['x-mw-bypass', '1']]) }));
+      return new Response(res.body, { status: res.status, headers: res.headers });
+    }
+    return;
+  }
 
   const tenantId = DOMAIN_MAP[hostname] || 'elegance';
 
