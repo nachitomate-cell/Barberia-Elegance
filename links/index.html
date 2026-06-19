@@ -182,7 +182,8 @@
       var n = normalize(input.value);
       if (!valid(n)){ input.focus(); hint.className='hint err'; hint.textContent='Elige un usuario válido para continuar.'; return; }
       if (availCache[n] === false){ input.focus(); showOcupado(); return; } // ocupado confirmado: no avanzar
-      goPage('registro', '?u=' + encodeURIComponent(n));
+      // Va directo al editor: se prueba sin cuenta; el registro se pide recién al publicar.
+      goPage('editor', '?u=' + encodeURIComponent(n));
     });
   })();
 

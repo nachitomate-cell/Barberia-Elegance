@@ -493,8 +493,19 @@
     function validUser(v){ return v.length>=3 && v.length<=30 && /^[a-z0-9][a-z0-9._-]{2,29}$/.test(v) && RESERVED.indexOf(v)===-1; }
     function LBASE(){ return location.pathname.indexOf('/links/') === 0 ? '/links/' : '/'; }
     function urlPublica(u){ return LBASE()==='/links/' ? ('/links/u.html?u='+u) : ('/'+u); }
-    function urlRegistroLogin(){ return LBASE() + 'registro' + (LBASE()==='/links/'?'.html':'') + '?modo=login'; }
     function urlHome(){ return LBASE()==='/links/' ? '/links/index.html' : '/'; }
+    function getParam(k){ return new URLSearchParams(location.search).get(k) || ''; }
+    // ── Borrador local: permite editar sin sesión y publicar al registrarse ──
+    var DRAFT_KEY = 'bioo_draft_v1';
+    function readDraft(){ try { return JSON.parse(localStorage.getItem(DRAFT_KEY)||'null'); } catch(e){ return null; } }
+    function writeDraft(d){ try { localStorage.setItem(DRAFT_KEY, JSON.stringify(d)); } catch(e){} }
+    function clearDraft(){ try { localStorage.removeItem(DRAFT_KEY); } catch(e){} }
+    // Lleva a registro/login conservando a dónde volver y el slug deseado.
+    function goAuth(slug, mode){
+      var b = LBASE();
+      var qs = '?volver=editor' + (slug ? ('&u=' + encodeURIComponent(slug)) : '') + (mode==='login' ? '&modo=login' : '');
+      location.href = b + 'registro' + (b==='/links/'?'.html':'') + qs;
+    }
     function normUser(v){ return String(v||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9._-]/g,''); }
     function esc(s){ return String(s==null?'':s); }
     function escHtml(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];}); }
@@ -586,7 +597,7 @@
       return THEMES[t.preset].bg;
     }
 
-    var state = { uid:null, email:null, username:null, originalUsername:null,
+    var state = { uid:null, email:null, anon:false, username:null, originalUsername:null,
       perfil:{titulo:'',subtitulo:'',avatar:''}, bloques:[],
       theme:{preset:'lime',shape:'rounded',fill:'solid',btnAnim:'none',iconStyle:'green',avatarShape:'circle',avatarRing:'',bg:{mode:'preset',color:'#92c83a',c1:'#92c83a',c2:'#2c5a17',angle:'165',image:''},text:{font:'system',titleSize:'m',subSize:'m',titleColor:'',subColor:'',btnColor:''}},
       views:0, clicks:{} };
@@ -618,11 +629,103 @@
     try { if (localStorage.getItem(SB_KEY) === '1') toggleSb(true); } catch(e){}
 
     // ── Auth gate ──
+    // Sin sesión → modo borrador (se edita libre, se guarda en el navegador).
+    // Con sesión → si hay un borrador marcado para publicar, lo publica; si no, carga su bio.
     auth.onAuthStateChanged(function(user){
-      if (!user){ location.href = urlRegistroLogin(); return; }
-      state.uid = user.uid; state.email = user.email;
-      loadOrCreateBio();
+      if (!user){ startAnonymous(); return; }
+      state.uid = user.uid; state.email = user.email; state.anon = false;
+      var pd = readDraft();
+      if (pd && pd._pendingClaim){ commitPendingDraft(pd); }
+      else { loadOrCreateBio(); }
     });
+
+    // ── Modo anónimo / borrador ──────────────────────────────────────────────
+    function startAnonymous(){
+      state.anon = true; state.uid = null; state.email = null;
+      var d = readDraft();
+      if (d){
+        hydrate(d.username || '', { perfil:d.perfil, bloques:d.bloques, theme:d.theme, views:0, clicks:{} });
+      } else {
+        var u = normUser(getParam('u'));
+        hydrate(validUser(u) ? u : '', { perfil:{titulo:'',subtitulo:'',avatar:''}, bloques:[], theme:state.theme, views:0, clicks:{} });
+      }
+      state.originalUsername = null;   // nada reclamado todavía
+      markAnon();
+      persistDraft();
+    }
+
+    // Ajusta la UI para dejar claro que es una prueba sin publicar.
+    function markAnon(){
+      var sb = $('saveBtn'); if (sb) sb.textContent = 'Guardar y publicar';
+      var lo = $('logout');  if (lo) lo.textContent = 'Iniciar sesión';
+      if (!$('anonBanner')){
+        var b = document.createElement('div');
+        b.id = 'anonBanner';
+        b.style.cssText = 'background:#fff7d6;border:1px solid #e9d98a;color:#6b5a14;font-size:12.5px;font-weight:700;line-height:1.4;padding:9px 14px;border-radius:10px;margin:0 0 14px;';
+        b.innerHTML = '✏️ Estás probando el editor. Tus cambios se guardan solo en este navegador. Pulsa <b>“Guardar y publicar”</b> para crear tu cuenta y activar tu bioo.cl';
+        var c = document.querySelector('.content');
+        if (c) c.insertBefore(b, c.firstChild);
+      }
+    }
+    function clearAnonUI(){
+      state.anon = false;
+      var sb = $('saveBtn'); if (sb) sb.textContent = 'Guardar';
+      var lo = $('logout');  if (lo) lo.textContent = 'Salir';
+      var bn = $('anonBanner'); if (bn) bn.remove();
+    }
+
+    // Publica el borrador local tras autenticarse (reclama el slug de forma atómica).
+    function commitPendingDraft(pd){
+      hydrate(pd.username || '', { perfil:pd.perfil, bloques:pd.bloques, theme:pd.theme, views:0, clicks:{} });
+      state.originalUsername = null;
+      clearAnonUI();
+      var user = normUser(pd.username);
+      if (!validUser(user)){
+        writeDraft({ username:user, perfil:pd.perfil, bloques:pd.bloques, theme:pd.theme }); // sin _pendingClaim
+        toast('Elige un usuario para tu página y pulsa Guardar');
+        return;
+      }
+      var bioRef    = db.collection('bios').doc(user);
+      var handleRef = db.collection('bio_handles').doc(user);
+      var userRef   = db.collection('bio_users').doc(state.uid);
+      var now = firebase.firestore.FieldValue.serverTimestamp();
+      db.runTransaction(function(tx){
+        return Promise.all([tx.get(bioRef), tx.get(handleRef)]).then(function(r){
+          var bDoc = r[0], hDoc = r[1];
+          // Ocupado si existe el handle de un tenant, o un bio de OTRO usuario.
+          if (hDoc.exists || (bDoc.exists && bDoc.data().uid !== state.uid)){ var e=new Error('taken'); e.code='taken'; throw e; }
+          tx.set(bioRef, {
+            uid: state.uid, username: user, perfil: pd.perfil, bloques: pd.bloques, theme: pd.theme,
+            views: (bDoc.exists ? (bDoc.data().views||0) : 0),
+            clicks: (bDoc.exists ? (bDoc.data().clicks||{}) : {}),
+            createdAt: (bDoc.exists ? (bDoc.data().createdAt||now) : now), updatedAt: now
+          }, { merge:true });
+          tx.set(userRef, { username:user, email:state.email||'', createdAt:now }, { merge:true });
+        });
+      }).then(function(){
+        clearDraft();
+        state.username = user; state.originalUsername = user;
+        paintPubLink(); renderShare(); toast('¡Tu bioo.cl está publicado! ✓');
+      }).catch(function(err){
+        // Conservamos el contenido (sin _pendingClaim) para que reintente con Guardar.
+        writeDraft({ username:user, perfil:pd.perfil, bloques:pd.bloques, theme:pd.theme });
+        if (err && err.code==='taken'){ toast('El usuario "'+user+'" ya está tomado. Elige otro y pulsa Guardar.'); }
+        else { console.error(err); toast('No se pudo publicar. Pulsa Guardar para reintentar.'); }
+      });
+    }
+
+    // Guarda el estado actual del editor como borrador local (modo anónimo).
+    function persistDraft(){
+      if (!state.anon) return;
+      var p = buildPayload();
+      writeDraft({ username: normUser($('username').value), perfil:p.perfil, bloques:p.bloques, theme:p.theme });
+    }
+    var _draftTimer = null;
+    function persistDraftSoon(){
+      if (!state.anon) return;
+      if (_draftTimer) clearTimeout(_draftTimer);
+      _draftTimer = setTimeout(persistDraft, 600);
+    }
 
     function normalizeTheme(raw){
       // compat: theme viejo era un string ('lime'), un objeto sin `text`, o inexistente.
@@ -639,9 +742,16 @@
         if (uDoc.exists && uDoc.data().username){
           var uname = uDoc.data().username;
           return db.collection('bios').doc(uname).get().then(function(b){
-            if (b.exists){ hydrate(uname, b.data()); }
+            if (b.exists){ clearDraft(); hydrate(uname, b.data()); }   // ya tiene página: el borrador anónimo se descarta
             else { createFreshBio(); }
           });
+        }
+        // Autenticado pero sin página aún: si trae un borrador local, lo seguimos editando.
+        var d = readDraft();
+        if (d){
+          hydrate(d.username || '', { perfil:d.perfil, bloques:d.bloques, theme:d.theme, views:0, clicks:{} });
+          state.originalUsername = null;   // aún sin reclamar → Guardar lo reclamará
+          return;
         }
         createFreshBio();
       }).catch(function(e){ console.error(e); $('gate').textContent = 'Error cargando tu cuenta. Recarga la página.'; });
@@ -1117,6 +1227,7 @@
       html += '<div class="pv-foot" style="color:'+p.text+';">bioo.cl/' + escHtml(uname) + '</div>';
       html += '</div>';
       screen.innerHTML = html;
+      persistDraftSoon();   // autoguarda el borrador local en modo anónimo
     }
 
     // ── Listeners de perfil ──
@@ -1207,15 +1318,17 @@
       var url = publicAbsUrl();
       navigator.clipboard && navigator.clipboard.writeText(url).then(function(){ toast('Link copiado ✓'); });
     });
-    $('logout').addEventListener('click', function(e){ e.preventDefault(); auth.signOut().then(function(){ location.href=urlHome(); }); });
+    $('logout').addEventListener('click', function(e){
+      e.preventDefault();
+      // En modo anónimo este botón dice "Iniciar sesión": conserva el borrador y lleva al login.
+      if (state.anon){ persistDraft(); goAuth(normUser($('username').value), 'login'); return; }
+      auth.signOut().then(function(){ location.href=urlHome(); });
+    });
 
-    // ── Guardar ──
-    $('saveBtn').addEventListener('click', function(){
-      var btn = $('saveBtn'); btn.disabled = true; btn.textContent='Guardando…';
-      var newUser = normUser($('username').value);
-      state.perfil = { titulo: $('titulo').value.trim(), subtitulo: $('subtitulo').value.trim(), avatar: $('avatar').value.trim(), cover: ($('cover').value||'').trim(), verified: $('verifiedChk').checked };
+    // ── Construye el payload (perfil/bloques/theme) desde el estado + formularios ──
+    function cleanBloques(){
       // Asegura id estable en cada bloque (para el conteo de clics) y filtra vacíos.
-      var bloques = state.bloques
+      return state.bloques
         .map(function(b){ if(!b.id) b.id='l'+Date.now()+Math.floor(Math.random()*1000); b.url = computeUrl(b); return b; })
         .filter(function(b){ return b.tipo==='separador' || (b.texto||'').trim() || (b.img||'').trim() || (b.label||'').trim() || (b.url||'').trim() || (b.tipo==='social' && (b.socials||[]).some(function(s){return (s.valor||'').trim();})); })
         .map(function(b){
@@ -1232,7 +1345,31 @@
           if (b.tipo==='social') o.socials = (b.socials||[]).filter(function(s){ return (s.valor||'').trim(); }).map(function(s){ return { red:(SOCRED[s.red]?s.red:'enlace'), valor:(s.valor||'').trim() }; });
           return o;
         });
-      var theme = curTheme();
+    }
+    function buildPayload(){
+      return {
+        perfil: { titulo:$('titulo').value.trim(), subtitulo:$('subtitulo').value.trim(), avatar:$('avatar').value.trim(), cover:($('cover').value||'').trim(), verified:$('verifiedChk').checked },
+        bloques: cleanBloques(),
+        theme: curTheme()
+      };
+    }
+
+    // ── Guardar ──
+    $('saveBtn').addEventListener('click', function(){
+      // Sin sesión: persistimos el borrador y pedimos crear cuenta / iniciar sesión.
+      if (state.anon || !state.uid){
+        var pend = buildPayload();
+        var slug = normUser($('username').value);
+        writeDraft({ username:slug, perfil:pend.perfil, bloques:pend.bloques, theme:pend.theme, _pendingClaim:true });
+        goAuth(slug);
+        return;
+      }
+      var btn = $('saveBtn'); btn.disabled = true; btn.textContent='Guardando…';
+      var newUser = normUser($('username').value);
+      var payload = buildPayload();
+      state.perfil = payload.perfil;
+      var bloques = payload.bloques;
+      var theme = payload.theme;
 
       function done(savedUser){
         state.username = savedUser; state.originalUsername = savedUser; state.bloques = bloques;
@@ -1244,22 +1381,27 @@
 
       if (newUser && newUser !== state.originalUsername){
         if (!validUser(newUser)){ fail('Usuario inválido o reservado'); return; }
-        var newRef = db.collection('bios').doc(newUser);
-        newRef.get().then(function(d){
-          if (d.exists){ fail('Ese usuario ya está tomado'); return; }
+        var newRef    = db.collection('bios').doc(newUser);
+        var newHandle = db.collection('bio_handles').doc(newUser);
+        // El slug debe estar libre en bios (usuarios) Y en bio_handles (tenants).
+        Promise.all([newRef.get(), newHandle.get()]).then(function(rs){
+          if (rs[0].exists || rs[1].exists){ fail('Ese usuario ya está tomado'); return; }
           var data = { uid: state.uid, username:newUser, perfil:state.perfil, bloques:bloques, theme:theme, views:0, clicks:{}, createdAt:now, updatedAt:now };
           newRef.set(data).then(function(){
             return db.collection('bio_users').doc(state.uid).set({ username:newUser, email:state.email||'', createdAt:now }, {merge:true});
           }).then(function(){
-            return db.collection('bios').doc(state.originalUsername).delete().catch(function(){});
-          }).then(function(){ state.views=0; state.clicks={}; done(newUser); }).catch(function(e){ console.error(e); fail(); });
+            // Solo borramos el doc anterior si existía y cambió (no en el primer reclamo).
+            if (state.originalUsername && state.originalUsername !== newUser){
+              return db.collection('bios').doc(state.originalUsername).delete().catch(function(){});
+            }
+          }).then(function(){ clearDraft(); state.views=0; state.clicks={}; done(newUser); }).catch(function(e){ console.error(e); fail(); });
         }).catch(function(e){ console.error(e); fail(); });
         return;
       }
 
       db.collection('bios').doc(state.username).set({
         uid: state.uid, username: state.username, perfil: state.perfil, bloques: bloques, theme: theme, updatedAt: now
-      }, { merge:true }).then(function(){ done(state.username); }).catch(function(e){ console.error(e); fail(); });
+      }, { merge:true }).then(function(){ clearDraft(); done(state.username); }).catch(function(e){ console.error(e); fail(); });
     });
   })();
   </script>
