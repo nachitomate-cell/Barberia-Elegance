@@ -4863,6 +4863,9 @@ auth.onAuthStateChanged(async user => {
   // Prefetch barberos en background para que el modal abra sin espera
   FDB.getBarberos().then(b => { _equipoBarberosCache = b; }).catch(() => {});
 
+  // Config de rangos (nombres + beneficios definidos en el panel)
+  loadRangos();
+
   subscribeUserData(user);
 
   _premiosUnsub = FDB.onPremiosChange(premios => {
@@ -5239,6 +5242,101 @@ function togglePremios() {
   }
 }
 
+// ─── Rangos del cliente (config desde el panel /rangos) ───────
+let _rangosCfg = null;
+let _lastHistoricos = 0;
+const _RANGO_DEFAULTS = [
+  { id: 'silver',   nombre: 'Silver',   minSellos: 0  },
+  { id: 'gold',     nombre: 'Gold',     minSellos: 10 },
+  { id: 'platinum', nombre: 'Platinum', minSellos: 25 },
+];
+// Espejo del catálogo informativo del panel (Rangos.jsx).
+const _RANGO_BENEF_CATALOGO = {
+  descuento_productos:   'Descuento en productos',
+  prioridad_reserva:     'Prioridad en la reserva',
+  atencion_preferencial: 'Atención preferencial',
+  regalo_cumpleanos:     'Regalo de cumpleaños',
+  producto_regalo:       'Producto de regalo',
+  promos_exclusivas:     'Promociones exclusivas',
+};
+
+function _getRangos() {
+  return _RANGO_DEFAULTS.map(d => {
+    const f = (_rangosCfg || []).find(r => r.id === d.id) || {};
+    return {
+      id: d.id,
+      nombre:    f.nombre || d.nombre,
+      minSellos: f.minSellos != null ? f.minSellos : d.minSellos,
+      sellosPorVisita:    f.sellosPorVisita,
+      descuentoServicios: f.descuentoServicios,
+      descuentoPct:       f.descuentoPct,
+      beneficios:         Array.isArray(f.beneficios) ? f.beneficios : [],
+      beneficiosCustom:   Array.isArray(f.beneficiosCustom) ? f.beneficiosCustom : [],
+    };
+  });
+}
+function _rangoBeneficios(r) {
+  const out = [];
+  const s = Number(r.sellosPorVisita);
+  if (Number.isFinite(s) && s > 0) out.push(`${s} sello${s !== 1 ? 's' : ''} por visita`);
+  if (r.descuentoServicios) out.push(`${Number(r.descuentoPct) || 10}% de descuento en servicios`);
+  (r.beneficios || []).forEach(id => { if (_RANGO_BENEF_CATALOGO[id]) out.push(_RANGO_BENEF_CATALOGO[id]); });
+  (r.beneficiosCustom || []).forEach(c => { if (c && String(c).trim()) out.push(String(c).trim()); });
+  return out;
+}
+function _rangoReqLabel(r) {
+  const m = Number(r.minSellos) || 0;
+  return m <= 0 ? 'Toda visita' : `Desde ${m} visitas`;
+}
+function _rangoIdDe(historicos) {
+  const h = Number(historicos) || 0;
+  return h >= 25 ? 'platinum' : h >= 10 ? 'gold' : 'silver';
+}
+async function loadRangos() {
+  try {
+    const snap = await _tenantCol('configuracion').doc('rangos').get();
+    _rangosCfg = snap.exists ? (snap.data().rangos || []) : [];
+  } catch (_) { _rangosCfg = []; }
+  renderRangoBeneficios(_lastHistoricos);
+}
+function toggleRangoDetalle(id) {
+  const d = document.getElementById('rangoDetalle-' + id);
+  const c = document.getElementById('rangoCaret-' + id);
+  if (!d) return;
+  const open = !d.classList.toggle('hidden');
+  if (c) c.style.transform = open ? 'rotate(180deg)' : '';
+}
+// Reconstruye las tarjetas de rango con nombres + beneficios (desplegables).
+function renderRangoBeneficios(historicos) {
+  const cont = document.querySelector('#profileBenefits > div');
+  if (!cont) return;
+  const rangos = _getRangos();
+  const currentId = _rangoIdDe(historicos);
+  cont.innerHTML = rangos.map(r => {
+    const benes = _rangoBeneficios(r);
+    const isCur = r.id === currentId;
+    const items = benes.length
+      ? benes.map(b => `<li class="flex items-start gap-2 text-[12px] text-white/70"><i class="ph-fill ph-check-circle text-[13px] shrink-0 mt-0.5" style="color:var(--gold);"></i><span>${b}</span></li>`).join('')
+      : '<li class="text-[11px] text-white/30 italic">Sin beneficios definidos todavía.</li>';
+    return `
+      <div class="tier-row rounded-2xl border border-white/8 bg-white/5 overflow-hidden ${isCur ? 'is-current' : ''}" data-tier="${r.id}">
+        <button type="button" class="w-full px-4 py-3 flex items-center justify-between text-left" onclick="toggleRangoDetalle('${r.id}')">
+          <div class="flex items-center gap-2 min-w-0">
+            <span class="tier-badge ${r.id}">${r.nombre}</span>
+            <span class="text-[10px] text-white/40 font-bold uppercase tracking-wider truncate">${_rangoReqLabel(r)}</span>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <span class="tier-current-label ${isCur ? '' : 'hidden'} text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full" style="background:var(--gold-glow);color:var(--gold);">Tu rango</span>
+            <i class="ph-bold ph-caret-down text-white/40 text-sm transition-transform" id="rangoCaret-${r.id}"></i>
+          </div>
+        </button>
+        <div id="rangoDetalle-${r.id}" class="hidden px-4 pb-3.5 pt-0.5">
+          <ul class="space-y-1.5">${items}</ul>
+        </div>
+      </div>`;
+  }).join('');
+}
+
 // ─── Renderizar sellos ────────────────────────────────────────
 // count       = sellosDisponibles (saldo actual — controla el grid y la barra)
 // historicos  = sellosHistoricos  (total acumulado — controla el nivel)
@@ -5328,42 +5426,44 @@ function renderStamps(count, historicos) {
     descEl.textContent = `Agenda ${nextPremio.costoSellos} citas y obtén ${nextPremio.nombre.toLowerCase()}.`;
   }
 
-  // Tier badge — calculado con el total histórico (no con disponibles)
+  // Tier — calculado con el total histórico (no con disponibles)
+  _lastHistoricos = historicos;
   const tierLabel = historicos >= 25 ? 'PLATINUM' : historicos >= 10 ? 'GOLD' : 'SILVER';
+  const tierId    = tierLabel.toLowerCase();
+  // Nombres personalizados de los rangos (config /rangos).
+  const _rangos    = _getRangos();
+  const _nombreDe  = id => (_rangos.find(r => r.id === id)?.nombre) || id;
+  const tierNombre = _nombreDe(tierId);
+
   const tierEl = document.getElementById('memberTier');
   if (tierEl) {
     tierEl.className = 'tier-badge';
-    tierEl.textContent = tierLabel;
-    tierEl.classList.add(tierLabel.toLowerCase());
+    tierEl.textContent = tierNombre;
+    tierEl.classList.add(tierId);
   }
 
   // Profile: tier badge + visitas + sellos
   const profileTierEl = document.getElementById('profileTierBadge');
-  if (profileTierEl) profileTierEl.textContent = tierLabel;
+  if (profileTierEl) profileTierEl.textContent = tierNombre;
   const profileVisitsEl = document.getElementById('profileVisitsCount');
   if (profileVisitsEl) profileVisitsEl.textContent = historicos;
   const profileStampsEl = document.getElementById('profileStamps');
   if (profileStampsEl) profileStampsEl.textContent = count;
 
-  // Beneficios por rango — destacar el rango actual del cliente
-  document.querySelectorAll('#profileBenefits .tier-row').forEach(row => {
-    const isCurrent = row.dataset.tier === tierLabel.toLowerCase();
-    row.classList.toggle('is-current', isCurrent);
-    const lbl = row.querySelector('.tier-current-label');
-    if (lbl) lbl.classList.toggle('hidden', !isCurrent);
-  });
+  // Beneficios por rango — tarjetas con nombres + beneficios (desplegables)
+  renderRangoBeneficios(historicos);
 
-  // Dynamic Tier Progression message
+  // Mensaje de progresión al siguiente rango (con nombres personalizados)
   const profileTierProgressEl = document.getElementById('profileTierProgress');
   if (profileTierProgressEl) {
     if (historicos < 10) {
-      const faltanVisitas = 10 - historicos;
-      profileTierProgressEl.innerHTML = `¡Faltan <span class="font-bold text-white">${faltanVisitas}</span> visitas para subir al rango <span class="font-bold animate-pulse" style="color:var(--gold);">GOLD</span>!`;
+      const faltan = 10 - historicos;
+      profileTierProgressEl.innerHTML = `¡Faltan <span class="font-bold text-white">${faltan}</span> visitas para subir al rango <span class="font-bold animate-pulse" style="color:var(--gold);">${_nombreDe('gold')}</span>!`;
     } else if (historicos < 25) {
-      const faltanVisitas = 25 - historicos;
-      profileTierProgressEl.innerHTML = `¡Faltan <span class="font-bold text-white">${faltanVisitas}</span> visitas para subir al rango <span class="font-bold text-purple-300 animate-pulse">PLATINUM</span>!`;
+      const faltan = 25 - historicos;
+      profileTierProgressEl.innerHTML = `¡Faltan <span class="font-bold text-white">${faltan}</span> visitas para subir al rango <span class="font-bold text-purple-300 animate-pulse">${_nombreDe('platinum')}</span>!`;
     } else {
-      profileTierProgressEl.innerHTML = `🏆 ¡Has alcanzado el rango máximo <span class="font-bold animate-pulse" style="color:var(--gold);">PLATINUM</span>!`;
+      profileTierProgressEl.innerHTML = `🏆 ¡Has alcanzado el rango máximo <span class="font-bold animate-pulse" style="color:var(--gold);">${_nombreDe('platinum')}</span>!`;
     }
   }
 }

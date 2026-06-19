@@ -122,6 +122,13 @@
     var RESERVED = ['registro','login','editor','admin','api','bio','dashboard','agenda',
       'app','www','links','soporte','ayuda','help','about','terminos','privacidad'];
 
+    // ── Verificación real de disponibilidad contra Firestore (REST) ──────────────
+    var PROJECT = 'barberia-elegance';
+    var API_KEY = 'AIzaSyDqVkAhkXALm3hLcrmzjiaS3flUezPFe2Q';
+    var availCache = {};      // slug -> true (libre) / false (ocupado)
+    var debounceTimer = null;
+    var checkSeq = 0;         // descarta respuestas obsoletas
+
     function normalize(v){
       return String(v||'').toLowerCase()
         .normalize('NFD').replace(/[̀-ͯ]/g,'')
@@ -131,20 +138,50 @@
     function valid(v){
       return v.length >= 3 && v.length <= 30 && /^[a-z0-9][a-z0-9._-]{2,29}$/.test(v) && RESERVED.indexOf(v) === -1;
     }
+    function showLibre(slug){ hint.className='hint'; hint.textContent='✓ bioo.cl/' + slug + ' está disponible para reclamar.'; }
+    function showOcupado(){ hint.className='hint err'; hint.textContent='Ese nombre ya está en uso, prueba otro.'; }
+
+    // Un slug está ocupado si existe en `bios` (usuarios self-serve) O en
+    // `bio_handles` (handles de tenants servidos en bioo.cl). 2 lecturas/chequeo.
+    function docExists(coll, slug){
+      var url = 'https://firestore.googleapis.com/v1/projects/' + PROJECT +
+                '/databases/(default)/documents/' + coll + '/' + encodeURIComponent(slug) + '?key=' + API_KEY;
+      return fetch(url).then(function(r){ return r.status !== 404; }); // 200 → existe
+    }
+    function checkAvailability(slug){
+      var seq = ++checkSeq;
+      hint.className='hint'; hint.textContent='Comprobando disponibilidad de bioo.cl/' + slug + '…';
+      Promise.all([docExists('bios', slug), docExists('bio_handles', slug)]).then(function(res){
+        var libre = !res[0] && !res[1];
+        availCache[slug] = libre;
+        if (seq !== checkSeq || normalize(input.value) !== slug) return; // respuesta obsoleta
+        if (libre) showLibre(slug); else showOcupado();
+      }).catch(function(){
+        // Si falla la red, no bloqueamos: dejamos seguir y registro.html valida igual.
+        if (seq !== checkSeq || normalize(input.value) !== slug) return;
+        showLibre(slug);
+      });
+    }
 
     input.addEventListener('input', function(){
       var n = normalize(input.value);
       if (n !== input.value) input.value = n;
+      if (debounceTimer){ clearTimeout(debounceTimer); debounceTimer = null; }
+      checkSeq++; // invalida cualquier chequeo en vuelo
       if (!input.value){ hint.className='hint'; hint.textContent='Letras, números, punto, guion y guion bajo · 3 a 30 caracteres.'; return; }
       if (RESERVED.indexOf(input.value) !== -1){ hint.className='hint err'; hint.textContent='Ese nombre está reservado, prueba otro.'; return; }
       if (!valid(input.value)){ hint.className='hint err'; hint.textContent='Mínimo 3 caracteres. Empieza con letra o número.'; return; }
-      hint.className='hint'; hint.textContent='✓ bioo.cl/' + input.value + ' está disponible para reclamar.';
+      // Formato válido: usa caché si existe, si no consulta con debounce.
+      if (availCache.hasOwnProperty(n)){ if (availCache[n]) showLibre(n); else showOcupado(); return; }
+      hint.className='hint'; hint.textContent='Comprobando disponibilidad…';
+      debounceTimer = setTimeout(function(){ checkAvailability(n); }, 400);
     });
 
     form.addEventListener('submit', function(e){
       e.preventDefault();
       var n = normalize(input.value);
       if (!valid(n)){ input.focus(); hint.className='hint err'; hint.textContent='Elige un usuario válido para continuar.'; return; }
+      if (availCache[n] === false){ input.focus(); showOcupado(); return; } // ocupado confirmado: no avanzar
       goPage('registro', '?u=' + encodeURIComponent(n));
     });
   })();

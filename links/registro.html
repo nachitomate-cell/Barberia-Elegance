@@ -115,14 +115,17 @@
         user = (email || ('user' + uid.slice(0,6))).split('@')[0].toLowerCase().replace(/[^a-z0-9._-]/g,'').slice(0,30);
         if (!validUser(user)) user = 'user' + uid.slice(0,8).toLowerCase();
       }
-      var bioRef  = db.collection('bios').doc(user);
-      var userRef = db.collection('bio_users').doc(uid);
+      var bioRef    = db.collection('bios').doc(user);
+      var handleRef = db.collection('bio_handles').doc(user);
+      var userRef   = db.collection('bio_users').doc(uid);
       return db.runTransaction(function(tx){
         return tx.get(userRef).then(function(uDoc){
           // Si el usuario ya tiene una bio, lo mandamos directo a su editor.
           if (uDoc.exists && uDoc.data().username) { return { username: uDoc.data().username, already: true }; }
-          return tx.get(bioRef).then(function(bDoc){
-            if (bDoc.exists) { var e = new Error('taken'); e.code='taken'; throw e; }
+          // Leemos ambos: bios (self-serve) y bio_handles (tenant) — el slug es único entre las dos.
+          return Promise.all([tx.get(bioRef), tx.get(handleRef)]).then(function(docs){
+            var bDoc = docs[0], hDoc = docs[1];
+            if (bDoc.exists || hDoc.exists) { var e = new Error('taken'); e.code='taken'; throw e; }
             var now = firebase.firestore.FieldValue.serverTimestamp();
             tx.set(bioRef, {
               uid: uid, username: user,

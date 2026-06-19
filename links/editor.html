@@ -189,6 +189,10 @@
   .phone{width:332px;border:9px solid #1b2310;border-radius:40px;background:#1b2310;box-shadow:0 18px 50px rgba(21,36,11,.20);overflow:hidden;}
   .phone-screen{height:calc(100dvh - 150px);max-height:680px;overflow-y:auto;background:#92c83a;}
   .pv-wrap{min-height:100%;display:flex;flex-direction:column;align-items:center;padding:40px 22px 26px;}
+  .pv-cover{width:100%;height:116px;border-radius:16px;background-size:cover;background-position:center;box-shadow:0 2px 10px rgba(21,36,11,.12);}
+  .pv-wrap.has-cover .pv-avatar{margin-top:-44px;position:relative;z-index:1;}
+  .cover-prev{width:100%;height:96px;border-radius:12px;background-color:#eef2e6;background-size:cover;background-position:center;border:1px solid var(--line);}
+  .cover-prev.empty{background-image:repeating-linear-gradient(45deg,#e7ede0,#e7ede0 10px,#eef2e6 10px,#eef2e6 20px);}
   .pv-avatar{width:86px;height:86px;border-radius:50%;overflow:hidden;background:#fff;border:3px solid rgba(255,255,255,.5);display:grid;place-items:center;box-shadow:0 4px 18px rgba(21,36,11,.15);flex:none;}
   .pv-avatar img{width:100%;height:100%;object-fit:cover;}
   .pv-avatar span{font-size:33px;font-weight:800;color:#6b7768;}
@@ -295,6 +299,17 @@
         <section data-panel="perfil" hidden>
           <h1 class="sec-title">Tu perfil</h1>
           <p class="sec-lead">Tu foto, nombre y la dirección de tu página.</p>
+          <div class="card">
+            <label>Portada (opcional)</label>
+            <div class="cover-prev" id="coverPrev"></div>
+            <div class="ava-actions" style="margin-top:10px;">
+              <button type="button" class="ava-btn" id="coverBtn">🖼️ Subir portada</button>
+              <button type="button" class="ava-btn ghosty" id="coverRemove">Quitar</button>
+            </div>
+            <input id="coverFile" type="file" accept="image/*" hidden />
+            <input id="cover" type="hidden" />
+            <div class="help">Imagen ancha que se ve detrás de tu foto de perfil.</div>
+          </div>
           <div class="card">
             <div class="avatar-row">
               <img class="avatar-prev" id="avatarPrev" alt="" />
@@ -644,15 +659,21 @@
       $('titulo').value = state.perfil.titulo || '';
       $('subtitulo').value = state.perfil.subtitulo || '';
       $('avatar').value = state.perfil.avatar || '';
+      $('cover').value = state.perfil.cover || '';
       $('verifiedChk').checked = !!state.perfil.verified;
       $('username').value = uname;
-      paintAvatar(); paintPubLink(); renderLinks(); renderAppearance(); renderPreview();
+      paintAvatar(); paintCover(); paintPubLink(); renderLinks(); renderAppearance(); renderPreview();
       $('gate').classList.add('hidden'); $('app').classList.remove('hidden');
     }
 
     function paintAvatar(){
       var v = $('avatar').value.trim();
       $('avatarPrev').src = v || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="64" height="64"%3E%3Crect width="64" height="64" fill="%231f261f"/%3E%3C/svg%3E';
+    }
+    function paintCover(){
+      var v = ($('cover').value||'').trim(), el = $('coverPrev');
+      el.style.backgroundImage = v ? ("url('"+v+"')") : '';
+      el.classList.toggle('empty', !v);
     }
     function paintPubLink(){
       var u = normUser($('username').value) || state.username;
@@ -1019,7 +1040,9 @@
 
       screen.style.background = bgCss(t);
       screen.style.fontFamily = fontStack;
-      var html = '<div class="pv-wrap">';
+      var cover = ($('cover') && $('cover').value || '').trim();
+      var html = '<div class="pv-wrap'+(cover?' has-cover':'')+'">';
+      if (cover) html += '<div class="pv-cover" style="background-image:url(\''+cover+'\');"></div>';
       var avR = t.avatarShape==='rounded' ? '22%' : '50%';
       var avRing = t.avatarRing || 'rgba(255,255,255,.5)';
       html += '<div class="pv-avatar" style="border-radius:'+avR+';border-color:'+avRing+';">' + (avatar
@@ -1054,6 +1077,20 @@
 
     // ── Listeners de perfil ──
     $('avatar').addEventListener('input', function(){ paintAvatar(); renderPreview(); });
+    $('coverBtn').addEventListener('click', function(){ $('coverFile').click(); });
+    $('coverRemove').addEventListener('click', function(){ $('cover').value=''; paintCover(); renderPreview(); });
+    $('coverFile').addEventListener('change', function(e){
+      var file=e.target.files&&e.target.files[0]; if(!file) return;
+      if(!/^image\//.test(file.type)){ toast('Elige una imagen'); e.target.value=''; return; }
+      var rd=new FileReader();
+      rd.onload=function(ev){ var img=new Image(); img.onload=function(){
+        var sc=Math.min(1, 1200/img.width);
+        var cv=document.createElement('canvas'); cv.width=Math.round(img.width*sc); cv.height=Math.round(img.height*sc);
+        cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
+        $('cover').value=cv.toDataURL('image/jpeg',0.8); paintCover(); renderPreview(); toast('Portada lista ✓');
+      }; img.src=ev.target.result; };
+      rd.readAsDataURL(file); e.target.value='';
+    });
 
     // ── Subir foto + recortar (Cropper.js). El resultado se guarda como data URL en #avatar ──
     var _cropper = null;
@@ -1132,7 +1169,7 @@
     $('saveBtn').addEventListener('click', function(){
       var btn = $('saveBtn'); btn.disabled = true; btn.textContent='Guardando…';
       var newUser = normUser($('username').value);
-      state.perfil = { titulo: $('titulo').value.trim(), subtitulo: $('subtitulo').value.trim(), avatar: $('avatar').value.trim(), verified: $('verifiedChk').checked };
+      state.perfil = { titulo: $('titulo').value.trim(), subtitulo: $('subtitulo').value.trim(), avatar: $('avatar').value.trim(), cover: ($('cover').value||'').trim(), verified: $('verifiedChk').checked };
       // Asegura id estable en cada bloque (para el conteo de clics) y filtra vacíos.
       var bloques = state.bloques
         .map(function(b){ if(!b.id) b.id='l'+Date.now()+Math.floor(Math.random()*1000); b.url = computeUrl(b); return b; })

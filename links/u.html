@@ -18,6 +18,8 @@
   html,body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--green);color:var(--ink);}
   body{min-height:100dvh;display:flex;flex-direction:column;align-items:center;padding:56px 20px 30px;}
   .wrap{position:relative;z-index:1;width:100%;max-width:560px;display:flex;flex-direction:column;align-items:center;}
+  .cover{width:100%;height:132px;border-radius:18px;background-size:cover;background-position:center;box-shadow:0 3px 14px rgba(21,36,11,.16);}
+  .avatar.over{margin-top:-46px;position:relative;z-index:1;}
   .avatar{width:96px;height:96px;border-radius:50%;overflow:hidden;background:var(--white);border:3px solid rgba(255,255,255,.7);display:grid;place-items:center;box-shadow:0 4px 18px rgba(21,36,11,.15);}
   .avatar img{width:100%;height:100%;object-fit:cover;}
   h1{font-size:21px;font-weight:800;letter-spacing:-.3px;margin-top:16px;text-align:center;}
@@ -345,7 +347,7 @@
 
     function render(data){
       var perfil = data.perfil || {};
-      var bloques = (data.bloques||[]).filter(function(b){ if(b.activo===false) return false; if(b.tipo==='separador') return true; if(b.tipo==='texto') return (b.texto||'').trim(); if(b.tipo==='imagen') return (b.img||'').trim(); return (b.url||'').trim(); });
+      var bloques = (data.bloques||[]).filter(function(b){ if(b.activo===false) return false; if(b.tipo==='separador') return true; if(b.tipo==='texto') return (b.texto||'').trim(); if(b.tipo==='imagen') return (b.img||'').trim(); if(b.tipo==='social') return (b.socials||[]).some(function(s){return (s.valor||'').trim();}); return (b.url||'').trim(); });
       document.title = (perfil.titulo || ('@'+user)) + ' · bioo';
       document.getElementById('loading').style.display='none';
 
@@ -358,9 +360,11 @@
       var mt = document.querySelector('meta[name="theme-color"]'); if (mt && p.bg.indexOf('gradient')<0) mt.setAttribute('content', p.bg);
 
       var html = '';
+      var cover = (perfil.cover||'').trim();
+      if (cover) html += '<div class="cover fade" style="background-image:url(\''+cover+'\');"></div>';
       var avR = t.avatarShape==='rounded' ? '22%' : '50%';
       var avRing = t.avatarRing || '';
-      html += '<div class="avatar fade" style="border-radius:'+avR+';'+(avRing?('border-color:'+avRing+';'):'')+'">' + (perfil.avatar
+      html += '<div class="avatar fade'+(cover?' over':'')+'" style="border-radius:'+avR+';'+(avRing?('border-color:'+avRing+';'):'')+'">' + (perfil.avatar
         ? '<img src="'+esc(perfil.avatar)+'" alt="'+esc(perfil.titulo)+'">'
         : '<span style="font-size:38px;font-weight:800;color:#6b7768;">'+esc((perfil.titulo||user).charAt(0).toUpperCase())+'</span>') + '</div>';
       var vrf = data.perfil && data.perfil.verified ? ' <img src="/ic-verified.png" alt="✓" style="height:0.85em;width:auto;vertical-align:-1px;margin-left:5px;">' : '';
