@@ -33,6 +33,7 @@
   .nav-item.active{background:var(--green);color:var(--ink);}
   .nav-item .ic{font-size:16px;width:20px;text-align:center;}
   .side-foot{margin-top:auto;font-size:11px;color:var(--soft);padding:10px 8px 2px;}
+  .side-made{font-size:10.5px;color:var(--soft);padding:3px 8px 6px;opacity:.85;}
   @media (min-width:921px){
     .sidebar.collapsed{width:76px;padding-left:12px;padding-right:12px;}
     .sidebar.collapsed .brand-word{opacity:0;}
@@ -41,7 +42,7 @@
     .sidebar.collapsed .nav-item{justify-content:center;padding:11px 0;gap:0;}
     .sidebar.collapsed .nav-item .ic{width:auto;}
     .sidebar.collapsed .nav-item .lbl{display:none;}
-    .sidebar.collapsed .side-foot{display:none;}
+    .sidebar.collapsed .side-foot,.sidebar.collapsed .side-made{display:none;}
   }
   .side-foot a{font-weight:700;color:var(--green-d);text-decoration:none;}
 
@@ -242,7 +243,7 @@
   @media (max-width:920px){
     #app{flex-direction:column;}
     .sidebar{position:fixed;bottom:0;left:0;right:0;top:auto;height:auto;width:auto;flex-direction:row;border-right:0;border-top:1px solid var(--line);padding:6px 6px calc(6px + env(safe-area-inset-bottom));z-index:30;background:rgba(255,255,255,.97);backdrop-filter:blur(8px);}
-    .sidebar .brand,.side-foot{display:none;}
+    .sidebar .brand,.side-foot,.side-made{display:none;}
     .nav{flex-direction:row;margin-top:0;gap:2px;flex:1;justify-content:space-around;}
     .nav-item{flex-direction:column;gap:3px;font-size:9.5px;padding:6px 4px;}
     .nav-item .ic{font-size:18px;width:auto;}
@@ -277,6 +278,7 @@
         <button class="nav-item" data-sec="compartir" title="Compartir"><span class="ic">📤</span><span class="lbl">Compartir</span></button>
       </nav>
       <div class="side-foot">Tu página: <a id="footLink" target="_blank" rel="noopener">bioo.cl/…</a></div>
+      <div class="side-made">Hecho con <span style="color:#e23b3b;">♥</span> en Chile 🇨🇱</div>
     </aside>
 
     <!-- ── Main ── -->
