@@ -82,7 +82,7 @@
     function LBASE(){ return location.pathname.indexOf('/links/') === 0 ? '/links/' : '/'; }
     function goEditor(){ location.href = LBASE() + 'editor' + (LBASE()==='/links/'?'.html':''); }
 
-    var RESERVED = ['registro','login','editor','admin','api','bio','dashboard','agenda','app','www','links','synaptech','soporte','ayuda','help','about','terminos','privacidad'];
+    var RESERVED = ['registro','login','editor','admin','api','bio','dashboard','agenda','app','www','links','soporte','ayuda','help','about','terminos','privacidad'];
     function validUser(v){ return v.length>=3 && v.length<=30 && /^[a-z0-9][a-z0-9._-]{2,29}$/.test(v) && RESERVED.indexOf(v)===-1; }
 
     var msg = document.getElementById('msg');

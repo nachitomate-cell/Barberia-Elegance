@@ -6,6 +6,7 @@
 <title>Editor · bioo</title>
 <meta name="theme-color" content="#ffffff" />
 <link rel="icon" href="/bioo-iso.png" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.css" />
 <style>
   :root{ --green:#92c83a; --green-2:#a3d94a; --green-d:#2c5a17; --ink:#15240b; --bg:#f7f8f3; --panel:#ffffff; --line:#e4e8da; --soft:#5b6a4e; --field:#f4f6ee; }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -19,16 +20,29 @@
   #app{display:flex;min-height:100dvh;}
 
   /* Sidebar */
-  .sidebar{width:230px;flex:none;background:var(--panel);border-right:1px solid var(--line);padding:18px 14px;display:flex;flex-direction:column;position:sticky;top:0;height:100dvh;}
-  .brand{display:flex;align-items:center;gap:9px;font-weight:800;font-size:17px;letter-spacing:-.4px;padding:4px 8px 0;}
-  .brand img{width:26px;height:26px;border-radius:7px;object-fit:contain;background:#fff;padding:2px;box-shadow:0 1px 5px rgba(21,36,11,.12);}
-  .brand .t2{font-weight:500;color:var(--green-d);}
+  .sidebar{width:230px;flex:none;background:var(--panel);border-right:1px solid var(--line);padding:18px 14px;display:flex;flex-direction:column;position:sticky;top:0;height:100dvh;transition:width .25s ease,padding .25s ease;}
+  .brand{display:flex;align-items:center;gap:8px;padding:4px 4px 0;}
+  .brand-logo{position:relative;flex:1;min-width:0;height:30px;overflow:hidden;}
+  .brand-word{position:absolute;left:2px;top:4px;height:22px;width:auto;transition:opacity .25s ease;}
+  .brand-iso{position:absolute;left:2px;top:0;height:30px;width:30px;border-radius:8px;opacity:0;pointer-events:none;transition:opacity .25s ease,left .25s ease;}
+  .sb-toggle{flex:none;background:var(--field);border:1px solid var(--line);border-radius:8px;width:28px;height:28px;display:grid;place-items:center;cursor:pointer;color:var(--soft);font-size:15px;line-height:1;transition:.2s;}
+  .sb-toggle:hover{border-color:var(--green);color:var(--ink);}
   .nav{display:flex;flex-direction:column;gap:4px;margin-top:22px;}
   .nav-item{display:flex;align-items:center;gap:11px;padding:11px 12px;border-radius:11px;border:0;background:transparent;color:var(--soft);font-size:14px;font-weight:700;cursor:pointer;text-align:left;width:100%;transition:.12s;}
   .nav-item:hover{background:var(--field);color:var(--ink);}
   .nav-item.active{background:var(--green);color:var(--ink);}
   .nav-item .ic{font-size:16px;width:20px;text-align:center;}
   .side-foot{margin-top:auto;font-size:11px;color:var(--soft);padding:10px 8px 2px;}
+  @media (min-width:921px){
+    .sidebar.collapsed{width:76px;padding-left:12px;padding-right:12px;}
+    .sidebar.collapsed .brand-word{opacity:0;}
+    .sidebar.collapsed .brand-iso{opacity:1;left:50%;transform:translateX(-50%);pointer-events:auto;cursor:pointer;}
+    .sidebar.collapsed .sb-toggle{display:none;}
+    .sidebar.collapsed .nav-item{justify-content:center;padding:11px 0;gap:0;}
+    .sidebar.collapsed .nav-item .ic{width:auto;}
+    .sidebar.collapsed .nav-item .lbl{display:none;}
+    .sidebar.collapsed .side-foot{display:none;}
+  }
   .side-foot a{font-weight:700;color:var(--green-d);text-decoration:none;}
 
   /* Main */
@@ -56,6 +70,20 @@
   input:focus,textarea:focus{border-color:var(--green);background:#fff;}
   textarea{resize:vertical;min-height:60px;}
   .avatar-row{display:flex;align-items:center;gap:14px;}
+  .ava-actions{display:flex;gap:8px;flex-wrap:wrap;}
+  .ava-btn{font-size:12.5px;font-weight:700;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:9px;padding:8px 12px;cursor:pointer;}
+  .ava-btn:hover{border-color:var(--green);}
+  .ava-btn.ghosty{color:var(--soft);}
+  .crop-modal{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;background:rgba(21,36,11,.55);backdrop-filter:blur(4px);padding:18px;}
+  .crop-modal.open{display:flex;}
+  .crop-sheet{width:100%;max-width:420px;background:#fff;border-radius:18px;overflow:hidden;display:flex;flex-direction:column;max-height:92dvh;}
+  .crop-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--line);font-weight:800;font-size:15px;}
+  .crop-head button{background:none;border:0;font-size:18px;color:var(--soft);cursor:pointer;line-height:1;}
+  .crop-body{padding:14px;background:#f4f6ee;}
+  .crop-body img{max-width:100%;max-height:56vh;display:block;}
+  .crop-foot{display:flex;gap:10px;padding:14px 18px;border-top:1px solid var(--line);}
+  .crop-foot .ghost{padding:11px 16px;}
+  .crop-foot .save{flex:1;}
   .avatar-prev{width:64px;height:64px;border-radius:50%;background:var(--field);border:1px solid var(--line);object-fit:cover;flex:none;}
   .help{font-size:11.5px;color:var(--soft);margin-top:5px;}
   .uname-wrap{display:flex;align-items:center;background:var(--field);border:1px solid var(--line);border-radius:10px;padding:0 4px 0 12px;}
@@ -78,6 +106,21 @@
   .link-item .del{background:transparent;border:0;color:#c0492f;font-size:17px;cursor:pointer;padding:2px 6px;}
   .link-item.drag{opacity:.5;}
   .link-item.off{opacity:.55;}
+  .lk-type{align-self:flex-start;display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:800;color:var(--green-d);background:rgba(146,200,58,.14);border:0;border-radius:8px;padding:5px 9px;cursor:pointer;}
+  .lk-type:hover{background:rgba(146,200,58,.26);}
+  .lk-row{display:flex;gap:6px;align-items:center;}
+  .lk-row .lk-pfx{max-width:62px;text-align:center;}
+  .lk-row .lk-at{font-weight:800;color:var(--soft);font-size:14px;padding-left:2px;flex:none;}
+  .lk-row input{flex:1;min-width:0;}
+  .tipo-modal{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;background:rgba(21,36,11,.55);backdrop-filter:blur(4px);padding:18px;}
+  .tipo-modal.open{display:flex;}
+  .tipo-sheet{width:100%;max-width:420px;background:#fff;border-radius:18px;overflow:hidden;}
+  .tipo-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--line);font-weight:800;font-size:15px;}
+  .tipo-head button{background:none;border:0;font-size:18px;color:var(--soft);cursor:pointer;line-height:1;}
+  .tipo-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:16px;}
+  .tipo-opt{display:flex;align-items:center;gap:9px;background:var(--field);border:1px solid var(--line);border-radius:12px;padding:13px 12px;font-size:14px;font-weight:700;color:var(--ink);cursor:pointer;text-align:left;}
+  .tipo-opt:hover{border-color:var(--green);background:#fff;}
+  .tipo-opt .ti{font-size:20px;flex:none;}
   .add{width:100%;border:1px dashed var(--green);background:rgba(146,200,58,.06);color:var(--green-d);border-radius:12px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;}
   .add:hover{background:rgba(146,200,58,.12);}
 
@@ -94,6 +137,28 @@
   .opt:hover{border-color:var(--green-2);color:var(--ink);}
   .opt.active{border-color:var(--green-d);background:rgba(146,200,58,.12);color:var(--ink);}
   .opt .bar{display:block;height:20px;margin:0 auto 7px;width:64px;background:#1b2310;}
+  .font-picker{position:relative;}
+  .font-trigger{width:100%;display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--field);border:1px solid var(--line);border-radius:10px;padding:11px 14px;font-size:15px;font-weight:600;color:var(--ink);cursor:pointer;text-align:left;}
+  .font-trigger:hover{border-color:var(--green-2);}
+  .font-picker.open .font-trigger{border-color:var(--green);background:#fff;}
+  .fp-caret{color:var(--soft);font-size:11px;transition:.15s;flex:none;}
+  .font-picker.open .fp-caret{transform:rotate(180deg);}
+  .font-menu{display:none;position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:20;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 30px rgba(21,36,11,.16);padding:6px;max-height:300px;overflow-y:auto;}
+  .font-picker.open .font-menu{display:block;}
+  .font-opt{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 12px;border-radius:9px;cursor:pointer;font-size:17px;color:var(--ink);line-height:1.1;}
+  .font-opt:hover{background:var(--field);}
+  .font-opt.active{background:rgba(146,200,58,.16);}
+  .font-opt .chk{color:var(--green-d);font-weight:800;opacity:0;font-size:14px;}
+  .font-opt.active .chk{opacity:1;}
+  .txt-colors{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-top:4px;}
+  .txt-color label{margin:0 0 6px;}
+  .cc{display:flex;align-items:center;gap:6px;}
+  .cc input[type=color]{width:40px;height:34px;border:1px solid var(--line);border-radius:8px;background:#fff;padding:2px;cursor:pointer;flex:none;}
+  .cc-auto{font-size:11px;font-weight:700;border:1px solid var(--line);background:#fff;color:var(--soft);border-radius:7px;padding:7px 9px;cursor:pointer;}
+  .cc-auto.on{background:var(--green);color:var(--ink);border-color:var(--green);}
+  .vrf-row{display:flex;align-items:center;gap:8px;margin-top:14px;font-size:13px;font-weight:600;color:var(--ink);cursor:pointer;}
+  .vrf-row input{width:auto;flex:none;}
+  .pv-verified{height:0.95em;width:auto;vertical-align:-2px;margin-left:5px;}
 
   /* Analítica */
   .stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
@@ -128,7 +193,8 @@
   .pv-title{font-size:19px;font-weight:800;margin-top:14px;text-align:center;word-break:break-word;}
   .pv-sub{font-size:13px;margin-top:5px;text-align:center;max-width:30ch;line-height:1.45;word-break:break-word;}
   .pv-blocks{width:100%;display:flex;flex-direction:column;gap:11px;margin-top:24px;}
-  .pv-btn{width:100%;padding:15px 16px;font-size:14px;font-weight:700;text-align:center;box-shadow:0 2px 10px rgba(21,36,11,.10);word-break:break-word;}
+  .pv-btn{position:relative;width:100%;padding:15px 16px;font-size:14px;font-weight:700;text-align:center;box-shadow:0 2px 10px rgba(21,36,11,.10);word-break:break-word;}
+  .pv-btn-ic{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:24px;height:24px;object-fit:contain;}
   .pv-empty{margin-top:26px;font-size:13px;text-align:center;opacity:.85;}
   .pv-foot{margin-top:auto;padding-top:26px;font-size:11px;font-weight:700;opacity:.9;}
 
@@ -159,13 +225,19 @@
   <div id="app" class="hidden">
     <!-- ── Sidebar ── -->
     <aside class="sidebar">
-      <div class="brand"><img src="/bioo-wordmark.png" alt="bioo" style="height:22px;width:auto;background:none;padding:0;box-shadow:none;border-radius:0;" /></div>
+      <div class="brand">
+        <span class="brand-logo">
+          <img class="brand-word" src="/bioo-wordmark.png" alt="bioo" />
+          <img class="brand-iso" src="/bioo-iso.png" alt="bioo" id="sbIso" />
+        </span>
+        <button class="sb-toggle" id="sbToggle" type="button" title="Contraer menú" aria-label="Contraer menú">«</button>
+      </div>
       <nav class="nav" id="nav">
-        <button class="nav-item active" data-sec="enlaces"><span class="ic">🔗</span> Enlaces</button>
-        <button class="nav-item" data-sec="perfil"><span class="ic">👤</span> Perfil</button>
-        <button class="nav-item" data-sec="apariencia"><span class="ic">🎨</span> Apariencia</button>
-        <button class="nav-item" data-sec="analitica"><span class="ic">📊</span> Analítica</button>
-        <button class="nav-item" data-sec="compartir"><span class="ic">📤</span> Compartir</button>
+        <button class="nav-item active" data-sec="enlaces" title="Enlaces"><span class="ic">🔗</span><span class="lbl">Enlaces</span></button>
+        <button class="nav-item" data-sec="perfil" title="Perfil"><span class="ic">👤</span><span class="lbl">Perfil</span></button>
+        <button class="nav-item" data-sec="apariencia" title="Apariencia"><span class="ic">🎨</span><span class="lbl">Apariencia</span></button>
+        <button class="nav-item" data-sec="analitica" title="Analítica"><span class="ic">📊</span><span class="lbl">Analítica</span></button>
+        <button class="nav-item" data-sec="compartir" title="Compartir"><span class="ic">📤</span><span class="lbl">Compartir</span></button>
       </nav>
       <div class="side-foot">Tu página: <a id="footLink" target="_blank" rel="noopener">bioo.cl/…</a></div>
     </aside>
@@ -196,8 +268,15 @@
             <div class="avatar-row">
               <img class="avatar-prev" id="avatarPrev" alt="" />
               <div style="flex:1;">
-                <label for="avatar">Foto (URL de imagen)</label>
-                <input id="avatar" type="url" placeholder="https://… (pega el enlace de tu foto)" />
+                <label>Foto de perfil</label>
+                <div class="ava-actions">
+                  <button type="button" class="ava-btn" id="uploadBtn">📷 Subir foto</button>
+                  <button type="button" class="ava-btn ghosty" id="removeAvatarBtn">Usar inicial</button>
+                  <button type="button" class="ava-btn ghosty" id="urlToggle">Pegar enlace</button>
+                </div>
+                <input id="avatarFile" type="file" accept="image/*" hidden />
+                <input id="avatar" type="url" placeholder="https://… (enlace de tu foto)" style="display:none;margin-top:8px;" />
+                <div class="help">Sube una foto y recórtala, o usa la inicial de tu nombre.</div>
               </div>
             </div>
             <label for="titulo">Nombre que se muestra</label>
@@ -210,6 +289,7 @@
               <input id="username" type="text" maxlength="30" placeholder="tunombre" />
             </div>
             <div class="help">Si lo cambias, tu link anterior dejará de funcionar.</div>
+            <label class="vrf-row"><input type="checkbox" id="verifiedChk" /> <span>Mostrar insignia verificada ✓ junto a tu nombre</span></label>
           </div>
         </section>
 
@@ -222,12 +302,46 @@
             <div class="theme-grid" id="themeGrid"></div>
           </div>
           <div class="card">
+            <h2>Fondo</h2>
+            <div class="opt-row" id="bgModeRow"></div>
+            <div id="bgColorWrap" style="display:none;margin-top:10px;"><label>Color de fondo</label><div class="cc"><input type="color" id="bgColor" /></div></div>
+            <div id="bgGradWrap" style="display:none;margin-top:10px;">
+              <label>Degradado (dos colores)</label>
+              <div class="cc"><input type="color" id="bgC1" /><input type="color" id="bgC2" /></div>
+              <label style="margin-top:8px;">Ángulo</label>
+              <input type="range" id="bgAngle" min="0" max="360" value="165" style="width:100%;" />
+            </div>
+            <div id="bgImgWrap" style="display:none;margin-top:10px;">
+              <input type="file" id="bgImgFile" accept="image/*" hidden />
+              <div class="ava-actions"><button type="button" class="ava-btn" id="bgImgBtn">📷 Subir imagen</button><button type="button" class="ava-btn ghosty" id="bgImgClear">Quitar</button></div>
+              <div class="help">Se usa como fondo (cover). Recomendado: imagen vertical.</div>
+            </div>
+          </div>
+          <div class="card">
             <h2>Forma del botón</h2>
             <div class="opt-row" id="shapeRow"></div>
           </div>
           <div class="card">
             <h2>Estilo del botón</h2>
             <div class="opt-row" id="fillRow"></div>
+          </div>
+          <div class="card">
+            <h2>Texto</h2>
+            <label>Fuente</label>
+            <div class="font-picker" id="fontPicker">
+              <button type="button" class="font-trigger" id="fontTrigger"><span id="fontTriggerLabel">Sistema</span><span class="fp-caret">▾</span></button>
+              <div class="font-menu" id="fontMenu"></div>
+            </div>
+            <label>Tamaño del título</label>
+            <div class="opt-row" id="titleSizeRow"></div>
+            <label>Tamaño de la bio</label>
+            <div class="opt-row" id="subSizeRow"></div>
+            <label>Colores del texto</label>
+            <div class="txt-colors">
+              <div class="txt-color"><label>Título</label><div class="cc"><input type="color" id="titleColor" /><button type="button" class="cc-auto" id="titleColorAuto">Auto</button></div></div>
+              <div class="txt-color"><label>Bio</label><div class="cc"><input type="color" id="subColor" /><button type="button" class="cc-auto" id="subColorAuto">Auto</button></div></div>
+              <div class="txt-color"><label>Botones</label><div class="cc"><input type="color" id="btnColor" /><button type="button" class="cc-auto" id="btnColorAuto">Auto</button></div></div>
+            </div>
           </div>
         </section>
 
@@ -277,14 +391,35 @@
 
   <div class="toast" id="toast"></div>
 
+  <!-- Modal: elegir tipo de enlace -->
+  <div class="tipo-modal" id="tipoModal">
+    <div class="tipo-sheet">
+      <div class="tipo-head"><span>Elige el tipo de enlace</span><button type="button" id="tipoClose" aria-label="Cerrar">✕</button></div>
+      <div class="tipo-grid" id="tipoMenu"></div>
+    </div>
+  </div>
+
+  <!-- Modal recortar foto de perfil -->
+  <div class="crop-modal" id="cropModal">
+    <div class="crop-sheet">
+      <div class="crop-head"><span>Recortar foto</span><button type="button" id="cropClose" aria-label="Cerrar">✕</button></div>
+      <div class="crop-body"><img id="cropImg" alt="" /></div>
+      <div class="crop-foot">
+        <button type="button" class="ghost" id="cropCancel">Cancelar</button>
+        <button type="button" class="save" id="cropSave">Guardar</button>
+      </div>
+    </div>
+  </div>
+
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.2/dist/cropper.min.js"></script>
   <script src="/firebase-config.js"></script>
   <script>
   (function(){
     'use strict';
-    var RESERVED = ['registro','login','editor','admin','api','bio','dashboard','agenda','app','www','links','synaptech','soporte','ayuda','help','about','terminos','privacidad'];
+    var RESERVED = ['registro','login','editor','admin','api','bio','dashboard','agenda','app','www','links','soporte','ayuda','help','about','terminos','privacidad'];
     function validUser(v){ return v.length>=3 && v.length<=30 && /^[a-z0-9][a-z0-9._-]{2,29}$/.test(v) && RESERVED.indexOf(v)===-1; }
     function LBASE(){ return location.pathname.indexOf('/links/') === 0 ? '/links/' : '/'; }
     function urlPublica(u){ return LBASE()==='/links/' ? ('/links/u.html?u='+u) : ('/'+u); }
@@ -307,10 +442,49 @@
     };
     var SHAPES = { rounded:{name:'Redondeado',radius:'14px'}, pill:{name:'Píldora',radius:'100px'}, sharp:{name:'Recto',radius:'4px'} };
     var FILLS  = { solid:{name:'Relleno'}, outline:{name:'Contorno'} };
+    var FONTS = {
+      system:    { name:'Sistema',          stack:'-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif', g:'' },
+      poppins:   { name:'Poppins',          stack:'"Poppins",sans-serif',     g:'Poppins:wght@400;600;800' },
+      montserrat:{ name:'Montserrat',       stack:'"Montserrat",sans-serif',  g:'Montserrat:wght@400;600;800' },
+      nunito:    { name:'Nunito',           stack:'"Nunito",sans-serif',      g:'Nunito:wght@400;700;800' },
+      playfair:  { name:'Playfair Display', stack:'"Playfair Display",serif', g:'Playfair+Display:wght@500;700;800' },
+      oswald:    { name:'Oswald',           stack:'"Oswald",sans-serif',      g:'Oswald:wght@400;600;700' },
+      lobster:   { name:'Lobster',          stack:'"Lobster",cursive',        g:'Lobster' },
+      pacifico:  { name:'Pacifico',         stack:'"Pacifico",cursive',       g:'Pacifico' }
+    };
+    var TSIZE = { s:'17px', m:'21px', l:'26px' };   // tamaño título
+    var SSIZE = { s:'12px', m:'14px', l:'16px' };   // tamaño bio
+    var SIZEKEYS = { s:1, m:1, l:1 };
+    var _fontHover = null;   // fuente en hover, para previsualizar en el visor
+    function loadFont(key){
+      var f = FONTS[key]; if (!f || !f.g) return;
+      var id = 'gf-' + key; if (document.getElementById(id)) return;
+      var l = document.createElement('link'); l.id = id; l.rel = 'stylesheet';
+      l.href = 'https://fonts.googleapis.com/css2?family=' + f.g + '&display=swap';
+      document.head.appendChild(l);
+    }
+    function defText(t){ var p = THEMES[t.preset]; return { title:p.text, sub:p.sub, btn:(t.fill==='outline'?p.text:p.btnText) }; }
+    function toHex(c){
+      c = String(c||''); if (c.charAt(0)==='#') return c.slice(0,7);
+      var m = c.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/i);
+      if (m) return '#' + [m[1],m[2],m[3]].map(function(n){ return ('0'+(+n).toString(16)).slice(-2); }).join('');
+      return '#888888';
+    }
 
     function curTheme(){
-      var t = state.theme || {};
-      return { preset: THEMES[t.preset] ? t.preset : 'lime', shape: SHAPES[t.shape] ? t.shape : 'rounded', fill: FILLS[t.fill] ? t.fill : 'solid' };
+      var t = state.theme || {}, x = t.text || {};
+      return {
+        preset: THEMES[t.preset] ? t.preset : 'lime',
+        shape: SHAPES[t.shape] ? t.shape : 'rounded',
+        fill: FILLS[t.fill] ? t.fill : 'solid',
+        bg: bgNorm(t.bg),
+        text: {
+          font: FONTS[x.font] ? x.font : 'system',
+          titleSize: SIZEKEYS[x.titleSize] ? x.titleSize : 'm',
+          subSize: SIZEKEYS[x.subSize] ? x.subSize : 'm',
+          titleColor: x.titleColor || '', subColor: x.subColor || '', btnColor: x.btnColor || ''
+        }
+      };
     }
     function themeCss(t){
       var p = THEMES[t.preset], radius = SHAPES[t.shape].radius, btn;
@@ -319,9 +493,18 @@
       btn += 'border-radius:'+radius+';';
       return { p:p, btn:btn };
     }
+    function bgNorm(b){ b=b||{}; return { mode:(['preset','color','gradient','image'].indexOf(b.mode)>=0?b.mode:'preset'), color:b.color||'#92c83a', c1:b.c1||'#92c83a', c2:b.c2||'#2c5a17', angle:b.angle||'165', image:b.image||'' }; }
+    function bgCss(t){
+      var b = t.bg || {};
+      if (b.mode==='color')   return b.color;
+      if (b.mode==='gradient')return 'linear-gradient('+b.angle+'deg, '+b.c1+', '+b.c2+')';
+      if (b.mode==='image' && b.image) return 'url("'+b.image+'") center/cover no-repeat';
+      return THEMES[t.preset].bg;
+    }
 
     var state = { uid:null, email:null, username:null, originalUsername:null,
-      perfil:{titulo:'',subtitulo:'',avatar:''}, bloques:[], theme:{preset:'lime',shape:'rounded',fill:'solid'},
+      perfil:{titulo:'',subtitulo:'',avatar:''}, bloques:[],
+      theme:{preset:'lime',shape:'rounded',fill:'solid',bg:{mode:'preset',color:'#92c83a',c1:'#92c83a',c2:'#2c5a17',angle:'165',image:''},text:{font:'system',titleSize:'m',subSize:'m',titleColor:'',subColor:'',btnColor:''}},
       views:0, clicks:{} };
 
     var $ = function(id){ return document.getElementById(id); };
@@ -337,6 +520,19 @@
       if (sec === 'compartir') renderShare();
     });
 
+    // ── Sidebar comprimible (logo wordmark ↔ isotipo) ──
+    var SB_KEY = 'bioo_sb_collapsed';
+    function toggleSb(force){
+      var sb = document.querySelector('.sidebar'); if (!sb) return;
+      var collapsed = (typeof force === 'boolean') ? force : !sb.classList.contains('collapsed');
+      sb.classList.toggle('collapsed', collapsed);
+      var tg = $('sbToggle'); if (tg) tg.title = collapsed ? 'Expandir menú' : 'Contraer menú';
+      try { localStorage.setItem(SB_KEY, collapsed ? '1' : '0'); } catch(e){}
+    }
+    $('sbToggle').addEventListener('click', function(){ toggleSb(); });
+    $('sbIso').addEventListener('click', function(){ toggleSb(false); });
+    try { if (localStorage.getItem(SB_KEY) === '1') toggleSb(true); } catch(e){}
+
     // ── Auth gate ──
     auth.onAuthStateChanged(function(user){
       if (!user){ location.href = urlRegistroLogin(); return; }
@@ -345,9 +541,13 @@
     });
 
     function normalizeTheme(raw){
-      if (raw && typeof raw === 'object') return { preset: raw.preset||'lime', shape: raw.shape||'rounded', fill: raw.fill||'solid' };
-      // compat: theme viejo era un string ('lime') o inexistente.
-      return { preset: (typeof raw === 'string' && THEMES[raw]) ? raw : 'lime', shape:'rounded', fill:'solid' };
+      // compat: theme viejo era un string ('lime'), un objeto sin `text`, o inexistente.
+      var b = (raw && typeof raw === 'object') ? raw : { preset:(typeof raw === 'string' && THEMES[raw]) ? raw : 'lime' };
+      var x = b.text || {};
+      return {
+        preset: b.preset||'lime', shape: b.shape||'rounded', fill: b.fill||'solid', bg: bgNorm(b.bg),
+        text: { font:x.font||'system', titleSize:x.titleSize||'m', subSize:x.subSize||'m', titleColor:x.titleColor||'', subColor:x.subColor||'', btnColor:x.btnColor||'' }
+      };
     }
 
     function loadOrCreateBio(){
@@ -392,6 +592,7 @@
       $('titulo').value = state.perfil.titulo || '';
       $('subtitulo').value = state.perfil.subtitulo || '';
       $('avatar').value = state.perfil.avatar || '';
+      $('verifiedChk').checked = !!state.perfil.verified;
       $('username').value = uname;
       paintAvatar(); paintPubLink(); renderLinks(); renderAppearance(); renderPreview();
       $('gate').classList.add('hidden'); $('app').classList.remove('hidden');
@@ -409,24 +610,68 @@
     }
 
     // ── Enlaces ──
+    // ── Tipos de enlace (red social) ──
+    var TIPOS = {
+      enlace:   { name:'Enlace / Web', ic:'🔗', label:'Mi sitio web' },
+      whatsapp: { name:'WhatsApp',     ic:'💬', label:'Escríbeme por WhatsApp' },
+      instagram:{ name:'Instagram',    ic:'📸', label:'Sígueme en Instagram' },
+      tiktok:   { name:'TikTok',       ic:'🎵', label:'Sígueme en TikTok' },
+      facebook: { name:'Facebook',     ic:'👍', label:'Síguenos en Facebook' },
+      youtube:  { name:'YouTube',      ic:'▶️', label:'Mira mi canal' },
+      email:    { name:'Correo',       ic:'✉️', label:'Escríbeme un correo' },
+      telefono: { name:'Teléfono',     ic:'📞', label:'Llámame' }
+    };
+    function onlyDigits(s){ return String(s||'').replace(/\D/g,''); }
+    function cleanUser(s){ return String(s||'').trim().replace(/^@+/,'').replace(/^https?:\/\/[^/]+\//i,'').replace(/\/+$/,''); }
+    function computeUrl(b){
+      switch (b.tipo){
+        case 'whatsapp': { var d=(onlyDigits(b.prefijo)||'56')+onlyDigits(b.telefono); return d.length>=8 ? ('https://wa.me/'+d+(b.mensaje?('?text='+encodeURIComponent(b.mensaje)):'')) : ''; }
+        case 'telefono': { var d=(onlyDigits(b.prefijo)||'56')+onlyDigits(b.telefono); return d.length>=8 ? ('tel:+'+d) : ''; }
+        case 'instagram':{ var u=cleanUser(b.usuario); return u ? ('https://instagram.com/'+u) : ''; }
+        case 'tiktok':   { var u=cleanUser(b.usuario); return u ? ('https://www.tiktok.com/@'+u) : ''; }
+        case 'facebook': { var u=cleanUser(b.usuario); return u ? ('https://facebook.com/'+u) : ''; }
+        case 'email':    { var e=String(b.email||'').trim(); return e ? ('mailto:'+e) : ''; }
+        default:         return String(b.url||'').trim();   // enlace, youtube
+      }
+    }
+    function av(s){ return esc(s).replace(/"/g,'&quot;'); }
+    function fieldsHtml(b){
+      var lbl = '<input data-f="label" placeholder="Texto del botón" value="'+av(b.label)+'">';
+      var t = b.tipo;
+      if (t==='whatsapp') return lbl +
+        '<div class="lk-row"><span class="lk-at">+</span><input class="lk-pfx" data-f="prefijo" inputmode="numeric" placeholder="56" value="'+av(b.prefijo||'56')+'"><input data-f="telefono" inputmode="numeric" placeholder="9 1234 5678" value="'+av(b.telefono)+'"></div>' +
+        '<input data-f="mensaje" placeholder="Mensaje que recibirás (ej. Hola! Quiero info)" value="'+av(b.mensaje)+'">';
+      if (t==='telefono') return lbl +
+        '<div class="lk-row"><span class="lk-at">+</span><input class="lk-pfx" data-f="prefijo" inputmode="numeric" placeholder="56" value="'+av(b.prefijo||'56')+'"><input data-f="telefono" inputmode="numeric" placeholder="9 1234 5678" value="'+av(b.telefono)+'"></div>';
+      if (t==='instagram'||t==='tiktok'||t==='facebook') return lbl +
+        '<div class="lk-row"><span class="lk-at">@</span><input data-f="usuario" placeholder="tuusuario" value="'+av(b.usuario)+'"></div>';
+      if (t==='email') return lbl + '<input data-f="email" type="email" placeholder="tu@correo.com" value="'+av(b.email)+'">';
+      return lbl + '<input data-f="url" placeholder="https://…" value="'+av(b.url)+'">';   // enlace, youtube
+    }
+
     function renderLinks(){
       var host = $('links'); host.innerHTML = '';
       state.bloques.forEach(function(blk, i){
+        if (!blk.tipo || !TIPOS[blk.tipo]) blk.tipo = 'enlace';
+        var def = TIPOS[blk.tipo];
         var row = document.createElement('div');
         row.className = 'link-item' + (blk.activo===false ? ' off' : ''); row.draggable = true; row.dataset.i = i;
         row.innerHTML =
           '<span class="grip">⠿</span>' +
           '<div class="fields">' +
-            '<input data-f="label" placeholder="Título del botón (ej. Instagram)" value="'+ esc(blk.label).replace(/"/g,'&quot;') +'">' +
-            '<input data-f="url" placeholder="https://… o wa.me/569…" value="'+ esc(blk.url).replace(/"/g,'&quot;') +'">' +
+            '<button type="button" class="lk-type">'+def.ic+' '+esc(def.name)+' ▾</button>' +
+            fieldsHtml(blk) +
           '</div>' +
           '<div class="tools">' +
             '<label class="switch" title="Activo/oculto"><input type="checkbox" data-f="activo" '+(blk.activo===false?'':'checked')+'><span class="track"></span></label>' +
             '<button class="del" title="Eliminar">✕</button>' +
           '</div>';
-        row.querySelector('[data-f=label]').addEventListener('input', function(e){ state.bloques[i].label = e.target.value; renderPreview(); });
-        row.querySelector('[data-f=url]').addEventListener('input', function(e){ state.bloques[i].url = e.target.value; renderPreview(); });
-        row.querySelector('[data-f=activo]').addEventListener('change', function(e){ state.bloques[i].activo = e.target.checked; row.classList.toggle('off', !e.target.checked); renderPreview(); });
+        Array.prototype.forEach.call(row.querySelectorAll('[data-f]'), function(inp){
+          var f = inp.getAttribute('data-f');
+          if (f==='activo'){ inp.addEventListener('change', function(e){ state.bloques[i].activo=e.target.checked; row.classList.toggle('off', !e.target.checked); renderPreview(); }); return; }
+          inp.addEventListener('input', function(e){ state.bloques[i][f]=e.target.value; state.bloques[i].url=computeUrl(state.bloques[i]); renderPreview(); });
+        });
+        row.querySelector('.lk-type').addEventListener('click', function(e){ e.stopPropagation(); openTipoPicker(i); });
         row.querySelector('.del').addEventListener('click', function(){ state.bloques.splice(i,1); renderLinks(); });
         row.addEventListener('dragstart', function(){ row.classList.add('drag'); window._dragI = i; });
         row.addEventListener('dragend', function(){ row.classList.remove('drag'); });
@@ -437,11 +682,38 @@
       renderPreview();
     }
 
-    $('addLink').addEventListener('click', function(){
-      state.bloques.push({ id:'l'+Date.now()+Math.floor(Math.random()*1000), tipo:'link', label:'', url:'', activo:true });
-      renderLinks();
-      var inputs = $('links').querySelectorAll('.link-item:last-child input'); if (inputs[0]) inputs[0].focus();
-    });
+    // ── Selector de tipo (modal) ──
+    var _tipoForBlock = -1;
+    function openTipoPicker(i){
+      _tipoForBlock = i;
+      var menu = $('tipoMenu'); menu.innerHTML = '';
+      Object.keys(TIPOS).forEach(function(k){
+        var o = document.createElement('button'); o.type='button'; o.className='tipo-opt';
+        o.innerHTML = '<span class="ti">'+TIPOS[k].ic+'</span>'+esc(TIPOS[k].name);
+        o.addEventListener('click', function(){ pickTipo(k); });
+        menu.appendChild(o);
+      });
+      $('tipoModal').classList.add('open');
+    }
+    function pickTipo(k){
+      $('tipoModal').classList.remove('open');
+      if (_tipoForBlock < 0){
+        var b = { id:'l'+Date.now()+Math.floor(Math.random()*1000), tipo:k, label:TIPOS[k].label, activo:true };
+        if (k==='whatsapp'||k==='telefono') b.prefijo='56';
+        state.bloques.push(b);
+        renderLinks();
+        var inputs = $('links').querySelectorAll('.link-item:last-child input'); if (inputs[0]) inputs[0].focus();
+      } else {
+        var b2 = state.bloques[_tipoForBlock]; b2.tipo = k;
+        if (!(b2.label||'').trim()) b2.label = TIPOS[k].label;
+        if ((k==='whatsapp'||k==='telefono') && !b2.prefijo) b2.prefijo='56';
+        b2.url = computeUrl(b2);
+        renderLinks();
+      }
+    }
+    $('addLink').addEventListener('click', function(){ openTipoPicker(-1); });
+    $('tipoClose').addEventListener('click', function(){ $('tipoModal').classList.remove('open'); });
+    $('tipoModal').addEventListener('click', function(e){ if (e.target === $('tipoModal')) $('tipoModal').classList.remove('open'); });
 
     // ── Apariencia (temas + forma + estilo) ──
     function renderAppearance(){
@@ -474,6 +746,74 @@
         o.addEventListener('click', function(){ state.theme.fill = key; renderAppearance(); renderPreview(); });
         fr.appendChild(o);
       });
+
+      // ── Texto: fuente, tamaños y colores ──
+      var fpicker=$('fontPicker'), ftrigger=$('fontTrigger'), flabel=$('fontTriggerLabel'), fmenu=$('fontMenu');
+      if (fpicker && !fpicker._wired){
+        ftrigger.addEventListener('click', function(e){
+          e.stopPropagation();
+          var opening = !fpicker.classList.contains('open');
+          fpicker.classList.toggle('open');
+          if (opening) Object.keys(FONTS).forEach(function(k){ loadFont(k); }); // precarga para previsualizar
+        });
+        document.addEventListener('click', function(){ if (fpicker.classList.contains('open')){ fpicker.classList.remove('open'); if (_fontHover){ _fontHover = null; renderPreview(); } } });
+        fmenu.addEventListener('click', function(e){ e.stopPropagation(); });
+        fpicker._wired = true;
+      }
+      if (fmenu){
+        fmenu.innerHTML='';
+        Object.keys(FONTS).forEach(function(k){
+          var o=document.createElement('div');
+          o.className='font-opt'+(k===t.text.font?' active':'');
+          o.style.fontFamily=FONTS[k].stack;
+          o.innerHTML='<span>'+escHtml(FONTS[k].name)+'</span><span class="chk">✓</span>';
+          o.addEventListener('mouseenter', function(){ _fontHover = k; loadFont(k); renderPreview(); });
+          o.addEventListener('mouseleave', function(){ if (_fontHover === k){ _fontHover = null; renderPreview(); } });
+          o.addEventListener('click', function(){ _fontHover = null; state.theme.text.font=k; loadFont(k); fpicker.classList.remove('open'); renderAppearance(); renderPreview(); });
+          fmenu.appendChild(o);
+        });
+        flabel.textContent = FONTS[t.text.font].name;
+        flabel.style.fontFamily = FONTS[t.text.font].stack;
+      }
+      loadFont(t.text.font);
+
+      [['titleSizeRow','titleSize'],['subSizeRow','subSize']].forEach(function(pair){
+        var row=$(pair[0]), key=pair[1]; if(!row) return; row.innerHTML='';
+        [['s','Chico'],['m','Mediano'],['l','Grande']].forEach(function(sz){
+          var o=document.createElement('button'); o.type='button';
+          o.className='opt'+(t.text[key]===sz[0]?' active':'');
+          o.textContent=sz[1];
+          o.addEventListener('click', function(){ state.theme.text[key]=sz[0]; renderAppearance(); renderPreview(); });
+          row.appendChild(o);
+        });
+      });
+
+      var dc = defText(t);
+      [['titleColor','titleColorAuto','titleColor',dc.title],['subColor','subColorAuto','subColor',dc.sub],['btnColor','btnColorAuto','btnColor',dc.btn]].forEach(function(c){
+        var inp=$(c[0]), auto=$(c[1]), key=c[2], fb=c[3]; if(!inp||!auto) return;
+        inp.value = toHex(t.text[key] || fb);
+        inp.oninput = function(){ state.theme.text[key]=inp.value; auto.classList.remove('on'); renderPreview(); };
+        auto.onclick = function(){ state.theme.text[key]=''; renderAppearance(); renderPreview(); };
+        auto.classList.toggle('on', !t.text[key]);
+      });
+
+      // ── Fondo personalizado ──
+      var bg = t.bg, bgr = $('bgModeRow');
+      if (bgr){ bgr.innerHTML='';
+        [['preset','Tema'],['color','Color'],['gradient','Degradado'],['image','Imagen']].forEach(function(m){
+          var o=document.createElement('button'); o.type='button'; o.className='opt'+(bg.mode===m[0]?' active':''); o.textContent=m[1];
+          o.addEventListener('click', function(){ state.theme.bg.mode=m[0]; renderAppearance(); renderPreview(); });
+          bgr.appendChild(o);
+        });
+      }
+      $('bgColorWrap').style.display = bg.mode==='color'?'block':'none';
+      $('bgGradWrap').style.display  = bg.mode==='gradient'?'block':'none';
+      $('bgImgWrap').style.display   = bg.mode==='image'?'block':'none';
+      if (!$('bgColor')._w){ $('bgColor').addEventListener('input', function(){ state.theme.bg.color=this.value; renderPreview(); }); $('bgColor')._w=1; }
+      if (!$('bgC1')._w){ $('bgC1').addEventListener('input', function(){ state.theme.bg.c1=this.value; renderPreview(); }); $('bgC1')._w=1; }
+      if (!$('bgC2')._w){ $('bgC2').addEventListener('input', function(){ state.theme.bg.c2=this.value; renderPreview(); }); $('bgC2')._w=1; }
+      if (!$('bgAngle')._w){ $('bgAngle').addEventListener('input', function(){ state.theme.bg.angle=this.value; renderPreview(); }); $('bgAngle')._w=1; }
+      $('bgColor').value = toHex(bg.color); $('bgC1').value = toHex(bg.c1); $('bgC2').value = toHex(bg.c2); $('bgAngle').value = bg.angle;
     }
 
     // ── Analítica ──
@@ -508,7 +848,10 @@
     // ── Vista previa en vivo ──
     function renderPreview(){
       var screen = $('previewScreen'); if (!screen) return;
-      var t = curTheme(), css = themeCss(t), p = css.p;
+      var t = curTheme(), css = themeCss(t), p = css.p, tx = t.text;
+      var fontKey = (_fontHover && FONTS[_fontHover]) ? _fontHover : tx.font;
+      var fontStack = FONTS[fontKey].stack; loadFont(fontKey);
+      var titleColor = tx.titleColor || p.text, subColor = tx.subColor || p.sub;
       var titulo = $('titulo').value.trim();
       var subt   = $('subtitulo').value.trim();
       var avatar = $('avatar').value.trim();
@@ -516,18 +859,19 @@
       var shown  = titulo || ('@' + uname);
       var ini    = (shown.replace(/^@/, '').charAt(0) || 'b').toUpperCase();
 
-      screen.style.background = p.bg;
+      screen.style.background = bgCss(t);
+      screen.style.fontFamily = fontStack;
       var html = '<div class="pv-wrap">';
       html += '<div class="pv-avatar">' + (avatar
         ? '<img src="' + escHtml(avatar) + '" alt="" onerror="this.remove()">'
         : '<span>' + escHtml(ini) + '</span>') + '</div>';
-      html += '<div class="pv-title" style="color:'+p.text+';">' + escHtml(shown) + '</div>';
-      if (subt) html += '<div class="pv-sub" style="color:'+p.sub+';">' + escHtml(subt) + '</div>';
+      html += '<div class="pv-title" style="color:'+titleColor+';font-size:'+TSIZE[tx.titleSize]+';">' + escHtml(shown) + ($('verifiedChk').checked?' <img class="pv-verified" src="/ic-verified.png" alt="✓">':'') + '</div>';
+      if (subt) html += '<div class="pv-sub" style="color:'+subColor+';font-size:'+SSIZE[tx.subSize]+';">' + escHtml(subt) + '</div>';
 
       var vis = state.bloques.filter(function(b){ return b.activo!==false && ((b.label||'').trim() || (b.url||'').trim()); });
       if (vis.length){
         html += '<div class="pv-blocks">';
-        vis.forEach(function(b){ html += '<div class="pv-btn" style="'+css.btn+'">' + escHtml((b.label||b.url||'').trim()) + '</div>'; });
+        vis.forEach(function(b){ var ic=(b.tipo&&{whatsapp:1,instagram:1,tiktok:1,facebook:1,youtube:1,email:1,telefono:1,enlace:1}[b.tipo])?'<img class="pv-btn-ic" src="/ic-'+b.tipo+'.png" alt="">':''; html += '<div class="pv-btn" style="'+css.btn+(tx.btnColor?('color:'+tx.btnColor+';'):'')+'">'+ic+ escHtml((b.label||b.url||'').trim()) + '</div>'; });
         html += '</div>';
       } else {
         html += '<div class="pv-empty" style="color:'+p.sub+';"><img src="/bioo-empty.png" alt="" style="width:90px;height:auto;display:block;margin:0 auto 12px;">Aún no hay enlaces aquí.</div>';
@@ -539,8 +883,66 @@
 
     // ── Listeners de perfil ──
     $('avatar').addEventListener('input', function(){ paintAvatar(); renderPreview(); });
+
+    // ── Subir foto + recortar (Cropper.js). El resultado se guarda como data URL en #avatar ──
+    var _cropper = null;
+    function closeCropper(){ $('cropModal').classList.remove('open'); if(_cropper){ _cropper.destroy(); _cropper=null; } }
+    function openCropper(src){
+      $('cropImg').src = src;
+      $('cropModal').classList.add('open');
+      if (_cropper) { _cropper.destroy(); _cropper = null; }
+      if (typeof Cropper === 'undefined'){ toast('No se pudo cargar el recortador'); return; }
+      _cropper = new Cropper($('cropImg'), { aspectRatio:1, viewMode:1, autoCropArea:1, dragMode:'move', background:false, responsive:true });
+    }
+    $('uploadBtn').addEventListener('click', function(){ $('avatarFile').click(); });
+    $('avatarFile').addEventListener('change', function(e){
+      var file = e.target.files && e.target.files[0]; if(!file) return;
+      if (!/^image\//.test(file.type)) { toast('Elige una imagen'); e.target.value=''; return; }
+      if (file.size > 10*1024*1024) { toast('Imagen muy grande (máx 10MB)'); e.target.value=''; return; }
+      var rd = new FileReader();
+      rd.onload = function(ev){ openCropper(ev.target.result); };
+      rd.readAsDataURL(file);
+      e.target.value = '';
+    });
+    $('cropClose').addEventListener('click', closeCropper);
+    $('cropCancel').addEventListener('click', closeCropper);
+    $('cropModal').addEventListener('click', function(e){ if (e.target === $('cropModal')) closeCropper(); });
+    $('cropSave').addEventListener('click', function(){
+      if (!_cropper) { closeCropper(); return; }
+      var canvas = _cropper.getCroppedCanvas({ width:400, height:400, imageSmoothingQuality:'high' });
+      if (!canvas) { closeCropper(); return; }
+      $('avatar').value = canvas.toDataURL('image/jpeg', 0.82);
+      paintAvatar(); renderPreview(); closeCropper(); toast('Foto lista ✓');
+    });
+    $('removeAvatarBtn').addEventListener('click', function(){ $('avatar').value=''; paintAvatar(); renderPreview(); });
+    $('urlToggle').addEventListener('click', function(){
+      var el=$('avatar'); el.style.display = (el.style.display==='none' ? 'block' : 'none');
+      if (el.style.display !== 'none') el.focus();
+    });
     $('titulo').addEventListener('input', renderPreview);
     $('subtitulo').addEventListener('input', renderPreview);
+    $('verifiedChk').addEventListener('change', renderPreview);
+
+    // ── Fondo: subir imagen (se reduce y comprime, sin recorte) ──
+    $('bgImgBtn').addEventListener('click', function(){ $('bgImgFile').click(); });
+    $('bgImgClear').addEventListener('click', function(){ state.theme.bg.image=''; renderPreview(); });
+    $('bgImgFile').addEventListener('change', function(e){
+      var file=e.target.files&&e.target.files[0]; if(!file)return;
+      if(!/^image\//.test(file.type)){ toast('Elige una imagen'); e.target.value=''; return; }
+      var rd=new FileReader();
+      rd.onload=function(ev){
+        var img=new Image();
+        img.onload=function(){
+          var sc=Math.min(1, 1080/img.width);
+          var cv=document.createElement('canvas'); cv.width=Math.round(img.width*sc); cv.height=Math.round(img.height*sc);
+          cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
+          state.theme.bg.image=cv.toDataURL('image/jpeg',0.72); state.theme.bg.mode='image';
+          renderAppearance(); renderPreview(); toast('Fondo listo ✓');
+        };
+        img.src=ev.target.result;
+      };
+      rd.readAsDataURL(file); e.target.value='';
+    });
     $('username').addEventListener('input', function(){ var n=normUser($('username').value); if(n!==$('username').value)$('username').value=n; paintPubLink(); renderPreview(); });
 
     // ── Vista previa en móvil (overlay) ──
@@ -559,10 +961,20 @@
     $('saveBtn').addEventListener('click', function(){
       var btn = $('saveBtn'); btn.disabled = true; btn.textContent='Guardando…';
       var newUser = normUser($('username').value);
-      state.perfil = { titulo: $('titulo').value.trim(), subtitulo: $('subtitulo').value.trim(), avatar: $('avatar').value.trim() };
+      state.perfil = { titulo: $('titulo').value.trim(), subtitulo: $('subtitulo').value.trim(), avatar: $('avatar').value.trim(), verified: $('verifiedChk').checked };
       // Asegura id estable en cada bloque (para el conteo de clics) y filtra vacíos.
-      var bloques = state.bloques.filter(function(b){ return (b.label||'').trim() || (b.url||'').trim(); })
-        .map(function(b){ if(!b.id) b.id='l'+Date.now()+Math.floor(Math.random()*1000); return { id:b.id, tipo:'link', label:(b.label||'').trim(), url:(b.url||'').trim(), activo: b.activo!==false }; });
+      var bloques = state.bloques
+        .map(function(b){ if(!b.id) b.id='l'+Date.now()+Math.floor(Math.random()*1000); b.url = computeUrl(b); return b; })
+        .filter(function(b){ return (b.label||'').trim() || (b.url||'').trim(); })
+        .map(function(b){
+          var o = { id:b.id, tipo:(b.tipo&&TIPOS[b.tipo])?b.tipo:'enlace', label:(b.label||'').trim(), url:(b.url||'').trim(), activo: b.activo!==false };
+          if (b.prefijo)  o.prefijo  = onlyDigits(b.prefijo) || '56';
+          if (b.telefono) o.telefono = (b.telefono||'').trim();
+          if (b.mensaje)  o.mensaje  = (b.mensaje||'').trim();
+          if (b.usuario)  o.usuario  = (b.usuario||'').trim();
+          if (b.email)    o.email    = (b.email||'').trim();
+          return o;
+        });
       var theme = curTheme();
 
       function done(savedUser){

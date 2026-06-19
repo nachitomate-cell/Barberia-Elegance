@@ -26,6 +26,7 @@
   .btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;background:var(--white);border:0;
     border-radius:14px;padding:17px 18px;font-size:15.5px;font-weight:700;color:var(--ink);text-decoration:none;transition:.13s;position:relative;box-shadow:0 2px 10px rgba(21,36,11,.10);}
   .btn:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(21,36,11,.16);}
+  .btn-ic{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:27px;height:27px;object-fit:contain;}
   .btn:active{transform:translateY(0);}
   .empty{margin-top:22vh;text-align:center;color:var(--soft);}
   .empty h2{font-size:18px;color:var(--ink);margin-bottom:8px;}
@@ -168,9 +169,44 @@
       night:  { bg:'#0e0e10', text:'#ffffff', sub:'#9aa3ad', btnBg:'rgba(255,255,255,.10)', btnText:'#ffffff', btnBorder:'rgba(255,255,255,.22)' }
     };
     var SHAPES = { rounded:'14px', pill:'100px', sharp:'4px' };
+    var FONTS = {
+      system:    '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif',
+      poppins:   '"Poppins",sans-serif', montserrat:'"Montserrat",sans-serif', nunito:'"Nunito",sans-serif',
+      playfair:  '"Playfair Display",serif', oswald:'"Oswald",sans-serif', lobster:'"Lobster",cursive', pacifico:'"Pacifico",cursive'
+    };
+    var GFONTS = { poppins:'Poppins:wght@400;600;800', montserrat:'Montserrat:wght@400;600;800', nunito:'Nunito:wght@400;700;800', playfair:'Playfair+Display:wght@500;700;800', oswald:'Oswald:wght@400;600;700', lobster:'Lobster', pacifico:'Pacifico' };
+    var TSIZE = { s:'17px', m:'21px', l:'26px' };
+    var SSIZE = { s:'12px', m:'14px', l:'16px' };
+    function loadFont(key){
+      var g = GFONTS[key]; if (!g) return;
+      var id='gf-'+key; if (document.getElementById(id)) return;
+      var l=document.createElement('link'); l.id=id; l.rel='stylesheet';
+      l.href='https://fonts.googleapis.com/css2?family='+g+'&display=swap';
+      document.head.appendChild(l);
+    }
+    function bgNorm(b){ b=b||{}; return { mode:(['preset','color','gradient','image'].indexOf(b.mode)>=0?b.mode:'preset'), color:b.color||'#92c83a', c1:b.c1||'#92c83a', c2:b.c2||'#2c5a17', angle:b.angle||'165', image:b.image||'' }; }
+    function bgCss(t){
+      var b=t.bg||{};
+      if(b.mode==='color')   return b.color;
+      if(b.mode==='gradient')return 'linear-gradient('+b.angle+'deg, '+b.c1+', '+b.c2+')';
+      if(b.mode==='image'&&b.image) return 'url("'+b.image+'") center/cover no-repeat fixed';
+      return THEMES[t.preset].bg;
+    }
     function normalizeTheme(raw){
-      if (raw && typeof raw === 'object') return { preset: THEMES[raw.preset]?raw.preset:'lime', shape: SHAPES[raw.shape]?raw.shape:'rounded', fill: (raw.fill==='outline')?'outline':'solid' };
-      return { preset: (typeof raw==='string' && THEMES[raw])?raw:'lime', shape:'rounded', fill:'solid' };
+      var b = (raw && typeof raw === 'object') ? raw : { preset:(typeof raw==='string' && THEMES[raw])?raw:'lime' };
+      var x = b.text || {};
+      return {
+        preset: THEMES[b.preset]?b.preset:'lime',
+        shape: SHAPES[b.shape]?b.shape:'rounded',
+        fill: (b.fill==='outline')?'outline':'solid',
+        bg: bgNorm(b.bg),
+        text: {
+          font: FONTS[x.font]?x.font:'system',
+          titleSize: TSIZE[x.titleSize]?x.titleSize:'m',
+          subSize: SSIZE[x.subSize]?x.subSize:'m',
+          titleColor: x.titleColor||'', subColor: x.subColor||'', btnColor: x.btnColor||''
+        }
+      };
     }
     function themeCss(t){
       var p = THEMES[t.preset], radius = SHAPES[t.shape], btn;
@@ -238,7 +274,7 @@
         bloques:[
           { tipo:'link', label:'Sígueme en Instagram', url:'https://instagram.com', activo:true },
           { tipo:'link', label:'Escríbeme por WhatsApp', url:'wa.me/56912345678', activo:true },
-          { tipo:'link', label:'Mi sitio web', url:'https://synaptechspa.cl', activo:true }
+          { tipo:'link', label:'Mi sitio web', url:'https://bioo.cl', activo:true }
         ] });
       return;
     }
@@ -267,22 +303,27 @@
       document.getElementById('loading').style.display='none';
 
       // Tema
-      var t = normalizeTheme(data.theme), css = themeCss(t), p = css.p;
-      document.body.style.background = p.bg;
+      var t = normalizeTheme(data.theme), css = themeCss(t), p = css.p, tx = t.text;
+      var fontStack = FONTS[tx.font]; loadFont(tx.font);
+      var titleColor = tx.titleColor || p.text, subColor = tx.subColor || p.sub;
+      document.body.style.background = bgCss(t);
+      document.body.style.fontFamily = fontStack;
       var mt = document.querySelector('meta[name="theme-color"]'); if (mt && p.bg.indexOf('gradient')<0) mt.setAttribute('content', p.bg);
 
       var html = '';
       html += '<div class="avatar fade">' + (perfil.avatar
         ? '<img src="'+esc(perfil.avatar)+'" alt="'+esc(perfil.titulo)+'">'
         : '<span style="font-size:38px;font-weight:800;color:#6b7768;">'+esc((perfil.titulo||user).charAt(0).toUpperCase())+'</span>') + '</div>';
-      html += '<h1 class="fade" style="animation-delay:.04s;color:'+p.text+';">'+esc(perfil.titulo || ('@'+user))+'</h1>';
-      if (perfil.subtitulo) html += '<p class="sub fade" style="animation-delay:.08s;color:'+p.sub+';">'+esc(perfil.subtitulo)+'</p>';
+      var vrf = data.perfil && data.perfil.verified ? ' <img src="/ic-verified.png" alt="✓" style="height:0.85em;width:auto;vertical-align:-1px;margin-left:5px;">' : '';
+      html += '<h1 class="fade" style="animation-delay:.04s;color:'+titleColor+';font-size:'+TSIZE[tx.titleSize]+';">'+esc(perfil.titulo || ('@'+user))+vrf+'</h1>';
+      if (perfil.subtitulo) html += '<p class="sub fade" style="animation-delay:.08s;color:'+subColor+';font-size:'+SSIZE[tx.subSize]+';">'+esc(perfil.subtitulo)+'</p>';
 
       if (bloques.length){
         html += '<div class="blocks">';
         bloques.forEach(function(b, i){
           var url = resolveUrl(b.url); if (!url) return;
-          html += '<a class="btn fade" data-id="'+esc(b.id||'')+'" style="animation-delay:'+(0.1 + i*0.04)+'s;'+css.btn+'" href="'+esc(url)+'" target="_blank" rel="noopener">'+esc(b.label||url)+'</a>';
+          var icH = (b.tipo && {whatsapp:1,instagram:1,tiktok:1,facebook:1,youtube:1,email:1,telefono:1,enlace:1}[b.tipo]) ? '<img class="btn-ic" src="/ic-'+b.tipo+'.png" alt="">' : '';
+          html += '<a class="btn fade" data-id="'+esc(b.id||'')+'" style="animation-delay:'+(0.1 + i*0.04)+'s;'+css.btn+(tx.btnColor?('color:'+tx.btnColor+';'):'')+'" href="'+esc(url)+'" target="_blank" rel="noopener">'+icH+esc(b.label||url)+'</a>';
         });
         html += '</div>';
       } else {
