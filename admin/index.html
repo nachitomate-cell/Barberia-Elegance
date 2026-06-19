@@ -319,6 +319,40 @@
       .tenant-grid { grid-template-columns: repeat(2, 1fr); }
     }
 
+    /* ── Secciones: funcionando / no funcionando ── */
+    .sa-section-title {
+      width: 100%; max-width: 660px; margin: 0.25rem 0 0.625rem;
+      display: flex; align-items: center; gap: 0.5rem;
+      font-size: 0.8125rem; font-weight: 800; color: #cbd5e1;
+    }
+    .sa-section-title.off { color: #94a3b8; margin-top: 1.75rem; }
+    .sa-count {
+      font-size: 0.6875rem; font-weight: 700; color: #94a3b8;
+      background: rgba(148,163,184,0.12); border-radius: 999px; padding: 0.05rem 0.5rem;
+    }
+    #grid-off:empty::after {
+      content: 'Clic derecho sobre un local para marcarlo como no funcionando.';
+      display: block; grid-column: 1 / -1;
+      font-size: 0.75rem; color: #475569; padding: 0.85rem; text-align: center;
+      border: 1px dashed rgba(148,163,184,0.2); border-radius: 0.75rem;
+    }
+    .tenant-card.is-off { opacity: 0.5; filter: grayscale(0.5); }
+    .sa-ctx {
+      position: absolute; z-index: 9999; display: none; min-width: 220px;
+      background: #0f172a; border: 1px solid rgba(148,163,184,0.2); border-radius: 0.625rem;
+      box-shadow: 0 12px 32px rgba(0,0,0,0.5); padding: 0.3rem;
+    }
+    .sa-ctx .ttl { font-size: 0.625rem; text-transform: uppercase; letter-spacing: 0.08em; color: #64748b; padding: 0.35rem 0.6rem 0.25rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .sa-ctx button {
+      display: flex; align-items: center; gap: 0.5rem; width: 100%; text-align: left;
+      background: none; border: 0; cursor: pointer; color: #e2e8f0;
+      font-size: 0.8125rem; font-weight: 600; padding: 0.55rem 0.6rem; border-radius: 0.45rem;
+    }
+    .sa-ctx button:hover { background: rgba(255,255,255,0.06); }
+    .sa-ctx .ok  { color: #34d399; }
+    .sa-ctx .off { color: #f59e0b; }
+    .sa-ctx .sep { height: 1px; background: rgba(148,163,184,0.15); margin: 0.2rem 0; }
+
     /* ── Ranking header labels ── */
     .rk-header-label {
       font-size: 0.625rem; font-weight: 700;
@@ -823,7 +857,8 @@
   </div>
 
   <!-- ── Tenant list ── -->
-  <div class="tenant-grid">
+  <h3 class="sa-section-title">✅ Funcionando <span class="sa-count" id="count-ok">0</span></h3>
+  <div class="tenant-grid" id="grid-ok">
 
     <!-- Elegance Barbershop -->
     <button class="tenant-card elegance" onclick="openDrawer('elegance')">
@@ -980,6 +1015,10 @@
       <span id="status-badge-sionbarberia" style="padding:0.1rem 0.45rem;border-radius:999px;font-size:0.625rem;font-weight:700;background:rgba(245,120,8,0.15);border:1px solid rgba(245,120,8,0.25);color:#F57808;">Cargando…</span>
       <div id="badge-sionbarberia" style="min-height:14px;"></div>
     </button>
+  </div><!-- /grid-ok -->
+
+  <h3 class="sa-section-title off">⛔ No funcionando <span class="sa-count" id="count-off">0</span></h3>
+  <div class="tenant-grid" id="grid-off"></div>
 
     <!-- Footer meta -->
     <div style="margin-top:1.5rem; display:flex; align-items:center; justify-content:center; gap:1.5rem;">
@@ -1008,6 +1047,13 @@
         <span style="font-size:0.625rem; text-transform:uppercase; letter-spacing:0.1em; font-weight:700;">Update</span>
       </button>
     </div>
+
+  <!-- Menú contextual: funcionando / no funcionando -->
+  <div class="sa-ctx" id="saCtx">
+    <div class="ttl" id="saCtxName">Local</div>
+    <button class="ok"  id="saCtxOk"><i class="ph-fill ph-check-circle"></i> Marcar como funcionando</button>
+    <div class="sep"></div>
+    <button class="off" id="saCtxOff"><i class="ph-fill ph-pause-circle"></i> Marcar como NO funcionando</button>
   </div>
 
   <!-- ══ DRAWER OVERLAY ══ -->
@@ -1506,6 +1552,51 @@
       },
     };
 
+    // ── Tenants que faltan: se generan desde la config canónica (window.ALL_TENANTS)
+    //    para no mantener cards a mano. Los 12 de arriba mandan; estos se suman. ──
+    (function generarTenantsFaltantes(){
+      var all  = window.ALL_TENANTS;
+      var grid = document.getElementById('grid-ok');
+      if (!all || !grid) return;
+      var SKIP = { sandbox: 1, mapubarbershop: 1 }; // mapubarbershop ya está como 'mapubarber'
+      var PALETA = ['#34d399','#60a5fa','#f59e0b','#a78bfa','#ec4899','#f97316','#22d3ee','#c9a84c','#94a3b8'];
+      var RGB = { '#34d399':'52,211,153','#60a5fa':'96,165,250','#f59e0b':'245,158,11','#a78bfa':'167,139,250','#ec4899':'236,72,153','#f97316':'249,115,22','#22d3ee':'34,211,238','#c9a84c':'201,168,76','#94a3b8':'148,163,184' };
+      function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]; }); }
+      var idx = 0;
+      Object.keys(all).forEach(function(id){
+        if (TENANTS[id] || SKIP[id]) return;
+        var t = all[id] || {};
+        var color = PALETA[idx % PALETA.length]; idx++;
+        var rgb = RGB[color] || '148,163,184';
+        TENANTS[id] = {
+          nombre:      t.nombre || id,
+          direccion:   t.direccion || '',
+          logo:        t.logo || '/favicon.ico',
+          color:       color,
+          colorRgb:    rgb,
+          profLabel:   'Equipo en local',
+          profLabelBtn:'Agregar miembro',
+          profIcon:    'ph-users',
+          citasCol:    (function(x){ return function(){ return db.collection('tenants').doc(x).collection('citas'); }; })(id),
+          profCol:     (function(x){ return function(){ return db.collection('tenants').doc(x).collection('barberos'); }; })(id),
+          usersCol:    (function(x){ return function(){ return db.collection('tenants').doc(x).collection('users'); }; })(id),
+          soporteCol:  (function(x){ return function(){ return db.collection('tenants').doc(x).collection('soporte_mensajes'); }; })(id),
+        };
+        var nombre = esc(t.nombre || id), logo = esc(t.logo || '/favicon.ico');
+        var btn = document.createElement('button');
+        btn.className = 'tenant-card ' + id;
+        btn.setAttribute('onclick', "openDrawer('" + id + "')");
+        btn.innerHTML =
+          '<img src="' + logo + '" alt="' + nombre + '" loading="lazy" width="52" height="52" style="width:52px;height:52px;border-radius:0.875rem;object-fit:cover;border:1px solid rgba(' + rgb + ',0.25);flex-shrink:0;" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'">' +
+          '<div style="display:none;width:52px;height:52px;border-radius:0.875rem;flex-shrink:0;background:rgba(' + rgb + ',0.08);border:1px solid rgba(' + rgb + ',0.2);align-items:center;justify-content:center;"><i class="ph-fill ph-storefront" style="font-size:1.4rem;color:' + color + ';"></i></div>' +
+          '<span style="font-size:0.6875rem;font-weight:700;color:#fff;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">' + nombre + '</span>' +
+          '<span id="status-badge-' + id + '" style="padding:0.1rem 0.45rem;border-radius:999px;font-size:0.625rem;font-weight:700;background:rgba(' + rgb + ',0.1);border:1px solid rgba(' + rgb + ',0.25);color:' + color + ';">Cargando…</span>' +
+          '<div id="badge-' + id + '" style="min-height:14px;"></div>';
+        grid.appendChild(btn);
+      });
+      if (window.saUpdateCounts) window.saUpdateCounts();
+    })();
+
     let _activeTenant   = null;
     let _profListLoaded = false;
     let _profListVisible = false;
@@ -1674,14 +1765,25 @@
         // 1. Obtener estado operativo y comercial de _system/{tid}
         let estComercial = 'activo_100'; // fallback por defecto
         let estOperativo = 'active';     // fallback por defecto
+        let operativo    = true;         // funcionando (default) — sección del superadmin
         try {
           const sysSnap = await db.collection('_system').doc(tid).get();
           if (sysSnap.exists) {
             const data = sysSnap.data();
             estComercial = data.estadoComercial || 'activo_100';
             estOperativo = data.status || 'active';
+            if (data.operativo === false) operativo = false;
           }
         } catch(_) {}
+
+        // Ubicar la tarjeta en su sección (funcionando / no funcionando)
+        const card = (statusEl || el).closest('.tenant-card');
+        if (card) {
+          card.classList.toggle('is-off', !operativo);
+          const g = document.getElementById(operativo ? 'grid-ok' : 'grid-off');
+          if (g && card.parentElement !== g) g.appendChild(card);
+          if (window.saUpdateCounts) window.saUpdateCounts();
+        }
 
         // Actualizar el statusEl (badge comercial/operativo)
         if (statusEl) {
@@ -3661,6 +3763,59 @@
         });
       }
     });
+  </script>
+
+  <script>
+  /* ── Secciones funcionando / no funcionando + menú contextual (clic derecho) ── */
+  (function(){
+    function grid(id){ return document.getElementById(id); }
+    window.saUpdateCounts = function(){
+      var ok = grid('grid-ok'), off = grid('grid-off');
+      var co = document.getElementById('count-ok'), cf = document.getElementById('count-off');
+      if (ok && co) co.textContent = ok.querySelectorAll('.tenant-card').length;
+      if (off && cf) cf.textContent = off.querySelectorAll('.tenant-card').length;
+    };
+    window.saSetOperativo = async function(tid, val){
+      var menu = document.getElementById('saCtx'); if (menu) menu.style.display = 'none';
+      if (!tid) return;
+      try {
+        await firebase.firestore().collection('_system').doc(tid).set({ operativo: val }, { merge: true });
+      } catch (e) { alert('No se pudo guardar: ' + ((e && e.message) || e)); return; }
+      var badge = document.getElementById('status-badge-' + tid);
+      var card  = badge && badge.closest('.tenant-card');
+      if (card) {
+        card.classList.toggle('is-off', !val);
+        var g = grid(val ? 'grid-ok' : 'grid-off');
+        if (g) g.appendChild(card);
+      }
+      window.saUpdateCounts();
+    };
+    var menu = document.getElementById('saCtx');
+    var curTid = null;
+    document.addEventListener('contextmenu', function(e){
+      var card = e.target.closest && e.target.closest('.tenant-card');
+      if (!card || !menu) return;
+      e.preventDefault();
+      var m = (card.getAttribute('onclick') || '').match(/openDrawer\('([^']+)'\)/);
+      curTid = m ? m[1] : null;
+      if (!curTid) return;
+      var nameEl = document.getElementById('saCtxName');
+      var span = card.querySelector('span');
+      if (nameEl) nameEl.textContent = (span && span.textContent) || curTid;
+      menu.style.display = 'block';
+      var mw = 230, mh = menu.offsetHeight || 130;
+      var maxX = window.scrollX + document.documentElement.clientWidth - mw;
+      var maxY = window.scrollY + document.documentElement.clientHeight - mh;
+      menu.style.left = Math.max(8, Math.min(e.pageX, maxX)) + 'px';
+      menu.style.top  = Math.max(8, Math.min(e.pageY, maxY)) + 'px';
+    });
+    document.addEventListener('click', function(){ if (menu) menu.style.display = 'none'; });
+    window.addEventListener('scroll', function(){ if (menu) menu.style.display = 'none'; }, true);
+    var b1 = document.getElementById('saCtxOk'), b2 = document.getElementById('saCtxOff');
+    if (b1) b1.addEventListener('click', function(e){ e.stopPropagation(); window.saSetOperativo(curTid, true); });
+    if (b2) b2.addEventListener('click', function(e){ e.stopPropagation(); window.saSetOperativo(curTid, false); });
+    setTimeout(window.saUpdateCounts, 3500);
+  })();
   </script>
 </body>
 </html>

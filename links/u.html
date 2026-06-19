@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>bioo</title>
 <meta name="theme-color" content="#92c83a" />
-<link rel="icon" href="/syn-128.webp" />
-<link rel="apple-touch-icon" href="/syn-180.png" />
+<link rel="icon" href="/bioo-iso.png" />
+<link rel="apple-touch-icon" href="/bioo-iso.png" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -91,7 +91,7 @@
 </head>
 <body>
   <div class="topbar" id="topbar" style="display:none;">
-    <a class="chip-btn" href="https://bioo.cl" target="_blank" rel="noopener" title="bioo"><img src="/syn-64.webp" alt="bioo" /></a>
+    <a class="chip-btn" href="https://bioo.cl" target="_blank" rel="noopener" title="bioo"><img src="/bioo-iso.png" alt="bioo" /></a>
     <button class="chip-btn" id="shareBtn" title="Compartir" aria-label="Compartir">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M12 3v13"/><path d="m8 7 4-4 4 4"/></svg>
     </button>
@@ -108,7 +108,7 @@
       <div class="share-card">
         <div class="av" id="shAv"></div>
         <div class="un" id="shUser">@usuario</div>
-        <div class="hd"><img src="/syn-64.webp" alt="" />/<span id="shHandle">usuario</span></div>
+        <div class="hd"><img src="/bioo-iso.png" alt="" />/<span id="shHandle">usuario</span></div>
       </div>
       <div class="share-targets">
         <button data-share="copy"><span class="ic ic-copy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg></span>Copiar</button>
@@ -142,7 +142,7 @@
   <div class="copied" id="copied">¡Link copiado!</div>
 
   <div class="foot" id="foot" style="display:none;">
-    <a href="https://bioo.cl" target="_blank" rel="noopener"><img src="/syn-64.webp" alt="" /> Crea tu propio bioo</a>
+    <a href="https://bioo.cl" target="_blank" rel="noopener"><img src="/bioo-iso.png" alt="" /> Crea tu propio bioo</a>
   </div>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -189,8 +189,8 @@
           start_url: 'https://bioo.cl/' + uname, scope: '/',
           display: 'standalone', background_color: '#92c83a', theme_color: '#92c83a',
           icons: [
-            { src: 'https://bioo.cl/syn-192.png', sizes:'192x192', type:'image/png' },
-            { src: 'https://bioo.cl/syn-512.png', sizes:'512x512', type:'image/png', purpose:'any maskable' }
+            { src: 'https://bioo.cl/bioo-iso.png', sizes:'192x192', type:'image/png' },
+            { src: 'https://bioo.cl/bioo-iso.png', sizes:'512x512', type:'image/png', purpose:'any maskable' }
           ]
         };
         var blob = new Blob([JSON.stringify(m)], { type:'application/manifest+json' });
@@ -286,7 +286,8 @@
         });
         html += '</div>';
       } else {
-        html += '<p class="sub fade" style="margin-top:26px;animation-delay:.1s;color:'+p.sub+';">Aún no hay enlaces aquí.</p>';
+        html += '<img src="/bioo-empty.png" alt="" class="fade" style="width:120px;height:auto;display:block;margin:34px auto 0;animation-delay:.1s;">';
+        html += '<p class="sub fade" style="margin-top:10px;animation-delay:.14s;color:'+p.sub+';">Aún no hay enlaces aquí.</p>';
       }
       wrap.innerHTML = html;
       document.getElementById('foot').style.display='block';

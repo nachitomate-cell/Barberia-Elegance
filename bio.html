@@ -247,14 +247,14 @@
 
   <!-- Marca bioo según el plan (la controla render()) -->
   <button id="synBadge" type="button" aria-label="bioo" style="display:none;">
-    <img src="/syn.webp" alt="bioo">
+    <img src="/bioo-iso.png" alt="bioo">
   </button>
 
   <!-- Modal de captación (se abre al tocar el logo en plan Free) -->
   <div id="synModal" class="syn-modal" style="display:none;">
     <div class="syn-modal-card">
       <button class="syn-modal-close" id="synModalClose" type="button" aria-label="Cerrar"><i class="ph ph-x"></i></button>
-      <img src="/syn.webp" alt="bioo" class="syn-modal-logo">
+      <img src="/bioo-iso.png" alt="bioo" class="syn-modal-logo">
       <h2 class="syn-modal-title">¿Quieres una página así para tu negocio?</h2>
       <p class="syn-modal-sub">Reúne tu <b>reserva online</b>, WhatsApp, Instagram, reseñas y más en un solo link. Créala gratis en <b>bioo.cl</b>.</p>
       <a class="syn-modal-cta" href="https://bioo.cl" target="_blank" rel="noopener">Quiero el mío 🚀</a>
@@ -263,7 +263,7 @@
   </div>
   <div class="syn-footer" id="synFooter" style="display:none;">
     <a href="https://bioo.cl" target="_blank" rel="noopener">
-      <img src="/syn.webp" alt="bioo" class="syn-logo-big">
+      <img src="/bioo-iso.png" alt="bioo" class="syn-logo-big">
       <span class="syn-dev-text">Hecho con <b>bioo</b></span>
     </a>
   </div>
@@ -567,7 +567,7 @@
 
     function setBioManifest(name, icon, startUrl){
       try{
-        var abs = icon ? (icon.charAt(0) === '/' ? location.origin + icon : icon) : (location.origin + '/syn-192.png');
+        var abs = icon ? (icon.charAt(0) === '/' ? location.origin + icon : icon) : (location.origin + '/bioo-iso.png');
         var type = /\.png$/i.test(abs) ? 'image/png' : (/\.webp$/i.test(abs) ? 'image/webp' : 'image/jpeg');
         var m = { name: name, short_name: (name || 'Links').slice(0, 12), start_url: startUrl, scope: '/',
           display: 'standalone', background_color: '#0a0a0d', theme_color: '#0a0a0d',

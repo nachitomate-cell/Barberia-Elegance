@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Editor · bioo</title>
 <meta name="theme-color" content="#ffffff" />
-<link rel="icon" href="/syn-128.webp" />
+<link rel="icon" href="/bioo-iso.png" />
 <style>
   :root{ --green:#92c83a; --green-2:#a3d94a; --green-d:#2c5a17; --ink:#15240b; --bg:#f7f8f3; --panel:#ffffff; --line:#e4e8da; --soft:#5b6a4e; --field:#f4f6ee; }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -159,7 +159,7 @@
   <div id="app" class="hidden">
     <!-- ── Sidebar ── -->
     <aside class="sidebar">
-      <div class="brand"><img src="/syn-64.webp" alt="bioo" /> bioo</div>
+      <div class="brand"><img src="/bioo-wordmark.png" alt="bioo" style="height:22px;width:auto;background:none;padding:0;box-shadow:none;border-radius:0;" /></div>
       <nav class="nav" id="nav">
         <button class="nav-item active" data-sec="enlaces"><span class="ic">🔗</span> Enlaces</button>
         <button class="nav-item" data-sec="perfil"><span class="ic">👤</span> Perfil</button>
@@ -530,7 +530,7 @@
         vis.forEach(function(b){ html += '<div class="pv-btn" style="'+css.btn+'">' + escHtml((b.label||b.url||'').trim()) + '</div>'; });
         html += '</div>';
       } else {
-        html += '<div class="pv-empty" style="color:'+p.sub+';">Aún no hay enlaces aquí.</div>';
+        html += '<div class="pv-empty" style="color:'+p.sub+';"><img src="/bioo-empty.png" alt="" style="width:90px;height:auto;display:block;margin:0 auto 12px;">Aún no hay enlaces aquí.</div>';
       }
       html += '<div class="pv-foot" style="color:'+p.text+';">bioo.cl/' + escHtml(uname) + '</div>';
       html += '</div>';

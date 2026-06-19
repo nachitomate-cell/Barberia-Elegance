@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Crea tu cuenta · bioo</title>
 <meta name="theme-color" content="#d2f34c" />
-<link rel="icon" href="/syn-128.webp" />
+<link rel="icon" href="/bioo-iso.png" />
 <style>
   :root{ --green:#92c83a; --green-2:#a3d94a; --green-d:#2c5a17; --ink:#15240b; --soft:#5b6a4e; --field:#f4f6ee; --line:#e0e6d4; }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -40,12 +40,12 @@
 </style>
 </head>
 <body>
-  <header><a class="brand" href="/"><img src="/syn-64.webp" alt="bioo" /> bioo</a></header>
+  <header><a class="brand" href="/"><img src="/bioo-wordmark.png" alt="bioo" style="height:24px;width:auto;background:none;padding:0;box-shadow:none;border-radius:0;" /></a></header>
   <main>
     <div class="box">
       <h1 id="ttl">Crea tu cuenta</h1>
       <p class="lead" id="lead">Reclama tu usuario y empieza a editar tu página.</p>
-      <div class="claimed" id="claimedBox" style="display:none;"><img src="/syn-64.webp" alt="" /> <span>bioo.cl/<b id="claimedUser"></b></span></div>
+      <div class="claimed" id="claimedBox" style="display:none;"><img src="/bioo-iso.png" alt="" /> <span>bioo.cl/<b id="claimedUser"></b></span></div>
 
       <button class="sso" id="googleBtn">
         <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="" />
@@ -159,13 +159,21 @@
       });
     }
 
+    // Garantiza sesión persistente (IndexedDB/localStorage) ANTES de autenticar,
+    // para no tener que iniciar sesión cada vez.
+    function ensureLocal(){
+      try { return auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(function(){}); }
+      catch(e){ return Promise.resolve(); }
+    }
+
     // ── Google ──
     document.getElementById('googleBtn').addEventListener('click', function(){
       clearMsg();
       var provider = new firebase.auth.GoogleAuthProvider();
-      auth.signInWithPopup(provider).then(afterAuth).catch(function(e){
-        showMsg(mapError(e), false);
-      });
+      ensureLocal().then(function(){ return auth.signInWithPopup(provider); })
+        .then(afterAuth).catch(function(e){
+          showMsg(mapError(e), false);
+        });
     });
 
     // ── Email/contraseña ──
@@ -176,10 +184,11 @@
       var pass  = document.getElementById('pass').value;
       var btn   = document.getElementById('emailBtn');
       btn.disabled = true;
-      var op = (modo === 'login')
-        ? auth.signInWithEmailAndPassword(email, pass)
-        : auth.createUserWithEmailAndPassword(email, pass);
-      op.then(afterAuth).catch(function(err){
+      ensureLocal().then(function(){
+        return (modo === 'login')
+          ? auth.signInWithEmailAndPassword(email, pass)
+          : auth.createUserWithEmailAndPassword(email, pass);
+      }).then(afterAuth).catch(function(err){
         btn.disabled = false;
         showMsg(mapError(err), false);
       });

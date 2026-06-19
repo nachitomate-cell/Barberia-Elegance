@@ -686,6 +686,8 @@
 
   window.CURRENT_TENANT_ID = tenantId;
   window.SHOP = _tenants[tenantId];
+  // Lista completa de tenants (la usa el panel de superadmin para no mantener cards a mano).
+  try { window.ALL_TENANTS = _tenants; } catch (_) {}
   document.documentElement.classList.add('tenant-' + tenantId);
 
   var _logoSrc = _tenants[tenantId] && _tenants[tenantId].logo;

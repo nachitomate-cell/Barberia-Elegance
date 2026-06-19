@@ -99,7 +99,7 @@
     { "source": "/favicon.ico", "has": [{ "type": "host", "value": "kronnoswoman.synaptechspa.cl" }],         "destination": "/kronnos/woman.jpg" },
     { "source": "/favicon.ico",            "destination": "/logo.jpg" },
 
-    { "source": "/favicon.ico", "has": [{ "type": "host", "value": "bioo.cl" }], "destination": "/syn.webp" },
+    { "source": "/favicon.ico", "has": [{ "type": "host", "value": "bioo.cl" }], "destination": "/bioo-iso.png" },
     { "source": "/",            "has": [{ "type": "host", "value": "bioo.cl" }], "destination": "/links/index.html" },
     { "source": "/registro",    "has": [{ "type": "host", "value": "bioo.cl" }], "destination": "/links/registro.html" },
     { "source": "/editor",      "has": [{ "type": "host", "value": "bioo.cl" }], "destination": "/links/editor.html" },
