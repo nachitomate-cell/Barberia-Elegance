@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { resolveTenantId } from './lib/tenantUtils';
 import Membresias from './views/Membresias';
 import CorteAlLapiz from './views/CorteAlLapiz';
+import Rangos from './views/Rangos';
 import SuspendedScreen from './components/SuspendedScreen';
 import { ErrorBoundaryWithTenant } from './components/ErrorBoundary';
 import { useVersionManager } from './hooks/useVersionManager';
@@ -109,6 +110,7 @@ function ProtectedApp() {
             <Route path="consultas"       element={<Consultas />} />
             <Route path="membresias"      element={<Membresias />} />
             <Route path="corte-al-lapiz"  element={<CorteAlLapiz />} />
+            <Route path="rangos"          element={<Rangos />} />
             <Route path="historial"       element={<HistorialCortes />} />
             <Route path="resenas"         element={<Resenas />} />
             <Route path="instagram"       element={<InstagramPage />} />

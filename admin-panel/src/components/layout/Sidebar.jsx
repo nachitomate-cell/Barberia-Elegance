@@ -4,7 +4,7 @@ import {
   CalendarDays, CalendarClock, Scissors, Users, Star, BarChart3,
   Trophy, ShoppingBag, Images, LogOut, ChevronRight,
   Sun, Moon, ExternalLink, Settings, TrendingDown, MessageCircle, X,
-  Megaphone, ImagePlus, CreditCard, Monitor, Headphones, Medal, Camera, GraduationCap, Wallet, Package, ThumbsUp,
+  Megaphone, ImagePlus, CreditCard, Monitor, Headphones, Medal, Camera, GraduationCap, Wallet, Package, ThumbsUp, Crown,
   Globe, Banknote, Gift, ClipboardList, Building2, Home, Lock, HelpCircle, Link2,
 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
@@ -65,6 +65,7 @@ const NAV_GROUPS_DEFAULT = [
       { to: 'clientes',  label: 'Clientes',  Icon: Star        },
       { to: 'resenas',   label: 'Reseñas',   Icon: ThumbsUp    },
       { to: 'premios',   label: 'Premios',   Icon: Trophy      },
+      { to: 'rangos',    label: 'Rangos',    Icon: Crown       },
       { to: 'productos', label: 'Productos', Icon: ShoppingBag },
     ],
   },

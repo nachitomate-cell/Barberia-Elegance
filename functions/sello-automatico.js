@@ -161,6 +161,38 @@ async function acreditarCorteLapiz({ tenantId, uid, telefono, cita, citaId }) {
   }
 }
 
+// ── Rangos: sellos por visita según el rango del cliente ──────────
+//  El rango se deriva de sellosHistoricos (espejo de calcTier en el panel).
+//  La config vive en {tenant}/configuracion/rangos (elegance: raíz).
+//  Si no hay config o no define sellosPorVisita → 1 (comportamiento histórico).
+function calcRangoId(historicos) {
+  const h = Number(historicos) || 0;
+  if (h >= 25) return 'platinum';
+  if (h >= 10) return 'gold';
+  return 'silver';
+}
+
+function rangosConfigRef(tenantId) {
+  return tenantId === 'elegance'
+    ? db.doc('configuracion/rangos')
+    : db.doc(`tenants/${tenantId}/configuracion/rangos`);
+}
+
+async function sellosPorVisita(tenantId, historicos) {
+  try {
+    const snap = await rangosConfigRef(tenantId).get();
+    if (snap.exists) {
+      const rangoId = calcRangoId(historicos);
+      const r = (snap.data().rangos || []).find(x => x.id === rangoId);
+      const n = r ? Math.round(Number(r.sellosPorVisita)) : NaN;
+      if (Number.isFinite(n) && n >= 0) return n;
+    }
+  } catch (e) {
+    logger.warn(`[Sello] no se pudo leer rangos (${tenantId}): ${e.message}`);
+  }
+  return 1;
+}
+
 // ── Lógica principal ──────────────────────────────────────────────
 async function procesarSello({ tenantId, citaId, citaRef, cita }) {
   const cols = colecciones(tenantId);
@@ -214,16 +246,26 @@ async function procesarSello({ tenantId, citaId, citaRef, cita }) {
           'subscription.ultimoUso': Timestamp.now(),
         });
       } else {
+        // Sellos según el rango del cliente (sellosPorVisita).
+        let histSinTel = 0;
+        try {
+          const us = await userRef.get();
+          if (us.exists) histSinTel = Number(us.data().sellosHistoricos ?? us.data().stamps) || 0;
+        } catch (_) {}
+        const nSellos   = await sellosPorVisita(tenantId, histSinTel);
+        const notaSello = nSellos === 1
+          ? `Cita completada: ${svcNombre}`
+          : `Cita completada (+${nSellos} sellos): ${svcNombre}`;
         await userRef.update({
-          sellosDisponibles: FieldValue.increment(1),
-          sellosHistoricos:  FieldValue.increment(1),
-          stamps:            FieldValue.increment(1),
+          sellosDisponibles: FieldValue.increment(nSellos),
+          sellosHistoricos:  FieldValue.increment(nSellos),
+          stamps:            FieldValue.increment(nSellos),
           ultimoSello:       Timestamp.now().toDate().toISOString(),
           historialSellos:   FieldValue.arrayUnion({
             fecha:    Timestamp.now().toDate().toISOString(),
             tipo:     'suma',
-            cantidad: 1,
-            nota:     `Cita completada: ${svcNombre}`,
+            cantidad: nSellos,
+            nota:     notaSello,
             citaId,
           }),
         });
@@ -360,11 +402,18 @@ async function procesarSello({ tenantId, citaId, citaRef, cita }) {
       updatedAt: Timestamp.now(),
     });
   } else {
-    // ── Rama B: sumar sello de fidelidad ───────────────────────
+    // ── Rama B: sumar sello(s) de fidelidad según el rango ──────
+    // La cantidad depende del rango actual del cliente (sellosPorVisita).
+    const historicos = Number(clienteData?.sellosHistoricos) || 0;
+    const nSellos    = await sellosPorVisita(tenantId, historicos);
+    const notaSello  = nSellos === 1
+      ? `Cita completada: ${servicioNombre}`
+      : `Cita completada (+${nSellos} sellos): ${servicioNombre}`;
+
     // Actualizar clientes/{phone} (lookup por teléfono, fuente de verdad para flujos web)
     await clienteRef.update({
-      sellosDisponibles:  FieldValue.increment(1),
-      sellosHistoricos:   FieldValue.increment(1),
+      sellosDisponibles:  FieldValue.increment(nSellos),
+      sellosHistoricos:   FieldValue.increment(nSellos),
       historial:          FieldValue.arrayUnion(entradaHistorial),
       updatedAt:          Timestamp.now(),
     });
@@ -374,15 +423,15 @@ async function procesarSello({ tenantId, citaId, citaRef, cita }) {
     if (uid) {
       const userRef = cols.users.doc(uid);
       await userRef.update({
-        sellosDisponibles: FieldValue.increment(1),
-        sellosHistoricos:  FieldValue.increment(1),
-        stamps:            FieldValue.increment(1),
+        sellosDisponibles: FieldValue.increment(nSellos),
+        sellosHistoricos:  FieldValue.increment(nSellos),
+        stamps:            FieldValue.increment(nSellos),
         ultimoSello:       Timestamp.now().toDate().toISOString(),
         historialSellos:   FieldValue.arrayUnion({
           fecha:    Timestamp.now().toDate().toISOString(),
           tipo:     'suma',
-          cantidad: 1,
-          nota:     `Cita completada: ${servicioNombre}`,
+          cantidad: nSellos,
+          nota:     notaSello,
           citaId,
         }),
       });

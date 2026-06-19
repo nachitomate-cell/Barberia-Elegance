@@ -269,6 +269,56 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
   }, [esTenantCL, clCuentas, form.clienteId, form.clienteTelefono]);
   const clFmt = n => '$' + (Number(n) || 0).toLocaleString('es-CL');
 
+  /* ── Descuento de rango (beneficio automático): % según el rango del cliente ── */
+  const [rangoDesc, setRangoDesc] = useState(null); // { nombre, pct } | null
+  const rangoAplicadoRef = useRef(false);
+
+  useEffect(() => {
+    let cancel = false;
+    (async () => {
+      try {
+        const cfgSnap = await getDoc(doc(tenantCol('configuracion'), 'rangos'));
+        if (!cfgSnap.exists()) return;
+        const rangosCfg = cfgSnap.data().rangos || [];
+        // Si ningún rango tiene descuento activo, no hace falta buscar al cliente.
+        if (!rangosCfg.some(r => r.descuentoServicios && (Number(r.descuentoPct) || 0) > 0)) return;
+
+        // Sellos históricos del cliente → rango.
+        let hist = null;
+        if (form.clienteId) {
+          const u = await getDoc(doc(tenantCol('users'), form.clienteId));
+          if (u.exists()) hist = Number(u.data().sellosHistoricos ?? u.data().stamps) || 0;
+        }
+        if (hist == null) {
+          const tn = (form.clienteTelefono || '').replace(/\D/g, '');
+          if (tn.length >= 8) {
+            const c = await getDoc(doc(tenantCol('clientes'), tn));
+            if (c.exists()) hist = Number(c.data().sellosHistoricos) || 0;
+          }
+        }
+        if (hist == null) { if (!cancel) setRangoDesc(null); return; }
+
+        const rid = hist >= 25 ? 'platinum' : hist >= 10 ? 'gold' : 'silver';
+        const r = rangosCfg.find(x => x.id === rid);
+        if (!cancel) {
+          setRangoDesc(r && r.descuentoServicios ? { nombre: r.nombre || rid, pct: Number(r.descuentoPct) || 10 } : null);
+        }
+      } catch { /* sin permiso / sin config → sin descuento de rango */ }
+    })();
+    return () => { cancel = true; };
+  }, [tenantId, form.clienteId, form.clienteTelefono]);
+
+  // Pre-aplica el % del rango al campo de descuento (una vez, solo si está en 0).
+  useEffect(() => {
+    if (rangoDesc && !rangoAplicadoRef.current && !form.cortesia) {
+      const actual = Number(form.porcentajeDescuento) || 0;
+      if (actual === 0) {
+        rangoAplicadoRef.current = true;
+        set('porcentajeDescuento', rangoDesc.pct);
+      }
+    }
+  }, [rangoDesc]); // eslint-disable-line react-hooks/exhaustive-deps
+
   function addProductoAlTicket() {
     const p = productosDisponibles.find(x => x.id === newProductId);
     if (!p || newProductQty <= 0) return;
@@ -789,6 +839,12 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
           <input className={`${field} disabled:opacity-50 disabled:cursor-not-allowed`} type="number" inputMode="numeric" placeholder="0" min="0" max="100" value={form.porcentajeDescuento || ''} disabled={form.cortesia} onChange={e => handleDiscountChange(e.target.value)} />
         </div>
       </div>
+      {rangoDesc && !form.cortesia && (
+        <div className="flex items-center gap-2 px-3 py-2 -mt-1 rounded-xl bg-emerald-500/[0.06] border border-emerald-500/25 text-[11px] text-emerald-300">
+          <BadgeCheck size={13} className="shrink-0" />
+          <span>Rango <b className="text-white">{rangoDesc.nombre}</b> · {rangoDesc.pct}% de descuento en servicios{(Number(form.porcentajeDescuento) || 0) >= rangoDesc.pct ? ' aplicado' : ' (ajustable arriba)'}</span>
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className={lbl}>Barbero</label>
