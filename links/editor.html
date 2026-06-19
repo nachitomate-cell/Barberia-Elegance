@@ -210,6 +210,18 @@
   .pv-text{text-align:center;font-size:14px;font-weight:600;margin:2px 0;word-break:break-word;}
   .pv-sep{width:55%;border:0;border-top:2px solid rgba(128,128,128,.35);margin:6px auto;}
   .pv-img{width:100%;border-radius:14px;display:block;box-shadow:0 2px 10px rgba(21,36,11,.12);}
+  .emb-yt{position:relative;width:100%;padding-top:56.25%;border-radius:14px;overflow:hidden;box-shadow:0 2px 10px rgba(21,36,11,.12);}
+  .emb-yt iframe{position:absolute;inset:0;width:100%;height:100%;border:0;}
+  .emb{width:100%;border:0;border-radius:12px;display:block;}
+  .pv-soc{display:flex;justify-content:center;flex-wrap:wrap;gap:14px;margin:2px 0;}
+  .pv-soc-i img{width:30px;height:30px;object-fit:contain;}
+  .soc-list{display:flex;flex-direction:column;gap:8px;}
+  .soc-item{display:flex;align-items:center;gap:8px;}
+  .soc-ic{width:26px;height:26px;flex:none;object-fit:contain;}
+  .soc-net{flex:none;width:104px;height:40px;border:1px solid var(--line);border-radius:9px;background:#fff;font-size:12.5px;font-weight:700;color:var(--ink);padding:0 6px;}
+  .soc-item input{flex:1;}
+  .soc-del{flex:none;width:32px;height:32px;border:0;border-radius:8px;background:var(--field);color:#a3220f;cursor:pointer;font-size:13px;}
+  .soc-add{margin-top:8px;}
   .lk-note{font-size:12px;color:var(--soft);background:var(--field);border-radius:8px;padding:8px 10px;}
   .lk-imgrow{display:flex;align-items:center;gap:10px;}
   .lk-imgprev{width:46px;height:46px;border-radius:8px;object-fit:cover;border:1px solid var(--line);background:#fff;flex:none;}
@@ -662,15 +674,31 @@
       telefono: { name:'Teléfono',     ic:'📞', label:'Llámame' },
       texto:    { name:'Texto',        ic:'📝', label:'' },
       separador:{ name:'Separador',    ic:'➖', label:'' },
-      imagen:   { name:'Imagen / Banner', ic:'🖼️', label:'' }
+      imagen:   { name:'Imagen / Banner', ic:'🖼️', label:'' },
+      embed:    { name:'Video / Reproductor', ic:'▶️', label:'' },
+      social:   { name:'Fila de íconos sociales', ic:'🔗', label:'' }
     };
     var LINKTIPOS = { enlace:1, whatsapp:1, instagram:1, tiktok:1, facebook:1, youtube:1, email:1, telefono:1 };
     function isLink(tp){ return !!LINKTIPOS[tp]; }
+    var SOCRED = { instagram:'Instagram', tiktok:'TikTok', facebook:'Facebook', youtube:'YouTube', whatsapp:'WhatsApp', email:'Correo', telefono:'Teléfono', enlace:'Web' };
+    function socOpts(sel){ return Object.keys(SOCRED).map(function(k){ return '<option value="'+k+'"'+(k===sel?' selected':'')+'>'+SOCRED[k]+'</option>'; }).join(''); }
+    function socUrl(s){
+      var v=String(s.valor||'').trim(); if(!v) return ''; var r=s.red, h=/^https?:\/\//i.test(v), u=v.replace(/^@/,'');
+      if(r==='instagram') return h?v:'https://instagram.com/'+u;
+      if(r==='tiktok')    return h?v:'https://tiktok.com/@'+u;
+      if(r==='facebook')  return h?v:'https://facebook.com/'+u;
+      if(r==='youtube')   return h?v:'https://youtube.com/@'+u;
+      if(r==='whatsapp'){ var d=v.replace(/\D/g,''); return d.length>=8?'https://wa.me/'+d:''; }
+      if(r==='email')     return /^mailto:/i.test(v)?v:'mailto:'+v;
+      if(r==='telefono'){ var d2=v.replace(/[^\d+]/g,''); return d2?'tel:'+d2:''; }
+      return h?v:'https://'+v;
+    }
     function renderable(b){
       if (b.activo===false) return false;
       if (b.tipo==='separador') return true;
       if (b.tipo==='texto') return (b.texto||'').trim();
       if (b.tipo==='imagen') return (b.img||'').trim();
+      if (b.tipo==='social') return (b.socials||[]).some(function(s){ return (s.valor||'').trim(); });
       return (b.label||'').trim() || (b.url||'').trim();
     }
     function onlyDigits(s){ return String(s||'').replace(/\D/g,''); }
@@ -686,6 +714,19 @@
         default:         return String(b.url||'').trim();   // enlace, youtube
       }
     }
+    function embedSrc(raw){
+      var u=String(raw||'').trim();
+      var yt=u.match(/(?:youtu\.be\/|[?&]v=|embed\/|shorts\/)([\w-]{11})/);
+      if(yt) return {yt:1, src:'https://www.youtube.com/embed/'+yt[1]};
+      var sp=u.match(/open\.spotify\.com\/(?:intl-[a-z]+\/)?(track|album|playlist|episode|show|artist)\/([A-Za-z0-9]+)/);
+      if(sp) return {src:'https://open.spotify.com/embed/'+sp[1]+'/'+sp[2], h:(sp[1]==='track'||sp[1]==='episode')?152:352};
+      return null;
+    }
+    function embedHtml(url){
+      var e=embedSrc(url); if(!e) return '';
+      if(e.yt) return '<div class="emb-yt"><iframe src="'+e.src+'" frameborder="0" allow="accelerometer;autoplay;clipboard-write;encrypted-media;picture-in-picture" allowfullscreen loading="lazy"></iframe></div>';
+      return '<iframe class="emb" style="height:'+e.h+'px;" src="'+e.src+'" frameborder="0" allow="encrypted-media" loading="lazy"></iframe>';
+    }
     function av(s){ return esc(s).replace(/"/g,'&quot;'); }
     var IMGPH = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2240%22 height=%2240%22%3E%3Crect width=%2240%22 height=%2240%22 rx=%226%22 fill=%22%23e4e8da%22/%3E%3C/svg%3E';
     function fieldsHtml(b){
@@ -693,6 +734,12 @@
       if (t==='separador') return '<div class="lk-note">Línea divisoria — separa secciones de tu página.</div>';
       if (t==='texto') return '<textarea data-f="texto" rows="2" placeholder="Escribe un título o un texto">'+escHtml(b.texto||'')+'</textarea>';
       if (t==='imagen') return '<div class="lk-imgrow"><img class="lk-imgprev" src="'+(b.img?av(b.img):IMGPH)+'" alt=""><button type="button" class="ava-btn lk-imgbtn">Subir imagen</button></div><input data-f="url" placeholder="Link al tocar (opcional) https://…" value="'+av(b.url)+'">';
+      if (t==='embed') return '<input data-f="url" placeholder="Pega el link de YouTube o Spotify" value="'+av(b.url)+'">';
+      if (t==='social'){
+        var socs=b.socials||[];
+        var items=socs.map(function(s,si){ var rd=SOCRED[s.red]?s.red:'instagram'; return '<div class="soc-item"><img class="soc-ic" src="/ic-'+rd+'.png" alt=""><select class="soc-net" data-sf="red" data-si="'+si+'">'+socOpts(rd)+'</select><input data-sf="valor" data-si="'+si+'" placeholder="@usuario o link" value="'+av(s.valor)+'"><button type="button" class="soc-del" data-si="'+si+'">✕</button></div>'; }).join('');
+        return '<div class="soc-list">'+items+'</div><button type="button" class="ava-btn soc-add">+ Agregar red</button>';
+      }
       var lbl = '<input data-f="label" placeholder="Texto del botón" value="'+av(b.label)+'">';
       if (t==='whatsapp') return lbl +
         '<div class="lk-row"><span class="lk-at">+</span><input class="lk-pfx" data-f="prefijo" inputmode="numeric" placeholder="56" value="'+av(b.prefijo||'56')+'"><input data-f="telefono" inputmode="numeric" placeholder="9 1234 5678" value="'+av(b.telefono)+'"></div>' +
@@ -731,6 +778,12 @@
         row.querySelector('.lk-type').addEventListener('click', function(e){ e.stopPropagation(); openTipoPicker(i); });
         var _fb=row.querySelector('.lk-feat'); if(_fb) _fb.addEventListener('click', function(){ state.bloques[i].featured = !state.bloques[i].featured; renderLinks(); });
         var _ib=row.querySelector('.lk-imgbtn'); if(_ib) _ib.addEventListener('click', function(){ _imgBlock=i; $('blkImgFile').click(); });
+        Array.prototype.forEach.call(row.querySelectorAll('[data-sf]'), function(el){
+          var si=+el.getAttribute('data-si'), f=el.getAttribute('data-sf'), ev=el.tagName==='SELECT'?'change':'input';
+          el.addEventListener(ev, function(){ var arr=state.bloques[i].socials; if(arr&&arr[si]){ arr[si][f]=el.value; if(f==='red') renderLinks(); renderPreview(); } });
+        });
+        var _sa=row.querySelector('.soc-add'); if(_sa) _sa.addEventListener('click', function(){ if(!state.bloques[i].socials) state.bloques[i].socials=[]; state.bloques[i].socials.push({red:'instagram',valor:''}); renderLinks(); });
+        Array.prototype.forEach.call(row.querySelectorAll('.soc-del'), function(btn){ btn.addEventListener('click', function(){ var si=+btn.getAttribute('data-si'); state.bloques[i].socials.splice(si,1); renderLinks(); renderPreview(); }); });
         row.querySelector('.del').addEventListener('click', function(){ state.bloques.splice(i,1); renderLinks(); });
         row.addEventListener('dragstart', function(){ row.classList.add('drag'); window._dragI = i; });
         row.addEventListener('dragend', function(){ row.classList.remove('drag'); });
@@ -984,6 +1037,8 @@
           if (b.tipo==='separador'){ html += '<hr class="pv-sep">'; return; }
           if (b.tipo==='texto'){ html += '<div class="pv-text" style="color:'+titleColor+';">'+escHtml((b.texto||'').trim())+'</div>'; return; }
           if (b.tipo==='imagen'){ html += '<img class="pv-img" src="'+escHtml(b.img)+'" alt="">'; return; }
+          if (b.tipo==='embed'){ var eh=embedHtml(b.url); html += eh || '<div class="pv-text" style="color:'+titleColor+';opacity:.6;">▶ Pega un link de YouTube o Spotify</div>'; return; }
+          if (b.tipo==='social'){ var sr=(b.socials||[]).map(function(s){ var su=socUrl(s); return su?'<span class="pv-soc-i"><img src="/ic-'+(SOCRED[s.red]?s.red:'enlace')+icSuf+'.png" alt=""></span>':''; }).join(''); if(sr) html += '<div class="pv-soc">'+sr+'</div>'; return; }
           var ic=(b.tipo&&LINKTIPOS[b.tipo])?'<img class="pv-btn-ic" src="/ic-'+b.tipo+icSuf+'.png" alt="">':'';
           var cls=b.featured?' feat':animCls;
           html += '<div class="pv-btn'+cls+'" style="'+css.btn+(tx.btnColor?('color:'+tx.btnColor+';'):'')+'">'+ic+ escHtml((b.label||b.url||'').trim()) + '</div>';
@@ -1081,7 +1136,7 @@
       // Asegura id estable en cada bloque (para el conteo de clics) y filtra vacíos.
       var bloques = state.bloques
         .map(function(b){ if(!b.id) b.id='l'+Date.now()+Math.floor(Math.random()*1000); b.url = computeUrl(b); return b; })
-        .filter(function(b){ return b.tipo==='separador' || (b.texto||'').trim() || (b.img||'').trim() || (b.label||'').trim() || (b.url||'').trim(); })
+        .filter(function(b){ return b.tipo==='separador' || (b.texto||'').trim() || (b.img||'').trim() || (b.label||'').trim() || (b.url||'').trim() || (b.tipo==='social' && (b.socials||[]).some(function(s){return (s.valor||'').trim();})); })
         .map(function(b){
           var o = { id:b.id, tipo:(b.tipo&&TIPOS[b.tipo])?b.tipo:'enlace', label:(b.label||'').trim(), url:(b.url||'').trim(), activo: b.activo!==false };
           if (b.featured) o.featured = true;
@@ -1092,6 +1147,7 @@
           if (b.email)    o.email    = (b.email||'').trim();
           if (b.texto)    o.texto    = (b.texto||'').trim();
           if (b.img)      o.img      = b.img;
+          if (b.tipo==='social') o.socials = (b.socials||[]).filter(function(s){ return (s.valor||'').trim(); }).map(function(s){ return { red:(SOCRED[s.red]?s.red:'enlace'), valor:(s.valor||'').trim() }; });
           return o;
         });
       var theme = curTheme();

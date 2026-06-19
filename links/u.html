@@ -39,6 +39,12 @@
   .u-sep{width:55%;border:0;border-top:2px solid rgba(128,128,128,.35);margin:6px auto;}
   .u-imgwrap{display:block;width:100%;}
   .u-img{width:100%;border-radius:14px;display:block;box-shadow:0 2px 12px rgba(21,36,11,.14);}
+  .emb-yt{position:relative;width:100%;padding-top:56.25%;border-radius:14px;overflow:hidden;box-shadow:0 2px 12px rgba(21,36,11,.14);}
+  .emb-yt iframe{position:absolute;inset:0;width:100%;height:100%;border:0;}
+  .emb{width:100%;border:0;border-radius:12px;display:block;}
+  .u-soc{display:flex;justify-content:center;flex-wrap:wrap;gap:16px;width:100%;}
+  .u-soc-i img{width:34px;height:34px;object-fit:contain;display:block;transition:transform .15s;}
+  .u-soc-i:hover img{transform:translateY(-2px) scale(1.08);}
   .btn:active{transform:translateY(0);}
   .empty{margin-top:22vh;text-align:center;color:var(--soft);}
   .empty h2{font-size:18px;color:var(--ink);margin-bottom:8px;}
@@ -273,6 +279,31 @@
       if (/^[\w.-]+\.[a-z]{2,}(\/|$)/i.test(u)) return 'https://' + u;
       return u;
     }
+    function embedSrc(raw){
+      var u=String(raw||'').trim();
+      var yt=u.match(/(?:youtu\.be\/|[?&]v=|embed\/|shorts\/)([\w-]{11})/);
+      if(yt) return {yt:1, src:'https://www.youtube.com/embed/'+yt[1]};
+      var sp=u.match(/open\.spotify\.com\/(?:intl-[a-z]+\/)?(track|album|playlist|episode|show|artist)\/([A-Za-z0-9]+)/);
+      if(sp) return {src:'https://open.spotify.com/embed/'+sp[1]+'/'+sp[2], h:(sp[1]==='track'||sp[1]==='episode')?152:352};
+      return null;
+    }
+    function embedHtml(url){
+      var e=embedSrc(url); if(!e) return '';
+      if(e.yt) return '<div class="emb-yt"><iframe src="'+e.src+'" frameborder="0" allow="accelerometer;autoplay;clipboard-write;encrypted-media;picture-in-picture" allowfullscreen loading="lazy"></iframe></div>';
+      return '<iframe class="emb" style="height:'+e.h+'px;" src="'+e.src+'" frameborder="0" allow="encrypted-media" loading="lazy"></iframe>';
+    }
+    var SOCRED = { instagram:1, tiktok:1, facebook:1, youtube:1, whatsapp:1, email:1, telefono:1, enlace:1 };
+    function socUrl(s){
+      var v=String(s.valor||'').trim(); if(!v) return ''; var r=s.red, h=/^https?:\/\//i.test(v), u=v.replace(/^@/,'');
+      if(r==='instagram') return h?v:'https://instagram.com/'+u;
+      if(r==='tiktok')    return h?v:'https://tiktok.com/@'+u;
+      if(r==='facebook')  return h?v:'https://facebook.com/'+u;
+      if(r==='youtube')   return h?v:'https://youtube.com/@'+u;
+      if(r==='whatsapp'){ var d=v.replace(/\D/g,''); return d.length>=8?'https://wa.me/'+d:''; }
+      if(r==='email')     return /^mailto:/i.test(v)?v:'mailto:'+v;
+      if(r==='telefono'){ var d2=v.replace(/[^\d+]/g,''); return d2?'tel:'+d2:''; }
+      return h?v:'https://'+v;
+    }
 
     var user = getUser();
     var wrap = document.getElementById('wrap');
@@ -342,6 +373,8 @@
           if (b.tipo==='separador'){ html += '<hr class="u-sep">'; return; }
           if (b.tipo==='texto'){ html += '<div class="u-text fade" style="animation-delay:'+(0.1+i*0.04)+'s;color:'+subColor+';">'+esc((b.texto||'').trim())+'</div>'; return; }
           if (b.tipo==='imagen'){ var im='<img class="u-img" src="'+esc(b.img)+'" alt="">'; var iu=resolveUrl(b.url); html += '<'+(iu?'a':'div')+' class="fade u-imgwrap" style="animation-delay:'+(0.1+i*0.04)+'s;"'+(iu?(' href="'+esc(iu)+'" target="_blank" rel="noopener"'):'')+'>'+im+'</'+(iu?'a':'div')+'>'; return; }
+          if (b.tipo==='embed'){ var eh=embedHtml(b.url); if(eh) html += '<div class="fade" style="animation-delay:'+(0.1+i*0.04)+'s;width:100%;">'+eh+'</div>'; return; }
+          if (b.tipo==='social'){ var icS=t.iconStyle==='original'?'-orig':''; var sr=(b.socials||[]).map(function(s){ var su=socUrl(s); return su?'<a class="u-soc-i" href="'+esc(su)+'" target="_blank" rel="noopener"><img src="/ic-'+(SOCRED[s.red]?s.red:'enlace')+icS+'.png" alt=""></a>':''; }).join(''); if(sr) html += '<div class="u-soc fade" style="animation-delay:'+(0.1+i*0.04)+'s;">'+sr+'</div>'; return; }
           var url = resolveUrl(b.url); if (!url) return;
           var icSuf = t.iconStyle==='original' ? '-orig' : '';
           var icH = (b.tipo && {whatsapp:1,instagram:1,tiktok:1,facebook:1,youtube:1,email:1,telefono:1,enlace:1}[b.tipo]) ? '<img class="btn-ic" src="/ic-'+b.tipo+icSuf+'.png" alt="">' : '';
