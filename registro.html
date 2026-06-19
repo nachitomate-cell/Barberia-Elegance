@@ -1171,11 +1171,14 @@
     .tenant-yugen .btn-google { background: #15120e; border-color: rgba(245,243,239,0.14); }
     .tenant-yugen .btn-google:hover { background: #1f1a14; border-color: rgba(245,243,239,0.25); }
     .tenant-yugen .spinner { border-top-color: #f5f3ef !important; }
-    /* Sello ritual 幽玄 (bermellón) bajo el subtítulo */
+    /* Sello ritual 幽玄 (幽 blanco · 玄 rojo) bajo el subtítulo */
     .tenant-yugen #heroClubSub::after {
-      content: '幽玄'; display: block; margin-top: 12px;
+      content: '幽玄'; display: block; width: fit-content; margin: 12px auto 0;
       font-family: 'Yu Mincho','Hiragino Mincho ProN','Noto Serif JP',serif;
-      font-size: 17px; line-height: 1; color: #c0392b; letter-spacing: 0.18em;
+      font-size: 17px; line-height: 1; letter-spacing: 0.18em;
+      background: linear-gradient(90deg, #ffffff 0 50%, #c0392b 50% 100%);
+      -webkit-background-clip: text; background-clip: text;
+      color: transparent; -webkit-text-fill-color: transparent;
     }
     /* ══════════════════════════════════════════════════════════════════════════ */
 

@@ -17,6 +17,8 @@
     { "source": "/gestion-interna/**", "destination": "/gestion-interna/index.html" },
     { "source": "/gestion-interna", "destination": "/gestion-interna/index.html" },
     { "source": "/bio", "destination": "/bio.html" },
+    { "source": "/dashboard", "destination": "/dashboard.html" },
+    { "source": "/registro", "destination": "/registro.html" },
     { "source": "/:slug([^.]+)", "destination": "/barbero.html" }
   ]
 }

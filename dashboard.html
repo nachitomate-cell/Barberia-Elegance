@@ -619,16 +619,36 @@
       font-weight: 500 !important;
     }
     .tenant-yugen #heroLine2 { color: #f5f3ef !important; font-weight: 600 !important; }
-    /* Sello ritual 幽玄 (bermellón) bajo el nombre del hero */
+    /* Sello ritual 幽玄 (幽 blanco · 玄 rojo) bajo el nombre del hero — alineado a la izquierda */
     .tenant-yugen #heroLine2::after {
       content: '幽玄';
       display: block;
-      margin-top: 12px;
+      width: fit-content;
+      margin: 12px auto 0 0;
       font-family: 'Yu Mincho','Hiragino Mincho ProN','Noto Serif JP',serif;
       font-size: 18px;
       line-height: 1;
-      color: #c0392b;
       letter-spacing: 0.18em;
+      background: linear-gradient(90deg, #ffffff 0 50%, #c0392b 50% 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      -webkit-text-fill-color: transparent;
+    }
+    /* ── Toda la tipografía del dashboard de Yūgen en la fuente de "Yūgen
+       Experience" (Playfair Display). Se excluyen los íconos (Phosphor) y los
+       kanji/marca de agua conservan su serif japonés por su mayor especificidad. ── */
+    .tenant-yugen :is(h1,h2,h3,h4,h5,h6,p,span,a,button,div,label,input,textarea,select,li,strong,b,em,small,td,th,figcaption):not([class*="ph-"]) {
+      font-family: 'Playfair Display', Georgia, serif !important;
+    }
+    /* Marca "YŪGEN STUDIO" en la misma fuente */
+    .tenant-yugen #shopHeaderName,
+    .tenant-yugen #shopHeaderSub {
+      font-family: 'Playfair Display', Georgia, serif !important;
+    }
+    /* Los kanji (sello + marca de agua) conservan el serif japonés */
+    .tenant-yugen #membershipWatermark {
+      font-family: 'Yu Mincho','Hiragino Mincho ProN','Noto Serif JP',serif !important;
     }
     .tenant-yugen .nav-label { letter-spacing: 0.16em !important; text-transform: uppercase; }
 
@@ -4720,6 +4740,7 @@ document.getElementById('shopClubName').textContent   = SHOP.club;
     : isOmega     ? 'STUDIO'
     : isKronnosWoman ? 'BELLEZA & ESTÉTICA'
     : isKronnos   ? 'STUDIO'
+    : (tid === 'yugen') ? 'STUDIO'
     : 'BARBERSHOP';
 
   if (isAura) {
@@ -8419,8 +8440,8 @@ function auraCountUp(targetNum, totalTarget) {
       if ((window.CURRENT_TENANT_ID || '') !== 'yugen') return;
       var l1 = document.getElementById('heroLine1');
       var l2 = document.getElementById('heroLine2');
-      if (l1) l1.innerHTML = 'Yūgen no<br>se ve,';
-      if (l2) l2.textContent = 'se siente.';
+      if (l1) l1.innerHTML = 'Yūgen';
+      if (l2) l2.textContent = 'Experience';
       // Watermark de la tarjeta de fidelización → sello 幽玄
       var wm = document.getElementById('membershipWatermark');
       if (wm) wm.textContent = '幽玄';
