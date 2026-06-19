@@ -174,9 +174,18 @@
     }
 
     // ── Google ──
+    // En móvil el popup de Google suele fallar (bloqueado/cerrado); usamos
+    // signInWithRedirect y completamos con getRedirectResult al volver.
+    var _isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(navigator.userAgent || '');
     document.getElementById('googleBtn').addEventListener('click', function(){
       clearMsg();
       var provider = new firebase.auth.GoogleAuthProvider();
+      if (_isMobile) {
+        showMsg('Conectando con Google…', true);
+        ensureLocal().then(function(){ return auth.signInWithRedirect(provider); })
+          .catch(function(e){ showMsg(mapError(e), false); });
+        return;
+      }
       ensureLocal().then(function(){ return auth.signInWithPopup(provider); })
         .then(afterAuth).catch(function(e){
           showMsg(mapError(e), false);
@@ -211,6 +220,11 @@
       if (c === 'auth/popup-closed-by-user') return 'Cerraste la ventana de Google. Intenta de nuevo.';
       return 'No se pudo completar. Intenta nuevamente.';
     }
+
+    // Completa el login con Google cuando se usó redirect (móvil).
+    auth.getRedirectResult().then(function(cred){
+      if (cred && cred.user) afterAuth(cred);
+    }).catch(function(e){ if (e && e.code) showMsg(mapError(e), false); });
 
     // Si ya está logueado y volvía al editor, lo mandamos directo (el editor publica el borrador).
     auth.onAuthStateChanged(function(user){ if (user && volver === 'editor') { goEditor(); } });

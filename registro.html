@@ -1530,6 +1530,8 @@
   // que ensureUserDoc termine de guardar el nombre y teléfono.
   let _registering = false;
   let _auraForceCustomPassword = false;
+  // Si volvemos de un redirect de Google (móvil), no auto-redirigir hasta verificar el teléfono.
+  if (sessionStorage.getItem('_clubGoogleRedirect') === '1') _registering = true;
 
   // ── Tenants "passwordless" (Club sin contraseña): el cliente entra solo con
   // su email; el sistema usa una password fija interna por tenant. Hoy: aura y
@@ -1553,32 +1555,72 @@
   });
 
   // ── Google Login ──────────────────────────────────────────────
+  // En móvil el popup de Google suele fallar; usamos signInWithRedirect y
+  // completamos con getRedirectResult al volver.
+  const _isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(navigator.userAgent || '');
+
+  // Post-login común (popup y redirect): asegura el doc y pide teléfono si falta.
+  async function handleGoogleUser(user) {
+    await ensureUserDoc(user);
+    const snap = await FDB.usersCol().doc(user.uid).get();
+    const telefono = snap.exists ? (snap.data().telefono || '').replace(/\D/g, '') : '';
+    if (!telefono) {
+      hideLoading();
+      // Ocultar tabs, paneles y sección social; mostrar solo el panel de teléfono
+      document.querySelector('.flex.mb-7').classList.add('hidden');
+      document.getElementById('panelLogin').classList.add('hidden');
+      document.getElementById('panelRegister').classList.add('hidden');
+      document.querySelector('.social-section').classList.add('hidden');
+      document.getElementById('panelPhoneRequired').classList.remove('hidden');
+      initPhonePrefix('googleTelefono');
+      return;
+    }
+    goToDashboard();
+  }
+
   async function loginWithGoogle() {
+    const provider = new firebase.auth.GoogleAuthProvider();
+    if (_isMobile) {
+      showLoading('Conectando con Google...');
+      try {
+        sessionStorage.setItem('_clubGoogleRedirect', '1');
+        _registering = true;
+        await auth.signInWithRedirect(provider);
+      } catch (err) {
+        sessionStorage.removeItem('_clubGoogleRedirect');
+        _registering = false;
+        hideLoading();
+        showAlert(friendlyError(err.code));
+      }
+      return; // la página navega a Google y vuelve
+    }
     showLoading('Conectando con Google...');
     try {
-      const provider = new firebase.auth.GoogleAuthProvider();
-      const result   = await auth.signInWithPopup(provider);
-      await ensureUserDoc(result.user);
-      // Si el usuario no tiene teléfono, pedirlo antes de continuar
-      const snap = await FDB.usersCol().doc(result.user.uid).get();
-      const telefono = snap.exists ? (snap.data().telefono || '').replace(/\D/g, '') : '';
-      if (!telefono) {
-        hideLoading();
-        // Ocultar tabs, paneles y sección social; mostrar solo el panel de teléfono
-        document.querySelector('.flex.mb-7').classList.add('hidden');
-        document.getElementById('panelLogin').classList.add('hidden');
-        document.getElementById('panelRegister').classList.add('hidden');
-        document.querySelector('.social-section').classList.add('hidden');
-        document.getElementById('panelPhoneRequired').classList.remove('hidden');
-        initPhonePrefix('googleTelefono');
-        return;
-      }
-      goToDashboard();
+      const result = await auth.signInWithPopup(provider);
+      await handleGoogleUser(result.user);
     } catch (err) {
       hideLoading();
       showAlert(friendlyError(err.code));
     }
   }
+
+  // Completa el login con Google cuando se usó redirect (móvil).
+  auth.getRedirectResult().then(function (result) {
+    sessionStorage.removeItem('_clubGoogleRedirect');
+    if (result && result.user) {
+      showLoading('Conectando con Google...');
+      handleGoogleUser(result.user).catch(function (err) {
+        hideLoading(); showAlert(friendlyError(err && err.code));
+      });
+    } else {
+      _registering = false; // no veníamos de un redirect: flujo normal
+    }
+  }).catch(function (err) {
+    sessionStorage.removeItem('_clubGoogleRedirect');
+    _registering = false;
+    hideLoading();
+    if (err && err.code) showAlert(friendlyError(err.code));
+  });
 
   // ── Email Login ───────────────────────────────────────────────
   async function loginWithEmail() {
