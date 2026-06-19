@@ -1461,11 +1461,14 @@
       line-height: 1.35 !important;
       font-weight: 600 !important;
     }
-    /* Sello ritual 幽玄 (幽 blanco + 玄 bermellón) bajo el slogan */
-    .tenant-yugen .booking-hero p:has(#shopSlogan)::after {
+    /* Sello ritual 幽玄 (幽 blanco + 玄 rojo) — esquina inferior izquierda del hero */
+    .tenant-yugen .booking-hero::after {
       content: '幽玄';
-      display: block;
-      margin-top: 14px;
+      position: absolute;
+      left: 16px;
+      bottom: 14px;
+      z-index: 5;
+      pointer-events: none;
       font-family: 'Yu Mincho','Hiragino Mincho ProN','Noto Serif JP',serif;
       font-size: 18px;
       line-height: 1;
@@ -1476,17 +1479,14 @@
       color: transparent;
       -webkit-text-fill-color: transparent;
     }
-    /* Logo sin borde dorado + efecto flotante */
+    /* Logo sin borde dorado (sin animación — queda quieto) */
     .tenant-yugen .hero-logo-ring {
       border: none !important;
       box-shadow: none !important;
       background: transparent !important;
-      animation: yugenFloat 4.5s ease-in-out infinite;
       filter: drop-shadow(0 16px 22px rgba(0,0,0,0.55));
     }
     .tenant-yugen #shopNombre {
-      animation: yugenFloat 5.5s ease-in-out infinite;
-      animation-delay: .3s;
       text-shadow: 0 2px 18px rgba(0,0,0,0.85), 0 1px 3px rgba(0,0,0,0.9);
     }
     @keyframes yugenFloat {
@@ -1510,8 +1510,9 @@
     }
     /* Ondas op-art animadas en el fondo del hero */
     .yugen-waves { display: none; }
+    /* Ondas op-art desactivadas (se quitaron las líneas horizontales animadas). */
     .tenant-yugen .yugen-waves {
-      display: block;
+      display: none;
       position: absolute; inset: 0; z-index: 1;
       pointer-events: none; overflow: hidden;
       opacity: 0.18;
