@@ -194,6 +194,10 @@
   .pv-wrap.has-cover .pv-avatar{margin-top:-44px;position:relative;z-index:1;}
   .cover-prev{width:100%;height:96px;border-radius:12px;background-color:#eef2e6;background-size:cover;background-position:center;border:1px solid var(--line);}
   .cover-prev.empty{background-image:repeating-linear-gradient(45deg,#e7ede0,#e7ede0 10px,#eef2e6 10px,#eef2e6 20px);}
+  .bg-preset-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(56px,1fr));gap:8px;margin-top:8px;}
+  .bg-preset{aspect-ratio:9/16;border-radius:10px;border:2px solid transparent;background-color:#eef2e6;background-size:cover;background-position:center;cursor:pointer;padding:0;outline:none;transition:border-color .15s,transform .1s;}
+  .bg-preset:hover{transform:scale(1.04);}
+  .bg-preset.active{border-color:#7bb13c;box-shadow:0 0 0 2px rgba(123,177,60,.3);}
   .pv-avatar{width:86px;height:86px;border-radius:50%;overflow:hidden;background:#fff;border:3px solid rgba(255,255,255,.5);display:grid;place-items:center;box-shadow:0 4px 18px rgba(21,36,11,.15);flex:none;}
   .pv-avatar img{width:100%;height:100%;object-fit:cover;}
   .pv-avatar span{font-size:33px;font-weight:800;color:#6b7768;}
@@ -364,6 +368,8 @@
             <div id="bgImgWrap" style="display:none;margin-top:10px;">
               <input type="file" id="bgImgFile" accept="image/*" hidden />
               <div class="ava-actions"><button type="button" class="ava-btn" id="bgImgBtn">📷 Subir imagen</button><button type="button" class="ava-btn ghosty" id="bgImgClear">Quitar</button></div>
+              <label style="margin-top:12px;">O elige un fondo listo</label>
+              <div id="bgPresetRow" class="bg-preset-row"></div>
               <div class="help">Se usa como fondo (cover). Recomendado: imagen vertical.</div>
             </div>
             <div id="bgPatWrap" style="display:none;margin-top:10px;">
@@ -1113,6 +1119,25 @@
       $('bgGradWrap').style.display  = (bg.mode==='gradient'||bg.mode==='animated')?'block':'none';
       $('bgImgWrap').style.display   = bg.mode==='image'?'block':'none';
       $('bgPatWrap').style.display   = bg.mode==='pattern'?'block':'none';
+      // Galería de fondos listos (presets). Se construye una vez; resalta el activo.
+      var bpre=$('bgPresetRow');
+      if (bpre){
+        if (!bpre._built){
+          // Para agregar fondos: subí /bio-fondos/fondoN.jpg + /bio-fondos/thumbs/fondoN.jpg
+          // (comprimidos) y aumentá este número.
+          var BG_PRESET_COUNT = 9;
+          for (var fi=1; fi<=BG_PRESET_COUNT; fi++){ (function(n){
+            var full='/bio-fondos/fondo'+n+'.jpg';
+            var btn=document.createElement('button'); btn.type='button'; btn.className='bg-preset';
+            btn.style.backgroundImage="url('/bio-fondos/thumbs/fondo"+n+".jpg')"; btn.dataset.full=full;
+            btn.title='Fondo '+n;
+            btn.addEventListener('click', function(){ state.theme.bg.image=full; state.theme.bg.mode='image'; renderAppearance(); renderPreview(); });
+            bpre.appendChild(btn);
+          })(fi); }
+          bpre._built=1;
+        }
+        Array.prototype.forEach.call(bpre.children, function(b){ b.classList.toggle('active', b.dataset.full===bg.image); });
+      }
       var bpr=$('bgPatRow'); if(bpr){ bpr.innerHTML='';
         [['dots','Puntos'],['grid','Cuadrícula'],['diag','Diagonales'],['cross','Cruces']].forEach(function(pp){
           var o=document.createElement('button'); o.type='button'; o.className='opt'+((bg.pattern||'dots')===pp[0]?' active':''); o.textContent=pp[1];
