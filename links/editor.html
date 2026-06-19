@@ -759,23 +759,15 @@
       }).catch(function(e){ console.error(e); $('gate').textContent = 'Error cargando tu cuenta. Recarga la página.'; });
     }
 
+    // Usuario autenticado sin página: NO escribimos nada todavía (evita errores de
+    // permisos si el usuario sugerido colisiona con un handle de tenant, y no crea
+    // documentos basura). Abrimos el editor vacío con un usuario sugerido; se crea
+    // en Firestore recién al pulsar "Guardar" (reclamo atómico con control de colisión).
     function createFreshBio(){
-      var base = (state.email||('user'+state.uid.slice(0,6))).split('@')[0].toLowerCase().replace(/[^a-z0-9._-]/g,'').slice(0,30);
-      if (!validUser(base)) base = 'user' + state.uid.slice(0,8).toLowerCase();
-      tryClaimFresh(base, 0);
-    }
-    function tryClaimFresh(base, n){
-      var cand = n === 0 ? base : (base + n);
-      var ref = db.collection('bios').doc(cand);
-      ref.get().then(function(d){
-        if (d.exists){ if (n < 50) tryClaimFresh(base, n+1); else { $('gate').textContent='No se pudo crear tu página.'; } return; }
-        var now = firebase.firestore.FieldValue.serverTimestamp();
-        var data = { uid: state.uid, username: cand, perfil:{titulo:'@'+cand,subtitulo:'',avatar:''}, bloques:[], theme:{preset:'lime',shape:'rounded',fill:'solid'}, views:0, clicks:{}, createdAt:now, updatedAt:now };
-        ref.set(data).then(function(){
-          db.collection('bio_users').doc(state.uid).set({ username: cand, email: state.email||'', createdAt: now });
-          hydrate(cand, data);
-        });
-      });
+      var base = (state.email||('user'+(state.uid||'').slice(0,6))).split('@')[0].toLowerCase().replace(/[^a-z0-9._-]/g,'').slice(0,30);
+      if (!validUser(base)) base = 'user' + (state.uid||'').slice(0,8).toLowerCase();
+      hydrate(base, { perfil:{titulo:'',subtitulo:'',avatar:''}, bloques:[], theme:state.theme, views:0, clicks:{} });
+      state.originalUsername = null;   // aún sin reclamar → "Guardar" lo crea
     }
 
     function hydrate(uname, data){
