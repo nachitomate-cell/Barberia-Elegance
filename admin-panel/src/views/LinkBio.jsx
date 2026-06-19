@@ -66,7 +66,7 @@ function seedDefault() {
   ];
 }
 
-const field = 'w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors';
+const field = 'w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-lime-500 transition-colors';
 const lbl   = 'block text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1';
 
 export default function LinkBio() {
@@ -216,12 +216,12 @@ export default function LinkBio() {
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
         <div className="flex items-center gap-2">
-          <Link2 className="text-emerald-400" size={20} />
+          <Link2 className="text-lime-400" size={20} />
           <h1 className="text-lg font-bold text-white">Link in Bio</h1>
           <HelpButton onClick={() => setShowHelp(true)} />
           <span className={`text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${
             plan === 'studio' ? 'bg-amber-500/15 text-amber-400'
-            : plan === 'pro'  ? 'bg-emerald-500/15 text-emerald-400'
+            : plan === 'pro'  ? 'bg-lime-500/15 text-lime-400'
             : 'bg-slate-800 text-slate-400'}`}>Plan {plan}</span>
         </div>
         <div className="flex items-center gap-2">
@@ -231,7 +231,7 @@ export default function LinkBio() {
             </button>
           )}
           <button onClick={copyLink} className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-300 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors">
-            {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />} {copied ? 'Copiado' : 'Copiar link'}
+            {copied ? <Check size={14} className="text-lime-400" /> : <Copy size={14} />} {copied ? 'Copiado' : 'Copiar link'}
           </button>
           <a href={bioUrl} target="_blank" rel="noopener" className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-slate-300 bg-slate-800 hover:bg-slate-700 rounded-lg transition-colors">
             <ExternalLink size={14} /> Ver página
@@ -242,7 +242,7 @@ export default function LinkBio() {
       {/* Dirección pública en bioo.cl */}
       <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 mb-4">
         <label className={lbl}>Tu dirección en bioo.cl</label>
-        <div className="flex items-center bg-slate-800 border border-slate-700 rounded-lg px-3 focus-within:border-emerald-500 transition-colors">
+        <div className="flex items-center bg-slate-800 border border-slate-700 rounded-lg px-3 focus-within:border-lime-500 transition-colors">
           <span className="text-sm text-slate-500 select-none">bioo.cl/</span>
           <input
             className="flex-1 bg-transparent py-2.5 pl-0.5 text-sm text-white placeholder-slate-500 focus:outline-none"
@@ -254,7 +254,7 @@ export default function LinkBio() {
         </div>
         <p className="text-[11px] text-slate-500 mt-1.5">
           {cfg.handle
-            ? <>Tu link público será <span className="text-emerald-400 font-semibold">bioo.cl/{cfg.handle}</span> (guarda para aplicarlo).</>
+            ? <>Tu link público será <span className="text-lime-400 font-semibold">bioo.cl/{cfg.handle}</span> (guarda para aplicarlo).</>
             : <>Elige un nombre corto para compartir. Mientras tanto tu link sigue siendo el de tu subdominio.</>}
         </p>
       </div>
@@ -312,8 +312,8 @@ export default function LinkBio() {
                     <button key={tipo} disabled={locked} onClick={() => add(tipo)}
                       className={`relative flex items-center gap-2 px-3 py-2.5 rounded-lg border text-xs font-semibold transition-all text-left
                         ${locked ? 'border-slate-800 bg-slate-900 text-slate-600 cursor-not-allowed'
-                                 : 'border-slate-700 bg-slate-800 text-slate-200 hover:border-emerald-500/50 hover:bg-slate-750'}`}>
-                      <Icon size={15} className={locked ? 'text-slate-600' : (T.tier === 'studio' ? 'text-amber-400' : 'text-emerald-400')} />
+                                 : 'border-slate-700 bg-slate-800 text-slate-200 hover:border-lime-500/50 hover:bg-slate-750'}`}>
+                      <Icon size={15} className={locked ? 'text-slate-600' : (T.tier === 'studio' ? 'text-amber-400' : 'text-lime-400')} />
                       <span className="flex-1 truncate">{T.nombre}</span>
                       {planLocked && (
                         <span className="shrink-0 flex items-center gap-0.5 text-[8px] font-black uppercase text-amber-500/80">
@@ -331,7 +331,7 @@ export default function LinkBio() {
             </div>
           ) : (
             <button onClick={() => setAddOpen(true)} disabled={limiteAlcanzado}
-              className="w-full px-3 py-3 rounded-xl border border-dashed border-slate-700 text-slate-400 hover:border-emerald-500/40 hover:text-emerald-400 text-sm font-semibold transition-all disabled:opacity-40 flex items-center justify-center gap-2">
+              className="w-full px-3 py-3 rounded-xl border border-dashed border-slate-700 text-slate-400 hover:border-lime-500/40 hover:text-lime-400 text-sm font-semibold transition-all disabled:opacity-40 flex items-center justify-center gap-2">
               <Plus size={16} /> {limiteAlcanzado ? 'Límite de 6 bloques (plan free)' : 'Agregar bloque'}
             </button>
           )}
@@ -348,7 +348,7 @@ export default function LinkBio() {
       <div className="fixed bottom-0 inset-x-0 lg:left-64 bg-slate-950/95 backdrop-blur border-t border-slate-800 px-4 py-3 flex items-center justify-between gap-3 z-20">
         <span className="text-xs text-slate-500">{dirty ? 'Cambios sin guardar' : 'Todo guardado'}</span>
         <button onClick={save} disabled={saving || !dirty}
-          className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-sm font-bold rounded-lg transition-all flex items-center gap-2">
+          className="px-6 py-2.5 bg-lime-600 hover:bg-lime-500 disabled:opacity-40 text-white text-sm font-bold rounded-lg transition-all flex items-center gap-2">
           {saving && <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
           Guardar cambios
         </button>
@@ -411,13 +411,13 @@ function UpsellPanel() {
                 {p.destacado && <span className="absolute -top-2 left-4 text-[9px] font-black uppercase tracking-wide bg-amber-500 text-amber-950 px-2 py-0.5 rounded-full">Recomendado</span>}
                 <div className="flex items-baseline justify-between">
                   <p className="text-sm font-bold text-white">{p.nombre}</p>
-                  {p.actual && <span className="text-[9px] font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">Actual</span>}
+                  {p.actual && <span className="text-[9px] font-bold text-lime-400 bg-lime-500/10 px-1.5 py-0.5 rounded">Actual</span>}
                 </div>
                 <p className="mt-1 mb-3"><span className="text-2xl font-black text-white">{p.precio}</span><span className="text-xs text-slate-500">{p.periodo || ''}</span></p>
                 <ul className="space-y-1.5 flex-1">
                   {p.beneficios.map((b, i) => (
                     <li key={i} className="flex items-start gap-1.5 text-[11px] text-slate-300">
-                      <Check size={12} className={`mt-0.5 shrink-0 ${p.destacado ? 'text-amber-400' : 'text-emerald-400'}`} /> {b}
+                      <Check size={12} className={`mt-0.5 shrink-0 ${p.destacado ? 'text-amber-400' : 'text-lime-400'}`} /> {b}
                     </li>
                   ))}
                 </ul>
@@ -440,7 +440,7 @@ function UpsellPanel() {
 function Stat({ icon: Icon, label, value }) {
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 flex items-center gap-3">
-      <Icon size={18} className="text-emerald-400 shrink-0" />
+      <Icon size={18} className="text-lime-400 shrink-0" />
       <div className="min-w-0">
         <p className="text-lg font-black text-white leading-none">{Number(value).toLocaleString('es-CL')}</p>
         <p className="text-[10px] text-slate-500 uppercase tracking-wide mt-0.5 truncate">{label}</p>
@@ -461,15 +461,15 @@ function BlockCard({ blk, index, total, isPro, clicks, onChange, onMove, onRemov
           <button onClick={() => onMove(-1)} disabled={index === 0} className="text-slate-600 hover:text-white disabled:opacity-30 p-0.5"><ArrowUp size={14} /></button>
           <button onClick={() => onMove(1)} disabled={index === total - 1} className="text-slate-600 hover:text-white disabled:opacity-30 p-0.5"><ArrowDown size={14} /></button>
         </div>
-        <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
-          <Icon size={15} className="text-emerald-400" />
+        <div className="w-8 h-8 rounded-lg bg-lime-500/10 border border-lime-500/20 flex items-center justify-center shrink-0">
+          <Icon size={15} className="text-lime-400" />
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold text-white truncate">{blk.label || blk.texto || T.nombre}</p>
           <p className="text-[10px] text-slate-500">{T.nombre} · {clicks} clic{clicks !== 1 ? 's' : ''}</p>
         </div>
         <button onClick={() => onChange({ activo: !off ? false : true })} title={off ? 'Activar' : 'Desactivar'}
-          className={`p-1.5 rounded-lg transition-colors ${off ? 'text-slate-500 hover:text-white' : 'text-emerald-400 hover:bg-slate-800'}`}>
+          className={`p-1.5 rounded-lg transition-colors ${off ? 'text-slate-500 hover:text-white' : 'text-lime-400 hover:bg-slate-800'}`}>
           {off ? <EyeOff size={16} /> : <Eye size={16} />}
         </button>
         <button onClick={onRemove} className="p-1.5 rounded-lg text-rose-400/70 hover:text-rose-400 hover:bg-slate-800 transition-colors"><Trash2 size={15} /></button>
@@ -496,7 +496,7 @@ function BlockCard({ blk, index, total, isPro, clicks, onChange, onMove, onRemov
         {T.fields.includes('gridPro') && isPro && (
           <label className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer">
             <input type="checkbox" checked={!!blk.grid} onChange={e => onChange({ grid: e.target.checked })}
-              className="w-4 h-4 accent-emerald-500" />
+              className="w-4 h-4 accent-lime-500" />
             Mostrar grilla con últimas fotos de Instagram
           </label>
         )}
@@ -519,7 +519,7 @@ function BlockCard({ blk, index, total, isPro, clicks, onChange, onMove, onRemov
         {!['heading', 'paragraph', 'socials', 'barberos', 'reviewsCarousel', 'leads', 'sedes'].includes(blk.tipo) && (
           <label className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer">
             <input type="checkbox" checked={!!blk.featured} onChange={e => onChange({ featured: e.target.checked })}
-              className="w-4 h-4 accent-emerald-500" />
+              className="w-4 h-4 accent-lime-500" />
             Destacar (botón con color de marca)
           </label>
         )}
@@ -541,7 +541,7 @@ function SocialsEditor({ redes, onChange }) {
           <button onClick={() => onChange(redes.filter((_, j) => j !== i))} className="px-2 text-rose-400/70 hover:text-rose-400"><Trash2 size={14} /></button>
         </div>
       ))}
-      <button onClick={() => onChange([...redes, { red: 'instagram', url: '' }])} className="text-xs text-emerald-400 hover:underline flex items-center gap-1"><Plus size={12} /> Agregar red</button>
+      <button onClick={() => onChange([...redes, { red: 'instagram', url: '' }])} className="text-xs text-lime-400 hover:underline flex items-center gap-1"><Plus size={12} /> Agregar red</button>
     </div>
   );
 }
@@ -553,8 +553,8 @@ function Preview({ perfil, bloques }) {
   return (
     <div className="mx-auto w-[260px] rounded-[2rem] border-[6px] border-slate-800 bg-slate-950 overflow-hidden shadow-2xl">
       <div className="h-[480px] overflow-y-auto no-scrollbar px-4 py-6 flex flex-col items-center"
-        style={{ background: 'radial-gradient(ellipse 80% 35% at 50% 0%, rgba(16,185,129,0.12), transparent 70%), #0a0a0d' }}>
-        <div className="w-16 h-16 rounded-full bg-slate-800 border-2 border-emerald-500/40 flex items-center justify-center text-emerald-400/60 text-xs">logo</div>
+        style={{ background: 'radial-gradient(ellipse 80% 35% at 50% 0%, rgba(146,200,58,0.16), transparent 70%), #0a0a0d' }}>
+        <div className="w-16 h-16 rounded-full bg-slate-800 border-2 border-lime-500/40 flex items-center justify-center text-lime-400/60 text-xs">logo</div>
         <p className="mt-2 text-white font-black text-center text-sm leading-tight">{perfil.titulo || 'Tu local'}</p>
         {perfil.subtitulo && <p className="text-[10px] text-slate-400 text-center mt-0.5">{perfil.subtitulo}</p>}
         <div className="w-full mt-4 space-y-2">
@@ -570,8 +570,8 @@ function Preview({ perfil, bloques }) {
             const Icon = ICON[b.tipo] || Link2;
             return (
               <div key={b.id} className={`flex items-center gap-2 rounded-xl px-2.5 py-2 text-[11px] font-semibold border
-                ${b.featured ? 'bg-emerald-500 text-emerald-950 border-emerald-500' : 'bg-white/5 text-white border-white/10'}`}>
-                <span className={`w-6 h-6 rounded-md flex items-center justify-center ${b.featured ? 'bg-black/15' : 'bg-emerald-500/15'}`}><Icon size={12} className={b.featured ? '' : 'text-emerald-400'} /></span>
+                ${b.featured ? 'bg-lime-500 text-lime-950 border-lime-500' : 'bg-white/5 text-white border-white/10'}`}>
+                <span className={`w-6 h-6 rounded-md flex items-center justify-center ${b.featured ? 'bg-black/15' : 'bg-lime-500/15'}`}><Icon size={12} className={b.featured ? '' : 'text-lime-400'} /></span>
                 <span className="flex-1 truncate">{b.label || TIPOS[b.tipo]?.nombre}</span>
                 <ChevronRight size={12} className="opacity-50" />
               </div>
