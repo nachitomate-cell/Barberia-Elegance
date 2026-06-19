@@ -120,7 +120,9 @@
   .tipo-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;padding:16px;}
   .tipo-opt{display:flex;align-items:center;gap:9px;background:var(--field);border:1px solid var(--line);border-radius:12px;padding:13px 12px;font-size:14px;font-weight:700;color:var(--ink);cursor:pointer;text-align:left;}
   .tipo-opt:hover{border-color:var(--green);background:#fff;}
-  .tipo-opt .ti{font-size:20px;flex:none;}
+  .tipo-opt .ti{flex:none;width:28px;height:28px;}
+  .tipo-opt .ti img{width:100%;height:100%;object-fit:contain;display:block;}
+  .lk-type img{width:17px;height:17px;border-radius:4px;object-fit:contain;}
   .add{width:100%;border:1px dashed var(--green);background:rgba(146,200,58,.06);color:var(--green-d);border-radius:12px;padding:13px;font-size:14px;font-weight:800;cursor:pointer;}
   .add:hover{background:rgba(146,200,58,.12);}
 
@@ -195,6 +197,23 @@
   .pv-blocks{width:100%;display:flex;flex-direction:column;gap:11px;margin-top:24px;}
   .pv-btn{position:relative;width:100%;padding:15px 16px;font-size:14px;font-weight:700;text-align:center;box-shadow:0 2px 10px rgba(21,36,11,.10);word-break:break-word;}
   .pv-btn-ic{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:24px;height:24px;object-fit:contain;}
+  @keyframes bFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+  @keyframes bPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
+  @keyframes bGlow{0%,100%{box-shadow:0 2px 10px rgba(21,36,11,.15)}50%{box-shadow:0 5px 22px rgba(146,200,58,.6)}}
+  .pv-btn.anim-float{animation:bFloat 3s ease-in-out infinite;}
+  .pv-btn.anim-pulse{animation:bPulse 2.4s ease-in-out infinite;}
+  .pv-btn.anim-grow{transition:transform .15s ease;}
+  .pv-btn.anim-grow:hover{transform:scale(1.03);}
+  .pv-btn.feat{animation:bGlow 2s ease-in-out infinite;font-weight:800;}
+  .lk-feat{background:transparent;border:0;color:#cbd5b0;font-size:16px;cursor:pointer;padding:2px 6px;line-height:1;}
+  .lk-feat.on{color:#f59e0b;}
+  .pv-text{text-align:center;font-size:14px;font-weight:600;margin:2px 0;word-break:break-word;}
+  .pv-sep{width:55%;border:0;border-top:2px solid rgba(128,128,128,.35);margin:6px auto;}
+  .pv-img{width:100%;border-radius:14px;display:block;box-shadow:0 2px 10px rgba(21,36,11,.12);}
+  .lk-note{font-size:12px;color:var(--soft);background:var(--field);border-radius:8px;padding:8px 10px;}
+  .lk-imgrow{display:flex;align-items:center;gap:10px;}
+  .lk-imgprev{width:46px;height:46px;border-radius:8px;object-fit:cover;border:1px solid var(--line);background:#fff;flex:none;}
+  .link-item textarea{width:100%;background:#fff;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:13.5px;font-family:inherit;resize:vertical;min-height:42px;color:var(--ink);}
   .pv-empty{margin-top:26px;font-size:13px;text-align:center;opacity:.85;}
   .pv-foot{margin-top:auto;padding-top:26px;font-size:11px;font-weight:700;opacity:.9;}
 
@@ -318,12 +337,27 @@
             </div>
           </div>
           <div class="card">
+            <h2>Avatar</h2>
+            <label>Forma</label>
+            <div class="opt-row" id="avShapeRow"></div>
+            <label>Anillo</label>
+            <div class="cc"><input type="color" id="avRing" /><button type="button" class="cc-auto" id="avRingNone">Sin anillo</button></div>
+          </div>
+          <div class="card">
             <h2>Forma del botón</h2>
             <div class="opt-row" id="shapeRow"></div>
           </div>
           <div class="card">
             <h2>Estilo del botón</h2>
             <div class="opt-row" id="fillRow"></div>
+          </div>
+          <div class="card">
+            <h2>Animación de botones</h2>
+            <div class="opt-row" id="animRow"></div>
+          </div>
+          <div class="card">
+            <h2>Estilo de íconos</h2>
+            <div class="opt-row" id="iconStyleRow"></div>
           </div>
           <div class="card">
             <h2>Texto</h2>
@@ -390,6 +424,7 @@
   </div>
 
   <div class="toast" id="toast"></div>
+  <input id="blkImgFile" type="file" accept="image/*" hidden />
 
   <!-- Modal: elegir tipo de enlace -->
   <div class="tipo-modal" id="tipoModal">
@@ -442,6 +477,7 @@
     };
     var SHAPES = { rounded:{name:'Redondeado',radius:'14px'}, pill:{name:'Píldora',radius:'100px'}, sharp:{name:'Recto',radius:'4px'} };
     var FILLS  = { solid:{name:'Relleno'}, outline:{name:'Contorno'} };
+    var ANIMS  = { none:'Ninguna', float:'Levitar', pulse:'Pulso', grow:'Crecer' };
     var FONTS = {
       system:    { name:'Sistema',          stack:'-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif', g:'' },
       poppins:   { name:'Poppins',          stack:'"Poppins",sans-serif',     g:'Poppins:wght@400;600;800' },
@@ -477,6 +513,10 @@
         preset: THEMES[t.preset] ? t.preset : 'lime',
         shape: SHAPES[t.shape] ? t.shape : 'rounded',
         fill: FILLS[t.fill] ? t.fill : 'solid',
+        btnAnim: ANIMS[t.btnAnim] ? t.btnAnim : 'none',
+        iconStyle: t.iconStyle==='original' ? 'original' : 'green',
+        avatarShape: t.avatarShape==='rounded' ? 'rounded' : 'circle',
+        avatarRing: t.avatarRing || '',
         bg: bgNorm(t.bg),
         text: {
           font: FONTS[x.font] ? x.font : 'system',
@@ -504,7 +544,7 @@
 
     var state = { uid:null, email:null, username:null, originalUsername:null,
       perfil:{titulo:'',subtitulo:'',avatar:''}, bloques:[],
-      theme:{preset:'lime',shape:'rounded',fill:'solid',bg:{mode:'preset',color:'#92c83a',c1:'#92c83a',c2:'#2c5a17',angle:'165',image:''},text:{font:'system',titleSize:'m',subSize:'m',titleColor:'',subColor:'',btnColor:''}},
+      theme:{preset:'lime',shape:'rounded',fill:'solid',btnAnim:'none',iconStyle:'green',avatarShape:'circle',avatarRing:'',bg:{mode:'preset',color:'#92c83a',c1:'#92c83a',c2:'#2c5a17',angle:'165',image:''},text:{font:'system',titleSize:'m',subSize:'m',titleColor:'',subColor:'',btnColor:''}},
       views:0, clicks:{} };
 
     var $ = function(id){ return document.getElementById(id); };
@@ -545,7 +585,7 @@
       var b = (raw && typeof raw === 'object') ? raw : { preset:(typeof raw === 'string' && THEMES[raw]) ? raw : 'lime' };
       var x = b.text || {};
       return {
-        preset: b.preset||'lime', shape: b.shape||'rounded', fill: b.fill||'solid', bg: bgNorm(b.bg),
+        preset: b.preset||'lime', shape: b.shape||'rounded', fill: b.fill||'solid', btnAnim: b.btnAnim||'none', iconStyle: b.iconStyle==='original'?'original':'green', avatarShape: b.avatarShape==='rounded'?'rounded':'circle', avatarRing: b.avatarRing||'', bg: bgNorm(b.bg),
         text: { font:x.font||'system', titleSize:x.titleSize||'m', subSize:x.subSize||'m', titleColor:x.titleColor||'', subColor:x.subColor||'', btnColor:x.btnColor||'' }
       };
     }
@@ -619,8 +659,20 @@
       facebook: { name:'Facebook',     ic:'👍', label:'Síguenos en Facebook' },
       youtube:  { name:'YouTube',      ic:'▶️', label:'Mira mi canal' },
       email:    { name:'Correo',       ic:'✉️', label:'Escríbeme un correo' },
-      telefono: { name:'Teléfono',     ic:'📞', label:'Llámame' }
+      telefono: { name:'Teléfono',     ic:'📞', label:'Llámame' },
+      texto:    { name:'Texto',        ic:'📝', label:'' },
+      separador:{ name:'Separador',    ic:'➖', label:'' },
+      imagen:   { name:'Imagen / Banner', ic:'🖼️', label:'' }
     };
+    var LINKTIPOS = { enlace:1, whatsapp:1, instagram:1, tiktok:1, facebook:1, youtube:1, email:1, telefono:1 };
+    function isLink(tp){ return !!LINKTIPOS[tp]; }
+    function renderable(b){
+      if (b.activo===false) return false;
+      if (b.tipo==='separador') return true;
+      if (b.tipo==='texto') return (b.texto||'').trim();
+      if (b.tipo==='imagen') return (b.img||'').trim();
+      return (b.label||'').trim() || (b.url||'').trim();
+    }
     function onlyDigits(s){ return String(s||'').replace(/\D/g,''); }
     function cleanUser(s){ return String(s||'').trim().replace(/^@+/,'').replace(/^https?:\/\/[^/]+\//i,'').replace(/\/+$/,''); }
     function computeUrl(b){
@@ -635,9 +687,13 @@
       }
     }
     function av(s){ return esc(s).replace(/"/g,'&quot;'); }
+    var IMGPH = 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2240%22 height=%2240%22%3E%3Crect width=%2240%22 height=%2240%22 rx=%226%22 fill=%22%23e4e8da%22/%3E%3C/svg%3E';
     function fieldsHtml(b){
-      var lbl = '<input data-f="label" placeholder="Texto del botón" value="'+av(b.label)+'">';
       var t = b.tipo;
+      if (t==='separador') return '<div class="lk-note">Línea divisoria — separa secciones de tu página.</div>';
+      if (t==='texto') return '<textarea data-f="texto" rows="2" placeholder="Escribe un título o un texto">'+escHtml(b.texto||'')+'</textarea>';
+      if (t==='imagen') return '<div class="lk-imgrow"><img class="lk-imgprev" src="'+(b.img?av(b.img):IMGPH)+'" alt=""><button type="button" class="ava-btn lk-imgbtn">Subir imagen</button></div><input data-f="url" placeholder="Link al tocar (opcional) https://…" value="'+av(b.url)+'">';
+      var lbl = '<input data-f="label" placeholder="Texto del botón" value="'+av(b.label)+'">';
       if (t==='whatsapp') return lbl +
         '<div class="lk-row"><span class="lk-at">+</span><input class="lk-pfx" data-f="prefijo" inputmode="numeric" placeholder="56" value="'+av(b.prefijo||'56')+'"><input data-f="telefono" inputmode="numeric" placeholder="9 1234 5678" value="'+av(b.telefono)+'"></div>' +
         '<input data-f="mensaje" placeholder="Mensaje que recibirás (ej. Hola! Quiero info)" value="'+av(b.mensaje)+'">';
@@ -659,11 +715,12 @@
         row.innerHTML =
           '<span class="grip">⠿</span>' +
           '<div class="fields">' +
-            '<button type="button" class="lk-type">'+def.ic+' '+esc(def.name)+' ▾</button>' +
+            '<button type="button" class="lk-type"><img src="/ic-'+blk.tipo+'.png" alt=""> '+esc(def.name)+' ▾</button>' +
             fieldsHtml(blk) +
           '</div>' +
           '<div class="tools">' +
             '<label class="switch" title="Activo/oculto"><input type="checkbox" data-f="activo" '+(blk.activo===false?'':'checked')+'><span class="track"></span></label>' +
+            (isLink(blk.tipo) ? '<button type="button" class="lk-feat'+(blk.featured?' on':'')+'" title="Destacar este enlace">★</button>' : '') +
             '<button class="del" title="Eliminar">✕</button>' +
           '</div>';
         Array.prototype.forEach.call(row.querySelectorAll('[data-f]'), function(inp){
@@ -672,6 +729,8 @@
           inp.addEventListener('input', function(e){ state.bloques[i][f]=e.target.value; state.bloques[i].url=computeUrl(state.bloques[i]); renderPreview(); });
         });
         row.querySelector('.lk-type').addEventListener('click', function(e){ e.stopPropagation(); openTipoPicker(i); });
+        var _fb=row.querySelector('.lk-feat'); if(_fb) _fb.addEventListener('click', function(){ state.bloques[i].featured = !state.bloques[i].featured; renderLinks(); });
+        var _ib=row.querySelector('.lk-imgbtn'); if(_ib) _ib.addEventListener('click', function(){ _imgBlock=i; $('blkImgFile').click(); });
         row.querySelector('.del').addEventListener('click', function(){ state.bloques.splice(i,1); renderLinks(); });
         row.addEventListener('dragstart', function(){ row.classList.add('drag'); window._dragI = i; });
         row.addEventListener('dragend', function(){ row.classList.remove('drag'); });
@@ -683,13 +742,13 @@
     }
 
     // ── Selector de tipo (modal) ──
-    var _tipoForBlock = -1;
+    var _tipoForBlock = -1, _imgBlock = -1;
     function openTipoPicker(i){
       _tipoForBlock = i;
       var menu = $('tipoMenu'); menu.innerHTML = '';
       Object.keys(TIPOS).forEach(function(k){
         var o = document.createElement('button'); o.type='button'; o.className='tipo-opt';
-        o.innerHTML = '<span class="ti">'+TIPOS[k].ic+'</span>'+esc(TIPOS[k].name);
+        o.innerHTML = '<span class="ti"><img src="/ic-'+k+'.png" alt=""></span>'+esc(TIPOS[k].name);
         o.addEventListener('click', function(){ pickTipo(k); });
         menu.appendChild(o);
       });
@@ -714,6 +773,23 @@
     $('addLink').addEventListener('click', function(){ openTipoPicker(-1); });
     $('tipoClose').addEventListener('click', function(){ $('tipoModal').classList.remove('open'); });
     $('tipoModal').addEventListener('click', function(e){ if (e.target === $('tipoModal')) $('tipoModal').classList.remove('open'); });
+    $('blkImgFile').addEventListener('change', function(e){
+      var file=e.target.files&&e.target.files[0]; if(!file||_imgBlock<0)return;
+      if(!/^image\//.test(file.type)){ toast('Elige una imagen'); e.target.value=''; return; }
+      var rd=new FileReader();
+      rd.onload=function(ev){
+        var img=new Image();
+        img.onload=function(){
+          var sc=Math.min(1, 1000/img.width);
+          var cv=document.createElement('canvas'); cv.width=Math.round(img.width*sc); cv.height=Math.round(img.height*sc);
+          cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);
+          state.bloques[_imgBlock].img=cv.toDataURL('image/jpeg',0.78);
+          renderLinks(); renderPreview(); toast('Imagen lista ✓');
+        };
+        img.src=ev.target.result;
+      };
+      rd.readAsDataURL(file); e.target.value='';
+    });
 
     // ── Apariencia (temas + forma + estilo) ──
     function renderAppearance(){
@@ -746,6 +822,22 @@
         o.addEventListener('click', function(){ state.theme.fill = key; renderAppearance(); renderPreview(); });
         fr.appendChild(o);
       });
+      var ar = $('animRow'); if (ar){ ar.innerHTML='';
+        Object.keys(ANIMS).forEach(function(key){
+          var o=document.createElement('button'); o.type='button';
+          o.className='opt'+(t.btnAnim===key?' active':'');
+          o.textContent=ANIMS[key];
+          o.addEventListener('click', function(){ state.theme.btnAnim=key; renderAppearance(); renderPreview(); });
+          ar.appendChild(o);
+        });
+      }
+      var isr = $('iconStyleRow'); if (isr){ isr.innerHTML='';
+        [['green','Verde'],['original','Originales']].forEach(function(s){
+          var o=document.createElement('button'); o.type='button'; o.className='opt'+(t.iconStyle===s[0]?' active':''); o.textContent=s[1];
+          o.addEventListener('click', function(){ state.theme.iconStyle=s[0]; renderAppearance(); renderPreview(); });
+          isr.appendChild(o);
+        });
+      }
 
       // ── Texto: fuente, tamaños y colores ──
       var fpicker=$('fontPicker'), ftrigger=$('fontTrigger'), flabel=$('fontTriggerLabel'), fmenu=$('fontMenu');
@@ -814,6 +906,19 @@
       if (!$('bgC2')._w){ $('bgC2').addEventListener('input', function(){ state.theme.bg.c2=this.value; renderPreview(); }); $('bgC2')._w=1; }
       if (!$('bgAngle')._w){ $('bgAngle').addEventListener('input', function(){ state.theme.bg.angle=this.value; renderPreview(); }); $('bgAngle')._w=1; }
       $('bgColor').value = toHex(bg.color); $('bgC1').value = toHex(bg.c1); $('bgC2').value = toHex(bg.c2); $('bgAngle').value = bg.angle;
+
+      // ── Avatar: forma + anillo ──
+      var asr = $('avShapeRow'); if (asr){ asr.innerHTML='';
+        [['circle','Círculo'],['rounded','Cuadrado']].forEach(function(s){
+          var o=document.createElement('button'); o.type='button'; o.className='opt'+(t.avatarShape===s[0]?' active':''); o.textContent=s[1];
+          o.addEventListener('click', function(){ state.theme.avatarShape=s[0]; renderAppearance(); renderPreview(); });
+          asr.appendChild(o);
+        });
+      }
+      var avr=$('avRing'), avn=$('avRingNone');
+      if (avr && !avr._w){ avr.addEventListener('input', function(){ state.theme.avatarRing=avr.value; if(avn) avn.classList.remove('on'); renderPreview(); }); avr._w=1; }
+      if (avn && !avn._w){ avn.addEventListener('click', function(){ state.theme.avatarRing=''; renderAppearance(); renderPreview(); }); avn._w=1; }
+      if (avr){ avr.value = toHex(t.avatarRing || '#ffffff'); if(avn) avn.classList.toggle('on', !t.avatarRing); }
     }
 
     // ── Analítica ──
@@ -862,16 +967,27 @@
       screen.style.background = bgCss(t);
       screen.style.fontFamily = fontStack;
       var html = '<div class="pv-wrap">';
-      html += '<div class="pv-avatar">' + (avatar
+      var avR = t.avatarShape==='rounded' ? '22%' : '50%';
+      var avRing = t.avatarRing || 'rgba(255,255,255,.5)';
+      html += '<div class="pv-avatar" style="border-radius:'+avR+';border-color:'+avRing+';">' + (avatar
         ? '<img src="' + escHtml(avatar) + '" alt="" onerror="this.remove()">'
         : '<span>' + escHtml(ini) + '</span>') + '</div>';
       html += '<div class="pv-title" style="color:'+titleColor+';font-size:'+TSIZE[tx.titleSize]+';">' + escHtml(shown) + ($('verifiedChk').checked?' <img class="pv-verified" src="/ic-verified.png" alt="✓">':'') + '</div>';
       if (subt) html += '<div class="pv-sub" style="color:'+subColor+';font-size:'+SSIZE[tx.subSize]+';">' + escHtml(subt) + '</div>';
 
-      var vis = state.bloques.filter(function(b){ return b.activo!==false && ((b.label||'').trim() || (b.url||'').trim()); });
+      var vis = state.bloques.filter(renderable);
       if (vis.length){
         html += '<div class="pv-blocks">';
-        vis.forEach(function(b){ var ic=(b.tipo&&{whatsapp:1,instagram:1,tiktok:1,facebook:1,youtube:1,email:1,telefono:1,enlace:1}[b.tipo])?'<img class="pv-btn-ic" src="/ic-'+b.tipo+'.png" alt="">':''; html += '<div class="pv-btn" style="'+css.btn+(tx.btnColor?('color:'+tx.btnColor+';'):'')+'">'+ic+ escHtml((b.label||b.url||'').trim()) + '</div>'; });
+        var animCls = (t.btnAnim && t.btnAnim!=='none') ? (' anim-'+t.btnAnim) : '';
+        var icSuf = t.iconStyle==='original' ? '-orig' : '';
+        vis.forEach(function(b){
+          if (b.tipo==='separador'){ html += '<hr class="pv-sep">'; return; }
+          if (b.tipo==='texto'){ html += '<div class="pv-text" style="color:'+titleColor+';">'+escHtml((b.texto||'').trim())+'</div>'; return; }
+          if (b.tipo==='imagen'){ html += '<img class="pv-img" src="'+escHtml(b.img)+'" alt="">'; return; }
+          var ic=(b.tipo&&LINKTIPOS[b.tipo])?'<img class="pv-btn-ic" src="/ic-'+b.tipo+icSuf+'.png" alt="">':'';
+          var cls=b.featured?' feat':animCls;
+          html += '<div class="pv-btn'+cls+'" style="'+css.btn+(tx.btnColor?('color:'+tx.btnColor+';'):'')+'">'+ic+ escHtml((b.label||b.url||'').trim()) + '</div>';
+        });
         html += '</div>';
       } else {
         html += '<div class="pv-empty" style="color:'+p.sub+';"><img src="/bioo-empty.png" alt="" style="width:90px;height:auto;display:block;margin:0 auto 12px;">Aún no hay enlaces aquí.</div>';
@@ -965,14 +1081,17 @@
       // Asegura id estable en cada bloque (para el conteo de clics) y filtra vacíos.
       var bloques = state.bloques
         .map(function(b){ if(!b.id) b.id='l'+Date.now()+Math.floor(Math.random()*1000); b.url = computeUrl(b); return b; })
-        .filter(function(b){ return (b.label||'').trim() || (b.url||'').trim(); })
+        .filter(function(b){ return b.tipo==='separador' || (b.texto||'').trim() || (b.img||'').trim() || (b.label||'').trim() || (b.url||'').trim(); })
         .map(function(b){
           var o = { id:b.id, tipo:(b.tipo&&TIPOS[b.tipo])?b.tipo:'enlace', label:(b.label||'').trim(), url:(b.url||'').trim(), activo: b.activo!==false };
+          if (b.featured) o.featured = true;
           if (b.prefijo)  o.prefijo  = onlyDigits(b.prefijo) || '56';
           if (b.telefono) o.telefono = (b.telefono||'').trim();
           if (b.mensaje)  o.mensaje  = (b.mensaje||'').trim();
           if (b.usuario)  o.usuario  = (b.usuario||'').trim();
           if (b.email)    o.email    = (b.email||'').trim();
+          if (b.texto)    o.texto    = (b.texto||'').trim();
+          if (b.img)      o.img      = b.img;
           return o;
         });
       var theme = curTheme();
