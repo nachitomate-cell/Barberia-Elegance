@@ -29,6 +29,7 @@
     border-radius:14px;padding:17px 18px;font-size:15.5px;font-weight:700;color:var(--ink);text-decoration:none;transition:.13s;position:relative;box-shadow:0 2px 10px rgba(21,36,11,.10);}
   .btn:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(21,36,11,.16);}
   .btn-ic{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:27px;height:27px;object-fit:contain;}
+  .btn-thumb{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:34px;height:34px;border-radius:8px;object-fit:cover;}
   @keyframes bFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
   @keyframes bPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
   @keyframes bGlow{0%,100%{box-shadow:0 2px 10px rgba(21,36,11,.15)}50%{box-shadow:0 6px 24px rgba(146,200,58,.6)}}
@@ -47,6 +48,7 @@
   .u-soc{display:flex;justify-content:center;flex-wrap:wrap;gap:16px;width:100%;}
   .u-soc-i img{width:34px;height:34px;object-fit:contain;display:block;transition:transform .15s;}
   .u-soc-i:hover img{transform:translateY(-2px) scale(1.08);}
+  @keyframes bgshift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
   .btn:active{transform:translateY(0);}
   .empty{margin-top:22vh;text-align:center;color:var(--soft);}
   .empty h2{font-size:18px;color:var(--ink);margin-bottom:8px;}
@@ -204,11 +206,20 @@
       l.href='https://fonts.googleapis.com/css2?family='+g+'&display=swap';
       document.head.appendChild(l);
     }
-    function bgNorm(b){ b=b||{}; return { mode:(['preset','color','gradient','image'].indexOf(b.mode)>=0?b.mode:'preset'), color:b.color||'#92c83a', c1:b.c1||'#92c83a', c2:b.c2||'#2c5a17', angle:b.angle||'165', image:b.image||'' }; }
+    function bgNorm(b){ b=b||{}; return { mode:(['preset','color','gradient','animated','pattern','image'].indexOf(b.mode)>=0?b.mode:'preset'), color:b.color||'#92c83a', c1:b.c1||'#92c83a', c2:b.c2||'#2c5a17', angle:b.angle||'165', pattern:(['dots','grid','diag','cross'].indexOf(b.pattern)>=0?b.pattern:'dots'), image:b.image||'' }; }
+    function patternCss(name, base){
+      base = base || '#92c83a';
+      if(name==='grid')  return 'linear-gradient(rgba(255,255,255,.16) 1px,transparent 1px) 0 0/26px 26px, linear-gradient(90deg,rgba(255,255,255,.16) 1px,transparent 1px) 0 0/26px 26px, '+base;
+      if(name==='diag')  return 'repeating-linear-gradient(45deg,rgba(255,255,255,.10) 0 10px,transparent 10px 20px), '+base;
+      if(name==='cross') return 'linear-gradient(rgba(255,255,255,.14) 2px,transparent 2px) 0 0/28px 28px, linear-gradient(90deg,rgba(255,255,255,.14) 2px,transparent 2px) 0 0/28px 28px, '+base;
+      return 'radial-gradient(rgba(255,255,255,.28) 1.6px,transparent 1.7px) 0 0/22px 22px, '+base;
+    }
     function bgCss(t){
       var b=t.bg||{};
       if(b.mode==='color')   return b.color;
       if(b.mode==='gradient')return 'linear-gradient('+b.angle+'deg, '+b.c1+', '+b.c2+')';
+      if(b.mode==='animated')return 'linear-gradient('+b.angle+'deg, '+b.c1+', '+b.c2+', '+b.c1+')';
+      if(b.mode==='pattern') return patternCss(b.pattern, b.color);
       if(b.mode==='image'&&b.image) return 'url("'+b.image+'") center/cover no-repeat fixed';
       return THEMES[t.preset].bg;
     }
@@ -356,6 +367,8 @@
       var fontStack = FONTS[tx.font]; loadFont(tx.font);
       var titleColor = tx.titleColor || p.text, subColor = tx.subColor || p.sub;
       document.body.style.background = bgCss(t);
+      if (t.bg && t.bg.mode==='animated'){ document.body.style.backgroundSize='220% 220%'; document.body.style.animation='bgshift 14s ease infinite'; }
+      else { document.body.style.backgroundSize=''; document.body.style.animation=''; }
       document.body.style.fontFamily = fontStack;
       var mt = document.querySelector('meta[name="theme-color"]'); if (mt && p.bg.indexOf('gradient')<0) mt.setAttribute('content', p.bg);
 
@@ -382,6 +395,7 @@
           var url = resolveUrl(b.url); if (!url) return;
           var icSuf = t.iconStyle==='original' ? '-orig' : '';
           var icH = (b.tipo && {whatsapp:1,instagram:1,tiktok:1,facebook:1,youtube:1,email:1,telefono:1,enlace:1}[b.tipo]) ? '<img class="btn-ic" src="/ic-'+b.tipo+icSuf+'.png" alt="">' : '';
+          if (b.tipo==='enlace' && b.thumb) icH='<img class="btn-thumb" src="'+esc(b.thumb)+'" alt="">';
           var cls = b.featured ? ' feat' : ((t.btnAnim && t.btnAnim!=='none') ? (' anim-'+t.btnAnim) : '');
           html += '<a class="btn fade'+cls+'" data-id="'+esc(b.id||'')+'" style="animation-delay:'+(0.1 + i*0.04)+'s;'+css.btn+(tx.btnColor?('color:'+tx.btnColor+';'):'')+'" href="'+esc(url)+'" target="_blank" rel="noopener">'+icH+esc(b.label||url)+'</a>';
         });

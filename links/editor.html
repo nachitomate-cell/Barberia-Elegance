@@ -226,6 +226,8 @@
   .soc-item input{flex:1;}
   .soc-del{flex:none;width:32px;height:32px;border:0;border-radius:8px;background:var(--field);color:#a3220f;cursor:pointer;font-size:13px;}
   .soc-add{margin-top:8px;}
+  @keyframes bgshift{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+  .pv-btn-thumb{position:absolute;left:9px;top:50%;transform:translateY(-50%);width:30px;height:30px;border-radius:7px;object-fit:cover;}
   .lk-note{font-size:12px;color:var(--soft);background:var(--field);border-radius:8px;padding:8px 10px;}
   .lk-imgrow{display:flex;align-items:center;gap:10px;}
   .lk-imgprev{width:46px;height:46px;border-radius:8px;object-fit:cover;border:1px solid var(--line);background:#fff;flex:none;}
@@ -362,6 +364,11 @@
               <div class="ava-actions"><button type="button" class="ava-btn" id="bgImgBtn">📷 Subir imagen</button><button type="button" class="ava-btn ghosty" id="bgImgClear">Quitar</button></div>
               <div class="help">Se usa como fondo (cover). Recomendado: imagen vertical.</div>
             </div>
+            <div id="bgPatWrap" style="display:none;margin-top:10px;">
+              <label>Patrón</label>
+              <div class="opt-row" id="bgPatRow"></div>
+              <div class="help">El patrón se dibuja sobre el “Color de fondo” de arriba.</div>
+            </div>
           </div>
           <div class="card">
             <h2>Avatar</h2>
@@ -452,6 +459,7 @@
 
   <div class="toast" id="toast"></div>
   <input id="blkImgFile" type="file" accept="image/*" hidden />
+  <input id="blkThumbFile" type="file" accept="image/*" hidden />
 
   <!-- Modal: elegir tipo de enlace -->
   <div class="tipo-modal" id="tipoModal">
@@ -560,11 +568,20 @@
       btn += 'border-radius:'+radius+';';
       return { p:p, btn:btn };
     }
-    function bgNorm(b){ b=b||{}; return { mode:(['preset','color','gradient','image'].indexOf(b.mode)>=0?b.mode:'preset'), color:b.color||'#92c83a', c1:b.c1||'#92c83a', c2:b.c2||'#2c5a17', angle:b.angle||'165', image:b.image||'' }; }
+    function bgNorm(b){ b=b||{}; return { mode:(['preset','color','gradient','animated','pattern','image'].indexOf(b.mode)>=0?b.mode:'preset'), color:b.color||'#92c83a', c1:b.c1||'#92c83a', c2:b.c2||'#2c5a17', angle:b.angle||'165', pattern:(['dots','grid','diag','cross'].indexOf(b.pattern)>=0?b.pattern:'dots'), image:b.image||'' }; }
+    function patternCss(name, base){
+      base = base || '#92c83a';
+      if(name==='grid')  return 'linear-gradient(rgba(255,255,255,.16) 1px,transparent 1px) 0 0/26px 26px, linear-gradient(90deg,rgba(255,255,255,.16) 1px,transparent 1px) 0 0/26px 26px, '+base;
+      if(name==='diag')  return 'repeating-linear-gradient(45deg,rgba(255,255,255,.10) 0 10px,transparent 10px 20px), '+base;
+      if(name==='cross') return 'radial-gradient(rgba(255,255,255,.0) 0,transparent 0), linear-gradient(rgba(255,255,255,.14) 2px,transparent 2px) 0 0/28px 28px, linear-gradient(90deg,rgba(255,255,255,.14) 2px,transparent 2px) 0 0/28px 28px, '+base;
+      return 'radial-gradient(rgba(255,255,255,.28) 1.6px,transparent 1.7px) 0 0/22px 22px, '+base; // dots
+    }
     function bgCss(t){
       var b = t.bg || {};
       if (b.mode==='color')   return b.color;
       if (b.mode==='gradient')return 'linear-gradient('+b.angle+'deg, '+b.c1+', '+b.c2+')';
+      if (b.mode==='animated')return 'linear-gradient('+b.angle+'deg, '+b.c1+', '+b.c2+', '+b.c1+')';
+      if (b.mode==='pattern') return patternCss(b.pattern, b.color);
       if (b.mode==='image' && b.image) return 'url("'+b.image+'") center/cover no-repeat';
       return THEMES[t.preset].bg;
     }
@@ -770,7 +787,9 @@
       if (t==='instagram'||t==='tiktok'||t==='facebook') return lbl +
         '<div class="lk-row"><span class="lk-at">@</span><input data-f="usuario" placeholder="tuusuario" value="'+av(b.usuario)+'"></div>';
       if (t==='email') return lbl + '<input data-f="email" type="email" placeholder="tu@correo.com" value="'+av(b.email)+'">';
-      return lbl + '<input data-f="url" placeholder="https://…" value="'+av(b.url)+'">';   // enlace, youtube
+      if (t==='enlace') return lbl + '<input data-f="url" placeholder="https://…" value="'+av(b.url)+'">' +
+        '<div class="lk-imgrow"><img class="lk-imgprev" src="'+(b.thumb?av(b.thumb):IMGPH)+'" alt=""><button type="button" class="ava-btn lk-thumbbtn">'+(b.thumb?'Cambiar miniatura':'Miniatura (opcional)')+'</button>'+(b.thumb?'<button type="button" class="ava-btn ghosty lk-thumbclear">Quitar</button>':'')+'</div>';
+      return lbl + '<input data-f="url" placeholder="https://…" value="'+av(b.url)+'">';   // youtube y otros
     }
 
     function renderLinks(){
@@ -799,6 +818,8 @@
         row.querySelector('.lk-type').addEventListener('click', function(e){ e.stopPropagation(); openTipoPicker(i); });
         var _fb=row.querySelector('.lk-feat'); if(_fb) _fb.addEventListener('click', function(){ state.bloques[i].featured = !state.bloques[i].featured; renderLinks(); });
         var _ib=row.querySelector('.lk-imgbtn'); if(_ib) _ib.addEventListener('click', function(){ _imgBlock=i; $('blkImgFile').click(); });
+        var _tb=row.querySelector('.lk-thumbbtn'); if(_tb) _tb.addEventListener('click', function(){ _thumbBlock=i; $('blkThumbFile').click(); });
+        var _tc=row.querySelector('.lk-thumbclear'); if(_tc) _tc.addEventListener('click', function(){ state.bloques[i].thumb=''; renderLinks(); renderPreview(); });
         Array.prototype.forEach.call(row.querySelectorAll('[data-sf]'), function(el){
           var si=+el.getAttribute('data-si'), f=el.getAttribute('data-sf'), ev=el.tagName==='SELECT'?'change':'input';
           el.addEventListener(ev, function(){ var arr=state.bloques[i].socials; if(arr&&arr[si]){ arr[si][f]=el.value; if(f==='red') renderLinks(); renderPreview(); } });
@@ -816,7 +837,7 @@
     }
 
     // ── Selector de tipo (modal) ──
-    var _tipoForBlock = -1, _imgBlock = -1;
+    var _tipoForBlock = -1, _imgBlock = -1, _thumbBlock = -1;
     function openTipoPicker(i){
       _tipoForBlock = i;
       var menu = $('tipoMenu'); menu.innerHTML = '';
@@ -847,6 +868,18 @@
     $('addLink').addEventListener('click', function(){ openTipoPicker(-1); });
     $('tipoClose').addEventListener('click', function(){ $('tipoModal').classList.remove('open'); });
     $('tipoModal').addEventListener('click', function(e){ if (e.target === $('tipoModal')) $('tipoModal').classList.remove('open'); });
+    $('blkThumbFile').addEventListener('change', function(e){
+      var file=e.target.files&&e.target.files[0]; if(!file||_thumbBlock<0)return;
+      if(!/^image\//.test(file.type)){ toast('Elige una imagen'); e.target.value=''; return; }
+      var rd=new FileReader();
+      rd.onload=function(ev){ var img=new Image(); img.onload=function(){
+        var s=Math.min(img.width,img.height), sx=(img.width-s)/2, sy=(img.height-s)/2;
+        var cv=document.createElement('canvas'); cv.width=cv.height=160;
+        cv.getContext('2d').drawImage(img,sx,sy,s,s,0,0,160,160);
+        if(state.bloques[_thumbBlock]){ state.bloques[_thumbBlock].thumb=cv.toDataURL('image/jpeg',0.8); renderLinks(); renderPreview(); toast('Miniatura lista ✓'); }
+      }; img.src=ev.target.result; };
+      rd.readAsDataURL(file); e.target.value='';
+    });
     $('blkImgFile').addEventListener('change', function(e){
       var file=e.target.files&&e.target.files[0]; if(!file||_imgBlock<0)return;
       if(!/^image\//.test(file.type)){ toast('Elige una imagen'); e.target.value=''; return; }
@@ -966,15 +999,23 @@
       // ── Fondo personalizado ──
       var bg = t.bg, bgr = $('bgModeRow');
       if (bgr){ bgr.innerHTML='';
-        [['preset','Tema'],['color','Color'],['gradient','Degradado'],['image','Imagen']].forEach(function(m){
+        [['preset','Tema'],['color','Color'],['gradient','Degradado'],['animated','Animado'],['pattern','Patrón'],['image','Imagen']].forEach(function(m){
           var o=document.createElement('button'); o.type='button'; o.className='opt'+(bg.mode===m[0]?' active':''); o.textContent=m[1];
           o.addEventListener('click', function(){ state.theme.bg.mode=m[0]; renderAppearance(); renderPreview(); });
           bgr.appendChild(o);
         });
       }
-      $('bgColorWrap').style.display = bg.mode==='color'?'block':'none';
-      $('bgGradWrap').style.display  = bg.mode==='gradient'?'block':'none';
+      $('bgColorWrap').style.display = (bg.mode==='color'||bg.mode==='pattern')?'block':'none';
+      $('bgGradWrap').style.display  = (bg.mode==='gradient'||bg.mode==='animated')?'block':'none';
       $('bgImgWrap').style.display   = bg.mode==='image'?'block':'none';
+      $('bgPatWrap').style.display   = bg.mode==='pattern'?'block':'none';
+      var bpr=$('bgPatRow'); if(bpr){ bpr.innerHTML='';
+        [['dots','Puntos'],['grid','Cuadrícula'],['diag','Diagonales'],['cross','Cruces']].forEach(function(pp){
+          var o=document.createElement('button'); o.type='button'; o.className='opt'+((bg.pattern||'dots')===pp[0]?' active':''); o.textContent=pp[1];
+          o.addEventListener('click', function(){ state.theme.bg.pattern=pp[0]; renderAppearance(); renderPreview(); });
+          bpr.appendChild(o);
+        });
+      }
       if (!$('bgColor')._w){ $('bgColor').addEventListener('input', function(){ state.theme.bg.color=this.value; renderPreview(); }); $('bgColor')._w=1; }
       if (!$('bgC1')._w){ $('bgC1').addEventListener('input', function(){ state.theme.bg.c1=this.value; renderPreview(); }); $('bgC1')._w=1; }
       if (!$('bgC2')._w){ $('bgC2').addEventListener('input', function(){ state.theme.bg.c2=this.value; renderPreview(); }); $('bgC2')._w=1; }
@@ -1039,6 +1080,8 @@
       var ini    = (shown.replace(/^@/, '').charAt(0) || 'b').toUpperCase();
 
       screen.style.background = bgCss(t);
+      if (t.bg && t.bg.mode==='animated'){ screen.style.backgroundSize='220% 220%'; screen.style.animation='bgshift 14s ease infinite'; }
+      else { screen.style.backgroundSize=''; screen.style.animation=''; }
       screen.style.fontFamily = fontStack;
       var cover = ($('cover') && $('cover').value || '').trim();
       var html = '<div class="pv-wrap'+(cover?' has-cover':'')+'">';
@@ -1063,6 +1106,7 @@
           if (b.tipo==='embed'){ var eh=embedHtml(b.url); html += eh || '<div class="pv-text" style="color:'+titleColor+';opacity:.6;">▶ Pega un link de YouTube o Spotify</div>'; return; }
           if (b.tipo==='social'){ var sr=(b.socials||[]).map(function(s){ var su=socUrl(s); return su?'<span class="pv-soc-i"><img src="/ic-'+(SOCRED[s.red]?s.red:'enlace')+icSuf+'.png" alt=""></span>':''; }).join(''); if(sr) html += '<div class="pv-soc">'+sr+'</div>'; return; }
           var ic=(b.tipo&&LINKTIPOS[b.tipo])?'<img class="pv-btn-ic" src="/ic-'+b.tipo+icSuf+'.png" alt="">':'';
+          if (b.tipo==='enlace' && b.thumb) ic='<img class="pv-btn-thumb" src="'+escHtml(b.thumb)+'" alt="">';
           var cls=b.featured?' feat':animCls;
           html += '<div class="pv-btn'+cls+'" style="'+css.btn+(tx.btnColor?('color:'+tx.btnColor+';'):'')+'">'+ic+ escHtml((b.label||b.url||'').trim()) + '</div>';
         });
@@ -1184,6 +1228,7 @@
           if (b.email)    o.email    = (b.email||'').trim();
           if (b.texto)    o.texto    = (b.texto||'').trim();
           if (b.img)      o.img      = b.img;
+          if (b.thumb && (b.tipo&&TIPOS[b.tipo]?b.tipo:'enlace')==='enlace') o.thumb = b.thumb;
           if (b.tipo==='social') o.socials = (b.socials||[]).filter(function(s){ return (s.valor||'').trim(); }).map(function(s){ return { red:(SOCRED[s.red]?s.red:'enlace'), valor:(s.valor||'').trim() }; });
           return o;
         });
