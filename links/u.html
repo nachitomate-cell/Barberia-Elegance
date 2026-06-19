@@ -33,11 +33,14 @@
   @keyframes bFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
   @keyframes bPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
   @keyframes bGlow{0%,100%{box-shadow:0 2px 10px rgba(21,36,11,.15)}50%{box-shadow:0 6px 24px rgba(146,200,58,.6)}}
-  .btn.anim-float{animation:bFloat 3s ease-in-out infinite;}
-  .btn.anim-pulse{animation:bPulse 2.4s ease-in-out infinite;}
+  /* Cada regla incluye la entrada `fade` primero para no anular el opacity:0→1
+     de .fade (el shorthand `animation` no se acumula); la animación idle va
+     después y gana en `transform`. Sin esto, los botones animados quedan invisibles. */
+  .btn.anim-float{animation:fade .45s ease forwards, bFloat 3s ease-in-out infinite;}
+  .btn.anim-pulse{animation:fade .45s ease forwards, bPulse 2.4s ease-in-out infinite;}
   .btn.anim-grow{transition:transform .15s ease;}
   .btn.anim-grow:hover{transform:scale(1.04);}
-  .btn.feat{animation:bGlow 2s ease-in-out infinite;font-weight:800;}
+  .btn.feat{animation:fade .45s ease forwards, bGlow 2s ease-in-out infinite;font-weight:800;}
   .u-text{text-align:center;font-size:15px;font-weight:600;line-height:1.45;width:100%;word-break:break-word;}
   .u-sep{width:55%;border:0;border-top:2px solid rgba(128,128,128,.35);margin:6px auto;}
   .u-imgwrap{display:block;width:100%;}
