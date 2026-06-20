@@ -1,0 +1,149 @@
+import { useEffect, useState, type ComponentType, type ReactNode } from 'react';
+import { onAuthStateChanged, type User } from 'firebase/auth';
+import { motion } from 'framer-motion';
+import { Link2, User as UserIcon, Palette, Share2, Eye, Save, type LucideIcon } from 'lucide-react';
+import { auth } from './lib/firebase';
+import { saveBio } from './lib/bio';
+import { useEditor } from './store';
+import Links from './sections/Links';
+import Profile from './sections/Profile';
+import Appearance from './sections/Appearance';
+import Share from './sections/Share';
+import BioPreview from './preview/BioPreview';
+import PreviewSheet from './preview/PreviewSheet';
+import type { SectionId } from './types';
+
+const SECTIONS: { id: SectionId; label: string; Icon: LucideIcon }[] = [
+  { id: 'links', label: 'Enlaces', Icon: Link2 },
+  { id: 'profile', label: 'Perfil', Icon: UserIcon },
+  { id: 'design', label: 'Apariencia', Icon: Palette },
+  { id: 'share', label: 'Compartir', Icon: Share2 },
+];
+
+const VIEWS: Record<SectionId, ComponentType> = {
+  links: Links,
+  profile: Profile,
+  design: Appearance,
+  share: Share,
+};
+
+type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
+
+export default function App(): JSX.Element {
+  const { state } = useEditor();
+  const [section, setSection] = useState<SectionId>('links');
+  const [previewOpen, setPreviewOpen] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [status, setStatus] = useState<SaveStatus>('idle');
+
+  useEffect(() => onAuthStateChanged(auth, setUser), []);
+
+  const handleSave = async (): Promise<void> => {
+    setStatus('saving');
+    try {
+      await saveBio(state);
+      setStatus('saved');
+      setTimeout(() => setStatus('idle'), 2000);
+    } catch (e) {
+      if (e instanceof Error && e.message === 'not-authenticated') {
+        alert('Tu borrador quedó guardado en este navegador. Inicia sesión en bioo.cl para publicarlo.');
+      }
+      setStatus('error');
+      setTimeout(() => setStatus('idle'), 2500);
+    }
+  };
+
+  const SectionView = VIEWS[section];
+  const sectionLabel = SECTIONS.find((s) => s.id === section)?.label ?? '';
+
+  return (
+    <div className="mx-auto flex h-[100dvh] w-full max-w-6xl bg-neutral-50">
+      {/* Sidebar (desktop) */}
+      <aside className="hidden w-56 shrink-0 flex-col border-r border-neutral-200 bg-white p-4 md:flex">
+        <div className="mb-6 flex items-center gap-2 px-2">
+          <img src="/bioo-iso.png" alt="" className="h-7 w-7" onError={(e) => ((e.currentTarget.style.display = 'none'))} />
+          <span className="text-lg font-extrabold tracking-tight">bioo</span>
+        </div>
+        <nav className="flex flex-col gap-1">
+          {SECTIONS.map(({ id, label, Icon }) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setSection(id)}
+              className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors ${
+                section === id ? 'bg-bioo text-bioo-ink' : 'text-neutral-500 hover:bg-neutral-100'
+              }`}
+            >
+              <Icon size={18} /> {label}
+            </button>
+          ))}
+        </nav>
+        <div className="mt-auto px-2 text-[11px] text-neutral-400">Hecho con ♥ en Chile 🇨🇱</div>
+      </aside>
+
+      {/* Editor central */}
+      <main className="flex min-w-0 flex-1 flex-col">
+        <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-neutral-200 bg-white/85 px-4 py-3 backdrop-blur">
+          <span className="mr-auto truncate text-sm font-bold text-bioo-dark">bioo.cl/{state.username}</span>
+          <span className="hidden text-xs text-neutral-400 sm:inline">{user ? user.email : 'borrador local'}</span>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={status === 'saving'}
+            className="flex items-center gap-1.5 rounded-xl bg-bioo px-4 py-2 text-sm font-bold text-bioo-ink transition-transform active:scale-95 disabled:opacity-60"
+          >
+            <Save size={15} /> {status === 'saving' ? 'Guardando…' : status === 'saved' ? 'Guardado ✓' : 'Guardar'}
+          </button>
+        </header>
+
+        <div className="flex-1 overflow-y-auto px-5 pb-32 pt-6 md:pb-10">
+          <h1 className="mb-5 text-2xl font-bold tracking-tight">{sectionLabel}</h1>
+          <SectionView />
+        </div>
+      </main>
+
+      {/* Visor (desktop ≥ lg) */}
+      <aside className="hidden w-[380px] shrink-0 items-center justify-center border-l border-neutral-200 bg-neutral-100 p-6 lg:flex">
+        <PhoneFrame>
+          <BioPreview state={state} />
+        </PhoneFrame>
+      </aside>
+
+      {/* Bottom nav (mobile) */}
+      <nav className="fixed inset-x-0 bottom-0 z-20 mx-auto flex max-w-6xl items-stretch justify-around border-t border-neutral-200 bg-white/90 px-2 pb-[env(safe-area-inset-bottom)] pt-2 backdrop-blur-xl md:hidden">
+        {SECTIONS.map(({ id, label, Icon }) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setSection(id)}
+            className={`flex flex-1 flex-col items-center gap-1 py-1.5 text-[11px] font-medium ${section === id ? 'text-bioo-dark' : 'text-neutral-400'}`}
+          >
+            <Icon size={20} /> {label}
+          </button>
+        ))}
+      </nav>
+
+      {/* FAB Vista Previa (mobile/tablet) */}
+      <motion.button
+        type="button"
+        whileTap={{ scale: 0.95 }}
+        onClick={() => setPreviewOpen(true)}
+        className="fixed bottom-24 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full bg-neutral-900 px-5 py-3 text-sm font-semibold text-white shadow-[0_12px_34px_-10px_rgba(0,0,0,0.55)] ring-1 ring-white/10 lg:hidden"
+      >
+        <Eye size={18} /> Vista Previa
+      </motion.button>
+
+      <PreviewSheet open={previewOpen} onClose={() => setPreviewOpen(false)}>
+        <BioPreview state={state} />
+      </PreviewSheet>
+    </div>
+  );
+}
+
+function PhoneFrame({ children }: { children: ReactNode }): JSX.Element {
+  return (
+    <div className="aspect-[332/698] h-[600px] max-h-full overflow-hidden rounded-[40px] border-[9px] border-[#1b2310] bg-[#1b2310] shadow-2xl">
+      <div className="no-scrollbar h-full w-full overflow-y-auto">{children}</div>
+    </div>
+  );
+}
