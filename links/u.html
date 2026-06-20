@@ -18,6 +18,9 @@
   html,body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--green);color:var(--ink);}
   body{min-height:100dvh;display:flex;flex-direction:column;align-items:center;padding:56px 20px 30px;}
   .wrap{position:relative;z-index:1;width:100%;max-width:560px;display:flex;flex-direction:column;align-items:center;}
+  /* Fondo foto: difuminado a pantalla completa (lados en PC) + foto nítida en un marco centrado */
+  .bg-photo-blur{position:fixed;inset:0;z-index:-2;background-size:cover;background-position:center;filter:blur(34px) brightness(.7);transform:scale(1.12);pointer-events:none;}
+  .bg-photo-frame{position:fixed;top:0;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:560px;z-index:-1;background-size:cover;background-position:center;pointer-events:none;box-shadow:0 0 90px rgba(0,0,0,.4);}
   .cover{width:100%;height:132px;border-radius:18px;background-size:cover;background-position:center;box-shadow:0 3px 14px rgba(21,36,11,.16);}
   .avatar.over{margin-top:-46px;position:relative;z-index:1;}
   .avatar{width:96px;height:96px;border-radius:50%;overflow:hidden;background:var(--white);border:3px solid rgba(255,255,255,.7);display:grid;place-items:center;box-shadow:0 4px 18px rgba(21,36,11,.15);}
@@ -116,6 +119,9 @@
 </style>
 </head>
 <body>
+  <!-- Fondo foto (modo imagen): foto en marco tipo teléfono + difuminado en los lados (PC) -->
+  <div class="bg-photo-blur" id="bgPhotoBlur" style="display:none;"></div>
+  <div class="bg-photo-frame" id="bgPhotoFrame" style="display:none;"></div>
   <div class="topbar" id="topbar" style="display:none;">
     <a class="chip-btn" href="https://bioo.cl" target="_blank" rel="noopener" title="bioo"><img src="/bioo-iso.png" alt="bioo" /></a>
     <button class="chip-btn" id="shareBtn" title="Compartir" aria-label="Compartir">
@@ -369,9 +375,21 @@
       var t = normalizeTheme(data.theme), css = themeCss(t), p = css.p, tx = t.text;
       var fontStack = FONTS[tx.font]; loadFont(tx.font);
       var titleColor = tx.titleColor || p.text, subColor = tx.subColor || p.sub;
-      document.body.style.background = bgCss(t);
-      if (t.bg && t.bg.mode==='animated'){ document.body.style.backgroundSize='220% 220%'; document.body.style.animation='bgshift 14s ease infinite'; }
-      else { document.body.style.backgroundSize=''; document.body.style.animation=''; }
+      var _bg = t.bg || {};
+      var _blur = document.getElementById('bgPhotoBlur'), _frame = document.getElementById('bgPhotoFrame');
+      if (_bg.mode==='image' && _bg.image){
+        // Foto: nítida en un marco centrado (tipo teléfono) + difuminada de fondo en PC.
+        var _u = "url('"+_bg.image+"')";
+        _blur.style.backgroundImage=_u; _frame.style.backgroundImage=_u;
+        _blur.style.display='block'; _frame.style.display='block';
+        document.body.style.background='#111';
+        document.body.style.backgroundSize=''; document.body.style.animation='';
+      } else {
+        _blur.style.display='none'; _frame.style.display='none';
+        document.body.style.background = bgCss(t);
+        if (_bg.mode==='animated'){ document.body.style.backgroundSize='220% 220%'; document.body.style.animation='bgshift 14s ease infinite'; }
+        else { document.body.style.backgroundSize=''; document.body.style.animation=''; }
+      }
       document.body.style.fontFamily = fontStack;
       var mt = document.querySelector('meta[name="theme-color"]'); if (mt && p.bg.indexOf('gradient')<0) mt.setAttribute('content', p.bg);
 
