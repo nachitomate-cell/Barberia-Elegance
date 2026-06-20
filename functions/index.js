@@ -797,5 +797,6 @@ exports.corteLapizReservar = corteLapizReservar.corteLapizReservar;
 //  ver bioo-provision.js
 // ─────────────────────────────────────────────────────────────────
 const biooProvision = require('./bioo-provision');
-exports.biooProvision = biooProvision.biooProvision;
-exports.biooClaim     = biooProvision.biooClaim;
+exports.biooProvision     = biooProvision.biooProvision;
+exports.biooClaim         = biooProvision.biooClaim;
+exports.biooEditorSession = biooProvision.biooEditorSession;

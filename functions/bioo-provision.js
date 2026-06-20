@@ -301,3 +301,88 @@ exports.biooClaim = onCall({ region: 'us-central1' }, async (request) => {
     return { ok: true, handle, already: false };
   });
 });
+
+// ── 3. biooEditorSession (HTTP, secret) — SSO entre proyectos ─────────────────
+//  El emprendedor YA está autenticado en el producto externo (Club Patio). En vez
+//  de hacerlo iniciar sesión otra vez en bioo.cl, Club Patio (que verificó su
+//  identidad) pide aquí un CUSTOM TOKEN de Firebase para la cuenta de bioo del
+//  emprendedor (identificada por su email). La página puente lo usa con
+//  signInWithCustomToken y lo deja dentro del editor ya logueado.
+//
+//  Confía en el secret compartido: quien lo posee (el backend de Club Patio) ya
+//  autenticó al usuario. Solo emite token para emails con un bio aprovisionado.
+
+async function getOrCreateUserByEmail(email, displayName) {
+  try {
+    return await admin.auth().getUserByEmail(email);
+  } catch (e) {
+    if (e && e.code === 'auth/user-not-found') {
+      return await admin.auth().createUser({
+        email,
+        emailVerified: true,
+        displayName: displayName || undefined,
+      });
+    }
+    throw e;
+  }
+}
+
+exports.biooEditorSession = onRequest(
+  { cors: true, region: 'us-central1', secrets: [BIOO_PROVISION_SECRET] },
+  async (req, res) => {
+    try {
+      if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
+
+      const secret = req.get('x-bioo-secret') || (req.body && req.body.secret) || '';
+      if (!secret || secret !== BIOO_PROVISION_SECRET.value()) {
+        return res.status(401).json({ error: 'no_autorizado' });
+      }
+
+      const b = req.body || {};
+      const email = String(b.email || '').trim().toLowerCase();
+      if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+        return res.status(400).json({ error: 'falta_email' });
+      }
+
+      // Resolver handle (del cuerpo o por índice de email).
+      let handle = normHandle(b.handle || '');
+      if (!handle) {
+        const idx = await db.collection('bio_email_owners').doc(email).get();
+        if (idx.exists && idx.data().handle) handle = idx.data().handle;
+      }
+      if (!handle) return res.status(404).json({ error: 'sin_bio' });
+
+      const bioRef  = db.collection('bios').doc(handle);
+      const bioSnap = await bioRef.get();
+      if (!bioSnap.exists) return res.status(404).json({ error: 'sin_bio' });
+      const bio = bioSnap.data();
+
+      // Seguridad: el email debe coincidir con el dueño reservado.
+      if (bio.ownerEmail && bio.ownerEmail !== email) {
+        return res.status(403).json({ error: 'email_no_coincide' });
+      }
+
+      // uid dueño: si ya está, se respeta; si no, se obtiene/crea por email.
+      let ownerUid = bio.uid || null;
+      if (!ownerUid) {
+        const user = await getOrCreateUserByEmail(email, (bio.perfil && bio.perfil.titulo) || handle);
+        ownerUid = user.uid;
+      }
+
+      const now   = FieldValue.serverTimestamp();
+      const batch = db.batch();
+      if (!bio.uid) batch.update(bioRef, { uid: ownerUid, updatedAt: now });
+      batch.set(db.collection('bio_users').doc(ownerUid), { username: handle, email, createdAt: now }, { merge: true });
+      await batch.commit();
+
+      const customToken = await admin.auth().createCustomToken(ownerUid);
+      const editUrl = `${BIOO_BASE}/claim?ct=${encodeURIComponent(customToken)}`;
+
+      logger.info(`[bioo] editor session handle=${handle} email=${email}`);
+      return res.status(200).json({ ok: true, handle, customToken, editUrl });
+    } catch (err) {
+      logger.error('[bioo] editor session error:', err);
+      return res.status(500).json({ error: 'error_interno' });
+    }
+  }
+);

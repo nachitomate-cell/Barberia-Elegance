@@ -66,6 +66,7 @@
     var params = new URLSearchParams(location.search);
     var handle = (params.get('h') || '').toLowerCase().replace(/[^a-z0-9._-]/g,'');
     var token  = params.get('t') || '';
+    var ct     = params.get('ct') || '';   // custom token (SSO desde Club Patio)
 
     function LBASE(){ return location.pathname.indexOf('/links/') === 0 ? '/links/' : '/'; }
     function goEditor(){ location.href = LBASE() + 'editor' + (LBASE()==='/links/'?'.html':''); }
@@ -80,6 +81,20 @@
 
     if (handle) { document.getElementById('handleTxt').textContent = handle; document.getElementById('handleBox').style.display = 'inline-flex'; }
     // Sin token NI handle igual sirve: la posesión se resuelve por el email de Google.
+
+    // ── SSO desde Club Patio: custom token → entra directo al editor, sin login ──
+    if (ct) {
+      document.getElementById('googleBtn').style.display = 'none';
+      document.getElementById('ttl').textContent = 'Entrando a tu editor…';
+      document.getElementById('lead').textContent = 'Te estamos conectando con tu cuenta. Un momento…';
+      showMsg('Conectando…', true, true);
+      ensureLocal().then(function(){ return auth.signInWithCustomToken(ct); })
+        .then(function(){ goEditor(); })
+        .catch(function(e){
+          showMsg('No se pudo abrir el editor (' + ((e && e.code) || 'error') + '). Recarga e intenta de nuevo.', false);
+        });
+      return; // no seguimos con el flujo de Google
+    }
 
     var _claiming = false;
     function doClaim(){
