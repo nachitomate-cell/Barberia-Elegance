@@ -1011,7 +1011,11 @@
       var ti=$('wizTitulo'); if(ti) ti.addEventListener('input', function(){ _wiz.titulo=ti.value; });
       var su=$('wizSub'); if(su) su.addEventListener('input', function(){ _wiz.subtitulo=su.value; });
       var lv=$('wizLinkVal'); if(lv) lv.addEventListener('input', function(){ _wiz.linkVal=lv.value; });
-      var tp=$('wizTipos'); if(tp) tp.addEventListener('click', function(e){ var bt=e.target.closest('[data-tp]'); if(!bt) return; _wiz.linkTipo=bt.getAttribute('data-tp'); _wiz.linkVal=''; renderWiz(); });
+      var tp=$('wizTipos'); if(tp) tp.addEventListener('click', function(e){ var bt=e.target.closest('[data-tp]'); if(!bt) return;
+        _wiz.linkTipo=bt.getAttribute('data-tp'); _wiz.linkVal='';
+        Array.prototype.forEach.call(tp.children, function(c){ c.classList.toggle('on', c.getAttribute('data-tp')===_wiz.linkTipo); });
+        var lvi=$('wizLinkVal'); if(lvi){ lvi.value=''; lvi.placeholder=wizPh(_wiz.linkTipo); }   // actualiza en sitio (sin re-render → sin parpadeo)
+      });
       var ab=$('wizAvaBtn'); if(ab) ab.addEventListener('click', function(){ $('wizAvatarFile').click(); });
       Array.prototype.forEach.call($('wizBody').querySelectorAll('[data-wiz]'), function(btn){
         btn.addEventListener('click', function(){
