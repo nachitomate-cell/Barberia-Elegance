@@ -178,12 +178,12 @@ async function notifSelloGanado(tenantId, uid, before, after) {
   let title, body;
   if (desbloqueoNuevo) {
     title = '🎁 ¡Premio disponible!';
-    body  = `Tenés ${dispDesp} sellos. Podés canjear: ${ganado.nombre}.`;
+    body  = `Tienes ${dispDesp} sellos. Puedes canjear: ${ganado.nombre}.`;
   } else if (proximo) {
     const faltan = Math.max(0, proximo.costoSellos - dispDesp);
     title = `🥇 +${delta} sello${delta > 1 ? 's' : ''}`;
     body  = faltan === 0
-      ? `Tenés ${dispDesp} sellos. Premio disponible 🎁`
+      ? `Tienes ${dispDesp} sellos. Premio disponible 🎁`
       : `Te ${faltan === 1 ? 'falta' : 'faltan'} ${faltan} para ${proximo.nombre}.`;
   } else {
     title = `🥇 +${delta} sello${delta > 1 ? 's' : ''}`;
