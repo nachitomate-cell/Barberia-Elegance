@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { Search, User, Phone, Trophy, Plus, Minus, Gift, X, RotateCcw, MessageCircle, Cake, UserX, Send, Sparkles, Bot, RefreshCw, ChevronLeft, ChevronRight, Pencil, Check } from 'lucide-react';
+import { Search, User, Phone, Trophy, Plus, Minus, Gift, X, RotateCcw, MessageCircle, Cake, UserX, Send, Sparkles, Bot, RefreshCw, ChevronLeft, ChevronRight, Pencil, Check, Trash2, AlertTriangle } from 'lucide-react';
 import {
   onSnapshot, updateDoc, setDoc, deleteDoc, doc, getDocs, query, where, orderBy as firestoreOrderBy,
   increment, arrayUnion, serverTimestamp,
@@ -98,6 +98,10 @@ function ClientePanel({ cliente: init, premios, onClose, esMiembro = true }) {
   const [editTel,     setEditTel]     = useState(init.telefono || '');
   const [editLoad,    setEditLoad]    = useState(false);
   const [editMsg,     setEditMsg]     = useState('');
+
+  const [delOn,       setDelOn]       = useState(false);
+  const [delLoad,     setDelLoad]     = useState(false);
+  const [delMsg,      setDelMsg]      = useState('');
 
   /* Real-time subscription for this client */
   useEffect(() => {
@@ -274,6 +278,28 @@ function ClientePanel({ cliente: init, premios, onClose, esMiembro = true }) {
         }),
       });
     } finally { setOpLoad(false); setResetOn(false); }
+  };
+
+  const eliminarCliente = async () => {
+    setDelLoad(true);
+    setDelMsg('');
+    try {
+      // 1. Perfil principal del Club (sellos, historial, cumpleaños)
+      await deleteDoc(doc(tenantCol('users'), data.uid));
+      // 2. Doc en clientes/ usado por el cron de cumpleaños (keyed por teléfono).
+      //    Para migrados/manuales uid === teléfono, así que se intenta también esa key.
+      const phone = normalizePhone(data.telefono);
+      if (phone) {
+        try { await deleteDoc(doc(tenantCol('clientes'), phone)); } catch (_) {}
+      }
+      if (data.uid && data.uid !== phone) {
+        try { await deleteDoc(doc(tenantCol('clientes'), data.uid)); } catch (_) {}
+      }
+      onClose();
+    } catch (e) {
+      setDelMsg('Error: ' + e.message);
+      setDelLoad(false);
+    }
   };
 
   const historial = [...(data.historialSellos || [])].sort((a, b) => new Date(b.fecha) - new Date(a.fecha)).slice(0, 20);
@@ -565,6 +591,41 @@ function ClientePanel({ cliente: init, premios, onClose, esMiembro = true }) {
             <p className="text-xs text-red-400 flex-1">¿Resetear {stamps} sellos a 0?</p>
             <button onClick={() => setResetOn(false)} className="px-3 py-1.5 text-xs text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-all">Cancelar</button>
             <button onClick={resetSellos} disabled={opLoad} className="px-3 py-1.5 text-xs font-bold text-red-400 hover:text-white rounded-lg bg-red-500/10 hover:bg-red-500/20 transition-all">Confirmar</button>
+          </div>
+        )}
+      </div>
+
+      {/* Zona de peligro: eliminar cliente */}
+      <div className="pt-2">
+        {!delOn ? (
+          <button onClick={() => { setDelOn(true); setDelMsg(''); }}
+            className="flex items-center gap-2 text-xs text-slate-600 hover:text-red-400 transition-colors">
+            <Trash2 size={13} /> Eliminar cliente
+          </button>
+        ) : (
+          <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-4 space-y-3">
+            <div className="flex items-start gap-2.5">
+              <AlertTriangle size={16} className="text-red-400 shrink-0 mt-0.5" />
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-red-400">¿Eliminar a {data.nombre || 'este cliente'}?</p>
+                <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">
+                  Se borrarán sus sellos, historial de fidelidad y datos de cumpleaños de forma permanente. Su historial de citas se conserva. Esta acción no se puede deshacer.
+                </p>
+              </div>
+            </div>
+            {delMsg && <p className="text-xs font-semibold text-red-400">{delMsg}</p>}
+            <div className="flex items-center gap-2">
+              <button onClick={() => setDelOn(false)} disabled={delLoad}
+                className="flex-1 px-3 py-2 text-xs font-semibold text-slate-300 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-40 transition-all">
+                Cancelar
+              </button>
+              <button onClick={eliminarCliente} disabled={delLoad}
+                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-bold text-white rounded-lg bg-red-600 hover:bg-red-500 disabled:opacity-40 transition-all">
+                {delLoad
+                  ? <><span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> Eliminando…</>
+                  : <><Trash2 size={13} /> Sí, eliminar</>}
+              </button>
+            </div>
           </div>
         )}
       </div>

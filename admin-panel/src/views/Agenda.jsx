@@ -158,8 +158,8 @@ function waPhone(tel) {
 /* ── Modal shell ─────────────────────────────────────────────── */
 function Modal({ title, onClose, children, footer, maxW = 'max-w-md' }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}>
-      <div className={`w-full ${maxW} bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl flex flex-col max-h-[90vh]`}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}>
+      <div className={`w-full ${maxW} bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl flex flex-col max-h-[90vh] animate-confirm-pop`}>
         <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800">
           <h3 className="font-semibold text-white">{title}</h3>
           <button onClick={onClose} className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-slate-800 transition-all"><X size={16} /></button>
@@ -209,6 +209,7 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
     duracion:        Number(cita?.duracion || cita?.duracionServicio || firstSvc?.duracion) || 30,
     barberoId:       cita?.barberoId       || defaultBarb,
     barbero:         cita?.barbero         || barberos.find(b => b.id === defaultBarb)?.nombre || '',
+    fecha:           cita?.fecha           || dateStr,
     hora:            cita?.hora            || defaultHora || '09:00',
     estado:          defaultEstado         || cita?.estado || 'Confirmada',
     nota:            cita?.nota            || '',
@@ -506,7 +507,9 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
     if (!form.clienteNombre.trim()) return;
     setSaving(true);
     try {
-      const payload = { ...form, duracionServicio: form.duracion, fecha: dateStr, updatedAt: serverTimestamp() };
+      // Fecha efectiva de la cita: la del formulario (editable) cae al día visible si quedara vacía.
+      const fechaCita = form.fecha || dateStr;
+      const payload = { ...form, duracionServicio: form.duracion, fecha: fechaCita, updatedAt: serverTimestamp() };
       if (!payload.clienteId) delete payload.clienteId;
 
       // Corte al Lápiz: si el cliente es miembro y se cobra "a fin de mes",
@@ -533,15 +536,15 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
           const safeBid  = String(form.barberoId).replace(/[^a-zA-Z0-9_-]/g, '_');
           // Un sobrecupo usa un lockId único para no pisar el lock de la cita ya existente en ese horario.
           const lockId   = sobrecupo
-            ? `${safeBid}_${dateStr}_${safeHora}_sc${Date.now().toString(36)}`
-            : `${safeBid}_${dateStr}_${safeHora}`;
+            ? `${safeBid}_${fechaCita}_${safeHora}_sc${Date.now().toString(36)}`
+            : `${safeBid}_${fechaCita}_${safeHora}`;
           const citaRef  = doc(tenantCol('citas'));
           const lockRef  = doc(db, `${tenantCol('slotLocks').path}/${lockId}`);
           const batch    = writeBatch(db);
           batch.set(citaRef, { ...payload, slotLockId: lockId });
           batch.set(lockRef, {
             citaId:    citaRef.id,
-            fecha:     dateStr,
+            fecha:     fechaCita,
             hora:      form.hora,
             barberoId: form.barberoId,
             duracion:  Number(form.duracion) || 30,
@@ -567,7 +570,7 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
         if (needsLock) {
           const safeHora = (form.hora || '').replace(':', '');
           const safeBid  = String(form.barberoId).replace(/[^a-zA-Z0-9_-]/g, '_');
-          nextLockId = `${safeBid}_${dateStr}_${safeHora}`;
+          nextLockId = `${safeBid}_${fechaCita}_${safeHora}`;
         }
 
         const lockChanged = oldLockId !== nextLockId;
@@ -603,7 +606,7 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
                 barberoId:     form.barberoId,
                 barberoNombre: form.barbero,
                 citaId:        cita.id,
-                fecha:         dateStr,
+                fecha:         fechaCita,
                 createdAt:     serverTimestamp(),
                 updatedAt:     serverTimestamp(),
               });
@@ -640,7 +643,7 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
           if (lockChanged && nextLockId) {
             batch.set(doc(db, `${tenantCol('slotLocks').path}/${nextLockId}`), {
               citaId:    cita.id,
-              fecha:     dateStr,
+              fecha:     fechaCita,
               hora:      form.hora,
               barberoId: form.barberoId,
               duracion:  Number(form.duracion) || 30,
@@ -788,7 +791,7 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
             />
             {form.clienteTelefono && (
               <a
-                href={`https://wa.me/${waPhone(form.clienteTelefono)}?text=${encodeURIComponent(buildWaConfirmMsg(tenantId, form, dateStr))}`}
+                href={`https://wa.me/${waPhone(form.clienteTelefono)}?text=${encodeURIComponent(buildWaConfirmMsg(tenantId, form, form.fecha || dateStr))}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 title="Enviar confirmación por WhatsApp"
@@ -845,6 +848,15 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
           <span>Rango <b className="text-white">{rangoDesc.nombre}</b> · {rangoDesc.pct}% de descuento en servicios{(Number(form.porcentajeDescuento) || 0) >= rangoDesc.pct ? ' aplicado' : ' (ajustable arriba)'}</span>
         </div>
       )}
+      <div>
+        <label className={lbl}>Fecha</label>
+        <input className={field} type="date" value={form.fecha} onChange={e => set('fecha', e.target.value)} />
+        {form.fecha && form.fecha !== dateStr && (
+          <p className="mt-1 text-[11px] text-amber-400 font-medium flex items-center gap-1">
+            <CalendarDays size={11} /> La cita se moverá al {new Date(form.fecha + 'T12:00:00').toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' })}.
+          </p>
+        )}
+      </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className={lbl}>Barbero</label>
@@ -1277,7 +1289,7 @@ function BloqueoBlock({ bloqueo, onDelete }) {
 }
 
 /* ── AppointmentBlock ────────────────────────────────────────── */
-function AppointmentBlock({ cita, colIndex, colTotal, onClick, onDragStart, onDragEnd, onDropOnCita, isDragged, dragActive }) {
+function AppointmentBlock({ cita, colIndex, colTotal, onClick, onContextMenu, onDragStart, onDragEnd, onDropOnCita, isDragged, dragActive }) {
   const { slotIdx, totalSlots, slotMins } = useContext(AgendaCtx);
   const slot  = Math.max(0, Math.min(totalSlots - 1, slotIdx(cita.hora)));
   const spans = Math.max(1, Math.min(totalSlots - slot, Math.round((cita.duracion || cita.duracionServicio || 30) / slotMins)));
@@ -1289,6 +1301,7 @@ function AppointmentBlock({ cita, colIndex, colTotal, onClick, onDragStart, onDr
   return (
     <div
       onClick={() => onClick(cita)}
+      onContextMenu={(e) => { if (onContextMenu) { e.preventDefault(); onContextMenu(e, cita); } }}
       draggable={arrastrable}
       onDragStart={(e) => onDragStart && onDragStart(e, cita)}
       onDragEnd={() => { setOver(false); onDragEnd && onDragEnd(); }}
@@ -1342,6 +1355,58 @@ function SlotRow({ idx, barberoId, dateStr, onNewCita, onNewBloqueo, blockMode, 
       }`}
       style={{ top: `${idx * 40}px` }}
     />
+  );
+}
+
+/* ── CitaContextMenu — menú al hacer clic derecho sobre una cita ── */
+function CitaContextMenu({ x, y, cita, onCambiarFecha, onEditar, onClose }) {
+  const ref = useRef(null);
+  // Reposiciona para que no se salga de la ventana.
+  const [pos, setPos] = useState({ left: x, top: y });
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const { width, height } = el.getBoundingClientRect();
+    setPos({
+      left: Math.min(x, window.innerWidth  - width  - 8),
+      top:  Math.min(y, window.innerHeight - height - 8),
+    });
+  }, [x, y]);
+
+  useEffect(() => {
+    const onKey = e => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-[70]" onClick={onClose} onContextMenu={e => { e.preventDefault(); onClose(); }}>
+      <div
+        ref={ref}
+        onClick={e => e.stopPropagation()}
+        className="absolute w-52 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl py-1.5 overflow-hidden"
+        style={{ left: pos.left, top: pos.top }}
+      >
+        <div className="px-3 py-2 border-b border-slate-800 mb-1">
+          <p className="text-xs font-semibold text-white truncate">{cita.clienteNombre || 'Cliente'}</p>
+          <p className="text-[10px] text-slate-500 truncate">{cita.hora}{cita.servicioNombre ? ` · ${cita.servicioNombre}` : ''}</p>
+        </div>
+        <button
+          onClick={onCambiarFecha}
+          className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 transition-colors"
+        >
+          <CalendarDays size={15} className="text-emerald-400 shrink-0" />
+          Cambiar de fecha
+        </button>
+        <button
+          onClick={onEditar}
+          className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 transition-colors"
+        >
+          <Scissors size={15} className="text-slate-400 shrink-0" />
+          Editar cita
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -2154,6 +2219,7 @@ export default function Agenda() {
   const [showHistorial, setShowHistorial] = useState(false);
   const [draggedCita,   setDraggedCita]   = useState(null);
   const [reagendarModal, setReagendarModal] = useState(null);
+  const [ctxMenu,       setCtxMenu]       = useState(null);  // { x, y, cita } menú clic derecho sobre una cita
   const [showDifusionModal, setShowDifusionModal] = useState(false);
   const [soloBarbero,   setSoloBarbero]   = useState(null);   // id del barbero enfocado (null = todos)
   const [labelStep,     setLabelStep]     = useState(() => Number(localStorage.getItem(SLOT_KEY)) || 15);     // minutos entre etiquetas visibles en el eje
@@ -2392,6 +2458,15 @@ export default function Agenda() {
 
   const openNewCita    = (barberoId, hora) => setCitaModal({ cita: null, barberoId, hora });
   const openEditCita   = (cita)            => setCitaModal({ cita, barberoId: cita.barberoId, hora: cita.hora });
+  // Abre el ReagendarModal manteniendo barbero/hora actuales — solo se cambia la fecha.
+  const openReagendar  = (cita)            => setReagendarModal({
+    cita,
+    barberoId:     cita.barberoId,
+    barberoNombre: cita.barbero || barberos.find(b => b.id === cita.barberoId)?.nombre || '',
+    hora:          cita.hora,
+    fecha:         cita.fecha || dateStr,
+    ocupada:       false,
+  });
   const openNewBloqueo = (barberoId, hora) => setBlqModal({ barberoId, hora, tipo: 'parcial' });
 
   const diaGlobalCerrado = bloqueos.some(b => b.todo_el_dia && !b.barberoId);
@@ -2711,6 +2786,7 @@ export default function Agenda() {
                                 colIndex={colIndex}
                                 colTotal={colTotal}
                                 onClick={openEditCita}
+                                onContextMenu={(e, c) => setCtxMenu({ x: e.clientX, y: e.clientY, cita: c })}
                                 onDragStart={(e, c) => setDraggedCita(c)}
                                 onDragEnd={() => setDraggedCita(null)}
                                 onDropOnCita={(c) => handleDrop(c.barberoId, c.hora)}
@@ -2771,6 +2847,16 @@ export default function Agenda() {
           defaultHora={blqModal.hora}
           defaultTipo={blqModal.tipo}
           onClose={() => setBlqModal(null)}
+        />
+      )}
+      {ctxMenu && (
+        <CitaContextMenu
+          x={ctxMenu.x}
+          y={ctxMenu.y}
+          cita={ctxMenu.cita}
+          onCambiarFecha={() => { openReagendar(ctxMenu.cita); setCtxMenu(null); }}
+          onEditar={() => { openEditCita(ctxMenu.cita); setCtxMenu(null); }}
+          onClose={() => setCtxMenu(null)}
         />
       )}
       {reagendarModal && (

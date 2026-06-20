@@ -315,7 +315,7 @@ export default function Configuracion() {
           Intervalo entre horas disponibles en la agenda pública de reservas.
         </p>
         <div className="flex gap-3">
-          {[[15, '15 minutos', 'Cada cuarto de hora'], [30, '30 minutos', 'Cada media hora'], [60, '1 hora', 'Cada hora completa']].map(([mins, label, sub]) => (
+          {[[15, '15 minutos', 'Cada cuarto de hora'], [30, '30 minutos', 'Cada media hora'], [45, '45 minutos', 'Cada tres cuartos'], [60, '1 hora', 'Cada hora completa']].map(([mins, label, sub]) => (
             <button
               key={mins}
               type="button"
