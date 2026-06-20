@@ -383,15 +383,21 @@
         _blur.style.backgroundImage=_u; _frame.style.backgroundImage=_u;
         _blur.style.display='block'; _frame.style.display='block';
         document.body.style.background='transparent'; // que se vean las capas (z-index negativo)
+        document.documentElement.style.background='#111'; // sin verde en barras/huecos del móvil
         document.body.style.backgroundSize=''; document.body.style.animation='';
       } else {
         _blur.style.display='none'; _frame.style.display='none';
+        document.documentElement.style.background='';
         document.body.style.background = bgCss(t);
         if (_bg.mode==='animated'){ document.body.style.backgroundSize='220% 220%'; document.body.style.animation='bgshift 14s ease infinite'; }
         else { document.body.style.backgroundSize=''; document.body.style.animation=''; }
       }
       document.body.style.fontFamily = fontStack;
-      var mt = document.querySelector('meta[name="theme-color"]'); if (mt && p.bg.indexOf('gradient')<0) mt.setAttribute('content', p.bg);
+      var mt = document.querySelector('meta[name="theme-color"]');
+      if (mt) {
+        if (_bg.mode==='image' && _bg.image) mt.setAttribute('content', '#111'); // foto: barra del navegador neutra (sin verde)
+        else if (p.bg.indexOf('gradient')<0) mt.setAttribute('content', p.bg);
+      }
 
       var html = '';
       var cover = (perfil.cover||'').trim();
