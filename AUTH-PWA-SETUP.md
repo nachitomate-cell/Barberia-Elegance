@@ -1,18 +1,11 @@
-# Activar login con Google en PWA (auth same-origin) — setup por única vez
+# Activar login con Google en PWA (auth same-origin) — setup por unica vez
 
-El código ya quedó listo: `authDomain` = dominio propio + proxy `/__/auth` y `/__/firebase`
-en `vercel.json`. Falta **registrar estos dominios en las consolas una sola vez**.
-Mientras no estén, Google responde **Error 400: redirect_uri_mismatch**.
+Fuente: config.js (tenants) + vercel.json (dominios custom). Total: 37 dominios.
+Mientras un dominio no este registrado en ambas consolas, Google da Error 400 redirect_uri_mismatch.
 
-> Tip: hazlo en lote (copiar/pegar). Propaga en unos minutos. Después reinstala/reabre cada
-> PWA para limpiar el service worker.
-
----
-
-## 1) Firebase Console → Authentication → Settings → Authorized domains
-Agregar cada dominio (botón "Add domain"):
-
+## 1) Firebase Console -> Authentication -> Settings -> Authorized domains
 - admin.kronnos.synaptechspa.cl
+- alfamen.synaptechspa.cl
 - aurasalon.synaptechspa.cl
 - aurasalonmalegrooming.synaptech.cl
 - aurasalonmalegrooming.synaptechspa.cl
@@ -28,6 +21,9 @@ Agregar cada dominio (botón "Add domain"):
 - ferrazabarber.synaptechspa.cl
 - gitananails.synaptechspa.cl
 - infinity.synaptechspa.cl
+- kronnos-limache.synaptechspa.cl
+- kronnos-penablanca.synaptechspa.cl
+- kronnos-woman.synaptechspa.cl
 - kronnos.synaptechspa.cl
 - kronnoslimache.synaptechspa.cl
 - kronnospenablanca.synaptechspa.cl
@@ -39,18 +35,19 @@ Agregar cada dominio (botón "Add domain"):
 - marcelo-hairdressing.synaptechspa.cl
 - marcelohairdressing.synaptechspa.cl
 - marcelopalma.synaptechspa.cl
+- memphissalon.synaptechspa.cl
+- omegastudio.synaptechspa.cl
 - sionbarberia.synaptechspa.cl
 - thelatincaribe.synaptechspa.cl
+- yugen.synaptechspa.cl
+- yugenstudio.synaptechspa.cl
 
----
+## 2) Google Cloud -> Credenciales -> Web client (auto created by Google Service)
 
-## 2) Google Cloud Console → APIs y servicios → Credenciales
-Abrir el **Cliente de OAuth 2.0 "Web client"** del proyecto `barberia-elegance`
-(el que creó Firebase). Pegar ambas listas y **Guardar**.
-
-### Orígenes de JavaScript autorizados
+### Origenes autorizados de JavaScript
 ```
 https://admin.kronnos.synaptechspa.cl
+https://alfamen.synaptechspa.cl
 https://aurasalon.synaptechspa.cl
 https://aurasalonmalegrooming.synaptech.cl
 https://aurasalonmalegrooming.synaptechspa.cl
@@ -66,6 +63,9 @@ https://djonesbarberia.synaptechspa.cl
 https://ferrazabarber.synaptechspa.cl
 https://gitananails.synaptechspa.cl
 https://infinity.synaptechspa.cl
+https://kronnos-limache.synaptechspa.cl
+https://kronnos-penablanca.synaptechspa.cl
+https://kronnos-woman.synaptechspa.cl
 https://kronnos.synaptechspa.cl
 https://kronnoslimache.synaptechspa.cl
 https://kronnospenablanca.synaptechspa.cl
@@ -77,13 +77,18 @@ https://mapubarbershop.synaptechspa.cl
 https://marcelo-hairdressing.synaptechspa.cl
 https://marcelohairdressing.synaptechspa.cl
 https://marcelopalma.synaptechspa.cl
+https://memphissalon.synaptechspa.cl
+https://omegastudio.synaptechspa.cl
 https://sionbarberia.synaptechspa.cl
 https://thelatincaribe.synaptechspa.cl
+https://yugen.synaptechspa.cl
+https://yugenstudio.synaptechspa.cl
 ```
 
 ### URIs de redireccionamiento autorizados
 ```
 https://admin.kronnos.synaptechspa.cl/__/auth/handler
+https://alfamen.synaptechspa.cl/__/auth/handler
 https://aurasalon.synaptechspa.cl/__/auth/handler
 https://aurasalonmalegrooming.synaptech.cl/__/auth/handler
 https://aurasalonmalegrooming.synaptechspa.cl/__/auth/handler
@@ -99,6 +104,9 @@ https://djonesbarberia.synaptechspa.cl/__/auth/handler
 https://ferrazabarber.synaptechspa.cl/__/auth/handler
 https://gitananails.synaptechspa.cl/__/auth/handler
 https://infinity.synaptechspa.cl/__/auth/handler
+https://kronnos-limache.synaptechspa.cl/__/auth/handler
+https://kronnos-penablanca.synaptechspa.cl/__/auth/handler
+https://kronnos-woman.synaptechspa.cl/__/auth/handler
 https://kronnos.synaptechspa.cl/__/auth/handler
 https://kronnoslimache.synaptechspa.cl/__/auth/handler
 https://kronnospenablanca.synaptechspa.cl/__/auth/handler
@@ -110,16 +118,13 @@ https://mapubarbershop.synaptechspa.cl/__/auth/handler
 https://marcelo-hairdressing.synaptechspa.cl/__/auth/handler
 https://marcelohairdressing.synaptechspa.cl/__/auth/handler
 https://marcelopalma.synaptechspa.cl/__/auth/handler
+https://memphissalon.synaptechspa.cl/__/auth/handler
+https://omegastudio.synaptechspa.cl/__/auth/handler
 https://sionbarberia.synaptechspa.cl/__/auth/handler
 https://thelatincaribe.synaptechspa.cl/__/auth/handler
+https://yugen.synaptechspa.cl/__/auth/handler
+https://yugenstudio.synaptechspa.cl/__/auth/handler
 ```
 
----
-
-## 3) Listo
-No hay que tocar el código de nuevo. Cuando se agregue un **tenant nuevo**, sumar su dominio
-en los 2 lugares de arriba (Firebase Authorized domains + las 2 listas de OAuth) con el mismo
-patrón `https://<dominio>` y `https://<dominio>/__/auth/handler`.
-
-Verificación: abrir `https://<dominio>/__/auth/handler` en el navegador → debe cargar la
-página del handler de Firebase (confirma que el proxy funciona).
+## 3) A futuro
+Cada tenant nuevo: agregar su dominio en los 2 lugares con el mismo patron. El codigo ya lo soporta solo.
