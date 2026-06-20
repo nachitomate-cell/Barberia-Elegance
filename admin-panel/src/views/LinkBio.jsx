@@ -3,7 +3,7 @@ import {
   Link2, Calendar, MessageCircle, Instagram, Star, MapPin, Type, AlignLeft,
   Share2, Youtube, Plus, Trash2, ArrowUp, ArrowDown, Eye, EyeOff, Lock,
   ExternalLink, Copy, Check, GripVertical, ChevronRight, BarChart3,
-  Users, Mail, Building2, QrCode, Download, Crown,
+  Users, Mail, Building2, QrCode, Download, Crown, Sparkles,
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { doc, getDoc, setDoc, deleteDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
@@ -238,6 +238,26 @@ export default function LinkBio() {
           </a>
         </div>
       </div>
+
+      {/* CTA: integración premium con bioo.cl → su propio bioo */}
+      <a
+        href={bioUrl}
+        target="_blank"
+        rel="noopener"
+        className="group flex items-center gap-3.5 rounded-xl p-4 mb-4 border border-lime-500/30 hover:border-lime-400/70 bg-gradient-to-r from-lime-500/[0.12] via-lime-400/[0.05] to-transparent shadow-lg shadow-lime-950/10 hover:shadow-lime-900/20 transition-all"
+      >
+        <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-lime-400/25 to-lime-500/10 border border-lime-400/30 flex items-center justify-center shrink-0">
+          <Sparkles size={19} className="text-lime-300" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-sm font-bold text-white">¿Quieres más opciones de edición?</p>
+            <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-lime-500/15 text-lime-300 border border-lime-400/25">Integración bioo.cl</span>
+          </div>
+          <p className="text-xs text-slate-400 mt-0.5">Tu Link in Bio está <span className="text-lime-300 font-semibold">potenciado por bioo.cl</span> — desbloquea temas, fondos y animaciones premium en tu página.</p>
+        </div>
+        <ExternalLink size={16} className="text-lime-300 shrink-0 transition-transform group-hover:translate-x-0.5" />
+      </a>
 
       {/* Dirección pública en bioo.cl */}
       <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 mb-4">
