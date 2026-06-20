@@ -97,6 +97,36 @@
   .fm-tools .coll-search{padding:7px 10px;font-size:13px;}
   .fm-tools .coll-cats{margin-top:7px;}
   .fm-list{padding:4px;}
+  /* ── Asistente de inicio (onboarding) ── */
+  .wiz{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;padding:18px;background:rgba(21,36,11,.5);backdrop-filter:blur(5px);}
+  .wiz[hidden]{display:none;}
+  .wiz-card{width:100%;max-width:440px;background:#fff;border-radius:22px;box-shadow:0 24px 70px rgba(21,36,11,.32);overflow:hidden;animation:wizIn .28s cubic-bezier(.16,1,.3,1);}
+  @keyframes wizIn{from{opacity:0;transform:translateY(18px) scale(.97);}to{opacity:1;transform:none;}}
+  .wiz-body{padding:30px 26px 26px;text-align:center;}
+  .wiz-prog{display:flex;justify-content:center;gap:7px;margin-bottom:20px;}
+  .wiz-dot{width:9px;height:9px;border-radius:50%;background:var(--line);transition:.2s;}
+  .wiz-dot.on{background:var(--green);width:22px;border-radius:5px;}
+  .wiz-emoji{font-size:44px;margin-bottom:8px;line-height:1;}
+  .wiz-h{font-size:21px;font-weight:800;letter-spacing:-.3px;color:var(--ink);margin-bottom:8px;}
+  .wiz-p{font-size:14px;color:var(--soft);line-height:1.5;margin-bottom:20px;}
+  .wiz-input{width:100%;background:var(--field);border:1px solid var(--line);border-radius:12px;padding:13px 15px;font-size:15px;font-weight:600;color:var(--ink);outline:0;margin-bottom:18px;text-align:center;}
+  .wiz-input:focus{border-color:var(--green);background:#fff;}
+  .wiz-btn{width:100%;border:0;border-radius:12px;padding:14px;font-size:15px;font-weight:800;cursor:pointer;margin-top:8px;transition:.14s;font-family:inherit;}
+  .wiz-btn.primary{background:var(--green-d);color:#fff;}
+  .wiz-btn.primary:hover{background:#234b12;}
+  .wiz-btn.ghost{background:transparent;color:var(--soft);}
+  .wiz-btn.ghost:hover{color:var(--ink);background:var(--field);}
+  .wiz-btn.sm{width:auto;padding:9px 16px;font-size:13px;background:var(--field);color:var(--ink);margin-top:0;}
+  .wiz-nav{display:flex;gap:10px;margin-top:6px;}
+  .wiz-nav .wiz-btn{margin-top:0;}
+  .wiz-nav .ghost{width:auto;padding:14px 18px;}
+  .wiz-nav .primary{flex:1;}
+  .wiz-chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:16px;}
+  .wiz-chip{border:1px solid var(--line);background:#fff;color:var(--soft);font-size:13px;font-weight:700;padding:9px 16px;border-radius:100px;cursor:pointer;transition:.12s;}
+  .wiz-chip:hover{border-color:var(--green);color:var(--ink);}
+  .wiz-chip.on{background:var(--green);border-color:var(--green);color:#15240b;}
+  .wiz-ava{display:flex;flex-direction:column;align-items:center;gap:12px;margin-bottom:18px;}
+  .wiz-ava img{width:96px;height:96px;border-radius:50%;object-fit:cover;border:1px solid var(--line);background:var(--field);}
   label{display:block;font-size:12.5px;font-weight:700;color:#41513e;margin:12px 0 6px;}
   label:first-of-type{margin-top:0;}
   input,textarea{width:100%;background:var(--field);border:1px solid var(--line);border-radius:10px;padding:12px 14px;color:var(--ink);font-size:14.5px;font-weight:600;outline:0;font-family:inherit;}
@@ -520,6 +550,12 @@
   <div class="toast" id="toast"></div>
   <input id="blkImgFile" type="file" accept="image/*" hidden />
   <input id="blkThumbFile" type="file" accept="image/*" hidden />
+  <input id="wizAvatarFile" type="file" accept="image/*" hidden />
+
+  <!-- Asistente de inicio -->
+  <div id="wizard" class="wiz" hidden>
+    <div class="wiz-card"><div class="wiz-body" id="wizBody"></div></div>
+  </div>
 
   <!-- Modal: elegir tipo de enlace -->
   <div class="tipo-modal" id="tipoModal">
@@ -843,6 +879,92 @@
       $('username').value = uname;
       paintAvatar(); paintCover(); paintPubLink(); renderLinks(); renderAppearance(); renderPreview();
       $('gate').classList.add('hidden'); $('app').classList.remove('hidden');
+      maybeOnboard();
+    }
+
+    // ── Asistente de inicio (onboarding) ─────────────────────────────────────
+    // Aparece sobre el editor la primera vez que la página está vacía. Completa
+    // lo más importante en pasos y aplica todo al editor al terminar.
+    var WIZ_KEY = 'bioo_onboarded';
+    var _wiz = { titulo:'', subtitulo:'', avatar:'', linkTipo:'whatsapp', linkVal:'', prefijo:'56' };
+    var _wizStep = 0;
+    function maybeOnboard(){
+      try { if (localStorage.getItem(WIZ_KEY)) return; } catch(e){}
+      if (state.bloques.length || (state.perfil.titulo||'').trim()) return;   // ya tiene contenido
+      _wiz.titulo = state.perfil.titulo||''; _wiz.subtitulo = state.perfil.subtitulo||''; _wiz.avatar = state.perfil.avatar||'';
+      _wizStep = 0; var w=$('wizard'); if(!w) return; w.hidden=false; renderWiz();
+    }
+    function wizDone(){ try { localStorage.setItem(WIZ_KEY,'1'); } catch(e){} var w=$('wizard'); if(w) w.hidden=true; }
+    function wizPh(tp){ return tp==='whatsapp' ? '9 1234 5678' : (tp==='instagram'||tp==='tiktok') ? 'tuusuario' : 'https://tusitio.cl'; }
+    function wizNav(showBack){
+      return '<div class="wiz-nav">'+(showBack?'<button class="wiz-btn ghost" data-wiz="back">Atrás</button>':'')+'<button class="wiz-btn primary" data-wiz="next">Continuar</button></div>';
+    }
+    function wizSave(){
+      var a=$('wizTitulo'); if(a) _wiz.titulo=a.value;
+      var b=$('wizSub'); if(b) _wiz.subtitulo=b.value;
+      var c=$('wizLinkVal'); if(c) _wiz.linkVal=c.value;
+    }
+    function renderWiz(){
+      var body=$('wizBody'); if(!body) return; var s=_wizStep, html='';
+      if (s>0){ html+='<div class="wiz-prog">'; for(var i=1;i<=5;i++){ html+='<span class="wiz-dot'+(i<=s?' on':'')+'"></span>'; } html+='</div>'; }
+      if (s===0){
+        html += '<div class="wiz-emoji">👋</div><h2 class="wiz-h">¡Bienvenido a bioo!</h2>'+
+          '<p class="wiz-p">¿Necesitas ayuda? Te guiamos para completar lo más importante de tu página en unos pasos rápidos.</p>'+
+          '<button class="wiz-btn primary" data-wiz="next">Sí, guíame</button>'+
+          '<button class="wiz-btn ghost" data-wiz="skip">No necesito ayuda</button>';
+      } else if (s===1){
+        html += '<h2 class="wiz-h">¿Cómo se llama tu página?</h2><p class="wiz-p">Tu nombre o el de tu negocio.</p>'+
+          '<input class="wiz-input" id="wizTitulo" maxlength="60" placeholder="Ej: Patio Curauma" value="'+av(_wiz.titulo)+'">'+wizNav(true);
+      } else if (s===2){
+        html += '<h2 class="wiz-h">Una frase que te describa</h2><p class="wiz-p">Tu bio o eslogan (opcional).</p>'+
+          '<input class="wiz-input" id="wizSub" maxlength="80" placeholder="Ej: Recibe beneficios en cada compra" value="'+av(_wiz.subtitulo)+'">'+wizNav(true);
+      } else if (s===3){
+        html += '<h2 class="wiz-h">Tu logo o foto</h2><p class="wiz-p">Se muestra arriba de tu página (opcional).</p>'+
+          '<div class="wiz-ava"><img id="wizAvaPrev" src="'+(_wiz.avatar?av(_wiz.avatar):IMGPH)+'" alt=""><button type="button" class="wiz-btn sm" id="wizAvaBtn">📷 Subir imagen</button></div>'+wizNav(true);
+      } else if (s===4){
+        var tipos=[['whatsapp','WhatsApp'],['instagram','Instagram'],['enlace','Sitio web'],['tiktok','TikTok']];
+        html += '<h2 class="wiz-h">Tu primer enlace</h2><p class="wiz-p">El más importante para quien te visita.</p>'+
+          '<div class="wiz-chips" id="wizTipos">'+tipos.map(function(tp){ return '<button type="button" class="wiz-chip'+(_wiz.linkTipo===tp[0]?' on':'')+'" data-tp="'+tp[0]+'">'+tp[1]+'</button>'; }).join('')+'</div>'+
+          '<input class="wiz-input" id="wizLinkVal" placeholder="'+wizPh(_wiz.linkTipo)+'" value="'+av(_wiz.linkVal)+'">'+wizNav(true);
+      } else if (s===5){
+        html += '<div class="wiz-emoji">🎉</div><h2 class="wiz-h">¡Tu bioo está listo!</h2>'+
+          '<p class="wiz-p">Cargamos lo que completaste en el editor. Personaliza lo que quieras y pulsa <b>Guardar</b>.</p>'+
+          '<button class="wiz-btn primary" data-wiz="finish">Ir a mi editor</button>'+
+          '<button class="wiz-btn ghost" data-wiz="back">Atrás</button>';
+      }
+      body.innerHTML=html; wireWiz();
+    }
+    function wireWiz(){
+      var ti=$('wizTitulo'); if(ti) ti.addEventListener('input', function(){ _wiz.titulo=ti.value; });
+      var su=$('wizSub'); if(su) su.addEventListener('input', function(){ _wiz.subtitulo=su.value; });
+      var lv=$('wizLinkVal'); if(lv) lv.addEventListener('input', function(){ _wiz.linkVal=lv.value; });
+      var tp=$('wizTipos'); if(tp) tp.addEventListener('click', function(e){ var bt=e.target.closest('[data-tp]'); if(!bt) return; _wiz.linkTipo=bt.getAttribute('data-tp'); _wiz.linkVal=''; renderWiz(); });
+      var ab=$('wizAvaBtn'); if(ab) ab.addEventListener('click', function(){ $('wizAvatarFile').click(); });
+      Array.prototype.forEach.call($('wizBody').querySelectorAll('[data-wiz]'), function(btn){
+        btn.addEventListener('click', function(){
+          var act=btn.getAttribute('data-wiz');
+          if (act==='skip'){ wizDone(); return; }
+          if (act==='finish'){ wizSave(); wizFinish(); return; }
+          if (act==='back'){ wizSave(); _wizStep=Math.max(0,_wizStep-1); renderWiz(); return; }
+          wizSave(); _wizStep=Math.min(5,_wizStep+1); renderWiz();
+        });
+      });
+    }
+    function wizFinish(){
+      if ((_wiz.titulo||'').trim())    state.perfil.titulo = _wiz.titulo.trim();
+      if ((_wiz.subtitulo||'').trim()) state.perfil.subtitulo = _wiz.subtitulo.trim();
+      if (_wiz.avatar)                 state.perfil.avatar = _wiz.avatar;
+      if ((_wiz.linkVal||'').trim()){
+        var tp=_wiz.linkTipo, b={ id:'l'+Date.now()+Math.floor(Math.random()*1000), tipo:tp, label:(TIPOS[tp]?TIPOS[tp].label:''), activo:true };
+        if (tp==='whatsapp'){ b.prefijo=onlyDigits(_wiz.prefijo)||'56'; b.telefono=_wiz.linkVal.trim(); }
+        else if (tp==='instagram'||tp==='tiktok'){ b.usuario=cleanUser(_wiz.linkVal); }
+        else { b.url=_wiz.linkVal.trim(); }
+        b.url=computeUrl(b);
+        state.bloques.push(b);
+      }
+      $('titulo').value=state.perfil.titulo||''; $('subtitulo').value=state.perfil.subtitulo||''; $('avatar').value=state.perfil.avatar||'';
+      paintAvatar(); renderLinks(); renderAppearance(); renderPreview(); persistDraft();
+      wizDone(); toast('¡Listo! Revisa tu página y pulsa Guardar ✓');
     }
 
     function paintAvatar(){
@@ -1030,6 +1152,17 @@
     $('addLink').addEventListener('click', function(){ openTipoPicker(-1); });
     $('tipoClose').addEventListener('click', function(){ $('tipoModal').classList.remove('open'); });
     $('tipoModal').addEventListener('click', function(e){ if (e.target === $('tipoModal')) $('tipoModal').classList.remove('open'); });
+    $('wizAvatarFile').addEventListener('change', function(e){
+      var file=e.target.files&&e.target.files[0]; if(!file)return;
+      if(!/^image\//.test(file.type)){ e.target.value=''; return; }
+      var rd=new FileReader();
+      rd.onload=function(ev){ var img=new Image(); img.onload=function(){
+        var s=Math.min(img.width,img.height), sx=(img.width-s)/2, sy=(img.height-s)/2;
+        var cv=document.createElement('canvas'); cv.width=cv.height=320; cv.getContext('2d').drawImage(img,sx,sy,s,s,0,0,320,320);
+        _wiz.avatar=cv.toDataURL('image/jpeg',0.85); var p=$('wizAvaPrev'); if(p) p.src=_wiz.avatar;
+      }; img.src=ev.target.result; };
+      rd.readAsDataURL(file); e.target.value='';
+    });
     $('blkThumbFile').addEventListener('change', function(e){
       var file=e.target.files&&e.target.files[0]; if(!file||_thumbBlock<0)return;
       if(!/^image\//.test(file.type)){ toast('Elige una imagen'); e.target.value=''; return; }
