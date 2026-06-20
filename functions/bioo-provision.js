@@ -40,8 +40,26 @@ const crypto           = require('crypto');
 const db = admin.firestore();
 
 const BIOO_PROVISION_SECRET = defineSecret('BIOO_PROVISION_SECRET');
+// Service account (con clave privada) para firmar custom tokens LOCALMENTE.
+// Evita el permiso IAM signBlob que la cuenta de cómputo (Gen2) no tiene.
+const BIOO_ADMIN_SA = defineSecret('BIOO_ADMIN_SA');
 
 const BIOO_BASE = 'https://bioo.cl';
+
+// App secundaria inicializada con la service account → createCustomToken firma
+// con la clave privada (sin llamar a la API de IAM).
+let _signerApp = null;
+function signerAuth() {
+  if (!_signerApp) {
+    const existing = admin.apps.find((a) => a && a.name === 'biooSigner');
+    if (existing) { _signerApp = existing; }
+    else {
+      const sa = JSON.parse(BIOO_ADMIN_SA.value());
+      _signerApp = admin.initializeApp({ credential: admin.credential.cert(sa) }, 'biooSigner');
+    }
+  }
+  return _signerApp.auth();
+}
 
 // Handles que no se pueden tomar (deben coincidir con links/registro.html y editor.html)
 const RESERVED = new Set([
@@ -328,7 +346,7 @@ async function getOrCreateUserByEmail(email, displayName) {
 }
 
 exports.biooEditorSession = onRequest(
-  { cors: true, region: 'us-central1', secrets: [BIOO_PROVISION_SECRET] },
+  { cors: true, region: 'us-central1', secrets: [BIOO_PROVISION_SECRET, BIOO_ADMIN_SA] },
   async (req, res) => {
     try {
       if (req.method !== 'POST') return res.status(405).json({ error: 'method_not_allowed' });
@@ -375,7 +393,7 @@ exports.biooEditorSession = onRequest(
       batch.set(db.collection('bio_users').doc(ownerUid), { username: handle, email, createdAt: now }, { merge: true });
       await batch.commit();
 
-      const customToken = await admin.auth().createCustomToken(ownerUid);
+      const customToken = await signerAuth().createCustomToken(ownerUid);
       const editUrl = `${BIOO_BASE}/claim?ct=${encodeURIComponent(customToken)}`;
 
       logger.info(`[bioo] editor session handle=${handle} email=${email}`);
