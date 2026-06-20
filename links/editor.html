@@ -143,6 +143,15 @@
   .wiz-ava{display:flex;flex-direction:column;align-items:center;gap:13px;margin-bottom:18px;}
   .wiz-ava img{width:100px;height:100px;border-radius:50%;object-fit:cover;border:3px solid #fff;background:var(--field);box-shadow:0 8px 22px rgba(21,36,11,.16);}
   .wiz-skip{margin-top:4px;}
+  .wiz-step.no-anim{animation:none;}
+  .wiz-added-list{display:flex;flex-direction:column;gap:8px;margin-bottom:16px;}
+  .wiz-added{display:flex;align-items:center;gap:8px;background:var(--field);border:1px solid var(--line);border-radius:11px;padding:9px 10px 9px 13px;text-align:left;}
+  .wiz-added .wa-t{font-size:13px;font-weight:800;color:var(--green-d);flex:none;}
+  .wiz-added .wa-v{font-size:13px;color:var(--soft);font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .wiz-added .wa-x{flex:none;width:26px;height:26px;border:0;border-radius:7px;background:#fff;color:#a3220f;cursor:pointer;font-size:12px;font-weight:800;}
+  .wiz-added .wa-x:hover{background:#fde8e4;}
+  .wiz-addmore{width:100%;border:1.5px dashed var(--line);background:transparent;color:var(--green-d);font-size:13.5px;font-weight:800;padding:12px;border-radius:12px;cursor:pointer;margin:0 0 6px;transition:.14s;font-family:inherit;}
+  .wiz-addmore:hover{border-color:var(--green);background:var(--field);}
   label{display:block;font-size:12.5px;font-weight:700;color:#41513e;margin:12px 0 6px;}
   label:first-of-type{margin-top:0;}
   input,textarea{width:100%;background:var(--field);border:1px solid var(--line);border-radius:10px;padding:12px 14px;color:var(--ink);font-size:14.5px;font-weight:600;outline:0;font-family:inherit;}
@@ -959,12 +968,13 @@
     // Aparece sobre el editor la primera vez que la página está vacía. Completa
     // lo más importante en pasos y aplica todo al editor al terminar.
     var WIZ_KEY = 'bioo_onboarded';
-    var _wiz = { titulo:'', subtitulo:'', avatar:'', linkTipo:'whatsapp', linkVal:'', prefijo:'56' };
+    var _wiz = { titulo:'', subtitulo:'', avatar:'', linkTipo:'whatsapp', linkVal:'', prefijo:'56', links:[] };
     var _wizStep = 0;
     function maybeOnboard(){
       try { if (localStorage.getItem(WIZ_KEY)) return; } catch(e){}
       if (state.bloques.length || (state.perfil.titulo||'').trim()) return;   // ya tiene contenido
       _wiz.titulo = state.perfil.titulo||''; _wiz.subtitulo = state.perfil.subtitulo||''; _wiz.avatar = state.perfil.avatar||'';
+      _wiz.links = []; _wiz.linkVal = ''; _wiz.linkTipo = 'whatsapp';
       _wizStep = 0; var w=$('wizard'); if(!w) return; w.hidden=false; renderWiz();
     }
     function wizDone(){ try { localStorage.setItem(WIZ_KEY,'1'); } catch(e){} var w=$('wizard'); if(w) w.hidden=true; }
@@ -977,7 +987,7 @@
       var b=$('wizSub'); if(b) _wiz.subtitulo=b.value;
       var c=$('wizLinkVal'); if(c) _wiz.linkVal=c.value;
     }
-    function renderWiz(){
+    function renderWiz(animate){
       var body=$('wizBody'); if(!body) return; var s=_wizStep, html='';
       if (s>0){ html+='<div class="wiz-prog">'; for(var i=1;i<=5;i++){ html+='<span class="wiz-dot'+(i<=s?' on':'')+'"></span>'; } html+='</div>'; }
       if (s===0){
@@ -996,16 +1006,22 @@
           '<div class="wiz-ava"><img id="wizAvaPrev" src="'+(_wiz.avatar?av(_wiz.avatar):IMGPH)+'" alt=""><button type="button" class="wiz-btn sm" id="wizAvaBtn"><svg class="bi bi-sm" viewBox="0 0 24 24"><path d="M4 8a2 2 0 0 1 2-2h1.5l1-1.5h7l1 1.5H18a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><circle cx="12" cy="12.5" r="3.2"/></svg>Subir imagen</button></div>'+wizNav(true);
       } else if (s===4){
         var tipos=[['whatsapp','WhatsApp'],['instagram','Instagram'],['enlace','Sitio web'],['tiktok','TikTok']];
-        html += '<h2 class="wiz-h">Tu primer enlace</h2><p class="wiz-p">El más importante para quien te visita.</p>'+
+        var added=(_wiz.links||[]).map(function(l,idx){
+          return '<div class="wiz-added"><span class="wa-t">'+escHtml(TIPOS[l.tipo]?TIPOS[l.tipo].name:l.tipo)+'</span><span class="wa-v">'+escHtml(l.val)+'</span><button type="button" class="wa-x" data-rm="'+idx+'" aria-label="Quitar">✕</button></div>';
+        }).join('');
+        html += '<h2 class="wiz-h">Tus enlaces</h2><p class="wiz-p">Agrega los más importantes para quien te visita.</p>'+
+          (added?('<div class="wiz-added-list">'+added+'</div>'):'')+
           '<div class="wiz-chips" id="wizTipos">'+tipos.map(function(tp){ return '<button type="button" class="wiz-chip'+(_wiz.linkTipo===tp[0]?' on':'')+'" data-tp="'+tp[0]+'">'+tp[1]+'</button>'; }).join('')+'</div>'+
-          '<input class="wiz-input" id="wizLinkVal" placeholder="'+wizPh(_wiz.linkTipo)+'" value="'+av(_wiz.linkVal)+'">'+wizNav(true);
+          '<input class="wiz-input" id="wizLinkVal" placeholder="'+wizPh(_wiz.linkTipo)+'" value="'+av(_wiz.linkVal)+'">'+
+          '<button type="button" class="wiz-addmore" id="wizAddMore">+ Agregar otro enlace</button>'+
+          wizNav(true);
       } else if (s===5){
         html += '<div class="wiz-badge">🎉</div><h2 class="wiz-h">¡Tu <b>bioo</b> está listo!</h2>'+
           '<p class="wiz-p">Cargamos lo que completaste en el editor. Personaliza lo que quieras y pulsa <b>Guardar</b>.</p>'+
           '<button class="wiz-btn primary" data-wiz="finish">Ir a mi editor</button>'+
           '<button class="wiz-btn ghost" data-wiz="back">Atrás</button>';
       }
-      body.innerHTML='<div class="wiz-step">'+html+'</div>'; wireWiz();
+      body.innerHTML='<div class="wiz-step'+(animate===false?' no-anim':'')+'">'+html+'</div>'; wireWiz();
     }
     function wireWiz(){
       var ti=$('wizTitulo'); if(ti) ti.addEventListener('input', function(){ _wiz.titulo=ti.value; });
@@ -1017,6 +1033,17 @@
         var lvi=$('wizLinkVal'); if(lvi){ lvi.value=''; lvi.placeholder=wizPh(_wiz.linkTipo); }   // actualiza en sitio (sin re-render → sin parpadeo)
       });
       var ab=$('wizAvaBtn'); if(ab) ab.addEventListener('click', function(){ $('wizAvatarFile').click(); });
+      var am=$('wizAddMore'); if(am) am.addEventListener('click', function(){
+        wizSave();
+        if (!(_wiz.linkVal||'').trim()){ var lvi=$('wizLinkVal'); if(lvi) lvi.focus(); return; }
+        _wiz.links.push({ tipo:_wiz.linkTipo, val:_wiz.linkVal.trim() });
+        _wiz.linkVal='';
+        renderWiz(false);   // sin animación → sin parpadeo
+        var f=$('wizLinkVal'); if(f) f.focus();
+      });
+      Array.prototype.forEach.call($('wizBody').querySelectorAll('[data-rm]'), function(x){
+        x.addEventListener('click', function(){ var idx=+x.getAttribute('data-rm'); wizSave(); _wiz.links.splice(idx,1); renderWiz(false); });
+      });
       Array.prototype.forEach.call($('wizBody').querySelectorAll('[data-wiz]'), function(btn){
         btn.addEventListener('click', function(){
           var act=btn.getAttribute('data-wiz');
@@ -1027,18 +1054,21 @@
         });
       });
     }
+    function wizMakeLink(tp, val){
+      var b={ id:'l'+Date.now()+'_'+Math.floor(Math.random()*1e6), tipo:tp, label:(TIPOS[tp]?TIPOS[tp].label:''), activo:true };
+      if (tp==='whatsapp'){ b.prefijo='56'; b.telefono=String(val).trim(); }
+      else if (tp==='instagram'||tp==='tiktok'){ b.usuario=cleanUser(val); }
+      else { b.url=String(val).trim(); }
+      b.url=computeUrl(b);
+      return b;
+    }
     function wizFinish(){
       if ((_wiz.titulo||'').trim())    state.perfil.titulo = _wiz.titulo.trim();
       if ((_wiz.subtitulo||'').trim()) state.perfil.subtitulo = _wiz.subtitulo.trim();
       if (_wiz.avatar)                 state.perfil.avatar = _wiz.avatar;
-      if ((_wiz.linkVal||'').trim()){
-        var tp=_wiz.linkTipo, b={ id:'l'+Date.now()+Math.floor(Math.random()*1000), tipo:tp, label:(TIPOS[tp]?TIPOS[tp].label:''), activo:true };
-        if (tp==='whatsapp'){ b.prefijo=onlyDigits(_wiz.prefijo)||'56'; b.telefono=_wiz.linkVal.trim(); }
-        else if (tp==='instagram'||tp==='tiktok'){ b.usuario=cleanUser(_wiz.linkVal); }
-        else { b.url=_wiz.linkVal.trim(); }
-        b.url=computeUrl(b);
-        state.bloques.push(b);
-      }
+      var all = (_wiz.links||[]).slice();
+      if ((_wiz.linkVal||'').trim()) all.push({ tipo:_wiz.linkTipo, val:_wiz.linkVal.trim() });
+      all.forEach(function(l){ if((l.val||'').trim()) state.bloques.push(wizMakeLink(l.tipo, l.val)); });
       $('titulo').value=state.perfil.titulo||''; $('subtitulo').value=state.perfil.subtitulo||''; $('avatar').value=state.perfil.avatar||'';
       paintAvatar(); renderLinks(); renderAppearance(); renderPreview(); persistDraft();
       wizDone(); confetti(); toast('¡Listo! Revisa tu página y pulsa Guardar ✓');
