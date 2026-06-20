@@ -394,6 +394,23 @@
     .preview-head{color:#fff;}
     .preview-close{display:inline-flex;}
     .phone{height:min(698px, calc(100dvh - 100px));}
+    /* ── Optimización fina para teléfono ── */
+    input,textarea,select,.wiz-input,.coll-search,.soc-net{font-size:16px;}   /* evita el zoom automático de iOS al enfocar */
+    .main-top{padding:11px 14px;gap:8px;}
+    .pub-mini{min-width:0;flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .preview-toggle,#shareTop{font-size:0;gap:0;padding:10px 11px;}   /* solo ícono en móvil para ahorrar espacio */
+    .preview-toggle .bi-sm,#shareTop .bi-sm{width:18px;height:18px;}
+    .ghost{padding:10px 13px;}
+    .save{padding:11px 16px;}
+    .sec-title{font-size:22px;}
+    .acc-body{padding:15px 15px 17px;}
+    .acc-h{padding:14px 15px;}
+    .card{padding:16px;}
+    .opt{min-width:0;padding:12px 6px;}                                /* 3 opciones siempre caben */
+    .theme-grid{grid-template-columns:repeat(auto-fill,minmax(76px,1fr));}
+    .share-net{grid-template-columns:repeat(2,1fr);}
+    .txt-colors{flex-wrap:wrap;}
+    .wiz-card{max-width:none;border-radius:24px;}
   }
 </style>
 </head>
