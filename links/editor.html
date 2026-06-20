@@ -31,7 +31,12 @@
   .nav-item{display:flex;align-items:center;gap:11px;padding:11px 12px;border-radius:11px;border:0;background:transparent;color:var(--soft);font-size:14px;font-weight:700;cursor:pointer;text-align:left;width:100%;transition:.12s;}
   .nav-item:hover{background:var(--field);color:var(--ink);}
   .nav-item.active{background:var(--green);color:var(--ink);}
-  .nav-item .ic{font-size:16px;width:20px;text-align:center;}
+  .nav-item .ic{width:22px;height:22px;display:grid;place-items:center;flex:none;}
+  /* Íconos bioo: trazo consistente, color heredado (currentColor) */
+  .bi{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;display:block;}
+  .bi-dot{fill:currentColor;stroke:none;}
+  .bi-sm{width:16px;height:16px;flex:none;}
+  .ava-btn,.share-cta,.wiz-btn.sm,#previewToggle,#shareTop{display:inline-flex;align-items:center;justify-content:center;gap:7px;}
   .side-foot{margin-top:auto;font-size:11px;color:var(--soft);padding:10px 8px 2px;}
   .side-made{font-size:10.5px;color:var(--soft);padding:3px 8px 6px;opacity:.85;}
   @media (min-width:921px){
@@ -71,7 +76,8 @@
   .acc-h{list-style:none;display:flex;align-items:center;gap:12px;padding:15px 18px;cursor:pointer;font-size:14.5px;font-weight:800;color:var(--ink);user-select:none;-webkit-tap-highlight-color:transparent;transition:background .12s;}
   .acc-h::-webkit-details-marker{display:none;}
   .acc-h:hover{background:var(--field);}
-  .acc-ic{font-size:17px;line-height:1;width:22px;text-align:center;}
+  .acc-ic{width:24px;height:24px;display:grid;place-items:center;color:#5a9a1e;flex:none;}
+  .acc-ic .bi{width:20px;height:20px;}
   .acc-t{flex:1;}
   .acc-cv{color:var(--soft);font-size:12px;transition:transform .22s ease;}
   .acc[open] .acc-cv{transform:rotate(180deg);}
@@ -394,11 +400,11 @@
         <button class="sb-toggle" id="sbToggle" type="button" title="Contraer menú" aria-label="Contraer menú">«</button>
       </div>
       <nav class="nav" id="nav">
-        <button class="nav-item active" data-sec="enlaces" title="Enlaces"><span class="ic">🔗</span><span class="lbl">Enlaces</span></button>
-        <button class="nav-item" data-sec="perfil" title="Perfil"><span class="ic">👤</span><span class="lbl">Perfil</span></button>
-        <button class="nav-item" data-sec="apariencia" title="Apariencia"><span class="ic">🎨</span><span class="lbl">Apariencia</span></button>
-        <button class="nav-item" data-sec="analitica" title="Analítica"><span class="ic">📊</span><span class="lbl">Analítica</span></button>
-        <button class="nav-item" data-sec="compartir" title="Compartir"><span class="ic">📤</span><span class="lbl">Compartir</span></button>
+        <button class="nav-item active" data-sec="enlaces" title="Enlaces"><span class="ic"><svg class="bi" viewBox="0 0 24 24"><path d="M9 13a5 5 0 0 0 7.5.5l2.5-2.5a5 5 0 0 0-7-7L10.5 5.5"/><path d="M15 11a5 5 0 0 0-7.5-.5L5 13a5 5 0 0 0 7 7l1.5-1.5"/></svg></span><span class="lbl">Enlaces</span></button>
+        <button class="nav-item" data-sec="perfil" title="Perfil"><span class="ic"><svg class="bi" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M5 21a7 7 0 0 1 14 0"/></svg></span><span class="lbl">Perfil</span></button>
+        <button class="nav-item" data-sec="apariencia" title="Apariencia"><span class="ic"><svg class="bi" viewBox="0 0 24 24"><path d="M12 3l1.9 4.3L18 9l-4.1 1.7L12 15l-1.9-4.3L6 9l4.1-1.7z"/><path d="M18.5 14l.9 2 2 .9-2 .9-.9 2-.9-2-2-.9 2-.9z"/></svg></span><span class="lbl">Apariencia</span></button>
+        <button class="nav-item" data-sec="analitica" title="Analítica"><span class="ic"><svg class="bi" viewBox="0 0 24 24"><path d="M4 4v16h16"/><path d="M8 16v-5M13 16V7M18 16v-3"/></svg></span><span class="lbl">Analítica</span></button>
+        <button class="nav-item" data-sec="compartir" title="Compartir"><span class="ic"><svg class="bi" viewBox="0 0 24 24"><circle cx="18" cy="5" r="2.6"/><circle cx="6" cy="12" r="2.6"/><circle cx="18" cy="19" r="2.6"/><path d="m8.3 10.7 7.4-4.4M8.3 13.3l7.4 4.4"/></svg></span><span class="lbl">Compartir</span></button>
       </nav>
       <div class="side-foot">Tu página: <a id="footLink" target="_blank" rel="noopener">bioo.cl/…</a></div>
       <div class="side-made">Hecho con <span style="color:#e23b3b;">♥</span> en Chile 🇨🇱</div>
@@ -408,8 +414,8 @@
     <main class="main">
       <div class="main-top">
         <span class="pub-mini" id="pubLink">bioo.cl/…</span>
-        <button class="ghost preview-toggle" id="previewToggle" type="button">👁 Vista</button>
-        <button class="ghost" id="shareTop" type="button">📤 Compartir</button>
+        <button class="ghost preview-toggle" id="previewToggle" type="button"><svg class="bi bi-sm" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>Vista</button>
+        <button class="ghost" id="shareTop" type="button"><svg class="bi bi-sm" viewBox="0 0 24 24"><circle cx="18" cy="5" r="2.4"/><circle cx="6" cy="12" r="2.4"/><circle cx="18" cy="19" r="2.4"/><path d="m8.3 10.8 7.4-4.4M8.3 13.2l7.4 4.4"/></svg>Compartir</button>
         <a class="ghost" id="logout">Salir</a>
         <button class="save" id="saveBtn">Guardar</button>
       </div>
@@ -431,7 +437,7 @@
             <label>Portada (opcional)</label>
             <div class="cover-prev" id="coverPrev"></div>
             <div class="ava-actions" style="margin-top:10px;">
-              <button type="button" class="ava-btn" id="coverBtn">🖼️ Subir portada</button>
+              <button type="button" class="ava-btn" id="coverBtn"><svg class="bi bi-sm" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="m21 15-5-5L5 21"/></svg>Subir portada</button>
               <button type="button" class="ava-btn ghosty" id="coverRemove">Quitar</button>
             </div>
             <input id="coverFile" type="file" accept="image/*" hidden />
@@ -444,7 +450,7 @@
               <div style="flex:1;">
                 <label>Foto de perfil</label>
                 <div class="ava-actions">
-                  <button type="button" class="ava-btn" id="uploadBtn">📷 Subir foto</button>
+                  <button type="button" class="ava-btn" id="uploadBtn"><svg class="bi bi-sm" viewBox="0 0 24 24"><path d="M4 8a2 2 0 0 1 2-2h1.5l1-1.5h7l1 1.5H18a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><circle cx="12" cy="12.5" r="3.2"/></svg>Subir foto</button>
                   <button type="button" class="ava-btn ghosty" id="removeAvatarBtn">Usar inicial</button>
                   <button type="button" class="ava-btn ghosty" id="urlToggle">Pegar enlace</button>
                 </div>
@@ -472,7 +478,7 @@
           <h1 class="sec-title">Apariencia</h1>
           <p class="sec-lead">Elige un tema y el estilo de tus botones. Se ve al instante en el visor.</p>
           <details class="acc" open>
-            <summary class="acc-h"><span class="acc-ic">🎨</span><span class="acc-t">Tema</span><span class="acc-sel" id="hintTema"></span><span class="acc-cv">▾</span></summary>
+            <summary class="acc-h"><span class="acc-ic"><svg class="bi" viewBox="0 0 24 24"><path d="M12 3.5c3 3.2 5.5 6.4 5.5 9.5a5.5 5.5 0 0 1-11 0c0-3.1 2.5-6.3 5.5-9.5z"/></svg></span><span class="acc-t">Tema</span><span class="acc-sel" id="hintTema"></span><span class="acc-cv">▾</span></summary>
             <div class="acc-body">
               <div class="coll-tools">
                 <input class="coll-search" id="themeSearch" type="text" placeholder="Buscar tema…" />
@@ -482,7 +488,7 @@
             </div>
           </details>
           <details class="acc">
-            <summary class="acc-h"><span class="acc-ic">🖼️</span><span class="acc-t">Fondo</span><span class="acc-sel" id="hintFondo"></span><span class="acc-cv">▾</span></summary>
+            <summary class="acc-h"><span class="acc-ic"><svg class="bi" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2.5"/><circle cx="8.5" cy="9.5" r="1.6"/><path d="m21 15-5-5L5 21"/></svg></span><span class="acc-t">Fondo</span><span class="acc-sel" id="hintFondo"></span><span class="acc-cv">▾</span></summary>
             <div class="acc-body">
               <div class="opt-row" id="bgModeRow"></div>
               <div id="bgColorWrap" style="display:none;margin-top:10px;"><label>Color de fondo</label><div class="cc"><input type="color" id="bgColor" /></div></div>
@@ -494,7 +500,7 @@
               </div>
               <div id="bgImgWrap" style="display:none;margin-top:10px;">
                 <input type="file" id="bgImgFile" accept="image/*" hidden />
-                <div class="ava-actions"><button type="button" class="ava-btn" id="bgImgBtn">📷 Subir imagen</button><button type="button" class="ava-btn ghosty" id="bgImgClear">Quitar</button></div>
+                <div class="ava-actions"><button type="button" class="ava-btn" id="bgImgBtn"><svg class="bi bi-sm" viewBox="0 0 24 24"><path d="M4 8a2 2 0 0 1 2-2h1.5l1-1.5h7l1 1.5H18a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><circle cx="12" cy="12.5" r="3.2"/></svg>Subir imagen</button><button type="button" class="ava-btn ghosty" id="bgImgClear">Quitar</button></div>
                 <label style="margin-top:12px;">O elige un fondo listo</label>
                 <div id="bgPresetRow" class="bg-preset-row scroll-box"></div>
                 <div class="help">Se usa como fondo (cover). Recomendado: imagen vertical.</div>
@@ -507,7 +513,7 @@
             </div>
           </details>
           <details class="acc">
-            <summary class="acc-h"><span class="acc-ic">🔘</span><span class="acc-t">Botones</span><span class="acc-sel" id="hintBotones"></span><span class="acc-cv">▾</span></summary>
+            <summary class="acc-h"><span class="acc-ic"><svg class="bi" viewBox="0 0 24 24"><rect x="3" y="8.5" width="18" height="7" rx="3.5"/><path d="M7 12h6"/></svg></span><span class="acc-t">Botones</span><span class="acc-sel" id="hintBotones"></span><span class="acc-cv">▾</span></summary>
             <div class="acc-body">
               <label>Forma</label>
               <div class="opt-row" id="shapeRow"></div>
@@ -520,7 +526,7 @@
             </div>
           </details>
           <details class="acc">
-            <summary class="acc-h"><span class="acc-ic">👤</span><span class="acc-t">Avatar</span><span class="acc-sel" id="hintAvatar"></span><span class="acc-cv">▾</span></summary>
+            <summary class="acc-h"><span class="acc-ic"><svg class="bi" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M5 21a7 7 0 0 1 14 0"/></svg></span><span class="acc-t">Avatar</span><span class="acc-sel" id="hintAvatar"></span><span class="acc-cv">▾</span></summary>
             <div class="acc-body">
               <label>Forma</label>
               <div class="opt-row" id="avShapeRow"></div>
@@ -529,7 +535,7 @@
             </div>
           </details>
           <details class="acc">
-            <summary class="acc-h"><span class="acc-ic">🔤</span><span class="acc-t">Texto</span><span class="acc-sel" id="hintTexto"></span><span class="acc-cv">▾</span></summary>
+            <summary class="acc-h"><span class="acc-ic"><svg class="bi" viewBox="0 0 24 24"><path d="M5 7V5h14v2M12 5v14M9 19h6"/></svg></span><span class="acc-t">Texto</span><span class="acc-sel" id="hintTexto"></span><span class="acc-cv">▾</span></summary>
             <div class="acc-body">
               <label>Fuente</label>
               <div class="font-picker" id="fontPicker">
@@ -576,7 +582,7 @@
           <h1 class="sec-title">Compartir</h1>
           <p class="sec-lead">Comparte tu página y úsala en tu bio de Instagram, TikTok y más.</p>
           <div class="card">
-            <button class="share-cta" id="shareNative" type="button">📤 Compartir mi bioo</button>
+            <button class="share-cta" id="shareNative" type="button"><svg class="bi bi-sm" viewBox="0 0 24 24"><circle cx="18" cy="5" r="2.4"/><circle cx="6" cy="12" r="2.4"/><circle cx="18" cy="19" r="2.4"/><path d="m8.3 10.8 7.4-4.4M8.3 13.2l7.4 4.4"/></svg>Compartir mi bioo</button>
             <div class="share-net">
               <a class="snet wa" id="snWhatsapp" target="_blank" rel="noopener">WhatsApp</a>
               <a class="snet tg" id="snTelegram" target="_blank" rel="noopener">Telegram</a>
@@ -987,7 +993,7 @@
           '<input class="wiz-input" id="wizSub" maxlength="80" placeholder="Ej: Recibe beneficios en cada compra" value="'+av(_wiz.subtitulo)+'">'+wizNav(true);
       } else if (s===3){
         html += '<h2 class="wiz-h">Tu logo o foto</h2><p class="wiz-p">Se muestra arriba de tu página (opcional).</p>'+
-          '<div class="wiz-ava"><img id="wizAvaPrev" src="'+(_wiz.avatar?av(_wiz.avatar):IMGPH)+'" alt=""><button type="button" class="wiz-btn sm" id="wizAvaBtn">📷 Subir imagen</button></div>'+wizNav(true);
+          '<div class="wiz-ava"><img id="wizAvaPrev" src="'+(_wiz.avatar?av(_wiz.avatar):IMGPH)+'" alt=""><button type="button" class="wiz-btn sm" id="wizAvaBtn"><svg class="bi bi-sm" viewBox="0 0 24 24"><path d="M4 8a2 2 0 0 1 2-2h1.5l1-1.5h7l1 1.5H18a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><circle cx="12" cy="12.5" r="3.2"/></svg>Subir imagen</button></div>'+wizNav(true);
       } else if (s===4){
         var tipos=[['whatsapp','WhatsApp'],['instagram','Instagram'],['enlace','Sitio web'],['tiktok','TikTok']];
         html += '<h2 class="wiz-h">Tu primer enlace</h2><p class="wiz-p">El más importante para quien te visita.</p>'+
@@ -1122,7 +1128,7 @@
       var t = b.tipo;
       if (t==='separador') return '<div class="lk-note">Línea divisoria — separa secciones de tu página.</div>';
       if (t==='texto') return '<textarea data-f="texto" rows="2" placeholder="Escribe un título o un texto">'+escHtml(b.texto||'')+'</textarea>';
-      if (t==='imagen') return '<div class="lk-imgrow"><img class="lk-imgprev" src="'+(b.img?av(b.img):IMGPH)+'" alt=""><button type="button" class="ava-btn lk-imgbtn">Subir imagen</button></div><input data-f="url" placeholder="Link al tocar (opcional) https://…" value="'+av(b.url)+'">';
+      if (t==='imagen') return '<div class="lk-imgrow"><img class="lk-imgprev" src="'+(b.img?av(b.img):IMGPH)+'" alt=""><button type="button" class="ava-btn lk-imgbtn"><svg class="bi bi-sm" viewBox="0 0 24 24"><path d="M4 8a2 2 0 0 1 2-2h1.5l1-1.5h7l1 1.5H18a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><circle cx="12" cy="12.5" r="3.2"/></svg>Subir imagen</button></div><input data-f="url" placeholder="Link al tocar (opcional) https://…" value="'+av(b.url)+'">';
       if (t==='embed') return '<input data-f="url" placeholder="Pega el link de YouTube o Spotify" value="'+av(b.url)+'">';
       if (t==='social'){
         var socs=b.socials||[];
@@ -1139,7 +1145,7 @@
         '<div class="lk-row"><span class="lk-at">@</span><input data-f="usuario" placeholder="tuusuario" value="'+av(b.usuario)+'"></div>';
       if (t==='email') return lbl + '<input data-f="email" type="email" placeholder="tu@correo.com" value="'+av(b.email)+'">';
       if (t==='enlace') return lbl + '<input data-f="url" placeholder="https://…" value="'+av(b.url)+'">' +
-        '<div class="lk-imgrow"><img class="lk-imgprev" src="'+(b.thumb?av(b.thumb):IMGPH)+'" alt=""><button type="button" class="ava-btn lk-thumbbtn">'+(b.thumb?'Cambiar miniatura':'Miniatura (opcional)')+'</button>'+(b.thumb?'<button type="button" class="ava-btn ghosty lk-thumbclear">Quitar</button>':'')+'</div>';
+        '<div class="lk-imgrow"><img class="lk-imgprev" src="'+(b.thumb?av(b.thumb):IMGPH)+'" alt=""><button type="button" class="ava-btn lk-thumbbtn"><svg class="bi bi-sm" viewBox="0 0 24 24"><path d="M4 8a2 2 0 0 1 2-2h1.5l1-1.5h7l1 1.5H18a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><circle cx="12" cy="12.5" r="3.2"/></svg>'+(b.thumb?'Cambiar miniatura':'Miniatura (opcional)')+'</button>'+(b.thumb?'<button type="button" class="ava-btn ghosty lk-thumbclear">Quitar</button>':'')+'</div>';
       return lbl + '<input data-f="url" placeholder="https://…" value="'+av(b.url)+'">';   // youtube y otros
     }
 
