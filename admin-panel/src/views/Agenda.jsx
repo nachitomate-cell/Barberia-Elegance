@@ -2142,6 +2142,7 @@ export default function Agenda() {
   const [slotMins,      setSlotMins]      = useState(() => Number(localStorage.getItem(SLOT_KEY)) || 30);
   const [hourStart,     setHourStart]     = useState(8);
   const [hourEnd,       setHourEnd]       = useState(20);
+  const [cfgHorario,    setCfgHorario]    = useState(null);  // { horarioInicio, horarioFin, diasConfig } para rango por día
   const [date,          setDate]          = useState(new Date());
   const [showHelp,      setShowHelp]      = useState(false);
   const [hasNewCita,    setHasNewCita]    = useState(false);
@@ -2211,17 +2212,29 @@ export default function Agenda() {
         if (!snap.exists()) return;
         const data = snap.data();
         if (data.intervaloMinutos) { setSlotMins(data.intervaloMinutos); setLabelStep(data.intervaloMinutos); try { localStorage.setItem(SLOT_KEY, String(data.intervaloMinutos)); } catch { /* noop */ } }
-        if (data.horarioInicio) {
-          const [h] = data.horarioInicio.split(':').map(Number);
-          setHourStart(h);
-        }
-        if (data.horarioFin) {
-          const [h, m] = data.horarioFin.split(':').map(Number);
-          setHourEnd(m > 0 ? h + 1 : h);
-        }
+        // Guardamos el horario completo; el rango visible se calcula POR DÍA (abajo),
+        // respetando diasConfig (cada día puede cerrar a una hora distinta).
+        setCfgHorario({ horarioInicio: data.horarioInicio, horarioFin: data.horarioFin, diasConfig: data.diasConfig || null });
       })
       .catch(() => {});
   }, []);
+
+  // Rango de horas visible según el horario del DÍA seleccionado (respeta diasConfig).
+  // Sin esto, la agenda usaba un horarioFin global (el del primer día activo) para
+  // todos los días, recortando p. ej. el viernes que cierra más tarde.
+  useEffect(() => {
+    const c = cfgHorario; if (!c) return;
+    const dow = date.getDay();                         // 0=Dom … 6=Sáb
+    const dc = c.diasConfig || {};
+    const day = dc[dow] ?? dc[String(dow)] ?? null;
+    const ini = (day && day.inicio) || c.horarioInicio || '08:00';
+    const fin = (day && day.fin)    || c.horarioFin    || '20:00';
+    const hi = parseInt(String(ini).split(':')[0], 10);
+    const fp = String(fin).split(':').map(Number);
+    const hf = fp[0], mf = fp[1] || 0;
+    setHourStart(Number.isFinite(hi) ? hi : 8);
+    setHourEnd(Number.isFinite(hf) ? (mf > 0 ? hf + 1 : hf) : 20);
+  }, [cfgHorario, date]);
 
   const slotCfg = useMemo(() => buildSlotCfg(slotMins, hourStart, hourEnd), [slotMins, hourStart, hourEnd]);
   const { totalSlots, timeLabels } = slotCfg;
