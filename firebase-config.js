@@ -1,18 +1,17 @@
 // firebase-config.js — Configuración compartida de Firebase
 // Requiere que los scripts compat de Firebase estén cargados ANTES de este archivo.
 
-// Auth same-origin por dominio: en producción servimos el handler de Google desde el
-// PROPIO dominio del tenant/bioo (proxy en vercel.json a /__/auth/* y /__/firebase/*).
-// Esto evita el bloqueo de almacenamiento de terceros (storage partitioning) que rompe
-// signInWithRedirect/popup de Google dentro de las PWA instaladas. En localhost/preview
-// usamos el authDomain por defecto de Firebase.
-// Requisito: cada dominio debe estar en Firebase → Authentication → Authorized domains.
+// Auth same-origin OPT-IN por dominio (evita el storage partitioning que rompe Google
+// login en las PWA). Un dominio solo puede ir aquí DESPUÉS de configurar en la consola:
+//   1) Firebase → Authentication → Authorized domains: agregar el dominio.
+//   2) Google Cloud → Credentials → OAuth Web Client → Authorized redirect URIs:
+//      agregar  https://<dominio>/__/auth/handler   (si no: error redirect_uri_mismatch).
+//   3) El proxy /__/auth y /__/firebase ya está en vercel.json.
+// Mientras un dominio NO esté aquí, usa el authDomain por defecto de Firebase (sin riesgo).
+var SAME_ORIGIN_AUTH_DOMAINS = [];   // p.ej. luego: 'bioo.cl'
 const _authDomain = (function () {
-  try {
-    var h = location.hostname || '';
-    if (!h || h === 'localhost' || /^127\./.test(h) || /\.vercel\.app$/i.test(h)) return 'barberia-elegance.firebaseapp.com';
-    return h;   // dominio propio → handler same-origin vía proxy /__/auth
-  } catch (e) { return 'barberia-elegance.firebaseapp.com'; }
+  try { var h = location.hostname || ''; if (SAME_ORIGIN_AUTH_DOMAINS.indexOf(h) >= 0) return h; } catch (e) {}
+  return 'barberia-elegance.firebaseapp.com';
 })();
 const firebaseConfig = {
   apiKey: "AIzaSyDqVkAhkXALm3hLcrmzjiaS3flUezPFe2Q",
