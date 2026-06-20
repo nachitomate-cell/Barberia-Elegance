@@ -1041,7 +1041,36 @@
       }
       $('titulo').value=state.perfil.titulo||''; $('subtitulo').value=state.perfil.subtitulo||''; $('avatar').value=state.perfil.avatar||'';
       paintAvatar(); renderLinks(); renderAppearance(); renderPreview(); persistDraft();
-      wizDone(); toast('¡Listo! Revisa tu página y pulsa Guardar ✓');
+      wizDone(); confetti(); toast('¡Listo! Revisa tu página y pulsa Guardar ✓');
+    }
+    // Confeti de celebración (canvas, sin librerías) con colores de bioo.
+    function confetti(){
+      try {
+        var cv=document.createElement('canvas');
+        cv.style.cssText='position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:200;';
+        document.body.appendChild(cv);
+        var ctx=cv.getContext('2d'), W=cv.width=window.innerWidth, H=cv.height=window.innerHeight;
+        var COL=['#92c83a','#a3d94a','#74b32b','#2c5a17','#d2f34c','#ffffff','#5a9a1e'];
+        var P=[];
+        for(var i=0;i<150;i++){
+          P.push({ x:Math.random()*W, y:-20-Math.random()*H*0.35, w:6+Math.random()*7, h:9+Math.random()*8,
+            c:COL[i%COL.length], vy:2.6+Math.random()*3.6, vx:-1.6+Math.random()*3.2,
+            rot:Math.random()*6.28, vr:-0.22+Math.random()*0.44, sway:Math.random()*6.28 });
+        }
+        var start=null, DUR=2900;
+        (function frame(ts){
+          if(start===null) start=ts; var t=ts-start;
+          ctx.clearRect(0,0,W,H);
+          for(var i=0;i<P.length;i++){ var p=P[i];
+            p.sway+=0.05; p.x+=p.vx+Math.sin(p.sway)*0.8; p.y+=p.vy; p.rot+=p.vr;
+            ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.rot);
+            ctx.globalAlpha = t>DUR-700 ? Math.max(0,(DUR-t)/700) : 1;
+            ctx.fillStyle=p.c; ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);
+            ctx.restore();
+          }
+          if(t<DUR && document.body.contains(cv)) requestAnimationFrame(frame); else cv.remove();
+        })();
+      } catch(e){}
     }
 
     function paintAvatar(){
