@@ -82,6 +82,21 @@
   .scroll-box::-webkit-scrollbar{width:8px;}
   .scroll-box::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px;}
   .scroll-box::-webkit-scrollbar-track{background:transparent;}
+  .acc-sel{color:var(--green-d);font-size:12.5px;font-weight:700;max-width:45%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .coll-tools{margin-bottom:12px;}
+  .coll-search{width:100%;background:var(--field);border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:13.5px;font-weight:600;color:var(--ink);outline:0;}
+  .coll-search:focus{border-color:var(--green);background:#fff;}
+  .coll-cats{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;}
+  .coll-chip{border:1px solid var(--line);background:#fff;color:var(--soft);font-size:12px;font-weight:700;padding:5px 11px;border-radius:100px;cursor:pointer;transition:.12s;}
+  .coll-chip:hover{border-color:var(--green);color:var(--ink);}
+  .coll-chip.on{background:var(--green);border-color:var(--green);color:#15240b;}
+  .coll-more{grid-column:1/-1;width:100%;border:1px dashed var(--line);background:transparent;color:var(--green-d);font-size:13px;font-weight:800;padding:10px;border-radius:10px;cursor:pointer;margin-top:4px;}
+  .coll-more:hover{border-color:var(--green);background:var(--field);}
+  .coll-empty{grid-column:1/-1;text-align:center;color:var(--soft);font-size:13px;font-weight:600;padding:18px 0;}
+  .fm-tools{padding:8px 8px 8px;position:sticky;top:0;background:#fff;z-index:1;border-bottom:1px solid var(--line);}
+  .fm-tools .coll-search{padding:7px 10px;font-size:13px;}
+  .fm-tools .coll-cats{margin-top:7px;}
+  .fm-list{padding:4px;}
   label{display:block;font-size:12.5px;font-weight:700;color:#41513e;margin:12px 0 6px;}
   label:first-of-type{margin-top:0;}
   input,textarea{width:100%;background:var(--field);border:1px solid var(--line);border-radius:10px;padding:12px 14px;color:var(--ink);font-size:14.5px;font-weight:600;outline:0;font-family:inherit;}
@@ -163,7 +178,7 @@
   .font-picker.open .font-trigger{border-color:var(--green);background:#fff;}
   .fp-caret{color:var(--soft);font-size:11px;transition:.15s;flex:none;}
   .font-picker.open .fp-caret{transform:rotate(180deg);}
-  .font-menu{display:none;position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:20;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 30px rgba(21,36,11,.16);padding:6px;max-height:300px;overflow-y:auto;}
+  .font-menu{display:none;position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:20;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 30px rgba(21,36,11,.16);padding:0;max-height:320px;overflow-y:auto;overflow:hidden auto;}
   .font-picker.open .font-menu{display:block;}
   .font-opt{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:11px 12px;border-radius:9px;cursor:pointer;font-size:17px;color:var(--ink);line-height:1.1;}
   .font-opt:hover{background:var(--field);}
@@ -369,11 +384,17 @@
           <h1 class="sec-title">Apariencia</h1>
           <p class="sec-lead">Elige un tema y el estilo de tus botones. Se ve al instante en el visor.</p>
           <details class="acc" open>
-            <summary class="acc-h"><span class="acc-ic">🎨</span><span class="acc-t">Tema</span><span class="acc-cv">▾</span></summary>
-            <div class="acc-body"><div class="theme-grid scroll-box" id="themeGrid"></div></div>
+            <summary class="acc-h"><span class="acc-ic">🎨</span><span class="acc-t">Tema</span><span class="acc-sel" id="hintTema"></span><span class="acc-cv">▾</span></summary>
+            <div class="acc-body">
+              <div class="coll-tools">
+                <input class="coll-search" id="themeSearch" type="text" placeholder="Buscar tema…" />
+                <div class="coll-cats" id="themeCats"></div>
+              </div>
+              <div class="theme-grid scroll-box" id="themeGrid"></div>
+            </div>
           </details>
           <details class="acc">
-            <summary class="acc-h"><span class="acc-ic">🖼️</span><span class="acc-t">Fondo</span><span class="acc-cv">▾</span></summary>
+            <summary class="acc-h"><span class="acc-ic">🖼️</span><span class="acc-t">Fondo</span><span class="acc-sel" id="hintFondo"></span><span class="acc-cv">▾</span></summary>
             <div class="acc-body">
               <div class="opt-row" id="bgModeRow"></div>
               <div id="bgColorWrap" style="display:none;margin-top:10px;"><label>Color de fondo</label><div class="cc"><input type="color" id="bgColor" /></div></div>
@@ -398,7 +419,7 @@
             </div>
           </details>
           <details class="acc">
-            <summary class="acc-h"><span class="acc-ic">🔘</span><span class="acc-t">Botones</span><span class="acc-cv">▾</span></summary>
+            <summary class="acc-h"><span class="acc-ic">🔘</span><span class="acc-t">Botones</span><span class="acc-sel" id="hintBotones"></span><span class="acc-cv">▾</span></summary>
             <div class="acc-body">
               <label>Forma</label>
               <div class="opt-row" id="shapeRow"></div>
@@ -411,7 +432,7 @@
             </div>
           </details>
           <details class="acc">
-            <summary class="acc-h"><span class="acc-ic">👤</span><span class="acc-t">Avatar</span><span class="acc-cv">▾</span></summary>
+            <summary class="acc-h"><span class="acc-ic">👤</span><span class="acc-t">Avatar</span><span class="acc-sel" id="hintAvatar"></span><span class="acc-cv">▾</span></summary>
             <div class="acc-body">
               <label>Forma</label>
               <div class="opt-row" id="avShapeRow"></div>
@@ -420,12 +441,18 @@
             </div>
           </details>
           <details class="acc">
-            <summary class="acc-h"><span class="acc-ic">🔤</span><span class="acc-t">Texto</span><span class="acc-cv">▾</span></summary>
+            <summary class="acc-h"><span class="acc-ic">🔤</span><span class="acc-t">Texto</span><span class="acc-sel" id="hintTexto"></span><span class="acc-cv">▾</span></summary>
             <div class="acc-body">
               <label>Fuente</label>
               <div class="font-picker" id="fontPicker">
                 <button type="button" class="font-trigger" id="fontTrigger"><span id="fontTriggerLabel">Sistema</span><span class="fp-caret">▾</span></button>
-                <div class="font-menu" id="fontMenu"></div>
+                <div class="font-menu" id="fontMenu">
+                <div class="fm-tools">
+                  <input class="coll-search" id="fontSearch" type="text" placeholder="Buscar fuente…" />
+                  <div class="coll-cats" id="fontCats"></div>
+                </div>
+                <div class="fm-list" id="fontList"></div>
+              </div>
               </div>
               <label>Tamaño del título</label>
               <div class="opt-row" id="titleSizeRow"></div>
@@ -1029,19 +1056,102 @@
     });
 
     // ── Apariencia (temas + forma + estilo) ──
+    // ── Colecciones escalables: categorías, búsqueda y render incremental ──
+    var THEME_CATS = { lime:'color', forest:'oscuro', snow:'claro', ocean:'degradado', sunset:'degradado', grape:'degradado', rose:'color', night:'oscuro' };
+    var THEME_CAT_LABELS = { todos:'Todos', claro:'Claros', oscuro:'Oscuros', color:'Color', degradado:'Degradados' };
+    var FONT_CATS = { system:'sans', poppins:'sans', montserrat:'sans', nunito:'sans', playfair:'serif', oswald:'display', lobster:'script', pacifico:'script' };
+    var FONT_CAT_LABELS = { todas:'Todas', sans:'Sans', serif:'Serif', display:'Display', script:'Manuscrita' };
+    var BGMODE_NAMES = { preset:'Tema', color:'Color', gradient:'Degradado', animated:'Animado', pattern:'Patrón', image:'Imagen' };
+    var BG_PRESET_COUNT = 9, THEME_BATCH = 48, BG_BATCH = 24;
+    var _themeQ='', _themeCat='todos', _themeShown=0, _fontQ='', _fontCat='todas', _bgShown=0;
+
+    function themeMatches(key){
+      if (_themeCat!=='todos' && THEME_CATS[key]!==_themeCat) return false;
+      if (_themeQ && THEMES[key].name.toLowerCase().indexOf(_themeQ)<0) return false;
+      return true;
+    }
+    function themeSwatch(key, preset){
+      var p=THEMES[key], sw=document.createElement('div');
+      sw.className='theme-sw'+(key===preset?' active':'');
+      sw.innerHTML='<div class="mini" style="background:'+p.bg+';"><b style="background:'+p.btnBg+';"></b><b style="background:'+p.btnBg+';opacity:.7;"></b></div><div class="nm">'+escHtml(p.name)+'</div>';
+      sw.addEventListener('click', function(){ state.theme.preset=key; renderAppearance(); renderPreview(); });
+      return sw;
+    }
+    function renderThemeCats(preset){
+      var c=$('themeCats'); if(!c) return; c.innerHTML='';
+      Object.keys(THEME_CAT_LABELS).forEach(function(cat){
+        var b=document.createElement('button'); b.type='button'; b.className='coll-chip'+(_themeCat===cat?' on':''); b.textContent=THEME_CAT_LABELS[cat];
+        b.addEventListener('click', function(){ _themeCat=cat; _themeShown=0; renderThemes(preset); });
+        c.appendChild(b);
+      });
+    }
+    function renderThemes(preset){
+      var grid=$('themeGrid'); if(!grid) return;
+      renderThemeCats(preset);
+      grid.innerHTML='';
+      var keys=Object.keys(THEMES).filter(themeMatches);
+      if(!_themeShown) _themeShown=THEME_BATCH;
+      var slice=keys.slice(0,_themeShown);
+      slice.forEach(function(key){ grid.appendChild(themeSwatch(key, preset)); });
+      if(!keys.length){ var e=document.createElement('div'); e.className='coll-empty'; e.textContent='Sin resultados'; grid.appendChild(e); }
+      else if(keys.length>slice.length){ var m=document.createElement('button'); m.type='button'; m.className='coll-more'; m.textContent='Ver más ('+(keys.length-slice.length)+')'; m.addEventListener('click', function(){ _themeShown+=THEME_BATCH; renderThemes(preset); }); grid.appendChild(m); }
+    }
+
+    function fontMatches(k){
+      if(_fontCat!=='todas' && FONT_CATS[k]!==_fontCat) return false;
+      if(_fontQ && FONTS[k].name.toLowerCase().indexOf(_fontQ)<0) return false;
+      return true;
+    }
+    function renderFonts(curFont){
+      var cats=$('fontCats');
+      if(cats){ cats.innerHTML='';
+        Object.keys(FONT_CAT_LABELS).forEach(function(cat){
+          var b=document.createElement('button'); b.type='button'; b.className='coll-chip'+(_fontCat===cat?' on':''); b.textContent=FONT_CAT_LABELS[cat];
+          b.addEventListener('click', function(e){ e.stopPropagation(); _fontCat=cat; renderFonts(curFont); });
+          cats.appendChild(b);
+        });
+      }
+      var list=$('fontList'); if(!list) return; list.innerHTML='';
+      var keys=Object.keys(FONTS).filter(fontMatches);
+      keys.forEach(function(k){
+        var o=document.createElement('div'); o.className='font-opt'+(k===curFont?' active':''); o.style.fontFamily=FONTS[k].stack;
+        o.innerHTML='<span>'+escHtml(FONTS[k].name)+'</span><span class="chk">✓</span>';
+        o.addEventListener('mouseenter', function(){ _fontHover=k; loadFont(k); renderPreview(); });
+        o.addEventListener('mouseleave', function(){ if(_fontHover===k){ _fontHover=null; renderPreview(); } });
+        o.addEventListener('click', function(){ _fontHover=null; state.theme.text.font=k; loadFont(k); $('fontPicker').classList.remove('open'); renderAppearance(); renderPreview(); });
+        list.appendChild(o);
+      });
+      if(!keys.length){ list.innerHTML='<div class="coll-empty">Sin resultados</div>'; }
+    }
+
+    function renderBgPresets(bg){
+      var bpre=$('bgPresetRow'); if(!bpre) return;
+      if(!_bgShown) _bgShown=Math.min(BG_BATCH, BG_PRESET_COUNT);
+      bpre.innerHTML='';
+      var lim=Math.min(_bgShown, BG_PRESET_COUNT);
+      for(var n=1;n<=lim;n++){ (function(n){
+        var full='/bio-fondos/fondo'+n+'.jpg';
+        var btn=document.createElement('button'); btn.type='button'; btn.className='bg-preset'+(full===bg.image?' active':'');
+        btn.style.backgroundImage="url('/bio-fondos/thumbs/fondo"+n+".jpg')"; btn.dataset.full=full; btn.title='Fondo '+n;
+        btn.addEventListener('click', function(){ state.theme.bg.image=full; state.theme.bg.mode='image'; renderAppearance(); renderPreview(); });
+        bpre.appendChild(btn);
+      })(n); }
+      if(_bgShown<BG_PRESET_COUNT){ var m=document.createElement('button'); m.type='button'; m.className='coll-more'; m.textContent='Ver más'; m.addEventListener('click', function(){ _bgShown+=BG_BATCH; renderBgPresets(bg); }); bpre.appendChild(m); }
+    }
+
+    function setHint(id,txt){ var e=$(id); if(e) e.textContent=txt||''; }
+    function updateAccHints(t){
+      setHint('hintTema', THEMES[t.preset]?THEMES[t.preset].name:'');
+      setHint('hintFondo', BGMODE_NAMES[t.bg.mode]||'');
+      setHint('hintBotones', SHAPES[t.shape]?SHAPES[t.shape].name:'');
+      setHint('hintAvatar', t.avatarShape==='rounded'?'Cuadrado':'Círculo');
+      setHint('hintTexto', FONTS[t.text.font]?FONTS[t.text.font].name:'');
+    }
+
     function renderAppearance(){
       var t = curTheme();
-      var grid = $('themeGrid'); grid.innerHTML = '';
-      Object.keys(THEMES).forEach(function(key){
-        var p = THEMES[key];
-        var sw = document.createElement('div');
-        sw.className = 'theme-sw' + (key===t.preset?' active':'');
-        sw.innerHTML = '<div class="mini" style="background:'+p.bg+';">' +
-            '<b style="background:'+p.btnBg+';"></b><b style="background:'+p.btnBg+';opacity:.7;"></b>' +
-          '</div><div class="nm">'+escHtml(p.name)+'</div>';
-        sw.addEventListener('click', function(){ state.theme.preset = key; renderAppearance(); renderPreview(); });
-        grid.appendChild(sw);
-      });
+      var tsearch=$('themeSearch'); if(tsearch && !tsearch._w){ tsearch.addEventListener('input', function(){ _themeQ=tsearch.value.trim().toLowerCase(); _themeShown=0; renderThemes(curTheme().preset); }); tsearch._w=1; }
+      renderThemes(t.preset);
       var sr = $('shapeRow'); sr.innerHTML = '';
       Object.keys(SHAPES).forEach(function(key){
         var o = document.createElement('button'); o.type='button';
@@ -1089,21 +1199,9 @@
         fmenu.addEventListener('click', function(e){ e.stopPropagation(); });
         fpicker._wired = true;
       }
-      if (fmenu){
-        fmenu.innerHTML='';
-        Object.keys(FONTS).forEach(function(k){
-          var o=document.createElement('div');
-          o.className='font-opt'+(k===t.text.font?' active':'');
-          o.style.fontFamily=FONTS[k].stack;
-          o.innerHTML='<span>'+escHtml(FONTS[k].name)+'</span><span class="chk">✓</span>';
-          o.addEventListener('mouseenter', function(){ _fontHover = k; loadFont(k); renderPreview(); });
-          o.addEventListener('mouseleave', function(){ if (_fontHover === k){ _fontHover = null; renderPreview(); } });
-          o.addEventListener('click', function(){ _fontHover = null; state.theme.text.font=k; loadFont(k); fpicker.classList.remove('open'); renderAppearance(); renderPreview(); });
-          fmenu.appendChild(o);
-        });
-        flabel.textContent = FONTS[t.text.font].name;
-        flabel.style.fontFamily = FONTS[t.text.font].stack;
-      }
+      var fsearch=$('fontSearch'); if(fsearch && !fsearch._w){ fsearch.addEventListener('input', function(e){ e.stopPropagation(); _fontQ=fsearch.value.trim().toLowerCase(); renderFonts(curTheme().text.font); }); fsearch._w=1; }
+      renderFonts(t.text.font);
+      if (flabel){ flabel.textContent = FONTS[t.text.font].name; flabel.style.fontFamily = FONTS[t.text.font].stack; }
       loadFont(t.text.font);
 
       [['titleSizeRow','titleSize'],['subSizeRow','subSize']].forEach(function(pair){
@@ -1139,25 +1237,9 @@
       $('bgGradWrap').style.display  = (bg.mode==='gradient'||bg.mode==='animated')?'block':'none';
       $('bgImgWrap').style.display   = bg.mode==='image'?'block':'none';
       $('bgPatWrap').style.display   = bg.mode==='pattern'?'block':'none';
-      // Galería de fondos listos (presets). Se construye una vez; resalta el activo.
-      var bpre=$('bgPresetRow');
-      if (bpre){
-        if (!bpre._built){
-          // Para agregar fondos: subí /bio-fondos/fondoN.jpg + /bio-fondos/thumbs/fondoN.jpg
-          // (comprimidos) y aumentá este número.
-          var BG_PRESET_COUNT = 9;
-          for (var fi=1; fi<=BG_PRESET_COUNT; fi++){ (function(n){
-            var full='/bio-fondos/fondo'+n+'.jpg';
-            var btn=document.createElement('button'); btn.type='button'; btn.className='bg-preset';
-            btn.style.backgroundImage="url('/bio-fondos/thumbs/fondo"+n+".jpg')"; btn.dataset.full=full;
-            btn.title='Fondo '+n;
-            btn.addEventListener('click', function(){ state.theme.bg.image=full; state.theme.bg.mode='image'; renderAppearance(); renderPreview(); });
-            bpre.appendChild(btn);
-          })(fi); }
-          bpre._built=1;
-        }
-        Array.prototype.forEach.call(bpre.children, function(b){ b.classList.toggle('active', b.dataset.full===bg.image); });
-      }
+      // Galería de fondos listos (presets) con render incremental (escala a cientos).
+      // Para agregar: subí /bio-fondos/fondoN.jpg + /bio-fondos/thumbs/fondoN.jpg y subí BG_PRESET_COUNT.
+      renderBgPresets(bg);
       var bpr=$('bgPatRow'); if(bpr){ bpr.innerHTML='';
         [['dots','Puntos'],['grid','Cuadrícula'],['diag','Diagonales'],['cross','Cruces']].forEach(function(pp){
           var o=document.createElement('button'); o.type='button'; o.className='opt'+((bg.pattern||'dots')===pp[0]?' active':''); o.textContent=pp[1];
@@ -1183,6 +1265,8 @@
       if (avr && !avr._w){ avr.addEventListener('input', function(){ state.theme.avatarRing=avr.value; if(avn) avn.classList.remove('on'); renderPreview(); }); avr._w=1; }
       if (avn && !avn._w){ avn.addEventListener('click', function(){ state.theme.avatarRing=''; renderAppearance(); renderPreview(); }); avn._w=1; }
       if (avr){ avr.value = toHex(t.avatarRing || '#ffffff'); if(avn) avn.classList.toggle('on', !t.avatarRing); }
+
+      updateAccHints(t);
     }
 
     // ── Analítica ──
