@@ -1116,7 +1116,7 @@ export default async function middleware(request) {
     // bio.html en bioo.cl/<handle> SIN redirect, inyectando el tenant. Si no lo
     // es, sigue al producto self-serve (u.html via rewrite de vercel.json).
     const slug = url.pathname.replace(/^\/+|\/+$/g, '');
-    if (slug && slug.indexOf('/') < 0 && slug.indexOf('.') < 0 && ['registro', 'editor', 'favicon.ico'].indexOf(slug) < 0) {
+    if (slug && slug.indexOf('/') < 0 && slug.indexOf('.') < 0 && ['registro', 'editor', 'claim', 'favicon.ico'].indexOf(slug) < 0) {
       try {
         const projectId = process.env.FIREBASE_PROJECT_ID || 'barberia-elegance';
         const docUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/bio_handles/${encodeURIComponent(slug)}`;

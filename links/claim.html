@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Activa tu Link in Bio · bioo</title>
+<meta name="theme-color" content="#d2f34c" />
+<link rel="icon" href="/bioo-iso.png" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root{ --green:#92c83a; --green-2:#a3d94a; --green-d:#2c5a17; --ink:#15240b; --soft:#5b6a4e; --field:#f4f6ee; --line:#e0e6d4; }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#fff;color:var(--ink);}
+  body{min-height:100dvh;display:flex;flex-direction:column;}
+  header{padding:18px 22px;}
+  .brand{display:flex;align-items:center;gap:9px;text-decoration:none;}
+  main{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:8px 22px 48px;}
+  .box{width:100%;max-width:420px;text-align:center;}
+  .badge{display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--green-d);background:rgba(146,200,58,.16);border:1px solid var(--green);border-radius:999px;padding:6px 13px;margin-bottom:18px;}
+  h1{font-size:27px;font-weight:800;letter-spacing:-.8px;margin-bottom:8px;}
+  .lead{font-size:14.5px;color:var(--soft);margin-bottom:8px;line-height:1.5;}
+  .handle{display:inline-flex;align-items:center;gap:6px;background:var(--field);border:1px solid var(--line);border-radius:12px;padding:9px 14px;font-size:15px;font-weight:800;color:var(--ink);margin:14px 0 24px;}
+  .handle b{color:var(--green-d);}
+  .sso{width:100%;height:54px;border:1px solid var(--line);border-radius:12px;background:#fff;color:#1a1a1a;display:flex;align-items:center;justify-content:center;gap:10px;font-size:15px;font-weight:700;cursor:pointer;transition:.15s;}
+  .sso:hover{background:#f7f8f4;}
+  .sso:disabled{opacity:.6;cursor:default;}
+  .sso img{width:20px;height:20px;}
+  .note{font-size:12.5px;color:#9aa88c;margin-top:16px;line-height:1.5;}
+  .msg{font-size:13.5px;font-weight:700;min-height:18px;margin-top:16px;}
+  .msg.err{color:#a3220f;} .msg.ok{color:var(--green-d);}
+  .spin{display:inline-block;width:16px;height:16px;border:2px solid rgba(44,90,23,.3);border-top-color:var(--green-d);border-radius:50%;animation:sp .7s linear infinite;vertical-align:-3px;margin-right:7px;}
+  @keyframes sp{to{transform:rotate(360deg);}}
+  .done a{display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;height:54px;border-radius:12px;background:var(--green-d);color:#fff;font-size:16px;font-weight:800;text-decoration:none;margin-top:8px;}
+</style>
+</head>
+<body>
+  <header><a class="brand" href="/"><img src="/bioo-wordmark.png" alt="bioo" style="height:24px;width:auto;" /></a></header>
+  <main>
+    <div class="box">
+      <span class="badge">✦ Link in Bio premium</span>
+      <h1 id="ttl">Activa tu página</h1>
+      <p class="lead" id="lead">Tu Link in Bio ya está creado y prellenado con los datos de tu comercio. Inicia sesión con Google para tomar el control y personalizarlo.</p>
+      <div class="handle" id="handleBox" style="display:none;">bioo.cl/<b id="handleTxt"></b></div>
+
+      <button class="sso" id="googleBtn">
+        <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="" />
+        Continuar con Google
+      </button>
+
+      <p class="msg" id="msg"></p>
+      <div class="done" id="done" style="display:none;"></div>
+
+      <p class="note">Al activar, esta página queda vinculada a tu cuenta de Google. Podrás volver a editarla cuando quieras en <b>bioo.cl/editor</b>.</p>
+    </div>
+  </main>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-functions-compat.js"></script>
+  <script src="/firebase-config.js"></script>
+  <script>
+  (function(){
+    'use strict';
+    var params = new URLSearchParams(location.search);
+    var handle = (params.get('h') || '').toLowerCase().replace(/[^a-z0-9._-]/g,'');
+    var token  = params.get('t') || '';
+
+    function LBASE(){ return location.pathname.indexOf('/links/') === 0 ? '/links/' : '/'; }
+    function goEditor(){ location.href = LBASE() + 'editor' + (LBASE()==='/links/'?'.html':''); }
+    function publicUrl(){ return location.origin.indexOf('bioo.cl') >= 0 ? (location.origin + '/' + handle) : (location.origin + '/links/u.html?u=' + handle); }
+
+    var auth = firebase.auth();
+    var fns  = firebase.functions();
+
+    var msg = document.getElementById('msg');
+    function showMsg(t, ok, spin){ msg.innerHTML = (spin ? '<span class="spin"></span>' : '') + t; msg.className = 'msg ' + (ok ? 'ok' : 'err'); }
+    function clearMsg(){ msg.textContent=''; msg.className='msg'; }
+
+    if (handle) { document.getElementById('handleTxt').textContent = handle; document.getElementById('handleBox').style.display = 'inline-flex'; }
+    if (!handle || !token) { showMsg('Enlace de activación incompleto. Vuelve a abrir el enlace que te enviaron.', false); document.getElementById('googleBtn').disabled = true; }
+
+    var _claiming = false;
+    function doClaim(){
+      if (_claiming) return; _claiming = true;
+      showMsg('Activando tu página…', true, true);
+      fns.httpsCallable('biooClaim')({ handle: handle, token: token }).then(function(){
+        showMsg('¡Listo! Tu Link in Bio está activo.', true);
+        var done = document.getElementById('done');
+        done.style.display = 'block';
+        done.innerHTML = '<a href="' + (LBASE()+'editor'+(LBASE()==='/links/'?'.html':'')) + '">Personalizar mi página →</a>';
+        setTimeout(goEditor, 1400);
+      }).catch(function(err){
+        _claiming = false;
+        var m = (err && err.message) || 'No se pudo activar. Intenta nuevamente.';
+        showMsg(m, false);
+      });
+    }
+
+    function ensureLocal(){
+      try { return auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(function(){}); }
+      catch(e){ return Promise.resolve(); }
+    }
+
+    var _isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(navigator.userAgent || '');
+    function _isPWA(){
+      try { return window.matchMedia('(display-mode: standalone)').matches || window.matchMedia('(display-mode: minimal-ui)').matches || window.navigator.standalone === true || document.referrer.indexOf('android-app://') === 0; }
+      catch(e){ return false; }
+    }
+    var _useRedirect = _isMobile || _isPWA();
+
+    function googleRedirect(provider){
+      showMsg('Conectando con Google…', true, true);
+      ensureLocal().then(function(){ return auth.signInWithRedirect(provider); })
+        .catch(function(e){ showMsg(mapError(e), false); });
+    }
+
+    document.getElementById('googleBtn').addEventListener('click', function(){
+      if (!handle || !token) return;
+      clearMsg();
+      var provider = new firebase.auth.GoogleAuthProvider();
+      if (_useRedirect) { googleRedirect(provider); return; }
+      ensureLocal().then(function(){ return auth.signInWithPopup(provider); })
+        .then(function(){ doClaim(); }).catch(function(e){
+          var c = (e && e.code) || '';
+          if (c==='auth/popup-blocked' || c==='auth/cancelled-popup-request' || c==='auth/operation-not-supported-in-this-environment' || c==='auth/popup-closed-by-user') {
+            googleRedirect(provider); return;
+          }
+          showMsg(mapError(e), false);
+        });
+    });
+
+    function mapError(e){
+      var c = (e && e.code) || '';
+      if (c === 'auth/unauthorized-domain')  return 'Dominio no autorizado en Firebase. Agrega bioo.cl en Authentication → Authorized domains.';
+      if (c === 'auth/operation-not-allowed') return 'El acceso con Google no está habilitado en Firebase.';
+      if (c === 'auth/network-request-failed') return 'Falla de red. Revisa tu conexión e intenta de nuevo.';
+      if (c === 'auth/popup-closed-by-user') return 'Cerraste la ventana de Google. Intenta de nuevo.';
+      if (c) return 'No se pudo completar (' + c + ').';
+      return 'No se pudo completar. Intenta nuevamente.';
+    }
+
+    // Completa el login con Google cuando se usó redirect (móvil / PWA) → reclama.
+    ensureLocal().then(function(){ return auth.getRedirectResult(); }).then(function(cred){
+      if (cred && cred.user && handle && token) doClaim();
+    }).catch(function(e){ if (e && e.code) showMsg(mapError(e), false); });
+
+    // Si ya está logueado al abrir el enlace, reclamamos directo.
+    auth.onAuthStateChanged(function(user){ if (user && handle && token && !_claiming) doClaim(); });
+  })();
+  </script>
+</body>
+</html>

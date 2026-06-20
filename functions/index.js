@@ -789,3 +789,13 @@ exports.mpReembolsar = mpPago.mpReembolsar;
 // ─────────────────────────────────────────────────────────────────
 const corteLapizReservar = require('./corte-lapiz-reservar');
 exports.corteLapizReservar = corteLapizReservar.corteLapizReservar;
+
+// ─────────────────────────────────────────────────────────────────
+//  BIOO — aprovisionamiento de Link in Bio para integraciones externas
+//  (p.ej. Club Patio Curauma). Crea bios/<handle> prellenado + token de
+//  reclamo; el comercio toma la propiedad con Google en bioo.cl/claim.
+//  ver bioo-provision.js
+// ─────────────────────────────────────────────────────────────────
+const biooProvision = require('./bioo-provision');
+exports.biooProvision = biooProvision.biooProvision;
+exports.biooClaim     = biooProvision.biooClaim;

@@ -276,6 +276,14 @@ service cloud.firestore {
       allow update, delete: if esStaff(resource.data.tenantId);
     }
 
+    // ── /bio_claims — tokens de reclamo de bios prellenados (privado) ──
+    // Los crea biooProvision (Admin SDK) y los consume biooClaim (Admin SDK).
+    // Ningún cliente debe leerlos ni escribirlos: el token autoriza la toma de
+    // propiedad de un bio, así que se mantiene fuera del alcance del cliente.
+    match /bio_claims/{token} {
+      allow read, write: if false;
+    }
+
     // ── /gastos ────────────────────────────────────────────────────
     // Datos financieros: acceso exclusivo a admin/jefe.
     match /gastos/{docId} {

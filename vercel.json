@@ -105,6 +105,7 @@
     { "source": "/",            "has": [{ "type": "host", "value": "bioo.cl" }], "destination": "/links/index.html" },
     { "source": "/registro",    "has": [{ "type": "host", "value": "bioo.cl" }], "destination": "/links/registro.html" },
     { "source": "/editor",      "has": [{ "type": "host", "value": "bioo.cl" }], "destination": "/links/editor.html" },
+    { "source": "/claim",       "has": [{ "type": "host", "value": "bioo.cl" }], "destination": "/links/claim.html" },
     { "source": "/:user",       "has": [{ "type": "host", "value": "bioo.cl" }], "destination": "/links/u.html" },
 
     { "source": "/dashboard",              "destination": "/dashboard.html" },
