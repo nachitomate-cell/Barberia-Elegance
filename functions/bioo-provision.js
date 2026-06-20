@@ -183,12 +183,17 @@ exports.biooProvision = onRequest(
       const now = FieldValue.serverTimestamp();
 
       // Documento bio PRELLENADO, sin dueño todavía (uid:null).
+      // plan: 'free' | 'premium'. La personalización avanzada (temas/fondos/
+      // animaciones) se reservará a 'premium' en el editor (fase 2).
+      const plan = b.plan === 'premium' ? 'premium' : 'free';
+
       const bioDoc = {
         uid: null,
         username: handle,
         perfil: { titulo, subtitulo, avatar, verified: false },
         bloques,
         theme: 'lime',
+        plan,
         views: 0,
         clicks: {},
         source: String(b.source || 'externo'),
