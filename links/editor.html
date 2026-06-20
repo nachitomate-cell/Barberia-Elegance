@@ -65,6 +65,23 @@
 
   .card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:16px;box-shadow:0 1px 3px rgba(21,36,11,.04);}
   .card h2{font-size:13px;text-transform:uppercase;letter-spacing:1.5px;color:var(--soft);margin-bottom:14px;font-weight:800;}
+  /* ── Acordeón premium (Apariencia): escalable a muchas opciones sin scroll infinito ── */
+  .acc{background:var(--panel);border:1px solid var(--line);border-radius:16px;margin-bottom:12px;overflow:hidden;box-shadow:0 1px 3px rgba(21,36,11,.04);transition:box-shadow .16s ease,border-color .16s ease;}
+  .acc[open]{box-shadow:0 6px 20px rgba(21,36,11,.08);border-color:var(--green);}
+  .acc-h{list-style:none;display:flex;align-items:center;gap:12px;padding:15px 18px;cursor:pointer;font-size:14.5px;font-weight:800;color:var(--ink);user-select:none;-webkit-tap-highlight-color:transparent;transition:background .12s;}
+  .acc-h::-webkit-details-marker{display:none;}
+  .acc-h:hover{background:var(--field);}
+  .acc-ic{font-size:17px;line-height:1;width:22px;text-align:center;}
+  .acc-t{flex:1;}
+  .acc-cv{color:var(--soft);font-size:12px;transition:transform .22s ease;}
+  .acc[open] .acc-cv{transform:rotate(180deg);}
+  .acc[open] .acc-h{border-bottom:1px solid var(--line);}
+  .acc-body{padding:16px 18px 18px;animation:accIn .2s ease;}
+  @keyframes accIn{from{opacity:0;transform:translateY(-5px);}to{opacity:1;transform:none;}}
+  .scroll-box{max-height:300px;overflow-y:auto;overscroll-behavior:contain;}
+  .scroll-box::-webkit-scrollbar{width:8px;}
+  .scroll-box::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px;}
+  .scroll-box::-webkit-scrollbar-track{background:transparent;}
   label{display:block;font-size:12.5px;font-weight:700;color:#41513e;margin:12px 0 6px;}
   label:first-of-type{margin-top:0;}
   input,textarea{width:100%;background:var(--field);border:1px solid var(--line);border-radius:10px;padding:12px 14px;color:var(--ink);font-size:14.5px;font-weight:600;outline:0;font-family:inherit;}
@@ -351,74 +368,77 @@
         <section data-panel="apariencia" hidden>
           <h1 class="sec-title">Apariencia</h1>
           <p class="sec-lead">Elige un tema y el estilo de tus botones. Se ve al instante en el visor.</p>
-          <div class="card">
-            <h2>Tema</h2>
-            <div class="theme-grid" id="themeGrid"></div>
-          </div>
-          <div class="card">
-            <h2>Fondo</h2>
-            <div class="opt-row" id="bgModeRow"></div>
-            <div id="bgColorWrap" style="display:none;margin-top:10px;"><label>Color de fondo</label><div class="cc"><input type="color" id="bgColor" /></div></div>
-            <div id="bgGradWrap" style="display:none;margin-top:10px;">
-              <label>Degradado (dos colores)</label>
-              <div class="cc"><input type="color" id="bgC1" /><input type="color" id="bgC2" /></div>
-              <label style="margin-top:8px;">Ángulo</label>
-              <input type="range" id="bgAngle" min="0" max="360" value="165" style="width:100%;" />
+          <details class="acc" open>
+            <summary class="acc-h"><span class="acc-ic">🎨</span><span class="acc-t">Tema</span><span class="acc-cv">▾</span></summary>
+            <div class="acc-body"><div class="theme-grid scroll-box" id="themeGrid"></div></div>
+          </details>
+          <details class="acc">
+            <summary class="acc-h"><span class="acc-ic">🖼️</span><span class="acc-t">Fondo</span><span class="acc-cv">▾</span></summary>
+            <div class="acc-body">
+              <div class="opt-row" id="bgModeRow"></div>
+              <div id="bgColorWrap" style="display:none;margin-top:10px;"><label>Color de fondo</label><div class="cc"><input type="color" id="bgColor" /></div></div>
+              <div id="bgGradWrap" style="display:none;margin-top:10px;">
+                <label>Degradado (dos colores)</label>
+                <div class="cc"><input type="color" id="bgC1" /><input type="color" id="bgC2" /></div>
+                <label style="margin-top:8px;">Ángulo</label>
+                <input type="range" id="bgAngle" min="0" max="360" value="165" style="width:100%;" />
+              </div>
+              <div id="bgImgWrap" style="display:none;margin-top:10px;">
+                <input type="file" id="bgImgFile" accept="image/*" hidden />
+                <div class="ava-actions"><button type="button" class="ava-btn" id="bgImgBtn">📷 Subir imagen</button><button type="button" class="ava-btn ghosty" id="bgImgClear">Quitar</button></div>
+                <label style="margin-top:12px;">O elige un fondo listo</label>
+                <div id="bgPresetRow" class="bg-preset-row scroll-box"></div>
+                <div class="help">Se usa como fondo (cover). Recomendado: imagen vertical.</div>
+              </div>
+              <div id="bgPatWrap" style="display:none;margin-top:10px;">
+                <label>Patrón</label>
+                <div class="opt-row" id="bgPatRow"></div>
+                <div class="help">El patrón se dibuja sobre el “Color de fondo” de arriba.</div>
+              </div>
             </div>
-            <div id="bgImgWrap" style="display:none;margin-top:10px;">
-              <input type="file" id="bgImgFile" accept="image/*" hidden />
-              <div class="ava-actions"><button type="button" class="ava-btn" id="bgImgBtn">📷 Subir imagen</button><button type="button" class="ava-btn ghosty" id="bgImgClear">Quitar</button></div>
-              <label style="margin-top:12px;">O elige un fondo listo</label>
-              <div id="bgPresetRow" class="bg-preset-row"></div>
-              <div class="help">Se usa como fondo (cover). Recomendado: imagen vertical.</div>
+          </details>
+          <details class="acc">
+            <summary class="acc-h"><span class="acc-ic">🔘</span><span class="acc-t">Botones</span><span class="acc-cv">▾</span></summary>
+            <div class="acc-body">
+              <label>Forma</label>
+              <div class="opt-row" id="shapeRow"></div>
+              <label>Estilo</label>
+              <div class="opt-row" id="fillRow"></div>
+              <label>Animación</label>
+              <div class="opt-row" id="animRow"></div>
+              <label>Estilo de íconos</label>
+              <div class="opt-row" id="iconStyleRow"></div>
             </div>
-            <div id="bgPatWrap" style="display:none;margin-top:10px;">
-              <label>Patrón</label>
-              <div class="opt-row" id="bgPatRow"></div>
-              <div class="help">El patrón se dibuja sobre el “Color de fondo” de arriba.</div>
+          </details>
+          <details class="acc">
+            <summary class="acc-h"><span class="acc-ic">👤</span><span class="acc-t">Avatar</span><span class="acc-cv">▾</span></summary>
+            <div class="acc-body">
+              <label>Forma</label>
+              <div class="opt-row" id="avShapeRow"></div>
+              <label>Anillo</label>
+              <div class="cc"><input type="color" id="avRing" /><button type="button" class="cc-auto" id="avRingNone">Sin anillo</button></div>
             </div>
-          </div>
-          <div class="card">
-            <h2>Avatar</h2>
-            <label>Forma</label>
-            <div class="opt-row" id="avShapeRow"></div>
-            <label>Anillo</label>
-            <div class="cc"><input type="color" id="avRing" /><button type="button" class="cc-auto" id="avRingNone">Sin anillo</button></div>
-          </div>
-          <div class="card">
-            <h2>Forma del botón</h2>
-            <div class="opt-row" id="shapeRow"></div>
-          </div>
-          <div class="card">
-            <h2>Estilo del botón</h2>
-            <div class="opt-row" id="fillRow"></div>
-          </div>
-          <div class="card">
-            <h2>Animación de botones</h2>
-            <div class="opt-row" id="animRow"></div>
-          </div>
-          <div class="card">
-            <h2>Estilo de íconos</h2>
-            <div class="opt-row" id="iconStyleRow"></div>
-          </div>
-          <div class="card">
-            <h2>Texto</h2>
-            <label>Fuente</label>
-            <div class="font-picker" id="fontPicker">
-              <button type="button" class="font-trigger" id="fontTrigger"><span id="fontTriggerLabel">Sistema</span><span class="fp-caret">▾</span></button>
-              <div class="font-menu" id="fontMenu"></div>
+          </details>
+          <details class="acc">
+            <summary class="acc-h"><span class="acc-ic">🔤</span><span class="acc-t">Texto</span><span class="acc-cv">▾</span></summary>
+            <div class="acc-body">
+              <label>Fuente</label>
+              <div class="font-picker" id="fontPicker">
+                <button type="button" class="font-trigger" id="fontTrigger"><span id="fontTriggerLabel">Sistema</span><span class="fp-caret">▾</span></button>
+                <div class="font-menu" id="fontMenu"></div>
+              </div>
+              <label>Tamaño del título</label>
+              <div class="opt-row" id="titleSizeRow"></div>
+              <label>Tamaño de la bio</label>
+              <div class="opt-row" id="subSizeRow"></div>
+              <label>Colores del texto</label>
+              <div class="txt-colors">
+                <div class="txt-color"><label>Título</label><div class="cc"><input type="color" id="titleColor" /><button type="button" class="cc-auto" id="titleColorAuto">Auto</button></div></div>
+                <div class="txt-color"><label>Bio</label><div class="cc"><input type="color" id="subColor" /><button type="button" class="cc-auto" id="subColorAuto">Auto</button></div></div>
+                <div class="txt-color"><label>Botones</label><div class="cc"><input type="color" id="btnColor" /><button type="button" class="cc-auto" id="btnColorAuto">Auto</button></div></div>
+              </div>
             </div>
-            <label>Tamaño del título</label>
-            <div class="opt-row" id="titleSizeRow"></div>
-            <label>Tamaño de la bio</label>
-            <div class="opt-row" id="subSizeRow"></div>
-            <label>Colores del texto</label>
-            <div class="txt-colors">
-              <div class="txt-color"><label>Título</label><div class="cc"><input type="color" id="titleColor" /><button type="button" class="cc-auto" id="titleColorAuto">Auto</button></div></div>
-              <div class="txt-color"><label>Bio</label><div class="cc"><input type="color" id="subColor" /><button type="button" class="cc-auto" id="subColorAuto">Auto</button></div></div>
-              <div class="txt-color"><label>Botones</label><div class="cc"><input type="color" id="btnColor" /><button type="button" class="cc-auto" id="btnColorAuto">Auto</button></div></div>
-            </div>
-          </div>
+          </details>
         </section>
 
         <!-- Analítica -->
