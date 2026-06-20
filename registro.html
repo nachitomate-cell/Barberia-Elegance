@@ -1558,6 +1558,11 @@
   // En móvil el popup de Google suele fallar; usamos signInWithRedirect y
   // completamos con getRedirectResult al volver.
   const _isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(navigator.userAgent || '');
+  function _isPWA(){
+    try { return window.matchMedia('(display-mode: standalone)').matches || window.matchMedia('(display-mode: minimal-ui)').matches || window.navigator.standalone === true || (document.referrer || '').indexOf('android-app://') === 0; }
+    catch(e){ return false; }
+  }
+  const _useRedirect = _isMobile || _isPWA();   // PWA y móvil → redirect (el popup se bloquea)
 
   // Post-login común (popup y redirect): asegura el doc y pide teléfono si falta.
   async function handleGoogleUser(user) {
@@ -1580,7 +1585,7 @@
 
   async function loginWithGoogle() {
     const provider = new firebase.auth.GoogleAuthProvider();
-    if (_isMobile) {
+    async function goRedirect() {
       showLoading('Conectando con Google...');
       try {
         sessionStorage.setItem('_clubGoogleRedirect', '1');
@@ -1592,15 +1597,20 @@
         hideLoading();
         showAlert(friendlyError(err.code));
       }
-      return; // la página navega a Google y vuelve
     }
+    if (_useRedirect) { await goRedirect(); return; } // la página navega a Google y vuelve
     showLoading('Conectando con Google...');
     try {
       const result = await auth.signInWithPopup(provider);
       await handleGoogleUser(result.user);
     } catch (err) {
+      const c = err && err.code || '';
+      // Si el popup falla por bloqueo/entorno (típico en apps instaladas), reintentar con redirect.
+      if (c === 'auth/popup-blocked' || c === 'auth/cancelled-popup-request' || c === 'auth/operation-not-supported-in-this-environment' || c === 'auth/popup-closed-by-user') {
+        await goRedirect(); return;
+      }
       hideLoading();
-      showAlert(friendlyError(err.code));
+      showAlert(friendlyError(c));
     }
   }
 

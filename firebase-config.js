@@ -1,9 +1,22 @@
 // firebase-config.js — Configuración compartida de Firebase
 // Requiere que los scripts compat de Firebase estén cargados ANTES de este archivo.
 
+// Auth same-origin por dominio: en producción servimos el handler de Google desde el
+// PROPIO dominio del tenant/bioo (proxy en vercel.json a /__/auth/* y /__/firebase/*).
+// Esto evita el bloqueo de almacenamiento de terceros (storage partitioning) que rompe
+// signInWithRedirect/popup de Google dentro de las PWA instaladas. En localhost/preview
+// usamos el authDomain por defecto de Firebase.
+// Requisito: cada dominio debe estar en Firebase → Authentication → Authorized domains.
+const _authDomain = (function () {
+  try {
+    var h = location.hostname || '';
+    if (!h || h === 'localhost' || /^127\./.test(h) || /\.vercel\.app$/i.test(h)) return 'barberia-elegance.firebaseapp.com';
+    return h;   // dominio propio → handler same-origin vía proxy /__/auth
+  } catch (e) { return 'barberia-elegance.firebaseapp.com'; }
+})();
 const firebaseConfig = {
   apiKey: "AIzaSyDqVkAhkXALm3hLcrmzjiaS3flUezPFe2Q",
-  authDomain: "barberia-elegance.firebaseapp.com",
+  authDomain: _authDomain,
   projectId: "barberia-elegance",
   storageBucket: "barberia-elegance.firebasestorage.app",
   messagingSenderId: "515311607907",

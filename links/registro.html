@@ -230,6 +230,10 @@
       if (c === 'auth/wrong-password' || c === 'auth/invalid-credential') return 'Correo o contraseña incorrectos.';
       if (c === 'auth/user-not-found')       return 'No existe una cuenta con ese correo.';
       if (c === 'auth/popup-closed-by-user') return 'Cerraste la ventana de Google. Intenta de nuevo.';
+      if (c === 'auth/unauthorized-domain')  return 'Este dominio no está autorizado en Firebase. Agrega bioo.cl en Authentication → Authorized domains.';
+      if (c === 'auth/operation-not-allowed') return 'El acceso con Google no está habilitado en Firebase (Authentication → Sign-in method).';
+      if (c === 'auth/network-request-failed') return 'Falla de red. Revisa tu conexión e intenta de nuevo.';
+      if (c) return 'No se pudo completar (' + c + ').';
       return 'No se pudo completar. Intenta nuevamente.';
     }
 
