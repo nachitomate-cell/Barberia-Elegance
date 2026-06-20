@@ -4691,6 +4691,17 @@ async function manejarDeepLinkRecordatorio() {
     } else if (accion === 'cancelar') {
       await FDB.updateCitaEstado(citaId, 'Cancelada');
       showToast('Cita cancelada', 'info');
+    } else if (accion === 'reagendar') {
+      // Esperar a que la cita esté en cache para mostrar info y validar el límite
+      const abrir = (intentos = 0) => {
+        const cache = window._citaCache || {};
+        if (cache[citaId] || intentos >= 12) {
+          abrirModalReagendar(citaId);
+        } else {
+          setTimeout(() => abrir(intentos + 1), 400);
+        }
+      };
+      abrir();
     }
   } catch (e) {
     console.error('[DeepLink] Error al procesar acción:', e);
@@ -4820,7 +4831,7 @@ document.getElementById('shopClubName').textContent   = SHOP.club;
 
   // Watermark
   const wm = document.getElementById('membershipWatermark');
-  if (wm) wm.textContent = isGitana ? 'G' : isFerraza ? 'F' : isMapu ? 'M' : isChameleon ? 'C' : isLumen ? '⚓' : isDelnero ? 'N' : isInfinity ? '∞' : isOmega ? 'Ω' : isKronnos ? 'K' : 'É';
+  if (wm) wm.textContent = isGitana ? 'G' : isFerraza ? 'F' : isMapu ? 'M' : isChameleon ? 'C' : isLumen ? 'D' : isDelnero ? 'N' : isInfinity ? '∞' : isOmega ? 'Ω' : isKronnos ? 'K' : 'É';
 
   // PWA install icons — usa SHOP.logo como fuente única de verdad (config.js).
   // pwaBigIcon está antes del script en el DOM → se puede actualizar ya.
