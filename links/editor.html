@@ -281,6 +281,14 @@
   .muted{color:var(--soft);font-size:13px;}
 
   /* Compartir */
+  .share-cta{width:100%;border:0;border-radius:13px;padding:15px;font-size:15.5px;font-weight:800;cursor:pointer;font-family:inherit;color:#fff;background:linear-gradient(180deg,#327019,#234b12);box-shadow:0 8px 20px rgba(44,90,23,.3);transition:.16s cubic-bezier(.16,1,.3,1);}
+  .share-cta:hover{transform:translateY(-1px);box-shadow:0 12px 26px rgba(44,90,23,.42);}
+  .share-cta:active{transform:translateY(0);}
+  .share-net{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:12px;}
+  .snet{display:flex;align-items:center;justify-content:center;padding:11px 8px;border-radius:11px;font-size:13px;font-weight:800;color:#fff;text-decoration:none;border:0;cursor:pointer;font-family:inherit;transition:.14s;}
+  .snet:hover{filter:brightness(1.07);transform:translateY(-1px);}
+  .snet.wa{background:#25D366;} .snet.tg{background:#229ED9;} .snet.x{background:#111;}
+  .snet.fb{background:#1877F2;} .snet.ml{background:#5b6a4e;} .snet.cp{background:var(--green-d);}
   .share-link{display:flex;align-items:center;gap:10px;background:var(--field);border:1px solid var(--line);border-radius:12px;padding:12px 14px;flex-wrap:wrap;}
   .share-link .u{font-size:14px;font-weight:800;color:var(--green-d);word-break:break-all;}
   .share-link .acts{margin-left:auto;display:flex;gap:8px;}
@@ -401,6 +409,7 @@
       <div class="main-top">
         <span class="pub-mini" id="pubLink">bioo.cl/…</span>
         <button class="ghost preview-toggle" id="previewToggle" type="button">👁 Vista</button>
+        <button class="ghost" id="shareTop" type="button">📤 Compartir</button>
         <a class="ghost" id="logout">Salir</a>
         <button class="save" id="saveBtn">Guardar</button>
       </div>
@@ -566,6 +575,17 @@
         <section data-panel="compartir" hidden>
           <h1 class="sec-title">Compartir</h1>
           <p class="sec-lead">Comparte tu página y úsala en tu bio de Instagram, TikTok y más.</p>
+          <div class="card">
+            <button class="share-cta" id="shareNative" type="button">📤 Compartir mi bioo</button>
+            <div class="share-net">
+              <a class="snet wa" id="snWhatsapp" target="_blank" rel="noopener">WhatsApp</a>
+              <a class="snet tg" id="snTelegram" target="_blank" rel="noopener">Telegram</a>
+              <a class="snet x"  id="snX" target="_blank" rel="noopener">X</a>
+              <a class="snet fb" id="snFacebook" target="_blank" rel="noopener">Facebook</a>
+              <a class="snet ml" id="snEmail">Correo</a>
+              <button class="snet cp" id="snCopy" type="button">Copiar link</button>
+            </div>
+          </div>
           <div class="card">
             <div class="share-link">
               <span class="u" id="shareUrl">bioo.cl/…</span>
@@ -1475,12 +1495,28 @@
 
     // ── Compartir ──
     function publicAbsUrl(){ return 'https://bioo.cl/' + (normUser($('username').value)||state.username); }
+    function copyLinkToast(u){ (navigator.clipboard?navigator.clipboard.writeText(u):Promise.reject()).then(function(){ toast('Link copiado ✓'); }).catch(function(){ toast(u); }); }
+    function shareBio(){
+      var url = publicAbsUrl();
+      if (navigator.share){ navigator.share({ title:'Mi bioo', text:'Mira mi página en bioo', url:url }).catch(function(){}); }
+      else { copyLinkToast(url); }
+    }
     function renderShare(){
       var u = normUser($('username').value)||state.username;
       $('shareUrl').textContent = 'bioo.cl/' + u;
       $('viewBtn').href = urlPublica(u);
       var qr = 'https://api.qrserver.com/v1/create-qr-code/?size=400x400&margin=10&data=' + encodeURIComponent(publicAbsUrl());
       $('qrImg').src = qr; $('qrDownload').href = qr;
+      // Compartir nativo + accesos directos a redes
+      var abs = publicAbsUrl(), enc = encodeURIComponent(abs), msg = encodeURIComponent('Mira mi bioo 👇 ' + abs);
+      var set = function(id, href){ var e=$(id); if(e) e.href=href; };
+      set('snWhatsapp','https://wa.me/?text='+msg);
+      set('snTelegram','https://t.me/share/url?url='+enc+'&text='+encodeURIComponent('Mira mi bioo'));
+      set('snX','https://twitter.com/intent/tweet?text='+msg);
+      set('snFacebook','https://www.facebook.com/sharer/sharer.php?u='+enc);
+      set('snEmail','mailto:?subject='+encodeURIComponent('Mi bioo')+'&body='+msg);
+      var nb=$('shareNative'); if(nb) nb.onclick=shareBio;
+      var cb=$('snCopy'); if(cb) cb.onclick=function(){ copyLinkToast(abs); };
     }
 
     // ── Vista previa en vivo ──
@@ -1627,6 +1663,7 @@
 
     // ── Vista previa en móvil (overlay) ──
     $('previewToggle').addEventListener('click', function(){ renderPreview(); $('previewCol').classList.add('open'); });
+    $('shareTop').addEventListener('click', shareBio);
     $('previewClose').addEventListener('click', function(){ $('previewCol').classList.remove('open'); });
     $('previewCol').addEventListener('click', function(e){ if (e.target === $('previewCol')) $('previewCol').classList.remove('open'); });
 
