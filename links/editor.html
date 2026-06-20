@@ -561,6 +561,12 @@
               <div class="opt-row" id="titleSizeRow"></div>
               <label>Tamaño de la bio</label>
               <div class="opt-row" id="subSizeRow"></div>
+              <label>Peso del título</label>
+              <div class="opt-row" id="weightRow"></div>
+              <label>Mayúsculas</label>
+              <div class="opt-row" id="capsRow"></div>
+              <label>Espaciado de letras</label>
+              <div class="opt-row" id="spacingRow"></div>
               <label>Colores del texto</label>
               <div class="txt-colors">
                 <div class="txt-color"><label>Título</label><div class="cc"><input type="color" id="titleColor" /><button type="button" class="cc-auto" id="titleColorAuto">Auto</button></div></div>
@@ -715,6 +721,8 @@
     var TSIZE = { s:'17px', m:'21px', l:'26px' };   // tamaño título
     var SSIZE = { s:'12px', m:'14px', l:'16px' };   // tamaño bio
     var SIZEKEYS = { s:1, m:1, l:1 };
+    var TWEIGHT = { normal:'600', bold:'800', black:'900' };   // peso del título
+    var TSPACE  = { tight:'-0.4px', normal:'normal', wide:'1.6px' };   // espaciado de letras
     var _fontHover = null;   // fuente en hover, para previsualizar en el visor
     function loadFont(key){
       var f = FONTS[key]; if (!f || !f.g) return;
@@ -746,6 +754,9 @@
           font: FONTS[x.font] ? x.font : 'system',
           titleSize: SIZEKEYS[x.titleSize] ? x.titleSize : 'm',
           subSize: SIZEKEYS[x.subSize] ? x.subSize : 'm',
+          weight: TWEIGHT[x.weight] ? x.weight : 'bold',
+          caps: x.caps==='upper' ? 'upper' : 'normal',
+          spacing: TSPACE[x.spacing] ? x.spacing : 'normal',
           titleColor: x.titleColor || '', subColor: x.subColor || '', btnColor: x.btnColor || ''
         }
       };
@@ -777,7 +788,7 @@
 
     var state = { uid:null, email:null, anon:false, username:null, originalUsername:null,
       perfil:{titulo:'',subtitulo:'',avatar:''}, bloques:[],
-      theme:{preset:'lime',shape:'rounded',fill:'solid',btnAnim:'none',iconStyle:'green',avatarShape:'circle',avatarRing:'',bg:{mode:'preset',color:'#92c83a',c1:'#92c83a',c2:'#2c5a17',angle:'165',image:''},text:{font:'system',titleSize:'m',subSize:'m',titleColor:'',subColor:'',btnColor:''}},
+      theme:{preset:'lime',shape:'rounded',fill:'solid',btnAnim:'none',iconStyle:'green',avatarShape:'circle',avatarRing:'',bg:{mode:'preset',color:'#92c83a',c1:'#92c83a',c2:'#2c5a17',angle:'165',image:''},text:{font:'system',titleSize:'m',subSize:'m',weight:'bold',caps:'normal',spacing:'normal',titleColor:'',subColor:'',btnColor:''}},
       views:0, clicks:{} };
 
     var $ = function(id){ return document.getElementById(id); };
@@ -911,7 +922,7 @@
       var x = b.text || {};
       return {
         preset: b.preset||'lime', shape: b.shape||'rounded', fill: b.fill||'solid', btnAnim: b.btnAnim||'none', iconStyle: b.iconStyle==='original'?'original':'green', avatarShape: b.avatarShape==='rounded'?'rounded':'circle', avatarRing: b.avatarRing||'', bg: bgNorm(b.bg),
-        text: { font:x.font||'system', titleSize:x.titleSize||'m', subSize:x.subSize||'m', titleColor:x.titleColor||'', subColor:x.subColor||'', btnColor:x.btnColor||'' }
+        text: { font:x.font||'system', titleSize:x.titleSize||'m', subSize:x.subSize||'m', weight:TWEIGHT[x.weight]?x.weight:'bold', caps:x.caps==='upper'?'upper':'normal', spacing:TSPACE[x.spacing]?x.spacing:'normal', titleColor:x.titleColor||'', subColor:x.subColor||'', btnColor:x.btnColor||'' }
       };
     }
 
@@ -1488,6 +1499,16 @@
           row.appendChild(o);
         });
       });
+      [['weightRow','weight',[['normal','Normal'],['bold','Negrita'],['black','Extra']]],
+       ['capsRow','caps',[['normal','Aa'],['upper','MAYÚS']]],
+       ['spacingRow','spacing',[['tight','Compacto'],['normal','Normal'],['wide','Amplio']]]].forEach(function(cfg){
+        var row=$(cfg[0]), key=cfg[1]; if(!row) return; row.innerHTML='';
+        cfg[2].forEach(function(o){
+          var btn=document.createElement('button'); btn.type='button'; btn.className='opt'+(t.text[key]===o[0]?' active':''); btn.textContent=o[1];
+          btn.addEventListener('click', function(){ state.theme.text[key]=o[0]; renderAppearance(); renderPreview(); });
+          row.appendChild(btn);
+        });
+      });
 
       var dc = defText(t);
       [['titleColor','titleColorAuto','titleColor',dc.title],['subColor','subColorAuto','subColor',dc.sub],['btnColor','btnColorAuto','btnColor',dc.btn]].forEach(function(c){
@@ -1623,7 +1644,7 @@
       html += '<div class="pv-avatar" style="border-radius:'+avR+';border-color:'+avRing+';">' + (avatar
         ? '<img src="' + escHtml(avatar) + '" alt="" onerror="this.remove()">'
         : '<span>' + escHtml(ini) + '</span>') + '</div>';
-      html += '<div class="pv-title" style="color:'+titleColor+';font-size:'+TSIZE[tx.titleSize]+';">' + escHtml(shown) + ($('verifiedChk').checked?' <img class="pv-verified" src="/ic-verified.png" alt="✓">':'') + '</div>';
+      html += '<div class="pv-title" style="color:'+titleColor+';font-size:'+TSIZE[tx.titleSize]+';font-weight:'+TWEIGHT[tx.weight]+';text-transform:'+(tx.caps==='upper'?'uppercase':'none')+';letter-spacing:'+TSPACE[tx.spacing]+';">' + escHtml(shown) + ($('verifiedChk').checked?' <img class="pv-verified" src="/ic-verified.png" alt="✓">':'') + '</div>';
       if (subt) html += '<div class="pv-sub" style="color:'+subColor+';font-size:'+SSIZE[tx.subSize]+';">' + escHtml(subt) + '</div>';
 
       var vis = state.bloques.filter(renderable);

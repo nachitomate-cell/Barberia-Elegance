@@ -208,6 +208,8 @@
     var GFONTS = { poppins:'Poppins:wght@400;600;800', montserrat:'Montserrat:wght@400;600;800', nunito:'Nunito:wght@400;700;800', playfair:'Playfair+Display:wght@500;700;800', oswald:'Oswald:wght@400;600;700', lobster:'Lobster', pacifico:'Pacifico' };
     var TSIZE = { s:'17px', m:'21px', l:'26px' };
     var SSIZE = { s:'12px', m:'14px', l:'16px' };
+    var TWEIGHT = { normal:'600', bold:'800', black:'900' };
+    var TSPACE  = { tight:'-0.4px', normal:'normal', wide:'1.6px' };
     function loadFont(key){
       var g = GFONTS[key]; if (!g) return;
       var id='gf-'+key; if (document.getElementById(id)) return;
@@ -229,7 +231,7 @@
       if(b.mode==='gradient')return 'linear-gradient('+b.angle+'deg, '+b.c1+', '+b.c2+')';
       if(b.mode==='animated')return 'linear-gradient('+b.angle+'deg, '+b.c1+', '+b.c2+', '+b.c1+')';
       if(b.mode==='pattern') return patternCss(b.pattern, b.color);
-      if(b.mode==='image'&&b.image) return 'url("'+b.image+'") center/cover no-repeat fixed';
+      if(b.mode==='image'&&b.image) return 'url("'+b.image+'") center/cover no-repeat';
       return THEMES[t.preset].bg;
     }
     function normalizeTheme(raw){
@@ -248,6 +250,9 @@
           font: FONTS[x.font]?x.font:'system',
           titleSize: TSIZE[x.titleSize]?x.titleSize:'m',
           subSize: SSIZE[x.subSize]?x.subSize:'m',
+          weight: TWEIGHT[x.weight]?x.weight:'bold',
+          caps: x.caps==='upper'?'upper':'normal',
+          spacing: TSPACE[x.spacing]?x.spacing:'normal',
           titleColor: x.titleColor||'', subColor: x.subColor||'', btnColor: x.btnColor||''
         }
       };
@@ -376,28 +381,18 @@
       var fontStack = FONTS[tx.font]; loadFont(tx.font);
       var titleColor = tx.titleColor || p.text, subColor = tx.subColor || p.sub;
       var _bg = t.bg || {};
+      // Fondo a pantalla completa en TODAS las pantallas (imagen/color/gradiente/patrón):
+      // bgCss() ya devuelve la imagen a center/cover; ocultamos el marco centrado.
       var _blur = document.getElementById('bgPhotoBlur'), _frame = document.getElementById('bgPhotoFrame');
-      if (_bg.mode==='image' && _bg.image){
-        // Foto: nítida en un marco centrado (tipo teléfono) + difuminada de fondo en PC.
-        var _u = "url('"+_bg.image+"')";
-        _blur.style.backgroundImage=_u; _frame.style.backgroundImage=_u;
-        _blur.style.display='block'; _frame.style.display='block';
-        document.body.style.background='transparent'; // que se vean las capas (z-index negativo)
-        document.documentElement.style.background='#111'; // sin verde en barras/huecos del móvil
-        document.body.style.backgroundSize=''; document.body.style.animation='';
-      } else {
-        _blur.style.display='none'; _frame.style.display='none';
-        document.documentElement.style.background='';
-        document.body.style.background = bgCss(t);
-        if (_bg.mode==='animated'){ document.body.style.backgroundSize='220% 220%'; document.body.style.animation='bgshift 14s ease infinite'; }
-        else { document.body.style.backgroundSize=''; document.body.style.animation=''; }
-      }
+      if (_blur) _blur.style.display='none';
+      if (_frame) _frame.style.display='none';
+      document.documentElement.style.background='';
+      document.body.style.background = bgCss(t);
+      if (_bg.mode==='animated'){ document.body.style.backgroundSize='220% 220%'; document.body.style.animation='bgshift 14s ease infinite'; }
+      else { document.body.style.backgroundSize=''; document.body.style.animation=''; }
       document.body.style.fontFamily = fontStack;
       var mt = document.querySelector('meta[name="theme-color"]');
-      if (mt) {
-        if (_bg.mode==='image' && _bg.image) mt.setAttribute('content', '#111'); // foto: barra del navegador neutra (sin verde)
-        else if (p.bg.indexOf('gradient')<0) mt.setAttribute('content', p.bg);
-      }
+      if (mt && p.bg.indexOf('gradient')<0) mt.setAttribute('content', p.bg);
 
       var html = '';
       var cover = (perfil.cover||'').trim();
@@ -408,7 +403,7 @@
         ? '<img src="'+esc(perfil.avatar)+'" alt="'+esc(perfil.titulo)+'">'
         : '<span style="font-size:38px;font-weight:800;color:#6b7768;">'+esc((perfil.titulo||user).charAt(0).toUpperCase())+'</span>') + '</div>';
       var vrf = data.perfil && data.perfil.verified ? ' <img src="/ic-verified.png" alt="✓" style="height:0.85em;width:auto;vertical-align:-1px;margin-left:5px;">' : '';
-      html += '<h1 class="fade" style="animation-delay:.04s;color:'+titleColor+';font-size:'+TSIZE[tx.titleSize]+';">'+esc(perfil.titulo || ('@'+user))+vrf+'</h1>';
+      html += '<h1 class="fade" style="animation-delay:.04s;color:'+titleColor+';font-size:'+TSIZE[tx.titleSize]+';font-weight:'+TWEIGHT[tx.weight]+';text-transform:'+(tx.caps==='upper'?'uppercase':'none')+';letter-spacing:'+TSPACE[tx.spacing]+';">'+esc(perfil.titulo || ('@'+user))+vrf+'</h1>';
       if (perfil.subtitulo) html += '<p class="sub fade" style="animation-delay:.08s;color:'+subColor+';font-size:'+SSIZE[tx.subSize]+';">'+esc(perfil.subtitulo)+'</p>';
 
       if (bloques.length){
