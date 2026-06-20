@@ -192,7 +192,7 @@ export default function ServicioFavorito() {
       clearForm();
     } catch (err) {
       console.error('[ServicioFavorito upload]', err);
-      setAddErr('Error al subir. Revisá los permisos de Storage.');
+      setAddErr('Error al subir. Revisa los permisos de Storage.');
     } finally {
       setUploading(false);
       setProgress(0);
@@ -277,7 +277,7 @@ export default function ServicioFavorito() {
             </div>
             <p className="text-sm text-slate-400 leading-relaxed mb-5">
               Los clientes con foto asignada la verán en su panel de fidelización.<br /><br />
-              Podés desactivarlo en cualquier momento sin perder las fotos.
+              Puedes desactivarlo en cualquier momento sin perder las fotos.
             </p>
             <div className="flex gap-3 justify-end">
               <button
@@ -481,13 +481,13 @@ export default function ServicioFavorito() {
             aparecerá en su panel de fidelización.
           </p>
           <ul className="space-y-1.5 list-disc list-inside text-slate-400">
-            <li>Ingresá el <span className="text-white">correo del cliente</span> y elegí una foto.</li>
+            <li>Ingresa el <span className="text-white">correo del cliente</span> y elige una foto.</li>
             <li>Si ya tiene foto asignada, se <span className="text-white">reemplaza</span>.</li>
             <li>
               Los clientes también pueden <span className="text-white">subir su propia foto</span> si
               no tienen ninguna asignada por el local.
             </li>
-            <li>Activá la sección para que sea visible en el dashboard de fidelización.</li>
+            <li>Activa la sección para que sea visible en el dashboard de fidelización.</li>
             <li>Desactivarla oculta la sección sin borrar las fotos guardadas.</li>
           </ul>
         </HelpModal>

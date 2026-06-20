@@ -432,7 +432,7 @@ export default function Mensualidad() {
 
       {showHelp && (
         <HelpModal title="Tu suscripción con SynapTech" onClose={() => setShowHelp(false)}>
-          <p>Acá ves el estado de tu plan SynapTech: vigencia, fecha de próximo cobro y método de pago. Para cambios de plan o consultas, escribinos por WhatsApp.</p>
+          <p>Acá ves el estado de tu plan SynapTech: vigencia, fecha de próximo cobro y método de pago. Para cambios de plan o consultas, escríbenos por WhatsApp.</p>
 
           <div>
             <p className="font-semibold text-emerald-400 mb-1">Estados</p>
@@ -444,11 +444,11 @@ export default function Mensualidad() {
           </div>
 
           <div>
-            <p className="font-semibold text-emerald-400 mb-1">¿Querés cambiar de plan?</p>
-            <p>Escribinos por <strong className="text-white">WhatsApp +56 9 8356 8212</strong>. Te ayudamos a evaluar opciones según el crecimiento del local.</p>
+            <p className="font-semibold text-emerald-400 mb-1">¿Quieres cambiar de plan?</p>
+            <p>Escríbenos por <strong className="text-white">WhatsApp +56 9 8356 8212</strong>. Te ayudamos a evaluar opciones según el crecimiento del local.</p>
           </div>
 
-          <p className="text-xs text-amber-400 bg-amber-400/5 border border-amber-400/20 rounded-lg px-3 py-2">💡 Si ves "Vencida" pero ya pagaste, esperá unos minutos a que el banco procese y refresca. Si persiste, escribinos.</p>
+          <p className="text-xs text-amber-400 bg-amber-400/5 border border-amber-400/20 rounded-lg px-3 py-2">💡 Si ves "Vencida" pero ya pagaste, esperá unos minutos a que el banco procese y refresca. Si persiste, escríbenos.</p>
         </HelpModal>
       )}
     </div>

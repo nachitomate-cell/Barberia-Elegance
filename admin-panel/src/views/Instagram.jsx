@@ -257,20 +257,20 @@ export default function InstagramPage() {
 
           <div>
             <p className="font-semibold text-emerald-400 mb-1">1. Conectar cuenta</p>
-            <p>Tocá <em>"Conectar Instagram"</em> y autoriza el acceso. Solo lectura de tus posts públicos — no podemos publicar ni borrar nada.</p>
+            <p>Toca <em>"Conectar Instagram"</em> y autoriza el acceso. Solo lectura de tus posts públicos — no podemos publicar ni borrar nada.</p>
           </div>
 
           <div>
             <p className="font-semibold text-emerald-400 mb-1">2. Sincronización automática</p>
-            <p>Cada 6 horas un cron baja tus últimos 25 posts. También podés tocar <em>"Sincronizar ahora"</em> para forzar la importación inmediata.</p>
+            <p>Cada 6 horas un cron baja tus últimos 25 posts. También puedes tocar <em>"Sincronizar ahora"</em> para forzar la importación inmediata.</p>
           </div>
 
           <div>
             <p className="font-semibold text-emerald-400 mb-1">3. Aparecen en el Lookbook</p>
-            <p>Los posts se ven automáticamente en <em>/lookbook</em> y en la app pública. Podés desactivar posts individuales si no querés que aparezcan.</p>
+            <p>Los posts se ven automáticamente en <em>/lookbook</em> y en la app pública. Puedes desactivar posts individuales si no quieres que aparezcan.</p>
           </div>
 
-          <p className="text-xs text-amber-400 bg-amber-400/5 border border-amber-400/20 rounded-lg px-3 py-2">💡 Solo admins/jefes pueden conectar y desconectar. La token expira a los 60 días — se renueva sola si seguís activo. Si caduca, vas a tener que reconectar.</p>
+          <p className="text-xs text-amber-400 bg-amber-400/5 border border-amber-400/20 rounded-lg px-3 py-2">💡 Solo admins/jefes pueden conectar y desconectar. La token expira a los 60 días — se renueva sola si sigues activo. Si caduca, vas a tener que reconectar.</p>
         </HelpModal>
       )}
     </div>

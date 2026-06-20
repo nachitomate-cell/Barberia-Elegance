@@ -2800,19 +2800,19 @@ export default function Agenda() {
             <ul className="list-disc ml-4 space-y-1">
               <li>Flechas ◀ ▶ o botón <em>Hoy</em> para cambiar de día.</li>
               <li>En móvil, los barberos quedan en pestañas; en desktop ves columnas paralelas.</li>
-              <li>Tocá la <strong className="text-white">cabecera de un barbero</strong> para ver solo su agenda; tocala de nuevo (o <em>Ver todos</em>) para volver.</li>
+              <li>Toca la <strong className="text-white">cabecera de un barbero</strong> para ver solo su agenda; tocala de nuevo (o <em>Ver todos</em>) para volver.</li>
               <li>Arrastrá la <strong className="text-white">manija ⠿</strong> (a la izquierda del nombre) para <strong className="text-white">reordenar las columnas</strong>. El orden se guarda en este dispositivo.</li>
             </ul>
           </div>
 
           <div>
             <p className="font-semibold text-emerald-400 mb-1">Crear cita</p>
-            <p>Tocá un horario vacío. Si escribís un nombre con coincidencia, autocompleta. Si el cliente es <strong className="text-white">"Migrado"</strong>, autocompleta datos pero NO se marca como "Vinculado" al Club (no se ha registrado aún).</p>
+            <p>Toca un horario vacío. Si escribes un nombre con coincidencia, autocompleta. Si el cliente es <strong className="text-white">"Migrado"</strong>, autocompleta datos pero NO se marca como "Vinculado" al Club (no se ha registrado aún).</p>
           </div>
 
           <div>
             <p className="font-semibold text-emerald-400 mb-1">Editar cita</p>
-            <p>Tocá una cita existente para cambiar barbero, hora, estado, etc. <strong className="text-white">Cambios de barbero u hora también actualizan el bloqueo del slot</strong> automáticamente (no queda el slot viejo bloqueado).</p>
+            <p>Toca una cita existente para cambiar barbero, hora, estado, etc. <strong className="text-white">Cambios de barbero u hora también actualizan el bloqueo del slot</strong> automáticamente (no queda el slot viejo bloqueado).</p>
           </div>
 
           <div>

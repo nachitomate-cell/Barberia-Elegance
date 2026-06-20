@@ -857,16 +857,16 @@ export default function Membresias() {
 
       {showHelp && (
         <HelpModal title="Cómo funcionan las Membresías" onClose={() => setShowHelp(false)}>
-          <p>Vendés <strong className="text-white">planes mensuales</strong> (ej. "3 cortes al mes por $X") y los clientes pagan una cuota fija. Sus visitas se descuentan automáticamente al marcar la cita como Completada.</p>
+          <p>Vendes <strong className="text-white">planes mensuales</strong> (ej. "3 cortes al mes por $X") y los clientes pagan una cuota fija. Sus visitas se descuentan automáticamente al marcar la cita como Completada.</p>
 
           <div>
             <p className="font-semibold text-emerald-400 mb-1">1. Crear planes</p>
-            <p>Tocá <em>"Configurar planes"</em> y definí: nombre, precio mensual, y cuántos servicios incluye por categoría (cortes, barba, masaje). Activá el plan para que aparezca como opción.</p>
+            <p>Toca <em>"Configurar planes"</em> y definí: nombre, precio mensual, y cuántos servicios incluye por categoría (cortes, barba, masaje). Activa el plan para que aparezca como opción.</p>
           </div>
 
           <div>
             <p className="font-semibold text-emerald-400 mb-1">2. Asignar plan a un cliente</p>
-            <p>En la lista de miembros, tocá un cliente para asignarle un plan y fecha de inicio. El sistema calcula automáticamente la fecha de vencimiento (30 días) y los servicios restantes.</p>
+            <p>En la lista de miembros, toca un cliente para asignarle un plan y fecha de inicio. El sistema calcula automáticamente la fecha de vencimiento (30 días) y los servicios restantes.</p>
           </div>
 
           <div>

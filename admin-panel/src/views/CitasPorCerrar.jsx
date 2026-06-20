@@ -142,7 +142,7 @@ export default function CitasPorCerrar() {
         <div>
           <h1 className="text-lg font-bold text-white leading-tight">Citas por cerrar</h1>
           <p className="text-sm text-slate-400">
-            Citas pasadas que quedaron sin marcar. Ponéte al día cerrándolas en lote.
+            Citas pasadas que quedaron sin marcar. Ponte al día cerrándolas en lote.
           </p>
         </div>
       </div>

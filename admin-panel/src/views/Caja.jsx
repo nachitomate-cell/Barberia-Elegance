@@ -699,7 +699,7 @@ export default function Caja() {
 
           <div>
             <p className="font-semibold text-emerald-400 mb-1">1. Abrir la caja</p>
-            <p>Al inicio del día tocá <em>"Abrir Caja"</em> e ingresá el <strong className="text-white">monto inicial en efectivo</strong> (lo que tenés físico en el cajón). Sin caja abierta no se registran transacciones del día.</p>
+            <p>Al inicio del día toca <em>"Abrir Caja"</em> e ingresa el <strong className="text-white">monto inicial en efectivo</strong> (lo que tienes físico en el cajón). Sin caja abierta no se registran transacciones del día.</p>
           </div>
 
           <div>
@@ -707,13 +707,13 @@ export default function Caja() {
             <ul className="list-disc ml-4 space-y-1">
               <li>Las <strong className="text-white">citas completadas</strong> en /agenda suman automáticamente.</li>
               <li>Las <strong className="text-white">ventas de productos</strong> (rápidas o en el ticket de cita) también se cuentan solas.</li>
-              <li>Si retirás efectivo (banco, gasto urgente, etc.), tocá <em>"Egreso / Retiro"</em> para dejarlo registrado.</li>
+              <li>Si retiras efectivo (banco, gasto urgente, etc.), toca <em>"Egreso / Retiro"</em> para dejarlo registrado.</li>
             </ul>
           </div>
 
           <div>
             <p className="font-semibold text-emerald-400 mb-1">3. Cerrar la caja</p>
-            <p>Al final del día, tocá <em>"Cerrar Caja"</em> e ingresá lo que <strong className="text-white">contaste físicamente en efectivo</strong>. El sistema compara con lo esperado y muestra el <strong className="text-white">descuadre</strong> (positivo = sobrante, negativo = faltante). Queda en historial para auditar.</p>
+            <p>Al final del día, toca <em>"Cerrar Caja"</em> e ingresa lo que <strong className="text-white">contaste físicamente en efectivo</strong>. El sistema compara con lo esperado y muestra el <strong className="text-white">descuadre</strong> (positivo = sobrante, negativo = faltante). Queda en historial para auditar.</p>
           </div>
 
           <p className="text-xs text-amber-400 bg-amber-400/5 border border-amber-400/20 rounded-lg px-3 py-2">💡 Solo puede haber <strong>una caja abierta a la vez</strong>. Si olvidaste cerrar la del día anterior, ciérrala antes de abrir la de hoy.</p>

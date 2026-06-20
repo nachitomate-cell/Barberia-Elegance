@@ -92,7 +92,7 @@ export default function Academia() {
 
       {showHelp && (
         <HelpModal title="Cómo usar la Academia" onClose={() => setShowHelp(false)}>
-          <p>Acá organizás los <strong className="text-white">cursos que impartís</strong> en tu barbería: alumnos inscritos, material de estudio y seguimiento de avance.</p>
+          <p>Acá organizas los <strong className="text-white">cursos que impartes</strong> en tu barbería: alumnos inscritos, material de estudio y seguimiento de avance.</p>
 
           <div>
             <p className="font-semibold text-emerald-400 mb-1">Pestaña "Cursos"</p>

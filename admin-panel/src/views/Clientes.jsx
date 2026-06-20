@@ -845,12 +845,12 @@ function SinRegistroModal({ sinRegistro, shopName, registroUrl, onClose, mode = 
   const TEMPLATES = isMigrados
     ? {
         estandar:    `¡Hola {nombre}! 👋 Soy de *${name}*. Estamos estrenando nuestro Club de Fidelidad nuevo y, como ya eres cliente, te invitamos a unirte 🎁\n\nEs gratis: por cada visita acumulas sellos que canjeas por premios. Te demoras 1 minuto en activarte 👉 ${registroUrl}\n\n¡Te esperamos!`,
-        descuento:   `¡Hola {nombre}! 👋 Soy de *${name}*. Nos dimos cuenta que hace tiempo no nos vemos y queremos invitarte a volver 🤝\n\nTe regalamos un *20% de descuento* en tu próximo corte. Además estamos estrenando nuestro Club de Fidelidad: sumate y por cada visita acumulas sellos para premios gratis 🎁\n\nReclama tu descuento registrándote acá (1 minuto) 👉 ${registroUrl}\n\n¡Te esperamos!`,
-        reactivar:   `¡Hola {nombre}! 👋 Soy de *${name}*. Hace un buen rato que no nos vemos por acá y queríamos saber cómo estás 🤝\n\nEstamos con novedades: nuevos servicios, productos exclusivos y un Club de Fidelidad con premios gratis por cada visita.\n\n*Te invitamos a volver con un beneficio especial* — escribinos por acá y te coordinamos. Mientras tanto sumate al Club en 1 minuto 👉 ${registroUrl}`,
+        descuento:   `¡Hola {nombre}! 👋 Soy de *${name}*. Nos dimos cuenta que hace tiempo no nos vemos y queremos invitarte a volver 🤝\n\nTe regalamos un *20% de descuento* en tu próximo corte. Además estamos estrenando nuestro Club de Fidelidad: súmate y por cada visita acumulas sellos para premios gratis 🎁\n\nReclama tu descuento registrándote acá (1 minuto) 👉 ${registroUrl}\n\n¡Te esperamos!`,
+        reactivar:   `¡Hola {nombre}! 👋 Soy de *${name}*. Hace un buen rato que no nos vemos por acá y queríamos saber cómo estás 🤝\n\nEstamos con novedades: nuevos servicios, productos exclusivos y un Club de Fidelidad con premios gratis por cada visita.\n\n*Te invitamos a volver con un beneficio especial* — escríbenos por acá y te coordinamos. Mientras tanto súmate al Club en 1 minuto 👉 ${registroUrl}`,
       }
     : {
         estandar:    `¡Hola {nombre}! 👋 Gracias por visitarnos en ${name}. Tenemos un club de fidelidad donde acumulas sellos y ganas premios gratis 🎁. ¡Únete registrándote aquí! 👉 ${registroUrl}`,
-        descuento:   `¡Hola {nombre}! 👋 Gracias por visitarnos en ${name}. Como te extrañamos te regalamos un *20% de descuento* en tu próximo corte 🎁. Activá tu Club acá y aprovechá el beneficio 👉 ${registroUrl}`,
+        descuento:   `¡Hola {nombre}! 👋 Gracias por visitarnos en ${name}. Como te extrañamos te regalamos un *20% de descuento* en tu próximo corte 🎁. Activa tu Club acá y aprovecha el beneficio 👉 ${registroUrl}`,
       };
 
   // Persistir el template elegido + custom message en localStorage por tenant.
@@ -1154,11 +1154,11 @@ function buildRecommendations(stats) {
   if (migradosPendientes >= 10) {
     const pctEstimado = Math.round(migradosPendientes * 0.15);
     recs.push(
-      `Tenés ${migradosPendientes} clientes migrados de AgendaPro que aún no se unieron al Club` +
+      `Tienes ${migradosPendientes} clientes migrados de AgendaPro que aún no se unieron al Club` +
       (migradosInvitados > 0 ? ` (${migradosInvitados} ya invitados).` : '.') +
       ` Activarlos con una campaña de WhatsApp puede convertir ${pctEstimado}–${Math.round(migradosPendientes * 0.25)} ` +
       `en miembros activos esta semana, sumando base de fidelización sin costo de adquisición. ` +
-      `Usá el botón "Invitar migrados" arriba para enviarles el link de registro.`
+      `Usa el botón "Invitar migrados" arriba para enviarles el link de registro.`
     );
   }
 
@@ -1892,14 +1892,14 @@ export default function Clientes() {
 
       {showHelp && (
         <HelpModal title="Cómo usar Clientes y Fidelización" onClose={() => setShowHelp(false)}>
-          <p>Acá vivís el día a día del <strong className="text-white">Club de Fidelidad</strong>: sellos, premios y campañas para activar a tus clientes.</p>
+          <p>Acá vives el día a día del <strong className="text-white">Club de Fidelidad</strong>: sellos, premios y campañas para activar a tus clientes.</p>
 
           <div>
             <p className="font-semibold text-emerald-400 mb-1">Buscar y filtrar</p>
             <ul className="list-disc ml-4 space-y-1">
               <li>Buscá por <strong className="text-white">nombre, email o teléfono</strong>.</li>
               <li>Filtros: <em>Registrados Club</em> (azul) vs <em>Migrados</em> (ámbar), tiers SILVER/GOLD/PLATINUM, con premio, cumple en este mes, sin visita 30/60/90 días.</li>
-              <li>Tocá una fila para abrir el detalle: historial, sellos manuales (suma/resta) y canje de premios.</li>
+              <li>Toca una fila para abrir el detalle: historial, sellos manuales (suma/resta) y canje de premios.</li>
             </ul>
           </div>
 
@@ -1915,7 +1915,7 @@ export default function Clientes() {
 
           <div>
             <p className="font-semibold text-emerald-400 mb-1">Botón "Invitar migrados" (verde)</p>
-            <p>Lista de migrados con un botón WhatsApp por cliente. Mensaje precargado con link de registro. Marca persistente en Firestore — al volver, ya sabés a quién enviaste invitación.</p>
+            <p>Lista de migrados con un botón WhatsApp por cliente. Mensaje precargado con link de registro. Marca persistente en Firestore — al volver, ya sabes a quién enviaste invitación.</p>
           </div>
 
           <div>
@@ -1928,7 +1928,7 @@ export default function Clientes() {
             <p>Te da recomendaciones accionables (recuperar clientes en riesgo, contactar a los que tienen premio sin canjear, etc.). Analiza <strong className="text-white">solo clientes reales del Club</strong> — excluye migrados para no sesgar promedios.</p>
           </div>
 
-          <p className="text-xs text-amber-400 bg-amber-400/5 border border-amber-400/20 rounded-lg px-3 py-2">💡 Los <strong>KPIs superiores</strong> (Clientes, Avg sellos) sí incluyen migrados — representan el tamaño total de tu base. Si querés activarlos, "Invitar migrados" es tu palanca.</p>
+          <p className="text-xs text-amber-400 bg-amber-400/5 border border-amber-400/20 rounded-lg px-3 py-2">💡 Los <strong>KPIs superiores</strong> (Clientes, Avg sellos) sí incluyen migrados — representan el tamaño total de tu base. Si quieres activarlos, "Invitar migrados" es tu palanca.</p>
         </HelpModal>
       )}
     </div>

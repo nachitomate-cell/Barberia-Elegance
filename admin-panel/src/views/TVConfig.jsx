@@ -1721,7 +1721,7 @@ export default function TVConfig() {
 
       {showHelp && (
         <HelpModal title="Cómo configurar la Pantalla TV" onClose={() => setShowHelp(false)}>
-          <p>Esta es la pantalla pública que ponés en una TV del local. Muestra el lookbook, ofertas, promos y el QR para reservar — todo se actualiza en tiempo real desde acá.</p>
+          <p>Esta es la pantalla pública que pones en una TV del local. Muestra el lookbook, ofertas, promos y el QR para reservar — todo se actualiza en tiempo real desde acá.</p>
 
           <div>
             <p className="font-semibold text-emerald-400 mb-1">1. Conectar la TV</p>

@@ -444,7 +444,7 @@ export default function Finanzas() {
             <p>Lista todos los suscriptores activos con su plan, fecha de inicio y vencimiento. Útil para contactarlos antes de que se les venza la suscripción.</p>
           </div>
 
-          <p className="text-xs text-amber-400 bg-amber-400/5 border border-amber-400/20 rounded-lg px-3 py-2">💡 Esta vista solo es relevante si vendés membresías mensuales. Si solo cobrás corte por corte, mirá <em>/metricas</em> en su lugar.</p>
+          <p className="text-xs text-amber-400 bg-amber-400/5 border border-amber-400/20 rounded-lg px-3 py-2">💡 Esta vista solo es relevante si vendes membresías mensuales. Si solo cobras corte por corte, mira <em>/metricas</em> en su lugar.</p>
         </HelpModal>
       )}
     </div>

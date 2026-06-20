@@ -179,7 +179,7 @@ export default function Soporte() {
 
       {showHelp && (
         <HelpModal title="Cómo contactarnos" onClose={() => setShowHelp(false)}>
-          <p>Acá podés enviarnos sugerencias, reportar errores o pedir nuevas funciones. Llegan directo a nuestro equipo en SynapTech.</p>
+          <p>Acá puedes enviarnos sugerencias, reportar errores o pedir nuevas funciones. Llegan directo a nuestro equipo en SynapTech.</p>
 
           <div>
             <p className="font-semibold text-emerald-400 mb-1">Tipos de mensaje</p>
@@ -200,7 +200,7 @@ export default function Soporte() {
             <p>Para algo urgente: <strong className="text-white">+56 9 8356 8212</strong>. El mismo número aparece en el botón verde de WA en /agenda.html.</p>
           </div>
 
-          <p className="text-xs text-amber-400 bg-amber-400/5 border border-amber-400/20 rounded-lg px-3 py-2">💡 Abajo podés ver el feed de novedades (SynapTech News) — actualizaciones, features nuevas y avisos importantes del producto.</p>
+          <p className="text-xs text-amber-400 bg-amber-400/5 border border-amber-400/20 rounded-lg px-3 py-2">💡 Abajo puedes ver el feed de novedades (SynapTech News) — actualizaciones, features nuevas y avisos importantes del producto.</p>
         </HelpModal>
       )}
     </div>
