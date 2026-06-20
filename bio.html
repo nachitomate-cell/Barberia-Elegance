@@ -381,6 +381,27 @@
       return { url: url, icon: icon };
     }
 
+    // Normaliza un Instagram que el local pudo guardar como handle suelto.
+    function normIg(v) {
+      v = String(v || '').trim(); if (!v) return v;
+      if (/^https?:\/\//i.test(v)) return v;
+      return 'https://instagram.com/' + v.replace(/^@/, '').replace(/^instagram\.com\//i, '');
+    }
+    // Mezcla la config VIVA del local (tenants/{id}/settings/general, editada en
+    // gestión-interna) sobre SHOP (estático de config.js). Sin esto, los bloques
+    // whatsapp/instagram/maps quedaban sin URL si el local solo editó sus datos ahí.
+    function mergeShop(g) {
+      if (!g) return;
+      if (g.telefono)  SHOP.telefono  = g.telefono;
+      if (g.whatsapp)  SHOP.whatsapp  = g.whatsapp;
+      if (g.telefono || g.whatsapp) SHOP.telefono = SHOP.telefono || g.whatsapp;
+      if (g.instagram) SHOP.instagram = normIg(g.instagram);
+      if (g.direccion) SHOP.direccion = g.direccion;
+      if (g.logo)      SHOP.logo      = g.logo;
+      if (g.nombre)    SHOP.nombre    = g.nombre;
+      if (g.googleReviewUrl) SHOP.googleReviewUrl = g.googleReviewUrl;
+    }
+
     // ── Tracking best-effort (incrementa views/clicks en el doc) ──
     // OJO: docRef se asigna dentro de boot(), porque `db` lo define firebase-config.js
     // (defer) y este script inline corre durante el parseo (db aún undefined aquí).
@@ -722,6 +743,16 @@
         var b2 = (TID === 'elegance') ? db.collection('barberos') : db.collection('tenants').doc(TID).collection('barberos');
         var lb = (TID === 'elegance') ? db.collection('lookbook') : db.collection('tenants').doc(TID).collection('lookbook');
         var loaders = [];
+
+        // Config viva del local (la que edita gestión-interna → Configuración):
+        // teléfono, WhatsApp, Instagram, dirección, logo. Se mezcla sobre SHOP
+        // para que los bloques resuelvan su URL aunque config.js esté vacío.
+        var genRef = (TID === 'elegance')
+          ? db.collection('settings').doc('general')
+          : db.collection('tenants').doc(TID).collection('settings').doc('general');
+        loaders.push(getFresh(genRef)
+          .then(function (s) { if (s && s.exists) mergeShop(s.data()); })
+          .catch(function () {}));
         if (cfg._studio && (cfg.bloques || []).some(function (b) { return b.tipo === 'barberos'; })) {
           loaders.push(b2.limit(60).get()
             .then(function (s) { cfg._barberos = s.docs.map(function (d) { return d.data(); }).filter(function (b) { return b.activo !== false; }); })

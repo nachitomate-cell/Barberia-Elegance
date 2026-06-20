@@ -1477,6 +1477,24 @@
     :is(.tenant-aura,.tenant-latincaribe) .text-white         { color: #18181B !important; }
     :is(.tenant-aura,.tenant-latincaribe) .text-white\/30     { color: rgba(24,24,27,0.40) !important; }
     :is(.tenant-aura,.tenant-latincaribe) .text-white\/60     { color: rgba(24,24,27,0.60) !important; }
+    /* ── Variantes tenues que faltaban: invisibles sobre las cards claras de Aura.
+       Se scopean a #tabProfile (Mi Perfil, todo claro) + #notifBanner, para NO
+       afectar cards oscuras (hero, modal de Story con bg-black, etc.). ── */
+    :is(.tenant-aura,.tenant-latincaribe) :is(#tabProfile,#notifBanner) .text-white\/20 { color: rgba(24,24,27,0.32) !important; }
+    :is(.tenant-aura,.tenant-latincaribe) :is(#tabProfile,#notifBanner) .text-white\/40 { color: rgba(24,24,27,0.55) !important; }
+    :is(.tenant-aura,.tenant-latincaribe) :is(#tabProfile,#notifBanner) .text-white\/50 { color: rgba(24,24,27,0.60) !important; }
+    :is(.tenant-aura,.tenant-latincaribe) :is(#tabProfile,#notifBanner) .text-white\/55 { color: rgba(24,24,27,0.62) !important; }
+    :is(.tenant-aura,.tenant-latincaribe) :is(#tabProfile,#notifBanner) .text-white\/70 { color: rgba(24,24,27,0.82) !important; }
+
+    /* Onboarding de sellos (membership card) — usa estilos inline → !important */
+    :is(.tenant-aura,.tenant-latincaribe) #sellosOnboarding { background: rgba(0,40,94,0.05) !important; border-color: rgba(0,40,94,0.12) !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #sellosOnboarding p { color: #52525B !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #sellosOnboarding #onboardingMeta { color: #18181B !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #sellosOnboarding i { color: #00285E !important; opacity: 0.7 !important; }
+
+    /* Banner "Activa tus recordatorios" — card y CTA sobre fondo claro */
+    :is(.tenant-aura,.tenant-latincaribe) #notifBanner { background: rgba(0,40,94,0.05) !important; border-color: rgba(0,40,94,0.12) !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #notifBannerActivar { background: #00285E !important; color: #FFFFFF !important; }
     :is(.tenant-aura,.tenant-latincaribe) .text-gray-300      { color: #6B7280 !important; }
     :is(.tenant-aura,.tenant-latincaribe) .text-gray-400      { color: #71717A !important; }
     :is(.tenant-aura,.tenant-latincaribe) .text-gray-500      { color: #8E9399 !important; }
@@ -1560,11 +1578,12 @@
     :is(.tenant-aura,.tenant-latincaribe) .membership-pattern .rounded-full.overflow-hidden.mb-3 {
       background: #D4D4D8 !important;
     }
-    /* "Ver premios" — botón blanco sobre card blanca: invisible */
+    /* "Ver premios" — pastilla blanca con borde y texto navy (look claro de Aura) */
     :is(.tenant-aura,.tenant-latincaribe) button[onclick*="togglePremios"] {
-      background: linear-gradient(135deg, #00285E 0%, #1e3a8a 100%) !important;
-      color: #FFFFFF !important;
-      box-shadow: 0 2px 10px rgba(0,40,94,0.18) !important;
+      background: #FFFFFF !important;
+      color: #00285E !important;
+      border: 1.5px solid #00285E !important;
+      box-shadow: 0 2px 8px rgba(0,40,94,0.12) !important;
     }
     /* Botones reagendar (CSS base hardcodeado en dorado) */
     :is(.tenant-aura,.tenant-latincaribe) .reagendar-proxima-btn {
@@ -1845,7 +1864,7 @@
     /* Próximo Premio */
     :is(.tenant-aura,.tenant-latincaribe) .premio-icon { color: #00285E !important; }
     :is(.tenant-aura,.tenant-latincaribe) #nextRewardText { color: #18181B !important; }
-    :is(.tenant-aura,.tenant-latincaribe) button[onclick="togglePremios()"] { background: linear-gradient(135deg, #00285E 0%, #1e3a8a 100%) !important; color: #FFFFFF !important; }
+    :is(.tenant-aura,.tenant-latincaribe) button[onclick="togglePremios()"] { background: #FFFFFF !important; color: #00285E !important; border: 1.5px solid #00285E !important; }
 
     /* Fix Aura: la copa del Próximo Premio debe verse sobre la card clara */
     :is(.tenant-aura,.tenant-latincaribe) .next-reward-card > .rounded-full {
@@ -2294,6 +2313,7 @@
     :is(.tenant-aura,.tenant-latincaribe) #productoModal [style*="background:#D4AF37"],
     :is(.tenant-aura,.tenant-latincaribe) #productoModal [style*="background: #D4AF37"] {
       background: linear-gradient(135deg, #00285E 0%, #1e3a8a 100%) !important;
+      color: #FFFFFF !important;   /* el texto base era text-black → ilegible sobre navy */
       box-shadow: 0 4px 14px rgba(0,40,94,0.25) !important;
     }
 
