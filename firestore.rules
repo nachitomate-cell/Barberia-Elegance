@@ -284,6 +284,12 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // ── /bio_email_owners — índice privado email → handle (idempotencia + ──
+    // adopción por email). Solo Admin SDK (biooProvision/biooClaim).
+    match /bio_email_owners/{email} {
+      allow read, write: if false;
+    }
+
     // ── /gastos ────────────────────────────────────────────────────
     // Datos financieros: acceso exclusivo a admin/jefe.
     match /gastos/{docId} {

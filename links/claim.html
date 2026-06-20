@@ -38,9 +38,9 @@
   <header><a class="brand" href="/"><img src="/bioo-wordmark.png" alt="bioo" style="height:24px;width:auto;" /></a></header>
   <main>
     <div class="box">
-      <span class="badge">✦ Link in Bio premium</span>
-      <h1 id="ttl">Activa tu página</h1>
-      <p class="lead" id="lead">Tu Link in Bio ya está creado y prellenado con los datos de tu comercio. Inicia sesión con Google para tomar el control y personalizarlo.</p>
+      <span class="badge">✦ Tu Link in Bio</span>
+      <h1 id="ttl">Accede a tu página</h1>
+      <p class="lead" id="lead">Tu Link in Bio ya está creado y prellenado con los datos de tu comercio. Inicia sesión con tu cuenta de Google para tomar el control y personalizarlo.</p>
       <div class="handle" id="handleBox" style="display:none;">bioo.cl/<b id="handleTxt"></b></div>
 
       <button class="sso" id="googleBtn">
@@ -79,7 +79,7 @@
     function clearMsg(){ msg.textContent=''; msg.className='msg'; }
 
     if (handle) { document.getElementById('handleTxt').textContent = handle; document.getElementById('handleBox').style.display = 'inline-flex'; }
-    if (!handle || !token) { showMsg('Enlace de activación incompleto. Vuelve a abrir el enlace que te enviaron.', false); document.getElementById('googleBtn').disabled = true; }
+    // Sin token NI handle igual sirve: la posesión se resuelve por el email de Google.
 
     var _claiming = false;
     function doClaim(){
@@ -117,7 +117,6 @@
     }
 
     document.getElementById('googleBtn').addEventListener('click', function(){
-      if (!handle || !token) return;
       clearMsg();
       var provider = new firebase.auth.GoogleAuthProvider();
       if (_useRedirect) { googleRedirect(provider); return; }
@@ -143,11 +142,11 @@
 
     // Completa el login con Google cuando se usó redirect (móvil / PWA) → reclama.
     ensureLocal().then(function(){ return auth.getRedirectResult(); }).then(function(cred){
-      if (cred && cred.user && handle && token) doClaim();
+      if (cred && cred.user) doClaim();
     }).catch(function(e){ if (e && e.code) showMsg(mapError(e), false); });
 
     // Si ya está logueado al abrir el enlace, reclamamos directo.
-    auth.onAuthStateChanged(function(user){ if (user && handle && token && !_claiming) doClaim(); });
+    auth.onAuthStateChanged(function(user){ if (user && !_claiming) doClaim(); });
   })();
   </script>
 </body>

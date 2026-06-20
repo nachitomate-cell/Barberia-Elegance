@@ -167,6 +167,25 @@ exports.biooProvision = onRequest(
       const name = String(b.name || '').trim().slice(0, 80);
       if (!name) return res.status(400).json({ error: 'falta_nombre' });
 
+      // El dueño se identifica por su EMAIL (la cuenta de Google con la que
+      // inicia sesión en bioo.cl). Es el puente de identidad entre proyectos.
+      const email = String(b.email || '').trim().toLowerCase();
+      if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+        return res.status(400).json({ error: 'falta_email' });
+      }
+
+      // IDEMPOTENTE por email: si ya tiene un bio, lo devolvemos (no duplica).
+      const idxRef  = db.collection('bio_email_owners').doc(email);
+      const idxSnap = await idxRef.get();
+      if (idxSnap.exists && idxSnap.data().handle) {
+        const h = idxSnap.data().handle;
+        return res.status(200).json({
+          ok: true, already: true, handle: h,
+          claimUrl: `${BIOO_BASE}/claim`,
+          publicUrl: `${BIOO_BASE}/${encodeURIComponent(h)}`,
+        });
+      }
+
       // Handle: sugerido por el llamante o derivado del nombre.
       const handle = await freeHandle(b.handle || name);
       if (!validHandle(handle)) return res.status(400).json({ error: 'handle_invalido' });
@@ -182,13 +201,15 @@ exports.biooProvision = onRequest(
 
       const now = FieldValue.serverTimestamp();
 
-      // Documento bio PRELLENADO, sin dueño todavía (uid:null).
       // plan: 'free' | 'premium'. La personalización avanzada (temas/fondos/
       // animaciones) se reservará a 'premium' en el editor (fase 2).
       const plan = b.plan === 'premium' ? 'premium' : 'free';
 
+      // Documento bio PRELLENADO, sin uid aún. `ownerEmail` reserva la propiedad:
+      // quien inicie sesión en bioo.cl con ese email (verificado por Google) lo adopta.
       const bioDoc = {
         uid: null,
+        ownerEmail: email,
         username: handle,
         perfil: { titulo, subtitulo, avatar, verified: false },
         bloques,
@@ -202,23 +223,16 @@ exports.biooProvision = onRequest(
         updatedAt: now,
       };
 
-      // Token de reclamo PRIVADO (no se guarda en el doc público bios/<handle>).
-      const token = crypto.randomBytes(24).toString('hex');
-
       const batch = db.batch();
       batch.set(db.collection('bios').doc(handle), bioDoc);
-      batch.set(db.collection('bio_claims').doc(token), {
-        handle,
-        used: false,
-        source: String(b.source || 'externo'),
-        createdAt: now,
-      });
+      // Índice privado email → handle (idempotencia + adopción por email).
+      batch.set(idxRef, { handle, email, source: String(b.source || 'externo'), createdAt: now });
       await batch.commit();
 
-      const claimUrl  = `${BIOO_BASE}/claim?h=${encodeURIComponent(handle)}&t=${token}`;
+      const claimUrl  = `${BIOO_BASE}/claim`;
       const publicUrl = `${BIOO_BASE}/${encodeURIComponent(handle)}`;
 
-      logger.info(`[bioo] provisioned handle=${handle} source=${b.source || 'externo'}`);
+      logger.info(`[bioo] provisioned handle=${handle} email=${email} source=${b.source || 'externo'}`);
       return res.status(200).json({ ok: true, handle, claimUrl, publicUrl });
     } catch (err) {
       logger.error('[bioo] provision error:', err);
@@ -227,47 +241,62 @@ exports.biooProvision = onRequest(
   }
 );
 
-// ── 2. biooClaim (callable, lo invoca links/claim.html con el comercio logueado) ──
-
+// ── 2. biooClaim (callable) — el emprendedor toma posesión de su bio ──────────
+//  Lo invoca links/claim.html tras iniciar sesión con Google. La posesión se
+//  resuelve por EMAIL: si existe un bio reservado para el email del usuario
+//  (ownerEmail), lo adopta. (Conserva soporte de token por compatibilidad.)
 exports.biooClaim = onCall({ region: 'us-central1' }, async (request) => {
   const auth = request.auth;
   if (!auth) throw new HttpsError('unauthenticated', 'Debes iniciar sesión.');
 
-  const uid    = auth.uid;
-  const email  = (auth.token && auth.token.email) || '';
-  const handle = normHandle(request.data && request.data.handle);
-  const token  = String((request.data && request.data.token) || '');
-  if (!handle || !token) throw new HttpsError('invalid-argument', 'Datos incompletos.');
+  const uid   = auth.uid;
+  const email = ((auth.token && auth.token.email) || '').trim().toLowerCase();
+  const token = String((request.data && request.data.token) || '');
 
-  // ¿La cuenta ya tiene un bio asociado?
   const userRef  = db.collection('bio_users').doc(uid);
   const userSnap = await userRef.get();
-  if (userSnap.exists && userSnap.data().username) {
-    const existing = userSnap.data().username;
-    if (existing === handle) return { ok: true, handle, already: true };
-    throw new HttpsError('already-exists',
-      'Esta cuenta de Google ya tiene una página bioo: bioo.cl/' + existing);
+
+  // 1) Resolver el handle a adoptar.
+  let handle = null;
+  let viaToken = false;
+  if (token) {
+    const c = await db.collection('bio_claims').doc(token).get();
+    if (c.exists && !c.data().used) { handle = c.data().handle; viaToken = true; }
+  }
+  if (!handle && email) {
+    const idx = await db.collection('bio_email_owners').doc(email).get();
+    if (idx.exists && idx.data().handle) handle = idx.data().handle;
+  }
+  // 2) ¿Ya es dueño de algún bio? (login repetido)
+  if (!handle) {
+    if (userSnap.exists && userSnap.data().username) {
+      return { ok: true, handle: userSnap.data().username, already: true };
+    }
+    throw new HttpsError('not-found', 'No encontramos una página asociada a tu cuenta.');
   }
 
-  const claimRef  = db.collection('bio_claims').doc(token);
-  const bioRef    = db.collection('bios').doc(handle);
+  const bioRef   = db.collection('bios').doc(handle);
+  const claimRef = viaToken ? db.collection('bio_claims').doc(token) : null;
 
   return db.runTransaction(async (tx) => {
-    const [claimSnap, bioSnap] = await Promise.all([tx.get(claimRef), tx.get(bioRef)]);
-
-    if (!claimSnap.exists) throw new HttpsError('not-found', 'Enlace de activación inválido.');
-    const claim = claimSnap.data();
-    if (claim.used) throw new HttpsError('failed-precondition', 'Esta página ya fue activada.');
-    if (claim.handle !== handle) throw new HttpsError('permission-denied', 'Enlace no corresponde a esta página.');
-
+    const bioSnap = await tx.get(bioRef);
     if (!bioSnap.exists) throw new HttpsError('not-found', 'La página no existe.');
     const bio = bioSnap.data();
-    if (bio.uid) throw new HttpsError('failed-precondition', 'Esta página ya tiene dueño.');
+
+    // Ya es suya → idempotente.
+    if (bio.uid && bio.uid === uid) return { ok: true, handle, already: true };
+    if (bio.uid && bio.uid !== uid) {
+      throw new HttpsError('failed-precondition', 'Esta página ya tiene otro dueño.');
+    }
+    // Seguridad: por email, el email autenticado debe coincidir con ownerEmail.
+    if (!viaToken && bio.ownerEmail && email && bio.ownerEmail !== email) {
+      throw new HttpsError('permission-denied', 'Esta página está reservada para otra cuenta.');
+    }
 
     const now = FieldValue.serverTimestamp();
     tx.update(bioRef, { uid, updatedAt: now });
-    tx.set(userRef, { username: handle, email, claimedFrom: claim.source || 'externo', createdAt: now });
-    tx.update(claimRef, { used: true, claimedBy: uid, claimedAt: now });
+    tx.set(userRef, { username: handle, email, claimedFrom: bio.source || 'externo', createdAt: now }, { merge: true });
+    if (claimRef) tx.update(claimRef, { used: true, claimedBy: uid, claimedAt: now });
 
     return { ok: true, handle, already: false };
   });
