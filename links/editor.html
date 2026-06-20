@@ -320,7 +320,9 @@
   .preview-close{display:none;background:transparent;border:0;font-size:20px;color:#fff;cursor:pointer;}
   /* Proporción de teléfono real fija: el mockup escala entero (nunca se vuelve cuadrado),
      así el fondo (cover) recorta igual que en un celular y no se ve con zoom. */
-  .phone{position:relative;aspect-ratio:332/698;height:min(698px, calc(100dvh - 120px));width:auto;border:9px solid #1b2310;border-radius:40px;background:#1b2310;box-shadow:0 18px 50px rgba(21,36,11,.20);overflow:hidden;}
+  .phone{position:relative;aspect-ratio:332/698;height:min(698px, calc(100dvh - 120px));width:auto;border:9px solid #1b2310;border-radius:40px;background:#1b2310;box-shadow:0 18px 50px rgba(21,36,11,.20);overflow:hidden;animation:pvPhoneIn .55s cubic-bezier(.16,1,.3,1) both;}
+  @keyframes pvPhoneIn{from{opacity:0;transform:translateY(26px) scale(.955);}to{opacity:1;transform:none;}}
+  @media (prefers-reduced-motion:reduce){ .phone{animation:none;} }
   .phone-screen{position:relative;z-index:2;width:100%;height:100%;overflow-y:auto;background:#92c83a;}
   /* Fondo foto en la preview: imagen completa (contain) sobre un difuminado de relleno */
   .pv-bgblur{position:absolute;inset:0;z-index:0;background-color:#111;background-size:cover;background-position:center;filter:blur(26px) brightness(.72);transform:scale(1.12);}
@@ -390,7 +392,8 @@
     .content{padding:20px 16px 110px;max-width:620px;margin:0 auto;}
     .preview-toggle{display:inline-flex;}
     .col-preview{position:fixed;inset:0;width:auto;height:auto;top:auto;border-left:0;z-index:40;background:rgba(21,36,11,.55);backdrop-filter:blur(5px);display:none;flex-direction:column;align-items:center;justify-content:center;padding:20px;}
-    .col-preview.open{display:flex;}
+    .col-preview.open{display:flex;animation:pvOverlayIn .22s ease;}
+    @keyframes pvOverlayIn{from{opacity:0;}to{opacity:1;}}
     .preview-head{color:#fff;}
     .preview-close{display:inline-flex;}
     .phone{height:min(698px, calc(100dvh - 100px));}
@@ -1771,7 +1774,7 @@
     $('username').addEventListener('input', function(){ var n=normUser($('username').value); if(n!==$('username').value)$('username').value=n; paintPubLink(); renderPreview(); });
 
     // ── Vista previa en móvil (overlay) ──
-    $('previewToggle').addEventListener('click', function(){ renderPreview(); $('previewCol').classList.add('open'); });
+    $('previewToggle').addEventListener('click', function(){ renderPreview(); $('previewCol').classList.add('open'); var ph=document.querySelector('#previewCol .phone'); if(ph){ ph.style.animation='none'; void ph.offsetWidth; ph.style.animation=''; } });
     $('shareTop').addEventListener('click', shareBio);
     $('previewClose').addEventListener('click', function(){ $('previewCol').classList.remove('open'); });
     $('previewCol').addEventListener('click', function(e){ if (e.target === $('previewCol')) $('previewCol').classList.remove('open'); });
