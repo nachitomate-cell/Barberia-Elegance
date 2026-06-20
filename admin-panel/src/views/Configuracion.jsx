@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   Store, MapPin, Phone, Instagram, Image, Clock, Check, Save, HelpCircle, AlertCircle,
-  GraduationCap, Scissors, Ban,
+  GraduationCap, Scissors, Ban, Info,
 } from 'lucide-react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -41,6 +41,7 @@ const DEFAULT_SETTINGS = {
     '0': { activo: false, inicio: '10:00', fin: '14:00' },
   },
   features: DEFAULT_FEATURES,
+  quienesSomos: { activo: false, texto: '' },
 };
 
 /* ─── Helpers ────────────────────────────────────────────────── */
@@ -149,6 +150,7 @@ export default function Configuracion() {
           logo:      d.logo      || '',
           horario:   mergeHorario(d.horario),
           features:  mergeFeatures(d.features),
+          quienesSomos: { activo: !!(d.quienesSomos && d.quienesSomos.activo), texto: (d.quienesSomos && d.quienesSomos.texto) || '' },
         });
       }
       if (confSnap.exists()) {
@@ -164,6 +166,7 @@ export default function Configuracion() {
   const setFeat      = (k, v) => { setForm(f => ({ ...f, features: { ...f.features, [k]: v } })); setDirty(true); };
   const setFeatCourse = (k, v) => { setForm(f => ({ ...f, features: { ...f.features, courses: { ...f.features.courses, [k]: v } } })); setDirty(true); };
   const setFeatChair  = (k, v) => { setForm(f => ({ ...f, features: { ...f.features, chairRental: { ...f.features.chairRental, [k]: v } } })); setDirty(true); };
+  const setQS = (k, v) => { setForm(f => ({ ...f, quienesSomos: { ...f.quienesSomos, [k]: v } })); setDirty(true); };
 
   const handleSave = async () => {
     if (saving) return;
@@ -451,6 +454,27 @@ export default function Configuracion() {
         )}
       </Card>
       )}
+
+      {/* Quiénes somos */}
+      <Card Icon={Info} title="Quiénes somos">
+        <div className="flex items-center justify-between">
+          <div>
+            <span className="text-sm font-semibold text-white">Mostrar en la agenda pública</span>
+            <p className="text-xs text-slate-500 mt-0.5">Agrega un botón “Quiénes somos” que muestra este texto a tus clientes.</p>
+          </div>
+          <button type="button" onClick={() => setQS('activo', !form.quienesSomos.activo)}
+            className={`relative inline-flex w-9 h-5 rounded-full transition-colors duration-200 focus:outline-none shrink-0 ${form.quienesSomos.activo ? 'bg-emerald-500' : 'bg-slate-700'}`}>
+            <span className={`inline-block w-4 h-4 mt-0.5 bg-white rounded-full shadow transform transition-transform duration-200 ${form.quienesSomos.activo ? 'translate-x-4' : 'translate-x-0.5'}`} />
+          </button>
+        </div>
+        {form.quienesSomos.activo && (
+          <Field label="Texto">
+            <textarea className={`${inp} resize-none`} rows={6}
+              placeholder="Cuenta la historia de tu local, qué los hace únicos, su equipo, su experiencia…"
+              value={form.quienesSomos.texto} onChange={e => setQS('texto', e.target.value)} />
+          </Field>
+        )}
+      </Card>
 
       {/* Soporte Técnico */}
       <div

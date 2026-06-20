@@ -1595,6 +1595,19 @@
     .tenant-yugen .yugen-info button:hover { background: rgba(245,243,239,0.10); border-color: rgba(245,243,239,0.28); }
     .tenant-yugen .yugen-info button:active { transform: scale(.97); }
     .tenant-yugen .yugen-info button i { font-size: 15px; opacity: .85; }
+    /* Quiénes somos — botón + modal (todos los locales) */
+    .qs-btn { width:100%; display:flex; align-items:center; justify-content:center; gap:7px; padding:13px; font-size:12.5px; font-weight:700; color:rgba(229,231,235,0.88); background:rgba(255,255,255,0.02); border:0; border-bottom:1px solid rgba(255,255,255,0.05); cursor:pointer; transition:background .15s; }
+    .qs-btn:active { background:rgba(255,255,255,0.06); }
+    .qs-btn i { color:rgba(201,168,76,0.85); font-size:14px; }
+    .qs-modal { position:fixed; inset:0; z-index:130; display:flex; align-items:center; justify-content:center; padding:18px; background:rgba(0,0,0,0.62); backdrop-filter:blur(5px); -webkit-backdrop-filter:blur(5px); }
+    .qs-card { width:100%; max-width:440px; max-height:85vh; overflow-y:auto; background:#15161a; border:1px solid rgba(255,255,255,0.1); border-radius:18px; box-shadow:0 24px 70px rgba(0,0,0,0.55); animation:qsIn .25s ease; }
+    @keyframes qsIn { from { opacity:0; transform:translateY(14px); } to { opacity:1; transform:none; } }
+    .qs-head { display:flex; align-items:center; justify-content:space-between; padding:16px 18px; border-bottom:1px solid rgba(255,255,255,0.08); position:sticky; top:0; background:#15161a; }
+    .qs-head h3 { display:flex; align-items:center; gap:9px; font-size:15px; font-weight:800; color:#fff; margin:0; }
+    .qs-head h3 i { color:rgba(201,168,76,0.9); }
+    .qs-x { background:transparent; border:0; color:rgba(255,255,255,0.6); font-size:18px; cursor:pointer; padding:4px; line-height:1; }
+    .qs-x:active { color:#fff; }
+    .qs-body { padding:18px; font-size:14px; line-height:1.6; color:rgba(229,231,235,0.86); white-space:pre-wrap; word-break:break-word; }
     /* Modal (bottom sheet) con animación simple */
     .yugen-modal {
       display: none; position: fixed; inset: 0; z-index: 120;
@@ -6281,6 +6294,20 @@
       </a>
     </div>
 
+    <!-- Quiénes somos (se activa desde el panel → Configuración) -->
+    <button id="quienesSomosBtn" type="button" class="qs-btn" style="display:none;" onclick="openQuienesSomos()">
+      <i class="ph-fill ph-info"></i> <span>Quiénes somos</span>
+    </button>
+    <div id="quienesSomosModal" class="qs-modal" style="display:none;" onclick="closeQuienesSomos(event)">
+      <div class="qs-card" onclick="event.stopPropagation()">
+        <div class="qs-head">
+          <h3><i class="ph-fill ph-info"></i> Quiénes somos</h3>
+          <button type="button" class="qs-x" onclick="closeQuienesSomos()" aria-label="Cerrar"><i class="ph-bold ph-x"></i></button>
+        </div>
+        <div id="quienesSomosTexto" class="qs-body"></div>
+      </div>
+    </div>
+
     <!-- Yūgen — info compacta: botones Ver horario / Ver ubicación + modal -->
     <div class="yugen-info">
       <button type="button" onclick="openYugenModal('horario')"><i class="ph-fill ph-clock"></i> Ver horario</button>
@@ -6350,6 +6377,14 @@
       window.closeYugenModal = function () {
         var m = document.getElementById('yugenModal');
         if (m) m.classList.remove('open');
+      };
+      window.openQuienesSomos = function () {
+        var m = document.getElementById('quienesSomosModal');
+        if (m) m.style.display = 'flex';
+      };
+      window.closeQuienesSomos = function () {
+        var m = document.getElementById('quienesSomosModal');
+        if (m) m.style.display = 'none';
       };
       // Logo de Yūgen en el sello animado de la confirmación
       document.addEventListener('DOMContentLoaded', function () {
@@ -7842,6 +7877,16 @@
       const _shopSettings = rSettings.status === 'fulfilled' ? rSettings.value : null;
       _fsSettings = _shopSettings;
       _renderFeaturesStrip(_shopSettings?.features);
+      // Quiénes somos (configurable desde el panel → Configuración)
+      try {
+        const _qs = _shopSettings && _shopSettings.quienesSomos;
+        if (_qs && _qs.activo && (_qs.texto || '').trim()) {
+          const _qsT = document.getElementById('quienesSomosTexto');
+          const _qsB = document.getElementById('quienesSomosBtn');
+          if (_qsT) _qsT.textContent = _qs.texto;
+          if (_qsB) _qsB.style.display = 'flex';
+        }
+      } catch (e) {}
 
       // Cargar productos y bloqueos en paralelo.
       // Acotado con timeout: estas lecturas son de enriquecimiento (productos,
