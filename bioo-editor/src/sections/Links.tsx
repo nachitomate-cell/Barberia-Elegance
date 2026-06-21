@@ -42,20 +42,9 @@ export default function Links(): JSX.Element {
 
   return (
     <div className="space-y-3">
-      <Reorder.Group axis="y" values={state.blocks} onReorder={(blocks) => dispatch({ type: 'setBlocks', blocks })} className="space-y-3">
-        {state.blocks.map((b) => (
-          <Reorder.Item
-            key={b.id}
-            value={b}
-            className="group rounded-2xl bg-white p-3.5 shadow-sm ring-1 ring-black/[0.04] transition-shadow hover:shadow-md"
-          >
-            <LinkCard block={b} />
-          </Reorder.Item>
-        ))}
-      </Reorder.Group>
-
+      {/* ── Agregar enlace (arriba de la lista) ── */}
       {picker ? (
-        <div className="rounded-2xl bg-white p-3 shadow-sm ring-1 ring-black/[0.04]">
+        <div className="rounded-2xl bg-white p-3 shadow-sm ring-1 ring-black/[0.05]">
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {TIPOS.map((t) => {
               const Icon = TYPE_ICON[t.id];
@@ -77,10 +66,27 @@ export default function Links(): JSX.Element {
         <button
           type="button"
           onClick={() => setPicker(true)}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-300 py-5 text-sm font-bold text-[#72a129] transition-colors hover:border-[#92c83a] hover:bg-[#92c83a]/5"
+          className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 py-4 text-sm font-bold text-[#72a129] transition-colors hover:border-[#92c83a] hover:bg-[#92c83a]/5"
         >
           <Plus size={18} strokeWidth={2.5} /> Agregar enlace
         </button>
+      )}
+
+      {/* ── Lista reordenable (Framer Motion) ── */}
+      <Reorder.Group axis="y" values={state.blocks} onReorder={(blocks) => dispatch({ type: 'setBlocks', blocks })} className="space-y-3">
+        {state.blocks.map((b) => (
+          <Reorder.Item
+            key={b.id}
+            value={b}
+            className="group rounded-2xl bg-white p-3.5 shadow-sm ring-1 ring-black/[0.05] transition-shadow hover:shadow-md"
+          >
+            <LinkCard block={b} />
+          </Reorder.Item>
+        ))}
+      </Reorder.Group>
+
+      {state.blocks.length === 0 && (
+        <p className="px-1 pt-1 text-center text-xs text-gray-400">Aún no tienes enlaces. Agrega el primero arriba ☝️</p>
       )}
     </div>
   );
@@ -88,8 +94,10 @@ export default function Links(): JSX.Element {
 
 /* ─────────────── Tarjeta de enlace ─────────────── */
 
-const titleInput = 'w-full bg-transparent text-lg font-semibold text-gray-900 placeholder-gray-400 focus:outline-none';
-const subInput = 'w-full bg-transparent text-sm text-gray-500 placeholder-gray-400 focus:outline-none';
+const titleInput =
+  'w-full rounded-lg bg-transparent px-2 py-1 text-base font-semibold text-gray-900 placeholder-gray-400 transition-colors focus:bg-gray-50 focus:outline-none';
+const subInput =
+  'w-full rounded-lg bg-transparent px-2 py-1 text-sm text-gray-500 placeholder-gray-400 transition-colors focus:bg-gray-50 focus:outline-none';
 
 function LinkCard({ block }: { block: Block }): JSX.Element {
   const { dispatch } = useEditor();
@@ -100,17 +108,14 @@ function LinkCard({ block }: { block: Block }): JSX.Element {
   return (
     <div>
       <div className="flex items-start gap-2.5">
-        {/* Drag handle */}
+        {/* Drag handle (6 puntos) */}
         <button
           type="button"
-          aria-label="Arrastrar"
-          className="mt-2 cursor-grab text-gray-400 opacity-50 transition-opacity group-hover:opacity-100 active:cursor-grabbing"
+          aria-label="Arrastrar para reordenar"
+          className="mt-1.5 cursor-grab text-gray-400 opacity-40 transition-opacity group-hover:opacity-100 active:cursor-grabbing"
         >
           <GripVertical size={18} />
         </button>
-
-        {/* Miniatura (solo enlaces) */}
-        {link && <Thumb block={block} patch={patch} />}
 
         {/* Contenido */}
         <div className="min-w-0 flex-1">
@@ -118,18 +123,23 @@ function LinkCard({ block }: { block: Block }): JSX.Element {
           {link ? (
             <>
               <input className={titleInput} placeholder="Título del enlace" value={block.label} onChange={(e) => patch({ label: e.target.value })} />
-              <SecondLine block={block} patch={patch} />
+              <div className="mt-0.5 flex items-center gap-2">
+                <ThumbBox block={block} patch={patch} />
+                <div className="min-w-0 flex-1">
+                  <SecondLine block={block} patch={patch} />
+                </div>
+              </div>
             </>
           ) : (
             <SpecialBody block={block} patch={patch} />
           )}
         </div>
 
-        {/* Toggle iOS */}
+        {/* Toggle iOS (esquina superior derecha) */}
         <Toggle on={block.activo} onChange={(v) => patch({ activo: v })} />
       </div>
 
-      {/* Barra de herramientas rápida */}
+      {/* Barra de herramientas */}
       <div className="mt-1 flex items-center justify-end gap-0.5">
         {link && (
           <button
@@ -141,7 +151,7 @@ function LinkCard({ block }: { block: Block }): JSX.Element {
             <Star size={16} fill={block.featured ? 'currentColor' : 'none'} />
           </button>
         )}
-        <button type="button" onClick={remove} title="Eliminar" className="rounded-lg p-1.5 text-gray-300 transition-colors hover:text-red-500">
+        <button type="button" onClick={remove} title="Eliminar enlace" className="rounded-lg p-1.5 text-gray-300 transition-colors hover:text-red-500">
           <Trash2 size={16} />
         </button>
       </div>
@@ -156,25 +166,25 @@ function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void 
       role="switch"
       aria-checked={on}
       onClick={() => onChange(!on)}
-      className={`relative mt-1.5 inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 ${on ? 'bg-[#92c83a]' : 'bg-gray-200'}`}
+      className={`relative mt-1 inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 ${on ? 'bg-[#92c83a]' : 'bg-gray-200'}`}
     >
       <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform duration-200 ${on ? 'translate-x-5' : 'translate-x-0.5'}`} />
     </button>
   );
 }
 
-function Thumb({ block, patch }: { block: Block; patch: (p: Partial<Block>) => void }): JSX.Element {
+/** Placeholder cuadrado dashed para la miniatura — sube una imagen al tocar. */
+function ThumbBox({ block, patch }: { block: Block; patch: (p: Partial<Block>) => void }): JSX.Element {
   const ref = useRef<HTMLInputElement>(null);
-  const Icon = TYPE_ICON[block.tipo];
   return (
     <>
       <button
         type="button"
         onClick={() => ref.current?.click()}
         title="Miniatura"
-        className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-lg bg-gray-100 text-gray-400 transition-colors hover:bg-gray-200"
+        className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-lg border-2 border-dashed border-gray-300 text-gray-400 transition-colors hover:border-[#92c83a] hover:text-[#72a129]"
       >
-        {block.thumb ? <img src={block.thumb} alt="" className="h-full w-full object-cover" /> : <Icon size={20} />}
+        {block.thumb ? <img src={block.thumb} alt="" className="h-full w-full rounded-md object-cover" /> : <ImageIcon size={16} />}
       </button>
       <input
         ref={ref}
@@ -212,7 +222,7 @@ function SecondLine({ block, patch }: { block: Block; patch: (p: Partial<Block>)
       return (
         <div className="flex items-center gap-1">
           <span className="text-sm text-gray-400">+</span>
-          <input className={`${subInput} w-10`} placeholder="56" value={block.prefijo ?? ''} onChange={(e) => patch({ prefijo: e.target.value })} />
+          <input className={`${subInput} w-12`} placeholder="56" value={block.prefijo ?? ''} onChange={(e) => patch({ prefijo: e.target.value })} />
           <input className={subInput} placeholder="9 1234 5678" value={block.telefono ?? ''} onChange={(e) => patch({ telefono: e.target.value })} />
         </div>
       );
@@ -232,7 +242,7 @@ function SpecialBody({ block, patch }: { block: Block; patch: (p: Partial<Block>
     case 'separador':
       return <p className="py-1 text-sm text-gray-400">Línea divisoria — separa secciones de tu página.</p>;
     case 'texto':
-      return <textarea className={`${titleInput} resize-none text-base`} rows={2} placeholder="Escribe un título o texto" value={block.texto ?? ''} onChange={(e) => patch({ texto: e.target.value })} />;
+      return <textarea className={`${titleInput} resize-none`} rows={2} placeholder="Escribe un título o texto" value={block.texto ?? ''} onChange={(e) => patch({ texto: e.target.value })} />;
     case 'imagen':
       return (
         <div className="space-y-2 pt-1">
