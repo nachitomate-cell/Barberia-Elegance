@@ -3,13 +3,14 @@ import { Reorder } from 'framer-motion';
 import {
   Plus, Trash2, Star, GripVertical, X,
   Link2, MessageCircle, Instagram, Music2, Facebook, Youtube, Mail, Phone,
-  Type, Minus, Image as ImageIcon, PlaySquare, Share2, MailPlus, type LucideIcon,
+  Type, Minus, Image as ImageIcon, PlaySquare, Share2, MailPlus,
+  RectangleHorizontal, Square, Maximize2, type LucideIcon,
 } from 'lucide-react';
 import { useEditor, newBlock } from '../store';
 import { fileToDataUrl } from '../lib/image';
 import { SOCIAL_NETS } from '../lib/blocks';
 import ImagePicker from '../components/ImagePicker';
-import type { Block, BlockType, Social, SocialNet } from '../types';
+import type { Block, BlockType, Social, SocialNet, LayoutSize } from '../types';
 
 const TIPOS: { id: BlockType; label: string }[] = [
   { id: 'enlace', label: 'Enlace / Web' },
@@ -151,21 +152,53 @@ function LinkCard({ block }: { block: Block }): JSX.Element {
       </div>
 
       {/* Barra de herramientas */}
-      <div className="mt-1 flex items-center justify-end gap-0.5">
-        {link && (
-          <button
-            type="button"
-            onClick={() => patch({ featured: !block.featured })}
-            title="Destacar"
-            className={`rounded-lg p-1.5 transition-colors ${block.featured ? 'text-amber-500' : 'text-gray-300 hover:text-amber-500'}`}
-          >
-            <Star size={16} fill={block.featured ? 'currentColor' : 'none'} />
+      <div className="mt-1.5 flex items-center justify-between gap-2">
+        {block.tipo !== 'newsletter' && block.tipo !== 'separador'
+          ? <SizePicker value={block.layoutSize ?? 'full'} onChange={(v) => patch({ layoutSize: v })} />
+          : <span />}
+        <div className="flex items-center gap-0.5">
+          {link && (
+            <button
+              type="button"
+              onClick={() => patch({ featured: !block.featured })}
+              title="Destacar"
+              className={`rounded-lg p-1.5 transition-colors ${block.featured ? 'text-amber-500' : 'text-gray-300 hover:text-amber-500'}`}
+            >
+              <Star size={16} fill={block.featured ? 'currentColor' : 'none'} />
+            </button>
+          )}
+          <button type="button" onClick={remove} title="Eliminar enlace" className="rounded-lg p-1.5 text-gray-300 transition-colors hover:text-red-500">
+            <Trash2 size={16} />
           </button>
-        )}
-        <button type="button" onClick={remove} title="Eliminar enlace" className="rounded-lg p-1.5 text-gray-300 transition-colors hover:text-red-500">
-          <Trash2 size={16} />
-        </button>
+        </div>
       </div>
+    </div>
+  );
+}
+
+const SIZES: [LayoutSize, string, LucideIcon][] = [
+  ['full', 'Ancho completo', RectangleHorizontal],
+  ['half', 'Mitad (cuadrado)', Square],
+  ['large', 'Destacado', Maximize2],
+];
+
+/** Selector de tamaño Bento (3 iconitos). */
+function SizePicker({ value, onChange }: { value: LayoutSize; onChange: (v: LayoutSize) => void }): JSX.Element {
+  return (
+    <div className="flex items-center gap-0.5 rounded-lg bg-gray-50 p-0.5">
+      {SIZES.map(([v, title, Icon]) => (
+        <button
+          key={v}
+          type="button"
+          title={title}
+          onClick={() => onChange(v)}
+          className={`grid h-6 w-7 place-items-center rounded-md transition-colors ${
+            value === v ? 'bg-white text-[#72a129] shadow-sm' : 'text-gray-400 hover:text-gray-600'
+          }`}
+        >
+          <Icon size={13} />
+        </button>
+      ))}
     </div>
   );
 }

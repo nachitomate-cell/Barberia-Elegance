@@ -66,40 +66,42 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
           <p className="mt-1 max-w-[32ch] text-center leading-snug" style={{ color: p.sub, fontSize: SSIZE[txt.subSize] }}>{profile.subtitulo}</p>
         )}
 
-        <div className="mt-7 flex w-full flex-col gap-3">
+        <div className="mt-7 grid w-full grid-cols-2 gap-4">
           {visible.length === 0 && (
-            <p className="py-6 text-center text-sm" style={{ color: p.sub }}>Aún no hay enlaces aquí.</p>
+            <p className="col-span-2 py-6 text-center text-sm" style={{ color: p.sub }}>Aún no hay enlaces aquí.</p>
           )}
           {visible.map((b) => {
             if (b.tipo === 'separador') {
-              return <hr key={b.id} className="my-1 w-1/2 self-center border-0 border-t-2" style={{ borderColor: 'rgba(128,128,128,.35)' }} />;
+              return <hr key={b.id} className="col-span-2 my-1 w-1/2 justify-self-center border-0 border-t-2" style={{ borderColor: 'rgba(128,128,128,.35)' }} />;
             }
             if (b.tipo === 'texto') {
-              return <p key={b.id} className="text-center text-sm font-semibold" style={{ color: p.text }}>{b.texto}</p>;
+              return <p key={b.id} className="col-span-2 text-center text-sm font-semibold" style={{ color: p.text }}>{b.texto}</p>;
             }
             if (b.tipo === 'imagen') {
-              const img = <img src={b.img} alt="" className="w-full rounded-2xl shadow-md" />;
+              const half = (b.layoutSize ?? 'full') === 'half';
+              const spanC = half ? 'col-span-1' : 'col-span-2';
+              const img = <img src={b.img} alt="" className={`w-full rounded-2xl shadow-md ${half ? 'aspect-square h-full object-cover' : ''}`} />;
               return b.url
-                ? <a key={b.id} href={b.url} target="_blank" rel="noopener noreferrer" className="block">{img}</a>
-                : <div key={b.id}>{img}</div>;
+                ? <a key={b.id} href={b.url} target="_blank" rel="noopener noreferrer" className={`block ${spanC}`}>{img}</a>
+                : <div key={b.id} className={spanC}>{img}</div>;
             }
             if (b.tipo === 'embed') {
               const e = embedSrc(b.url);
               if (!e) return null;
               if (e.kind === 'youtube') {
                 return (
-                  <div key={b.id} className="relative w-full overflow-hidden rounded-2xl shadow-md" style={{ paddingTop: '56.25%' }}>
+                  <div key={b.id} className="col-span-2 relative w-full overflow-hidden rounded-2xl shadow-md" style={{ paddingTop: '56.25%' }}>
                     <iframe src={e.src} title="video" className="absolute inset-0 h-full w-full border-0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture" allowFullScreen />
                   </div>
                 );
               }
-              return <iframe key={b.id} src={e.src} title="spotify" className="w-full rounded-2xl border-0" style={{ height: e.height }} allow="encrypted-media" />;
+              return <iframe key={b.id} src={e.src} title="spotify" className="col-span-2 w-full rounded-2xl border-0" style={{ height: e.height }} allow="encrypted-media" />;
             }
             if (b.tipo === 'social') {
               const items = (b.socials ?? []).filter((s) => (s.valor || '').trim());
               if (!items.length) return null;
               return (
-                <div key={b.id} className="flex flex-wrap justify-center gap-4">
+                <div key={b.id} className="col-span-2 flex flex-wrap justify-center gap-4">
                   {items.map((s, i) => {
                     const u = socUrl(s);
                     const Icon = SOCIAL_ICON[s.red];
@@ -112,7 +114,7 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
             }
             if (b.tipo === 'newsletter') {
               return (
-                <div key={b.id} className="rounded-2xl bg-white/90 p-4 text-center shadow-md backdrop-blur-sm">
+                <div key={b.id} className="col-span-2 rounded-2xl bg-white/90 p-4 text-center shadow-md backdrop-blur-sm">
                   <p className="text-sm font-bold text-neutral-900">{b.label || 'Únete a mi Newsletter'}</p>
                   {b.subtitulo && <p className="mt-0.5 text-xs leading-snug text-neutral-500">{b.subtitulo}</p>}
                   <div className="mt-3 flex flex-col gap-2">
@@ -141,14 +143,30 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
               : theme.btnAnim !== 'none'
                 ? `anim-${theme.btnAnim}`
                 : '';
+            const size = b.layoutSize ?? 'full';
+            const common = `relative shadow-sm ${animCls}`;
+            const styleObj = { borderRadius: radius, ...fillStyle };
+            const text = b.label || b.url || 'Enlace';
+            if (size === 'half') {
+              return (
+                <div key={b.id} className={`col-span-1 flex aspect-square flex-col items-center justify-center gap-2 p-3 text-center text-sm font-bold ${common}`} style={styleObj}>
+                  {b.thumb && <img src={b.thumb} alt="" className="h-10 w-10 rounded-lg object-cover" />}
+                  <span className="line-clamp-3 leading-tight">{text}</span>
+                </div>
+              );
+            }
+            if (size === 'large') {
+              return (
+                <div key={b.id} className={`col-span-2 flex min-h-[150px] flex-col items-center justify-center gap-2.5 p-4 text-center text-base font-bold ${common}`} style={styleObj}>
+                  {b.thumb && <img src={b.thumb} alt="" className="h-14 w-14 rounded-xl object-cover" />}
+                  <span>{text}</span>
+                </div>
+              );
+            }
             return (
-              <div
-                key={b.id}
-                className={`relative px-5 py-4 text-center text-sm font-bold shadow-sm ${animCls}`}
-                style={{ borderRadius: radius, ...fillStyle }}
-              >
+              <div key={b.id} className={`col-span-2 flex items-center justify-center px-5 py-4 text-center text-sm font-bold ${common}`} style={styleObj}>
                 {b.thumb && <img src={b.thumb} alt="" className="absolute left-2.5 top-1/2 h-8 w-8 -translate-y-1/2 rounded-md object-cover" />}
-                {b.label || b.url || 'Enlace'}
+                {text}
               </div>
             );
           })}

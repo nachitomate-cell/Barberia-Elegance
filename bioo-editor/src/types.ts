@@ -6,6 +6,9 @@ export type BlockType =
 export type SocialNet =
   | 'instagram' | 'tiktok' | 'facebook' | 'youtube' | 'whatsapp' | 'email' | 'telefono' | 'enlace';
 
+/** Tamaño del bloque en la cuadrícula Bento. undefined ⇒ 'full' (retrocompatible). */
+export type LayoutSize = 'full' | 'half' | 'large';
+
 export interface Social {
   red: SocialNet;
   valor: string;
@@ -18,6 +21,7 @@ export interface Block {
   url: string;
   activo: boolean;
   featured?: boolean;
+  layoutSize?: LayoutSize;
   usuario?: string;
   prefijo?: string;
   telefono?: string;
