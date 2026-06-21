@@ -25,6 +25,7 @@ export interface Block {
   email?: string;
   texto?: string;
   img?: string;
+  thumb?: string;
   socials?: Social[];
 }
 

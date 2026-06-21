@@ -121,9 +121,10 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
             return (
               <div
                 key={b.id}
-                className={`px-5 py-4 text-center text-sm font-bold shadow-sm ${animCls}`}
+                className={`relative px-5 py-4 text-center text-sm font-bold shadow-sm ${animCls}`}
                 style={{ borderRadius: radius, ...fillStyle }}
               >
+                {b.thumb && <img src={b.thumb} alt="" className="absolute left-2.5 top-1/2 h-8 w-8 -translate-y-1/2 rounded-md object-cover" />}
                 {b.label || b.url || 'Enlace'}
               </div>
             );

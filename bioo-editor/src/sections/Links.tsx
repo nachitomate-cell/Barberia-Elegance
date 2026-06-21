@@ -1,10 +1,14 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Reorder } from 'framer-motion';
-import { Plus, Trash2, Star, GripVertical, X } from 'lucide-react';
+import {
+  Plus, Trash2, Star, GripVertical, X,
+  Link2, MessageCircle, Instagram, Music2, Facebook, Youtube, Mail, Phone,
+  Type, Minus, Image as ImageIcon, PlaySquare, Share2, type LucideIcon,
+} from 'lucide-react';
 import { useEditor, newBlock } from '../store';
-import { inputCls } from '../ui';
-import ImagePicker from '../components/ImagePicker';
+import { fileToDataUrl } from '../lib/image';
 import { SOCIAL_NETS } from '../lib/blocks';
+import ImagePicker from '../components/ImagePicker';
 import type { Block, BlockType, Social, SocialNet } from '../types';
 
 const TIPOS: { id: BlockType; label: string }[] = [
@@ -23,6 +27,15 @@ const TIPOS: { id: BlockType; label: string }[] = [
   { id: 'social', label: 'Fila social' },
 ];
 
+const TYPE_ICON: Record<BlockType, LucideIcon> = {
+  enlace: Link2, whatsapp: MessageCircle, instagram: Instagram, tiktok: Music2,
+  facebook: Facebook, youtube: Youtube, email: Mail, telefono: Phone,
+  texto: Type, separador: Minus, imagen: ImageIcon, embed: PlaySquare, social: Share2,
+};
+
+const SPECIAL: BlockType[] = ['texto', 'separador', 'imagen', 'embed', 'social'];
+const isLinkType = (t: BlockType): boolean => !SPECIAL.includes(t);
+
 export default function Links(): JSX.Element {
   const { state, dispatch } = useEditor();
   const [picker, setPicker] = useState(false);
@@ -31,102 +44,208 @@ export default function Links(): JSX.Element {
     <div className="space-y-3">
       <Reorder.Group axis="y" values={state.blocks} onReorder={(blocks) => dispatch({ type: 'setBlocks', blocks })} className="space-y-3">
         {state.blocks.map((b) => (
-          <Reorder.Item key={b.id} value={b} className="rounded-2xl border border-neutral-200 bg-white p-3 shadow-sm">
-            <BlockEditor block={b} />
+          <Reorder.Item
+            key={b.id}
+            value={b}
+            className="group rounded-2xl bg-white p-3.5 shadow-sm ring-1 ring-black/[0.04] transition-shadow hover:shadow-md"
+          >
+            <LinkCard block={b} />
           </Reorder.Item>
         ))}
       </Reorder.Group>
 
       {picker ? (
-        <div className="rounded-2xl border border-neutral-200 bg-white p-3">
-          <div className="grid grid-cols-2 gap-2">
-            {TIPOS.map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                onClick={() => { dispatch({ type: 'addBlock', block: newBlock(t.id) }); setPicker(false); }}
-                className="rounded-xl border border-neutral-200 px-3 py-2.5 text-left text-xs font-semibold hover:border-bioo"
-              >
-                {t.label}
-              </button>
-            ))}
+        <div className="rounded-2xl bg-white p-3 shadow-sm ring-1 ring-black/[0.04]">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {TIPOS.map((t) => {
+              const Icon = TYPE_ICON[t.id];
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => { dispatch({ type: 'addBlock', block: newBlock(t.id) }); setPicker(false); }}
+                  className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-left text-xs font-semibold text-gray-700 ring-1 ring-gray-200 transition hover:bg-[#92c83a]/5 hover:ring-[#92c83a]"
+                >
+                  <Icon size={15} className="text-[#72a129]" /> {t.label}
+                </button>
+              );
+            })}
           </div>
-          <button type="button" onClick={() => setPicker(false)} className="mt-2 text-xs text-neutral-400">Cerrar</button>
+          <button type="button" onClick={() => setPicker(false)} className="mt-3 text-xs text-gray-400 hover:text-gray-600">Cerrar</button>
         </div>
       ) : (
         <button
           type="button"
           onClick={() => setPicker(true)}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-neutral-300 py-4 text-sm font-semibold text-neutral-500 transition-colors hover:border-bioo hover:text-bioo-dark"
+          className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-300 py-5 text-sm font-bold text-[#72a129] transition-colors hover:border-[#92c83a] hover:bg-[#92c83a]/5"
         >
-          <Plus size={16} /> Agregar enlace
+          <Plus size={18} strokeWidth={2.5} /> Agregar enlace
         </button>
       )}
     </div>
   );
 }
 
-function BlockEditor({ block }: { block: Block }): JSX.Element {
+/* ─────────────── Tarjeta de enlace ─────────────── */
+
+const titleInput = 'w-full bg-transparent text-lg font-semibold text-gray-900 placeholder-gray-400 focus:outline-none';
+const subInput = 'w-full bg-transparent text-sm text-gray-500 placeholder-gray-400 focus:outline-none';
+
+function LinkCard({ block }: { block: Block }): JSX.Element {
   const { dispatch } = useEditor();
   const patch = (p: Partial<Block>): void => dispatch({ type: 'patchBlock', id: block.id, patch: p });
-  const isLink = !['texto', 'separador', 'imagen', 'embed', 'social'].includes(block.tipo);
+  const remove = (): void => dispatch({ type: 'removeBlock', id: block.id });
+  const link = isLinkType(block.tipo);
 
   return (
     <div>
-      <div className="mb-2 flex items-center gap-2">
-        <GripVertical size={16} className="cursor-grab text-neutral-300" />
-        <span className="flex-1 text-[11px] font-bold uppercase tracking-wide text-bioo-dark">{block.tipo}</span>
-        {isLink && (
-          <button type="button" onClick={() => patch({ featured: !block.featured })} title="Destacar" className={block.featured ? 'text-amber-500' : 'text-neutral-300'}>
+      <div className="flex items-start gap-2.5">
+        {/* Drag handle */}
+        <button
+          type="button"
+          aria-label="Arrastrar"
+          className="mt-2 cursor-grab text-gray-400 opacity-50 transition-opacity group-hover:opacity-100 active:cursor-grabbing"
+        >
+          <GripVertical size={18} />
+        </button>
+
+        {/* Miniatura (solo enlaces) */}
+        {link && <Thumb block={block} patch={patch} />}
+
+        {/* Contenido */}
+        <div className="min-w-0 flex-1">
+          <TypeChip block={block} patch={patch} />
+          {link ? (
+            <>
+              <input className={titleInput} placeholder="Título del enlace" value={block.label} onChange={(e) => patch({ label: e.target.value })} />
+              <SecondLine block={block} patch={patch} />
+            </>
+          ) : (
+            <SpecialBody block={block} patch={patch} />
+          )}
+        </div>
+
+        {/* Toggle iOS */}
+        <Toggle on={block.activo} onChange={(v) => patch({ activo: v })} />
+      </div>
+
+      {/* Barra de herramientas rápida */}
+      <div className="mt-1 flex items-center justify-end gap-0.5">
+        {link && (
+          <button
+            type="button"
+            onClick={() => patch({ featured: !block.featured })}
+            title="Destacar"
+            className={`rounded-lg p-1.5 transition-colors ${block.featured ? 'text-amber-500' : 'text-gray-300 hover:text-amber-500'}`}
+          >
             <Star size={16} fill={block.featured ? 'currentColor' : 'none'} />
           </button>
         )}
-        <button type="button" onClick={() => dispatch({ type: 'removeBlock', id: block.id })} className="text-neutral-400 hover:text-red-500">
+        <button type="button" onClick={remove} title="Eliminar" className="rounded-lg p-1.5 text-gray-300 transition-colors hover:text-red-500">
           <Trash2 size={16} />
         </button>
       </div>
-
-      {block.tipo === 'separador' ? (
-        <p className="px-1 text-xs text-neutral-400">Línea divisoria — separa secciones.</p>
-      ) : block.tipo === 'texto' ? (
-        <textarea className={inputCls} rows={2} placeholder="Escribe un título o texto" value={block.texto ?? ''} onChange={(e) => patch({ texto: e.target.value })} />
-      ) : block.tipo === 'imagen' ? (
-        <div className="space-y-2">
-          <ImagePicker value={block.img ?? ''} onChange={(img) => patch({ img })} maxW={1080} label="Subir imagen" />
-          <input className={inputCls} placeholder="Link al tocar (opcional) https://…" value={block.url} onChange={(e) => patch({ url: e.target.value })} />
-        </div>
-      ) : block.tipo === 'embed' ? (
-        <input className={inputCls} placeholder="Pega el link de YouTube o Spotify" value={block.url} onChange={(e) => patch({ url: e.target.value })} />
-      ) : block.tipo === 'social' ? (
-        <SocialEditor block={block} patch={patch} />
-      ) : (
-        <div className="space-y-2">
-          <input className={inputCls} placeholder="Texto del botón" value={block.label} onChange={(e) => patch({ label: e.target.value })} />
-          <BlockFields block={block} patch={patch} />
-        </div>
-      )}
     </div>
   );
 }
 
-function BlockFields({ block, patch }: { block: Block; patch: (p: Partial<Block>) => void }): JSX.Element {
+function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }): JSX.Element {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={on}
+      onClick={() => onChange(!on)}
+      className={`relative mt-1.5 inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 ${on ? 'bg-[#92c83a]' : 'bg-gray-200'}`}
+    >
+      <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform duration-200 ${on ? 'translate-x-5' : 'translate-x-0.5'}`} />
+    </button>
+  );
+}
+
+function Thumb({ block, patch }: { block: Block; patch: (p: Partial<Block>) => void }): JSX.Element {
+  const ref = useRef<HTMLInputElement>(null);
+  const Icon = TYPE_ICON[block.tipo];
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => ref.current?.click()}
+        title="Miniatura"
+        className="grid h-12 w-12 shrink-0 place-items-center overflow-hidden rounded-lg bg-gray-100 text-gray-400 transition-colors hover:bg-gray-200"
+      >
+        {block.thumb ? <img src={block.thumb} alt="" className="h-full w-full object-cover" /> : <Icon size={20} />}
+      </button>
+      <input
+        ref={ref}
+        type="file"
+        accept="image/*"
+        hidden
+        onChange={async (e) => {
+          const f = e.target.files?.[0];
+          if (f) { try { patch({ thumb: await fileToDataUrl(f, { square: true, maxW: 160 }) }); } catch { /* noop */ } }
+          e.target.value = '';
+        }}
+      />
+    </>
+  );
+}
+
+function TypeChip({ block, patch }: { block: Block; patch: (p: Partial<Block>) => void }): JSX.Element {
+  return (
+    <div className="relative -ml-1 mb-0.5 inline-flex">
+      <select
+        value={block.tipo}
+        onChange={(e) => patch({ tipo: e.target.value as BlockType })}
+        className="cursor-pointer appearance-none rounded-md bg-transparent px-1 py-0.5 text-[11px] font-bold uppercase tracking-wide text-[#72a129] hover:bg-[#92c83a]/5 focus:outline-none"
+      >
+        {TIPOS.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
+      </select>
+    </div>
+  );
+}
+
+function SecondLine({ block, patch }: { block: Block; patch: (p: Partial<Block>) => void }): JSX.Element {
   switch (block.tipo) {
     case 'whatsapp':
     case 'telefono':
       return (
-        <div className="flex gap-2">
-          <input className={`${inputCls} w-16`} placeholder="56" value={block.prefijo ?? ''} onChange={(e) => patch({ prefijo: e.target.value })} />
-          <input className={inputCls} placeholder="9 1234 5678" value={block.telefono ?? ''} onChange={(e) => patch({ telefono: e.target.value })} />
+        <div className="flex items-center gap-1">
+          <span className="text-sm text-gray-400">+</span>
+          <input className={`${subInput} w-10`} placeholder="56" value={block.prefijo ?? ''} onChange={(e) => patch({ prefijo: e.target.value })} />
+          <input className={subInput} placeholder="9 1234 5678" value={block.telefono ?? ''} onChange={(e) => patch({ telefono: e.target.value })} />
         </div>
       );
     case 'instagram':
     case 'tiktok':
     case 'facebook':
-      return <input className={inputCls} placeholder="tuusuario" value={block.usuario ?? ''} onChange={(e) => patch({ usuario: e.target.value })} />;
+      return <input className={subInput} placeholder="@tuusuario" value={block.usuario ?? ''} onChange={(e) => patch({ usuario: e.target.value })} />;
     case 'email':
-      return <input className={inputCls} type="email" placeholder="tu@correo.com" value={block.email ?? ''} onChange={(e) => patch({ email: e.target.value })} />;
+      return <input className={subInput} type="email" placeholder="tu@correo.com" value={block.email ?? ''} onChange={(e) => patch({ email: e.target.value })} />;
     default:
-      return <input className={inputCls} placeholder="https://…" value={block.url} onChange={(e) => patch({ url: e.target.value })} />;
+      return <input className={subInput} placeholder="https://tusitio.cl" value={block.url} onChange={(e) => patch({ url: e.target.value })} />;
+  }
+}
+
+function SpecialBody({ block, patch }: { block: Block; patch: (p: Partial<Block>) => void }): JSX.Element {
+  switch (block.tipo) {
+    case 'separador':
+      return <p className="py-1 text-sm text-gray-400">Línea divisoria — separa secciones de tu página.</p>;
+    case 'texto':
+      return <textarea className={`${titleInput} resize-none text-base`} rows={2} placeholder="Escribe un título o texto" value={block.texto ?? ''} onChange={(e) => patch({ texto: e.target.value })} />;
+    case 'imagen':
+      return (
+        <div className="space-y-2 pt-1">
+          <ImagePicker value={block.img ?? ''} onChange={(img) => patch({ img })} maxW={1080} label="Subir imagen" />
+          <input className={subInput} placeholder="Link al tocar (opcional) https://…" value={block.url} onChange={(e) => patch({ url: e.target.value })} />
+        </div>
+      );
+    case 'embed':
+      return <input className={subInput} placeholder="Pega el link de YouTube o Spotify" value={block.url} onChange={(e) => patch({ url: e.target.value })} />;
+    case 'social':
+      return <SocialEditor block={block} patch={patch} />;
+    default:
+      return <></>;
   }
 }
 
@@ -134,32 +253,21 @@ function SocialEditor({ block, patch }: { block: Block; patch: (p: Partial<Block
   const socials: Social[] = block.socials ?? [];
   const update = (next: Social[]): void => patch({ socials: next });
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 pt-1">
       {socials.map((s, i) => (
-        <div key={i} className="flex gap-2">
+        <div key={i} className="flex items-center gap-2">
           <select
-            className={`${inputCls} w-28 shrink-0`}
+            className="w-24 shrink-0 rounded-lg bg-gray-50 px-2 py-1.5 text-xs font-semibold text-gray-700 focus:outline-none"
             value={s.red}
             onChange={(e) => update(socials.map((x, j) => (j === i ? { ...x, red: e.target.value as SocialNet } : x)))}
           >
-            {SOCIAL_NETS.map((n) => (
-              <option key={n.red} value={n.red}>{n.label}</option>
-            ))}
+            {SOCIAL_NETS.map((n) => <option key={n.red} value={n.red}>{n.label}</option>)}
           </select>
-          <input
-            className={inputCls}
-            placeholder="@usuario o link"
-            value={s.valor}
-            onChange={(e) => update(socials.map((x, j) => (j === i ? { ...x, valor: e.target.value } : x)))}
-          />
-          <button type="button" onClick={() => update(socials.filter((_, j) => j !== i))} className="px-1 text-neutral-400 hover:text-red-500">
-            <X size={15} />
-          </button>
+          <input className={subInput} placeholder="@usuario o link" value={s.valor} onChange={(e) => update(socials.map((x, j) => (j === i ? { ...x, valor: e.target.value } : x)))} />
+          <button type="button" onClick={() => update(socials.filter((_, j) => j !== i))} className="text-gray-300 hover:text-red-500"><X size={15} /></button>
         </div>
       ))}
-      <button type="button" onClick={() => update([...socials, { red: 'instagram', valor: '' }])} className="text-xs font-semibold text-bioo-dark hover:underline">
-        + Agregar red
-      </button>
+      <button type="button" onClick={() => update([...socials, { red: 'instagram', valor: '' }])} className="text-xs font-semibold text-[#72a129] hover:underline">+ Agregar red</button>
     </div>
   );
 }

@@ -106,11 +106,9 @@ export default function App(): JSX.Element {
       {/* Editor central */}
       <main className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-neutral-200 bg-white/85 px-4 py-3 backdrop-blur">
-          <span className="mr-auto truncate text-sm font-bold text-bioo-dark">bioo.cl/{state.username}</span>
-          {user ? (
-            <span className="hidden text-xs text-neutral-400 sm:inline">{user.email}</span>
-          ) : (
-            <button type="button" onClick={goLogin} className="hidden text-xs font-semibold text-bioo-dark hover:underline sm:inline">Iniciar sesión</button>
+          <span className="mr-auto truncate text-sm font-medium text-neutral-400">bioo.cl/<span className="text-neutral-600">{state.username}</span></span>
+          {!user && (
+            <button type="button" onClick={goLogin} className="text-sm font-semibold text-neutral-500 transition-colors hover:text-bioo-dark">Iniciar sesión</button>
           )}
           <button
             type="button"
