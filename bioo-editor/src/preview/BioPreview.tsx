@@ -91,11 +91,11 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
               if (e.kind === 'youtube') {
                 return (
                   <div key={b.id} className="col-span-2 relative w-full overflow-hidden rounded-2xl shadow-md" style={{ paddingTop: '56.25%' }}>
-                    <iframe src={e.src} title="video" className="absolute inset-0 h-full w-full border-0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture" allowFullScreen />
+                    <iframe src={e.src} title="video" loading="lazy" className="absolute inset-0 h-full w-full border-0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture" allowFullScreen />
                   </div>
                 );
               }
-              return <iframe key={b.id} src={e.src} title="spotify" className="col-span-2 w-full rounded-2xl border-0" style={{ height: e.height }} allow="encrypted-media" />;
+              return <iframe key={b.id} src={e.src} title="spotify" loading="lazy" className="col-span-2 w-full rounded-2xl border-0" style={{ height: e.height }} allow="encrypted-media" />;
             }
             if (b.tipo === 'social') {
               const items = (b.socials ?? []).filter((s) => (s.valor || '').trim());
@@ -171,6 +171,16 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
             );
           })}
         </div>
+
+        {/* Sello viral */}
+        <a
+          href="https://bioo.cl"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-9 inline-flex items-center gap-1.5 rounded-full border border-white/60 bg-white/55 px-4 py-2 text-xs font-extrabold text-neutral-700 shadow-md backdrop-blur transition-transform hover:-translate-y-0.5"
+        >
+          <span aria-hidden>⚡</span> Creado gratis en bioo.cl
+        </a>
       </div>
     </div>
   );

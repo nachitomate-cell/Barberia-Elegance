@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { useEditor, newBlock } from '../store';
 import { fileToDataUrl } from '../lib/image';
-import { SOCIAL_NETS } from '../lib/blocks';
+import { SOCIAL_NETS, embedSrc } from '../lib/blocks';
 import ImagePicker from '../components/ImagePicker';
 import type { Block, BlockType, Social, SocialNet, LayoutSize } from '../types';
 
@@ -24,7 +24,7 @@ const TIPOS: { id: BlockType; label: string }[] = [
   { id: 'texto', label: 'Texto' },
   { id: 'separador', label: 'Separador' },
   { id: 'imagen', label: 'Imagen / Banner' },
-  { id: 'embed', label: 'Video / Spotify' },
+  { id: 'embed', label: 'Multimedia (Video/Audio)' },
   { id: 'social', label: 'Fila social' },
   { id: 'newsletter', label: 'Suscripción' },
 ];
@@ -153,7 +153,7 @@ function LinkCard({ block }: { block: Block }): JSX.Element {
 
       {/* Barra de herramientas */}
       <div className="mt-1.5 flex items-center justify-between gap-2">
-        {block.tipo !== 'newsletter' && block.tipo !== 'separador'
+        {block.tipo !== 'newsletter' && block.tipo !== 'separador' && block.tipo !== 'embed'
           ? <SizePicker value={block.layoutSize ?? 'full'} onChange={(v) => patch({ layoutSize: v })} />
           : <span />}
         <div className="flex items-center gap-0.5">
@@ -295,7 +295,19 @@ function SpecialBody({ block, patch }: { block: Block; patch: (p: Partial<Block>
         </div>
       );
     case 'embed':
-      return <input className={subInput} placeholder="Pega el link de YouTube o Spotify" value={block.url} onChange={(e) => patch({ url: e.target.value })} />;
+      return (
+        <input
+          className={subInput}
+          placeholder="Pega el link de YouTube o Spotify"
+          value={block.url}
+          onChange={(e) => {
+            const info = embedSrc(e.target.value);
+            // Auto-tamaño: YouTube → large (video 16:9); Spotify → full.
+            const layoutSize: LayoutSize = info?.kind === 'youtube' ? 'large' : info?.kind === 'spotify' ? 'full' : (block.layoutSize ?? 'full');
+            patch({ url: e.target.value, layoutSize });
+          }}
+        />
+      );
     case 'social':
       return <SocialEditor block={block} patch={patch} />;
     case 'newsletter':
