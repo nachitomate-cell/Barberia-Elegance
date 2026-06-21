@@ -2,7 +2,7 @@ import {
   createContext, useContext, useReducer, useEffect,
   type ReactNode, type Dispatch,
 } from 'react';
-import type { BioState, Block, BlockType, Theme, Profile, BgConfig, TextStyle } from './types';
+import type { BioState, Block, BlockType, Theme, Profile, BgConfig, TextStyle, Marketing, Seo } from './types';
 import { computeUrl, DEFAULT_BG, DEFAULT_TEXT } from './lib/theme';
 
 const DRAFT_KEY = 'bioo_editor_draft_v1';
@@ -15,6 +15,8 @@ const DEFAULT_STATE: BioState = {
     preset: 'lime', shape: 'rounded', fill: 'solid', font: 'system',
     bg: DEFAULT_BG, avatarShape: 'circle', avatarRing: '', btnAnim: 'none', text: DEFAULT_TEXT,
   },
+  marketing: { ga4: '', metaPixel: '', tiktokPixel: '' },
+  seo: { title: '', description: '' },
 };
 
 export type Action =
@@ -24,6 +26,8 @@ export type Action =
   | { type: 'patchTheme'; patch: Partial<Theme> }
   | { type: 'patchBg'; patch: Partial<BgConfig> }
   | { type: 'patchText'; patch: Partial<TextStyle> }
+  | { type: 'patchMarketing'; patch: Partial<Marketing> }
+  | { type: 'patchSeo'; patch: Partial<Seo> }
   | { type: 'addBlock'; block: Block }
   | { type: 'patchBlock'; id: string; patch: Partial<Block> }
   | { type: 'removeBlock'; id: string }
@@ -39,6 +43,8 @@ function reducer(state: BioState, action: Action): BioState {
     case 'patchTheme': return { ...state, theme: { ...state.theme, ...action.patch } };
     case 'patchBg': return { ...state, theme: { ...state.theme, bg: { ...state.theme.bg, ...action.patch } } };
     case 'patchText': return { ...state, theme: { ...state.theme, text: { ...state.theme.text, ...action.patch } } };
+    case 'patchMarketing': return { ...state, marketing: { ...state.marketing, ...action.patch } };
+    case 'patchSeo': return { ...state, seo: { ...state.seo, ...action.patch } };
     case 'addBlock': return { ...state, blocks: [...state.blocks, action.block] };
     case 'patchBlock':
       return { ...state, blocks: state.blocks.map((b) => (b.id === action.id ? recompute({ ...b, ...action.patch }) : b)) };
@@ -64,6 +70,8 @@ function migrate(d: Partial<BioState>): BioState {
       bg: { ...DEFAULT_STATE.theme.bg, ...(t.bg ?? {}) },
       text: { ...DEFAULT_STATE.theme.text, ...(t.text ?? {}) },
     },
+    marketing: { ...DEFAULT_STATE.marketing, ...(d.marketing ?? {}) },
+    seo: { ...DEFAULT_STATE.seo, ...(d.seo ?? {}) },
   };
 }
 

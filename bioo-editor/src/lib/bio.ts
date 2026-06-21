@@ -42,6 +42,15 @@ export async function loadBio(username: string): Promise<BioState | null> {
     },
     blocks: Array.isArray(d.bloques) ? d.bloques : [],
     theme: normalizeTheme(d.theme),
+    marketing: {
+      ga4: d.marketing?.ga4 ?? '',
+      metaPixel: d.marketing?.metaPixel ?? '',
+      tiktokPixel: d.marketing?.tiktokPixel ?? '',
+    },
+    seo: {
+      title: d.seo?.title ?? '',
+      description: d.seo?.description ?? '',
+    },
   };
 }
 
@@ -57,6 +66,8 @@ export async function saveBio(state: BioState): Promise<void> {
       perfil: state.profile,
       bloques: state.blocks,
       theme: state.theme,
+      marketing: state.marketing,
+      seo: state.seo,
       updatedAt: serverTimestamp(),
     },
     { merge: true },

@@ -86,11 +86,24 @@ export interface Profile {
   verified: boolean;
 }
 
+export interface Marketing {
+  ga4: string;        // Google Analytics 4 — G-XXXXXXXXXX
+  metaPixel: string;  // Meta (Facebook) Pixel ID
+  tiktokPixel: string;// TikTok Pixel ID
+}
+
+export interface Seo {
+  title: string;       // sobrescribe el título de la pestaña
+  description: string; // meta description / compartir en redes
+}
+
 export interface BioState {
   username: string;
   profile: Profile;
   blocks: Block[];
   theme: Theme;
+  marketing: Marketing;
+  seo: Seo;
 }
 
-export type SectionId = 'links' | 'profile' | 'design' | 'share' | 'leads';
+export type SectionId = 'links' | 'profile' | 'design' | 'leads' | 'marketing' | 'share';

@@ -384,7 +384,8 @@
     function render(data){
       var perfil = data.perfil || {};
       var bloques = (data.bloques||[]).filter(function(b){ if(b.activo===false) return false; if(b.tipo==='separador') return true; if(b.tipo==='texto') return (b.texto||'').trim(); if(b.tipo==='imagen') return (b.img||'').trim(); if(b.tipo==='social') return (b.socials||[]).some(function(s){return (s.valor||'').trim();}); if(b.tipo==='newsletter') return true; return (b.url||'').trim(); });
-      document.title = (perfil.titulo || ('@'+user)) + ' · bioo';
+      applySeo(data.seo, perfil);
+      injectPixels(data.marketing);
       document.getElementById('loading').style.display='none';
 
       // Tema
@@ -498,6 +499,53 @@
         blockId: blockId || '',
         ts: firebase.firestore.FieldValue.serverTimestamp()
       });
+    }
+
+    // ── SEO dinámico: título y meta, con fallback a nombre/bio ──
+    function setMeta(attr, key, val){
+      var el = document.head.querySelector('meta['+attr+'="'+key+'"]');
+      if (!el){ el = document.createElement('meta'); el.setAttribute(attr, key); document.head.appendChild(el); }
+      el.setAttribute('content', val); // setAttribute escapa el valor: no hay riesgo de inyección
+    }
+    function applySeo(seo, perfil){
+      seo = seo || {}; perfil = perfil || {};
+      var fallbackName = perfil.titulo || ('@'+user);
+      var title = (seo.title||'').trim() || (fallbackName + ' · bioo');
+      var desc  = (seo.description||'').trim() || (perfil.subtitulo||'').trim() || ('La página de enlaces de ' + fallbackName);
+      document.title = title;
+      setMeta('name','description', desc);
+      setMeta('property','og:title', title);
+      setMeta('property','og:description', desc);
+      setMeta('name','twitter:title', title);
+      setMeta('name','twitter:description', desc);
+    }
+
+    // ── Píxeles de retargeting: cada ID se valida con regex estricto antes de
+    //    inyectar el snippet OFICIAL; el ID validado se pasa como string a la
+    //    API del píxel (config/init/load), nunca a innerHTML ni eval. ──
+    function injectPixels(mk){
+      mk = mk || {};
+      var ga = String(mk.ga4||'').trim(), meta = String(mk.metaPixel||'').trim(), tt = String(mk.tiktokPixel||'').trim();
+
+      if (/^G-[A-Z0-9]{4,20}$/i.test(ga)){
+        var gs = document.createElement('script'); gs.async = true;
+        gs.src = 'https://www.googletagmanager.com/gtag/js?id=' + encodeURIComponent(ga);
+        document.head.appendChild(gs);
+        window.dataLayer = window.dataLayer || [];
+        window.gtag = function(){ window.dataLayer.push(arguments); };
+        window.gtag('js', new Date());
+        window.gtag('config', ga);
+      }
+
+      if (/^[0-9]{5,20}$/.test(meta)){
+        !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,'script','https://connect.facebook.net/en_US/fbevents.js');
+        window.fbq('init', meta);
+        window.fbq('track', 'PageView');
+      }
+
+      if (/^[A-Z0-9]{8,40}$/i.test(tt)){
+        !function(w,d,t){w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=['page','track','identify','instances','debug','on','off','once','ready','alias','group','enableCookie','disableCookie'];ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.load=function(e,n){var o='https://analytics.tiktok.com/i18n/pixel/events.js';ttq._i=ttq._i||{};ttq._i[e]=[];ttq._i[e]._u=o;ttq._t=ttq._t||{};ttq._t[e]=+new Date;ttq._o=ttq._o||{};ttq._o[e]=n||{};var s=d.createElement('script');s.type='text/javascript';s.async=!0;s.src=o+'?sdkid='+encodeURIComponent(e)+'&lib='+t;var a=d.getElementsByTagName('script')[0];a.parentNode.insertBefore(s,a)};ttq.load(tt);ttq.page()}(window,document,'ttq');
+      }
     }
 
     function setupShare(perfil){
