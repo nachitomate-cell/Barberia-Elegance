@@ -5,6 +5,7 @@ import ImagePicker from '../components/ImagePicker';
 import { THEMES, FONTS } from '../lib/theme';
 import type {
   ThemePreset, ButtonShape, ButtonFill, FontKey, BgMode, PatternKind, AvatarShape,
+  BtnAnim, SizeKey, Weight, Caps, Spacing,
 } from '../types';
 
 export default function Appearance(): JSX.Element {
@@ -96,6 +97,14 @@ export default function Appearance(): JSX.Element {
         />
       </Group>
 
+      <Group title="Animación de botones">
+        <Segmented<BtnAnim>
+          options={[['none', 'Ninguna'], ['float', 'Levitar'], ['pulse', 'Pulso'], ['grow', 'Crecer']]}
+          value={t.btnAnim}
+          onChange={(btnAnim) => dispatch({ type: 'patchTheme', patch: { btnAnim } })}
+        />
+      </Group>
+
       <Group title="Avatar">
         <Segmented<AvatarShape>
           options={[['circle', 'Círculo'], ['rounded', 'Cuadrado']]}
@@ -117,6 +126,37 @@ export default function Appearance(): JSX.Element {
           onChange={(font) => dispatch({ type: 'patchTheme', patch: { font } })}
         />
       </Group>
+
+      <Group title="Texto">
+        <div className="space-y-3">
+          <LabeledSeg<SizeKey> label="Tamaño del título" value={t.text.titleSize}
+            options={[['s', 'Chico'], ['m', 'Mediano'], ['l', 'Grande']]}
+            onChange={(titleSize) => dispatch({ type: 'patchText', patch: { titleSize } })} />
+          <LabeledSeg<SizeKey> label="Tamaño de la bio" value={t.text.subSize}
+            options={[['s', 'Chico'], ['m', 'Mediano'], ['l', 'Grande']]}
+            onChange={(subSize) => dispatch({ type: 'patchText', patch: { subSize } })} />
+          <LabeledSeg<Weight> label="Peso del título" value={t.text.weight}
+            options={[['normal', 'Normal'], ['bold', 'Negrita'], ['black', 'Extra']]}
+            onChange={(weight) => dispatch({ type: 'patchText', patch: { weight } })} />
+          <LabeledSeg<Caps> label="Mayúsculas" value={t.text.caps}
+            options={[['normal', 'Aa'], ['upper', 'MAYÚS']]}
+            onChange={(caps) => dispatch({ type: 'patchText', patch: { caps } })} />
+          <LabeledSeg<Spacing> label="Espaciado de letras" value={t.text.spacing}
+            options={[['tight', 'Compacto'], ['normal', 'Normal'], ['wide', 'Amplio']]}
+            onChange={(spacing) => dispatch({ type: 'patchText', patch: { spacing } })} />
+        </div>
+      </Group>
+    </div>
+  );
+}
+
+function LabeledSeg<T extends string>({ label, value, options, onChange }: {
+  label: string; value: T; options: [T, string][]; onChange: (v: T) => void;
+}): JSX.Element {
+  return (
+    <div>
+      <p className="mb-1.5 text-xs font-semibold text-neutral-400">{label}</p>
+      <Segmented<T> options={options} value={value} onChange={onChange} />
     </div>
   );
 }

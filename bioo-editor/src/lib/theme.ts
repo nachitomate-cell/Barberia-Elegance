@@ -1,5 +1,8 @@
 import type { CSSProperties } from 'react';
-import type { Theme, ThemePreset, ButtonShape, FontKey, Block, BgConfig, PatternKind } from '../types';
+import type {
+  Theme, ThemePreset, ButtonShape, FontKey, Block, BgConfig, PatternKind,
+  SizeKey, Weight, Spacing, TextStyle,
+} from '../types';
 
 export interface Palette {
   name: string;
@@ -23,6 +26,12 @@ export const THEMES: Record<ThemePreset, Palette> = {
 };
 
 export const SHAPE_RADIUS: Record<ButtonShape, string> = { rounded: '14px', pill: '100px', sharp: '4px' };
+
+export const TSIZE: Record<SizeKey, string> = { s: '17px', m: '21px', l: '26px' };
+export const SSIZE: Record<SizeKey, string> = { s: '12px', m: '14px', l: '16px' };
+export const TWEIGHT: Record<Weight, string> = { normal: '600', bold: '800', black: '900' };
+export const TSPACE: Record<Spacing, string> = { tight: '-0.4px', normal: 'normal', wide: '1.6px' };
+export const DEFAULT_TEXT: TextStyle = { titleSize: 'm', subSize: 'm', weight: 'bold', caps: 'normal', spacing: 'normal' };
 
 export const FONTS: Record<FontKey, { name: string; stack: string; g?: string }> = {
   system:     { name: 'Sistema',          stack: '"Plus Jakarta Sans", system-ui, sans-serif' },

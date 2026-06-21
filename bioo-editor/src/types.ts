@@ -26,6 +26,20 @@ export type FontKey = 'system' | 'poppins' | 'montserrat' | 'playfair';
 export type BgMode = 'preset' | 'color' | 'gradient' | 'animated' | 'pattern' | 'image';
 export type PatternKind = 'dots' | 'grid' | 'diag';
 export type AvatarShape = 'circle' | 'rounded';
+export type BtnAnim = 'none' | 'float' | 'pulse' | 'grow';
+
+export type SizeKey = 's' | 'm' | 'l';
+export type Weight = 'normal' | 'bold' | 'black';
+export type Caps = 'normal' | 'upper';
+export type Spacing = 'tight' | 'normal' | 'wide';
+
+export interface TextStyle {
+  titleSize: SizeKey;
+  subSize: SizeKey;
+  weight: Weight;
+  caps: Caps;
+  spacing: Spacing;
+}
 
 export interface BgConfig {
   mode: BgMode;
@@ -45,6 +59,8 @@ export interface Theme {
   bg: BgConfig;
   avatarShape: AvatarShape;
   avatarRing: string;
+  btnAnim: BtnAnim;
+  text: TextStyle;
 }
 
 export interface Profile {

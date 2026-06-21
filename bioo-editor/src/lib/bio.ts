@@ -1,6 +1,6 @@
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from './firebase';
-import { DEFAULT_BG } from './theme';
+import { DEFAULT_BG, DEFAULT_TEXT } from './theme';
 import type { BioState, Theme } from '../types';
 
 function normalizeTheme(raw: unknown): Theme {
@@ -13,6 +13,8 @@ function normalizeTheme(raw: unknown): Theme {
     bg: { ...DEFAULT_BG, ...(t.bg ?? {}) },
     avatarShape: t.avatarShape === 'rounded' ? 'rounded' : 'circle',
     avatarRing: t.avatarRing ?? '',
+    btnAnim: t.btnAnim ?? 'none',
+    text: { ...DEFAULT_TEXT, ...(t.text ?? {}) },
   };
 }
 

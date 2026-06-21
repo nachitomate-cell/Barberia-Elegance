@@ -2,8 +2,8 @@ import {
   createContext, useContext, useReducer, useEffect,
   type ReactNode, type Dispatch,
 } from 'react';
-import type { BioState, Block, BlockType, Theme, Profile, BgConfig } from './types';
-import { computeUrl, DEFAULT_BG } from './lib/theme';
+import type { BioState, Block, BlockType, Theme, Profile, BgConfig, TextStyle } from './types';
+import { computeUrl, DEFAULT_BG, DEFAULT_TEXT } from './lib/theme';
 
 const DRAFT_KEY = 'bioo_editor_draft_v1';
 
@@ -11,7 +11,10 @@ const DEFAULT_STATE: BioState = {
   username: 'tunombre',
   profile: { titulo: '', subtitulo: '', avatar: '', cover: '', verified: false },
   blocks: [],
-  theme: { preset: 'lime', shape: 'rounded', fill: 'solid', font: 'system', bg: DEFAULT_BG, avatarShape: 'circle', avatarRing: '' },
+  theme: {
+    preset: 'lime', shape: 'rounded', fill: 'solid', font: 'system',
+    bg: DEFAULT_BG, avatarShape: 'circle', avatarRing: '', btnAnim: 'none', text: DEFAULT_TEXT,
+  },
 };
 
 export type Action =
@@ -20,6 +23,7 @@ export type Action =
   | { type: 'patchProfile'; patch: Partial<Profile> }
   | { type: 'patchTheme'; patch: Partial<Theme> }
   | { type: 'patchBg'; patch: Partial<BgConfig> }
+  | { type: 'patchText'; patch: Partial<TextStyle> }
   | { type: 'addBlock'; block: Block }
   | { type: 'patchBlock'; id: string; patch: Partial<Block> }
   | { type: 'removeBlock'; id: string }
@@ -34,6 +38,7 @@ function reducer(state: BioState, action: Action): BioState {
     case 'patchProfile': return { ...state, profile: { ...state.profile, ...action.patch } };
     case 'patchTheme': return { ...state, theme: { ...state.theme, ...action.patch } };
     case 'patchBg': return { ...state, theme: { ...state.theme, bg: { ...state.theme.bg, ...action.patch } } };
+    case 'patchText': return { ...state, theme: { ...state.theme, text: { ...state.theme.text, ...action.patch } } };
     case 'addBlock': return { ...state, blocks: [...state.blocks, action.block] };
     case 'patchBlock':
       return { ...state, blocks: state.blocks.map((b) => (b.id === action.id ? recompute({ ...b, ...action.patch }) : b)) };
@@ -57,6 +62,7 @@ function migrate(d: Partial<BioState>): BioState {
       ...DEFAULT_STATE.theme,
       ...t,
       bg: { ...DEFAULT_STATE.theme.bg, ...(t.bg ?? {}) },
+      text: { ...DEFAULT_STATE.theme.text, ...(t.text ?? {}) },
     },
   };
 }
