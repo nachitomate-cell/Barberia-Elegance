@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ComponentType, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ComponentType } from 'react';
 import { onAuthStateChanged, type User } from 'firebase/auth';
 import { motion } from 'framer-motion';
 import { Link2, User as UserIcon, Palette, Share2, Eye, Save, type LucideIcon } from 'lucide-react';
@@ -11,6 +11,7 @@ import Appearance from './sections/Appearance';
 import Share from './sections/Share';
 import BioPreview from './preview/BioPreview';
 import PreviewSheet from './preview/PreviewSheet';
+import PhoneFrame from './components/PhoneFrame';
 import Wizard from './components/Wizard';
 import type { SectionId } from './types';
 
@@ -80,6 +81,8 @@ export default function App(): JSX.Element {
 
   return (
     <div className="mx-auto flex h-[100dvh] w-full max-w-6xl bg-neutral-50">
+      {/* ── Región de edición (≈60%) ── */}
+      <div className="flex min-w-0 flex-1">
       {/* Sidebar (desktop) */}
       <aside className="hidden w-56 shrink-0 flex-col border-r border-neutral-200 bg-white p-4 md:flex">
         <div className="mb-6 flex items-center gap-2 px-2">
@@ -125,9 +128,10 @@ export default function App(): JSX.Element {
           <SectionView />
         </div>
       </main>
+      </div>
 
-      {/* Visor (desktop ≥ lg) */}
-      <aside className="hidden w-[380px] shrink-0 items-center justify-center border-l border-neutral-200 bg-neutral-100 p-6 lg:flex">
+      {/* ── Visor (≈40%, md+) ── */}
+      <aside className="hidden shrink-0 items-center justify-center border-l border-neutral-200 bg-neutral-100 p-6 md:flex md:w-[40%]">
         <PhoneFrame>
           <BioPreview state={state} />
         </PhoneFrame>
@@ -152,24 +156,18 @@ export default function App(): JSX.Element {
         type="button"
         whileTap={{ scale: 0.95 }}
         onClick={() => setPreviewOpen(true)}
-        className="fixed bottom-24 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full bg-neutral-900 px-5 py-3 text-sm font-semibold text-white shadow-[0_12px_34px_-10px_rgba(0,0,0,0.55)] ring-1 ring-white/10 lg:hidden"
+        className="fixed bottom-24 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full bg-neutral-900 px-5 py-3 text-sm font-semibold text-white shadow-[0_12px_34px_-10px_rgba(0,0,0,0.55)] ring-1 ring-white/10 md:hidden"
       >
         <Eye size={18} /> Vista Previa
       </motion.button>
 
       <PreviewSheet open={previewOpen} onClose={() => setPreviewOpen(false)}>
-        <BioPreview state={state} />
+        <PhoneFrame embedded>
+          <BioPreview state={state} />
+        </PhoneFrame>
       </PreviewSheet>
 
       <Wizard open={showWizard} onClose={() => setShowWizard(false)} />
-    </div>
-  );
-}
-
-function PhoneFrame({ children }: { children: ReactNode }): JSX.Element {
-  return (
-    <div className="aspect-[332/698] h-[600px] max-h-full overflow-hidden rounded-[40px] border-[9px] border-[#1b2310] bg-[#1b2310] shadow-2xl">
-      <div className="no-scrollbar h-full w-full overflow-y-auto">{children}</div>
     </div>
   );
 }

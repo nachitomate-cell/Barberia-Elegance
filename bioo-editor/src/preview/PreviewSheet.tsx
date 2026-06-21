@@ -2,8 +2,8 @@ import { AnimatePresence, motion, type Transition, type PanInfo } from 'framer-m
 import { X } from 'lucide-react';
 import type { ReactNode } from 'react';
 
-/* Spring estilo iOS: tensión/fricción balanceadas. */
-const SHEET_SPRING: Transition = { type: 'spring', stiffness: 380, damping: 38, mass: 0.9 };
+/* Spring estilo iOS (spec: stiffness 300 / damping 30). */
+const SHEET_SPRING: Transition = { type: 'spring', stiffness: 300, damping: 30 };
 
 interface Props {
   open: boolean;
@@ -43,7 +43,7 @@ export default function PreviewSheet({ open, onClose, children }: Props): JSX.El
             dragConstraints={{ top: 0, bottom: 0 }}
             dragElastic={{ top: 0, bottom: 0.45 }}
             onDragEnd={handleDragEnd}
-            className="fixed inset-x-0 bottom-0 top-12 z-50 mx-auto flex max-w-md flex-col overflow-hidden rounded-t-[30px] bg-white shadow-[0_-14px_44px_-12px_rgba(0,0,0,0.35)]"
+            className="fixed inset-x-0 bottom-0 top-10 z-50 mx-auto flex max-w-md flex-col overflow-hidden rounded-t-[30px] bg-neutral-100 shadow-[0_-14px_44px_-12px_rgba(0,0,0,0.35)]"
           >
             <header className="flex shrink-0 flex-col items-center pt-3">
               <span className="h-1.5 w-10 rounded-full bg-neutral-300" aria-hidden />
@@ -60,7 +60,7 @@ export default function PreviewSheet({ open, onClose, children }: Props): JSX.El
               </div>
             </header>
 
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain no-scrollbar">{children}</div>
+            <div className="grid min-h-0 flex-1 place-items-center overflow-hidden p-3">{children}</div>
 
             <footer className="shrink-0 border-t border-neutral-100 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
               <button

@@ -1,5 +1,5 @@
 import { useEditor } from '../store';
-import { Field, inputCls } from '../ui';
+import { Field } from '../ui';
 import ImagePicker from '../components/ImagePicker';
 import type { Profile as ProfileType } from '../types';
 
@@ -19,11 +19,22 @@ export default function Profile(): JSX.Element {
       </Field>
 
       <Field label="Nombre que se muestra">
-        <input className={inputCls} value={p.titulo} placeholder="Tu nombre o marca" onChange={(e) => patch({ titulo: e.target.value })} />
+        <input
+          className="w-full rounded-xl bg-transparent px-2 py-1.5 text-2xl font-bold tracking-tight text-neutral-900 placeholder-neutral-300 transition-colors focus:bg-neutral-50 focus:outline-none"
+          value={p.titulo}
+          placeholder="Tu nombre o marca"
+          onChange={(e) => patch({ titulo: e.target.value })}
+        />
       </Field>
 
       <Field label="Bio / descripción">
-        <textarea className={inputCls} rows={3} value={p.subtitulo} placeholder="Cuéntale al mundo quién eres en una línea." onChange={(e) => patch({ subtitulo: e.target.value })} />
+        <textarea
+          className="w-full resize-none rounded-xl bg-transparent px-2 py-1.5 text-sm leading-relaxed text-neutral-500 placeholder-neutral-300 transition-colors focus:bg-neutral-50 focus:outline-none"
+          rows={3}
+          value={p.subtitulo}
+          placeholder="Cuéntale al mundo quién eres en una línea."
+          onChange={(e) => patch({ subtitulo: e.target.value })}
+        />
       </Field>
 
       <Field label="Tu usuario (URL)">
