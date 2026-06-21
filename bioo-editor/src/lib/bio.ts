@@ -18,6 +18,14 @@ function normalizeTheme(raw: unknown): Theme {
   };
 }
 
+/** Resuelve el username del usuario autenticado y carga su bio (si tiene). */
+export async function loadUserBio(uid: string): Promise<BioState | null> {
+  const us = await getDoc(doc(db, 'bio_users', uid));
+  const username = us.exists() ? (us.data() as Record<string, any>).username : null;
+  if (!username || typeof username !== 'string') return null;
+  return loadBio(username);
+}
+
 /** Lectura pública de una bio (reglas: bios tiene lectura libre). */
 export async function loadBio(username: string): Promise<BioState | null> {
   const snap = await getDoc(doc(db, 'bios', username));

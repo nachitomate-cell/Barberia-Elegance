@@ -1,9 +1,9 @@
-import { useEffect, useState, type ComponentType, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ComponentType, type ReactNode } from 'react';
 import { onAuthStateChanged, type User } from 'firebase/auth';
 import { motion } from 'framer-motion';
 import { Link2, User as UserIcon, Palette, Share2, Eye, Save, type LucideIcon } from 'lucide-react';
 import { auth } from './lib/firebase';
-import { saveBio } from './lib/bio';
+import { saveBio, loadUserBio } from './lib/bio';
 import { useEditor } from './store';
 import Links from './sections/Links';
 import Profile from './sections/Profile';
@@ -31,7 +31,8 @@ const VIEWS: Record<SectionId, ComponentType> = {
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
 export default function App(): JSX.Element {
-  const { state } = useEditor();
+  const { state, dispatch } = useEditor();
+  const loadedRef = useRef(false);
   const [section, setSection] = useState<SectionId>('links');
   const [previewOpen, setPreviewOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
@@ -41,18 +42,34 @@ export default function App(): JSX.Element {
     return state.blocks.length === 0 && !state.profile.titulo.trim();
   });
 
-  useEffect(() => onAuthStateChanged(auth, setUser), []);
+  useEffect(
+    () =>
+      onAuthStateChanged(auth, (u) => {
+        setUser(u);
+        // Al autenticarse, cargamos la bio guardada del usuario (una vez).
+        if (u && !loadedRef.current) {
+          loadedRef.current = true;
+          loadUserBio(u.uid)
+            .then((bio) => { if (bio) dispatch({ type: 'load', state: bio }); })
+            .catch(() => {});
+        }
+      }),
+    [dispatch],
+  );
+
+  const goLogin = (): void => { window.location.href = '/registro?modo=login'; };
 
   const handleSave = async (): Promise<void> => {
+    if (!auth.currentUser) {
+      if (window.confirm('Para publicar tu página necesitas iniciar sesión. ¿Ir a iniciar sesión?')) goLogin();
+      return;
+    }
     setStatus('saving');
     try {
       await saveBio(state);
       setStatus('saved');
       setTimeout(() => setStatus('idle'), 2000);
-    } catch (e) {
-      if (e instanceof Error && e.message === 'not-authenticated') {
-        alert('Tu borrador quedó guardado en este navegador. Inicia sesión en bioo.cl para publicarlo.');
-      }
+    } catch {
       setStatus('error');
       setTimeout(() => setStatus('idle'), 2500);
     }
@@ -90,7 +107,11 @@ export default function App(): JSX.Element {
       <main className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-neutral-200 bg-white/85 px-4 py-3 backdrop-blur">
           <span className="mr-auto truncate text-sm font-bold text-bioo-dark">bioo.cl/{state.username}</span>
-          <span className="hidden text-xs text-neutral-400 sm:inline">{user ? user.email : 'borrador local'}</span>
+          {user ? (
+            <span className="hidden text-xs text-neutral-400 sm:inline">{user.email}</span>
+          ) : (
+            <button type="button" onClick={goLogin} className="hidden text-xs font-semibold text-bioo-dark hover:underline sm:inline">Iniciar sesión</button>
+          )}
           <button
             type="button"
             onClick={handleSave}

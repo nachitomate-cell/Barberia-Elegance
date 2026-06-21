@@ -104,7 +104,7 @@
     { "source": "/favicon.ico", "has": [{ "type": "host", "value": "bioo.cl" }], "destination": "/bioo-iso.png" },
     { "source": "/",            "has": [{ "type": "host", "value": "bioo.cl" }], "destination": "/links/index.html" },
     { "source": "/registro",    "has": [{ "type": "host", "value": "bioo.cl" }], "destination": "/links/registro.html" },
-    { "source": "/editor",      "has": [{ "type": "host", "value": "bioo.cl" }], "destination": "/links/editor.html" },
+    { "source": "/editor",      "has": [{ "type": "host", "value": "bioo.cl" }], "destination": "/bio-app/index.html" },
     { "source": "/claim",       "has": [{ "type": "host", "value": "bioo.cl" }], "destination": "/links/claim.html" },
     { "source": "/:user",       "has": [{ "type": "host", "value": "bioo.cl" }], "destination": "/links/u.html" },
 
