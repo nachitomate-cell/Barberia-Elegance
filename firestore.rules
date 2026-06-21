@@ -256,6 +256,20 @@ service cloud.firestore {
       allow update: if (autenticado() && resource.data.uid == uid())
                     || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views', 'clicks']);
       allow delete: if autenticado() && resource.data.uid == uid();
+
+      // ── /bios/{username}/leads — captura de correos (newsletter) ──
+      // Cualquier visitante puede suscribirse (crear su lead, doc id = email,
+      // con email válido y solo los campos permitidos). Solo el dueño del
+      // perfil puede leer o borrar los leads. No se permite editar.
+      match /leads/{leadId} {
+        allow create: if request.resource.data.email is string
+                      && request.resource.data.email.size() > 3
+                      && request.resource.data.email.size() < 254
+                      && request.resource.data.keys().hasOnly(['email', 'blockId', 'ts']);
+        allow read, delete: if autenticado()
+                      && get(/databases/$(database)/documents/bios/$(username)).data.uid == uid();
+        allow update: if false;
+      }
     }
 
     // ── /bio_users — mapeo uid → username (privado del dueño) ──────

@@ -20,7 +20,7 @@
   .wrap{position:relative;z-index:1;width:100%;max-width:560px;display:flex;flex-direction:column;align-items:center;}
   /* Fondo foto: difuminado a pantalla completa (lados en PC) + foto nítida en un marco centrado */
   .bg-photo-blur{position:fixed;inset:0;z-index:-2;background-color:#111;background-size:cover;background-position:center;filter:blur(34px) brightness(.7);transform:scale(1.12);pointer-events:none;}
-  .bg-photo-frame{position:fixed;top:0;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:560px;z-index:-1;background-size:contain;background-repeat:no-repeat;background-position:center;pointer-events:none;}
+  .bg-photo-frame{position:fixed;top:0;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:560px;z-index:-1;background-size:cover;background-repeat:no-repeat;background-position:center;pointer-events:none;}
   .cover{width:100%;height:132px;border-radius:18px;background-size:cover;background-position:center;box-shadow:0 3px 14px rgba(21,36,11,.16);}
   .avatar.over{margin-top:-46px;position:relative;z-index:1;}
   .avatar{width:96px;height:96px;border-radius:50%;overflow:hidden;background:var(--white);border:3px solid rgba(255,255,255,.7);display:grid;place-items:center;box-shadow:0 4px 18px rgba(21,36,11,.15);}
@@ -46,6 +46,17 @@
   .btn.feat{animation:fade .45s ease forwards, bGlow 2s ease-in-out infinite;font-weight:800;}
   .u-text{text-align:center;font-size:15px;font-weight:600;line-height:1.45;width:100%;word-break:break-word;}
   .u-sep{width:55%;border:0;border-top:2px solid rgba(128,128,128,.35);margin:6px auto;}
+  /* Bloque de captura de leads (newsletter) */
+  .u-news{width:100%;background:rgba(255,255,255,.92);border-radius:18px;padding:18px 16px;text-align:center;box-shadow:0 6px 20px rgba(21,36,11,.12);backdrop-filter:blur(4px);}
+  .u-news-t{font-size:15.5px;font-weight:800;line-height:1.3;}
+  .u-news-s{font-size:13px;color:#6b7280;margin-top:4px;line-height:1.4;}
+  .u-news-f{display:flex;flex-direction:column;gap:8px;margin-top:12px;}
+  .u-news-i{width:100%;border:1px solid #e5e7eb;background:#f9fafb;border-radius:12px;padding:11px 13px;font-size:15px;color:#15240b;outline:none;transition:.13s;}
+  .u-news-i:focus{border-color:#cbd5e1;background:#fff;}
+  .u-news-i:disabled{opacity:.6;}
+  .u-news-b{display:flex;align-items:center;justify-content:center;width:100%;border:0;border-radius:14px;padding:13px 16px;font-size:15px;font-weight:800;cursor:pointer;transition:.13s;}
+  .u-news-b:disabled{opacity:.85;cursor:default;}
+  .u-news-msg{font-size:12.5px;font-weight:600;margin-top:8px;}
   .u-imgwrap{display:block;width:100%;}
   .u-img{width:100%;border-radius:14px;display:block;box-shadow:0 2px 12px rgba(21,36,11,.14);}
   .emb-yt{position:relative;width:100%;padding-top:56.25%;border-radius:14px;overflow:hidden;box-shadow:0 2px 12px rgba(21,36,11,.14);}
@@ -372,7 +383,7 @@
 
     function render(data){
       var perfil = data.perfil || {};
-      var bloques = (data.bloques||[]).filter(function(b){ if(b.activo===false) return false; if(b.tipo==='separador') return true; if(b.tipo==='texto') return (b.texto||'').trim(); if(b.tipo==='imagen') return (b.img||'').trim(); if(b.tipo==='social') return (b.socials||[]).some(function(s){return (s.valor||'').trim();}); return (b.url||'').trim(); });
+      var bloques = (data.bloques||[]).filter(function(b){ if(b.activo===false) return false; if(b.tipo==='separador') return true; if(b.tipo==='texto') return (b.texto||'').trim(); if(b.tipo==='imagen') return (b.img||'').trim(); if(b.tipo==='social') return (b.socials||[]).some(function(s){return (s.valor||'').trim();}); if(b.tipo==='newsletter') return true; return (b.url||'').trim(); });
       document.title = (perfil.titulo || ('@'+user)) + ' · bioo';
       document.getElementById('loading').style.display='none';
 
@@ -414,6 +425,20 @@
           if (b.tipo==='imagen'){ var im='<img class="u-img" src="'+esc(b.img)+'" alt="">'; var iu=resolveUrl(b.url); html += '<'+(iu?'a':'div')+' class="fade u-imgwrap" style="animation-delay:'+(0.1+i*0.04)+'s;"'+(iu?(' href="'+esc(iu)+'" target="_blank" rel="noopener"'):'')+'>'+im+'</'+(iu?'a':'div')+'>'; return; }
           if (b.tipo==='embed'){ var eh=embedHtml(b.url); if(eh) html += '<div class="fade" style="animation-delay:'+(0.1+i*0.04)+'s;width:100%;">'+eh+'</div>'; return; }
           if (b.tipo==='social'){ var icS=t.iconStyle==='original'?'-orig':''; var sr=(b.socials||[]).map(function(s){ var su=socUrl(s); return su?'<a class="u-soc-i" href="'+esc(su)+'" target="_blank" rel="noopener"><img src="/ic-'+(SOCRED[s.red]?s.red:'enlace')+icS+'.png" alt=""></a>':''; }).join(''); if(sr) html += '<div class="u-soc fade" style="animation-delay:'+(0.1+i*0.04)+'s;">'+sr+'</div>'; return; }
+          if (b.tipo==='newsletter'){
+            var nTit = esc((b.label||'Únete a mi Newsletter').trim());
+            var nSub = (b.subtitulo||'').trim() ? '<div class="u-news-s">'+esc(b.subtitulo.trim())+'</div>' : '';
+            var nBtn = esc((b.btnText||'Suscribirme').trim());
+            html += '<div class="u-news fade" data-news="'+esc(b.id||'')+'" style="animation-delay:'+(0.1+i*0.04)+'s;">'
+                 +    '<div class="u-news-t" style="color:'+titleColor+';">'+nTit+'</div>'+nSub
+                 +    '<form class="u-news-f">'
+                 +      '<input type="email" class="u-news-i" placeholder="tucorreo@email.com" autocomplete="email" required>'
+                 +      '<button type="submit" class="u-news-b" style="'+css.btn+(tx.btnColor?('color:'+tx.btnColor+';'):'')+'">'+nBtn+'</button>'
+                 +    '</form>'
+                 +    '<div class="u-news-msg" hidden></div>'
+                 +  '</div>';
+            return;
+          }
           var url = resolveUrl(b.url); if (!url) return;
           var icSuf = t.iconStyle==='original' ? '-orig' : '';
           var icH = (b.tipo && {whatsapp:1,instagram:1,tiktok:1,facebook:1,youtube:1,email:1,telefono:1,enlace:1}[b.tipo]) ? '<img class="btn-ic" src="/ic-'+b.tipo+icSuf+'.png" alt="">' : '';
@@ -438,7 +463,41 @@
         });
       });
 
+      // Captura de leads (bloques newsletter).
+      Array.prototype.forEach.call(wrap.querySelectorAll('.u-news'), function(card){
+        var form  = card.querySelector('.u-news-f');
+        var input = card.querySelector('.u-news-i');
+        var btn   = card.querySelector('.u-news-b');
+        var msg   = card.querySelector('.u-news-msg');
+        var blockId = card.getAttribute('data-news');
+        var origBtn = btn.textContent, done = false;
+        function setMsg(text, ok){ msg.hidden=false; msg.textContent=text; msg.style.color = ok ? '#16a34a' : '#dc2626'; }
+        function win(text){ done=true; input.value=''; btn.textContent=text; btn.style.background='#16a34a'; btn.style.color='#fff'; msg.hidden=true; }
+        form.addEventListener('submit', function(ev){
+          ev.preventDefault();
+          if (done) return;
+          var email = (input.value||'').trim().toLowerCase();
+          if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || email.indexOf('/')>=0){ setMsg('Correo inválido', false); return; }
+          btn.disabled=true; input.disabled=true; setMsg('', false); msg.hidden=true; btn.textContent='Suscribiendo…';
+          submitLead(email, blockId).then(function(){ win('¡Suscrito! ✓'); }).catch(function(err){
+            if (err && err.code==='permission-denied'){ win('¡Ya estás suscrito! ✓'); }
+            else { btn.disabled=false; input.disabled=false; btn.textContent=origBtn; setMsg('No se pudo, intenta de nuevo', false); }
+          });
+        });
+      });
+
       setupShare(perfil);
+    }
+
+    // Guarda un lead en bios/{user}/leads. Doc id = email → dedup natural
+    // (un segundo intento es un update y las reglas lo rechazan = "ya suscrito").
+    function submitLead(email, blockId){
+      if (!bioRef) return Promise.reject({ code:'no-ref' });
+      return bioRef.collection('leads').doc(email).set({
+        email: email,
+        blockId: blockId || '',
+        ts: firebase.firestore.FieldValue.serverTimestamp()
+      });
     }
 
     function setupShare(perfil){

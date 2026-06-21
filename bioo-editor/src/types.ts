@@ -93,4 +93,4 @@ export interface BioState {
   theme: Theme;
 }
 
-export type SectionId = 'links' | 'profile' | 'design' | 'share';
+export type SectionId = 'links' | 'profile' | 'design' | 'share' | 'leads';

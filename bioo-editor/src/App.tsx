@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ComponentType } from 'react';
 import { onAuthStateChanged, type User } from 'firebase/auth';
 import { motion } from 'framer-motion';
-import { Link2, User as UserIcon, Palette, Share2, Eye, Save, type LucideIcon } from 'lucide-react';
+import { Link2, User as UserIcon, Palette, Share2, Inbox, Eye, Save, type LucideIcon } from 'lucide-react';
 import { auth } from './lib/firebase';
 import { saveBio, loadUserBio } from './lib/bio';
 import { useEditor } from './store';
@@ -9,6 +9,7 @@ import Links from './sections/Links';
 import Profile from './sections/Profile';
 import Appearance from './sections/Appearance';
 import Share from './sections/Share';
+import Leads from './sections/Leads';
 import BioPreview from './preview/BioPreview';
 import PreviewSheet from './preview/PreviewSheet';
 import PhoneFrame from './components/PhoneFrame';
@@ -19,6 +20,7 @@ const SECTIONS: { id: SectionId; label: string; Icon: LucideIcon }[] = [
   { id: 'links', label: 'Enlaces', Icon: Link2 },
   { id: 'profile', label: 'Perfil', Icon: UserIcon },
   { id: 'design', label: 'Apariencia', Icon: Palette },
+  { id: 'leads', label: 'Leads', Icon: Inbox },
   { id: 'share', label: 'Compartir', Icon: Share2 },
 ];
 
@@ -26,6 +28,7 @@ const VIEWS: Record<SectionId, ComponentType> = {
   links: Links,
   profile: Profile,
   design: Appearance,
+  leads: Leads,
   share: Share,
 };
 
