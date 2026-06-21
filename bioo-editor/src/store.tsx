@@ -46,10 +46,26 @@ function reducer(state: BioState, action: Action): BioState {
 interface EditorCtx { state: BioState; dispatch: Dispatch<Action>; }
 const EditorContext = createContext<EditorCtx | null>(null);
 
+/** Rellena con defaults los campos que falten (borradores de versiones previas). */
+function migrate(d: Partial<BioState>): BioState {
+  const t = (d.theme ?? {}) as Partial<BioState['theme']>;
+  return {
+    username: d.username ?? DEFAULT_STATE.username,
+    profile: { ...DEFAULT_STATE.profile, ...(d.profile ?? {}) },
+    blocks: Array.isArray(d.blocks) ? d.blocks : [],
+    theme: {
+      ...DEFAULT_STATE.theme,
+      ...t,
+      bg: { ...DEFAULT_STATE.theme.bg, ...(t.bg ?? {}) },
+    },
+  };
+}
+
 function readDraft(): BioState | null {
   try {
     const raw = localStorage.getItem(DRAFT_KEY);
-    return raw ? (JSON.parse(raw) as BioState) : null;
+    if (!raw) return null;
+    return migrate(JSON.parse(raw) as Partial<BioState>);
   } catch {
     return null;
   }
