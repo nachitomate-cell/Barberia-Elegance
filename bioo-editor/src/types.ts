@@ -1,6 +1,15 @@
 export type BlockType =
   | 'enlace' | 'whatsapp' | 'instagram' | 'tiktok' | 'facebook'
-  | 'youtube' | 'email' | 'telefono' | 'texto' | 'separador';
+  | 'youtube' | 'email' | 'telefono' | 'texto' | 'separador'
+  | 'imagen' | 'embed' | 'social';
+
+export type SocialNet =
+  | 'instagram' | 'tiktok' | 'facebook' | 'youtube' | 'whatsapp' | 'email' | 'telefono' | 'enlace';
+
+export interface Social {
+  red: SocialNet;
+  valor: string;
+}
 
 export interface Block {
   id: string;
@@ -15,6 +24,8 @@ export interface Block {
   mensaje?: string;
   email?: string;
   texto?: string;
+  img?: string;
+  socials?: Social[];
 }
 
 export type ThemePreset =

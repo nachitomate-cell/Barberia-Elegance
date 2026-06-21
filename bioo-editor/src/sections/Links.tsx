@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { Reorder } from 'framer-motion';
-import { Plus, Trash2, Star, GripVertical } from 'lucide-react';
+import { Plus, Trash2, Star, GripVertical, X } from 'lucide-react';
 import { useEditor, newBlock } from '../store';
 import { inputCls } from '../ui';
-import type { Block, BlockType } from '../types';
+import ImagePicker from '../components/ImagePicker';
+import { SOCIAL_NETS } from '../lib/blocks';
+import type { Block, BlockType, Social, SocialNet } from '../types';
 
 const TIPOS: { id: BlockType; label: string }[] = [
   { id: 'enlace', label: 'Enlace / Web' },
@@ -16,6 +18,9 @@ const TIPOS: { id: BlockType; label: string }[] = [
   { id: 'telefono', label: 'Teléfono' },
   { id: 'texto', label: 'Texto' },
   { id: 'separador', label: 'Separador' },
+  { id: 'imagen', label: 'Imagen / Banner' },
+  { id: 'embed', label: 'Video / Spotify' },
+  { id: 'social', label: 'Fila social' },
 ];
 
 export default function Links(): JSX.Element {
@@ -64,7 +69,7 @@ export default function Links(): JSX.Element {
 function BlockEditor({ block }: { block: Block }): JSX.Element {
   const { dispatch } = useEditor();
   const patch = (p: Partial<Block>): void => dispatch({ type: 'patchBlock', id: block.id, patch: p });
-  const isLink = block.tipo !== 'texto' && block.tipo !== 'separador';
+  const isLink = !['texto', 'separador', 'imagen', 'embed', 'social'].includes(block.tipo);
 
   return (
     <div>
@@ -85,6 +90,15 @@ function BlockEditor({ block }: { block: Block }): JSX.Element {
         <p className="px-1 text-xs text-neutral-400">Línea divisoria — separa secciones.</p>
       ) : block.tipo === 'texto' ? (
         <textarea className={inputCls} rows={2} placeholder="Escribe un título o texto" value={block.texto ?? ''} onChange={(e) => patch({ texto: e.target.value })} />
+      ) : block.tipo === 'imagen' ? (
+        <div className="space-y-2">
+          <ImagePicker value={block.img ?? ''} onChange={(img) => patch({ img })} maxW={1080} label="Subir imagen" />
+          <input className={inputCls} placeholder="Link al tocar (opcional) https://…" value={block.url} onChange={(e) => patch({ url: e.target.value })} />
+        </div>
+      ) : block.tipo === 'embed' ? (
+        <input className={inputCls} placeholder="Pega el link de YouTube o Spotify" value={block.url} onChange={(e) => patch({ url: e.target.value })} />
+      ) : block.tipo === 'social' ? (
+        <SocialEditor block={block} patch={patch} />
       ) : (
         <div className="space-y-2">
           <input className={inputCls} placeholder="Texto del botón" value={block.label} onChange={(e) => patch({ label: e.target.value })} />
@@ -114,4 +128,38 @@ function BlockFields({ block, patch }: { block: Block; patch: (p: Partial<Block>
     default:
       return <input className={inputCls} placeholder="https://…" value={block.url} onChange={(e) => patch({ url: e.target.value })} />;
   }
+}
+
+function SocialEditor({ block, patch }: { block: Block; patch: (p: Partial<Block>) => void }): JSX.Element {
+  const socials: Social[] = block.socials ?? [];
+  const update = (next: Social[]): void => patch({ socials: next });
+  return (
+    <div className="space-y-2">
+      {socials.map((s, i) => (
+        <div key={i} className="flex gap-2">
+          <select
+            className={`${inputCls} w-28 shrink-0`}
+            value={s.red}
+            onChange={(e) => update(socials.map((x, j) => (j === i ? { ...x, red: e.target.value as SocialNet } : x)))}
+          >
+            {SOCIAL_NETS.map((n) => (
+              <option key={n.red} value={n.red}>{n.label}</option>
+            ))}
+          </select>
+          <input
+            className={inputCls}
+            placeholder="@usuario o link"
+            value={s.valor}
+            onChange={(e) => update(socials.map((x, j) => (j === i ? { ...x, valor: e.target.value } : x)))}
+          />
+          <button type="button" onClick={() => update(socials.filter((_, j) => j !== i))} className="px-1 text-neutral-400 hover:text-red-500">
+            <X size={15} />
+          </button>
+        </div>
+      ))}
+      <button type="button" onClick={() => update([...socials, { red: 'instagram', valor: '' }])} className="text-xs font-semibold text-bioo-dark hover:underline">
+        + Agregar red
+      </button>
+    </div>
+  );
 }

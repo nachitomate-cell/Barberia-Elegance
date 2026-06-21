@@ -100,5 +100,6 @@ export function newBlock(tipo: BlockType): Block {
     url: '',
     activo: true,
     prefijo: needsPhone ? '56' : undefined,
+    socials: tipo === 'social' ? [{ red: 'instagram', valor: '' }] : undefined,
   });
 }

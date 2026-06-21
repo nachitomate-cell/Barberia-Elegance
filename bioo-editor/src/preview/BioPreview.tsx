@@ -1,11 +1,21 @@
 import { useEffect } from 'react';
+import { Instagram, Facebook, Youtube, MessageCircle, Mail, Phone, Globe, Music2, type LucideIcon } from 'lucide-react';
 import { THEMES, SHAPE_RADIUS, FONTS, TSIZE, SSIZE, TWEIGHT, TSPACE, bgCss, bgAnimStyle, loadFont } from '../lib/theme';
-import type { BioState, Block } from '../types';
+import { embedSrc, socUrl } from '../lib/blocks';
+import type { BioState, Block, SocialNet } from '../types';
+
+const SOCIAL_ICON: Record<SocialNet, LucideIcon> = {
+  instagram: Instagram, tiktok: Music2, facebook: Facebook, youtube: Youtube,
+  whatsapp: MessageCircle, email: Mail, telefono: Phone, enlace: Globe,
+};
 
 function renderable(b: Block): boolean {
   if (!b.activo) return false;
   if (b.tipo === 'separador') return true;
   if (b.tipo === 'texto') return !!(b.texto || '').trim();
+  if (b.tipo === 'imagen') return !!(b.img || '').trim();
+  if (b.tipo === 'embed') return !!(b.url || '').trim();
+  if (b.tipo === 'social') return (b.socials ?? []).some((s) => (s.valor || '').trim());
   return !!((b.label || '').trim() || (b.url || '').trim());
 }
 
@@ -65,6 +75,39 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
             }
             if (b.tipo === 'texto') {
               return <p key={b.id} className="text-center text-sm font-semibold" style={{ color: p.text }}>{b.texto}</p>;
+            }
+            if (b.tipo === 'imagen') {
+              const img = <img src={b.img} alt="" className="w-full rounded-2xl shadow-md" />;
+              return b.url
+                ? <a key={b.id} href={b.url} target="_blank" rel="noopener noreferrer" className="block">{img}</a>
+                : <div key={b.id}>{img}</div>;
+            }
+            if (b.tipo === 'embed') {
+              const e = embedSrc(b.url);
+              if (!e) return null;
+              if (e.kind === 'youtube') {
+                return (
+                  <div key={b.id} className="relative w-full overflow-hidden rounded-2xl shadow-md" style={{ paddingTop: '56.25%' }}>
+                    <iframe src={e.src} title="video" className="absolute inset-0 h-full w-full border-0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture" allowFullScreen />
+                  </div>
+                );
+              }
+              return <iframe key={b.id} src={e.src} title="spotify" className="w-full rounded-2xl border-0" style={{ height: e.height }} allow="encrypted-media" />;
+            }
+            if (b.tipo === 'social') {
+              const items = (b.socials ?? []).filter((s) => (s.valor || '').trim());
+              if (!items.length) return null;
+              return (
+                <div key={b.id} className="flex flex-wrap justify-center gap-4">
+                  {items.map((s, i) => {
+                    const u = socUrl(s);
+                    const Icon = SOCIAL_ICON[s.red];
+                    return u ? (
+                      <a key={i} href={u} target="_blank" rel="noopener noreferrer"><Icon size={26} style={{ color: p.text }} /></a>
+                    ) : null;
+                  })}
+                </div>
+              );
             }
             const fillStyle =
               theme.fill === 'outline'
