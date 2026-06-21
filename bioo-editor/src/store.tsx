@@ -2,16 +2,16 @@ import {
   createContext, useContext, useReducer, useEffect,
   type ReactNode, type Dispatch,
 } from 'react';
-import type { BioState, Block, BlockType, Theme, Profile } from './types';
-import { computeUrl } from './lib/theme';
+import type { BioState, Block, BlockType, Theme, Profile, BgConfig } from './types';
+import { computeUrl, DEFAULT_BG } from './lib/theme';
 
 const DRAFT_KEY = 'bioo_editor_draft_v1';
 
 const DEFAULT_STATE: BioState = {
   username: 'tunombre',
-  profile: { titulo: '', subtitulo: '', avatar: '', verified: false },
+  profile: { titulo: '', subtitulo: '', avatar: '', cover: '', verified: false },
   blocks: [],
-  theme: { preset: 'lime', shape: 'rounded', fill: 'solid', font: 'system' },
+  theme: { preset: 'lime', shape: 'rounded', fill: 'solid', font: 'system', bg: DEFAULT_BG, avatarShape: 'circle', avatarRing: '' },
 };
 
 export type Action =
@@ -19,6 +19,7 @@ export type Action =
   | { type: 'setUsername'; value: string }
   | { type: 'patchProfile'; patch: Partial<Profile> }
   | { type: 'patchTheme'; patch: Partial<Theme> }
+  | { type: 'patchBg'; patch: Partial<BgConfig> }
   | { type: 'addBlock'; block: Block }
   | { type: 'patchBlock'; id: string; patch: Partial<Block> }
   | { type: 'removeBlock'; id: string }
@@ -32,6 +33,7 @@ function reducer(state: BioState, action: Action): BioState {
     case 'setUsername': return { ...state, username: action.value };
     case 'patchProfile': return { ...state, profile: { ...state.profile, ...action.patch } };
     case 'patchTheme': return { ...state, theme: { ...state.theme, ...action.patch } };
+    case 'patchBg': return { ...state, theme: { ...state.theme, bg: { ...state.theme.bg, ...action.patch } } };
     case 'addBlock': return { ...state, blocks: [...state.blocks, action.block] };
     case 'patchBlock':
       return { ...state, blocks: state.blocks.map((b) => (b.id === action.id ? recompute({ ...b, ...action.patch }) : b)) };

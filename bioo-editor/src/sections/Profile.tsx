@@ -1,5 +1,6 @@
 import { useEditor } from '../store';
 import { Field, inputCls } from '../ui';
+import ImagePicker from '../components/ImagePicker';
 import type { Profile as ProfileType } from '../types';
 
 export default function Profile(): JSX.Element {
@@ -9,16 +10,20 @@ export default function Profile(): JSX.Element {
 
   return (
     <div className="space-y-4">
+      <Field label="Foto de perfil">
+        <ImagePicker value={p.avatar} onChange={(v) => patch({ avatar: v })} square maxW={320} label="Subir foto" />
+      </Field>
+
+      <Field label="Portada (opcional)">
+        <ImagePicker value={p.cover} onChange={(v) => patch({ cover: v })} maxW={1200} label="Subir portada" />
+      </Field>
+
       <Field label="Nombre que se muestra">
         <input className={inputCls} value={p.titulo} placeholder="Tu nombre o marca" onChange={(e) => patch({ titulo: e.target.value })} />
       </Field>
 
       <Field label="Bio / descripción">
         <textarea className={inputCls} rows={3} value={p.subtitulo} placeholder="Cuéntale al mundo quién eres en una línea." onChange={(e) => patch({ subtitulo: e.target.value })} />
-      </Field>
-
-      <Field label="Foto de perfil (URL)">
-        <input className={inputCls} value={p.avatar} placeholder="https://… (enlace de tu foto)" onChange={(e) => patch({ avatar: e.target.value })} />
       </Field>
 
       <Field label="Tu usuario (URL)">

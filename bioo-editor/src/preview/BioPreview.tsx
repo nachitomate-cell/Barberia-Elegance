@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { THEMES, SHAPE_RADIUS, FONTS, bgCss, loadFont } from '../lib/theme';
+import { THEMES, SHAPE_RADIUS, FONTS, bgCss, bgAnimStyle, loadFont } from '../lib/theme';
 import type { BioState, Block } from '../types';
 
 function renderable(b: Block): boolean {
@@ -19,11 +19,19 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
   const visible = blocks.filter(renderable);
   const shown = profile.titulo || '@' + state.username;
   const initial = shown.replace(/^@/, '').charAt(0).toUpperCase() || 'B';
+  const avRadius = theme.avatarShape === 'rounded' ? '22%' : '50%';
+  const ring = theme.avatarRing || 'rgba(255,255,255,.55)';
 
   return (
-    <div className="min-h-full px-6 py-10" style={{ background: bgCss(theme), fontFamily: FONTS[theme.font].stack }}>
+    <div className="min-h-full px-6 py-10" style={{ background: bgCss(theme), fontFamily: FONTS[theme.font].stack, ...bgAnimStyle(theme) }}>
       <div className="mx-auto flex max-w-sm flex-col items-center">
-        <div className="grid h-24 w-24 place-items-center overflow-hidden rounded-full bg-white shadow-lg ring-4 ring-white/30">
+        {profile.cover && (
+          <div className="h-28 w-full rounded-2xl bg-cover bg-center shadow-md" style={{ backgroundImage: `url("${profile.cover}")` }} />
+        )}
+        <div
+          className={`relative grid h-24 w-24 place-items-center overflow-hidden bg-white shadow-lg ${profile.cover ? '-mt-11' : ''}`}
+          style={{ borderRadius: avRadius, border: `3px solid ${ring}` }}
+        >
           {profile.avatar
             ? <img src={profile.avatar} alt="" className="h-full w-full object-cover" />
             : <span className="text-3xl font-extrabold text-neutral-400">{initial}</span>}

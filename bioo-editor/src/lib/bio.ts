@@ -1,5 +1,6 @@
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from './firebase';
+import { DEFAULT_BG } from './theme';
 import type { BioState, Theme } from '../types';
 
 function normalizeTheme(raw: unknown): Theme {
@@ -9,6 +10,9 @@ function normalizeTheme(raw: unknown): Theme {
     shape: t.shape ?? 'rounded',
     fill: t.fill ?? 'solid',
     font: t.font ?? 'system',
+    bg: { ...DEFAULT_BG, ...(t.bg ?? {}) },
+    avatarShape: t.avatarShape === 'rounded' ? 'rounded' : 'circle',
+    avatarRing: t.avatarRing ?? '',
   };
 }
 
@@ -23,6 +27,7 @@ export async function loadBio(username: string): Promise<BioState | null> {
       titulo: d.perfil?.titulo ?? '',
       subtitulo: d.perfil?.subtitulo ?? '',
       avatar: d.perfil?.avatar ?? '',
+      cover: d.perfil?.cover ?? '',
       verified: !!d.perfil?.verified,
     },
     blocks: Array.isArray(d.bloques) ? d.bloques : [],

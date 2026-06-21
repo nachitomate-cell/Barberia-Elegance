@@ -1,4 +1,5 @@
-import type { Theme, ThemePreset, ButtonShape, FontKey, Block } from '../types';
+import type { CSSProperties } from 'react';
+import type { Theme, ThemePreset, ButtonShape, FontKey, Block, BgConfig, PatternKind } from '../types';
 
 export interface Palette {
   name: string;
@@ -41,8 +42,35 @@ export function loadFont(key: FontKey): void {
   document.head.appendChild(link);
 }
 
+export const DEFAULT_BG: BgConfig = {
+  mode: 'preset', color: '#92c83a', c1: '#92c83a', c2: '#2c5a17', angle: 165, pattern: 'dots', image: '',
+};
+
+export function patternCss(kind: PatternKind, base: string): string {
+  if (kind === 'grid')
+    return `linear-gradient(rgba(255,255,255,.16) 1px,transparent 1px) 0 0/26px 26px, linear-gradient(90deg,rgba(255,255,255,.16) 1px,transparent 1px) 0 0/26px 26px, ${base}`;
+  if (kind === 'diag')
+    return `repeating-linear-gradient(45deg,rgba(255,255,255,.10) 0 10px,transparent 10px 20px), ${base}`;
+  return `radial-gradient(rgba(255,255,255,.28) 1.6px,transparent 1.7px) 0 0/22px 22px, ${base}`;
+}
+
 export function bgCss(theme: Theme): string {
-  return THEMES[theme.preset].bg;
+  const b = theme.bg;
+  switch (b.mode) {
+    case 'color':    return b.color;
+    case 'gradient': return `linear-gradient(${b.angle}deg, ${b.c1}, ${b.c2})`;
+    case 'animated': return `linear-gradient(${b.angle}deg, ${b.c1}, ${b.c2}, ${b.c1})`;
+    case 'pattern':  return patternCss(b.pattern, b.color);
+    case 'image':    return b.image ? `url("${b.image}") center/cover no-repeat` : THEMES[theme.preset].bg;
+    default:         return THEMES[theme.preset].bg;
+  }
+}
+
+/** Estilos extra para el fondo animado (background-size + animation). */
+export function bgAnimStyle(theme: Theme): CSSProperties {
+  return theme.bg.mode === 'animated'
+    ? { backgroundSize: '220% 220%', animation: 'bgshift 14s ease infinite' }
+    : {};
 }
 
 const onlyDigits = (s: string): string => String(s || '').replace(/\D/g, '');
