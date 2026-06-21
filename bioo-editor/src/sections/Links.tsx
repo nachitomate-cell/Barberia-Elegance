@@ -3,7 +3,7 @@ import { Reorder } from 'framer-motion';
 import {
   Plus, Trash2, Star, GripVertical, X,
   Link2, MessageCircle, Instagram, Music2, Facebook, Youtube, Mail, Phone,
-  Type, Minus, Image as ImageIcon, PlaySquare, Share2, type LucideIcon,
+  Type, Minus, Image as ImageIcon, PlaySquare, Share2, MailPlus, type LucideIcon,
 } from 'lucide-react';
 import { useEditor, newBlock } from '../store';
 import { fileToDataUrl } from '../lib/image';
@@ -25,15 +25,17 @@ const TIPOS: { id: BlockType; label: string }[] = [
   { id: 'imagen', label: 'Imagen / Banner' },
   { id: 'embed', label: 'Video / Spotify' },
   { id: 'social', label: 'Fila social' },
+  { id: 'newsletter', label: 'Suscripción' },
 ];
 
 const TYPE_ICON: Record<BlockType, LucideIcon> = {
   enlace: Link2, whatsapp: MessageCircle, instagram: Instagram, tiktok: Music2,
   facebook: Facebook, youtube: Youtube, email: Mail, telefono: Phone,
   texto: Type, separador: Minus, imagen: ImageIcon, embed: PlaySquare, social: Share2,
+  newsletter: MailPlus,
 };
 
-const SPECIAL: BlockType[] = ['texto', 'separador', 'imagen', 'embed', 'social'];
+const SPECIAL: BlockType[] = ['texto', 'separador', 'imagen', 'embed', 'social', 'newsletter'];
 const isLinkType = (t: BlockType): boolean => !SPECIAL.includes(t);
 
 export default function Links(): JSX.Element {
@@ -63,13 +65,22 @@ export default function Links(): JSX.Element {
           <button type="button" onClick={() => setPicker(false)} className="mt-3 text-xs text-gray-400 hover:text-gray-600">Cerrar</button>
         </div>
       ) : (
-        <button
-          type="button"
-          onClick={() => setPicker(true)}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 py-4 text-sm font-bold text-[#72a129] transition-colors hover:border-[#92c83a] hover:bg-[#92c83a]/5"
-        >
-          <Plus size={18} strokeWidth={2.5} /> Agregar enlace
-        </button>
+        <div className="grid grid-cols-2 gap-2.5">
+          <button
+            type="button"
+            onClick={() => setPicker(true)}
+            className="flex items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 py-4 text-sm font-bold text-[#72a129] transition-colors hover:border-[#92c83a] hover:bg-[#92c83a]/5"
+          >
+            <Plus size={18} strokeWidth={2.5} /> Enlace
+          </button>
+          <button
+            type="button"
+            onClick={() => dispatch({ type: 'addBlock', block: newBlock('newsletter') })}
+            className="flex items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-[#92c83a]/40 bg-[#92c83a]/10 py-4 text-sm font-bold text-[#72a129] transition-colors hover:border-[#92c83a] hover:bg-[#92c83a]/15"
+          >
+            <MailPlus size={18} strokeWidth={2.3} /> Suscripción
+          </button>
+        </div>
       )}
 
       {/* ── Lista reordenable (Framer Motion) ── */}
@@ -254,6 +265,17 @@ function SpecialBody({ block, patch }: { block: Block; patch: (p: Partial<Block>
       return <input className={subInput} placeholder="Pega el link de YouTube o Spotify" value={block.url} onChange={(e) => patch({ url: e.target.value })} />;
     case 'social':
       return <SocialEditor block={block} patch={patch} />;
+    case 'newsletter':
+      return (
+        <div className="space-y-0.5 pt-0.5">
+          <input className={titleInput} placeholder="Únete a mi Newsletter" value={block.label} onChange={(e) => patch({ label: e.target.value })} />
+          <input className={subInput} placeholder="Recibe mis mejores tips cada semana" value={block.subtitulo ?? ''} onChange={(e) => patch({ subtitulo: e.target.value })} />
+          <div className="flex items-center gap-2 pt-1">
+            <span className="shrink-0 text-[11px] font-bold uppercase tracking-wide text-gray-400">Botón</span>
+            <input className={subInput} placeholder="Suscribirme" value={block.btnText ?? ''} onChange={(e) => patch({ btnText: e.target.value })} />
+          </div>
+        </div>
+      );
     default:
       return <></>;
   }

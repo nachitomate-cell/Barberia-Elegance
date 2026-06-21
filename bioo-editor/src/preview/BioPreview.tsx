@@ -16,6 +16,7 @@ function renderable(b: Block): boolean {
   if (b.tipo === 'imagen') return !!(b.img || '').trim();
   if (b.tipo === 'embed') return !!(b.url || '').trim();
   if (b.tipo === 'social') return (b.socials ?? []).some((s) => (s.valor || '').trim());
+  if (b.tipo === 'newsletter') return true;
   return !!((b.label || '').trim() || (b.url || '').trim());
 }
 
@@ -106,6 +107,28 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
                       <a key={i} href={u} target="_blank" rel="noopener noreferrer"><Icon size={26} style={{ color: p.text }} /></a>
                     ) : null;
                   })}
+                </div>
+              );
+            }
+            if (b.tipo === 'newsletter') {
+              return (
+                <div key={b.id} className="rounded-2xl bg-white/90 p-4 text-center shadow-md backdrop-blur-sm">
+                  <p className="text-sm font-bold text-neutral-900">{b.label || 'Únete a mi Newsletter'}</p>
+                  {b.subtitulo && <p className="mt-0.5 text-xs leading-snug text-neutral-500">{b.subtitulo}</p>}
+                  <div className="mt-3 flex flex-col gap-2">
+                    <input
+                      type="email"
+                      placeholder="tucorreo@email.com"
+                      className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-800 placeholder-neutral-400 focus:border-neutral-300 focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      className="w-full py-2 text-sm font-bold shadow-sm"
+                      style={{ background: p.btnBg, color: p.btnText, borderRadius: radius }}
+                    >
+                      {b.btnText || 'Suscribirme'}
+                    </button>
+                  </div>
                 </div>
               );
             }

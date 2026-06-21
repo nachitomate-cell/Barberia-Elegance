@@ -93,13 +93,16 @@ export function useEditor(): EditorCtx {
 
 export function newBlock(tipo: BlockType): Block {
   const needsPhone = tipo === 'whatsapp' || tipo === 'telefono';
+  const news = tipo === 'newsletter';
   return recompute({
     id: 'l' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
     tipo,
-    label: '',
+    label: news ? 'Únete a mi Newsletter' : '',
     url: '',
     activo: true,
     prefijo: needsPhone ? '56' : undefined,
     socials: tipo === 'social' ? [{ red: 'instagram', valor: '' }] : undefined,
+    subtitulo: news ? 'Recibe mis mejores tips cada semana' : undefined,
+    btnText: news ? 'Suscribirme' : undefined,
   });
 }
