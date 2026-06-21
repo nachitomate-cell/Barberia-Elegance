@@ -11,6 +11,7 @@ import Appearance from './sections/Appearance';
 import Share from './sections/Share';
 import BioPreview from './preview/BioPreview';
 import PreviewSheet from './preview/PreviewSheet';
+import Wizard from './components/Wizard';
 import type { SectionId } from './types';
 
 const SECTIONS: { id: SectionId; label: string; Icon: LucideIcon }[] = [
@@ -35,6 +36,10 @@ export default function App(): JSX.Element {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [status, setStatus] = useState<SaveStatus>('idle');
+  const [showWizard, setShowWizard] = useState<boolean>(() => {
+    try { if (localStorage.getItem('bioo_onboarded')) return false; } catch { /* noop */ }
+    return state.blocks.length === 0 && !state.profile.titulo.trim();
+  });
 
   useEffect(() => onAuthStateChanged(auth, setUser), []);
 
@@ -136,6 +141,8 @@ export default function App(): JSX.Element {
       <PreviewSheet open={previewOpen} onClose={() => setPreviewOpen(false)}>
         <BioPreview state={state} />
       </PreviewSheet>
+
+      <Wizard open={showWizard} onClose={() => setShowWizard(false)} />
     </div>
   );
 }
