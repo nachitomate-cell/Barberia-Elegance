@@ -270,6 +270,19 @@ service cloud.firestore {
                       && get(/databases/$(database)/documents/bios/$(username)).data.uid == uid();
         allow update: if false;
       }
+
+      // ── /bios/{username}/secrets — datos privados (hiddenUrl de paywalls) ──
+      // Acceso ESTRICTAMENTE limitado al dueño del perfil (bios.uid). El público
+      // tiene denegada toda lectura/escritura: aquí vive la propiedad intelectual
+      // (URLs de descarga, archivos, grupos privados) que el comprador solo recibe
+      // tras verificar el pago en el backend.
+      match /secrets/{secretId} {
+        allow read, delete: if autenticado()
+                    && get(/databases/$(database)/documents/bios/$(username)).data.uid == uid();
+        allow create, update: if autenticado()
+                    && get(/databases/$(database)/documents/bios/$(username)).data.uid == uid()
+                    && request.resource.data.uid == uid();
+      }
     }
 
     // ── /bio_users — mapeo uid → username (privado del dueño) ──────
