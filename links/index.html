@@ -30,7 +30,7 @@
   .brand{display:flex;align-items:center;gap:9px;font-weight:800;font-size:19px;letter-spacing:-.4px;}
   .brand img{width:30px;height:30px;border-radius:8px;object-fit:contain;background:#fff;padding:3px;box-shadow:0 1px 6px rgba(21,36,11,.12);}
   .brand .t2{font-weight:500;color:var(--green-d);}
-  .login-link{font-size:14px;font-weight:700;text-decoration:none;background:#fff;border:1px solid var(--line);padding:9px 16px;border-radius:100px;box-shadow:0 1px 2px rgba(0,0,0,.04);}
+  .login-link{display:inline-flex;align-items:center;line-height:1;font-size:14px;font-weight:700;text-decoration:none;background:#fff;border:1px solid var(--line);padding:9px 16px;border-radius:100px;box-shadow:0 1px 2px rgba(0,0,0,.04);}
   .login-link:hover{background:#fafafa;}
 
   main{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:28px 22px 48px;position:relative;z-index:0;}
@@ -65,8 +65,17 @@
   /* Mockup flotante premium */
   .hero-img{width:100%;max-width:480px;margin-top:36px;border-radius:24px;box-shadow:0 24px 60px -12px rgba(21,36,11,.22),0 0 0 1px rgba(0,0,0,.05);}
 
-  .foot{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:6px 14px;padding:20px;font-size:12px;color:#9ca3af;}
-  .foot a{text-decoration:none;display:inline-flex;align-items:center;gap:6px;font-weight:600;}
+  /* Franja de Features (Bento) */
+  .features{width:100%;max-width:1040px;margin:0 auto;padding:8px 22px 56px;display:grid;grid-template-columns:1fr;gap:18px;}
+  @media (min-width:768px){ .features{grid-template-columns:repeat(3,1fr);gap:24px;padding-top:24px;} }
+  .feat{background:#ffffff;border-radius:24px;padding:32px;box-shadow:0 4px 20px rgba(0,0,0,.03);text-align:left;}
+  .feat .ico{font-size:28px;line-height:1;margin-bottom:14px;}
+  .feat h3{color:#15240b;font-weight:700;font-size:1.25rem;letter-spacing:-.01em;margin-bottom:8px;}
+  .feat p{color:#737373;font-weight:500;font-size:.95rem;line-height:1.5;}
+
+  .foot{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:6px 14px;padding:20px;font-size:12.5px;font-weight:500;color:#737373;}
+  .foot a{text-decoration:none;display:inline-flex;align-items:center;gap:6px;font-weight:600;color:#737373;}
+  .foot a:hover{color:#15240b;}
   .foot img{width:16px;height:16px;border-radius:4px;object-fit:contain;background:#fff;padding:2px;}
 </style>
 </head>
@@ -100,6 +109,24 @@
 
     <img class="hero-img" src="/bioo-hero.jpg" alt="Reúne todos tus enlaces en un solo bioo" loading="lazy" />
   </main>
+
+  <section class="features" aria-label="Características">
+    <div class="feat">
+      <div class="ico" aria-hidden="true">⚡</div>
+      <h3>Arma tu página en segundos</h3>
+      <p>Plantillas premium y diseño automático. No necesitas saber programar.</p>
+    </div>
+    <div class="feat">
+      <div class="ico" aria-hidden="true">💸</div>
+      <h3>Vende tus productos</h3>
+      <p>Agrega botones de pago y recibe propinas directo a tu cuenta bancaria.</p>
+    </div>
+    <div class="feat">
+      <div class="ico" aria-hidden="true">📈</div>
+      <h3>Analiza tu tráfico</h3>
+      <p>Conecta tus píxeles y descubre exactamente de dónde vienen tus clientes.</p>
+    </div>
+  </section>
 
   <div class="foot">
     <span style="font-weight:800;color:var(--ink);">bioo</span>
