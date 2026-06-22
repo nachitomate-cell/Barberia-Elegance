@@ -4,12 +4,13 @@ import {
   Plus, Trash2, Star, GripVertical, X,
   Link2, MessageCircle, Instagram, Music2, Facebook, Youtube, Mail, Phone,
   Type, Minus, Image as ImageIcon, PlaySquare, Share2, MailPlus,
-  RectangleHorizontal, Square, Maximize2, type LucideIcon,
+  RectangleHorizontal, Square, Maximize2, Sparkles, type LucideIcon,
 } from 'lucide-react';
 import { useEditor, newBlock } from '../store';
 import { fileToDataUrl } from '../lib/image';
 import { SOCIAL_NETS, embedSrc } from '../lib/blocks';
 import ImagePicker from '../components/ImagePicker';
+import TemplatePicker from '../components/TemplatePicker';
 import type { Block, BlockType, Social, SocialNet, LayoutSize } from '../types';
 
 const TIPOS: { id: BlockType; label: string }[] = [
@@ -42,9 +43,20 @@ const isLinkType = (t: BlockType): boolean => !SPECIAL.includes(t);
 export default function Links(): JSX.Element {
   const { state, dispatch } = useEditor();
   const [picker, setPicker] = useState(false);
+  const [tplOpen, setTplOpen] = useState(false);
 
   return (
     <div className="space-y-3">
+      {/* ── Onboarding mágico: plantillas ── */}
+      <button
+        type="button"
+        onClick={() => setTplOpen(true)}
+        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#92c83a] to-[#72a129] py-3 text-sm font-bold text-[#15240b] shadow-sm transition-transform active:scale-95"
+      >
+        <Sparkles size={16} /> Empezar con una plantilla
+      </button>
+      <TemplatePicker open={tplOpen} onClose={() => setTplOpen(false)} />
+
       {/* ── Agregar enlace (arriba de la lista) ── */}
       {picker ? (
         <div className="rounded-2xl bg-white p-3 shadow-sm ring-1 ring-black/[0.05]">
