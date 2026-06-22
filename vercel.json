@@ -69,6 +69,12 @@
       "has": [{ "type": "host", "value": "links.synaptechspa.cl" }],
       "destination": "https://bioo.cl/:path*",
       "permanent": true
+    },
+    {
+      "source": "/admin",
+      "has": [{ "type": "host", "value": "bioo.cl" }],
+      "destination": "/editor?view=admin",
+      "permanent": false
     }
   ],
   "rewrites": [
@@ -105,7 +111,6 @@
     { "source": "/",            "has": [{ "type": "host", "value": "bioo.cl" }], "destination": "/links/index.html" },
     { "source": "/registro",    "has": [{ "type": "host", "value": "bioo.cl" }], "destination": "/links/registro.html" },
     { "source": "/editor",      "has": [{ "type": "host", "value": "bioo.cl" }], "destination": "/bio-app/index.html" },
-    { "source": "/admin",       "has": [{ "type": "host", "value": "bioo.cl" }], "destination": "/bio-app/index.html" },
     { "source": "/claim",       "has": [{ "type": "host", "value": "bioo.cl" }], "destination": "/links/claim.html" },
     { "source": "/:user",       "has": [{ "type": "host", "value": "bioo.cl" }], "destination": "/links/u.html" },
 
