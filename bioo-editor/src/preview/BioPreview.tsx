@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { Instagram, Facebook, Youtube, MessageCircle, Mail, Phone, Globe, Music2, Lock, type LucideIcon } from 'lucide-react';
 import { THEMES, SHAPE_RADIUS, FONTS, TSIZE, SSIZE, TWEIGHT, TSPACE, bgCss, bgAnimStyle, loadFont } from '../lib/theme';
 import { embedSrc, socUrl } from '../lib/blocks';
+import { createCheckoutSession } from '../lib/payments';
 import type { BioState, Block, SocialNet } from '../types';
 
 type Palette = (typeof THEMES)[keyof typeof THEMES];
@@ -143,7 +144,7 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
               return <TipBlock key={b.id} b={b} p={p} radius={radius} />;
             }
             if (b.tipo === 'paywall') {
-              return <PaywallBlock key={b.id} b={b} p={p} radius={radius} />;
+              return <PaywallBlock key={b.id} b={b} p={p} radius={radius} username={state.username} />;
             }
             const fillStyle =
               theme.fill === 'outline'
@@ -244,16 +245,22 @@ function TipBlock({ b, p, radius }: { b: Block; p: Palette; radius: string }): J
   );
 }
 
-/** Bloque paywall / producto digital (estilo Gumroad) con flujo de compra simulado. */
-function PaywallBlock({ b, p, radius }: { b: Block; p: Palette; radius: string }): JSX.Element {
+/** Bloque paywall / producto digital (estilo Gumroad). Inicia Stripe Checkout real. */
+function PaywallBlock({ b, p, radius, username }: { b: Block; p: Palette; radius: string; username: string }): JSX.Element {
   const sym = curSymbol(b.currency);
   const price = typeof b.price === 'number' ? b.price : 0;
-  const [status, setStatus] = useState<'idle' | 'processing' | 'done'>('idle');
+  const [status, setStatus] = useState<'idle' | 'processing' | 'error'>('idle');
 
-  const buy = (): void => {
+  const buy = async (): Promise<void> => {
     if (status !== 'idle') return;
     setStatus('processing');
-    setTimeout(() => setStatus('done'), 1400);
+    try {
+      const { checkoutUrl } = await createCheckoutSession(b.id, username);
+      window.location.href = checkoutUrl; // redirige a Stripe
+    } catch {
+      setStatus('error');
+      setTimeout(() => setStatus('idle'), 2500);
+    }
   };
 
   return (
@@ -269,11 +276,13 @@ function PaywallBlock({ b, p, radius }: { b: Block; p: Palette; radius: string }
         onClick={buy}
         disabled={status !== 'idle'}
         className="mt-3 flex w-full items-center justify-center gap-2 py-3 text-sm font-bold shadow-sm transition-transform active:scale-95 disabled:cursor-default"
-        style={{ background: status === 'done' ? '#16a34a' : p.btnBg, color: status === 'done' ? '#fff' : p.btnText, borderRadius: radius }}
+        style={{ background: status === 'error' ? '#dc2626' : p.btnBg, color: status === 'error' ? '#fff' : p.btnText, borderRadius: radius }}
       >
-        {status === 'idle' ? <><Lock size={14} /> Desbloquear por {sym}{price}</> : status === 'processing' ? 'Procesando de forma segura…' : '¡Desbloqueado! Redirigiendo…'}
+        {status === 'idle'
+          ? <><Lock size={14} /> Desbloquear por {sym}{price}</>
+          : status === 'processing' ? 'Redirigiendo a pago seguro…' : 'No se pudo iniciar el pago'}
       </button>
-      <p className="mt-2 text-[10px] text-neutral-400">Pago seguro · Acceso inmediato</p>
+      <p className="mt-2 text-[10px] text-neutral-400">Pago seguro con Stripe · Acceso inmediato</p>
     </div>
   );
 }

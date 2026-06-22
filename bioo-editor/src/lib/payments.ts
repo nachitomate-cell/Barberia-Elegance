@@ -1,20 +1,26 @@
+import { getFunctions, httpsCallable, type Functions } from 'firebase/functions';
+import { app } from './firebase';
+
 /**
- * Esqueleto de la arquitectura de pagos del paywall (Fase 5).
+ * Pagos del paywall vía Stripe Checkout (Cloud Functions callables).
  *
- * Diseño de seguridad:
- *  - La `hiddenUrl` vive en `bios/{username}/secrets/{blockId}` (reglas: solo el dueño).
- *  - El COMPRADOR nunca puede leer ese documento directamente (las reglas lo deniegan).
- *  - La entrega del secreto ocurre EXCLUSIVAMENTE en el backend, tras verificar el pago.
- *
- * Las dos funciones de abajo son la firma + simulación. La integración real con
- * Stripe / MercadoPago se hace en endpoints de confianza (Cloud Functions / API routes)
- * con claves secretas del servidor y el Admin SDK (que ignora las reglas de cliente).
+ * Seguridad: el precio se valida en el servidor; la `hiddenUrl` solo se entrega
+ * tras verificar el pago con Stripe (verifyUnlock). El cliente nunca lee /secrets.
  */
 
-export type PaymentProvider = 'stripe' | 'mercadopago';
+const functions: Functions = getFunctions(app, 'us-central1');
+
+const _createCheckout = httpsCallable<
+  { blockId: string; username: string; origin: string },
+  { url: string; sessionId: string }
+>(functions, 'createStripeCheckout');
+
+const _verifyUnlock = httpsCallable<
+  { sessionId: string },
+  { hiddenUrl: string }
+>(functions, 'verifyUnlock');
 
 export interface CheckoutSession {
-  provider: PaymentProvider;
   sessionId: string;
   checkoutUrl: string;
 }
@@ -25,45 +31,19 @@ export interface UnlockResult {
   error?: string;
 }
 
-/**
- * Crea una sesión de checkout para comprar un bloque paywall.
- * Llamada desde el Frontend al pulsar "Comprar".
- *
- * PRODUCCIÓN (no en el cliente):
- *   POST /api/payments/checkout  { blockId, username, buyerEmail }
- *   → el servidor crea la sesión (Stripe Checkout / MercadoPago Preference) con
- *     metadata { username, blockId } y devuelve { sessionId, checkoutUrl }.
- *   El front redirige a checkoutUrl.
- */
-export async function createCheckoutSession(
-  blockId: string,
-  username: string,
-  buyerEmail: string,
-): Promise<CheckoutSession> {
-  // TODO(backend): reemplazar por fetch('/api/payments/checkout', { ... }).
-  void buyerEmail; // se enviará al backend para el recibo / prefill del checkout
-  const sessionId = `sess_sim_${username}_${blockId}_${Date.now().toString(36)}`;
-  return {
-    provider: 'stripe',
-    sessionId,
-    checkoutUrl: `https://checkout.bioo.cl/simulado?sid=${encodeURIComponent(sessionId)}`,
-  };
+/** Crea la sesión de Stripe y devuelve la URL de checkout a la que redirigir. */
+export async function createCheckoutSession(blockId: string, username: string): Promise<CheckoutSession> {
+  const origin = `${window.location.origin}/${username}`;
+  const res = await _createCheckout({ blockId, username, origin });
+  return { sessionId: res.data.sessionId, checkoutUrl: res.data.url };
 }
 
-/**
- * Verifica un pago y devuelve la `hiddenUrl` real al comprador.
- *
- * ⚠️ DEBE ejecutarse SOLO en el backend (Cloud Function / API con Admin SDK):
- *   1. Validar `sessionId` con el proveedor (estado === 'paid') o recibir el webhook firmado.
- *   2. Derivar { username, blockId } desde la metadata de la sesión.
- *   3. adminDb.doc(`bios/${username}/secrets/${blockId}`).get() → hiddenUrl.
- *   4. (Opcional) registrar la venta y enviar el enlace por email.
- *
- * En el cliente esta lectura fallaría por las reglas de Firestore (acceso denegado al
- * público), que es exactamente la protección que buscamos.
- */
+/** Verifica el pago y obtiene la hiddenUrl real (solo si la sesión está pagada). */
 export async function verifyPaymentAndUnlock(sessionId: string): Promise<UnlockResult> {
-  // TODO(backend): validar la sesión y leer /secrets con el Admin SDK.
-  if (!sessionId) return { ok: false, error: 'missing-session' };
-  return { ok: true, hiddenUrl: 'https://ejemplo.com/recurso-protegido (simulado)' };
+  try {
+    const res = await _verifyUnlock({ sessionId });
+    return { ok: true, hiddenUrl: res.data.hiddenUrl };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'verify-failed' };
+  }
 }

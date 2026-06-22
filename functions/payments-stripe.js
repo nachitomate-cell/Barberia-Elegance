@@ -1,0 +1,113 @@
+// functions/payments-stripe.js
+// ─────────────────────────────────────────────────────────────────────────────
+//  PAGOS DEL PAYWALL (Stripe Checkout) — Cloud Functions v2 callables
+//
+//  createStripeCheckout: crea la sesión de pago. El precio SIEMPRE se lee del
+//    servidor (bios/{username}.bloques) — nunca se confía en el cliente.
+//  verifyUnlock: tras el pago, valida la sesión con Stripe, lee la hiddenUrl de
+//    la subcolección privada /secrets con el Admin SDK y la entrega. Registra la
+//    venta en /purchases para idempotencia / anti-abuso.
+//
+//  Secreto: STRIPE_SECRET_KEY (Secret Manager, v2). Ver instrucciones de deploy.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const { onCall, HttpsError } = require('firebase-functions/v2/https');
+const { defineSecret } = require('firebase-functions/params');
+const admin = require('firebase-admin');
+
+const STRIPE_SECRET_KEY = defineSecret('STRIPE_SECRET_KEY');
+
+// Monedas sin decimales en Stripe (el monto va en la unidad entera, no en centavos).
+const ZERO_DECIMAL = new Set(['clp', 'jpy', 'krw', 'vnd', 'pyg', 'isk']);
+
+function stripeClient() {
+  // require perezoso: el módulo carga aunque 'stripe' aún no esté instalado en local.
+  const Stripe = require('stripe');
+  return new Stripe(STRIPE_SECRET_KEY.value());
+}
+
+function findPaywall(data, blockId) {
+  const arr = Array.isArray(data.bloques) ? data.bloques
+    : (Array.isArray(data.blocks) ? data.blocks : []);
+  return arr.find((b) => b && b.id === blockId && b.tipo === 'paywall') || null;
+}
+
+exports.createStripeCheckout = onCall(
+  { region: 'us-central1', secrets: [STRIPE_SECRET_KEY] },
+  async (request) => {
+    const { blockId, username, origin } = request.data || {};
+    if (!blockId || !username) throw new HttpsError('invalid-argument', 'Faltan blockId o username.');
+
+    // El precio y los datos del producto se leen del servidor (fuente de verdad).
+    const snap = await admin.firestore().collection('bios').doc(String(username)).get();
+    if (!snap.exists) throw new HttpsError('not-found', 'Perfil no encontrado.');
+    const block = findPaywall(snap.data() || {}, blockId);
+    if (!block) throw new HttpsError('not-found', 'Producto no encontrado.');
+
+    const price = Number(block.price);
+    if (!(price > 0)) throw new HttpsError('failed-precondition', 'El producto no tiene un precio válido.');
+    const currency = String(block.currency || 'USD').toLowerCase();
+    const unitAmount = ZERO_DECIMAL.has(currency) ? Math.round(price) : Math.round(price * 100);
+
+    const base = (typeof origin === 'string' && /^https?:\/\//i.test(origin))
+      ? origin.replace(/\/+$/, '')
+      : `https://bioo.cl/${username}`;
+
+    const productData = { name: String(block.label || 'Producto digital').slice(0, 250) };
+    if (block.subtitulo) productData.description = String(block.subtitulo).slice(0, 500);
+
+    const stripe = stripeClient();
+    const session = await stripe.checkout.sessions.create({
+      mode: 'payment',
+      line_items: [{ quantity: 1, price_data: { currency, unit_amount: unitAmount, product_data: productData } }],
+      success_url: `${base}?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${base}?canceled=1`,
+      metadata: { username: String(username), blockId: String(blockId) },
+    });
+
+    return { url: session.url, sessionId: session.id };
+  },
+);
+
+exports.verifyUnlock = onCall(
+  { region: 'us-central1', secrets: [STRIPE_SECRET_KEY] },
+  async (request) => {
+    const { sessionId } = request.data || {};
+    if (!sessionId) throw new HttpsError('invalid-argument', 'Falta sessionId.');
+
+    const stripe = stripeClient();
+    let session;
+    try {
+      session = await stripe.checkout.sessions.retrieve(String(sessionId));
+    } catch (e) {
+      throw new HttpsError('not-found', 'Sesión de pago no encontrada.');
+    }
+
+    const paid = session && (session.payment_status === 'paid' || session.status === 'complete');
+    if (!paid) throw new HttpsError('failed-precondition', 'El pago aún no está confirmado.');
+
+    const username = session.metadata && session.metadata.username;
+    const blockId = session.metadata && session.metadata.blockId;
+    if (!username || !blockId) throw new HttpsError('failed-precondition', 'La sesión no tiene metadata válida.');
+
+    // Lectura SEGURA del secreto (Admin SDK ignora las reglas; el público nunca llega aquí).
+    const secretSnap = await admin.firestore()
+      .collection('bios').doc(username).collection('secrets').doc(blockId).get();
+    if (!secretSnap.exists) throw new HttpsError('not-found', 'El recurso ya no está disponible.');
+    const hiddenUrl = (secretSnap.data() || {}).hiddenUrl || '';
+
+    // Registro de entrega (idempotente): evita reprocesar y deja traza de la venta.
+    await admin.firestore()
+      .collection('bios').doc(username).collection('purchases').doc(String(sessionId))
+      .set({
+        sessionId: String(sessionId),
+        blockId,
+        amountTotal: session.amount_total != null ? session.amount_total : null,
+        currency: session.currency || null,
+        buyerEmail: (session.customer_details && session.customer_details.email) || null,
+        deliveredAt: admin.firestore.FieldValue.serverTimestamp(),
+      }, { merge: true });
+
+    return { hiddenUrl };
+  },
+);

@@ -800,3 +800,12 @@ const biooProvision = require('./bioo-provision');
 exports.biooProvision     = biooProvision.biooProvision;
 exports.biooClaim         = biooProvision.biooClaim;
 exports.biooEditorSession = biooProvision.biooEditorSession;
+
+// ─────────────────────────────────────────────────────────────────
+//  BIOO — pagos del paywall (Stripe Checkout). ver payments-stripe.js
+//  Requiere el secreto STRIPE_SECRET_KEY (Secret Manager) y el paquete
+//  'stripe' instalado en functions/.
+// ─────────────────────────────────────────────────────────────────
+const paymentsStripe = require('./payments-stripe');
+exports.createStripeCheckout = paymentsStripe.createStripeCheckout;
+exports.verifyUnlock         = paymentsStripe.verifyUnlock;
