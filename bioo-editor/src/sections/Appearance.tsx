@@ -1,25 +1,20 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, type ReactNode, type CSSProperties } from 'react';
 import { motion } from 'framer-motion';
 import { Palette, Image as ImageIcon, Square, CircleUserRound, Type, CaseSensitive } from 'lucide-react';
 import { useEditor } from '../store';
 import ImagePicker from '../components/ImagePicker';
 import { Card, labelCls } from '../ui';
-import { THEMES, FONTS, loadFont, patternCss } from '../lib/theme';
+import { THEMES, FONTS, loadFont } from '../lib/theme';
 import type {
-  ThemePreset, ButtonShape, ButtonFill, FontKey, BgMode, PatternKind, AvatarShape,
+  ThemePreset, ButtonShape, ButtonFill, FontKey, BgMode, PatternKind, FxKind, AvatarShape,
   BtnAnim, SizeKey, Weight, Caps, Spacing,
 } from '../types';
 
 const SPRING = { type: 'spring', stiffness: 400, damping: 30 } as const;
 const FONT_KEYS = Object.keys(FONTS) as FontKey[];
 
-const PATTERNS: [PatternKind, string][] = [['dots', 'Puntos'], ['grid', 'Cuadrícula'], ['diag', 'Diagonales']];
-
-const AURORAS: { name: string; c1: string; c2: string; angle: number }[] = [
-  { name: 'Aurora', c1: '#7c3aed', c2: '#22d3ee', angle: 135 },
-  { name: 'Atardecer', c1: '#fb7185', c2: '#f59e0b', angle: 120 },
-  { name: 'Bosque', c1: '#15240b', c2: '#92c83a', angle: 160 },
-];
+const FX: [FxKind, string][] = [['aurora', 'Aurora'], ['fluid', 'Fluido'], ['grain', 'Grano']];
+const PATTERNS: [PatternKind, string][] = [['grid', 'Cuadrícula'], ['dots', 'Puntos'], ['topo', 'Topográfico']];
 
 export default function Appearance(): JSX.Element {
   const { state, dispatch } = useEditor();
@@ -89,72 +84,50 @@ export default function Appearance(): JSX.Element {
 
         {bg.mode === 'animated' && (
           <div className="mt-5 space-y-5">
-            {/* Vista previa animada en vivo */}
-            <div
-              className="h-24 w-full rounded-2xl shadow-sm ring-1 ring-black/5"
-              style={{ backgroundImage: `linear-gradient(${bg.angle}deg, ${bg.c1}, ${bg.c2})`, backgroundSize: '220% 220%', animation: 'bgshift 14s ease infinite' }}
-            />
             <div>
-              <SubLabel>Estilos animados</SubLabel>
+              <SubLabel>Estilo animado</SubLabel>
               <div className="grid grid-cols-3 gap-3">
-                {AURORAS.map((a) => (
-                  <button
-                    key={a.name}
-                    type="button"
-                    onClick={() => dispatch({ type: 'patchBg', patch: { c1: a.c1, c2: a.c2, angle: a.angle } })}
-                    className="flex flex-col items-center gap-2 transition-transform hover:scale-[1.02]"
-                  >
-                    <span
-                      className="h-12 w-full rounded-xl shadow-sm ring-1 ring-black/5"
-                      style={{ backgroundImage: `linear-gradient(${a.angle}deg, ${a.c1}, ${a.c2})`, backgroundSize: '220% 220%', animation: 'bgshift 10s ease infinite' }}
-                    />
-                    <span className="text-[11px] font-semibold text-neutral-500">{a.name}</span>
-                  </button>
+                {FX.map(([k, label]) => (
+                  <FxCard
+                    key={k}
+                    kind={k}
+                    label={label}
+                    active={(bg.fx ?? 'aurora') === k}
+                    onClick={() => dispatch({ type: 'patchBg', patch: { fx: k } })}
+                    vars={{ '--c1': bg.c1, '--c2': bg.c2, '--blur': '22px' } as CSSProperties}
+                    blobs={k === 'aurora' || k === 'fluid'}
+                  />
                 ))}
               </div>
             </div>
-            <ColorRow label="Colores">
+            <ColorRow label="Colores del fondo">
               <ColorDot value={bg.c1} onChange={(c1) => dispatch({ type: 'patchBg', patch: { c1 } })} />
               <ColorDot value={bg.c2} onChange={(c2) => dispatch({ type: 'patchBg', patch: { c2 } })} />
             </ColorRow>
-            <div>
-              <SubLabel>Ángulo · {bg.angle}°</SubLabel>
-              <input
-                type="range" min={0} max={360} value={bg.angle}
-                onChange={(e) => dispatch({ type: 'patchBg', patch: { angle: Number(e.target.value) } })}
-                className="range-bioo"
-              />
-            </div>
           </div>
         )}
 
         {bg.mode === 'pattern' && (
           <div className="mt-5 space-y-5">
-            <ColorRow label="Color de fondo">
-              <ColorDot value={bg.color} onChange={(color) => dispatch({ type: 'patchBg', patch: { color } })} />
-            </ColorRow>
             <div>
               <SubLabel>Tipo de patrón</SubLabel>
               <div className="grid grid-cols-3 gap-3">
-                {PATTERNS.map(([k, label]) => {
-                  const active = bg.pattern === k;
-                  return (
-                    <button
-                      key={k}
-                      type="button"
-                      onClick={() => dispatch({ type: 'patchBg', patch: { pattern: k } })}
-                      className="flex flex-col items-center gap-2 transition-transform hover:scale-[1.02]"
-                    >
-                      <span
-                        className={`h-16 w-full rounded-2xl shadow-sm ${active ? 'ring-2 ring-[#92c83a] ring-offset-4 ring-offset-white' : 'ring-1 ring-black/5'}`}
-                        style={{ background: patternCss(k, '#1b3a10') }}
-                      />
-                      <span className={`text-[11px] font-semibold ${active ? 'text-[#15240b]' : 'text-neutral-500'}`}>{label}</span>
-                    </button>
-                  );
-                })}
+                {PATTERNS.map(([k, label]) => (
+                  <FxCard
+                    key={k}
+                    kind={k}
+                    label={label}
+                    active={bg.pattern === k}
+                    onClick={() => dispatch({ type: 'patchBg', patch: { pattern: k } })}
+                    vars={{ '--base': bg.color } as CSSProperties}
+                    blobs={false}
+                  />
+                ))}
               </div>
             </div>
+            <ColorRow label="Color base">
+              <ColorDot value={bg.color} onChange={(color) => dispatch({ type: 'patchBg', patch: { color } })} />
+            </ColorRow>
           </div>
         )}
 
@@ -330,6 +303,22 @@ function ShapePicker({ value, onChange }: { value: ButtonShape; onChange: (v: Bu
         );
       })}
     </div>
+  );
+}
+
+/** Tarjeta de selección con previsualización VIVA del fondo (misma clase bgfx que el visor). */
+function FxCard({ kind, label, active, onClick, vars, blobs }: {
+  kind: string; label: string; active: boolean; onClick: () => void; vars: CSSProperties; blobs: boolean;
+}): JSX.Element {
+  return (
+    <button type="button" onClick={onClick} className="flex flex-col items-center gap-2 transition-transform hover:scale-[1.02]">
+      <span className={`relative block h-24 w-full overflow-hidden rounded-2xl shadow-sm ${active ? 'ring-2 ring-[#92c83a] ring-offset-4 ring-offset-white' : 'ring-1 ring-black/5'}`}>
+        <span className={`bgfx bgfx-${kind}`} style={vars}>
+          {blobs && <><i className="blob" /><i className="blob" /><i className="blob" /></>}
+        </span>
+      </span>
+      <span className={`text-[11px] font-semibold ${active ? 'text-[#15240b]' : 'text-neutral-500'}`}>{label}</span>
+    </button>
   );
 }
 

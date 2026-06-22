@@ -52,8 +52,29 @@ export function loadFont(key: FontKey): void {
 }
 
 export const DEFAULT_BG: BgConfig = {
-  mode: 'preset', color: '#92c83a', c1: '#92c83a', c2: '#2c5a17', angle: 165, pattern: 'dots', image: '',
+  mode: 'preset', color: '#92c83a', c1: '#92c83a', c2: '#2c5a17', angle: 165, pattern: 'dots', image: '', fx: 'aurora',
 };
+
+/** Devuelve el sufijo de clase bgfx-* para el motor de fondos, o null si el
+ *  fondo se renderiza con bgCss (preset/color/gradient/image). */
+export function bgFxKind(theme: Theme): string | null {
+  const b = theme.bg;
+  if (b.mode === 'animated') return b.fx ?? 'aurora';   // aurora | grain | fluid
+  if (b.mode === 'pattern') return b.pattern ?? 'grid'; // grid | dots | topo | diag
+  return null;
+}
+
+/** Variables CSS que heredan la paleta del usuario para el motor bgfx. */
+export function bgFxVars(theme: Theme): Record<string, string> {
+  const b = theme.bg;
+  return { '--c1': b.c1, '--c2': b.c2, '--base': b.color || THEMES[theme.preset].bg };
+}
+
+/** ¿El fx usa blobs (necesita 3 <i class="blob">)? */
+export function bgFxHasBlobs(theme: Theme): boolean {
+  const k = bgFxKind(theme);
+  return k === 'aurora' || k === 'fluid';
+}
 
 export function patternCss(kind: PatternKind, base: string): string {
   if (kind === 'grid')

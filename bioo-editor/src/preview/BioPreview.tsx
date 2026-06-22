@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { motion } from 'framer-motion';
 import { Instagram, Facebook, Youtube, MessageCircle, Mail, Phone, Globe, Music2, Lock, type LucideIcon } from 'lucide-react';
-import { THEMES, SHAPE_RADIUS, FONTS, TSIZE, SSIZE, TWEIGHT, TSPACE, bgCss, bgAnimStyle, loadFont } from '../lib/theme';
+import { THEMES, SHAPE_RADIUS, FONTS, TSIZE, SSIZE, TWEIGHT, TSPACE, bgCss, bgAnimStyle, bgFxKind, bgFxVars, bgFxHasBlobs, loadFont } from '../lib/theme';
 import { embedSrc, socUrl } from '../lib/blocks';
 import { createCheckoutSession } from '../lib/payments';
 import type { BioState, Block, SocialNet } from '../types';
@@ -39,9 +39,23 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
   const avRadius = theme.avatarShape === 'rounded' ? '22%' : '50%';
   const ring = theme.avatarRing || 'rgba(255,255,255,.55)';
   const txt = theme.text;
+  const fx = bgFxKind(theme);
+  // Fondos oscuros/vibrantes → texto claro para mantener contraste.
+  const fxDark = fx === 'aurora' || fx === 'fluid' || fx === 'grain';
+  const tCol = fxDark ? '#ffffff' : p.text;
+  const sCol = fxDark ? 'rgba(255,255,255,.82)' : p.sub;
 
   return (
-    <div className="min-h-full px-6 py-10" style={{ background: bgCss(theme), fontFamily: FONTS[theme.font].stack, ...bgAnimStyle(theme) }}>
+    <div
+      className="relative min-h-full overflow-hidden"
+      style={{ fontFamily: FONTS[theme.font].stack, ...(fx ? {} : { background: bgCss(theme), ...bgAnimStyle(theme) }) }}
+    >
+      {fx && (
+        <div className={`bgfx bgfx-${fx}`} style={bgFxVars(theme) as CSSProperties}>
+          {bgFxHasBlobs(theme) && <><i className="blob" /><i className="blob" /><i className="blob" /></>}
+        </div>
+      )}
+      <div className="relative z-10 px-6 py-10">
       <div className="mx-auto flex max-w-sm flex-col items-center">
         {profile.cover && (
           <div className="h-28 w-full rounded-2xl bg-cover bg-center shadow-md" style={{ backgroundImage: `url("${profile.cover}")` }} />
@@ -58,7 +72,7 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
         <h2
           className="mt-4 text-center"
           style={{
-            color: p.text,
+            color: tCol,
             fontSize: TSIZE[txt.titleSize],
             fontWeight: TWEIGHT[txt.weight],
             textTransform: txt.caps === 'upper' ? 'uppercase' : 'none',
@@ -69,19 +83,19 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
           {profile.verified && <span className="ml-1 align-middle text-base">✓</span>}
         </h2>
         {profile.subtitulo && (
-          <p className="mt-1 max-w-[32ch] text-center leading-snug" style={{ color: p.sub, fontSize: SSIZE[txt.subSize] }}>{profile.subtitulo}</p>
+          <p className="mt-1 max-w-[32ch] text-center leading-snug" style={{ color: sCol, fontSize: SSIZE[txt.subSize] }}>{profile.subtitulo}</p>
         )}
 
         <div className="mt-7 grid w-full grid-cols-2 gap-4">
           {visible.length === 0 && (
-            <p className="col-span-2 py-6 text-center text-sm" style={{ color: p.sub }}>Aún no hay enlaces aquí.</p>
+            <p className="col-span-2 py-6 text-center text-sm" style={{ color: sCol }}>Aún no hay enlaces aquí.</p>
           )}
           {visible.map((b) => {
             if (b.tipo === 'separador') {
               return <hr key={b.id} className="col-span-2 my-1 w-1/2 justify-self-center border-0 border-t-2" style={{ borderColor: 'rgba(128,128,128,.35)' }} />;
             }
             if (b.tipo === 'texto') {
-              return <p key={b.id} className="col-span-2 text-center text-sm font-semibold" style={{ color: p.text }}>{b.texto}</p>;
+              return <p key={b.id} className="col-span-2 text-center text-sm font-semibold" style={{ color: tCol }}>{b.texto}</p>;
             }
             if (b.tipo === 'imagen') {
               const half = (b.layoutSize ?? 'full') === 'half';
@@ -112,7 +126,7 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
                     const u = socUrl(s);
                     const Icon = SOCIAL_ICON[s.red];
                     return u ? (
-                      <a key={i} href={u} target="_blank" rel="noopener noreferrer"><Icon size={26} style={{ color: p.text }} /></a>
+                      <a key={i} href={u} target="_blank" rel="noopener noreferrer"><Icon size={26} style={{ color: tCol }} /></a>
                     ) : null;
                   })}
                 </div>
@@ -193,6 +207,7 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
         >
           <span aria-hidden>⚡</span> Creado gratis en bioo.cl
         </a>
+      </div>
       </div>
     </div>
   );

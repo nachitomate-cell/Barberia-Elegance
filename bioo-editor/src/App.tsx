@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ComponentType } from 'react';
-import { onAuthStateChanged, type User } from 'firebase/auth';
+import { onAuthStateChanged, signInWithCustomToken, type User } from 'firebase/auth';
 import { motion } from 'framer-motion';
 import { Link2, User as UserIcon, Palette, Share2, Inbox, Megaphone, CircleDollarSign, Eye, Save, type LucideIcon } from 'lucide-react';
 import { auth } from './lib/firebase';
@@ -47,6 +47,29 @@ export default function App(): JSX.Element {
   const [previewOpen, setPreviewOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [status, setStatus] = useState<SaveStatus>('idle');
+  // SSO white-glove: si llega ?token=<customToken> mostramos un loader mientras
+  // iniciamos sesión, para no parpadear la pantalla de login.
+  const [ssoBusy, setSsoBusy] = useState<boolean>(
+    () => new URLSearchParams(window.location.search).has('token'),
+  );
+
+  // ── Recepción del token de SSO (?token=<customToken>) ──────────────────────
+  // Lo envía el partner (Club Patio) para entrar con 1 clic. Tras autenticar,
+  // limpiamos el token de la URL (seguridad) y dejamos al usuario en el editor.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    if (!token) return;
+    void signInWithCustomToken(auth, token)
+      .catch((err: unknown) => { console.error('[SSO] token inválido o expirado:', err); })
+      .finally(() => {
+        params.delete('token');
+        const qs = params.toString();
+        const clean = window.location.pathname + (qs ? `?${qs}` : '');
+        window.history.replaceState({}, '', clean);
+        setSsoBusy(false);
+      });
+  }, []);
   const [showWizard, setShowWizard] = useState<boolean>(() => {
     try { if (localStorage.getItem('bioo_onboarded')) return false; } catch { /* noop */ }
     return state.blocks.length === 0 && !state.profile.titulo.trim();
@@ -87,6 +110,17 @@ export default function App(): JSX.Element {
 
   const SectionView = VIEWS[section];
   const sectionLabel = SECTIONS.find((s) => s.id === section)?.label ?? '';
+
+  if (ssoBusy) {
+    return (
+      <div className="flex h-[100dvh] w-full items-center justify-center bg-neutral-50">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-neutral-200 border-t-neutral-800" />
+          <p className="text-sm font-semibold text-neutral-500">Conectando tu cuenta…</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto flex h-[100dvh] w-full max-w-6xl bg-neutral-50">

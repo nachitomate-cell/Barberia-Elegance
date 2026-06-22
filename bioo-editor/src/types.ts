@@ -49,7 +49,8 @@ export type ButtonFill = 'solid' | 'outline';
 export type FontKey = 'system' | 'poppins' | 'montserrat' | 'playfair';
 
 export type BgMode = 'preset' | 'color' | 'gradient' | 'animated' | 'pattern' | 'image';
-export type PatternKind = 'dots' | 'grid' | 'diag';
+export type PatternKind = 'dots' | 'grid' | 'diag' | 'topo';
+export type FxKind = 'aurora' | 'grain' | 'fluid';
 export type AvatarShape = 'circle' | 'rounded';
 export type BtnAnim = 'none' | 'float' | 'pulse' | 'grow';
 
@@ -74,6 +75,7 @@ export interface BgConfig {
   angle: number;
   pattern: PatternKind;
   image: string;
+  fx?: FxKind;   // sub-estilo cuando mode === 'animated'
 }
 
 export interface Theme {

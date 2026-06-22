@@ -23,6 +23,32 @@ body {
 .range-bioo::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #262626; border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,.3); cursor: pointer; }
 .range-bioo::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: #262626; border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,.3); cursor: pointer; }
 
+/* ===== Motor de fondos premium (bgfx) — compartido con u.html =====
+   Capa absoluta a pantalla completa; hereda colores vía --c1/--c2/--base.
+   Alto rendimiento: solo anima transform / background-position. */
+.bgfx{position:absolute;inset:0;overflow:hidden;}
+.bgfx .blob{display:none;}
+.bgfx-aurora,.bgfx-fluid{background:#0b0d12;}
+.bgfx-aurora .blob,.bgfx-fluid .blob{display:block;position:absolute;border-radius:50%;will-change:transform;}
+.bgfx-aurora .blob{width:65%;aspect-ratio:1;filter:blur(var(--blur,80px));opacity:.8;}
+.bgfx-aurora .blob:nth-child(1){background:var(--c1);top:-12%;left:-8%;animation:fxA 16s ease-in-out infinite;}
+.bgfx-aurora .blob:nth-child(2){background:var(--c2);right:-10%;bottom:-14%;animation:fxB 20s ease-in-out infinite;}
+.bgfx-aurora .blob:nth-child(3){background:var(--c1);top:28%;left:34%;opacity:.45;animation:fxC 24s ease-in-out infinite;}
+.bgfx-fluid .blob{width:82%;aspect-ratio:1;filter:blur(var(--blur,110px));opacity:.7;}
+.bgfx-fluid .blob:nth-child(1){background:var(--c1);top:-20%;left:-16%;animation:fxA 26s ease-in-out infinite;}
+.bgfx-fluid .blob:nth-child(2){background:var(--c2);right:-16%;bottom:-22%;animation:fxB 30s ease-in-out infinite;}
+.bgfx-fluid .blob:nth-child(3){background:var(--c2);top:18%;left:8%;opacity:.5;animation:fxC 34s ease-in-out infinite;}
+@keyframes fxA{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(18%,12%) scale(1.25)}}
+@keyframes fxB{0%,100%{transform:translate(0,0) scale(1.1)}50%{transform:translate(-14%,-10%) scale(.85)}}
+@keyframes fxC{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(8%,-16%) scale(1.15)}}
+.bgfx-grain{background:linear-gradient(135deg,var(--c1),var(--c2));}
+.bgfx-grain::after{content:"";position:absolute;inset:0;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");opacity:.16;mix-blend-mode:overlay;}
+.bgfx-grid{background-color:var(--base,#15240b);background-image:linear-gradient(var(--line,rgba(255,255,255,.14)) 1px,transparent 1px),linear-gradient(90deg,var(--line,rgba(255,255,255,.14)) 1px,transparent 1px);background-size:26px 26px;animation:fxScroll 22s linear infinite;}
+.bgfx-dots{background-color:var(--base,#15240b);background-image:radial-gradient(var(--line,rgba(255,255,255,.22)) 1.6px,transparent 1.8px);background-size:22px 22px;animation:fxScroll 28s linear infinite;}
+.bgfx-diag{background-color:var(--base,#15240b);background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.10) 0 10px,transparent 10px 20px);}
+@keyframes fxScroll{from{background-position:0 0}to{background-position:0 -260px}}
+.bgfx-topo{background-color:var(--base,#15240b);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cg fill='none' stroke='%23ffffff' stroke-opacity='0.16' stroke-width='1.5'%3E%3Cpath d='M0 60 Q 75 20 150 60 T 300 60'/%3E%3Cpath d='M0 110 Q 75 70 150 110 T 300 110'/%3E%3Cpath d='M0 160 Q 75 120 150 160 T 300 160'/%3E%3Cpath d='M0 210 Q 75 170 150 210 T 300 210'/%3E%3Cpath d='M0 260 Q 75 220 150 260 T 300 260'/%3E%3C/g%3E%3C/svg%3E");background-size:300px;background-repeat:repeat;}
+
 @keyframes bgshift {
   0% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
