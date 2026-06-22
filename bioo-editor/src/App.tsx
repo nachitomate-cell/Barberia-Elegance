@@ -180,18 +180,24 @@ export default function App(): JSX.Element {
         </PhoneFrame>
       </aside>
 
-      {/* Bottom nav (mobile) */}
-      <nav className="fixed inset-x-0 bottom-0 z-20 mx-auto flex max-w-6xl items-stretch justify-around border-t border-neutral-200 bg-white/90 px-2 pb-[env(safe-area-inset-bottom)] pt-2 backdrop-blur-xl md:hidden">
-        {SECTIONS.map(({ id, label, Icon }) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => setSection(id)}
-            className={`flex flex-1 flex-col items-center gap-1 py-1.5 text-[11px] font-medium ${section === id ? 'text-bioo-dark' : 'text-neutral-400'}`}
-          >
-            <Icon size={20} /> {label}
-          </button>
-        ))}
+      {/* Bottom nav (mobile) — carrusel horizontal, anti-aplastamiento */}
+      <nav className="fixed inset-x-0 bottom-0 z-20 flex items-center gap-2 overflow-x-auto overscroll-x-contain snap-x snap-mandatory border-t border-neutral-200 bg-white/90 px-4 pb-[env(safe-area-inset-bottom)] pt-2 backdrop-blur-xl [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:hidden">
+        {SECTIONS.map(({ id, label, Icon }) => {
+          const active = section === id;
+          return (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setSection(id)}
+              className="flex min-w-[64px] shrink-0 snap-center flex-col items-center justify-center gap-1 py-1"
+            >
+              <span className={`rounded-full p-1.5 transition-colors ${active ? 'bg-[#92c83a]/15 text-[#15240b]' : 'text-neutral-400'}`}>
+                <Icon size={20} strokeWidth={1.5} />
+              </span>
+              <span className={`text-[10px] tracking-wide ${active ? 'font-semibold text-[#15240b]' : 'text-neutral-400'}`}>{label}</span>
+            </button>
+          );
+        })}
       </nav>
 
       {/* FAB Vista Previa (mobile/tablet) */}
