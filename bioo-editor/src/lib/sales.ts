@@ -1,4 +1,4 @@
-import { collection, getDocs, orderBy, query, Timestamp } from 'firebase/firestore';
+import { collection, getDocs, onSnapshot, orderBy, query, Timestamp, type QueryDocumentSnapshot } from 'firebase/firestore';
 import { db } from './firebase';
 
 export interface Sale {
@@ -29,21 +29,37 @@ export function formatMoney(amountMinor: number, currency: string): string {
   }) + ' ' + c.toUpperCase();
 }
 
-/** Lee el historial de ventas (solo el dueño tiene permiso de lectura por reglas). */
+function mapSale(d: QueryDocumentSnapshot): Sale {
+  const x = d.data() as Record<string, unknown>;
+  const created = x.createdAt instanceof Timestamp ? x.createdAt.toMillis() : null;
+  const delivered = x.deliveredAt instanceof Timestamp ? x.deliveredAt.toMillis() : null;
+  return {
+    id: d.id,
+    blockId: typeof x.blockId === 'string' ? x.blockId : '',
+    amountTotal: typeof x.amountTotal === 'number' ? x.amountTotal : null,
+    currency: typeof x.currency === 'string' ? x.currency : 'usd',
+    buyerEmail: typeof x.buyerEmail === 'string' ? x.buyerEmail : '',
+    ts: created ?? delivered,
+  };
+}
+
+/** Lee el historial de ventas una vez (solo el dueño, por reglas). */
 export async function loadSales(username: string): Promise<Sale[]> {
   const q = query(collection(db, 'bios', username, 'purchases'), orderBy('createdAt', 'desc'));
   const snap = await getDocs(q);
-  return snap.docs.map((d) => {
-    const x = d.data() as Record<string, unknown>;
-    const created = x.createdAt instanceof Timestamp ? x.createdAt.toMillis() : null;
-    const delivered = x.deliveredAt instanceof Timestamp ? x.deliveredAt.toMillis() : null;
-    return {
-      id: d.id,
-      blockId: typeof x.blockId === 'string' ? x.blockId : '',
-      amountTotal: typeof x.amountTotal === 'number' ? x.amountTotal : null,
-      currency: typeof x.currency === 'string' ? x.currency : 'usd',
-      buyerEmail: typeof x.buyerEmail === 'string' ? x.buyerEmail : '',
-      ts: created ?? delivered,
-    };
-  });
+  return snap.docs.map(mapSale);
+}
+
+/** Observa el historial de ventas EN VIVO (onSnapshot). Devuelve la función para desuscribir. */
+export function watchSales(
+  username: string,
+  onData: (sales: Sale[]) => void,
+  onError?: (e: Error) => void,
+): () => void {
+  const q = query(collection(db, 'bios', username, 'purchases'), orderBy('createdAt', 'desc'));
+  return onSnapshot(
+    q,
+    (snap) => onData(snap.docs.map(mapSale)),
+    (e) => { if (onError) onError(e); },
+  );
 }

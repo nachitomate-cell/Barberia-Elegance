@@ -3,12 +3,13 @@ import { Reorder } from 'framer-motion';
 import {
   Plus, Trash2, Star, GripVertical, X,
   Link2, MessageCircle, Instagram, Music2, Facebook, Youtube, Mail, Phone,
-  Type, Minus, Image as ImageIcon, PlaySquare, Share2, MailPlus, Coffee, Lock,
+  Type, Minus, Image as ImageIcon, PlaySquare, Share2, MailPlus, Coffee, Lock, AlertTriangle,
   RectangleHorizontal, Square, Maximize2, Sparkles, type LucideIcon,
 } from 'lucide-react';
 import { useEditor, newBlock } from '../store';
 import { fileToDataUrl } from '../lib/image';
 import { SOCIAL_NETS, embedSrc } from '../lib/blocks';
+import { useStripeAccount } from '../lib/connect';
 import ImagePicker from '../components/ImagePicker';
 import TemplatePicker from '../components/TemplatePicker';
 import type { Block, BlockType, Social, SocialNet, LayoutSize } from '../types';
@@ -46,9 +47,21 @@ export default function Links(): JSX.Element {
   const { state, dispatch } = useEditor();
   const [picker, setPicker] = useState(false);
   const [tplOpen, setTplOpen] = useState(false);
+  const { accountId, loading: connLoading } = useStripeAccount();
+  const needsStripe = !connLoading && !accountId && state.blocks.some((b) => b.tipo === 'tip' || b.tipo === 'paywall');
 
   return (
     <div className="space-y-3">
+      {/* ── Aviso: bloques de pago requieren Stripe conectado ── */}
+      {needsStripe && (
+        <div className="flex items-start gap-2.5 rounded-2xl border border-amber-200 bg-amber-50 p-3.5 text-amber-800">
+          <AlertTriangle size={18} className="mt-0.5 shrink-0 text-amber-500" />
+          <p className="text-xs font-medium leading-snug">
+            Tienes un bloque de pago activo. Para que funcione públicamente, conecta tu cuenta en la pestaña <strong className="font-bold">Ventas</strong>.
+          </p>
+        </div>
+      )}
+
       {/* ── Onboarding mágico: plantillas ── */}
       <button
         type="button"

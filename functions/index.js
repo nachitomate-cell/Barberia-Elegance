@@ -810,3 +810,4 @@ const paymentsStripe = require('./payments-stripe');
 exports.createStripeCheckout = paymentsStripe.createStripeCheckout;
 exports.verifyUnlock         = paymentsStripe.verifyUnlock;
 exports.stripeWebhook        = paymentsStripe.stripeWebhook;
+exports.onboardStripeUser    = paymentsStripe.onboardStripeUser;
