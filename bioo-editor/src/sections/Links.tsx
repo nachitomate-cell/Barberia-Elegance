@@ -47,17 +47,21 @@ export default function Links(): JSX.Element {
   const { state, dispatch } = useEditor();
   const [picker, setPicker] = useState(false);
   const [tplOpen, setTplOpen] = useState(false);
-  const { accountId, loading: connLoading } = useStripeAccount();
-  const needsStripe = !connLoading && !accountId && state.blocks.some((b) => b.tipo === 'tip' || b.tipo === 'paywall');
+  const { accountId, ready, loading: connLoading } = useStripeAccount();
+  const hasMonetization = state.blocks.some((b) => b.tipo === 'tip' || b.tipo === 'paywall');
+  const needsConnect = !connLoading && hasMonetization && !accountId;
+  const needsComplete = !connLoading && hasMonetization && !!accountId && !ready;
 
   return (
     <div className="space-y-3">
-      {/* ── Aviso: bloques de pago requieren Stripe conectado ── */}
-      {needsStripe && (
+      {/* ── Aviso: bloques de pago requieren Stripe listo ── */}
+      {(needsConnect || needsComplete) && (
         <div className="flex items-start gap-2.5 rounded-2xl border border-amber-200 bg-amber-50 p-3.5 text-amber-800">
           <AlertTriangle size={18} className="mt-0.5 shrink-0 text-amber-500" />
           <p className="text-xs font-medium leading-snug">
-            Tienes un bloque de pago activo. Para que funcione públicamente, conecta tu cuenta en la pestaña <strong className="font-bold">Ventas</strong>.
+            {needsConnect
+              ? <>Tienes un bloque de pago activo. Para que funcione públicamente, conecta tu cuenta en la pestaña <strong className="font-bold">Ventas</strong>.</>
+              : <>Completa tu configuración en Stripe (pestaña <strong className="font-bold">Ventas</strong>) para empezar a recibir pagos.</>}
           </p>
         </div>
       )}

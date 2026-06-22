@@ -503,7 +503,7 @@
             var pills = amts.slice(0,4).map(function(a, idx){ return '<button type="button" class="u-tip-amt'+(idx===0?' on':'')+'" data-amt="'+esc(String(a))+'">'+sym+esc(String(a))+'</button>'; }).join('');
             var tTit = esc((b.label||'Apóyame').trim());
             var tSub = (b.subtitulo||'').trim() ? '<div class="u-tip-s">'+esc(b.subtitulo.trim())+'</div>' : '';
-            html += '<div class="u-tip fade b-full" data-sym="'+esc(sym)+'" style="animation-delay:'+(0.1+i*0.04)+'s;">'
+            html += '<div class="u-tip fade b-full" data-block="'+esc(b.id||'')+'" data-sym="'+esc(sym)+'" style="animation-delay:'+(0.1+i*0.04)+'s;">'
                  +    '<div class="u-tip-t" style="color:'+titleColor+';">'+tTit+'</div>'+tSub
                  +    '<div class="u-tip-row">'+pills+'</div>'
                  +    '<button type="button" class="u-tip-send" style="'+css.btn+(tx.btnColor?('color:'+tx.btnColor+';'):'')+'">Enviar apoyo</button>'
@@ -575,20 +575,30 @@
         var pills = card.querySelectorAll('.u-tip-amt');
         var send  = card.querySelector('.u-tip-send');
         var sym   = card.getAttribute('data-sym') || '$';
-        var sel   = pills.length ? pills[0].getAttribute('data-amt') : null, done = false;
-        function paint(){ if(!done) send.textContent = 'Enviar apoyo' + (sel ? (' · ' + sym + sel) : ''); }
+        var blockId = card.getAttribute('data-block');
+        var sel   = pills.length ? pills[0].getAttribute('data-amt') : null;
+        function paint(){ if(!send.disabled) send.textContent = 'Enviar apoyo' + (sel ? (' · ' + sym + sel) : ''); }
         paint();
         Array.prototype.forEach.call(pills, function(pl){
           pl.addEventListener('click', function(){
-            if (done) return;
+            if (send.disabled) return;
             Array.prototype.forEach.call(pills, function(x){ x.classList.remove('on'); });
             pl.classList.add('on'); sel = pl.getAttribute('data-amt'); paint();
           });
         });
         send.addEventListener('click', function(){
-          if (done) return;
-          send.disabled = true; send.textContent = 'Procesando…';
-          setTimeout(function(){ done = true; send.textContent = '¡Gracias por tu apoyo! 🎉'; send.style.background = '#16a34a'; send.style.color = '#fff'; }, 1200);
+          if (send.disabled) return;
+          if (!blockId || !sel) return;
+          var prev = send.textContent;
+          send.disabled = true; send.textContent = 'Redirigiendo a pago seguro…';
+          firebase.functions().httpsCallable('createStripeCheckout')({
+            blockId: blockId, username: user, origin: location.origin + '/' + user, amount: Number(sel)
+          }).then(function(r){
+            if (r && r.data && r.data.url) { location.href = r.data.url; } else { throw new Error('sin-url'); }
+          }).catch(function(){
+            send.disabled = false; send.textContent = 'No se pudo iniciar el pago';
+            setTimeout(function(){ send.textContent = prev; }, 2500);
+          });
         });
       });
 
@@ -689,10 +699,16 @@
       try { history.replaceState({}, '', location.origin + '/' + user); } catch(e){}
       firebase.functions().httpsCallable('verifyUnlock')({ sessionId: sid })
         .then(function(r){
-          var url = r && r.data && r.data.hiddenUrl;
+          var d = (r && r.data) || {};
           spin.style.display = 'none'; ico.style.display = 'flex';
-          title.textContent = '¡Pago confirmado! 🎉'; msg.textContent = 'Tu acceso está listo.';
-          if (url){ btn.href = url; btn.style.display = 'inline-flex'; }
+          if (d.kind === 'tip') {
+            title.textContent = '¡Gracias por tu apoyo! 🎉';
+            msg.textContent = 'Tu aporte se recibió correctamente.';
+          } else {
+            title.textContent = '¡Pago confirmado! 🎉';
+            msg.textContent = 'Tu acceso está listo.';
+            if (d.hiddenUrl) { btn.href = d.hiddenUrl; btn.style.display = 'inline-flex'; }
+          }
           closeX.style.display = 'block';
         })
         .catch(function(){

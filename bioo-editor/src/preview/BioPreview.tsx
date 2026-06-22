@@ -141,7 +141,7 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
               );
             }
             if (b.tipo === 'tip') {
-              return <TipBlock key={b.id} b={b} p={p} radius={radius} />;
+              return <TipBlock key={b.id} b={b} p={p} radius={radius} username={state.username} />;
             }
             if (b.tipo === 'paywall') {
               return <PaywallBlock key={b.id} b={b} p={p} radius={radius} username={state.username} />;
@@ -198,17 +198,23 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
   );
 }
 
-/** Bloque de propina interactivo (selección de monto + flujo simulado de pago). */
-function TipBlock({ b, p, radius }: { b: Block; p: Palette; radius: string }): JSX.Element {
+/** Bloque de propina interactivo: selección de monto + Stripe Checkout real. */
+function TipBlock({ b, p, radius, username }: { b: Block; p: Palette; radius: string; username: string }): JSX.Element {
   const amounts = b.amounts && b.amounts.length ? b.amounts : [3, 5, 10];
   const sym = curSymbol(b.currency);
   const [sel, setSel] = useState<number>(amounts[0]);
-  const [status, setStatus] = useState<'idle' | 'processing' | 'done'>('idle');
+  const [status, setStatus] = useState<'idle' | 'processing' | 'error'>('idle');
 
-  const send = (): void => {
+  const send = async (): Promise<void> => {
     if (status !== 'idle') return;
     setStatus('processing');
-    setTimeout(() => setStatus('done'), 1200);
+    try {
+      const { checkoutUrl } = await createCheckoutSession(b.id, username, sel);
+      window.location.href = checkoutUrl;
+    } catch {
+      setStatus('error');
+      setTimeout(() => setStatus('idle'), 2500);
+    }
   };
 
   return (
@@ -237,9 +243,9 @@ function TipBlock({ b, p, radius }: { b: Block; p: Palette; radius: string }): J
         onClick={send}
         disabled={status !== 'idle'}
         className="mt-3 w-full py-2.5 text-sm font-bold shadow-sm transition-transform active:scale-95 disabled:cursor-default"
-        style={{ background: status === 'done' ? '#16a34a' : p.btnBg, color: status === 'done' ? '#fff' : p.btnText, borderRadius: radius }}
+        style={{ background: status === 'error' ? '#dc2626' : p.btnBg, color: status === 'error' ? '#fff' : p.btnText, borderRadius: radius }}
       >
-        {status === 'idle' ? `Enviar apoyo · ${sym}${sel}` : status === 'processing' ? 'Procesando…' : '¡Gracias por tu apoyo! 🎉'}
+        {status === 'idle' ? `Enviar apoyo · ${sym}${sel}` : status === 'processing' ? 'Redirigiendo a pago seguro…' : 'No se pudo iniciar el pago'}
       </button>
     </div>
   );

@@ -16,25 +16,28 @@ export async function onboardStripe(): Promise<string> {
 
 export interface StripeState {
   accountId: string | null;
+  ready: boolean;   // charges_enabled (onboarding completo)
   loading: boolean;
 }
 
-/** Observa en vivo si el usuario tiene cuenta de Stripe Connect (bio_users/{uid}.stripeAccountId). */
+/** Observa en vivo el estado de Stripe Connect del usuario (bio_users/{uid}). */
 export function useStripeAccount(): StripeState {
   const [accountId, setAccountId] = useState<string | null>(null);
+  const [ready, setReady] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let unsubDoc: () => void = () => {};
     const unsubAuth = onAuthStateChanged(auth, (u) => {
       unsubDoc();
-      if (!u) { setAccountId(null); setLoading(false); return; }
+      if (!u) { setAccountId(null); setReady(false); setLoading(false); return; }
       setLoading(true);
       unsubDoc = onSnapshot(
         doc(db, 'bio_users', u.uid),
         (snap) => {
           const d = snap.data() as Record<string, unknown> | undefined;
           setAccountId(d && typeof d.stripeAccountId === 'string' ? d.stripeAccountId : null);
+          setReady(!!(d && d.stripeReady === true));
           setLoading(false);
         },
         () => setLoading(false),
@@ -43,5 +46,5 @@ export function useStripeAccount(): StripeState {
     return () => { unsubAuth(); unsubDoc(); };
   }, []);
 
-  return { accountId, loading };
+  return { accountId, ready, loading };
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { onAuthStateChanged, type User } from 'firebase/auth';
-import { CircleDollarSign, TrendingUp, Landmark, Loader2 } from 'lucide-react';
+import { CircleDollarSign, TrendingUp, Landmark, Loader2, AlertTriangle } from 'lucide-react';
 import { auth } from '../lib/firebase';
 import { watchSales, formatMoney, type Sale } from '../lib/sales';
 import { useStripeAccount, onboardStripe } from '../lib/connect';
@@ -14,18 +14,18 @@ export default function Sales(): JSX.Element {
   const { state } = useEditor();
   const username = state.username;
   const [user, setUser] = useState<User | null>(auth.currentUser);
-  const { accountId, loading: connLoading } = useStripeAccount();
+  const { accountId, ready, loading: connLoading } = useStripeAccount();
   const [sales, setSales] = useState<Sale[] | null>(null);
   const [connecting, setConnecting] = useState(false);
 
   useEffect(() => onAuthStateChanged(auth, setUser), []);
 
-  // Suscripción EN VIVO al historial de ventas (solo si hay cuenta conectada).
+  // Suscripción EN VIVO al historial de ventas (solo con la cuenta lista).
   useEffect(() => {
-    if (!user || !username || !accountId) { setSales(null); return; }
+    if (!user || !username || !accountId || !ready) { setSales(null); return; }
     const unsub = watchSales(username, setSales, () => setSales([]));
     return () => unsub();
-  }, [user, username, accountId]);
+  }, [user, username, accountId, ready]);
 
   if (!user) return <Notice>Inicia sesión para ver tus ventas.</Notice>;
   if (connLoading) return <Notice>Cargando…</Notice>;
@@ -40,6 +40,7 @@ export default function Sales(): JSX.Element {
   };
 
   if (!accountId) return <ConnectState onConnect={connect} connecting={connecting} />;
+  if (!ready) return <IncompleteState onContinue={connect} connecting={connecting} />;
 
   const list = sales ?? [];
   const count = list.length;
@@ -114,6 +115,28 @@ function ConnectState({ onConnect, connecting }: { onConnect: () => void; connec
         className="mt-5 flex items-center gap-2 rounded-xl bg-[#635bff] px-5 py-3 text-sm font-bold text-white shadow-sm transition-transform active:scale-95 disabled:opacity-70"
       >
         {connecting ? <><Loader2 size={16} className="animate-spin" /> Redirigiendo…</> : <>Conectar con Stripe</>}
+      </button>
+    </div>
+  );
+}
+
+function IncompleteState({ onContinue, connecting }: { onContinue: () => void; connecting: boolean }): JSX.Element {
+  return (
+    <div className="flex flex-col items-center rounded-2xl bg-white px-6 py-12 text-center shadow-sm ring-1 ring-black/[0.04]">
+      <span className="grid h-16 w-16 place-items-center rounded-full bg-amber-100 text-amber-500">
+        <AlertTriangle size={30} />
+      </span>
+      <p className="mt-4 text-lg font-bold text-neutral-800">Completa tu configuración en Stripe</p>
+      <p className="mt-1 max-w-sm text-sm text-neutral-500">
+        Tu cuenta está creada pero aún no puede recibir pagos. Termina de cargar tus datos (banco e identidad) para activar los cobros.
+      </p>
+      <button
+        type="button"
+        onClick={onContinue}
+        disabled={connecting}
+        className="mt-5 flex items-center gap-2 rounded-xl bg-[#635bff] px-5 py-3 text-sm font-bold text-white shadow-sm transition-transform active:scale-95 disabled:opacity-70"
+      >
+        {connecting ? <><Loader2 size={16} className="animate-spin" /> Redirigiendo…</> : <>Continuar configuración</>}
       </button>
     </div>
   );

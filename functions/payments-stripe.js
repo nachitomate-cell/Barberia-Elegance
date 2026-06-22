@@ -27,10 +27,10 @@ function stripeClient() {
   return new Stripe(STRIPE_SECRET_KEY.value());
 }
 
-function findPaywall(data, blockId) {
+function findBlockById(data, blockId) {
   const arr = Array.isArray(data.bloques) ? data.bloques
     : (Array.isArray(data.blocks) ? data.blocks : []);
-  return arr.find((b) => b && b.id === blockId && b.tipo === 'paywall') || null;
+  return arr.find((b) => b && b.id === blockId) || null;
 }
 
 // Resuelve la cuenta de Stripe Connect del creador: bios.uid → bio_users/{uid}.stripeAccountId.
@@ -69,7 +69,7 @@ exports.onboardStripeUser = onCall(
         capabilities: { transfers: { requested: true }, card_payments: { requested: true } },
       });
       accountId = account.id;
-      await userRef.set({ stripeAccountId: accountId, stripeUpdatedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
+      await userRef.set({ stripeAccountId: accountId, stripeReady: false, stripeUpdatedAt: admin.firestore.FieldValue.serverTimestamp() }, { merge: true });
     }
 
     const link = await stripe.accountLinks.create({
@@ -86,20 +86,41 @@ exports.onboardStripeUser = onCall(
 exports.createStripeCheckout = onCall(
   { region: 'us-central1', secrets: [STRIPE_SECRET_KEY] },
   async (request) => {
-    const { blockId, username, origin } = request.data || {};
+    const { blockId, username, origin, amount } = request.data || {};
     if (!blockId || !username) throw new HttpsError('invalid-argument', 'Faltan blockId o username.');
 
-    // El precio y los datos del producto se leen del servidor (fuente de verdad).
+    // Los datos del cobro se leen del servidor (fuente de verdad).
     const snap = await admin.firestore().collection('bios').doc(String(username)).get();
     if (!snap.exists) throw new HttpsError('not-found', 'Perfil no encontrado.');
     const data = snap.data() || {};
-    const block = findPaywall(data, blockId);
-    if (!block) throw new HttpsError('not-found', 'Producto no encontrado.');
+    const block = findBlockById(data, blockId);
+    if (!block) throw new HttpsError('not-found', 'Bloque no encontrado.');
+    if (block.tipo !== 'paywall' && block.tipo !== 'tip') {
+      throw new HttpsError('failed-precondition', 'Este bloque no admite pagos.');
+    }
 
-    const price = Number(block.price);
-    if (!(price > 0)) throw new HttpsError('failed-precondition', 'El producto no tiene un precio válido.');
     const currency = String(block.currency || 'USD').toLowerCase();
-    const unitAmount = ZERO_DECIMAL.has(currency) ? Math.round(price) : Math.round(price * 100);
+
+    // Monto (unidad mayor) y nombre del producto según el tipo de bloque.
+    let amountMajor;
+    let productName;
+    if (block.tipo === 'tip') {
+      // Cobro dinámico: el monto DEBE existir en el array `amounts` del bloque
+      // (evita que se altere el monto desde la consola del navegador).
+      const sel = Number(amount);
+      const allowed = Array.isArray(block.amounts) ? block.amounts.map(Number) : [];
+      if (!(sel > 0) || allowed.indexOf(sel) < 0) {
+        throw new HttpsError('invalid-argument', 'Monto de propina inválido.');
+      }
+      amountMajor = sel;
+      productName = String(block.label || 'Apoyo').slice(0, 250);
+    } else {
+      const price = Number(block.price);
+      if (!(price > 0)) throw new HttpsError('failed-precondition', 'El producto no tiene un precio válido.');
+      amountMajor = price;
+      productName = String(block.label || 'Producto digital').slice(0, 250);
+    }
+    const unitAmount = ZERO_DECIMAL.has(currency) ? Math.round(amountMajor) : Math.round(amountMajor * 100);
 
     // El creador debe tener su cuenta de Stripe Connect lista para recibir el pago.
     const accountId = await getCreatorAccountId(data);
@@ -109,7 +130,7 @@ exports.createStripeCheckout = onCall(
       ? origin.replace(/\/+$/, '')
       : `https://bioo.cl/${username}`;
 
-    const productData = { name: String(block.label || 'Producto digital').slice(0, 250) };
+    const productData = { name: productName };
     if (block.subtitulo) productData.description = String(block.subtitulo).slice(0, 500);
 
     // Destination charge: el dinero va a la cuenta del creador; la plataforma
@@ -126,7 +147,7 @@ exports.createStripeCheckout = onCall(
       },
       success_url: `${base}?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${base}?canceled=1`,
-      metadata: { username: String(username), blockId: String(blockId) },
+      metadata: { username: String(username), blockId: String(blockId), tipo: String(block.tipo) },
     });
 
     return { url: session.url, sessionId: session.id };
@@ -152,13 +173,17 @@ exports.verifyUnlock = onCall(
 
     const username = session.metadata && session.metadata.username;
     const blockId = session.metadata && session.metadata.blockId;
+    const tipo = (session.metadata && session.metadata.tipo) || 'paywall';
     if (!username || !blockId) throw new HttpsError('failed-precondition', 'La sesión no tiene metadata válida.');
 
-    // Lectura SEGURA del secreto (Admin SDK ignora las reglas; el público nunca llega aquí).
-    const secretSnap = await admin.firestore()
-      .collection('bios').doc(username).collection('secrets').doc(blockId).get();
-    if (!secretSnap.exists) throw new HttpsError('not-found', 'El recurso ya no está disponible.');
-    const hiddenUrl = (secretSnap.data() || {}).hiddenUrl || '';
+    // Las propinas no entregan recurso; solo el paywall lee su secreto.
+    let hiddenUrl = '';
+    if (tipo !== 'tip') {
+      const secretSnap = await admin.firestore()
+        .collection('bios').doc(username).collection('secrets').doc(blockId).get();
+      if (!secretSnap.exists) throw new HttpsError('not-found', 'El recurso ya no está disponible.');
+      hiddenUrl = (secretSnap.data() || {}).hiddenUrl || '';
+    }
 
     // Registro de entrega (idempotente): evita reprocesar y deja traza de la venta.
     // merge: si el webhook ya creó el doc, no lo pisamos de más (mismos datos).
@@ -167,6 +192,7 @@ exports.verifyUnlock = onCall(
       .set({
         sessionId: String(sessionId),
         blockId,
+        tipo,
         amountTotal: session.amount_total != null ? session.amount_total : null,
         currency: session.currency || null,
         buyerEmail: (session.customer_details && session.customer_details.email) || null,
@@ -175,7 +201,7 @@ exports.verifyUnlock = onCall(
         deliveredAt: admin.firestore.FieldValue.serverTimestamp(),
       }, { merge: true });
 
-    return { hiddenUrl };
+    return { hiddenUrl, kind: tipo === 'tip' ? 'tip' : 'paywall' };
   },
 );
 
@@ -216,6 +242,7 @@ exports.stripeWebhook = onRequest(
               amountTotal: session.amount_total != null ? session.amount_total : null,
               currency: session.currency || null,
               buyerEmail: (session.customer_details && session.customer_details.email) || null,
+              tipo: (session.metadata && session.metadata.tipo) || 'paywall',
               status: 'paid',
               source: 'webhook',
               createdAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -225,6 +252,26 @@ exports.stripeWebhook = onRequest(
           res.status(500).send('store-error'); // Stripe reintentará
           return;
         }
+      }
+    }
+
+    // Estado real de la cuenta Connect del creador.
+    if (event.type === 'account.updated') {
+      const account = event.data.object || {};
+      const ready = !!account.charges_enabled;
+      try {
+        const qs = await admin.firestore()
+          .collection('bio_users').where('stripeAccountId', '==', account.id).limit(1).get();
+        if (!qs.empty) {
+          await qs.docs[0].ref.set({
+            stripeReady: ready,
+            stripeUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          }, { merge: true });
+        }
+      } catch (e) {
+        console.error('Webhook account.updated: error guardando estado:', e);
+        res.status(500).send('store-error'); // Stripe reintentará
+        return;
       }
     }
 
