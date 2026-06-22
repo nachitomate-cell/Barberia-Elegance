@@ -283,6 +283,16 @@ service cloud.firestore {
                     && get(/databases/$(database)/documents/bios/$(username)).data.uid == uid()
                     && request.resource.data.uid == uid();
       }
+
+      // ── /bios/{username}/purchases — historial de ventas del paywall ──
+      // Lectura SOLO del dueño (su panel de ventas). La escritura está reservada
+      // al Admin SDK (webhook/verifyUnlock), que ignora estas reglas: aquí
+      // cualquier cliente tiene la escritura denegada.
+      match /purchases/{purchaseId} {
+        allow read: if autenticado()
+                    && get(/databases/$(database)/documents/bios/$(username)).data.uid == uid();
+        allow write: if false;
+      }
     }
 
     // ── /bio_users — mapeo uid → username (privado del dueño) ──────

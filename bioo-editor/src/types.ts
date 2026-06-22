@@ -116,4 +116,4 @@ export interface BioState {
   seo: Seo;
 }
 
-export type SectionId = 'links' | 'profile' | 'design' | 'leads' | 'marketing' | 'share';
+export type SectionId = 'links' | 'profile' | 'design' | 'leads' | 'marketing' | 'sales' | 'share';

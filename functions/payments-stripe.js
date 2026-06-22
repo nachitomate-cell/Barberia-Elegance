@@ -11,11 +11,12 @@
 //  Secreto: STRIPE_SECRET_KEY (Secret Manager, v2). Ver instrucciones de deploy.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const { onCall, HttpsError } = require('firebase-functions/v2/https');
+const { onCall, onRequest, HttpsError } = require('firebase-functions/v2/https');
 const { defineSecret } = require('firebase-functions/params');
 const admin = require('firebase-admin');
 
 const STRIPE_SECRET_KEY = defineSecret('STRIPE_SECRET_KEY');
+const STRIPE_WEBHOOK_SECRET = defineSecret('STRIPE_WEBHOOK_SECRET');
 
 // Monedas sin decimales en Stripe (el monto va en la unidad entera, no en centavos).
 const ZERO_DECIMAL = new Set(['clp', 'jpy', 'krw', 'vnd', 'pyg', 'isk']);
@@ -97,6 +98,7 @@ exports.verifyUnlock = onCall(
     const hiddenUrl = (secretSnap.data() || {}).hiddenUrl || '';
 
     // Registro de entrega (idempotente): evita reprocesar y deja traza de la venta.
+    // merge: si el webhook ya creó el doc, no lo pisamos de más (mismos datos).
     await admin.firestore()
       .collection('bios').doc(username).collection('purchases').doc(String(sessionId))
       .set({
@@ -105,9 +107,64 @@ exports.verifyUnlock = onCall(
         amountTotal: session.amount_total != null ? session.amount_total : null,
         currency: session.currency || null,
         buyerEmail: (session.customer_details && session.customer_details.email) || null,
+        status: 'paid',
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
         deliveredAt: admin.firestore.FieldValue.serverTimestamp(),
       }, { merge: true });
 
     return { hiddenUrl };
+  },
+);
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Webhook de Stripe — garantía de entrega (server-to-server).
+//  Verifica la firma con STRIPE_WEBHOOK_SECRET y registra la venta al recibir
+//  'checkout.session.completed', aunque el comprador no vuelva a la página.
+//  Usa Admin SDK (ignora reglas). Responde 200 rápido (Stripe reintenta si falla).
+// ─────────────────────────────────────────────────────────────────────────────
+exports.stripeWebhook = onRequest(
+  { region: 'us-central1', secrets: [STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET] },
+  async (req, res) => {
+    const Stripe = require('stripe');
+    const stripe = new Stripe(STRIPE_SECRET_KEY.value());
+
+    let event;
+    try {
+      // req.rawBody (Buffer) es necesario para validar la firma criptográfica.
+      const sig = req.headers['stripe-signature'];
+      event = stripe.webhooks.constructEvent(req.rawBody, sig, STRIPE_WEBHOOK_SECRET.value());
+    } catch (err) {
+      console.error('Webhook firma inválida:', err && err.message);
+      res.status(400).send('invalid-signature');
+      return;
+    }
+
+    if (event.type === 'checkout.session.completed') {
+      const session = event.data.object || {};
+      const username = session.metadata && session.metadata.username;
+      const blockId = session.metadata && session.metadata.blockId;
+      if (username && blockId && session.id) {
+        try {
+          await admin.firestore()
+            .collection('bios').doc(String(username)).collection('purchases').doc(String(session.id))
+            .set({
+              sessionId: String(session.id),
+              blockId: String(blockId),
+              amountTotal: session.amount_total != null ? session.amount_total : null,
+              currency: session.currency || null,
+              buyerEmail: (session.customer_details && session.customer_details.email) || null,
+              status: 'paid',
+              source: 'webhook',
+              createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            }, { merge: true });
+        } catch (e) {
+          console.error('Webhook: error guardando purchase:', e);
+          res.status(500).send('store-error'); // Stripe reintentará
+          return;
+        }
+      }
+    }
+
+    res.status(200).json({ received: true });
   },
 );
