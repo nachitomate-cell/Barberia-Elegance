@@ -48,7 +48,7 @@ async function getCreatorAccountId(bioData) {
 //  onboarding para que complete sus datos bancarios.
 // ─────────────────────────────────────────────────────────────────────────────
 exports.onboardStripeUser = onCall(
-  { region: 'us-central1', secrets: [STRIPE_SECRET_KEY] },
+  { region: 'us-central1', cors: [/bioo\.cl$/, /localhost(:\d+)?$/], secrets: [STRIPE_SECRET_KEY] },
   async (request) => {
     if (!request.auth) throw new HttpsError('unauthenticated', 'Debes iniciar sesión.');
     const uid = request.auth.uid;
@@ -84,7 +84,7 @@ exports.onboardStripeUser = onCall(
 );
 
 exports.createStripeCheckout = onCall(
-  { region: 'us-central1', secrets: [STRIPE_SECRET_KEY] },
+  { region: 'us-central1', cors: [/bioo\.cl$/, /localhost(:\d+)?$/], secrets: [STRIPE_SECRET_KEY] },
   async (request) => {
     const { blockId, username, origin, amount } = request.data || {};
     if (!blockId || !username) throw new HttpsError('invalid-argument', 'Faltan blockId o username.');
@@ -155,7 +155,7 @@ exports.createStripeCheckout = onCall(
 );
 
 exports.verifyUnlock = onCall(
-  { region: 'us-central1', secrets: [STRIPE_SECRET_KEY] },
+  { region: 'us-central1', cors: [/bioo\.cl$/, /localhost(:\d+)?$/], secrets: [STRIPE_SECRET_KEY] },
   async (request) => {
     const { sessionId } = request.data || {};
     if (!sessionId) throw new HttpsError('invalid-argument', 'Falta sessionId.');

@@ -207,7 +207,7 @@ async function sendResend(apiKey, payload) {
 
 // ── Template HTML ─────────────────────────────────────────────────────────────
 
-function buildEmailHtml({ cfg, cita, cancelUrl }) {
+function buildEmailHtml({ cfg, cita, cancelUrl, reagendarUrl }) {
   const fecha    = fmtFecha(cita.fecha);
   const precio   = fmtPrecio(cita.precio);
   const duracion = cita.duracion ? `${cita.duracion} min` : null;
@@ -341,12 +341,16 @@ ${productosHtml}
           </td>
         </tr>` : ''}
 
-        <!-- Cancelar / Reagendar -->
+        <!-- Reagendar / Cancelar -->
         <tr>
           <td style="padding:0 36px 28px;">
-            <p style="margin:0 0 14px;font-size:13px;color:#666;">¿Necesitas cancelar o reagendar? Puedes hacerlo desde el club:</p>
+            <p style="margin:0 0 14px;font-size:13px;color:#666;">¿Necesitas reagendar o cancelar? Puedes hacerlo desde el club:</p>
+            <a href="${reagendarUrl}"
+              style="display:inline-block;padding:12px 28px;background:${cfg.color};color:#000;font-size:13px;font-weight:700;border-radius:8px;text-decoration:none;margin:0 8px 10px 0;">
+              Reagendar mi cita
+            </a>
             <a href="${cancelUrl}"
-              style="display:inline-block;padding:12px 28px;background:transparent;border:1px solid #444;color:#aaa;font-size:13px;font-weight:600;border-radius:8px;text-decoration:none;">
+              style="display:inline-block;padding:12px 28px;background:transparent;border:1px solid #444;color:#aaa;font-size:13px;font-weight:600;border-radius:8px;text-decoration:none;margin:0 0 10px;">
               Cancelar mi cita
             </a>
             ${cfg.whatsapp ? `
@@ -389,9 +393,10 @@ async function enviarConfirmacion(citaId, data, tenantId) {
 
   const cfg = TENANT_CONFIG[tenantId] || TENANT_CONFIG.elegance;
 
-  const cancelUrl = `${cfg.dashboardUrl}?accion=cancelar&citaId=${citaId}`;
+  const cancelUrl    = `${cfg.dashboardUrl}?accion=cancelar&citaId=${citaId}`;
+  const reagendarUrl = `${cfg.dashboardUrl}?accion=reagendar&citaId=${citaId}`;
 
-  const html = buildEmailHtml({ cfg, cita: data, cancelUrl });
+  const html = buildEmailHtml({ cfg, cita: data, cancelUrl, reagendarUrl });
 
   const apiKey = RESEND_API_KEY.value();
   await sendResend(apiKey, {

@@ -301,7 +301,7 @@
       instagram:       'https://www.instagram.com/d.jonesbarberia/',
       instagramHandle: '@d.jonesbarberia',
       waEmoji:         '⚓',
-      googleReviewUrl: '',
+      googleReviewUrl: 'https://g.page/r/CaRaQIfLJDVrEBM/review',
       ratingGeneral: 4.98,
       totalReviews:  64,
       reviews: [
