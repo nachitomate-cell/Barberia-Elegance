@@ -3,7 +3,7 @@ import { Reorder } from 'framer-motion';
 import {
   Plus, Trash2, Star, GripVertical, X,
   Link2, MessageCircle, Instagram, Music2, Facebook, Youtube, Mail, Phone,
-  Type, Minus, Image as ImageIcon, PlaySquare, Share2, MailPlus, Coffee,
+  Type, Minus, Image as ImageIcon, PlaySquare, Share2, MailPlus, Coffee, Lock,
   RectangleHorizontal, Square, Maximize2, Sparkles, type LucideIcon,
 } from 'lucide-react';
 import { useEditor, newBlock } from '../store';
@@ -29,16 +29,17 @@ const TIPOS: { id: BlockType; label: string }[] = [
   { id: 'social', label: 'Fila social' },
   { id: 'newsletter', label: 'Suscripción' },
   { id: 'tip', label: 'Recibir Propinas' },
+  { id: 'paywall', label: 'Vender Producto/Enlace' },
 ];
 
 const TYPE_ICON: Record<BlockType, LucideIcon> = {
   enlace: Link2, whatsapp: MessageCircle, instagram: Instagram, tiktok: Music2,
   facebook: Facebook, youtube: Youtube, email: Mail, telefono: Phone,
   texto: Type, separador: Minus, imagen: ImageIcon, embed: PlaySquare, social: Share2,
-  newsletter: MailPlus, tip: Coffee,
+  newsletter: MailPlus, tip: Coffee, paywall: Lock,
 };
 
-const SPECIAL: BlockType[] = ['texto', 'separador', 'imagen', 'embed', 'social', 'newsletter', 'tip'];
+const SPECIAL: BlockType[] = ['texto', 'separador', 'imagen', 'embed', 'social', 'newsletter', 'tip', 'paywall'];
 const isLinkType = (t: BlockType): boolean => !SPECIAL.includes(t);
 
 export default function Links(): JSX.Element {
@@ -166,7 +167,7 @@ function LinkCard({ block }: { block: Block }): JSX.Element {
 
       {/* Barra de herramientas */}
       <div className="mt-1.5 flex items-center justify-between gap-2">
-        {block.tipo !== 'newsletter' && block.tipo !== 'separador' && block.tipo !== 'embed' && block.tipo !== 'tip'
+        {block.tipo !== 'newsletter' && block.tipo !== 'separador' && block.tipo !== 'embed' && block.tipo !== 'tip' && block.tipo !== 'paywall'
           ? <SizePicker value={block.layoutSize ?? 'full'} onChange={(v) => patch({ layoutSize: v })} />
           : <span />}
         <div className="flex items-center gap-0.5">
@@ -367,6 +368,39 @@ function SpecialBody({ block, patch }: { block: Block; patch: (p: Partial<Block>
         </div>
       );
     }
+    case 'paywall':
+      return (
+        <div className="space-y-1 pt-0.5">
+          <input className={titleInput} placeholder="Guía Definitiva de Fitness" value={block.label} onChange={(e) => patch({ label: e.target.value })} />
+          <input className={subInput} placeholder="Descripción corta de lo que recibe el comprador" value={block.subtitulo ?? ''} onChange={(e) => patch({ subtitulo: e.target.value })} />
+          <div className="flex items-center gap-2 pt-1.5">
+            <span className="shrink-0 text-[11px] font-bold uppercase tracking-wide text-gray-400">Precio</span>
+            <input
+              type="number"
+              min={0}
+              inputMode="decimal"
+              value={block.price ?? 0}
+              onChange={(e) => patch({ price: Math.max(0, Number(e.target.value) || 0) })}
+              className="w-20 rounded-lg bg-gray-50 px-2 py-1.5 text-center text-sm font-semibold text-gray-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#92c83a]"
+            />
+            <input
+              value={block.currency ?? 'USD'}
+              onChange={(e) => patch({ currency: e.target.value.toUpperCase().slice(0, 4) })}
+              placeholder="USD"
+              className="w-14 rounded-lg bg-gray-50 px-2 py-1.5 text-center text-xs font-bold uppercase text-gray-500 focus:bg-white focus:outline-none"
+            />
+          </div>
+          <div className="pt-1.5">
+            <input
+              value={block.hiddenUrl ?? ''}
+              onChange={(e) => patch({ hiddenUrl: e.target.value })}
+              placeholder="https://drive.google.com/… (URL secreta)"
+              className="w-full rounded-xl border border-dashed border-[#92c83a]/50 bg-[#92c83a]/5 px-3 py-2 text-sm text-gray-800 placeholder-gray-400 focus:border-[#92c83a] focus:outline-none"
+            />
+            <p className="mt-1 flex items-center gap-1 px-1 text-[11px] text-gray-400"><Lock size={11} /> El comprador será redirigido aquí tras el pago.</p>
+          </div>
+        </div>
+      );
     default:
       return <></>;
   }

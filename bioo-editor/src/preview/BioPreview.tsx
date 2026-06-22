@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Instagram, Facebook, Youtube, MessageCircle, Mail, Phone, Globe, Music2, type LucideIcon } from 'lucide-react';
+import { Instagram, Facebook, Youtube, MessageCircle, Mail, Phone, Globe, Music2, Lock, type LucideIcon } from 'lucide-react';
 import { THEMES, SHAPE_RADIUS, FONTS, TSIZE, SSIZE, TWEIGHT, TSPACE, bgCss, bgAnimStyle, loadFont } from '../lib/theme';
 import { embedSrc, socUrl } from '../lib/blocks';
 import type { BioState, Block, SocialNet } from '../types';
@@ -21,7 +21,7 @@ function renderable(b: Block): boolean {
   if (b.tipo === 'imagen') return !!(b.img || '').trim();
   if (b.tipo === 'embed') return !!(b.url || '').trim();
   if (b.tipo === 'social') return (b.socials ?? []).some((s) => (s.valor || '').trim());
-  if (b.tipo === 'newsletter' || b.tipo === 'tip') return true;
+  if (b.tipo === 'newsletter' || b.tipo === 'tip' || b.tipo === 'paywall') return true;
   return !!((b.label || '').trim() || (b.url || '').trim());
 }
 
@@ -142,6 +142,9 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
             if (b.tipo === 'tip') {
               return <TipBlock key={b.id} b={b} p={p} radius={radius} />;
             }
+            if (b.tipo === 'paywall') {
+              return <PaywallBlock key={b.id} b={b} p={p} radius={radius} />;
+            }
             const fillStyle =
               theme.fill === 'outline'
                 ? { background: 'transparent', color: p.text, border: `1.5px solid ${p.btnBorder === 'transparent' ? p.text : p.btnBorder}` }
@@ -237,6 +240,40 @@ function TipBlock({ b, p, radius }: { b: Block; p: Palette; radius: string }): J
       >
         {status === 'idle' ? `Enviar apoyo · ${sym}${sel}` : status === 'processing' ? 'Procesando…' : '¡Gracias por tu apoyo! 🎉'}
       </button>
+    </div>
+  );
+}
+
+/** Bloque paywall / producto digital (estilo Gumroad) con flujo de compra simulado. */
+function PaywallBlock({ b, p, radius }: { b: Block; p: Palette; radius: string }): JSX.Element {
+  const sym = curSymbol(b.currency);
+  const price = typeof b.price === 'number' ? b.price : 0;
+  const [status, setStatus] = useState<'idle' | 'processing' | 'done'>('idle');
+
+  const buy = (): void => {
+    if (status !== 'idle') return;
+    setStatus('processing');
+    setTimeout(() => setStatus('done'), 1400);
+  };
+
+  return (
+    <div className="col-span-2 rounded-2xl bg-white/95 p-5 text-center shadow-md backdrop-blur-sm">
+      <div className="flex items-center justify-center gap-1.5">
+        <Lock size={14} className="text-neutral-400" />
+        <p className="text-sm font-bold text-neutral-900">{b.label || 'Producto digital'}</p>
+      </div>
+      {b.subtitulo && <p className="mt-1 text-xs leading-snug text-neutral-500">{b.subtitulo}</p>}
+      <p className="mt-3 text-3xl font-black tracking-tight text-neutral-900">{sym}{price}</p>
+      <button
+        type="button"
+        onClick={buy}
+        disabled={status !== 'idle'}
+        className="mt-3 flex w-full items-center justify-center gap-2 py-3 text-sm font-bold shadow-sm transition-transform active:scale-95 disabled:cursor-default"
+        style={{ background: status === 'done' ? '#16a34a' : p.btnBg, color: status === 'done' ? '#fff' : p.btnText, borderRadius: radius }}
+      >
+        {status === 'idle' ? <><Lock size={14} /> Desbloquear por {sym}{price}</> : status === 'processing' ? 'Procesando de forma segura…' : '¡Desbloqueado! Redirigiendo…'}
+      </button>
+      <p className="mt-2 text-[10px] text-neutral-400">Pago seguro · Acceso inmediato</p>
     </div>
   );
 }

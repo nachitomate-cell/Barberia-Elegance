@@ -103,17 +103,23 @@ export function newBlock(tipo: BlockType): Block {
   const needsPhone = tipo === 'whatsapp' || tipo === 'telefono';
   const news = tipo === 'newsletter';
   const tip = tipo === 'tip';
+  const paywall = tipo === 'paywall';
   return recompute({
     id: 'l' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
     tipo,
-    label: news ? 'Únete a mi Newsletter' : tip ? 'Invítame un café ☕' : '',
+    label: news ? 'Únete a mi Newsletter' : tip ? 'Invítame un café ☕' : paywall ? 'Mi producto digital' : '',
     url: '',
     activo: true,
     prefijo: needsPhone ? '56' : undefined,
     socials: tipo === 'social' ? [{ red: 'instagram', valor: '' }] : undefined,
-    subtitulo: news ? 'Recibe mis mejores tips cada semana' : tip ? 'Tu apoyo me ayuda a seguir creando contenido' : undefined,
+    subtitulo: news
+      ? 'Recibe mis mejores tips cada semana'
+      : tip ? 'Tu apoyo me ayuda a seguir creando contenido'
+      : paywall ? 'Acceso inmediato tras la compra' : undefined,
     btnText: news ? 'Suscribirme' : undefined,
     amounts: tip ? [3, 5, 10] : undefined,
-    currency: tip ? 'USD' : undefined,
+    currency: tip || paywall ? 'USD' : undefined,
+    price: paywall ? 15 : undefined,
+    hiddenUrl: paywall ? '' : undefined,
   });
 }

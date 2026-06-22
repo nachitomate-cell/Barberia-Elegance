@@ -1,7 +1,7 @@
 export type BlockType =
   | 'enlace' | 'whatsapp' | 'instagram' | 'tiktok' | 'facebook'
   | 'youtube' | 'email' | 'telefono' | 'texto' | 'separador'
-  | 'imagen' | 'embed' | 'social' | 'newsletter' | 'tip';
+  | 'imagen' | 'embed' | 'social' | 'newsletter' | 'tip' | 'paywall';
 
 export type SocialNet =
   | 'instagram' | 'tiktok' | 'facebook' | 'youtube' | 'whatsapp' | 'email' | 'telefono' | 'enlace';
@@ -37,6 +37,9 @@ export interface Block {
   // Bloque de propina / tip jar
   amounts?: number[];
   currency?: string;
+  // Bloque paywall / producto digital
+  price?: number;
+  hiddenUrl?: string;
 }
 
 export type ThemePreset =
