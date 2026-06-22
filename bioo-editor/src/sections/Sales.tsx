@@ -51,7 +51,7 @@ export default function Sales(): JSX.Element {
 
   return (
     <div className="space-y-4">
-      <section className="rounded-2xl bg-gradient-to-br from-[#15240b] to-[#2c5a17] p-5 text-white shadow-sm">
+      <section className="rounded-[24px] bg-gradient-to-br from-[#15240b] to-[#2c5a17] p-6 text-white shadow-[0_4px_18px_rgba(21,36,11,0.18)]">
         <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-white/70">
           <TrendingUp size={14} /> Total de ingresos
           <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-bold text-white/90">
@@ -69,7 +69,7 @@ export default function Sales(): JSX.Element {
       {sales && count === 0 && <EmptySales />}
 
       {count > 0 && (
-        <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/[0.04]">
+        <div className="overflow-hidden rounded-[24px] bg-white shadow-[0_2px_10px_rgba(0,0,0,0.02)] ring-1 ring-black/[0.03]">
           <div className="max-h-[55vh] overflow-y-auto">
             <table className="w-full border-collapse text-sm">
               <thead className="sticky top-0 z-10 bg-neutral-50/95 backdrop-blur">
@@ -100,7 +100,7 @@ export default function Sales(): JSX.Element {
 
 function ConnectState({ onConnect, connecting }: { onConnect: () => void; connecting: boolean }): JSX.Element {
   return (
-    <div className="flex flex-col items-center rounded-2xl bg-white px-6 py-12 text-center shadow-sm ring-1 ring-black/[0.04]">
+    <div className="flex flex-col items-center rounded-[24px] bg-white px-6 py-12 text-center shadow-[0_2px_10px_rgba(0,0,0,0.02)] ring-1 ring-black/[0.03]">
       <span className="grid h-16 w-16 place-items-center rounded-full bg-[#635bff]/12 text-[#635bff]">
         <Landmark size={30} />
       </span>
@@ -122,7 +122,7 @@ function ConnectState({ onConnect, connecting }: { onConnect: () => void; connec
 
 function IncompleteState({ onContinue, connecting }: { onContinue: () => void; connecting: boolean }): JSX.Element {
   return (
-    <div className="flex flex-col items-center rounded-2xl bg-white px-6 py-12 text-center shadow-sm ring-1 ring-black/[0.04]">
+    <div className="flex flex-col items-center rounded-[24px] bg-white px-6 py-12 text-center shadow-[0_2px_10px_rgba(0,0,0,0.02)] ring-1 ring-black/[0.03]">
       <span className="grid h-16 w-16 place-items-center rounded-full bg-amber-100 text-amber-500">
         <AlertTriangle size={30} />
       </span>
@@ -144,7 +144,7 @@ function IncompleteState({ onContinue, connecting }: { onContinue: () => void; c
 
 function EmptySales(): JSX.Element {
   return (
-    <div className="flex flex-col items-center rounded-2xl bg-white px-6 py-12 text-center shadow-sm ring-1 ring-black/[0.04]">
+    <div className="flex flex-col items-center rounded-[24px] bg-white px-6 py-12 text-center shadow-[0_2px_10px_rgba(0,0,0,0.02)] ring-1 ring-black/[0.03]">
       <span className="grid h-16 w-16 place-items-center rounded-full bg-[#92c83a]/15 text-[#72a129]">
         <CircleDollarSign size={30} />
       </span>
@@ -158,7 +158,7 @@ function EmptySales(): JSX.Element {
 
 function Notice({ children }: { children: ReactNode }): JSX.Element {
   return (
-    <div className="rounded-2xl bg-white p-5 text-center text-sm text-neutral-500 shadow-sm ring-1 ring-black/[0.04]">
+    <div className="rounded-[24px] bg-white p-5 text-center text-sm text-neutral-500 shadow-[0_2px_10px_rgba(0,0,0,0.02)] ring-1 ring-black/[0.03]">
       {children}
     </div>
   );

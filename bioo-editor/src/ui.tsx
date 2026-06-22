@@ -1,12 +1,45 @@
 import type { ReactNode } from 'react';
+import type { LucideIcon } from 'lucide-react';
 
-export const inputCls =
-  'w-full rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-2.5 text-sm text-neutral-900 placeholder-neutral-400 focus:border-bioo focus:bg-white focus:outline-none transition-colors';
+/* ── Design System (premium, estilo Apple Settings / Vercel) ── */
+
+export const cardCls =
+  'bg-white rounded-[24px] p-6 shadow-[0_2px_10px_rgba(0,0,0,0.02)] ring-1 ring-black/[0.03]';
+
+export const inputBase =
+  'w-full bg-neutral-100/70 border border-transparent rounded-xl p-3.5 text-[#15240b] placeholder-neutral-400 transition-all focus:bg-white focus:border-[#92c83a] focus:ring-4 focus:ring-[#92c83a]/10 outline-none';
+
+export const labelCls =
+  'text-sm font-semibold uppercase tracking-wider text-neutral-500 mb-3 block';
+
+export const inputCls = inputBase; // alias retrocompatible
+
+/** Tarjeta flotante con cabecera opcional (ícono verde lima + título). */
+export function Card({ icon: Icon, title, hint, children }: {
+  icon?: LucideIcon; title?: string; hint?: string; children: ReactNode;
+}): JSX.Element {
+  return (
+    <section className={cardCls}>
+      {(title || hint) && (
+        <div className="mb-5">
+          {title && (
+            <div className="flex items-center gap-2.5">
+              {Icon && <Icon size={20} className="text-[#92c83a]" />}
+              <h3 className="text-lg font-bold text-[#15240b]">{title}</h3>
+            </div>
+          )}
+          {hint && <p className="mt-1 text-xs text-neutral-400">{hint}</p>}
+        </div>
+      )}
+      {children}
+    </section>
+  );
+}
 
 export function Field({ label, children }: { label: string; children: ReactNode }): JSX.Element {
   return (
     <div>
-      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-neutral-400">{label}</label>
+      <label className={labelCls}>{label}</label>
       {children}
     </div>
   );
