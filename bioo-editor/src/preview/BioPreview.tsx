@@ -86,6 +86,14 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
           <p className="mt-1 max-w-[32ch] text-center leading-snug" style={{ color: sCol, fontSize: SSIZE[txt.subSize] }}>{profile.subtitulo}</p>
         )}
 
+        {/* Sello de Comercio Verificado (Partner Club Patio) — opcional para el comercio */}
+        {profile.partner === 'patio-curauma' && profile.showPartnerBadge !== false && (
+          <div className="mt-4 inline-flex items-center gap-1.5 px-3 py-1 bg-white/50 backdrop-blur-sm border border-black/5 rounded-full shadow-sm">
+            <img src="/icon-512x512.png" alt="" className="w-4 h-4 object-contain" />
+            <span className="text-[11px] font-semibold text-gray-700 tracking-wide uppercase">Comercio Oficial Patio Curauma</span>
+          </div>
+        )}
+
         <div className="mt-7 grid w-full grid-cols-2 gap-4">
           {visible.length === 0 && (
             <p className="col-span-2 py-6 text-center text-sm" style={{ color: sCol }}>Aún no hay enlaces aquí.</p>

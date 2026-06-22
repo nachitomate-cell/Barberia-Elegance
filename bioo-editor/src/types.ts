@@ -96,6 +96,10 @@ export interface Profile {
   avatar: string;
   cover: string;
   verified: boolean;
+  /** Partner que aprovisionó la página (ej. 'patio-curauma'). Lo inyecta el backend. */
+  partner?: string;
+  /** El comercio puede ocultar el sello de partner. Ausente/true ⇒ visible. */
+  showPartnerBadge?: boolean;
 }
 
 export interface Marketing {

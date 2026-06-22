@@ -57,6 +57,9 @@ export async function loadBio(username: string): Promise<BioState | null> {
       avatar: d.perfil?.avatar ?? '',
       cover: d.perfil?.cover ?? '',
       verified: !!d.perfil?.verified,
+      // Solo se incluyen si existen en el doc (evita escribir undefined al guardar).
+      ...(d.perfil?.partner ? { partner: String(d.perfil.partner) } : {}),
+      ...(typeof d.perfil?.showPartnerBadge === 'boolean' ? { showPartnerBadge: d.perfil.showPartnerBadge } : {}),
     },
     blocks: Array.isArray(d.bloques) ? d.bloques : [],
     theme: normalizeTheme(d.theme),
@@ -91,6 +94,9 @@ export async function saveBio(state: BioState): Promise<void> {
   });
   // JSON round-trip: elimina `undefined` (Firestore lo rechaza) de forma segura.
   const cleanBlocks = JSON.parse(JSON.stringify(publicBlocks)) as Block[];
+  // Round-trip: elimina claves `undefined` del perfil (p.ej. partner ausente),
+  // que Firestore rechaza.
+  const cleanProfile = JSON.parse(JSON.stringify(state.profile));
 
   const batch = writeBatch(db);
 
@@ -100,7 +106,7 @@ export async function saveBio(state: BioState): Promise<void> {
     {
       uid: user.uid,
       username,
-      perfil: state.profile,
+      perfil: cleanProfile,
       bloques: cleanBlocks,
       theme: state.theme,
       marketing: state.marketing,

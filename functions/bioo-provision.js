@@ -404,3 +404,110 @@ exports.biooEditorSession = onRequest(
     }
   }
 );
+
+// ── 4. provisionPartnerUser (HTTP, secret) — White-glove SSO en 1 sola llamada ─
+//  Combina provisión + custom token: crea (si hace falta) la cuenta de Auth y el
+//  bio del comercio, y devuelve un customToken para entrar al editor con 1 clic
+//  (sin pasar por /claim). Pensado para partners (Club Patio) que YA autenticaron
+//  al usuario en su propia app.
+//
+//  Auth:  Authorization: Bearer <BIOO_PROVISION_SECRET>   (o header x-bioo-secret)
+//  Body:  { email, storeName, handle? }
+//  Resp:  { success: true, customToken, handle }
+
+// Lee el secret desde Authorization: Bearer, x-bioo-secret o body.secret.
+function readPartnerSecret(req) {
+  const authH = req.get('authorization') || req.get('Authorization') || '';
+  const bearer = authH.startsWith('Bearer ') ? authH.slice(7).trim() : '';
+  return bearer || req.get('x-bioo-secret') || (req.body && req.body.secret) || '';
+}
+
+exports.provisionPartnerUser = onRequest(
+  { cors: true, region: 'us-central1', secrets: [BIOO_PROVISION_SECRET, BIOO_ADMIN_SA] },
+  async (req, res) => {
+    try {
+      if (req.method !== 'POST') return res.status(405).json({ success: false, error: 'method_not_allowed' });
+
+      // Seguridad: solo el backend del partner (posee el secret) puede llamar.
+      const secret = readPartnerSecret(req);
+      if (!secret || secret !== BIOO_PROVISION_SECRET.value()) {
+        return res.status(401).json({ success: false, error: 'no_autorizado' });
+      }
+
+      const b = req.body || {};
+      const email = String(b.email || '').trim().toLowerCase();
+      if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+        return res.status(400).json({ success: false, error: 'falta_email' });
+      }
+      const storeName = String(b.storeName || '').trim().slice(0, 80) || 'Mi comercio';
+
+      // 1. Usuario en Firebase Auth (busca por email; si no existe, lo crea).
+      const user = await getOrCreateUserByEmail(email, storeName);
+      const uid = user.uid;
+
+      // 2. ¿Ya tiene bio? (idempotente por email — no duplica páginas).
+      const idxRef = db.collection('bio_email_owners').doc(email);
+      const idxSnap = await idxRef.get();
+      let handle = (idxSnap.exists && idxSnap.data().handle) || '';
+      const now = FieldValue.serverTimestamp();
+
+      if (!handle) {
+        // 3. White-glove: crear bio nuevo, ya con dueño (uid), tema premium,
+        //    título = storeName y un bloque de ejemplo.
+        handle = await freeHandle(b.handle || storeName);
+        if (!validHandle(handle)) return res.status(400).json({ success: false, error: 'handle_invalido' });
+
+        const bloques = [{
+          id: blockId(),
+          tipo: 'enlace',
+          label: 'Mi primer enlace ✨',
+          url: 'https://bioo.cl',
+          activo: true,
+          featured: true,
+        }];
+
+        const bioDoc = {
+          uid,                          // dueño inmediato (SSO white-glove, sin /claim)
+          ownerEmail: email,
+          username: handle,
+          perfil: { titulo: storeName, subtitulo: '', avatar: '', verified: false, partner: 'patio-curauma', showPartnerBadge: true },
+          bloques,
+          theme: 'sunset',              // tema premium por defecto
+          plan: 'premium',
+          views: 0,
+          clicks: {},
+          source: String(b.source || 'partner'),
+          provisionedAt: now,
+          createdAt: now,
+          updatedAt: now,
+        };
+
+        const batch = db.batch();
+        batch.set(db.collection('bios').doc(handle), bioDoc);
+        batch.set(idxRef, { handle, email, source: String(b.source || 'partner'), createdAt: now });
+        batch.set(db.collection('bio_users').doc(uid), { username: handle, email, createdAt: now }, { merge: true });
+        await batch.commit();
+        logger.info(`[bioo] provisionPartnerUser NUEVO handle=${handle} email=${email}`);
+      } else {
+        // 3b. Ya existía: asegurar que el uid quede como dueño + índice bio_users.
+        const bioRef = db.collection('bios').doc(handle);
+        const bioSnap = await bioRef.get();
+        if (bioSnap.exists && !bioSnap.data().uid) {
+          const batch = db.batch();
+          batch.update(bioRef, { uid, updatedAt: now });
+          batch.set(db.collection('bio_users').doc(uid), { username: handle, email, createdAt: now }, { merge: true });
+          await batch.commit();
+        }
+        logger.info(`[bioo] provisionPartnerUser EXISTENTE handle=${handle} email=${email}`);
+      }
+
+      // 4. Custom token firmado con la service account dedicada (evita IAM signBlob).
+      const customToken = await signerAuth().createCustomToken(uid);
+
+      return res.status(200).json({ success: true, customToken, handle });
+    } catch (err) {
+      logger.error('[bioo] provisionPartnerUser error:', err);
+      return res.status(500).json({ success: false, error: 'error_interno' });
+    }
+  }
+);

@@ -8,6 +8,7 @@ export default function Profile(): JSX.Element {
   const { state, dispatch } = useEditor();
   const p = state.profile;
   const patch = (patch: Partial<ProfileType>): void => dispatch({ type: 'patchProfile', patch });
+  const badgeOn = p.showPartnerBadge !== false; // ausente/true ⇒ visible
 
   return (
     <div className="space-y-6">
@@ -40,6 +41,25 @@ export default function Profile(): JSX.Element {
               onChange={(e) => patch({ subtitulo: e.target.value })}
             />
           </Field>
+
+          {/* Sello de Partner (Club Patio) — solo para comercios aprovisionados por el partner */}
+          {p.partner === 'patio-curauma' && (
+            <div className="flex items-center justify-between gap-4 border-t border-neutral-100 pt-4">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-neutral-800">Sello de Comercio Verificado</p>
+                <p className="text-xs text-neutral-500">Mostrar insignia de Club Patio Curauma</p>
+              </div>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={badgeOn}
+                onClick={() => patch({ showPartnerBadge: !badgeOn })}
+                className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${badgeOn ? 'bg-[#92c83a]' : 'bg-neutral-300'}`}
+              >
+                <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${badgeOn ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
+              </button>
+            </div>
+          )}
         </div>
       </Card>
 
