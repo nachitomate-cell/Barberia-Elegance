@@ -60,7 +60,7 @@ export default function PreviewSheet({ open, onClose, children }: Props): JSX.El
               </div>
             </header>
 
-            <div className="grid min-h-0 flex-1 place-items-center overflow-hidden p-3">{children}</div>
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">{children}</div>
 
             <footer className="shrink-0 border-t border-neutral-100 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
               <button

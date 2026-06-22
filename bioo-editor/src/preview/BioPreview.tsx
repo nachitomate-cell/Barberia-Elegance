@@ -162,15 +162,15 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
             if (size === 'half') {
               return (
                 <div key={b.id} className={`col-span-1 flex aspect-square flex-col items-center justify-center gap-2 p-3 text-center text-sm font-bold ${common}`} style={styleObj}>
-                  {b.thumb && <img src={b.thumb} alt="" className="h-10 w-10 rounded-lg object-cover" />}
-                  <span className="line-clamp-3 leading-tight">{text}</span>
+                  {b.thumb && <img src={b.thumb} alt="" className="h-10 w-10 shrink-0 rounded-lg object-cover" />}
+                  <span className="line-clamp-3 min-w-0 leading-tight">{text}</span>
                 </div>
               );
             }
             if (size === 'large') {
               return (
                 <div key={b.id} className={`col-span-2 flex min-h-[150px] flex-col items-center justify-center gap-2.5 p-4 text-center text-base font-bold ${common}`} style={styleObj}>
-                  {b.thumb && <img src={b.thumb} alt="" className="h-14 w-14 rounded-xl object-cover" />}
+                  {b.thumb && <img src={b.thumb} alt="" className="h-14 w-14 shrink-0 rounded-xl object-cover" />}
                   <span>{text}</span>
                 </div>
               );

@@ -171,9 +171,8 @@ export default function App(): JSX.Element {
       </motion.button>
 
       <PreviewSheet open={previewOpen} onClose={() => setPreviewOpen(false)}>
-        <PhoneFrame embedded>
-          <BioPreview state={state} />
-        </PhoneFrame>
+        {/* A pantalla completa (el sheet ES el teléfono) → copia fiel de u.html */}
+        <BioPreview state={state} />
       </PreviewSheet>
 
       <Wizard open={showWizard} onClose={() => setShowWizard(false)} />
