@@ -52,7 +52,7 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
         >
           {profile.avatar
             ? <img src={profile.avatar} alt="" className="h-full w-full object-cover" />
-            : <span className="text-3xl font-extrabold text-neutral-400">{initial}</span>}
+            : <span className="text-3xl font-extrabold leading-none text-neutral-400">{initial}</span>}
         </div>
 
         <h2
@@ -86,7 +86,7 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
             if (b.tipo === 'imagen') {
               const half = (b.layoutSize ?? 'full') === 'half';
               const spanC = half ? 'col-span-1' : 'col-span-2';
-              const img = <img src={b.img} alt="" className={`w-full rounded-2xl shadow-md ${half ? 'aspect-square h-full object-cover' : ''}`} />;
+              const img = <img src={b.img} alt="" className={`w-full rounded-3xl shadow-md ${half ? 'aspect-square h-full object-cover' : ''}`} />;
               return b.url
                 ? <a key={b.id} href={b.url} target="_blank" rel="noopener noreferrer" className={`block ${spanC}`}>{img}</a>
                 : <div key={b.id} className={spanC}>{img}</div>;
@@ -96,12 +96,12 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
               if (!e) return null;
               if (e.kind === 'youtube') {
                 return (
-                  <div key={b.id} className="col-span-2 relative w-full overflow-hidden rounded-2xl shadow-md" style={{ paddingTop: '56.25%' }}>
+                  <div key={b.id} className="col-span-2 relative w-full overflow-hidden rounded-3xl shadow-md" style={{ paddingTop: '56.25%' }}>
                     <iframe src={e.src} title="video" loading="lazy" className="absolute inset-0 h-full w-full border-0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; picture-in-picture" allowFullScreen />
                   </div>
                 );
               }
-              return <iframe key={b.id} src={e.src} title="spotify" loading="lazy" className="col-span-2 w-full rounded-2xl border-0" style={{ height: e.height }} allow="encrypted-media" />;
+              return <iframe key={b.id} src={e.src} title="spotify" loading="lazy" className="col-span-2 w-full rounded-3xl border-0" style={{ height: e.height }} allow="encrypted-media" />;
             }
             if (b.tipo === 'social') {
               const items = (b.socials ?? []).filter((s) => (s.valor || '').trim());
@@ -120,7 +120,7 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
             }
             if (b.tipo === 'newsletter') {
               return (
-                <div key={b.id} className="col-span-2 rounded-2xl bg-white/90 p-4 text-center shadow-md backdrop-blur-sm">
+                <div key={b.id} className="col-span-2 rounded-3xl bg-white/90 p-4 text-center shadow-md backdrop-blur-sm">
                   <p className="text-sm font-bold text-neutral-900">{b.label || 'Únete a mi Newsletter'}</p>
                   {b.subtitulo && <p className="mt-0.5 text-xs leading-snug text-neutral-500">{b.subtitulo}</p>}
                   <div className="mt-3 flex flex-col gap-2">
@@ -218,7 +218,7 @@ function TipBlock({ b, p, radius, username }: { b: Block; p: Palette; radius: st
   };
 
   return (
-    <div className="col-span-2 rounded-2xl bg-white/90 p-4 text-center shadow-md backdrop-blur-sm">
+    <div className="col-span-2 rounded-3xl bg-white/90 p-4 text-center shadow-md backdrop-blur-sm">
       <p className="text-sm font-bold text-neutral-900">{b.label || 'Apóyame'}</p>
       {b.subtitulo && <p className="mt-0.5 text-xs leading-snug text-neutral-500">{b.subtitulo}</p>}
       <div className="mt-3 flex flex-wrap justify-center gap-2">
@@ -270,7 +270,7 @@ function PaywallBlock({ b, p, radius, username }: { b: Block; p: Palette; radius
   };
 
   return (
-    <div className="col-span-2 rounded-2xl bg-white/95 p-5 text-center shadow-md backdrop-blur-sm">
+    <div className="col-span-2 rounded-3xl bg-white/95 p-5 text-center shadow-md backdrop-blur-sm">
       <div className="flex items-center justify-center gap-1.5">
         <Lock size={14} className="text-neutral-400" />
         <p className="text-sm font-bold text-neutral-900">{b.label || 'Producto digital'}</p>

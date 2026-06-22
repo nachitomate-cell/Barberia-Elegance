@@ -16,7 +16,7 @@
   :root{ --green:#92c83a; --green-d:#2c5a17; --ink:#15240b; --soft:#3f5230; --white:#ffffff; --line:#cfe0a8; }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
   html,body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--green);color:var(--ink);}
-  body{min-height:100dvh;display:flex;flex-direction:column;align-items:center;padding:56px 20px 30px;}
+  body{min-height:100dvh;display:flex;flex-direction:column;align-items:center;padding:56px 24px 30px;}
   .wrap{position:relative;z-index:1;width:100%;max-width:560px;display:flex;flex-direction:column;align-items:center;}
   /* Fondo foto: difuminado a pantalla completa (lados en PC) + foto nítida en un marco centrado */
   .bg-photo-blur{position:fixed;inset:0;z-index:-2;background-color:#111;background-size:cover;background-position:center;filter:blur(34px) brightness(.7);transform:scale(1.12);pointer-events:none;}
@@ -56,8 +56,8 @@
   .u-text{text-align:center;font-size:15px;font-weight:600;line-height:1.45;width:100%;word-break:break-word;}
   .u-sep{width:55%;border:0;border-top:2px solid rgba(128,128,128,.35);margin:6px auto;}
   /* Bloque de captura de leads (newsletter) */
-  .u-news{width:100%;background:rgba(255,255,255,.92);border-radius:18px;padding:18px 16px;text-align:center;box-shadow:0 6px 20px rgba(21,36,11,.12);backdrop-filter:blur(4px);}
-  .u-news-t{font-size:15.5px;font-weight:800;line-height:1.3;}
+  .u-news{width:100%;background:rgba(255,255,255,.92);border-radius:24px;padding:18px 16px;text-align:center;box-shadow:0 6px 20px rgba(21,36,11,.12);backdrop-filter:blur(4px);}
+  .u-news-t{font-size:15.5px;font-weight:800;line-height:1.3;color:#15240b;}
   .u-news-s{font-size:13px;color:#6b7280;margin-top:4px;line-height:1.4;}
   .u-news-f{display:flex;flex-direction:column;gap:8px;margin-top:12px;}
   .u-news-i{width:100%;border:1px solid #e5e7eb;background:#f9fafb;border-radius:12px;padding:11px 13px;font-size:15px;color:#15240b;outline:none;transition:.13s;}
@@ -67,8 +67,8 @@
   .u-news-b:disabled{opacity:.85;cursor:default;}
   .u-news-msg{font-size:12.5px;font-weight:600;margin-top:8px;}
   /* Bloque de propina (tip jar) */
-  .u-tip{width:100%;background:rgba(255,255,255,.92);border-radius:18px;padding:18px 16px;text-align:center;box-shadow:0 6px 20px rgba(21,36,11,.12);backdrop-filter:blur(4px);}
-  .u-tip-t{font-size:15.5px;font-weight:800;line-height:1.3;}
+  .u-tip{width:100%;background:rgba(255,255,255,.92);border-radius:24px;padding:18px 16px;text-align:center;box-shadow:0 6px 20px rgba(21,36,11,.12);backdrop-filter:blur(4px);}
+  .u-tip-t{font-size:15.5px;font-weight:800;line-height:1.3;color:#15240b;}
   .u-tip-s{font-size:13px;color:#6b7280;margin-top:4px;line-height:1.4;}
   .u-tip-row{display:flex;justify-content:center;flex-wrap:wrap;gap:8px;margin-top:13px;}
   .u-tip-amt{border:1.5px solid #e5e7eb;background:#fff;color:#374151;border-radius:100px;padding:9px 17px;font-size:14px;font-weight:800;cursor:pointer;transition:transform .12s ease,background .12s ease,border-color .12s ease,color .12s ease;}
@@ -77,8 +77,8 @@
   .u-tip-send{display:block;width:100%;border:0;border-radius:14px;padding:13px 16px;margin-top:13px;font-size:15px;font-weight:800;cursor:pointer;transition:.13s;}
   .u-tip-send:disabled{opacity:.92;cursor:default;}
   /* Bloque paywall / producto digital */
-  .u-pw{width:100%;background:rgba(255,255,255,.95);border-radius:18px;padding:20px 16px;text-align:center;box-shadow:0 6px 22px rgba(21,36,11,.14);backdrop-filter:blur(4px);}
-  .u-pw-t{display:flex;align-items:center;justify-content:center;gap:7px;font-size:15.5px;font-weight:800;line-height:1.3;}
+  .u-pw{width:100%;background:rgba(255,255,255,.95);border-radius:24px;padding:20px 16px;text-align:center;box-shadow:0 6px 22px rgba(21,36,11,.14);backdrop-filter:blur(4px);}
+  .u-pw-t{display:flex;align-items:center;justify-content:center;gap:7px;font-size:15.5px;font-weight:800;line-height:1.3;color:#15240b;}
   .u-pw-lock{width:15px;height:15px;color:#9ca3af;flex:none;}
   .u-pw-s{font-size:13px;color:#6b7280;margin-top:5px;line-height:1.45;}
   .u-pw-price{font-size:32px;font-weight:900;letter-spacing:-1px;margin-top:12px;color:#15240b;}
@@ -96,10 +96,10 @@
   .pay-btn{display:none;align-items:center;justify-content:center;gap:8px;width:100%;background:#16a34a;color:#fff;text-decoration:none;font-weight:800;font-size:15px;padding:13px 16px;border-radius:14px;}
   .pay-x{display:block;margin-top:12px;font-size:12.5px;color:#9ca3af;cursor:pointer;text-decoration:underline;}
   .u-imgwrap{display:block;width:100%;}
-  .u-img{width:100%;border-radius:14px;display:block;box-shadow:0 2px 12px rgba(21,36,11,.14);}
-  .emb-yt{position:relative;width:100%;padding-top:56.25%;border-radius:14px;overflow:hidden;box-shadow:0 2px 12px rgba(21,36,11,.14);}
+  .u-img{width:100%;border-radius:24px;display:block;box-shadow:0 2px 12px rgba(21,36,11,.14);}
+  .emb-yt{position:relative;width:100%;padding-top:56.25%;border-radius:24px;overflow:hidden;box-shadow:0 2px 12px rgba(21,36,11,.14);}
   .emb-yt iframe{position:absolute;inset:0;width:100%;height:100%;border:0;}
-  .emb{width:100%;border:0;border-radius:12px;display:block;}
+  .emb{width:100%;border:0;border-radius:24px;overflow:hidden;display:block;}
   .u-soc{display:flex;justify-content:center;flex-wrap:wrap;gap:16px;width:100%;}
   .u-soc-i img{width:34px;height:34px;object-fit:contain;display:block;transition:transform .15s;}
   .u-soc-i:hover img{transform:translateY(-2px) scale(1.08);}
@@ -467,7 +467,7 @@
       var avRing = t.avatarRing || '';
       html += '<div class="avatar fade'+(cover?' over':'')+'" style="border-radius:'+avR+';'+(avRing?('border-color:'+avRing+';'):'')+'">' + (perfil.avatar
         ? '<img src="'+esc(perfil.avatar)+'" alt="'+esc(perfil.titulo)+'">'
-        : '<span style="font-size:38px;font-weight:800;color:#6b7768;">'+esc((perfil.titulo||user).charAt(0).toUpperCase())+'</span>') + '</div>';
+        : '<span style="font-size:38px;font-weight:800;line-height:1;color:#6b7768;">'+esc((perfil.titulo||user).charAt(0).toUpperCase())+'</span>') + '</div>';
       var vrf = data.perfil && data.perfil.verified ? ' <img src="/ic-verified.png" alt="✓" style="height:0.85em;width:auto;vertical-align:-1px;margin-left:5px;">' : '';
       html += '<h1 class="fade" style="animation-delay:.04s;color:'+titleColor+';font-size:'+TSIZE[tx.titleSize]+';font-weight:'+TWEIGHT[tx.weight]+';text-transform:'+(tx.caps==='upper'?'uppercase':'none')+';letter-spacing:'+TSPACE[tx.spacing]+';">'+esc(perfil.titulo || ('@'+user))+vrf+'</h1>';
       if (perfil.subtitulo) html += '<p class="sub fade" style="animation-delay:.08s;color:'+subColor+';font-size:'+SSIZE[tx.subSize]+';">'+esc(perfil.subtitulo)+'</p>';
@@ -488,7 +488,7 @@
             var nSub = (b.subtitulo||'').trim() ? '<div class="u-news-s">'+esc(b.subtitulo.trim())+'</div>' : '';
             var nBtn = esc((b.btnText||'Suscribirme').trim());
             html += '<div class="u-news fade b-full" data-news="'+esc(b.id||'')+'" style="animation-delay:'+(0.1+i*0.04)+'s;">'
-                 +    '<div class="u-news-t" style="color:'+titleColor+';">'+nTit+'</div>'+nSub
+                 +    '<div class="u-news-t">'+nTit+'</div>'+nSub
                  +    '<form class="u-news-f">'
                  +      '<input type="email" class="u-news-i" placeholder="tucorreo@email.com" autocomplete="email" required>'
                  +      '<button type="submit" class="u-news-b" style="'+css.btn+(tx.btnColor?('color:'+tx.btnColor+';'):'')+'">'+nBtn+'</button>'
@@ -504,7 +504,7 @@
             var tTit = esc((b.label||'Apóyame').trim());
             var tSub = (b.subtitulo||'').trim() ? '<div class="u-tip-s">'+esc(b.subtitulo.trim())+'</div>' : '';
             html += '<div class="u-tip fade b-full" data-block="'+esc(b.id||'')+'" data-sym="'+esc(sym)+'" style="animation-delay:'+(0.1+i*0.04)+'s;">'
-                 +    '<div class="u-tip-t" style="color:'+titleColor+';">'+tTit+'</div>'+tSub
+                 +    '<div class="u-tip-t">'+tTit+'</div>'+tSub
                  +    '<div class="u-tip-row">'+pills+'</div>'
                  +    '<button type="button" class="u-tip-send" style="'+css.btn+(tx.btnColor?('color:'+tx.btnColor+';'):'')+'">Enviar apoyo</button>'
                  +  '</div>';
@@ -516,7 +516,7 @@
             var pwTit = esc((b.label||'Producto digital').trim());
             var pwSub = (b.subtitulo||'').trim() ? '<div class="u-pw-s">'+esc(b.subtitulo.trim())+'</div>' : '';
             html += '<div class="u-pw fade b-full" data-block="'+esc(b.id||'')+'" data-price="'+esc(pwSym+pwPrice)+'" style="animation-delay:'+(0.1+i*0.04)+'s;">'
-                 +    '<div class="u-pw-t" style="color:'+titleColor+';"><svg class="u-pw-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>'+pwTit+'</div>'+pwSub
+                 +    '<div class="u-pw-t"><svg class="u-pw-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>'+pwTit+'</div>'+pwSub
                  +    '<div class="u-pw-price">'+pwSym+esc(String(pwPrice))+'</div>'
                  +    '<button type="button" class="u-pw-buy" style="'+css.btn+(tx.btnColor?('color:'+tx.btnColor+';'):'')+'">Desbloquear por '+pwSym+esc(String(pwPrice))+'</button>'
                  +    '<div class="u-pw-note">Pago seguro · Acceso inmediato</div>'
@@ -730,7 +730,7 @@
       var avBox = document.getElementById('shAv');
       avBox.innerHTML = perfil.avatar
         ? '<img src="'+esc(perfil.avatar)+'" alt="">'
-        : '<span style="font-size:38px;font-weight:800;color:#6b7768;">'+esc((perfil.titulo||user).charAt(0).toUpperCase())+'</span>';
+        : '<span style="font-size:38px;font-weight:800;line-height:1;color:#6b7768;">'+esc((perfil.titulo||user).charAt(0).toUpperCase())+'</span>';
       document.getElementById('shUser').textContent = perfil.titulo || ('@'+user);
       document.getElementById('shHandle').textContent = user;
       document.getElementById('shCta').textContent = 'Únete a @' + user + ' en bioo';
