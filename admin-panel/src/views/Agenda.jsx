@@ -12,7 +12,7 @@ import { DndContext, PointerSensor, useSensor, useSensors, closestCenter } from 
 import { SortableContext, horizontalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
-  addDoc, updateDoc, deleteDoc, doc, getDoc, serverTimestamp, where, orderBy, limit, writeBatch, getDocs, query,
+  addDoc, updateDoc, deleteDoc, doc, getDoc, setDoc, serverTimestamp, where, orderBy, limit, writeBatch, getDocs, query,
 } from 'firebase/firestore';
 import { motion } from 'framer-motion';
 import { db } from '../lib/firebase';
@@ -1359,7 +1359,7 @@ function SlotRow({ idx, barberoId, dateStr, onNewCita, onNewBloqueo, blockMode, 
 }
 
 /* ── CitaContextMenu — menú al hacer clic derecho sobre una cita ── */
-function CitaContextMenu({ x, y, cita, onCambiarFecha, onEditar, onClose }) {
+function CitaContextMenu({ x, y, cita, onHistorial, onCambiarFecha, onEditar, onWhatsApp, onCancelar, onEliminar, onClose }) {
   const ref = useRef(null);
   // Reposiciona para que no se salga de la ventana.
   const [pos, setPos] = useState({ left: x, top: y });
@@ -1392,6 +1392,13 @@ function CitaContextMenu({ x, y, cita, onCambiarFecha, onEditar, onClose }) {
           <p className="text-[10px] text-slate-500 truncate">{cita.hora}{cita.servicioNombre ? ` · ${cita.servicioNombre}` : ''}</p>
         </div>
         <button
+          onClick={onHistorial}
+          className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 transition-colors"
+        >
+          <History size={15} className="text-emerald-400 shrink-0" />
+          Ver historial / Notas
+        </button>
+        <button
           onClick={onCambiarFecha}
           className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 transition-colors"
         >
@@ -1404,6 +1411,32 @@ function CitaContextMenu({ x, y, cita, onCambiarFecha, onEditar, onClose }) {
         >
           <Scissors size={15} className="text-slate-400 shrink-0" />
           Editar cita
+        </button>
+        {cita.clienteTelefono && (
+          <button
+            onClick={onWhatsApp}
+            className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 transition-colors"
+          >
+            <MessageSquare size={15} className="text-green-400 shrink-0" />
+            Confirmar por WhatsApp
+          </button>
+        )}
+        {cita.estado !== 'Cancelada' && (
+          <button
+            onClick={onCancelar}
+            className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-slate-200 hover:bg-slate-800 transition-colors"
+          >
+            <Ban size={15} className="text-amber-400 shrink-0" />
+            Cancelar cita
+          </button>
+        )}
+        <div className="my-1 border-t border-slate-800" />
+        <button
+          onClick={onEliminar}
+          className="w-full flex items-center gap-2.5 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
+        >
+          <Trash2 size={15} className="shrink-0" />
+          Eliminar cita
         </button>
       </div>
     </div>
@@ -1467,6 +1500,200 @@ function ReagendarModal({ data, dateStr, onConfirm, onClose }) {
         </div>
       </div>
     </div>
+  );
+}
+
+/* ── HistorialNotasModal — historial rápido + notas internas del equipo ── */
+const ESTADO_BADGE_HN = {
+  Confirmada: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+  Confirmado: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
+  Completada: 'bg-blue-500/20   text-blue-300   border-blue-500/40',
+  Cancelada:  'bg-red-500/20    text-red-300    border-red-500/40',
+  Pendiente:  'bg-amber-500/20  text-amber-300  border-amber-500/40',
+};
+
+function fmtFechaCorta(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso + 'T12:00:00');
+  if (isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function HistorialNotasModal({ cita, onClose }) {
+  const [visitas,     setVisitas]     = useState(null); // null = cargando
+  const [nota,        setNota]        = useState('');
+  const [notaOrig,    setNotaOrig]    = useState('');
+  const [loadingNota, setLoadingNota] = useState(true);
+  const [saving,      setSaving]      = useState(false);
+  const [savedMsg,    setSavedMsg]    = useState('');
+
+  // Clave estable para asociar las notas al cliente: teléfono → email → id.
+  const clientKey = useMemo(() => (
+    (cita.clienteTelefono || '').replace(/\D/g, '')
+    || (cita.clienteEmail || '').trim().toLowerCase()
+    || cita.clienteId
+    || null
+  ), [cita]);
+
+  // Últimas visitas (mismo patrón/índice que UltimaCitaModal).
+  useEffect(() => {
+    if (!cita?.clienteNombre) { setVisitas([]); return; }
+    getDocs(query(
+      tenantCol('citas'),
+      where('clienteNombre', '==', cita.clienteNombre),
+      orderBy('fecha', 'desc'),
+      limit(30),
+    ))
+      .then(snap => setVisitas(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
+      .catch(() => setVisitas([]));
+  }, [cita?.clienteNombre]);
+
+  // Nota interna confidencial (colección admin_notes — solo staff).
+  useEffect(() => {
+    if (!clientKey) { setLoadingNota(false); return; }
+    getDoc(doc(tenantCol('admin_notes'), clientKey))
+      .then(snap => {
+        const v = snap.exists() ? (snap.data().notaInterna || '') : '';
+        setNota(v); setNotaOrig(v);
+      })
+      .catch(() => {})
+      .finally(() => setLoadingNota(false));
+  }, [clientKey]);
+
+  const guardarNota = async () => {
+    if (!clientKey) return;
+    setSaving(true); setSavedMsg('');
+    try {
+      await setDoc(doc(tenantCol('admin_notes'), clientKey), {
+        notaInterna:     nota.trim(),
+        clienteNombre:   cita.clienteNombre   || '',
+        clienteTelefono: cita.clienteTelefono || '',
+        clienteEmail:    cita.clienteEmail    || '',
+        updatedAt:       serverTimestamp(),
+      }, { merge: true });
+      setNotaOrig(nota.trim());
+      setSavedMsg('✓ Guardado');
+      setTimeout(() => setSavedMsg(''), 2500);
+    } catch (e) {
+      setSavedMsg('Error: ' + e.message);
+    } finally { setSaving(false); }
+  };
+
+  const dirty       = nota.trim() !== notaOrig.trim();
+  const completadas = (visitas || []).filter(v => v.estado === 'Completada').length;
+  const inp = 'w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors';
+
+  return (
+    <Modal
+      title={
+        <span className="flex items-center gap-2">
+          <History size={15} className="text-emerald-400" />
+          Historial y notas
+        </span>
+      }
+      onClose={onClose}
+      maxW="max-w-lg"
+    >
+      {/* Cabecera del cliente */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-base font-bold text-white truncate">{cita.clienteNombre || 'Cliente'}</p>
+          <p className="text-xs text-slate-500 truncate">
+            {cita.clienteTelefono || cita.clienteEmail || 'Sin contacto'}
+          </p>
+        </div>
+        {visitas && (
+          <div className="flex gap-2 shrink-0">
+            <span className="text-center px-2.5 py-1 rounded-lg bg-slate-800 border border-slate-700">
+              <span className="block text-sm font-black text-white leading-none">{visitas.length}</span>
+              <span className="block text-[9px] text-slate-500 uppercase tracking-wide mt-0.5">visitas</span>
+            </span>
+            <span className="text-center px-2.5 py-1 rounded-lg bg-blue-500/10 border border-blue-500/30">
+              <span className="block text-sm font-black text-blue-300 leading-none">{completadas}</span>
+              <span className="block text-[9px] text-blue-400/70 uppercase tracking-wide mt-0.5">hechas</span>
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Notas internas confidenciales */}
+      <div className="bg-amber-500/[0.04] border border-amber-500/20 rounded-xl p-3.5 space-y-2">
+        <div className="flex items-center gap-2">
+          <Lock size={12} className="text-amber-400 shrink-0" />
+          <p className="text-[10px] font-black uppercase tracking-widest text-amber-400">Notas internas (privadas del equipo)</p>
+        </div>
+        {loadingNota ? (
+          <div className="h-20 flex items-center justify-center">
+            <span className="w-5 h-5 border-2 border-slate-600 border-t-slate-300 rounded-full animate-spin" />
+          </div>
+        ) : clientKey ? (
+          <>
+            <textarea
+              value={nota}
+              onChange={e => setNota(e.target.value)}
+              rows={4}
+              placeholder="Fórmulas de color, preferencias, alergias, observaciones del equipo… (no lo ve el cliente)"
+              className={`${inp} resize-y leading-relaxed`}
+            />
+            <div className="flex items-center justify-between gap-2">
+              <span className={`text-xs font-semibold ${savedMsg.startsWith('Error') ? 'text-red-400' : 'text-emerald-400'}`}>{savedMsg}</span>
+              <button
+                onClick={guardarNota}
+                disabled={saving || !dirty}
+                className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-xs font-bold rounded-lg transition-all"
+              >
+                {saving && <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+                {saving ? 'Guardando…' : 'Guardar nota'}
+              </button>
+            </div>
+          </>
+        ) : (
+          <p className="text-xs text-slate-500 py-2">
+            Este cliente no tiene teléfono ni correo para asociar la nota. Agrégale un contacto editando la cita.
+          </p>
+        )}
+      </div>
+
+      {/* Últimas visitas + fórmulas usadas */}
+      <div>
+        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Últimas visitas</p>
+        {visitas === null ? (
+          <div className="flex justify-center py-6">
+            <span className="w-5 h-5 border-2 border-slate-600 border-t-slate-300 rounded-full animate-spin" />
+          </div>
+        ) : visitas.length === 0 ? (
+          <div className="flex flex-col items-center py-6 gap-2 text-center">
+            <CalendarDays size={26} className="text-slate-700" />
+            <p className="text-sm text-slate-500">Sin visitas registradas.</p>
+          </div>
+        ) : (
+          <div className="space-y-1.5 max-h-72 overflow-y-auto pr-0.5">
+            {visitas.map(v => (
+              <div key={v.id} className="bg-slate-800/40 border border-slate-800 rounded-xl px-3 py-2.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono text-slate-400 shrink-0">{fmtFechaCorta(v.fecha)}</span>
+                  <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full border shrink-0 ${ESTADO_BADGE_HN[v.estado] ?? 'bg-slate-700 text-slate-300 border-slate-600'}`}>
+                    {v.estado || '—'}
+                  </span>
+                  <span className="text-xs text-white truncate ml-auto text-right">{v.servicioNombre || '—'}</span>
+                </div>
+                <p className="text-[10px] text-slate-500 mt-1">
+                  {v.hora}{v.barbero ? ` · ${v.barbero}` : ''}
+                  {v.precio != null && !v.cortesia ? ` · $${Number(v.precio).toLocaleString('es-CL')}` : ''}
+                  {v.cortesia ? ' · Cortesía' : ''}
+                </p>
+                {v.nota && v.nota.trim() && (
+                  <p className="mt-1.5 flex items-start gap-1.5 text-[11px] text-amber-200/90 bg-amber-500/[0.06] border border-amber-500/20 rounded-lg px-2 py-1.5 leading-relaxed">
+                    <Scissors size={11} className="text-amber-400 shrink-0 mt-0.5" />
+                    <span className="break-words">{v.nota}</span>
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </Modal>
   );
 }
 
@@ -2220,6 +2447,7 @@ export default function Agenda() {
   const [draggedCita,   setDraggedCita]   = useState(null);
   const [reagendarModal, setReagendarModal] = useState(null);
   const [ctxMenu,       setCtxMenu]       = useState(null);  // { x, y, cita } menú clic derecho sobre una cita
+  const [histModal,     setHistModal]     = useState(null);  // cita seleccionada para ver historial/notas
   const [showDifusionModal, setShowDifusionModal] = useState(false);
   const [soloBarbero,   setSoloBarbero]   = useState(null);   // id del barbero enfocado (null = todos)
   const [labelStep,     setLabelStep]     = useState(() => Number(localStorage.getItem(SLOT_KEY)) || 15);     // minutos entre etiquetas visibles en el eje
@@ -2467,6 +2695,43 @@ export default function Agenda() {
     fecha:         cita.fecha || dateStr,
     ocupada:       false,
   });
+
+  // Cancela la cita (estado → Cancelada) y libera el lock del horario.
+  const cancelarCita = async (cita) => {
+    try {
+      const citaRef = doc(db, `${tenantCol('citas').path}/${cita.id}`);
+      if (cita.slotLockId) {
+        const batch = writeBatch(db);
+        batch.update(citaRef, { estado: 'Cancelada', slotLockId: null, updatedAt: serverTimestamp() });
+        batch.delete(doc(db, `${tenantCol('slotLocks').path}/${cita.slotLockId}`));
+        await batch.commit();
+      } else {
+        await updateDoc(citaRef, { estado: 'Cancelada', updatedAt: serverTimestamp() });
+      }
+    } catch (err) { console.error('Error al cancelar cita:', err); }
+  };
+
+  // Elimina la cita por completo + su lock.
+  const eliminarCita = async (cita) => {
+    try {
+      if (cita.slotLockId) {
+        const batch = writeBatch(db);
+        batch.delete(doc(db, `${tenantCol('citas').path}/${cita.id}`));
+        batch.delete(doc(db, `${tenantCol('slotLocks').path}/${cita.slotLockId}`));
+        await batch.commit();
+      } else {
+        await deleteDoc(doc(db, `${tenantCol('citas').path}/${cita.id}`));
+      }
+    } catch (err) { console.error('Error al eliminar cita:', err); }
+  };
+
+  // Abre WhatsApp con el mensaje de confirmación precargado.
+  const whatsappCita = (cita) => {
+    const phone = waPhone(cita.clienteTelefono);
+    if (!phone) return;
+    const msg = buildWaConfirmMsg(tenantId, cita, cita.fecha || dateStr);
+    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener');
+  };
   const openNewBloqueo = (barberoId, hora) => setBlqModal({ barberoId, hora, tipo: 'parcial' });
 
   const diaGlobalCerrado = bloqueos.some(b => b.todo_el_dia && !b.barberoId);
@@ -2854,9 +3119,25 @@ export default function Agenda() {
           x={ctxMenu.x}
           y={ctxMenu.y}
           cita={ctxMenu.cita}
+          onHistorial={() => { setHistModal(ctxMenu.cita); setCtxMenu(null); }}
           onCambiarFecha={() => { openReagendar(ctxMenu.cita); setCtxMenu(null); }}
           onEditar={() => { openEditCita(ctxMenu.cita); setCtxMenu(null); }}
+          onWhatsApp={() => { whatsappCita(ctxMenu.cita); setCtxMenu(null); }}
+          onCancelar={async () => {
+            const c = ctxMenu.cita; setCtxMenu(null);
+            if (await confirmDialog(`¿Cancelar la cita de ${c.clienteNombre || 'este cliente'}?`)) cancelarCita(c);
+          }}
+          onEliminar={async () => {
+            const c = ctxMenu.cita; setCtxMenu(null);
+            if (await confirmDialog('¿Eliminar esta cita? Esta acción no se puede deshacer.')) eliminarCita(c);
+          }}
           onClose={() => setCtxMenu(null)}
+        />
+      )}
+      {histModal && (
+        <HistorialNotasModal
+          cita={histModal}
+          onClose={() => setHistModal(null)}
         />
       )}
       {reagendarModal && (

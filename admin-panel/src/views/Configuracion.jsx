@@ -123,10 +123,28 @@ function DayRow({ diaKey, config, onChange }) {
   );
 }
 
+/* ─── Duración de turnos: presets + rango válido ─────────────────
+ * El intervalo alimenta el generador de slots de la reserva pública
+ * (booking.service.js). Un valor 0/NaN/negativo/decimal puede romper
+ * la generación (incluso un loop infinito con intervalos negativos),
+ * por eso se acota SIEMPRE a un entero dentro de [MIN, MAX].          */
+const INTERVALO_PRESETS = [15, 30, 45, 60];
+const INTERVALO_MIN = 5;
+const INTERVALO_MAX = 240;
+
+// Devuelve un entero válido dentro del rango, o null si es irrecuperable.
+function sanitizeIntervalo(raw) {
+  const n = Math.round(Number(raw));
+  if (!Number.isFinite(n) || n <= 0) return null;
+  return Math.min(INTERVALO_MAX, Math.max(INTERVALO_MIN, n));
+}
+
 /* ─── Main component ─────────────────────────────────────────── */
 export default function Configuracion() {
   const [form,          setForm]          = useState(DEFAULT_SETTINGS);
   const [intervalo,     setIntervalo]     = useState(30);
+  const [customMode,    setCustomMode]    = useState(false); // intervalo personalizado activo
+  const [customStr,     setCustomStr]     = useState('');    // valor crudo del input (solo dígitos)
   const [minutosLimite, setMinutosLimite] = useState(0);
   const [loading,       setLoading]       = useState(true);
   const [saving,    setSaving]    = useState(false);
@@ -155,7 +173,15 @@ export default function Configuracion() {
       }
       if (confSnap.exists()) {
         const cd = confSnap.data();
-        if (cd.intervaloMinutos)          setIntervalo(cd.intervaloMinutos);
+        if (cd.intervaloMinutos != null) {
+          // Sanea por si en Firestore quedó un valor inválido de antes.
+          const safe = sanitizeIntervalo(cd.intervaloMinutos) ?? 30;
+          setIntervalo(safe);
+          if (!INTERVALO_PRESETS.includes(safe)) {
+            setCustomMode(true);
+            setCustomStr(String(safe));
+          }
+        }
         if (cd.minutosLimiteReagendar !== undefined) setMinutosLimite(cd.minutosLimiteReagendar);
       }
     }).finally(() => setLoading(false));
@@ -168,8 +194,36 @@ export default function Configuracion() {
   const setFeatChair  = (k, v) => { setForm(f => ({ ...f, features: { ...f.features, chairRental: { ...f.features.chairRental, [k]: v } } })); setDirty(true); };
   const setQS = (k, v) => { setForm(f => ({ ...f, quienesSomos: { ...f.quienesSomos, [k]: v } })); setDirty(true); };
 
+  /* ── Duración de turnos: selección de preset / personalizado ── */
+  const seleccionarPreset = (mins) => { setIntervalo(mins); setCustomMode(false); setDirty(true); };
+  const activarCustom = () => { setCustomMode(true); setCustomStr(String(intervalo)); };
+  // El input SOLO acepta dígitos (bloquea '-', '.', 'e', letras) y máximo 3 cifras.
+  const onCustomChange = (v) => {
+    const digits = v.replace(/\D/g, '').slice(0, 3);
+    setCustomStr(digits);
+    const n = parseInt(digits, 10);
+    if (Number.isInteger(n) && n >= INTERVALO_MIN && n <= INTERVALO_MAX) { setIntervalo(n); setDirty(true); }
+  };
+  // Al salir del campo: clampa al rango o revierte al último valor válido.
+  const onCustomBlur = () => {
+    const safe = sanitizeIntervalo(customStr);
+    if (customStr === '' || safe == null) { setCustomStr(String(intervalo)); return; }
+    setCustomStr(String(safe));
+    setIntervalo(safe);
+    setDirty(true);
+  };
+  const customNum   = parseInt(customStr, 10);
+  const customValid = Number.isInteger(customNum) && customNum >= INTERVALO_MIN && customNum <= INTERVALO_MAX;
+  const customErr   = customMode && customStr !== '' && !customValid;
+
   const handleSave = async () => {
     if (saving) return;
+    // Blindaje: nunca persistir un intervalo fuera de rango (rompe la reserva pública).
+    const intervaloFinal = sanitizeIntervalo(intervalo);
+    if (intervaloFinal == null) {
+      setSaveErr(`La duración del turno debe ser un número entre ${INTERVALO_MIN} y ${INTERVALO_MAX} minutos.`);
+      return;
+    }
     setSaving(true);
     setSaveErr('');
     try {
@@ -191,7 +245,7 @@ export default function Configuracion() {
       await Promise.all([
         setDoc(settingsRef(), form, { merge: true }),
         setDoc(confRef(), {
-          intervaloMinutos:        intervalo,
+          intervaloMinutos:        intervaloFinal,
           minutosLimiteReagendar:  minutosLimite,
           diasLaborales,
           diasConfig,
@@ -230,8 +284,9 @@ export default function Configuracion() {
           </div>
           <p className="text-sm text-slate-500 mt-0.5">Información pública de tu local</p>
         </div>
-        <button onClick={handleSave} disabled={saving}
-          className="relative flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-sm font-semibold rounded-lg transition-all">
+        <button onClick={handleSave} disabled={saving || customErr}
+          title={customErr ? `La duración del turno debe estar entre ${INTERVALO_MIN} y ${INTERVALO_MAX} minutos.` : undefined}
+          className="relative flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg transition-all">
           {saving
             ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
             : saved
@@ -317,23 +372,74 @@ export default function Configuracion() {
         <p className="text-xs text-slate-500 -mt-1">
           Intervalo entre horas disponibles en la agenda pública de reservas.
         </p>
-        <div className="flex gap-3">
-          {[[15, '15 minutos', 'Cada cuarto de hora'], [30, '30 minutos', 'Cada media hora'], [45, '45 minutos', 'Cada tres cuartos'], [60, '1 hora', 'Cada hora completa']].map(([mins, label, sub]) => (
-            <button
-              key={mins}
-              type="button"
-              onClick={() => { setIntervalo(mins); setDirty(true); }}
-              className={`flex-1 flex flex-col items-center py-3 px-2 rounded-lg border transition-all ${
-                intervalo === mins
-                  ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400'
-                  : 'border-slate-700 text-slate-400 hover:text-white hover:border-slate-600'
-              }`}
-            >
-              <span className="text-sm font-semibold">{label}</span>
-              <span className={`text-[10px] mt-0.5 ${intervalo === mins ? 'text-emerald-500/70' : 'text-slate-600'}`}>{sub}</span>
-            </button>
-          ))}
+        <div className="flex flex-wrap gap-3">
+          {[[15, '15 minutos', 'Cada cuarto de hora'], [30, '30 minutos', 'Cada media hora'], [45, '45 minutos', 'Cada tres cuartos'], [60, '1 hora', 'Cada hora completa']].map(([mins, label, sub]) => {
+            const active = !customMode && intervalo === mins;
+            return (
+              <button
+                key={mins}
+                type="button"
+                onClick={() => seleccionarPreset(mins)}
+                className={`flex-1 min-w-[88px] flex flex-col items-center py-3 px-2 rounded-lg border transition-all ${
+                  active
+                    ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400'
+                    : 'border-slate-700 text-slate-400 hover:text-white hover:border-slate-600'
+                }`}
+              >
+                <span className="text-sm font-semibold">{label}</span>
+                <span className={`text-[10px] mt-0.5 ${active ? 'text-emerald-500/70' : 'text-slate-600'}`}>{sub}</span>
+              </button>
+            );
+          })}
+          {/* Personalizado */}
+          <button
+            type="button"
+            onClick={activarCustom}
+            className={`flex-1 min-w-[88px] flex flex-col items-center py-3 px-2 rounded-lg border transition-all ${
+              customMode
+                ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400'
+                : 'border-slate-700 text-slate-400 hover:text-white hover:border-slate-600'
+            }`}
+          >
+            <span className="text-sm font-semibold">Personalizado</span>
+            <span className={`text-[10px] mt-0.5 ${customMode ? 'text-emerald-500/70' : 'text-slate-600'}`}>
+              {customMode ? `${intervalo} min` : 'Elige tú'}
+            </span>
+          </button>
         </div>
+
+        {/* Input del intervalo personalizado */}
+        {customMode && (
+          <div className="mt-3 p-3 rounded-lg border border-slate-700 bg-slate-800/40">
+            <label className="block text-xs font-semibold text-slate-400 mb-1.5">
+              Minutos por bloque
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                inputMode="numeric"
+                value={customStr}
+                onChange={(e) => onCustomChange(e.target.value)}
+                onBlur={onCustomBlur}
+                placeholder="Ej: 20"
+                aria-invalid={customErr}
+                className={`w-28 bg-slate-900 border rounded-lg px-3 py-2 text-sm text-white text-center focus:outline-none transition-colors ${
+                  customErr ? 'border-red-500 focus:border-red-400' : 'border-slate-700 focus:border-emerald-500'
+                }`}
+              />
+              <span className="text-sm text-slate-500">minutos</span>
+            </div>
+            {customErr ? (
+              <p className="mt-1.5 text-xs text-red-400 font-medium">
+                Ingresa un número entero entre {INTERVALO_MIN} y {INTERVALO_MAX} minutos.
+              </p>
+            ) : (
+              <p className="mt-1.5 text-[11px] text-slate-500">
+                Cualquier valor entre {INTERVALO_MIN} y {INTERVALO_MAX} minutos. Define cada cuánto se ofrece un horario en la reserva pública.
+              </p>
+            )}
+          </div>
+        )}
       </Card>
 
       {/* Política de Cancelación */}
