@@ -4,7 +4,7 @@ import { Palette, Image as ImageIcon, Square, CircleUserRound, Type, CaseSensiti
 import { useEditor } from '../store';
 import ImagePicker from '../components/ImagePicker';
 import { Card, labelCls } from '../ui';
-import { THEMES, FONTS, loadFont } from '../lib/theme';
+import { THEMES, FONTS, loadFont, patternCss } from '../lib/theme';
 import type {
   ThemePreset, ButtonShape, ButtonFill, FontKey, BgMode, PatternKind, AvatarShape,
   BtnAnim, SizeKey, Weight, Caps, Spacing,
@@ -12,6 +12,14 @@ import type {
 
 const SPRING = { type: 'spring', stiffness: 400, damping: 30 } as const;
 const FONT_KEYS = Object.keys(FONTS) as FontKey[];
+
+const PATTERNS: [PatternKind, string][] = [['dots', 'Puntos'], ['grid', 'Cuadrícula'], ['diag', 'Diagonales']];
+
+const AURORAS: { name: string; c1: string; c2: string; angle: number }[] = [
+  { name: 'Aurora', c1: '#7c3aed', c2: '#22d3ee', angle: 135 },
+  { name: 'Atardecer', c1: '#fb7185', c2: '#f59e0b', angle: 120 },
+  { name: 'Bosque', c1: '#15240b', c2: '#92c83a', angle: 160 },
+];
 
 export default function Appearance(): JSX.Element {
   const { state, dispatch } = useEditor();
@@ -61,9 +69,51 @@ export default function Appearance(): JSX.Element {
           </ColorRow>
         )}
 
-        {(bg.mode === 'gradient' || bg.mode === 'animated') && (
+        {bg.mode === 'gradient' && (
           <div className="mt-5 space-y-5">
+            <div className="h-20 w-full rounded-2xl shadow-sm ring-1 ring-black/5" style={{ backgroundImage: `linear-gradient(${bg.angle}deg, ${bg.c1}, ${bg.c2})` }} />
             <ColorRow label="Degradado (dos colores)">
+              <ColorDot value={bg.c1} onChange={(c1) => dispatch({ type: 'patchBg', patch: { c1 } })} />
+              <ColorDot value={bg.c2} onChange={(c2) => dispatch({ type: 'patchBg', patch: { c2 } })} />
+            </ColorRow>
+            <div>
+              <SubLabel>Ángulo · {bg.angle}°</SubLabel>
+              <input
+                type="range" min={0} max={360} value={bg.angle}
+                onChange={(e) => dispatch({ type: 'patchBg', patch: { angle: Number(e.target.value) } })}
+                className="range-bioo"
+              />
+            </div>
+          </div>
+        )}
+
+        {bg.mode === 'animated' && (
+          <div className="mt-5 space-y-5">
+            {/* Vista previa animada en vivo */}
+            <div
+              className="h-24 w-full rounded-2xl shadow-sm ring-1 ring-black/5"
+              style={{ backgroundImage: `linear-gradient(${bg.angle}deg, ${bg.c1}, ${bg.c2})`, backgroundSize: '220% 220%', animation: 'bgshift 14s ease infinite' }}
+            />
+            <div>
+              <SubLabel>Estilos animados</SubLabel>
+              <div className="grid grid-cols-3 gap-3">
+                {AURORAS.map((a) => (
+                  <button
+                    key={a.name}
+                    type="button"
+                    onClick={() => dispatch({ type: 'patchBg', patch: { c1: a.c1, c2: a.c2, angle: a.angle } })}
+                    className="flex flex-col items-center gap-2 transition-transform hover:scale-[1.02]"
+                  >
+                    <span
+                      className="h-12 w-full rounded-xl shadow-sm ring-1 ring-black/5"
+                      style={{ backgroundImage: `linear-gradient(${a.angle}deg, ${a.c1}, ${a.c2})`, backgroundSize: '220% 220%', animation: 'bgshift 10s ease infinite' }}
+                    />
+                    <span className="text-[11px] font-semibold text-neutral-500">{a.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+            <ColorRow label="Colores">
               <ColorDot value={bg.c1} onChange={(c1) => dispatch({ type: 'patchBg', patch: { c1 } })} />
               <ColorDot value={bg.c2} onChange={(c2) => dispatch({ type: 'patchBg', patch: { c2 } })} />
             </ColorRow>
@@ -85,12 +135,25 @@ export default function Appearance(): JSX.Element {
             </ColorRow>
             <div>
               <SubLabel>Tipo de patrón</SubLabel>
-              <SlideSeg<PatternKind>
-                layoutId="pattern"
-                options={[['dots', 'Puntos'], ['grid', 'Cuadrícula'], ['diag', 'Diagonales']]}
-                value={bg.pattern}
-                onChange={(pattern) => dispatch({ type: 'patchBg', patch: { pattern } })}
-              />
+              <div className="grid grid-cols-3 gap-3">
+                {PATTERNS.map(([k, label]) => {
+                  const active = bg.pattern === k;
+                  return (
+                    <button
+                      key={k}
+                      type="button"
+                      onClick={() => dispatch({ type: 'patchBg', patch: { pattern: k } })}
+                      className="flex flex-col items-center gap-2 transition-transform hover:scale-[1.02]"
+                    >
+                      <span
+                        className={`h-16 w-full rounded-2xl shadow-sm ${active ? 'ring-2 ring-[#92c83a] ring-offset-4 ring-offset-white' : 'ring-1 ring-black/5'}`}
+                        style={{ background: patternCss(k, '#1b3a10') }}
+                      />
+                      <span className={`text-[11px] font-semibold ${active ? 'text-[#15240b]' : 'text-neutral-500'}`}>{label}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
         )}
@@ -284,7 +347,7 @@ function ColorDot({ value, onChange }: { value: string; onChange: (v: string) =>
   const safe = /^#[0-9a-fA-F]{6}$/.test(value) ? value : '#92c83a';
   return (
     <label
-      className="relative h-10 w-10 shrink-0 cursor-pointer rounded-full shadow-sm ring-1 ring-black/10 transition-transform active:scale-95"
+      className="relative h-10 w-10 shrink-0 cursor-pointer rounded-full shadow-sm ring-1 ring-black/10 transition-all focus-within:ring-2 focus-within:ring-[#92c83a] focus-within:ring-offset-2 focus-within:ring-offset-white active:scale-95"
       style={{ background: safe }}
     >
       <input

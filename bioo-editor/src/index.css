@@ -4,6 +4,9 @@
 
 :root { color-scheme: light; }
 * { box-sizing: border-box; }
+/* Reserva el ancho de la barra de scroll siempre: al abrir un modal (que pueda
+   bloquear el scroll) la página no cambia de ancho ni "salta". */
+html { scrollbar-gutter: stable; }
 html, body, #root { height: 100%; }
 body {
   margin: 0;
