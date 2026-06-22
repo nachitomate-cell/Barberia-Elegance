@@ -1,8 +1,9 @@
 import { useEffect, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
-import { Palette, Image as ImageIcon, Square, CircleUserRound, Type, CaseSensitive, type LucideIcon } from 'lucide-react';
+import { Palette, Image as ImageIcon, Square, CircleUserRound, Type, CaseSensitive } from 'lucide-react';
 import { useEditor } from '../store';
 import ImagePicker from '../components/ImagePicker';
+import { Card, labelCls } from '../ui';
 import { THEMES, FONTS, loadFont } from '../lib/theme';
 import type {
   ThemePreset, ButtonShape, ButtonFill, FontKey, BgMode, PatternKind, AvatarShape,
@@ -192,20 +193,8 @@ export default function Appearance(): JSX.Element {
 
 /* ─────────────── Helpers de UI ─────────────── */
 
-function Card({ icon: Icon, title, children }: { icon: LucideIcon; title: string; children: ReactNode }): JSX.Element {
-  return (
-    <section className="rounded-[24px] bg-white p-6 shadow-[0_2px_10px_rgba(0,0,0,0.02)] ring-1 ring-black/[0.03]">
-      <div className="mb-5 flex items-center gap-2.5">
-        <Icon size={20} className="text-[#92c83a]" />
-        <h3 className="text-lg font-bold text-[#15240b]">{title}</h3>
-      </div>
-      {children}
-    </section>
-  );
-}
-
 function SubLabel({ children, className = '' }: { children: ReactNode; className?: string }): JSX.Element {
-  return <p className={`mb-3 text-sm font-semibold uppercase tracking-wider text-neutral-500 ${className}`}>{children}</p>;
+  return <p className={`${labelCls} ${className}`}>{children}</p>;
 }
 
 /** Control segmentado deslizable estilo iOS (indicador animado con layoutId). */
