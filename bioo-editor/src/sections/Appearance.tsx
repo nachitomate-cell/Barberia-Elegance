@@ -1,37 +1,47 @@
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { motion } from 'framer-motion';
 import { Palette, Image as ImageIcon, Square, CircleUserRound, Type, CaseSensitive, type LucideIcon } from 'lucide-react';
 import { useEditor } from '../store';
 import ImagePicker from '../components/ImagePicker';
-import { THEMES, FONTS } from '../lib/theme';
+import { THEMES, FONTS, loadFont } from '../lib/theme';
 import type {
   ThemePreset, ButtonShape, ButtonFill, FontKey, BgMode, PatternKind, AvatarShape,
   BtnAnim, SizeKey, Weight, Caps, Spacing,
 } from '../types';
 
 const SPRING = { type: 'spring', stiffness: 400, damping: 30 } as const;
+const FONT_KEYS = Object.keys(FONTS) as FontKey[];
 
 export default function Appearance(): JSX.Element {
   const { state, dispatch } = useEditor();
   const t = state.theme;
   const bg = t.bg;
 
+  // Carga todas las fuentes para que el selector las muestre en su tipografía real.
+  useEffect(() => { FONT_KEYS.forEach(loadFont); }, []);
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       {/* ── Tema ── */}
       <Card icon={Palette} title="Tema">
-        <div className="grid grid-cols-3 gap-2.5">
-          {(Object.keys(THEMES) as ThemePreset[]).map((key) => (
-            <button
-              key={key}
-              type="button"
-              onClick={() => dispatch({ type: 'patchTheme', patch: { preset: key } })}
-              className={`rounded-2xl border-2 p-1.5 transition-colors ${t.preset === key ? 'border-[#92c83a]' : 'border-transparent hover:border-neutral-200'}`}
-            >
-              <div className="h-12 rounded-xl" style={{ background: THEMES[key].bg }} />
-              <span className="mt-1.5 block text-[11px] font-semibold text-neutral-600">{THEMES[key].name}</span>
-            </button>
-          ))}
+        <div className="grid grid-cols-3 gap-x-4 gap-y-3">
+          {(Object.keys(THEMES) as ThemePreset[]).map((key) => {
+            const active = t.preset === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => dispatch({ type: 'patchTheme', patch: { preset: key } })}
+                className="group transition-transform hover:scale-[1.02]"
+              >
+                <div
+                  className={`h-14 rounded-2xl shadow-sm transition-shadow ${active ? 'ring-2 ring-[#92c83a] ring-offset-4 ring-offset-white' : 'ring-1 ring-black/5'}`}
+                  style={{ background: THEMES[key].bg }}
+                />
+                <span className={`mt-3 block text-center text-[11px] font-semibold ${active ? 'text-[#15240b]' : 'text-neutral-500'}`}>{THEMES[key].name}</span>
+              </button>
+            );
+          })}
         </div>
       </Card>
 
@@ -45,13 +55,13 @@ export default function Appearance(): JSX.Element {
         />
 
         {bg.mode === 'color' && (
-          <ColorRow className="mt-4" label="Color de fondo">
+          <ColorRow className="mt-5" label="Color de fondo">
             <ColorDot value={bg.color} onChange={(color) => dispatch({ type: 'patchBg', patch: { color } })} />
           </ColorRow>
         )}
 
         {(bg.mode === 'gradient' || bg.mode === 'animated') && (
-          <div className="mt-4 space-y-4">
+          <div className="mt-5 space-y-5">
             <ColorRow label="Degradado (dos colores)">
               <ColorDot value={bg.c1} onChange={(c1) => dispatch({ type: 'patchBg', patch: { c1 } })} />
               <ColorDot value={bg.c2} onChange={(c2) => dispatch({ type: 'patchBg', patch: { c2 } })} />
@@ -68,7 +78,7 @@ export default function Appearance(): JSX.Element {
         )}
 
         {bg.mode === 'pattern' && (
-          <div className="mt-4 space-y-4">
+          <div className="mt-5 space-y-5">
             <ColorRow label="Color de fondo">
               <ColorDot value={bg.color} onChange={(color) => dispatch({ type: 'patchBg', patch: { color } })} />
             </ColorRow>
@@ -85,7 +95,7 @@ export default function Appearance(): JSX.Element {
         )}
 
         {bg.mode === 'image' && (
-          <div className="mt-4">
+          <div className="mt-5">
             <ImagePicker value={bg.image} onChange={(image) => dispatch({ type: 'patchBg', patch: { image } })} maxW={1080} label="Subir imagen" />
           </div>
         )}
@@ -96,7 +106,7 @@ export default function Appearance(): JSX.Element {
         <SubLabel>Forma</SubLabel>
         <ShapePicker value={t.shape} onChange={(shape) => dispatch({ type: 'patchTheme', patch: { shape } })} />
 
-        <SubLabel className="mt-4">Estilo</SubLabel>
+        <SubLabel className="mt-6">Estilo</SubLabel>
         <SlideSeg<ButtonFill>
           layoutId="fill"
           options={[['solid', 'Relleno'], ['outline', 'Contorno']]}
@@ -104,7 +114,7 @@ export default function Appearance(): JSX.Element {
           onChange={(fill) => dispatch({ type: 'patchTheme', patch: { fill } })}
         />
 
-        <SubLabel className="mt-4">Animación</SubLabel>
+        <SubLabel className="mt-6">Animación</SubLabel>
         <SlideSeg<BtnAnim>
           layoutId="btnAnim"
           options={[['none', 'Ninguna'], ['float', 'Levitar'], ['pulse', 'Pulso'], ['grow', 'Crecer']]}
@@ -121,9 +131,9 @@ export default function Appearance(): JSX.Element {
           value={t.avatarShape}
           onChange={(avatarShape) => dispatch({ type: 'patchTheme', patch: { avatarShape } })}
         />
-        <div className="mt-4 flex items-center gap-3">
+        <div className="mt-5 flex items-center gap-3">
           <ColorDot value={t.avatarRing || '#ffffff'} onChange={(v) => dispatch({ type: 'patchTheme', patch: { avatarRing: v } })} />
-          <span className="text-xs font-semibold text-neutral-400">Color del anillo</span>
+          <span className="text-sm font-semibold text-neutral-500">Color del anillo</span>
           <button
             type="button"
             onClick={() => dispatch({ type: 'patchTheme', patch: { avatarRing: '' } })}
@@ -136,17 +146,29 @@ export default function Appearance(): JSX.Element {
 
       {/* ── Fuente ── */}
       <Card icon={Type} title="Fuente">
-        <SlideSeg<FontKey>
-          layoutId="font"
-          options={(Object.keys(FONTS) as FontKey[]).map((k) => [k, FONTS[k].name] as [FontKey, string])}
-          value={t.font}
-          onChange={(font) => dispatch({ type: 'patchTheme', patch: { font } })}
-        />
+        <div className="grid grid-cols-2 gap-3">
+          {FONT_KEYS.map((k) => {
+            const active = t.font === k;
+            return (
+              <button
+                key={k}
+                type="button"
+                onClick={() => dispatch({ type: 'patchTheme', patch: { font: k } })}
+                style={{ fontFamily: FONTS[k].stack }}
+                className={`rounded-2xl border p-4 text-center transition-colors ${
+                  active ? 'border-[#92c83a] bg-[#92c83a]/10' : 'border-neutral-200 hover:border-neutral-300'
+                }`}
+              >
+                <span className="text-xl font-bold text-[#15240b]">{FONTS[k].name}</span>
+              </button>
+            );
+          })}
+        </div>
       </Card>
 
       {/* ── Texto ── */}
       <Card icon={CaseSensitive} title="Texto">
-        <div className="space-y-4">
+        <div className="space-y-5">
           <LabeledSeg<SizeKey> layoutId="titleSize" label="Tamaño del título" value={t.text.titleSize}
             options={[['s', 'Chico'], ['m', 'Mediano'], ['l', 'Grande']]}
             onChange={(titleSize) => dispatch({ type: 'patchText', patch: { titleSize } })} />
@@ -172,9 +194,10 @@ export default function Appearance(): JSX.Element {
 
 function Card({ icon: Icon, title, children }: { icon: LucideIcon; title: string; children: ReactNode }): JSX.Element {
   return (
-    <section className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-black/[0.04]">
-      <div className="mb-4 flex items-center gap-2 text-sm font-bold text-neutral-800">
-        <Icon size={16} className="text-[#72a129]" /> {title}
+    <section className="rounded-[24px] bg-white p-6 shadow-[0_2px_10px_rgba(0,0,0,0.02)] ring-1 ring-black/[0.03]">
+      <div className="mb-5 flex items-center gap-2.5">
+        <Icon size={20} className="text-[#92c83a]" />
+        <h3 className="text-lg font-bold text-[#15240b]">{title}</h3>
       </div>
       {children}
     </section>
@@ -182,7 +205,7 @@ function Card({ icon: Icon, title, children }: { icon: LucideIcon; title: string
 }
 
 function SubLabel({ children, className = '' }: { children: ReactNode; className?: string }): JSX.Element {
-  return <p className={`mb-2 text-xs font-semibold text-neutral-400 ${className}`}>{children}</p>;
+  return <p className={`mb-3 text-sm font-semibold uppercase tracking-wider text-neutral-500 ${className}`}>{children}</p>;
 }
 
 /** Control segmentado deslizable estilo iOS (indicador animado con layoutId). */
@@ -190,7 +213,7 @@ function SlideSeg<T extends string>({ layoutId, options, value, onChange }: {
   layoutId: string; options: [T, string][]; value: T; onChange: (v: T) => void;
 }): JSX.Element {
   return (
-    <div className="no-scrollbar flex gap-1 overflow-x-auto rounded-xl bg-neutral-50 p-1">
+    <div className="no-scrollbar flex gap-1 overflow-x-auto rounded-xl bg-neutral-100/80 p-1">
       {options.map(([v, label]) => {
         const active = v === value;
         return (
@@ -198,7 +221,7 @@ function SlideSeg<T extends string>({ layoutId, options, value, onChange }: {
             key={v}
             type="button"
             onClick={() => onChange(v)}
-            className={`relative isolate flex-1 shrink-0 whitespace-nowrap rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+            className={`relative isolate flex-1 shrink-0 whitespace-nowrap rounded-lg px-3.5 py-2 text-xs font-semibold transition-colors ${
               active ? 'text-[#15240b]' : 'text-neutral-500 hover:text-neutral-700'
             }`}
           >
@@ -234,10 +257,10 @@ const SHAPES: [ButtonShape, string, string][] = [
   ['pill', 'Píldora', 'rounded-full'],
 ];
 
-/** Selector gráfico de forma del botón. */
+/** Selector gráfico de forma del botón (muestra activa en verde lima). */
 function ShapePicker({ value, onChange }: { value: ButtonShape; onChange: (v: ButtonShape) => void }): JSX.Element {
   return (
-    <div className="grid grid-cols-3 gap-2.5">
+    <div className="grid grid-cols-3 gap-3">
       {SHAPES.map(([v, label, rad]) => {
         const active = value === v;
         return (
@@ -245,12 +268,12 @@ function ShapePicker({ value, onChange }: { value: ButtonShape; onChange: (v: Bu
             key={v}
             type="button"
             onClick={() => onChange(v)}
-            className={`flex flex-col items-center gap-2.5 rounded-2xl border-2 p-3 transition-colors ${
-              active ? 'border-[#92c83a] bg-[#92c83a]/5' : 'border-neutral-200 hover:border-neutral-300'
+            className={`flex flex-col items-center gap-3 rounded-2xl border p-4 transition-colors ${
+              active ? 'border-[#92c83a] bg-[#92c83a]/10' : 'border-neutral-200 hover:border-neutral-300'
             }`}
           >
-            <span className={`h-6 w-full ${rad} ${active ? 'bg-[#92c83a]' : 'bg-neutral-300'}`} />
-            <span className="text-[11px] font-semibold text-neutral-600">{label}</span>
+            <span className={`h-7 w-full ${rad} transition-colors ${active ? 'bg-[#92c83a]' : 'bg-[#15240b]'}`} />
+            <span className="text-xs font-semibold text-neutral-600">{label}</span>
           </button>
         );
       })}
