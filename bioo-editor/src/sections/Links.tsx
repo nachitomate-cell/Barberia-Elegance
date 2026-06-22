@@ -3,7 +3,7 @@ import { Reorder } from 'framer-motion';
 import {
   Plus, Trash2, Star, GripVertical, X,
   Link2, MessageCircle, Instagram, Music2, Facebook, Youtube, Mail, Phone,
-  Type, Minus, Image as ImageIcon, PlaySquare, Share2, MailPlus,
+  Type, Minus, Image as ImageIcon, PlaySquare, Share2, MailPlus, Coffee,
   RectangleHorizontal, Square, Maximize2, Sparkles, type LucideIcon,
 } from 'lucide-react';
 import { useEditor, newBlock } from '../store';
@@ -28,16 +28,17 @@ const TIPOS: { id: BlockType; label: string }[] = [
   { id: 'embed', label: 'Multimedia (Video/Audio)' },
   { id: 'social', label: 'Fila social' },
   { id: 'newsletter', label: 'Suscripción' },
+  { id: 'tip', label: 'Recibir Propinas' },
 ];
 
 const TYPE_ICON: Record<BlockType, LucideIcon> = {
   enlace: Link2, whatsapp: MessageCircle, instagram: Instagram, tiktok: Music2,
   facebook: Facebook, youtube: Youtube, email: Mail, telefono: Phone,
   texto: Type, separador: Minus, imagen: ImageIcon, embed: PlaySquare, social: Share2,
-  newsletter: MailPlus,
+  newsletter: MailPlus, tip: Coffee,
 };
 
-const SPECIAL: BlockType[] = ['texto', 'separador', 'imagen', 'embed', 'social', 'newsletter'];
+const SPECIAL: BlockType[] = ['texto', 'separador', 'imagen', 'embed', 'social', 'newsletter', 'tip'];
 const isLinkType = (t: BlockType): boolean => !SPECIAL.includes(t);
 
 export default function Links(): JSX.Element {
@@ -165,7 +166,7 @@ function LinkCard({ block }: { block: Block }): JSX.Element {
 
       {/* Barra de herramientas */}
       <div className="mt-1.5 flex items-center justify-between gap-2">
-        {block.tipo !== 'newsletter' && block.tipo !== 'separador' && block.tipo !== 'embed'
+        {block.tipo !== 'newsletter' && block.tipo !== 'separador' && block.tipo !== 'embed' && block.tipo !== 'tip'
           ? <SizePicker value={block.layoutSize ?? 'full'} onChange={(v) => patch({ layoutSize: v })} />
           : <span />}
         <div className="flex items-center gap-0.5">
@@ -333,6 +334,39 @@ function SpecialBody({ block, patch }: { block: Block; patch: (p: Partial<Block>
           </div>
         </div>
       );
+    case 'tip': {
+      const amounts = block.amounts ?? [3, 5, 10];
+      const setAmt = (i: number, v: string): void => {
+        const n = Math.max(0, Math.round(Number(v) || 0));
+        patch({ amounts: amounts.map((a, j) => (j === i ? n : a)) });
+      };
+      return (
+        <div className="space-y-1 pt-0.5">
+          <input className={titleInput} placeholder="Invítame un café ☕" value={block.label} onChange={(e) => patch({ label: e.target.value })} />
+          <input className={subInput} placeholder="Tu apoyo me ayuda a crear más contenido" value={block.subtitulo ?? ''} onChange={(e) => patch({ subtitulo: e.target.value })} />
+          <div className="flex items-center gap-2 pt-1.5">
+            <span className="shrink-0 text-[11px] font-bold uppercase tracking-wide text-gray-400">Montos</span>
+            {amounts.slice(0, 3).map((a, i) => (
+              <input
+                key={i}
+                type="number"
+                min={0}
+                inputMode="numeric"
+                value={a}
+                onChange={(e) => setAmt(i, e.target.value)}
+                className="w-14 rounded-lg bg-gray-50 px-2 py-1.5 text-center text-sm font-semibold text-gray-800 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#92c83a]"
+              />
+            ))}
+            <input
+              value={block.currency ?? 'USD'}
+              onChange={(e) => patch({ currency: e.target.value.toUpperCase().slice(0, 4) })}
+              placeholder="USD"
+              className="w-14 rounded-lg bg-gray-50 px-2 py-1.5 text-center text-xs font-bold uppercase text-gray-500 focus:bg-white focus:outline-none"
+            />
+          </div>
+        </div>
+      );
+    }
     default:
       return <></>;
   }

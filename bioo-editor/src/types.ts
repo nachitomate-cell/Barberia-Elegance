@@ -1,7 +1,7 @@
 export type BlockType =
   | 'enlace' | 'whatsapp' | 'instagram' | 'tiktok' | 'facebook'
   | 'youtube' | 'email' | 'telefono' | 'texto' | 'separador'
-  | 'imagen' | 'embed' | 'social' | 'newsletter';
+  | 'imagen' | 'embed' | 'social' | 'newsletter' | 'tip';
 
 export type SocialNet =
   | 'instagram' | 'tiktok' | 'facebook' | 'youtube' | 'whatsapp' | 'email' | 'telefono' | 'enlace';
@@ -34,6 +34,9 @@ export interface Block {
   // Bloque de captura de leads / newsletter
   subtitulo?: string;
   btnText?: string;
+  // Bloque de propina / tip jar
+  amounts?: number[];
+  currency?: string;
 }
 
 export type ThemePreset =

@@ -102,15 +102,18 @@ export function useEditor(): EditorCtx {
 export function newBlock(tipo: BlockType): Block {
   const needsPhone = tipo === 'whatsapp' || tipo === 'telefono';
   const news = tipo === 'newsletter';
+  const tip = tipo === 'tip';
   return recompute({
     id: 'l' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
     tipo,
-    label: news ? 'Únete a mi Newsletter' : '',
+    label: news ? 'Únete a mi Newsletter' : tip ? 'Invítame un café ☕' : '',
     url: '',
     activo: true,
     prefijo: needsPhone ? '56' : undefined,
     socials: tipo === 'social' ? [{ red: 'instagram', valor: '' }] : undefined,
-    subtitulo: news ? 'Recibe mis mejores tips cada semana' : undefined,
+    subtitulo: news ? 'Recibe mis mejores tips cada semana' : tip ? 'Tu apoyo me ayuda a seguir creando contenido' : undefined,
     btnText: news ? 'Suscribirme' : undefined,
+    amounts: tip ? [3, 5, 10] : undefined,
+    currency: tip ? 'USD' : undefined,
   });
 }

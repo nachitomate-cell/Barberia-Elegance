@@ -1,8 +1,13 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import { Instagram, Facebook, Youtube, MessageCircle, Mail, Phone, Globe, Music2, type LucideIcon } from 'lucide-react';
 import { THEMES, SHAPE_RADIUS, FONTS, TSIZE, SSIZE, TWEIGHT, TSPACE, bgCss, bgAnimStyle, loadFont } from '../lib/theme';
 import { embedSrc, socUrl } from '../lib/blocks';
 import type { BioState, Block, SocialNet } from '../types';
+
+type Palette = (typeof THEMES)[keyof typeof THEMES];
+
+const curSymbol = (c?: string): string => (c === 'EUR' ? '€' : c === 'GBP' ? '£' : c === 'BRL' ? 'R$' : '$');
 
 const SOCIAL_ICON: Record<SocialNet, LucideIcon> = {
   instagram: Instagram, tiktok: Music2, facebook: Facebook, youtube: Youtube,
@@ -16,7 +21,7 @@ function renderable(b: Block): boolean {
   if (b.tipo === 'imagen') return !!(b.img || '').trim();
   if (b.tipo === 'embed') return !!(b.url || '').trim();
   if (b.tipo === 'social') return (b.socials ?? []).some((s) => (s.valor || '').trim());
-  if (b.tipo === 'newsletter') return true;
+  if (b.tipo === 'newsletter' || b.tipo === 'tip') return true;
   return !!((b.label || '').trim() || (b.url || '').trim());
 }
 
@@ -134,6 +139,9 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
                 </div>
               );
             }
+            if (b.tipo === 'tip') {
+              return <TipBlock key={b.id} b={b} p={p} radius={radius} />;
+            }
             const fillStyle =
               theme.fill === 'outline'
                 ? { background: 'transparent', color: p.text, border: `1.5px solid ${p.btnBorder === 'transparent' ? p.text : p.btnBorder}` }
@@ -182,6 +190,53 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
           <span aria-hidden>⚡</span> Creado gratis en bioo.cl
         </a>
       </div>
+    </div>
+  );
+}
+
+/** Bloque de propina interactivo (selección de monto + flujo simulado de pago). */
+function TipBlock({ b, p, radius }: { b: Block; p: Palette; radius: string }): JSX.Element {
+  const amounts = b.amounts && b.amounts.length ? b.amounts : [3, 5, 10];
+  const sym = curSymbol(b.currency);
+  const [sel, setSel] = useState<number>(amounts[0]);
+  const [status, setStatus] = useState<'idle' | 'processing' | 'done'>('idle');
+
+  const send = (): void => {
+    if (status !== 'idle') return;
+    setStatus('processing');
+    setTimeout(() => setStatus('done'), 1200);
+  };
+
+  return (
+    <div className="col-span-2 rounded-2xl bg-white/90 p-4 text-center shadow-md backdrop-blur-sm">
+      <p className="text-sm font-bold text-neutral-900">{b.label || 'Apóyame'}</p>
+      {b.subtitulo && <p className="mt-0.5 text-xs leading-snug text-neutral-500">{b.subtitulo}</p>}
+      <div className="mt-3 flex flex-wrap justify-center gap-2">
+        {amounts.map((a, i) => {
+          const on = sel === a;
+          return (
+            <motion.button
+              key={i}
+              type="button"
+              whileTap={{ scale: 0.9 }}
+              onClick={() => status === 'idle' && setSel(a)}
+              className={`rounded-full border px-4 py-2 text-sm font-bold transition-colors ${on ? 'border-transparent' : 'border-neutral-200 bg-white text-neutral-700'}`}
+              style={on ? { background: p.btnBg, color: p.btnText } : undefined}
+            >
+              {sym}{a}
+            </motion.button>
+          );
+        })}
+      </div>
+      <button
+        type="button"
+        onClick={send}
+        disabled={status !== 'idle'}
+        className="mt-3 w-full py-2.5 text-sm font-bold shadow-sm transition-transform active:scale-95 disabled:cursor-default"
+        style={{ background: status === 'done' ? '#16a34a' : p.btnBg, color: status === 'done' ? '#fff' : p.btnText, borderRadius: radius }}
+      >
+        {status === 'idle' ? `Enviar apoyo · ${sym}${sel}` : status === 'processing' ? 'Procesando…' : '¡Gracias por tu apoyo! 🎉'}
+      </button>
     </div>
   );
 }
