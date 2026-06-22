@@ -263,10 +263,17 @@ exports.stripeWebhook = onRequest(
         const qs = await admin.firestore()
           .collection('bio_users').where('stripeAccountId', '==', account.id).limit(1).get();
         if (!qs.empty) {
-          await qs.docs[0].ref.set({
+          const userDoc = qs.docs[0];
+          await userDoc.ref.set({
             stripeReady: ready,
             stripeUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
           }, { merge: true });
+          // Espejo público del flag (boolean no sensible) para el panel admin.
+          const username = userDoc.data().username;
+          if (username) {
+            await admin.firestore().collection('bios').doc(String(username))
+              .set({ stripeReady: ready }, { merge: true });
+          }
         }
       } catch (e) {
         console.error('Webhook account.updated: error guardando estado:', e);
