@@ -8658,7 +8658,7 @@
           // Usuario logueado: mostrar sello ganado + datos prefilled
           let stampsHtml = '';
           if (typeof db !== 'undefined') {
-            FDB.usersCol().doc(user.uid).get().then(doc => {
+            FDB.usersCol().doc(user.uid).get().then(async doc => {
               const data = doc.exists ? doc.data() : {};
               const sellos = data.sellos || 0;
               const el = document.getElementById('step4StampsCount');
@@ -8666,6 +8666,27 @@
               if (data.telefono && !document.getElementById('clientPhone').value) {
                 document.getElementById('clientPhone').value = data.telefono;
               }
+              // ── Sellos que sumará esta visita según el rango del cliente ──
+              // Espejo de sellosPorVisita() en functions/sello-automatico.js:
+              // el rango se deriva de sellosHistoricos y la config vive en
+              // {tenant}/configuracion/rangos (elegance: raíz). Default 1.
+              try {
+                const historicos = Number(data.sellosHistoricos ?? data.stamps ?? sellos) || 0;
+                const rangoId = historicos >= 25 ? 'platinum' : historicos >= 10 ? 'gold' : 'silver';
+                const tid = window.CURRENT_TENANT_ID;
+                const ref = (tid === 'elegance')
+                  ? db.collection('configuracion').doc('rangos')
+                  : db.collection('tenants').doc(tid).collection('configuracion').doc('rangos');
+                const cfg = await ref.get();
+                let n = 1;
+                if (cfg.exists) {
+                  const r = (cfg.data().rangos || []).find(x => x.id === rangoId);
+                  const m = r ? Math.round(Number(r.sellosPorVisita)) : NaN;
+                  if (Number.isFinite(m) && m >= 0) n = m;
+                }
+                const elGanar = document.getElementById('step4SellosGanar');
+                if (elGanar) elGanar.textContent = '+' + n + (n === 1 ? ' sello' : ' sellos');
+              } catch (_) {}
             }).catch(console.error);
           }
 
@@ -8687,7 +8708,7 @@
               </div>
               <div class="sello-stamp-bar flex items-center gap-2 px-5 py-2.5 border-t" style="background:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.05);border-color:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.15);">
                 <i class="ph-fill ph-seal-check text-sm" style="color:var(--accent);"></i>
-                <p class="text-xs font-semibold text-white/60">Esta visita sumará <span class="font-black" style="color:var(--accent);">+1 sello</span> a tu cuenta</p>
+                <p class="text-xs font-semibold text-white/60">Esta visita sumará <span id="step4SellosGanar" class="font-black" style="color:var(--accent);">+1 sello</span> a tu cuenta</p>
               </div>
             </div>
           `;
