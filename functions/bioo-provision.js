@@ -511,3 +511,71 @@ exports.provisionPartnerUser = onRequest(
     }
   }
 );
+
+// ── 4. biooEditorBridge (CALLABLE) — SSO 1-click desde gestión-interna ────────
+//  El usuario YA está autenticado en el panel (mismo proyecto Firebase). Con su
+//  sesión, este callable asegura/crea su bio en bioo.cl (idempotente por email) y
+//  devuelve un customToken para abrir bioo.cl/editor?token=... sin re-login.
+//  No usa el secreto compartido: la identidad la prueba Firebase Auth.
+exports.biooEditorBridge = onCall(
+  { region: 'us-central1', cors: true, secrets: [BIOO_ADMIN_SA] },
+  async (request) => {
+    const auth = request.auth;
+    if (!auth) throw new HttpsError('unauthenticated', 'Debes iniciar sesión.');
+    const callerUid = auth.uid;
+    const email = String((auth.token && auth.token.email) || '').trim().toLowerCase();
+    if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      throw new HttpsError('failed-precondition', 'Tu cuenta no tiene un correo asociado.');
+    }
+    const name = String((request.data && request.data.name) || '').trim().slice(0, 80);
+    const wantHandle = (request.data && request.data.handle) || '';
+
+    const now = FieldValue.serverTimestamp();
+    const idxRef = db.collection('bio_email_owners').doc(email);
+    const idxSnap = await idxRef.get();
+    let handle = (idxSnap.exists && idxSnap.data().handle) ? idxSnap.data().handle : null;
+    let ownerUid = callerUid;
+
+    if (handle) {
+      const bioRef = db.collection('bios').doc(handle);
+      const bioSnap = await bioRef.get();
+      if (bioSnap.exists) {
+        const bio = bioSnap.data();
+        if (bio.ownerEmail && bio.ownerEmail !== email) {
+          throw new HttpsError('permission-denied', 'Ese bioo pertenece a otra cuenta.');
+        }
+        ownerUid = bio.uid || callerUid;
+        const batch = db.batch();
+        if (!bio.uid) batch.update(bioRef, { uid: ownerUid, updatedAt: now });
+        batch.set(db.collection('bio_users').doc(ownerUid), { username: handle, email, createdAt: now }, { merge: true });
+        await batch.commit();
+      } else {
+        handle = null; // el índice apuntaba a un bio borrado → re-provisionar
+      }
+    }
+
+    if (!handle) {
+      handle = await freeHandle(wantHandle || name || email.split('@')[0]);
+      const bioDoc = {
+        uid: callerUid,
+        ownerEmail: email,
+        username: handle,
+        perfil: { titulo: name || handle, subtitulo: '', avatar: '', cover: '', verified: false },
+        bloques: [],
+        source: 'gestion-interna',
+        createdAt: now,
+        updatedAt: now,
+      };
+      const batch = db.batch();
+      batch.set(db.collection('bios').doc(handle), bioDoc, { merge: true });
+      batch.set(idxRef, { handle, email, source: 'gestion-interna', createdAt: now }, { merge: true });
+      batch.set(db.collection('bio_users').doc(callerUid), { username: handle, email, createdAt: now }, { merge: true });
+      await batch.commit();
+      ownerUid = callerUid;
+    }
+
+    const customToken = await signerAuth().createCustomToken(ownerUid);
+    logger.info(`[bioo] editor bridge handle=${handle} email=${email}`);
+    return { customToken, handle, publicUrl: BIOO_BASE + '/' + encodeURIComponent(handle) };
+  },
+);

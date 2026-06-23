@@ -3,11 +3,12 @@ import {
   Link2, Calendar, MessageCircle, Instagram, Star, MapPin, Type, AlignLeft,
   Share2, Youtube, Plus, Trash2, ArrowUp, ArrowDown, Eye, EyeOff, Lock,
   ExternalLink, Copy, Check, GripVertical, ChevronRight, BarChart3,
-  Users, Mail, Building2, QrCode, Download, Crown, Sparkles,
+  Users, Mail, Building2, QrCode, Download, Crown, Sparkles, Loader2, Rocket,
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { doc, getDoc, setDoc, deleteDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
-import { db } from '../lib/firebase';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { db, auth } from '../lib/firebase';
 import { tenantDoc, resolveTenantId } from '../lib/tenantUtils';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 
@@ -82,7 +83,31 @@ export default function LinkBio() {
   const [addOpen, setAddOpen] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [stats, setStats]   = useState({ views: 0, clicks: {} });
+  const [bridging, setBridging] = useState(false);   // SSO a bioo.cl en curso
   const origHandleRef = useRef('');   // handle guardado (para detectar cambios)
+
+  // ── Puente SSO a bioo.cl (One-Click) ──────────────────────────────────────
+  // Pide un customToken al backend (autenticado por la sesión actual del panel)
+  // y abre el editor premium ya logueado, sin re-login.
+  const handleUpgradeToBioo = async () => {
+    if (bridging) return;
+    setBridging(true);
+    try {
+      const fns = getFunctions(auth.app, 'us-central1');
+      const call = httpsCallable(fns, 'biooEditorBridge');
+      const res = await call({
+        name: (cfg && cfg.perfil && cfg.perfil.titulo) || cfg?.handle || '',
+        handle: (cfg && cfg.handle) || '',
+      });
+      const token = res && res.data && res.data.customToken;
+      if (!token) throw new Error('sin_token');
+      window.location.href = `https://bioo.cl/editor?token=${encodeURIComponent(token)}`;
+    } catch (e) {
+      console.error('[bioo bridge]', e);
+      alert('No se pudo abrir el editor premium: ' + ((e && e.message) || 'error desconocido'));
+      setBridging(false);   // restaura el botón (si fue éxito, ya redirige)
+    }
+  };
 
   // Carga inicial: config del bio + estado Pro (controlado por el superadmin)
   useEffect(() => {
@@ -239,25 +264,30 @@ export default function LinkBio() {
         </div>
       </div>
 
-      {/* CTA: integración premium con bioo.cl → su propio bioo */}
-      <a
-        href={bioUrl}
-        target="_blank"
-        rel="noopener"
-        className="group flex items-center gap-3.5 rounded-xl p-4 mb-4 border border-lime-500/30 hover:border-lime-400/70 bg-gradient-to-r from-lime-500/[0.12] via-lime-400/[0.05] to-transparent shadow-lg shadow-lime-950/10 hover:shadow-lime-900/20 transition-all"
-      >
-        <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-lime-400/25 to-lime-500/10 border border-lime-400/30 flex items-center justify-center shrink-0">
-          <Sparkles size={19} className="text-lime-300" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-sm font-bold text-white">¿Quieres más opciones de edición?</p>
-            <span className="text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-lime-500/15 text-lime-300 border border-lime-400/25">Integración bioo.cl</span>
+      {/* CTA Premium: puente SSO One-Click a bioo.cl */}
+      <div className="rounded-2xl p-5 mb-4 bg-gradient-to-r from-slate-900 to-slate-800 border border-white/10 shadow-xl shadow-black/20">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-xl bg-lime-400/15 border border-lime-400/25 flex items-center justify-center shrink-0">
+            <Sparkles size={18} className="text-lime-300" />
           </div>
-          <p className="text-xs text-slate-400 mt-0.5">Tu Link in Bio está <span className="text-lime-300 font-semibold">potenciado por bioo.cl</span> — desbloquea temas, fondos y animaciones premium en tu página.</p>
+          <div className="min-w-0">
+            <p className="text-base font-bold text-white">✨ Sube de nivel con bioo.cl PRO</p>
+            <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+              Desbloquea fondos animados, temas premium, captura de correos y pagos directos. Todo en un diseño nivel Apple.
+            </p>
+          </div>
         </div>
-        <ExternalLink size={16} className="text-lime-300 shrink-0 transition-transform group-hover:translate-x-0.5" />
-      </a>
+        <button
+          type="button"
+          onClick={handleUpgradeToBioo}
+          disabled={bridging}
+          className="mt-4 w-full flex items-center justify-center gap-2 rounded-xl bg-lime-400 hover:bg-lime-300 disabled:opacity-60 disabled:cursor-default text-slate-900 text-sm font-bold py-3 transition-all active:scale-[0.99]"
+        >
+          {bridging
+            ? <><Loader2 size={16} className="animate-spin" /> Conectando…</>
+            : <><Rocket size={16} /> Abrir Editor Premium</>}
+        </button>
+      </div>
 
       {/* Dirección pública en bioo.cl */}
       <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 mb-4">
