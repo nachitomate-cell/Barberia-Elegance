@@ -4,7 +4,7 @@ import {
   Plus, Trash2, Star, GripVertical, X,
   Link2, MessageCircle, Instagram, Music2, Facebook, Youtube, Mail, Phone,
   Type, Minus, Image as ImageIcon, PlaySquare, Share2, MailPlus, Coffee, Lock, AlertTriangle,
-  RectangleHorizontal, Square, Maximize2, Sparkles, type LucideIcon,
+  RectangleHorizontal, Square, Maximize2, Sparkles, BarChart3, type LucideIcon,
 } from 'lucide-react';
 import { useEditor, newBlock } from '../store';
 import { fileToDataUrl } from '../lib/image';
@@ -101,14 +101,14 @@ export default function Links(): JSX.Element {
           <button
             type="button"
             onClick={() => setPicker(true)}
-            className="flex items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 py-4 text-sm font-bold text-[#72a129] transition-colors hover:border-[#92c83a] hover:bg-[#92c83a]/5"
+            className="flex items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-gray-300 bg-gray-50 py-4 text-sm font-bold text-[#72a129] transition-all hover:border-[#92c83a] hover:bg-[#92c83a]/5 active:scale-[0.98]"
           >
             <Plus size={18} strokeWidth={2.5} /> Enlace
           </button>
           <button
             type="button"
             onClick={() => dispatch({ type: 'addBlock', block: newBlock('newsletter') })}
-            className="flex items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-[#92c83a]/40 bg-[#92c83a]/10 py-4 text-sm font-bold text-[#72a129] transition-colors hover:border-[#92c83a] hover:bg-[#92c83a]/15"
+            className="flex items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-[#92c83a]/40 bg-[#92c83a]/10 py-4 text-sm font-bold text-[#72a129] transition-all hover:border-[#92c83a] hover:bg-[#92c83a]/15 active:scale-[0.98]"
           >
             <MailPlus size={18} strokeWidth={2.3} /> Suscripción
           </button>
@@ -121,7 +121,7 @@ export default function Links(): JSX.Element {
           <Reorder.Item
             key={b.id}
             value={b}
-            className="group rounded-2xl bg-white p-3.5 shadow-sm ring-1 ring-black/[0.05] transition-shadow hover:shadow-md"
+            className="group rounded-[24px] bg-white p-4 shadow-sm ring-1 ring-black/[0.03] transition-shadow hover:shadow-md"
           >
             <LinkCard block={b} />
           </Reorder.Item>
@@ -138,9 +138,9 @@ export default function Links(): JSX.Element {
 /* ─────────────── Tarjeta de enlace ─────────────── */
 
 const titleInput =
-  'w-full rounded-lg bg-transparent px-2 py-1 text-base font-semibold text-gray-900 placeholder-gray-400 transition-colors focus:bg-gray-50 focus:outline-none';
+  'w-full border-none bg-transparent p-0 text-base font-semibold text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-0';
 const subInput =
-  'w-full rounded-lg bg-transparent px-2 py-1 text-sm text-gray-500 placeholder-gray-400 transition-colors focus:bg-gray-50 focus:outline-none';
+  'w-full border-none bg-transparent p-0 text-sm font-medium text-gray-500 placeholder-gray-400 focus:outline-none focus:ring-0';
 
 function LinkCard({ block }: { block: Block }): JSX.Element {
   const { dispatch } = useEditor();
@@ -166,11 +166,8 @@ function LinkCard({ block }: { block: Block }): JSX.Element {
           {link ? (
             <>
               <input className={titleInput} placeholder="Título del enlace" value={block.label} onChange={(e) => patch({ label: e.target.value })} />
-              <div className="mt-0.5 flex items-center gap-2">
-                <ThumbBox block={block} patch={patch} />
-                <div className="min-w-0 flex-1">
-                  <SecondLine block={block} patch={patch} />
-                </div>
+              <div className="mt-1">
+                <SecondLine block={block} patch={patch} />
               </div>
             </>
           ) : (
@@ -182,12 +179,18 @@ function LinkCard({ block }: { block: Block }): JSX.Element {
         <Toggle on={block.activo} onChange={(v) => patch({ activo: v })} />
       </div>
 
-      {/* Barra de herramientas */}
-      <div className="mt-1.5 flex items-center justify-between gap-2">
+      {/* Acciones rápidas (fila inferior, separada por borde tenue) */}
+      <div className="mt-3 flex items-center justify-between gap-2 border-t border-gray-100 pt-2.5">
         {block.tipo !== 'newsletter' && block.tipo !== 'separador' && block.tipo !== 'embed' && block.tipo !== 'tip' && block.tipo !== 'paywall'
           ? <SizePicker value={block.layoutSize ?? 'full'} onChange={(v) => patch({ layoutSize: v })} />
           : <span />}
         <div className="flex items-center gap-0.5">
+          {link && <ThumbAction block={block} patch={patch} />}
+          {link && (
+            <button type="button" title="Estadísticas (pronto)" className="cursor-default rounded-lg p-1.5 text-gray-300">
+              <BarChart3 size={16} />
+            </button>
+          )}
           {link && (
             <button
               type="button"
@@ -248,18 +251,20 @@ function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void 
   );
 }
 
-/** Placeholder cuadrado dashed para la miniatura — sube una imagen al tocar. */
-function ThumbBox({ block, patch }: { block: Block; patch: (p: Partial<Block>) => void }): JSX.Element {
+/** Acción "Añadir miniatura" — icono de la fila inferior; muestra el thumb si existe. */
+function ThumbAction({ block, patch }: { block: Block; patch: (p: Partial<Block>) => void }): JSX.Element {
   const ref = useRef<HTMLInputElement>(null);
   return (
     <>
       <button
         type="button"
         onClick={() => ref.current?.click()}
-        title="Miniatura"
-        className="grid h-10 w-10 shrink-0 place-items-center overflow-hidden rounded-lg border-2 border-dashed border-gray-300 text-gray-400 transition-colors hover:border-[#92c83a] hover:text-[#72a129]"
+        title="Añadir miniatura"
+        className="grid place-items-center rounded-lg p-1.5 text-gray-300 transition-colors hover:text-[#72a129]"
       >
-        {block.thumb ? <img src={block.thumb} alt="" className="h-full w-full rounded-md object-cover" /> : <ImageIcon size={16} />}
+        {block.thumb
+          ? <img src={block.thumb} alt="" className="h-[18px] w-[18px] rounded object-cover ring-1 ring-black/10" />
+          : <ImageIcon size={16} />}
       </button>
       <input
         ref={ref}
