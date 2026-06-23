@@ -24,6 +24,8 @@ const DOMAIN_MAP = {
   'thelatincaribe.synaptechspa.cl':    'latincaribe',
   'yugenstudio.synaptechspa.cl':       'yugen',
   'yugen.synaptechspa.cl':             'yugen',
+  'yugenstudio.cl':                    'yugen',
+  'www.yugenstudio.cl':                'yugen',
   'machos.synaptechspa.cl':            'machos',
   'infinity.synaptechspa.cl':          'infinity',
   'studiodieciseis.synaptechspa.cl':   'sionbarberia',

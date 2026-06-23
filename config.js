@@ -37,6 +37,8 @@
     'alfamen.synaptechspa.cl':            'alfamen',
     'yugenstudio.synaptechspa.cl':        'yugen',
     'yugen.synaptechspa.cl':              'yugen',
+    'yugenstudio.cl':                     'yugen',
+    'www.yugenstudio.cl':                 'yugen',
     'sandbox.synaptechspa.cl':            'sandbox',
     'kronnospenablanca.synaptechspa.cl':  'kronnos_penablanca',
     'kronnos-penablanca.synaptechspa.cl': 'kronnos_penablanca',
