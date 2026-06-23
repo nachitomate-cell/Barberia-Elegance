@@ -864,7 +864,10 @@
     .tenant-yugen button[onclick="switchTab('reset')"],
     .tenant-kronnos_woman #panelLogin .relative,
     .tenant-kronnos_woman #panelRegister .relative,
-    .tenant-kronnos_woman button[onclick="switchTab('reset')"] {
+    .tenant-kronnos_woman button[onclick="switchTab('reset')"],
+    .tenant-sionbarberia #panelLogin .relative,
+    .tenant-sionbarberia #panelRegister .relative,
+    .tenant-sionbarberia button[onclick="switchTab('reset')"] {
       display: none !important;
     }
     /* Mostrar campos de contraseña en Aura y Lumen si hay fallback de contraseña custom */
@@ -1152,6 +1155,27 @@
     .btn-google:active { transform: scale(0.97); }
 
     /* ══════════ YŪGEN STUDIO — registro · dark zen marfil + sello 玄 ══════════ */
+    /* ── Studio Dieciséis — tema monocromático B&N (blanco, no dorado) ── */
+    .tenant-sionbarberia { --gold: #FAFAFA; --gold-dim: rgba(250,250,250,0.16); }
+    .tenant-sionbarberia body { background-color: #0a0a0a; }
+    .tenant-sionbarberia .ambient-glow { background: radial-gradient(circle, rgba(250,250,250,0.05) 0%, transparent 65%); }
+    .tenant-sionbarberia .logo-ring {
+      border: 2px solid rgba(250,250,250,0.35);
+      box-shadow: 0 0 0 1px rgba(250,250,250,0.08), 0 0 28px rgba(250,250,250,0.10), 0 0 50px rgba(250,250,250,0.04);
+    }
+    .tenant-sionbarberia .tab-btn.active { color: #FAFAFA; border-color: #FAFAFA; }
+    .tenant-sionbarberia .field { background: #161616; border-color: rgba(250,250,250,0.14); }
+    .tenant-sionbarberia .field::placeholder { color: rgba(250,250,250,0.35); }
+    .tenant-sionbarberia .field:focus { border-color: #FAFAFA; box-shadow: 0 0 0 1px rgba(250,250,250,0.55); }
+    .tenant-sionbarberia input:-webkit-autofill,
+    .tenant-sionbarberia input:-webkit-autofill:hover,
+    .tenant-sionbarberia input:-webkit-autofill:focus { -webkit-box-shadow: 0 0 0 100px #161616 inset !important; }
+    .tenant-sionbarberia .btn-primary { background: #FAFAFA; border-color: #FAFAFA; color: #0a0a0a; }
+    .tenant-sionbarberia .btn-primary:hover { background: #ffffff; border-color: #ffffff; }
+    .tenant-sionbarberia .btn-google { background: #161616; border-color: rgba(250,250,250,0.14); }
+    .tenant-sionbarberia .btn-google:hover { background: #1f1f1f; border-color: rgba(250,250,250,0.25); }
+    .tenant-sionbarberia .spinner { border-top-color: #FAFAFA !important; }
+
     .tenant-yugen { --gold: #f5f3ef; --gold-dim: rgba(245,243,239,0.16); }
     .tenant-yugen body { background-color: #0b0a09; }
     .tenant-yugen .ambient-glow { background: radial-gradient(circle, rgba(245,243,239,0.06) 0%, transparent 65%); }
@@ -1536,7 +1560,7 @@
   // ── Tenants "passwordless" (Club sin contraseña): el cliente entra solo con
   // su email; el sistema usa una password fija interna por tenant. Hoy: aura y
   // lumen (D'Jones). Para sumar otro, agregarlo al array.
-  const PASSWORDLESS_TENANTS = ['aura', 'latincaribe', 'lumen', 'kronnos_penablanca', 'kronnos_limache', 'kronnos_woman', 'yugen'];
+  const PASSWORDLESS_TENANTS = ['aura', 'latincaribe', 'lumen', 'kronnos_penablanca', 'kronnos_limache', 'kronnos_woman', 'yugen', 'sionbarberia'];
   function isPasswordless() {
     return PASSWORDLESS_TENANTS.includes(window.CURRENT_TENANT_ID);
   }
@@ -1548,6 +1572,7 @@
     if (tid === 'kronnos_penablanca' || tid === 'kronnos_limache' || tid === 'kronnos_woman')
       return 'KronnosLoyaltyPassword2026!';
     if (tid === 'yugen') return 'YugenLoyaltyPassword2026!';
+    if (tid === 'sionbarberia') return 'DieciseisLoyaltyPassword2026!';
     return 'AuraLoyaltyPassword2026!';
   }
   auth.onAuthStateChanged(user => {

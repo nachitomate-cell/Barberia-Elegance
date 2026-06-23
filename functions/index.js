@@ -823,3 +823,15 @@ exports.createStripeCheckout = paymentsStripe.createStripeCheckout;
 exports.verifyUnlock         = paymentsStripe.verifyUnlock;
 exports.stripeWebhook        = paymentsStripe.stripeWebhook;
 exports.onboardStripeUser    = paymentsStripe.onboardStripeUser;
+
+// ─────────────────────────────────────────────────────────────────
+//  BIOO — pagos marketplace con Mercado Pago (Chile/LatAm). ver
+//  payments-mp.js. Requiere los secretos MP_APP_ID y MP_APP_SECRET.
+//  Convive con Stripe: el cliente elige proveedor según lo conectado.
+// ─────────────────────────────────────────────────────────────────
+const paymentsMp = require('./payments-mp');
+exports.mpBioConnect       = paymentsMp.mpBioConnect;
+exports.mpBioOAuthCallback = paymentsMp.mpBioOAuthCallback;
+exports.mpBioCheckout      = paymentsMp.mpBioCheckout;
+exports.mpBioWebhook       = paymentsMp.mpBioWebhook;
+exports.mpBioVerify        = paymentsMp.mpBioVerify;

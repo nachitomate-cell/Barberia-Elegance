@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Instagram, Facebook, Youtube, MessageCircle, Mail, Phone, Globe, Music2, Lock, type LucideIcon } from 'lucide-react';
 import { THEMES, SHAPE_RADIUS, FONTS, TSIZE, SSIZE, TWEIGHT, TSPACE, bgCss, bgAnimStyle, bgFxKind, bgFxVars, bgFxHasBlobs, loadFont } from '../lib/theme';
 import { embedSrc, socUrl } from '../lib/blocks';
-import { createCheckoutSession } from '../lib/payments';
+import { startCheckout } from '../lib/payments';
 import type { BioState, Block, SocialNet } from '../types';
 
 type Palette = (typeof THEMES)[keyof typeof THEMES];
@@ -153,8 +153,8 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
                     />
                     <button
                       type="button"
-                      className="w-full py-2 text-sm font-bold shadow-sm"
-                      style={{ background: p.btnBg, color: p.btnText, borderRadius: radius }}
+                      className="w-full bg-gray-900 py-2 text-sm font-bold text-white shadow-sm transition-colors hover:bg-gray-800"
+                      style={{ borderRadius: radius }}
                     >
                       {b.btnText || 'Suscribirme'}
                     </button>
@@ -163,10 +163,10 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
               );
             }
             if (b.tipo === 'tip') {
-              return <TipBlock key={b.id} b={b} p={p} radius={radius} username={state.username} />;
+              return <TipBlock key={b.id} b={b} radius={radius} username={state.username} />;
             }
             if (b.tipo === 'paywall') {
-              return <PaywallBlock key={b.id} b={b} p={p} radius={radius} username={state.username} />;
+              return <PaywallBlock key={b.id} b={b} radius={radius} username={state.username} />;
             }
             const fillStyle =
               theme.fill === 'outline'
@@ -222,7 +222,7 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
 }
 
 /** Bloque de propina interactivo: selección de monto + Stripe Checkout real. */
-function TipBlock({ b, p, radius, username }: { b: Block; p: Palette; radius: string; username: string }): JSX.Element {
+function TipBlock({ b, radius, username }: { b: Block; radius: string; username: string }): JSX.Element {
   const amounts = b.amounts && b.amounts.length ? b.amounts : [3, 5, 10];
   const sym = curSymbol(b.currency);
   const [sel, setSel] = useState<number>(amounts[0]);
@@ -232,8 +232,8 @@ function TipBlock({ b, p, radius, username }: { b: Block; p: Palette; radius: st
     if (status !== 'idle') return;
     setStatus('processing');
     try {
-      const { checkoutUrl } = await createCheckoutSession(b.id, username, sel);
-      window.location.href = checkoutUrl;
+      const { url } = await startCheckout(b.id, username, sel);
+      window.location.href = url;
     } catch {
       setStatus('error');
       setTimeout(() => setStatus('idle'), 2500);
@@ -253,8 +253,7 @@ function TipBlock({ b, p, radius, username }: { b: Block; p: Palette; radius: st
               type="button"
               whileTap={{ scale: 0.9 }}
               onClick={() => status === 'idle' && setSel(a)}
-              className={`rounded-full border px-4 py-2 text-sm font-bold transition-colors ${on ? 'border-transparent' : 'border-neutral-200 bg-white text-neutral-700'}`}
-              style={on ? { background: p.btnBg, color: p.btnText } : undefined}
+              className={`rounded-full border px-4 py-2 text-sm font-bold transition-colors ${on ? 'border-transparent bg-gray-900 text-white' : 'border-neutral-200 bg-gray-100 text-gray-800'}`}
             >
               {sym}{a}
             </motion.button>
@@ -265,8 +264,8 @@ function TipBlock({ b, p, radius, username }: { b: Block; p: Palette; radius: st
         type="button"
         onClick={send}
         disabled={status !== 'idle'}
-        className="mt-3 w-full py-2.5 text-sm font-bold shadow-sm transition-transform active:scale-95 disabled:cursor-default"
-        style={{ background: status === 'error' ? '#dc2626' : p.btnBg, color: status === 'error' ? '#fff' : p.btnText, borderRadius: radius }}
+        className={`mt-3 w-full py-2.5 text-sm font-bold text-white shadow-sm transition active:scale-95 disabled:cursor-default ${status === 'error' ? 'bg-red-600' : 'bg-gray-900 hover:bg-gray-800'}`}
+        style={{ borderRadius: radius }}
       >
         {status === 'idle' ? `Enviar apoyo · ${sym}${sel}` : status === 'processing' ? 'Redirigiendo a pago seguro…' : 'No se pudo iniciar el pago'}
       </button>
@@ -275,7 +274,7 @@ function TipBlock({ b, p, radius, username }: { b: Block; p: Palette; radius: st
 }
 
 /** Bloque paywall / producto digital (estilo Gumroad). Inicia Stripe Checkout real. */
-function PaywallBlock({ b, p, radius, username }: { b: Block; p: Palette; radius: string; username: string }): JSX.Element {
+function PaywallBlock({ b, radius, username }: { b: Block; radius: string; username: string }): JSX.Element {
   const sym = curSymbol(b.currency);
   const price = typeof b.price === 'number' ? b.price : 0;
   const [status, setStatus] = useState<'idle' | 'processing' | 'error'>('idle');
@@ -284,8 +283,8 @@ function PaywallBlock({ b, p, radius, username }: { b: Block; p: Palette; radius
     if (status !== 'idle') return;
     setStatus('processing');
     try {
-      const { checkoutUrl } = await createCheckoutSession(b.id, username);
-      window.location.href = checkoutUrl; // redirige a Stripe
+      const { url } = await startCheckout(b.id, username);
+      window.location.href = url; // redirige a Stripe
     } catch {
       setStatus('error');
       setTimeout(() => setStatus('idle'), 2500);
@@ -304,8 +303,8 @@ function PaywallBlock({ b, p, radius, username }: { b: Block; p: Palette; radius
         type="button"
         onClick={buy}
         disabled={status !== 'idle'}
-        className="mt-3 flex w-full items-center justify-center gap-2 py-3 text-sm font-bold shadow-sm transition-transform active:scale-95 disabled:cursor-default"
-        style={{ background: status === 'error' ? '#dc2626' : p.btnBg, color: status === 'error' ? '#fff' : p.btnText, borderRadius: radius }}
+        className={`mt-3 flex w-full items-center justify-center gap-2 py-3 text-sm font-bold text-white shadow-sm transition active:scale-95 disabled:cursor-default ${status === 'error' ? 'bg-red-600' : 'bg-gray-900 hover:bg-gray-800'}`}
+        style={{ borderRadius: radius }}
       >
         {status === 'idle'
           ? <><Lock size={14} /> Desbloquear por {sym}{price}</>

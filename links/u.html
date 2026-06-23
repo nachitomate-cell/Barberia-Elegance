@@ -63,7 +63,7 @@
   .u-news-i{width:100%;border:1px solid #e5e7eb;background:#f9fafb;border-radius:12px;padding:11px 13px;font-size:15px;color:#15240b;outline:none;transition:.13s;}
   .u-news-i:focus{border-color:#cbd5e1;background:#fff;}
   .u-news-i:disabled{opacity:.6;}
-  .u-news-b{display:flex;align-items:center;justify-content:center;width:100%;border:0;border-radius:14px;padding:13px 16px;font-size:15px;font-weight:800;cursor:pointer;transition:.13s;}
+  .u-news-b{display:flex;align-items:center;justify-content:center;width:100%;border:0;border-radius:14px;padding:13px 16px;font-size:15px;font-weight:800;cursor:pointer;transition:.13s;background:#111827;color:#fff;box-shadow:0 1px 2px rgba(0,0,0,.08);}
   .u-news-b:disabled{opacity:.85;cursor:default;}
   .u-news-msg{font-size:12.5px;font-weight:600;margin-top:8px;}
   /* Bloque de propina (tip jar) */
@@ -71,10 +71,10 @@
   .u-tip-t{font-size:15.5px;font-weight:800;line-height:1.3;color:#15240b;}
   .u-tip-s{font-size:13px;color:#6b7280;margin-top:4px;line-height:1.4;}
   .u-tip-row{display:flex;justify-content:center;flex-wrap:wrap;gap:8px;margin-top:13px;}
-  .u-tip-amt{border:1.5px solid #e5e7eb;background:#fff;color:#374151;border-radius:100px;padding:9px 17px;font-size:14px;font-weight:800;cursor:pointer;transition:transform .12s ease,background .12s ease,border-color .12s ease,color .12s ease;}
+  .u-tip-amt{border:1.5px solid #e5e7eb;background:#f3f4f6;color:#1f2937;border-radius:100px;padding:9px 17px;font-size:14px;font-weight:800;cursor:pointer;transition:transform .12s ease,background .12s ease,border-color .12s ease,color .12s ease;}
   .u-tip-amt:active{transform:scale(.9);}
-  .u-tip-amt.on{border-color:transparent;background:#15240b;color:#fff;transform:scale(1.05);}
-  .u-tip-send{display:block;width:100%;border:0;border-radius:14px;padding:13px 16px;margin-top:13px;font-size:15px;font-weight:800;cursor:pointer;transition:.13s;}
+  .u-tip-amt.on{border-color:transparent;background:#111827;color:#fff;transform:scale(1.05);}
+  .u-tip-send{display:block;width:100%;border:0;border-radius:14px;padding:13px 16px;margin-top:13px;font-size:15px;font-weight:800;cursor:pointer;transition:.13s;background:#111827;color:#fff;box-shadow:0 1px 2px rgba(0,0,0,.08);}
   .u-tip-send:disabled{opacity:.92;cursor:default;}
   /* Bloque paywall / producto digital */
   .u-pw{width:100%;background:rgba(255,255,255,.95);border-radius:24px;padding:20px 16px;text-align:center;box-shadow:0 6px 22px rgba(21,36,11,.14);backdrop-filter:blur(4px);}
@@ -82,8 +82,10 @@
   .u-pw-lock{width:15px;height:15px;color:#9ca3af;flex:none;}
   .u-pw-s{font-size:13px;color:#6b7280;margin-top:5px;line-height:1.45;}
   .u-pw-price{font-size:32px;font-weight:900;letter-spacing:-1px;margin-top:12px;color:#15240b;}
-  .u-pw-buy{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;border:0;border-radius:14px;padding:14px 16px;margin-top:12px;font-size:15px;font-weight:800;cursor:pointer;transition:.13s;}
+  .u-pw-buy{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;border:0;border-radius:14px;padding:14px 16px;margin-top:12px;font-size:15px;font-weight:800;cursor:pointer;transition:.13s;background:#111827;color:#fff;box-shadow:0 1px 2px rgba(0,0,0,.08);}
   .u-pw-buy:disabled{opacity:.92;cursor:default;}
+  /* CTAs de tarjeta (newsletter/tip/paywall): alto contraste forzado sobre fondo claro (WCAG AA) */
+  .u-news-b:hover,.u-tip-send:hover,.u-pw-buy:hover{background:#1f2937;}
   .u-pw-note{font-size:10.5px;color:#9ca3af;margin-top:9px;}
   /* Overlay de verificación de pago (retorno desde Stripe) */
   .pay-ov{position:fixed;inset:0;z-index:9999;display:none;align-items:center;justify-content:center;background:rgba(15,23,11,.55);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);padding:24px;}
@@ -357,7 +359,7 @@
       if (t.fill === 'outline') btn = 'background:transparent;color:'+p.text+';border:1.5px solid '+p.text+';';
       else btn = 'background:'+p.btnBg+';color:'+p.btnText+';border:1.5px solid '+p.btnBorder+';';
       btn += 'border-radius:'+radius+';';
-      return { p:p, btn:btn };
+      return { p:p, btn:btn, radius:radius };
     }
     var bioRef = null;
 
@@ -551,7 +553,7 @@
                  +    '<div class="u-news-t">'+nTit+'</div>'+nSub
                  +    '<form class="u-news-f">'
                  +      '<input type="email" class="u-news-i" placeholder="tucorreo@email.com" autocomplete="email" required>'
-                 +      '<button type="submit" class="u-news-b" style="'+css.btn+(tx.btnColor?('color:'+tx.btnColor+';'):'')+'">'+nBtn+'</button>'
+                 +      '<button type="submit" class="u-news-b" style="border-radius:'+css.radius+';">'+nBtn+'</button>'
                  +    '</form>'
                  +    '<div class="u-news-msg" hidden></div>'
                  +  '</div>';
@@ -566,7 +568,7 @@
             html += '<div class="u-tip fade b-full" data-block="'+esc(b.id||'')+'" data-sym="'+esc(sym)+'" style="animation-delay:'+(0.1+i*0.04)+'s;">'
                  +    '<div class="u-tip-t">'+tTit+'</div>'+tSub
                  +    '<div class="u-tip-row">'+pills+'</div>'
-                 +    '<button type="button" class="u-tip-send" style="'+css.btn+(tx.btnColor?('color:'+tx.btnColor+';'):'')+'">Enviar apoyo</button>'
+                 +    '<button type="button" class="u-tip-send" style="border-radius:'+css.radius+';">Enviar apoyo</button>'
                  +  '</div>';
             return;
           }
@@ -578,7 +580,7 @@
             html += '<div class="u-pw fade b-full" data-block="'+esc(b.id||'')+'" data-price="'+esc(pwSym+pwPrice)+'" style="animation-delay:'+(0.1+i*0.04)+'s;">'
                  +    '<div class="u-pw-t"><svg class="u-pw-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>'+pwTit+'</div>'+pwSub
                  +    '<div class="u-pw-price">'+pwSym+esc(String(pwPrice))+'</div>'
-                 +    '<button type="button" class="u-pw-buy" style="'+css.btn+(tx.btnColor?('color:'+tx.btnColor+';'):'')+'">Desbloquear por '+pwSym+esc(String(pwPrice))+'</button>'
+                 +    '<button type="button" class="u-pw-buy" style="border-radius:'+css.radius+';">Desbloquear por '+pwSym+esc(String(pwPrice))+'</button>'
                  +    '<div class="u-pw-note">Pago seguro · Acceso inmediato</div>'
                  +  '</div>';
             return;
@@ -630,7 +632,23 @@
         });
       });
 
-      // Propinas (tip jar) — flujo simulado en el front (sin pasarela aún).
+      // Inicia el cobro con el proveedor que el creador tenga conectado.
+      // Prioriza Mercado Pago (Chile); cae a Stripe. Ambos devuelven { data.url }.
+      function startCheckout(blockId, amount){
+        if (data.mpReady) {
+          var mpReq = { blockId: blockId, username: user };
+          if (amount != null) mpReq.amount = amount;
+          return firebase.functions().httpsCallable('mpBioCheckout')(mpReq);
+        }
+        if (data.stripeReady) {
+          var stReq = { blockId: blockId, username: user, origin: location.origin + '/' + user };
+          if (amount != null) stReq.amount = amount;
+          return firebase.functions().httpsCallable('createStripeCheckout')(stReq);
+        }
+        return Promise.reject(new Error('sin-proveedor'));
+      }
+
+      // Propinas (tip jar) — pasarela real (MP marketplace o Stripe Connect).
       Array.prototype.forEach.call(wrap.querySelectorAll('.u-tip'), function(card){
         var pills = card.querySelectorAll('.u-tip-amt');
         var send  = card.querySelector('.u-tip-send');
@@ -651,9 +669,7 @@
           if (!blockId || !sel) return;
           var prev = send.textContent;
           send.disabled = true; send.textContent = 'Redirigiendo a pago seguro…';
-          firebase.functions().httpsCallable('createStripeCheckout')({
-            blockId: blockId, username: user, origin: location.origin + '/' + user, amount: Number(sel)
-          }).then(function(r){
+          startCheckout(blockId, Number(sel)).then(function(r){
             if (r && r.data && r.data.url) { location.href = r.data.url; } else { throw new Error('sin-url'); }
           }).catch(function(){
             send.disabled = false; send.textContent = 'No se pudo iniciar el pago';
@@ -662,7 +678,7 @@
         });
       });
 
-      // Paywall / producto digital — Stripe Checkout real (Cloud Function callable).
+      // Paywall / producto digital — pasarela real (MP marketplace o Stripe Connect).
       Array.prototype.forEach.call(wrap.querySelectorAll('.u-pw'), function(card){
         var buy = card.querySelector('.u-pw-buy');
         var blockId = card.getAttribute('data-block');
@@ -671,9 +687,7 @@
           if (buy.disabled) return;
           if (!blockId){ return; }
           buy.disabled = true; buy.textContent = 'Redirigiendo a pago seguro…';
-          firebase.functions().httpsCallable('createStripeCheckout')({
-            blockId: blockId, username: user, origin: location.origin + '/' + user
-          }).then(function(r){
+          startCheckout(blockId, null).then(function(r){
             if (r && r.data && r.data.url) { location.href = r.data.url; }
             else { throw new Error('sin-url'); }
           }).catch(function(){
@@ -744,12 +758,17 @@
       }
     }
 
-    // Retorno desde Stripe: si la URL trae ?session_id, verifica el pago en el
-    // backend (verifyUnlock) y muestra el botón de acceso a la hiddenUrl.
+    // Retorno desde la pasarela: verifica el pago en el backend y muestra el
+    // botón de acceso a la hiddenUrl. Soporta Stripe (?session_id → verifyUnlock)
+    // y Mercado Pago (?mp_order → mpBioVerify).
     function handlePaymentReturn(){
-      var sid = null;
-      try { sid = new URLSearchParams(location.search).get('session_id'); } catch(e){}
-      if (!sid) return;
+      var sid = null, mpOrder = null;
+      try {
+        var qp = new URLSearchParams(location.search);
+        sid = qp.get('session_id');
+        mpOrder = qp.get('mp_order');
+      } catch(e){}
+      if (!sid && !mpOrder) return;
       var ov = document.getElementById('payOv'); if (!ov) return;
       var spin = document.getElementById('paySpin'), ico = document.getElementById('payIco');
       var title = document.getElementById('payTitle'), msg = document.getElementById('payMsg');
@@ -757,7 +776,10 @@
       ov.style.display = 'flex';
       closeX.addEventListener('click', function(){ ov.style.display = 'none'; });
       try { history.replaceState({}, '', location.origin + '/' + user); } catch(e){}
-      firebase.functions().httpsCallable('verifyUnlock')({ sessionId: sid })
+      var verify = mpOrder
+        ? firebase.functions().httpsCallable('mpBioVerify')({ username: user, orderId: mpOrder })
+        : firebase.functions().httpsCallable('verifyUnlock')({ sessionId: sid });
+      verify
         .then(function(r){
           var d = (r && r.data) || {};
           spin.style.display = 'none'; ico.style.display = 'flex';

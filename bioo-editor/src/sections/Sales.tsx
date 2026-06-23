@@ -3,7 +3,7 @@ import { onAuthStateChanged, type User } from 'firebase/auth';
 import { CircleDollarSign, TrendingUp, Landmark, Loader2, AlertTriangle } from 'lucide-react';
 import { auth } from '../lib/firebase';
 import { watchSales, formatMoney, type Sale } from '../lib/sales';
-import { useStripeAccount, onboardStripe } from '../lib/connect';
+import { useStripeAccount, onboardStripe, useMpAccount, connectMercadoPago } from '../lib/connect';
 import { useEditor } from '../store';
 
 const fmtDate = new Intl.DateTimeFormat('es-CL', {
@@ -14,33 +14,43 @@ export default function Sales(): JSX.Element {
   const { state } = useEditor();
   const username = state.username;
   const [user, setUser] = useState<User | null>(auth.currentUser);
-  const { accountId, ready, loading: connLoading } = useStripeAccount();
+  const { accountId, ready: stripeReady, loading: l1 } = useStripeAccount();
+  const { ready: mpReady, loading: l2 } = useMpAccount();
   const [sales, setSales] = useState<Sale[] | null>(null);
-  const [connecting, setConnecting] = useState(false);
+  const [connecting, setConnecting] = useState<'' | 'stripe' | 'mp'>('');
 
   useEffect(() => onAuthStateChanged(auth, setUser), []);
 
-  // Suscripción EN VIVO al historial de ventas (solo con la cuenta lista).
+  // "Conectado" = cualquiera de los dos proveedores listo para cobrar.
+  const connected = stripeReady || mpReady;
+  const connLoading = l1 || l2;
+
+  // Suscripción EN VIVO al historial de ventas (solo con un proveedor listo).
   useEffect(() => {
-    if (!user || !username || !accountId || !ready) { setSales(null); return; }
+    if (!user || !username || !connected) { setSales(null); return; }
     const unsub = watchSales(username, setSales, () => setSales([]));
     return () => unsub();
-  }, [user, username, accountId, ready]);
+  }, [user, username, connected]);
 
   if (!user) return <Notice>Inicia sesión para ver tus ventas.</Notice>;
   if (connLoading) return <Notice>Cargando…</Notice>;
 
-  const connect = async (): Promise<void> => {
-    setConnecting(true);
-    try {
-      window.location.href = await onboardStripe();
-    } catch {
-      setConnecting(false);
-    }
+  const connectStripe = async (): Promise<void> => {
+    setConnecting('stripe');
+    try { window.location.href = await onboardStripe(); } catch { setConnecting(''); }
+  };
+  const connectMp = async (): Promise<void> => {
+    setConnecting('mp');
+    try { window.location.href = await connectMercadoPago(); } catch { setConnecting(''); }
   };
 
-  if (!accountId) return <ConnectState onConnect={connect} connecting={connecting} />;
-  if (!ready) return <IncompleteState onContinue={connect} connecting={connecting} />;
+  if (!connected) {
+    // Stripe a medio configurar (cuenta creada pero sin charges_enabled).
+    if (accountId && !stripeReady && !mpReady) {
+      return <IncompleteState onContinue={connectStripe} connecting={connecting === 'stripe'} onConnectMp={connectMp} connectingMp={connecting === 'mp'} />;
+    }
+    return <ConnectState onConnectStripe={connectStripe} connectingStripe={connecting === 'stripe'} onConnectMp={connectMp} connectingMp={connecting === 'mp'} />;
+  }
 
   const list = sales ?? [];
   const count = list.length;
@@ -98,29 +108,56 @@ export default function Sales(): JSX.Element {
   );
 }
 
-function ConnectState({ onConnect, connecting }: { onConnect: () => void; connecting: boolean }): JSX.Element {
+function MpButton({ onClick, connecting, label }: { onClick: () => void; connecting: boolean; label: string }): JSX.Element {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={connecting}
+      className="flex items-center gap-2 rounded-xl bg-[#009ee3] px-5 py-3 text-sm font-bold text-white shadow-sm transition-transform active:scale-95 disabled:opacity-70"
+    >
+      {connecting ? <><Loader2 size={16} className="animate-spin" /> Redirigiendo…</> : label}
+    </button>
+  );
+}
+
+function StripeButton({ onClick, connecting, label }: { onClick: () => void; connecting: boolean; label: string }): JSX.Element {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={connecting}
+      className="flex items-center gap-2 rounded-xl bg-[#635bff] px-5 py-3 text-sm font-bold text-white shadow-sm transition-transform active:scale-95 disabled:opacity-70"
+    >
+      {connecting ? <><Loader2 size={16} className="animate-spin" /> Redirigiendo…</> : label}
+    </button>
+  );
+}
+
+function ConnectState({ onConnectStripe, connectingStripe, onConnectMp, connectingMp }: {
+  onConnectStripe: () => void; connectingStripe: boolean; onConnectMp: () => void; connectingMp: boolean;
+}): JSX.Element {
   return (
     <div className="flex flex-col items-center rounded-[24px] bg-white px-6 py-12 text-center shadow-[0_2px_10px_rgba(0,0,0,0.02)] ring-1 ring-black/[0.03]">
-      <span className="grid h-16 w-16 place-items-center rounded-full bg-[#635bff]/12 text-[#635bff]">
+      <span className="grid h-16 w-16 place-items-center rounded-full bg-[#92c83a]/15 text-[#72a129]">
         <Landmark size={30} />
       </span>
-      <p className="mt-4 text-lg font-bold text-neutral-800">Recibe pagos directamente en tu cuenta bancaria</p>
+      <p className="mt-4 text-lg font-bold text-neutral-800">Recibe pagos directamente en tu cuenta</p>
       <p className="mt-1 max-w-sm text-sm text-neutral-500">
-        Conecta tu cuenta con Stripe para cobrar propinas y productos. El dinero llega a tu banco automáticamente; bioo solo retiene una pequeña comisión.
+        Conecta un medio de pago para cobrar propinas y productos. El dinero llega a tu cuenta automáticamente; bioo solo retiene una pequeña comisión.
       </p>
-      <button
-        type="button"
-        onClick={onConnect}
-        disabled={connecting}
-        className="mt-5 flex items-center gap-2 rounded-xl bg-[#635bff] px-5 py-3 text-sm font-bold text-white shadow-sm transition-transform active:scale-95 disabled:opacity-70"
-      >
-        {connecting ? <><Loader2 size={16} className="animate-spin" /> Redirigiendo…</> : <>Conectar con Stripe</>}
-      </button>
+      <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+        <MpButton onClick={onConnectMp} connecting={connectingMp} label="Conectar Mercado Pago" />
+        <StripeButton onClick={onConnectStripe} connecting={connectingStripe} label="Conectar Stripe" />
+      </div>
+      <p className="mt-3 text-xs text-neutral-400">Mercado Pago para Chile · Stripe para pagos internacionales</p>
     </div>
   );
 }
 
-function IncompleteState({ onContinue, connecting }: { onContinue: () => void; connecting: boolean }): JSX.Element {
+function IncompleteState({ onContinue, connecting, onConnectMp, connectingMp }: {
+  onContinue: () => void; connecting: boolean; onConnectMp: () => void; connectingMp: boolean;
+}): JSX.Element {
   return (
     <div className="flex flex-col items-center rounded-[24px] bg-white px-6 py-12 text-center shadow-[0_2px_10px_rgba(0,0,0,0.02)] ring-1 ring-black/[0.03]">
       <span className="grid h-16 w-16 place-items-center rounded-full bg-amber-100 text-amber-500">
@@ -128,16 +165,12 @@ function IncompleteState({ onContinue, connecting }: { onContinue: () => void; c
       </span>
       <p className="mt-4 text-lg font-bold text-neutral-800">Completa tu configuración en Stripe</p>
       <p className="mt-1 max-w-sm text-sm text-neutral-500">
-        Tu cuenta está creada pero aún no puede recibir pagos. Termina de cargar tus datos (banco e identidad) para activar los cobros.
+        Tu cuenta de Stripe está creada pero aún no puede recibir pagos. Termina de cargar tus datos, o conecta Mercado Pago si estás en Chile.
       </p>
-      <button
-        type="button"
-        onClick={onContinue}
-        disabled={connecting}
-        className="mt-5 flex items-center gap-2 rounded-xl bg-[#635bff] px-5 py-3 text-sm font-bold text-white shadow-sm transition-transform active:scale-95 disabled:opacity-70"
-      >
-        {connecting ? <><Loader2 size={16} className="animate-spin" /> Redirigiendo…</> : <>Continuar configuración</>}
-      </button>
+      <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+        <StripeButton onClick={onContinue} connecting={connecting} label="Continuar en Stripe" />
+        <MpButton onClick={onConnectMp} connecting={connectingMp} label="Conectar Mercado Pago" />
+      </div>
     </div>
   );
 }

@@ -7,11 +7,50 @@ import { app, auth, db } from './firebase';
 const functions = getFunctions(app, 'us-central1');
 
 const _onboard = httpsCallable<{ origin: string }, { url: string; accountId: string }>(functions, 'onboardStripeUser');
+const _mpConnect = httpsCallable<Record<string, never>, { url: string }>(functions, 'mpBioConnect');
 
 /** Inicia (o reanuda) el onboarding de Stripe Connect y devuelve la URL a la que redirigir. */
 export async function onboardStripe(): Promise<string> {
   const res = await _onboard({ origin: `${window.location.origin}/editor` });
   return res.data.url;
+}
+
+/** Inicia el OAuth de Mercado Pago (marketplace) y devuelve la URL a la que redirigir. */
+export async function connectMercadoPago(): Promise<string> {
+  const res = await _mpConnect({});
+  return res.data.url;
+}
+
+export interface MpState {
+  ready: boolean;   // el creador autorizó MP y puede recibir cobros
+  loading: boolean;
+}
+
+/** Observa en vivo el estado de Mercado Pago del usuario (bio_users/{uid}.mpReady). */
+export function useMpAccount(): MpState {
+  const [ready, setReady] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let unsubDoc: () => void = () => {};
+    const unsubAuth = onAuthStateChanged(auth, (u) => {
+      unsubDoc();
+      if (!u) { setReady(false); setLoading(false); return; }
+      setLoading(true);
+      unsubDoc = onSnapshot(
+        doc(db, 'bio_users', u.uid),
+        (snap) => {
+          const d = snap.data() as Record<string, unknown> | undefined;
+          setReady(!!(d && d.mpReady === true));
+          setLoading(false);
+        },
+        () => setLoading(false),
+      );
+    });
+    return () => { unsubAuth(); unsubDoc(); };
+  }, []);
+
+  return { ready, loading };
 }
 
 export interface StripeState {
