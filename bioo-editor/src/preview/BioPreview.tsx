@@ -89,7 +89,7 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
         {/* Sello de Comercio Verificado (Partner Club Patio) — opcional para el comercio */}
         {profile.partner === 'patio-curauma' && profile.showPartnerBadge !== false && (
           <div className="mt-4 inline-flex items-center gap-1.5 px-3 py-1 bg-white/50 backdrop-blur-sm border border-black/5 rounded-full shadow-sm">
-            <img src="/icon-512x512.png" alt="" className="w-4 h-4 object-contain" />
+            <img src="/patio-curauma.png" alt="" className="w-4 h-4 object-contain" />
             <span className="text-[11px] font-semibold text-gray-700 tracking-wide uppercase">Comercio Oficial Patio Curauma</span>
           </div>
         )}
