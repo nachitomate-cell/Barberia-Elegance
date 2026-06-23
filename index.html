@@ -6322,7 +6322,7 @@
     <div class="yugen-info">
       <button type="button" onclick="openYugenModal('horario')"><i class="ph-fill ph-clock"></i> Ver horario</button>
       <button type="button" onclick="openYugenModal('ubicacion')"><i class="ph-fill ph-map-pin"></i> Ver ubicación</button>
-      <button type="button" class="yg-full" onclick="openYugenModal('valores')"><i class="ph-fill ph-flower-lotus"></i> Valores</button>
+      <button type="button" class="yg-full" onclick="openYugenModal('valores')"><i class="ph-fill ph-flower-lotus"></i> Nuestro Sello</button>
       <button type="button" class="yg-full" onclick="openYugenModal('politicas')"><i class="ph-fill ph-scroll"></i> Políticas de reserva</button>
     </div>
     <div id="yugenModal" class="yugen-modal" onclick="closeYugenModal(event)">
@@ -6349,7 +6349,7 @@
             ? '<p class="ym-addr">' + dir + '</p><a class="ym-maps" target="_blank" rel="noopener" href="https://maps.google.com/?q=' + encodeURIComponent(dir) + '">Cómo llegar</a>'
             : '<p class="ym-empty">Dirección por confirmar.</p>';
         } else if (type === 'valores') {
-          title.textContent = 'Nuestros Valores';
+          title.textContent = 'Nuestro Sello';
           icon.className = 'ph-fill ph-flower-lotus';
           var vals = [
             { ic: '<i class="ph ph-crown"></i>',       n: 'Excelencia',   d: 'Nos esforzamos por entregar resultados excepcionales en cada servicio.' },
