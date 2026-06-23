@@ -428,6 +428,30 @@
       // Plan free (lo decide el superadmin en _system/{tenant}.bioPro): máximo 6 bloques.
       if (!cfg._pro) bloques = bloques.slice(0, 6);
 
+      // ── Colores personalizados (editable desde el panel · plan Pro) ──
+      // Si el local definió color de acento/fondo, sobrescriben el accentMap del tema.
+      if (cfg._pro) {
+        var hexToRgb = function (h) {
+          h = String(h || '').trim().replace('#', '');
+          if (h.length === 3) h = h.split('').map(function (c) { return c + c; }).join('');
+          if (!/^[0-9a-fA-F]{6}$/.test(h)) return null;
+          return { r: parseInt(h.slice(0, 2), 16), g: parseInt(h.slice(2, 4), 16), b: parseInt(h.slice(4, 6), 16) };
+        };
+        var cac = hexToRgb(perfil.colorAccent);
+        if (cac) {
+          root.style.setProperty('--accent', 'rgb(' + cac.r + ',' + cac.g + ',' + cac.b + ')');
+          root.style.setProperty('--accent-r', cac.r);
+          root.style.setProperty('--accent-g', cac.g);
+          root.style.setProperty('--accent-b', cac.b);
+        }
+        if (perfil.colorBg) {
+          root.style.setProperty('--bg',  perfil.colorBg);
+          root.style.setProperty('--bg2', perfil.colorBg);
+          var _tc = document.querySelector('meta[name="theme-color"]');
+          if (_tc) _tc.content = perfil.colorBg;
+        }
+      }
+
       document.getElementById('title').textContent = perfil.titulo || SHOP.nombre || '';
       var sub = (perfil.subtitulo != null) ? perfil.subtitulo : (SHOP.slogan || '');
       var subEl = document.getElementById('subtitle');

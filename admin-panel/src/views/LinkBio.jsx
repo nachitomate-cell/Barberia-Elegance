@@ -3,7 +3,7 @@ import {
   Link2, Calendar, MessageCircle, Instagram, Star, MapPin, Type, AlignLeft,
   Share2, Youtube, Plus, Trash2, ArrowUp, ArrowDown, Eye, EyeOff, Lock,
   ExternalLink, Copy, Check, GripVertical, ChevronRight, BarChart3,
-  Users, Mail, Building2, QrCode, Download, Crown, Sparkles, Loader2, Rocket,
+  Users, Mail, Building2, QrCode, Download, Crown, Sparkles, Loader2, Rocket, Palette,
 } from 'lucide-react';
 import QRCode from 'qrcode';
 import { doc, getDoc, setDoc, deleteDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
@@ -34,6 +34,15 @@ const TIER_RANK = { free: 0, pro: 1, studio: 2 };
 const REDES = ['instagram', 'facebook', 'tiktok', 'youtube', 'whatsapp', 'x', 'web', 'email'];
 
 const uid = () => 'b_' + Math.random().toString(36).slice(2, 9);
+
+/* hex (#rrggbb / #rgb) → rgba(...) para los glows del preview. Fallback lime. */
+function hexToRgba(hex, a) {
+  let h = String(hex || '').trim().replace('#', '');
+  if (h.length === 3) h = h.split('').map(c => c + c).join('');
+  if (!/^[0-9a-fA-F]{6}$/.test(h)) return `rgba(146,200,58,${a})`;
+  const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
+  return `rgba(${r},${g},${b},${a})`;
+}
 
 /* ── Handle público para bioo.cl/<handle> ── */
 const RESERVED_HANDLES = ['registro','login','editor','admin','api','bio','dashboard','agenda','app','www','links','synaptech','bioo','soporte','ayuda','help','about','terminos','privacidad','catalogo','membresia','kronnos'];
@@ -337,6 +346,49 @@ export default function LinkBio() {
             </div>
           </div>
 
+          {/* Colores (plan Pro) */}
+          <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <Palette size={14} className="text-lime-400" />
+                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Colores</p>
+              </div>
+              {!isPro && (
+                <span className="flex items-center gap-0.5 text-[9px] font-black uppercase text-amber-500/80"><Lock size={10} /> Pro</span>
+              )}
+            </div>
+            {isPro ? (
+              <>
+                <div className="flex items-center gap-3">
+                  <input type="color" value={cfg.perfil.colorAccent || '#c9a84c'} title="Color de acento"
+                    onChange={e => update({ perfil: { ...cfg.perfil, colorAccent: e.target.value } })}
+                    className="w-10 h-10 rounded-lg bg-transparent border border-slate-700 cursor-pointer p-0.5 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-white">Color de acento</p>
+                    <p className="text-[11px] text-slate-500 truncate">Botones destacados, íconos y enlaces.</p>
+                  </div>
+                  {cfg.perfil.colorAccent && (
+                    <button onClick={() => update({ perfil: { ...cfg.perfil, colorAccent: '' } })} className="text-[11px] text-slate-500 hover:text-white shrink-0">Quitar</button>
+                  )}
+                </div>
+                <div className="flex items-center gap-3">
+                  <input type="color" value={cfg.perfil.colorBg || '#0a0a0d'} title="Color de fondo"
+                    onChange={e => update({ perfil: { ...cfg.perfil, colorBg: e.target.value } })}
+                    className="w-10 h-10 rounded-lg bg-transparent border border-slate-700 cursor-pointer p-0.5 shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-white">Color de fondo</p>
+                    <p className="text-[11px] text-slate-500 truncate">Fondo de tu página de enlaces.</p>
+                  </div>
+                  {cfg.perfil.colorBg && (
+                    <button onClick={() => update({ perfil: { ...cfg.perfil, colorBg: '' } })} className="text-[11px] text-slate-500 hover:text-white shrink-0">Quitar</button>
+                  )}
+                </div>
+              </>
+            ) : (
+              <p className="text-[11px] text-slate-500">Personaliza el color de acento y el fondo de tu página. Disponible en el plan <span className="text-amber-400 font-semibold">Pro</span>.</p>
+            )}
+          </div>
+
           {/* Bloques */}
           <div className="space-y-2.5">
             {cfg.bloques.map((b, i) => (
@@ -600,11 +652,17 @@ function SocialsEditor({ redes, onChange }) {
 function Preview({ perfil, bloques }) {
   const ICON = { reserva: Calendar, whatsapp: MessageCircle, instagram: Instagram, reviews: Star, maps: MapPin, link: Link2, video: Youtube, barberos: Users, reviewsCarousel: Star, leads: Mail, sedes: Building2 };
   const visibles = bloques.filter(b => b.activo !== false);
+  const accent = perfil.colorAccent || '';            // '' → tema por defecto (lime en el mock)
+  const bg     = perfil.colorBg || '#0a0a0d';
+  const glow   = accent ? hexToRgba(accent, 0.16) : 'rgba(146,200,58,0.16)';
+  const accSoft = accent ? hexToRgba(accent, 0.15) : 'rgba(146,200,58,0.15)';
+  const accBdr  = accent ? hexToRgba(accent, 0.40) : 'rgba(146,200,58,0.40)';
   return (
     <div className="mx-auto w-[260px] rounded-[2rem] border-[6px] border-slate-800 bg-slate-950 overflow-hidden shadow-2xl">
       <div className="h-[480px] overflow-y-auto no-scrollbar px-4 py-6 flex flex-col items-center"
-        style={{ background: 'radial-gradient(ellipse 80% 35% at 50% 0%, rgba(146,200,58,0.16), transparent 70%), #0a0a0d' }}>
-        <div className="w-16 h-16 rounded-full bg-slate-800 border-2 border-lime-500/40 flex items-center justify-center text-lime-400/60 text-xs">logo</div>
+        style={{ background: `radial-gradient(ellipse 80% 35% at 50% 0%, ${glow}, transparent 70%), ${bg}` }}>
+        <div className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center text-xs"
+          style={{ border: `2px solid ${accBdr}`, color: accent || 'rgba(146,200,58,0.6)' }}>logo</div>
         <p className="mt-2 text-white font-black text-center text-sm leading-tight">{perfil.titulo || 'Tu local'}</p>
         {perfil.subtitulo && <p className="text-[10px] text-slate-400 text-center mt-0.5">{perfil.subtitulo}</p>}
         <div className="w-full mt-4 space-y-2">
@@ -620,8 +678,12 @@ function Preview({ perfil, bloques }) {
             const Icon = ICON[b.tipo] || Link2;
             return (
               <div key={b.id} className={`flex items-center gap-2 rounded-xl px-2.5 py-2 text-[11px] font-semibold border
-                ${b.featured ? 'bg-lime-500 text-lime-950 border-lime-500' : 'bg-white/5 text-white border-white/10'}`}>
-                <span className={`w-6 h-6 rounded-md flex items-center justify-center ${b.featured ? 'bg-black/15' : 'bg-lime-500/15'}`}><Icon size={12} className={b.featured ? '' : 'text-lime-400'} /></span>
+                ${b.featured ? '' : 'bg-white/5 text-white border-white/10'}`}
+                style={b.featured ? { background: accent || '#84cc16', borderColor: accent || '#84cc16', color: '#0a0a0d' } : undefined}>
+                <span className="w-6 h-6 rounded-md flex items-center justify-center"
+                  style={{ background: b.featured ? 'rgba(0,0,0,0.15)' : accSoft }}>
+                  <Icon size={12} style={b.featured ? undefined : { color: accent || '#84cc16' }} />
+                </span>
                 <span className="flex-1 truncate">{b.label || TIPOS[b.tipo]?.nombre}</span>
                 <ChevronRight size={12} className="opacity-50" />
               </div>
