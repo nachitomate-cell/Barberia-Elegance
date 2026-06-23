@@ -53,6 +53,7 @@ const PAGO_TENANTS = {
 
 // ── Helpers de Firestore (multi-tenant; elegance usa colecciones raíz) ──────
 const citasCol           = tid => (tid === 'elegance' ? db.collection('citas')            : db.collection(`tenants/${tid}/citas`));
+const slotLocksCol       = tid => (tid === 'elegance' ? db.collection('slotLocks')         : db.collection(`tenants/${tid}/slotLocks`));
 const pagosPendientesCol = tid => (tid === 'elegance' ? db.collection('pagos_pendientes') : db.collection(`tenants/${tid}/pagos_pendientes`));
 const serviciosCol       = tid => (tid === 'elegance' ? db.collection('servicios')        : db.collection(`tenants/${tid}/servicios`));
 const settingsRef        = tid => (tid === 'elegance' ? db.collection('settings').doc('general') : db.collection(`tenants/${tid}/settings`).doc('general'));
@@ -189,8 +190,22 @@ async function confirmarReserva(tid, orderId, pago) {
 
     const cita = data.cita || {};
     const citaRef = citasCol(tid).doc();
+
+    // slotLock público: la reserva online detecta horas ocupadas leyendo
+    // slotLocks (no puede leer citas). Antes solo se guardaba cita.slotLockId
+    // pero NO se creaba el documento del lock → el horario seguía ofreciéndose
+    // (doble reserva). Lo creamos junto con la cita, de forma atómica.
+    let lockId = cita.slotLockId || null;
+    const debeLock = !!cita.barberoId && !!cita.fecha && !!cita.hora && cita.sobrecupo !== true;
+    if (debeLock && !lockId) {
+      const safeHora = String(cita.hora).replace(':', '');
+      const safeBid  = String(cita.barberoId).replace(/[^a-zA-Z0-9_-]/g, '_');
+      lockId = `${safeBid}_${cita.fecha}_${safeHora}`;
+    }
+
     tx.set(citaRef, {
       ...cita,
+      slotLockId: debeLock ? lockId : (cita.slotLockId || null),
       estado:   'Confirmada',
       origen:   cita.origen || 'web-mercadopago',
       creadoEn: FieldValue.serverTimestamp(),
@@ -202,6 +217,17 @@ async function confirmarReserva(tid, orderId, pago) {
         fecha:       FieldValue.serverTimestamp(),
       },
     });
+    if (debeLock && lockId) {
+      tx.set(slotLocksCol(tid).doc(lockId), {
+        citaId:    citaRef.id,
+        fecha:     cita.fecha,
+        hora:      cita.hora,
+        barberoId: cita.barberoId,
+        duracion:  Number(cita.duracionServicio ?? cita.duracion) || 30,
+        creadoEn:  FieldValue.serverTimestamp(),
+        origen:    'mp',
+      });
+    }
     tx.update(ref, { estado: 'paid', citaId: citaRef.id, mpPaymentId: (pago && pago.id) ? String(pago.id) : null, pagadoEn: FieldValue.serverTimestamp() });
     return citaRef.id;
   });

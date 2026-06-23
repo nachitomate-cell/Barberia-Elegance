@@ -723,6 +723,16 @@ exports.liberarSlotElegance = liberarSlot.liberarSlotElegance;
 exports.liberarSlotTenant   = liberarSlot.liberarSlotTenant;
 
 // ─────────────────────────────────────────────────────────────────
+//  ASEGURAR SLOT LOCK — ver asegurar-slot.js
+//  Garantiza que toda cita activa con barbero tenga su candado público
+//  (slotLocks), para que la reserva online no ofrezca horas ya ocupadas
+//  aunque la cita se haya creado por una vía que no escribió el lock.
+// ─────────────────────────────────────────────────────────────────
+const asegurarSlot = require('./asegurar-slot');
+exports.asegurarSlotElegance = asegurarSlot.asegurarSlotElegance;
+exports.asegurarSlotTenant   = asegurarSlot.asegurarSlotTenant;
+
+// ─────────────────────────────────────────────────────────────────
 //  PUSH AL CLIENTE — ver push-cliente.js
 //  Notifica al cliente cuando: (1) su cita es creada/confirmada,
 //  (2) gana un sello / desbloquea un premio.
