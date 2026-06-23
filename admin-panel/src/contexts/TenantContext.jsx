@@ -17,7 +17,7 @@ const TENANT_META = {
   latincaribe:    { name: 'The Latin Caribe',           accent: 'amber',   emoji: '✨', logo: '/thelatin/latin.png' },
   machos:         { name: 'Macho´s Barbershop',         accent: 'orange',  emoji: '💈', logo: '/machos.png'   },
   infinity:       { name: 'INFINITY STUDIO',            accent: 'zinc',    emoji: '💈', logo: '/infinity.png'     },
-  sionbarberia:   { name: 'Sion Barbería',              accent: 'orange',  emoji: '💈', logo: '/sion.png' },
+  sionbarberia:   { name: 'Studio Dieciséis',           accent: 'zinc',    emoji: '🍃', logo: '/dieciseis/logo.png' },
   memphis:        { name: 'Memphis Salón',              accent: 'pink',    emoji: '✂️', logo: null },
   yugen:          { name: 'Yūgen Studio',               accent: 'orange',  emoji: '☯', logo: '/yugen/yugen.jpg' },
   kronnos_penablanca: { name: 'Kronnos Studio Peñablanca', accent: 'red',    emoji: '✂️', logo: '/kronnos/studio.jpg', brand: { hex: '#e11d2a', sede: 'Peñablanca', tagline: 'Barbería & Estilismo' } },

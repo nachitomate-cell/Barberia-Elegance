@@ -16,6 +16,7 @@ const LOGIN_IMAGE = {
   aura:           '/aura2.png',
   latincaribe:    '/playa-login.jpg',
   yugen:          '/yugen/yugen2.png',
+  sionbarberia:   '/dieciseis/banner.png',
   lumen:          '/djones1.png',
   kronnos_penablanca: '/kronnos/kronospena.png',
   kronnos_limache:    '/kronnos/kronoslima.png',

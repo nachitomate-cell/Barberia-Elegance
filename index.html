@@ -3604,7 +3604,7 @@
          accent-moss     #00553A              → éxito, confirmación
          accent-utilitarian #DC2626 (red-600) → destructivo, error
        ═══════════════════════════════════════════════════════════════ */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) {
+    :is(.tenant-aura,.tenant-latincaribe) {
       --accent:   #9CA3AF;
       --accent-r: 156; --accent-g: 163; --accent-b: 175;
       --neon-clr: #9CA3AF;
@@ -3615,79 +3615,89 @@
     }
 
     /* ── Base ── */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) body {
+    :is(.tenant-aura,.tenant-latincaribe) body {
       background-color: #F9FAFB !important;
       color: #18181B !important;
     }
 
     /* ── Hero Header (Dark + auralogin.png) ── */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .booking-hero {
+    :is(.tenant-aura,.tenant-latincaribe) .booking-hero {
       background-image: url('/auralogin.png') !important;
       background-size: cover !important;
       background-position: center 30% !important;
       background-color: #141414 !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .booking-hero-overlay {
+    :is(.tenant-aura,.tenant-latincaribe) .booking-hero-overlay {
       background: linear-gradient(180deg, rgba(20,20,20,0.72) 0%, rgba(20,20,20,0.93) 100%) !important;
     }
     /* ══════════════════════════════════════════════════════════
-       STUDIO ATENAS (tenant sionbarberia) — banner gris mármol
+       STUDIO DIECISÉIS (tenant sionbarberia) — Premium Dark · Monocromático
+       Logo y banner oficiales (B&N · "Private Room").
     ══════════════════════════════════════════════════════════ */
-    .tenant-sionbarberia .booking-hero { background-image: url('/atenas/aten2.png') !important; min-height: 330px !important; }
-
-    /* Info-strip: gris mármol (en vez del azul #111827). body...[style] para
-       ganarle en especificidad a :is(...) .info-strip[style] del tema aura. */
-    html.tenant-sionbarberia .info-strip,
-    html.tenant-sionbarberia .info-strip[style] {
-      background: linear-gradient(135deg, #3a3a40 0%, #4a4a52 45%, #2f2f35 100%) !important;
-      border-bottom-color: rgba(255,255,255,0.10) !important;
+    .tenant-sionbarberia {
+      --accent:   #FAFAFA;
+      --accent-r: 250; --accent-g: 250; --accent-b: 250;
+      --neon-clr: #FFFFFF;
+      --neon-r:   255; --neon-g: 255; --neon-b: 255;
+      --body-bg:  #0a0a0a;
+      --gold:     #E5E7EB;
+      --gold-dim: rgba(229,231,235,0.35);
     }
+    .tenant-sionbarberia body { background-color: #0a0a0a !important; color: #e8e8ea !important; }
 
-    /* Ocultar logo central, divisor y eslogan */
+    /* Hero: banner oficial del cliente (ya incluye logo, nombre y tagline).
+       contain + aspect-ratio exacto del banner (1983×793) → se ve COMPLETO,
+       sin recorte. El fondo negro del banner se funde con el del hero. */
+    .tenant-sionbarberia .booking-hero {
+      background-image: url('/dieciseis/banner.png') !important;
+      background-size: contain !important;
+      background-repeat: no-repeat !important;
+      background-position: center !important;
+      background-color: #0a0a0a !important;
+      aspect-ratio: 1983 / 793 !important;
+      min-height: 0 !important;
+      height: auto !important;
+    }
+    .tenant-sionbarberia .booking-hero-overlay {
+      background: transparent !important;
+    }
+    /* El banner ya trae branding → ocultamos el logo/nombre/tagline superpuestos */
     .tenant-sionbarberia #heroLogoArea,
     .tenant-sionbarberia .gold-divider,
+    .tenant-sionbarberia #shopNombre,
     .tenant-sionbarberia .booking-hero p:has(#shopSlogan) { display: none !important; }
 
-    /* "Studio Atenas" al fondo del banner, centrado */
-    .tenant-sionbarberia .booking-hero > .relative.z-10 {
-      position: absolute !important;
-      inset: 0 !important;
-      justify-content: flex-end !important;
-      padding-top: 0 !important;
-      padding-bottom: 1.4rem !important;
+    /* Botón Continuar/Confirmar: blanco premium (override del dorado base #D4AF37) */
+    .tenant-sionbarberia #btnContinue {
+      background-color: #FAFAFA !important;
+      color: #0a0a0a !important;
+      box-shadow: 0 2px 20px rgba(255,255,255,0.12) !important;
     }
-    .tenant-sionbarberia #shopNombre {
-      font-size: 2.1rem !important;
-      text-shadow: 0 2px 20px rgba(0,0,0,0.8);
+    .tenant-sionbarberia #btnContinue:hover,
+    .tenant-sionbarberia #btnContinue:not(:disabled):active {
+      background-color: #ffffff !important;
+      box-shadow: 0 4px 28px rgba(255,255,255,0.22) !important;
     }
 
-    /* 4 logos flotantes en las esquinas del banner */
-    .atenas-corner {
-      position: absolute; width: 54px; height: 54px; object-fit: cover; z-index: 6;
-      border-radius: 50%; background: #0a0a0a; border: 1.5px solid rgba(255,255,255,0.18);
-      opacity: 0.95; box-shadow: 0 4px 14px rgba(0,0,0,0.5); pointer-events: none;
+    /* Info-strip: negro con borde sutil */
+    html.tenant-sionbarberia .info-strip,
+    html.tenant-sionbarberia .info-strip[style] {
+      background: linear-gradient(135deg, #111111 0%, #161616 50%, #0e0e0e 100%) !important;
+      border-bottom-color: rgba(255,255,255,0.10) !important;
     }
-    .atenas-corner.tl { top: 16px;  left: 16px;  animation: atenasFloat 4.0s ease-in-out infinite; }
-    .atenas-corner.tr { top: 16px;  right: 16px; animation: atenasFloat 4.6s ease-in-out 0.3s infinite; }
-    .atenas-corner.bl { bottom: 16px; left: 16px;  animation: atenasFloat 5.0s ease-in-out 0.6s infinite; }
-    .atenas-corner.br { bottom: 16px; right: 16px; animation: atenasFloat 4.3s ease-in-out 0.9s infinite; }
-    @keyframes atenasFloat {
-      0%, 100% { transform: translateY(0)    rotate(-2deg); }
-      50%      { transform: translateY(-9px) rotate(2deg);  }
-    }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .hero-logo-ring {
+    :is(.tenant-aura,.tenant-latincaribe) .hero-logo-ring {
       border: 2.5px solid #ffffff !important;
       box-shadow: 0 0 20px rgba(156,163,175,0.25), 0 0 0 1px rgba(255,255,255,0.15) !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #shopNombre {
+    :is(.tenant-aura,.tenant-latincaribe) #shopNombre {
       font-weight: 800 !important;
       color: #ffffff !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #shopSlogan,
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #shopSlogan span {
+    :is(.tenant-aura,.tenant-latincaribe) #shopSlogan,
+    :is(.tenant-aura,.tenant-latincaribe) #shopSlogan span {
       color: rgba(255,255,255,0.70) !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .gold-divider {
+    :is(.tenant-aura,.tenant-latincaribe) .gold-divider {
       background: linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent) !important;
     }
 
@@ -3725,162 +3735,162 @@
     }
 
     /* Logo area: emerge desde abajo con blur */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #heroLogoArea {
+    :is(.tenant-aura,.tenant-latincaribe) #heroLogoArea {
       animation: aura-logo-reveal 1s cubic-bezier(0.16, 1, 0.3, 1) both;
     }
     /* Ring: pulso de brillo continuo, arranca cuando termina el reveal */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .hero-logo-ring {
+    :is(.tenant-aura,.tenant-latincaribe) .hero-logo-ring {
       animation: aura-ring-glow 3.5s ease-in-out 1.1s infinite;
     }
     /* Nombre del local: slide-up con delay */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #shopNombre {
+    :is(.tenant-aura,.tenant-latincaribe) #shopNombre {
       animation: aura-fade-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.38s both;
     }
     /* Divisor: fade suave */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .gold-divider {
+    :is(.tenant-aura,.tenant-latincaribe) .gold-divider {
       animation: aura-fade-up 0.5s ease-out 0.52s both;
     }
     /* Slogan: letter-spacing se cierra al entrar, luego pulsa con un aura celeste */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #shopSlogan {
+    :is(.tenant-aura,.tenant-latincaribe) #shopSlogan {
       display: inline-block;
       animation: aura-slogan-appear 0.75s cubic-bezier(0.16, 1, 0.3, 1) 0.65s both,
                  aura-text-glow 3.5s ease-in-out 1.4s infinite;
     }
 
     /* ── Info Strip ── */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .info-strip {
+    :is(.tenant-aura,.tenant-latincaribe) .info-strip {
       background: #111827 !important;
       border-bottom-color: rgba(156,163,175,0.12) !important;
       /* 3-item layout: 2-col grid, WhatsApp spans second row */
       display: grid !important;
       grid-template-columns: 1fr 1fr;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .info-strip a,
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .info-strip > div {
+    :is(.tenant-aura,.tenant-latincaribe) .info-strip a,
+    :is(.tenant-aura,.tenant-latincaribe) .info-strip > div {
       color: #D4D4D8 !important;
       border-color: rgba(156,163,175,0.15) !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .info-strip i {
+    :is(.tenant-aura,.tenant-latincaribe) .info-strip i {
       color: #9CA3AF !important;
     }
     /* Row 1 bottom divider */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #heroInfoAddr,
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .info-strip > div:first-of-type {
+    :is(.tenant-aura,.tenant-latincaribe) #heroInfoAddr,
+    :is(.tenant-aura,.tenant-latincaribe) .info-strip > div:first-of-type {
       border-bottom: 1px solid rgba(255,255,255,0.05) !important;
     }
 
     /* ── Back Button ── */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) button[onclick="goBack()"] {
+    :is(.tenant-aura,.tenant-latincaribe) button[onclick="goBack()"] {
       background: rgba(17,24,39,0.65) !important;
       border-color: rgba(255,255,255,0.20) !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) button[onclick="goBack()"] i { color: #ffffff !important; }
+    :is(.tenant-aura,.tenant-latincaribe) button[onclick="goBack()"] i { color: #ffffff !important; }
 
     /* ── Progress / Stepper ── */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #progressBar {
+    :is(.tenant-aura,.tenant-latincaribe) #progressBar {
       background: #374151 !important;
       box-shadow: none !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #progressTrack {
+    :is(.tenant-aura,.tenant-latincaribe) #progressTrack {
       background-color: #D4D4D8 !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #stepIndicatorText {
+    :is(.tenant-aura,.tenant-latincaribe) #stepIndicatorText {
       color: #18181B !important;
       text-shadow: none !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #progressPercentage {
+    :is(.tenant-aura,.tenant-latincaribe) #progressPercentage {
       color: #6B7280 !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #selectionRecap {
+    :is(.tenant-aura,.tenant-latincaribe) #selectionRecap {
       color: #8E9399 !important;
     }
 
     /* ── Section Headings ── */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .text-neon {
+    :is(.tenant-aura,.tenant-latincaribe) .text-neon {
       text-shadow: none !important;
       color: #18181B !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) h2.text-neon {
+    :is(.tenant-aura,.tenant-latincaribe) h2.text-neon {
       color: #18181B !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .text-brand-neon\/60,
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .text-brand-neon\/80 {
+    :is(.tenant-aura,.tenant-latincaribe) .text-brand-neon\/60,
+    :is(.tenant-aura,.tenant-latincaribe) .text-brand-neon\/80 {
       color: #18181B !important;
     }
 
     /* ── Generic text overrides for light bg ── */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .text-gray-500 { color: #8E9399 !important; }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .text-gray-600 { color: #71717A !important; }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .text-gray-700 { color: #52525B !important; }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .text-white { color: #18181B !important; }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .text-white\/50 { color: rgba(24,24,27,0.50) !important; }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .text-white\/30 { color: rgba(24,24,27,0.30) !important; }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .text-white\/60 { color: rgba(24,24,27,0.60) !important; }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .text-white\/70 { color: rgba(24,24,27,0.70) !important; }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .text-white\/25 { color: rgba(24,24,27,0.25) !important; }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .text-white\/15 { color: rgba(24,24,27,0.15) !important; }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .text-white\/20 { color: rgba(24,24,27,0.20) !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .text-gray-500 { color: #8E9399 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .text-gray-600 { color: #71717A !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .text-gray-700 { color: #52525B !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .text-white { color: #18181B !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .text-white\/50 { color: rgba(24,24,27,0.50) !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .text-white\/30 { color: rgba(24,24,27,0.30) !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .text-white\/60 { color: rgba(24,24,27,0.60) !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .text-white\/70 { color: rgba(24,24,27,0.70) !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .text-white\/25 { color: rgba(24,24,27,0.25) !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .text-white\/15 { color: rgba(24,24,27,0.15) !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .text-white\/20 { color: rgba(24,24,27,0.20) !important; }
 
     /* ── Preserve white text inside navy/dark areas ── */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .booking-hero .text-white,
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .booking-hero .text-white\/70,
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .booking-hero .text-white\/50 {
+    :is(.tenant-aura,.tenant-latincaribe) .booking-hero .text-white,
+    :is(.tenant-aura,.tenant-latincaribe) .booking-hero .text-white\/70,
+    :is(.tenant-aura,.tenant-latincaribe) .booking-hero .text-white\/50 {
       color: inherit !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #shopNombre { color: #ffffff !important; }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #heroBadgeRating { color: #ffffff !important; }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #heroBadgeCount { color: rgba(255,255,255,0.55) !important; }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .booking-hero p,
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .booking-hero span {
+    :is(.tenant-aura,.tenant-latincaribe) #shopNombre { color: #ffffff !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #heroBadgeRating { color: #ffffff !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #heroBadgeCount { color: rgba(255,255,255,0.55) !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .booking-hero p,
+    :is(.tenant-aura,.tenant-latincaribe) .booking-hero span {
       color: rgba(255,255,255,0.70) !important;
     }
 
     /* ── Service Option Cards ── */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .service-option {
+    :is(.tenant-aura,.tenant-latincaribe) .service-option {
       background: #FFFFFF !important;
       border-color: #D4D4D8 !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .service-option .svc-name { color: #18181B !important; }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .service-option .price-tag { color: #18181B !important; }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .service-option .duration-tag { color: #8E9399 !important; }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .service-option .icon-svg {
+    :is(.tenant-aura,.tenant-latincaribe) .service-option .svc-name { color: #18181B !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .service-option .price-tag { color: #18181B !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .service-option .duration-tag { color: #8E9399 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .service-option .icon-svg {
       color: #9CA3AF !important;
       filter: none !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .service-option .icon-bg {
+    :is(.tenant-aura,.tenant-latincaribe) .service-option .icon-bg {
       background: rgba(156,163,175,0.08) !important;
       border-color: rgba(156,163,175,0.20) !important;
     }
     /* Selected state */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .service-option.border-neon {
+    :is(.tenant-aura,.tenant-latincaribe) .service-option.border-neon {
       border-color: #374151 !important;
       background: rgba(17,24,39,0.04) !important;
       box-shadow: 0 0 0 1px rgba(55,65,81,0.25), 0 2px 8px rgba(0,0,0,0.06) !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .service-option.bg-brand-neon\/10 {
+    :is(.tenant-aura,.tenant-latincaribe) .service-option.bg-brand-neon\/10 {
       background: rgba(17,24,39,0.04) !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .service-option.border-neon .icon-bg {
+    :is(.tenant-aura,.tenant-latincaribe) .service-option.border-neon .icon-bg {
       background: rgba(17,24,39,0.08) !important;
       border-color: rgba(55,65,81,0.35) !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .service-option.border-neon .icon-svg {
+    :is(.tenant-aura,.tenant-latincaribe) .service-option.border-neon .icon-svg {
       color: #111827 !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .service-option.border-neon .price-tag { color: #111827 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .service-option.border-neon .price-tag { color: #111827 !important; }
 
     /* ── Category Pills ── */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .category-pill {
+    :is(.tenant-aura,.tenant-latincaribe) .category-pill {
       background: #FFFFFF !important;
       border-color: #D4D4D8 !important;
       color: #8E9399 !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .category-pill:hover {
+    :is(.tenant-aura,.tenant-latincaribe) .category-pill:hover {
       border-color: #9CA3AF !important;
       color: #9CA3AF !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .category-pill.border-neon,
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .category-pill.text-neon {
+    :is(.tenant-aura,.tenant-latincaribe) .category-pill.border-neon,
+    :is(.tenant-aura,.tenant-latincaribe) .category-pill.text-neon {
       border-color: #374151 !important;
       color: #111827 !important;
       background: rgba(17,24,39,0.06) !important;
@@ -3889,27 +3899,27 @@
     }
 
     /* ── Barber Option Cards ── */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .barber-option {
+    :is(.tenant-aura,.tenant-latincaribe) .barber-option {
       background: #FFFFFF !important;
       border-color: #D4D4D8 !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .barber-option .barber-name { color: #18181B !important; }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .barber-option .text-brand-neon { color: #9CA3AF !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .barber-option .barber-name { color: #18181B !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .barber-option .text-brand-neon { color: #9CA3AF !important; }
     /* Selected state */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .barber-option.border-neon {
+    :is(.tenant-aura,.tenant-latincaribe) .barber-option.border-neon {
       border-color: #374151 !important;
       background: rgba(17,24,39,0.04) !important;
       box-shadow: 0 0 0 1px rgba(55,65,81,0.25), 0 2px 8px rgba(0,0,0,0.06) !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .barber-option.bg-brand-neon\/10 {
+    :is(.tenant-aura,.tenant-latincaribe) .barber-option.bg-brand-neon\/10 {
       background: rgba(17,24,39,0.04) !important;
     }
     /* Radio circle — overrides inline gold color set by JS */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .barber-radio {
+    :is(.tenant-aura,.tenant-latincaribe) .barber-radio {
       border-color: #D4D4D8 !important;
       background: transparent !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .barber-option.border-neon .barber-radio {
+    :is(.tenant-aura,.tenant-latincaribe) .barber-option.border-neon .barber-radio {
       border-color: #1F2937 !important;
       background: #1F2937 !important;
     }
@@ -3921,8 +3931,8 @@
     }
     .tenant-elegance .service-option.border-neon::after,
     .tenant-elegance .barber-option.border-neon::after,
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .service-option.border-neon::after,
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .barber-option.border-neon::after {
+    :is(.tenant-aura,.tenant-latincaribe) .service-option.border-neon::after,
+    :is(.tenant-aura,.tenant-latincaribe) .barber-option.border-neon::after {
       content: '';
       position: absolute;
       inset: 0;
@@ -3935,8 +3945,8 @@
       background: linear-gradient(105deg,
         transparent 30%, rgba(255,255,255,0.18) 50%, transparent 70%);
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .service-option.border-neon::after,
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .barber-option.border-neon::after {
+    :is(.tenant-aura,.tenant-latincaribe) .service-option.border-neon::after,
+    :is(.tenant-aura,.tenant-latincaribe) .barber-option.border-neon::after {
       background: linear-gradient(105deg,
         transparent 30%, rgba(156,163,175,0.30) 50%, transparent 70%);
     }
@@ -3985,61 +3995,61 @@
     /* ── Day Buttons — replaced below ── */
 
     /* ── Time Pills ── */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .time-pill {
+    :is(.tenant-aura,.tenant-latincaribe) .time-pill {
       background: #FFFFFF !important;
       border-color: #D4D4D8 !important;
       color: #18181B !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .time-pill:not([data-sel]):hover {
+    :is(.tenant-aura,.tenant-latincaribe) .time-pill:not([data-sel]):hover {
       background: rgba(156,163,175,0.06) !important;
       border-color: #9CA3AF !important;
       color: #111827 !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .time-pill.bg-neon,
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .time-pill[data-sel] {
+    :is(.tenant-aura,.tenant-latincaribe) .time-pill.bg-neon,
+    :is(.tenant-aura,.tenant-latincaribe) .time-pill[data-sel] {
       background: #9CA3AF !important;
       border-color: #9CA3AF !important;
       color: #ffffff !important;
       font-weight: 700 !important;
       box-shadow: 0 2px 8px rgba(156,163,175,0.30) !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .slot-pill-busy {
+    :is(.tenant-aura,.tenant-latincaribe) .slot-pill-busy {
       background: rgba(220,38,38,0.06) !important;
       border-color: rgba(220,38,38,0.18) !important;
       color: rgba(220,38,38,0.40) !important;
     }
 
     /* ── Day Cards (step 3) ── */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .day-btn {
+    :is(.tenant-aura,.tenant-latincaribe) .day-btn {
       background: #FFFFFF !important;
       border-color: #E4E4E7 !important;
       box-shadow: none !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .day-btn span { color: #6B7280 !important; }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .day-btn .day-num { color: #18181B !important; }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .day-btn .dot { background: transparent !important; box-shadow: none !important; }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .day-btn.active {
+    :is(.tenant-aura,.tenant-latincaribe) .day-btn span { color: #6B7280 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .day-btn .day-num { color: #18181B !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .day-btn .dot { background: transparent !important; box-shadow: none !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .day-btn.active {
       background: #111827 !important;
       border-color: #111827 !important;
       box-shadow: 0 2px 8px rgba(0,0,0,0.20) !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .day-btn.active span { color: rgba(255,255,255,0.70) !important; }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .day-btn.active .day-num { color: #ffffff !important; }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .day-btn.active .dot { background: transparent !important; box-shadow: none !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .day-btn.active span { color: rgba(255,255,255,0.70) !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .day-btn.active .day-num { color: #ffffff !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .day-btn.active .dot { background: transparent !important; box-shadow: none !important; }
 
     /* ── Main CTA Button ── */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #btnContinue {
+    :is(.tenant-aura,.tenant-latincaribe) #btnContinue {
       background: #000000 !important;
       color: #ffffff !important;
       font-weight: 800 !important;
       box-shadow: 0 4px 20px rgba(0,0,0,0.45) !important;
       letter-spacing: 0.01em;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #btnContinue:hover {
+    :is(.tenant-aura,.tenant-latincaribe) #btnContinue:hover {
       background: #111827 !important;
       color: #ffffff !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #btnContinueBar {
+    :is(.tenant-aura,.tenant-latincaribe) #btnContinueBar {
       background: rgba(249,250,251,0.88) !important;
       backdrop-filter: blur(20px) !important;
       -webkit-backdrop-filter: blur(20px) !important;
@@ -4047,56 +4057,56 @@
     }
 
     /* ── Step 4: Form Inputs ── */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #step4 label {
+    :is(.tenant-aura,.tenant-latincaribe) #step4 label {
       color: #8E9399 !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #step4 input[type="text"],
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #step4 input[type="tel"],
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #step4 input[type="email"] {
+    :is(.tenant-aura,.tenant-latincaribe) #step4 input[type="text"],
+    :is(.tenant-aura,.tenant-latincaribe) #step4 input[type="tel"],
+    :is(.tenant-aura,.tenant-latincaribe) #step4 input[type="email"] {
       background: #FFFFFF !important;
       border-color: #D4D4D8 !important;
       color: #18181B !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #step4 input::placeholder {
+    :is(.tenant-aura,.tenant-latincaribe) #step4 input::placeholder {
       color: #D4D4D8 !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #step4 input:focus {
+    :is(.tenant-aura,.tenant-latincaribe) #step4 input:focus {
       border-color: #9CA3AF !important;
       box-shadow: 0 0 0 3px rgba(156,163,175,0.15) !important;
     }
 
     /* ── Step 4: Summary Card ── */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #step4 .mt-6.rounded-2xl {
+    :is(.tenant-aura,.tenant-latincaribe) #step4 .mt-6.rounded-2xl {
       background: #FFFFFF !important;
       border: 1px solid #D4D4D8 !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #step4 .mt-6.rounded-2xl .text-white\/30 { color: #8E9399 !important; }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #step4 .mt-6.rounded-2xl .text-white { color: #18181B !important; }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #step4 .mt-6.rounded-2xl .text-gray-500 { color: #8E9399 !important; }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #step4 .mt-6.rounded-2xl .bg-white\/5,
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #step4 .mt-6.rounded-2xl .h-px {
+    :is(.tenant-aura,.tenant-latincaribe) #step4 .mt-6.rounded-2xl .text-white\/30 { color: #8E9399 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #step4 .mt-6.rounded-2xl .text-white { color: #18181B !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #step4 .mt-6.rounded-2xl .text-gray-500 { color: #8E9399 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #step4 .mt-6.rounded-2xl .bg-white\/5,
+    :is(.tenant-aura,.tenant-latincaribe) #step4 .mt-6.rounded-2xl .h-px {
       background: #D4D4D8 !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #step4 .mt-6.rounded-2xl i {
+    :is(.tenant-aura,.tenant-latincaribe) #step4 .mt-6.rounded-2xl i {
       color: #9CA3AF !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #step4 .mt-6.rounded-2xl #summaryTime {
+    :is(.tenant-aura,.tenant-latincaribe) #step4 .mt-6.rounded-2xl #summaryTime {
       color: #111827 !important;
     }
 
     /* ── Club Banner ── */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #clubBanner > a {
+    :is(.tenant-aura,.tenant-latincaribe) #clubBanner > a {
       background: #FFFFFF !important;
       border: 1px solid #D4D4D8 !important;
       box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #clubBanner .club-icon-wrap {
+    :is(.tenant-aura,.tenant-latincaribe) #clubBanner .club-icon-wrap {
       background: rgba(156,163,175,0.10) !important;
       border-color: rgba(156,163,175,0.25) !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #clubBanner i.ph-fill { color: #9CA3AF !important; filter: none !important; }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #clubBanner p.text-white { color: #18181B !important; }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #clubBanner i.ph-bold { color: rgba(24,24,27,0.25) !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #clubBanner i.ph-fill { color: #9CA3AF !important; filter: none !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #clubBanner p.text-white { color: #18181B !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #clubBanner i.ph-bold { color: rgba(24,24,27,0.25) !important; }
 
     /* ── Club Fidelidad Step 4 ── */
     @keyframes auraStripeShimmer {
@@ -4107,58 +4117,58 @@
       0%, 100% { box-shadow: 0 4px 16px rgba(24,24,27,0.18); }
       50%       { box-shadow: 0 4px 28px rgba(24,24,27,0.36); }
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #step4AuthContainer .aura-club-stripe {
+    :is(.tenant-aura,.tenant-latincaribe) #step4AuthContainer .aura-club-stripe {
       background: linear-gradient(90deg,#D4D4D8 0%,#E5E7EB 30%,#9CA3AF 50%,#E5E7EB 70%,#D4D4D8 100%);
       background-size: 200% 100%;
       animation: auraStripeShimmer 3s ease-in-out infinite;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #step4AuthContainer .aura-cta-btn {
+    :is(.tenant-aura,.tenant-latincaribe) #step4AuthContainer .aura-cta-btn {
       animation: auraCtaGlow 2.5s ease-in-out infinite;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #step4AuthContainer .rounded-2xl {
+    :is(.tenant-aura,.tenant-latincaribe) #step4AuthContainer .rounded-2xl {
       background: #FFFFFF !important;
       border-color: #D4D4D8 !important;
       box-shadow: 0 2px 20px rgba(0,0,0,0.07) !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #step4AuthContainer div[style*="background:rgba(0,0,0"] {
+    :is(.tenant-aura,.tenant-latincaribe) #step4AuthContainer div[style*="background:rgba(0,0,0"] {
       background: rgba(156,163,175,0.04) !important;
     }
 
     /* ── Footer Contact ── */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #footerContact .rounded-2xl {
+    :is(.tenant-aura,.tenant-latincaribe) #footerContact .rounded-2xl {
       background: #FFFFFF !important;
       border: 1px solid #D4D4D8 !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #footerContact .w-10 {
+    :is(.tenant-aura,.tenant-latincaribe) #footerContact .w-10 {
       background: rgba(156,163,175,0.10) !important;
       border-color: rgba(156,163,175,0.25) !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #footerContact .w-10 i { color: #9CA3AF !important; }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #footerContact p[class*="uppercase"] { color: #9CA3AF !important; }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #footerContact p.text-white { color: #18181B !important; }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #footerContact .h-px { background: #D4D4D8 !important; }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #footerContact a.active\:bg-white\/5:active {
+    :is(.tenant-aura,.tenant-latincaribe) #footerContact .w-10 i { color: #9CA3AF !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #footerContact p[class*="uppercase"] { color: #9CA3AF !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #footerContact p.text-white { color: #18181B !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #footerContact .h-px { background: #D4D4D8 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #footerContact a.active\:bg-white\/5:active {
       background: rgba(156,163,175,0.06) !important;
     }
 
     /* ── Extras Section ── */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #extrasSection p[class*="uppercase"] { color: #9CA3AF !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #extrasSection p[class*="uppercase"] { color: #9CA3AF !important; }
 
     /* ── Success State ── */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #success-state h2 { color: #111827 !important; }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #success-state .text-neon { color: #111827 !important; }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #success-state .bg-brand-neon\/10 { background: rgba(156,163,175,0.10) !important; }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #success-state svg.text-neon { color: #9CA3AF !important; }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #success-state #successSummaryDate { color: #9CA3AF !important; }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #success-state .bg-\[\#0a0a0d\] {
+    :is(.tenant-aura,.tenant-latincaribe) #success-state h2 { color: #111827 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #success-state .text-neon { color: #111827 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #success-state .bg-brand-neon\/10 { background: rgba(156,163,175,0.10) !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #success-state svg.text-neon { color: #9CA3AF !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #success-state #successSummaryDate { color: #9CA3AF !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #success-state .bg-\[\#0a0a0d\] {
       background: #FFFFFF !important;
       border-color: rgba(156,163,175,0.30) !important;
       box-shadow: 0 4px 20px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.04) !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #success-state .text-brand-text { color: #18181B !important; }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #success-state .text-brand-neon\/80 { color: #52525B !important; }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #success-state a[class*="instagram"] { color: #8E9399 !important; }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #success-state button { color: #9CA3AF !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #success-state .text-brand-text { color: #18181B !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #success-state .text-brand-neon\/80 { color: #52525B !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #success-state a[class*="instagram"] { color: #8E9399 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #success-state button { color: #9CA3AF !important; }
 
     /* ── Aura: Sello animado en success ────────────────────────── */
     @keyframes aura-stamp-in {
@@ -4178,11 +4188,11 @@
     }
 
     /* Ocultar checkmark SVG por defecto para Aura */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #success-state > div.w-24 { display: none !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #success-state > div.w-24 { display: none !important; }
 
     /* Mostrar wrapper del sello solo en Aura */
     #aura-stamp-wrap { display: none; }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #success-state #aura-stamp-wrap { display: flex !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #success-state #aura-stamp-wrap { display: flex !important; }
 
     /* Animaciones aplicadas a hijos del stamp wrapper */
     #aura-stamp-wrap .aura-stamp-logo {
@@ -4199,7 +4209,7 @@
     }
 
     /* ── Toast Validation ── */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #toastValidation {
+    :is(.tenant-aura,.tenant-latincaribe) #toastValidation {
       background: #FFFFFF !important;
       border: 1px solid rgba(220,38,38,0.35) !important;
       color: #DC2626 !important;
@@ -4207,7 +4217,7 @@
     }
 
     /* ── Animations: club sparks, badge glow ── */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .club-spark {
+    :is(.tenant-aura,.tenant-latincaribe) .club-spark {
       background: #9CA3AF !important;
     }
 
@@ -4218,225 +4228,225 @@
        ═══════════════════════════════════════════════════════════════ */
 
     /* ── Hardcoded dark backgrounds → white/light ── */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .bg-\[#0a0a0d\],
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .bg-\[#111115\],
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .bg-\[#0a0807\] {
+    :is(.tenant-aura,.tenant-latincaribe) .bg-\[#0a0a0d\],
+    :is(.tenant-aura,.tenant-latincaribe) .bg-\[#111115\],
+    :is(.tenant-aura,.tenant-latincaribe) .bg-\[#0a0807\] {
       background-color: #FFFFFF !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .bg-white\/5 {
+    :is(.tenant-aura,.tenant-latincaribe) .bg-white\/5 {
       background-color: rgba(156,163,175,0.06) !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .bg-white\/3 {
+    :is(.tenant-aura,.tenant-latincaribe) .bg-white\/3 {
       background-color: rgba(156,163,175,0.04) !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .bg-brand-neon\/5,
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .bg-brand-neon\/10 {
+    :is(.tenant-aura,.tenant-latincaribe) .bg-brand-neon\/5,
+    :is(.tenant-aura,.tenant-latincaribe) .bg-brand-neon\/10 {
       background-color: rgba(156,163,175,0.06) !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .bg-brand-neon\/0 {
+    :is(.tenant-aura,.tenant-latincaribe) .bg-brand-neon\/0 {
       background-color: transparent !important;
     }
 
     /* ── Tailwind brand-text (was #f8fafc white) → satin-black ── */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .text-brand-text {
+    :is(.tenant-aura,.tenant-latincaribe) .text-brand-text {
       color: #18181B !important;
     }
 
     /* ── Tailwind brand-neon (was #ffffff) → context-aware ── */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .text-brand-neon,
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .text-brand-neon\/60 {
+    :is(.tenant-aura,.tenant-latincaribe) .text-brand-neon,
+    :is(.tenant-aura,.tenant-latincaribe) .text-brand-neon\/60 {
       color: #9CA3AF !important;
     }
 
     /* ── Brand accent borders → stainless steel or sky ── */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .border-brand-accent\/20 {
+    :is(.tenant-aura,.tenant-latincaribe) .border-brand-accent\/20 {
       border-color: #D4D4D8 !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .border-brand-accent\/10 {
+    :is(.tenant-aura,.tenant-latincaribe) .border-brand-accent\/10 {
       border-color: rgba(212,212,216,0.60) !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .border-neon\/30 {
+    :is(.tenant-aura,.tenant-latincaribe) .border-neon\/30 {
       border-color: rgba(156,163,175,0.30) !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .border-neon\/50 {
+    :is(.tenant-aura,.tenant-latincaribe) .border-neon\/50 {
       border-color: rgba(156,163,175,0.50) !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .border-white\/10 {
+    :is(.tenant-aura,.tenant-latincaribe) .border-white\/10 {
       border-color: #D4D4D8 !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .border-white\/5 {
+    :is(.tenant-aura,.tenant-latincaribe) .border-white\/5 {
       border-color: rgba(212,212,216,0.40) !important;
     }
 
     /* ── Category section headers (Step 1 - "Cortes", "Barba") ── */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .cat-title {
+    :is(.tenant-aura,.tenant-latincaribe) .cat-title {
       color: #18181B !important;
       border-left-color: #9CA3AF !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .cat-sep,
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .sep-ornamental {
+    :is(.tenant-aura,.tenant-latincaribe) .cat-sep,
+    :is(.tenant-aura,.tenant-latincaribe) .sep-ornamental {
       display: none !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .category-section h3 {
+    :is(.tenant-aura,.tenant-latincaribe) .category-section h3 {
       color: #18181B !important;
     }
 
     /* ── Service card row layout text fix ── */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .service-option .svc-name {
+    :is(.tenant-aura,.tenant-latincaribe) .service-option .svc-name {
       color: #18181B !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .service-option .text-brand-neon {
+    :is(.tenant-aura,.tenant-latincaribe) .service-option .text-brand-neon {
       color: #9CA3AF !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .service-option .text-gray-200 {
+    :is(.tenant-aura,.tenant-latincaribe) .service-option .text-gray-200 {
       color: #18181B !important;
     }
 
     /* ── Service card: icon-bg hardcoded bg-[#111115] ── */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .service-option .icon-bg {
+    :is(.tenant-aura,.tenant-latincaribe) .service-option .icon-bg {
       background: rgba(156,163,175,0.08) !important;
       border-color: rgba(156,163,175,0.20) !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .service-option .icon-svg {
+    :is(.tenant-aura,.tenant-latincaribe) .service-option .icon-svg {
       color: #9CA3AF !important;
       filter: none !important;
     }
 
     /* ── Radio circles on service cards ── */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .svc-radio {
+    :is(.tenant-aura,.tenant-latincaribe) .svc-radio {
       border-color: #D4D4D8 !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .service-option.border-neon .svc-radio {
+    :is(.tenant-aura,.tenant-latincaribe) .service-option.border-neon .svc-radio {
       border-color: #1F2937 !important;
       background: #1F2937 !important;
       box-shadow: inset 0 0 0 2px #FFFFFF !important;
     }
 
     /* ── Hover shadows on card layout → light shadow ── */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .service-option:hover {
+    :is(.tenant-aura,.tenant-latincaribe) .service-option:hover {
       box-shadow: 0 2px 10px rgba(156,163,175,0.12) !important;
       border-color: rgba(156,163,175,0.40) !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .barber-option:hover {
+    :is(.tenant-aura,.tenant-latincaribe) .barber-option:hover {
       box-shadow: 0 2px 10px rgba(156,163,175,0.12) !important;
       border-color: rgba(156,163,175,0.40) !important;
     }
 
     /* ── group-hover overlay on grid service cards ── */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .service-option .group-hover\:bg-brand-neon\/5 {
+    :is(.tenant-aura,.tenant-latincaribe) .service-option .group-hover\:bg-brand-neon\/5 {
       background-color: rgba(156,163,175,0.04) !important;
     }
 
     /* ── Calendar month heading & "Horas Disponibles" (Step 3) ── */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #currentMonthText {
+    :is(.tenant-aura,.tenant-latincaribe) #currentMonthText {
       color: #18181B !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #step3 h3 {
+    :is(.tenant-aura,.tenant-latincaribe) #step3 h3 {
       color: #18181B !important;
     }
 
     /* ── Barber card hardcoded inline bg-[#0a0807] ── */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .barber-option .icon-bg,
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .barber-option .barber-avatar {
+    :is(.tenant-aura,.tenant-latincaribe) .barber-option .icon-bg,
+    :is(.tenant-aura,.tenant-latincaribe) .barber-option .barber-avatar {
       border-color: rgba(156,163,175,0.20) !important;
     }
 
     /* ── Skeleton loader ── */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #servicesSkeleton > div {
+    :is(.tenant-aura,.tenant-latincaribe) #servicesSkeleton > div {
       background: rgba(156,163,175,0.08) !important;
     }
 
     /* ── Selection recap chips ── */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #selectionRecap span {
+    :is(.tenant-aura,.tenant-latincaribe) #selectionRecap span {
       color: #8E9399 !important;
     }
 
     /* ── Step 4: summary card inline bg-[#0a0807] ── */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #step4 div[style*="background:#0a0807"],
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #step4 div[style*="background:#0a0a0d"] {
+    :is(.tenant-aura,.tenant-latincaribe) #step4 div[style*="background:#0a0807"],
+    :is(.tenant-aura,.tenant-latincaribe) #step4 div[style*="background:#0a0a0d"] {
       background: #FFFFFF !important;
       border-color: #D4D4D8 !important;
     }
 
     /* ── Success state: summary card bg-[#0a0a0d] ── */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #success-state .bg-\[\#0a0a0d\] {
+    :is(.tenant-aura,.tenant-latincaribe) #success-state .bg-\[\#0a0a0d\] {
       background: #FFFFFF !important;
       border-color: rgba(156,163,175,0.30) !important;
       box-shadow: 0 4px 20px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.04) !important;
     }
 
     /* ── Footer contact: inline style bg-[#0a0807] ── */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #footerContact div[style*="background:#0a0807"] {
+    :is(.tenant-aura,.tenant-latincaribe) #footerContact div[style*="background:#0a0807"] {
       background: #FFFFFF !important;
       border-color: #D4D4D8 !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #footerContact div[style*="background:rgba(255,255,255,0.06)"],
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #footerContact .h-px[style] {
+    :is(.tenant-aura,.tenant-latincaribe) #footerContact div[style*="background:rgba(255,255,255,0.06)"],
+    :is(.tenant-aura,.tenant-latincaribe) #footerContact .h-px[style] {
       background: #D4D4D8 !important;
     }
 
     /* ── Footer contact: icon bg inline styles ── */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #footerContact div[style*="background:rgba(201,168,76"] {
+    :is(.tenant-aura,.tenant-latincaribe) #footerContact div[style*="background:rgba(201,168,76"] {
       background: rgba(156,163,175,0.10) !important;
       border-color: rgba(156,163,175,0.25) !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #footerContact i[style*="color:var(--gold)"] {
+    :is(.tenant-aura,.tenant-latincaribe) #footerContact i[style*="color:var(--gold)"] {
       color: #9CA3AF !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #footerContact p[style*="color:rgba(201,168,76"] {
+    :is(.tenant-aura,.tenant-latincaribe) #footerContact p[style*="color:rgba(201,168,76"] {
       color: #9CA3AF !important;
     }
 
     /* ── Info strip: inline icon colors ── */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .info-strip i[style] {
+    :is(.tenant-aura,.tenant-latincaribe) .info-strip i[style] {
       color: #9CA3AF !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .info-strip[style] {
+    :is(.tenant-aura,.tenant-latincaribe) .info-strip[style] {
       background: #111827 !important;
     }
 
     /* ── Club banner inline styles ── */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #clubBanner a[style] {
+    :is(.tenant-aura,.tenant-latincaribe) #clubBanner a[style] {
       background: #FFFFFF !important;
       border-color: #D4D4D8 !important;
       box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #clubBanner div[style*="background:rgba(var(--accent"] {
+    :is(.tenant-aura,.tenant-latincaribe) #clubBanner div[style*="background:rgba(var(--accent"] {
       background: rgba(156,163,175,0.10) !important;
       border-color: rgba(156,163,175,0.25) !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #clubBanner p[style*="color:rgba(var(--accent"] {
+    :is(.tenant-aura,.tenant-latincaribe) #clubBanner p[style*="color:rgba(var(--accent"] {
       color: #9CA3AF !important;
     }
 
     /* ── Drop shadows that emit white glow (dark mode artifact) ── */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .drop-shadow-\[0_0_5px_rgba\(255\,255\,255\,0\.35\)\] {
+    :is(.tenant-aura,.tenant-latincaribe) .drop-shadow-\[0_0_5px_rgba\(255\,255\,255\,0\.35\)\] {
       filter: none !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .hover\:shadow-\[0_0_15px_rgba\(255\,255\,255\,0\.15\)\]:hover {
+    :is(.tenant-aura,.tenant-latincaribe) .hover\:shadow-\[0_0_15px_rgba\(255\,255\,255\,0\.15\)\]:hover {
       box-shadow: 0 2px 10px rgba(156,163,175,0.12) !important;
     }
 
     /* ── Breathing room — paso 1 ── */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #aura-sobre-wrap {
+    :is(.tenant-aura,.tenant-latincaribe) #aura-sobre-wrap {
       padding-top: 24px !important;
       padding-bottom: 12px !important;
     }
     /* Progress section: más aire sobre y bajo la barra */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) div:has(#progressBar) {
+    :is(.tenant-aura,.tenant-latincaribe) div:has(#progressBar) {
       margin-top: 28px !important;
       margin-bottom: 28px !important;
     }
     /* Título "¿Qué servicio buscas?" — más espacio bajo */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #step1 > h2:first-child {
+    :is(.tenant-aura,.tenant-latincaribe) #step1 > h2:first-child {
       margin-bottom: 28px !important;
     }
 
     /* ── "Agendar otra hora" link in success ── */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #success-state .text-brand-neon\/60 {
+    :is(.tenant-aura,.tenant-latincaribe) #success-state .text-brand-neon\/60 {
       color: #9CA3AF !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #success-state .hover\:drop-shadow-\[0_0_5px_rgba\(255\,255\,255\,0\.4\)\]:hover {
+    :is(.tenant-aura,.tenant-latincaribe) #success-state .hover\:drop-shadow-\[0_0_5px_rgba\(255\,255\,255\,0\.4\)\]:hover {
       filter: none !important;
     }
 
@@ -4445,7 +4455,7 @@
        AURA — "Quiénes Somos" (Urban-Industrial Style)
        ═══════════════════════════════════════════════════════════════ */
     #aura-sobre-wrap { display: none; }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #aura-sobre-wrap { display: block !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #aura-sobre-wrap { display: block !important; }
     #aura-sobre-btn, #aura-suscrip-btn, #aura-info-btn {
       width: 100%;
       padding: 10px 16px;
@@ -4726,23 +4736,23 @@
     #aura-slim-wa:hover  { color: #111827; background: rgba(17,24,39,0.07); }
     #aura-slim-wa:active { opacity: 0.65; }
 
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) body[data-step="2"] .booking-hero,
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) body[data-step="3"] .booking-hero,
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) body[data-step="4"] .booking-hero { display: none !important; }
+    :is(.tenant-aura,.tenant-latincaribe) body[data-step="2"] .booking-hero,
+    :is(.tenant-aura,.tenant-latincaribe) body[data-step="3"] .booking-hero,
+    :is(.tenant-aura,.tenant-latincaribe) body[data-step="4"] .booking-hero { display: none !important; }
 
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) body[data-step="2"] .info-strip,
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) body[data-step="3"] .info-strip,
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) body[data-step="4"] .info-strip { display: none !important; }
+    :is(.tenant-aura,.tenant-latincaribe) body[data-step="2"] .info-strip,
+    :is(.tenant-aura,.tenant-latincaribe) body[data-step="3"] .info-strip,
+    :is(.tenant-aura,.tenant-latincaribe) body[data-step="4"] .info-strip { display: none !important; }
 
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) body[data-step="2"] #aura-slim-header,
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) body[data-step="3"] #aura-slim-header,
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) body[data-step="4"] #aura-slim-header { display: flex !important; }
+    :is(.tenant-aura,.tenant-latincaribe) body[data-step="2"] #aura-slim-header,
+    :is(.tenant-aura,.tenant-latincaribe) body[data-step="3"] #aura-slim-header,
+    :is(.tenant-aura,.tenant-latincaribe) body[data-step="4"] #aura-slim-header { display: flex !important; }
 
     /* WhatsApp — info strip (Aura only) */
     #aura-info-wa {
       display: none !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #aura-info-wa {
+    :is(.tenant-aura,.tenant-latincaribe) #aura-info-wa {
       display: flex !important;
       grid-column: 1 / -1;
       border-left: none !important;
@@ -4754,23 +4764,23 @@
       transition: color 0.15s;
       text-decoration: none;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #aura-info-wa:hover  { color: rgba(255,255,255,0.80); }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #aura-info-wa:active { color: #ffffff; }
+    :is(.tenant-aura,.tenant-latincaribe) #aura-info-wa:hover  { color: rgba(255,255,255,0.80); }
+    :is(.tenant-aura,.tenant-latincaribe) #aura-info-wa:active { color: #ffffff; }
 
     /* ── Aura: Review cards (inline dark hardcoded en JS) ── */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #reviewsGrid > div {
+    :is(.tenant-aura,.tenant-latincaribe) #reviewsGrid > div {
       background: #FFFFFF !important;
       border-color: rgba(0,0,0,0.07) !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #reviewsGrid > div * {
+    :is(.tenant-aura,.tenant-latincaribe) #reviewsGrid > div * {
       color: #18181B !important;
     }
     /* Estrellas vacías: #3f3f46 (oscuro) → gris claro sobre fondo blanco */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #reviewsGrid svg[fill="#3f3f46"] path {
+    :is(.tenant-aura,.tenant-latincaribe) #reviewsGrid svg[fill="#3f3f46"] path {
       fill: #D1D5DB !important;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #reviewsSection .text-zinc-500 { color: #8E9399 !important; }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #reviewsCtaBtn {
+    :is(.tenant-aura,.tenant-latincaribe) #reviewsSection .text-zinc-500 { color: #8E9399 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #reviewsCtaBtn {
       border-color: rgba(0,0,0,0.10) !important;
       color: #71717A !important;
       background: rgba(156,163,175,0.04) !important;
@@ -6014,14 +6024,14 @@
        ════════════════════════════════════════════════════════════════ */
 
     /* ── P2: Profundidad en modo claro — sombra suave de reposo en tarjetas ── */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .service-option,
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .barber-option {
+    :is(.tenant-aura,.tenant-latincaribe) .service-option,
+    :is(.tenant-aura,.tenant-latincaribe) .barber-option {
       box-shadow: 0 1px 2px rgba(24,24,27,0.05), 0 1px 3px rgba(24,24,27,0.03) !important;
     }
 
     /* ── P2: Hero graduado — glow de acento gris sobre el hero oscuro ── */
     @keyframes aura-hero-glow { 0%,100% { opacity: 0.4; } 50% { opacity: 0.8; } }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .booking-hero::after {
+    :is(.tenant-aura,.tenant-latincaribe) .booking-hero::after {
       content: '';
       position: absolute; top: 0; left: 50%; transform: translateX(-50%);
       width: 85%; height: 55%;
@@ -6031,12 +6041,12 @@
     }
 
     /* ── P3: CTA negro — sheen blanco sutil + press ── */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #btnContinue {
+    :is(.tenant-aura,.tenant-latincaribe) #btnContinue {
       position: relative; overflow: hidden;
       transition: transform 0.14s ease, box-shadow 0.25s ease, filter 0.2s ease;
     }
     @keyframes aura-cta-sheen { 0% { transform: translateX(-130%); } 55%,100% { transform: translateX(240%); } }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #btnContinue::after {
+    :is(.tenant-aura,.tenant-latincaribe) #btnContinue::after {
       content: '';
       position: absolute; top: 0; bottom: 0; left: 0; width: 55%;
       background: linear-gradient(105deg, transparent 0%, rgba(255,255,255,0.16) 50%, transparent 100%);
@@ -6044,30 +6054,30 @@
       animation: aura-cta-sheen 5.5s ease-in-out infinite;
       pointer-events: none;
     }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #btnContinue:active { transform: scale(0.985); }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #btnContinue:disabled { filter: grayscale(0.3) brightness(0.7); box-shadow: none !important; }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #btnContinue:disabled::after { display: none; }
+    :is(.tenant-aura,.tenant-latincaribe) #btnContinue:active { transform: scale(0.985); }
+    :is(.tenant-aura,.tenant-latincaribe) #btnContinue:disabled { filter: grayscale(0.3) brightness(0.7); box-shadow: none !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #btnContinue:disabled::after { display: none; }
 
     /* ── P3: Transición entre pasos — easing premium + focus-in ── */
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) section[id^="step"] { transition-timing-function: cubic-bezier(0.16,1,0.3,1) !important; }
-    :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) section[id^="step"].opacity-0 { filter: blur(7px) !important; }
+    :is(.tenant-aura,.tenant-latincaribe) section[id^="step"] { transition-timing-function: cubic-bezier(0.16,1,0.3,1) !important; }
+    :is(.tenant-aura,.tenant-latincaribe) section[id^="step"].opacity-0 { filter: blur(7px) !important; }
 
     /* ── Accesibilidad: prefers-reduced-motion ── */
     @media (prefers-reduced-motion: reduce) {
-      :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #heroLogoArea,
-      :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .hero-logo-ring,
-      :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #shopNombre,
-      :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .gold-divider,
-      :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #shopSlogan,
-      :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .booking-hero::after,
-      :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .service-option.border-neon::after,
-      :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) .barber-option.border-neon::after,
-      :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #btnContinue::after,
-      :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #aura-stamp-wrap .aura-stamp-logo,
-      :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #aura-stamp-wrap .aura-stamp-ring-1,
-      :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #aura-stamp-wrap .aura-stamp-ring-2,
-      :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) #aura-stamp-wrap .aura-stamp-shine { animation: none !important; }
-      :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia) section[id^="step"].opacity-0 { filter: none !important; }
+      :is(.tenant-aura,.tenant-latincaribe) #heroLogoArea,
+      :is(.tenant-aura,.tenant-latincaribe) .hero-logo-ring,
+      :is(.tenant-aura,.tenant-latincaribe) #shopNombre,
+      :is(.tenant-aura,.tenant-latincaribe) .gold-divider,
+      :is(.tenant-aura,.tenant-latincaribe) #shopSlogan,
+      :is(.tenant-aura,.tenant-latincaribe) .booking-hero::after,
+      :is(.tenant-aura,.tenant-latincaribe) .service-option.border-neon::after,
+      :is(.tenant-aura,.tenant-latincaribe) .barber-option.border-neon::after,
+      :is(.tenant-aura,.tenant-latincaribe) #btnContinue::after,
+      :is(.tenant-aura,.tenant-latincaribe) #aura-stamp-wrap .aura-stamp-logo,
+      :is(.tenant-aura,.tenant-latincaribe) #aura-stamp-wrap .aura-stamp-ring-1,
+      :is(.tenant-aura,.tenant-latincaribe) #aura-stamp-wrap .aura-stamp-ring-2,
+      :is(.tenant-aura,.tenant-latincaribe) #aura-stamp-wrap .aura-stamp-shine { animation: none !important; }
+      :is(.tenant-aura,.tenant-latincaribe) section[id^="step"].opacity-0 { filter: none !important; }
     }
 
     /* ═══════════════════════════════════════════════════════════════
@@ -6615,7 +6625,7 @@
             </div>
           </div>
         </div>
-        <!-- Aura: Sello animado (solo visible con :is(.tenant-aura,.tenant-latincaribe,.tenant-sionbarberia)) -->
+        <!-- Aura: Sello animado (solo visible con :is(.tenant-aura,.tenant-latincaribe)) -->
         <div id="aura-stamp-wrap" class="w-28 h-28 mb-8 relative items-center justify-center flex-shrink-0">
           <div class="aura-stamp-ring-1 absolute inset-0 rounded-full" style="border:2.5px solid rgba(156,163,175,0.55);"></div>
           <div class="aura-stamp-ring-2 absolute inset-[-6px] rounded-full" style="border:1.5px solid rgba(156,163,175,0.30);"></div>
@@ -7498,31 +7508,31 @@
       const anyStateClass = (window._selectedBarberId === 'any' || window._selectedBarber === 'any') ? 'border-neon bg-brand-neon/10' : 'border-brand-accent/20 bg-[#0a0a0d]';
       const _profLabel = window.CURRENT_TENANT_ID === 'gitana' ? 'Cualquier profesional disponible' : 'Cualquier barbero disponible';
 
-      // Studio Atenas (sion): grilla 2 columnas, tarjetas limpias (foto/nombre/rol),
-      // sin estrellas ni badges de disponibilidad. Tema claro.
+      // Studio Dieciséis (sion): grilla 2 columnas, tarjetas limpias (foto/nombre/rol),
+      // sin estrellas ni badges de disponibilidad. Tema Premium Dark · Esmeralda.
       if (window.CURRENT_TENANT_ID === 'sionbarberia') {
         grid.className = 'grid grid-cols-2 gap-3';
         const anySelA = (window._selectedBarberId === 'any' || window._selectedBarber === 'any');
         const cardBase = 'barber-option relative flex flex-col items-center justify-center text-center p-4 rounded-2xl border-2 active:scale-[0.98] transition-all';
-        const styleOf = sel => sel ? 'border-color:#18181B;background:rgba(17,24,39,0.05);' : 'border-color:#E4E4E7;background:#FFFFFF;';
+        const styleOf = sel => sel ? 'border-color:#FAFAFA;background:rgba(255,255,255,0.07);' : 'border-color:rgba(255,255,255,0.12);background:#111111;';
         const anyCardA = `
           <button onclick="selectBarber(this, 'any', 'any')" class="${cardBase}" style="${styleOf(anySelA)}">
-            <div class="w-16 h-16 rounded-full flex items-center justify-center mb-2" style="background:#F4F4F5;border:1px solid #E4E4E7;">
-              <i class="ph-bold ph-shuffle" style="font-size:24px;color:#52525B;"></i>
+            <div class="w-16 h-16 rounded-full flex items-center justify-center mb-2" style="background:#161616;border:1px solid rgba(255,255,255,0.15);">
+              <i class="ph-bold ph-shuffle" style="font-size:24px;color:rgba(255,255,255,0.75);"></i>
             </div>
-            <span class="barber-name font-bold text-sm" style="color:#18181B;">Cualquier profesional</span>
-            <p class="text-[11px] mt-0.5" style="color:#A1A1AA;">Máxima disponibilidad</p>
+            <span class="barber-name font-bold text-sm" style="color:#f3f6f4;">Cualquier profesional</span>
+            <p class="text-[11px] mt-0.5" style="color:#9a9a9e;">Máxima disponibilidad</p>
           </button>`;
         const cardsA = barberos.map(b => {
           const sel = window._selectedBarber === b.nombre;
           const foto = b.foto
-            ? `<img src="${b.foto}" alt="${b.nombre}" class="w-16 h-16 rounded-full object-cover mb-2" style="border:2px solid #E4E4E7;">`
-            : `<div class="w-16 h-16 rounded-full flex items-center justify-center mb-2" style="background:#F4F4F5;border:2px solid #E4E4E7;"><i class="ph-fill ph-user" style="font-size:24px;color:#A1A1AA;"></i></div>`;
+            ? `<img src="${b.foto}" alt="${b.nombre}" class="w-16 h-16 rounded-full object-cover mb-2" style="border:2px solid rgba(255,255,255,0.20);">`
+            : `<div class="w-16 h-16 rounded-full flex items-center justify-center mb-2" style="background:#161616;border:2px solid rgba(255,255,255,0.15);"><i class="ph-fill ph-user" style="font-size:24px;color:rgba(255,255,255,0.5);"></i></div>`;
           return `
           <button onclick="selectBarber(this, '${b.id}', '${b.nombre}')" class="${cardBase}" style="${styleOf(sel)}">
             ${foto}
-            <span class="barber-name font-bold text-sm leading-tight" style="color:#18181B;">${b.nombre}</span>
-            <p class="text-[11px] mt-0.5" style="color:#A1A1AA;">${b.especialidad || 'Barbero'}</p>
+            <span class="barber-name font-bold text-sm leading-tight" style="color:#f3f6f4;">${b.nombre}</span>
+            <p class="text-[11px] mt-0.5" style="color:#9a9a9e;">${b.especialidad || 'Barbero'}</p>
           </button>`;
         }).join('');
         grid.innerHTML = anyCardA + cardsA;
@@ -7746,8 +7756,8 @@
           el.style.borderColor = 'rgba(191,163,126,0.15)';
           el.style.background  = '#352529';
         } else if (_isSionSel) {
-          el.style.borderColor = '#E4E4E7';
-          el.style.background  = '#FFFFFF';
+          el.style.borderColor = 'rgba(255,255,255,0.12)';
+          el.style.background  = '#111111';
           el.style.boxShadow   = 'none';
         } else {
           el.classList.replace('border-neon', 'border-brand-accent/20');
@@ -7761,9 +7771,9 @@
         btn.style.borderColor = '#BFA37E';
         btn.style.background  = 'rgba(191,163,126,0.08)';
       } else if (_isSionSel) {
-        btn.style.borderColor = '#18181B';
-        btn.style.background  = 'rgba(17,24,39,0.06)';
-        btn.style.boxShadow   = '0 0 0 1.5px #18181B, 0 6px 18px rgba(0,0,0,0.10)';
+        btn.style.borderColor = '#FAFAFA';
+        btn.style.background  = 'rgba(255,255,255,0.07)';
+        btn.style.boxShadow   = '0 0 0 1.5px #FAFAFA, 0 6px 18px rgba(0,0,0,0.35)';
       } else {
         btn.classList.replace('border-brand-accent/20', 'border-neon');
         btn.classList.replace('bg-[#0a0a0d]', 'bg-brand-neon/10');
@@ -9223,7 +9233,7 @@
           aura: '/auralogin.png',
           machos: '/machos_bg.png',
           infinity: '/infinity_bg.png',
-          sionbarberia: '/atenas/aten2.png',
+          sionbarberia: '/dieciseis/banner.png',
           omegastudio:  '/omega2.avif',
           memphis:      '/mem.png',
           yugen:        '/yugen/yugen2.png',
@@ -9232,7 +9242,7 @@
         heroImgEl.src = bgUrl;
         heroImgEl.alt = window.CURRENT_TENANT_ID === 'machos' ? 'Interior industrial moderno de Macho´s Barbershop' :
                         window.CURRENT_TENANT_ID === 'infinity' ? 'Interior elegante y familiar de Infinity Studio' :
-                        window.CURRENT_TENANT_ID === 'sionbarberia' ? 'Logotipo y marca oficial de Sion Barbería' :
+                        window.CURRENT_TENANT_ID === 'sionbarberia' ? 'Studio Dieciséis · barbería premium en Valparaíso' :
                         window.CURRENT_TENANT_ID === 'omegastudio' ? 'Interior de Omega Studio, estudio de barbería en Viña del Mar' :
                         'Interior de ' + (SHOP.nombreCorto || SHOP.nombre);
       }
@@ -9267,19 +9277,6 @@
           }
         }
       })();
-
-      // Studio Atenas: 4 logos flotantes en las esquinas del banner.
-      if (window.CURRENT_TENANT_ID === 'sionbarberia') {
-        const hero = document.querySelector('.booking-hero');
-        if (hero && !hero.querySelector('.atenas-corner')) {
-          ['tl', 'tr', 'bl', 'br'].forEach(pos => {
-            const img = document.createElement('img');
-            img.src = SHOP.logo; img.alt = ''; img.setAttribute('aria-hidden', 'true');
-            img.className = 'atenas-corner ' + pos;
-            hero.appendChild(img);
-          });
-        }
-      }
 
       // Texto del banner del club adaptado al tipo de negocio
       const clubCTA = document.querySelector('#clubBanner p.font-bold.text-white');
@@ -9433,7 +9430,7 @@
       const heroHor = document.getElementById('heroInfoHorText');
       if (heroHor) heroHor.textContent = horParts.length > 0 ? horParts.join(' • ') : horClean;
 
-      // Studio Atenas: info-strip como BOTONES (no muestra el texto). "Ubicación"
+      // Studio Dieciséis: info-strip como BOTONES (no muestra el texto). "Ubicación"
       // abre el mapa; "Horarios" muestra el horario al tocar.
       if (window.CURRENT_TENANT_ID === 'sionbarberia') {
         if (heroAddr) heroAddr.textContent = 'Ubicación';

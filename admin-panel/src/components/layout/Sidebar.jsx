@@ -5,7 +5,7 @@ import {
   Trophy, ShoppingBag, Images, LogOut, ChevronRight,
   Sun, Moon, ExternalLink, Settings, TrendingDown, MessageCircle, X,
   Megaphone, ImagePlus, CreditCard, Monitor, Headphones, Medal, Camera, GraduationCap, Wallet, Package, ThumbsUp, Crown,
-  Globe, Banknote, Gift, ClipboardList, Building2, Home, Lock, HelpCircle, Link2,
+  Globe, Banknote, Gift, ClipboardList, Building2, Home, Lock, HelpCircle, Link2, Instagram,
 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { doc, onSnapshot, where } from 'firebase/firestore';
@@ -53,8 +53,8 @@ const NAV_GROUPS_DEFAULT = [
     label: 'Contenido',
     items: [
       { to: 'lookbook',          label: 'Lookbook',         Icon: Images    },
-      { to: 'instagram',         label: 'Instagram',        Icon: Camera,   adminOnly: true },
-      { to: 'link-bio',          label: 'Link in Bio',      Icon: Link2,    adminOnly: true },
+      { to: 'instagram',         label: 'Instagram',        Icon: Instagram, adminOnly: true, variant: 'instagram' },
+      { to: 'link-bio',          label: 'Link in Bio (bioo.cl)', Icon: Link2, adminOnly: true, variant: 'bioo' },
       { to: 'servicio-favorito', label: 'Foto de servicio', Icon: ImagePlus },
     ],
   },
@@ -86,11 +86,11 @@ const NAV_GROUPS_DEFAULT = [
     adminOnly: true,
     items: [
       { to: 'marketing',     label: 'Marketing',      Icon: Megaphone,   adminOnly: true },
-      { to: 'gift-cards',    label: 'Gift Cards',     Icon: Gift,        adminOnly: true },
+      { to: 'gift-cards',    label: 'Gift Cards',     Icon: Gift,        adminOnly: true, variant: 'giftcard' },
       // Oculto del sidebar (la ruta /sucursales sigue activa si se accede directo).
       // { to: 'sucursales',    label: 'Sucursales',     Icon: Building2,   adminOnly: true },
       { to: 'mensualidad',   label: 'Mensualidad',    Icon: CreditCard,  adminOnly: true },
-      { to: 'tv-config',     label: 'Pantalla TV',    Icon: Monitor,     adminOnly: true },
+      { to: 'tv-config',     label: 'Pantalla TV',    Icon: Monitor,     adminOnly: true, variant: 'tv' },
       { to: 'configuracion', label: 'Configuración',  Icon: Settings,    adminOnly: true },
       { to: 'consultas',     label: 'Consultas',      Icon: HelpCircle,  adminOnly: true },
       { to: 'soporte',       label: 'Soporte',        Icon: Headphones,  adminOnly: true },
@@ -217,17 +217,170 @@ function useUnreadNews() {
   return unread;
 }
 
-/* ── Accent class lookup (full strings required for Tailwind purge) ── */
+/* ── Accent class lookup (full strings required for Tailwind purge) ──
+ * `active`  → fondo (10%) + color de texto/ícono del tenant
+ * `border`  → color del borde izquierdo (border-l-2) del ítem activo
+ * `chevron` → color del chevron del ítem activo
+ * 'zinc' = monocromático/platino (Studio Dieciséis · B&N).
+ */
 const ACCENT_CLASSES = {
-  emerald: { active: 'bg-emerald-500/10 text-emerald-400', chevron: 'text-emerald-500' },
-  cyan:    { active: 'bg-cyan-500/10 text-cyan-400',       chevron: 'text-cyan-500'    },
-  lime:    { active: 'bg-lime-500/10 text-lime-400',       chevron: 'text-lime-500'    },
-  pink:    { active: 'bg-pink-500/10 text-pink-400',       chevron: 'text-pink-500'    },
-  purple:  { active: 'bg-purple-500/10 text-purple-400',   chevron: 'text-purple-500'  },
-  slate:   { active: 'bg-slate-500/10 text-slate-300',     chevron: 'text-slate-400'   },
-  red:     { active: 'bg-red-500/10 text-red-400',         chevron: 'text-red-500'     },
-  orange:  { active: 'bg-orange-500/10 text-orange-400',   chevron: 'text-orange-500'  },
+  emerald: { active: 'bg-emerald-500/10 text-emerald-400', border: 'border-emerald-400', chevron: 'text-emerald-500' },
+  cyan:    { active: 'bg-cyan-500/10 text-cyan-400',       border: 'border-cyan-400',    chevron: 'text-cyan-500'    },
+  lime:    { active: 'bg-lime-500/10 text-lime-400',       border: 'border-lime-400',    chevron: 'text-lime-500'    },
+  pink:    { active: 'bg-pink-500/10 text-pink-400',       border: 'border-pink-400',    chevron: 'text-pink-500'    },
+  purple:  { active: 'bg-purple-500/10 text-purple-400',   border: 'border-purple-400',  chevron: 'text-purple-500'  },
+  slate:   { active: 'bg-slate-500/10 text-slate-300',     border: 'border-slate-300',   chevron: 'text-slate-400'   },
+  zinc:    { active: 'bg-zinc-400/10 text-zinc-200',       border: 'border-zinc-300',    chevron: 'text-zinc-400'    },
+  red:     { active: 'bg-red-500/10 text-red-400',         border: 'border-red-400',     chevron: 'text-red-500'     },
+  orange:  { active: 'bg-orange-500/10 text-orange-400',   border: 'border-orange-400',  chevron: 'text-orange-500'  },
 };
+
+/* ── Variantes de marca (rompen la regla gris/acento del tenant) ──────
+ * Identidad propia PERMANENTE, pero INTEGRADA al tema oscuro (saturación −18%
+ * vs. el neón puro, para reducir fatiga visual en jornadas largas).
+ *   text      → color/gradiente del texto (modo oscuro)
+ *   icon      → color/efecto del ícono (cuando no es gradiente SVG)
+ *   stroke    → id del <linearGradient> para teñir el trazo del ícono lucide
+ *   hover     → tinte de fondo al hover
+ *   bg        → fondo del estado ACTIVO — más opaco (/20) que el hover (/10),
+ *               para que el módulo actual tenga prioridad visual sobre la marca
+ *   border    → borde izquierdo (border-l-2) del ítem activo
+ *   lightText/lightIcon → fallback de legibilidad en Modo claro (`html.light`),
+ *               donde el sidebar se vuelve casi blanco (#f8fafc).
+ *   logo      → logo oficial; se muestra JUNTO al ícono (no lo reemplaza).
+ * NOTA: el font-weight NO se toca aquí — todos los ítems heredan `font-medium`
+ *       del NavLink base, para un ritmo tipográfico uniforme.
+ * El gradiente SVG #ig-grad se define una vez en <Sidebar>.
+ */
+/**
+ * @typedef {Object} SidebarVariant
+ * @property {string} text
+ * @property {string} hover
+ * @property {string} bg
+ * @property {string} border
+ * @property {string} [icon]
+ * @property {string} [stroke]
+ * @property {string} [logo]
+ * @property {string} [lightText]  Override del texto en Modo claro.
+ * @property {string} [lightIcon]  Override del ícono en Modo claro.
+ */
+/** @type {Record<string, SidebarVariant>} */
+const SIDEBAR_VARIANTS = {
+  // Instagram — gradiente nativo suavizado (amber → rose → pink-400).
+  instagram: {
+    text:      'text-transparent bg-clip-text bg-gradient-to-tr from-amber-400 via-rose-400 to-pink-400',
+    stroke:    'url(#ig-grad)',
+    hover:     'hover:bg-pink-500/10',
+    bg:        'bg-pink-500/20',
+    border:    'border-pink-400',
+    lightText: '[html.light_&]:text-pink-600',
+    lightIcon: '[html.light_&]:[stroke:#be185d]',
+  },
+  // Link in Bio (bioo.cl) — violeta/índigo integrado. `logo` se muestra junto al ícono.
+  bioo: {
+    text:      'text-transparent bg-clip-text bg-gradient-to-r from-violet-400 to-indigo-400',
+    icon:      'text-violet-400',
+    hover:     'hover:bg-violet-500/10',
+    bg:        'bg-violet-500/20',
+    border:    'border-violet-400',
+    lightText: '[html.light_&]:text-violet-700',
+    lightIcon: '[html.light_&]:text-violet-600',
+    // logo: '/bioo-logo.svg', // ← logo oficial de bioo.cl; se renderiza JUNTO al ícono Link.
+  },
+  // Pantalla TV — "Neon Tech" integrado: cyan con resplandor sutil al hover.
+  tv: {
+    text:      'text-cyan-300',
+    icon:      'text-cyan-400 group-hover/item:drop-shadow-[0_0_5px_rgba(34,211,238,0.55)]',
+    hover:     'hover:bg-cyan-500/10',
+    bg:        'bg-cyan-500/20',
+    border:    'border-cyan-400',
+    lightText: '[html.light_&]:text-cyan-700',
+    lightIcon: '[html.light_&]:text-cyan-600 [html.light_&]:drop-shadow-none',
+  },
+  // Gift Cards — "Premium Gold" integrado (ámbar/dorado mate, menos amarillo neón).
+  giftcard: {
+    text:      'text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-amber-500',
+    icon:      'text-amber-400',
+    hover:     'hover:bg-amber-500/10',
+    bg:        'bg-amber-500/20',
+    border:    'border-amber-400',
+    lightText: '[html.light_&]:text-amber-600',
+    lightIcon: '[html.light_&]:text-amber-600',
+  },
+};
+
+/**
+ * @typedef {Object} SidebarItemProps
+ * @property {string} to                       Ruta relativa (NavLink).
+ * @property {string} label                    Texto del ítem.
+ * @property {import('lucide-react').LucideIcon} Icon  Ícono lucide-react.
+ * @property {{active:string,border:string,chevron:string}} accent  Clases de acento del tenant.
+ * @property {SidebarVariant} [variant]        Identidad de marca propia (rompe la regla gris/acento).
+ * @property {() => void} [onClick]            Handler (ej. cerrar drawer móvil).
+ * @property {boolean} [locked]               Sección bloqueada por pago (candado).
+ * @property {number} [badgeCount]            Contador del badge (0 = sin badge).
+ * @property {string} [badgeColorClass]       Clases de color del badge.
+ * @property {'news'|'billing'|null} [dot]    Punto de aviso (novedades / facturación).
+ */
+
+/**
+ * Ítem de navegación del Sidebar.
+ *  · Estándar → inactivo gris (slate-400), hover slate-50/white-5, activo color del tenant.
+ *  · `variant` → identidad de marca PERMANENTE (Instagram, bioo, TV, Gift Cards):
+ *               texto/ícono de marca siempre, hover y borde-activo con su propio color.
+ * @param {SidebarItemProps} props
+ */
+function SidebarItem({ to, label, Icon, accent, variant, onClick, locked = false, badgeCount = 0, badgeColorClass = '', dot = null }) {
+  const hasBadge = badgeCount > 0;
+  return (
+    <NavLink
+      to={to}
+      onClick={onClick}
+      className={({ isActive }) => {
+        const base = 'group/item relative flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200';
+        if (variant) {
+          return `${base} ${isActive ? `${variant.bg} ${variant.border} border-l-2 pl-[10px]` : variant.hover}`;
+        }
+        return `${base} ${isActive
+          ? `${accent.active} ${accent.border} border-l-2 pl-[10px]`
+          : 'text-slate-400 hover:text-slate-50 hover:bg-white/5'}`;
+      }}
+    >
+      {({ isActive }) => (
+        <>
+          {/* Logo oficial (si existe) JUNTO al ícono — mantiene el ritmo visual. */}
+          {variant?.logo && (
+            <img
+              src={variant.logo} alt=""
+              className="w-4 h-4 shrink-0 object-contain group-hover/item:scale-110 transition-transform duration-150"
+            />
+          )}
+          <Icon
+            size={16}
+            /* Peso de línea CONSTANTE en ítems de marca (legibilidad del gradiente);
+               los estándar sí engrosan al activarse. */
+            strokeWidth={variant ? 2 : (isActive ? 2.5 : 2)}
+            stroke={variant?.stroke}
+            className={`shrink-0 group-hover/item:scale-110 group-hover/item:translate-x-0.5 transition-all duration-150 ${variant?.icon || ''} ${variant?.lightIcon || ''}`}
+          />
+          <span className={`flex-1 ${variant?.text || ''} ${variant?.lightText || ''}`}>{label}</span>
+          {locked && <Lock size={12} className="shrink-0 text-red-400/70" />}
+          {dot && !hasBadge && (
+            <span className={`w-1.5 h-1.5 rounded-full animate-pulse shrink-0 ${dot === 'billing' ? 'bg-amber-400' : 'bg-red-500'}`} />
+          )}
+          {hasBadge && (
+            <span className={`ml-auto text-xs w-5 h-5 flex items-center justify-center rounded-full shrink-0 ${badgeColorClass}`}>
+              {badgeCount > 9 ? '9+' : badgeCount}
+            </span>
+          )}
+          {isActive && !hasBadge && !dot && !variant && (
+            <ChevronRight size={14} className={`${accent.chevron} opacity-60`} />
+          )}
+        </>
+      )}
+    </NavLink>
+  );
+}
 
 /* ── Sidebar ─────────────────────────────────────────────────────── */
 export default function Sidebar({ onClose, unreadChats = 0 }) {
@@ -286,6 +439,17 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
   return (
     <aside className="flex flex-col h-full bg-slate-900 border-r border-slate-800">
 
+      {/* Gradientes de marca para teñir el trazo de los íconos lucide (variant items) */}
+      <svg width="0" height="0" className="absolute" aria-hidden="true">
+        <defs>
+          <linearGradient id="ig-grad" x1="0" y1="1" x2="1" y2="0">
+            <stop offset="0%" stopColor="#fbbf24" />   {/* amber-400 */}
+            <stop offset="50%" stopColor="#fb7185" />  {/* rose-400 */}
+            <stop offset="100%" stopColor="#f472b6" /> {/* pink-400 */}
+          </linearGradient>
+        </defs>
+      </svg>
+
       {/* Brand */}
       <div
         className="px-5 pb-5 border-b border-slate-800"
@@ -319,28 +483,20 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
           if (group.adminOnly && !isAdminRole) return null;
 
           return (
-            <div key={group.id} className="mb-4">
+            <div key={group.id} className="mb-6">
 
-              {/* Cabecera del grupo — solo visual, sin colapso */}
-              <div className="flex items-center gap-2 px-3 mb-1">
-                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                  {group.label}
-                </span>
-                <div className="flex-1 h-px bg-slate-800" />
-              </div>
+              {/* Título de categoría — jerárquico y limpio, sin línea divisoria */}
+              <p className="px-3 mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
+                {group.label}
+              </p>
 
               {/* Items */}
               <div className="space-y-0.5">
-                {items.map(({ to, label, Icon }) => {
+                {items.map(({ to, label, Icon, variant }) => {
                   const isMensajes  = to === 'mensajes';
                   const isAgenda    = to === 'agenda';
                   const isProductos = to === 'productos';
                   const isPorCerrar = to === 'por-cerrar';
-
-                  const hasBadge   = (isMensajes && unreadChats > 0) ||
-                                     (isAgenda && pendingCitasCount > 0) ||
-                                     (isProductos && pendingReservasCount > 0) ||
-                                     (isPorCerrar && porCerrarCount > 0);
 
                   const badgeCount = isMensajes  ? unreadChats :
                                      isAgenda    ? pendingCitasCount :
@@ -352,46 +508,24 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
                                           isProductos ? 'bg-emerald-500 text-emerald-950 font-bold' :
                                           isPorCerrar ? 'bg-amber-500 text-amber-950 font-bold' : '';
 
-                  const showNewsDot    = to === 'soporte'    && hasUnreadNews;
-                  const showBillingDot = to === 'mensualidad' && hasBillingAlert;
+                  const dot = (to === 'mensualidad' && hasBillingAlert) ? 'billing'
+                            : (to === 'soporte'     && hasUnreadNews)   ? 'news'
+                            : null;
 
                   return (
-                    <NavLink
+                    <SidebarItem
                       key={to}
                       to={to}
+                      label={label}
+                      Icon={Icon}
+                      accent={ac}
+                      variant={variant ? SIDEBAR_VARIANTS[variant] : undefined}
                       onClick={onClose}
-                      className={({ isActive }) =>
-                        `group/item relative flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                          isActive
-                            ? `${ac.active} pl-4`
-                            : 'text-slate-400 hover:text-white hover:bg-slate-800'
-                        }`
-                      }
-                    >
-                      {({ isActive }) => (
-                        <>
-                          {isActive && (
-                            <span className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-r-md bg-current" />
-                          )}
-                          <Icon size={16} strokeWidth={isActive ? 2.5 : 2} className="shrink-0 group-hover/item:scale-110 group-hover/item:translate-x-0.5 transition-transform duration-150" />
-                          <span className="flex-1">{label}</span>
-                          {restringido && SECCIONES_BLOQUEADAS.has(to) && (
-                            <Lock size={12} className="shrink-0 text-red-400/70" />
-                          )}
-                          {(showNewsDot || showBillingDot) && !hasBadge && (
-                            <span className={`w-1.5 h-1.5 rounded-full animate-pulse shrink-0 ${showBillingDot ? 'bg-amber-400' : 'bg-red-500'}`} />
-                          )}
-                          {hasBadge && (
-                            <span className={`ml-auto text-xs w-5 h-5 flex items-center justify-center rounded-full shrink-0 ${badgeColorClass}`}>
-                              {badgeCount > 9 ? '9+' : badgeCount}
-                            </span>
-                          )}
-                          {isActive && !hasBadge && !showNewsDot && !showBillingDot && (
-                            <ChevronRight size={14} className={`${ac.chevron} opacity-60`} />
-                          )}
-                        </>
-                      )}
-                    </NavLink>
+                      locked={restringido && SECCIONES_BLOQUEADAS.has(to)}
+                      badgeCount={badgeCount}
+                      badgeColorClass={badgeColorClass}
+                      dot={dot}
+                    />
                   );
                 })}
               </div>
@@ -414,26 +548,28 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
           }
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-center gap-2 w-full px-3 py-2.5 rounded-xl text-sm font-bold border border-slate-700/80 hover:border-slate-500 hover:bg-slate-800 text-white transition-all shadow-sm active:scale-[0.98]"
+          className="flex items-center justify-center gap-2 w-full px-3 py-2.5 rounded-xl text-sm font-bold bg-transparent border border-slate-700 hover:border-slate-600 hover:bg-white/5 text-slate-200 transition-all duration-200 active:scale-[0.98]"
         >
           <ExternalLink size={15} />
           <span>{tenant.id === 'deluxeperfumes' ? 'Ver catálogo' : 'Ver agenda pública'}</span>
         </a>
 
         <div className="flex gap-2">
+          {/* Ghost button — sin borde ni fondo en reposo */}
           <button
             onClick={() => setLight(v => !v)}
             title={light ? 'Activar modo oscuro' : 'Activar modo claro'}
-            className="flex-1 flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl bg-slate-800/40 border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800 transition-all active:scale-95"
+            className="flex-1 flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl text-slate-400 hover:text-slate-50 hover:bg-white/5 transition-all duration-200 active:scale-95"
           >
             {light ? <Moon size={16} /> : <Sun size={16} />}
             <span className="text-[10px] font-medium leading-none">{light ? 'Modo oscuro' : 'Modo claro'}</span>
           </button>
 
+          {/* Ghost button — gris en reposo, rojo tenue al hover (acción de salida) */}
           <button
             onClick={() => signOut(auth)}
             title="Cerrar sesión"
-            className="flex-1 flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl bg-red-950/10 border border-red-950/20 text-slate-500 hover:text-red-400 hover:bg-red-950/30 transition-all active:scale-95"
+            className="flex-1 flex flex-col items-center justify-center gap-1 py-2.5 rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-500/10 transition-all duration-200 active:scale-95"
           >
             <LogOut size={16} />
             <span className="text-[10px] font-medium leading-none">Cerrar sesión</span>

@@ -234,6 +234,67 @@
     }
     /* ────────────────────────────────────────────────────────── */
 
+    /* ── STUDIO DIECISÉIS — Club · Premium Dark Monocromático (B&N) ── */
+    .tenant-sionbarberia {
+      --gold:      #E5E7EB;
+      --gold-dim:  rgba(229,231,235,0.20);
+      --gold-glow: rgba(229,231,235,0.06);
+    }
+    html.tenant-sionbarberia body { background-color: #0a0a0a; }
+    .tenant-sionbarberia header {
+      background-color: rgba(10,10,10,0.96) !important;
+      border-bottom: 1px solid rgba(255,255,255,0.08) !important;
+    }
+    .tenant-sionbarberia #authGuard { background: #0a0a0a !important; }
+    /* Hero: fondo oscuro limpio (el banner trae texto y chocaría con el saludo) */
+    .tenant-sionbarberia .hero-bg {
+      background-color: #0a0a0a;
+      background-image: linear-gradient(160deg, #161616 0%, #0d0d0d 55%, #070707 100%);
+    }
+    .tenant-sionbarberia .hero-overlay {
+      background: linear-gradient(160deg, rgba(5,5,5,0.20) 0%, rgba(8,8,8,0.45) 40%, rgba(5,5,5,0.85) 100%) !important;
+    }
+    .tenant-sionbarberia .hero-glow-spot {
+      background: radial-gradient(circle, rgba(229,231,235,0.05) 0%, transparent 65%) !important;
+    }
+    .tenant-sionbarberia #heroLine2 { text-shadow: none !important; }
+    .tenant-sionbarberia .hero-cta {
+      border-color: rgba(229,231,235,0.30) !important;
+      box-shadow: 0 0 20px rgba(229,231,235,0.06) !important;
+    }
+    /* Sellos: relleno platino, ícono negro */
+    .tenant-sionbarberia #stampsBar { box-shadow: none !important; }
+    .tenant-sionbarberia .stamp-cell.filled {
+      background: #E5E7EB !important;
+      border: 1px solid #E5E7EB !important;
+      box-shadow: none !important;
+    }
+    .tenant-sionbarberia .stamp-cell.filled i { color: #0a0a0a !important; }
+    .tenant-sionbarberia .premio-icon { color: rgba(229,231,235,0.65) !important; }
+    .tenant-sionbarberia .text-gold   { text-shadow: none !important; }
+    .tenant-sionbarberia .border-gold { box-shadow: none !important; }
+    .tenant-sionbarberia .membership-glow {
+      background: radial-gradient(circle, rgba(229,231,235,0.03) 0%, transparent 70%) !important;
+    }
+    .tenant-sionbarberia #membershipWatermark { color: rgba(229,231,235,0.04) !important; }
+    .tenant-sionbarberia .reagendar-proxima-btn {
+      border-color: rgba(229,231,235,0.18) !important;
+      background: rgba(229,231,235,0.04) !important;
+    }
+    .tenant-sionbarberia .reagendar-hist-btn { color: rgba(229,231,235,0.5) !important; }
+    .tenant-sionbarberia .reagendar-hist-btn:hover { background: rgba(229,231,235,0.08) !important; }
+    .tenant-sionbarberia #pwaBigInstallCard {
+      background: linear-gradient(to right, rgba(229,231,235,0.05), rgba(229,231,235,0.02)) !important;
+      border-color: rgba(229,231,235,0.18) !important;
+      box-shadow: none !important;
+    }
+    .tenant-sionbarberia .pwa-icon-bg {
+      background: rgba(229,231,235,0.08) !important;
+      border-color: rgba(229,231,235,0.18) !important;
+      box-shadow: none !important;
+    }
+    /* ────────────────────────────────────────────────────────── */
+
     /* ── Chameleon Barber Studio — Dark Premium ─────────────────── */
     .tenant-chameleon {
       --gold:      #DAA520;
@@ -4761,6 +4822,7 @@ document.getElementById('shopClubName').textContent   = SHOP.club;
   const isKronnosLim   = tid === 'kronnos_limache';
   const isKronnosWoman = tid === 'kronnos_woman';
   const isKronnos      = isKronnosPen || isKronnosLim || isKronnosWoman;
+  const isSion         = tid === 'sionbarberia'; // Studio Dieciséis
 
   // Subtítulo header
   const sub = document.getElementById('shopHeaderSub');
@@ -4827,11 +4889,14 @@ document.getElementById('shopClubName').textContent   = SHOP.club;
   } else if (isKronnos) {
     if (h1) h1.innerHTML = 'Donde ambos<br>mundos';
     if (h2) h2.textContent = 'convergen.';
+  } else if (isSion) {
+    if (h1) h1.textContent = 'Estilo &';
+    if (h2) h2.textContent = 'Calidad.';
   }
 
   // Watermark
   const wm = document.getElementById('membershipWatermark');
-  if (wm) wm.textContent = isGitana ? 'G' : isFerraza ? 'F' : isMapu ? 'M' : isChameleon ? 'C' : isLumen ? 'D' : isDelnero ? 'N' : isInfinity ? '∞' : isOmega ? 'Ω' : isKronnos ? 'K' : 'É';
+  if (wm) wm.textContent = isGitana ? 'G' : isFerraza ? 'F' : isMapu ? 'M' : isChameleon ? 'C' : isLumen ? 'D' : isDelnero ? 'N' : isInfinity ? '∞' : isOmega ? 'Ω' : isKronnos ? 'K' : isSion ? '16' : 'É';
 
   // PWA install icons — usa SHOP.logo como fuente única de verdad (config.js).
   // pwaBigIcon está antes del script en el DOM → se puede actualizar ya.

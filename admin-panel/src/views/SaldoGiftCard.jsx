@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { resolveTenantId } from '../lib/tenantUtils';
@@ -20,8 +20,22 @@ export default function SaldoGiftCard() {
   const tenantId = resolveTenantId();
   const colPath = tenantId === 'elegance' ? 'giftCards' : `tenants/${tenantId}/giftCards`;
 
-  const buscar = async () => {
-    const code = codigo.trim().toUpperCase();
+  // Prefill desde el enlace compartido (?codigo=XXXX) y auto-consulta una vez.
+  const autoRan = useRef(false);
+  useEffect(() => {
+    if (autoRan.current) return;
+    const code = new URLSearchParams(window.location.search).get('codigo');
+    if (code) {
+      autoRan.current = true;
+      const clean = code.trim().toUpperCase();
+      setCodigo(clean);
+      buscar(clean);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const buscar = async (codeArg) => {
+    const code = (typeof codeArg === 'string' ? codeArg : codigo).trim().toUpperCase();
     if (!code) return;
     setLoading(true);
     setErr('');

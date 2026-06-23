@@ -1,8 +1,11 @@
 /**
- * seed-sionbarberia.js — Inicialización Firestore para Sion Barbería (sionbarberia)
+ * seed-sionbarberia.js — Inicialización Firestore para STUDIO DIECISÉIS
+ * (clave interna del tenant: sionbarberia)
  *
  * Crea bajo tenants/sionbarberia/:
  *   servicios · barberos · configuracion · premios · profile · settings/theme · settings/general
+ *
+ * ⚠️ Pendiente del cliente: fotos de profesionales.
  */
 
 const admin = require('firebase-admin');
@@ -33,80 +36,77 @@ function separador(titulo) {
 }
 
 // ── Servicios ────────────────────────────────────────────────────────────────
+// Nota: "Visos" y "Color Completo" (ambos incluyen corte) viven solo en la
+// categoría "Color" para no duplicarlos con "Pack Servicios".
 const SERVICIOS = [
-  // Cortes
-  { id: 'srv-s-01', nombre: 'Corte de Cabello Premium',       precio: 12000, duracion: 40, categoria: 'Cortes', icono: 'ph-scissors', activo: true, orden: 0 },
-  
+  // Cabello
+  { id: 'd16-cab-01', nombre: 'Corte de Cabello (Incluye Cejas)',          precio: 15000, duracion: 45, categoria: 'Cabello', icono: 'ph-scissors', activo: true, orden: 0 },
+  { id: 'd16-cab-02', nombre: 'Corte de Cabello Premium',                  precio: 20000, duracion: 60, categoria: 'Cabello', icono: 'ph-star',     activo: true, orden: 1, descripcion: 'Incluye asesoría, shaver, cejas y lavado' },
+  { id: 'd16-cab-03', nombre: 'Corte de Cabello Vip',                      precio: 25000, duracion: 75, categoria: 'Cabello', icono: 'ph-crown',    activo: true, orden: 2 },
+  { id: 'd16-cab-04', nombre: 'Perfilado de Cejas',                        precio: 4000,  duracion: 5,  categoria: 'Cabello', icono: 'ph-eye',      activo: true, orden: 3 },
+
   // Barba
-  { id: 'srv-s-02', nombre: 'Perfilado de Barba Premium',     precio: 8000,  duracion: 30, categoria: 'Barba', icono: 'ph-mustache', activo: true, orden: 1 },
-  
-  // Combos / Packs
-  { id: 'srv-s-03', nombre: 'Corte + Barba Premium',          precio: 18000, duracion: 60, categoria: 'Combos', icono: 'ph-star', activo: true, orden: 2 },
-  { id: 'srv-s-04', nombre: 'Experiencia Sion Completa',      precio: 26000, duracion: 90, categoria: 'Combos', icono: 'ph-crown', activo: true, orden: 3 },
-  
+  { id: 'd16-bar-01', nombre: 'Barba Premium',                             precio: 15000, duracion: 40, categoria: 'Barba', icono: 'ph-mustache', activo: true, orden: 4, descripcion: 'Toallas calientes, afeitado a ras' },
+  { id: 'd16-bar-02', nombre: 'Afeitado a Ras',                            precio: 10000, duracion: 25, categoria: 'Barba', icono: 'ph-mustache', activo: true, orden: 5 },
+
+  // Tratamiento Facial
+  { id: 'd16-fac-01', nombre: 'Limpieza Facial',                           precio: 15000, duracion: 45, categoria: 'Tratamiento Facial', icono: 'ph-sparkles', activo: true, orden: 6, descripcion: 'Limpieza y exfoliación' },
+
+  // Pack Servicios
+  { id: 'd16-pack-01', nombre: 'Corte de Cabello + Barba Premium',                                  precio: 25000, duracion: 75,  categoria: 'Pack Servicios', icono: 'ph-star',  activo: true, orden: 7 },
+  { id: 'd16-pack-02', nombre: 'Corte de Cabello + Limpieza Facial',                                precio: 28000, duracion: 80,  categoria: 'Pack Servicios', icono: 'ph-star',  activo: true, orden: 8 },
+  { id: 'd16-pack-03', nombre: 'Corte de Cabello Premium + Barba Premium',                          precio: 30000, duracion: 75,  categoria: 'Pack Servicios', icono: 'ph-crown', activo: true, orden: 9 },
+  { id: 'd16-pack-04', nombre: 'Corte Premium + Barba Premium + Limpieza Facial',                   precio: 40000, duracion: 120, categoria: 'Pack Servicios', icono: 'ph-crown', activo: true, orden: 10 },
+
   // Color
-  { id: 'srv-s-05', nombre: 'Camuflaje de Canas',             precio: 15000, duracion: 40, categoria: 'Color', icono: 'ph-drop', activo: true, orden: 4 },
-  
-  // Facial
-  { id: 'srv-s-06', nombre: 'Limpieza Facial + Mascarilla',   precio: 10000, duracion: 30, categoria: 'Facial', icono: 'ph-sparkles', activo: true, orden: 5 },
-  
-  // Extras
-  { id: 'srv-s-07', nombre: 'Lavado Capilar Premium',         precio: 4000,  duracion: 15, categoria: 'Extras', icono: 'ph-shower', activo: true, orden: 6 }
+  { id: 'd16-col-01', nombre: 'Color Completo (incluye Corte de Cabello)', precio: 70000, duracion: 45, categoria: 'Color', icono: 'ph-paint-brush', activo: true, orden: 11 },
+  { id: 'd16-col-02', nombre: 'Visos (incluye Corte de Cabello)',          precio: 60000, duracion: 40, categoria: 'Color', icono: 'ph-drop',        activo: true, orden: 12 },
 ];
 
 // ── Profesionales ────────────────────────────────────────────────────────────
+// ⚠️ Fotos pendientes del cliente.
 const BARBEROS = [
-  { 
-    id: 'sion-martin', 
-    nombre: 'Martín de los Santos', 
-    foto: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop', 
-    disponible: true, 
-    activo: true, 
-    rol: 'profesional', 
-    orden: 0 
-  },
-  { 
-    id: 'sion-matias', 
-    nombre: 'Matías Méndez', 
-    foto: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop', 
-    disponible: true, 
-    activo: true, 
-    rol: 'profesional', 
-    orden: 1 
-  },
-  { 
-    id: 'sion-heitor', 
-    nombre: 'Heitor Barber', 
-    foto: 'https://images.unsplash.com/photo-1492562080023-ab3db95bfbce?w=150&h=150&fit=crop', 
-    disponible: true, 
-    activo: true, 
-    rol: 'profesional', 
-    orden: 2 
-  }
+  { id: 'd16-matias',  nombre: 'Matías Random Barber', foto: null, disponible: true, activo: true, rol: 'profesional', orden: 0 },
+  { id: 'd16-atelier', nombre: 'Atelier Catalan',      foto: null, disponible: true, activo: true, rol: 'profesional', orden: 1 },
 ];
 
 // ── Configuración de horarios ────────────────────────────────────────────────
 const CONFIG = {
-  horarioInicio:    '10:00',
-  horarioFin:       '20:00',
+  horarioInicio:    '09:00',
+  horarioFin:       '21:00',
   intervaloMinutos:      30,
   minutosLimiteReagendar: 0,
-  diasLaborales:    [1, 2, 3, 4, 5, 6], // Lun-Sáb
-  telefonoAdmin:    '56988888888',
+  diasLaborales:    [1, 2, 3, 4, 5, 6], // Lun-Sáb (Domingo cerrado)
+  telefonoAdmin:    '56937179177',
   diasBloqueados:   [],
   colacion:         null,
-  diasConfig:       {}
+  diasConfig:       {},
 };
 
 // ── Premios del club ─────────────────────────────────────────────────────────
+// Escala diseñada: enganche bajo (cejas) → meta aspiracional (pack). 1 sello por
+// visita; múltiplos de 5 para que el progreso sea claro y motive el retorno.
 const PREMIOS = [
-  { id: 'sion-premio-1', nombre: 'Corte de Cabello Gratis', costoSellos: 10, activo: true },
-  { id: 'sion-premio-2', nombre: 'Perfilado de Barba Gratis', costoSellos: 8,  activo: true }
+  { id: 'd16-premio-1', nombre: 'Perfilado de Cejas Gratis',              costoSellos: 5,  activo: true },
+  { id: 'd16-premio-2', nombre: 'Afeitado a Ras Gratis',                  costoSellos: 10, activo: true },
+  { id: 'd16-premio-3', nombre: 'Corte de Cabello Gratis (incluye cejas)', costoSellos: 15, activo: true },
+  { id: 'd16-premio-4', nombre: 'Pack Corte + Barba Premium Gratis',       costoSellos: 25, activo: true },
 ];
 
 // ── Seed functions ────────────────────────────────────────────────────────────
 async function seedServicios() {
-  separador('SERVICIOS');
+  separador('SERVICIOS (LIMPIEZA Y CARGA)');
+
+  // Eliminar servicios antiguos (Sion/Atenas) para evitar duplicados/leftovers.
+  const oldSrv = await col('servicios').get();
+  if (!oldSrv.empty) {
+    console.log(`  🗑️ Limpiando ${oldSrv.size} servicios antiguos...`);
+    const cleanBatch = db.batch();
+    oldSrv.docs.forEach(d => cleanBatch.delete(d.ref));
+    await cleanBatch.commit();
+    console.log('  ✅ Limpieza completada.');
+  }
+
   const batch = db.batch();
   for (const srv of SERVICIOS) {
     const { id, ...data } = srv;
@@ -119,25 +119,22 @@ async function seedServicios() {
 
 async function seedBarberos() {
   separador('PROFESIONALES (LIMPIEZA Y CARGA)');
-  
-  // 1. Obtener y eliminar barberos antiguos para evitar duplicados
+
+  // 1. Eliminar barberos antiguos (Atenas/Sion) para evitar duplicados
   const oldBarbers = await col('barberos').get();
   if (!oldBarbers.empty) {
     console.log(`  🗑️ Limpiando ${oldBarbers.size} barberos antiguos...`);
     const cleanBatch = db.batch();
     for (const doc of oldBarbers.docs) {
-      // Eliminar subcolección de configuración interna si existe
       const oldConfig = await doc.ref.collection('configuracion').get();
-      for (const cfgDoc of oldConfig.docs) {
-        cleanBatch.delete(cfgDoc.ref);
-      }
+      for (const cfgDoc of oldConfig.docs) cleanBatch.delete(cfgDoc.ref);
       cleanBatch.delete(doc.ref);
     }
     await cleanBatch.commit();
     console.log('  ✅ Limpieza completada.');
   }
 
-  // 2. Cargar los nuevos barberos reales
+  // 2. Cargar profesionales reales
   const batch = db.batch();
   for (const b of BARBEROS) {
     const { id, ...data } = b;
@@ -146,14 +143,14 @@ async function seedBarberos() {
   }
   await batch.commit();
 
-  // 3. Aplicar configuración de horarios para cada uno
+  // 3. Configuración de horarios por profesional
   for (const b of BARBEROS) {
     await col('barberos').doc(b.id).collection('configuracion').doc('main').set({
       ...CONFIG,
       updatedAt: TS(),
     }, { merge: true });
   }
-  console.log(`✅ ${BARBEROS.length} profesionales reales creados con configuración.`);
+  console.log(`✅ ${BARBEROS.length} profesionales creados con configuración.`);
 }
 
 async function seedConfiguracion() {
@@ -178,36 +175,36 @@ async function seedProfile() {
   separador('PERFIL & TEMA');
 
   await tenantRef.collection('profile').doc('main').set({
-    name:            "Sion Barbería",
-    shortName:       "Sion",
-    slogan:          'Una barbería destacada para brindar un servicio de primera calidad brindándote asesoría de imagen y profesionalismo.',
-    club:            "Club Sion",
-    address:         '📍 Av. Libertad 123, Viña del Mar',
-    scheduleText:    'Lunes a sábado 10:00-20:00',
-    phone:           '56988888888',
-    logoUrl:         'https://dcx13p9dsx90t.cloudfront.net/uploads/logos/page_logo_378df61d67dfec81.png',
-    instagram:       'https://www.instagram.com/sionbarberia/',
-    pageTitle:       "Sion Barbería | Calidad y Profesionalismo en Viña del Mar",
-    metaDescription: "Reserva tu hora en Sion Barbería. Brindamos asesoría de imagen y servicios de barbería de primera calidad en cualquier tipo de cabello.",
+    name:            'Studio Dieciséis',
+    shortName:       'Dieciséis',
+    slogan:          'Cuidado personal que combina estilo y calidad.',
+    club:            'Club Dieciséis',
+    address:         '📍 Condell 1525, Piso 5, Local 43 · Galería Beye, Valparaíso',
+    scheduleText:    'Lunes a sábado 09:00-21:00 · Domingo cerrado',
+    phone:           '56937179177',
+    logoUrl:         '/dieciseis/logo.png',
+    instagram:       'https://www.instagram.com/studio.dieciseis_/',
+    pageTitle:       'Studio Dieciséis | Barbería premium en Valparaíso',
+    metaDescription: 'Reserva tu hora en Studio Dieciséis. Cortes, barba, tratamiento facial y color en Galería Beye, Valparaíso. Cuidado personal que combina estilo y calidad.',
     updatedAt:       TS(),
   }, { merge: true });
 
+  // Tema Premium Dark · Monocromático (B&N · "Private Room")
   await tenantRef.collection('settings').doc('theme').set({
-    colorBg:            '#2C3941',
-    colorSurface:       '#1E282E',
-    colorSurfaceAlt:    '#233037',
-    colorPrimary:       '#F57808',
-    colorAccent:        '#e06a07',
-    colorText:          '#f3f4f6',
-    colorMuted:         '#9ca3af',
-    colorBorder:        'rgba(245,120,8,0.15)',
-    colorGlow:          'rgba(245,120,8,0.22)',
-    colorButtonText:    '#ffffff',
-    colorProgressTrack: 'rgba(245,120,8,0.08)',
+    colorBg:            '#0a0a0a',
+    colorSurface:       '#111111',
+    colorSurfaceAlt:    '#161616',
+    colorPrimary:       '#FAFAFA',
+    colorAccent:        '#E5E7EB',
+    colorText:          '#e8e8ea',
+    colorMuted:         '#9a9a9e',
+    colorBorder:        'rgba(255,255,255,0.12)',
+    colorGlow:          'rgba(255,255,255,0.18)',
+    colorButtonText:    '#0a0a0a',
+    colorProgressTrack: 'rgba(255,255,255,0.08)',
     updatedAt:          TS(),
   }, { merge: true });
 
-  // Base settings document for the admin panel features
   await tenantRef.collection('settings').doc('general').set({
     features: {
       hasCourses: false,
@@ -223,7 +220,7 @@ async function seedProfile() {
 // ── Main ──────────────────────────────────────────────────────────────────────
 async function seed() {
   console.log('\n╔══════════════════════════════════════════════════╗');
-  console.log("║      Sion Barbería (sionbarberia) — Seed          ║");
+  console.log('║      Studio Dieciséis (sionbarberia) — Seed       ║');
   console.log('╚══════════════════════════════════════════════════╝');
   console.log(`Proyecto: barberia-elegance  |  Tenant: ${TENANT_ID}\n`);
 
