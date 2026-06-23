@@ -27,7 +27,8 @@ const db = admin.firestore();
 // Tenants con la membresía Corte al Lápiz activa.
 const CORTE_LAPIZ_TENANTS = new Set(['yugen']);
 
-const citasCol = tid => (tid === 'elegance' ? db.collection('citas') : db.collection(`tenants/${tid}/citas`));
+const citasCol     = tid => (tid === 'elegance' ? db.collection('citas')     : db.collection(`tenants/${tid}/citas`));
+const slotLocksCol = tid => (tid === 'elegance' ? db.collection('slotLocks') : db.collection(`tenants/${tid}/slotLocks`));
 
 exports.corteLapizReservar = onRequest(
   { cors: true, region: 'us-central1' },
@@ -79,10 +80,23 @@ exports.corteLapizReservar = onRequest(
       } catch (_) {}
       const precio = Math.round(Number(cita.precio) || 0);
 
-      // ── Crear la cita ────────────────────────────────────────────────────
+      // ── Crear la cita + su slotLock (atómico) ────────────────────────────
+      // El slotLock es el espejo público que la reserva online usa para saber
+      // qué horas están ocupadas (no puede leer citas). Sin él, este horario
+      // se seguiría ofreciendo → doble reserva.
       const citaRef = citasCol(tenantId).doc();
-      await citaRef.set({
+      const debeLock = !!cita.barberoId && cita.sobrecupo !== true;
+      let lockId = null;
+      if (debeLock) {
+        const safeHora = String(cita.hora).replace(':', '');
+        const safeBid  = String(cita.barberoId).replace(/[^a-zA-Z0-9_-]/g, '_');
+        lockId = `${safeBid}_${cita.fecha}_${safeHora}`;
+      }
+
+      const batch = db.batch();
+      batch.set(citaRef, {
         ...cita,
+        slotLockId:        lockId,
         estado:            'Confirmada',
         origen:            'web-corte-lapiz',
         corteLapiz:        true,
@@ -91,8 +105,20 @@ exports.corteLapizReservar = onRequest(
         clienteUid:        uid,
         creadoEn:          FieldValue.serverTimestamp(),
       });
+      if (debeLock && lockId) {
+        batch.set(slotLocksCol(tenantId).doc(lockId), {
+          citaId:    citaRef.id,
+          fecha:     cita.fecha,
+          hora:      cita.hora,
+          barberoId: cita.barberoId,
+          duracion:  Number(cita.duracionServicio ?? cita.duracion) || 30,
+          creadoEn:  FieldValue.serverTimestamp(),
+          origen:    'corte-lapiz',
+        });
+      }
+      await batch.commit();
 
-      logger.info(`[CorteLapiz] reserva creada ${citaRef.id} (${tenantId}) uid=${uid}`);
+      logger.info(`[CorteLapiz] reserva creada ${citaRef.id} (${tenantId}) uid=${uid}${lockId ? ` lock=${lockId}` : ''}`);
       return res.json({ ok: true, citaId: citaRef.id });
     } catch (e) {
       logger.error('[CorteLapiz] reservar error', e);
