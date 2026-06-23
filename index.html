@@ -9824,28 +9824,6 @@
     }
     window.addEventListener('DOMContentLoaded', initSobreModals);
 
-    // ── Promoción inicial Aura: muestra aurapromo.jfif al entrar ──────────
-    function initAuraPromo() {
-      if (window.CURRENT_TENANT_ID !== 'aura') return;
-      const ov = document.createElement('div');
-      ov.id = 'auraPromoOverlay';
-      ov.style.cssText = 'position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.80);backdrop-filter:blur(5px);padding:24px;opacity:0;transition:opacity .3s ease;';
-      ov.innerHTML = `
-        <div style="position:relative;max-width:420px;width:100%;">
-          <button id="auraPromoClose" aria-label="Cerrar"
-            style="position:absolute;top:-14px;right:-14px;width:36px;height:36px;border-radius:50%;border:none;background:#fff;color:#111;font-size:22px;line-height:1;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.45);z-index:2;">&times;</button>
-          <img src="/aurapromo.jpg" alt="Promoción Aura"
-            style="display:block;width:100%;height:auto;max-height:82vh;object-fit:contain;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.5);" />
-        </div>`;
-      document.body.appendChild(ov);
-      requestAnimationFrame(() => { ov.style.opacity = '1'; });
-      const close = () => { ov.style.opacity = '0'; setTimeout(() => ov.remove(), 300); };
-      ov.querySelector('#auraPromoClose').onclick = close;
-      ov.addEventListener('click', e => { if (e.target === ov) close(); });
-      document.addEventListener('keydown', function esc(e) { if (e.key === 'Escape') { close(); document.removeEventListener('keydown', esc); } });
-    }
-    window.addEventListener('DOMContentLoaded', initAuraPromo);
-
     async function compartirAgenda() {
       const url  = window.location.origin;
       const text = `¡Agenda tu hora en ${SHOP.nombre}! ${SHOP.slogan}\n👉 ${url}`;
