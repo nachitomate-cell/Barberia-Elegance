@@ -333,6 +333,19 @@ service cloud.firestore {
       allow read, write: if esAdmin('elegance');
     }
 
+    // ── /listaEspera (lista de espera del panel) ───────────────────
+    // Solo staff la gestiona; el dashboard (Inicio) la lee para el KPI.
+    match /listaEspera/{docId} {
+      allow read, write: if esStaff('elegance');
+    }
+
+    // ── /_stats (resumen agregado por Cloud Function) ──────────────
+    // Lo escribe la CF stats-aggregate (admin SDK); el panel solo lee.
+    match /_stats/{docId} {
+      allow read:  if esStaff('elegance');
+      allow write: if false;
+    }
+
     // ── /config ────────────────────────────────────────────────────
     // Configuración UI (activa productos, etc.).
     match /config/{docId} {
@@ -630,6 +643,19 @@ service cloud.firestore {
       // ── gastos ────────────────────────────────────────────────────
       match /gastos/{docId} {
         allow read, write: if esAdmin(tid);
+      }
+
+      // ── listaEspera (lista de espera del panel) ───────────────────
+      // Solo staff la gestiona; el dashboard (Inicio) la lee para el KPI.
+      match /listaEspera/{docId} {
+        allow read, write: if esStaff(tid);
+      }
+
+      // ── _stats (resumen agregado por Cloud Function) ──────────────
+      // Lo escribe la CF stats-aggregate (admin SDK); el panel solo lee.
+      match /_stats/{docId} {
+        allow read:  if esStaff(tid);
+        allow write: if false;
       }
 
       // ── config ────────────────────────────────────────────────────
