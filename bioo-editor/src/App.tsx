@@ -1,9 +1,11 @@
 import { useEffect, useRef, useState, type ComponentType } from 'react';
 import { onAuthStateChanged, signInWithCustomToken, type User } from 'firebase/auth';
 import { motion } from 'framer-motion';
-import { Link2, User as UserIcon, Palette, Share2, Inbox, Megaphone, CircleDollarSign, Eye, Save, type LucideIcon } from 'lucide-react';
+import { Link2, User as UserIcon, Palette, Share2, Inbox, Megaphone, CircleDollarSign, Eye, Save, Sparkles, type LucideIcon } from 'lucide-react';
 import { auth } from './lib/firebase';
 import { saveBio, loadUserBio } from './lib/bio';
+import { ensureAnonymousSession, completePendingRedirect } from './lib/auth';
+import ClaimModal from './components/ClaimModal';
 import { useEditor } from './store';
 import Links from './sections/Links';
 import Profile from './sections/Profile';
@@ -42,16 +44,27 @@ type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
 export default function App(): JSX.Element {
   const { state, dispatch } = useEditor();
-  const loadedRef = useRef(false);
+  // uid de la última bio cargada — al fusionar/cambiar de cuenta el uid cambia y
+  // hay que recargar; al fusionar un anónimo el uid se mantiene (no recargamos).
+  const loadedUidRef = useRef<string | null>(null);
+  // Evita iniciar sesión anónima más de una vez, y no la dispara si llegamos por SSO.
+  const anonTriedRef = useRef(false);
+  const ssoFlowRef = useRef<boolean>(new URLSearchParams(window.location.search).has('token'));
   const [section, setSection] = useState<SectionId>('links');
   const [previewOpen, setPreviewOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [status, setStatus] = useState<SaveStatus>('idle');
+  const [claimOpen, setClaimOpen] = useState(false);
   // SSO white-glove: si llega ?token=<customToken> mostramos un loader mientras
   // iniciamos sesión, para no parpadear la pantalla de login.
   const [ssoBusy, setSsoBusy] = useState<boolean>(
     () => new URLSearchParams(window.location.search).has('token'),
   );
+
+  // Espejo del estado para los flujos asíncronos (redirect de Google, guardado
+  // diferido) que no deben capturar un `state` obsoleto del render.
+  const stateRef = useRef(state);
+  stateRef.current = state;
 
   // ── Recepción del token de SSO (?token=<customToken>) ──────────────────────
   // Lo envía el partner (Club Patio) para entrar con 1 clic. Tras autenticar,
@@ -70,6 +83,39 @@ export default function App(): JSX.Element {
         setSsoBusy(false);
       });
   }, []);
+
+  // ── Lazy Registration: handle entrante + redirect de Google pendiente ───────
+  // El handle elegido en la landing llega por ?u=<handle> (o queda en localStorage);
+  // lo fijamos como username del borrador. La sesión anónima se inicia en el
+  // listener de auth (más abajo), una vez restaurada la sesión persistida — así no
+  // pisamos a un usuario ya logueado por una carrera de inicialización.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('token')) return; // el flujo SSO maneja su propia sesión
+
+    let handle = (params.get('u') || '').toLowerCase().replace(/[^a-z0-9._-]/g, '');
+    if (handle) {
+      params.delete('u');
+      const qs = params.toString();
+      window.history.replaceState({}, '', window.location.pathname + (qs ? `?${qs}` : ''));
+    }
+    // Respaldo: si no viene en la URL, usamos el handle guardado en la landing,
+    // pero solo si el borrador sigue en el placeholder (no pisar uno en curso).
+    if (!handle && stateRef.current.username === 'tunombre') {
+      try { handle = (localStorage.getItem('bioo_intent_handle') || '').toLowerCase().replace(/[^a-z0-9._-]/g, ''); } catch { /* noop */ }
+    }
+    if (handle.length >= 3 && handle.length <= 30) {
+      dispatch({ type: 'setUsername', value: handle });
+      try { localStorage.setItem('bioo_intent_handle', handle); } catch { /* noop */ }
+    }
+
+    void (async () => {
+      // Si volvemos de un redirect de Google (móvil/PWA) completamos el upgrade.
+      const redirect = await completePendingRedirect();
+      if (redirect?.ok && redirect.mode === 'linked') { void publishDraft(); }
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [showWizard, setShowWizard] = useState<boolean>(() => {
     try { if (localStorage.getItem('bioo_onboarded')) return false; } catch { /* noop */ }
     return state.blocks.length === 0 && !state.profile.titulo.trim();
@@ -79,12 +125,25 @@ export default function App(): JSX.Element {
     () =>
       onAuthStateChanged(auth, (u) => {
         setUser(u);
-        // Al autenticarse, cargamos la bio guardada del usuario (una vez).
-        if (u && !loadedRef.current) {
-          loadedRef.current = true;
+        // Cargamos la bio guardada cuando cambia el uid (login, o cambio a una
+        // cuenta existente al fusionar). Los anónimos sin bio devuelven null y
+        // conservan el borrador local. NO recargamos si el uid no cambió (p. ej.
+        // al fusionar un anónimo: mantiene su diseño en curso).
+        if (u && u.uid !== loadedUidRef.current) {
+          loadedUidRef.current = u.uid;
           loadUserBio(u.uid)
             .then((bio) => { if (bio) dispatch({ type: 'load', state: bio }); })
             .catch(() => {});
+        }
+        // Sin usuario tras restaurar la sesión persistida → iniciamos sesión
+        // anónima (Lazy Registration), salvo que estemos en el flujo SSO. Aquí ya
+        // es seguro: si había un usuario logueado, este callback lo habría traído.
+        if (!u) {
+          loadedUidRef.current = null;
+          if (!ssoFlowRef.current && !anonTriedRef.current) {
+            anonTriedRef.current = true;
+            void ensureAnonymousSession();
+          }
         }
       }),
     [dispatch],
@@ -92,21 +151,45 @@ export default function App(): JSX.Element {
 
   const goLogin = (): void => { window.location.href = '/registro?modo=login'; };
 
-  const handleSave = async (): Promise<void> => {
-    if (!auth.currentUser) {
-      if (window.confirm('Para publicar tu página necesitas iniciar sesión. ¿Ir a iniciar sesión?')) goLogin();
-      return;
-    }
+  /** Publica el borrador actual en Firestore (reclama el handle). Usa stateRef
+   *  para no depender del `state` capturado en closures asíncronos. */
+  const publishDraft = async (): Promise<void> => {
     setStatus('saving');
     try {
-      await saveBio(state);
+      await saveBio(stateRef.current);
       setStatus('saved');
       setTimeout(() => setStatus('idle'), 2000);
-    } catch {
+    } catch (err) {
+      console.error('[bioo] error al guardar:', err);
       setStatus('error');
       setTimeout(() => setStatus('idle'), 2500);
     }
   };
+
+  const handleSave = async (): Promise<void> => {
+    // Anónimo (o sin sesión por auth deshabilitado) → debe registrarse para
+    // publicar: abrimos el modal de reclamo. Al fusionar, la página se guarda.
+    if (!auth.currentUser || auth.currentUser.isAnonymous) {
+      setClaimOpen(true);
+      return;
+    }
+    await publishDraft();
+  };
+
+  /** Resultado del modal de registro/fusión.
+   *  - 'linked'   → cuenta nueva (mismo uid): publicamos el borrador recién hecho.
+   *  - 'switched' → ya existía una cuenta: onAuthStateChanged cargará su bio. */
+  const handleUpgraded = (mode: 'linked' | 'switched'): void => {
+    setClaimOpen(false);
+    if (mode === 'linked') {
+      void publishDraft();
+    } else {
+      setStatus('saved');
+      setTimeout(() => setStatus('idle'), 2000);
+    }
+  };
+
+  const isAnon = !user || user.isAnonymous;
 
   const SectionView = VIEWS[section];
   const sectionLabel = SECTIONS.find((s) => s.id === section)?.label ?? '';
@@ -153,8 +236,8 @@ export default function App(): JSX.Element {
       <main className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-neutral-200 bg-white/85 px-4 py-3 backdrop-blur">
           <span className="mr-auto truncate text-sm font-medium text-neutral-400">bioo.cl/<span className="text-neutral-600">{state.username}</span></span>
-          {!user && (
-            <button type="button" onClick={goLogin} className="text-sm font-semibold text-neutral-500 transition-colors hover:text-bioo-dark">Iniciar sesión</button>
+          {isAnon && (
+            <button type="button" onClick={goLogin} className="hidden text-sm font-semibold text-neutral-500 transition-colors hover:text-bioo-dark sm:block">Iniciar sesión</button>
           )}
           <button
             type="button"
@@ -162,9 +245,28 @@ export default function App(): JSX.Element {
             disabled={status === 'saving'}
             className="flex items-center gap-1.5 rounded-xl bg-bioo px-4 py-2 text-sm font-bold text-bioo-ink transition-transform active:scale-95 disabled:opacity-60"
           >
-            <Save size={15} /> {status === 'saving' ? 'Guardando…' : status === 'saved' ? 'Guardado ✓' : 'Guardar'}
+            <Save size={15} /> {status === 'saving' ? 'Guardando…' : status === 'saved' ? 'Guardado ✓' : isAnon ? 'Guardar página' : 'Guardar'}
           </button>
         </header>
+
+        {/* Banner de cuenta temporal (Lazy Registration) */}
+        {isAnon && (
+          <button
+            type="button"
+            onClick={() => setClaimOpen(true)}
+            className="flex w-full items-center gap-2.5 border-b border-amber-200 bg-amber-50 px-4 py-2.5 text-left transition-colors hover:bg-amber-100"
+          >
+            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-amber-200/70 text-amber-700">
+              <Sparkles size={15} />
+            </span>
+            <span className="min-w-0 flex-1 text-xs font-medium leading-tight text-amber-900">
+              Estás usando una cuenta temporal.
+            </span>
+            <span className="shrink-0 rounded-lg bg-[#15240b] px-3 py-1.5 text-xs font-bold text-white">
+              Guarda tu página
+            </span>
+          </button>
+        )}
 
         <div className="flex-1 overflow-y-auto px-5 pb-32 pt-6 md:pb-10">
           <h1 className="mb-5 text-2xl font-bold tracking-tight">{sectionLabel}</h1>
@@ -216,6 +318,13 @@ export default function App(): JSX.Element {
       </PreviewSheet>
 
       <Wizard open={showWizard} onClose={() => setShowWizard(false)} />
+
+      <ClaimModal
+        isOpen={claimOpen}
+        onClose={() => setClaimOpen(false)}
+        username={state.username}
+        onUpgraded={handleUpgraded}
+      />
     </div>
   );
 }

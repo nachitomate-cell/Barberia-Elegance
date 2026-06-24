@@ -116,6 +116,14 @@ export async function saveBio(state: BioState): Promise<void> {
     { merge: true },
   );
 
+  // 2b) Mapeo uid → username (privado del dueño). Permite que loadUserBio
+  // recupere la página al volver, incluso tras fusionar una cuenta anónima.
+  batch.set(
+    doc(db, 'bio_users', user.uid),
+    { username, email: user.email ?? '', updatedAt: serverTimestamp() },
+    { merge: true },
+  );
+
   // 3) Secretos privados (hiddenUrl) por cada paywall.
   const secretsCol = collection(db, 'bios', username, 'secrets');
   const keep = new Set<string>();

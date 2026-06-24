@@ -79,8 +79,10 @@ export default function Wizard({ open, onClose }: { open: boolean; onClose: () =
           />
           <motion.div
             key="wcard"
-            initial={{ opacity: 0, y: 24, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 24, scale: 0.96 }} transition={SPRING}
-            className="fixed left-1/2 top-1/2 z-[61] w-[min(440px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-[28px] bg-white shadow-[0_32px_90px_-20px_rgba(13,22,6,0.5)]"
+            // El centrado va por x/y (no por clases -translate-*): Framer Motion
+            // escribe el `transform` inline y pisaría las utilidades de Tailwind.
+            initial={{ opacity: 0, x: '-50%', y: '-44%', scale: 0.96 }} animate={{ opacity: 1, x: '-50%', y: '-50%', scale: 1 }} exit={{ opacity: 0, x: '-50%', y: '-44%', scale: 0.96 }} transition={SPRING}
+            className="fixed left-1/2 top-1/2 z-[61] w-[min(440px,calc(100vw-32px))] overflow-hidden rounded-[28px] bg-white shadow-[0_32px_90px_-20px_rgba(13,22,6,0.5)]"
           >
             {/* Cabecera con marca */}
             <div className="relative flex h-24 items-end justify-center bg-gradient-to-br from-[#abdf57] via-bioo to-[#74b32b]">

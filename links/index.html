@@ -95,7 +95,7 @@
         <span class="pfx">bioo.cl/</span>
         <input id="user" type="text" inputmode="text" placeholder="tunombre" maxlength="30" aria-label="Tu usuario" />
       </div>
-      <button class="btn" type="submit">Reclama tu bioo — es gratis</button>
+      <button class="btn" type="submit">Crear mi página gratis</button>
       <div class="hint" id="hint">Letras, números, punto, guion y guion bajo · 3 a 30 caracteres.</div>
     </form>
 
@@ -218,7 +218,10 @@
       var n = normalize(input.value);
       if (!valid(n)){ input.focus(); hint.className='hint err'; hint.textContent='Elige un usuario válido para continuar.'; return; }
       if (availCache[n] === false){ input.focus(); showOcupado(); return; } // ocupado confirmado: no avanzar
-      // Va directo al editor: se prueba sin cuenta; el registro se pide recién al publicar.
+      // Lazy Registration: va directo al editor con una cuenta anónima; el handle
+      // viaja por ?u= y también se guarda como respaldo en localStorage. El registro
+      // se pide recién al publicar (botón "Guardar página").
+      try { localStorage.setItem('bioo_intent_handle', n); } catch (e) {}
       goPage('editor', '?u=' + encodeURIComponent(n));
     });
   })();
