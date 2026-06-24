@@ -641,9 +641,14 @@ exports.biooProvisionBarbero = onCall(
       ? String(barbero.especialidad).slice(0, 160)
       : (tenantNombre ? `Profesional en ${String(tenantNombre).slice(0, 80)}` : '');
 
+    // El barbero ya tiene cuenta Firebase Auth (mismo proyecto que bioo) con su
+    // email+password del panel. Asignamos uid directo: cuando entra a bioo.cl
+    // con su login del panel, ve su bio sin pasar por "claim por Google".
+    const barberoUid = String(barbero.uid || barberoSnap.id || '').trim();
+
     const bioDoc = {
-      uid: null,                         // se asigna en claim
-      ownerEmail: email,
+      uid: barberoUid || null,
+      ownerEmail: email,                 // respaldo para claim por email si aplica
       username: handle,
       perfil: {
         titulo: nombre,
@@ -658,7 +663,7 @@ exports.biooProvisionBarbero = onCall(
       clicks: {},
       source: 'gestion-interna-barbero',
       provisionedBy: { uid: auth.uid, email: String(claims.email || '') },
-      provisionedFor: { tenantId, barberoId: barberoSnap.id, barberoUid: barbero.uid || null },
+      provisionedFor: { tenantId, barberoId: barberoSnap.id, barberoUid: barberoUid || null },
       provisionedAt: now,
       createdAt: now,
       updatedAt: now,
@@ -667,6 +672,16 @@ exports.biooProvisionBarbero = onCall(
     const batch = db.batch();
     batch.set(db.collection('bios').doc(handle), bioDoc);
     batch.set(idxRef, { handle, email, source: 'gestion-interna-barbero', createdAt: now });
+    // Si el barbero tiene uid válido, dejamos el mapeo uid→username listo para
+    // que el editor lo cargue directo en el primer login (sin claim).
+    if (barberoUid) {
+      batch.set(db.collection('bio_users').doc(barberoUid), {
+        username: handle,
+        email,
+        source: 'gestion-interna-barbero',
+        createdAt: now,
+      }, { merge: true });
+    }
     batch.set(writeRef, {
       biooHandle: handle,
       biooPublicUrl: `${BIOO_BASE}/${encodeURIComponent(handle)}`,
@@ -681,6 +696,51 @@ exports.biooProvisionBarbero = onCall(
       claimUrl: `${BIOO_BASE}/claim`,
       already: false,
     };
+  },
+);
+
+// ── biooOpenBarberoEditor (CALLABLE) — admin abre editor del barbero (SSO) ───
+//  El admin/jefe del tenant puede entrar al editor del bioo de uno de sus
+//  barberos sin pedirle credenciales. Firma un custom token para el UID del
+//  barbero y devuelve la URL bioo.cl/claim?ct=<token> que loguea al editor
+//  como ese barbero. Útil para que el admin deje la página lista en 2 min.
+//
+//  Authz: caller debe ser admin/jefe del tenant del barbero (custom claims).
+exports.biooOpenBarberoEditor = onCall(
+  { region: 'us-central1', cors: true, secrets: [BIOO_ADMIN_SA] },
+  async (request) => {
+    const auth = request.auth;
+    if (!auth) throw new HttpsError('unauthenticated', 'Debes iniciar sesión.');
+    const { tenantId, barberoId } = request.data || {};
+    if (!tenantId || !barberoId) throw new HttpsError('invalid-argument', 'Faltan tenantId o barberoId.');
+
+    const claims = auth.token || {};
+    const isBootstrap = ['ignaciiio.mate@gmail.com', 'barrazanicolasfabian@gmail.com']
+      .includes(String(claims.email || '').toLowerCase());
+    const isAdmin = (claims.tenantId === tenantId && ['admin', 'jefe'].includes(claims.role)) || isBootstrap;
+    if (!isAdmin) throw new HttpsError('permission-denied', 'Solo admin/jefe puede abrir el editor del bioo.');
+
+    const root = tenantId === 'elegance'
+      ? db.collection('barberos').doc(barberoId)
+      : db.collection('tenants').doc(tenantId).collection('barberos').doc(barberoId);
+    let snap = await root.get();
+    if (!snap.exists) throw new HttpsError('not-found', 'Barbero no encontrado.');
+    let data = snap.data() || {};
+    if (data._mainDocId) {
+      const mainRef = tenantId === 'elegance'
+        ? db.collection('barberos').doc(data._mainDocId)
+        : db.collection('tenants').doc(tenantId).collection('barberos').doc(data._mainDocId);
+      const mainSnap = await mainRef.get();
+      if (mainSnap.exists) { snap = mainSnap; data = mainSnap.data() || {}; }
+    }
+    const barberoUid = String(data.uid || snap.id || '').trim();
+    if (!barberoUid) throw new HttpsError('failed-precondition', 'El barbero no tiene cuenta de Auth.');
+
+    // Custom token firmado con la service account dedicada (sin IAM signBlob).
+    const customToken = await signerAuth().createCustomToken(barberoUid);
+    const editorUrl = `${BIOO_BASE}/claim?ct=${encodeURIComponent(customToken)}`;
+    logger.info(`[bioo] admin SSO editor barbero=${snap.id} uid=${barberoUid} tenant=${tenantId}`);
+    return { editorUrl, handle: data.biooHandle || null };
   },
 );
 

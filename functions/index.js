@@ -813,6 +813,7 @@ exports.biooEditorSession     = biooProvision.biooEditorSession;
 exports.biooEditorBridge      = biooProvision.biooEditorBridge;
 exports.provisionPartnerUser  = biooProvision.provisionPartnerUser;
 exports.biooProvisionBarbero  = biooProvision.biooProvisionBarbero;
+exports.biooOpenBarberoEditor = biooProvision.biooOpenBarberoEditor;
 
 // ─────────────────────────────────────────────────────────────────
 //  BIOO — pagos del paywall (Stripe Checkout). ver payments-stripe.js

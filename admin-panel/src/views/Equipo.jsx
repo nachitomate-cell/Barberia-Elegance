@@ -220,8 +220,9 @@ function BookingUrlButton({ nombre }) {
  * foto, WhatsApp, link "Reservar conmigo" e Instagram del tenant.
  */
 function BiooBarberoButton({ barber, tenant, canManage }) {
-  const [busy, setBusy]   = useState(false);
-  const [err, setErr]     = useState('');
+  const [busy, setBusy]     = useState(false);
+  const [openBusy, setOpen] = useState(false);
+  const [err, setErr]       = useState('');
   const [copied, setCopied] = useState(false);
   const handle = barber.biooHandle || '';
   const url    = handle ? `https://bioo.cl/${handle}` : '';
@@ -249,6 +250,20 @@ function BiooBarberoButton({ barber, tenant, canManage }) {
     }
   };
 
+  const openEditor = async () => {
+    if (openBusy) return;
+    setOpen(true); setErr('');
+    try {
+      const fn = httpsCallable(getFunctions(undefined, 'us-central1'), 'biooOpenBarberoEditor');
+      const { data } = await fn({ tenantId: tenant.id, barberoId: barber.id });
+      if (data?.editorUrl) window.open(data.editorUrl, '_blank', 'noopener,noreferrer');
+    } catch (e) {
+      setErr(e?.message || 'No se pudo abrir el editor.');
+    } finally {
+      setOpen(false);
+    }
+  };
+
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(url);
@@ -258,18 +273,28 @@ function BiooBarberoButton({ barber, tenant, canManage }) {
 
   if (handle) {
     return (
-      <div className="flex items-center w-full gap-1" title={url}>
-        <a href={url} target="_blank" rel="noopener noreferrer"
-          className="flex-1 flex items-center gap-1.5 justify-center px-3 py-1.5 bg-violet-500/10 hover:bg-violet-500/20 text-violet-300 hover:text-violet-200 text-[11px] font-medium rounded-lg border border-violet-500/30 transition-all truncate">
-          <Sparkles size={11} />
-          <span className="truncate">bioo.cl/{handle}</span>
-          <ExternalLink size={10} className="opacity-70" />
-        </a>
-        <button onClick={copy}
-          className="shrink-0 flex items-center justify-center w-7 h-7 rounded-lg bg-violet-500/10 hover:bg-violet-500/20 border border-violet-500/30 text-violet-300 hover:text-white transition-all"
-          title="Copiar enlace">
-          {copied ? <Check size={11} className="text-emerald-400" /> : <Copy size={11} />}
+      <div className="w-full space-y-1">
+        <div className="flex items-center w-full gap-1" title={url}>
+          <a href={url} target="_blank" rel="noopener noreferrer"
+            className="flex-1 flex items-center gap-1.5 justify-center px-3 py-1.5 bg-violet-500/10 hover:bg-violet-500/20 text-violet-300 hover:text-violet-200 text-[11px] font-medium rounded-lg border border-violet-500/30 transition-all truncate">
+            <Sparkles size={11} />
+            <span className="truncate">bioo.cl/{handle}</span>
+            <ExternalLink size={10} className="opacity-70" />
+          </a>
+          <button onClick={copy}
+            className="shrink-0 flex items-center justify-center w-7 h-7 rounded-lg bg-violet-500/10 hover:bg-violet-500/20 border border-violet-500/30 text-violet-300 hover:text-white transition-all"
+            title="Copiar enlace">
+            {copied ? <Check size={11} className="text-emerald-400" /> : <Copy size={11} />}
+          </button>
+        </div>
+        <button onClick={openEditor} disabled={openBusy}
+          className="flex items-center gap-1.5 w-full justify-center px-3 py-1 bg-slate-800/40 hover:bg-violet-500/10 text-slate-500 hover:text-violet-300 text-[10px] font-medium rounded-md border border-slate-800 hover:border-violet-500/30 transition-all disabled:opacity-60"
+          title="Abrir editor del bioo como este barbero (SSO)">
+          {openBusy
+            ? <><Loader2 size={10} className="animate-spin" /> Abriendo…</>
+            : <><Edit2 size={10} /> Editar su bioo</>}
         </button>
+        {err && <p className="text-[10px] text-rose-400 text-center">{err}</p>}
       </div>
     );
   }
