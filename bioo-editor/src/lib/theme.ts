@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react';
 import type {
   Theme, ThemePreset, ButtonShape, FontKey, Block, BgConfig, PatternKind,
-  SizeKey, Weight, Spacing, TextStyle,
+  SizeKey, Weight, Spacing, TextStyle, Shadow,
 } from '../types';
 
 export interface Palette {
@@ -31,13 +31,29 @@ export const TSIZE: Record<SizeKey, string> = { s: '17px', m: '21px', l: '26px' 
 export const SSIZE: Record<SizeKey, string> = { s: '12px', m: '14px', l: '16px' };
 export const TWEIGHT: Record<Weight, string> = { normal: '600', bold: '800', black: '900' };
 export const TSPACE: Record<Spacing, string> = { tight: '-0.4px', normal: 'normal', wide: '1.6px' };
-export const DEFAULT_TEXT: TextStyle = { titleSize: 'm', subSize: 'm', weight: 'bold', caps: 'normal', spacing: 'normal' };
+export const TSHADOW: Record<Shadow, string> = {
+  none: 'none',
+  soft: '0 2px 8px rgba(0,0,0,.18)',
+  hard: '2px 2px 0 rgba(0,0,0,.55)',
+  glow: '0 0 14px rgba(255,255,255,.65), 0 0 4px rgba(255,255,255,.45)',
+};
+export const DEFAULT_TEXT: TextStyle = {
+  titleSize: 'm', subSize: 'm', weight: 'bold', caps: 'normal', spacing: 'normal',
+  titleColor: '', subColor: '', subWeight: 'normal', align: 'center', italic: false, shadow: 'none',
+};
 
 export const FONTS: Record<FontKey, { name: string; stack: string; g?: string }> = {
   system:     { name: 'Sistema',          stack: '"Plus Jakarta Sans", system-ui, sans-serif' },
-  poppins:    { name: 'Poppins',          stack: '"Poppins", sans-serif',     g: 'Poppins:wght@400;600;800' },
-  montserrat: { name: 'Montserrat',       stack: '"Montserrat", sans-serif',  g: 'Montserrat:wght@400;600;800' },
-  playfair:   { name: 'Playfair Display', stack: '"Playfair Display", serif', g: 'Playfair+Display:wght@500;700;800' },
+  poppins:    { name: 'Poppins',          stack: '"Poppins", sans-serif',          g: 'Poppins:wght@400;600;800' },
+  montserrat: { name: 'Montserrat',       stack: '"Montserrat", sans-serif',       g: 'Montserrat:wght@400;600;800' },
+  inter:      { name: 'Inter',            stack: '"Inter", sans-serif',            g: 'Inter:wght@400;600;800' },
+  nunito:     { name: 'Nunito',           stack: '"Nunito", sans-serif',           g: 'Nunito:wght@400;700;800' },
+  oswald:     { name: 'Oswald',           stack: '"Oswald", sans-serif',           g: 'Oswald:wght@400;600;700' },
+  bebas:      { name: 'Bebas Neue',       stack: '"Bebas Neue", sans-serif',       g: 'Bebas+Neue' },
+  playfair:   { name: 'Playfair Display', stack: '"Playfair Display", serif',      g: 'Playfair+Display:wght@500;700;800' },
+  lora:       { name: 'Lora',             stack: '"Lora", serif',                  g: 'Lora:wght@400;600;700' },
+  caveat:     { name: 'Caveat',           stack: '"Caveat", cursive',              g: 'Caveat:wght@500;700' },
+  pacifico:   { name: 'Pacifico',         stack: '"Pacifico", cursive',            g: 'Pacifico' },
 };
 
 const fontsLoaded = new Set<string>();

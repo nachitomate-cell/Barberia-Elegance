@@ -428,14 +428,22 @@
     var SHAPES = { rounded:'14px', pill:'100px', sharp:'4px' };
     var FONTS = {
       system:    '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif',
-      poppins:   '"Poppins",sans-serif', montserrat:'"Montserrat",sans-serif', nunito:'"Nunito",sans-serif',
-      playfair:  '"Playfair Display",serif', oswald:'"Oswald",sans-serif', lobster:'"Lobster",cursive', pacifico:'"Pacifico",cursive'
+      poppins:   '"Poppins",sans-serif', montserrat:'"Montserrat",sans-serif', inter:'"Inter",sans-serif',
+      nunito:    '"Nunito",sans-serif', oswald:'"Oswald",sans-serif', bebas:'"Bebas Neue",sans-serif',
+      playfair:  '"Playfair Display",serif', lora:'"Lora",serif',
+      caveat:    '"Caveat",cursive', pacifico:'"Pacifico",cursive', lobster:'"Lobster",cursive'
     };
-    var GFONTS = { poppins:'Poppins:wght@400;600;800', montserrat:'Montserrat:wght@400;600;800', nunito:'Nunito:wght@400;700;800', playfair:'Playfair+Display:wght@500;700;800', oswald:'Oswald:wght@400;600;700', lobster:'Lobster', pacifico:'Pacifico' };
+    var GFONTS = {
+      poppins:'Poppins:wght@400;600;800', montserrat:'Montserrat:wght@400;600;800', inter:'Inter:wght@400;600;800',
+      nunito:'Nunito:wght@400;700;800', oswald:'Oswald:wght@400;600;700', bebas:'Bebas+Neue',
+      playfair:'Playfair+Display:wght@500;700;800', lora:'Lora:wght@400;600;700',
+      caveat:'Caveat:wght@500;700', pacifico:'Pacifico', lobster:'Lobster'
+    };
     var TSIZE = { s:'17px', m:'21px', l:'26px' };
     var SSIZE = { s:'12px', m:'14px', l:'16px' };
     var TWEIGHT = { normal:'600', bold:'800', black:'900' };
     var TSPACE  = { tight:'-0.4px', normal:'normal', wide:'1.6px' };
+    var TSHADOW = { none:'none', soft:'0 2px 8px rgba(0,0,0,.18)', hard:'2px 2px 0 rgba(0,0,0,.55)', glow:'0 0 14px rgba(255,255,255,.65),0 0 4px rgba(255,255,255,.45)' };
     function loadFont(key){
       var g = GFONTS[key]; if (!g) return;
       var id='gf-'+key; if (document.getElementById(id)) return;
@@ -483,8 +491,12 @@
           titleSize: TSIZE[x.titleSize]?x.titleSize:'m',
           subSize: SSIZE[x.subSize]?x.subSize:'m',
           weight: TWEIGHT[x.weight]?x.weight:'bold',
+          subWeight: TWEIGHT[x.subWeight]?x.subWeight:'normal',
           caps: x.caps==='upper'?'upper':'normal',
           spacing: TSPACE[x.spacing]?x.spacing:'normal',
+          align: (x.align==='left'||x.align==='right')?x.align:'center',
+          italic: !!x.italic,
+          shadow: TSHADOW[x.shadow]?x.shadow:'none',
           titleColor: x.titleColor||'', subColor: x.subColor||'', btnColor: x.btnColor||''
         }
       };
@@ -711,12 +723,21 @@
       if (cover) html += '<div class="cover fade" style="background-image:url(\''+cover+'\');"></div>';
       var avR = t.avatarShape==='rounded' ? '22%' : '50%';
       var avRing = t.avatarRing || '';
-      html += '<div class="avatar fade'+(cover?' over':'')+'" style="border-radius:'+avR+';'+(avRing?('border-color:'+avRing+';'):'')+'">' + (perfil.avatar
+      // "Sin anillo" → quitamos el border blanco por defecto y el cutout exterior
+      // del box-shadow (dejamos solo la drop-shadow). Si hay color, lo aplicamos.
+      var ringCss = avRing
+        ? 'border-color:'+avRing+';'
+        : 'border:none;box-shadow:0 8px 22px rgba(0,0,0,.18);';
+      html += '<div class="avatar fade'+(cover?' over':'')+'" style="border-radius:'+avR+';'+ringCss+'">' + (perfil.avatar
         ? '<img src="'+esc(perfil.avatar)+'" alt="'+esc(perfil.titulo)+'">'
         : '<span style="font-size:38px;font-weight:800;line-height:1;color:#6b7768;">'+esc((perfil.titulo||user).charAt(0).toUpperCase())+'</span>') + '</div>';
       var vrf = data.perfil && data.perfil.verified ? ' <img src="/ic-verified.png" alt="✓" style="height:0.85em;width:auto;vertical-align:-1px;margin-left:5px;">' : '';
-      html += '<h1 class="fade" style="animation-delay:.04s;color:'+titleColor+';font-size:'+TSIZE[tx.titleSize]+';font-weight:'+TWEIGHT[tx.weight]+';text-transform:'+(tx.caps==='upper'?'uppercase':'none')+';letter-spacing:'+TSPACE[tx.spacing]+';">'+esc(perfil.titulo || ('@'+user))+vrf+'</h1>';
-      if (perfil.subtitulo) html += '<p class="sub fade" style="animation-delay:.08s;color:'+subColor+';font-size:'+SSIZE[tx.subSize]+';">'+esc(perfil.subtitulo)+'</p>';
+      var tAlign = tx.align||'center';
+      var tShadow = TSHADOW[tx.shadow]||'none';
+      var tItalic = tx.italic ? 'italic' : 'normal';
+      var tSubW = TWEIGHT[tx.subWeight]||'600';
+      html += '<h1 class="fade" style="animation-delay:.04s;color:'+titleColor+';font-size:'+TSIZE[tx.titleSize]+';font-weight:'+TWEIGHT[tx.weight]+';text-transform:'+(tx.caps==='upper'?'uppercase':'none')+';letter-spacing:'+TSPACE[tx.spacing]+';text-align:'+tAlign+';font-style:'+tItalic+';text-shadow:'+tShadow+';">'+esc(perfil.titulo || ('@'+user))+vrf+'</h1>';
+      if (perfil.subtitulo) html += '<p class="sub fade" style="animation-delay:.08s;color:'+subColor+';font-size:'+SSIZE[tx.subSize]+';font-weight:'+tSubW+';text-align:'+tAlign+';">'+esc(perfil.subtitulo)+'</p>';
 
       // Sello de Comercio Verificado (Partner Club Patio) — opcional para el comercio.
       if (perfil.partner === 'patio-curauma' && perfil.showPartnerBadge !== false) {

@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode, type CSSProperties } from 'react';
 import { motion } from 'framer-motion';
-import { Palette, Image as ImageIcon, Square, CircleUserRound, Type, CaseSensitive, Sparkles, CheckCircle2, Loader2 } from 'lucide-react';
+import { Palette, Image as ImageIcon, Square, CircleUserRound, Type, CaseSensitive, Sparkles, CheckCircle2, Loader2, AlignLeft, AlignCenter, AlignRight, Italic, type LucideIcon } from 'lucide-react';
 import { useEditor } from '../store';
 import ImagePicker from '../components/ImagePicker';
 import { Card, labelCls } from '../ui';
@@ -9,7 +9,7 @@ import { BG_GALLERY, BG_CATEGORIES, isGalleryUrl, type BgCategory } from '../lib
 import { useProState, startPlatformCheckout, PLATFORM_SKUS, formatCLP } from '../lib/platform';
 import type {
   ThemePreset, ButtonShape, ButtonFill, FontKey, BgMode, PatternKind, FxKind, AvatarShape,
-  BtnAnim, SizeKey, Weight, Caps, Spacing,
+  BtnAnim, SizeKey, Weight, Caps, Spacing, Align, Shadow,
 } from '../types';
 
 const SPRING = { type: 'spring', stiffness: 400, damping: 30 } as const;
@@ -218,12 +218,59 @@ export default function Appearance(): JSX.Element {
           <LabeledSeg<Weight> layoutId="weight" label="Peso del título" value={t.text.weight}
             options={[['normal', 'Normal'], ['bold', 'Negrita'], ['black', 'Extra']]}
             onChange={(weight) => dispatch({ type: 'patchText', patch: { weight } })} />
+          <LabeledSeg<Weight> layoutId="subWeight" label="Peso de la bio" value={t.text.subWeight ?? 'normal'}
+            options={[['normal', 'Normal'], ['bold', 'Negrita'], ['black', 'Extra']]}
+            onChange={(subWeight) => dispatch({ type: 'patchText', patch: { subWeight } })} />
           <LabeledSeg<Caps> layoutId="caps" label="Mayúsculas" value={t.text.caps}
             options={[['normal', 'Aa'], ['upper', 'MAYÚS']]}
             onChange={(caps) => dispatch({ type: 'patchText', patch: { caps } })} />
           <LabeledSeg<Spacing> layoutId="spacing" label="Espaciado de letras" value={t.text.spacing}
             options={[['tight', 'Compacto'], ['normal', 'Normal'], ['wide', 'Amplio']]}
             onChange={(spacing) => dispatch({ type: 'patchText', patch: { spacing } })} />
+
+          {/* Alineación con íconos */}
+          <div>
+            <SubLabel>Alineación</SubLabel>
+            <IconSeg<Align>
+              value={t.text.align ?? 'center'}
+              onChange={(align) => dispatch({ type: 'patchText', patch: { align } })}
+              options={[
+                ['left', AlignLeft, 'Izquierda'],
+                ['center', AlignCenter, 'Centro'],
+                ['right', AlignRight, 'Derecha'],
+              ]}
+            />
+          </div>
+
+          {/* Itálica del título */}
+          <div className="flex items-center justify-between gap-3 rounded-xl bg-neutral-100/80 px-4 py-3">
+            <div className="flex items-center gap-2.5">
+              <Italic size={16} className="text-neutral-500" />
+              <span className="text-sm font-semibold text-neutral-700">Itálica del título</span>
+            </div>
+            <Switch
+              checked={!!t.text.italic}
+              onChange={(italic) => dispatch({ type: 'patchText', patch: { italic } })}
+            />
+          </div>
+
+          <LabeledSeg<Shadow> layoutId="shadow" label="Sombra del título" value={t.text.shadow ?? 'none'}
+            options={[['none', 'Sin sombra'], ['soft', 'Suave'], ['hard', 'Dura'], ['glow', 'Brillo']]}
+            onChange={(shadow) => dispatch({ type: 'patchText', patch: { shadow } })} />
+
+          {/* Colores custom (override del tema) */}
+          <div className="grid grid-cols-2 gap-3">
+            <ColorOverrideField
+              label="Color del título"
+              value={t.text.titleColor ?? ''}
+              onChange={(titleColor) => dispatch({ type: 'patchText', patch: { titleColor } })}
+            />
+            <ColorOverrideField
+              label="Color de la bio"
+              value={t.text.subColor ?? ''}
+              onChange={(subColor) => dispatch({ type: 'patchText', patch: { subColor } })}
+            />
+          </div>
         </div>
       </Card>
 
@@ -481,6 +528,72 @@ function ColorRow({ label, children, className = '' }: { label: string; children
     <div className={className}>
       <SubLabel>{label}</SubLabel>
       <div className="flex gap-2.5">{children}</div>
+    </div>
+  );
+}
+
+/** Segmento con íconos (sin texto). Para alineación y similares. */
+function IconSeg<T extends string>({
+  value, onChange, options,
+}: { value: T; onChange: (v: T) => void; options: [T, LucideIcon, string][] }): JSX.Element {
+  return (
+    <div className="flex gap-1 rounded-xl bg-neutral-100/80 p-1">
+      {options.map(([v, Icon, label]) => {
+        const active = v === value;
+        return (
+          <button
+            key={v}
+            type="button"
+            aria-label={label}
+            title={label}
+            onClick={() => onChange(v)}
+            className={`flex flex-1 items-center justify-center rounded-lg py-2 transition-colors ${
+              active ? 'border border-[#92c83a]/30 bg-[#92c83a]/15 text-[#15240b]' : 'text-neutral-500 hover:text-neutral-700'
+            }`}
+          >
+            <Icon size={18} />
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Toggle estilo iOS (booleano controlado). */
+function Switch({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }): JSX.Element {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${checked ? 'bg-[#92c83a]' : 'bg-neutral-300'}`}
+    >
+      <span
+        className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${checked ? 'translate-x-[22px]' : 'translate-x-0.5'}`}
+      />
+    </button>
+  );
+}
+
+/** Selector de color con opción "Tema" (vacío = usa el color del tema). */
+function ColorOverrideField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }): JSX.Element {
+  const overridden = !!value;
+  return (
+    <div>
+      <SubLabel>{label}</SubLabel>
+      <div className="flex items-center gap-2 rounded-xl bg-neutral-100/80 p-2">
+        <ColorDot value={overridden ? value : '#15240b'} onChange={onChange} />
+        <button
+          type="button"
+          onClick={() => onChange('')}
+          className={`ml-auto rounded-lg px-2.5 py-1.5 text-[11px] font-semibold transition-colors ${
+            overridden ? 'bg-white text-neutral-600 hover:bg-neutral-50' : 'bg-[#92c83a]/20 text-[#15240b]'
+          }`}
+        >
+          Tema
+        </button>
+      </div>
     </div>
   );
 }

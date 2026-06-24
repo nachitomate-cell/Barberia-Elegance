@@ -1,7 +1,7 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import { motion } from 'framer-motion';
 import { Instagram, Facebook, Youtube, MessageCircle, Mail, Phone, Globe, Music2, Lock, type LucideIcon } from 'lucide-react';
-import { THEMES, SHAPE_RADIUS, FONTS, TSIZE, SSIZE, TWEIGHT, TSPACE, bgCss, bgAnimStyle, bgFxKind, bgFxVars, bgFxHasBlobs, loadFont } from '../lib/theme';
+import { THEMES, SHAPE_RADIUS, FONTS, TSIZE, SSIZE, TWEIGHT, TSPACE, TSHADOW, bgCss, bgAnimStyle, bgFxKind, bgFxVars, bgFxHasBlobs, loadFont } from '../lib/theme';
 import { embedSrc, socUrl } from '../lib/blocks';
 import { startCheckout } from '../lib/payments';
 import type { BioState, Block, SocialNet } from '../types';
@@ -37,7 +37,8 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
   const shown = profile.titulo || '@' + state.username;
   const initial = shown.replace(/^@/, '').charAt(0).toUpperCase() || 'B';
   const avRadius = theme.avatarShape === 'rounded' ? '22%' : '50%';
-  const ring = theme.avatarRing || 'rgba(255,255,255,.55)';
+  const hasRing = !!theme.avatarRing;
+  const ring = theme.avatarRing || 'transparent';
   const txt = theme.text;
   const fx = bgFxKind(theme);
   // Fondos oscuros/vibrantes → texto claro para mantener contraste.
@@ -52,6 +53,16 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
   };
   const pageBgSolid = fxDark ? '#0b0d12' : (p.bg.includes('gradient') ? firstColor(p.bg) : p.bg);
 
+  // Overrides custom del usuario (Apariencia → Texto). Caen al color del tema si están vacíos.
+  const titleColor = txt.titleColor || tCol;
+  const subColor = txt.subColor || sCol;
+  const align = txt.align ?? 'center';
+  const itemsAlign: 'items-start' | 'items-center' | 'items-end' =
+    align === 'left' ? 'items-start' : align === 'right' ? 'items-end' : 'items-center';
+  const textAlign: 'left' | 'center' | 'right' = align;
+  const shadowCss = TSHADOW[txt.shadow ?? 'none'];
+  const subWeight = TWEIGHT[txt.subWeight ?? 'normal'];
+
   return (
     <div
       className="relative min-h-full overflow-hidden"
@@ -63,7 +74,7 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
         </div>
       )}
       <div className="relative z-10 px-6 py-10">
-      <div className="mx-auto flex max-w-sm flex-col items-center">
+      <div className={`mx-auto flex max-w-sm flex-col ${itemsAlign}`}>
         {profile.cover && (
           <div className="h-28 w-full rounded-3xl bg-cover bg-center shadow-md" style={{ backgroundImage: `url("${profile.cover}")` }} />
         )}
@@ -71,9 +82,12 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
           className={`relative grid h-24 w-24 place-items-center overflow-hidden bg-white ${profile.cover ? '-mt-11' : ''}`}
           style={{
             borderRadius: avRadius,
-            border: `3px solid ${ring}`,
+            border: hasRing ? `3px solid ${ring}` : 'none',
             // Anillo exterior con el color del fondo de la página → efecto "cutout" tipo iOS.
-            boxShadow: `0 0 0 4px ${pageBgSolid}, 0 8px 22px rgba(0,0,0,.18)`,
+            // Cuando "Sin anillo": solo drop-shadow, sin el cutout exterior.
+            boxShadow: hasRing
+              ? `0 0 0 4px ${pageBgSolid}, 0 8px 22px rgba(0,0,0,.18)`
+              : '0 8px 22px rgba(0,0,0,.18)',
           }}
         >
           {profile.avatar
@@ -82,20 +96,23 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
         </div>
 
         <h2
-          className="mt-4 text-center"
+          className="mt-4"
           style={{
-            color: tCol,
+            color: titleColor,
             fontSize: TSIZE[txt.titleSize],
             fontWeight: TWEIGHT[txt.weight],
             textTransform: txt.caps === 'upper' ? 'uppercase' : 'none',
             letterSpacing: TSPACE[txt.spacing],
+            fontStyle: txt.italic ? 'italic' : 'normal',
+            textShadow: shadowCss,
+            textAlign,
           }}
         >
           {shown}
           {profile.verified && <span className="ml-1 align-middle text-base">✓</span>}
         </h2>
         {profile.subtitulo && (
-          <p className="mt-1 max-w-[32ch] text-center font-medium leading-snug" style={{ color: sCol, fontSize: SSIZE[txt.subSize] }}>{profile.subtitulo}</p>
+          <p className="mt-1 max-w-[32ch] leading-snug" style={{ color: subColor, fontSize: SSIZE[txt.subSize], fontWeight: subWeight, textAlign }}>{profile.subtitulo}</p>
         )}
 
         {/* Sello de Comercio Verificado (Partner Club Patio) — opcional para el comercio */}

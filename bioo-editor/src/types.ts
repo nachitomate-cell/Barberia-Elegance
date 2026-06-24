@@ -46,7 +46,10 @@ export type ThemePreset =
   | 'lime' | 'forest' | 'snow' | 'ocean' | 'sunset' | 'grape' | 'rose' | 'night';
 export type ButtonShape = 'rounded' | 'pill' | 'sharp';
 export type ButtonFill = 'solid' | 'outline';
-export type FontKey = 'system' | 'poppins' | 'montserrat' | 'playfair';
+export type FontKey =
+  | 'system' | 'poppins' | 'montserrat' | 'inter'
+  | 'nunito' | 'oswald' | 'bebas'
+  | 'playfair' | 'lora' | 'caveat' | 'pacifico';
 
 export type BgMode = 'preset' | 'color' | 'gradient' | 'animated' | 'pattern' | 'image';
 export type PatternKind = 'dots' | 'grid' | 'diag' | 'topo';
@@ -58,6 +61,8 @@ export type SizeKey = 's' | 'm' | 'l';
 export type Weight = 'normal' | 'bold' | 'black';
 export type Caps = 'normal' | 'upper';
 export type Spacing = 'tight' | 'normal' | 'wide';
+export type Align = 'left' | 'center' | 'right';
+export type Shadow = 'none' | 'soft' | 'hard' | 'glow';
 
 export interface TextStyle {
   titleSize: SizeKey;
@@ -65,6 +70,18 @@ export interface TextStyle {
   weight: Weight;
   caps: Caps;
   spacing: Spacing;
+  /** Color override del título (vacío ⇒ usa el del tema). */
+  titleColor?: string;
+  /** Color override del subtítulo (vacío ⇒ usa el del tema). */
+  subColor?: string;
+  /** Peso del subtítulo (independiente del título). */
+  subWeight?: Weight;
+  /** Alineación del título y subtítulo. */
+  align?: Align;
+  /** Itálica del título. */
+  italic?: boolean;
+  /** Sombra de texto del título. */
+  shadow?: Shadow;
 }
 
 export interface BgConfig {
