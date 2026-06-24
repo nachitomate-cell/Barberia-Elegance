@@ -1,10 +1,15 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { onAuthStateChanged, type User } from 'firebase/auth';
-import { CircleDollarSign, TrendingUp, Landmark, Loader2, AlertTriangle } from 'lucide-react';
+import { CircleDollarSign, TrendingUp, Landmark, Loader2, AlertTriangle, Clock } from 'lucide-react';
 import { auth } from '../lib/firebase';
 import { watchSales, formatMoney, type Sale } from '../lib/sales';
 import { useStripeAccount, onboardStripe, useMpAccount, connectMercadoPago } from '../lib/connect';
 import { useEditor } from '../store';
+
+// Mercado Pago en homologación con MP (validando datos de la cuenta plataforma).
+// Mientras esté en true, el botón "Conectar Mercado Pago" se reemplaza por un
+// aviso "Próximamente". Cambiar a false cuando MP apruebe la app marketplace.
+const MP_PENDING_APPROVAL = true;
 
 const fmtDate = new Intl.DateTimeFormat('es-CL', {
   day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
@@ -121,6 +126,19 @@ function MpButton({ onClick, connecting, label }: { onClick: () => void; connect
   );
 }
 
+function MpPendingPill(): JSX.Element {
+  return (
+    <div className="flex max-w-xs flex-col items-start gap-1 rounded-xl border border-dashed border-[#009ee3]/40 bg-[#009ee3]/5 px-5 py-3 text-left">
+      <div className="flex items-center gap-2 text-sm font-bold text-[#0077b3]">
+        <Clock size={16} /> Mercado Pago — próximamente
+      </div>
+      <p className="text-xs leading-snug text-neutral-500">
+        Estamos terminando la verificación de la cuenta con MP. Vuelve en unos días.
+      </p>
+    </div>
+  );
+}
+
 function StripeButton({ onClick, connecting, label }: { onClick: () => void; connecting: boolean; label: string }): JSX.Element {
   return (
     <button
@@ -147,7 +165,9 @@ function ConnectState({ onConnectStripe, connectingStripe, onConnectMp, connecti
         Conecta un medio de pago para cobrar propinas y productos. El dinero llega a tu cuenta automáticamente; bioo solo retiene una pequeña comisión.
       </p>
       <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
-        <MpButton onClick={onConnectMp} connecting={connectingMp} label="Conectar Mercado Pago" />
+        {MP_PENDING_APPROVAL
+          ? <MpPendingPill />
+          : <MpButton onClick={onConnectMp} connecting={connectingMp} label="Conectar Mercado Pago" />}
         <StripeButton onClick={onConnectStripe} connecting={connectingStripe} label="Conectar Stripe" />
       </div>
       <p className="mt-3 text-xs text-neutral-400">Mercado Pago para Chile · Stripe para pagos internacionales</p>
@@ -169,7 +189,9 @@ function IncompleteState({ onContinue, connecting, onConnectMp, connectingMp }: 
       </p>
       <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
         <StripeButton onClick={onContinue} connecting={connecting} label="Continuar en Stripe" />
-        <MpButton onClick={onConnectMp} connecting={connectingMp} label="Conectar Mercado Pago" />
+        {MP_PENDING_APPROVAL
+          ? <MpPendingPill />
+          : <MpButton onClick={onConnectMp} connecting={connectingMp} label="Conectar Mercado Pago" />}
       </div>
     </div>
   );
