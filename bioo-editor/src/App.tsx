@@ -7,6 +7,7 @@ import { saveBio, loadUserBio } from './lib/bio';
 import { ensureAnonymousSession, completePendingRedirect } from './lib/auth';
 import { mintRandomHandle } from './lib/mintHandle';
 import ClaimModal from './components/ClaimModal';
+import PublishedModal from './components/PublishedModal';
 import { useEditor } from './store';
 import Links from './sections/Links';
 import Profile from './sections/Profile';
@@ -56,6 +57,10 @@ export default function App(): JSX.Element {
   const [user, setUser] = useState<User | null>(null);
   const [status, setStatus] = useState<SaveStatus>('idle');
   const [claimOpen, setClaimOpen] = useState(false);
+  // Modal post-publicar (sharing kit). `mintedNow` = primer publish desde
+  // anónimo (acabamos de mintear el handle). Cambia el copy a celebración.
+  const [publishedOpen, setPublishedOpen] = useState(false);
+  const [mintedNow, setMintedNow] = useState(false);
   // SSO white-glove: si llega ?token=<customToken> mostramos un loader mientras
   // iniciamos sesión, para no parpadear la pantalla de login.
   const [ssoBusy, setSsoBusy] = useState<boolean>(
@@ -179,6 +184,7 @@ export default function App(): JSX.Element {
       if (!auth.currentUser) { setClaimOpen(true); return; }
     }
     setStatus('saving');
+    let justMinted = false;
     try {
       // Auto-mint si seguimos en placeholder. Lo hacemos UNA vez por sesión:
       // tras el primer publish el username queda fijo y se reusa al editar.
@@ -188,10 +194,15 @@ export default function App(): JSX.Element {
         // dispatch es async-ish: forzamos el username en el state que vamos a publicar.
         stateRef.current = { ...stateRef.current, username: minted };
         try { localStorage.setItem('bioo_intent_handle', minted); } catch { /* noop */ }
+        justMinted = true;
       }
       await saveBio(stateRef.current);
       setStatus('saved');
       setTimeout(() => setStatus('idle'), 2000);
+      // Sharing kit: SIEMPRE al publicar. mintedNow controla el copy
+      // ("Tu bio está al aire" vs "Comparte tu bioo") y el confeti del header.
+      setMintedNow(justMinted);
+      setPublishedOpen(true);
     } catch (err) {
       console.error('[bioo] error al guardar:', err);
       setStatus('error');
@@ -349,6 +360,13 @@ export default function App(): JSX.Element {
         onClose={() => setClaimOpen(false)}
         username={state.username}
         onUpgraded={handleUpgraded}
+      />
+
+      <PublishedModal
+        isOpen={publishedOpen}
+        onClose={() => setPublishedOpen(false)}
+        username={state.username}
+        mintedNow={mintedNow}
       />
     </div>
   );
