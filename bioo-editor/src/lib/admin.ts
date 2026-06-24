@@ -1,5 +1,6 @@
 import { collection, doc, getDoc, getDocs, limit, orderBy, query, Timestamp } from 'firebase/firestore';
-import { db } from './firebase';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { app, db } from './firebase';
 
 export interface AdminUser {
   username: string;
@@ -11,8 +12,10 @@ export interface AdminUser {
 export interface Kpis {
   totalUsers: number;
   stripeActive: number;
-  gmvUsd: number;          // volumen procesado
-  revenueUsd: number;      // ingresos bioo (5%)
+  mpActive: number;
+  salesCount: number;
+  /** Volumen total de ventas pagadas, agrupado por moneda (en unidad MAYOR). */
+  totalsByCurrency: Record<string, number>;
 }
 
 /** ¿El usuario autenticado es admin? Lee bio_users/{uid}.username → bios/{username}.isAdmin. */
@@ -41,13 +44,13 @@ export async function loadRecentUsers(): Promise<AdminUser[]> {
   });
 }
 
-/** KPIs del panel. TODO: reemplazar por una Cloud Function de agregación real
- *  (runAggregationQuery sobre bios / purchases). Por ahora, estructura + mock. */
-export async function loadKpis(users: AdminUser[]): Promise<Kpis> {
-  return {
-    totalUsers: 239,
-    stripeActive: users.filter((u) => u.stripeReady).length || 45,
-    gmvUsd: 1250,
-    revenueUsd: 62.5,
-  };
+const _loadAdminKpis = httpsCallable<undefined, Kpis>(
+  getFunctions(app, 'us-central1'),
+  'loadAdminKpis',
+);
+
+/** KPIs REALES vía Cloud Function (Admin SDK). El caller debe ser admin. */
+export async function loadKpis(): Promise<Kpis> {
+  const res = await _loadAdminKpis();
+  return res.data;
 }

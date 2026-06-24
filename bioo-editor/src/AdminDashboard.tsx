@@ -1,14 +1,41 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { onAuthStateChanged, type User } from 'firebase/auth';
 import {
-  Users, CreditCard, DollarSign, Percent, ExternalLink, ShieldAlert, Loader2, type LucideIcon,
+  Users, Wallet, DollarSign, Percent, ExternalLink, ShieldAlert, Loader2, type LucideIcon,
 } from 'lucide-react';
 import { auth } from './lib/firebase';
 import { fetchIsAdmin, loadRecentUsers, loadKpis, type AdminUser, type Kpis } from './lib/admin';
 import { cardCls } from './ui';
 
 const fmtDate = new Intl.DateTimeFormat('es-CL', { day: '2-digit', month: 'short', year: 'numeric' });
-const usd = (n: number): string => '$' + n.toLocaleString('en-US', { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 }) + ' USD';
+
+const ZERO_DECIMAL = new Set(['CLP', 'JPY', 'KRW', 'VND', 'PYG', 'ISK']);
+
+/** Formatea un monto en unidad MAYOR con su moneda. */
+function money(amount: number, currency: string): string {
+  const c = currency.toUpperCase();
+  const zero = ZERO_DECIMAL.has(c);
+  return '$' + amount.toLocaleString('es-CL', {
+    minimumFractionDigits: zero ? 0 : 2,
+    maximumFractionDigits: zero ? 0 : 2,
+  }) + ' ' + c;
+}
+
+/** Elige la moneda con mayor volumen y devuelve [amount, currency]. */
+function primaryCurrency(totals: Record<string, number>): [number, string] {
+  const entries = Object.entries(totals);
+  if (entries.length === 0) return [0, 'CLP'];
+  entries.sort((a, b) => b[1] - a[1]);
+  return [entries[0][1], entries[0][0]];
+}
+
+/** Resume monedas secundarias para mostrar "+ $25 USD · $10 EUR". */
+function secondaryCurrencies(totals: Record<string, number>): string {
+  const entries = Object.entries(totals);
+  if (entries.length <= 1) return '';
+  entries.sort((a, b) => b[1] - a[1]);
+  return entries.slice(1).map(([c, v]) => money(v, c)).join(' · ');
+}
 
 type Gate = 'loading' | 'anon' | 'denied' | 'ok';
 
@@ -24,9 +51,9 @@ export default function AdminDashboard(): JSX.Element {
       try {
         const admin = await fetchIsAdmin(u.uid);
         if (!admin) { setGate('denied'); return; }
-        const list = await loadRecentUsers();
+        const [list, k] = await Promise.all([loadRecentUsers(), loadKpis()]);
         setUsers(list);
-        setKpis(await loadKpis(list));
+        setKpis(k);
         setGate('ok');
       } catch {
         setGate('denied');
@@ -51,10 +78,43 @@ export default function AdminDashboard(): JSX.Element {
       <main className="mx-auto max-w-6xl space-y-6 px-5 py-6">
         {/* KPIs */}
         <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <Kpi icon={Users} label="Total usuarios" value={kpis ? kpis.totalUsers.toLocaleString('es-CL') : '—'} />
-          <Kpi icon={CreditCard} label="Cuentas Stripe activas" value={kpis ? kpis.stripeActive.toLocaleString('es-CL') : '—'} />
-          <Kpi icon={DollarSign} label="Volumen procesado (GMV)" value={kpis ? usd(kpis.gmvUsd) : '—'} />
-          <Kpi icon={Percent} label="Ingresos bioo (5%)" value={kpis ? usd(kpis.revenueUsd) : '—'} accent />
+          <Kpi
+            icon={Users}
+            label="Total usuarios"
+            value={kpis ? kpis.totalUsers.toLocaleString('es-CL') : '—'}
+            hint={kpis ? `${kpis.salesCount.toLocaleString('es-CL')} ventas pagadas` : undefined}
+          />
+          <Kpi
+            icon={Wallet}
+            label="Cuentas conectadas"
+            value={kpis ? (kpis.stripeActive + kpis.mpActive).toLocaleString('es-CL') : '—'}
+            hint={kpis ? `${kpis.mpActive} MP · ${kpis.stripeActive} Stripe` : undefined}
+          />
+          {(() => {
+            if (!kpis) return <Kpi icon={DollarSign} label="Volumen procesado (GMV)" value="—" />;
+            const [amt, cur] = primaryCurrency(kpis.totalsByCurrency);
+            return (
+              <Kpi
+                icon={DollarSign}
+                label="Volumen procesado (GMV)"
+                value={money(amt, cur)}
+                hint={secondaryCurrencies(kpis.totalsByCurrency) || undefined}
+              />
+            );
+          })()}
+          {(() => {
+            if (!kpis) return <Kpi icon={Percent} label="Ingresos bioo (5%)" value="—" accent />;
+            const [amt, cur] = primaryCurrency(kpis.totalsByCurrency);
+            return (
+              <Kpi
+                icon={Percent}
+                label="Ingresos bioo (5%)"
+                value={money(amt * 0.05, cur)}
+                hint="proyectado · hoy fee=0"
+                accent
+              />
+            );
+          })()}
         </div>
 
         {/* Tabla de usuarios */}
@@ -106,7 +166,7 @@ export default function AdminDashboard(): JSX.Element {
   );
 }
 
-function Kpi({ icon: Icon, label, value, accent = false }: { icon: LucideIcon; label: string; value: string; accent?: boolean }): JSX.Element {
+function Kpi({ icon: Icon, label, value, hint, accent = false }: { icon: LucideIcon; label: string; value: string; hint?: string; accent?: boolean }): JSX.Element {
   return (
     <div className={cardCls}>
       <div className={`grid h-10 w-10 place-items-center rounded-xl ${accent ? 'bg-[#92c83a]/15 text-[#72a129]' : 'bg-neutral-100 text-neutral-500'}`}>
@@ -114,6 +174,7 @@ function Kpi({ icon: Icon, label, value, accent = false }: { icon: LucideIcon; l
       </div>
       <p className="mt-4 text-2xl font-black tracking-tight text-[#15240b]">{value}</p>
       <p className="mt-0.5 text-xs font-medium text-neutral-500">{label}</p>
+      {hint && <p className="mt-1 text-[11px] text-neutral-400">{hint}</p>}
     </div>
   );
 }

@@ -857,3 +857,18 @@ const paymentsMpPlatform = require('./payments-mp-platform');
 exports.mpBioPlatformCheckout = paymentsMpPlatform.mpBioPlatformCheckout;
 exports.mpBioPlatformWebhook  = paymentsMpPlatform.mpBioPlatformWebhook;
 exports.mpBioPlatformVerify   = paymentsMpPlatform.mpBioPlatformVerify;
+
+// ─────────────────────────────────────────────────────────────────
+//  BIOO — aviso por email al superadmin cuando se crea una nueva
+//  bioo (self-service o provisionada). Usa Resend (RESEND_API_KEY).
+// ─────────────────────────────────────────────────────────────────
+const biooNuevoSignup = require('./bioo-nuevo-signup');
+exports.notificarNuevaBioo = biooNuevoSignup.notificarNuevaBioo;
+
+// ─────────────────────────────────────────────────────────────────
+//  BIOO — KPIs reales para el panel /admin. Callable que agrega
+//  count(bios), conexiones Stripe/MP y volumen por moneda con
+//  Admin SDK (bypass de reglas). Solo admin lo puede invocar.
+// ─────────────────────────────────────────────────────────────────
+const biooAdminKpis = require('./bioo-admin-kpis');
+exports.loadAdminKpis = biooAdminKpis.loadAdminKpis;
