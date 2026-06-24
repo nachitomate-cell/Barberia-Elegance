@@ -835,3 +835,13 @@ exports.mpBioOAuthCallback = paymentsMp.mpBioOAuthCallback;
 exports.mpBioCheckout      = paymentsMp.mpBioCheckout;
 exports.mpBioWebhook       = paymentsMp.mpBioWebhook;
 exports.mpBioVerify        = paymentsMp.mpBioVerify;
+
+// ─────────────────────────────────────────────────────────────────
+//  BARBERÍAS — conexión MP por tenant (OAuth marketplace). ver
+//  payments-mp-tenant.js. Reutiliza MP_APP_ID/MP_APP_SECRET. Yügen
+//  sigue con el token de plataforma (fallback en mercadopago-pago.js).
+// ─────────────────────────────────────────────────────────────────
+const paymentsMpTenant = require('./payments-mp-tenant');
+exports.mpTenantConnect       = paymentsMpTenant.mpTenantConnect;
+exports.mpTenantOAuthCallback = paymentsMpTenant.mpTenantOAuthCallback;
+exports.mpTenantDisconnect    = paymentsMpTenant.mpTenantDisconnect;

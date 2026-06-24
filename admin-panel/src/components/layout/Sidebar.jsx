@@ -5,7 +5,7 @@ import {
   Trophy, ShoppingBag, Images, LogOut, ChevronRight,
   Sun, Moon, ExternalLink, Settings, TrendingDown, MessageCircle, X,
   Megaphone, ImagePlus, CreditCard, Monitor, Headphones, Medal, Camera, GraduationCap, Wallet, Package, ThumbsUp, Crown,
-  Globe, Banknote, Gift, ClipboardList, Building2, Home, Lock, HelpCircle, Link2, Instagram,
+  Globe, Banknote, Gift, ClipboardList, Building2, Home, Lock, HelpCircle, Link2, Instagram, CircleDollarSign,
 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { doc, onSnapshot, where } from 'firebase/firestore';
@@ -89,6 +89,7 @@ const NAV_GROUPS_DEFAULT = [
       { to: 'gift-cards',    label: 'Gift Cards',     Icon: Gift,        adminOnly: true, variant: 'giftcard' },
       // Oculto del sidebar (la ruta /sucursales sigue activa si se accede directo).
       // { to: 'sucursales',    label: 'Sucursales',     Icon: Building2,   adminOnly: true },
+      { to: 'recibir-pagos', label: 'Recibir Pagos',  Icon: CircleDollarSign, adminOnly: true, variant: 'pagos' },
       { to: 'mensualidad',   label: 'Mensualidad',    Icon: CreditCard,  adminOnly: true },
       { to: 'tv-config',     label: 'Pantalla TV',    Icon: Monitor,     adminOnly: true, variant: 'tv' },
       { to: 'configuracion', label: 'Configuración',  Icon: Settings,    adminOnly: true },
@@ -132,6 +133,7 @@ const NAV_GROUPS_DELUXE = [
     items: [
       { to: 'marketing',     label: 'Marketing',     Icon: Megaphone,  adminOnly: true },
       { to: 'configuracion', label: 'Configuración', Icon: Settings,   adminOnly: true },
+      { to: 'recibir-pagos', label: 'Recibir Pagos', Icon: CircleDollarSign, adminOnly: true, variant: 'pagos' },
       { to: 'mensualidad',   label: 'Mensualidad',   Icon: CreditCard, adminOnly: true },
       { to: 'consultas',     label: 'Consultas',     Icon: HelpCircle, adminOnly: true },
       { to: 'soporte',       label: 'Soporte',       Icon: Headphones, adminOnly: true },
@@ -306,6 +308,19 @@ const SIDEBAR_VARIANTS = {
     border:    'border-amber-400',
     lightText: '[html.light_&]:text-amber-600',
     lightIcon: '[html.light_&]:text-amber-600',
+  },
+  // Recibir Pagos — variante AMARILLO/DORADO destacada para configuración de
+  // pasarelas (Flow / Mercado Pago / Stripe). Diferencia visualmente la
+  // entrada de dinero del resto de Administración.
+  // Light-first: base = modo oscuro; `[html.light_&]:` aplica modo claro.
+  pagos: {
+    text:      'text-yellow-400 group-hover/item:text-yellow-300 transition-colors duration-200',
+    icon:      'text-yellow-400 group-hover/item:text-yellow-300',
+    hover:     'hover:bg-yellow-400/10 [html.light_&]:hover:bg-yellow-100',
+    bg:        'bg-yellow-400/20 [html.light_&]:bg-yellow-200',
+    border:    'border-yellow-400 [html.light_&]:border-yellow-600',
+    lightText: '[html.light_&]:text-yellow-700 [html.light_&]:group-hover/item:text-yellow-800',
+    lightIcon: '[html.light_&]:text-yellow-700 [html.light_&]:group-hover/item:text-yellow-800',
   },
 };
 

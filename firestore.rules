@@ -210,6 +210,21 @@ service cloud.firestore {
                         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stock']));
     }
 
+    // ── /giftCards ─────────────────────────────────────────────────
+    // Lectura PÚBLICA: la página /saldo-gift-card consulta sin auth
+    // con query where('codigo','==',code). El campo "codigo" actúa
+    // como secreto compartido (impreso/QR). Trade-off conocido: una
+    // query sin restricción podría exponer toda la colección — si se
+    // necesita endurecer, migrar la consulta a Cloud Function pública
+    // y restringir `read` a esStaff('elegance').
+    // Escritura: staff crea y canjea (modifica saldo); solo admin borra.
+    match /giftCards/{docId} {
+      allow read:   if true;
+      allow create: if esStaff('elegance');
+      allow update: if esStaff('elegance');
+      allow delete: if esAdmin('elegance');
+    }
+
     // ── /lookbook ──────────────────────────────────────────────────
     match /lookbook/{docId} {
       allow read: if true;
@@ -298,6 +313,22 @@ service cloud.firestore {
     // ── /bio_users — mapeo uid → username (privado del dueño) ──────
     match /bio_users/{userId} {
       allow read, write: if autenticado() && uid() == userId;
+    }
+
+    // ── /bio_mp — tokens OAuth de Mercado Pago del creador (marketplace) ──
+    // Credenciales bearer de la cuenta MP del creador (access/refresh token).
+    // Acceso EXCLUSIVO del Admin SDK (Cloud Functions): el cliente tiene
+    // denegada toda lectura/escritura para que el token nunca salga al browser.
+    match /bio_mp/{userId} {
+      allow read, write: if false;
+    }
+
+    // ── /tenant_mp — tokens OAuth de Mercado Pago de la barbería (tenant) ──
+    // Igual que bio_mp pero por tenant. CERRADO al cliente: solo el Admin SDK
+    // (Cloud Functions) lee/escribe. El estado público "conectado/no" vive en
+    // _system/mercadopago_{tid} (no sensible), que el panel sí puede leer.
+    match /tenant_mp/{tid} {
+      allow read, write: if false;
     }
 
     // ── /bio_handles — alias bioo.cl/<handle> → tenant (bio de locales) ──
@@ -624,6 +655,17 @@ service cloud.firestore {
         allow update: if esAdmin(tid)
                       || (esStaff(tid)
                           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stock']));
+      }
+
+      // ── giftCards ─────────────────────────────────────────────────
+      // Mismo patrón que el path root: lectura pública para la consulta
+      // de saldo sin auth (página /saldo-gift-card); escritura staff;
+      // delete admin.
+      match /giftCards/{docId} {
+        allow read:   if true;
+        allow create: if esStaff(tid);
+        allow update: if esStaff(tid);
+        allow delete: if esAdmin(tid);
       }
 
       // ── lookbook ──────────────────────────────────────────────────

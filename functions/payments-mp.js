@@ -100,10 +100,12 @@ function resolvePricing(block, amount) {
 }
 
 // ── Token del creador con auto-refresh ──────────────────────────────────────
-//  bio_users/{uid}: { mpUserId, mpAccessToken, mpRefreshToken, mpTokenExpiresAt }
+//  Los tokens (credenciales bearer de la cuenta MP del creador) viven en
+//  bio_mp/{uid}, colección CERRADA al cliente (reglas: read/write if false).
+//  bio_users/{uid} solo guarda el flag mpReady (no sensible) para el panel.
 //  Si el access_token está por vencer, lo renovamos con el refresh_token.
 async function getValidSellerToken(uid) {
-  const ref = db().collection('bio_users').doc(String(uid));
+  const ref = db().collection('bio_mp').doc(String(uid));
   const snap = await ref.get();
   if (!snap.exists) return null;
   const d = snap.data() || {};
@@ -182,18 +184,21 @@ exports.mpBioOAuthCallback = onRequest(
         return back(false);
       }
 
-      const userRef = db().collection('bio_users').doc(String(uid));
-      await userRef.set({
+      // Tokens sensibles → colección cerrada (solo Admin SDK).
+      await db().collection('bio_mp').doc(String(uid)).set({
         mpUserId: json.user_id != null ? String(json.user_id) : null,
         mpAccessToken: json.access_token,
         mpRefreshToken: json.refresh_token || null,
         mpTokenExpiresAt: new admin.firestore.Timestamp(Math.floor(Date.now() / 1000) + (Number(json.expires_in) || 21600), 0),
-        mpReady: true,
         mpUpdatedAt: FieldValue.serverTimestamp(),
       }, { merge: true });
 
-      // Espejo público del flag (no sensible) en el bio del creador, para que la
-      // página pública sepa que puede cobrar por MP.
+      // Flag no sensible → bio_users (lo lee el panel del creador en vivo).
+      const userRef = db().collection('bio_users').doc(String(uid));
+      await userRef.set({ mpReady: true, mpUpdatedAt: FieldValue.serverTimestamp() }, { merge: true });
+
+      // Espejo público del flag en el bio del creador, para que la página
+      // pública sepa que puede cobrar por MP.
       const u = (await userRef.get()).data() || {};
       if (u.username) {
         await db().collection('bios').doc(String(u.username)).set({ mpReady: true }, { merge: true });
