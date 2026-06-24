@@ -43,7 +43,14 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
   // Fondos oscuros/vibrantes → texto claro para mantener contraste.
   const fxDark = fx === 'aurora' || fx === 'fluid' || fx === 'grain';
   const tCol = fxDark ? '#ffffff' : p.text;
-  const sCol = fxDark ? 'rgba(255,255,255,.82)' : p.sub;
+  const sCol = fxDark ? 'rgba(255,255,255,.92)' : p.sub;
+  // Color sólido del fondo de la página para el efecto "cutout" del avatar.
+  // Para gradientes extraemos el primer color; para fx oscuros usamos el negro de body.
+  const firstColor = (s: string): string => {
+    const m = s.match(/#[0-9a-fA-F]{3,8}|rgba?\([^)]+\)/);
+    return m ? m[0] : 'transparent';
+  };
+  const pageBgSolid = fxDark ? '#0b0d12' : (p.bg.includes('gradient') ? firstColor(p.bg) : p.bg);
 
   return (
     <div
@@ -58,11 +65,16 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
       <div className="relative z-10 px-6 py-10">
       <div className="mx-auto flex max-w-sm flex-col items-center">
         {profile.cover && (
-          <div className="h-28 w-full rounded-2xl bg-cover bg-center shadow-md" style={{ backgroundImage: `url("${profile.cover}")` }} />
+          <div className="h-28 w-full rounded-3xl bg-cover bg-center shadow-md" style={{ backgroundImage: `url("${profile.cover}")` }} />
         )}
         <div
-          className={`relative grid h-24 w-24 place-items-center overflow-hidden bg-white shadow-lg ${profile.cover ? '-mt-11' : ''}`}
-          style={{ borderRadius: avRadius, border: `3px solid ${ring}` }}
+          className={`relative grid h-24 w-24 place-items-center overflow-hidden bg-white ${profile.cover ? '-mt-11' : ''}`}
+          style={{
+            borderRadius: avRadius,
+            border: `3px solid ${ring}`,
+            // Anillo exterior con el color del fondo de la página → efecto "cutout" tipo iOS.
+            boxShadow: `0 0 0 4px ${pageBgSolid}, 0 8px 22px rgba(0,0,0,.18)`,
+          }}
         >
           {profile.avatar
             ? <img src={profile.avatar} alt="" className="h-full w-full object-cover" />
@@ -83,7 +95,7 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
           {profile.verified && <span className="ml-1 align-middle text-base">✓</span>}
         </h2>
         {profile.subtitulo && (
-          <p className="mt-1 max-w-[32ch] text-center leading-snug" style={{ color: sCol, fontSize: SSIZE[txt.subSize] }}>{profile.subtitulo}</p>
+          <p className="mt-1 max-w-[32ch] text-center font-medium leading-snug" style={{ color: sCol, fontSize: SSIZE[txt.subSize] }}>{profile.subtitulo}</p>
         )}
 
         {/* Sello de Comercio Verificado (Partner Club Patio) — opcional para el comercio */}
@@ -129,12 +141,20 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
               const items = (b.socials ?? []).filter((s) => (s.valor || '').trim());
               if (!items.length) return null;
               return (
-                <div key={b.id} className="col-span-2 flex flex-wrap justify-center gap-4">
+                <div key={b.id} className="col-span-2 flex flex-wrap justify-center gap-5">
                   {items.map((s, i) => {
                     const u = socUrl(s);
                     const Icon = SOCIAL_ICON[s.red];
                     return u ? (
-                      <a key={i} href={u} target="_blank" rel="noopener noreferrer"><Icon size={26} style={{ color: tCol }} /></a>
+                      <a
+                        key={i}
+                        href={u}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="opacity-80 transition-opacity hover:opacity-100"
+                      >
+                        <Icon className="size-6" style={{ color: tCol }} strokeWidth={1.75} />
+                      </a>
                     ) : null;
                   })}
                 </div>
@@ -142,18 +162,18 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
             }
             if (b.tipo === 'newsletter') {
               return (
-                <div key={b.id} className="col-span-2 rounded-3xl bg-white/90 p-4 text-center shadow-md backdrop-blur-sm">
-                  <p className="text-sm font-bold text-neutral-900">{b.label || 'Únete a mi Newsletter'}</p>
-                  {b.subtitulo && <p className="mt-0.5 text-xs leading-snug text-neutral-500">{b.subtitulo}</p>}
-                  <div className="mt-3 flex flex-col gap-2">
+                <div key={b.id} className="col-span-2 rounded-3xl bg-white/95 p-6 text-center shadow-sm ring-1 ring-black/5 backdrop-blur-sm">
+                  <p className="text-[15px] font-bold text-neutral-900">{b.label || 'Entérate de todas las novedades'}</p>
+                  {b.subtitulo && <p className="mt-1 text-xs leading-snug text-neutral-500">{b.subtitulo}</p>}
+                  <div className="mt-4 flex flex-col gap-2.5">
                     <input
                       type="email"
                       placeholder="tucorreo@email.com"
-                      className="w-full rounded-lg border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm text-neutral-800 placeholder-neutral-400 focus:border-neutral-300 focus:outline-none"
+                      className="w-full rounded-xl border-none bg-black/5 p-3 text-sm text-neutral-900 placeholder-neutral-400 transition focus:outline-none focus:ring-2 focus:ring-black/10"
                     />
                     <button
                       type="button"
-                      className="w-full bg-gray-900 py-2 text-sm font-bold text-white shadow-sm transition-colors hover:bg-gray-800"
+                      className="w-full bg-gray-900 py-3 text-sm font-bold text-white shadow-sm ring-1 ring-black/5 transition-colors hover:bg-gray-800"
                       style={{ borderRadius: radius }}
                     >
                       {b.btnText || 'Suscribirme'}
@@ -177,8 +197,8 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
               : theme.btnAnim !== 'none'
                 ? `anim-${theme.btnAnim}`
                 : '';
+            const common = `relative shadow-sm ring-1 ring-black/5 ${animCls}`;
             const size = b.layoutSize ?? 'full';
-            const common = `relative shadow-sm ${animCls}`;
             const styleObj = { borderRadius: radius, ...fillStyle };
             const text = b.label || b.url || 'Enlace';
             if (size === 'half') {

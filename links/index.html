@@ -50,6 +50,12 @@
   .btn:active{transform:translateY(0);}
   .hint{font-size:12.5px;color:var(--green-d);min-height:18px;font-weight:600;}
   .hint.err{color:#dc2626;}
+  /* "Empezar al toque" — texto-link discreto bajo el CTA principal,
+     no compite con el botón pero está a 1 click. */
+  .skip{background:transparent;border:0;cursor:pointer;font-size:13.5px;font-weight:600;color:#737373;padding:6px 8px;border-radius:8px;align-self:center;transition:color .15s;}
+  .skip:hover{color:var(--ink);text-decoration:underline;}
+  .skip span{display:inline-block;transition:transform .15s;}
+  .skip:hover span{transform:translateX(3px);}
 
   /* Píldoras de confianza — discretas, debajo del CTA, con check verde lima */
   .mock{margin-top:16px;display:flex;flex-wrap:wrap;justify-content:center;gap:14px;max-width:460px;}
@@ -97,6 +103,12 @@
       </div>
       <button class="btn" type="submit">Crear mi página gratis</button>
       <div class="hint" id="hint">Letras, números, punto, guion y guion bajo · 3 a 30 caracteres.</div>
+      <!-- Viralidad-first: si el usuario no quiere pensar un nombre, lo dejamos
+           empezar al toque. El editor le mintea un handle random (k7mp9) al
+           publicar y puede personalizarlo después al registrarse. -->
+      <button class="skip" id="skipBtn" type="button" aria-label="Empezar al toque sin elegir nombre">
+        O empieza al toque <span aria-hidden="true">→</span>
+      </button>
     </form>
 
     <div class="mock">
@@ -223,6 +235,14 @@
       // se pide recién al publicar (botón "Guardar página").
       try { localStorage.setItem('bioo_intent_handle', n); } catch (e) {}
       goPage('editor', '?u=' + encodeURIComponent(n));
+    });
+
+    // Skip: no exige escribir handle. El editor le minteará uno random
+    // (k7mp9) al publicar por primera vez. Cero friction → 100% conversión.
+    var skip = document.getElementById('skipBtn');
+    if (skip) skip.addEventListener('click', function(){
+      try { localStorage.removeItem('bioo_intent_handle'); } catch (e) {}
+      goPage('editor');
     });
   })();
 

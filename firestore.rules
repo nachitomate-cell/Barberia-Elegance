@@ -264,11 +264,18 @@ service cloud.firestore {
     // contadores de analítica (`views` de la página y `clicks` por enlace).
     match /bios/{username} {
       allow read: if true;
+      // Anónimo puede crear su propia bio (viralidad-first). Bloqueamos flags
+      // de monetización (proRemoveWatermark, proCustomDomain) en el create
+      // del cliente — esos los setea solo el webhook MP/Stripe via Admin SDK.
       allow create: if autenticado()
                     && request.resource.data.uid == uid()
                     && request.resource.data.username is string
+                    && !request.resource.data.keys().hasAny(['proRemoveWatermark', 'proCustomDomain', 'verified'])
                     && !exists(/databases/$(database)/documents/bio_handles/$(username));
-      allow update: if (autenticado() && resource.data.uid == uid())
+      // Update del dueño: NO puede tocar flags Pro (cierre del loophole de
+      // quitarse la marca de agua editando directo en Firestore).
+      allow update: if (autenticado() && resource.data.uid == uid()
+                        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['proRemoveWatermark', 'proCustomDomain', 'verified']))
                     || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['views', 'clicks']);
       allow delete: if autenticado() && resource.data.uid == uid();
 
@@ -365,6 +372,22 @@ service cloud.firestore {
     // adopción por email). Solo Admin SDK (biooProvision/biooClaim).
     match /bio_email_owners/{email} {
       allow read, write: if false;
+    }
+
+    // ── /bio_reports — reportes de bios (anti-abuse) ──────────────────────
+    // Cualquier visitante (incluso sin auth) puede reportar una bio desde el
+    // footer "Reportar". Lectura/moderación queda restringida a bootstrap
+    // (SynapTech). Sin update/delete públicos para que ningún spammer pueda
+    // borrar reportes propios. Validamos un set acotado de campos para evitar
+    // que se use como un "buzón anónimo" para data arbitraria.
+    match /bio_reports/{reportId} {
+      allow create: if request.resource.data.keys().hasOnly(['username', 'reason', 'ua', 'ref', 'createdAt'])
+                    && request.resource.data.username is string
+                    && request.resource.data.username.size() < 40
+                    && request.resource.data.reason is string
+                    && request.resource.data.reason.size() < 300;
+      allow read:   if esBootstrap();
+      allow update, delete: if esBootstrap();
     }
 
     // ── /gastos ────────────────────────────────────────────────────

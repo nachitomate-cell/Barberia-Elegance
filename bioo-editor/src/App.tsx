@@ -5,6 +5,7 @@ import { Link2, User as UserIcon, Palette, Share2, Inbox, Megaphone, CircleDolla
 import { auth } from './lib/firebase';
 import { saveBio, loadUserBio } from './lib/bio';
 import { ensureAnonymousSession, completePendingRedirect } from './lib/auth';
+import { mintRandomHandle } from './lib/mintHandle';
 import ClaimModal from './components/ClaimModal';
 import { useEditor } from './store';
 import Links from './sections/Links';
@@ -166,14 +167,36 @@ export default function App(): JSX.Element {
     }
   };
 
+  /** Viralidad-first: cualquier usuario (incluso anónimo) puede publicar al
+   *  toque. Si todavía tiene el placeholder `tunombre`, le minteamos un handle
+   *  random tipo `k7mp9` ANTES de guardar. El registro queda como upgrade
+   *  opcional ("quiero `bioo.cl/minombre`"), no como muro. */
   const handleSave = async (): Promise<void> => {
-    // Anónimo (o sin sesión por auth deshabilitado) → debe registrarse para
-    // publicar: abrimos el modal de reclamo. Al fusionar, la página se guarda.
-    if (!auth.currentUser || auth.currentUser.isAnonymous) {
-      setClaimOpen(true);
-      return;
+    // Si no hay sesión (anon deshabilitado en Firebase), reintentamos antes
+    // de mandar al login — el flujo gratuito no debería caer ahí casi nunca.
+    if (!auth.currentUser) {
+      await ensureAnonymousSession();
+      if (!auth.currentUser) { setClaimOpen(true); return; }
     }
-    await publishDraft();
+    setStatus('saving');
+    try {
+      // Auto-mint si seguimos en placeholder. Lo hacemos UNA vez por sesión:
+      // tras el primer publish el username queda fijo y se reusa al editar.
+      if (stateRef.current.username === 'tunombre') {
+        const minted = await mintRandomHandle();
+        dispatch({ type: 'setUsername', value: minted });
+        // dispatch es async-ish: forzamos el username en el state que vamos a publicar.
+        stateRef.current = { ...stateRef.current, username: minted };
+        try { localStorage.setItem('bioo_intent_handle', minted); } catch { /* noop */ }
+      }
+      await saveBio(stateRef.current);
+      setStatus('saved');
+      setTimeout(() => setStatus('idle'), 2000);
+    } catch (err) {
+      console.error('[bioo] error al guardar:', err);
+      setStatus('error');
+      setTimeout(() => setStatus('idle'), 2500);
+    }
   };
 
   /** Resultado del modal de registro/fusión.
@@ -249,8 +272,10 @@ export default function App(): JSX.Element {
           </button>
         </header>
 
-        {/* Banner de cuenta temporal (Lazy Registration) */}
-        {isAnon && (
+        {/* Banner de upgrade — solo aparece DESPUÉS del primer publish (cuando
+            el username ya no es el placeholder). Antes de publicar no molestamos:
+            que el usuario diseñe sin friction. */}
+        {isAnon && state.username !== 'tunombre' && (
           <button
             type="button"
             onClick={() => setClaimOpen(true)}
@@ -260,10 +285,10 @@ export default function App(): JSX.Element {
               <Sparkles size={15} />
             </span>
             <span className="min-w-0 flex-1 text-xs font-medium leading-tight text-amber-900">
-              Estás usando una cuenta temporal.
+              Tu página está en <b>bioo.cl/{state.username}</b>. Regístrate para elegir tu URL y conservarla.
             </span>
             <span className="shrink-0 rounded-lg bg-[#15240b] px-3 py-1.5 text-xs font-bold text-white">
-              Guarda tu página
+              Elegir URL
             </span>
           </button>
         )}

@@ -23,12 +23,14 @@
   /* Fondo foto: difuminado a pantalla completa (lados en PC) + foto nítida en un marco centrado */
   .bg-photo-blur{position:fixed;inset:0;z-index:-2;background-color:#111;background-size:cover;background-position:center;filter:blur(34px) brightness(.7);transform:scale(1.12);pointer-events:none;}
   .bg-photo-frame{position:fixed;top:0;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:560px;z-index:-1;background-size:cover;background-repeat:no-repeat;background-position:center;pointer-events:none;}
-  .cover{width:100%;height:132px;border-radius:18px;background-size:cover;background-position:center;box-shadow:0 3px 14px rgba(21,36,11,.16);}
+  .cover{width:100%;height:132px;border-radius:24px;background-size:cover;background-position:center;box-shadow:0 3px 14px rgba(0,0,0,.16);}
   .avatar.over{margin-top:-46px;position:relative;z-index:1;}
-  .avatar{width:96px;height:96px;border-radius:50%;overflow:hidden;background:var(--white);border:3px solid rgba(255,255,255,.7);display:grid;place-items:center;box-shadow:0 4px 18px rgba(21,36,11,.15);}
+  /* Anillo exterior tipo "cutout" con el color del fondo de la página
+     (variable inyectada por JS en render) → look estilo iOS/Vercel. */
+  .avatar{width:96px;height:96px;border-radius:50%;overflow:hidden;background:var(--white);border:3px solid rgba(255,255,255,.7);display:grid;place-items:center;box-shadow:0 0 0 4px var(--page-bg,transparent),0 8px 22px rgba(0,0,0,.18);}
   .avatar img{width:100%;height:100%;object-fit:cover;}
   h1{font-size:21px;font-weight:800;letter-spacing:-.3px;margin-top:16px;text-align:center;}
-  .sub{font-size:14px;color:var(--soft);margin-top:6px;text-align:center;max-width:34ch;line-height:1.45;}
+  .sub{font-size:14px;font-weight:500;color:var(--soft);margin-top:6px;text-align:center;max-width:34ch;line-height:1.45;}
   .blocks{width:100%;display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-top:28px;align-items:stretch;}
   /* Tamaños Bento */
   .b-full{grid-column:1 / -1;}
@@ -39,14 +41,16 @@
   .btn.b-half .btn-ic,.btn.b-large .btn-ic{position:static;transform:none;width:30px;height:30px;}
   .btn.b-half .btn-thumb,.btn.b-large .btn-thumb{position:static;transform:none;width:46px;height:46px;border-radius:12px;}
   .u-imgwrap.b-half .u-img{aspect-ratio:1/1;object-fit:cover;height:100%;}
+  /* Botones estándar: sombra limpia + anillo sutil (sin glows de color). */
   .btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;background:var(--white);border:0;
-    border-radius:14px;padding:17px 18px;font-size:15.5px;font-weight:700;color:var(--ink);text-decoration:none;transition:.13s;position:relative;box-shadow:0 2px 10px rgba(21,36,11,.10);}
-  .btn:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(21,36,11,.16);}
+    border-radius:14px;padding:17px 18px;font-size:15.5px;font-weight:700;color:var(--ink);text-decoration:none;transition:.13s;position:relative;box-shadow:0 1px 2px rgba(0,0,0,.06),0 0 0 1px rgba(0,0,0,.05);}
+  .btn:hover{transform:translateY(-2px);box-shadow:0 4px 14px rgba(0,0,0,.10),0 0 0 1px rgba(0,0,0,.05);}
   .btn-ic{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:27px;height:27px;object-fit:contain;}
   .btn-thumb{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:34px;height:34px;border-radius:8px;object-fit:cover;}
   @keyframes bFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
   @keyframes bPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
-  @keyframes bGlow{0%,100%{box-shadow:0 2px 10px rgba(21,36,11,.15)}50%{box-shadow:0 6px 24px rgba(146,200,58,.6)}}
+  /* Featured: pulso de sombra neutra (sin tinte verde) — destaca sin "brillo de neón". */
+  @keyframes bGlow{0%,100%{box-shadow:0 1px 2px rgba(0,0,0,.08),0 0 0 1px rgba(0,0,0,.05)}50%{box-shadow:0 6px 22px rgba(0,0,0,.18),0 0 0 1px rgba(0,0,0,.08)}}
   /* Cada regla incluye la entrada `fade` primero para no anular el opacity:0→1
      de .fade (el shorthand `animation` no se acumula); la animación idle va
      después y gana en `transform`. Sin esto, los botones animados quedan invisibles. */
@@ -57,15 +61,17 @@
   .btn.feat{animation:fade .45s ease forwards, bGlow 2s ease-in-out infinite;font-weight:800;}
   .u-text{text-align:center;font-size:15px;font-weight:600;line-height:1.45;width:100%;word-break:break-word;}
   .u-sep{width:55%;border:0;border-top:2px solid rgba(128,128,128,.35);margin:6px auto;}
-  /* Bloque de captura de leads (newsletter) */
-  .u-news{width:100%;background:rgba(255,255,255,.92);border-radius:24px;padding:18px 16px;text-align:center;box-shadow:0 6px 20px rgba(21,36,11,.12);backdrop-filter:blur(4px);}
+  /* Bloque de captura de leads (newsletter) — más aire y look "seamless". */
+  .u-news{width:100%;background:rgba(255,255,255,.95);border-radius:24px;padding:28px 24px;text-align:center;box-shadow:0 1px 2px rgba(0,0,0,.05),0 0 0 1px rgba(0,0,0,.05);backdrop-filter:blur(6px);}
   .u-news-t{font-size:15.5px;font-weight:800;line-height:1.3;color:#15240b;}
-  .u-news-s{font-size:13px;color:#6b7280;margin-top:4px;line-height:1.4;}
-  .u-news-f{display:flex;flex-direction:column;gap:8px;margin-top:12px;}
-  .u-news-i{width:100%;border:1px solid #e5e7eb;background:#f9fafb;border-radius:12px;padding:11px 13px;font-size:15px;color:#15240b;outline:none;transition:.13s;}
-  .u-news-i:focus{border-color:#cbd5e1;background:#fff;}
+  .u-news-s{font-size:13px;color:#6b7280;margin-top:6px;line-height:1.45;}
+  .u-news-f{display:flex;flex-direction:column;gap:10px;margin-top:16px;}
+  /* Input "seamless": sin borde duro, fondo levemente oscurecido sobre la tarjeta. */
+  .u-news-i{width:100%;border:0;background:rgba(0,0,0,.05);border-radius:12px;padding:12px 14px;font-size:15px;color:#15240b;outline:none;transition:box-shadow .15s ease,background .15s ease;}
+  .u-news-i::placeholder{color:#9ca3af;}
+  .u-news-i:focus{background:rgba(0,0,0,.04);box-shadow:0 0 0 2px rgba(0,0,0,.10);}
   .u-news-i:disabled{opacity:.6;}
-  .u-news-b{display:flex;align-items:center;justify-content:center;width:100%;border:0;border-radius:14px;padding:13px 16px;font-size:15px;font-weight:800;cursor:pointer;transition:.13s;background:#111827;color:#fff;box-shadow:0 1px 2px rgba(0,0,0,.08);}
+  .u-news-b{display:flex;align-items:center;justify-content:center;width:100%;border:0;border-radius:14px;padding:14px 16px;font-size:15px;font-weight:800;cursor:pointer;transition:.13s;background:#111827;color:#fff;box-shadow:0 1px 2px rgba(0,0,0,.08);}
   .u-news-b:disabled{opacity:.85;cursor:default;}
   .u-news-msg{font-size:12.5px;font-weight:600;margin-top:8px;}
   /* Bloque de propina (tip jar) */
@@ -104,9 +110,12 @@
   .emb-yt{position:relative;width:100%;padding-top:56.25%;border-radius:24px;overflow:hidden;box-shadow:0 2px 12px rgba(21,36,11,.14);}
   .emb-yt iframe{position:absolute;inset:0;width:100%;height:100%;border:0;}
   .emb{width:100%;border:0;border-radius:24px;overflow:hidden;display:block;}
-  .u-soc{display:flex;justify-content:center;flex-wrap:wrap;gap:16px;width:100%;}
-  .u-soc-i img{width:34px;height:34px;object-fit:contain;display:block;transition:transform .15s;}
-  .u-soc-i:hover img{transform:translateY(-2px) scale(1.08);}
+  /* Íconos sociales: planos, monocromáticos, color heredado del texto del tema. */
+  .u-soc{display:flex;justify-content:center;flex-wrap:wrap;gap:20px;width:100%;}
+  .u-soc-i{display:inline-flex;align-items:center;justify-content:center;opacity:.8;transition:opacity .15s ease,transform .15s ease;text-decoration:none;}
+  .u-soc-i:hover{opacity:1;transform:translateY(-1px);}
+  .u-soc-i svg{width:24px;height:24px;display:block;}
+  .u-soc-i img{width:34px;height:34px;object-fit:contain;display:block;}
   /* ===== Motor de fondos premium (bgfx) — espejo del editor ===== */
   #bgfx{position:fixed;z-index:0;display:none;}
   .bgfx{position:absolute;inset:0;overflow:hidden;}
@@ -267,7 +276,8 @@
   <div class="copied" id="copied">¡Link copiado!</div>
 
   <div class="foot" id="foot" style="display:none;">
-    <a href="https://bioo.cl" target="_blank" rel="noopener"><span class="bolt" aria-hidden="true">⚡</span> Creado gratis en bioo.cl</a>
+    <a id="footLink" href="https://bioo.cl" target="_blank" rel="noopener"><span class="bolt" aria-hidden="true">⚡</span> Creado gratis en bioo.cl</a>
+    <button id="reportBtn" type="button" title="Reportar contenido" aria-label="Reportar esta página" style="background:transparent;border:0;cursor:pointer;color:rgba(255,255,255,.55);font-size:11px;font-weight:600;padding:8px;margin-left:6px;border-radius:8px;transition:.15s;">Reportar</button>
   </div>
 
   <!-- Overlay de verificación de pago (retorno desde Stripe con ?session_id) -->
@@ -542,6 +552,22 @@
       return '<iframe class="emb" style="height:'+e.h+'px;" src="'+e.src+'" frameborder="0" allow="encrypted-media" loading="lazy"></iframe>';
     }
     var SOCRED = { instagram:1, tiktok:1, facebook:1, youtube:1, whatsapp:1, email:1, telefono:1, enlace:1 };
+    // SVG inline monocromáticos (estilo lucide). Reemplazan los PNG /ic-*-orig.png
+    // para garantizar look plano + color heredado de currentColor (sin texturas).
+    var SOC_SVG = {
+      instagram: '<rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1.1" fill="currentColor" stroke="none"/>',
+      tiktok:    '<path d="M9 12.5a3.5 3.5 0 1 0 3.5 3.5V4a5 5 0 0 0 5 5"/>',
+      facebook:  '<path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>',
+      youtube:   '<path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.94 2C5.12 20 12 20 12 20s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58Z"/><polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02" fill="currentColor" stroke="none"/>',
+      whatsapp:  '<path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8z"/>',
+      email:     '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 5L2 7"/>',
+      telefono:  '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>',
+      enlace:    '<circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>'
+    };
+    function socSvg(red){
+      var inner = SOC_SVG[red] || SOC_SVG.enlace;
+      return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" width="24" height="24" aria-hidden="true">'+inner+'</svg>';
+    }
     function socUrl(s){
       var v=String(s.valor||'').trim(); if(!v) return ''; var r=s.red, h=/^https?:\/\//i.test(v), u=v.replace(/^@/,'');
       if(r==='instagram') return h?v:'https://instagram.com/'+u;
@@ -663,8 +689,19 @@
       // Fondos oscuros/vibrantes → texto claro (si el usuario no fijó colores propios).
       if (_fxk==='aurora' || _fxk==='fluid' || _fxk==='grain' || _fxk==='gasgiant'){
         titleColor = tx.titleColor || '#ffffff';
-        subColor   = tx.subColor   || 'rgba(255,255,255,.82)';
+        subColor   = tx.subColor   || 'rgba(255,255,255,.92)';
       }
+      // Color sólido del fondo (para el anillo "cutout" del avatar — efecto iOS/Vercel).
+      // Extrae el primer color cuando hay gradiente; fx oscuros usan el negro de body.
+      var _pageBg = (function(){
+        if (_fxk==='aurora'||_fxk==='fluid'||_fxk==='gasgiant') return '#0b0d12';
+        if (_fxk) return _bg.color || (THEMES[t.preset]||{}).bg || '#15240b';
+        if (_bg.mode==='image') return '#0b0d12';
+        var raw = bgCss(t) || '';
+        var m = raw.match(/#[0-9a-fA-F]{3,8}|rgba?\([^)]+\)/);
+        return m ? m[0] : 'transparent';
+      })();
+      document.documentElement.style.setProperty('--page-bg', _pageBg);
       document.body.style.fontFamily = fontStack;
       var mt = document.querySelector('meta[name="theme-color"]');
       if (mt && p.bg.indexOf('gradient')<0) mt.setAttribute('content', p.bg);
@@ -700,10 +737,18 @@
           if (b.tipo==='texto'){ html += '<div class="u-text fade b-full" style="animation-delay:'+(0.1+i*0.04)+'s;color:'+subColor+';">'+esc((b.texto||'').trim())+'</div>'; return; }
           if (b.tipo==='imagen'){ var im='<img class="u-img" src="'+esc(b.img)+'" alt="">'; var iu=resolveUrl(b.url); html += '<'+(iu?'a':'div')+' class="fade u-imgwrap '+szCls+'" style="animation-delay:'+(0.1+i*0.04)+'s;"'+(iu?(' href="'+esc(iu)+'" target="_blank" rel="noopener"'):'')+'>'+im+'</'+(iu?'a':'div')+'>'; return; }
           if (b.tipo==='embed'){ var eh=embedHtml(b.url); if(eh) html += '<div class="fade b-full" style="animation-delay:'+(0.1+i*0.04)+'s;width:100%;">'+eh+'</div>'; return; }
-          // Íconos: default 'original' (logos de marca). Solo si iconStyle==='green' usa los verdes de bioo.
-          if (b.tipo==='social'){ var icS=t.iconStyle==='green'?'':'-orig'; var sr=(b.socials||[]).map(function(s){ var su=socUrl(s); return su?'<a class="u-soc-i" href="'+esc(su)+'" target="_blank" rel="noopener"><img src="/ic-'+(SOCRED[s.red]?s.red:'enlace')+icS+'.png" alt=""></a>':''; }).join(''); if(sr) html += '<div class="u-soc fade b-full" style="animation-delay:'+(0.1+i*0.04)+'s;">'+sr+'</div>'; return; }
+          // Íconos sociales: SVG inline monocromáticos (color heredado del título del tema).
+          if (b.tipo==='social'){
+            var sr=(b.socials||[]).map(function(s){
+              var su=socUrl(s); if(!su) return '';
+              var red = SOCRED[s.red] ? s.red : 'enlace';
+              return '<a class="u-soc-i" href="'+esc(su)+'" target="_blank" rel="noopener" aria-label="'+esc(red)+'" style="color:'+titleColor+';">'+socSvg(red)+'</a>';
+            }).join('');
+            if(sr) html += '<div class="u-soc fade b-full" style="animation-delay:'+(0.1+i*0.04)+'s;">'+sr+'</div>';
+            return;
+          }
           if (b.tipo==='newsletter'){
-            var nTit = esc((b.label||'Únete a mi Newsletter').trim());
+            var nTit = esc((b.label||'Entérate de todas las novedades').trim());
             var nSub = (b.subtitulo||'').trim() ? '<div class="u-news-s">'+esc(b.subtitulo.trim())+'</div>' : '';
             var nBtn = esc((b.btnText||'Suscribirme').trim());
             html += '<div class="u-news fade b-full" data-news="'+esc(b.id||'')+'" style="animation-delay:'+(0.1+i*0.04)+'s;">'
@@ -755,11 +800,45 @@
         html += '<p class="sub fade" style="margin-top:10px;animation-delay:.14s;color:'+p.sub+';">Aún no hay enlaces aquí.</p>';
       }
       wrap.innerHTML = html;
-      // El footer "⚡ Creado gratis en bioo.cl" se oculta para creadores que
-      // compraron "Quitar marca de agua" — flag espejada por la Cloud Function
-      // mpBioPlatformWebhook (ver functions/payments-mp-platform.js).
+      // Footer "⚡ Creado gratis en bioo.cl" — viralidad-first:
+      //   • Se OCULTA solo para creadores Pro que compraron "Quitar marca de
+      //     agua" (flag espejado por la CF mpBioPlatformWebhook).
+      //   • El enlace lleva ?ref=<user> para tracking de attribution viral:
+      //     cada visitante que entra a bioo.cl desde un perfil es atribuido
+      //     al creador que lo trajo (crédito por viralidad).
+      //   • El botón "Reportar" queda para anti-abuse pasivo (ver bio_reports).
       if (!data || data.proRemoveWatermark !== true) {
+        var footLink = document.getElementById('footLink');
+        if (footLink && user) footLink.href = 'https://bioo.cl/registro?ref=' + encodeURIComponent(user);
         document.getElementById('foot').style.display='block';
+      }
+      // Wire-up del botón Reportar (1 vez por carga). Escribe a /bio_reports/{auto}
+      // — colección de write-only para anónimos (rules abajo) que la moderación
+      // revisa en _admin. Un mismo navegador no puede reportar 2 veces la misma bio.
+      var reportBtn = document.getElementById('reportBtn');
+      if (reportBtn && user && !reportBtn._wired){
+        reportBtn._wired = true;
+        reportBtn.addEventListener('click', function(){
+          var reportedKey = 'bioo_reported_' + user;
+          try { if (localStorage.getItem(reportedKey)) { alert('Ya reportaste esta página. Gracias.'); return; } } catch(e){}
+          var reason = prompt('¿Por qué reportas esta página? (spam, contenido sexual, fraude, otro)');
+          if (!reason) return;
+          var fb = window.firebase;
+          if (!fb || !fb.firestore) { alert('No se pudo enviar el reporte.'); return; }
+          fb.firestore().collection('bio_reports').add({
+            username: user,
+            reason: String(reason).slice(0, 200),
+            ua: (navigator.userAgent || '').slice(0, 200),
+            ref: location.href.slice(0, 300),
+            createdAt: fb.firestore.FieldValue.serverTimestamp()
+          }).then(function(){
+            try { localStorage.setItem(reportedKey, '1'); } catch(e){}
+            alert('Gracias. Vamos a revisar este reporte.');
+          }).catch(function(err){
+            console.error('[bioo] report failed:', err);
+            alert('No se pudo enviar el reporte. Intenta de nuevo más tarde.');
+          });
+        });
       }
 
       // Conteo de clics por enlace (best-effort; las reglas permiten incrementar `clicks`).
