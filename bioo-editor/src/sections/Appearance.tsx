@@ -1,10 +1,11 @@
-import { useEffect, type ReactNode, type CSSProperties } from 'react';
+import { useEffect, useState, type ReactNode, type CSSProperties } from 'react';
 import { motion } from 'framer-motion';
 import { Palette, Image as ImageIcon, Square, CircleUserRound, Type, CaseSensitive } from 'lucide-react';
 import { useEditor } from '../store';
 import ImagePicker from '../components/ImagePicker';
 import { Card, labelCls } from '../ui';
 import { THEMES, FONTS, loadFont } from '../lib/theme';
+import { BG_GALLERY, BG_CATEGORIES, isGalleryUrl, type BgCategory } from '../lib/bgGallery';
 import type {
   ThemePreset, ButtonShape, ButtonFill, FontKey, BgMode, PatternKind, FxKind, AvatarShape,
   BtnAnim, SizeKey, Weight, Caps, Spacing,
@@ -13,7 +14,7 @@ import type {
 const SPRING = { type: 'spring', stiffness: 400, damping: 30 } as const;
 const FONT_KEYS = Object.keys(FONTS) as FontKey[];
 
-const FX: [FxKind, string][] = [['aurora', 'Aurora'], ['fluid', 'Fluido'], ['grain', 'Grano']];
+const FX: [FxKind, string][] = [['aurora', 'Aurora'], ['fluid', 'Fluido'], ['grain', 'Grano'], ['gasgiant', 'Vórtice']];
 const PATTERNS: [PatternKind, string][] = [['grid', 'Cuadrícula'], ['dots', 'Puntos'], ['topo', 'Topográfico']];
 
 export default function Appearance(): JSX.Element {
@@ -132,9 +133,10 @@ export default function Appearance(): JSX.Element {
         )}
 
         {bg.mode === 'image' && (
-          <div className="mt-5">
-            <ImagePicker value={bg.image} onChange={(image) => dispatch({ type: 'patchBg', patch: { image } })} maxW={1080} label="Subir imagen" />
-          </div>
+          <BgImagePanel
+            value={bg.image}
+            onChange={(image) => dispatch({ type: 'patchBg', patch: { image } })}
+          />
         )}
       </Card>
 
@@ -319,6 +321,96 @@ function FxCard({ kind, label, active, onClick, vars, blobs }: {
       </span>
       <span className={`text-[11px] font-semibold ${active ? 'text-[#15240b]' : 'text-neutral-500'}`}>{label}</span>
     </button>
+  );
+}
+
+/** Panel del modo "Imagen" — alterna Galería (curada) / Subir (custom).
+ *  Auto-elige el tab inicial según el origen de bg.image: una URL `/bg/...`
+ *  abre Galería; cualquier otra (Firebase Storage / blob) abre Subir. */
+type ImgSrc = 'gallery' | 'upload';
+function BgImagePanel({ value, onChange }: { value: string; onChange: (v: string) => void }): JSX.Element {
+  const initial: ImgSrc = isGalleryUrl(value) || !value ? 'gallery' : 'upload';
+  const [src, setSrc] = useState<ImgSrc>(initial);
+  return (
+    <div className="mt-5 space-y-5">
+      <SlideSeg<ImgSrc>
+        layoutId="bgImgSrc"
+        options={[['gallery', 'Galería'], ['upload', 'Subir']]}
+        value={src}
+        onChange={setSrc}
+      />
+      {src === 'gallery' ? (
+        <BgGalleryGrid value={value} onChange={onChange} />
+      ) : (
+        <ImagePicker value={value} onChange={onChange} maxW={1080} label="Subir imagen" />
+      )}
+    </div>
+  );
+}
+
+/** Grilla de fondos curados con filtro por categoría. Thumbnails 9:16
+ *  para reflejar la proporción del fondo real (mobile-first). */
+function BgGalleryGrid({ value, onChange }: { value: string; onChange: (url: string) => void }): JSX.Element {
+  type CatFilter = BgCategory | 'all';
+  const [cat, setCat] = useState<CatFilter>('all');
+  const items = cat === 'all' ? BG_GALLERY : BG_GALLERY.filter((i) => i.category === cat);
+  const chips: { id: CatFilter; label: string }[] = [{ id: 'all', label: 'Todas' }, ...BG_CATEGORIES];
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-2">
+        {chips.map(({ id, label }) => {
+          const active = cat === id;
+          return (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setCat(id)}
+              className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                active
+                  ? 'bg-[#92c83a] text-[#15240b]'
+                  : 'bg-neutral-100 text-neutral-500 hover:bg-neutral-200'
+              }`}
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
+      <div className="grid grid-cols-3 gap-3">
+        {items.map((it) => {
+          const active = value === it.url;
+          return (
+            <button
+              key={it.id}
+              type="button"
+              onClick={() => onChange(it.url)}
+              className="group flex flex-col gap-2 transition-transform hover:scale-[1.02]"
+              title={it.label}
+            >
+              <span
+                className={`relative block aspect-[9/16] overflow-hidden rounded-2xl shadow-sm transition-shadow ${
+                  active ? 'ring-2 ring-[#92c83a] ring-offset-4 ring-offset-white' : 'ring-1 ring-black/5'
+                }`}
+              >
+                <img
+                  src={it.thumb}
+                  alt={it.label}
+                  loading="lazy"
+                  className="h-full w-full object-cover"
+                  draggable={false}
+                />
+                {active && <span className="absolute inset-0 bg-[#92c83a]/15" aria-hidden="true" />}
+              </span>
+              <span className={`block text-center text-[10px] font-semibold leading-tight ${active ? 'text-[#15240b]' : 'text-neutral-500'}`}>
+                {it.label}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      <p className="text-[10px] text-neutral-400">Fotos de Unsplash · uso libre, sin atribución requerida.</p>
+    </div>
   );
 }
 

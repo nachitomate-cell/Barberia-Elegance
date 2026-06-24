@@ -50,7 +50,7 @@ export type FontKey = 'system' | 'poppins' | 'montserrat' | 'playfair';
 
 export type BgMode = 'preset' | 'color' | 'gradient' | 'animated' | 'pattern' | 'image';
 export type PatternKind = 'dots' | 'grid' | 'diag' | 'topo';
-export type FxKind = 'aurora' | 'grain' | 'fluid';
+export type FxKind = 'aurora' | 'grain' | 'fluid' | 'gasgiant';
 export type AvatarShape = 'circle' | 'rounded';
 export type BtnAnim = 'none' | 'float' | 'pulse' | 'grow';
 

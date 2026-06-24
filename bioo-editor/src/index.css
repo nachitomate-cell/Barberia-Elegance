@@ -43,6 +43,11 @@ body {
 @keyframes fxC{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(8%,-16%) scale(1.15)}}
 .bgfx-grain{background:linear-gradient(135deg,var(--c1),var(--c2));}
 .bgfx-grain::after{content:"";position:absolute;inset:0;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");opacity:.16;mix-blend-mode:overlay;}
+/* Vórtice — preview ESTÁTICO (sin WebGL) para no encender 3 contextos
+   GL por cada tarjetita del editor. Paleta Erid HARDCODED igual que el
+   shader real de u.html — este módulo NO se adapta al tema. */
+.bgfx-gasgiant{background:radial-gradient(ellipse at 30% 30%,#4ee61a,transparent 55%),radial-gradient(ellipse at 70% 70%,#e66600,transparent 55%),#053d0d;}
+.bgfx-gasgiant::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 55% 50%,rgba(178,255,77,.18),transparent 35%),conic-gradient(from 200deg at 60% 50%,transparent 0deg,rgba(178,255,77,.10) 70deg,transparent 160deg);mix-blend-mode:screen;}
 .bgfx-grid{background-color:var(--base,#15240b);background-image:linear-gradient(var(--line,rgba(255,255,255,.14)) 1px,transparent 1px),linear-gradient(90deg,var(--line,rgba(255,255,255,.14)) 1px,transparent 1px);background-size:26px 26px;animation:fxScroll 22s linear infinite;}
 .bgfx-dots{background-color:var(--base,#15240b);background-image:radial-gradient(var(--line,rgba(255,255,255,.22)) 1.6px,transparent 1.8px);background-size:22px 22px;animation:fxScroll 28s linear infinite;}
 .bgfx-diag{background-color:var(--base,#15240b);background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.10) 0 10px,transparent 10px 20px);}
