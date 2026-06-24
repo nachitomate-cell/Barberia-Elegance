@@ -20,6 +20,7 @@ const DOMAIN_MAP = {
   'thelatincaribe.synaptechspa.cl':    'latincaribe',
   'machos.synaptechspa.cl':            'machos',
   'infinity.synaptechspa.cl':          'infinity',
+  'studiodieciseis.synaptechspa.cl':   'sionbarberia',
   'sionbarberia.synaptechspa.cl':      'sionbarberia',
   'barberiasion.synaptechspa.cl':      'sionbarberia',
   'memphissalon.synaptechspa.cl':      'memphis',
