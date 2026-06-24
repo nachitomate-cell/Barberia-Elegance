@@ -6,6 +6,8 @@ import { auth } from './lib/firebase';
 import { saveBio, loadUserBio } from './lib/bio';
 import { ensureAnonymousSession, completePendingRedirect } from './lib/auth';
 import { mintRandomHandle } from './lib/mintHandle';
+import { FONTS, loadFont } from './lib/theme';
+import type { FontKey } from './types';
 import ClaimModal from './components/ClaimModal';
 import PublishedModal from './components/PublishedModal';
 import { useEditor } from './store';
@@ -126,6 +128,14 @@ export default function App(): JSX.Element {
     try { if (localStorage.getItem('bioo_onboarded')) return false; } catch { /* noop */ }
     return state.blocks.length === 0 && !state.profile.titulo.trim();
   });
+
+  // Precarga TODAS las fuentes al abrir el editor. Sin esto, el primer click
+  // a una fuente custom muestra el fallback unos cientos de ms (lo que parece
+  // "no cambia"). Cargarlas al montar el shell ya las deja calientes.
+  useEffect(() => {
+    const keys = Object.keys(FONTS) as FontKey[];
+    keys.forEach(loadFont);
+  }, []);
 
   useEffect(
     () =>

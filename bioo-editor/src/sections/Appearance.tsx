@@ -193,7 +193,13 @@ export default function Appearance(): JSX.Element {
               <button
                 key={k}
                 type="button"
-                onClick={() => dispatch({ type: 'patchTheme', patch: { font: k } })}
+                // Carga la fuente al hover/touchstart para que cuando el usuario haga click ya esté pintada.
+                onPointerEnter={() => loadFont(k)}
+                onTouchStart={() => loadFont(k)}
+                onClick={() => {
+                  loadFont(k);
+                  dispatch({ type: 'patchTheme', patch: { font: k } });
+                }}
                 style={{ fontFamily: FONTS[k].stack }}
                 className={`rounded-2xl border p-4 text-center transition-colors ${
                   active ? 'border-[#92c83a] bg-[#92c83a]/10' : 'border-neutral-200 hover:border-neutral-300'
