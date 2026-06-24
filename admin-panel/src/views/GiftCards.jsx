@@ -2,16 +2,18 @@ import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { addDoc, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
 import QRCode from 'qrcode';
+import { toPng } from 'html-to-image';
 import { db } from '../lib/firebase';
 import { tenantCol } from '../lib/tenantUtils';
 import { useCollection } from '../hooks/useCollection';
 import { useClubUsers } from '../hooks/useClubUsers';
 import { useAuth } from '../contexts/AuthContext';
 import { useTenant } from '../contexts/TenantContext';
+import GiftCardDigitalExport from '../components/GiftCardDigitalExport';
 import {
   Gift, Plus, X, Copy, CheckCheck, AlertCircle, Search,
   CreditCard, Banknote, CheckCircle2, Clock, XCircle, MessageCircle, ExternalLink,
-  QrCode, Camera, UserPlus, Loader2, Link2, Download, Sparkles, PartyPopper,
+  QrCode, Camera, UserPlus, Loader2, Link2, Download, Sparkles, PartyPopper, ImageDown, Eye,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 
@@ -197,7 +199,7 @@ function BuyerAutocomplete({ value, onSelect, onClear }) {
 }
 
 /* ── CreateModal ──────────────────────────────────────────────────── */
-function CreateModal({ tenantId, tenantName, user, onClose }) {
+function CreateModal({ tenantId, tenantName, tenantLogo, user, onClose }) {
   const [valor, setValor] = useState('');
   const [nombre, setNombre] = useState('');
   const [vence, setVence] = useState('');
@@ -206,7 +208,9 @@ function CreateModal({ tenantId, tenantName, user, onClose }) {
   const [loading, setLoading] = useState(false);
   const [created, setCreated] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [downloadingImg, setDownloadingImg] = useState(false);
   const [code] = useState(() => genCode(tenantId.slice(0, 4)));
+  const cardRef = useRef(null);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -243,6 +247,29 @@ function CreateModal({ tenantId, tenantName, user, onClose }) {
     } catch { /* noop */ }
   };
 
+  /** Captura la tarjeta full-size (offscreen) como PNG y la descarga. */
+  const handleDownloadImage = async () => {
+    if (!cardRef.current || downloadingImg) return;
+    setDownloadingImg(true);
+    try {
+      const dataUrl = await toPng(cardRef.current, {
+        pixelRatio: 2,
+        cacheBust: true,
+        backgroundColor: '#0b1220',
+      });
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = `gift-card-${created.codigo}.png`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch (err) {
+      console.error('[GiftCards] export PNG failed:', err);
+    } finally {
+      setDownloadingImg(false);
+    }
+  };
+
   return (
     <ModalShell onClose={onClose}>
       <div className="flex items-center justify-between p-5 border-b border-slate-800">
@@ -258,6 +285,23 @@ function CreateModal({ tenantId, tenantName, user, onClose }) {
             transition={spring}
             className="p-5 space-y-4"
           >
+            {/* Instancia FULL-SIZE oculta — solo existe para que html-to-image
+                la capture en su tamaño nominal (400×250). No afecta layout. */}
+            <div
+              aria-hidden="true"
+              style={{ position: 'fixed', left: -10000, top: 0, pointerEvents: 'none' }}
+            >
+              <GiftCardDigitalExport
+                ref={cardRef}
+                monto={created.valor}
+                codigo={created.codigo}
+                urlQR={saldoLink(created.codigo)}
+                nombreTenant={tenantName}
+                logoTenant={tenantLogo}
+                nombreDestinatario={created.nombre !== 'Sin nombre' ? created.nombre : undefined}
+              />
+            </div>
+
             <div className="flex flex-col items-center text-center gap-2 pt-1">
               <motion.div
                 initial={{ scale: 0, rotate: -20 }} animate={{ scale: 1, rotate: 0 }}
@@ -269,11 +313,32 @@ function CreateModal({ tenantId, tenantName, user, onClose }) {
               <p className="text-sm text-slate-300">¡Lista para regalar!</p>
             </div>
 
-            <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-4 text-center space-y-1.5">
-              <p className="text-[10px] uppercase tracking-widest text-slate-400">Código</p>
-              <p className="font-mono text-2xl font-black text-emerald-400 tracking-wider">{created.codigo}</p>
-              <p className="text-xs text-slate-400">{created.nombre} · {formatCLP(created.valor)}</p>
+            {/* Previsualización escalada (60% → 240×150). El wrapper recorta
+                el ancho/alto reales para que el `transform: scale()` no deje
+                espacio fantasma debajo. */}
+            <div className="mx-auto" style={{ width: 240, height: 150 }}>
+              <div style={{ transform: 'scale(0.6)', transformOrigin: 'top left' }}>
+                <GiftCardDigitalExport
+                  monto={created.valor}
+                  codigo={created.codigo}
+                  urlQR={saldoLink(created.codigo)}
+                  nombreTenant={tenantName}
+                  logoTenant={tenantLogo}
+                  nombreDestinatario={created.nombre !== 'Sin nombre' ? created.nombre : undefined}
+                />
+              </div>
             </div>
+
+            {/* CTA principal: descarga PNG */}
+            <button
+              onClick={handleDownloadImage}
+              disabled={downloadingImg}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold bg-emerald-500 text-emerald-950 hover:bg-emerald-400 disabled:opacity-50 transition-all"
+            >
+              {downloadingImg
+                ? <><Loader2 size={15} className="animate-spin" /> Generando...</>
+                : <><ImageDown size={15} /> Descargar imagen</>}
+            </button>
 
             <div className="grid grid-cols-2 gap-2">
               <button
@@ -603,9 +668,105 @@ function RedeemModal({ giftCards, tenantId, user, onClose }) {
   );
 }
 
+/* ── ViewCardModal ────────────────────────────────────────────────────
+   Reabre la tarjeta digital de una GC existente para volver a verla
+   y descargarla. Misma estructura de captura que CreateModal: la
+   instancia full-size se renderiza oculta y la previsualización en
+   pantalla es una copia escalada. */
+function ViewCardModal({ gc, tenantName, tenantLogo, onClose }) {
+  const cardRef = useRef(null);
+  const [downloadingImg, setDownloadingImg] = useState(false);
+
+  const handleDownloadImage = async () => {
+    if (!cardRef.current || downloadingImg) return;
+    setDownloadingImg(true);
+    try {
+      const dataUrl = await toPng(cardRef.current, {
+        pixelRatio: 2,
+        cacheBust: true,
+        backgroundColor: '#0b1220',
+      });
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = `gift-card-${gc.codigo}.png`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch (err) {
+      console.error('[GiftCards] export PNG failed:', err);
+    } finally {
+      setDownloadingImg(false);
+    }
+  };
+
+  const destinatario = gc.nombre && gc.nombre !== 'Sin nombre' ? gc.nombre : undefined;
+
+  return (
+    <ModalShell onClose={onClose}>
+      <div className="flex items-center justify-between p-5 border-b border-slate-800">
+        <p className="text-sm font-bold text-white">Tarjeta de regalo</p>
+        <button onClick={onClose} className="text-slate-500 hover:text-white"><X size={16} /></button>
+      </div>
+
+      <div className="p-5 space-y-4">
+        {/* Full-size oculta — fuente del PNG */}
+        <div
+          aria-hidden="true"
+          style={{ position: 'fixed', left: -10000, top: 0, pointerEvents: 'none' }}
+        >
+          <GiftCardDigitalExport
+            ref={cardRef}
+            monto={gc.valor}
+            codigo={gc.codigo}
+            urlQR={saldoLink(gc.codigo)}
+            nombreTenant={tenantName}
+            logoTenant={tenantLogo}
+            nombreDestinatario={destinatario}
+          />
+        </div>
+
+        {/* Preview escalado (60%) */}
+        <div className="mx-auto" style={{ width: 240, height: 150 }}>
+          <div style={{ transform: 'scale(0.6)', transformOrigin: 'top left' }}>
+            <GiftCardDigitalExport
+              monto={gc.valor}
+              codigo={gc.codigo}
+              urlQR={saldoLink(gc.codigo)}
+              nombreTenant={tenantName}
+              logoTenant={tenantLogo}
+              nombreDestinatario={destinatario}
+            />
+          </div>
+        </div>
+
+        {/* Saldo actual (en vivo) — útil al revisar una tarjeta usada parcialmente */}
+        <div className="bg-slate-800/50 border border-slate-700/60 rounded-lg px-3 py-2 flex items-center justify-between text-xs">
+          <span className="text-slate-400">Saldo disponible</span>
+          <span className="font-bold text-emerald-400">{formatCLP(gc.saldo)}</span>
+        </div>
+
+        <button
+          onClick={handleDownloadImage}
+          disabled={downloadingImg}
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold bg-emerald-500 text-emerald-950 hover:bg-emerald-400 disabled:opacity-50 transition-all"
+        >
+          {downloadingImg
+            ? <><Loader2 size={15} className="animate-spin" /> Generando...</>
+            : <><ImageDown size={15} /> Descargar imagen</>}
+        </button>
+
+        <button onClick={onClose} className="w-full py-2 rounded-xl text-sm text-slate-400 hover:text-white transition-colors">
+          Cerrar
+        </button>
+      </div>
+    </ModalShell>
+  );
+}
+
 /* ── GiftCardRow ──────────────────────────────────────────────────── */
-function GiftCardRow({ gc, tenantName }) {
+function GiftCardRow({ gc, tenantName, tenantLogo }) {
   const [copied, setCopied] = useState(false);
+  const [viewing, setViewing] = useState(false);
   const cfg = STATUS_CONFIG[gc.estado] || STATUS_CONFIG.activa;
   const { Icon } = cfg;
 
@@ -614,33 +775,53 @@ function GiftCardRow({ gc, tenantName }) {
   };
 
   return (
-    <div className="flex items-center gap-4 p-4 bg-slate-900 border border-slate-800 rounded-xl hover:border-slate-700 transition-all flex-wrap">
-      <div className={`w-8 h-8 rounded-lg flex items-center justify-center border ${cfg.color.split(' ').slice(1).join(' ')} shrink-0`}>
-        <Icon size={16} className={cfg.color.split(' ')[0]} />
-      </div>
-      <div className="flex-1 min-w-[140px]">
-        <div className="flex items-center gap-2">
-          <p className="font-mono text-sm font-bold text-white">{gc.codigo}</p>
-          <button onClick={copy} className="text-slate-500 hover:text-slate-300 transition-colors">
-            {copied ? <CheckCheck size={12} className="text-emerald-400" /> : <Copy size={12} />}
-          </button>
+    <>
+      <div className="flex items-center gap-4 p-4 bg-slate-900 border border-slate-800 rounded-xl hover:border-slate-700 transition-all flex-wrap">
+        <div className={`w-8 h-8 rounded-lg flex items-center justify-center border ${cfg.color.split(' ').slice(1).join(' ')} shrink-0`}>
+          <Icon size={16} className={cfg.color.split(' ')[0]} />
         </div>
-        <p className="text-xs text-slate-500 mt-0.5">{gc.nombre}</p>
-      </div>
-      <div className="text-right min-w-[80px]">
-        <p className="text-sm font-bold text-white">{formatCLP(gc.saldo)}</p>
-        <p className="text-xs text-slate-500">de {formatCLP(gc.valor)}</p>
-      </div>
-      <span className={`text-xs font-semibold px-2 py-0.5 rounded border ${cfg.color}`}>
-        {cfg.label}
-      </span>
-      {gc.venceEn && <p className="text-xs text-slate-500 shrink-0">Vence {gc.venceEn}</p>}
-      {(gc.estado === 'activa' || gc.estado === 'parcial') && (
-        <button onClick={() => shareWa(gc, tenantName)} className="text-slate-500 hover:text-green-400 transition-colors shrink-0" title="Enviar por WhatsApp">
-          <MessageCircle size={14} />
+        <div className="flex-1 min-w-[140px]">
+          <div className="flex items-center gap-2">
+            <p className="font-mono text-sm font-bold text-white">{gc.codigo}</p>
+            <button onClick={copy} className="text-slate-500 hover:text-slate-300 transition-colors">
+              {copied ? <CheckCheck size={12} className="text-emerald-400" /> : <Copy size={12} />}
+            </button>
+          </div>
+          <p className="text-xs text-slate-500 mt-0.5">{gc.nombre}</p>
+        </div>
+        <div className="text-right min-w-[80px]">
+          <p className="text-sm font-bold text-white">{formatCLP(gc.saldo)}</p>
+          <p className="text-xs text-slate-500">de {formatCLP(gc.valor)}</p>
+        </div>
+        <span className={`text-xs font-semibold px-2 py-0.5 rounded border ${cfg.color}`}>
+          {cfg.label}
+        </span>
+        {gc.venceEn && <p className="text-xs text-slate-500 shrink-0">Vence {gc.venceEn}</p>}
+        <button
+          onClick={() => setViewing(true)}
+          className="text-slate-500 hover:text-emerald-400 transition-colors shrink-0"
+          title="Ver tarjeta digital"
+        >
+          <Eye size={14} />
         </button>
-      )}
-    </div>
+        {(gc.estado === 'activa' || gc.estado === 'parcial') && (
+          <button onClick={() => shareWa(gc, tenantName)} className="text-slate-500 hover:text-green-400 transition-colors shrink-0" title="Enviar por WhatsApp">
+            <MessageCircle size={14} />
+          </button>
+        )}
+      </div>
+
+      <AnimatePresence>
+        {viewing && (
+          <ViewCardModal
+            gc={gc}
+            tenantName={tenantName}
+            tenantLogo={tenantLogo}
+            onClose={() => setViewing(false)}
+          />
+        )}
+      </AnimatePresence>
+    </>
   );
 }
 
@@ -661,15 +842,24 @@ function PublicLinkCard({ icon: Icon, title, desc, url, qrFilename, accent = 'em
           {title}
         </p>
         <p className="text-xs text-slate-400 mt-0.5">{desc}</p>
-        <div className="flex flex-wrap items-center gap-3 mt-2">
-          <button onClick={copy} className={`inline-flex items-center gap-1 text-xs font-semibold text-${accent}-400 hover:underline`}>
-            {copied ? <><CheckCheck size={11} /> Copiado</> : <><Copy size={11} /> Copiar enlace</>}
+        <div className="mt-4 pt-4 border-t border-slate-800/50 flex flex-wrap gap-3 items-center">
+          <button
+            onClick={copy}
+            className={`px-3 py-1.5 rounded-lg hover:bg-white/5 transition-colors text-sm flex items-center gap-1.5 text-${accent}-400`}
+          >
+            {copied ? <><CheckCheck size={13} /> Copiado</> : <><Copy size={13} /> Copiar enlace</>}
           </button>
-          <button onClick={() => downloadQR(url, qrFilename)} className="inline-flex items-center gap-1 text-xs font-semibold text-slate-300 hover:underline">
-            <Download size={11} /> Descargar QR
+          <button
+            onClick={() => downloadQR(url, qrFilename)}
+            className="px-3 py-1.5 rounded-lg hover:bg-white/5 transition-colors text-sm flex items-center gap-1.5 text-slate-300"
+          >
+            <Download size={13} /> Descargar QR
           </button>
-          <a href={url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-slate-400 hover:underline">
-            <ExternalLink size={11} /> Abrir
+          <a
+            href={url} target="_blank" rel="noopener noreferrer"
+            className="px-3 py-1.5 rounded-lg hover:bg-white/5 transition-colors text-sm flex items-center gap-1.5 text-slate-400"
+          >
+            <ExternalLink size={13} /> Abrir
           </a>
         </div>
       </div>
@@ -680,7 +870,7 @@ function PublicLinkCard({ icon: Icon, title, desc, url, qrFilename, accent = 'em
 /* ── Main view ────────────────────────────────────────────────────── */
 export default function GiftCards() {
   const { user } = useAuth();
-  const { id: tenantId, name: tenantName } = useTenant();
+  const { id: tenantId, name: tenantName, logo: tenantLogo } = useTenant();
   const saldoUrl = `${window.location.origin}/gestion-interna/saldo-gift-card`;
   const ventaUrl = publicSaleUrl(tenantId);
   const [showCreate, setShowCreate] = useState(false);
@@ -739,8 +929,8 @@ export default function GiftCards() {
           { label: 'Usadas', value: stats.usadas, icon: CheckCircle2, color: 'text-slate-400', bg: 'bg-slate-500/10' },
         ].map(({ label, value, icon: Icon, color, bg }) => (
           <div key={label} className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-            <div className={`w-7 h-7 rounded-lg ${bg} flex items-center justify-center mb-2`}>
-              <Icon size={14} className={color} />
+            <div className={`${bg} rounded-xl p-2.5 w-fit mb-3`}>
+              <Icon size={16} className={color} />
             </div>
             <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{label}</p>
             <p className="text-lg font-bold text-white mt-0.5">{value}</p>
@@ -753,8 +943,10 @@ export default function GiftCards() {
         <div className="flex gap-1 bg-slate-900 border border-slate-800 rounded-lg p-1">
           {['todas', 'activa', 'parcial', 'usada', 'vencida'].map(f => (
             <button key={f} onClick={() => setFilter(f)}
-              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all capitalize ${
-                filter === f ? 'bg-slate-700 text-white' : 'text-slate-500 hover:text-slate-300'
+              className={`px-3 py-1.5 rounded-md text-xs transition-all capitalize ${
+                filter === f
+                  ? 'bg-slate-700 text-white font-medium shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/5 font-medium'
               }`}>
               {f}
             </button>
@@ -772,13 +964,30 @@ export default function GiftCards() {
 
       {/* List */}
       {filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-slate-500 gap-2">
+        <div className="flex flex-col items-center justify-center py-16 text-slate-500">
           <Gift size={32} className="opacity-30" />
-          <p className="text-sm">Sin gift cards{filter !== 'todas' ? ` con estado "${filter}"` : ''}.</p>
+          <p className="text-sm mt-2">Sin gift cards{filter !== 'todas' ? ` con estado "${filter}"` : ''}.</p>
+          <p className="text-slate-400 text-sm mt-2 text-center max-w-xs">
+            Las gift cards son una excelente forma de asegurar ingresos futuros.
+          </p>
+          <button
+            onClick={() => setShowCreate(true)}
+            className="mt-4 flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-bold bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 border border-emerald-500/30 transition-all"
+          >
+            <Plus size={14} />
+            Crear primera Gift Card
+          </button>
         </div>
       ) : (
         <div className="space-y-2">
-          {filtered.map(gc => <GiftCardRow key={gc.id} gc={gc} tenantName={tenantName} />)}
+          {filtered.map(gc => (
+            <GiftCardRow
+              key={gc.id}
+              gc={gc}
+              tenantName={tenantName}
+              tenantLogo={tenantLogo}
+            />
+          ))}
         </div>
       )}
 
@@ -808,6 +1017,7 @@ export default function GiftCards() {
             key="create"
             tenantId={tenantId}
             tenantName={tenantName}
+            tenantLogo={tenantLogo}
             user={user}
             onClose={() => setShowCreate(false)}
           />

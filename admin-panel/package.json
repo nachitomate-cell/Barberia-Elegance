@@ -14,6 +14,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "firebase": "^12.13.0",
     "framer-motion": "^12.38.0",
+    "html-to-image": "^1.11.13",
     "lucide-react": "^0.400.0",
     "qrcode": "^1.5.4",
     "qrcode.react": "^4.2.0",
