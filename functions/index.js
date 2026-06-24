@@ -807,11 +807,12 @@ exports.corteLapizReservar = corteLapizReservar.corteLapizReservar;
 //  ver bioo-provision.js
 // ─────────────────────────────────────────────────────────────────
 const biooProvision = require('./bioo-provision');
-exports.biooProvision       = biooProvision.biooProvision;
-exports.biooClaim           = biooProvision.biooClaim;
-exports.biooEditorSession   = biooProvision.biooEditorSession;
-exports.biooEditorBridge    = biooProvision.biooEditorBridge;
-exports.provisionPartnerUser = biooProvision.provisionPartnerUser;
+exports.biooProvision         = biooProvision.biooProvision;
+exports.biooClaim             = biooProvision.biooClaim;
+exports.biooEditorSession     = biooProvision.biooEditorSession;
+exports.biooEditorBridge      = biooProvision.biooEditorBridge;
+exports.provisionPartnerUser  = biooProvision.provisionPartnerUser;
+exports.biooProvisionBarbero  = biooProvision.biooProvisionBarbero;
 
 // ─────────────────────────────────────────────────────────────────
 //  BIOO — pagos del paywall (Stripe Checkout). ver payments-stripe.js

@@ -5,7 +5,9 @@ import {
   Upload, ChevronDown, Plus, X, Phone, Mail, Percent, Scissors,
   CalendarOff, Clock, Check, KeyRound, Link2, Copy, GripVertical,
   Users, Printer, Wallet, ArrowDownCircle, AlertTriangle, CheckCircle2, DollarSign,
+  Sparkles, ExternalLink, Loader2,
 } from 'lucide-react';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { updateDoc, addDoc, deleteDoc, doc, serverTimestamp, deleteField, writeBatch, Timestamp, query, where, getDocs } from 'firebase/firestore';
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors,
@@ -212,8 +214,81 @@ function BookingUrlButton({ nombre }) {
   );
 }
 
+/* ─── BiooBarberoButton ──────────────────────────────────────
+ * Crea (o muestra) el bioo.cl del barbero. Llama a la callable
+ * biooProvisionBarbero que ya pre-llena la página con nombre,
+ * foto, WhatsApp, link "Reservar conmigo" e Instagram del tenant.
+ */
+function BiooBarberoButton({ barber, tenant, canManage }) {
+  const [busy, setBusy]   = useState(false);
+  const [err, setErr]     = useState('');
+  const [copied, setCopied] = useState(false);
+  const handle = barber.biooHandle || '';
+  const url    = handle ? `https://bioo.cl/${handle}` : '';
+
+  if (!canManage) return null;
+
+  const create = async () => {
+    if (busy) return;
+    setBusy(true); setErr('');
+    try {
+      const fn = httpsCallable(getFunctions(undefined, 'us-central1'), 'biooProvisionBarbero');
+      const tenantDominio = TENANT_DOMAINS[tenant.id] || `${tenant.id}.synaptechspa.cl`;
+      await fn({
+        tenantId: tenant.id,
+        barberoId: barber.id,
+        tenantNombre: tenant.name,
+        tenantDominio,
+        tenantInstagram: tenant.instagramHandle || tenant.instagram || '',
+      });
+      // El doc se actualiza via onSnapshot → la card re-renderiza con el handle.
+    } catch (e) {
+      setErr(e?.message || 'No se pudo crear el bioo.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true); setTimeout(() => setCopied(false), 1600);
+    } catch {}
+  };
+
+  if (handle) {
+    return (
+      <div className="flex items-center w-full gap-1" title={url}>
+        <a href={url} target="_blank" rel="noopener noreferrer"
+          className="flex-1 flex items-center gap-1.5 justify-center px-3 py-1.5 bg-violet-500/10 hover:bg-violet-500/20 text-violet-300 hover:text-violet-200 text-[11px] font-medium rounded-lg border border-violet-500/30 transition-all truncate">
+          <Sparkles size={11} />
+          <span className="truncate">bioo.cl/{handle}</span>
+          <ExternalLink size={10} className="opacity-70" />
+        </a>
+        <button onClick={copy}
+          className="shrink-0 flex items-center justify-center w-7 h-7 rounded-lg bg-violet-500/10 hover:bg-violet-500/20 border border-violet-500/30 text-violet-300 hover:text-white transition-all"
+          title="Copiar enlace">
+          {copied ? <Check size={11} className="text-emerald-400" /> : <Copy size={11} />}
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full">
+      <button onClick={create} disabled={busy}
+        className="flex items-center gap-1.5 w-full justify-center px-3 py-1.5 bg-slate-800/60 hover:bg-violet-500/10 hover:border-violet-500/30 text-slate-400 hover:text-violet-300 text-[11px] font-medium rounded-lg border border-slate-800 transition-all disabled:opacity-60">
+        {busy
+          ? <><Loader2 size={11} className="animate-spin" /> Creando bioo…</>
+          : <><Sparkles size={11} /> Crear su bioo.cl</>}
+      </button>
+      {err && <p className="mt-1 text-[10px] text-rose-400 text-center">{err}</p>}
+    </div>
+  );
+}
+
 /* ─── BarberCard ─────────────────────────────────────────── */
-function BarberCard({ barber, onEdit, waUrl, onVerAgenda, sucursales = [], dragHandleProps = null, isDragging = false, allowAdminEdit = false }) {
+function BarberCard({ barber, onEdit, waUrl, onVerAgenda, sucursales = [], dragHandleProps = null, isDragging = false, allowAdminEdit = false, tenant = null, canManageBioo = false }) {
   const isActive      = barber.disponible !== false;
   const isStrictAdmin = barber.rol === 'admin' && !allowAdminEdit;
   const isAdmin       = barber.rol === 'admin' || barber.rol === 'jefe';
@@ -281,6 +356,10 @@ function BarberCard({ barber, onEdit, waUrl, onVerAgenda, sucursales = [], dragH
 
       {!isSupportAdmin && barber.nombre && (
         <BookingUrlButton nombre={barber.nombre} />
+      )}
+
+      {!isSupportAdmin && tenant && (
+        <BiooBarberoButton barber={barber} tenant={tenant} canManage={canManageBioo} />
       )}
     </div>
   );
@@ -815,7 +894,8 @@ export default function Equipo() {
                 {orderedBarberos.map(b => (
                   <SortableBarberCard key={b.id} barber={b} onEdit={openEdit} waUrl={waUrl}
                     sucursales={sucursales} onVerAgenda={() => navigate('/agenda')}
-                    allowAdminEdit={tenant.id === 'delnero'} />
+                    allowAdminEdit={tenant.id === 'delnero'}
+                    tenant={tenant} canManageBioo={isAdmin} />
                 ))}
               </div>
             </SortableContext>

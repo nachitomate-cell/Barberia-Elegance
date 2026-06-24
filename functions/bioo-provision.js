@@ -512,6 +512,178 @@ exports.provisionPartnerUser = onRequest(
   }
 );
 
+// ── biooProvisionBarbero (CALLABLE) — admin/jefe crea bioo para un barbero ────
+//  Distribución cautiva: cada barbería ya tiene N barberos en gestión-interna;
+//  con un click el admin les provisiona un bioo.cl pre-llenado (nombre, foto,
+//  WhatsApp, link a "Reservar conmigo"). El barbero después adopta el bioo
+//  iniciando sesión con su email en bioo.cl/claim. Idempotente por barbero.
+//
+//  Caller: admin/jefe del tenant (verifica custom claims).
+//  Input:  { tenantId, barberoId, tenantNombre, tenantDominio?, tenantInstagram? }
+//  Output: { handle, publicUrl, claimUrl, already? }
+exports.biooProvisionBarbero = onCall(
+  { region: 'us-central1', cors: true },
+  async (request) => {
+    const auth = request.auth;
+    if (!auth) throw new HttpsError('unauthenticated', 'Debes iniciar sesión.');
+
+    const { tenantId, barberoId, tenantNombre, tenantDominio, tenantInstagram } = request.data || {};
+    if (!tenantId || !barberoId) {
+      throw new HttpsError('invalid-argument', 'Faltan tenantId o barberoId.');
+    }
+
+    // Authz: el caller debe ser admin/jefe del tenant. Custom claims primero,
+    // fallback bootstrap (mismos correos que firestore.rules).
+    const claims = auth.token || {};
+    const isBootstrap = ['ignaciiio.mate@gmail.com', 'barrazanicolasfabian@gmail.com']
+      .includes(String(claims.email || '').toLowerCase());
+    const isAdmin = (claims.tenantId === tenantId && ['admin', 'jefe'].includes(claims.role)) || isBootstrap;
+    if (!isAdmin) throw new HttpsError('permission-denied', 'Solo admin/jefe puede crear el bioo de un barbero.');
+
+    // Ruta del doc según tenant (elegance vive en root, resto en /tenants/{tid}/).
+    const barberoRoot = tenantId === 'elegance'
+      ? db.collection('barberos').doc(barberoId)
+      : db.collection('tenants').doc(tenantId).collection('barberos').doc(barberoId);
+
+    let barberoSnap = await barberoRoot.get();
+    if (!barberoSnap.exists) throw new HttpsError('not-found', 'Barbero no encontrado.');
+    let barbero = barberoSnap.data() || {};
+
+    // Si es doc-enlace (uid del barbero apuntando al principal), resolvemos.
+    if (barbero._mainDocId) {
+      const mainRef = tenantId === 'elegance'
+        ? db.collection('barberos').doc(barbero._mainDocId)
+        : db.collection('tenants').doc(tenantId).collection('barberos').doc(barbero._mainDocId);
+      const mainSnap = await mainRef.get();
+      if (mainSnap.exists) { barberoSnap = mainSnap; barbero = mainSnap.data() || {}; }
+    }
+
+    const writeRef = barberoSnap.ref;
+
+    // Idempotente: si ya tiene biooHandle vigente, devolvemos.
+    if (barbero.biooHandle) {
+      const exists = await db.collection('bios').doc(barbero.biooHandle).get();
+      if (exists.exists) {
+        return {
+          handle: barbero.biooHandle,
+          publicUrl: `${BIOO_BASE}/${encodeURIComponent(barbero.biooHandle)}`,
+          claimUrl: `${BIOO_BASE}/claim`,
+          already: true,
+        };
+      }
+      // El bio fue borrado fuera de banda — re-provisionamos.
+    }
+
+    const nombre = String(barbero.nombre || '').trim();
+    const email = String(barbero.email || '').trim().toLowerCase();
+    if (!nombre) throw new HttpsError('failed-precondition', 'El barbero no tiene nombre.');
+    if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      throw new HttpsError('failed-precondition', 'El barbero no tiene email — agrégalo antes de crear el bioo.');
+    }
+
+    // Si su email ya tiene un bio reservado (por otra fuente), lo reusamos.
+    const idxRef = db.collection('bio_email_owners').doc(email);
+    const idxSnap = await idxRef.get();
+    if (idxSnap.exists && idxSnap.data().handle) {
+      const handle = idxSnap.data().handle;
+      await writeRef.set({
+        biooHandle: handle,
+        biooPublicUrl: `${BIOO_BASE}/${encodeURIComponent(handle)}`,
+        biooProvisionedAt: FieldValue.serverTimestamp(),
+      }, { merge: true });
+      return {
+        handle, publicUrl: `${BIOO_BASE}/${encodeURIComponent(handle)}`,
+        claimUrl: `${BIOO_BASE}/claim`, already: true,
+      };
+    }
+
+    // Sugerido: <nombre>-<tenant>. freeHandle dedup si colisiona.
+    const baseHandle = `${nombre}-${tenantId}`;
+    const handle = await freeHandle(baseHandle);
+    if (!validHandle(handle)) throw new HttpsError('internal', 'No se pudo generar un handle válido.');
+
+    // Plantilla de bloques.
+    const bloques = [];
+    const wa = waNumber(barbero.whatsapp);
+    if (wa) {
+      bloques.push({
+        id: blockId(), tipo: 'enlace',
+        label: 'Escríbeme por WhatsApp',
+        url: `https://wa.me/${wa}`,
+        activo: true, featured: true,
+      });
+    }
+    // Reservar conmigo: link a la agenda del tenant. Si no llega dominio,
+    // queda link al landing genérico — el barbero puede editarlo después.
+    const dominio = String(tenantDominio || '').trim();
+    if (dominio) {
+      const reservaUrl = `https://${dominio.replace(/^https?:\/\//, '').replace(/\/$/, '')}/agenda?barbero=${encodeURIComponent(barberoSnap.id)}`;
+      bloques.push({
+        id: blockId(), tipo: 'enlace',
+        label: `Reservar conmigo`,
+        url: reservaUrl,
+        activo: true,
+      });
+    }
+    // Instagram del tenant (compartido por todo el equipo) si llega.
+    const ig = String(tenantInstagram || '').replace(/^@/, '').replace(/^https?:\/\/(www\.)?instagram\.com\//i, '').replace(/\/$/, '').trim();
+    if (ig) {
+      bloques.push({
+        id: blockId(), tipo: 'enlace',
+        label: `Síguenos en Instagram`,
+        url: `https://instagram.com/${ig}`,
+        activo: true,
+      });
+    }
+
+    const now = FieldValue.serverTimestamp();
+    const subtitulo = barbero.especialidad
+      ? String(barbero.especialidad).slice(0, 160)
+      : (tenantNombre ? `Profesional en ${String(tenantNombre).slice(0, 80)}` : '');
+
+    const bioDoc = {
+      uid: null,                         // se asigna en claim
+      ownerEmail: email,
+      username: handle,
+      perfil: {
+        titulo: nombre,
+        subtitulo,
+        avatar: String(barbero.foto || '').trim(),
+        verified: false,
+      },
+      bloques,
+      theme: 'lime',
+      plan: 'free',
+      views: 0,
+      clicks: {},
+      source: 'gestion-interna-barbero',
+      provisionedBy: { uid: auth.uid, email: String(claims.email || '') },
+      provisionedFor: { tenantId, barberoId: barberoSnap.id, barberoUid: barbero.uid || null },
+      provisionedAt: now,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const batch = db.batch();
+    batch.set(db.collection('bios').doc(handle), bioDoc);
+    batch.set(idxRef, { handle, email, source: 'gestion-interna-barbero', createdAt: now });
+    batch.set(writeRef, {
+      biooHandle: handle,
+      biooPublicUrl: `${BIOO_BASE}/${encodeURIComponent(handle)}`,
+      biooProvisionedAt: now,
+    }, { merge: true });
+    await batch.commit();
+
+    logger.info(`[bioo] barbero provisionado handle=${handle} tenant=${tenantId} barbero=${barberoSnap.id}`);
+    return {
+      handle,
+      publicUrl: `${BIOO_BASE}/${encodeURIComponent(handle)}`,
+      claimUrl: `${BIOO_BASE}/claim`,
+      already: false,
+    };
+  },
+);
+
 // ── 4. biooEditorBridge (CALLABLE) — SSO 1-click desde gestión-interna ────────
 //  El usuario YA está autenticado en el panel (mismo proyecto Firebase). Con su
 //  sesión, este callable asegura/crea su bio en bioo.cl (idempotente por email) y
