@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
 <title>bioo</title>
 <meta name="theme-color" content="#92c83a" />
 <link rel="icon" href="/bioo-iso.png" />
@@ -15,7 +15,9 @@
 <style>
   :root{ --green:#92c83a; --green-d:#2c5a17; --ink:#15240b; --soft:#3f5230; --white:#ffffff; --line:#cfe0a8; }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-  html,body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--green);color:var(--ink);}
+  /* Bioo es 100% móvil: bloqueamos pinch-zoom y double-tap-zoom para que la
+     página se sienta como una app nativa. `manipulation` mantiene scroll y tap. */
+  html,body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--green);color:var(--ink);touch-action:manipulation;-webkit-text-size-adjust:100%;}
   body{min-height:100dvh;display:flex;flex-direction:column;align-items:center;padding:56px 24px 30px;}
   .wrap{position:relative;z-index:1;width:100%;max-width:560px;display:flex;flex-direction:column;align-items:center;}
   /* Fondo foto: difuminado a pantalla completa (lados en PC) + foto nítida en un marco centrado */
@@ -198,6 +200,15 @@
   .copied{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:var(--ink);color:#fff;font-weight:700;font-size:13px;padding:10px 18px;border-radius:100px;z-index:40;opacity:0;transition:.2s;pointer-events:none;}
   .copied.show{opacity:1;}
 </style>
+<script>
+  // iOS Safari ignora maximum-scale/user-scalable=no en el viewport desde iOS 10+
+  // (decisión de Apple por accesibilidad). Bloqueamos los gestos pinch a mano:
+  // - gesturestart/change/end → previene pinch-zoom de dos dedos
+  // - double-tap zoom → ya bloqueado por touch-action:manipulation en el CSS
+  ['gesturestart','gesturechange','gestureend'].forEach(function(ev){
+    document.addEventListener(ev, function(e){ e.preventDefault(); }, { passive: false });
+  });
+</script>
 </head>
 <body>
   <!-- Fondo foto (modo imagen): foto en marco tipo teléfono + difuminado en los lados (PC) -->
