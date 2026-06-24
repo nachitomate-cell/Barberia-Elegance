@@ -1,15 +1,17 @@
 /**
  * seed-bioo-demos.js — Páginas bioo de DEMOSTRACIÓN (Link in Bio · bioo.cl)
  *
- * Crea 3 perfiles públicos completos y bien diseñados en /bios/{username},
- * pensados para mostrar el producto a clientes potenciales:
+ * Crea 3 perfiles públicos completos, premium y "fotografiados" en
+ * /bios/{username}, pensados para mostrar el producto a clientes
+ * potenciales (cada uno explota una vertical distinta):
  *
- *   bioo.cl/studio-onze    → Barbería   (tema Bosque, fondo aurora)
- *   bioo.cl/aurora-cafe    → Cafetería  (tema Atardecer, fondo animado)
- *   bioo.cl/dj-lunar       → DJ/Creador (tema Noche, fondo fluido)
+ *   bioo.cl/studio-onze    → Barbería de autor   (Bosque · Playfair · marble cutout)
+ *   bioo.cl/aurora-cafe    → Café de especialidad (Atardecer · Poppins · grain animado)
+ *   bioo.cl/dj-lunar       → DJ / Productor      (Noche · Montserrat · nebulosa Petrova)
  *
- * Showcasean variedad de bloques: enlace destacado, whatsapp, instagram,
- * tiktok, mapa, texto, separador, social, newsletter, tip jar y paywall.
+ * Showcasean variedad de bloques (enlace destacado, whatsapp, social,
+ * texto, separador, imagen, embed, newsletter, tip jar y paywall) con
+ * layouts bento (half/full/large) y un look cohesivo por persona.
  *
  * Uso:  node seed-bioo-demos.js
  *       node seed-bioo-demos.js --undo     (elimina las 3 demos)
@@ -37,113 +39,172 @@ const db = admin.firestore();
 const TS = admin.firestore.FieldValue.serverTimestamp;
 const DEMO_UID = 'bioo-demo';
 
-const IMG = (id, w = 400) => `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=${w}&q=80`;
+/* ── Helpers ─────────────────────────────────────────────────────── */
+const IMG = (id, w = 600) => `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=${w}&q=85`;
+// Galería curada (servida desde Vercel con cache infinito) → look premium.
+const BG = (slug) => `https://bioo.cl/bg/${slug}.webp`;
 
-/* ── Helpers de bloques ─────────────────────────────────────────── */
 let _seq = 0;
 const bid = (p) => `${p}-${(++_seq).toString(36)}`;
 const blk = (tipo, o = {}) => ({ id: bid(tipo), tipo, label: '', url: '', activo: true, ...o });
 
 /* Estructura de tema completa (igual que normalizeTheme/DEFAULT_BG). */
-const theme = ({ preset, shape = 'rounded', fill = 'solid', font = 'system', bg, btnAnim = 'none', text = {} }) => ({
+const theme = ({
+  preset, shape = 'rounded', fill = 'solid', font = 'system',
+  bg, btnAnim = 'none', avatarShape = 'circle', avatarRing = '', text = {},
+}) => ({
   preset, shape, fill, font,
   bg: { mode: 'preset', color: '#92c83a', c1: '#92c83a', c2: '#2c5a17', angle: 165, pattern: 'dots', image: '', fx: 'aurora', ...bg },
-  avatarShape: 'circle',
-  avatarRing: '',
+  avatarShape,
+  avatarRing,
   btnAnim,
   text: { titleSize: 'm', subSize: 'm', weight: 'bold', caps: 'normal', spacing: 'normal', ...text },
 });
 
 const EMPTY_MARKETING = { ga4: '', metaPixel: '', tiktokPixel: '' };
 
-/* ────────────────────────────────────────────────────────────────
- * DEMO 1 — Barbería "Studio Onze"
- * ──────────────────────────────────────────────────────────────── */
+/* ════════════════════════════════════════════════════════════════
+ * DEMO 1 — Barbería de autor "Studio Onze"
+ * Vibe: minimalismo verde profundo · serif premium · barber tradicional
+ * con disciplina moderna. Bento limpio, una sola CTA dominante.
+ * ════════════════════════════════════════════════════════════════ */
 const studioOnze = {
   username: 'studio-onze',
   perfil: {
     titulo: 'Studio Onze',
-    subtitulo: 'Barbería & grooming · Valparaíso ✂️',
-    avatar: IMG('1599351431202-1e0f0137899a'),
-    cover: IMG('1521590832167-7bcbfaa6381f', 800),
+    subtitulo: 'Barbería de autor · Valparaíso\nCortes clásicos · Afeitado a navaja',
+    avatar: IMG('1503951914875-452162b0f3f1', 400),
+    cover:  IMG('1521590832167-7bcbfaa6381f', 1200),
     verified: true,
   },
   blocks: [
-    blk('enlace',    { label: '📅 Reservar mi hora', url: 'https://barberia-elegance.web.app/agenda', featured: true }),
-    blk('whatsapp',  { label: 'Escríbenos por WhatsApp', prefijo: '56', telefono: '912345678', mensaje: 'Hola Studio Onze, quiero reservar un corte ✂️' }),
-    blk('enlace',    { label: '✂️ Servicios y precios', url: 'https://barberia-elegance.web.app/servicios', layoutSize: 'half' }),
-    blk('enlace',    { label: '📍 Cómo llegar', url: 'https://maps.google.com/?q=Barberia+Valparaiso', layoutSize: 'half' }),
+    // 1. CTA hero — la única acción "grande" para no diluir el foco.
+    blk('enlace',    { label: '📅 Reservar mi hora', url: 'https://barberia-elegance.web.app/agenda', featured: true, layoutSize: 'large' }),
+    // 2. Doble fila: WhatsApp + servicios (acciones inmediatas).
+    blk('whatsapp',  { label: 'WhatsApp directo', prefijo: '56', telefono: '912345678', mensaje: 'Hola Studio Onze, quiero reservar un corte ✂️', layoutSize: 'half' }),
+    blk('enlace',    { label: '✂️ Servicios & precios', url: 'https://barberia-elegance.web.app/servicios', layoutSize: 'half' }),
+    // 3. Lookbook visual — credibilidad antes de pedir contacto.
+    blk('imagen',    { img: IMG('1605497788044-5a32c7078486', 800), url: 'https://instagram.com/studio.onze', layoutSize: 'large' }),
+    // 4. Mini-grid de descubrimiento.
+    blk('enlace',    { label: '💈 Lookbook', url: 'https://instagram.com/studio.onze', layoutSize: 'half' }),
+    blk('enlace',    { label: '📍 Cómo llegar', url: 'https://maps.google.com/?q=Pedro+Montt+1820+Valparaiso', layoutSize: 'half' }),
+    // 5. Información ambiente (sin link, formato editorial).
     blk('texto',     { texto: 'Lun a Sáb · 10:00 – 20:00\nAv. Pedro Montt 1820, Valparaíso' }),
     blk('separador', {}),
-    blk('social',    { label: 'Síguenos', socials: [
+    // 6. Captura de leads.
+    blk('newsletter',{ label: 'Entérate de aperturas y promos', subtitulo: 'Te avisamos cuando se liberan horarios premium · sin spam', btnText: 'Quiero saber' }),
+    // 7. Redes — al final, icónicas.
+    blk('social',    { socials: [
       { red: 'instagram', valor: 'studio.onze' },
       { red: 'tiktok',    valor: 'studio.onze' },
       { red: 'whatsapp',  valor: '56912345678' },
     ] }),
   ],
   theme: theme({
-    preset: 'forest', shape: 'pill', fill: 'solid', font: 'montserrat', btnAnim: 'float',
-    bg: { mode: 'animated', fx: 'aurora', c1: '#1f3d12', c2: '#5a8f2c', angle: 165 },
-    text: { titleSize: 'l', weight: 'black', spacing: 'tight' },
+    preset: 'forest', shape: 'rounded', fill: 'solid', font: 'playfair', btnAnim: 'none',
+    bg: { mode: 'animated', fx: 'aurora', c1: '#0f1e07', c2: '#3f7a1f', angle: 165 },
+    avatarShape: 'rounded', avatarRing: '#0f1e07',
+    text: { titleSize: 'l', weight: 'bold', spacing: 'tight' },
   }),
   marketing: EMPTY_MARKETING,
-  seo: { title: 'Studio Onze · Barbería en Valparaíso', description: 'Reserva tu corte en Studio Onze. Servicios, precios y ubicación en un solo link.' },
+  seo: {
+    title: 'Studio Onze · Barbería de autor en Valparaíso',
+    description: 'Reserva tu corte en Studio Onze: barbería clásica con afeitado a navaja en Pedro Montt 1820. Servicios, precios y ubicación en un solo link.',
+  },
 };
 
-/* ────────────────────────────────────────────────────────────────
- * DEMO 2 — Cafetería "Aurora Café"
- * ──────────────────────────────────────────────────────────────── */
+/* ════════════════════════════════════════════════════════════════
+ * DEMO 2 — Cafetería de especialidad "Aurora Café"
+ * Vibe: calidez sunset · brunch dominical · comunidad de clientes.
+ * Estructura: descubrir → consumir → fidelizar (tip + newsletter).
+ * ════════════════════════════════════════════════════════════════ */
 const auroraCafe = {
   username: 'aurora-cafe',
   perfil: {
     titulo: 'Aurora Café',
-    subtitulo: 'Café de especialidad & brunch ☕ · Providencia',
-    avatar: IMG('1495474472287-4d71bcdd2085'),
-    cover: IMG('1559925393-8be0ec4767c8', 800),
+    subtitulo: 'Café de especialidad & brunch ☕\nProvidencia · Santiago',
+    avatar: IMG('1495474472287-4d71bcdd2085', 400),
+    cover:  IMG('1559925393-8be0ec4767c8',    1200),
     verified: false,
   },
   blocks: [
-    blk('enlace',     { label: '🍽️ Ver nuestra carta', url: 'https://aurora-cafe.menu', featured: true }),
-    blk('enlace',     { label: '🛵 Pedir delivery', url: 'https://www.pedidosya.cl', layoutSize: 'half' }),
-    blk('whatsapp',   { label: 'Reservar mesa', prefijo: '56', telefono: '987654321', mensaje: 'Hola Aurora ☕ quiero reservar una mesa', layoutSize: 'half' }),
-    blk('enlace',     { label: '📍 Estamos aquí', url: 'https://maps.google.com/?q=Cafe+Providencia+Santiago' }),
-    blk('imagen',     { img: IMG('1554118811-1e0d58224f24', 600), url: 'https://aurora-cafe.menu', label: '' }),
-    blk('newsletter', { label: 'Únete al club Aurora', subtitulo: 'Recibe un 10% de descuento en tu próxima visita ✨', btnText: 'Quiero mi descuento' }),
-    blk('social',     { label: '', socials: [
+    // 1. CTA hero — reservar mesa es el dolor #1.
+    blk('whatsapp',  { label: '🍽️ Reservar mesa', prefijo: '56', telefono: '987654321', mensaje: 'Hola Aurora ☕ quiero reservar mesa para…', featured: true, layoutSize: 'large' }),
+    // 2. Menú + delivery side-by-side (decisiones rápidas).
+    blk('enlace',    { label: '📋 Carta digital', url: 'https://aurora-cafe.menu', layoutSize: 'half' }),
+    blk('enlace',    { label: '🛵 Delivery', url: 'https://www.pedidosya.cl', layoutSize: 'half' }),
+    // 3. Hero visual — apetito antes de fidelizar.
+    blk('imagen',    { img: IMG('1554118811-1e0d58224f24', 800), url: 'https://aurora-cafe.menu', layoutSize: 'large' }),
+    // 4. Texto editorial.
+    blk('texto',     { texto: 'Granos tostados en casa · Brunch todos los domingos\nLun a Vie 8–20 · Sáb-Dom 9–22' }),
+    // 5. Doble mini-acción: ubicación + agenda eventos.
+    blk('enlace',    { label: '📍 Cómo llegar', url: 'https://maps.google.com/?q=Cafe+Providencia+Santiago', layoutSize: 'half' }),
+    blk('enlace',    { label: '🎵 Catas y eventos', url: 'https://aurora-cafe.menu/eventos', layoutSize: 'half' }),
+    blk('separador', {}),
+    // 6. Tip jar — propinas digitales para el equipo.
+    blk('tip',       { label: '💛 Apoya a nuestro equipo', subtitulo: 'Tu propina va directa al barista que te atendió', amounts: [1000, 2000, 5000], currency: 'CLP' }),
+    // 7. Club Aurora — newsletter con incentivo claro.
+    blk('newsletter',{ label: 'Únete al Club Aurora', subtitulo: '10 % de descuento en tu próxima visita ✨ + acceso a catas privadas', btnText: 'Quiero mi descuento' }),
+    // 8. Redes.
+    blk('social',    { socials: [
       { red: 'instagram', valor: 'aurora.cafe' },
       { red: 'facebook',  valor: 'auroracafecl' },
+      { red: 'tiktok',    valor: 'aurora.cafe' },
     ] }),
   ],
   theme: theme({
     preset: 'sunset', shape: 'rounded', fill: 'solid', font: 'poppins', btnAnim: 'none',
-    bg: { mode: 'animated', fx: 'aurora', c1: '#ff8a3d', c2: '#d6249f', angle: 160 },
+    bg: { mode: 'animated', fx: 'grain', c1: '#ff8a3d', c2: '#d6249f', angle: 160 },
+    avatarShape: 'circle', avatarRing: 'rgba(255,255,255,.7)',
     text: { titleSize: 'l', weight: 'black' },
   }),
   marketing: EMPTY_MARKETING,
-  seo: { title: 'Aurora Café · Especialidad en Providencia', description: 'Carta, delivery, reservas y ubicación de Aurora Café en un solo enlace.' },
+  seo: {
+    title: 'Aurora Café · Café de especialidad en Providencia',
+    description: 'Carta digital, reservas, delivery, eventos y Club Aurora con 10 % de descuento — todo de Aurora Café en un solo enlace.',
+  },
 };
 
-/* ────────────────────────────────────────────────────────────────
- * DEMO 3 — DJ / Creador "DJ Lunar"
- * ──────────────────────────────────────────────────────────────── */
+/* ════════════════════════════════════════════════════════════════
+ * DEMO 3 — Productor / DJ "DJ Lunar"
+ * Vibe: galáctico, neón violeta, set en vivo y monetización
+ * directa (samples, merch, propinas). Bento denso y rítmico.
+ * Fondo: nebulosa Petrova (Project Hail Mary) — wallpaper firma.
+ * ════════════════════════════════════════════════════════════════ */
 const djLunar = {
   username: 'dj-lunar',
   perfil: {
     titulo: 'DJ Lunar',
-    subtitulo: 'Producer & DJ · House / Melodic Techno 🌙',
-    avatar: IMG('1571330735066-03aaa9429d89'),
-    cover: IMG('1470225620780-dba8ba36b745', 800),
+    subtitulo: 'Producer & DJ 🌙\nHouse · Melodic Techno · Live sets',
+    avatar: IMG('1571330735066-03aaa9429d89', 400),
+    cover:  IMG('1470225620780-dba8ba36b745', 1200),
     verified: true,
   },
   blocks: [
-    blk('embed',      { url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ', label: 'Último set' }),
-    blk('enlace',     { label: '🎧 Escúchame en Spotify', url: 'https://open.spotify.com', featured: true }),
-    blk('enlace',     { label: '🎟️ Próximas fechas', url: 'https://www.passline.com', layoutSize: 'half' }),
-    blk('enlace',     { label: '🛒 Merch oficial', url: 'https://dj-lunar.store', layoutSize: 'half' }),
-    blk('paywall',    { label: '🔥 Pack de samples exclusivos', subtitulo: '40 loops + 12 presets de Serum. Acceso inmediato.', price: 9990, currency: 'CLP', url: '', hiddenUrl: 'https://drive.google.com/demo-pack' }),
-    blk('tip',        { label: 'Invítame un trago', subtitulo: 'Tu apoyo financia el próximo EP 🍸', amounts: [3000, 5000, 10000], currency: 'CLP' }),
-    blk('newsletter', { label: 'Entérate de cada estreno', subtitulo: 'Sin spam. Solo música nueva y fechas.', btnText: 'Avísenme' }),
-    blk('social',     { label: '', socials: [
+    // 1. Embed YouTube — autoplay del último set en lugar 1.
+    blk('embed',     { url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' }),
+    // 2. Spotify embed — playlist oficial (el embed acepta open.spotify.com).
+    blk('embed',     { url: 'https://open.spotify.com/playlist/37i9dQZF1DX4dyzvuaRJ0n' }),
+    // 3. CTA hero — próximas fechas (lo que más buscan los fans).
+    blk('enlace',    { label: '🎟️ Próximas fechas', url: 'https://www.passline.com', featured: true, layoutSize: 'large' }),
+    // 4. Mini-grid: merch + Spotify directo.
+    blk('enlace',    { label: '🛒 Merch oficial', url: 'https://dj-lunar.store', layoutSize: 'half' }),
+    blk('enlace',    { label: '🎧 Spotify', url: 'https://open.spotify.com', layoutSize: 'half' }),
+    // 5. Lookbook en vivo.
+    blk('imagen',    { img: IMG('1493676304819-0d7a8d026dcf', 800), url: 'https://instagram.com/dj.lunar', layoutSize: 'large' }),
+    blk('separador', {}),
+    // 6. Monetización pro: paywall samples + tip jar (lado a lado conceptual).
+    blk('paywall',   {
+      label: '🔥 Pack de samples exclusivos',
+      subtitulo: '40 loops originales + 12 presets de Serum · acceso inmediato',
+      price: 9990, currency: 'CLP', url: '',
+      hiddenUrl: 'https://drive.google.com/demo-pack',
+    }),
+    blk('tip',       { label: '🍸 Invítame un trago', subtitulo: 'Tu apoyo financia el próximo EP', amounts: [3000, 5000, 10000], currency: 'CLP' }),
+    // 7. Lista de espera del próximo lanzamiento.
+    blk('newsletter',{ label: 'Sé el primero en escucharlo', subtitulo: 'Te aviso cuando suba el próximo track. Sin spam, solo música nueva.', btnText: 'Avísame' }),
+    // 8. Redes.
+    blk('social',    { socials: [
       { red: 'instagram', valor: 'dj.lunar' },
       { red: 'tiktok',    valor: 'dj.lunar' },
       { red: 'youtube',   valor: 'djlunar' },
@@ -151,11 +212,16 @@ const djLunar = {
   ],
   theme: theme({
     preset: 'night', shape: 'pill', fill: 'solid', font: 'montserrat', btnAnim: 'pulse',
-    bg: { mode: 'animated', fx: 'fluid', c1: '#7c3aed', c2: '#1e1b4b', angle: 150 },
+    // Wallpaper Petrova (PHM) — el más cinematográfico de la galería.
+    bg: { mode: 'image', image: BG('espacio-hail-mary-nebula') },
+    avatarShape: 'circle', avatarRing: '#7c3aed',
     text: { titleSize: 'l', weight: 'black', spacing: 'wide', caps: 'upper' },
   }),
   marketing: EMPTY_MARKETING,
-  seo: { title: 'DJ Lunar · House & Melodic Techno', description: 'Sets, fechas, merch y packs de samples de DJ Lunar en un solo link.' },
+  seo: {
+    title: 'DJ Lunar · House & Melodic Techno',
+    description: 'Sets en vivo, próximas fechas, merch y pack de samples exclusivos de DJ Lunar — en un solo link.',
+  },
 };
 
 const DEMOS = [studioOnze, auroraCafe, djLunar];
