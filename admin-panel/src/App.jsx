@@ -52,6 +52,7 @@ import VIPDashboard        from './views/VIPDashboard';
 import BillingGate         from './components/BillingGate';
 import ConfirmHost         from './components/ui/ConfirmHost';
 import BiooAnnouncement     from './components/BiooAnnouncement';
+import DailyWelcomePanel    from './components/DailyWelcomePanel';
 
 function TenantGate({ children }) {
   const { suspended } = useTenant();
@@ -86,6 +87,7 @@ function ProtectedApp() {
       <Route path="/*" element={
         <AdminLayout>
           <BiooAnnouncement />
+          <DailyWelcomePanel />
           <Routes>
             <Route index                  element={<Navigate to={defaultRoute} replace />} />
             <Route path="inicio"          element={<Inicio />} />
