@@ -610,6 +610,8 @@
       var _blur = document.getElementById('bgPhotoBlur'), _frame = document.getElementById('bgPhotoFrame');
       if (_blur) _blur.style.display='none';
       if (_frame) _frame.style.display='none';
+      var _imgLayer = document.getElementById('bgImgLayer');
+      if (_imgLayer) _imgLayer.style.display='none';
       document.documentElement.style.background='';
       // Motor de fondos premium (bgfx): aurora/fluid/grain/gasgiant/grid/dots/topo
       var _fxk = bgFxKind(t), _bgfx = document.getElementById('bgfx');
@@ -635,27 +637,25 @@
         }
       } else {
         if (_bgfx) _bgfx.style.display='none';
-        if (_bg.mode === 'image' && _bg.image && _blur && _frame){
-          // Modo imagen: NO seteamos body.background con cover, porque el body
-          // crece con el contenido y `cover` termina haciendo un zoom enorme
-          // a la imagen en páginas con muchos bloques. En su lugar usamos los
-          // dos elementos position:fixed que ya existen en el HTML:
-          //   • bg-photo-blur  → fondo difuminado a pantalla completa (lados PC).
-          //   • bg-photo-frame → imagen nítida centrada (max-width:560px).
-          // Así la imagen se ve completa en mobile y elegante en desktop,
-          // sin depender de la altura real del body.
-          var _imgUrl = 'url("' + _bg.image + '")';
-          _blur.style.backgroundImage  = _imgUrl;
-          _frame.style.backgroundImage = _imgUrl;
-          _blur.style.display  = 'block';
-          _frame.style.display = 'block';
-          // bg-photo-blur y bg-photo-frame tienen z-index: -2/-1. Un body
-          // OPACO los tapa (CSS pinta el bg del body encima de descendientes
-          // con z<0). Body queda transparente; el fallback oscuro va en html
-          // para que no se vea verde lima si hay algún gap visual.
-          document.documentElement.style.background = '#0b0d12';
-          document.body.style.background = 'transparent';
+        if (_bg.mode === 'image' && _bg.image){
+          // Modo imagen: usamos un <div> fixed DEDICADO en vez de
+          // body.background (que se estira con el contenido y zoom-ea la
+          // imagen) o los bg-photo-blur/frame del HTML (z-index negativo
+          // que el body opaco tapa). El div queda en z-index:0 — encima
+          // del background del body, detrás del contenido (.wrap z:1).
+          var imgBg = document.getElementById('bgImgLayer');
+          if (!imgBg){
+            imgBg = document.createElement('div');
+            imgBg.id = 'bgImgLayer';
+            imgBg.style.cssText = 'position:fixed;inset:0;z-index:0;background-size:cover;background-position:center;background-repeat:no-repeat;pointer-events:none;background-color:#0b0d12;';
+            document.body.appendChild(imgBg);
+          }
+          imgBg.style.backgroundImage = 'url("' + _bg.image + '")';
+          imgBg.style.display = 'block';
+          document.body.style.background = '#0b0d12';
         } else {
+          var prevBg = document.getElementById('bgImgLayer');
+          if (prevBg) prevBg.style.display = 'none';
           document.body.style.background = bgCss(t);
         }
         document.body.style.backgroundSize=''; document.body.style.animation='';
