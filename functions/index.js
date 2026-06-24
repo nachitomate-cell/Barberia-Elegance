@@ -872,3 +872,10 @@ exports.notificarNuevaBioo = biooNuevoSignup.notificarNuevaBioo;
 // ─────────────────────────────────────────────────────────────────
 const biooAdminKpis = require('./bioo-admin-kpis');
 exports.loadAdminKpis = biooAdminKpis.loadAdminKpis;
+
+// ─────────────────────────────────────────────────────────────────
+//  BIOO — bootstrap admin (HTTP gated por BIOO_PROVISION_SECRET).
+//  Setea bios/{u}.isAdmin. Reusable por terminal sin tocar consola.
+// ─────────────────────────────────────────────────────────────────
+const biooAdminBootstrap = require('./bioo-admin-bootstrap');
+exports.setBioAdmin = biooAdminBootstrap.setBioAdmin;
