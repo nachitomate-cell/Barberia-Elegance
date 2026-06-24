@@ -649,7 +649,12 @@
           _frame.style.backgroundImage = _imgUrl;
           _blur.style.display  = 'block';
           _frame.style.display = 'block';
-          document.body.style.background = '#000';
+          // bg-photo-blur y bg-photo-frame tienen z-index: -2/-1. Un body
+          // OPACO los tapa (CSS pinta el bg del body encima de descendientes
+          // con z<0). Body queda transparente; el fallback oscuro va en html
+          // para que no se vea verde lima si hay algún gap visual.
+          document.documentElement.style.background = '#0b0d12';
+          document.body.style.background = 'transparent';
         } else {
           document.body.style.background = bgCss(t);
         }
