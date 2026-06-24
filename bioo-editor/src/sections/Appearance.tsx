@@ -1,11 +1,12 @@
 import { useEffect, useState, type ReactNode, type CSSProperties } from 'react';
 import { motion } from 'framer-motion';
-import { Palette, Image as ImageIcon, Square, CircleUserRound, Type, CaseSensitive } from 'lucide-react';
+import { Palette, Image as ImageIcon, Square, CircleUserRound, Type, CaseSensitive, Sparkles, CheckCircle2, Loader2 } from 'lucide-react';
 import { useEditor } from '../store';
 import ImagePicker from '../components/ImagePicker';
 import { Card, labelCls } from '../ui';
 import { THEMES, FONTS, loadFont } from '../lib/theme';
 import { BG_GALLERY, BG_CATEGORIES, isGalleryUrl, type BgCategory } from '../lib/bgGallery';
+import { useProState, startPlatformCheckout, PLATFORM_SKUS, formatCLP } from '../lib/platform';
 import type {
   ThemePreset, ButtonShape, ButtonFill, FontKey, BgMode, PatternKind, FxKind, AvatarShape,
   BtnAnim, SizeKey, Weight, Caps, Spacing,
@@ -225,7 +226,68 @@ export default function Appearance(): JSX.Element {
             onChange={(spacing) => dispatch({ type: 'patchText', patch: { spacing } })} />
         </div>
       </Card>
+
+      {/* ── bioo Plus ── */}
+      <RemoveWatermarkCard />
     </div>
+  );
+}
+
+function RemoveWatermarkCard(): JSX.Element {
+  const { removeWatermark, loading } = useProState();
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const sku = PLATFORM_SKUS.removeWatermark;
+
+  async function buy(): Promise<void> {
+    setBusy(true); setErr(null);
+    try {
+      const { url } = await startPlatformCheckout('removeWatermark');
+      window.location.href = url;
+    } catch (e) {
+      setBusy(false);
+      setErr(e instanceof Error ? e.message : 'No se pudo iniciar el pago. Intenta de nuevo.');
+    }
+  }
+
+  return (
+    <Card icon={Sparkles} title="bioo Plus">
+      {loading ? (
+        <div className="flex items-center gap-2 text-sm text-neutral-500">
+          <Loader2 size={16} className="animate-spin" /> Verificando…
+        </div>
+      ) : removeWatermark ? (
+        <div className="flex items-start gap-3 rounded-2xl border border-[#92c83a]/40 bg-[#92c83a]/10 p-4">
+          <CheckCircle2 size={20} className="mt-0.5 shrink-0 text-[#2c5a17]" />
+          <div>
+            <p className="text-sm font-bold text-[#15240b]">Marca de agua oculta</p>
+            <p className="mt-1 text-xs text-neutral-600">Tu página ya se muestra sin el footer "Creado gratis en bioo.cl".</p>
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          <div className="rounded-2xl border border-neutral-200 p-4">
+            <div className="flex items-start gap-3">
+              <Sparkles size={20} className="mt-0.5 shrink-0 text-[#2c5a17]" />
+              <div className="flex-1">
+                <p className="text-sm font-bold text-[#15240b]">Quitar marca de agua</p>
+                <p className="mt-1 text-xs text-neutral-600">Oculta el footer "⚡ Creado gratis en bioo.cl" en tu página pública. Pago único — para siempre.</p>
+              </div>
+              <span className="shrink-0 text-base font-black text-[#15240b]">{formatCLP(sku.price)}</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={buy}
+            disabled={busy}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#009ee3] px-5 py-3 text-sm font-bold text-white shadow-sm transition-transform active:scale-95 disabled:opacity-70"
+          >
+            {busy ? <><Loader2 size={16} className="animate-spin" /> Redirigiendo…</> : <>Pagar con Mercado Pago</>}
+          </button>
+          {err && <p className="text-xs text-rose-600">{err}</p>}
+        </div>
+      )}
+    </Card>
   );
 }
 

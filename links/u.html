@@ -755,7 +755,12 @@
         html += '<p class="sub fade" style="margin-top:10px;animation-delay:.14s;color:'+p.sub+';">Aún no hay enlaces aquí.</p>';
       }
       wrap.innerHTML = html;
-      document.getElementById('foot').style.display='block';
+      // El footer "⚡ Creado gratis en bioo.cl" se oculta para creadores que
+      // compraron "Quitar marca de agua" — flag espejada por la Cloud Function
+      // mpBioPlatformWebhook (ver functions/payments-mp-platform.js).
+      if (!data || data.proRemoveWatermark !== true) {
+        document.getElementById('foot').style.display='block';
+      }
 
       // Conteo de clics por enlace (best-effort; las reglas permiten incrementar `clicks`).
       Array.prototype.forEach.call(wrap.querySelectorAll('a.btn[data-id]'), function(a){
