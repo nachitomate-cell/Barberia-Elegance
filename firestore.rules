@@ -313,6 +313,15 @@ service cloud.firestore {
     // ── /bio_users — mapeo uid → username (privado del dueño) ──────
     match /bio_users/{userId} {
       allow read, write: if autenticado() && uid() == userId;
+
+      // platform_orders — historial de cobros que SynapTech le hizo al creador
+      // (productos premium tipo "Quitar marca de agua"). El creador puede leer
+      // sus órdenes; toda escritura va por Admin SDK (Cloud Functions) para
+      // que el cliente no pueda autotorgarse grants.
+      match /platform_orders/{orderId} {
+        allow read:  if autenticado() && uid() == userId;
+        allow write: if false;
+      }
     }
 
     // ── /bio_mp — tokens OAuth de Mercado Pago del creador (marketplace) ──

@@ -845,3 +845,13 @@ const paymentsMpTenant = require('./payments-mp-tenant');
 exports.mpTenantConnect       = paymentsMpTenant.mpTenantConnect;
 exports.mpTenantOAuthCallback = paymentsMpTenant.mpTenantOAuthCallback;
 exports.mpTenantDisconnect    = paymentsMpTenant.mpTenantDisconnect;
+
+// ─────────────────────────────────────────────────────────────────
+//  BIOO — cobros SINGLE-SELLER de plataforma (SynapTech cobra al
+//  creador). Producto inicial: "Quitar marca de agua" $4.990 CLP.
+//  ver payments-mp-platform.js — usa MP_PLATFORM_ACCESS_TOKEN.
+// ─────────────────────────────────────────────────────────────────
+const paymentsMpPlatform = require('./payments-mp-platform');
+exports.mpBioPlatformCheckout = paymentsMpPlatform.mpBioPlatformCheckout;
+exports.mpBioPlatformWebhook  = paymentsMpPlatform.mpBioPlatformWebhook;
+exports.mpBioPlatformVerify   = paymentsMpPlatform.mpBioPlatformVerify;
