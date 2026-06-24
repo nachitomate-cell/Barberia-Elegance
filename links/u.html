@@ -124,6 +124,10 @@
   @keyframes fxC{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(8%,-16%) scale(1.15)}}
   .bgfx-grain{background:linear-gradient(135deg,var(--c1),var(--c2));}
   .bgfx-grain::after{content:"";position:absolute;inset:0;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");opacity:.16;mix-blend-mode:overlay;}
+  /* Vórtice — fallback en caso de que WebGL no esté disponible.
+     Cuando el shader se monta, el canvas absoluto lo tapa y este gradiente
+     queda invisible debajo. Paleta Erid HARDCODED (no toma --c1/--c2). */
+  .bgfx-gasgiant{background:radial-gradient(ellipse at 30% 30%,#4ee61a,transparent 55%),radial-gradient(ellipse at 70% 70%,#e66600,transparent 55%),#053d0d;}
   .bgfx-grid{background-color:var(--base,#15240b);background-image:linear-gradient(var(--line,rgba(255,255,255,.14)) 1px,transparent 1px),linear-gradient(90deg,var(--line,rgba(255,255,255,.14)) 1px,transparent 1px);background-size:26px 26px;animation:fxScroll 22s linear infinite;}
   .bgfx-dots{background-color:var(--base,#15240b);background-image:radial-gradient(var(--line,rgba(255,255,255,.22)) 1.6px,transparent 1.8px);background-size:22px 22px;animation:fxScroll 28s linear infinite;}
   .bgfx-diag{background-color:var(--base,#15240b);background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.10) 0 10px,transparent 10px 20px);}
@@ -278,6 +282,116 @@
   (function(){
     'use strict';
     function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];}); }
+
+    // ── Vórtice (Gas Giant) — controlador WebGL del shader Erid ──
+    //   Port del shader original de Project Hail Mary. Paleta hardcoded
+    //   (verde tóxico + ámbar amoníaco) → no recibe colores del tema.
+    //   mount() es idempotente (auto-unmount primero), seguro de llamar
+    //   en cada re-render del fondo sin acumular contextos GL ni RAFs.
+    var gasGiantFx = (function(){
+      var rafId = null, gl = null, canvas = null, container = null, program = null;
+      var resolutionLoc = null, timeLoc = null;
+      var startTime = 0;
+
+      var VS_SRC = 'attribute vec2 position;void main(){gl_Position=vec4(position,0.0,1.0);}';
+      // Shader Erid — port LITERAL del fragment shader de Project Hail Mary
+      // (atmósfera del planeta Erid). FBM + domain warping de 2 niveles
+      // con paleta hardcoded de identidad (verde tóxico + ámbar amoníaco
+      // + destellos verde neón). Esta paleta NO se adapta al tema: es la
+      // firma visual del módulo Vórtice.
+      var FS_SRC = [
+        'precision highp float;',
+        'uniform vec2 u_resolution;',
+        'uniform float u_time;',
+        'float random(vec2 st){return fract(sin(dot(st.xy,vec2(12.9898,78.233)))*43758.5453123);}',
+        'float noise(vec2 st){vec2 i=floor(st);vec2 f=fract(st);vec2 u=f*f*(3.0-2.0*f);return mix(mix(random(i+vec2(0.0,0.0)),random(i+vec2(1.0,0.0)),u.x),mix(random(i+vec2(0.0,1.0)),random(i+vec2(1.0,1.0)),u.x),u.y);}',
+        'float fbm(vec2 st){float value=0.0;float amplitude=0.5;vec2 shift=vec2(100.0);mat2 rot=mat2(cos(0.5),sin(0.5),-sin(0.5),cos(0.5));for(int i=0;i<6;++i){value+=amplitude*noise(st);st=rot*st*2.0+shift;amplitude*=0.5;}return value;}',
+        'void main(){',
+        '  vec2 st=gl_FragCoord.xy/u_resolution.xy;',
+        '  st.x*=u_resolution.x/u_resolution.y;',
+        '  vec3 color=vec3(0.0);',
+        // Domain warping nivel 1
+        '  vec2 q=vec2(0.0);',
+        '  q.x=fbm(st+0.05*u_time);',
+        '  q.y=fbm(st+vec2(1.0));',
+        // Domain warping nivel 2 — alimenta q dentro de r
+        '  vec2 r=vec2(0.0);',
+        '  r.x=fbm(st+1.0*q+vec2(1.7,9.2)+0.15*u_time);',
+        '  r.y=fbm(st+1.0*q+vec2(8.3,2.8)+0.126*u_time);',
+        '  float f=fbm(st+r);',
+        // Paleta Erid HARDCODED (Project Hail Mary).
+        '  vec3 baseDark=vec3(0.02,0.15,0.05);',
+        '  vec3 toxicGreen=vec3(0.3,0.9,0.1);',
+        '  vec3 ammoniaOrange=vec3(0.9,0.4,0.0);',
+        '  vec3 brightHighlight=vec3(0.7,1.0,0.3);',
+        '  color=mix(baseDark,toxicGreen,clamp((f*f)*4.0,0.0,1.0));',
+        '  color=mix(color,ammoniaOrange,clamp(length(q)*0.5-0.2,0.0,1.0));',
+        '  color=mix(color,brightHighlight,clamp(length(r.x)*0.8,0.0,1.0));',
+        '  vec3 finalColor=(f*f*f+0.6*f*f+0.5*f)*color;',
+        '  gl_FragColor=vec4(finalColor,1.0);',
+        '}'
+      ].join('\n');
+
+      function compile(g,type,src){
+        var s=g.createShader(type); g.shaderSource(s,src); g.compileShader(s);
+        if(!g.getShaderParameter(s,g.COMPILE_STATUS)){ console.error(g.getShaderInfoLog(s)); g.deleteShader(s); return null; }
+        return s;
+      }
+      function resize(){
+        if(!canvas||!gl) return;
+        var dpr=Math.min(window.devicePixelRatio||1,1.5);
+        var w=Math.floor(window.innerWidth*dpr), h=Math.floor(window.innerHeight*dpr);
+        if(canvas.width!==w||canvas.height!==h){ canvas.width=w; canvas.height=h; gl.viewport(0,0,w,h); }
+      }
+      function render(){
+        if(!gl) return;
+        var t=(Date.now()-startTime)/1000;
+        gl.uniform2f(resolutionLoc,canvas.width,canvas.height);
+        gl.uniform1f(timeLoc,t);
+        gl.drawArrays(gl.TRIANGLES,0,6);
+        rafId=requestAnimationFrame(render);
+      }
+      function unmount(){
+        if(rafId){ cancelAnimationFrame(rafId); rafId=null; }
+        window.removeEventListener('resize',resize);
+        if(gl&&program){ gl.deleteProgram(program); }
+        program=null;
+        if(canvas&&canvas.parentNode) canvas.parentNode.removeChild(canvas);
+        canvas=null; gl=null; container=null;
+      }
+      function mount(host){
+        unmount();
+        if(!host) return false;
+        container=host;
+        canvas=document.createElement('canvas');
+        canvas.style.cssText='position:absolute;inset:0;width:100%;height:100%;display:block;';
+        container.appendChild(canvas);
+        try { gl=canvas.getContext('webgl')||canvas.getContext('experimental-webgl'); }
+        catch(e){ gl=null; }
+        if(!gl){ unmount(); return false; }
+        var vs=compile(gl,gl.VERTEX_SHADER,VS_SRC);
+        var fs=compile(gl,gl.FRAGMENT_SHADER,FS_SRC);
+        if(!vs||!fs){ unmount(); return false; }
+        program=gl.createProgram();
+        gl.attachShader(program,vs); gl.attachShader(program,fs); gl.linkProgram(program);
+        if(!gl.getProgramParameter(program,gl.LINK_STATUS)){ console.error(gl.getProgramInfoLog(program)); unmount(); return false; }
+        gl.useProgram(program);
+        var buf=gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER,buf);
+        gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),gl.STATIC_DRAW);
+        var posLoc=gl.getAttribLocation(program,'position');
+        gl.enableVertexAttribArray(posLoc);
+        gl.vertexAttribPointer(posLoc,2,gl.FLOAT,false,0,0);
+        resolutionLoc=gl.getUniformLocation(program,'u_resolution');
+        timeLoc=gl.getUniformLocation(program,'u_time');
+        startTime=Date.now();
+        window.addEventListener('resize',resize);
+        resize();
+        render();
+        return true;
+      }
+      return { mount:mount, unmount:unmount };
+    })();
 
     // ── Temas (debe coincidir con editor.html) ──
     var THEMES = {
@@ -486,8 +600,11 @@
       if (_blur) _blur.style.display='none';
       if (_frame) _frame.style.display='none';
       document.documentElement.style.background='';
-      // Motor de fondos premium (bgfx): aurora/fluid/grain/grid/dots/topo
+      // Motor de fondos premium (bgfx): aurora/fluid/grain/gasgiant/grid/dots/topo
       var _fxk = bgFxKind(t), _bgfx = document.getElementById('bgfx');
+      // Desmontar siempre el shader anterior antes de tocar el contenedor.
+      // Es seguro llamarlo aunque no haya nada montado.
+      gasGiantFx.unmount();
       if (_fxk && _bgfx){
         var _blobs = (_fxk==='aurora'||_fxk==='fluid');
         var _baseC = _bg.color || (THEMES[t.preset]||{}).bg || '#15240b';
@@ -497,15 +614,21 @@
         _bgfx.style.setProperty('--base', _baseC);
         _bgfx.innerHTML = _blobs ? '<i class="blob"></i><i class="blob"></i><i class="blob"></i>' : '';
         _bgfx.style.display = 'block';
-        document.body.style.background = _blobs ? '#0b0d12' : _baseC;
+        var _dark = _blobs || _fxk==='gasgiant';
+        document.body.style.background = _dark ? '#0b0d12' : _baseC;
         document.body.style.backgroundSize=''; document.body.style.animation='';
+        if (_fxk === 'gasgiant'){
+          // Inyecta el canvas WebGL sobre el gradiente fallback de .bgfx-gasgiant.
+          // El shader Erid tiene su propia paleta hardcoded — no recibe c1/c2.
+          gasGiantFx.mount(_bgfx);
+        }
       } else {
         if (_bgfx) _bgfx.style.display='none';
         document.body.style.background = bgCss(t);
         document.body.style.backgroundSize=''; document.body.style.animation='';
       }
       // Fondos oscuros/vibrantes → texto claro (si el usuario no fijó colores propios).
-      if (_fxk==='aurora' || _fxk==='fluid' || _fxk==='grain'){
+      if (_fxk==='aurora' || _fxk==='fluid' || _fxk==='grain' || _fxk==='gasgiant'){
         titleColor = tx.titleColor || '#ffffff';
         subColor   = tx.subColor   || 'rgba(255,255,255,.82)';
       }
@@ -544,7 +667,8 @@
           if (b.tipo==='texto'){ html += '<div class="u-text fade b-full" style="animation-delay:'+(0.1+i*0.04)+'s;color:'+subColor+';">'+esc((b.texto||'').trim())+'</div>'; return; }
           if (b.tipo==='imagen'){ var im='<img class="u-img" src="'+esc(b.img)+'" alt="">'; var iu=resolveUrl(b.url); html += '<'+(iu?'a':'div')+' class="fade u-imgwrap '+szCls+'" style="animation-delay:'+(0.1+i*0.04)+'s;"'+(iu?(' href="'+esc(iu)+'" target="_blank" rel="noopener"'):'')+'>'+im+'</'+(iu?'a':'div')+'>'; return; }
           if (b.tipo==='embed'){ var eh=embedHtml(b.url); if(eh) html += '<div class="fade b-full" style="animation-delay:'+(0.1+i*0.04)+'s;width:100%;">'+eh+'</div>'; return; }
-          if (b.tipo==='social'){ var icS=t.iconStyle==='original'?'-orig':''; var sr=(b.socials||[]).map(function(s){ var su=socUrl(s); return su?'<a class="u-soc-i" href="'+esc(su)+'" target="_blank" rel="noopener"><img src="/ic-'+(SOCRED[s.red]?s.red:'enlace')+icS+'.png" alt=""></a>':''; }).join(''); if(sr) html += '<div class="u-soc fade b-full" style="animation-delay:'+(0.1+i*0.04)+'s;">'+sr+'</div>'; return; }
+          // Íconos: default 'original' (logos de marca). Solo si iconStyle==='green' usa los verdes de bioo.
+          if (b.tipo==='social'){ var icS=t.iconStyle==='green'?'':'-orig'; var sr=(b.socials||[]).map(function(s){ var su=socUrl(s); return su?'<a class="u-soc-i" href="'+esc(su)+'" target="_blank" rel="noopener"><img src="/ic-'+(SOCRED[s.red]?s.red:'enlace')+icS+'.png" alt=""></a>':''; }).join(''); if(sr) html += '<div class="u-soc fade b-full" style="animation-delay:'+(0.1+i*0.04)+'s;">'+sr+'</div>'; return; }
           if (b.tipo==='newsletter'){
             var nTit = esc((b.label||'Únete a mi Newsletter').trim());
             var nSub = (b.subtitulo||'').trim() ? '<div class="u-news-s">'+esc(b.subtitulo.trim())+'</div>' : '';
@@ -586,7 +710,7 @@
             return;
           }
           var url = resolveUrl(b.url); if (!url) return;
-          var icSuf = t.iconStyle==='original' ? '-orig' : '';
+          var icSuf = t.iconStyle==='green' ? '' : '-orig';
           var icH = (b.tipo && {whatsapp:1,instagram:1,tiktok:1,facebook:1,youtube:1,email:1,telefono:1,enlace:1}[b.tipo]) ? '<img class="btn-ic" src="/ic-'+b.tipo+icSuf+'.png" alt="">' : '';
           if (b.tipo==='enlace' && b.thumb) icH='<img class="btn-thumb" src="'+esc(b.thumb)+'" alt="">';
           var cls = b.featured ? ' feat' : ((t.btnAnim && t.btnAnim!=='none') ? (' anim-'+t.btnAnim) : '');

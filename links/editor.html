@@ -771,7 +771,7 @@
         shape: SHAPES[t.shape] ? t.shape : 'rounded',
         fill: FILLS[t.fill] ? t.fill : 'solid',
         btnAnim: ANIMS[t.btnAnim] ? t.btnAnim : 'none',
-        iconStyle: t.iconStyle==='original' ? 'original' : 'green',
+        iconStyle: t.iconStyle==='green' ? 'green' : 'original',
         avatarShape: t.avatarShape==='rounded' ? 'rounded' : 'circle',
         avatarRing: t.avatarRing || '',
         bg: bgNorm(t.bg),
@@ -813,7 +813,7 @@
 
     var state = { uid:null, email:null, anon:false, username:null, originalUsername:null,
       perfil:{titulo:'',subtitulo:'',avatar:''}, bloques:[],
-      theme:{preset:'lime',shape:'rounded',fill:'solid',btnAnim:'none',iconStyle:'green',avatarShape:'circle',avatarRing:'',bg:{mode:'preset',color:'#92c83a',c1:'#92c83a',c2:'#2c5a17',angle:'165',image:''},text:{font:'system',titleSize:'m',subSize:'m',weight:'bold',caps:'normal',spacing:'normal',titleColor:'',subColor:'',btnColor:''}},
+      theme:{preset:'lime',shape:'rounded',fill:'solid',btnAnim:'none',iconStyle:'original',avatarShape:'circle',avatarRing:'',bg:{mode:'preset',color:'#92c83a',c1:'#92c83a',c2:'#2c5a17',angle:'165',image:''},text:{font:'system',titleSize:'m',subSize:'m',weight:'bold',caps:'normal',spacing:'normal',titleColor:'',subColor:'',btnColor:''}},
       views:0, clicks:{} };
 
     var $ = function(id){ return document.getElementById(id); };
@@ -946,7 +946,7 @@
       var b = (raw && typeof raw === 'object') ? raw : { preset:(typeof raw === 'string' && THEMES[raw]) ? raw : 'lime' };
       var x = b.text || {};
       return {
-        preset: b.preset||'lime', shape: b.shape||'rounded', fill: b.fill||'solid', btnAnim: b.btnAnim||'none', iconStyle: b.iconStyle==='original'?'original':'green', avatarShape: b.avatarShape==='rounded'?'rounded':'circle', avatarRing: b.avatarRing||'', bg: bgNorm(b.bg),
+        preset: b.preset||'lime', shape: b.shape||'rounded', fill: b.fill||'solid', btnAnim: b.btnAnim||'none', iconStyle: b.iconStyle==='green'?'green':'original', avatarShape: b.avatarShape==='rounded'?'rounded':'circle', avatarRing: b.avatarRing||'', bg: bgNorm(b.bg),
         text: { font:x.font||'system', titleSize:x.titleSize||'m', subSize:x.subSize||'m', weight:TWEIGHT[x.weight]?x.weight:'bold', caps:x.caps==='upper'?'upper':'normal', spacing:TSPACE[x.spacing]?x.spacing:'normal', titleColor:x.titleColor||'', subColor:x.subColor||'', btnColor:x.btnColor||'' }
       };
     }
@@ -1489,7 +1489,8 @@
         });
       }
       var isr = $('iconStyleRow'); if (isr){ isr.innerHTML='';
-        [['green','Verde'],['original','Originales']].forEach(function(s){
+        // Default: 'original' (logos de marca). 'green' = los íconos verdes propios de bioo (opt-in).
+        [['original','Originales'],['green','Verdes (bioo)']].forEach(function(s){
           var o=document.createElement('button'); o.type='button'; o.className='opt'+(t.iconStyle===s[0]?' active':''); o.textContent=s[1];
           o.addEventListener('click', function(){ state.theme.iconStyle=s[0]; renderAppearance(); renderPreview(); });
           isr.appendChild(o);
@@ -1678,7 +1679,7 @@
       if (vis.length){
         html += '<div class="pv-blocks">';
         var animCls = (t.btnAnim && t.btnAnim!=='none') ? (' anim-'+t.btnAnim) : '';
-        var icSuf = t.iconStyle==='original' ? '-orig' : '';
+        var icSuf = t.iconStyle==='green' ? '' : '-orig';
         vis.forEach(function(b){
           if (b.tipo==='separador'){ html += '<hr class="pv-sep">'; return; }
           if (b.tipo==='texto'){ html += '<div class="pv-text" style="color:'+titleColor+';">'+escHtml((b.texto||'').trim())+'</div>'; return; }
