@@ -736,11 +736,35 @@ exports.biooOpenBarberoEditor = onCall(
     const barberoUid = String(data.uid || snap.id || '').trim();
     if (!barberoUid) throw new HttpsError('failed-precondition', 'El barbero no tiene cuenta de Auth.');
 
+    // Auto-reparación: bioos creados antes del refactor uid-directo pueden tener
+    // uid:null. Al abrir el editor, conectamos uid + bio_users (idempotente).
+    const handle = data.biooHandle || '';
+    if (handle) {
+      const bioRef = db.collection('bios').doc(handle);
+      const bioSnap = await bioRef.get();
+      if (bioSnap.exists) {
+        const bio = bioSnap.data() || {};
+        if (!bio.uid || bio.uid !== barberoUid) {
+          const now = FieldValue.serverTimestamp();
+          const batch = db.batch();
+          batch.update(bioRef, { uid: barberoUid, updatedAt: now });
+          batch.set(db.collection('bio_users').doc(barberoUid), {
+            username: handle,
+            email: String(data.email || '').trim().toLowerCase(),
+            source: 'gestion-interna-barbero',
+            createdAt: now,
+          }, { merge: true });
+          await batch.commit();
+          logger.info(`[bioo] repaired uid for barbero=${snap.id} handle=${handle}`);
+        }
+      }
+    }
+
     // Custom token firmado con la service account dedicada (sin IAM signBlob).
     const customToken = await signerAuth().createCustomToken(barberoUid);
     const editorUrl = `${BIOO_BASE}/claim?ct=${encodeURIComponent(customToken)}`;
     logger.info(`[bioo] admin SSO editor barbero=${snap.id} uid=${barberoUid} tenant=${tenantId}`);
-    return { editorUrl, handle: data.biooHandle || null };
+    return { editorUrl, handle: handle || null };
   },
 );
 
