@@ -124,6 +124,10 @@
     { "source": "/refiere/:code",   "has": [{ "type": "host", "value": "bioo.cl" }], "destination": "/refiere.html?code=:code" },
     { "source": "/:user",       "has": [{ "type": "host", "value": "bioo.cl" }], "destination": "/links/u.html" },
 
+    { "source": "/",            "has": [{ "type": "host", "value": "empieza.synaptechspa.cl" }], "destination": "/empieza.html" },
+    { "source": "/:path*",      "has": [{ "type": "host", "value": "empieza.synaptechspa.cl" }], "destination": "/empieza.html" },
+    { "source": "/favicon.ico", "has": [{ "type": "host", "value": "empieza.synaptechspa.cl" }], "destination": "/logo.jpg" },
+
     { "source": "/dashboard",              "destination": "/dashboard.html" },
     { "source": "/registro",               "destination": "/registro.html" },
     { "source": "/refiere",                "destination": "/refiere.html" },
