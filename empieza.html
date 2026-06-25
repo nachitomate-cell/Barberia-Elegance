@@ -3,14 +3,13 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-<title>SynapTech · Agenda online + Club de Fidelidad para barberías</title>
-<meta name="theme-color" content="#15240b" />
+<title>SynapTech · Tu agenda + club de fidelidad lista en minutos · 100% automático</title>
+<meta name="theme-color" content="#0c1108" />
 <link rel="icon" href="/logo.jpg" />
-<meta name="description" content="La plataforma todo-en-uno para barberías: agenda online con confirmación automática, club de fidelidad por sellos, reseñas Google y panel de barberos." />
+<meta name="description" content="Activación 100% automática. Llenas un form de 2 minutos, nuestra IA pre-configura tu agenda y club de fidelidad con TU marca, y tienes una demo lista al toque." />
 
-<!-- OG / WhatsApp / IG preview -->
-<meta property="og:title" content="SynapTech — Agenda + Club de Fidelidad" />
-<meta property="og:description" content="Activamos tu barbería en 24 h: agenda online, club por sellos, reseñas Google. Cero papeles, cero WhatsApp manual." />
+<meta property="og:title" content="SynapTech — Activación 100% automática" />
+<meta property="og:description" content="Tu agenda online y club de fidelidad en minutos. Pre-configuramos todo con tu marca y servicios — luego pruebas, después pagas." />
 <meta property="og:image" content="https://empieza.synaptechspa.cl/logo.jpg" />
 <meta property="og:url" content="https://empieza.synaptechspa.cl" />
 <meta property="og:type" content="website" />
@@ -22,207 +21,516 @@
 
 <style>
   :root{
-    --green:#92c83a; --green-d:#2c5a17; --ink:#15240b; --soft:#5b6a4e;
-    --field:#f4f6ee; --line:#e3e8d4; --err:#ffb5a3; --ok:#cef07c;
+    --lime:#cef07c; --green:#92c83a; --green-d:#2c5a17; --ink:#15240b;
+    --bg-1:#0c1108; --bg-2:#101810; --soft:#7c8a6f; --err:#ffb5a3;
   }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
-  html,body{
-    font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
-    background:#0c1108;color:#fff;min-height:100dvh;
-  }
+  html,body{font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#fff;min-height:100dvh;}
   body{
     background:
-      radial-gradient(60% 50% at 50% -10%, rgba(146,200,58,.35), transparent 60%),
-      radial-gradient(80% 60% at 50% 110%, rgba(44,90,23,.55), transparent 70%),
-      #0c1108;
-    min-height:100dvh; display:flex; flex-direction:column;
+      radial-gradient(70% 60% at 50% -10%, rgba(206,240,124,.22), transparent 65%),
+      radial-gradient(60% 50% at 90% 30%, rgba(146,200,58,.12), transparent 70%),
+      radial-gradient(80% 60% at 10% 95%, rgba(44,90,23,.55), transparent 70%),
+      var(--bg-1);
+    min-height:100dvh;display:flex;flex-direction:column;
+    background-attachment:fixed;
   }
-  header{padding:18px 22px;display:flex;align-items:center;justify-content:space-between;}
-  .brand{display:flex;align-items:center;gap:9px;color:#fff;text-decoration:none;font-weight:800;}
-  .brand .logo{display:grid;place-items:center;width:30px;height:30px;border-radius:8px;background:#fff;color:#15240b;font-weight:900;font-size:18px;}
-  .pill{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#0e1208;background:#cef07c;border-radius:999px;padding:6px 12px;}
-  main{flex:1;display:flex;flex-direction:column;align-items:center;padding:8px 20px 40px;}
-  .card{
-    width:100%;max-width:520px;border-radius:28px;
-    background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);
-    backdrop-filter:blur(8px); padding:28px 22px 24px; margin-top:18px;
-    box-shadow:0 30px 80px rgba(0,0,0,.45);
-  }
-  .kicker{
-    font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.22em;
-    color:#cef07c;display:inline-flex;align-items:center;gap:8px;
-  }
-  h1{font-size:32px;font-weight:900;letter-spacing:-1px;line-height:1.04;margin-top:12px;}
-  h1 .accent{
-    background:linear-gradient(90deg,#cef07c,#92c83a);
-    -webkit-background-clip:text;background-clip:text;color:transparent;
-  }
-  .lead{margin-top:12px;font-size:15px;color:#c8d3ba;line-height:1.55;}
-  .perks{margin-top:20px;display:grid;grid-template-columns:1fr;gap:10px;}
-  .perk{display:flex;gap:12px;align-items:flex-start;font-size:14px;color:#dbe6cc;}
-  .perk .ico{
-    width:30px;height:30px;border-radius:9px;background:rgba(146,200,58,.18);
-    color:#cef07c;display:grid;place-items:center;flex:0 0 30px;font-weight:900;font-size:16px;
-  }
-  .perk b{color:#fff;}
 
-  .stats{
-    margin-top:22px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;
-    border-top:1px solid rgba(255,255,255,.08);border-bottom:1px solid rgba(255,255,255,.08);
+  /* ── Nav ── */
+  header{padding:18px 22px;display:flex;align-items:center;justify-content:space-between;}
+  .brand{display:flex;align-items:center;gap:10px;color:#fff;text-decoration:none;font-weight:800;font-size:16px;letter-spacing:-.3px;}
+  .brand .logo{
+    display:grid;place-items:center;width:34px;height:34px;border-radius:10px;
+    background:linear-gradient(135deg,#fff,#cef07c);color:#15240b;font-weight:900;font-size:18px;
+    box-shadow:0 4px 18px rgba(206,240,124,.25);
+  }
+  .badge{
+    display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:800;
+    text-transform:uppercase;letter-spacing:.12em;color:#15240b;
+    background:linear-gradient(180deg,#cef07c,#a3d94a);
+    border-radius:999px;padding:7px 14px;
+    box-shadow:0 8px 24px -8px rgba(206,240,124,.6);
+  }
+  .badge .dot{width:6px;height:6px;border-radius:50%;background:#15240b;animation:pulse 1.4s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.55;transform:scale(.85);}}
+
+  main{flex:1;padding:4px 20px 32px;}
+  .wrap{width:100%;max-width:540px;margin:0 auto;}
+
+  /* ── HERO ── */
+  .hero{padding:8px 4px 8px;}
+  .kicker{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.22em;
+    color:#cef07c;margin-bottom:14px;
+  }
+  .kicker .line{width:24px;height:2px;background:#cef07c;border-radius:99px;}
+  h1{font-size:34px;line-height:1.04;font-weight:900;letter-spacing:-1.2px;}
+  h1 .accent{
+    background:linear-gradient(135deg,#cef07c 0%,#92c83a 50%,#cef07c 100%);
+    background-size:200% 100%;
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    animation:shine 5s linear infinite;
+  }
+  @keyframes shine{0%{background-position:0% 50%;}100%{background-position:-200% 50%;}}
+  .lead{margin-top:14px;font-size:15.5px;line-height:1.55;color:#b9c5ab;}
+  .lead b{color:#fff;}
+
+  /* ── Proceso 3 pasos ── */
+  .pasos{
+    margin-top:26px;display:grid;grid-template-columns:1fr;gap:10px;
+  }
+  .paso{
+    display:flex;gap:14px;align-items:flex-start;
+    background:rgba(255,255,255,.04);
+    border:1px solid rgba(255,255,255,.07);
+    backdrop-filter:blur(6px);
+    border-radius:18px;padding:14px 16px;
+  }
+  .paso .num{
+    width:36px;height:36px;border-radius:10px;
+    background:linear-gradient(135deg,rgba(206,240,124,.2),rgba(146,200,58,.08));
+    border:1px solid rgba(206,240,124,.35);
+    display:grid;place-items:center;
+    color:#cef07c;font-weight:900;font-size:16px;flex:0 0 36px;
+  }
+  .paso .body{flex:1;min-width:0;}
+  .paso .body p:first-child{font-size:14px;font-weight:800;color:#fff;letter-spacing:-.2px;}
+  .paso .body p:last-child{margin-top:2px;font-size:12.5px;color:#94a386;line-height:1.45;}
+  .paso .time{
+    font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;
+    color:#cef07c;background:rgba(206,240,124,.10);
+    border-radius:999px;padding:4px 9px;flex-shrink:0;align-self:flex-start;
+  }
+
+  /* ── Social proof ── */
+  .proof{
+    margin-top:22px;display:flex;justify-content:space-around;
+    border-top:1px solid rgba(255,255,255,.08);
+    border-bottom:1px solid rgba(255,255,255,.08);
     padding:14px 0;
   }
-  .stat{text-align:center;}
-  .stat b{display:block;font-size:22px;font-weight:900;letter-spacing:-.4px;color:#fff;}
-  .stat span{display:block;font-size:11px;color:#a8b69c;text-transform:uppercase;letter-spacing:.1em;margin-top:2px;}
+  .proof .it{text-align:center;}
+  .proof .it b{display:block;font-size:22px;font-weight:900;letter-spacing:-.5px;color:#fff;}
+  .proof .it b .small{font-size:13px;color:#cef07c;font-weight:800;vertical-align:top;}
+  .proof .it span{display:block;font-size:10.5px;color:#7c8a6f;text-transform:uppercase;letter-spacing:.12em;margin-top:3px;}
 
-  form{margin-top:22px;display:flex;flex-direction:column;gap:12px;}
-  label{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:700;color:#a8b69c;text-transform:uppercase;letter-spacing:.08em;}
-  input,select,textarea{
+  /* ── Form card ── */
+  .card{
+    width:100%;border-radius:24px;
+    background:rgba(255,255,255,.04);
+    border:1px solid rgba(255,255,255,.08);
+    backdrop-filter:blur(10px);
+    padding:24px 20px;margin-top:22px;
+    box-shadow:0 30px 80px -12px rgba(0,0,0,.6);
+  }
+
+  /* ── Section dentro del form ── */
+  .section{margin-top:24px;}
+  .section:first-child{margin-top:6px;}
+  .section .stitle{
+    display:flex;align-items:center;gap:8px;margin-bottom:14px;
+    font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.18em;
+    color:#cef07c;
+  }
+  .section .stitle .ico{
+    width:24px;height:24px;border-radius:7px;
+    background:rgba(206,240,124,.12);display:grid;place-items:center;color:#cef07c;
+  }
+  .section .stitle .ico svg{width:13px;height:13px;}
+  .section .stitle .num{
+    margin-left:auto;font-size:10px;color:#7c8a6f;background:rgba(255,255,255,.04);
+    padding:3px 8px;border-radius:99px;letter-spacing:.1em;
+  }
+
+  /* ── Inputs ── */
+  .field{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;}
+  .field:last-child{margin-bottom:0;}
+  label{font-size:11.5px;font-weight:700;color:#94a386;text-transform:uppercase;letter-spacing:.08em;display:flex;align-items:center;gap:6px;}
+  label .opt{font-weight:500;color:#5b6a4e;text-transform:none;letter-spacing:0;font-size:11px;}
+  input[type=text],input[type=email],input[type=tel],input[type=number],input[type=url],select,textarea{
     width:100%;padding:13px 14px;border-radius:12px;
     background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);
     color:#fff;font-size:16px;font-family:inherit;outline:none;
-    transition:border-color .15s, background .15s;
+    transition:border-color .15s, background .15s, box-shadow .15s;
   }
-  input::placeholder,textarea::placeholder{color:rgba(255,255,255,.4);}
-  input:focus,select:focus,textarea:focus{border-color:#cef07c;background:rgba(255,255,255,.10);}
-  textarea{resize:none;min-height:80px;}
-  select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23cef07c' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:40px;}
-  select option{color:#15240b;}
+  input::placeholder,textarea::placeholder{color:rgba(255,255,255,.36);}
+  input:focus,select:focus,textarea:focus{
+    border-color:#cef07c;background:rgba(255,255,255,.10);
+    box-shadow:0 0 0 3px rgba(206,240,124,.15);
+  }
+  textarea{resize:none;min-height:84px;line-height:1.5;}
+  select{
+    appearance:none;cursor:pointer;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23cef07c' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:right 14px center;padding-right:40px;
+  }
+  select option{color:#15240b;background:#fff;}
 
+  /* ── Chips multi-select ── */
+  .chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:2px;}
+  .chip{
+    cursor:pointer;user-select:none;
+    padding:9px 13px;border-radius:99px;
+    background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);
+    color:#c8d3ba;font-size:13px;font-weight:600;
+    transition:all .15s;display:inline-flex;align-items:center;gap:6px;
+  }
+  .chip input{display:none;}
+  .chip .check{width:14px;height:14px;border-radius:50%;border:1.5px solid rgba(255,255,255,.3);transition:all .15s;display:none;align-items:center;justify-content:center;}
+  .chip:hover{background:rgba(255,255,255,.08);border-color:rgba(206,240,124,.3);color:#fff;}
+  .chip:has(input:checked){
+    background:linear-gradient(135deg,rgba(206,240,124,.2),rgba(146,200,58,.12));
+    border-color:#cef07c;color:#fff;font-weight:700;
+  }
+  .chip:has(input:checked) .check{display:inline-flex;background:#cef07c;border-color:#cef07c;}
+  .chip:has(input:checked) .check svg{width:9px;height:9px;color:#15240b;}
+
+  /* ── Cards de estilo visual (mini swatches) ── */
+  .styles{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
+  .style{
+    cursor:pointer;border-radius:14px;padding:12px;
+    background:rgba(255,255,255,.05);border:1.5px solid rgba(255,255,255,.10);
+    transition:all .15s;text-align:left;
+  }
+  .style input{display:none;}
+  .style:has(input:checked){border-color:#cef07c;background:rgba(206,240,124,.10);}
+  .style .swatch{height:36px;border-radius:8px;margin-bottom:8px;}
+  .style.minimal .swatch{background:linear-gradient(135deg,#f5f5f5,#e0e0e0);}
+  .style.moderno .swatch{background:linear-gradient(135deg,#1e293b,#475569);}
+  .style.clasico .swatch{background:linear-gradient(135deg,#78350f,#fbbf24);}
+  .style.lujo    .swatch{background:linear-gradient(135deg,#0f0f0f,#facc15);}
+  .style.urbano  .swatch{background:linear-gradient(135deg,#dc2626,#000);}
+  .style.fem     .swatch{background:linear-gradient(135deg,#fbcfe8,#a78bfa);}
+  .style b{display:block;font-size:13px;font-weight:700;color:#fff;}
+  .style span{display:block;font-size:11px;color:#94a386;margin-top:1px;}
+
+  /* ── Color picker ── */
+  .colors{display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+  .swatch-pick{
+    width:36px;height:36px;border-radius:50%;cursor:pointer;
+    border:2px solid rgba(255,255,255,.15);
+    transition:transform .15s, border-color .15s;
+    position:relative;
+  }
+  .swatch-pick:hover{transform:scale(1.1);}
+  .swatch-pick.active{border-color:#fff;box-shadow:0 0 0 3px rgba(206,240,124,.45);}
+  .custom-color{
+    width:36px;height:36px;border-radius:50%;cursor:pointer;overflow:hidden;
+    position:relative;border:2px dashed rgba(255,255,255,.25);
+    display:grid;place-items:center;color:#94a386;
+  }
+  .custom-color input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;}
+
+  /* ── Submit ── */
   .submit{
-    margin-top:8px;height:56px;border:0;border-radius:14px;
-    background:linear-gradient(180deg,#cef07c,#92c83a);
-    color:#15240b;font-size:16px;font-weight:900;letter-spacing:-.2px;cursor:pointer;
+    margin-top:24px;height:60px;border:0;border-radius:16px;width:100%;
+    background:linear-gradient(180deg,#cef07c,#a3d94a);
+    color:#15240b;font-size:16px;font-weight:900;letter-spacing:-.3px;cursor:pointer;
     transition:transform .12s, box-shadow .15s, opacity .15s;
-    box-shadow:0 12px 32px -10px rgba(146,200,58,.7);
+    box-shadow:0 14px 36px -10px rgba(206,240,124,.55), inset 0 1px 0 rgba(255,255,255,.4);
+    display:flex;align-items:center;justify-content:center;gap:10px;
   }
   .submit:active{transform:scale(.98);}
   .submit:disabled{opacity:.55;cursor:not-allowed;box-shadow:none;}
+  .submit .arr{transition:transform .2s;}
+  .submit:hover:not(:disabled) .arr{transform:translateX(4px);}
   .msg{margin-top:14px;font-size:13px;font-weight:700;min-height:18px;text-align:center;}
   .msg.err{color:#ffb5a3;}
-  .legal{margin-top:14px;font-size:11px;color:#7c8a6f;text-align:center;line-height:1.5;}
-  .legal a{color:#a8b69c;}
+  .legal{margin-top:14px;font-size:11px;color:#5e6c52;text-align:center;line-height:1.55;}
+  .legal a{color:#94a386;}
 
-  .done{text-align:center;padding:14px 4px 4px;}
+  /* ── Done screen ── */
+  .done{text-align:center;padding:20px 4px 8px;animation:fadeIn .5s ease;}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
   .done .ok-circle{
-    width:74px;height:74px;border-radius:50%;background:#cef07c;color:#15240b;
-    margin:6px auto 16px;display:grid;place-items:center;font-size:38px;font-weight:900;
+    width:84px;height:84px;border-radius:50%;
+    background:linear-gradient(135deg,#cef07c,#92c83a);color:#15240b;
+    margin:6px auto 18px;display:grid;place-items:center;font-size:42px;font-weight:900;
+    box-shadow:0 12px 40px -8px rgba(206,240,124,.5);
+    animation:pop .4s cubic-bezier(.4,2,.6,1);
   }
-  .done h2{font-size:24px;font-weight:900;letter-spacing:-.6px;}
-  .done p{margin-top:8px;font-size:14px;color:#c8d3ba;line-height:1.5;}
+  @keyframes pop{0%{transform:scale(0);}80%{transform:scale(1.1);}100%{transform:scale(1);}}
+  .done h2{font-size:26px;font-weight:900;letter-spacing:-.6px;}
+  .done .auto-status{
+    margin-top:18px;display:flex;flex-direction:column;gap:8px;
+    background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);
+    border-radius:14px;padding:14px;text-align:left;
+  }
+  .done .auto-line{
+    display:flex;align-items:center;gap:10px;font-size:13px;color:#c8d3ba;
+  }
+  .done .auto-line .ico{width:20px;height:20px;border-radius:50%;background:#cef07c;color:#15240b;display:grid;place-items:center;flex-shrink:0;font-weight:900;font-size:12px;}
   .done .wa{
     display:flex;align-items:center;justify-content:center;gap:10px;
     margin-top:18px;height:54px;border-radius:14px;background:#25D366;color:#fff;
     text-decoration:none;font-weight:800;font-size:15px;
+    transition:transform .12s;
   }
+  .done .wa:active{transform:scale(.98);}
   .done .ig{
     display:flex;align-items:center;justify-content:center;gap:10px;
     margin-top:10px;height:50px;border-radius:14px;
     background:linear-gradient(135deg,#feda75,#d62976 50%,#4f5bd5);
     color:#fff;text-decoration:none;font-weight:800;font-size:14px;
+    transition:transform .12s;
   }
+  .done .ig:active{transform:scale(.98);}
 
-  .spin{
-    display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);
-    border-top-color:#15240b;border-radius:50%;animation:sp .7s linear infinite;
-    vertical-align:-3px;margin-right:7px;
-  }
+  .spin{display:inline-block;width:16px;height:16px;border:2px solid rgba(21,36,11,.25);border-top-color:#15240b;border-radius:50%;animation:sp .7s linear infinite;}
   @keyframes sp{to{transform:rotate(360deg);}}
-  footer{padding:18px 22px 26px;text-align:center;color:#6e7c61;font-size:11px;}
-  footer a{color:#a8b69c;text-decoration:none;}
 
-  @media (min-width:560px){
-    .perks{grid-template-columns:1fr 1fr;}
-    .perks .perk:first-child{grid-column:1 / -1;}
+  footer{padding:22px 22px 30px;text-align:center;color:#5e6c52;font-size:11px;line-height:1.6;}
+  footer a{color:#94a386;text-decoration:none;}
+  footer .sep{margin:0 8px;color:#3a4530;}
+
+  /* ── Desktop ── */
+  @media (min-width:640px){
+    h1{font-size:42px;letter-spacing:-1.5px;}
+    .lead{font-size:16.5px;}
+    .wrap{max-width:600px;}
+    .pasos{gap:12px;}
   }
 </style>
 </head>
 <body>
   <header>
     <a class="brand" href="/">
-      <span class="logo">S</span><span>SynapTech</span>
+      <span class="logo">S</span>
+      <span>SynapTech</span>
     </a>
-    <span class="pill">Activación 24 h</span>
+    <span class="badge"><span class="dot"></span> 100% Automático</span>
   </header>
 
   <main>
-    <div class="card" id="card">
-      <span class="kicker"><span>✦</span> Plataforma para barberías</span>
-      <h1>Agenda online + <span class="accent">club de fidelidad</span> para tu barbería.</h1>
-      <p class="lead">
-        SynapTech reemplaza el WhatsApp manual: agenda con confirmación automática,
-        recordatorios, club de fidelidad por sellos, reseñas en Google y panel para
-        cada barbero. <b style="color:#fff">Activamos tu barbería en 24 h</b> —
-        nosotros la configuramos por ti.
-      </p>
+    <div class="wrap">
 
-      <div class="perks">
-        <div class="perk"><span class="ico">📅</span><span><b>Agenda online 24/7.</b> Confirmación + recordatorio automáticos al cliente. Menos no-shows.</span></div>
-        <div class="perk"><span class="ico">⭐</span><span><b>Club de fidelidad por sellos.</b> Premios y rangos automáticos.</span></div>
-        <div class="perk"><span class="ico">🔔</span><span><b>Reseñas Google integradas.</b> Pides la opinión al final de cada cita.</span></div>
-        <div class="perk"><span class="ico">💸</span><span><b>Pagos con MercadoPago.</b> Cobras y reservas en el mismo flujo.</span></div>
-      </div>
-
-      <div class="stats">
-        <div class="stat"><b>14+</b><span>Barberías activas</span></div>
-        <div class="stat"><b>24 h</b><span>Activación</span></div>
-        <div class="stat"><b>0</b><span>Tarjeta para empezar</span></div>
-      </div>
-
-      <form id="f">
-        <label>Tu nombre
-          <input id="name" type="text" placeholder="Juan Pérez" required autocomplete="name" />
-        </label>
-        <label>Nombre de tu barbería
-          <input id="barberia" type="text" placeholder="Barbería Centro" required autocomplete="organization" />
-        </label>
-        <label>WhatsApp
-          <input id="phone" type="tel" placeholder="+56 9 1234 5678" required inputmode="tel" autocomplete="tel" />
-        </label>
-        <label>Email (opcional)
-          <input id="email" type="email" placeholder="tu@email.com" autocomplete="email" />
-        </label>
-        <label>Ciudad / comuna
-          <input id="city" type="text" placeholder="Viña del Mar" autocomplete="address-level2" />
-        </label>
-        <label>¿Cuántos barberos atienden?
-          <select id="barbers">
-            <option value="">Selecciona…</option>
-            <option value="solo">Solo yo</option>
-            <option value="2-3">2 a 3</option>
-            <option value="4-7">4 a 7</option>
-            <option value="8+">8 o más</option>
-          </select>
-        </label>
-        <label>¿Algo que quieras contarnos?
-          <textarea id="message" placeholder="Qué sistema usas hoy, qué problema quieres resolver…"></textarea>
-        </label>
-        <button class="submit" id="sb" type="submit">
-          Quiero activar mi barbería →
-        </button>
-        <p class="msg" id="msg"></p>
-        <p class="legal">
-          Al enviar aceptas que te contactemos por WhatsApp para coordinar tu activación.
-          No spam. <a href="https://wa.me/56983568212" target="_blank" rel="noopener">¿Prefieres escribirnos directo?</a>
+      <!-- HERO -->
+      <section class="hero">
+        <span class="kicker"><span class="line"></span> Para barberías chilenas</span>
+        <h1>Tu agenda + club de fidelidad listos en <span class="accent">minutos</span>, no en días.</h1>
+        <p class="lead">
+          Llena este formulario en <b>2 minutos</b>. Nuestro sistema pre-configura tu
+          agenda, club por sellos y panel de barberos con <b>TU marca</b> y <b>TUS servicios</b>.
+          Te llega un <b>link único con tu demo lista</b> — pruebas antes de pagar nada.
         </p>
-      </form>
+      </section>
 
-      <div class="done" id="done" style="display:none;">
-        <div class="ok-circle">✓</div>
-        <h2>¡Genial! Te contactaremos en menos de 24 h.</h2>
-        <p>Mientras tanto, escríbenos al WhatsApp para acelerar tu activación.</p>
-        <a class="wa" id="waLink" href="#" target="_blank" rel="noopener">
-          Hablar por WhatsApp →
-        </a>
-        <a class="ig" href="https://instagram.com/synaptech.app" target="_blank" rel="noopener">
-          Síguenos en Instagram
-        </a>
+      <!-- PROCESO 3 PASOS -->
+      <section class="pasos">
+        <div class="paso">
+          <span class="num">1</span>
+          <div class="body">
+            <p>Llenas el form</p>
+            <p>Datos básicos + tu estilo. Sin papeles, sin reunión obligatoria.</p>
+          </div>
+          <span class="time">2 min</span>
+        </div>
+        <div class="paso">
+          <span class="num">2</span>
+          <div class="body">
+            <p>Generamos tu demo con TUS datos</p>
+            <p>Pre-cargamos servicios, color brand y estilo. Lista para probar.</p>
+          </div>
+          <span class="time">Automático</span>
+        </div>
+        <div class="paso">
+          <span class="num">3</span>
+          <div class="body">
+            <p>Recibes WhatsApp con tu link único</p>
+            <p>Pruebas tu agenda real. Si te gusta, la activamos completa en 24 h.</p>
+          </div>
+          <span class="time">&lt; 24 h</span>
+        </div>
+      </section>
+
+      <!-- SOCIAL PROOF -->
+      <section class="proof">
+        <div class="it"><b>14<span class="small">+</span></b><span>barberías</span></div>
+        <div class="it"><b>24h</b><span>activación</span></div>
+        <div class="it"><b>0<span class="small">$</span></b><span>para probar</span></div>
+      </section>
+
+      <!-- FORMULARIO -->
+      <div class="card">
+        <form id="f">
+
+          <!-- Sección 1: Identidad -->
+          <div class="section">
+            <div class="stitle">
+              <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>
+              <span>Quién eres</span>
+              <span class="num">1 / 3</span>
+            </div>
+            <div class="field">
+              <label>Tu nombre</label>
+              <input id="name" type="text" placeholder="Juan Pérez" required autocomplete="name" />
+            </div>
+            <div class="field">
+              <label>Nombre de tu barbería</label>
+              <input id="barberia" type="text" placeholder="Barbería Centro" required autocomplete="organization" />
+            </div>
+            <div class="field">
+              <label>WhatsApp</label>
+              <input id="phone" type="tel" placeholder="+56 9 1234 5678" required inputmode="tel" autocomplete="tel" />
+            </div>
+            <div class="field">
+              <label>Email <span class="opt">(opcional)</span></label>
+              <input id="email" type="email" placeholder="tu@email.com" autocomplete="email" />
+            </div>
+            <div class="field">
+              <label>Ciudad / comuna</label>
+              <input id="city" type="text" placeholder="Viña del Mar" autocomplete="address-level2" />
+            </div>
+          </div>
+
+          <!-- Sección 2: Tu Negocio -->
+          <div class="section">
+            <div class="stitle">
+              <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>
+              <span>Tu negocio</span>
+              <span class="num">2 / 3</span>
+            </div>
+            <div class="field">
+              <label>Tipo de local</label>
+              <select id="tipo">
+                <option value="">Selecciona…</option>
+                <option value="barberia">Barbería (hombres)</option>
+                <option value="peluqueria">Peluquería</option>
+                <option value="mixto">Mixto (hombre + mujer)</option>
+                <option value="nails">Estudio de uñas / nails</option>
+                <option value="spa">Spa / estética</option>
+                <option value="barber-nails">Barbería + nails</option>
+                <option value="otro">Otro</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>¿Cuántos barberos atienden?</label>
+              <select id="barbers">
+                <option value="">Selecciona…</option>
+                <option value="solo">Solo yo</option>
+                <option value="2-3">2 a 3</option>
+                <option value="4-7">4 a 7</option>
+                <option value="8+">8 o más</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Servicios que ofreces <span class="opt">(marca los que apliquen)</span></label>
+              <div class="chips" id="serviciosChips">
+                <!-- chips generados por JS -->
+              </div>
+            </div>
+            <div class="field">
+              <label>Precio promedio del corte / servicio principal <span class="opt">(opcional)</span></label>
+              <input id="precio" type="text" placeholder="Ej: $12.000 - $15.000" inputmode="numeric" />
+            </div>
+            <div class="field">
+              <label>¿Cómo agendas hoy?</label>
+              <select id="sistema">
+                <option value="">Selecciona…</option>
+                <option value="whatsapp">WhatsApp manual</option>
+                <option value="nada">No agendo, llegan sin reserva</option>
+                <option value="agenda-papel">Agenda de papel / cuaderno</option>
+                <option value="google-cal">Google Calendar</option>
+                <option value="otra-app">Otra app (Booksy, Fresha, Reservio, etc.)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Sección 3: Personalización -->
+          <div class="section">
+            <div class="stitle">
+              <span class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><circle cx="6" cy="6" r="2"/></svg></span>
+              <span>Personalización para tu demo</span>
+              <span class="num">3 / 3</span>
+            </div>
+
+            <div class="field">
+              <label>Estilo visual que te gustaría</label>
+              <div class="styles" id="estilos">
+                <label class="style minimal"><input type="radio" name="estilo" value="minimal" /><div class="swatch"></div><b>Minimalista</b><span>Blanco, líneas finas</span></label>
+                <label class="style moderno"><input type="radio" name="estilo" value="moderno" /><div class="swatch"></div><b>Moderno</b><span>Dark, premium</span></label>
+                <label class="style clasico"><input type="radio" name="estilo" value="clasico" /><div class="swatch"></div><b>Clásico</b><span>Madera, dorado</span></label>
+                <label class="style lujo"><input type="radio" name="estilo" value="lujo" /><div class="swatch"></div><b>Lujo</b><span>Negro, oro, premium</span></label>
+                <label class="style urbano"><input type="radio" name="estilo" value="urbano" /><div class="swatch"></div><b>Urbano</b><span>Rojo, negro, fuerte</span></label>
+                <label class="style fem"><input type="radio" name="estilo" value="fem" /><div class="swatch"></div><b>Femenino</b><span>Pastel, suave</span></label>
+              </div>
+            </div>
+
+            <div class="field">
+              <label>Color principal de tu marca</label>
+              <div class="colors" id="colors">
+                <button type="button" class="swatch-pick" data-c="#92c83a" style="background:#92c83a" aria-label="Verde lima"></button>
+                <button type="button" class="swatch-pick" data-c="#1e293b" style="background:#1e293b" aria-label="Negro"></button>
+                <button type="button" class="swatch-pick" data-c="#dc2626" style="background:#dc2626" aria-label="Rojo"></button>
+                <button type="button" class="swatch-pick" data-c="#2563eb" style="background:#2563eb" aria-label="Azul"></button>
+                <button type="button" class="swatch-pick" data-c="#facc15" style="background:#facc15" aria-label="Amarillo"></button>
+                <button type="button" class="swatch-pick" data-c="#a855f7" style="background:#a855f7" aria-label="Morado"></button>
+                <button type="button" class="swatch-pick" data-c="#ec4899" style="background:#ec4899" aria-label="Rosa"></button>
+                <button type="button" class="swatch-pick" data-c="#f97316" style="background:#f97316" aria-label="Naranja"></button>
+                <label class="custom-color" title="Custom">
+                  <input id="colorCustom" type="color" />
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>
+                </label>
+              </div>
+              <input id="color" type="hidden" value="" />
+            </div>
+
+            <div class="field">
+              <label>Tu Instagram <span class="opt">(opcional, para conocer tu estilo)</span></label>
+              <input id="instagram" type="text" placeholder="@tubarberia" />
+            </div>
+
+            <div class="field">
+              <label>¿Algo más que quieras contarnos? <span class="opt">(opcional)</span></label>
+              <textarea id="message" placeholder="Cuéntanos qué te frustra de tu sistema actual, qué quieres lograr..."></textarea>
+            </div>
+          </div>
+
+          <!-- Submit -->
+          <button class="submit" id="sb" type="submit">
+            Activar mi demo personalizada
+            <svg class="arr" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          </button>
+          <p class="msg" id="msg"></p>
+          <p class="legal">
+            Activamos tu demo apenas envíes. Sin tarjeta. Sin compromiso.
+            <br><a href="https://wa.me/56983568212" target="_blank" rel="noopener">¿Prefieres escribirnos directo por WhatsApp?</a>
+          </p>
+        </form>
+
+        <!-- Done -->
+        <div class="done" id="done" style="display:none;">
+          <div class="ok-circle">✓</div>
+          <h2>¡Listo! Estamos armando tu demo.</h2>
+          <p style="margin-top:8px;font-size:14px;color:#c8d3ba;line-height:1.5;">
+            Te llega por WhatsApp en cuanto esté el link único de tu agenda.
+          </p>
+
+          <div class="auto-status">
+            <div class="auto-line"><span class="ico">✓</span><span>Datos guardados</span></div>
+            <div class="auto-line"><span class="ico">✓</span><span>Tu marca y servicios pre-cargados</span></div>
+            <div class="auto-line"><span class="ico">⏳</span><span>Configurando demo personalizada…</span></div>
+          </div>
+
+          <a class="wa" id="waLink" href="#" target="_blank" rel="noopener">
+            Hablar por WhatsApp →
+          </a>
+          <a class="ig" href="https://instagram.com/synaptechspa" target="_blank" rel="noopener">
+            Síguenos en Instagram
+          </a>
+        </div>
+
       </div>
     </div>
   </main>
 
   <footer>
-    Hecho con ♥ en Chile · <a href="https://synaptechspa.cl">synaptechspa.cl</a> · <a href="https://wa.me/56983568212">+56 9 8356 8212</a>
+    Hecho con ♥ en Chile
+    <span class="sep">·</span>
+    <a href="https://synaptechspa.cl">synaptechspa.cl</a>
+    <span class="sep">·</span>
+    <a href="https://wa.me/56983568212">+56 9 8356 8212</a>
   </footer>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -232,6 +540,54 @@
   (function(){
     'use strict';
 
+    // ── Generar chips de servicios ─────────────────────────────────
+    var SERVICIOS = [
+      ['corte','✂️ Corte'],
+      ['barba','🪒 Barba'],
+      ['color','🎨 Color / tinte'],
+      ['peinado','💇 Peinado'],
+      ['alisado','🌊 Alisado'],
+      ['depilacion','🧖 Depilación'],
+      ['cejas','👁 Cejas'],
+      ['manicure','💅 Manicure'],
+      ['pedicure','🦶 Pedicure'],
+      ['masaje','💆 Masaje'],
+      ['facial','✨ Facial'],
+      ['otros','➕ Otros'],
+    ];
+    var chipsEl = document.getElementById('serviciosChips');
+    SERVICIOS.forEach(function(s){
+      var lbl = document.createElement('label');
+      lbl.className = 'chip';
+      lbl.innerHTML = '<input type="checkbox" name="servicios" value="'+s[0]+'">' +
+        '<span class="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>' +
+        s[1];
+      chipsEl.appendChild(lbl);
+    });
+
+    // ── Color picker ───────────────────────────────────────────────
+    var hiddenColor = document.getElementById('color');
+    var customColor = document.getElementById('colorCustom');
+    document.querySelectorAll('.swatch-pick').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        document.querySelectorAll('.swatch-pick').forEach(function(b){ b.classList.remove('active'); });
+        btn.classList.add('active');
+        hiddenColor.value = btn.getAttribute('data-c');
+      });
+    });
+    customColor.addEventListener('input', function(){
+      document.querySelectorAll('.swatch-pick').forEach(function(b){ b.classList.remove('active'); });
+      hiddenColor.value = customColor.value;
+      // Reflejamos el color custom en el container.
+      customColor.parentNode.style.background = customColor.value;
+      customColor.parentNode.style.borderStyle = 'solid';
+    });
+
+    // ── Atribución source (?src=ig | stories | tiktok | direct) ───
+    var params = new URLSearchParams(location.search);
+    var source = String(params.get('src') || params.get('source') || '').slice(0, 30) || 'direct';
+
+    // ── Form submit ────────────────────────────────────────────────
     var ui = {
       sb:   document.getElementById('sb'),
       msg:  document.getElementById('msg'),
@@ -239,50 +595,71 @@
       form: document.getElementById('f'),
       wa:   document.getElementById('waLink'),
     };
-
     function err(text){ ui.msg.className = 'msg err'; ui.msg.textContent = text; }
     function clearMsg(){ ui.msg.textContent = ''; ui.msg.className = 'msg'; }
-
-    // ── Source / atribución: ?src=ig | ?src=stories | ?src=bio | ... ───
-    var params = new URLSearchParams(location.search);
-    var source = String(params.get('src') || params.get('source') || '').slice(0, 30);
 
     var fns = firebase.functions();
 
     ui.form.addEventListener('submit', function(e){
       e.preventDefault();
       clearMsg();
+
+      // Recoge chips marcados
+      var servicios = Array.from(document.querySelectorAll('input[name=servicios]:checked')).map(function(i){return i.value;});
+      var estiloEl = document.querySelector('input[name=estilo]:checked');
+      var estilo = estiloEl ? estiloEl.value : '';
+
       var payload = {
-        name:     document.getElementById('name').value,
-        barberia: document.getElementById('barberia').value,
-        phone:    document.getElementById('phone').value,
-        email:    document.getElementById('email').value,
-        city:     document.getElementById('city').value,
-        barbers:  document.getElementById('barbers').value,
-        message:  document.getElementById('message').value,
-        source:   source || 'direct',
+        name:        document.getElementById('name').value,
+        barberia:    document.getElementById('barberia').value,
+        phone:       document.getElementById('phone').value,
+        email:       document.getElementById('email').value,
+        city:        document.getElementById('city').value,
+        barbers:     document.getElementById('barbers').value,
+        tipo:        document.getElementById('tipo').value,
+        servicios:   servicios,
+        precio:      document.getElementById('precio').value,
+        sistemaActual: document.getElementById('sistema').value,
+        estilo:      estilo,
+        color:       document.getElementById('color').value,
+        instagram:   document.getElementById('instagram').value,
+        message:     document.getElementById('message').value,
+        source:      source,
       };
+
       if (!payload.name || !payload.barberia || !payload.phone) {
         err('Completa nombre, barbería y WhatsApp.');
         return;
       }
       ui.sb.disabled = true;
-      ui.sb.innerHTML = '<span class="spin"></span>Enviando…';
+      ui.sb.innerHTML = '<span class="spin"></span> Activando demo…';
 
       var call = fns.httpsCallable('synaptechCrearLead');
       call(payload).then(function(){
         ui.form.style.display = 'none';
         ui.done.style.display = 'block';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+
         var waText = encodeURIComponent(
           'Hola SynapTech ✦ Soy ' + payload.name + ' de ' + payload.barberia +
           (payload.city ? ' (' + payload.city + ')' : '') +
-          '. Acabo de llenar el formulario, quiero activar mi agenda.'
+          '. Acabo de llenar el formulario, ¿cuándo tienes lista mi demo?'
         );
         ui.wa.href = 'https://wa.me/56983568212?text=' + waText;
+
+        // Marcamos el paso "configurando demo" como completo después de 2s
+        // para que el usuario sienta el progreso de la automatización.
+        setTimeout(function(){
+          var lines = document.querySelectorAll('.auto-line');
+          if (lines[2]) {
+            lines[2].querySelector('.ico').textContent = '✓';
+            lines[2].querySelector('span:last-child').textContent = 'Demo en construcción — te avisamos por WhatsApp';
+          }
+        }, 2200);
       }).catch(function(e){
         ui.sb.disabled = false;
-        ui.sb.innerHTML = 'Quiero activar mi barbería →';
-        err((e && e.message) ? e.message : 'No pudimos enviar tu solicitud. Intenta otra vez.');
+        ui.sb.innerHTML = 'Activar mi demo personalizada <svg class="arr" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>';
+        err((e && e.message) ? e.message : 'No pudimos enviar. Intenta otra vez.');
       });
     });
   })();
