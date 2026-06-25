@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Reorder } from 'framer-motion';
+import { Reorder, useDragControls } from 'framer-motion';
 import {
   Plus, Trash2, Star, GripVertical, X,
   Link2, MessageCircle, Instagram, Music2, Facebook, Youtube, Mail, Phone,
@@ -115,16 +115,13 @@ export default function Links(): JSX.Element {
         </div>
       )}
 
-      {/* ── Lista reordenable (Framer Motion) ── */}
+      {/* ── Lista reordenable (Framer Motion) ──
+          IMPORTANTE: el Reorder.Item vive dentro de LinkCard para colocar
+          ahí los dragControls y poder pasar dragListener={false}. Sin esto,
+          toda la tarjeta intercepta el touch en móvil y bloquea el scroll. */}
       <Reorder.Group axis="y" values={state.blocks} onReorder={(blocks) => dispatch({ type: 'setBlocks', blocks })} className="space-y-3">
         {state.blocks.map((b) => (
-          <Reorder.Item
-            key={b.id}
-            value={b}
-            className="group rounded-[24px] bg-white p-4 shadow-sm ring-1 ring-black/[0.03] transition-shadow hover:shadow-md"
-          >
-            <LinkCard block={b} />
-          </Reorder.Item>
+          <LinkCard key={b.id} block={b} />
         ))}
       </Reorder.Group>
 
@@ -147,15 +144,26 @@ function LinkCard({ block }: { block: Block }): JSX.Element {
   const patch = (p: Partial<Block>): void => dispatch({ type: 'patchBlock', id: block.id, patch: p });
   const remove = (): void => dispatch({ type: 'removeBlock', id: block.id });
   const link = isLinkType(block.tipo);
+  // Drag manual: solo el grip handle inicia el arrastre. El resto de la
+  // tarjeta responde normal al touch (scroll vertical, inputs, botones).
+  const controls = useDragControls();
 
   return (
-    <div>
+    <Reorder.Item
+      value={block}
+      dragListener={false}
+      dragControls={controls}
+      className="group rounded-[24px] bg-white p-4 shadow-sm ring-1 ring-black/[0.03] transition-shadow hover:shadow-md"
+    >
       <div className="flex items-start gap-2.5">
-        {/* Drag handle (6 puntos) — opacidad alta siempre en touch; en desktop crece con hover */}
+        {/* Drag handle (6 puntos) — único disparador del drag.
+            touch-none + onPointerDown evita el scroll mientras se arrastra. */}
         <button
           type="button"
           aria-label="Arrastrar para reordenar"
-          className="grid h-9 w-9 shrink-0 cursor-grab place-items-center rounded-lg text-gray-400 transition-colors hover:bg-neutral-100 hover:text-gray-600 active:cursor-grabbing active:bg-neutral-200 touch-none"
+          onPointerDown={(e) => controls.start(e)}
+          style={{ touchAction: 'none' }}
+          className="grid h-9 w-9 shrink-0 cursor-grab select-none place-items-center rounded-lg text-gray-400 transition-colors hover:bg-neutral-100 hover:text-gray-600 active:cursor-grabbing active:bg-neutral-200"
         >
           <GripVertical size={18} />
         </button>
@@ -213,7 +221,7 @@ function LinkCard({ block }: { block: Block }): JSX.Element {
           </button>
         </div>
       </div>
-    </div>
+    </Reorder.Item>
   );
 }
 

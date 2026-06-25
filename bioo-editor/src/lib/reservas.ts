@@ -262,3 +262,51 @@ export function reservaTimestamp(r: Reserva): number {
   const [hh, mm] = r.hora.split(':').map((n) => parseInt(n, 10));
   return new Date(y, m - 1, d, hh, mm).getTime();
 }
+
+/* ────────────────────────────────────────────────────────────────────
+   Free tier (paso 5): 30 reservas/mes incluidas. Contador en
+   bios/{u}/reservasMeta/contadores escrito por Cloud Function.
+   ──────────────────────────────────────────────────────────────────── */
+
+/** Tope mensual de reservas en el plan gratuito. Cuando se alcanza, el
+ *  banner pasa a rojo y sugiere upgrade (sin bloqueo duro). */
+export const RESERVAS_FREE_LIMIT = 30;
+
+export interface ReservasMeta {
+  /** "YYYY-MM" — mes en curso del contador. */
+  mesActual: string;
+  /** Reservas creadas durante el mes en curso. */
+  usadasMes: number;
+  /** Total acumulado histórico (informativo). */
+  totalHistorico: number;
+}
+
+const META_PATH = (username: string) =>
+  doc(db, 'bios', username, 'reservasMeta', 'contadores');
+
+function mesActualKey(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+/** Suscripción al contador del free tier. Si el doc no existe (aún no entró
+ *  ninguna reserva) emite ceros. Si el contador quedó parado en un mes
+ *  anterior (caso raro en que no se creó ninguna reserva en el nuevo mes),
+ *  la UI muestra 0 — el próximo bump lo regulariza. */
+export function watchReservasMeta(
+  username: string,
+  onData: (meta: ReservasMeta) => void,
+  onError?: (e: unknown) => void,
+): Unsubscribe {
+  return onSnapshot(
+    META_PATH(username),
+    (snap) => {
+      const d = snap.exists() ? (snap.data() as Record<string, unknown>) : {};
+      const mesActual = typeof d.mesActual === 'string' ? d.mesActual : '';
+      const usadasMes = mesActual === mesActualKey() ? Number(d.usadasMes || 0) : 0;
+      const totalHistorico = Number(d.totalHistorico || 0);
+      onData({ mesActual: mesActualKey(), usadasMes, totalHistorico });
+    },
+    (err) => { if (onError) onError(err); },
+  );
+}

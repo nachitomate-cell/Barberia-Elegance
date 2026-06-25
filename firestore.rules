@@ -374,6 +374,15 @@ service cloud.firestore {
         allow write: if autenticado()
                      && get(/databases/$(database)/documents/bios/$(username)).data.uid == uid();
       }
+
+      // ── /bios/{username}/reservasMeta — métricas del free tier ──
+      // Único doc 'contadores' con { mesActual, usadasMes, totalHistorico }.
+      // Sin PII: la UI lo lee sin auth para mostrar la barra de uso. Solo
+      // el Admin SDK (Cloud Function avisarNuevaReservaBioo) lo escribe.
+      match /reservasMeta/{docId} {
+        allow read: if true;
+        allow write: if false;
+      }
     }
 
     // ── /bio_users — mapeo uid → username (privado del dueño) ──────
