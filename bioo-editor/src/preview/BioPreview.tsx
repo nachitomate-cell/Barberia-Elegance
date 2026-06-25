@@ -300,8 +300,11 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
               theme.fill === 'outline'
                 ? { background: 'transparent', color: p.text, border: `1.5px solid ${p.btnBorder === 'transparent' ? p.text : p.btnBorder}` }
                 : { background: p.btnBg, color: p.btnText, border: `1px solid ${p.btnBorder}` };
+            // Featured: solo añade la animación de pulso (sombra neutra). u.html
+            // NO agrega aro blanco ni glow tintado — los quitamos también acá
+            // para mantener nitidez y paridad con la vista pública.
             const animCls = b.featured
-              ? 'anim-feat ring-2 ring-white/60'
+              ? 'anim-feat font-extrabold'
               : theme.btnAnim !== 'none'
                 ? `anim-${theme.btnAnim}`
                 : '';
@@ -339,39 +342,48 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
                 </div>
               );
             }
-            // size === 'full' → ícono ABSOLUTO a la izquierda, texto centrado.
-            // Padding y tipografía calcados de .btn { padding:17px 18px;
-            // font-size:15.5px; font-weight:700; gap:10px } — Tailwind no
-            // tiene clases nativas para esos valores, los pinto como style.
+            // size === 'full' → ícono ANCLADO a la izquierda en su propio
+            // contenedor absoluto; el texto queda perfectamente centrado vía
+            // justify-center sin depender del ancho del ícono. Estructura y
+            // métricas (padding 17/18, font 15.5/700) calcadas de u.html.
             return (
               <div
                 key={b.id}
-                className={`col-span-2 flex items-center justify-center text-center ${common}`}
+                className={`relative col-span-2 flex w-full items-center justify-center text-center ${common}`}
                 style={{
                   ...styleObj,
                   padding: '17px 18px',
                   fontSize: '15.5px',
                   fontWeight: 700,
-                  gap: '10px',
                 }}
               >
                 {hasThumb && (
-                  <img
-                    src={b.thumb}
-                    alt=""
-                    className="absolute top-1/2 h-[34px] w-[34px] -translate-y-1/2 rounded-lg object-cover"
+                  <div
+                    className="absolute top-1/2 flex -translate-y-1/2 items-center justify-center"
                     style={{ left: '10px' }}
-                  />
+                    aria-hidden
+                  >
+                    <img
+                      src={b.thumb}
+                      alt=""
+                      className="h-[34px] w-[34px] rounded-lg object-cover"
+                    />
+                  </div>
                 )}
                 {hasTipoIcon && (
-                  <img
-                    src={`/ic-${b.tipo}-orig.png`}
-                    alt=""
-                    className="absolute top-1/2 h-[27px] w-[27px] -translate-y-1/2 object-contain"
+                  <div
+                    className="absolute top-1/2 flex -translate-y-1/2 items-center justify-center"
                     style={{ left: '14px' }}
-                  />
+                    aria-hidden
+                  >
+                    <img
+                      src={`/ic-${b.tipo}-orig.png`}
+                      alt=""
+                      className="h-[27px] w-[27px] object-contain"
+                    />
+                  </div>
                 )}
-                <span>{text}</span>
+                <span className="leading-none">{text}</span>
               </div>
             );
           })}
