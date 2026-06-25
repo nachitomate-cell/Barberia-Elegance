@@ -12,6 +12,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
 <meta name="apple-mobile-web-app-title" content="bioo" />
 <link rel="manifest" id="manifestLink" />
+<!-- Acelera el handshake TLS con los hosts de Firebase (ahorra ~150 ms en 4G). -->
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://firestore.googleapis.com" crossorigin>
 <style>
   :root{ --green:#92c83a; --green-d:#2c5a17; --ink:#15240b; --soft:#3f5230; --white:#ffffff; --line:#cfe0a8; }
   *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
@@ -370,13 +373,38 @@
     </div>
   </div>
 
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-functions-compat.js"></script>
-  <script src="/firebase-config.js"></script>
+  <!-- defer: bajan los SDK SIN bloquear el parse del HTML, se ejecutan en orden
+       después del primer paint y antes de DOMContentLoaded.
+       firebase-functions-compat.js se removió: solo se usa para checkout/verify
+       de pago, lo cargamos lazy on-demand desde loadFirebaseFunctions(). -->
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script defer src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script defer src="/firebase-config.js"></script>
   <script>
   // Captura el evento de instalación (Android/Chrome) para el botón "Añadir a pantalla de inicio".
+  // Se atacha de inmediato (no esperamos defer) porque el evento puede dispararse temprano.
   window.addEventListener('beforeinstallprompt', function(e){ e.preventDefault(); window._deferredA2HS = e; });
+
+  // firebase-functions-compat.js no se carga en el HEAD (solo se necesita en
+  // checkout/verify). Lo bajamos bajo demanda y cacheamos la promesa.
+  var _fnsPromise = null;
+  window.loadFirebaseFunctions = function(){
+    if (window.firebase && typeof window.firebase.functions === 'function') return Promise.resolve();
+    if (_fnsPromise) return _fnsPromise;
+    _fnsPromise = new Promise(function(resolve, reject){
+      var s = document.createElement('script');
+      s.src = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-functions-compat.js';
+      s.async = true;
+      s.onload = function(){ resolve(); };
+      s.onerror = function(){ _fnsPromise = null; reject(new Error('fns-load-failed')); };
+      document.head.appendChild(s);
+    });
+    return _fnsPromise;
+  };
+
+  // Como los scripts de Firebase tienen `defer`, recién están listos en
+  // DOMContentLoaded — esperamos ese evento antes de bootear la página.
+  document.addEventListener('DOMContentLoaded', function(){
 
   (function(){
     'use strict';
@@ -991,16 +1019,21 @@
 
       // Inicia el cobro con el proveedor que el creador tenga conectado.
       // Prioriza Mercado Pago (Chile); cae a Stripe. Ambos devuelven { data.url }.
+      // Lazy-load del SDK functions al primer click (no en el render inicial).
       function startCheckout(blockId, amount){
         if (data.mpReady) {
           var mpReq = { blockId: blockId, username: user };
           if (amount != null) mpReq.amount = amount;
-          return firebase.functions().httpsCallable('mpBioCheckout')(mpReq);
+          return window.loadFirebaseFunctions().then(function(){
+            return firebase.functions().httpsCallable('mpBioCheckout')(mpReq);
+          });
         }
         if (data.stripeReady) {
           var stReq = { blockId: blockId, username: user, origin: location.origin + '/' + user };
           if (amount != null) stReq.amount = amount;
-          return firebase.functions().httpsCallable('createStripeCheckout')(stReq);
+          return window.loadFirebaseFunctions().then(function(){
+            return firebase.functions().httpsCallable('createStripeCheckout')(stReq);
+          });
         }
         return Promise.reject(new Error('sin-proveedor'));
       }
@@ -1414,9 +1447,12 @@
       ov.style.display = 'flex';
       closeX.addEventListener('click', function(){ ov.style.display = 'none'; });
       try { history.replaceState({}, '', location.origin + '/' + user); } catch(e){}
-      var verify = mpOrder
-        ? firebase.functions().httpsCallable('mpBioVerify')({ username: user, orderId: mpOrder })
-        : firebase.functions().httpsCallable('verifyUnlock')({ sessionId: sid });
+      // Lazy-load del SDK functions: solo se necesita acá (al volver de pago).
+      var verify = window.loadFirebaseFunctions().then(function(){
+        return mpOrder
+          ? firebase.functions().httpsCallable('mpBioVerify')({ username: user, orderId: mpOrder })
+          : firebase.functions().httpsCallable('verifyUnlock')({ sessionId: sid });
+      });
       verify
         .then(function(r){
           var d = (r && r.data) || {};
@@ -1510,6 +1546,8 @@
       };
     }
   })();
+
+  }); // ← cierra document.addEventListener('DOMContentLoaded', ...)
   </script>
 </body>
 </html>
