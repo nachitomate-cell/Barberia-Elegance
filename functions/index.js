@@ -910,3 +910,10 @@ exports.avisarNuevoReferido = referidosAviso.avisarNuevoReferido;
 const synaptechLead = require('./synaptech-lead');
 exports.synaptechCrearLead = synaptechLead.synaptechCrearLead;
 exports.avisarNuevoLead    = synaptechLead.avisarNuevoLead;
+
+// ─────────────────────────────────────────────────────────────────
+//  BIOO — tracking de clicks por bloque (endpoint público para
+//  navigator.sendBeacon desde u.html). Ver functions/bioo-track.js.
+// ─────────────────────────────────────────────────────────────────
+const biooTrack = require('./bioo-track');
+exports.biooTrackClick = biooTrack.biooTrackClick;

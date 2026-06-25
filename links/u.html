@@ -1002,7 +1002,7 @@
           var icH = (b.tipo && {whatsapp:1,instagram:1,tiktok:1,facebook:1,youtube:1,email:1,telefono:1,enlace:1}[b.tipo]) ? '<img class="btn-ic" src="/ic-'+b.tipo+icSuf+'.png" alt="">' : '';
           if (b.tipo==='enlace' && b.thumb) icH='<img class="btn-thumb" src="'+esc(b.thumb)+'" alt="">';
           var cls = b.featured ? ' feat' : ((t.btnAnim && t.btnAnim!=='none') ? (' anim-'+t.btnAnim) : '');
-          html += '<a class="btn fade'+cls+' '+szCls+'" data-id="'+esc(b.id||'')+'" style="animation-delay:'+(0.1 + i*0.04)+'s;'+css.btn+(tx.btnColor?('color:'+tx.btnColor+';'):'')+'" href="'+esc(url)+'" target="_blank" rel="noopener">'+icH+esc(b.label||url)+'</a>';
+          html += '<a class="btn fade'+cls+' '+szCls+'" data-id="'+esc(b.id||'')+'" data-tipo="'+esc(b.tipo||'')+'" style="animation-delay:'+(0.1 + i*0.04)+'s;'+css.btn+(tx.btnColor?('color:'+tx.btnColor+';'):'')+'" href="'+esc(url)+'" target="_blank" rel="noopener">'+icH+esc(b.label||url)+'</a>';
         });
         html += '</div>';
       } else {
@@ -1052,14 +1052,34 @@
         });
       }
 
-      // Conteo de clics por enlace (best-effort; las reglas permiten incrementar `clicks`).
+      // Conteo de clics por enlace — beacon al endpoint público
+      // biooTrackClick. Cuenta TODOS los visitantes (incluso anónimos), a
+      // diferencia del fetch directo a Firestore que requería sesión.
+      // sendBeacon no bloquea la navegación: el browser despacha la
+      // request aunque la página esté en proceso de descargarse.
+      var TRACK_URL = 'https://us-central1-barberia-elegance.cloudfunctions.net/biooTrackClick';
+      function trackClick(blockId, tipo){
+        if (!blockId) return;
+        try {
+          var body = JSON.stringify({ username: user, blockId: blockId, tipo: tipo || '' });
+          if (navigator.sendBeacon) {
+            // text/plain evita preflight CORS y matchea con el body parser
+            // del CF (acepta JSON crudo en text/plain).
+            var blob = new Blob([body], { type: 'text/plain' });
+            navigator.sendBeacon(TRACK_URL, blob);
+          } else {
+            fetch(TRACK_URL, {
+              method: 'POST', mode: 'no-cors', keepalive: true,
+              headers: { 'Content-Type': 'text/plain' }, body: body,
+            }).catch(function(){});
+          }
+        } catch(e){ /* no bloqueamos jamás la navegación */ }
+      }
       Array.prototype.forEach.call(wrap.querySelectorAll('a.btn[data-id]'), function(a){
         a.addEventListener('click', function(){
-          var id = a.getAttribute('data-id'); if (!id) return;
-          getBioRef().then(function(ref){
-            var upd = {}; upd['clicks.'+id] = firebase.firestore.FieldValue.increment(1);
-            ref.update(upd).catch(function(){});
-          }).catch(function(){});
+          var id = a.getAttribute('data-id');
+          var tipo = a.getAttribute('data-tipo') || '';
+          trackClick(id, tipo);
         });
       });
 

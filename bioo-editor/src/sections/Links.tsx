@@ -10,6 +10,7 @@ import { useEditor, newBlock } from '../store';
 import { fileToDataUrl } from '../lib/image';
 import { SOCIAL_NETS, embedSrc } from '../lib/blocks';
 import { useStripeAccount } from '../lib/connect';
+import { useBlockStats } from '../lib/useBlockStats';
 import ImagePicker from '../components/ImagePicker';
 import TemplatePicker from '../components/TemplatePicker';
 import type { Block, BlockType, Social, SocialNet, LayoutSize } from '../types';
@@ -51,6 +52,8 @@ export default function Links(): JSX.Element {
   const hasMonetization = state.blocks.some((b) => b.tipo === 'tip' || b.tipo === 'paywall');
   const needsConnect = !connLoading && hasMonetization && !accountId;
   const needsComplete = !connLoading && hasMonetization && !!accountId && !ready;
+  // Estadísticas LIVE de clicks por bloque (bios/{u}/blockStats).
+  const stats = useBlockStats(state.username);
 
   return (
     <div className="space-y-3">
@@ -121,7 +124,7 @@ export default function Links(): JSX.Element {
           toda la tarjeta intercepta el touch en móvil y bloquea el scroll. */}
       <Reorder.Group axis="y" values={state.blocks} onReorder={(blocks) => dispatch({ type: 'setBlocks', blocks })} className="space-y-3">
         {state.blocks.map((b) => (
-          <LinkCard key={b.id} block={b} />
+          <LinkCard key={b.id} block={b} clicks={stats[b.id]?.count ?? 0} />
         ))}
       </Reorder.Group>
 
@@ -139,7 +142,7 @@ const titleInput =
 const subInput =
   'w-full border-none bg-transparent p-0 text-sm font-medium text-gray-500 placeholder-gray-400 focus:outline-none focus:ring-0';
 
-function LinkCard({ block }: { block: Block }): JSX.Element {
+function LinkCard({ block, clicks = 0 }: { block: Block; clicks?: number }): JSX.Element {
   const { dispatch } = useEditor();
   const patch = (p: Partial<Block>): void => dispatch({ type: 'patchBlock', id: block.id, patch: p });
   const remove = (): void => dispatch({ type: 'removeBlock', id: block.id });
@@ -195,8 +198,20 @@ function LinkCard({ block }: { block: Block }): JSX.Element {
         <div className="flex items-center gap-1">
           {link && <ThumbAction block={block} patch={patch} />}
           {link && (
-            <button type="button" title="Estadísticas (pronto)" className="grid h-9 w-9 cursor-default place-items-center rounded-lg text-gray-300">
+            <button
+              type="button"
+              title={clicks > 0 ? `${clicks} ${clicks === 1 ? 'clic' : 'clics'} desde tu bioo` : 'Aún sin clics — comparte el link'}
+              aria-label="Estadísticas"
+              className={`flex h-9 min-w-[2.25rem] cursor-default items-center justify-center gap-1 rounded-lg px-2 ${
+                clicks > 0 ? 'bg-[#92c83a]/10 text-[#15240b]' : 'text-gray-300'
+              }`}
+            >
               <BarChart3 size={18} />
+              {clicks > 0 && (
+                <span className="text-xs font-bold tabular-nums">
+                  {clicks > 999 ? `${(clicks / 1000).toFixed(1)}k` : clicks}
+                </span>
+              )}
             </button>
           )}
           {link && (

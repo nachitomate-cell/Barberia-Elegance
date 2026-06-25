@@ -359,6 +359,16 @@ service cloud.firestore {
         allow write: if false;
       }
 
+      // ── /bios/{username}/blockStats — analítica por bloque ──
+      // Solo el dueño lee sus estadísticas. La escritura es exclusiva del
+      // Cloud Function biooTrackClick (admin SDK), que valida la bio y
+      // hace rate-limiting en memoria. Cliente nunca escribe acá.
+      match /blockStats/{blockId} {
+        allow read: if autenticado()
+                    && get(/databases/$(database)/documents/bios/$(username)).data.uid == uid();
+        allow write: if false;
+      }
+
       // ── /bios/{username}/reservasConfig — agenda gratuita del creador ──
       // Config pública (servicios, horario semanal, bloqueos): el flujo de
       // reserva del visitante necesita LEERLA para mostrar horas disponibles.
