@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Megaphone, Image, Type, AlignLeft, Link2,
   ToggleLeft, ToggleRight, Save, Sparkles, Send,
-  Cpu, Plus, RefreshCw, Share2, Download, X, Upload
+  Cpu, Plus, RefreshCw, Share2, Download, X, Upload,
+  Users, Calendar, TrendingUp, Wand2, CheckCircle2, ArrowRight,
 } from 'lucide-react';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 import { getDoc, getDocs, setDoc, serverTimestamp, query, where } from 'firebase/firestore';
@@ -156,6 +158,20 @@ function buildResponseVariants(stats) {
   };
 }
 
+/* ── HeroStat pill para el header ──────────────────────────── */
+function HeroStat({ label, value, Icon, tone, small }) {
+  return (
+    <div className="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-2.5 backdrop-blur">
+      <div className={`flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.14em] ${tone}`}>
+        <Icon size={11} /> <span>{label}</span>
+      </div>
+      <p className={`mt-1 truncate font-black tabular-nums text-white ${small ? 'text-sm' : 'text-xl'}`}>
+        {value}
+      </p>
+    </div>
+  );
+}
+
 /* ── Renderiza **negrita** y saltos de línea ────────────────── */
 function renderMd(text) {
   return text.split('\n').map((line, li, arr) => {
@@ -248,36 +264,44 @@ function AsistenteIA({ stats, statsLoading }) {
   };
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-md">
+    <div className="overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/60 shadow-xl backdrop-blur-sm">
 
-      {/* Header */}
+      {/* Header con gradient gold sutil */}
       <div
-        className="chat-header-synaptech flex items-center gap-2.5 px-4 py-3 border-b border-slate-800"
-        style={{ background: 'linear-gradient(135deg, #0f0f12 0%, #151200 100%)' }}
+        className="relative flex items-center gap-3 overflow-hidden border-b border-slate-800 px-4 py-3.5"
+        style={{ background: 'linear-gradient(135deg, rgba(40,30,5,0.7) 0%, rgba(15,15,18,0.95) 80%)' }}
       >
         <div
-          className="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center shrink-0 border border-slate-700"
-        >
-          <img src="/logo1.png" alt="SynapTech" className="w-5 h-5 object-contain" />
+          aria-hidden
+          className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full"
+          style={{ background: 'radial-gradient(circle, rgba(212,175,55,0.2), transparent 70%)', filter: 'blur(16px)' }}
+        />
+        <div className="relative grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-slate-800 ring-1" style={{ borderColor: 'rgba(212,175,55,0.25)', boxShadow: 'inset 0 0 0 1px rgba(212,175,55,0.18)' }}>
+          <img src="/logo1.png" alt="SynapTech" className="h-5 w-5 object-contain" />
         </div>
-        <div>
-          <p className="text-sm font-bold text-white leading-none">Asistente Synaptech IA</p>
-          <p className="text-[10px] text-slate-500 mt-0.5">Caption e ideas para tus redes</p>
+        <div className="relative min-w-0">
+          <p className="text-sm font-bold text-white leading-none">Asistente SynapTech IA</p>
+          <p className="mt-0.5 text-[10px] text-slate-500">Captions e ideas listas para copiar</p>
         </div>
-        <div className="ml-auto flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          <span className="text-[10px] text-slate-500">{statsLoading ? 'cargando…' : 'activo'}</span>
+        <div className="relative ml-auto flex items-center gap-1.5 rounded-full bg-slate-800/60 px-2 py-1 ring-1 ring-slate-700">
+          <span className={`relative flex h-1.5 w-1.5`}>
+            <span className={`absolute inset-0 rounded-full ${statsLoading ? '' : 'animate-ping opacity-60'} bg-emerald-400`} />
+            <span className="relative h-1.5 w-1.5 rounded-full bg-emerald-400" />
+          </span>
+          <span className="text-[9px] font-bold uppercase tracking-wider text-emerald-300">
+            {statsLoading ? 'cargando' : 'activo'}
+          </span>
         </div>
       </div>
 
       {/* Chips de acceso rápido */}
-      <div className="flex flex-wrap gap-1.5 px-3 pt-3 pb-2 bg-slate-900/50">
+      <div className="flex flex-wrap gap-1.5 border-b border-slate-800/40 bg-slate-950/30 px-3 py-2.5">
         {AI_CHIPS.map(c => (
           <button
             key={c.id}
             onClick={() => !typing && sendAI(`${c.emoji} ${c.label}`, c.id)}
             disabled={typing || statsLoading}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-medium bg-slate-800/80 border border-slate-700/50 text-slate-300 hover:border-[#D4AF37]/40 hover:text-[#D4AF37] transition-all disabled:opacity-40"
+            className="inline-flex items-center gap-1 rounded-lg border border-slate-700/60 bg-slate-800/60 px-2.5 py-1.5 text-[10px] font-semibold text-slate-300 transition-all hover:scale-[1.03] hover:border-[#D4AF37]/40 hover:bg-[#D4AF37]/[0.06] hover:text-[#D4AF37] active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <span>{c.emoji}</span> {c.label}
           </button>
@@ -444,78 +468,114 @@ function RecomendadorBannersIA({ stats, statsLoading, onApply }) {
   }, [stats]);
 
   return (
-    <div className="bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800/80 rounded-xl overflow-hidden shadow-lg">
-      
+    <div className="relative overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/60 shadow-xl backdrop-blur-sm">
+
+      {/* Halo gold superior */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full"
+        style={{ background: 'radial-gradient(circle, rgba(212,175,55,0.25), transparent 70%)', filter: 'blur(20px)' }}
+      />
+
       {/* Header */}
-      <div className="p-4 border-b border-slate-800 bg-gradient-to-r from-slate-900 via-slate-950 to-slate-900 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-slate-800 flex items-center justify-center border border-slate-700 shrink-0">
-            <img src="/logo1.png" alt="SynapTech" className="w-4 h-4 object-contain" />
+      <div
+        className="relative flex items-center justify-between border-b border-slate-800 px-4 py-3.5"
+        style={{ background: 'linear-gradient(135deg, rgba(40,30,5,0.7) 0%, rgba(15,15,18,0.95) 80%)' }}
+      >
+        <div className="flex items-center gap-2.5">
+          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-slate-800 ring-1" style={{ borderColor: 'rgba(212,175,55,0.25)', boxShadow: 'inset 0 0 0 1px rgba(212,175,55,0.18)' }}>
+            <Wand2 size={15} style={{ color: '#D4AF37' }} />
           </div>
           <div>
-            <h3 className="text-xs font-bold text-white tracking-wide">SYNAPTECH IA™</h3>
-            <p className="text-[9px] text-[#D4AF37] font-bold font-mono tracking-wider">BANNER ADVISOR v1.2</p>
+            <h3 className="text-xs font-black tracking-[0.18em] text-white uppercase">SynapTech IA™</h3>
+            <p className="font-mono text-[9px] font-bold tracking-[0.22em]" style={{ color: '#D4AF37' }}>
+              BANNER ADVISOR v1.2
+            </p>
           </div>
         </div>
-        <button 
-          onClick={triggerScan} 
+        <button
+          onClick={triggerScan}
           disabled={loading}
-          className="p-1.5 rounded-lg text-slate-500 hover:text-[#D4AF37] hover:bg-slate-800/50 transition-colors disabled:opacity-30"
-          title="Recalcular análisis">
-          <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
+          className="grid h-8 w-8 place-items-center rounded-xl bg-slate-800/60 text-slate-400 ring-1 ring-slate-700 transition-all hover:bg-[#D4AF37]/[0.08] hover:text-[#D4AF37] hover:ring-[#D4AF37]/30 disabled:opacity-40"
+          title="Recalcular análisis"
+        >
+          <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
         </button>
       </div>
 
       {/* Body */}
-      <div className="p-5 space-y-4">
+      <div className="relative space-y-4 p-5">
         {loading ? (
-          <div className="py-12 flex flex-col items-center justify-center space-y-4 text-center">
-            <div className="relative w-10 h-10 flex items-center justify-center">
-              <div className="absolute inset-0 rounded-full border border-[#D4AF37]/10 animate-ping" />
-              <Cpu size={20} className="text-[#D4AF37] animate-bounce" />
+          <div className="flex flex-col items-center justify-center gap-4 py-14 text-center">
+            <div className="relative grid h-14 w-14 place-items-center">
+              <div className="absolute inset-0 animate-ping rounded-full" style={{ background: 'radial-gradient(circle, rgba(212,175,55,0.18), transparent 70%)' }} />
+              <div className="grid h-12 w-12 place-items-center rounded-2xl bg-slate-900 ring-1 ring-[#D4AF37]/30">
+                <Cpu size={20} style={{ color: '#D4AF37' }} className="animate-pulse" />
+              </div>
             </div>
             <div className="space-y-1.5">
-              <p className="text-xs font-bold text-white tracking-wide font-sans">Analizando agendas...</p>
-              <p className="text-[10px] text-slate-500 max-w-[200px] leading-relaxed animate-pulse">{steps[aiStep]}</p>
+              <p className="text-xs font-bold uppercase tracking-[0.18em] text-white">
+                Analizando agendas
+              </p>
+              <p className="max-w-[220px] text-[10px] leading-relaxed text-slate-500 animate-pulse">
+                {steps[aiStep]}
+              </p>
             </div>
           </div>
         ) : (
           <div className="space-y-3">
-            <p className="text-[10px] text-slate-500 leading-normal">
-              Selecciona una plantilla de campaña recomendada para rellenar instantáneamente el banner promocional:
+            <p className="text-[10px] leading-normal text-slate-500">
+              Selecciona una plantilla recomendada — rellena el banner al instante.
             </p>
 
-            <div className="space-y-3">
-              {campaigns.map((camp) => (
-                <button
+            <div className="space-y-2.5">
+              {campaigns.map((camp, i) => (
+                <motion.button
                   key={camp.id}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.06, duration: 0.3 }}
                   onClick={() => onApply(camp)}
-                  className="w-full text-left bg-slate-900/65 hover:bg-slate-800/40 border border-slate-800/80 hover:border-[#D4AF37]/35 rounded-xl p-3 flex flex-col gap-2 transition-all group relative overflow-hidden">
-                  
-                  <div className="absolute top-0 right-0 w-8 h-8 bg-gradient-to-br from-[#D4AF37]/5 to-transparent rounded-bl-2xl group-hover:from-[#D4AF37]/15 transition-all" />
-                  
-                  <div className="flex items-center justify-between w-full">
-                    <span className="text-[9px] font-bold text-[#D4AF37] uppercase tracking-wider">{camp.label}</span>
-                    <span className="text-[8px] px-1.5 py-0.5 bg-slate-800 border border-slate-700/60 rounded-full text-slate-400 group-hover:text-[#D4AF37] transition-all font-semibold font-mono">
-                      {camp.tag}
-                    </span>
+                  className="group relative w-full overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/50 p-3.5 text-left transition-all hover:scale-[1.01] hover:border-[#D4AF37]/35 hover:bg-[#D4AF37]/[0.05]"
+                >
+                  {/* halo gold al hover */}
+                  <div
+                    aria-hidden
+                    className="pointer-events-none absolute -right-10 -top-10 h-24 w-24 rounded-full opacity-0 transition-opacity group-hover:opacity-100"
+                    style={{ background: 'radial-gradient(circle, rgba(212,175,55,0.18), transparent 70%)', filter: 'blur(14px)' }}
+                  />
+
+                  <div className="relative space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-[0.14em]" style={{ color: '#D4AF37' }}>
+                        <Sparkles size={9} /> {camp.label}
+                      </span>
+                      <span className="inline-flex items-center gap-1 rounded-full border border-slate-700/60 bg-slate-800/70 px-2 py-0.5 font-mono text-[8px] font-bold text-slate-400 transition-colors group-hover:border-[#D4AF37]/40 group-hover:text-[#D4AF37]">
+                        {camp.tag}
+                      </span>
+                    </div>
+
+                    <div className="space-y-1 pr-8">
+                      <h5 className="truncate text-sm font-black tracking-tight text-white transition-colors group-hover:text-[#D4AF37]">
+                        {camp.titulo}
+                      </h5>
+                      <p className="line-clamp-2 text-[11px] leading-snug text-slate-400">{camp.descripcion}</p>
+                    </div>
+
+                    <div className="border-t border-slate-800/60 pt-2">
+                      <p className="text-[10px] leading-relaxed text-slate-500">
+                        <b className="text-slate-300">Auditoría IA:</b> {camp.analisis}
+                      </p>
+                    </div>
                   </div>
 
-                  <div className="space-y-1">
-                    <h5 className="text-xs font-bold text-white truncate group-hover:text-[#D4AF37] transition-colors">{camp.titulo}</h5>
-                    <p className="text-[10px] text-slate-400 leading-snug line-clamp-2">{camp.descripcion}</p>
+                  {/* CTA Apply chevron */}
+                  <div
+                    className="absolute bottom-3 right-3 grid h-7 w-7 place-items-center rounded-xl bg-slate-800 text-slate-400 ring-1 ring-slate-700 transition-all group-hover:bg-[#D4AF37] group-hover:text-black group-hover:ring-[#D4AF37]"
+                  >
+                    <ArrowRight size={12} className="stroke-[3]" />
                   </div>
-
-                  <div className="border-t border-slate-800/60 my-0.5 pt-1.5">
-                    <p className="text-[9px] text-slate-500 leading-normal">
-                      <strong className="text-slate-400">Auditoría IA:</strong> {camp.analisis}
-                    </p>
-                  </div>
-
-                  <div className="absolute bottom-2 right-2 p-1 bg-slate-800 border border-slate-700 text-slate-400 group-hover:bg-[#D4AF37] group-hover:border-[#D4AF37] group-hover:text-black rounded-lg transition-all flex items-center justify-center">
-                    <Plus size={10} className="stroke-[3]" />
-                  </div>
-                </button>
+                </motion.button>
               ))}
             </div>
           </div>
@@ -523,9 +583,9 @@ function RecomendadorBannersIA({ stats, statsLoading, onApply }) {
       </div>
 
       {/* Footer */}
-      <div className="p-3 bg-slate-950/70 border-t border-slate-800/60 flex items-center gap-1.5 text-[9px] text-slate-500 justify-center">
+      <div className="flex items-center justify-center gap-1.5 border-t border-slate-800/60 bg-slate-950/70 p-3 text-[9px] font-semibold text-slate-500">
         <span>🛡️</span>
-        <span>Recomendaciones cruzadas con el club de fidelidad y visitas.</span>
+        <span>Recomendaciones cruzadas con el club de fidelidad y visitas reales.</span>
       </div>
     </div>
   );
@@ -882,8 +942,9 @@ export default function Marketing() {
     }));
   };
 
-  const field = 'w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] transition-colors';
-  const lbl   = 'block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5';
+  // Inputs seamless con anillo gold al focus.
+  const field = 'w-full bg-slate-950/60 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:bg-slate-950 transition-all';
+  const lbl   = 'block text-[10px] font-bold text-slate-400 uppercase tracking-[0.14em] mb-1.5';
 
   if (loading) {
     return (
@@ -894,30 +955,103 @@ export default function Marketing() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto">
-      
-      {/* Header */}
-      <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold text-white flex items-center gap-2">
-              <Megaphone size={20} className="text-[#D4AF37]" />
-              Marketing & Campañas
-            </h1>
-            <HelpButton onClick={() => setShowHelp(true)} />
+    <div className="max-w-5xl mx-auto p-4 sm:p-6 space-y-6">
+
+      {/* ─────── HERO PREMIUM ─────── */}
+      <motion.section
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: [0.2, 0.8, 0.2, 1] }}
+        className="relative overflow-hidden rounded-3xl border p-5 sm:p-6"
+        style={{
+          background:
+            'linear-gradient(135deg, rgba(50,40,10,0.55) 0%, rgba(15,23,42,0.95) 60%), ' +
+            'radial-gradient(ellipse at top right, rgba(212,175,55,0.22), transparent 60%)',
+          borderColor: 'rgba(212,175,55,0.18)',
+        }}
+      >
+        {/* halo gold pulsante */}
+        <motion.div
+          aria-hidden
+          className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full"
+          style={{ background: 'radial-gradient(circle, rgba(212,175,55,0.3), transparent 70%)', filter: 'blur(32px)' }}
+          animate={{ opacity: [0.5, 0.85, 0.5], scale: [1, 1.05, 1] }}
+          transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }}
+        />
+        {/* grid pattern */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-[0.05]"
+          style={{
+            backgroundImage:
+              'linear-gradient(to right, white 1px, transparent 1px), linear-gradient(to bottom, white 1px, transparent 1px)',
+            backgroundSize: '32px 32px',
+            maskImage: 'radial-gradient(ellipse at center, black 30%, transparent 75%)',
+            WebkitMaskImage: 'radial-gradient(ellipse at center, black 30%, transparent 75%)',
+          }}
+        />
+
+        <div className="relative">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <span
+                  className="grid h-10 w-10 place-items-center rounded-2xl ring-1"
+                  style={{ background: 'rgba(212,175,55,0.12)', borderColor: 'rgba(212,175,55,0.3)', color: '#D4AF37', boxShadow: 'inset 0 0 0 1px rgba(212,175,55,0.25)' }}
+                >
+                  <Megaphone size={18} />
+                </span>
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em]" style={{ color: 'rgba(212,175,55,0.85)' }}>
+                    Buzón de campañas
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <h1 className="text-2xl font-black tracking-tight text-white sm:text-[28px]">Marketing</h1>
+                    <HelpButton onClick={() => setShowHelp(true)} />
+                  </div>
+                </div>
+              </div>
+              <p className="mt-2 max-w-md text-xs leading-relaxed text-amber-50/75">
+                Banner publicitario en la app de tus clientes + recomendaciones IA en tiempo
+                real con tus datos reales.
+              </p>
+            </div>
+
+            <button
+              onClick={() => setStoryOpen(true)}
+              title="Generar imagen para historia de Instagram"
+              className="group inline-flex shrink-0 items-center gap-2 rounded-2xl px-5 py-3 text-sm font-extrabold transition-all hover:scale-[1.02] active:scale-95"
+              style={{ background: '#D4AF37', color: '#1a1208', boxShadow: '0 8px 24px -8px rgba(212,175,55,0.55)' }}
+            >
+              <Share2 size={15} className="transition-transform group-hover:rotate-12" />
+              Imagen historia
+            </button>
           </div>
-          <p className="text-sm text-slate-500 mt-0.5">
-            Gestiona el banner publicitario de la app y optimiza tus campañas con recomendaciones IA en tiempo real.
-          </p>
+
+          {/* Stats inline (datos reales del local) */}
+          <div className="mt-5 grid grid-cols-3 gap-2">
+            <HeroStat
+              label="Reservas (30d)"
+              value={statsLoading ? '…' : stats.totalCitasMes || 0}
+              Icon={Calendar}
+              tone="text-emerald-300"
+            />
+            <HeroStat
+              label="Club"
+              value={statsLoading ? '…' : stats.totalMiembros || 0}
+              Icon={Users}
+              tone="text-violet-300"
+            />
+            <HeroStat
+              label="Top servicio"
+              value={statsLoading ? '…' : (stats.servicioTop || '—')}
+              Icon={TrendingUp}
+              tone="text-amber-300"
+              small
+            />
+          </div>
         </div>
-        <button
-          onClick={() => setStoryOpen(true)}
-          title="Generar imagen para historia de Instagram"
-          className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-semibold px-4 py-2 rounded-lg border border-slate-700 hover:border-slate-600 transition-colors shrink-0"
-        >
-          <Share2 size={16} className="text-[#D4AF37]" /> Imagen historia
-        </button>
-      </div>
+      </motion.section>
 
       {storyOpen && (
         <CampaignStoryGenerator
@@ -929,12 +1063,28 @@ export default function Marketing() {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
+
         {/* Columna Izquierda: Formulario y Vista Previa (col-span-2) */}
-        <div className="lg:col-span-2 space-y-6">
-          
+        <div className="lg:col-span-2 space-y-5">
+
+          {/* Wrapper del preview con header */}
+          {form.imagen && (
+            <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-3.5 shadow-lg backdrop-blur-sm">
+              <div className="mb-2.5 flex items-center justify-between px-1">
+                <p className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="absolute inset-0 animate-ping rounded-full opacity-60" style={{ background: '#D4AF37' }} />
+                    <span className="relative h-1.5 w-1.5 rounded-full" style={{ background: '#D4AF37' }} />
+                  </span>
+                  Vista previa en vivo
+                </p>
+                <span className="text-[9px] font-mono text-slate-500">
+                  Estilo: <b className="text-slate-300">{ESTILOS_BANNER.find(s => s.id === (form.estilo || 'panel'))?.label}</b>
+                </span>
+              </div>
+
           {/* Preview card */}
-          {form.imagen && (() => {
+          {(() => {
             const estilo = form.estilo || 'panel';
             const GOLD = '#D4AF37', GOLD_RGB = '212,175,55', ON_GOLD = '#1a1208';
             const bgImg = { backgroundImage: `url('${form.imagen}')`, backgroundSize: 'cover', backgroundPosition: 'center' };
@@ -987,36 +1137,56 @@ export default function Marketing() {
               </div>
             );
           })()}
+            </div>
+          )}
 
           {/* Form */}
-          <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4 shadow-md">
+          <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-5 sm:p-6 space-y-5 shadow-lg backdrop-blur-sm">
 
-            <div className="flex items-center justify-between py-1">
-              <div>
-                <p className="text-sm font-semibold text-white">Publicar Anuncio en App</p>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  {form.activo ? 'El banner es visible de forma inmediata en la app de reservas de tus clientes.' : 'Oculto — los clientes no lo ven.'}
+            {/* Toggle activo como switch premium */}
+            <div className={`flex items-center justify-between gap-4 rounded-2xl border p-4 transition-all ${
+              form.activo
+                ? 'border-[#D4AF37]/30 bg-[#D4AF37]/[0.06]'
+                : 'border-slate-800 bg-slate-950/40'
+            }`}>
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-white flex items-center gap-2">
+                  Publicar anuncio en la app
+                  {form.activo && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-[#D4AF37]/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#D4AF37] ring-1 ring-[#D4AF37]/30">
+                      <span className="relative flex h-1.5 w-1.5">
+                        <span className="absolute inset-0 animate-ping rounded-full bg-[#D4AF37] opacity-60" />
+                        <span className="relative h-1.5 w-1.5 rounded-full bg-[#D4AF37]" />
+                      </span>
+                      En vivo
+                    </span>
+                  )}
+                </p>
+                <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
+                  {form.activo
+                    ? 'El banner se muestra ya mismo a tus clientes en la app de reservas.'
+                    : 'Oculto — los clientes no lo ven hasta que lo actives.'}
                 </p>
               </div>
               <button
                 onClick={() => setForm(f => ({ ...f, activo: !f.activo }))}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm font-semibold transition-all ${
-                  form.activo
-                    ? 'bg-[#D4AF37]/10 border-[#D4AF37]/40 text-[#D4AF37]'
-                    : 'bg-slate-800 border-slate-700 text-slate-400 hover:text-white'
+                role="switch"
+                aria-checked={form.activo}
+                className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${
+                  form.activo ? 'bg-[#D4AF37]' : 'bg-slate-700'
                 }`}
               >
-                {form.activo
-                  ? <><ToggleRight size={18} /> Activo</>
-                  : <><ToggleLeft  size={18} /> Inactivo</>}
+                <span
+                  className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow-md transition-transform ${
+                    form.activo ? 'translate-x-[22px]' : 'translate-x-0.5'
+                  }`}
+                />
               </button>
             </div>
 
-            <div className="border-t border-slate-800/80" />
-
             <div>
               <label className={lbl}>
-                <span className="inline-flex items-center gap-1.5"><Type size={11} /> Título de Campaña</span>
+                <span className="inline-flex items-center gap-1.5"><Type size={11} /> Título de campaña</span>
               </label>
               <input
                 className={field}
@@ -1028,7 +1198,7 @@ export default function Marketing() {
 
             <div>
               <label className={lbl}>
-                <span className="inline-flex items-center gap-1.5"><AlignLeft size={11} /> Mensaje / Descripción</span>
+                <span className="inline-flex items-center gap-1.5"><AlignLeft size={11} /> Mensaje / descripción</span>
               </label>
               <textarea
                 className={`${field} resize-none`}
@@ -1123,30 +1293,45 @@ export default function Marketing() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between pt-1">
-              {saved
-                ? <p className="text-xs font-semibold text-emerald-400">✓ Anuncio guardado con éxito. Cambios aplicados en tiempo real.</p>
-                : <span />}
+            <div className="flex items-center justify-between gap-3 pt-1">
+              <AnimatePresence mode="wait">
+                {saved ? (
+                  <motion.p
+                    key="ok"
+                    initial={{ opacity: 0, x: -6 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0 }}
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-300"
+                  >
+                    <CheckCircle2 size={13} /> Guardado · aplicado en tiempo real
+                  </motion.p>
+                ) : (
+                  <span />
+                )}
+              </AnimatePresence>
               <button
                 onClick={handleSave}
                 disabled={saving || !form.titulo}
-                className="flex items-center gap-2 px-5 py-2 bg-[#D4AF37] hover:bg-yellow-500 disabled:opacity-40 text-black text-sm font-semibold rounded-lg transition-colors"
+                className="inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-extrabold transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+                style={{ background: '#D4AF37', color: '#1a1208', boxShadow: '0 6px 20px -6px rgba(212,175,55,0.55)' }}
               >
                 {saving
-                  ? <span className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin" />
-                  : <Save size={15} />}
-                {saving ? 'Guardando…' : 'Guardar y Publicar'}
+                  ? <span className="h-3.5 w-3.5 rounded-full border-2 border-black border-t-transparent animate-spin" />
+                  : <Save size={14} />}
+                {saving ? 'Guardando…' : 'Guardar y publicar'}
               </button>
             </div>
           </div>
 
-          {/* Info */}
-          <div className="flex items-start gap-3 px-4 py-3.5 bg-slate-900/60 border border-slate-800 rounded-xl text-xs text-slate-500 leading-relaxed shadow-sm">
-            <Megaphone size={14} className="text-slate-600 shrink-0 mt-0.5" />
+          {/* Info card */}
+          <div className="flex items-start gap-3 rounded-2xl border border-slate-800 bg-slate-900/40 px-4 py-3.5 text-xs leading-relaxed text-slate-400 shadow-sm backdrop-blur-sm">
+            <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg" style={{ background: 'rgba(212,175,55,0.1)', color: '#D4AF37' }}>
+              <Megaphone size={13} />
+            </span>
             <span>
-              Al guardar con el banner <strong className="text-slate-400">activo</strong> se genera un nuevo identificador de versión (<strong className="text-slate-400">versionId</strong>).
-              Esto dibuja automáticamente una notificación circular sobre el icono del Club en la app del cliente,
-              indicándole la existencia de una novedad comercial en el local.
+              Al guardar el banner <b className="text-slate-200">activo</b> se genera un nuevo{' '}
+              <b className="text-slate-200">versionId</b> que dibuja un punto rojo sobre el ícono
+              del Club en la app del cliente — señal visual de novedad.
             </span>
           </div>
 
