@@ -2,7 +2,7 @@ import { useEffect, useState, type CSSProperties } from 'react';
 import { motion } from 'framer-motion';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { Instagram, Facebook, Youtube, MessageCircle, Mail, Phone, Globe, Music2, Lock, CalendarClock, type LucideIcon } from 'lucide-react';
-import { THEMES, SHAPE_RADIUS, FONTS, TSIZE, SSIZE, TWEIGHT, TSPACE, TSHADOW, bgCss, bgAnimStyle, bgFxKind, bgFxVars, bgFxHasBlobs, loadFont } from '../lib/theme';
+import { THEMES, SHAPE_RADIUS, FONTS, TSIZE, SSIZE, TWEIGHT, TSPACE, bgCss, bgAnimStyle, bgFxKind, bgFxVars, bgFxHasBlobs, loadFont } from '../lib/theme';
 import { embedSrc, socUrl } from '../lib/blocks';
 import { startCheckout } from '../lib/payments';
 import { db } from '../lib/firebase';
@@ -95,7 +95,6 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
   const itemsAlign: 'items-start' | 'items-center' | 'items-end' =
     align === 'left' ? 'items-start' : align === 'right' ? 'items-end' : 'items-center';
   const textAlign: 'left' | 'center' | 'right' = align;
-  const shadowCss = TSHADOW[txt.shadow ?? 'none'];
   const subWeight = TWEIGHT[txt.subWeight ?? 'normal'];
 
   return (
@@ -142,8 +141,12 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
             : <span className="text-3xl font-extrabold leading-none text-neutral-400">{initial}</span>}
         </div>
 
+        {/* Texto PLANO en el emulador. Sin textShadow ni drop-shadow ni filtros:
+            en la escala chica del phone-frame, cualquier sombra de texto se
+            ve como un blur. Antialiasing forzado a 'antialiased' (Webkit) y
+            'grayscale' (Moz) para nitidez tipo Apple/Vercel. */}
         <h2
-          className="mt-4"
+          className="mt-4 antialiased subpixel-antialiased"
           style={{
             color: titleColor,
             fontSize: TSIZE[txt.titleSize],
@@ -151,8 +154,9 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
             textTransform: txt.caps === 'upper' ? 'uppercase' : 'none',
             letterSpacing: TSPACE[txt.spacing],
             fontStyle: txt.italic ? 'italic' : 'normal',
-            textShadow: shadowCss,
             textAlign,
+            WebkitFontSmoothing: 'antialiased',
+            MozOsxFontSmoothing: 'grayscale',
           }}
         >
           {shown}
@@ -168,7 +172,9 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
         </h2>
         {profile.subtitulo && (
           // Paridad con .sub: max-width 34ch, line-height 1.45, margin-top 6px.
+          // Sin textShadow — texto plano y nítido.
           <p
+            className="antialiased"
             style={{
               color: subColor,
               fontSize: SSIZE[txt.subSize],
@@ -177,6 +183,8 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
               maxWidth: '34ch',
               lineHeight: 1.45,
               marginTop: '6px',
+              WebkitFontSmoothing: 'antialiased',
+              MozOsxFontSmoothing: 'grayscale',
             }}
           >
             {profile.subtitulo}
@@ -195,12 +203,14 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
           {reservasOn && (
             <button
               type="button"
-              className="col-span-2 flex items-center justify-center gap-2 px-5 py-4 font-extrabold text-[15px] tracking-[-0.01em] text-white shadow-[0_8px_22px_rgba(0,0,0,0.18)] transition-transform active:scale-[0.98]"
-              style={{ background: '#15240b', borderRadius: radius, color: '#fff' }}
+              className="relative col-span-2 flex w-full items-center justify-center font-extrabold text-[15px] tracking-[-0.01em] text-white shadow-[0_8px_22px_rgba(0,0,0,0.18)] transition-transform active:scale-[0.98]"
+              style={{ background: '#15240b', borderRadius: radius, color: '#fff', padding: '17px 18px' }}
               title="Vista previa: tu cliente verá este botón en bioo.cl"
             >
-              <CalendarClock size={18} strokeWidth={2} />
-              Reservar hora
+              <div className="absolute left-4 flex items-center justify-center" aria-hidden>
+                <CalendarClock size={18} strokeWidth={2} />
+              </div>
+              <span className="leading-none">Reservar hora</span>
             </button>
           )}
           {visible.length === 0 && !reservasOn && (
@@ -342,27 +352,30 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
                 </div>
               );
             }
-            // size === 'full' → ícono ANCLADO a la izquierda en su propio
-            // contenedor absoluto; el texto queda perfectamente centrado vía
-            // justify-center sin depender del ancho del ícono. Estructura y
-            // métricas (padding 17/18, font 15.5/700) calcadas de u.html.
+            // size === 'full' → ESTRUCTURA EXACTA "Pixel Polish":
+            //   <div class="relative flex items-center justify-center w-full ...">
+            //     <div class="absolute left-4 flex items-center justify-center">
+            //       <img ... />
+            //     </div>
+            //     <span>{text}</span>
+            //   </div>
+            // El ícono queda anclado a la izquierda en su propio div absoluto;
+            // el texto se centra independientemente del ancho del ícono.
             return (
               <div
                 key={b.id}
-                className={`relative col-span-2 flex w-full items-center justify-center text-center ${common}`}
+                className={`relative col-span-2 flex w-full items-center justify-center text-center antialiased ${common}`}
                 style={{
                   ...styleObj,
                   padding: '17px 18px',
                   fontSize: '15.5px',
                   fontWeight: 700,
+                  WebkitFontSmoothing: 'antialiased',
+                  MozOsxFontSmoothing: 'grayscale',
                 }}
               >
                 {hasThumb && (
-                  <div
-                    className="absolute top-1/2 flex -translate-y-1/2 items-center justify-center"
-                    style={{ left: '10px' }}
-                    aria-hidden
-                  >
+                  <div className="absolute left-3 flex items-center justify-center" aria-hidden>
                     <img
                       src={b.thumb}
                       alt=""
@@ -371,11 +384,7 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
                   </div>
                 )}
                 {hasTipoIcon && (
-                  <div
-                    className="absolute top-1/2 flex -translate-y-1/2 items-center justify-center"
-                    style={{ left: '14px' }}
-                    aria-hidden
-                  >
+                  <div className="absolute left-4 flex items-center justify-center" aria-hidden>
                     <img
                       src={`/ic-${b.tipo}-orig.png`}
                       alt=""
