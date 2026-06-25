@@ -4,11 +4,14 @@
 //                     completar, cancelar).
 
 import { useEffect, useMemo, useState } from 'react';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { onAuthStateChanged } from 'firebase/auth';
 import {
   CalendarClock, Scissors, CalendarX, Settings, Plus, Trash2,
   Loader2, Check, AlertCircle, Power, MessageCircle, X as XIcon,
-  CheckCircle2, ListChecks, Inbox, Phone, Sparkles, Zap,
+  CheckCircle2, ListChecks, Inbox, Phone, Sparkles, Zap, Rocket,
 } from 'lucide-react';
+import { auth, db } from '../lib/firebase';
 import { useEditor } from '../store';
 import { Card, Field, inputBase } from '../ui';
 import {
@@ -97,11 +100,45 @@ function TabBar({
 /* ════════════════════════════════════════════════════════════════
    CONFIGURACIÓN
    ════════════════════════════════════════════════════════════════ */
+type BioState = 'loading' | 'noHandle' | 'noBio' | 'wrongOwner' | 'ready';
+
 function ConfigView({ username }: { username: string }): JSX.Element {
   const [cfg, setCfg] = useState<ReservasConfig | null>(null);
   const [loadErr, setLoadErr] = useState(false);
   const [status, setStatus] = useState<SaveStatus>('idle');
+  const [saveErrMsg, setSaveErrMsg] = useState<string>('');
   const [dirty, setDirty] = useState(false);
+
+  // ── Gate: para escribir en /bios/{u}/reservasConfig las reglas exigen que
+  // /bios/{u} EXISTA con uid = currentUser. Si todavía no se publica la bioo
+  // (botón "Guardar página" arriba), cualquier save acá rebota con
+  // permission-denied. Vigilamos en vivo para destrabar el gate sin recargar.
+  const [bioState, setBioState] = useState<BioState>('loading');
+  useEffect(() => {
+    if (!username || username === 'tunombre') { setBioState('noHandle'); return; }
+
+    let unsubBio: (() => void) | null = null;
+    const subscribe = (): void => {
+      const uid = auth.currentUser?.uid || null;
+      if (!uid) { setBioState('loading'); return; }
+      if (unsubBio) { unsubBio(); unsubBio = null; }
+      unsubBio = onSnapshot(
+        doc(db, 'bios', username),
+        (snap) => {
+          if (!snap.exists()) { setBioState('noBio'); return; }
+          const docUid = snap.get('uid');
+          setBioState(docUid === uid ? 'ready' : 'wrongOwner');
+        },
+        (e) => { console.error('[reservas] bio snapshot:', e); setBioState('noBio'); },
+      );
+    };
+    subscribe();
+    const unsubAuth = onAuthStateChanged(auth, subscribe);
+    return (): void => {
+      if (unsubBio) unsubBio();
+      unsubAuth();
+    };
+  }, [username]);
 
   useEffect(() => {
     let alive = true;
@@ -120,11 +157,13 @@ function ConfigView({ username }: { username: string }): JSX.Element {
     setCfg((prev) => (prev ? { ...prev, ...p } : prev));
     setDirty(true);
     setStatus('idle');
+    setSaveErrMsg('');
   }
 
   async function handleSave(): Promise<void> {
     if (!cfg) return;
     setStatus('saving');
+    setSaveErrMsg('');
     try {
       await saveReservasConfig(username, cfg);
       setStatus('saved');
@@ -132,6 +171,17 @@ function ConfigView({ username }: { username: string }): JSX.Element {
       setTimeout(() => setStatus('idle'), 2200);
     } catch (e) {
       console.error('[reservas] error al guardar:', e);
+      const code = (e as { code?: string })?.code || '';
+      if (code === 'permission-denied') {
+        setSaveErrMsg(
+          'Para activar tus reservas primero tienes que publicar tu bioo. ' +
+          'Toca "Guardar página" arriba a la derecha y vuelve acá.',
+        );
+      } else if (code === 'unauthenticated' || (e as Error)?.message === 'not-authenticated') {
+        setSaveErrMsg('Tu sesión se cerró. Refresca la página e intenta de nuevo.');
+      } else {
+        setSaveErrMsg('No pudimos guardar. Verifica tu conexión e intenta otra vez.');
+      }
       setStatus('error');
       setTimeout(() => setStatus('idle'), 2500);
     }
@@ -148,12 +198,19 @@ function ConfigView({ username }: { username: string }): JSX.Element {
     );
   }
 
-  if (!cfg) {
+  if (!cfg || bioState === 'loading') {
     return (
       <div className="flex items-center justify-center py-20 text-neutral-400">
         <Loader2 size={20} className="animate-spin" />
       </div>
     );
+  }
+
+  if (bioState === 'noHandle' || bioState === 'noBio') {
+    return <PublicaPrimero variant={bioState} />;
+  }
+  if (bioState === 'wrongOwner') {
+    return <CuentaDistinta />;
   }
 
   return (
@@ -172,6 +229,13 @@ function ConfigView({ username }: { username: string }): JSX.Element {
       <HorarioCard cfg={cfg} patch={patch} />
       <BloqueosCard cfg={cfg} patch={patch} />
       <AvanzadoCard cfg={cfg} patch={patch} />
+
+      {saveErrMsg && (
+        <div className="flex items-start gap-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <AlertCircle size={16} className="mt-0.5 shrink-0" />
+          <span className="leading-snug">{saveErrMsg}</span>
+        </div>
+      )}
 
       {/* Barra de guardado sticky — en móvil se eleva por encima del bottom-nav */}
       <div
@@ -197,6 +261,44 @@ function ConfigView({ username }: { username: string }): JSX.Element {
         </button>
       </div>
     </div>
+  );
+}
+
+/* ── Gates: cuando aún no es posible escribir en /bios/{u}/reservasConfig ── */
+function PublicaPrimero({ variant }: { variant: 'noHandle' | 'noBio' }): JSX.Element {
+  const titulo = variant === 'noHandle'
+    ? 'Primero elige tu nombre de bioo'
+    : 'Primero publica tu bioo';
+  const cuerpo = variant === 'noHandle'
+    ? 'Necesitamos saber qué nombre quieres en bioo.cl/tu-nombre antes de activar tus reservas. Vuelve a Enlaces o Perfil y guarda tu página para reservar tu URL.'
+    : 'Para activar reservas necesitamos tu página creada. Toca el botón "Guardar página" arriba a la derecha para publicarla — solo toma un segundo. Cuando vuelvas, este aviso se va a esfumar solo.';
+  return (
+    <Card>
+      <div className="flex flex-col items-center justify-center gap-3 py-10 text-center">
+        <span className="grid h-14 w-14 place-items-center rounded-full bg-[#92c83a]/15 text-[#52780f]">
+          <Rocket size={26} />
+        </span>
+        <p className="text-base font-bold text-[#15240b]">{titulo}</p>
+        <p className="max-w-[40ch] text-sm leading-relaxed text-neutral-500">
+          {cuerpo}
+        </p>
+        <div className="mt-2 flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700">
+          <Sparkles size={13} /> Solo dura mientras configuras
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+function CuentaDistinta(): JSX.Element {
+  return (
+    <Card icon={AlertCircle} title="Esta bioo no es de esta cuenta">
+      <p className="text-sm leading-relaxed text-neutral-500">
+        El handle que estás editando pertenece a otra cuenta. Inicia sesión con
+        el email original del dueño desde el botón "Iniciar sesión" arriba para
+        gestionar las reservas, o contáctanos si necesitas recuperar el acceso.
+      </p>
+    </Card>
   );
 }
 
