@@ -14,8 +14,19 @@
 <meta name="twitter:image" content="https://bioo.cl/bioo-og.jpg" />
 <meta name="theme-color" content="#F5F5F7" />
 <link rel="icon" href="/bioo-iso.png" />
+<!-- Preconnect a AMBOS hosts de Google Fonts: la CSS sale de googleapis,
+     los woff2 reales salen de gstatic. Sin preconnect a googleapis se pagan
+     2 handshakes TLS serializados (~300 ms en 4G chileno). -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<!-- Carga la fuente SIN bloquear el render: el truco media="print" hace que
+     el browser baje la CSS de forma async; al cargar, onload la activa para
+     todos los medios. Pasamos de 5 pesos a 4 (400/500/700/800) — eliminamos
+     600 que no se usa en el CSS. -->
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800&display=swap" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800&display=swap"
+      media="print" onload="this.media='all'" />
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700;800&display=swap" /></noscript>
 <style>
   :root{
     --green:#92c83a; --green-2:#a3d94a; --green-d:#2c5a17;
