@@ -901,3 +901,12 @@ exports.referidosMarcarConvertido = referidos.referidosMarcarConvertido;
 // Trigger Firestore: avisa por email a Ignacio cuando entra un signup nuevo.
 const referidosAviso = require('./referidos-aviso');
 exports.avisarNuevoReferido = referidosAviso.avisarNuevoReferido;
+
+// ─────────────────────────────────────────────────────────────────
+//  SYNAPTECH lead — captura inbound desde landing pública
+//  (synaptechspa.cl/empieza, link de Instagram). Callable + trigger
+//  email a Ignacio. Ver functions/synaptech-lead.js.
+// ─────────────────────────────────────────────────────────────────
+const synaptechLead = require('./synaptech-lead');
+exports.synaptechCrearLead = synaptechLead.synaptechCrearLead;
+exports.avisarNuevoLead    = synaptechLead.avisarNuevoLead;

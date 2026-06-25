@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>SynapTech · Agenda online + Club de Fidelidad para barberías</title>
+<meta name="theme-color" content="#15240b" />
+<link rel="icon" href="/logo.jpg" />
+<meta name="description" content="La plataforma todo-en-uno para barberías: agenda online con confirmación automática, club de fidelidad por sellos, reseñas Google y panel de barberos." />
+
+<!-- OG / WhatsApp / IG preview -->
+<meta property="og:title" content="SynapTech — Agenda + Club de Fidelidad" />
+<meta property="og:description" content="Activamos tu barbería en 24 h: agenda online, club por sellos, reseñas Google. Cero papeles, cero WhatsApp manual." />
+<meta property="og:image" content="/logo.jpg" />
+<meta property="og:type" content="website" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" />
+
+<style>
+  :root{
+    --green:#92c83a; --green-d:#2c5a17; --ink:#15240b; --soft:#5b6a4e;
+    --field:#f4f6ee; --line:#e3e8d4; --err:#ffb5a3; --ok:#cef07c;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{
+    font-family:'Plus Jakarta Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    background:#0c1108;color:#fff;min-height:100dvh;
+  }
+  body{
+    background:
+      radial-gradient(60% 50% at 50% -10%, rgba(146,200,58,.35), transparent 60%),
+      radial-gradient(80% 60% at 50% 110%, rgba(44,90,23,.55), transparent 70%),
+      #0c1108;
+    min-height:100dvh; display:flex; flex-direction:column;
+  }
+  header{padding:18px 22px;display:flex;align-items:center;justify-content:space-between;}
+  .brand{display:flex;align-items:center;gap:9px;color:#fff;text-decoration:none;font-weight:800;}
+  .brand .logo{display:grid;place-items:center;width:30px;height:30px;border-radius:8px;background:#fff;color:#15240b;font-weight:900;font-size:18px;}
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#0e1208;background:#cef07c;border-radius:999px;padding:6px 12px;}
+  main{flex:1;display:flex;flex-direction:column;align-items:center;padding:8px 20px 40px;}
+  .card{
+    width:100%;max-width:520px;border-radius:28px;
+    background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);
+    backdrop-filter:blur(8px); padding:28px 22px 24px; margin-top:18px;
+    box-shadow:0 30px 80px rgba(0,0,0,.45);
+  }
+  .kicker{
+    font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.22em;
+    color:#cef07c;display:inline-flex;align-items:center;gap:8px;
+  }
+  h1{font-size:32px;font-weight:900;letter-spacing:-1px;line-height:1.04;margin-top:12px;}
+  h1 .accent{
+    background:linear-gradient(90deg,#cef07c,#92c83a);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .lead{margin-top:12px;font-size:15px;color:#c8d3ba;line-height:1.55;}
+  .perks{margin-top:20px;display:grid;grid-template-columns:1fr;gap:10px;}
+  .perk{display:flex;gap:12px;align-items:flex-start;font-size:14px;color:#dbe6cc;}
+  .perk .ico{
+    width:30px;height:30px;border-radius:9px;background:rgba(146,200,58,.18);
+    color:#cef07c;display:grid;place-items:center;flex:0 0 30px;font-weight:900;font-size:16px;
+  }
+  .perk b{color:#fff;}
+
+  .stats{
+    margin-top:22px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;
+    border-top:1px solid rgba(255,255,255,.08);border-bottom:1px solid rgba(255,255,255,.08);
+    padding:14px 0;
+  }
+  .stat{text-align:center;}
+  .stat b{display:block;font-size:22px;font-weight:900;letter-spacing:-.4px;color:#fff;}
+  .stat span{display:block;font-size:11px;color:#a8b69c;text-transform:uppercase;letter-spacing:.1em;margin-top:2px;}
+
+  form{margin-top:22px;display:flex;flex-direction:column;gap:12px;}
+  label{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:700;color:#a8b69c;text-transform:uppercase;letter-spacing:.08em;}
+  input,select,textarea{
+    width:100%;padding:13px 14px;border-radius:12px;
+    background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);
+    color:#fff;font-size:16px;font-family:inherit;outline:none;
+    transition:border-color .15s, background .15s;
+  }
+  input::placeholder,textarea::placeholder{color:rgba(255,255,255,.4);}
+  input:focus,select:focus,textarea:focus{border-color:#cef07c;background:rgba(255,255,255,.10);}
+  textarea{resize:none;min-height:80px;}
+  select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23cef07c' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:40px;}
+  select option{color:#15240b;}
+
+  .submit{
+    margin-top:8px;height:56px;border:0;border-radius:14px;
+    background:linear-gradient(180deg,#cef07c,#92c83a);
+    color:#15240b;font-size:16px;font-weight:900;letter-spacing:-.2px;cursor:pointer;
+    transition:transform .12s, box-shadow .15s, opacity .15s;
+    box-shadow:0 12px 32px -10px rgba(146,200,58,.7);
+  }
+  .submit:active{transform:scale(.98);}
+  .submit:disabled{opacity:.55;cursor:not-allowed;box-shadow:none;}
+  .msg{margin-top:14px;font-size:13px;font-weight:700;min-height:18px;text-align:center;}
+  .msg.err{color:#ffb5a3;}
+  .legal{margin-top:14px;font-size:11px;color:#7c8a6f;text-align:center;line-height:1.5;}
+  .legal a{color:#a8b69c;}
+
+  .done{text-align:center;padding:14px 4px 4px;}
+  .done .ok-circle{
+    width:74px;height:74px;border-radius:50%;background:#cef07c;color:#15240b;
+    margin:6px auto 16px;display:grid;place-items:center;font-size:38px;font-weight:900;
+  }
+  .done h2{font-size:24px;font-weight:900;letter-spacing:-.6px;}
+  .done p{margin-top:8px;font-size:14px;color:#c8d3ba;line-height:1.5;}
+  .done .wa{
+    display:flex;align-items:center;justify-content:center;gap:10px;
+    margin-top:18px;height:54px;border-radius:14px;background:#25D366;color:#fff;
+    text-decoration:none;font-weight:800;font-size:15px;
+  }
+  .done .ig{
+    display:flex;align-items:center;justify-content:center;gap:10px;
+    margin-top:10px;height:50px;border-radius:14px;
+    background:linear-gradient(135deg,#feda75,#d62976 50%,#4f5bd5);
+    color:#fff;text-decoration:none;font-weight:800;font-size:14px;
+  }
+
+  .spin{
+    display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);
+    border-top-color:#15240b;border-radius:50%;animation:sp .7s linear infinite;
+    vertical-align:-3px;margin-right:7px;
+  }
+  @keyframes sp{to{transform:rotate(360deg);}}
+  footer{padding:18px 22px 26px;text-align:center;color:#6e7c61;font-size:11px;}
+  footer a{color:#a8b69c;text-decoration:none;}
+
+  @media (min-width:560px){
+    .perks{grid-template-columns:1fr 1fr;}
+    .perks .perk:first-child{grid-column:1 / -1;}
+  }
+</style>
+</head>
+<body>
+  <header>
+    <a class="brand" href="/">
+      <span class="logo">S</span><span>SynapTech</span>
+    </a>
+    <span class="pill">Activación 24 h</span>
+  </header>
+
+  <main>
+    <div class="card" id="card">
+      <span class="kicker"><span>✦</span> Plataforma para barberías</span>
+      <h1>Agenda online + <span class="accent">club de fidelidad</span> para tu barbería.</h1>
+      <p class="lead">
+        SynapTech reemplaza el WhatsApp manual: agenda con confirmación automática,
+        recordatorios, club de fidelidad por sellos, reseñas en Google y panel para
+        cada barbero. <b style="color:#fff">Activamos tu barbería en 24 h</b> —
+        nosotros la configuramos por ti.
+      </p>
+
+      <div class="perks">
+        <div class="perk"><span class="ico">📅</span><span><b>Agenda online 24/7.</b> Confirmación + recordatorio automáticos al cliente. Menos no-shows.</span></div>
+        <div class="perk"><span class="ico">⭐</span><span><b>Club de fidelidad por sellos.</b> Premios y rangos automáticos.</span></div>
+        <div class="perk"><span class="ico">🔔</span><span><b>Reseñas Google integradas.</b> Pides la opinión al final de cada cita.</span></div>
+        <div class="perk"><span class="ico">💸</span><span><b>Pagos con MercadoPago.</b> Cobras y reservas en el mismo flujo.</span></div>
+      </div>
+
+      <div class="stats">
+        <div class="stat"><b>14+</b><span>Barberías activas</span></div>
+        <div class="stat"><b>24 h</b><span>Activación</span></div>
+        <div class="stat"><b>0</b><span>Tarjeta para empezar</span></div>
+      </div>
+
+      <form id="f">
+        <label>Tu nombre
+          <input id="name" type="text" placeholder="Juan Pérez" required autocomplete="name" />
+        </label>
+        <label>Nombre de tu barbería
+          <input id="barberia" type="text" placeholder="Barbería Centro" required autocomplete="organization" />
+        </label>
+        <label>WhatsApp
+          <input id="phone" type="tel" placeholder="+56 9 1234 5678" required inputmode="tel" autocomplete="tel" />
+        </label>
+        <label>Email (opcional)
+          <input id="email" type="email" placeholder="tu@email.com" autocomplete="email" />
+        </label>
+        <label>Ciudad / comuna
+          <input id="city" type="text" placeholder="Viña del Mar" autocomplete="address-level2" />
+        </label>
+        <label>¿Cuántos barberos atienden?
+          <select id="barbers">
+            <option value="">Selecciona…</option>
+            <option value="solo">Solo yo</option>
+            <option value="2-3">2 a 3</option>
+            <option value="4-7">4 a 7</option>
+            <option value="8+">8 o más</option>
+          </select>
+        </label>
+        <label>¿Algo que quieras contarnos?
+          <textarea id="message" placeholder="Qué sistema usas hoy, qué problema quieres resolver…"></textarea>
+        </label>
+        <button class="submit" id="sb" type="submit">
+          Quiero activar mi barbería →
+        </button>
+        <p class="msg" id="msg"></p>
+        <p class="legal">
+          Al enviar aceptas que te contactemos por WhatsApp para coordinar tu activación.
+          No spam. <a href="https://wa.me/56983568212" target="_blank" rel="noopener">¿Prefieres escribirnos directo?</a>
+        </p>
+      </form>
+
+      <div class="done" id="done" style="display:none;">
+        <div class="ok-circle">✓</div>
+        <h2>¡Genial! Te contactaremos en menos de 24 h.</h2>
+        <p>Mientras tanto, escríbenos al WhatsApp para acelerar tu activación.</p>
+        <a class="wa" id="waLink" href="#" target="_blank" rel="noopener">
+          Hablar por WhatsApp →
+        </a>
+        <a class="ig" href="https://instagram.com/synaptech.app" target="_blank" rel="noopener">
+          Síguenos en Instagram
+        </a>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    Hecho con ♥ en Chile · <a href="https://synaptechspa.cl">synaptechspa.cl</a> · <a href="https://wa.me/56983568212">+56 9 8356 8212</a>
+  </footer>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-functions-compat.js"></script>
+  <script src="/firebase-config.js"></script>
+  <script>
+  (function(){
+    'use strict';
+
+    var ui = {
+      sb:   document.getElementById('sb'),
+      msg:  document.getElementById('msg'),
+      done: document.getElementById('done'),
+      form: document.getElementById('f'),
+      wa:   document.getElementById('waLink'),
+    };
+
+    function err(text){ ui.msg.className = 'msg err'; ui.msg.textContent = text; }
+    function clearMsg(){ ui.msg.textContent = ''; ui.msg.className = 'msg'; }
+
+    // ── Source / atribución: ?src=ig | ?src=stories | ?src=bio | ... ───
+    var params = new URLSearchParams(location.search);
+    var source = String(params.get('src') || params.get('source') || '').slice(0, 30);
+
+    var fns = firebase.functions();
+
+    ui.form.addEventListener('submit', function(e){
+      e.preventDefault();
+      clearMsg();
+      var payload = {
+        name:     document.getElementById('name').value,
+        barberia: document.getElementById('barberia').value,
+        phone:    document.getElementById('phone').value,
+        email:    document.getElementById('email').value,
+        city:     document.getElementById('city').value,
+        barbers:  document.getElementById('barbers').value,
+        message:  document.getElementById('message').value,
+        source:   source || 'direct',
+      };
+      if (!payload.name || !payload.barberia || !payload.phone) {
+        err('Completa nombre, barbería y WhatsApp.');
+        return;
+      }
+      ui.sb.disabled = true;
+      ui.sb.innerHTML = '<span class="spin"></span>Enviando…';
+
+      var call = fns.httpsCallable('synaptechCrearLead');
+      call(payload).then(function(){
+        ui.form.style.display = 'none';
+        ui.done.style.display = 'block';
+        var waText = encodeURIComponent(
+          'Hola SynapTech ✦ Soy ' + payload.name + ' de ' + payload.barberia +
+          (payload.city ? ' (' + payload.city + ')' : '') +
+          '. Acabo de llenar el formulario, quiero activar mi agenda.'
+        );
+        ui.wa.href = 'https://wa.me/56983568212?text=' + waText;
+      }).catch(function(e){
+        ui.sb.disabled = false;
+        ui.sb.innerHTML = 'Quiero activar mi barbería →';
+        err((e && e.message) ? e.message : 'No pudimos enviar tu solicitud. Intenta otra vez.');
+      });
+    });
+  })();
+  </script>
+</body>
+</html>

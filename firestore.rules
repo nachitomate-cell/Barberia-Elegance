@@ -151,6 +151,16 @@ service cloud.firestore {
     }
 
     // ═══════════════════════════════════════════════════════════════
+    //  _synaptechLeads — captura de leads inbound (landing pública
+    //  synaptechspa.cl/empieza, sin código de referido).
+    //  Solo super-admin lee. Escrituras vía Cloud Function callable.
+    // ═══════════════════════════════════════════════════════════════
+    match /_synaptechLeads/{leadId} {
+      allow read:  if esBootstrap();
+      allow write: if esBootstrap();
+    }
+
+    // ═══════════════════════════════════════════════════════════════
     //  ELEGANCE — colecciones raíz (tenant legacy/predeterminado)
     // ═══════════════════════════════════════════════════════════════
 
