@@ -30,6 +30,8 @@ export default function Share(): JSX.Element {
     text: `¡Mira mi nuevo perfil en bioo.cl! ${url}`,
     filename: `bioo-${state.username || 'mi-perfil'}.png`,
     pixelRatio: 2,
+    backgroundColor: '#ffffff',
+    logging: true, // verbose en consola — útil mientras estabilizamos la captura
   });
 
   const copy = async (): Promise<void> => {
