@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import {
   Images, Trash2, Upload, Plus, GripVertical, Power, AlertTriangle,
   Crosshair, Heart, Sparkles, Eye, ImagePlus, Loader2, Check, X,
+  Instagram, Infinity as InfinityIcon, ArrowRight,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
@@ -265,6 +266,9 @@ export default function Lookbook() {
           onTurnOnAsk={() => setConfirmOn(true)}
         />
       )}
+
+      {/* ─────── BANNER INSTAGRAM (imágenes ilimitadas) ─────── */}
+      <InstagramConnectCard />
 
       {/* ─────── PROGRESO DE SUBIDA ─────── */}
       <AnimatePresence>
@@ -531,6 +535,89 @@ function ActivationCard({ activo, onTurnOff, onTurnOnAsk }) {
           }`}
         >
           {activo ? 'Desactivar' : 'Activar'}
+        </button>
+      </div>
+    </motion.div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════
+   Conecta tu Instagram — imágenes ilimitadas (banner upgrade)
+   ════════════════════════════════════════════════════════════════ */
+function InstagramConnectCard() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, delay: 0.05 }}
+      className="relative overflow-hidden rounded-2xl border p-4 sm:p-5 backdrop-blur-sm"
+      style={{
+        background:
+          'linear-gradient(135deg, rgba(225,48,108,0.10) 0%, rgba(131,58,180,0.08) 50%, rgba(15,23,42,0.6) 100%)',
+        borderColor: 'rgba(225,48,108,0.25)',
+      }}
+    >
+      {/* halo IG (gradient pink → purple) */}
+      <motion.div
+        aria-hidden
+        className="hero-halo-soft pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full"
+        style={{
+          background: 'radial-gradient(circle, rgba(225,48,108,0.30) 0%, rgba(131,58,180,0.18) 50%, transparent 75%)',
+          filter: 'blur(22px)',
+        }}
+        animate={{ opacity: [0.55, 0.85, 0.55] }}
+        transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
+      />
+
+      <div className="relative flex flex-col items-start gap-3 sm:flex-row sm:items-center">
+        {/* Icono IG con gradient brand */}
+        <div className="relative shrink-0">
+          <div
+            className="grid h-12 w-12 place-items-center rounded-2xl text-white shadow-lg"
+            style={{
+              background: 'linear-gradient(135deg, #feda75 0%, #fa7e1e 25%, #d62976 50%, #962fbf 75%, #4f5bd5 100%)',
+              boxShadow: '0 8px 22px -6px rgba(214, 41, 118, 0.55)',
+            }}
+          >
+            <Instagram size={22} strokeWidth={2.2} />
+          </div>
+          {/* mini badge infinity */}
+          <span
+            className="absolute -bottom-1.5 -right-1.5 grid h-6 w-6 place-items-center rounded-full bg-lime-400 text-emerald-950 ring-2 ring-slate-900 shadow-md"
+            aria-hidden
+          >
+            <InfinityIcon size={11} strokeWidth={3} />
+          </span>
+        </div>
+
+        {/* Copy */}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-black text-white sm:text-base">
+              Conecta tu Instagram
+            </p>
+            <span className="inline-flex items-center gap-1 rounded-full bg-lime-400/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-lime-300 ring-1 ring-lime-400/30">
+              <Sparkles size={9} /> Imágenes ilimitadas
+            </span>
+          </div>
+          <p className="mt-1 text-xs leading-relaxed text-slate-300/85">
+            Sincroniza tus últimos posts y reels — sin límite de 8 fotos.
+            Tu Lookbook se actualiza solo cada vez que publicas en IG.
+          </p>
+        </div>
+
+        {/* CTA */}
+        <button
+          type="button"
+          onClick={() => alert('Próximamente — conexión OAuth con Instagram.')}
+          className="group inline-flex shrink-0 items-center gap-1.5 self-stretch rounded-xl px-4 py-2.5 text-xs font-extrabold text-white shadow-md transition-all hover:scale-[1.02] active:scale-95 sm:self-center"
+          style={{
+            background: 'linear-gradient(135deg, #d62976 0%, #962fbf 100%)',
+            boxShadow: '0 6px 18px -6px rgba(214, 41, 118, 0.55)',
+          }}
+        >
+          Conectar
+          <ArrowRight size={13} className="transition-transform group-hover:translate-x-0.5" />
         </button>
       </div>
     </motion.div>
