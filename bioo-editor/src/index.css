@@ -72,8 +72,11 @@ input, select, textarea, button { font-size: 16px; }
    shader real de u.html — este módulo NO se adapta al tema. */
 .bgfx-gasgiant{background:radial-gradient(ellipse at 30% 30%,#4ee61a,transparent 55%),radial-gradient(ellipse at 70% 70%,#e66600,transparent 55%),#053d0d;}
 .bgfx-gasgiant::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 55% 50%,rgba(178,255,77,.18),transparent 35%),conic-gradient(from 200deg at 60% 50%,transparent 0deg,rgba(178,255,77,.10) 70deg,transparent 160deg);mix-blend-mode:screen;}
-.bgfx-grid{background-color:var(--base,#15240b);background-image:linear-gradient(var(--line,rgba(255,255,255,.14)) 1px,transparent 1px),linear-gradient(90deg,var(--line,rgba(255,255,255,.14)) 1px,transparent 1px);background-size:26px 26px;animation:fxScroll 22s linear infinite;}
-.bgfx-dots{background-color:var(--base,#15240b);background-image:radial-gradient(var(--line,rgba(255,255,255,.22)) 1.6px,transparent 1.8px);background-size:22px 22px;animation:fxScroll 28s linear infinite;}
+/* Grid/dots: variable propia --grid-line (NO --line, que en u.html es
+   border cremoso de la UI del share modal). Alpha bajo para máxima
+   legibilidad del texto encima — paridad pixel con u.html. */
+.bgfx-grid{background-color:var(--base,#15240b);background-image:linear-gradient(var(--grid-line,rgba(255,255,255,.08)) 1px,transparent 1px),linear-gradient(90deg,var(--grid-line,rgba(255,255,255,.08)) 1px,transparent 1px);background-size:26px 26px;animation:fxScroll 22s linear infinite;}
+.bgfx-dots{background-color:var(--base,#15240b);background-image:radial-gradient(var(--grid-line,rgba(255,255,255,.14)) 1.6px,transparent 1.8px);background-size:22px 22px;animation:fxScroll 28s linear infinite;}
 .bgfx-diag{background-color:var(--base,#15240b);background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.10) 0 10px,transparent 10px 20px);}
 @keyframes fxScroll{from{background-position:0 0}to{background-position:0 -260px}}
 .bgfx-topo{background-color:var(--base,#15240b);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cg fill='none' stroke='%23ffffff' stroke-opacity='0.16' stroke-width='1.5'%3E%3Cpath d='M0 60 Q 75 20 150 60 T 300 60'/%3E%3Cpath d='M0 110 Q 75 70 150 110 T 300 110'/%3E%3Cpath d='M0 160 Q 75 120 150 160 T 300 160'/%3E%3Cpath d='M0 210 Q 75 170 150 210 T 300 210'/%3E%3Cpath d='M0 260 Q 75 220 150 260 T 300 260'/%3E%3C/g%3E%3C/svg%3E");background-size:300px;background-repeat:repeat;}
