@@ -89,19 +89,19 @@ export default function Leads(): JSX.Element {
 
       {leads && count > 0 && (
         <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/[0.04]">
-          <div className="max-h-[60vh] overflow-y-auto">
-            <table className="w-full border-collapse text-sm">
+          <div className="max-h-[60dvh] overflow-x-auto overflow-y-auto">
+            <table className="w-full min-w-[420px] border-collapse text-sm">
               <thead className="sticky top-0 z-10 bg-neutral-50/95 backdrop-blur">
                 <tr className="text-left text-xs font-bold uppercase tracking-wider text-neutral-400">
-                  <th className="px-4 py-3">Email</th>
-                  <th className="px-4 py-3">Fecha de suscripción</th>
+                  <th className="whitespace-nowrap px-4 py-3">Email</th>
+                  <th className="whitespace-nowrap px-4 py-3">Fecha de suscripción</th>
                 </tr>
               </thead>
               <tbody>
                 {leads.map((l) => (
                   <tr key={l.id} className="border-t border-neutral-100 transition-colors hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium text-neutral-800">{l.email}</td>
-                    <td className="px-4 py-3 text-neutral-500">{l.ts ? fmt.format(l.ts) : '—'}</td>
+                    <td className="whitespace-nowrap px-4 py-3 font-medium text-neutral-800">{l.email}</td>
+                    <td className="whitespace-nowrap px-4 py-3 text-neutral-500">{l.ts ? fmt.format(l.ts) : '—'}</td>
                   </tr>
                 ))}
               </tbody>

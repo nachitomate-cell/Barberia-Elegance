@@ -208,6 +208,70 @@
   .cta-out{background:#fff;color:var(--ink);border:1.5px solid #d7ddc9;}
   .copied{position:fixed;left:50%;bottom:26px;transform:translateX(-50%);background:var(--ink);color:#fff;font-weight:700;font-size:13px;padding:10px 18px;border-radius:100px;z-index:40;opacity:0;transition:.2s;pointer-events:none;}
   .copied.show{opacity:1;}
+
+  /* ── Módulo Reservas (paso 2) ─────────────────────────────────── */
+  /* CTA prominente en la bio cuando el barbero tiene reservas activas. */
+  .rsv-cta{grid-column:1 / -1;display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:18px 20px;border:none;cursor:pointer;background:#15240b;color:#fff;font-weight:800;font-size:15.5px;letter-spacing:-.01em;box-shadow:0 8px 22px rgba(0,0,0,.18);transition:transform .15s,box-shadow .15s;}
+  .rsv-cta:active{transform:scale(.98);}
+  .rsv-cta:hover{box-shadow:0 12px 28px rgba(0,0,0,.22);}
+  .rsv-cta svg{width:20px;height:20px;flex:0 0 20px;}
+  /* Modal de reservas */
+  .rsv-modal{position:fixed;inset:0;background:rgba(15,28,8,.75);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:50;display:flex;align-items:flex-end;justify-content:center;padding:0;}
+  .rsv-sheet{width:100%;max-width:520px;max-height:92dvh;background:#fff;border-radius:22px 22px 0 0;display:flex;flex-direction:column;animation:rsvSlideUp .25s cubic-bezier(.2,.8,.2,1);overflow:hidden;}
+  @media (min-width:520px){ .rsv-modal{align-items:center;padding:24px;} .rsv-sheet{border-radius:22px;max-height:84dvh;} }
+  @keyframes rsvSlideUp{from{transform:translateY(28px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+  .rsv-head{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid #eceee6;background:#fff;flex:0 0 auto;}
+  .rsv-head .rsv-title{flex:1;text-align:center;font-weight:800;font-size:16px;color:var(--ink);letter-spacing:-.2px;}
+  .rsv-back,.rsv-close{width:36px;height:36px;border-radius:50%;border:0;background:#f3f5ec;color:var(--ink);font-size:16px;font-weight:700;cursor:pointer;display:grid;place-items:center;transition:background .15s;}
+  .rsv-back:hover,.rsv-close:hover{background:#e6ebd9;}
+  .rsv-body{flex:1 1 auto;overflow-y:auto;padding:18px;background:#fafaf6;}
+  .rsv-loading{display:flex;justify-content:center;padding:48px 0;}
+  .rsv-loading .spin{width:28px;height:28px;border:3px solid #d7ddc9;border-top-color:var(--green-d);border-radius:50%;animation:spin 1s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .rsv-empty{padding:36px 16px;text-align:center;color:var(--soft);font-size:14px;line-height:1.6;}
+  .rsv-link{background:none;border:0;color:var(--green-d);font-weight:700;cursor:pointer;font-size:14px;margin-top:10px;}
+  /* Lista de servicios */
+  .rsv-list{list-style:none;display:flex;flex-direction:column;gap:8px;}
+  .rsv-item{width:100%;background:#fff;border:1px solid #eceee6;border-radius:16px;padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all .15s;text-align:left;}
+  .rsv-item:hover{border-color:var(--green);background:#f3fae6;}
+  .rsv-item-main{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0;}
+  .rsv-item-main b{font-size:15px;color:var(--ink);font-weight:700;}
+  .rsv-item-sub{font-size:12.5px;color:var(--soft);}
+  .rsv-item-arr{width:18px;height:18px;color:#9aa48b;flex:0 0 18px;}
+  /* Resumen del servicio elegido */
+  .rsv-svc-mini{background:#fff;border:1px solid #eceee6;border-radius:14px;padding:10px 14px;font-size:12.5px;color:var(--soft);margin-bottom:14px;}
+  .rsv-svc-mini b{color:var(--ink);}
+  /* Grilla de fechas */
+  .rsv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(74px,1fr));gap:8px;}
+  .rsv-day{background:#fff;border:1px solid #eceee6;border-radius:14px;padding:10px 6px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;transition:all .15s;}
+  .rsv-day:hover{border-color:var(--green);background:#f3fae6;transform:translateY(-1px);}
+  .rsv-day-wd{font-size:10.5px;color:var(--soft);text-transform:uppercase;letter-spacing:.04em;font-weight:600;}
+  .rsv-day-n{font-size:22px;font-weight:800;color:var(--ink);line-height:1;}
+  .rsv-day-m{font-size:10.5px;color:var(--soft);text-transform:uppercase;letter-spacing:.04em;font-weight:600;}
+  /* Grilla de horas */
+  .rsv-grid-h{grid-template-columns:repeat(auto-fill,minmax(72px,1fr));}
+  .rsv-slot{background:#fff;border:1px solid #eceee6;border-radius:12px;padding:11px 6px;font-size:14px;font-weight:700;color:var(--ink);cursor:pointer;transition:all .15s;}
+  .rsv-slot:hover{border-color:var(--green);background:var(--green);color:var(--ink);}
+  /* Form / resumen / éxito */
+  .rsv-summary{background:#fff;border:1px solid #eceee6;border-radius:14px;padding:12px 14px;margin-bottom:16px;display:flex;flex-direction:column;gap:8px;}
+  .rsv-summary-row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;font-size:13px;}
+  .rsv-summary-row span{color:var(--soft);}
+  .rsv-summary-row b{color:var(--ink);font-weight:700;text-align:right;}
+  .rsv-form{display:flex;flex-direction:column;gap:12px;}
+  .rsv-form label{display:flex;flex-direction:column;gap:6px;font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--soft);}
+  .rsv-input{padding:13px 14px;border-radius:12px;border:1px solid #d7ddc9;background:#fff;font-size:15px;color:var(--ink);outline:none;transition:border-color .15s,box-shadow .15s;font-family:inherit;}
+  .rsv-input:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(146,200,58,.18);}
+  .rsv-error{background:#fff1f1;color:#b91c1c;border-radius:10px;padding:9px 12px;font-size:13px;font-weight:600;}
+  .rsv-btn-primary{margin-top:4px;width:100%;background:var(--green-d);color:#fff;border:0;border-radius:14px;padding:15px 16px;font-size:15px;font-weight:800;cursor:pointer;transition:transform .12s,opacity .15s;}
+  .rsv-btn-primary:hover{transform:translateY(-1px);}
+  .rsv-btn-primary:active{transform:scale(.98);}
+  .rsv-btn-primary:disabled{opacity:.6;cursor:not-allowed;transform:none;}
+  .rsv-success{display:flex;flex-direction:column;align-items:center;text-align:center;padding:14px 4px 4px;}
+  .rsv-success-ico{width:64px;height:64px;border-radius:50%;background:var(--green);color:var(--ink);display:grid;place-items:center;font-size:30px;font-weight:800;margin-bottom:14px;animation:rsvPop .35s cubic-bezier(.34,1.56,.64,1);}
+  @keyframes rsvPop{0%{transform:scale(.4);opacity:0;}100%{transform:scale(1);opacity:1;}}
+  .rsv-success h3{font-size:20px;font-weight:800;color:var(--ink);letter-spacing:-.3px;margin-bottom:6px;}
+  .rsv-success-sub{font-size:14px;color:var(--soft);line-height:1.5;margin-bottom:18px;max-width:30ch;}
+  .rsv-summary-success{width:100%;margin-bottom:18px;}
 </style>
 <script>
   // iOS Safari ignora maximum-scale/user-scalable=no en el viewport desde iOS 10+
@@ -270,6 +334,20 @@
           <a class="cta-out" href="https://bioo.cl" target="_blank" rel="noopener">Descubre más</a>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- Modal de reservas (paso 2) -->
+  <div class="rsv-modal" id="rsvModal" style="display:none;">
+    <div class="rsv-sheet">
+      <div class="rsv-head">
+        <button id="rsvBack" class="rsv-back" aria-label="Atrás" style="visibility:hidden;">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        </button>
+        <span class="rsv-title" id="rsvTitle">Reservar hora</span>
+        <button id="rsvClose" class="rsv-close" aria-label="Cerrar">✕</button>
+      </div>
+      <div class="rsv-body" id="rsvBody"></div>
     </div>
   </div>
 
@@ -617,13 +695,20 @@
 
     bioRef = db.collection('bios').doc(user);
     handlePaymentReturn(); // si volvemos de Stripe (?session_id), verifica y entrega.
-    bioRef.get().then(function(doc){
+    // Carga en paralelo: bio principal + config de reservas (opcional). Si la
+    // config falla (sin doc / permisos), seguimos sin el CTA de reservas.
+    Promise.all([
+      bioRef.get(),
+      bioRef.collection('reservasConfig').doc('config').get().catch(function(){ return null; }),
+    ]).then(function(results){
+      var doc = results[0], rsvDoc = results[1];
       if (!doc.exists){
         showEmpty('Este nombre está libre', 'bioo.cl/'+user+' aún no existe.',
           '<p style="margin-top:14px;"><a href="https://bioo.cl/registro?u='+encodeURIComponent(user)+'">Reclámalo ahora →</a></p>');
         return;
       }
-      render(doc.data());
+      var rsvCfg = (rsvDoc && rsvDoc.exists) ? rsvDoc.data() : null;
+      render(doc.data(), rsvCfg);
       // Vista (best-effort; si las reglas no lo permiten, falla en silencio).
       bioRef.update({ views: firebase.firestore.FieldValue.increment(1) }).catch(function(){});
     }).catch(function(e){
@@ -631,7 +716,7 @@
       showEmpty('No se pudo cargar', 'Intenta de nuevo en unos segundos.', '');
     });
 
-    function render(data){
+    function render(data, rsvCfg){
       var perfil = data.perfil || {};
       var bloques = (data.bloques||[]).filter(function(b){ if(b.activo===false) return false; if(b.tipo==='separador') return true; if(b.tipo==='texto') return (b.texto||'').trim(); if(b.tipo==='imagen') return (b.img||'').trim(); if(b.tipo==='social') return (b.socials||[]).some(function(s){return (s.valor||'').trim();}); if(b.tipo==='newsletter'||b.tipo==='tip'||b.tipo==='paywall') return true; return (b.url||'').trim(); });
       applySeo(data.seo, perfil);
@@ -748,8 +833,18 @@
           + '</span></div>';
       }
 
-      if (bloques.length){
+      // CTA Reservas: aparece prominente arriba de los bloques cuando el
+      // creador tiene reservas activas y al menos un servicio definido.
+      var hasReservas = !!(rsvCfg && rsvCfg.activo === true && (rsvCfg.servicios||[]).filter(function(s){ return s && s.nombre && s.duracion; }).length > 0);
+
+      if (bloques.length || hasReservas){
         html += '<div class="blocks">';
+        if (hasReservas){
+          html += '<button type="button" class="rsv-cta fade" id="rsvCta" style="animation-delay:.1s;border-radius:'+css.radius+';">'
+                +   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>'
+                +   'Reservar hora'
+                + '</button>';
+        }
         bloques.forEach(function(b, i){
           // Tamaño Bento: solo enlaces e imagen honran half/large; el resto va full.
           var honorsSize = (b.tipo==='imagen') || !({separador:1,texto:1,social:1,embed:1,newsletter:1,tip:1,paywall:1})[b.tipo];
@@ -960,6 +1055,287 @@
       });
 
       setupShare(perfil);
+      if (hasReservas) setupReservas(rsvCfg);
+    }
+
+    // ── Módulo Reservas (paso 2) ───────────────────────────────────
+    // Flujo de toma de citas del visitante (sin login). 4 pasos:
+    //   1) servicio → 2) fecha → 3) hora → 4) datos + confirmar
+    // El submit corre una transacción Firestore atómica que (a) verifica que
+    // el slot esté libre en /disponibilidad/{fecha} y (b) escribe la reserva
+    // en /reservas. Las reglas validan ambos writes; el dueño es el único que
+    // puede leer la lista de reservas (PII queda privada).
+    var DIAS_CORTOS   = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+    var DIAS_LARGOS   = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+    var MESES_CORTOS  = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    var MESES_LARGOS  = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+
+    function rsvIsoFecha(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+    function rsvHhmmToMin(s){ var p=String(s||'').split(':'); return (parseInt(p[0],10)||0)*60 + (parseInt(p[1],10)||0); }
+    function rsvMinToHhmm(m){ return String(Math.floor(m/60)).padStart(2,'0')+':'+String(m%60).padStart(2,'0'); }
+    function rsvFormatFecha(iso){
+      var p=iso.split('-'); var d=new Date(parseInt(p[0],10), parseInt(p[1],10)-1, parseInt(p[2],10));
+      return DIAS_LARGOS[d.getDay()]+' '+d.getDate()+' de '+MESES_LARGOS[d.getMonth()];
+    }
+    function rsvFormatPrecio(n){
+      if (!n || n <= 0) return '';
+      try { return '$' + Number(n).toLocaleString('es-CL'); } catch(e){ return '$'+n; }
+    }
+
+    /** Días que tienen al menos un slot disponible (no bloqueado, con franjas
+     *  configuradas, y al menos parcialmente dentro de la ventana de antelación). */
+    function rsvDiasDisponibles(cfg){
+      var dias = [];
+      var antelacionMs = Math.max(0, cfg.antelacionMinHoras || 0) * 3600 * 1000;
+      var ventana = Math.min(120, Math.max(1, cfg.ventanaDias || 30));
+      var minStart = new Date(Date.now() + antelacionMs);
+      var hoy = new Date(); hoy.setHours(0,0,0,0);
+      var bloqueosSet = {};
+      (cfg.bloqueos || []).forEach(function(b){ if (b && b.fecha) bloqueosSet[b.fecha] = 1; });
+      for (var i = 0; i < ventana; i++){
+        var d = new Date(hoy.getTime() + i * 86400000);
+        var iso = rsvIsoFecha(d);
+        if (bloqueosSet[iso]) continue;
+        var franjas = (cfg.horario && cfg.horario[d.getDay()]) || [];
+        if (!franjas.length) continue;
+        var endMax = 0;
+        franjas.forEach(function(f){ endMax = Math.max(endMax, rsvHhmmToMin(f.hasta)); });
+        var dayEnd = new Date(d.getFullYear(), d.getMonth(), d.getDate(), Math.floor(endMax/60), endMax%60);
+        if (dayEnd < minStart) continue;
+        dias.push(d);
+      }
+      return dias;
+    }
+
+    /** Genera las horas libres de una fecha para un servicio, descontando los
+     *  slots ya tomados (de /disponibilidad/{fecha}). */
+    function rsvGenerarHoras(fechaISO, servicio, cfg, ocupados){
+      var p = fechaISO.split('-');
+      var d = new Date(parseInt(p[0],10), parseInt(p[1],10)-1, parseInt(p[2],10));
+      var franjas = (cfg.horario && cfg.horario[d.getDay()]) || [];
+      var paso = servicio.duracion + (cfg.bufferMin || 0);
+      var minStart = new Date(Date.now() + (cfg.antelacionMinHoras || 0) * 3600 * 1000);
+      var horas = [];
+      franjas.forEach(function(f){
+        var cur = rsvHhmmToMin(f.desde);
+        var end = rsvHhmmToMin(f.hasta);
+        while (cur + servicio.duracion <= end){
+          var slotDate = new Date(d.getFullYear(), d.getMonth(), d.getDate(), Math.floor(cur/60), cur%60);
+          if (slotDate >= minStart){
+            var nStart = cur, nEnd = cur + servicio.duracion;
+            var ocupado = (ocupados||[]).some(function(o){
+              var oStart = rsvHhmmToMin(o.hora);
+              var oEnd = oStart + (o.dur || 0);
+              return nStart < oEnd && nEnd > oStart;
+            });
+            if (!ocupado) horas.push(rsvMinToHhmm(cur));
+          }
+          cur += paso;
+        }
+      });
+      return horas;
+    }
+
+    function setupReservas(cfg){
+      var servicios = (cfg.servicios || []).filter(function(s){ return s && s.nombre && s.duracion; });
+      if (!servicios.length) return;
+      var modal    = document.getElementById('rsvModal');
+      var body     = document.getElementById('rsvBody');
+      var titleEl  = document.getElementById('rsvTitle');
+      var backBtn  = document.getElementById('rsvBack');
+      var closeBtn = document.getElementById('rsvClose');
+      var cta      = document.getElementById('rsvCta');
+      if (!modal || !body || !cta) return;
+
+      var st = nuevoState();
+      function nuevoState(){ return { step:1, servicio:null, fecha:null, hora:null, ocupados:null, nombre:'', wsp:'', reservaId:null }; }
+      function open(){ st = nuevoState(); render(); modal.style.display='flex'; document.body.style.overflow='hidden'; }
+      function close(){ modal.style.display='none'; document.body.style.overflow=''; }
+
+      cta.addEventListener('click', open);
+      closeBtn.addEventListener('click', close);
+      backBtn.addEventListener('click', function(){ if (st.step > 1 && st.step < 5){ st.step--; render(); } });
+      modal.addEventListener('click', function(e){ if (e.target === modal) close(); });
+
+      function render(){
+        backBtn.style.visibility = (st.step > 1 && st.step < 5) ? 'visible' : 'hidden';
+        if (st.step === 1) renderServicios();
+        else if (st.step === 2) renderFechas();
+        else if (st.step === 3) renderHoras();
+        else if (st.step === 4) renderContacto();
+        else if (st.step === 5) renderExito();
+      }
+
+      function renderServicios(){
+        titleEl.textContent = 'Elige un servicio';
+        var html = '<ul class="rsv-list">';
+        servicios.forEach(function(s, i){
+          var precio = rsvFormatPrecio(s.precio);
+          html += '<li><button type="button" class="rsv-item" data-i="'+i+'">'
+               +    '<div class="rsv-item-main"><b>'+esc(s.nombre)+'</b>'
+               +    '<span class="rsv-item-sub">'+s.duracion+' min'+(precio?' · '+precio:'')+'</span></div>'
+               +    '<svg class="rsv-item-arr" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>'
+               +    '</button></li>';
+        });
+        html += '</ul>';
+        body.innerHTML = html;
+        Array.prototype.forEach.call(body.querySelectorAll('.rsv-item'), function(btn){
+          btn.addEventListener('click', function(){
+            st.servicio = servicios[parseInt(btn.getAttribute('data-i'), 10)];
+            st.step = 2; render();
+          });
+        });
+      }
+
+      function renderFechas(){
+        titleEl.textContent = 'Elige el día';
+        var dias = rsvDiasDisponibles(cfg);
+        if (!dias.length){ body.innerHTML = '<div class="rsv-empty">No hay días disponibles por ahora.</div>'; return; }
+        var html = '<div class="rsv-svc-mini">Servicio: <b>'+esc(st.servicio.nombre)+'</b> · '+st.servicio.duracion+' min</div>';
+        html += '<div class="rsv-grid">';
+        dias.forEach(function(d){
+          var iso = rsvIsoFecha(d);
+          html += '<button type="button" class="rsv-day" data-d="'+iso+'">'
+               +    '<span class="rsv-day-wd">'+DIAS_CORTOS[d.getDay()]+'</span>'
+               +    '<span class="rsv-day-n">'+d.getDate()+'</span>'
+               +    '<span class="rsv-day-m">'+MESES_CORTOS[d.getMonth()]+'</span>'
+               +    '</button>';
+        });
+        html += '</div>';
+        body.innerHTML = html;
+        Array.prototype.forEach.call(body.querySelectorAll('.rsv-day'), function(btn){
+          btn.addEventListener('click', function(){
+            st.fecha = btn.getAttribute('data-d');
+            st.step = 3; render();
+          });
+        });
+      }
+
+      function renderHoras(){
+        titleEl.textContent = rsvFormatFecha(st.fecha);
+        body.innerHTML = '<div class="rsv-loading"><div class="spin"></div></div>';
+        bioRef.collection('disponibilidad').doc(st.fecha).get().then(function(doc){
+          st.ocupados = doc.exists ? ((doc.data().ocupados) || []) : [];
+          var horas = rsvGenerarHoras(st.fecha, st.servicio, cfg, st.ocupados);
+          if (!horas.length){
+            body.innerHTML = '<div class="rsv-empty">Sin horas disponibles este día.<br><button type="button" class="rsv-link" id="rsvOtroDia">← Elegir otro día</button></div>';
+            var b = document.getElementById('rsvOtroDia');
+            if (b) b.addEventListener('click', function(){ st.step = 2; render(); });
+            return;
+          }
+          var html = '<div class="rsv-svc-mini">Servicio: <b>'+esc(st.servicio.nombre)+'</b> · '+st.servicio.duracion+' min</div>';
+          html += '<div class="rsv-grid rsv-grid-h">';
+          horas.forEach(function(h){ html += '<button type="button" class="rsv-slot" data-h="'+h+'">'+h+'</button>'; });
+          html += '</div>';
+          body.innerHTML = html;
+          Array.prototype.forEach.call(body.querySelectorAll('.rsv-slot'), function(btn){
+            btn.addEventListener('click', function(){
+              st.hora = btn.getAttribute('data-h');
+              st.step = 4; render();
+            });
+          });
+        }).catch(function(err){
+          console.error('[reservas] disponibilidad:', err);
+          body.innerHTML = '<div class="rsv-empty">No se pudo cargar la disponibilidad.<br>Intenta de nuevo en unos segundos.</div>';
+        });
+      }
+
+      function renderContacto(){
+        titleEl.textContent = 'Tus datos';
+        var precio = rsvFormatPrecio(st.servicio.precio);
+        var html = '<div class="rsv-summary">'
+                 +   '<div class="rsv-summary-row"><span>Servicio</span><b>'+esc(st.servicio.nombre)+'</b></div>'
+                 +   '<div class="rsv-summary-row"><span>Cuándo</span><b>'+rsvFormatFecha(st.fecha)+' · '+st.hora+'</b></div>'
+                 +   '<div class="rsv-summary-row"><span>Duración</span><b>'+st.servicio.duracion+' min</b></div>'
+                 +   (precio ? '<div class="rsv-summary-row"><span>Precio</span><b>'+precio+'</b></div>' : '')
+                 + '</div>'
+                 + '<div class="rsv-form">'
+                 +   '<label>Tu nombre<input type="text" id="rsvNombre" class="rsv-input" placeholder="Tu nombre" maxlength="80" autocomplete="name"></label>'
+                 +   '<label>WhatsApp<input type="tel" id="rsvWsp" class="rsv-input" placeholder="+56 9 1234 5678" maxlength="20" autocomplete="tel" inputmode="tel"></label>'
+                 +   '<div class="rsv-error" id="rsvErr" hidden></div>'
+                 +   '<button type="button" class="rsv-btn-primary" id="rsvConfirm">Confirmar reserva</button>'
+                 + '</div>';
+        body.innerHTML = html;
+        var nombreI = document.getElementById('rsvNombre');
+        var wspI    = document.getElementById('rsvWsp');
+        var err     = document.getElementById('rsvErr');
+        var btn     = document.getElementById('rsvConfirm');
+        nombreI.value = st.nombre; wspI.value = st.wsp;
+        btn.addEventListener('click', function(){
+          st.nombre = nombreI.value.trim();
+          st.wsp    = wspI.value.trim();
+          if (st.nombre.length === 0){ err.textContent = 'Necesitamos tu nombre.'; err.hidden = false; return; }
+          if (st.nombre.length > 80){ err.textContent = 'Nombre demasiado largo.'; err.hidden = false; return; }
+          var wspClean = st.wsp.replace(/[^\d+]/g, '');
+          if (wspClean.length < 8 || wspClean.length > 20){ err.textContent = 'WhatsApp inválido (incluye código de país).'; err.hidden = false; return; }
+          err.hidden = true;
+          btn.disabled = true; btn.textContent = 'Confirmando…';
+          enviarReserva(wspClean).then(function(reservaId){
+            st.reservaId = reservaId; st.step = 5; render();
+          }).catch(function(e){
+            console.error('[reservas] crear:', e);
+            btn.disabled = false; btn.textContent = 'Confirmar reserva';
+            var msg = 'No se pudo confirmar. Intenta otra hora.';
+            if (e && e.code === 'slot-taken') msg = '¡Justo alguien acaba de tomar esa hora!';
+            err.textContent = msg; err.hidden = false;
+          });
+        });
+      }
+
+      function enviarReserva(wspClean){
+        var slotKey   = st.fecha + ' ' + st.hora;
+        var dispRef   = bioRef.collection('disponibilidad').doc(st.fecha);
+        var resvRef   = bioRef.collection('reservas').doc();
+        var newSlot   = { hora: st.hora, dur: st.servicio.duracion };
+        var FV        = firebase.firestore.FieldValue;
+        return db.runTransaction(function(tx){
+          return tx.get(dispRef).then(function(snap){
+            var ocupados = snap.exists ? ((snap.data().ocupados) || []) : [];
+            // Doble verificación de conflicto contra los slots ya escritos.
+            var nStart = rsvHhmmToMin(st.hora);
+            var nEnd   = nStart + st.servicio.duracion;
+            var ocup = ocupados.some(function(o){
+              var oStart = rsvHhmmToMin(o.hora);
+              var oEnd   = oStart + (o.dur || 0);
+              return nStart < oEnd && nEnd > oStart;
+            });
+            if (ocup){ var e = new Error('slot-taken'); e.code = 'slot-taken'; throw e; }
+            var nuevoArr = ocupados.concat([newSlot]);
+            if (snap.exists) tx.update(dispRef, { ocupados: nuevoArr, updatedAt: FV.serverTimestamp() });
+            else             tx.set(dispRef,    { ocupados: nuevoArr, updatedAt: FV.serverTimestamp() });
+            tx.set(resvRef, {
+              servicioId:     st.servicio.id,
+              servicioNombre: st.servicio.nombre,
+              duracion:       st.servicio.duracion,
+              precio:         st.servicio.precio || 0,
+              fecha:          st.fecha,
+              hora:           st.hora,
+              slotKey:        slotKey,
+              cliente:        { nombre: st.nombre, whatsapp: wspClean },
+              estado:         'confirmada',
+              creadaEn:       FV.serverTimestamp()
+            });
+          });
+        }).then(function(){ return resvRef.id; });
+      }
+
+      function renderExito(){
+        titleEl.textContent = '¡Listo!';
+        var precio = rsvFormatPrecio(st.servicio.precio);
+        var html = '<div class="rsv-success">'
+                 +   '<div class="rsv-success-ico">✓</div>'
+                 +   '<h3>¡Reserva confirmada!</h3>'
+                 +   '<p class="rsv-success-sub">Te esperamos el <b>'+rsvFormatFecha(st.fecha)+'</b> a las <b>'+st.hora+'</b>.</p>'
+                 +   '<div class="rsv-summary rsv-summary-success">'
+                 +     '<div class="rsv-summary-row"><span>Servicio</span><b>'+esc(st.servicio.nombre)+'</b></div>'
+                 +     '<div class="rsv-summary-row"><span>Duración</span><b>'+st.servicio.duracion+' min</b></div>'
+                 +     (precio ? '<div class="rsv-summary-row"><span>Precio</span><b>'+precio+'</b></div>' : '')
+                 +   '</div>'
+                 +   '<button type="button" class="rsv-btn-primary" id="rsvCloseOk">Listo</button>'
+                 + '</div>';
+        body.innerHTML = html;
+        document.getElementById('rsvCloseOk').addEventListener('click', close);
+      }
     }
 
     // Guarda un lead en bios/{user}/leads. Doc id = email → dedup natural

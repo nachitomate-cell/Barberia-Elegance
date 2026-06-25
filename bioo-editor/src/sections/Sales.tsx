@@ -117,19 +117,19 @@ function ConnectedView({ sales }: { sales: Sale[] | null }): JSX.Element {
 
       {count > 0 && (
         <div className="overflow-hidden rounded-[24px] bg-white shadow-[0_2px_10px_rgba(0,0,0,0.02)] ring-1 ring-black/[0.03]">
-          <div className="max-h-[55vh] overflow-y-auto">
-            <table className="w-full border-collapse text-sm">
+          <div className="max-h-[55dvh] overflow-x-auto overflow-y-auto">
+            <table className="w-full min-w-[480px] border-collapse text-sm">
               <thead className="sticky top-0 z-10 bg-neutral-50/95 backdrop-blur">
                 <tr className="text-left text-xs font-bold uppercase tracking-wider text-neutral-400">
-                  <th className="px-4 py-3">Comprador</th>
-                  <th className="px-4 py-3 text-right">Monto</th>
-                  <th className="px-4 py-3">Fecha</th>
+                  <th className="whitespace-nowrap px-4 py-3">Comprador</th>
+                  <th className="whitespace-nowrap px-4 py-3 text-right">Monto</th>
+                  <th className="whitespace-nowrap px-4 py-3">Fecha</th>
                 </tr>
               </thead>
               <tbody>
                 {list.map((s) => (
                   <tr key={s.id} className="border-t border-neutral-100 transition-colors hover:bg-gray-50">
-                    <td className="max-w-[40%] truncate px-4 py-3 font-medium text-neutral-800">{s.buyerEmail || '—'}</td>
+                    <td className="max-w-[200px] truncate px-4 py-3 font-medium text-neutral-800">{s.buyerEmail || '—'}</td>
                     <td className="whitespace-nowrap px-4 py-3 text-right font-bold text-[#2c5a17]">
                       {s.amountTotal != null ? formatMoney(s.amountTotal, s.currency) : '—'}
                     </td>

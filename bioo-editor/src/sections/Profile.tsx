@@ -54,9 +54,9 @@ export default function Profile(): JSX.Element {
                 role="switch"
                 aria-checked={badgeOn}
                 onClick={() => patch({ showPartnerBadge: !badgeOn })}
-                className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${badgeOn ? 'bg-[#92c83a]' : 'bg-neutral-300'}`}
+                className={`relative h-7 w-12 shrink-0 rounded-full transition-colors touch-manipulation ${badgeOn ? 'bg-[#92c83a]' : 'bg-neutral-300'}`}
               >
-                <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${badgeOn ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
+                <span className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform ${badgeOn ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
               </button>
             </div>
           )}

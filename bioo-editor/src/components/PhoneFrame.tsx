@@ -6,7 +6,7 @@ export default function PhoneFrame({ children, embedded = false }: { children: R
   return (
     <div
       className={`relative aspect-[9/19.5] overflow-hidden rounded-[3rem] border-[10px] border-neutral-900 bg-neutral-900 shadow-[0_30px_60px_-15px_rgba(0,0,0,0.4)] ${
-        embedded ? 'h-full max-h-full' : 'h-[640px] max-h-[82vh]'
+        embedded ? 'h-full max-h-full' : 'h-[640px] max-h-[82dvh]'
       }`}
     >
       {/* Isla dinámica / notch */}

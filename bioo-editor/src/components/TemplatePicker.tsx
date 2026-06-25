@@ -33,7 +33,7 @@ export default function TemplatePicker({ open, onClose }: { open: boolean; onClo
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 24, scale: 0.98 }}
             transition={{ type: 'spring', stiffness: 320, damping: 30 }}
-            className="fixed inset-x-0 bottom-0 top-auto z-50 mx-auto max-h-[88vh] w-full max-w-2xl overflow-hidden rounded-t-3xl bg-neutral-50 shadow-2xl sm:inset-0 sm:my-auto sm:h-fit sm:rounded-3xl"
+            className="fixed inset-x-0 bottom-0 top-auto z-50 mx-auto max-h-[88dvh] w-full max-w-2xl overflow-hidden rounded-t-3xl bg-neutral-50 shadow-2xl sm:inset-0 sm:my-auto sm:h-fit sm:max-h-[92dvh] sm:rounded-3xl"
           >
             <header className="flex items-start gap-3 border-b border-neutral-200 bg-white px-6 py-5">
               <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#92c83a]/15 text-[#72a129]">

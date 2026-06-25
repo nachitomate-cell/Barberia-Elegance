@@ -151,11 +151,11 @@ function LinkCard({ block }: { block: Block }): JSX.Element {
   return (
     <div>
       <div className="flex items-start gap-2.5">
-        {/* Drag handle (6 puntos) */}
+        {/* Drag handle (6 puntos) — opacidad alta siempre en touch; en desktop crece con hover */}
         <button
           type="button"
           aria-label="Arrastrar para reordenar"
-          className="mt-1.5 cursor-grab text-gray-400 opacity-40 transition-opacity group-hover:opacity-100 active:cursor-grabbing"
+          className="grid h-9 w-9 shrink-0 cursor-grab place-items-center rounded-lg text-gray-400 transition-colors hover:bg-neutral-100 hover:text-gray-600 active:cursor-grabbing active:bg-neutral-200 touch-none"
         >
           <GripVertical size={18} />
         </button>
@@ -184,11 +184,11 @@ function LinkCard({ block }: { block: Block }): JSX.Element {
         {block.tipo !== 'newsletter' && block.tipo !== 'separador' && block.tipo !== 'embed' && block.tipo !== 'tip' && block.tipo !== 'paywall'
           ? <SizePicker value={block.layoutSize ?? 'full'} onChange={(v) => patch({ layoutSize: v })} />
           : <span />}
-        <div className="flex items-center gap-0.5">
+        <div className="flex items-center gap-1">
           {link && <ThumbAction block={block} patch={patch} />}
           {link && (
-            <button type="button" title="Estadísticas (pronto)" className="cursor-default rounded-lg p-1.5 text-gray-300">
-              <BarChart3 size={16} />
+            <button type="button" title="Estadísticas (pronto)" className="grid h-9 w-9 cursor-default place-items-center rounded-lg text-gray-300">
+              <BarChart3 size={18} />
             </button>
           )}
           {link && (
@@ -196,13 +196,20 @@ function LinkCard({ block }: { block: Block }): JSX.Element {
               type="button"
               onClick={() => patch({ featured: !block.featured })}
               title="Destacar"
-              className={`rounded-lg p-1.5 transition-colors ${block.featured ? 'text-amber-500' : 'text-gray-300 hover:text-amber-500'}`}
+              aria-label="Destacar enlace"
+              className={`grid h-9 w-9 place-items-center rounded-lg transition-colors ${block.featured ? 'text-amber-500' : 'text-gray-400 hover:text-amber-500 active:bg-amber-50'}`}
             >
-              <Star size={16} fill={block.featured ? 'currentColor' : 'none'} />
+              <Star size={18} fill={block.featured ? 'currentColor' : 'none'} />
             </button>
           )}
-          <button type="button" onClick={remove} title="Eliminar enlace" className="rounded-lg p-1.5 text-gray-300 transition-colors hover:text-red-500">
-            <Trash2 size={16} />
+          <button
+            type="button"
+            onClick={remove}
+            title="Eliminar enlace"
+            aria-label="Eliminar enlace"
+            className="grid h-9 w-9 place-items-center rounded-lg text-gray-400 transition-colors hover:text-red-500 active:bg-red-50"
+          >
+            <Trash2 size={18} />
           </button>
         </div>
       </div>
@@ -225,12 +232,13 @@ function SizePicker({ value, onChange }: { value: LayoutSize; onChange: (v: Layo
           key={v}
           type="button"
           title={title}
+          aria-label={title}
           onClick={() => onChange(v)}
-          className={`grid h-6 w-7 place-items-center rounded-md transition-colors ${
+          className={`grid h-9 w-10 place-items-center rounded-md transition-colors ${
             value === v ? 'bg-white text-[#72a129] shadow-sm' : 'text-gray-400 hover:text-gray-600'
           }`}
         >
-          <Icon size={13} />
+          <Icon size={15} />
         </button>
       ))}
     </div>
@@ -244,9 +252,9 @@ function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void 
       role="switch"
       aria-checked={on}
       onClick={() => onChange(!on)}
-      className={`relative mt-1 inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors duration-200 ${on ? 'bg-[#92c83a]' : 'bg-gray-200'}`}
+      className={`relative mt-1 inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors duration-200 ${on ? 'bg-[#92c83a]' : 'bg-gray-200'}`}
     >
-      <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform duration-200 ${on ? 'translate-x-5' : 'translate-x-0.5'}`} />
+      <span className={`inline-block h-6 w-6 transform rounded-full bg-white shadow transition-transform duration-200 ${on ? 'translate-x-[22px]' : 'translate-x-0.5'}`} />
     </button>
   );
 }
@@ -260,7 +268,8 @@ function ThumbAction({ block, patch }: { block: Block; patch: (p: Partial<Block>
         type="button"
         onClick={() => ref.current?.click()}
         title="Añadir miniatura"
-        className="grid place-items-center rounded-lg p-1.5 text-gray-300 transition-colors hover:text-[#72a129]"
+        aria-label="Añadir miniatura"
+        className="grid h-9 w-9 place-items-center rounded-lg text-gray-400 transition-colors hover:text-[#72a129] active:bg-neutral-100"
       >
         {block.thumb
           ? <img src={block.thumb} alt="" className="h-[18px] w-[18px] rounded object-cover ring-1 ring-black/10" />

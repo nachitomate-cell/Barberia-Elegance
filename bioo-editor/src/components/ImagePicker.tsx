@@ -32,24 +32,26 @@ export default function ImagePicker({ value, onChange, square, maxW, label = 'Su
       >
         {value && <img src={value} alt="" className="h-full w-full object-cover" />}
       </div>
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
-          className="flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-700 hover:border-bioo"
+          className="flex min-h-[44px] items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-3.5 py-2.5 text-sm font-semibold text-neutral-700 transition-colors hover:border-bioo active:bg-neutral-50"
         >
-          <Camera size={14} /> {label}
+          <Camera size={16} /> {label}
         </button>
         {value && (
           <button
             type="button"
             onClick={() => onChange('')}
-            className="flex items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs font-semibold text-neutral-500 hover:text-red-500"
+            className="flex min-h-[44px] items-center gap-1.5 rounded-lg border border-neutral-200 bg-white px-3.5 py-2.5 text-sm font-semibold text-neutral-500 transition-colors hover:text-red-500 active:bg-red-50"
           >
-            <Trash2 size={14} /> Quitar
+            <Trash2 size={16} /> Quitar
           </button>
         )}
       </div>
+      {/* En móvil, accept="image/*" deja al sistema mostrar "tomar foto / elegir
+          de la galería". No forzamos capture para no eliminar la opción de galería. */}
       <input
         ref={inputRef}
         type="file"

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ComponentType } from 'react';
 import { onAuthStateChanged, signInWithCustomToken, type User } from 'firebase/auth';
 import { motion } from 'framer-motion';
-import { Link2, User as UserIcon, Palette, Share2, Inbox, Megaphone, CircleDollarSign, Eye, Save, Sparkles, type LucideIcon } from 'lucide-react';
+import { Link2, User as UserIcon, Palette, Share2, Inbox, Megaphone, CircleDollarSign, CalendarClock, Eye, Save, Sparkles, type LucideIcon } from 'lucide-react';
 import { auth } from './lib/firebase';
 import { saveBio, loadUserBio } from './lib/bio';
 import { ensureAnonymousSession, completePendingRedirect } from './lib/auth';
@@ -18,6 +18,7 @@ import Share from './sections/Share';
 import Leads from './sections/Leads';
 import Marketing from './sections/Marketing';
 import Sales from './sections/Sales';
+import Reservas from './sections/Reservas';
 import BioPreview from './preview/BioPreview';
 import PreviewSheet from './preview/PreviewSheet';
 import PhoneFrame from './components/PhoneFrame';
@@ -28,6 +29,7 @@ const SECTIONS: { id: SectionId; label: string; Icon: LucideIcon }[] = [
   { id: 'links', label: 'Enlaces', Icon: Link2 },
   { id: 'profile', label: 'Perfil', Icon: UserIcon },
   { id: 'design', label: 'Apariencia', Icon: Palette },
+  { id: 'reservas', label: 'Reservas', Icon: CalendarClock },
   { id: 'leads', label: 'Leads', Icon: Inbox },
   { id: 'sales', label: 'Ventas', Icon: CircleDollarSign },
   { id: 'marketing', label: 'Marketing', Icon: Megaphone },
@@ -38,6 +40,7 @@ const VIEWS: Record<SectionId, ComponentType> = {
   links: Links,
   profile: Profile,
   design: Appearance,
+  reservas: Reservas,
   leads: Leads,
   sales: Sales,
   marketing: Marketing,
@@ -314,7 +317,7 @@ export default function App(): JSX.Element {
           </button>
         )}
 
-        <div className="flex-1 overflow-y-auto px-5 pb-32 pt-6 md:pb-10">
+        <div className="flex-1 overflow-y-auto px-5 pt-6 pb-[calc(7rem+env(safe-area-inset-bottom))] md:pb-10">
           <h1 className="mb-5 text-2xl font-bold tracking-tight">{sectionLabel}</h1>
           <SectionView />
         </div>
@@ -329,31 +332,36 @@ export default function App(): JSX.Element {
       </aside>
 
       {/* Bottom nav (mobile) — carrusel horizontal, anti-aplastamiento */}
-      <nav className="fixed inset-x-0 bottom-0 z-20 flex items-center gap-2 overflow-x-auto overscroll-x-contain snap-x snap-mandatory border-t border-neutral-200 bg-white/90 px-4 pb-[env(safe-area-inset-bottom)] pt-2 backdrop-blur-xl [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden md:hidden">
-        {SECTIONS.map(({ id, label, Icon }) => {
-          const active = section === id;
-          return (
-            <button
-              key={id}
-              type="button"
-              onClick={() => setSection(id)}
-              className="flex min-w-[64px] shrink-0 snap-center flex-col items-center justify-center gap-1 py-1"
-            >
-              <span className={`rounded-full p-1.5 transition-colors ${active ? 'bg-[#92c83a]/15 text-[#15240b]' : 'text-neutral-400'}`}>
-                <Icon size={20} strokeWidth={1.5} />
-              </span>
-              <span className={`text-[10px] tracking-wide ${active ? 'font-semibold text-[#15240b]' : 'text-neutral-400'}`}>{label}</span>
-            </button>
-          );
-        })}
-      </nav>
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-neutral-200 bg-white/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl md:hidden">
+        <nav className="flex items-center gap-2 overflow-x-auto overscroll-x-contain snap-x snap-mandatory px-4 pt-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {SECTIONS.map(({ id, label, Icon }) => {
+            const active = section === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setSection(id)}
+                className="flex min-w-[68px] min-h-[52px] shrink-0 snap-center flex-col items-center justify-center gap-1 py-1 touch-manipulation"
+              >
+                <span className={`rounded-full p-2 transition-colors ${active ? 'bg-[#92c83a]/15 text-[#15240b]' : 'text-neutral-400'}`}>
+                  <Icon size={20} strokeWidth={1.5} />
+                </span>
+                <span className={`text-[10px] tracking-wide ${active ? 'font-semibold text-[#15240b]' : 'text-neutral-400'}`}>{label}</span>
+              </button>
+            );
+          })}
+        </nav>
+        {/* Fade derecho — hint visual de que el carrusel sigue */}
+        <span aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-white/95 to-transparent" />
+      </div>
 
       {/* FAB Vista Previa (mobile/tablet) */}
       <motion.button
         type="button"
         whileTap={{ scale: 0.95 }}
         onClick={() => setPreviewOpen(true)}
-        className="fixed bottom-24 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full bg-neutral-900 px-5 py-3 text-sm font-semibold text-white shadow-[0_12px_34px_-10px_rgba(0,0,0,0.55)] ring-1 ring-white/10 md:hidden"
+        style={{ bottom: 'calc(6.5rem + env(safe-area-inset-bottom))' }}
+        className="fixed left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full bg-neutral-900 px-5 py-3 text-sm font-semibold text-white shadow-[0_12px_34px_-10px_rgba(0,0,0,0.55)] ring-1 ring-white/10 touch-manipulation md:hidden"
       >
         <Eye size={18} /> Vista Previa
       </motion.button>

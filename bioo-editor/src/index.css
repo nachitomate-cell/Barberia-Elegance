@@ -14,14 +14,38 @@ body {
   background: #f4f6ee;
   color: #15240b;
   -webkit-tap-highlight-color: transparent;
+  /* Evita callouts y selección accidental al mantener pulsado en móvil. */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  /* Evita el pull-to-refresh y bounces dentro del editor (que sí dejamos a los
+     inputs y áreas scrollables explícitas). */
+  overscroll-behavior-y: contain;
+}
+/* Permitir selección dentro de inputs/textarea/contenteditable (la selección
+   global está deshabilitada para evitar long-press iOS sobre botones). */
+input, textarea, [contenteditable="true"] {
+  -webkit-user-select: text;
+  user-select: text;
+}
+/* iOS Safari hace zoom automático al enfocar un input con font-size < 16px.
+   Forzamos 16px en TODOS los inputs/select/textarea del editor (Tailwind
+   text-sm = 14px, lo que sí dispara el zoom). */
+input, select, textarea, button { font-size: 16px; }
+/* Momentum scrolling en cualquier área desplazable (iOS). */
+.no-scrollbar, [class*="overflow-y-auto"], [class*="overflow-x-auto"] {
+  -webkit-overflow-scrolling: touch;
 }
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* Slider de marca: track gris suave + thumb oscuro */
-.range-bioo { -webkit-appearance: none; appearance: none; width: 100%; height: 6px; border-radius: 999px; background: #e5e7eb; outline: none; cursor: pointer; }
-.range-bioo::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #262626; border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,.3); cursor: pointer; }
-.range-bioo::-moz-range-thumb { width: 18px; height: 18px; border-radius: 50%; background: #262626; border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,.3); cursor: pointer; }
+/* Slider de marca: track gris suave + thumb oscuro. Thumb 24px para touch. */
+.range-bioo { -webkit-appearance: none; appearance: none; width: 100%; height: 8px; border-radius: 999px; background: #e5e7eb; outline: none; cursor: pointer; touch-action: pan-x; }
+.range-bioo::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 24px; height: 24px; border-radius: 50%; background: #262626; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.35); cursor: pointer; }
+.range-bioo::-moz-range-thumb { width: 24px; height: 24px; border-radius: 50%; background: #262626; border: 2px solid #fff; box-shadow: 0 1px 4px rgba(0,0,0,.35); cursor: pointer; }
+
+/* Áreas que deben acompañar al fade del bottom-nav (carrusel móvil). */
+.nav-fade-right { -webkit-mask-image: linear-gradient(to right, black 88%, transparent); mask-image: linear-gradient(to right, black 88%, transparent); }
 
 /* ===== Motor de fondos premium (bgfx) — compartido con u.html =====
    Capa absoluta a pantalla completa; hereda colores vía --c1/--c2/--base.

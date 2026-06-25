@@ -139,7 +139,7 @@ export default function ShareModal({ isOpen, onClose, username, avatar }: Props)
             dragConstraints={{ top: 0, bottom: 0 }}
             dragElastic={{ top: 0, bottom: 0.45 }}
             onDragEnd={handleDragEnd}
-            className="fixed inset-x-0 bottom-0 z-50 mx-auto max-h-[92vh] w-full max-w-md overflow-y-auto overscroll-contain rounded-t-3xl bg-white pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-14px_44px_-12px_rgba(0,0,0,0.35)]"
+            className="fixed inset-x-0 bottom-0 z-50 mx-auto max-h-[92dvh] w-full max-w-md overflow-y-auto overscroll-contain rounded-t-3xl bg-white pb-[max(1rem,env(safe-area-inset-bottom))] shadow-[0_-14px_44px_-12px_rgba(0,0,0,0.35)]"
           >
             {/* Píldora deslizable */}
             <div className="sticky top-0 z-10 flex justify-center bg-white pt-3 pb-2">

@@ -111,7 +111,7 @@ export default function PublishedModal({ isOpen, onClose, username, mintedNow }:
           exit={{ opacity: 0, scale: 0.94, y: 18 }}
           transition={SPRING}
           onClick={(e) => e.stopPropagation()}
-          className="relative w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl"
+          className="relative w-full max-w-md max-h-[92dvh] overflow-y-auto overscroll-contain rounded-3xl bg-white shadow-2xl"
         >
           {/* Header confeti */}
           <div className="relative bg-gradient-to-br from-[#92c83a]/15 via-white to-[#92c83a]/5 px-6 pb-5 pt-7 text-center">

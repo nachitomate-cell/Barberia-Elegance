@@ -1,9 +1,11 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import { motion } from 'framer-motion';
-import { Instagram, Facebook, Youtube, MessageCircle, Mail, Phone, Globe, Music2, Lock, type LucideIcon } from 'lucide-react';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { Instagram, Facebook, Youtube, MessageCircle, Mail, Phone, Globe, Music2, Lock, CalendarClock, type LucideIcon } from 'lucide-react';
 import { THEMES, SHAPE_RADIUS, FONTS, TSIZE, SSIZE, TWEIGHT, TSPACE, TSHADOW, bgCss, bgAnimStyle, bgFxKind, bgFxVars, bgFxHasBlobs, loadFont } from '../lib/theme';
 import { embedSrc, socUrl } from '../lib/blocks';
 import { startCheckout } from '../lib/payments';
+import { db } from '../lib/firebase';
 import type { BioState, Block, SocialNet } from '../types';
 
 type Palette = (typeof THEMES)[keyof typeof THEMES];
@@ -32,6 +34,31 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
   const radius = SHAPE_RADIUS[theme.shape];
 
   useEffect(() => { loadFont(theme.font); }, [theme.font]);
+
+  // Vista previa del CTA de Reservas — espía la config en vivo para reflejar
+  // los cambios apenas el barbero guarde en la sección "Reservas". No bloquea
+  // el render; si la lectura falla (sin permisos / sin doc) queda en false.
+  const [reservasOn, setReservasOn] = useState(false);
+  useEffect(() => {
+    if (!state.username || state.username === 'tunombre') { setReservasOn(false); return; }
+    const ref = doc(db, 'bios', state.username, 'reservasConfig', 'config');
+    const unsub = onSnapshot(
+      ref,
+      (snap) => {
+        const d = snap.exists() ? (snap.data() as Record<string, unknown>) : null;
+        const servicios = Array.isArray(d?.servicios) ? (d!.servicios as unknown[]) : [];
+        const hasSrv = servicios.some((s) => {
+          if (!s || typeof s !== 'object') return false;
+          const sv = s as { nombre?: unknown; duracion?: unknown };
+          return typeof sv.nombre === 'string' && sv.nombre.trim().length > 0
+              && typeof sv.duracion === 'number' && sv.duracion > 0;
+        });
+        setReservasOn(d?.activo === true && hasSrv);
+      },
+      () => setReservasOn(false),
+    );
+    return (): void => unsub();
+  }, [state.username]);
 
   const visible = blocks.filter(renderable);
   const shown = profile.titulo || '@' + state.username;
@@ -124,7 +151,18 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
         )}
 
         <div className="mt-7 grid w-full grid-cols-2 gap-4">
-          {visible.length === 0 && (
+          {reservasOn && (
+            <button
+              type="button"
+              className="col-span-2 flex items-center justify-center gap-2 px-5 py-4 font-extrabold text-[15px] tracking-[-0.01em] text-white shadow-[0_8px_22px_rgba(0,0,0,0.18)] transition-transform active:scale-[0.98]"
+              style={{ background: '#15240b', borderRadius: radius, color: '#fff' }}
+              title="Vista previa: tu cliente verá este botón en bioo.cl"
+            >
+              <CalendarClock size={18} strokeWidth={2} />
+              Reservar hora
+            </button>
+          )}
+          {visible.length === 0 && !reservasOn && (
             <p className="col-span-2 py-6 text-center text-sm" style={{ color: sCol }}>Aún no hay enlaces aquí.</p>
           )}
           {visible.map((b) => {

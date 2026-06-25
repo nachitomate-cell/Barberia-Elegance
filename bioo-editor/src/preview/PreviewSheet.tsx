@@ -46,7 +46,7 @@ export default function PreviewSheet({ open, onClose, children }: Props): JSX.El
             className="fixed inset-x-0 bottom-0 top-10 z-50 mx-auto flex max-w-md flex-col overflow-hidden rounded-t-[30px] bg-neutral-100 shadow-[0_-14px_44px_-12px_rgba(0,0,0,0.35)]"
           >
             <header className="flex shrink-0 flex-col items-center pt-3">
-              <span className="h-1.5 w-10 rounded-full bg-neutral-300" aria-hidden />
+              <span className="h-1.5 w-12 cursor-grab rounded-full bg-neutral-400 active:bg-neutral-500" aria-hidden />
               <div className="flex w-full items-center justify-between px-5 pb-3 pt-3">
                 <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-neutral-400">Vista previa</span>
                 <button

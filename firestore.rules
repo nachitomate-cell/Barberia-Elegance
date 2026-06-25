@@ -315,6 +315,65 @@ service cloud.firestore {
                     && get(/databases/$(database)/documents/bios/$(username)).data.uid == uid();
         allow write: if false;
       }
+
+      // ── /bios/{username}/reservasConfig — agenda gratuita del creador ──
+      // Config pública (servicios, horario semanal, bloqueos): el flujo de
+      // reserva del visitante necesita LEERLA para mostrar horas disponibles.
+      // Escritura solo del dueño (mismo uid del doc /bios).
+      match /reservasConfig/{cfgId} {
+        allow read: if true;
+        allow write: if autenticado()
+                     && get(/databases/$(database)/documents/bios/$(username)).data.uid == uid()
+                     && request.resource.data.uid == uid();
+      }
+
+      // ── /bios/{username}/reservas — citas tomadas por clientes ──
+      // El dueño tiene acceso total (gestión). El visitante anónimo SOLO puede
+      // CREAR su propia reserva con un schema estricto (no puede leer ni
+      // editar — su WhatsApp/nombre quedan privados para el barbero).
+      match /reservas/{reservaId} {
+        allow read: if autenticado()
+                    && get(/databases/$(database)/documents/bios/$(username)).data.uid == uid();
+        allow update, delete: if autenticado()
+                    && get(/databases/$(database)/documents/bios/$(username)).data.uid == uid();
+        allow create: if request.resource.data.keys().hasOnly([
+                        'servicioId','servicioNombre','duracion','precio',
+                        'fecha','hora','slotKey','cliente','estado','creadaEn',
+                      ])
+                      && request.resource.data.fecha is string
+                      && request.resource.data.fecha.size() == 10
+                      && request.resource.data.hora is string
+                      && request.resource.data.hora.size() == 5
+                      && request.resource.data.duracion is int
+                      && request.resource.data.duracion >= 5
+                      && request.resource.data.duracion <= 480
+                      && request.resource.data.estado == 'confirmada'
+                      && request.resource.data.cliente.nombre is string
+                      && request.resource.data.cliente.nombre.size() > 0
+                      && request.resource.data.cliente.nombre.size() <= 80
+                      && request.resource.data.cliente.whatsapp is string
+                      && request.resource.data.cliente.whatsapp.size() >= 8
+                      && request.resource.data.cliente.whatsapp.size() <= 20;
+      }
+
+      // ── /bios/{username}/disponibilidad — espejo público de slots ocupados ──
+      // Doc por fecha (id = "YYYY-MM-DD") con la lista de slots tomados (sin
+      // PII). Lo lee el flujo de reserva del visitante para mostrar horas
+      // libres; lo actualiza la transacción de creación de reserva.
+      // Validación: solo se PUEDE AGREGAR (size +1) → evita borrados arbitrarios.
+      // El dueño tiene acceso total para gestionar / cancelar.
+      match /disponibilidad/{fecha} {
+        allow read: if true;
+        allow create: if request.resource.data.keys().hasOnly(['ocupados','updatedAt'])
+                      && request.resource.data.ocupados is list
+                      && request.resource.data.ocupados.size() <= 50;
+        allow update: if request.resource.data.keys().hasOnly(['ocupados','updatedAt'])
+                      && request.resource.data.ocupados is list
+                      && request.resource.data.ocupados.size() <= 50
+                      && request.resource.data.ocupados.size() == resource.data.ocupados.size() + 1;
+        allow write: if autenticado()
+                     && get(/databases/$(database)/documents/bios/$(username)).data.uid == uid();
+      }
     }
 
     // ── /bio_users — mapeo uid → username (privado del dueño) ──────
