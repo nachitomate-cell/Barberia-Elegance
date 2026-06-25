@@ -118,6 +118,39 @@ service cloud.firestore {
     }
 
     // ═══════════════════════════════════════════════════════════════
+    //  _referrals — programa de referidos B2B (SaaS growth loop)
+    //
+    //  Modelo:
+    //    _referrals/{tenantId}        — counter + código por tenant
+    //    _referralCodes/{CODE}        — índice inverso CODE → tenant
+    //                                   (lectura pública, para landing)
+    //    _referralSignups/{signupId}  — prospecto que llegó vía un código
+    //
+    //  Toda escritura se hace vía Cloud Functions (esBootstrap incluido
+    //  cuando una CF corre con admin SDK). Lectura limitada al staff del
+    //  tenant referidor (su propio panel) o al super-admin global.
+    // ═══════════════════════════════════════════════════════════════
+    match /_referrals/{tid} {
+      allow read:  if esAdmin(tid) || esBootstrap();
+      allow write: if esBootstrap();
+    }
+    match /_referralCodes/{code} {
+      // Lectura pública: la landing /refiere/{code} la usa SIN sesión
+      // para mostrar "te invita @{tenantName}". Solo expone tenantId +
+      // tenantName + active — no hay PII.
+      allow read:  if true;
+      allow write: if esBootstrap();
+    }
+    match /_referralSignups/{signupId} {
+      // El staff del tenant referidor ve sus propios signups; el super-
+      // admin los ve todos. Las escrituras pasan por Cloud Functions.
+      allow read:  if esBootstrap()
+                   || (autenticado() && resource.data.get('referrerTenantId', '') == tenantClaim()
+                                      && rol() in ['admin', 'jefe']);
+      allow write: if esBootstrap();
+    }
+
+    // ═══════════════════════════════════════════════════════════════
     //  ELEGANCE — colecciones raíz (tenant legacy/predeterminado)
     // ═══════════════════════════════════════════════════════════════
 

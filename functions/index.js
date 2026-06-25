@@ -887,3 +887,13 @@ exports.loadAdminKpis = biooAdminKpis.loadAdminKpis;
 // ─────────────────────────────────────────────────────────────────
 const biooAdminBootstrap = require('./bioo-admin-bootstrap');
 exports.setBioAdmin = biooAdminBootstrap.setBioAdmin;
+
+// ─────────────────────────────────────────────────────────────────
+//  REFERIDOS B2B — growth loop SaaS. Cada tenant tiene un código y
+//  gana meses gratis al traer a otro tenant pagador. Ver referidos.js
+//  para los 3 callables (asegurarCodigo / crearSignup / marcarConvertido).
+// ─────────────────────────────────────────────────────────────────
+const referidos = require('./referidos');
+exports.referidosAsegurarCodigo  = referidos.referidosAsegurarCodigo;
+exports.referidosCrearSignup     = referidos.referidosCrearSignup;
+exports.referidosMarcarConvertido = referidos.referidosMarcarConvertido;

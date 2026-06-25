@@ -47,6 +47,7 @@ import GiftCards        from './views/GiftCards';
 import ListaEspera      from './views/ListaEspera';
 import Sucursales       from './views/Sucursales';
 import RecibirPagos     from './views/RecibirPagos';
+import Referidos        from './views/Referidos';
 import SaldoGiftCard    from './views/SaldoGiftCard';
 import VIPDashboard        from './views/VIPDashboard';
 import BillingGate         from './components/BillingGate';
@@ -110,6 +111,7 @@ function ProtectedApp() {
             <Route path="configuracion"   element={<Configuracion />} />
             <Route path="mensualidad"     element={<Mensualidad />} />
             <Route path="recibir-pagos"   element={<RecibirPagos />} />
+            <Route path="referidos"       element={<Referidos />} />
             <Route path="mensajes"        element={<Chat />} />
             <Route path="marketing"       element={<BillingGate><Marketing /></BillingGate>} />
             <Route path="soporte"         element={<Soporte />} />
