@@ -66,11 +66,14 @@ export default function Referidos() {
 
   // ── Generar/asegurar código ───────────────────────────────────────
   const ensureCode = useCallback(async () => {
+    if (!tenantId) { setErr('No pudimos identificar tu local. Recarga la página.'); return; }
     setErr(null);
     setGenerating(true);
     try {
       const fn = httpsCallable(getFunctions(undefined, 'us-central1'), 'referidosAsegurarCodigo');
-      await fn({});
+      // Siempre pasamos tenantId: el super-admin no tiene claim 'tenantId'
+      // (es global) y el tenant admin lo provee redundante, no molesta.
+      await fn({ tenantId });
       // El doc se actualiza vía onSnapshot, no hacemos setState aquí.
     } catch (e) {
       console.error('[referidos] asegurarCodigo:', e);
@@ -78,12 +81,17 @@ export default function Referidos() {
     } finally {
       setGenerating(false);
     }
-  }, []);
+  }, [tenantId]);
 
-  // Auto-genera el código al primer ingreso si no existe.
+  // Auto-genera el código al primer ingreso si no existe. Una sola vez:
+  // si la llamada falla, el usuario puede reintentar con el botón explícito.
+  const [autoTried, setAutoTried] = useState(false);
   useEffect(() => {
-    if (!loadingRef && !referral && canManage) { void ensureCode(); }
-  }, [loadingRef, referral, canManage, ensureCode]);
+    if (!loadingRef && !referral && canManage && !autoTried) {
+      setAutoTried(true);
+      void ensureCode();
+    }
+  }, [loadingRef, referral, canManage, ensureCode, autoTried]);
 
   // ── Compartir ─────────────────────────────────────────────────────
   const shareUrl = referral?.code ? `https://bioo.cl/refiere/${referral.code}` : '';

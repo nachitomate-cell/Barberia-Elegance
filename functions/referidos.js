@@ -111,17 +111,19 @@ exports.referidosAsegurarCodigo = onCall(async (req) => {
   const callerRol = req.auth.token?.role || '';
   const inputTid = String(req.data?.tenantId || '').trim();
   const superadmin = esSuperAdmin(req.auth);
+  logger.info(`[referidos] asegurar callerTid=${callerTid} rol=${callerRol} input=${inputTid} super=${superadmin}`);
 
   // Resolución de tenantId:
-  //  - super-admin puede pedirlo para cualquier tenant
-  //  - resto: solo el suyo, y solo si es admin/jefe
-  let tenantId;
-  if (superadmin && inputTid) {
-    tenantId = inputTid;
-  } else if (callerTid && ['admin', 'jefe'].includes(callerRol)) {
-    tenantId = callerTid;
-  } else {
-    throw new HttpsError('permission-denied', 'Solo administradores pueden generar el código.');
+  //  - super-admin: usa lo que pasen (inputTid) o cae a su claim si tiene uno.
+  //  - admin/jefe del tenant: solo su propio tenant.
+  let tenantId = inputTid || callerTid;
+  if (!tenantId) {
+    throw new HttpsError('invalid-argument', 'Falta tenantId. Recarga la página e intenta de nuevo.');
+  }
+  if (!superadmin) {
+    if (tenantId !== callerTid || !['admin', 'jefe'].includes(callerRol)) {
+      throw new HttpsError('permission-denied', 'Solo administradores pueden generar el código.');
+    }
   }
 
   const refDoc = db.collection('_referrals').doc(tenantId);
