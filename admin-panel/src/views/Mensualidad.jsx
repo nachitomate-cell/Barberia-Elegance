@@ -1,37 +1,54 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
+import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '../lib/firebase';
 import { useTenant } from '../contexts/TenantContext';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
-import { 
-  CheckCircle2, AlertCircle, XCircle, MessageSquare, 
-  ExternalLink, CreditCard, Sparkles, Copy, Check, Send 
+import {
+  CheckCircle2, AlertCircle, XCircle, MessageSquare,
+  ExternalLink, CreditCard, Sparkles, Copy, Check, Send,
+  Calendar, Building2, User, Hash, Mail, Wallet, Clock,
+  Headphones, ChevronRight,
 } from 'lucide-react';
 
+/* ── Configuración por estado ───────────────────────────────────── */
 const STATUS_CFG = {
-  al_dia:   { 
-    label: 'Al día', 
-    Icon: CheckCircle2, 
-    color: 'text-emerald-400', 
-    glow: 'shadow-emerald-500/10 border-emerald-500/30', 
-    bg: 'bg-emerald-500/10' 
+  al_dia: {
+    label: 'Al día',
+    sub: 'Tu suscripción está activa y todos los servicios funcionando.',
+    Icon: CheckCircle2,
+    accent: '#10b981',
+    text: 'text-emerald-300',
+    bg: 'bg-emerald-500/10',
+    ring: 'ring-emerald-500/30',
+    glow: 'rgba(16,185,129,0.25)',
+    gradient: 'from-emerald-500/15 via-slate-900 to-slate-950',
   },
-  pendiente:{ 
-    label: 'Pago pendiente', 
-    Icon: AlertCircle, 
-    color: 'text-amber-400', 
-    glow: 'shadow-amber-500/10 border-amber-500/30', 
-    bg: 'bg-amber-500/10' 
+  pendiente: {
+    label: 'Pago pendiente',
+    sub: 'Tienes una cuota próxima por pagar.',
+    Icon: AlertCircle,
+    accent: '#f59e0b',
+    text: 'text-amber-300',
+    bg: 'bg-amber-500/10',
+    ring: 'ring-amber-500/30',
+    glow: 'rgba(245,158,11,0.25)',
+    gradient: 'from-amber-500/15 via-slate-900 to-slate-950',
   },
-  atrasado: { 
-    label: 'Pago atrasado', 
-    Icon: XCircle, 
-    color: 'text-red-400', 
-    glow: 'shadow-red-500/10 border-red-500/30', 
-    bg: 'bg-red-500/10' 
+  atrasado: {
+    label: 'Pago atrasado',
+    sub: 'Tu cuota ya venció. Regulariza para evitar pausas.',
+    Icon: XCircle,
+    accent: '#ef4444',
+    text: 'text-red-300',
+    bg: 'bg-red-500/10',
+    ring: 'ring-red-500/30',
+    glow: 'rgba(239,68,68,0.25)',
+    gradient: 'from-red-500/15 via-slate-900 to-slate-950',
   },
 };
 
+/* ── Helpers ────────────────────────────────────────────────────── */
 function mesLabel(mes) {
   if (!mes) return '';
   const [y, m] = mes.split('-').map(Number);
@@ -39,19 +56,33 @@ function mesLabel(mes) {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-/* ── Modal de Planes y Tarifas (visible para el cliente) ───────── */
+/* ════════════════════════════════════════════════════════════════
+   PLANES Y TARIFAS MODAL
+   ════════════════════════════════════════════════════════════════ */
 function PlanCard({ nombre, sub, mes, anual, pop }) {
   return (
-    <div className={`rounded-2xl p-4 border relative ${pop ? 'bg-black border-lime-500/60' : 'bg-slate-800/40 border-slate-700/60'}`}>
-      {pop && <span className="absolute -top-2.5 left-3 bg-lime-400 text-black text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wide">Más popular</span>}
+    <div
+      className={`relative overflow-hidden rounded-2xl border p-4 transition-all ${
+        pop
+          ? 'border-lime-500/60 bg-gradient-to-br from-lime-500/15 via-slate-900 to-slate-950 shadow-[0_8px_24px_-8px_rgba(132,204,22,0.4)]'
+          : 'border-slate-700/60 bg-slate-800/40'
+      }`}
+    >
+      {pop && (
+        <span className="absolute -top-2.5 left-3 inline-flex items-center gap-1 rounded-full bg-lime-400 px-2 py-0.5 text-[9px] font-black uppercase tracking-wide text-emerald-950">
+          <Sparkles size={9} /> Más popular
+        </span>
+      )}
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-white font-bold text-sm">{nombre}</p>
-          <p className="text-slate-500 text-[11px]">{sub}</p>
+          <p className="text-sm font-bold text-white">{nombre}</p>
+          <p className="text-[11px] text-slate-500">{sub}</p>
         </div>
         <div className="text-right">
-          <p className={`font-black text-lg ${pop ? 'text-lime-400' : 'text-white'}`}>${mes}<span className="text-[11px] text-slate-500 font-medium">/mes</span></p>
-          <p className="text-slate-500 text-[10px]">anual ${anual}/mes</p>
+          <p className={`text-lg font-black ${pop ? 'text-lime-300' : 'text-white'}`}>
+            ${mes}<span className="text-[11px] font-medium text-slate-500">/mes</span>
+          </p>
+          <p className="text-[10px] text-slate-500">anual ${anual}/mes</p>
         </div>
       </div>
     </div>
@@ -60,37 +91,72 @@ function PlanCard({ nombre, sub, mes, anual, pop }) {
 
 function TarifasModal({ onClose }) {
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-sm shadow-2xl max-h-[88vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        <div className="p-5 space-y-3">
-          <div className="flex items-center justify-between mb-1">
-            <h3 className="text-base font-bold text-white">Planes y tarifas</h3>
-            <button onClick={onClose} className="text-slate-500 hover:text-white text-2xl leading-none">&times;</button>
-          </div>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.78)', backdropFilter: 'blur(8px)' }}
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96, y: 8 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.97, y: 4 }}
+        transition={{ type: 'spring', damping: 22, stiffness: 240 }}
+        className="w-full max-w-sm overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/95 shadow-2xl backdrop-blur"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between border-b border-slate-800 px-5 py-3.5">
+          <h3 className="text-base font-bold text-white">Planes y tarifas</h3>
+          <button
+            onClick={onClose}
+            className="grid h-8 w-8 place-items-center rounded-full bg-white/5 text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
+            aria-label="Cerrar"
+          >
+            ✕
+          </button>
+        </div>
+        <div className="max-h-[78vh] space-y-3 overflow-y-auto p-5">
           <PlanCard nombre="Individual" sub="1 barbero · trabajas solo" mes="14.900" anual="11.900" />
           <PlanCard nombre="Local" sub="Barberos ilimitados · por local" mes="29.900" anual="24.900" pop />
-          <div className="rounded-2xl p-4 border bg-slate-800/40 border-slate-700/60">
-            <p className="text-white font-bold text-sm mb-1.5">Cadena <span className="text-slate-500 font-medium text-[11px]">· 3 o más locales</span></p>
-            <div className="flex justify-between text-[13px] text-slate-300 py-0.5"><span>1 local</span><b className="text-white">$29.900 c/u</b></div>
-            <div className="flex justify-between text-[13px] text-slate-300 py-0.5"><span>2 locales</span><b className="text-white">$25.900 c/u</b></div>
-            <div className="flex justify-between text-[13px] text-lime-400 py-0.5"><span>3 a 5 locales</span><b>$22.900 c/u</b></div>
+          <div className="rounded-2xl border border-slate-700/60 bg-slate-800/40 p-4">
+            <p className="mb-1.5 text-sm font-bold text-white">
+              Cadena <span className="text-[11px] font-medium text-slate-500">· 3 o más locales</span>
+            </p>
+            <div className="space-y-0.5">
+              <div className="flex items-center justify-between text-[13px] text-slate-300">
+                <span>1 local</span><b className="text-white">$29.900 c/u</b>
+              </div>
+              <div className="flex items-center justify-between text-[13px] text-slate-300">
+                <span>2 locales</span><b className="text-white">$25.900 c/u</b>
+              </div>
+              <div className="flex items-center justify-between text-[13px] text-lime-300">
+                <span>3 a 5 locales</span><b>$22.900 c/u</b>
+              </div>
+            </div>
           </div>
-          <p className="text-[11px] text-slate-500 text-center leading-relaxed pt-1">
-            Primer mes gratis · sin instalación · migración gratis<br />2° local: 50% off los primeros 3 meses
+          <p className="pt-1 text-center text-[11px] leading-relaxed text-slate-500">
+            Primer mes gratis · sin instalación · migración gratis<br />
+            2° local: 50% off los primeros 3 meses
           </p>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
 
+/* ════════════════════════════════════════════════════════════════
+   VIEW PRINCIPAL
+   ════════════════════════════════════════════════════════════════ */
 export default function Mensualidad() {
   const { id: tenantId, name: tenantName } = useTenant();
-  const [billing,  setBilling]  = useState(null);
+  const [billing, setBilling] = useState(null);
   const [showHelp, setShowHelp] = useState(false);
   const [showTarifas, setShowTarifas] = useState(false);
   const [loading, setLoading] = useState(true);
   const [copiado, setCopiado] = useState(false);
+  const [copiadoField, setCopiadoField] = useState(null);
 
   useEffect(() => {
     const ref = doc(db, '_billing', tenantId);
@@ -102,40 +168,35 @@ export default function Mensualidad() {
     return unsub;
   }, [tenantId]);
 
-  // ── Estado automático por fecha (solo lectura — NO modifica datos del tenant) ──
-  // Si la fecha de próximo pago ya venció, se muestra "atrasado" sin tocar Firestore.
+  // ── Estado automático por fecha (solo lectura) ──
   const _fechaPP = billing?.fechaProximoPago;
-  const _dpp = (() => {
+  const _dpp = useMemo(() => {
     if (!_fechaPP) return null;
     try {
       const d = _fechaPP.toDate ? _fechaPP.toDate() : new Date(`${_fechaPP}T00:00:00`);
       return isNaN(d.getTime()) ? null : d;
     } catch { return null; }
-  })();
-  const _hoy = new Date(); _hoy.setHours(0, 0, 0, 0);
+  }, [_fechaPP]);
+  const _hoy = useMemo(() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; }, []);
   const vencida = _dpp ? _dpp < _hoy : false;
   const diasVencido = vencida ? Math.floor((_hoy - _dpp) / 86400000) : 0;
+  const diasParaVencer = !vencida && _dpp ? Math.ceil((_dpp - _hoy) / 86400000) : null;
 
   const estado = vencida ? 'atrasado' : (billing?.estadoPago || 'al_dia');
   const cfg    = STATUS_CFG[estado] || STATUS_CFG.al_dia;
   const { Icon } = cfg;
 
   const cuotas   = Array.isArray(billing?.cuotas) ? billing.cuotas : [];
-  // Mes actual YYYY-MM para clasificar cada cuota correctamente.
   const _mesActual = `${_hoy.getFullYear()}-${String(_hoy.getMonth() + 1).padStart(2, '0')}`;
-  // Una cuota no pagada de un mes FUTURO no es deuda: es "próxima", no "pendiente".
-  // Solo cuentan como pendientes los meses ya vencidos o el mes en curso sin pagar.
   const claseCuota = c => c.pagada ? 'pagada' : (c.mes && c.mes <= _mesActual ? 'pendiente' : 'proxima');
   const pagadas    = cuotas.filter(c => c.pagada).length;
   const pendientes = cuotas.filter(c => claseCuota(c) === 'pendiente').length;
   const proximas   = cuotas.filter(c => claseCuota(c) === 'proxima').length;
+  const progresoPct = cuotas.length ? Math.round((pagadas / cuotas.length) * 100) : 0;
 
   const formatFecha = raw => {
     if (!raw) return null;
     try {
-      // Importante: las fechas peladas "YYYY-MM-DD" se parsean como UTC y en
-      // Chile (UTC-4) se corren un día atrás. Forzamos hora local con T00:00:00,
-      // igual que el banner y el cálculo de estado, para que la fecha coincida.
       const d = raw.toDate ? raw.toDate() : new Date(`${raw}T00:00:00`);
       return isNaN(d.getTime()) ? null : d.toLocaleDateString('es-CL', { day: 'numeric', month: 'long', year: 'numeric' });
     } catch { return null; }
@@ -147,293 +208,139 @@ export default function Mensualidad() {
     setCopiado(true);
     setTimeout(() => setCopiado(false), 2000);
   };
+  const copyField = (key, value) => {
+    navigator.clipboard.writeText(value);
+    setCopiadoField(key);
+    setTimeout(() => setCopiadoField(null), 1500);
+  };
 
-  // Obtener el mes a pagar para el mensaje de WhatsApp: primero la deuda real
-  // (vencida/actual) y, si está al día, la próxima cuota por vencer.
   const primerPendiente = cuotas.find(c => claseCuota(c) === 'pendiente')
     || cuotas.find(c => claseCuota(c) === 'proxima');
   const mesMensaje = primerPendiente ? mesLabel(primerPendiente.mes) : '';
-  
-  const waphone = billing?.whatsappAdmin || '56983568212'; // Teléfono oficial corregido de Ignacio
+
+  const waphone = billing?.whatsappAdmin || '56983568212';
   const txtMensaje = encodeURIComponent(
     `¡Hola Ignacio! Acabo de realizar la transferencia de la mensualidad del local *${tenantName || tenantId}*` +
-    (mesMensaje ? ` correspondiente al mes de *${mesMensaje}*.` : '.') + 
-    ` Adjunto el comprobante de transferencia. 🚀`
+    (mesMensaje ? ` correspondiente al mes de *${mesMensaje}*.` : '.') +
+    ` Adjunto el comprobante de transferencia. 🚀`,
   );
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="p-2.5 bg-slate-900 border border-slate-700/60 rounded-2xl shadow-inner">
-          <CreditCard size={20} className="text-emerald-450" />
-        </div>
-        <div>
-          <h1 className="text-xl font-bold text-white tracking-tight flex items-center gap-2">
-            Mensualidad
-            <HelpButton onClick={() => setShowHelp(true)} />
-          </h1>
-          <p className="text-xs text-slate-500">Estado de tu suscripción con SynapTech</p>
-        </div>
-      </div>
+    <div className="mx-auto max-w-2xl space-y-5 p-4 sm:p-6">
+
+      {/* ─────── HERO ─────── */}
+      <Hero
+        plan={billing?.plan}
+        estado={estado}
+        onHelp={() => setShowHelp(true)}
+      />
 
       {loading ? (
-        <div className="h-44 bg-slate-900 border border-slate-800/80 rounded-2xl animate-pulse" />
+        <Skeleton />
       ) : (
         <>
-          {/* Plan de uso */}
-          {billing?.plan && (
-            <div className="bg-slate-800/40 border border-slate-700/60 rounded-2xl p-5 flex items-center gap-4 relative overflow-hidden shadow-sm group">
-              <div className="absolute -top-10 -right-10 w-24 h-24 bg-violet-500/5 rounded-full blur-2xl group-hover:bg-violet-500/15 transition-all pointer-events-none" />
-              <div className="p-2.5 rounded-xl bg-violet-500/10 border border-violet-500/20">
-                <Sparkles size={18} className="text-violet-400" />
-              </div>
-              <div>
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Plan activo</p>
-                <p className="text-base font-black text-white">{billing.plan}</p>
-              </div>
-            </div>
+          {/* ─────── STATUS HERO ─────── */}
+          <StatusCard
+            cfg={cfg}
+            Icon={Icon}
+            monto={Number(billing?.montoPendiente) || 0}
+            fechaFmt={formatFecha(billing?.fechaProximoPago)}
+            vencida={vencida}
+            diasVencido={diasVencido}
+            diasParaVencer={diasParaVencer}
+          />
+
+          {/* ─────── Ver planes ─────── */}
+          {!['elegance', 'ferraza'].includes(tenantId) && (
+            <button
+              type="button"
+              onClick={() => setShowTarifas(true)}
+              className="group flex w-full items-center justify-between gap-2 rounded-2xl border border-slate-800 bg-slate-900/40 px-5 py-3 text-left transition-all hover:border-violet-500/40 hover:bg-violet-500/[0.06]"
+            >
+              <span className="flex items-center gap-2.5">
+                <span className="grid h-8 w-8 place-items-center rounded-xl bg-violet-500/15 text-violet-300 ring-1 ring-violet-400/25">
+                  <Sparkles size={14} />
+                </span>
+                <span>
+                  <p className="text-sm font-bold text-white">Ver planes y tarifas</p>
+                  <p className="text-[11px] text-slate-500">Compara Individual, Local y Cadena.</p>
+                </span>
+              </span>
+              <ChevronRight size={16} className="text-slate-500 transition-transform group-hover:translate-x-0.5 group-hover:text-violet-300" />
+            </button>
           )}
 
-          {/* Estado de Suscripción */}
-          <div className={`bg-slate-800/40 border rounded-2xl p-5 shadow-lg ${cfg.glow} relative overflow-hidden transition-all duration-300`}>
-            <div className="flex items-center gap-3 mb-4">
-              <div className={`p-2.5 rounded-xl border border-slate-700/40 ${cfg.bg}`}>
-                <Icon size={20} className={cfg.color} />
-              </div>
-              <div>
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-0.5">Estado actual</p>
-                <p className={`text-base font-black tracking-tight ${cfg.color}`}>{cfg.label}</p>
-              </div>
-            </div>
+          {/* ─────── Agradecimiento al_dia ─────── */}
+          {estado === 'al_dia' && <ThanksCard />}
 
-            {Number(billing?.montoPendiente) > 0 && (
-              <div className="border-t border-slate-800/80 pt-4 mt-4 flex items-end justify-between">
-                <div>
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Monto mensual</p>
-                  <p className="text-3xl font-black text-white tracking-tight">
-                    ${Number(billing.montoPendiente).toLocaleString('es-CL')}
+          {/* ─────── Datos bancarios ─────── */}
+          <BankCard
+            copiado={copiado}
+            copiadoField={copiadoField}
+            onCopyAll={handleCopiarDatos}
+            onCopyField={copyField}
+            waUrl={`https://wa.me/${waphone}?text=${txtMensaje}`}
+          />
+
+          {/* ─────── Cuotas ─────── */}
+          {cuotas.length > 0 && (
+            <CuotasCard
+              cuotas={cuotas}
+              claseCuota={claseCuota}
+              pagadas={pagadas}
+              pendientes={pendientes}
+              proximas={proximas}
+              progresoPct={progresoPct}
+            />
+          )}
+
+          {/* ─────── Mensaje admin ─────── */}
+          {billing?.mensajeAdmin && (
+            <div className="relative overflow-hidden rounded-2xl border border-slate-800 bg-gradient-to-br from-violet-500/10 via-slate-900 to-slate-900 p-5 shadow-lg backdrop-blur-sm">
+              <div
+                aria-hidden
+                className="pointer-events-none absolute -right-12 -top-12 h-28 w-28 rounded-full"
+                style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.25), transparent 70%)', filter: 'blur(18px)' }}
+              />
+              <div className="relative">
+                <div className="mb-3 flex items-center gap-2">
+                  <span className="grid h-7 w-7 place-items-center rounded-lg bg-violet-500/15 text-violet-300 ring-1 ring-violet-400/25">
+                    <MessageSquare size={13} />
+                  </span>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-violet-300">
+                    Mensaje de SynapTech
                   </p>
                 </div>
-                {formatFecha(billing?.fechaProximoPago) && (
-                  <div className="text-right">
-                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">{vencida ? 'Venció' : 'Vencimiento'}</p>
-                    <p className={`text-sm font-bold ${vencida ? 'text-red-400' : 'text-slate-200'}`}>{formatFecha(billing.fechaProximoPago)}</p>
-                    {vencida && (
-                      <p className="text-[10px] font-semibold text-red-400/80 mt-0.5">Hace {diasVencido} día{diasVencido !== 1 ? 's' : ''}</p>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Ver planes y tarifas — oculto para tenants con arreglo especial */}
-          {!['elegance', 'ferraza'].includes(tenantId) && (
-            <>
-              <button
-                onClick={() => setShowTarifas(true)}
-                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold text-slate-300 bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 transition-all"
-              >
-                <Sparkles size={14} className="text-violet-400" /> Ver planes y tarifas
-              </button>
-              {showTarifas && <TarifasModal onClose={() => setShowTarifas(false)} />}
-            </>
-          )}
-
-          {/* Tarjeta de agradecimiento solo cuando está al día */}
-          {estado === 'al_dia' && (
-            /* Tarjeta de Agradecimiento SynapTech (Al día) */
-            <div className="bg-gradient-to-b from-slate-800/60 to-slate-900/60 border border-emerald-500/20 rounded-2xl p-8 shadow-xl relative overflow-hidden text-center flex flex-col items-center justify-center space-y-4">
-              <div className="absolute -top-12 -left-12 w-36 h-36 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
-              
-              {/* Futuristic SynapTech Digital Logo */}
-              <div className="flex flex-col items-center gap-2 mb-2 animate-bounce-slow">
-                <div className="relative flex items-center justify-center w-16 h-16 bg-gradient-to-tr from-emerald-500/20 via-teal-500/10 to-transparent border border-emerald-500/30 rounded-2xl shadow-lg shadow-emerald-500/5">
-                  <div className="absolute inset-0.5 rounded-2xl bg-slate-900 border border-slate-800" />
-                  <svg className="w-8 h-8 text-emerald-400 relative z-10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
-                  </svg>
-                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-450 rounded-full border-2 border-slate-900 animate-pulse" />
-                </div>
-                <div>
-                  <p className="text-sm font-black text-white tracking-[0.25em] uppercase">SynapTech</p>
-                  <p className="text-[8px] font-black text-emerald-450 tracking-[0.4em] uppercase opacity-80 mt-0.5">S P A</p>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <h3 className="text-lg font-extrabold text-white tracking-tight">¡Suscripción al día!</h3>
-                <p className="text-emerald-400 font-bold italic text-base">“Gracias por confiar en el futuro”</p>
-                <p className="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
-                  Tu cuenta se encuentra totalmente al día y todos nuestros servicios están activos. Agradecemos enormemente tu compromiso de pago y preferencia con nosotros. ¡Sigamos creciendo juntos!
+                <p className="whitespace-pre-line text-sm font-medium leading-relaxed text-slate-200">
+                  {billing.mensajeAdmin}
                 </p>
               </div>
             </div>
           )}
 
-          {/* Datos de Transferencia Bancaria — SIEMPRE visible, en todos los tenants */}
-          <div className="bg-slate-800/40 border border-slate-700/60 rounded-2xl p-5 shadow-lg relative overflow-hidden">
-              <div className="absolute -top-10 -right-10 w-28 h-28 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
-              <div className="flex items-center justify-between mb-4 border-b border-slate-800/80 pb-3">
-                <div>
-                  <p className="text-xs font-bold text-white tracking-tight flex items-center gap-1.5">
-                    🏦 Datos de Transferencia Bancaria
-                  </p>
-                  <p className="text-[10px] text-slate-500 mt-0.5">Realiza tu pago directamente a los siguientes datos:</p>
-                </div>
-                <button
-                  onClick={handleCopiarDatos}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900 border border-slate-700 text-slate-400 hover:text-white text-xs font-bold rounded-xl transition-all active:scale-95 shadow-inner"
-                >
-                  {copiado ? (
-                    <>
-                      <Check size={13} className="text-emerald-400" />
-                      <span className="text-emerald-400 font-bold">Copiado</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy size={13} />
-                      <span>Copiar Datos</span>
-                    </>
-                  )}
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
-                <div className="space-y-1">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Nombre</span>
-                  <span className="font-semibold text-slate-200">Ignacio Mateluna</span>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">RUT</span>
-                  <span className="font-semibold text-slate-200">20.988.528-K</span>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Banco</span>
-                  <span className="font-semibold text-slate-200">Banco Falabella</span>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Tipo de Cuenta</span>
-                  <span className="font-semibold text-slate-200">Cuenta Corriente</span>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Número de Cuenta</span>
-                  <span className="font-bold text-slate-200 font-mono">19831360665</span>
-                </div>
-                <div className="space-y-1">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block">Correo de confirmación</span>
-                  <span className="font-semibold text-slate-200">ignaciiio.mate@gmail.com</span>
-                </div>
-              </div>
-
-              {/* Botón de Envío por WhatsApp */}
-              <div className="pt-5 mt-5 border-t border-slate-800/80">
-                <a
-                  href={`https://wa.me/${waphone}?text=${txtMensaje}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm rounded-xl transition-all shadow-md shadow-emerald-950/20 active:scale-98 flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <Send size={15} />
-                  <span>Enviar Comprobante por WhatsApp</span>
-                </a>
-              </div>
-            </div>
-
-          {/* Cuotas */}
-          {cuotas.length > 0 && (
-            <div className="bg-slate-800/40 border border-slate-700/60 rounded-2xl p-5 shadow-lg">
-              <div className="flex items-center justify-between mb-4 border-b border-slate-800/80 pb-3">
-                <p className="text-xs font-bold text-slate-200 tracking-tight uppercase">Historial de cuotas</p>
-                <span className="text-xs text-slate-500">
-                  {pagadas}/{cuotas.length} pagadas
-                  {pendientes > 0 && (
-                    <span className="ml-2.5 text-amber-400 font-bold">· {pendientes} pendiente{pendientes !== 1 ? 's' : ''}</span>
-                  )}
-                  {proximas > 0 && (
-                    <span className="ml-2.5 text-slate-500">· {proximas} próxima{proximas !== 1 ? 's' : ''}</span>
-                  )}
-                </span>
-              </div>
-              <div className="space-y-2">
-                {cuotas.map((c, i) => {
-                  const clase = claseCuota(c);
-                  const badge = clase === 'pagada'
-                    ? { cls: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400', txt: '✓ Pagado' }
-                    : clase === 'pendiente'
-                      ? { cls: 'bg-amber-500/10 border-amber-500/25 text-amber-400', txt: '○ Pendiente' }
-                      : { cls: 'bg-slate-500/10 border-slate-600/40 text-slate-400', txt: '◔ Próximo' };
-                  return (
-                    <div
-                      key={i}
-                      className="flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-900/30 border border-slate-800/80 transition-all hover:bg-slate-900/50"
-                    >
-                      <span className={`text-[10px] font-black px-2.5 py-0.5 rounded-full flex-shrink-0 border ${badge.cls}`}>
-                        {badge.txt}
-                      </span>
-                      <span className={`flex-1 text-sm font-semibold ${
-                        clase === 'pagada'    ? 'text-slate-500 line-through'
-                        : clase === 'pendiente' ? 'text-slate-200'
-                        : 'text-slate-400'
-                      }`}>
-                        {mesLabel(c.mes)}
-                      </span>
-                      {c.monto > 0 && (
-                        <span className="text-xs font-black text-slate-400 flex-shrink-0 font-mono">
-                          ${Number(c.monto).toLocaleString('es-CL')}
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Mensaje del admin */}
-          {billing?.mensajeAdmin ? (
-            <div className="bg-slate-800/40 border border-slate-700/60 rounded-2xl p-5 shadow-lg">
-              <div className="flex items-center gap-2 mb-3">
-                <MessageSquare size={14} className="text-slate-400 animate-pulse" />
-                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Mensaje de SynapTech</p>
-              </div>
-              <p className="text-sm text-slate-300 leading-relaxed whitespace-pre-line font-medium">{billing.mensajeAdmin}</p>
-            </div>
-          ) : null}
-
-          {/* Sin datos */}
+          {/* ─────── Sin billing ─────── */}
           {!billing && (
-            <div className="bg-slate-800/40 border border-slate-700/60 rounded-2xl p-10 text-center shadow-lg">
-              <CheckCircle2 size={32} className="text-emerald-500/40 mx-auto mb-3" />
-              <p className="text-sm font-bold text-slate-350">Todo al día</p>
-              <p className="text-xs text-slate-600 mt-1">No hay mensajes de facturación pendientes.</p>
+            <div className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-slate-800 bg-slate-900/50 p-12 text-center shadow-lg">
+              <span className="grid h-14 w-14 place-items-center rounded-2xl bg-emerald-500/10 ring-1 ring-emerald-400/25">
+                <CheckCircle2 size={26} className="text-emerald-300" />
+              </span>
+              <p className="text-base font-bold text-white">Todo al día</p>
+              <p className="text-xs text-slate-500">No hay mensajes de facturación pendientes.</p>
             </div>
           )}
 
-          {/* Contacto */}
-          <div className="bg-slate-800/40 border border-slate-700/60 rounded-2xl p-5 flex items-center justify-between shadow-lg">
-            <div>
-              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">¿Tienes preguntas?</p>
-              <p className="text-xs text-slate-300 font-semibold">Estamos listos para ayudarte con soporte.</p>
-            </div>
-            <a
-              href="https://www.synaptechspa.cl/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-900 border border-slate-700 hover:text-emerald-400 hover:border-slate-500 text-slate-400 text-xs font-bold rounded-xl transition-all"
-            >
-              <ExternalLink size={13} />
-              SynapTech
-            </a>
-          </div>
+          {/* ─────── Soporte ─────── */}
+          <SupportCard />
         </>
       )}
+
+      <AnimatePresence>
+        {showTarifas && <TarifasModal onClose={() => setShowTarifas(false)} />}
+      </AnimatePresence>
 
       {showHelp && (
         <HelpModal title="Tu suscripción con SynapTech" onClose={() => setShowHelp(false)}>
           <p>Acá ves el estado de tu plan SynapTech: vigencia, fecha de próximo cobro y método de pago. Para cambios de plan o consultas, escríbenos por WhatsApp.</p>
-
           <div>
             <p className="font-semibold text-emerald-400 mb-1">Estados</p>
             <ul className="list-disc ml-4 space-y-1">
@@ -442,15 +349,384 @@ export default function Mensualidad() {
               <li><span className="text-rose-400">Vencida</span>: el cobro no se procesó. Algunas funciones se pausan hasta regularizar.</li>
             </ul>
           </div>
-
           <div>
             <p className="font-semibold text-emerald-400 mb-1">¿Quieres cambiar de plan?</p>
             <p>Escríbenos por <strong className="text-white">WhatsApp +56 9 8356 8212</strong>. Te ayudamos a evaluar opciones según el crecimiento del local.</p>
           </div>
-
           <p className="text-xs text-amber-400 bg-amber-400/5 border border-amber-400/20 rounded-lg px-3 py-2">💡 Si ves "Vencida" pero ya pagaste, esperá unos minutos a que el banco procese y refresca. Si persiste, escríbenos.</p>
         </HelpModal>
       )}
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════
+   HERO HEADER — título + plan pill + estado mini
+   ════════════════════════════════════════════════════════════════ */
+function Hero({ plan, estado, onHelp }) {
+  const cfg = STATUS_CFG[estado] || STATUS_CFG.al_dia;
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      className="flex flex-wrap items-center justify-between gap-3 px-1"
+    >
+      <div className="flex items-center gap-3 min-w-0">
+        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-emerald-500/15 to-emerald-700/10 ring-1 ring-emerald-400/25 shadow-inner">
+          <CreditCard size={19} className="text-emerald-300" />
+        </span>
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-black tracking-tight text-white sm:text-2xl">Mensualidad</h1>
+            <HelpButton onClick={onHelp} />
+          </div>
+          <p className="text-[11px] text-slate-500">Tu suscripción con SynapTech</p>
+        </div>
+      </div>
+      {plan && (
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-violet-400/30 bg-violet-500/10 px-2.5 py-1 text-[11px] font-bold text-violet-200">
+          <Sparkles size={11} /> {plan}
+        </span>
+      )}
+      <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ring-1 ${cfg.bg} ${cfg.text} ${cfg.ring}`}>
+        <span className="relative flex h-1.5 w-1.5">
+          <span className="absolute inset-0 animate-ping rounded-full opacity-60" style={{ background: cfg.accent }} />
+          <span className="relative h-1.5 w-1.5 rounded-full" style={{ background: cfg.accent }} />
+        </span>
+        {cfg.label}
+      </span>
+    </motion.section>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════
+   STATUS CARD — el corazón visual de la página
+   ════════════════════════════════════════════════════════════════ */
+function StatusCard({ cfg, Icon, monto, fechaFmt, vencida, diasVencido, diasParaVencer }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: 0.05 }}
+      className={`relative overflow-hidden rounded-3xl border bg-gradient-to-br p-6 shadow-2xl ${cfg.ring} ${cfg.gradient}`}
+      style={{ boxShadow: `0 12px 40px -12px ${cfg.glow}` }}
+    >
+      {/* halo */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -right-20 -top-20 h-52 w-52 rounded-full"
+        style={{ background: `radial-gradient(circle, ${cfg.glow}, transparent 70%)`, filter: 'blur(28px)' }}
+      />
+      {/* grid */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 opacity-[0.04]"
+        style={{
+          backgroundImage:
+            'linear-gradient(to right, white 1px, transparent 1px), ' +
+            'linear-gradient(to bottom, white 1px, transparent 1px)',
+          backgroundSize: '28px 28px',
+          maskImage: 'radial-gradient(ellipse at center, black 25%, transparent 70%)',
+        }}
+      />
+
+      <div className="relative">
+        <div className="flex items-center gap-3">
+          <span className={`grid h-12 w-12 shrink-0 place-items-center rounded-2xl ring-1 ${cfg.bg} ${cfg.ring}`}>
+            <Icon size={22} className={cfg.text} />
+          </span>
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400">
+              Estado actual
+            </p>
+            <p className={`text-xl font-black tracking-tight ${cfg.text}`}>{cfg.label}</p>
+          </div>
+        </div>
+
+        <p className="mt-3 max-w-md text-xs leading-relaxed text-slate-400">
+          {cfg.sub}
+        </p>
+
+        {monto > 0 && (
+          <div className="mt-5 grid grid-cols-2 gap-4 border-t border-white/[0.06] pt-5">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">Monto mensual</p>
+              <p className="mt-1 text-3xl font-black tabular-nums tracking-tight text-white sm:text-4xl">
+                ${Number(monto).toLocaleString('es-CL')}
+              </p>
+            </div>
+            {fechaFmt && (
+              <div className="text-right">
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">
+                  {vencida ? 'Venció' : 'Vencimiento'}
+                </p>
+                <p className={`mt-1 inline-flex items-center gap-1.5 text-sm font-bold ${vencida ? 'text-red-300' : 'text-slate-100'}`}>
+                  <Calendar size={12} /> {fechaFmt}
+                </p>
+                {vencida ? (
+                  <p className="mt-0.5 text-[11px] font-semibold text-red-400/85">
+                    Hace {diasVencido} día{diasVencido !== 1 ? 's' : ''}
+                  </p>
+                ) : diasParaVencer != null && diasParaVencer <= 7 ? (
+                  <p className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-semibold text-amber-300">
+                    <Clock size={10} /> En {diasParaVencer} día{diasParaVencer !== 1 ? 's' : ''}
+                  </p>
+                ) : null}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════
+   THANKS CARD (cuando estado === 'al_dia')
+   ════════════════════════════════════════════════════════════════ */
+function ThanksCard() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.97 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.4, delay: 0.1 }}
+      className="relative overflow-hidden rounded-3xl border border-emerald-500/20 bg-gradient-to-br from-slate-900 to-slate-950 p-7 text-center shadow-xl"
+    >
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -left-16 -top-16 h-48 w-48 rounded-full"
+        style={{ background: 'radial-gradient(circle, rgba(16,185,129,0.18), transparent 70%)', filter: 'blur(28px)' }}
+      />
+      <div className="relative flex flex-col items-center gap-4">
+        <div className="relative">
+          <div className="grid h-16 w-16 place-items-center rounded-2xl border border-emerald-500/30 bg-gradient-to-tr from-emerald-500/20 via-teal-500/10 to-transparent shadow-lg shadow-emerald-500/10">
+            <div className="absolute inset-0.5 rounded-2xl border border-slate-800 bg-slate-900" />
+            <svg className="relative z-10 h-8 w-8 text-emerald-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+            </svg>
+          </div>
+          <motion.span
+            aria-hidden
+            className="absolute -right-1 -top-1 h-3 w-3 rounded-full border-2 border-slate-900 bg-emerald-400"
+            animate={{ scale: [1, 1.25, 1], opacity: [0.8, 1, 0.8] }}
+            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+          />
+        </div>
+        <div>
+          <p className="text-sm font-black uppercase tracking-[0.25em] text-white">SynapTech</p>
+          <p className="text-[9px] font-black uppercase tracking-[0.4em] text-emerald-400/80">S P A</p>
+        </div>
+        <h3 className="text-lg font-extrabold tracking-tight text-white">¡Suscripción al día!</h3>
+        <p className="text-base font-bold italic text-emerald-300">"Gracias por confiar en el futuro"</p>
+        <p className="max-w-sm text-xs leading-relaxed text-slate-400">
+          Tu cuenta se encuentra totalmente al día y todos nuestros servicios están activos.
+          ¡Sigamos creciendo juntos!
+        </p>
+      </div>
+    </motion.div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════
+   DATOS BANCARIOS (con copy por campo)
+   ════════════════════════════════════════════════════════════════ */
+function BankCard({ copiado, copiadoField, onCopyAll, onCopyField, waUrl }) {
+  const fields = [
+    { key: 'nombre', label: 'Nombre',  value: 'Ignacio Mateluna',         Icon: User },
+    { key: 'rut',    label: 'RUT',     value: '20.988.528-K',             Icon: Hash },
+    { key: 'banco',  label: 'Banco',   value: 'Banco Falabella',          Icon: Building2 },
+    { key: 'tipo',   label: 'Tipo',    value: 'Cuenta Corriente',         Icon: Wallet },
+    { key: 'num',    label: 'N° de cuenta', value: '19831360665',         Icon: Hash, mono: true },
+    { key: 'email',  label: 'Correo',  value: 'ignaciiio.mate@gmail.com', Icon: Mail },
+  ];
+  return (
+    <div className="relative overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/60 p-5 shadow-lg backdrop-blur-sm">
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full"
+        style={{ background: 'radial-gradient(circle, rgba(16,185,129,0.15), transparent 70%)', filter: 'blur(22px)' }}
+      />
+      <div className="relative">
+        <div className="mb-4 flex items-center justify-between border-b border-slate-800 pb-3">
+          <div>
+            <p className="flex items-center gap-1.5 text-sm font-bold tracking-tight text-white">
+              <Building2 size={14} className="text-emerald-300" /> Datos bancarios
+            </p>
+            <p className="mt-0.5 text-[11px] text-slate-500">
+              Transfiere y envía el comprobante por WhatsApp.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onCopyAll}
+            className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-all active:scale-95 ${
+              copiado
+                ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300'
+                : 'border-slate-700 bg-slate-900 text-slate-300 hover:border-slate-600 hover:text-white'
+            }`}
+          >
+            {copiado ? <><Check size={13} /> Copiado</> : <><Copy size={13} /> Copiar todo</>}
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          {fields.map(({ key, label, value, Icon, mono }) => {
+            const just = copiadoField === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => onCopyField(key, value)}
+                className="group relative flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-950/40 px-3 py-2.5 text-left transition-all hover:border-emerald-500/30 hover:bg-emerald-500/[0.04]"
+              >
+                <Icon size={13} className="shrink-0 text-slate-500 group-hover:text-emerald-300" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-[9px] font-bold uppercase tracking-[0.18em] text-slate-500">{label}</p>
+                  <p className={`truncate text-[13px] font-bold text-slate-100 ${mono ? 'font-mono' : ''}`}>
+                    {value}
+                  </p>
+                </div>
+                <span className={`shrink-0 text-slate-600 transition-all ${just ? 'text-emerald-300' : 'group-hover:text-emerald-300'}`}>
+                  {just ? <Check size={13} /> : <Copy size={11} />}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        <a
+          href={waUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#25D366] py-3.5 text-sm font-extrabold text-white shadow-[0_8px_22px_-6px_rgba(37,211,102,0.5)] transition-transform hover:scale-[1.01] active:scale-[0.98]"
+        >
+          <Send size={15} /> Enviar comprobante por WhatsApp
+        </a>
+      </div>
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════
+   CUOTAS — con progress bar y rows polished
+   ════════════════════════════════════════════════════════════════ */
+function CuotasCard({ cuotas, claseCuota, pagadas, pendientes, proximas, progresoPct }) {
+  return (
+    <div className="rounded-3xl border border-slate-800 bg-slate-900/60 p-5 shadow-lg backdrop-blur-sm">
+      <div className="mb-4 border-b border-slate-800 pb-4">
+        <div className="flex items-baseline justify-between gap-2">
+          <p className="text-xs font-bold uppercase tracking-wider text-slate-300">
+            Historial de cuotas
+          </p>
+          <p className="text-[11px] tabular-nums text-slate-500">
+            <b className="text-white">{pagadas}</b>/{cuotas.length} pagadas
+          </p>
+        </div>
+        {/* Progress bar */}
+        <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-slate-800">
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: `${progresoPct}%` }}
+            transition={{ duration: 0.6, ease: [0.2, 0.8, 0.2, 1] }}
+            className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-lime-300 shadow-[0_0_10px_rgba(74,222,128,0.4)]"
+          />
+        </div>
+        {/* Badges resumen */}
+        <div className="mt-3 flex flex-wrap gap-2">
+          {pendientes > 0 && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold text-amber-300 ring-1 ring-amber-400/30">
+              <AlertCircle size={9} /> {pendientes} pendiente{pendientes !== 1 ? 's' : ''}
+            </span>
+          )}
+          {proximas > 0 && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-slate-700/50 px-2 py-0.5 text-[10px] font-bold text-slate-300 ring-1 ring-slate-600/40">
+              <Clock size={9} /> {proximas} próxima{proximas !== 1 ? 's' : ''}
+            </span>
+          )}
+          {pagadas > 0 && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold text-emerald-300 ring-1 ring-emerald-400/30">
+              <Check size={9} /> {pagadas} pagada{pagadas !== 1 ? 's' : ''}
+            </span>
+          )}
+        </div>
+      </div>
+      <div className="space-y-2">
+        {cuotas.map((c, i) => {
+          const clase = claseCuota(c);
+          const badge =
+            clase === 'pagada'    ? { cls: 'bg-emerald-500/10 text-emerald-300 ring-emerald-400/25', dot: 'bg-emerald-400', txt: 'Pagado' }
+            : clase === 'pendiente' ? { cls: 'bg-amber-500/10 text-amber-300 ring-amber-400/25',   dot: 'bg-amber-400',   txt: 'Pendiente' }
+            :                         { cls: 'bg-slate-700/40 text-slate-400 ring-slate-600/30',  dot: 'bg-slate-500',   txt: 'Próximo' };
+          return (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, x: -4 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: Math.min(i, 8) * 0.025 }}
+              className="flex items-center gap-3 rounded-xl border border-slate-800 bg-slate-950/40 px-4 py-3 transition-colors hover:bg-slate-950/70"
+            >
+              <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-bold ring-1 ${badge.cls}`}>
+                <span className={`h-1.5 w-1.5 rounded-full ${badge.dot}`} /> {badge.txt}
+              </span>
+              <span className={`flex-1 truncate text-sm font-semibold ${
+                clase === 'pagada'      ? 'text-slate-500 line-through'
+                : clase === 'pendiente' ? 'text-slate-100'
+                :                         'text-slate-400'
+              }`}>
+                {mesLabel(c.mes)}
+              </span>
+              {c.monto > 0 && (
+                <span className="shrink-0 font-mono text-xs font-black tabular-nums text-slate-300">
+                  ${Number(c.monto).toLocaleString('es-CL')}
+                </span>
+              )}
+            </motion.div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════
+   SUPPORT CARD
+   ════════════════════════════════════════════════════════════════ */
+function SupportCard() {
+  return (
+    <div className="flex items-center justify-between gap-4 rounded-2xl border border-slate-800 bg-slate-900/40 p-5 backdrop-blur-sm">
+      <div className="flex items-center gap-3 min-w-0">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-slate-800 text-slate-400 ring-1 ring-slate-700">
+          <Headphones size={15} />
+        </span>
+        <div className="min-w-0">
+          <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500">
+            ¿Tienes preguntas?
+          </p>
+          <p className="text-xs font-semibold text-slate-300">Estamos listos para ayudarte.</p>
+        </div>
+      </div>
+      <a
+        href="https://www.synaptechspa.cl/"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-xs font-bold text-slate-300 transition-all hover:border-emerald-500/40 hover:bg-slate-950 hover:text-emerald-300"
+      >
+        <ExternalLink size={12} /> SynapTech
+      </a>
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════
+   SKELETON
+   ════════════════════════════════════════════════════════════════ */
+function Skeleton() {
+  return (
+    <div className="space-y-4">
+      <div className="h-44 animate-pulse rounded-3xl border border-slate-800 bg-slate-900/60" />
+      <div className="h-12 animate-pulse rounded-2xl border border-slate-800 bg-slate-900/40" />
+      <div className="h-72 animate-pulse rounded-3xl border border-slate-800 bg-slate-900/60" />
     </div>
   );
 }
