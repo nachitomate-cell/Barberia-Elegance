@@ -897,3 +897,7 @@ const referidos = require('./referidos');
 exports.referidosAsegurarCodigo  = referidos.referidosAsegurarCodigo;
 exports.referidosCrearSignup     = referidos.referidosCrearSignup;
 exports.referidosMarcarConvertido = referidos.referidosMarcarConvertido;
+
+// Trigger Firestore: avisa por email a Ignacio cuando entra un signup nuevo.
+const referidosAviso = require('./referidos-aviso');
+exports.avisarNuevoReferido = referidosAviso.avisarNuevoReferido;

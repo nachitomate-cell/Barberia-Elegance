@@ -256,8 +256,8 @@
         var waText = encodeURIComponent('Hola SynapTech, vengo de la invitación de '
           + (res.data?.tenantName || 'un amigo')
           + '. Soy ' + payload.name + ' de ' + payload.barberia + '. Quiero activar mi agenda.');
-        // Tu número de WhatsApp comercial — cámbialo si corresponde.
-        ui.wa.href = 'https://wa.me/56930595898?text=' + waText;
+        // Número WhatsApp comercial de SynapTech (siempre el mismo).
+        ui.wa.href = 'https://wa.me/56983568212?text=' + waText;
       }).catch(function(e){
         ui.sb.disabled = false;
         ui.sb.innerHTML = 'Quiero mi mes gratis →';
