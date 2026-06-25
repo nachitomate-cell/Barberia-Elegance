@@ -3,13 +3,14 @@
 //   • Mis reservas  → lista en vivo de citas con acciones (WhatsApp,
 //                     completar, cancelar).
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { onAuthStateChanged } from 'firebase/auth';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
   CalendarClock, Scissors, CalendarX, Settings, Plus, Trash2,
   Loader2, Check, AlertCircle, Power, MessageCircle, X as XIcon,
-  CheckCircle2, ListChecks, Inbox, Phone, Sparkles, Zap, Rocket,
+  CheckCircle2, ListChecks, Inbox, Phone, Sparkles, Zap, Rocket, Copy,
 } from 'lucide-react';
 import { auth, db } from '../lib/firebase';
 import { useEditor } from '../store';
@@ -160,32 +161,45 @@ function ConfigView({ username }: { username: string }): JSX.Element {
     setSaveErrMsg('');
   }
 
-  async function handleSave(): Promise<void> {
-    if (!cfg) return;
-    setStatus('saving');
-    setSaveErrMsg('');
-    try {
-      await saveReservasConfig(username, cfg);
-      setStatus('saved');
-      setDirty(false);
-      setTimeout(() => setStatus('idle'), 2200);
-    } catch (e) {
-      console.error('[reservas] error al guardar:', e);
-      const code = (e as { code?: string })?.code || '';
-      if (code === 'permission-denied') {
-        setSaveErrMsg(
-          'Para activar tus reservas primero tienes que publicar tu bioo. ' +
-          'Toca "Guardar página" arriba a la derecha y vuelve acá.',
-        );
-      } else if (code === 'unauthenticated' || (e as Error)?.message === 'not-authenticated') {
-        setSaveErrMsg('Tu sesión se cerró. Refresca la página e intenta de nuevo.');
-      } else {
-        setSaveErrMsg('No pudimos guardar. Verifica tu conexión e intenta otra vez.');
-      }
-      setStatus('error');
-      setTimeout(() => setStatus('idle'), 2500);
-    }
-  }
+  // Espejo de cfg para que el setTimeout siempre lea la última versión sin
+  // capturar un valor obsoleto en el closure.
+  const cfgRef = useRef<ReservasConfig | null>(null);
+  cfgRef.current = cfg;
+
+  // Auto-save con debounce 800 ms. Reemplaza la barra sticky de "Guardar"
+  // (chocaba con el FAB Vista Previa). El indicador inline de arriba
+  // muestra el estado (Guardando… / Guardado / Reintentar).
+  useEffect(() => {
+    if (!dirty || !cfg || bioState !== 'ready') return;
+    const t = window.setTimeout(() => {
+      const snapshot = cfgRef.current;
+      if (!snapshot) return;
+      setStatus('saving');
+      setSaveErrMsg('');
+      saveReservasConfig(username, snapshot)
+        .then(() => {
+          setStatus('saved');
+          setDirty(false);
+          window.setTimeout(() => setStatus((s) => (s === 'saved' ? 'idle' : s)), 1800);
+        })
+        .catch((e: unknown) => {
+          console.error('[reservas] error al guardar:', e);
+          const code = (e as { code?: string })?.code || '';
+          if (code === 'permission-denied') {
+            setSaveErrMsg(
+              'Para activar tus reservas primero tienes que publicar tu bioo. ' +
+              'Toca "Guardar página" arriba a la derecha y vuelve acá.',
+            );
+          } else if (code === 'unauthenticated' || (e as Error)?.message === 'not-authenticated') {
+            setSaveErrMsg('Tu sesión se cerró. Refresca la página e intenta de nuevo.');
+          } else {
+            setSaveErrMsg('No pudimos guardar. Verifica tu conexión e intenta otra vez.');
+          }
+          setStatus('error');
+        });
+    }, 800);
+    return (): void => window.clearTimeout(t);
+  }, [cfg, dirty, bioState, username]);
 
   if (loadErr) {
     return (
@@ -214,7 +228,11 @@ function ConfigView({ username }: { username: string }): JSX.Element {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
+      {/* Indicador discreto de auto-save (reemplaza la barra sticky que
+          colisionaba con el FAB Vista Previa). */}
+      <SaveStatusPill status={status} dirty={dirty} />
+
       <Card icon={Power} title="Activar reservas">
         <div className="flex items-center justify-between gap-4">
           <p className="text-sm text-neutral-500">
@@ -236,30 +254,38 @@ function ConfigView({ username }: { username: string }): JSX.Element {
           <span className="leading-snug">{saveErrMsg}</span>
         </div>
       )}
+    </div>
+  );
+}
 
-      {/* Barra de guardado sticky — en móvil se eleva por encima del bottom-nav */}
-      <div
-        style={{ bottom: 'calc(5rem + env(safe-area-inset-bottom))' }}
-        className="sticky z-10 flex items-center justify-end gap-3 rounded-2xl bg-white p-3 shadow-[0_8px_30px_rgba(0,0,0,0.08)] ring-1 ring-black/[0.04] md:!bottom-4"
-      >
-        <span className="mr-auto pl-2 text-xs text-neutral-400">
-          {dirty ? 'Cambios sin guardar' : status === 'saved' ? '' : 'Todo al día'}
-        </span>
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={status === 'saving' || !dirty}
-          className="flex items-center gap-2 rounded-xl bg-bioo px-4 py-2.5 text-sm font-bold text-bioo-ink transition-transform active:scale-95 disabled:opacity-50"
-        >
-          {status === 'saving'
-            ? <><Loader2 size={15} className="animate-spin" /> Guardando…</>
-            : status === 'saved'
-              ? <><Check size={15} /> Guardado</>
-              : status === 'error'
-                ? <><AlertCircle size={15} /> Reintentar</>
-                : 'Guardar cambios'}
-        </button>
-      </div>
+/** Pill discreto que sustituye a la barra sticky. No fixed/sticky → ya no
+ *  colisiona con el FAB Vista Previa. Muestra estado del auto-save. */
+function SaveStatusPill({ status, dirty }: { status: SaveStatus; dirty: boolean }): JSX.Element | null {
+  let label = '';
+  let icon: JSX.Element | null = null;
+  let tone = 'text-neutral-400';
+  if (status === 'saving') {
+    label = 'Guardando…';
+    icon = <Loader2 size={12} className="animate-spin" />;
+  } else if (status === 'saved') {
+    label = 'Guardado';
+    icon = <Check size={12} />;
+    tone = 'text-[#52780f]';
+  } else if (status === 'error') {
+    label = 'Reintentando…';
+    icon = <AlertCircle size={12} />;
+    tone = 'text-red-500';
+  } else if (dirty) {
+    label = 'Cambios pendientes';
+    icon = <div className="h-1.5 w-1.5 rounded-full bg-amber-500" aria-hidden />;
+    tone = 'text-amber-700';
+  } else {
+    return null;
+  }
+  return (
+    <div className={`flex items-center justify-end gap-1.5 text-[11px] font-semibold ${tone}`}>
+      {icon}
+      <span>{label}</span>
     </div>
   );
 }
@@ -795,6 +821,13 @@ function ServiciosCard({
   );
 }
 
+/** Estilo "seamless" de inputs tipo hora (bg gris suave, sin borde duro, ring
+ *  verde al focus). Reutilizado por todas las franjas del horario. */
+const TIME_INPUT_CLASS =
+  'flex-1 bg-neutral-100/70 border border-transparent rounded-xl px-4 py-2.5 ' +
+  'text-[#15240b] font-medium text-sm focus:bg-white focus:border-[#92c83a] ' +
+  'focus:ring-2 focus:ring-[#92c83a]/10 outline-none transition-all';
+
 function HorarioCard({
   cfg, patch,
 }: { cfg: ReservasConfig; patch: (p: Partial<ReservasConfig>) => void }): JSX.Element {
@@ -817,65 +850,125 @@ function HorarioCard({
   function eliminarFranja(d: Weekday, i: number): void {
     setDia(d, cfg.horario[d].filter((_, idx) => idx !== i));
   }
+  /** Copia las franjas del día `desde` a todos los demás días que tengan
+   *  horario activo. Días en off (closed) NO se pisan automáticamente. */
+  function copiarATodos(desde: Weekday): void {
+    const franjasOrigen = cfg.horario[desde];
+    if (!franjasOrigen.length) return;
+    const nuevoHorario = { ...cfg.horario };
+    ([0, 1, 2, 3, 4, 5, 6] as Weekday[]).forEach((d) => {
+      if (d === desde) return;
+      // Solo replicamos a días que ya están "abiertos". Si el barbero tiene
+      // domingos cerrados, copiar L-V no los activa por arte de magia.
+      if (cfg.horario[d].length > 0) {
+        nuevoHorario[d] = franjasOrigen.map((f) => ({ ...f }));
+      }
+    });
+    patch({ horario: nuevoHorario });
+  }
 
   return (
-    <Card icon={CalendarClock} title="Horario semanal" hint="Días y horas en que aceptas clientes.">
-      <ul className="space-y-2.5">
+    <div>
+      {/* Header de sección (sustituye al Card wrapper para ahorrar padding
+          vertical y dar más respiro a las Bento cards). */}
+      <div className="mb-3 flex items-center gap-2.5">
+        <CalendarClock size={18} className="text-[#92c83a]" />
+        <h3 className="text-base font-bold text-[#15240b]">Horario semanal</h3>
+      </div>
+      <p className="-mt-2 mb-3 text-xs text-neutral-400">
+        Días y horas en que aceptas clientes.
+      </p>
+
+      <div>
         {DIAS_ORDEN.map((d) => {
           const franjas = cfg.horario[d];
           const abierto = franjas.length > 0;
           return (
-            <li key={d} className="rounded-2xl border border-neutral-200 bg-neutral-50/40 p-3">
-              <div className="flex items-center justify-between gap-3">
-                <span className={`text-sm font-semibold ${abierto ? 'text-[#15240b]' : 'text-neutral-400'}`}>
+            <div
+              key={d}
+              className="bg-white rounded-[24px] shadow-sm ring-1 ring-black/[0.03] mb-4 overflow-hidden"
+            >
+              {/* Header del día: justify-between fuerza al toggle al borde
+                  interno derecho. w-full evita que se salga por overflow. */}
+              <div
+                className={`flex items-center justify-between w-full px-4 pt-4 ${abierto ? 'pb-3' : 'pb-4'}`}
+              >
+                <span
+                  className={`text-[15px] font-bold tracking-tight ${abierto ? 'text-[#15240b]' : 'text-neutral-400'}`}
+                >
                   {DIAS_LABEL[d]}
                 </span>
                 <Toggle on={abierto} onChange={() => toggleDia(d)} />
               </div>
 
-              {abierto && (
-                <div className="mt-3 space-y-2">
-                  {franjas.map((f, i) => (
-                    <div key={i} className="flex items-center gap-2">
-                      <input
-                        type="time"
-                        value={f.desde}
-                        onChange={(e) => actualizarFranja(d, i, { desde: e.target.value })}
-                        className={`${inputBase} flex-1 text-sm`}
-                      />
-                      <span className="text-neutral-300">—</span>
-                      <input
-                        type="time"
-                        value={f.hasta}
-                        onChange={(e) => actualizarFranja(d, i, { hasta: e.target.value })}
-                        className={`${inputBase} flex-1 text-sm`}
-                      />
-                      {franjas.length > 1 && (
+              {/* Cuerpo: collapse animado cuando el día está apagado. */}
+              <AnimatePresence initial={false}>
+                {abierto && (
+                  <motion.div
+                    key="body"
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.22, ease: [0.2, 0.8, 0.2, 1] }}
+                    style={{ overflow: 'hidden' }}
+                  >
+                    <div className="space-y-2 px-4 pb-4">
+                      {franjas.map((f, i) => (
+                        <div key={i} className="flex items-center gap-2">
+                          <input
+                            type="time"
+                            value={f.desde}
+                            onChange={(e) => actualizarFranja(d, i, { desde: e.target.value })}
+                            className={TIME_INPUT_CLASS}
+                          />
+                          <span className="text-neutral-300">—</span>
+                          <input
+                            type="time"
+                            value={f.hasta}
+                            onChange={(e) => actualizarFranja(d, i, { hasta: e.target.value })}
+                            className={TIME_INPUT_CLASS}
+                          />
+                          {franjas.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => eliminarFranja(d, i)}
+                              className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-neutral-400 transition-colors hover:bg-red-50 hover:text-red-500"
+                              aria-label="Eliminar franja"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+
+                      {/* Acciones inline: agregar franja + copiar a todos
+                          (reemplaza la barra flotante de save / acciones). */}
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 pt-1">
                         <button
                           type="button"
-                          onClick={() => eliminarFranja(d, i)}
-                          className="grid h-9 w-9 place-items-center rounded-xl text-neutral-400 transition-colors hover:bg-red-50 hover:text-red-500"
-                          aria-label="Eliminar franja"
+                          onClick={() => agregarFranja(d)}
+                          className="flex items-center gap-1 text-xs font-semibold text-[#52780f] transition-opacity hover:opacity-80"
                         >
-                          <Trash2 size={14} />
+                          <Plus size={12} /> Agregar franja
                         </button>
-                      )}
+                        <button
+                          type="button"
+                          onClick={() => copiarATodos(d)}
+                          className="flex items-center gap-1 text-xs font-semibold text-[#52780f] transition-opacity hover:opacity-80"
+                          title="Copia estas franjas a los demás días que ya estén activos"
+                        >
+                          <Copy size={11} /> Copiar a todos los días
+                        </button>
+                      </div>
                     </div>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={() => agregarFranja(d)}
-                    className="flex items-center gap-1 text-xs font-semibold text-bioo-dark transition-opacity hover:opacity-80"
-                  >
-                    <Plus size={12} /> Agregar franja (p. ej. tarde)
-                  </button>
-                </div>
-              )}
-            </li>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           );
         })}
-      </ul>
-    </Card>
+      </div>
+    </div>
   );
 }
 
