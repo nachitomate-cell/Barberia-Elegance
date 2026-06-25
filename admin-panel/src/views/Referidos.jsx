@@ -175,7 +175,7 @@ function Hero({ referral, loadingRef, generating, onEnsureCode, onCopy, onShare,
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: [0.2, 0.8, 0.2, 1] }}
-      className="relative overflow-hidden rounded-3xl border border-emerald-500/15 p-6 sm:p-8"
+      className="hero-card-emerald relative overflow-hidden rounded-3xl border border-emerald-500/15 p-6 sm:p-8"
       style={{
         background:
           'linear-gradient(135deg, rgba(6,78,59,0.85) 0%, rgba(15,23,42,0.95) 60%), ' +
@@ -185,7 +185,7 @@ function Hero({ referral, loadingRef, generating, onEnsureCode, onCopy, onShare,
       {/* Halo verde superior derecho */}
       <motion.div
         aria-hidden
-        className="pointer-events-none absolute -right-32 -top-32 h-72 w-72 rounded-full"
+        className="hero-halo pointer-events-none absolute -right-32 -top-32 h-72 w-72 rounded-full"
         style={{ background: 'radial-gradient(circle, rgba(132,204,22,0.35), transparent 70%)', filter: 'blur(30px)' }}
         animate={{ opacity: [0.5, 0.85, 0.5], scale: [1, 1.05, 1] }}
         transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}

@@ -268,12 +268,12 @@ function AsistenteIA({ stats, statsLoading }) {
 
       {/* Header con gradient gold sutil */}
       <div
-        className="relative flex items-center gap-3 overflow-hidden border-b border-slate-800 px-4 py-3.5"
+        className="hero-card-gold relative flex items-center gap-3 overflow-hidden border-b border-slate-800 px-4 py-3.5"
         style={{ background: 'linear-gradient(135deg, rgba(40,30,5,0.7) 0%, rgba(15,15,18,0.95) 80%)' }}
       >
         <div
           aria-hidden
-          className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full"
+          className="hero-halo-soft pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full"
           style={{ background: 'radial-gradient(circle, rgba(212,175,55,0.2), transparent 70%)', filter: 'blur(16px)' }}
         />
         <div className="relative grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-slate-800 ring-1" style={{ borderColor: 'rgba(212,175,55,0.25)', boxShadow: 'inset 0 0 0 1px rgba(212,175,55,0.18)' }}>
@@ -473,13 +473,13 @@ function RecomendadorBannersIA({ stats, statsLoading, onApply }) {
       {/* Halo gold superior */}
       <div
         aria-hidden
-        className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full"
+        className="hero-halo-soft pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full"
         style={{ background: 'radial-gradient(circle, rgba(212,175,55,0.25), transparent 70%)', filter: 'blur(20px)' }}
       />
 
       {/* Header */}
       <div
-        className="relative flex items-center justify-between border-b border-slate-800 px-4 py-3.5"
+        className="hero-card-gold relative flex items-center justify-between border-b border-slate-800 px-4 py-3.5"
         style={{ background: 'linear-gradient(135deg, rgba(40,30,5,0.7) 0%, rgba(15,15,18,0.95) 80%)' }}
       >
         <div className="flex items-center gap-2.5">
@@ -962,7 +962,7 @@ export default function Marketing() {
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: [0.2, 0.8, 0.2, 1] }}
-        className="relative overflow-hidden rounded-3xl border p-5 sm:p-6"
+        className="hero-card-gold relative overflow-hidden rounded-3xl border p-5 sm:p-6"
         style={{
           background:
             'linear-gradient(135deg, rgba(50,40,10,0.55) 0%, rgba(15,23,42,0.95) 60%), ' +
@@ -973,7 +973,7 @@ export default function Marketing() {
         {/* halo gold pulsante */}
         <motion.div
           aria-hidden
-          className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full"
+          className="hero-halo pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full"
           style={{ background: 'radial-gradient(circle, rgba(212,175,55,0.3), transparent 70%)', filter: 'blur(32px)' }}
           animate={{ opacity: [0.5, 0.85, 0.5], scale: [1, 1.05, 1] }}
           transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }}

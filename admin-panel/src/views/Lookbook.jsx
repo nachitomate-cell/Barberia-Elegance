@@ -390,7 +390,7 @@ function Hero({ onUpload, uploading, disabled, onHelp, totalFotos, totalLikes, c
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: [0.2, 0.8, 0.2, 1] }}
-      className="relative overflow-hidden rounded-3xl border border-emerald-500/15 p-5 sm:p-6"
+      className="hero-card-emerald relative overflow-hidden rounded-3xl border border-emerald-500/15 p-5 sm:p-6"
       style={{
         background:
           'linear-gradient(135deg, rgba(6,78,59,0.6) 0%, rgba(15,23,42,0.95) 60%), ' +
@@ -400,7 +400,7 @@ function Hero({ onUpload, uploading, disabled, onHelp, totalFotos, totalLikes, c
       {/* halo decorativo */}
       <motion.div
         aria-hidden
-        className="pointer-events-none absolute -right-24 -top-24 h-60 w-60 rounded-full"
+        className="hero-halo pointer-events-none absolute -right-24 -top-24 h-60 w-60 rounded-full"
         style={{ background: 'radial-gradient(circle, rgba(132,204,22,0.3), transparent 70%)', filter: 'blur(30px)' }}
         animate={{ opacity: [0.45, 0.75, 0.45], scale: [1, 1.05, 1] }}
         transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }}

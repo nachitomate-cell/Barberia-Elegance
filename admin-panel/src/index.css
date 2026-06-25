@@ -131,6 +131,228 @@ html.light .chat-bubble-ai {
 html.light .bg-slate-900\/50 { background-color: rgba(148, 163, 184, 0.12) !important; }
 html.light .bg-slate-900\/20 { background-color: rgba(148, 163, 184, 0.06) !important; }
 
+/* ═══════════════════════════════════════════════════════════════════
+   LIGHT MODE — Pase de optimización profunda
+   Cubre todas las clases color/opacidad que introducen los rediseños
+   premium (Referidos/Lookbook/Mensualidad/Marketing). El target es que
+   cualquier acento (emerald/lime/amber/violet/rose/gold/sky) se vea
+   legible y armonioso sobre fondo claro sin que pierda identidad.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Glass backdrops blancos (sobre fondos oscuros) → grises sutiles ── */
+html.light .bg-white\/\[0\.03\],
+html.light .bg-white\/\[0\.04\],
+html.light .bg-white\/\[0\.05\],
+html.light .bg-white\/\[0\.06\],
+html.light .bg-white\/5     { background-color: rgba(15, 23, 42, 0.035) !important; }
+html.light .bg-white\/\[0\.08\],
+html.light .bg-white\/10,
+html.light .bg-white\/12,
+html.light .bg-white\/14    { background-color: rgba(15, 23, 42, 0.06) !important; }
+html.light .bg-white\/15,
+html.light .bg-white\/20    { background-color: rgba(15, 23, 42, 0.10) !important; }
+html.light .border-white\/5,
+html.light .border-white\/8,
+html.light .border-white\/10,
+html.light .border-white\/12,
+html.light .border-white\/15,
+html.light .border-white\/20 { border-color: rgba(15, 23, 42, 0.10) !important; }
+html.light .ring-white\/10,
+html.light .ring-white\/15,
+html.light .ring-white\/20  { --tw-ring-color: rgba(15, 23, 42, 0.10) !important; }
+
+/* ── Backgrounds con acento al ~5-10% → tintes pasteles ── */
+html.light .bg-emerald-500\/\[0\.03\],
+html.light .bg-emerald-500\/\[0\.04\],
+html.light .bg-emerald-500\/\[0\.06\],
+html.light .bg-emerald-500\/10           { background-color: rgba(16, 185, 129, 0.07) !important; }
+html.light .bg-emerald-500\/15,
+html.light .bg-emerald-500\/20           { background-color: rgba(16, 185, 129, 0.10) !important; }
+html.light .bg-emerald-500\/25,
+html.light .bg-emerald-500\/30           { background-color: rgba(16, 185, 129, 0.14) !important; }
+
+html.light .bg-lime-400\/\[0\.04\],
+html.light .bg-lime-400\/\[0\.06\],
+html.light .bg-lime-400\/10,
+html.light .bg-lime-400\/15              { background-color: rgba(132, 204, 22, 0.10) !important; }
+html.light .bg-lime-400\/20,
+html.light .bg-lime-400\/25              { background-color: rgba(132, 204, 22, 0.15) !important; }
+
+html.light .bg-amber-500\/\[0\.06\],
+html.light .bg-amber-500\/10,
+html.light .bg-amber-500\/15             { background-color: rgba(245, 158, 11, 0.10) !important; }
+html.light .bg-amber-500\/20,
+html.light .bg-amber-500\/25             { background-color: rgba(245, 158, 11, 0.16) !important; }
+html.light .bg-amber-400\/5,
+html.light .bg-amber-400\/10,
+html.light .bg-amber-400\/15             { background-color: rgba(251, 191, 36, 0.10) !important; }
+
+html.light .bg-violet-500\/\[0\.06\],
+html.light .bg-violet-500\/10,
+html.light .bg-violet-500\/15            { background-color: rgba(139, 92, 246, 0.10) !important; }
+html.light .bg-violet-500\/20            { background-color: rgba(139, 92, 246, 0.16) !important; }
+
+html.light .bg-rose-500\/10,
+html.light .bg-rose-500\/15              { background-color: rgba(244, 63, 94, 0.10) !important; }
+
+html.light .bg-red-500\/10,
+html.light .bg-red-500\/15               { background-color: rgba(239, 68, 68, 0.10) !important; }
+html.light .bg-red-500\/20               { background-color: rgba(239, 68, 68, 0.14) !important; }
+
+html.light .bg-sky-500\/10,
+html.light .bg-sky-500\/15               { background-color: rgba(14, 165, 233, 0.10) !important; }
+
+/* WhatsApp green pill */
+html.light .bg-\[\#25D366\]\/10,
+html.light .bg-\[\#25D366\]\/15          { background-color: rgba(37, 211, 102, 0.12) !important; }
+
+/* Gold (Marketing) */
+html.light .bg-\[\#D4AF37\]\/\[0\.04\],
+html.light .bg-\[\#D4AF37\]\/\[0\.05\],
+html.light .bg-\[\#D4AF37\]\/\[0\.06\],
+html.light .bg-\[\#D4AF37\]\/10,
+html.light .bg-\[\#D4AF37\]\/15          { background-color: rgba(212, 175, 55, 0.12) !important; }
+html.light .bg-\[\#D4AF37\]\/20          { background-color: rgba(212, 175, 55, 0.18) !important; }
+html.light .border-\[\#D4AF37\]\/30,
+html.light .border-\[\#D4AF37\]\/35,
+html.light .border-\[\#D4AF37\]\/40      { border-color: rgba(212, 175, 55, 0.6) !important; }
+
+/* ── Borders y rings con color al 15-30% → equivalentes en light ── */
+html.light .border-emerald-500\/15,
+html.light .border-emerald-500\/20,
+html.light .border-emerald-500\/25,
+html.light .border-emerald-500\/30,
+html.light .border-emerald-400\/25,
+html.light .border-emerald-400\/30       { border-color: rgba(16, 185, 129, 0.45) !important; }
+html.light .ring-emerald-500\/20,
+html.light .ring-emerald-500\/25,
+html.light .ring-emerald-500\/30,
+html.light .ring-emerald-400\/20,
+html.light .ring-emerald-400\/25,
+html.light .ring-emerald-400\/30         { --tw-ring-color: rgba(16, 185, 129, 0.45) !important; }
+
+html.light .border-lime-400\/20,
+html.light .border-lime-500\/30,
+html.light .border-lime-500\/40,
+html.light .border-lime-500\/60          { border-color: rgba(132, 204, 22, 0.55) !important; }
+html.light .ring-lime-400\/20,
+html.light .ring-lime-500\/20            { --tw-ring-color: rgba(132, 204, 22, 0.5) !important; }
+
+html.light .border-amber-500\/20,
+html.light .border-amber-500\/25,
+html.light .border-amber-500\/30,
+html.light .border-amber-400\/25,
+html.light .border-amber-400\/30         { border-color: rgba(245, 158, 11, 0.55) !important; }
+html.light .ring-amber-500\/20,
+html.light .ring-amber-400\/25,
+html.light .ring-amber-400\/30           { --tw-ring-color: rgba(245, 158, 11, 0.55) !important; }
+
+html.light .border-violet-500\/20,
+html.light .border-violet-500\/30,
+html.light .border-violet-400\/25,
+html.light .border-violet-400\/30        { border-color: rgba(139, 92, 246, 0.55) !important; }
+html.light .ring-violet-500\/20,
+html.light .ring-violet-400\/25,
+html.light .ring-violet-400\/30          { --tw-ring-color: rgba(139, 92, 246, 0.55) !important; }
+
+html.light .border-red-500\/20,
+html.light .border-red-500\/25,
+html.light .border-red-500\/30           { border-color: rgba(239, 68, 68, 0.5) !important; }
+html.light .ring-red-500\/20,
+html.light .ring-red-500\/25             { --tw-ring-color: rgba(239, 68, 68, 0.5) !important; }
+
+html.light .border-sky-500\/20,
+html.light .border-sky-500\/25           { border-color: rgba(14, 165, 233, 0.5) !important; }
+html.light .ring-sky-500\/20             { --tw-ring-color: rgba(14, 165, 233, 0.5) !important; }
+
+/* ── Texto de acentos con opacidad (text-emerald-200, etc.) ── */
+html.light .text-emerald-200,
+html.light .text-emerald-100,
+html.light .text-emerald-50              { color: #047857 !important; }
+html.light .text-emerald-200\/80,
+html.light .text-emerald-200\/85,
+html.light .text-emerald-100\/85,
+html.light .text-emerald-100\/90,
+html.light .text-emerald-50\/75,
+html.light .text-emerald-50\/80,
+html.light .text-emerald-50\/90,
+html.light .text-emerald-400\/85         { color: #065f46 !important; }
+
+html.light .text-lime-200,
+html.light .text-lime-300                { color: #4d7c0f !important; }
+html.light .text-amber-200,
+html.light .text-amber-100,
+html.light .text-amber-50                { color: #b45309 !important; }
+html.light .text-amber-200\/80,
+html.light .text-amber-100\/85,
+html.light .text-amber-50\/75            { color: #92400e !important; }
+
+html.light .text-violet-200,
+html.light .text-violet-100,
+html.light .text-violet-50               { color: #6d28d9 !important; }
+html.light .text-violet-200\/80,
+html.light .text-violet-100\/85          { color: #5b21b6 !important; }
+
+html.light .text-rose-200,
+html.light .text-rose-300                { color: #be123c !important; }
+html.light .text-sky-200,
+html.light .text-sky-300                 { color: #0369a1 !important; }
+
+/* Texto gold (Marketing) */
+html.light .text-\[\#D4AF37\]            { color: #92740f !important; }
+
+/* ── Sombras tintadas (shadow-emerald-500/10 etc.) — neutralizar en light ── */
+html.light .shadow-emerald-500\/10,
+html.light .shadow-emerald-500\/20,
+html.light .shadow-amber-500\/10,
+html.light .shadow-amber-500\/20,
+html.light .shadow-red-500\/10,
+html.light .shadow-red-500\/20           { --tw-shadow-color: rgba(15, 23, 42, 0.08) !important; }
+
+/* ── Hover acentos en light ── */
+html.light .hover\:bg-emerald-500\/\[0\.04\]:hover,
+html.light .hover\:bg-emerald-500\/\[0\.06\]:hover { background-color: rgba(16, 185, 129, 0.08) !important; }
+html.light .hover\:bg-amber-500\/\[0\.06\]:hover   { background-color: rgba(245, 158, 11, 0.08) !important; }
+html.light .hover\:bg-violet-500\/\[0\.06\]:hover  { background-color: rgba(139, 92, 246, 0.08) !important; }
+html.light .hover\:bg-red-500\/10:hover            { background-color: rgba(239, 68, 68, 0.12) !important; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   LIGHT MODE — Hero cards premium (inline gradients)
+   Las vistas Referidos/Lookbook/Mensualidad/Marketing usan inline
+   style={{ background: 'linear-gradient(...)' }} para sus heroes. Inline
+   gana sobre CSS NORMAL, pero NO sobre !important. Las clases helper
+   abajo se aplican a esos elementos y los pintan claros en light mode.
+   ═══════════════════════════════════════════════════════════════════ */
+html.light .hero-card-emerald  { background: linear-gradient(135deg, #ecfdf5 0%, #ffffff 60%), radial-gradient(ellipse at top right, rgba(16,185,129,0.08), transparent 60%) !important; border-color: rgba(16,185,129,0.20) !important; }
+html.light .hero-card-lime     { background: linear-gradient(135deg, #f7fee7 0%, #ffffff 60%), radial-gradient(ellipse at top right, rgba(132,204,22,0.10), transparent 60%) !important; border-color: rgba(132,204,22,0.25) !important; }
+html.light .hero-card-gold     { background: linear-gradient(135deg, #fefce8 0%, #ffffff 60%), radial-gradient(ellipse at top right, rgba(212,175,55,0.10), transparent 60%) !important; border-color: rgba(212,175,55,0.30) !important; }
+html.light .hero-card-amber    { background: linear-gradient(135deg, #fffbeb 0%, #ffffff 60%) !important; border-color: rgba(245,158,11,0.25) !important; }
+html.light .hero-card-red      { background: linear-gradient(135deg, #fef2f2 0%, #ffffff 60%) !important; border-color: rgba(239,68,68,0.25) !important; }
+html.light .hero-card-violet   { background: linear-gradient(135deg, #f5f3ff 0%, #ffffff 60%) !important; border-color: rgba(139,92,246,0.20) !important; }
+html.light .hero-card-slate    { background: #ffffff !important; border-color: #e2e8f0 !important; }
+
+/* Halos decorativos (radial-gradient blur con color) — bajar opacidad en light */
+html.light .hero-halo          { opacity: 0.45 !important; }
+html.light .hero-halo-soft     { opacity: 0.30 !important; }
+
+/* Banner ESTILOS_BANNER preview (Marketing): el modo claro NO debe tocar
+   los estilos del banner (panel/wash/degradado/bloque) — son la vista
+   previa de lo que ven los CLIENTES en la app pública (que es dark). */
+html.light .marketing-preview-banner { color-scheme: dark; }
+
+/* Gradients diagonales decorativos (StatusCard de Mensualidad) — el
+   from-emerald-500/15 ya está cubierto pero el `via-slate-900` lo barre
+   el wildcard de from-slate-9. Aseguramos un fondo sutil tintado. */
+html.light .from-emerald-500\/15 { --tw-gradient-from: rgba(16,185,129,0.15) !important; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, transparent) !important; }
+html.light .from-amber-500\/15   { --tw-gradient-from: rgba(245,158,11,0.15) !important; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, transparent) !important; }
+html.light .from-red-500\/15     { --tw-gradient-from: rgba(239,68,68,0.15) !important; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, transparent) !important; }
+html.light .from-violet-500\/10  { --tw-gradient-from: rgba(139,92,246,0.10) !important; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, transparent) !important; }
+html.light .from-lime-500\/15    { --tw-gradient-from: rgba(132,204,22,0.15) !important; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, transparent) !important; }
+html.light .to-slate-950,
+html.light .to-slate-900,
+html.light .via-slate-900,
+html.light .via-slate-950        { --tw-gradient-to: #ffffff !important; }
+
 /* Evitar auto-zoom en iOS Safari al enfocar campos de formulario en pantallas móviles */
 @media (max-width: 767px) {
   input, select, textarea {

@@ -23,6 +23,7 @@ const STATUS_CFG = {
     ring: 'ring-emerald-500/30',
     glow: 'rgba(16,185,129,0.25)',
     gradient: 'from-emerald-500/15 via-slate-900 to-slate-950',
+    heroClass: 'hero-card-emerald',
   },
   pendiente: {
     label: 'Pago pendiente',
@@ -34,6 +35,7 @@ const STATUS_CFG = {
     ring: 'ring-amber-500/30',
     glow: 'rgba(245,158,11,0.25)',
     gradient: 'from-amber-500/15 via-slate-900 to-slate-950',
+    heroClass: 'hero-card-amber',
   },
   atrasado: {
     label: 'Pago atrasado',
@@ -45,6 +47,7 @@ const STATUS_CFG = {
     ring: 'ring-red-500/30',
     glow: 'rgba(239,68,68,0.25)',
     gradient: 'from-red-500/15 via-slate-900 to-slate-950',
+    heroClass: 'hero-card-red',
   },
 };
 
@@ -409,13 +412,13 @@ function StatusCard({ cfg, Icon, monto, fechaFmt, vencida, diasVencido, diasPara
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: 0.05 }}
-      className={`relative overflow-hidden rounded-3xl border bg-gradient-to-br p-6 shadow-2xl ${cfg.ring} ${cfg.gradient}`}
+      className={`${cfg.heroClass || ''} relative overflow-hidden rounded-3xl border bg-gradient-to-br p-6 shadow-2xl ${cfg.ring} ${cfg.gradient}`}
       style={{ boxShadow: `0 12px 40px -12px ${cfg.glow}` }}
     >
       {/* halo */}
       <div
         aria-hidden
-        className="pointer-events-none absolute -right-20 -top-20 h-52 w-52 rounded-full"
+        className="hero-halo pointer-events-none absolute -right-20 -top-20 h-52 w-52 rounded-full"
         style={{ background: `radial-gradient(circle, ${cfg.glow}, transparent 70%)`, filter: 'blur(28px)' }}
       />
       {/* grid */}
@@ -495,7 +498,7 @@ function ThanksCard() {
     >
       <div
         aria-hidden
-        className="pointer-events-none absolute -left-16 -top-16 h-48 w-48 rounded-full"
+        className="hero-halo-soft pointer-events-none absolute -left-16 -top-16 h-48 w-48 rounded-full"
         style={{ background: 'radial-gradient(circle, rgba(16,185,129,0.18), transparent 70%)', filter: 'blur(28px)' }}
       />
       <div className="relative flex flex-col items-center gap-4">
@@ -544,7 +547,7 @@ function BankCard({ copiado, copiadoField, onCopyAll, onCopyField, waUrl }) {
     <div className="relative overflow-hidden rounded-3xl border border-slate-800 bg-slate-900/60 p-5 shadow-lg backdrop-blur-sm">
       <div
         aria-hidden
-        className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full"
+        className="hero-halo-soft pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full"
         style={{ background: 'radial-gradient(circle, rgba(16,185,129,0.15), transparent 70%)', filter: 'blur(22px)' }}
       />
       <div className="relative">
