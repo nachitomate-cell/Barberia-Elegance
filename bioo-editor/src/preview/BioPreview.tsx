@@ -17,6 +17,14 @@ const SOCIAL_ICON: Record<SocialNet, LucideIcon> = {
   whatsapp: MessageCircle, email: Mail, telefono: Phone, enlace: Globe,
 };
 
+// Tipos de bloque que llevan ícono PNG a la izquierda del botón (paridad con
+// u.html: '<img class="btn-ic" src="/ic-{tipo}-orig.png">'). Cualquier otro
+// tipo se renderiza sin ícono (mismo comportamiento que el público).
+const BTN_ICON_TIPOS: Record<string, true> = {
+  whatsapp: true, instagram: true, tiktok: true, facebook: true,
+  youtube: true, email: true, telefono: true, enlace: true,
+};
+
 function renderable(b: Block): boolean {
   if (!b.activo) return false;
   if (b.tipo === 'separador') return true;
@@ -103,11 +111,23 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
       <div className="relative z-10 px-6 py-10">
       <div className={`mx-auto flex max-w-sm flex-col ${itemsAlign}`}>
         {profile.cover && (
-          <div className="h-28 w-full rounded-3xl bg-cover bg-center shadow-md" style={{ backgroundImage: `url("${profile.cover}")` }} />
+          // Paridad con u.html .cover: 132px alto, border-radius 24px en
+          // las 4 esquinas (no solo abajo), box-shadow suave.
+          <div
+            className="w-full bg-cover bg-center"
+            style={{
+              backgroundImage: `url("${profile.cover}")`,
+              height: '132px',
+              borderRadius: '24px',
+              boxShadow: '0 3px 14px rgba(0,0,0,.16)',
+            }}
+          />
         )}
         <div
-          className={`relative grid h-24 w-24 place-items-center overflow-hidden bg-white ${profile.cover ? '-mt-11' : ''}`}
+          className="relative grid h-24 w-24 place-items-center overflow-hidden bg-white"
           style={{
+            // Paridad con .avatar.over { margin-top: -46px }.
+            marginTop: profile.cover ? '-46px' : 0,
             borderRadius: avRadius,
             border: hasRing ? `3px solid ${ring}` : 'none',
             // Anillo exterior con el color del fondo de la página → efecto "cutout" tipo iOS.
@@ -136,10 +156,31 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
           }}
         >
           {shown}
-          {profile.verified && <span className="ml-1 align-middle text-base">✓</span>}
+          {/* Insignia verificada: misma <img> que u.html — height 0.85em
+              (escala con el tamaño del título), no un check de texto. */}
+          {profile.verified && (
+            <img
+              src="/ic-verified.png"
+              alt="✓"
+              style={{ height: '0.85em', width: 'auto', verticalAlign: '-1px', marginLeft: '5px', display: 'inline-block' }}
+            />
+          )}
         </h2>
         {profile.subtitulo && (
-          <p className="mt-1 max-w-[32ch] leading-snug" style={{ color: subColor, fontSize: SSIZE[txt.subSize], fontWeight: subWeight, textAlign }}>{profile.subtitulo}</p>
+          // Paridad con .sub: max-width 34ch, line-height 1.45, margin-top 6px.
+          <p
+            style={{
+              color: subColor,
+              fontSize: SSIZE[txt.subSize],
+              fontWeight: subWeight,
+              textAlign,
+              maxWidth: '34ch',
+              lineHeight: 1.45,
+              marginTop: '6px',
+            }}
+          >
+            {profile.subtitulo}
+          </p>
         )}
 
         {/* Sello de Comercio Verificado (Partner Club Patio) — opcional para el comercio */}
@@ -216,10 +257,22 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
               );
             }
             if (b.tipo === 'newsletter') {
+              // Paridad con .u-news: padding 28px 24px, título 15.5/800/1.3,
+              // sub 13/normal/1.45 mt 6px.
               return (
-                <div key={b.id} className="col-span-2 rounded-3xl bg-white/95 p-6 text-center shadow-sm ring-1 ring-black/5 backdrop-blur-sm">
-                  <p className="text-[15px] font-bold text-neutral-900">{b.label || 'Entérate de todas las novedades'}</p>
-                  {b.subtitulo && <p className="mt-1 text-xs leading-snug text-neutral-500">{b.subtitulo}</p>}
+                <div
+                  key={b.id}
+                  className="col-span-2 rounded-3xl bg-white/95 text-center shadow-sm ring-1 ring-black/5 backdrop-blur-sm"
+                  style={{ padding: '28px 24px' }}
+                >
+                  <p className="font-extrabold text-neutral-900" style={{ fontSize: '15.5px', lineHeight: 1.3 }}>
+                    {b.label || 'Entérate de todas las novedades'}
+                  </p>
+                  {b.subtitulo && (
+                    <p className="text-neutral-500" style={{ fontSize: '13px', lineHeight: 1.45, marginTop: '6px' }}>
+                      {b.subtitulo}
+                    </p>
+                  )}
                   <div className="mt-4 flex flex-col gap-2.5">
                     <input
                       type="email"
@@ -256,26 +309,69 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
             const size = b.layoutSize ?? 'full';
             const styleObj = { borderRadius: radius, ...fillStyle };
             const text = b.label || b.url || 'Enlace';
+            // Paridad con u.html: el botón muestra a la izquierda un ícono
+            // PNG del tipo (/ic-{tipo}-orig.png), o el thumb del enlace si
+            // existe. En tamaño full el ícono va absoluto a la izquierda;
+            // en half/large va apilado arriba del texto.
+            const hasTipoIcon = b.tipo === 'enlace' ? !b.thumb : !!BTN_ICON_TIPOS[b.tipo as string];
+            const hasThumb = b.tipo === 'enlace' && !!b.thumb;
             if (size === 'half') {
               return (
-                <div key={b.id} className={`col-span-1 flex aspect-square flex-col items-center justify-center gap-2 p-3 text-center text-sm font-bold ${common}`} style={styleObj}>
-                  {b.thumb && <img src={b.thumb} alt="" className="h-10 w-10 shrink-0 rounded-lg object-cover" />}
+                <div key={b.id} className={`col-span-1 flex aspect-square flex-col items-center justify-center gap-2 p-3.5 text-center text-sm font-bold ${common}`} style={styleObj}>
+                  {hasThumb
+                    ? <img src={b.thumb} alt="" className="h-[46px] w-[46px] shrink-0 rounded-xl object-cover" />
+                    : hasTipoIcon
+                      ? <img src={`/ic-${b.tipo}-orig.png`} alt="" className="h-[30px] w-[30px] shrink-0 object-contain" />
+                      : null}
                   <span className="line-clamp-3 min-w-0 leading-tight">{text}</span>
                 </div>
               );
             }
             if (size === 'large') {
               return (
-                <div key={b.id} className={`col-span-2 flex min-h-[150px] flex-col items-center justify-center gap-2.5 p-4 text-center text-base font-bold ${common}`} style={styleObj}>
-                  {b.thumb && <img src={b.thumb} alt="" className="h-14 w-14 shrink-0 rounded-xl object-cover" />}
+                <div key={b.id} className={`col-span-2 flex min-h-[150px] flex-col items-center justify-center gap-2.5 p-[18px] text-center text-base font-bold ${common}`} style={styleObj}>
+                  {hasThumb
+                    ? <img src={b.thumb} alt="" className="h-[46px] w-[46px] shrink-0 rounded-xl object-cover" />
+                    : hasTipoIcon
+                      ? <img src={`/ic-${b.tipo}-orig.png`} alt="" className="h-[30px] w-[30px] shrink-0 object-contain" />
+                      : null}
                   <span>{text}</span>
                 </div>
               );
             }
+            // size === 'full' → ícono ABSOLUTO a la izquierda, texto centrado.
+            // Padding y tipografía calcados de .btn { padding:17px 18px;
+            // font-size:15.5px; font-weight:700; gap:10px } — Tailwind no
+            // tiene clases nativas para esos valores, los pinto como style.
             return (
-              <div key={b.id} className={`col-span-2 flex items-center justify-center px-5 py-4 text-center text-sm font-bold ${common}`} style={styleObj}>
-                {b.thumb && <img src={b.thumb} alt="" className="absolute left-2.5 top-1/2 h-8 w-8 -translate-y-1/2 rounded-md object-cover" />}
-                {text}
+              <div
+                key={b.id}
+                className={`col-span-2 flex items-center justify-center text-center ${common}`}
+                style={{
+                  ...styleObj,
+                  padding: '17px 18px',
+                  fontSize: '15.5px',
+                  fontWeight: 700,
+                  gap: '10px',
+                }}
+              >
+                {hasThumb && (
+                  <img
+                    src={b.thumb}
+                    alt=""
+                    className="absolute top-1/2 h-[34px] w-[34px] -translate-y-1/2 rounded-lg object-cover"
+                    style={{ left: '10px' }}
+                  />
+                )}
+                {hasTipoIcon && (
+                  <img
+                    src={`/ic-${b.tipo}-orig.png`}
+                    alt=""
+                    className="absolute top-1/2 h-[27px] w-[27px] -translate-y-1/2 object-contain"
+                    style={{ left: '14px' }}
+                  />
+                )}
+                <span>{text}</span>
               </div>
             );
           })}
@@ -316,9 +412,20 @@ function TipBlock({ b, radius, username }: { b: Block; radius: string; username:
   };
 
   return (
-    <div className="col-span-2 rounded-3xl bg-white/90 p-4 text-center shadow-md backdrop-blur-sm">
-      <p className="text-sm font-bold text-neutral-900">{b.label || 'Apóyame'}</p>
-      {b.subtitulo && <p className="mt-0.5 text-xs leading-snug text-neutral-500">{b.subtitulo}</p>}
+    // Paridad con .u-tip: padding 18px 16px, título 15.5/800/1.3,
+    // sub 13/1.45 mt 4px.
+    <div
+      className="col-span-2 rounded-3xl bg-white/90 text-center shadow-md backdrop-blur-sm"
+      style={{ padding: '18px 16px' }}
+    >
+      <p className="font-extrabold text-neutral-900" style={{ fontSize: '15.5px', lineHeight: 1.3 }}>
+        {b.label || 'Apóyame'}
+      </p>
+      {b.subtitulo && (
+        <p className="text-neutral-500" style={{ fontSize: '13px', lineHeight: 1.45, marginTop: '4px' }}>
+          {b.subtitulo}
+        </p>
+      )}
       <div className="mt-3 flex flex-wrap justify-center gap-2">
         {amounts.map((a, i) => {
           const on = sel === a;
@@ -367,12 +474,23 @@ function PaywallBlock({ b, radius, username }: { b: Block; radius: string; usern
   };
 
   return (
-    <div className="col-span-2 rounded-3xl bg-white/95 p-5 text-center shadow-md backdrop-blur-sm">
+    // Paridad con .u-pw: padding 20px 16px, título 15.5/800/1.3,
+    // sub 13/1.45 mt 5px.
+    <div
+      className="col-span-2 rounded-3xl bg-white/95 text-center shadow-md backdrop-blur-sm"
+      style={{ padding: '20px 16px' }}
+    >
       <div className="flex items-center justify-center gap-1.5">
         <Lock size={14} className="text-neutral-400" />
-        <p className="text-sm font-bold text-neutral-900">{b.label || 'Producto digital'}</p>
+        <p className="font-extrabold text-neutral-900" style={{ fontSize: '15.5px', lineHeight: 1.3 }}>
+          {b.label || 'Producto digital'}
+        </p>
       </div>
-      {b.subtitulo && <p className="mt-1 text-xs leading-snug text-neutral-500">{b.subtitulo}</p>}
+      {b.subtitulo && (
+        <p className="text-neutral-500" style={{ fontSize: '13px', lineHeight: 1.45, marginTop: '5px' }}>
+          {b.subtitulo}
+        </p>
+      )}
       <p className="mt-3 text-3xl font-black tracking-tight text-neutral-900">{sym}{price}</p>
       <button
         type="button"
