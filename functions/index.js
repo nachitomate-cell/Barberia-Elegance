@@ -866,6 +866,14 @@ const biooNuevoSignup = require('./bioo-nuevo-signup');
 exports.notificarNuevaBioo = biooNuevoSignup.notificarNuevaBioo;
 
 // ─────────────────────────────────────────────────────────────────
+//  BIOO RESERVAS — aviso por email al barbero cuando entra una
+//  cita nueva desde su Bioo pública. Resuelve email vía Auth y usa
+//  Resend (RESEND_API_KEY).
+// ─────────────────────────────────────────────────────────────────
+const biooReservasAviso = require('./bioo-reservas-aviso');
+exports.avisarNuevaReservaBioo = biooReservasAviso.avisarNuevaReservaBioo;
+
+// ─────────────────────────────────────────────────────────────────
 //  BIOO — KPIs reales para el panel /admin. Callable que agrega
 //  count(bios), conexiones Stripe/MP y volumen por moneda con
 //  Admin SDK (bypass de reglas). Solo admin lo puede invocar.
