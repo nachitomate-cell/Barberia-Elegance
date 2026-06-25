@@ -373,33 +373,55 @@
     </div>
   </div>
 
-  <!-- defer: bajan los SDK SIN bloquear el parse del HTML, se ejecutan en orden
-       después del primer paint y antes de DOMContentLoaded.
-       firebase-functions-compat.js se removió: solo se usa para checkout/verify
-       de pago, lo cargamos lazy on-demand desde loadFirebaseFunctions(). -->
-  <script defer src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-  <script defer src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-  <script defer src="/firebase-config.js"></script>
+  <!-- TODOS los SDKs de Firebase se cargan LAZY (loadFirestoreSDK/
+       loadFirebaseFunctions) — el render inicial NO los necesita: usa
+       Firestore REST directo. Esto saca ~330 KB del path crítico. -->
+
   <script>
   // Captura el evento de instalación (Android/Chrome) para el botón "Añadir a pantalla de inicio".
   // Se atacha de inmediato (no esperamos defer) porque el evento puede dispararse temprano.
   window.addEventListener('beforeinstallprompt', function(e){ e.preventDefault(); window._deferredA2HS = e; });
 
-  // firebase-functions-compat.js no se carga en el HEAD (solo se necesita en
-  // checkout/verify). Lo bajamos bajo demanda y cacheamos la promesa.
-  var _fnsPromise = null;
-  window.loadFirebaseFunctions = function(){
-    if (window.firebase && typeof window.firebase.functions === 'function') return Promise.resolve();
-    if (_fnsPromise) return _fnsPromise;
-    _fnsPromise = new Promise(function(resolve, reject){
+  // ── LAZY LOADERS de Firebase SDK ────────────────────────────────────────
+  // Helper genérico: inyecta <script src> y devuelve promesa que resuelve
+  // al onload (o rechaza al onerror). Idempotente — si el src ya está en el
+  // DOM, devuelve una promesa que espera ese mismo nodo.
+  var _scriptPromises = {};
+  function _loadScript(src){
+    if (_scriptPromises[src]) return _scriptPromises[src];
+    _scriptPromises[src] = new Promise(function(resolve, reject){
       var s = document.createElement('script');
-      s.src = 'https://www.gstatic.com/firebasejs/10.12.0/firebase-functions-compat.js';
+      s.src = src;
       s.async = true;
       s.onload = function(){ resolve(); };
-      s.onerror = function(){ _fnsPromise = null; reject(new Error('fns-load-failed')); };
+      s.onerror = function(){ delete _scriptPromises[src]; reject(new Error('load-failed: '+src)); };
       document.head.appendChild(s);
     });
-    return _fnsPromise;
+    return _scriptPromises[src];
+  }
+
+  // SDK Firestore lazy: app-compat + firestore-compat + firebase-config.
+  // Path crítico de u.html ya NO depende de esto (usa REST). Esta función se
+  // dispara recién al primer evento que necesite el SDK (views++, click,
+  // reserva, lead, reporte) y la promesa queda cacheada.
+  var _fsPromise = null;
+  window.loadFirestoreSDK = function(){
+    if (window.firebase && window.firebase.firestore && window.db) return Promise.resolve();
+    if (_fsPromise) return _fsPromise;
+    _fsPromise = _loadScript('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js')
+      .then(function(){ return _loadScript('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js'); })
+      .then(function(){ return _loadScript('/firebase-config.js'); });
+    return _fsPromise;
+  };
+
+  // firebase-functions-compat.js (paywall/propinas) — lazy.
+  // firebase-config.js inicializa Firestore, así que necesitamos el SDK core
+  // cargado primero (loadFirestoreSDK lo hace).
+  window.loadFirebaseFunctions = function(){
+    if (window.firebase && typeof window.firebase.functions === 'function') return Promise.resolve();
+    return window.loadFirestoreSDK().then(function(){
+      return _loadScript('https://www.gstatic.com/firebasejs/10.12.0/firebase-functions-compat.js');
+    });
   };
 
   // Como los scripts de Firebase tienen `defer`, recién están listos en
@@ -721,24 +743,64 @@
 
     if (!user){ showEmpty('Página no encontrada', 'No se indicó un usuario.', '<p style="margin-top:14px;"><a href="https://bioo.cl">Crea tu bioo</a></p>'); return; }
 
-    bioRef = db.collection('bios').doc(user);
+    // ── REST de Firestore (sin SDK) ─────────────────────────────────────────
+    // Desempaqueta el formato tipado de Firestore REST a plain JS objects.
+    var REST_BASE = 'https://firestore.googleapis.com/v1/projects/barberia-elegance/databases/(default)/documents/';
+    var REST_KEY  = 'AIzaSyDqVkAhkXALm3hLcrmzjiaS3flUezPFe2Q';
+    function _unwrapValue(v){
+      if (!v) return null;
+      if ('stringValue'    in v) return v.stringValue;
+      if ('integerValue'   in v) return parseInt(v.integerValue, 10);
+      if ('doubleValue'    in v) return Number(v.doubleValue);
+      if ('booleanValue'   in v) return v.booleanValue;
+      if ('nullValue'      in v) return null;
+      if ('timestampValue' in v) return v.timestampValue;
+      if ('mapValue'       in v) return _unwrapFields(v.mapValue.fields || {});
+      if ('arrayValue'     in v) return (v.arrayValue.values || []).map(_unwrapValue);
+      if ('referenceValue' in v) return v.referenceValue;
+      if ('bytesValue'     in v) return v.bytesValue;
+      if ('geoPointValue'  in v) return v.geoPointValue;
+      return null;
+    }
+    function _unwrapFields(fields){ var o={}; for (var k in fields) o[k]=_unwrapValue(fields[k]); return o; }
+    function _restGet(path){
+      return fetch(REST_BASE + path + '?key=' + REST_KEY).then(function(r){
+        if (r.status === 404) return null;
+        if (!r.ok) throw new Error('rest-' + r.status);
+        return r.json();
+      }).then(function(j){ return (j && j.fields) ? _unwrapFields(j.fields) : null; });
+    }
+
+    // ── Puente al SDK (lazy) ────────────────────────────────────────────────
+    // getBioRef() resuelve cuando firebase.firestore() está disponible y
+    // bioRef apunta a bios/{user}. Cualquier operación de escritura/lectura
+    // post-render lo usa para que el path crítico nunca espere al SDK.
+    function getBioRef(){
+      return window.loadFirestoreSDK().then(function(){
+        if (!bioRef) bioRef = db.collection('bios').doc(user);
+        return bioRef;
+      });
+    }
+    function whenSDKReady(){ return window.loadFirestoreSDK(); }
+
     handlePaymentReturn(); // si volvemos de Stripe (?session_id), verifica y entrega.
-    // Carga en paralelo: bio principal + config de reservas (opcional). Si la
-    // config falla (sin doc / permisos), seguimos sin el CTA de reservas.
+
+    // Render REST-first: 1 round-trip a Firestore REST, cero SDK en crítico.
     Promise.all([
-      bioRef.get(),
-      bioRef.collection('reservasConfig').doc('config').get().catch(function(){ return null; }),
+      _restGet('bios/' + encodeURIComponent(user)),
+      _restGet('bios/' + encodeURIComponent(user) + '/reservasConfig/config').catch(function(){ return null; }),
     ]).then(function(results){
-      var doc = results[0], rsvDoc = results[1];
-      if (!doc.exists){
+      var data = results[0], rsvCfg = results[1];
+      if (!data){
         showEmpty('Este nombre está libre', 'bioo.cl/'+user+' aún no existe.',
           '<p style="margin-top:14px;"><a href="https://bioo.cl/registro?u='+encodeURIComponent(user)+'">Reclámalo ahora →</a></p>');
         return;
       }
-      var rsvCfg = (rsvDoc && rsvDoc.exists) ? rsvDoc.data() : null;
-      render(doc.data(), rsvCfg);
-      // Vista (best-effort; si las reglas no lo permiten, falla en silencio).
-      bioRef.update({ views: firebase.firestore.FieldValue.increment(1) }).catch(function(){});
+      render(data, rsvCfg);
+      // views++ — best-effort. Spawn lazy del SDK en background sin bloquear.
+      getBioRef().then(function(ref){
+        ref.update({ views: firebase.firestore.FieldValue.increment(1) }).catch(function(){});
+      }).catch(function(){});
     }).catch(function(e){
       console.error(e);
       showEmpty('No se pudo cargar', 'Intenta de nuevo en unos segundos.', '');
@@ -967,14 +1029,15 @@
           try { if (localStorage.getItem(reportedKey)) { alert('Ya reportaste esta página. Gracias.'); return; } } catch(e){}
           var reason = prompt('¿Por qué reportas esta página? (spam, contenido sexual, fraude, otro)');
           if (!reason) return;
-          var fb = window.firebase;
-          if (!fb || !fb.firestore) { alert('No se pudo enviar el reporte.'); return; }
-          fb.firestore().collection('bio_reports').add({
-            username: user,
-            reason: String(reason).slice(0, 200),
-            ua: (navigator.userAgent || '').slice(0, 200),
-            ref: location.href.slice(0, 300),
-            createdAt: fb.firestore.FieldValue.serverTimestamp()
+          whenSDKReady().then(function(){
+            var fb = window.firebase;
+            return fb.firestore().collection('bio_reports').add({
+              username: user,
+              reason: String(reason).slice(0, 200),
+              ua: (navigator.userAgent || '').slice(0, 200),
+              ref: location.href.slice(0, 300),
+              createdAt: fb.firestore.FieldValue.serverTimestamp()
+            });
           }).then(function(){
             try { localStorage.setItem(reportedKey, '1'); } catch(e){}
             alert('Gracias. Vamos a revisar este reporte.');
@@ -988,9 +1051,11 @@
       // Conteo de clics por enlace (best-effort; las reglas permiten incrementar `clicks`).
       Array.prototype.forEach.call(wrap.querySelectorAll('a.btn[data-id]'), function(a){
         a.addEventListener('click', function(){
-          var id = a.getAttribute('data-id'); if (!id || !bioRef) return;
-          var upd = {}; upd['clicks.'+id] = firebase.firestore.FieldValue.increment(1);
-          bioRef.update(upd).catch(function(){});
+          var id = a.getAttribute('data-id'); if (!id) return;
+          getBioRef().then(function(ref){
+            var upd = {}; upd['clicks.'+id] = firebase.firestore.FieldValue.increment(1);
+            ref.update(upd).catch(function(){});
+          }).catch(function(){});
         });
       });
 
@@ -1247,7 +1312,9 @@
       function renderHoras(){
         titleEl.textContent = rsvFormatFecha(st.fecha);
         body.innerHTML = '<div class="rsv-loading"><div class="spin"></div></div>';
-        bioRef.collection('disponibilidad').doc(st.fecha).get().then(function(doc){
+        getBioRef().then(function(ref){
+        return ref.collection('disponibilidad').doc(st.fecha).get();
+        }).then(function(doc){
           st.ocupados = doc.exists ? ((doc.data().ocupados) || []) : [];
           var horas = rsvGenerarHoras(st.fecha, st.servicio, cfg, st.ocupados);
           if (!horas.length){
@@ -1316,9 +1383,10 @@
       }
 
       function enviarReserva(wspClean){
+        return getBioRef().then(function(ref){
         var slotKey   = st.fecha + ' ' + st.hora;
-        var dispRef   = bioRef.collection('disponibilidad').doc(st.fecha);
-        var resvRef   = bioRef.collection('reservas').doc();
+        var dispRef   = ref.collection('disponibilidad').doc(st.fecha);
+        var resvRef   = ref.collection('reservas').doc();
         var newSlot   = { hora: st.hora, dur: st.servicio.duracion };
         var FV        = firebase.firestore.FieldValue;
         return db.runTransaction(function(tx){
@@ -1350,6 +1418,7 @@
             });
           });
         }).then(function(){ return resvRef.id; });
+        }); // ← cierra getBioRef().then
       }
 
       function renderExito(){
@@ -1374,11 +1443,12 @@
     // Guarda un lead en bios/{user}/leads. Doc id = email → dedup natural
     // (un segundo intento es un update y las reglas lo rechazan = "ya suscrito").
     function submitLead(email, blockId){
-      if (!bioRef) return Promise.reject({ code:'no-ref' });
-      return bioRef.collection('leads').doc(email).set({
-        email: email,
-        blockId: blockId || '',
-        ts: firebase.firestore.FieldValue.serverTimestamp()
+      return getBioRef().then(function(ref){
+        return ref.collection('leads').doc(email).set({
+          email: email,
+          blockId: blockId || '',
+          ts: firebase.firestore.FieldValue.serverTimestamp()
+        });
       });
     }
 
