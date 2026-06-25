@@ -282,17 +282,24 @@
       });
     }
 
-    fetch('https://firestore.googleapis.com/v1/projects/' + PROJECT + '/databases/(default)/documents:runAggregationQuery?key=' + API_KEY, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ structuredAggregationQuery: { structuredQuery: { from: [{ collectionId: 'bios' }] }, aggregations: [{ alias: 'count', count: {} }] } })
-    })
-    .then(function(r){ return r.json(); })
-    .then(function(j){
-      var c = 0;
-      try { c = parseInt(j[0].result.aggregateFields.count.integerValue, 10) || 0; } catch(e){}
-      animar(c + BASE_INICIAL);
-    })
-    .catch(function(){ /* si falla, no mostramos nada */ });
+    // Diferimos el fetch del contador hasta después del primer paint (idle).
+    // No es contenido crítico — el HTML ya renderizó h1+CTA. Evita competir
+    // por banda con la fuente y el hero en conexiones lentas (mobile 3G).
+    function _bootContador(){
+      fetch('https://firestore.googleapis.com/v1/projects/' + PROJECT + '/databases/(default)/documents:runAggregationQuery?key=' + API_KEY, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ structuredAggregationQuery: { structuredQuery: { from: [{ collectionId: 'bios' }] }, aggregations: [{ alias: 'count', count: {} }] } })
+      })
+      .then(function(r){ return r.json(); })
+      .then(function(j){
+        var c = 0;
+        try { c = parseInt(j[0].result.aggregateFields.count.integerValue, 10) || 0; } catch(e){}
+        animar(c + BASE_INICIAL);
+      })
+      .catch(function(){ /* si falla, no mostramos nada */ });
+    }
+    if ('requestIdleCallback' in window) requestIdleCallback(_bootContador, { timeout: 2000 });
+    else setTimeout(_bootContador, 800);
   })();
 </script>
 </body>
