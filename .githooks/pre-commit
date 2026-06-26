@@ -1,0 +1,45 @@
+#!/bin/sh
+# Auto-build de bioo-editor → bio-app/ antes de cada commit.
+#
+# Si hay archivos staged bajo bioo-editor/ (source del editor de bioo.cl/editor),
+# este hook corre `npm run build` dentro de bioo-editor/ y agrega los artefactos
+# resultantes (bio-app/) al MISMO commit. Así, el bundle servido en producción
+# siempre va sincronizado con el source y nunca queda "atrasado".
+#
+# Para activar este hook en este repo, una sola vez:
+#   git config core.hooksPath .githooks
+#
+# Se omite si el commit no toca bioo-editor/.
+
+set -e
+
+STAGED=$(git diff --cached --name-only --diff-filter=ACMR)
+
+# Filtramos por bioo-editor/ pero excluimos node_modules y cualquier build output.
+NEEDS_BUILD=$(echo "$STAGED" | grep -E '^bioo-editor/(src|index\.html|vite\.config|tailwind\.config|postcss\.config|package(-lock)?\.json|tsconfig)' || true)
+
+if [ -z "$NEEDS_BUILD" ]; then
+  exit 0
+fi
+
+echo "[pre-commit] cambios en bioo-editor → rebuildando bio-app/…"
+
+if ! command -v npm >/dev/null 2>&1; then
+  echo "[pre-commit] ❌ npm no está en PATH. Abortando."
+  exit 1
+fi
+
+if [ ! -d bioo-editor/node_modules ]; then
+  echo "[pre-commit] bioo-editor/node_modules no existe → instalando dependencias…"
+  (cd bioo-editor && npm install --silent) || { echo "[pre-commit] ❌ npm install falló."; exit 1; }
+fi
+
+if ! (cd bioo-editor && npm run build); then
+  echo "[pre-commit] ❌ build falló. Commit abortado."
+  exit 1
+fi
+
+# Re-stageamos los artefactos compilados para que entren en este commit.
+git add bio-app/
+
+echo "[pre-commit] ✓ bio-app/ rebuildado y staged."
