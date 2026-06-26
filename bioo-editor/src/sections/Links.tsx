@@ -8,6 +8,8 @@ import {
 } from 'lucide-react';
 import { useEditor, newBlock } from '../store';
 import { fileToDataUrl } from '../lib/image';
+import { BUTTON_ICONS } from '../lib/buttonIcons';
+import { ButtonIcon } from '../lib/ButtonIcon';
 import { SOCIAL_NETS, embedSrc } from '../lib/blocks';
 import { useStripeAccount } from '../lib/connect';
 import { useBlockStats } from '../lib/useBlockStats';
@@ -320,17 +322,9 @@ function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void 
   );
 }
 
-/** Emojis curados para usar como icono del botón en la vista pública.
- *  Si el usuario quiere otro, puede pegarlo en el input "Otro emoji" del picker. */
-const ICON_EMOJIS = [
-  '🌐','📱','💬','📷','🎵','🎬','🛒','🎁','⭐','💼','📅','📧',
-  '✉️','📍','☕','🍴','💰','🎨','📚','🎮','🏠','❤️','🔥','✨',
-  '🚀','📺','🎯','💎','✂️','💈','💅','💆','🧖','👑','🍷','🍺',
-];
-
-/** Picker compacto de icono: emojis curados + subir imagen + reset.
- *  Se cierra al clickear afuera. La prioridad de render es:
- *    1) thumb (imagen)  →  2) icon (emoji)  →  3) icono por defecto del tipo. */
+/** Picker de icono del botón: grid de íconos Lucide (SVG line-art) + subir
+ *  imagen + reset. Se cierra al clickear afuera. Prioridad de render:
+ *    1) thumb (imagen subida)  →  2) icon (key Lucide)  →  3) icono por defecto del tipo. */
 function IconAction({ block, patch }: { block: Block; patch: (p: Partial<Block>) => void }): JSX.Element {
   const ref = useRef<HTMLInputElement>(null);
   const wrap = useRef<HTMLDivElement>(null);
@@ -362,7 +356,7 @@ function IconAction({ block, patch }: { block: Block; patch: (p: Partial<Block>)
         {block.thumb
           ? <img src={block.thumb} alt="" className="h-[18px] w-[18px] rounded object-cover ring-1 ring-black/10" />
           : block.icon
-            ? <span className="text-base leading-none">{block.icon}</span>
+            ? <ButtonIcon iconKey={block.icon} size={18} />
             : <ImageIcon size={16} />}
       </button>
 
@@ -385,21 +379,23 @@ function IconAction({ block, patch }: { block: Block; patch: (p: Partial<Block>)
               onClick={(e) => e.stopPropagation()}
             >
               <p className="mb-2 px-1 text-[10px] font-bold uppercase tracking-wider text-neutral-400">
-                Elige un emoji
+                Elige un icono
               </p>
-              <div className="grid grid-cols-6 gap-1">
-                {ICON_EMOJIS.map((em) => {
-                  const active = block.icon === em && !block.thumb;
+              <div className="grid max-h-[260px] grid-cols-6 gap-1 overflow-y-auto pr-1">
+                {BUTTON_ICONS.map((ic) => {
+                  const active = block.icon === ic.key && !block.thumb;
                   return (
                     <button
-                      key={em}
+                      key={ic.key}
                       type="button"
-                      onClick={() => { patch({ icon: em, thumb: '' }); setOpen(false); }}
-                      className={`grid aspect-square place-items-center rounded-lg text-lg transition-colors ${
-                        active ? 'bg-[#92c83a]/20 ring-1 ring-[#92c83a]' : 'hover:bg-neutral-100'
+                      title={ic.label}
+                      aria-label={ic.label}
+                      onClick={() => { patch({ icon: ic.key, thumb: '' }); setOpen(false); }}
+                      className={`group grid aspect-square place-items-center rounded-lg transition-colors ${
+                        active ? 'bg-[#92c83a]/20 text-[#15240b] ring-1 ring-[#92c83a]' : 'text-neutral-600 hover:bg-neutral-100 hover:text-[#15240b]'
                       }`}
                     >
-                      {em}
+                      <ButtonIcon iconKey={ic.key} size={20} />
                     </button>
                   );
                 })}
@@ -422,7 +418,7 @@ function IconAction({ block, patch }: { block: Block; patch: (p: Partial<Block>)
                 </button>
               </div>
               <p className="mt-2 px-1 text-[10px] leading-snug text-neutral-400">
-                La imagen subida tiene prioridad sobre el emoji.
+                La imagen subida tiene prioridad sobre el icono.
               </p>
             </motion.div>
           </>

@@ -6,6 +6,7 @@ import { THEMES, SHAPE_RADIUS, FONTS, TSIZE, SSIZE, TWEIGHT, TSPACE, bgCss, bgAn
 import { embedSrc, socUrl } from '../lib/blocks';
 import { startCheckout } from '../lib/payments';
 import { db } from '../lib/firebase';
+import { ButtonIcon } from '../lib/ButtonIcon';
 import type { BioState, Block, SocialNet } from '../types';
 
 type Palette = (typeof THEMES)[keyof typeof THEMES];
@@ -348,15 +349,15 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
             // En tamaño full el icono va en la columna izquierda del grid;
             // en half/large va apilado arriba del texto.
             const hasThumb = !!b.thumb;
-            const hasEmoji = !hasThumb && !!b.icon;
-            const hasTipoIcon = !hasThumb && !hasEmoji && !!BTN_ICON_TIPOS[b.tipo as string];
+            const hasIcon = !hasThumb && !!b.icon;
+            const hasTipoIcon = !hasThumb && !hasIcon && !!BTN_ICON_TIPOS[b.tipo as string];
             if (size === 'half') {
               return (
                 <div key={b.id} className={`col-span-1 flex aspect-square flex-col items-center justify-center gap-2 p-3.5 text-center text-sm font-bold ${common}`} style={styleObj}>
                   {hasThumb
                     ? <img src={b.thumb} alt="" className="h-[46px] w-[46px] shrink-0 rounded-xl object-cover" />
-                    : hasEmoji
-                      ? <span className="text-[34px] leading-none">{b.icon}</span>
+                    : hasIcon
+                      ? <ButtonIcon iconKey={b.icon!} size={34} />
                       : hasTipoIcon
                         ? <img src={`/ic-${b.tipo}-orig.png`} alt="" className="h-[30px] w-[30px] shrink-0 object-contain" />
                         : null}
@@ -369,8 +370,8 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
                 <div key={b.id} className={`col-span-2 flex min-h-[150px] flex-col items-center justify-center gap-2.5 p-[18px] text-center text-base font-bold ${common}`} style={styleObj}>
                   {hasThumb
                     ? <img src={b.thumb} alt="" className="h-[46px] w-[46px] shrink-0 rounded-xl object-cover" />
-                    : hasEmoji
-                      ? <span className="text-[34px] leading-none">{b.icon}</span>
+                    : hasIcon
+                      ? <ButtonIcon iconKey={b.icon!} size={34} />
                       : hasTipoIcon
                         ? <img src={`/ic-${b.tipo}-orig.png`} alt="" className="h-[30px] w-[30px] shrink-0 object-contain" />
                         : null}
@@ -402,8 +403,8 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
                       className="h-6 w-6 rounded-md object-cover"
                     />
                   )}
-                  {hasEmoji && (
-                    <span className="text-lg leading-none">{b.icon}</span>
+                  {hasIcon && (
+                    <ButtonIcon iconKey={b.icon!} size={22} />
                   )}
                   {hasTipoIcon && (
                     <img
