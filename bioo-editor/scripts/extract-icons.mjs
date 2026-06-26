@@ -12,42 +12,117 @@ const outJson = join(__dirname, '..', '..', 'links', '_button-icons.json');
 
 // [lucide-file-name, key estable, label en español].
 const ICONS = [
+  // ── Web / Conectividad ──
   ['globe',          'globe',     'Web'],
   ['link-2',         'link',      'Enlace'],
   ['smartphone',     'phone-m',   'Móvil'],
   ['qr-code',        'qr',        'QR'],
+  ['monitor',        'monitor',   'Pantalla'],
+  ['laptop',         'laptop',    'Laptop'],
+  ['tv',             'tv',        'TV'],
+  ['wifi',           'wifi',      'WiFi'],
+
+  // ── Social ──
   ['instagram',      'instagram', 'Instagram'],
   ['facebook',       'facebook',  'Facebook'],
   ['youtube',        'youtube',   'YouTube'],
+  ['twitter',        'twitter',   'Twitter / X'],
+  ['linkedin',       'linkedin',  'LinkedIn'],
+  ['github',         'github',    'GitHub'],
+  ['twitch',         'twitch',    'Twitch'],
+  ['apple',          'apple',     'Apple'],
   ['message-circle', 'chat',      'Chat'],
   ['send',           'send',      'Mensaje'],
+
+  // ── Media ──
   ['music',          'music',     'Música'],
   ['headphones',     'audio',     'Audio'],
   ['mic-vocal',      'podcast',   'Podcast'],
+  ['mic',            'mic',       'Micrófono'],
   ['video',          'video',     'Video'],
   ['camera',         'camera',    'Cámara'],
   ['image',          'image',     'Foto'],
+  ['play',           'play',      'Reproducir'],
+  ['film',           'film',      'Cine'],
+
+  // ── Comercio ──
   ['shopping-cart',  'cart',      'Tienda'],
   ['shopping-bag',   'bag',       'Compras'],
   ['gift',           'gift',      'Regalo'],
   ['tag',            'tag',       'Oferta'],
   ['credit-card',    'card',      'Pago'],
+  ['dollar-sign',    'dollar',    'Precio'],
+  ['percent',        'percent',   'Descuento'],
+  ['package',        'package',   'Paquete'],
+  ['truck',          'truck',     'Envío'],
+  ['store',          'store',     'Local'],
+  ['receipt',        'receipt',   'Boleta'],
+  ['wallet',         'wallet',    'Billetera'],
+  ['piggy-bank',     'piggy',     'Ahorro'],
+
+  // ── Trabajo / Negocio ──
   ['briefcase',      'work',      'Trabajo'],
+  ['building',       'office',    'Oficina'],
   ['mail',           'mail',      'Correo'],
   ['phone',          'call',      'Llamada'],
   ['calendar',       'calendar',  'Agenda'],
   ['map-pin',        'pin',       'Ubicación'],
+  ['file-text',      'doc',       'Documento'],
+  ['presentation',   'present',   'Presentación'],
+  ['users',          'team',      'Equipo'],
+
+  // ── Personal / Emoción ──
   ['heart',          'heart',     'Favorito'],
   ['star',           'star',      'Estrella'],
   ['sparkles',       'sparkles',  'Nuevo'],
   ['flame',          'flame',     'Hot'],
   ['crown',          'crown',     'Premium'],
+  ['smile',          'smile',     'Sonrisa'],
+  ['thumbs-up',      'like',      'Me gusta'],
+  ['bookmark',       'bookmark',  'Guardar'],
+  ['award',          'award',     'Premio'],
+  ['trophy',         'trophy',    'Trofeo'],
+  ['medal',          'medal',     'Medalla'],
+
+  // ── Servicio / Belleza ──
   ['scissors',       'scissors',  'Cortar'],
   ['brush',          'brush',     'Pintura'],
+  ['paintbrush',     'paintbr',   'Pincel'],
+  ['shirt',          'shirt',     'Ropa'],
+  ['droplet',        'droplet',   'Gota'],
+
+  // ── Lifestyle / Food ──
   ['coffee',         'coffee',    'Café'],
   ['utensils',       'food',      'Comida'],
+  ['pizza',          'pizza',     'Pizza'],
+  ['wine',           'wine',      'Vino'],
+  ['beer',           'beer',      'Cerveza'],
+  ['cake',           'cake',      'Pastel'],
+  ['ice-cream-cone', 'icecream',  'Helado'],
+
+  // ── Naturaleza ──
+  ['leaf',           'leaf',      'Hoja'],
+  ['sun',            'sun',       'Sol'],
+  ['moon',           'moon',      'Luna'],
+  ['sprout',         'sprout',    'Brote'],
+
+  // ── Hogar / Misc ──
+  ['house',          'house',     'Casa'],
+  ['target',         'target',    'Objetivo'],
+  ['gem',            'gem',       'Diamante'],
+  ['book',           'book',      'Libro'],
+  ['book-open',      'book-o',    'Lectura'],
+  ['graduation-cap', 'graduate',  'Educación'],
+  ['gamepad-2',      'gaming',    'Gaming'],
   ['dumbbell',       'fitness',   'Fitness'],
   ['rocket',         'rocket',    'Lanzamiento'],
+  ['car',            'car',       'Auto'],
+  ['plane',          'plane',     'Viaje'],
+  ['bike',           'bike',      'Bici'],
+  ['key',            'key',       'Acceso'],
+  ['shield',         'shield',    'Seguridad'],
+  ['bell',           'bell',      'Notificación'],
+  ['search',         'search',    'Buscar'],
 ];
 
 /** Parsea el array de definición que exporta lucide-react y devuelve string SVG inner. */
