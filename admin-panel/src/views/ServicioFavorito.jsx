@@ -12,6 +12,7 @@ import {
 } from 'firebase/storage';
 import { db, storage } from '../lib/firebase';
 import { tenantCol, tenantDoc, resolveTenantId } from '../lib/tenantUtils';
+import { withTimeout } from '../lib/firestore-helpers';
 import { confirmDialog } from '../lib/confirmDialog';
 import { useCollection } from '../hooks/useCollection';
 
@@ -94,7 +95,7 @@ export default function ServicioFavorito() {
   };
 
   useEffect(() => {
-    getDoc(tenantDoc('config', 'ui'))
+    withTimeout(getDoc(tenantDoc('config', 'ui')), 10000, 'svcfav/cfg-ui')
       .then(snap => { if (snap.exists()) setActivo(!!snap.data().servicioFavoritoActivo); })
       .catch(() => {})
       .finally(() => setActivoLoad(false));
@@ -167,7 +168,7 @@ export default function ServicioFavorito() {
         );
       });
 
-      const existing = await getDocs(query(tenantCol('servicioFavorito'), where('email', '==', email)));
+      const existing = await withTimeout(getDocs(query(tenantCol('servicioFavorito'), where('email', '==', email))), 15000, 'svcfav/existing');
       if (!existing.empty) {
         const existDoc = existing.docs[0];
         // Delete old admin storage file if present

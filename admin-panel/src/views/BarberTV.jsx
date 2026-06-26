@@ -7,6 +7,7 @@ import { QRCodeSVG }                                from 'qrcode.react';
 import { query, getDocs, onSnapshot, where, orderBy } from 'firebase/firestore';
 import { useTenant }                                from '../contexts/TenantContext';
 import { tenantCol, tenantDoc, resolveTenantId }    from '../lib/tenantUtils';
+import { withTimeout }                              from '../lib/firestore-helpers';
 import { Volume2, VolumeX }                         from 'lucide-react';
 
 // ── Constantes ────────────────────────────────────────────────────
@@ -1074,14 +1075,14 @@ export default function BarberTV() {
 
   // Lookbook
   useEffect(() => {
-    getDocs(query(tenantCol('lookbook'), orderBy('order', 'asc')))
+    withTimeout(getDocs(query(tenantCol('lookbook'), orderBy('order', 'asc'))), 20000, 'tv/lookbook')
       .then(snap => setPhotos(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
       .catch(() => {});
   }, [tenantId]);
 
   // Equipo
   useEffect(() => {
-    getDocs(query(tenantCol('barberos'), where('activo', '!=', false)))
+    withTimeout(getDocs(query(tenantCol('barberos'), where('activo', '!=', false))), 15000, 'tv/barberos')
       .then(snap => setBarberos(
         snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(b => !b._mainDocId && b.rol !== 'admin'),
       ))
@@ -1090,7 +1091,7 @@ export default function BarberTV() {
 
   // Servicios — para el ticker inferior
   useEffect(() => {
-    getDocs(query(tenantCol('servicios'), orderBy('orden', 'asc')))
+    withTimeout(getDocs(query(tenantCol('servicios'), orderBy('orden', 'asc'))), 15000, 'tv/servicios')
       .then(snap => setServicios(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
       .catch(() => {});
   }, [tenantId]);
@@ -1123,7 +1124,7 @@ export default function BarberTV() {
 
   // Productos
   useEffect(() => {
-    getDocs(query(tenantCol('productos'), orderBy('createdAt', 'asc')))
+    withTimeout(getDocs(query(tenantCol('productos'), orderBy('createdAt', 'asc'))), 15000, 'tv/productos')
       .then(snap => setProductos(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
       .catch(() => {});
   }, [tenantId]);
@@ -1131,7 +1132,7 @@ export default function BarberTV() {
   // Marcas (Solo Elegance)
   useEffect(() => {
     if (tenantId !== 'elegance') return;
-    getDocs(query(tenantCol('publicidad_tv'), orderBy('createdAt', 'asc')))
+    withTimeout(getDocs(query(tenantCol('publicidad_tv'), orderBy('createdAt', 'asc'))), 15000, 'tv/publicidad')
       .then(snap => setMarcas(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
       .catch(() => {});
   }, [tenantId]);

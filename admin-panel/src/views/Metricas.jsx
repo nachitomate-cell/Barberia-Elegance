@@ -1,5 +1,6 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { getDocs, getDoc, query, where } from 'firebase/firestore';
+import { withTimeout } from '../lib/firestore-helpers';
 import {
   TrendingUp, CalendarCheck, XCircle, DollarSign,
   ShoppingBag, RefreshCcw, Activity, Crown, Star, User, Sparkles,
@@ -274,7 +275,19 @@ export default function Metricas() {
   const [gastos,    setGastos]    = useState([]);
   const [barberos,  setBarberos]  = useState([]);
   const [productos, setProductos] = useState([]);
-  const [fetching,  setFetching]  = useState(false);
+  const [loading,   setLoading]   = useState(true);   // primer fetch (pantalla en spinner)
+  const [fetching,  setFetching]  = useState(false);  // refetch (solo gira el boton)
+  const [loadError, setLoadError] = useState(null);
+
+  // ID de fetch en curso. Si cambia (cambio de rango o "Actualizar"), las
+  // respuestas anteriores se descartan: evita race conditions y pisar estado
+  // bueno con datos viejos al cambiar rangos rapido.
+  const fetchIdRef = useRef(0);
+
+  // Cache de catalogos estables (servicios, barberos, productos): NO dependen
+  // del rango de fechas. Antes los re-pediamos en cada cambio de fecha — eran
+  // megabytes inutiles.
+  const catalogsLoadedRef = useRef(false);
 
   // Date range presets
   const setHoy = () => {
@@ -310,43 +323,71 @@ export default function Metricas() {
   };
 
   const fetchData = useCallback(async () => {
+    const myId = ++fetchIdRef.current;
     setFetching(true);
+    setLoadError(null);
     try {
       const prevR = getPrevRange(fechaInicio, fechaFin);
-      const candidates = [fechaInicio, SIX_MONTHS_AGO, prevR.inicio];
-      const queryStart = candidates.sort()[0];
+      // Antes: queryStart = min(fechaInicio, SIX_MONTHS_AGO, prevR.inicio).
+      // Eso forzaba traer 6 meses de citas SIEMPRE, aunque el usuario eligiera
+      // "Hoy". Ahora solo extendemos al periodo previo (para los deltas) — la
+      // serie historica de 6 meses la calcula la CF y vive en _stats/resumen.
+      const queryStart = (fechaInicio < prevR.inicio) ? fechaInicio : prevR.inicio;
 
       // Resumen precalculado (1 lectura). Si existe, no traemos toda la colección de clientes
       // (que solo se usa para la retención de sellos legacy-aware).
       let stats = null;
       try {
-        const statsSnap = await getDoc(tenantDoc('_stats', 'resumen'));
+        const statsSnap = await withTimeout(getDoc(tenantDoc('_stats', 'resumen')), 10000, 'stats');
         if (statsSnap.exists()) stats = statsSnap.data();
       } catch { /* sin stats → fallback */ }
+      if (myId !== fetchIdRef.current) return; // cancelado por nuevo fetch
       setAggStats(stats);
 
+      // Catalogos estables: solo se piden la primera vez. Antes se re-pedian
+      // en cada cambio de rango → megabytes inutiles y latencia visible.
+      const needCatalogs = !catalogsLoadedRef.current;
       const tasks = [
-        getDocs(query(tenantCol('citas'), where('fecha', '>=', queryStart))),
-        getDocs(tenantCol('servicios')),
-        getDocs(tenantCol('product_reservations')),
-        getDocs(tenantCol('gastos')),
-        getDocs(tenantCol('barberos')),
-        getDocs(tenantCol('productos')),
+        withTimeout(getDocs(query(tenantCol('citas'), where('fecha', '>=', queryStart))), 20000, 'citas'),
+        withTimeout(getDocs(query(tenantCol('product_reservations'), where('fecha', '>=', queryStart))), 20000, 'ventas'),
+        withTimeout(getDocs(query(tenantCol('gastos'), where('fecha', '>=', queryStart))), 20000, 'gastos'),
       ];
-      if (!stats) tasks.push(getDocs(tenantCol('users')));
+      if (needCatalogs) {
+        tasks.push(withTimeout(getDocs(tenantCol('servicios')), 15000, 'servicios'));
+        tasks.push(withTimeout(getDocs(tenantCol('barberos')), 15000, 'barberos'));
+        tasks.push(withTimeout(getDocs(tenantCol('productos')), 15000, 'productos'));
+      }
+      if (!stats) tasks.push(withTimeout(getDocs(tenantCol('users')), 20000, 'users'));
 
-      const [citasSnap, serviciosSnap, ventasSnap, gastosSnap, barberosSnap, productosSnap, clientesSnap] = await Promise.all(tasks);
+      const results = await Promise.all(tasks);
+      if (myId !== fetchIdRef.current) return; // cancelado por nuevo fetch
+
+      let i = 0;
+      const citasSnap  = results[i++];
+      const ventasSnap = results[i++];
+      const gastosSnap = results[i++];
+      const serviciosSnap = needCatalogs ? results[i++] : null;
+      const barberosSnap  = needCatalogs ? results[i++] : null;
+      const productosSnap = needCatalogs ? results[i++] : null;
+      const clientesSnap  = !stats ? results[i++] : null;
+
       setCitas(citasSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-      setServicios(serviciosSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-      setClientes(clientesSnap ? clientesSnap.docs.map(d => ({ id: d.id, ...d.data() })) : []);
       setVentas(ventasSnap.docs.map(d => ({ id: d.id, ...d.data() })));
       setGastos(gastosSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-      setBarberos(barberosSnap.docs.map(d => ({ id: d.id, ...d.data() })).filter(b => !b._mainDocId));
-      setProductos(productosSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      if (serviciosSnap) setServicios(serviciosSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      if (barberosSnap)  setBarberos(barberosSnap.docs.map(d => ({ id: d.id, ...d.data() })).filter(b => !b._mainDocId));
+      if (productosSnap) setProductos(productosSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      if (clientesSnap)  setClientes(clientesSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      if (needCatalogs)  catalogsLoadedRef.current = true;
     } catch (e) {
+      if (myId !== fetchIdRef.current) return;
       console.error('Metricas fetchData:', e);
+      setLoadError(e.message || 'No se pudo cargar la información');
     } finally {
-      setFetching(false);
+      if (myId === fetchIdRef.current) {
+        setFetching(false);
+        setLoading(false);
+      }
     }
   }, [fechaInicio, fechaFin]);
 
@@ -1017,6 +1058,31 @@ export default function Metricas() {
       return;
     }
   }, [citas, rangeVentas, fechaInicio, fechaFin, getPrice, parseDateStr]);
+
+  // Primer fetch: spinner a pantalla completa en lugar de KPIs en $0.
+  if (loading) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3">
+        <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+        <p className="text-xs text-slate-500">Cargando métricas…</p>
+      </div>
+    );
+  }
+
+  if (loadError && !citas.length) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3 text-center px-4">
+        <p className="text-sm text-slate-300">No pudimos cargar las métricas.</p>
+        <p className="text-xs text-slate-500">{loadError}</p>
+        <button
+          onClick={fetchData}
+          className="mt-1 px-4 py-2 rounded-lg text-xs font-semibold border border-emerald-500/40 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 transition-all"
+        >
+          Reintentar
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">

@@ -4,6 +4,7 @@ import { addDoc, updateDoc, deleteDoc, doc, getDoc, setDoc, serverTimestamp, onS
 import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { storage, db } from '../lib/firebase';
 import { tenantCol, tenantDoc, resolveTenantId } from '../lib/tenantUtils';
+import { withTimeout } from '../lib/firestore-helpers';
 import { confirmDialog } from '../lib/confirmDialog';
 import { useTenant } from '../contexts/TenantContext';
 import { useCollection } from '../hooks/useCollection';
@@ -666,7 +667,7 @@ export default function Productos() {
 
   /* Load activation state */
   useEffect(() => {
-    getDoc(tenantDoc('config', 'ui'))
+    withTimeout(getDoc(tenantDoc('config', 'ui')), 10000, 'productos/cfg-ui')
       .then(snap => { if (snap.exists()) setActivo(!!snap.data().productosActivos); })
       .catch(() => {})
       .finally(() => setActivoLoad(false));

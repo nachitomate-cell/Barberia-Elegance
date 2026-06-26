@@ -232,6 +232,7 @@ exports.stripeWebhook = onRequest(
       const session = event.data.object || {};
       const username = session.metadata && session.metadata.username;
       const blockId = session.metadata && session.metadata.blockId;
+      const tipo = (session.metadata && session.metadata.tipo) || 'paywall';
       if (username && blockId && session.id) {
         try {
           await admin.firestore()
@@ -242,11 +243,37 @@ exports.stripeWebhook = onRequest(
               amountTotal: session.amount_total != null ? session.amount_total : null,
               currency: session.currency || null,
               buyerEmail: (session.customer_details && session.customer_details.email) || null,
-              tipo: (session.metadata && session.metadata.tipo) || 'paywall',
+              tipo,
               status: 'paid',
               source: 'webhook',
               createdAt: admin.firestore.FieldValue.serverTimestamp(),
             }, { merge: true });
+
+          // Tip Goal — sumamos al contador del bloque para la barra de progreso.
+          // tipTotal se guarda en unidad MAYOR (lo que el creador ve en `goal`).
+          // Stripe nos da minor units; convertimos según ZERO_DECIMAL.
+          if (tipo === 'tip' && session.amount_total != null) {
+            const cur = String(session.currency || '').toLowerCase();
+            const major = ZERO_DECIMAL.has(cur)
+              ? session.amount_total
+              : session.amount_total / 100;
+            // 1) Privado (panel del creador, blockStats).
+            await admin.firestore()
+              .collection('bios').doc(String(username))
+              .collection('blockStats').doc(String(blockId))
+              .set({
+                tipTotal: admin.firestore.FieldValue.increment(major),
+                tipCurrency: cur || null,
+                lastTipAt: admin.firestore.FieldValue.serverTimestamp(),
+              }, { merge: true });
+            // 2) Público (u.html lee del doc raíz para mostrar la barra de meta
+            //    sin necesidad de relajar las reglas de blockStats).
+            await admin.firestore()
+              .collection('bios').doc(String(username))
+              .set({
+                tipTotals: { [String(blockId)]: admin.firestore.FieldValue.increment(major) },
+              }, { merge: true });
+          }
         } catch (e) {
           console.error('Webhook: error guardando purchase:', e);
           res.status(500).send('store-error'); // Stripe reintentará

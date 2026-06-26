@@ -6,6 +6,7 @@ import {
 import { getDocs, query, orderBy, setDoc, doc, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { tenantCol } from '../lib/tenantUtils';
+import { withTimeout } from '../lib/firestore-helpers';
 import { useTenant } from '../contexts/TenantContext';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 import AcademiaModal from '../components/AcademiaModal';
@@ -125,7 +126,10 @@ function TabCursos() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const snap = await getDocs(query(tenantCol('cursos_academia'), orderBy('createdAt', 'desc')));
+      const snap = await withTimeout(
+        getDocs(query(tenantCol('cursos_academia'), orderBy('createdAt', 'desc'))),
+        15000, 'academia/cursos'
+      );
       setCursos(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     } catch (e) {
       console.error(e);
@@ -263,8 +267,8 @@ function TabAlumnos() {
     setLoading(true);
     try {
       const [snapA, snapC] = await Promise.all([
-        getDocs(query(tenantCol('alumnos_academia'), orderBy('createdAt', 'desc'))),
-        getDocs(query(tenantCol('cursos_academia')))
+        withTimeout(getDocs(query(tenantCol('alumnos_academia'), orderBy('createdAt', 'desc'))), 15000, 'academia/alumnos'),
+        withTimeout(getDocs(query(tenantCol('cursos_academia'))), 15000, 'academia/cursos2'),
       ]);
       setAlumnos(snapA.docs.map(d => ({ id: d.id, ...d.data() })));
       setCursos(snapC.docs.map(d => ({ id: d.id, ...d.data() })));
@@ -426,7 +430,10 @@ function TabMaterial() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const snap = await getDocs(query(tenantCol('material_academia'), orderBy('createdAt', 'desc')));
+      const snap = await withTimeout(
+        getDocs(query(tenantCol('material_academia'), orderBy('createdAt', 'desc'))),
+        15000, 'academia/material'
+      );
       setMaterial(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     } catch (e) {
       console.error(e);

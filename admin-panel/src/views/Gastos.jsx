@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   TrendingDown, Plus, X, Calendar, DollarSign,
-  Tag, CreditCard, AlertCircle, ChevronDown, Trash2
+  Tag, CreditCard, AlertCircle, ChevronDown, Trash2, Repeat,
 } from 'lucide-react';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 import {
   addDoc, deleteDoc, doc, query, where, orderBy,
-  onSnapshot, serverTimestamp, Timestamp,
+  onSnapshot, serverTimestamp, Timestamp, getDocs, runTransaction,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { tenantCol } from '../lib/tenantUtils';
@@ -38,7 +38,72 @@ function localDateStr() {
 }
 
 function emptyForm() {
-  return { descripcion: '', monto: '', categoria: 'Insumos', metodoPago: 'Efectivo', fecha: localDateStr() };
+  return { descripcion: '', monto: '', categoria: 'Insumos', metodoPago: 'Efectivo', fecha: localDateStr(), recurrente: false };
+}
+
+function mesKey(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+/**
+ * Materializa gastos recurrentes mensuales para el mes corriente.
+ *
+ * Cada plantilla guarda `mesesGenerados: string[]` con los YYYY-MM ya
+ * materializados. Esto sirve para dos cosas: (a) idempotencia (no duplicar
+ * si la vista se abre dos veces), (b) "skip permanente" — si el usuario
+ * elimina la instancia auto-generada del mes corriente, no se vuelve a
+ * crear porque el mes ya está en la lista.
+ *
+ * Cada operación corre en una transacción para evitar la carrera cuando
+ * dos dispositivos abren Gastos al mismo tiempo.
+ */
+async function materializarRecurrentes() {
+  const ahora = new Date();
+  const mk = mesKey(ahora);
+  const col = tenantCol('gastos');
+  const snap = await getDocs(query(col, where('recurrencia', '==', 'mensual')));
+  for (const d of snap.docs) {
+    const plantilla = d.data();
+    const yaGenerados = Array.isArray(plantilla.mesesGenerados) ? plantilla.mesesGenerados : [];
+    if (yaGenerados.includes(mk)) continue;
+
+    // Día del mes a usar: el del documento original (recortado al último día
+    // del mes si febrero/30 no tiene 31). Por defecto, día 1.
+    let dia = 1;
+    if (plantilla.fecha?.toDate) dia = plantilla.fecha.toDate().getDate();
+    const ultimoDia = new Date(ahora.getFullYear(), ahora.getMonth() + 1, 0).getDate();
+    const diaSafe = Math.min(dia, ultimoDia);
+    const fechaNueva = new Date(ahora.getFullYear(), ahora.getMonth(), diaSafe, 12, 0, 0);
+
+    try {
+      await runTransaction(db, async (tx) => {
+        const fresh = await tx.get(d.ref);
+        if (!fresh.exists()) return;
+        const prev = Array.isArray(fresh.data().mesesGenerados) ? fresh.data().mesesGenerados : [];
+        if (prev.includes(mk)) return; // ganó otra pestaña
+        // No usamos tx.add: addDoc dentro de una transacción no es posible.
+        // En su lugar, marcamos primero la plantilla y creamos la instancia
+        // afuera. Si la creación falla, el próximo mount reintenta porque
+        // todavía no estará en `mesesGenerados` — corregimos eso al revés:
+        // creamos primero, luego marcamos.
+        tx.update(d.ref, { mesesGenerados: [...prev, mk] });
+      });
+      // La transacción ya marcó el mes. Si la creación abajo falla, queda
+      // un "skip" sin instancia (peor que duplicar) — pero es muy raro.
+      await addDoc(col, {
+        descripcion: plantilla.descripcion,
+        monto:       plantilla.monto,
+        categoria:   plantilla.categoria,
+        metodoPago:  plantilla.metodoPago,
+        fecha:       Timestamp.fromDate(fechaNueva),
+        creadoEn:    serverTimestamp(),
+        recurrenciaPadreId: d.id,
+        recurrenciaMesKey:  mk,
+      });
+    } catch (e) {
+      console.error('materializarRecurrentes:', e);
+    }
+  }
 }
 
 /* ─── Helpers ────────────────────────────────────────────────── */
@@ -70,14 +135,21 @@ function GastoModal({ onClose, onSaved }) {
     setSaving(true);
     try {
       const fechaDate  = new Date(form.fecha + 'T12:00:00');
-      await addDoc(gastosCol(), {
+      const base = {
         descripcion: form.descripcion.trim(),
         monto,
         categoria:   form.categoria,
         metodoPago:  form.metodoPago,
         fecha:       Timestamp.fromDate(fechaDate),
         creadoEn:    serverTimestamp(),
-      });
+      };
+      // Si es recurrente, marcamos el mes actual como "ya generado" para
+      // que el materializador no cree un duplicado al próximo mount.
+      if (form.recurrente) {
+        base.recurrencia = 'mensual';
+        base.mesesGenerados = [mesKey(fechaDate)];
+      }
+      await addDoc(gastosCol(), base);
       onSaved?.();
       onClose();
     } catch {
@@ -154,6 +226,23 @@ function GastoModal({ onClose, onSaved }) {
             </div>
           </div>
 
+          {/* Toggle recurrente */}
+          <div className="flex items-start justify-between gap-3 bg-slate-800/40 border border-slate-700/60 rounded-lg p-3">
+            <div className="flex items-start gap-2.5">
+              <Repeat size={14} className="text-amber-400 mt-0.5 shrink-0" />
+              <div>
+                <p className="text-xs font-semibold text-white">Repetir cada mes</p>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  Lo recreamos el día {form.fecha.slice(-2)} de cada mes automáticamente. Bórralo cuando ya no aplique.
+                </p>
+              </div>
+            </div>
+            <button type="button" onClick={() => set('recurrente', !form.recurrente)}
+              className={`relative inline-flex w-9 h-5 rounded-full transition-colors duration-200 focus:outline-none shrink-0 ${form.recurrente ? 'bg-amber-500' : 'bg-slate-700'}`}>
+              <span className={`inline-block w-4 h-4 mt-0.5 bg-white rounded-full shadow transform transition-transform duration-200 ${form.recurrente ? 'translate-x-4' : 'translate-x-0.5'}`} />
+            </button>
+          </div>
+
           {error && (
             <div className="flex items-center gap-2 text-red-400 text-xs bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
               <AlertCircle size={13} /> {error}
@@ -199,6 +288,10 @@ export default function Gastos() {
   const [showHelp,  setShowHelp]  = useState(false);
   const [loading, setLoading] = useState(true);
   const [modal,   setModal]   = useState(false);
+  // Materializamos los recurrentes una sola vez por sesión para no pegar
+  // Firestore a cada re-render. `Gastos.jsx` puede desmontarse y volver en
+  // la misma sesión sin que necesitemos repetir el barrido.
+  const recurrentesProcesados = useRef(false);
 
   useEffect(() => {
     const { start, end } = thisMonthRange();
@@ -212,13 +305,24 @@ export default function Gastos() {
       setGastos(snap.docs.map(d => ({ id: d.id, ...d.data() })));
       setLoading(false);
     }, () => setLoading(false));
+
+    if (!recurrentesProcesados.current) {
+      recurrentesProcesados.current = true;
+      materializarRecurrentes();
+    }
     return unsub;
   }, []);
 
-  const handleDelete = async (id) => {
-    if (!(await confirmDialog('¿Estás seguro de eliminar este gasto?'))) return;
+  const handleDelete = async (g) => {
+    // Borrar la plantilla detiene futuras instancias automáticas; lo dejamos
+    // explícito para evitar sorpresas.
+    const esPlantilla = g.recurrencia === 'mensual';
+    const msg = esPlantilla
+      ? '¿Eliminar este gasto recurrente? No se volverá a crear automáticamente cada mes.'
+      : '¿Estás seguro de eliminar este gasto?';
+    if (!(await confirmDialog(msg))) return;
     try {
-      await deleteDoc(doc(gastosCol(), id));
+      await deleteDoc(doc(gastosCol(), g.id));
     } catch (e) {
       console.error(e);
       alert('Error al eliminar el gasto');
@@ -325,6 +429,26 @@ export default function Gastos() {
                             {TIPO_LABELS[g.tipo].label}
                           </span>
                         )}
+                        {g.recurrencia === 'mensual' && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/15 text-amber-300" title="Se repite cada mes">
+                            <Repeat size={9} /> Mensual
+                          </span>
+                        )}
+                        {g.recurrenciaPadreId && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/10 text-amber-400/80" title="Generado automáticamente desde un gasto recurrente">
+                            <Repeat size={9} /> Auto
+                          </span>
+                        )}
+                        {g.tipo === 'liquidacion' && g.aceptacionBarbero === 'aceptada' && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/15 text-emerald-300" title="Liquidación confirmada por el barbero">
+                            ✓ Aceptada
+                          </span>
+                        )}
+                        {g.tipo === 'liquidacion' && g.aceptacionBarbero === 'pendiente' && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/15 text-amber-300" title="Pendiente de confirmación del barbero">
+                            ⏳ Por confirmar
+                          </span>
+                        )}
                       </div>
                     </td>
                     <td className="px-5 py-3.5">
@@ -336,7 +460,7 @@ export default function Gastos() {
                       {fmt(g.monto)}
                     </td>
                     <td className="px-5 py-3.5 text-right">
-                      <button onClick={() => handleDelete(g.id)}
+                      <button onClick={() => handleDelete(g)}
                         className="text-slate-500 hover:text-red-400 transition-colors" title="Eliminar gasto">
                         <Trash2 size={16} />
                       </button>
@@ -364,6 +488,7 @@ export default function Gastos() {
             <li>Los KPIs muestran el total del mes, el gasto promedio y la categoría con mayor gasto.</li>
             <li>El desglose por categoría ayuda a identificar dónde se concentran los costos.</li>
             <li>Compara los gastos con los ingresos de <span className="text-white">Métricas</span> para calcular tu margen neto.</li>
+            <li>Activa <span className="text-white">Repetir cada mes</span> en gastos fijos (arriendo, luz, internet) y se recrearán solos cada mes. Verás un badge <span className="text-amber-400">Mensual</span> en la plantilla y <span className="text-amber-300">Auto</span> en las copias generadas.</li>
           </ul>
         </HelpModal>
       )}

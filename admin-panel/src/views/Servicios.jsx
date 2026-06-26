@@ -9,6 +9,7 @@ import {
 } from 'firebase/storage';
 import { db, storage } from '../lib/firebase';
 import { tenantCol, resolveTenantId } from '../lib/tenantUtils';
+import { withTimeout } from '../lib/firestore-helpers';
 import { confirmDialog } from '../lib/confirmDialog';
 import { useCollection } from '../hooks/useCollection';
 import { useConfig }     from '../hooks/useConfig';
@@ -111,7 +112,7 @@ export default function Servicios() {
 
   const [citasUsage, setCitasUsage] = useState({});
   useEffect(() => {
-    getDocs(query(tenantCol('citas'), orderBy('creadoEn', 'desc'), limit(300)))
+    withTimeout(getDocs(query(tenantCol('citas'), orderBy('creadoEn', 'desc'), limit(300))), 20000, 'servicios/citas-usage')
       .then(snap => {
         const cnt = {};
         snap.forEach(d => { const n = d.data().servicioNombre; if (n) cnt[n] = (cnt[n] || 0) + 1; });

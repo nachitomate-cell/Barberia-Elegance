@@ -54,19 +54,32 @@ exports.loadAdminKpis = onCall(
     if (!request.auth) throw new HttpsError('unauthenticated', 'Debes iniciar sesión.');
     await assertCallerIsAdmin(request.auth.uid);
 
-    try {
-      const biosCol = db().collection('bios');
+    const biosCol = db().collection('bios');
 
-      // count() corre en el server-side de Firestore (1 read facturada por
-      // aggregation, no por doc — barato a cualquier escala).
-      const [totalSnap, stripeSnap, mpSnap, paidSalesSnap] = await Promise.all([
+    // count() corre en el server-side de Firestore (1 read facturada por
+    // aggregation, no por doc — barato a cualquier escala).
+    let totalUsers = 0, stripeActive = 0, mpActive = 0;
+    try {
+      const [totalSnap, stripeSnap, mpSnap] = await Promise.all([
         biosCol.count().get(),
         biosCol.where('stripeReady', '==', true).count().get(),
         biosCol.where('mpReady', '==', true).count().get(),
-        db().collectionGroup('purchases').where('status', '==', 'paid').get(),
       ]);
+      totalUsers   = totalSnap.data().count;
+      stripeActive = stripeSnap.data().count;
+      mpActive     = mpSnap.data().count;
+    } catch (err) {
+      logger.error('[admin-kpis] count() error', err.message);
+    }
 
-      const totalsByCurrency = {};
+    // GMV puede fallar si el índice de collectionGroup aún no está listo o si
+    // no hay datos. Aislado: devolvemos {} en vez de tirar todo el panel.
+    let totalsByCurrency = {};
+    let salesCount = 0;
+    try {
+      const paidSalesSnap = await db().collectionGroup('purchases')
+        .where('status', '==', 'paid').get();
+      salesCount = paidSalesSnap.size;
       paidSalesSnap.forEach((d) => {
         const x = d.data() || {};
         const currency = String(x.currency || 'usd').toUpperCase();
@@ -76,17 +89,10 @@ exports.loadAdminKpis = onCall(
         else if (typeof x.amount === 'number') major = Number(x.amount);
         if (major > 0) totalsByCurrency[currency] = (totalsByCurrency[currency] || 0) + major;
       });
-
-      return {
-        totalUsers:   totalSnap.data().count,
-        stripeActive: stripeSnap.data().count,
-        mpActive:     mpSnap.data().count,
-        salesCount:   paidSalesSnap.size,
-        totalsByCurrency,
-      };
     } catch (err) {
-      logger.error('[admin-kpis] error', err);
-      throw new HttpsError('internal', 'No se pudieron cargar los KPIs.');
+      logger.warn('[admin-kpis] purchases query no disponible (¿índice construyéndose?):', err.message);
     }
+
+    return { totalUsers, stripeActive, mpActive, salesCount, totalsByCurrency };
   },
 );

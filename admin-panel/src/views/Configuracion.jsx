@@ -1,12 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   Store, MapPin, Phone, Instagram, Image, Clock, Check, Save, HelpCircle, AlertCircle,
-  GraduationCap, Scissors, Ban, Info,
+  GraduationCap, Scissors, Ban, Info, Sparkles, Target,
 } from 'lucide-react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { tenantCol } from '../lib/tenantUtils';
+import { withTimeout } from '../lib/firestore-helpers';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
+import { isDailyWelcomeDisabled, setDailyWelcomeDisabled } from '../components/DailyWelcomePanel';
 
 /* ─── Constants ─────────────────────────────────────────────── */
 const DIAS_LABELS = { '1':'Lunes','2':'Martes','3':'Miércoles','4':'Jueves','5':'Viernes','6':'Sábado','0':'Domingo' };
@@ -96,6 +98,44 @@ function Field({ label, children }) {
   );
 }
 
+/**
+ * Toggle del panel de bienvenida diaria (DailyWelcomePanel).
+ * La preferencia es LOCAL al dispositivo (localStorage) — no se sincroniza
+ * entre usuarios ni tenants. Quien lo apagó desde el panel puede reactivarlo
+ * acá.
+ */
+function DailyWelcomeToggleCard() {
+  // Negamos el flag almacenado para representar "mostrar" en la UI.
+  const [mostrar, setMostrar] = useState(() => !isDailyWelcomeDisabled());
+
+  function toggle() {
+    const next = !mostrar;
+    setMostrar(next);
+    setDailyWelcomeDisabled(!next);
+  }
+
+  return (
+    <Card Icon={Sparkles} title="Panel de bienvenida diaria">
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <span className="text-sm font-semibold text-white">Mostrar al abrir el panel</span>
+          <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+            Es el saludo con accesos rapidos (agenda, metricas, marketing). Se muestra una vez al dia.
+            Si lo apagaste con &quot;No volver a mostrar&quot;, lo puedes reactivar desde aqui.
+          </p>
+          <p className="text-[10px] text-slate-600 mt-1.5">
+            Esta preferencia se guarda en este dispositivo.
+          </p>
+        </div>
+        <button type="button" onClick={toggle}
+          className={`relative inline-flex w-9 h-5 rounded-full transition-colors duration-200 focus:outline-none shrink-0 ${mostrar ? 'bg-emerald-500' : 'bg-slate-700'}`}>
+          <span className={`inline-block w-4 h-4 mt-0.5 bg-white rounded-full shadow transform transition-transform duration-200 ${mostrar ? 'translate-x-4' : 'translate-x-0.5'}`} />
+        </button>
+      </div>
+    </Card>
+  );
+}
+
 function DayRow({ diaKey, config, onChange }) {
   const sel = 'bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-emerald-500';
   return (
@@ -146,6 +186,10 @@ export default function Configuracion() {
   const [customMode,    setCustomMode]    = useState(false); // intervalo personalizado activo
   const [customStr,     setCustomStr]     = useState('');    // valor crudo del input (solo dígitos)
   const [minutosLimite, setMinutosLimite] = useState(0);
+  // Metas financieras — inputs como string para distinguir "" (sin definir,
+  // usa el fallback automático en Inicio) de 0 (forzar a 0).
+  const [metaMensual,   setMetaMensual]   = useState('');
+  const [costoDiario,   setCostoDiario]   = useState('');
   const [loading,       setLoading]       = useState(true);
   const [saving,    setSaving]    = useState(false);
   const [saved,     setSaved]     = useState(false);
@@ -156,7 +200,10 @@ export default function Configuracion() {
   const tenantId = resolveTenantId();
 
   useEffect(() => {
-    Promise.all([getDoc(settingsRef()), getDoc(confRef())]).then(([settSnap, confSnap]) => {
+    Promise.all([
+      withTimeout(getDoc(settingsRef()), 10000, 'configuracion/settings'),
+      withTimeout(getDoc(confRef()), 10000, 'configuracion/conf'),
+    ]).then(([settSnap, confSnap]) => {
       if (settSnap.exists()) {
         const d = settSnap.data();
         setForm({
@@ -183,6 +230,8 @@ export default function Configuracion() {
           }
         }
         if (cd.minutosLimiteReagendar !== undefined) setMinutosLimite(cd.minutosLimiteReagendar);
+        if (cd.metaMensualVentas != null) setMetaMensual(String(cd.metaMensualVentas));
+        if (cd.costoDiarioFijo   != null) setCostoDiario(String(cd.costoDiarioFijo));
       }
     }).finally(() => setLoading(false));
   }, []);
@@ -242,11 +291,22 @@ export default function Configuracion() {
         }
       });
 
+      // "" → null para limpiar el campo en Firestore (Inicio lee null como
+      // "no definido" y aplica el fallback automático).
+      const parsePosInt = (s) => {
+        const t = String(s ?? '').trim();
+        if (!t) return null;
+        const n = Math.round(Number(t));
+        return Number.isFinite(n) && n >= 0 ? n : null;
+      };
+
       await Promise.all([
         setDoc(settingsRef(), form, { merge: true }),
         setDoc(confRef(), {
           intervaloMinutos:        intervaloFinal,
           minutosLimiteReagendar:  minutosLimite,
+          metaMensualVentas:       parsePosInt(metaMensual),
+          costoDiarioFijo:         parsePosInt(costoDiario),
           diasLaborales,
           diasConfig,
           horarioInicio,
@@ -581,6 +641,41 @@ export default function Configuracion() {
           </Field>
         )}
       </Card>
+
+      {/* Metas financieras — alimentan la card "Meta del mes" + "Break-even" en Inicio */}
+      <Card Icon={Target} title="Metas financieras">
+        <Field label="Meta mensual de ventas (CLP)">
+          <input
+            type="text" inputMode="numeric" className={inp}
+            placeholder="Ej: 3500000"
+            value={metaMensual}
+            onChange={e => {
+              setMetaMensual(e.target.value.replace(/\D/g, ''));
+              setDirty(true);
+            }}
+          />
+          <p className="text-[11px] text-slate-500 mt-1.5">
+            Lo que apuntas a facturar al mes. Aparece como gauge con proyección de cierre en Inicio. Vacío = sin meta.
+          </p>
+        </Field>
+        <Field label="Costo fijo diario (CLP)">
+          <input
+            type="text" inputMode="numeric" className={inp}
+            placeholder="Ej: 60000 (vacío = automático)"
+            value={costoDiario}
+            onChange={e => {
+              setCostoDiario(e.target.value.replace(/\D/g, ''));
+              setDirty(true);
+            }}
+          />
+          <p className="text-[11px] text-slate-500 mt-1.5">
+            Cuánto necesitas facturar al día para cubrir gastos fijos (arriendo, sueldos base, servicios). Si lo dejas vacío, se calcula automáticamente con los gastos del mes anterior ÷ 30.
+          </p>
+        </Field>
+      </Card>
+
+      {/* Preferencias del panel — locales al dispositivo */}
+      <DailyWelcomeToggleCard />
 
       {/* Soporte Técnico */}
       <div

@@ -16,6 +16,7 @@ import {
 } from 'firebase/storage';
 import { db, storage } from '../lib/firebase';
 import { tenantCol, tenantDoc, resolveTenantId } from '../lib/tenantUtils';
+import { withTimeout } from '../lib/firestore-helpers';
 import { confirmDialog } from '../lib/confirmDialog';
 import { useCollection } from '../hooks/useCollection';
 
@@ -94,7 +95,7 @@ export default function Lookbook() {
   };
 
   useEffect(() => {
-    getDoc(tenantDoc('config', 'ui'))
+    withTimeout(getDoc(tenantDoc('config', 'ui')), 10000, 'lookbook/cfg-ui')
       .then(snap => { if (snap.exists()) setActivo(!!snap.data().lookbookActivo); })
       .catch(() => {})
       .finally(() => setActivoLoad(false));
@@ -120,7 +121,7 @@ export default function Lookbook() {
     e.target.value = '';
     if (!files.length) return;
 
-    const snap       = await getDocs(tenantCol('lookbook'));
+    const snap       = await withTimeout(getDocs(tenantCol('lookbook')), 15000, 'lookbook/list');
     const disponible = MAX_PHOTOS - snap.size;
     if (disponible <= 0) {
       alert('Límite de 8 fotos alcanzado. Elimina una para subir más.');

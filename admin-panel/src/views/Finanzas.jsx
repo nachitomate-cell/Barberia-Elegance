@@ -12,6 +12,7 @@ import {
 } from 'recharts';
 import { getDocs } from 'firebase/firestore';
 import { tenantCol, resolveTenantId } from '../lib/tenantUtils';
+import { withTimeout } from '../lib/firestore-helpers';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 import { PLANES, formatPrecio } from '../lib/plans';
 import { confirmDialog } from '../lib/confirmDialog';
@@ -193,12 +194,15 @@ export default function Finanzas() {
   const [showHelp, setShowHelp] = useState(false);
 
   useEffect(() => {
-    getDocs(tenantCol('users'))
+    withTimeout(getDocs(tenantCol('users')), 20000, 'finanzas/users')
       .then(snap => {
         setUsers(snap.docs.map(d => ({ uid: d.id, ...d.data() })));
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch(err => {
+        console.error('Finanzas users:', err);
+        setLoading(false);
+      });
   }, []);
 
   // ── Métricas computadas ───────────────────────────────────────

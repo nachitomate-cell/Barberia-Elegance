@@ -11,6 +11,7 @@ import { getDoc, getDocs, setDoc, serverTimestamp, query, where } from 'firebase
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '../lib/firebase';
 import { tenantDoc, tenantCol, resolveTenantId } from '../lib/tenantUtils';
+import { withTimeout } from '../lib/firestore-helpers';
 import { useTenant } from '../contexts/TenantContext';
 import { STORY_FONT, STORY_BG_PRESETS, lum, loadImg, drawCover, wrapLines } from '../lib/storyCanvas';
 
@@ -803,7 +804,7 @@ export default function Marketing() {
 
   /* Carga config del banner */
   useEffect(() => {
-    getDoc(tenantDoc('config', 'anuncio'))
+    withTimeout(getDoc(tenantDoc('config', 'anuncio')), 10000, 'marketing/anuncio')
       .then(snap => { if (snap.exists()) setForm({ ...EMPTY, ...snap.data() }); })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -815,10 +816,10 @@ export default function Marketing() {
       try {
         const desde = daysAgoStr(30);
         const [citasSnap, usersSnap, serviciosSnap, barberosSnap] = await Promise.all([
-          getDocs(query(tenantCol('citas'), where('fecha', '>=', desde))),
-          getDocs(tenantCol('users')),
-          getDocs(tenantCol('servicios')),
-          getDocs(tenantCol('barberos')),
+          withTimeout(getDocs(query(tenantCol('citas'), where('fecha', '>=', desde))), 20000, 'marketing/citas'),
+          withTimeout(getDocs(tenantCol('users')), 20000, 'marketing/users'),
+          withTimeout(getDocs(tenantCol('servicios')), 15000, 'marketing/servicios'),
+          withTimeout(getDocs(tenantCol('barberos')), 15000, 'marketing/barberos'),
         ]);
 
         const citas = citasSnap.docs.map(d => d.data());

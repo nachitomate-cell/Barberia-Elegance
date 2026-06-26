@@ -5,6 +5,7 @@
 import { doc, getDoc, updateDoc, increment, serverTimestamp } from 'firebase/firestore';
 import { db } from './firebase';
 import { servicioAKey } from './plans';
+import { withTimeout } from './firestore-helpers';
 
 function normalizePhone(phone) {
   return (phone || '').replace(/\D/g, '');
@@ -31,7 +32,7 @@ function clienteDocRef(tenantId, phone) {
  * Retorna null si no existe o está vencida/cancelada.
  */
 export async function leerSuscripcion(tenantId, uid) {
-  const snap = await getDoc(userDocRef(tenantId, uid));
+  const snap = await withTimeout(getDoc(userDocRef(tenantId, uid)), 10000, 'sub/leer');
   if (!snap.exists()) return null;
   const sub = snap.data()?.subscription;
   if (!sub) return null;
@@ -54,7 +55,7 @@ export async function verificarMembresia(tenantId, telefono, servicioNombre) {
   if (!phone) return { aplicable: false, razon: 'sin_telefono' };
 
   // 1. Buscar uid en clientes por teléfono
-  const clienteSnap = await getDoc(clienteDocRef(tenantId, phone));
+  const clienteSnap = await withTimeout(getDoc(clienteDocRef(tenantId, phone)), 10000, 'sub/cliente');
   if (!clienteSnap.exists()) return { aplicable: false, razon: 'sin_cuenta' };
 
   const uid = clienteSnap.data()?.uid;
@@ -93,7 +94,7 @@ export async function usarServicioMembresia(tenantId, uid, servicioKey) {
   });
 
   // Leer nuevo valor para devolverlo
-  const snap = await getDoc(userRef);
+  const snap = await withTimeout(getDoc(userRef), 10000, 'sub/refresh');
   const restantes = snap.data()?.subscription?.remainingServices?.[servicioKey] ?? 0;
   return { ok: true, restantes };
 }

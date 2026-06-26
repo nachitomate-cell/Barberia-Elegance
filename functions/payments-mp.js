@@ -293,6 +293,28 @@ async function settleOrder(username, orderId, payment) {
     buyerEmail: (payment && payment.payer && payment.payer.email) || null,
     paidAt: FieldValue.serverTimestamp(),
   }, { merge: true });
+
+  // Tip Goal — sumar al contador del bloque (MP ya da unidad mayor).
+  if (order.tipo === 'tip' && order.blockId && Number(order.amount) > 0) {
+    try {
+      const major = Number(order.amount);
+      // Privado (panel) + público (doc raíz para u.html).
+      await Promise.all([
+        db().collection('bios').doc(String(username))
+          .collection('blockStats').doc(String(order.blockId))
+          .set({
+            tipTotal: FieldValue.increment(major),
+            tipCurrency: (order.currency || 'clp').toLowerCase(),
+            lastTipAt: FieldValue.serverTimestamp(),
+          }, { merge: true }),
+        db().collection('bios').doc(String(username))
+          .set({ tipTotals: { [String(order.blockId)]: FieldValue.increment(major) } }, { merge: true }),
+      ]);
+    } catch (e) {
+      logger.warn(`[MP-bio] no se pudo sumar tipTotal ${orderId}:`, e.message);
+    }
+  }
+
   logger.info(`[MP-bio] ✓ orden pagada ${username}/${orderId}`);
   return true;
 }

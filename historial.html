@@ -380,6 +380,13 @@
 
     // ── Auth listener ─────────────────────────────────────────────
     firebase.auth().onAuthStateChanged(async user => {
+      // Sesion "fantasma": anonima (legacy del tenant-status-guard) o
+      // real-sin-email (legado persistido en IndexedDB de la PWA).
+      if (user && (user.isAnonymous || !user.email)) {
+        try { await firebase.auth().signOut(); } catch(_) {}
+        showView('view-gate');
+        return;
+      }
       if (!user) {
         showView('view-gate');
         return;

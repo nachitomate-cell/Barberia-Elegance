@@ -3,6 +3,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { getDoc } from 'firebase/firestore';
 import { auth } from '../lib/firebase';
 import { tenantDoc, resolveTenantId } from '../lib/tenantUtils';
+import { withTimeout } from '../lib/firestore-helpers';
 
 const AuthContext = createContext(null);
 
@@ -49,12 +50,12 @@ export function AuthProvider({ children }) {
 
       try {
         // El rol del equipo se guarda en barberos/{uid}
-        const snap = await getDoc(tenantDoc('barberos', firebaseUser.uid));
+        const snap = await withTimeout(getDoc(tenantDoc('barberos', firebaseUser.uid)), 10000, 'auth/role');
         if (snap.exists()) {
           const data = snap.data();
           // Si es doc de enlace (_mainDocId), leer el doc principal
           if (data._mainDocId) {
-            const main = await getDoc(tenantDoc('barberos', data._mainDocId));
+            const main = await withTimeout(getDoc(tenantDoc('barberos', data._mainDocId)), 10000, 'auth/role-link');
             setRole(main.exists() ? (main.data().rol || 'barbero') : 'barbero');
           } else {
             setRole(data.rol || 'barbero');

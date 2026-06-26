@@ -3,13 +3,15 @@ import {
   Wallet, DollarSign, ArrowDownCircle, ArrowUpCircle,
   Clock, X, Plus, AlertTriangle, CheckCircle2, History,
   Banknote, CreditCard, ArrowRightLeft, TrendingUp, Lock,
+  FileText, Printer, ListChecks,
 } from 'lucide-react';
 import {
   addDoc, updateDoc, doc, query, where, orderBy,
-  onSnapshot, serverTimestamp, Timestamp, getDocs, limit,
+  onSnapshot, serverTimestamp, Timestamp, getDocs, getDoc, limit,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { tenantCol } from '../lib/tenantUtils';
+import { tenantCol, tenantDoc } from '../lib/tenantUtils';
+import { useTenant } from '../contexts/TenantContext';
 import { useAuth } from '../contexts/AuthContext';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 
@@ -81,12 +83,634 @@ function MiniModal({ title, onClose, children }) {
   );
 }
 
+/* ── Reporte para contador (mensual) ─────────────────────────── */
+// Genera y abre un HTML imprimible con el resumen mensual del local listo
+// para mandar al contador: ventas por método, gastos por categoría, IVA
+// estimado y margen bruto. No persiste nada — solo lee y dibuja.
+
+const VENTA_OK = new Set(['confirmed', 'completed', 'paid', 'delivered']);
+const CAT_REPORTE = ['Insumos', 'Sueldos', 'Arriendo', 'Servicios Básicos', 'Equipamiento', 'Marketing', 'Otros'];
+const METODOS_REPORTE = ['Efectivo', 'Débito', 'Crédito', 'Tarjeta', 'Transferencia', 'No especificado'];
+
+function fechaToYMD(f) {
+  if (!f) return '';
+  if (typeof f === 'string') return f.slice(0, 10);
+  if (f.toDate) {
+    const d = f.toDate();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+  return '';
+}
+
+function escapeHTML(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+  ));
+}
+
+async function fetchDatosMes(mesKey) {
+  // mesKey = 'YYYY-MM'. Hacemos un único rango de string para citas (campo
+  // 'fecha' YYYY-MM-DD) y de Timestamp para gastos.
+  const [y, m] = mesKey.split('-').map(Number);
+  const firstStr = `${mesKey}-01`;
+  const lastDate = new Date(y, m, 0); // último día del mes
+  const lastStr = `${mesKey}-${String(lastDate.getDate()).padStart(2, '0')}`;
+  const firstTs = Timestamp.fromDate(new Date(y, m - 1, 1, 0, 0, 0));
+  const endTs   = Timestamp.fromDate(new Date(y, m, 1, 0, 0, 0));
+
+  const [citasSnap, ventasSnap, gastosSnap] = await Promise.all([
+    getDocs(query(tenantCol('citas'), where('fecha', '>=', firstStr), where('fecha', '<=', lastStr))),
+    getDocs(tenantCol('product_reservations')),
+    getDocs(query(tenantCol('gastos'), where('fecha', '>=', firstTs), where('fecha', '<', endTs))),
+  ]);
+
+  const citas = citasSnap.docs.map(d => d.data()).filter(c => c.estado === 'Completada');
+  const ventas = ventasSnap.docs.map(d => d.data()).filter(v => {
+    if (!VENTA_OK.has(v.status)) return false;
+    const ymd = fechaToYMD(v.fecha || v.creadoEn || v.createdAt);
+    return ymd >= firstStr && ymd <= lastStr;
+  });
+  const gastos = gastosSnap.docs.map(d => d.data());
+
+  return { citas, ventas, gastos, firstStr, lastStr };
+}
+
+function calcReporte({ citas, ventas, gastos }) {
+  const normMet = (m) => {
+    if (!m) return 'No especificado';
+    if (METODOS_REPORTE.includes(m)) return m;
+    return 'No especificado';
+  };
+
+  const ventasPorMetodo = Object.fromEntries(METODOS_REPORTE.map(m => [m, 0]));
+  let ventasServicios = 0, ventasProductos = 0, propinasTotal = 0;
+
+  citas.forEach(c => {
+    const monto = Number(c.precio) || 0;
+    ventasServicios += monto;
+    propinasTotal   += Number(c.propina) || 0;
+    ventasPorMetodo[normMet(c.metodoPago)] += monto;
+  });
+  ventas.forEach(v => {
+    const monto = (Number(v.precio) || Number(v.total) || 0) * (Number(v.cantidad) || 1);
+    ventasProductos += monto;
+    ventasPorMetodo[normMet(v.metodoPago)] += monto;
+  });
+
+  const totalVentas = ventasServicios + ventasProductos;
+
+  const gastosPorCategoria = Object.fromEntries(CAT_REPORTE.map(c => [c, 0]));
+  let totalGastos = 0, adelantos = 0, liquidaciones = 0;
+  gastos.forEach(g => {
+    const monto = Number(g.monto) || 0;
+    const cat = CAT_REPORTE.includes(g.categoria) ? g.categoria : 'Otros';
+    gastosPorCategoria[cat] += monto;
+    totalGastos += monto;
+    if (g.tipo === 'adelanto')    adelantos    += monto;
+    if (g.tipo === 'liquidacion') liquidaciones += monto;
+  });
+
+  // IVA estimado (Chile, 19% sobre afecto). Asumimos ventas afectas: el
+  // dueño puede ajustar manualmente en el contador. Lo dejamos informativo.
+  const ivaDebitoEstimado = Math.round(totalVentas - totalVentas / 1.19);
+  const ventasNeto        = Math.round(totalVentas / 1.19);
+  const margenBruto       = totalVentas - totalGastos;
+
+  return {
+    ventasServicios, ventasProductos, totalVentas, propinasTotal,
+    ventasPorMetodo, gastosPorCategoria, totalGastos,
+    adelantos, liquidaciones,
+    ivaDebitoEstimado, ventasNeto, margenBruto,
+    nCitas: citas.length, nVentas: ventas.length, nGastos: gastos.length,
+  };
+}
+
+function buildReporteHTML({ mesKey, tenantName, settings, r }) {
+  const fmt = v => '$' + Math.round(v || 0).toLocaleString('es-CL');
+  const [y, m] = mesKey.split('-');
+  const meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const periodoLabel = `${meses[parseInt(m, 10) - 1]} ${y}`;
+  const generadoEn = new Date().toLocaleString('es-CL');
+
+  const rowMetodo = METODOS_REPORTE.map(m => `
+    <tr><td>${escapeHTML(m)}</td><td class="num">${fmt(r.ventasPorMetodo[m])}</td></tr>
+  `).join('');
+  const rowCategoria = CAT_REPORTE.map(c => `
+    <tr><td>${escapeHTML(c)}</td><td class="num">${fmt(r.gastosPorCategoria[c])}</td></tr>
+  `).join('');
+
+  return `<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>Reporte contable — ${escapeHTML(periodoLabel)}</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif; color: #1f2937; padding: 32px; max-width: 880px; margin: 0 auto; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  h2 { font-size: 14px; margin: 28px 0 10px; color: #111827; border-bottom: 1px solid #e5e7eb; padding-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .meta { color: #6b7280; font-size: 12px; margin-bottom: 24px; }
+  .meta strong { color: #111827; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { padding: 8px 10px; border-bottom: 1px solid #f3f4f6; text-align: left; }
+  th { background: #f9fafb; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: #4b5563; }
+  .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .resumen { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-top: 12px; }
+  .resumen .row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; }
+  .resumen .row.total { border-top: 2px solid #111827; padding-top: 10px; margin-top: 6px; font-weight: bold; font-size: 15px; }
+  .footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid #e5e7eb; color: #9ca3af; font-size: 11px; }
+  .info { font-size: 11px; color: #6b7280; font-style: italic; margin-top: 8px; }
+  @media print {
+    body { padding: 18px; }
+    .noprint { display: none; }
+  }
+  .toolbar { background: #111827; color: #fff; padding: 12px 16px; border-radius: 8px; display: flex; gap: 10px; margin-bottom: 18px; }
+  .toolbar button { background: #fff; color: #111827; border: 0; padding: 6px 14px; border-radius: 6px; font-weight: 600; cursor: pointer; font-size: 13px; }
+  .toolbar button:hover { background: #f3f4f6; }
+</style></head>
+<body>
+  <div class="toolbar noprint">
+    <button onclick="window.print()">🖨️ Imprimir / Guardar PDF</button>
+    <button onclick="window.close()">Cerrar</button>
+  </div>
+
+  <h1>${escapeHTML(tenantName || 'Local')}</h1>
+  <div class="meta">
+    Reporte contable mensual · <strong>${escapeHTML(periodoLabel)}</strong><br>
+    ${settings?.direccion ? escapeHTML(settings.direccion) + '<br>' : ''}
+    ${settings?.telefono  ? 'Tel: ' + escapeHTML(settings.telefono) + ' · ' : ''}
+    Generado: ${escapeHTML(generadoEn)}
+  </div>
+
+  <div class="grid">
+    <div>
+      <h2>Ventas por método de pago</h2>
+      <table>
+        <thead><tr><th>Método</th><th class="num">Monto</th></tr></thead>
+        <tbody>${rowMetodo}</tbody>
+        <tfoot><tr><th>Total ventas brutas</th><th class="num">${fmt(r.totalVentas)}</th></tr></tfoot>
+      </table>
+      <p class="info">Servicios: ${fmt(r.ventasServicios)} (${r.nCitas} citas). Productos: ${fmt(r.ventasProductos)} (${r.nVentas} ventas).</p>
+    </div>
+    <div>
+      <h2>Gastos por categoría</h2>
+      <table>
+        <thead><tr><th>Categoría</th><th class="num">Monto</th></tr></thead>
+        <tbody>${rowCategoria}</tbody>
+        <tfoot><tr><th>Total gastos</th><th class="num">${fmt(r.totalGastos)}</th></tr></tfoot>
+      </table>
+      <p class="info">Incluye adelantos a personal por ${fmt(r.adelantos)} y liquidaciones por ${fmt(r.liquidaciones)}.</p>
+    </div>
+  </div>
+
+  <h2>Resumen contable estimado</h2>
+  <div class="resumen">
+    <div class="row"><span>Ventas brutas (con IVA)</span><span class="num">${fmt(r.totalVentas)}</span></div>
+    <div class="row"><span>IVA débito fiscal estimado (19%)</span><span class="num">${fmt(r.ivaDebitoEstimado)}</span></div>
+    <div class="row"><span>Ventas netas (sin IVA)</span><span class="num">${fmt(r.ventasNeto)}</span></div>
+    <div class="row"><span>Total gastos del mes</span><span class="num">−${fmt(r.totalGastos)}</span></div>
+    <div class="row total"><span>Margen bruto del período</span><span class="num">${fmt(r.margenBruto)}</span></div>
+  </div>
+  <p class="info">Cifras informativas para análisis previo. El cálculo definitivo de IVA crédito y débito depende de las boletas/facturas emitidas y recibidas que registre tu contador.</p>
+
+  <h2>Propinas</h2>
+  <p>Total de propinas registradas del período: <strong>${fmt(r.propinasTotal)}</strong>. Las propinas pertenecen al equipo y no son ingreso del local.</p>
+
+  <div class="footer">
+    Reporte generado por SynapTech · ${escapeHTML(periodoLabel)} · ${escapeHTML(generadoEn)}
+  </div>
+</body></html>`;
+}
+
+function ReporteContadorModal({ tenantName, onClose }) {
+  const ahora = new Date();
+  const defaultKey = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}`;
+  const [mesKey, setMesKey] = useState(defaultKey);
+  const [generando, setGenerando] = useState(false);
+  const [err, setErr] = useState('');
+
+  const handleGenerar = async () => {
+    setGenerando(true);
+    setErr('');
+    try {
+      const [datos, settSnap] = await Promise.all([
+        fetchDatosMes(mesKey),
+        getDoc(tenantDoc('settings', 'general')),
+      ]);
+      const settings = settSnap.exists() ? settSnap.data() : {};
+      const r = calcReporte(datos);
+      const html = buildReporteHTML({ mesKey, tenantName, settings, r });
+
+      // Abrir en nueva ventana. Si el popup está bloqueado, caemos a un blob.
+      const win = window.open('', '_blank');
+      if (win) {
+        win.document.write(html);
+        win.document.close();
+      } else {
+        const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `reporte-contador-${mesKey}.html`;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+      onClose();
+    } catch (e) {
+      console.error(e);
+      setErr(e.message || 'No se pudo generar el reporte.');
+    } finally {
+      setGenerando(false);
+    }
+  };
+
+  return (
+    <MiniModal title="Reporte para contador" onClose={onClose}>
+      <p className="text-xs text-slate-400 leading-relaxed">
+        Genera un PDF imprimible con ventas por método de pago, gastos por categoría, IVA débito estimado (19%) y margen del mes. Pensado para mandar al contador.
+      </p>
+      <div>
+        <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Mes</label>
+        <input type="month" value={mesKey} max={defaultKey}
+          onChange={e => setMesKey(e.target.value)}
+          className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+        />
+      </div>
+      {err && (
+        <div className="flex items-center gap-2 text-rose-400 text-xs bg-rose-500/10 border border-rose-500/30 rounded-lg px-3 py-2">
+          <AlertTriangle size={13} /> {err}
+        </div>
+      )}
+      <div className="flex gap-2">
+        <button onClick={onClose}
+          className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-semibold transition-colors">
+          Cancelar
+        </button>
+        <button onClick={handleGenerar} disabled={generando}
+          className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-sm font-bold transition-colors flex items-center justify-center gap-2">
+          {generando ? <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Printer size={14} />}
+          {generando ? 'Generando...' : 'Generar e imprimir'}
+        </button>
+      </div>
+    </MiniModal>
+  );
+}
+
+/* ── Conciliación bancaria (paste CSV → match contra ventas/gastos) ── */
+//
+// El parser tolera el formato más común de cartolas (banco/Mercado Pago):
+// primera fila con encabezados, separador `,` o `;`, montos con miles en `.`
+// y decimales en `,` o `.`. La fecha acepta YYYY-MM-DD, DD/MM/YYYY,
+// DD-MM-YYYY. Los montos pueden traer signo o `$`/espacios — los limpiamos.
+
+function detectSep(line) {
+  // El separador más común en es-CL es `;` (porque la coma se usa como
+  // decimal). Si la primera línea tiene más `,`, asumimos coma.
+  const n = (line.match(/,/g) || []).length;
+  const m = (line.match(/;/g) || []).length;
+  return m >= n ? ';' : ',';
+}
+
+function parseFechaCartola(raw) {
+  if (!raw) return null;
+  const s = String(raw).trim();
+  // YYYY-MM-DD
+  let mm = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (mm) return `${mm[1]}-${mm[2]}-${mm[3]}`;
+  // DD/MM/YYYY o DD-MM-YYYY
+  mm = s.match(/^(\d{2})[/\-](\d{2})[/\-](\d{4})/);
+  if (mm) return `${mm[3]}-${mm[2]}-${mm[1]}`;
+  // DD/MM/YY (asumimos 20YY)
+  mm = s.match(/^(\d{2})[/\-](\d{2})[/\-](\d{2})$/);
+  if (mm) return `20${mm[3]}-${mm[2]}-${mm[1]}`;
+  return null;
+}
+
+function parseMontoCartola(raw) {
+  if (raw == null) return null;
+  let s = String(raw).trim().replace(/[\s$]/g, '');
+  if (!s) return null;
+  const negative = s.startsWith('-') || /^\(.*\)$/.test(s);
+  s = s.replace(/^[-(]/, '').replace(/\)$/, '');
+  // Si hay coma y punto: el último es el decimal. es-CL usa `.` miles y `,` decimal.
+  const lastComma = s.lastIndexOf(',');
+  const lastDot   = s.lastIndexOf('.');
+  if (lastComma > -1 && lastDot > -1) {
+    if (lastComma > lastDot) { s = s.replace(/\./g, '').replace(',', '.'); }
+    else                     { s = s.replace(/,/g, ''); }
+  } else if (lastComma > -1) {
+    s = s.replace(/\./g, '').replace(',', '.');
+  } else {
+    // Solo `.` o nada — si hay un único `.` con 1-2 decimales, lo dejamos. Si
+    // son separadores de miles (3 decimales), los quitamos.
+    if (/\.\d{3}(\D|$)/.test(s)) s = s.replace(/\./g, '');
+  }
+  const n = parseFloat(s);
+  if (!isFinite(n)) return null;
+  return negative ? -n : n;
+}
+
+const normalize = (s) => String(s || '').toLowerCase()
+  .normalize('NFD').replace(/[̀-ͯ]/g, '');
+
+function parseCartola(texto) {
+  const lines = texto.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  if (lines.length < 2) return { error: 'Necesito al menos una fila de encabezado y una de datos.' };
+  const sep = detectSep(lines[0]);
+  const headers = lines[0].split(sep).map(h => normalize(h.replace(/^"|"$/g, '')));
+  const idx = (...names) => {
+    for (const n of names) {
+      const i = headers.findIndex(h => h.includes(n));
+      if (i >= 0) return i;
+    }
+    return -1;
+  };
+  const iFecha = idx('fecha');
+  const iMonto = idx('monto', 'importe', 'valor', 'cargo', 'abono');
+  const iDesc  = idx('descripcion', 'detalle', 'concepto', 'glosa', 'descrip');
+  if (iFecha < 0 || iMonto < 0) {
+    return { error: 'No encontré columnas Fecha y Monto en el encabezado. Revisa que la primera línea tenga títulos.' };
+  }
+  const movimientos = [];
+  for (let li = 1; li < lines.length; li++) {
+    const cols = lines[li].split(sep).map(c => c.replace(/^"|"$/g, ''));
+    const fecha = parseFechaCartola(cols[iFecha]);
+    const monto = parseMontoCartola(cols[iMonto]);
+    if (!fecha || monto == null || monto === 0) continue;
+    movimientos.push({
+      fecha,
+      monto,
+      desc: iDesc >= 0 ? (cols[iDesc] || '') : '',
+      raw: lines[li],
+    });
+  }
+  return { movimientos, totalLineas: lines.length - 1 };
+}
+
+function fechasCerca(a, b, dias = 2) {
+  const da = new Date(a + 'T12:00:00');
+  const db_= new Date(b + 'T12:00:00');
+  return Math.abs(da - db_) <= dias * 86_400_000;
+}
+
+function conciliar({ movimientos, ventas, gastos }) {
+  // Cada movimiento del sistema se puede emparejar con UN solo movimiento de
+  // la cartola — eso evita match doble cuando el banco trae líneas duplicadas.
+  const sistemaUsado = new Set();
+  const sistemaList = [
+    ...ventas.map(v => ({ ...v, _kind: 'venta',  _signo:  1 })),
+    ...gastos.map(g => ({ ...g, _kind: 'gasto',  _signo: -1 })),
+  ];
+
+  const conciliados   = [];
+  const soloEnCartola = [];
+
+  movimientos.forEach((m, idx) => {
+    const expected = m.monto > 0 ? 1 : -1;
+    const target = Math.abs(m.monto);
+    const candidato = sistemaList.find(s => {
+      if (sistemaUsado.has(s._kind + ':' + s._id)) return false;
+      if (s._signo !== expected) return false;
+      if (Math.abs(s._monto - target) > 1) return false; // tolerancia $1
+      return fechasCerca(s._fecha, m.fecha);
+    });
+    if (candidato) {
+      sistemaUsado.add(candidato._kind + ':' + candidato._id);
+      conciliados.push({ mov: m, sistema: candidato });
+    } else {
+      soloEnCartola.push({ mov: m, idx });
+    }
+  });
+
+  const soloEnSistema = sistemaList.filter(s => !sistemaUsado.has(s._kind + ':' + s._id));
+  return { conciliados, soloEnCartola, soloEnSistema };
+}
+
+async function cargarMovimientosMes(mesKey) {
+  const [y, m] = mesKey.split('-').map(Number);
+  const firstStr = `${mesKey}-01`;
+  const lastStr  = `${mesKey}-${String(new Date(y, m, 0).getDate()).padStart(2, '0')}`;
+  const firstTs  = Timestamp.fromDate(new Date(y, m - 1, 1, 0, 0, 0));
+  const endTs    = Timestamp.fromDate(new Date(y, m, 1, 0, 0, 0));
+
+  const [citasSnap, ventasSnap, gastosSnap] = await Promise.all([
+    getDocs(query(tenantCol('citas'), where('fecha', '>=', firstStr), where('fecha', '<=', lastStr))),
+    getDocs(tenantCol('product_reservations')),
+    getDocs(query(tenantCol('gastos'), where('fecha', '>=', firstTs), where('fecha', '<', endTs))),
+  ]);
+
+  const ventas = [];
+  citasSnap.docs.forEach(d => {
+    const c = d.data();
+    if (c.estado !== 'Completada') return;
+    const monto = Number(c.precio) || 0;
+    if (monto > 0) ventas.push({
+      _id: 'c:' + d.id, _fecha: c.fecha, _monto: monto,
+      label: `${c.servicioNombre || c.servicio || 'Servicio'} · ${c.clienteNombre || 'Cliente'}`,
+      metodo: c.metodoPago || '—',
+    });
+  });
+  ventasSnap.docs.forEach(d => {
+    const v = d.data();
+    if (!['confirmed', 'completed', 'paid', 'delivered'].includes(v.status)) return;
+    const f = fechaToYMD(v.fecha || v.creadoEn || v.createdAt);
+    if (f < firstStr || f > lastStr) return;
+    const monto = (Number(v.precio) || Number(v.total) || 0) * (Number(v.cantidad) || 1);
+    if (monto > 0) ventas.push({
+      _id: 'p:' + d.id, _fecha: f, _monto: monto,
+      label: `${v.productName || v.productoNombre || 'Producto'} ×${v.cantidad || 1}`,
+      metodo: v.metodoPago || '—',
+    });
+  });
+
+  const gastos = gastosSnap.docs.map(d => {
+    const g = d.data();
+    return {
+      _id: 'g:' + d.id, _fecha: fechaToYMD(g.fecha), _monto: Number(g.monto) || 0,
+      label: g.descripcion || 'Gasto',
+      metodo: g.metodoPago || 'Efectivo',
+    };
+  }).filter(g => g._monto > 0 && g._fecha);
+
+  return { ventas, gastos };
+}
+
+function ConciliacionModal({ onClose }) {
+  const ahora = new Date();
+  const defaultKey = `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, '0')}`;
+  const [mesKey, setMesKey] = useState(defaultKey);
+  const [texto, setTexto] = useState('');
+  const [resultado, setResultado] = useState(null);
+  const [parseErr, setParseErr] = useState('');
+  const [procesando, setProcesando] = useState(false);
+
+  const handleConciliar = async () => {
+    setParseErr('');
+    const parsed = parseCartola(texto);
+    if (parsed.error) { setParseErr(parsed.error); return; }
+    if (!parsed.movimientos.length) {
+      setParseErr('No encontré movimientos válidos. Revisa el formato.');
+      return;
+    }
+    setProcesando(true);
+    try {
+      const { ventas, gastos } = await cargarMovimientosMes(mesKey);
+      const res = conciliar({ movimientos: parsed.movimientos, ventas, gastos });
+      setResultado({ ...res, totalCartola: parsed.movimientos.length });
+    } catch (e) {
+      setParseErr(e.message || 'Error cargando movimientos del sistema.');
+    } finally {
+      setProcesando(false);
+    }
+  };
+
+  const handleReset = () => {
+    setTexto(''); setResultado(null); setParseErr('');
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
+      <div className="bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800">
+          <div className="flex items-center gap-2">
+            <ListChecks size={16} className="text-cyan-400" />
+            <h3 className="text-base font-bold text-white">Conciliación bancaria</h3>
+          </div>
+          <button onClick={onClose} className="text-slate-500 hover:text-white transition-colors"><X size={18} /></button>
+        </div>
+
+        <div className="overflow-y-auto p-5 space-y-4">
+          {!resultado && (
+            <>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Pega el contenido CSV de tu cartola bancaria o Mercado Pago. Detecta automáticamente las columnas Fecha y Monto, y compara contra las ventas + gastos registrados del mes seleccionado (tolerancia ±2 días, ±$1).
+              </p>
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Mes a conciliar</label>
+                <input type="month" value={mesKey} max={defaultKey}
+                  onChange={e => setMesKey(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">CSV de movimientos</label>
+                <textarea rows={8}
+                  value={texto}
+                  onChange={e => setTexto(e.target.value)}
+                  placeholder={"Fecha;Descripción;Monto\n2026-06-12;Pago tarjeta;-25000\n2026-06-13;Transferencia Pedro;15990"}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-xs font-mono text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500 resize-none"
+                />
+                <p className="text-[10px] text-slate-500 mt-1">
+                  Acepta separador `,` o `;`. Montos negativos = gastos, positivos = ingresos. Fechas en YYYY-MM-DD o DD/MM/YYYY.
+                </p>
+              </div>
+              {parseErr && (
+                <div className="flex items-center gap-2 text-rose-400 text-xs bg-rose-500/10 border border-rose-500/30 rounded-lg px-3 py-2">
+                  <AlertTriangle size={13} /> {parseErr}
+                </div>
+              )}
+              <div className="flex gap-2">
+                <button onClick={onClose}
+                  className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-semibold transition-colors">
+                  Cancelar
+                </button>
+                <button onClick={handleConciliar} disabled={procesando || !texto.trim()}
+                  className="flex-1 py-2.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white text-sm font-bold transition-colors flex items-center justify-center gap-2">
+                  {procesando ? <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <ListChecks size={14} />}
+                  {procesando ? 'Conciliando…' : 'Conciliar'}
+                </button>
+              </div>
+            </>
+          )}
+
+          {resultado && (
+            <ResultadoConciliacion res={resultado} onReset={handleReset} />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ResultadoConciliacion({ res, onReset }) {
+  const f = v => '$' + Math.round(Math.abs(v)).toLocaleString('es-CL');
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-3 gap-2">
+        <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3 text-center">
+          <p className="text-2xl font-black text-emerald-400 tabular-nums">{res.conciliados.length}</p>
+          <p className="text-[10px] font-semibold text-emerald-400/80 uppercase tracking-wide">conciliados</p>
+        </div>
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3 text-center">
+          <p className="text-2xl font-black text-amber-400 tabular-nums">{res.soloEnCartola.length}</p>
+          <p className="text-[10px] font-semibold text-amber-400/80 uppercase tracking-wide">solo cartola</p>
+        </div>
+        <div className="bg-orange-500/10 border border-orange-500/30 rounded-xl p-3 text-center">
+          <p className="text-2xl font-black text-orange-400 tabular-nums">{res.soloEnSistema.length}</p>
+          <p className="text-[10px] font-semibold text-orange-400/80 uppercase tracking-wide">solo sistema</p>
+        </div>
+      </div>
+
+      {res.soloEnCartola.length > 0 && (
+        <div>
+          <p className="text-xs font-bold text-amber-400 uppercase tracking-wider mb-2">En la cartola pero no en tu sistema</p>
+          <p className="text-[11px] text-slate-500 mb-2">Probablemente debes registrarlos en Gastos o son ventas que no quedaron como Completadas.</p>
+          <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+            {res.soloEnCartola.map(({ mov, idx }) => (
+              <div key={idx} className="flex items-center justify-between gap-2 bg-slate-800/60 rounded-lg px-3 py-2 text-xs">
+                <div className="min-w-0">
+                  <p className="text-slate-300 truncate">{mov.desc || '(sin descripción)'}</p>
+                  <p className="text-slate-500">{mov.fecha}</p>
+                </div>
+                <span className={`font-bold tabular-nums whitespace-nowrap ${mov.monto < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                  {mov.monto < 0 ? '−' : '+'}{f(mov.monto)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {res.soloEnSistema.length > 0 && (
+        <div>
+          <p className="text-xs font-bold text-orange-400 uppercase tracking-wider mb-2">En tu sistema pero no en la cartola</p>
+          <p className="text-[11px] text-slate-500 mb-2">Pueden ser pagos en efectivo o movimientos que aún no aparecen en el banco.</p>
+          <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+            {res.soloEnSistema.map(s => (
+              <div key={s._kind + s._id} className="flex items-center justify-between gap-2 bg-slate-800/60 rounded-lg px-3 py-2 text-xs">
+                <div className="min-w-0">
+                  <p className="text-slate-300 truncate">{s.label}</p>
+                  <p className="text-slate-500">{s._fecha} · {s.metodo}</p>
+                </div>
+                <span className={`font-bold tabular-nums whitespace-nowrap ${s._kind === 'gasto' ? 'text-rose-400' : 'text-emerald-400'}`}>
+                  {s._kind === 'gasto' ? '−' : '+'}{f(s._monto)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {res.conciliados.length > 0 && res.soloEnCartola.length === 0 && res.soloEnSistema.length === 0 && (
+        <div className="flex items-center gap-2 text-emerald-400 text-sm bg-emerald-500/10 border border-emerald-500/30 rounded-xl px-4 py-3 font-semibold">
+          <CheckCircle2 size={16} /> Todo cuadra. La cartola coincide 1:1 con el sistema.
+        </div>
+      )}
+
+      <button onClick={onReset}
+        className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-semibold transition-colors">
+        Conciliar otra cartola
+      </button>
+    </div>
+  );
+}
+
 /* ════════════════════════════════════════════════════════════ */
 /*  CAJA — Control de Caja                                     */
 /* ════════════════════════════════════════════════════════════ */
 export default function Caja() {
   const { user } = useAuth();
+  const tenant = useTenant();
   const userEmail = user?.email || 'admin';
+  const [showReporteContador, setShowReporteContador] = useState(false);
+  const [showConciliacion,    setShowConciliacion]    = useState(false);
 
   /* ── State ──────────────────────────────────────────────── */
   const [sesionActiva, setSesionActiva] = useState(null);   // doc data + id
@@ -389,6 +1013,16 @@ export default function Caja() {
             <HelpButton onClick={() => setShowHelp(true)} />
           </div>
           <p className="text-slate-400 text-sm">Abre la caja para comenzar a registrar las transacciones del día.</p>
+          <div className="flex flex-wrap gap-2 justify-center mt-4">
+            <button onClick={() => setShowReporteContador(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-800/60 border border-slate-700 text-slate-300 hover:text-white rounded-lg text-xs font-semibold transition-colors">
+              <FileText size={13} /> Reporte para contador
+            </button>
+            <button onClick={() => setShowConciliacion(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-800/60 border border-slate-700 text-slate-300 hover:text-white rounded-lg text-xs font-semibold transition-colors">
+              <ListChecks size={13} /> Conciliar cartola
+            </button>
+          </div>
         </div>
 
         {/* Formulario de apertura */}
@@ -449,6 +1083,13 @@ export default function Caja() {
             </div>
           </div>
         )}
+
+        {showReporteContador && (
+          <ReporteContadorModal tenantName={tenant?.name} onClose={() => setShowReporteContador(false)} />
+        )}
+        {showConciliacion && (
+          <ConciliacionModal onClose={() => setShowConciliacion(false)} />
+        )}
       </div>
     );
   }
@@ -472,7 +1113,13 @@ export default function Caja() {
             Abierta por {sesionActiva.usuarioApertura || '-'} a las {fmtTime(sesionActiva.fechaApertura)} · Apertura: {fmtCurrency(kpis.apertura)}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          <button onClick={() => setShowReporteContador(true)} className="flex items-center gap-1.5 px-3 py-2 bg-slate-800/60 border border-slate-700 text-slate-300 hover:text-white rounded-xl text-xs font-bold transition-colors">
+            <FileText size={14} /> Contador
+          </button>
+          <button onClick={() => setShowConciliacion(true)} className="flex items-center gap-1.5 px-3 py-2 bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20 rounded-xl text-xs font-bold transition-colors">
+            <ListChecks size={14} /> Conciliar
+          </button>
           <button onClick={() => setShowIngreso(true)} className="flex items-center gap-1.5 px-3 py-2 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 rounded-xl text-xs font-bold hover:bg-emerald-500/20 transition-colors">
             <ArrowDownCircle size={14} /> Ingreso
           </button>
@@ -718,6 +1365,13 @@ export default function Caja() {
 
           <p className="text-xs text-amber-400 bg-amber-400/5 border border-amber-400/20 rounded-lg px-3 py-2">💡 Solo puede haber <strong>una caja abierta a la vez</strong>. Si olvidaste cerrar la del día anterior, ciérrala antes de abrir la de hoy.</p>
         </HelpModal>
+      )}
+
+      {showReporteContador && (
+        <ReporteContadorModal tenantName={tenant?.name} onClose={() => setShowReporteContador(false)} />
+      )}
+      {showConciliacion && (
+        <ConciliacionModal onClose={() => setShowConciliacion(false)} />
       )}
     </div>
   );

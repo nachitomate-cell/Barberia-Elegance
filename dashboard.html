@@ -4939,6 +4939,14 @@ document.getElementById('shopClubName').textContent   = SHOP.club;
 
 // ─── Auth Guard ───────────────────────────────────────────────
 auth.onAuthStateChanged(async user => {
+  // Sesion "fantasma": anonima (residual del guard legacy) o real-sin-email
+  // (cuentas vacias persistidas en IndexedDB de la PWA). Ambas hacen que el
+  // dashboard se muestre como "Cliente" y/o crasheen leyendo
+  // user.email.toLowerCase(). Las cerramos antes de dejar correr el resto.
+  if (user && (user.isAnonymous || !user.email)) {
+    try { await auth.signOut(); } catch(_) {}
+    return; // El proximo callback con user=null redirige a registro.html.
+  }
   if (!user) {
     if (_userUnsub)     { _userUnsub();     _userUnsub     = null; }
     if (_citasUnsub)    { _citasUnsub();    _citasUnsub    = null; }
@@ -6719,6 +6727,10 @@ async function cargarCitasUsuario(user) {
                     <i class="ph-bold ph-map-pin text-sm"></i> Cómo llegar
                   </a>
                 </div>
+                <button onclick="agregarCitaACalendario('${proxima.id}')"
+                        class="mt-2 w-full flex items-center justify-center gap-2 text-[10px] font-bold py-2.5 rounded-xl border border-zinc-800 hover:border-zinc-700 bg-zinc-950/20 active:scale-[0.98] transition-all text-white/80">
+                  <i class="ph-bold ph-calendar-plus text-sm"></i> Añadir a Google Calendar
+                </button>
               </div>
             </div>`;
           if ((window.CURRENT_TENANT_ID || 'elegance') === 'aura') {
@@ -6774,6 +6786,10 @@ async function cargarCitasUsuario(user) {
                       <span style="font-size:9px;font-weight:700;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.04em;">Cómo llegar</span>
                     </a>
                   </div>
+                  <button onclick="agregarCitaACalendario('${proxima.id}')" class="mt-2 w-full flex items-center justify-center gap-2 py-3 rounded-2xl active:scale-[0.96] transition-all" style="background:rgba(147,197,253,0.08);border:1px solid rgba(147,197,253,0.18);">
+                    <i class="ph-bold ph-calendar-plus" style="font-size:14px;color:rgba(147,197,253,0.85);"></i>
+                    <span style="font-size:10px;font-weight:700;color:rgba(255,255,255,0.7);text-transform:uppercase;letter-spacing:0.04em;">Añadir a Google Calendar</span>
+                  </button>
                 </div>
               </div>`;
           }
@@ -6850,6 +6866,10 @@ async function cargarCitasUsuario(user) {
                 <i class="ph-bold ph-x-circle text-sm"></i> Cancelar
               </button>
             </div>
+            <button onclick="agregarCitaACalendario('${proxima.id}')"
+              class="mt-2 w-full flex items-center justify-center gap-2 text-xs font-semibold py-2 rounded-xl border border-zinc-800 hover:border-zinc-700 active:scale-[0.98] transition-all text-white/80">
+              <i class="ph-bold ph-calendar-plus text-sm"></i> Añadir a Google Calendar
+            </button>
           </div>`;
       } else {
         html += `
@@ -7079,6 +7099,42 @@ function cerrarModalCancelar() {
   const modalEl = document.getElementById('cancelCitaModal');
   if (modalEl) modalEl.classList.add('hidden');
 }
+
+// Añadir la próxima cita al calendario del cliente (Google Calendar template URL).
+// Funciona en cualquier dispositivo: en móvil con la app de Google Calendar instalada
+// abre la app; en escritorio o sin app abre calendar.google.com pre-rellenado.
+function agregarCitaACalendario(citaId) {
+  const cache = window._citaCache || {};
+  const cita  = cache[citaId];
+  if (!cita || !cita.fecha || !cita.hora) {
+    if (typeof showToast === 'function') showToast('No se pudo leer la cita', 'err');
+    return;
+  }
+  const shop = window.SHOP || {};
+  const [yy, mo, dd] = cita.fecha.split('-').map(Number);
+  const [hh, mm]     = cita.hora.split(':').map(Number);
+  const dur   = parseInt(cita.duracionServicio || cita.duracion || 30, 10) || 30;
+  const start = new Date(yy, mo - 1, dd, hh, mm);
+  const end   = new Date(start.getTime() + dur * 60000);
+  const fmt = d => {
+    const p = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}T${p(d.getHours())}${p(d.getMinutes())}00`;
+  };
+  const tienda = shop.nombre || shop.nombreCorto || 'Barbería';
+  const titulo = `${cita.servicioNombre || 'Cita'} — ${tienda}`;
+  const detalles = [
+    cita.barbero ? `Barbero: ${cita.barbero}` : '',
+    `Reservado en ${tienda}.`
+  ].filter(Boolean).join('\n');
+  const ubicacion = shop.direccion || tienda;
+  const url = 'https://calendar.google.com/calendar/render?action=TEMPLATE'
+    + '&text='     + encodeURIComponent(titulo)
+    + '&dates='    + fmt(start) + '/' + fmt(end)
+    + '&details='  + encodeURIComponent(detalles)
+    + '&location=' + encodeURIComponent(ubicacion);
+  window.open(url, '_blank', 'noopener');
+}
+window.agregarCitaACalendario = agregarCitaACalendario;
 
 async function confirmarCancelacion() {
   if (!_citaSeleccionadaId) return;

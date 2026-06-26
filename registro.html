@@ -1575,7 +1575,23 @@
     if (tid === 'sionbarberia') return 'DieciseisLoyaltyPassword2026!';
     return 'AuraLoyaltyPassword2026!';
   }
-  auth.onAuthStateChanged(user => {
+  auth.onAuthStateChanged(async user => {
+    // Sesion "fantasma": usuario anonimo (residual del bug del
+    // tenant-status-guard) o cuenta sin email (legacy de algun flujo que
+    // creo cuentas vacias y quedo persistido en IndexedDB de la PWA). En
+    // ambos casos no queremos auto-redirigir — el dashboard mostraria el
+    // perfil como "Cliente" (fallback de displayName) o crashearia leyendo
+    // user.email.toLowerCase(). La hacemos AWAIT explicito: si dejabamos el
+    // signOut() suelto, en la PWA el siguiente codigo alcanzaba a navegar
+    // antes de que la sesion se limpiara y volviamos al mismo loop.
+    const esGhost = !!user && (user.isAnonymous || !user.email);
+    if (esGhost) {
+      try { await auth.signOut(); } catch (_) {}
+      // signOut dispara un nuevo onAuthStateChanged con user=null que
+      // cae en la rama final (no hace nada): el formulario sigue visible.
+      _registering = false;
+      return;
+    }
     if (user && !_registering) goToDashboard();
   });
 

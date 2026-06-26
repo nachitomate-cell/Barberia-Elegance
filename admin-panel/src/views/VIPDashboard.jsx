@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useMemo, useEffect } from 'react';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { resolveTenantId } from '../lib/tenantUtils';
+import { withTimeout } from '../lib/firestore-helpers';
 import { useTenant } from '../contexts/TenantContext';
 import { Shield, Star, Zap, Crown, Search, ChevronRight, Scissors } from 'lucide-react';
 
@@ -283,7 +284,7 @@ export default function VIPDashboard() {
 
   const [servicios, setServicios] = useState([]);
   useEffect(() => {
-    getDocs(query(collection(db, svcPath), orderBy('orden')))
+    withTimeout(getDocs(query(collection(db, svcPath), orderBy('orden'))), 15000, 'vip/servicios')
       .then(snap => setServicios(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
       .catch(() => {});
   }, [svcPath]);
@@ -300,13 +301,13 @@ export default function VIPDashboard() {
       const variants = [...new Set([norm, raw, `+${norm}`])];
       let allDocs = [];
       for (const v of variants) {
-        const snap = await getDocs(
+        const snap = await withTimeout(getDocs(
           query(collection(db, colPath),
             where('clienteTelefono', '==', v),
             where('estado', '==', 'Completada'),
             orderBy('creadoEn', 'asc'),
           )
-        ).catch(() => ({ docs: [] }));
+        ), 20000, 'vip/citas-cliente').catch(() => ({ docs: [] }));
         allDocs = [...allDocs, ...snap.docs];
       }
       // Deduplicate by id

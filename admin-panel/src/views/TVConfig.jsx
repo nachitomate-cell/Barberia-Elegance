@@ -11,6 +11,7 @@ import { getDoc, setDoc, getDocs, query, where, doc, deleteDoc } from 'firebase/
 import { ref as storageRef, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { storage } from '../lib/firebase';
 import { tenantDoc, tenantCol, resolveTenantId } from '../lib/tenantUtils';
+import { withTimeout } from '../lib/firestore-helpers';
 import { confirmDialog } from '../lib/confirmDialog';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 
@@ -719,7 +720,7 @@ export default function TVConfig() {
   );
 
   useEffect(() => {
-    getDoc(tenantDoc('configuracion', 'tv'))
+    withTimeout(getDoc(tenantDoc('configuracion', 'tv')), 10000, 'tvconfig/cfg-tv')
       .then(snap => {
         if (snap.exists()) {
           const d = snap.data();
@@ -745,13 +746,13 @@ export default function TVConfig() {
   }, []);
 
   useEffect(() => {
-    getDocs(tenantCol('lookbook'))
+    withTimeout(getDocs(tenantCol('lookbook')), 15000, 'tvconfig/lookbook')
       .then(snap => setLookbookCount(snap.size))
       .catch(() => setLookbookCount(0));
   }, []);
 
   useEffect(() => {
-    getDocs(query(tenantCol('barberos'), where('activo', '!=', false)))
+    withTimeout(getDocs(query(tenantCol('barberos'), where('activo', '!=', false))), 15000, 'tvconfig/barberos')
       .then(snap =>
         setBarberoCount(
           snap.docs.filter(d => !d.data()._mainDocId && d.data().rol !== 'admin').length
@@ -761,14 +762,14 @@ export default function TVConfig() {
   }, []);
 
   useEffect(() => {
-    getDocs(tenantCol('productos'))
+    withTimeout(getDocs(tenantCol('productos')), 15000, 'tvconfig/productos')
       .then(snap => setProductosCount(snap.size))
       .catch(() => setProductosCount(0));
   }, []);
 
   useEffect(() => {
     if (tenantId !== 'elegance') return;
-    getDocs(query(tenantCol('publicidad_tv')))
+    withTimeout(getDocs(query(tenantCol('publicidad_tv'))), 15000, 'tvconfig/publicidad')
       .then(snap => setMarcas(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
       .catch(() => {});
   }, [tenantId]);

@@ -6,6 +6,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { tenantCol } from '../lib/tenantUtils';
+import { withTimeout } from '../lib/firestore-helpers';
 import { useCollection } from '../hooks/useCollection';
 import { useClubUsers } from '../hooks/useClubUsers';
 import { useTenant } from '../contexts/TenantContext';
@@ -193,7 +194,10 @@ function ClientePanel({ cliente: init, premios, onClose, esMiembro = true }) {
   /* Load all appointments for this client (one-time) */
   useEffect(() => {
     if (!init.email) return;
-    getDocs(query(tenantCol('citas'), where('clienteEmail', '==', init.email)))
+    withTimeout(
+      getDocs(query(tenantCol('citas'), where('clienteEmail', '==', init.email))),
+      15000, 'clientes/citas-cliente'
+    )
       .then(snap => {
         const arr = snap.docs.map(d => ({ id: d.id, ...d.data() }));
         arr.sort((a, b) => (b.fecha || '').localeCompare(a.fecha || '') || (b.hora || '').localeCompare(a.hora || ''));
@@ -682,7 +686,7 @@ function NuevoClienteModal({ premios, onClose }) {
     setLoading(true);
     try {
       // 1. Verificar si el cliente ya existe en users o clientes
-      const userSnap = await getDocs(query(tenantCol('users'), where('telefono', '==', telefono.trim())));
+      const userSnap = await withTimeout(getDocs(query(tenantCol('users'), where('telefono', '==', telefono.trim()))), 15000, 'clientes/lookup-tel');
       
       if (!userSnap.empty) {
         throw new Error('Ya existe un miembro del Club con este número de teléfono.');
@@ -690,7 +694,7 @@ function NuevoClienteModal({ premios, onClose }) {
 
       // 2. Si hay email, verificar que no esté repetido
       if (trimmedEmail) {
-        const emailSnap = await getDocs(query(tenantCol('users'), where('email', '==', trimmedEmail)));
+        const emailSnap = await withTimeout(getDocs(query(tenantCol('users'), where('email', '==', trimmedEmail))), 15000, 'clientes/lookup-email');
         if (!emailSnap.empty) {
           throw new Error('Ya existe un miembro del Club con este correo electrónico.');
         }
@@ -1416,7 +1420,10 @@ export default function Clientes() {
   const [todasCitas, setTodasCitas] = useState([]);
 
   useEffect(() => {
-    getDocs(query(tenantCol('citas'), where('fecha', '>=', NINETY_DAYS_AGO)))
+    withTimeout(
+      getDocs(query(tenantCol('citas'), where('fecha', '>=', NINETY_DAYS_AGO))),
+      20000, 'clientes/citas-90d'
+    )
       .then(snap => setTodasCitas(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
       .catch(() => {});
   }, []);

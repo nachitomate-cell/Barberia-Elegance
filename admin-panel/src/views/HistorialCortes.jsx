@@ -9,6 +9,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { tenantCol } from '../lib/tenantUtils';
+import { withTimeout } from '../lib/firestore-helpers';
 import { useCollection } from '../hooks/useCollection';
 import { useTenant } from '../contexts/TenantContext';
 import { useAuth }   from '../contexts/AuthContext';
@@ -320,7 +321,7 @@ export default function HistorialCortes() {
       ? collection(db, 'historial')
       : collection(db, 'tenants', tenantId, 'historial');
 
-    getDocs(query(col, orderBy('fecha', 'desc'), limit(200)))
+    withTimeout(getDocs(query(col, orderBy('fecha', 'desc'), limit(200))), 20000, 'historial/visits')
       .then(snap => {
         setVisits(snap.docs.map(d => ({ id: d.id, ...d.data() })));
       })

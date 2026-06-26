@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { getDocs, query, where } from 'firebase/firestore';
 import { tenantCol } from '../lib/tenantUtils';
+import { withTimeout } from '../lib/firestore-helpers';
 import { useTenant } from '../contexts/TenantContext';
 
 // Solo la agenda del staff ('agenda_manual') es una carga manual/presencial.
@@ -70,11 +71,11 @@ export default function ReservaPublica() {
         const pad = n => String(n).padStart(2, '0');
         const ini = `${y}-${pad(m + 1)}-01`;
         const fin = `${y}-${pad(m + 1)}-${pad(new Date(y, m + 1, 0).getDate())}`;
-        const snap = await getDocs(query(
+        const snap = await withTimeout(getDocs(query(
           tenantCol('citas'),
           where('fecha', '>=', ini),
           where('fecha', '<=', fin),
-        ));
+        )), 20000, 'reservapublica/citas-mes');
         const count = snap.docs
           .map(d => d.data())
           .filter(c => c.estado !== 'Cancelada' && !MANUAL_ORIGINS.includes(c.origen))

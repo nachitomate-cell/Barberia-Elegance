@@ -6,10 +6,25 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, CalendarDays, BarChart3, Megaphone, Lightbulb, Coffee, ArrowRight } from 'lucide-react';
+import { X, CalendarDays, BarChart3, Megaphone, Lightbulb, Coffee, ArrowRight, EyeOff } from 'lucide-react';
 
 const LS_KEY = 'daily_welcome_shown_date';
 const BIOO_KEY = 'bioo_announcement_dismissed';
+// Preferencia persistente "no volver a mostrar". Si vale '1' el panel queda
+// silenciado hasta que el usuario lo reactive desde Configuracion.
+export const DAILY_WELCOME_DISABLED_KEY = 'daily_welcome_disabled';
+
+export function isDailyWelcomeDisabled() {
+  try { return localStorage.getItem(DAILY_WELCOME_DISABLED_KEY) === '1'; }
+  catch { return false; }
+}
+
+export function setDailyWelcomeDisabled(disabled) {
+  try {
+    if (disabled) localStorage.setItem(DAILY_WELCOME_DISABLED_KEY, '1');
+    else          localStorage.removeItem(DAILY_WELCOME_DISABLED_KEY);
+  } catch {}
+}
 
 const SYNAP = '#8CC63F';
 const SYNAP_SOFT = 'rgba(140, 198, 63, 0.12)';
@@ -36,6 +51,7 @@ export default function DailyWelcomePanel() {
 
   const [open, setOpen] = useState(() => {
     try {
+      if (localStorage.getItem(DAILY_WELCOME_DISABLED_KEY) === '1') return false;
       if (localStorage.getItem(BIOO_KEY) !== '1') return false;
       return localStorage.getItem(LS_KEY) !== todayKey();
     } catch {
@@ -45,6 +61,11 @@ export default function DailyWelcomePanel() {
 
   function dismiss() {
     try { localStorage.setItem(LS_KEY, todayKey()); } catch {}
+    setOpen(false);
+  }
+
+  function dismissForever() {
+    setDailyWelcomeDisabled(true);
     setOpen(false);
   }
 
@@ -208,7 +229,7 @@ export default function DailyWelcomePanel() {
             </motion.div>
 
             {/* Opciones */}
-            <div className="px-5 pt-5 pb-6 flex flex-col gap-2.5 relative">
+            <div className="px-5 pt-5 pb-3 flex flex-col gap-2.5 relative">
               {OPCIONES.map(({ to, label, desc, Icon }, i) => (
                 <motion.button
                   key={label}
@@ -276,6 +297,27 @@ export default function DailyWelcomePanel() {
                 </motion.button>
               ))}
             </div>
+
+            {/* "No volver a mostrar" — reactivable desde Configuracion */}
+            <motion.div
+              className="px-5 pb-5 pt-1 flex justify-center relative"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.65, duration: 0.35 }}
+            >
+              <button
+                type="button"
+                onClick={dismissForever}
+                className="group inline-flex items-center gap-1.5 text-[11px] font-medium transition-colors"
+                style={{ color: 'rgba(255,255,255,0.35)' }}
+                onMouseEnter={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.7)'; }}
+                onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255,255,255,0.35)'; }}
+                title="Puedes reactivarlo desde Configuración"
+              >
+                <EyeOff size={12} />
+                No volver a mostrar este panel
+              </button>
+            </motion.div>
           </motion.div>
 
           {/* Keyframes locales */}

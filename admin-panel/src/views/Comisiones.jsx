@@ -5,6 +5,7 @@ import {
   Scissors, User, AlertCircle, Banknote, TrendingUp, Calendar, Wallet, FileText,
 } from 'lucide-react';
 import { tenantCol } from '../lib/tenantUtils';
+import { withTimeout } from '../lib/firestore-helpers';
 import { useCollection } from '../hooks/useCollection';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -75,22 +76,30 @@ function AdelantoModal({ barbero, onConfirm, onClose }) {
   const [fecha, setFecha] = useState(today());
   const [metodoPago, setMetodoPago] = useState('Efectivo');
   const [nota, setNota] = useState('');
+  // Cuotas: 1 = adelanto plano (se descuenta todo del próximo pago). N > 1
+  // distribuye el descuento en N meses consecutivos a partir de `fecha`.
+  // La salida de caja sigue siendo el día `fecha` por el total.
+  const [cuotas, setCuotas] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const handle = async () => {
     const m = parseFloat(monto);
     if (!m || m <= 0) { setError('El monto debe ser mayor a 0.'); return; }
+    const c = Math.max(1, Math.min(36, Math.round(Number(cuotas) || 1)));
     setLoading(true);
     setError('');
     try {
-      await onConfirm({ monto: Math.round(m), fecha, metodoPago, nota: nota.trim() });
+      await onConfirm({ monto: Math.round(m), fecha, metodoPago, nota: nota.trim(), cuotas: c });
       onClose();
     } catch {
       setError('Error al registrar. Intenta de nuevo.');
       setLoading(false);
     }
   };
+
+  const montoNum = parseFloat(monto);
+  const montoPorCuota = montoNum > 0 && cuotas > 1 ? Math.round(montoNum / cuotas) : null;
 
   const inp = 'w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-orange-500 transition-colors';
   const lbl = 'block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-1.5';
@@ -133,8 +142,26 @@ function AdelantoModal({ barbero, onConfirm, onClose }) {
             <input className={inp} placeholder="Ej: adelanto quincena" value={nota} onChange={e => setNota(e.target.value)} />
           </div>
 
+          <div>
+            <label className={lbl}>Cuotas (para descontar)</label>
+            <div className="flex items-center gap-2">
+              <input className={inp} type="number" min="1" max="36" step="1"
+                value={cuotas} onChange={e => setCuotas(e.target.value)} />
+              <span className="text-xs text-slate-500 whitespace-nowrap">
+                {cuotas == 1 ? 'sin cuotas' : `× ${cuotas} meses`}
+              </span>
+            </div>
+            {montoPorCuota && (
+              <p className="text-[11px] text-amber-300 mt-1.5">
+                Se descontarán <strong>{formatCLP(montoPorCuota)}</strong> de la liquidación de cada uno de los próximos {cuotas} períodos mensuales.
+              </p>
+            )}
+          </div>
+
           <p className="text-xs text-slate-500">
-            Se registra como gasto en la categoría <span className="text-slate-300 font-medium">Sueldos</span> y se descuenta del total a pagar del período.
+            Se registra como gasto en la categoría <span className="text-slate-300 font-medium">Sueldos</span> el día indicado. {cuotas == 1
+              ? 'Se descuenta entero del próximo pago al barbero.'
+              : 'El descuento se prorratea en las cuotas indicadas.'}
           </p>
 
           {error && (
@@ -272,7 +299,7 @@ export default function Comisiones() {
         where('fecha', '>=', fechaInicio),
         where('fecha', '<=', fechaFin),
       );
-      const snap = await getDocs(q);
+      const snap = await withTimeout(getDocs(q), 20000, 'comisiones/citas');
       setCitas(
         snap.docs
           .map(d => ({ id: d.id, ...d.data() }))
@@ -290,7 +317,7 @@ export default function Comisiones() {
   const loadAdelantos = useCallback(async () => {
     try {
       const q = query(tenantCol('gastos'), where('tipo', '==', 'adelanto'));
-      const snap = await getDocs(q);
+      const snap = await withTimeout(getDocs(q), 15000, 'comisiones/adelantos');
       setAdelantos(snap.docs.map(d => ({ id: d.id, ...d.data() })));
     } catch (e) {
       console.error('[Comisiones] error cargando adelantos:', e);
@@ -322,6 +349,8 @@ export default function Comisiones() {
         ingresos: 0,
         montoComision: 0,
         adelantos: 0,
+        propinas: 0,
+        propinasCount: 0,
         total: 0,
       };
     });
@@ -336,7 +365,7 @@ export default function Comisiones() {
       }
       if (!key) {
         if (!map['_sin']) {
-          map['_sin'] = { id: '_sin', nombre: 'Sin barbero', foto: null, comisionPct: 0, sueldoBase: 0, citas: 0, ingresos: 0, montoComision: 0, adelantos: 0, total: 0 };
+          map['_sin'] = { id: '_sin', nombre: 'Sin barbero', foto: null, comisionPct: 0, sueldoBase: 0, citas: 0, ingresos: 0, montoComision: 0, adelantos: 0, propinas: 0, propinasCount: 0, total: 0 };
         }
         key = '_sin';
       }
@@ -344,14 +373,48 @@ export default function Comisiones() {
       map[key].citas++;
       map[key].ingresos += precio;
       map[key].montoComision += precio * (map[key].comisionPct / 100);
+      const propina = Number(c.propina) || 0;
+      if (propina > 0) {
+        map[key].propinas += propina;
+        map[key].propinasCount++;
+      }
     });
 
     // Acumular adelantos del período por barbero.
+    //
+    // Caso simple (cuotasTotal vacío o 1): descontamos el monto entero si
+    // la fecha del adelanto cae en el rango.
+    //
+    // Caso multicuota (cuotasTotal > 1): el adelanto se distribuye en N
+    // cargos mensuales empezando el mes de `fecha`. Para cada cuota que
+    // caiga dentro del rango [fechaInicio, fechaFin], sumamos su
+    // `montoPorCuota`. Esto permite que el rango sea de cualquier ancho
+    // (mes, quincena, varios meses) y la suma siga cuadrando con el plan
+    // de cuotas.
     adelantos.forEach(a => {
-      const f = fechaToStr(a.fecha);
       if (!a.barberoId || !map[a.barberoId]) return;
-      if (f >= fechaInicio && f <= fechaFin) {
-        map[a.barberoId].adelantos += Number(a.monto) || 0;
+      const cuotasTotal = Math.max(1, Number(a.cuotasTotal) || 1);
+      const baseStr = fechaToStr(a.fecha);
+      if (!baseStr) return;
+
+      if (cuotasTotal === 1) {
+        if (baseStr >= fechaInicio && baseStr <= fechaFin) {
+          map[a.barberoId].adelantos += Number(a.monto) || 0;
+        }
+        return;
+      }
+
+      const monto = Number(a.monto) || 0;
+      const montoPorCuota = Number(a.montoPorCuota) || Math.round(monto / cuotasTotal);
+      // Fecha base como Date local (evitamos los corrimientos de UTC con
+      // 'YYYY-MM-DDT12:00:00').
+      const baseDate = new Date(baseStr + 'T12:00:00');
+      for (let i = 0; i < cuotasTotal; i++) {
+        const d = new Date(baseDate.getFullYear(), baseDate.getMonth() + i, baseDate.getDate());
+        const ymd = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        if (ymd >= fechaInicio && ymd <= fechaFin) {
+          map[a.barberoId].adelantos += montoPorCuota;
+        }
       }
     });
 
@@ -365,12 +428,13 @@ export default function Comisiones() {
           ingresos: Math.round(b.ingresos),
           montoComision: Math.round(b.montoComision),
           adelantos: adel,
+          propinas: Math.round(b.propinas),
           bruto,
           total: Math.max(0, neto),
           saldoPendiente: neto < 0 ? -neto : 0,
         };
       })
-      .filter(b => b.citas > 0 || b.adelantos > 0)
+      .filter(b => b.citas > 0 || b.adelantos > 0 || b.propinas > 0)
       .sort((a, b) => b.ingresos - a.ingresos);
   }, [citas, adelantos, barberos, getPrice, fechaInicio, fechaFin]);
 
@@ -380,8 +444,9 @@ export default function Comisiones() {
     montoComision: acc.montoComision + b.montoComision,
     sueldoBase: acc.sueldoBase + b.sueldoBase,
     adelantos: acc.adelantos + b.adelantos,
+    propinas: acc.propinas + b.propinas,
     total: acc.total + b.total,
-  }), { citas: 0, ingresos: 0, montoComision: 0, sueldoBase: 0, adelantos: 0, total: 0 }), [data]);
+  }), { citas: 0, ingresos: 0, montoComision: 0, sueldoBase: 0, adelantos: 0, propinas: 0, total: 0 }), [data]);
 
   const periodo = `${fechaInicio} al ${fechaFin}`;
 
@@ -397,14 +462,24 @@ export default function Comisiones() {
       barberoNombre: barbero.nombre,
       creadoEn: serverTimestamp(),
       creadoPor: user?.uid || 'admin',
+      // Audit trail: el barbero acepta la liquidación desde su Inicio. Hasta
+      // que lo haga, queda 'pendiente'. Una vez aceptada se sella con uid +
+      // timestamp y no se vuelve a mostrar el banner.
+      aceptacionBarbero: 'pendiente',
+      aceptacionFecha:   null,
+      aceptacionUid:     null,
+      periodoInicio: fechaInicio,
+      periodoFin:    fechaFin,
     });
     setPagados(prev => new Set([...prev, barbero.id]));
   };
 
-  const handleAdelanto = async ({ monto, fecha, metodoPago, nota }) => {
+  const handleAdelanto = async ({ monto, fecha, metodoPago, nota, cuotas }) => {
     if (!adelantoTarget) return;
+    const c = Math.max(1, Math.round(Number(cuotas) || 1));
+    const montoPorCuota = c > 1 ? Math.round(monto / c) : monto;
     await addDoc(tenantCol('gastos'), {
-      descripcion: `Adelanto ${adelantoTarget.nombre}${nota ? ` — ${nota}` : ''}`,
+      descripcion: `Adelanto ${adelantoTarget.nombre}${c > 1 ? ` (${c} cuotas)` : ''}${nota ? ` — ${nota}` : ''}`,
       monto,
       categoria: 'Sueldos',
       tipo: 'adelanto',
@@ -414,6 +489,12 @@ export default function Comisiones() {
       barberoNombre: adelantoTarget.nombre,
       creadoEn: serverTimestamp(),
       creadoPor: user?.uid || 'admin',
+      // Si c > 1, el descuento del bruto del barbero se prorratea: la misma
+      // suma `montoPorCuota` aparece en `barbero.adelantos` durante c meses
+      // consecutivos desde `fecha`. El gasto en sí (salida de caja) sigue
+      // siendo el día `fecha` por el total, eso no cambia.
+      cuotasTotal: c,
+      montoPorCuota,
     });
     await loadAdelantos();
   };
@@ -915,12 +996,13 @@ export default function Comisiones() {
 
       {/* Summary KPIs */}
       {data.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           {[
             { icon: Scissors,   color: 'text-blue-400',    bg: 'bg-blue-500/10',    label: 'Citas completadas', value: totals.citas },
             { icon: TrendingUp, color: 'text-emerald-400', bg: 'bg-emerald-500/10', label: 'Ingresos totales',  value: formatCLP(totals.ingresos) },
             { icon: DollarSign, color: 'text-amber-400',   bg: 'bg-amber-500/10',   label: 'Total comisiones',  value: formatCLP(totals.montoComision) },
             { icon: Wallet,     color: 'text-orange-400',  bg: 'bg-orange-500/10',  label: 'Adelantos',         value: formatCLP(totals.adelantos) },
+            { icon: Banknote,   color: 'text-pink-400',    bg: 'bg-pink-500/10',    label: 'Propinas',          value: formatCLP(totals.propinas) },
             { icon: Banknote,   color: 'text-rose-400',    bg: 'bg-rose-500/10',    label: 'Total a pagar',     value: formatCLP(totals.total) },
           ].map(({ icon: Icon, color, bg, label, value }) => (
             <div key={label} className="bg-slate-900 border border-slate-800 rounded-xl p-4">
@@ -966,6 +1048,9 @@ export default function Comisiones() {
                   {barbero.adelantos > 0 && (
                     <StatItem label="Adelantos" value={`− ${formatCLP(barbero.adelantos)}`} valueClass="text-orange-400" />
                   )}
+                  {barbero.propinas > 0 && (
+                    <StatItem label={`Propinas (${barbero.propinasCount})`} value={formatCLP(barbero.propinas)} valueClass="text-pink-400" />
+                  )}
                   <div className="min-w-[100px]">
                     <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Total a pagar</p>
                     <p className="text-lg font-bold text-emerald-400">{formatCLP(barbero.total)}</p>
@@ -998,6 +1083,75 @@ export default function Comisiones() {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Propinas — sección dedicada con CSV propio */}
+      {totals.propinas > 0 && (
+        <div className="bg-slate-900 border border-pink-500/20 rounded-xl p-4 mt-4">
+          <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              <Banknote size={16} className="text-pink-400" />
+              <h2 className="text-sm font-bold text-white">Propinas del período</h2>
+              <span className="text-[10px] text-slate-500 bg-slate-800 rounded-full px-2 py-0.5">no son ingreso del local</span>
+            </div>
+            <button
+              onClick={() => {
+                const lines = [];
+                const push = arr => lines.push(arr.map(csvEscape).join(';'));
+                push([`Propinas del período ${fechaInicio} al ${fechaFin}`]);
+                push(['Las propinas son del equipo, no son ingreso del local.']);
+                lines.push('');
+                push(['Barbero', 'Citas con propina', 'Total propinas', 'Promedio por cita']);
+                data
+                  .filter(b => b.propinas > 0)
+                  .forEach(b => push([
+                    b.nombre, b.propinasCount, b.propinas,
+                    b.propinasCount ? Math.round(b.propinas / b.propinasCount) : 0,
+                  ]));
+                push(['TOTAL', data.reduce((s, b) => s + b.propinasCount, 0), totals.propinas, '']);
+                triggerDownload(
+                  new Blob(['﻿' + lines.join('\n')], { type: 'text/csv;charset=utf-8' }),
+                  `propinas-${fechaInicio}-${fechaFin}.csv`,
+                );
+              }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-pink-500/10 text-pink-400 hover:bg-pink-500/20 border border-pink-500/30 transition-all"
+            >
+              <Download size={12} /> CSV propinas
+            </button>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-[10px] uppercase tracking-wider text-slate-500 border-b border-slate-800">
+                  <th className="text-left font-bold py-2">Barbero</th>
+                  <th className="text-right font-bold py-2">Citas con propina</th>
+                  <th className="text-right font-bold py-2">Total</th>
+                  <th className="text-right font-bold py-2 hidden sm:table-cell">Promedio</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/60">
+                {data.filter(b => b.propinas > 0).map(b => (
+                  <tr key={b.id}>
+                    <td className="py-2 text-white font-medium">{b.nombre}</td>
+                    <td className="py-2 text-right text-slate-400 tabular-nums">{b.propinasCount}</td>
+                    <td className="py-2 text-right font-bold text-pink-400 tabular-nums">{formatCLP(b.propinas)}</td>
+                    <td className="py-2 text-right text-slate-400 tabular-nums hidden sm:table-cell">
+                      {b.propinasCount ? formatCLP(Math.round(b.propinas / b.propinasCount)) : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="border-t border-slate-700">
+                  <td className="py-2 font-bold text-white">Total</td>
+                  <td className="py-2 text-right text-slate-400 tabular-nums">{data.reduce((s, b) => s + b.propinasCount, 0)}</td>
+                  <td className="py-2 text-right font-black text-pink-300 tabular-nums">{formatCLP(totals.propinas)}</td>
+                  <td className="py-2 text-right hidden sm:table-cell" />
+                </tr>
+              </tfoot>
+            </table>
+          </div>
         </div>
       )}
 

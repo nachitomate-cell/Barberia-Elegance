@@ -10,6 +10,7 @@ import { doc, getDoc, setDoc, deleteDoc, onSnapshot, serverTimestamp } from 'fir
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db, auth } from '../lib/firebase';
 import { tenantDoc, resolveTenantId } from '../lib/tenantUtils';
+import { withTimeout } from '../lib/firestore-helpers';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 
 /* ── Catálogo de tipos de bloque (tier: free | pro | studio) ──── */
@@ -121,14 +122,14 @@ export default function LinkBio() {
   // Carga inicial: config del bio + estado Pro (controlado por el superadmin)
   useEffect(() => {
     let alive = true;
-    getDoc(doc(db, '_system', tid))
+    withTimeout(getDoc(doc(db, '_system', tid)), 10000, 'linkbio/system')
       .then(s => {
         if (!alive) return;
         const d = s.exists() ? s.data() : {};
         setPlan(d.bioPlan || (d.bioPro === true ? 'pro' : 'free'));
       })
       .catch(() => {});
-    getDoc(ref).then(snap => {
+    withTimeout(getDoc(ref), 10000, 'linkbio/cfg').then(snap => {
       if (!alive) return;
       const d = snap.exists() ? snap.data() : {};
       origHandleRef.current = d.handle || '';

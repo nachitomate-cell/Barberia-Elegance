@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { resolveTenantId } from '../lib/tenantUtils';
+import { withTimeout } from '../lib/firestore-helpers';
 import { Gift, Search, AlertCircle } from 'lucide-react';
 
 function pad(n) { return String(n).padStart(2, '0'); }
@@ -41,7 +42,7 @@ export default function SaldoGiftCard() {
     setErr('');
     setResult(null);
     try {
-      const snap = await getDocs(query(collection(db, colPath), where('codigo', '==', code)));
+      const snap = await withTimeout(getDocs(query(collection(db, colPath), where('codigo', '==', code))), 15000, 'saldogc/lookup');
       if (snap.empty) { setErr('Código no encontrado.'); return; }
       const gc = { id: snap.docs[0].id, ...snap.docs[0].data() };
       if (gc.venceEn && gc.venceEn < today()) gc.estado = 'vencida';

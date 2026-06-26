@@ -20,6 +20,7 @@ import { sendPasswordResetEmail } from 'firebase/auth';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage, auth } from '../lib/firebase';
 import { tenantCol, resolveTenantId } from '../lib/tenantUtils';
+import { withTimeout } from '../lib/firestore-helpers';
 import { confirmDialog } from '../lib/confirmDialog';
 import { useCollection } from '../hooks/useCollection';
 import { useAuth } from '../contexts/AuthContext';
@@ -509,7 +510,7 @@ export default function Equipo() {
         where('fecha', '>=', fechaInicio),
         where('fecha', '<=', fechaFin)
       );
-      const snapCitas = await getDocs(qCitas);
+      const snapCitas = await withTimeout(getDocs(qCitas), 20000, 'equipo/citas-sueldo');
       const allCitas = snapCitas.docs.map(d => ({ id: d.id, ...d.data() }));
       const filteredCitas = allCitas.filter(c => c.barberoId === sueldoBarberoId && c.estado === 'Completada');
       setCitasSueldos(filteredCitas);
@@ -519,7 +520,7 @@ export default function Equipo() {
         tenantCol('product_reservations'),
         where('status', '==', 'delivered')
       );
-      const snapVentas = await getDocs(qVentas);
+      const snapVentas = await withTimeout(getDocs(qVentas), 20000, 'equipo/ventas-sueldo');
       const allVentas = snapVentas.docs.map(d => ({ id: d.id, ...d.data() }));
       const filteredVentas = allVentas.filter(v => {
         if (v.barberoId !== sueldoBarberoId) return false;

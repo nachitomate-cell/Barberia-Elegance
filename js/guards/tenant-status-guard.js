@@ -75,11 +75,14 @@
   }
 
   // Esperar a que Firebase Auth resuelva para no bloquear al superadmin.
+  // NOTA: _system/{tenantId} es de lectura publica (firestore.rules), por lo
+  // que NO necesitamos iniciar sesion anonima. Hacerlo aqui inyectaba un user
+  // anonimo en todas las paginas que escuchan auth (registro, dashboard,
+  // agenda), causando login automatico como "Cliente", crashes por user.email
+  // null en dashboard.html y redirecciones erroneas en /agenda.html.
   const unsubAuth = firebase.auth().onAuthStateChanged(async user => {
     unsubAuth();
     if (user?.email === SUPERADMIN_EMAIL) return;
-
-    if (!user) { try { await firebase.auth().signInAnonymously(); } catch (_) {} }
 
     const tenantId = getTenantId();
     try {

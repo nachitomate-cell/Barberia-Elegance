@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getDocs, getDoc, query, where } from 'firebase/firestore';
 import { motion } from 'framer-motion';
@@ -6,12 +6,17 @@ import {
   Users, TrendingDown, DollarSign, RefreshCcw, CalendarCheck, UserPlus,
   ClipboardList, Cake, MessageCircle, ArrowUpRight, ArrowDownRight, Clock,
   ExternalLink, Hourglass, Receipt, Wallet, ChevronRight,
+  Target, TrendingUp, AlertTriangle, CheckCircle2,
 } from 'lucide-react';
+/* Nota: el banner de "Liquidaciones pendientes de aceptación" se renderiza
+   en `agenda.html` (panel del barbero), NO acá. Este panel admin solo lo ve
+   admin/jefe y para ellos no aplica. */
 import {
   ResponsiveContainer, PieChart, Pie, Cell,
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
 } from 'recharts';
 import { tenantCol, tenantDoc } from '../lib/tenantUtils';
+import { withTimeout } from '../lib/firestore-helpers';
 import { useTenant } from '../contexts/TenantContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useConfig } from '../hooks/useConfig';
@@ -196,33 +201,45 @@ export default function Inicio() {
   const [espera,    setEspera]    = useState([]);     // lista de espera
   const [loading,   setLoading]   = useState(true);
   const [fetching,  setFetching]  = useState(false);
+  const [loadError, setLoadError] = useState(null);
+
+  // ID de fetch en curso (anti-race-condition al pulsar "Actualizar" varias
+  // veces o si el efecto re-dispara antes de terminar el anterior).
+  const fetchIdRef = useRef(0);
 
   const mesActual = useMemo(() => monthBounds(0),  []);
   const mesPrev   = useMemo(() => monthBounds(-1), []);
 
   const fetchData = useCallback(async () => {
+    const myId = ++fetchIdRef.current;
     setFetching(true);
+    setLoadError(null);
     try {
       // Resumen precalculado por la Cloud Function (1 lectura). Si existe, evitamos
       // traer toda la colección de clientes (~700 lecturas) para los KPIs de clientes.
       let stats = null;
       try {
-        const statsSnap = await getDoc(tenantDoc('_stats', 'resumen'));
+        const statsSnap = await withTimeout(getDoc(tenantDoc('_stats', 'resumen')), 10000, 'stats');
         if (statsSnap.exists()) stats = statsSnap.data();
       } catch { /* sin stats → fallback al fetch completo */ }
+      if (myId !== fetchIdRef.current) return;
       setAggStats(stats);
 
+      // Acotamos gastos/ventas/citas a partir del mes anterior. Antes se
+      // traian historiales completos (miles de docs en tenants viejos) y el
+      // componente solo usa el mes actual + anterior.
       const tasks = [
-        getDocs(query(tenantCol('citas'), where('fecha', '>=', mesPrev.first))),
-        getDocs(tenantCol('servicios')),
-        getDocs(tenantCol('gastos')),
-        getDocs(tenantCol('product_reservations')),
-        getDocs(tenantCol('listaEspera')),
+        withTimeout(getDocs(query(tenantCol('citas'), where('fecha', '>=', mesPrev.first))), 20000, 'citas'),
+        withTimeout(getDocs(tenantCol('servicios')), 15000, 'servicios'),
+        withTimeout(getDocs(query(tenantCol('gastos'), where('fecha', '>=', mesPrev.first))), 20000, 'gastos'),
+        withTimeout(getDocs(query(tenantCol('product_reservations'), where('fecha', '>=', mesPrev.first))), 20000, 'ventas'),
+        withTimeout(getDocs(tenantCol('listaEspera')), 15000, 'espera'),
       ];
       // Fallback: solo traemos clientes si NO hay stats agregados todavía.
-      if (!stats) tasks.push(getDocs(tenantCol('users')));
+      if (!stats) tasks.push(withTimeout(getDocs(tenantCol('users')), 20000, 'users'));
 
       const [citasSnap, servSnap, gastosSnap, ventasSnap, esperaSnap, cliSnap] = await Promise.all(tasks);
+      if (myId !== fetchIdRef.current) return;
       setCitas(citasSnap.docs.map(d => ({ id: d.id, ...d.data() })));
       setServicios(servSnap.docs.map(d => ({ id: d.id, ...d.data() })));
       setGastos(gastosSnap.docs.map(d => ({ id: d.id, ...d.data() })));
@@ -230,10 +247,14 @@ export default function Inicio() {
       setEspera(esperaSnap.docs.map(d => ({ id: d.id, ...d.data() })));
       setClientes(cliSnap ? cliSnap.docs.map(d => ({ id: d.id, ...d.data() })) : []);
     } catch (e) {
+      if (myId !== fetchIdRef.current) return;
       console.error('Inicio fetchData:', e);
+      setLoadError(e.message || 'No se pudo cargar la información');
     } finally {
-      setFetching(false);
-      setLoading(false);
+      if (myId === fetchIdRef.current) {
+        setFetching(false);
+        setLoading(false);
+      }
     }
   }, [mesPrev.first]);
 
@@ -342,6 +363,46 @@ export default function Inicio() {
   const cur  = useMemo(() => monthStats(mesActual), [monthStats, mesActual]);
   const prev = useMemo(() => monthStats(mesPrev),   [monthStats, mesPrev]);
 
+  /* ── Meta del mes + break-even del día ────────────────────────────── */
+  // Meta y costo fijo viven en `configuracion/main` (seteados en
+  // Configuracion.jsx). Si no están definidos, derivamos un costo diario
+  // automático desde los gastos del mes anterior — así la card es útil aunque
+  // el dueño no haya configurado nada.
+  const finanzas = useMemo(() => {
+    const meta = Math.max(0, Number(config?.metaMensualVentas) || 0);
+    const hoy = new Date();
+    const finMes = new Date(mesActual.last);
+    const enMesActual = hoy >= new Date(mesActual.first) && hoy <= finMes;
+    // diasMes = total de días del mes. diaActual = qué día va corriendo (o el
+    // último del mes si estamos en otro mes, por seguridad).
+    const diasMes = finMes.getDate();
+    const diaActual = enMesActual ? hoy.getDate() : diasMes;
+    const diasRestantes = Math.max(0, diasMes - diaActual);
+    // Proyección lineal: si seguimos al mismo ritmo, ¿con cuánto cerramos?
+    const proyeccion = diaActual > 0 ? (cur.ventas / diaActual) * diasMes : 0;
+    // Lo que falta cada día restante para alcanzar la meta.
+    const faltaPorDia = meta > 0 && diasRestantes > 0
+      ? Math.max(0, (meta - cur.ventas) / diasRestantes)
+      : 0;
+    const pctMeta       = meta > 0 ? Math.min(100, (cur.ventas / meta) * 100) : 0;
+    const pctProyeccion = meta > 0 ? Math.min(100, (proyeccion  / meta) * 100) : 0;
+
+    // Costo fijo configurado o fallback automático (gastos mes pasado / 30).
+    const costoConfig = Number(config?.costoDiarioFijo);
+    const costoAuto   = prev.gastos > 0 ? Math.round(prev.gastos / 30) : 0;
+    const costoDiario = Number.isFinite(costoConfig) && costoConfig > 0 ? costoConfig : costoAuto;
+    const costoEsAuto = !(Number.isFinite(costoConfig) && costoConfig > 0);
+    const cubierto    = costoDiario > 0 && dia.ingresos >= costoDiario;
+    const faltaHoy    = Math.max(0, costoDiario - dia.ingresos);
+    const pctBE       = costoDiario > 0 ? Math.min(100, (dia.ingresos / costoDiario) * 100) : 0;
+
+    return {
+      meta, diasMes, diaActual, diasRestantes,
+      proyeccion, faltaPorDia, pctMeta, pctProyeccion,
+      costoDiario, costoEsAuto, cubierto, faltaHoy, pctBE,
+    };
+  }, [config?.metaMensualVentas, config?.costoDiarioFijo, cur.ventas, prev.gastos, dia.ingresos, mesActual.first, mesActual.last]);
+
   /* ── Fidelización del Club ───────────────────────────────────────── */
   const fidelizacion = useMemo(() => {
     if (aggStats) {
@@ -407,6 +468,22 @@ export default function Inicio() {
     );
   }
 
+  if (loadError && !citas.length && !servicios.length) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3 text-center px-4">
+        <p className="text-sm text-slate-300">No pudimos cargar el inicio.</p>
+        <p className="text-xs text-slate-500">{loadError}</p>
+        <button
+          onClick={fetchData}
+          className="mt-1 px-4 py-2 rounded-lg text-xs font-semibold border transition-all"
+          style={{ borderColor: A.hex + '66', color: A.hex, background: A.hex + '14' }}
+        >
+          Reintentar
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-6xl mx-auto space-y-6">
 
@@ -465,12 +542,30 @@ export default function Inicio() {
         />
       </div>
 
+      {/* ── Meta del mes + Break-even del día ────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <MetaMesPanel
+          index={4}
+          accent={A}
+          finanzas={finanzas}
+          ventasMes={cur.ventas}
+          configurada={Number(config?.metaMensualVentas) > 0}
+          onConfigurar={() => navigate('/configuracion')}
+        />
+        <BreakEvenPanel
+          index={5}
+          accent={A}
+          finanzas={finanzas}
+          ingresosHoy={dia.ingresos}
+        />
+      </div>
+
       {/* ── Rendimiento semanal + Próximas citas ─────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
         {/* Gráfico de ingresos de la semana */}
         <Panel
-          index={4}
+          index={6}
           className="lg:col-span-2"
           title="Ingresos de la semana"
           action={<span className="text-sm font-bold text-white tabular-nums">{fmtCLP(semanaTotal)}</span>}
@@ -502,7 +597,7 @@ export default function Inicio() {
 
         {/* Próximas citas (timeline) */}
         <Panel
-          index={5}
+          index={7}
           title="Próximas citas"
           action={
             <button onClick={() => navigate('/agenda')} className={`flex items-center gap-1 text-xs font-semibold ${A.text} hover:opacity-80`}>
@@ -546,7 +641,7 @@ export default function Inicio() {
 
       {/* ── Resumen del mes + Fidelización ───────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <Panel index={6} title="Resumen del mes" className="lg:col-span-2">
+        <Panel index={8} title="Resumen del mes" className="lg:col-span-2">
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <MonthStat Icon={DollarSign} accent={A} label="Ventas"   value={fmtCLP(cur.ventas)}  delta={pctDelta(cur.ventas, prev.ventas)} />
             {isAdmin && (
@@ -558,7 +653,7 @@ export default function Inicio() {
           </div>
         </Panel>
 
-        <Panel index={7} title="Fidelización del Club">
+        <Panel index={9} title="Fidelización del Club">
           {fidelizacion.total === 0 ? (
             <p className="text-sm text-slate-500 italic text-center py-8">Aún no hay clientes registrados.</p>
           ) : (
@@ -593,7 +688,7 @@ export default function Inicio() {
 
       {/* ── Últimas visitas ──────────────────────────────────────────── */}
       <Panel
-        index={8}
+        index={10}
         title="Últimas visitas"
         action={
           <button onClick={() => navigate('/clientes')} className={`flex items-center gap-1 text-xs font-semibold ${A.text} hover:opacity-80`}>
@@ -630,7 +725,7 @@ export default function Inicio() {
       </Panel>
 
       {/* ── Cumpleaños del mes ───────────────────────────────────────── */}
-      <Panel index={9} title={<span className="flex items-center gap-2"><Cake size={16} className="text-pink-400" />Cumpleaños este mes</span>}>
+      <Panel index={11} title={<span className="flex items-center gap-2"><Cake size={16} className="text-pink-400" />Cumpleaños este mes</span>}>
         {cumpleaneros.length === 0 ? (
           <p className="text-sm text-slate-500 italic text-center py-8">No hay cumpleaños registrados este mes.</p>
         ) : (
@@ -670,6 +765,148 @@ export default function Inicio() {
       </Panel>
 
     </div>
+  );
+}
+
+/* ── Meta del mes (gauge horizontal + proyección de cierre) ──────── */
+/**
+ * Muestra avance vs. meta configurada, una proyección lineal de cierre y
+ * cuánto debería facturarse por día para llegar. Si la meta no está seteada,
+ * empuja a Configuración (la card sigue ocupando espacio: no aparece y
+ * desaparece silenciosamente).
+ */
+function MetaMesPanel({ index, accent, finanzas, ventasMes, configurada, onConfigurar }) {
+  const { meta, diaActual, diasMes, diasRestantes, proyeccion, faltaPorDia, pctMeta, pctProyeccion } = finanzas;
+
+  if (!configurada) {
+    return (
+      <Panel index={index} className="lg:col-span-2" title={<span className="flex items-center gap-2"><Target size={15} className={accent.text} />Meta del mes</span>}>
+        <div className="flex flex-col items-start gap-3 py-4">
+          <p className="text-sm text-slate-400">
+            Define cuánto apuntas a facturar este mes y aparece acá un gauge con la proyección de cierre.
+          </p>
+          <button onClick={onConfigurar}
+            className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold border transition-all ${accent.tile} hover:opacity-80`}>
+            <Target size={13} /> Configurar meta
+          </button>
+        </div>
+      </Panel>
+    );
+  }
+
+  // Pintamos el ritmo: si la proyección supera la meta es verde; si va flojo,
+  // ámbar; en rojo solo si la proyección es <70% (mes claramente perdido).
+  const rumbo = pctProyeccion >= 100 ? 'good' : pctProyeccion >= 70 ? 'warn' : 'bad';
+  const rumboCls = { good: 'text-emerald-400', warn: 'text-amber-400', bad: 'text-rose-400' }[rumbo];
+  const rumboTxt = { good: 'Vas sobre la meta', warn: 'Por debajo del ritmo', bad: 'Lejos de la meta' }[rumbo];
+
+  return (
+    <Panel
+      index={index}
+      className="lg:col-span-2"
+      title={<span className="flex items-center gap-2"><Target size={15} className={accent.text} />Meta del mes</span>}
+      action={<span className="text-[11px] font-semibold text-slate-500">{diaActual}/{diasMes} días</span>}
+    >
+      {/* Cifra principal: lo facturado / meta */}
+      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+        <span className="text-2xl sm:text-3xl font-bold text-white tabular-nums">{fmtCLP(ventasMes)}</span>
+        <span className="text-sm text-slate-500 tabular-nums">/ {fmtCLP(meta)}</span>
+        <span className={`text-xs font-bold ml-auto ${rumboCls} inline-flex items-center gap-1`}>
+          <TrendingUp size={12} /> {rumboTxt}
+        </span>
+      </div>
+
+      {/* Barra: avance real (sólido) + proyección de cierre (fantasma) */}
+      <div className="relative h-2.5 bg-slate-800 rounded-full overflow-hidden mt-3">
+        <div className="absolute inset-y-0 left-0 rounded-full" style={{ width: `${pctProyeccion}%`, background: accent.hex, opacity: 0.18 }} />
+        <div className="absolute inset-y-0 left-0 rounded-full transition-all" style={{ width: `${pctMeta}%`, background: accent.hex }} />
+      </div>
+      <div className="flex justify-between text-[10px] text-slate-500 mt-1 tabular-nums">
+        <span>{Math.round(pctMeta)}% real</span>
+        <span>{Math.round(pctProyeccion)}% proyección</span>
+      </div>
+
+      {/* Dos mini-stats laterales: proyección de cierre + necesario por día */}
+      <div className="grid grid-cols-2 gap-3 mt-4">
+        <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-3">
+          <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Proyección de cierre</p>
+          <p className="text-base font-bold text-white tabular-nums mt-1">{fmtCLP(proyeccion)}</p>
+          <p className="text-[10px] text-slate-500 mt-0.5">si seguimos al mismo ritmo</p>
+        </div>
+        <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-3">
+          <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide">Necesario por día</p>
+          <p className={`text-base font-bold tabular-nums mt-1 ${faltaPorDia > 0 ? 'text-white' : 'text-emerald-400'}`}>
+            {faltaPorDia > 0 ? fmtCLP(faltaPorDia) : '¡Meta cubierta!'}
+          </p>
+          <p className="text-[10px] text-slate-500 mt-0.5">
+            {diasRestantes > 0 ? `en los ${diasRestantes} días que quedan` : 'cierre del mes hoy'}
+          </p>
+        </div>
+      </div>
+    </Panel>
+  );
+}
+
+/* ── Break-even del día ──────────────────────────────────────────── */
+/**
+ * "Te faltan $X para cubrir el día". Si el costo no está configurado,
+ * cae al fallback automático (gastos mes pasado / 30) y lo etiqueta como
+ * tal — así nunca queda vacío.
+ */
+function BreakEvenPanel({ index, accent, finanzas, ingresosHoy }) {
+  const { costoDiario, costoEsAuto, cubierto, faltaHoy, pctBE } = finanzas;
+
+  return (
+    <Panel
+      index={index}
+      title={<span className="flex items-center gap-2"><Wallet size={15} className={accent.text} />Break-even hoy</span>}
+    >
+      {costoDiario <= 0 ? (
+        <div className="py-4">
+          <p className="text-sm text-slate-500">
+            Aún no hay datos para estimar tu costo fijo diario. Carga gastos en <span className="text-slate-300 font-semibold">Gastos</span> o configúralo manualmente.
+          </p>
+        </div>
+      ) : (
+        <>
+          <div className="flex items-start gap-3">
+            <div className={`p-2 rounded-xl ${cubierto ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'}`}>
+              {cubierto ? <CheckCircle2 size={18} /> : <AlertTriangle size={18} />}
+            </div>
+            <div className="flex-1 min-w-0">
+              {cubierto ? (
+                <>
+                  <p className="text-xs font-semibold text-emerald-400 uppercase tracking-wide">Día cubierto</p>
+                  <p className="text-xl font-bold text-white tabular-nums mt-0.5">+{fmtCLP(ingresosHoy - costoDiario)}</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">sobre el break-even</p>
+                </>
+              ) : (
+                <>
+                  <p className="text-xs font-semibold text-amber-400 uppercase tracking-wide">Te faltan</p>
+                  <p className="text-xl font-bold text-white tabular-nums mt-0.5">{fmtCLP(faltaHoy)}</p>
+                  <p className="text-[11px] text-slate-500 mt-0.5">para cubrir el día</p>
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className="relative h-2 bg-slate-800 rounded-full overflow-hidden mt-3">
+            <div
+              className="absolute inset-y-0 left-0 rounded-full transition-all"
+              style={{ width: `${pctBE}%`, background: cubierto ? '#34d399' : '#fbbf24' }}
+            />
+          </div>
+          <div className="flex justify-between text-[10px] text-slate-500 mt-1.5 tabular-nums">
+            <span>{fmtCLP(ingresosHoy)}</span>
+            <span>de {fmtCLP(costoDiario)}</span>
+          </div>
+
+          <p className="text-[10px] text-slate-600 mt-2">
+            Costo fijo {costoEsAuto ? <span className="italic">automático</span> : <span>configurado</span>}.
+          </p>
+        </>
+      )}
+    </Panel>
   );
 }
 

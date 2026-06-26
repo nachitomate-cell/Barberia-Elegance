@@ -285,6 +285,24 @@
             </div>
         </div>
 
+        <!-- ── LIQUIDACIONES PENDIENTES DE CONFIRMAR ──
+             Aparece SOLO cuando hay gastos con tipo=liquidacion + barberoId
+             = mi uid + aceptacionBarbero='pendiente'. El listener se monta
+             en iniciarBannerLiquidaciones() después de fijar barberId. -->
+        <div id="liquidacionesBanner" class="hidden mb-6 rounded-3xl p-5 relative overflow-hidden animate-fade-in"
+             style="background:linear-gradient(to right, rgba(16,185,129,0.12), rgba(16,185,129,0.04)); border: 1px solid rgba(16,185,129,0.3);">
+            <div class="flex items-start gap-3 mb-3">
+                <div class="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0" style="background:rgba(16,185,129,0.18);">
+                    <i class="ph-fill ph-money text-xl" style="color:#34d399;"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <h3 id="liqBannerTitulo" class="text-[15px] font-black text-white leading-tight">Tienes una liquidación por confirmar</h3>
+                    <p class="text-xs text-white/60 leading-snug mt-0.5">Confirma el recibo del pago para dejarlo registrado en tu historial.</p>
+                </div>
+            </div>
+            <div id="liqBannerLista" class="space-y-2"></div>
+        </div>
+
         <!-- Mini-Dashboard Diarias -->
         <div id="dailyStatsDashboard" class="flex items-center gap-3 mb-6 bg-white/5 border border-white/10 rounded-2xl p-4 overflow-x-auto no-scrollbar view-in">
             <div class="flex items-center gap-2 px-3 border-r border-white/10 shrink-0">
@@ -472,6 +490,88 @@
             const tid = window.CURRENT_TENANT_ID || 'elegance';
             if (tid === 'elegance') return db.collection(name);
             return db.collection('tenants').doc(tid).collection(name);
+        }
+
+        // ── BANNER LIQUIDACIONES PENDIENTES ──
+        // El dueño registra una liquidación desde admin-panel/Comisiones con
+        // aceptacionBarbero='pendiente'. Acá el barbero ve la lista y la
+        // marca como aceptada (audit trail: uid + timestamp).
+        let _unsubLiquidaciones = null;
+        function iniciarBannerLiquidaciones(uid) {
+            if (!uid) return;
+            // Evita listeners duplicados si onAuthStateChanged dispara dos veces.
+            if (_unsubLiquidaciones) { _unsubLiquidaciones(); _unsubLiquidaciones = null; }
+            const q = tenantCol('gastos')
+                .where('tipo', '==', 'liquidacion')
+                .where('barberoId', '==', uid)
+                .where('aceptacionBarbero', '==', 'pendiente');
+            _unsubLiquidaciones = q.onSnapshot(snap => {
+                renderBannerLiquidaciones(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+            }, err => {
+                console.warn('[Liquidaciones] no se pudo escuchar:', err.message);
+                renderBannerLiquidaciones([]);
+            });
+        }
+
+        function fmtCLPagenda(v) {
+            return '$' + Math.round(Number(v) || 0).toLocaleString('es-CL');
+        }
+
+        function renderBannerLiquidaciones(pendientes) {
+            const banner = document.getElementById('liquidacionesBanner');
+            const lista  = document.getElementById('liqBannerLista');
+            const titulo = document.getElementById('liqBannerTitulo');
+            if (!banner || !lista || !titulo) return;
+            if (!pendientes.length) {
+                banner.classList.add('hidden');
+                lista.innerHTML = '';
+                return;
+            }
+            titulo.textContent = pendientes.length === 1
+                ? 'Tienes una liquidación por confirmar'
+                : `Tienes ${pendientes.length} liquidaciones por confirmar`;
+            // Render manual (sin innerHTML interpolado) para evitar XSS si la
+            // descripción del gasto trae HTML.
+            lista.innerHTML = '';
+            pendientes.forEach(l => {
+                const row = document.createElement('div');
+                row.className = 'flex items-center justify-between gap-2 rounded-2xl px-3 py-2.5';
+                row.style.background = 'rgba(0,0,0,0.25)';
+                const info = document.createElement('div');
+                info.className = 'min-w-0';
+                const desc = document.createElement('p');
+                desc.className = 'text-xs font-semibold text-white truncate';
+                desc.textContent = l.descripcion || 'Liquidación';
+                const monto = document.createElement('p');
+                monto.className = 'text-[11px] text-white/50 tabular-nums';
+                monto.textContent = fmtCLPagenda(l.monto);
+                info.appendChild(desc); info.appendChild(monto);
+                const btn = document.createElement('button');
+                btn.className = 'px-3 py-1.5 rounded-lg text-[11px] font-bold transition-colors shrink-0';
+                btn.style.background = '#34d399'; btn.style.color = '#053926';
+                btn.textContent = 'Confirmar recibo';
+                btn.addEventListener('click', async () => {
+                    btn.disabled = true;
+                    btn.style.opacity = '0.6';
+                    btn.textContent = 'Aceptando…';
+                    try {
+                        await tenantCol('gastos').doc(l.id).update({
+                            aceptacionBarbero: 'aceptada',
+                            aceptacionFecha:   firebase.firestore.FieldValue.serverTimestamp(),
+                            aceptacionUid:     firebase.auth().currentUser?.uid || null,
+                        });
+                        // El onSnapshot saca la fila sola — no tocamos el DOM acá.
+                    } catch (e) {
+                        console.error('[Liquidaciones] aceptación falló:', e);
+                        btn.disabled = false;
+                        btn.style.opacity = '1';
+                        btn.textContent = 'Reintentar';
+                    }
+                });
+                row.appendChild(info); row.appendChild(btn);
+                lista.appendChild(row);
+            });
+            banner.classList.remove('hidden');
         }
 
         // ── BRANDING DINÁMICO POR TENANT ──
@@ -666,6 +766,16 @@
             _aplicarPrivacidadTelefono();
 
             firebase.auth().onAuthStateChanged(async (user) => {
+                // Sesion "fantasma": anonima (residual del tenant-status-guard
+                // legacy) o real-sin-email (cuentas legacy persistidas en
+                // IndexedDB de la PWA). Ambas se cuelan como "no barbero"
+                // segun resolverInfoBarbero y nos rebotan al dashboard como
+                // CLIENTE. Las firmamos fuera y dejamos que el proximo
+                // onAuthStateChanged caiga en la rama del login overlay.
+                if (user && (user.isAnonymous || !user.email)) {
+                    try { await firebase.auth().signOut(); } catch(_) {}
+                    return;
+                }
                 if (user) {
                     document.getElementById('loginOverlay').classList.add('hidden');
                     document.getElementById('loadingOverlay').classList.remove('hidden');
@@ -674,7 +784,23 @@
                     const info = await resolverInfoBarbero(user.email, user.uid);
 
                     if (!info.isBarbero) {
-                        window.location.href = '/dashboard';
+                        // Sesion valida pero no es de barbero (cliente que se
+                        // registro al club y abrio /agenda por accidente, o el
+                        // barbero entro con la cuenta equivocada). Antes
+                        // redirigiamos a /dashboard sin contexto: el barbero
+                        // quedaba "atrapado" como CLIENTE sin saber como
+                        // volver. Ahora cerramos sesion y mostramos el login
+                        // de /agenda con un aviso para que reintente con sus
+                        // credenciales de barbero.
+                        try { await firebase.auth().signOut(); } catch(_) {}
+                        document.getElementById('loadingOverlay').classList.add('hidden');
+                        const overlay = document.getElementById('loginOverlay');
+                        overlay.classList.remove('hidden');
+                        const errBox = document.getElementById('loginError');
+                        if (errBox) {
+                            errBox.textContent = 'Esta cuenta no es de un barbero. Inicia sesion con tus credenciales de barbero.';
+                            errBox.classList.remove('hidden');
+                        }
                         return;
                     }
 
@@ -699,6 +825,9 @@
                     // Garantiza que barberos/{uid} exista antes de iniciar los listeners.
                     // Sin este doc, esBarberoFirestore falla y onSnapshot de /citas queda denegado.
                     await FDB.ensureBarberoUidDoc(user.uid, user.email, info.barberoId).catch(() => {});
+
+                    // Banner de liquidaciones pendientes de mi aceptación.
+                    iniciarBannerLiquidaciones(myBarberoId);
 
                     // Precargar nombre si ya lo tenemos del snap anterior
                     if (info.nombre) {

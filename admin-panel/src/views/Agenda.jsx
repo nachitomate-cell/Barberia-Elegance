@@ -18,6 +18,7 @@ import { motion } from 'framer-motion';
 import { db } from '../lib/firebase';
 import { tenantCol } from '../lib/tenantUtils';
 import { confirmDialog } from '../lib/confirmDialog';
+import { withTimeout } from '../lib/firestore-helpers';
 import { useCollection } from '../hooks/useCollection';
 import { useTenant } from '../contexts/TenantContext';
 import ReviewModal from '../components/ReviewModal';
@@ -247,11 +248,11 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
     let cancel = false;
     (async () => {
       try {
-        const qs = await getDocs(tenantCol('corteLapiz'));
+        const qs = await withTimeout(getDocs(tenantCol('corteLapiz')), 15000, 'agenda/corte-lapiz');
         if (!cancel) setClCuentas(qs.docs.map(d => ({ id: d.id, ...d.data() })));
       } catch { /* sin permiso o vacío */ }
       try {
-        const cfg = await getDoc(doc(tenantCol('configuracion'), 'corteLapiz'));
+        const cfg = await withTimeout(getDoc(doc(tenantCol('configuracion'), 'corteLapiz')), 10000, 'agenda/cfg-corte-lapiz');
         const r = cfg.exists() ? Number(cfg.data().recargo ?? cfg.data().monto) : NaN;
         if (!cancel && Number.isFinite(r) && r >= 0) setClRecargo(Math.round(r));
       } catch { /* usa default */ }
@@ -278,7 +279,7 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
     let cancel = false;
     (async () => {
       try {
-        const cfgSnap = await getDoc(doc(tenantCol('configuracion'), 'rangos'));
+        const cfgSnap = await withTimeout(getDoc(doc(tenantCol('configuracion'), 'rangos')), 10000, 'agenda/cfg-rangos');
         if (!cfgSnap.exists()) return;
         const rangosCfg = cfgSnap.data().rangos || [];
         // Si ningún rango tiene descuento activo, no hace falta buscar al cliente.
@@ -287,13 +288,13 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
         // Sellos históricos del cliente → rango.
         let hist = null;
         if (form.clienteId) {
-          const u = await getDoc(doc(tenantCol('users'), form.clienteId));
+          const u = await withTimeout(getDoc(doc(tenantCol('users'), form.clienteId)), 10000, 'agenda/user-rango');
           if (u.exists()) hist = Number(u.data().sellosHistoricos ?? u.data().stamps) || 0;
         }
         if (hist == null) {
           const tn = (form.clienteTelefono || '').replace(/\D/g, '');
           if (tn.length >= 8) {
-            const c = await getDoc(doc(tenantCol('clientes'), tn));
+            const c = await withTimeout(getDoc(doc(tenantCol('clientes'), tn)), 10000, 'agenda/cliente-rango');
             if (c.exists()) hist = Number(c.data().sellosHistoricos) || 0;
           }
         }
@@ -368,7 +369,7 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
       return;
     }
     const q = query(tenantCol('servicioFavorito'), where('email', '==', email));
-    getDocs(q)
+    withTimeout(getDocs(q), 15000, 'agenda/foto-favorita')
       .then(qs => {
         if (!qs.empty) {
           const data = qs.docs[0].data();
@@ -428,7 +429,7 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
     // Si el cliente tiene cuenta registrada (no legacy), enriquecer con datos más completos
     if (c.uid && !esLegacy) {
       try {
-        const snap = await getDoc(doc(tenantCol('users'), c.uid));
+        const snap = await withTimeout(getDoc(doc(tenantCol('users'), c.uid)), 10000, 'agenda/user-enrich');
         if (snap.exists()) {
           const u = snap.data();
           setForm(f => ({
@@ -492,7 +493,7 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
     setGcErr('');
     setGcFound(null);
     try {
-      const snap = await getDocs(query(tenantCol('giftCards'), where('codigo', '==', code)));
+      const snap = await withTimeout(getDocs(query(tenantCol('giftCards'), where('codigo', '==', code))), 15000, 'agenda/giftcard');
       if (snap.empty) { setGcErr('Código no encontrado'); return; }
       const gc = { id: snap.docs[0].id, ...snap.docs[0].data() };
       const todayStr = new Date().toISOString().slice(0, 10);
@@ -1538,12 +1539,12 @@ function HistorialNotasModal({ cita, onClose }) {
   // Últimas visitas (mismo patrón/índice que UltimaCitaModal).
   useEffect(() => {
     if (!cita?.clienteNombre) { setVisitas([]); return; }
-    getDocs(query(
+    withTimeout(getDocs(query(
       tenantCol('citas'),
       where('clienteNombre', '==', cita.clienteNombre),
       orderBy('fecha', 'desc'),
       limit(30),
-    ))
+    )), 20000, 'agenda/visitas-cliente')
       .then(snap => setVisitas(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
       .catch(() => setVisitas([]));
   }, [cita?.clienteNombre]);
@@ -1551,7 +1552,7 @@ function HistorialNotasModal({ cita, onClose }) {
   // Nota interna confidencial (colección admin_notes — solo staff).
   useEffect(() => {
     if (!clientKey) { setLoadingNota(false); return; }
-    getDoc(doc(tenantCol('admin_notes'), clientKey))
+    withTimeout(getDoc(doc(tenantCol('admin_notes'), clientKey)), 10000, 'agenda/nota-interna')
       .then(snap => {
         const v = snap.exists() ? (snap.data().notaInterna || '') : '';
         setNota(v); setNotaOrig(v);
@@ -1731,12 +1732,12 @@ function UltimaCitaModal({ cita, loading, onClose, titleText = 'Última cita age
   const [clientHistory, setClientHistory] = useState(null);
   useEffect(() => {
     if (!cita?.clienteNombre || loading) { setClientHistory(null); return; }
-    getDocs(query(
+    withTimeout(getDocs(query(
       tenantCol('citas'),
       where('clienteNombre', '==', cita.clienteNombre),
       orderBy('fecha', 'desc'),
       limit(50),
-    ))
+    )), 20000, 'agenda/ultima-cita')
       .then(snap => {
         const rows = snap.docs.map(d => d.data());
         const svcCnt = {};
@@ -2071,7 +2072,7 @@ function DifusionPanel({ citas, bloqueos, barberos, dateStr, tenantId }) {
   const [shopSettings, setShopSettings] = useState(null);
 
   useEffect(() => {
-    getDoc(doc(tenantCol('settings'), 'general'))
+    withTimeout(getDoc(doc(tenantCol('settings'), 'general')), 10000, 'agenda/settings-general')
       .then(snap => { if (snap.exists()) setShopSettings(snap.data()); })
       .catch(() => {});
   }, []);
@@ -2474,7 +2475,7 @@ export default function Agenda() {
   useEffect(() => {
     const completarId = searchParams.get('completar');
     if (!completarId) return;
-    getDoc(doc(tenantCol('citas'), completarId))
+    withTimeout(getDoc(doc(tenantCol('citas'), completarId)), 10000, 'agenda/completar-cita')
       .then(snap => {
         if (!snap.exists()) return;
         const cita = { id: snap.id, ...snap.data() };
@@ -2501,7 +2502,7 @@ export default function Agenda() {
   }, [ultimaCita?.id]);
 
   useEffect(() => {
-    getDoc(doc(tenantCol('configuracion'), 'main'))
+    withTimeout(getDoc(doc(tenantCol('configuracion'), 'main')), 10000, 'agenda/cfg-main')
       .then(snap => {
         if (!snap.exists()) return;
         const data = snap.data();

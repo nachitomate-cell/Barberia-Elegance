@@ -4,6 +4,7 @@ import {
   Layers, ShoppingBag, Tag, TrendingUp, Percent, AlertTriangle, RefreshCcw, Flame,
 } from 'lucide-react';
 import { tenantCol } from '../lib/tenantUtils';
+import { withTimeout } from '../lib/firestore-helpers';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 
 // Ventana de ventas usada para ranking de "más vendidos" y rotación de stock.
@@ -43,13 +44,16 @@ export default function Inventario() {
     setFetching(true);
     try {
       // Productos
-      const pSnap = await getDocs(tenantCol('productos'));
+      const pSnap = await withTimeout(getDocs(tenantCol('productos')), 15000, 'inventario/productos');
       setProductos(pSnap.docs.map(d => ({ id: d.id, ...d.data() })));
 
       // Ventas en ventana: status 'delivered' creadas en los últimos N días.
       // Sin orderBy/limit para evitar índices compuestos; filtramos en cliente.
       const cutoff = new Date(Date.now() - SALES_WINDOW_DAYS * 864e5);
-      const vSnap = await getDocs(query(tenantCol('product_reservations'), where('status', '==', 'delivered')));
+      const vSnap = await withTimeout(
+        getDocs(query(tenantCol('product_reservations'), where('status', '==', 'delivered'))),
+        20000, 'inventario/ventas'
+      );
       const docs = vSnap.docs.map(d => ({ id: d.id, ...d.data() }));
       setVentas(docs.filter(v => {
         const ts = v.createdAt?.toDate?.() || (v.fecha ? new Date(v.fecha) : null);

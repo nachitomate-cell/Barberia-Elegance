@@ -624,6 +624,12 @@ const cumpleanos = require('./cumpleanos');
 exports.selloCumpleanos = cumpleanos.selloCumpleanos;
 
 // ─────────────────────────────────────────────────────────────────
+//  ALERTAS FINANCIERAS — ver alertas-financieras.js para detalles
+// ─────────────────────────────────────────────────────────────────
+const alertasFinancieras = require('./alertas-financieras');
+exports.alertasFinancierasDaily = alertasFinancieras.alertasFinancierasDaily;
+
+// ─────────────────────────────────────────────────────────────────
 //  AGREGADOS DE CLIENTES — ver stats-aggregate.js (reduce lecturas)
 // ─────────────────────────────────────────────────────────────────
 const statsAggregate = require('./stats-aggregate');
@@ -917,3 +923,11 @@ exports.avisarNuevoLead    = synaptechLead.avisarNuevoLead;
 // ─────────────────────────────────────────────────────────────────
 const biooTrack = require('./bioo-track');
 exports.biooTrackClick = biooTrack.biooTrackClick;
+
+// ─────────────────────────────────────────────────────────────────
+//  BIOO — AI Bio Builder (Claude Sonnet tool use).
+//  Callable autenticado que genera un bio completo desde un prompt
+//  + nicho. Rate-limit 5/uid/día. Ver functions/bioo-ai-builder.js.
+// ─────────────────────────────────────────────────────────────────
+const biooAiBuilder = require('./bioo-ai-builder');
+exports.biooAiGenerate = biooAiBuilder.biooAiGenerate;
