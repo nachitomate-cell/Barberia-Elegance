@@ -11,6 +11,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { tenantCol, tenantDoc } from '../lib/tenantUtils';
+import { withTimeout } from '../lib/firestore-helpers';
 import { useTenant } from '../contexts/TenantContext';
 import { useAuth } from '../contexts/AuthContext';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
@@ -119,9 +120,9 @@ async function fetchDatosMes(mesKey) {
   const endTs   = Timestamp.fromDate(new Date(y, m, 1, 0, 0, 0));
 
   const [citasSnap, ventasSnap, gastosSnap] = await Promise.all([
-    getDocs(query(tenantCol('citas'), where('fecha', '>=', firstStr), where('fecha', '<=', lastStr))),
-    getDocs(tenantCol('product_reservations')),
-    getDocs(query(tenantCol('gastos'), where('fecha', '>=', firstTs), where('fecha', '<', endTs))),
+    withTimeout(getDocs(query(tenantCol('citas'), where('fecha', '>=', firstStr), where('fecha', '<=', lastStr))), 20000, 'reporte/citas'),
+    withTimeout(getDocs(tenantCol('product_reservations')), 20000, 'reporte/ventas'),
+    withTimeout(getDocs(query(tenantCol('gastos'), where('fecha', '>=', firstTs), where('fecha', '<', endTs))), 20000, 'reporte/gastos'),
   ]);
 
   const citas = citasSnap.docs.map(d => d.data()).filter(c => c.estado === 'Completada');
@@ -293,7 +294,7 @@ function ReporteContadorModal({ tenantName, onClose }) {
     try {
       const [datos, settSnap] = await Promise.all([
         fetchDatosMes(mesKey),
-        getDoc(tenantDoc('settings', 'general')),
+        withTimeout(getDoc(tenantDoc('settings', 'general')), 10000, 'reporte/settings'),
       ]);
       const settings = settSnap.exists() ? settSnap.data() : {};
       const r = calcReporte(datos);
@@ -491,9 +492,9 @@ async function cargarMovimientosMes(mesKey) {
   const endTs    = Timestamp.fromDate(new Date(y, m, 1, 0, 0, 0));
 
   const [citasSnap, ventasSnap, gastosSnap] = await Promise.all([
-    getDocs(query(tenantCol('citas'), where('fecha', '>=', firstStr), where('fecha', '<=', lastStr))),
-    getDocs(tenantCol('product_reservations')),
-    getDocs(query(tenantCol('gastos'), where('fecha', '>=', firstTs), where('fecha', '<', endTs))),
+    withTimeout(getDocs(query(tenantCol('citas'), where('fecha', '>=', firstStr), where('fecha', '<=', lastStr))), 20000, 'conciliacion/citas'),
+    withTimeout(getDocs(tenantCol('product_reservations')), 20000, 'conciliacion/ventas'),
+    withTimeout(getDocs(query(tenantCol('gastos'), where('fecha', '>=', firstTs), where('fecha', '<', endTs))), 20000, 'conciliacion/gastos'),
   ]);
 
   const ventas = [];

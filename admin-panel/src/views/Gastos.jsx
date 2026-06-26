@@ -10,6 +10,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { tenantCol } from '../lib/tenantUtils';
+import { withTimeout } from '../lib/firestore-helpers';
 import { confirmDialog } from '../lib/confirmDialog';
 
 /* ─── Constants ─────────────────────────────────────────────── */
@@ -61,7 +62,7 @@ async function materializarRecurrentes() {
   const ahora = new Date();
   const mk = mesKey(ahora);
   const col = tenantCol('gastos');
-  const snap = await getDocs(query(col, where('recurrencia', '==', 'mensual')));
+  const snap = await withTimeout(getDocs(query(col, where('recurrencia', '==', 'mensual'))), 15000, 'gastos/recurrentes');
   for (const d of snap.docs) {
     const plantilla = d.data();
     const yaGenerados = Array.isArray(plantilla.mesesGenerados) ? plantilla.mesesGenerados : [];
