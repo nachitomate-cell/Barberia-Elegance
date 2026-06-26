@@ -43,6 +43,7 @@
   .btn.b-large{flex-direction:column;min-height:150px;gap:10px;padding:18px;}
   .btn.b-half .btn-ic,.btn.b-large .btn-ic{position:static;transform:none;width:30px;height:30px;}
   .btn.b-half .btn-thumb,.btn.b-large .btn-thumb{position:static;transform:none;width:46px;height:46px;border-radius:12px;}
+  .btn.b-half .btn-emoji,.btn.b-large .btn-emoji{position:static;transform:none;font-size:34px;line-height:1;}
   .u-imgwrap.b-half .u-img{aspect-ratio:1/1;object-fit:cover;height:100%;}
   /* Botones estándar: sombra limpia + anillo sutil (sin glows de color). */
   .btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;background:var(--white);border:0;
@@ -50,6 +51,7 @@
   .btn:hover{transform:translateY(-2px);box-shadow:0 4px 14px rgba(0,0,0,.10),0 0 0 1px rgba(0,0,0,.05);}
   .btn-ic{position:absolute;left:14px;top:50%;transform:translateY(-50%);width:27px;height:27px;object-fit:contain;}
   .btn-thumb{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:34px;height:34px;border-radius:8px;object-fit:cover;}
+  .btn-emoji{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:22px;line-height:1;pointer-events:none;}
   @keyframes bFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
   @keyframes bPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
   /* Featured: pulso de sombra neutra (sin tinte verde) — destaca sin "brillo de neón". */
@@ -1052,8 +1054,14 @@
           }
           var url = resolveUrl(b.url); if (!url) return;
           var icSuf = t.iconStyle==='green' ? '' : '-orig';
-          var icH = (b.tipo && {whatsapp:1,instagram:1,tiktok:1,facebook:1,youtube:1,email:1,telefono:1,enlace:1}[b.tipo]) ? '<img class="btn-ic" src="/ic-'+b.tipo+icSuf+'.png" alt="">' : '';
-          if (b.tipo==='enlace' && b.thumb) icH='<img class="btn-thumb" src="'+esc(b.thumb)+'" alt="">';
+          // Prioridad del icono del botón (paridad con BioPreview):
+          //   1) thumb (imagen subida) — para CUALQUIER tipo de enlace.
+          //   2) icon (emoji custom) — para CUALQUIER tipo de enlace.
+          //   3) /ic-{tipo}-orig.png — solo si el tipo lo soporta.
+          var icH = '';
+          if (b.thumb) icH = '<img class="btn-thumb" src="'+esc(b.thumb)+'" alt="">';
+          else if (b.icon) icH = '<span class="btn-emoji">'+esc(b.icon)+'</span>';
+          else if (b.tipo && {whatsapp:1,instagram:1,tiktok:1,facebook:1,youtube:1,email:1,telefono:1,enlace:1}[b.tipo]) icH = '<img class="btn-ic" src="/ic-'+b.tipo+icSuf+'.png" alt="">';
           var cls = b.featured ? ' feat' : ((t.btnAnim && t.btnAnim!=='none') ? (' anim-'+t.btnAnim) : '');
           html += '<a class="btn fade'+cls+' '+szCls+'" data-id="'+esc(b.id||'')+'" data-tipo="'+esc(b.tipo||'')+'" style="animation-delay:'+(0.1 + i*0.04)+'s;'+css.btn+(tx.btnColor?('color:'+tx.btnColor+';'):'')+'" href="'+esc(url)+'" target="_blank" rel="noopener">'+icH+esc(b.label||url)+'</a>';
         });

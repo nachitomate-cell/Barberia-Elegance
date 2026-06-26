@@ -30,6 +30,8 @@ export interface Block {
   texto?: string;
   img?: string;
   thumb?: string;
+  /** Emoji custom como icono del botón (ej. "🎵"). Cae a thumb → tipo por defecto. */
+  icon?: string;
   socials?: Social[];
   // Bloque de captura de leads / newsletter
   subtitulo?: string;

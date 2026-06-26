@@ -234,7 +234,7 @@ function LinkCard({ block, clicks = 0 }: { block: Block; clicks?: number }): JSX
           ? <SizePicker value={block.layoutSize ?? 'full'} onChange={(v) => patch({ layoutSize: v })} />
           : <span />}
         <div className="flex items-center gap-1">
-          {link && <ThumbAction block={block} patch={patch} />}
+          {link && <IconAction block={block} patch={patch} />}
           {link && (
             <button
               type="button"
@@ -320,22 +320,115 @@ function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void 
   );
 }
 
-/** Acción "Añadir miniatura" — icono de la fila inferior; muestra el thumb si existe. */
-function ThumbAction({ block, patch }: { block: Block; patch: (p: Partial<Block>) => void }): JSX.Element {
+/** Emojis curados para usar como icono del botón en la vista pública.
+ *  Si el usuario quiere otro, puede pegarlo en el input "Otro emoji" del picker. */
+const ICON_EMOJIS = [
+  '🌐','📱','💬','📷','🎵','🎬','🛒','🎁','⭐','💼','📅','📧',
+  '✉️','📍','☕','🍴','💰','🎨','📚','🎮','🏠','❤️','🔥','✨',
+  '🚀','📺','🎯','💎','✂️','💈','💅','💆','🧖','👑','🍷','🍺',
+];
+
+/** Picker compacto de icono: emojis curados + subir imagen + reset.
+ *  Se cierra al clickear afuera. La prioridad de render es:
+ *    1) thumb (imagen)  →  2) icon (emoji)  →  3) icono por defecto del tipo. */
+function IconAction({ block, patch }: { block: Block; patch: (p: Partial<Block>) => void }): JSX.Element {
   const ref = useRef<HTMLInputElement>(null);
+  const wrap = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: PointerEvent): void => {
+      if (!wrap.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('pointerdown', onDown);
+    return () => document.removeEventListener('pointerdown', onDown);
+  }, [open]);
+
+  const hasCustom = !!block.thumb || !!block.icon;
+
   return (
-    <>
+    <div ref={wrap} className="relative">
       <button
         type="button"
-        onClick={() => ref.current?.click()}
-        title="Añadir miniatura"
-        aria-label="Añadir miniatura"
-        className="grid h-9 w-9 place-items-center rounded-lg text-gray-400 transition-colors hover:text-[#72a129] active:bg-neutral-100"
+        onClick={() => setOpen((v) => !v)}
+        title="Elegir icono"
+        aria-label="Elegir icono"
+        aria-expanded={open}
+        className={`grid h-9 w-9 place-items-center rounded-lg transition-colors ${
+          hasCustom ? 'text-[#72a129] bg-[#92c83a]/10' : 'text-gray-400 hover:text-[#72a129] active:bg-neutral-100'
+        }`}
       >
         {block.thumb
           ? <img src={block.thumb} alt="" className="h-[18px] w-[18px] rounded object-cover ring-1 ring-black/10" />
-          : <ImageIcon size={16} />}
+          : block.icon
+            ? <span className="text-base leading-none">{block.icon}</span>
+            : <ImageIcon size={16} />}
       </button>
+
+      <AnimatePresence>
+        {open && (
+          <>
+            {/* Backdrop invisible solo para capturar clicks fuera en móvil */}
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              transition={{ duration: 0.12 }}
+              className="fixed inset-0 z-20"
+              onClick={() => setOpen(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, y: -6, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -6, scale: 0.96 }}
+              transition={{ duration: 0.16 }}
+              className="absolute right-0 top-[calc(100%+6px)] z-30 w-[260px] origin-top-right rounded-2xl bg-white p-3 shadow-xl ring-1 ring-black/[0.06]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <p className="mb-2 px-1 text-[10px] font-bold uppercase tracking-wider text-neutral-400">
+                Elige un emoji
+              </p>
+              <div className="grid grid-cols-6 gap-1">
+                {ICON_EMOJIS.map((em) => {
+                  const active = block.icon === em && !block.thumb;
+                  return (
+                    <button
+                      key={em}
+                      type="button"
+                      onClick={() => { patch({ icon: em, thumb: '' }); setOpen(false); }}
+                      className={`grid aspect-square place-items-center rounded-lg text-lg transition-colors ${
+                        active ? 'bg-[#92c83a]/20 ring-1 ring-[#92c83a]' : 'hover:bg-neutral-100'
+                      }`}
+                    >
+                      {em}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="mt-3 flex items-center gap-2 border-t border-neutral-100 pt-3">
+                <button
+                  type="button"
+                  onClick={() => ref.current?.click()}
+                  className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-neutral-100 px-3 py-2 text-xs font-bold text-neutral-700 transition-colors hover:bg-neutral-200"
+                >
+                  <ImageIcon size={14} /> Subir imagen
+                </button>
+                <button
+                  type="button"
+                  disabled={!hasCustom}
+                  onClick={() => { patch({ icon: '', thumb: '' }); setOpen(false); }}
+                  className="rounded-lg bg-neutral-50 px-3 py-2 text-xs font-bold text-neutral-500 transition-colors hover:bg-neutral-100 disabled:cursor-default disabled:opacity-40"
+                >
+                  Por defecto
+                </button>
+              </div>
+              <p className="mt-2 px-1 text-[10px] leading-snug text-neutral-400">
+                La imagen subida tiene prioridad sobre el emoji.
+              </p>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
       <input
         ref={ref}
         type="file"
@@ -343,11 +436,16 @@ function ThumbAction({ block, patch }: { block: Block; patch: (p: Partial<Block>
         hidden
         onChange={async (e) => {
           const f = e.target.files?.[0];
-          if (f) { try { patch({ thumb: await fileToDataUrl(f, { square: true, maxW: 160 }) }); } catch { /* noop */ } }
+          if (f) {
+            try {
+              patch({ thumb: await fileToDataUrl(f, { square: true, maxW: 160 }) });
+              setOpen(false);
+            } catch { /* noop */ }
+          }
           e.target.value = '';
         }}
       />
-    </>
+    </div>
   );
 }
 
