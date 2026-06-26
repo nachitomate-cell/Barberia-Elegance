@@ -96,8 +96,76 @@ input, select, textarea, button { font-size: 16px; }
   0%, 100% { box-shadow: 0 1px 2px rgba(0,0,0,.08), 0 0 0 1px rgba(0,0,0,.05); }
   50%      { box-shadow: 0 6px 22px rgba(0,0,0,.18), 0 0 0 1px rgba(0,0,0,.08); }
 }
+/* Wiggle sutil tipo "estoy aquí, mírame" — periodo largo para no marear. */
+@keyframes bShake {
+  0%, 92%, 100% { transform: rotate(0deg); }
+  93% { transform: rotate(-2.2deg); }
+  95% { transform: rotate(2.2deg); }
+  97% { transform: rotate(-1.4deg); }
+  99% { transform: rotate(1deg); }
+}
+/* Rebote elástico, squash + stretch. */
+@keyframes bBounce {
+  0%, 100% { transform: translateY(0) scaleY(1); }
+  10% { transform: translateY(0) scaleY(.92); }
+  30% { transform: translateY(-7px) scaleY(1.04); }
+  55% { transform: translateY(0) scaleY(.97); }
+  70% { transform: translateY(-3px) scaleY(1.02); }
+  85% { transform: translateY(0) scaleY(1); }
+}
+/* Tada: celebración rápida (escala + rotación). */
+@keyframes bTada {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  10%, 20% { transform: scale(.95) rotate(-3deg); }
+  30%, 50%, 70%, 90% { transform: scale(1.06) rotate(3deg); }
+  40%, 60%, 80% { transform: scale(1.06) rotate(-3deg); }
+}
+/* Swing: péndulo, anclado arriba. */
+@keyframes bSwing {
+  0%, 100% { transform: rotate(0deg); }
+  20% { transform: rotate(8deg); }
+  40% { transform: rotate(-6deg); }
+  60% { transform: rotate(4deg); }
+  80% { transform: rotate(-2deg); }
+}
+/* Jelly: gelatinoso, escala asimétrica. */
+@keyframes bJelly {
+  0%, 100% { transform: scale(1, 1); }
+  30% { transform: scale(1.08, .92); }
+  40% { transform: scale(.94, 1.06); }
+  50% { transform: scale(1.04, .96); }
+  65% { transform: scale(.98, 1.02); }
+  75% { transform: scale(1.01, .99); }
+}
+/* Shine: brillo diagonal que cruza el botón cada cierto tiempo. Requiere
+   ::before posicionado dentro de un contenedor relativo+overflow-hidden. */
+@keyframes bShine {
+  0%   { transform: translateX(-120%) skewX(-18deg); }
+  60%  { transform: translateX(220%) skewX(-18deg); }
+  100% { transform: translateX(220%) skewX(-18deg); }
+}
 .anim-float { animation: bFloat 3s ease-in-out infinite; }
 .anim-pulse { animation: bPulse 2.4s ease-in-out infinite; }
 .anim-grow { transition: transform .15s ease; }
 .anim-grow:hover { transform: scale(1.04); }
+.anim-shake { animation: bShake 4.2s ease-in-out infinite; transform-origin: 50% 50%; }
+.anim-bounce { animation: bBounce 2.6s cubic-bezier(.36,.07,.19,.97) infinite; transform-origin: 50% 100%; }
+.anim-tada { animation: bTada 3.4s ease-in-out infinite; transform-origin: 50% 50%; }
+.anim-swing { animation: bSwing 3s ease-in-out infinite; transform-origin: 50% 0%; }
+.anim-jelly { animation: bJelly 2.8s ease-in-out infinite; transform-origin: 50% 50%; }
+.anim-shine { position: relative; overflow: hidden; isolation: isolate; }
+.anim-shine::before {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(100deg, transparent 30%, rgba(255,255,255,.55) 50%, transparent 70%);
+  transform: translateX(-120%) skewX(-18deg);
+  animation: bShine 3.2s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 1;
+}
 .anim-feat { animation: bGlow 2s ease-in-out infinite; }
+/* Si el usuario prefiere reducir movimiento, apagamos las animaciones idle. */
+@media (prefers-reduced-motion: reduce) {
+  .anim-float, .anim-pulse, .anim-shake, .anim-bounce,
+  .anim-tada, .anim-swing, .anim-jelly, .anim-feat { animation: none; }
+  .anim-shine::before { animation: none; opacity: 0; }
+}

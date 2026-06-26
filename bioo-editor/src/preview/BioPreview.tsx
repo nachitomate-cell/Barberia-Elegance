@@ -319,10 +319,16 @@ export default function BioPreview({ state }: { state: BioState }): JSX.Element 
             if (b.tipo === 'paywall') {
               return <PaywallBlock key={b.id} b={b} radius={radius} username={state.username} />;
             }
+            // Overrides custom de color del botón (Apariencia → Botones).
+            // En outline: el override de "texto" pinta texto + borde; el override
+            // de "fondo" se ignora (el modo outline no tiene fondo).
+            const btnBg = theme.btnBgColor || p.btnBg;
+            const btnText = theme.btnTextColor || p.btnText;
+            const outlineColor = theme.btnTextColor || (p.btnBorder === 'transparent' ? p.text : p.btnBorder);
             const fillStyle =
               theme.fill === 'outline'
-                ? { background: 'transparent', color: p.text, border: `1.5px solid ${p.btnBorder === 'transparent' ? p.text : p.btnBorder}` }
-                : { background: p.btnBg, color: p.btnText, border: `1px solid ${p.btnBorder}` };
+                ? { background: 'transparent', color: theme.btnTextColor || p.text, border: `1.5px solid ${outlineColor}` }
+                : { background: btnBg, color: btnText, border: `1px solid ${theme.btnBgColor ? 'transparent' : p.btnBorder}` };
             // Featured: solo añade la animación de pulso (sombra neutra). u.html
             // NO agrega aro blanco ni glow tintado — los quitamos también acá
             // para mantener nitidez y paridad con la vista pública.

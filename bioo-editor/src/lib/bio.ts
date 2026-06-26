@@ -14,6 +14,8 @@ function normalizeTheme(raw: unknown): Theme {
     avatarShape: t.avatarShape === 'rounded' ? 'rounded' : 'circle',
     avatarRing: t.avatarRing ?? '',
     btnAnim: t.btnAnim ?? 'none',
+    btnBgColor: typeof t.btnBgColor === 'string' ? t.btnBgColor : '',
+    btnTextColor: typeof t.btnTextColor === 'string' ? t.btnTextColor : '',
     text: { ...DEFAULT_TEXT, ...(t.text ?? {}) },
   };
 }

@@ -37,6 +37,10 @@ export interface Block {
   // Bloque de propina / tip jar
   amounts?: number[];
   currency?: string;
+  /** Meta de recaudación opcional (psicología de progreso). Ej: 500000 CLP. */
+  goal?: number;
+  /** Texto corto de la meta. Ej: "Cámara nueva", "Premio para clientes". */
+  goalText?: string;
   // Bloque paywall / producto digital
   price?: number;
   hiddenUrl?: string;
@@ -55,7 +59,7 @@ export type BgMode = 'preset' | 'color' | 'gradient' | 'animated' | 'pattern' | 
 export type PatternKind = 'dots' | 'grid' | 'diag' | 'topo';
 export type FxKind = 'aurora' | 'grain' | 'fluid' | 'gasgiant';
 export type AvatarShape = 'circle' | 'rounded';
-export type BtnAnim = 'none' | 'float' | 'pulse' | 'grow';
+export type BtnAnim = 'none' | 'float' | 'pulse' | 'grow' | 'shake' | 'bounce' | 'shine' | 'tada' | 'swing' | 'jelly';
 
 export type SizeKey = 's' | 'm' | 'l';
 export type Weight = 'normal' | 'bold' | 'black';
@@ -104,6 +108,10 @@ export interface Theme {
   avatarShape: AvatarShape;
   avatarRing: string;
   btnAnim: BtnAnim;
+  /** Override del color de fondo del botón. '' = usa el del tema. */
+  btnBgColor?: string;
+  /** Override del color del texto del botón. '' = usa el del tema. */
+  btnTextColor?: string;
   text: TextStyle;
 }
 

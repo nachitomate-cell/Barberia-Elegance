@@ -154,10 +154,35 @@ export default function Appearance(): JSX.Element {
           onChange={(fill) => dispatch({ type: 'patchTheme', patch: { fill } })}
         />
 
+        <SubLabel className="mt-6">Colores</SubLabel>
+        <div className="grid grid-cols-2 gap-3">
+          <ColorOverrideField
+            label="Fondo del botón"
+            value={t.btnBgColor ?? ''}
+            onChange={(btnBgColor) => dispatch({ type: 'patchTheme', patch: { btnBgColor } })}
+          />
+          <ColorOverrideField
+            label="Texto del botón"
+            value={t.btnTextColor ?? ''}
+            onChange={(btnTextColor) => dispatch({ type: 'patchTheme', patch: { btnTextColor } })}
+          />
+        </div>
+
         <SubLabel className="mt-6">Animación</SubLabel>
         <SlideSeg<BtnAnim>
           layoutId="btnAnim"
-          options={[['none', 'Ninguna'], ['float', 'Levitar'], ['pulse', 'Pulso'], ['grow', 'Crecer']]}
+          options={[
+            ['none', 'Ninguna'],
+            ['float', 'Levitar'],
+            ['pulse', 'Pulso'],
+            ['grow', 'Crecer'],
+            ['shake', 'Sacudir'],
+            ['bounce', 'Rebote'],
+            ['shine', 'Brillo'],
+            ['tada', 'Tada'],
+            ['swing', 'Vaivén'],
+            ['jelly', 'Gelatina'],
+          ]}
           value={t.btnAnim}
           onChange={(btnAnim) => dispatch({ type: 'patchTheme', patch: { btnAnim } })}
         />

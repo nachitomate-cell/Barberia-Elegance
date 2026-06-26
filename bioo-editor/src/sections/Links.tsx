@@ -1,5 +1,5 @@
-import { useRef, useState } from 'react';
-import { Reorder, useDragControls } from 'framer-motion';
+import { useEffect, useRef, useState } from 'react';
+import { AnimatePresence, Reorder, motion, useDragControls } from 'framer-motion';
 import {
   Plus, Trash2, Star, GripVertical, X,
   Link2, MessageCircle, Instagram, Music2, Facebook, Youtube, Mail, Phone,
@@ -13,6 +13,7 @@ import { useStripeAccount } from '../lib/connect';
 import { useBlockStats } from '../lib/useBlockStats';
 import ImagePicker from '../components/ImagePicker';
 import TemplatePicker from '../components/TemplatePicker';
+import AiBuilderModal from '../components/AiBuilderModal';
 import type { Block, BlockType, Social, SocialNet, LayoutSize } from '../types';
 
 const TIPOS: { id: BlockType; label: string }[] = [
@@ -48,6 +49,14 @@ export default function Links(): JSX.Element {
   const { state, dispatch } = useEditor();
   const [picker, setPicker] = useState(false);
   const [tplOpen, setTplOpen] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiSoon, setAiSoon] = useState(false);
+
+  useEffect(() => {
+    if (!aiSoon) return;
+    const id = setTimeout(() => setAiSoon(false), 4000);
+    return () => clearTimeout(id);
+  }, [aiSoon]);
   const { accountId, ready, loading: connLoading } = useStripeAccount();
   const hasMonetization = state.blocks.some((b) => b.tipo === 'tip' || b.tipo === 'paywall');
   const needsConnect = !connLoading && hasMonetization && !accountId;
@@ -69,15 +78,44 @@ export default function Links(): JSX.Element {
         </div>
       )}
 
-      {/* ── Onboarding mágico: plantillas ── */}
+      {/* ── Onboarding mágico: IA + plantillas ── */}
+      <button
+        type="button"
+        onClick={() => setAiSoon(true)}
+        className="group relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-2xl bg-gradient-to-r from-[#15240b] via-[#2c5a17] to-[#15240b] py-3.5 text-sm font-extrabold text-white shadow-lg transition-transform active:scale-[0.98]"
+      >
+        {/* Halo brillante */}
+        <span aria-hidden className="pointer-events-none absolute -inset-x-8 -top-8 h-24 bg-[radial-gradient(closest-side,rgba(206,240,124,0.5),transparent)] blur-2xl" />
+        <Sparkles size={16} className="text-[#cef07c]" />
+        <span>Crear mi bio con IA</span>
+        <span className="rounded-full bg-[#cef07c] px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-[#15240b]">Nuevo</span>
+      </button>
+      <AnimatePresence>
+        {aiSoon && (
+          <motion.div
+            key="ai-soon"
+            initial={{ opacity: 0, y: -6, height: 0 }}
+            animate={{ opacity: 1, y: 0, height: 'auto' }}
+            exit={{ opacity: 0, y: -6, height: 0 }}
+            transition={{ duration: 0.18 }}
+            className="overflow-hidden"
+          >
+            <div className="flex items-start gap-2 rounded-2xl border border-[#cef07c]/40 bg-[#15240b]/[0.04] px-3.5 py-3 text-xs font-medium leading-snug text-[#15240b]">
+              <Sparkles size={14} className="mt-0.5 shrink-0 text-[#72a129]" />
+              <span>Estamos trabajando en esta modalidad. Por el momento, disfruta del editor actual.</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <button
         type="button"
         onClick={() => setTplOpen(true)}
         className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#92c83a] to-[#72a129] py-3 text-sm font-bold text-[#15240b] shadow-sm transition-transform active:scale-95"
       >
-        <Sparkles size={16} /> Empezar con una plantilla
+        <Sparkles size={16} /> O empezar con una plantilla
       </button>
       <TemplatePicker open={tplOpen} onClose={() => setTplOpen(false)} />
+      <AiBuilderModal open={aiOpen} onClose={() => setAiOpen(false)} />
 
       {/* ── Agregar enlace (arriba de la lista) ── */}
       {picker ? (
@@ -395,6 +433,7 @@ function SpecialBody({ block, patch }: { block: Block; patch: (p: Partial<Block>
         const n = Math.max(0, Math.round(Number(v) || 0));
         patch({ amounts: amounts.map((a, j) => (j === i ? n : a)) });
       };
+      const goalOn = (block.goal ?? 0) > 0;
       return (
         <div className="space-y-1 pt-0.5">
           <input className={titleInput} placeholder="Invítame un café ☕" value={block.label} onChange={(e) => patch({ label: e.target.value })} />
@@ -417,6 +456,25 @@ function SpecialBody({ block, patch }: { block: Block; patch: (p: Partial<Block>
               onChange={(e) => patch({ currency: e.target.value.toUpperCase().slice(0, 4) })}
               placeholder="USD"
               className="w-14 rounded-lg bg-gray-50 px-2 py-1.5 text-center text-xs font-bold uppercase text-gray-500 focus:bg-white focus:outline-none"
+            />
+          </div>
+          {/* Meta de recaudación — psicología de progreso (Linktree-style) */}
+          <div className="mt-2 flex flex-wrap items-center gap-2 rounded-xl bg-gradient-to-r from-amber-50 to-rose-50 px-3 py-2.5 ring-1 ring-amber-200/60">
+            <span className="text-xs">🎯</span>
+            <span className="text-[11px] font-bold uppercase tracking-wide text-amber-700">Meta</span>
+            <input
+              type="number" min={0} inputMode="numeric"
+              value={block.goal ?? ''}
+              onChange={(e) => patch({ goal: Math.max(0, Number(e.target.value) || 0) })}
+              placeholder="0"
+              className="w-20 rounded-lg bg-white px-2 py-1.5 text-center text-sm font-semibold text-gray-800 ring-1 ring-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-400"
+            />
+            <input
+              value={block.goalText ?? ''}
+              onChange={(e) => patch({ goalText: e.target.value.slice(0, 60) })}
+              placeholder={goalOn ? 'Para qué (ej: cámara nueva)' : 'Activa la meta poniendo un monto →'}
+              className="flex-1 min-w-[120px] rounded-lg bg-white px-2.5 py-1.5 text-sm text-gray-800 ring-1 ring-amber-200 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-400"
+              disabled={!goalOn}
             />
           </div>
         </div>

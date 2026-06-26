@@ -54,6 +54,13 @@
   @keyframes bPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.03)}}
   /* Featured: pulso de sombra neutra (sin tinte verde) — destaca sin "brillo de neón". */
   @keyframes bGlow{0%,100%{box-shadow:0 1px 2px rgba(0,0,0,.08),0 0 0 1px rgba(0,0,0,.05)}50%{box-shadow:0 6px 22px rgba(0,0,0,.18),0 0 0 1px rgba(0,0,0,.08)}}
+  /* Nuevas animaciones link-in-bio. Periodos largos para no marear. */
+  @keyframes bShake{0%,92%,100%{transform:rotate(0)}93%{transform:rotate(-2.2deg)}95%{transform:rotate(2.2deg)}97%{transform:rotate(-1.4deg)}99%{transform:rotate(1deg)}}
+  @keyframes bBounce{0%,100%{transform:translateY(0) scaleY(1)}10%{transform:translateY(0) scaleY(.92)}30%{transform:translateY(-7px) scaleY(1.04)}55%{transform:translateY(0) scaleY(.97)}70%{transform:translateY(-3px) scaleY(1.02)}85%{transform:translateY(0) scaleY(1)}}
+  @keyframes bTada{0%,100%{transform:scale(1) rotate(0)}10%,20%{transform:scale(.95) rotate(-3deg)}30%,50%,70%,90%{transform:scale(1.06) rotate(3deg)}40%,60%,80%{transform:scale(1.06) rotate(-3deg)}}
+  @keyframes bSwing{0%,100%{transform:rotate(0)}20%{transform:rotate(8deg)}40%{transform:rotate(-6deg)}60%{transform:rotate(4deg)}80%{transform:rotate(-2deg)}}
+  @keyframes bJelly{0%,100%{transform:scale(1,1)}30%{transform:scale(1.08,.92)}40%{transform:scale(.94,1.06)}50%{transform:scale(1.04,.96)}65%{transform:scale(.98,1.02)}75%{transform:scale(1.01,.99)}}
+  @keyframes bShine{0%{transform:translateX(-120%) skewX(-18deg)}60%{transform:translateX(220%) skewX(-18deg)}100%{transform:translateX(220%) skewX(-18deg)}}
   /* Cada regla incluye la entrada `fade` primero para no anular el opacity:0→1
      de .fade (el shorthand `animation` no se acumula); la animación idle va
      después y gana en `transform`. Sin esto, los botones animados quedan invisibles. */
@@ -61,7 +68,19 @@
   .btn.anim-pulse{animation:fade .45s ease forwards, bPulse 2.4s ease-in-out infinite;}
   .btn.anim-grow{transition:transform .15s ease;}
   .btn.anim-grow:hover{transform:scale(1.04);}
+  .btn.anim-shake{animation:fade .45s ease forwards, bShake 4.2s ease-in-out infinite;transform-origin:50% 50%;}
+  .btn.anim-bounce{animation:fade .45s ease forwards, bBounce 2.6s cubic-bezier(.36,.07,.19,.97) infinite;transform-origin:50% 100%;}
+  .btn.anim-tada{animation:fade .45s ease forwards, bTada 3.4s ease-in-out infinite;transform-origin:50% 50%;}
+  .btn.anim-swing{animation:fade .45s ease forwards, bSwing 3s ease-in-out infinite;transform-origin:50% 0%;}
+  .btn.anim-jelly{animation:fade .45s ease forwards, bJelly 2.8s ease-in-out infinite;transform-origin:50% 50%;}
+  /* Shine: brillo diagonal cruzando el botón. Necesita overflow:hidden + pseudo. */
+  .btn.anim-shine{position:relative;overflow:hidden;isolation:isolate;}
+  .btn.anim-shine::before{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgba(255,255,255,.55) 50%,transparent 70%);transform:translateX(-120%) skewX(-18deg);animation:bShine 3.2s ease-in-out infinite;pointer-events:none;z-index:1;}
   .btn.feat{animation:fade .45s ease forwards, bGlow 2s ease-in-out infinite;font-weight:800;}
+  @media (prefers-reduced-motion: reduce){
+    .btn.anim-float,.btn.anim-pulse,.btn.anim-shake,.btn.anim-bounce,.btn.anim-tada,.btn.anim-swing,.btn.anim-jelly,.btn.feat{animation:fade .45s ease forwards;}
+    .btn.anim-shine::before{animation:none;opacity:0;}
+  }
   .u-text{text-align:center;font-size:15px;font-weight:600;line-height:1.45;width:100%;word-break:break-word;}
   .u-sep{width:55%;border:0;border-top:2px solid rgba(128,128,128,.35);margin:6px auto;}
   /* Bloque de captura de leads (newsletter) — más aire y look "seamless". */
@@ -79,6 +98,16 @@
   .u-news-msg{font-size:12.5px;font-weight:600;margin-top:8px;}
   /* Bloque de propina (tip jar) */
   .u-tip{width:100%;background:rgba(255,255,255,.92);border-radius:24px;padding:18px 16px;text-align:center;box-shadow:0 6px 20px rgba(21,36,11,.12);backdrop-filter:blur(4px);}
+  /* ─── Tip Goal (barra de progreso) ─── */
+  .u-tip-goal{margin-top:11px;text-align:left;}
+  .u-tip-goal-row{display:flex;align-items:baseline;justify-content:space-between;gap:8px;font-size:12px;font-weight:600;color:#374151;margin-bottom:6px;}
+  .u-tip-goal-row b{color:#15240b;font-weight:800;}
+  .u-tip-goal-row .pct{font-size:11px;color:#10b981;font-weight:800;}
+  .u-tip-bar{height:8px;background:rgba(0,0,0,.06);border-radius:99px;overflow:hidden;position:relative;}
+  .u-tip-bar-fill{height:100%;background:linear-gradient(90deg,#92c83a,#10b981);border-radius:99px;transition:width .8s cubic-bezier(.4,1,.4,1);position:relative;}
+  .u-tip-bar-fill::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.45),transparent);animation:tipShine 2.4s linear infinite;}
+  @keyframes tipShine{0%{transform:translateX(-100%);}100%{transform:translateX(100%);}}
+  .u-tip-goal-text{margin-top:6px;font-size:11px;color:#6b7280;font-style:italic;text-align:center;}
   .u-tip-t{font-size:15.5px;font-weight:800;line-height:1.3;color:#15240b;}
   .u-tip-s{font-size:13px;color:#6b7280;margin-top:4px;line-height:1.4;}
   .u-tip-row{display:flex;justify-content:center;flex-wrap:wrap;gap:8px;margin-top:13px;}
@@ -613,7 +642,9 @@
         preset: THEMES[b.preset]?b.preset:'lime',
         shape: SHAPES[b.shape]?b.shape:'rounded',
         fill: (b.fill==='outline')?'outline':'solid',
-        btnAnim: (['none','float','pulse','grow'].indexOf(b.btnAnim)>=0?b.btnAnim:'none'),
+        btnAnim: (['none','float','pulse','grow','shake','bounce','shine','tada','swing','jelly'].indexOf(b.btnAnim)>=0?b.btnAnim:'none'),
+        btnBgColor: (typeof b.btnBgColor==='string')?b.btnBgColor:'',
+        btnTextColor: (typeof b.btnTextColor==='string')?b.btnTextColor:'',
         iconStyle: b.iconStyle==='original'?'original':'green',
         avatarShape: b.avatarShape==='rounded'?'rounded':'circle',
         avatarRing: b.avatarRing||'',
@@ -635,8 +666,13 @@
     }
     function themeCss(t){
       var p = THEMES[t.preset], radius = SHAPES[t.shape], btn;
-      if (t.fill === 'outline') btn = 'background:transparent;color:'+p.text+';border:1.5px solid '+p.text+';';
-      else btn = 'background:'+p.btnBg+';color:'+p.btnText+';border:1.5px solid '+p.btnBorder+';';
+      // Overrides custom de color del botón (Apariencia → Botones → Colores).
+      // En outline: el override de "texto" pinta texto + borde; el de "fondo" se ignora.
+      var bbg = t.btnBgColor || p.btnBg;
+      var btx = t.btnTextColor || p.btnText;
+      var outC = t.btnTextColor || p.text;
+      if (t.fill === 'outline') btn = 'background:transparent;color:'+outC+';border:1.5px solid '+outC+';';
+      else btn = 'background:'+bbg+';color:'+btx+';border:1.5px solid '+(t.btnBgColor?'transparent':p.btnBorder)+';';
       btn += 'border-radius:'+radius+';';
       return { p:p, btn:btn, radius:radius };
     }
@@ -977,8 +1013,25 @@
             var pills = amts.slice(0,4).map(function(a, idx){ return '<button type="button" class="u-tip-amt'+(idx===0?' on':'')+'" data-amt="'+esc(String(a))+'">'+sym+esc(String(a))+'</button>'; }).join('');
             var tTit = esc((b.label||'Apóyame').trim());
             var tSub = (b.subtitulo||'').trim() ? '<div class="u-tip-s">'+esc(b.subtitulo.trim())+'</div>' : '';
+            // Tip Goal (barra de progreso). Solo si el creador puso `goal > 0`.
+            // `tipTotals` vive en el doc raíz de la bio para lectura pública sin
+            // exponer todo blockStats (que tiene click counts privados).
+            var goalH = '';
+            var goal = Number(b.goal||0);
+            if (goal > 0) {
+              var raised = Number((data.tipTotals||{})[b.id||''] || 0);
+              var pct = Math.min(100, Math.round((raised/goal)*100));
+              var goalLine = (b.goalText||'').trim()
+                ? '<div class="u-tip-goal-text">🎯 '+esc((b.goalText||'').trim())+'</div>' : '';
+              goalH = '<div class="u-tip-goal">'
+                   +    '<div class="u-tip-goal-row"><span><b>'+sym+raised.toLocaleString('es-CL')+'</b> de '+sym+goal.toLocaleString('es-CL')+'</span><span class="pct">'+pct+'%</span></div>'
+                   +    '<div class="u-tip-bar"><div class="u-tip-bar-fill" style="width:'+pct+'%;"></div></div>'
+                   +    goalLine
+                   +  '</div>';
+            }
             html += '<div class="u-tip fade b-full" data-block="'+esc(b.id||'')+'" data-sym="'+esc(sym)+'" style="animation-delay:'+(0.1+i*0.04)+'s;">'
                  +    '<div class="u-tip-t">'+tTit+'</div>'+tSub
+                 +    goalH
                  +    '<div class="u-tip-row">'+pills+'</div>'
                  +    '<button type="button" class="u-tip-send" style="border-radius:'+css.radius+';">Enviar apoyo</button>'
                  +  '</div>';
