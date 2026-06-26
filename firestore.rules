@@ -406,7 +406,13 @@ service cloud.firestore {
                       && request.resource.data.cliente.nombre.size() <= 80
                       && request.resource.data.cliente.whatsapp is string
                       && request.resource.data.cliente.whatsapp.size() >= 8
-                      && request.resource.data.cliente.whatsapp.size() <= 20;
+                      && request.resource.data.cliente.whatsapp.size() <= 20
+                      // email es opcional (compat con reservas viejas). Cuando se
+                      // envía, validamos tipo y largo razonable para evitar abuso
+                      // (la CF lo usa para mandar confirmación + recordatorio 24h).
+                      && (!('email' in request.resource.data.cliente)
+                          || (request.resource.data.cliente.email is string
+                              && request.resource.data.cliente.email.size() <= 120));
       }
 
       // ── /bios/{username}/disponibilidad — espejo público de slots ocupados ──

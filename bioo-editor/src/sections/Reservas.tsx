@@ -19,7 +19,7 @@ import {
   loadReservasConfig, saveReservasConfig, nuevoServicioId, DIAS_LABEL,
   watchReservas, cancelarReserva, completarReserva, whatsappUrl,
   reservaTimestamp, formatearFechaCorta, formatearFechaLarga,
-  watchReservasMeta, RESERVAS_FREE_LIMIT,
+  watchReservasMeta,
   type ReservasConfig, type Franja, type Weekday, type Reserva,
   type ReservasMeta,
 } from '../lib/reservas';
@@ -421,79 +421,44 @@ function MisReservasView({
   );
 }
 
-/* ── Banner del free tier (uso del mes + nudge de upgrade) ──────── */
+/* ── Stat del mes en curso (sin framing de cap — el Free es ilimitado) ─── */
 function FreeTierBanner({ meta }: { meta: ReservasMeta | null }): JSX.Element | null {
   if (!meta) return null;
-  const usadas = Math.max(0, Math.min(meta.usadasMes, RESERVAS_FREE_LIMIT * 2));
-  const restantes = Math.max(0, RESERVAS_FREE_LIMIT - usadas);
-  const pct = Math.min(100, Math.round((usadas / RESERVAS_FREE_LIMIT) * 100));
-
-  // Estado visual según uso. El "límite" no bloquea — solo invita a upgrade.
-  let theme: { ring: string; bg: string; bar: string; ico: string; tag: string };
-  let title: string;
-  let body: string;
-  if (usadas >= RESERVAS_FREE_LIMIT) {
-    theme = {
-      ring: 'rgba(239,68,68,0.25)', bg: 'rgba(254,242,242,0.85)',
-      bar: '#ef4444', ico: '#b91c1c', tag: 'bg-red-100 text-red-700',
-    };
-    title = `Llegaste al límite del plan gratis (${RESERVAS_FREE_LIMIT}/mes)`;
-    body  = 'Seguiremos recibiendo tus reservas con normalidad este mes; sube a Premium para asegurar uso ilimitado.';
-  } else if (pct >= 80) {
-    theme = {
-      ring: 'rgba(217,119,6,0.22)', bg: 'rgba(255,251,235,0.95)',
-      bar: '#f59e0b', ico: '#b45309', tag: 'bg-amber-100 text-amber-700',
-    };
-    title = `Te quedan ${restantes} reservas este mes`;
-    body  = 'Estás cerca del límite del plan gratis. Considera subir a Premium para citas ilimitadas.';
-  } else {
-    theme = {
-      ring: 'rgba(146,200,58,0.25)', bg: 'rgba(243,250,230,0.7)',
-      bar: '#92c83a', ico: '#52780f', tag: 'bg-[#92c83a]/15 text-[#15240b]',
-    };
-    title = `${usadas} / ${RESERVAS_FREE_LIMIT} reservas este mes`;
-    body  = 'Plan gratuito de Bioo. Reservas ilimitadas vienen con Premium.';
-  }
+  const usadas = Math.max(0, meta.usadasMes);
+  const total  = Math.max(0, meta.totalHistorico);
 
   return (
     <div
       className="rounded-2xl p-4"
-      style={{ background: theme.bg, boxShadow: `inset 0 0 0 1px ${theme.ring}` }}
+      style={{
+        background: 'rgba(243,250,230,0.7)',
+        boxShadow: 'inset 0 0 0 1px rgba(146,200,58,0.25)',
+      }}
     >
       <div className="flex items-start gap-3">
         <span
           className="grid h-9 w-9 shrink-0 place-items-center rounded-xl"
-          style={{ background: '#fff', color: theme.ico, boxShadow: `inset 0 0 0 1px ${theme.ring}` }}
+          style={{
+            background: '#fff', color: '#52780f',
+            boxShadow: 'inset 0 0 0 1px rgba(146,200,58,0.25)',
+          }}
         >
-          {usadas >= RESERVAS_FREE_LIMIT ? <Sparkles size={17} /> : <Zap size={17} />}
+          <Zap size={17} />
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-sm font-bold text-[#15240b]">{title}</p>
-            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${theme.tag}`}>
+            <p className="text-sm font-bold text-[#15240b]">
+              {usadas} {usadas === 1 ? 'reserva' : 'reservas'} este mes
+            </p>
+            <span className="rounded-full bg-[#92c83a]/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#15240b]">
               Plan gratis
             </span>
           </div>
-          <p className="mt-0.5 text-xs leading-relaxed text-neutral-500">{body}</p>
-
-          {/* Progress bar */}
-          <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-white/70">
-            <div
-              className="h-full rounded-full transition-[width] duration-500"
-              style={{ width: `${pct}%`, background: theme.bar }}
-            />
-          </div>
+          <p className="mt-0.5 text-xs leading-relaxed text-neutral-500">
+            Reservas ilimitadas, recordatorios por email al cliente y agenda integrada en tu bioo.
+            {total > usadas ? ` Total histórico: ${total}.` : ''}
+          </p>
         </div>
-
-        {/* Botón placeholder: la pasarela Premium se enchufa después. */}
-        {pct >= 80 && (
-          <a
-            href="https://bioo.cl/admin"
-            className="hidden shrink-0 items-center gap-1 self-center rounded-xl bg-[#15240b] px-3 py-2 text-xs font-bold text-white transition-transform active:scale-95 sm:inline-flex"
-          >
-            Subir a Premium
-          </a>
-        )}
       </div>
     </div>
   );

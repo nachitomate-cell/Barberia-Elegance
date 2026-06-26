@@ -156,9 +156,15 @@ export interface Reserva {
   fecha: string;     // "YYYY-MM-DD"
   hora: string;      // "HH:MM"
   slotKey: string;   // "YYYY-MM-DD HH:MM"
-  cliente: { nombre: string; whatsapp: string };
+  cliente: { nombre: string; whatsapp: string; email?: string };
   estado: EstadoReserva;
   creadaEn?: Timestamp;
+  /** Backfilled por la CF avisarNuevaReservaBioo: instante en que se debe
+   *  disparar el recordatorio (slot menos 24h). La CF scheduled
+   *  recordatorio24hCliente lo consulta. */
+  reminderAt?: Timestamp;
+  /** Set por la CF cuando se envió el recordatorio al cliente — evita doble envío. */
+  reminderSentAt?: Timestamp;
 }
 
 /** Suscripción en vivo a las reservas del barbero, ordenadas por slotKey

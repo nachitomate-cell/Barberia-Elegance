@@ -880,6 +880,16 @@ const biooReservasAviso = require('./bioo-reservas-aviso');
 exports.avisarNuevaReservaBioo = biooReservasAviso.avisarNuevaReservaBioo;
 
 // ─────────────────────────────────────────────────────────────────
+//  BIOO RESERVAS — emails AL CLIENTE: confirmación inmediata al
+//  reservar + recordatorio scheduled 24h antes del slot. Usan
+//  cliente.email del doc reserva y bumpean reminderSentAt para
+//  evitar duplicados.
+// ─────────────────────────────────────────────────────────────────
+const biooReservasCliente = require('./bioo-reservas-cliente');
+exports.confirmarReservaCliente = biooReservasCliente.confirmarReservaCliente;
+exports.recordatorio24hCliente  = biooReservasCliente.recordatorio24hCliente;
+
+// ─────────────────────────────────────────────────────────────────
 //  BIOO — KPIs reales para el panel /admin. Callable que agrega
 //  count(bios), conexiones Stripe/MP y volumen por moneda con
 //  Admin SDK (bypass de reglas). Solo admin lo puede invocar.

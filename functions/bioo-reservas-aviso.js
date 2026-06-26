@@ -112,6 +112,33 @@ function buildHtml({ username, reserva, fechaFmt }) {
 </body></html>`;
 }
 
+/** Calcula el instante en que debe dispararse el recordatorio 24h antes
+ *  de la cita. Asume hora local de Chile (TZ del comercio). Si la cita
+ *  ya pasó o queda a menos de 24h, devuelve null (no tiene sentido
+ *  programar un recordatorio para el pasado). */
+function computarReminderAt(fecha, hora) {
+  const m = String(fecha || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const h = String(hora || '').match(/^(\d{2}):(\d{2})$/);
+  if (!m || !h) return null;
+  // new Date(y, m-1, d, hh, mm) crea el instante en hora del SERVIDOR.
+  // Cloud Functions corre en UTC; el comercio chileno es UTC-4/-3. Para
+  // no introducir un offset, interpretamos fecha+hora como hora local de
+  // Chile vía Date.UTC + offset fijo de -4h (Chile usa CLST/CLT). Para
+  // mayor precisión a futuro podríamos leer el TZ del perfil del barbero.
+  const tzOffsetMin = 4 * 60; // Chile continental ≈ UTC-4
+  const utcMs = Date.UTC(
+    parseInt(m[1], 10),
+    parseInt(m[2], 10) - 1,
+    parseInt(m[3], 10),
+    parseInt(h[1], 10),
+    parseInt(h[2], 10),
+  ) + tzOffsetMin * 60 * 1000;
+  const slot = new Date(utcMs);
+  const reminder = new Date(slot.getTime() - 24 * 60 * 60 * 1000);
+  if (reminder.getTime() <= Date.now()) return null;
+  return reminder;
+}
+
 /** Bumpea el contador mensual de reservas del bioo. Idempotente respecto a
  *  meses (al cambiar de mes resetea usadasMes a 0 antes de sumar). El doc
  *  vive en bios/{u}/reservasMeta/contadores y NO contiene PII — la UI lo
@@ -153,6 +180,20 @@ exports.avisarNuevaReservaBioo = onDocumentCreated(
       await bumpContadorMensual(username);
     } catch (err) {
       logger.error(`[bioo:reserva] no se pudo bumpear contador de @${username}:`, err.message);
+    }
+
+    // Backfill `reminderAt` (slot menos 24h) en el doc de la reserva. Esto lo
+    // consulta la CF scheduled recordatorio24hCliente. Lo escribimos acá con
+    // Admin SDK (bypass de rules) para no expandir la regla pública del
+    // visitante. Si el cómputo falla, el recordatorio simplemente no sale —
+    // log + sigue para no romper el aviso al barbero.
+    try {
+      const reminderAt = computarReminderAt(reserva.fecha, reserva.hora);
+      if (reminderAt) {
+        await event.data.ref.update({ reminderAt: admin.firestore.Timestamp.fromDate(reminderAt) });
+      }
+    } catch (err) {
+      logger.error(`[bioo:reserva] no se pudo setear reminderAt @${username}:`, err.message);
     }
 
     // Resolver email del dueño: /bios/{u}.uid → admin.auth().getUser(uid).

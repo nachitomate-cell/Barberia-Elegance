@@ -1340,7 +1340,7 @@
       if (!modal || !body || !cta) return;
 
       var st = nuevoState();
-      function nuevoState(){ return { step:1, servicio:null, fecha:null, hora:null, ocupados:null, nombre:'', wsp:'', reservaId:null }; }
+      function nuevoState(){ return { step:1, servicio:null, fecha:null, hora:null, ocupados:null, nombre:'', wsp:'', email:'', reservaId:null }; }
       function open(){ st = nuevoState(); render(); modal.style.display='flex'; document.body.style.overflow='hidden'; }
       function close(){ modal.style.display='none'; document.body.style.overflow=''; }
 
@@ -1446,22 +1446,29 @@
                  + '<div class="rsv-form">'
                  +   '<label>Tu nombre<input type="text" id="rsvNombre" class="rsv-input" placeholder="Tu nombre" maxlength="80" autocomplete="name"></label>'
                  +   '<label>WhatsApp<input type="tel" id="rsvWsp" class="rsv-input" placeholder="+56 9 1234 5678" maxlength="20" autocomplete="tel" inputmode="tel"></label>'
+                 +   '<label>Email<input type="email" id="rsvEmail" class="rsv-input" placeholder="tu@email.com" maxlength="120" autocomplete="email" inputmode="email"></label>'
+                 +   '<div class="rsv-hint" style="font-size:11px;color:#8b8f82;margin-top:-2px">Te enviaremos la confirmación y un recordatorio 24h antes.</div>'
                  +   '<div class="rsv-error" id="rsvErr" hidden></div>'
                  +   '<button type="button" class="rsv-btn-primary" id="rsvConfirm">Confirmar reserva</button>'
                  + '</div>';
         body.innerHTML = html;
         var nombreI = document.getElementById('rsvNombre');
         var wspI    = document.getElementById('rsvWsp');
+        var emailI  = document.getElementById('rsvEmail');
         var err     = document.getElementById('rsvErr');
         var btn     = document.getElementById('rsvConfirm');
-        nombreI.value = st.nombre; wspI.value = st.wsp;
+        nombreI.value = st.nombre; wspI.value = st.wsp; emailI.value = st.email;
         btn.addEventListener('click', function(){
           st.nombre = nombreI.value.trim();
           st.wsp    = wspI.value.trim();
+          st.email  = emailI.value.trim().toLowerCase();
           if (st.nombre.length === 0){ err.textContent = 'Necesitamos tu nombre.'; err.hidden = false; return; }
           if (st.nombre.length > 80){ err.textContent = 'Nombre demasiado largo.'; err.hidden = false; return; }
           var wspClean = st.wsp.replace(/[^\d+]/g, '');
           if (wspClean.length < 8 || wspClean.length > 20){ err.textContent = 'WhatsApp inválido (incluye código de país).'; err.hidden = false; return; }
+          // Email obligatorio para confirmación y recordatorio.
+          if (st.email.length === 0){ err.textContent = 'Necesitamos tu email para enviarte la confirmación.'; err.hidden = false; return; }
+          if (st.email.length > 120 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(st.email)){ err.textContent = 'Email inválido.'; err.hidden = false; return; }
           err.hidden = true;
           btn.disabled = true; btn.textContent = 'Confirmando…';
           enviarReserva(wspClean).then(function(reservaId){
@@ -1506,7 +1513,7 @@
               fecha:          st.fecha,
               hora:           st.hora,
               slotKey:        slotKey,
-              cliente:        { nombre: st.nombre, whatsapp: wspClean },
+              cliente:        { nombre: st.nombre, whatsapp: wspClean, email: st.email || '' },
               estado:         'confirmada',
               creadaEn:       FV.serverTimestamp()
             });
@@ -1518,6 +1525,7 @@
       function renderExito(){
         titleEl.textContent = '¡Listo!';
         var precio = rsvFormatPrecio(st.servicio.precio);
+        var gcalUrl = buildGoogleCalUrl(st);
         var html = '<div class="rsv-success">'
                  +   '<div class="rsv-success-ico">✓</div>'
                  +   '<h3>¡Reserva confirmada!</h3>'
@@ -1527,10 +1535,40 @@
                  +     '<div class="rsv-summary-row"><span>Duración</span><b>'+st.servicio.duracion+' min</b></div>'
                  +     (precio ? '<div class="rsv-summary-row"><span>Precio</span><b>'+precio+'</b></div>' : '')
                  +   '</div>'
-                 +   '<button type="button" class="rsv-btn-primary" id="rsvCloseOk">Listo</button>'
+                 +   (st.email ? '<p class="rsv-success-hint" style="font-size:12px;color:#8b8f82;margin:14px 0 0">📧 Te enviamos la confirmación a <b>'+esc(st.email)+'</b></p>' : '')
+                 +   '<a href="'+gcalUrl+'" target="_blank" rel="noopener" class="rsv-btn-secondary" style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:14px;padding:12px 18px;border-radius:14px;background:#f0f7e3;color:#15240b;text-decoration:none;font-weight:700;font-size:13px;border:1px solid #d4e6b6">📅 Agregar a Google Calendar</a>'
+                 +   '<button type="button" class="rsv-btn-primary" id="rsvCloseOk" style="margin-top:10px">Listo</button>'
                  + '</div>';
         body.innerHTML = html;
         document.getElementById('rsvCloseOk').addEventListener('click', close);
+      }
+
+      // Genera la URL del template "agregar evento" de Google Calendar.
+      // Usa formato local (YYYYMMDDTHHmmss sin Z) para que respete la TZ
+      // del cliente sin conversiones raras.
+      function buildGoogleCalUrl(st){
+        try {
+          var f = st.fecha.split('-');
+          var h = st.hora.split(':');
+          var yy = parseInt(f[0],10), mo = parseInt(f[1],10), dd = parseInt(f[2],10);
+          var hh = parseInt(h[0],10), mm = parseInt(h[1],10);
+          var dur = parseInt(st.servicio.duracion,10) || 30;
+          var start = new Date(yy, mo - 1, dd, hh, mm);
+          var end   = new Date(start.getTime() + dur * 60000);
+          function p(n){ return String(n).padStart(2,'0'); }
+          function fmt(d){
+            return d.getFullYear() + p(d.getMonth()+1) + p(d.getDate())
+                 + 'T' + p(d.getHours()) + p(d.getMinutes()) + '00';
+          }
+          var titulo  = (st.servicio.nombre || 'Cita') + ' — @' + user;
+          var detalles = 'Reserva confirmada vía bioo.cl/' + user;
+          return 'https://calendar.google.com/calendar/render?action=TEMPLATE'
+               + '&text='    + encodeURIComponent(titulo)
+               + '&dates='   + fmt(start) + '/' + fmt(end)
+               + '&details=' + encodeURIComponent(detalles);
+        } catch (e) {
+          return 'https://calendar.google.com/calendar/render?action=TEMPLATE';
+        }
       }
     }
 
