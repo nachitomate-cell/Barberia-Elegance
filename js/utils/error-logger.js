@@ -15,8 +15,13 @@
   const SESSION_KEY     = '__erlog_n';
   const recentMsgs      = new Set();
 
-  // Errores internos del SDK de Firebase (IndexedDB del navegador bajo presión de memoria).
-  // No son bugs de la app — filtrarlos evita que llenen el log de errores.
+  // Errores que NO son bugs de la app — filtrarlos evita ruido en el log.
+  //  - IndexedDB del navegador bajo presión de memoria (SDK Firebase).
+  //  - Scripts inyectados por navegadores in-app de iOS (Instagram, Facebook,
+  //    TikTok, Chrome iOS): tocan `window.webkit.messageHandlers` o `gCrWeb`
+  //    que no existen en todos los contextos y revientan en su propio script.
+  //  - "Script error." cross-origin: Safari/Chrome sanitizan el mensaje y
+  //    perdemos contexto — no es accionable.
   const IGNORE_PATTERNS = [
     'Attempt to get records from database without an in-progress transaction',
     'Connection to Indexed Database server lost',
@@ -24,10 +29,19 @@
     'Database deleted by request of the user',
     'Script error.',
     'IDBDatabase.transaction',
+    'window.webkit.messageHandlers',
+    'webkit.messageHandlers',
+    'gCrWeb',
+    'instantSearchSDKJSBridgeClearHighlight',
+    'ReactNativeWebView',
   ];
 
   function shouldIgnore(message) {
-    const msg = String(message || '');
+    const msg = String(message || '').trim();
+    // Mensajes vacíos o literalmente "undefined"/"null": Safari sanitiza errores
+    // cross-origin a un string vacío o el nombre crudo del valor lanzado.
+    // Sin stack no son accionables; los descartamos.
+    if (!msg || msg === 'undefined' || msg === 'null') return true;
     return IGNORE_PATTERNS.some(p => msg.includes(p));
   }
 
