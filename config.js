@@ -102,6 +102,11 @@
         { nombre: 'Evelyn Contreras', foto: null, disponible: true },
         { nombre: 'Araceli',          foto: null, disponible: true },
       ],
+      partners: [
+        { name: 'Viking Brand', role: 'Embajador oficial',
+          logo: '/kronnos/viking.jpg',
+          instagram: 'https://www.instagram.com/vikingbrand.chile/' },
+      ],
     },
     // ── KRONNOS STUDIO LIMACHE — barbería + estilismo unisex (Limache) ──
     kronnos_limache: {
@@ -130,6 +135,11 @@
         { nombre: 'Cristian Orostica', foto: null, disponible: true },
         { nombre: 'Orlando Palacios',  foto: null, disponible: true },
         { nombre: 'Víctor',            foto: null, disponible: true },
+      ],
+      partners: [
+        { name: 'Viking Brand', role: 'Embajador oficial',
+          logo: '/kronnos/viking.jpg',
+          instagram: 'https://www.instagram.com/vikingbrand.chile/' },
       ],
     },
     // ── KRONNOS WOMAN — belleza y estética femenina (Limache) ──
