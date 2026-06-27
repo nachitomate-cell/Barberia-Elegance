@@ -515,6 +515,8 @@ const TENANT_META = {
     themeColor:  '#0b0a09',
     appTitle:    'Yūgen',
     icon:        '/yugen/favicon.png',
+    iconPwa192:  '/yugen/yugen-192.png',
+    iconPwa512:  '/yugen/yugen-512.png',
     local: { streetAddress: '', priceRange: '$$', addressLocality: '', schemaType: 'HairSalon', openingHours: ['Mo-Fr 08:00-23:00', 'Sa 08:00-22:00', 'Su 09:00-21:00'], ratingGeneral: 0, totalReviews: 0, reviews: [] },
     manifest: {
       name:             'Yūgen Studio',
@@ -530,9 +532,9 @@ const TENANT_META = {
       background_color: '#0b0a09',
       start_url:        '/gestion-interna/?local=yugen',
       icons: [
-        { src: '/yugen/favicon.png',           sizes: '256x256', type: 'image/png' },
-        { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png' },
-        { src: '/gestion-interna/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+        { src: '/yugen/favicon.png',   sizes: '256x256', type: 'image/png' },
+        { src: '/yugen/yugen-192.png', sizes: '192x192', type: 'image/png' },
+        { src: '/yugen/yugen-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
       ],
     },
   },
@@ -1215,6 +1217,8 @@ export default async function middleware(request) {
 
   // ── Manifest cliente: devolver versión dinámica por tenant ───────────────────
   if (url.pathname === '/manifest.json') {
+    const pwa192 = meta.iconPwa192 || '/icons/icon-192.png';
+    const pwa512 = meta.iconPwa512 || '/icons/icon-512.png';
     const manifest = {
       ...meta.manifest,
       description: meta.booking.description,
@@ -1226,8 +1230,8 @@ export default async function middleware(request) {
       author:      'SynapTech SpA',
       icons: [
         { src: meta.icon, sizes: 'any', type: mimeFromSrc(meta.icon), purpose: 'any maskable' },
-        { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
-        { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+        { src: pwa192, sizes: '192x192', type: mimeFromSrc(pwa192), purpose: 'any maskable' },
+        { src: pwa512, sizes: '512x512', type: mimeFromSrc(pwa512), purpose: 'any maskable' },
       ],
     };
     return new Response(JSON.stringify(manifest, null, 2), {
@@ -1240,6 +1244,8 @@ export default async function middleware(request) {
 
   // ── Manifest agenda: devolver versión dinámica por tenant ────────────────────
   if (url.pathname === '/manifest-agenda.json') {
+    const pwa192 = meta.iconPwa192 || '/icons/icon-192.png';
+    const pwa512 = meta.iconPwa512 || '/icons/icon-512.png';
     const manifest = {
       name:             `Agenda — ${meta.manifest.name}`,
       short_name:       'Agenda',
@@ -1254,8 +1260,8 @@ export default async function middleware(request) {
       author:           'SynapTech SpA',
       icons: [
         { src: meta.icon, sizes: 'any', type: mimeFromSrc(meta.icon), purpose: 'any maskable' },
-        { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
-        { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+        { src: pwa192, sizes: '192x192', type: mimeFromSrc(pwa192), purpose: 'any maskable' },
+        { src: pwa512, sizes: '512x512', type: mimeFromSrc(pwa512), purpose: 'any maskable' },
       ],
     };
     return new Response(JSON.stringify(manifest, null, 2), {
