@@ -21,6 +21,6 @@
     { "source": "/registro", "destination": "/registro.html" },
     { "source": "/kronnos", "destination": "/kronnos.html" },
     { "source": "/kronnos-admin", "destination": "/kronnos-admin.html" },
-    { "source": "/:slug([^.]+)", "destination": "/barbero.html" }
+    { "source": "/:slug([^./]+)", "destination": "/barbero.html" }
   ]
 }
