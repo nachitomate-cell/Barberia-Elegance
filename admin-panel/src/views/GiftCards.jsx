@@ -1,10 +1,12 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
-import { addDoc, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { addDoc, getDoc, setDoc, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
+import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { motion, AnimatePresence } from 'framer-motion';
 import QRCode from 'qrcode';
 import { toPng } from 'html-to-image';
-import { db } from '../lib/firebase';
-import { tenantCol } from '../lib/tenantUtils';
+import { db, storage } from '../lib/firebase';
+import { tenantCol, tenantDoc, resolveTenantId } from '../lib/tenantUtils';
+import { withTimeout } from '../lib/firestore-helpers';
 import { useCollection } from '../hooks/useCollection';
 import { useClubUsers } from '../hooks/useClubUsers';
 import { useAuth } from '../contexts/AuthContext';
@@ -14,6 +16,7 @@ import {
   Gift, Plus, X, Copy, CheckCheck, AlertCircle, Search,
   CreditCard, Banknote, CheckCircle2, Clock, XCircle, MessageCircle, ExternalLink,
   QrCode, Camera, UserPlus, Loader2, Link2, Download, Sparkles, PartyPopper, ImageDown, Eye,
+  ImagePlus, Trash2,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 
@@ -198,8 +201,148 @@ function BuyerAutocomplete({ value, onSelect, onClear }) {
   );
 }
 
+/* ── TemplateUploader ───────────────────────────────────────────────
+   Sube una imagen al tenant que se usará como fondo full-bleed de TODAS
+   las gift cards futuras y el botón "Ver" de las existentes. Guardado
+   en config/giftcards.templateImageUrl. Reutiliza el path /marketing/
+   de Storage (mismas reglas: auth + 5MB + image). */
+function TemplateUploader({ tenantName, tenantLogo, value, onChange }) {
+  const [uploading,   setUploading]   = useState(false);
+  const [removing,    setRemoving]    = useState(false);
+  const [uploadError, setUploadError] = useState('');
+
+  const handleUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadError('');
+    if (!file.type.startsWith('image/')) {
+      setUploadError('El archivo debe ser una imagen.');
+      if (e.target) e.target.value = '';
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError('La imagen supera los 5 MB. Usa una más liviana.');
+      if (e.target) e.target.value = '';
+      return;
+    }
+    setUploading(true);
+    try {
+      const tid      = resolveTenantId();
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const prefix   = tid === 'elegance' ? '' : `tenants/${tid}/`;
+      const path     = `${prefix}marketing/giftcard-template-${Date.now()}_${safeName}`;
+      const snap = await uploadBytes(
+        storageRef(storage, path),
+        file,
+        { contentType: file.type || 'image/jpeg' },
+      );
+      const url = await getDownloadURL(snap.ref);
+      await setDoc(tenantDoc('config', 'giftcards'),
+        { templateImageUrl: url, templateUpdatedAt: serverTimestamp() },
+        { merge: true });
+      onChange(url);
+    } catch (err) {
+      console.error('[GiftCards/template] upload error:', err);
+      setUploadError(err.code === 'storage/unauthorized'
+        ? 'Sin permiso para subir. Verifica que tu sesión esté activa.'
+        : `Error al subir: ${err.message}`);
+    } finally {
+      setUploading(false);
+      if (e.target) e.target.value = '';
+    }
+  };
+
+  const handleRemove = async () => {
+    if (removing) return;
+    setRemoving(true);
+    setUploadError('');
+    try {
+      await setDoc(tenantDoc('config', 'giftcards'),
+        { templateImageUrl: '', templateUpdatedAt: serverTimestamp() },
+        { merge: true });
+      onChange('');
+    } catch (err) {
+      console.error('[GiftCards/template] remove error:', err);
+      setUploadError('No se pudo quitar la plantilla. Intenta de nuevo.');
+    } finally {
+      setRemoving(false);
+    }
+  };
+
+  return (
+    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 sm:p-5">
+      <div className="flex items-start gap-2 mb-4">
+        <div className="bg-violet-500/10 rounded-xl p-2 shrink-0">
+          <ImagePlus size={16} className="text-violet-400" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-sm font-bold text-white">Plantilla de tarjeta</p>
+          <p className="text-xs text-slate-400 mt-0.5">
+            Sube una imagen y se usará como fondo de todas tus Gift Cards. Recomendado: <span className="text-slate-300">400×250 px</span> (8:5).
+          </p>
+        </div>
+      </div>
+
+      <div className="flex flex-col sm:flex-row gap-4 items-start">
+        {/* Preview escalado (60%) */}
+        <div className="mx-auto sm:mx-0" style={{ width: 240, height: 150 }}>
+          <div style={{ transform: 'scale(0.6)', transformOrigin: 'top left' }}>
+            <GiftCardDigitalExport
+              monto={15000}
+              codigo="DEMO-XXXX-XXXX"
+              urlQR="https://example.com"
+              nombreTenant={tenantName}
+              logoTenant={tenantLogo}
+              templateImageUrl={value || ''}
+            />
+          </div>
+        </div>
+
+        {/* Acciones */}
+        <div className="flex-1 w-full space-y-2">
+          <label className={`block w-full cursor-pointer text-center px-3 py-2.5 rounded-lg text-sm font-bold border transition-all ${
+            value
+              ? 'bg-slate-800 text-slate-200 hover:bg-slate-700 border-slate-700'
+              : 'bg-violet-500/15 text-violet-300 hover:bg-violet-500/25 border-violet-500/30'
+          } ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
+            {uploading
+              ? <span className="inline-flex items-center gap-2"><Loader2 size={14} className="animate-spin" /> Subiendo…</span>
+              : value
+                ? <span className="inline-flex items-center gap-2"><ImagePlus size={14} /> Cambiar imagen</span>
+                : <span className="inline-flex items-center gap-2"><ImagePlus size={14} /> Subir imagen</span>}
+            <input type="file" accept="image/*" onChange={handleUpload} className="hidden" />
+          </label>
+
+          {value && (
+            <button
+              type="button"
+              onClick={handleRemove}
+              disabled={removing}
+              className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold bg-slate-800/60 text-slate-400 hover:text-red-300 hover:bg-red-500/10 border border-slate-800 hover:border-red-500/20 transition-all disabled:opacity-50"
+            >
+              {removing
+                ? <><Loader2 size={12} className="animate-spin" /> Quitando…</>
+                : <><Trash2 size={12} /> Quitar plantilla</>}
+            </button>
+          )}
+
+          {uploadError && (
+            <p className="text-xs text-red-400 flex items-center gap-1">
+              <AlertCircle size={12} /> {uploadError}
+            </p>
+          )}
+
+          <p className="text-[11px] text-slate-500 leading-relaxed">
+            El monto, código y QR se dibujan automáticamente sobre la imagen. Usa una foto con espacio libre arriba a la derecha (QR) y abajo a la izquierda (monto y código).
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── CreateModal ──────────────────────────────────────────────────── */
-function CreateModal({ tenantId, tenantName, tenantLogo, user, onClose }) {
+function CreateModal({ tenantId, tenantName, tenantLogo, templateImageUrl, user, onClose }) {
   const [valor, setValor] = useState('');
   const [nombre, setNombre] = useState('');
   const [vence, setVence] = useState('');
@@ -299,6 +442,7 @@ function CreateModal({ tenantId, tenantName, tenantLogo, user, onClose }) {
                 nombreTenant={tenantName}
                 logoTenant={tenantLogo}
                 nombreDestinatario={created.nombre !== 'Sin nombre' ? created.nombre : undefined}
+                templateImageUrl={templateImageUrl}
               />
             </div>
 
@@ -325,6 +469,7 @@ function CreateModal({ tenantId, tenantName, tenantLogo, user, onClose }) {
                   nombreTenant={tenantName}
                   logoTenant={tenantLogo}
                   nombreDestinatario={created.nombre !== 'Sin nombre' ? created.nombre : undefined}
+                  templateImageUrl={templateImageUrl}
                 />
               </div>
             </div>
@@ -673,7 +818,7 @@ function RedeemModal({ giftCards, tenantId, user, onClose }) {
    y descargarla. Misma estructura de captura que CreateModal: la
    instancia full-size se renderiza oculta y la previsualización en
    pantalla es una copia escalada. */
-function ViewCardModal({ gc, tenantName, tenantLogo, onClose }) {
+function ViewCardModal({ gc, tenantName, tenantLogo, templateImageUrl, onClose }) {
   const cardRef = useRef(null);
   const [downloadingImg, setDownloadingImg] = useState(false);
 
@@ -722,6 +867,7 @@ function ViewCardModal({ gc, tenantName, tenantLogo, onClose }) {
             nombreTenant={tenantName}
             logoTenant={tenantLogo}
             nombreDestinatario={destinatario}
+            templateImageUrl={templateImageUrl}
           />
         </div>
 
@@ -735,6 +881,7 @@ function ViewCardModal({ gc, tenantName, tenantLogo, onClose }) {
               nombreTenant={tenantName}
               logoTenant={tenantLogo}
               nombreDestinatario={destinatario}
+              templateImageUrl={templateImageUrl}
             />
           </div>
         </div>
@@ -764,7 +911,7 @@ function ViewCardModal({ gc, tenantName, tenantLogo, onClose }) {
 }
 
 /* ── GiftCardRow ──────────────────────────────────────────────────── */
-function GiftCardRow({ gc, tenantName, tenantLogo }) {
+function GiftCardRow({ gc, tenantName, tenantLogo, templateImageUrl }) {
   const [copied, setCopied] = useState(false);
   const [viewing, setViewing] = useState(false);
   const cfg = STATUS_CONFIG[gc.estado] || STATUS_CONFIG.activa;
@@ -817,6 +964,7 @@ function GiftCardRow({ gc, tenantName, tenantLogo }) {
             gc={gc}
             tenantName={tenantName}
             tenantLogo={tenantLogo}
+            templateImageUrl={templateImageUrl}
             onClose={() => setViewing(false)}
           />
         )}
@@ -877,6 +1025,21 @@ export default function GiftCards() {
   const [showRedeem, setShowRedeem] = useState(false);
   const [filter, setFilter] = useState('todas');
   const [search, setSearch] = useState('');
+  const [templateImageUrl, setTemplateImageUrl] = useState('');
+
+  // Carga única de la plantilla configurada para este tenant. Vive en
+  // config/giftcards.templateImageUrl y se actualiza desde el uploader.
+  useEffect(() => {
+    let alive = true;
+    withTimeout(getDoc(tenantDoc('config', 'giftcards')), 10000, 'giftcards/template')
+      .then(snap => {
+        if (!alive) return;
+        const url = snap.exists() ? (snap.data().templateImageUrl || '') : '';
+        setTemplateImageUrl(url);
+      })
+      .catch(() => { /* sin plantilla: usamos el default */ });
+    return () => { alive = false; };
+  }, [tenantId]);
 
   const { data: giftCards = [] } = useCollection('giftCards');
 
@@ -986,10 +1149,19 @@ export default function GiftCards() {
               gc={gc}
               tenantName={tenantName}
               tenantLogo={tenantLogo}
+              templateImageUrl={templateImageUrl}
             />
           ))}
         </div>
       )}
+
+      {/* Plantilla personalizada (fondo de las tarjetas) */}
+      <TemplateUploader
+        tenantName={tenantName}
+        tenantLogo={tenantLogo}
+        value={templateImageUrl}
+        onChange={setTemplateImageUrl}
+      />
 
       {/* Links públicos */}
       <div className="grid sm:grid-cols-2 gap-3">
@@ -1018,6 +1190,7 @@ export default function GiftCards() {
             tenantId={tenantId}
             tenantName={tenantName}
             tenantLogo={tenantLogo}
+            templateImageUrl={templateImageUrl}
             user={user}
             onClose={() => setShowCreate(false)}
           />

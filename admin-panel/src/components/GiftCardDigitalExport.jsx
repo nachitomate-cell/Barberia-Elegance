@@ -9,6 +9,8 @@ import { QRCodeSVG } from 'qrcode.react';
  * @property {string} nombreTenant             Nombre del local (header de la tarjeta).
  * @property {string} [logoTenant]             URL del logo del local. Si falta, se usa solo el nombre.
  * @property {string} [nombreDestinatario]     Texto opcional "Para {nombre}".
+ * @property {string} [templateImageUrl]       Imagen personalizada como fondo de la tarjeta (full-bleed,
+ *                                             reemplaza el gradiente default). Subida desde el panel.
  */
 
 function formatCLP(n) { return `$${Math.round(n).toLocaleString('es-CL')}`; }
@@ -22,9 +24,10 @@ function formatCLP(n) { return `$${Math.round(n).toLocaleString('es-CL')}`; }
  * @param {GiftCardDigitalExportProps} props
  */
 const GiftCardDigitalExport = forwardRef(function GiftCardDigitalExport(
-  { monto, codigo, urlQR, nombreTenant, logoTenant, nombreDestinatario },
+  { monto, codigo, urlQR, nombreTenant, logoTenant, nombreDestinatario, templateImageUrl },
   ref,
 ) {
+  const hasTemplate = !!templateImageUrl;
   return (
     <div
       ref={ref}
@@ -35,16 +38,38 @@ const GiftCardDigitalExport = forwardRef(function GiftCardDigitalExport(
         color: '#fff',
       }}
     >
-      {/* Glow esquina sup-der — refuerza el verde de la marca */}
-      <div
-        className="absolute -top-24 -right-24 w-56 h-56 rounded-full opacity-30 pointer-events-none"
-        style={{ background: 'radial-gradient(circle, #10b981 0%, transparent 70%)', filter: 'blur(40px)' }}
-      />
-      {/* Glow esquina inf-izq — profundidad */}
-      <div
-        className="absolute -bottom-24 -left-20 w-56 h-56 rounded-full opacity-20 pointer-events-none"
-        style={{ background: 'radial-gradient(circle, #6366f1 0%, transparent 70%)', filter: 'blur(40px)' }}
-      />
+      {hasTemplate ? (
+        <>
+          {/* Imagen personalizada como fondo (full-bleed). crossOrigin para
+              que html-to-image pueda capturarla sin tainted canvas. */}
+          <img
+            src={templateImageUrl}
+            crossOrigin="anonymous"
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+          />
+          {/* Overlay degradado para legibilidad del monto/código en la base. */}
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background: 'linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.0) 35%, rgba(0,0,0,0.55) 75%, rgba(0,0,0,0.8) 100%)',
+            }}
+          />
+        </>
+      ) : (
+        <>
+          {/* Glow esquina sup-der — refuerza el verde de la marca */}
+          <div
+            className="absolute -top-24 -right-24 w-56 h-56 rounded-full opacity-30 pointer-events-none"
+            style={{ background: 'radial-gradient(circle, #10b981 0%, transparent 70%)', filter: 'blur(40px)' }}
+          />
+          {/* Glow esquina inf-izq — profundidad */}
+          <div
+            className="absolute -bottom-24 -left-20 w-56 h-56 rounded-full opacity-20 pointer-events-none"
+            style={{ background: 'radial-gradient(circle, #6366f1 0%, transparent 70%)', filter: 'blur(40px)' }}
+          />
+        </>
+      )}
 
       {/* Header — logo / nombre del local + QR */}
       <div className="flex items-start justify-between relative gap-3">
