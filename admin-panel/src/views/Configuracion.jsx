@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   Store, MapPin, Phone, Instagram, Image, Clock, Check, Save, HelpCircle, AlertCircle,
-  GraduationCap, Scissors, Ban, Info, Sparkles, Target,
+  GraduationCap, Scissors, Ban, Info, Sparkles, Target, Star,
 } from 'lucide-react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -24,6 +24,9 @@ const DEFAULT_FEATURES = {
   hasChairRental: false,
   chairRental:    { title: 'Arriendo de Sillones',  description: '', ctaMsg: '' },
   hasAcademiaInternal: false,
+  // Muestra reseñas internas (la coleccion `resenas` que llena ReviewModal)
+  // en la agenda publica para que clientes nuevos las vean antes de reservar.
+  hasResenasPublicas: false,
 };
 
 const DEFAULT_SETTINGS = {
@@ -68,6 +71,7 @@ function mergeFeatures(saved) {
   if (typeof saved.hasCourses === 'boolean')     base.hasCourses     = saved.hasCourses;
   if (typeof saved.hasChairRental === 'boolean') base.hasChairRental = saved.hasChairRental;
   if (typeof saved.hasAcademiaInternal === 'boolean') base.hasAcademiaInternal = saved.hasAcademiaInternal;
+  if (typeof saved.hasResenasPublicas === 'boolean') base.hasResenasPublicas = saved.hasResenasPublicas;
   if (saved.courses)     base.courses     = { ...base.courses,     ...saved.courses };
   if (saved.chairRental) base.chairRental = { ...base.chairRental, ...saved.chairRental };
   return base;
@@ -620,6 +624,26 @@ export default function Configuracion() {
         )}
       </Card>
       )}
+
+      {/* Reseñas públicas en la agenda */}
+      <Card Icon={Star} title="Reseñas en la agenda pública">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <span className="text-sm font-semibold text-white">Mostrar reseñas de clientes en la pública</span>
+            <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+              Muestra las reseñas registradas en el panel <strong className="text-slate-300">Reseñas</strong> en tu agenda pública,
+              antes de que el cliente elija servicio. Mejora la conversión con prueba social real de tus clientes.
+            </p>
+            <p className="text-[10px] text-amber-400/80 mt-1.5">
+              Importante: requiere abrir lectura pública de la colección <code>resenas</code> en las reglas de Firestore.
+            </p>
+          </div>
+          <button type="button" onClick={() => setFeat('hasResenasPublicas', !form.features.hasResenasPublicas)}
+            className={`relative inline-flex w-9 h-5 rounded-full transition-colors duration-200 focus:outline-none shrink-0 ${form.features.hasResenasPublicas ? 'bg-emerald-500' : 'bg-slate-700'}`}>
+            <span className={`inline-block w-4 h-4 mt-0.5 bg-white rounded-full shadow transform transition-transform duration-200 ${form.features.hasResenasPublicas ? 'translate-x-4' : 'translate-x-0.5'}`} />
+          </button>
+        </div>
+      </Card>
 
       {/* Quiénes somos */}
       <Card Icon={Info} title="Quiénes somos">
