@@ -17,6 +17,7 @@ import CitasPorCerrar from './views/CitasPorCerrar';
 import Equipo      from './views/Equipo';
 import Clientes    from './views/Clientes';
 import ListaNegra  from './views/ListaNegra';
+import Publicidad  from './views/Publicidad';
 import Metricas    from './views/Metricas';
 import Premios     from './views/Premios';
 import Productos   from './views/Productos';
@@ -99,6 +100,7 @@ function ProtectedApp() {
             <Route path="equipo"          element={<Equipo />} />
             <Route path="clientes"        element={<Clientes />} />
             <Route path="lista-negra"     element={<ListaNegra />} />
+            <Route path="publicidad"      element={<Publicidad />} />
             <Route path="premios"         element={<Premios />} />
             <Route path="productos"       element={<Productos />} />
             <Route path="inventario"      element={<Inventario />} />

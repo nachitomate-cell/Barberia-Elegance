@@ -5,7 +5,7 @@ import {
   Trophy, ShoppingBag, Images, LogOut, ChevronRight,
   Sun, Moon, ExternalLink, Settings, TrendingDown, MessageCircle, X,
   Megaphone, ImagePlus, CreditCard, Monitor, Headphones, Medal, Camera, GraduationCap, Wallet, Package, ThumbsUp, Crown,
-  Globe, Banknote, Gift, ClipboardList, Building2, Home, Lock, HelpCircle, Link2, Instagram, CircleDollarSign, Sparkles, UserX,
+  Globe, Banknote, Gift, ClipboardList, Building2, Home, Lock, HelpCircle, Link2, Instagram, CircleDollarSign, Sparkles, UserX, Award,
 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { doc, onSnapshot, where } from 'firebase/firestore';
@@ -446,6 +446,21 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
         { id: 'academia', label: 'Academia', items: [{ to: 'academia', label: 'Academia', Icon: GraduationCap }] },
         ...base.slice(1),
       ];
+    }
+
+    // Elegance estrena Publicidad: marcas asociadas que aparecen entre los
+    // servicios y el clubBanner en la página pública. Solo este tenant.
+    if (tenant.id === 'elegance') {
+      base = base.map(group => {
+        if (group.id !== 'contenido') return group;
+        return {
+          ...group,
+          items: [
+            ...group.items,
+            { to: 'publicidad', label: 'Publicidad', Icon: Award, adminOnly: true },
+          ],
+        };
+      });
     }
 
     return base;

@@ -360,6 +360,35 @@
       border-radius: 2px; margin: 10px auto;
     }
 
+    /* ── Badge "Embajador" / marca asociada (data-driven via SHOP.partners) ─── */
+    .partner-badge {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      background: rgba(0,0,0,0.55);
+      -webkit-backdrop-filter: blur(12px);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 14px;
+      padding: 5px 11px 5px 5px;
+      transition: transform 0.15s ease, background 0.2s ease;
+    }
+    .partner-badge:hover { transform: translateY(-1px); background: rgba(0,0,0,0.72); }
+    .partner-badge img {
+      width: 28px; height: 28px;
+      border-radius: 8px;
+      object-fit: cover;
+      flex-shrink: 0;
+    }
+    .partner-badge-text { display: flex; flex-direction: column; line-height: 1.1; }
+    .partner-badge #partnerBadgeRole {
+      font-size: 8px; font-weight: 700; letter-spacing: 0.12em;
+      color: rgba(255,255,255,0.65); text-transform: uppercase; margin-bottom: 2px;
+    }
+    .partner-badge #partnerBadgeName {
+      font-size: 12px; font-weight: 800; color: #fff;
+    }
+
     @keyframes fadeSlideUp {
       from { opacity:0; transform:translateY(12px); }
       to   { opacity:1; transform:translateY(0); }
@@ -5190,85 +5219,140 @@
       font-weight: 700 !important;
       letter-spacing: 0.05em !important;
     }
+    /* ── Category Pills (estructura Aura) ── */
     .tenant-infinity .category-pill {
-      background: rgba(255, 255, 255, 0.8) !important;
-      border: 1px solid rgba(17, 24, 39, 0.06) !important;
-      color: #4b5563 !important;
-      backdrop-filter: blur(10px) !important;
-      -webkit-backdrop-filter: blur(10px) !important;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.01) !important;
-      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+      background: #FFFFFF !important;
+      border: 1px solid #D4D4D8 !important;
+      color: #8E9399 !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      box-shadow: none !important;
+      transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease !important;
     }
     .tenant-infinity .category-pill:hover {
-      background: rgba(255, 255, 255, 0.95) !important;
-      color: #111827 !important;
-      border-color: rgba(17, 24, 39, 0.15) !important;
-      box-shadow: 0 6px 15px rgba(0, 0, 0, 0.02) !important;
-      transform: translateY(-1px) !important;
+      background: #FFFFFF !important;
+      border-color: #9CA3AF !important;
+      color: #9CA3AF !important;
+      box-shadow: none !important;
+      transform: none !important;
     }
-    .tenant-infinity .category-pill.border-neon {
-      background: #ffffff !important;
-      border: 2px solid #111827 !important;
+    .tenant-infinity .category-pill.border-neon,
+    .tenant-infinity .category-pill.text-neon {
+      border-color: #374151 !important;
       color: #111827 !important;
-      font-weight: 800 !important;
-      box-shadow: 0 0 0 3px rgba(255, 255, 255, 1), 0 8px 25px rgba(0, 0, 0, 0.05), 0 0 15px rgba(255, 255, 255, 1) !important;
-      animation: infinity-breathe-subtle 3s ease-in-out infinite !important;
+      background: rgba(17,24,39,0.06) !important;
+      box-shadow: none !important;
+      font-weight: 700 !important;
+      animation: none !important;
     }
-    .tenant-infinity .category-pill.text-neon { color: #111827 !important; }
     .tenant-infinity h2.text-neon {
       color: #111827 !important;
       text-shadow: 0 2px 10px rgba(255, 255, 255, 0.9) !important;
     }
+    /* ── Service / Barber Option Cards (estructura Aura) ── */
     .tenant-infinity .service-option,
     .tenant-infinity .barber-option {
-      background: linear-gradient(120deg, rgba(255, 255, 255, 0.8) 30%, rgba(255, 255, 255, 0.92) 50%, rgba(255, 255, 255, 0.8) 70%) !important;
-      background-size: 200% 100% !important;
-      border: 1.5px solid rgba(255, 255, 255, 0.9) !important;
-      backdrop-filter: blur(25px) !important;
-      -webkit-backdrop-filter: blur(25px) !important;
-      box-shadow: 0 8px 32px 0 rgba(17, 24, 39, 0.02), inset 0 1px 1px 0 rgba(255, 255, 255, 0.8) !important;
-      color: #1f2937 !important;
-      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+      background: #FFFFFF !important;
+      background-image: none !important;
+      background-size: auto !important;
+      border: 1px solid #D4D4D8 !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      box-shadow: none !important;
+      color: #18181B !important;
+      transition: box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease !important;
+      animation: none !important;
     }
     .tenant-infinity .service-option:hover,
     .tenant-infinity .barber-option:hover {
-      animation: white-shimmer-sweep 2s infinite linear !important;
-      background: linear-gradient(120deg, rgba(255, 255, 255, 0.88) 30%, rgba(255, 255, 255, 1) 50%, rgba(255, 255, 255, 0.88) 70%) !important;
-      background-size: 200% 100% !important;
-      transform: translateY(-4px) scale(1.01) !important;
-      border-color: rgba(255, 255, 255, 1) !important;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.04), 0 0 15px rgba(255, 255, 255, 0.8) !important;
+      background: #FFFFFF !important;
+      background-image: none !important;
+      box-shadow: 0 2px 10px rgba(156,163,175,0.12) !important;
+      border-color: rgba(156,163,175,0.40) !important;
+      transform: none !important;
+      animation: none !important;
     }
     .tenant-infinity .service-option.border-neon,
     .tenant-infinity .barber-option.border-neon {
-      background: #ffffff !important;
-      border: 2.5px solid #111827 !important;
+      background: rgba(17,24,39,0.04) !important;
+      border: 1px solid #374151 !important;
       color: #111827 !important;
-      box-shadow: 0 0 0 4px rgba(255, 255, 255, 1), 0 12px 35px rgba(0, 0, 0, 0.06), 0 0 25px rgba(255, 255, 255, 1) !important;
-      animation: infinity-selected-glow 2.5s ease-in-out infinite !important;
+      box-shadow: 0 0 0 1px rgba(55,65,81,0.25), 0 2px 8px rgba(0,0,0,0.06) !important;
+      animation: none !important;
     }
+    .tenant-infinity .service-option.bg-brand-neon\/10,
+    .tenant-infinity .barber-option.bg-brand-neon\/10 {
+      background: rgba(17,24,39,0.04) !important;
+    }
+    .tenant-infinity .service-option .svc-name { color: #18181B !important; }
     .tenant-infinity .service-option .price-tag {
-      color: #111827 !important;
-      font-weight: 800 !important;
+      color: #18181B !important;
+      font-weight: 700 !important;
     }
+    .tenant-infinity .service-option.border-neon .price-tag { color: #111827 !important; }
     .tenant-infinity .service-option .duration-tag {
-      color: #4b5563 !important;
-      background: rgba(17, 24, 39, 0.03) !important;
-      border: 1px solid rgba(17, 24, 39, 0.04) !important;
+      color: #8E9399 !important;
+      background: transparent !important;
+      border: none !important;
     }
+    .tenant-infinity .service-option .icon-bg {
+      background: rgba(156,163,175,0.08) !important;
+      border-color: rgba(156,163,175,0.20) !important;
+    }
+    .tenant-infinity .service-option .icon-svg {
+      color: #9CA3AF !important;
+      filter: none !important;
+    }
+    .tenant-infinity .service-option.border-neon .icon-bg {
+      background: rgba(17,24,39,0.08) !important;
+      border-color: rgba(55,65,81,0.35) !important;
+    }
+    .tenant-infinity .service-option.border-neon .icon-svg { color: #111827 !important; }
     .tenant-infinity .service-option p,
     .tenant-infinity .service-option span,
     .tenant-infinity .service-option div {
       color: #1f2937 !important;
     }
+    .tenant-infinity .svc-radio { border-color: #D4D4D8 !important; }
+    .tenant-infinity .service-option.border-neon .svc-radio {
+      border-color: #1F2937 !important;
+      background: #1F2937 !important;
+      box-shadow: inset 0 0 0 2px #FFFFFF !important;
+    }
+    .tenant-infinity .barber-option .barber-name { color: #18181B !important; }
+    .tenant-infinity .barber-option .text-brand-neon { color: #9CA3AF !important; }
     .tenant-infinity .barber-name,
     .tenant-infinity .barber-option p,
     .tenant-infinity .barber-option span {
       color: #1f2937 !important;
     }
+    .tenant-infinity .barber-radio {
+      border-color: #D4D4D8 !important;
+      background: transparent !important;
+    }
+    .tenant-infinity .barber-option.border-neon .barber-radio {
+      border-color: #1F2937 !important;
+      background: #1F2937 !important;
+    }
+    .tenant-infinity .barber-option .icon-bg,
+    .tenant-infinity .barber-option .barber-avatar {
+      border-color: rgba(156,163,175,0.20) !important;
+    }
     .tenant-infinity .text-brand-neon {
       color: #111827 !important;
       font-weight: 800 !important;
+    }
+    /* Shimmer al seleccionar (igual que Aura) */
+    .tenant-infinity .service-option.border-neon::after,
+    .tenant-infinity .barber-option.border-neon::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      transform: translateX(-120%);
+      animation: aura-card-shimmer 0.65s cubic-bezier(0.25,0.46,0.45,0.94) 1;
+      pointer-events: none;
+      background: linear-gradient(105deg,
+        transparent 30%, rgba(156,163,175,0.30) 50%, transparent 70%);
     }
 
     /* Configuración de legibilidad para el calendario y horarios */
@@ -5342,43 +5426,44 @@
       opacity: 0.45 !important;
     }
 
+    /* ── Main CTA Button (estructura Aura) ── */
     .tenant-infinity #btnContinue {
-      background: linear-gradient(135deg, #ffffff, #f9fafb, #f3f4f6) !important;
-      border: 2px solid #ffffff !important;
-      color: #111827 !important;
-      font-weight: 900 !important;
-      letter-spacing: 0.05em !important;
-      box-shadow: 
-        0 12px 35px rgba(0, 0, 0, 0.04), 
-        0 0 30px rgba(255, 255, 255, 1) !important;
-      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
-      animation: infinity-glow-btn 3s ease-in-out infinite !important;
+      background: #000000 !important;
+      color: #ffffff !important;
+      border: none !important;
+      font-weight: 800 !important;
+      letter-spacing: 0.01em !important;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.45) !important;
+      transition: transform 0.14s ease, box-shadow 0.25s ease, filter 0.2s ease !important;
+      animation: none !important;
+      text-shadow: none !important;
     }
     .tenant-infinity #btnContinue::after {
-      content: " ∞";
-      font-weight: 300;
-      display: inline-block;
-      margin-left: 6px;
-      animation: infinity-breathe 2s ease-in-out infinite !important;
+      content: none !important;
+      display: none !important;
+      animation: none !important;
     }
     .tenant-infinity #btnContinue:hover:not(:disabled) {
-      transform: translateY(-3px) scale(1.02) !important;
-      box-shadow: 
-        0 20px 45px rgba(0, 0, 0, 0.08), 
-        0 0 35px rgba(255, 255, 255, 1), 
-        0 0 0 4px rgba(255, 255, 255, 1) !important;
-      border-color: #111827 !important;
+      background: #111827 !important;
+      color: #ffffff !important;
+      transform: none !important;
+      border-color: transparent !important;
+    }
+    .tenant-infinity #btnContinue:active { transform: scale(0.985) !important; }
+    .tenant-infinity #btnContinue:disabled {
+      filter: grayscale(0.3) brightness(0.7) !important;
+      box-shadow: none !important;
     }
     .tenant-infinity #btnContinueBar {
-      background: rgba(255, 255, 255, 0.9) !important;
-      border-top: 1px solid rgba(17, 24, 39, 0.04) !important;
+      background: rgba(249,250,251,0.88) !important;
       backdrop-filter: blur(20px) !important;
       -webkit-backdrop-filter: blur(20px) !important;
+      border-top: 1px solid #D4D4D8 !important;
     }
     .tenant-infinity #btnContinueBar button {
-      background: linear-gradient(135deg, #ffffff, #f9fafb, #f3f4f6) !important;
-      border: 1px solid rgba(17, 24, 39, 0.08) !important;
-      color: #111827 !important;
+      background: #000000 !important;
+      color: #ffffff !important;
+      border: none !important;
       font-weight: 800 !important;
     }
     .tenant-infinity #clientName,
@@ -6223,6 +6308,17 @@
         <span id="heroBadgeCount" class="text-white/55 font-medium" style="font-size:9px;margin-top:2px;white-space:nowrap;"></span>
       </a>
 
+      <!-- Badge Partner / Embajador de marca (data-driven via SHOP.partners) -->
+      <a id="partnerBadge" href="#" target="_blank" rel="noopener noreferrer"
+         class="absolute bottom-3 right-3 z-20 partner-badge"
+         style="display:none;text-decoration:none;">
+        <img id="partnerBadgeLogo" alt="" />
+        <div class="partner-badge-text">
+          <span id="partnerBadgeRole"></span>
+          <span id="partnerBadgeName"></span>
+        </div>
+      </a>
+
       <!-- Custom Header for Marcelo Hairdressing -->
       <div id="marceloHeader" class="hidden w-full" style="justify-content:space-between;">
         <!-- Brand identity left -->
@@ -6712,6 +6808,14 @@
         <button onclick="window.location.reload()"
           class="font-bold text-brand-neon/60 hover:text-neon transition-all hover:drop-shadow-[0_0_5px_rgba(255,255,255,0.4)]">Agendar otra hora</button>
       </section>
+
+      <!-- PUBLICIDAD: marcas asociadas (solo elegance, gated por cargarPublicidad).
+           Se inserta antes del clubBanner para que aparezca entre la lista de
+           servicios (step1) y "Club Elegance" cuando el módulo está activo. -->
+      <div id="publicidadSection" class="hidden mt-10">
+        <p class="text-[10px] font-bold uppercase tracking-widest mb-3 px-0.5" style="color:rgba(201,168,76,0.55);">Marcas asociadas</p>
+        <div id="publicidadGrid" class="flex flex-wrap justify-center gap-3"></div>
+      </div>
 
       <!-- CLUB BANNER -->
       <div id="clubBanner" class="mt-10 animate-[fadeSlideUp_0.5s_cubic-bezier(0.16,1,0.3,1)_forwards]">
@@ -9507,6 +9611,28 @@
       badge.style.display = 'flex';
     }
 
+    // Renderiza el badge "Embajador" (o cualquier rol) del primer partner del tenant.
+    // Si SHOP.partners no existe o está vacío, el badge queda oculto (CSS default).
+    function renderPartnerBadge() {
+      const partner = SHOP.partners && SHOP.partners[0];
+      const badge = document.getElementById('partnerBadge');
+      if (!badge) return;
+      if (!partner) { badge.style.display = 'none'; return; }
+      const logoEl = document.getElementById('partnerBadgeLogo');
+      const roleEl = document.getElementById('partnerBadgeRole');
+      const nameEl = document.getElementById('partnerBadgeName');
+      if (logoEl) { logoEl.src = partner.logo || ''; logoEl.alt = partner.name || ''; }
+      if (roleEl) roleEl.textContent = partner.role || 'Marca asociada';
+      if (nameEl) nameEl.textContent = partner.name || '';
+      badge.href = partner.instagram || partner.url || '#';
+      badge.style.display = 'flex';
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', renderPartnerBadge);
+    } else {
+      renderPartnerBadge();
+    }
+
     function renderReviewsSection() {
       const section = document.getElementById('reviewsSection');
       if (!section) return;
@@ -9725,7 +9851,41 @@
       await applySettingsOverrides(_loadedSettings); // reutiliza settings ya cargado, sin segunda lectura
       renderCalendar();       // ahora que _fsConfig está listo
       hideBootLoader();       // todo listo: oculta el loader de arranque (sin salto de contenido)
+      cargarPublicidad();     // marcas asociadas (solo elegance, si está activo)
     });
+
+    // ── Publicidad: marcas asociadas ────────────────────────────────────────
+    // Sólo elegance. Lee config/publicidad y, si está activo y hay marcas,
+    // las pinta en #publicidadGrid (entre la lista de servicios y el Club).
+    async function cargarPublicidad() {
+      try {
+        const tid = window.CURRENT_TENANT_ID || 'elegance';
+        if (tid !== 'elegance') return;
+        const snap = await firebase.firestore().collection('config').doc('publicidad').get();
+        if (!snap.exists) return;
+        const d = snap.data();
+        if (!d || !d.activo) return;
+        const marcas = Array.isArray(d.marcas) ? d.marcas.filter(m => m && m.logoUrl) : [];
+        if (marcas.length === 0) return;
+
+        const section = document.getElementById('publicidadSection');
+        const grid    = document.getElementById('publicidadGrid');
+        if (!section || !grid) return;
+
+        const escapeAttr = (s) => String(s || '').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        grid.innerHTML = marcas.slice(0, 10).map(m => {
+          const alt   = escapeAttr(m.nombre || 'Marca asociada');
+          const img   = `<img src="${escapeAttr(m.logoUrl)}" alt="${alt}" loading="lazy" class="object-contain w-full h-full" />`;
+          const inner = m.url
+            ? `<a href="${escapeAttr(m.url)}" target="_blank" rel="noopener" class="block w-full h-full hover:opacity-80 transition-opacity">${img}</a>`
+            : img;
+          return `<div class="flex items-center justify-center w-20 h-20 rounded-xl bg-white/[0.03] border border-white/10 p-2.5">${inner}</div>`;
+        }).join('');
+        section.classList.remove('hidden');
+      } catch (e) {
+        // sin publicidad: silencio absoluto, no es bug
+      }
+    }
 
     // ── Club Del Nero modal ─────────────────────────────────────────────────────
     function openDelneroClubModal() {
