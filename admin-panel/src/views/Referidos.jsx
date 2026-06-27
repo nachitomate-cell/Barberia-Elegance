@@ -154,6 +154,9 @@ export default function Referidos() {
       {/* ─────── CÓMO FUNCIONA ─────── */}
       <ComoFunciona />
 
+      {/* ─────── BONUS PLAN ANUAL + HITOS ─────── */}
+      <BonusAnual conversiones={totales.conversiones} />
+
       {/* ─────── INVITADOS ─────── */}
       <SignupsSection signups={signups} isSuperAdmin={isSuperAdmin} />
 
@@ -413,6 +416,145 @@ function ComoFunciona() {
             )}
           </motion.div>
         ))}
+      </div>
+    </section>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════
+   BONUS ANUAL — multiplicador 2× + hitos cumulativos
+   ════════════════════════════════════════════════════════════════ */
+const HITOS_REFERIDOS = [
+  { count: 3,  Icon: Gift,     premio: 'Renovación −10%',     desc: 'Próximo año a $18.000 por sede en vez de $20.000.' },
+  { count: 5,  Icon: Sparkles, premio: 'Pantalla TV gratis',  desc: 'Módulo de pantalla TV instalado sin costo para una sede.' },
+  { count: 10, Icon: Trophy,   premio: 'Un año gratis',       desc: 'Plan anual completo (12 meses) para 1 de tus sedes.' },
+  { count: 20, Icon: Award,    premio: 'Embajador SynapTech', desc: 'Caso de estudio en synaptechspa.cl + listing premium + badge permanente.' },
+];
+
+function BonusAnual({ conversiones = 0 }) {
+  return (
+    <section className="space-y-3">
+      {/* ── Banner del multiplicador 2× ── */}
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="relative overflow-hidden rounded-2xl border border-amber-400/25 p-5 sm:p-6"
+        style={{
+          background:
+            'linear-gradient(135deg, rgba(120,53,15,0.55) 0%, rgba(15,23,42,0.95) 65%), ' +
+            'radial-gradient(ellipse at top right, rgba(251,191,36,0.25), transparent 60%)',
+        }}
+      >
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full"
+          style={{ background: 'radial-gradient(circle, rgba(251,191,36,0.30), transparent 70%)', filter: 'blur(28px)' }}
+        />
+        <div className="relative">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-400/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-amber-200 ring-1 ring-amber-400/25">
+            <Rocket size={11} /> Bonus plan anual
+          </span>
+          <h2 className="mt-3 text-xl font-black tracking-tight text-white sm:text-2xl">
+            Con plan anual recibes{' '}
+            <span
+              style={{
+                background: 'linear-gradient(120deg, #fde68a 0%, #fbbf24 50%, #f59e0b 100%)',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}
+            >
+              2 meses gratis
+            </span>{' '}
+            por cada referido.
+          </h2>
+          <p className="mt-1.5 max-w-xl text-sm leading-relaxed text-amber-50/75">
+            Los clientes en plan mensual reciben 1 mes. Si tienes el plan anual,
+            cada barbería que actives te suma <b className="text-white">el doble</b>{' '}
+            — acumulable a tu próxima renovación.
+          </p>
+        </div>
+      </motion.div>
+
+      {/* ── Hitos cumulativos ── */}
+      <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-5 backdrop-blur-sm">
+        <div className="mb-4 flex items-end justify-between gap-3">
+          <div>
+            <h2 className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">
+              Hitos · premios extra
+            </h2>
+            <p className="mt-1 text-xs text-slate-500">
+              Acumulables independientes del bonus anual. Se desbloquean por barbería convertida.
+            </p>
+          </div>
+          <div className="shrink-0 rounded-full bg-slate-800 px-3 py-1 text-[11px] font-bold text-slate-300 ring-1 ring-slate-700">
+            {conversiones}/20
+          </div>
+        </div>
+
+        <ul className="space-y-2">
+          {HITOS_REFERIDOS.map((h, i) => {
+            const desbloqueado = conversiones >= h.count;
+            const proximo = !desbloqueado &&
+              HITOS_REFERIDOS.filter(x => conversiones < x.count)[0]?.count === h.count;
+            return (
+              <motion.li
+                key={h.count}
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.05 * i, duration: 0.3 }}
+                className={`flex items-center gap-3 rounded-xl border p-3 transition-colors ${
+                  desbloqueado
+                    ? 'border-emerald-500/30 bg-emerald-500/[0.06]'
+                    : proximo
+                      ? 'border-amber-400/30 bg-amber-400/[0.05]'
+                      : 'border-slate-800 bg-slate-900/40'
+                }`}
+              >
+                {/* Contador grande */}
+                <div className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl text-base font-black ring-1 ${
+                  desbloqueado
+                    ? 'bg-emerald-500/15 text-emerald-300 ring-emerald-400/30'
+                    : proximo
+                      ? 'bg-amber-400/15 text-amber-300 ring-amber-400/30'
+                      : 'bg-slate-800 text-slate-500 ring-slate-700'
+                }`}>
+                  {h.count}
+                </div>
+                {/* Texto */}
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h.Icon size={14} className={
+                      desbloqueado ? 'text-emerald-300' : proximo ? 'text-amber-300' : 'text-slate-500'
+                    } />
+                    <p className={`text-sm font-bold ${desbloqueado ? 'text-white' : 'text-slate-200'}`}>
+                      {h.premio}
+                    </p>
+                    {desbloqueado && (
+                      <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-emerald-300 ring-1 ring-emerald-400/30">
+                        ✓ Desbloqueado
+                      </span>
+                    )}
+                    {proximo && (
+                      <span className="rounded-full bg-amber-400/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-300 ring-1 ring-amber-400/30">
+                        Siguiente
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-0.5 text-xs leading-relaxed text-slate-400">
+                    {h.desc}
+                  </p>
+                </div>
+              </motion.li>
+            );
+          })}
+        </ul>
+
+        <p className="mt-3 text-[11px] leading-relaxed text-slate-500">
+          Los hitos se contabilizan por barberías convertidas (no por invitados).
+          Para reclamar un premio, escríbenos por Soporte.
+        </p>
       </div>
     </section>
   );
