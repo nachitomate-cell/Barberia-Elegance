@@ -556,6 +556,24 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
         className="px-3 pt-4 border-t border-slate-800 space-y-2.5"
         style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 1rem)' }}
       >
+        {/* Volver al lobby admin de Kronnos (multi-sede). El dueño tiene 3 sucursales
+            y desde aquí cambia rápido si entró a la incorrecta. */}
+        {tenant.id?.startsWith('kronnos_') && (
+          <a
+            href="/kronnos-admin"
+            title="Volver al selector de sedes Kronnos"
+            className="flex items-center justify-center gap-2 w-full px-3 py-2.5 rounded-xl text-sm font-bold border transition-all duration-200 active:scale-[0.98]"
+            style={{
+              color: tenant.brand?.hex || '#e11d2a',
+              borderColor: `${tenant.brand?.hex || '#e11d2a'}55`,
+              backgroundColor: `${tenant.brand?.hex || '#e11d2a'}14`,
+            }}
+          >
+            <Building2 size={15} />
+            <span>Cambiar de sede</span>
+          </a>
+        )}
+
         <a
           href={
             tenant.id === 'deluxeperfumes'
