@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cotización — Peluquería & Barbería Renacer</title>
+<style>
+  @page { size: A4; margin: 12mm; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    color: #15171c;
+    background: #fff;
+    line-height: 1.4;
+  }
+  .sheet {
+    width: 186mm;
+    margin: 0 auto;
+    padding: 4mm 2mm;
+  }
+  /* ── Header ─────────────────────────────────────────────────── */
+  .head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 3px solid #0F172A;
+    padding-bottom: 12px;
+    margin-bottom: 14px;
+  }
+  .head-left .kicker {
+    font-size: 10px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: #64748b;
+    font-weight: 800;
+  }
+  .head-left h1 {
+    font-size: 22px;
+    font-weight: 900;
+    margin-top: 3px;
+    color: #15171c;
+    letter-spacing: -0.02em;
+  }
+  .head-left .sub {
+    font-size: 11px;
+    color: #555;
+    margin-top: 3px;
+  }
+  .head-right {
+    text-align: right;
+    font-size: 10px;
+    color: #555;
+  }
+  .head-right strong { color: #15171c; font-size: 11px; }
+  /* ── Cliente / datos ────────────────────────────────────────── */
+  .cliente-box {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    background: #f8fafc;
+    border-left: 3px solid #15171c;
+    padding: 10px 14px;
+    border-radius: 0 8px 8px 0;
+    margin-bottom: 14px;
+  }
+  .cliente-box .label {
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #94a3b8;
+    font-weight: 700;
+    margin-bottom: 2px;
+  }
+  .cliente-box .value {
+    font-size: 12px;
+    font-weight: 700;
+    color: #15171c;
+  }
+  /* ── Section title ──────────────────────────────────────────── */
+  .sec-title {
+    font-size: 13px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #15171c;
+    margin: 14px 0 8px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .sec-title::before {
+    content: '';
+    width: 5px;
+    height: 14px;
+    background: #15171c;
+    border-radius: 2px;
+  }
+  /* ── Módulos ────────────────────────────────────────────────── */
+  .modulos-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 7px;
+    margin-bottom: 4px;
+  }
+  .modulo {
+    background: #fafbfc;
+    border: 1px solid #e5e7eb;
+    border-radius: 7px;
+    padding: 7px 10px;
+  }
+  .modulo .title {
+    font-size: 10.5px;
+    font-weight: 800;
+    color: #15171c;
+    margin-bottom: 2px;
+  }
+  .modulo .desc {
+    font-size: 9.5px;
+    color: #555;
+    line-height: 1.4;
+  }
+  .modulo .icon {
+    color: #16a34a;
+    font-weight: 800;
+    margin-right: 4px;
+  }
+  /* ── Bot WhatsApp destacado ─────────────────────────────────── */
+  .bot-feature {
+    background: linear-gradient(135deg, #128C7E, #25D366);
+    color: #fff;
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin: 10px 0;
+    position: relative;
+    overflow: hidden;
+  }
+  .bot-feature::after {
+    content: '';
+    position: absolute;
+    top: -30px; right: -20px;
+    width: 100px; height: 100px;
+    background: radial-gradient(circle, rgba(255,255,255,0.18), transparent 70%);
+    border-radius: 50%;
+  }
+  .bot-feature .tag {
+    display: inline-block;
+    background: rgba(255,255,255,0.18);
+    color: #fff;
+    font-size: 8.5px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-bottom: 6px;
+  }
+  .bot-feature h3 {
+    font-size: 14px;
+    font-weight: 800;
+    margin-bottom: 4px;
+  }
+  .bot-feature p {
+    font-size: 10.5px;
+    line-height: 1.5;
+    opacity: 0.95;
+    position: relative;
+    z-index: 1;
+  }
+  /* ── Inversión / Planes ─────────────────────────────────────── */
+  .planes-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 10px;
+    margin-top: 4px;
+  }
+  .plan {
+    border-radius: 10px;
+    padding: 12px 14px;
+    position: relative;
+  }
+  .plan-anual {
+    background: linear-gradient(135deg, #0F172A, #1e293b);
+    color: #fff;
+    border: 1.5px solid #FFC700;
+  }
+  .plan-anual .badge {
+    position: absolute;
+    top: -8px;
+    right: 10px;
+    background: #FFC700;
+    color: #15171c;
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 3px 8px;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+  }
+  .plan-mensual {
+    background: #fafbfc;
+    border: 1.5px solid #d1d5db;
+    color: #15171c;
+  }
+  .plan h3 {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+    opacity: 0.85;
+  }
+  .plan .rows { display: grid; gap: 4px; }
+  .plan .row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    padding: 3px 0;
+  }
+  .plan-anual .row { border-bottom: 1px solid rgba(255,255,255,0.15); }
+  .plan-mensual .row { border-bottom: 1px solid #e5e7eb; color: #555; }
+  .plan .row.total {
+    border-bottom: none;
+    font-weight: 800;
+    font-size: 13.5px;
+    margin-top: 4px;
+    padding-top: 6px;
+  }
+  .plan-anual .row.total { color: #FFC700; }
+  .plan-mensual .row.total { color: #15171c; }
+  .plan .highlight {
+    background: rgba(255,199,0,0.12);
+    border: 1px solid rgba(255,199,0,0.3);
+    padding: 4px 8px !important;
+    border-radius: 4px;
+    margin: 3px 0 !important;
+    font-weight: 700 !important;
+    color: #FFE082 !important;
+  }
+  .plan-anual .highlight { color: #FDE68A !important; }
+  /* ── Ahorro ─────────────────────────────────────────────────── */
+  .ahorro {
+    background: #FFF8DC;
+    border-left: 3px solid #FFC700;
+    padding: 8px 12px;
+    margin-top: 10px;
+    font-size: 11px;
+    color: #5a4a00;
+    border-radius: 0 6px 6px 0;
+  }
+  .ahorro b { color: #15171c; }
+  /* ── Bonus mes gratis ───────────────────────────────────────── */
+  .bonus-mes {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+    border: 1.5px solid #F59E0B;
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin: 6px 0 10px;
+    position: relative;
+    overflow: hidden;
+  }
+  .bonus-mes::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at top right, rgba(255,255,255,0.55), transparent 55%);
+    pointer-events: none;
+  }
+  .bonus-mes .icono {
+    font-size: 26px;
+    flex-shrink: 0;
+    line-height: 1;
+    filter: drop-shadow(0 1px 2px rgba(245,158,11,0.35));
+  }
+  .bonus-mes .texto { flex: 1; position: relative; z-index: 1; }
+  .bonus-mes .titulo {
+    font-size: 13px;
+    font-weight: 900;
+    color: #7c2d12;
+    margin-bottom: 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .bonus-mes .desc {
+    font-size: 10.5px;
+    color: #92400e;
+    line-height: 1.4;
+    font-weight: 500;
+  }
+  .bonus-mes .badge {
+    background: #7c2d12;
+    color: #FEF3C7;
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 4px 9px;
+    border-radius: 14px;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+  }
+  /* ── Términos ───────────────────────────────────────────────── */
+  .terminos {
+    background: #fafbfc;
+    border: 1px solid #e5e7eb;
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin-top: 12px;
+    font-size: 9.5px;
+    color: #475569;
+    line-height: 1.6;
+  }
+  .terminos strong { color: #15171c; }
+  /* ── Footer ─────────────────────────────────────────────────── */
+  .footer {
+    margin-top: 14px;
+    text-align: center;
+    font-size: 9px;
+    color: #888;
+    border-top: 1px solid #eee;
+    padding-top: 8px;
+  }
+  .footer strong { color: #15171c; }
+  @media print {
+    .sheet { padding: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <!-- ── Header ────────────────────────────────────────────── -->
+  <div class="head">
+    <div class="head-left">
+      <div class="kicker">Cotización · SynapTech SpA</div>
+      <h1>Sistema de gestión + Bot WhatsApp</h1>
+      <div class="sub">Plataforma todo-en-uno para tu peluquería & barbería</div>
+    </div>
+    <div class="head-right">
+      <strong>N° COT-2026-007</strong><br>
+      Fecha emisión: 27-Jun-2026<br>
+      Vigencia: 30 días<br>
+      Válida hasta: 27-Jul-2026
+    </div>
+  </div>
+
+  <!-- ── Datos del cliente ─────────────────────────────────── -->
+  <div class="cliente-box">
+    <div>
+      <div class="label">Cotización dirigida a</div>
+      <div class="value">Peluquería & Barbería Renacer</div>
+    </div>
+    <div>
+      <div class="label">Tipo de servicio</div>
+      <div class="value">Suscripción SaaS · 1 local</div>
+    </div>
+  </div>
+
+  <!-- ── Plataforma de gestión ─────────────────────────────── -->
+  <div class="sec-title">Plataforma de gestión · Todo incluido</div>
+  <div class="modulos-grid">
+    <div class="modulo">
+      <div class="title"><span class="icon">✓</span>Agenda y reservas</div>
+      <div class="desc">Agenda por profesional, reserva online 24/7, lista de espera, recordatorios automáticos.</div>
+    </div>
+    <div class="modulo">
+      <div class="title"><span class="icon">✓</span>Equipo y servicios</div>
+      <div class="desc">Gestión de profesionales, comisiones automáticas, catálogo de servicios y precios.</div>
+    </div>
+    <div class="modulo">
+      <div class="title"><span class="icon">✓</span>Clientes y fidelidad</div>
+      <div class="desc">Ficha de cliente, sistema de premios, rangos Silver/Gold/Platinum, historial de cortes.</div>
+    </div>
+    <div class="modulo">
+      <div class="title"><span class="icon">✓</span>Reseñas Google</div>
+      <div class="desc">Captura automática post-servicio + visualización en tu sitio público de reservas.</div>
+    </div>
+    <div class="modulo">
+      <div class="title"><span class="icon">✓</span>Caja, gastos y reportes</div>
+      <div class="desc">Control diario de caja, registro de gastos, métricas en tiempo real, finanzas mensuales.</div>
+    </div>
+    <div class="modulo">
+      <div class="title"><span class="icon">✓</span>Inventario y productos</div>
+      <div class="desc">Stock de productos, alertas de inventario bajo, venta y reserva online.</div>
+    </div>
+    <div class="modulo">
+      <div class="title"><span class="icon">✓</span>Marketing y notificaciones</div>
+      <div class="desc">Campañas push, gift cards digitales, integración con Instagram, link in bio (bioo.cl).</div>
+    </div>
+    <div class="modulo">
+      <div class="title"><span class="icon">✓</span>Pagos integrados</div>
+      <div class="desc">Conexión con Mercado Pago para cobrar online, conciliación automática.</div>
+    </div>
+    <div class="modulo">
+      <div class="title"><span class="icon">✓</span>Pantalla TV para sala</div>
+      <div class="desc">Pantalla decorativa con turnos, promociones y branding de tu local.</div>
+    </div>
+    <div class="modulo">
+      <div class="title"><span class="icon">✓</span>Soporte y actualizaciones</div>
+      <div class="desc">Soporte directo por WhatsApp, mejoras continuas, sin costo de implementación.</div>
+    </div>
+  </div>
+
+  <!-- ── Bot WhatsApp destacado ────────────────────────────── -->
+  <div class="bot-feature">
+    <span class="tag">🤖 Add-on Premium · NUEVO</span>
+    <h3>Bot WhatsApp · Confirmación automática de citas</h3>
+    <p>Recordatorio + bot inteligente que responde a tus clientes 24/7. Confirma, cancela y libera horarios solo. Tasa de no-shows hasta 3× menor. Comparativa: AgendaPro lo cobra a $50.000 / mes — aquí lo tienes por $14.900 (o gratis en plan anual).</p>
+  </div>
+
+  <!-- ── Inversión ─────────────────────────────────────────── -->
+  <div class="sec-title">Inversión mensual</div>
+
+  <div class="bonus-mes">
+    <span class="icono">🎁</span>
+    <div class="texto">
+      <div class="titulo">Primer mes 100% gratis</div>
+      <div class="desc">Comienzas sin pagar nada — pruebas el sistema completo durante 30 días y recién al mes 2 comienza tu suscripción.</div>
+    </div>
+    <span class="badge">Bonus de bienvenida</span>
+  </div>
+
+  <div class="planes-grid">
+
+    <!-- Plan Anual destacado -->
+    <div class="plan plan-anual">
+      <span class="badge">★ Recomendado</span>
+      <h3>💰 Plan Anual · Pago una vez</h3>
+      <div class="rows">
+        <div class="row">
+          <span>Sistema de gestión completo</span>
+          <span>Incluido</span>
+        </div>
+        <div class="row highlight">
+          <span>🤖 Bot WhatsApp</span>
+          <span>SIN COSTO</span>
+        </div>
+        <div class="row">
+          <span>Pantalla TV (módulo)</span>
+          <span>Incluido</span>
+        </div>
+        <div class="row">
+          <span>Soporte prioritario</span>
+          <span>Incluido</span>
+        </div>
+        <div class="row">
+          <span>Precio congelado 12 meses</span>
+          <span>✓</span>
+        </div>
+        <div class="row total">
+          <span>Equivalente mensual</span>
+          <span>$26.900 + IVA</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Plan Mensual -->
+    <div class="plan plan-mensual">
+      <h3>Plan Mensual · Pago mes a mes</h3>
+      <div class="rows">
+        <div class="row">
+          <span>Sistema de gestión base</span>
+          <span>$29.900</span>
+        </div>
+        <div class="row">
+          <span>Bot WhatsApp (add-on)</span>
+          <span>$14.900</span>
+        </div>
+        <div class="row">
+          <span>Pantalla TV (módulo)</span>
+          <span>Incluido</span>
+        </div>
+        <div class="row">
+          <span>Soporte estándar</span>
+          <span>Incluido</span>
+        </div>
+        <div class="row total">
+          <span>Total mensual</span>
+          <span>$44.800 + IVA</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Ahorro ─────────────────────────────────────────────── -->
+  <div class="ahorro">
+    💡 <b>Eligiendo el plan anual ahorras $214.800 al año</b> respecto al plan mensual con bot incluido. Además, el bot WhatsApp queda sin costo y tu tarifa queda congelada por 12 meses.
+  </div>
+
+  <!-- ── Términos ──────────────────────────────────────────── -->
+  <div class="terminos">
+    <strong>Condiciones:</strong> Precios expresados en pesos chilenos, no incluyen IVA. Activación en 24–48 horas hábiles tras confirmación de pago. Sin costo de instalación ni configuración inicial. Soporte directo por WhatsApp dentro del horario hábil. La cotización tiene validez de 30 días corridos desde la fecha de emisión.
+  </div>
+
+  <!-- ── Footer ────────────────────────────────────────────── -->
+  <div class="footer">
+    Cotización emitida por <strong>SynapTech SpA</strong> · synaptechspa.cl · @synaptechspa<br>
+    Contacto comercial: +56 9 8356 8212 · ignaciiio.mate@gmail.com
+  </div>
+
+</div>
+</body>
+</html>

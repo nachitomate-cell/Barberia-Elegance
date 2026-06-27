@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cotización — Infinity Studio</title>
+<style>
+  @page { size: A4; margin: 11mm; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    color: #15171c;
+    background: #fff;
+    line-height: 1.35;
+  }
+  .sheet {
+    width: 188mm;
+    margin: 0 auto;
+    padding: 4mm 2mm;
+  }
+  /* ── Header ─────────────────────────────────────────────────── */
+  .head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 3px solid #0F172A;
+    padding-bottom: 11px;
+    margin-bottom: 12px;
+  }
+  .head-left .kicker {
+    font-size: 10px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: #64748b;
+    font-weight: 800;
+  }
+  .head-left h1 {
+    font-size: 22px;
+    font-weight: 900;
+    margin-top: 3px;
+    color: #15171c;
+    letter-spacing: -0.02em;
+  }
+  .head-left .sub {
+    font-size: 11px;
+    color: #555;
+    margin-top: 3px;
+  }
+  .head-right {
+    text-align: right;
+    font-size: 10px;
+    color: #555;
+  }
+  .head-right strong { color: #15171c; font-size: 11px; }
+  /* ── Cliente / datos ────────────────────────────────────────── */
+  .cliente-box {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    background: #f8fafc;
+    border-left: 3px solid #15171c;
+    padding: 9px 14px;
+    border-radius: 0 8px 8px 0;
+    margin-bottom: 12px;
+  }
+  .cliente-box .label {
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: #94a3b8;
+    font-weight: 700;
+    margin-bottom: 2px;
+  }
+  .cliente-box .value {
+    font-size: 12px;
+    font-weight: 700;
+    color: #15171c;
+  }
+  /* ── Section title ──────────────────────────────────────────── */
+  .sec-title {
+    font-size: 13px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #15171c;
+    margin: 13px 0 7px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .sec-title::before {
+    content: '';
+    width: 5px;
+    height: 14px;
+    background: #15171c;
+    border-radius: 2px;
+  }
+  .sec-title .badge-pro {
+    margin-left: auto;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    background: #15171c;
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 10px;
+    text-transform: uppercase;
+  }
+  /* ── Módulos ────────────────────────────────────────────────── */
+  .modulos-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  .modulo {
+    background: #fafbfc;
+    border: 1px solid #e5e7eb;
+    border-radius: 7px;
+    padding: 7px 10px;
+  }
+  .modulo .title {
+    font-size: 10.5px;
+    font-weight: 800;
+    color: #15171c;
+    margin-bottom: 2px;
+  }
+  .modulo .desc {
+    font-size: 9.5px;
+    color: #555;
+    line-height: 1.4;
+  }
+  .modulo .icon {
+    color: #16a34a;
+    font-weight: 800;
+    margin-right: 4px;
+  }
+  /* ── Capacidades técnicas (footer info) ─────────────────────── */
+  .tech-strip {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin: 10px 0 4px;
+  }
+  .tech-pill {
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    padding: 6px 8px;
+    text-align: center;
+  }
+  .tech-pill .num {
+    font-size: 14px;
+    font-weight: 900;
+    color: #15171c;
+    line-height: 1;
+  }
+  .tech-pill .lbl {
+    font-size: 8.5px;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 2px;
+    font-weight: 700;
+  }
+  /* ── Plan único ─────────────────────────────────────────────── */
+  .plan-box {
+    background: linear-gradient(135deg, #0F172A, #1e293b 60%, #334155);
+    color: #fff;
+    border-radius: 12px;
+    padding: 16px 18px;
+    margin-top: 8px;
+    position: relative;
+    overflow: hidden;
+    border: 1.5px solid #94a3b8;
+  }
+  .plan-box::after {
+    content: '';
+    position: absolute;
+    top: -40px; right: -30px;
+    width: 160px; height: 160px;
+    background: radial-gradient(circle, rgba(203,213,225,0.18), transparent 70%);
+    border-radius: 50%;
+  }
+  .plan-box .plan-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+    position: relative;
+    z-index: 1;
+  }
+  .plan-box .plan-header h3 {
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    opacity: 0.85;
+  }
+  .plan-box .plan-header .tipo {
+    font-size: 9px;
+    background: rgba(203,213,225,0.15);
+    color: #cbd5e1;
+    padding: 3px 8px;
+    border-radius: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-weight: 800;
+  }
+  .plan-box .price-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-top: 1px solid rgba(255,255,255,0.15);
+    position: relative;
+    z-index: 1;
+  }
+  .plan-box .price-row .label {
+    font-size: 12.5px;
+    font-weight: 700;
+    opacity: 0.9;
+  }
+  .plan-box .price-row .price {
+    font-size: 22px;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    color: #f1f5f9;
+  }
+  .plan-box .price-row .price span {
+    font-size: 11px;
+    opacity: 0.7;
+    font-weight: 600;
+    margin-left: 3px;
+  }
+  .plan-box .feature-list {
+    list-style: none;
+    margin-top: 6px;
+    position: relative;
+    z-index: 1;
+  }
+  .plan-box .feature-list li {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10.5px;
+    padding: 2px 0;
+    color: rgba(255,255,255,0.92);
+  }
+  .plan-box .feature-list li::before {
+    content: '✓';
+    color: #86efac;
+    font-weight: 900;
+    font-size: 12px;
+  }
+  /* ── Bonus mes gratis ───────────────────────────────────────── */
+  .bonus-mes {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
+    border: 1.5px solid #F59E0B;
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin: 6px 0 10px;
+    position: relative;
+    overflow: hidden;
+  }
+  .bonus-mes::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at top right, rgba(255,255,255,0.55), transparent 55%);
+    pointer-events: none;
+  }
+  .bonus-mes .icono {
+    font-size: 26px;
+    flex-shrink: 0;
+    line-height: 1;
+    filter: drop-shadow(0 1px 2px rgba(245,158,11,0.35));
+  }
+  .bonus-mes .texto { flex: 1; position: relative; z-index: 1; }
+  .bonus-mes .titulo {
+    font-size: 13px;
+    font-weight: 900;
+    color: #7c2d12;
+    margin-bottom: 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .bonus-mes .desc {
+    font-size: 10.5px;
+    color: #92400e;
+    line-height: 1.4;
+    font-weight: 500;
+  }
+  .bonus-mes .badge {
+    background: #7c2d12;
+    color: #FEF3C7;
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 4px 9px;
+    border-radius: 14px;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+  }
+  /* ── Términos ───────────────────────────────────────────────── */
+  .terminos {
+    background: #fafbfc;
+    border: 1px solid #e5e7eb;
+    padding: 8px 12px;
+    border-radius: 6px;
+    margin-top: 10px;
+    font-size: 9.5px;
+    color: #475569;
+    line-height: 1.6;
+  }
+  .terminos strong { color: #15171c; }
+  /* ── Footer ─────────────────────────────────────────────────── */
+  .footer {
+    margin-top: 12px;
+    text-align: center;
+    font-size: 9px;
+    color: #888;
+    border-top: 1px solid #eee;
+    padding-top: 8px;
+  }
+  .footer strong { color: #15171c; }
+  /* ── Cliente actual badge ───────────────────────────────────── */
+  .cliente-actual {
+    display: inline-block;
+    background: #94a3b8;
+    color: #15171c;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+  @media print {
+    .sheet { padding: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <!-- ── Header ────────────────────────────────────────────── -->
+  <div class="head">
+    <div class="head-left">
+      <div class="kicker">Cotización · SynapTech SpA</div>
+      <h1>Sistema de gestión integral para tu barbería</h1>
+      <div class="sub">Plataforma todo-en-uno · Agenda + Fidelización + Reportes + Pagos</div>
+    </div>
+    <div class="head-right">
+      <strong>N° COT-2026-009</strong><br>
+      Fecha emisión: 27-Jun-2026<br>
+      Vigencia: 30 días<br>
+      Válida hasta: 27-Jul-2026
+    </div>
+  </div>
+
+  <!-- ── Datos del cliente ─────────────────────────────────── -->
+  <div class="cliente-box">
+    <div>
+      <div class="label">Cotización dirigida a</div>
+      <div class="value">
+        Infinity Studio
+        <span class="cliente-actual">★ Cliente</span>
+      </div>
+    </div>
+    <div>
+      <div class="label">Tipo de servicio</div>
+      <div class="value">Suscripción SaaS mensual · 1 local</div>
+    </div>
+  </div>
+
+  <!-- ── Tech strip — números clave ────────────────────────── -->
+  <div class="tech-strip">
+    <div class="tech-pill"><div class="num">28+</div><div class="lbl">Módulos</div></div>
+    <div class="tech-pill"><div class="num">24/7</div><div class="lbl">Reserva online</div></div>
+    <div class="tech-pill"><div class="num">∞</div><div class="lbl">Clientes</div></div>
+    <div class="tech-pill"><div class="num">0%</div><div class="lbl">Comisión por venta</div></div>
+  </div>
+
+  <!-- ── Plataforma de gestión — TODO ──────────────────────── -->
+  <div class="sec-title">Todo lo que tu plan incluye <span class="badge-pro">Acceso completo</span></div>
+  <div class="modulos-grid">
+
+    <div class="modulo">
+      <div class="title"><span class="icon">✓</span>Agenda profesional inteligente</div>
+      <div class="desc">Agenda por barbero, vista día/semana, citas con cliente vinculado, recordatorios automáticos por email y push.</div>
+    </div>
+    <div class="modulo">
+      <div class="title"><span class="icon">✓</span>Reserva online 24/7</div>
+      <div class="desc">Tu sitio público de reservas con dominio personalizado (infinity.synaptechspa.cl). Tus clientes reservan solos.</div>
+    </div>
+    <div class="modulo">
+      <div class="title"><span class="icon">✓</span>Equipo y profesionales</div>
+      <div class="desc">Alta y baja de barberos, foto, horarios individuales, días libres, vacaciones, agenda personal para cada uno.</div>
+    </div>
+    <div class="modulo">
+      <div class="title"><span class="icon">✓</span>Catálogo de servicios</div>
+      <div class="desc">Servicios con foto, duración, precio, categoría. Edición ilimitada. Reflejo automático en reserva pública.</div>
+    </div>
+    <div class="modulo">
+      <div class="title"><span class="icon">✓</span>Ficha de clientes</div>
+      <div class="desc">Base de datos ilimitada con historial de cortes, preferencias, total gastado, fechas, foto del antes/después.</div>
+    </div>
+    <div class="modulo">
+      <div class="title"><span class="icon">✓</span>Lista Negra</div>
+      <div class="desc">Bloquea clientes problemáticos. No pueden volver a reservar online. Privado por barbería.</div>
+    </div>
+    <div class="modulo">
+      <div class="title"><span class="icon">✓</span>Programa de fidelidad (Premios)</div>
+      <div class="desc">Sellos automáticos por servicio, premios canjeables (corte gratis, descuento), tu cliente acumula y vuelve.</div>
+    </div>
+    <div class="modulo">
+      <div class="title"><span class="icon">✓</span>Rangos Silver / Gold / Platinum</div>
+      <div class="desc">Tu cliente sube de rango con cada corte. Beneficios automáticos por nivel: descuentos, sellos extra, prioridad.</div>
+    </div>
+    <div class="modulo">
+      <div class="title"><span class="icon">✓</span>Reseñas Google automáticas</div>
+      <div class="desc">Después del corte, el sistema le pide al cliente que deje su reseña en Google. Sumas reputación sin esfuerzo.</div>
+    </div>
+    <div class="modulo">
+      <div class="title"><span class="icon">✓</span>Comisiones automáticas</div>
+      <div class="desc">Cada barbero ve su % de comisión por servicio. Reporte semanal/mensual automático para pago de comisiones.</div>
+    </div>
+    <div class="modulo">
+      <div class="title"><span class="icon">✓</span>Control de Caja diario</div>
+      <div class="desc">Apertura/cierre de caja, ingresos por servicio y por producto, conciliación de pagos, métodos de pago detallados.</div>
+    </div>
+    <div class="modulo">
+      <div class="title"><span class="icon">✓</span>Gastos y reportes financieros</div>
+      <div class="desc">Registro de gastos por categoría, métricas mensuales, utilidad, exportable. Visión completa de tu negocio.</div>
+    </div>
+    <div class="modulo">
+      <div class="title"><span class="icon">✓</span>Inventario y productos</div>
+      <div class="desc">Stock de productos, alertas de bajo inventario, venta presencial y reserva online de productos por tus clientes.</div>
+    </div>
+    <div class="modulo">
+      <div class="title"><span class="icon">✓</span>Marketing y notificaciones push</div>
+      <div class="desc">Mandas notificaciones masivas a tus clientes (promos, recordatorios, eventos). Sin costo por mensaje.</div>
+    </div>
+    <div class="modulo">
+      <div class="title"><span class="icon">✓</span>Gift Cards digitales</div>
+      <div class="desc">Crea, vende y canjea gift cards desde el sistema. Tu cliente regala, otro cliente reserva con ese saldo.</div>
+    </div>
+    <div class="modulo">
+      <div class="title"><span class="icon">✓</span>Recibir pagos online (Mercado Pago)</div>
+      <div class="desc">Cobra reservas online directo a tu Mercado Pago. Sin intermediarios. El dinero llega a tu cuenta, no a la nuestra.</div>
+    </div>
+    <div class="modulo">
+      <div class="title"><span class="icon">✓</span>Link in Bio · bioo.cl</div>
+      <div class="desc">Tu mini-sitio público con todos tus enlaces, productos y reserva integrada. Lo pones en tu Instagram bio.</div>
+    </div>
+    <div class="modulo">
+      <div class="title"><span class="icon">✓</span>Lookbook + Foto de servicio</div>
+      <div class="desc">Galería de cortes para inspirar al cliente al momento de elegir servicio. Editable desde el panel.</div>
+    </div>
+    <div class="modulo">
+      <div class="title"><span class="icon">✓</span>Pantalla TV decorativa</div>
+      <div class="desc">Pantalla con tus servicios, promociones, reseñas y branding Infinity para mostrar en la sala de espera.</div>
+    </div>
+    <div class="modulo">
+      <div class="title"><span class="icon">✓</span>Programa de referidos</div>
+      <div class="desc">Cada barbería que invites te suma 1 mes gratis cuando se active. Tu link único de referidos siempre activo.</div>
+    </div>
+    <div class="modulo">
+      <div class="title"><span class="icon">✓</span>Lista de espera y Por cerrar</div>
+      <div class="desc">Lista de espera con notificación al liberar slot. Vista "Por cerrar" para citas pendientes de cobro/cierre.</div>
+    </div>
+    <div class="modulo">
+      <div class="title"><span class="icon">✓</span>App instalable + soporte directo</div>
+      <div class="desc">Funciona como app en celular (PWA), modo claro/oscuro, soporte directo por WhatsApp, actualizaciones sin costo.</div>
+    </div>
+
+  </div>
+
+  <!-- ── Plan único ─────────────────────────────────────────── -->
+  <div class="sec-title">Inversión mensual</div>
+
+  <div class="bonus-mes">
+    <span class="icono">🎁</span>
+    <div class="texto">
+      <div class="titulo">Primer mes 100% gratis</div>
+      <div class="desc">Comienzas sin pagar nada — disfrutas el sistema completo durante 30 días y recién al mes 2 comienza tu cobro mensual.</div>
+    </div>
+    <span class="badge">Bonus exclusivo</span>
+  </div>
+
+  <div class="plan-box">
+    <div class="plan-header">
+      <h3>💼 Plan Profesional · Mensual</h3>
+      <span class="tipo">Pago mes a mes</span>
+    </div>
+    <ul class="feature-list">
+      <li>Acceso completo a todos los módulos descritos arriba</li>
+      <li>Sin costo de instalación ni implementación</li>
+      <li>Sin límite de clientes, citas, servicios ni profesionales</li>
+      <li>Soporte directo por WhatsApp + actualizaciones continuas</li>
+      <li>Sin permanencia mínima · cancela cuando quieras</li>
+    </ul>
+    <div class="price-row">
+      <div class="label">Total mensual</div>
+      <div class="price">$25.000<span>+ IVA</span></div>
+    </div>
+  </div>
+
+  <!-- ── Términos ──────────────────────────────────────────── -->
+  <div class="terminos">
+    <strong>Condiciones:</strong> Precios expresados en pesos chilenos, no incluyen IVA. Suscripción mensual sin permanencia mínima. Activación inmediata tras confirmación de pago. Sin costo de instalación ni configuración inicial. Soporte directo por WhatsApp en horario hábil. Backups automáticos diarios en infraestructura Firebase (Google Cloud). La cotización tiene validez de 30 días corridos desde la fecha de emisión.
+  </div>
+
+  <!-- ── Footer ────────────────────────────────────────────── -->
+  <div class="footer">
+    Cotización emitida por <strong>SynapTech SpA</strong> · synaptechspa.cl · @synaptechspa<br>
+    Contacto comercial: +56 9 8356 8212 · ignaciiio.mate@gmail.com
+  </div>
+
+</div>
+</body>
+</html>
