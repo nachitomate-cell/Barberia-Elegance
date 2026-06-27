@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bot WhatsApp — Confirmación automática de citas</title>
+<style>
+  @page { size: A4; margin: 12mm; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    color: #15171c;
+    background: #fff;
+    line-height: 1.4;
+  }
+  .sheet {
+    width: 186mm;
+    margin: 0 auto;
+    padding: 4mm 2mm;
+  }
+  /* ── Header ─────────────────────────────────────────────────── */
+  .head {
+    text-align: center;
+    border-bottom: 3px solid #25D366;
+    padding-bottom: 10px;
+    margin-bottom: 14px;
+  }
+  .head .kicker {
+    font-size: 10px;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: #128C7E;
+    font-weight: 800;
+  }
+  .head h1 {
+    font-size: 24px;
+    font-weight: 900;
+    margin-top: 4px;
+    color: #15171c;
+  }
+  .head .sub {
+    font-size: 12px;
+    color: #555;
+    margin-top: 4px;
+    max-width: 150mm;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  /* ── Section title ──────────────────────────────────────────── */
+  .sec-title {
+    font-size: 13px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #15171c;
+    margin: 14px 0 7px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .sec-title::before {
+    content: '';
+    width: 6px;
+    height: 14px;
+    background: #25D366;
+    border-radius: 2px;
+  }
+  /* ── Flow diagram ───────────────────────────────────────────── */
+  .flow {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin: 8px 0 4px;
+  }
+  .step {
+    background: #f7faf8;
+    border: 1.5px solid #d6e8df;
+    border-radius: 8px;
+    padding: 9px 10px;
+    position: relative;
+  }
+  .step .num {
+    position: absolute;
+    top: -8px;
+    left: 8px;
+    background: #25D366;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 800;
+    padding: 2px 7px;
+    border-radius: 10px;
+  }
+  .step h3 {
+    font-size: 11.5px;
+    font-weight: 800;
+    color: #128C7E;
+    margin: 4px 0 4px;
+  }
+  .step p {
+    font-size: 10px;
+    color: #444;
+    line-height: 1.4;
+  }
+  /* ── Chat mockup ─────────────────────────────────────────────── */
+  .chat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .phone {
+    background: #ECE5DD;
+    border: 1.5px solid #cdc4b8;
+    border-radius: 10px;
+    padding: 8px;
+  }
+  .phone .header {
+    background: #128C7E;
+    color: #fff;
+    padding: 6px 8px;
+    border-radius: 6px 6px 0 0;
+    font-size: 10.5px;
+    font-weight: 700;
+    margin: -8px -8px 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .phone .header .avatar {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #25D366;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+  }
+  .bubble {
+    background: #fff;
+    padding: 6px 8px;
+    border-radius: 6px;
+    margin: 4px 0;
+    font-size: 10px;
+    max-width: 85%;
+    box-shadow: 0 1px 1px rgba(0,0,0,0.08);
+    line-height: 1.4;
+  }
+  .bubble.me {
+    background: #DCF8C6;
+    margin-left: auto;
+  }
+  .bubble .time {
+    font-size: 8.5px;
+    color: #999;
+    margin-top: 2px;
+  }
+  .chat-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: #128C7E;
+    margin: 6px 0 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  /* ── Two-col grid ────────────────────────────────────────────── */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .card {
+    background: #fafbfc;
+    border-left: 3px solid #25D366;
+    padding: 8px 10px;
+    border-radius: 0 6px 6px 0;
+  }
+  .card h4 {
+    font-size: 11px;
+    font-weight: 800;
+    color: #15171c;
+    margin-bottom: 4px;
+  }
+  .card p, .card ul {
+    font-size: 10px;
+    color: #444;
+    line-height: 1.5;
+  }
+  .card ul {
+    list-style: none;
+    padding: 0;
+  }
+  .card ul li {
+    padding-left: 12px;
+    position: relative;
+    margin-bottom: 2px;
+  }
+  .card ul li::before {
+    content: '✓';
+    position: absolute;
+    left: 0;
+    color: #25D366;
+    font-weight: 800;
+  }
+  /* ── Cost table ──────────────────────────────────────────────── */
+  .plans-grid {
+    display: grid;
+    grid-template-columns: 1.15fr 1fr;
+    gap: 10px;
+    margin-top: 6px;
+    align-items: stretch;
+  }
+  .cost {
+    background: linear-gradient(135deg, #128C7E, #25D366);
+    color: #fff;
+    border-radius: 10px;
+    padding: 12px 14px;
+    position: relative;
+  }
+  .cost .badge {
+    position: absolute;
+    top: -8px;
+    right: 10px;
+    background: #FFC700;
+    color: #15171c;
+    font-size: 9px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 3px 8px;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+  }
+  .cost h3 {
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+    opacity: 0.95;
+  }
+  .cost .rows {
+    display: grid;
+    gap: 4px;
+  }
+  .cost .row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    padding: 3px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+  }
+  .cost .row:last-child {
+    border-bottom: none;
+    font-weight: 800;
+    font-size: 13px;
+    margin-top: 4px;
+  }
+  .cost .highlight {
+    background: rgba(255,255,255,0.18);
+    padding: 4px 8px !important;
+    border-radius: 4px;
+    margin: 3px 0 !important;
+    font-weight: 700;
+  }
+  /* Plan mensual — sobrio, menos atractivo a propósito */
+  .cost-alt {
+    background: #fafbfc;
+    border: 1.5px solid #d6e8df;
+    color: #15171c;
+    border-radius: 10px;
+    padding: 12px 14px;
+  }
+  .cost-alt h3 {
+    font-size: 12px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+    color: #555;
+  }
+  .cost-alt .rows {
+    display: grid;
+    gap: 4px;
+  }
+  .cost-alt .row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    padding: 3px 0;
+    border-bottom: 1px solid #e5ece8;
+    color: #444;
+  }
+  .cost-alt .row:last-child {
+    border-bottom: none;
+    font-weight: 800;
+    font-size: 13px;
+    margin-top: 4px;
+    color: #15171c;
+  }
+  .savings-note {
+    background: #FFF8DC;
+    border-left: 3px solid #FFC700;
+    padding: 7px 10px;
+    margin-top: 8px;
+    font-size: 10.5px;
+    color: #5a4a00;
+    border-radius: 0 6px 6px 0;
+  }
+  .savings-note b { color: #15171c; }
+  /* ── Decision flow (yes/no branches) ─────────────────────────── */
+  .decision {
+    background: #fafbfc;
+    border: 1.5px solid #e0e6e9;
+    border-radius: 8px;
+    padding: 10px;
+    margin: 6px 0;
+  }
+  .branch {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px;
+    margin-top: 6px;
+  }
+  .branch .b {
+    background: #fff;
+    border: 1px solid #d6e8df;
+    border-radius: 6px;
+    padding: 6px 8px;
+    font-size: 9.5px;
+  }
+  .branch .b .tag {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 8px;
+    font-size: 8.5px;
+    font-weight: 800;
+    margin-bottom: 3px;
+  }
+  .branch .b.yes .tag { background: #d4f7db; color: #128C7E; }
+  .branch .b.no  .tag { background: #ffe0e0; color: #b53636; }
+  .branch .b.ask .tag { background: #fff4d6; color: #a87b1c; }
+  /* ── Footer ──────────────────────────────────────────────────── */
+  .footer {
+    margin-top: 16px;
+    text-align: center;
+    font-size: 9px;
+    color: #888;
+    border-top: 1px solid #eee;
+    padding-top: 8px;
+  }
+  .footer strong { color: #128C7E; }
+  .pitch {
+    background: #f7faf8;
+    border-left: 3px solid #25D366;
+    padding: 8px 10px;
+    margin-top: 8px;
+    font-size: 10.5px;
+    font-style: italic;
+    color: #333;
+    border-radius: 0 6px 6px 0;
+  }
+  @media print {
+    .sheet { padding: 0; }
+    .page-break { page-break-before: always; }
+  }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <!-- ── Header ────────────────────────────────────────────── -->
+  <div class="head">
+    <div class="kicker">SynapTech · Add-on Premium</div>
+    <h1>🤖 Bot WhatsApp — Confirmación Automática</h1>
+    <p class="sub">Tu cliente recibe el recordatorio. Responde. La cita se confirma sola. Sin que muevas un dedo.</p>
+  </div>
+
+  <!-- ── Cómo funciona en 3 pasos ──────────────────────────── -->
+  <div class="sec-title">Cómo funciona en 3 pasos</div>
+  <div class="flow">
+    <div class="step">
+      <span class="num">1</span>
+      <h3>📲 Recordatorio automático</h3>
+      <p>1 hora antes de la cita, el cliente recibe un WhatsApp desde el número oficial de tu sede.</p>
+    </div>
+    <div class="step">
+      <span class="num">2</span>
+      <h3>💬 Cliente responde</h3>
+      <p>El bot interpreta su respuesta: confirmar, cancelar, reagendar o consultar.</p>
+    </div>
+    <div class="step">
+      <span class="num">3</span>
+      <h3>✅ Agenda se actualiza sola</h3>
+      <p>La cita queda confirmada o el horario se libera para otro cliente. Tú no haces nada.</p>
+    </div>
+  </div>
+
+  <!-- ── Chat mockup ───────────────────────────────────────── -->
+  <div class="sec-title">Conversación real (ejemplo)</div>
+  <div class="chat-grid">
+    <div>
+      <div class="chat-label">Escenario A · Confirma</div>
+      <div class="phone">
+        <div class="header">
+          <div class="avatar">✂</div>
+          Kronnos Studio Peñablanca
+        </div>
+        <div class="bubble">
+          Hola Pedro 👋 Te recordamos tu cita en Kronnos Peñablanca a las <b>15:00 hrs</b> con <b>Martín</b>.<br><br>
+          ¿Confirmas que asistirás? Responde <b>SÍ</b> para confirmar o <b>NO</b> si no podrás venir.
+          <div class="time">14:00</div>
+        </div>
+        <div class="bubble me">
+          si
+          <div class="time">14:02 ✓✓</div>
+        </div>
+        <div class="bubble">
+          Listo Pedro ✓ tu cita queda confirmada. ¡Te esperamos! 💈
+          <div class="time">14:02</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="chat-label">Escenario B · Cancela</div>
+      <div class="phone">
+        <div class="header">
+          <div class="avatar">✂</div>
+          Kronnos Studio Peñablanca
+        </div>
+        <div class="bubble">
+          Hola Camila 👋 Te recordamos tu cita a las <b>17:00 hrs</b> con <b>Evelyn</b>.<br><br>
+          ¿Confirmas que asistirás? Responde <b>SÍ</b> o <b>NO</b>.
+          <div class="time">16:00</div>
+        </div>
+        <div class="bubble me">
+          no puedo, lo siento
+          <div class="time">16:05 ✓✓</div>
+        </div>
+        <div class="bubble">
+          ¿Quieres cancelar tu cita de hoy a las 17:00? Responde <b>SÍ</b> para cancelar o <b>NO</b> para mantenerla.
+          <div class="time">16:05</div>
+        </div>
+        <div class="bubble me">
+          si
+          <div class="time">16:06 ✓✓</div>
+        </div>
+        <div class="bubble">
+          Hemos cancelado tu cita. Para reagendar, escríbenos cuando quieras 💚
+          <div class="time">16:06</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Decision tree ─────────────────────────────────────── -->
+  <div class="sec-title">Qué hace el bot según lo que dice el cliente</div>
+  <div class="decision">
+    <div style="font-size:10.5px;color:#444;">Cliente responde al recordatorio →</div>
+    <div class="branch">
+      <div class="b yes">
+        <span class="tag">SÍ / OK / DALE / 👍</span>
+        Cita queda <b>Confirmada</b> en tu agenda. Cliente recibe gracias.
+      </div>
+      <div class="b no">
+        <span class="tag">NO / NO PUEDO</span>
+        Bot pide confirmar. Si insiste, cita <b>cancelada</b> y slot liberado.
+      </div>
+      <div class="b ask">
+        <span class="tag">CAMBIAR HORA / DUDA</span>
+        Bot avisa <b>"te respondemos en un momento"</b> y te alerta en el panel.
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Beneficios ────────────────────────────────────────── -->
+  <div class="sec-title">Lo que ganas</div>
+  <div class="two-col">
+    <div class="card">
+      <h4>📈 Menos no-shows</h4>
+      <ul>
+        <li>Clientes que confirman tienen 3× menos probabilidad de faltar.</li>
+        <li>Los que cancelan liberan el horario al instante.</li>
+        <li>Agenda más llena con el mismo esfuerzo.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>⏱️ Tu tiempo, libre</h4>
+      <ul>
+        <li>Dejas de responder los "ok confirmo" de cada cliente.</li>
+        <li>El bot atiende el 80% solo, tú solo lo complejo.</li>
+        <li>Recuperas 3–5 horas a la semana.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>🎯 Cero esfuerzo de uso</h4>
+      <ul>
+        <li>No tienes que aprender nada nuevo.</li>
+        <li>Tu agenda se actualiza sola.</li>
+        <li>Cuando necesitas intervenir, el panel te avisa.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>📊 Historial completo</h4>
+      <ul>
+        <li>Todas las conversaciones quedan guardadas.</li>
+        <li>Revisas cualquier chat pasado desde el panel.</li>
+        <li>Trazabilidad total ante reclamos.</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ── Costo ─────────────────────────────────────────────── -->
+  <div class="sec-title">Inversión · por sede</div>
+  <div class="plans-grid">
+
+    <!-- Plan Anual (destacado) -->
+    <div class="cost">
+      <span class="badge">★ Recomendado</span>
+      <h3>💰 Plan Anual · Pago una vez al año</h3>
+      <div class="rows">
+        <div class="row">
+          <span>Sistema de gestión completo</span>
+          <span>Incluido</span>
+        </div>
+        <div class="row highlight">
+          <span>🤖 Bot WhatsApp + recordatorios</span>
+          <span>SIN COSTO</span>
+        </div>
+        <div class="row">
+          <span>Panel de conversaciones</span>
+          <span>Incluido</span>
+        </div>
+        <div class="row">
+          <span>Soporte prioritario</span>
+          <span>Incluido</span>
+        </div>
+        <div class="row">
+          <span>Equivalente mensual</span>
+          <span>$20.000 + IVA</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Plan Mensual -->
+    <div class="cost-alt">
+      <h3>Plan Mensual · Pago mes a mes</h3>
+      <div class="rows">
+        <div class="row">
+          <span>Sistema de gestión base</span>
+          <span>$22.900</span>
+        </div>
+        <div class="row">
+          <span>Bot WhatsApp (add-on opcional)</span>
+          <span>$9.900</span>
+        </div>
+        <div class="row">
+          <span>Panel de conversaciones</span>
+          <span>Incluido</span>
+        </div>
+        <div class="row">
+          <span>Soporte estándar</span>
+          <span>Incluido</span>
+        </div>
+        <div class="row">
+          <span>Total mensual</span>
+          <span>$32.800 + IVA</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="savings-note">
+    💡 <b>Ahorras $153.600 al año por sede</b> eligiendo el plan anual. Con 3 sedes son <b>$460.800 de ahorro anual</b> + bot WhatsApp incluido y precio congelado por 12 meses.
+  </div>
+
+  <!-- ── Pitch ─────────────────────────────────────────────── -->
+  <div class="pitch">
+    <b>En 30 segundos:</b> "Cada cliente recibe un WhatsApp 1 hora antes de su cita preguntando si confirma. Si dice sí, queda confirmada sola. Si dice no, se cancela y el horario queda libre. Si pregunta algo, el bot responde lo simple, y si es complejo te avisa. <b>En el plan anual el bot va incluido sin costo extra.</b>"
+  </div>
+
+  <!-- ── Footer ────────────────────────────────────────────── -->
+  <div class="footer">
+    Desarrollado por <strong>SynapTech SpA</strong> · synaptechspa.cl · @synaptechspa<br>
+    Contacto comercial: +56 9 8356 8212
+  </div>
+
+</div>
+</body>
+</html>
