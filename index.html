@@ -8208,6 +8208,11 @@
            <div class="h-14 bg-white/5 rounded-[1rem] animate-pulse opacity-10"></div>`;
 
       const settings = customConfig || _fsConfig || DB.getSettings();
+      // Duración TOTAL: servicio principal + addons / servicios extra del modo
+      // multi-selección. Si reservas Corte (45') + Perfilado (15'), el slot
+      // debe bloquear 60' para que el siguiente cliente no pise tu cita.
+      const _duracionTotal = (selectedServiceObj.duracion || 0)
+        + (selectedAddons || []).reduce((sum, a) => sum + (a.duracion || 0), 0);
       let hours = [];
       let lastErr;
       for (let attempt = 0; attempt < 3; attempt++) {
@@ -8215,10 +8220,10 @@
           if (attempt > 0) await new Promise(r => setTimeout(r, 800 * attempt));
           if (window._selectedBarberId === 'any') {
             const _barberosActivos = (_activeBarberos && _activeBarberos.length) ? _activeBarberos : _fsBarberos;
-            hours = await FDB.getHorasDisponiblesMulti(currentDateStr, selectedServiceObj.duracion, settings, _barberosActivos);
+            hours = await FDB.getHorasDisponiblesMulti(currentDateStr, _duracionTotal, settings, _barberosActivos);
             _multiHoras = hours;
           } else {
-            hours = await FDB.getHorasDisponibles(currentDateStr, selectedServiceObj.duracion, settings, window._selectedBarberId || null);
+            hours = await FDB.getHorasDisponibles(currentDateStr, _duracionTotal, settings, window._selectedBarberId || null);
           }
           lastErr = null;
           break;
