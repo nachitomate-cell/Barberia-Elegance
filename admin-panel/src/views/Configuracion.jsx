@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import {
   Store, MapPin, Phone, Instagram, Image, Clock, Check, Save, HelpCircle, AlertCircle,
-  GraduationCap, Scissors, Ban, Info, Sparkles, Target, Star,
+  GraduationCap, Scissors, Ban, Info, Sparkles, Target, Star, Layers,
 } from 'lucide-react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -27,6 +27,10 @@ const DEFAULT_FEATURES = {
   // Muestra reseñas internas (la coleccion `resenas` que llena ReviewModal)
   // en la agenda publica para que clientes nuevos las vean antes de reservar.
   hasResenasPublicas: false,
+  // Permite al cliente elegir más de un servicio al agendar en la pública.
+  // El primer servicio queda como principal y los adicionales se concatenan
+  // en servicioNombre y suman duración y precio en la cita.
+  hasMultiServiceSelect: false,
 };
 
 const DEFAULT_SETTINGS = {
@@ -72,6 +76,7 @@ function mergeFeatures(saved) {
   if (typeof saved.hasChairRental === 'boolean') base.hasChairRental = saved.hasChairRental;
   if (typeof saved.hasAcademiaInternal === 'boolean') base.hasAcademiaInternal = saved.hasAcademiaInternal;
   if (typeof saved.hasResenasPublicas === 'boolean') base.hasResenasPublicas = saved.hasResenasPublicas;
+  if (typeof saved.hasMultiServiceSelect === 'boolean') base.hasMultiServiceSelect = saved.hasMultiServiceSelect;
   if (saved.courses)     base.courses     = { ...base.courses,     ...saved.courses };
   if (saved.chairRental) base.chairRental = { ...base.chairRental, ...saved.chairRental };
   return base;
@@ -624,6 +629,27 @@ export default function Configuracion() {
         )}
       </Card>
       )}
+
+      {/* Multi-servicio en la reserva pública */}
+      <Card Icon={Layers} title="Selección de varios servicios por reserva">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <span className="text-sm font-semibold text-white">Permitir agendar más de un servicio</span>
+            <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">
+              Activa la selección múltiple en la agenda pública. El cliente puede marcar varios servicios y la
+              cita queda con todos sumados: el nombre se concatena (<code>Corte + Barba</code>),
+              la duración se suma y el precio total también.
+            </p>
+            <p className="text-[10px] text-slate-500 mt-1.5">
+              Filtra los barberos compatibles haciendo la <strong className="text-slate-300">intersección</strong> entre los servicios elegidos.
+            </p>
+          </div>
+          <button type="button" onClick={() => setFeat('hasMultiServiceSelect', !form.features.hasMultiServiceSelect)}
+            className={`relative inline-flex w-9 h-5 rounded-full transition-colors duration-200 focus:outline-none shrink-0 ${form.features.hasMultiServiceSelect ? 'bg-emerald-500' : 'bg-slate-700'}`}>
+            <span className={`inline-block w-4 h-4 mt-0.5 bg-white rounded-full shadow transform transition-transform duration-200 ${form.features.hasMultiServiceSelect ? 'translate-x-4' : 'translate-x-0.5'}`} />
+          </button>
+        </div>
+      </Card>
 
       {/* Reseñas públicas en la agenda */}
       <Card Icon={Star} title="Reseñas en la agenda pública">

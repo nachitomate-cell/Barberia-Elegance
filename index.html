@@ -6919,6 +6919,11 @@
       { id: 'addon_cejas', nombre: 'Perfilado de Cejas con Navaja', precio: 3000, duracion: 10, desc: 'Diseño y afeitado de cejas de acuerdo a tu fisonomía facial.' }
     ];
     let selectedAddons = [];
+    // Multi-selección de servicios (feature flag hasMultiServiceSelect). Cuando
+    // está activa, _multiSel guarda TODOS los servicios elegidos; el primero
+    // pasa a selectedServiceObj y el resto a selectedAddons (mismo plumbing
+    // que el upsell de AURA: la cita ya concatena nombres y suma precio/duración).
+    let _multiSel = [];
     window._upsellShowed = false;
 
     function openAuraUpsell() {
@@ -7210,7 +7215,16 @@
         if (selectedServiceObj) {
           btn.disabled = false;
           btn.style.opacity = '1';
-          btn.innerHTML = `${selectedServiceObj.nombre} · $${selectedServiceObj.precio.toLocaleString('es-CL')} <i class="ph-bold ph-arrow-right text-lg"></i>`;
+          // En modo multi-servicio el botón muestra resumen total (n servicios · $X).
+          const _extras = (selectedAddons && selectedAddons.length) ? selectedAddons : [];
+          if (_extras.length > 0) {
+            const _count = 1 + _extras.length;
+            const _total = (selectedServiceObj.precio || 0)
+              + _extras.reduce((s, a) => s + (a.precio || 0), 0);
+            btn.innerHTML = `${_count} servicios · $${_total.toLocaleString('es-CL')} <i class="ph-bold ph-arrow-right text-lg"></i>`;
+          } else {
+            btn.innerHTML = `${selectedServiceObj.nombre} · $${selectedServiceObj.precio.toLocaleString('es-CL')} <i class="ph-bold ph-arrow-right text-lg"></i>`;
+          }
         } else {
           btn.disabled = true;
           btn.style.opacity = '0.5';
@@ -8350,7 +8364,9 @@
       const _radioDim   = _isMapu ? 'rgba(191,163,126,0.40)' : _isLatin ? 'rgba(53,221,230,0.35)' : _isAura ? 'rgba(55,65,81,0.25)' : _isYugen ? 'rgba(245,243,239,0.4)' : 'rgba(212,175,55,0.4)';
       const _radioSel   = _isMapu ? '#BFA37E' : _isLatin ? '#F35BA6' : _isAura ? '#1F2937' : _isYugen ? '#f5f3ef' : '#D4AF37';
 
-      document.querySelectorAll('.service-option').forEach(el => {
+      // Helpers locales para aplicar/quitar el estilo "seleccionado" en un .service-option.
+      // Se reutilizan en modo single y en multi (cuando hay que pintar varios).
+      const _setUnsel = (el) => {
         el.classList.replace('border-neon', 'border-brand-accent/20');
         el.classList.remove('bg-brand-neon/10', 'scale-105', 'shadow-[0_0_20px_rgba(255,255,255,0.2)]', 'border-2');
         el.classList.add('border');
@@ -8363,38 +8379,68 @@
         if (!_isElegance && iconSvg) iconSvg.classList.add('drop-shadow-[0_0_5px_rgba(255,255,255,0.35)]');
         const radio = el.querySelector('.svc-radio');
         if (radio) { radio.style.background = 'transparent'; radio.style.borderColor = _radioDim; }
-      });
+      };
+      const _setSel = (el) => {
+        el.classList.add('border-2', 'border-neon', 'bg-brand-neon/10');
+        if (!_isGitana && !_useRowSel) el.classList.add('scale-105', 'shadow-[0_0_20px_rgba(255,255,255,0.2)]');
+        if (_useRowSel) el.style.boxShadow = _isMapu || _isAura || _isKronnos || _isYugen ? 'none' : '0 0 10px rgba(212,175,55,0.1)';
+        el.classList.replace('border-brand-accent/20', 'border-neon');
+        el.classList.remove('border');
+        const selIconBg = el.querySelector('.icon-bg');
+        const selIconSvg = el.querySelector('.icon-svg');
+        if (!_isElegance && selIconBg) selIconBg.classList.replace('border-brand-accent/20', 'border-brand-neon');
+        if (!_isElegance && !_isGitana && selIconBg) {
+          selIconBg.classList.replace('shadow-[0_0_10px_rgba(255,255,255,0.05)]', 'shadow-[0_0_15px_rgba(255,255,255,0.3)]');
+        }
+        if (!_isElegance && selIconSvg) selIconSvg.classList.remove('drop-shadow-[0_0_5px_rgba(255,255,255,0.35)]');
+        if (!_isElegance && !_isGitana && selIconSvg) selIconSvg.classList.add('drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]', 'scale-110');
+        const selRadio = el.querySelector('.svc-radio');
+        if (selRadio) { selRadio.style.background = _radioSel; selRadio.style.borderColor = _radioSel; }
+      };
 
-      btn.classList.add('border-2', 'border-neon', 'bg-brand-neon/10');
-      if (!_isGitana && !_useRowSel) btn.classList.add('scale-105', 'shadow-[0_0_20px_rgba(255,255,255,0.2)]');
-      if (_useRowSel) btn.style.boxShadow = _isMapu || _isAura || _isKronnos || _isYugen ? 'none' : '0 0 10px rgba(212,175,55,0.1)';
-      btn.classList.replace('border-brand-accent/20', 'border-neon');
-      btn.classList.remove('border');
-
-      const selIconBg = btn.querySelector('.icon-bg');
-      const selIconSvg = btn.querySelector('.icon-svg');
-      if (!_isElegance && selIconBg) selIconBg.classList.replace('border-brand-accent/20', 'border-brand-neon');
-      if (!_isElegance && !_isGitana && selIconBg) {
-        selIconBg.classList.replace('shadow-[0_0_10px_rgba(255,255,255,0.05)]', 'shadow-[0_0_15px_rgba(255,255,255,0.3)]');
-      }
-      if (!_isElegance && selIconSvg) selIconSvg.classList.remove('drop-shadow-[0_0_5px_rgba(255,255,255,0.35)]');
-      if (!_isElegance && !_isGitana && selIconSvg) selIconSvg.classList.add('drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]', 'scale-110');
-      const selRadio = btn.querySelector('.svc-radio');
-      if (selRadio) { selRadio.style.background = _radioSel; selRadio.style.borderColor = _radioSel; }
-
-      selectedServiceObj = (window._fsServices || _fsServices || []).find(s => String(s.id) === String(id))
+      const svcObj = (window._fsServices || _fsServices || []).find(s => String(s.id) === String(id))
         || DB.getServices().find(s => String(s.id) === String(id));
 
-      window._upsellShowed = false;
-      selectedAddons = [];
+      const _isMulti = !!(window.SHOP && window.SHOP.features && window.SHOP.features.hasMultiServiceSelect);
 
-      // Filtrar barberos que realizan este servicio (respetando sucursal activa)
+      if (_isMulti) {
+        // ── Multi-selección: toggle ──
+        const idx = _multiSel.findIndex(s => String(s.id) === String(id));
+        if (idx >= 0) {
+          _multiSel.splice(idx, 1);
+        } else if (svcObj) {
+          _multiSel.push(svcObj);
+        }
+      } else {
+        // ── Single-selección: el clic siempre fija UNO solo ──
+        _multiSel = svcObj ? [svcObj] : [];
+        selectedAddons = [];
+      }
+
+      // Sincronizar el modelo de selección (compatible con todo lo downstream).
+      selectedServiceObj = _multiSel[0] || null;
+      selectedAddons     = _multiSel.slice(1);
+      window._upsellShowed = false;
+
+      // Repintar TODAS las cards según el estado actual.
+      document.querySelectorAll('.service-option').forEach(el => {
+        const elId = el.getAttribute('data-service-id');
+        if (_multiSel.some(s => String(s.id) === String(elId))) {
+          _setSel(el);
+        } else {
+          _setUnsel(el);
+        }
+      });
+
+      // Filtrar barberos compatibles con TODOS los servicios elegidos (intersección).
       const _base = (_activeBarberos.length ? _activeBarberos : _fsBarberos) || [];
+      const _allIds = _multiSel.map(s => String(s.id));
       const barberosParaServicio = _base.filter(b => {
         if (!b.serviciosIds || b.serviciosIds.length === 0) return true;
-        return b.serviciosIds.map(String).includes(String(id));
+        const bIds = b.serviciosIds.map(String);
+        return _allIds.every(sid => bIds.includes(sid));
       });
-      // Si el barbero seleccionado no realiza este servicio, resetear selección
+      // Si el barbero seleccionado ya no es compatible, resetear selección.
       if (window._selectedBarberId && window._selectedBarberId !== 'any') {
         const aun = barberosParaServicio.find(b => b.id === window._selectedBarberId);
         if (!aun) {
@@ -9233,8 +9279,10 @@
 
         renderReviewsSection();
 
-        // Poblar el resumen dinámico
-        document.getElementById('successSummaryService').textContent = selectedServiceObj.nombre;
+        // Poblar el resumen dinámico (incluye servicios adicionales si los hay)
+        const _svcSummary = selectedServiceObj.nombre
+          + ((selectedAddons && selectedAddons.length) ? ' + ' + selectedAddons.map(a => a.nombre).join(' + ') : '');
+        document.getElementById('successSummaryService').textContent = _svcSummary;
         const [yyyy, mm, dd] = currentDateStr.split('-');
         document.getElementById('successSummaryDate').innerHTML = `📅 <span>${dd}/${mm}/${yyyy} a las ${selectedTimeStr} hrs</span>`;
 
@@ -9242,7 +9290,7 @@
         const barberPart = barberoNombreFinal ? ` con ${barberoNombreFinal}` : '';
         const [wYear, wMon, wDay] = currentDateStr.split('-');
         const fechaLegible = `${wDay}/${wMon}/${wYear}`;
-        const waMsg = `Hola ${SHOP.nombreCorto}! Acabo de agendar en su web. Soy ${nombre} y voy para un ${selectedServiceObj.nombre}${barberPart} a las ${selectedTimeStr} hrs el ${fechaLegible}. \n¿Todo ok? ${SHOP.waEmoji || '✂️'}`;
+        const waMsg = `Hola ${SHOP.nombreCorto}! Acabo de agendar en su web. Soy ${nombre} y voy para un ${_svcSummary}${barberPart} a las ${selectedTimeStr} hrs el ${fechaLegible}. \n¿Todo ok? ${SHOP.waEmoji || '✂️'}`;
         // Prioriza el WhatsApp configurado en Contacto y Redes Sociales, luego Teléfono, luego Configuración agenda, y finalmente config.js
         const numBarbero = (_fsSettings || {}).whatsapp || (_fsSettings || {}).telefono || (_fsConfig || {}).telefonoAdmin || SHOP.telefono || '';
         const limpio = String(numBarbero).replace(/\D/g, '');
