@@ -207,11 +207,27 @@ exports.gestionarCitaPorCodigo = onCall(
         throw new HttpsError('internal', 'No se pudo cancelar.');
       }
 
-      // Liberar slotLock (best-effort, no bloquea si falla)
-      try {
-        const slotKey = `${cita.fecha}_${cita.hora}_${cita.barberoId || ''}`;
-        await slotLocksCol(tenantId).doc(slotKey).delete();
-      } catch (_) { /* ignore */ }
+      // Liberar slotLock (best-effort, no bloquea si falla).
+      // El formato canónico que usa firebaseUtils.addCita es:
+      //   `${barberoId}_${fecha}_${hora.replace(':','')}`
+      // (ej. xyz_2026-07-01_1430). El trigger liberarSlotTenant lo borra
+      // automáticamente cuando estado pasa a Cancelada — pero solo si la
+      // cita tiene slotLockId guardado. Para citas viejas o creadas por la
+      // ruta de transaction fallback (slotLockId=null), intentamos borrar
+      // tanto el lockId guardado como el reconstruido a partir de los datos
+      // de la cita. Si ninguno existe, no pasa nada.
+      const intentos = [];
+      if (cita.slotLockId) intentos.push(cita.slotLockId);
+      if (cita.barberoId && cita.fecha && cita.hora) {
+        const safeHora = String(cita.hora).replace(':', '');
+        const safeBid  = String(cita.barberoId).replace(/[^a-zA-Z0-9_-]/g, '_');
+        intentos.push(`${safeBid}_${cita.fecha}_${safeHora}`);
+      }
+      await Promise.all(
+        [...new Set(intentos)].map(id =>
+          slotLocksCol(tenantId).doc(id).delete().catch(() => {})
+        )
+      );
 
       logger.info('[gestion-cita] cancelada por cliente', {
         tenantId, citaId: citaDoc.id, codigoNorm,

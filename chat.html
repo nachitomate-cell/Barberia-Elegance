@@ -1675,11 +1675,28 @@
       }
       if (optionId === '__reagendar-cita__' && pendingAction?.cita) {
         await echoClientLabel('🗓 Reagendar');
-        const url = getReservaUrl();
-        await sendBotMessage(
-          `Perfecto, agenda tu nueva hora aquí. Tu cita actual queda como está hasta que reserves la nueva 👍`,
-          { cta: { label: 'Reservar nueva hora', url } },
-        );
+        // Reagendar = cancelar la cita actual + abrir el flujo público para
+        // elegir nueva hora. Antes solo abríamos el link sin cancelar, así
+        // que el cliente quedaba con dos citas activas (la vieja se mantenía).
+        try {
+          await callGestionarCita({
+            tenantId: TENANT_ID,
+            codigo:   pendingAction.codigo,
+            accion:   'cancelar',
+          });
+          const url = getReservaUrl();
+          await sendBotMessage(
+            `Listo, cancelé tu cita anterior ✓ Ahora agenda tu nueva hora aquí 👇`,
+            { cta: { label: 'Reservar nueva hora', url } },
+          );
+        } catch (err) {
+          const code = err?.code || err?.details?.code || '';
+          const friendly = /failed-precondition/i.test(code)
+            ? (err?.message || 'No se puede reagendar esta cita.')
+            : 'No pudimos reagendar la cita. Te contactamos pronto para gestionarlo 👍';
+          await sendBotMessage(friendly);
+          await chatDocRef(chatId).set({ needsHumanAttention: true }, { merge: true });
+        }
         pendingAction = null;
         return;
       }

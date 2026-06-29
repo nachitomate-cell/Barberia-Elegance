@@ -581,9 +581,26 @@ const FDB = (() => {
         return citaId;
       } catch (e) {
         if (e.code === 'slot-taken') throw e;
-        // Transacción fallida (p.ej. regla de Firestore pendiente): fallback a escritura directa
+        // Transacción fallida (p.ej. regla de Firestore pendiente): fallback a
+        // escritura directa. Antes dejábamos slotLockId=null lo que rompía la
+        // liberación del slot al cancelar/reagendar. Ahora intentamos crear el
+        // slotLock por separado (best-effort) y mantener el lockId en la cita.
         console.warn('[addCita] Transaction fallback:', e.code || e.message);
-        citaData.slotLockId = null;
+        try {
+          await lockRef.set({
+            citaId,
+            fecha:     cita.fecha,
+            hora:      cita.hora,
+            barberoId: cita.barberoId,
+            duracion:  dur,
+            creadoEn:  firebase.firestore.FieldValue.serverTimestamp(),
+          });
+          // Lock OK → conservamos el ID en la cita para que la cancelación
+          // (panel admin o /chat) lo encuentre y lo borre vía liberarSlot CF.
+        } catch (lockErr) {
+          console.warn('[addCita] slotLock standalone fallback failed:', lockErr.message);
+          citaData.slotLockId = null;
+        }
         await citaRef.set(citaData);
         return citaId;
       }
