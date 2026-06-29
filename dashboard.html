@@ -3345,6 +3345,29 @@
       box-shadow: 0 0 0 1px var(--gold), 0 6px 18px rgba(0,0,0,0.18);
     }
     :is(.tenant-aura,.tenant-latincaribe) #profileBenefits .tier-row { background: #FFFFFF !important; border-color: #E4E4E7 !important; }
+
+    /* ── Explainer "¿Cómo funciona el club?" — sólo Aura ── */
+    .tenant-aura #rangosExplainerAura { display: block !important; }
+    .tenant-aura #rangosExplainerAura > h3 { color: rgba(24,24,27,0.45) !important; }
+    .tenant-aura #rangosExplainerAura .rangos-explainer-row {
+      background: #FFFFFF !important;
+      border-color: #E4E4E7 !important;
+    }
+    .tenant-aura #rangosExplainerAura .rangos-explainer-row p.text-white { color: #18181B !important; }
+    .tenant-aura #rangosExplainerAura .rangos-explainer-row p.text-white\/70 { color: #52525B !important; }
+
+    /* ── Bloque "Planes anuales" — sólo Aura ── */
+    .tenant-aura #planesAnualesAura { display: block !important; }
+    .tenant-aura #planesAnualesAura > div > h3,
+    .tenant-aura #planesAnualesAuraSubtitle { color: rgba(24,24,27,0.45) !important; }
+    .tenant-aura #planesAnualesAura .plan-anual-row {
+      background: #FFFFFF !important;
+      border-color: #E4E4E7 !important;
+    }
+    .tenant-aura #planesAnualesAura .plan-anual-row p.text-white { color: #18181B !important; }
+    .tenant-aura #planesAnualesAura .plan-anual-row p.text-white\/55,
+    .tenant-aura #planesAnualesAura .plan-anual-row p.text-white\/45 { color: #6B7280 !important; }
+    .tenant-aura #planesAnualesAura .plan-anual-row .text-white\/70 { color: #52525B !important; }
     :is(.tenant-aura,.tenant-latincaribe) .tier-badge.silver {
       color: #475569 !important;
       border-color: rgba(71,85,105,0.25) !important;
@@ -4153,6 +4176,74 @@
           </div>
           <!-- Tier Progression message -->
           <div id="profileTierProgress" class="mt-2.5 px-1 text-[11px] text-zinc-400 font-medium"></div>
+        </div>
+      </div>
+
+      <!-- ── Cómo funciona el club (solo Aura) ── -->
+      <!-- Bloque explicativo de qué desbloquea cada rango. Hidden por defecto;
+           se muestra únicamente cuando html.tenant-aura está activo. -->
+      <div id="rangosExplainerAura" class="mb-6 hidden">
+        <h3 class="text-[10px] font-bold text-white/30 uppercase tracking-widest mb-3 px-1">¿Cómo funciona el club?</h3>
+        <div class="space-y-2.5">
+
+          <div class="rangos-explainer-row rounded-2xl border border-white/8 bg-white/5 px-4 py-3">
+            <div class="flex items-start gap-3">
+              <span class="text-base leading-none mt-0.5 shrink-0">⚪</span>
+              <div class="min-w-0">
+                <p class="text-[13px] font-bold text-white leading-tight">Silver</p>
+                <p class="text-[12px] text-white/70 leading-relaxed mt-0.5">
+                  Apenas te unes al club (gratis). Acá desbloqueas la tarjeta de fidelidad:
+                  empiezas a juntar sellos y a canjear descuentos.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="rangos-explainer-row rounded-2xl border border-white/8 bg-white/5 px-4 py-3">
+            <div class="flex items-start gap-3">
+              <span class="text-base leading-none mt-0.5 shrink-0">🟡</span>
+              <div class="min-w-0">
+                <p class="text-[13px] font-bold text-white leading-tight">Gold</p>
+                <p class="text-[12px] text-white/70 leading-relaxed mt-0.5">
+                  Se gana acumulando sellos y visitas (los clientes que llevan años parten
+                  directo acá). Acá se desbloquean las <strong>promociones y los planes</strong>
+                  — 2 cortes al mes y todo lo demás.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="rangos-explainer-row rounded-2xl border border-white/8 bg-white/5 px-4 py-3">
+            <div class="flex items-start gap-3">
+              <span class="text-base leading-none mt-0.5 shrink-0">⚫</span>
+              <div class="min-w-0">
+                <p class="text-[13px] font-bold text-white leading-tight">Platinum</p>
+                <p class="text-[12px] text-white/70 leading-relaxed mt-0.5">
+                  El nivel máximo. Desbloquea los <strong>planes anuales</strong> y tiene todo
+                  abierto.
+                </p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ── Planes anuales (sólo Aura · desbloqueables en Platinum) ── -->
+      <!-- Carga dinámica desde tenants/aura/configuracion/membresia.planes[]:
+           cada plan se renderiza con su precioAnual y un badge de ahorro
+           contra 12 cuotas mensuales. Hidden por defecto + CSS gate por
+           tenant-aura. Loader: loadPlanesAnualesAura(). -->
+      <div id="planesAnualesAura" class="mb-6 hidden">
+        <div class="flex items-baseline justify-between px-1 mb-3">
+          <h3 class="text-[10px] font-bold text-white/30 uppercase tracking-widest">Planes anuales</h3>
+          <span id="planesAnualesAuraSubtitle" class="text-[9px] font-bold uppercase tracking-wider text-white/30">Desbloqueables en Platinum</span>
+        </div>
+        <div id="planesAnualesAuraList" class="space-y-2.5">
+          <!-- placeholder mientras carga -->
+          <div class="rounded-2xl border border-white/8 bg-white/5 px-4 py-6 text-center">
+            <i class="ph ph-circle-notch text-xl text-white/30 animate-spin"></i>
+          </div>
         </div>
       </div>
 
@@ -4969,6 +5060,8 @@ auth.onAuthStateChanged(async user => {
 
   // Config de rangos (nombres + beneficios definidos en el panel)
   loadRangos();
+  // Planes anuales del Club (sólo Aura — falla silenciosamente en otros tenants)
+  loadPlanesAnualesAura();
 
   subscribeUserData(user);
 
@@ -7401,6 +7494,88 @@ function cerrarAuraMembresiaModal() {
   }
 }
 
+/* ── Planes anuales en el bloque del dashboard (sólo Aura) ──
+   Lee tenants/aura/configuracion/membresia.planes[] y renderiza cada plan
+   con su precioAnual + ahorro vs 12 cuotas mensuales. Se invoca después de
+   autenticar (junto a loadRangos). Falla silenciosamente si el doc no
+   existe o si el tenant no es Aura. */
+async function loadPlanesAnualesAura() {
+  const tid = window.CURRENT_TENANT_ID || 'elegance';
+  if (tid !== 'aura') return;
+  const list = document.getElementById('planesAnualesAuraList');
+  if (!list) return;
+
+  try {
+    const snap = await db.collection('tenants').doc(tid)
+      .collection('configuracion').doc('membresia').get();
+
+    if (!snap.exists) {
+      list.innerHTML = `
+        <div class="rounded-2xl border border-white/8 bg-white/5 px-4 py-5 text-center">
+          <p class="text-[12px] text-white/60">Aún no hay planes anuales configurados.</p>
+        </div>`;
+      return;
+    }
+
+    const planes = (snap.data().planes || [])
+      .filter(p => p && p.id && p.nombre)
+      .sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0));
+
+    if (planes.length === 0) {
+      list.innerHTML = `
+        <div class="rounded-2xl border border-white/8 bg-white/5 px-4 py-5 text-center">
+          <p class="text-[12px] text-white/60">Aún no hay planes anuales configurados.</p>
+        </div>`;
+      return;
+    }
+
+    const fmtCLP = n => `$${Math.round(Number(n) || 0).toLocaleString('es-CL')}`;
+    const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+
+    list.innerHTML = planes.map(plan => {
+      const precioMensual = Number(plan.precio) || 0;
+      const precioAnual   = Number(plan.precioAnual) || precioMensual * 10;
+      const equivMes      = Math.round(precioAnual / 12);
+      const ahorro        = (precioMensual * 12) - precioAnual;
+      const ahorroBadge   = ahorro > 0
+        ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest" style="background:rgba(0,40,94,0.08); color:#00285E;">
+             Ahorras ${fmtCLP(ahorro)}
+           </span>`
+        : '';
+      const bens = (plan.caracteristicas || []).slice(0, 3).map(b =>
+        `<li class="flex items-start gap-1.5 text-[11px] text-white/70 leading-relaxed">
+           <i class="ph-fill ph-check-circle text-[12px] shrink-0 mt-0.5" style="color:#00285E;"></i>
+           <span>${esc(b)}</span>
+         </li>`
+      ).join('');
+
+      return `
+        <div class="plan-anual-row rounded-2xl border border-white/8 bg-white/5 overflow-hidden">
+          <div class="px-4 pt-3.5 pb-3">
+            <div class="flex items-start justify-between gap-3 mb-2">
+              <div class="min-w-0">
+                <p class="text-[13px] font-bold text-white leading-tight">${esc(plan.nombre)}</p>
+                <p class="text-[11px] text-white/55 mt-0.5">Equivale a ${fmtCLP(equivMes)} / mes</p>
+              </div>
+              <div class="text-right shrink-0">
+                <p class="text-[18px] font-black text-white leading-none">${fmtCLP(precioAnual)}</p>
+                <p class="text-[10px] text-white/45 mt-0.5">/ año</p>
+              </div>
+            </div>
+            ${ahorroBadge ? `<div class="mb-2">${ahorroBadge}</div>` : ''}
+            ${bens ? `<ul class="space-y-1 mt-1">${bens}</ul>` : ''}
+          </div>
+        </div>`;
+    }).join('');
+  } catch (err) {
+    console.error('[planesAnualesAura] error:', err);
+    list.innerHTML = `
+      <div class="rounded-2xl border border-white/8 bg-white/5 px-4 py-5 text-center">
+        <p class="text-[12px] text-white/60">No pudimos cargar los planes anuales.</p>
+      </div>`;
+  }
+}
+
 async function loadAuraMembresiaPlanes() {
   const tid = window.CURRENT_TENANT_ID || 'elegance';
   if (tid !== 'aura') return;
@@ -7968,6 +8143,7 @@ function auraCountUp(targetNum, totalTarget) {
       await _chatDoc(uid).set({
         userName:    currentUser.displayName || currentUser.email || 'Cliente',
         userEmail:   currentUser.email || '',
+        source:      'club',  // 'club' = cliente registrado en el Club desde su dashboard
         lastMessage: text,
         updatedAt:   ts,
         hasUnread:   true,
