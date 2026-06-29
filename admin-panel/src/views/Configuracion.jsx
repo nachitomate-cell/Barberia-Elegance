@@ -692,12 +692,6 @@ export default function Configuracion() {
           </div>
         </div>
 
-        <p className="text-[11px] text-amber-400/80 bg-amber-400/5 border border-amber-400/20 rounded-lg px-3 py-2 mt-3">
-          💡 Para una protección a prueba de balas (incluso ante navegadores
-          incógnito) hay que mover esta validación a una Cloud Function que
-          consulte Firestore por <code>clienteEmail/clienteTelefono</code>.
-          Si querés ese upgrade, lo coordinamos.
-        </p>
       </Card>
 
       {/* Servicios Extra — Cursos/Arriendo solo Chameleon · Academia solo Elegance */}
