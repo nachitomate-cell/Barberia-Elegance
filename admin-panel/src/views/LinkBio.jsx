@@ -247,7 +247,7 @@ export default function LinkBio() {
   const limiteAlcanzado = !isPro && cfg.bloques.length >= 6;
 
   return (
-    <div className="max-w-6xl mx-auto pb-28">
+    <div data-view="link-bio" className="max-w-6xl mx-auto pb-28">
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
         <div className="flex items-center gap-2">
@@ -388,6 +388,51 @@ export default function LinkBio() {
             ) : (
               <p className="text-[11px] text-slate-500">Personaliza el color de acento y el fondo de tu página. Disponible en el plan <span className="text-amber-400 font-semibold">Pro</span>.</p>
             )}
+          </div>
+
+          {/* ── Syna en tu bio ─────────────────────────────────────── */}
+          {/* Botón flotante con el chatbot Syna en la página pública del bio.
+              Requiere que el chatbot esté habilitado globalmente desde el
+              módulo "Chatbot · Syna". Toggle local que controla solo si el
+              FAB aparece o no en tu bio. */}
+          <div className="rounded-xl border border-cyan-500/25 bg-cyan-900/[0.10] p-4">
+            <div className="flex items-start gap-3">
+              <img
+                src={`${import.meta.env.BASE_URL || '/'}syna.png`}
+                alt="Syna"
+                className="w-11 h-11 rounded-full object-cover shrink-0 ring-2 ring-cyan-400/40"
+              />
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                  <h3 className="text-sm font-bold text-white">Chat con Syna en tu bio</h3>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-cyan-500/15 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-cyan-300 ring-1 ring-cyan-400/30">
+                    Add-on
+                  </span>
+                </div>
+                <p className="text-[11.5px] text-slate-400 leading-relaxed">
+                  Muestra un botón flotante en tu bio público. Los visitantes
+                  hacen clic y chatean con tu bot — pueden consultar horarios,
+                  precios o cancelar citas sin salir de la página.
+                </p>
+                <a
+                  href={`?local=${tid}#/chatbot`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-cyan-300 hover:text-cyan-200 mt-1.5"
+                >
+                  Configurar Syna →
+                </a>
+              </div>
+              <button
+                type="button"
+                onClick={() => update({ perfil: { ...cfg.perfil, synaEnBio: cfg.perfil.synaEnBio === false } })}
+                className={`relative inline-flex w-10 h-5 rounded-full transition-colors duration-200 focus:outline-none shrink-0 mt-1 ${cfg.perfil.synaEnBio !== false ? 'bg-cyan-500' : 'bg-slate-700'}`}
+                aria-pressed={cfg.perfil.synaEnBio !== false}
+                aria-label="Toggle Syna en bio"
+              >
+                <span className={`inline-block w-4 h-4 mt-0.5 bg-white rounded-full shadow transform transition-transform duration-200 ${cfg.perfil.synaEnBio !== false ? 'translate-x-5' : 'translate-x-0.5'}`} />
+              </button>
+            </div>
           </div>
 
           {/* Bloques */}
@@ -659,7 +704,7 @@ function Preview({ perfil, bloques }) {
   const accSoft = accent ? hexToRgba(accent, 0.15) : 'rgba(146,200,58,0.15)';
   const accBdr  = accent ? hexToRgba(accent, 0.40) : 'rgba(146,200,58,0.40)';
   return (
-    <div className="mx-auto w-[260px] rounded-[2rem] border-[6px] border-slate-800 bg-slate-950 overflow-hidden shadow-2xl">
+    <div data-keep-dark="phone-preview" className="mx-auto w-[260px] rounded-[2rem] border-[6px] border-slate-800 bg-slate-950 overflow-hidden shadow-2xl">
       <div className="h-[480px] overflow-y-auto no-scrollbar px-4 py-6 flex flex-col items-center"
         style={{ background: `radial-gradient(ellipse 80% 35% at 50% 0%, ${glow}, transparent 70%), ${bg}` }}>
         <div className="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center text-xs"

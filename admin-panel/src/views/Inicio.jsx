@@ -485,7 +485,7 @@ export default function Inicio() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div data-view="inicio" className="max-w-6xl mx-auto space-y-6">
 
       {/* ── Header de bienvenida ─────────────────────────────────────── */}
       <motion.div

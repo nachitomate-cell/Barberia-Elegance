@@ -30,6 +30,7 @@ import Caja             from './views/Caja';
 import BookingFlow     from './views/BookingFlow';
 import AgendaBarbero    from './views/AgendaBarbero';
 import Chat            from './views/Chat';
+import ChatbotConfig   from './views/ChatbotConfig';
 import Marketing        from './views/Marketing';
 import ServicioFavorito from './views/ServicioFavorito';
 import LoginPage        from './views/LoginPage';
@@ -117,6 +118,7 @@ function ProtectedApp() {
             <Route path="recibir-pagos"   element={<RecibirPagos />} />
             <Route path="referidos"       element={<Referidos />} />
             <Route path="mensajes"        element={<Chat />} />
+            <Route path="chatbot"         element={<ChatbotConfig />} />
             <Route path="marketing"       element={<BillingGate><Marketing /></BillingGate>} />
             <Route path="soporte"         element={<Soporte />} />
             <Route path="consultas"       element={<Consultas />} />

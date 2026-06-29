@@ -945,7 +945,7 @@ export default function TVConfig() {
   );
 
   return (
-    <div className="max-w-7xl mx-auto px-4 lg:px-6 py-6 pb-20 space-y-6">
+    <div data-view="tv-config" className="max-w-7xl mx-auto px-4 lg:px-6 py-6 pb-20 space-y-6">
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-slate-900/40 p-5 rounded-2xl border border-slate-800 shadow-md">

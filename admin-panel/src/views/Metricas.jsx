@@ -1085,7 +1085,7 @@ export default function Metricas() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div data-view="metricas" className="max-w-6xl mx-auto space-y-6">
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

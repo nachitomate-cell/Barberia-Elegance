@@ -22,6 +22,19 @@
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 }
 
+/* ── Freeze global de transiciones durante el switch de tema ───
+   useTheme() agrega .theme-switching al <html> antes de toggle 'light'
+   y la quita 2 frames después. Sin esto, cientos de elementos con
+   transition-colors animan a la vez y el browser se traba al cambiar
+   de modo. */
+html.theme-switching,
+html.theme-switching *,
+html.theme-switching *::before,
+html.theme-switching *::after {
+  transition: none !important;
+  animation-duration: 0s !important;
+}
+
 /* ── Light mode ─────────────────────────────────────────────── */
 html.light body { background-color: #f1f5f9; }
 html.light .bg-slate-900  { background-color: #f8fafc !important; }
@@ -352,6 +365,629 @@ html.light .to-slate-950,
 html.light .to-slate-900,
 html.light .via-slate-900,
 html.light .via-slate-950        { --tw-gradient-to: #ffffff !important; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   LIGHT MODE · Agenda — bordes más marcados
+   El light mode global usa #e2e8f0 / #cbd5e1 para los bordes slate,
+   pero en /gestion-interna/agenda esos tonos se pierden contra el
+   fondo claro y la grilla de horas queda casi sin separación visual.
+   Aquí pisamos esos valores SOLO dentro del data-view="agenda" con
+   un slate-azulado más visible.
+   ═══════════════════════════════════════════════════════════════════ */
+html.light [data-view="agenda"] .border-slate-800        { border-color: #94a3b8 !important; }
+html.light [data-view="agenda"] .border-slate-700        { border-color: #64748b !important; }
+html.light [data-view="agenda"] .border-slate-800\/40    { border-color: rgba(71, 85, 105, 0.32) !important; }
+html.light [data-view="agenda"] .border-slate-800\/50    { border-color: rgba(71, 85, 105, 0.38) !important; }
+html.light [data-view="agenda"] .border-slate-800\/60    { border-color: rgba(71, 85, 105, 0.45) !important; }
+html.light [data-view="agenda"] .border-slate-800\/80    { border-color: rgba(71, 85, 105, 0.55) !important; }
+html.light [data-view="agenda"] .border-slate-750\/70    { border-color: rgba(71, 85, 105, 0.50) !important; }
+html.light [data-view="agenda"] .border-slate-700\/60    { border-color: rgba(71, 85, 105, 0.55) !important; }
+html.light [data-view="agenda"] .border-slate-700\/50    { border-color: rgba(71, 85, 105, 0.50) !important; }
+html.light [data-view="agenda"] .border-white\/5,
+html.light [data-view="agenda"] .border-white\/8,
+html.light [data-view="agenda"] .border-white\/10,
+html.light [data-view="agenda"] .border-white\/12,
+html.light [data-view="agenda"] .border-white\/15,
+html.light [data-view="agenda"] .border-white\/20        { border-color: rgba(71, 85, 105, 0.35) !important; }
+html.light [data-view="agenda"] .divide-slate-800 > * + *,
+html.light [data-view="agenda"] .divide-y > * + *        { border-color: rgba(71, 85, 105, 0.32) !important; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   LIGHT MODE · Inicio — tarjetas, bordes y gráficos legibles
+   El dashboard de /gestion-interna/inicio usa bg-slate-800/50,
+   border-slate-700/60, ring-slate-800/60 y un tooltip bg-slate-900/95
+   que en modo claro se ven washed out. Acá fijamos un look "card blanca
+   con borde slate-blue" coherente con el resto del panel.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Tarjetas principales (DayKpiCard, Panel) → blanco sólido */
+html.light [data-view="inicio"] .bg-slate-800\/50              { background-color: #ffffff !important; }
+/* Mini-stats y sub-paneles internos → gris muy claro */
+html.light [data-view="inicio"] .bg-slate-900\/40              { background-color: #f1f5f9 !important; }
+/* Tooltip del gráfico (chart hover) — recuperar fondo claro sólido */
+html.light [data-view="inicio"] .bg-slate-900\/95              { background-color: #ffffff !important; }
+/* Hover de las filas en las tablas de Últimas visitas / Cumpleaños */
+html.light [data-view="inicio"] .hover\:bg-slate-800\/20:hover { background-color: rgba(71, 85, 105, 0.10) !important; }
+
+/* Bordes — más visibles (slate-azulado) */
+html.light [data-view="inicio"] .border-slate-700\/60,
+html.light [data-view="inicio"] .border-slate-700\/50          { border-color: #94a3b8 !important; }
+html.light [data-view="inicio"] .border-slate-800              { border-color: #cbd5e1 !important; }
+html.light [data-view="inicio"] .border-slate-800\/60          { border-color: rgba(71, 85, 105, 0.32) !important; }
+html.light [data-view="inicio"] .hover\:border-slate-600:hover { border-color: #64748b !important; }
+
+/* Ring del timeline en "Próximas citas" — del slate oscuro a un slate-blue suave */
+html.light [data-view="inicio"] .ring-slate-800\/60            { --tw-ring-color: rgba(148, 163, 184, 0.45) !important; }
+/* Línea conectora del timeline */
+html.light [data-view="inicio"] .bg-slate-700\/60              { background-color: #cbd5e1 !important; }
+
+/* Pista de las barras (Meta y Break-even) — gris claro definido */
+html.light [data-view="inicio"] .bg-slate-800                  { background-color: #e2e8f0 !important; }
+
+/* Sombras suaves (no negras) */
+html.light [data-view="inicio"] .shadow-xl,
+html.light [data-view="inicio"] .shadow-2xl                    { --tw-shadow-color: rgba(15, 23, 42, 0.08) !important; }
+
+/* Grilla del AreaChart de recharts — los <line> del CartesianGrid usan el
+   stroke hex inline. Subir el contraste y opacidad para que se vea. */
+html.light [data-view="inicio"] .recharts-cartesian-grid line  { stroke: #94a3b8 !important; stroke-opacity: 0.5 !important; }
+html.light [data-view="inicio"] .recharts-cartesian-axis-tick text { fill: #475569 !important; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   LIGHT MODE · Sidebar (data-component="sidebar")
+   El sidebar en modo claro queda casi pegado al contenido (mismos
+   tonos pálidos). Acá lo elevamos con un fondo blanco-cremoso, borde
+   derecho marcado, sombra sutil de profundidad y mejor contraste en
+   group labels, items y hovers.
+   ═══════════════════════════════════════════════════════════════════ */
+html.light aside[data-component="sidebar"] {
+  background-color: #ffffff !important;
+  box-shadow: 1px 0 0 #cbd5e1, 2px 0 10px rgba(15, 23, 42, 0.04) !important;
+}
+/* Borde derecho explícito */
+html.light aside[data-component="sidebar"].border-r,
+html.light aside[data-component="sidebar"] .border-r            { border-right-color: #cbd5e1 !important; }
+/* Divisores horizontales (brand/nav y nav/footer) */
+html.light aside[data-component="sidebar"] .border-b,
+html.light aside[data-component="sidebar"] .border-t            { border-color: #cbd5e1 !important; }
+html.light aside[data-component="sidebar"] .border-slate-800\/60 { border-color: #cbd5e1 !important; }
+
+/* Label "PANEL ADMIN" y títulos de grupo — slate-600 con más cuerpo */
+html.light aside[data-component="sidebar"] .text-slate-500      { color: #475569 !important; }
+
+/* Items inactivos — slate-600 sobre blanco se lee mejor que slate-500 */
+html.light aside[data-component="sidebar"] .text-slate-400      { color: #475569 !important; }
+
+/* Hover de items / botones — slate-100 marcado en lugar de blanco/5 etéreo */
+html.light aside[data-component="sidebar"] .hover\:bg-white\/5:hover { background-color: #e2e8f0 !important; }
+html.light aside[data-component="sidebar"] a:not([aria-current="page"]):hover { color: #0f172a !important; }
+html.light aside[data-component="sidebar"] .hover\:text-slate-50:hover,
+html.light aside[data-component="sidebar"] .hover\:text-white:hover { color: #0f172a !important; }
+
+/* Botón "Cerrar menú" (móvil) hover */
+html.light aside[data-component="sidebar"] .hover\:bg-slate-700:hover { background-color: #cbd5e1 !important; }
+
+/* "Ver agenda pública" CTA — borde más definido */
+html.light aside[data-component="sidebar"] .border-slate-700    { border-color: #94a3b8 !important; }
+html.light aside[data-component="sidebar"] .hover\:border-slate-600:hover { border-color: #475569 !important; }
+html.light aside[data-component="sidebar"] .text-slate-200      { color: #0f172a !important; }
+
+/* Item activo: refuerzo extra (mantenemos border-l-4 + font-bold del global,
+   subimos el tono del background con un slate-100 más definido) */
+html.light aside[data-component="sidebar"] a[aria-current="page"] {
+  background-color: #e2e8f0 !important;
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.04) !important;
+}
+
+/* Logo del tenant: anillo sutil para que no flote sobre el blanco */
+html.light aside[data-component="sidebar"] img.rounded-lg.object-cover {
+  box-shadow: 0 0 0 1px #cbd5e1 !important;
+}
+
+/* Scrollbar del <nav> en sidebar — slate visible */
+html.light aside[data-component="sidebar"] nav::-webkit-scrollbar-thumb { background: #cbd5e1 !important; }
+
+/* ─── Mensajes · "Tu link público" pill ─── */
+/* El text-slate-200 (la URL del chat público) no tiene mapping global en light,
+   quedaba prácticamente invisible (slate-200 sobre fondo casi blanco). */
+html.light [data-view="mensajes"] .text-slate-200            { color: #0f172a !important; }
+/* Borde del pill con la URL más definido */
+html.light [data-view="mensajes"] code.font-mono             { color: #0f172a !important; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   LIGHT MODE · Agenda — estados de citas SÓLIDOS (no translúcidos)
+   En claro las clases bg-emerald-500/20 etc. quedaban washed por usar
+   rgba() con alpha. Acá las pisamos con colores HEX sólidos (las
+   variantes -100 de Tailwind funcionan como pasteles densos) + borde
+   sólido + texto dark. Resultado: las tarjetas se ven como bloques
+   sólidos de color en lugar de tintes semitransparentes.
+   ═══════════════════════════════════════════════════════════════════ */
+/* CONFIRMADA — emerald sólido */
+html.light [data-view="agenda"] .bg-emerald-500\/20          { background-color: #d1fae5 !important; }  /* emerald-100 */
+html.light [data-view="agenda"] .border-emerald-500\/50,
+html.light [data-view="agenda"] .border-emerald-500\/40      { border-color: #10b981 !important; }      /* emerald-500 */
+html.light [data-view="agenda"] .text-emerald-300            { color: #064e3b !important; }            /* emerald-900 */
+
+/* CANCELADA — red sólido */
+html.light [data-view="agenda"] .bg-red-500\/10              { background-color: #fee2e2 !important; }  /* red-100 */
+html.light [data-view="agenda"] .bg-red-500\/20              { background-color: #fecaca !important; }  /* red-200 */
+html.light [data-view="agenda"] .border-red-500\/30,
+html.light [data-view="agenda"] .border-red-500\/40          { border-color: #ef4444 !important; }      /* red-500 */
+html.light [data-view="agenda"] .text-red-300,
+html.light [data-view="agenda"] .text-red-400               { color: #7f1d1d !important; }            /* red-900 */
+
+/* COMPLETADA — blue sólido */
+html.light [data-view="agenda"] .bg-blue-500\/10             { background-color: #dbeafe !important; }  /* blue-100 */
+html.light [data-view="agenda"] .bg-blue-500\/20             { background-color: #bfdbfe !important; }  /* blue-200 */
+html.light [data-view="agenda"] .border-blue-500\/30,
+html.light [data-view="agenda"] .border-blue-500\/40         { border-color: #3b82f6 !important; }      /* blue-500 */
+html.light [data-view="agenda"] .text-blue-300,
+html.light [data-view="agenda"] .text-blue-400              { color: #1e3a8a !important; }            /* blue-900 */
+
+/* PENDIENTE / SOBRECUPO — amber sólido */
+html.light [data-view="agenda"] .bg-amber-500\/10            { background-color: #fef3c7 !important; }  /* amber-100 */
+html.light [data-view="agenda"] .bg-amber-500\/20,
+html.light [data-view="agenda"] .bg-amber-500\/25            { background-color: #fde68a !important; }  /* amber-200 */
+html.light [data-view="agenda"] .border-amber-500\/30,
+html.light [data-view="agenda"] .border-amber-500\/40        { border-color: #f59e0b !important; }      /* amber-500 */
+html.light [data-view="agenda"] .text-amber-300              { color: #78350f !important; }            /* amber-900 */
+
+/* ═══════════════════════════════════════════════════════════════════
+   LIGHT MODE · Link in Bio — segundo pase fino
+   El primer pase (en el bloque general Mensualidad/Referidos/GiftCards/
+   LinkBio) cubrió cards y bordes, pero faltan los gradientes premium,
+   selector de bloque, badges de plan y un montón de slate-translúcidos
+   con suffix raro (-850, -750, /50). El phone-preview sigue intacto
+   gracias a [data-keep-dark="phone-preview"] que ya está fuera de scope.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* CTA Premium "Abrir Editor Premium" — gradiente de slate dark
+   queda partido (from-slate-9 lo strip-ea el global, to-slate-800 no).
+   Lo reemplazamos por un gradient blanco→slate-50 con halo lime. */
+html.light [data-view="link-bio"] .from-slate-900             { --tw-gradient-from: #ffffff !important; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, transparent) !important; }
+html.light [data-view="link-bio"] .to-slate-800,
+html.light [data-view="link-bio"] .to-slate-900               { --tw-gradient-to: #f1f5f9 !important; }
+html.light [data-view="link-bio"] .via-slate-900              { --tw-gradient-to: rgba(241, 245, 249, 0.6) !important; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to), var(--tw-gradient-stops-end, transparent) !important; }
+
+/* bg-slate-900/50 (la tarjeta "Tu dirección en bioo.cl") no estaba mapeada */
+html.light [data-view="link-bio"] .bg-slate-900\/50,
+html.light [data-view="link-bio"] .bg-slate-900\/65           { background-color: #f8fafc !important; }
+
+/* bg-slate-800 (badge "Plan free" + buttons Copy/Ver página) — los queremos
+   con más cuerpo que el slate-200 default de Tailwind para que se vean
+   como botones reales sobre el fondo blanco. */
+html.light [data-view="link-bio"] .bg-slate-800               { background-color: #e2e8f0 !important; }
+html.light [data-view="link-bio"] .hover\:bg-slate-700:hover  { background-color: #cbd5e1 !important; }
+html.light [data-view="link-bio"] .hover\:bg-slate-750:hover  { background-color: #cbd5e1 !important; }
+
+/* border-slate-850 / -750 (raros, sin mapping global) */
+html.light [data-view="link-bio"] .border-slate-850,
+html.light [data-view="link-bio"] .border-slate-750           { border-color: #cbd5e1 !important; }
+
+/* Texto del item del selector de bloque (text-slate-200) — sin mapping global */
+html.light [data-view="link-bio"] .text-slate-200             { color: #0f172a !important; }
+html.light [data-view="link-bio"] .text-slate-600             { color: #94a3b8 !important; }
+
+/* "Agregar bloque" dashed CTA — borde slate-700 → cbd5e1 (ya cubierto) y
+   en hover se vuelve lime; reforzamos el feedback */
+html.light [data-view="link-bio"] .hover\:border-lime-500\/40:hover,
+html.light [data-view="link-bio"] .hover\:border-lime-500\/50:hover { border-color: rgba(132, 204, 22, 0.55) !important; }
+
+/* Plan card "Recomendado" amber-500/5 bg + amber-500/50 border — sólido */
+html.light [data-view="link-bio"] .bg-amber-500\/5            { background-color: #fffbeb !important; }
+html.light [data-view="link-bio"] .border-amber-500\/25,
+html.light [data-view="link-bio"] .border-amber-500\/50       { border-color: rgba(245, 158, 11, 0.55) !important; }
+
+/* Badge "Actual" lime — más definido */
+html.light [data-view="link-bio"] .bg-lime-500\/10            { background-color: #ecfccb !important; }
+html.light [data-view="link-bio"] .text-lime-400              { color: #4d7c0f !important; }
+
+/* Shadow xl del CTA Premium — slate suave en lugar de negro 20% */
+html.light [data-view="link-bio"] .shadow-black\/20           { --tw-shadow-color: rgba(15, 23, 42, 0.10) !important; }
+html.light [data-view="link-bio"] .shadow-xl,
+html.light [data-view="link-bio"] .shadow-2xl                 { --tw-shadow-color: rgba(15, 23, 42, 0.10) !important; }
+
+/* Hover sutil de la cabecera del UpsellPanel (hover:bg-white/[0.03]) */
+html.light [data-view="link-bio"] .hover\:bg-white\/\[0\.03\]:hover { background-color: rgba(15, 23, 42, 0.04) !important; }
+
+/* "Quiero pasar a Pro" — botón sólido amber-500 → mantener legibilidad */
+html.light [data-view="link-bio"] .bg-amber-500              { background-color: #f59e0b !important; }
+html.light [data-view="link-bio"] .hover\:bg-amber-400:hover { background-color: #fbbf24 !important; }
+html.light [data-view="link-bio"] .text-amber-950            { color: #451a03 !important; }
+
+/* Botón "Abrir Editor Premium" — bg-lime-400 sólido con texto slate-900 */
+html.light [data-view="link-bio"] .bg-lime-400               { background-color: #a3e635 !important; }
+html.light [data-view="link-bio"] .hover\:bg-lime-300:hover  { background-color: #bef264 !important; }
+html.light [data-view="link-bio"] .text-slate-900            { color: #0f172a !important; }
+
+/* Cabecera del UpsellPanel — fondo crema con halo amber visible */
+html.light [data-view="link-bio"] .from-amber-500\/10        { --tw-gradient-from: #fef3c7 !important; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, transparent) !important; }
+
+/* Borde lime "hover:border-lime-500/50" del selector de bloque */
+html.light [data-view="link-bio"] .border-lime-500\/30,
+html.light [data-view="link-bio"] .border-lime-500\/50,
+html.light [data-view="link-bio"] .border-lime-500\/60       { border-color: rgba(101, 163, 13, 0.55) !important; }
+html.light [data-view="link-bio"] .border-lime-400\/25       { border-color: rgba(132, 204, 22, 0.50) !important; }
+html.light [data-view="link-bio"] .bg-lime-400\/15           { background-color: rgba(132, 204, 22, 0.18) !important; }
+html.light [data-view="link-bio"] .text-lime-300             { color: #4d7c0f !important; }
+
+/* Inputs con prefijo (bioo.cl/<handle>) — fondo blanco con borde claro */
+html.light [data-view="link-bio"] .focus-within\:border-lime-500.bg-slate-800 { background-color: #ffffff !important; }
+
+/* Color picker squares — borde más visible */
+html.light [data-view="link-bio"] input[type="color"]        { border-color: #cbd5e1 !important; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   SIDEBAR · marcar mejor el módulo activo
+   El active state (NavLink → aria-current="page") usa border-l-2 +
+   bg-emerald-500/10 que en modo claro queda casi invisible. Acá lo
+   reforzamos en ambos modos y subimos el contraste del fondo en claro.
+   El color del border-left lo aporta cada tenant con border-emerald-400
+   / border-cyan-400 / etc., así que sólo cambiamos el GROSOR.
+   ═══════════════════════════════════════════════════════════════════ */
+aside a[aria-current="page"] {
+  border-left-width: 4px !important;
+  padding-left: 12px !important;
+  font-weight: 700 !important;
+}
+/* En modo claro: además, fondo más marcado (gris azulado neutro que
+   convive con cualquier tenant) + sombra interior para profundidad. */
+html.light aside a[aria-current="page"] {
+  background-color: rgba(15, 23, 42, 0.08) !important;
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.05) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   LIGHT MODE · DailyWelcomePanel ("¿Qué quieres hacer hoy?")
+   El panel usa inline-styles oscuros (gradiente negro, texto blanco al
+   55-45%) que en modo claro quedan dark-on-light (texto blanco invisible)
+   o light-on-light (texto blanco invisible). Sobrescribimos cada pieza
+   con !important porque CSS !important gana sobre inline.
+   ═══════════════════════════════════════════════════════════════════ */
+/* Backdrop más suave (no negro) */
+html.light [data-component="daily-welcome"] {
+  background: radial-gradient(ellipse at center, rgba(140,198,63,0.10) 0%, rgba(15,23,42,0.40) 60%) !important;
+}
+/* Card: blanco crema con halo verde marca */
+html.light [data-card="daily-welcome"] {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
+  border-color: rgba(140, 198, 63, 0.40) !important;
+  box-shadow:
+    0 0 0 1px rgba(140, 198, 63, 0.18),
+    0 30px 90px -30px rgba(140, 198, 63, 0.28),
+    0 20px 60px -20px rgba(15, 23, 42, 0.18) !important;
+}
+/* Botón cerrar: claro, no blanco-on-blanco */
+html.light [data-close="daily-welcome"] {
+  background: rgba(15, 23, 42, 0.04) !important;
+  border-color: rgba(15, 23, 42, 0.10) !important;
+  color: rgba(15, 23, 42, 0.55) !important;
+}
+html.light [data-close="daily-welcome"]:hover {
+  background: rgba(140, 198, 63, 0.12) !important;
+  border-color: rgba(140, 198, 63, 0.45) !important;
+  color: #6b9c2f !important;
+}
+/* Branding "SynapTech SPA" — el text-white se vuelve oscuro auto, pero el
+   inline color rgba(255,255,255,0.55) no. Lo forzamos. */
+html.light [data-brand="daily-welcome"] {
+  color: rgba(15, 23, 42, 0.55) !important;
+}
+/* Opciones (tarjetas) — resting + hover */
+html.light [data-option="daily-welcome"] {
+  background: rgba(15, 23, 42, 0.035) !important;
+  border-color: rgba(15, 23, 42, 0.10) !important;
+  box-shadow: none !important;
+}
+html.light [data-option="daily-welcome"]:hover {
+  background: rgba(140, 198, 63, 0.08) !important;
+  border-color: rgba(140, 198, 63, 0.45) !important;
+  box-shadow: 0 0 0 1px rgba(140, 198, 63, 0.20), 0 10px 30px -10px rgba(140, 198, 63, 0.30) !important;
+}
+/* Descripción de cada opción (gris en lugar de blanco-on-blanco) */
+html.light [data-option-desc="daily-welcome"] {
+  color: rgba(15, 23, 42, 0.55) !important;
+}
+/* "No volver a mostrar" — texto al 35% blanco es invisible, va a slate */
+html.light [data-dismiss-forever="daily-welcome"] {
+  color: rgba(15, 23, 42, 0.50) !important;
+}
+html.light [data-dismiss-forever="daily-welcome"]:hover {
+  color: rgba(15, 23, 42, 0.80) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   LIGHT MODE · Métricas — sticky bar, tarjetas, charts y tooltips
+   El layout usa muchas variantes con opacidad (bg-slate-950/80,
+   bg-slate-900/40, border-slate-800/60, border-slate-750) que el
+   global no cubre completo. Además los recharts traen stroke #1e293b
+   (slate-800) hardcoded en el CartesianGrid — invisible en blanco.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Sticky bar de filtros: el global no mapea bg-slate-950/80 → quedaba
+   negro al 80% encima del contenido. Acá un blanco-cremoso translúcido. */
+html.light [data-view="metricas"] .bg-slate-950\/80          { background-color: rgba(241, 245, 249, 0.85) !important; }
+
+/* Tarjetas, paneles y sub-paneles → blanco + gris claro coherentes */
+html.light [data-view="metricas"] .bg-slate-900              { background-color: #ffffff !important; }
+html.light [data-view="metricas"] .bg-slate-900\/40,
+html.light [data-view="metricas"] .bg-slate-900\/80          { background-color: #f8fafc !important; }
+html.light [data-view="metricas"] .bg-slate-950              { background-color: #f1f5f9 !important; }
+html.light [data-view="metricas"] .bg-slate-800\/80          { background-color: #e2e8f0 !important; }
+
+/* Bordes — el slate-azulado mid-tone que ya usamos en Agenda/Inicio */
+html.light [data-view="metricas"] .border-slate-800          { border-color: #cbd5e1 !important; }
+html.light [data-view="metricas"] .border-slate-800\/60,
+html.light [data-view="metricas"] .border-slate-800\/80,
+html.light [data-view="metricas"] .border-slate-750          { border-color: rgba(71, 85, 105, 0.30) !important; }
+html.light [data-view="metricas"] .hover\:border-slate-700:hover,
+html.light [data-view="metricas"] .hover\:border-slate-750:hover { border-color: #94a3b8 !important; }
+
+/* Hovers de filas y botones más visibles */
+html.light [data-view="metricas"] .hover\:bg-slate-800\/20:hover,
+html.light [data-view="metricas"] .hover\:bg-slate-800\/40:hover,
+html.light [data-view="metricas"] .hover\:bg-slate-900\/30:hover { background-color: rgba(71, 85, 105, 0.08) !important; }
+
+/* Recharts — grilla, ejes y leyenda */
+html.light [data-view="metricas"] .recharts-cartesian-grid line  { stroke: #cbd5e1 !important; stroke-opacity: 1 !important; }
+html.light [data-view="metricas"] .recharts-cartesian-axis-tick text { fill: #475569 !important; }
+html.light [data-view="metricas"] .recharts-legend-item-text     { color: #475569 !important; }
+
+/* Sombras 2xl (modales, tooltip flotante) — slate-azuladas suaves */
+html.light [data-view="metricas"] .shadow-2xl,
+html.light [data-view="metricas"] .shadow-xl                 { --tw-shadow-color: rgba(15, 23, 42, 0.10) !important; }
+
+/* Track de la barrita "progreso" dentro de Métricas (bg-slate-950) */
+html.light [data-view="metricas"] .bg-slate-950.rounded-full { background-color: #e2e8f0 !important; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   LIGHT MODE · TV-Config, Configuración, Soporte
+   Los tres views usan el mismo lenguaje de tarjetas (bg-slate-900 +
+   border-slate-800 + variantes con opacidad) que en el global queda
+   muy washed out. Subimos a blanco sólido + bordes slate-azulado.
+   IMPORTANTE: la simulación de pantalla TV (bg-[#050505]) usa hex
+   arbitrarios que NO toca el remapeo → la TV preview sigue oscura
+   dentro del card blanco, como debe ser (representa la pantalla real).
+   ═══════════════════════════════════════════════════════════════════ */
+html.light :is([data-view="tv-config"], [data-view="configuracion"], [data-view="soporte"]) .bg-slate-900,
+html.light :is([data-view="tv-config"], [data-view="configuracion"], [data-view="soporte"]) .bg-slate-900\/95   { background-color: #ffffff !important; }
+html.light :is([data-view="tv-config"], [data-view="configuracion"], [data-view="soporte"]) .bg-slate-900\/40,
+html.light :is([data-view="tv-config"], [data-view="configuracion"], [data-view="soporte"]) .bg-slate-900\/80   { background-color: #f8fafc !important; }
+html.light :is([data-view="tv-config"], [data-view="configuracion"], [data-view="soporte"]) .bg-slate-950,
+html.light :is([data-view="tv-config"], [data-view="configuracion"], [data-view="soporte"]) .bg-slate-950\/40   { background-color: #f1f5f9 !important; }
+html.light :is([data-view="tv-config"], [data-view="configuracion"], [data-view="soporte"]) .bg-slate-800\/30,
+html.light :is([data-view="tv-config"], [data-view="configuracion"], [data-view="soporte"]) .bg-slate-800\/80   { background-color: rgba(71, 85, 105, 0.08) !important; }
+
+/* Bordes — slate-azulado mid-tone (mismo lenguaje de Agenda/Inicio/Métricas) */
+html.light :is([data-view="tv-config"], [data-view="configuracion"], [data-view="soporte"]) .border-slate-800   { border-color: #cbd5e1 !important; }
+html.light :is([data-view="tv-config"], [data-view="configuracion"], [data-view="soporte"]) .border-slate-700   { border-color: #94a3b8 !important; }
+html.light :is([data-view="tv-config"], [data-view="configuracion"], [data-view="soporte"]) .border-slate-800\/60,
+html.light :is([data-view="tv-config"], [data-view="configuracion"], [data-view="soporte"]) .border-slate-800\/80,
+html.light :is([data-view="tv-config"], [data-view="configuracion"], [data-view="soporte"]) .border-slate-700\/60,
+html.light :is([data-view="tv-config"], [data-view="configuracion"], [data-view="soporte"]) .border-slate-750   { border-color: rgba(71, 85, 105, 0.32) !important; }
+html.light :is([data-view="tv-config"], [data-view="configuracion"], [data-view="soporte"]) .hover\:border-slate-500:hover,
+html.light :is([data-view="tv-config"], [data-view="configuracion"], [data-view="soporte"]) .hover\:border-slate-700:hover { border-color: #64748b !important; }
+
+/* Hovers en filas y botones */
+html.light :is([data-view="tv-config"], [data-view="configuracion"], [data-view="soporte"]) .hover\:bg-slate-800\/40:hover,
+html.light :is([data-view="tv-config"], [data-view="configuracion"], [data-view="soporte"]) .hover\:bg-slate-800\/50:hover,
+html.light :is([data-view="tv-config"], [data-view="configuracion"], [data-view="soporte"]) .hover\:bg-slate-800:hover { background-color: rgba(71, 85, 105, 0.10) !important; }
+
+/* Sombras más suaves */
+html.light :is([data-view="tv-config"], [data-view="configuracion"], [data-view="soporte"]) .shadow-md,
+html.light :is([data-view="tv-config"], [data-view="configuracion"], [data-view="soporte"]) .shadow-lg,
+html.light :is([data-view="tv-config"], [data-view="configuracion"], [data-view="soporte"]) .shadow-xl,
+html.light :is([data-view="tv-config"], [data-view="configuracion"], [data-view="soporte"]) .shadow-2xl         { --tw-shadow-color: rgba(15, 23, 42, 0.08) !important; }
+
+/* Inputs (date/text/textarea) en estos views — el global ya los maneja pero
+   el border-slate-700 del wrapper queda mejor con un poco más de cuerpo. */
+html.light :is([data-view="tv-config"], [data-view="configuracion"], [data-view="soporte"]) input,
+html.light :is([data-view="tv-config"], [data-view="configuracion"], [data-view="soporte"]) textarea,
+html.light :is([data-view="tv-config"], [data-view="configuracion"], [data-view="soporte"]) select { border-color: #94a3b8 !important; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   LIGHT MODE · Mensualidad, Referidos, Gift Cards, Link in Bio
+   Mismo lenguaje que Inicio/Métricas: tarjetas blancas, bordes
+   slate-azulado, hovers visibles, sombras suaves. El phone preview
+   de Link in Bio (data-keep-dark="phone-preview") se EXCLUYE para
+   que la simulación del bio público siga viéndose oscura — esa vista
+   representa la pantalla real del usuario final.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Tarjetas principales */
+html.light :is([data-view="mensualidad"], [data-view="referidos"], [data-view="gift-cards"], [data-view="link-bio"]) .bg-slate-900,
+html.light :is([data-view="mensualidad"], [data-view="referidos"], [data-view="gift-cards"], [data-view="link-bio"]) .bg-slate-900\/95 { background-color: #ffffff !important; }
+
+/* Sub-paneles internos y headers translúcidos */
+html.light :is([data-view="mensualidad"], [data-view="referidos"], [data-view="gift-cards"], [data-view="link-bio"]) .bg-slate-900\/40,
+html.light :is([data-view="mensualidad"], [data-view="referidos"], [data-view="gift-cards"], [data-view="link-bio"]) .bg-slate-900\/60,
+html.light :is([data-view="mensualidad"], [data-view="referidos"], [data-view="gift-cards"], [data-view="link-bio"]) .bg-slate-900\/80 { background-color: #f8fafc !important; }
+
+/* Backdrops con slate-800 al 30/40 — los chips de filtro, headers compactos */
+html.light :is([data-view="mensualidad"], [data-view="referidos"], [data-view="gift-cards"], [data-view="link-bio"]) .bg-slate-800\/30 { background-color: rgba(71, 85, 105, 0.06) !important; }
+html.light :is([data-view="mensualidad"], [data-view="referidos"], [data-view="gift-cards"], [data-view="link-bio"]) .bg-slate-800\/40,
+html.light :is([data-view="mensualidad"], [data-view="referidos"], [data-view="gift-cards"], [data-view="link-bio"]) .bg-slate-800\/50 { background-color: rgba(71, 85, 105, 0.10) !important; }
+
+/* Phone preview de LinkBio: revertir a slate-950 real para que se vea como
+   una pantalla de celular oscura — es la maqueta del bio público. */
+html.light [data-keep-dark="phone-preview"] { background-color: #020617 !important; border-color: #1e293b !important; }
+html.light [data-keep-dark="phone-preview"] .bg-slate-800 { background-color: #1e293b !important; }
+html.light [data-keep-dark="phone-preview"] .text-white { color: #ffffff !important; }
+html.light [data-keep-dark="phone-preview"] .text-slate-400 { color: #94a3b8 !important; }
+html.light [data-keep-dark="phone-preview"] .text-slate-500,
+html.light [data-keep-dark="phone-preview"] .text-slate-600 { color: #64748b !important; }
+
+/* Bordes — slate-azulado coherente */
+html.light :is([data-view="mensualidad"], [data-view="referidos"], [data-view="gift-cards"], [data-view="link-bio"]) .border-slate-800 { border-color: #cbd5e1 !important; }
+html.light :is([data-view="mensualidad"], [data-view="referidos"], [data-view="gift-cards"], [data-view="link-bio"]) .border-slate-700 { border-color: #94a3b8 !important; }
+html.light :is([data-view="mensualidad"], [data-view="referidos"], [data-view="gift-cards"], [data-view="link-bio"]) .border-slate-800\/60,
+html.light :is([data-view="mensualidad"], [data-view="referidos"], [data-view="gift-cards"], [data-view="link-bio"]) .border-slate-800\/80,
+html.light :is([data-view="mensualidad"], [data-view="referidos"], [data-view="gift-cards"], [data-view="link-bio"]) .border-slate-700\/60,
+html.light :is([data-view="mensualidad"], [data-view="referidos"], [data-view="gift-cards"], [data-view="link-bio"]) .border-slate-750 { border-color: rgba(71, 85, 105, 0.32) !important; }
+html.light :is([data-view="mensualidad"], [data-view="referidos"], [data-view="gift-cards"], [data-view="link-bio"]) .hover\:border-slate-600:hover,
+html.light :is([data-view="mensualidad"], [data-view="referidos"], [data-view="gift-cards"], [data-view="link-bio"]) .hover\:border-slate-700:hover { border-color: #64748b !important; }
+
+/* Hovers en filas, botones y tarjetas clicables */
+html.light :is([data-view="mensualidad"], [data-view="referidos"], [data-view="gift-cards"], [data-view="link-bio"]) .hover\:bg-slate-800\/20:hover,
+html.light :is([data-view="mensualidad"], [data-view="referidos"], [data-view="gift-cards"], [data-view="link-bio"]) .hover\:bg-slate-800\/40:hover,
+html.light :is([data-view="mensualidad"], [data-view="referidos"], [data-view="gift-cards"], [data-view="link-bio"]) .hover\:bg-slate-900\/30:hover,
+html.light :is([data-view="mensualidad"], [data-view="referidos"], [data-view="gift-cards"], [data-view="link-bio"]) .hover\:bg-slate-900\/80:hover { background-color: rgba(71, 85, 105, 0.10) !important; }
+
+/* Sombras suaves slate-azuladas (no negras) */
+html.light :is([data-view="mensualidad"], [data-view="referidos"], [data-view="gift-cards"], [data-view="link-bio"]) .shadow-md,
+html.light :is([data-view="mensualidad"], [data-view="referidos"], [data-view="gift-cards"], [data-view="link-bio"]) .shadow-lg,
+html.light :is([data-view="mensualidad"], [data-view="referidos"], [data-view="gift-cards"], [data-view="link-bio"]) .shadow-xl,
+html.light :is([data-view="mensualidad"], [data-view="referidos"], [data-view="gift-cards"], [data-view="link-bio"]) .shadow-2xl { --tw-shadow-color: rgba(15, 23, 42, 0.08) !important; }
+
+/* Track de barras de progreso */
+html.light :is([data-view="mensualidad"], [data-view="referidos"]) .bg-slate-800 { background-color: #e2e8f0 !important; }
+
+/* Inputs con borde más visible */
+html.light :is([data-view="mensualidad"], [data-view="referidos"], [data-view="gift-cards"], [data-view="link-bio"]) input,
+html.light :is([data-view="mensualidad"], [data-view="referidos"], [data-view="gift-cards"], [data-view="link-bio"]) textarea,
+html.light :is([data-view="mensualidad"], [data-view="referidos"], [data-view="gift-cards"], [data-view="link-bio"]) select { border-color: #94a3b8 !important; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   LIGHT MODE · Marketing
+   El layout usa accent gold (#D4AF37) que YA tiene mappings globales.
+   Acá pisamos los slate-translúcidos (chat IA, hero, cards de campaña,
+   modal IG Stories) para que sean blancos con bordes slate-blue. La
+   marketing-preview-banner mantiene color-scheme: dark vía global,
+   porque es la maqueta de cómo se ve el banner en la app pública.
+   ═══════════════════════════════════════════════════════════════════ */
+html.light [data-view="marketing"] .bg-slate-900,
+html.light [data-view="marketing"] .bg-slate-900\/95         { background-color: #ffffff !important; }
+html.light [data-view="marketing"] .bg-slate-900\/20,
+html.light [data-view="marketing"] .bg-slate-900\/40,
+html.light [data-view="marketing"] .bg-slate-900\/50,
+html.light [data-view="marketing"] .bg-slate-900\/60         { background-color: #f8fafc !important; }
+html.light [data-view="marketing"] .bg-slate-950,
+html.light [data-view="marketing"] .bg-slate-950\/30,
+html.light [data-view="marketing"] .bg-slate-950\/50,
+html.light [data-view="marketing"] .bg-slate-950\/70         { background-color: #f1f5f9 !important; }
+html.light [data-view="marketing"] .bg-slate-800             { background-color: #e2e8f0 !important; }
+html.light [data-view="marketing"] .bg-slate-800\/60,
+html.light [data-view="marketing"] .bg-slate-800\/70         { background-color: rgba(71, 85, 105, 0.10) !important; }
+
+/* Bordes y rings */
+html.light [data-view="marketing"] .border-slate-800,
+html.light [data-view="marketing"] .border-slate-700         { border-color: #cbd5e1 !important; }
+html.light [data-view="marketing"] .border-slate-800\/40,
+html.light [data-view="marketing"] .border-slate-800\/60,
+html.light [data-view="marketing"] .border-slate-700\/60     { border-color: rgba(71, 85, 105, 0.30) !important; }
+html.light [data-view="marketing"] .ring-slate-700           { --tw-ring-color: #cbd5e1 !important; }
+
+/* Hovers + animaciones de chips/cards */
+html.light [data-view="marketing"] .hover\:bg-slate-800:hover { background-color: rgba(71, 85, 105, 0.12) !important; }
+
+/* Texto secundario que estaba pensado para fondo oscuro */
+html.light [data-view="marketing"] .text-slate-300,
+html.light [data-view="marketing"] .text-slate-400           { color: #475569 !important; }
+
+/* Sombras suaves */
+html.light [data-view="marketing"] .shadow-xl,
+html.light [data-view="marketing"] .shadow-2xl               { --tw-shadow-color: rgba(15, 23, 42, 0.08) !important; }
+
+/* ═══════════════════════════════════════════════════════════════════
+   LIGHT MODE · Mensajes (Chat) y Chatbot Config
+   Mensajes tiene un layout particular (lista de chats izq + viewer der
+   con burbujas) y muchos slate-translúcidos para sticky headers y barras
+   de input. Chatbot Config usa cards con bg-slate-900/40-60 y muchos
+   ring-slate-700/800 para chips/hints.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Layout principal (mensajes): columna de chats blanca + viewer blanco */
+html.light [data-view="mensajes"] .bg-slate-900,
+html.light [data-view="mensajes"] .bg-slate-900\/95          { background-color: #ffffff !important; }
+html.light [data-view="mensajes"] .bg-slate-900\/40,
+html.light [data-view="mensajes"] .bg-slate-900\/50,
+html.light [data-view="mensajes"] .bg-slate-900\/60,
+html.light [data-view="mensajes"] .bg-slate-900\/85          { background-color: #f8fafc !important; }
+html.light [data-view="mensajes"] .bg-slate-950\/70,
+html.light [data-view="mensajes"] .bg-slate-950\/80          { background-color: #f1f5f9 !important; }
+
+/* Burbuja de mensaje entrante (cliente): texto oscuro sobre slate-200 */
+html.light [data-view="mensajes"] .bg-slate-800              { background-color: #e2e8f0 !important; }
+/* Sólo en el panel de mensajes: la burbuja necesita texto oscuro */
+html.light [data-view="mensajes"] .bg-slate-800 .text-white,
+html.light [data-view="mensajes"] .text-white                { color: #0f172a !important; }
+
+/* Avatar fallback (círculo gris) y handle grabber (mobile) */
+html.light [data-view="mensajes"] .bg-slate-700              { background-color: #cbd5e1 !important; }
+
+/* Ring del badge de fuente (cliente/staff) en avatars: corregir el ring blanco */
+html.light [data-view="mensajes"] .ring-slate-900            { --tw-ring-color: #ffffff !important; }
+
+/* Bordes en lista, input area, modales */
+html.light [data-view="mensajes"] .border-slate-800,
+html.light [data-view="mensajes"] .border-slate-700          { border-color: #cbd5e1 !important; }
+html.light [data-view="mensajes"] .ring-slate-700,
+html.light [data-view="mensajes"] .ring-slate-800            { --tw-ring-color: #cbd5e1 !important; }
+
+/* Hovers en items de la conversación */
+html.light [data-view="mensajes"] .hover\:bg-slate-800\/40:hover,
+html.light [data-view="mensajes"] .hover\:bg-slate-800\/60:hover,
+html.light [data-view="mensajes"] .hover\:bg-slate-800\/80:hover,
+html.light [data-view="mensajes"] .hover\:bg-slate-800:hover { background-color: rgba(71, 85, 105, 0.10) !important; }
+
+/* Tabs de fuente (toolbar superior) — el activo más marcado */
+html.light [data-view="mensajes"] .bg-slate-800\/70          { background-color: #e2e8f0 !important; }
+
+/* ═════════ Chatbot Config ═════════ */
+/* Hero + sections — cards blancas/gris-claro */
+html.light [data-view="chatbot"] .bg-slate-900,
+html.light [data-view="chatbot"] .bg-slate-900\/95           { background-color: #ffffff !important; }
+html.light [data-view="chatbot"] .bg-slate-900\/40,
+html.light [data-view="chatbot"] .bg-slate-900\/60           { background-color: #f8fafc !important; }
+/* Inputs y textareas — fondos casi blancos con borde slate-blue */
+html.light [data-view="chatbot"] .bg-slate-950              { background-color: #ffffff !important; }
+/* Chips de hint y pequeños badges */
+html.light [data-view="chatbot"] .bg-slate-800,
+html.light [data-view="chatbot"] .hover\:bg-slate-700:hover { background-color: #e2e8f0 !important; }
+html.light [data-view="chatbot"] .hover\:bg-slate-800:hover { background-color: rgba(71, 85, 105, 0.10) !important; }
+/* Bordes + rings — slate-blue mid */
+html.light [data-view="chatbot"] .border-slate-800          { border-color: #cbd5e1 !important; }
+html.light [data-view="chatbot"] .ring-slate-700,
+html.light [data-view="chatbot"] .ring-slate-800            { --tw-ring-color: #cbd5e1 !important; }
+/* Texto del placeholder y secundario */
+html.light [data-view="chatbot"] .placeholder-slate-600::placeholder { color: #94a3b8 !important; }
+html.light [data-view="chatbot"] .text-slate-200            { color: #0f172a !important; }
+
+/* Sombras suaves para ambos views */
+html.light [data-view="mensajes"] .shadow-2xl,
+html.light [data-view="chatbot"]  .shadow-2xl                { --tw-shadow-color: rgba(15, 23, 42, 0.08) !important; }
+
+/* ─── Mensajes · pase fino adicional ─── */
+/* Borde divisor entre lista (izquierda) y viewer (derecha) más visible */
+html.light [data-view="mensajes"] .lg\:border-r              { border-right-color: #cbd5e1 !important; }
+html.light [data-view="mensajes"] .lg\:border                { border-color: #cbd5e1 !important; }
+
+/* Burbuja del BOT: cyan dark queda invisible en claro. Cambiamos a cyan-light
+   con texto cyan-900 para que se lea bien sobre fondo blanco del viewer. */
+html.light [data-view="mensajes"] .bg-cyan-900\/40           { background-color: #ecfeff !important; }
+html.light [data-view="mensajes"] .border-cyan-500\/20       { border-color: rgba(6, 182, 212, 0.35) !important; }
+html.light [data-view="mensajes"] .text-cyan-50              { color: #0e7490 !important; }
+html.light [data-view="mensajes"] .text-cyan-300\/60,
+html.light [data-view="mensajes"] .text-cyan-300\/80         { color: #0891b2 !important; }
+
+/* Etiqueta "Atender" amber */
+html.light [data-view="mensajes"] .bg-amber-500\/15          { background-color: rgba(245, 158, 11, 0.14) !important; }
+html.light [data-view="mensajes"] .text-amber-300            { color: #b45309 !important; }
+html.light [data-view="mensajes"] .ring-amber-400\/25        { --tw-ring-color: rgba(245, 158, 11, 0.45) !important; }
+
+/* Banner amarillo del fondo de chats que requieren atención humana */
+html.light [data-view="mensajes"] .bg-amber-500\/\[0\.05\]   { background-color: rgba(245, 158, 11, 0.08) !important; }
+
+/* Avatar fallback con icono de usuario adentro: subir contraste del icono */
+html.light [data-view="mensajes"] .text-slate-400            { color: #475569 !important; }
+
+/* Scrollbar de la columna y del viewer — slate más visible que el default */
+html.light [data-view="mensajes"] *::-webkit-scrollbar-thumb { background: #94a3b8 !important; }
+html.light [data-view="mensajes"] *::-webkit-scrollbar-track { background: transparent !important; }
+
+/* Source pill compact dentro de los items de la lista — borde slate-blue */
+html.light [data-view="mensajes"] .ring-1.ring-slate-700,
+html.light [data-view="mensajes"] [class*="ring-slate-700"]  { --tw-ring-color: #cbd5e1 !important; }
 
 /* Evitar auto-zoom en iOS Safari al enfocar campos de formulario en pantallas móviles */
 @media (max-width: 767px) {

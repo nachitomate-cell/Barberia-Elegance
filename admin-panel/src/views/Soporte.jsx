@@ -66,7 +66,7 @@ export default function Soporte() {
   const inp = 'w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors resize-none';
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6 pb-10">
+    <div data-view="soporte" className="max-w-2xl mx-auto space-y-6 pb-10">
 
       {/* Header */}
       <div>

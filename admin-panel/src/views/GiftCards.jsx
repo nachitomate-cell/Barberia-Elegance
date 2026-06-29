@@ -1058,7 +1058,7 @@ export default function GiftCards() {
   }), [giftCards]);
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8 space-y-6">
+    <div data-view="gift-cards" className="max-w-3xl mx-auto px-4 py-8 space-y-6">
 
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">

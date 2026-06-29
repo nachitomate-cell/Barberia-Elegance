@@ -229,7 +229,7 @@ export default function Mensualidad() {
   );
 
   return (
-    <div className="mx-auto max-w-2xl space-y-5 p-4 sm:p-6">
+    <div data-view="mensualidad" className="mx-auto max-w-2xl space-y-5 p-4 sm:p-6">
 
       {/* ─────── HERO ─────── */}
       <Hero

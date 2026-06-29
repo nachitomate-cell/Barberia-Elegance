@@ -81,6 +81,7 @@ export default function DailyWelcomePanel() {
     <AnimatePresence>
       {open && (
         <motion.div
+          data-component="daily-welcome"
           className="fixed inset-0 z-[60] flex items-center justify-center p-4 overflow-hidden"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -130,6 +131,7 @@ export default function DailyWelcomePanel() {
           />
 
           <motion.div
+            data-card="daily-welcome"
             className="relative w-full max-w-md rounded-3xl overflow-hidden"
             initial={{ opacity: 0, y: 40, scale: 0.94 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -158,6 +160,7 @@ export default function DailyWelcomePanel() {
 
             {/* Cerrar */}
             <button
+              data-close="daily-welcome"
               onClick={dismiss}
               className="absolute top-3.5 right-3.5 z-10 w-8 h-8 flex items-center justify-center rounded-full transition-all"
               style={{
@@ -194,6 +197,7 @@ export default function DailyWelcomePanel() {
                 transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
               />
               <span
+                data-brand="daily-welcome"
                 className="text-[10px] font-semibold tracking-[0.22em] uppercase"
                 style={{ color: 'rgba(255,255,255,0.55)' }}
               >
@@ -233,6 +237,7 @@ export default function DailyWelcomePanel() {
               {OPCIONES.map(({ to, label, desc, Icon }, i) => (
                 <motion.button
                   key={label}
+                  data-option="daily-welcome"
                   onClick={() => elegir(to)}
                   initial={{ opacity: 0, x: -16 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -280,6 +285,7 @@ export default function DailyWelcomePanel() {
                   <div className="flex-1 min-w-0 relative">
                     <p className="text-white font-semibold text-sm leading-tight">{label}</p>
                     <p
+                      data-option-desc="daily-welcome"
                       className="text-xs leading-snug mt-0.5"
                       style={{ color: 'rgba(255,255,255,0.45)' }}
                     >
@@ -307,6 +313,7 @@ export default function DailyWelcomePanel() {
             >
               <button
                 type="button"
+                data-dismiss-forever="daily-welcome"
                 onClick={dismissForever}
                 className="group inline-flex items-center gap-1.5 text-[11px] font-medium transition-colors"
                 style={{ color: 'rgba(255,255,255,0.35)' }}

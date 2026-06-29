@@ -118,7 +118,7 @@ export default function Referidos() {
   if (!canManage) return <NoAccess />;
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 p-4 sm:p-6">
+    <div data-view="referidos" className="mx-auto max-w-5xl space-y-6 p-4 sm:p-6">
       {/* ─────── HERO ─────── */}
       <Hero
         referral={referral}

@@ -2743,7 +2743,7 @@ export default function Agenda() {
 
   return (
     <AgendaCtx.Provider value={slotCfg}>
-    <div className="flex flex-col h-full gap-3">
+    <div data-view="agenda" className="flex flex-col h-full gap-3">
 
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2 shrink-0">

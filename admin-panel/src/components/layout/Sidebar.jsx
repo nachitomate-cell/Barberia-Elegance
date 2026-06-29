@@ -5,7 +5,7 @@ import {
   Trophy, ShoppingBag, Images, LogOut, ChevronRight,
   Sun, Moon, ExternalLink, Settings, TrendingDown, MessageCircle, X,
   Megaphone, ImagePlus, CreditCard, Monitor, Headphones, Medal, Camera, GraduationCap, Wallet, Package, ThumbsUp, Crown,
-  Globe, Banknote, Gift, ClipboardList, Building2, Home, Lock, HelpCircle, Link2, Instagram, CircleDollarSign, Sparkles, UserX, Award,
+  Globe, Banknote, Gift, ClipboardList, Building2, Home, Lock, HelpCircle, Link2, Instagram, CircleDollarSign, Sparkles, UserX, Award, Bot,
 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { doc, onSnapshot, where } from 'firebase/firestore';
@@ -17,6 +17,25 @@ import { useBillingRestriction } from '../BillingGate';
 
 // Secciones que se bloquean cuando el pago está muy atrasado (modo restringido).
 const SECCIONES_BLOQUEADAS = new Set(['metricas', 'comisiones', 'caja', 'gastos', 'marketing', 'finanzas']);
+
+// ── Icono personalizado: avatar de Syna (bot del chat público) ─────
+// Implementado con la misma firma que un Icon de lucide-react (size, className,
+// strokeWidth, stroke) para encajar transparentemente en SidebarItem, pero
+// renderiza un <img> circular. Las props de SVG (strokeWidth, stroke) se
+// ignoran porque no aplican a un raster.
+function SynaIcon({ size = 16, className = '' }) {
+  return (
+    <img
+      src={`${import.meta.env.BASE_URL || '/'}syna.png`}
+      alt=""
+      aria-hidden
+      width={size}
+      height={size}
+      style={{ width: size, height: size }}
+      className={`rounded-full object-cover ${className}`}
+    />
+  );
+}
 
 // Ítem de membresía por tenant (se inyecta en el grupo "Clientes").
 // Chameleon usa el módulo clásico de planes; Yūgen usa "Corte al Lápiz"
@@ -94,6 +113,7 @@ const NAV_GROUPS_DEFAULT = [
       { to: 'referidos',     label: 'Referidos',      Icon: Sparkles,    adminOnly: true, variant: 'referidos' },
       { to: 'mensualidad',   label: 'Mensualidad',    Icon: CreditCard,  adminOnly: true },
       { to: 'tv-config',     label: 'Pantalla TV',    Icon: Monitor,     adminOnly: true, variant: 'tv' },
+      { to: 'chatbot',       label: 'Chatbot · Syna', Icon: SynaIcon,    adminOnly: true },
       { to: 'configuracion', label: 'Configuración',  Icon: Settings,    adminOnly: true },
       { to: 'consultas',     label: 'Consultas',      Icon: HelpCircle,  adminOnly: true },
       { to: 'soporte',       label: 'Soporte',        Icon: Headphones,  adminOnly: true },
@@ -149,8 +169,18 @@ function useTheme() {
     try { return localStorage.getItem('gestion-theme') === 'light'; } catch { return false; }
   });
   useEffect(() => {
-    document.documentElement.classList.toggle('light', light);
+    const html = document.documentElement;
+    // Si no congelamos las transiciones durante el switch, cada elemento del
+    // panel (cientos con transition-colors) anima su nuevo color a la vez y
+    // el browser se traba 1-2s. Activamos .theme-switching → reset global de
+    // transitions vía CSS → cambiamos la clase → la removemos en el siguiente
+    // frame para que las animaciones normales vuelvan a funcionar.
+    html.classList.add('theme-switching');
+    html.classList.toggle('light', light);
     try { localStorage.setItem('gestion-theme', light ? 'light' : 'dark'); } catch {}
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => html.classList.remove('theme-switching'));
+    });
   }, [light]);
   return [light, setLight];
 }
@@ -469,7 +499,7 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
   const currentSlug = location.pathname.split('/').filter(Boolean).pop();
 
   return (
-    <aside className="flex flex-col h-full bg-slate-900 border-r border-slate-800">
+    <aside data-component="sidebar" className="flex flex-col h-full bg-slate-900 border-r border-slate-800">
 
       {/* Gradientes de marca para teñir el trazo de los íconos lucide (variant items) */}
       <svg width="0" height="0" className="absolute" aria-hidden="true">
@@ -572,24 +602,6 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
         className="px-3 pt-4 border-t border-slate-800 space-y-2.5"
         style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 1rem)' }}
       >
-        {/* Volver al lobby admin de Kronnos (multi-sede). El dueño tiene 3 sucursales
-            y desde aquí cambia rápido si entró a la incorrecta. */}
-        {tenant.id?.startsWith('kronnos_') && (
-          <a
-            href="/kronnos-admin"
-            title="Volver al selector de sedes Kronnos"
-            className="flex items-center justify-center gap-2 w-full px-3 py-2.5 rounded-xl text-sm font-bold border transition-all duration-200 active:scale-[0.98]"
-            style={{
-              color: tenant.brand?.hex || '#e11d2a',
-              borderColor: `${tenant.brand?.hex || '#e11d2a'}55`,
-              backgroundColor: `${tenant.brand?.hex || '#e11d2a'}14`,
-            }}
-          >
-            <Building2 size={15} />
-            <span>Cambiar de sede</span>
-          </a>
-        )}
-
         <a
           href={
             tenant.id === 'deluxeperfumes'

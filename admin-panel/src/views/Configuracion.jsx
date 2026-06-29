@@ -195,6 +195,10 @@ export default function Configuracion() {
   const [customMode,    setCustomMode]    = useState(false); // intervalo personalizado activo
   const [customStr,     setCustomStr]     = useState('');    // valor crudo del input (solo dígitos)
   const [minutosLimite, setMinutosLimite] = useState(0);
+  // Toggles y mensaje para el flujo de cancelar/reagendar via /chat con código
+  const [chatCancelEnabled,   setChatCancelEnabled]   = useState(true);
+  const [chatReagendarEnabled, setChatReagendarEnabled] = useState(true);
+  const [politicaMensaje,     setPoliticaMensaje]     = useState('');
   // Metas financieras — inputs como string para distinguir "" (sin definir,
   // usa el fallback automático en Inicio) de 0 (forzar a 0).
   const [metaMensual,   setMetaMensual]   = useState('');
@@ -239,6 +243,9 @@ export default function Configuracion() {
           }
         }
         if (cd.minutosLimiteReagendar !== undefined) setMinutosLimite(cd.minutosLimiteReagendar);
+        if (cd.chatCancelEnabled !== undefined) setChatCancelEnabled(!!cd.chatCancelEnabled);
+        if (cd.chatReagendarEnabled !== undefined) setChatReagendarEnabled(!!cd.chatReagendarEnabled);
+        if (cd.politicaMensaje !== undefined) setPoliticaMensaje(String(cd.politicaMensaje || ''));
         if (cd.metaMensualVentas != null) setMetaMensual(String(cd.metaMensualVentas));
         if (cd.costoDiarioFijo   != null) setCostoDiario(String(cd.costoDiarioFijo));
       }
@@ -314,6 +321,10 @@ export default function Configuracion() {
         setDoc(confRef(), {
           intervaloMinutos:        intervaloFinal,
           minutosLimiteReagendar:  minutosLimite,
+          // Toggles del chat (cancelar/reagendar vía código) + mensaje opcional
+          chatCancelEnabled:       !!chatCancelEnabled,
+          chatReagendarEnabled:    !!chatReagendarEnabled,
+          politicaMensaje:         String(politicaMensaje || '').trim().slice(0, 500),
           metaMensualVentas:       parsePosInt(metaMensual),
           costoDiarioFijo:         parsePosInt(costoDiario),
           diasLaborales,
@@ -342,7 +353,7 @@ export default function Configuracion() {
   );
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div data-view="configuracion" className="max-w-2xl mx-auto space-y-6">
 
       {/* Header */}
       <div className="flex items-center justify-between">
@@ -511,26 +522,102 @@ export default function Configuracion() {
         )}
       </Card>
 
-      {/* Política de Cancelación */}
-      <Card Icon={Ban} title="Política de Cancelación">
+      {/* Política de Cancelación y Reagendamiento */}
+      <Card Icon={Ban} title="Política de Cancelación y Reagendamiento">
         <p className="text-xs text-slate-500 -mt-1">
-          Tiempo mínimo de anticipación requerido para que un cliente pueda reagendar o cancelar su cita. Con <strong className="text-slate-400">Sin límite</strong> los clientes pueden cancelar en cualquier momento.
+          Reglas que aplican cuando un cliente intenta cancelar o reagendar
+          su cita desde el chat público (con su código). El sistema valida
+          automáticamente: si el cliente intenta hacerlo fuera de la ventana,
+          el bot rechaza la acción y le pide contactar humano.
         </p>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {[[0,'Sin límite'],[60,'1 hora'],[120,'2 horas'],[240,'4 horas'],[360,'6 horas'],[480,'8 horas'],[720,'12 horas'],[1440,'24 horas']].map(([mins, label]) => (
+
+        {/* Tiempo mínimo de anticipación */}
+        <div>
+          <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
+            Anticipación mínima
+          </label>
+          <p className="text-[11px] text-slate-500 mb-2.5">
+            Tiempo entre AHORA y la cita para que el cliente pueda cancelar/reagendar.
+            <strong className="text-slate-400"> Sin límite</strong> permite hacerlo en cualquier momento.
+          </p>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {[[0,'Sin límite'],[60,'1 hora'],[120,'2 horas'],[240,'4 horas'],[360,'6 horas'],[480,'8 horas'],[720,'12 horas'],[1440,'24 horas']].map(([mins, label]) => (
+              <button
+                key={mins}
+                type="button"
+                onClick={() => { setMinutosLimite(mins); setDirty(true); }}
+                className={`flex flex-col items-center py-2.5 px-2 rounded-lg border transition-all ${
+                  minutosLimite === mins
+                    ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400'
+                    : 'border-slate-700 text-slate-400 hover:text-white hover:border-slate-600'
+                }`}
+              >
+                <span className="text-sm font-semibold">{label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Toggles para chat */}
+        <div className="space-y-2 pt-4 mt-4 border-t border-slate-800">
+          <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
+            Acciones permitidas en el chat
+          </p>
+
+          <div className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg border border-slate-700/50 bg-slate-800/30">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-white">Permitir cancelar</p>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                Si está apagado, el bot dice "para cancelar contactanos" en vez de cancelar la cita.
+              </p>
+            </div>
             <button
-              key={mins}
               type="button"
-              onClick={() => { setMinutosLimite(mins); setDirty(true); }}
-              className={`flex flex-col items-center py-2.5 px-2 rounded-lg border transition-all ${
-                minutosLimite === mins
-                  ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400'
-                  : 'border-slate-700 text-slate-400 hover:text-white hover:border-slate-600'
-              }`}
+              onClick={() => { setChatCancelEnabled(v => !v); setDirty(true); }}
+              className={`relative inline-flex w-10 h-5 rounded-full transition-colors duration-200 focus:outline-none shrink-0 ${chatCancelEnabled ? 'bg-emerald-500' : 'bg-slate-700'}`}
+              aria-pressed={chatCancelEnabled}
             >
-              <span className="text-sm font-semibold">{label}</span>
+              <span className={`inline-block w-4 h-4 mt-0.5 bg-white rounded-full shadow transform transition-transform duration-200 ${chatCancelEnabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
             </button>
-          ))}
+          </div>
+
+          <div className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg border border-slate-700/50 bg-slate-800/30">
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-white">Permitir reagendar</p>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                Si está apagado, el bot no ofrece el botón "Reagendar" — solo cancelar (si está activo).
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => { setChatReagendarEnabled(v => !v); setDirty(true); }}
+              className={`relative inline-flex w-10 h-5 rounded-full transition-colors duration-200 focus:outline-none shrink-0 ${chatReagendarEnabled ? 'bg-emerald-500' : 'bg-slate-700'}`}
+              aria-pressed={chatReagendarEnabled}
+            >
+              <span className={`inline-block w-4 h-4 mt-0.5 bg-white rounded-full shadow transform transition-transform duration-200 ${chatReagendarEnabled ? 'translate-x-5' : 'translate-x-0.5'}`} />
+            </button>
+          </div>
+        </div>
+
+        {/* Mensaje informativo opcional */}
+        <div className="pt-4 mt-4 border-t border-slate-800">
+          <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
+            Mensaje informativo (opcional)
+          </label>
+          <p className="text-[11px] text-slate-500 mb-2">
+            Se muestra al cliente junto con su cita en el chat. Útil para aclarar
+            términos (ej. "Las cancelaciones con menos de 2h pueden tener cargo").
+          </p>
+          <textarea
+            value={politicaMensaje}
+            onChange={e => { setPoliticaMensaje(e.target.value.slice(0, 500)); setDirty(true); }}
+            rows={3}
+            placeholder="Ej: Las cancelaciones con menos de 2 horas de anticipación tienen un cargo de $5.000…"
+            className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500 transition-colors resize-none"
+          />
+          <p className="text-[10.5px] text-slate-600 mt-1 text-right">
+            {politicaMensaje.length}/500
+          </p>
         </div>
       </Card>
 
