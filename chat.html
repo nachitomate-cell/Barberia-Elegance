@@ -873,41 +873,161 @@
     .composer button:disabled { opacity: 0.4; cursor: not-allowed; }
 
     /* ── Toast / opt-in push banner ───────────────────────────── */
+    /* Banner premium para activar notificaciones — slide-in desde arriba,
+       icono circular con anillo de acento, tipografía con jerarquía clara,
+       y dismiss discreto que se vuelve rojo al hover. */
     .push-banner {
       display: none;
       align-items: center;
-      gap: 10px;
-      background: var(--accent-soft, rgba(212,175,55,0.12));
-      border-bottom: 1px solid var(--accent-soft-border, rgba(212,175,55,0.20));
-      padding: 10px 14px;
+      gap: 12px;
+      background:
+        linear-gradient(180deg, var(--accent-soft, rgba(212,175,55,0.14)) 0%, var(--accent-soft, rgba(212,175,55,0.08)) 100%);
+      border-bottom: 1px solid var(--accent-soft-border, rgba(212,175,55,0.25));
+      padding: 12px 16px;
       font-size: 13px;
-      color: rgba(241,245,249,0.9);
+      color: rgba(241,245,249,0.92);
       flex-shrink: 0;
+      position: relative;
+      overflow: hidden;
     }
-    .push-banner.show { display: flex; }
-    .push-banner-text { flex: 1; line-height: 1.4; }
-    .push-banner-text b { color: var(--accent, #d4af37); }
+    /* Brillo diagonal sutil del acento — solo decorativo */
+    .push-banner::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(120deg, transparent 45%, var(--accent-glow, rgba(255,255,255,0.06)) 55%, transparent 65%);
+      pointer-events: none;
+      animation: pushBannerShimmer 4s ease-in-out infinite;
+    }
+    @keyframes pushBannerShimmer {
+      0%, 100% { transform: translateX(-60%); opacity: 0; }
+      50%      { transform: translateX(60%);  opacity: 1; }
+    }
+    .push-banner.show {
+      display: flex;
+      animation: pushBannerIn 0.42s cubic-bezier(0.16,1,0.3,1);
+    }
+    @keyframes pushBannerIn {
+      from { transform: translateY(-100%); opacity: 0; }
+      to   { transform: translateY(0);     opacity: 1; }
+    }
+    /* Ícono circular con anillo del acento (sustituye el emoji crudo) */
+    .push-banner-icon {
+      flex-shrink: 0;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--accent-soft, rgba(212,175,55,0.18));
+      border: 1.5px solid var(--accent, #d4af37);
+      box-shadow:
+        0 0 0 4px var(--accent-glow, rgba(212,175,55,0.10)),
+        inset 0 1px 0 rgba(255,255,255,0.15);
+      font-size: 18px;
+      line-height: 1;
+      position: relative;
+      z-index: 1;
+      /* Subtle pulse para llamar la atención */
+      animation: pushBannerIconPulse 2.6s ease-in-out infinite;
+    }
+    @keyframes pushBannerIconPulse {
+      0%, 100% { box-shadow: 0 0 0 4px var(--accent-glow, rgba(212,175,55,0.10)), inset 0 1px 0 rgba(255,255,255,0.15); }
+      50%      { box-shadow: 0 0 0 8px var(--accent-glow, rgba(212,175,55,0.06)), inset 0 1px 0 rgba(255,255,255,0.15); }
+    }
+    .push-banner-text {
+      flex: 1;
+      line-height: 1.35;
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      position: relative;
+      z-index: 1;
+      min-width: 0;
+    }
+    .push-banner-text b {
+      color: #fff;
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 0.01em;
+    }
+    .push-banner-text small {
+      font-size: 11.5px;
+      color: rgba(241,245,249,0.65);
+      font-weight: 500;
+    }
+    .push-banner-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+      position: relative;
+      z-index: 1;
+    }
     .push-banner button {
       background: var(--accent, #d4af37);
       color: var(--accent-text, #000);
       border: none;
-      border-radius: 9px;
-      padding: 8px 13px;
+      border-radius: 10px;
+      padding: 9px 14px;
       font-weight: 800;
-      font-size: 12px;
+      font-size: 12.5px;
       cursor: pointer;
       font-family: inherit;
-      min-height: 36px;
+      min-height: 38px;
       -webkit-tap-highlight-color: transparent;
+      box-shadow:
+        0 1px 1px rgba(0,0,0,0.10),
+        0 6px 14px var(--accent-shadow, rgba(212,175,55,0.30)),
+        inset 0 1px 0 rgba(255,255,255,0.25);
+      transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+      letter-spacing: 0.02em;
     }
+    .push-banner button:hover { filter: brightness(1.05); transform: translateY(-1px); }
+    .push-banner button:active { transform: translateY(0); filter: brightness(0.95); }
+    .push-banner button:disabled { opacity: 0.55; cursor: default; transform: none; filter: none; }
     .push-banner .dismiss {
       background: transparent;
-      color: rgba(241,245,249,0.55);
-      font-size: 18px;
+      box-shadow: none;
+      color: rgba(241,245,249,0.50);
+      font-size: 16px;
       padding: 6px;
       min-width: 32px;
       min-height: 32px;
+      border-radius: 8px;
+      transition: background 0.15s ease, color 0.15s ease;
+      font-weight: 400;
     }
+    .push-banner .dismiss:hover {
+      background: rgba(248,113,113,0.10);
+      color: #f87171;
+      filter: none;
+      transform: none;
+    }
+
+    /* Aura: el banner sobre fondo blanco/gris necesita texto oscuro */
+    html.tenant-aura .push-banner-text b      { color: #0f172a !important; }
+    html.tenant-aura .push-banner-text small  { color: #475569 !important; }
+    html.tenant-aura .push-banner             { color: #0f172a !important; }
+    html.tenant-aura .push-banner .dismiss    { color: #94a3b8 !important; }
+    html.tenant-aura .push-banner .dismiss:hover { background: rgba(239,68,68,0.10) !important; color: #dc2626 !important; }
+
+    /* Empty state (saludo "Hola Ignacio 👋" + texto "Escribe tu primer mensaje…") */
+    html.tenant-aura .empty-state            { color: #475569 !important; }
+    html.tenant-aura .empty-state h3         { color: #0f172a !important; }
+    html.tenant-aura .empty-state svg        { color: #94a3b8 !important; opacity: 0.75 !important; }
+
+    /* Welcome modal (pide nombre/teléfono al primer ingreso) */
+    html.tenant-aura .modal-backdrop         { background: rgba(15, 23, 42, 0.35) !important; }
+    html.tenant-aura .modal                  { background: #FFFFFF !important; border-color: #E4E4E7 !important; box-shadow: 0 -10px 60px rgba(15,23,42,0.12) !important; }
+    html.tenant-aura .modal::before          { background: #CBD5E1 !important; }
+    html.tenant-aura .modal h2               { color: #0f172a !important; }
+    html.tenant-aura .modal p                { color: #475569 !important; }
+    html.tenant-aura .field label            { color: #475569 !important; }
+    html.tenant-aura .field input            { background: #FFFFFF !important; color: #0f172a !important; border-color: #CBD5E1 !important; }
+    html.tenant-aura .field input::placeholder { color: #94a3b8 !important; }
+    html.tenant-aura .field-hint             { color: #94a3b8 !important; }
 
     /* ── Toast inferior ───────────────────────────────────────── */
     .toast {
@@ -1060,13 +1180,16 @@
     </header>
 
     <!-- Banner opt-in push (oculto hasta que tenga sentido mostrarlo) -->
-    <div id="pushBanner" class="push-banner">
-      <span style="font-size: 16px;">🔔</span>
+    <div id="pushBanner" class="push-banner" role="status" aria-live="polite">
+      <div class="push-banner-icon" aria-hidden="true">🔔</div>
       <div class="push-banner-text">
-        <b>Activa las notificaciones</b> para enterarte cuando te respondan.
+        <b>Activa las notificaciones</b>
+        <small>Te avisamos al instante cuando te respondan.</small>
       </div>
-      <button id="pushEnableBtn">Activar</button>
-      <button id="pushDismissBtn" class="dismiss" aria-label="Cerrar">✕</button>
+      <div class="push-banner-actions">
+        <button id="pushEnableBtn">Activar</button>
+        <button id="pushDismissBtn" class="dismiss" aria-label="Cerrar">✕</button>
+      </div>
     </div>
 
     <!-- Lista de mensajes -->
