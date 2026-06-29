@@ -567,6 +567,20 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // ── /broadcast_campaigns ───────────────────────────────────────
+    // Campañas de push masiva al panel (gestion-interna + agenda.html).
+    // Las crea y escribe la Cloud Function broadcastAnuncio (admin SDK).
+    // Solo el superadmin las lee desde /admin, junto con la sub-colección
+    // recipients que registra a quién le llegó cada notificación.
+    match /broadcast_campaigns/{campaignId} {
+      allow read:  if esBootstrap();
+      allow write: if false;
+      match /recipients/{recipientId} {
+        allow read:  if esBootstrap();
+        allow write: if false;
+      }
+    }
+
     // ── /servicioFavorito ──────────────────────────────────────────
     // Foto personalizada por cliente. Staff asigna; cliente lee/sube la suya.
     match /servicioFavorito/{docId} {
@@ -713,6 +727,13 @@ service cloud.firestore {
       allow delete: if esAdmin('elegance');
     }
 
+    // ── /chatbot — config del bot del chat público (Elegance).
+    // Read público (lo lee el chat anónimo); write solo admin.
+    match /chatbot/{docId} {
+      allow read: if true;
+      allow write: if esAdmin('elegance');
+    }
+
     // ── /chats ─────────────────────────────────────────────────────
     // El cliente lee/escribe solo su propio chat. Staff lee/escribe todos.
     match /chats/{userId} {
@@ -801,6 +822,14 @@ service cloud.firestore {
 
       // ── premios ───────────────────────────────────────────────────
       match /premios/{docId} {
+        allow read: if true;
+        allow write: if esAdmin(tid);
+      }
+
+      // ── chatbot/config — leído por el chat público (anónimo y autenticado).
+      // El cliente del chat necesita poder leerlo para saber qué opciones,
+      // saludo y keywords usar. La escritura queda solo para admins del tenant.
+      match /chatbot/{docId} {
         allow read: if true;
         allow write: if esAdmin(tid);
       }

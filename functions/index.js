@@ -623,6 +623,12 @@ exports.sellosTenant   = selloAutomatico.sellosTenant;
 const cumpleanos = require('./cumpleanos');
 exports.selloCumpleanos = cumpleanos.selloCumpleanos;
 
+const campanaReactivacion = require('./campana-reactivacion');
+exports.campanaReactivacion = campanaReactivacion.campanaReactivacion;
+
+const gestionCitaCodigo = require('./gestion-cita-codigo');
+exports.gestionarCitaPorCodigo = gestionCitaCodigo.gestionarCitaPorCodigo;
+
 // ─────────────────────────────────────────────────────────────────
 //  ALERTAS FINANCIERAS — ver alertas-financieras.js para detalles
 // ─────────────────────────────────────────────────────────────────
@@ -662,6 +668,15 @@ exports.confirmarEntregaPush = confirmarEntrega.confirmarEntregaPush;
 // ─────────────────────────────────────────────────────────────────
 const enviarPushPrueba = require('./enviar-push-prueba');
 exports.enviarPushPrueba = enviarPushPrueba.enviarPushPrueba;
+
+// ─────────────────────────────────────────────────────────────────
+//  BROADCAST DE ANUNCIO — ver broadcast-anuncio.js
+//  Callable (solo superadmin) para mandar una push a todos los
+//  admins + barberos del panel. Crea broadcast_campaigns/{id} con
+//  un sub-doc por destinatario para auditar la entrega.
+// ─────────────────────────────────────────────────────────────────
+const broadcastAnuncio = require('./broadcast-anuncio');
+exports.broadcastAnuncio = broadcastAnuncio.broadcastAnuncio;
 
 
 // ─────────────────────────────────────────────────────────────────
@@ -820,6 +835,17 @@ exports.biooEditorBridge      = biooProvision.biooEditorBridge;
 exports.provisionPartnerUser  = biooProvision.provisionPartnerUser;
 exports.biooProvisionBarbero  = biooProvision.biooProvisionBarbero;
 exports.biooOpenBarberoEditor = biooProvision.biooOpenBarberoEditor;
+
+// ─────────────────────────────────────────────────────────────────
+//  BIOO — MODO DISEÑADOR (superadmin diseña bios para clientes
+//  externos y entrega por WhatsApp). Reusa biooClaim para que el
+//  cliente adopte la bio iniciando sesión con Google. ver
+//  bioo-designer.js.
+// ─────────────────────────────────────────────────────────────────
+const biooDesigner = require('./bioo-designer');
+exports.biooDesignerCreate      = biooDesigner.biooDesignerCreate;
+exports.biooDesignerImpersonate = biooDesigner.biooDesignerImpersonate;
+exports.biooDesignerHandover    = biooDesigner.biooDesignerHandover;
 
 // ─────────────────────────────────────────────────────────────────
 //  BIOO — pagos del paywall (Stripe Checkout). ver payments-stripe.js
