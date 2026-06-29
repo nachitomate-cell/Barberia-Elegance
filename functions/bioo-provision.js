@@ -835,3 +835,7 @@ exports.biooEditorBridge = onCall(
     return { customToken, handle, publicUrl: BIOO_BASE + '/' + encodeURIComponent(handle) };
   },
 );
+
+// Reusado por bioo-designer.js para firmar custom tokens sin re-inicializar el
+// app secundario (signerAuth mantiene un singleton interno).
+exports.signerAuth = signerAuth;
