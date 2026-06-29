@@ -9386,17 +9386,22 @@
         if (telDigitos.length < 9) return showToast('Ingresa un número de teléfono válido (mínimo 9 dígitos).');
         if (!email) return showToast('Por favor ingresa tu correo para recibir la confirmación.');
 
-        // ── Anti-spam: máx. 3 reservas en 24 h, y 1 por cada 30 min ──
+        // ── Anti-spam de reservas — configurable por tenant ──
+        // Lee tenants/{tid}/configuracion/main.{reservaCooldownMin, reservaMaxPorDia}.
+        // Defaults sensatos si no está configurado. Si el admin pone 0 en cualquiera
+        // de los dos, esa validación queda desactivada.
         const SPAM_KEY = `${window.CURRENT_TENANT_ID || 'elegance'}_reservas_ts`;
-        const MAX_PER_DAY = 3;
-        const MIN_INTERVAL_MS = 30 * 60 * 1000; // 30 minutos
+        const _cfgSpam = _fsConfig || {};
+        const MAX_PER_DAY     = Number.isFinite(Number(_cfgSpam.reservaMaxPorDia)) ? Number(_cfgSpam.reservaMaxPorDia) : 3;
+        const COOLDOWN_MIN    = Number.isFinite(Number(_cfgSpam.reservaCooldownMin)) ? Number(_cfgSpam.reservaCooldownMin) : 30;
+        const MIN_INTERVAL_MS = Math.max(0, COOLDOWN_MIN) * 60 * 1000;
         const now = Date.now();
         const stored = JSON.parse(localStorage.getItem(SPAM_KEY) || '[]');
         const last24h = stored.filter(t => now - t < 24 * 60 * 60 * 1000);
-        if (last24h.length >= MAX_PER_DAY) {
+        if (MAX_PER_DAY > 0 && last24h.length >= MAX_PER_DAY) {
           return alert('Has alcanzado el límite de reservas por hoy. Intenta mañana o contáctanos directamente.');
         }
-        if (last24h.length > 0 && now - last24h[last24h.length - 1] < MIN_INTERVAL_MS) {
+        if (MIN_INTERVAL_MS > 0 && last24h.length > 0 && now - last24h[last24h.length - 1] < MIN_INTERVAL_MS) {
           const mins = Math.ceil((MIN_INTERVAL_MS - (now - last24h[last24h.length - 1])) / 60000);
           return alert(`Espera ${mins} minuto${mins !== 1 ? 's' : ''} antes de realizar otra reserva.`);
         }

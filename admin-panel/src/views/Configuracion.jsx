@@ -195,6 +195,11 @@ export default function Configuracion() {
   const [customMode,    setCustomMode]    = useState(false); // intervalo personalizado activo
   const [customStr,     setCustomStr]     = useState('');    // valor crudo del input (solo dígitos)
   const [minutosLimite, setMinutosLimite] = useState(0);
+  // Anti-spam de reservas (lo lee index.html en el paso 4 del flujo público).
+  // cooldown: minutos mínimos entre dos reservas del mismo navegador.
+  // maxPorDia: máx reservas en 24h por dispositivo.
+  const [reservaCooldownMin, setReservaCooldownMin] = useState(30);
+  const [reservaMaxPorDia,   setReservaMaxPorDia]   = useState(3);
   // Toggles y mensaje para el flujo de cancelar/reagendar via /chat con código
   const [chatCancelEnabled,   setChatCancelEnabled]   = useState(true);
   const [chatReagendarEnabled, setChatReagendarEnabled] = useState(true);
@@ -243,6 +248,8 @@ export default function Configuracion() {
           }
         }
         if (cd.minutosLimiteReagendar !== undefined) setMinutosLimite(cd.minutosLimiteReagendar);
+        if (cd.reservaCooldownMin !== undefined) setReservaCooldownMin(Number(cd.reservaCooldownMin) || 0);
+        if (cd.reservaMaxPorDia   !== undefined) setReservaMaxPorDia(Number(cd.reservaMaxPorDia)   || 0);
         if (cd.chatCancelEnabled !== undefined) setChatCancelEnabled(!!cd.chatCancelEnabled);
         if (cd.chatReagendarEnabled !== undefined) setChatReagendarEnabled(!!cd.chatReagendarEnabled);
         if (cd.politicaMensaje !== undefined) setPoliticaMensaje(String(cd.politicaMensaje || ''));
@@ -321,6 +328,9 @@ export default function Configuracion() {
         setDoc(confRef(), {
           intervaloMinutos:        intervaloFinal,
           minutosLimiteReagendar:  minutosLimite,
+          // Anti-spam de reservas (leído por index.html en el paso 4)
+          reservaCooldownMin:      Math.max(0, Math.round(Number(reservaCooldownMin) || 0)),
+          reservaMaxPorDia:        Math.max(0, Math.round(Number(reservaMaxPorDia)   || 0)),
           // Toggles del chat (cancelar/reagendar vía código) + mensaje opcional
           chatCancelEnabled:       !!chatCancelEnabled,
           chatReagendarEnabled:    !!chatReagendarEnabled,
@@ -619,6 +629,75 @@ export default function Configuracion() {
             {politicaMensaje.length}/500
           </p>
         </div>
+      </Card>
+
+      {/* Anti-spam de reservas en la agenda pública */}
+      <Card Icon={Ban} title="Anti-spam de reservas">
+        <p className="text-xs text-slate-500 -mt-1">
+          Limita cuántas reservas puede hacer el <strong className="text-slate-300">mismo
+          dispositivo</strong> en tu agenda pública. Evita que un cliente (o un bot)
+          cree muchas reservas seguidas. Es una protección a nivel de navegador
+          (localStorage); no bloquea distintos celulares o pestañas incógnitas.
+        </p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+          {/* Cooldown entre reservas */}
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
+              Cooldown entre reservas
+            </label>
+            <p className="text-[11px] text-slate-500 mb-2.5 leading-relaxed">
+              Minutos mínimos entre dos reservas seguidas.
+              <strong className="text-slate-400"> 0</strong> = sin cooldown.
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              {[[0, 'Sin'], [15, '15 min'], [30, '30 min'], [60, '1 h'], [120, '2 h'], [240, '4 h']].map(([mins, label]) => (
+                <button
+                  key={mins}
+                  type="button"
+                  onClick={() => { setReservaCooldownMin(mins); setDirty(true); }}
+                  className={`py-2 px-2 rounded-lg border text-xs font-semibold transition-all ${
+                    Number(reservaCooldownMin) === mins
+                      ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400'
+                      : 'border-slate-700 text-slate-400 hover:text-white hover:border-slate-600'
+                  }`}
+                >{label}</button>
+              ))}
+            </div>
+          </div>
+
+          {/* Máximo de reservas en 24h */}
+          <div>
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
+              Máx. reservas en 24 h
+            </label>
+            <p className="text-[11px] text-slate-500 mb-2.5 leading-relaxed">
+              Tope de reservas por dispositivo en un día.
+              <strong className="text-slate-400"> 0</strong> = sin tope.
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              {[0, 1, 2, 3, 5, 10].map(n => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => { setReservaMaxPorDia(n); setDirty(true); }}
+                  className={`py-2 px-2 rounded-lg border text-xs font-semibold transition-all ${
+                    Number(reservaMaxPorDia) === n
+                      ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400'
+                      : 'border-slate-700 text-slate-400 hover:text-white hover:border-slate-600'
+                  }`}
+                >{n === 0 ? 'Sin tope' : n}</button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <p className="text-[11px] text-amber-400/80 bg-amber-400/5 border border-amber-400/20 rounded-lg px-3 py-2 mt-3">
+          💡 Para una protección a prueba de balas (incluso ante navegadores
+          incógnito) hay que mover esta validación a una Cloud Function que
+          consulte Firestore por <code>clienteEmail/clienteTelefono</code>.
+          Si querés ese upgrade, lo coordinamos.
+        </p>
       </Card>
 
       {/* Servicios Extra — Cursos/Arriendo solo Chameleon · Academia solo Elegance */}
