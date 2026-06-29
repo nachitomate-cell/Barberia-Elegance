@@ -14,9 +14,9 @@ admin.initializeApp({ credential: admin.credential.cert(sa) });
 const db        = admin.firestore();
 const messaging = admin.messaging();
 
-const TITLE = '📣 Nuevo canal de anuncios';
-const BODY  = 'A partir de hoy te avisaremos por aquí cada vez que mejoremos algo del panel. ¡Bienvenida la primera!';
-const LINK  = '/gestion-interna/soporte';
+const TITLE = '☀️ Modo claro del panel — pase de polish';
+const BODY  = 'Probamos el modo claro de punta a punta: tarjetas blancas con bordes definidos, sidebar más legible con el módulo activo marcado, colores sólidos en los estados de citas (verde, rojo, azul, ámbar) y switch entre modos instantáneo. Activálo con el botón ☀️/🌙 del sidebar.';
+const LINK  = '/gestion-interna/inicio';
 const AUDIENCE = 'all'; // admin + agenda, NO clientes
 
 function isAudienceMatch(plataforma, audience) {
