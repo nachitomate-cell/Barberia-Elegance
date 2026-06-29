@@ -927,6 +927,114 @@
       max-width: 90vw;
     }
     .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ═══════════════════════════════════════════════════════════════
+       TENANT AURA — paleta blanco / gris (light mode dedicado)
+       El layout base del chat es dark (background #0a0a0a). Para Aura
+       lo invertimos: fondo crema, burbujas blancas y grises, acento
+       slate-600. No tocamos otros tenants.
+       ═══════════════════════════════════════════════════════════════ */
+    html.tenant-aura,
+    html.tenant-aura body            { background-color: #F9FAFB !important; color: #0f172a !important; }
+    html.tenant-aura .app            { background: #F9FAFB !important; }
+    @media (min-width: 640px) {
+      html.tenant-aura body          { background: radial-gradient(ellipse at top, rgba(15,23,42,0.04) 0%, #F9FAFB 70%), #F9FAFB !important; }
+      html.tenant-aura .app          { border-left: 1px solid #E4E4E7 !important; border-right: 1px solid #E4E4E7 !important; box-shadow: 0 0 60px rgba(15,23,42,0.06) !important; }
+    }
+
+    /* Hero — banner blanco con borde slate y texto oscuro */
+    html.tenant-aura .hero           { background-color: #FFFFFF !important; border-bottom-color: #E4E4E7 !important; }
+    html.tenant-aura .hero::before   {
+      background:
+        radial-gradient(70% 90% at 20% 30%, rgba(15,23,42,0.04) 0%, transparent 55%),
+        linear-gradient(180deg, rgba(255,255,255,0.30) 0%, rgba(255,255,255,0.10) 35%, rgba(249,250,251,0.95) 100%) !important;
+    }
+    html.tenant-aura .hero::after    { background: linear-gradient(90deg, transparent 0%, #94a3b8 50%, transparent 100%) !important; opacity: 0.6 !important; }
+    html.tenant-aura .hero-logo      { border-color: #CBD5E1 !important; box-shadow: 0 0 0 3px #FFFFFF, 0 6px 24px rgba(15,23,42,0.10), inset 0 1px 0 rgba(255,255,255,0.40) !important; }
+    html.tenant-aura .hero-text *    { color: #0f172a !important; }
+
+    /* Header con nombre + status */
+    html.tenant-aura .hero h1,
+    html.tenant-aura .hero h2        { color: #0f172a !important; }
+    html.tenant-aura .hero p,
+    html.tenant-aura .hero small,
+    html.tenant-aura .hero span      { color: #475569 !important; }
+
+    /* Burbuja del cliente — gris oscuro (slate-700) sobre blanco */
+    html.tenant-aura .bubble.client  {
+      background: linear-gradient(155deg, #475569 0%, #334155 70%) !important;
+      color: #ffffff !important;
+      box-shadow:
+        0 1px 1px rgba(15,23,42,0.08),
+        0 6px 18px rgba(71,85,105,0.20),
+        inset 0 1px 0 rgba(255,255,255,0.16),
+        inset 0 -1px 0 rgba(0,0,0,0.10) !important;
+    }
+    html.tenant-aura .bubble.client::after { background: #334155 !important; }
+
+    /* Burbuja del bot/admin — blanco con borde slate y texto oscuro */
+    html.tenant-aura .bubble.admin   {
+      background: #FFFFFF !important;
+      color: #0f172a !important;
+      border: 1px solid #E4E4E7 !important;
+      box-shadow:
+        0 1px 2px rgba(15,23,42,0.04),
+        0 6px 18px rgba(15,23,42,0.06),
+        inset 0 1px 0 rgba(255,255,255,0.60) !important;
+    }
+    html.tenant-aura .bubble.admin::after { background: #FFFFFF !important; filter: drop-shadow(-1px 0 0 #E4E4E7) !important; }
+    html.tenant-aura .bubble.admin a,
+    html.tenant-aura .bubble.admin .msg-link { color: #475569 !important; }
+
+    /* Inputs / typing indicator / cualquier #15161a hardcoded → blanco gris */
+    html.tenant-aura input[type="text"],
+    html.tenant-aura input[type="tel"],
+    html.tenant-aura input[type="email"],
+    html.tenant-aura textarea         {
+      background: #FFFFFF !important;
+      color: #0f172a !important;
+      border: 1px solid #CBD5E1 !important;
+    }
+    html.tenant-aura input::placeholder,
+    html.tenant-aura textarea::placeholder { color: #94a3b8 !important; }
+
+    /* Wrapper del input y typing bubble (los #15161a hardcoded) → gris claro */
+    html.tenant-aura .typing-bubble,
+    html.tenant-aura .input-row,
+    html.tenant-aura .composer       {
+      background: #F1F5F9 !important;
+      border-color: #E4E4E7 !important;
+    }
+
+    /* Quick reply chips (botones de acción) */
+    html.tenant-aura .quick-reply,
+    html.tenant-aura .chip,
+    html.tenant-aura .reply-chip,
+    html.tenant-aura .qr-chip        {
+      background: #FFFFFF !important;
+      color: #334155 !important;
+      border: 1px solid #CBD5E1 !important;
+    }
+    html.tenant-aura .quick-reply:hover,
+    html.tenant-aura .chip:hover,
+    html.tenant-aura .reply-chip:hover,
+    html.tenant-aura .qr-chip:hover  {
+      background: #F1F5F9 !important;
+      border-color: #94a3b8 !important;
+      color: #0f172a !important;
+    }
+
+    /* Accent vars → escala de grises (override del setProperty del JS) */
+    html.tenant-aura                 {
+      --accent:             #475569 !important; /* slate-600 */
+      --accent-text:        #ffffff !important;
+      --accent-shadow:      rgba(71,85,105,0.20) !important;
+      --accent-glow:        rgba(15,23,42,0.04)  !important;
+      --accent-ring:        rgba(71,85,105,0.18) !important;
+      --accent-soft:        rgba(15,23,42,0.05)  !important;
+      --accent-soft-border: rgba(71,85,105,0.20) !important;
+      --bg-accent:          rgba(15,23,42,0.03)  !important;
+    }
   </style>
 </head>
 <body>
