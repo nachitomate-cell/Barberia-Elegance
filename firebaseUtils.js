@@ -517,6 +517,20 @@ const FDB = (() => {
     const citaRef  = tenantCol(COL.CITAS).doc();
     const citaId   = citaRef.id;
 
+    // Código corto formato XXX-XXX para que el cliente pueda gestionar su
+    // cita en /chat sin login. Se usa también para incrustarlo en el email
+    // de confirmación y el recordatorio. Si el caller ya lo pasó (flujo
+    // público lo genera con window._generarCodigoCita), lo respetamos.
+    function _genCodigoCitaLocal() {
+      const CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+      let code = '';
+      for (let i = 0; i < 6; i++) code += CHARS[Math.floor(Math.random() * CHARS.length)];
+      return code.slice(0, 3) + '-' + code.slice(3);
+    }
+    const codigoCitaFinal = (typeof cita.codigoCita === 'string' && cita.codigoCita.trim())
+      ? cita.codigoCita.trim()
+      : _genCodigoCitaLocal();
+
     const citaData = {
       fecha:            cita.fecha            || '',
       hora:             cita.hora             || '',
@@ -531,6 +545,7 @@ const FDB = (() => {
       estado:           'Confirmada',
       nota:             '',
       origen:           cita.origen || 'reserva_online',
+      codigoCita:       codigoCitaFinal,
       slotLockId:       cita.barberoId ? lockId : null,
       creadoEn:         firebase.firestore.FieldValue.serverTimestamp(),
     };

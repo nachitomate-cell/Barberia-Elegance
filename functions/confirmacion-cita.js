@@ -404,6 +404,23 @@ ${productosHtml}
 </html>`;
 }
 
+// Genera un código corto XXX-XXX (igual al del flujo público) para incrustar
+// en el email. Caracteres sin O/0/I/1/L para evitar confusión visual.
+function _genCodigoCita() {
+  const CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  let code = '';
+  for (let i = 0; i < 6; i++) code += CHARS[Math.floor(Math.random() * CHARS.length)];
+  return code.slice(0, 3) + '-' + code.slice(3);
+}
+
+// Resuelve la ruta del doc de cita según el tenant (elegance vive en raíz).
+function _citaDocRef(citaId, tenantId) {
+  if (!citaId) return null;
+  return tenantId === 'elegance'
+    ? db.collection('citas').doc(citaId)
+    : db.collection('tenants').doc(tenantId).collection('citas').doc(citaId);
+}
+
 // ── Core: enviar confirmación ─────────────────────────────────────────────────
 
 async function enviarConfirmacion(citaId, data, tenantId) {
@@ -414,6 +431,22 @@ async function enviarConfirmacion(citaId, data, tenantId) {
   }
 
   const cfg = TENANT_CONFIG[tenantId] || TENANT_CONFIG.elegance;
+
+  // Backfill del código: si la cita se creó por un path que no lo incluyó
+  // (Flow, Mercado Pago o algunas citas viejas del panel), generamos uno
+  // ahora y lo guardamos en el doc para que el recordatorio y /chat también
+  // lo encuentren. Sin esto el bloque del código en el email queda vacío.
+  if (!data.codigoCita || !String(data.codigoCita).trim()) {
+    const nuevo = _genCodigoCita();
+    data = { ...data, codigoCita: nuevo };
+    try {
+      const ref = _citaDocRef(citaId, tenantId);
+      if (ref) await ref.update({ codigoCita: nuevo });
+      logger.info(`[Confirmacion] Backfill codigoCita ${nuevo} en cita ${citaId} (${tenantId})`);
+    } catch (e) {
+      logger.warn(`[Confirmacion] No se pudo guardar codigoCita backfill: ${e.message}`);
+    }
+  }
 
   const cancelUrl    = `${cfg.dashboardUrl}?accion=cancelar&citaId=${citaId}`;
   const reagendarUrl = `${cfg.dashboardUrl}?accion=reagendar&citaId=${citaId}`;
