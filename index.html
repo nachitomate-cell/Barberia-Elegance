@@ -35,7 +35,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Bebas+Neue&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Bodoni+Moda:ital,opsz,wght@0,6..96,400;0,6..96,600;0,6..96,800;1,6..96,600&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/@phosphor-icons/web"></script>
   <link href="/output.css" rel="stylesheet">
 
@@ -2005,6 +2005,353 @@
     }
     :is(.tenant-kronnos_penablanca,.tenant-kronnos_limache,.tenant-kronnos_woman) section[id^="step"].opacity-0 {
       filter: blur(7px) !important;
+    }
+
+    /* ════════════════════════════════════════════════════════════════
+       KRONNOS — PILAR 4: IDENTIDAD POR SEDE
+       Cada sede recibe tipografía, decoración y atmósfera propias para
+       que no se sientan idénticas — solo la paleta cambia hoy. Manteniendo
+       el sistema de tarjetas/botones compartido, lo que sigue afecta:
+         · Tipografía del nombre + slogan (font + tracking)
+         · Decoración del hero (overlay extra, patrón, ornamento)
+         · Background del body con texturas sutiles
+         · Microdetalles (sello, divisores, ornamentos)
+       ════════════════════════════════════════════════════════════════ */
+
+    /* ─────────── PEÑABLANCA · Industrial Luxe (Rojo Neón) ─────────── */
+
+    /* Pinstripes verticales muy sutiles tipo grabado en metal */
+    .tenant-kronnos_penablanca body {
+      background-color: #0a0a0a;
+      background-image:
+        repeating-linear-gradient(90deg,
+          transparent 0, transparent 3px,
+          rgba(225,29,42,0.018) 3px, rgba(225,29,42,0.018) 4px),
+        radial-gradient(ellipse at center top, rgba(225,29,42,0.05) 0%, transparent 60%) !important;
+      background-attachment: fixed !important;
+    }
+
+    /* Nombre con tipografía industrial Bebas Neue */
+    .tenant-kronnos_penablanca #shopNombre {
+      font-family: 'Bebas Neue', 'Inter', sans-serif !important;
+      font-weight: 400 !important;
+      letter-spacing: 0.06em !important;
+      font-size: 2.45rem !important;
+      text-transform: uppercase !important;
+      color: #ffffff !important;
+      text-shadow:
+        0 0 18px rgba(225,29,42,0.55),
+        0 2px 14px rgba(0,0,0,0.8) !important;
+    }
+
+    /* Sello industrial debajo del logo (EST. + serial) */
+    .tenant-kronnos_penablanca #heroLogoArea::after {
+      content: 'EST · 2024 · BARBERSHOP & STUDIO';
+      display: block;
+      position: absolute;
+      bottom: -22px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 9px;
+      letter-spacing: 0.42em;
+      color: rgba(225,29,42,0.75);
+      white-space: nowrap;
+      pointer-events: none;
+      animation: kronnos-fade-up 0.6s ease-out 1.1s both;
+    }
+    .tenant-kronnos_penablanca #heroLogoArea { position: relative !important; padding-bottom: 14px; }
+
+    /* Slogan con peso ligero + tracking generoso */
+    .tenant-kronnos_penablanca #shopSlogan {
+      font-family: 'Inter', sans-serif !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.32em !important;
+      font-weight: 300 !important;
+      font-size: 0.7rem !important;
+      color: rgba(255,255,255,0.7) !important;
+    }
+
+    /* Divider rojo neón */
+    .tenant-kronnos_penablanca .gold-divider {
+      background: linear-gradient(90deg, transparent, #e11d2a, transparent) !important;
+      width: 52px !important;
+      box-shadow: 0 0 12px rgba(225,29,42,0.6);
+    }
+
+    /* Halo cinematográfico rojo + barras horizontales tipo neón letrero */
+    .tenant-kronnos_penablanca .booking-hero-overlay {
+      background:
+        radial-gradient(60% 50% at 50% 18%, rgba(225,29,42,0.22) 0%, transparent 65%),
+        linear-gradient(180deg, rgba(0,0,0,0.50) 0%, rgba(0,0,0,0.22) 35%, rgba(10,10,10,0.97) 100%) !important;
+    }
+    .tenant-kronnos_penablanca .booking-hero::before {
+      content: '';
+      position: absolute;
+      top: 12%; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(225,29,42,0.45), transparent);
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    /* Títulos de paso con tipo industrial */
+    .tenant-kronnos_penablanca h2,
+    .tenant-kronnos_penablanca h3 {
+      font-family: 'Bebas Neue', sans-serif !important;
+      letter-spacing: 0.05em !important;
+      font-weight: 400 !important;
+    }
+
+    /* Tarjeta con corner clip rojo neón en esquina superior */
+    .tenant-kronnos_penablanca .service-option::before,
+    .tenant-kronnos_penablanca .barber-option::before {
+      content: '';
+      position: absolute;
+      top: 0; right: 0;
+      width: 14px; height: 14px;
+      border-top: 1.5px solid rgba(225,29,42,0.35);
+      border-right: 1.5px solid rgba(225,29,42,0.35);
+      pointer-events: none;
+    }
+    .tenant-kronnos_penablanca .service-option,
+    .tenant-kronnos_penablanca .barber-option { position: relative !important; }
+
+    /* ─────────── LIMACHE · Warm Sunset (Naranja Ámbar) ─────────── */
+
+    /* Background con gradient cálido sunset y light streaks */
+    .tenant-kronnos_limache body {
+      background-color: #0a0806;
+      background-image:
+        radial-gradient(ellipse at 50% 0%, rgba(249,115,22,0.10) 0%, transparent 50%),
+        radial-gradient(ellipse at 100% 80%, rgba(251,146,60,0.05) 0%, transparent 50%),
+        radial-gradient(ellipse at 0% 100%, rgba(245,158,11,0.04) 0%, transparent 50%) !important;
+      background-attachment: fixed !important;
+    }
+
+    /* Nombre con tipografía elegante Cormorant cursiva */
+    .tenant-kronnos_limache #shopNombre {
+      font-family: 'Cormorant Garamond', Georgia, serif !important;
+      font-weight: 600 !important;
+      font-style: italic !important;
+      letter-spacing: -0.005em !important;
+      font-size: 2.4rem !important;
+      color: #ffffff !important;
+      text-shadow:
+        0 2px 28px rgba(249,115,22,0.45),
+        0 2px 14px rgba(0,0,0,0.7) !important;
+    }
+
+    /* Sello cálido debajo del logo */
+    .tenant-kronnos_limache #heroLogoArea::after {
+      content: '⚜ ESTILISMO · BARBERÍA · BELLEZA ⚜';
+      display: block;
+      position: absolute;
+      bottom: -22px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: 'Cormorant Garamond', serif;
+      font-size: 10px;
+      font-style: italic;
+      letter-spacing: 0.30em;
+      color: rgba(249,115,22,0.85);
+      white-space: nowrap;
+      pointer-events: none;
+      animation: kronnos-fade-up 0.6s ease-out 1.1s both;
+    }
+    .tenant-kronnos_limache #heroLogoArea { position: relative !important; padding-bottom: 14px; }
+
+    /* Slogan más curado */
+    .tenant-kronnos_limache #shopSlogan {
+      font-family: 'Cormorant Garamond', serif !important;
+      font-style: italic !important;
+      letter-spacing: 0.06em !important;
+      font-weight: 500 !important;
+      font-size: 1rem !important;
+      text-transform: none !important;
+      color: rgba(254,215,170,0.85) !important;
+    }
+
+    /* Divider naranja con glow cálido */
+    .tenant-kronnos_limache .gold-divider {
+      background: linear-gradient(90deg, transparent, #f97316 30%, #fbbf24 50%, #f97316 70%, transparent) !important;
+      width: 58px !important;
+      height: 1px !important;
+      box-shadow: 0 0 16px rgba(249,115,22,0.5);
+    }
+
+    /* Hero overlay tipo sunset horizon — cielo cálido fundido a negro */
+    .tenant-kronnos_limache .booking-hero-overlay {
+      background:
+        radial-gradient(80% 60% at 50% 15%, rgba(251,146,60,0.20) 0%, transparent 55%),
+        linear-gradient(180deg,
+          rgba(20,8,4,0.42) 0%,
+          rgba(40,15,8,0.30) 28%,
+          rgba(20,10,5,0.78) 60%,
+          rgba(10,8,6,0.98) 100%) !important;
+    }
+
+    /* Light streaks horizontales sutiles en el hero */
+    .tenant-kronnos_limache .booking-hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(180deg, transparent 22%, rgba(251,146,60,0.06) 23%, transparent 24%),
+        linear-gradient(180deg, transparent 40%, rgba(251,146,60,0.04) 41%, transparent 42%);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* Títulos de paso con serifa elegante */
+    .tenant-kronnos_limache h2,
+    .tenant-kronnos_limache h3 {
+      font-family: 'Cormorant Garamond', serif !important;
+      font-weight: 600 !important;
+      letter-spacing: -0.005em !important;
+    }
+
+    /* Tarjetas con border-radius más generoso y warm glow */
+    .tenant-kronnos_limache .service-option,
+    .tenant-kronnos_limache .barber-option {
+      border-radius: 14px !important;
+    }
+    .tenant-kronnos_limache .service-option.border-neon,
+    .tenant-kronnos_limache .barber-option.border-neon {
+      box-shadow:
+        0 0 22px rgba(249,115,22,0.25),
+        inset 0 1px 0 rgba(251,191,36,0.18) !important;
+    }
+
+    /* ─────────── WOMAN · Glamour / Spa Luxury (Magenta Pearlescente) ─────────── */
+
+    /* Background con tinte rosa y curvas suaves */
+    .tenant-kronnos_woman body {
+      background-color: #0a0608;
+      background-image:
+        radial-gradient(ellipse at 30% 10%, rgba(236,72,153,0.10) 0%, transparent 50%),
+        radial-gradient(ellipse at 70% 90%, rgba(251,113,133,0.08) 0%, transparent 50%),
+        radial-gradient(circle at 90% 30%, rgba(244,114,182,0.05) 0%, transparent 40%) !important;
+      background-attachment: fixed !important;
+    }
+
+    /* Nombre con tipografía Bodoni — alta clase glamour */
+    .tenant-kronnos_woman #shopNombre {
+      font-family: 'Bodoni Moda', 'Playfair Display', Georgia, serif !important;
+      font-weight: 600 !important;
+      font-style: italic !important;
+      letter-spacing: 0.01em !important;
+      font-size: 2.4rem !important;
+      color: #ffffff !important;
+      text-shadow:
+        0 2px 32px rgba(236,72,153,0.5),
+        0 2px 14px rgba(0,0,0,0.7) !important;
+    }
+
+    /* Sello femenino con flores debajo del logo */
+    .tenant-kronnos_woman #heroLogoArea::after {
+      content: '✿ BEAUTY · NAILS · MAKEUP · LASHES ✿';
+      display: block;
+      position: absolute;
+      bottom: -22px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: 'Bodoni Moda', serif;
+      font-size: 9px;
+      font-style: italic;
+      letter-spacing: 0.32em;
+      color: rgba(236,72,153,0.85);
+      white-space: nowrap;
+      pointer-events: none;
+      animation: kronnos-fade-up 0.6s ease-out 1.1s both;
+    }
+    .tenant-kronnos_woman #heroLogoArea { position: relative !important; padding-bottom: 14px; }
+
+    /* Slogan elegante delicado */
+    .tenant-kronnos_woman #shopSlogan {
+      font-family: 'Bodoni Moda', serif !important;
+      font-style: italic !important;
+      letter-spacing: 0.05em !important;
+      font-weight: 600 !important;
+      font-size: 1rem !important;
+      text-transform: none !important;
+      color: rgba(252,231,243,0.92) !important;
+    }
+
+    /* Divider magenta con shimmer dorado-rosa */
+    .tenant-kronnos_woman .gold-divider {
+      background: linear-gradient(90deg, transparent, #ec4899 25%, #f9a8d4 50%, #ec4899 75%, transparent) !important;
+      width: 58px !important;
+      height: 1px !important;
+      box-shadow: 0 0 18px rgba(236,72,153,0.55);
+    }
+
+    /* Hero overlay con shine pearlescente magenta */
+    .tenant-kronnos_woman .booking-hero-overlay {
+      background:
+        radial-gradient(80% 60% at 50% 18%, rgba(236,72,153,0.22) 0%, transparent 55%),
+        radial-gradient(50% 40% at 80% 30%, rgba(244,114,182,0.12) 0%, transparent 50%),
+        linear-gradient(180deg,
+          rgba(15,5,10,0.40) 0%,
+          rgba(25,8,15,0.25) 30%,
+          rgba(15,8,12,0.78) 65%,
+          rgba(10,6,8,0.98) 100%) !important;
+    }
+
+    /* Decoración floral muy sutil en el hero (esquina inferior) */
+    .tenant-kronnos_woman .booking-hero::before {
+      content: '✦';
+      position: absolute;
+      top: 16%;
+      right: 18%;
+      font-size: 14px;
+      color: rgba(244,114,182,0.45);
+      pointer-events: none;
+      z-index: 2;
+      animation: kronnos-fade-up 0.8s ease-out 1.3s both;
+    }
+
+    /* Títulos con tipografía Bodoni alta */
+    .tenant-kronnos_woman h2,
+    .tenant-kronnos_woman h3 {
+      font-family: 'Bodoni Moda', Georgia, serif !important;
+      font-weight: 600 !important;
+      letter-spacing: -0.005em !important;
+    }
+
+    /* Tarjetas con border-radius redondo glamour + magenta glow */
+    .tenant-kronnos_woman .service-option,
+    .tenant-kronnos_woman .barber-option {
+      border-radius: 16px !important;
+    }
+    .tenant-kronnos_woman .service-option.border-neon,
+    .tenant-kronnos_woman .barber-option.border-neon {
+      box-shadow:
+        0 0 28px rgba(236,72,153,0.28),
+        inset 0 1px 0 rgba(249,168,212,0.25) !important;
+    }
+    .tenant-kronnos_woman .service-option.border-neon::before,
+    .tenant-kronnos_woman .barber-option.border-neon::before {
+      content: '✦';
+      position: absolute;
+      top: 8px;
+      right: 10px;
+      font-size: 11px;
+      color: rgba(244,114,182,0.7);
+      pointer-events: none;
+      animation: kronnos-fade-up 0.4s ease-out both;
+    }
+    .tenant-kronnos_woman .service-option,
+    .tenant-kronnos_woman .barber-option { position: relative !important; }
+
+    /* Accesibilidad: respetar prefers-reduced-motion (lujo bien hecho) */
+    @media (prefers-reduced-motion: reduce) {
+      .tenant-kronnos_penablanca #heroLogoArea::after,
+      .tenant-kronnos_limache #heroLogoArea::after,
+      .tenant-kronnos_woman #heroLogoArea::after,
+      .tenant-kronnos_woman .booking-hero::before {
+        animation: none !important;
+      }
     }
 
     /* ── Accesibilidad: respetar prefers-reduced-motion (lujo bien hecho) ── */
@@ -7477,6 +7824,16 @@
     // Devuelve el precio efectivo de un servicio para un día de la semana (0=Dom…6=Sáb).
     // Si el servicio tiene preciosPorDia y ese día tiene un valor definido, lo usa;
     // de lo contrario, cae al precio base.
+    // Genera un código de cita corto (formato XXX-XXX) para que el cliente
+    // pueda gestionar su cita desde /chat sin login. Caracteres sin O/0/I/1/L
+    // para evitar confusión visual al copiar.
+    window._generarCodigoCita = function () {
+      const CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+      let code = '';
+      for (let i = 0; i < 6; i++) code += CHARS[Math.floor(Math.random() * CHARS.length)];
+      return code.slice(0, 3) + '-' + code.slice(3);
+    };
+
     function _getPrecioEfectivo(s, dow) {
       if (!s) return 0;
       if (!s.preciosPorDia) return s.precio;
@@ -9092,6 +9449,7 @@
             precio:           (_getPrecioEfectivo(selectedServiceObj, _dowPago) || 0) + selectedAddons.reduce((sum, a) => sum + a.precio, 0) + _getRecargoHorario(_dowPago, parseInt(selectedTimeStr, 10)),
             barbero:          barberoNombreFinal,
             barberoId:        barberoIdFinal,
+            codigoCita:       window._generarCodigoCita(),
             ...(window._selectedSucursal ? { sucursalId: window._selectedSucursal.id, sucursalNombre: window._selectedSucursal.nombre } : {}),
           };
           const _btnPago = document.getElementById('btnContinue');
@@ -9187,6 +9545,7 @@
             precio:           (_getPrecioEfectivo(selectedServiceObj, new Date(currentDateStr + 'T00:00:00').getDay()) || 0) + selectedAddons.reduce((sum, a) => sum + a.precio, 0) + _getRecargoHorario(new Date(currentDateStr + 'T00:00:00').getDay(), parseInt(selectedTimeStr, 10)),
             barbero:          barberoNombreFinal,
             barberoId:        barberoIdFinal,
+            codigoCita:       window._generarCodigoCita(),
             ...(window._selectedSucursal ? {
               sucursalId:     window._selectedSucursal.id,
               sucursalNombre: window._selectedSucursal.nombre,

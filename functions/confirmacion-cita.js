@@ -207,7 +207,7 @@ async function sendResend(apiKey, payload) {
 
 // ── Template HTML ─────────────────────────────────────────────────────────────
 
-function buildEmailHtml({ cfg, cita, cancelUrl, reagendarUrl }) {
+function buildEmailHtml({ cfg, cita, cancelUrl, reagendarUrl, chatUrl }) {
   const fecha    = fmtFecha(cita.fecha);
   const precio   = fmtPrecio(cita.precio);
   const duracion = cita.duracion ? `${cita.duracion} min` : null;
@@ -341,6 +341,28 @@ ${productosHtml}
           </td>
         </tr>` : ''}
 
+        ${cita.codigoCita ? `
+        <!-- Código de gestión rápida vía /chat (sin login) -->
+        <tr>
+          <td style="padding:0 36px 24px;">
+            <table width="100%" cellpadding="0" cellspacing="0"
+              style="background:#1a1a1f;border:1px dashed ${cfg.color}88;border-radius:12px;padding:20px 22px;">
+              <tr><td align="center">
+                <p style="margin:0 0 8px;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:${cfg.color};">📋 Tu código de gestión</p>
+                <p style="margin:0 0 12px;font-size:28px;font-weight:900;letter-spacing:4px;color:#fff;font-family:'Courier New','Monaco',monospace;">${cita.codigoCita}</p>
+                <p style="margin:0 0 14px;font-size:12px;color:#aaa;line-height:1.55;">
+                  Con este código puedes <strong style="color:#ddd;">cancelar o reagendar</strong> tu cita
+                  desde nuestro chat público, sin iniciar sesión.
+                </p>
+                <a href="${chatUrl}"
+                  style="display:inline-block;padding:10px 22px;background:${cfg.color}1a;color:${cfg.color};border:1px solid ${cfg.color}55;font-size:12px;font-weight:700;border-radius:8px;text-decoration:none;">
+                  Gestionar desde el chat →
+                </a>
+              </td></tr>
+            </table>
+          </td>
+        </tr>` : ''}
+
         <!-- Reagendar / Cancelar -->
         <tr>
           <td style="padding:0 36px 28px;">
@@ -395,8 +417,11 @@ async function enviarConfirmacion(citaId, data, tenantId) {
 
   const cancelUrl    = `${cfg.dashboardUrl}?accion=cancelar&citaId=${citaId}`;
   const reagendarUrl = `${cfg.dashboardUrl}?accion=reagendar&citaId=${citaId}`;
+  // chatUrl = misma raíz del dashboard pero terminando en /chat. Permite
+  // gestionar la cita sin login usando el código que va en el email.
+  const chatUrl      = String(cfg.dashboardUrl || '').replace(/\/dashboard\/?$/, '/chat');
 
-  const html = buildEmailHtml({ cfg, cita: data, cancelUrl, reagendarUrl });
+  const html = buildEmailHtml({ cfg, cita: data, cancelUrl, reagendarUrl, chatUrl });
 
   const apiKey = RESEND_API_KEY.value();
   await sendResend(apiKey, {

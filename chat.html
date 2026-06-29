@@ -1,0 +1,2127 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta name="theme-color" content="#050505">
+  <meta name="author" content="SynapTech SpA">
+  <title>Mensajes</title>
+  <meta name="description" content="Conversa con nosotros directamente — respondemos rápido sin pasar por WhatsApp.">
+  <meta name="robots" content="noindex, nofollow">
+
+  <link rel="manifest" href="/manifest.json">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="/output.css" rel="stylesheet">
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-functions-compat.js"></script>
+  <script src="config.js"></script>
+  <script src="firebase-config.js?v=1.3"></script>
+  <script src="/js/guards/tenant-status-guard.js?v=1.0"></script>
+
+  <style>
+    /* ════════════════════════════════════════════════════════════
+       Mobile-first. Diseñado para teléfonos primero, con mejoras
+       sutiles para tablet/desktop. Todos los touch targets son 44px+,
+       inputs en 16px para evitar el zoom automático de iOS Safari.
+       ════════════════════════════════════════════════════════════ */
+
+    /* ── Reset y base ─────────────────────────────────────────── */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      height: 100%;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background-color: #0a0a0a;
+      color: #f1f5f9;
+      -webkit-font-smoothing: antialiased;
+      overscroll-behavior: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .app {
+      display: flex;
+      flex-direction: column;
+      height: 100dvh;
+      width: 100%;
+      max-width: none;
+      margin: 0 auto;
+      background: linear-gradient(180deg, var(--bg-accent, rgba(255,255,255,0.04)) 0%, transparent 30%, transparent 100%);
+    }
+    /* En tablet/desktop centramos con max-width sutil + atmósfera lateral */
+    @media (min-width: 640px) {
+      body {
+        background:
+          radial-gradient(ellipse at top, var(--bg-accent, rgba(255,255,255,0.04)) 0%, #0a0a0a 70%),
+          #0a0a0a;
+      }
+      .app {
+        max-width: 540px;
+        border-left: 1px solid rgba(255,255,255,0.05);
+        border-right: 1px solid rgba(255,255,255,0.05);
+        box-shadow: 0 0 60px rgba(0,0,0,0.4);
+      }
+    }
+
+    /* ── Hero con banner del local ────────────────────────────── */
+    .hero {
+      position: relative;
+      padding: 22px 20px 26px;
+      padding-top: max(env(safe-area-inset-top), 22px);
+      background-color: #0a0a0a;
+      background-image: var(--hero-img, none);
+      background-size: cover;
+      background-position: center 25%;
+      overflow: hidden;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      flex-shrink: 0;
+      min-height: 132px;
+    }
+    /* Overlay multi-capa: vignette + tinte del accent + fade al fondo del chat.
+       Da profundidad cinematográfica al banner sin que se sienta tapado. */
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(70% 90% at 20% 30%, var(--accent-glow, rgba(255,255,255,0.10)) 0%, transparent 55%),
+        linear-gradient(180deg, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.10) 35%, rgba(10,10,10,0.92) 100%);
+      pointer-events: none;
+    }
+    /* Línea sutil del accent en el borde inferior — refuerza identidad */
+    .hero::after {
+      content: '';
+      position: absolute;
+      left: 0; right: 0; bottom: 0;
+      height: 1.5px;
+      background: linear-gradient(90deg, transparent 0%, var(--accent, #d4af37) 50%, transparent 100%);
+      opacity: 0.55;
+      pointer-events: none;
+    }
+    .hero-inner {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      z-index: 1;
+    }
+    .hero-logo {
+      width: 58px; height: 58px;
+      border-radius: 16px;
+      object-fit: cover;
+      border: 2px solid var(--accent, #d4af37);
+      box-shadow:
+        0 0 0 3px rgba(0,0,0,0.65),
+        0 6px 24px var(--accent-shadow, rgba(212,175,55,0.45)),
+        inset 0 1px 0 rgba(255,255,255,0.20);
+      flex-shrink: 0;
+      transition: transform 0.25s ease;
+    }
+    .hero-logo:hover { transform: scale(1.04); }
+    .hero-text { flex: 1; min-width: 0; }
+    .hero-kicker {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--accent, #d4af37);
+      margin-bottom: 2px;
+    }
+    .hero-title {
+      font-size: 18px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.01em;
+      line-height: 1.15;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .hero-subtitle {
+      font-size: 12px;
+      color: rgba(241,245,249,0.65);
+      margin-top: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .live-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: #22c55e;
+      box-shadow: 0 0 8px rgba(34,197,94,0.7);
+      animation: pulse-dot 1.6s ease-in-out infinite;
+    }
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.4; }
+    }
+
+    /* ── Welcome modal — mobile: ocupa pantalla casi completa ───── */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.80);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      z-index: 100;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 0;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+    .modal-backdrop.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .modal {
+      background: #15161a;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 20px 20px 0 0;
+      padding: 22px 20px;
+      padding-bottom: max(env(safe-area-inset-bottom), 22px);
+      width: 100%;
+      max-width: 540px;
+      box-shadow: 0 -10px 60px rgba(0,0,0,0.55);
+      transform: translateY(24px);
+      opacity: 0;
+      transition: transform 0.3s cubic-bezier(0.16,1,0.3,1), opacity 0.25s ease;
+    }
+    .modal-backdrop.show .modal {
+      transform: translateY(0);
+      opacity: 1;
+    }
+    /* Sheet handle (visual cue de bottom sheet) */
+    .modal::before {
+      content: '';
+      display: block;
+      width: 40px;
+      height: 4px;
+      border-radius: 2px;
+      background: rgba(255,255,255,0.18);
+      margin: -6px auto 16px;
+    }
+    /* En tablet/desktop el modal es flotante centrado */
+    @media (min-width: 640px) {
+      .modal-backdrop { align-items: center; padding: 20px; }
+      .modal {
+        border-radius: 20px;
+        max-width: 400px;
+        padding-bottom: 24px;
+        transform: translateY(14px) scale(0.97);
+      }
+      .modal::before { display: none; }
+    }
+    .modal h2 {
+      font-size: 22px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.01em;
+      margin-bottom: 6px;
+    }
+    .modal p {
+      font-size: 14px;
+      color: rgba(241,245,249,0.68);
+      line-height: 1.5;
+      margin-bottom: 20px;
+    }
+    .modal-form { display: flex; flex-direction: column; gap: 14px; }
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .field label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(241,245,249,0.6);
+    }
+    .field input {
+      background: #0a0a0a;
+      border: 1px solid rgba(255,255,255,0.10);
+      border-radius: 12px;
+      padding: 13px 14px;
+      color: #fff;
+      /* 16px MIN para evitar el zoom automático de iOS Safari al enfocar */
+      font-size: 16px;
+      font-family: inherit;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease;
+      width: 100%;
+      min-height: 48px;
+    }
+    .field input:focus {
+      outline: none;
+      border-color: var(--accent, #d4af37);
+      box-shadow: 0 0 0 3px var(--accent-ring, rgba(212,175,55,0.18));
+    }
+    .field-hint {
+      font-size: 11px;
+      color: rgba(241,245,249,0.5);
+      margin-top: 2px;
+      line-height: 1.4;
+    }
+    .btn-primary {
+      background: var(--accent, #d4af37);
+      color: var(--accent-text, #000);
+      border: none;
+      border-radius: 12px;
+      padding: 15px;
+      font-size: 16px;
+      font-weight: 800;
+      font-family: inherit;
+      cursor: pointer;
+      transition: filter 0.18s ease, transform 0.12s ease;
+      margin-top: 8px;
+      letter-spacing: 0.005em;
+      min-height: 50px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-primary:hover { filter: brightness(1.08); }
+    .btn-primary:active { transform: scale(0.985); }
+    .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    /* ── Lista de mensajes ────────────────────────────────────── */
+    .msgs {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px 14px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      scroll-behavior: smooth;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+    }
+    .msgs::-webkit-scrollbar { width: 4px; }
+    .msgs::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.06); border-radius: 4px; }
+
+    .day-separator {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 14px 0 4px;
+      gap: 10px;
+    }
+    .day-separator span {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(241,245,249,0.45);
+      background: rgba(15,16,20,0.85);
+      padding: 5px 11px;
+      border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    /* msg-row: BLOQUE con text-align (NO flex). En flex container los
+       items siempre se computan como block-level y `width: fit-content`
+       se ignora — por eso las burbujas se estiraban. Volvemos a inline-
+       block + text-align, que respeta el ancho del contenido siempre. */
+    .msg-row {
+      display: block;
+      width: 100%;
+      font-size: 0; /* elimina el gap implícito entre inline-blocks */
+    }
+    .msg-row.from-client { text-align: right; }
+    .msg-row.from-admin  { text-align: left;  }
+
+    /* ── Avatar del bot Syna ──────────────────────────────────── */
+    /* Solo aparece en el primer mensaje de un bloque consecutivo del bot.
+       Los siguientes mensajes del mismo bloque usan un spacer para mantener
+       la alineación de la burbuja (sin saturar la UI con repeticiones).
+       Usamos inline-block + vertical-align:bottom porque ahora el padre
+       msg-row es display:block (no flex). */
+    .bot-avatar {
+      display: inline-block;
+      vertical-align: bottom;
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1.5px solid rgba(255,255,255,0.10);
+      background: #15161a;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.45);
+      margin-right: 8px;
+      margin-bottom: 2px;
+      animation: pop 0.22s cubic-bezier(0.16,1,0.3,1);
+    }
+    .bot-avatar-spacer {
+      display: inline-block;
+      vertical-align: bottom;
+      width: 32px;
+      margin-right: 8px;
+    }
+
+    /* ── Globos de texto (bubbles) — diseño premium ─────────────
+       Cliente: gradiente del accent + glow sutil + texto contrastado.
+       Admin/Bot: superficie oscura con highlight interno + borde tenue. */
+    .bubble {
+      /* inline-block dentro de un padre `display: block` con text-align.
+         Esto SÍ respeta el ancho del contenido + max-width (al revés
+         de los flex items que se blockifican y rompen fit-content). */
+      display: inline-block;
+      vertical-align: bottom;
+      max-width: 80%;
+      padding: 10px 14px;
+      border-radius: 18px;
+      font-size: 15px;
+      line-height: 1.42;
+      letter-spacing: -0.005em;
+      text-align: left;
+      word-break: break-word;
+      overflow-wrap: anywhere;
+      position: relative;
+      animation: bubble-pop 0.32s cubic-bezier(0.16,1,0.3,1);
+      transition: transform 0.18s ease;
+    }
+    @media (min-width: 640px) {
+      .bubble { max-width: 65%; font-size: 14.5px; padding: 10px 15px; }
+    }
+    @keyframes bubble-pop {
+      from { opacity: 0; transform: translateY(8px) scale(0.94); }
+      60%  { opacity: 1; transform: translateY(-1px) scale(1.005); }
+      to   { opacity: 1; transform: translateY(0)    scale(1);     }
+    }
+    /* Cliente — burbuja del accent con gradiente sutil + cola tipo whatsapp */
+    .bubble.client {
+      background:
+        linear-gradient(155deg,
+          color-mix(in srgb, var(--accent, #d4af37) 100%, white 8%) 0%,
+          var(--accent, #d4af37) 70%);
+      color: var(--accent-text, #000);
+      border-bottom-right-radius: 5px;
+      font-weight: 500;
+      box-shadow:
+        0 1px 1px rgba(0,0,0,0.10),
+        0 6px 18px var(--accent-shadow, rgba(212,175,55,0.30)),
+        inset 0 1px 0 rgba(255,255,255,0.28),
+        inset 0 -1px 0 rgba(0,0,0,0.08);
+    }
+    /* Fallback para navegadores sin color-mix() */
+    @supports not (background: color-mix(in srgb, red 50%, blue)) {
+      .bubble.client {
+        background: var(--accent, #d4af37);
+      }
+    }
+    /* Cola de la burbuja del cliente (esquina inferior derecha) */
+    .bubble.client::after {
+      content: '';
+      position: absolute;
+      right: -4px;
+      bottom: 0;
+      width: 12px;
+      height: 14px;
+      background: var(--accent, #d4af37);
+      clip-path: polygon(0 0, 100% 100%, 0 100%);
+      filter: drop-shadow(0 1px 1px rgba(0,0,0,0.06));
+    }
+    /* Admin / Bot — superficie oscura premium */
+    .bubble.admin {
+      background:
+        linear-gradient(160deg, #21232a 0%, #15161b 100%);
+      color: #f1f5f9;
+      border-bottom-left-radius: 5px;
+      border: 1px solid rgba(255,255,255,0.06);
+      box-shadow:
+        0 1px 1px rgba(0,0,0,0.40),
+        0 6px 18px rgba(0,0,0,0.30),
+        inset 0 1px 0 rgba(255,255,255,0.05);
+    }
+    /* Cola de la burbuja admin (esquina inferior izquierda) */
+    .bubble.admin::after {
+      content: '';
+      position: absolute;
+      left: -4px;
+      bottom: 0;
+      width: 12px;
+      height: 14px;
+      background: #15161b;
+      clip-path: polygon(0 100%, 100% 0, 100% 100%);
+    }
+    .bubble-time {
+      /* CAUSA RAÍZ del bug: un block child auto-ancho dentro de un parent
+         inline-block ESTIRABA el parent al ancho del max-content del child,
+         que computaba al ancho del bubble entero. Solución: inline-block
+         para el timestamp; en el render ponemos un <br> antes para que vaya
+         en su propia línea sin requerir display:block. */
+      display: inline-block;
+      font-size: 10.5px;
+      margin-top: 5px;
+      opacity: 0.55;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    /* Links dentro de mensajes — herencia de color del bubble + underline */
+    .bubble a, .bubble .msg-link {
+      color: inherit;
+      text-decoration: underline;
+      text-decoration-thickness: 1.5px;
+      text-underline-offset: 3px;
+      word-break: break-all;
+      transition: opacity 0.15s ease;
+    }
+    .bubble a:hover, .bubble .msg-link:hover { opacity: 0.85; }
+    /* En burbuja del admin (oscura) los links se resaltan en accent */
+    .bubble.admin a, .bubble.admin .msg-link {
+      color: var(--accent, #d4af37);
+      font-weight: 600;
+    }
+    /* Salto de línea: preservar \n del texto del bot */
+    .bubble { white-space: pre-wrap; }
+
+    /* ════════════════════════════════════════════════════════════
+       Burbujas estilo WhatsApp (dimensiones reales de la app):
+         · padding         6px 9px (vs nuestros 10-15px anteriores)
+         · border-radius   7.5px
+         · font-size       14.2px / line-height 1.32
+         · max-width       80% (WhatsApp permite hasta el 80% en mobile)
+         · timestamp       float:right → cae en la última línea si cabe,
+                           o flota a la derecha sino — truco WhatsApp
+         · sin cola, sin sombras dramáticas
+       ════════════════════════════════════════════════════════════ */
+    .msg-row {
+      display: block !important;
+      width: 100% !important;
+      font-size: 0 !important;
+      margin: 0 0 4px 0 !important;
+      padding: 0 !important;
+    }
+    .msg-row > .bubble {
+      display: inline-block !important;
+      vertical-align: top !important;
+      box-sizing: border-box !important;
+      max-width: 78% !important;
+      width: auto !important;
+      padding: 6px 9px 8px !important;
+      font-size: 14.2px !important;
+      line-height: 1.32 !important;
+      border-radius: 7.5px !important;
+      box-shadow: 0 1px 0.5px rgba(0,0,0,0.13) !important;
+      animation: none !important;
+      text-align: left !important;
+    }
+    @media (min-width: 640px) {
+      .msg-row > .bubble { max-width: 65% !important; }
+    }
+    /* Quita la cola triangular que teníamos — WhatsApp no la usa así */
+    .msg-row > .bubble::after { display: none !important; }
+    /* Timestamp estilo WhatsApp: flota a la derecha, queda en la última
+       línea si el ancho lo permite, sino se ve abajo a la derecha. */
+    .msg-row > .bubble .bubble-time {
+      float: right !important;
+      display: inline-block !important;
+      font-size: 10.5px !important;
+      line-height: 1 !important;
+      margin: 6px 0 -2px 8px !important;
+      opacity: 0.55 !important;
+      font-weight: normal !important;
+      letter-spacing: 0 !important;
+    }
+    /* Avatar de Syna pegado a la burbuja, tamaño WhatsApp (32px) */
+    .msg-row > .bot-avatar,
+    .msg-row > .bot-avatar-spacer {
+      display: inline-block !important;
+      vertical-align: top !important;
+      width: 32px !important;
+      height: 32px !important;
+      margin: 0 6px 0 0 !important;
+      font-size: 0 !important;
+    }
+    .msg-row {
+      display: block !important;
+      font-size: 0 !important;
+      width: 100% !important;
+      margin-bottom: 2px;
+    }
+    .msg-row > .bubble {
+      display: inline-block !important;
+      max-width: 70% !important;
+      width: auto !important;
+      vertical-align: bottom !important;
+      box-sizing: border-box !important;
+      padding: 7px 12px !important;
+      font-size: 14.5px !important;
+      line-height: 1.38 !important;
+      border-radius: 16px !important;
+    }
+    @media (min-width: 640px) {
+      .msg-row > .bubble {
+        max-width: 55% !important;
+        font-size: 14px !important;
+      }
+    }
+    /* Sombras más sutiles — antes la burbuja parecía "inflada" */
+    .msg-row > .bubble.client {
+      box-shadow:
+        0 1px 2px rgba(0,0,0,0.12),
+        inset 0 1px 0 rgba(255,255,255,0.22) !important;
+    }
+    .msg-row > .bubble.admin {
+      box-shadow:
+        0 1px 2px rgba(0,0,0,0.30),
+        inset 0 1px 0 rgba(255,255,255,0.04) !important;
+    }
+    /* Timestamp más compacto */
+    .msg-row > .bubble .bubble-time {
+      font-size: 9.5px !important;
+      margin-top: 3px !important;
+      opacity: 0.5 !important;
+    }
+    .msg-row > .bot-avatar,
+    .msg-row > .bot-avatar-spacer {
+      display: inline-block !important;
+      vertical-align: bottom !important;
+      font-size: 0 !important;
+      width: 28px !important;
+      height: 28px !important;
+      margin-bottom: 0 !important;
+    }
+
+    /* ── Quick replies (chips del bot) — con stagger animado ──── */
+    .quick-replies {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+      padding-left: 4px;
+      max-width: 92%;
+    }
+    .quick-reply {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.10);
+      color: #f1f5f9;
+      border-radius: 18px;
+      padding: 9px 14px;
+      font-size: 14px;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      -webkit-tap-highlight-color: transparent;
+      min-height: 36px;
+      display: inline-flex;
+      align-items: center;
+      opacity: 0;
+      transform: translateY(6px) scale(0.96);
+      animation: chip-in 0.32s cubic-bezier(0.16,1,0.3,1) forwards;
+    }
+    @keyframes chip-in {
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .quick-reply:hover {
+      background: var(--accent-soft, rgba(255,255,255,0.10));
+      border-color: var(--accent, #d4af37);
+      transform: translateY(-1px);
+    }
+    .quick-reply:active {
+      transform: scale(0.96);
+    }
+    .quick-reply:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
+
+    /* ── Typing indicator (3 puntitos antes de cada respuesta) ── */
+    .typing-row {
+      display: block;
+      text-align: left;
+      font-size: 0;
+      animation: pop 0.2s cubic-bezier(0.16,1,0.3,1);
+    }
+    .typing-bubble {
+      display: inline-flex;
+      vertical-align: bottom;
+      background: linear-gradient(160deg, #21232a 0%, #15161b 100%);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 18px 18px 18px 5px;
+      padding: 12px 14px;
+      gap: 5px;
+      align-items: center;
+      box-shadow:
+        0 1px 1px rgba(0,0,0,0.40),
+        0 6px 18px rgba(0,0,0,0.30),
+        inset 0 1px 0 rgba(255,255,255,0.05);
+    }
+    .typing-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: rgba(241,245,249,0.55);
+      animation: typing-pulse 1.2s ease-in-out infinite;
+    }
+    .typing-dot:nth-child(2) { animation-delay: 0.15s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.30s; }
+    @keyframes typing-pulse {
+      0%, 80%, 100% { opacity: 0.35; transform: translateY(0); }
+      40%           { opacity: 1;    transform: translateY(-3px); }
+    }
+
+    /* ── Service cards (precios dinámicos) ────────────────────── */
+    .service-cards {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 8px;
+      max-width: 92%;
+    }
+    .service-card {
+      background: #1c1d22;
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 14px;
+      padding: 12px 14px;
+      opacity: 0;
+      transform: translateY(6px);
+      animation: card-in 0.35s cubic-bezier(0.16,1,0.3,1) forwards;
+      transition: border-color 0.2s ease, transform 0.18s ease;
+    }
+    @keyframes card-in {
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .service-card:hover {
+      border-color: var(--accent, #d4af37);
+      transform: translateY(-1px);
+    }
+    .service-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 10px;
+      margin-bottom: 4px;
+    }
+    .service-card-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: #f1f5f9;
+      letter-spacing: -0.005em;
+      flex: 1;
+      min-width: 0;
+    }
+    .service-card-price {
+      font-size: 15px;
+      font-weight: 900;
+      color: var(--accent, #d4af37);
+      letter-spacing: -0.01em;
+      flex-shrink: 0;
+    }
+    .service-card-meta {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 11px;
+      color: rgba(241,245,249,0.55);
+      letter-spacing: 0.02em;
+    }
+    .service-card-cat {
+      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      font-size: 9.5px;
+      color: var(--accent, #d4af37);
+      opacity: 0.85;
+    }
+    .service-card-desc {
+      font-size: 12.5px;
+      color: rgba(241,245,249,0.65);
+      margin-top: 6px;
+      line-height: 1.42;
+    }
+    .service-cards-cta {
+      margin-top: 4px;
+      font-size: 12.5px;
+      color: rgba(241,245,249,0.65);
+      padding: 0 4px;
+    }
+
+    /* ── CTA button (link grande "Reserva aquí") ──────────────── */
+    .cta-row {
+      display: flex;
+      justify-content: flex-start;
+      margin-top: 8px;
+      max-width: 92%;
+    }
+    .cta-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: var(--accent, #d4af37);
+      color: var(--accent-text, #000);
+      border-radius: 14px;
+      padding: 13px 22px;
+      font-size: 15px;
+      font-weight: 800;
+      font-family: inherit;
+      text-decoration: none;
+      letter-spacing: 0.005em;
+      box-shadow:
+        0 4px 18px var(--accent-shadow, rgba(212,175,55,0.30)),
+        inset 0 1px 0 rgba(255,255,255,0.25);
+      transition: transform 0.14s ease, filter 0.18s ease, box-shadow 0.2s ease;
+      min-height: 48px;
+      opacity: 0;
+      transform: translateY(6px) scale(0.97);
+      animation: cta-in 0.32s cubic-bezier(0.16,1,0.3,1) 0.05s forwards;
+      -webkit-tap-highlight-color: transparent;
+    }
+    @keyframes cta-in {
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .cta-button:hover {
+      filter: brightness(1.06);
+      transform: translateY(-1px);
+      box-shadow:
+        0 6px 22px var(--accent-shadow, rgba(212,175,55,0.40)),
+        inset 0 1px 0 rgba(255,255,255,0.30);
+    }
+    .cta-button:active { transform: scale(0.97); }
+    .cta-button svg {
+      transition: transform 0.18s ease;
+    }
+    .cta-button:hover svg { transform: translateX(2px); }
+
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      gap: 14px;
+      padding: 40px 28px;
+      text-align: center;
+      color: rgba(241,245,249,0.6);
+    }
+    .empty-state svg {
+      width: 60px; height: 60px;
+      color: var(--accent, #d4af37);
+      opacity: 0.55;
+    }
+    .empty-state h3 {
+      font-size: 18px;
+      font-weight: 800;
+      color: #f1f5f9;
+      letter-spacing: -0.01em;
+    }
+    .empty-state p {
+      font-size: 14px;
+      line-height: 1.5;
+      max-width: 300px;
+    }
+
+    /* ── Composer — touch targets 44px+, safe-area, sin zoom iOS ─ */
+    .composer {
+      padding: 10px 12px;
+      padding-bottom: max(env(safe-area-inset-bottom), 10px);
+      background: rgba(10,10,10,0.92);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-top: 1px solid rgba(255,255,255,0.06);
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .composer textarea {
+      flex: 1;
+      background: #15161a;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 20px;
+      padding: 12px 16px;
+      color: #fff;
+      /* 16px MIN para evitar el zoom automático de iOS Safari */
+      font-size: 16px;
+      font-family: inherit;
+      resize: none;
+      min-height: 48px;
+      max-height: 120px;
+      line-height: 1.42;
+      transition: border-color 0.18s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .composer textarea:focus {
+      outline: none;
+      border-color: var(--accent, #d4af37);
+    }
+    .composer button {
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      background: var(--accent, #d4af37);
+      color: var(--accent-text, #000);
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.12s ease, filter 0.18s ease, opacity 0.18s ease;
+      flex-shrink: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .composer button:hover:not(:disabled) { filter: brightness(1.08); }
+    .composer button:active:not(:disabled) { transform: scale(0.92); }
+    .composer button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── Toast / opt-in push banner ───────────────────────────── */
+    .push-banner {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      background: var(--accent-soft, rgba(212,175,55,0.12));
+      border-bottom: 1px solid var(--accent-soft-border, rgba(212,175,55,0.20));
+      padding: 10px 14px;
+      font-size: 13px;
+      color: rgba(241,245,249,0.9);
+      flex-shrink: 0;
+    }
+    .push-banner.show { display: flex; }
+    .push-banner-text { flex: 1; line-height: 1.4; }
+    .push-banner-text b { color: var(--accent, #d4af37); }
+    .push-banner button {
+      background: var(--accent, #d4af37);
+      color: var(--accent-text, #000);
+      border: none;
+      border-radius: 9px;
+      padding: 8px 13px;
+      font-weight: 800;
+      font-size: 12px;
+      cursor: pointer;
+      font-family: inherit;
+      min-height: 36px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .push-banner .dismiss {
+      background: transparent;
+      color: rgba(241,245,249,0.55);
+      font-size: 18px;
+      padding: 6px;
+      min-width: 32px;
+      min-height: 32px;
+    }
+
+    /* ── Toast inferior ───────────────────────────────────────── */
+    .toast {
+      position: fixed;
+      bottom: 80px; left: 50%; transform: translateX(-50%) translateY(40px);
+      background: rgba(15,16,20,0.96);
+      border: 1px solid rgba(255,255,255,0.10);
+      color: #f1f5f9;
+      padding: 10px 16px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 500;
+      z-index: 200;
+      opacity: 0;
+      transition: opacity 0.25s ease, transform 0.3s cubic-bezier(0.16,1,0.3,1);
+      pointer-events: none;
+      max-width: 90vw;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  </style>
+</head>
+<body>
+
+  <!-- ────────────────────────────────────────────────────────────
+       APP CONTAINER
+       ──────────────────────────────────────────────────────────── -->
+  <div class="app">
+
+    <!-- Hero con branding del local -->
+    <header class="hero">
+      <div class="hero-inner">
+        <img id="heroLogo" class="hero-logo" alt="">
+        <div class="hero-text">
+          <div class="hero-kicker">Mensajes directos</div>
+          <h1 id="heroTitle" class="hero-title">Cargando…</h1>
+          <div class="hero-subtitle">
+            <span class="live-dot"></span>
+            <span>Respondemos en cuanto podamos</span>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Banner opt-in push (oculto hasta que tenga sentido mostrarlo) -->
+    <div id="pushBanner" class="push-banner">
+      <span style="font-size: 16px;">🔔</span>
+      <div class="push-banner-text">
+        <b>Activa las notificaciones</b> para enterarte cuando te respondan.
+      </div>
+      <button id="pushEnableBtn">Activar</button>
+      <button id="pushDismissBtn" class="dismiss" aria-label="Cerrar">✕</button>
+    </div>
+
+    <!-- Lista de mensajes -->
+    <main id="msgs" class="msgs"></main>
+
+    <!-- Empty state (se reemplaza por #msgs cuando hay convo) -->
+    <div id="emptyState" class="empty-state" style="display:none;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+      </svg>
+      <h3 id="emptyTitle">Hola 👋</h3>
+      <p id="emptyText">Escribe tu primer mensaje para empezar la conversación. Te respondemos lo antes posible.</p>
+    </div>
+
+    <!-- Composer (input + botón) -->
+    <form id="composer" class="composer" autocomplete="off">
+      <textarea
+        id="msgInput"
+        rows="1"
+        placeholder="Escribe un mensaje…"
+        maxlength="1000"
+      ></textarea>
+      <button type="submit" id="sendBtn" disabled aria-label="Enviar">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"></line>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+        </svg>
+      </button>
+    </form>
+
+  </div>
+
+  <!-- ────────────────────────────────────────────────────────────
+       MODAL DE BIENVENIDA
+       ──────────────────────────────────────────────────────────── -->
+  <div id="welcomeModal" class="modal-backdrop">
+    <div class="modal" role="dialog" aria-labelledby="welcomeTitle">
+      <h2 id="welcomeTitle">Empecemos 👋</h2>
+      <p>Cuéntanos tu nombre para que sepamos con quién hablamos.</p>
+      <form id="welcomeForm" class="modal-form" autocomplete="off">
+        <div class="field">
+          <label for="welcomeName">Tu nombre</label>
+          <input
+            type="text"
+            id="welcomeName"
+            placeholder="Ej: Carla Pérez"
+            required
+            autocomplete="name"
+            maxlength="60"
+          >
+        </div>
+        <div class="field">
+          <label for="welcomePhone">Teléfono <span style="opacity:0.55;font-weight:500;text-transform:none;letter-spacing:0;">(opcional)</span></label>
+          <input
+            type="tel"
+            id="welcomePhone"
+            placeholder="+56 9 1234 5678"
+            autocomplete="tel"
+            inputmode="tel"
+            maxlength="20"
+          >
+          <span class="field-hint">Para que podamos contactarte por WhatsApp si lo necesitamos.</span>
+        </div>
+        <button type="submit" id="welcomeSubmit" class="btn-primary">Empezar a chatear</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast notif -->
+  <div id="toast" class="toast"></div>
+
+  <!-- ────────────────────────────────────────────────────────────
+       SCRIPT — Auth anónimo + chat live + push opt-in
+       ──────────────────────────────────────────────────────────── -->
+  <script>
+  (function () {
+    'use strict';
+
+    // ── Estado ────────────────────────────────────────────────
+    const TENANT_ID = window.CURRENT_TENANT_ID || 'elegance';
+    const SHOP      = window.SHOP || {};
+    const db        = firebase.firestore();
+    const auth      = firebase.auth();
+
+    // Path Firestore (mismo patrón que admin Chat.jsx)
+    const usesRoot = (TENANT_ID === 'elegance');
+    function chatDocRef(chatId) {
+      return usesRoot
+        ? db.collection('chats').doc(chatId)
+        : db.collection('tenants').doc(TENANT_ID).collection('chats').doc(chatId);
+    }
+    function chatMsgsCol(chatId) {
+      return usesRoot
+        ? db.collection('chats').doc(chatId).collection('messages')
+        : db.collection('tenants').doc(TENANT_ID).collection('chats').doc(chatId).collection('messages');
+    }
+
+    // ── localStorage keys (scoped por tenant) ─────────────────
+    const KEY_PREFIX = 'chat_' + TENANT_ID + '_';
+    const KEY_CHATID = KEY_PREFIX + 'chatId';
+    const KEY_NAME   = KEY_PREFIX + 'name';
+    const KEY_PHONE  = KEY_PREFIX + 'phone';
+    const KEY_PUSH_DISMISSED = KEY_PREFIX + 'pushDismissed';
+    const KEY_PUSH_ENABLED   = KEY_PREFIX + 'pushEnabled';
+
+    // ── Tema dinámico por tenant ──────────────────────────────
+    // Variables del paleta: aplicamos hex del tenant si el body tiene
+    // .tenant-X CSS (que ya hace config.js); para chat.html aplicamos
+    // un set explícito leyendo el color de la clase del tenant.
+    document.documentElement.classList.add('tenant-' + TENANT_ID);
+    applyTenantPalette();
+
+    function applyTenantPalette() {
+      // Tomamos color del root o un mapa rápido — fallback dorado Elegance.
+      const ACCENT_MAP = {
+        elegance: '#c9a84c',
+        ferraza: '#94a3b8',
+        gitana: '#ec4899',
+        mapubarbershop: '#10b981',
+        chameleon: '#06b6d4',
+        deluxeperfumes: '#a855f7',
+        lumen: '#d4af37',
+        delnero: '#84cc16',
+        marcelo_hairdressing: '#84cc16',
+        aura: '#f59e0b',
+        latincaribe: '#f59e0b',
+        machos: '#f97316',
+        infinity: '#a1a1aa',
+        sionbarberia: '#e5e5e5',
+        memphis: '#ec4899',
+        yugen: '#f97316',
+        kronnos_penablanca: '#e11d2a',
+        kronnos_limache: '#f97316',
+        kronnos_woman: '#ec4899',
+        omegastudio: '#06b6d4',
+        alfamen: '#0ea5e9',
+        sandbox: '#10b981',
+      };
+      const accent = ACCENT_MAP[TENANT_ID] || '#c9a84c';
+      const root = document.documentElement.style;
+      root.setProperty('--accent', accent);
+      root.setProperty('--accent-text', textOn(accent));
+      root.setProperty('--accent-shadow', hexA(accent, 0.35));
+      root.setProperty('--accent-glow', hexA(accent, 0.18));
+      root.setProperty('--accent-ring', hexA(accent, 0.20));
+      root.setProperty('--accent-soft', hexA(accent, 0.12));
+      root.setProperty('--accent-soft-border', hexA(accent, 0.22));
+      root.setProperty('--bg-accent', hexA(accent, 0.05));
+    }
+    function hexA(hex, a) {
+      const h = hex.replace('#', '');
+      const r = parseInt(h.slice(0,2),16), g = parseInt(h.slice(2,4),16), b = parseInt(h.slice(4,6),16);
+      return `rgba(${r},${g},${b},${a})`;
+    }
+    function textOn(hex) {
+      const h = hex.replace('#', '');
+      const r = parseInt(h.slice(0,2),16), g = parseInt(h.slice(2,4),16), b = parseInt(h.slice(4,6),16);
+      const l = (0.299*r + 0.587*g + 0.114*b) / 255;
+      return l < 0.55 ? '#ffffff' : '#000000';
+    }
+
+    // ── Banner del hero por tenant — mismo archivo que .booking-hero
+    //    en index.html, así reusamos la asset y el hero del /chat queda
+    //    coherente con el sitio público. Declarado ANTES del bloque del
+    //    hero para evitar TDZ con const.
+    const BANNER_IMG = {
+      elegance:             '/elegance.png',
+      ferraza:              '/ferraza1.webp',
+      gitana:               '/gitana.png',
+      mapubarbershop:       '/mapu3.png',
+      chameleon:            '/fondolocal3.png',
+      lumen:                '/djones1.png',
+      sionbarberia:         '/dieciseis/banner.png',
+      yugen:                '/yugen/yugen2.png',
+      kronnos_penablanca:   '/kronnos/kronospena.png',
+      kronnos_limache:      '/kronnos/kronoslima.png',
+      kronnos_woman:        '/kronnos/kronoswoman.png',
+    };
+
+    // ── Hero (branding del local) ─────────────────────────────
+    document.getElementById('heroLogo').src = SHOP.logo || '/logo.jpg';
+    document.getElementById('heroLogo').alt = SHOP.nombre || 'Local';
+    document.getElementById('heroTitle').textContent = SHOP.nombre || 'Local';
+    document.title = `Mensajes · ${SHOP.nombreCorto || SHOP.nombre || 'Local'}`;
+    // Banner del hero — usamos el mismo asset del .booking-hero del sitio
+    // público para coherencia. Si no hay banner mapeado, queda solo el
+    // gradiente del color del local (definido en applyTenantPalette).
+    const bannerImg = BANNER_IMG[TENANT_ID];
+    if (bannerImg) {
+      document.querySelector('.hero').style.setProperty('--hero-img', `url('${bannerImg}')`);
+    }
+
+    // ── DOM refs ──────────────────────────────────────────────
+    const $welcomeModal  = document.getElementById('welcomeModal');
+    const $welcomeForm   = document.getElementById('welcomeForm');
+    const $welcomeName   = document.getElementById('welcomeName');
+    const $welcomePhone  = document.getElementById('welcomePhone');
+    const $msgs          = document.getElementById('msgs');
+    const $emptyState    = document.getElementById('emptyState');
+    const $emptyTitle    = document.getElementById('emptyTitle');
+    const $composer      = document.getElementById('composer');
+    const $msgInput      = document.getElementById('msgInput');
+    const $sendBtn       = document.getElementById('sendBtn');
+    const $pushBanner    = document.getElementById('pushBanner');
+    const $pushEnableBtn = document.getElementById('pushEnableBtn');
+    const $pushDismissBtn= document.getElementById('pushDismissBtn');
+    const $toast         = document.getElementById('toast');
+
+    // ── Estado de sesión ──────────────────────────────────────
+    let chatId = null;
+    let unsubMsgs = null;
+    let botConfig = null;
+    let lastSentMessages = new Set(); // ids ya procesados para no reaccionar 2 veces
+
+    // Estado conversacional del bot. Cuando está activo, el bot ignora
+    // las keywords normales y procesa el mensaje según el flujo activo.
+    //   { type: 'awaiting-code' }                        // esperando código de cita
+    //   { type: 'awaiting-cancel-confirm', codigo, cita } // esperando "sí" para cancelar
+    let pendingAction = null;
+
+    // localStorage para deshabilitar el bot en este chat
+    // (cuando admin tomó control o cliente pidió hablar con humano)
+    const KEY_BOT_DISABLED = KEY_PREFIX + 'botDisabled';
+
+    function isBotDisabled() {
+      return localStorage.getItem(KEY_BOT_DISABLED) === '1';
+    }
+    function disableBotForThisChat() {
+      localStorage.setItem(KEY_BOT_DISABLED, '1');
+    }
+
+    // ── Bot config — paths Firestore ─────────────────────────
+    function botConfigRef() {
+      return usesRoot
+        ? db.collection('chatbot').doc('config')
+        : db.collection('tenants').doc(TENANT_ID).collection('chatbot').doc('config');
+    }
+    function serviciosCol() {
+      return usesRoot
+        ? db.collection('servicios')
+        : db.collection('tenants').doc(TENANT_ID).collection('servicios');
+    }
+
+    // ── Dominio público canónico del tenant — para construir el link
+    //    de reserva (raíz del subdominio, NO /agenda que es de barberos).
+    const PUBLIC_DOMAIN = {
+      elegance:             'barberiaelegance.synaptechspa.cl',
+      ferraza:              'barberiaferraza.synaptechspa.cl',
+      gitana:               'gitananails.synaptechspa.cl',
+      mapubarbershop:       'mapubarbershop.synaptechspa.cl',
+      chameleon:            'chameleonbarber.synaptechspa.cl',
+      deluxeperfumes:       'deluxeperfumes.synaptechspa.cl',
+      lumen:                'djonesbarberia.synaptechspa.cl',
+      delnero:              'delnerobarber.synaptechspa.cl',
+      marcelo_hairdressing: 'marcelopalma.synaptechspa.cl',
+      aura:                 'aurasalon.synaptechspa.cl',
+      latincaribe:          'latincaribe.synaptechspa.cl',
+      machos:               'machos.synaptechspa.cl',
+      infinity:             'infinity.synaptechspa.cl',
+      sionbarberia:         'studiodieciseis.synaptechspa.cl',
+      memphis:              'memphissalon.synaptechspa.cl',
+      yugen:                'yugenstudio.cl',
+      kronnos_penablanca:   'kronnospenablanca.synaptechspa.cl',
+      kronnos_limache:      'kronnoslimache.synaptechspa.cl',
+      kronnos_woman:        'kronnoswoman.synaptechspa.cl',
+    };
+    function getReservaUrl() {
+      // En el subdominio actual del cliente, el link es el origin actual —
+      // se queda en el mismo dominio para una UX más limpia.
+      const host = window.location.hostname;
+      if (PUBLIC_DOMAIN[TENANT_ID] === host) return `${window.location.origin}/`;
+      // Producción con dominio mapeado
+      const domain = PUBLIC_DOMAIN[TENANT_ID];
+      if (domain) return `https://${domain}/`;
+      // Dev (localhost): mismo origin con ?local= para resolver tenant
+      if (host === 'localhost' || host === '127.0.0.1') {
+        return `${window.location.origin}/?local=${TENANT_ID}`;
+      }
+      return `${window.location.origin}/`;
+    }
+
+    // ── Caché de servicios — sessionStorage 30 min para evitar
+    //    pegarle a Firestore en cada saludo + cada precio dinámico.
+    const KEY_SERVICIOS_CACHE = KEY_PREFIX + 'servicios';
+    const SERVICIOS_TTL_MS = 30 * 60 * 1000;
+
+    async function loadServicios() {
+      // 1. Cache hit (TTL 30 min)
+      try {
+        const raw = sessionStorage.getItem(KEY_SERVICIOS_CACHE);
+        if (raw) {
+          const cached = JSON.parse(raw);
+          if (cached.ts && (Date.now() - cached.ts) < SERVICIOS_TTL_MS && Array.isArray(cached.list)) {
+            return cached.list;
+          }
+        }
+      } catch (_) { /* ignore */ }
+
+      // 2. Cache miss → fetch + cache
+      try {
+        const snap = await serviciosCol().orderBy('orden', 'asc').get();
+        const list = snap.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .filter(s => s.disponible !== false);
+        sessionStorage.setItem(KEY_SERVICIOS_CACHE, JSON.stringify({ ts: Date.now(), list }));
+        return list;
+      } catch (err) {
+        // Fallback sin orderBy (algunos servicios viejos no tienen 'orden')
+        try {
+          const snap = await serviciosCol().get();
+          const list = snap.docs
+            .map(d => ({ id: d.id, ...d.data() }))
+            .filter(s => s.disponible !== false);
+          sessionStorage.setItem(KEY_SERVICIOS_CACHE, JSON.stringify({ ts: Date.now(), list }));
+          return list;
+        } catch (err2) {
+          console.warn('[bot] no se pudieron cargar servicios:', err2.message);
+          return [];
+        }
+      }
+    }
+
+    // Defaults usando datos del local desde config.js (SHOP).
+    // Greeting con placeholders {nombre} y {local} que se interpolan en runtime
+    // con los datos del cliente (welcome modal) y del local.
+    function getDefaultBotConfig() {
+      return {
+        enabled: true,
+        greeting: 'Hola {nombre}! 👋 Soy el asistente de {local}. Toca una opción o escríbeme tu duda:',
+        options: [
+          { id: 'reservar',  label: '📅 Quiero reservar',
+            response: 'Perfecto, agenda tu hora aquí 👇',
+            action: 'link-booking' },
+          { id: 'horarios',  label: '🕒 Horarios',
+            response: SHOP.horario || 'Atendemos según horario del local — te confirmamos en un momento.' },
+          { id: 'ubicacion', label: '📍 Cómo llegar',
+            response: SHOP.direccion || 'Te enviamos la ubicación en un momento.' },
+          { id: 'precios',   label: '💰 Precios',
+            response: 'Estos son nuestros precios actuales:',
+            action: 'dynamic-prices' },
+          { id: 'mis-citas', label: '🗓 Cancelar o reagendar',
+            response: '¿Cuál es tu código de cita? Lo tienes en el email/push de confirmación (formato XXX-XXX).',
+            action: 'cancel-reagendar' },
+          { id: 'humano',    label: '💬 Hablar con alguien',
+            response: 'Listo, en cuanto un barbero esté libre te responde 👍',
+            action: 'escalate' },
+        ],
+        keywords: [
+          { words: ['horario', 'abren', 'abierto', 'cierran', 'cierre', 'atienden'], optionId: 'horarios' },
+          { words: ['donde', 'ubicacion', 'direccion', 'queda', 'llegar', 'lugar'], optionId: 'ubicacion' },
+          { words: ['reservar', 'agendar', 'cita', 'turno', 'agenda'], optionId: 'reservar' },
+          { words: ['precio', 'cuesta', 'cuanto', 'valor', 'tarifa', 'cobra'], optionId: 'precios' },
+          { words: ['cancelar', 'anular', 'reagendar', 'cambiar hora', 'mover'], optionId: 'mis-citas' },
+          { words: ['hola', 'buenas', 'buenos dias', 'buenas tardes', 'buen dia'], optionId: '__greet__' },
+        ],
+        fallback: 'Anoté tu mensaje, un barbero te responde apenas pueda 👍',
+      };
+    }
+
+    async function loadBotConfig() {
+      try {
+        const snap = await botConfigRef().get();
+        if (snap.exists) {
+          // Merge con defaults para que campos no configurados tengan valor.
+          botConfig = { ...getDefaultBotConfig(), ...snap.data() };
+        } else {
+          botConfig = getDefaultBotConfig();
+        }
+      } catch (err) {
+        console.warn('[bot] no se pudo cargar config, usando defaults:', err.message);
+        botConfig = getDefaultBotConfig();
+      }
+    }
+
+    // Normaliza texto para matching: lower + sin tildes
+    function normText(t) {
+      return (t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    }
+    function botMatchByKeyword(text) {
+      if (!botConfig?.keywords) return null;
+      const norm = normText(text);
+      for (const kw of botConfig.keywords) {
+        const words = kw.words || [];
+        if (words.some(w => norm.includes(normText(w)))) {
+          if (kw.optionId === '__greet__') {
+            // Re-saludo: enviar el greeting con opciones de nuevo
+            return { __regreet__: true };
+          }
+          return (botConfig.options || []).find(o => o.id === kw.optionId);
+        }
+      }
+      return null;
+    }
+
+    // Typing indicator local (no se persiste en Firestore — es solo UI).
+    // Lo agregamos al DOM antes de mandar la respuesta real, y lo quitamos
+    // cuando el snapshot trae el mensaje nuevo. Le da personalidad humana
+    // al bot sin sumar lecturas/escrituras.
+    let typingTimer = null;
+    function showTyping() {
+      hideTyping();
+      const node = document.createElement('div');
+      node.id = '__bot_typing';
+      node.className = 'typing-row';
+      // Solo mostramos avatar de Syna en el typing si el último mensaje NO
+      // era del bot — así seguimos la misma regla que el render (1 avatar
+      // por bloque consecutivo).
+      const lastMsg = $msgs.lastElementChild;
+      const prevWasBot = lastMsg && lastMsg.classList.contains('msg-row') && !!lastMsg.querySelector('.bubble.admin');
+      const avatarHtml = prevWasBot
+        ? `<span class="bot-avatar-spacer" aria-hidden="true"></span>`
+        : `<img class="bot-avatar" src="/syna.png" alt="Syna" loading="lazy">`;
+      node.innerHTML = `
+        ${avatarHtml}
+        <div class="typing-bubble">
+          <span class="typing-dot"></span>
+          <span class="typing-dot"></span>
+          <span class="typing-dot"></span>
+        </div>`;
+      $msgs.appendChild(node);
+      $msgs.scrollTop = $msgs.scrollHeight;
+    }
+    function hideTyping() {
+      const el = document.getElementById('__bot_typing');
+      if (el) el.remove();
+      if (typingTimer) { clearTimeout(typingTimer); typingTimer = null; }
+    }
+
+    // Manda mensaje del bot — soporta texto, replies (quick chips),
+    // service-cards (precios dinámicos) y CTA button (link a reserva).
+    async function sendBotMessage(text, opts = {}) {
+      if (!chatId) return;
+      const { replies, services, cta, typingMs = 600 } = opts;
+      // Pequeña espera con typing indicator para que se sienta humano
+      if (typingMs > 0) {
+        showTyping();
+        await new Promise(r => setTimeout(r, typingMs));
+        hideTyping();
+      }
+      const ts = firebase.firestore.FieldValue.serverTimestamp();
+      const doc = { text, sender: 'bot', timestamp: ts };
+      if (replies && replies.length) doc.replies = replies;
+      if (services && services.length) {
+        doc.type = 'service-cards';
+        doc.services = services;
+      }
+      if (cta && cta.url && cta.label) doc.cta = cta;
+      await chatMsgsCol(chatId).add(doc);
+    }
+
+    // ── Cancelar/reagendar cita por código ────────────────────
+    // Llama la Cloud Function gestionarCitaPorCodigo y devuelve el
+    // payload (o lanza el error con su .message limpio).
+    async function callGestionarCita(payload) {
+      const fn = firebase.functions().httpsCallable('gestionarCitaPorCodigo');
+      const res = await fn(payload);
+      return res?.data || {};
+    }
+    function fmtFechaCorta(fechaStr) {
+      if (!fechaStr) return '—';
+      try {
+        const [y, m, d] = fechaStr.split('-').map(Number);
+        const dt = new Date(y, m - 1, d);
+        return dt.toLocaleDateString('es-CL', { weekday: 'long', day: '2-digit', month: 'short' });
+      } catch (_) { return fechaStr; }
+    }
+    function fmtCitaResumen(cita) {
+      const linea1 = `📅 *${fmtFechaCorta(cita.fecha)}* a las *${cita.hora || '—'}*`;
+      const linea2 = `💈 ${cita.servicioNombre || 'Servicio'}`;
+      const linea3 = cita.barbero ? `👤 con ${cita.barbero}` : '';
+      return [linea1, linea2, linea3].filter(Boolean).join('\n');
+    }
+    // Quita los asteriscos de markdown porque el bubble no los renderiza
+    function plainText(s) { return String(s || '').replace(/\*([^*]+)\*/g, '$1'); }
+
+    // Escribe un mensaje del cliente con el texto del chip que tocó —
+    // se usa en los chips especiales del flujo cancel/reagendar para que
+    // queden en el historial como decisiones del cliente.
+    async function echoClientLabel(label) {
+      if (!chatId) return;
+      const ts = firebase.firestore.FieldValue.serverTimestamp();
+      try {
+        await chatMsgsCol(chatId).add({ text: label, sender: 'client', timestamp: ts });
+        await chatDocRef(chatId).set({
+          lastMessage: label,
+          updatedAt:   ts,
+          hasUnread:   true,
+          userName:    localStorage.getItem(KEY_NAME) || 'Cliente',
+          userPhone:   localStorage.getItem(KEY_PHONE) || '',
+          source:      'public_chat',
+        }, { merge: true });
+      } catch (err) {
+        console.warn('[chat] echoClientLabel failed:', err.message);
+      }
+    }
+
+    // ── Acciones de las opciones del bot ─────────────────────
+    // Decide qué hacer según action: 'reply' (texto), 'dynamic-prices'
+    // (cards de servicios), 'link-booking' (link a /agenda), 'escalate'.
+    async function executeOption(opt) {
+      const action = opt.action || (opt.escalate ? 'escalate' : 'reply');
+
+      if (action === 'dynamic-prices') {
+        const servicios = await loadServicios();
+        if (!servicios.length) {
+          await sendBotMessage('No tenemos los precios cargados todavía. Te los confirmamos en un momento 👍');
+          await chatDocRef(chatId).set({ needsHumanAttention: true }, { merge: true });
+          disableBotForThisChat();
+          return;
+        }
+        const intro = opt.response || 'Estos son nuestros precios actuales:';
+        const services = servicios.slice(0, 12).map(s => ({
+          nombre:      s.nombre || s.id,
+          precio:      Number(s.precio || 0),
+          duracion:    Number(s.duracion || 0),
+          categoria:   s.categoria || '',
+          descripcion: (s.descripcion || '').slice(0, 140),
+        }));
+        await sendBotMessage(intro, { services });
+        return;
+      }
+
+      if (action === 'link-booking') {
+        const url = getReservaUrl();
+        const intro = opt.response || 'Perfecto, agenda tu hora aquí 👇';
+        // Mandamos el mensaje con CTA — el render lo muestra como botón
+        // grande ("Reserva aquí") en lugar de URL textual.
+        await sendBotMessage(intro, {
+          cta: { label: 'Reserva aquí', url },
+        });
+        return;
+      }
+
+      if (action === 'cancel-reagendar') {
+        const intro = opt.response || '¿Cuál es tu código de cita? Lo encontrás en el email o push que te llegó al reservar (formato XXX-XXX).';
+        pendingAction = { type: 'awaiting-code' };
+        await sendBotMessage(intro);
+        return;
+      }
+
+      if (action === 'link-club') {
+        // Para gestionar citas (cancelar/reagendar) o ver fidelización el
+        // cliente necesita estar logueado en el Club. Le mandamos al
+        // dashboard con un CTA claro.
+        const url = `${getReservaUrl().replace(/\/$/, '')}/dashboard`;
+        const isLoggedIn = auth.currentUser && !auth.currentUser.isAnonymous;
+        const intro = opt.response || (isLoggedIn
+          ? 'Aquí puedes ver y gestionar tus citas 👇'
+          : 'Para gestionar tus citas necesitás iniciar sesión en el Club 👇');
+        await sendBotMessage(intro, {
+          cta: { label: isLoggedIn ? 'Ver mis citas' : 'Ingresar al Club', url },
+        });
+        return;
+      }
+
+      // 'escalate' o 'reply'
+      await sendBotMessage(opt.response || '');
+      if (action === 'escalate' || opt.escalate) {
+        await chatDocRef(chatId).set({ needsHumanAttention: true }, { merge: true });
+        disableBotForThisChat();
+      }
+    }
+
+    function buildReplyChips() {
+      return (botConfig?.options || []).map(o => ({ id: o.id, label: o.label }));
+    }
+
+    // Interpola placeholders del tipo {clave} en un string usando vars.
+    // Si la key no existe en vars devuelve string vacío (no deja el {key}).
+    function interpolate(template, vars) {
+      return String(template || '').replace(/\{(\w+)\}/g, (_, key) => {
+        const v = vars[key];
+        return (v === undefined || v === null) ? '' : String(v);
+      }).replace(/\s+([,.!?;])/g, '$1').replace(/  +/g, ' ').trim();
+    }
+
+    // Construye saludo personalizado con datos del cliente (welcome modal)
+    // y del local. Si el dueño NO incluyó placeholders y conocemos el
+    // nombre, prefijamos "Hola {nombre}!" automáticamente.
+    function buildPersonalGreeting(rawGreeting) {
+      const fullName  = localStorage.getItem(KEY_NAME) || '';
+      const shortName = (fullName.split(' ')[0] || '').trim();
+      const local     = SHOP.nombreCorto || SHOP.nombre || '';
+
+      const hasPlaceholders = /\{(nombre|local)\}/.test(rawGreeting || '');
+      if (hasPlaceholders) {
+        return interpolate(rawGreeting, { nombre: shortName, local });
+      }
+      if (shortName) {
+        return `Hola ${shortName}! 👋 ${rawGreeting}`;
+      }
+      return rawGreeting || '';
+    }
+
+    async function botGreetIfFirstMessage(msgsLength) {
+      if (msgsLength > 0) return;
+      if (!botConfig?.enabled) return;
+      if (isBotDisabled()) return;
+      // typingMs:0 — el saludo es el primer mensaje y el cliente todavía no
+      // escribió nada; esperar antes del saludo no se siente "humano", se
+      // siente lento.
+      const greeting = buildPersonalGreeting(botConfig.greeting);
+      await sendBotMessage(greeting, { replies: buildReplyChips(), typingMs: 0 });
+    }
+
+    async function botHandleClientMessage(text) {
+      if (!botConfig?.enabled) return;
+      if (isBotDisabled()) return;
+
+      // Si hay un flujo pendiente (esperando código), procesamos primero
+      if (pendingAction?.type === 'awaiting-code') {
+        const codigo = String(text || '').toUpperCase().replace(/\s+/g, '');
+        // Validación mínima — el código real son 6 chars + guión
+        if (codigo.length < 5) {
+          await sendBotMessage('Ese código no parece válido. Tiene que ser tipo *XXX-XXX*. Prueba de nuevo o toca otra opción.');
+          return;
+        }
+        try {
+          const res = await callGestionarCita({
+            tenantId: TENANT_ID, codigo, accion: 'consultar',
+          });
+          if (res?.ok && res.cita) {
+            pendingAction = { type: 'awaiting-cancel-confirm', codigo, cita: res.cita, politicas: res.politicas };
+            const resumen = plainText(fmtCitaResumen(res.cita));
+            const pol = res.politicas || {};
+            // Construir chips según lo que el local permita
+            const replies = [];
+            if (pol.puedeCancelar)  replies.push({ id: '__cancel-cita__',    label: '❌ Cancelar' });
+            if (pol.puedeReagendar) replies.push({ id: '__reagendar-cita__', label: '🗓 Reagendar' });
+            replies.push({ id: '__cancel-flow-end__', label: 'Nada' });
+
+            // Mensaje contextual: si NO puede hacer nada, explicar por qué
+            let bloque = `Cita encontrada ✓\n\n${resumen}`;
+            if (pol.mensaje) {
+              bloque += `\n\nℹ️ ${pol.mensaje}`;
+            }
+            if (!pol.puedeCancelar && !pol.puedeReagendar) {
+              if (!pol.dentroDeVentana && pol.minutosLimite > 0) {
+                const horas = Math.round(pol.minutosLimite / 60);
+                bloque += `\n\nLas modificaciones se aceptan con al menos ${horas}h de anticipación. Para gestionar esta cita, contactanos directamente.`;
+              } else {
+                bloque += `\n\nPara modificar esta cita, contactanos directamente.`;
+              }
+            } else {
+              bloque += `\n\n¿Qué quieres hacer?`;
+            }
+            await sendBotMessage(bloque, { replies });
+          } else {
+            await sendBotMessage('No encontramos esa cita. Verifica el código o escríbeme de nuevo.');
+            pendingAction = null;
+          }
+        } catch (err) {
+          const msg = err?.message || 'No se pudo procesar.';
+          await sendBotMessage(`No pudimos encontrar tu cita: ${msg}`);
+          pendingAction = null;
+        }
+        return;
+      }
+
+      const matched = botMatchByKeyword(text);
+      if (matched?.__regreet__) {
+        // Re-saludo (cliente dijo "hola" durante la conversación) también
+        // se personaliza con el nombre.
+        const greeting = buildPersonalGreeting(botConfig.greeting);
+        await sendBotMessage(greeting, { replies: buildReplyChips() });
+        return;
+      }
+      if (matched) {
+        await executeOption(matched);
+        return;
+      }
+      // Sin match → mandar fallback + escalar
+      const fallback = botConfig.fallback || 'Anoté tu mensaje, un barbero te responde apenas pueda 👍';
+      await sendBotMessage(fallback);
+      await chatDocRef(chatId).set({ needsHumanAttention: true }, { merge: true });
+      disableBotForThisChat();
+    }
+
+    // Click en un quick-reply chip
+    async function botHandleQuickReply(optionId) {
+      // Haptic feedback en mobile (Android Chrome y algunos otros)
+      if (navigator.vibrate) { try { navigator.vibrate(8); } catch (_) {} }
+
+      // ── Chips del flujo cancelar/reagendar ─────────────────
+      if (optionId === '__cancel-cita__' && pendingAction?.type === 'awaiting-cancel-confirm') {
+        const { cita } = pendingAction;
+        await echoClientLabel('❌ Cancelar');
+        await sendBotMessage(
+          `¿Confirmas cancelar tu cita del ${plainText(fmtFechaCorta(cita.fecha))} a las ${cita.hora}?`,
+          {
+            replies: [
+              { id: '__cancel-confirm-yes__', label: 'Sí, cancelar' },
+              { id: '__cancel-confirm-no__',  label: 'No, dejarla' },
+            ],
+          },
+        );
+        pendingAction = { ...pendingAction, type: 'awaiting-cancel-final' };
+        return;
+      }
+      if (optionId === '__reagendar-cita__' && pendingAction?.cita) {
+        await echoClientLabel('🗓 Reagendar');
+        const url = getReservaUrl();
+        await sendBotMessage(
+          `Perfecto, agenda tu nueva hora aquí. Tu cita actual queda como está hasta que reserves la nueva 👍`,
+          { cta: { label: 'Reservar nueva hora', url } },
+        );
+        pendingAction = null;
+        return;
+      }
+      if (optionId === '__cancel-confirm-yes__' && pendingAction?.type === 'awaiting-cancel-final') {
+        await echoClientLabel('Sí, cancelar');
+        try {
+          await callGestionarCita({
+            tenantId: TENANT_ID,
+            codigo:   pendingAction.codigo,
+            accion:   'cancelar',
+          });
+          await sendBotMessage('Listo, tu cita quedó cancelada ✓ El horario se libera para otro cliente.');
+        } catch (err) {
+          await sendBotMessage(`No pudimos cancelar: ${err?.message || 'error desconocido'}. Te ayudamos en un rato 👍`);
+          await chatDocRef(chatId).set({ needsHumanAttention: true }, { merge: true });
+        }
+        pendingAction = null;
+        return;
+      }
+      if (optionId === '__cancel-confirm-no__' || optionId === '__cancel-flow-end__') {
+        await echoClientLabel(optionId === '__cancel-confirm-no__' ? 'No, dejarla' : 'Nada');
+        await sendBotMessage('Listo, dejamos todo como está 👍 ¿Algo más en lo que te ayude?', {
+          replies: buildReplyChips(),
+        });
+        pendingAction = null;
+        return;
+      }
+
+      // ── Chip normal de las opciones del config ─────────────
+      const opt = (botConfig?.options || []).find(o => o.id === optionId);
+      if (!opt || !chatId) return;
+      // Mandamos el label como mensaje del cliente
+      const ts = firebase.firestore.FieldValue.serverTimestamp();
+      await chatMsgsCol(chatId).add({
+        text: opt.label, sender: 'client', timestamp: ts,
+      });
+      await chatDocRef(chatId).set({
+        lastMessage: opt.label,
+        updatedAt:   ts,
+        hasUnread:   true,
+        userName:    localStorage.getItem(KEY_NAME) || 'Cliente',
+        userPhone:   localStorage.getItem(KEY_PHONE) || '',
+        source:      'public_chat',
+      }, { merge: true });
+      // Y el bot ejecuta la acción asociada (action: 'reply' | 'dynamic-prices'
+      // | 'link-booking' | 'escalate')
+      await executeOption(opt);
+    }
+    // Expongo el handler globalmente para que los botones inline lo llamen
+    window.__chatBot = { handleReply: botHandleQuickReply };
+
+    // ── Boot ──────────────────────────────────────────────────
+    // Solo iniciamos sesión anónima si no hay user. Si un cliente del Club
+    // ya está logueado (vino desde dashboard u otro flujo), respetamos su
+    // sesión — eso le da acceso a acciones premium como "Mis citas".
+    if (!auth.currentUser) {
+      auth.signInAnonymously().catch(err => {
+        console.warn('[chat] signInAnonymously failed:', err);
+        showToast('No se pudo conectar. Intenta nuevamente.');
+      });
+    }
+
+    auth.onAuthStateChanged(user => {
+      if (!user) return;
+      const savedChatId = localStorage.getItem(KEY_CHATID);
+      const savedName   = localStorage.getItem(KEY_NAME);
+
+      // Validación crítica: el chatId guardado DEBE coincidir con el uid
+      // anónimo actual (las reglas Firestore solo permiten match /chats/{uid}).
+      // Si no coincide (ej. localStorage viejo de una sesión Firebase distinta,
+      // o de cuando usábamos `tel_xxx` como chatId), reseteamos todo el chat
+      // local y mostramos el welcome. Sin esto, todos los reads/writes fallan
+      // con "Missing or insufficient permissions".
+      if (savedChatId && savedChatId !== user.uid) {
+        console.warn('[chat] chatId obsoleto en localStorage, reseteando');
+        localStorage.removeItem(KEY_CHATID);
+        localStorage.removeItem(KEY_NAME);
+        localStorage.removeItem(KEY_PHONE);
+        localStorage.removeItem(KEY_BOT_DISABLED);
+        showWelcome();
+        return;
+      }
+
+      if (savedChatId && savedName) {
+        chatId = savedChatId;
+        bootChat();
+      } else {
+        showWelcome();
+      }
+    });
+
+    // ── Welcome flow ──────────────────────────────────────────
+    function showWelcome() {
+      $welcomeModal.classList.add('show');
+      setTimeout(() => $welcomeName.focus(), 250);
+    }
+    function hideWelcome() {
+      $welcomeModal.classList.remove('show');
+    }
+    $welcomeForm.addEventListener('submit', async e => {
+      e.preventDefault();
+      const name  = $welcomeName.value.trim();
+      const phone = normalizePhone($welcomePhone.value.trim());
+      if (!name) return;
+
+      // chatId SIEMPRE = uid anónimo (necesario para satisfacer las reglas
+      // Firestore: match /chats/{userId} requiere uid() == userId). El
+      // teléfono se guarda como dato del doc, NO como key — el admin lo
+      // ve y puede usarlo para reconocer al cliente o mergear historial.
+      // Sin esto, un cliente que regrese desde otro device NO recupera su
+      // historial automáticamente; lo hace solo desde el mismo navegador.
+      chatId = auth.currentUser.uid;
+
+      localStorage.setItem(KEY_CHATID, chatId);
+      localStorage.setItem(KEY_NAME, name);
+      if (phone) localStorage.setItem(KEY_PHONE, phone);
+
+      try {
+        await chatDocRef(chatId).set({
+          userName:    name,
+          userPhone:   phone || '',
+          source:      'public_chat',  // 'public_chat' = chat anónimo desde /chat
+          createdAt:   firebase.firestore.FieldValue.serverTimestamp(),
+          updatedAt:   firebase.firestore.FieldValue.serverTimestamp(),
+          lastMessage: '',
+          hasUnread:   false,
+        }, { merge: true });
+      } catch (err) {
+        console.warn('[chat] set chatDoc failed:', err);
+      }
+
+      hideWelcome();
+      bootChat();
+    });
+
+    function normalizePhone(p) {
+      const digits = (p || '').replace(/\D/g, '');
+      if (!digits) return '';
+      // Si vino sin 56 lo agregamos asumiendo Chile (móvil de 9 = anteponer 56)
+      if (digits.length === 9 && digits.startsWith('9')) return '56' + digits;
+      return digits;
+    }
+
+    // ── Chat principal ────────────────────────────────────────
+    async function bootChat() {
+      // Cargar config del bot antes de mostrar mensajes para que el saludo
+      // (si corresponde) salga sin demora visible.
+      await loadBotConfig();
+      subscribeMessages();
+      adjustTextareaHeight();
+      maybeShowPushBanner();
+    }
+
+    function subscribeMessages() {
+      if (unsubMsgs) unsubMsgs();
+      let firstLoad = true;
+      unsubMsgs = chatMsgsCol(chatId)
+        .orderBy('timestamp', 'asc')
+        .onSnapshot(async snap => {
+          const msgs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+          renderMessages(msgs);
+          markClientReadIfNeeded(msgs);
+          // Si el admin (humano) respondió en algún momento, el bot se
+          // deshabilita para esta conversación: el dueño tomó control.
+          if (msgs.some(m => m.sender === 'admin')) disableBotForThisChat();
+          // En el primer load, si la conversación está vacía y el bot está
+          // activo, mandamos el saludo automático con quick-replies.
+          if (firstLoad) {
+            firstLoad = false;
+            await botGreetIfFirstMessage(msgs.length);
+          }
+        }, err => {
+          console.warn('[chat] msgs onSnapshot error:', err);
+        });
+    }
+
+    function renderMessages(msgs) {
+      if (!msgs.length) {
+        $emptyState.style.display = 'flex';
+        $msgs.style.display = 'none';
+        const savedName = localStorage.getItem(KEY_NAME);
+        if (savedName) $emptyTitle.textContent = `Hola ${savedName.split(' ')[0]} 👋`;
+        return;
+      }
+      $emptyState.style.display = 'none';
+      $msgs.style.display = 'flex';
+
+      let lastDayKey = '';
+      const html = [];
+      // Solo el último mensaje del bot puede mostrar quick-replies (los
+      // mensajes anteriores con replies quedan como historial sin chips).
+      let lastBotWithReplies = -1;
+      for (let i = msgs.length - 1; i >= 0; i--) {
+        if (msgs[i].sender === 'bot' && Array.isArray(msgs[i].replies) && msgs[i].replies.length) {
+          lastBotWithReplies = i; break;
+        }
+        // Si el cliente ya escribió/clickeó después, no mostrar replies
+        if (msgs[i].sender === 'client') break;
+      }
+      for (let i = 0; i < msgs.length; i++) {
+        const m = msgs[i];
+        const d = m.timestamp?.toDate ? m.timestamp.toDate() : null;
+        const dayKey = d ? d.toISOString().slice(0, 10) : 'sin-fecha';
+        if (dayKey !== lastDayKey) {
+          html.push(`<div class="day-separator"><span>${dayLabel(d)}</span></div>`);
+          lastDayKey = dayKey;
+        }
+        const isClient = m.sender === 'client';
+        const isBot    = m.sender === 'bot';
+        // Avatar de Syna solo en el PRIMER mensaje de un bloque consecutivo
+        // del bot (si el anterior NO es del bot, mostramos avatar). Los demás
+        // mensajes del mismo bloque usan un spacer para alinear las burbujas.
+        const prevSender = i > 0 ? msgs[i - 1].sender : null;
+        const isFirstOfBotBlock = isBot && prevSender !== 'bot';
+        const botAvatar = isBot
+          ? (isFirstOfBotBlock
+              ? `<img class="bot-avatar" src="/syna.png" alt="Syna" loading="lazy">`
+              : `<span class="bot-avatar-spacer" aria-hidden="true"></span>`)
+          : '';
+        html.push(`
+          <div class="msg-row from-${isClient ? 'client' : 'admin'}">
+            ${botAvatar}
+            <div class="bubble ${isClient ? 'client' : 'admin'}">
+              ${linkify(m.text || '')}${d ? `<span class="bubble-time">${timeLabel(d)}</span>` : ''}
+            </div>
+          </div>
+        `);
+        // CTA button (botón grande tipo "Reserva aquí") — debajo del bubble
+        if (m.cta && m.cta.url && m.cta.label) {
+          html.push(`
+            <div class="cta-row">
+              <a class="cta-button" href="${escapeAttr(m.cta.url)}" target="_blank" rel="noopener noreferrer">
+                <span>${escapeHtml(m.cta.label)}</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+              </a>
+            </div>
+          `);
+        }
+        // Cards de servicios (precios dinámicos) — debajo de la burbuja
+        if (m.type === 'service-cards' && Array.isArray(m.services) && m.services.length) {
+          const cards = m.services.map((s, idx) => `
+            <div class="service-card" style="animation-delay:${idx * 60}ms">
+              <div class="service-card-header">
+                <span class="service-card-name">${escapeHtml(s.nombre || '')}</span>
+                <span class="service-card-price">${fmtPriceCLP(s.precio)}</span>
+              </div>
+              <div class="service-card-meta">
+                ${s.categoria ? `<span class="service-card-cat">${escapeHtml(s.categoria)}</span>` : ''}
+                ${s.duracion ? `<span>· ${s.duracion} min</span>` : ''}
+              </div>
+              ${s.descripcion ? `<p class="service-card-desc">${escapeHtml(s.descripcion)}</p>` : ''}
+            </div>
+          `).join('');
+          html.push(`<div class="service-cards">${cards}</div>`);
+        }
+        // Quick-replies (solo si es el último mensaje del bot con replies y
+        // el cliente no ha respondido después). Stagger via animation-delay.
+        if (i === lastBotWithReplies) {
+          const chips = m.replies.map((r, idx) => `
+            <button type="button" class="quick-reply"
+              style="animation-delay:${idx * 70}ms"
+              onclick="window.__chatBot.handleReply('${escapeAttr(r.id)}')">
+              ${escapeHtml(r.label)}
+            </button>
+          `).join('');
+          html.push(`<div class="quick-replies">${chips}</div>`);
+        }
+      }
+      $msgs.innerHTML = html.join('');
+      $msgs.scrollTop = $msgs.scrollHeight;
+    }
+    function escapeAttr(s) {
+      return String(s).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    }
+    function fmtPriceCLP(n) {
+      const num = Number(n || 0);
+      if (!num) return '—';
+      return '$' + num.toLocaleString('es-CL');
+    }
+    // Convierte texto plano en HTML seguro con URLs como <a> clickeables.
+    // Reemplaza primero el texto escapado para mantener seguridad anti-XSS y
+    // luego envuelve cualquier http(s):// match en <a>.
+    function linkify(text) {
+      const escaped = escapeHtml(text);
+      return escaped.replace(/(https?:\/\/[^\s<>"']+)/g, url =>
+        `<a class="msg-link" href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`
+      );
+    }
+
+    function dayLabel(d) {
+      if (!d) return '';
+      const today = new Date(); today.setHours(0,0,0,0);
+      const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+      const dd = new Date(d); dd.setHours(0,0,0,0);
+      if (dd.getTime() === today.getTime())     return 'Hoy';
+      if (dd.getTime() === yesterday.getTime()) return 'Ayer';
+      return d.toLocaleDateString('es-CL', { weekday: 'long', day: '2-digit', month: 'short' });
+    }
+    function timeLabel(d) {
+      return d.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' });
+    }
+    function escapeHtml(s) {
+      return s.replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      })[c]);
+    }
+
+    // ── Composer ──────────────────────────────────────────────
+    $msgInput.addEventListener('input', () => {
+      adjustTextareaHeight();
+      $sendBtn.disabled = !$msgInput.value.trim();
+    });
+    $msgInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        if ($msgInput.value.trim()) sendMessage();
+      }
+    });
+    $composer.addEventListener('submit', e => {
+      e.preventDefault();
+      if ($msgInput.value.trim()) sendMessage();
+    });
+
+    function adjustTextareaHeight() {
+      $msgInput.style.height = 'auto';
+      $msgInput.style.height = Math.min($msgInput.scrollHeight, 110) + 'px';
+    }
+
+    async function sendMessage() {
+      if (!chatId) return;
+      const text = $msgInput.value.trim();
+      if (!text) return;
+      $sendBtn.disabled = true;
+      const original = text;
+      $msgInput.value = '';
+      adjustTextareaHeight();
+      try {
+        const ts = firebase.firestore.FieldValue.serverTimestamp();
+        await chatMsgsCol(chatId).add({
+          text: original,
+          sender: 'client',
+          timestamp: ts,
+        });
+        await chatDocRef(chatId).set({
+          lastMessage: original,
+          updatedAt:   ts,
+          hasUnread:   true,  // dueño tiene mensaje sin leer
+          userName:    localStorage.getItem(KEY_NAME) || 'Cliente',
+          userPhone:   localStorage.getItem(KEY_PHONE) || '',
+          source:      'public_chat',
+        }, { merge: true });
+        // Disparamos al bot — pequeña espera para que el mensaje del
+        // cliente se renderice antes de la respuesta automática.
+        setTimeout(() => {
+          botHandleClientMessage(original).catch(err => {
+            console.warn('[bot] response failed:', err);
+          });
+        }, 350);
+      } catch (err) {
+        console.warn('[chat] send failed:', err);
+        $msgInput.value = original;
+        adjustTextareaHeight();
+        $sendBtn.disabled = false;
+        showToast('No se pudo enviar el mensaje. Intenta nuevamente.');
+      }
+    }
+
+    async function markClientReadIfNeeded(msgs) {
+      // Si el último msg es del admin, el cliente lo está viendo ahora.
+      // No tocamos hasUnread aquí (es el flag DEL ADMIN), pero podríamos
+      // setear un clientLastSeenAt para futuras features.
+      if (!msgs.length) return;
+      const last = msgs[msgs.length - 1];
+      if (last.sender === 'admin') {
+        try {
+          await chatDocRef(chatId).set({
+            clientLastSeenAt: firebase.firestore.FieldValue.serverTimestamp(),
+          }, { merge: true });
+        } catch (_) { /* ignore */ }
+      }
+    }
+
+    // ── Toast ─────────────────────────────────────────────────
+    let toastTimer = null;
+    function showToast(text) {
+      $toast.textContent = text;
+      $toast.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => $toast.classList.remove('show'), 3000);
+    }
+
+    // ── Push opt-in (3A: PWA + web push via FCM) ──────────────
+    function maybeShowPushBanner() {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+      if (Notification.permission === 'granted') return;          // ya tiene push
+      if (Notification.permission === 'denied') return;           // explícitamente negado
+      if (localStorage.getItem(KEY_PUSH_DISMISSED) === '1') return;
+      if (localStorage.getItem(KEY_PUSH_ENABLED) === '1') return;
+      // Esperamos a que el cliente mande al menos 1 mensaje para no spamear
+      setTimeout(() => {
+        $pushBanner.classList.add('show');
+      }, 4000);
+    }
+
+    $pushDismissBtn.addEventListener('click', () => {
+      localStorage.setItem(KEY_PUSH_DISMISSED, '1');
+      $pushBanner.classList.remove('show');
+    });
+
+    $pushEnableBtn.addEventListener('click', async () => {
+      $pushEnableBtn.disabled = true;
+      try {
+        if (Notification.permission !== 'granted') {
+          const perm = await Notification.requestPermission();
+          if (perm !== 'granted') {
+            showToast('Permiso de notificaciones rechazado.');
+            $pushEnableBtn.disabled = false;
+            return;
+          }
+        }
+        // Registrar SW (asume /firebase-messaging-sw.js o /sw.js del proyecto)
+        let reg = null;
+        try {
+          reg = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+        } catch (_) {
+          try { reg = await navigator.serviceWorker.register('/sw.js'); } catch (_) {}
+        }
+        let token = null;
+        try {
+          const messaging = firebase.messaging();
+          token = await messaging.getToken({
+            serviceWorkerRegistration: reg || undefined,
+          });
+        } catch (err) {
+          console.warn('[chat] FCM getToken failed:', err);
+        }
+        if (token && chatId) {
+          await chatDocRef(chatId).set({
+            fcmTokenClient: token,
+            fcmTokenClientUpdatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          }, { merge: true });
+          localStorage.setItem(KEY_PUSH_ENABLED, '1');
+          $pushBanner.classList.remove('show');
+          showToast('¡Listo! Te avisaremos cuando te respondamos.');
+        } else {
+          showToast('No se pudo activar. Intenta más tarde.');
+          $pushEnableBtn.disabled = false;
+        }
+      } catch (err) {
+        console.warn('[chat] enable push failed:', err);
+        $pushEnableBtn.disabled = false;
+        showToast('No se pudo activar las notificaciones.');
+      }
+    });
+
+  })();
+  </script>
+
+</body>
+</html>

@@ -226,6 +226,87 @@
     .share-foot .cta{display:inline-block;background:var(--accent);color:#000;border-radius:100px;padding:0.8rem 1.6rem;font-size:0.85rem;font-weight:800;text-decoration:none;}
     .share-copied{position:fixed;left:50%;bottom:1.5rem;transform:translateX(-50%);background:var(--text);color:var(--bg);font-weight:700;font-size:0.8rem;padding:0.65rem 1.1rem;border-radius:100px;z-index:60;opacity:0;transition:.2s;pointer-events:none;}
     .share-copied.show{opacity:1;}
+
+    /* ── Syna FAB + modal del chat ──────────────────────────── */
+    .syna-fab{
+      position:fixed;
+      right:18px;
+      bottom:max(env(safe-area-inset-bottom), 18px);
+      width:56px;height:56px;
+      border-radius:50%;
+      background:var(--accent);
+      box-shadow:0 6px 22px rgba(0,0,0,0.40), 0 0 0 4px rgba(0,0,0,0.55);
+      display:flex;align-items:center;justify-content:center;
+      cursor:pointer;border:none;padding:0;
+      z-index:80;
+      transition:transform 0.18s ease, box-shadow 0.2s ease;
+      -webkit-tap-highlight-color:transparent;
+      animation:syna-pulse 2.6s ease-in-out infinite;
+    }
+    .syna-fab:hover{ transform:translateY(-2px) scale(1.04); }
+    .syna-fab:active{ transform:scale(0.94); }
+    .syna-fab img{ width:42px;height:42px;border-radius:50%;object-fit:cover; }
+    .syna-fab::after{
+      content:'';
+      position:absolute;inset:-4px;
+      border-radius:50%;
+      border:2px solid var(--accent);
+      opacity:0.6;
+      animation:syna-ring 2.6s ease-out infinite;
+      pointer-events:none;
+    }
+    @keyframes syna-pulse{
+      0%,100%{ box-shadow:0 6px 22px rgba(0,0,0,0.40), 0 0 0 4px rgba(0,0,0,0.55); }
+      50%{ box-shadow:0 6px 26px rgba(0,0,0,0.50), 0 0 0 4px rgba(0,0,0,0.55), 0 0 22px rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.45); }
+    }
+    @keyframes syna-ring{
+      0%{ transform:scale(1); opacity:0.6; }
+      80%,100%{ transform:scale(1.45); opacity:0; }
+    }
+
+    .syna-modal{
+      position:fixed;inset:0;
+      background:rgba(0,0,0,0.78);
+      backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+      z-index:90;
+      display:flex;align-items:flex-end;justify-content:center;
+      opacity:0;pointer-events:none;
+      transition:opacity 0.25s ease;
+    }
+    .syna-modal.show{ opacity:1;pointer-events:auto; }
+    .syna-modal-card{
+      background:#0a0a0a;
+      width:100%;
+      max-width:540px;
+      height:92dvh;
+      border-radius:20px 20px 0 0;
+      overflow:hidden;
+      position:relative;
+      transform:translateY(24px);
+      transition:transform 0.32s cubic-bezier(0.16,1,0.3,1);
+      border:1px solid rgba(255,255,255,0.08);
+      border-bottom:none;
+    }
+    .syna-modal.show .syna-modal-card{ transform:translateY(0); }
+    @media (min-width:640px){
+      .syna-modal{ align-items:center;padding:24px; }
+      .syna-modal-card{ height:80vh;max-height:720px;border-radius:18px;border-bottom:1px solid rgba(255,255,255,0.08); }
+    }
+    .syna-close{
+      position:absolute;top:10px;right:10px;
+      width:36px;height:36px;border-radius:50%;
+      background:rgba(0,0,0,0.55);
+      border:1px solid rgba(255,255,255,0.15);
+      color:#fff;
+      cursor:pointer;
+      display:flex;align-items:center;justify-content:center;
+      z-index:2;
+      -webkit-tap-highlight-color:transparent;
+    }
+    .syna-close:hover{ background:rgba(0,0,0,0.78); }
+    .syna-iframe{
+      width:100%;height:100%;border:0;background:#0a0a0a;
+    }
   </style>
 </head>
 <body>
@@ -249,6 +330,17 @@
   <button id="synBadge" type="button" aria-label="bioo" style="display:none;">
     <img src="/bioo-iso.png" alt="bioo">
   </button>
+
+  <!-- ── Syna: FAB para abrir el chat público del local ───────── -->
+  <button id="synaFab" type="button" class="syna-fab" aria-label="Chatear con nosotros" style="display:none;">
+    <img src="/syna.png" alt="Syna">
+  </button>
+  <div id="synaModal" class="syna-modal" role="dialog" aria-label="Chat">
+    <div class="syna-modal-card">
+      <button id="synaClose" class="syna-close" type="button" aria-label="Cerrar chat">✕</button>
+      <iframe id="synaIframe" class="syna-iframe" title="Chat con el local" loading="lazy"></iframe>
+    </div>
+  </div>
 
   <!-- Modal de captación (se abre al tocar el logo en plan Free) -->
   <div id="synModal" class="syn-modal" style="display:none;">
@@ -794,6 +886,76 @@
       });
     }
     boot();
+
+    // ── Syna FAB — chat público del local embebido como bottom-sheet ──
+    // Aparece solo si SE CUMPLEN dos condiciones:
+    //   1. Chatbot habilitado globalmente: tenants/{tid}/chatbot/config.enabled
+    //   2. Toggle local activo: tenants/{tid}/settings/linkbio.perfil.synaEnBio
+    //      (default true cuando es undefined — opt-out, no opt-in)
+    // El admin tiene control fino: aunque el bot esté activo, puede
+    // preferir no mostrarlo en su bio (desde /gestion-interna/link-bio).
+    (function initSynaFab() {
+      // `db` lo inicializa firebase-config.js de forma async; igual que en
+      // boot(), esperamos a que esté disponible antes de seguir.
+      if (typeof db === 'undefined') { setTimeout(initSynaFab, 80); return; }
+
+      var fab    = document.getElementById('synaFab');
+      var modal  = document.getElementById('synaModal');
+      var closer = document.getElementById('synaClose');
+      var iframe = document.getElementById('synaIframe');
+      if (!fab || !modal || !iframe) return;
+
+      var botRef = (TID === 'elegance')
+        ? db.collection('chatbot').doc('config')
+        : db.collection('tenants').doc(TID).collection('chatbot').doc('config');
+      var bioRef = (TID === 'elegance')
+        ? db.collection('settings').doc('linkbio')
+        : db.collection('tenants').doc(TID).collection('settings').doc('linkbio');
+
+      setTimeout(function () {
+        Promise.all([
+          botRef.get().catch(function () { return null; }),
+          bioRef.get().catch(function () { return null; }),
+        ]).then(function (snaps) {
+          // Default OPT-OUT: si NO hay doc o no hay campo `enabled` explícito,
+          // mostramos el FAB. Solo lo ocultamos cuando el dueño lo apaga
+          // explícitamente (enabled === false). Mismo criterio que chat.html.
+          var botData    = (snaps[0] && snaps[0].exists) ? snaps[0].data() : null;
+          var botEnabled = !botData || botData.enabled !== false;
+          var bioData    = (snaps[1] && snaps[1].exists) ? snaps[1].data() : null;
+          var bioOptOut  = bioData && bioData.perfil && bioData.perfil.synaEnBio === false;
+          console.log('[Syna FAB]', { TID: TID, botData: botData, botEnabled: botEnabled, bioOptOut: bioOptOut });
+          if (!botEnabled || bioOptOut) return;
+          fab.style.display = 'flex';
+        }).catch(function (err) {
+          console.warn('[Syna FAB] fallo lectura, mostrando por default:', err && err.message);
+          fab.style.display = 'flex';
+        });
+      }, 600);
+
+      function openChat() {
+        // Cargar el iframe sólo cuando abre por 1ra vez (lazy)
+        if (!iframe.src) {
+          iframe.src = '/chat?local=' + encodeURIComponent(TID);
+        }
+        modal.classList.add('show');
+        document.body.style.overflow = 'hidden';
+      }
+      function closeChat() {
+        modal.classList.remove('show');
+        document.body.style.overflow = '';
+      }
+      fab.addEventListener('click',    openChat);
+      closer.addEventListener('click', closeChat);
+      // Click en backdrop (fuera de la card) también cierra
+      modal.addEventListener('click', function (e) {
+        if (e.target === modal) closeChat();
+      });
+      // ESC cierra
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && modal.classList.contains('show')) closeChat();
+      });
+    })();
   })();
   </script>
 </body>

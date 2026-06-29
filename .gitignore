@@ -14,3 +14,9 @@ admin-panel/.env*.local
 scratch/
 
 /bio/
+
+# Build outputs
+dist/
+
+# Test/debug screenshots en la raíz
+/error.png

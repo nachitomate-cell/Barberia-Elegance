@@ -304,6 +304,9 @@ function build1hEmailHtml({ cfg, cita }) {
   const fechaFmt   = fmtFecha(cita.fecha);
   const duracion   = cita.duracion ? `${cita.duracion} min` : null;
   const precio     = fmtPrecio(cita.precio);
+  // Mismo subdominio del dashboard pero terminando en /chat — para que el
+  // cliente pueda usar el código y cancelar/reagendar sin login.
+  const chatUrl    = String(cfg.dashboardUrl || '').replace(/\/dashboard\/?$/, '/chat');
 
   const filaExtra = (label, value) => value ? `
     <tr>
@@ -373,6 +376,25 @@ function build1hEmailHtml({ cfg, cita }) {
               style="background:#141417;border-radius:10px;border:1px solid #1e1e24;padding:16px 20px;">
               ${cfg.direccion ? `<tr><td style="font-size:13px;color:#888;padding:3px 0;">📍 ${cfg.direccion}</td></tr>` : ''}
               ${cfg.horario   ? `<tr><td style="font-size:13px;color:#888;padding:3px 0;">🕒 ${cfg.horario}</td></tr>`   : ''}
+            </table>
+          </td>
+        </tr>` : ''}
+
+        ${cita.codigoCita ? `
+        <!-- Código de gestión rápida vía /chat (sin login) -->
+        <tr>
+          <td style="padding:0 36px 24px;">
+            <table width="100%" cellpadding="0" cellspacing="0"
+              style="background:#1a1a1f;border:1px dashed ${btnColor}88;border-radius:12px;padding:20px 22px;">
+              <tr><td align="center">
+                <p style="margin:0 0 8px;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:${btnColor};">¿Necesitas cancelar o reagendar?</p>
+                <p style="margin:0 0 6px;font-size:11px;color:#888;letter-spacing:1px;text-transform:uppercase;">Tu código</p>
+                <p style="margin:0 0 12px;font-size:28px;font-weight:900;letter-spacing:4px;color:#fff;font-family:'Courier New','Monaco',monospace;">${cita.codigoCita}</p>
+                <a href="${chatUrl}"
+                  style="display:inline-block;padding:10px 22px;background:${btnColor}1a;color:${btnColor};border:1px solid ${btnColor}55;font-size:12px;font-weight:700;border-radius:8px;text-decoration:none;">
+                  Cancelar/reagendar desde el chat →
+                </a>
+              </td></tr>
             </table>
           </td>
         </tr>` : ''}
