@@ -1,0 +1,19 @@
+{
+  "name": "barberia-elegance-tests",
+  "version": "1.0.0",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "test": "node chatbot.test.js",
+    "test:headed": "HEADED=1 node chatbot.test.js",
+    "test:slow": "HEADED=1 SLOWMO=120 node chatbot.test.js",
+    "test:e2e": "node e2e-cancel-cita.test.js",
+    "test:e2e:headed": "HEADED=1 SLOWMO=180 node e2e-cancel-cita.test.js",
+    "send-test-email": "node send-test-email.js",
+    "cleanup": "node cleanup-test-citas.js"
+  },
+  "devDependencies": {
+    "puppeteer": "^22.0.0",
+    "firebase-admin": "^12.0.0"
+  }
+}

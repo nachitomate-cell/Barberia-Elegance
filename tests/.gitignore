@@ -1,0 +1,12 @@
+# Dependencias
+node_modules/
+
+# Service account de Firebase Admin SDK — NUNCA subir a git
+.firebase-admin-key.json
+*-firebase-adminsdk-*.json
+serviceAccountKey.json
+
+# Outputs de tests
+screenshots/
+last-run.json
+*.log
