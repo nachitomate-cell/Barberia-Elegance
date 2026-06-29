@@ -1745,6 +1745,12 @@
       border-top-color: rgba(255,255,255,0.05) !important;
     }
 
+    /* ── KRONNOS — Banner "Agenda operativa desde el 15 de julio" ── */
+    #kronnosAgendaSoonBanner { display: none; }
+    .tenant-kronnos_penablanca #kronnosAgendaSoonBanner,
+    .tenant-kronnos_limache    #kronnosAgendaSoonBanner,
+    .tenant-kronnos_woman      #kronnosAgendaSoonBanner { display: block; }
+
     /* ══ KRONNOS — Layout en filas (igual que AURA) en pasos 1 y 2.
        Los radios de servicio/barbero usan el neón de cada sede en vez del
        dorado por defecto que el JS aplica inline. ══ */
@@ -6898,6 +6904,41 @@
     </div>
 
     <main class="px-6 pb-6 relative min-h-[500px]">
+
+      <!-- KRONNOS — Aviso "agenda online disponible desde el 15/07" + CTA Club.
+           Se muestra automáticamente vía CSS cuando body tiene
+           .tenant-kronnos_penablanca / _limache / _woman. -->
+      <div id="kronnosAgendaSoonBanner" class="mb-6 animate-[fadeSlideUp_0.5s_cubic-bezier(0.16,1,0.3,1)_forwards]">
+        <div class="rounded-2xl overflow-hidden"
+             style="background:linear-gradient(135deg,rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.14) 0%,rgba(0,0,0,0.40) 100%);border:1px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.40);box-shadow:0 8px 28px rgba(0,0,0,0.45),inset 0 1px 0 rgba(255,255,255,0.06);">
+          <div class="p-5">
+            <div class="flex items-start gap-3 mb-4">
+              <div class="w-11 h-11 rounded-full flex items-center justify-center shrink-0"
+                   style="background:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.18);border:1px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.35);">
+                <i class="ph-fill ph-calendar-check text-xl" style="color:var(--accent);"></i>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-[10px] font-bold uppercase tracking-widest mb-1"
+                   style="color:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.75);">Próximamente</p>
+                <p class="text-base font-extrabold text-white leading-snug">
+                  Agenda online operativa desde el 15 de julio
+                </p>
+                <p class="text-[12.5px] text-gray-400 leading-relaxed mt-1.5">
+                  Estamos terminando los últimos detalles. Mientras tanto, regístrate gratis en el
+                  <strong class="text-white">Club de Beneficios Kronnos</strong> y empieza a acumular sellos desde tu primera visita.
+                </p>
+              </div>
+            </div>
+            <a href="registro.html"
+               class="flex items-center justify-center gap-2 w-full py-3 rounded-xl text-sm font-bold transition-all active:scale-[0.97]"
+               style="background:var(--accent);color:#fff;box-shadow:0 4px 18px rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.42);text-decoration:none;">
+              <i class="ph-fill ph-medal text-base"></i>
+              Unirme al Club Kronnos
+              <i class="ph-bold ph-arrow-right text-sm"></i>
+            </a>
+          </div>
+        </div>
+      </div>
 
       <!-- PASO 0: Sucursal (solo para tenants con múltiples sucursales) -->
       <section id="step0" class="hidden opacity-0 transform translate-x-12">
