@@ -1611,8 +1611,23 @@
             pendingAction = null;
           }
         } catch (err) {
-          const msg = err?.message || 'No se pudo procesar.';
-          await sendBotMessage(`No pudimos encontrar tu cita: ${msg}`);
+          // Convertir códigos técnicos de Firebase Functions a mensajes claros.
+          // Nunca mostrar err.message crudo: puede traer detalles internos
+          // (service worker, FCM, etc.) que confunden al cliente.
+          const code = err?.code || err?.details?.code || '';
+          let friendly;
+          if (/not-found/i.test(code)) {
+            friendly = 'No encontramos ninguna cita con ese código. Revisa que esté bien escrito (lo tienes en el email de confirmación) o toca otra opción.';
+          } else if (/invalid-argument/i.test(code)) {
+            friendly = 'El código no parece válido. Tiene que ser tipo XXX-XXX (6 caracteres). Inténtalo de nuevo.';
+          } else if (/failed-precondition/i.test(code)) {
+            // El mensaje del Cloud Function aquí sí es seguro (lo redactamos
+            // nosotros: "cita ya cancelada", "cita ya pasó", "fuera de ventana").
+            friendly = err?.message || 'No se puede gestionar esta cita en este momento.';
+          } else {
+            friendly = 'No pudimos procesar la consulta. Inténtalo en unos segundos o contáctanos directamente.';
+          }
+          await sendBotMessage(friendly);
           pendingAction = null;
         }
         return;
@@ -1678,7 +1693,14 @@
           });
           await sendBotMessage('Listo, tu cita quedó cancelada ✓ El horario se libera para otro cliente.');
         } catch (err) {
-          await sendBotMessage(`No pudimos cancelar: ${err?.message || 'error desconocido'}. Te ayudamos en un rato 👍`);
+          const code = err?.code || err?.details?.code || '';
+          // failed-precondition trae mensajes seguros redactados por nosotros
+          // (cita ya cancelada / ya pasó). El resto se reemplaza por un texto
+          // genérico — el err.message crudo puede traer detalles internos.
+          const friendly = /failed-precondition/i.test(code)
+            ? (err?.message || 'No se puede cancelar esta cita.')
+            : 'No pudimos cancelar la cita. Te contactamos pronto para gestionarlo 👍';
+          await sendBotMessage(friendly);
           await chatDocRef(chatId).set({ needsHumanAttention: true }, { merge: true });
         }
         pendingAction = null;
