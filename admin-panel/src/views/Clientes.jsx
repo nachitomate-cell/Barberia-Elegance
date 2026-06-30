@@ -1415,7 +1415,15 @@ const PAGE_SIZE = 15;
 /* ── Vista principal Clientes ── */
 export default function Clientes() {
   const { id: tenantId, name: shopName } = useTenant();
-  const { data: clientes, loading } = useClubUsers();
+  const { data: clientesRaw, loading } = useClubUsers();
+  // Descartamos docs sin nombre (sesiones anónimas / registros incompletos del
+  // viejo flujo passwordless que dejaban users/{uid}.nombre = ''). Mismo criterio
+  // que ya aplica CorteAlLapiz.jsx en su buscador. Filtramos una sola vez acá
+  // para que KPIs, IA, tiers y la lista visible queden todos en sintonía.
+  const clientes = useMemo(
+    () => clientesRaw.filter(c => (c.nombre || '').trim()),
+    [clientesRaw]
+  );
   const { data: premios }           = useCollection('premios', [firestoreOrderBy('costoSellos')]);
   const [todasCitas, setTodasCitas] = useState([]);
 
