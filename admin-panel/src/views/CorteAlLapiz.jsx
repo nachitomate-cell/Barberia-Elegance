@@ -154,19 +154,28 @@ function ModalActivar({ tenantId, cuentasUids, onClose }) {
     [todosUsuarios, cuentasUids],
   );
 
-  // Muestra coincidencias al escribir; si el campo está enfocado y vacío,
-  // muestra los primeros clientes del club para poder elegir directo.
-  const suggestions = useMemo(() => {
-    if (selectedUser) return [];
-    const term = searchVal.toLowerCase().trim();
-    if (!term) return focused ? disponibles.slice(0, 8) : [];
-    return disponibles
-      .filter(u =>
-        u.nombre.toLowerCase().includes(term) ||
-        u.uid.toLowerCase().includes(term) ||
-        normalizePhone(u.telefono).includes(normalizePhone(term)))
-      .slice(0, 8);
-  }, [searchVal, disponibles, selectedUser, focused]);
+  // Lista filtrada para el dropdown. Calculada inline en cada render (sin
+  // useMemo) para no dejar duda sobre memoización: cualquier cambio en
+  // searchVal recomputa este valor de inmediato.
+  // - Sin término: muestra los primeros 8 clientes (al focusear el input).
+  // - Con término: filtra por nombre o teléfono (case-insensitive,
+  //   teléfono normalizado a sólo dígitos).
+  const term    = searchVal.trim().toLowerCase();
+  const termTel = normalizePhone(searchVal);
+  let clientesFiltrados = [];
+  if (!selectedUser) {
+    if (!term) {
+      clientesFiltrados = focused ? disponibles.slice(0, 8) : [];
+    } else {
+      clientesFiltrados = disponibles
+        .filter(u => {
+          const nombreOk = (u.nombre || '').toLowerCase().includes(term);
+          const telOk    = termTel && normalizePhone(u.telefono).includes(termTel);
+          return nombreOk || telOk;
+        })
+        .slice(0, 20);
+    }
+  }
 
   async function activar() {
     if (!selectedUser) { setError('Selecciona un cliente válido.'); return; }
@@ -204,6 +213,12 @@ function ModalActivar({ tenantId, cuentasUids, onClose }) {
           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">Buscar cliente</label>
           <div className="relative">
             <input
+              type="text"
+              name="corte-lapiz-search"
+              autoComplete="off"
+              autoCorrect="off"
+              autoCapitalize="off"
+              spellCheck="false"
               value={searchVal}
               onChange={e => { setSearchVal(e.target.value); if (selectedUser) { setSelectedUser(null); } }}
               onFocus={() => setFocused(true)}
@@ -222,10 +237,11 @@ function ModalActivar({ tenantId, cuentasUids, onClose }) {
             )}
           </div>
 
-          {suggestions.length > 0 && (
+          {clientesFiltrados.length > 0 && (
             <div className="absolute z-10 left-0 right-0 mt-1.5 bg-slate-900 border border-slate-750 rounded-xl overflow-hidden shadow-2xl max-h-48 overflow-y-auto">
-              {suggestions.map(u => (
+              {clientesFiltrados.map(u => (
                 <button key={u.uid}
+                  onMouseDown={e => e.preventDefault()}
                   onClick={() => { setSelectedUser(u); setSearchVal(u.nombre); }}
                   className="w-full text-left px-4 py-2.5 hover:bg-slate-800 text-sm text-slate-300 flex flex-col transition-colors border-b border-slate-800/40">
                   <span className="font-semibold text-white">{u.nombre}</span>
@@ -235,7 +251,7 @@ function ModalActivar({ tenantId, cuentasUids, onClose }) {
             </div>
           )}
 
-          {searchVal && !selectedUser && suggestions.length === 0 && !buscando && (
+          {searchVal && !selectedUser && clientesFiltrados.length === 0 && !buscando && (
             <p className="text-[10px] text-amber-400/80 mt-1 pl-1">No encontramos ese cliente. Debe registrarse en el club de fidelidad primero para activarle la membresía.</p>
           )}
           {!searchVal && !selectedUser && focused && !buscando && disponibles.length === 0 && (
