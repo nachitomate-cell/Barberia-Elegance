@@ -268,6 +268,41 @@ service cloud.firestore {
       allow delete: if esAdmin('elegance');
     }
 
+    // ── /sorteos ───────────────────────────────────────────────────
+    // Versión root del tenant legacy `elegance`. Mismo contrato que la
+    // sección multi-tenant (`/tenants/{tid}/sorteos`):
+    //   · Lectura: PÚBLICA. La página /sorteo/:id (visitante sin sesión)
+    //     necesita leer el sorteo para mostrar nombre/premio/fechas.
+    //     No contiene PII — los participantes están en subcolección
+    //     separada con read restringido.
+    //   · Create + delete: solo admins.
+    //   · Update: admins libre; público SOLO puede incrementar
+    //     participantes_count en exactamente +1 (sin tocar otro campo).
+    //   · Subcolección /participantes: create público con validaciones
+    //     mínimas anti-abuse; read/update/delete reservado a admins (PII).
+    match /sorteos/{sorteoId} {
+      allow read:           if true;
+      allow create, delete: if esAdmin('elegance');
+      allow update: if esAdmin('elegance')
+                    || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participantes_count'])
+                        && request.resource.data.participantes_count is int
+                        && request.resource.data.participantes_count == resource.data.get('participantes_count', 0) + 1);
+
+      match /participantes/{participanteId} {
+        allow read, update, delete: if esAdmin('elegance');
+        allow create: if request.resource.data.keys().hasOnly(['nombre', 'telefono', 'email', 'createdAt'])
+                      && request.resource.data.nombre is string
+                      && request.resource.data.nombre.size() > 0
+                      && request.resource.data.nombre.size() <= 80
+                      && (!('telefono' in request.resource.data)
+                          || (request.resource.data.telefono is string
+                              && request.resource.data.telefono.size() <= 30))
+                      && (!('email' in request.resource.data)
+                          || (request.resource.data.email is string
+                              && request.resource.data.email.size() <= 120));
+      }
+    }
+
     // ── /lookbook ──────────────────────────────────────────────────
     match /lookbook/{docId} {
       allow read: if true;
@@ -854,6 +889,45 @@ service cloud.firestore {
         allow create: if esStaff(tid);
         allow update: if esStaff(tid);
         allow delete: if esAdmin(tid);
+      }
+
+      // ── sorteos ───────────────────────────────────────────────────
+      // · Lectura: PÚBLICA. La página /sorteo/:id (visitante sin sesión)
+      //   necesita leer nombre/premio/fechas del sorteo. No expone PII —
+      //   los participantes viven en subcolección con read restringido.
+      // · Create + delete: solo admins.
+      // · Update: admins libre; público SOLO puede incrementar
+      //   participantes_count en exactamente +1 (sin tocar otro campo).
+      //   Trade-off conocido: alguien podría spammear ese +1 sin crear
+      //   participante; el subcolección /participantes es la fuente de
+      //   verdad y se puede recontar si pasa.
+      //
+      // Subcolección /participantes: inscripción pública desde un link
+      // externo (sin sesión). El `create` queda abierto con validaciones
+      // mínimas anti-abuse (set de campos acotado, tope de tamaño y nada
+      // de campos privilegiados). Read/update/delete quedan reservadas a
+      // admins — los participantes contienen PII (nombre + teléfono/email).
+      match /sorteos/{sorteoId} {
+        allow read:           if true;
+        allow create, delete: if esAdmin(tid);
+        allow update: if esAdmin(tid)
+                      || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participantes_count'])
+                          && request.resource.data.participantes_count is int
+                          && request.resource.data.participantes_count == resource.data.get('participantes_count', 0) + 1);
+
+        match /participantes/{participanteId} {
+          allow read, update, delete: if esAdmin(tid);
+          allow create: if request.resource.data.keys().hasOnly(['nombre', 'telefono', 'email', 'createdAt'])
+                        && request.resource.data.nombre is string
+                        && request.resource.data.nombre.size() > 0
+                        && request.resource.data.nombre.size() <= 80
+                        && (!('telefono' in request.resource.data)
+                            || (request.resource.data.telefono is string
+                                && request.resource.data.telefono.size() <= 30))
+                        && (!('email' in request.resource.data)
+                            || (request.resource.data.email is string
+                                && request.resource.data.email.size() <= 120));
+        }
       }
 
       // ── lookbook ──────────────────────────────────────────────────

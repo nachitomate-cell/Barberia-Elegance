@@ -5,7 +5,7 @@ import {
   Trophy, ShoppingBag, Images, LogOut, ChevronRight,
   Sun, Moon, ExternalLink, Settings, TrendingDown, MessageCircle, X,
   Megaphone, ImagePlus, CreditCard, Monitor, Headphones, Medal, Camera, GraduationCap, Wallet, Package, ThumbsUp, Crown,
-  Globe, Banknote, Gift, ClipboardList, Building2, Home, Lock, HelpCircle, Link2, Instagram, CircleDollarSign, Sparkles, UserX, Award, Bot,
+  Globe, Banknote, Gift, ClipboardList, Building2, Home, Lock, HelpCircle, Link2, Instagram, CircleDollarSign, Sparkles, UserX, Award, Bot, Ticket,
 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { doc, onSnapshot, where } from 'firebase/firestore';
@@ -107,6 +107,7 @@ const NAV_GROUPS_DEFAULT = [
     items: [
       { to: 'marketing',     label: 'Marketing',      Icon: Megaphone,   adminOnly: true },
       { to: 'gift-cards',    label: 'Gift Cards',     Icon: Gift,        adminOnly: true, variant: 'giftcard' },
+      { to: 'sorteos',       label: 'Sorteos',        Icon: Ticket,      adminOnly: true },
       // Oculto del sidebar (la ruta /sucursales sigue activa si se accede directo).
       // { to: 'sucursales',    label: 'Sucursales',     Icon: Building2,   adminOnly: true },
       { to: 'recibir-pagos', label: 'Recibir Pagos',  Icon: CircleDollarSign, adminOnly: true, variant: 'pagos' },
