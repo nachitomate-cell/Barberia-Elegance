@@ -989,6 +989,72 @@ html.light [data-view="mensajes"] *::-webkit-scrollbar-track { background: trans
 html.light [data-view="mensajes"] .ring-1.ring-slate-700,
 html.light [data-view="mensajes"] [class*="ring-slate-700"]  { --tw-ring-color: #cbd5e1 !important; }
 
+/* ═════════ Gift Cards ═════════
+   Problema base: los cards usan bg-slate-900 (→ #f8fafc) sobre body
+   #f1f5f9 y border-slate-800 (→ #e2e8f0). Las tres tonalidades quedan
+   casi indistinguibles → la vista se ve plana y sin jerarquía. Acá
+   forzamos blanco puro + sombra muy suave para darles profundidad y
+   ajustamos los CTAs verdes para que el texto se lea como premium. */
+
+/* Cards principales (stats, rows, public link, template uploader, modal
+   shell) — blanco puro con sombra iOS-style en vez de borde casi invisible */
+html.light [data-view="gift-cards"] .bg-slate-900            { background-color: #ffffff !important; }
+html.light [data-view="gift-cards"] .border-slate-800        { border-color: #e2e8f0 !important; }
+html.light [data-view="gift-cards"] .border.border-slate-800,
+html.light [data-view="gift-cards"] .border.border-slate-700 {
+  box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.04),
+              0 1px 3px 0 rgba(15, 23, 42, 0.05) !important;
+}
+
+/* CTAs primarios verdes — el texto emerald-950 sobre verde brillante se
+   ve raro en claro; lo cambiamos a blanco premium */
+html.light [data-view="gift-cards"] .bg-emerald-500          { background-color: #059669 !important; }
+html.light [data-view="gift-cards"] .text-emerald-950        { color: #ffffff !important; }
+html.light [data-view="gift-cards"] .hover\:bg-emerald-400:hover { background-color: #047857 !important; }
+
+/* Bloque del código generado (font-mono) — afinamos a chip blanco hueso
+   con borde suave para que parezca un chip de código premium */
+html.light [data-view="gift-cards"] .bg-slate-800.font-mono  {
+  background-color: #f8fafc !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+/* QR preview de los PublicLinkCard (bg-white p-2 rounded-lg) — sobre
+   fondo claro se pierde; borde sutil para enmarcarlo. Selector con
+   `.p-2` para NO afectar al QR de la tarjeta exportada (que usa p-1.5)
+   — el PNG debe verse igual independiente del modo. */
+html.light [data-view="gift-cards"] .bg-white.p-2.rounded-lg {
+  background-color: #ffffff !important;
+  box-shadow: inset 0 0 0 1px #e2e8f0 !important;
+}
+
+/* Filter tab activo (bg-slate-700 → #cbd5e1 por default) — apenas se
+   diferencia del contenedor; forzamos blanco con sombra para parecer
+   un pill realmente activo */
+html.light [data-view="gift-cards"] .bg-slate-700            {
+  background-color: #ffffff !important;
+  box-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.10),
+              0 0 0 1px rgba(15, 23, 42, 0.06) !important;
+}
+
+/* Botón secundario "Canjear" (bg-slate-800 text-slate-300) — claro queda
+   muy lavado; refinamos texto y bg para verse legible y limpio */
+html.light [data-view="gift-cards"] .bg-slate-800.text-slate-300 {
+  background-color: #f1f5f9 !important;
+  color: #334155 !important;
+}
+
+/* Stats: el valor principal usa text-white que el override global mapea
+   a #0f172a — perfecto. Reforzamos por si alguna combinación lo pierde */
+html.light [data-view="gift-cards"] .text-lg.font-bold.text-white { color: #0f172a !important; }
+
+/* Backdrop de modales — el negro/70 queda muy intrusivo en claro; lo
+   bajamos a un overlay slate suave que respete el modo */
+html.light [data-view="gift-cards"] .bg-black\/70            { background-color: rgba(15, 23, 42, 0.45) !important; }
+
+/* Empty state — icono Gift con opacity-30 se ve perdido en claro */
+html.light [data-view="gift-cards"] .opacity-30              { opacity: 0.5 !important; }
+
 /* Evitar auto-zoom en iOS Safari al enfocar campos de formulario en pantallas móviles */
 @media (max-width: 767px) {
   input, select, textarea {
