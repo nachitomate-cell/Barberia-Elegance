@@ -44,15 +44,19 @@ function ModalActivar({ tenantId, cuentasUids, onClose }) {
     const merged = new Map(); // uid → { uid, nombre, telefono }
     let usersReady = false;
     let clientesReady = false;
-    let citasReady = false;
     function emit() {
       const list = Array.from(merged.values())
         .filter(u => u.nombre && u.nombre.trim())
         .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
       setTodosUsuarios(list);
     }
+    // Apagamos el "buscando" apenas tengamos las fuentes principales
+    // (users + clientes son onSnapshot instantáneas). El fallback de citas
+    // tarda y NO debe bloquear el input — si lo bloquea, el usuario ve
+    // sugerencias pero no puede escribir para filtrar. Citas hace emit()
+    // por su cuenta cuando termina y sólo agrega nombres faltantes.
     function maybeDone() {
-      if (usersReady && clientesReady && citasReady) setBuscando(false);
+      if (usersReady && clientesReady) setBuscando(false);
     }
 
     const unsubUsers = onSnapshot(
@@ -134,11 +138,10 @@ function ModalActivar({ tenantId, cuentasUids, onClose }) {
             telefono: telRaw || telN,
           });
         });
-        citasReady = true;
-        emit();
-        maybeDone();
+        emit(); // sólo re-emite con la lista enriquecida; no toca buscando
       } catch {
-        if (!cancelled) { citasReady = true; maybeDone(); }
+        // si falla, no pasa nada: ya teníamos users+clientes; sólo no se
+        // sumarán los clientes derivados de citas históricas.
       }
     })();
 
