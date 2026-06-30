@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import {
-  collection, onSnapshot, query,
+  collection, onSnapshot, query, getDocs,
   doc, updateDoc, setDoc, addDoc, Timestamp,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -31,14 +31,19 @@ function ModalActivar({ tenantId, cuentasUids, onClose }) {
 
   useEffect(() => {
     setBuscando(true);
-    // Leemos AMBAS colecciones: 'users' (cuentas de Firebase Auth) y 'clientes'
-    // (legacy/migrados, con doc-id = teléfono). Algunos clientes del club viven
-    // sólo en una y no en la otra. Combinamos por uid y nos quedamos con la
-    // versión más rica. También excluimos los users sin nombre (sesiones
-    // anónimas / registros incompletos) que ensucian el listado.
+    // Tres fuentes de clientes:
+    //   1. `users`     — cuentas Firebase Auth + perfiles pasivos auto-enroll.
+    //   2. `clientes`  — legacy/migrados, doc-id = teléfono.
+    //   3. `citas`     — fallback: cualquier cliente que haya tenido cita
+    //                    aunque nunca se haya enrolado al club. Agrupado por
+    //                    teléfono normalizado (mismo modelo que auto-enroll).
+    // Combinamos por uid y nos quedamos con la versión más rica. También
+    // excluimos los users sin nombre (sesiones anónimas / registros
+    // incompletos) que ensucian el listado.
     const merged = new Map(); // uid → { uid, nombre, telefono }
     let usersReady = false;
     let clientesReady = false;
+    let citasReady = false;
     function emit() {
       const list = Array.from(merged.values())
         .filter(u => u.nombre && u.nombre.trim())
@@ -46,7 +51,7 @@ function ModalActivar({ tenantId, cuentasUids, onClose }) {
       setTodosUsuarios(list);
     }
     function maybeDone() {
-      if (usersReady && clientesReady) setBuscando(false);
+      if (usersReady && clientesReady && citasReady) setBuscando(false);
     }
 
     const unsubUsers = onSnapshot(
@@ -94,7 +99,45 @@ function ModalActivar({ tenantId, cuentasUids, onClose }) {
       () => { clientesReady = true; maybeDone(); },
     );
 
-    return () => { unsubUsers(); unsubClientes(); };
+    // Fallback de citas: one-shot (no es necesario seguir cambios en vivo,
+    // y onSnapshot sobre todas las citas sería caro). El UID derivado es el
+    // teléfono normalizado, igual que el patrón de auto-enroll-cliente.js.
+    let cancelled = false;
+    (async () => {
+      try {
+        const snap = await getDocs(collection(db, 'tenants', tenantId, 'citas'));
+        if (cancelled) return;
+        snap.docs.forEach(d => {
+          const x = d.data();
+          const nombre = String(x.clienteNombre || '').trim();
+          const telRaw = String(x.clienteTelefono || '').trim();
+          const telN   = normalizePhone(telRaw);
+          if (!nombre || !telN) return;
+          // Si el cliente ya está en users/clientes por uid Auth o por su
+          // teléfono normalizado, no pisamos. Solo lo agregamos como entrada
+          // nueva si no existe en el merge.
+          if (merged.has(telN)) return;
+          // También evita duplicar cuando el mismo teléfono aparece bajo un
+          // uid de Auth distinto: lo detectamos buscando por campo telefono.
+          const yaPorTelefono = Array.from(merged.values()).some(
+            u => normalizePhone(u.telefono) === telN,
+          );
+          if (yaPorTelefono) return;
+          merged.set(telN, {
+            uid:      telN,
+            nombre,
+            telefono: telRaw || telN,
+          });
+        });
+        citasReady = true;
+        emit();
+        maybeDone();
+      } catch {
+        if (!cancelled) { citasReady = true; maybeDone(); }
+      }
+    })();
+
+    return () => { cancelled = true; unsubUsers(); unsubClientes(); };
   }, [tenantId]);
 
   // Clientes del club que aún no son miembros Corte al Lápiz.

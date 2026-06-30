@@ -47,6 +47,7 @@ const db = admin.firestore();
 const AUTO_ENROLL_TENANTS = new Set([
   'aura',
   'lumen', // D'Jones Barber (sin contraseña al Club, igual que aura)
+  'yugen', // Yügen Studio — necesario para listar clientes en Corte al Lápiz
 ]);
 
 function normalizePhone(phone) {
