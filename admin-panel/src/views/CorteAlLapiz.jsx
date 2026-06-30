@@ -516,6 +516,15 @@ export default function CorteAlLapiz() {
         </button>
       </div>
 
+      {/* Banner: módulo exclusivo de Yügen Studio */}
+      <div className="flex items-start gap-3 bg-amber-500/5 border border-amber-500/25 rounded-2xl px-4 py-3 shadow-sm">
+        <ShieldCheck size={18} className="text-amber-400 shrink-0 mt-0.5" />
+        <div className="text-xs text-slate-300 leading-relaxed">
+          <span className="font-bold text-amber-400">Módulo exclusivo de Yügen Studio.</span>{' '}
+          Corte al Lápiz es una membresía a cuenta corriente diseñada específicamente para este local — no está disponible en otras barberías de la plataforma.
+        </div>
+      </div>
+
       {/* Métricas */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
         <div className="bg-slate-800/40 border border-slate-700/60 rounded-2xl p-4 shadow-md relative overflow-hidden group">
