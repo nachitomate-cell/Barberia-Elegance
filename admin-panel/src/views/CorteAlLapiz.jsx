@@ -201,8 +201,14 @@ function ModalActivar({ tenantId, cuentasUids, onClose }) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-      <div className="w-full max-w-md bg-slate-800 border border-slate-700 rounded-2xl p-6 space-y-4 shadow-2xl relative">
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm px-4"
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        className="w-full max-w-md bg-slate-800 border border-slate-700 rounded-2xl p-6 space-y-4 shadow-2xl relative"
+      >
         <h3 className="text-white font-bold text-lg flex items-center gap-2">
           <ShieldCheck className="text-amber-400" size={20} />
           Activar Corte al Lápiz
