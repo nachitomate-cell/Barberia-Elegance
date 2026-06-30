@@ -5173,6 +5173,17 @@ async function ensureUserDoc(user, extra = {}) {
   const ref  = FDB.usersCol().doc(user.uid);
   const snap = await ref.get();
   if (!snap.exists) {
+    // Defense-in-depth: rehusar crear docs sin identificador. Pre-2026-06-25
+    // este path se disparaba con users anonimos (residual de chat.html) y
+    // dejo ~27 docs fantasma en tenants/yugen/users. Hoy los ghost guards
+    // de los onAuthStateChanged ya filtran antes, pero si algun caller
+    // futuro olvida ese guard, el doc basura no se materializa.
+    const nombreFinal = (extra.nombre || user.displayName || '').trim();
+    const emailFinal  = (user.email || '').trim();
+    if (!nombreFinal && !emailFinal) {
+      console.warn('[ensureUserDoc] skip ghost user', user.uid);
+      return null;
+    }
     await ref.set({
       nombre:   extra.nombre   || user.displayName || '',
       email:    user.email     || '',
