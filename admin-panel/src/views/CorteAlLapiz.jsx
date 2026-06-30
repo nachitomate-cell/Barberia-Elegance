@@ -203,12 +203,21 @@ function ModalActivar({ tenantId, cuentasUids, onClose }) {
   return (
     <div
       onClick={onClose}
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm px-4"
+      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
     >
       <div
         onClick={e => e.stopPropagation()}
-        className="w-full max-w-md bg-slate-800 border border-slate-700 rounded-2xl p-6 space-y-4 shadow-2xl relative"
+        className="
+          fixed bottom-0 inset-x-0 w-full rounded-t-3xl pb-8
+          md:inset-auto md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2
+          md:rounded-2xl md:w-full md:max-w-md md:pb-6
+          bg-slate-800 border border-slate-700 px-6 pt-2 md:pt-6 shadow-2xl relative
+        "
       >
+        {/* Drag handle estilo iOS (solo mobile) */}
+        <div className="block md:hidden w-12 h-1.5 bg-slate-600 rounded-full mx-auto mt-2 mb-4" />
+
+        <div className="space-y-4">
         <h3 className="text-white font-bold text-lg flex items-center gap-2">
           <ShieldCheck className="text-amber-400" size={20} />
           Activar Corte al Lápiz
@@ -244,12 +253,12 @@ function ModalActivar({ tenantId, cuentasUids, onClose }) {
           </div>
 
           {clientesFiltrados.length > 0 && (
-            <div className="absolute z-10 left-0 right-0 mt-1.5 bg-slate-900 border border-slate-750 rounded-xl overflow-hidden shadow-2xl max-h-48 overflow-y-auto">
+            <div className="absolute z-10 left-0 right-0 mt-1.5 bg-slate-800 max-h-64 overflow-y-auto">
               {clientesFiltrados.map(u => (
                 <button key={u.uid}
                   onMouseDown={e => e.preventDefault()}
                   onClick={() => { setSelectedUser(u); setSearchVal(u.nombre); }}
-                  className="w-full text-left px-4 py-2.5 hover:bg-slate-800 text-sm text-slate-300 flex flex-col transition-colors border-b border-slate-800/40">
+                  className="w-full text-left py-4 px-2 text-sm text-slate-300 flex flex-col border-b border-slate-800 last:border-0 active:bg-slate-800/50 md:hover:bg-slate-800/50 rounded-lg transition-colors">
                   <span className="font-semibold text-white">{u.nombre}</span>
                   <span className="text-[10px] text-slate-500 mt-0.5">{u.telefono ? `Tel: ${u.telefono}` : `UID: ${u.uid.slice(0, 10)}…`}</span>
                 </button>
@@ -286,6 +295,7 @@ function ModalActivar({ tenantId, cuentasUids, onClose }) {
             className="flex-1 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-sm font-bold transition-all disabled:opacity-50 shadow-lg shadow-amber-950/20">
             {loading ? 'Activando…' : 'Activar'}
           </button>
+        </div>
         </div>
       </div>
     </div>
