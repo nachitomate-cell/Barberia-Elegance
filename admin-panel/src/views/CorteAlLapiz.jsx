@@ -501,7 +501,7 @@ export default function CorteAlLapiz() {
     <div className="p-4 md:p-6 max-w-4xl mx-auto space-y-6">
 
       {/* Encabezado */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
         <div>
           <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">{tenant.name}</p>
           <h1 className="text-2xl font-black text-white tracking-tight flex items-center gap-2">
@@ -511,7 +511,7 @@ export default function CorteAlLapiz() {
           <p className="text-xs text-slate-500 mt-1">Membresía a cuenta corriente · precio del servicio + {fmt(recargo)}</p>
         </div>
         <button onClick={() => setModalRecargo(true)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-700/80 text-slate-400 text-sm font-semibold hover:text-white hover:border-slate-500 hover:bg-slate-900/40 transition-all shadow-sm shrink-0">
+          className="w-full md:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-slate-700/80 text-slate-400 text-sm font-semibold hover:text-white hover:border-slate-500 hover:bg-slate-900/40 transition-all shadow-sm shrink-0">
           <Pencil size={15} /> Recargo por servicio
         </button>
       </div>
@@ -526,7 +526,7 @@ export default function CorteAlLapiz() {
       </div>
 
       {/* Métricas */}
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         <div className="bg-slate-800/40 border border-slate-700/60 rounded-2xl p-4 shadow-md relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-24 h-24 bg-amber-500/5 rounded-full blur-2xl group-hover:bg-amber-500/10 transition-all" />
           <div className="flex items-center gap-2 text-amber-400 mb-1">
@@ -540,7 +540,7 @@ export default function CorteAlLapiz() {
           </div>
           <p className="text-2xl font-black text-white">{activas.length}</p>
         </div>
-        <div className="bg-slate-800/40 border border-slate-700/60 rounded-2xl p-4 shadow-md relative overflow-hidden group col-span-2 md:col-span-1">
+        <div className="bg-slate-800/40 border border-slate-700/60 rounded-2xl p-4 shadow-md relative overflow-hidden group">
           <div className="flex items-center gap-2 text-indigo-400 mb-1">
             <Receipt size={15} /><span className="text-[10px] font-bold uppercase tracking-widest">Servicios sin saldar</span>
           </div>
@@ -551,13 +551,13 @@ export default function CorteAlLapiz() {
       {/* Tabla de miembros */}
       <div className="bg-slate-800/40 border border-slate-700/80 rounded-2xl overflow-hidden shadow-2xl backdrop-blur-sm">
         <div className="px-5 py-4 border-b border-slate-750 flex flex-col gap-3.5">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div className="flex items-center gap-2">
               <Users size={16} className="text-slate-400" />
               <span className="text-sm font-bold text-white">Miembros Corte al Lápiz</span>
             </div>
             <button onClick={() => setModalActivar(true)}
-              className="flex items-center gap-1.5 px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-amber-950/20 active:scale-95">
+              className="w-full md:w-auto flex items-center justify-center gap-1.5 px-4 py-2.5 md:py-2 bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold rounded-xl transition-all shadow-md shadow-amber-950/20 active:scale-95">
               <Plus size={14} /> Activar membresía
             </button>
           </div>
@@ -579,9 +579,9 @@ export default function CorteAlLapiz() {
             <span>Aún no hay miembros de Corte al Lápiz. Toca "Activar membresía" para agregar uno.</span>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead>
+          <div className="md:overflow-x-auto">
+            <table className="w-full text-left block md:table">
+              <thead className="hidden md:table-header-group">
                 <tr className="border-b border-slate-800 text-[10px] font-bold text-slate-500 uppercase tracking-widest bg-slate-900/10">
                   <th className="px-4 py-2.5">Cliente</th>
                   <th className="px-4 py-2.5">Servicios</th>
@@ -589,34 +589,53 @@ export default function CorteAlLapiz() {
                   <th className="px-4 py-2.5">Acciones</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="block md:table-row-group">
                 {filtradas.map(c => {
                   const saldo = Number(c.saldo) || 0;
                   return (
-                    <tr key={c.uid} className={`border-b border-slate-800/60 hover:bg-slate-800/10 transition-all ${saldo > 0 ? 'bg-amber-950/10' : ''}`}>
-                      <td className="px-4 py-3.5">
-                        <p className="text-sm font-semibold text-white">{c.nombre || '—'}</p>
-                        <p className="text-[10px] text-slate-500 mt-0.5">{c.telefono || c.uid.slice(0, 12) + '…'}</p>
+                    <tr
+                      key={c.uid}
+                      className={`block md:table-row border-b border-slate-800/60 md:hover:bg-slate-800/10 transition-all p-4 md:p-0 ${saldo > 0 ? 'bg-amber-950/10' : ''}`}
+                    >
+                      {/* Cliente (nombre + tel) */}
+                      <td className="block md:table-cell md:px-4 md:py-3.5">
+                        <p className="text-base md:text-sm font-semibold text-white">{c.nombre || '—'}</p>
+                        <p className="text-[11px] md:text-[10px] text-slate-500 mt-0.5">{c.telefono || c.uid.slice(0, 12) + '…'}</p>
                       </td>
-                      <td className="px-4 py-3.5">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 border border-slate-700 text-slate-300">
-                          {c.servicios?.length || 0}
-                        </span>
+
+                      {/* Servicios + Cuota en una fila en mobile */}
+                      <td className="block md:table-cell md:px-4 md:py-3.5 mt-3 md:mt-0">
+                        <div className="flex items-center justify-between md:block">
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 md:hidden">Servicios</span>
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 border border-slate-700 text-slate-300">
+                            {c.servicios?.length || 0}
+                          </span>
+                        </div>
                       </td>
-                      <td className="px-4 py-3.5">
-                        <span className={`font-black text-sm ${saldo > 0 ? 'text-amber-400' : 'text-slate-500'}`}>{fmt(saldo)}</span>
+                      <td className="block md:table-cell md:px-4 md:py-3.5 mt-2 md:mt-0">
+                        <div className="flex items-center justify-between md:block">
+                          <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500 md:hidden">Cuota a fin de mes</span>
+                          <span className={`font-black text-base md:text-sm ${saldo > 0 ? 'text-amber-400' : 'text-slate-500'}`}>{fmt(saldo)}</span>
+                        </div>
                       </td>
-                      <td className="px-4 py-3.5">
-                        <div className="flex items-center gap-2">
-                          <button onClick={() => setCuentaSaldar(c)} disabled={saldo <= 0}
+
+                      {/* Acciones */}
+                      <td className="block md:table-cell md:px-4 md:py-3.5 mt-4 md:mt-0">
+                        <div className="flex items-center gap-2 md:gap-2 w-full md:w-auto">
+                          <button
+                            onClick={() => setCuentaSaldar(c)}
+                            disabled={saldo <= 0}
                             title="Saldar cuota"
-                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold text-amber-400 hover:text-white hover:bg-amber-600 transition-all disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-amber-400">
-                            <HandCoins size={13} /> Saldar
+                            className="flex-1 md:flex-none flex items-center justify-center gap-1.5 px-4 md:px-2.5 py-2.5 md:py-1.5 rounded-xl md:rounded-lg text-sm md:text-xs font-bold text-amber-400 bg-amber-500/10 md:bg-transparent hover:text-white hover:bg-amber-600 transition-all disabled:opacity-30 disabled:hover:bg-amber-500/10 md:disabled:hover:bg-transparent disabled:hover:text-amber-400 active:scale-95"
+                          >
+                            <HandCoins size={15} /> Saldar
                           </button>
-                          <button onClick={() => handleDesactivar(c)}
+                          <button
+                            onClick={() => handleDesactivar(c)}
                             title="Desactivar membresía"
-                            className="p-2 rounded-xl text-slate-400 hover:text-red-400 hover:bg-red-950/30 transition-all">
-                            <XCircle size={14} />
+                            className="p-3 md:p-2 rounded-xl text-slate-400 bg-slate-800/60 md:bg-transparent hover:text-red-400 hover:bg-red-950/30 transition-all active:scale-95"
+                          >
+                            <XCircle size={16} />
                           </button>
                         </div>
                       </td>
