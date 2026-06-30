@@ -11,14 +11,77 @@ import { useCollection } from '../hooks/useCollection';
 import { useClubUsers } from '../hooks/useClubUsers';
 import { useAuth } from '../contexts/AuthContext';
 import { useTenant } from '../contexts/TenantContext';
-import GiftCardDigitalExport from '../components/GiftCardDigitalExport';
+import GiftCardDigitalExport, { BG_PRESETS, TITLE_FONTS } from '../components/GiftCardDigitalExport';
 import {
   Gift, Plus, X, Copy, CheckCheck, AlertCircle, Search,
   CreditCard, Banknote, CheckCircle2, Clock, XCircle, MessageCircle, ExternalLink,
   QrCode, Camera, UserPlus, Loader2, Link2, Download, Sparkles, PartyPopper, ImageDown, Eye,
-  ImagePlus, Trash2,
+  ImagePlus, Trash2, Palette,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
+
+/* ── Diseño: defaults + paletas ───────────────────────────────────────
+   Todo se persiste en `config/giftcards`. Cuando hay templateImageUrl
+   se usa la imagen como fondo; bgPreset solo aplica si no hay imagen. */
+const DEFAULT_DESIGN = {
+  templateImageUrl: '',
+  bgPreset:         'default',
+  accentColor:      '#10b981',
+  textColor:        '#ffffff',
+  titleFont:        'playfair',
+  customMessage:    '',
+  overlayIntensity: 1,
+};
+
+const BG_PRESET_LABELS = {
+  default: 'Default',
+  royal:   'Royal',
+  sunset:  'Sunset',
+  mono:    'Mono',
+  forest:  'Bosque',
+};
+
+const ACCENT_COLORS = [
+  { id: 'emerald', hex: '#10b981', label: 'Esmeralda' },
+  { id: 'amber',   hex: '#f59e0b', label: 'Ámbar'     },
+  { id: 'violet',  hex: '#8b5cf6', label: 'Violeta'   },
+  { id: 'rose',    hex: '#f43f5e', label: 'Rosa'      },
+  { id: 'sky',     hex: '#0ea5e9', label: 'Cielo'     },
+  { id: 'white',   hex: '#fafafa', label: 'Blanco'    },
+];
+
+/* Paleta de colores para el texto. Incluye opciones oscuras para usar
+   con imágenes claras como fondo. */
+const TEXT_COLORS = [
+  { id: 'white',  hex: '#ffffff', label: 'Blanco'      },
+  { id: 'cream',  hex: '#fef3c7', label: 'Crema'       },
+  { id: 'gold',   hex: '#fbbf24', label: 'Dorado'      },
+  { id: 'sky',    hex: '#bae6fd', label: 'Celeste'     },
+  { id: 'slate',  hex: '#cbd5e1', label: 'Pizarra'     },
+  { id: 'black',  hex: '#0a0a0a', label: 'Negro'       },
+  { id: 'navy',   hex: '#1e293b', label: 'Azul noche'  },
+  { id: 'maroon', hex: '#7f1d1d', label: 'Burdeo'      },
+];
+
+const TITLE_FONT_OPTIONS = [
+  { id: 'playfair',  label: 'Playfair'  },
+  { id: 'inter',     label: 'Inter'     },
+  { id: 'cormorant', label: 'Cormorant' },
+  { id: 'bebas',     label: 'Bebas'     },
+];
+
+/** Filtra el objeto de diseño a los campos que conoce el componente Export. */
+function pickDesign(d) {
+  return {
+    templateImageUrl: d.templateImageUrl || '',
+    bgPreset:         d.bgPreset         || DEFAULT_DESIGN.bgPreset,
+    accentColor:      d.accentColor      || DEFAULT_DESIGN.accentColor,
+    textColor:        d.textColor        || DEFAULT_DESIGN.textColor,
+    titleFont:        d.titleFont        || DEFAULT_DESIGN.titleFont,
+    customMessage:    d.customMessage    || '',
+    overlayIntensity: typeof d.overlayIntensity === 'number' ? d.overlayIntensity : DEFAULT_DESIGN.overlayIntensity,
+  };
+}
 
 /* ── Dominios públicos por tenant (link de venta directa) ───────────── */
 const PUBLIC_DOMAINS = {
@@ -201,15 +264,30 @@ function BuyerAutocomplete({ value, onSelect, onClear }) {
   );
 }
 
-/* ── TemplateUploader ───────────────────────────────────────────────
-   Sube una imagen al tenant que se usará como fondo full-bleed de TODAS
-   las gift cards futuras y el botón "Ver" de las existentes. Guardado
-   en config/giftcards.templateImageUrl. Reutiliza el path /marketing/
-   de Storage (mismas reglas: auth + 5MB + image). */
-function TemplateUploader({ tenantName, tenantLogo, value, onChange }) {
+/* ── DesignCustomizer ─────────────────────────────────────────────────
+   Panel unificado de personalización: fondo (preset o imagen), color de
+   acento, tipografía, mensaje personalizado e intensidad del overlay.
+   Persiste TODO en `config/giftcards` vía la callback `onUpdate(partial)`
+   que vive en el padre (escritura centralizada). La subida de imagen
+   reutiliza el path /marketing/ de Storage (mismas reglas: auth + 5MB). */
+function DesignCustomizer({ tenantName, tenantLogo, design, onUpdate }) {
   const [uploading,   setUploading]   = useState(false);
   const [removing,    setRemoving]    = useState(false);
   const [uploadError, setUploadError] = useState('');
+  // Borrador local del mensaje — debounce de 500ms antes de persistir.
+  const [messageDraft, setMessageDraft] = useState(design.customMessage || '');
+  const debounceRef = useRef(null);
+
+  useEffect(() => { setMessageDraft(design.customMessage || ''); }, [design.customMessage]);
+
+  useEffect(() => {
+    if (messageDraft === (design.customMessage || '')) return;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      onUpdate({ customMessage: messageDraft.slice(0, 50) });
+    }, 500);
+    return () => debounceRef.current && clearTimeout(debounceRef.current);
+  }, [messageDraft, design.customMessage, onUpdate]);
 
   const handleUpload = async (e) => {
     const file = e.target.files?.[0];
@@ -237,10 +315,7 @@ function TemplateUploader({ tenantName, tenantLogo, value, onChange }) {
         { contentType: file.type || 'image/jpeg' },
       );
       const url = await getDownloadURL(snap.ref);
-      await setDoc(tenantDoc('config', 'giftcards'),
-        { templateImageUrl: url, templateUpdatedAt: serverTimestamp() },
-        { merge: true });
-      onChange(url);
+      await onUpdate({ templateImageUrl: url });
     } catch (err) {
       console.error('[GiftCards/template] upload error:', err);
       setUploadError(err.code === 'storage/unauthorized'
@@ -257,10 +332,7 @@ function TemplateUploader({ tenantName, tenantLogo, value, onChange }) {
     setRemoving(true);
     setUploadError('');
     try {
-      await setDoc(tenantDoc('config', 'giftcards'),
-        { templateImageUrl: '', templateUpdatedAt: serverTimestamp() },
-        { merge: true });
-      onChange('');
+      await onUpdate({ templateImageUrl: '' });
     } catch (err) {
       console.error('[GiftCards/template] remove error:', err);
       setUploadError('No se pudo quitar la plantilla. Intenta de nuevo.');
@@ -269,80 +341,255 @@ function TemplateUploader({ tenantName, tenantLogo, value, onChange }) {
     }
   };
 
+  const hasImage = !!design.templateImageUrl;
+
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 sm:p-5">
-      <div className="flex items-start gap-2 mb-4">
+    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 sm:p-5 space-y-5">
+      {/* Encabezado */}
+      <div className="flex items-start gap-2">
         <div className="bg-violet-500/10 rounded-xl p-2 shrink-0">
-          <ImagePlus size={16} className="text-violet-400" />
+          <Palette size={16} className="text-violet-400" />
         </div>
         <div className="min-w-0">
-          <p className="text-sm font-bold text-white">Plantilla de tarjeta</p>
+          <p className="text-sm font-bold text-white">Personalizar diseño</p>
           <p className="text-xs text-slate-400 mt-0.5">
-            Sube una imagen y se usará como fondo de todas tus Gift Cards. Recomendado: <span className="text-slate-300">400×250 px</span> (8:5).
+            Estos ajustes se aplican a <span className="text-slate-300">todas</span> tus Gift Cards (nuevas y existentes).
           </p>
         </div>
       </div>
 
-      <div className="flex flex-col sm:flex-row gap-4 items-start">
-        {/* Preview escalado (60%) */}
-        <div className="mx-auto sm:mx-0" style={{ width: 240, height: 150 }}>
-          <div style={{ transform: 'scale(0.6)', transformOrigin: 'top left' }}>
+      {/* Preview vivo */}
+      <div className="flex items-center justify-center bg-slate-950/40 border border-slate-800/60 rounded-xl py-3">
+        <div style={{ width: 280, height: 175 }}>
+          <div style={{ transform: 'scale(0.7)', transformOrigin: 'top left' }}>
             <GiftCardDigitalExport
               monto={15000}
               codigo="DEMO-XXXX-XXXX"
               urlQR="https://example.com"
               nombreTenant={tenantName}
               logoTenant={tenantLogo}
-              templateImageUrl={value || ''}
+              nombreDestinatario="Tu cliente"
+              {...pickDesign(design)}
             />
           </div>
         </div>
+      </div>
 
-        {/* Acciones */}
-        <div className="flex-1 w-full space-y-2">
-          <label className={`block w-full cursor-pointer text-center px-3 py-2.5 rounded-lg text-sm font-bold border transition-all ${
-            value
-              ? 'bg-slate-800 text-slate-200 hover:bg-slate-700 border-slate-700'
-              : 'bg-violet-500/15 text-violet-300 hover:bg-violet-500/25 border-violet-500/30'
-          } ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
-            {uploading
-              ? <span className="inline-flex items-center gap-2"><Loader2 size={14} className="animate-spin" /> Subiendo…</span>
-              : value
-                ? <span className="inline-flex items-center gap-2"><ImagePlus size={14} /> Cambiar imagen</span>
-                : <span className="inline-flex items-center gap-2"><ImagePlus size={14} /> Subir imagen</span>}
-            <input type="file" accept="image/*" onChange={handleUpload} className="hidden" />
-          </label>
+      {/* Fondo — presets */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">Fondo</p>
+          {hasImage && (
+            <span className="text-[10px] text-slate-500 italic">Usando imagen personalizada</span>
+          )}
+        </div>
+        <div className="grid grid-cols-5 gap-1.5">
+          {Object.entries(BG_PRESETS).map(([id, p]) => {
+            const active = !hasImage && design.bgPreset === id;
+            return (
+              <button
+                key={id} type="button"
+                onClick={() => onUpdate({ bgPreset: id })}
+                disabled={hasImage}
+                title={BG_PRESET_LABELS[id] || id}
+                className={`relative aspect-[8/5] rounded-lg border transition-all overflow-hidden ${
+                  active ? 'border-violet-400 ring-2 ring-violet-500/30' : 'border-slate-700 hover:border-slate-500'
+                } ${hasImage ? 'opacity-40 cursor-not-allowed' : ''}`}
+                style={{ background: p.gradient }}
+              >
+                {active && (
+                  <span className="absolute top-1 right-1 bg-slate-900/90 rounded-full">
+                    <CheckCircle2 size={12} className="text-violet-300" />
+                  </span>
+                )}
+                <span className="absolute bottom-1 left-1.5 text-[9px] font-semibold text-white/80 tracking-wide">
+                  {BG_PRESET_LABELS[id]}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
-          {value && (
+      {/* Imagen personalizada */}
+      <div className="border-t border-slate-800 pt-4">
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">Imagen personalizada</p>
+          {hasImage && (
             <button
-              type="button"
-              onClick={handleRemove}
-              disabled={removing}
-              className="w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold bg-slate-800/60 text-slate-400 hover:text-red-300 hover:bg-red-500/10 border border-slate-800 hover:border-red-500/20 transition-all disabled:opacity-50"
+              type="button" onClick={handleRemove} disabled={removing}
+              className="text-[11px] text-slate-400 hover:text-red-400 disabled:opacity-50 flex items-center gap-1 transition-colors"
             >
-              {removing
-                ? <><Loader2 size={12} className="animate-spin" /> Quitando…</>
-                : <><Trash2 size={12} /> Quitar plantilla</>}
+              {removing ? <Loader2 size={11} className="animate-spin" /> : <Trash2 size={11} />}
+              Quitar
             </button>
           )}
+        </div>
+        <label className={`block w-full cursor-pointer text-center px-3 py-2.5 rounded-lg text-sm font-bold border transition-all ${
+          hasImage
+            ? 'bg-slate-800 text-slate-200 hover:bg-slate-700 border-slate-700'
+            : 'bg-violet-500/15 text-violet-300 hover:bg-violet-500/25 border-violet-500/30'
+        } ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
+          {uploading
+            ? <span className="inline-flex items-center gap-2"><Loader2 size={14} className="animate-spin" /> Subiendo…</span>
+            : hasImage
+              ? <span className="inline-flex items-center gap-2"><ImagePlus size={14} /> Cambiar imagen</span>
+              : <span className="inline-flex items-center gap-2"><ImagePlus size={14} /> Subir imagen (400×250)</span>}
+          <input type="file" accept="image/*" onChange={handleUpload} className="hidden" />
+        </label>
+        {uploadError && (
+          <p className="text-xs text-red-400 flex items-center gap-1 mt-1.5">
+            <AlertCircle size={12} /> {uploadError}
+          </p>
+        )}
+        {!uploadError && (
+          <p className="text-[10px] text-slate-500 mt-1.5 leading-relaxed">
+            Si subes una imagen, reemplaza el fondo predefinido. Deja espacio libre arriba‑derecha (QR) y abajo‑izquierda (monto y código).
+          </p>
+        )}
+      </div>
 
-          {uploadError && (
-            <p className="text-xs text-red-400 flex items-center gap-1">
-              <AlertCircle size={12} /> {uploadError}
-            </p>
-          )}
-
-          <p className="text-[11px] text-slate-500 leading-relaxed">
-            El monto, código y QR se dibujan automáticamente sobre la imagen. Usa una foto con espacio libre arriba a la derecha (QR) y abajo a la izquierda (monto y código).
+      {/* Overlay — solo si hay imagen */}
+      {hasImage && (
+        <div className="border-t border-slate-800 pt-4">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">Intensidad del overlay</p>
+            <span className="text-[11px] text-slate-500 tabular-nums">{Math.round((design.overlayIntensity ?? 1) * 100)}%</span>
+          </div>
+          <input
+            type="range" min="0" max="1" step="0.05"
+            value={design.overlayIntensity ?? 1}
+            onChange={e => onUpdate({ overlayIntensity: Number(e.target.value) })}
+            className="w-full accent-violet-500"
+          />
+          <p className="text-[10px] text-slate-500 mt-1">
+            Más alto = texto más legible. Más bajo = imagen más visible.
           </p>
         </div>
+      )}
+
+      {/* Color de acento */}
+      <div className="border-t border-slate-800 pt-4">
+        <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">Color de acento</p>
+        <div className="flex flex-wrap gap-2">
+          {ACCENT_COLORS.map(c => {
+            const active = design.accentColor === c.hex;
+            return (
+              <button
+                key={c.id} type="button"
+                onClick={() => onUpdate({ accentColor: c.hex })}
+                title={c.label}
+                className={`w-9 h-9 rounded-full border-2 transition-all flex items-center justify-center ${
+                  active ? 'border-white scale-110 shadow-lg' : 'border-slate-700 hover:border-slate-500'
+                }`}
+                style={{ backgroundColor: c.hex }}
+              >
+                {active && <CheckCircle2 size={14} className="text-slate-900 drop-shadow" />}
+              </button>
+            );
+          })}
+        </div>
+        <p className="text-[10px] text-slate-500 mt-2">
+          Pinta el código de la tarjeta y el destello principal.
+        </p>
+      </div>
+
+      {/* Color del texto */}
+      <div className="border-t border-slate-800 pt-4">
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">Color del texto</p>
+          {/* Color picker libre — para tonos que no estén en la paleta. */}
+          <label className="flex items-center gap-1.5 text-[11px] text-slate-400 hover:text-slate-200 cursor-pointer transition-colors">
+            <span>Personalizado</span>
+            <input
+              type="color"
+              value={design.textColor || '#ffffff'}
+              onChange={e => onUpdate({ textColor: e.target.value })}
+              className="w-5 h-5 rounded cursor-pointer bg-transparent border border-slate-600"
+              title="Elegir color exacto"
+            />
+          </label>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {TEXT_COLORS.map(c => {
+            const active = (design.textColor || '#ffffff').toLowerCase() === c.hex.toLowerCase();
+            const isDark = ['#0a0a0a', '#1e293b', '#7f1d1d'].includes(c.hex);
+            return (
+              <button
+                key={c.id} type="button"
+                onClick={() => onUpdate({ textColor: c.hex })}
+                title={c.label}
+                className={`w-9 h-9 rounded-full border-2 transition-all flex items-center justify-center ${
+                  active ? 'border-white scale-110 shadow-lg' : 'border-slate-700 hover:border-slate-500'
+                }`}
+                style={{ backgroundColor: c.hex }}
+              >
+                {active && (
+                  <CheckCircle2
+                    size={14}
+                    className={isDark ? 'text-white drop-shadow' : 'text-slate-900 drop-shadow'}
+                  />
+                )}
+              </button>
+            );
+          })}
+        </div>
+        <p className="text-[10px] text-slate-500 mt-2">
+          Afecta el nombre del local, monto y mensaje. Usá tonos oscuros si tu imagen de fondo es clara.
+        </p>
+      </div>
+
+      {/* Tipografía */}
+      <div className="border-t border-slate-800 pt-4">
+        <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">Tipografía del nombre</p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          {TITLE_FONT_OPTIONS.map(f => {
+            const active = design.titleFont === f.id;
+            return (
+              <button
+                key={f.id} type="button"
+                onClick={() => onUpdate({ titleFont: f.id })}
+                className={`px-3 py-2 rounded-lg border transition-all text-left ${
+                  active ? 'bg-violet-500/15 border-violet-500/40' : 'bg-slate-800 border-slate-700 hover:border-slate-600'
+                }`}
+              >
+                <p
+                  className="text-base text-white font-bold truncate leading-tight"
+                  style={{ fontFamily: TITLE_FONTS[f.id] }}
+                >
+                  {tenantName || 'Tu local'}
+                </p>
+                <p className="text-[10px] text-slate-500 mt-1 uppercase tracking-wide">{f.label}</p>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Mensaje personalizado */}
+      <div className="border-t border-slate-800 pt-4">
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">Mensaje (opcional)</p>
+          <span className="text-[11px] text-slate-500 tabular-nums">{messageDraft.length}/50</span>
+        </div>
+        <input
+          type="text"
+          value={messageDraft}
+          maxLength={50}
+          onChange={e => setMessageDraft(e.target.value)}
+          placeholder='Ej: "Un regalo con estilo"'
+          className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-violet-500 focus:outline-none"
+        />
+        <p className="text-[10px] text-slate-500 mt-1">
+          Aparece como una frase corta sobre el monto. Déjalo vacío para no mostrarlo.
+        </p>
       </div>
     </div>
   );
 }
 
 /* ── CreateModal ──────────────────────────────────────────────────── */
-function CreateModal({ tenantId, tenantName, tenantLogo, templateImageUrl, user, onClose }) {
+function CreateModal({ tenantId, tenantName, tenantLogo, design, user, onClose }) {
   const [valor, setValor] = useState('');
   const [nombre, setNombre] = useState('');
   const [vence, setVence] = useState('');
@@ -442,7 +689,7 @@ function CreateModal({ tenantId, tenantName, tenantLogo, templateImageUrl, user,
                 nombreTenant={tenantName}
                 logoTenant={tenantLogo}
                 nombreDestinatario={created.nombre !== 'Sin nombre' ? created.nombre : undefined}
-                templateImageUrl={templateImageUrl}
+                {...pickDesign(design)}
               />
             </div>
 
@@ -469,7 +716,7 @@ function CreateModal({ tenantId, tenantName, tenantLogo, templateImageUrl, user,
                   nombreTenant={tenantName}
                   logoTenant={tenantLogo}
                   nombreDestinatario={created.nombre !== 'Sin nombre' ? created.nombre : undefined}
-                  templateImageUrl={templateImageUrl}
+                  {...pickDesign(design)}
                 />
               </div>
             </div>
@@ -818,7 +1065,7 @@ function RedeemModal({ giftCards, tenantId, user, onClose }) {
    y descargarla. Misma estructura de captura que CreateModal: la
    instancia full-size se renderiza oculta y la previsualización en
    pantalla es una copia escalada. */
-function ViewCardModal({ gc, tenantName, tenantLogo, templateImageUrl, onClose }) {
+function ViewCardModal({ gc, tenantName, tenantLogo, design, onClose }) {
   const cardRef = useRef(null);
   const [downloadingImg, setDownloadingImg] = useState(false);
 
@@ -867,7 +1114,7 @@ function ViewCardModal({ gc, tenantName, tenantLogo, templateImageUrl, onClose }
             nombreTenant={tenantName}
             logoTenant={tenantLogo}
             nombreDestinatario={destinatario}
-            templateImageUrl={templateImageUrl}
+            {...pickDesign(design)}
           />
         </div>
 
@@ -881,7 +1128,7 @@ function ViewCardModal({ gc, tenantName, tenantLogo, templateImageUrl, onClose }
               nombreTenant={tenantName}
               logoTenant={tenantLogo}
               nombreDestinatario={destinatario}
-              templateImageUrl={templateImageUrl}
+              {...pickDesign(design)}
             />
           </div>
         </div>
@@ -911,7 +1158,7 @@ function ViewCardModal({ gc, tenantName, tenantLogo, templateImageUrl, onClose }
 }
 
 /* ── GiftCardRow ──────────────────────────────────────────────────── */
-function GiftCardRow({ gc, tenantName, tenantLogo, templateImageUrl }) {
+function GiftCardRow({ gc, tenantName, tenantLogo, design }) {
   const [copied, setCopied] = useState(false);
   const [viewing, setViewing] = useState(false);
   const cfg = STATUS_CONFIG[gc.estado] || STATUS_CONFIG.activa;
@@ -964,7 +1211,7 @@ function GiftCardRow({ gc, tenantName, tenantLogo, templateImageUrl }) {
             gc={gc}
             tenantName={tenantName}
             tenantLogo={tenantLogo}
-            templateImageUrl={templateImageUrl}
+            design={design}
             onClose={() => setViewing(false)}
           />
         )}
@@ -1025,21 +1272,46 @@ export default function GiftCards() {
   const [showRedeem, setShowRedeem] = useState(false);
   const [filter, setFilter] = useState('todas');
   const [search, setSearch] = useState('');
-  const [templateImageUrl, setTemplateImageUrl] = useState('');
+  const [design, setDesign] = useState(DEFAULT_DESIGN);
 
-  // Carga única de la plantilla configurada para este tenant. Vive en
-  // config/giftcards.templateImageUrl y se actualiza desde el uploader.
+  // Carga única de TODOS los ajustes de diseño del tenant. Viven en el
+  // mismo doc config/giftcards (templateImageUrl + nuevos campos).
   useEffect(() => {
     let alive = true;
-    withTimeout(getDoc(tenantDoc('config', 'giftcards')), 10000, 'giftcards/template')
+    setDesign(DEFAULT_DESIGN); // reset al cambiar tenant
+    withTimeout(getDoc(tenantDoc('config', 'giftcards')), 10000, 'giftcards/design')
       .then(snap => {
         if (!alive) return;
-        const url = snap.exists() ? (snap.data().templateImageUrl || '') : '';
-        setTemplateImageUrl(url);
+        if (!snap.exists()) return;
+        const d = snap.data() || {};
+        setDesign(prev => ({
+          ...prev,
+          templateImageUrl: d.templateImageUrl || '',
+          bgPreset:         d.bgPreset         || prev.bgPreset,
+          accentColor:      d.accentColor      || prev.accentColor,
+          textColor:        d.textColor        || prev.textColor,
+          titleFont:        d.titleFont        || prev.titleFont,
+          customMessage:    d.customMessage    || '',
+          overlayIntensity: typeof d.overlayIntensity === 'number' ? d.overlayIntensity : prev.overlayIntensity,
+        }));
       })
-      .catch(() => { /* sin plantilla: usamos el default */ });
+      .catch(() => { /* sin config: usamos los defaults */ });
     return () => { alive = false; };
   }, [tenantId]);
+
+  /** Actualiza el diseño en memoria y lo persiste en Firestore (merge). */
+  const updateDesign = useCallback(async (partial) => {
+    setDesign(prev => ({ ...prev, ...partial }));
+    try {
+      await setDoc(
+        tenantDoc('config', 'giftcards'),
+        { ...partial, templateUpdatedAt: serverTimestamp() },
+        { merge: true },
+      );
+    } catch (err) {
+      console.error('[GiftCards/design] save error:', err);
+    }
+  }, []);
 
   const { data: giftCards = [] } = useCollection('giftCards');
 
@@ -1149,18 +1421,18 @@ export default function GiftCards() {
               gc={gc}
               tenantName={tenantName}
               tenantLogo={tenantLogo}
-              templateImageUrl={templateImageUrl}
+              design={design}
             />
           ))}
         </div>
       )}
 
-      {/* Plantilla personalizada (fondo de las tarjetas) */}
-      <TemplateUploader
+      {/* Personalización del diseño (fondo, color, tipografía, mensaje) */}
+      <DesignCustomizer
         tenantName={tenantName}
         tenantLogo={tenantLogo}
-        value={templateImageUrl}
-        onChange={setTemplateImageUrl}
+        design={design}
+        onUpdate={updateDesign}
       />
 
       {/* Links públicos */}
@@ -1190,7 +1462,7 @@ export default function GiftCards() {
             tenantId={tenantId}
             tenantName={tenantName}
             tenantLogo={tenantLogo}
-            templateImageUrl={templateImageUrl}
+            design={design}
             user={user}
             onClose={() => setShowCreate(false)}
           />
