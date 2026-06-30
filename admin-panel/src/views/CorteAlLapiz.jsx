@@ -4,6 +4,7 @@ import {
   doc, updateDoc, setDoc, addDoc, Timestamp,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+import { withTimeout } from '../lib/firestore-helpers';
 import { useTenant } from '../contexts/TenantContext';
 import { confirmDialog } from '../lib/confirmDialog';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
@@ -105,7 +106,11 @@ function ModalActivar({ tenantId, cuentasUids, onClose }) {
     let cancelled = false;
     (async () => {
       try {
-        const snap = await getDocs(collection(db, 'tenants', tenantId, 'citas'));
+        const snap = await withTimeout(
+          getDocs(collection(db, 'tenants', tenantId, 'citas')),
+          20000,
+          'corte-lapiz/citas-fallback',
+        );
         if (cancelled) return;
         snap.docs.forEach(d => {
           const x = d.data();
