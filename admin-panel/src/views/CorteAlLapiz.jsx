@@ -31,18 +31,70 @@ function ModalActivar({ tenantId, cuentasUids, onClose }) {
 
   useEffect(() => {
     setBuscando(true);
-    const ref = collection(db, 'tenants', tenantId, 'users');
-    const unsub = onSnapshot(ref, snap => {
-      const list = snap.docs.map(d => ({
-        uid:      d.id,
-        nombre:   d.data().nombre || 'Cliente sin nombre',
-        telefono: d.data().telefono || '',
-      }));
-      list.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+    // Leemos AMBAS colecciones: 'users' (cuentas de Firebase Auth) y 'clientes'
+    // (legacy/migrados, con doc-id = teléfono). Algunos clientes del club viven
+    // sólo en una y no en la otra. Combinamos por uid y nos quedamos con la
+    // versión más rica. También excluimos los users sin nombre (sesiones
+    // anónimas / registros incompletos) que ensucian el listado.
+    const merged = new Map(); // uid → { uid, nombre, telefono }
+    let usersReady = false;
+    let clientesReady = false;
+    function emit() {
+      const list = Array.from(merged.values())
+        .filter(u => u.nombre && u.nombre.trim())
+        .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
       setTodosUsuarios(list);
-      setBuscando(false);
-    }, () => setBuscando(false));
-    return unsub;
+    }
+    function maybeDone() {
+      if (usersReady && clientesReady) setBuscando(false);
+    }
+
+    const unsubUsers = onSnapshot(
+      collection(db, 'tenants', tenantId, 'users'),
+      snap => {
+        snap.docs.forEach(d => {
+          const x = d.data();
+          const nombre = (x.nombre || '').trim();
+          if (!nombre) return; // descartamos anónimos sin nombre
+          const prev = merged.get(d.id) || {};
+          merged.set(d.id, {
+            uid:      d.id,
+            nombre:   nombre || prev.nombre || '',
+            telefono: x.telefono || prev.telefono || '',
+          });
+        });
+        usersReady = true;
+        emit();
+        maybeDone();
+      },
+      () => { usersReady = true; maybeDone(); },
+    );
+
+    const unsubClientes = onSnapshot(
+      collection(db, 'tenants', tenantId, 'clientes'),
+      snap => {
+        snap.docs.forEach(d => {
+          const x = d.data();
+          const uid    = x.uid || d.id; // los legacy tienen uid en el campo
+          const nombre = (x.nombre || '').trim();
+          if (!nombre || !uid) return;
+          const prev = merged.get(uid) || {};
+          // Si ya está en `users`, no pisamos su data (esa suele ser más fresca);
+          // sólo completamos campos faltantes.
+          merged.set(uid, {
+            uid,
+            nombre:   prev.nombre   || nombre,
+            telefono: prev.telefono || x.telefono || '',
+          });
+        });
+        clientesReady = true;
+        emit();
+        maybeDone();
+      },
+      () => { clientesReady = true; maybeDone(); },
+    );
+
+    return () => { unsubUsers(); unsubClientes(); };
   }, [tenantId]);
 
   // Clientes del club que aún no son miembros Corte al Lápiz.
