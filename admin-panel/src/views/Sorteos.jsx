@@ -1,9 +1,13 @@
 import { useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { addDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
+import { QRCodeSVG } from 'qrcode.react';
+import confetti from 'canvas-confetti';
 import {
   Trophy, Plus, X, Eye, Link2, CheckCheck, Search, Calendar,
   Users, Sparkles, Loader2, PartyPopper, Ticket, AlertCircle,
+  Copy, QrCode,
 } from 'lucide-react';
 import { tenantCol, tenantDoc } from '../lib/tenantUtils';
 import { useCollection } from '../hooks/useCollection';
@@ -33,6 +37,31 @@ function isClosingDay(end) {
   if (!end) return false;
   const e = new Date(`${end}T23:59:59`);
   return e.getTime() <= Date.now();
+}
+
+/** Formatea "YYYY-MM-DD" → "dd/mm/YYYY" para mostrar debajo del <input type="date">.
+ *  El navegador puede mostrar el input en formato US según el locale del SO;
+ *  esta línea de refuerzo hace explícito el formato chileno bajo el campo. */
+function formatCLDate(ymd) {
+  if (!ymd) return '';
+  const [y, m, d] = ymd.split('-');
+  if (!y || !m || !d) return '';
+  return `${d}/${m}/${y}`;
+}
+
+/** Progreso 0..100 de un sorteo según sus fechas y "ahora".
+ *  - Antes del inicio → 0
+ *  - Después del cierre → 100
+ *  - En rango → proporción del tiempo transcurrido. */
+function computeProgress(inicio, fin) {
+  if (!inicio || !fin) return 0;
+  const s = new Date(`${inicio}T00:00:00`).getTime();
+  const e = new Date(`${fin}T23:59:59`).getTime();
+  if (isNaN(s) || isNaN(e) || e <= s) return 0;
+  const now = Date.now();
+  if (now <= s) return 0;
+  if (now >= e) return 100;
+  return Math.min(100, Math.max(0, Math.round(((now - s) / (e - s)) * 100)));
 }
 
 const STATUS_CONFIG = {
@@ -145,20 +174,22 @@ function CreateSorteoModal({ onClose, user }) {
           <div>
             <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Inicio</label>
             <input
-              type="date" value={inicio} onChange={e => setInicio(e.target.value)}
+              type="date" lang="es-CL" value={inicio} onChange={e => setInicio(e.target.value)}
               className="mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none"
               disabled={submitting}
               required
             />
+            {inicio && <p className="mt-1 text-[10px] text-slate-500 tabular-nums">{formatCLDate(inicio)}</p>}
           </div>
           <div>
             <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Cierre</label>
             <input
-              type="date" value={fin} onChange={e => setFin(e.target.value)} min={inicio || undefined}
+              type="date" lang="es-CL" value={fin} onChange={e => setFin(e.target.value)} min={inicio || undefined}
               className="mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none"
               disabled={submitting}
               required
             />
+            {fin && <p className="mt-1 text-[10px] text-slate-500 tabular-nums">{formatCLDate(fin)}</p>}
           </div>
         </div>
 
@@ -182,6 +213,18 @@ function CreateSorteoModal({ onClose, user }) {
 /* ── DetailModal ──────────────────────────────────────────────────── */
 function DetailModal({ sorteo, onClose }) {
   const cfg = STATUS_CONFIG[sorteo.estado] || STATUS_CONFIG.activo;
+  const isActivo = sorteo.estado === 'activo';
+  const publicUrl = `${window.location.origin}/sorteo/${sorteo.id}`;
+  const [copied, setCopied] = useState(false);
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(publicUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch { /* noop */ }
+  };
+
   return (
     <ModalShell onClose={onClose}>
       <div className="flex items-center justify-between p-5 border-b border-slate-800">
@@ -196,7 +239,8 @@ function DetailModal({ sorteo, onClose }) {
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-base font-bold text-white truncate">{sorteo.nombre}</p>
-            <p className="text-xs font-mono text-slate-500 mt-0.5">{sorteo.id}</p>
+            {/* ID muy tenue — para depuración/soporte, no ruido visual. */}
+            <p className="text-[10px] font-mono text-slate-700 mt-0.5 truncate select-all">{sorteo.id}</p>
           </div>
           <span className={`text-xs font-semibold px-2 py-0.5 rounded border ${cfg.color} shrink-0`}>
             {cfg.label}
@@ -237,6 +281,30 @@ function DetailModal({ sorteo, onClose }) {
           </div>
         )}
 
+        {/* QR grande — solo tiene sentido para sorteos activos (link vivo). */}
+        {isActivo && (
+          <div className="bg-slate-800/40 border border-slate-700/60 rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <QrCode size={13} className="text-emerald-400" />
+              <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Escanea para participar</p>
+            </div>
+            <div className="mx-auto w-fit bg-white p-3 rounded-2xl">
+              <QRCodeSVG value={publicUrl} size={180} level="M" includeMargin={false} />
+            </div>
+            <p className="mt-3 text-[11px] text-center text-slate-500 leading-relaxed">
+              Muestra esta pantalla o imprime el QR para que tus clientes se inscriban desde su teléfono.
+            </p>
+            <button
+              onClick={copyLink}
+              className="mt-3 w-full inline-flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 transition-all"
+            >
+              {copied
+                ? <><CheckCheck size={13} className="text-emerald-400" /> Enlace copiado</>
+                : <><Copy size={13} /> Copiar enlace</>}
+            </button>
+          </div>
+        )}
+
         <button onClick={onClose} className="w-full py-2 rounded-xl text-sm text-slate-400 hover:text-white transition-colors">
           Cerrar
         </button>
@@ -253,6 +321,43 @@ const MOCK_PARTICIPANTES = [
   'Felipe Aguirre', 'Antonia Espinoza', 'Tomás Bravo', 'Isidora Castro',
 ];
 
+/** Explosión de confeti para el clímax de la ruleta.
+ *  Tres bursts (central + dos laterales) con timing escalonado para que
+ *  se sienta como una premiación. Colores marca (emerald + gold + white). */
+function fireWinnerConfetti() {
+  const COLORS = ['#10b981', '#059669', '#34d399', '#fbbf24', '#ffffff'];
+  // Burst central hacia arriba
+  confetti({
+    particleCount: 130,
+    spread: 100,
+    startVelocity: 55,
+    origin: { x: 0.5, y: 0.55 },
+    colors: COLORS,
+    zIndex: 9999,
+  });
+  // Laterales, 200ms después
+  setTimeout(() => {
+    confetti({
+      particleCount: 70,
+      angle: 60,
+      spread: 65,
+      startVelocity: 50,
+      origin: { x: 0, y: 0.6 },
+      colors: COLORS,
+      zIndex: 9999,
+    });
+    confetti({
+      particleCount: 70,
+      angle: 120,
+      spread: 65,
+      startVelocity: 50,
+      origin: { x: 1, y: 0.6 },
+      colors: COLORS,
+      zIndex: 9999,
+    });
+  }, 200);
+}
+
 function ElegirGanadorModal({ sorteo, onClose }) {
   const [spinning,   setSpinning]   = useState(true);
   const [currentName,setCurrentName]= useState(MOCK_PARTICIPANTES[0]);
@@ -260,7 +365,12 @@ function ElegirGanadorModal({ sorteo, onClose }) {
   const [confirming, setConfirming] = useState(false);
   const [error,      setError]      = useState('');
 
-  useEffect(() => {
+  // Corre la ruleta 1.8s ciclando nombres, luego fija el ganador.
+  // Encapsulada para reutilizar entre el mount inicial y el botón "Repetir".
+  const runSpin = () => {
+    setError('');
+    setSpinning(true);
+    setWinner(null);
     let i = 0;
     const tickInterval = setInterval(() => {
       i = (i + 1) % MOCK_PARTICIPANTES.length;
@@ -274,25 +384,25 @@ function ElegirGanadorModal({ sorteo, onClose }) {
       setSpinning(false);
     }, 1800);
     return () => { clearInterval(tickInterval); clearTimeout(stopAt); };
+  };
+
+  useEffect(() => {
+    const cleanup = runSpin();
+    return cleanup;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sorteo.id]);
+
+  // El clímax: dispara confeti cuando termina la ruleta y hay ganador.
+  // Se ejecuta en cada reveal (mount inicial + cada "Repetir").
+  useEffect(() => {
+    if (!spinning && winner) {
+      fireWinnerConfetti();
+    }
+  }, [spinning, winner]);
 
   const repetir = () => {
     if (confirming) return;
-    setError('');
-    setSpinning(true);
-    setWinner(null);
-    let i = 0;
-    const tickInterval = setInterval(() => {
-      i = (i + 1) % MOCK_PARTICIPANTES.length;
-      setCurrentName(MOCK_PARTICIPANTES[i]);
-    }, 90);
-    setTimeout(() => {
-      clearInterval(tickInterval);
-      const pick = MOCK_PARTICIPANTES[Math.floor(Math.random() * MOCK_PARTICIPANTES.length)];
-      setCurrentName(pick);
-      setWinner(pick);
-      setSpinning(false);
-    }, 1800);
+    runSpin();
   };
 
   const confirmar = async () => {
@@ -315,83 +425,162 @@ function ElegirGanadorModal({ sorteo, onClose }) {
 
   const locked = spinning || confirming;
 
-  return (
-    <ModalShell onClose={locked ? undefined : onClose}>
-      <div className="flex items-center justify-between p-5 border-b border-slate-800">
-        <p className="text-sm font-bold text-white">Elegir ganador</p>
-        <button onClick={locked ? undefined : onClose} disabled={locked} className="text-slate-500 hover:text-white disabled:opacity-30">
-          <X size={16} />
-        </button>
+  // Renderizado vía Portal directo a <body>: rompe el subtree del AdminLayout
+  // (que tiene overflow-hidden + overflow-y-auto en su main area, y transforms
+  // en varios contenedores). Sin esto, el modal queda "atrapado" dentro del
+  // área de contenido y el sidebar/topbar del panel se sigue viendo.
+  return createPortal(
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+      className="fixed inset-0 z-[9999] h-full w-full bg-slate-950/95 backdrop-blur-3xl flex flex-col items-center justify-center px-6"
+    >
+      {/* Halos de fondo — muy sutil ambient light */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: !spinning && winner ? 1 : 0.35 }}
+          transition={{ duration: 0.9 }}
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80vw] h-[80vw] max-w-[900px] max-h-[900px] rounded-full"
+          style={{
+            background: 'radial-gradient(circle, rgba(16,185,129,0.22) 0%, transparent 65%)',
+            filter: 'blur(60px)',
+          }}
+        />
       </div>
 
-      <div className="p-5 space-y-4">
-        <p className="text-xs text-slate-400 text-center">{sorteo.nombre}</p>
+      {/* Cerrar (solo cuando no está bloqueado) */}
+      <button
+        onClick={locked ? undefined : onClose}
+        disabled={locked}
+        aria-label="Cerrar"
+        className="absolute top-6 right-6 w-10 h-10 rounded-full flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/5 disabled:opacity-20 disabled:cursor-not-allowed transition-all z-10"
+      >
+        <X size={20} />
+      </button>
 
-        <div className="relative bg-slate-800/40 border border-slate-700/60 rounded-2xl p-6 overflow-hidden">
-          <motion.div
-            initial={{ opacity: 0, rotate: -20 }} animate={{ opacity: 1, rotate: 0 }}
-            transition={spring}
-            className="absolute -top-4 -right-4 w-20 h-20 rounded-full bg-emerald-500/20 blur-2xl pointer-events-none"
-          />
-          <div className="relative flex flex-col items-center text-center">
-            <motion.div
-              animate={spinning ? { rotate: 360 } : { rotate: 0 }}
-              transition={spinning ? { duration: 1.8, ease: 'easeOut' } : { duration: 0.3 }}
-              className="mb-3"
-            >
-              <Trophy size={32} className="text-emerald-400" />
-            </motion.div>
+      {/* Eyebrow con el nombre del sorteo */}
+      <div className="relative z-10 text-center mb-10 sm:mb-14">
+        <p className="text-[10px] uppercase tracking-[0.32em] text-slate-500 font-semibold">Sorteo</p>
+        <p className="mt-1.5 text-sm sm:text-base text-slate-300">{sorteo.nombre}</p>
+      </div>
 
-            <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500 mb-1">
-              {spinning ? 'Eligiendo...' : 'El ganador es'}
-            </p>
+      {/* Trofeo */}
+      <motion.div
+        animate={spinning
+          ? { rotate: [0, 8, -8, 8, 0], scale: [1, 1.05, 1] }
+          : { rotate: 0, scale: 1.1 }}
+        transition={spinning
+          ? { duration: 0.5, repeat: Infinity, ease: 'easeInOut' }
+          : { duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+        className="relative z-10 mb-8 sm:mb-10"
+      >
+        <Trophy
+          size={72}
+          className={`transition-colors duration-500 ${!spinning && winner ? 'text-emerald-300' : 'text-emerald-400/80'}`}
+          style={{
+            filter: !spinning && winner
+              ? 'drop-shadow(0 0 40px rgba(16,185,129,0.9)) drop-shadow(0 0 20px rgba(16,185,129,0.6))'
+              : 'drop-shadow(0 0 20px rgba(16,185,129,0.35))',
+          }}
+        />
+      </motion.div>
 
-            <AnimatePresence mode="popLayout">
-              <motion.p
-                key={currentName}
-                initial={{ y: 10, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                exit={{ y: -10, opacity: 0 }}
-                transition={{ duration: 0.12 }}
-                className={`text-xl font-bold ${spinning ? 'text-slate-200' : 'text-emerald-400'}`}
-              >
-                {currentName}
-              </motion.p>
-            </AnimatePresence>
-          </div>
-        </div>
+      {/* Etiqueta "Eligiendo..." / "El ganador es" */}
+      <motion.p
+        key={spinning ? 'label-spin' : 'label-reveal'}
+        initial={{ opacity: 0, y: -6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="relative z-10 text-[11px] sm:text-xs uppercase tracking-[0.36em] text-slate-400 font-bold mb-6 sm:mb-8"
+      >
+        {spinning ? 'Eligiendo…' : 'El ganador es'}
+      </motion.p>
 
-        {error && (
-          <p className="text-xs text-red-400 flex items-center gap-1">
-            <AlertCircle size={12} /> {error}
-          </p>
-        )}
+      {/* Nombre — GIGANTE */}
+      <div className="relative z-10 w-full max-w-4xl text-center px-4 min-h-[3.5em] flex items-center justify-center">
+        <AnimatePresence mode="popLayout">
+          <motion.h2
+            key={currentName + (spinning ? '-s' : '-w')}
+            initial={spinning
+              ? { opacity: 0, y: 24, filter: 'blur(10px)' }
+              : { opacity: 0, scale: 0.85, filter: 'blur(14px)' }}
+            animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+            exit={spinning
+              ? { opacity: 0, y: -24, filter: 'blur(10px)' }
+              : { opacity: 0, scale: 1.15, filter: 'blur(14px)' }}
+            transition={{ duration: spinning ? 0.09 : 0.65, ease: [0.16, 1, 0.3, 1] }}
+            className={
+              spinning
+                ? 'font-black leading-none tracking-tight text-white/85 text-5xl sm:text-6xl md:text-7xl lg:text-8xl'
+                : 'font-black leading-none tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-emerald-200 via-emerald-300 to-emerald-500 text-5xl sm:text-7xl md:text-8xl lg:text-9xl'
+            }
+            style={
+              !spinning && winner
+                ? { filter: 'drop-shadow(0 0 60px rgba(16,185,129,0.55)) drop-shadow(0 0 24px rgba(16,185,129,0.35))' }
+                : undefined
+            }
+          >
+            {currentName}
+          </motion.h2>
+        </AnimatePresence>
+      </div>
 
+      {/* Errores de escritura Firestore */}
+      {error && (
+        <motion.p
+          initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+          className="relative z-10 mt-6 text-xs text-red-400 flex items-center gap-1.5"
+        >
+          <AlertCircle size={13} /> {error}
+        </motion.p>
+      )}
+
+      {/* Acciones — fade-in DESPUÉS del reveal para no arruinar la sorpresa */}
+      <AnimatePresence>
         {!spinning && (
           <motion.div
-            initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-            className="grid grid-cols-2 gap-2"
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 12 }}
+            transition={{ delay: 0.9, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+            className="relative z-10 mt-12 sm:mt-16 grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-md"
           >
             <button
               onClick={repetir}
               disabled={confirming}
-              className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold bg-slate-800 text-slate-200 hover:bg-slate-700 border border-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold bg-transparent text-slate-300 hover:text-white hover:bg-white/5 border border-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
             >
               Repetir
             </button>
             <button
               onClick={confirmar}
               disabled={confirming}
-              className="flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold bg-emerald-500 text-emerald-950 hover:bg-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold bg-emerald-500 text-emerald-950 hover:bg-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-[0_10px_40px_-10px_rgba(16,185,129,0.6)]"
             >
               {confirming
-                ? <><Loader2 size={15} className="animate-spin" /> Guardando...</>
-                : <><PartyPopper size={15} /> Confirmar</>}
+                ? <><Loader2 size={16} className="animate-spin" /> Guardando…</>
+                : <><PartyPopper size={16} /> Confirmar ganador</>}
             </button>
           </motion.div>
         )}
+      </AnimatePresence>
+
+      {/* Firma de marca — sello de agencia, tono discreto (font-light) */}
+      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-2.5 text-slate-600 pointer-events-none z-10 select-none">
+        <img
+          src="/synaptech/ig.png"
+          alt=""
+          className="w-4 h-4 object-contain opacity-80"
+        />
+        <p className="text-[10px] uppercase tracking-[0.2em] font-light">
+          Powered by SynapTech
+        </p>
       </div>
-    </ModalShell>
+    </motion.div>,
+    document.body,
   );
 }
 
@@ -402,6 +591,9 @@ function SorteoRow({ sorteo, publicLink, onView, onElegirGanador }) {
   const isActivo  = sorteo.estado === 'activo';
   const cerrado   = isActivo && isClosingDay(sorteo.fecha_fin);
   const partCount = sorteo.participantes_count ?? 0;
+  const progress  = isActivo
+    ? computeProgress(sorteo.fecha_inicio, sorteo.fecha_fin)
+    : 100;
 
   const copy = async () => {
     try {
@@ -412,7 +604,8 @@ function SorteoRow({ sorteo, publicLink, onView, onElegirGanador }) {
   };
 
   return (
-    <div className="flex items-center gap-4 p-4 bg-slate-900 border border-slate-800 rounded-xl hover:border-slate-700 transition-all flex-wrap">
+    <div className="bg-slate-900 border border-slate-800 rounded-xl hover:border-slate-700 transition-all overflow-hidden">
+    <div className="flex items-center gap-4 p-4 flex-wrap">
       {/* Icono */}
       <div className={`w-10 h-10 rounded-lg flex items-center justify-center border ${cfg.color.split(' ').slice(1).join(' ')} shrink-0`}>
         <Trophy size={18} className={cfg.color.split(' ')[0]} />
@@ -421,14 +614,23 @@ function SorteoRow({ sorteo, publicLink, onView, onElegirGanador }) {
       {/* Info principal */}
       <div className="flex-1 min-w-[180px]">
         <p className="font-bold text-sm text-white truncate">{sorteo.nombre}</p>
-        <div className="flex items-center gap-3 mt-1 text-xs text-slate-500 flex-wrap">
+        <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-500 flex-wrap">
           <span className="inline-flex items-center gap-1">
             <Calendar size={11} />
             {formatRange(sorteo.fecha_inicio, sorteo.fecha_fin)}
           </span>
-          <span className="inline-flex items-center gap-1">
-            <Users size={11} />
-            {partCount} {partCount === 1 ? 'participante' : 'participantes'}
+          <span className="inline-flex items-center gap-2">
+            {partCount > 0 && (
+              <span className="flex -space-x-2" aria-hidden="true">
+                <span className="w-6 h-6 rounded-full bg-slate-700 ring-2 ring-slate-900" />
+                <span className="w-6 h-6 rounded-full bg-slate-600 ring-2 ring-slate-900" />
+                <span className="w-6 h-6 rounded-full bg-slate-700 ring-2 ring-slate-900" />
+              </span>
+            )}
+            <span className="inline-flex items-center gap-1">
+              <Users size={11} />
+              {partCount} {partCount === 1 ? 'participante' : 'participantes'}
+            </span>
           </span>
         </div>
         {/* Ganador inline cuando finalizado */}
@@ -488,6 +690,16 @@ function SorteoRow({ sorteo, publicLink, onView, onElegirGanador }) {
           <Sparkles size={13} /> Elegir ganador
         </button>
       )}
+    </div>
+
+    {/* Barra de progreso del sorteo — activo: proporción del tiempo transcurrido; finalizado: 100%. */}
+    <div className="h-1 bg-slate-800/80">
+      <div
+        className={`h-full transition-all duration-500 ${isActivo ? 'bg-emerald-500' : 'bg-slate-600'}`}
+        style={{ width: `${progress}%` }}
+        aria-hidden="true"
+      />
+    </div>
     </div>
   );
 }
