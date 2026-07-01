@@ -581,8 +581,6 @@ export default function Productos() {
     }
   };
 
-  const MAX_PRODUCTOS = isDeluxe ? 200 : 10;
-
   /* Reservas pendientes en tiempo real */
   useEffect(() => {
     const q = query(tenantCol('product_reservations'), where('status', '==', 'pending'));
@@ -686,7 +684,6 @@ export default function Productos() {
   };
 
   const openNew  = () => {
-    if (productos.length >= MAX_PRODUCTOS) return;
     setEditing(null); setForm(EMPTY); setPreview(''); setSlide(true);
   };
   const openEdit = p => {
@@ -793,14 +790,11 @@ export default function Productos() {
             <h1 className="text-xl font-bold text-white">Productos</h1>
             <HelpButton onClick={() => setShowHelp(true)} />
           </div>
-          <p className="text-sm text-slate-500 mt-0.5">
-            Productos disponibles en el local.
-            {!loading && (
-              <span className={`ml-2 font-semibold ${productos.length >= MAX_PRODUCTOS ? 'text-amber-400' : 'text-slate-600'}`}>
-                {productos.length}/{MAX_PRODUCTOS}
-              </span>
-            )}
-          </p>
+          {!loading && productos.length > 0 && (
+            <p className="text-sm text-slate-500 mt-0.5">
+              {productos.length} {productos.length === 1 ? 'producto' : 'productos'} en catálogo
+            </p>
+          )}
         </div>
         <div className="flex gap-2.5">
           <button
@@ -820,8 +814,7 @@ export default function Productos() {
           </button>
           <button
             onClick={openNew}
-            disabled={loading || productos.length >= MAX_PRODUCTOS}
-            title={productos.length >= MAX_PRODUCTOS ? 'Límite de 10 productos alcanzado' : ''}
+            disabled={loading}
             className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
           >
             <Plus size={16} /> Agregar producto
