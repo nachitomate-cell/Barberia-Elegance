@@ -206,46 +206,64 @@
   <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
 
   <script>
-    /* ─── Resolución mínima de tenant (sin cargar config.js completo) ─── */
+    /* ─── Resolución de tenant ─────────────────────────────────────
+       IMPORTANTE: este mapa DEBE mantenerse sincronizado con el
+       _domainMap de config.js (que es la fuente de verdad para el
+       cliente vainilla). Si agregás un tenant nuevo con dominio propio,
+       actualizar ambos lados. */
     const DOMAIN_TENANT_MAP = {
+      'gitananails.synaptechspa.cl':          'gitana',
       'barberiaelegance.synaptechspa.cl':     'elegance',
       'barberiaferraza.synaptechspa.cl':      'ferraza',
       'ferrazabarber.synaptechspa.cl':        'ferraza',
-      'gitananails.synaptechspa.cl':          'gitana',
-      'sionbarberia.synaptechspa.cl':         'sionbarberia',
-      'barberiasion.synaptechspa.cl':         'sionbarberia',
-      'studiodieciseis.synaptechspa.cl':      'sionbarberia',
+      'mapubarbershop.synaptechspa.cl':       'mapubarbershop',
+      'chameleonbarber.synaptechspa.cl':      'chameleon',
+      'memphissalon.synaptechspa.cl':         'memphis',
+      'deluxeperfumes.synaptechspa.cl':       'deluxeperfumes',
+      'barberiadjones.synaptechspa.cl':       'lumen',
+      'djonesbarberia.synaptechspa.cl':       'lumen',
+      'delnerobarber.synaptechspa.cl':        'delnero',
+      'marcelohairdressing.synaptechspa.cl':  'marcelo_hairdressing',
+      'marcelo-hairdressing.synaptechspa.cl': 'marcelo_hairdressing',
+      'marcelopalma.synaptechspa.cl':         'marcelo_hairdressing',
       'aurasalon.synaptechspa.cl':            'aura',
       'aurasalonmalegrooming.synaptechspa.cl':'aura',
       'aurasalonmalegrooming.synaptech.cl':   'aura',
       'latincaribe.synaptechspa.cl':          'latincaribe',
       'thelatincaribe.synaptechspa.cl':       'latincaribe',
-      'chameleonbarber.synaptechspa.cl':      'chameleon',
-      'mapubarbershop.synaptechspa.cl':       'mapu',
-      'marcelopalma.synaptechspa.cl':         'marcelo',
-      'marcelohairdressing.synaptechspa.cl':  'marcelo',
-      'marcelo-hairdressing.synaptechspa.cl': 'marcelo',
-      'barberiadjones.synaptechspa.cl':       'djones',
-      'djonesbarberia.synaptechspa.cl':       'djones',
-      'delnerobarber.synaptechspa.cl':        'delnero',
       'machos.synaptechspa.cl':               'machos',
       'infinity.synaptechspa.cl':             'infinity',
-      'kronnos.synaptechspa.cl':              'kronnos_penablanca',
+      'studiodieciseis.synaptechspa.cl':      'sionbarberia',
+      'sionbarberia.synaptechspa.cl':         'sionbarberia',
+      'barberiasion.synaptechspa.cl':         'sionbarberia',
+      'omegastudio.synaptechspa.cl':          'omegastudio',
+      'alfamen.synaptechspa.cl':              'alfamen',
+      'yugenstudio.synaptechspa.cl':          'yugen',
+      'yugen.synaptechspa.cl':                'yugen',
+      'yugenstudio.cl':                       'yugen',
+      'www.yugenstudio.cl':                   'yugen',
+      'sandbox.synaptechspa.cl':              'sandbox',
       'kronnospenablanca.synaptechspa.cl':    'kronnos_penablanca',
+      'kronnos-penablanca.synaptechspa.cl':   'kronnos_penablanca',
       'kronnoslimache.synaptechspa.cl':       'kronnos_limache',
+      'kronnos-limache.synaptechspa.cl':      'kronnos_limache',
       'kronnoswoman.synaptechspa.cl':         'kronnos_woman',
-      'deluxeperfumes.synaptechspa.cl':       'deluxeperfumes',
+      'kronnos-woman.synaptechspa.cl':        'kronnos_woman',
     };
 
+    /* Resuelve el tenant. Prioridad: (1) ?local= override, (2) mapa por
+       hostname, (3) fallback 'elegance' con warning en consola. */
     function resolveTenant() {
-      // 1) ?local= override (útil para tests locales)
       const fromQuery = new URLSearchParams(location.search).get('local');
-      if (fromQuery) return fromQuery;
-      // 2) por hostname
-      return DOMAIN_TENANT_MAP[location.hostname.toLowerCase()] || 'elegance';
+      if (fromQuery) return { id: fromQuery, source: 'query' };
+      const host = location.hostname.toLowerCase();
+      if (DOMAIN_TENANT_MAP[host]) return { id: DOMAIN_TENANT_MAP[host], source: 'hostname' };
+      console.warn(`[sorteo.html] Hostname "${host}" NO está en DOMAIN_TENANT_MAP. Usando fallback 'elegance' — si el sorteo pertenece a otro tenant, se mostrará como "no encontrado". Sincronizar con config.js._domainMap.`);
+      return { id: 'elegance', source: 'fallback' };
     }
 
-    const TENANT_ID = resolveTenant();
+    const _tenantResolved = resolveTenant();
+    const TENANT_ID = _tenantResolved.id;
 
     /* ─── Firebase init ─── */
     const firebaseConfig = {
@@ -295,9 +313,38 @@
     const SORTEO_ID = (PARAMS.get('id') || '').trim();
     const STORAGE_KEY = `participo_sorteo_${TENANT_ID}_${SORTEO_ID}`;
 
+    /* Muestra la pantalla "unavailable" con el mensaje adecuado según el
+       motivo. Separa el caso "no existe / mal-mapeado" del "finalizado".
+       Ambos comparten sección DOM pero con copy distinto. */
+    function showUnavailable(reason) {
+      const titleEl = document.querySelector('[data-screen="unavailable"] h1');
+      const bodyEl  = document.querySelector('[data-screen="unavailable"] p');
+      if (reason === 'finalizado') {
+        if (titleEl) titleEl.textContent = 'Este sorteo ya terminó';
+        if (bodyEl)  bodyEl.textContent  = 'La dinámica que buscas ya cerró sus inscripciones. ¡Gracias por tu interés! Pronto tendremos nuevas oportunidades.';
+      } else {
+        if (titleEl) titleEl.textContent = 'Sorteo no encontrado';
+        if (bodyEl)  bodyEl.textContent  = 'El enlace es inválido o el sorteo no existe. Revisa que hayas escaneado el QR correcto o pídele al local que te comparta el enlace nuevamente.';
+      }
+      showScreen('unavailable');
+    }
+
     async function start() {
+      // Debug detallado (público — cliente puede verlo si abre DevTools).
+      // Útil para diagnosticar problemas de tenant/ID sin acceso al server.
+      const debugPath = TENANT_ID === 'elegance'
+        ? `sorteos/${SORTEO_ID}`
+        : `tenants/${TENANT_ID}/sorteos/${SORTEO_ID}`;
+      console.group('[sorteo.html debug]');
+      console.log('hostname:              ', location.hostname);
+      console.log('searchParams.get("id"):', SORTEO_ID || '(vacío)');
+      console.log('resolved tenant:       ', TENANT_ID, `(source: ${_tenantResolved.source})`);
+      console.log('firestore path:        ', debugPath);
+      console.groupEnd();
+
       if (!SORTEO_ID) {
-        showScreen('unavailable');
+        console.warn('[sorteo.html] Sin ?id= en la URL — mostrando "no encontrado".');
+        showUnavailable('not-found');
         return;
       }
 
@@ -311,9 +358,17 @@
 
       try {
         const snap = await sorteoRef(SORTEO_ID).get();
-        if (!snap.exists) { showScreen('unavailable'); return; }
+        if (!snap.exists) {
+          console.warn(`[sorteo.html] Doc no existe en "${debugPath}". Posibles causas: ID incorrecto, tenant mal resuelto (revisa hostname vs mapa), o el sorteo fue borrado.`);
+          showUnavailable('not-found');
+          return;
+        }
         const data = snap.data() || {};
-        if (data.estado === 'finalizado') { showScreen('unavailable'); return; }
+        console.log('[sorteo.html] sorteo encontrado:', { nombre: data.nombre, estado: data.estado });
+        if (data.estado === 'finalizado') {
+          showUnavailable('finalizado');
+          return;
+        }
 
         // Render del sorteo
         setBind('nombre', data.nombre || 'Sorteo');
@@ -329,8 +384,11 @@
         showScreen('form');
         bindForm();
       } catch (err) {
-        console.error('[sorteo] read error:', err);
-        showScreen('unavailable');
+        console.error('[sorteo.html] read error:', err);
+        console.error('  → path:', debugPath);
+        console.error('  → hostname:', location.hostname);
+        console.error('  → Posiblemente rules bloquean el read (verificar deploy) o Firestore no responde.');
+        showUnavailable('not-found');
       }
     }
 
