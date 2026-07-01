@@ -2071,16 +2071,29 @@
                         continue;
                     }
 
-                    // Cita que inicia en este slot
-                    const cita = citas.find(c => toMins(c.hora) === cur);
+                    // Cita cuya hora de inicio cae DENTRO de este slot [cur, cur+interval).
+                    // Se usa overlap en vez de igualdad estricta para que las citas
+                    // desalineadas del step (ej. 09:45 con intervalo de 30') no se
+                    // pierdan del render — bug histórico del grid semanal.
+                    const cita = citas.find(c => {
+                        const cStart = toMins(c.hora);
+                        return cStart >= cur && cStart < cur + interval;
+                    });
                     if (cita) {
                         const isCompleted = cita.estado === 'Completada';
                         const isConfirmed = cita.estado === 'Confirmada';
                         const leftColor   = isCompleted ? '#10b981' : isConfirmed ? '#6CABDD' : '#eab308';
                         const bgColor     = isCompleted ? 'rgba(16,185,129,0.14)' : isConfirmed ? 'rgba(108,171,221,0.14)' : 'rgba(234,179,8,0.14)';
                         const durMins     = parseInt(cita.duracionServicio || interval);
-                        const spans       = Math.max(1, Math.ceil(durMins / interval));
+                        const cStart      = toMins(cita.hora);
+                        const cEnd        = cStart + durMins;
+                        // spans = cuántos slots ocupa desde este cur hasta que termina la cita.
+                        // Antes se calculaba con Math.ceil(dur/interval), lo que subestimaba
+                        // el alto de citas desalineadas (una cita 09:45 dur 30 cruza los slots
+                        // de 09:30 y 10:00, no cabe en 1 fila).
+                        const spans       = Math.max(1, Math.ceil((cEnd - cur) / interval));
                         const citaH       = spans * rowH - 1;
+                        const startsInSlot = cStart !== cur; // no está alineada al step
 
                         const cell = document.createElement('div');
                         cell.style.cssText = [
@@ -2097,8 +2110,11 @@
                             'z-index:1',
                         ].join(';');
                         cell.onclick = () => { if (isScrollingWeek) return; abrirDetalleCitaWeek(fechaStr, cita.id); };
+                        const horaLabel = startsInSlot
+                            ? `<span style="font-size:8px;font-weight:700;color:${leftColor};margin-right:3px;">${cita.hora}</span>`
+                            : '';
                         cell.innerHTML = `
-                            <p style="font-size:10px;font-weight:800;color:#fff;line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${cita.clienteNombre || 'Cliente'}</p>
+                            <p style="font-size:10px;font-weight:800;color:#fff;line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${horaLabel}${cita.clienteNombre || 'Cliente'}</p>
                             ${spans >= 2 ? `<p style="font-size:8px;color:rgba(255,255,255,0.65);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${cita.servicioNombre || ''}</p>` : ''}
                         `;
                         grid.appendChild(cell);
