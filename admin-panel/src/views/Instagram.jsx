@@ -8,7 +8,6 @@ import {
 import { db } from '../lib/firebase';
 import { confirmDialog } from '../lib/confirmDialog';
 import { useTenant } from '../contexts/TenantContext';
-import { useAuth }   from '../contexts/AuthContext';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 
 const CALLBACK_URL = 'https://us-central1-barberia-elegance.cloudfunctions.net/instagramOAuthCallback';
@@ -26,8 +25,6 @@ function IgIcon({ size = 20, className = '' }) {
 
 export default function InstagramPage() {
   const { id: tenantId } = useTenant();
-  const { role }         = useAuth();
-  const isAdmin          = role === 'admin' || role === 'jefe';
   const [showHelp, setShowHelp] = useState(false);
 
   const [igConfig, setIgConfig] = useState(null);
@@ -81,14 +78,6 @@ export default function InstagramPage() {
     if (!(await confirmDialog({ title: 'Desconectar Instagram', message: 'Los posts ya importados permanecen en el Lookbook.', confirmText: 'Desconectar' }))) return;
     await updateDoc(doc(db, '_system', `instagram_${tenantId}`), { enabled: false });
     setMsg({ ok: true, text: 'Instagram desconectado.' });
-  }
-
-  if (!isAdmin) {
-    return (
-      <div className="p-8 text-center text-slate-400 text-sm">
-        Solo administradores pueden gestionar la integración de Instagram.
-      </div>
-    );
   }
 
   if (loading) {

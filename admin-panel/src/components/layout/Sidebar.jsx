@@ -72,7 +72,7 @@ const NAV_GROUPS_DEFAULT = [
     label: 'Contenido',
     items: [
       { to: 'lookbook',          label: 'Lookbook',         Icon: Images    },
-      { to: 'instagram',         label: 'Instagram',        Icon: Instagram, adminOnly: true, variant: 'instagram' },
+      { to: 'instagram',         label: 'Instagram',        Icon: Instagram, adminOnly: false, variant: 'instagram' },
       { to: 'link-bio',          label: 'Link in Bio (bioo.cl)', Icon: Link2, adminOnly: true, variant: 'bioo' },
       { to: 'servicio-favorito', label: 'Foto de servicio', Icon: ImagePlus },
     ],

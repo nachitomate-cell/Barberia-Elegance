@@ -299,17 +299,30 @@ exports.instagramSyncManual = onCall(
   async (request) => {
     if (!request.auth) throw new HttpsError('unauthenticated', 'Debes iniciar sesión.');
 
-    const email = (request.auth.token?.email || '').toLowerCase();
-    if (!BOOTSTRAP_ADMINS.includes(email)) {
-      const barberoDoc = await db.collection('barberos').doc(request.auth.uid).get();
-      const rol        = barberoDoc.exists ? barberoDoc.data().rol : null;
-      if (rol !== 'admin' && rol !== 'jefe') {
-        throw new HttpsError('permission-denied', 'Solo administradores pueden sincronizar.');
-      }
-    }
-
     const tenantId = request.data?.tenantId || 'elegance';
     if (!ALL_TENANTS.includes(tenantId)) throw new HttpsError('invalid-argument', 'tenantId inválido.');
+
+    const email = (request.auth.token?.email || '').toLowerCase();
+    if (!BOOTSTRAP_ADMINS.includes(email)) {
+      // 1) Rol por custom claims (patrón nuevo desde migrarClaimsExistentes).
+      let rol = request.auth.token?.role || null;
+      // 2) Fallback Firestore — importante: buscar en el path del tenant
+      //    correcto. Para 'elegance' vive en raíz; para el resto está en
+      //    tenants/{tid}/barberos/. Antes solo miraba root, así que los
+      //    admins/barberos de tenants multi-tenant caían a permission-denied.
+      if (!rol) {
+        const barberoRef = tenantId === 'elegance'
+          ? db.collection('barberos').doc(request.auth.uid)
+          : db.collection('tenants').doc(tenantId).collection('barberos').doc(request.auth.uid);
+        const barberoDoc = await barberoRef.get();
+        rol = barberoDoc.exists ? barberoDoc.data().rol : null;
+      }
+      // 3) Habilitar admin, jefe Y barbero (equipo del local). Consistente
+      //    con esStaff() de firestore.rules.
+      if (!['admin', 'jefe', 'barbero'].includes(rol)) {
+        throw new HttpsError('permission-denied', 'Solo el equipo del local puede sincronizar.');
+      }
+    }
 
     return syncTenant(tenantId);
   }
