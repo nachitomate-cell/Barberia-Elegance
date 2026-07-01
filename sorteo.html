@@ -308,9 +308,26 @@
       return `Cierra el ${sStr} – ${eStr}`;
     }
 
+    /* ─── Extracción del ID del sorteo — a prueba de balas ─────────
+       IMPORTANTE: los rewrites de Vercel son server-side. Cuando el
+       browser navega a `/sorteo/abc123`, el server sirve sorteo.html
+       PERO el URL en la barra sigue siendo `/sorteo/abc123` — no hay
+       `?id=abc123` en location.search. Por eso hay que caer al pathname
+       con regex si no viene por query. */
+    function extractSorteoId() {
+      // 1) ?id= directo (útil para tests, links con query, y compat)
+      let id = new URLSearchParams(window.location.search).get('id');
+      if (id) return { id: id.trim(), source: 'query' };
+      // 2) Path `/sorteo/{id}` — captura alfanuméricos, guiones y underscores
+      //    (cubre los IDs auto-generados de Firestore).
+      const match = window.location.pathname.match(/\/sorteo\/([a-zA-Z0-9_-]+)/);
+      if (match && match[1]) return { id: match[1].trim(), source: 'pathname' };
+      return { id: '', source: 'none' };
+    }
+
     /* ─── Main ─── */
-    const PARAMS = new URLSearchParams(location.search);
-    const SORTEO_ID = (PARAMS.get('id') || '').trim();
+    const _idResolved = extractSorteoId();
+    const SORTEO_ID = _idResolved.id;
     const STORAGE_KEY = `participo_sorteo_${TENANT_ID}_${SORTEO_ID}`;
 
     /* Muestra la pantalla "unavailable" con el mensaje adecuado según el
@@ -336,14 +353,17 @@
         ? `sorteos/${SORTEO_ID}`
         : `tenants/${TENANT_ID}/sorteos/${SORTEO_ID}`;
       console.group('[sorteo.html debug]');
+      console.log('full URL:              ', location.href);
       console.log('hostname:              ', location.hostname);
-      console.log('searchParams.get("id"):', SORTEO_ID || '(vacío)');
+      console.log('pathname:              ', location.pathname);
+      console.log('search:                ', location.search || '(vacío)');
+      console.log('extracted id:          ', SORTEO_ID || '(vacío)', `(source: ${_idResolved.source})`);
       console.log('resolved tenant:       ', TENANT_ID, `(source: ${_tenantResolved.source})`);
       console.log('firestore path:        ', debugPath);
       console.groupEnd();
 
       if (!SORTEO_ID) {
-        console.warn('[sorteo.html] Sin ?id= en la URL — mostrando "no encontrado".');
+        console.warn('[sorteo.html] No pude extraer un ID ni de la query ni del pathname. Revisá el link.');
         showUnavailable('not-found');
         return;
       }
