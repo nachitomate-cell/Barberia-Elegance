@@ -656,7 +656,7 @@
         // Tenants que ocultan el teléfono del cliente a los barberos (privacidad)
         function _ocultaTelefono() {
             const t = window.CURRENT_TENANT_ID || 'elegance';
-            return t === 'chameleon' || t === 'lumen';
+            return t === 'chameleon' || t === 'lumen' || t === 'sionbarberia';
         }
         // Oculta los campos de teléfono de los formularios crear/editar (conserva su
         // valor en el DOM para que el guardado no pierda el dato del cliente).
@@ -1894,22 +1894,25 @@
             }
             if (!isFinite(iniMins)) iniMins = toMins(cfg.horarioInicio || '09:00');
             if (!isFinite(finMins)) finMins = toMins(cfg.horarioFin    || '20:00');
+            const totalMins = finMins - iniMins;
+            if (totalMins <= 0) return;
 
-            // Lista de slots de tiempo
-            const slots = [];
-            for (let m = iniMins; m < finMins; m += interval) slots.push(m);
-            const totalSlots = slots.length;
-            if (!totalSlots) return;
-
-            // Anchos de columna
+            // Anchos
             const timeColW = 56;
             const dayColW  = 128;
             const gapW     = 2;
             const totalW   = timeColW + 7 * dayColW + 6 * gapW;
 
-            // Fila altura dinámica según el dispositivo (44px móvil para toques cómodos, 36px desktop)
+            // ── Positioning ABSOLUTO por minutos reales ──
+            // pxPerMin deriva del alto que quiero para un step del intervalo.
+            // Móvil usa 44px por step (touch-friendly); desktop 36px.
             const isMobile = window.innerWidth < 1024;
-            const rowH     = isMobile ? 44 : 36;
+            const stepH    = isMobile ? 44 : 36;
+            const pxPerMin = stepH / interval;
+            const bodyH    = Math.round(totalMins * pxPerMin);
+            const headerH  = 46;
+            const yOf      = m => Math.round((m - iniMins) * pxPerMin);
+            const hOf      = m => Math.max(1, Math.round(m * pxPerMin));
 
             // ── Contenedor externo (scroll bidireccional fluido sin trabas) ──
             container.style.cssText = [
@@ -1940,20 +1943,19 @@
             const wrapper = document.createElement('div');
             wrapper.style.cssText = `min-width:${totalW}px;padding:0 24px;`;
 
-            // ── Grid ──
+            // ── Grid de dos filas: [ header sticky | body con columnas de día ] ──
             const grid = document.createElement('div');
             grid.style.cssText = [
                 'display:grid',
                 `grid-template-columns:${timeColW}px repeat(7,${dayColW}px)`,
-                `grid-template-rows:auto repeat(${totalSlots},${rowH}px)`,
+                'grid-template-rows:auto auto',
                 `gap:0 ${gapW}px`,
                 'position:relative',
             ].join(';');
 
             // ── Fila 1: Cabeceras de día (sticky) ──
-            // Celda vacía en columna de tiempo (sticky top y left para ser la intersección perfecta)
             const emptyHdr = document.createElement('div');
-            emptyHdr.style.cssText = `grid-column:1;grid-row:1;position:sticky;top:0;left:0;z-index:30;background:#141418;padding:8px 0 8px;border-bottom:1px solid rgba(255,255,255,0.14);`;
+            emptyHdr.style.cssText = `grid-column:1;grid-row:1;position:sticky;top:0;left:0;z-index:30;background:#141418;padding:8px 0 8px;border-bottom:1px solid rgba(255,255,255,0.14);height:${headerH}px;`;
             grid.appendChild(emptyHdr);
 
             for (let i = 0; i < 7; i++) {
@@ -1973,6 +1975,7 @@
                     `background:${isToday ? '#1c1810' : '#141418'}`,
                     'text-align:center',
                     'padding:6px 2px 8px',
+                    `height:${headerH}px`,
                     `border-bottom:${isToday ? '2px solid '+GOLD : '1px solid rgba(255,255,255,0.14)'}`,
                 ].join(';');
                 hdr.innerHTML = `
@@ -1983,165 +1986,285 @@
                 grid.appendChild(hdr);
             }
 
-            // ── Filas de tiempo ──
-            for (let si = 0; si < totalSlots; si++) {
-                const cur     = slots[si];
-                const horaStr = fromMin(cur);
-                const gridRow = si + 2; // fila 1 = header
-
-                // Etiqueta de hora (columna 1, sticky left)
-                const timeCell = document.createElement('div');
-                timeCell.style.cssText = [
-                    `grid-column:1`,
-                    `grid-row:${gridRow}`,
-                    'position:sticky',
+            // ── Fila 2, Col 1: Etiquetas de hora (sticky left) ──
+            const timeCol = document.createElement('div');
+            timeCol.style.cssText = [
+                'grid-column:1',
+                'grid-row:2',
+                'position:sticky',
+                'left:0',
+                'z-index:20',
+                'background:#141418',
+                'position:relative',
+                `height:${bodyH}px`,
+            ].join(';');
+            // Necesita ser relative para posicionar las horas absolutas
+            timeCol.style.position = 'sticky';
+            const timeInner = document.createElement('div');
+            timeInner.style.cssText = `position:relative;width:100%;height:${bodyH}px;`;
+            // Labels: una por cada hora en punto dentro del rango
+            const firstHour = Math.ceil(iniMins / 60) * 60;
+            for (let m = firstHour; m <= finMins; m += 60) {
+                const lbl = document.createElement('span');
+                lbl.style.cssText = [
+                    'position:absolute',
+                    `top:${yOf(m)}px`,
                     'left:0',
-                    'z-index:20',
-                    'background:#141418',
-                    'display:flex',
-                    'align-items:flex-start',
-                    'justify-content:center',
-                    'padding:2px 0 0 0',
-                    'border-bottom:1px solid rgba(255,255,255,0.06)',
+                    'right:0',
+                    'text-align:center',
+                    'transform:translateY(-50%)',
+                    'font-size:9px',
+                    'font-weight:700',
+                    'color:rgba(255,255,255,0.5)',
+                    'white-space:nowrap',
+                    'pointer-events:none',
                 ].join(';');
-                const showTime = cur % 60 === 0; // mostrar solo horas en punto
-                timeCell.innerHTML = `<span style="font-size:9px;font-weight:700;color:rgba(255,255,255,${showTime ? '0.5' : '0.18'});white-space:nowrap;">${showTime ? horaStr : ''}</span>`;
-                grid.appendChild(timeCell);
+                lbl.textContent = fromMin(m);
+                timeInner.appendChild(lbl);
+            }
+            timeCol.appendChild(timeInner);
+            grid.appendChild(timeCol);
 
-                // Línea de hora actual en toda la fila
-                const isNowRow = todayStr === _fmtDate(new Date()) && cur <= nowMins && (cur + interval) > nowMins;
+            // ── Fila 2, Cols 2-8: Columnas de día con positioning absoluto ──
+            for (let di = 0; di < 7; di++) {
+                const d        = new Date(_currentWeekStart);
+                d.setDate(d.getDate() + di);
+                const fechaStr = _fmtDate(d);
+                const dw       = d.getDay();
+                const dc       = (cfg.diasConfig || {})[dw] || {};
+                const isLaboral = (cfg.diasLaborales || []).includes(dw) && dc.activo !== false;
+                const dayIni   = isLaboral ? toMins(dc.inicio || cfg.horarioInicio || '09:00') : iniMins;
+                const dayFin   = isLaboral ? toMins(dc.fin    || cfg.horarioFin    || '20:00') : iniMins;
+                const isToday  = fechaStr === todayStr;
 
-                // 7 celdas de días
-                for (let di = 0; di < 7; di++) {
-                    const d        = new Date(_currentWeekStart);
-                    d.setDate(d.getDate() + di);
-                    const fechaStr = _fmtDate(d);
-                    const dw       = d.getDay();
-                    const dc       = (cfg.diasConfig || {})[dw] || {};
-                    const isLaboral = (cfg.diasLaborales || []).includes(dw) && dc.activo !== false;
-                    const dayIni   = isLaboral ? toMins(dc.inicio || cfg.horarioInicio || '09:00') : Infinity;
-                    const dayFin   = isLaboral ? toMins(dc.fin    || cfg.horarioFin    || '20:00') : -Infinity;
-                    const inRange  = isLaboral && cur >= dayIni && cur < dayFin;
+                const dayCol = document.createElement('div');
+                dayCol.style.cssText = [
+                    `grid-column:${di+2}`,
+                    'grid-row:2',
+                    'position:relative',
+                    `height:${bodyH}px`,
+                    'background:transparent',
+                ].join(';');
 
-                    // ¿Está cubierto por una cita que empezó antes?
-                    const citas    = (_weekCitas[fechaStr] || []).filter(c => c.estado !== 'Cancelada');
-                    const contCita = citas.find(c => {
-                        const cStart = toMins(c.hora);
-                        const cEnd   = cStart + parseInt(c.duracionServicio || interval);
-                        return cur > cStart && cur < cEnd;
-                    });
-                    if (contCita) {
-                        // Celda de continuación (parte de una cita multi-slot)
-                        const cell = document.createElement('div');
-                        cell.style.cssText = `grid-column:${di+2};grid-row:${gridRow};height:${rowH}px;${isNowRow && _fmtDate(d) === todayStr ? 'border-top:1px solid rgba(239,68,68,0.4);' : ''}`;
-                        grid.appendChild(cell);
-                        continue;
+                // ── Layer 0: fondo fuera de horario / día no laboral (z:0) ──
+                // Todo el día no laboral: fondo oscuro completo.
+                if (!isLaboral) {
+                    const bg = document.createElement('div');
+                    bg.style.cssText = `position:absolute;top:0;left:0;right:0;height:${bodyH}px;background:rgba(0,0,0,0.35);z-index:0;pointer-events:none;`;
+                    dayCol.appendChild(bg);
+                } else {
+                    // Franja antes del inicio del día laboral
+                    if (dayIni > iniMins) {
+                        const before = document.createElement('div');
+                        before.style.cssText = `position:absolute;top:0;left:0;right:0;height:${yOf(dayIni)}px;background:rgba(0,0,0,0.35);z-index:0;pointer-events:none;`;
+                        dayCol.appendChild(before);
                     }
-
-                    if (!inRange) {
-                        // Fuera de horario o día no laborable
-                        const cell = document.createElement('div');
-                        cell.style.cssText = `grid-column:${di+2};grid-row:${gridRow};height:${rowH}px;background:rgba(0,0,0,0.35);border-bottom:1px solid rgba(255,255,255,0.04);`;
-                        grid.appendChild(cell);
-                        continue;
+                    // Franja después del fin del día laboral
+                    if (dayFin < finMins) {
+                        const after = document.createElement('div');
+                        after.style.cssText = `position:absolute;top:${yOf(dayFin)}px;left:0;right:0;height:${hOf(finMins - dayFin)}px;background:rgba(0,0,0,0.35);z-index:0;pointer-events:none;`;
+                        dayCol.appendChild(after);
                     }
+                }
 
-                    // Colación
-                    if (cfg.colacion && cur >= toMins(cfg.colacion.inicio) && cur < toMins(cfg.colacion.fin)) {
-                        const cell = document.createElement('div');
-                        cell.style.cssText = `grid-column:${di+2};grid-row:${gridRow};height:${rowH}px;background:rgba(255,174,0,0.06);border-bottom:1px solid rgba(255,174,0,0.08);display:flex;align-items:center;justify-content:center;`;
-                        cell.innerHTML = `<i class="ph-bold ph-coffee" style="font-size:10px;color:rgba(255,174,0,0.45);"></i>`;
-                        grid.appendChild(cell);
-                        continue;
+                // ── Layer 0: líneas horizontales por hora (referencia visual) ──
+                for (let m = firstHour; m < finMins; m += 60) {
+                    const line = document.createElement('div');
+                    line.style.cssText = `position:absolute;top:${yOf(m)}px;left:0;right:0;border-top:1px solid rgba(255,255,255,0.06);z-index:0;pointer-events:none;`;
+                    dayCol.appendChild(line);
+                }
+
+                // ── Layer 0: colación (background) ──
+                if (isLaboral && cfg.colacion) {
+                    const cS = toMins(cfg.colacion.inicio);
+                    const cE = toMins(cfg.colacion.fin);
+                    if (cE > cS && cE > iniMins && cS < finMins) {
+                        const cs = Math.max(cS, iniMins);
+                        const ce = Math.min(cE, finMins);
+                        const col = document.createElement('div');
+                        col.style.cssText = [
+                            'position:absolute',
+                            `top:${yOf(cs)}px`,
+                            'left:0',
+                            'right:0',
+                            `height:${hOf(ce - cs)}px`,
+                            'background:rgba(255,174,0,0.06)',
+                            'border-top:1px dashed rgba(255,174,0,0.18)',
+                            'border-bottom:1px dashed rgba(255,174,0,0.18)',
+                            'z-index:0',
+                            'display:flex',
+                            'align-items:center',
+                            'justify-content:center',
+                            'pointer-events:none',
+                        ].join(';');
+                        col.innerHTML = `<i class="ph-bold ph-coffee" style="font-size:11px;color:rgba(255,174,0,0.45);"></i>`;
+                        dayCol.appendChild(col);
                     }
+                }
 
-                    // Bloqueo
-                    const bloqueos = _getWeekDayBloqueos(fechaStr);
-                    const bloqueo  = bloqueos.find(b => {
-                        if (b.todo_el_dia) return true;
-                        if (!b.hora_inicio || !b.hora_fin) return false;
-                        return cur >= toMins(b.hora_inicio) && cur < toMins(b.hora_fin);
-                    });
-                    if (bloqueo) {
-                        const cell = document.createElement('div');
-                        cell.style.cssText = `grid-column:${di+2};grid-row:${gridRow};height:${rowH}px;background:rgba(239,68,68,0.13);border-left:2px solid rgba(239,68,68,0.45);border-bottom:1px solid rgba(239,68,68,0.08);display:flex;align-items:center;justify-content:center;cursor:pointer;`;
-                        cell.onclick = () => { if (isScrollingWeek) return; removerBloqueoRapido(bloqueo.id, bloqueo.slotLockId || '', horaStr, fechaStr); };
-                        cell.innerHTML = `<i class="ph-bold ph-lock" style="font-size:10px;color:rgba(239,68,68,0.65);"></i>`;
-                        grid.appendChild(cell);
-                        continue;
-                    }
-
-                    // Cita cuya hora de inicio cae DENTRO de este slot [cur, cur+interval).
-                    // Se usa overlap en vez de igualdad estricta para que las citas
-                    // desalineadas del step (ej. 09:45 con intervalo de 30') no se
-                    // pierdan del render — bug histórico del grid semanal.
-                    const cita = citas.find(c => {
-                        const cStart = toMins(c.hora);
-                        return cStart >= cur && cStart < cur + interval;
-                    });
-                    if (cita) {
-                        const isCompleted = cita.estado === 'Completada';
-                        const isConfirmed = cita.estado === 'Confirmada';
-                        const leftColor   = isCompleted ? '#10b981' : isConfirmed ? '#6CABDD' : '#eab308';
-                        const bgColor     = isCompleted ? 'rgba(16,185,129,0.14)' : isConfirmed ? 'rgba(108,171,221,0.14)' : 'rgba(234,179,8,0.14)';
-                        const durMins     = parseInt(cita.duracionServicio || interval);
-                        const cStart      = toMins(cita.hora);
-                        const cEnd        = cStart + durMins;
-                        // spans = cuántos slots ocupa desde este cur hasta que termina la cita.
-                        // Antes se calculaba con Math.ceil(dur/interval), lo que subestimaba
-                        // el alto de citas desalineadas (una cita 09:45 dur 30 cruza los slots
-                        // de 09:30 y 10:00, no cabe en 1 fila).
-                        const spans       = Math.max(1, Math.ceil((cEnd - cur) / interval));
-                        const citaH       = spans * rowH - 1;
-                        const startsInSlot = cStart !== cur; // no está alineada al step
-
-                        const cell = document.createElement('div');
-                        cell.style.cssText = [
-                            `grid-column:${di+2}`,
-                            `grid-row:${gridRow} / span ${spans}`,
-                            `height:${citaH}px`,
-                            'padding:3px 5px',
+                // ── Layer 1: slots libres clickeables (empty click zones) ──
+                // Uno cada `interval` minutos dentro del día laboral. Se pintan como
+                // banda transparente; el hover resalta. Van BAJO bloqueos y citas,
+                // así el click en una cita/bloqueo hace lo suyo y el click en el
+                // hueco entre ellos abre "agendar en esta hora".
+                if (isLaboral) {
+                    for (let m = dayIni; m + interval <= dayFin; m += interval) {
+                        // No mostrar '+' en colación (visualmente confunde)
+                        const inColacion = cfg.colacion && m >= toMins(cfg.colacion.inicio) && m < toMins(cfg.colacion.fin);
+                        const horaStr = fromMin(m);
+                        const slot = document.createElement('div');
+                        slot.style.cssText = [
+                            'position:absolute',
+                            `top:${yOf(m)}px`,
+                            'left:0',
+                            'right:0',
+                            `height:${hOf(interval)}px`,
                             'cursor:pointer',
-                            'overflow:hidden',
-                            `background:${bgColor}`,
-                            `border-left:3px solid ${leftColor}`,
-                            'border-radius:3px',
-                            'margin:1px 1px 0 0',
+                            'display:flex',
+                            'align-items:center',
+                            'justify-content:center',
+                            'transition:background 0.1s',
                             'z-index:1',
                         ].join(';');
-                        cell.onclick = () => { if (isScrollingWeek) return; abrirDetalleCitaWeek(fechaStr, cita.id); };
-                        const horaLabel = startsInSlot
-                            ? `<span style="font-size:8px;font-weight:700;color:${leftColor};margin-right:3px;">${cita.hora}</span>`
-                            : '';
-                        cell.innerHTML = `
-                            <p style="font-size:10px;font-weight:800;color:#fff;line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${horaLabel}${cita.clienteNombre || 'Cliente'}</p>
-                            ${spans >= 2 ? `<p style="font-size:8px;color:rgba(255,255,255,0.65);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${cita.servicioNombre || ''}</p>` : ''}
-                        `;
-                        grid.appendChild(cell);
-                        continue;
+                        slot.onmouseenter = function() { this.style.background='rgba(201,168,76,0.10)'; };
+                        slot.onmouseleave = function() { this.style.background=''; };
+                        slot.onclick = () => { if (isScrollingWeek) return; abrirOpcionesSlotSemana(fechaStr, horaStr); };
+                        slot.innerHTML = inColacion
+                            ? ''
+                            : `<i class="ph-bold ph-plus" style="font-size:9px;color:rgba(255,255,255,0.18);pointer-events:none;"></i>`;
+                        dayCol.appendChild(slot);
                     }
+                }
 
-                    // Slot libre
-                    const now = isNowRow && _fmtDate(d) === todayStr;
-                    const cell = document.createElement('div');
-                    cell.style.cssText = [
-                        `grid-column:${di+2}`,
-                        `grid-row:${gridRow}`,
-                        `height:${rowH}px`,
+                // ── Layer 2: bloqueos (z:2) ──
+                // Se dibujan encima de los slots libres pero DEBAJO de las citas,
+                // para que si un cliente ya tiene cita agendada dentro de una franja
+                // bloqueada, la cita quede visible arriba (requerimiento explícito).
+                const bloqueos = _getWeekDayBloqueos(fechaStr);
+                bloqueos.forEach(b => {
+                    let bS, bE;
+                    if (b.todo_el_dia) {
+                        bS = iniMins;
+                        bE = finMins;
+                    } else if (b.hora_inicio && b.hora_fin) {
+                        bS = toMins(b.hora_inicio);
+                        bE = toMins(b.hora_fin);
+                    } else {
+                        return;
+                    }
+                    // Clamp al rango visible
+                    const vs = Math.max(bS, iniMins);
+                    const ve = Math.min(bE, finMins);
+                    if (ve <= vs) return;
+
+                    const el = document.createElement('div');
+                    el.style.cssText = [
+                        'position:absolute',
+                        `top:${yOf(vs)}px`,
+                        'left:1px',
+                        'right:1px',
+                        `height:${hOf(ve - vs)}px`,
+                        'background:rgba(239,68,68,0.13)',
+                        'border-left:2px solid rgba(239,68,68,0.45)',
+                        'border-top:1px solid rgba(239,68,68,0.15)',
+                        'border-bottom:1px solid rgba(239,68,68,0.15)',
                         'cursor:pointer',
-                        `border-bottom:1px solid rgba(255,255,255,${now ? '0' : '0.07'})`,
-                        `border-top:${now ? '2px solid rgba(239,68,68,0.7)' : 'none'}`,
                         'display:flex',
                         'align-items:center',
                         'justify-content:center',
-                        'transition:background 0.1s',
+                        'z-index:2',
                     ].join(';');
-                    cell.onmouseenter = function() { this.style.background='rgba(201,168,76,0.12)'; };
-                    cell.onmouseleave = function() { this.style.background=''; };
-                    cell.onclick = () => { if (isScrollingWeek) return; abrirOpcionesSlotSemana(fechaStr, horaStr); };
-                    cell.innerHTML = `<i class="ph-bold ph-plus" style="font-size:9px;color:rgba(255,255,255,0.18);pointer-events:none;"></i>`;
-                    grid.appendChild(cell);
+                    el.onclick = (ev) => {
+                        ev.stopPropagation();
+                        if (isScrollingWeek) return;
+                        removerBloqueoRapido(b.id, b.slotLockId || '', fromMin(vs), fechaStr);
+                    };
+                    el.innerHTML = `<i class="ph-bold ph-lock" style="font-size:11px;color:rgba(239,68,68,0.75);"></i>`;
+                    dayCol.appendChild(el);
+                });
+
+                // ── Layer 3: citas (z:3) ──
+                // Positioning ABSOLUTO real: cada cita se pinta con `top` y `height`
+                // derivados de su hora y duración exactas en minutos. Esto elimina la
+                // dependencia del step del grid — una cita a las 12:45 con dur 30
+                // aparece exactamente entre 12:45 y 13:15, sin importar el intervalo.
+                const citas = (_weekCitas[fechaStr] || []).filter(c => c.estado !== 'Cancelada');
+                citas.forEach(cita => {
+                    const cStart = toMins(cita.hora);
+                    const durMins = parseInt(cita.duracionServicio || interval);
+                    const cEnd = cStart + durMins;
+                    // Clamp al rango visible del calendario (por si la cita cae fuera)
+                    const vs = Math.max(cStart, iniMins);
+                    const ve = Math.min(cEnd, finMins);
+                    if (ve <= vs) return;
+
+                    const isCompleted = cita.estado === 'Completada';
+                    const isConfirmed = cita.estado === 'Confirmada';
+                    const leftColor   = isCompleted ? '#10b981' : isConfirmed ? '#6CABDD' : '#eab308';
+                    const bgColor     = isCompleted ? 'rgba(16,185,129,0.20)' : isConfirmed ? 'rgba(108,171,221,0.20)' : 'rgba(234,179,8,0.20)';
+                    const citaH       = hOf(ve - vs);
+                    const showService = citaH >= 34;
+
+                    const el = document.createElement('div');
+                    el.style.cssText = [
+                        'position:absolute',
+                        `top:${yOf(vs)}px`,
+                        'left:1px',
+                        'right:2px',
+                        `height:${citaH - 1}px`,
+                        'padding:3px 5px',
+                        'cursor:pointer',
+                        'overflow:hidden',
+                        `background:${bgColor}`,
+                        `border-left:3px solid ${leftColor}`,
+                        'border-radius:3px',
+                        'box-shadow:0 1px 2px rgba(0,0,0,0.4)',
+                        'z-index:3',
+                    ].join(';');
+                    el.onclick = (ev) => {
+                        ev.stopPropagation();
+                        if (isScrollingWeek) return;
+                        abrirDetalleCitaWeek(fechaStr, cita.id);
+                    };
+                    el.innerHTML = `
+                        <p style="font-size:10px;font-weight:800;color:#fff;line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                            <span style="font-weight:700;color:${leftColor};margin-right:3px;">${cita.hora}</span>${cita.clienteNombre || 'Cliente'}
+                        </p>
+                        ${showService ? `<p style="font-size:8px;color:rgba(255,255,255,0.65);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${cita.servicioNombre || ''}</p>` : ''}
+                    `;
+                    dayCol.appendChild(el);
+                });
+
+                // ── Layer 4: línea "ahora" (solo en la columna de hoy) ──
+                if (isToday && nowMins >= iniMins && nowMins <= finMins) {
+                    const nowEl = document.createElement('div');
+                    nowEl.style.cssText = [
+                        'position:absolute',
+                        `top:${yOf(nowMins)}px`,
+                        'left:0',
+                        'right:0',
+                        'border-top:2px solid rgba(239,68,68,0.7)',
+                        'z-index:4',
+                        'pointer-events:none',
+                    ].join(';');
+                    dayCol.appendChild(nowEl);
+
+                    const dot = document.createElement('div');
+                    dot.style.cssText = [
+                        'position:absolute',
+                        `top:${yOf(nowMins) - 3}px`,
+                        'left:-3px',
+                        'width:6px',
+                        'height:6px',
+                        'border-radius:50%',
+                        'background:rgba(239,68,68,0.85)',
+                        'z-index:5',
+                        'pointer-events:none',
+                    ].join(';');
+                    dayCol.appendChild(dot);
                 }
+
+                grid.appendChild(dayCol);
             }
 
             wrapper.appendChild(grid);
