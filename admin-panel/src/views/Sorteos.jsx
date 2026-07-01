@@ -400,6 +400,20 @@ function ElegirGanadorModal({ sorteo, onClose }) {
     }
   }, [spinning, winner]);
 
+  // Body scroll lock — evita que el contenido detrás se mueva mientras
+  // el dueño graba historia. También cortamos el overscroll bouncy en
+  // iOS (position:fixed sobre el body preserva el scroll position al cerrar).
+  useEffect(() => {
+    const prevOverflow = document.body.style.overflow;
+    const prevOverscroll = document.body.style.overscrollBehavior;
+    document.body.style.overflow = 'hidden';
+    document.body.style.overscrollBehavior = 'contain';
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.body.style.overscrollBehavior = prevOverscroll;
+    };
+  }, []);
+
   const repetir = () => {
     if (confirming) return;
     runSpin();
@@ -435,7 +449,13 @@ function ElegirGanadorModal({ sorteo, onClose }) {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-      className="fixed inset-0 z-[9999] h-full w-full bg-slate-950/95 backdrop-blur-3xl flex flex-col items-center justify-center px-6"
+      className="fixed inset-0 z-[9999] h-full w-full bg-slate-950/95 backdrop-blur-3xl flex flex-col items-center justify-center px-4 sm:px-6 overflow-hidden"
+      style={{
+        // Notch iPhone + gestos Android. Sin esto la X puede quedar debajo
+        // de la barra de estado y la firma abajo tapada por el home indicator.
+        paddingTop: 'max(env(safe-area-inset-top, 0px), 0.5rem)',
+        paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 0.5rem)',
+      }}
     >
       {/* Halos de fondo — muy sutil ambient light */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -451,14 +471,16 @@ function ElegirGanadorModal({ sorteo, onClose }) {
         />
       </div>
 
-      {/* Cerrar (solo cuando no está bloqueado) */}
+      {/* Cerrar — bg semi-transparente + borde sutil, safe-area aware.
+          44×44 mínimo para tap target cómodo con el pulgar. */}
       <button
         onClick={locked ? undefined : onClose}
         disabled={locked}
         aria-label="Cerrar"
-        className="absolute top-6 right-6 w-10 h-10 rounded-full flex items-center justify-center text-slate-500 hover:text-white hover:bg-white/5 disabled:opacity-20 disabled:cursor-not-allowed transition-all z-10"
+        className="absolute right-4 sm:right-6 w-11 h-11 rounded-full flex items-center justify-center text-slate-300 hover:text-white bg-slate-800/50 border border-slate-700/70 backdrop-blur-md hover:bg-slate-700/60 hover:border-slate-600 active:scale-95 disabled:opacity-20 disabled:cursor-not-allowed transition-all z-20"
+        style={{ top: 'max(env(safe-area-inset-top, 0px) + 0.5rem, 1.25rem)' }}
       >
-        <X size={20} />
+        <X size={18} strokeWidth={2.5} />
       </button>
 
       {/* Eyebrow con el nombre del sorteo */}
@@ -499,8 +521,8 @@ function ElegirGanadorModal({ sorteo, onClose }) {
         {spinning ? 'Eligiendo…' : 'El ganador es'}
       </motion.p>
 
-      {/* Nombre — GIGANTE */}
-      <div className="relative z-10 w-full max-w-4xl text-center px-4 min-h-[3.5em] flex items-center justify-center">
+      {/* Nombre — GIGANTE, con break-words para nombres largos en mobile */}
+      <div className="relative z-10 w-full max-w-4xl text-center px-2 sm:px-4 min-h-[3.5em] flex items-center justify-center">
         <AnimatePresence mode="popLayout">
           <motion.h2
             key={currentName + (spinning ? '-s' : '-w')}
@@ -513,9 +535,10 @@ function ElegirGanadorModal({ sorteo, onClose }) {
               : { opacity: 0, scale: 1.15, filter: 'blur(14px)' }}
             transition={{ duration: spinning ? 0.09 : 0.65, ease: [0.16, 1, 0.3, 1] }}
             className={
-              spinning
-                ? 'font-black leading-none tracking-tight text-white/85 text-5xl sm:text-6xl md:text-7xl lg:text-8xl'
-                : 'font-black leading-none tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-emerald-200 via-emerald-300 to-emerald-500 text-5xl sm:text-7xl md:text-8xl lg:text-9xl'
+              (spinning
+                ? 'text-white/85 text-4xl sm:text-6xl md:text-7xl lg:text-8xl'
+                : 'text-transparent bg-clip-text bg-gradient-to-br from-emerald-200 via-emerald-300 to-emerald-500 text-4xl sm:text-7xl md:text-8xl lg:text-9xl'
+              ) + ' font-black leading-[1.05] tracking-tight break-words hyphens-auto max-w-full'
             }
             style={
               !spinning && winner
@@ -538,7 +561,9 @@ function ElegirGanadorModal({ sorteo, onClose }) {
         </motion.p>
       )}
 
-      {/* Acciones — fade-in DESPUÉS del reveal para no arruinar la sorpresa */}
+      {/* Acciones — fade-in DESPUÉS del reveal. Botones grandes (min 48×48px)
+          para tap cómodo con el pulgar. Confirmar recibe order-first en mobile
+          para que quede a la mano y con py-4 se siente sólido. */}
       <AnimatePresence>
         {!spinning && (
           <motion.div
@@ -546,30 +571,33 @@ function ElegirGanadorModal({ sorteo, onClose }) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 12 }}
             transition={{ delay: 0.9, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-            className="relative z-10 mt-12 sm:mt-16 grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-md"
+            className="relative z-10 mt-10 sm:mt-16 grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-md"
           >
-            <button
-              onClick={repetir}
-              disabled={confirming}
-              className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold bg-transparent text-slate-300 hover:text-white hover:bg-white/5 border border-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-            >
-              Repetir
-            </button>
             <button
               onClick={confirmar}
               disabled={confirming}
-              className="flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold bg-emerald-500 text-emerald-950 hover:bg-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-[0_10px_40px_-10px_rgba(16,185,129,0.6)]"
+              className="order-1 sm:order-2 flex items-center justify-center gap-2 py-4 sm:py-3.5 rounded-2xl sm:rounded-xl text-base sm:text-sm font-bold bg-emerald-500 text-emerald-950 hover:bg-emerald-400 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-[0_10px_40px_-10px_rgba(16,185,129,0.6)]"
             >
               {confirming
-                ? <><Loader2 size={16} className="animate-spin" /> Guardando…</>
-                : <><PartyPopper size={16} /> Confirmar ganador</>}
+                ? <><Loader2 size={18} className="animate-spin" /> Guardando…</>
+                : <><PartyPopper size={18} /> Confirmar ganador</>}
+            </button>
+            <button
+              onClick={repetir}
+              disabled={confirming}
+              className="order-2 sm:order-1 flex items-center justify-center gap-2 py-3.5 sm:py-3.5 rounded-2xl sm:rounded-xl text-sm font-semibold bg-transparent text-slate-300 hover:text-white hover:bg-white/5 border border-slate-700 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+            >
+              Repetir
             </button>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Firma de marca — sello de agencia, tono discreto (font-light) */}
-      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-2.5 text-slate-600 pointer-events-none z-10 select-none">
+      {/* Firma de marca — safe-area aware para no chocar con el home indicator. */}
+      <div
+        className="fixed left-1/2 -translate-x-1/2 flex items-center gap-2.5 text-slate-600 pointer-events-none z-10 select-none"
+        style={{ bottom: 'max(env(safe-area-inset-bottom, 0px) + 1rem, 2rem)' }}
+      >
         <img
           src="/synaptech/ig.png"
           alt=""
