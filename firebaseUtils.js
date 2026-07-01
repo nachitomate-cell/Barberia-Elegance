@@ -1191,7 +1191,12 @@ const FDB = (() => {
         const nombre = d.nombre || d.displayName || (d.email ? d.email.split('@')[0] : null) || 'Barbero';
         return { id, nombre, foto: d.foto || d.photoURL || null, disponible: d.disponible !== false, ...d };
       })
-      .filter(b => b.activo !== false && !b._mainDocId && (b.rol !== 'admin' || (window.CURRENT_TENANT_ID || 'elegance') === 'delnero'))
+      // Filtro publico: excluye barberos apagados desde el panel. El toggle
+      // "Desactivar" de Equipo.jsx escribe `disponible: false`; mantenemos
+      // tambien `activo !== false` por compat con seeds legacy que usaron ese
+      // nombre. Ambos "default true" — solo bloquea cuando el campo es
+      // literalmente false, docs sin el campo pasan.
+      .filter(b => b.disponible !== false && b.activo !== false && !b._mainDocId && (b.rol !== 'admin' || (window.CURRENT_TENANT_ID || 'elegance') === 'delnero'))
       .sort((a, b) => {
         // Priorizar docs cuyo id NO coincide con uid — son los docs "originales"
         // que ya tienen citas asignadas. Si el seed creó uno nuevo (uid===id) para

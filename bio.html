@@ -871,7 +871,7 @@
           .catch(function () {}));
         if (cfg._studio && (cfg.bloques || []).some(function (b) { return b.tipo === 'barberos'; })) {
           loaders.push(b2.limit(60).get()
-            .then(function (s) { cfg._barberos = s.docs.map(function (d) { return d.data(); }).filter(function (b) { return b.activo !== false; }); })
+            .then(function (s) { cfg._barberos = s.docs.map(function (d) { return d.data(); }).filter(function (b) { return b.disponible !== false && b.activo !== false; }); })
             .catch(function () { cfg._barberos = []; }));
         }
         if (cfg._pro && (cfg.bloques || []).some(function (b) { return b.tipo === 'instagram' && b.grid; })) {
