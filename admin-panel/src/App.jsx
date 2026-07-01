@@ -56,7 +56,6 @@ import SaldoGiftCard    from './views/SaldoGiftCard';
 import VIPDashboard        from './views/VIPDashboard';
 import BillingGate         from './components/BillingGate';
 import ConfirmHost         from './components/ui/ConfirmHost';
-import BiooAnnouncement     from './components/BiooAnnouncement';
 import DailyWelcomePanel    from './components/DailyWelcomePanel';
 
 function TenantGate({ children }) {
@@ -91,7 +90,6 @@ function ProtectedApp() {
       {/* Resto del panel con AdminLayout */}
       <Route path="/*" element={
         <AdminLayout>
-          <BiooAnnouncement />
           <DailyWelcomePanel />
           <Routes>
             <Route index                  element={<Navigate to={defaultRoute} replace />} />
