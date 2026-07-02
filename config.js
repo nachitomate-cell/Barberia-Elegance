@@ -473,7 +473,7 @@
     latincaribe: {
       categoriasServicio: ['Cortes Premium', 'Cejas Premium', 'Barbas Premium', 'Diseños Freestyle', 'Platinados'],
       nombre:          'The Latin Caribe',
-      nombreCorto:     'Latin Caribe',
+      nombreCorto:     'TheLatinCaribe',
       pageTitle:       'The Latin Caribe | Agenda tu hora',
       slogan:          'Eleva Tu Estilo',
       sobreNosotros:   'Agenda con nosotros virtualmente y reserva tu cita para cualquiera de nuestros servicios.<br><br>Somos una excelente barbería ubicada en las adyacencias del centro de la ciudad, una buena opción, buen espacio y sobre todo un buen servicio, dejando una experiencia grata y reconfortante.',
