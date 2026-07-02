@@ -13,7 +13,7 @@ const { defineSecret } = require('firebase-functions/params');
 const { logger }       = require('firebase-functions');
 const admin            = require('firebase-admin');
 const { writeNotifLog }   = require('./lib/notif-log');
-const { getTenantConfig } = require('./lib/tenant-mail-config');
+const { getTenantConfig, mapsUrl } = require('./lib/tenant-mail-config');
 
 const db        = admin.firestore();
 const messaging = admin.messaging();
@@ -198,17 +198,32 @@ function build1hEmailHtml({ cfg, cita }) {
           </td>
         </tr>
 
-        <!-- Info del local -->
-        ${(cfg.direccion || cfg.horario) ? `
+        <!-- Info del local. La dirección es clickeable a Google Maps para que
+             el cliente arranque el GPS directo desde el mail (útil sobre todo
+             para la ventana de "faltan 30-90 min para tu cita"). -->
+        ${(cfg.direccion || cfg.horario) ? (() => {
+          const addrUrl = mapsUrl(cfg.direccion);
+          const addrRow = cfg.direccion ? (addrUrl
+            ? `<tr><td style="font-size:13px;color:#888;padding:3px 0;">
+                 <a href="${addrUrl}" target="_blank" rel="noopener"
+                    style="color:#aaa;text-decoration:none;">
+                   📍 ${cfg.direccion}
+                   <span style="color:${cfg.color};font-size:11px;font-weight:600;margin-left:6px;white-space:nowrap;">Cómo llegar →</span>
+                 </a>
+               </td></tr>`
+            : `<tr><td style="font-size:13px;color:#888;padding:3px 0;">📍 ${cfg.direccion}</td></tr>`
+          ) : '';
+          return `
         <tr>
           <td style="padding:0 36px 24px;">
             <table width="100%" cellpadding="0" cellspacing="0"
               style="background:#141417;border-radius:10px;border:1px solid #1e1e24;padding:16px 20px;">
-              ${cfg.direccion ? `<tr><td style="font-size:13px;color:#888;padding:3px 0;">📍 ${cfg.direccion}</td></tr>` : ''}
-              ${cfg.horario   ? `<tr><td style="font-size:13px;color:#888;padding:3px 0;">🕒 ${cfg.horario}</td></tr>`   : ''}
+              ${addrRow}
+              ${cfg.horario ? `<tr><td style="font-size:13px;color:#888;padding:3px 0;">🕒 ${cfg.horario}</td></tr>` : ''}
             </table>
           </td>
-        </tr>` : ''}
+        </tr>`;
+        })() : ''}
 
         ${cita.codigoCita ? `
         <!-- Código de gestión rápida vía /chat (sin login) -->

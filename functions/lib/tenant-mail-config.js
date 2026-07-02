@@ -258,4 +258,20 @@ function getTenantConfig(tenantId, logger) {
   return TENANT_CONFIG.elegance;
 }
 
-module.exports = { TENANT_CONFIG, getTenantConfig };
+/**
+ * Devuelve un enlace universal de Google Maps que en móviles abre la app
+ * de Maps si está instalada (y desde ahí el usuario puede redirigir a Waze
+ * o Uber con un tap), y en desktop abre la web. Formato oficial de Google
+ * (https://developers.google.com/maps/documentation/urls/get-started).
+ *
+ * @param {string} address dirección legible ("Ecuador 243, Viña del Mar").
+ *                         Se pasa por encodeURIComponent para blindarla.
+ * @returns {string|null}  URL o null si la dirección está vacía.
+ */
+function mapsUrl(address) {
+  const clean = String(address || '').trim();
+  if (!clean) return null;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(clean)}`;
+}
+
+module.exports = { TENANT_CONFIG, getTenantConfig, mapsUrl };

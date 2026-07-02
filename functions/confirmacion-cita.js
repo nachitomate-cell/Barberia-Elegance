@@ -16,7 +16,7 @@ const { defineSecret }      = require('firebase-functions/params');
 const { logger }            = require('firebase-functions');
 const admin                 = require('firebase-admin');
 const { writeNotifLog }     = require('./lib/notif-log');
-const { getTenantConfig }   = require('./lib/tenant-mail-config');
+const { getTenantConfig, mapsUrl } = require('./lib/tenant-mail-config');
 
 const RESEND_API_KEY = defineSecret('RESEND_API_KEY');
 
@@ -173,17 +173,35 @@ ${esCorteLapiz ? `
           </td>
         </tr>` : ''}
 ${productosHtml}
-        <!-- Info del local -->
-        ${(cfg.direccion || cfg.horario || cita.sucursalNombre) ? `
+        <!-- Info del local. La dirección es clickeable: en móvil abre Google Maps
+             (y desde ahí el cliente puede redirigir a Waze/Uber con un tap),
+             en desktop abre la web de Maps. Whole-line clickable + CTA "Cómo
+             llegar" en el color del tenant para señalar la acción sin cambiar
+             el peso visual del info-strip. -->
+        ${(cfg.direccion || cfg.horario || cita.sucursalNombre) ? (() => {
+          const addr    = cita.sucursalNombre || cfg.direccion || '';
+          const addrUrl = mapsUrl(addr);
+          const addrRow = addr ? (addrUrl
+            ? `<tr><td style="font-size:13px;color:#888;padding:3px 0;">
+                 <a href="${addrUrl}" target="_blank" rel="noopener"
+                    style="color:#aaa;text-decoration:none;">
+                   📍 ${addr}
+                   <span style="color:${cfg.color};font-size:11px;font-weight:600;margin-left:6px;white-space:nowrap;">Cómo llegar →</span>
+                 </a>
+               </td></tr>`
+            : `<tr><td style="font-size:13px;color:#888;padding:3px 0;">📍 ${addr}</td></tr>`
+          ) : '';
+          return `
         <tr>
           <td style="padding:0 36px 24px;">
             <table width="100%" cellpadding="0" cellspacing="0"
               style="background:#141417;border-radius:10px;border:1px solid #1e1e24;padding:16px 20px;">
-              ${cita.sucursalNombre ? `<tr><td style="font-size:13px;color:#888;padding:3px 0;">📍 ${cita.sucursalNombre}</td></tr>` : (cfg.direccion ? `<tr><td style="font-size:13px;color:#888;padding:3px 0;">📍 ${cfg.direccion}</td></tr>` : '')}
-              ${cfg.horario   ? `<tr><td style="font-size:13px;color:#888;padding:3px 0;">🕒 ${cfg.horario}</td></tr>`   : ''}
+              ${addrRow}
+              ${cfg.horario ? `<tr><td style="font-size:13px;color:#888;padding:3px 0;">🕒 ${cfg.horario}</td></tr>` : ''}
             </table>
           </td>
-        </tr>` : ''}
+        </tr>`;
+        })() : ''}
 
         ${cita.codigoCita ? `
         <!-- Código de gestión rápida vía /chat (sin login) -->
