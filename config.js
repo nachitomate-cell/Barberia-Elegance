@@ -481,7 +481,7 @@
       direccion:       '📍 Viña del Mar',
       horario:         '🕒 Lun-Sáb: 10-20h. ¡Reserva tu hora!',
       telefono:        '',
-      club:            'Club Latin Caribe',
+      club:            'Club The Latin Caribe',
       instagram:       '',
       instagramHandle: '',
       waEmoji:         '✂️',

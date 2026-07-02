@@ -174,7 +174,7 @@ async function seedProfile() {
     name:            'The Latin Caribe',
     shortName:       'Latin Caribe',
     slogan:          'Eleva Tu Estilo',
-    club:            'Club Latin Caribe',
+    club:            'Club The Latin Caribe',
     address:         'Viña del Mar',
     scheduleText:    'Reagenda con mín. 24 hrs',
     phone:           '56900000000',
