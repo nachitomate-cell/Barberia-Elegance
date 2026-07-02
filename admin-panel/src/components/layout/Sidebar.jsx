@@ -500,7 +500,7 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
   const currentSlug = location.pathname.split('/').filter(Boolean).pop();
 
   return (
-    <aside data-component="sidebar" className="flex flex-col h-full bg-slate-900 border-r border-slate-800">
+    <aside data-component="sidebar" className="flex flex-col h-full max-h-screen bg-slate-900 border-r border-slate-800">
 
       {/* Gradientes de marca para teñir el trazo de los íconos lucide (variant items) */}
       <svg width="0" height="0" className="absolute" aria-hidden="true">
@@ -538,8 +538,11 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
         </div>
       </div>
 
-      {/* Nav agrupado */}
-      <nav className="flex-1 px-3 py-3 overflow-y-auto no-scrollbar">
+      {/* Nav agrupado — min-h-0 permite que overflow-y-auto realmente
+          se active dentro del padre flex-col (sin esto, min-height:auto
+          hace crecer al nav más allá del viewport y los últimos ítems
+          quedan cortados en pantallas chicas). */}
+      <nav className="flex-1 min-h-0 px-3 py-3 overflow-y-auto no-scrollbar">
         {NAV_GROUPS.map(group => {
           const items = group.items.filter(item => !item.adminOnly || isAdminRole);
           if (items.length === 0) return null;
