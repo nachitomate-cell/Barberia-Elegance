@@ -16,167 +16,11 @@ const { defineSecret }      = require('firebase-functions/params');
 const { logger }            = require('firebase-functions');
 const admin                 = require('firebase-admin');
 const { writeNotifLog }     = require('./lib/notif-log');
+const { getTenantConfig }   = require('./lib/tenant-mail-config');
 
 const RESEND_API_KEY = defineSecret('RESEND_API_KEY');
 
 const db = admin.firestore();
-
-// ── Config por tenant ─────────────────────────────────────────────────────────
-const TENANT_CONFIG = {
-  elegance: {
-    nombre:    'Elegance Barbershop',
-    direccion: 'Ecuador 243, Viña del Mar',
-    horario:   'Lun–Sáb: 10–20h · Dom: 12–20h',
-    color:     '#D4AF37',
-    instagram: 'https://www.instagram.com/elegance.cl_/',
-    whatsapp:  '',
-    from:      'Elegance Barbershop <citas@synaptechspa.cl>',
-    dashboardUrl: 'https://barberiaelegance.synaptechspa.cl/dashboard',
-  },
-  ferraza: {
-    nombre:    'Barbería Ferraza',
-    direccion: 'Av. Libertad 63 / Local 28',
-    horario:   'Lun–Sáb: 10–20h',
-    color:     '#C0392B',
-    instagram: '',
-    whatsapp:  '56994269228',
-    from:      'Barbería Ferraza <citas@synaptechspa.cl>',
-    dashboardUrl: 'https://barberiaferraza.synaptechspa.cl/dashboard',
-  },
-  gitana: {
-    nombre:    'Gitana Nails Studio',
-    direccion: 'Las Encinas 1390 local 18, Concón',
-    horario:   'Atención con hora previa',
-    color:     '#8E44AD',
-    instagram: 'https://www.instagram.com/gitana.nails.studio',
-    whatsapp:  '56997023355',
-    from:      'Gitana Nails Studio <citas@synaptechspa.cl>',
-    dashboardUrl: 'https://gitananails.synaptechspa.cl/dashboard',
-  },
-  mapubarbershop: {
-    nombre:    'Mapu Barber Shop',
-    direccion: '',
-    horario:   '',
-    color:     '#BFA37E',
-    instagram: '',
-    whatsapp:  '',
-    from:      'Mapu Barber Shop <citas@synaptechspa.cl>',
-    dashboardUrl: 'https://mapubarbershop.synaptechspa.cl/dashboard',
-  },
-  chameleon: {
-    nombre:    'Chameleon Barber Studio',
-    direccion: 'Av. Libertad 868, Viña del Mar',
-    horario:   'Lun–Sáb: 10:30–20:00 hrs.',
-    color:     '#DAA520',
-    instagram: 'https://www.instagram.com/chameleon.barberstudio/',
-    whatsapp:  '56928186861',
-    from:      'Chameleon Barber Studio <citas@synaptechspa.cl>',
-    dashboardUrl: 'https://chameleonbarber.synaptechspa.cl/dashboard',
-  },
-  lumen: {
-    nombre:      "D'Jones Barber",
-    slogan:      'Estilo y tradición',
-    direccion:   '',
-    horario:     '',
-    color:       '#C9A050',
-    darkHeader:  true,
-    instagram:   '',
-    whatsapp:    '',
-    from:        "D'Jones Barber <citas@synaptechspa.cl>",
-    dashboardUrl:'https://djonesbarberia.synaptechspa.cl/dashboard',
-  },
-  aura: {
-    nombre:      'AURA SALÓN & MALE GROOMING',
-    slogan:      'Eleva Tu Aura',
-    direccion:   'Viña del Mar',
-    horario:     'Lun–Sáb: 10:00–20:00 hrs.',
-    color:       '#6CABDD',
-    instagram:   'https://www.instagram.com/aura.salon.cl/',
-    whatsapp:    '56966153086',
-    from:        'AURA SALÓN & MALE GROOMING <citas@synaptechspa.cl>',
-    dashboardUrl:'https://aurasalonmalegrooming.synaptechspa.cl/dashboard',
-  },
-  latincaribe: {
-    nombre:      'The Latin Caribe',
-    slogan:      'Más que un corte, una experiencia.',
-    direccion:   'Manuel Rodríguez 299, Copiapó',
-    horario:     'Lun–Sáb: 11:00–21:00 · Dom: 12:00–20:00',
-    color:       '#35DDE6',
-    darkHeader:  true,
-    instagram:   '',
-    whatsapp:    '',
-    from:        'The Latin Caribe <citas@synaptechspa.cl>',
-    dashboardUrl:'https://thelatincaribe.synaptechspa.cl/dashboard',
-  },
-  machos: {
-    nombre:      'Macho´s Barbershop',
-    slogan:      'Calidad y Asesoría Profesional',
-    direccion:   '4 Norte 477 local 5, Viña del Mar',
-    horario:     'Lun–Sáb: 10:00–20:00 hrs · Dom: 11:00–17:00 hrs',
-    color:       '#f97316',
-    instagram:   'https://www.instagram.com/machos_barbershop.cl/',
-    whatsapp:    '56978390422',
-    from:        'Macho´s Barbershop <citas@synaptechspa.cl>',
-    dashboardUrl:'https://machos.synaptechspa.cl/dashboard',
-  },
-  sionbarberia: {
-    nombre:    'Studio Dieciséis',
-    direccion: 'Condell 1525, Piso 5, Local 43, Galería Beye, Valparaíso',
-    horario:   'Lun–Sáb: 09:00–21:00 hrs',
-    color:     '#111111',
-    instagram: 'https://www.instagram.com/studio.dieciseis_/',
-    whatsapp:  '56937179177',
-    from:      'Studio Dieciséis <citas@synaptechspa.cl>',
-    dashboardUrl: 'https://studiodieciseis.synaptechspa.cl/dashboard',
-  },
-  kronnos_penablanca: {
-    nombre:      'Kronnos Studio Peñablanca',
-    slogan:      'Un espacio unisex donde ambos mundos convergen',
-    direccion:   'Av. Vicepresidente Bernardo Leighton 20, local 13, Villa Alemana',
-    horario:     'Lun a Sáb · 10:30 – 19:00',
-    color:       '#e11d2a',
-    instagram:   '',
-    whatsapp:    '56982504870',
-    from:        'Kronnos Studio Peñablanca <citas@synaptechspa.cl>',
-    dashboardUrl:'https://kronnospenablanca.synaptechspa.cl/dashboard',
-  },
-  kronnos_limache: {
-    nombre:      'Kronnos Studio Limache',
-    slogan:      'Un espacio unisex donde ambos mundos convergen',
-    direccion:   'Paseo Las Araucarias 405, local 5, Limache',
-    horario:     'Lun a Sáb · 10:30 – 19:00',
-    color:       '#f97316',
-    instagram:   '',
-    whatsapp:    '56920241041',
-    from:        'Kronnos Studio Limache <citas@synaptechspa.cl>',
-    dashboardUrl:'https://kronnoslimache.synaptechspa.cl/dashboard',
-  },
-  kronnos_woman: {
-    nombre:      'Kronnos Woman',
-    slogan:      'Belleza y estilo en un solo lugar',
-    direccion:   'Palmira Romano Sur 405, local 3, Limache',
-    horario:     'Lun a Dom · 09:30 – 23:00',
-    color:       '#ec4899',
-    instagram:   '',
-    whatsapp:    '',
-    from:        'Kronnos Woman <citas@synaptechspa.cl>',
-    dashboardUrl:'https://kronnoswoman.synaptechspa.cl/dashboard',
-  },
-  yugen: {
-    nombre:      'Yūgen Studio',
-    slogan:      'La profundidad que no se explica, se experimenta',
-    direccion:   '',
-    horario:     'Lun–Vie: 10:00–19:00 · Sáb: 10:00–18:00 · Dom: 10:00–14:00',
-    color:       '#d8d3ca',   // marfil/greige (acento)
-    darkHeader:  true,
-    headerBg:    '#0b0a09',    // negro cálido (identidad Yūgen)
-    intro:       'Hola {nombre}, tu espacio en Yūgen Studio está reservado. Te invitamos a desconectar del exterior y reconectarte contigo mismo. Te esperamos.',
-    instagram:   '',
-    whatsapp:    '',
-    from:        'Yūgen Studio <citas@synaptechspa.cl>',
-    dashboardUrl:'https://yugenstudio.synaptechspa.cl/dashboard',
-  },
-};
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -430,7 +274,7 @@ async function enviarConfirmacion(citaId, data, tenantId) {
     return;
   }
 
-  const cfg = TENANT_CONFIG[tenantId] || TENANT_CONFIG.elegance;
+  const cfg = getTenantConfig(tenantId, logger);
 
   // Backfill del código: si la cita se creó por un path que no lo incluyó
   // (Flow, Mercado Pago o algunas citas viejas del panel), generamos uno
