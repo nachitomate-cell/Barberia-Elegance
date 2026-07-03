@@ -1195,6 +1195,13 @@ export default async function middleware(request) {
   const url      = new URL(request.url);
   const hostname = (request.headers.get('host') || '').replace(/:\d+$/, '');
 
+  // Seeders internos de administración (/seed-*.html): son páginas-herramienta
+  // que hablan directo con Firestore. No inyectar meta ni pasar por el pipeline
+  // de tenant — servirlos como estáticos crudos.
+  if (url.pathname.startsWith('/seed-') && url.pathname.endsWith('.html')) {
+    return;
+  }
+
   // ── SynapTech Links (producto self-serve, bioo.cl) ────────────────────────────
   // No es un tenant: las páginas de /links sirven su propio <head>, íconos y
   // manifest dinámico, así que NO inyectamos el SEO de ningún tenant aquí.

@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Seed · Barbers Club</title>
+  <style>
+    body { font-family: monospace; background: #0b0a09; color: #94a3b8; padding: 2rem; }
+    h1   { color: #DAA520; }
+    button { padding: .75rem 1.5rem; background: #DAA520; color: #0a0800; border: none;
+             border-radius: .5rem; font-size: 1rem; font-weight: 700; cursor: pointer; margin-top: 1rem; }
+    button:disabled { opacity: .4; cursor: not-allowed; }
+    pre  { background: #141210; padding: 1rem; border-radius: .5rem; white-space: pre-wrap; margin-top: 1rem;
+           border: 1px solid rgba(218,165,32,0.15); }
+    .ok  { color: #34d399; }
+    .err { color: #f87171; }
+  </style>
+</head>
+<body>
+  <h1>Seed — Barbers Club</h1>
+  <p>Popula <code>tenants/barbersclub/</code> con barberos, servicios, premios y configuración del club.</p>
+  <button id="btn" onclick="run()">▶ Ejecutar Seed completo</button>
+  <pre id="log">Listo para ejecutar…</pre>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="/firebase-config.js?v=1.3"></script>
+  <script>
+    // db declarado globalmente por firebase-config.js
+    const log = document.getElementById('log');
+    const btn = document.getElementById('btn');
+
+    function write(msg, cls) {
+      log.innerHTML += `<span class="${cls||''}">${msg}\n</span>`;
+    }
+
+    async function set(path, data) {
+      const parts = path.split('/');
+      let ref = db;
+      for (let i = 0; i < parts.length; i++) {
+        ref = i % 2 === 0 ? ref.collection(parts[i]) : ref.doc(parts[i]);
+      }
+      await ref.set(data, { merge: true });
+      write(`  ✓ ${path}`, 'ok');
+    }
+
+    async function run() {
+      btn.disabled = true;
+      log.innerHTML = '';
+      try {
+        /* ── Barberos ── */
+        write('── Barberos ──');
+        const horarioBase = {
+          '1': { activo: true,  inicio: '10:00', fin: '20:30', descansos: [] },
+          '2': { activo: true,  inicio: '10:00', fin: '20:30', descansos: [] },
+          '3': { activo: true,  inicio: '10:00', fin: '20:30', descansos: [] },
+          '4': { activo: true,  inicio: '10:00', fin: '20:30', descansos: [] },
+          '5': { activo: true,  inicio: '10:00', fin: '20:30', descansos: [] },
+          '6': { activo: true,  inicio: '10:00', fin: '20:30', descansos: [] },
+          '0': { activo: false, inicio: '10:00', fin: '20:30', descansos: [] },
+        };
+        await set('tenants/barbersclub/barberos/alexander', {
+          nombre: 'Alexander', activo: true, disponible: true, foto: null, horario: horarioBase,
+        });
+        await set('tenants/barbersclub/barberos/nicolas', {
+          nombre: 'Nicolás', activo: true, disponible: true, foto: null, horario: horarioBase,
+        });
+        await set('tenants/barbersclub/barberos/nicole', {
+          nombre: 'Nicole', activo: true, disponible: true, foto: null, horario: horarioBase,
+          rol: 'Lady Barber / Estilista',
+        });
+        await set('tenants/barbersclub/barberos/ignacio', {
+          nombre: 'Ignacio', activo: true, disponible: true, foto: null, horario: horarioBase,
+        });
+        await set('tenants/barbersclub/barberos/maximo', {
+          nombre: 'Máximo', activo: true, disponible: true, foto: null, horario: horarioBase,
+        });
+
+        /* ── Servicios — Cortes ── */
+        write('\n── Servicios · Cortes ──');
+        await set('tenants/barbersclub/servicios/corte-clasico-fade', {
+          nombre: 'Corte Clásico / Degradado (Fade)', categoria: 'Cortes',
+          duracion: 45, precio: 12000, disponible: true, orden: 1,
+          descripcion: 'Corte clásico o degradado (fade) a medida. Incluye asesoría de estilo, lavado y peinado profesional para un acabado impecable.',
+        });
+        await set('tenants/barbersclub/servicios/corte-nino', {
+          nombre: 'Corte Niño (Hasta 10 años)', categoria: 'Cortes',
+          duracion: 40, precio: 10000, disponible: true, orden: 2,
+          descripcion: 'Corte pensado para los más pequeños (hasta 10 años). Ambiente relajado y paciente para una primera experiencia grata en la barbería.',
+        });
+
+        /* ── Servicios — Combos ── */
+        write('\n── Servicios · Combos ──');
+        await set('tenants/barbersclub/servicios/combo-corte-barba-vip', {
+          nombre: 'Combo Corte + Barba VIP', categoria: 'Combos',
+          duracion: 60, precio: 18000, disponible: true, orden: 3,
+          descripcion: 'Experiencia completa: corte a medida + arreglo de barba con ritual de toalla caliente para una piel suave y una barba prolija.',
+        });
+        await set('tenants/barbersclub/servicios/combo-corte-cejas', {
+          nombre: 'Combo Corte + Perfilado de Cejas', categoria: 'Combos',
+          duracion: 50, precio: 14000, disponible: true, orden: 4,
+          descripcion: 'Corte de cabello personalizado + perfilado de cejas para un look equilibrado y armónico.',
+        });
+
+        /* ── Servicios — Barba & Estilo ── */
+        write('\n── Servicios · Barba & Estilo ──');
+        await set('tenants/barbersclub/servicios/perfilado-barba', {
+          nombre: 'Perfilado y Diseño de Barba', categoria: 'Barba & Estilo',
+          duracion: 30, precio: 8000, disponible: true, orden: 5,
+          descripcion: 'Perfilado y diseño de barba con trimmer, navaja y productos de alta calidad. Acabado prolijo y definido.',
+        });
+        await set('tenants/barbersclub/servicios/limpieza-black-mask', {
+          nombre: 'Limpieza Facial Black Mask', categoria: 'Barba & Estilo',
+          duracion: 30, precio: 8000, disponible: true, orden: 6,
+          descripcion: 'Limpieza facial profunda con mascarilla Black Mask. Elimina impurezas y deja la piel renovada y libre de puntos negros.',
+        });
+
+        /* ── Premios / Club de Fidelidad ── */
+        write('\n── Premios · Club de Fidelidad ──');
+        const premSnap = await db.collection('tenants/barbersclub/premios').get();
+        for (const d of premSnap.docs) await d.ref.delete();
+        write(`  ✓ Premios anteriores eliminados (${premSnap.size})`, 'ok');
+        const addPremio = async (data) => {
+          await db.collection('tenants/barbersclub/premios').add(data);
+          write(`  ✓ Premio → "${data.nombre}" (${data.costoSellos} sellos)`, 'ok');
+        };
+        await addPremio({
+          nombre: '50% de descuento en tu próximo servicio',
+          descripcion: 'Al completar 6 sellos, obtén un 50% de descuento en tu próximo servicio en Barbers Club.',
+          costoSellos: 6, icono: 'ph-tag', activo: true,
+        });
+        await addPremio({
+          nombre: 'Perfilado de barba gratis',
+          descripcion: 'Al completar 6 sellos, canjea un perfilado de barba completamente gratis.',
+          costoSellos: 6, icono: 'ph-scissors', activo: true,
+        });
+
+        /* ── Config del Club ── */
+        write('\n── Configuración del Club ──');
+        await set('tenants/barbersclub/config/club', {
+          nombreClub: 'Barbers Club VIP',
+          descripcion: '1 sello por cada corte agendado y asistido. Al completar 6 sellos, obtén 50% de descuento en tu próximo servicio o un perfilado de barba gratis.',
+          totalSellos: 6,
+          sellosPorVisita: 1,
+          activo: true,
+        });
+
+        write('\n✅ Seed completado exitosamente.', 'ok');
+      } catch (e) {
+        write(`\n❌ Error: ${e.message}`, 'err');
+      }
+      btn.disabled = false;
+    }
+  </script>
+</body>
+</html>
