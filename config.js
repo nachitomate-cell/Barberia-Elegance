@@ -46,6 +46,7 @@
     'kronnos-limache.synaptechspa.cl':    'kronnos_limache',
     'kronnoswoman.synaptechspa.cl':       'kronnos_woman',
     'kronnos-woman.synaptechspa.cl':      'kronnos_woman',
+    'barbersclub.synaptechspa.cl':        'barbersclub',
   };
 
   const _tenants = {
@@ -678,6 +679,39 @@
       reviews:         [],
       barberos: [
         { nombre: 'Yūgen', foto: null, disponible: true },
+      ],
+    },
+    // ── BARBERS CLUB — barbería premium dark + gold (Ciudad de los Valles, Pudahuel) ──
+    // Acceso: ?local=barbersclub  o  barbersclub.synaptechspa.cl
+    // Réplica estructural del tema Chameleon (dorado #DAA520 sobre negro profundo).
+    barbersclub: {
+      categoriasServicio: ['Cortes', 'Combos', 'Barba & Estilo', 'Otros'],
+      nombre:          'Barbers Club',
+      nombreCorto:     'Barbers Club',
+      pageTitle:       'Barbers Club | Agenda tu hora',
+      bodyBg:          '#0b0a09',
+      slogan:          'Exclusivo salón ambientado para potenciar tu imagen.',
+      sobreNosotros:   'Barbers Club es un salón exclusivo pensado para elevar tu imagen. Ambiente cuidado, profesionales especializados y una experiencia integral de barbería, estilismo y cuidado facial.',
+      logo:            '/logo.jpg',
+      direccion:       '📍 Av. Del Canal 19811, Local 12 · Ciudad de los Valles, Pudahuel · Santiago',
+      horario:         '🕒 Lun a Sáb: 10:00 – 20:30 hrs.',
+      telefono:        '56981806262',
+      club:            'Barbers Club VIP',
+      instagram:       'https://www.instagram.com/barbersclub_/',
+      instagramHandle: '@barbersclub_',
+      waEmoji:         '✂️',
+      googleReviewUrl: '',
+      ratingGeneral:   0,
+      totalReviews:    0,
+      reviews:         [],
+      darkHeader:      true,
+      headerBg:        '#0b0a09',
+      barberos: [
+        { nombre: 'Alexander', foto: null, disponible: true },
+        { nombre: 'Nicolás',   foto: null, disponible: true },
+        { nombre: 'Nicole',    foto: null, disponible: true },
+        { nombre: 'Ignacio',   foto: null, disponible: true },
+        { nombre: 'Máximo',    foto: null, disponible: true },
       ],
     },
   };

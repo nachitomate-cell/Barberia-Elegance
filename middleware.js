@@ -37,6 +37,7 @@ const DOMAIN_MAP = {
   'kronnoslimache.synaptechspa.cl':    'kronnos_limache',
   'kronnoswoman.synaptechspa.cl':      'kronnos_woman',
   'admin.kronnos.synaptechspa.cl':     'kronnos_penablanca',
+  'barbersclub.synaptechspa.cl':       'barbersclub',
 };
 
 const TENANT_META = {
@@ -896,6 +897,51 @@ const TENANT_META = {
       theme_color: '#e11d2a', background_color: '#0a0a0a', start_url: '/gestion-interna/?local=kronnos_penablanca',
       icons: [
         { src: '/kronnos/studio.jpg', sizes: 'any', type: 'image/jpeg' },
+        { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png' },
+        { src: '/gestion-interna/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+      ],
+    },
+  },
+  barbersclub: {
+    booking: {
+      title:       'Barbers Club | Agenda tu hora',
+      description: 'Reserva en Barbers Club. Exclusivo salón ambientado para potenciar tu imagen. Ciudad de los Valles, Pudahuel.',
+      ogTitle:     'Agendar Hora | Barbers Club',
+      ogDesc:      'Exclusivo salón ambientado para potenciar tu imagen. Reserva tu hora online.',
+    },
+    dashboard: {
+      title:       'Mi Club | Barbers Club',
+      description: 'Tu panel personal en Barbers Club. Revisa tus sellos y canjea premios.',
+      ogTitle:     'Mi Club | Barbers Club',
+      ogDesc:      'Panel de fidelidad de Barbers Club. Acumula sellos y disfruta beneficios exclusivos.',
+    },
+    registro: {
+      title:       'Únete al Barbers Club VIP',
+      description: 'Crea tu cuenta en Barbers Club VIP. Acumula sellos y accede a beneficios exclusivos.',
+      ogTitle:     'Únete al Barbers Club VIP',
+      ogDesc:      'Regístrate en Barbers Club y disfruta beneficios exclusivos.',
+    },
+    siteName:    'Barbers Club',
+    ogImage:     '/logo.jpg',
+    themeColor:  '#0b0a09',
+    appTitle:    'Barbers Club',
+    icon:        '/logo.jpg',
+    local: { telephone: '+56981806262', streetAddress: 'Av. Del Canal 19811, Local 12', addressLocality: 'Ciudad de los Valles, Pudahuel, Santiago', schemaType: 'HairSalon' },
+    manifest: {
+      name:             'Barbers Club',
+      short_name:       'Barbers Club',
+      theme_color:      '#0b0a09',
+      background_color: '#0b0a09',
+    },
+    adminManifest: {
+      name:             'Panel Admin · Barbers Club',
+      short_name:       'Barbers Club',
+      description:      'Panel de administración — Barbers Club',
+      theme_color:      '#DAA520',
+      background_color: '#0b0a09',
+      start_url:        '/gestion-interna/?local=barbersclub',
+      icons: [
+        { src: '/logo.jpg',                    sizes: 'any',     type: 'image/jpeg' },
         { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png' },
         { src: '/gestion-interna/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
       ],
