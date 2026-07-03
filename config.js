@@ -47,6 +47,13 @@
     'kronnoswoman.synaptechspa.cl':       'kronnos_woman',
     'kronnos-woman.synaptechspa.cl':      'kronnos_woman',
     'barbersclub.synaptechspa.cl':        'barbersclub',
+    'elbarberomoderno.synaptechspa.cl':   'elbarberomoderno',
+  };
+
+  // Alias de tema: reutiliza los estilos CSS de un tenant existente en lugar
+  // de duplicar decenas de reglas. Se aplica una segunda clase al <html>.
+  const _themeAlias = {
+    elbarberomoderno: 'chameleon',
   };
 
   const _tenants = {
@@ -714,6 +721,35 @@
         { nombre: 'Máximo',    foto: null, disponible: true },
       ],
     },
+    // ── EL BARBERO MODERNO — Jhoseth Morales · Master Barber (dark + gold) ──
+    // Acceso: ?local=elbarberomoderno  o  elbarberomoderno.synaptechspa.cl
+    // Reutiliza el tema visual de Chameleon vía _themeAlias.
+    elbarberomoderno: {
+      categoriasServicio: ['Cortes', 'Barba', 'Combos', 'Otros'],
+      nombre:          'El Barbero Moderno',
+      nombreCorto:     'El Barbero Moderno',
+      pageTitle:       'El Barbero Moderno | Agenda tu hora',
+      bodyBg:          '#0b0a09',
+      slogan:          'Barbero Profesional con 8 años de experiencia. Tu estilo, a otro nivel.',
+      sobreNosotros:   'El Barbero Moderno es el espacio de Jhoseth Morales, Master Barber con 8 años de experiencia. Cortes clásicos y modernos, perfilado y ritual de barba, atención personalizada para llevar tu estilo a otro nivel.',
+      logo:            '/logo.jpg',
+      direccion:       '📍 Serrano 73',
+      horario:         '🕒 Lun a Sáb: 10:00 – 20:00 hrs.',
+      telefono:        '',
+      club:            'Club El Barbero Moderno',
+      instagram:       'https://instagram.com/jhbarber.cl/',
+      instagramHandle: '@jhbarber.cl',
+      waEmoji:         '✂️',
+      googleReviewUrl: '',
+      ratingGeneral:   0,
+      totalReviews:    0,
+      reviews:         [],
+      darkHeader:      true,
+      headerBg:        '#0b0a09',
+      barberos: [
+        { nombre: 'Jhoseth Morales', foto: null, disponible: true },
+      ],
+    },
   };
 
   // Resolver tenant: query param > dominio > sessionStorage > default
@@ -746,6 +782,9 @@
   // Lista completa de tenants (la usa el panel de superadmin para no mantener cards a mano).
   try { window.ALL_TENANTS = _tenants; } catch (_) {}
   document.documentElement.classList.add('tenant-' + tenantId);
+  if (_themeAlias[tenantId]) {
+    document.documentElement.classList.add('tenant-' + _themeAlias[tenantId]);
+  }
 
   var _logoSrc = _tenants[tenantId] && _tenants[tenantId].logo;
   if (_logoSrc) {

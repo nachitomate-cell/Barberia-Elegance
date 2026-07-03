@@ -38,6 +38,7 @@ const DOMAIN_MAP = {
   'kronnoswoman.synaptechspa.cl':      'kronnos_woman',
   'admin.kronnos.synaptechspa.cl':     'kronnos_penablanca',
   'barbersclub.synaptechspa.cl':       'barbersclub',
+  'elbarberomoderno.synaptechspa.cl':  'elbarberomoderno',
 };
 
 const TENANT_META = {
@@ -940,6 +941,51 @@ const TENANT_META = {
       theme_color:      '#DAA520',
       background_color: '#0b0a09',
       start_url:        '/gestion-interna/?local=barbersclub',
+      icons: [
+        { src: '/logo.jpg',                    sizes: 'any',     type: 'image/jpeg' },
+        { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png' },
+        { src: '/gestion-interna/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+      ],
+    },
+  },
+  elbarberomoderno: {
+    booking: {
+      title:       'El Barbero Moderno | Agenda tu hora',
+      description: 'Reserva con Jhoseth Morales — Master Barber con 8 años de experiencia. Cortes, barba y combos en Serrano 73.',
+      ogTitle:     'Agendar Hora | El Barbero Moderno',
+      ogDesc:      'Barbero Profesional con 8 años de experiencia. Tu estilo, a otro nivel. Reserva online.',
+    },
+    dashboard: {
+      title:       'Mi Club | El Barbero Moderno',
+      description: 'Tu panel personal en El Barbero Moderno. Revisa tus sellos y canjea premios.',
+      ogTitle:     'Mi Club | El Barbero Moderno',
+      ogDesc:      'Panel de fidelidad de El Barbero Moderno. Acumula sellos y disfruta beneficios exclusivos.',
+    },
+    registro: {
+      title:       'Únete al Club | El Barbero Moderno',
+      description: 'Crea tu cuenta en el Club de El Barbero Moderno. Acumula sellos y accede a beneficios exclusivos.',
+      ogTitle:     'Únete al Club | El Barbero Moderno',
+      ogDesc:      'Regístrate en El Barbero Moderno y disfruta beneficios exclusivos.',
+    },
+    siteName:    'El Barbero Moderno',
+    ogImage:     '/logo.jpg',
+    themeColor:  '#0b0a09',
+    appTitle:    'El Barbero Moderno',
+    icon:        '/logo.jpg',
+    local: { streetAddress: 'Serrano 73', schemaType: 'HairSalon' },
+    manifest: {
+      name:             'El Barbero Moderno',
+      short_name:       'El Barbero Moderno',
+      theme_color:      '#0b0a09',
+      background_color: '#0b0a09',
+    },
+    adminManifest: {
+      name:             'Panel Admin · El Barbero Moderno',
+      short_name:       'El Barbero Moderno',
+      description:      'Panel de administración — El Barbero Moderno',
+      theme_color:      '#DAA520',
+      background_color: '#0b0a09',
+      start_url:        '/gestion-interna/?local=elbarberomoderno',
       icons: [
         { src: '/logo.jpg',                    sizes: 'any',     type: 'image/jpeg' },
         { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png' },

@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Seed · El Barbero Moderno</title>
+  <style>
+    body { font-family: monospace; background: #0b0a09; color: #94a3b8; padding: 2rem; }
+    h1   { color: #DAA520; }
+    button { padding: .75rem 1.5rem; background: #DAA520; color: #0a0800; border: none;
+             border-radius: .5rem; font-size: 1rem; font-weight: 700; cursor: pointer; margin-top: 1rem; }
+    button:disabled { opacity: .4; cursor: not-allowed; }
+    pre  { background: #141210; padding: 1rem; border-radius: .5rem; white-space: pre-wrap; margin-top: 1rem;
+           border: 1px solid rgba(218,165,32,0.15); }
+    .ok  { color: #34d399; }
+    .err { color: #f87171; }
+  </style>
+</head>
+<body>
+  <h1>Seed — El Barbero Moderno</h1>
+  <p>Popula <code>tenants/elbarberomoderno/</code> con barbero, servicios, premios y configuración del club.</p>
+  <button id="btn" onclick="run()">▶ Ejecutar Seed completo</button>
+  <pre id="log">Listo para ejecutar…</pre>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="/firebase-config.js?v=1.3"></script>
+  <script>
+    const log = document.getElementById('log');
+    const btn = document.getElementById('btn');
+
+    function write(msg, cls) {
+      log.innerHTML += `<span class="${cls||''}">${msg}\n</span>`;
+    }
+
+    async function set(path, data) {
+      const parts = path.split('/');
+      let ref = db;
+      for (let i = 0; i < parts.length; i++) {
+        ref = i % 2 === 0 ? ref.collection(parts[i]) : ref.doc(parts[i]);
+      }
+      await ref.set(data, { merge: true });
+      write(`  ✓ ${path}`, 'ok');
+    }
+
+    async function run() {
+      btn.disabled = true;
+      log.innerHTML = '';
+      try {
+        /* ── Barbero ── */
+        write('── Barberos ──');
+        const horarioBase = {
+          '1': { activo: true,  inicio: '10:00', fin: '20:00', descansos: [] },
+          '2': { activo: true,  inicio: '10:00', fin: '20:00', descansos: [] },
+          '3': { activo: true,  inicio: '10:00', fin: '20:00', descansos: [] },
+          '4': { activo: true,  inicio: '10:00', fin: '20:00', descansos: [] },
+          '5': { activo: true,  inicio: '10:00', fin: '20:00', descansos: [] },
+          '6': { activo: true,  inicio: '10:00', fin: '20:00', descansos: [] },
+          '0': { activo: false, inicio: '10:00', fin: '20:00', descansos: [] },
+        };
+        await set('tenants/elbarberomoderno/barberos/jhoseth-morales', {
+          nombre: 'Jhoseth Morales', activo: true, disponible: true, foto: null, horario: horarioBase,
+          rol: 'Master Barber',
+        });
+
+        /* ── Servicios — Cortes ── */
+        write('\n── Servicios · Cortes ──');
+        await set('tenants/elbarberomoderno/servicios/corte-tradicional-fade', {
+          nombre: 'Corte Tradicional / Degradado (Fade)', categoria: 'Cortes',
+          duracion: 45, precio: 12000, disponible: true, orden: 1,
+          descripcion: 'Corte tradicional o degradado (fade) a medida. Incluye asesoría de estilo, lavado y peinado profesional.',
+        });
+        await set('tenants/elbarberomoderno/servicios/corte-perfilado-express', {
+          nombre: 'Corte + Perfilado Express', categoria: 'Cortes',
+          duracion: 50, precio: 14000, disponible: true, orden: 2,
+          descripcion: 'Corte a medida más perfilado express de barba para un acabado impecable en tiempo optimizado.',
+        });
+
+        /* ── Servicios — Barba ── */
+        write('\n── Servicios · Barba ──');
+        await set('tenants/elbarberomoderno/servicios/perfilado-ritual-barba', {
+          nombre: 'Perfilado y Ritual de Barba (Toalla Caliente)', categoria: 'Barba',
+          duracion: 30, precio: 8000, disponible: true, orden: 3,
+          descripcion: 'Perfilado y diseño de barba con ritual de toalla caliente. Aceites y bálsamos para una piel suave y una barba prolija.',
+        });
+        await set('tenants/elbarberomoderno/servicios/afeitado-clasico', {
+          nombre: 'Afeitado Clásico', categoria: 'Barba',
+          duracion: 30, precio: 7000, disponible: true, orden: 4,
+          descripcion: 'Afeitado clásico con navaja, técnica tradicional y toalla caliente. Un ritual pausado y prolijo.',
+        });
+
+        /* ── Servicios — Combos ── */
+        write('\n── Servicios · Combos ──');
+        await set('tenants/elbarberomoderno/servicios/combo-vip-corte-barba-cejas', {
+          nombre: 'Combo VIP: Corte + Barba + Cejas', categoria: 'Combos',
+          duracion: 60, precio: 18000, disponible: true, orden: 5,
+          descripcion: 'Experiencia completa: corte a medida, arreglo de barba con ritual de toalla caliente y perfilado de cejas.',
+        });
+        await set('tenants/elbarberomoderno/servicios/limpieza-facial-corte', {
+          nombre: 'Limpieza Facial + Corte', categoria: 'Combos',
+          duracion: 55, precio: 16000, disponible: true, orden: 6,
+          descripcion: 'Corte a medida más limpieza facial profunda. Elimina impurezas y renueva la piel.',
+        });
+
+        /* ── Premios / Club de Fidelidad ── */
+        write('\n── Premios · Club de Fidelidad ──');
+        const premSnap = await db.collection('tenants/elbarberomoderno/premios').get();
+        for (const d of premSnap.docs) await d.ref.delete();
+        write(`  ✓ Premios anteriores eliminados (${premSnap.size})`, 'ok');
+        const addPremio = async (data) => {
+          await db.collection('tenants/elbarberomoderno/premios').add(data);
+          write(`  ✓ Premio → "${data.nombre}" (${data.costoSellos} sellos)`, 'ok');
+        };
+        await addPremio({
+          nombre: '50% de descuento en tu próximo corte',
+          descripcion: 'Al completar 6 sellos, obtén un 50% de descuento en tu próximo corte en El Barbero Moderno.',
+          costoSellos: 6, icono: 'ph-tag', activo: true,
+        });
+        await addPremio({
+          nombre: 'Perfilado de barba gratis',
+          descripcion: 'Al completar 6 sellos, canjea un perfilado de barba completamente gratis.',
+          costoSellos: 6, icono: 'ph-scissors', activo: true,
+        });
+
+        /* ── Config del Club ── */
+        write('\n── Configuración del Club ──');
+        await set('tenants/elbarberomoderno/config/club', {
+          nombreClub: 'Club El Barbero Moderno',
+          descripcion: '1 sello por cada visita asistida. Al completar 6 sellos, obtén 50% de descuento en tu próximo corte o un perfilado de barba gratis.',
+          totalSellos: 6,
+          sellosPorVisita: 1,
+          activo: true,
+        });
+
+        write('\n✅ Seed completado exitosamente.', 'ok');
+      } catch (e) {
+        write(`\n❌ Error: ${e.message}`, 'err');
+      }
+      btn.disabled = false;
+    }
+  </script>
+</body>
+</html>
