@@ -1031,6 +1031,7 @@ function injectMeta(html, meta, pageMeta, canonical, hostname, pageType, tenantI
   html = html.replace(/<meta\s+[^>]*property=["']?og:description["']?[^>]*>/gi, '');
   html = html.replace(/<meta\s+[^>]*property=["']?og:image["']?[^>]*>/gi, '');
   html = html.replace(/<meta\s+[^>]*property=["']?og:url["']?[^>]*>/gi, '');
+  html = html.replace(/<meta\s+[^>]*property=["']?og:site_name["']?[^>]*>/gi, '');
   html = html.replace(/<meta\s+[^>]*name=["']?thumbnail["']?[^>]*>/gi, '');
   html = html.replace(/<meta\s+[^>]*name=["']?twitter:title["']?[^>]*>/gi, '');
   html = html.replace(/<meta\s+[^>]*name=["']?twitter:description["']?[^>]*>/gi, '');
@@ -1051,6 +1052,7 @@ function injectMeta(html, meta, pageMeta, canonical, hostname, pageType, tenantI
   <meta property="og:description" content="${r(pageMeta.ogDesc || desc)}">
   <meta property="og:image" content="${r(absImage)}">
   <meta property="og:url" content="${r(canonical)}">
+  <meta property="og:site_name" content="${r(meta.siteName)}">
   <meta name="thumbnail" content="${r(absImage)}">
   <meta name="twitter:title" content="${r(pageMeta.ogTitle || pageMeta.title)}">
   <meta name="twitter:description" content="${r(pageMeta.ogDesc || desc)}">
