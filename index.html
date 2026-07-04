@@ -4450,6 +4450,21 @@
       text-shadow: none !important;
     }
 
+    /* ── Footer info card (Ubicación / Horario) — labels en plata, icono plata ── */
+    .tenant-elbarberomoderno #footerContact p.uppercase {
+      color: #A0A0A0 !important;
+    }
+    .tenant-elbarberomoderno #footerContact .w-10.h-10.rounded-xl {
+      background: rgba(224,224,224,0.08) !important;
+      border-color: rgba(224,224,224,0.22) !important;
+    }
+    .tenant-elbarberomoderno #footerContact i.ph-fill { color: #E0E0E0 !important; }
+    /* Bullet del grid de horarios */
+    .tenant-elbarberomoderno #shopHorarioGrid span.rounded-full { background: #C0C0C0 !important; opacity: 0.6 !important; }
+
+    /* ── Info-strip (bajo el hero) — ícono clock/mapa en plata también ── */
+    .tenant-elbarberomoderno .info-strip i.ph-fill { color: rgba(224,224,224,0.7) !important; }
+
     /* ── Sticky bottom bar (botón Continuar plateado) ── */
     .tenant-elbarberomoderno #btnContinueBar {
       background: rgba(8,8,8,0.94) !important;
@@ -7915,8 +7930,35 @@
 
       const recommendations = avail.slice(0, 3);
       const isAura = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'latincaribe' || window.CURRENT_TENANT_ID === 'yugen' || window.CURRENT_TENANT_ID === 'sionbarberia');
+      const isBM   = (window.CURRENT_TENANT_ID === 'elbarberomoderno');
 
-      if (isAura) {
+      if (isBM) {
+        container.innerHTML = `
+          <div class="p-4 rounded-2xl border transition-all relative overflow-hidden animate-[fadeSlideUp_0.4s_cubic-bezier(0.16,1,0.3,1)_forwards]"
+               style="background:#141414;border-color:#333333;box-shadow:0 4px 18px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.03);">
+            <p class="text-xs font-bold uppercase tracking-wider mb-2.5 flex items-center gap-1.5"
+               style="color:#FFFFFF;">
+              <i class="ph-fill ph-lightning text-sm animate-pulse" style="color:#E0E0E0;filter:drop-shadow(0 0 4px rgba(224,224,224,0.4));"></i> Horas recomendadas (Smart Slots)
+            </p>
+            <p class="text-xs mb-3.5" style="color:rgba(255,255,255,0.65);">
+              ¿Tienes prisa? Agenda al instante uno de estos bloques recomendados para hoy:
+            </p>
+            <div class="grid grid-cols-3 gap-2.5">
+              ${recommendations.map(r => `
+                <button
+                  onclick="selectSmartSlot('${r.time}')"
+                  class="smart-slot-pill py-2.5 px-3 rounded-xl border text-xs font-bold text-center transition-all focus:outline-none active:scale-95"
+                  style="background:#0f0f0f; border-color:#3A3A3A; color:#FFFFFF;"
+                  onmouseover="this.style.background='#1a1a1a';this.style.borderColor='#C0C0C0';this.style.boxShadow='0 0 12px rgba(192,192,192,0.15)';"
+                  onmouseout="if(!this.dataset.active){this.style.background='#0f0f0f';this.style.borderColor='#3A3A3A';this.style.boxShadow='none';}"
+                >
+                  ${r.time}
+                </button>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      } else if (isAura) {
         container.innerHTML = `
           <div class="p-4 rounded-2xl border transition-all relative overflow-hidden animate-[fadeSlideUp_0.4s_cubic-bezier(0.16,1,0.3,1)_forwards]"
                style="background: linear-gradient(135deg, rgba(255,255,255,0.7) 0%, rgba(243,244,246,0.8) 100%);
@@ -7994,10 +8036,16 @@
       }
 
       const isAura = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'latincaribe' || window.CURRENT_TENANT_ID === 'yugen' || window.CURRENT_TENANT_ID === 'sionbarberia');
+      const isBM   = (window.CURRENT_TENANT_ID === 'elbarberomoderno');
 
       document.querySelectorAll('.smart-slot-pill').forEach(btn => {
         if (btn.textContent.trim() === time) {
-          if (isAura) {
+          if (isBM) {
+            btn.style.background = '#E0E0E0';
+            btn.style.color = '#000000';
+            btn.style.borderColor = '#E0E0E0';
+            btn.style.boxShadow = '0 0 14px rgba(224,224,224,0.25)';
+          } else if (isAura) {
             btn.style.background = '#111827';
             btn.style.color = '#FFFFFF';
             btn.style.borderColor = '#111827';
@@ -8010,7 +8058,12 @@
           }
           btn.dataset.active = '1';
         } else {
-          if (isAura) {
+          if (isBM) {
+            btn.style.background = '#0f0f0f';
+            btn.style.color = '#FFFFFF';
+            btn.style.borderColor = '#3A3A3A';
+            btn.style.boxShadow = 'none';
+          } else if (isAura) {
             btn.style.background = '#FFFFFF';
             btn.style.color = '#111827';
             btn.style.borderColor = 'rgba(17,24,39,0.15)';
@@ -9404,6 +9457,7 @@
         kronnos_penablanca: { bg: '#e11d2a', cl: '#ffffff', sh: '0 0 14px rgba(225,29,42,0.45)' },
         kronnos_limache:    { bg: '#f97316', cl: '#ffffff', sh: '0 0 14px rgba(249,115,22,0.45)' },
         kronnos_woman:      { bg: '#ec4899', cl: '#ffffff', sh: '0 0 14px rgba(236,72,153,0.45)' },
+        elbarberomoderno:   { bg: '#E0E0E0', cl: '#000000', sh: '0 0 14px rgba(224,224,224,0.28)' },
       };
       const s = SEL[tid] ?? SEL.elegance;
 
