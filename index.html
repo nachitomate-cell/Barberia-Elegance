@@ -7100,14 +7100,18 @@
 <body class="font-sans antialiased min-h-screen pb-32">
 
   <!-- Boot loader: cubre el primer pintado (valores de config.js) hasta que la
-       config + servicios de Firestore estén listos, evitando el salto de contenido. -->
-  <div id="bootLoader" style="position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:#0a0a0a;transition:opacity .4s ease;">
+       config + servicios de Firestore estén listos, evitando el salto de contenido.
+       Neutral por default — muestra logo del tenant solo si tiene uno propio
+       (evita mostrar el /logo.jpg de Elegance en tenants sin logo dedicado). -->
+  <div id="bootLoader" style="position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:32px;background:#080808;transition:opacity .4s ease;">
     <div style="position:relative;width:108px;height:108px;display:flex;align-items:center;justify-content:center;">
-      <!-- Anillo giratorio (color de marca) -->
-      <div id="bootRing" style="position:absolute;inset:0;border:3px solid rgba(255,255,255,0.10);border-top-color:rgba(255,255,255,0.85);border-radius:50%;animation:bootspin .8s linear infinite;"></div>
-      <!-- Logo central -->
-      <img id="bootLogo" src="" alt="" style="width:78px;height:78px;border-radius:50%;object-fit:cover;animation:bootpulse 1.8s ease-in-out infinite;" />
+      <!-- Anillo giratorio (color de marca o plata neutral por default) -->
+      <div id="bootRing" style="position:absolute;inset:0;border:3px solid rgba(255,255,255,0.08);border-top-color:#E0E0E0;border-radius:50%;animation:bootspin .8s linear infinite;"></div>
+      <!-- Logo central: oculto por default. Se muestra si el tenant tiene logo propio -->
+      <img id="bootLogo" src="" alt="" style="display:none;width:78px;height:78px;border-radius:50%;object-fit:cover;animation:bootpulse 1.8s ease-in-out infinite;" />
     </div>
+    <!-- Etiqueta neutral / nombre del tenant (se rellena via config síncrono) -->
+    <div id="bootLabel" style="color:rgba(255,255,255,0.55);font-size:11px;font-weight:800;letter-spacing:0.22em;text-transform:uppercase;white-space:nowrap;">Cargando agenda…</div>
   </div>
   <style>
     @keyframes bootspin{to{transform:rotate(360deg)}}
@@ -7115,13 +7119,32 @@
     #bootLoader.boot-done{opacity:0;pointer-events:none;}
   </style>
   <script>
-    // El logo y el color de marca ya están disponibles (config.js corre síncrono antes de este punto).
+    // Config síncrono ya corrió — SHOP está disponible. Regla: mostrar el logo
+    // SOLO si el tenant tiene uno propio (no /logo.jpg, que es el fallback
+    // compartido con Elegance). Si no, dejar el anillo + nombre del tenant como
+    // texto neutro. Así ningún tenant ve branding de Elegance en la carga.
     (function(){
       try {
         var s = window.SHOP || {};
+        var GENERIC_LOGO = '/logo.jpg';
+        var hasOwnLogo = !!s.logo && s.logo !== GENERIC_LOGO;
         var img = document.getElementById('bootLogo');
-        if (img && s.logo) { img.src = s.logo; img.alt = s.nombre || ''; }
-        else if (img) { img.style.display = 'none'; } // sin logo: queda solo el anillo
+        if (img && hasOwnLogo) {
+          img.src = s.logo;
+          img.alt = s.nombre || '';
+          img.style.display = 'block';
+        }
+        var label = document.getElementById('bootLabel');
+        if (label) {
+          // Con logo propio → sin texto (evita duplicidad).
+          // Sin logo → nombre del tenant como marca textual (fallback neutral
+          // "Cargando agenda…" si config aún no cargó el nombre).
+          if (hasOwnLogo) {
+            label.style.display = 'none';
+          } else if (s.nombreCorto || s.nombre) {
+            label.textContent = (s.nombreCorto || s.nombre);
+          }
+        }
         var accent = s.color || s.accent;
         if (accent) {
           var ring = document.getElementById('bootRing');
