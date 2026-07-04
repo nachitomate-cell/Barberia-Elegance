@@ -1502,8 +1502,15 @@
 
     </div><!-- /auth-forms -->
 
+    <!-- Banner club obligatorio (SHOP.requireClubRegistration). Sólo se muestra
+         para tenants con esa flag; oculto por default. -->
+    <div id="clubRequiredBanner" class="hidden mt-6 p-3 rounded-lg border border-neutral-700 bg-neutral-900/80 text-center flex items-center justify-center gap-2">
+      <i class="ph-fill ph-lock-key text-base" style="color:#35DDE6;"></i>
+      <span class="text-sm font-medium text-white/90">Debes estar registrado en el Club <span id="clubRequiredName">The Latin Caribe</span> para poder agendar hora.</span>
+    </div>
+
     <!-- Back link / Booking CTA (thumb zone) -->
-    <div class="mt-8 pt-6 border-t border-white/[0.07]">
+    <div id="backLinkWrap" class="mt-8 pt-6 border-t border-white/[0.07]">
       <a id="backLink" href="index.html"
         class="btn-primary w-full text-base font-bold py-4 text-center rounded-2xl flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-[0.98] transition-all btn-cta-reserva"
         style="text-decoration: none;">
@@ -2087,6 +2094,18 @@
     } else {
       document.getElementById('backLink').href = 'index.html';
       document.getElementById('backLinkText').textContent = 'CONTINUAR CON MI RESERVA';
+    }
+
+    // Registro obligatorio: tenants con SHOP.requireClubRegistration = true
+    // ocultan la CTA de "continuar como invitado" y muestran el banner.
+    // Compatible con cualquier tenant que active la flag en config.js.
+    if (window.SHOP && window.SHOP.requireClubRegistration) {
+      const _wrap  = document.getElementById('backLinkWrap');
+      const _bnr   = document.getElementById('clubRequiredBanner');
+      const _cName = document.getElementById('clubRequiredName');
+      if (_wrap) _wrap.classList.add('hidden');
+      if (_bnr)  _bnr.classList.remove('hidden');
+      if (_cName && window.SHOP.club) _cName.textContent = window.SHOP.club.replace(/^Club\s+/i, '');
     }
   });
 </script>

@@ -499,6 +499,10 @@
       totalReviews:    0,
       reviews:         [],
       barberos:        [],
+      // Registro obligatorio: oculta CTA "Continuar con mi reserva" en
+      // registro.html y muestra banner de club-only. Flag genérica —
+      // otros tenants pueden activarla igual.
+      requireClubRegistration: true,
     },
     machos: {
       categoriasServicio: ['Cortes', 'Barba', 'Combos', 'Extras', 'Otros'],
