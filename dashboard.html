@@ -295,6 +295,92 @@
     }
     /* ────────────────────────────────────────────────────────── */
 
+    /* ── EL BARBERO MODERNO — Club · Silver & Pure Dark (independiente) ── */
+    .tenant-elbarberomoderno {
+      --gold:      #E0E0E0;
+      --gold-dim:  rgba(224,224,224,0.22);
+      --gold-glow: rgba(224,224,224,0.08);
+    }
+    html.tenant-elbarberomoderno body { background-color: #080808; }
+    .tenant-elbarberomoderno header {
+      background-color: rgba(8,8,8,0.96) !important;
+      border-bottom: 1px solid rgba(255,255,255,0.06) !important;
+    }
+    .tenant-elbarberomoderno #authGuard { background: #080808 !important; }
+    /* Hero: foto real de la estación con overlay negro elegante */
+    .tenant-elbarberomoderno .hero-bg {
+      background-image: url('/elbarberomoderno/barbero1.png') !important;
+      background-size: cover !important;
+      background-position: center 35% !important;
+      background-color: #080808;
+    }
+    .tenant-elbarberomoderno .hero-overlay {
+      background: linear-gradient(160deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.65) 45%, rgba(0,0,0,0.92) 100%) !important;
+    }
+    .tenant-elbarberomoderno .hero-glow-spot {
+      background: radial-gradient(circle, rgba(224,224,224,0.08) 0%, transparent 65%) !important;
+    }
+    .tenant-elbarberomoderno #heroLine1 {
+      text-transform: uppercase !important;
+      letter-spacing: 0.08em !important;
+      color: #ffffff !important;
+      font-style: normal !important;
+      text-shadow: 0 2px 24px rgba(0,0,0,0.7) !important;
+    }
+    .tenant-elbarberomoderno #heroLine2 {
+      text-transform: uppercase !important;
+      letter-spacing: 0.08em !important;
+      color: #E0E0E0 !important;
+      font-style: normal !important;
+      text-shadow: 0 2px 20px rgba(0,0,0,0.6) !important;
+    }
+    .tenant-elbarberomoderno .hero-cta {
+      background: rgba(0,0,0,0.55) !important;
+      border-color: rgba(224,224,224,0.35) !important;
+      box-shadow: 0 0 20px rgba(224,224,224,0.10) !important;
+    }
+    .tenant-elbarberomoderno .hero-cta i,
+    .tenant-elbarberomoderno .hero-cta span { color: #E0E0E0 !important; }
+    /* Sellos: relleno plata, ícono negro */
+    .tenant-elbarberomoderno #stampsBar { box-shadow: 0 0 10px rgba(192,192,192,0.30) !important; background: linear-gradient(90deg, #8A8A8A, #C0C0C0, #E0E0E0) !important; }
+    .tenant-elbarberomoderno .stamp-cell.filled {
+      background: #E0E0E0 !important;
+      border: 1px solid #E0E0E0 !important;
+      box-shadow: none !important;
+    }
+    .tenant-elbarberomoderno .stamp-cell.filled i { color: #080808 !important; }
+    .tenant-elbarberomoderno .premio-icon { color: rgba(224,224,224,0.7) !important; }
+    .tenant-elbarberomoderno .text-gold   { color: #E0E0E0 !important; text-shadow: none !important; }
+    .tenant-elbarberomoderno .border-gold { border-color: rgba(224,224,224,0.35) !important; box-shadow: none !important; }
+    .tenant-elbarberomoderno .membership-glow {
+      background: radial-gradient(circle, rgba(224,224,224,0.04) 0%, transparent 70%) !important;
+    }
+    .tenant-elbarberomoderno #membershipWatermark { color: rgba(224,224,224,0.05) !important; }
+    /* Aviso "Completa tu telefono..." — plata sutil en vez de ámbar */
+    .tenant-elbarberomoderno #perfilIncompletoAviso {
+      background: rgba(224,224,224,0.06) !important;
+      border-color: rgba(224,224,224,0.28) !important;
+    }
+    .tenant-elbarberomoderno #perfilIncompletoAviso i,
+    .tenant-elbarberomoderno #perfilIncompletoMsg { color: rgba(224,224,224,0.90) !important; }
+    /* Inputs de perfil — focus plata en vez de dorado */
+    .tenant-elbarberomoderno input:focus {
+      border-color: #C0C0C0 !important;
+      --tw-ring-color: rgba(192,192,192,0.35) !important;
+      box-shadow: 0 0 0 1px rgba(192,192,192,0.35) !important;
+    }
+    .tenant-elbarberomoderno #pwaBigInstallCard {
+      background: linear-gradient(to right, rgba(224,224,224,0.05), rgba(224,224,224,0.02)) !important;
+      border-color: rgba(224,224,224,0.18) !important;
+      box-shadow: none !important;
+    }
+    .tenant-elbarberomoderno .pwa-icon-bg {
+      background: rgba(224,224,224,0.08) !important;
+      border-color: rgba(224,224,224,0.20) !important;
+      box-shadow: none !important;
+    }
+    /* ────────────────────────────────────────────────────────── */
+
     /* ── Chameleon Barber Studio — Dark Premium ─────────────────── */
     .tenant-chameleon {
       --gold:      #DAA520;
@@ -422,6 +508,118 @@
       box-shadow: 0 4px 18px rgba(0,163,108,0.35) !important;
     }
     .tenant-chameleon a.btn-reservar {
+      background: #00A36C !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 18px rgba(0,163,108,0.35) !important;
+    }
+    /* ────────────────────────────────────────────────────────── */
+
+    /* ── Barbers Club — Dark Premium + Gold (clon Chameleon) ─── */
+    .tenant-barbersclub {
+      --gold:      #DAA520;
+      --gold-dim:  rgba(218,165,32,0.35);
+      --gold-glow: rgba(218,165,32,0.18);
+    }
+    html.tenant-barbersclub body { background-color: #0b0a09; }
+    .tenant-barbersclub header {
+      background-color: rgba(11,10,9,0.97) !important;
+    }
+    .tenant-barbersclub #authGuard { background: #0b0a09 !important; }
+    .tenant-barbersclub .hero-overlay {
+      background: linear-gradient(160deg,
+        rgba(11,10,9,0.40) 0%, rgba(11,10,9,0.28) 40%, rgba(11,10,9,0.92) 100%);
+    }
+    .tenant-barbersclub .hero-glow-spot {
+      background: radial-gradient(circle, rgba(218,165,32,0.12) 0%, transparent 65%) !important;
+    }
+    .tenant-barbersclub .hero-cta {
+      background: #DAA520 !important;
+      border-color: #B8860B !important;
+      color: #0a0800 !important;
+      box-shadow: 0 4px 20px rgba(218,165,32,0.45) !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+    }
+    .tenant-barbersclub .hero-cta i  { color: #0a0800 !important; }
+    .tenant-barbersclub .hero-cta span { color: #0a0800 !important; }
+    .tenant-barbersclub #heroLine2 { color: #ffffff !important; font-style: normal !important; }
+    .tenant-barbersclub .membership-pattern {
+      background: #121212 !important;
+      border-color: rgba(255,255,255,0.06) !important;
+    }
+    .tenant-barbersclub .stamp-cell {
+      background: #1e1e1e !important;
+      border-color: rgba(255,255,255,0.07) !important;
+    }
+    .tenant-barbersclub .stamp-cell.filled {
+      background: #000000 !important;
+      border: 1px solid rgba(255,255,255,0.15) !important;
+      box-shadow: none !important;
+    }
+    .tenant-barbersclub .stamp-cell.filled i { color: #fff !important; }
+    .tenant-barbersclub #stampsBar {
+      background: linear-gradient(90deg, #B8860B, #DAA520) !important;
+      box-shadow: 0 0 10px rgba(218,165,32,0.50) !important;
+    }
+    .tenant-barbersclub #stampsGrid {
+      background: #0a0a0a !important;
+      border-color: rgba(255,255,255,0.05) !important;
+    }
+    .tenant-barbersclub #stampsCount { color: #00C98C !important; }
+    .tenant-barbersclub #stampsCount > span { color: rgba(218,165,32,0.55) !important; }
+    .tenant-barbersclub .membership-pattern::before {
+      background-image: repeating-linear-gradient(
+        -45deg, transparent, transparent 18px,
+        rgba(218,165,32,0.02) 18px, rgba(218,165,32,0.02) 19px
+      );
+    }
+    .tenant-barbersclub .membership-glow {
+      background: radial-gradient(circle, rgba(218,165,32,0.07) 0%, transparent 70%) !important;
+    }
+    .tenant-barbersclub #membershipWatermark { color: rgba(218,165,32,0.04) !important; }
+    .tenant-barbersclub #tabLoyalty .bg-\[#111115\],
+    .tenant-barbersclub #tabProfile .bg-\[#111115\] {
+      background-color: #121212 !important;
+      border-color: rgba(255,255,255,0.06) !important;
+    }
+    .tenant-barbersclub button[onclick*="togglePremios"] {
+      background: #00A36C !important;
+      color: #ffffff !important;
+      box-shadow: 0 2px 14px rgba(0,163,108,0.30) !important;
+    }
+    .tenant-barbersclub .premio-icon { color: #DAA520 !important; }
+    .tenant-barbersclub .nav-tab.active .nav-icon {
+      color: #DAA520;
+      filter: drop-shadow(0 0 6px rgba(218,165,32,0.35));
+    }
+    .tenant-barbersclub .nav-tab.active .nav-label { color: #DAA520; }
+    .tenant-barbersclub .tier-badge.gold {
+      color: #DAA520;
+      border-color: rgba(218,165,32,0.35);
+    }
+    .tenant-barbersclub .tier-badge.platinum {
+      color: #f0d87a;
+      border-color: rgba(218,165,32,0.30);
+    }
+    .tenant-barbersclub #pwaBigInstallCard {
+      background: linear-gradient(to right, rgba(218,165,32,0.09), rgba(218,165,32,0.03)) !important;
+      border-color: rgba(218,165,32,0.22) !important;
+      box-shadow: 0 0 20px rgba(218,165,32,0.06) !important;
+    }
+    .tenant-barbersclub .pwa-icon-bg {
+      background: rgba(218,165,32,0.10) !important;
+      border-color: rgba(218,165,32,0.22) !important;
+      box-shadow: 0 0 15px rgba(218,165,32,0.12) !important;
+    }
+    .tenant-barbersclub #pwaBanner { border-color: rgba(218,165,32,0.28) !important; }
+    .tenant-barbersclub #pwaModalIOS > div { border-color: rgba(218,165,32,0.18) !important; }
+    .tenant-barbersclub .pwa-step-badge { background: #DAA520 !important; }
+    .tenant-barbersclub .btn-accion-primary {
+      background: #00A36C !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 18px rgba(0,163,108,0.35) !important;
+    }
+    .tenant-barbersclub a.btn-reservar {
       background: #00A36C !important;
       color: #ffffff !important;
       box-shadow: 0 4px 18px rgba(0,163,108,0.35) !important;
@@ -4914,6 +5112,7 @@ document.getElementById('shopClubName').textContent   = SHOP.club;
   const isKronnosWoman = tid === 'kronnos_woman';
   const isKronnos      = isKronnosPen || isKronnosLim || isKronnosWoman;
   const isSion         = tid === 'sionbarberia'; // Studio Dieciséis
+  const isBM           = tid === 'elbarberomoderno';
 
   // Subtítulo header
   const sub = document.getElementById('shopHeaderSub');
@@ -4925,6 +5124,7 @@ document.getElementById('shopClubName').textContent   = SHOP.club;
     : isKronnosWoman ? 'BELLEZA & ESTÉTICA'
     : isKronnos   ? 'STUDIO'
     : (tid === 'yugen') ? 'STUDIO'
+    : isBM        ? 'MASTER BARBER'
     : 'BARBERSHOP';
 
   if (isAura) {
@@ -4983,11 +5183,14 @@ document.getElementById('shopClubName').textContent   = SHOP.club;
   } else if (isSion) {
     if (h1) h1.textContent = 'Estilo &';
     if (h2) h2.textContent = 'Calidad.';
+  } else if (isBM) {
+    if (h1) h1.innerHTML = 'El Barbero';
+    if (h2) h2.textContent = 'Moderno.';
   }
 
   // Watermark
   const wm = document.getElementById('membershipWatermark');
-  if (wm) wm.textContent = isGitana ? 'G' : isFerraza ? 'F' : isMapu ? 'M' : isChameleon ? 'C' : isLumen ? 'D' : isDelnero ? 'N' : isInfinity ? '∞' : isOmega ? 'Ω' : isKronnos ? 'K' : isSion ? '16' : 'É';
+  if (wm) wm.textContent = isGitana ? 'G' : isFerraza ? 'F' : isMapu ? 'M' : isChameleon ? 'C' : isLumen ? 'D' : isDelnero ? 'N' : isInfinity ? '∞' : isOmega ? 'Ω' : isKronnos ? 'K' : isSion ? '16' : isBM ? 'BM' : 'É';
 
   // PWA install icons — usa SHOP.logo como fuente única de verdad (config.js).
   // pwaBigIcon está antes del script en el DOM → se puede actualizar ya.

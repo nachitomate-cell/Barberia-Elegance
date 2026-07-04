@@ -322,6 +322,45 @@
     }
     /* ────────────────────────────────────────────────────────── */
 
+    /* ── Barbers Club — tema dorado (clon Chameleon) ──────────── */
+    .tenant-barbersclub {
+      --gold: #DAA520;
+      --gold-dim: rgba(218,165,32,0.20);
+    }
+    .tenant-barbersclub body { background-color: #0b0a09; }
+    .tenant-barbersclub .ambient-glow {
+      background: radial-gradient(circle, rgba(218,165,32,0.05) 0%, transparent 65%);
+    }
+    .tenant-barbersclub .logo-ring {
+      border-color: rgba(218,165,32,0.55);
+      box-shadow: 0 0 0 1px rgba(218,165,32,0.08),
+                  0 0 24px rgba(218,165,32,0.18),
+                  0 0 56px rgba(218,165,32,0.05);
+    }
+    .tenant-barbersclub .gold-divider {
+      background: linear-gradient(90deg, transparent, #DAA520, transparent);
+    }
+    .tenant-barbersclub .field:focus {
+      border-color: rgba(218,165,32,0.5);
+      box-shadow: 0 0 0 3px rgba(218,165,32,0.07);
+    }
+    .tenant-barbersclub .btn-primary {
+      background: #004D40;
+      border: 1.5px solid #004D40;
+      color: #ffffff;
+      box-shadow: 0 4px 20px rgba(0,77,64,0.40);
+    }
+    .tenant-barbersclub .btn-primary:hover {
+      background: #00695C;
+      border-color: #00695C;
+      box-shadow: 0 4px 24px rgba(0,77,64,0.50);
+    }
+    .tenant-barbersclub .spinner {
+      border-color: rgba(218,165,32,0.25);
+      border-top-color: #DAA520;
+    }
+    /* ────────────────────────────────────────────────────────── */
+
     /* ── D'JONES BARBER (lumen) — Vintage / Náutico / Pirata ─────── */
     .tenant-lumen {
       --gold: #D4AF37;
@@ -1175,6 +1214,49 @@
     .tenant-sionbarberia .btn-google { background: #161616; border-color: rgba(250,250,250,0.14); }
     .tenant-sionbarberia .btn-google:hover { background: #1f1f1f; border-color: rgba(250,250,250,0.25); }
     .tenant-sionbarberia .spinner { border-top-color: #FAFAFA !important; }
+
+    /* ══════════ EL BARBERO MODERNO — Silver & Pure Dark (independiente) ══════════ */
+    .tenant-elbarberomoderno { --gold: #E0E0E0; --gold-dim: rgba(224,224,224,0.16); }
+    .tenant-elbarberomoderno body { background-color: #080808; }
+    /* Oculta el logo circular (placeholder de Elegance) — solo texto de marca */
+    .tenant-elbarberomoderno #shopLogo { display: none !important; }
+    .tenant-elbarberomoderno .ambient-glow { background: radial-gradient(circle, rgba(224,224,224,0.05) 0%, transparent 65%); }
+    .tenant-elbarberomoderno .gold-divider {
+      background: linear-gradient(90deg, transparent, rgba(224,224,224,0.55), transparent);
+    }
+    .tenant-elbarberomoderno .tab-btn.active { color: #E0E0E0 !important; border-color: #C0C0C0 !important; }
+    .tenant-elbarberomoderno .field { background: #131313; border-color: rgba(255,255,255,0.10); }
+    .tenant-elbarberomoderno .field::placeholder { color: rgba(255,255,255,0.32); }
+    .tenant-elbarberomoderno .field:focus { border-color: #C0C0C0; box-shadow: 0 0 0 1px rgba(192,192,192,0.45); }
+    .tenant-elbarberomoderno input:-webkit-autofill,
+    .tenant-elbarberomoderno input:-webkit-autofill:hover,
+    .tenant-elbarberomoderno input:-webkit-autofill:focus { -webkit-box-shadow: 0 0 0 100px #131313 inset !important; -webkit-text-fill-color: #ffffff !important; }
+    .tenant-elbarberomoderno .btn-primary {
+      background: #E0E0E0 !important;
+      border-color: #E0E0E0 !important;
+      color: #000000 !important;
+      box-shadow: 0 2px 20px rgba(224,224,224,0.14) !important;
+    }
+    .tenant-elbarberomoderno .btn-primary:hover {
+      background: #ffffff !important;
+      border-color: #ffffff !important;
+      box-shadow: 0 4px 28px rgba(255,255,255,0.24) !important;
+    }
+    .tenant-elbarberomoderno .btn-google { background: #131313; border-color: rgba(255,255,255,0.10); color: #ffffff; }
+    .tenant-elbarberomoderno .btn-google:hover { background: #1a1a1a; border-color: rgba(255,255,255,0.20); }
+    .tenant-elbarberomoderno .spinner { border-top-color: #E0E0E0 !important; }
+    /* "CONTINUAR CON MI RESERVA" y variantes de back-link: gris plata */
+    .tenant-elbarberomoderno .btn-cta-reserva,
+    .tenant-elbarberomoderno #backLink,
+    .tenant-elbarberomoderno #backLinkText {
+      color: #C0C0C0 !important;
+      border-color: rgba(192,192,192,0.35) !important;
+    }
+    .tenant-elbarberomoderno .btn-cta-reserva:hover {
+      background: rgba(224,224,224,0.06) !important;
+      color: #ffffff !important;
+      border-color: #C0C0C0 !important;
+    }
 
     .tenant-yugen { --gold: #f5f3ef; --gold-dim: rgba(245,243,239,0.16); }
     .tenant-yugen body { background-color: #0b0a09; }
