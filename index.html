@@ -329,6 +329,116 @@
       box-shadow: 0 0 6px rgba(var(--neon-r),var(--neon-g),var(--neon-b),0.2),
                   inset 0 0 6px rgba(var(--neon-r),var(--neon-g),var(--neon-b),0.2);
     }
+
+    /* ─── Indicador Abierto/Cerrado (global, multi-tenant) ─────────────
+       Píldora que lee tenants/{tid}/settings/general.horario (formato
+       {'0'..'6': {activo, inicio, fin}} · 0=Domingo). Click → modal semanal. */
+    .hero-status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 9px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      cursor: pointer;
+      border: 1px solid transparent;
+      background: rgba(255,255,255,0.02);
+      color: rgba(255,255,255,0.65);
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+    .hero-status-pill.is-open {
+      color: #34D399;
+      border-color: rgba(52,211,153,0.28);
+      background: rgba(52,211,153,0.06);
+    }
+    .hero-status-pill.is-closed {
+      color: rgba(255,255,255,0.62);
+      border-color: rgba(255,255,255,0.10);
+      background: rgba(255,255,255,0.03);
+    }
+    .hero-status-pill:hover { filter: brightness(1.15); }
+    .hero-status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+      flex-shrink: 0;
+    }
+    .hero-status-pill.is-open .hero-status-dot {
+      animation: hero-status-pulse 2s ease-in-out infinite;
+      box-shadow: 0 0 6px currentColor;
+    }
+    @keyframes hero-status-pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50%      { transform: scale(1.18); opacity: 0.75; }
+    }
+    .hero-status-extra {
+      color: rgba(255,255,255,0.42);
+      font-weight: 500;
+      margin-left: 2px;
+    }
+
+    /* Modal de horario semanal */
+    #openStatusModal {
+      position: fixed; inset: 0; z-index: 200;
+      display: none;
+      background: rgba(0,0,0,0.75);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      align-items: center; justify-content: center;
+      padding: 20px;
+    }
+    #openStatusModal.is-open { display: flex; }
+    #openStatusModal .os-card {
+      width: 100%; max-width: 340px;
+      background: #0f0f10;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 18px;
+      padding: 22px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+      color: #e6e6e6;
+      animation: os-in .28s cubic-bezier(0.16,1,0.3,1);
+    }
+    @keyframes os-in {
+      from { opacity: 0; transform: translateY(10px) scale(0.98); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    #openStatusModal .os-head {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 14px;
+    }
+    #openStatusModal .os-title {
+      font-size: 14px; font-weight: 800; letter-spacing: 0.06em;
+      text-transform: uppercase; color: #fff;
+    }
+    #openStatusModal .os-x {
+      background: none; border: none; color: rgba(255,255,255,0.6);
+      cursor: pointer; padding: 4px; font-size: 16px;
+    }
+    #openStatusModal .os-x:hover { color: #fff; }
+    #openStatusModal .os-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      font-size: 13px;
+    }
+    #openStatusModal .os-row:last-child { border-bottom: 0; }
+    #openStatusModal .os-row.is-today {
+      background: rgba(255,255,255,0.03);
+      margin: 0 -10px; padding: 8px 10px;
+      border-radius: 8px;
+    }
+    #openStatusModal .os-day {
+      font-weight: 600; color: rgba(255,255,255,0.75);
+      text-transform: capitalize;
+    }
+    #openStatusModal .os-row.is-today .os-day { color: #fff; font-weight: 700; }
+    #openStatusModal .os-range { font-variant-numeric: tabular-nums; color: rgba(255,255,255,0.85); }
+    #openStatusModal .os-range.is-closed { color: rgba(255,255,255,0.35); font-style: italic; }
+    /* ─── /Indicador Abierto/Cerrado ─── */
     .bg-neon {
       background-color: var(--neon-clr);
       box-shadow: 0 0 8px rgba(var(--neon-r),var(--neon-g),var(--neon-b),0.4),
@@ -7129,15 +7239,29 @@
         <i class="ph-fill ph-map-pin text-xs" style="color:rgba(201,168,76,0.7);"></i>
         <span id="heroInfoAddrText"></span>
       </a>
-      <div class="flex-1 flex items-center justify-center gap-1.5 py-3 text-[11px] font-semibold text-gray-500">
+      <button type="button" id="heroInfoHorBtn"
+        class="flex-1 flex items-center justify-center gap-1.5 py-3 text-[11px] font-semibold text-gray-500 hover:text-gray-300 transition-colors active:bg-white/3"
+        style="background:transparent;border:0;">
         <i class="ph-fill ph-clock text-xs" style="color:rgba(201,168,76,0.7);"></i>
         <span id="heroInfoHorText"></span>
-      </div>
+      </button>
       <a id="aura-info-wa" href="#" onclick="openAuraWhatsApp(event)"
          class="flex-1 flex items-center justify-center gap-1.5 py-3 text-[11px] font-semibold">
         <i class="ph-bold ph-whatsapp-logo" style="font-size:13px;"></i>
         <span>Consultas</span>
       </a>
+    </div>
+
+    <!-- Modal semanal (indicador Abierto/Cerrado) -->
+    <div id="openStatusModal" role="dialog" aria-modal="true" aria-labelledby="openStatusTitle"
+         onclick="closeOpenStatusModal(event)">
+      <div class="os-card" onclick="event.stopPropagation()">
+        <div class="os-head">
+          <span id="openStatusTitle" class="os-title">Horario semanal</span>
+          <button type="button" class="os-x" onclick="closeOpenStatusModal()" aria-label="Cerrar"><i class="ph-bold ph-x"></i></button>
+        </div>
+        <div id="openStatusRows"></div>
+      </div>
     </div>
 
     <!-- Quiénes somos (se activa desde el panel → Configuración) -->
@@ -10414,16 +10538,24 @@
 
       // Studio Dieciséis: info-strip como BOTONES (no muestra el texto). "Ubicación"
       // abre el mapa; "Horarios" muestra el horario al tocar.
+      // NOTA: el indicador Abierto/Cerrado global también engancha #heroInfoHorBtn.
+      // Si hay horario estructurado en Firestore, ese callback abre el modal semanal
+      // y este fallback textual queda como respaldo si no hay data.
       if (window.CURRENT_TENANT_ID === 'sionbarberia') {
         if (heroAddr) heroAddr.textContent = 'Ubicación';
         if (heroHor) {
           const horFull = (horParts.length > 0 ? horParts.join(' • ') : horClean);
           heroHor.textContent = 'Horarios';
-          const horSlot = heroHor.closest('div');
-          if (horSlot) {
-            horSlot.style.cursor = 'pointer';
-            horSlot.setAttribute('role', 'button');
-            horSlot.onclick = () => showToast('🕒 ' + horFull);
+          const horBtn = document.getElementById('heroInfoHorBtn');
+          if (horBtn) {
+            horBtn.style.cursor = 'pointer';
+            horBtn.dataset.sionFallback = horFull;
+            // Sólo dispara el toast si el indicador global no cargó horario.
+            horBtn.addEventListener('click', function _sionFallback(){
+              if (!document.querySelector('#heroInfoHorText .hero-status-pill')) {
+                showToast('🕒 ' + horFull);
+              }
+            });
           }
         }
       }
@@ -10452,6 +10584,167 @@
         renderReviewsSection();
       }, err => console.warn('[GoogleReviews] onSnapshot:', err));
     }
+
+    // ─── Indicador Abierto/Cerrado (global, multi-tenant) ─────────────
+    // Fuente de verdad: tenants/{tid}/settings/general.horario
+    //   { '0'..'6': { activo, inicio: 'HH:MM', fin: 'HH:MM' } }  (0=Dom, 1=Lun, …, 6=Sáb).
+    // Fallback si no existe: se deja el string estático de SHOP.horario.
+    (function initOpenStatusIndicator() {
+      const DIA_NOMBRES = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+      const DIA_ORDEN   = ['1','2','3','4','5','6','0']; // Lun→Dom para el modal
+      let _horario = null;
+      let _tickTimer = null;
+      let _unsub = null;
+
+      function getChileNow() {
+        // Intl con timeZone: America/Santiago — soportado en Safari iOS 14+.
+        const parts = new Intl.DateTimeFormat('en-US', {
+          timeZone: 'America/Santiago',
+          hour12: false,
+          weekday: 'short',
+          hour: '2-digit',
+          minute: '2-digit',
+        }).formatToParts(new Date());
+        const val = (t) => (parts.find(p => p.type === t) || {}).value;
+        const map = { Sun:0, Mon:1, Tue:2, Wed:3, Thu:4, Fri:5, Sat:6 };
+        const day = map[val('weekday')];
+        let h = parseInt(val('hour'), 10);
+        if (h === 24) h = 0; // algunas engines devuelven 24 en medianoche
+        const m = parseInt(val('minute'), 10);
+        return { day: day, minutes: h * 60 + m };
+      }
+
+      function toMinutes(hhmm) {
+        const s = String(hhmm || '').trim();
+        const m = s.match(/^(\d{1,2}):(\d{2})$/);
+        if (!m) return NaN;
+        return parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
+      }
+      function fromMinutes(mins) {
+        const h = Math.floor(mins / 60), m = mins % 60;
+        return String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+      }
+
+      // Estado abierto/cerrado + próximo evento (cierra hoy / abre siguiente día).
+      function getTenantOpenStatus(horario) {
+        if (!horario || typeof horario !== 'object') return null;
+        const now = getChileNow();
+        const todayKey = String(now.day);
+        const today = horario[todayKey];
+        if (today && today.activo) {
+          const ini = toMinutes(today.inicio);
+          const fin = toMinutes(today.fin);
+          if (isFinite(ini) && isFinite(fin) && now.minutes >= ini && now.minutes < fin) {
+            return { open: true, cierraA: today.fin };
+          }
+          // Aún no abre → abre hoy más tarde
+          if (isFinite(ini) && now.minutes < ini) {
+            return { open: false, abreA: today.inicio, abreDia: 'hoy' };
+          }
+        }
+        // Buscar el próximo día activo
+        for (let i = 1; i <= 7; i++) {
+          const k = String((now.day + i) % 7);
+          const d = horario[k];
+          if (d && d.activo && isFinite(toMinutes(d.inicio))) {
+            const label = i === 1 ? 'mañana' : DIA_NOMBRES[(now.day + i) % 7].toLowerCase();
+            return { open: false, abreA: d.inicio, abreDia: label };
+          }
+        }
+        return { open: false };
+      }
+
+      function renderPill() {
+        const btn  = document.getElementById('heroInfoHorBtn');
+        const span = document.getElementById('heroInfoHorText');
+        if (!btn || !span) return;
+        const status = getTenantOpenStatus(_horario);
+        if (!status) return; // fallback: string estático de SHOP.horario ya se renderizó en applyConfig
+        const cls = status.open ? 'is-open' : 'is-closed';
+        const label = status.open ? 'Abierto ahora' : 'Cerrado ahora';
+        let extra = '';
+        if (status.open && status.cierraA) extra = ` · Cierra ${status.cierraA}`;
+        else if (!status.open && status.abreA) extra = ` · Abre ${status.abreDia} ${status.abreA}`;
+        span.innerHTML =
+          `<span class="hero-status-pill ${cls}">
+             <span class="hero-status-dot"></span>
+             <span>${label}</span>
+             <span class="hero-status-extra">${extra}</span>
+           </span>`;
+        btn.style.cursor = 'pointer';
+      }
+
+      function subscribeHorario() {
+        if (typeof db === 'undefined' || !db || _unsub) return;
+        const tid = window.CURRENT_TENANT_ID || 'elegance';
+        const ref = tid === 'elegance'
+          ? db.collection('settings').doc('general')
+          : db.collection('tenants').doc(tid).collection('settings').doc('general');
+        _unsub = ref.onSnapshot(snap => {
+          if (!snap.exists) return;
+          const d = snap.data() || {};
+          if (d.horario && typeof d.horario === 'object') {
+            _horario = d.horario;
+            renderPill();
+          }
+        }, err => console.warn('[OpenStatus] onSnapshot:', err));
+      }
+
+      // Actualizar cada 60s
+      function startTicker() {
+        if (_tickTimer) return;
+        _tickTimer = setInterval(renderPill, 60000);
+      }
+
+      // Modal semanal
+      window.openOpenStatusModal = function () {
+        if (!_horario) return;
+        const rows = document.getElementById('openStatusRows');
+        const now = getChileNow();
+        if (rows) {
+          rows.innerHTML = DIA_ORDEN.map(k => {
+            const d = _horario[k];
+            const nombre = DIA_NOMBRES[parseInt(k, 10)];
+            const isToday = String(now.day) === k;
+            const rango = (d && d.activo && d.inicio && d.fin)
+              ? `${d.inicio} – ${d.fin}`
+              : 'Cerrado';
+            const rangoCls = (d && d.activo) ? '' : 'is-closed';
+            return `<div class="os-row${isToday ? ' is-today' : ''}">
+              <span class="os-day">${nombre}</span>
+              <span class="os-range ${rangoCls}">${rango}</span>
+            </div>`;
+          }).join('');
+        }
+        const modal = document.getElementById('openStatusModal');
+        if (modal) modal.classList.add('is-open');
+      };
+      window.closeOpenStatusModal = function (ev) {
+        if (ev && ev.target && ev.target.id && ev.target.id !== 'openStatusModal') return;
+        const modal = document.getElementById('openStatusModal');
+        if (modal) modal.classList.remove('is-open');
+      };
+
+      function attachClick() {
+        const btn = document.getElementById('heroInfoHorBtn');
+        if (!btn) return;
+        btn.addEventListener('click', () => {
+          if (_horario) window.openOpenStatusModal();
+        });
+      }
+
+      function boot() {
+        attachClick();
+        subscribeHorario();
+        startTicker();
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', boot);
+      } else {
+        boot();
+      }
+    })();
+    // ─── /Indicador Abierto/Cerrado ───
 
     function renderHeroBadge() {
       const rating = SHOP.ratingGeneral;
