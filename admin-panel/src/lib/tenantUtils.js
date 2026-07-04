@@ -33,6 +33,8 @@ const DOMAIN_MAP = {
   'kronnospenablanca.synaptechspa.cl': 'kronnos_penablanca',
   'kronnoslimache.synaptechspa.cl':    'kronnos_limache',
   'kronnoswoman.synaptechspa.cl':      'kronnos_woman',
+  'barbersclub.synaptechspa.cl':       'barbersclub',
+  'elbarberomoderno.synaptechspa.cl':  'elbarberomoderno',
 };
 
 export function resolveTenantId() {
