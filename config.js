@@ -53,7 +53,7 @@
   // Alias de tema: reutiliza los estilos CSS de un tenant existente en lugar
   // de duplicar decenas de reglas. Se aplica una segunda clase al <html>.
   const _themeAlias = {
-    elbarberomoderno: 'chameleon',
+    elbarberomoderno: 'sionbarberia',
   };
 
   const _tenants = {
