@@ -21,11 +21,18 @@ const LOGIN_IMAGE = {
   kronnos_penablanca: '/kronnos/kronospena.png',
   kronnos_limache:    '/kronnos/kronoslima.png',
   kronnos_woman:      '/kronnos/kronoswoman.png',
+  elbarberomoderno:   '/elbarberomoderno/barbero1.png',
 };
 
 /* Colores de marca SynapTech (tomados del logo): verde lima + verde oscuro. */
 const SYNAPTECH_GREEN      = '#8BC53F';
 const SYNAPTECH_GREEN_DARK = '#5F9E2A';
+
+/* Overrides de acento por tenant — para temas propios (silver-dark, etc.).
+   Si el tenant no está aquí, se usa el acento SynapTech por default. */
+const TENANT_ACCENT = {
+  elbarberomoderno: { light: '#E0E0E0', dark: '#8A8A8A' }, // Silver & Pure Dark
+};
 
 /* Texto legible (negro/blanco) según luminancia del acento — evita botones ilegibles. */
 function readableText(hex) {
@@ -78,9 +85,11 @@ export default function LoginPage() {
 
   const bgImage   = LOGIN_IMAGE[tenant.id];
   const brand     = tenant.brand;
-  // Acento de marca SynapTech (verde del logo) para todo el login de gestión interna.
-  const accent    = SYNAPTECH_GREEN;
-  const accentDark = SYNAPTECH_GREEN_DARK;
+  // Acento SynapTech (verde) por default. Override por tenant en TENANT_ACCENT
+  // (ej. elbarberomoderno usa plata #E0E0E0 para su tema Silver & Dark).
+  const accentPair = TENANT_ACCENT[tenant.id];
+  const accent     = accentPair ? accentPair.light : SYNAPTECH_GREEN;
+  const accentDark = accentPair ? accentPair.dark  : SYNAPTECH_GREEN_DARK;
   const logo      = tenant.logo;
   const btnText   = readableText(accent);
 
