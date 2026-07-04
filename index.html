@@ -8301,7 +8301,8 @@
       const _isMapuSvc      = window.CURRENT_TENANT_ID === 'mapubarbershop';
       const _isChameleonSvc = window.CURRENT_TENANT_ID === 'chameleon';
       const _isKronnosSvc   = window.CURRENT_TENANT_ID === 'kronnos_penablanca' || window.CURRENT_TENANT_ID === 'kronnos_limache' || window.CURRENT_TENANT_ID === 'kronnos_woman';
-      const _useRowLayout   = _isEleganceSvc || _isMapuSvc || _isChameleonSvc || _isKronnosSvc;
+      const _isBMSvc        = window.CURRENT_TENANT_ID === 'elbarberomoderno';
+      const _useRowLayout   = _isEleganceSvc || _isMapuSvc || _isChameleonSvc || _isKronnosSvc || _isBMSvc;
 
       Object.keys(categories).forEach(cat => {
         const catContainer = document.createElement('div');
@@ -8329,7 +8330,31 @@
                 ? `<span class="icon-svg mapu-icon block w-6 h-6">${_getMapuIcon(s.nombre, cat)}</span>`
                 : `<i class="icon-svg ph ${icon} text-xl text-brand-neon transition-all"></i>`);
 
-          if (_useRowLayout) {
+          if (_isBMSvc) {
+            // ── EL BARBERO MODERNO — List Card compacta horizontal (Silver & Dark) ──
+            // Sin ícono. Izquierda: badge + nombre + descripción. Derecha: precio,
+            // duración, radio circular. Radio seleccionado: plata con check negro.
+            const isTop = window._topServiceNombre && s.nombre === window._topServiceNombre;
+            const precio = _getPrecioEfectivo(s, new Date().getDay()).toLocaleString('es-CL');
+            innerGrid.innerHTML += `
+              <button onclick="selectService(this)" data-service-id="${s.id}" data-category="${cat}"
+                class="service-option relative flex flex-row items-center justify-between gap-3 p-4 rounded-xl bg-[#0f0f0f] border border-[#2C2C2C] hover:border-[#5A5A5A] active:scale-[0.99] transition-all overflow-hidden group w-full text-left">
+                <div class="flex-1 min-w-0">
+                  ${isTop ? `<span class="inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-white/6 border border-white/15 text-white/85 mb-1">✦ Más solicitado</span>` : ''}
+                  <span class="svc-name font-medium text-white text-base leading-snug block" style="white-space:normal;">${s.nombre}</span>
+                  ${s.descripcion ? `<span class="svc-desc text-[11px] text-neutral-400 mt-1 leading-snug block" style="display:none;">${s.descripcion}</span><span onclick="toggleSvcDesc(this,event)" class="svc-desc-toggle text-[10px] font-medium text-neutral-400 hover:text-white underline underline-offset-2 mt-1 block transition-colors">Ver descripción</span>` : ''}
+                </div>
+                <div class="flex items-center gap-3 shrink-0">
+                  <div class="text-right">
+                    <span class="text-white font-semibold text-base price-tag block leading-tight">\$${precio}</span>
+                    <span class="flex items-center justify-end gap-1 text-[11px] text-neutral-400 duration-tag mt-0.5"><i class="ph ph-clock text-[12px]"></i>${formatDuration(s.duracion)}</span>
+                  </div>
+                  <div class="svc-radio w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition-all" style="border-color:#3A3A3A;background:transparent;">
+                    <i class="svc-check ph-bold ph-check text-[12px]" style="display:none;color:#000;line-height:1;"></i>
+                  </div>
+                </div>
+              </button>`;
+          } else if (_useRowLayout) {
             const radioClr = _isMapuSvc ? 'rgba(191,163,126,0.40)' : window.CURRENT_TENANT_ID === 'marcelo_hairdressing' ? 'rgba(255,255,255,0.18)' : window.CURRENT_TENANT_ID === 'omegastudio' ? 'rgba(212,169,106,0.40)' : window.CURRENT_TENANT_ID === 'latincaribe' ? 'rgba(53,221,230,0.40)' : window.CURRENT_TENANT_ID === 'yugen' ? 'rgba(245,243,239,0.4)' : 'rgba(212,175,55,0.4)';
             innerGrid.innerHTML += `
               <button onclick="selectService(this)" data-service-id="${s.id}" data-category="${cat}"
@@ -9326,7 +9351,8 @@
       const _isAura   = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'latincaribe');
       const _isKronnos = window.CURRENT_TENANT_ID === 'kronnos_penablanca' || window.CURRENT_TENANT_ID === 'kronnos_limache' || window.CURRENT_TENANT_ID === 'kronnos_woman';
       const _isElegance = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance';
-      const _useRowSel  = _isElegance || _isMapu || _isAura || _isKronnos
+      const _isBM       = window.CURRENT_TENANT_ID === 'elbarberomoderno';
+      const _useRowSel  = _isElegance || _isMapu || _isAura || _isKronnos || _isBM
         || window.CURRENT_TENANT_ID === 'ferraza'
         || window.CURRENT_TENANT_ID === 'lumen'
         || window.CURRENT_TENANT_ID === 'machos'
@@ -9338,8 +9364,8 @@
         || window.CURRENT_TENANT_ID === 'yugen';
       const _isLatin    = window.CURRENT_TENANT_ID === 'latincaribe';
       const _isYugen    = window.CURRENT_TENANT_ID === 'yugen';
-      const _radioDim   = _isMapu ? 'rgba(191,163,126,0.40)' : _isLatin ? 'rgba(53,221,230,0.35)' : _isAura ? 'rgba(55,65,81,0.25)' : _isYugen ? 'rgba(245,243,239,0.4)' : 'rgba(212,175,55,0.4)';
-      const _radioSel   = _isMapu ? '#BFA37E' : _isLatin ? '#F35BA6' : _isAura ? '#1F2937' : _isYugen ? '#f5f3ef' : '#D4AF37';
+      const _radioDim   = _isBM ? '#3A3A3A' : _isMapu ? 'rgba(191,163,126,0.40)' : _isLatin ? 'rgba(53,221,230,0.35)' : _isAura ? 'rgba(55,65,81,0.25)' : _isYugen ? 'rgba(245,243,239,0.4)' : 'rgba(212,175,55,0.4)';
+      const _radioSel   = _isBM ? '#E0E0E0' : _isMapu ? '#BFA37E' : _isLatin ? '#F35BA6' : _isAura ? '#1F2937' : _isYugen ? '#f5f3ef' : '#D4AF37';
 
       // Helpers locales para aplicar/quitar el estilo "seleccionado" en un .service-option.
       // Se reutilizan en modo single y en multi (cuando hay que pintar varios).
@@ -9356,6 +9382,9 @@
         if (!_isElegance && iconSvg) iconSvg.classList.add('drop-shadow-[0_0_5px_rgba(255,255,255,0.35)]');
         const radio = el.querySelector('.svc-radio');
         if (radio) { radio.style.background = 'transparent'; radio.style.borderColor = _radioDim; }
+        // BM: ocultar el check dentro del radio al deseleccionar
+        const chk = el.querySelector('.svc-check');
+        if (chk) chk.style.display = 'none';
       };
       const _setSel = (el) => {
         el.classList.add('border-2', 'border-neon', 'bg-brand-neon/10');
@@ -9373,6 +9402,9 @@
         if (!_isElegance && !_isGitana && selIconSvg) selIconSvg.classList.add('drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]', 'scale-110');
         const selRadio = el.querySelector('.svc-radio');
         if (selRadio) { selRadio.style.background = _radioSel; selRadio.style.borderColor = _radioSel; }
+        // BM: check negro visible dentro del radio plata al seleccionar
+        const selChk = el.querySelector('.svc-check');
+        if (selChk) selChk.style.display = _isBM ? 'inline-block' : 'none';
       };
 
       const svcObj = (window._fsServices || _fsServices || []).find(s => String(s.id) === String(id))
