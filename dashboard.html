@@ -4238,6 +4238,40 @@
         <input id="sfFileInput" type="file" accept="image/*" class="hidden">
       </div>
 
+      <!-- ── REFERIDOS: card promocional (visible solo si el tenant activa
+           el programa desde /gestion-interna/configuracion) ── -->
+      <div id="referralCard" data-aura-stagger class="hidden mx-4 mb-6 rounded-2xl p-5 relative overflow-hidden"
+           style="background:linear-gradient(135deg,rgba(255,255,255,0.04),rgba(255,255,255,0.01));
+                  border:1px solid var(--gold-dim);box-shadow:0 0 24px var(--gold-glow);">
+        <div class="absolute -right-8 -top-8 w-28 h-28 rounded-full blur-2xl pointer-events-none"
+             style="background:var(--gold-glow);"></div>
+        <div class="relative z-10 text-center">
+          <div class="w-11 h-11 rounded-full mx-auto flex items-center justify-center mb-2.5"
+               style="background:rgba(255,255,255,0.06);border:1px solid var(--gold-dim);">
+            <i class="ph-fill ph-gift text-xl" style="color:var(--gold);"></i>
+          </div>
+          <p class="text-[10px] font-black uppercase tracking-[0.22em] mb-1" style="color:var(--gold);">Invita y gana</p>
+          <p id="referralMsg" class="text-white font-semibold text-sm leading-snug mb-4"></p>
+          <div class="rounded-xl px-4 py-3 mb-3 inline-flex items-center gap-2"
+               style="background:rgba(0,0,0,0.35);border:1px dashed var(--gold-dim);">
+            <span class="text-[10px] font-bold uppercase tracking-widest text-white/45">Tu código</span>
+            <span id="referralCodeDisplay" class="text-lg font-black tracking-widest text-white">—</span>
+          </div>
+          <div class="flex items-center justify-center gap-2 mt-1">
+            <button id="btnCopyReferral" onclick="copyReferralCode()"
+              class="px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95"
+              style="background:rgba(255,255,255,0.08);color:#fff;border:1px solid rgba(255,255,255,0.14);">
+              <i class="ph-fill ph-clipboard-text"></i> Copiar código
+            </button>
+            <a id="btnShareReferralWa" href="#" onclick="shareReferralWhatsApp(event)"
+              class="px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95"
+              style="background:#25D366;color:#0a0a0a;">
+              <i class="ph-fill ph-whatsapp-logo"></i> Compartir WhatsApp
+            </a>
+          </div>
+        </div>
+      </div>
+
       <!-- ── SERVICIOS DESTACADOS ── -->
       <div data-aura-stagger class="mb-6" id="serviciosSection">
         <h3 class="text-[10px] font-bold uppercase tracking-widest mb-3 px-5" style="color:var(--gold);">Servicios</h3>
@@ -5445,6 +5479,8 @@ async function subscribeUserData(user) {
     // Perfil público (para que amigos me encuentren/comparen) + mi lista de amigos
     syncUserPublic(data);
     renderAmigos(data.amigos || []);
+    // Referidos: card promocional (solo si el tenant activo el programa)
+    renderReferralCard(data);
 
     document.title = `Hola, ${nombre.split(' ')[0]} | ${SHOP.nombre}`;
 
@@ -5881,6 +5917,105 @@ function renderStamps(count, historicos) {
     }
   }
 }
+
+// ─── Referidos: card promocional + acciones ───────────────────
+// Fuente de verdad: tenants/{tid}/settings/general.referralProgram
+// Se dispara desde subscribeUserData → renderReferralCard(data) cuando llega
+// el snapshot del user. Si el user no tiene referralCode, se genera aquí y
+// se persiste (backfill para users pre-feature).
+let _referralProgramCache = null;
+
+async function _loadReferralProgramConfig() {
+  try {
+    const tid = window.CURRENT_TENANT_ID || 'elegance';
+    const ref = tid === 'elegance'
+      ? db.collection('settings').doc('general')
+      : db.collection('tenants').doc(tid).collection('settings').doc('general');
+    const snap = await ref.get();
+    _referralProgramCache = (snap.exists ? (snap.data() || {}).referralProgram : null) || { enabled: false };
+  } catch (e) {
+    _referralProgramCache = { enabled: false };
+    console.warn('[referrals] cfg:', e.message);
+  }
+}
+_loadReferralProgramConfig();
+
+function _generateReferralCode(nombreCompleto) {
+  const first = String(nombreCompleto || '').trim().split(/\s+/)[0] || '';
+  const clean = first
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^A-Za-z]/g, '')
+    .toUpperCase();
+  const prefix = (clean + 'XXXX').slice(0, 4);
+  const suffix = String(Math.floor(1000 + Math.random() * 9000));
+  return `${prefix}-${suffix}`;
+}
+
+async function _ensureReferralCode(userDocData) {
+  if (userDocData.referralCode) return userDocData.referralCode;
+  const code = _generateReferralCode(userDocData.nombre || 'CLUB');
+  try {
+    await FDB.usersCol().doc(currentUser.uid).update({ referralCode: code });
+  } catch (e) { console.warn('[referrals] backfill:', e.message); }
+  return code;
+}
+
+async function renderReferralCard(userDocData) {
+  const card = document.getElementById('referralCard');
+  if (!card) return;
+  // Esperar a que la config cargue (poll ligero, máx 3s)
+  let waited = 0;
+  while (!_referralProgramCache && waited < 3000) {
+    await new Promise(r => setTimeout(r, 100));
+    waited += 100;
+  }
+  const rp = _referralProgramCache || { enabled: false };
+  if (!rp.enabled) { card.classList.add('hidden'); return; }
+
+  const code = await _ensureReferralCode(userDocData);
+  const msgEl = document.getElementById('referralMsg');
+  const codeEl = document.getElementById('referralCodeDisplay');
+  const nombreLocal = SHOP.nombre || SHOP.nombreCorto || 'nuestro Club';
+  if (msgEl) {
+    const reward = rp.rewardText || '¡Gana beneficios exclusivos por cada amigo que se una!';
+    msgEl.innerHTML = `Comparte <span class="text-white font-bold">${nombreLocal}</span> y gana:<br>${reward}`;
+  }
+  if (codeEl) codeEl.textContent = code || '—';
+  card.dataset.referralCode = code || '';
+  card.classList.remove('hidden');
+}
+
+window.copyReferralCode = function () {
+  const code = document.getElementById('referralCard')?.dataset?.referralCode || '';
+  if (!code) return;
+  const done = () => showToast('¡Código copiado!', 'ok');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(code).then(done).catch(() => {
+      _fallbackCopy(code); done();
+    });
+  } else {
+    _fallbackCopy(code); done();
+  }
+};
+function _fallbackCopy(text) {
+  try {
+    const t = document.createElement('textarea');
+    t.value = text; t.style.position = 'fixed'; t.style.left = '-9999px';
+    document.body.appendChild(t); t.select(); document.execCommand('copy');
+    document.body.removeChild(t);
+  } catch (_) {}
+}
+
+window.shareReferralWhatsApp = function (ev) {
+  if (ev) ev.preventDefault();
+  const code = document.getElementById('referralCard')?.dataset?.referralCode || '';
+  if (!code) return;
+  const nombreLocal = SHOP.nombre || SHOP.nombreCorto || 'nuestro Club';
+  const origin = window.location.origin || '';
+  const msg = `¡Únete al Club de ${nombreLocal}! Regístrate usando mi código ${code} en ${origin}/club y agendemos.`;
+  const url = 'https://wa.me/?text=' + encodeURIComponent(msg);
+  window.open(url, '_blank', 'noopener,noreferrer');
+};
 
 // ─── Servicios desde Firestore ────────────────────────────────
 async function cargarServicios() {

@@ -48,6 +48,12 @@ const DEFAULT_SETTINGS = {
   },
   features: DEFAULT_FEATURES,
   quienesSomos: { activo: false, texto: '' },
+  referralProgram: {
+    enabled:     false,
+    rewardText:  '¡Gana 1 sello gratis por cada amigo que se registre y agende su primer corte!',
+    rewardType:  'stamp',   // 'stamp' | 'discount' | 'custom'
+    rewardValue: 1,
+  },
 };
 
 /* ─── Helpers ────────────────────────────────────────────────── */
@@ -230,6 +236,12 @@ export default function Configuracion() {
           horario:   mergeHorario(d.horario),
           features:  mergeFeatures(d.features),
           quienesSomos: { activo: !!(d.quienesSomos && d.quienesSomos.activo), texto: (d.quienesSomos && d.quienesSomos.texto) || '' },
+          referralProgram: {
+            enabled:     !!(d.referralProgram && d.referralProgram.enabled),
+            rewardText:  (d.referralProgram && d.referralProgram.rewardText)  || DEFAULT_SETTINGS.referralProgram.rewardText,
+            rewardType:  (d.referralProgram && d.referralProgram.rewardType)  || DEFAULT_SETTINGS.referralProgram.rewardType,
+            rewardValue: (d.referralProgram && d.referralProgram.rewardValue != null) ? d.referralProgram.rewardValue : DEFAULT_SETTINGS.referralProgram.rewardValue,
+          },
         });
       }
       if (confSnap.exists()) {
@@ -261,6 +273,7 @@ export default function Configuracion() {
   const setFeatCourse = (k, v) => { setForm(f => ({ ...f, features: { ...f.features, courses: { ...f.features.courses, [k]: v } } })); setDirty(true); };
   const setFeatChair  = (k, v) => { setForm(f => ({ ...f, features: { ...f.features, chairRental: { ...f.features.chairRental, [k]: v } } })); setDirty(true); };
   const setQS = (k, v) => { setForm(f => ({ ...f, quienesSomos: { ...f.quienesSomos, [k]: v } })); setDirty(true); };
+  const setRef = (k, v) => { setForm(f => ({ ...f, referralProgram: { ...f.referralProgram, [k]: v } })); setDirty(true); };
 
   /* ── Duración de turnos: selección de preset / personalizado ── */
   const seleccionarPreset = (mins) => { setIntervalo(mins); setCustomMode(false); setDirty(true); };
@@ -824,6 +837,33 @@ export default function Configuracion() {
             <textarea className={`${inp} resize-none`} rows={6}
               placeholder="Cuenta la historia de tu local, qué los hace únicos, su equipo, su experiencia…"
               value={form.quienesSomos.texto} onChange={e => setQS('texto', e.target.value)} />
+          </Field>
+        )}
+      </Card>
+
+      {/* Programa de Referidos — boca a boca autogestionable */}
+      <Card Icon={Sparkles} title="🎁 Programa de Referidos (Boca a Boca)">
+        <div className="flex items-center justify-between">
+          <div>
+            <span className="text-sm font-semibold text-white">Activar programa de referidos</span>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Muestra un código único a cada cliente para que invite amigos. Cuando el amigo se registra usando ese código, queda vinculado al referidor.
+            </p>
+          </div>
+          <button type="button" onClick={() => setRef('enabled', !form.referralProgram.enabled)}
+            className={`relative inline-flex w-9 h-5 rounded-full transition-colors duration-200 focus:outline-none shrink-0 ${form.referralProgram.enabled ? 'bg-emerald-500' : 'bg-slate-700'}`}>
+            <span className={`inline-block w-4 h-4 mt-0.5 bg-white rounded-full shadow transform transition-transform duration-200 ${form.referralProgram.enabled ? 'translate-x-4' : 'translate-x-0.5'}`} />
+          </button>
+        </div>
+        {form.referralProgram.enabled && (
+          <Field label="Beneficio o recompensa al cliente">
+            <textarea className={`${inp} resize-none`} rows={3}
+              placeholder="Ej: Gana 1 sello gratis por cada amigo referido que asista a su cita."
+              value={form.referralProgram.rewardText}
+              onChange={e => setRef('rewardText', e.target.value)} />
+            <p className="text-[11px] text-slate-500 mt-1.5">
+              Este texto aparece en la tarjeta de referidos del cliente (en <code>/club</code>) y en el mensaje que se comparte por WhatsApp.
+            </p>
           </Field>
         )}
       </Card>

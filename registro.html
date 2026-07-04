@@ -1435,6 +1435,13 @@
             <i class="ph ph-eye text-xl"></i>
           </button>
         </div>
+        <!-- Referidos: se muestra solo si el tenant activó el programa
+             (settings/general.referralProgram.enabled === true) -->
+        <div id="referralInputBlock" class="hidden">
+          <label class="block text-[10px] font-bold uppercase tracking-widest text-white/40 mb-1 px-1">Código de referido (Opcional)</label>
+          <input type="text" id="referralCodeInput" placeholder="Ej: ALEX-4012"
+            class="field uppercase" autocomplete="off" style="letter-spacing:0.05em;">
+        </div>
       </div>
       <button onclick="registerWithEmail()" class="btn-primary mt-5">
         <i class="ph-bold ph-user-plus"></i> Crear cuenta
@@ -1570,6 +1577,40 @@
     document.getElementById('alertBanner').classList.add('hidden');
   }
 
+  // ── Referidos: helpers ────────────────────────────────────────
+  // Genera un código NNNN-DDDD a partir del primer nombre + 4 dígitos.
+  // Ej: "Mateluna Pardo" → "MATE-8291". Nombres cortos rellenan con 'X'.
+  function generateReferralCode(nombreCompleto) {
+    const first = String(nombreCompleto || '').trim().split(/\s+/)[0] || '';
+    const clean = first
+      .normalize('NFD').replace(/[̀-ͯ]/g, '')
+      .replace(/[^A-Za-z]/g, '')
+      .toUpperCase();
+    const prefix = (clean + 'XXXX').slice(0, 4);
+    const suffix = String(Math.floor(1000 + Math.random() * 9000));
+    return `${prefix}-${suffix}`;
+  }
+
+  // Lee tenants/{tid}/settings/general.referralProgram (root para elegance)
+  // y muestra el input de "código de referido" si el programa está activo.
+  async function _loadReferralProgramConfig() {
+    try {
+      const tid = window.CURRENT_TENANT_ID || 'elegance';
+      const ref = tid === 'elegance'
+        ? db.collection('settings').doc('general')
+        : db.collection('tenants').doc(tid).collection('settings').doc('general');
+      const snap = await ref.get();
+      const rp = snap.exists ? (snap.data() || {}).referralProgram : null;
+      window._referralProgram = rp || { enabled: false };
+      if (rp && rp.enabled) {
+        const block = document.getElementById('referralInputBlock');
+        if (block) block.classList.remove('hidden');
+      }
+    } catch (e) { console.warn('[referrals] cfg:', e.message); }
+  }
+  // Kick off — no bloquea el resto de la inicialización
+  _loadReferralProgramConfig();
+
   // ── Firestore: crear/actualizar perfil ────────────────────────
   async function ensureUserDoc(user, extra = {}) {
     const ref = FDB.usersCol().doc(user.uid);
@@ -1595,6 +1636,16 @@
         creadoEn:  firebase.firestore.FieldValue.serverTimestamp(),
       };
       if (extra.fechaNacimiento) data.fechaNacimiento = extra.fechaNacimiento;
+      // Referidos — se genera SIEMPRE (aunque el programa esté apagado hoy)
+      // para que un tenant que lo active mañana no tenga que backfillear.
+      data.referralCode = generateReferralCode(data.nombre || 'CLUB');
+      // Si el usuario ingresó un código en el form, guardarlo como referrer.
+      const _refInput = document.getElementById('referralCodeInput');
+      const _refCode = (_refInput && _refInput.value.trim().toUpperCase()) || (extra.referredByCode || '');
+      if (_refCode) {
+        data.referredByCode  = _refCode;
+        data.referralStatus  = 'pending_first_visit';
+      }
       await ref.set(data);
 
       // Perfil público (campos no sensibles) para "comparar con un amigo".
