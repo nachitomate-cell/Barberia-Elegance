@@ -4194,37 +4194,157 @@
     .tenant-sionbarberia .booking-hero p:has(#shopSlogan) { display: none !important; }
 
     /* ══════════════════════════════════════════════════════════
-       EL BARBERO MODERNO (tenant elbarberomoderno) — Overrides
-       Reusa el tema plateado de sionbarberia, pero con hero propio:
-       foto real de la estación + branding textual visible.
+       EL BARBERO MODERNO (tenant elbarberomoderno) — SILVER & PURE DARK
+       Tema propio, sin alias. Paleta:
+         Fondo:      #080808 (negro profundo)
+         Acento:     #C0C0C0 / #E0E0E0 (plata brillante)
+         Bordes:     #2C2C2C / #333333 (gris acero) · activo #C0C0C0
+         Texto:      #FFFFFF puro
     ══════════════════════════════════════════════════════════ */
+    .tenant-elbarberomoderno {
+      --accent:   #C0C0C0;
+      --accent-r: 192; --accent-g: 192; --accent-b: 192;
+      --neon-clr: #E0E0E0;
+      --neon-r:   224; --neon-g: 224; --neon-b: 224;
+      --body-bg:  #080808;
+      --gold:     #E0E0E0;
+      --gold-dim: rgba(224,224,224,0.35);
+    }
+    .tenant-elbarberomoderno body {
+      background-color: #080808 !important;
+      color: #ffffff !important;
+    }
+
+    /* ── Hero: foto de la estación con overlay negro elegante ── */
     .tenant-elbarberomoderno .booking-hero {
       background-image: url('/elbarberomoderno/barbero1.png') !important;
       background-size: cover !important;
       background-position: center 35% !important;
       background-repeat: no-repeat !important;
-      background-color: #0b0a09 !important;
+      background-color: #080808 !important;
       aspect-ratio: auto !important;
-      min-height: 320px !important;
+      min-height: 340px !important;
       height: auto !important;
     }
     .tenant-elbarberomoderno .booking-hero-overlay {
-      background: linear-gradient(180deg, rgba(11,10,9,0.55) 0%, rgba(11,10,9,0.85) 100%) !important;
+      background: rgba(0,0,0,0.65) !important;
     }
-    /* Re-mostramos logo, nombre y slogan (los ocultaba el override de sionbarberia) */
-    .tenant-elbarberomoderno #heroLogoArea,
-    .tenant-elbarberomoderno .gold-divider,
-    .tenant-elbarberomoderno #shopNombre,
-    .tenant-elbarberomoderno .booking-hero p:has(#shopSlogan) { display: block !important; }
+
+    /* Ocultamos el logo circular (placeholder) — solo texto protagonista */
+    .tenant-elbarberomoderno #heroLogoArea { display: none !important; }
+
     .tenant-elbarberomoderno #shopNombre {
-      color: #FAFAFA !important;
+      display: block !important;
+      color: #ffffff !important;
       text-transform: uppercase !important;
-      letter-spacing: 0.18em !important;
-      font-weight: 800 !important;
+      letter-spacing: 0.22em !important;
+      font-weight: 900 !important;
+      font-size: 2.1rem !important;
+      line-height: 1.1 !important;
+      text-shadow: 0 2px 24px rgba(0,0,0,0.6) !important;
     }
+    .tenant-elbarberomoderno .gold-divider {
+      display: block !important;
+      background: linear-gradient(90deg, transparent, rgba(224,224,224,0.55), transparent) !important;
+    }
+    .tenant-elbarberomoderno .booking-hero p:has(#shopSlogan) { display: block !important; }
     .tenant-elbarberomoderno #shopSlogan,
     .tenant-elbarberomoderno #shopSlogan span {
-      color: rgba(250,250,250,0.75) !important;
+      color: rgba(255,255,255,0.78) !important;
+    }
+
+    /* ── Info-strip: negro con borde sutil ── */
+    html.tenant-elbarberomoderno .info-strip,
+    html.tenant-elbarberomoderno .info-strip[style] {
+      background: linear-gradient(135deg, #0e0e0e 0%, #141414 50%, #0c0c0c 100%) !important;
+      border-bottom-color: rgba(255,255,255,0.08) !important;
+    }
+
+    /* ── Barra de progreso ("PASO X DE 4") ── */
+    .tenant-elbarberomoderno #progressTrack {
+      background-color: #1F1F1F !important;
+    }
+    .tenant-elbarberomoderno #progressBar {
+      background: linear-gradient(90deg, #8A8A8A, #C0C0C0, #E0E0E0) !important;
+      box-shadow: 0 0 10px rgba(192,192,192,0.35) !important;
+    }
+    .tenant-elbarberomoderno #stepIndicatorText {
+      color: #E0E0E0 !important;
+      text-shadow: none !important;
+      letter-spacing: 0.14em !important;
+      font-weight: 800 !important;
+    }
+    .tenant-elbarberomoderno #progressPercentage {
+      color: rgba(255,255,255,0.55) !important;
+    }
+
+    /* ── Píldoras de categoría (Todos, Cortes, Barba, Combos) ── */
+    .tenant-elbarberomoderno .category-pill {
+      background: #080808 !important;
+      border: 1px solid #333333 !important;
+      color: #ffffff !important;
+      transition: all 0.25s ease !important;
+    }
+    .tenant-elbarberomoderno .category-pill:hover {
+      border-color: #8A8A8A !important;
+      color: #ffffff !important;
+    }
+    .tenant-elbarberomoderno .category-pill.border-neon {
+      background: #1F1F1F !important;
+      border: 1px solid #C0C0C0 !important;
+      color: #ffffff !important;
+      box-shadow: 0 0 10px rgba(192,192,192,0.22) !important;
+    }
+    .tenant-elbarberomoderno .category-pill.text-neon { color: #E0E0E0 !important; }
+
+    /* ── Tarjetas de servicios ── */
+    .tenant-elbarberomoderno .service-option {
+      background: #080808 !important;
+      border: 1px solid #2C2C2C !important;
+      transition: all 0.25s ease !important;
+    }
+    .tenant-elbarberomoderno .service-option:hover {
+      border-color: #C0C0C0 !important;
+      box-shadow: 0 0 18px rgba(192,192,192,0.18) !important;
+    }
+    .tenant-elbarberomoderno .service-option.border-neon {
+      border-color: #C0C0C0 !important;
+      background: #131313 !important;
+      box-shadow: 0 0 14px rgba(192,192,192,0.22) !important;
+    }
+
+    /* ── Títulos de sección ── */
+    .tenant-elbarberomoderno h2.text-neon,
+    .tenant-elbarberomoderno .text-neon {
+      color: #ffffff !important;
+      text-shadow: none !important;
+    }
+
+    /* ── Sticky bottom bar (botón Continuar plateado) ── */
+    .tenant-elbarberomoderno #btnContinueBar {
+      background: rgba(8,8,8,0.94) !important;
+      border-top: 1px solid rgba(224,224,224,0.10) !important;
+      backdrop-filter: blur(24px) !important;
+      -webkit-backdrop-filter: blur(24px) !important;
+    }
+    .tenant-elbarberomoderno #btnContinue {
+      background-color: #E0E0E0 !important;
+      color: #000000 !important;
+      font-weight: 800 !important;
+      letter-spacing: 0.03em !important;
+      box-shadow: 0 2px 20px rgba(224,224,224,0.16) !important;
+      transition: all 0.2s cubic-bezier(0.16,1,0.3,1) !important;
+    }
+    .tenant-elbarberomoderno #btnContinue:hover,
+    .tenant-elbarberomoderno #btnContinue:not(:disabled):active {
+      background-color: #ffffff !important;
+      box-shadow: 0 4px 28px rgba(255,255,255,0.28) !important;
+    }
+    .tenant-elbarberomoderno #btnContinue:disabled,
+    .tenant-elbarberomoderno #btnContinue[disabled] {
+      background: rgba(224,224,224,0.14) !important;
+      color: rgba(255,255,255,0.32) !important;
+      box-shadow: none !important;
     }
 
     /* Botón Continuar/Confirmar: blanco premium (override del dorado base #D4AF37) */

@@ -53,7 +53,8 @@
   // Alias de tema: reutiliza los estilos CSS de un tenant existente en lugar
   // de duplicar decenas de reglas. Se aplica una segunda clase al <html>.
   const _themeAlias = {
-    elbarberomoderno: 'sionbarberia',
+    // elbarberomoderno tiene tema propio "Silver & Pure Dark" — ver bloque
+    // .tenant-elbarberomoderno en index.html.
   };
 
   const _tenants = {
@@ -729,7 +730,7 @@
       nombre:          'El Barbero Moderno',
       nombreCorto:     'El Barbero Moderno',
       pageTitle:       'El Barbero Moderno | Agenda tu hora',
-      bodyBg:          '#0b0a09',
+      bodyBg:          '#080808',
       slogan:          'Barbero Profesional con 8 años de experiencia. Tu estilo, a otro nivel.',
       sobreNosotros:   'El Barbero Moderno es el espacio de Jhoseth Morales, Master Barber con 8 años de experiencia. Cortes clásicos y modernos, perfilado y ritual de barba, atención personalizada para llevar tu estilo a otro nivel.',
       logo:            '/logo.jpg',
@@ -745,7 +746,7 @@
       totalReviews:    0,
       reviews:         [],
       darkHeader:      true,
-      headerBg:        '#0b0a09',
+      headerBg:        '#080808',
       // Hero background — foto real de la estación (con overlay oscuro en CSS)
       heroBgUrl:       '/elbarberomoderno/barbero1.png',
       barberos: [
