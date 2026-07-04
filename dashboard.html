@@ -5900,7 +5900,9 @@ async function cargarServicios() {
             <i class="ph-fill ${icono} text-5xl" style="color:var(--gold);opacity:0.15;"></i>
           </div>`;
 
-      return `<a href="index.html" class="service-card snap-center flex-shrink-0 relative rounded-2xl overflow-hidden cursor-pointer" style="width:148px;height:188px;background:#18181b;text-decoration:none;">
+      // Deep link a la agenda con el servicio pre-seleccionado (salta a Paso 2).
+      const svcHref = `index.html?servicioId=${encodeURIComponent(s.id)}`;
+      return `<a href="${svcHref}" class="service-card snap-center flex-shrink-0 relative rounded-2xl overflow-hidden cursor-pointer" style="width:148px;height:188px;background:#18181b;text-decoration:none;">
         ${imgHtml}
         <div class="absolute inset-0" style="background:linear-gradient(to top,rgba(0,0,0,0.92) 0%,rgba(0,0,0,0.10) 60%,transparent 100%);"></div>
         <div class="absolute bottom-0 left-0 right-0 p-3.5">

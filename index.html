@@ -11086,6 +11086,43 @@
       const _loadedSettings = await initServices();   // carga servicios y config desde Firestore
       await applySettingsOverrides(_loadedSettings); // reutiliza settings ya cargado, sin segunda lectura
       renderCalendar();       // ahora que _fsConfig está listo
+
+      // ── Deep link: ?servicioId=<id> o ?servicio=<nombre> ──
+      // Preselecciona el servicio y salta al Paso 2 (o 3 en delnero/marcelo).
+      // Fuente típica: tarjetas de "Servicios" en dashboard.html /club.
+      // Si el id/nombre no matchea o el paso actual no es 1, se queda en Paso 1
+      // sin ruido (fallback seguro). Limpia la URL para no reactivar el salto
+      // en un reload.
+      try {
+        const _params = new URLSearchParams(window.location.search);
+        const _svcId   = _params.get('servicioId') || _params.get('serviceId');
+        const _svcName = _params.get('servicio')   || _params.get('service');
+        if (_svcId || _svcName) {
+          const _norm = (s) => String(s || '').trim().toLowerCase();
+          const _match = (_fsServices || []).find(s => {
+            if (_svcId && String(s.id) === String(_svcId)) return true;
+            if (_svcName && s.nombre && _norm(s.nombre) === _norm(_svcName)) return true;
+            return false;
+          });
+          if (_match && currentStep === 1) {
+            const _sel = String(_match.id).replace(/"/g, '\\"');
+            const _btn = document.querySelector(`.service-option[data-service-id="${_sel}"]`);
+            if (_btn) {
+              selectService(_btn);
+              if (selectedServiceObj) {
+                await nextStep(); // Step 1 → 2 (o 3 en delnero/marcelo)
+              }
+            }
+          }
+          // Limpiar la URL (aunque el match falle) para evitar loops en reload
+          try {
+            const _u = new URL(window.location.href);
+            ['servicioId','serviceId','servicio','service'].forEach(k => _u.searchParams.delete(k));
+            history.replaceState(null, '', _u.pathname + (_u.search ? _u.search : '') + (_u.hash || ''));
+          } catch(_) {}
+        }
+      } catch (_e) { console.warn('[DeepLink] servicio:', _e); }
+
       hideBootLoader();       // todo listo: oculta el loader de arranque (sin salto de contenido)
       cargarPublicidad();     // marcas asociadas (solo elegance, si está activo)
     });
