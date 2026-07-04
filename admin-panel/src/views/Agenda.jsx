@@ -2569,8 +2569,21 @@ export default function Agenda() {
   const { data: servicios }   = useCollection('servicios');
   const { data: productos }   = useCollection('productos');
 
+  // Un admin también puede atender sillón: aparece como columna si su doc lo
+  // marca explícitamente (mostrarEnAgenda / esBarbero) o si el tenant sigue la
+  // convención admin===barbero (delnero). Sin opt-in, seguimos ocultando a los
+  // admins puros para no ensuciar la grilla del equipo.
   const barberos = useMemo(() =>
-    rawBarberos.filter(b => !b._mainDocId && b.disponible !== false && (b.rol !== 'admin' || tenantId === 'delnero')),
+    rawBarberos.filter(b => {
+      if (b._mainDocId) return false;
+      if (b.disponible === false) return false;
+      if (b.rol !== 'admin') return true;
+      return (
+        tenantId === 'delnero' ||
+        b.mostrarEnAgenda === true ||
+        b.esBarbero === true
+      );
+    }),
   [rawBarberos, tenantId]);
 
   // Orden manual de columnas (arrastrar la cabecera para reordenar), persistido por sede.
