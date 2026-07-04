@@ -2571,6 +2571,150 @@
       background-clip: text;
     }
 
+    /* ═══════════════════════════════════════════════════════════════
+       BARBERS CLUB — Dark + Gold (clon estructural de Chameleon)
+       Paleta: Dorado #DAA520 · Fondo #0b0a09 · CTA esmeralda #004D40
+       ═══════════════════════════════════════════════════════════════ */
+    .tenant-barbersclub {
+      --accent:   #DAA520;
+      --accent-r: 218; --accent-g: 165; --accent-b: 32;
+      --neon-clr: #DAA520;
+      --neon-r:   218; --neon-g: 165; --neon-b: 32;
+      --body-bg:  #0b0a09;
+    }
+    .tenant-barbersclub body { background-color: #0b0a09; }
+    .tenant-barbersclub .booking-hero-overlay {
+      background: linear-gradient(180deg,
+        rgba(11,10,9,0.55) 0%, rgba(11,10,9,0.35) 40%, rgba(11,10,9,0.96) 100%) !important;
+    }
+    /* Botones de acción → esmeralda */
+    .tenant-barbersclub #btnContinue {
+      background: #004D40 !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 20px rgba(0,77,64,0.45) !important;
+    }
+    .tenant-barbersclub #btnContinueBar {
+      background: rgba(11,10,9,0.92) !important;
+      border-top-color: rgba(218,165,32,0.10) !important;
+    }
+    /* CTA "Unirme al Club" en paso 4 */
+    .tenant-barbersclub #step4AuthContainer a.flex {
+      background: #004D40 !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 18px rgba(0,77,64,0.35) !important;
+    }
+    .tenant-barbersclub #step4AuthContainer a.flex i { color: #ffffff !important; }
+    /* Tarjeta seleccionada: borde dorado metálico */
+    .tenant-barbersclub .service-option.border-neon {
+      border-color: #DAA520 !important;
+      box-shadow: 0 0 14px rgba(218,165,32,0.18) !important;
+    }
+    .tenant-barbersclub .service-option.bg-brand-neon\/10 {
+      background-color: rgba(218,165,32,0.07) !important;
+    }
+    /* Jerarquía: precio y duración en blanco sobre tarjeta seleccionada */
+    .tenant-barbersclub .service-option.border-neon .price-tag {
+      color: #ffffff !important;
+    }
+    .tenant-barbersclub .service-option.border-neon .duration-tag {
+      color: rgba(255,255,255,0.55) !important;
+    }
+    /* Icono: halo dorado en tarjeta seleccionada */
+    .tenant-barbersclub .service-option.border-neon .icon-bg {
+      border-color: rgba(218,165,32,0.50) !important;
+      box-shadow: 0 0 12px rgba(218,165,32,0.28) !important;
+      background: rgba(218,165,32,0.06) !important;
+    }
+    .tenant-barbersclub .service-option.border-neon .icon-svg {
+      color: #DAA520 !important;
+      filter: drop-shadow(0 0 5px rgba(218,165,32,0.50)) !important;
+    }
+    /* Barbero seleccionado */
+    .tenant-barbersclub .barber-option.border-neon {
+      border-color: #DAA520 !important;
+      box-shadow: 0 0 12px rgba(218,165,32,0.15) !important;
+    }
+    .tenant-barbersclub .barber-option.bg-brand-neon\/10 {
+      background-color: rgba(218,165,32,0.07) !important;
+    }
+    /* Time pill seleccionada */
+    .tenant-barbersclub .time-pill.border-neon,
+    .tenant-barbersclub .time-pill.bg-brand-neon\/10 {
+      background: rgba(218,165,32,0.12) !important;
+      color: #DAA520 !important;
+      border-color: #DAA520 !important;
+      box-shadow: 0 0 10px rgba(218,165,32,0.20) !important;
+      font-weight: 800 !important;
+    }
+    /* Category pills */
+    .tenant-barbersclub .category-pill.border-neon {
+      border-color: #DAA520 !important;
+      color: #DAA520 !important;
+      background: rgba(218,165,32,0.08) !important;
+      box-shadow: none !important;
+    }
+    /* Shimmer dorado en tarjeta seleccionada (reutiliza @keyframes cham-card-shimmer) */
+    .tenant-barbersclub .service-option.border-neon::after,
+    .tenant-barbersclub .barber-option.border-neon::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(105deg,
+        transparent 30%, rgba(218,165,32,0.30) 50%, transparent 70%);
+      transform: translateX(-120%);
+      animation: cham-card-shimmer 0.65s cubic-bezier(0.25,0.46,0.45,0.94) 1;
+      pointer-events: none;
+    }
+    /* Headers de grupo horario en dorado */
+    .tenant-barbersclub #hoursGrid .text-gray-600 {
+      color: rgba(218,165,32,0.70) !important;
+    }
+    /* Resumen paso 4 gold/emerald */
+    .tenant-barbersclub #step4 .mt-6.rounded-2xl {
+      background: linear-gradient(135deg, rgba(11,10,9,0.97) 0%, rgba(0,30,18,0.45) 100%) !important;
+      border: 1px solid rgba(201,168,76,0.28) !important;
+      box-shadow: 0 0 22px rgba(201,168,76,0.06), inset 0 1px 0 rgba(201,168,76,0.07) !important;
+    }
+    .tenant-barbersclub #step4 .mt-6.rounded-2xl .text-white\/30 {
+      color: rgba(201,168,76,0.55) !important;
+    }
+    .tenant-barbersclub #step4 .mt-6.rounded-2xl #summaryService {
+      color: #e8c86d !important;
+    }
+    .tenant-barbersclub #step4 .mt-6.rounded-2xl #summaryPrice {
+      color: #DAA520 !important;
+    }
+    .tenant-barbersclub #step4 .mt-6.rounded-2xl .h-px {
+      background: rgba(201,168,76,0.10) !important;
+    }
+    .tenant-barbersclub #step4 .mt-6.rounded-2xl .text-gray-500,
+    .tenant-barbersclub #step4 .mt-6.rounded-2xl #summaryBarber,
+    .tenant-barbersclub #step4 .mt-6.rounded-2xl #summaryDateString {
+      color: rgba(201,168,76,0.65) !important;
+    }
+    .tenant-barbersclub #step4 .mt-6.rounded-2xl i {
+      color: rgba(201,168,76,0.32) !important;
+    }
+    /* Pantalla de éxito gold/emerald */
+    .tenant-barbersclub #success-state .bg-\[\#0a0a0d\] {
+      background: linear-gradient(135deg, rgba(11,10,9,0.97) 0%, rgba(0,30,18,0.45) 100%) !important;
+      border: 1px solid rgba(201,168,76,0.32) !important;
+      box-shadow: 0 0 28px rgba(201,168,76,0.09) !important;
+    }
+    .tenant-barbersclub #success-state .bg-\[\#0a0a0d\] #successSummaryService {
+      color: #e8c86d !important;
+      font-weight: 800 !important;
+    }
+    .tenant-barbersclub #success-state .bg-\[\#0a0a0d\] #successSummaryDate {
+      color: rgba(201,168,76,0.80) !important;
+    }
+    .tenant-barbersclub #success-state h2 {
+      background: linear-gradient(135deg, #C9A050 0%, #e8c86d 50%, #DAA520 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
     /* WhatsApp CTA: sólido verde para elegance */
     #waBtnLink {
       background-color: #25D366 !important;
@@ -4048,6 +4192,40 @@
     .tenant-sionbarberia .gold-divider,
     .tenant-sionbarberia #shopNombre,
     .tenant-sionbarberia .booking-hero p:has(#shopSlogan) { display: none !important; }
+
+    /* ══════════════════════════════════════════════════════════
+       EL BARBERO MODERNO (tenant elbarberomoderno) — Overrides
+       Reusa el tema plateado de sionbarberia, pero con hero propio:
+       foto real de la estación + branding textual visible.
+    ══════════════════════════════════════════════════════════ */
+    .tenant-elbarberomoderno .booking-hero {
+      background-image: url('/elbarberomoderno/barbero1.png') !important;
+      background-size: cover !important;
+      background-position: center 35% !important;
+      background-repeat: no-repeat !important;
+      background-color: #0b0a09 !important;
+      aspect-ratio: auto !important;
+      min-height: 320px !important;
+      height: auto !important;
+    }
+    .tenant-elbarberomoderno .booking-hero-overlay {
+      background: linear-gradient(180deg, rgba(11,10,9,0.55) 0%, rgba(11,10,9,0.85) 100%) !important;
+    }
+    /* Re-mostramos logo, nombre y slogan (los ocultaba el override de sionbarberia) */
+    .tenant-elbarberomoderno #heroLogoArea,
+    .tenant-elbarberomoderno .gold-divider,
+    .tenant-elbarberomoderno #shopNombre,
+    .tenant-elbarberomoderno .booking-hero p:has(#shopSlogan) { display: block !important; }
+    .tenant-elbarberomoderno #shopNombre {
+      color: #FAFAFA !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.18em !important;
+      font-weight: 800 !important;
+    }
+    .tenant-elbarberomoderno #shopSlogan,
+    .tenant-elbarberomoderno #shopSlogan span {
+      color: rgba(250,250,250,0.75) !important;
+    }
 
     /* Botón Continuar/Confirmar: blanco premium (override del dorado base #D4AF37) */
     .tenant-sionbarberia #btnContinue {
@@ -6454,6 +6632,74 @@
       .tenant-chameleon .barber-option.border-neon::after,
       .tenant-chameleon #btnContinue::after { animation: none !important; }
       .tenant-chameleon section[id^="step"].opacity-0 { filter: none !important; }
+    }
+
+    /* ════════════════════════════════════════════════════════════════
+       BARBERS CLUB — PILAR 2 + PILAR 3 (clon de Chameleon en dorado)
+       ════════════════════════════════════════════════════════════════ */
+    .tenant-barbersclub .bg-\[\#0a0a0d\] { background-color: #141210 !important; }
+    .tenant-barbersclub .service-option,
+    .tenant-barbersclub .barber-option {
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.045), 0 1px 2px rgba(0,0,0,0.6) !important;
+    }
+    .tenant-barbersclub .service-option:hover,
+    .tenant-barbersclub .barber-option:hover {
+      border-color: rgba(218,165,32,0.45) !important;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 6px 16px rgba(0,0,0,0.6) !important;
+    }
+    /* Grano de film sutil */
+    .tenant-barbersclub body::after {
+      content: '';
+      position: fixed; inset: 0; z-index: 30; pointer-events: none; opacity: 0.06;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-size: 140px 140px;
+    }
+    /* Hero glow dorado + vignette */
+    .tenant-barbersclub .booking-hero::after {
+      content: '';
+      position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+      width: 85%; height: 58%;
+      background: radial-gradient(ellipse at 50% 0%, rgba(218,165,32,0.16) 0%, transparent 70%);
+      pointer-events: none; z-index: 1;
+      animation: cham-hero-glow 5s ease-in-out infinite;
+    }
+    .tenant-barbersclub .booking-hero-overlay {
+      background:
+        radial-gradient(110% 75% at 50% -5%, rgba(218,165,32,0.07) 0%, transparent 42%),
+        linear-gradient(180deg, rgba(11,10,9,0.55) 0%, rgba(11,10,9,0.28) 34%, rgba(11,10,9,0.97) 100%) !important;
+    }
+    /* CTA esmeralda + sheen */
+    .tenant-barbersclub #btnContinue {
+      background-image: linear-gradient(180deg, rgba(255,255,255,0.14) 0%, rgba(0,0,0,0.20) 100%) !important;
+      background-color: #004D40 !important;
+      position: relative; overflow: hidden;
+      box-shadow: 0 6px 22px rgba(0,77,64,0.45), inset 0 1px 0 rgba(255,255,255,0.18) !important;
+      transition: transform 0.14s ease, box-shadow 0.25s ease, filter 0.2s ease;
+    }
+    .tenant-barbersclub #btnContinue::after {
+      content: '';
+      position: absolute; top: 0; bottom: 0; left: 0; width: 55%;
+      background: linear-gradient(105deg, transparent 0%, rgba(255,255,255,0.20) 50%, transparent 100%);
+      transform: translateX(-130%);
+      animation: cham-cta-sheen 5.5s ease-in-out infinite;
+      pointer-events: none;
+    }
+    .tenant-barbersclub #btnContinue:hover {
+      filter: brightness(1.08);
+      box-shadow: 0 8px 28px rgba(0,77,64,0.6), inset 0 1px 0 rgba(255,255,255,0.20) !important;
+    }
+    .tenant-barbersclub #btnContinue:active { transform: scale(0.985); filter: brightness(1.02); }
+    .tenant-barbersclub #btnContinue:disabled { filter: grayscale(0.45) brightness(0.55); box-shadow: none !important; }
+    .tenant-barbersclub #btnContinue:disabled::after { display: none; }
+    /* Transición entre pasos */
+    .tenant-barbersclub section[id^="step"] { transition-timing-function: cubic-bezier(0.16,1,0.3,1) !important; }
+    .tenant-barbersclub section[id^="step"].opacity-0 { filter: blur(7px) !important; }
+    @media (prefers-reduced-motion: reduce) {
+      .tenant-barbersclub .booking-hero::after,
+      .tenant-barbersclub .service-option.border-neon::after,
+      .tenant-barbersclub .barber-option.border-neon::after,
+      .tenant-barbersclub #btnContinue::after { animation: none !important; }
+      .tenant-barbersclub section[id^="step"].opacity-0 { filter: none !important; }
     }
 
     /* ════════════════════════════════════════════════════════════════
@@ -9828,6 +10074,7 @@
           machos: '/machos_bg.png',
           infinity: '/infinity_bg.png',
           sionbarberia: '/dieciseis/banner.png',
+          elbarberomoderno: '/elbarberomoderno/barbero1.png',
           omegastudio:  '/omega2.avif',
           memphis:      '/mem.png',
           yugen:        '/yugen/yugen2.png',
@@ -9837,6 +10084,7 @@
         heroImgEl.alt = window.CURRENT_TENANT_ID === 'machos' ? 'Interior industrial moderno de Macho´s Barbershop' :
                         window.CURRENT_TENANT_ID === 'infinity' ? 'Interior elegante y familiar de Infinity Studio' :
                         window.CURRENT_TENANT_ID === 'sionbarberia' ? 'Studio Dieciséis · barbería premium en Valparaíso' :
+                        window.CURRENT_TENANT_ID === 'elbarberomoderno' ? 'El Barbero Moderno · estación de barbería de Jhoseth Morales' :
                         window.CURRENT_TENANT_ID === 'omegastudio' ? 'Interior de Omega Studio, estudio de barbería en Viña del Mar' :
                         'Interior de ' + (SHOP.nombreCorto || SHOP.nombre);
       }

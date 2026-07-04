@@ -968,7 +968,7 @@ const TENANT_META = {
       ogDesc:      'Regístrate en El Barbero Moderno y disfruta beneficios exclusivos.',
     },
     siteName:    'El Barbero Moderno',
-    ogImage:     '/logo.jpg',
+    ogImage:     '/elbarberomoderno/barbero1.png',
     themeColor:  '#0b0a09',
     appTitle:    'El Barbero Moderno',
     icon:        '/logo.jpg',

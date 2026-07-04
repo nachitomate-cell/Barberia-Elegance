@@ -746,8 +746,10 @@
       reviews:         [],
       darkHeader:      true,
       headerBg:        '#0b0a09',
+      // Hero background — foto real de la estación (con overlay oscuro en CSS)
+      heroBgUrl:       '/elbarberomoderno/barbero1.png',
       barberos: [
-        { nombre: 'Jhoseth Morales', foto: null, disponible: true },
+        { nombre: 'Jhoseth Morales', foto: '/elbarberomoderno/barbero2.jpg', disponible: true },
       ],
     },
   };
