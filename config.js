@@ -546,12 +546,18 @@
       instagram:       'https://www.instagram.com/infinitystudio23/',
       instagramHandle: '@infinitystudio23',
       waEmoji:         '💈',
-      googleReviewUrl: '',
+      googleReviewUrl: 'https://search.google.com/local/writereview?placeid=ChIJVbUumMXfiZYRKSsYpEMTN00',
       ratingGeneral: 5.0,
-      totalReviews:  12,
+      totalReviews:  135,
+      // Fallback estatico si Firestore no responde. En vivo, el doc
+      // tenants/infinity/settings/googleReviews trae los valores reales
+      // vía Cloud Function googleReviewsSyncScheduled (Places API New).
       reviews: [
-        { author: 'Claudio Valdivia', rating: 5, text: 'Excelente atención, el ambiente es súper agradable y familiar. Los cabros cortan con un nivel técnico altísimo. Totalmente recomendado!' },
-        { author: 'Rodrigo Espinoza', rating: 5, text: 'Llevo meses cortándome acá y el servicio es siempre de primer nivel. Un agrado de barbería en Viña.' },
+        { author: 'Nicolas Quiñones',       rating: 5, text: 'Excelentes barberos, hacen los mejores fade que he visto. Profesionales, simpáticos y confiables. Destacar su precio accesible y el buen ambiente.' },
+        { author: 'Enrique Alfaro',         rating: 5, text: 'Como siempre buena experiencia en la barbería, me atendieron muy bien y en grato ambiente. Gracias Elio por la atención y disposición.' },
+        { author: 'Victor De la rosa Alviña', rating: 5, text: 'Excelente servicio. Cortan muy bien y no solo es corte, si no que te brindan una muy buena experiencia.' },
+        { author: 'Pablo Salas',            rating: 5, text: 'Excelente, me atendió Miguel, muy amable y profesional. Me dejó tal como yo quería y el local está bien ubicado.' },
+        { author: 'Julio Opazo',            rating: 5, text: 'Totalmente recomendado, un descubrimiento en Viña. La atención muy amable, el ambiente es muy acogedor y el lugar está impecable.' },
       ],
       barberos: [
         { nombre: 'Miguel Martínez', foto: null, disponible: true },
