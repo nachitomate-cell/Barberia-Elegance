@@ -6175,8 +6175,18 @@
       gap: 16px !important;
     }
 
-    /* Cards base — shadow-sm inactivo + p-5 (20px) + max-w-[95%] mx-auto */
-    .tenant-infinity .service-option,
+    /* Cards base — shadow-sm inactivo + max-w-[95%] mx-auto */
+    /* Servicios: list row compacta (py-3 px-4). Barberos: p-5 (20px). */
+    .tenant-infinity .service-option {
+      padding: 12px 16px !important;
+      max-width: 95% !important;
+      width: 100% !important;
+      margin-left: auto !important;
+      margin-right: auto !important;
+      box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+      border-color: #E5E5E5 !important;
+      transform: none !important;
+    }
     .tenant-infinity .barber-option {
       padding: 20px !important;
       max-width: 95% !important;
@@ -6214,18 +6224,18 @@
       background: #FAFAFA !important;
     }
 
-    /* ── Servicios: icono minimalista (sin caja pesada) ── */
+    /* ── Servicios: icono minimalista (sin caja pesada, list row horizontal) ── */
     .tenant-infinity .service-option .icon-bg {
       background: transparent !important;
       border: none !important;
       box-shadow: none !important;
       width: 40px !important;
       height: 40px !important;
-      margin-bottom: 12px !important;
+      margin-bottom: 0 !important;
     }
     .tenant-infinity .service-option .icon-svg {
       color: #111111 !important;
-      font-size: 22px !important;
+      font-size: 20px !important;
       filter: none !important;
       text-shadow: none !important;
       font-weight: 300 !important;
@@ -6246,14 +6256,14 @@
       box-shadow: none !important;
     }
 
-    /* ── Tipografía editorial en servicios ── */
+    /* ── Tipografía editorial en servicios (list row) ── */
     .tenant-infinity .service-option .svc-name {
       color: #000000 !important;
       font-weight: 600 !important;
       font-size: 0.95rem !important;
       line-height: 1.2 !important;
       letter-spacing: -0.02em !important;
-      margin-bottom: 6px !important;
+      margin-bottom: 2px !important;
     }
     .tenant-infinity .service-option .svc-desc {
       color: #555555 !important;
@@ -6264,15 +6274,15 @@
       color: #000000 !important;
       font-weight: 700 !important;
       font-size: 1.125rem !important;
-      line-height: 1.4 !important;
+      line-height: 1.15 !important;
       letter-spacing: -0.01em !important;
-      margin-top: 4px !important;
+      margin-top: 0 !important;
     }
     .tenant-infinity .service-option .duration-tag {
       color: #666666 !important;
       font-weight: 400 !important;
       font-size: 11px !important;
-      margin-top: 4px !important;
+      margin-top: 2px !important;
     }
 
     /* ── Radio de selección (svc-radio) — refinado ── */
@@ -6284,7 +6294,11 @@
     .tenant-infinity .service-option.border-neon .svc-radio {
       background: #000000 !important;
       border-color: #000000 !important;
-      box-shadow: inset 0 0 0 2.5px #FAFAFA !important;
+      box-shadow: none !important;
+    }
+    /* Check blanco dentro del radio negro al seleccionar */
+    .tenant-infinity .service-option.border-neon .svc-check {
+      color: #FFFFFF !important;
     }
 
     /* ── Barberos: foto circular limpia con borde fino, sin sombra ── */
@@ -8587,7 +8601,8 @@
       const _isChameleonSvc = window.CURRENT_TENANT_ID === 'chameleon';
       const _isKronnosSvc   = window.CURRENT_TENANT_ID === 'kronnos_penablanca' || window.CURRENT_TENANT_ID === 'kronnos_limache' || window.CURRENT_TENANT_ID === 'kronnos_woman';
       const _isBMSvc        = window.CURRENT_TENANT_ID === 'elbarberomoderno';
-      const _useRowLayout   = _isEleganceSvc || _isMapuSvc || _isChameleonSvc || _isKronnosSvc || _isBMSvc;
+      const _isInfSvc       = window.CURRENT_TENANT_ID === 'infinity';
+      const _useRowLayout   = _isEleganceSvc || _isMapuSvc || _isChameleonSvc || _isKronnosSvc || _isBMSvc || _isInfSvc;
 
       Object.keys(categories).forEach(cat => {
         const catContainer = document.createElement('div');
@@ -8600,6 +8615,9 @@
           catContainer.innerHTML = `<h3 class="text-gray-400 font-bold uppercase tracking-widest text-xs mb-4 ml-1">${cat}</h3>`;
         } else if (_isChameleonSvc) {
           catContainer.innerHTML = `<h3 class="text-[10.5px] font-semibold uppercase tracking-[0.12em] mb-3 ml-1" style="color:rgba(201,168,76,0.70)">${cat}</h3>`;
+        } else if (_isInfSvc) {
+          // Infinity Studio — header minimal, tracking-widest en gris medio, sin borde
+          catContainer.innerHTML = `<h3 class="cat-title text-[11px] font-semibold uppercase tracking-[0.18em] mb-3 ml-1" style="color:#8A8A8A;">${cat}</h3>`;
         } else {
           catContainer.innerHTML = `<div class="cat-sep sep-ornamental mb-4"><span class="sep-ornamental-gem">✦ ✦ ✦</span></div><h3 class="cat-title border-l-4 border-neon pl-3 text-lg font-semibold text-white/80 mb-4">${cat}</h3>`;
         }
@@ -8636,6 +8654,34 @@
                   </div>
                   <div class="svc-radio w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition-all" style="border-color:#3A3A3A;background:transparent;">
                     <i class="svc-check ph-bold ph-check text-[12px]" style="display:none;color:#000;line-height:1;"></i>
+                  </div>
+                </div>
+              </button>`;
+          } else if (_isInfSvc) {
+            // ── INFINITY STUDIO — Airy list row horizontal (B&W minimal) ──
+            // Fila 100% ancho, py-3 px-4 compact. Izquierda: ícono minimal thin.
+            // Centro: badge "Más solicitado" + nombre semibold + duración.
+            // Derecha: precio font-bold text-lg alineado a la derecha + radio.
+            const isTop = window._topServiceNombre && s.nombre === window._topServiceNombre;
+            const precio = _getPrecioEfectivo(s, new Date().getDay()).toLocaleString('es-CL');
+            innerGrid.innerHTML += `
+              <button onclick="selectService(this)" data-service-id="${s.id}" data-category="${cat}"
+                class="service-option relative flex flex-row items-center gap-3 py-3 px-4 rounded-2xl bg-white border border-neutral-200 active:scale-[0.99] transition-all overflow-hidden group w-full text-left">
+                <div class="icon-bg w-10 h-10 rounded-full flex items-center justify-center shrink-0">
+                  ${finalIconEl}
+                </div>
+                <div class="flex-1 min-w-0">
+                  ${isTop ? `<span class="inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-black text-white border border-black mb-1">✦ Más solicitado</span>` : ''}
+                  <span class="svc-name font-semibold text-black text-[15px] leading-tight tracking-tight block" style="white-space:normal;">${s.nombre}</span>
+                  <span class="flex items-center gap-1 text-[11px] text-neutral-500 duration-tag mt-0.5">
+                    <i class="ph ph-clock text-[12px]"></i>${formatDuration(s.duracion)}
+                  </span>
+                  ${s.descripcion ? `<span class="svc-desc text-[11px] text-neutral-500 mt-1 leading-snug block" style="display:none;">${s.descripcion}</span><span onclick="toggleSvcDesc(this,event)" class="svc-desc-toggle text-[10px] font-medium text-neutral-500 hover:text-black underline underline-offset-2 mt-1 block transition-colors">Ver descripción</span>` : ''}
+                </div>
+                <div class="flex items-center gap-3 shrink-0">
+                  <span class="text-black font-bold text-lg price-tag leading-tight tracking-tight text-right">\$${precio}</span>
+                  <div class="svc-radio w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition-all" style="border-color:#E5E5E5;background:transparent;">
+                    <i class="svc-check ph-bold ph-check text-[12px]" style="display:none;color:#FFFFFF;line-height:1;"></i>
                   </div>
                 </div>
               </button>`;
@@ -9705,7 +9751,8 @@
       const _isKronnos = window.CURRENT_TENANT_ID === 'kronnos_penablanca' || window.CURRENT_TENANT_ID === 'kronnos_limache' || window.CURRENT_TENANT_ID === 'kronnos_woman';
       const _isElegance = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance';
       const _isBM       = window.CURRENT_TENANT_ID === 'elbarberomoderno';
-      const _useRowSel  = _isElegance || _isMapu || _isAura || _isKronnos || _isBM
+      const _isInf      = window.CURRENT_TENANT_ID === 'infinity';
+      const _useRowSel  = _isElegance || _isMapu || _isAura || _isKronnos || _isBM || _isInf
         || window.CURRENT_TENANT_ID === 'ferraza'
         || window.CURRENT_TENANT_ID === 'lumen'
         || window.CURRENT_TENANT_ID === 'machos'
@@ -9717,8 +9764,8 @@
         || window.CURRENT_TENANT_ID === 'yugen';
       const _isLatin    = window.CURRENT_TENANT_ID === 'latincaribe';
       const _isYugen    = window.CURRENT_TENANT_ID === 'yugen';
-      const _radioDim   = _isBM ? '#3A3A3A' : _isMapu ? 'rgba(191,163,126,0.40)' : _isLatin ? 'rgba(53,221,230,0.35)' : _isAura ? 'rgba(55,65,81,0.25)' : _isYugen ? 'rgba(245,243,239,0.4)' : 'rgba(212,175,55,0.4)';
-      const _radioSel   = _isBM ? '#E0E0E0' : _isMapu ? '#BFA37E' : _isLatin ? '#F35BA6' : _isAura ? '#1F2937' : _isYugen ? '#f5f3ef' : '#D4AF37';
+      const _radioDim   = _isBM ? '#3A3A3A' : _isInf ? '#E5E5E5' : _isMapu ? 'rgba(191,163,126,0.40)' : _isLatin ? 'rgba(53,221,230,0.35)' : _isAura ? 'rgba(55,65,81,0.25)' : _isYugen ? 'rgba(245,243,239,0.4)' : 'rgba(212,175,55,0.4)';
+      const _radioSel   = _isBM ? '#E0E0E0' : _isInf ? '#000000' : _isMapu ? '#BFA37E' : _isLatin ? '#F35BA6' : _isAura ? '#1F2937' : _isYugen ? '#f5f3ef' : '#D4AF37';
 
       // Helpers locales para aplicar/quitar el estilo "seleccionado" en un .service-option.
       // Se reutilizan en modo single y en multi (cuando hay que pintar varios).
@@ -9755,9 +9802,10 @@
         if (!_isElegance && !_isGitana && selIconSvg) selIconSvg.classList.add('drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]', 'scale-110');
         const selRadio = el.querySelector('.svc-radio');
         if (selRadio) { selRadio.style.background = _radioSel; selRadio.style.borderColor = _radioSel; }
-        // BM: check negro visible dentro del radio plata al seleccionar
+        // BM: check negro visible dentro del radio plata al seleccionar.
+        // Infinity: check blanco visible dentro del radio negro al seleccionar.
         const selChk = el.querySelector('.svc-check');
-        if (selChk) selChk.style.display = _isBM ? 'inline-block' : 'none';
+        if (selChk) selChk.style.display = (_isBM || _isInf) ? 'inline-block' : 'none';
       };
 
       const svcObj = (window._fsServices || _fsServices || []).find(s => String(s.id) === String(id))
