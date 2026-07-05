@@ -699,15 +699,15 @@
         { nombre: 'Yūgen', foto: null, disponible: true },
       ],
     },
-    // ── BARBERS CLUB — barbería premium dark + gold (Ciudad de los Valles, Pudahuel) ──
+    // ── BARBERS CLUB — Premium Dark re-skin (Ciudad de los Valles, Pudahuel) ──
     // Acceso: ?local=barbersclub  o  barbersclub.synaptechspa.cl
-    // Réplica estructural del tema Chameleon (dorado #DAA520 sobre negro profundo).
+    // Paleta: neutral-900 body · neutral-800 cards · yellow-500 acento · orange-600 CTA.
     barbersclub: {
       categoriasServicio: ['Cortes', 'Combos', 'Barba & Estilo', 'Otros'],
       nombre:          'Barbers Club',
       nombreCorto:     'Barbers Club',
       pageTitle:       'Barbers Club | Agenda tu hora',
-      bodyBg:          '#0b0a09',
+      bodyBg:          '#18181b',
       slogan:          'Exclusivo salón ambientado para potenciar tu imagen.',
       sobreNosotros:   'Barbers Club es un salón exclusivo pensado para elevar tu imagen. Ambiente cuidado, profesionales especializados y una experiencia integral de barbería, estilismo y cuidado facial.',
       logo:            '/logo.jpg',
@@ -723,7 +723,7 @@
       totalReviews:    0,
       reviews:         [],
       darkHeader:      true,
-      headerBg:        '#0b0a09',
+      headerBg:        '#18181b',
       barberos: [
         { nombre: 'Alexander', foto: null, disponible: true },
         { nombre: 'Nicolás',   foto: null, disponible: true },
