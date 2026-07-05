@@ -5850,41 +5850,44 @@
     }
 
     /* ═══════════════════════════════════════════════════════════════
-       INFINITY STUDIO — Premium Dark/Charcoal Slate & Silver Accent
-       Paleta: Deep Obsidian (#121214) · Slate Charcoal (#3B3B3B) · Metallic Silver (#ffffff)
+       INFINITY STUDIO — Monochrome Premium (Estricto B/N)
+       Paleta: Blanco puro (#FFFFFF), gris claro (#FAFAFA/#F5F5F5),
+       bordes (#E5E5E5), texto secundario (#555555), negro absoluto (#000000).
+       Sin amarillo, dorado ni ámbar bajo ninguna circunstancia.
        ═══════════════════════════════════════════════════════════════ */
     .tenant-infinity {
-      --accent:   #111827;
-      --accent-r: 17; --accent-g: 24; --accent-b: 39;
-      --neon-clr: #111827;
-      --neon-r:   17; --neon-g:   24; --neon-b:   39;
-      --body-bg:  #ffffff;
+      --accent:   #000000;
+      --accent-r: 0; --accent-g: 0; --accent-b: 0;
+      --neon-clr: #000000;
+      --neon-r:   0; --neon-g:   0; --neon-b:   0;
+      --body-bg:  #FAFAFA;
 
-      /* Unificación de tokens de diseño para un entorno Luminous White perfecto */
-      --brand-bg: #ffffff !important;
-      --brand-surface: rgba(255, 255, 255, 0.75) !important;
-      --brand-surface-alt: rgba(255, 255, 255, 0.88) !important;
-      --brand-primary: #111827 !important;
-      --brand-accent: #4b5563 !important;
-      --brand-text: #1f2937 !important;
-      --brand-muted: #9ca3af !important;
-      --brand-border: rgba(17, 24, 39, 0.06) !important;
-      --brand-glow: rgba(255, 255, 255, 0.8) !important;
-      --brand-button-text: #111827 !important;
-      --brand-progress-track: rgba(17, 24, 39, 0.04) !important;
+      /* Tokens Monochrome Premium — solo blanco/negro/grises */
+      --brand-bg: #FAFAFA !important;
+      --brand-surface: #FFFFFF !important;
+      --brand-surface-alt: #FFFFFF !important;
+      --brand-primary: #000000 !important;
+      --brand-accent: #555555 !important;
+      --brand-text: #000000 !important;
+      --brand-muted: #999999 !important;
+      --brand-border: #E5E5E5 !important;
+      --brand-glow: rgba(0, 0, 0, 0.05) !important;
+      --brand-button-text: #FFFFFF !important;
+      --brand-progress-track: #E5E5E5 !important;
 
       position: relative;
     }
 
-    /* Intercepción global de utilidades de color blanco de Tailwind para legibilidad perfecta en tema claro */
-    .tenant-infinity .text-white\/50 { color: rgba(17, 24, 39, 0.5) !important; }
-    .tenant-infinity .text-white\/40 { color: rgba(17, 24, 39, 0.4) !important; }
-    .tenant-infinity .text-white\/30 { color: rgba(17, 24, 39, 0.3) !important; }
-    .tenant-infinity .text-white\/20 { color: rgba(17, 24, 39, 0.2) !important; }
-    .tenant-infinity .text-white\/10 { color: rgba(17, 24, 39, 0.1) !important; }
-    .tenant-infinity .text-white\/70 { color: rgba(17, 24, 39, 0.7) !important; }
-    .tenant-infinity .text-white\/80 { color: rgba(17, 24, 39, 0.8) !important; }
-    .tenant-infinity .text-white\/90 { color: rgba(17, 24, 39, 0.9) !important; }
+    /* Intercepción de utilidades de color blanco de Tailwind: se mapean a
+       negro con alpha para conservar la jerarquía tipográfica sin color. */
+    .tenant-infinity .text-white\/50 { color: rgba(0, 0, 0, 0.5) !important; }
+    .tenant-infinity .text-white\/40 { color: rgba(0, 0, 0, 0.4) !important; }
+    .tenant-infinity .text-white\/30 { color: rgba(0, 0, 0, 0.3) !important; }
+    .tenant-infinity .text-white\/20 { color: rgba(0, 0, 0, 0.2) !important; }
+    .tenant-infinity .text-white\/10 { color: rgba(0, 0, 0, 0.1) !important; }
+    .tenant-infinity .text-white\/70 { color: rgba(0, 0, 0, 0.7) !important; }
+    .tenant-infinity .text-white\/80 { color: rgba(0, 0, 0, 0.8) !important; }
+    .tenant-infinity .text-white\/90 { color: rgba(0, 0, 0, 0.9) !important; }
 
     .tenant-infinity::before {
       content: "∞" !important;
@@ -5892,7 +5895,7 @@
       top: 12% !important;
       left: -8% !important;
       font-size: 22rem !important;
-      color: rgba(17, 24, 39, 0.015) !important;
+      color: rgba(0, 0, 0, 0.02) !important;
       font-weight: 300 !important;
       z-index: 0 !important;
       pointer-events: none !important;
@@ -5905,7 +5908,7 @@
       bottom: 8% !important;
       right: -10% !important;
       font-size: 28rem !important;
-      color: rgba(17, 24, 39, 0.018) !important;
+      color: rgba(0, 0, 0, 0.025) !important;
       font-weight: 300 !important;
       z-index: 0 !important;
       pointer-events: none !important;
@@ -5913,33 +5916,29 @@
       animation: float-infinity-fast 28s ease-in-out infinite alternate !important;
     }
     .tenant-infinity body {
-      background-color: #ffffff !important;
-      background-image:
-        radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 1) 0%, rgba(243, 244, 246, 0.4) 100%),
-        radial-gradient(circle at 10% 40%, rgba(255,255,255,1) 0%, rgba(249,250,251,0.7) 50%, transparent 100%),
-        radial-gradient(circle at 90% 80%, rgba(255,255,255,1) 0%, rgba(243,244,246,0.6) 50%, transparent 100%) !important;
-      background-size: cover !important;
-      color: #111827 !important;
+      background-color: #FAFAFA !important;
+      background-image: none !important;
+      color: #000000 !important;
       position: relative;
     }
     .tenant-infinity .booking-hero {
-      background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(243, 244, 246, 0.8)) !important;
-      border-bottom: 1px solid rgba(17, 24, 39, 0.05) !important;
-      backdrop-filter: blur(20px) !important;
-      -webkit-backdrop-filter: blur(20px) !important;
+      background: #FFFFFF !important;
+      border-bottom: 1px solid #E5E5E5 !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
     }
     .tenant-infinity .booking-hero-overlay {
-      background: radial-gradient(circle at center, transparent 30%, rgba(255, 255, 255, 0.6) 100%) !important;
+      background: none !important;
     }
     .tenant-infinity #shopNombre {
-      color: #111827 !important;
-      text-shadow: 0 4px 15px rgba(255, 255, 255, 0.9) !important;
+      color: #000000 !important;
+      text-shadow: none !important;
       font-weight: 900 !important;
     }
     .tenant-infinity #shopNombre::after {
       content: " ∞";
       font-weight: 300;
-      color: rgba(17, 24, 39, 0.35);
+      color: rgba(0, 0, 0, 0.55);
       font-size: 2.2rem;
       vertical-align: middle;
       display: inline-block;
@@ -5947,79 +5946,74 @@
       margin-left: 8px;
     }
     .tenant-infinity #shopSlogan {
-      color: #4b5563 !important;
+      color: #555555 !important;
       letter-spacing: 0.25em !important;
       font-size: 10px !important;
     }
     .tenant-infinity button[onclick="goBack()"] {
-      background: rgba(255, 255, 255, 0.9) !important;
-      border: 1px solid rgba(17, 24, 39, 0.08) !important;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04) !important;
+      background: #FFFFFF !important;
+      border: 1px solid #E5E5E5 !important;
+      box-shadow: none !important;
     }
     .tenant-infinity button[onclick="goBack()"] i {
-      color: #111827 !important;
+      color: #000000 !important;
     }
     .tenant-infinity #heroGoogleBadge {
-      background: rgba(255, 255, 255, 0.9) !important;
-      border: 1px solid rgba(17, 24, 39, 0.06) !important;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.04) !important;
+      background: #FFFFFF !important;
+      border: 1px solid #E5E5E5 !important;
+      box-shadow: none !important;
     }
     .tenant-infinity #heroGoogleBadge span,
     .tenant-infinity #heroGoogleBadge .text-white {
-      color: #111827 !important;
+      color: #000000 !important;
     }
     .tenant-infinity .info-strip {
-      background: rgba(255, 255, 255, 0.85) !important;
-      border-top: 1px solid rgba(17, 24, 39, 0.04) !important;
-      border-bottom: 1px solid rgba(17, 24, 39, 0.04) !important;
-      backdrop-filter: blur(15px) !important;
-      -webkit-backdrop-filter: blur(15px) !important;
+      background: #FFFFFF !important;
+      border-top: 1px solid #E5E5E5 !important;
+      border-bottom: 1px solid #E5E5E5 !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
     }
     .tenant-infinity .info-strip i {
-      color: rgba(17, 24, 39, 0.45) !important;
+      color: #555555 !important;
     }
     .tenant-infinity .info-strip a,
     .tenant-infinity .info-strip > div {
-      color: #1f2937 !important;
+      color: #000000 !important;
       font-weight: 600 !important;
     }
     .tenant-infinity .hero-logo-ring {
-      background: #ffffff !important;
-      border: 4px solid #ffffff !important;
-      box-shadow: 
-        0 10px 35px rgba(0, 0, 0, 0.05), 
-        0 0 25px rgba(255, 255, 255, 0.9), 
-        inset 0 2px 5px rgba(0, 0, 0, 0.02) !important;
+      background: #FFFFFF !important;
+      border: 4px solid #FFFFFF !important;
+      box-shadow: 0 6px 22px rgba(0, 0, 0, 0.06) !important;
       animation: infinity-breathe 4s ease-in-out infinite !important;
     }
     .tenant-infinity #progressBar {
-      background: linear-gradient(90deg, #111827, #374151, #111827) !important;
-      box-shadow: 0 0 20px rgba(255, 255, 255, 1), 0 0 8px rgba(255, 255, 255, 0.9) !important;
-      border: 1.5px solid rgba(255, 255, 255, 0.9) !important;
+      background: #000000 !important;
+      box-shadow: none !important;
+      border: none !important;
       position: relative !important;
       overflow: hidden !important;
     }
     .tenant-infinity #progressBar::after {
-      content: "" !important;
-      position: absolute !important;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.8), transparent) !important;
-      animation: progress-glow-sweep 2s infinite linear !important;
+      content: none !important;
+      display: none !important;
+      animation: none !important;
     }
     .tenant-infinity #progressTrack {
-      background-color: rgba(17, 24, 39, 0.04) !important;
-      border: 1px solid rgba(17, 24, 39, 0.02) !important;
+      background-color: #E5E5E5 !important;
+      border: none !important;
     }
     .tenant-infinity #stepIndicatorText {
-      color: #4b5563 !important;
+      color: #555555 !important;
       font-weight: 700 !important;
       letter-spacing: 0.05em !important;
     }
-    /* ── Category Pills (estructura Aura) ── */
+    /* ── Category Pills (Monochrome) ── */
     .tenant-infinity .category-pill {
       background: #FFFFFF !important;
-      border: 1px solid #D4D4D8 !important;
-      color: #8E9399 !important;
+      border: 1px solid #E5E5E5 !important;
+      color: #555555 !important;
       backdrop-filter: none !important;
       -webkit-backdrop-filter: none !important;
       box-shadow: none !important;
@@ -6027,35 +6021,35 @@
     }
     .tenant-infinity .category-pill:hover {
       background: #FFFFFF !important;
-      border-color: #9CA3AF !important;
-      color: #9CA3AF !important;
+      border-color: #000000 !important;
+      color: #000000 !important;
       box-shadow: none !important;
       transform: none !important;
     }
     .tenant-infinity .category-pill.border-neon,
     .tenant-infinity .category-pill.text-neon {
-      border-color: #374151 !important;
-      color: #111827 !important;
-      background: rgba(17,24,39,0.06) !important;
+      border-color: #000000 !important;
+      color: #FFFFFF !important;
+      background: #000000 !important;
       box-shadow: none !important;
       font-weight: 700 !important;
       animation: none !important;
     }
     .tenant-infinity h2.text-neon {
-      color: #111827 !important;
-      text-shadow: 0 2px 10px rgba(255, 255, 255, 0.9) !important;
+      color: #000000 !important;
+      text-shadow: none !important;
     }
-    /* ── Service / Barber Option Cards (estructura Aura) ── */
+    /* ── Service / Barber Option Cards (Monochrome) ── */
     .tenant-infinity .service-option,
     .tenant-infinity .barber-option {
       background: #FFFFFF !important;
       background-image: none !important;
       background-size: auto !important;
-      border: 1px solid #D4D4D8 !important;
+      border: 1px solid #E5E5E5 !important;
       backdrop-filter: none !important;
       -webkit-backdrop-filter: none !important;
       box-shadow: none !important;
-      color: #18181B !important;
+      color: #000000 !important;
       transition: box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease !important;
       animation: none !important;
     }
@@ -6063,82 +6057,97 @@
     .tenant-infinity .barber-option:hover {
       background: #FFFFFF !important;
       background-image: none !important;
-      box-shadow: 0 2px 10px rgba(156,163,175,0.12) !important;
-      border-color: rgba(156,163,175,0.40) !important;
+      box-shadow: none !important;
+      border-color: #000000 !important;
       transform: none !important;
       animation: none !important;
     }
     .tenant-infinity .service-option.border-neon,
     .tenant-infinity .barber-option.border-neon {
-      background: rgba(17,24,39,0.04) !important;
-      border: 1px solid #374151 !important;
-      color: #111827 !important;
-      box-shadow: 0 0 0 1px rgba(55,65,81,0.25), 0 2px 8px rgba(0,0,0,0.06) !important;
+      background: #FFFFFF !important;
+      border: 2px solid #000000 !important;
+      color: #000000 !important;
+      box-shadow: none !important;
       animation: none !important;
     }
     .tenant-infinity .service-option.bg-brand-neon\/10,
     .tenant-infinity .barber-option.bg-brand-neon\/10 {
-      background: rgba(17,24,39,0.04) !important;
+      background: #FFFFFF !important;
     }
-    .tenant-infinity .service-option .svc-name { color: #18181B !important; }
+    .tenant-infinity .service-option .svc-name { color: #000000 !important; }
     .tenant-infinity .service-option .price-tag {
-      color: #18181B !important;
+      color: #000000 !important;
       font-weight: 700 !important;
     }
-    .tenant-infinity .service-option.border-neon .price-tag { color: #111827 !important; }
+    .tenant-infinity .service-option.border-neon .price-tag { color: #000000 !important; }
     .tenant-infinity .service-option .duration-tag {
-      color: #8E9399 !important;
+      color: #555555 !important;
       background: transparent !important;
       border: none !important;
     }
     .tenant-infinity .service-option .icon-bg {
-      background: rgba(156,163,175,0.08) !important;
-      border-color: rgba(156,163,175,0.20) !important;
+      background: #FAFAFA !important;
+      border-color: #E5E5E5 !important;
     }
     .tenant-infinity .service-option .icon-svg {
-      color: #9CA3AF !important;
+      color: #555555 !important;
       filter: none !important;
     }
     .tenant-infinity .service-option.border-neon .icon-bg {
-      background: rgba(17,24,39,0.08) !important;
-      border-color: rgba(55,65,81,0.35) !important;
+      background: #000000 !important;
+      border-color: #000000 !important;
     }
-    .tenant-infinity .service-option.border-neon .icon-svg { color: #111827 !important; }
+    .tenant-infinity .service-option.border-neon .icon-svg { color: #FFFFFF !important; }
     .tenant-infinity .service-option p,
     .tenant-infinity .service-option span,
     .tenant-infinity .service-option div {
-      color: #1f2937 !important;
+      color: #000000 !important;
     }
-    .tenant-infinity .svc-radio { border-color: #D4D4D8 !important; }
+    .tenant-infinity .svc-radio { border-color: #E5E5E5 !important; }
     .tenant-infinity .service-option.border-neon .svc-radio {
-      border-color: #1F2937 !important;
-      background: #1F2937 !important;
+      border-color: #000000 !important;
+      background: #000000 !important;
       box-shadow: inset 0 0 0 2px #FFFFFF !important;
     }
-    .tenant-infinity .barber-option .barber-name { color: #18181B !important; }
-    .tenant-infinity .barber-option .text-brand-neon { color: #9CA3AF !important; }
+    .tenant-infinity .barber-option .barber-name { color: #000000 !important; }
+    .tenant-infinity .barber-option .text-brand-neon { color: #555555 !important; }
     .tenant-infinity .barber-name,
     .tenant-infinity .barber-option p,
     .tenant-infinity .barber-option span {
-      color: #1f2937 !important;
+      color: #000000 !important;
     }
     .tenant-infinity .barber-radio {
-      border-color: #D4D4D8 !important;
+      border-color: #E5E5E5 !important;
       background: transparent !important;
     }
     .tenant-infinity .barber-option.border-neon .barber-radio {
-      border-color: #1F2937 !important;
-      background: #1F2937 !important;
+      border-color: #000000 !important;
+      background: #000000 !important;
     }
     .tenant-infinity .barber-option .icon-bg,
     .tenant-infinity .barber-option .barber-avatar {
-      border-color: rgba(156,163,175,0.20) !important;
+      border-color: #E5E5E5 !important;
     }
     .tenant-infinity .text-brand-neon {
-      color: #111827 !important;
+      color: #000000 !important;
       font-weight: 800 !important;
     }
-    /* Shimmer al seleccionar (igual que Aura) */
+    /* Badge "Más solicitado" (violeta por defecto) → gris muy oscuro con texto blanco */
+    .tenant-infinity .service-option .bg-white\/6,
+    .tenant-infinity .service-option .bg-violet-500\/10 {
+      background: #000000 !important;
+      color: #FFFFFF !important;
+      border-color: #000000 !important;
+    }
+    .tenant-infinity .service-option .border-white\/15,
+    .tenant-infinity .service-option .border-violet-500\/20 {
+      border-color: #000000 !important;
+    }
+    .tenant-infinity .service-option .text-white\/85,
+    .tenant-infinity .service-option .text-violet-400 {
+      color: #FFFFFF !important;
+    }
+    /* Shimmer al seleccionar — sutil gris para no romper el monocromo */
     .tenant-infinity .service-option.border-neon::after,
     .tenant-infinity .barber-option.border-neon::after {
       content: '';
@@ -6148,89 +6157,89 @@
       animation: aura-card-shimmer 0.65s cubic-bezier(0.25,0.46,0.45,0.94) 1;
       pointer-events: none;
       background: linear-gradient(105deg,
-        transparent 30%, rgba(156,163,175,0.30) 50%, transparent 70%);
+        transparent 30%, rgba(0,0,0,0.06) 50%, transparent 70%);
     }
 
-    /* Configuración de legibilidad para el calendario y horarios */
+    /* Calendario y horarios (Monochrome) */
     .tenant-infinity .day-btn {
-      background: rgba(255, 255, 255, 0.8) !important;
-      border: 1px solid rgba(17, 24, 39, 0.06) !important;
-      color: #4b5563 !important;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.01) !important;
-      transition: all 0.25s !important;
+      background: #FFFFFF !important;
+      border: 1px solid #E5E5E5 !important;
+      color: #555555 !important;
+      box-shadow: none !important;
+      transition: all 0.2s !important;
     }
     .tenant-infinity .day-btn span,
     .tenant-infinity .day-btn .day-num {
-      color: #4b5563 !important;
+      color: #555555 !important;
       transition: all 0.2s !important;
     }
     .tenant-infinity .day-btn:hover {
-      background: rgba(255, 255, 255, 0.95) !important;
-      color: #111827 !important;
-      border-color: rgba(17, 24, 39, 0.12) !important;
-      transform: translateY(-1px) !important;
+      background: #FFFFFF !important;
+      color: #000000 !important;
+      border-color: #000000 !important;
+      transform: none !important;
     }
     .tenant-infinity .day-btn:hover span,
     .tenant-infinity .day-btn:hover .day-num {
-      color: #111827 !important;
+      color: #000000 !important;
     }
     .tenant-infinity .day-btn.active,
     .tenant-infinity .day-btn.border-neon {
-      background: #ffffff !important;
-      border: 2px solid #111827 !important;
-      color: #111827 !important;
+      background: #000000 !important;
+      border: 2px solid #000000 !important;
+      color: #FFFFFF !important;
       font-weight: 800 !important;
-      box-shadow: 0 0 0 3px rgba(255, 255, 255, 1), 0 6px 15px rgba(0, 0, 0, 0.04), 0 0 10px rgba(255, 255, 255, 1) !important;
+      box-shadow: none !important;
     }
     .tenant-infinity .day-btn.active span,
     .tenant-infinity .day-btn.border-neon span {
-      color: #111827 !important;
+      color: #FFFFFF !important;
       font-weight: 800 !important;
     }
     .tenant-infinity .day-btn.active .day-num,
     .tenant-infinity .day-btn.border-neon .day-num {
-      color: #111827 !important;
+      color: #FFFFFF !important;
       font-weight: 900 !important;
-      text-shadow: 0 0 8px rgba(255, 255, 255, 0.8) !important;
+      text-shadow: none !important;
     }
 
     .tenant-infinity .time-pill {
-      background: rgba(255, 255, 255, 0.8) !important;
-      border: 1px solid rgba(17, 24, 39, 0.06) !important;
-      color: #4b5563 !important;
-      transition: all 0.25s !important;
+      background: #FFFFFF !important;
+      border: 1px solid #E5E5E5 !important;
+      color: #000000 !important;
+      transition: all 0.2s !important;
     }
     .tenant-infinity .time-pill:hover:not(.disabled) {
-      background: rgba(255, 255, 255, 0.95) !important;
-      color: #111827 !important;
-      border-color: rgba(17, 24, 39, 0.12) !important;
-      transform: translateY(-1px) !important;
+      background: #FFFFFF !important;
+      color: #000000 !important;
+      border-color: #000000 !important;
+      transform: none !important;
     }
     .tenant-infinity .time-pill.border-neon,
     .tenant-infinity .time-pill[data-sel] {
-      background: #ffffff !important;
-      border: 2px solid #111827 !important;
-      color: #111827 !important;
+      background: #000000 !important;
+      border: 2px solid #000000 !important;
+      color: #FFFFFF !important;
       font-weight: 800 !important;
-      box-shadow: 0 0 0 3px rgba(255, 255, 255, 1), 0 6px 15px rgba(0, 0, 0, 0.04), 0 0 10px rgba(255, 255, 255, 1) !important;
+      box-shadow: none !important;
     }
     .tenant-infinity .time-pill.disabled {
-      background: rgba(17, 24, 39, 0.02) !important;
-      border-color: rgba(17, 24, 39, 0.03) !important;
-      color: #9ca3af !important;
+      background: #FAFAFA !important;
+      border-color: #E5E5E5 !important;
+      color: #999999 !important;
       text-decoration: line-through !important;
       opacity: 0.45 !important;
     }
 
-    /* ── Main CTA Button (estructura Aura) ── */
+    /* ── CTA principal (Monochrome, negro sólido) ── */
     .tenant-infinity #btnContinue {
       background: #000000 !important;
-      color: #ffffff !important;
+      color: #FFFFFF !important;
       border: none !important;
       font-weight: 800 !important;
       letter-spacing: 0.01em !important;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.45) !important;
-      transition: transform 0.14s ease, box-shadow 0.25s ease, filter 0.2s ease !important;
+      box-shadow: none !important;
+      transition: filter 0.2s ease !important;
       animation: none !important;
       text-shadow: none !important;
     }
@@ -6240,216 +6249,223 @@
       animation: none !important;
     }
     .tenant-infinity #btnContinue:hover:not(:disabled) {
-      background: #111827 !important;
-      color: #ffffff !important;
+      background: #000000 !important;
+      color: #FFFFFF !important;
       transform: none !important;
       border-color: transparent !important;
+      filter: brightness(1.15) !important;
     }
     .tenant-infinity #btnContinue:active { transform: scale(0.985) !important; }
     .tenant-infinity #btnContinue:disabled {
-      filter: grayscale(0.3) brightness(0.7) !important;
+      background: #E5E5E5 !important;
+      color: #999999 !important;
+      filter: none !important;
       box-shadow: none !important;
     }
+    /* Sticky bottom bar — negro sólido, sin gradientes ni tintes dorados */
     .tenant-infinity #btnContinueBar {
-      background: rgba(249,250,251,0.88) !important;
-      backdrop-filter: blur(20px) !important;
-      -webkit-backdrop-filter: blur(20px) !important;
-      border-top: 1px solid #D4D4D8 !important;
+      background: #FFFFFF !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      border-top: 1px solid #E5E5E5 !important;
     }
     .tenant-infinity #btnContinueBar button {
       background: #000000 !important;
-      color: #ffffff !important;
+      color: #FFFFFF !important;
       border: none !important;
       font-weight: 800 !important;
+      box-shadow: none !important;
+      background-image: none !important;
     }
     .tenant-infinity #clientName,
     .tenant-infinity #clientPhone,
     .tenant-infinity #clientEmail {
-      background-color: rgba(255, 255, 255, 0.9) !important;
-      border: 1px solid rgba(17, 24, 39, 0.08) !important;
-      color: #111827 !important;
+      background-color: #FFFFFF !important;
+      border: 1px solid #E5E5E5 !important;
+      color: #000000 !important;
       border-radius: 12px !important;
-      transition: all 0.3s !important;
+      transition: all 0.2s !important;
     }
     .tenant-infinity #clientName:focus,
     .tenant-infinity #clientPhone:focus,
     .tenant-infinity #clientEmail:focus {
-      border-color: #111827 !important;
-      background-color: #ffffff !important;
-      box-shadow: 0 0 20px rgba(255, 255, 255, 1), 0 4px 12px rgba(0, 0, 0, 0.02) !important;
+      border-color: #000000 !important;
+      background-color: #FFFFFF !important;
+      box-shadow: none !important;
     }
     .tenant-infinity #waBtnLink {
       background: #25D366 !important;
-      color: #ffffff !important;
+      color: #FFFFFF !important;
       box-shadow: 0 6px 20px rgba(37, 211, 102, 0.25) !important;
     }
 
-    /* Paso 4 - Forzar legibilidad de etiquetas de formulario (originalmente text-white/50) */
+    /* Paso 4 — labels de formulario */
     .tenant-infinity #step4 label {
-      color: #4b5563 !important;
+      color: #555555 !important;
       font-weight: 700 !important;
       text-shadow: none !important;
     }
     .tenant-infinity #step4 label span {
-      color: #9ca3af !important;
+      color: #999999 !important;
     }
-    
-    /* Paso 4 - Estilo de Tarjeta de Resumen (Originalmente fondo negro #0a0807) */
+
+    /* Paso 4 — tarjeta de resumen (originalmente fondo negro #0a0807) */
     .tenant-infinity #step4 div[style*="background:#0a0807"] {
-      background: rgba(255, 255, 255, 0.75) !important;
-      border: 1px solid rgba(17, 24, 39, 0.08) !important;
-      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.02), inset 0 1px 1px rgba(255, 255, 255, 0.8) !important;
-      backdrop-filter: blur(12px) !important;
-      -webkit-backdrop-filter: blur(12px) !important;
+      background: #FFFFFF !important;
+      border: 1px solid #E5E5E5 !important;
+      box-shadow: none !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
     }
     .tenant-infinity #step4 div[style*="background:#0a0807"] p {
-      color: #1f2937 !important;
+      color: #000000 !important;
     }
     .tenant-infinity #step4 div[style*="background:#0a0807"] .text-white\/30 {
-      color: #9ca3af !important;
+      color: #999999 !important;
       font-weight: 700 !important;
     }
     .tenant-infinity #step4 div[style*="background:#0a0807"] #summaryService,
     .tenant-infinity #step4 div[style*="background:#0a0807"] #summaryPrice {
-      color: #111827 !important;
+      color: #000000 !important;
       font-weight: 800 !important;
     }
     .tenant-infinity #step4 div[style*="background:#0a0807"] .bg-white\/5 {
-      background-color: rgba(17, 24, 39, 0.06) !important;
+      background-color: #FAFAFA !important;
     }
     .tenant-infinity #step4 div[style*="background:#0a0807"] span,
     .tenant-infinity #step4 div[style*="background:#0a0807"] #summaryBarber,
     .tenant-infinity #step4 div[style*="background:#0a0807"] #summaryDateString {
-      color: #4b5563 !important;
+      color: #555555 !important;
     }
     .tenant-infinity #step4 div[style*="background:#0a0807"] #summaryTime {
-      color: #111827 !important;
+      color: #000000 !important;
       font-weight: 700 !important;
     }
     .tenant-infinity #step4 div[style*="background:#0a0807"] i {
-      color: rgba(17, 24, 39, 0.3) !important;
+      color: #555555 !important;
     }
 
-    /* Club de fidelidad Banner overrides */
+    /* Club de fidelidad — Monochrome */
     .tenant-infinity #clubBanner {
-      background: rgba(255, 255, 255, 0.85) !important;
-      border: 1px solid rgba(17, 24, 39, 0.04) !important;
-      backdrop-filter: blur(15px) !important;
-      -webkit-backdrop-filter: blur(15px) !important;
-      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.02) !important;
+      background: #FFFFFF !important;
+      border: 1px solid #E5E5E5 !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      box-shadow: none !important;
       border-radius: 16px !important;
     }
     .tenant-infinity #clubBanner a {
-      background: rgba(255, 255, 255, 0.8) !important;
-      border: 1px solid rgba(17, 24, 39, 0.08) !important;
+      background: #FFFFFF !important;
+      border: 1px solid #E5E5E5 !important;
       border-radius: 16px !important;
-      color: #111827 !important;
-      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.02), inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
-      backdrop-filter: blur(10px) !important;
-      -webkit-backdrop-filter: blur(10px) !important;
+      color: #000000 !important;
+      box-shadow: none !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
     }
     .tenant-infinity #clubBanner a:hover {
-      transform: translateY(-2px) !important;
-      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.04) !important;
-      border-color: rgba(17, 24, 39, 0.15) !important;
+      transform: none !important;
+      box-shadow: none !important;
+      border-color: #000000 !important;
     }
     .tenant-infinity #clubBanner .club-icon-wrap {
-      background: rgba(17, 24, 39, 0.03) !important;
-      border: 1px solid rgba(17, 24, 39, 0.08) !important;
+      background: #FAFAFA !important;
+      border: 1px solid #E5E5E5 !important;
     }
     .tenant-infinity #clubBanner i.ph-fill {
-      color: #111827 !important;
+      color: #000000 !important;
       filter: none !important;
     }
     .tenant-infinity #clubBanner p#shopClubNombre {
-      color: #4b5563 !important;
+      color: #555555 !important;
       font-weight: 700 !important;
     }
     .tenant-infinity #clubBanner a .text-white {
-      color: #111827 !important;
+      color: #000000 !important;
       font-weight: 800 !important;
     }
     .tenant-infinity #clubBanner a .text-gray-500 {
-      color: #4b5563 !important;
+      color: #555555 !important;
     }
     .tenant-infinity #clubBanner a i.ph-arrow-right {
-      color: rgba(17, 24, 39, 0.3) !important;
+      color: #999999 !important;
     }
 
     .tenant-infinity #toastValidation {
-      background: #ffffff !important;
-      border: 1px solid rgba(239, 68, 68, 0.15) !important;
-      color: #ef4444 !important;
-      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.06), 0 0 15px rgba(255, 255, 255, 1) !important;
+      background: #FFFFFF !important;
+      border: 1px solid #E5E5E5 !important;
+      color: #000000 !important;
+      box-shadow: none !important;
     }
     .tenant-infinity #success-state .bg-\[\#0a0a0d\] {
-      background: rgba(255, 255, 255, 0.75) !important;
-      border: 1px solid rgba(17, 24, 39, 0.06) !important;
-      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.02) !important;
+      background: #FFFFFF !important;
+      border: 1px solid #E5E5E5 !important;
+      box-shadow: none !important;
       border-radius: 20px !important;
-      backdrop-filter: blur(12px) !important;
-      -webkit-backdrop-filter: blur(12px) !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
     }
     .tenant-infinity #success-state h2 {
-      color: #111827 !important;
-      text-shadow: 0 2px 10px rgba(255, 255, 255, 0.9) !important;
+      color: #000000 !important;
+      text-shadow: none !important;
     }
     .tenant-infinity #success-state .text-neon {
-      color: #111827 !important;
+      color: #000000 !important;
     }
     .tenant-infinity #success-state svg.text-neon {
-      color: #111827 !important;
+      color: #000000 !important;
     }
     .tenant-infinity #success-state .text-brand-text {
-      color: #111827 !important;
+      color: #000000 !important;
     }
     .tenant-infinity #success-state .text-brand-neon\/80 {
-      color: #4b5563 !important;
+      color: #555555 !important;
     }
     .tenant-infinity #successSummaryService {
-      color: #111827 !important;
+      color: #000000 !important;
       font-weight: 800 !important;
     }
     .tenant-infinity #successSummaryDate {
-      color: #111827 !important;
+      color: #000000 !important;
       font-weight: 600 !important;
     }
     .tenant-infinity #successInstagram {
-      color: #4b5563 !important;
+      color: #555555 !important;
     }
     .tenant-infinity #successInstagram:hover {
-      color: #111827 !important;
+      color: #000000 !important;
     }
     .tenant-infinity #reviewsSection p,
     .tenant-infinity #reviewsSection span,
     .tenant-infinity #reviewsSection h3 {
-      color: #1f2937 !important;
+      color: #000000 !important;
     }
     .tenant-infinity #reviewsSection div[style*="color:var(--accent);"] {
-      color: #111827 !important;
+      color: #000000 !important;
     }
     .tenant-infinity #reviewsCtaBtn {
-      background: rgba(255, 255, 255, 0.8) !important;
-      border: 1px solid rgba(17, 24, 39, 0.08) !important;
-      color: #4b5563 !important;
+      background: #FFFFFF !important;
+      border: 1px solid #E5E5E5 !important;
+      color: #555555 !important;
     }
     .tenant-infinity #reviewsCtaBtn:hover {
-      color: #111827 !important;
-      background: #ffffff !important;
-      border-color: rgba(17, 24, 39, 0.15) !important;
+      color: #000000 !important;
+      background: #FFFFFF !important;
+      border-color: #000000 !important;
     }
     .tenant-infinity #reviewsGrid > div {
-      background: rgba(255, 255, 255, 0.85) !important;
-      border: 1px solid rgba(17, 24, 39, 0.05) !important;
-      color: #1f2937 !important;
+      background: #FFFFFF !important;
+      border: 1px solid #E5E5E5 !important;
+      color: #000000 !important;
     }
     .tenant-infinity #reviewsGrid > div * {
-      color: #1f2937 !important;
+      color: #000000 !important;
     }
+    /* Divider "gold" reutilizado como divider neutro en Monochrome */
     .tenant-infinity .gold-divider {
       width: 150px !important;
-      height: 2px !important;
-      background: linear-gradient(90deg, transparent, rgba(17, 24, 39, 0.15), #111827, rgba(17, 24, 39, 0.15), transparent) !important;
+      height: 1px !important;
+      background: #E5E5E5 !important;
       margin: 20px auto !important;
       position: relative !important;
       overflow: visible !important;
@@ -6461,9 +6477,9 @@
       top: 50% !important;
       left: 50% !important;
       transform: translate(-50%, -50%) !important;
-      background: #ffffff !important;
+      background: #FAFAFA !important;
       padding: 0 12px !important;
-      color: #111827 !important;
+      color: #000000 !important;
       font-size: 1.8rem !important;
       font-weight: 300 !important;
       line-height: 1 !important;
@@ -7957,8 +7973,37 @@
       const recommendations = avail.slice(0, 3);
       const isAura = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'latincaribe' || window.CURRENT_TENANT_ID === 'yugen' || window.CURRENT_TENANT_ID === 'sionbarberia');
       const isBM   = (window.CURRENT_TENANT_ID === 'elbarberomoderno');
+      const isInfinity = (window.CURRENT_TENANT_ID === 'infinity');
 
-      if (isBM) {
+      if (isInfinity) {
+        // Infinity Studio — Monochrome Premium: gris claro + rayo negro + pills B/N.
+        // Nunca se usa el bloque "else" dorado por defecto.
+        container.innerHTML = `
+          <div class="p-4 rounded-2xl border transition-all relative overflow-hidden animate-[fadeSlideUp_0.4s_cubic-bezier(0.16,1,0.3,1)_forwards]"
+               style="background:#F5F5F5;border-color:#E0E0E0;box-shadow:none;">
+            <p class="text-xs font-bold uppercase tracking-wider mb-2.5 flex items-center gap-1.5"
+               style="color:#000000;">
+              <i class="ph-fill ph-lightning text-sm" style="color:#000000;filter:none;"></i> Horas recomendadas (Smart Slots)
+            </p>
+            <p class="text-xs mb-3.5" style="color:#555555;font-weight:500;">
+              ¿Tienes prisa? Agenda al instante uno de estos bloques recomendados para hoy:
+            </p>
+            <div class="grid grid-cols-3 gap-2.5">
+              ${recommendations.map(r => `
+                <button
+                  onclick="selectSmartSlot('${r.time}')"
+                  class="smart-slot-pill py-2.5 px-3 rounded-xl border text-xs font-bold text-center transition-all focus:outline-none active:scale-95"
+                  style="background:#FFFFFF; border-color:#E5E5E5; color:#000000;"
+                  onmouseover="this.style.borderColor='#000000';"
+                  onmouseout="if(!this.dataset.active){this.style.background='#FFFFFF';this.style.borderColor='#E5E5E5';this.style.color='#000000';}"
+                >
+                  ${r.time}
+                </button>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      } else if (isBM) {
         container.innerHTML = `
           <div class="p-4 rounded-2xl border transition-all relative overflow-hidden animate-[fadeSlideUp_0.4s_cubic-bezier(0.16,1,0.3,1)_forwards]"
                style="background:#141414;border-color:#333333;box-shadow:0 4px 18px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.03);">
@@ -8063,10 +8108,17 @@
 
       const isAura = (window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'latincaribe' || window.CURRENT_TENANT_ID === 'yugen' || window.CURRENT_TENANT_ID === 'sionbarberia');
       const isBM   = (window.CURRENT_TENANT_ID === 'elbarberomoderno');
+      const isInfinity = (window.CURRENT_TENANT_ID === 'infinity');
 
       document.querySelectorAll('.smart-slot-pill').forEach(btn => {
         if (btn.textContent.trim() === time) {
-          if (isBM) {
+          if (isInfinity) {
+            // Seleccionado: negro sólido, texto blanco. Sin gradiente ni tinte dorado.
+            btn.style.background = '#000000';
+            btn.style.color = '#FFFFFF';
+            btn.style.borderColor = '#000000';
+            btn.style.boxShadow = 'none';
+          } else if (isBM) {
             btn.style.background = '#E0E0E0';
             btn.style.color = '#000000';
             btn.style.borderColor = '#E0E0E0';
@@ -8084,7 +8136,13 @@
           }
           btn.dataset.active = '1';
         } else {
-          if (isBM) {
+          if (isInfinity) {
+            // Inactivo: fondo blanco, borde gris, texto negro.
+            btn.style.background = '#FFFFFF';
+            btn.style.color = '#000000';
+            btn.style.borderColor = '#E5E5E5';
+            btn.style.boxShadow = 'none';
+          } else if (isBM) {
             btn.style.background = '#0f0f0f';
             btn.style.color = '#FFFFFF';
             btn.style.borderColor = '#3A3A3A';
