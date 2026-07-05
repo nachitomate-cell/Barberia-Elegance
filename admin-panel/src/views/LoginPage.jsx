@@ -22,6 +22,7 @@ const LOGIN_IMAGE = {
   kronnos_limache:    '/kronnos/kronoslima.png',
   kronnos_woman:      '/kronnos/kronoswoman.png',
   elbarberomoderno:   '/elbarberomoderno/barbero1.png',
+  barbersclub:        '/barbersclub/hero-bg.png',
 };
 
 /* Colores de marca SynapTech (tomados del logo): verde lima + verde oscuro. */

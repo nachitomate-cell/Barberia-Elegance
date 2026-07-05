@@ -23,7 +23,7 @@ const TENANT_META = {
   kronnos_penablanca: { name: 'Kronnos Studio Peñablanca', accent: 'red',    emoji: '✂️', logo: '/kronnos/studio.jpg', brand: { hex: '#e11d2a', sede: 'Peñablanca', tagline: 'Barbería & Estilismo' } },
   kronnos_limache:    { name: 'Kronnos Studio Limache',    accent: 'orange', emoji: '✂️', logo: '/kronnos/studio.jpg', brand: { hex: '#f97316', sede: 'Limache',    tagline: 'Barbería & Estilismo' } },
   kronnos_woman:      { name: 'Kronnos Woman',             accent: 'pink',   emoji: '💅', logo: '/kronnos/woman.jpg',  brand: { hex: '#ec4899', sede: 'Woman',      tagline: 'Beauty & Nails'      } },
-  barbersclub:        { name: 'Barbers Club',              accent: 'amber',  emoji: '✂️', logo: null },
+  barbersclub:        { name: 'Barbers Club',              accent: 'amber',  emoji: '✂️', logo: '/barbersclub/barber12.jpg' },
   elbarberomoderno:   { name: 'El Barbero Moderno',        accent: 'zinc',   emoji: '✂️', logo: '/elbarberomoderno/barbero2.jpg', brand: { hex: '#E0E0E0', sede: 'Serrano 73', tagline: 'Master Barber' } },
 };
 
