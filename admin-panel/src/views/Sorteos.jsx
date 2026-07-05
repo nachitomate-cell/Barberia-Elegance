@@ -177,129 +177,140 @@ function CreateSorteoModal({ onClose, user }) {
         </button>
       </div>
 
-      <form onSubmit={submit} className="p-5 space-y-4">
-        {/* Selector de tipo — pills mobile-first */}
-        <div>
-          <label className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5 block">Tipo de sorteo</label>
-          <div className="grid grid-cols-2 gap-2">
-            {[
-              { key: 'ESTANDAR', emoji: '🎟️', label: 'Estándar' },
-              { key: 'FUTBOL',   emoji: '⚽', label: 'Pronóstico' },
-            ].map(opt => {
-              const active = tipo === opt.key;
-              return (
-                <button
-                  key={opt.key} type="button"
-                  onClick={() => setTipo(opt.key)}
-                  disabled={submitting}
-                  className={`flex items-center justify-center gap-1.5 h-10 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors ${
-                    active
-                      ? 'bg-emerald-500 text-emerald-950 shadow-[0_2px_10px_rgba(16,185,129,0.28)]'
-                      : 'bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700'
-                  }`}
-                >
-                  <span className="text-base leading-none">{opt.emoji}</span>
-                  {opt.label}
-                </button>
-              );
-            })}
-          </div>
-          <p className="text-[10.5px] text-slate-500 mt-1.5 leading-snug">
-            {tipo === 'FUTBOL'
-              ? 'Los participantes intentan acertar el marcador exacto. Solo entran a la ruleta los que aciertan.'
-              : 'Ruleta clásica: todos los inscritos participan del sorteo.'}
-          </p>
+      <form onSubmit={submit} className="p-5">
+        {/* Segmented control estilo iOS: contenedor único con dos "tabs" internos */}
+        <label className="text-xs font-semibold tracking-wider text-neutral-300 uppercase mb-1.5 block">Tipo de sorteo</label>
+        <div className="grid grid-cols-2 p-1 bg-neutral-900/90 border border-neutral-800 rounded-xl mb-3">
+          {[
+            { key: 'ESTANDAR', emoji: '🎟️', label: 'Estándar' },
+            { key: 'FUTBOL',   emoji: '⚽', label: 'Pronóstico' },
+          ].map(opt => {
+            const active = tipo === opt.key;
+            return (
+              <button
+                key={opt.key} type="button"
+                onClick={() => setTipo(opt.key)}
+                disabled={submitting}
+                className={`flex items-center justify-center gap-1.5 h-9 text-sm transition-all disabled:opacity-50 ${
+                  active
+                    ? 'bg-neutral-800 text-white font-semibold shadow-sm border border-neutral-700/60 rounded-lg'
+                    : 'text-neutral-400 hover:text-white font-medium bg-transparent border border-transparent'
+                }`}
+              >
+                <span className="text-base leading-none">{opt.emoji}</span>
+                {opt.label}
+              </button>
+            );
+          })}
         </div>
+        <p className="text-xs text-neutral-400 italic mb-4">
+          {tipo === 'FUTBOL'
+            ? 'Los participantes intentan acertar el marcador exacto. Solo entran a la ruleta los que aciertan.'
+            : 'Ruleta clásica: todos los inscritos participan del sorteo.'}
+        </p>
 
-        <div>
-          <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Nombre del sorteo</label>
+        {/* Nombre del sorteo */}
+        <div className="mb-4">
+          <label className="text-xs font-semibold tracking-wider text-neutral-300 uppercase mb-1.5 block">Nombre del sorteo</label>
           <input
             type="text" value={nombre} onChange={e => setNombre(e.target.value)}
             placeholder={tipo === 'FUTBOL' ? 'Ej: Pronóstico Chile vs Argentina' : 'Ej: Kit de Cuidado Premium'}
-            className="mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none"
+            className="w-full bg-neutral-900/70 border border-neutral-800 rounded-lg h-10 px-3 text-sm text-white placeholder-neutral-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
             disabled={submitting}
             required
           />
         </div>
 
-        {/* Datos del partido (solo FUTBOL) */}
+        {/* Tarjeta "Datos del partido" (solo FUTBOL) con separador VS */}
         {tipo === 'FUTBOL' && (
-          <div className="p-3 rounded-lg border border-emerald-500/25 bg-emerald-500/[0.03] space-y-3">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-300 flex items-center gap-1.5">
+          <div className="p-3.5 bg-gradient-to-b from-neutral-900/80 to-neutral-900/40 border border-neutral-700/70 rounded-xl mb-4">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-300 flex items-center gap-1.5 mb-3">
               ⚽ Datos del partido
             </p>
-            <div className="grid grid-cols-2 gap-2.5">
-              <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Equipo local</label>
-                <input
-                  type="text" value={equipoLocal} onChange={e => setEquipoLocal(e.target.value)}
-                  placeholder="Chile"
-                  className="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none"
-                  disabled={submitting}
-                />
-              </div>
-              <div>
-                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Equipo visita</label>
-                <input
-                  type="text" value={equipoVisita} onChange={e => setEquipoVisita(e.target.value)}
-                  placeholder="Argentina"
-                  className="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none"
-                  disabled={submitting}
-                />
-              </div>
+
+            {/* Labels sobre inputs (grid espejo para que caigan exactas sobre cada equipo) */}
+            <div className="grid grid-cols-[1fr_auto_1fr] gap-2 mb-1">
+              <label className="text-[10px] font-semibold tracking-wider text-neutral-300 uppercase block">Equipo local</label>
+              <span aria-hidden="true" />
+              <label className="text-[10px] font-semibold tracking-wider text-neutral-300 uppercase block">Equipo visita</label>
             </div>
+
+            {/* Inputs + badge VS al centro (items-center alinea el badge con el input h-10) */}
+            <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center mb-3">
+              <input
+                type="text" value={equipoLocal} onChange={e => setEquipoLocal(e.target.value)}
+                placeholder="Chile"
+                className="w-full h-10 text-sm bg-neutral-950/80 border border-neutral-800 rounded-lg px-3 text-white placeholder-neutral-500 focus:outline-none focus:border-emerald-500"
+                disabled={submitting}
+              />
+              <span className="text-[10px] font-black tracking-widest text-neutral-400 bg-neutral-800 px-1.5 py-1 rounded-full border border-neutral-700 leading-none select-none">VS</span>
+              <input
+                type="text" value={equipoVisita} onChange={e => setEquipoVisita(e.target.value)}
+                placeholder="Argentina"
+                className="w-full h-10 text-sm bg-neutral-950/80 border border-neutral-800 rounded-lg px-3 text-white placeholder-neutral-500 focus:outline-none focus:border-emerald-500"
+                disabled={submitting}
+              />
+            </div>
+
             <div>
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Fecha y hora del partido</label>
+              <label className="text-[10px] font-semibold tracking-wider text-neutral-300 uppercase mb-1 block">Fecha y hora del partido</label>
               <input
                 type="datetime-local" lang="es-CL" value={fechaPartido} onChange={e => setFechaPartido(e.target.value)}
-                className="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none"
+                className="w-full h-10 text-sm bg-neutral-950/80 border border-neutral-800 rounded-lg px-3 text-white focus:outline-none focus:border-emerald-500"
                 disabled={submitting}
               />
             </div>
           </div>
         )}
 
-        <div>
-          <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Premio</label>
+        {/* Premio */}
+        <div className="mb-4">
+          <label className="text-xs font-semibold tracking-wider text-neutral-300 uppercase mb-1.5 block">Premio</label>
           <input
             type="text" value={premio} onChange={e => setPremio(e.target.value)}
             placeholder="Ej: Set Wahl + productos premium"
-            className="mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none"
+            className="w-full bg-neutral-900/70 border border-neutral-800 rounded-lg h-10 px-3 text-sm text-white placeholder-neutral-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
             disabled={submitting}
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        {/* Fechas de vigencia */}
+        <div className="grid grid-cols-2 gap-3 mb-6">
           <div>
-            <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Inicio</label>
+            <label className="text-xs font-semibold tracking-wider text-neutral-300 uppercase mb-1.5 block">Inicio</label>
             <input
               type="date" lang="es-CL" value={inicio} onChange={e => setInicio(e.target.value)}
-              className="mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none"
+              className="w-full bg-neutral-900/70 border border-neutral-800 rounded-lg h-10 px-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
               disabled={submitting}
               required
             />
-            {inicio && <p className="mt-1 text-[10px] text-slate-500 tabular-nums">{formatCLDate(inicio)}</p>}
+            {inicio && <p className="mt-1 text-[10px] text-neutral-500 tabular-nums">{formatCLDate(inicio)}</p>}
           </div>
           <div>
-            <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Cierre</label>
+            <label className="text-xs font-semibold tracking-wider text-neutral-300 uppercase mb-1.5 block">Cierre</label>
             <input
               type="date" lang="es-CL" value={fin} onChange={e => setFin(e.target.value)} min={inicio || undefined}
-              className="mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none"
+              className="w-full bg-neutral-900/70 border border-neutral-800 rounded-lg h-10 px-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
               disabled={submitting}
               required
             />
-            {fin && <p className="mt-1 text-[10px] text-slate-500 tabular-nums">{formatCLDate(fin)}</p>}
+            {fin && <p className="mt-1 text-[10px] text-neutral-500 tabular-nums">{formatCLDate(fin)}</p>}
+            {tipo === 'FUTBOL' && !fin && (
+              <p className="mt-1 text-[10px] text-neutral-400 italic leading-snug">
+                Sugerido: hazla coincidir con el pitazo inicial del partido.
+              </p>
+            )}
           </div>
         </div>
 
         {error && (
-          <p className="text-xs text-red-400 flex items-center gap-1">
+          <p className="text-xs text-red-400 flex items-center gap-1 mb-3">
             <AlertCircle size={12} /> {error}
           </p>
         )}
 
         <button type="submit" disabled={submitting}
-          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold bg-emerald-500 text-emerald-950 hover:bg-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed transition-all">
+          className="w-full h-11 bg-emerald-500 hover:bg-emerald-400 active:scale-[0.99] transition-all text-neutral-950 font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/10 disabled:opacity-50 disabled:cursor-not-allowed">
           {submitting
             ? <><Loader2 size={15} className="animate-spin" /> Creando...</>
             : <><Sparkles size={15} /> Crear sorteo</>}
