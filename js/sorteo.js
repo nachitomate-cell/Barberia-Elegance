@@ -177,6 +177,28 @@ async function cargarSorteo(SORTEO_ID) {
   }
 }
 
+/* ─── Normalización de contacto → ID predecible ───────────────────────
+   Usamos el contacto (tel o email) como ID del doc en la subcolección para
+   deduplicar a nivel base de datos: si alguien intenta reinscribirse con el
+   mismo tel/email, el getDoc previo detecta la colisión y el rule del `update`
+   público (no `create`) también lo rechazaría como red de seguridad.
+
+   Preferimos teléfono (más discriminante que email compartido en familia).
+   Sanitizamos para que el resultado sea un ID válido de Firestore:
+     · sin `/`, sin comenzar por `__` (reservados),
+     · sin espacios ni caracteres raros. */
+function normalizarContactoId(telefono, email) {
+  const digitos = (telefono || '').replace(/\D+/g, '');
+  if (digitos.length >= 8) return `tel_${digitos}`;
+  const mail = (email || '').trim().toLowerCase();
+  if (mail) {
+    // reemplaza @ y . por - para dejar un slug seguro
+    const slug = mail.replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    if (slug) return `mail_${slug}`;
+  }
+  return null;
+}
+
 function bindForm(SORTEO_ID, STORAGE_KEY) {
   const form    = $('#form-sorteo');
   const btn     = $('#btn-submit');
@@ -211,9 +233,30 @@ function bindForm(SORTEO_ID, STORAGE_KEY) {
     if (email && email.length > 120) { showError('Correo demasiado largo.'); return; }
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showError('Correo no válido.'); return; }
 
+    // Necesitamos al menos un contacto para poder deduplicar server-side.
+    const contactoId = normalizarContactoId(telefono, email);
+    if (!contactoId) {
+      showError('Ingresa un teléfono o correo válido para participar.');
+      return;
+    }
+
     setBusy(true);
     try {
-      const ref = sorteoRef(SORTEO_ID);
+      const ref            = sorteoRef(SORTEO_ID);
+      const participanteRef = ref.collection('participantes').doc(contactoId);
+
+      // 1) Dedup a nivel BD: si el doc con este contacto ya existe, cortamos.
+      //    Mucho más robusto que el flag localStorage (que se saltaba con
+      //    modo incógnito u otro dispositivo).
+      const existing = await participanteRef.get();
+      if (existing.exists) {
+        setBusy(false);
+        showError('Este número de contacto ya está participando en este sorteo.');
+        // Marcamos el flag local igual, así la próxima recarga muestra "ya participó"
+        try { localStorage.setItem(STORAGE_KEY, '1'); } catch (_) {}
+        return;
+      }
+
       const payload = {
         nombre,
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -221,14 +264,17 @@ function bindForm(SORTEO_ID, STORAGE_KEY) {
       if (telefono) payload.telefono = telefono;
       if (email)    payload.email    = email;
 
-      // 1) Inscripción (subcolección participantes)
-      await ref.collection('participantes').add(payload);
-      // 2) Incrementar contador del sorteo (+1, validado por rule)
-      await ref.update({
+      // 2) Escritura atómica: batch con set(participante) + increment(counter).
+      //    Si algo falla, ninguna de las dos se aplica → nunca queda el
+      //    contador desincronizado respecto de los inscritos reales.
+      const batch = db.batch();
+      batch.set(participanteRef, payload);
+      batch.update(ref, {
         participantes_count: firebase.firestore.FieldValue.increment(1),
       });
+      await batch.commit();
 
-      // 3) Flag local para evitar dobles inscripciones desde el mismo browser
+      // 3) Flag local — capa adicional para evitar recargas repetidas de este browser.
       try { localStorage.setItem(STORAGE_KEY, '1'); } catch (_) {}
 
       // 4) Pantalla de éxito personalizada con el nombre
@@ -237,7 +283,13 @@ function bindForm(SORTEO_ID, STORAGE_KEY) {
       showScreen('success');
     } catch (err) {
       console.error('[sorteo.js] submit error:', err);
-      showError('No pudimos registrar tu inscripción. Intenta de nuevo.');
+      // Firestore permission-denied típico cuando alguien intentó reinscribirse
+      // (set sobre doc existente cae en `update` que solo admite counter+1).
+      if (err && err.code === 'permission-denied') {
+        showError('Este número de contacto ya está participando en este sorteo.');
+      } else {
+        showError('No pudimos registrar tu inscripción. Intenta de nuevo.');
+      }
       setBusy(false);
     }
   });

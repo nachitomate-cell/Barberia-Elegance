@@ -1,15 +1,19 @@
 import { useState, useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { addDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import {
+  addDoc, updateDoc, serverTimestamp,
+  collection, getDocs, query, orderBy,
+} from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { QRCodeSVG } from 'qrcode.react';
 import confetti from 'canvas-confetti';
 import {
   Trophy, Plus, X, Eye, Link2, CheckCheck, Search, Calendar,
-  Users, Sparkles, Loader2, PartyPopper, Ticket, AlertCircle,
-  Copy, QrCode,
+  Users, UsersRound, Sparkles, Loader2, PartyPopper, Ticket, AlertCircle,
+  Copy, QrCode, Mail, Phone,
 } from 'lucide-react';
 import { tenantCol, tenantDoc } from '../lib/tenantUtils';
+import { withTimeout } from '../lib/firestore-helpers';
 import { useCollection } from '../hooks/useCollection';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -313,13 +317,121 @@ function DetailModal({ sorteo, onClose }) {
   );
 }
 
+/* ── ParticipantesModal ───────────────────────────────────────────────
+   Lista todos los inscritos reales de un sorteo (fetch a subcolección).
+   Solo lectura para el admin. Muestra nombre, contacto y fecha compacta. */
+function ParticipantesModal({ sorteo, onClose }) {
+  const [items,   setItems]   = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [err,     setErr]     = useState('');
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const partsRef = collection(tenantDoc('sorteos', sorteo.id), 'participantes');
+        // orderBy createdAt desc: los más recientes arriba. Requiere que el campo
+        // exista en todos los docs — participantes creados vía /sorteo/:id lo traen.
+        const q = query(partsRef, orderBy('createdAt', 'desc'));
+        const snap = await withTimeout(getDocs(q), 20000, 'sorteos/participantes');
+        if (cancelled) return;
+        setItems(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+        setLoading(false);
+      } catch (e) {
+        console.error('[Sorteos/participantes] fetch:', e);
+        if (!cancelled) {
+          setErr(e.message || 'No se pudieron cargar los participantes.');
+          setLoading(false);
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [sorteo.id]);
+
+  const fmtFecha = (ts) => {
+    // createdAt es Firestore Timestamp. Nulo hasta el 1er round-trip del server.
+    const d = ts?.toDate?.() || (ts ? new Date(ts) : null);
+    if (!d || isNaN(d)) return '—';
+    return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+
+  return (
+    <ModalShell onClose={onClose} maxW="max-w-lg">
+      <div className="flex items-center justify-between p-5 border-b border-slate-800">
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-bold text-white truncate">Participantes</p>
+          <p className="text-[11px] text-slate-500 mt-0.5 truncate">
+            {sorteo.nombre} · <span className="text-slate-400 tabular-nums">{items.length}</span> {items.length === 1 ? 'inscrito' : 'inscritos'}
+          </p>
+        </div>
+        <button onClick={onClose} className="text-slate-500 hover:text-white shrink-0"><X size={16} /></button>
+      </div>
+
+      <div className="max-h-[70vh] overflow-y-auto">
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-12 text-slate-500">
+            <Loader2 size={22} className="animate-spin text-emerald-400/70" />
+            <p className="text-xs mt-2">Cargando…</p>
+          </div>
+        ) : err ? (
+          <div className="p-6 text-center">
+            <AlertCircle size={22} className="mx-auto text-red-400 opacity-70" />
+            <p className="text-xs mt-2 text-red-300">{err}</p>
+          </div>
+        ) : items.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-14 text-slate-500">
+            <UsersRound size={30} className="opacity-30" />
+            <p className="text-sm mt-2">Nadie se ha inscrito todavía</p>
+            <p className="text-xs mt-1 text-slate-600 text-center max-w-xs">
+              Comparte el link o QR público para captar participantes.
+            </p>
+          </div>
+        ) : (
+          <ul className="divide-y divide-slate-800">
+            {items.map((p, idx) => (
+              <li key={p.id} className="flex items-start gap-3 p-4">
+                <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-[11px] font-bold text-slate-400 shrink-0 tabular-nums">
+                  {idx + 1}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-white truncate">{p.nombre || 'Sin nombre'}</p>
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1 text-[11px] text-slate-400">
+                    {p.telefono && (
+                      <span className="inline-flex items-center gap-1 min-w-0">
+                        <Phone size={11} className="text-slate-500 shrink-0" />
+                        <span className="truncate">{p.telefono}</span>
+                      </span>
+                    )}
+                    {p.email && (
+                      <span className="inline-flex items-center gap-1 min-w-0">
+                        <Mail size={11} className="text-slate-500 shrink-0" />
+                        <span className="truncate">{p.email}</span>
+                      </span>
+                    )}
+                    <span className="inline-flex items-center gap-1 text-slate-500 tabular-nums">
+                      <Calendar size={11} />
+                      {fmtFecha(p.createdAt)}
+                    </span>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <div className="p-4 border-t border-slate-800">
+        <button onClick={onClose} className="w-full py-2 rounded-xl text-sm text-slate-400 hover:text-white transition-colors">
+          Cerrar
+        </button>
+      </div>
+    </ModalShell>
+  );
+}
+
 /* ── ElegirGanadorModal ───────────────────────────────────────────────
-   Animación corta tipo "ruleta": cicla 4 nombres mock y se detiene en
-   uno. Cuando exista persistencia, esto leerá `participantes` reales. */
-const MOCK_PARTICIPANTES = [
-  'Joaquín Soto', 'Catalina Vidal', 'Diego Müller', 'Renata Olivares',
-  'Felipe Aguirre', 'Antonia Espinoza', 'Tomás Bravo', 'Isidora Castro',
-];
+   Lee la subcolección real `participantes` del sorteo, corre la ruleta
+   sobre ellos y persiste ganador con datos completos para auditoría. */
 
 /** Explosión de confeti para el clímax de la ruleta.
  *  Tres bursts (central + dos laterales) con timing escalonado para que
@@ -359,41 +471,64 @@ function fireWinnerConfetti() {
 }
 
 function ElegirGanadorModal({ sorteo, onClose }) {
-  const [spinning,   setSpinning]   = useState(true);
-  const [currentName,setCurrentName]= useState(MOCK_PARTICIPANTES[0]);
-  const [winner,     setWinner]     = useState(null);
+  // Participantes reales cargados desde Firestore. Cada item: { id, nombre, telefono?, email?, createdAt }.
+  const [participantes, setParticipantes] = useState([]);
+  const [loadingParts,  setLoadingParts]  = useState(true);
+  const [fetchError,    setFetchError]    = useState('');
+
+  const [spinning,   setSpinning]   = useState(false);
+  const [currentName,setCurrentName]= useState('');
+  const [winner,     setWinner]     = useState(null); // objeto participante completo
   const [confirming, setConfirming] = useState(false);
   const [error,      setError]      = useState('');
 
-  // Corre la ruleta 1.8s ciclando nombres, luego fija el ganador.
-  // Encapsulada para reutilizar entre el mount inicial y el botón "Repetir".
+  // Fetch de la subcolección real al montar. tenantDoc respeta el legacy elegance
+  // (root) vs multi-tenant (tenants/{tid}/sorteos/...).
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const partsRef = collection(tenantDoc('sorteos', sorteo.id), 'participantes');
+        const snap = await withTimeout(getDocs(partsRef), 20000, 'sorteos/elegir-ganador');
+        if (cancelled) return;
+        const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        setParticipantes(list);
+        setLoadingParts(false);
+      } catch (err) {
+        console.error('[Sorteos/ElegirGanador] fetch participantes:', err);
+        if (!cancelled) {
+          setFetchError(err.message || 'No se pudieron cargar los participantes.');
+          setLoadingParts(false);
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [sorteo.id]);
+
+  // Corre la ruleta 1.8s ciclando nombres reales, luego fija el ganador.
+  // Encapsulada para reutilizar entre el primer giro y el botón "Repetir".
   const runSpin = () => {
+    if (participantes.length === 0) return;
     setError('');
     setSpinning(true);
     setWinner(null);
     let i = 0;
     const tickInterval = setInterval(() => {
-      i = (i + 1) % MOCK_PARTICIPANTES.length;
-      setCurrentName(MOCK_PARTICIPANTES[i]);
+      i = (i + 1) % participantes.length;
+      setCurrentName(participantes[i].nombre);
     }, 90);
     const stopAt = setTimeout(() => {
       clearInterval(tickInterval);
-      const pick = MOCK_PARTICIPANTES[Math.floor(Math.random() * MOCK_PARTICIPANTES.length)];
-      setCurrentName(pick);
+      const pick = participantes[Math.floor(Math.random() * participantes.length)];
+      setCurrentName(pick.nombre);
       setWinner(pick);
       setSpinning(false);
     }, 1800);
     return () => { clearInterval(tickInterval); clearTimeout(stopAt); };
   };
 
-  useEffect(() => {
-    const cleanup = runSpin();
-    return cleanup;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sorteo.id]);
-
   // El clímax: dispara confeti cuando termina la ruleta y hay ganador.
-  // Se ejecuta en cada reveal (mount inicial + cada "Repetir").
+  // Se ejecuta en cada reveal (primer giro + cada "Repetir").
   useEffect(() => {
     if (!spinning && winner) {
       fireWinnerConfetti();
@@ -424,10 +559,15 @@ function ElegirGanadorModal({ sorteo, onClose }) {
     setConfirming(true);
     setError('');
     try {
+      // Auditoría completa: guardamos id + nombre + contacto (preferencia tel > email)
+      // para poder trazar el sorteo aún si el participante se borrara después.
+      const contacto = winner.telefono || winner.email || 'Sin contacto';
       await updateDoc(tenantDoc('sorteos', sorteo.id), {
-        estado:           'finalizado',
-        ganador_nombre:   winner,
-        finalizadoEn:     serverTimestamp(),
+        estado:            'finalizado',
+        ganador_id:        winner.id,
+        ganador_nombre:    winner.nombre,
+        ganador_contacto:  contacto,
+        finalizadoEn:      serverTimestamp(),
       });
       onClose();
     } catch (err) {
@@ -437,7 +577,10 @@ function ElegirGanadorModal({ sorteo, onClose }) {
     }
   };
 
-  const locked = spinning || confirming;
+  const locked   = spinning || confirming;
+  const isEmpty  = !loadingParts && !fetchError && participantes.length === 0;
+  const isReady  = !loadingParts && !fetchError && participantes.length > 0;
+  const canSpin  = isReady && !spinning && !winner && !confirming;
 
   // Renderizado vía Portal directo a <body>: rompe el subtree del AdminLayout
   // (que tiene overflow-hidden + overflow-y-auto en su main area, y transforms
@@ -510,46 +653,87 @@ function ElegirGanadorModal({ sorteo, onClose }) {
         />
       </motion.div>
 
-      {/* Etiqueta "Eligiendo..." / "El ganador es" */}
+      {/* Etiqueta contextual según estado del modal */}
       <motion.p
-        key={spinning ? 'label-spin' : 'label-reveal'}
+        key={
+          loadingParts ? 'label-loading'
+          : fetchError ? 'label-error'
+          : isEmpty    ? 'label-empty'
+          : spinning   ? 'label-spin'
+          : winner     ? 'label-reveal'
+          : 'label-ready'
+        }
         initial={{ opacity: 0, y: -6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
         className="relative z-10 text-[11px] sm:text-xs uppercase tracking-[0.36em] text-slate-400 font-bold mb-6 sm:mb-8"
       >
-        {spinning ? 'Eligiendo…' : 'El ganador es'}
+        {loadingParts ? 'Cargando participantes…'
+          : fetchError ? 'Error'
+          : isEmpty    ? 'Sin inscritos'
+          : spinning   ? 'Eligiendo…'
+          : winner     ? 'El ganador es'
+          : `${participantes.length} ${participantes.length === 1 ? 'participante inscrito' : 'participantes inscritos'}`}
       </motion.p>
 
-      {/* Nombre — GIGANTE, con break-words para nombres largos en mobile */}
-      <div className="relative z-10 w-full max-w-4xl text-center px-2 sm:px-4 min-h-[3.5em] flex items-center justify-center">
-        <AnimatePresence mode="popLayout">
-          <motion.h2
-            key={currentName + (spinning ? '-s' : '-w')}
-            initial={spinning
-              ? { opacity: 0, y: 24, filter: 'blur(10px)' }
-              : { opacity: 0, scale: 0.85, filter: 'blur(14px)' }}
-            animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
-            exit={spinning
-              ? { opacity: 0, y: -24, filter: 'blur(10px)' }
-              : { opacity: 0, scale: 1.15, filter: 'blur(14px)' }}
-            transition={{ duration: spinning ? 0.09 : 0.65, ease: [0.16, 1, 0.3, 1] }}
-            className={
-              (spinning
-                ? 'text-white/85 text-4xl sm:text-6xl md:text-7xl lg:text-8xl'
-                : 'text-transparent bg-clip-text bg-gradient-to-br from-emerald-200 via-emerald-300 to-emerald-500 text-4xl sm:text-7xl md:text-8xl lg:text-9xl'
-              ) + ' font-black leading-[1.05] tracking-tight break-words hyphens-auto max-w-full'
-            }
-            style={
-              !spinning && winner
-                ? { filter: 'drop-shadow(0 0 60px rgba(16,185,129,0.55)) drop-shadow(0 0 24px rgba(16,185,129,0.35))' }
-                : undefined
-            }
-          >
-            {currentName}
-          </motion.h2>
-        </AnimatePresence>
-      </div>
+      {/* Área central: cambia según estado */}
+      {loadingParts && (
+        <div className="relative z-10 flex items-center justify-center py-8">
+          <Loader2 size={40} className="animate-spin text-emerald-400/80" />
+        </div>
+      )}
+
+      {fetchError && !loadingParts && (
+        <div className="relative z-10 w-full max-w-md text-center px-4">
+          <p className="text-sm text-red-300 flex items-center justify-center gap-2">
+            <AlertCircle size={16} /> {fetchError}
+          </p>
+        </div>
+      )}
+
+      {isEmpty && (
+        <div className="relative z-10 w-full max-w-md text-center px-4">
+          <p className="text-lg sm:text-2xl font-bold text-white/90 leading-snug">
+            Aún no hay inscritos en este sorteo
+          </p>
+          <p className="mt-3 text-sm text-slate-400 leading-relaxed">
+            Comparte el link o QR público para que tus clientes puedan participar. Cuando
+            haya al menos un inscrito, podrás girar la ruleta.
+          </p>
+        </div>
+      )}
+
+      {/* Nombre GIGANTE — solo cuando hay ruleta girando o ganador revelado */}
+      {(spinning || winner) && (
+        <div className="relative z-10 w-full max-w-4xl text-center px-2 sm:px-4 min-h-[3.5em] flex items-center justify-center">
+          <AnimatePresence mode="popLayout">
+            <motion.h2
+              key={currentName + (spinning ? '-s' : '-w')}
+              initial={spinning
+                ? { opacity: 0, y: 24, filter: 'blur(10px)' }
+                : { opacity: 0, scale: 0.85, filter: 'blur(14px)' }}
+              animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
+              exit={spinning
+                ? { opacity: 0, y: -24, filter: 'blur(10px)' }
+                : { opacity: 0, scale: 1.15, filter: 'blur(14px)' }}
+              transition={{ duration: spinning ? 0.09 : 0.65, ease: [0.16, 1, 0.3, 1] }}
+              className={
+                (spinning
+                  ? 'text-white/85 text-4xl sm:text-6xl md:text-7xl lg:text-8xl'
+                  : 'text-transparent bg-clip-text bg-gradient-to-br from-emerald-200 via-emerald-300 to-emerald-500 text-4xl sm:text-7xl md:text-8xl lg:text-9xl'
+                ) + ' font-black leading-[1.05] tracking-tight break-words hyphens-auto max-w-full'
+              }
+              style={
+                !spinning && winner
+                  ? { filter: 'drop-shadow(0 0 60px rgba(16,185,129,0.55)) drop-shadow(0 0 24px rgba(16,185,129,0.35))' }
+                  : undefined
+              }
+            >
+              {currentName}
+            </motion.h2>
+          </AnimatePresence>
+        </div>
+      )}
 
       {/* Errores de escritura Firestore */}
       {error && (
@@ -561,11 +745,46 @@ function ElegirGanadorModal({ sorteo, onClose }) {
         </motion.p>
       )}
 
-      {/* Acciones — fade-in DESPUÉS del reveal. Botones grandes (min 48×48px)
-          para tap cómodo con el pulgar. Confirmar recibe order-first en mobile
-          para que quede a la mano y con py-4 se siente sólido. */}
+      {/* Acciones — dependen del estado del modal */}
       <AnimatePresence>
-        {!spinning && (
+        {/* Estado inicial listo: botón para arrancar la ruleta */}
+        {canSpin && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4 }}
+            className="relative z-10 mt-8 w-full max-w-md"
+          >
+            <button
+              onClick={runSpin}
+              className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl text-base font-bold bg-emerald-500 text-emerald-950 hover:bg-emerald-400 active:scale-[0.98] transition-all shadow-[0_10px_40px_-10px_rgba(16,185,129,0.6)]"
+            >
+              <Sparkles size={18} /> Girar la ruleta
+            </button>
+          </motion.div>
+        )}
+
+        {/* Estado vacío o error: solo cerrar */}
+        {(isEmpty || fetchError) && !loadingParts && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4, delay: 0.1 }}
+            className="relative z-10 mt-8 w-full max-w-md"
+          >
+            <button
+              onClick={onClose}
+              className="w-full py-3.5 rounded-2xl text-sm font-semibold bg-transparent text-slate-300 hover:text-white hover:bg-white/5 border border-slate-700 active:scale-[0.98] transition-all"
+            >
+              Cerrar
+            </button>
+          </motion.div>
+        )}
+
+        {/* Post-reveal: Confirmar + Repetir */}
+        {winner && !spinning && (
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
@@ -584,7 +803,7 @@ function ElegirGanadorModal({ sorteo, onClose }) {
             </button>
             <button
               onClick={repetir}
-              disabled={confirming}
+              disabled={confirming || participantes.length < 2}
               className="order-2 sm:order-1 flex items-center justify-center gap-2 py-3.5 sm:py-3.5 rounded-2xl sm:rounded-xl text-sm font-semibold bg-transparent text-slate-300 hover:text-white hover:bg-white/5 border border-slate-700 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed transition-all"
             >
               Repetir
@@ -613,7 +832,7 @@ function ElegirGanadorModal({ sorteo, onClose }) {
 }
 
 /* ── SorteoRow ────────────────────────────────────────────────────── */
-function SorteoRow({ sorteo, publicLink, onView, onElegirGanador }) {
+function SorteoRow({ sorteo, publicLink, onView, onElegirGanador, onVerParticipantes }) {
   const [copied, setCopied] = useState(false);
   const cfg = STATUS_CONFIG[sorteo.estado] || STATUS_CONFIG.activo;
   const isActivo  = sorteo.estado === 'activo';
@@ -699,6 +918,15 @@ function SorteoRow({ sorteo, publicLink, onView, onElegirGanador }) {
           </button>
         )}
 
+        {/* Ver participantes reales (subcolección) */}
+        <button
+          onClick={() => onVerParticipantes(sorteo)}
+          className="text-slate-500 hover:text-emerald-400 transition-colors p-1.5 rounded"
+          title="Ver participantes"
+        >
+          <UsersRound size={14} />
+        </button>
+
         {/* Ver detalles */}
         <button
           onClick={() => onView(sorteo)}
@@ -741,6 +969,7 @@ export default function Sorteos() {
   const [showCreate,   setShowCreate]   = useState(false);
   const [detailSorteo, setDetailSorteo] = useState(null);
   const [chooseSorteo, setChooseSorteo] = useState(null);
+  const [partsSorteo,  setPartsSorteo]  = useState(null);
 
   const stats = useMemo(() => ({
     activos:        sorteos.filter(s => s.estado === 'activo').length,
@@ -857,6 +1086,7 @@ export default function Sorteos() {
               publicLink={publicLink(s)}
               onView={setDetailSorteo}
               onElegirGanador={setChooseSorteo}
+              onVerParticipantes={setPartsSorteo}
             />
           ))}
         </div>
@@ -882,6 +1112,13 @@ export default function Sorteos() {
             key="ganador"
             sorteo={chooseSorteo}
             onClose={() => setChooseSorteo(null)}
+          />
+        )}
+        {partsSorteo && (
+          <ParticipantesModal
+            key="participantes"
+            sorteo={partsSorteo}
+            onClose={() => setPartsSorteo(null)}
           />
         )}
       </AnimatePresence>
