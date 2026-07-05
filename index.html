@@ -9518,6 +9518,10 @@
       selectedServiceObj = _multiSel[0] || null;
       selectedAddons     = _multiSel.slice(1);
       window._upsellShowed = false;
+      // El slot VIP guarda un recargo derivado del servicio anterior. Si el
+      // usuario cambia de servicio, invalidamos el slot para que renderHours
+      // re-emita con el recargoSobrecupoDefault correcto del nuevo servicio.
+      _selectedSlotInfo = null;
 
       // Repintar TODAS las cards según el estado actual.
       document.querySelectorAll('.service-option').forEach(el => {
@@ -9551,6 +9555,21 @@
       updateSelectionRecap();
     }
 
+    // Recargo VIP autoritativo: NUNCA devuelve 0 si el slot está marcado como
+    // sobrecupo. Fallback en cascada: recargo del slot → recargoSobrecupoDefault
+    // del servicio elegido → 5.000 CLP (mismo piso del motor y de la CF de MP).
+    // Blindaje contra caches viejos: aunque el motor haya inyectado recargo:0
+    // por un servicio sin migrar, la UI y el payload siempre cobran el extra.
+    function _computeVipRecargoCLP(rawRecargo) {
+      const fromSlot = Math.round(Number(rawRecargo) || 0);
+      if (fromSlot > 0) return fromSlot;
+      const fromSvc = Math.round(
+        Number(selectedServiceObj && selectedServiceObj.recargoSobrecupoDefault) || 0
+      );
+      if (fromSvc > 0) return fromSvc;
+      return 5000;
+    }
+
     function selectTime(btn, time, slotInfo) {
       const tid = window.CURRENT_TENANT_ID || 'elegance';
 
@@ -9566,18 +9585,19 @@
 
       // Guardar metadata VIP del slot elegido. Si no viene por parámetro,
       // lo reconstruimos desde los data-attrs del botón (fallback para el
-      // render con onclick inline en no-Elegance).
+      // render con onclick inline en no-Elegance). En ambos casos el recargo
+      // se resuelve por _computeVipRecargoCLP → nunca queda en 0.
       if (slotInfo && slotInfo.esSobrecupo) {
         _selectedSlotInfo = {
           esSobrecupo: true,
-          recargo: Math.round(Number(slotInfo.recargo) || 0),
+          recargo: _computeVipRecargoCLP(slotInfo.recargo),
           horarioEspecial: !!slotInfo.horarioEspecial,
           availableBarberoIds: slotInfo.availableBarberoIds || null,
         };
       } else if (btn && btn.dataset && btn.dataset.esSobrecupo === '1') {
         _selectedSlotInfo = {
           esSobrecupo: true,
-          recargo: Math.round(Number(btn.dataset.recargo) || 0),
+          recargo: _computeVipRecargoCLP(btn.dataset.recargo),
           horarioEspecial: btn.dataset.horarioEspecial === '1',
           availableBarberoIds: null,
         };
@@ -9800,10 +9820,16 @@
           serviceNameText += ` · +$${_recargoSel.toLocaleString('es-CL')} por horario`;
         }
 
-        // Recargo VIP por sobrecupo público (fijado en el paso 3).
-        const _recargoVipSel = _selectedSlotInfo && _selectedSlotInfo.esSobrecupo
-          ? Math.round(Number(_selectedSlotInfo.recargo) || 0)
-          : 0;
+        // Recargo VIP por sobrecupo público (fijado en el paso 3). Se pasa por
+        // _computeVipRecargoCLP para blindar el caso en que el slot llegó con
+        // recargo:0 (servicio cargado antes de la migración, race entre selectService
+        // y renderHours, etc.) — si el flag esSobrecupo está, SIEMPRE se cobra.
+        let _recargoVipSel = 0;
+        if (_selectedSlotInfo && _selectedSlotInfo.esSobrecupo) {
+          _recargoVipSel = _computeVipRecargoCLP(_selectedSlotInfo.recargo);
+          // Sincronizar al state por si algún consumer aguas abajo lo lee crudo.
+          _selectedSlotInfo.recargo = _recargoVipSel;
+        }
         if (_recargoVipSel > 0) totalCost += _recargoVipSel;
 
         document.getElementById('summaryService').innerText = serviceNameText;
@@ -10264,7 +10290,9 @@
             + selectedAddons.reduce((sum, a) => sum + a.precio, 0)
             + _getRecargoHorario(_dowPago, parseInt(selectedTimeStr, 10));
           const _esSobrecupoPub = !!(_selectedSlotInfo && _selectedSlotInfo.esSobrecupo);
-          const _recargoVipPago = _esSobrecupoPub ? Math.round(Number(_selectedSlotInfo.recargo) || 0) : 0;
+          // Helper autoritativo: si es sobrecupo NUNCA cobramos 0 de recargo,
+          // aunque el slot original haya llegado con recargo undefined/0.
+          const _recargoVipPago = _esSobrecupoPub ? _computeVipRecargoCLP(_selectedSlotInfo.recargo) : 0;
           const _totalPago = _basePrecioPago + _recargoVipPago;
           const _citaPago = {
             fecha:            currentDateStr,
@@ -10381,7 +10409,7 @@
             + selectedAddons.reduce((sum, a) => sum + a.precio, 0)
             + _getRecargoHorario(_dowAdd, parseInt(selectedTimeStr, 10));
           const _esSobrecupoAdd = !!(_selectedSlotInfo && _selectedSlotInfo.esSobrecupo);
-          const _recargoVipAdd = _esSobrecupoAdd ? Math.round(Number(_selectedSlotInfo.recargo) || 0) : 0;
+          const _recargoVipAdd = _esSobrecupoAdd ? _computeVipRecargoCLP(_selectedSlotInfo.recargo) : 0;
           const _totalAdd = _basePrecioAdd + _recargoVipAdd;
           await FDB.addCita({
             fecha:            currentDateStr,
