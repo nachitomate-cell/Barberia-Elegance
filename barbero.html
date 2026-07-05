@@ -684,6 +684,29 @@
     </div>
   </div>
 
+  <!-- Club banner (visible on step 1) — reubicado bajo el hero del perfil,
+       antes de la progress bar. Mantiene su estilo interno; el wrapper agrega
+       `px-6` porque ya no vive dentro de <main class="px-6">, y `mt-5` para
+       respirar respecto al hero sin apretar la barra de progreso. -->
+  <div id="clubBanner" class="px-6 mt-5 fade-up">
+    <a id="clubLink" href="/registro.html"
+      class="group flex items-center gap-4 rounded-2xl px-5 py-4 active:scale-[0.98] transition-all relative overflow-hidden"
+      style="background:#0a0807;border:1px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.25);">
+      <div class="w-11 h-11 rounded-full flex items-center justify-center shrink-0"
+        style="background:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.10);
+               border:1px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.25);">
+        <i class="ph-fill ph-medal text-xl" style="color:var(--accent);"></i>
+      </div>
+      <div class="flex-1 min-w-0">
+        <p id="clubName" class="text-[10px] font-bold uppercase tracking-widest mb-0.5"
+          style="color:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.5);"></p>
+        <p class="text-sm font-bold text-white">Únete y gana cortes gratis</p>
+        <p class="text-xs text-gray-500 mt-0.5">Acumula sellos en cada visita</p>
+      </div>
+      <i class="ph-bold ph-arrow-right text-white/20 text-lg group-hover:text-white/50 transition-colors shrink-0"></i>
+    </a>
+  </div>
+
   <!-- Progress bar -->
   <div class="px-6 mt-5 mb-5 fade-up">
     <div class="flex justify-between items-end mb-2">
@@ -875,26 +898,6 @@
         Agendar otra hora
       </button>
     </section>
-
-    <!-- Club banner (visible on step 1) -->
-    <div id="clubBanner" class="mt-10 fade-up">
-      <a id="clubLink" href="/registro.html"
-        class="group flex items-center gap-4 rounded-2xl px-5 py-4 active:scale-[0.98] transition-all relative overflow-hidden"
-        style="background:#0a0807;border:1px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.25);">
-        <div class="w-11 h-11 rounded-full flex items-center justify-center shrink-0"
-          style="background:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.10);
-                 border:1px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.25);">
-          <i class="ph-fill ph-medal text-xl" style="color:var(--accent);"></i>
-        </div>
-        <div class="flex-1 min-w-0">
-          <p id="clubName" class="text-[10px] font-bold uppercase tracking-widest mb-0.5"
-            style="color:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.5);"></p>
-          <p class="text-sm font-bold text-white">Únete y gana cortes gratis</p>
-          <p class="text-xs text-gray-500 mt-0.5">Acumula sellos en cada visita</p>
-        </div>
-        <i class="ph-bold ph-arrow-right text-white/20 text-lg group-hover:text-white/50 transition-colors shrink-0"></i>
-      </a>
-    </div>
 
   </main>
 </div><!-- /mainContent -->
