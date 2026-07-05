@@ -6,6 +6,7 @@ service-account.json
 ferraza-service-account.json
 *-service-account.json
 seed-*creds*.js
+scripts/creds-*.js
 .claude/
 firebase-debug.log
 firestore-debug.log

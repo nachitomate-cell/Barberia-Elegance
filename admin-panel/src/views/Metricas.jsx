@@ -1487,21 +1487,23 @@ export default function Metricas() {
                 </div>
               ) : (
                 <div className="flex flex-col sm:flex-row items-center justify-around gap-6 py-4">
-                  <ResponsiveContainer width="45%" height={160}>
-                    <PieChart>
-                      <Pie
-                        data={retention.data}
-                        cx="50%" cy="50%"
-                        innerRadius={45} outerRadius={65}
-                        dataKey="value" paddingAngle={4}
-                        startAngle={90} endAngle={-270}
-                      >
-                        <Cell fill="#10b981" />
-                        <Cell fill="#1e293b" />
-                      </Pie>
-                      <Tooltip content={<DarkTooltip fmt={v => `${v} clientes`} />} />
-                    </PieChart>
-                  </ResponsiveContainer>
+                  <div className="w-full sm:w-[45%]">
+                    <ResponsiveContainer width="100%" height={160}>
+                      <PieChart>
+                        <Pie
+                          data={retention.data}
+                          cx="50%" cy="50%"
+                          innerRadius={45} outerRadius={65}
+                          dataKey="value" paddingAngle={4}
+                          startAngle={90} endAngle={-270}
+                        >
+                          <Cell fill="#10b981" />
+                          <Cell fill="#1e293b" />
+                        </Pie>
+                        <Tooltip content={<DarkTooltip fmt={v => `${v} clientes`} />} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
                   <div className="space-y-3.5">
                     <div className="flex items-start gap-3">
                       <span className="mt-1 w-3 h-3 rounded-full bg-emerald-500 shrink-0" />
@@ -1764,22 +1766,24 @@ export default function Metricas() {
                 </div>
               ) : (
                 <div className="flex flex-col sm:flex-row items-center justify-around gap-6 py-2">
-                  <ResponsiveContainer width="45%" height={180}>
-                    <PieChart>
-                      <Pie
-                        data={pnl.expenseBreakdown}
-                        cx="50%" cy="50%"
-                        innerRadius={45} outerRadius={65}
-                        dataKey="value" paddingAngle={3}
-                        startAngle={90} endAngle={-270}
-                      >
-                        {pnl.expenseBreakdown.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip content={<DarkTooltip fmt={fmtCLP} />} />
-                    </PieChart>
-                  </ResponsiveContainer>
+                  <div className="w-full sm:w-[45%]">
+                    <ResponsiveContainer width="100%" height={180}>
+                      <PieChart>
+                        <Pie
+                          data={pnl.expenseBreakdown}
+                          cx="50%" cy="50%"
+                          innerRadius={45} outerRadius={65}
+                          dataKey="value" paddingAngle={3}
+                          startAngle={90} endAngle={-270}
+                        >
+                          {pnl.expenseBreakdown.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip content={<DarkTooltip fmt={fmtCLP} />} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
                   <div className="space-y-2.5 max-h-[190px] overflow-y-auto pr-1 flex-1">
                     {pnl.expenseBreakdown.map((item, index) => (
                       <div key={item.name} className="flex items-start gap-2.5 text-xs">

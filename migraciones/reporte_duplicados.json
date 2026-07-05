@@ -1,0 +1,507 @@
+{
+  "generadoEn": "2026-07-02T03:39:01.081Z",
+  "xlsxOrigen": "clientes_444596_1782874418 (1).xlsx",
+  "tenant": "sionbarberia",
+  "totalGruposConflicto": 30,
+  "totalFilasDescartadas": 57,
+  "grupos": [
+    {
+      "telefono": "+56981403048",
+      "primerKept": {
+        "nombres": "Roberto cabeza parada",
+        "apellidos": "Benito camelo"
+      },
+      "duplicados": [
+        {
+          "nombres": "Benito camelo",
+          "apellidos": "Cabezaparada"
+        },
+        {
+          "nombres": "Benito camela",
+          "apellidos": "Cabeza parada"
+        },
+        {
+          "nombres": "Roberto",
+          "apellidos": "Cabeza parada"
+        },
+        {
+          "nombres": "Benito camelo",
+          "apellidos": "Cabeza parada"
+        },
+        {
+          "nombres": "Benito camelo",
+          "apellidos": "Cabeza parada"
+        },
+        {
+          "nombres": "Benito camelo",
+          "apellidos": "Cabeza parada"
+        },
+        {
+          "nombres": "Benito camelo",
+          "apellidos": "Cabeza parada"
+        },
+        {
+          "nombres": "Benito camelo",
+          "apellidos": "Cabeza parada"
+        },
+        {
+          "nombres": "Benito camelo",
+          "apellidos": "Cabeza parada"
+        },
+        {
+          "nombres": "Benito tocamelo",
+          "apellidos": "Cabeza parada"
+        },
+        {
+          "nombres": "Benito camelo Matías",
+          "apellidos": "Rosal fierro"
+        },
+        {
+          "nombres": "Benito camelo",
+          "apellidos": "Rosamel fierro"
+        }
+      ]
+    },
+    {
+      "telefono": "+56958670527",
+      "primerKept": {
+        "nombres": "Denzel",
+        "apellidos": "…"
+      },
+      "duplicados": [
+        {
+          "nombres": "Denzel",
+          "apellidos": "Jjj"
+        },
+        {
+          "nombres": "Denzel",
+          "apellidos": "Jjjj"
+        },
+        {
+          "nombres": "Denzel",
+          "apellidos": "M"
+        },
+        {
+          "nombres": "Denzel",
+          "apellidos": "Mez"
+        },
+        {
+          "nombres": "Denzel",
+          "apellidos": "Mm"
+        },
+        {
+          "nombres": "Denzel",
+          "apellidos": "Mm"
+        },
+        {
+          "nombres": "Denzel",
+          "apellidos": "Mm"
+        },
+        {
+          "nombres": "Denzel",
+          "apellidos": "Mm"
+        },
+        {
+          "nombres": "Denzel",
+          "apellidos": "Mm"
+        },
+        {
+          "nombres": "Denzel",
+          "apellidos": "Mmm"
+        },
+        {
+          "nombres": "Denzel",
+          "apellidos": "Mmm"
+        },
+        {
+          "nombres": "Denzel",
+          "apellidos": "Mmmm"
+        }
+      ]
+    },
+    {
+      "telefono": "+56949033567",
+      "primerKept": {
+        "nombres": "Gabo",
+        "apellidos": "crvzy"
+      },
+      "duplicados": [
+        {
+          "nombres": "Gabo",
+          "apellidos": "crvzy"
+        },
+        {
+          "nombres": "gvbo",
+          "apellidos": "crvzy"
+        },
+        {
+          "nombres": "Gabo",
+          "apellidos": "crvzy"
+        }
+      ]
+    },
+    {
+      "telefono": "+56982505419",
+      "primerKept": {
+        "nombres": "joshe",
+        "apellidos": "."
+      },
+      "duplicados": [
+        {
+          "nombres": "joshe",
+          "apellidos": "E"
+        },
+        {
+          "nombres": "joshe",
+          "apellidos": "P"
+        },
+        {
+          "nombres": "Joshe",
+          "apellidos": "Peña"
+        }
+      ]
+    },
+    {
+      "telefono": "+56947938633",
+      "primerKept": {
+        "nombres": "Danny",
+        "apellidos": "Antikef"
+      },
+      "duplicados": [
+        {
+          "nombres": "Danny",
+          "apellidos": "Antilef"
+        },
+        {
+          "nombres": "Danny",
+          "apellidos": "Antilef"
+        }
+      ]
+    },
+    {
+      "telefono": "+56974079161",
+      "primerKept": {
+        "nombres": "Dylla",
+        "apellidos": "."
+      },
+      "duplicados": [
+        {
+          "nombres": "Dylla",
+          "apellidos": "."
+        }
+      ]
+    },
+    {
+      "telefono": "+56929725731",
+      "primerKept": {
+        "nombres": "Simón",
+        "apellidos": "Altamirano"
+      },
+      "duplicados": [
+        {
+          "nombres": "Simón",
+          "apellidos": "Altamirano"
+        }
+      ]
+    },
+    {
+      "telefono": "+56962628662",
+      "primerKept": {
+        "nombres": "Erick",
+        "apellidos": "Araya"
+      },
+      "duplicados": [
+        {
+          "nombres": "Erick",
+          "apellidos": "Araya"
+        }
+      ]
+    },
+    {
+      "telefono": "+56966000626",
+      "primerKept": {
+        "nombres": "Diego",
+        "apellidos": "Aros"
+      },
+      "duplicados": [
+        {
+          "nombres": "Diego",
+          "apellidos": "Aros"
+        }
+      ]
+    },
+    {
+      "telefono": "+56923799743",
+      "primerKept": {
+        "nombres": "Ignacio",
+        "apellidos": "Catalán"
+      },
+      "duplicados": [
+        {
+          "nombres": "Ignacio",
+          "apellidos": "Catalán"
+        }
+      ]
+    },
+    {
+      "telefono": "+56971335845",
+      "primerKept": {
+        "nombres": "Rodrigo",
+        "apellidos": "Espinosa"
+      },
+      "duplicados": [
+        {
+          "nombres": "Rodrigo",
+          "apellidos": "Espinoza"
+        }
+      ]
+    },
+    {
+      "telefono": "+56995988344",
+      "primerKept": {
+        "nombres": "Cruz",
+        "apellidos": "Fuentes gamboa"
+      },
+      "duplicados": [
+        {
+          "nombres": "Cruz",
+          "apellidos": "Fuentes gamboa"
+        }
+      ]
+    },
+    {
+      "telefono": "+56961466936",
+      "primerKept": {
+        "nombres": "Nico",
+        "apellidos": "González"
+      },
+      "duplicados": [
+        {
+          "nombres": "Nicolás",
+          "apellidos": "González"
+        }
+      ]
+    },
+    {
+      "telefono": "+56962300131",
+      "primerKept": {
+        "nombres": "Paolo",
+        "apellidos": "Guu"
+      },
+      "duplicados": [
+        {
+          "nombres": "Paolo",
+          "apellidos": "Guuu"
+        }
+      ]
+    },
+    {
+      "telefono": "+56966218383",
+      "primerKept": {
+        "nombres": "Paolo",
+        "apellidos": "Guuu"
+      },
+      "duplicados": [
+        {
+          "nombres": "Paolo guuu",
+          "apellidos": "Guuuu"
+        }
+      ]
+    },
+    {
+      "telefono": "+56949205555",
+      "primerKept": {
+        "nombres": "Christian",
+        "apellidos": "jara"
+      },
+      "duplicados": [
+        {
+          "nombres": "cristian",
+          "apellidos": "jara"
+        }
+      ]
+    },
+    {
+      "telefono": "+56953915007",
+      "primerKept": {
+        "nombres": "Lucas",
+        "apellidos": "J"
+      },
+      "duplicados": [
+        {
+          "nombres": "Lucas",
+          "apellidos": "Jj"
+        }
+      ]
+    },
+    {
+      "telefono": "+56929827589",
+      "primerKept": {
+        "nombres": "Nicolas",
+        "apellidos": "Montoya"
+      },
+      "duplicados": [
+        {
+          "nombres": "Nicolas",
+          "apellidos": "Montya"
+        }
+      ]
+    },
+    {
+      "telefono": "+56949914665",
+      "primerKept": {
+        "nombres": "Jetricl",
+        "apellidos": "Neira"
+      },
+      "duplicados": [
+        {
+          "nombres": "Jetrick",
+          "apellidos": "Neira"
+        }
+      ]
+    },
+    {
+      "telefono": "+56930557566",
+      "primerKept": {
+        "nombres": "Franco",
+        "apellidos": "Osorio"
+      },
+      "duplicados": [
+        {
+          "nombres": "Franco",
+          "apellidos": "Osorio"
+        }
+      ]
+    },
+    {
+      "telefono": "+56940153623",
+      "primerKept": {
+        "nombres": "Juan Pablo",
+        "apellidos": "López"
+      },
+      "duplicados": [
+        {
+          "nombres": "Juan",
+          "apellidos": "Pablo López"
+        }
+      ]
+    },
+    {
+      "telefono": "+56982784353",
+      "primerKept": {
+        "nombres": "Lucas",
+        "apellidos": "Pacheco"
+      },
+      "duplicados": [
+        {
+          "nombres": "Lucas",
+          "apellidos": "Pacheco"
+        }
+      ]
+    },
+    {
+      "telefono": "+56952016959",
+      "primerKept": {
+        "nombres": "Sebastian",
+        "apellidos": "Perez"
+      },
+      "duplicados": [
+        {
+          "nombres": "Sebastian",
+          "apellidos": "Perez"
+        }
+      ]
+    },
+    {
+      "telefono": "+56961368974",
+      "primerKept": {
+        "nombres": "Felipe",
+        "apellidos": "Roblero"
+      },
+      "duplicados": [
+        {
+          "nombres": "Felipe",
+          "apellidos": "Roblero"
+        }
+      ]
+    },
+    {
+      "telefono": "+56944487877",
+      "primerKept": {
+        "nombres": "Sebastia",
+        "apellidos": "Palacios"
+      },
+      "duplicados": [
+        {
+          "nombres": "Rogelio",
+          "apellidos": "Rojo"
+        }
+      ]
+    },
+    {
+      "telefono": "+56931371807",
+      "primerKept": {
+        "nombres": "Mauricio",
+        "apellidos": "Sagredo"
+      },
+      "duplicados": [
+        {
+          "nombres": "mauricio",
+          "apellidos": "sagredo villarroel"
+        }
+      ]
+    },
+    {
+      "telefono": "+56937250676",
+      "primerKept": {
+        "nombres": "brandon",
+        "apellidos": "poblete"
+      },
+      "duplicados": [
+        {
+          "nombres": "brandon",
+          "apellidos": "si poblete"
+        }
+      ]
+    },
+    {
+      "telefono": "+56993229238",
+      "primerKept": {
+        "nombres": "Christian",
+        "apellidos": "Urtubia"
+      },
+      "duplicados": [
+        {
+          "nombres": "Christian",
+          "apellidos": "Urtubia"
+        }
+      ]
+    },
+    {
+      "telefono": "+56976555328",
+      "primerKept": {
+        "nombres": "Mauricio",
+        "apellidos": "Vargas"
+      },
+      "duplicados": [
+        {
+          "nombres": "Mauricio",
+          "apellidos": "Vargas"
+        }
+      ]
+    },
+    {
+      "telefono": "+56976678662",
+      "primerKept": {
+        "nombres": "Vicente",
+        "apellidos": "Veas"
+      },
+      "duplicados": [
+        {
+          "nombres": "Vicente",
+          "apellidos": "Veas"
+        }
+      ]
+    }
+  ]
+}

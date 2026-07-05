@@ -649,8 +649,10 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
             rel="noopener noreferrer"
             className="flex items-center gap-2 hover:opacity-80 transition-opacity"
           >
-            <img src="/logo1.png" alt="SynapTech" className="w-5 h-5 rounded object-contain opacity-60" />
-            <p className="text-[10px] text-slate-600">Desarrollado por SynapTech</p>
+            <img src="/synaptech/ig.png" alt="SynapTech" className="w-5 h-5 rounded object-contain opacity-60" />
+            <p className="text-[10px] text-slate-600">
+              Powered By SynapTech <span role="img" aria-label="Hecho en Chile">🇨🇱</span>
+            </p>
           </a>
           <a
             href="https://www.instagram.com/synaptechspa"
