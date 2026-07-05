@@ -139,40 +139,54 @@
       background: rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.1);
     }
 
-    /* Week grid day buttons */
-    .week-day-btn {
-      border-radius: 0.625rem;
-      border: 1.5px solid transparent;
+    /* Horizontal date carousel — tarjeta LUN 6, MAR 7, etc. */
+    .day-btn {
+      flex-shrink: 0;
+      width: 4rem;
+      height: 5.25rem;
+      border-radius: 0.875rem;
+      border: 1.5px solid rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.20);
+      background: #0a0a0d;
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
-      cursor: default;
-      transition: all 0.15s;
-      font-size: 0.9375rem;
-      font-weight: 600;
-      color: #4b5563;
-      background: transparent;
-      -webkit-tap-highlight-color: transparent;
-      padding: 0.45rem 0;
-      gap: 2px;
-      min-height: 2.75rem;
-    }
-    .week-day-btn.available {
-      background: #0a0a0d;
-      border-color: rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.2);
-      color: #d1d5db;
       cursor: pointer;
+      transition: border-color 0.2s, background 0.2s, color 0.2s;
+      color: #d1d5db;
+      -webkit-tap-highlight-color: transparent;
+      padding: 0.5rem 0;
+      gap: 3px;
+      position: relative;
     }
-    .week-day-btn.available:active { transform: scale(0.9); }
-    .week-day-btn.active {
+    .day-btn:active { transform: scale(0.95); }
+    .day-btn.active {
       border-color: var(--accent) !important;
       background: rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.12) !important;
       color: #fff !important;
     }
-    .week-day-btn.unavailable { opacity: 0.18; pointer-events: none; }
-    .week-day-btn .today-label {
+    .day-btn .day-label {
+      font-size: 0.6875rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: rgba(255,255,255,0.45);
+      line-height: 1;
+    }
+    .day-btn .day-num {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: rgba(255,255,255,0.85);
+      line-height: 1;
+    }
+    .day-btn.active .day-label,
+    .day-btn.active .day-num { color: var(--accent) !important; }
+    .day-btn .today-label {
+      position: absolute; top: 4px;
       font-size: 7px; font-weight: 800; text-transform: uppercase;
       letter-spacing: 0.04em; color: var(--accent); line-height: 1;
     }
+    /* Oculta el scrollbar del carrusel */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
     /* Button callout pulse when time is selected */
     @keyframes btnCallout {
@@ -196,12 +210,28 @@
     }
     .time-pill:disabled { opacity: 0.3; cursor: not-allowed; pointer-events: none; }
     .time-pill.selected {
-      background: var(--accent);
-      border-color: var(--accent);
-      color: #050505;
-      font-weight: 800;
+      background: var(--accent) !important;
+      border-color: var(--accent) !important;
+      color: #050505 !important;
+      font-weight: 800 !important;
     }
     .time-pill:not(:disabled):active { transform: scale(0.96); }
+
+    /* Pill VIP: fondo cream semi-opaco + borde ámbar + texto ámbar oscuro.
+       Cuando queda seleccionada, la regla .time-pill.selected (con !important)
+       pisa el ámbar y aplica el accent del tenant. */
+    .time-pill.time-pill-vip {
+      border-color: #FCD34D;
+      background: linear-gradient(135deg, rgba(254,243,199,0.92), rgba(253,224,71,0.55));
+      color: #78350F;
+      padding: 0.5rem 0.75rem;
+      line-height: 1;
+    }
+    .time-pill.time-pill-vip:hover:not(:disabled):not(.selected) {
+      border-color: #F59E0B;
+      color: #78350F;
+      background: linear-gradient(135deg, rgba(254,243,199,0.98), rgba(253,224,71,0.75));
+    }
 
     /* Animations */
     @keyframes fadeUp {
@@ -283,13 +313,6 @@
       backdrop-filter: blur(16px);
       border-bottom: 1px solid rgba(255,255,255,0.05);
     }
-    /* Calendar nav buttons disabled state */
-    #calPrevBtn:disabled, #calNextBtn:disabled {
-      opacity: 0.2;
-      cursor: default;
-      pointer-events: none;
-    }
-
     /* ════════ AURA · Tema claro (igual al diseño del local) ════════ */
     /* Solo afecta al tenant Aura — el resto conserva su tema oscuro.   */
     :is(.tenant-aura,.tenant-latincaribe) {
@@ -374,14 +397,14 @@
     :is(.tenant-aura,.tenant-latincaribe) .cat-pill.active { color: #111827 !important; border-color: #111827 !important; background: rgba(17,24,39,0.06) !important; }
 
     /* Calendario */
-    :is(.tenant-aura,.tenant-latincaribe) #calPrevBtn,
-    :is(.tenant-aura,.tenant-latincaribe) #calNextBtn { background: #FFFFFF !important; border-color: #E5E7EB !important; color: #374151 !important; }
-    :is(.tenant-aura,.tenant-latincaribe) #monthText { color: #374151 !important; }
-    :is(.tenant-aura,.tenant-latincaribe) #weekGrid > div:first-child span { color: #9CA3AF !important; }
-    :is(.tenant-aura,.tenant-latincaribe) .week-day-btn { color: #9CA3AF !important; }
-    :is(.tenant-aura,.tenant-latincaribe) .week-day-btn.available { background: #FFFFFF !important; border-color: #E5E7EB !important; color: #374151 !important; }
-    :is(.tenant-aura,.tenant-latincaribe) .week-day-btn.active { background: #111827 !important; border-color: #111827 !important; color: #FFFFFF !important; }
-    :is(.tenant-aura,.tenant-latincaribe) .week-day-btn .today-label { color: #111827 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) #currentMonthText { color: #374151 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .day-btn { background: #FFFFFF !important; border-color: #E5E7EB !important; color: #374151 !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .day-btn .day-label { color: #9CA3AF !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .day-btn .day-num { color: #18181B !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .day-btn.active { background: #111827 !important; border-color: #111827 !important; color: #FFFFFF !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .day-btn.active .day-label,
+    :is(.tenant-aura,.tenant-latincaribe) .day-btn.active .day-num { color: #FFFFFF !important; }
+    :is(.tenant-aura,.tenant-latincaribe) .day-btn .today-label { color: #111827 !important; }
 
     /* Pills de hora */
     :is(.tenant-aura,.tenant-latincaribe) .time-pill { background: #FFFFFF !important; border-color: #E5E7EB !important; color: #374151 !important; }
@@ -450,23 +473,21 @@
       font-weight: 700 !important;
     }
 
-    .tenant-sionbarberia #calPrevBtn,
-    .tenant-sionbarberia #calNextBtn { background: #141414 !important; border-color: rgba(212,175,55,0.20) !important; color: #D4AF37 !important; }
-    .tenant-sionbarberia #calPrevBtn:hover:not(:disabled),
-    .tenant-sionbarberia #calNextBtn:hover:not(:disabled) { background: rgba(212,175,55,0.10) !important; border-color: rgba(212,175,55,0.45) !important; }
-    .tenant-sionbarberia #monthText { color: #FAFAFA !important; letter-spacing: 0.08em; }
-    .tenant-sionbarberia #weekGrid > div:first-child span { color: rgba(212,175,55,0.55) !important; letter-spacing: 0.14em; }
-    .tenant-sionbarberia .week-day-btn { color: rgba(255,255,255,0.35) !important; }
-    .tenant-sionbarberia .week-day-btn.available { background: #131313 !important; border-color: rgba(212,175,55,0.15) !important; color: #FAFAFA !important; }
-    .tenant-sionbarberia .week-day-btn.available:hover { border-color: rgba(212,175,55,0.45) !important; }
-    .tenant-sionbarberia .week-day-btn.active {
+    .tenant-sionbarberia #currentMonthText { color: #FAFAFA !important; letter-spacing: 0.08em; }
+    .tenant-sionbarberia .day-btn { background: #131313 !important; border-color: rgba(212,175,55,0.15) !important; color: #FAFAFA !important; }
+    .tenant-sionbarberia .day-btn:hover { border-color: rgba(212,175,55,0.45) !important; }
+    .tenant-sionbarberia .day-btn .day-label { color: rgba(212,175,55,0.55) !important; letter-spacing: 0.14em; }
+    .tenant-sionbarberia .day-btn .day-num { color: #FAFAFA !important; }
+    .tenant-sionbarberia .day-btn.active {
       background: linear-gradient(180deg,#e0bc46,#c9a12c) !important;
       border-color: #D4AF37 !important;
       color: #0a0a0a !important;
       box-shadow: 0 0 18px rgba(212,175,55,0.35) !important;
       font-weight: 800 !important;
     }
-    .tenant-sionbarberia .week-day-btn .today-label { color: #D4AF37 !important; }
+    .tenant-sionbarberia .day-btn .today-label { color: #D4AF37 !important; }
+    .tenant-sionbarberia .day-btn.active .day-label,
+    .tenant-sionbarberia .day-btn.active .day-num { color: #0a0a0a !important; }
 
     .tenant-sionbarberia .time-pill { background: #131313 !important; border-color: rgba(212,175,55,0.15) !important; color: #FAFAFA !important; }
     .tenant-sionbarberia .time-pill:hover { border-color: rgba(212,175,55,0.50) !important; background: rgba(212,175,55,0.08) !important; }
@@ -745,43 +766,24 @@
     <section id="step2" class="hidden opacity-0">
       <h2 class="text-2xl font-bold mb-5 tracking-tight" style="color:var(--accent);">Selecciona fecha y hora</h2>
 
-      <!-- Month navigation -->
-      <div id="calNavRow" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:0.75rem;">
-        <button id="calPrevBtn" onclick="calNavMonth(-1)" style="
-          display:flex; align-items:center; justify-content:center;
-          width:2rem; height:2rem; border-radius:0.5rem;
-          border:1.5px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.03);
-          color:rgba(255,255,255,0.6); cursor:pointer;
-          -webkit-tap-highlight-color:transparent; transition:opacity 0.2s;">
-          <i class="ph-bold ph-caret-left" style="font-size:0.875rem;"></i>
-        </button>
-        <span id="monthText" style="font-size:0.875rem; font-weight:700; color:rgba(255,255,255,0.6); letter-spacing:0.02em;"></span>
-        <button id="calNextBtn" onclick="calNavMonth(1)" style="
-          display:flex; align-items:center; justify-content:center;
-          width:2rem; height:2rem; border-radius:0.5rem;
-          border:1.5px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.03);
-          color:rgba(255,255,255,0.6); cursor:pointer;
-          -webkit-tap-highlight-color:transparent; transition:opacity 0.2s;">
-          <i class="ph-bold ph-caret-right" style="font-size:0.875rem;"></i>
-        </button>
-      </div>
-
-      <!-- Week grid -->
-      <div id="weekGrid" class="mb-6">
-        <div style="display:grid;grid-template-columns:repeat(7,1fr);margin-bottom:0.5rem;text-align:center;">
-          <span style="font-size:10px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,0.2);">L</span>
-          <span style="font-size:10px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,0.2);">M</span>
-          <span style="font-size:10px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,0.2);">M</span>
-          <span style="font-size:10px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,0.2);">J</span>
-          <span style="font-size:10px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,0.2);">V</span>
-          <span style="font-size:10px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,0.2);">S</span>
-          <span style="font-size:10px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,0.2);">D</span>
+      <!-- Carrusel horizontal de fechas — tarjetas LUN 6, MAR 7, etc. -->
+      <div class="mb-6">
+        <div class="flex items-center justify-between mb-3">
+          <h3 id="currentMonthText" class="text-sm font-bold uppercase tracking-widest" style="color:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.6);"></h3>
         </div>
-        <div id="daysGrid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:0.375rem;"></div>
+        <div id="calendarCarousel" class="flex gap-2.5 overflow-x-auto pb-3 no-scrollbar -mx-6 px-6 scroll-smooth"></div>
       </div>
 
-      <!-- Hours grid -->
-      <div id="hoursSection"></div>
+      <!-- Smart slots (horas recomendadas) — se rellena dinamicamente si hay slots libres -->
+      <div id="smartSlotsContainer" class="hidden mb-6"></div>
+
+      <!-- Grid continuo de horas disponibles (sin dividers Manana/Tarde/Noche).
+           La nota VIP y la nota de recargo horario se inyectan como primeros hijos
+           por renderHours() cuando aplican. -->
+      <div>
+        <h3 class="font-semibold text-white/80 mb-3 text-sm">Horas disponibles</h3>
+        <div id="hoursSection"></div>
+      </div>
     </section>
 
     <!-- STEP 3: Confirmar -->
@@ -1001,7 +1003,6 @@
   let _bloqueosProximos = {};   // { 'YYYY-MM-DD': true }
   let _unsubSlotLocks = null;
   let _toastTimer = null;
-  let _calendarOffset = 0;     // months offset from current month
 
   /* ── Utilities ──────────────────────────────────────────────────── */
   function slugify(str) {
@@ -1053,8 +1054,15 @@
     const dow = new Date(_selectedDate + 'T12:00:00').getDay();
     return _getRecargoHorario(dow, parseInt(_selectedTime, 10));
   }
+  // Recargo VIP: si el slot seleccionado tiene el flag `esSobrecupo`, sumamos
+  // el monto declarado (viene ya calculado desde el backend/tramosVip).
+  function _recargoVip() {
+    return _selectedSlotInfo && _selectedSlotInfo.esSobrecupo
+      ? (Number(_selectedSlotInfo.recargo) || 0)
+      : 0;
+  }
   function _precioEfectivo() {
-    return (Number(_selectedService && _selectedService.precio) || 0) + _recargoActual();
+    return (Number(_selectedService && _selectedService.precio) || 0) + _recargoActual() + _recargoVip();
   }
 
   function updateRecap() {
@@ -1241,12 +1249,15 @@
     } catch(e) { /* silent */ }
   }
 
+  // Carrusel horizontal de fechas: itera los próximos 60 días, agregando solo
+  // los que el barbero trabaja (activo en su horario semanal) y no bloqueados,
+  // hasta acumular 20 tarjetas. Reemplaza al calendario mensual tradicional.
   function renderCalendar() {
-    const today  = new Date();
-    const cfg    = _barberConfig || _fsConfig;
-    // Días que realmente trabaja el barbero: se derivan de su horario semanal
-    // (panel Equipo → horario[dia].activo). Solo si no hay horario configurado se
-    // usa diasLaborales / el default Lun–Sáb, para no dejar el calendario vacío.
+    const carousel = document.getElementById('calendarCarousel');
+    carousel.innerHTML = '';
+    const today = new Date();
+    const cfg   = _barberConfig || _fsConfig;
+
     let diasLaborales;
     if (cfg?.horario && typeof cfg.horario === 'object') {
       diasLaborales = Object.keys(cfg.horario)
@@ -1256,100 +1267,55 @@
     } else {
       diasLaborales = cfg?.diasLaborales ?? [1,2,3,4,5,6];
     }
-    const diasBloq      = cfg?.diasBloqueados ?? [];
+    const diasBloq = cfg?.diasBloqueados ?? [];
+
+    const DAYS_OF_WEEK = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
     const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
                     'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    document.getElementById('currentMonthText').textContent =
+      `${MONTHS[today.getMonth()]} ${today.getFullYear()}`;
+
     const todayStr = dateToStr(today);
+    let firstSelectableStr = null;
+    let daysAdded = 0, offset = 0;
 
-    // Target month from offset
-    const target      = new Date(today.getFullYear(), today.getMonth() + _calendarOffset, 1);
-    const targetYear  = target.getFullYear();
-    const targetMonth = target.getMonth();
+    while (daysAdded < 20 && offset < 60) {
+      const d = new Date(today);
+      d.setDate(today.getDate() + offset);
+      offset++;
 
-    // Update label and nav buttons
-    document.getElementById('monthText').textContent =
-      `${MONTHS[targetMonth]} ${targetYear}`;
-    document.getElementById('calPrevBtn').disabled = _calendarOffset === 0;
-    document.getElementById('calNextBtn').disabled = _calendarOffset >= 2;
+      const str = dateToStr(d);
+      const dw  = d.getDay();
+      const isWorkday = diasLaborales.includes(dw);
+      const isBlocked = diasBloq.includes(str) || !!_bloqueosProximos[str];
+      if (!isWorkday || isBlocked) continue;
 
-    // Grid start: Monday on or before 1st of month
-    const firstOfMonth = new Date(targetYear, targetMonth, 1);
-    const dow1 = firstOfMonth.getDay();
-    const gridStart = new Date(firstOfMonth);
-    gridStart.setDate(1 - (dow1 === 0 ? 6 : dow1 - 1));
+      if (!firstSelectableStr) firstSelectableStr = str;
+      const isActive = _selectedDate === str || (!_selectedDate && str === firstSelectableStr);
+      const todayMark = str === todayStr ? `<span class="today-label">hoy</span>` : '';
 
-    // Grid end: Sunday on or after last day of month
-    const lastOfMonth = new Date(targetYear, targetMonth + 1, 0);
-    const dowL = lastOfMonth.getDay();
-    const gridEnd = new Date(lastOfMonth);
-    gridEnd.setDate(lastOfMonth.getDate() + (dowL === 0 ? 0 : 7 - dowL));
-
-    // Build all cells
-    const cells = [];
-    for (let d = new Date(gridStart); d <= gridEnd; d.setDate(d.getDate() + 1)) {
-      cells.push(new Date(d));
+      carousel.insertAdjacentHTML('beforeend',
+        `<button type="button" onclick="handleDayClick(this,'${str}')"
+           class="day-btn${isActive ? ' active' : ''}" data-date="${str}">
+          ${todayMark}
+          <span class="day-label">${DAYS_OF_WEEK[dw]}</span>
+          <span class="day-num">${d.getDate()}</span>
+        </button>`);
+      daysAdded++;
     }
 
-    let firstAvailableStr = null;
-    // Descriptor por celda: solo se MUESTRAN los días seleccionables. Los días
-    // pasados / no laborables / bloqueados quedan como celda vacía (no se ven),
-    // conservando la alineación de columnas L-M-M-J-V-S-D.
-    const cellData = cells.map(date => {
-      const str            = dateToStr(date);
-      const dw             = date.getDay();
-      const isCurrentMonth = date.getMonth() === targetMonth;
-      const isPast         = str < todayStr;
-      const isWorkday      = diasLaborales.includes(dw);
-      const isBlocked      = diasBloq.includes(str) || !!_bloqueosProximos[str];
-      const isAvailable    = isCurrentMonth && !isPast && isWorkday && !isBlocked;
-      return { str, num: date.getDate(), isAvailable, isToday: str === todayStr };
-    });
-
-    // Agrupar en semanas (filas de 7) y descartar las semanas iniciales/finales
-    // sin ningún día disponible, para no dejar filas vacías arriba/abajo.
-    const weeks = [];
-    for (let i = 0; i < cellData.length; i += 7) weeks.push(cellData.slice(i, i + 7));
-    while (weeks.length && !weeks[0].some(c => c.isAvailable)) weeks.shift();
-    while (weeks.length && !weeks[weeks.length - 1].some(c => c.isAvailable)) weeks.pop();
-
-    const html = weeks.flat().map(c => {
-      if (!c.isAvailable) {
-        return `<div class="week-day-btn empty" aria-hidden="true"></div>`;
-      }
-      if (!firstAvailableStr) firstAvailableStr = c.str;
-      const isActive  = c.str === _selectedDate;
-      const todayMark = c.isToday ? `<span class="today-label">hoy</span>` : '';
-      return `<button onclick="handleDayClick(this,'${c.str}')"
-        class="week-day-btn available${isActive ? ' active' : ''}"
-        data-date="${c.str}">${todayMark}${c.num}</button>`;
-    }).join('');
-
-    document.getElementById('daysGrid').innerHTML = html;
-
-    // Keep or reset selected date
-    if (firstAvailableStr && (!_selectedDate || !document.querySelector(`.week-day-btn[data-date="${_selectedDate}"]`))) {
-      _selectedDate = firstAvailableStr;
-      const btn = document.querySelector(`.week-day-btn[data-date="${_selectedDate}"]`);
-      if (btn) btn.classList.add('active');
-    }
-  }
-
-  function calNavMonth(dir) {
-    _calendarOffset = Math.max(0, Math.min(2, _calendarOffset + dir));
-    _selectedTime = null;
-    updateContinueBtn();
-    renderCalendar();
-    if (_selectedDate) {
-      renderHours();
-      subscribeSlotLocks(_selectedDate);
+    // Si no había fecha seleccionada, tomamos la primera disponible.
+    if (firstSelectableStr && (!_selectedDate || !carousel.querySelector(`.day-btn[data-date="${_selectedDate}"]`))) {
+      _selectedDate = firstSelectableStr;
     }
   }
 
   function handleDayClick(btn, dateStr) {
-    document.querySelectorAll('.week-day-btn.available').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('#calendarCarousel .day-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     _selectedDate = dateStr;
     _selectedTime = null;
+    _selectedSlotInfo = null;
     updateContinueBtn();
     renderHours();
     subscribeSlotLocks(dateStr);
@@ -1361,6 +1327,122 @@
   const _hoursCache = new Map();
   function _hoursCacheKey(date, dur) { return `${date}__${dur}`; }
 
+  // Metadata del slot seleccionado (VIP/recargo). null cuando el slot es normal.
+  let _selectedSlotInfo = null;
+
+  // ── VIP helpers (mismo contrato que index.html multi-barbero) ──
+  // Devuelve `{ allowVipOverbook, tramosVip, vipRecargo }` o null si el barbero
+  // no ofrece VIP para este servicio.
+  function _computeVipOptsSingle() {
+    if (!_barber || !_barber.permitirSobrecupoPublico) return null;
+    const tramos = Array.isArray(_barber.tramosVip) ? _barber.tramosVip : [];
+    if (!tramos.length) return null;
+    const svcRecargo = Number(_selectedService?.recargoSobrecupoDefault) || 0;
+    return {
+      allowVipOverbook: true,
+      tramosVip: tramos,
+      vipRecargo: svcRecargo || 5000,
+    };
+  }
+
+  // Estilo VIP inline compartido con index.html.
+  const _VIP_STYLE = 'border-color:#FCD34D; background:linear-gradient(135deg,rgba(254,243,199,0.92),rgba(253,224,71,0.55)); color:#78350F;';
+  const _vipLabel = (time, recargo) => {
+    const rTxt = recargo > 0 ? `VIP +$${Math.round(recargo).toLocaleString('es-CL')}` : 'VIP';
+    return `<span style="display:inline-flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;gap:2px;">`
+         +   `<span style="display:inline-flex;align-items:center;gap:4px;line-height:1;">`
+         +     `<i class="ph-fill ph-lightning" style="font-size:12px;color:#B45309;"></i>`
+         +     `<span style="font-weight:700;letter-spacing:0.01em;">${time}</span>`
+         +   `</span>`
+         +   `<span style="font-size:9.5px;font-weight:700;letter-spacing:0.02em;color:#92400E;line-height:1.1;">${rTxt}</span>`
+         + `</span>`;
+  };
+
+  // Smart Slots — copia adaptada del multi-tenant (index.html). Elige las 3
+  // primeras horas libres (no ocupadas) y las expone destacadas para el usuario
+  // apurado. Reutiliza los mismos branches por tenant (Aura, BM, Infinity)
+  // para mantener consistencia visual.
+  function _renderSmartSlots(hours) {
+    const container = document.getElementById('smartSlotsContainer');
+    if (!container) return;
+
+    const avail = (hours || []).filter(h => !h.occupied);
+    if (avail.length < 3) { container.innerHTML = ''; container.classList.add('hidden'); return; }
+
+    const recs = avail.slice(0, 3);
+    const isAura = ['aura','latincaribe','yugen','sionbarberia'].includes(window.CURRENT_TENANT_ID);
+    const isBM   = window.CURRENT_TENANT_ID === 'elbarberomoderno';
+    const isInfinity = window.CURRENT_TENANT_ID === 'infinity';
+
+    let wrapperStyle, iconColor, titleStyle, bodyColor, pillStyle, pillOver, pillOut;
+    if (isInfinity) {
+      wrapperStyle = 'background:#F5F5F5;border-color:#E0E0E0;box-shadow:none;';
+      iconColor    = '#000000';
+      titleStyle   = 'color:#000000;';
+      bodyColor    = '#555555';
+      pillStyle    = 'background:#FFFFFF;border-color:#E5E5E5;color:#000000;';
+      pillOver     = `this.style.borderColor='#000000';`;
+      pillOut      = `if(!this.dataset.active){this.style.background='#FFFFFF';this.style.borderColor='#E5E5E5';this.style.color='#000000';}`;
+    } else if (isBM) {
+      wrapperStyle = 'background:#141414;border-color:#333333;box-shadow:0 4px 18px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.03);';
+      iconColor    = '#E0E0E0';
+      titleStyle   = 'color:#FFFFFF;';
+      bodyColor    = 'rgba(255,255,255,0.65)';
+      pillStyle    = 'background:#0f0f0f;border-color:#3A3A3A;color:#FFFFFF;';
+      pillOver     = `this.style.background='#1a1a1a';this.style.borderColor='#C0C0C0';this.style.boxShadow='0 0 12px rgba(192,192,192,0.15)';`;
+      pillOut      = `if(!this.dataset.active){this.style.background='#0f0f0f';this.style.borderColor='#3A3A3A';this.style.boxShadow='none';}`;
+    } else if (isAura) {
+      wrapperStyle = 'background:linear-gradient(135deg,rgba(255,255,255,0.7) 0%,rgba(243,244,246,0.8) 100%);border-color:rgba(17,24,39,0.12);box-shadow:0 4px 18px rgba(0,0,0,0.03),inset 0 1px 0 rgba(255,255,255,0.8);';
+      iconColor    = '#FF8EA6';
+      titleStyle   = 'color:#111827;';
+      bodyColor    = '#52525B';
+      pillStyle    = 'background:#FFFFFF;border-color:rgba(17,24,39,0.15);color:#111827;';
+      pillOver     = `this.style.background='rgba(17,24,39,0.04)';this.style.borderColor='rgba(17,24,39,0.3)';`;
+      pillOut      = `if(!this.dataset.active){this.style.background='#FFFFFF';this.style.borderColor='rgba(17,24,39,0.15)';this.style.boxShadow='none';}`;
+    } else {
+      // Default: acento dorado del tenant (misma paleta que Elegance/etc).
+      wrapperStyle = 'background:linear-gradient(135deg,rgba(251,191,36,0.08) 0%,rgba(245,158,11,0.12) 50%,rgba(217,119,6,0.06) 100%);border-color:rgba(251,191,36,0.30);box-shadow:0 0 20px rgba(251,191,36,0.06),inset 0 1px 0 rgba(255,255,255,0.04);';
+      iconColor    = '#FBBF24';
+      titleStyle   = 'background:linear-gradient(90deg,#FBBF24,#F59E0B,#D97706);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;';
+      bodyColor    = 'rgba(255,255,255,0.65)';
+      pillStyle    = 'background:rgba(251,191,36,0.08);border-color:rgba(251,191,36,0.25);color:#FBBF24;';
+      pillOver     = `this.style.background='rgba(251,191,36,0.18)';this.style.borderColor='rgba(251,191,36,0.5)';this.style.boxShadow='0 0 12px rgba(251,191,36,0.15)';`;
+      pillOut      = `if(!this.dataset.active){this.style.background='rgba(251,191,36,0.08)';this.style.borderColor='rgba(251,191,36,0.25)';this.style.boxShadow='none';}`;
+    }
+
+    container.innerHTML = `
+      <div class="p-4 rounded-2xl border transition-all relative overflow-hidden animate-[fadeUp_0.4s_ease-out_forwards]"
+           style="${wrapperStyle}">
+        <p class="text-xs font-bold uppercase tracking-wider mb-2.5 flex items-center gap-1.5" style="${titleStyle}">
+          <i class="ph-fill ph-lightning text-sm" style="color:${iconColor};"></i> Horas recomendadas (Smart Slots)
+        </p>
+        <p class="text-xs mb-3.5" style="color:${bodyColor};font-weight:500;">
+          ¿Tienes prisa? Agenda al instante uno de estos bloques recomendados para hoy:
+        </p>
+        <div class="grid grid-cols-3 gap-2.5">
+          ${recs.map(r => `
+            <button onclick="_selectSmartSlot('${r.time}')"
+              class="smart-slot-pill py-2.5 px-3 rounded-xl border text-xs font-bold text-center transition-all focus:outline-none active:scale-95"
+              style="${pillStyle}"
+              onmouseover="${pillOver}" onmouseout="${pillOut}">${r.time}</button>
+          `).join('')}
+        </div>
+      </div>`;
+    container.classList.remove('hidden');
+  }
+
+  // Al hacer click en un Smart Slot: buscar la .time-pill correspondiente en
+  // el grid principal y disparar su selección normal (para preservar toda la
+  // lógica de VIP/recargo/updateRecap).
+  window._selectSmartSlot = (time) => {
+    const pill = [...document.querySelectorAll('#hoursSection .time-pill')]
+      .find(p => (p.dataset.time || '').trim() === time);
+    if (pill && !pill.disabled) {
+      pill.click();
+      pill.scrollIntoView({ behavior:'smooth', block:'nearest' });
+    }
+  };
+
   async function renderHours() {
     if (!_selectedService) return;
     const section = document.getElementById('hoursSection');
@@ -1371,18 +1453,17 @@
       section.innerHTML = `<div class="flex flex-wrap gap-2 mt-2">
         ${[1,2,3,4,5].map(i => `<div class="h-10 w-20 bg-white/5 rounded-xl animate-pulse opacity-${100-i*15}"></div>`).join('')}
       </div>`;
+      document.getElementById('smartSlotsContainer').classList.add('hidden');
     }
 
     const cfg = _barberConfig || _fsConfig;
+    const vipOpts = _computeVipOptsSingle();
     let hours = cached;
     if (!hours) {
       try {
         hours = await FDB.getHorasDisponibles(
-          _selectedDate, _selectedService.duracion, cfg, _barberoId
+          _selectedDate, _selectedService.duracion, cfg, _barberoId, vipOpts
         );
-        // Cache:
-        //   - 10s si es hoy (los slots futuros expiran rápido)
-        //   - 60s para fechas futuras (cambios externos raros)
         const _now = new Date();
         const _todayStr = `${_now.getFullYear()}-${String(_now.getMonth()+1).padStart(2,'0')}-${String(_now.getDate()).padStart(2,'0')}`;
         const ttl = _selectedDate === _todayStr ? 10000 : 60000;
@@ -1417,56 +1498,96 @@
           <p class="text-sm text-white/40">No hay horas disponibles</p>
           <p class="text-xs text-white/20">Prueba con otro día</p>
         </div>`;
+      document.getElementById('smartSlotsContainer').classList.add('hidden');
       return;
     }
 
+    // Smart Slots por encima del grid.
+    _renderSmartSlots(hours);
+
     const _dow = new Date(_selectedDate + 'T12:00:00').getDay();
     const _hayRecargo = hours.some(h => _getRecargoHorario(_dow, parseInt(h.time, 10)) > 0);
+    const _hayVip     = hours.some(h => h.esSobrecupo);
 
-    const groups = [
-      { label: 'Mañana', hours: hours.filter(h => parseInt(h.time) < 12) },
-      { label: 'Tarde',  hours: hours.filter(h => { const hr = parseInt(h.time); return hr >= 12 && hr < 18; }) },
-      { label: 'Noche',  hours: hours.filter(h => parseInt(h.time) >= 18) },
-    ];
+    // Nota VIP con contraste alto (texto slate-800 sobre fondo cream).
+    const avisoVip = _hayVip
+      ? `<div class="flex items-start gap-2 mb-4 px-3 py-2.5 rounded-xl text-[11.5px] leading-snug" style="background:rgba(245,158,11,0.14);border:1px solid rgba(245,158,11,0.45);color:#1e293b;font-weight:500;">
+           <i class="ph-fill ph-lightning text-sm shrink-0 mt-0.5" style="color:#B45309;"></i>
+           <span>Los cupos <b style="color:#78350F;font-weight:800;">⚡ VIP</b> son <b style="color:#0f172a;">sobrecupos</b> o <b style="color:#0f172a;">horarios fuera de turno</b> — el barbero los atiende con un <b style="color:#0f172a;">recargo extra</b> que se suma al servicio.</span>
+         </div>`
+      : '';
 
-    const aviso = _hayRecargo
+    const avisoRec = _hayRecargo
       ? `<div class="flex items-start gap-2 mb-4 px-3 py-2.5 rounded-xl text-[11px] leading-snug" style="background:rgba(192,57,43,0.08);border:1px solid rgba(192,57,43,0.25);color:#e08e86;">
            <i class="ph-fill ph-info text-sm shrink-0 mt-0.5" style="color:#c0392b;"></i>
            <span>Las horas marcadas con <b style="color:#c0392b;">+$</b> tienen un recargo que se suma al total del servicio.</span>
          </div>`
       : '';
 
-    section.innerHTML = aviso + groups.filter(g => g.hours.length).map(g => `
-      <div class="mb-5">
-        <p class="text-xs font-bold uppercase tracking-widest mb-3" style="color:rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.5);">${g.label}</p>
-        <div class="flex flex-wrap gap-2 items-start">
-          ${g.hours.map(h => {
-            const occupied = h.occupied;
-            const rec = _getRecargoHorario(_dow, parseInt(h.time, 10));
-            return `<button onclick="${occupied ? '' : `selectTime(this,'${h.time}')`}"
-              class="time-pill text-center"
-              ${occupied ? 'disabled' : ''}
-              data-time="${h.time}">
-              ${h.time}${rec > 0 ? `<span class="block text-[9px] font-bold leading-none mt-0.5" style="color:#c0392b;">+$${rec.toLocaleString('es-CL')}</span>` : ''}
-            </button>`;
-          }).join('')}
-        </div>
-      </div>
-    `).join('');
+    // Grid continuo (sin dividers Mañana/Tarde/Noche).
+    const pillsHtml = hours.map(h => {
+      const rec = _getRecargoHorario(_dow, parseInt(h.time, 10));
+      const badgeRec = rec > 0
+        ? `<span class="block text-[9px] font-bold leading-none mt-0.5" style="color:#c0392b;">+$${rec.toLocaleString('es-CL')}</span>`
+        : '';
+      if (h.occupied) {
+        return `<button class="time-pill text-center" disabled data-time="${h.time}">${h.time}${badgeRec}</button>`;
+      }
+      if (h.esSobrecupo) {
+        const recargo = Math.round(Number(h.recargo) || 0);
+        const heFlag = h.horarioEspecial ? '1' : '0';
+        const tip = h.horarioEspecial ? 'Cupo especial fuera de turno (VIP)' : 'Sobrecupo VIP con recargo';
+        return `<button title="${tip}" class="time-pill time-pill-vip text-center"
+          data-time="${h.time}"
+          data-es-sobrecupo="1" data-recargo="${recargo}" data-horario-especial="${heFlag}"
+          onclick="selectTime(this,'${h.time}', { esSobrecupo:true, recargo:${recargo}, horarioEspecial:${h.horarioEspecial ? 'true' : 'false'} })">${_vipLabel(h.time, recargo)}${badgeRec}</button>`;
+      }
+      return `<button class="time-pill text-center" data-time="${h.time}"
+        onclick="selectTime(this,'${h.time}')">${h.time}${badgeRec}</button>`;
+    }).join('');
+
+    section.innerHTML = avisoVip + avisoRec + `<div class="flex flex-wrap gap-2 items-start">${pillsHtml}</div>`;
   }
 
-  function selectTime(btn, time) {
+  function selectTime(btn, time, slotInfo) {
+    // Reset de todas las píldoras. Las píldoras VIP recuperan su fondo cream
+    // inline; las normales quedan limpias para que .selected pise correctamente.
     document.querySelectorAll('.time-pill').forEach(el => {
       el.classList.remove('selected');
-      el.style.background = '';
-      el.style.color = '';
-      el.style.borderColor = '';
+      if (el !== btn && el.dataset.esSobrecupo === '1') {
+        el.style.cssText = _VIP_STYLE;
+      } else if (el !== btn) {
+        el.style.background = '';
+        el.style.color = '';
+        el.style.borderColor = '';
+      }
     });
+    // Al seleccionar, limpiamos inline para que .selected (con !important)
+    // pise cualquier estilo VIP heredado.
+    btn.style.cssText = '';
     btn.classList.add('selected');
+
+    // Metadata del slot: VIP viene por argumento o por dataset (Smart Slot click).
+    if (slotInfo && slotInfo.esSobrecupo) {
+      _selectedSlotInfo = {
+        esSobrecupo: true,
+        recargo: Number(slotInfo.recargo) || 0,
+        horarioEspecial: !!slotInfo.horarioEspecial,
+      };
+    } else if (btn.dataset.esSobrecupo === '1') {
+      _selectedSlotInfo = {
+        esSobrecupo: true,
+        recargo: Number(btn.dataset.recargo) || 0,
+        horarioEspecial: btn.dataset.horarioEspecial === '1',
+      };
+    } else {
+      _selectedSlotInfo = null;
+    }
+
     _selectedTime = time;
     updateContinueBtn();
     updateRecap();
-    // Pulse the continue button to draw attention
+
     const continueBtn = document.getElementById('btnContinue');
     if (continueBtn) {
       continueBtn.classList.remove('btn-callout');
@@ -1521,7 +1642,9 @@
       if (_unsubSlotLocks) { _unsubSlotLocks(); _unsubSlotLocks = null; }
       document.getElementById('clubBanner').classList.remove('hidden');
       document.getElementById('serviceChip').classList.add('hidden');
-      _calendarOffset = 0;
+      // Al volver a step 1 limpiamos el smart-slots container y el estado VIP.
+      document.getElementById('smartSlotsContainer').classList.add('hidden');
+      _selectedSlotInfo = null;
       showFullHero();
       transitionStep(2, 1, true);
       currentStep = 1;
