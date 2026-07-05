@@ -7842,6 +7842,9 @@
     let currentStep = 1;
     let selectedServiceObj = null;
     let selectedTimeStr = null;
+    // Slot VIP seleccionado por el cliente (paso 3). Cuando existe, el paso 4
+    // aplica el recargo y el checkout marca la cita como sobrecupo público.
+    let _selectedSlotInfo = null; // { esSobrecupo, recargo, horarioEspecial, availableBarberoIds? }
     let currentDateStr = "";
     let isTransitioning = false;
     let _fsProducts = [];
@@ -8164,6 +8167,12 @@
       if (selectedTimeStr && currentDateStr) {
         const [y, m, d] = currentDateStr.split('-');
         parts.push(`<span class="flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/5 border border-white/10"><i class="ph ph-clock text-[10px]"></i>${d}/${m} ${selectedTimeStr}</span>`);
+        // Chip VIP: aparece junto a la hora cuando el cliente eligió un cupo VIP.
+        if (_selectedSlotInfo && _selectedSlotInfo.esSobrecupo) {
+          const rec = Math.round(Number(_selectedSlotInfo.recargo) || 0);
+          const label = _selectedSlotInfo.horarioEspecial ? 'VIP After-Hours' : 'VIP Sobrecupo';
+          parts.push(`<span class="flex items-center gap-1 px-2 py-0.5 rounded-full" style="background:rgba(212,175,55,0.14);border:1px solid rgba(212,175,55,0.5);color:#f5e7a7;font-weight:700;"><i class="ph-fill ph-lightning text-[10px]"></i>${label}${rec > 0 ? ` +$${rec.toLocaleString('es-CL')}` : ''}</span>`);
+        }
       }
       if (parts.length) {
         el.innerHTML = parts.join('');
@@ -8921,7 +8930,7 @@
       const _radioFill = _isMapuSel ? '#BFA37E' : _isChameleonSel ? '#c9a84c' : '#D4AF37';
       if (selRadio) { selRadio.style.background = _radioFill; selRadio.style.borderColor = _radioFill; }
 
-      if (window._selectedBarberId !== id) selectedTimeStr = null;
+      if (window._selectedBarberId !== id) { selectedTimeStr = null; _selectedSlotInfo = null; }
       window._selectedBarber = nombre;
       window._selectedBarberId = id;
       document.getElementById('summaryBarber').textContent = id === 'any' ? 'Sin preferencia' : nombre;
@@ -9162,6 +9171,7 @@
           } else if (prevTime) {
             // La hora fue tomada por otro cliente
             selectedTimeStr = null;
+            _selectedSlotInfo = null;
             updateContinueBtn();
             showToast('La hora que elegiste fue tomada. Selecciona otra.');
           }
@@ -9196,6 +9206,7 @@
 
       currentDateStr = dateStr;
       selectedTimeStr = null;
+      _selectedSlotInfo = null;
       _updatePriceTags(new Date(dateStr + 'T00:00:00').getDay());
       renderHours(_activeBarberConfig);
       _subscribeSlotLocks(dateStr);
@@ -9233,6 +9244,29 @@
       // debe bloquear 60' para que el siguiente cliente no pise tu cita.
       const _duracionTotal = (selectedServiceObj.duracion || 0)
         + (selectedAddons || []).reduce((sum, a) => sum + (a.duracion || 0), 0);
+
+      // Recargo VIP por sobrecupo público: el default viene del servicio y solo
+      // aplica cuando el barbero lo tiene habilitado. Si el servicio no lo
+      // configuró y el barbero sí ofrece VIP, caemos a 5.000 CLP como fallback
+      // (mismo umbral usado en el panel interno).
+      const _vipRecargoSvc = Number(
+        (selectedServiceObj && selectedServiceObj.recargoSobrecupoDefault) || 0
+      ) || 0;
+      const _selBarberoDoc = window._selectedBarberId && window._selectedBarberId !== 'any'
+        ? (_fsBarberos || []).find(b => b.id === window._selectedBarberId)
+        : null;
+      const _vipOptsSingle = _selBarberoDoc && _selBarberoDoc.permitirSobrecupoPublico
+        ? {
+            allowVipOverbook: true,
+            afterHoursHasta: _selBarberoDoc.afterHoursHasta || '',
+            vipRecargo: _vipRecargoSvc || 5000,
+          }
+        : null;
+      const _anyBarberoAllowsVip = (_fsBarberos || []).some(b => b.permitirSobrecupoPublico);
+      const _vipOptsMulti = _anyBarberoAllowsVip
+        ? { allowVipOverbook: true, vipRecargo: _vipRecargoSvc || 5000 }
+        : null;
+
       let hours = [];
       let lastErr;
       for (let attempt = 0; attempt < 3; attempt++) {
@@ -9240,10 +9274,10 @@
           if (attempt > 0) await new Promise(r => setTimeout(r, 800 * attempt));
           if (window._selectedBarberId === 'any') {
             const _barberosActivos = (_activeBarberos && _activeBarberos.length) ? _activeBarberos : _fsBarberos;
-            hours = await FDB.getHorasDisponiblesMulti(currentDateStr, _duracionTotal, settings, _barberosActivos);
+            hours = await FDB.getHorasDisponiblesMulti(currentDateStr, _duracionTotal, settings, _barberosActivos, _vipOptsMulti);
             _multiHoras = hours;
           } else {
-            hours = await FDB.getHorasDisponibles(currentDateStr, _duracionTotal, settings, window._selectedBarberId || null);
+            hours = await FDB.getHorasDisponibles(currentDateStr, _duracionTotal, settings, window._selectedBarberId || null, _vipOptsSingle);
           }
           lastErr = null;
           break;
@@ -9312,6 +9346,23 @@
         grid.appendChild(nota);
       }
 
+      // Nota VIP (una sola vez) si hay cupos VIP disponibles: le explica al
+      // cliente por qué algunas horas aparecen destacadas con un recargo.
+      if (hours.some(h => h.esSobrecupo)) {
+        const notaVip = document.createElement('div');
+        notaVip.className = 'col-span-full w-full mb-3 flex items-start gap-2 rounded-xl px-3 py-2.5';
+        notaVip.style.cssText = 'background:rgba(212,175,55,0.10);border:1px solid rgba(212,175,55,0.35);';
+        notaVip.innerHTML = `<i class="ph-fill ph-lightning" style="color:#D4AF37;font-size:14px;margin-top:1px;flex-shrink:0;"></i><p style="font-size:11.5px;line-height:1.4;color:rgba(255,255,255,0.82);">Los cupos <b style="color:#D4AF37;">⚡ VIP</b> son <b>sobrecupos</b> o <b>horarios fuera de turno</b> — el barbero los atiende con un <b>recargo extra</b> que se suma al servicio.</p>`;
+        grid.appendChild(notaVip);
+      }
+
+      // Estilo VIP compartido (Elegance y no-Elegance): borde dorado + tinte.
+      const _VIP_STYLE = 'border-color: rgba(212,175,55,0.85); background: linear-gradient(135deg, rgba(212,175,55,0.14), rgba(212,175,55,0.06)); color:#f5e7a7;';
+      const _vipLabel = (time, recargo) => {
+        const rTxt = recargo > 0 ? ` (VIP +$${Math.round(recargo).toLocaleString('es-CL')})` : ' (VIP)';
+        return `<span style="display:inline-flex;align-items:center;gap:3px;justify-content:center;"><i class="ph-fill ph-lightning" style="font-size:12px;color:#D4AF37;"></i>${time}<span style="font-size:10px;font-weight:800;letter-spacing:0.02em;">${rTxt}</span></span>`;
+      };
+
       if (_isEleganceHr) {
         const hourGroups = [
           { label: 'Mañana', hours: hours.filter(h => parseInt(h.time) < 12) },
@@ -9332,10 +9383,19 @@
               pill.disabled = true;
               pill.className = 'slot-pill-busy w-full px-3 py-2.5 rounded-xl border text-sm font-medium';
               pill.textContent = h.time;
+            } else if (h.esSobrecupo) {
+              pill.className = 'time-pill time-pill-vip w-full px-3 py-2.5 rounded-xl border text-sm font-semibold transition-[border-color,color,background] active:scale-95 focus:outline-none';
+              pill.style.cssText = _VIP_STYLE;
+              pill.setAttribute('title', h.horarioEspecial ? 'Cupo especial fuera de turno (VIP)' : 'Sobrecupo VIP con recargo');
+              pill.dataset.esSobrecupo = '1';
+              pill.dataset.recargo = String(Math.round(Number(h.recargo) || 0));
+              pill.dataset.horarioEspecial = h.horarioEspecial ? '1' : '0';
+              pill.innerHTML = _vipLabel(h.time, Number(h.recargo) || 0);
+              pill.onclick = () => selectTime(pill, h.time, h);
             } else {
               pill.className = 'time-pill w-full px-3 py-2.5 rounded-xl border text-sm transition-[border-color,color,background] active:scale-95 focus:outline-none';
               pill.textContent = h.time;
-              pill.onclick = () => selectTime(pill, h.time);
+              pill.onclick = () => selectTime(pill, h.time, h);
             }
             if (badge) {
               const cell = document.createElement('div');
@@ -9354,6 +9414,11 @@
           const badge = _recBadge(h.time);
           if (h.occupied) {
             grid.innerHTML += `<div><button disabled class="slot-pill-busy w-full py-4 rounded-2xl border text-[15px] font-medium text-center">${h.time}</button>${badge}</div>`;
+          } else if (h.esSobrecupo) {
+            const recargo = Math.round(Number(h.recargo) || 0);
+            const heFlag = h.horarioEspecial ? '1' : '0';
+            const tip = h.horarioEspecial ? 'Cupo especial fuera de turno (VIP)' : 'Sobrecupo VIP con recargo';
+            grid.innerHTML += `<div><button title="${tip}" data-es-sobrecupo="1" data-recargo="${recargo}" data-horario-especial="${heFlag}" onclick="selectTime(this, '${h.time}', { esSobrecupo:true, recargo:${recargo}, horarioEspecial:${h.horarioEspecial ? 'true' : 'false'} })" class="time-pill time-pill-vip w-full py-4 rounded-2xl border text-[15px] font-semibold text-center transition-[border-color,color,background] active:scale-95 focus:outline-none" style="${_VIP_STYLE}">${_vipLabel(h.time, recargo)}</button>${badge}</div>`;
           } else {
             grid.innerHTML += `<div><button onclick="selectTime(this, '${h.time}')" class="time-pill w-full py-4 rounded-2xl border text-[15px] text-center transition-[border-color,color,background] active:scale-95 focus:outline-none">${h.time}</button>${badge}</div>`;
           }
@@ -9486,7 +9551,7 @@
       updateSelectionRecap();
     }
 
-    function selectTime(btn, time) {
+    function selectTime(btn, time, slotInfo) {
       const tid = window.CURRENT_TENANT_ID || 'elegance';
 
       // Reset TODAS las píldoras al estado disponible
@@ -9498,6 +9563,27 @@
         el.style.removeProperty('--ps-sh');
         el.removeAttribute('data-sel');
       });
+
+      // Guardar metadata VIP del slot elegido. Si no viene por parámetro,
+      // lo reconstruimos desde los data-attrs del botón (fallback para el
+      // render con onclick inline en no-Elegance).
+      if (slotInfo && slotInfo.esSobrecupo) {
+        _selectedSlotInfo = {
+          esSobrecupo: true,
+          recargo: Math.round(Number(slotInfo.recargo) || 0),
+          horarioEspecial: !!slotInfo.horarioEspecial,
+          availableBarberoIds: slotInfo.availableBarberoIds || null,
+        };
+      } else if (btn && btn.dataset && btn.dataset.esSobrecupo === '1') {
+        _selectedSlotInfo = {
+          esSobrecupo: true,
+          recargo: Math.round(Number(btn.dataset.recargo) || 0),
+          horarioEspecial: btn.dataset.horarioEspecial === '1',
+          availableBarberoIds: null,
+        };
+      } else {
+        _selectedSlotInfo = null;
+      }
 
       // Colores de selección por tenant
       const SEL = {
@@ -9632,6 +9718,7 @@
           if (summaryBarberEl) summaryBarberEl.textContent = primerBarbero ? primerBarbero.nombre : 'Sin preferencia';
           const barId = primerBarbero ? primerBarbero.id : null;
           selectedTimeStr = null;
+          _selectedSlotInfo = null;
           if (barId) {
             const [barCfg] = await Promise.all([
               FDB.getConfigBarbero(barId),
@@ -9665,6 +9752,7 @@
         if (!window._selectedBarberId) return showToast("Elige un barbero o selecciona 'Sin preferencia'.");
         const barId = window._selectedBarberId === 'any' ? null : window._selectedBarberId;
         selectedTimeStr = null;
+        _selectedSlotInfo = null;
         if (barId) {
           const [barCfg] = await Promise.all([
             FDB.getConfigBarbero(barId),
@@ -9696,11 +9784,13 @@
 
         let serviceNameText = selectedServiceObj.nombre;
         const _dowSel = new Date(currentDateStr + 'T00:00:00').getDay();
-        let totalCost = _getPrecioEfectivo(selectedServiceObj, _dowSel) || 0;
+        // Precio base (sin recargos): sirve como referencia para el desglose VIP.
+        const _precioServicioBase = _getPrecioEfectivo(selectedServiceObj, _dowSel) || 0;
+        const _precioAddons = (selectedAddons || []).reduce((sum, a) => sum + a.precio, 0);
+        let totalCost = _precioServicioBase + _precioAddons;
 
         if (selectedAddons && selectedAddons.length > 0) {
           serviceNameText += " + " + selectedAddons.map(a => a.nombre).join(" + ");
-          totalCost += selectedAddons.reduce((sum, a) => sum + a.precio, 0);
         }
 
         // Recargo por horario (día + hora seleccionada) — transparente al cliente.
@@ -9710,10 +9800,66 @@
           serviceNameText += ` · +$${_recargoSel.toLocaleString('es-CL')} por horario`;
         }
 
+        // Recargo VIP por sobrecupo público (fijado en el paso 3).
+        const _recargoVipSel = _selectedSlotInfo && _selectedSlotInfo.esSobrecupo
+          ? Math.round(Number(_selectedSlotInfo.recargo) || 0)
+          : 0;
+        if (_recargoVipSel > 0) totalCost += _recargoVipSel;
+
         document.getElementById('summaryService').innerText = serviceNameText;
         document.getElementById('summaryPrice').innerText = "$" + totalCost.toLocaleString('es-CL');
         document.getElementById('summaryDateString').innerText = currentDateStr;
         document.getElementById('summaryTime').innerText = selectedTimeStr;
+
+        // Desglose VIP debajo del resumen: se inyecta/limpia dinámicamente
+        // (el nodo se crea la primera vez y queda cacheado hasta el próximo paso 4).
+        (function renderVipBreakdown() {
+          let vipEl = document.getElementById('summaryVipBreakdown');
+          if (_recargoVipSel <= 0) {
+            if (vipEl) vipEl.remove();
+            return;
+          }
+          if (!vipEl) {
+            vipEl = document.createElement('div');
+            vipEl.id = 'summaryVipBreakdown';
+            const priceEl = document.getElementById('summaryPrice');
+            const anchor = priceEl && priceEl.closest ? priceEl.closest('div') : null;
+            const parent = (anchor && anchor.parentNode) || priceEl?.parentNode;
+            if (parent) parent.appendChild(vipEl);
+          }
+          const heTag = _selectedSlotInfo.horarioEspecial
+            ? '<span style="font-size:9px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase;color:#0a0807;background:#D4AF37;padding:2px 5px;border-radius:4px;">After-hours</span>'
+            : '<span style="font-size:9px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase;color:#0a0807;background:#D4AF37;padding:2px 5px;border-radius:4px;">Sobrecupo</span>';
+          vipEl.innerHTML = `
+            <div style="margin-top:10px;padding:10px 12px;border:1px solid rgba(212,175,55,0.35);background:linear-gradient(135deg,rgba(212,175,55,0.10),rgba(212,175,55,0.03));border-radius:12px;">
+              <div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#D4AF37;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:8px;">
+                <i class="ph-fill ph-lightning"></i> Cupo VIP ${heTag}
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:12.5px;color:rgba(255,255,255,0.72);margin-bottom:4px;">
+                <span>Servicio (${(selectedServiceObj.nombre || '').replace(/</g, '&lt;')})</span>
+                <span style="color:#fff;font-weight:600;">$${_precioServicioBase.toLocaleString('es-CL')}</span>
+              </div>
+              ${_precioAddons > 0 ? `
+              <div style="display:flex;justify-content:space-between;font-size:12.5px;color:rgba(255,255,255,0.72);margin-bottom:4px;">
+                <span>Servicios extra</span>
+                <span style="color:#fff;font-weight:600;">$${_precioAddons.toLocaleString('es-CL')}</span>
+              </div>` : ''}
+              ${_recargoSel > 0 ? `
+              <div style="display:flex;justify-content:space-between;font-size:12.5px;color:rgba(255,255,255,0.72);margin-bottom:4px;">
+                <span>Recargo horario pico</span>
+                <span style="color:#fff;font-weight:600;">+$${_recargoSel.toLocaleString('es-CL')}</span>
+              </div>` : ''}
+              <div style="display:flex;justify-content:space-between;font-size:12.5px;font-weight:700;color:#f5e7a7;margin-bottom:6px;">
+                <span>Recargo Cupo VIP / After-Hours</span>
+                <span>+$${_recargoVipSel.toLocaleString('es-CL')}</span>
+              </div>
+              <div style="height:1px;background:rgba(212,175,55,0.25);margin:6px 0;"></div>
+              <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:900;color:#fff;">
+                <span>Total a Pagar</span>
+                <span>$${totalCost.toLocaleString('es-CL')}</span>
+              </div>
+            </div>`;
+        })();
 
         // Recalcula el resumen sumando los productos del cross-sell. Se vuelve a
         // llamar cada vez que el cliente añade/quita un producto.
@@ -10113,6 +10259,13 @@
         const _PAGO_TENANTS = ['yugen'];
         if (_PAGO_TENANTS.includes(window.CURRENT_TENANT_ID)) {
           const _dowPago = new Date(currentDateStr + 'T00:00:00').getDay();
+          // Precio base sin recargo VIP: sirve como precioBase histórico.
+          const _basePrecioPago = (_getPrecioEfectivo(selectedServiceObj, _dowPago) || 0)
+            + selectedAddons.reduce((sum, a) => sum + a.precio, 0)
+            + _getRecargoHorario(_dowPago, parseInt(selectedTimeStr, 10));
+          const _esSobrecupoPub = !!(_selectedSlotInfo && _selectedSlotInfo.esSobrecupo);
+          const _recargoVipPago = _esSobrecupoPub ? Math.round(Number(_selectedSlotInfo.recargo) || 0) : 0;
+          const _totalPago = _basePrecioPago + _recargoVipPago;
           const _citaPago = {
             fecha:            currentDateStr,
             hora:             selectedTimeStr,
@@ -10122,11 +10275,23 @@
             servicioId:       selectedServiceObj.id,
             servicioNombre:   selectedServiceObj.nombre + (selectedAddons.length > 0 ? " + " + selectedAddons.map(a => a.nombre).join(" + ") : ""),
             duracionServicio: selectedServiceObj.duracion + selectedAddons.reduce((sum, a) => sum + a.duracion, 0),
-            precio:           (_getPrecioEfectivo(selectedServiceObj, _dowPago) || 0) + selectedAddons.reduce((sum, a) => sum + a.precio, 0) + _getRecargoHorario(_dowPago, parseInt(selectedTimeStr, 10)),
+            precio:           _totalPago,   // total a cobrar por la pasarela (== precioTotal)
             barbero:          barberoNombreFinal,
             barberoId:        barberoIdFinal,
             codigoCita:       window._generarCodigoCita(),
             ...(window._selectedSucursal ? { sucursalId: window._selectedSucursal.id, sucursalNombre: window._selectedSucursal.nombre } : {}),
+            // ── Sobrecupo VIP público ──
+            // La CF confirma el pago con estos flags → cita queda marcada como
+            // sobrecupo, con precioBase/recargoSobrecupo/precioTotal desglosado
+            // y `slotLockId:null` (regla invariante) al ser un doble-booking.
+            ...(_esSobrecupoPub ? {
+              sobrecupo:         true,
+              horarioEspecial:   !!_selectedSlotInfo.horarioEspecial,
+              precioBase:        _basePrecioPago,
+              recargoSobrecupo:  _recargoVipPago,
+              precioTotal:       _totalPago,
+              slotLockId:        null,
+            } : {}),
           };
           const _btnPago = document.getElementById('btnContinue');
           const _btnHtmlPrev = _btnPago ? _btnPago.innerHTML : '';
@@ -10169,6 +10334,7 @@
               } else if (_data && _data.error === 'slot-taken') {
                 showToast('Esa hora fue tomada por otro cliente. Por favor elige otro horario.');
                 selectedTimeStr = null;
+                _selectedSlotInfo = null;
                 transitionStep(4, 3); currentStep = 3; updateProgress(); updateContinueBtn();
                 renderHours(_activeBarberConfig); _subscribeSlotLocks(currentDateStr);
                 if (_btnPago) { _btnPago.disabled = false; _btnPago.innerHTML = _btnHtmlPrev; }
@@ -10210,6 +10376,13 @@
 
         if (!citaGuardada) {
         try {
+          const _dowAdd = new Date(currentDateStr + 'T00:00:00').getDay();
+          const _basePrecioAdd = (_getPrecioEfectivo(selectedServiceObj, _dowAdd) || 0)
+            + selectedAddons.reduce((sum, a) => sum + a.precio, 0)
+            + _getRecargoHorario(_dowAdd, parseInt(selectedTimeStr, 10));
+          const _esSobrecupoAdd = !!(_selectedSlotInfo && _selectedSlotInfo.esSobrecupo);
+          const _recargoVipAdd = _esSobrecupoAdd ? Math.round(Number(_selectedSlotInfo.recargo) || 0) : 0;
+          const _totalAdd = _basePrecioAdd + _recargoVipAdd;
           await FDB.addCita({
             fecha:            currentDateStr,
             hora:             selectedTimeStr,
@@ -10218,7 +10391,7 @@
             clienteEmail:     email,
             servicioNombre:   selectedServiceObj.nombre + (selectedAddons.length > 0 ? " + " + selectedAddons.map(a => a.nombre).join(" + ") : ""),
             duracionServicio: selectedServiceObj.duracion + selectedAddons.reduce((sum, a) => sum + a.duracion, 0),
-            precio:           (_getPrecioEfectivo(selectedServiceObj, new Date(currentDateStr + 'T00:00:00').getDay()) || 0) + selectedAddons.reduce((sum, a) => sum + a.precio, 0) + _getRecargoHorario(new Date(currentDateStr + 'T00:00:00').getDay(), parseInt(selectedTimeStr, 10)),
+            precio:           _totalAdd,   // total (== precioTotal) — compat con Caja/Comisiones/Métricas
             barbero:          barberoNombreFinal,
             barberoId:        barberoIdFinal,
             codigoCita:       window._generarCodigoCita(),
@@ -10229,12 +10402,24 @@
             ...(_selectedProducts.length ? {
               productosReservados: _selectedProducts.map(p => ({ nombre: p.nombre, precio: Number(p.precio) || 0 })),
             } : {}),
+            // ── Sobrecupo VIP público (sin pasarela) ──
+            // slotLockId:null respeta la regla invariante; asegurar-slot no le
+            // creará candado porque `sobrecupo:true` lo excluye del debeTenerLock.
+            ...(_esSobrecupoAdd ? {
+              sobrecupo:         true,
+              horarioEspecial:   !!_selectedSlotInfo.horarioEspecial,
+              precioBase:        _basePrecioAdd,
+              recargoSobrecupo:  _recargoVipAdd,
+              precioTotal:       _totalAdd,
+              slotLockId:        null,
+            } : {}),
           });
           citaGuardada = true;
         } catch(e) {
           if (e.code === 'slot-taken') {
             showToast('Esa hora fue tomada por otro cliente. Por favor elige otro horario.');
             selectedTimeStr = null;
+            _selectedSlotInfo = null;
             transitionStep(4, 3);
             currentStep = 3;
             updateProgress();

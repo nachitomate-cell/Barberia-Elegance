@@ -77,13 +77,19 @@ async function mpRequest(method, endpoint, token, { body, idempotencyKey } = {})
 
 // ── Monto a cobrar: se recalcula server-side para evitar manipulación ───────
 //  base = precio del servicio en Firestore; + recargo por horario (config).
+//  + recargo VIP si es un sobrecupo (evita que un atacante envíe
+//  `sobrecupo:true` con precio bajo para saltarse el cobro extra).
 //  Se acepta el precio enviado por el cliente solo si es >= piso razonable.
 async function calcularMonto(tid, cita) {
   let base = 0;
+  let recargoSobrecupoDefault = 0;
   try {
     if (cita.servicioId) {
       const svc = await serviciosCol(tid).doc(String(cita.servicioId)).get();
-      if (svc.exists) base = Number(svc.data().precio) || 0;
+      if (svc.exists) {
+        base = Number(svc.data().precio) || 0;
+        recargoSobrecupoDefault = Math.max(0, Math.round(Number(svc.data().recargoSobrecupoDefault) || 0));
+      }
     }
   } catch (e) { logger.warn('[MP] no se pudo leer servicio', e.message); }
 
@@ -99,10 +105,17 @@ async function calcularMonto(tid, cita) {
     }
   } catch (e) { logger.warn('[MP] no se pudo leer recargo', e.message); }
 
+  // Recargo VIP: si la reserva viene marcada como sobrecupo, agregamos como
+  // piso el default del servicio (o el mínimo histórico de 5.000 CLP).
+  let recargoVip = 0;
+  if (cita && cita.sobrecupo === true) {
+    recargoVip = recargoSobrecupoDefault > 0 ? recargoSobrecupoDefault : 5000;
+  }
+
   const enviado = Math.round(Number(cita.precio) || 0);
-  // Cobramos al menos base+recargo recalculado server-side (evita manipulación a
-  // la baja) y honramos precios legítimamente mayores (addons / precio por día).
-  return Math.max(enviado, base + recargo, 500);
+  // Cobramos al menos base+recargo+recargoVip recalculado server-side (evita
+  // manipulación a la baja) y honramos precios legítimamente mayores.
+  return Math.max(enviado, base + recargo + recargoVip, 500);
 }
 
 // ════════════════════════════════════════════════════════════════════════════

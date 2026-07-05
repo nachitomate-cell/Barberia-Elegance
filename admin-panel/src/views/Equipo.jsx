@@ -83,6 +83,8 @@ const BARBER_EMPTY = {
   serviciosIds: [],
   horario: DEFAULT_HORARIO(),
   ausencias: [],
+  permitirSobrecupoPublico: false,
+  afterHoursHasta: '',
 };
 
 function localDateStr() {
@@ -741,6 +743,8 @@ export default function Equipo() {
       serviciosIds: b.serviciosIds || [],
       horario:      initHorario(b),
       ausencias:    b.ausencias    || [],
+      permitirSobrecupoPublico: !!b.permitirSobrecupoPublico,
+      afterHoursHasta: b.afterHoursHasta || '',
     });
     setUploadError('');
     setResetMsg('');
@@ -1325,6 +1329,48 @@ export default function Equipo() {
                     </label>
                   );
                 })}
+              </div>
+            )}
+          </Section>
+
+          {/* ── Sobrecupos VIP en agenda pública ── */}
+          <Section title="Sobrecupos VIP en agenda pública" Icon={Clock}>
+            <p className="text-[10px] text-slate-500 -mt-1 mb-2">
+              Permite que los clientes reserven <span className="text-amber-400">cupos VIP</span> sobre horarios
+              ocupados o fuera del turno normal, cobrando un recargo extra por servicio.
+            </p>
+            <button type="button"
+              onClick={() => set('permitirSobrecupoPublico', !form.permitirSobrecupoPublico)}
+              className={`flex items-center gap-2 w-full px-3 py-2.5 rounded-lg border text-sm font-semibold transition-colors ${
+                form.permitirSobrecupoPublico
+                  ? 'bg-amber-500/10 border-amber-500/40 text-amber-300'
+                  : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-600'
+              }`}>
+              <span className={`w-8 h-4 rounded-full transition-colors relative ${form.permitirSobrecupoPublico ? 'bg-amber-500' : 'bg-slate-600'}`}>
+                <span className={`absolute top-0.5 w-3 h-3 bg-white rounded-full shadow transition-all ${form.permitirSobrecupoPublico ? 'left-4' : 'left-0.5'}`} />
+              </span>
+              Ofrecer Sobrecupos VIP en Agenda Pública
+            </button>
+            {form.permitirSobrecupoPublico && (
+              <div className="mt-3 rounded-xl border border-amber-500/25 bg-amber-500/[0.05] p-3 space-y-2">
+                <label className="block text-[10px] font-bold uppercase tracking-widest text-amber-300/80">
+                  Rango horario after-hours extendido
+                  <span className="ml-1 text-slate-500 normal-case tracking-normal font-normal">(opcional)</span>
+                </label>
+                <input
+                  type="time"
+                  step="900"
+                  value={form.afterHoursHasta}
+                  onChange={e => set('afterHoursHasta', e.target.value)}
+                  className={field}
+                  placeholder="21:00"
+                />
+                <p className="text-[11px] text-slate-500 leading-normal">
+                  Hasta qué hora aceptas cupos VIP fuera de tu turno normal. Si cierras a las 20:00 y
+                  pones 21:00, el cliente podrá reservar en 20:00, 20:15, 20:30, 20:45 y 21:00
+                  con recargo automático. Deja en blanco para permitir solo sobrecupos sobre
+                  horarios ya ocupados.
+                </p>
               </div>
             )}
           </Section>

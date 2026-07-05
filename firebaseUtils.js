@@ -490,9 +490,16 @@ const FDB = (() => {
     const startMin = toMins(cita.hora);
     const dur = Number(cita.duracionServicio) || 30;
 
+    // Sobrecupo público: un cliente reservó un cupo VIP (opt-in del barbero).
+    // Regla invariante: NUNCA toma un slotLock propio — se apoya en el lock de
+    // la cita "dueña" del slot si hay una, o simplemente vive sin candado si
+    // es after-hours. Saltamos el pre-check de conflict porque el sobrecupo
+    // se agenda a sabiendas de que puede haber otra cita en ese horario.
+    const esSobrecupo = cita.sobrecupo === true;
+
     // Re-check overlap usando slotLocks (lectura pública, a diferencia de citas).
     // Se generan las horas a verificar: ventana de ±2h alrededor del slot pedido.
-    if (cita.barberoId) {
+    if (cita.barberoId && !esSobrecupo) {
       const fromMin = m => `${Math.floor(m/60).toString().padStart(2,'0')}:${(m%60).toString().padStart(2,'0')}`;
       const checkHoras = [];
       for (let m = Math.max(0, startMin - 120); m < startMin + dur + 120; m += 30) checkHoras.push(fromMin(m));
@@ -544,11 +551,22 @@ const FDB = (() => {
       barberoId:        cita.barberoId        || null,
       estado:           'Confirmada',
       nota:             '',
-      origen:           cita.origen || 'reserva_online',
+      origen:           cita.origen || (esSobrecupo ? 'reserva_online_sobrecupo' : 'reserva_online'),
       codigoCita:       codigoCitaFinal,
-      slotLockId:       cita.barberoId ? lockId : null,
+      // Sobrecupo público: slotLockId:null siempre (regla invariante). Para
+      // cita normal se referencia el lock que crearemos en la transacción.
+      slotLockId:       esSobrecupo ? null : (cita.barberoId ? lockId : null),
       creadoEn:         firebase.firestore.FieldValue.serverTimestamp(),
     };
+    // Desglose del cupo VIP: se persiste tal cual lo mandó el cliente
+    // (validado en el front porque el motor de disponibilidad lo emitió).
+    if (esSobrecupo) {
+      citaData.sobrecupo        = true;
+      citaData.horarioEspecial  = !!cita.horarioEspecial;
+      if (cita.precioBase        != null) citaData.precioBase        = Number(cita.precioBase)       || 0;
+      if (cita.recargoSobrecupo  != null) citaData.recargoSobrecupo  = Number(cita.recargoSobrecupo) || 0;
+      if (cita.precioTotal       != null) citaData.precioTotal       = Number(cita.precioTotal)      || 0;
+    }
     if (cita.sucursalId)     citaData.sucursalId     = cita.sucursalId;
     if (cita.sucursalNombre) citaData.sucursalNombre = cita.sucursalNombre;
     // Productos reservados en el cross-sell del paso final (entrega/pago presencial).
@@ -559,7 +577,7 @@ const FDB = (() => {
       }));
     }
 
-    if (cita.barberoId) {
+    if (cita.barberoId && !esSobrecupo) {
       try {
         await db.runTransaction(async (tx) => {
           const lockSnap = await tx.get(lockRef);
@@ -821,7 +839,12 @@ const FDB = (() => {
      ────────────────────────────────────────────────────────────── */
   // Legacy: el flujo publico multi-tenant usa BookingService.getAvailableSlots().
   // Se mantiene temporalmente para compatibilidad con paneles existentes.
-  async function getHorasDisponibles(fecha, duracionServicio, configOverride = null, barberoId = null) {
+  // vipOpts (opcional): { allowVipOverbook: bool, afterHoursHasta: 'HH:MM', vipRecargo: number }
+  //   allowVipOverbook: convierte slots ocupados en cupos VIP y estira el
+  //     rango hasta afterHoursHasta. Solo se activa cuando el barbero tiene
+  //     `permitirSobrecupoPublico: true`; sin él, el comportamiento es el
+  //     histórico (occupied se muestra deshabilitado, sin after-hours).
+  async function getHorasDisponibles(fecha, duracionServicio, configOverride = null, barberoId = null, vipOpts = null) {
     let cfg;
     try { cfg = configOverride || await getConfig(); } catch(e) { cfg = _defaultConfig(); }
 
@@ -906,15 +929,30 @@ const FDB = (() => {
     const slots = [];
     let cur = ini;
 
-    while (cur + parseInt(duracionServicio) <= fin) {
+    // Sobrecupos VIP: si el barbero permite reservas VIP en la agenda pública,
+    // extendemos el rango hasta `afterHoursHasta` para ofrecer cupos fuera del
+    // turno normal, y los slots que caigan ocupados se marcan como VIP en vez
+    // de deshabilitados.
+    const allowVip = !!(vipOpts && vipOpts.allowVipOverbook);
+    const vipRecargo = allowVip ? (Number(vipOpts.vipRecargo) || 0) : 0;
+    let finEff = fin;
+    if (allowVip && vipOpts.afterHoursHasta) {
+      const afterMins = toMins(vipOpts.afterHoursHasta);
+      if (Number.isFinite(afterMins) && afterMins > fin) finEff = afterMins;
+    }
+
+    while (cur + parseInt(duracionServicio) <= finEff) {
+      const esAfterHours = cur >= fin;
       // Saltar colación: excluye slots que empiezan O que se extienden dentro del bloque
-      if (col) {
+      // (los after-hours quedan fuera del rango de colación por definición).
+      if (col && !esAfterHours) {
         const colS = toMins(col.inicio), colE = toMins(col.fin);
         if (cur < colE && (cur + parseInt(duracionServicio)) > colS) { cur += interval; continue; }
       }
       // Saltar descansos del día (panel): omite slots que solapan algún descanso
-      if (descansoRanges.some(r => cur < r.end && (cur + parseInt(duracionServicio)) > r.start)) { cur += interval; continue; }
-      // Saltar bloqueo manual: omite el slot si el servicio solaparía el rango
+      if (!esAfterHours && descansoRanges.some(r => cur < r.end && (cur + parseInt(duracionServicio)) > r.start)) { cur += interval; continue; }
+      // Saltar bloqueo manual (aplica tanto al rango normal como al after-hours):
+      // si el dueño bloqueó ese horario expresamente, no ofrecemos ni siquiera VIP.
       const bloqueado = rangosBloq.some(r =>
         cur < r.end && (cur + parseInt(duracionServicio)) > r.start
       );
@@ -923,7 +961,20 @@ const FDB = (() => {
       const occupied = ocupados.some(o =>
         cur < o.end && (cur + parseInt(duracionServicio)) > o.start
       );
-      slots.push({ time: fromMin(cur), occupied });
+
+      if (allowVip && (occupied || esAfterHours)) {
+        // Cupo VIP: sobrecupo sobre horario ocupado o after-hours. No lo
+        // marcamos occupied porque debe ser clickable para el cliente.
+        slots.push({
+          time: fromMin(cur),
+          occupied: false,
+          esSobrecupo: true,
+          recargo: vipRecargo,
+          horarioEspecial: esAfterHours,
+        });
+      } else {
+        slots.push({ time: fromMin(cur), occupied });
+      }
       cur += interval;
     }
     return slots;
@@ -932,7 +983,9 @@ const FDB = (() => {
   // Calcula slots disponibles considerando TODOS los barberos.
   // Un slot es disponible si al menos un barbero está libre en ese horario.
   // Retorna los slots con { time, occupied, availableBarberoIds[] }.
-  async function getHorasDisponiblesMulti(fecha, duracionServicio, configOverride = null, barberos = []) {
+  // vipOpts (opcional): igual que en getHorasDisponibles. El recargo debe ser
+  // uniforme para todos los barberos del set (viene del servicio elegido).
+  async function getHorasDisponiblesMulti(fecha, duracionServicio, configOverride = null, barberos = [], vipOpts = null) {
     let cfg;
     try { cfg = configOverride || await getConfig(); } catch(e) { cfg = _defaultConfig(); }
 
@@ -1024,10 +1077,29 @@ const FDB = (() => {
       .filter(b => !b.todo_el_dia && !b.barberoId && b.hora_inicio && b.hora_fin)
       .map(b => ({ start: toMins(b.hora_inicio), end: toMins(b.hora_fin) }));
 
+    // ── Sobrecupos VIP ──
+    // Si algún barbero del set permite VIP, estiramos el fin del rango hasta
+    // el mayor `afterHoursHasta` declarado, y los slots ocupados/after-hours
+    // se ofrecen como cupos VIP disponibles (recargo aplicado por el cliente).
+    const allowVip = !!(vipOpts && vipOpts.allowVipOverbook);
+    const vipRecargo = allowVip ? (Number(vipOpts.vipRecargo) || 0) : 0;
+    const vipBarberoIds = new Set();
+    let globalFinEff = globalFin;
+    if (allowVip) {
+      for (const barbero of barberos) {
+        if (!barbero || !barbero.permitirSobrecupoPublico) continue;
+        vipBarberoIds.add(barbero.id);
+        const ah = barbero.afterHoursHasta ? toMins(barbero.afterHoursHasta) : null;
+        if (Number.isFinite(ah) && ah > globalFinEff) globalFinEff = ah;
+      }
+    }
+    const anyVipEnabled = allowVip && vipBarberoIds.size > 0;
+
     const result = [];
 
-    for (let cur = globalIni; cur + dur <= globalFin; cur += interval) {
-      if (col && !anyDescansos) {
+    for (let cur = globalIni; cur + dur <= globalFinEff; cur += interval) {
+      const esAfterHours = cur >= globalFin;
+      if (col && !anyDescansos && !esAfterHours) {
         const colS = toMins(col.inicio), colE = toMins(col.fin);
         if (cur < colE && (cur + dur) > colS) continue;
       }
@@ -1035,6 +1107,7 @@ const FDB = (() => {
       if (globalBlocked) continue;
 
       const availableBarberoIds = [];
+      const vipAvailableIds = [];
 
       for (const barbero of barberos) {
         if (todosBloqueos.some(b => b.todo_el_dia && b.barberoId === barbero.id)) continue;
@@ -1056,7 +1129,14 @@ const FDB = (() => {
           bIni = toMins(dc.inicio || cfg.horarioInicio || '09:00');
           bFin = toMins(dc.fin    || cfg.horarioFin    || '20:00');
         }
-        if (cur < bIni || cur + dur > bFin) continue; // fuera del horario del barbero
+        const esVipBarbero = vipBarberoIds.has(barbero.id);
+        const afterMinsB = esVipBarbero && barbero.afterHoursHasta ? toMins(barbero.afterHoursHasta) : null;
+        const bFinExt = Number.isFinite(afterMinsB) && afterMinsB > bFin ? afterMinsB : bFin;
+        // Fuera del turno normal — se acepta si el barbero permite VIP y cae
+        // dentro de su ventana after-hours.
+        if (cur < bIni || cur + dur > bFinExt) continue;
+        const fueraDeTurno = cur >= bFin;
+        if (fueraDeTurno && !esVipBarbero) continue;
 
         // Descansos del día de este barbero (panel → horario[dia].descansos)
         let barDescansos = [];
@@ -1065,7 +1145,7 @@ const FDB = (() => {
         const barDescRanges = (Array.isArray(barDescansos) ? barDescansos : [])
           .filter(d => d && d.inicio && d.fin)
           .map(d => ({ start: toMins(d.inicio), end: toMins(d.fin) }));
-        if (barDescRanges.some(r => cur < r.end && (cur + dur) > r.start)) continue; // barbero en descanso
+        if (!fueraDeTurno && barDescRanges.some(r => cur < r.end && (cur + dur) > r.start)) continue;
 
         const barBloqs = todosBloqueos
           .filter(b => !b.todo_el_dia && b.barberoId === barbero.id && b.hora_inicio && b.hora_fin)
@@ -1078,12 +1158,38 @@ const FDB = (() => {
           ...(oldSlotsByBarbero.get(barbero.id) || []),
         ].map(s => ({ start: toMins(s.hora), end: toMins(s.hora) + (Number(s.duracion) || 30) }));
 
-        if (barSlots.some(o => cur < o.end && (cur + dur) > o.start)) continue;
+        const solapa = barSlots.some(o => cur < o.end && (cur + dur) > o.start);
+        if (solapa) {
+          // Barbero ocupado en ese slot. Solo cuenta como VIP si permite sobrecupos públicos.
+          if (esVipBarbero) vipAvailableIds.push(barbero.id);
+          continue;
+        }
 
-        availableBarberoIds.push(barbero.id);
+        if (fueraDeTurno) {
+          // Libre pero fuera de turno → VIP para este barbero.
+          vipAvailableIds.push(barbero.id);
+        } else {
+          availableBarberoIds.push(barbero.id);
+        }
       }
 
-      result.push({ time: fromMin(cur), occupied: availableBarberoIds.length === 0, availableBarberoIds });
+      if (availableBarberoIds.length > 0) {
+        result.push({ time: fromMin(cur), occupied: false, availableBarberoIds });
+      } else if (anyVipEnabled && vipAvailableIds.length > 0) {
+        result.push({
+          time: fromMin(cur),
+          occupied: false,
+          esSobrecupo: true,
+          recargo: vipRecargo,
+          horarioEspecial: esAfterHours,
+          availableBarberoIds: vipAvailableIds,
+        });
+      } else if (!esAfterHours) {
+        // Sin VIP y sin disponibles: se conserva como ocupado (histórico).
+        result.push({ time: fromMin(cur), occupied: true, availableBarberoIds: [] });
+      }
+      // After-hours sin VIP no se emite → mantiene la agenda pública normal
+      // exactamente igual que antes cuando no hay opt-in.
     }
 
     return result;
