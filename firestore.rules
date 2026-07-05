@@ -242,6 +242,33 @@ service cloud.firestore {
       allow write: if esAdmin('elegance');
     }
 
+    // ── /redemptions ───────────────────────────────────────────────
+    // Canjes efímeros generados por el cliente (QR/PIN 15 min).
+    // El cliente solo puede crear con su uid, status=pending y validando
+    // que tiene saldo. Puede cancelar los suyos mientras estén pendientes.
+    // Staff/admin: lectura y escritura completa (aprueba el canje).
+    match /redemptions/{docId} {
+      allow read: if autenticado() && (
+        resource.data.userId == uid() || esStaff('elegance')
+      );
+      allow create: if autenticado()
+                    && request.resource.data.userId == uid()
+                    && request.resource.data.status == 'pending'
+                    && request.resource.data.token is string
+                    && request.resource.data.costoSellos is number
+                    && get(/databases/$(database)/documents/users/$(uid())).data.get('sellosDisponibles', 0)
+                       >= request.resource.data.costoSellos;
+      allow update: if autenticado() && (
+        // Cliente cancela lo suyo (solo pending → cancelled)
+        (resource.data.userId == uid()
+         && resource.data.status == 'pending'
+         && request.resource.data.status == 'cancelled'
+         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'cancelledAt']))
+        || esStaff('elegance')
+      );
+      allow delete: if esAdmin('elegance');
+    }
+
     // ── /productos ─────────────────────────────────────────────────
     match /productos/{docId} {
       allow read: if true;
@@ -859,6 +886,28 @@ service cloud.firestore {
       match /premios/{docId} {
         allow read: if true;
         allow write: if esAdmin(tid);
+      }
+
+      // ── redemptions (canjes efímeros con QR/PIN) ─────────────────
+      match /redemptions/{docId} {
+        allow read: if autenticado() && (
+          resource.data.userId == uid() || esStaff(tid)
+        );
+        allow create: if autenticado()
+                      && request.resource.data.userId == uid()
+                      && request.resource.data.status == 'pending'
+                      && request.resource.data.token is string
+                      && request.resource.data.costoSellos is number
+                      && get(/databases/$(database)/documents/tenants/$(tid)/users/$(uid())).data.get('sellosDisponibles', 0)
+                         >= request.resource.data.costoSellos;
+        allow update: if autenticado() && (
+          (resource.data.userId == uid()
+           && resource.data.status == 'pending'
+           && request.resource.data.status == 'cancelled'
+           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'cancelledAt']))
+          || esStaff(tid)
+        );
+        allow delete: if esAdmin(tid);
       }
 
       // ── chatbot/config — leído por el chat público (anónimo y autenticado).

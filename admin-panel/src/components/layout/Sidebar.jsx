@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   CalendarDays, CalendarClock, Scissors, Users, Star, BarChart3,
-  Trophy, ShoppingBag, Images, LogOut, ChevronRight,
+  Trophy, ShoppingBag, Images, LogOut, ChevronRight, ScanLine,
   Sun, Moon, ExternalLink, Settings, TrendingDown, MessageCircle, X,
   Megaphone, ImagePlus, CreditCard, Monitor, Headphones, Medal, Camera, GraduationCap, Wallet, Package, ThumbsUp, Crown,
   Globe, Banknote, Gift, ClipboardList, Building2, Home, Lock, HelpCircle, Link2, Instagram, CircleDollarSign, Sparkles, UserX, Award, Bot, Ticket,
@@ -85,6 +85,7 @@ const NAV_GROUPS_DEFAULT = [
       { to: 'lista-negra', label: 'Lista Negra', Icon: UserX,    adminOnly: true },
       { to: 'resenas',     label: 'Reseñas',     Icon: ThumbsUp    },
       { to: 'premios',     label: 'Premios',     Icon: Trophy      },
+      { to: 'canjes',      label: 'Validar Canje', Icon: ScanLine  },
       { to: 'rangos',      label: 'Rangos',      Icon: Crown       },
       { to: 'productos',   label: 'Productos',   Icon: ShoppingBag },
     ],
@@ -138,7 +139,8 @@ const NAV_GROUPS_DELUXE = [
     items: [
       { to: 'clientes',   label: 'Miembros',    Icon: Users   },
       { to: 'membresias', label: 'Membresías',  Icon: Medal   },
-      { to: 'premios',    label: 'Premios',     Icon: Trophy  },
+      { to: 'premios',    label: 'Premios',       Icon: Trophy   },
+      { to: 'canjes',     label: 'Validar Canje', Icon: ScanLine },
     ],
   },
   {

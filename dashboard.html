@@ -49,6 +49,8 @@
   <script src="firebaseUtils.js?v=3.1"></script>
   <script src="js/services/professional.service.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+  <!-- QR generator para el canje seguro (Fidelización → Premios) -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 
   <style>
     :root {
@@ -5073,30 +5075,76 @@
   <!-- Modal canje de premio -->
   <div id="canjeModal" class="hidden fixed inset-0 bg-[#050505]/85 backdrop-blur-sm z-50 flex items-end justify-center px-5 pb-8" onclick="if(event.target===this)cerrarModalCanje()">
     <div class="w-full max-w-sm bg-[#111115] border border-white/10 rounded-3xl p-6 animate-[fadeSlideUp_0.3s_cubic-bezier(0.16,1,0.3,1)_forwards]">
-      <div class="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4" style="background:rgba(212,175,55,0.12);border:1px solid rgba(212,175,55,0.3)">
-        <i class="ph-fill ph-trophy text-2xl" style="color:#D4AF37"></i>
+
+      <!-- ══ Estado 1: preview + confirmación ══ -->
+      <div id="canjeInfoState">
+        <div id="canjeCategoryIcon" class="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4" style="background:rgba(212,175,55,0.12);border:1px solid rgba(212,175,55,0.3)">
+          <i class="ph-fill ph-trophy text-2xl" style="color:#D4AF37"></i>
+        </div>
+        <p id="canjeModalSubtitle" class="text-xs font-bold uppercase tracking-widest text-center mb-1" style="color:#D4AF37"></p>
+        <h3 id="canjeModalTitle" class="text-lg font-black text-white text-center mb-4"></h3>
+        <div id="canjeCategoryBadge" class="flex justify-center mb-4"></div>
+        <div class="bg-[#1a1a1f] rounded-2xl px-5 py-4 mb-6 border border-white/6 space-y-3">
+          <div class="flex gap-3 items-start">
+            <i class="ph-fill ph-qr-code text-base mt-0.5 shrink-0" style="color:#D4AF37"></i>
+            <p class="text-sm text-gray-300 leading-relaxed">Vamos a generarte un <strong>PIN + QR</strong> único válido por 15 minutos.</p>
+          </div>
+          <div class="flex gap-3 items-start">
+            <i class="ph-fill ph-storefront text-base mt-0.5 shrink-0" style="color:#D4AF37"></i>
+            <p class="text-sm text-gray-300 leading-relaxed">Muéstraselo al barbero: él lo valida en su panel y confirma la entrega.</p>
+          </div>
+          <div class="flex gap-3 items-start">
+            <i class="ph-fill ph-shield-check text-base mt-0.5 shrink-0" style="color:#D4AF37"></i>
+            <p class="text-sm text-gray-300 leading-relaxed">Los sellos solo se descuentan cuando el canje queda aprobado.</p>
+          </div>
+        </div>
+        <div id="canjeError" class="hidden mb-3 text-xs text-rose-400 font-semibold text-center"></div>
+        <div class="flex gap-3">
+          <button onclick="cerrarModalCanje()"
+            class="flex-1 font-semibold py-3.5 rounded-2xl transition-all active:scale-[0.98] text-sm border border-white/10 text-white/70 hover:text-white hover:bg-white/5">
+            Ahora no
+          </button>
+          <button id="canjeGenerarBtn" onclick="generarCanjeDesdeModal()"
+            class="flex-1 font-bold py-3.5 rounded-2xl transition-all active:scale-[0.98] text-sm text-black flex items-center justify-center gap-2"
+            style="background:#D4AF37;">
+            <i class="ph-bold ph-qr-code"></i>
+            Generar QR / PIN
+          </button>
+        </div>
       </div>
-      <p id="canjeModalSubtitle" class="text-xs font-bold uppercase tracking-widest text-center mb-1" style="color:#D4AF37"></p>
-      <h3 id="canjeModalTitle" class="text-lg font-black text-white text-center mb-5"></h3>
-      <div class="bg-[#1a1a1f] rounded-2xl px-5 py-4 mb-6 border border-white/6 space-y-3">
-        <div class="flex gap-3 items-start">
-          <i class="ph-fill ph-storefront text-base mt-0.5 shrink-0" style="color:#D4AF37"></i>
-          <p class="text-sm text-gray-300 leading-relaxed">Preséntate en la barbería y muéstrale esta pantalla a tu barbero.</p>
+
+      <!-- ══ Estado 2: QR + PIN + countdown ══ -->
+      <div id="canjeTokenState" class="hidden">
+        <p class="text-[10px] font-bold uppercase tracking-widest text-center mb-1" style="color:#D4AF37">Muéstrale esto al barbero</p>
+        <h3 id="canjeTokenPrizeName" class="text-base font-black text-white text-center mb-4"></h3>
+
+        <!-- QR canvas -->
+        <div class="flex justify-center mb-4">
+          <div class="p-3 rounded-2xl bg-white">
+            <canvas id="canjeQrCanvas" width="200" height="200" style="display:block"></canvas>
+          </div>
         </div>
-        <div class="flex gap-3 items-start">
-          <i class="ph-fill ph-seal-check text-base mt-0.5 shrink-0" style="color:#D4AF37"></i>
-          <p class="text-sm text-gray-300 leading-relaxed">Él verificará tus sellos y hará válido el premio al momento.</p>
+
+        <!-- PIN gigante -->
+        <p class="text-[10px] font-bold uppercase tracking-widest text-center text-white/40 mb-1">PIN de canje</p>
+        <div id="canjeTokenPin" class="text-center font-black text-white mb-4"
+          style="font-size:3.5rem;letter-spacing:0.35em;line-height:1;padding-left:0.35em;"></div>
+
+        <!-- Countdown -->
+        <div class="flex items-center justify-center gap-1.5 mb-5">
+          <i class="ph-fill ph-clock text-base" style="color:#D4AF37"></i>
+          <span class="text-xs font-bold text-white/60">Expira en</span>
+          <span id="canjeCountdown" class="text-sm font-black text-white font-mono">15:00</span>
         </div>
-        <div class="flex gap-3 items-start">
-          <i class="ph-fill ph-chat-circle-text text-base mt-0.5 shrink-0" style="color:#D4AF37"></i>
-          <p class="text-sm text-gray-300 leading-relaxed">¿Quieres avisarle antes? Escríbele desde el soporte de la app.</p>
-        </div>
+
+        <div id="canjeTokenError" class="hidden mb-3 text-xs text-rose-400 font-semibold text-center"></div>
+
+        <button id="canjeCancelarBtn" onclick="cancelarCanjeActivo()"
+          class="w-full font-semibold py-3 rounded-2xl transition-all active:scale-[0.98] text-sm border border-rose-500/40 text-rose-300 hover:bg-rose-500/10 flex items-center justify-center gap-2">
+          <i class="ph-bold ph-x-circle"></i>
+          Cancelar solicitud
+        </button>
       </div>
-      <button onclick="cerrarModalCanje()"
-        class="w-full font-bold py-3.5 rounded-2xl transition-all active:scale-[0.98] text-sm text-black"
-        style="background:#D4AF37;">
-        Entendido
-      </button>
     </div>
   </div>
 
@@ -5839,6 +5887,18 @@ function dispararConfetti() {
 // ─── Renderizar premios ───────────────────────────────────────
 const _DASH_PREMIO_ICONS = ['ph-scissors','ph-drop','ph-lightning','ph-wind','ph-crown','ph-star','ph-gift'];
 
+/* ═══ Sistema polimórfico de premios (categorías) ═══════════════════
+   Cada premio lleva una `categoria` PRODUCTO/SERVICIO/DESCUENTO con
+   una `configuracion` específica. Legacy sin categoría → SERVICIO.  */
+const _CAT_META = {
+  PRODUCTO:  { label: 'Producto',  emoji: '📦', icon: 'ph-package',    bg: 'rgba(56,189,248,0.12)',  border: 'rgba(56,189,248,0.35)',  color: '#38bdf8' },
+  SERVICIO:  { label: 'Servicio',  emoji: '✂️', icon: 'ph-scissors',   bg: 'rgba(52,211,153,0.12)',  border: 'rgba(52,211,153,0.35)',  color: '#34d399' },
+  DESCUENTO: { label: 'Descuento', emoji: '🏷️', icon: 'ph-tag',        bg: 'rgba(251,191,36,0.12)',  border: 'rgba(251,191,36,0.35)',  color: '#fbbf24' },
+};
+function _readCategoria(p) {
+  return _CAT_META[p?.categoria] ? p.categoria : 'SERVICIO';
+}
+
 function renderPremiosDashboard(premios) {
   const el = document.getElementById('premiosList');
   if (!el) return;
@@ -5861,29 +5921,219 @@ function renderPremiosDashboard(premios) {
     return;
   }
 
-  el.innerHTML = lista.map((p, i) => `
-    <div onclick="abrirModalCanje(this.dataset.nombre, +this.dataset.sellos)"
-      data-nombre="${(p.nombre || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;')}"
+  el.innerHTML = lista.map((p, i) => {
+    const cat  = _readCategoria(p);
+    const meta = _CAT_META[cat];
+    const safeName = (p.nombre || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    return `
+    <div onclick="abrirModalCanje('${p.id || ''}')"
+      data-prize-id="${p.id || ''}"
+      data-nombre="${safeName}"
       data-sellos="${p.costoSellos}"
+      data-categoria="${cat}"
       class="flex items-center gap-4 bg-[#111115] rounded-2xl border border-white/8 px-5 py-4 cursor-pointer active:scale-[0.98] transition-transform select-none hover:border-white/20">
       <span class="text-xl font-black text-white leading-none">${p.costoSellos}</span>
       <div class="w-px h-6 bg-white/10"></div>
       <div class="flex-1 min-w-0">
-        <p class="text-xs font-bold text-white/30 uppercase tracking-widest">Sellos</p>
+        <div class="flex items-center gap-2 mb-0.5">
+          <p class="text-xs font-bold text-white/30 uppercase tracking-widest">Sellos</p>
+          <span class="inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full border"
+            style="background:${meta.bg};border-color:${meta.border};color:${meta.color};">
+            <span>${meta.emoji}</span>${meta.label}
+          </span>
+        </div>
         <p class="text-sm font-bold text-white">${p.nombre}</p>
       </div>
       <i class="ph-bold ph-caret-right text-white/20 text-sm shrink-0"></i>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
-// ─── Modal canje de premio ────────────────────────────────────
-function abrirModalCanje(nombre, sellos) {
-  document.getElementById('canjeModalTitle').textContent  = nombre;
-  document.getElementById('canjeModalSubtitle').textContent = `${sellos} sello${sellos !== 1 ? 's' : ''}`;
+/* ═══ Canje seguro: crear redemption doc con PIN 4 dígitos ══════════ */
+let _activeRedemption = null;   // { id, token, expiresAt, prizeName }
+let _canjeCountdownIv = null;
+
+function _findPremio(prizeId) {
+  return (_premiosDynamic || []).find(p => String(p.id) === String(prizeId));
+}
+
+function _showCanjeError(text, target = 'canjeError') {
+  const el = document.getElementById(target);
+  if (!el) return;
+  el.textContent = text;
+  el.classList.remove('hidden');
+}
+function _hideCanjeError() {
+  document.getElementById('canjeError')?.classList.add('hidden');
+  document.getElementById('canjeTokenError')?.classList.add('hidden');
+}
+
+/* Abre el modal en estado 1 (info + confirmación) con datos del premio. */
+function abrirModalCanje(prizeId) {
+  const p = _findPremio(prizeId);
+  if (!p) return;
+  const cat = _readCategoria(p);
+  const meta = _CAT_META[cat];
+
+  document.getElementById('canjeInfoState').classList.remove('hidden');
+  document.getElementById('canjeTokenState').classList.add('hidden');
+  _hideCanjeError();
+
+  document.getElementById('canjeModalTitle').textContent = p.nombre;
+  document.getElementById('canjeModalSubtitle').textContent = `${p.costoSellos} sello${p.costoSellos !== 1 ? 's' : ''}`;
+  document.getElementById('canjeCategoryBadge').innerHTML = `
+    <span class="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border"
+      style="background:${meta.bg};border-color:${meta.border};color:${meta.color};">
+      <span>${meta.emoji}</span>${meta.label}
+    </span>`;
+  const iconEl = document.getElementById('canjeCategoryIcon');
+  iconEl.style.background   = meta.bg;
+  iconEl.style.borderColor  = meta.border;
+  iconEl.innerHTML = `<i class="ph-fill ${meta.icon} text-2xl" style="color:${meta.color};"></i>`;
+
+  // Guardar id del premio candidato en el botón "Generar" para que el
+  // handler sepa qué doc crear al presionar.
+  const btn = document.getElementById('canjeGenerarBtn');
+  btn.dataset.prizeId = p.id;
+  btn.disabled = false;
+  btn.innerHTML = '<i class="ph-bold ph-qr-code"></i> Generar QR / PIN';
+
   document.getElementById('canjeModal').classList.remove('hidden');
 }
+
 function cerrarModalCanje() {
   document.getElementById('canjeModal').classList.add('hidden');
+  if (_canjeCountdownIv) { clearInterval(_canjeCountdownIv); _canjeCountdownIv = null; }
+  _activeRedemption = null;
+}
+
+/* Genera el doc de redemption y muestra el QR + PIN. */
+async function generarCanjeDesdeModal() {
+  const btn = document.getElementById('canjeGenerarBtn');
+  const prizeId = btn?.dataset?.prizeId;
+  const p = _findPremio(prizeId);
+  if (!p || !currentUser) return;
+
+  _hideCanjeError();
+  btn.disabled = true;
+  btn.innerHTML = '<span class="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></span> Generando...';
+
+  try {
+    // Validación local (la regla de Firestore la re-valida server-side)
+    const uSnap = await FDB.usersCol().doc(currentUser.uid).get();
+    const uData = uSnap.data() || {};
+    const disp = uData.sellosDisponibles ?? uData.stamps ?? 0;
+    if (disp < p.costoSellos) {
+      _showCanjeError(`Te faltan sellos. Tienes ${disp} y necesitas ${p.costoSellos}.`);
+      btn.disabled = false;
+      btn.innerHTML = '<i class="ph-bold ph-qr-code"></i> Generar QR / PIN';
+      return;
+    }
+
+    // PIN 4 dígitos aleatorio
+    const token = String(Math.floor(1000 + Math.random() * 9000));
+    const now = Date.now();
+    const expiresMs = now + 15 * 60 * 1000; // +15 min
+
+    const payload = {
+      userId:        currentUser.uid,
+      userName:      uData.nombre || currentUser.displayName || '',
+      userEmail:     currentUser.email || '',
+      prizeId:       p.id,
+      prizeName:     p.nombre,
+      categoria:     _readCategoria(p),
+      configuracion: p.configuracion || {},
+      costoSellos:   Number(p.costoSellos),
+      token,
+      status:        'pending',
+      createdAt:     firebase.firestore.FieldValue.serverTimestamp(),
+      expiresAt:     firebase.firestore.Timestamp.fromMillis(expiresMs),
+    };
+
+    const ref = await _tenantCol('redemptions').add(payload);
+
+    _activeRedemption = {
+      id: ref.id,
+      token,
+      expiresMs,
+      prizeName: p.nombre,
+    };
+
+    _mostrarPinYQR(_activeRedemption);
+  } catch (e) {
+    console.error('[Canje] generar:', e);
+    _showCanjeError(e?.message || 'No pudimos crear tu canje. Reintenta.');
+    btn.disabled = false;
+    btn.innerHTML = '<i class="ph-bold ph-qr-code"></i> Generar QR / PIN';
+  }
+}
+
+/* Renderiza el estado 2 del modal: QR + PIN + countdown. */
+function _mostrarPinYQR(red) {
+  document.getElementById('canjeInfoState').classList.add('hidden');
+  document.getElementById('canjeTokenState').classList.remove('hidden');
+  _hideCanjeError();
+
+  document.getElementById('canjeTokenPrizeName').textContent = red.prizeName;
+  document.getElementById('canjeTokenPin').textContent       = red.token;
+
+  // Payload del QR: incluye tenant, id y token para que el escáner pueda
+  // resolver directamente sin depender del PIN.
+  const payload = JSON.stringify({
+    v: 1,
+    tenant: window.CURRENT_TENANT_ID || 'elegance',
+    rid: red.id,
+    token: red.token,
+  });
+  const canvas = document.getElementById('canjeQrCanvas');
+  if (window.QRCode?.toCanvas) {
+    window.QRCode.toCanvas(canvas, payload, {
+      width: 200,
+      margin: 1,
+      color: { dark: '#0a0a0a', light: '#ffffff' },
+    }, err => {
+      if (err) console.error('[QR] render error', err);
+    });
+  }
+
+  // Countdown
+  if (_canjeCountdownIv) clearInterval(_canjeCountdownIv);
+  const upd = () => {
+    const msLeft = Math.max(0, red.expiresMs - Date.now());
+    const s = Math.floor(msLeft / 1000);
+    const mm = String(Math.floor(s / 60)).padStart(2, '0');
+    const ss = String(s % 60).padStart(2, '0');
+    const cd = document.getElementById('canjeCountdown');
+    if (cd) cd.textContent = `${mm}:${ss}`;
+    if (msLeft <= 0) {
+      clearInterval(_canjeCountdownIv);
+      _canjeCountdownIv = null;
+      _showCanjeError('Tu código expiró. Ciérralo y genera uno nuevo.', 'canjeTokenError');
+    }
+  };
+  upd();
+  _canjeCountdownIv = setInterval(upd, 1000);
+}
+
+/* Cancela el canje activo (client → status "cancelled"). */
+async function cancelarCanjeActivo() {
+  if (!_activeRedemption) { cerrarModalCanje(); return; }
+  const btn = document.getElementById('canjeCancelarBtn');
+  btn.disabled = true;
+  const originalHtml = btn.innerHTML;
+  btn.innerHTML = '<span class="w-4 h-4 border-2 border-white/40 border-t-transparent rounded-full animate-spin"></span> Cancelando...';
+  try {
+    await _tenantCol('redemptions').doc(_activeRedemption.id).update({
+      status: 'cancelled',
+      cancelledAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+  } catch (e) {
+    console.error('[Canje] cancelar:', e);
+  } finally {
+    if (_canjeCountdownIv) { clearInterval(_canjeCountdownIv); _canjeCountdownIv = null; }
+    _activeRedemption = null;
+    cerrarModalCanje();
+  }
 }
 
 // ─── Toggle premios ───────────────────────────────────────────

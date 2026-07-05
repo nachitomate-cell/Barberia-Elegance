@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Plus, Trophy, ChevronUp, ChevronDown, Sparkles, Brain, Cpu, RefreshCw, Check, Lightbulb, Zap, HelpCircle } from 'lucide-react';
+import { Plus, Trophy, ChevronUp, ChevronDown, Sparkles, Brain, Cpu, RefreshCw, Check, Lightbulb, Zap, HelpCircle, Package, Scissors, Tag } from 'lucide-react';
 import { addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { tenantCol } from '../lib/tenantUtils';
 import { confirmDialog } from '../lib/confirmDialog';
@@ -12,7 +12,36 @@ const ICONOS = [
   'ph-tag','ph-diamond','ph-sparkle','ph-confetti',
 ];
 
-const EMPTY = { nombre: '', descripcion: '', costoSellos: '', icono: 'ph-scissors' };
+/* ── Sistema de categorías polimórficas ────────────────────────────────
+   Todos los premios llevan `categoria` + `configuracion` específica.
+   Premios legacy sin categoría se leen como SERVICIO por defecto.
+   ─────────────────────────────────────────────────────────────────── */
+const CATEGORIAS = {
+  PRODUCTO:  { label: 'Producto',      icon: Package,  emoji: '📦', color: 'sky',     hint: 'El cliente retira un ítem del inventario.' },
+  SERVICIO:  { label: 'Servicio',      icon: Scissors, emoji: '✂️', color: 'emerald', hint: 'El cliente reserva o recibe un servicio gratis.' },
+  DESCUENTO: { label: 'Descuento',     icon: Tag,      emoji: '🏷️', color: 'amber',   hint: 'Se aplica un descuento en caja al próximo pago.' },
+};
+
+const EMPTY_CONFIG = {
+  PRODUCTO:  { skuProducto: '',  descuentaStock: true },
+  SERVICIO:  { servicioId: '',   requiereTurno: true },
+  DESCUENTO: { tipoDescuento: 'PORCENTAJE', valorDescuento: 20 },
+};
+
+const EMPTY = {
+  nombre: '',
+  descripcion: '',
+  costoSellos: '',
+  icono: 'ph-scissors',
+  categoria: 'SERVICIO',
+  configuracion: { ...EMPTY_CONFIG.SERVICIO },
+};
+
+/* Lee la categoría real de un premio (fallback SERVICIO para legacy). */
+function readCategoria(p) {
+  const cat = p?.categoria;
+  return CATEGORIAS[cat] ? cat : 'SERVICIO';
+}
 
 function IconPicker({ value, onChange }) {
   return (
@@ -35,8 +64,161 @@ function IconPicker({ value, onChange }) {
   );
 }
 
+/* Badge de categoría (chip) — usa colores Tailwind seguros por categoría. */
+function CategoriaBadge({ categoria, size = 'sm' }) {
+  const cat  = CATEGORIAS[categoria] || CATEGORIAS.SERVICIO;
+  const Icon = cat.icon;
+  const colorMap = {
+    sky:     'bg-sky-500/10     text-sky-300     border-sky-500/25',
+    emerald: 'bg-emerald-500/10 text-emerald-300 border-emerald-500/25',
+    amber:   'bg-amber-500/10   text-amber-300   border-amber-500/25',
+  };
+  const sizeCls = size === 'xs'
+    ? 'text-[9px] px-1.5 py-0.5 gap-1'
+    : 'text-[10px] px-2 py-0.5 gap-1';
+  return (
+    <span className={`inline-flex items-center rounded-full border font-bold uppercase tracking-wide ${colorMap[cat.color]} ${sizeCls}`}>
+      <Icon size={size === 'xs' ? 9 : 10} />
+      {cat.label}
+    </span>
+  );
+}
+
+/* Selector de categoría — 3 botones grandes con icono y hint. */
+function CategoriaPicker({ value, onChange }) {
+  return (
+    <div className="grid grid-cols-3 gap-2">
+      {Object.entries(CATEGORIAS).map(([key, meta]) => {
+        const Icon   = meta.icon;
+        const active = value === key;
+        return (
+          <button key={key} type="button"
+            onClick={() => onChange(key)}
+            className={`flex flex-col items-center gap-1.5 px-3 py-3 rounded-xl border transition-all text-center ${
+              active
+                ? 'border-[#D4AF37] bg-[#D4AF37]/10 text-white shadow-[0_0_0_1px_#D4AF37]'
+                : 'border-slate-700 bg-slate-800/40 text-slate-400 hover:border-slate-500 hover:text-white'
+            }`}>
+            <Icon size={18} className={active ? 'text-[#D4AF37]' : ''} />
+            <span className="text-[11px] font-bold uppercase tracking-wider">{meta.label}</span>
+            <span className="text-[9px] leading-tight text-slate-500 hidden md:block">{meta.hint}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/* Inputs polimórficos según la categoría del premio. */
+function ConfigFields({ categoria, config, onChange, servicios, productos, fieldCls, lblCls }) {
+  const set = (patch) => onChange({ ...config, ...patch });
+
+  if (categoria === 'PRODUCTO') {
+    return (
+      <div className="space-y-3">
+        <div>
+          <label className={lblCls}>Producto del inventario</label>
+          <select
+            className={fieldCls}
+            value={config.skuProducto || ''}
+            onChange={e => set({ skuProducto: e.target.value })}
+          >
+            <option value="">— Selecciona un producto —</option>
+            {productos.map(p => (
+              <option key={p.id} value={p.sku || p.id}>
+                {p.nombre} {p.sku ? `· SKU ${p.sku}` : `· ${p.id.slice(0, 6)}`}
+              </option>
+            ))}
+          </select>
+          <p className="text-[10.5px] text-slate-500 mt-1">
+            El SKU/ID viaja con el canje para que el POS lo identifique.
+          </p>
+        </div>
+        <label className="flex items-center gap-2 cursor-pointer select-none">
+          <input type="checkbox"
+            checked={!!config.descuentaStock}
+            onChange={e => set({ descuentaStock: e.target.checked })}
+            className="w-4 h-4 rounded border-slate-600 bg-slate-800 accent-[#D4AF37]" />
+          <span className="text-xs text-slate-300">Descontar del stock al aprobar el canje</span>
+        </label>
+      </div>
+    );
+  }
+
+  if (categoria === 'SERVICIO') {
+    return (
+      <div className="space-y-3">
+        <div>
+          <label className={lblCls}>Servicio de regalo</label>
+          <select
+            className={fieldCls}
+            value={config.servicioId || ''}
+            onChange={e => set({ servicioId: e.target.value })}
+          >
+            <option value="">— Selecciona el servicio —</option>
+            {servicios.map(s => (
+              <option key={s.id} value={s.id}>
+                {s.nombre}{s.categoria ? ` · ${s.categoria}` : ''}
+              </option>
+            ))}
+          </select>
+        </div>
+        <label className="flex items-center gap-2 cursor-pointer select-none">
+          <input type="checkbox"
+            checked={!!config.requiereTurno}
+            onChange={e => set({ requiereTurno: e.target.checked })}
+            className="w-4 h-4 rounded border-slate-600 bg-slate-800 accent-[#D4AF37]" />
+          <span className="text-xs text-slate-300">Requiere que el cliente agende un turno</span>
+        </label>
+      </div>
+    );
+  }
+
+  if (categoria === 'DESCUENTO') {
+    const esPct = (config.tipoDescuento || 'PORCENTAJE') === 'PORCENTAJE';
+    return (
+      <div className="space-y-3">
+        <div>
+          <label className={lblCls}>Tipo de descuento</label>
+          <div className="grid grid-cols-2 gap-2">
+            {['PORCENTAJE', 'MONTO_FIJO'].map(t => (
+              <button key={t} type="button"
+                onClick={() => set({ tipoDescuento: t })}
+                className={`px-3 py-2.5 rounded-lg text-xs font-bold border transition-colors ${
+                  config.tipoDescuento === t
+                    ? 'border-[#D4AF37] bg-[#D4AF37]/10 text-white'
+                    : 'border-slate-700 bg-slate-800/40 text-slate-400 hover:text-white'
+                }`}>
+                {t === 'PORCENTAJE' ? '% Porcentaje' : '$ Monto fijo'}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label className={lblCls}>
+            {esPct ? 'Porcentaje (1-100)' : 'Monto en pesos ($)'}
+          </label>
+          <input
+            className={fieldCls}
+            type="number"
+            min="1"
+            max={esPct ? '100' : undefined}
+            value={config.valorDescuento ?? ''}
+            onChange={e => set({ valorDescuento: e.target.value === '' ? '' : parseInt(e.target.value) || 0 })}
+            placeholder={esPct ? '20' : '5000'}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  return null;
+}
+
 export default function Premios() {
   const { data: premios, loading } = useCollection('premios');
+  const { data: servicios }        = useCollection('servicios');
+  const { data: productos }        = useCollection('productos');
 
   const sorted = useMemo(() => {
     const arr = [...premios];
@@ -198,30 +380,63 @@ export default function Premios() {
   const openEdit = p => {
     setEditing(p.id);
     setError('');
+    const cat = readCategoria(p);
     setForm({
-      nombre:      p.nombre,
-      descripcion: p.descripcion || '',
-      costoSellos: p.costoSellos,
-      icono:       p.icono || 'ph-scissors',
+      nombre:        p.nombre,
+      descripcion:   p.descripcion || '',
+      costoSellos:   p.costoSellos,
+      icono:         p.icono || 'ph-scissors',
+      categoria:     cat,
+      configuracion: { ...EMPTY_CONFIG[cat], ...(p.configuracion || {}) },
     });
   };
   const cancelEdit = () => { setEditing(null); setForm(EMPTY); setError(''); };
+
+  /* Cuando el usuario cambia la categoría, resetear configuracion a los defaults
+     de esa categoría — evita mezclar campos incompatibles al guardar. */
+  const setCategoria = (cat) => {
+    setForm(f => ({ ...f, categoria: cat, configuracion: { ...EMPTY_CONFIG[cat] } }));
+    setError('');
+  };
+  const setConfig = (nuevoConfig) => {
+    setForm(f => ({ ...f, configuracion: nuevoConfig }));
+  };
+
+  /* Valida la configuración según la categoría. Devuelve mensaje de error o null. */
+  const validarConfig = (categoria, config) => {
+    if (categoria === 'PRODUCTO') {
+      if (!config.skuProducto) return 'Elige el producto que se entrega en el canje.';
+    }
+    if (categoria === 'SERVICIO') {
+      if (!config.servicioId) return 'Elige el servicio que se regala.';
+    }
+    if (categoria === 'DESCUENTO') {
+      const v = Number(config.valorDescuento);
+      if (!v || v < 1) return 'Ingresa el valor del descuento.';
+      if (config.tipoDescuento === 'PORCENTAJE' && v > 100) return 'El porcentaje no puede superar 100.';
+    }
+    return null;
+  };
 
   const handleSave = async () => {
     const nombre = form.nombre.trim();
     const sellos = parseInt(form.costoSellos);
     if (!nombre || !sellos || sellos < 1) return;
 
-    setError('');
+    const configError = validarConfig(form.categoria, form.configuracion);
+    if (configError) { setError(configError); return; }
 
+    setError('');
     setSaving(true);
     try {
       const payload = {
         nombre,
-        descripcion: form.descripcion.trim(),
-        costoSellos: sellos,
-        icono:       form.icono,
-        updatedAt:   serverTimestamp(),
+        descripcion:   form.descripcion.trim(),
+        costoSellos:   sellos,
+        icono:         form.icono,
+        categoria:     form.categoria,
+        configuracion: form.configuracion,
+        updatedAt:     serverTimestamp(),
       };
       if (editing) {
         await updateDoc(doc(tenantCol('premios'), editing), payload);
@@ -258,11 +473,14 @@ export default function Premios() {
   };
 
   const applySuggestion = (sug) => {
+    const cat = sug.categoria || 'SERVICIO';
     setForm({
-      nombre: sug.nombre,
-      descripcion: sug.descripcion,
-      costoSellos: sug.costoSellos.toString(),
-      icono: sug.icono,
+      nombre:        sug.nombre,
+      descripcion:   sug.descripcion,
+      costoSellos:   sug.costoSellos.toString(),
+      icono:         sug.icono,
+      categoria:     cat,
+      configuracion: { ...EMPTY_CONFIG[cat] },
     });
     setError('');
   };
@@ -326,7 +544,10 @@ export default function Premios() {
                     </div>
                     <i className={`ph ${p.icono || 'ph-scissors'} text-lg shrink-0 text-[#D4AF37] bg-[#D4AF37]/5 w-9 h-9 flex items-center justify-center rounded-lg border border-[#D4AF37]/20`} />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-white truncate">{p.nombre}</p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-semibold text-white truncate">{p.nombre}</p>
+                        <CategoriaBadge categoria={readCategoria(p)} size="xs" />
+                      </div>
                       {p.descripcion && (
                         <p className="text-xs text-slate-500 truncate">{p.descripcion}</p>
                       )}
@@ -362,6 +583,25 @@ export default function Premios() {
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
               )}
+            </div>
+
+            {/* Categoría del premio */}
+            <div className="mb-4">
+              <label className={lbl}>Categoría</label>
+              <CategoriaPicker value={form.categoria} onChange={setCategoria} />
+            </div>
+
+            {/* Configuración polimórfica según la categoría */}
+            <div className="mb-4 p-3 rounded-lg bg-slate-950/60 border border-slate-800">
+              <ConfigFields
+                categoria={form.categoria}
+                config={form.configuracion}
+                onChange={setConfig}
+                servicios={servicios}
+                productos={productos}
+                fieldCls={field}
+                lblCls={lbl}
+              />
             </div>
 
             {/* Icono picker */}

@@ -20,6 +20,7 @@ import ListaNegra  from './views/ListaNegra';
 import Publicidad  from './views/Publicidad';
 import Metricas    from './views/Metricas';
 import Premios     from './views/Premios';
+import Canjes      from './views/Canjes';
 import Productos   from './views/Productos';
 import Inventario  from './views/Inventario';
 import Lookbook       from './views/Lookbook';
@@ -102,6 +103,7 @@ function ProtectedApp() {
             <Route path="lista-negra"     element={<ListaNegra />} />
             <Route path="publicidad"      element={<Publicidad />} />
             <Route path="premios"         element={<Premios />} />
+            <Route path="canjes"          element={<Canjes />} />
             <Route path="productos"       element={<Productos />} />
             <Route path="inventario"      element={<Inventario />} />
             <Route path="lookbook"        element={<Lookbook />} />
