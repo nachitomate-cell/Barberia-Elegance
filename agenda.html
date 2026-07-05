@@ -559,6 +559,223 @@
         }
         /* Los -mx-6 px-6 del container interno crean sangrado horizontal;
            en sticky con fondo, el bleed queda incluido bajo el mismo blur. */
+
+        /* ═══════════════════════════════════════════════════════════════════
+           CUARTA PASADA — QA final: modales sincronizados + cabeceras y
+           columnas de tiempo garantizadas en claro.
+           HALLAZGO CLAVE: el navegador NORMALIZA los valores hex/rgba del
+           atributo style al aplicarlos (#141418 → rgb(20, 20, 24)). El selector
+           [style*="..."] compara contra la versión normalizada del DOM. Por eso
+           las pasadas anteriores fallaban en algunos móviles: solo cubrían la
+           forma hex original. Aquí duplicamos con las variantes rgb() esperadas.
+           ═══════════════════════════════════════════════════════════════════ */
+
+        /* ── (A) Modales — backdrop del overlay ──────────────────────────
+           Bajamos el negro 70% (rgba(0,0,0,0.7)) del backdrop a un slate 40%
+           para no "quemar" la UI clara con una máscara casi opaca al abrir. */
+        html.light-mode #freeSlotModal,
+        html.light-mode #agendarModal,
+        html.light-mode #editCitaOverlay,
+        html.light-mode #calendarModal {
+            background: rgba(15, 23, 42, 0.4) !important;
+        }
+
+        /* Contenedor interior del modal (div hijo con style inline #0d0d10 →
+           rgb(13, 13, 16)). Cubrimos ambas notaciones más el fallback por hijo. */
+        html.light-mode [style*="background:#0d0d10"],
+        html.light-mode [style*="background: #0d0d10"],
+        html.light-mode [style*="background:rgb(13, 13, 16)"],
+        html.light-mode [style*="background:rgb(13,13,16)"],
+        html.light-mode #freeSlotModal > div,
+        html.light-mode #agendarModal > div,
+        html.light-mode #editCitaOverlay > #editCitaSheet {
+            background: #ffffff !important;
+            border: 1px solid #e2e8f0 !important;
+            box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25) !important;
+        }
+
+        /* Títulos de los modales ("Opciones para las XX:XX" / "Nueva Cita…") */
+        html.light-mode #freeSlotModal h3,
+        html.light-mode #agendarModal h3,
+        html.light-mode #editCitaOverlay h3 {
+            color: #0f172a !important;
+            font-weight: 800 !important;
+        }
+
+        /* La hora destacada (span text-brand-accent inline) pasa a emerald-700
+           que ES legible sobre blanco — el dorado queda muy débil. */
+        html.light-mode #freeSlotTimeLabel,
+        html.light-mode #agendarHoraDisplay {
+            color: #047857 !important;
+            font-weight: 800 !important;
+        }
+        html.light-mode #editCitaEyebrow { color: #64748b !important; }
+
+        /* Botón "Bloquear Espacio Rápido" del freeSlotModal — era
+           bg-white/5 border-white/10 text-white → superficie clara. */
+        html.light-mode #freeSlotModal button[onclick*="accionBloquearSlot"] {
+            background: #f8fafc !important;
+            border: 1px solid #cbd5e1 !important;
+            color: #0f172a !important;
+        }
+        html.light-mode #freeSlotModal button[onclick*="accionBloquearSlot"]:hover {
+            background: #f1f5f9 !important;
+        }
+        /* Botón "Cancelar" del freeSlotModal (text-white/40) */
+        html.light-mode #freeSlotModal button[onclick*="cerrarOpcionesSlotLibre"] {
+            color: #64748b !important;
+        }
+
+        /* Labels de campos del formulario (text-white/40) */
+        html.light-mode #agendarModal label,
+        html.light-mode #editCitaOverlay label {
+            color: #475569 !important;
+        }
+
+        /* Inputs y selects con style inline rgba(255,255,255,0.05) —
+           superficie suave + borde sólido + texto oscuro + focus reforzado. */
+        html.light-mode #agendarModal input,
+        html.light-mode #agendarModal select,
+        html.light-mode #editCitaOverlay input,
+        html.light-mode #editCitaOverlay select {
+            background: #f8fafc !important;
+            border: 1px solid #cbd5e1 !important;
+            color: #0f172a !important;
+        }
+        html.light-mode #agendarModal input:focus,
+        html.light-mode #agendarModal select:focus,
+        html.light-mode #editCitaOverlay input:focus,
+        html.light-mode #editCitaOverlay select:focus {
+            background: #ffffff !important;
+            border-color: #64748b !important;
+            box-shadow: 0 0 0 3px rgba(100, 116, 139, 0.15) !important;
+        }
+
+        /* Placeholders (placeholder-white/20 de Tailwind) — visibles pero sin ruido. */
+        html.light-mode #agendarModal input::placeholder,
+        html.light-mode #editCitaOverlay input::placeholder,
+        html.light-mode .placeholder-white\/20::placeholder {
+            color: #94a3b8 !important;
+            opacity: 1 !important;
+        }
+
+        /* Botones "X" de cerrar dentro de cada modal (bg-white/5 border-white/10) */
+        html.light-mode #agendarModal button[onclick*="cerrarAgendar"],
+        html.light-mode #editCitaOverlay button[onclick*="cerrarEditar"] {
+            background: #f1f5f9 !important;
+            border-color: #e2e8f0 !important;
+        }
+        html.light-mode #agendarModal button[onclick*="cerrarAgendar"] i,
+        html.light-mode #editCitaOverlay button[onclick*="cerrarEditar"] i {
+            color: #475569 !important;
+        }
+
+        /* Dropdown de sugerencias del buscador de clientes (#1c1c26 → rgb(28,28,38)) */
+        html.light-mode #manualNameSugg,
+        html.light-mode [style*="background:#1c1c26"],
+        html.light-mode [style*="background: #1c1c26"],
+        html.light-mode [style*="background:rgb(28, 28, 38)"] {
+            background: #ffffff !important;
+            border: 1px solid #e2e8f0 !important;
+            box-shadow: 0 8px 32px rgba(15, 23, 42, 0.15) !important;
+        }
+
+        /* <option> con style inline background:#111 → rgb(17,17,17) */
+        html.light-mode select option[style*="background:#111"],
+        html.light-mode select option[style*="background: #111"],
+        html.light-mode select option[style*="background:rgb(17, 17, 17)"],
+        html.light-mode select option[style*="background:rgb(17,17,17)"] {
+            background: #ffffff !important;
+            color: #0f172a !important;
+        }
+
+        /* Botón principal "Guardar Cita Confirmada" — bg-brand-accent dorado.
+           Refuerzo del texto para lectura. */
+        html.light-mode #manualSaveBtn {
+            color: #0f172a !important;
+            font-weight: 800 !important;
+        }
+
+        /* ── (B) Vista SEMANA — variantes rgb() normalizadas ─────────────
+           El DOM devuelve #141418 como "rgb(20, 20, 24)". Duplicamos los
+           selectores para asegurar match tanto en Chrome (que suele
+           preservar hex al leer style.cssText) como en Safari/Firefox
+           que lo normalizan más agresivo. */
+
+        /* Cabeceras semanales y columna lateral (#141418) */
+        html.light-mode [style*="background:rgb(20, 20, 24)"],
+        html.light-mode [style*="background: rgb(20, 20, 24)"],
+        html.light-mode [style*="background:rgb(20,20,24)"] {
+            background: #ffffff !important;
+        }
+
+        /* Cabecera "hoy" (#1c1810) — mantiene el destaque en amber-100 */
+        html.light-mode [style*="background:rgb(28, 24, 16)"],
+        html.light-mode [style*="background: rgb(28, 24, 16)"],
+        html.light-mode [style*="background:rgb(28,24,16)"] {
+            background: #fef3c7 !important;
+        }
+
+        /* Franjas fuera de horario / día no laboral (rgba(0,0,0,0.35)
+           el navegador también lo devuelve con espacios). */
+        html.light-mode [style*="rgba(0, 0, 0, 0.35)"] {
+            background: rgba(15, 23, 42, 0.05) !important;
+        }
+
+        /* Bordes translúcidos blancos — variantes con espacios */
+        html.light-mode [style*="rgba(255, 255, 255, 0.14)"],
+        html.light-mode [style*="rgba(255, 255, 255, 0.08)"],
+        html.light-mode [style*="rgba(255, 255, 255, 0.12)"] {
+            border-color: #e2e8f0 !important;
+        }
+        html.light-mode [style*="rgba(255, 255, 255, 0.06)"] {
+            border-top-color: #e2e8f0 !important;
+        }
+
+        /* Labels de horas "13:00" — versión con espacios */
+        html.light-mode [style*="color: rgba(255, 255, 255, 0.5)"],
+        html.light-mode [style*="color: rgba(255, 255, 255, 0.55)"],
+        html.light-mode [style*="color: rgba(255, 255, 255, 0.45)"] {
+            color: #334155 !important;
+            font-weight: 600 !important;
+        }
+        /* Números de día en cabecera semanal (color:#fff → color: rgb(255, 255, 255)) */
+        html.light-mode [style*="color: rgb(255, 255, 255)"],
+        html.light-mode [style*="color:rgb(255, 255, 255)"] {
+            color: #0f172a !important;
+        }
+
+        /* Ambient blancos casi invisibles (0.02..0.06) — con espacios */
+        html.light-mode [style*="rgba(255, 255, 255, 0.02)"],
+        html.light-mode [style*="rgba(255, 255, 255, 0.04)"],
+        html.light-mode [style*="rgba(255, 255, 255, 0.05)"] {
+            background: #f8fafc !important;
+        }
+
+        /* Refuerzo: cabecera de días semanales tiene borde inferior +
+           padding — cuando cubrimos el fondo con !important, si aún queda
+           algún texto legado en blanco hardcoded, lo forzamos oscuro. */
+        html.light-mode #weekColumnsContainer p,
+        html.light-mode #weekColumnsContainer span {
+            color: inherit;
+        }
+
+        /* Backdrops de otros overlays que no cubrí antes (calendario mini,
+           notif toast) — mismo tratamiento. */
+        html.light-mode [style*="background:rgba(0,0,0,0.7)"],
+        html.light-mode [style*="background: rgba(0, 0, 0, 0.7)"] {
+            background: rgba(15, 23, 42, 0.4) !important;
+        }
+        html.light-mode [style*="background:rgba(0,0,0,0.78)"],
+        html.light-mode [style*="background:rgba(0,0,0,0.93)"] {
+            background: rgba(15, 23, 42, 0.5) !important;
+        }
+
+        /* Bordes inline del modal edit sheet (border-top rgba blanca) */
+        html.light-mode [style*="border-top:1px solid rgba(255,255,255,0.08)"],
+        html.light-mode [style*="border-top: 1px solid rgba(255, 255, 255, 0.08)"] {
+            border-top-color: #e2e8f0 !important;
+        }
     </style>
 </head>
 <body class="min-h-screen bg-brand-bg antialiased" style="padding-bottom: max(2.5rem, env(safe-area-inset-bottom));">
