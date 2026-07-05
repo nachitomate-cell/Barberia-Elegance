@@ -514,115 +514,203 @@
     }
     /* ────────────────────────────────────────────────────────── */
 
-    /* ── Barbers Club — Dark Premium + Gold (clon Chameleon) ─── */
+    /* ── Barbers Club — Premium Dark Re-skin (neutral-900 + yellow-500 + orange-600) ─── */
     .tenant-barbersclub {
-      --gold:      #DAA520;
-      --gold-dim:  rgba(218,165,32,0.35);
-      --gold-glow: rgba(218,165,32,0.18);
+      --gold:      #eab308;
+      --gold-dim:  rgba(234,179,8,0.35);
+      --gold-glow: rgba(234,179,8,0.18);
+      --primary:   #ea580c;
+      --primary-h: #c2410c;
+      --card-bg:   #27272a;
+      --card-brd:  #404040;
     }
-    html.tenant-barbersclub body { background-color: #0b0a09; }
+    html.tenant-barbersclub body { background-color: #18181b; color: #e5e5e5; }
     .tenant-barbersclub header {
-      background-color: rgba(11,10,9,0.97) !important;
+      background-color: rgba(24,24,27,0.97) !important;
+      border-bottom-color: #404040 !important;
     }
-    .tenant-barbersclub #authGuard { background: #0b0a09 !important; }
+    .tenant-barbersclub #authGuard { background: #18181b !important; }
+    /* Hero: banner propio del local (reemplaza /elegance.png) */
+    .tenant-barbersclub .hero-bg {
+      background-image: url('/barbersclub/hero-bg.png') !important;
+      background-position: center 35% !important;
+      background-color: #18181b !important;
+    }
     .tenant-barbersclub .hero-overlay {
       background: linear-gradient(160deg,
-        rgba(11,10,9,0.40) 0%, rgba(11,10,9,0.28) 40%, rgba(11,10,9,0.92) 100%);
+        rgba(24,24,27,0.40) 0%, rgba(24,24,27,0.28) 40%, rgba(24,24,27,0.92) 100%);
     }
     .tenant-barbersclub .hero-glow-spot {
-      background: radial-gradient(circle, rgba(218,165,32,0.12) 0%, transparent 65%) !important;
+      background: radial-gradient(circle, rgba(234,179,8,0.12) 0%, transparent 65%) !important;
     }
+    /* CTA principal del hero → NARANJA (antes dorado) */
     .tenant-barbersclub .hero-cta {
-      background: #DAA520 !important;
-      border-color: #B8860B !important;
-      color: #0a0800 !important;
-      box-shadow: 0 4px 20px rgba(218,165,32,0.45) !important;
+      background: #ea580c !important;
+      border-color: #c2410c !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 20px rgba(234,88,12,0.35) !important;
       backdrop-filter: none !important;
       -webkit-backdrop-filter: none !important;
     }
-    .tenant-barbersclub .hero-cta i  { color: #0a0800 !important; }
-    .tenant-barbersclub .hero-cta span { color: #0a0800 !important; }
+    .tenant-barbersclub .hero-cta:hover { background: #c2410c !important; }
+    .tenant-barbersclub .hero-cta i  { color: #ffffff !important; }
+    .tenant-barbersclub .hero-cta span { color: #ffffff !important; }
     .tenant-barbersclub #heroLine2 { color: #ffffff !important; font-style: normal !important; }
+    /* Sellos (fidelidad) */
     .tenant-barbersclub .membership-pattern {
-      background: #121212 !important;
-      border-color: rgba(255,255,255,0.06) !important;
+      background: #27272a !important;
+      border-color: #404040 !important;
     }
     .tenant-barbersclub .stamp-cell {
-      background: #1e1e1e !important;
-      border-color: rgba(255,255,255,0.07) !important;
+      background: #18181b !important;
+      border-color: #404040 !important;
     }
     .tenant-barbersclub .stamp-cell.filled {
-      background: #000000 !important;
-      border: 1px solid rgba(255,255,255,0.15) !important;
-      box-shadow: none !important;
+      background: #eab308 !important;
+      border: 1px solid #eab308 !important;
+      box-shadow: 0 0 12px rgba(234,179,8,0.28) !important;
     }
-    .tenant-barbersclub .stamp-cell.filled i { color: #fff !important; }
+    .tenant-barbersclub .stamp-cell.filled i { color: #18181b !important; }
     .tenant-barbersclub #stampsBar {
-      background: linear-gradient(90deg, #B8860B, #DAA520) !important;
-      box-shadow: 0 0 10px rgba(218,165,32,0.50) !important;
+      background: linear-gradient(90deg, #ca8a04, #eab308) !important;
+      box-shadow: 0 0 10px rgba(234,179,8,0.45) !important;
     }
     .tenant-barbersclub #stampsGrid {
-      background: #0a0a0a !important;
-      border-color: rgba(255,255,255,0.05) !important;
+      background: #18181b !important;
+      border-color: #404040 !important;
     }
-    .tenant-barbersclub #stampsCount { color: #00C98C !important; }
-    .tenant-barbersclub #stampsCount > span { color: rgba(218,165,32,0.55) !important; }
+    /* Contador de sellos DORADO (antes verde #00C98C) */
+    .tenant-barbersclub #stampsCount { color: #eab308 !important; }
+    .tenant-barbersclub #stampsCount > span { color: #a3a3a3 !important; }
     .tenant-barbersclub .membership-pattern::before {
       background-image: repeating-linear-gradient(
         -45deg, transparent, transparent 18px,
-        rgba(218,165,32,0.02) 18px, rgba(218,165,32,0.02) 19px
+        rgba(234,179,8,0.025) 18px, rgba(234,179,8,0.025) 19px
       );
     }
     .tenant-barbersclub .membership-glow {
-      background: radial-gradient(circle, rgba(218,165,32,0.07) 0%, transparent 70%) !important;
+      background: radial-gradient(circle, rgba(234,179,8,0.07) 0%, transparent 70%) !important;
     }
-    .tenant-barbersclub #membershipWatermark { color: rgba(218,165,32,0.04) !important; }
+    .tenant-barbersclub #membershipWatermark { color: rgba(234,179,8,0.05) !important; }
+    /* Contenedores/tarjetas del tab loyalty y profile → neutral-800 */
     .tenant-barbersclub #tabLoyalty .bg-\[#111115\],
     .tenant-barbersclub #tabProfile .bg-\[#111115\] {
-      background-color: #121212 !important;
-      border-color: rgba(255,255,255,0.06) !important;
+      background-color: #27272a !important;
+      border-color: #404040 !important;
     }
+    /* Botón "Ver premios" → NARANJA (antes verde #00A36C) */
     .tenant-barbersclub button[onclick*="togglePremios"] {
-      background: #00A36C !important;
+      background: #ea580c !important;
       color: #ffffff !important;
-      box-shadow: 0 2px 14px rgba(0,163,108,0.30) !important;
+      box-shadow: 0 2px 14px rgba(234,88,12,0.30) !important;
     }
-    .tenant-barbersclub .premio-icon { color: #DAA520 !important; }
+    .tenant-barbersclub button[onclick*="togglePremios"]:hover {
+      background: #c2410c !important;
+    }
+    .tenant-barbersclub .premio-icon { color: #eab308 !important; }
+    /* Nav bar inferior — tab activa DORADA */
     .tenant-barbersclub .nav-tab.active .nav-icon {
-      color: #DAA520;
-      filter: drop-shadow(0 0 6px rgba(218,165,32,0.35));
+      color: #eab308;
+      filter: drop-shadow(0 0 6px rgba(234,179,8,0.35));
     }
-    .tenant-barbersclub .nav-tab.active .nav-label { color: #DAA520; }
+    .tenant-barbersclub .nav-tab.active .nav-label { color: #eab308; }
+    /* Rangos de fidelidad */
     .tenant-barbersclub .tier-badge.gold {
-      color: #DAA520;
-      border-color: rgba(218,165,32,0.35);
+      color: #eab308;
+      border-color: rgba(234,179,8,0.35);
+    }
+    .tenant-barbersclub .tier-badge.silver,
+    .tenant-barbersclub .tier-badge.plateado {
+      color: #a3a3a3;
+      border-color: #525252;
     }
     .tenant-barbersclub .tier-badge.platinum {
       color: #f0d87a;
-      border-color: rgba(218,165,32,0.30);
+      border-color: rgba(234,179,8,0.30);
     }
+    /* Instala la App — card dorada */
     .tenant-barbersclub #pwaBigInstallCard {
-      background: linear-gradient(to right, rgba(218,165,32,0.09), rgba(218,165,32,0.03)) !important;
-      border-color: rgba(218,165,32,0.22) !important;
-      box-shadow: 0 0 20px rgba(218,165,32,0.06) !important;
+      background: linear-gradient(to right, rgba(234,179,8,0.10), rgba(234,179,8,0.03)) !important;
+      border-color: rgba(234,179,8,0.28) !important;
+      box-shadow: 0 0 20px rgba(234,179,8,0.06) !important;
     }
     .tenant-barbersclub .pwa-icon-bg {
-      background: rgba(218,165,32,0.10) !important;
-      border-color: rgba(218,165,32,0.22) !important;
-      box-shadow: 0 0 15px rgba(218,165,32,0.12) !important;
+      background: rgba(234,179,8,0.10) !important;
+      border-color: rgba(234,179,8,0.30) !important;
+      box-shadow: 0 0 15px rgba(234,179,8,0.12) !important;
     }
-    .tenant-barbersclub #pwaBanner { border-color: rgba(218,165,32,0.28) !important; }
-    .tenant-barbersclub #pwaModalIOS > div { border-color: rgba(218,165,32,0.18) !important; }
-    .tenant-barbersclub .pwa-step-badge { background: #DAA520 !important; }
+    .tenant-barbersclub #pwaBanner { border-color: rgba(234,179,8,0.28) !important; }
+    .tenant-barbersclub #pwaModalIOS > div { border-color: rgba(234,179,8,0.22) !important; }
+    .tenant-barbersclub .pwa-step-badge { background: #eab308 !important; color: #18181b !important; }
+    /* CTAs primarios (btn-accion-primary, Reservar ahora) → NARANJA */
     .tenant-barbersclub .btn-accion-primary {
-      background: #00A36C !important;
+      background: #ea580c !important;
       color: #ffffff !important;
-      box-shadow: 0 4px 18px rgba(0,163,108,0.35) !important;
+      box-shadow: 0 4px 18px rgba(234,88,12,0.32) !important;
     }
+    .tenant-barbersclub .btn-accion-primary:hover { background: #c2410c !important; }
     .tenant-barbersclub a.btn-reservar {
-      background: #00A36C !important;
+      background: #ea580c !important;
       color: #ffffff !important;
-      box-shadow: 0 4px 18px rgba(0,163,108,0.35) !important;
+      box-shadow: 0 4px 18px rgba(234,88,12,0.32) !important;
+    }
+    .tenant-barbersclub a.btn-reservar:hover { background: #c2410c !important; }
+    /* ── PERFIL: inputs + botones ── */
+    .tenant-barbersclub #tabProfile input,
+    .tenant-barbersclub #tabProfile textarea {
+      background-color: #18181b !important;
+      border: 1px solid #404040 !important;
+      color: #e5e5e5 !important;
+      transition: border-color 0.2s, box-shadow 0.2s !important;
+    }
+    .tenant-barbersclub #tabProfile input:focus,
+    .tenant-barbersclub #tabProfile textarea:focus {
+      border-color: #eab308 !important;
+      box-shadow: 0 0 0 2px rgba(234,179,8,0.18) !important;
+      outline: none !important;
+    }
+    .tenant-barbersclub #tabProfile input::placeholder,
+    .tenant-barbersclub #tabProfile textarea::placeholder {
+      color: #737373 !important;
+    }
+    .tenant-barbersclub #tabProfile label { color: #d4d4d4 !important; }
+    /* Guardar cambios → NARANJA */
+    .tenant-barbersclub #tabProfile button[type="submit"],
+    .tenant-barbersclub #btnGuardarPerfil,
+    .tenant-barbersclub button[onclick*="guardarPerfil"] {
+      background: #ea580c !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 18px rgba(234,88,12,0.32) !important;
+      border: none !important;
+    }
+    .tenant-barbersclub #tabProfile button[type="submit"]:hover,
+    .tenant-barbersclub #btnGuardarPerfil:hover,
+    .tenant-barbersclub button[onclick*="guardarPerfil"]:hover {
+      background: #c2410c !important;
+    }
+    /* Cerrar sesión: outline oscuro elegante */
+    .tenant-barbersclub button[onclick*="cerrarSesion"],
+    .tenant-barbersclub #btnCerrarSesion {
+      background: #27272a !important;
+      color: #e5e5e5 !important;
+      border: 1px solid #404040 !important;
+    }
+    .tenant-barbersclub button[onclick*="cerrarSesion"]:hover,
+    .tenant-barbersclub #btnCerrarSesion:hover {
+      border-color: #525252 !important;
+      background: #303033 !important;
+    }
+    /* Eliminar cuenta: rojo sutil elegante que ADVIERTE */
+    .tenant-barbersclub button[onclick*="eliminarCuenta"],
+    .tenant-barbersclub #btnEliminarCuenta {
+      background: rgba(127,29,29,0.28) !important;
+      color: #ef4444 !important;
+      border: 1px solid #7f1d1d !important;
+    }
+    .tenant-barbersclub button[onclick*="eliminarCuenta"]:hover,
+    .tenant-barbersclub #btnEliminarCuenta:hover {
+      background: rgba(127,29,29,0.42) !important;
+      border-color: #991b1b !important;
     }
     /* ────────────────────────────────────────────────────────── */
 
@@ -6025,10 +6113,37 @@ async function cargarServicios() {
     const servicios = await FDB.getServicios();
     const muestra   = servicios.filter(s => s.activo !== false).slice(0, 6);
     if (!muestra.length) { document.getElementById('serviciosSection')?.classList.add('hidden'); return; }
+
+    // Barbers Club: list-view horizontal compacta (paridad con paso 1 de reservas).
+    // Cambia el contenedor a flex-col apilado en lugar del carrusel horizontal.
+    if (window.CURRENT_TENANT_ID === 'barbersclub') {
+      grid.className = 'flex flex-col gap-2 px-5';
+      grid.innerHTML = muestra.map(s => {
+        const precio = s.precio ? `$${Number(s.precio).toLocaleString('es-CL')}` : '';
+        const icono  = s.icono || 'ph-scissors';
+        const dur    = s.duracion ? `${Number(s.duracion)} min` : '';
+        const iconEl = s.imagen
+          ? `<img src="${s.imagen}" alt="${s.nombre.replace(/"/g, '&quot;')}" class="w-full h-full object-cover rounded-full">`
+          : `<i class="ph-fill ${icono} text-xl" style="color:#eab308;"></i>`;
+        const svcHref = `index.html?servicioId=${encodeURIComponent(s.id)}`;
+        return `<a href="${svcHref}" class="service-card relative flex flex-row items-center gap-3 py-3 px-4 rounded-2xl overflow-hidden" style="background:#27272a;border:1px solid #404040;text-decoration:none;min-height:64px;">
+          <div class="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style="background:#18181b;border:1px solid #404040;">
+            ${iconEl}
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="text-[15px] font-semibold leading-tight tracking-tight" style="color:#e5e5e5;">${s.nombre}</p>
+            ${dur ? `<p class="flex items-center gap-1 text-[11px] mt-0.5" style="color:#a3a3a3;"><i class="ph ph-clock text-[12px]"></i>${dur}</p>` : ''}
+          </div>
+          ${precio ? `<span class="text-lg font-bold tracking-tight text-right shrink-0" style="color:#eab308;">${precio}</span>` : ''}
+        </a>`;
+      }).join('');
+      return;
+    }
+
     grid.innerHTML = muestra.map(s => {
       const precio = s.precio ? `$${Number(s.precio).toLocaleString('es-CL')}` : '';
       const icono  = s.icono || (window.CURRENT_TENANT_ID === 'gitana' ? 'ph-sparkle' : 'ph-scissors');
-      
+
       const imgHtml = s.imagen
         ? `<img src="${s.imagen}" alt="${s.nombre.replace(/"/g, '&quot;')}" class="absolute inset-0 w-full h-full object-cover opacity-60">`
         : `<div class="absolute inset-0 flex items-center justify-center">
