@@ -883,6 +883,16 @@ const FDB = (() => {
       ini = toMins(dc.inicio || cfg.horarioInicio || '09:00');
       fin = toMins(dc.fin    || cfg.horarioFin    || '20:00');
     }
+    // Sanidad: si el horario del barbero está corrupto (fin <= ini, NaN, valores
+    // fuera de [0, 24*60]), forzamos el fallback default 09:00–20:00. Sin este
+    // guard, un fin=720 (12:00) por error humano marcaría todo el resto del día
+    // como after-hours y detonaría VIP en slots libres normales.
+    const ORIG_INI = ini, ORIG_FIN = fin;
+    if (!Number.isFinite(ini) || !Number.isFinite(fin) || fin <= ini || ini < 0 || fin > 24*60) {
+      try { console.warn('[FDB] horario barbero corrupto — usando 09:00–20:00 default', { barberoId, dw, ini: ORIG_INI, fin: ORIG_FIN }); } catch(_) {}
+      ini = 9 * 60;
+      fin = 20 * 60;
+    }
     interval = (barbCfg?.intervaloMinutos || cfg.intervaloMinutos || 30);
 
     // Descansos por día configurados en el panel (Equipo → horario[dia].descansos).
@@ -941,41 +951,55 @@ const FDB = (() => {
       if (Number.isFinite(afterMins) && afterMins > fin) finEff = afterMins;
     }
 
-    while (cur + parseInt(duracionServicio) <= finEff) {
-      // Restricción temporal estricta: un slot solo cuenta como after-hours si
-      // su inicio es >= al cierre normal del barbero. Slots en la mañana o en
-      // el rango del turno normal jamás pueden marcarse como after-hours aquí,
-      // aunque `permitirSobrecupoPublico` esté activo.
+    const durNum = parseInt(duracionServicio);
+
+    while (cur + durNum <= finEff) {
+      // Restricción temporal estricta: after-hours SOLO si el inicio del slot
+      // es >= al cierre normal (fin). En turno normal (cur < fin) este flag
+      // NUNCA puede ser true, aunque el barbero permita VIP.
       const esHorarioAfterHours = cur >= fin;
+      const enTurnoNormal = cur >= ini && cur < fin;
       // Saltar colación: excluye slots que empiezan O que se extienden dentro del bloque
       // (los after-hours quedan fuera del rango de colación por definición).
       if (col && !esHorarioAfterHours) {
         const colS = toMins(col.inicio), colE = toMins(col.fin);
-        if (cur < colE && (cur + parseInt(duracionServicio)) > colS) { cur += interval; continue; }
+        if (cur < colE && (cur + durNum) > colS) { cur += interval; continue; }
       }
       // Saltar descansos del día (panel): omite slots que solapan algún descanso
-      if (!esHorarioAfterHours && descansoRanges.some(r => cur < r.end && (cur + parseInt(duracionServicio)) > r.start)) { cur += interval; continue; }
+      if (!esHorarioAfterHours && descansoRanges.some(r => cur < r.end && (cur + durNum) > r.start)) { cur += interval; continue; }
       // Saltar bloqueo manual (aplica tanto al rango normal como al after-hours):
       // si el dueño bloqueó ese horario expresamente, no ofrecemos ni siquiera VIP.
       const bloqueado = rangosBloq.some(r =>
-        cur < r.end && (cur + parseInt(duracionServicio)) > r.start
+        cur < r.end && (cur + durNum) > r.start
       );
       if (bloqueado) { cur += interval; continue; }
 
       const slotOcupado = ocupados.some(o =>
-        cur < o.end && (cur + parseInt(duracionServicio)) > o.start
+        cur < o.end && (cur + durNum) > o.start
       );
 
-      // ── GATE VIP ESTRICTO ──────────────────────────────────────────────
-      // El estado VIP se dispara ÚNICAMENTE cuando el barbero permitió VIP
-      // Y (el slot está fuera de turno O choca con una cita existente).
-      // Sin esta doble condición, un slot libre en el turno normal (ej. una
-      // mañana a las 11:00) NUNCA debe convertirse en VIP por defecto.
+      // ── PATH 1: libre + en turno normal → SLOT NORMAL, sin excepciones ──
+      // Este caso tiene PRIORIDAD ABSOLUTA. No hay ninguna combinación de
+      // flags que pueda convertirlo en VIP. Emitimos y avanzamos.
+      if (enTurnoNormal && !slotOcupado) {
+        slots.push({ time: fromMin(cur), occupied: false });
+        cur += interval;
+        continue;
+      }
+
+      // ── PATH 2: gate VIP estricto ──────────────────────────────────────
+      // Solo se llega aquí si NO estamos en la ruta 1. La condición VIP
+      // exige (a) allowVip true y (b) al menos una razón concreta:
+      // slot ocupado (sobrecupo) o slot fuera del cierre (after-hours).
       const esVipSlot = allowVip && (esHorarioAfterHours || slotOcupado);
 
       if (esVipSlot) {
-        // Cupo VIP: sobrecupo sobre horario ocupado o after-hours. No lo
-        // marcamos occupied porque debe ser clickable para el cliente.
+        // Diagnóstico: si esto se dispara para un slot en turno normal y libre
+        // (no debería suceder), lo advertimos porque implicaría datos raros
+        // que el gate anterior no atrapó.
+        if (enTurnoNormal && !slotOcupado) {
+          try { console.warn('[FDB] VIP falso positivo en turno normal libre', { time: fromMin(cur), ini, fin, allowVip }); } catch(_) {}
+        }
         slots.push({
           time: fromMin(cur),
           occupied: false,
@@ -984,9 +1008,7 @@ const FDB = (() => {
           horarioEspecial: esHorarioAfterHours,
         });
       } else {
-        // Slot dentro del turno normal (o after-hours sin VIP activo): se
-        // ofrece como normal si está libre, o deshabilitado si está ocupado.
-        // No se agrega badge VIP bajo ninguna circunstancia en esta rama.
+        // Slot ocupado sin VIP, o after-hours sin VIP: se devuelve tal cual.
         slots.push({ time: fromMin(cur), occupied: slotOcupado });
       }
       cur += interval;
@@ -1152,7 +1174,16 @@ const FDB = (() => {
           bIni = toMins(dc.inicio || cfg.horarioInicio || '09:00');
           bFin = toMins(dc.fin    || cfg.horarioFin    || '20:00');
         }
-        const esVipBarbero = vipBarberoIds.has(barbero.id);
+        // Sanidad por-barbero: si el horario está corrupto (fin <= inicio, NaN,
+        // fuera de rango), saltamos este barbero por completo. Nunca lo
+        // usamos como fuente de after-hours ni de sobrecupo — evita que un
+        // dato malo lo convierta en "always after-hours".
+        if (!Number.isFinite(bIni) || !Number.isFinite(bFin) || bFin <= bIni || bIni < 0 || bFin > 24*60) {
+          try { console.warn('[FDB] barbero con horario corrupto, ignorado', { barberoId: barbero.id, dw, bIni, bFin }); } catch(_) {}
+          continue;
+        }
+
+        const esVipBarbero = vipBarberoIds.has(barbero.id) && !!barbero.permitirSobrecupoPublico;
         const afterMinsB = esVipBarbero && barbero.afterHoursHasta ? toMins(barbero.afterHoursHasta) : null;
         const bFinExt = Number.isFinite(afterMinsB) && afterMinsB > bFin ? afterMinsB : bFin;
         // Fuera del turno normal — se acepta si el barbero permite VIP y cae
@@ -1196,6 +1227,7 @@ const FDB = (() => {
 
         if (fueraDeTurno) {
           // Libre pero fuera de turno → VIP after-hours para este barbero.
+          // (esVipBarbero ya está garantizado por el `continue` anterior).
           vipAvailableIds.push(barbero.id);
           vipPorAfterHours = true;
         } else {
@@ -1205,20 +1237,25 @@ const FDB = (() => {
         }
       }
 
-      // ── GATE VIP ESTRICTO ──────────────────────────────────────────────
-      // El estado VIP se dispara ÚNICAMENTE cuando (a) no hay ningún barbero
-      // libre en turno normal y (b) al menos un barbero VIP-elegible aportó
-      // por sobrecupo (choque) o por after-hours real. Cualquier otro caso
-      // — en particular, mañanas libres con VIP habilitado — sigue el
-      // camino de slot normal / ocupado / omitido.
+      // ── PATH 1: al menos un barbero libre en turno normal → SLOT NORMAL ──
+      // Ruta con PRIORIDAD ABSOLUTA. Si hay siquiera un barbero disponible en
+      // su turno normal, el slot se emite como normal, sin badge VIP y sin
+      // recargo, sin importar cuántos otros barberos VIP-elegibles existan.
+      if (availableBarberoIds.length > 0) {
+        result.push({ time: fromMin(cur), occupied: false, availableBarberoIds });
+        continue;
+      }
+
+      // ── PATH 2: gate VIP estricto ──────────────────────────────────────
+      // Solo se llega aquí si NADIE quedó libre en turno normal. Requiere
+      // que (a) el VIP esté globalmente habilitado, (b) haya al menos un
+      // barbero VIP-elegible con disponibilidad por sobrecupo o after-hours,
+      // y (c) exista una razón concreta registrada (choque o fuera de turno).
       const emitirVip = anyVipEnabled
-        && availableBarberoIds.length === 0
         && vipAvailableIds.length > 0
         && (vipPorSobrecupo || vipPorAfterHours);
 
-      if (availableBarberoIds.length > 0) {
-        result.push({ time: fromMin(cur), occupied: false, availableBarberoIds });
-      } else if (emitirVip) {
+      if (emitirVip) {
         result.push({
           time: fromMin(cur),
           occupied: false,
