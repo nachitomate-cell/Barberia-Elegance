@@ -84,7 +84,7 @@ const BARBER_EMPTY = {
   horario: DEFAULT_HORARIO(),
   ausencias: [],
   permitirSobrecupoPublico: false,
-  afterHoursHasta: '',
+  tramosVip: [], // [{ inicio: 'HH:MM', fin: 'HH:MM' }] declarados explícitamente
 };
 
 function localDateStr() {
@@ -744,7 +744,7 @@ export default function Equipo() {
       horario:      initHorario(b),
       ausencias:    b.ausencias    || [],
       permitirSobrecupoPublico: !!b.permitirSobrecupoPublico,
-      afterHoursHasta: b.afterHoursHasta || '',
+      tramosVip: Array.isArray(b.tramosVip) ? b.tramosVip : [],
     });
     setUploadError('');
     setResetMsg('');
@@ -1352,25 +1352,64 @@ export default function Equipo() {
               Ofrecer Sobrecupos VIP en Agenda Pública
             </button>
             {form.permitirSobrecupoPublico && (
-              <div className="mt-3 rounded-xl border border-amber-500/25 bg-amber-500/[0.05] p-3 space-y-2">
-                <label className="block text-[10px] font-bold uppercase tracking-widest text-amber-300/80">
-                  Rango horario after-hours extendido
-                  <span className="ml-1 text-slate-500 normal-case tracking-normal font-normal">(opcional)</span>
-                </label>
-                <input
-                  type="time"
-                  step="900"
-                  value={form.afterHoursHasta}
-                  onChange={e => set('afterHoursHasta', e.target.value)}
-                  className={field}
-                  placeholder="21:00"
-                />
-                <p className="text-[11px] text-slate-500 leading-normal">
-                  Hasta qué hora aceptas cupos VIP fuera de tu turno normal. Si cierras a las 20:00 y
-                  pones 21:00, el cliente podrá reservar en 20:00, 20:15, 20:30, 20:45 y 21:00
-                  con recargo automático. Deja en blanco para permitir solo sobrecupos sobre
-                  horarios ya ocupados.
-                </p>
+              <div className="mt-3 rounded-xl border border-amber-500/25 bg-amber-500/[0.05] p-3 space-y-2.5">
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-widest text-amber-300/80">
+                    Tramos VIP declarados
+                  </label>
+                  <p className="text-[11px] text-slate-500 leading-normal mt-1">
+                    Define bloques horarios específicos donde ofreces cupos VIP con recargo.
+                    Solo estos tramos se muestran como VIP en la agenda pública — cualquier otro
+                    horario (aunque esté ocupado) sigue el flujo normal.
+                  </p>
+                </div>
+
+                <div className="space-y-1.5">
+                  {(form.tramosVip || []).map((t, i) => (
+                    <div key={i} className="flex items-center gap-1.5 bg-slate-900/60 rounded-lg px-2 py-1.5 border border-slate-700/50">
+                      <span className="text-[10px] text-amber-300/60 w-10 shrink-0 font-semibold">VIP</span>
+                      <select
+                        value={t.inicio || ''}
+                        onChange={e => set('tramosVip', form.tramosVip.map((x, idx) => idx === i ? { ...x, inicio: e.target.value } : x))}
+                        className="bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-xs text-white focus:outline-none focus:border-amber-500"
+                      >
+                        <option value="">--:--</option>
+                        {TIME_OPTIONS.map(o => <option key={o}>{o}</option>)}
+                      </select>
+                      <span className="text-slate-600 text-xs">–</span>
+                      <select
+                        value={t.fin || ''}
+                        onChange={e => set('tramosVip', form.tramosVip.map((x, idx) => idx === i ? { ...x, fin: e.target.value } : x))}
+                        className="bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-xs text-white focus:outline-none focus:border-amber-500"
+                      >
+                        <option value="">--:--</option>
+                        {TIME_OPTIONS.map(o => <option key={o}>{o}</option>)}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={() => set('tramosVip', form.tramosVip.filter((_, idx) => idx !== i))}
+                        className="text-red-400/50 hover:text-red-400 transition-colors ml-auto"
+                        aria-label="Eliminar tramo VIP"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ))}
+
+                  <button
+                    type="button"
+                    onClick={() => set('tramosVip', [...(form.tramosVip || []), { inicio: '20:00', fin: '21:00' }])}
+                    className="flex items-center gap-1 text-[11px] text-amber-300/70 hover:text-amber-300 transition-colors mt-1"
+                  >
+                    <Plus size={11} /> Añadir tramo VIP
+                  </button>
+
+                  {(form.tramosVip || []).length === 0 && (
+                    <p className="text-[10.5px] text-slate-600 italic leading-normal mt-1">
+                      Sin tramos declarados: no se ofrece VIP aunque el toggle esté activo.
+                    </p>
+                  )}
+                </div>
               </div>
             )}
           </Section>

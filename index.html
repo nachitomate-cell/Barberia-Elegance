@@ -9554,14 +9554,21 @@
       const _selBarberoDoc = window._selectedBarberId && window._selectedBarberId !== 'any'
         ? (_fsBarberos || []).find(b => b.id === window._selectedBarberId)
         : null;
-      const _vipOptsSingle = _selBarberoDoc && _selBarberoDoc.permitirSobrecupoPublico
+      // Nueva arquitectura VIP: cada barbero declara `tramosVip` explícito en
+      // su ficha. El util lee la lista tal cual desde el doc — sin heurística.
+      const _selBarberoTramos = Array.isArray(_selBarberoDoc?.tramosVip) ? _selBarberoDoc.tramosVip : [];
+      const _vipOptsSingle = _selBarberoDoc && _selBarberoDoc.permitirSobrecupoPublico && _selBarberoTramos.length > 0
         ? {
             allowVipOverbook: true,
-            afterHoursHasta: _selBarberoDoc.afterHoursHasta || '',
+            tramosVip: _selBarberoTramos,
             vipRecargo: _vipRecargoSvc || 5000,
           }
         : null;
-      const _anyBarberoAllowsVip = (_fsBarberos || []).some(b => b.permitirSobrecupoPublico);
+      // Multi: basta con que algún barbero tenga toggle + tramos declarados.
+      // El util lee `barbero.tramosVip` por barbero (viene en _fsBarberos).
+      const _anyBarberoAllowsVip = (_fsBarberos || []).some(
+        b => b.permitirSobrecupoPublico && Array.isArray(b.tramosVip) && b.tramosVip.length > 0
+      );
       const _vipOptsMulti = _anyBarberoAllowsVip
         ? { allowVipOverbook: true, vipRecargo: _vipRecargoSvc || 5000 }
         : null;
