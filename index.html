@@ -2907,6 +2907,110 @@
     .tenant-barbersclub #step4 label {
       color: #d4d4d4 !important;
     }
+
+    /* ── Hero slider (Barbers Club) — 3 slides cross-fade ─────────── */
+    .hero-slider-bg {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      z-index: 0;
+      pointer-events: none;
+    }
+    .hero-slider-bg .hero-slide {
+      position: absolute;
+      inset: 0;
+      background-size: cover;
+      background-position: center 35%;
+      background-repeat: no-repeat;
+      opacity: 0;
+      transition: opacity 1000ms ease-in-out;
+      will-change: opacity;
+    }
+    .hero-slider-bg .hero-slide.is-active { opacity: 1; }
+    /* Cuando el slider está activo (barbersclub), retiramos la imagen estática */
+    .tenant-barbersclub .booking-hero { background-image: none !important; }
+    /* Overlay más denso para asegurar legibilidad sobre cualquier foto */
+    .tenant-barbersclub .booking-hero-overlay {
+      background: linear-gradient(180deg,
+        rgba(24,24,27,0.72) 0%, rgba(24,24,27,0.48) 40%, rgba(24,24,27,0.98) 100%) !important;
+    }
+
+    /* ── Fit & finish: ocultar info-strip duplicada (dirección/horario) ── */
+    .tenant-barbersclub .info-strip { display: none !important; }
+
+    /* ── Unificación de tarjetas secundarias (bg + radio) ────────────── */
+    .tenant-barbersclub #clubBanner a {
+      background: #1a1a1a !important;
+      border: 1px solid rgba(234,179,8,0.22) !important;
+      border-radius: 1rem !important;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.35) !important;
+    }
+    .tenant-barbersclub #footerContact > div {
+      background: #1a1a1a !important;
+      border: 1px solid rgba(255,255,255,0.08) !important;
+      border-radius: 1rem !important;
+    }
+
+    /* ── Sticky CTA flotante (Continuar) ─────────────────────────────── */
+    .tenant-barbersclub #btnContinueBar {
+      background: transparent !important;
+      border-top: none !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      pointer-events: none;
+    }
+    /* Gradiente sutil bajo el botón para separar del contenido scrolleable */
+    .tenant-barbersclub #btnContinueBar::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg,
+        rgba(24,24,27,0) 0%, rgba(24,24,27,0.65) 55%, rgba(24,24,27,0.95) 100%);
+      pointer-events: none;
+      z-index: -1;
+    }
+    .tenant-barbersclub #btnContinueBar > div {
+      padding-left: 1rem !important;
+      padding-right: 1rem !important;
+      pointer-events: auto;
+    }
+    .tenant-barbersclub #btnContinue {
+      border-radius: 9999px !important;
+      box-shadow: 0 10px 32px rgba(0,0,0,0.55),
+                  0 4px 18px rgba(234,88,12,0.35) !important;
+      letter-spacing: 0.01em !important;
+    }
+
+    /* ── Breathing animation del CTA (suave, 2.6s, sin bounce) ───────── */
+    @keyframes bc-breathe {
+      0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 10px 32px rgba(0,0,0,0.55),
+                    0 4px 18px rgba(234,88,12,0.32),
+                    0 0 0 0 rgba(234,88,12,0.12);
+      }
+      50% {
+        transform: scale(1.03);
+        box-shadow: 0 14px 40px rgba(0,0,0,0.6),
+                    0 6px 26px rgba(234,88,12,0.48),
+                    0 0 0 10px rgba(234,88,12,0.05);
+      }
+    }
+    .tenant-barbersclub #btnContinue:not(:disabled) {
+      animation: bc-breathe 2.6s ease-in-out infinite;
+    }
+    .tenant-barbersclub #btnContinue:not(:disabled):hover,
+    .tenant-barbersclub #btnContinue:not(:disabled):active {
+      animation-play-state: paused;
+    }
+    .tenant-barbersclub #btnContinue:disabled,
+    .tenant-barbersclub #btnContinue[disabled] {
+      animation: none !important;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .tenant-barbersclub #btnContinue { animation: none !important; }
+      .hero-slider-bg .hero-slide { transition: none !important; }
+    }
     .tenant-barbersclub #step4 label span {
       color: #a3a3a3 !important;
     }
@@ -7532,6 +7636,8 @@
     <header class="booking-hero" style="min-height:300px;position:relative;">
       <!-- Hidden image for Googlebot indexing and thumbnail generation -->
       <img id="heroIndexingImg" class="sr-only" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;" src="" alt="">
+      <!-- Hero slider (populated via initHeroSlider — solo tenant-barbersclub) -->
+      <div id="heroSliderBg" class="hero-slider-bg" aria-hidden="true"></div>
       <div class="booking-hero-overlay"></div>
 
       <!-- Yūgen — ondas op-art animadas (solo tenant-yugen) -->
@@ -8760,8 +8866,8 @@
           // Infinity Studio — header minimal, tracking-widest en gris medio, sin borde
           catContainer.innerHTML = `<h3 class="cat-title text-[11px] font-semibold uppercase tracking-[0.18em] mb-3 ml-1" style="color:#8A8A8A;">${cat}</h3>`;
         } else if (_isBcSvc) {
-          // Barbers Club — header dark con acento dorado sutil
-          catContainer.innerHTML = `<h3 class="cat-title text-[11px] font-semibold uppercase tracking-[0.15em] mb-3 ml-1" style="color:#a3a3a3;">${cat}</h3>`;
+          // Barbers Club — header separador elegante (bold, neutral-500, mt-6)
+          catContainer.innerHTML = `<h3 class="cat-title text-xs font-bold uppercase tracking-[0.15em] mb-3 mt-6 ml-1" style="color:#737373;">${cat}</h3>`;
         } else {
           catContainer.innerHTML = `<div class="cat-sep sep-ornamental mb-4"><span class="sep-ornamental-gem">✦ ✦ ✦</span></div><h3 class="cat-title border-l-4 border-neon pl-3 text-lg font-semibold text-white/80 mb-4">${cat}</h3>`;
         }
@@ -8826,7 +8932,7 @@
                 </div>
                 <div class="flex items-center gap-3 shrink-0">
                   <span class="font-bold text-lg price-tag leading-tight tracking-tight text-right" style="color:#eab308;">\$${precio}</span>
-                  <div class="svc-radio w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition-all" style="border-color:#525252;background:transparent;">
+                  <div class="svc-radio w-5 h-5 rounded-full border shrink-0 flex items-center justify-center transition-all" style="border-color:#737373;background:transparent;">
                     <i class="svc-check ph-bold ph-check text-[12px]" style="display:none;color:#18181b;line-height:1;"></i>
                   </div>
                 </div>
@@ -10003,7 +10109,7 @@
         || window.CURRENT_TENANT_ID === 'yugen';
       const _isLatin    = window.CURRENT_TENANT_ID === 'latincaribe';
       const _isYugen    = window.CURRENT_TENANT_ID === 'yugen';
-      const _radioDim   = _isBM ? '#3A3A3A' : _isInf ? '#E5E5E5' : _isBc ? '#525252' : _isMapu ? 'rgba(191,163,126,0.40)' : _isLatin ? 'rgba(53,221,230,0.35)' : _isAura ? 'rgba(55,65,81,0.25)' : _isYugen ? 'rgba(245,243,239,0.4)' : 'rgba(212,175,55,0.4)';
+      const _radioDim   = _isBM ? '#3A3A3A' : _isInf ? '#E5E5E5' : _isBc ? '#737373' : _isMapu ? 'rgba(191,163,126,0.40)' : _isLatin ? 'rgba(53,221,230,0.35)' : _isAura ? 'rgba(55,65,81,0.25)' : _isYugen ? 'rgba(245,243,239,0.4)' : 'rgba(212,175,55,0.4)';
       const _radioSel   = _isBM ? '#E0E0E0' : _isInf ? '#000000' : _isBc ? '#eab308' : _isMapu ? '#BFA37E' : _isLatin ? '#F35BA6' : _isAura ? '#1F2937' : _isYugen ? '#f5f3ef' : '#D4AF37';
 
       // Helpers locales para aplicar/quitar el estilo "seleccionado" en un .service-option.
@@ -12260,6 +12366,45 @@
       </div>
     </div>
   </div>
+
+  <script>
+    // ── Barbers Club — Hero Slider (rotación cross-fade cada 4.5s) ────
+    (function initHeroSlider(){
+      var SLIDES = [
+        '/barbersclub/slider-bg-1.png',
+        '/barbersclub/slider-bg-2.png',
+        '/barbersclub/slider-bg-3.png'
+      ];
+      var host = document.getElementById('heroSliderBg');
+      if (!host) return;
+      var timer = null;
+      function attach(){
+        if (!document.documentElement.classList.contains('tenant-barbersclub')) return false;
+        if (host.dataset.ready === '1') return true;
+        SLIDES.forEach(function(src){ var i = new Image(); i.src = src; });
+        host.innerHTML = SLIDES.map(function(src, idx){
+          return '<div class="hero-slide' + (idx === 0 ? ' is-active' : '') +
+                 '" style="background-image:url(\'' + src + '\')"></div>';
+        }).join('');
+        host.dataset.ready = '1';
+        var slides = host.querySelectorAll('.hero-slide');
+        if (slides.length < 2) return true;
+        var current = 0;
+        timer = setInterval(function(){
+          slides[current].classList.remove('is-active');
+          current = (current + 1) % slides.length;
+          slides[current].classList.add('is-active');
+        }, 4500);
+        return true;
+      }
+      if (attach()) return;
+      var tries = 0;
+      var iv = setInterval(function(){
+        tries++;
+        if (attach() || tries >= 30) clearInterval(iv);
+      }, 200);
+    })();
+  </script>
 
 </body>
 
