@@ -6160,6 +6160,201 @@
         transparent 30%, rgba(0,0,0,0.06) 50%, transparent 70%);
     }
 
+    /* ═══════════════════════════════════════════════════════════════════
+       AIRY & REFINED — Rediseño de bloques (Paso 1 servicios + Paso 2 barberos)
+       Bordes sutiles, tarjetas blancas con shadow-sm, activo #FAFAFA,
+       más aire (p-5), iconos minimalistas, tipografía editorial.
+       ═══════════════════════════════════════════════════════════════════ */
+
+    /* Contenedores de grilla — más aire lateral en móvil y gap-4 consistente */
+    .tenant-infinity #servicesGrid,
+    .tenant-infinity #barberosGrid {
+      row-gap: 16px !important;
+    }
+    .tenant-infinity #barberosGrid {
+      gap: 16px !important;
+    }
+
+    /* Cards base — shadow-sm inactivo + p-5 (20px) + max-w-[95%] mx-auto */
+    .tenant-infinity .service-option,
+    .tenant-infinity .barber-option {
+      padding: 20px !important;
+      max-width: 95% !important;
+      width: 100% !important;
+      margin-left: auto !important;
+      margin-right: auto !important;
+      box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+      border-color: #E5E5E5 !important;
+      transform: none !important;
+    }
+
+    /* Estado activo — borde 1px negro sutil + fondo gris muy claro */
+    .tenant-infinity .service-option.border-neon,
+    .tenant-infinity .barber-option.border-neon,
+    .tenant-infinity .service-option.border-neon.border-2,
+    .tenant-infinity .barber-option.border-neon.border-2 {
+      background: #FAFAFA !important;
+      border: 1px solid #000000 !important;
+      box-shadow: none !important;
+      transform: none !important;
+    }
+    .tenant-infinity .service-option.bg-brand-neon\/10,
+    .tenant-infinity .barber-option.bg-brand-neon\/10 {
+      background: #FAFAFA !important;
+    }
+
+    /* Hover — borde negro sutil (1px), sin cambio de tamaño */
+    .tenant-infinity .service-option:hover,
+    .tenant-infinity .barber-option:hover {
+      border-color: #000000 !important;
+      background: #FFFFFF !important;
+    }
+    .tenant-infinity .service-option.border-neon:hover,
+    .tenant-infinity .barber-option.border-neon:hover {
+      background: #FAFAFA !important;
+    }
+
+    /* ── Servicios: icono minimalista (sin caja pesada) ── */
+    .tenant-infinity .service-option .icon-bg {
+      background: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
+      width: 40px !important;
+      height: 40px !important;
+      margin-bottom: 12px !important;
+    }
+    .tenant-infinity .service-option .icon-svg {
+      color: #111111 !important;
+      font-size: 22px !important;
+      filter: none !important;
+      text-shadow: none !important;
+      font-weight: 300 !important;
+      transform: none !important;
+    }
+    .tenant-infinity .service-option.border-neon .icon-bg {
+      background: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
+    }
+    .tenant-infinity .service-option.border-neon .icon-svg {
+      color: #000000 !important;
+      transform: none !important;
+    }
+    /* Imagen personalizada del servicio — mantener redondel limpio */
+    .tenant-infinity .service-option .icon-bg img {
+      border-radius: 9999px !important;
+      box-shadow: none !important;
+    }
+
+    /* ── Tipografía editorial en servicios ── */
+    .tenant-infinity .service-option .svc-name {
+      color: #000000 !important;
+      font-weight: 600 !important;
+      font-size: 0.95rem !important;
+      line-height: 1.2 !important;
+      letter-spacing: -0.02em !important;
+      margin-bottom: 6px !important;
+    }
+    .tenant-infinity .service-option .svc-desc {
+      color: #555555 !important;
+      font-weight: 400 !important;
+      line-height: 1.35 !important;
+    }
+    .tenant-infinity .service-option .price-tag {
+      color: #000000 !important;
+      font-weight: 700 !important;
+      font-size: 1.125rem !important;
+      line-height: 1.4 !important;
+      letter-spacing: -0.01em !important;
+      margin-top: 4px !important;
+    }
+    .tenant-infinity .service-option .duration-tag {
+      color: #666666 !important;
+      font-weight: 400 !important;
+      font-size: 11px !important;
+      margin-top: 4px !important;
+    }
+
+    /* ── Radio de selección (svc-radio) — refinado ── */
+    .tenant-infinity .service-option .svc-radio {
+      border-color: #E5E5E5 !important;
+      border-width: 1.5px !important;
+      background: transparent !important;
+    }
+    .tenant-infinity .service-option.border-neon .svc-radio {
+      background: #000000 !important;
+      border-color: #000000 !important;
+      box-shadow: inset 0 0 0 2.5px #FAFAFA !important;
+    }
+
+    /* ── Barberos: foto circular limpia con borde fino, sin sombra ── */
+    .tenant-infinity .barber-option img.rounded-full,
+    .tenant-infinity .barber-option div.rounded-full {
+      border: 1px solid #E5E5E5 !important;
+      box-shadow: none !important;
+      background: #FFFFFF !important;
+      filter: none !important;
+    }
+    .tenant-infinity .barber-option [class*="drop-shadow"],
+    .tenant-infinity .barber-option [class*="shadow-["] {
+      box-shadow: none !important;
+      filter: none !important;
+    }
+    /* Ícono placeholder dentro del avatar cuando no hay foto */
+    .tenant-infinity .barber-option div.rounded-full i {
+      color: #999999 !important;
+      filter: none !important;
+    }
+
+    /* ── Nombre del barbero: más peso y separado de disponibilidad ── */
+    .tenant-infinity .barber-option .barber-name {
+      color: #000000 !important;
+      font-weight: 600 !important;
+      font-size: 1.05rem !important;
+      line-height: 1.2 !important;
+      letter-spacing: -0.02em !important;
+      margin-bottom: 6px !important;
+    }
+    /* Especialidad y disponibilidad — texto secundario claro */
+    .tenant-infinity .barber-option p {
+      color: #666666 !important;
+      font-weight: 400 !important;
+      font-size: 12px !important;
+      line-height: 1.35 !important;
+    }
+    /* Estado de disponibilidad — más discreto, no compite con el nombre */
+    .tenant-infinity .barber-option .text-brand-neon,
+    .tenant-infinity .barber-option .text-neon {
+      color: #555555 !important;
+      font-weight: 500 !important;
+      font-size: 12px !important;
+      margin-top: 4px !important;
+    }
+    .tenant-infinity .barber-option .text-brand-neon i,
+    .tenant-infinity .barber-option .text-neon i {
+      color: #555555 !important;
+    }
+
+    /* ── Radio de selección (barber-radio) — refinado ── */
+    .tenant-infinity .barber-option .barber-radio {
+      border-color: #E5E5E5 !important;
+      border-width: 1.5px !important;
+      background: transparent !important;
+    }
+    .tenant-infinity .barber-option.border-neon .barber-radio {
+      background: #000000 !important;
+      border-color: #000000 !important;
+      box-shadow: inset 0 0 0 2.5px #FAFAFA !important;
+    }
+
+    /* Overrides finos para que el rediseño se respete sobre las clases ph */
+    .tenant-infinity .service-option i.ph,
+    .tenant-infinity .service-option i.ph-fill {
+      transform: none !important;
+      filter: none !important;
+      text-shadow: none !important;
+    }
+
     /* Calendario y horarios (Monochrome) */
     .tenant-infinity .day-btn {
       background: #FFFFFF !important;
