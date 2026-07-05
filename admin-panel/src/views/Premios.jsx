@@ -750,6 +750,31 @@ export default function Premios() {
                     <CategoriaPicker value={form.categoria} onChange={setCategoria} />
                   </div>
 
+                  {/* Help Box dinámico — cambia según la categoría seleccionada */}
+                  <div className="bg-neutral-800/60 border border-neutral-700/80 rounded-lg p-2.5 my-3 text-xs text-neutral-300 flex items-start gap-2 leading-relaxed">
+                    <i className="ph-fill ph-info text-base shrink-0 mt-0.5 text-yellow-400" />
+                    <p className="min-w-0">
+                      {form.categoria === 'PRODUCTO' && (
+                        <>
+                          <span className="text-yellow-400 font-bold">💡 Entrega en mostrador:</span>{' '}
+                          El cliente genera un código en su teléfono y lo muestra en el local para retirar el ítem físico. No requiere agendar cita.
+                        </>
+                      )}
+                      {form.categoria === 'SERVICIO' && (
+                        <>
+                          <span className="text-yellow-400 font-bold">💡 Servicio 100% gratis ($0):</span>{' '}
+                          El cliente canjea este servicio sin costo. Si activas "Requiere agendar turno", deberá reservar fecha y hora en la agenda para validarlo.
+                        </>
+                      )}
+                      {form.categoria === 'DESCUENTO' && (
+                        <>
+                          <span className="text-yellow-400 font-bold">💡 Rebaja en el cobro:</span>{' '}
+                          El descuento (% o $) se aplicará al total a pagar en caja o en la reserva online, restringido al ítem que selecciones abajo (Cualquiera, Servicio o Producto).
+                        </>
+                      )}
+                    </p>
+                  </div>
+
                   {/* Paso 2: Inputs dinámicos — sin recuadros anidados */}
                   <div>
                     <ConfigFields
