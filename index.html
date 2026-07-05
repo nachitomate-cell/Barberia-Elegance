@@ -2705,6 +2705,13 @@
       background-color: #18181b !important;
       color: #e5e5e5 !important;
     }
+    /* Hero: banner propio del local (cover, centrado) */
+    .tenant-barbersclub .booking-hero {
+      background-image: url('/barbersclub/hero-bg.png') !important;
+      background-size: cover !important;
+      background-position: center 35% !important;
+      background-color: #18181b !important;
+    }
     .tenant-barbersclub .booking-hero-overlay {
       background: linear-gradient(180deg,
         rgba(24,24,27,0.55) 0%, rgba(24,24,27,0.32) 40%, rgba(24,24,27,0.97) 100%) !important;
@@ -11210,6 +11217,7 @@
           omegastudio:  '/omega2.avif',
           memphis:      '/mem.png',
           yugen:        '/yugen/yugen2.png',
+          barbersclub:  '/barbersclub/hero-bg.png',
         };
         const bgUrl = bgImages[window.CURRENT_TENANT_ID] || SHOP.logo;
         heroImgEl.src = bgUrl;
@@ -11218,6 +11226,7 @@
                         window.CURRENT_TENANT_ID === 'sionbarberia' ? 'Studio Dieciséis · barbería premium en Valparaíso' :
                         window.CURRENT_TENANT_ID === 'elbarberomoderno' ? 'El Barbero Moderno · estación de barbería de Jhoseth Morales' :
                         window.CURRENT_TENANT_ID === 'omegastudio' ? 'Interior de Omega Studio, estudio de barbería en Viña del Mar' :
+                        window.CURRENT_TENANT_ID === 'barbersclub' ? 'Interior premium de Barbers Club · Ciudad de los Valles, Pudahuel' :
                         'Interior de ' + (SHOP.nombreCorto || SHOP.nombre);
       }
 
