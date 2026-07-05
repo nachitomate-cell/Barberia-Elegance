@@ -8735,7 +8735,8 @@
       const _isKronnosSvc   = window.CURRENT_TENANT_ID === 'kronnos_penablanca' || window.CURRENT_TENANT_ID === 'kronnos_limache' || window.CURRENT_TENANT_ID === 'kronnos_woman';
       const _isBMSvc        = window.CURRENT_TENANT_ID === 'elbarberomoderno';
       const _isInfSvc       = window.CURRENT_TENANT_ID === 'infinity';
-      const _useRowLayout   = _isEleganceSvc || _isMapuSvc || _isChameleonSvc || _isKronnosSvc || _isBMSvc || _isInfSvc;
+      const _isBcSvc        = window.CURRENT_TENANT_ID === 'barbersclub';
+      const _useRowLayout   = _isEleganceSvc || _isMapuSvc || _isChameleonSvc || _isKronnosSvc || _isBMSvc || _isInfSvc || _isBcSvc;
 
       Object.keys(categories).forEach(cat => {
         const catContainer = document.createElement('div');
@@ -8751,6 +8752,9 @@
         } else if (_isInfSvc) {
           // Infinity Studio — header minimal, tracking-widest en gris medio, sin borde
           catContainer.innerHTML = `<h3 class="cat-title text-[11px] font-semibold uppercase tracking-[0.18em] mb-3 ml-1" style="color:#8A8A8A;">${cat}</h3>`;
+        } else if (_isBcSvc) {
+          // Barbers Club — header dark con acento dorado sutil
+          catContainer.innerHTML = `<h3 class="cat-title text-[11px] font-semibold uppercase tracking-[0.15em] mb-3 ml-1" style="color:#a3a3a3;">${cat}</h3>`;
         } else {
           catContainer.innerHTML = `<div class="cat-sep sep-ornamental mb-4"><span class="sep-ornamental-gem">✦ ✦ ✦</span></div><h3 class="cat-title border-l-4 border-neon pl-3 text-lg font-semibold text-white/80 mb-4">${cat}</h3>`;
         }
@@ -8787,6 +8791,36 @@
                   </div>
                   <div class="svc-radio w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition-all" style="border-color:#3A3A3A;background:transparent;">
                     <i class="svc-check ph-bold ph-check text-[12px]" style="display:none;color:#000;line-height:1;"></i>
+                  </div>
+                </div>
+              </button>`;
+          } else if (_isBcSvc) {
+            // ── BARBERS CLUB — List row compact (Dark neutral-800 + yellow-500) ──
+            // Fila 100% ancho, py-3 px-4 compact. Izquierda: ícono w-10.
+            // Centro: badge "Más solicitado" (yellow-500 outline) + nombre
+            //   text-neutral-200 semibold + duración text-neutral-400.
+            // Derecha: precio text-yellow-500 font-bold + radio con check
+            //   oscuro sobre fondo dorado al seleccionar.
+            const isTop = window._topServiceNombre && s.nombre === window._topServiceNombre;
+            const precio = _getPrecioEfectivo(s, new Date().getDay()).toLocaleString('es-CL');
+            innerGrid.innerHTML += `
+              <button onclick="selectService(this)" data-service-id="${s.id}" data-category="${cat}"
+                class="service-option relative flex flex-row items-center gap-3 py-3 px-4 rounded-2xl bg-[#27272a] border border-[#404040] active:scale-[0.99] transition-all overflow-hidden group w-full text-left" style="min-height:64px;">
+                <div class="icon-bg w-10 h-10 rounded-full bg-[#18181b] border border-[#404040] flex items-center justify-center shrink-0">
+                  ${finalIconEl}
+                </div>
+                <div class="flex-1 min-w-0">
+                  ${isTop ? `<span class="inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-full mb-1" style="background:rgba(234,179,8,0.12);border:1px solid rgba(234,179,8,0.45);color:#eab308;">✦ Más solicitado</span>` : ''}
+                  <span class="svc-name font-semibold text-[15px] leading-tight tracking-tight block" style="color:#e5e5e5;white-space:normal;">${s.nombre}</span>
+                  <span class="flex items-center gap-1 text-[11px] duration-tag mt-0.5" style="color:#a3a3a3;">
+                    <i class="ph ph-clock text-[12px]"></i>${formatDuration(s.duracion)}
+                  </span>
+                  ${s.descripcion ? `<span class="svc-desc text-[11px] mt-1 leading-snug block" style="display:none;color:#a3a3a3;">${s.descripcion}</span><span onclick="toggleSvcDesc(this,event)" class="svc-desc-toggle text-[10px] font-medium underline underline-offset-2 mt-1 block transition-colors" style="color:#a3a3a3;">Ver descripción</span>` : ''}
+                </div>
+                <div class="flex items-center gap-3 shrink-0">
+                  <span class="font-bold text-lg price-tag leading-tight tracking-tight text-right" style="color:#eab308;">\$${precio}</span>
+                  <div class="svc-radio w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition-all" style="border-color:#525252;background:transparent;">
+                    <i class="svc-check ph-bold ph-check text-[12px]" style="display:none;color:#18181b;line-height:1;"></i>
                   </div>
                 </div>
               </button>`;
@@ -9087,6 +9121,56 @@
       const anyStateClass = (window._selectedBarberId === 'any' || window._selectedBarber === 'any') ? 'border-neon bg-brand-neon/10' : 'border-brand-accent/20 bg-[#0a0a0d]';
       const _profLabel = window.CURRENT_TENANT_ID === 'gitana' ? 'Cualquier profesional disponible' : 'Cualquier barbero disponible';
 
+      // Barbers Club — List rows compactos (Dark neutral-800 + yellow-500).
+      // Fila 100% ancho, py-3 px-4 compact. Izquierda: avatar/icon w-10.
+      // Centro: nombre semibold + disponibilidad/horario. Derecha: radio con
+      // check oscuro sobre fondo dorado al seleccionar.
+      if (window.CURRENT_TENANT_ID === 'barbersclub') {
+        grid.className = 'flex flex-col gap-2';
+        const anySelBc = (window._selectedBarberId === 'any' || window._selectedBarber === 'any');
+        const anyCardBc = `
+          <button onclick="selectBarber(this, 'any', 'any')" class="barber-option relative flex flex-row items-center gap-3 py-3 px-4 rounded-2xl active:scale-[0.99] transition-all overflow-hidden w-full text-left ${anySelBc ? 'border-neon bg-brand-neon/10' : 'border-brand-accent/20 bg-[#0a0a0d]'}" style="border-width:1px;border-style:solid;min-height:64px;">
+            <div class="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style="background:#18181b;border:1px solid #404040;">
+              <i class="ph-fill ph-shuffle text-lg" style="color:#eab308;"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <span class="barber-name font-semibold text-[15px] leading-tight block" style="color:#e5e5e5;">Sin preferencia</span>
+              <p class="text-[11px] mt-0.5" style="color:#a3a3a3;">Primer horario disponible</p>
+            </div>
+            <div class="barber-radio w-5 h-5 rounded-full shrink-0 flex items-center justify-center transition-all" style="border:2px solid #525252;background:transparent;">
+              <i class="barber-check ph-bold ph-check text-[12px]" style="display:none;color:#18181b;line-height:1;"></i>
+            </div>
+          </button>`;
+
+        const barberCardsBc = barberos.map(b => {
+          const isSelected = window._selectedBarber === b.nombre;
+          const stateCls   = isSelected ? 'border-neon bg-brand-neon/10' : 'border-brand-accent/20 bg-[#0a0a0d]';
+          const foto = b.foto
+            ? `<img src="${b.foto}" alt="${b.nombre}" class="w-10 h-10 rounded-full object-cover shrink-0" style="border:1px solid #404040;">`
+            : `<div class="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style="background:#18181b;border:1px solid #404040;"><i class="ph-fill ph-user text-lg" style="color:#a3a3a3;"></i></div>`;
+          const diasLabelBc = _buildDiasLabel(b.horario);
+          const dispBc      = b.disponible !== false;
+          const especialidad = b.especialidad
+            ? `<p class="text-[11px] mt-0.5 truncate" style="color:#a3a3a3;">${b.especialidad}</p>` : '';
+          const dispLine = `<span class="flex items-center gap-1 text-[10.5px] font-semibold mt-0.5" style="color:${dispBc ? '#eab308' : '#737373'};"><i class="ph-fill ph-${dispBc ? 'check-circle' : 'x-circle'}"></i>${dispBc ? 'Disponible' : 'Agenda llena'}${diasLabelBc ? ' · ' + diasLabelBc : ''}</span>`;
+          return `
+          <button onclick="selectBarber(this, '${b.id}', '${b.nombre}')" class="barber-option relative flex flex-row items-center gap-3 py-3 px-4 rounded-2xl active:scale-[0.99] transition-all overflow-hidden w-full text-left ${stateCls}" style="border-width:1px;border-style:solid;min-height:64px;">
+            ${foto}
+            <div class="flex-1 min-w-0">
+              <span class="barber-name font-semibold text-[15px] leading-tight block truncate" style="color:#e5e5e5;">${b.nombre}</span>
+              ${especialidad}
+              ${dispLine}
+            </div>
+            <div class="barber-radio w-5 h-5 rounded-full shrink-0 flex items-center justify-center transition-all" style="border:2px solid #525252;background:transparent;">
+              <i class="barber-check ph-bold ph-check text-[12px]" style="display:none;color:#18181b;line-height:1;"></i>
+            </div>
+          </button>`;
+        }).join('');
+
+        grid.innerHTML = anyCardBc + barberCardsBc;
+        return;
+      }
+
       // Studio Dieciséis (sion): grilla 2 columnas, tarjetas limpias (foto/nombre/rol),
       // sin estrellas ni badges de disponibilidad. Tema Premium Dark · Esmeralda.
       if (window.CURRENT_TENANT_ID === 'sionbarberia') {
@@ -9330,6 +9414,7 @@
     function selectBarber(btn, id, nombre) {
       const _isMapuSel = window.CURRENT_TENANT_ID === 'mapubarbershop';
       const _isSionSel = window.CURRENT_TENANT_ID === 'sionbarberia';
+      const _isBcSel   = window.CURRENT_TENANT_ID === 'barbersclub';
       document.querySelectorAll('.barber-option').forEach(el => {
         if (_isMapuSel) {
           el.style.borderColor = 'rgba(191,163,126,0.15)';
@@ -9343,8 +9428,11 @@
           el.classList.replace('bg-brand-neon/10', 'bg-[#0a0a0d]');
         }
         const radio = el.querySelector('.barber-radio');
-        const _radioBorderUnsel = _isMapuSel ? 'rgba(191,163,126,0.40)' : window.CURRENT_TENANT_ID === 'chameleon' ? 'rgba(201,168,76,0.4)' : 'rgba(212,175,55,0.4)';
+        const _radioBorderUnsel = _isMapuSel ? 'rgba(191,163,126,0.40)' : window.CURRENT_TENANT_ID === 'chameleon' ? 'rgba(201,168,76,0.4)' : _isBcSel ? '#525252' : 'rgba(212,175,55,0.4)';
         if (radio) { radio.style.background = 'transparent'; radio.style.borderColor = _radioBorderUnsel; }
+        // Barbers Club: ocultar check dentro del radio al deseleccionar
+        const chk = el.querySelector('.barber-check');
+        if (chk) chk.style.display = 'none';
       });
       if (_isMapuSel) {
         btn.style.borderColor = '#BFA37E';
@@ -9359,8 +9447,11 @@
       }
       const _isChameleonSel = window.CURRENT_TENANT_ID === 'chameleon';
       const selRadio = btn.querySelector('.barber-radio');
-      const _radioFill = _isMapuSel ? '#BFA37E' : _isChameleonSel ? '#c9a84c' : '#D4AF37';
+      const _radioFill = _isMapuSel ? '#BFA37E' : _isChameleonSel ? '#c9a84c' : _isBcSel ? '#eab308' : '#D4AF37';
       if (selRadio) { selRadio.style.background = _radioFill; selRadio.style.borderColor = _radioFill; }
+      // Barbers Club: mostrar check oscuro dentro del radio dorado al seleccionar
+      const selChkB = btn.querySelector('.barber-check');
+      if (selChkB) selChkB.style.display = _isBcSel ? 'inline-block' : 'none';
 
       if (window._selectedBarberId !== id) { selectedTimeStr = null; _selectedSlotInfo = null; }
       window._selectedBarber = nombre;
@@ -9892,7 +9983,8 @@
       const _isElegance = !window.CURRENT_TENANT_ID || window.CURRENT_TENANT_ID === 'elegance';
       const _isBM       = window.CURRENT_TENANT_ID === 'elbarberomoderno';
       const _isInf      = window.CURRENT_TENANT_ID === 'infinity';
-      const _useRowSel  = _isElegance || _isMapu || _isAura || _isKronnos || _isBM || _isInf
+      const _isBc       = window.CURRENT_TENANT_ID === 'barbersclub';
+      const _useRowSel  = _isElegance || _isMapu || _isAura || _isKronnos || _isBM || _isInf || _isBc
         || window.CURRENT_TENANT_ID === 'ferraza'
         || window.CURRENT_TENANT_ID === 'lumen'
         || window.CURRENT_TENANT_ID === 'machos'
@@ -9904,8 +9996,8 @@
         || window.CURRENT_TENANT_ID === 'yugen';
       const _isLatin    = window.CURRENT_TENANT_ID === 'latincaribe';
       const _isYugen    = window.CURRENT_TENANT_ID === 'yugen';
-      const _radioDim   = _isBM ? '#3A3A3A' : _isInf ? '#E5E5E5' : _isMapu ? 'rgba(191,163,126,0.40)' : _isLatin ? 'rgba(53,221,230,0.35)' : _isAura ? 'rgba(55,65,81,0.25)' : _isYugen ? 'rgba(245,243,239,0.4)' : 'rgba(212,175,55,0.4)';
-      const _radioSel   = _isBM ? '#E0E0E0' : _isInf ? '#000000' : _isMapu ? '#BFA37E' : _isLatin ? '#F35BA6' : _isAura ? '#1F2937' : _isYugen ? '#f5f3ef' : '#D4AF37';
+      const _radioDim   = _isBM ? '#3A3A3A' : _isInf ? '#E5E5E5' : _isBc ? '#525252' : _isMapu ? 'rgba(191,163,126,0.40)' : _isLatin ? 'rgba(53,221,230,0.35)' : _isAura ? 'rgba(55,65,81,0.25)' : _isYugen ? 'rgba(245,243,239,0.4)' : 'rgba(212,175,55,0.4)';
+      const _radioSel   = _isBM ? '#E0E0E0' : _isInf ? '#000000' : _isBc ? '#eab308' : _isMapu ? '#BFA37E' : _isLatin ? '#F35BA6' : _isAura ? '#1F2937' : _isYugen ? '#f5f3ef' : '#D4AF37';
 
       // Helpers locales para aplicar/quitar el estilo "seleccionado" en un .service-option.
       // Se reutilizan en modo single y en multi (cuando hay que pintar varios).
@@ -9944,8 +10036,9 @@
         if (selRadio) { selRadio.style.background = _radioSel; selRadio.style.borderColor = _radioSel; }
         // BM: check negro visible dentro del radio plata al seleccionar.
         // Infinity: check blanco visible dentro del radio negro al seleccionar.
+        // Barbers Club: check oscuro visible dentro del radio dorado al seleccionar.
         const selChk = el.querySelector('.svc-check');
-        if (selChk) selChk.style.display = (_isBM || _isInf) ? 'inline-block' : 'none';
+        if (selChk) selChk.style.display = (_isBM || _isInf || _isBc) ? 'inline-block' : 'none';
       };
 
       const svcObj = (window._fsServices || _fsServices || []).find(s => String(s.id) === String(id))
