@@ -11207,9 +11207,10 @@
       subscribeGoogleReviews();
     }
 
-    // Sincroniza rating + total con lo último de Google (Firestore, en vivo).
-    // El doc lo escribe la Cloud Function googleReviewsSync. Si aún no existe,
-    // quedan los valores de config.js (fallback, sin regresión).
+    // Sincroniza rating + total + reseñas con lo último de Google (Firestore,
+    // en vivo). El doc lo escribe la Cloud Function googleReviewsSync. Si aún
+    // no existe (o no trae reviews), quedan los valores de config.js como
+    // fallback (sin regresión).
     let _googleReviewsUnsub = null;
     function subscribeGoogleReviews() {
       if (typeof db === 'undefined' || !db || _googleReviewsUnsub) return;
@@ -11222,6 +11223,10 @@
         const d = snap.data() || {};
         if (typeof d.rating === 'number')       SHOP.ratingGeneral = d.rating;
         if (typeof d.totalReviews === 'number') SHOP.totalReviews  = d.totalReviews;
+        // Propagar reseñas dinámicas si el doc de Firestore trae al menos una.
+        // Google Places (New) devuelve hasta 5 reseñas; si el array llega
+        // vacío mantenemos el fallback estático de config.js.
+        if (Array.isArray(d.reviews) && d.reviews.length) SHOP.reviews = d.reviews;
         renderHeroBadge();
         renderReviewsSection();
       }, err => console.warn('[GoogleReviews] onSnapshot:', err));
