@@ -348,6 +348,110 @@
         html.light-mode #themeIcon {
             color: #0f172a !important;
         }
+
+        /* ═══════════════════════════════════════════════════════════════════
+           AJUSTES DE CONTRASTE (modo claro) — segunda pasada
+           Zonas donde el mapeo genérico dejaba texto/íconos casi invisibles
+           bajo luz directa (horas, "Espacio disponible", íconos de acción,
+           KPIs, píldoras, banner de instalación). Van al final adrede: por
+           orden en cascada ganan sobre los mapeos globales anteriores.
+           ═══════════════════════════════════════════════════════════════════ */
+
+        /* Fracciones de opacidad usadas por buildFreeSlot que no existían
+           en el mapeo global (text-white/25 en la hora, text-white/15 en el
+           candado). Ambas van a slate oscuro con peso 600 para leerse a
+           pleno sol. */
+        html.light-mode .text-white\/25 { color: #1e293b !important; }
+        html.light-mode .text-white\/15 { color: #334155 !important; }
+
+        /* Bordes horizontales de la grilla (separan cada franja de 15/30 min).
+           border-white/[0.06] y su hover eran translúcidos → se perdían
+           encima del fondo blanco. */
+        html.light-mode .border-white\/\[0\.06\] { border-color: #e2e8f0 !important; }
+        html.light-mode .hover\:border-white\/10:hover { border-color: #cbd5e1 !important; }
+        /* Divisor vertical del free slot */
+        html.light-mode .bg-white\/\[0\.06\] { background-color: #cbd5e1 !important; }
+
+        /* ── Grilla horaria de la vista Día ─────────────────────────────
+           Horas (10:00, 10:15…) a la izquierda, "Espacio disponible"
+           al centro, íconos de acción (+ / candado) a la derecha. */
+        html.light-mode #morningSlots .text-white\/25,
+        html.light-mode #afternoonSlots .text-white\/25 {
+            color: #1e293b !important;    /* slate-800: hora legible */
+            font-weight: 600 !important;
+        }
+        html.light-mode #morningSlots .text-white\/20,
+        html.light-mode #afternoonSlots .text-white\/20 {
+            color: #475569 !important;    /* slate-600: "Espacio disponible" */
+        }
+        html.light-mode #morningSlots .text-white\/15,
+        html.light-mode #afternoonSlots .text-white\/15 {
+            color: #334155 !important;    /* slate-700: ícono candado */
+        }
+        html.light-mode #morningSlots .text-white\/40,
+        html.light-mode #afternoonSlots .text-white\/40 {
+            color: #334155 !important;    /* slate-700: ícono + (visible al hover) */
+        }
+        /* Al pasar el cursor por el free slot el texto oscurece más aún
+           (contra-intuitivo del oscuro, pero coherente con la lectura). */
+        html.light-mode .group:hover .group-hover\:text-white\/40 { color: #0f172a !important; }
+
+        /* Encabezados "Mañana" / "Tarde" y estado vacío */
+        html.light-mode #morningLabel,
+        html.light-mode #afternoonLabel { color: #334155 !important; }
+        html.light-mode #emptyAgenda .text-white\/20,
+        html.light-mode #emptyAgenda .text-white\/40 { color: #64748b !important; }
+
+        /* ── Píldoras 15'/30'/45'/1h y toggle Día/Semana ────────────────
+           Los estados activo/inactivo los pinta el JS con style inline
+           SIN !important (ver _updateIntervalUI/_updateViewToggleUI, ya
+           refactorizados para ser theme-aware). Estos !important son la
+           red de seguridad del primer paint. */
+        html.light-mode #intervalSelectorWrap > div,
+        html.light-mode div:has(> #viewBtnDia) {
+            background: #f1f5f9 !important;   /* slate-100 */
+            border: 1px solid #cbd5e1 !important;
+        }
+        html.light-mode #intervalSelectorWrap > span { color: #334155 !important; }
+        html.light-mode .int-btn,
+        html.light-mode #viewBtnDia,
+        html.light-mode #viewBtnSemana { color: #334155 !important; }
+
+        /* ── Mini-dashboard de KPIs (Completadas / Pendientes / Proyección)
+           Tarjeta blanca sólida con borde marcado y textos en slate-900. */
+        html.light-mode #dailyStatsDashboard {
+            background: #ffffff !important;
+            border-color: #cbd5e1 !important;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06) !important;
+        }
+        html.light-mode #dailyStatsDashboard .border-white\/10 { border-color: #cbd5e1 !important; }
+        html.light-mode #dailyStatsDashboard #statCompletadas,
+        html.light-mode #dailyStatsDashboard #statPendientes { color: #0f172a !important; }
+        html.light-mode #dailyStatsDashboard .text-white\/50 {
+            color: #334155 !important;
+            font-weight: 700 !important;
+        }
+        /* Etiqueta "Proyección" venía en text-brand-accent/50 (dorado casi
+           transparente): forzamos slate-700 como sus hermanas. */
+        html.light-mode #dailyStatsDashboard .text-brand-accent\/50 {
+            color: #334155 !important;
+            font-weight: 700 !important;
+        }
+
+        /* ── Banner "Instalar como Aplicación" ─────────────────────────
+           Fondo/gradiente inline en oro semi-transparente eran casi
+           invisibles sobre blanco. Lo pasamos a amber-50 con borde
+           amber-300 y refuerzo del título. */
+        html.light-mode #pwaBigInstallCard {
+            background: rgba(254, 243, 199, 0.6) !important;
+            border: 1px solid #fcd34d !important;
+            box-shadow: none !important;
+        }
+        html.light-mode #pwaBigInstallCard h3 {
+            color: #0f172a !important;
+            font-weight: 800 !important;
+        }
+        html.light-mode #pwaBigInstallCard .text-white\/60 { color: #475569 !important; }
     </style>
 </head>
 <body class="min-h-screen bg-brand-bg antialiased" style="padding-bottom: max(2.5rem, env(safe-area-inset-bottom));">
@@ -2493,10 +2597,19 @@
         }
 
         // ── TOGGLE DÍA / SEMANA ─────────────────────────────────────
+        // Paleta compartida con las píldoras de intervalo: en claro el
+        // "activo" es slate-900 con texto blanco (destaca sobre la
+        // superficie #f1f5f9); el "inactivo" pasa a slate-700 para no
+        // quedar blanco sobre blanco.
+        function _pillPalette() {
+            const light = document.documentElement.classList.contains('light-mode');
+            return light
+                ? { on: 'background:#0f172a;color:#ffffff;', off: 'background:transparent;color:#334155;' }
+                : { on: 'background:#fff;color:#0a0a0a;',    off: 'background:transparent;color:rgba(255,255,255,0.5);' };
+        }
         function _updateViewToggleUI() {
             const dia = _agendaView === 'dia';
-            const on  = 'background:#fff;color:#0a0a0a;';
-            const off = 'background:transparent;color:rgba(255,255,255,0.5);';
+            const { on, off } = _pillPalette();
             const bd = document.getElementById('viewBtnDia');
             const bs = document.getElementById('viewBtnSemana');
             if (bd) bd.style.cssText = (dia ? on : off);
@@ -2534,11 +2647,10 @@
         function _updateIntervalUI() {
             const cfg = barberConfig || globalConfig || {};
             const eff = _slotInterval || cfg.intervaloMinutos || 30;
+            const { on, off } = _pillPalette();
             document.querySelectorAll('.int-btn').forEach(b => {
                 const v = parseInt(b.dataset.int);
-                b.style.cssText = (v === eff)
-                    ? 'background:#fff;color:#0a0a0a;'
-                    : 'background:transparent;color:rgba(255,255,255,0.45);';
+                b.style.cssText = (v === eff) ? on : off;
             });
         }
 
@@ -4010,6 +4122,10 @@
         } catch (_) { /* localStorage bloqueado: cambio válido para esta sesión */ }
         updateThemeIcon(isLight);
         updateThemeColor(isLight);
+        // Repinta las píldoras (colores inline por JS) para que el cambio
+        // sea instantáneo y no queden textos blancos sobre fondo claro.
+        try { if (typeof _updateIntervalUI === 'function') _updateIntervalUI(); } catch (_) { /* noop */ }
+        try { if (typeof _updateViewToggleUI === 'function') _updateViewToggleUI(); } catch (_) { /* noop */ }
       };
 
       // Sync inicial del ícono/theme-color al DOMContentLoaded — el HTML ya
