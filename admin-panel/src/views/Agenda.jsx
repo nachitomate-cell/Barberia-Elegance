@@ -68,6 +68,16 @@ function buildSlotCfg(slotMins, hourStart = 8, hourEnd = 20) {
 
 const AgendaCtx = createContext(buildSlotCfg(30));
 
+/* Etiqueta compacta de la fecha para el toolbar mobile: "Martes 30 Jun".
+   Capitaliza el weekday y usa el mes en formato corto (sin punto). */
+function formatDateLabel(d) {
+  const weekday = d.toLocaleDateString('es-CL', { weekday: 'long' });
+  const day     = d.getDate();
+  const mesFull = d.toLocaleDateString('es-CL', { month: 'short' }).replace('.', '');
+  const cap = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+  return `${cap(weekday)} ${day} ${cap(mesFull)}`;
+}
+
 const STATUS_STYLE = {
   Confirmada: 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300',
   Cancelada:  'bg-red-500/10   border-red-500/30     text-red-400',
@@ -2890,7 +2900,7 @@ export default function Agenda() {
     const el = swimRef.current;
     if (!el) return;
     didAutoScroll.current = true;
-    el.scrollTo({ top: Math.max(0, 40 + nowOffsetPx - el.clientHeight / 2), behavior: 'smooth' });
+    el.scrollTo({ top: Math.max(0, 36 + nowOffsetPx - el.clientHeight / 2), behavior: 'smooth' });
   }, [showNowLine, nowOffsetPx]);
 
   // Un admin también puede atender sillón: aparece como columna si su doc lo
@@ -3085,76 +3095,51 @@ export default function Agenda() {
     <AgendaCtx.Provider value={slotCfg}>
     <div data-view="agenda" className="flex flex-col h-full gap-3">
 
-      {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-2 shrink-0">
-        <span className="flex items-center gap-2 mr-2">
-          <h1 className="text-xl font-bold text-white">Agenda</h1>
-          <HelpButton onClick={() => setShowHelp(true)} />
-        </span>
+      {/* Toolbar — Alta densidad mobile-first, 2 filas máx */}
+      <h1 className="sr-only">Agenda</h1>
 
-        <div className="flex items-center gap-1">
-          <button onClick={() => moveDay(-1)} className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-all"><ChevronLeft size={18} /></button>
-          <span className="text-sm font-semibold text-white min-w-[150px] text-center capitalize">
-            {date.toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' })}
-          </span>
-          <button onClick={() => moveDay(1)} className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-all"><ChevronRight size={18} /></button>
-          <button onClick={() => setDate(new Date())} className="ml-1 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-lg transition-all">Hoy</button>
-        </div>
-
-        {/* Reloj en vivo + selector de intervalo */}
-        <div className="flex items-center gap-1 shrink-0">
+      {/* ── Fila 1: navegación de fecha + acciones ── */}
+      <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex items-center gap-0.5 min-w-0">
           <button
-            onClick={scrollToNow}
-            title={isToday ? 'Ir a la hora actual' : 'Volver a hoy y a la hora actual'}
-            className="group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-700 hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-all"
+            onClick={() => moveDay(-1)}
+            aria-label="Día anterior"
+            className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-all"
           >
-            <span className="relative flex h-2 w-2">
-              {showNowLine && <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60 animate-ping" />}
-              <Clock size={13} className="text-emerald-400 -m-0.5" />
-            </span>
-            <span className="text-xs font-mono font-semibold text-slate-200 tabular-nums group-hover:text-white">{nowLabel}</span>
+            <ChevronLeft size={18} />
           </button>
-
-          <div className="relative flex items-center gap-0.5 border border-slate-700 rounded-lg p-0.5" title="Resolución de la grilla: a menor intervalo, las citas se ordenan con más precisión">
-            {[15, 30, 45, 60].map(step => {
-              const active = slotMins === step;
-              return (
-                <button
-                  key={step}
-                  onClick={() => { setSlotMins(step); setLabelStep(step); try { localStorage.setItem(SLOT_KEY, String(step)); } catch { /* noop */ } }}
-                  className={`relative px-2 py-1 rounded-md text-[10px] font-mono font-semibold transition-colors ${
-                    active ? 'text-white' : 'text-slate-500 hover:text-slate-200'
-                  }`}
-                >
-                  {active && (
-                    <motion.span
-                      layoutId="slotmins-pill"
-                      className="absolute inset-0 rounded-md bg-emerald-600 shadow-sm"
-                      transition={{ type: 'spring', stiffness: 480, damping: 34 }}
-                    />
-                  )}
-                  <span className="relative z-10">{step < 60 ? `${step}'` : '1h'}</span>
-                </button>
-              );
-            })}
-          </div>
+          <span className="text-sm font-semibold text-white text-center capitalize whitespace-nowrap tabular-nums px-1">
+            {formatDateLabel(date)}
+          </span>
+          <button
+            onClick={() => moveDay(1)}
+            aria-label="Día siguiente"
+            className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-all"
+          >
+            <ChevronRight size={18} />
+          </button>
         </div>
+        <button
+          onClick={() => setDate(new Date())}
+          className="h-9 px-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-lg transition-all"
+        >
+          Hoy
+        </button>
 
-        {/* Acciones primarias — siempre pegadas a la derecha, incluso si la barra se envuelve */}
-        <div className="flex items-center gap-2 ml-auto shrink-0">
-        {/* Acción primaria */}
+        {/* Acciones primarias — pegadas a la derecha */}
+        <div className="flex items-center gap-1.5 ml-auto shrink-0">
         <button
           onClick={() => setCitaModal({ cita: null, barberoId: barberos[0]?.id || '', hora: '09:00' })}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition-all shrink-0"
+          className="h-9 px-3 flex items-center gap-1 bg-emerald-500 hover:bg-emerald-400 text-neutral-950 font-bold rounded-lg text-xs shadow-md transition-all shrink-0"
         >
-          <Plus size={14} /> Nueva cita
+          <Plus size={14} strokeWidth={2.5} /> Cita
         </button>
 
         {/* Menú de acciones secundarias */}
         <div className="relative shrink-0" ref={menuRef}>
           <button
             onClick={() => setShowMenu(v => !v)}
-            className={`relative flex items-center justify-center w-8 h-8 rounded-lg border transition-all ${
+            className={`relative flex items-center justify-center w-9 h-9 rounded-lg border transition-all ${
               showMenu || blockMode
                 ? 'border-slate-600 bg-slate-800 text-white'
                 : 'border-slate-700 text-slate-400 hover:text-white hover:border-slate-600'
@@ -3216,6 +3201,67 @@ export default function Agenda() {
         </div>
       </div>
 
+      {/* ── Fila 2: reloj + intervalos (una sola pastilla) + FilterChip barbero ── */}
+      <div className="flex items-center gap-2 overflow-x-auto py-1 my-1 shrink-0 no-scrollbar">
+        <div className="flex items-center gap-1 bg-neutral-900 border border-neutral-800 rounded-lg p-1 text-xs shrink-0">
+          <button
+            onClick={scrollToNow}
+            title={isToday ? 'Ir a la hora actual' : 'Volver a hoy y a la hora actual'}
+            className="group h-7 flex items-center gap-1 pl-1.5 pr-2 rounded-md hover:bg-emerald-500/10 transition-colors"
+          >
+            <span className="relative flex h-2 w-2">
+              {showNowLine && <span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60 animate-ping" />}
+              <Clock size={12} className="text-emerald-400 -m-0.5" />
+            </span>
+            <span className="text-[11px] font-mono font-semibold text-slate-200 tabular-nums group-hover:text-white">{nowLabel}</span>
+          </button>
+          <span className="w-px h-4 bg-neutral-800" aria-hidden />
+          <div className="relative flex items-center gap-0.5" title="Resolución de la grilla">
+            {[15, 30, 45, 60].map(step => {
+              const active = slotMins === step;
+              return (
+                <button
+                  key={step}
+                  onClick={() => { setSlotMins(step); setLabelStep(step); try { localStorage.setItem(SLOT_KEY, String(step)); } catch { /* noop */ } }}
+                  className={`relative h-7 min-w-[28px] px-1.5 rounded-md text-[10px] font-mono font-semibold transition-colors ${
+                    active ? 'text-white' : 'text-slate-500 hover:text-slate-200'
+                  }`}
+                >
+                  {active && (
+                    <motion.span
+                      layoutId="slotmins-pill"
+                      className="absolute inset-0 rounded-md bg-emerald-600 shadow-sm"
+                      transition={{ type: 'spring', stiffness: 480, damping: 34 }}
+                    />
+                  )}
+                  <span className="relative z-10">{step < 60 ? `${step}'` : '1h'}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Filter Chip: barbero focus activo — reemplaza al banner verde grande */}
+        {focusBarbero && (
+          <div className="h-7 pl-2.5 pr-1 bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 rounded-full text-xs flex items-center gap-1.5 shrink-0">
+            <User size={11} className="shrink-0" />
+            <span className="font-semibold truncate max-w-[140px]">{focusBarbero.nombre}</span>
+            <button
+              onClick={() => setSoloBarbero(null)}
+              aria-label="Quitar filtro de barbero"
+              className="w-5 h-5 -mr-0.5 flex items-center justify-center rounded-full hover:bg-emerald-500/20 text-emerald-300 hover:text-emerald-100 transition-colors"
+            >
+              <X size={12} strokeWidth={2.5} />
+            </button>
+          </div>
+        )}
+
+        {/* Ayuda contextual — última posición, discreta */}
+        <div className="ml-auto shrink-0">
+          <HelpButton onClick={() => setShowHelp(true)} />
+        </div>
+      </div>
+
       {diaGlobalCerrado && (
         <div className="flex items-center gap-3 px-4 py-3 bg-red-950/40 border border-red-500/30 rounded-xl text-sm text-red-400 shrink-0">
           <CalendarOff size={16} />
@@ -3251,30 +3297,17 @@ export default function Agenda() {
         </div>
       )}
 
-      {focusBarbero && (
-        <div className="flex items-center gap-2 px-4 py-2.5 bg-emerald-950/30 border border-emerald-500/30 rounded-xl text-xs text-emerald-400 shrink-0">
-          <User size={14} />
-          <span className="flex-1 font-medium">Mostrando solo la agenda de <strong className="font-bold">{focusBarbero.nombre}</strong></span>
-          <button
-            onClick={() => setSoloBarbero(null)}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-lg border border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/10 font-semibold transition-colors"
-          >
-            <Users size={13} /> Ver todos
-          </button>
-        </div>
-      )}
-
       {/* Swimlane */}
       <div ref={swimRef} className="flex-1 bg-slate-900 border border-slate-800 rounded-xl overflow-auto no-scrollbar">
         <div className="flex min-w-max">
 
           {/* Time axis */}
           <div className="w-16 shrink-0 sticky left-0 bg-slate-900 z-20 border-r border-slate-800 relative">
-            <div className="h-10 border-b border-slate-800" />
+            <div className="h-9 border-b border-slate-800" />
             {showNowLine && (
               <div
                 className="absolute right-0 z-30 flex justify-end pr-1 pointer-events-none"
-                style={{ top: `${40 + nowOffsetPx}px`, transform: 'translateY(-50%)' }}
+                style={{ top: `${36 + nowOffsetPx}px`, transform: 'translateY(-50%)' }}
               >
                 <span className="text-[9px] font-mono font-bold text-white bg-red-500 rounded px-1 py-px shadow-[0_0_6px_rgba(239,68,68,0.6)]">
                   {nowLabel}
@@ -3343,7 +3376,7 @@ export default function Agenda() {
                           <div
                             onClick={() => setSoloBarbero(prev => prev === b.id ? null : b.id)}
                             title={focusBarbero?.id === b.id ? 'Mostrar todos los barberos' : `Ver solo la agenda de ${b.nombre}`}
-                            className="group h-10 pr-3 flex items-center gap-1.5 border-b border-slate-800 sticky top-0 bg-slate-900 z-10 cursor-pointer hover:bg-slate-800/60 transition-colors"
+                            className="group h-9 py-1.5 pr-3 flex items-center gap-1.5 border-b border-slate-800 sticky top-0 bg-slate-900 z-10 cursor-pointer hover:bg-slate-800/60 transition-colors"
                           >
                             {/* Manija de arrastre dedicada: aísla el reordenar del tap "ver solo" */}
                             <span

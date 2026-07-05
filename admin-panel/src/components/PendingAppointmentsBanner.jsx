@@ -151,34 +151,27 @@ export default function PendingAppointmentsBanner() {
 
   return (
     <>
-      <div className="bg-amber-500/10 border-b border-amber-500/20 relative animate-fade-in z-20">
-        <div className="max-w-7xl mx-auto px-4 py-3 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between flex-wrap gap-3">
-            <div className="flex flex-1 items-center gap-3 min-w-0">
-              <span className="flex p-2 rounded-lg bg-amber-500/20">
-                <AlertTriangle className="h-5 w-5 text-amber-500" aria-hidden="true" />
-              </span>
-              <p className="text-sm font-medium text-amber-500 truncate">
-                Tienes {pendingCitas.length} {pendingCitas.length === 1 ? 'cita pendiente' : 'citas pendientes'} de cierre.
-              </p>
-            </div>
-            <div className="order-3 mt-2 w-full shrink-0 sm:order-2 sm:mt-0 sm:w-auto">
-              <button
-                onClick={() => setModalOpen(true)}
-                className="flex w-full items-center justify-center rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-amber-950 hover:bg-amber-400 active:scale-95 transition-all shadow-sm"
-              >
-                Revisar citas
-                <ChevronRight size={16} className="ml-1" />
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* Pastilla ultradelgada — reemplaza al banner naranja gigante. Alto
+          táctil suficiente (36px) sin robar espacio al contenido principal. */}
+      <div className="mx-3 sm:mx-4 mt-2 mb-2 h-9 px-3 bg-amber-500/10 border border-amber-500/30 rounded-lg flex items-center justify-between text-xs text-amber-400 animate-fade-in">
+        <span className="font-medium truncate flex items-center gap-1.5 min-w-0">
+          <AlertTriangle size={13} className="shrink-0" aria-hidden="true" />
+          {pendingCitas.length} pendiente{pendingCitas.length === 1 ? '' : 's'} de cierre
+        </span>
+        <button
+          type="button"
+          onClick={() => setModalOpen(true)}
+          className="shrink-0 h-9 px-2 -mr-2 font-bold text-amber-300 hover:underline flex items-center gap-0.5"
+        >
+          Revisar
+          <ChevronRight size={13} />
+        </button>
       </div>
 
       {modalOpen && (
-        <PendingAppointmentsModal 
-          citas={pendingCitas} 
-          onClose={() => setModalOpen(false)} 
+        <PendingAppointmentsModal
+          citas={pendingCitas}
+          onClose={() => setModalOpen(false)}
         />
       )}
     </>
