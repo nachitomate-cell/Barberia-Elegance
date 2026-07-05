@@ -923,10 +923,10 @@ const TENANT_META = {
       ogDesc:      'Regístrate en Barbers Club y disfruta beneficios exclusivos.',
     },
     siteName:    'Barbers Club',
-    ogImage:     '/logo.jpg',
+    ogImage:     '/barbersclub/barber12.jpg?v=2.0',
     themeColor:  '#0b0a09',
     appTitle:    'Barbers Club',
-    icon:        '/logo.jpg',
+    icon:        '/barbersclub/barber12.jpg',
     local: { telephone: '+56981806262', streetAddress: 'Av. Del Canal 19811, Local 12', addressLocality: 'Ciudad de los Valles, Pudahuel, Santiago', schemaType: 'HairSalon' },
     manifest: {
       name:             'Barbers Club',
@@ -942,7 +942,7 @@ const TENANT_META = {
       background_color: '#0b0a09',
       start_url:        '/gestion-interna/?local=barbersclub',
       icons: [
-        { src: '/logo.jpg',                    sizes: 'any',     type: 'image/jpeg' },
+        { src: '/barbersclub/barber12.jpg',    sizes: 'any',     type: 'image/jpeg' },
         { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png' },
         { src: '/gestion-interna/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
       ],
