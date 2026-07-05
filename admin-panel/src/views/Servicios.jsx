@@ -36,6 +36,7 @@ const EMPTY = {
   nombre: '', categoria: 'Otro', precio: '', duracion: '',
   icono: 'ph-scissors', descripcion: '', varPrecios: false,
   ppd: { ...EMPTY_PPD }, imagen: null,
+  recargoSobrecupoDefault: '',
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────
@@ -166,6 +167,7 @@ export default function Servicios() {
       icono: s.icono || 'ph-scissors', descripcion: s.descripcion || '',
       varPrecios: !!s.preciosPorDia, ppd,
       imagen: s.imagen || null,
+      recargoSobrecupoDefault: s.recargoSobrecupoDefault != null ? String(s.recargoSobrecupoDefault) : '',
     });
     resetImageState();
     setSlide(true);
@@ -202,10 +204,17 @@ export default function Servicios() {
         });
       }
       const descripcion = form.descripcion.trim();
+      // Recargo por sobrecupo / horario especial: opcional. Se aplica solo si
+      // el barbero activa el toggle en la agenda; el default aquí es 0.
+      const rawRecargo = String(form.recargoSobrecupoDefault ?? '').trim();
+      const recargoSobrecupoDefault = rawRecargo === ''
+        ? 0
+        : Math.max(0, Math.round(Number(rawRecargo)) || 0);
       const base = {
         nombre: form.nombre, categoria: form.categoria,
         precio: basePrecio, duracion: Number(form.duracion),
         icono: form.icono || 'ph-scissors', updatedAt: serverTimestamp(),
+        recargoSobrecupoDefault,
       };
 
       let imagenUrl = form.imagen ?? null;
@@ -451,6 +460,27 @@ export default function Servicios() {
               <label className={lbl}>Duración (min)</label>
               <input className={field} type="number" placeholder="45" value={form.duracion} onChange={e => setForm(f => ({ ...f, duracion: e.target.value }))} />
             </div>
+          </div>
+
+          <div>
+            <label className={lbl}>
+              Recargo por Sobrecupo / Horario Especial ($)
+              <span className="text-slate-600 normal-case tracking-normal font-normal ml-1">(opcional)</span>
+            </label>
+            <input
+              className={field}
+              type="number"
+              min="0"
+              step="1"
+              inputMode="numeric"
+              placeholder="5000"
+              value={form.recargoSobrecupoDefault}
+              onChange={e => setForm(f => ({ ...f, recargoSobrecupoDefault: e.target.value.replace(/[^\d]/g, '') }))}
+            />
+            <p className="text-[11px] text-slate-500 mt-1">
+              Monto sugerido a cobrar sobre el precio base cuando la cita se agenda como sobrecupo
+              o fuera de turno. El barbero podrá ajustarlo en cada cita.
+            </p>
           </div>
 
           <div>

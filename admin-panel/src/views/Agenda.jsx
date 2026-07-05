@@ -6,7 +6,7 @@ import {
   User, Phone, Mail, Scissors, CalendarDays, DollarSign,
   Timer, MessageSquare, BadgeCheck, Search, ListFilter, MapPin,
   Send, Download, RefreshCw, Copy, Check, ShoppingBag, Gift,
-  Users, Eye, UserPlus, MoreHorizontal, GripVertical, AlertTriangle,
+  Users, Eye, UserPlus, MoreHorizontal, GripVertical, AlertTriangle, Zap,
 } from 'lucide-react';
 import { DndContext, PointerSensor, useSensor, useSensors, closestCenter } from '@dnd-kit/core';
 import { SortableContext, horizontalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
@@ -199,6 +199,19 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
   const initialSvcId = matchedSvc?.id || cita?.servicioId || firstSvc?.id || '';
   const initialSvcNombre = matchedSvc?.nombre || cita?.servicioNombre || firstSvc?.nombre || '';
 
+  // Sobrecupo / horario especial: form.precio siempre representa el "precio base
+  // con descuento aplicado" (compat con vistas históricas). El recargo se guarda
+  // aparte y se suma al total al persistir (payload.precio = base + recargo),
+  // así toda la caja/comisiones lo cobra sin necesitar cambios.
+  const initialRecargo = cita?.recargoSobrecupo != null
+    ? Number(cita.recargoSobrecupo) || 0
+    : (sobrecupo ? (Number(matchedSvc?.recargoSobrecupoDefault ?? firstSvc?.recargoSobrecupoDefault) || 0) : 0);
+  const initialBasePrecio = cita?.precioBase != null
+    ? Number(cita.precioBase) || 0
+    : (cita?.precio != null
+        ? Math.max(0, Number(cita.precio) - initialRecargo)
+        : (Number(matchedSvc?.precio || firstSvc?.precio) || 0));
+
   const [form, setForm] = useState({
     clienteNombre:   cita?.clienteNombre   || '',
     clienteEmail:    cita?.clienteEmail    || '',
@@ -206,7 +219,7 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
     clienteId:       cita?.clienteId       || null,
     servicioId:      initialSvcId,
     servicioNombre:  initialSvcNombre,
-    precio:          cita?.precio != null ? Number(cita.precio) : (Number(matchedSvc?.precio || firstSvc?.precio) || 0),
+    precio:          initialBasePrecio,
     duracion:        Number(cita?.duracion || cita?.duracionServicio || firstSvc?.duracion) || 30,
     barberoId:       cita?.barberoId       || defaultBarb,
     barbero:         cita?.barbero         || barberos.find(b => b.id === defaultBarb)?.nombre || '',
@@ -219,6 +232,8 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
     porcentajeDescuento: cita?.porcentajeDescuento != null ? Number(cita.porcentajeDescuento) : '',
     cortesia:        cita?.cortesia || false,
   });
+  const [sobrecupoActivo, setSobrecupoActivo] = useState(!!sobrecupo || cita?.sobrecupo === true);
+  const [recargoSobrecupo, setRecargoSobrecupo] = useState(initialRecargo);
   const [saving, setSaving] = useState(false);
   const [showSugg, setShowSugg] = useState(false);
   const [telError, setTelError] = useState(false);
@@ -457,6 +472,12 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
       precio:         f.cortesia ? 0 : discountedPrice,
       duracion:       Number(s?.duracion) || 30,
     }));
+    // Al cambiar de servicio con sobrecupo activo, cargamos el recargo default
+    // del nuevo servicio (el barbero puede seguir ajustándolo a mano).
+    if (sobrecupoActivo) {
+      const defRecargo = Math.max(0, Math.round(Number(s?.recargoSobrecupoDefault) || 0));
+      setRecargoSobrecupo(defRecargo);
+    }
   };
 
   const handleDiscountChange = val => {
@@ -475,6 +496,34 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
     set('barberoId', id);
     set('barbero', b?.nombre || '');
   };
+
+  const toggleSobrecupo = on => {
+    setSobrecupoActivo(on);
+    if (on) {
+      // Al activar, precargamos el recargo default del servicio actual (si aún es 0).
+      const svc = servicios.find(s => s.id === form.servicioId);
+      const defRecargo = Math.max(0, Math.round(Number(svc?.recargoSobrecupoDefault) || 0));
+      setRecargoSobrecupo(prev => (Number(prev) > 0 ? prev : defRecargo));
+    } else {
+      setRecargoSobrecupo(0);
+    }
+  };
+
+  // Detección de "horario especial": la hora de la cita cae fuera del rango
+  // laboral del día (el que arma el select `pickerLabels`). Se persiste como
+  // flag adicional para reportes y filtros; no cambia el layout del bloque.
+  const horarioEspecial = useMemo(() => {
+    if (!sobrecupoActivo) return false;
+    if (!form.hora) return false;
+    if (!pickerLabels || pickerLabels.length === 0) return false;
+    return !pickerLabels.includes(form.hora);
+  }, [sobrecupoActivo, form.hora, pickerLabels]);
+
+  const recargoNum   = Math.max(0, Math.round(Number(recargoSobrecupo) || 0));
+  const precioBaseNum = Math.max(0, Math.round(Number(form.precio) || 0));
+  const precioTotalConRecargo = sobrecupoActivo && !form.cortesia
+    ? precioBaseNum + recargoNum
+    : precioBaseNum;
 
   // Atención de cortesía: servicio gratis, pero la visita y el sello se registran igual.
   const toggleCortesia = on => {
@@ -513,6 +562,32 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
       const payload = { ...form, duracionServicio: form.duracion, fecha: fechaCita, updatedAt: serverTimestamp() };
       if (!payload.clienteId) delete payload.clienteId;
 
+      // ── Sobrecupo / Horario Especial ─────────────────────────────
+      // El recargo se suma AL final (después del descuento) y queda persistido
+      // como `precio` (total a cobrar) + desglose separado (precioBase,
+      // recargoSobrecupo, precioTotal). Los reportes de caja/comisiones ya
+      // leen `precio`, así que cobran el recargo sin cambios extra.
+      const basePrecioPersist = Math.max(0, Math.round(Number(form.precio) || 0));
+      if (sobrecupoActivo) {
+        const recargoPersist = form.cortesia ? 0 : Math.max(0, Math.round(Number(recargoSobrecupo) || 0));
+        const totalPersist   = form.cortesia ? 0 : basePrecioPersist + recargoPersist;
+        payload.sobrecupo         = true;
+        payload.horarioEspecial   = !!horarioEspecial;
+        payload.precioBase        = basePrecioPersist;
+        payload.recargoSobrecupo  = recargoPersist;
+        payload.precioTotal       = totalPersist;
+        payload.precio            = totalPersist;   // compat con Caja/Comisiones/Metricas
+      } else if (cita?.sobrecupo === true) {
+        // Se desmarcó sobrecupo al editar → limpiamos el desglose y dejamos
+        // el precio base como total.
+        payload.sobrecupo        = false;
+        payload.horarioEspecial  = false;
+        payload.precioBase       = basePrecioPersist;
+        payload.recargoSobrecupo = 0;
+        payload.precioTotal      = basePrecioPersist;
+        payload.precio           = basePrecioPersist;
+      }
+
       // Corte al Lápiz: si el cliente es miembro y se cobra "a fin de mes",
       // marcamos la cita para que la CF acredite precio + recargo a su cuota.
       const cobrarCorteLapiz = !!clMember && form.estado === 'Completada' && !form.cortesia && usarCorteLapiz;
@@ -531,14 +606,13 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
       }
       if (isNew) {
         payload.creadoEn = serverTimestamp();
-        if (sobrecupo) payload.sobrecupo = true;
-        if (form.barberoId) {
+        // Regla invariante: un sobrecupo NUNCA toma un slotLock público. Así
+        // el horario ya reservado por la cita "dueña" del slot sigue siendo
+        // la única referencia visible para el flujo de reserva del cliente.
+        if (form.barberoId && !sobrecupoActivo) {
           const safeHora = (form.hora || '').replace(':', '');
           const safeBid  = String(form.barberoId).replace(/[^a-zA-Z0-9_-]/g, '_');
-          // Un sobrecupo usa un lockId único para no pisar el lock de la cita ya existente en ese horario.
-          const lockId   = sobrecupo
-            ? `${safeBid}_${fechaCita}_${safeHora}_sc${Date.now().toString(36)}`
-            : `${safeBid}_${fechaCita}_${safeHora}`;
+          const lockId   = `${safeBid}_${fechaCita}_${safeHora}`;
           const citaRef  = doc(tenantCol('citas'));
           const lockRef  = doc(db, `${tenantCol('slotLocks').path}/${lockId}`);
           const batch    = writeBatch(db);
@@ -565,8 +639,10 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
         const citaRef = doc(db, `${tenantCol('citas').path}/${cita.id}`);
         const oldLockId = cita?.slotLockId || null;
 
-        // Calcular el lockId que correspondería al estado nuevo
-        const needsLock = form.estado !== 'Cancelada' && !!form.barberoId;
+        // Calcular el lockId que correspondería al estado nuevo. Un sobrecupo
+        // NO toma lock: aunque cambie de hora/barbero, sigue apoyado sobre el
+        // lock de la cita "dueña" del slot.
+        const needsLock = form.estado !== 'Cancelada' && !!form.barberoId && !sobrecupoActivo;
         let nextLockId = null;
         if (needsLock) {
           const safeHora = (form.hora || '').replace(':', '');
@@ -843,6 +919,67 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
           <input className={`${field} disabled:opacity-50 disabled:cursor-not-allowed`} type="number" inputMode="numeric" placeholder="0" min="0" max="100" value={form.porcentajeDescuento || ''} disabled={form.cortesia} onChange={e => handleDiscountChange(e.target.value)} />
         </div>
       </div>
+
+      {/* ── Sobrecupo / Horario Especial ─────────────────────────── */}
+      <div>
+        <button
+          type="button"
+          onClick={() => toggleSobrecupo(!sobrecupoActivo)}
+          className={`flex items-center gap-2 w-full px-3 py-2.5 rounded-lg border text-sm font-semibold transition-colors ${
+            sobrecupoActivo
+              ? 'bg-amber-500/10 border-amber-500/40 text-amber-300'
+              : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-600'
+          }`}
+        >
+          <span className={`w-8 h-4 rounded-full transition-colors relative ${sobrecupoActivo ? 'bg-amber-500' : 'bg-slate-600'}`}>
+            <span className={`absolute top-0.5 w-3 h-3 bg-white rounded-full shadow transition-all ${sobrecupoActivo ? 'left-4' : 'left-0.5'}`} />
+          </span>
+          <Zap size={14} className="shrink-0" />
+          Sobrecupo / Horario Especial
+        </button>
+        {sobrecupoActivo && !form.cortesia && (
+          <div className="mt-3 rounded-xl border border-amber-500/25 bg-amber-500/[0.05] p-3 space-y-3">
+            <div className="flex items-center gap-2 text-[11px] text-amber-300/90">
+              <AlertTriangle size={13} className="shrink-0" />
+              <span>
+                Se cobra un recargo extra por atender fuera de tu turno normal o encima de otra cita.
+                El monto es editable — carga el default del servicio si existe.
+              </span>
+            </div>
+            <div className="grid grid-cols-3 gap-2 items-end">
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">Precio base</label>
+                <div className="px-2.5 py-2 rounded-lg bg-slate-800/70 border border-slate-700 text-sm text-slate-200 font-mono">
+                  ${precioBaseNum.toLocaleString('es-CL')}
+                </div>
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-widest text-amber-300/80 mb-1">Recargo (+$)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  inputMode="numeric"
+                  className="w-full bg-slate-900 border border-amber-500/40 rounded-lg px-2.5 py-2 text-sm text-amber-200 font-mono focus:outline-none focus:border-amber-400"
+                  value={recargoSobrecupo}
+                  onChange={e => setRecargoSobrecupo(e.target.value.replace(/[^\d]/g, ''))}
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-widest text-emerald-300/80 mb-1">Total</label>
+                <div className="px-2.5 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/40 text-sm text-emerald-200 font-mono font-bold">
+                  ${precioTotalConRecargo.toLocaleString('es-CL')}
+                </div>
+              </div>
+            </div>
+            {horarioEspecial && (
+              <p className="text-[11px] text-amber-300/90 flex items-center gap-1">
+                <Zap size={11} /> Horario especial: <b>{form.hora}</b> cae fuera del turno normal del día.
+              </p>
+            )}
+          </div>
+        )}
+      </div>
       {rangoDesc && !form.cortesia && (
         <div className="flex items-center gap-2 px-3 py-2 -mt-1 rounded-xl bg-emerald-500/[0.06] border border-emerald-500/25 text-[11px] text-emerald-300">
           <BadgeCheck size={13} className="shrink-0" />
@@ -866,11 +1003,24 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
           </select>
         </div>
         <div>
-          <label className={lbl}>Hora</label>
-          <select className={field} value={form.hora} onChange={e => set('hora', e.target.value)}>
-            {(pickerLabels.includes(form.hora) ? pickerLabels : [form.hora, ...pickerLabels].filter(Boolean))
-              .map(t => <option key={t} value={t}>{t}</option>)}
-          </select>
+          <label className={lbl}>
+            Hora
+            {sobrecupoActivo && <span className="ml-1 normal-case font-normal text-amber-400/80">— libre (24 h)</span>}
+          </label>
+          {sobrecupoActivo ? (
+            <input
+              className={field}
+              type="time"
+              step="900"
+              value={form.hora}
+              onChange={e => set('hora', e.target.value)}
+            />
+          ) : (
+            <select className={field} value={form.hora} onChange={e => set('hora', e.target.value)}>
+              {(pickerLabels.includes(form.hora) ? pickerLabels : [form.hora, ...pickerLabels].filter(Boolean))
+                .map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+          )}
         </div>
       </div>
       {!isNew && (
@@ -1327,7 +1477,25 @@ function AppointmentBlock({ cita, colIndex, colTotal, onClick, onContextMenu, on
         <GripVertical size={12} className="absolute top-1 right-1 text-white/45 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
       )}
       <p className="font-semibold truncate leading-tight">
-        {cita.sobrecupo && <span className="mr-1 px-1 py-px rounded bg-amber-500/25 text-amber-300 text-[8px] font-bold uppercase tracking-wide align-middle">Sobrecupo</span>}
+        {cita.sobrecupo && (() => {
+          const recargo = Math.round(Number(cita.recargoSobrecupo) || 0);
+          if (recargo > 0) {
+            return (
+              <span
+                title={cita.horarioEspecial ? 'Sobrecupo con horario especial (fuera de turno)' : 'Sobrecupo VIP con recargo'}
+                className="mr-1 inline-flex items-center gap-0.5 px-1 py-px rounded bg-amber-400/30 text-amber-100 text-[8px] font-black uppercase tracking-wide align-middle ring-1 ring-amber-400/60"
+              >
+                <Zap size={7} className="shrink-0" strokeWidth={3} />
+                Sobrecupo (+${recargo.toLocaleString('es-CL')})
+              </span>
+            );
+          }
+          return (
+            <span className="mr-1 px-1 py-px rounded bg-amber-500/25 text-amber-300 text-[8px] font-bold uppercase tracking-wide align-middle">
+              Sobrecupo
+            </span>
+          );
+        })()}
         {cita.clienteNombre || 'Cliente'}
       </p>
       <p className="truncate text-[10px] opacity-75">{cita.servicioNombre}</p>
@@ -2531,16 +2699,46 @@ export default function Agenda() {
     setHourEnd(Number.isFinite(hf) ? (mf > 0 ? hf + 1 : hf) : 20);
   }, [cfgHorario, date]);
 
-  const slotCfg = useMemo(() => buildSlotCfg(slotMins, hourStart, hourEnd), [slotMins, hourStart, hourEnd]);
-  const { totalSlots, timeLabels } = slotCfg;
-
   const dateStr = fmt(date);
+
+  const { data: rawBarberos, loading: barberosLoading } = useCollection('barberos');
+  const { data: citas }       = useCollection('citas',    [where('fecha', '==', dateStr)], [dateStr]);
+  const { data: bloqueos }    = useCollection('bloqueos', [where('fecha', '==', dateStr)], [dateStr]);
+  const { data: servicios }   = useCollection('servicios');
+  const { data: productos }   = useCollection('productos');
+
+  // Rango horario efectivo: parte del rango del tenant y se estira si hay citas
+  // (sobrecupos u horarios especiales) que caen antes o después. Así una cita
+  // agendada a las 21:00 cuando el local cierra a las 20:00 se dibuja en la
+  // grilla sin cortarse; y la reserva pública sigue usando el rango del tenant.
+  const { hourStartEff, hourEndEff } = useMemo(() => {
+    let hs = hourStart, he = hourEnd;
+    (citas || []).forEach(c => {
+      const t = String(c.hora || '');
+      const parts = t.split(':').map(Number);
+      if (!Number.isFinite(parts[0])) return;
+      const dur = Number(c.duracion || c.duracionServicio || 30) || 30;
+      const startMins = parts[0] * 60 + (parts[1] || 0);
+      const endMins   = startMins + dur;
+      const startH    = Math.floor(startMins / 60);
+      const endH      = Math.ceil(endMins / 60);
+      if (startH < hs) hs = startH;
+      if (endH   > he) he = endH;
+    });
+    // Cinturón de seguridad: rango dentro de 0-24 h.
+    hs = Math.max(0, Math.min(23, hs));
+    he = Math.max(hs + 1, Math.min(24, he));
+    return { hourStartEff: hs, hourEndEff: he };
+  }, [citas, hourStart, hourEnd]);
+
+  const slotCfg = useMemo(() => buildSlotCfg(slotMins, hourStartEff, hourEndEff), [slotMins, hourStartEff, hourEndEff]);
+  const { totalSlots, timeLabels } = slotCfg;
 
   // ── Indicador "ahora" y salto a la hora actual ────────────────
   const isToday     = fmt(now) === dateStr;
   const nowMins     = now.getHours() * 60 + now.getMinutes();
-  const nowInRange  = nowMins >= hourStart * 60 && nowMins <= hourEnd * 60;
-  const nowOffsetPx = ((nowMins - hourStart * 60) / slotMins) * 40;
+  const nowInRange  = nowMins >= hourStartEff * 60 && nowMins <= hourEndEff * 60;
+  const nowOffsetPx = ((nowMins - hourStartEff * 60) / slotMins) * 40;
   const nowLabel    = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
   const showNowLine = isToday && nowInRange;
 
@@ -2549,7 +2747,7 @@ export default function Agenda() {
     requestAnimationFrame(() => {
       const el = swimRef.current;
       if (!el) return;
-      const target = 40 + ((nowMins - hourStart * 60) / slotMins) * 40 - el.clientHeight / 2;
+      const target = 40 + ((nowMins - hourStartEff * 60) / slotMins) * 40 - el.clientHeight / 2;
       el.scrollTo({ top: Math.max(0, target), behavior: 'smooth' });
     });
   };
@@ -2562,12 +2760,6 @@ export default function Agenda() {
     didAutoScroll.current = true;
     el.scrollTo({ top: Math.max(0, 40 + nowOffsetPx - el.clientHeight / 2), behavior: 'smooth' });
   }, [showNowLine, nowOffsetPx]);
-
-  const { data: rawBarberos, loading: barberosLoading } = useCollection('barberos');
-  const { data: citas }       = useCollection('citas',    [where('fecha', '==', dateStr)], [dateStr]);
-  const { data: bloqueos }    = useCollection('bloqueos', [where('fecha', '==', dateStr)], [dateStr]);
-  const { data: servicios }   = useCollection('servicios');
-  const { data: productos }   = useCollection('productos');
 
   // Un admin también puede atender sillón: aparece como columna si su doc lo
   // marca explícitamente (mostrarEnAgenda / esBarbero) o si el tenant sigue la
