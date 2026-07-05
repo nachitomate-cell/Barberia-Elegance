@@ -166,8 +166,13 @@ async function cargarSorteo(SORTEO_ID) {
     if (data.fecha_inicio && data.fecha_fin) {
       setBind('fechas', formatRange(data.fecha_inicio, data.fecha_fin));
     }
+    // Sorteos de fútbol → mostrar scoreboard con equipos + botones [-][0][+]
+    const isFutbol = data.tipo === 'FUTBOL' && data.partido;
+    if (isFutbol) {
+      montarScoreboard(data.partido);
+    }
     showScreen('form');
-    bindForm(SORTEO_ID, STORAGE_KEY);
+    bindForm(SORTEO_ID, STORAGE_KEY, { isFutbol });
   } catch (err) {
     console.error('[sorteo.js] read error:', err);
     console.error('  → path:', debugPath);
@@ -199,7 +204,52 @@ function normalizarContactoId(telefono, email) {
   return null;
 }
 
-function bindForm(SORTEO_ID, STORAGE_KEY) {
+/* ─── Scoreboard (solo sorteos tipo FUTBOL) ─────────────────────────
+   Monta la sección oculta en sorteo.html: nombres de los equipos,
+   fecha del partido y wire de los botones [-] [N] [+].
+   El pronóstico vive en el DOM (spans #sb-goles-*) y se lee al submit. */
+function montarScoreboard(partido) {
+  const wrap = document.getElementById('scoreboard');
+  if (!wrap) return;
+  wrap.classList.remove('hidden');
+
+  const nomLocal  = document.getElementById('sb-equipo-local');
+  const nomVisita = document.getElementById('sb-equipo-visita');
+  const fechaEl   = document.getElementById('sb-fecha');
+  if (nomLocal  && partido.equipoLocal)  nomLocal.textContent  = partido.equipoLocal;
+  if (nomVisita && partido.equipoVisita) nomVisita.textContent = partido.equipoVisita;
+
+  if (fechaEl && partido.fechaPartido) {
+    try {
+      const d = new Date(partido.fechaPartido);
+      if (!isNaN(d)) {
+        const dia   = pad(d.getDate());
+        const mes   = MONTHS_ES[d.getMonth()];
+        const hora  = pad(d.getHours());
+        const min   = pad(d.getMinutes());
+        fechaEl.textContent = `${dia} ${mes} · ${hora}:${min}`;
+      }
+    } catch (_) { /* fallback silente */ }
+  }
+
+  // Wire de los 4 botones — clamp a [0, 20]
+  const spanLocal  = document.getElementById('sb-goles-local');
+  const spanVisita = document.getElementById('sb-goles-visita');
+  const clamp = n => Math.max(0, Math.min(20, n));
+  const bump = (span, delta) => { span.textContent = String(clamp(parseInt(span.textContent, 10) + delta)); };
+  document.querySelectorAll('[data-sb-btn]').forEach(btn => {
+    const attr = btn.getAttribute('data-sb-btn');
+    btn.addEventListener('click', () => {
+      if (attr === 'local-minus')   bump(spanLocal,  -1);
+      if (attr === 'local-plus')    bump(spanLocal,  +1);
+      if (attr === 'visita-minus')  bump(spanVisita, -1);
+      if (attr === 'visita-plus')   bump(spanVisita, +1);
+    });
+  });
+}
+
+function bindForm(SORTEO_ID, STORAGE_KEY, opts = {}) {
+  const isFutbol = !!opts.isFutbol;
   const form    = $('#form-sorteo');
   const btn     = $('#btn-submit');
   const spinner = $('[data-bind="btn-spinner"]');
@@ -263,6 +313,16 @@ function bindForm(SORTEO_ID, STORAGE_KEY) {
       };
       if (telefono) payload.telefono = telefono;
       if (email)    payload.email    = email;
+
+      // Sorteos FUTBOL: leer del scoreboard el pronóstico y adjuntarlo al doc
+      if (isFutbol) {
+        const gLocal  = parseInt(document.getElementById('sb-goles-local')?.textContent  || '0', 10);
+        const gVisita = parseInt(document.getElementById('sb-goles-visita')?.textContent || '0', 10);
+        payload.pronostico = {
+          local:  Number.isFinite(gLocal)  ? gLocal  : 0,
+          visita: Number.isFinite(gVisita) ? gVisita : 0,
+        };
+      }
 
       // 2) Escritura atómica: batch con set(participante) + increment(counter).
       //    Si algo falla, ninguna de las dos se aplica → nunca queda el

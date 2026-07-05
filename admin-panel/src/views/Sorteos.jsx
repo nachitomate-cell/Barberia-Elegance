@@ -110,6 +110,11 @@ function CreateSorteoModal({ onClose, user }) {
   const [premio, setPremio]   = useState('');
   const [inicio, setInicio]   = useState('');
   const [fin,    setFin]      = useState('');
+  // Sorteos polimórficos: estándar (ruleta clásica) o fútbol (pronóstico)
+  const [tipo,          setTipo]          = useState('ESTANDAR');
+  const [equipoLocal,   setEquipoLocal]   = useState('');
+  const [equipoVisita,  setEquipoVisita]  = useState('');
+  const [fechaPartido,  setFechaPartido]  = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error,      setError]      = useState('');
 
@@ -121,20 +126,40 @@ function CreateSorteoModal({ onClose, user }) {
       setError('La fecha de cierre debe ser igual o posterior al inicio.');
       return;
     }
+    if (tipo === 'FUTBOL') {
+      if (!equipoLocal.trim() || !equipoVisita.trim()) {
+        setError('Completa los nombres de ambos equipos.');
+        return;
+      }
+      if (!fechaPartido) {
+        setError('Ingresa la fecha y hora del partido.');
+        return;
+      }
+    }
     setError('');
     setSubmitting(true);
     try {
-      await addDoc(tenantCol('sorteos'), {
+      const doc = {
         nombre:              nombre.trim(),
         premio:              premio.trim(),
         fecha_inicio:        inicio, // YYYY-MM-DD (string, igual que vence en gift cards)
         fecha_fin:           fin,
+        tipo,                // 'ESTANDAR' | 'FUTBOL' — legacy sin campo se lee como ESTANDAR
         estado:              'activo',
         ganador_nombre:      null,
         participantes_count: 0,
         creadoEn:            serverTimestamp(),
         creadoPor:           user?.uid || 'admin',
-      });
+      };
+      if (tipo === 'FUTBOL') {
+        doc.partido = {
+          equipoLocal:      equipoLocal.trim(),
+          equipoVisita:     equipoVisita.trim(),
+          fechaPartido,     // ISO local datetime del input datetime-local
+          marcadorOficial:  { local: null, visita: null },
+        };
+      }
+      await addDoc(tenantCol('sorteos'), doc);
       onClose();
     } catch (err) {
       console.error('[Sorteos/create] error:', err);
@@ -153,16 +178,86 @@ function CreateSorteoModal({ onClose, user }) {
       </div>
 
       <form onSubmit={submit} className="p-5 space-y-4">
+        {/* Selector de tipo — pills mobile-first */}
+        <div>
+          <label className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-1.5 block">Tipo de sorteo</label>
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { key: 'ESTANDAR', emoji: '🎟️', label: 'Estándar' },
+              { key: 'FUTBOL',   emoji: '⚽', label: 'Pronóstico' },
+            ].map(opt => {
+              const active = tipo === opt.key;
+              return (
+                <button
+                  key={opt.key} type="button"
+                  onClick={() => setTipo(opt.key)}
+                  disabled={submitting}
+                  className={`flex items-center justify-center gap-1.5 h-10 rounded-lg text-xs font-bold uppercase tracking-wider transition-colors ${
+                    active
+                      ? 'bg-emerald-500 text-emerald-950 shadow-[0_2px_10px_rgba(16,185,129,0.28)]'
+                      : 'bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700'
+                  }`}
+                >
+                  <span className="text-base leading-none">{opt.emoji}</span>
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+          <p className="text-[10.5px] text-slate-500 mt-1.5 leading-snug">
+            {tipo === 'FUTBOL'
+              ? 'Los participantes intentan acertar el marcador exacto. Solo entran a la ruleta los que aciertan.'
+              : 'Ruleta clásica: todos los inscritos participan del sorteo.'}
+          </p>
+        </div>
+
         <div>
           <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Nombre del sorteo</label>
           <input
             type="text" value={nombre} onChange={e => setNombre(e.target.value)}
-            placeholder="Ej: Kit de Cuidado Premium"
+            placeholder={tipo === 'FUTBOL' ? 'Ej: Pronóstico Chile vs Argentina' : 'Ej: Kit de Cuidado Premium'}
             className="mt-1 w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none"
             disabled={submitting}
             required
           />
         </div>
+
+        {/* Datos del partido (solo FUTBOL) */}
+        {tipo === 'FUTBOL' && (
+          <div className="p-3 rounded-lg border border-emerald-500/25 bg-emerald-500/[0.03] space-y-3">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-300 flex items-center gap-1.5">
+              ⚽ Datos del partido
+            </p>
+            <div className="grid grid-cols-2 gap-2.5">
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Equipo local</label>
+                <input
+                  type="text" value={equipoLocal} onChange={e => setEquipoLocal(e.target.value)}
+                  placeholder="Chile"
+                  className="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none"
+                  disabled={submitting}
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Equipo visita</label>
+                <input
+                  type="text" value={equipoVisita} onChange={e => setEquipoVisita(e.target.value)}
+                  placeholder="Argentina"
+                  className="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none"
+                  disabled={submitting}
+                />
+              </div>
+            </div>
+            <div>
+              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">Fecha y hora del partido</label>
+              <input
+                type="datetime-local" lang="es-CL" value={fechaPartido} onChange={e => setFechaPartido(e.target.value)}
+                className="mt-1 w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white focus:border-emerald-500 focus:outline-none"
+                disabled={submitting}
+              />
+            </div>
+          </div>
+        )}
 
         <div>
           <label className="text-xs font-bold text-slate-400 uppercase tracking-wide">Premio</label>
@@ -482,6 +577,18 @@ function ElegirGanadorModal({ sorteo, onClose }) {
   const [confirming, setConfirming] = useState(false);
   const [error,      setError]      = useState('');
 
+  // ── Sorteos de fútbol ──────────────────────────────────────────
+  const isFutbol = sorteo.tipo === 'FUTBOL';
+  // Pool completo (para fallback "sortear entre todos" si nadie acertó)
+  const [todosParticipantes, setTodosParticipantes] = useState([]);
+  // Filtro aplicado: en ESTANDAR arranca en true (no hay filtro);
+  //   en FUTBOL arranca false y el admin ingresa el marcador oficial.
+  const [marcadorFiltrado,   setMarcadorFiltrado]   = useState(!isFutbol);
+  const [marcadorLocal,      setMarcadorLocal]      = useState(0);
+  const [marcadorVisita,     setMarcadorVisita]     = useState(0);
+  const [totalAcertantes,    setTotalAcertantes]    = useState(0);
+  const [savingMarcador,     setSavingMarcador]     = useState(false);
+
   // Fetch de la subcolección real al montar. tenantDoc respeta el legacy elegance
   // (root) vs multi-tenant (tenants/{tid}/sorteos/...).
   useEffect(() => {
@@ -492,7 +599,10 @@ function ElegirGanadorModal({ sorteo, onClose }) {
         const snap = await withTimeout(getDocs(partsRef), 20000, 'sorteos/elegir-ganador');
         if (cancelled) return;
         const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        setParticipantes(list);
+        setTodosParticipantes(list);
+        // En ESTANDAR el pool completo es la ruleta directamente.
+        // En FUTBOL esperamos a que el admin filtre por marcador antes de asignar.
+        if (!isFutbol) setParticipantes(list);
         setLoadingParts(false);
       } catch (err) {
         console.error('[Sorteos/ElegirGanador] fetch participantes:', err);
@@ -554,6 +664,43 @@ function ElegirGanadorModal({ sorteo, onClose }) {
     runSpin();
   };
 
+  // Filtra el pool de participantes a los que acertaron el marcador exacto y
+  // persiste el marcadorOficial en el doc del sorteo (auditoría + evita que
+  // se sobreescriba si el admin reabre el modal más tarde).
+  const filtrarAcertantes = async ({ sortearEntreTodos = false } = {}) => {
+    if (savingMarcador) return;
+    setError('');
+    const local  = Number(marcadorLocal);
+    const visita = Number(marcadorVisita);
+    if (!Number.isInteger(local) || !Number.isInteger(visita) || local < 0 || visita < 0) {
+      setError('Ingresa un marcador válido (números enteros ≥ 0).');
+      return;
+    }
+    const acertantes = todosParticipantes.filter(p => {
+      const pr = p.pronostico;
+      return pr && Number(pr.local) === local && Number(pr.visita) === visita;
+    });
+    setTotalAcertantes(acertantes.length);
+    setSavingMarcador(true);
+    try {
+      await updateDoc(tenantDoc('sorteos', sorteo.id), {
+        'partido.marcadorOficial': { local, visita },
+      });
+    } catch (err) {
+      console.error('[Sorteos/marcador] persist error:', err);
+      // No bloqueamos el sorteo si falla la persistencia — la ruleta sigue
+      // funcionando con los acertantes filtrados en memoria.
+    } finally { setSavingMarcador(false); }
+    // Sin acertantes: no aplicamos el filtro y esperamos decisión del admin
+    // (botón "sortear entre todos"). Solo cuando el flag viene explícito, aplicamos.
+    if (acertantes.length === 0 && !sortearEntreTodos) {
+      return;
+    }
+    const pool = acertantes.length > 0 ? acertantes : todosParticipantes;
+    setParticipantes(pool);
+    setMarcadorFiltrado(true);
+  };
+
   const confirmar = async () => {
     if (confirming || !winner) return;
     setConfirming(true);
@@ -578,9 +725,15 @@ function ElegirGanadorModal({ sorteo, onClose }) {
   };
 
   const locked   = spinning || confirming;
-  const isEmpty  = !loadingParts && !fetchError && participantes.length === 0;
-  const isReady  = !loadingParts && !fetchError && participantes.length > 0;
-  const canSpin  = isReady && !spinning && !winner && !confirming;
+  // isEmpty/isReady miran el POOL COMPLETO (todosParticipantes) para no
+  // reportar "sin inscritos" cuando en realidad estamos esperando que el
+  // admin ingrese el marcador oficial en un sorteo FUTBOL.
+  const isEmpty  = !loadingParts && !fetchError && todosParticipantes.length === 0;
+  const isReady  = !loadingParts && !fetchError && todosParticipantes.length > 0;
+  // FUTBOL: solo puede girar la ruleta cuando ya se filtraron los acertantes.
+  const canSpin  = isReady && !spinning && !winner && !confirming && marcadorFiltrado;
+  const showMarcadorStep = isFutbol && isReady && !marcadorFiltrado && !spinning && !winner;
+  const noAcertantesShown = showMarcadorStep && totalAcertantes === 0 && savingMarcador === false && (marcadorLocal !== null || marcadorVisita !== null);
 
   // Renderizado vía Portal directo a <body>: rompe el subtree del AdminLayout
   // (que tiene overflow-hidden + overflow-y-auto en su main area, y transforms
@@ -661,6 +814,7 @@ function ElegirGanadorModal({ sorteo, onClose }) {
           : isEmpty    ? 'label-empty'
           : spinning   ? 'label-spin'
           : winner     ? 'label-reveal'
+          : showMarcadorStep ? 'label-marcador'
           : 'label-ready'
         }
         initial={{ opacity: 0, y: -6 }}
@@ -673,7 +827,8 @@ function ElegirGanadorModal({ sorteo, onClose }) {
           : isEmpty    ? 'Sin inscritos'
           : spinning   ? 'Eligiendo…'
           : winner     ? 'El ganador es'
-          : `${participantes.length} ${participantes.length === 1 ? 'participante inscrito' : 'participantes inscritos'}`}
+          : showMarcadorStep ? 'Ingresa el resultado'
+          : `${participantes.length} ${participantes.length === 1 ? (isFutbol ? 'acertante' : 'participante inscrito') : (isFutbol ? 'acertantes' : 'participantes inscritos')}`}
       </motion.p>
 
       {/* Área central: cambia según estado */}
@@ -701,6 +856,69 @@ function ElegirGanadorModal({ sorteo, onClose }) {
             haya al menos un inscrito, podrás girar la ruleta.
           </p>
         </div>
+      )}
+
+      {/* ── Mini-marcador (solo FUTBOL, previo a la ruleta) ── */}
+      {showMarcadorStep && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="relative z-10 w-full max-w-md px-2 sm:px-0"
+        >
+          <div className="rounded-2xl border border-emerald-500/25 bg-slate-900/70 backdrop-blur-md p-4 sm:p-5">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-300 text-center">
+              Resultado oficial del partido
+            </p>
+            <div className="grid grid-cols-2 gap-3 mt-4 items-start">
+              {[
+                { key: 'local',  team: sorteo.partido?.equipoLocal  || 'Local',  value: marcadorLocal,  set: setMarcadorLocal },
+                { key: 'visita', team: sorteo.partido?.equipoVisita || 'Visita', value: marcadorVisita, set: setMarcadorVisita },
+              ].map(col => (
+                <div key={col.key} className="flex flex-col items-center gap-2">
+                  <p className="text-xs font-bold text-white text-center truncate max-w-full">{col.team}</p>
+                  <div className="flex items-center gap-2">
+                    <button type="button"
+                      onClick={() => col.set(v => Math.max(0, Number(v) - 1))}
+                      className="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 text-white text-lg font-bold hover:bg-slate-700 active:scale-95 transition-transform">
+                      −
+                    </button>
+                    <span className="w-10 text-center text-3xl font-black text-emerald-300 tabular-nums">
+                      {col.value}
+                    </span>
+                    <button type="button"
+                      onClick={() => col.set(v => Math.min(20, Number(v) + 1))}
+                      className="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 text-white text-lg font-bold hover:bg-slate-700 active:scale-95 transition-transform">
+                      +
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 flex flex-col gap-2">
+              {noAcertantesShown && (
+                <p className="text-xs text-amber-300 text-center flex items-center justify-center gap-1.5">
+                  <AlertCircle size={13} /> Ningún participante acertó el marcador exacto.
+                </p>
+              )}
+              <button
+                onClick={() => filtrarAcertantes()}
+                disabled={savingMarcador}
+                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold bg-emerald-500 text-emerald-950 hover:bg-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              >
+                {savingMarcador ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
+                Filtrar acertantes
+              </button>
+              {noAcertantesShown && (
+                <button
+                  onClick={() => filtrarAcertantes({ sortearEntreTodos: true })}
+                  className="w-full py-2.5 rounded-xl text-xs font-semibold text-slate-300 hover:text-white bg-transparent border border-slate-700 hover:bg-slate-800/60 transition-colors"
+                >
+                  Sortear entre todos los inscritos igualmente
+                </button>
+              )}
+            </div>
+          </div>
+        </motion.div>
       )}
 
       {/* Nombre GIGANTE — solo cuando hay ruleta girando o ganador revelado */}
