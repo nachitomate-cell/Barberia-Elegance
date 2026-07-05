@@ -40,10 +40,19 @@ function buildInstruccion(r) {
     return `✂️ Servicio ${cfg.servicioId || '—'} de regalo${turnoNote}`;
   }
   if (r.categoria === 'DESCUENTO') {
-    const val = cfg.valorDescuento || 0;
-    return cfg.tipoDescuento === 'PORCENTAJE'
-      ? `🏷️ Aplicar ${val}% OFF en caja`
-      : `🏷️ Descontar $${val.toLocaleString('es-CL')} en caja`;
+    const val     = cfg.valorDescuento || 0;
+    const aplicaA = cfg.aplicaA || 'GLOBAL';
+    const target  = cfg.targetName || cfg.targetId || '';
+    const monto = cfg.tipoDescuento === 'PORCENTAJE'
+      ? `${val}% OFF`
+      : `$${val.toLocaleString('es-CL')} OFF`;
+    if (aplicaA === 'SERVICIO_ESPECIFICO' && target) {
+      return `🏷️ Aplicar ${monto} solo en: ${target}`;
+    }
+    if (aplicaA === 'PRODUCTO_ESPECIFICO' && target) {
+      return `🏷️ Aplicar ${monto} solo al producto: ${target}`;
+    }
+    return `🏷️ Aplicar ${monto} en total de caja`;
   }
   return cat.accion;
 }

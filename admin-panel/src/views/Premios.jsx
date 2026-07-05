@@ -25,8 +25,15 @@ const CATEGORIAS = {
 const EMPTY_CONFIG = {
   PRODUCTO:  { skuProducto: '',  descuentaStock: true },
   SERVICIO:  { servicioId: '',   requiereTurno: true },
-  DESCUENTO: { tipoDescuento: 'PORCENTAJE', valorDescuento: 20 },
+  DESCUENTO: { tipoDescuento: 'PORCENTAJE', valorDescuento: 20, aplicaA: 'GLOBAL', targetId: '' },
 };
+
+/* Opciones de restricción para descuentos. */
+const APLICA_A_OPCIONES = [
+  { key: 'GLOBAL',               label: 'Cualquiera',    emoji: '🌐' },
+  { key: 'SERVICIO_ESPECIFICO',  label: 'Servicio',      emoji: '✂️' },
+  { key: 'PRODUCTO_ESPECIFICO',  label: 'Producto',      emoji: '📦' },
+];
 
 const EMPTY = {
   nombre: '',
@@ -181,7 +188,11 @@ function ConfigFields({ categoria, config, onChange, servicios, productos, field
   }
 
   if (categoria === 'DESCUENTO') {
-    const esPct = (config.tipoDescuento || 'PORCENTAJE') === 'PORCENTAJE';
+    const esPct    = (config.tipoDescuento || 'PORCENTAJE') === 'PORCENTAJE';
+    const aplicaA  = config.aplicaA || 'GLOBAL';
+    // Cuando cambia aplicaA a GLOBAL, limpiar targetId; si va a un tipo
+    // específico, reset del target para forzar elección deliberada.
+    const changeAplicaA = (nuevo) => set({ aplicaA: nuevo, targetId: '' });
     return (
       <div className="space-y-3">
         <div className="grid grid-cols-2 gap-2">
@@ -212,6 +223,64 @@ function ConfigFields({ categoria, config, onChange, servicios, productos, field
             placeholder={esPct ? '20' : '5000'}
           />
         </div>
+
+        {/* Restricción: sobre qué ítem se aplica el descuento */}
+        <div>
+          <label className={lblCls}>Aplicar descuento a</label>
+          <div className="grid grid-cols-3 gap-2">
+            {APLICA_A_OPCIONES.map(opt => {
+              const active = aplicaA === opt.key;
+              return (
+                <button key={opt.key} type="button"
+                  onClick={() => changeAplicaA(opt.key)}
+                  className={`flex items-center justify-center gap-1 h-10 rounded-full text-[11px] font-bold uppercase tracking-wider transition-colors ${
+                    active
+                      ? 'bg-[#D4AF37] text-black shadow-[0_2px_10px_rgba(212,175,55,0.28)]'
+                      : 'bg-neutral-900 border border-neutral-700 text-neutral-300 hover:bg-neutral-800'
+                  }`}>
+                  <span className="text-base leading-none">{opt.emoji}</span>
+                  <span>{opt.label}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {aplicaA === 'SERVICIO_ESPECIFICO' && (
+          <div>
+            <label className={lblCls}>Servicio al que aplica</label>
+            <select
+              className={fieldCls}
+              value={config.targetId || ''}
+              onChange={e => set({ targetId: e.target.value })}
+            >
+              <option value="">— Selecciona el servicio —</option>
+              {servicios.map(s => (
+                <option key={s.id} value={s.id}>
+                  {s.nombre}{s.categoria ? ` · ${s.categoria}` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {aplicaA === 'PRODUCTO_ESPECIFICO' && (
+          <div>
+            <label className={lblCls}>Producto al que aplica</label>
+            <select
+              className={fieldCls}
+              value={config.targetId || ''}
+              onChange={e => set({ targetId: e.target.value })}
+            >
+              <option value="">— Selecciona el producto —</option>
+              {productos.map(p => (
+                <option key={p.id} value={p.sku || p.id}>
+                  {p.nombre} {p.sku ? `· SKU ${p.sku}` : `· ${p.id.slice(0, 6)}`}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
     );
   }
@@ -438,6 +507,9 @@ export default function Premios() {
       const v = Number(config.valorDescuento);
       if (!v || v < 1) return 'Ingresa el valor del descuento.';
       if (config.tipoDescuento === 'PORCENTAJE' && v > 100) return 'El porcentaje no puede superar 100.';
+      const aplicaA = config.aplicaA || 'GLOBAL';
+      if (aplicaA === 'SERVICIO_ESPECIFICO' && !config.targetId) return 'Elige el servicio al que aplica el descuento.';
+      if (aplicaA === 'PRODUCTO_ESPECIFICO' && !config.targetId) return 'Elige el producto al que aplica el descuento.';
     }
     return null;
   };
@@ -450,6 +522,22 @@ export default function Premios() {
     const configError = validarConfig(form.categoria, form.configuracion);
     if (configError) { setError(configError); return; }
 
+    // Denormalizar el nombre del target para que llegue tal cual al scanner
+    // (evita un getDoc adicional en Canjes.jsx cuando el barbero valida el QR).
+    let configuracion = form.configuracion;
+    if (form.categoria === 'DESCUENTO') {
+      const aplicaA = configuracion.aplicaA || 'GLOBAL';
+      let targetName = '';
+      if (aplicaA === 'SERVICIO_ESPECIFICO' && configuracion.targetId) {
+        const svc = servicios.find(s => s.id === configuracion.targetId);
+        targetName = svc?.nombre || '';
+      } else if (aplicaA === 'PRODUCTO_ESPECIFICO' && configuracion.targetId) {
+        const prd = productos.find(p => (p.sku || p.id) === configuracion.targetId);
+        targetName = prd?.nombre || '';
+      }
+      configuracion = { ...configuracion, targetName };
+    }
+
     setError('');
     setSaving(true);
     try {
@@ -459,7 +547,7 @@ export default function Premios() {
         costoSellos:   sellos,
         icono:         form.icono,
         categoria:     form.categoria,
-        configuracion: form.configuracion,
+        configuracion,
         updatedAt:     serverTimestamp(),
       };
       if (editing) {
@@ -564,6 +652,15 @@ export default function Premios() {
                     emerald: 'bg-emerald-500/12 text-emerald-300 border-emerald-500/30',
                     amber:   'bg-amber-500/12 text-amber-300 border-amber-500/30',
                   }[meta.color];
+                  // Para descuentos con restricción, mostrar chip "→ Corte Premium"
+                  let restrict = '';
+                  if (cat === 'DESCUENTO') {
+                    const cfg = p.configuracion || {};
+                    const a   = cfg.aplicaA || 'GLOBAL';
+                    if (a === 'SERVICIO_ESPECIFICO' || a === 'PRODUCTO_ESPECIFICO') {
+                      restrict = cfg.targetName || cfg.targetId || '';
+                    }
+                  }
                   return (
                     <li key={p.id} className="flex items-center gap-3 px-3 py-3 min-h-[64px] hover:bg-slate-800/20 transition-colors">
                       {/* Círculo de ícono coloreado por categoría */}
@@ -575,6 +672,7 @@ export default function Premios() {
                         <p className="text-sm font-semibold text-white truncate">{p.nombre}</p>
                         <p className="text-xs text-neutral-400 truncate">
                           {meta.label} · {p.costoSellos} sello{p.costoSellos !== 1 ? 's' : ''}
+                          {restrict && <span className="text-amber-400/80"> · aplica en {restrict}</span>}
                         </p>
                       </div>
                       {/* Acciones táctiles */}

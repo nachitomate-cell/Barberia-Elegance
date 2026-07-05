@@ -5925,6 +5925,17 @@ function renderPremiosDashboard(premios) {
     const cat  = _readCategoria(p);
     const meta = _CAT_META[cat];
     const safeName = (p.nombre || '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    // Para descuentos con restricción, mostrar sublínea "aplica en: X"
+    let restrictLine = '';
+    if (cat === 'DESCUENTO') {
+      const cfg = p.configuracion || {};
+      const a   = cfg.aplicaA || 'GLOBAL';
+      const t   = cfg.targetName || '';
+      if ((a === 'SERVICIO_ESPECIFICO' || a === 'PRODUCTO_ESPECIFICO') && t) {
+        const safeTarget = String(t).replace(/</g, '&lt;');
+        restrictLine = `<p class="text-[11px] mt-0.5" style="color:${meta.color};opacity:0.9;">aplica en ${safeTarget}</p>`;
+      }
+    }
     return `
     <div onclick="abrirModalCanje('${p.id || ''}')"
       data-prize-id="${p.id || ''}"
@@ -5943,6 +5954,7 @@ function renderPremiosDashboard(premios) {
           </span>
         </div>
         <p class="text-sm font-bold text-white">${p.nombre}</p>
+        ${restrictLine}
       </div>
       <i class="ph-bold ph-caret-right text-white/20 text-sm shrink-0"></i>
     </div>`;
