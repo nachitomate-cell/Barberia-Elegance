@@ -147,28 +147,51 @@ function DailyWelcomeToggleCard() {
   );
 }
 
-function DayRow({ diaKey, config, onChange }) {
-  const sel = 'bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs text-white focus:outline-none focus:border-emerald-500';
+/* iOS-style toggle táctil reutilizable. */
+function IosToggle({ checked, onChange, size = 'md' }) {
+  const dim = size === 'sm'
+    ? { track: 'w-9 h-5', dot: 'w-4 h-4', on: 'translate-x-4', off: 'translate-x-0.5' }
+    : { track: 'w-11 h-6', dot: 'w-5 h-5', on: 'translate-x-[22px]', off: 'translate-x-0.5' };
   return (
-    <div className={`flex items-center gap-3 py-2.5 border-b border-slate-800/60 last:border-0 ${!config.activo ? 'opacity-50' : ''}`}>
-      <button type="button" onClick={() => onChange({ ...config, activo: !config.activo })}
-        className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-all ${
-          config.activo ? 'bg-emerald-500 border-emerald-500' : 'border-slate-600'}`}>
-        {config.activo && <Check size={10} className="text-white" strokeWidth={3} />}
-      </button>
-      <span className="text-xs font-semibold text-slate-300 w-24 shrink-0">{DIAS_LABELS[diaKey]}</span>
+    <button type="button" role="switch" aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className={`relative shrink-0 rounded-full transition-colors ${dim.track} ${
+        checked ? 'bg-emerald-500' : 'bg-neutral-700'
+      }`}>
+      <span className={`absolute top-0.5 ${dim.dot} rounded-full bg-white shadow transition-transform ${
+        checked ? dim.on : dim.off
+      }`} />
+    </button>
+  );
+}
+
+/* Fila de día compacta (h-12) — toggle + nombre + selects h-8 o "Cerrado". */
+function DayRow({ diaKey, config, onChange }) {
+  const sel = 'h-8 text-xs bg-neutral-900 border border-neutral-700 rounded px-1.5 text-white focus:outline-none focus:border-emerald-500';
+  return (
+    <div className="h-12 flex items-center justify-between border-b border-neutral-800/50 py-1.5">
+      <div className="flex items-center gap-3 min-w-0">
+        <IosToggle
+          checked={config.activo}
+          onChange={v => onChange({ ...config, activo: v })}
+          size="sm"
+        />
+        <span className={`text-sm font-semibold ${config.activo ? 'text-white' : 'text-neutral-500'}`}>
+          {DIAS_LABELS[diaKey]}
+        </span>
+      </div>
       {config.activo ? (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           <select value={config.inicio} onChange={e => onChange({ ...config, inicio: e.target.value })} className={sel}>
             {TIME_OPTIONS.map(t => <option key={t}>{t}</option>)}
           </select>
-          <span className="text-slate-600 text-xs">–</span>
+          <span className="text-neutral-600 text-xs">–</span>
           <select value={config.fin} onChange={e => onChange({ ...config, fin: e.target.value })} className={sel}>
             {TIME_OPTIONS.map(t => <option key={t}>{t}</option>)}
           </select>
         </div>
       ) : (
-        <span className="text-xs text-slate-600 italic">Cerrado</span>
+        <span className="text-xs text-neutral-500 italic">Cerrado</span>
       )}
     </div>
   );
@@ -216,6 +239,8 @@ export default function Configuracion() {
   const [dirty,     setDirty]     = useState(false);
   const [saveErr,   setSaveErr]   = useState('');
   const [showHelp,  setShowHelp]  = useState(false);
+  // Navegación por 3 pestañas — mobile-first ultra compacto
+  const [tab,       setTab]       = useState('local'); // 'local' | 'horarios' | 'prefs'
   const savedTimer = useRef(null);
   const tenantId = resolveTenantId();
 
@@ -372,30 +397,58 @@ export default function Configuracion() {
   );
 
   return (
-    <div data-view="configuracion" className="max-w-2xl mx-auto space-y-6">
+    <div data-view="configuracion" className="max-w-2xl mx-auto pb-8">
+      <style>{`
+        @keyframes cfgFadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+        .cfg-fade-in { animation: cfgFadeIn 0.18s ease-out; }
+      `}</style>
 
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-bold text-white">Configuración</h1>
-            <HelpButton onClick={() => setShowHelp(true)} />
-          </div>
-          <p className="text-sm text-slate-500 mt-0.5">Información pública de tu local</p>
-        </div>
-        <button onClick={handleSave} disabled={saving || customErr}
-          title={customErr ? `La duración del turno debe estar entre ${INTERVALO_MIN} y ${INTERVALO_MAX} minutos.` : undefined}
-          className="relative flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg transition-all">
+      {/* Header sticky con "Guardar" siempre visible */}
+      <div className="sticky top-0 z-30 -mx-4 sm:mx-0 px-4 sm:px-0 py-3 mb-4 bg-slate-950/95 backdrop-blur flex items-center justify-between gap-3 border-b border-slate-800 sm:border-none">
+        <h1 className="text-lg sm:text-xl font-bold text-white flex items-center gap-1.5">
+          Configuración
+          <HelpButton onClick={() => setShowHelp(true)} />
+        </h1>
+        <button
+          onClick={handleSave}
+          disabled={saving || customErr}
+          title={customErr ? `Duración entre ${INTERVALO_MIN} y ${INTERVALO_MAX} min.` : undefined}
+          className="relative h-9 px-4 text-sm font-semibold rounded-lg flex items-center gap-1.5 shadow-lg shadow-emerald-900/20 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white transition-all"
+        >
           {saving
-            ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            ? <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
             : saved
-              ? <Check size={15} />
-              : <Save size={15} />}
-          {saved ? 'Guardado' : 'Guardar cambios'}
+              ? <Check size={14} />
+              : <Save size={14} />}
+          <span>{saved ? 'Guardado' : 'Guardar'}</span>
           {dirty && !saving && !saved && (
             <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-400 border-2 border-slate-950" />
           )}
         </button>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex rounded-xl bg-neutral-900/80 p-1 border border-neutral-800 mb-4">
+        {[
+          { key: 'local',    label: '🏢 Local' },
+          { key: 'horarios', label: '⏰ Horarios' },
+          { key: 'prefs',    label: '⚡ Preferencias' },
+        ].map(t => {
+          const active = tab === t.key;
+          return (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={`flex-1 h-9 rounded-lg text-xs sm:text-sm font-semibold transition-all ${
+                active
+                  ? 'bg-neutral-800 text-white shadow-sm'
+                  : 'text-neutral-400 hover:text-white'
+              }`}
+            >
+              {t.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Error banner */}
@@ -409,22 +462,42 @@ export default function Configuracion() {
         </div>
       )}
 
-      {/* Información General */}
-      <Card Icon={Store} title="Información General">
+      {/* ═══ TAB 1 · LOCAL ═══ */}
+      {tab === 'local' && (
+      <div className="cfg-fade-in space-y-4 sm:space-y-6" key="local">
+      {/* Información + Contacto — una sola tarjeta limpia */}
+      <Card Icon={Store} title="Datos del local">
         <Field label="Nombre del local">
-          <input className={inp} placeholder="Barbería Elegance" value={form.nombre}
+          <input className={inp} placeholder="Nombre público de tu barbería" value={form.nombre}
             onChange={e => set('nombre', e.target.value)} />
         </Field>
         <Field label="Dirección">
-          <input className={inp} placeholder="Av. Ejemplo 123, Santiago" value={form.direccion}
+          <input className={inp} placeholder="Calle, número, ciudad" value={form.direccion}
             onChange={e => set('direccion', e.target.value)} />
+        </Field>
+        {/* Tel + WhatsApp en la misma fila (mobile-first) */}
+        <div className="grid grid-cols-2 gap-2.5">
+          <Field label="Teléfono">
+            <input className={inp} inputMode="tel" placeholder="+56 2 1234 5678" value={form.telefono}
+              onChange={e => set('telefono', e.target.value)} />
+          </Field>
+          <Field label="WhatsApp">
+            <input className={inp} inputMode="tel" placeholder="+56 9 8765 4321" value={form.whatsapp}
+              onChange={e => set('whatsapp', e.target.value)} />
+          </Field>
+        </div>
+        <Field label="Instagram">
+          <div className="relative">
+            <Instagram size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+            <input className={`${inp} pl-9`} placeholder="@tu_handle" value={form.instagram}
+              onChange={e => set('instagram', e.target.value)} />
+          </div>
         </Field>
         <Field label="Logo (URL)">
           <div className="flex gap-3 items-start">
-            {form.logo && (
+            {form.logo ? (
               <img src={form.logo} alt="logo" className="w-12 h-12 rounded-lg object-contain bg-slate-800 border border-slate-700 shrink-0" />
-            )}
-            {!form.logo && (
+            ) : (
               <div className="w-12 h-12 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center shrink-0">
                 <Image size={18} className="text-slate-600" />
               </div>
@@ -435,27 +508,12 @@ export default function Configuracion() {
         </Field>
       </Card>
 
-      {/* Contacto y Redes Sociales */}
-      <Card Icon={Phone} title="Contacto y Redes Sociales">
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="Teléfono">
-            <input className={inp} placeholder="+56 2 1234 5678" value={form.telefono}
-              onChange={e => set('telefono', e.target.value)} />
-          </Field>
-          <Field label="WhatsApp">
-            <input className={inp} placeholder="+56 9 8765 4321" value={form.whatsapp}
-              onChange={e => set('whatsapp', e.target.value)} />
-          </Field>
-        </div>
-        <Field label="Instagram">
-          <div className="relative">
-            <Instagram size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-            <input className={`${inp} pl-9`} placeholder="@barberiaelegance" value={form.instagram}
-              onChange={e => set('instagram', e.target.value)} />
-          </div>
-        </Field>
-      </Card>
+      </div>
+      )}
 
+      {/* ═══ TAB 2 · HORARIOS ═══ */}
+      {tab === 'horarios' && (
+      <div className="cfg-fade-in space-y-4 sm:space-y-6" key="horarios">
       {/* Horario de Atención */}
       <Card Icon={Clock} title="Horario de Atención">
         <p className="text-xs text-slate-500 -mt-1">Referencia informativa del local. La disponibilidad real de reservas la controlan los horarios individuales de cada barbero en <strong className="text-slate-400">Equipo</strong>.</p>
@@ -466,78 +524,38 @@ export default function Configuracion() {
         </div>
       </Card>
 
-      {/* Duración de Turnos */}
+      {/* Duración de Turnos — 3 pills táctiles (mobile-first) */}
       <Card Icon={Clock} title="Duración de Turnos">
         <p className="text-xs text-slate-500 -mt-1">
           Intervalo entre horas disponibles en la agenda pública de reservas.
         </p>
-        <div className="flex flex-wrap gap-3">
-          {[[15, '15 minutos', 'Cada cuarto de hora'], [30, '30 minutos', 'Cada media hora'], [45, '45 minutos', 'Cada tres cuartos'], [60, '1 hora', 'Cada hora completa']].map(([mins, label, sub]) => {
+        <div className="grid grid-cols-3 gap-2 mb-2">
+          {[15, 30, 45].map(mins => {
             const active = !customMode && intervalo === mins;
             return (
               <button
                 key={mins}
                 type="button"
                 onClick={() => seleccionarPreset(mins)}
-                className={`flex-1 min-w-[88px] flex flex-col items-center py-3 px-2 rounded-lg border transition-all ${
+                className={`h-11 rounded-lg text-sm font-semibold transition-all border ${
                   active
-                    ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400'
-                    : 'border-slate-700 text-slate-400 hover:text-white hover:border-slate-600'
+                    ? 'border-emerald-500 bg-emerald-500/12 text-emerald-300 shadow-[0_2px_10px_rgba(16,185,129,0.18)]'
+                    : 'border-neutral-700 bg-neutral-900 text-neutral-300 hover:text-white hover:border-neutral-500'
                 }`}
               >
-                <span className="text-sm font-semibold">{label}</span>
-                <span className={`text-[10px] mt-0.5 ${active ? 'text-emerald-500/70' : 'text-slate-600'}`}>{sub}</span>
+                {mins} min
               </button>
             );
           })}
-          {/* Personalizado */}
-          <button
-            type="button"
-            onClick={activarCustom}
-            className={`flex-1 min-w-[88px] flex flex-col items-center py-3 px-2 rounded-lg border transition-all ${
-              customMode
-                ? 'border-emerald-500 bg-emerald-500/10 text-emerald-400'
-                : 'border-slate-700 text-slate-400 hover:text-white hover:border-slate-600'
-            }`}
-          >
-            <span className="text-sm font-semibold">Personalizado</span>
-            <span className={`text-[10px] mt-0.5 ${customMode ? 'text-emerald-500/70' : 'text-slate-600'}`}>
-              {customMode ? `${intervalo} min` : 'Elige tú'}
-            </span>
-          </button>
         </div>
-
-        {/* Input del intervalo personalizado */}
-        {customMode && (
-          <div className="mt-3 p-3 rounded-lg border border-slate-700 bg-slate-800/40">
-            <label className="block text-xs font-semibold text-slate-400 mb-1.5">
-              Minutos por bloque
-            </label>
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                inputMode="numeric"
-                value={customStr}
-                onChange={(e) => onCustomChange(e.target.value)}
-                onBlur={onCustomBlur}
-                placeholder="Ej: 20"
-                aria-invalid={customErr}
-                className={`w-28 bg-slate-900 border rounded-lg px-3 py-2 text-sm text-white text-center focus:outline-none transition-colors ${
-                  customErr ? 'border-red-500 focus:border-red-400' : 'border-slate-700 focus:border-emerald-500'
-                }`}
-              />
-              <span className="text-sm text-slate-500">minutos</span>
-            </div>
-            {customErr ? (
-              <p className="mt-1.5 text-xs text-red-400 font-medium">
-                Ingresa un número entero entre {INTERVALO_MIN} y {INTERVALO_MAX} minutos.
-              </p>
-            ) : (
-              <p className="mt-1.5 text-[11px] text-slate-500">
-                Cualquier valor entre {INTERVALO_MIN} y {INTERVALO_MAX} minutos. Define cada cuánto se ofrece un horario en la reserva pública.
-              </p>
-            )}
-          </div>
+        {/* Chip discreto si el valor guardado no coincide con las 3 pills
+            (ej. tenant heredado con 60 min o custom). Solo lectura visible;
+            picar cualquier pill lo sobrescribe. */}
+        {(customMode || ![15, 30, 45].includes(intervalo)) && (
+          <p className="text-[11px] text-neutral-500 mt-1">
+            Actualmente configurado en <span className="text-neutral-300 font-semibold">{intervalo} min</span>.
+            Elige una pill para simplificarlo.
+          </p>
         )}
       </Card>
 
@@ -703,6 +721,12 @@ export default function Configuracion() {
 
       </Card>
 
+      </div>
+      )}
+
+      {/* ═══ TAB 3 · PREFERENCIAS ═══ */}
+      {tab === 'prefs' && (
+      <div className="cfg-fade-in space-y-4 sm:space-y-6" key="prefs">
       {/* Servicios Extra — Cursos/Arriendo solo Chameleon · Academia solo Elegance */}
       {(tenantId === 'chameleon' || tenantId === 'elegance') && (
       <Card Icon={GraduationCap} title="Servicios Extra">
@@ -955,6 +979,9 @@ export default function Configuracion() {
           </p>
         </div>
       </div>
+
+      </div>
+      )}
 
       {showHelp && (
         <HelpModal title="Ayuda — Configuración" onClose={() => setShowHelp(false)}>
