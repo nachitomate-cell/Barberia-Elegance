@@ -11,6 +11,7 @@ import {
   Trophy, Plus, X, Eye, Link2, CheckCheck, Search, Calendar,
   Users, UsersRound, Sparkles, Loader2, PartyPopper, Ticket, AlertCircle,
   Copy, QrCode, Mail, Phone,
+  Package, Scissors, Tag, PenLine,
 } from 'lucide-react';
 import { tenantCol, tenantDoc } from '../lib/tenantUtils';
 import { withTimeout } from '../lib/firestore-helpers';
@@ -73,6 +74,17 @@ const STATUS_CONFIG = {
   finalizado: { label: 'Finalizado', color: 'text-slate-400   bg-slate-500/10   border-slate-500/20'   },
 };
 
+/* ── Premio: compat backward ────────────────────────────────────────
+   Legacy: `sorteo.premio` era un string libre.
+   Nuevo:  objeto polimórfico { textoDinamico, categoria, detalle }.
+   Este helper deja que cualquier lector (DetailModal, cards, script
+   público) obtenga el texto humano sin importar la forma. */
+export function getPremioTexto(p) {
+  if (!p) return '';
+  if (typeof p === 'string') return p;
+  return p.textoDinamico || '';
+}
+
 /* ── Animaciones ──────────────────────────────────────────────────── */
 const backdrop = { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 } };
 const panel = {
@@ -101,13 +113,31 @@ function ModalShell({ children, onClose, maxW = 'max-w-sm' }) {
   );
 }
 
+/* ── Categorías de premio (polimórfico) ─────────────────────────────
+   Grilla 2×2 en el modal de creación. Cada categoría rendera su propio
+   sub-form; al submit se construye un payload uniforme:
+     { textoDinamico, categoria, detalle } */
+const PREMIO_CATEGORIAS = [
+  { key: 'PRODUCTO',  emoji: '📦',  label: 'Producto',        Icon: Package  },
+  { key: 'SERVICIO',  emoji: '✂️',  label: 'Servicio Gratis', Icon: Scissors },
+  { key: 'DESCUENTO', emoji: '🏷️', label: 'Descuento',       Icon: Tag      },
+  { key: 'OTRO',      emoji: '✍️',  label: 'Otro / Custom',   Icon: PenLine  },
+];
+
 /* ── CreateSorteoModal ────────────────────────────────────────────────
-   Escribe un nuevo doc en tenants/{tenantId}/sorteos. Estructura base:
-     { nombre, premio, fecha_inicio, fecha_fin, estado,
-       ganador_nombre, participantes_count, creadoEn, creadoPor } */
+   Escribe un nuevo doc en tenants/{tenantId}/sorteos.
+   El campo `premio` puede ser:
+     - null / omitido (opcional)
+     - objeto polimórfico { textoDinamico, categoria, detalle }
+   El helper getPremioTexto() garantiza compat con lectores legacy que
+   esperaban un string plano. */
 function CreateSorteoModal({ onClose, user }) {
+  // Catálogo del tenant para poblar los selects de PRODUCTO y SERVICIO.
+  // Si están vacíos, la UI degrada a input libre para no bloquear la creación.
+  const { data: servicios = [] } = useCollection('servicios');
+  const { data: productos = [] } = useCollection('productos');
+
   const [nombre, setNombre]   = useState('');
-  const [premio, setPremio]   = useState('');
   const [inicio, setInicio]   = useState('');
   const [fin,    setFin]      = useState('');
   // Sorteos polimórficos: estándar (ruleta clásica) o fútbol (pronóstico)
@@ -115,8 +145,73 @@ function CreateSorteoModal({ onClose, user }) {
   const [equipoLocal,   setEquipoLocal]   = useState('');
   const [equipoVisita,  setEquipoVisita]  = useState('');
   const [fechaPartido,  setFechaPartido]  = useState('');
+
+  // Premio estructurado
+  const [premioCat,       setPremioCat]       = useState('OTRO');
+  const [premioOtro,      setPremioOtro]      = useState('');
+  const [premioProductoId,   setPremioProductoId]   = useState('');
+  const [premioProductoTexto,setPremioProductoTexto]= useState(''); // fallback cuando catalogo vacío
+  const [premioServicioId,   setPremioServicioId]   = useState('');
+  const [descTipo,       setDescTipo]       = useState('%');       // '%' | '$'
+  const [descValor,      setDescValor]      = useState('');
+  const [descAplicaA,    setDescAplicaA]    = useState('SERVICIO');// 'SERVICIO' | 'PRODUCTO'
+
   const [submitting, setSubmitting] = useState(false);
   const [error,      setError]      = useState('');
+
+  /** Construye el objeto `premio` según la categoría seleccionada.
+   *  Retorna null si el usuario dejó todo vacío (premio es opcional). */
+  const buildPremioPayload = () => {
+    switch (premioCat) {
+      case 'PRODUCTO': {
+        const prod = productos.find(p => p.id === premioProductoId);
+        if (prod) {
+          return {
+            textoDinamico: prod.nombre,
+            categoria: 'PRODUCTO',
+            detalle: { productoId: prod.id, nombre: prod.nombre },
+          };
+        }
+        // Fallback: catálogo vacío o el admin escribió a mano
+        const txt = premioProductoTexto.trim();
+        if (!txt) return null;
+        return {
+          textoDinamico: txt,
+          categoria: 'PRODUCTO',
+          detalle: { nombre: txt, custom: true },
+        };
+      }
+      case 'SERVICIO': {
+        const svc = servicios.find(s => s.id === premioServicioId);
+        if (!svc) return null;
+        return {
+          textoDinamico: `${svc.nombre} gratis`,
+          categoria: 'SERVICIO',
+          detalle: { servicioId: svc.id, nombre: svc.nombre },
+        };
+      }
+      case 'DESCUENTO': {
+        const valor = Number(descValor);
+        if (!valor || valor <= 0) return null;
+        // % se muestra tal cual; $ se formatea como CLP para que sea leíble en el QR.
+        const valorStr = descTipo === '%'
+          ? `${valor}%`
+          : `$${valor.toLocaleString('es-CL')}`;
+        const aplicaTxt = descAplicaA === 'SERVICIO' ? 'servicios' : 'productos';
+        return {
+          textoDinamico: `${valorStr} OFF en ${aplicaTxt}`,
+          categoria: 'DESCUENTO',
+          detalle: { tipo: descTipo, valor, aplicaA: descAplicaA },
+        };
+      }
+      case 'OTRO':
+      default: {
+        const txt = premioOtro.trim();
+        if (!txt) return null;
+        return { textoDinamico: txt, categoria: 'OTRO', detalle: { texto: txt } };
+      }
+    }
+  };
 
   const submit = async (e) => {
     e.preventDefault();
@@ -141,7 +236,7 @@ function CreateSorteoModal({ onClose, user }) {
     try {
       const doc = {
         nombre:              nombre.trim(),
-        premio:              premio.trim(),
+        premio:              buildPremioPayload(), // null si vacío
         fecha_inicio:        inicio, // YYYY-MM-DD (string, igual que vence en gift cards)
         fecha_fin:           fin,
         tipo,                // 'ESTANDAR' | 'FUTBOL' — legacy sin campo se lee como ESTANDAR
@@ -169,154 +264,286 @@ function CreateSorteoModal({ onClose, user }) {
   };
 
   return (
-    <ModalShell onClose={submitting ? undefined : onClose}>
-      <div className="flex items-center justify-between p-5 border-b border-slate-800">
-        <p className="text-sm font-bold text-white">Nuevo sorteo</p>
-        <button onClick={onClose} disabled={submitting} className="text-slate-500 hover:text-white disabled:opacity-30">
-          <X size={16} />
-        </button>
-      </div>
-
-      <form onSubmit={submit} className="p-5">
-        {/* Segmented control estilo iOS: contenedor único con dos "tabs" internos */}
-        <label className="text-xs font-semibold tracking-wider text-neutral-300 uppercase mb-1.5 block">Tipo de sorteo</label>
-        <div className="grid grid-cols-2 p-1 bg-neutral-900/90 border border-neutral-800 rounded-xl mb-3">
-          {[
-            { key: 'ESTANDAR', emoji: '🎟️', label: 'Estándar' },
-            { key: 'FUTBOL',   emoji: '⚽', label: 'Pronóstico' },
-          ].map(opt => {
-            const active = tipo === opt.key;
-            return (
-              <button
-                key={opt.key} type="button"
-                onClick={() => setTipo(opt.key)}
-                disabled={submitting}
-                className={`flex items-center justify-center gap-1.5 h-9 text-sm transition-all disabled:opacity-50 ${
-                  active
-                    ? 'bg-neutral-800 text-white font-semibold shadow-sm border border-neutral-700/60 rounded-lg'
-                    : 'text-neutral-400 hover:text-white font-medium bg-transparent border border-transparent'
-                }`}
-              >
-                <span className="text-base leading-none">{opt.emoji}</span>
-                {opt.label}
-              </button>
-            );
-          })}
-        </div>
-        <p className="text-xs text-neutral-400 italic mb-4">
-          {tipo === 'FUTBOL'
-            ? 'Los participantes intentan acertar el marcador exacto. Solo entran a la ruleta los que aciertan.'
-            : 'Ruleta clásica: todos los inscritos participan del sorteo.'}
-        </p>
-
-        {/* Nombre del sorteo */}
-        <div className="mb-4">
-          <label className="text-xs font-semibold tracking-wider text-neutral-300 uppercase mb-1.5 block">Nombre del sorteo</label>
-          <input
-            type="text" value={nombre} onChange={e => setNombre(e.target.value)}
-            placeholder={tipo === 'FUTBOL' ? 'Ej: Pronóstico Chile vs Argentina' : 'Ej: Kit de Cuidado Premium'}
-            className="w-full bg-neutral-900/70 border border-neutral-800 rounded-lg h-10 px-3 text-sm text-white placeholder-neutral-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-            disabled={submitting}
-            required
-          />
+    // Overlay externo: scrollable en su totalidad (respaldo si el modal
+    // excede altura). Interno: card con flex-col y max-h para dar scroll
+    // fluido en mobile — el bug de "no se ve el botón Crear" venía de acá.
+    <motion.div
+      {...backdrop}
+      className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+      onClick={submitting ? undefined : onClose}
+    >
+      <motion.div
+        {...panel} transition={spring}
+        className="w-full max-w-lg bg-neutral-950 border border-neutral-800 rounded-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header fijo */}
+        <div className="flex items-center justify-between p-4 border-b border-neutral-800/80 flex-shrink-0">
+          <p className="text-sm font-bold text-white">Nuevo sorteo</p>
+          <button onClick={onClose} disabled={submitting}
+            className="text-slate-500 hover:text-white disabled:opacity-30 transition-colors">
+            <X size={16} />
+          </button>
         </div>
 
-        {/* Tarjeta "Datos del partido" (solo FUTBOL) con separador VS */}
-        {tipo === 'FUTBOL' && (
-          <div className="p-3.5 bg-gradient-to-b from-neutral-900/80 to-neutral-900/40 border border-neutral-700/70 rounded-xl mb-4">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-300 flex items-center gap-1.5 mb-3">
-              ⚽ Datos del partido
-            </p>
-
-            {/* Labels sobre inputs (grid espejo para que caigan exactas sobre cada equipo) */}
-            <div className="grid grid-cols-[1fr_auto_1fr] gap-2 mb-1">
-              <label className="text-[10px] font-semibold tracking-wider text-neutral-300 uppercase block">Equipo local</label>
-              <span aria-hidden="true" />
-              <label className="text-[10px] font-semibold tracking-wider text-neutral-300 uppercase block">Equipo visita</label>
-            </div>
-
-            {/* Inputs + badge VS al centro (items-center alinea el badge con el input h-10) */}
-            <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center mb-3">
-              <input
-                type="text" value={equipoLocal} onChange={e => setEquipoLocal(e.target.value)}
-                placeholder="Chile"
-                className="w-full h-10 text-sm bg-neutral-950/80 border border-neutral-800 rounded-lg px-3 text-white placeholder-neutral-500 focus:outline-none focus:border-emerald-500"
-                disabled={submitting}
-              />
-              <span className="text-[10px] font-black tracking-widest text-neutral-400 bg-neutral-800 px-1.5 py-1 rounded-full border border-neutral-700 leading-none select-none">VS</span>
-              <input
-                type="text" value={equipoVisita} onChange={e => setEquipoVisita(e.target.value)}
-                placeholder="Argentina"
-                className="w-full h-10 text-sm bg-neutral-950/80 border border-neutral-800 rounded-lg px-3 text-white placeholder-neutral-500 focus:outline-none focus:border-emerald-500"
-                disabled={submitting}
-              />
-            </div>
-
+        <form onSubmit={submit} className="flex flex-col min-h-0 flex-1">
+          {/* Body scrollable */}
+          <div className="p-4 space-y-4 overflow-y-auto flex-1 custom-scrollbar">
+            {/* Tipo de sorteo */}
             <div>
-              <label className="text-[10px] font-semibold tracking-wider text-neutral-300 uppercase mb-1 block">Fecha y hora del partido</label>
+              <label className="text-xs font-semibold tracking-wider text-neutral-300 uppercase mb-1.5 block">Tipo de sorteo</label>
+              <div className="grid grid-cols-2 p-1 bg-neutral-900/90 border border-neutral-800 rounded-xl">
+                {[
+                  { key: 'ESTANDAR', emoji: '🎟️', label: 'Estándar' },
+                  { key: 'FUTBOL',   emoji: '⚽', label: 'Pronóstico' },
+                ].map(opt => {
+                  const active = tipo === opt.key;
+                  return (
+                    <button
+                      key={opt.key} type="button"
+                      onClick={() => setTipo(opt.key)}
+                      disabled={submitting}
+                      className={`flex items-center justify-center gap-1.5 h-9 text-sm transition-all disabled:opacity-50 ${
+                        active
+                          ? 'bg-neutral-800 text-white font-semibold shadow-sm border border-neutral-700/60 rounded-lg'
+                          : 'text-neutral-400 hover:text-white font-medium bg-transparent border border-transparent'
+                      }`}
+                    >
+                      <span className="text-base leading-none">{opt.emoji}</span>
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-neutral-400 italic mt-2">
+                {tipo === 'FUTBOL'
+                  ? 'Los participantes intentan acertar el marcador exacto. Solo entran a la ruleta los que aciertan.'
+                  : 'Ruleta clásica: todos los inscritos participan del sorteo.'}
+              </p>
+            </div>
+
+            {/* Nombre del sorteo */}
+            <div>
+              <label className="text-xs font-semibold tracking-wider text-neutral-300 uppercase mb-1.5 block">Nombre del sorteo</label>
               <input
-                type="datetime-local" lang="es-CL" value={fechaPartido} onChange={e => setFechaPartido(e.target.value)}
-                className="w-full h-10 text-sm bg-neutral-950/80 border border-neutral-800 rounded-lg px-3 text-white focus:outline-none focus:border-emerald-500"
+                type="text" value={nombre} onChange={e => setNombre(e.target.value)}
+                placeholder={tipo === 'FUTBOL' ? 'Ej: Pronóstico Chile vs Argentina' : 'Ej: Kit de Cuidado Premium'}
+                className="w-full bg-neutral-900/70 border border-neutral-800 rounded-lg h-10 px-3 text-sm text-white placeholder-neutral-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                 disabled={submitting}
+                required
               />
             </div>
-          </div>
-        )}
 
-        {/* Premio */}
-        <div className="mb-4">
-          <label className="text-xs font-semibold tracking-wider text-neutral-300 uppercase mb-1.5 block">Premio</label>
-          <input
-            type="text" value={premio} onChange={e => setPremio(e.target.value)}
-            placeholder="Ej: Set Wahl + productos premium"
-            className="w-full bg-neutral-900/70 border border-neutral-800 rounded-lg h-10 px-3 text-sm text-white placeholder-neutral-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-            disabled={submitting}
-          />
-        </div>
+            {/* Tarjeta "Datos del partido" (solo FUTBOL) con separador VS */}
+            {tipo === 'FUTBOL' && (
+              <div className="p-3.5 bg-gradient-to-b from-neutral-900/80 to-neutral-900/40 border border-neutral-700/70 rounded-xl">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-300 flex items-center gap-1.5 mb-3">
+                  ⚽ Datos del partido
+                </p>
+                <div className="grid grid-cols-[1fr_auto_1fr] gap-2 mb-1">
+                  <label className="text-[10px] font-semibold tracking-wider text-neutral-300 uppercase block">Equipo local</label>
+                  <span aria-hidden="true" />
+                  <label className="text-[10px] font-semibold tracking-wider text-neutral-300 uppercase block">Equipo visita</label>
+                </div>
+                <div className="grid grid-cols-[1fr_auto_1fr] gap-2 items-center mb-3">
+                  <input
+                    type="text" value={equipoLocal} onChange={e => setEquipoLocal(e.target.value)}
+                    placeholder="Chile"
+                    className="w-full h-10 text-sm bg-neutral-950/80 border border-neutral-800 rounded-lg px-3 text-white placeholder-neutral-500 focus:outline-none focus:border-emerald-500"
+                    disabled={submitting}
+                  />
+                  <span className="text-[10px] font-black tracking-widest text-neutral-400 bg-neutral-800 px-1.5 py-1 rounded-full border border-neutral-700 leading-none select-none">VS</span>
+                  <input
+                    type="text" value={equipoVisita} onChange={e => setEquipoVisita(e.target.value)}
+                    placeholder="Argentina"
+                    className="w-full h-10 text-sm bg-neutral-950/80 border border-neutral-800 rounded-lg px-3 text-white placeholder-neutral-500 focus:outline-none focus:border-emerald-500"
+                    disabled={submitting}
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-semibold tracking-wider text-neutral-300 uppercase mb-1 block">Fecha y hora del partido</label>
+                  <input
+                    type="datetime-local" lang="es-CL" value={fechaPartido} onChange={e => setFechaPartido(e.target.value)}
+                    className="w-full h-10 text-sm bg-neutral-950/80 border border-neutral-800 rounded-lg px-3 text-white focus:outline-none focus:border-emerald-500"
+                    disabled={submitting}
+                  />
+                </div>
+              </div>
+            )}
 
-        {/* Fechas de vigencia */}
-        <div className="grid grid-cols-2 gap-3 mb-6">
-          <div>
-            <label className="text-xs font-semibold tracking-wider text-neutral-300 uppercase mb-1.5 block">Inicio</label>
-            <input
-              type="date" lang="es-CL" value={inicio} onChange={e => setInicio(e.target.value)}
-              className="w-full bg-neutral-900/70 border border-neutral-800 rounded-lg h-10 px-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
-              disabled={submitting}
-              required
-            />
-            {inicio && <p className="mt-1 text-[10px] text-neutral-500 tabular-nums">{formatCLDate(inicio)}</p>}
-          </div>
-          <div>
-            <label className="text-xs font-semibold tracking-wider text-neutral-300 uppercase mb-1.5 block">Cierre</label>
-            <input
-              type="date" lang="es-CL" value={fin} onChange={e => setFin(e.target.value)} min={inicio || undefined}
-              className="w-full bg-neutral-900/70 border border-neutral-800 rounded-lg h-10 px-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
-              disabled={submitting}
-              required
-            />
-            {fin && <p className="mt-1 text-[10px] text-neutral-500 tabular-nums">{formatCLDate(fin)}</p>}
-            {tipo === 'FUTBOL' && !fin && (
-              <p className="mt-1 text-[10px] text-neutral-400 italic leading-snug">
-                Sugerido: hazla coincidir con el pitazo inicial del partido.
+            {/* ── Premio (polimórfico) ──────────────────────────────
+                4 categorías en grilla 2×2. Sub-form dinámico debajo. */}
+            <div>
+              <label className="text-xs font-semibold tracking-wider text-neutral-300 uppercase mb-1.5 block">Premio</label>
+              <div className="grid grid-cols-2 gap-1.5 mb-2.5">
+                {PREMIO_CATEGORIAS.map(cat => {
+                  const active = premioCat === cat.key;
+                  return (
+                    <button
+                      key={cat.key} type="button"
+                      onClick={() => setPremioCat(cat.key)}
+                      disabled={submitting}
+                      className={`flex items-center justify-center gap-1.5 h-10 text-xs rounded-lg border transition-all disabled:opacity-50 ${
+                        active
+                          ? 'bg-emerald-500/10 border-emerald-500/40 text-white font-semibold shadow-sm shadow-emerald-500/5'
+                          : 'bg-neutral-900/70 border-neutral-800 text-neutral-400 hover:text-white hover:border-neutral-700 font-medium'
+                      }`}
+                    >
+                      <span className="text-sm leading-none">{cat.emoji}</span>
+                      <span>{cat.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Sub-form según categoría */}
+              {premioCat === 'PRODUCTO' && (
+                productos.length > 0 ? (
+                  <select
+                    value={premioProductoId} onChange={e => setPremioProductoId(e.target.value)}
+                    className="w-full h-10 text-sm bg-neutral-900 border border-neutral-800 rounded-lg px-3 text-white focus:outline-none focus:border-emerald-500"
+                    disabled={submitting}
+                  >
+                    <option value="">Selecciona un producto del inventario…</option>
+                    {productos.map(p => (
+                      <option key={p.id} value={p.id}>{p.nombre}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type="text" value={premioProductoTexto} onChange={e => setPremioProductoTexto(e.target.value)}
+                    placeholder="Sin catálogo — escribe el nombre del producto"
+                    className="w-full h-10 text-sm bg-neutral-900 border border-neutral-800 rounded-lg px-3 text-white placeholder-neutral-500 focus:outline-none focus:border-emerald-500"
+                    disabled={submitting}
+                  />
+                )
+              )}
+
+              {premioCat === 'SERVICIO' && (
+                servicios.length > 0 ? (
+                  <select
+                    value={premioServicioId} onChange={e => setPremioServicioId(e.target.value)}
+                    className="w-full h-10 text-sm bg-neutral-900 border border-neutral-800 rounded-lg px-3 text-white focus:outline-none focus:border-emerald-500"
+                    disabled={submitting}
+                  >
+                    <option value="">Selecciona el servicio a regalar…</option>
+                    {servicios.map(s => (
+                      <option key={s.id} value={s.id}>{s.nombre}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <p className="text-xs text-amber-400/80 italic h-10 flex items-center px-3 bg-amber-500/5 border border-amber-500/20 rounded-lg">
+                    Aún no cargaste servicios en el panel. Agrega alguno primero.
+                  </p>
+                )
+              )}
+
+              {premioCat === 'DESCUENTO' && (
+                <div className="p-2.5 bg-neutral-900/60 border border-neutral-800 rounded-lg space-y-2">
+                  <div className="grid grid-cols-[80px_1fr] gap-2">
+                    {/* Tipo % o $ */}
+                    <div className="grid grid-cols-2 p-0.5 bg-neutral-950 border border-neutral-800 rounded-lg h-10">
+                      {['%', '$'].map(t => (
+                        <button
+                          key={t} type="button"
+                          onClick={() => setDescTipo(t)}
+                          disabled={submitting}
+                          className={`text-sm font-bold rounded-md transition-all ${
+                            descTipo === t
+                              ? 'bg-neutral-800 text-white shadow-sm'
+                              : 'text-neutral-500 hover:text-white'
+                          }`}
+                        >{t}</button>
+                      ))}
+                    </div>
+                    <input
+                      type="number" min="1" value={descValor} onChange={e => setDescValor(e.target.value)}
+                      placeholder={descTipo === '%' ? 'Ej: 20' : 'Ej: 5000'}
+                      className="w-full h-10 text-sm bg-neutral-950 border border-neutral-800 rounded-lg px-3 text-white placeholder-neutral-500 focus:outline-none focus:border-emerald-500"
+                      disabled={submitting}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-semibold tracking-wider text-neutral-400 uppercase mb-1 block">Aplica a</label>
+                    <div className="grid grid-cols-2 p-0.5 bg-neutral-950 border border-neutral-800 rounded-lg h-9">
+                      {[
+                        { k: 'SERVICIO', label: 'Servicios' },
+                        { k: 'PRODUCTO', label: 'Productos' },
+                      ].map(a => (
+                        <button
+                          key={a.k} type="button"
+                          onClick={() => setDescAplicaA(a.k)}
+                          disabled={submitting}
+                          className={`text-xs font-medium rounded-md transition-all ${
+                            descAplicaA === a.k
+                              ? 'bg-neutral-800 text-white'
+                              : 'text-neutral-500 hover:text-white'
+                          }`}
+                        >{a.label}</button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {premioCat === 'OTRO' && (
+                <input
+                  type="text" value={premioOtro} onChange={e => setPremioOtro(e.target.value)}
+                  placeholder="Ej: Camiseta oficial de Chile, Cena para 2, etc."
+                  className="h-10 text-sm bg-neutral-900 border border-neutral-800 rounded-lg w-full px-3 text-white placeholder-neutral-500 focus:outline-none focus:border-emerald-500"
+                  disabled={submitting}
+                />
+              )}
+            </div>
+
+            {/* Fechas de vigencia */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-semibold tracking-wider text-neutral-300 uppercase mb-1.5 block">Inicio</label>
+                <input
+                  type="date" lang="es-CL" value={inicio} onChange={e => setInicio(e.target.value)}
+                  className="w-full bg-neutral-900/70 border border-neutral-800 rounded-lg h-10 px-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  disabled={submitting}
+                  required
+                />
+                {inicio && <p className="mt-1 text-[10px] text-neutral-500 tabular-nums">{formatCLDate(inicio)}</p>}
+              </div>
+              <div>
+                <label className="text-xs font-semibold tracking-wider text-neutral-300 uppercase mb-1.5 block">Cierre</label>
+                <input
+                  type="date" lang="es-CL" value={fin} onChange={e => setFin(e.target.value)} min={inicio || undefined}
+                  className="w-full bg-neutral-900/70 border border-neutral-800 rounded-lg h-10 px-3 text-sm text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                  disabled={submitting}
+                  required
+                />
+                {fin && <p className="mt-1 text-[10px] text-neutral-500 tabular-nums">{formatCLDate(fin)}</p>}
+                {tipo === 'FUTBOL' && !fin && (
+                  <p className="mt-1 text-[10px] text-neutral-400 italic leading-snug">
+                    Sugerido: hazla coincidir con el pitazo inicial del partido.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {error && (
+              <p className="text-xs text-red-400 flex items-center gap-1">
+                <AlertCircle size={12} /> {error}
               </p>
             )}
           </div>
-        </div>
 
-        {error && (
-          <p className="text-xs text-red-400 flex items-center gap-1 mb-3">
-            <AlertCircle size={12} /> {error}
-          </p>
-        )}
-
-        <button type="submit" disabled={submitting}
-          className="w-full h-11 bg-emerald-500 hover:bg-emerald-400 active:scale-[0.99] transition-all text-neutral-950 font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/10 disabled:opacity-50 disabled:cursor-not-allowed">
-          {submitting
-            ? <><Loader2 size={15} className="animate-spin" /> Creando...</>
-            : <><Sparkles size={15} /> Crear sorteo</>}
-        </button>
-      </form>
-    </ModalShell>
+          {/* Footer fijo — el botón principal siempre está visible/accesible */}
+          <div className="p-4 border-t border-neutral-800/80 flex-shrink-0 bg-neutral-950/90 backdrop-blur">
+            <button type="submit" disabled={submitting}
+              className="w-full h-11 bg-emerald-500 hover:bg-emerald-400 active:scale-[0.99] transition-all text-neutral-950 font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/10 disabled:opacity-50 disabled:cursor-not-allowed">
+              {submitting
+                ? <><Loader2 size={15} className="animate-spin" /> Creando...</>
+                : <><Sparkles size={15} /> Crear sorteo</>}
+            </button>
+          </div>
+        </form>
+      </motion.div>
+    </motion.div>
   );
 }
 
@@ -374,10 +601,10 @@ function DetailModal({ sorteo, onClose }) {
           </div>
         </div>
 
-        {sorteo.premio && (
+        {getPremioTexto(sorteo.premio) && (
           <div className="bg-slate-800/40 border border-slate-700/60 rounded-lg p-3">
             <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Premio</p>
-            <p className="text-sm text-slate-200 mt-1 leading-snug">{sorteo.premio}</p>
+            <p className="text-sm text-slate-200 mt-1 leading-snug">{getPremioTexto(sorteo.premio)}</p>
           </div>
         )}
 

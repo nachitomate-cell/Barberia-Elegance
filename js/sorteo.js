@@ -157,8 +157,13 @@ async function cargarSorteo(SORTEO_ID) {
 
     // Render del sorteo
     setBind('nombre', data.nombre || 'Sorteo');
-    if (data.premio) {
-      setBind('premio', data.premio);
+    // Compat backward: `premio` puede ser string legacy o el objeto polimórfico
+    // { textoDinamico, categoria, detalle } que emite el nuevo CreateSorteoModal.
+    const premioTxt = !data.premio
+      ? ''
+      : (typeof data.premio === 'string' ? data.premio : (data.premio.textoDinamico || ''));
+    if (premioTxt) {
+      setBind('premio', premioTxt);
     } else {
       const wrap = $('[data-bind="premio-wrap"]');
       if (wrap) wrap.classList.add('hidden');
