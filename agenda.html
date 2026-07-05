@@ -39,6 +39,19 @@
     <script src="/js/guards/tenant-status-guard.js?v=1.0"></script>
     <script src="/js/guards/version-manager.js?v=1.1"></script>
 
+    <!-- Anti-FOUC: aplica el tema guardado ANTES del primer paint.
+         Si el barbero eligió modo claro, el <html> nace con .light-mode
+         y el CSS de abajo lo pinta blanco sin flash oscuro. -->
+    <script>
+      (function () {
+        try {
+          if (localStorage.getItem('agenda_theme') === 'light') {
+            document.documentElement.classList.add('light-mode');
+          }
+        } catch (_) { /* localStorage bloqueado (Safari privado): fallback dark */ }
+      })();
+    </script>
+
     <style>
         * {
             -webkit-tap-highlight-color: transparent;
@@ -146,6 +159,195 @@
             animation: newCitaGlow 1.5s ease-in-out infinite;
             border-left: 4px solid #10b981 !important;
         }
+
+        /* ═══════════════════════════════════════════════════════════════════
+           MODO CLARO — Alto contraste para lectura bajo luz directa del sol.
+           Namespace: html.light-mode (aplicado antes del primer paint por el
+           script anti-FOUC del <head>). El toggle vive en el header (#theme-toggle).
+
+           Estrategia: overrides con selectores específicos + !important sobre
+           las clases Tailwind ya presentes en el markup (bg-white/5, text-white,
+           bg-brand-bg, etc.), sin tocar JS ni recompilar Tailwind.
+           ═══════════════════════════════════════════════════════════════════ */
+
+        /* Transiciones suaves entre modos — solo en los envoltorios principales
+           para no chocar con animaciones existentes (cita-nueva-highlight, live-dot). */
+        html.light-mode body,
+        html.light-mode header,
+        html.light-mode .cita-card,
+        html.light-mode [id="daySelectorContainer"] button,
+        html.light-mode .glass-card,
+        html.light-mode #dailyStatsDashboard {
+            transition: background-color .2s ease, border-color .2s ease, color .2s ease !important;
+        }
+
+        /* ── Fondo general ────────────────────────────────────────────────── */
+        html.light-mode body {
+            background-color: #f8fafc !important;
+            color: #0f172a !important;
+        }
+
+        /* ── Header sticky ────────────────────────────────────────────────── */
+        html.light-mode header.sticky {
+            background: rgba(255, 255, 255, 0.92) !important;
+            border-bottom-color: #e2e8f0 !important;
+        }
+
+        /* ── Superficies translúcidas → blanco puro con borde ─────────────── */
+        html.light-mode .bg-white\/5,
+        html.light-mode .bg-white\/\[0\.03\],
+        html.light-mode .bg-white\/\[0\.02\] {
+            background-color: #ffffff !important;
+        }
+        html.light-mode .bg-white\/10,
+        html.light-mode .bg-white\/15,
+        html.light-mode .bg-white\/20 {
+            background-color: #f1f5f9 !important;
+        }
+
+        /* Brand bg + su versión con opacidad → tela suave */
+        html.light-mode .bg-brand-bg,
+        html.light-mode .bg-brand-bg\/90,
+        html.light-mode .bg-brand-bg\/80 {
+            background-color: #f8fafc !important;
+        }
+
+        /* Fondos oscuros de tarjetas de cita ($1c1c24) → pastel azul */
+        html.light-mode .bg-\[\#1c1c24\] {
+            background-color: #eff6ff !important;
+        }
+        html.light-mode .hover\:bg-\[\#22222c\]:hover {
+            background-color: #dbeafe !important;
+        }
+
+        /* Zinc oscuro (avatares en cita) → gris claro */
+        html.light-mode .bg-zinc-800 { background-color: #e2e8f0 !important; }
+        html.light-mode .text-zinc-400 { color: #475569 !important; }
+
+        /* ── Bordes translúcidos → gris slate-200 sólido ──────────────────── */
+        html.light-mode .border-white\/5,
+        html.light-mode .border-white\/10,
+        html.light-mode .border-white\/15,
+        html.light-mode .border-white\/20,
+        html.light-mode .border-white\/25,
+        html.light-mode .border-white\/30 {
+            border-color: #e2e8f0 !important;
+        }
+
+        /* ── Textos blancos → slate-900 (con jerarquía de opacidad) ───────── */
+        html.light-mode .text-white { color: #0f172a !important; }
+        html.light-mode .text-white\/90 { color: #0f172a !important; }
+        html.light-mode .text-white\/80 { color: #1e293b !important; }
+        html.light-mode .text-white\/70 { color: #334155 !important; }
+        html.light-mode .text-white\/60 { color: #475569 !important; }
+        html.light-mode .text-white\/50 { color: #64748b !important; }
+        html.light-mode .text-white\/40 { color: #64748b !important; }
+        html.light-mode .text-white\/30 { color: #94a3b8 !important; }
+        html.light-mode .text-white\/20 { color: #cbd5e1 !important; }
+        html.light-mode .text-white\/10 { color: #e2e8f0 !important; }
+
+        /* Neon (headings con brillo blanco) → slate-900 sin brillo */
+        html.light-mode .text-neon {
+            color: #0f172a !important;
+            text-shadow: none !important;
+        }
+        html.light-mode .border-neon {
+            border-color: #0f172a !important;
+            box-shadow: none !important;
+        }
+
+        /* ── Glass card → superficie blanca con borde suave ───────────────── */
+        html.light-mode .glass-card {
+            background: rgba(255, 255, 255, 0.9) !important;
+            border-color: #e2e8f0 !important;
+            backdrop-filter: blur(12px);
+        }
+
+        /* ── Selector de días: día activo debe destacar sobre calendario blanco.
+             El día activo usa bg-zinc-100 (píldora clara sobre oscuro). En modo
+             claro la invertimos a píldora oscura sólida (slate-900) sobre fondo
+             blanco. Sus hijos (números y punto interior) los blanqueamos. ──── */
+        html.light-mode .bg-zinc-100 {
+            background-color: #0f172a !important;
+            box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.25) !important;
+        }
+        html.light-mode .bg-zinc-100 .text-black,
+        html.light-mode .bg-zinc-100 .text-zinc-500,
+        html.light-mode .bg-zinc-100 .text-zinc-400 {
+            color: #ffffff !important;
+        }
+        html.light-mode .bg-zinc-100 .bg-zinc-700 {
+            background-color: #ffffff !important;
+        }
+
+        /* ── Tarjetas de cita: pastel + borde izq de color respetado ──────── */
+        html.light-mode .cita-card {
+            border: 1px solid #cbd5e1 !important;
+            /* El borde izquierdo colorido lo pinta el JS inline y ese gana */
+            color: #0f172a !important;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06) !important;
+        }
+        html.light-mode .cita-card:active {
+            box-shadow: 0 4px 14px rgba(15, 23, 42, 0.12) !important;
+        }
+        /* El divisor vertical dentro de la tarjeta */
+        html.light-mode .cita-card .bg-white\/10,
+        html.light-mode .cita-card .bg-white\/5 {
+            background-color: #cbd5e1 !important;
+        }
+
+        /* ── Botones de estado dentro de las tarjetas (check verde, X rojo, WA) ──
+             Los fondos ya son bg-emerald-500/10 etc. — quedan bien en claro.
+             Reforzamos los textos y los bordes para contraste extra. */
+        html.light-mode .bg-emerald-500\/10 { background-color: #d1fae5 !important; }
+        html.light-mode .bg-emerald-500\/15 { background-color: #a7f3d0 !important; }
+        html.light-mode .bg-emerald-500\/20 { background-color: #6ee7b7 !important; }
+        html.light-mode .border-emerald-500\/20,
+        html.light-mode .border-emerald-500\/30 { border-color: #10b981 !important; }
+        html.light-mode .text-emerald-400 { color: #047857 !important; }
+        html.light-mode .text-emerald-300 { color: #059669 !important; }
+
+        html.light-mode .bg-red-500\/10 { background-color: #fee2e2 !important; }
+        html.light-mode .bg-red-500\/20 { background-color: #fecaca !important; }
+        html.light-mode .border-red-500\/20,
+        html.light-mode .border-red-500\/30 { border-color: #ef4444 !important; }
+        html.light-mode .text-red-400 { color: #b91c1c !important; }
+
+        html.light-mode .bg-yellow-500\/10 { background-color: #fef3c7 !important; }
+        html.light-mode .text-yellow-400 { color: #b45309 !important; }
+        html.light-mode .text-blue-400 { color: #1d4ed8 !important; }
+
+        /* ── Botón WhatsApp del header/tarjeta: mantiene el verde marca ───── */
+        html.light-mode .bg-\[\#25D366\]\/10 { background-color: #dcfce7 !important; }
+        html.light-mode .bg-\[\#25D366\]\/20 { background-color: #bbf7d0 !important; }
+        html.light-mode .border-\[\#25D366\]\/20,
+        html.light-mode .border-\[\#25D366\]\/30 { border-color: #25D366 !important; }
+
+        /* ── Brand accent (dorado): oscurece ligeramente para lectura sobre blanco ── */
+        html.light-mode .text-brand-accent { color: #a17d3a !important; }
+        html.light-mode .bg-brand-accent { background-color: #a17d3a !important; }
+        html.light-mode .border-brand-accent { border-color: #a17d3a !important; }
+
+        /* ── Sombras neon/glow oscuras: quitarles el brillo blanco pesado ── */
+        html.light-mode .shadow-\[0_0_15px_rgba\(255\,255\,255\,0\.2\)\],
+        html.light-mode .shadow-\[0_0_10px_rgba\(255\,255\,255\,0\.4\)\] {
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1) !important;
+        }
+
+        /* ── Selects con fondo #111 forzado en las opciones (Chrome android) ── */
+        html.light-mode select option { background: #ffffff !important; color: #0f172a !important; }
+
+        /* ── Botón #theme-toggle: propia iluminación según modo ───────────── */
+        html.light-mode #theme-toggle {
+            border-color: #e2e8f0 !important;
+            background-color: #ffffff !important;
+        }
+        html.light-mode #theme-toggle:hover {
+            background-color: #f1f5f9 !important;
+        }
+        html.light-mode #themeIcon {
+            color: #0f172a !important;
+        }
     </style>
 </head>
 <body class="min-h-screen bg-brand-bg antialiased" style="padding-bottom: max(2.5rem, env(safe-area-inset-bottom));">
@@ -233,6 +435,11 @@
             </div>
         </div>
         <div class="flex items-center gap-1.5 sm:gap-2">
+            <!-- Toggle Modo Claro / Oscuro — persiste en localStorage.agenda_theme.
+                 Ícono sol = estamos en oscuro y al tocar se aclara. Ícono luna = viceversa. -->
+            <button id="theme-toggle" onclick="toggleTheme()" class="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors" title="Alternar modo claro/oscuro" aria-label="Alternar modo claro/oscuro">
+                <i id="themeIcon" class="ph-bold ph-sun text-lg text-white/60"></i>
+            </button>
             <button id="reloadBtn" onclick="recargarAgenda()" class="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors" title="Recargar agenda">
                 <i id="reloadIcon" class="ph-bold ph-arrows-clockwise text-lg text-white/60"></i>
             </button>
@@ -3768,6 +3975,56 @@
         const bigCard = document.getElementById('pwaBigInstallCard');
         if (bigCard) bigCard.classList.add('hidden');
       };
+    })();
+  </script>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       Toggle Modo Claro / Oscuro — el CSS de light-mode vive en el <style>
+       del <head>. Aquí solo la mecánica: conmutar la clase, guardar en
+       localStorage y sincronizar el ícono sol/luna.
+       ═══════════════════════════════════════════════════════════════════ -->
+  <script>
+    (function () {
+      function updateThemeIcon(isLight) {
+        const icon = document.getElementById('themeIcon');
+        if (!icon) return;
+        // Sol cuando estás en oscuro (toca para "iluminar"); luna cuando estás en claro (toca para "oscurecer")
+        icon.className = isLight
+          ? 'ph-bold ph-moon text-lg'
+          : 'ph-bold ph-sun text-lg text-white/60';
+      }
+
+      // Sincroniza el estado del meta theme-color (barra del sistema en móvil).
+      // No es indispensable, pero da terminación visual: en modo claro, la barra
+      // superior del teléfono también se aclara en vez de quedar negra profunda.
+      function updateThemeColor(isLight) {
+        const meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute('content', isLight ? '#f8fafc' : '#050505');
+      }
+
+      window.toggleTheme = function () {
+        const html = document.documentElement;
+        const isLight = html.classList.toggle('light-mode');
+        try {
+          localStorage.setItem('agenda_theme', isLight ? 'light' : 'dark');
+        } catch (_) { /* localStorage bloqueado: cambio válido para esta sesión */ }
+        updateThemeIcon(isLight);
+        updateThemeColor(isLight);
+      };
+
+      // Sync inicial del ícono/theme-color al DOMContentLoaded — el HTML ya
+      // trae la clase aplicada por el anti-FOUC del <head>, aquí solo pintamos
+      // el ícono coherente con el estado real.
+      function syncInitial() {
+        const isLight = document.documentElement.classList.contains('light-mode');
+        updateThemeIcon(isLight);
+        updateThemeColor(isLight);
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', syncInitial, { once: true });
+      } else {
+        syncInitial();
+      }
     })();
   </script>
 </body>
