@@ -43,24 +43,43 @@ function readCategoria(p) {
   return CATEGORIAS[cat] ? cat : 'SERVICIO';
 }
 
+/* Icon picker — scroll horizontal en móvil (deslizar con el dedo). */
 function IconPicker({ value, onChange }) {
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex overflow-x-auto gap-3 py-2 -mx-1 px-1 scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden snap-x snap-mandatory">
       {ICONOS.map(ic => {
         const active = value === ic;
         return (
           <button key={ic} type="button" title={ic.replace('ph-', '')}
             onClick={() => onChange(ic)}
-            className={`w-10 h-10 flex items-center justify-center rounded-lg border transition-all ${
+            className={`shrink-0 snap-start w-11 h-11 flex items-center justify-center rounded-full border transition-all ${
               active
-                ? 'border-[#D4AF37] bg-[#D4AF37]/10 text-[#D4AF37]'
-                : 'border-slate-700 bg-slate-800 text-slate-400 hover:bg-slate-700 hover:text-slate-200'
+                ? 'border-[#D4AF37] bg-[#D4AF37]/15 text-[#D4AF37] shadow-[0_0_0_1px_#D4AF37]'
+                : 'border-slate-700 bg-slate-800/60 text-slate-400 hover:text-white'
             }`}>
-            <i className={`ph ${ic} text-base`} />
+            <i className={`ph ${ic} text-lg`} />
           </button>
         );
       })}
     </div>
+  );
+}
+
+/* iOS-style toggle — mucho más táctil que un checkbox. */
+function IosToggle({ checked, onChange, label }) {
+  return (
+    <button type="button" role="switch" aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className="flex items-center justify-between gap-3 w-full py-2.5 text-left group">
+      <span className="text-sm text-slate-200 flex-1">{label}</span>
+      <span className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${
+        checked ? 'bg-[#D4AF37]' : 'bg-slate-700 group-hover:bg-slate-600'
+      }`}>
+        <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${
+          checked ? 'translate-x-[22px]' : 'translate-x-0.5'
+        }`} />
+      </span>
+    </button>
   );
 }
 
@@ -84,24 +103,22 @@ function CategoriaBadge({ categoria, size = 'sm' }) {
   );
 }
 
-/* Selector de categoría — 3 botones grandes con icono y hint. */
+/* Selector de categoría — pills compactas en una sola fila (mobile-first). */
 function CategoriaPicker({ value, onChange }) {
   return (
     <div className="grid grid-cols-3 gap-2">
       {Object.entries(CATEGORIAS).map(([key, meta]) => {
-        const Icon   = meta.icon;
         const active = value === key;
         return (
           <button key={key} type="button"
             onClick={() => onChange(key)}
-            className={`flex flex-col items-center gap-1.5 px-3 py-3 rounded-xl border transition-all text-center ${
+            className={`flex items-center justify-center gap-1.5 px-2 py-2.5 rounded-full text-[11px] font-bold uppercase tracking-wider transition-all ${
               active
-                ? 'border-[#D4AF37] bg-[#D4AF37]/10 text-white shadow-[0_0_0_1px_#D4AF37]'
-                : 'border-slate-700 bg-slate-800/40 text-slate-400 hover:border-slate-500 hover:text-white'
+                ? 'bg-[#D4AF37] text-black shadow-[0_2px_10px_rgba(212,175,55,0.35)]'
+                : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
             }`}>
-            <Icon size={18} className={active ? 'text-[#D4AF37]' : ''} />
-            <span className="text-[11px] font-bold uppercase tracking-wider">{meta.label}</span>
-            <span className="text-[9px] leading-tight text-slate-500 hidden md:block">{meta.hint}</span>
+            <span className="text-base leading-none">{meta.emoji}</span>
+            <span>{meta.label}</span>
           </button>
         );
       })}
@@ -109,67 +126,56 @@ function CategoriaPicker({ value, onChange }) {
   );
 }
 
-/* Inputs polimórficos según la categoría del premio. */
+/* Inputs polimórficos ultra simples — sin recuadros anidados. */
 function ConfigFields({ categoria, config, onChange, servicios, productos, fieldCls, lblCls }) {
   const set = (patch) => onChange({ ...config, ...patch });
 
   if (categoria === 'PRODUCTO') {
     return (
-      <div className="space-y-3">
-        <div>
-          <label className={lblCls}>Producto del inventario</label>
-          <select
-            className={fieldCls}
-            value={config.skuProducto || ''}
-            onChange={e => set({ skuProducto: e.target.value })}
-          >
-            <option value="">— Selecciona un producto —</option>
-            {productos.map(p => (
-              <option key={p.id} value={p.sku || p.id}>
-                {p.nombre} {p.sku ? `· SKU ${p.sku}` : `· ${p.id.slice(0, 6)}`}
-              </option>
-            ))}
-          </select>
-          <p className="text-[10.5px] text-slate-500 mt-1">
-            El SKU/ID viaja con el canje para que el POS lo identifique.
-          </p>
-        </div>
-        <label className="flex items-center gap-2 cursor-pointer select-none">
-          <input type="checkbox"
-            checked={!!config.descuentaStock}
-            onChange={e => set({ descuentaStock: e.target.checked })}
-            className="w-4 h-4 rounded border-slate-600 bg-slate-800 accent-[#D4AF37]" />
-          <span className="text-xs text-slate-300">Descontar del stock al aprobar el canje</span>
-        </label>
+      <div className="space-y-2">
+        <label className={lblCls}>Producto del inventario</label>
+        <select
+          className={fieldCls}
+          value={config.skuProducto || ''}
+          onChange={e => set({ skuProducto: e.target.value })}
+        >
+          <option value="">— Selecciona un producto —</option>
+          {productos.map(p => (
+            <option key={p.id} value={p.sku || p.id}>
+              {p.nombre} {p.sku ? `· SKU ${p.sku}` : `· ${p.id.slice(0, 6)}`}
+            </option>
+          ))}
+        </select>
+        <IosToggle
+          checked={!!config.descuentaStock}
+          onChange={v => set({ descuentaStock: v })}
+          label="Descontar del stock al aprobar"
+        />
       </div>
     );
   }
 
   if (categoria === 'SERVICIO') {
     return (
-      <div className="space-y-3">
-        <div>
-          <label className={lblCls}>Servicio de regalo</label>
-          <select
-            className={fieldCls}
-            value={config.servicioId || ''}
-            onChange={e => set({ servicioId: e.target.value })}
-          >
-            <option value="">— Selecciona el servicio —</option>
-            {servicios.map(s => (
-              <option key={s.id} value={s.id}>
-                {s.nombre}{s.categoria ? ` · ${s.categoria}` : ''}
-              </option>
-            ))}
-          </select>
-        </div>
-        <label className="flex items-center gap-2 cursor-pointer select-none">
-          <input type="checkbox"
-            checked={!!config.requiereTurno}
-            onChange={e => set({ requiereTurno: e.target.checked })}
-            className="w-4 h-4 rounded border-slate-600 bg-slate-800 accent-[#D4AF37]" />
-          <span className="text-xs text-slate-300">Requiere que el cliente agende un turno</span>
-        </label>
+      <div className="space-y-2">
+        <label className={lblCls}>Servicio de regalo</label>
+        <select
+          className={fieldCls}
+          value={config.servicioId || ''}
+          onChange={e => set({ servicioId: e.target.value })}
+        >
+          <option value="">— Selecciona el servicio —</option>
+          {servicios.map(s => (
+            <option key={s.id} value={s.id}>
+              {s.nombre}{s.categoria ? ` · ${s.categoria}` : ''}
+            </option>
+          ))}
+        </select>
+        <IosToggle
+          checked={!!config.requiereTurno}
+          onChange={v => set({ requiereTurno: v })}
+          label="Requiere agendar turno"
+        />
       </div>
     );
   }
@@ -178,21 +184,18 @@ function ConfigFields({ categoria, config, onChange, servicios, productos, field
     const esPct = (config.tipoDescuento || 'PORCENTAJE') === 'PORCENTAJE';
     return (
       <div className="space-y-3">
-        <div>
-          <label className={lblCls}>Tipo de descuento</label>
-          <div className="grid grid-cols-2 gap-2">
-            {['PORCENTAJE', 'MONTO_FIJO'].map(t => (
-              <button key={t} type="button"
-                onClick={() => set({ tipoDescuento: t })}
-                className={`px-3 py-2.5 rounded-lg text-xs font-bold border transition-colors ${
-                  config.tipoDescuento === t
-                    ? 'border-[#D4AF37] bg-[#D4AF37]/10 text-white'
-                    : 'border-slate-700 bg-slate-800/40 text-slate-400 hover:text-white'
-                }`}>
-                {t === 'PORCENTAJE' ? '% Porcentaje' : '$ Monto fijo'}
-              </button>
-            ))}
-          </div>
+        <div className="grid grid-cols-2 gap-2">
+          {['PORCENTAJE', 'MONTO_FIJO'].map(t => (
+            <button key={t} type="button"
+              onClick={() => set({ tipoDescuento: t })}
+              className={`px-3 py-2.5 rounded-full text-xs font-bold transition-colors ${
+                config.tipoDescuento === t
+                  ? 'bg-[#D4AF37] text-black'
+                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+              }`}>
+              {t === 'PORCENTAJE' ? '%  Porcentaje' : '$  Monto fijo'}
+            </button>
+          ))}
         </div>
         <div>
           <label className={lblCls}>
@@ -201,6 +204,7 @@ function ConfigFields({ categoria, config, onChange, servicios, productos, field
           <input
             className={fieldCls}
             type="number"
+            inputMode="numeric"
             min="1"
             max={esPct ? '100' : undefined}
             value={config.valorDescuento ?? ''}
@@ -237,6 +241,10 @@ export default function Premios() {
   const [saving,   setSaving]   = useState(false);
   const [moving,   setMoving]   = useState(false);
   const [error,    setError]    = useState('');
+  // Bottom-sheet mobile: solo mostrar el formulario cuando el usuario lo abre
+  const [formOpen, setFormOpen] = useState(false);
+  // AI Advisor colapsable en móvil (siempre expandido en desktop)
+  const [aiOpen,   setAiOpen]   = useState(false);
 
   /* ── Synaptech IA™ Advisor States ────────────────────────── */
   const [aiLoading, setAiLoading] = useState(false);
@@ -389,8 +397,24 @@ export default function Premios() {
       categoria:     cat,
       configuracion: { ...EMPTY_CONFIG[cat], ...(p.configuracion || {}) },
     });
+    setFormOpen(true);
+    // En móvil, bloquear scroll del body mientras el bottom-sheet esté abierto
+    try { document.body.style.overflow = 'hidden'; } catch (_) {}
   };
-  const cancelEdit = () => { setEditing(null); setForm(EMPTY); setError(''); };
+  const openNew = () => {
+    setEditing(null);
+    setForm(EMPTY);
+    setError('');
+    setFormOpen(true);
+    try { document.body.style.overflow = 'hidden'; } catch (_) {}
+  };
+  const cancelEdit = () => {
+    setEditing(null);
+    setForm(EMPTY);
+    setError('');
+    setFormOpen(false);
+    try { document.body.style.overflow = ''; } catch (_) {}
+  };
 
   /* Cuando el usuario cambia la categoría, resetear configuracion a los defaults
      de esa categoría — evita mezclar campos incompatibles al guardar. */
@@ -440,11 +464,10 @@ export default function Premios() {
       };
       if (editing) {
         await updateDoc(doc(tenantCol('premios'), editing), payload);
-        cancelEdit();
       } else {
         await addDoc(tenantCol('premios'), { ...payload, activo: true, creadoEn: serverTimestamp() });
-        setForm(EMPTY);
       }
+      cancelEdit();
       // Re-trigger scanning when a reward is added or updated to simulate AI recalculation
       triggerAiScan();
     } finally { setSaving(false); }
@@ -483,6 +506,9 @@ export default function Premios() {
       configuracion: { ...EMPTY_CONFIG[cat] },
     });
     setError('');
+    setEditing(null);
+    setFormOpen(true);
+    try { document.body.style.overflow = 'hidden'; } catch (_) {}
   };
 
   const field = 'w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] transition-colors';
@@ -490,6 +516,13 @@ export default function Premios() {
 
   return (
     <div className="max-w-5xl mx-auto">
+      {/* Keyframes locales para bottom-sheet (solo se aplican en móvil) */}
+      <style>{`
+        @keyframes premiosSheetIn { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        @keyframes premiosBackdropIn { from { opacity: 0; } to { opacity: 1; } }
+        .premios-sheet { animation: premiosSheetIn 0.28s cubic-bezier(0.16,1,0.3,1); }
+        @media (min-width: 768px) { .premios-sheet { animation: none; } }
+      `}</style>
       <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
@@ -522,142 +555,182 @@ export default function Premios() {
                 <p className="text-xs mt-0.5 text-slate-700">Crea el primero con el formulario de abajo o usa la IA.</p>
               </div>
             ) : (
-              <div className="divide-y divide-slate-800/60">
-                {sorted.map((p, idx) => (
-                  <div key={p.id} className="flex items-center gap-3 px-4 py-3.5 hover:bg-slate-800/20 transition-colors">
-                    {/* Orden buttons */}
-                    <div className="flex flex-col shrink-0">
-                      <button
-                        onClick={() => move(idx, -1)}
-                        disabled={idx === 0 || moving}
-                        className="p-0.5 rounded text-slate-600 hover:text-slate-300 disabled:opacity-20 disabled:cursor-default transition-colors"
-                        title="Subir">
-                        <ChevronUp size={14} />
-                      </button>
-                      <button
-                        onClick={() => move(idx, 1)}
-                        disabled={idx === sorted.length - 1 || moving}
-                        className="p-0.5 rounded text-slate-600 hover:text-slate-300 disabled:opacity-20 disabled:cursor-default transition-colors"
-                        title="Bajar">
-                        <ChevronDown size={14} />
-                      </button>
-                    </div>
-                    <i className={`ph ${p.icono || 'ph-scissors'} text-lg shrink-0 text-[#D4AF37] bg-[#D4AF37]/5 w-9 h-9 flex items-center justify-center rounded-lg border border-[#D4AF37]/20`} />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <p className="text-sm font-semibold text-white truncate">{p.nombre}</p>
-                        <CategoriaBadge categoria={readCategoria(p)} size="xs" />
+              <ul className="divide-y divide-slate-800/60">
+                {sorted.map((p, idx) => {
+                  const cat  = readCategoria(p);
+                  const meta = CATEGORIAS[cat];
+                  const circleColor = {
+                    sky:     'bg-sky-500/12 text-sky-300 border-sky-500/30',
+                    emerald: 'bg-emerald-500/12 text-emerald-300 border-emerald-500/30',
+                    amber:   'bg-amber-500/12 text-amber-300 border-amber-500/30',
+                  }[meta.color];
+                  return (
+                    <li key={p.id} className="flex items-center gap-3 px-3 py-3 min-h-[64px] hover:bg-slate-800/20 transition-colors">
+                      {/* Círculo de ícono coloreado por categoría */}
+                      <div className={`w-11 h-11 shrink-0 rounded-full flex items-center justify-center border ${circleColor}`}>
+                        <i className={`ph ${p.icono || 'ph-scissors'} text-lg`} />
                       </div>
-                      {p.descripcion && (
-                        <p className="text-xs text-slate-500 truncate">{p.descripcion}</p>
-                      )}
-                      <p className="text-[11px] text-[#D4AF37] font-semibold mt-0.5 flex items-center gap-1">
-                        <span>🏆</span> {p.costoSellos} sello{p.costoSellos !== 1 ? 's' : ''}
-                      </p>
+                      {/* Nombre + "Categoría · N sellos" (descripción oculta en lista) */}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-white truncate">{p.nombre}</p>
+                        <p className="text-xs text-neutral-400 truncate">
+                          {meta.label} · {p.costoSellos} sello{p.costoSellos !== 1 ? 's' : ''}
+                        </p>
+                      </div>
+                      {/* Acciones táctiles */}
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button onClick={() => openEdit(p)}
+                          className="w-9 h-9 flex items-center justify-center rounded-lg text-slate-400 hover:text-[#D4AF37] hover:bg-slate-800/60 transition-colors" title="Editar">
+                          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+                        </button>
+                        <div className="flex flex-col">
+                          <button
+                            onClick={() => move(idx, -1)}
+                            disabled={idx === 0 || moving}
+                            className="w-7 h-4 flex items-center justify-center rounded text-slate-500 hover:text-slate-200 disabled:opacity-25 disabled:cursor-default"
+                            title="Subir">
+                            <ChevronUp size={14} />
+                          </button>
+                          <button
+                            onClick={() => move(idx, 1)}
+                            disabled={idx === sorted.length - 1 || moving}
+                            className="w-7 h-4 flex items-center justify-center rounded text-slate-500 hover:text-slate-200 disabled:opacity-25 disabled:cursor-default"
+                            title="Bajar">
+                            <ChevronDown size={14} />
+                          </button>
+                        </div>
+                        <button onClick={() => handleDelete(p.id)}
+                          className="w-9 h-9 flex items-center justify-center rounded-lg text-slate-500 hover:text-red-400 hover:bg-slate-800/60 transition-colors" title="Eliminar">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                        </button>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+
+          {/* CTA principal — abre el bottom-sheet en móvil o el form inline en desktop */}
+          <button
+            onClick={openNew}
+            className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl bg-[#D4AF37] hover:bg-yellow-500 text-black font-bold text-sm transition-colors shadow-[0_4px_18px_rgba(212,175,55,0.28)]"
+          >
+            <Plus size={16} strokeWidth={2.5} />
+            Nuevo Premio
+          </button>
+
+          {/* Formulario add/edit — Bottom-sheet en móvil, inline en desktop */}
+          {formOpen && (
+            <>
+              {/* Backdrop (solo móvil) */}
+              <div
+                onClick={cancelEdit}
+                className="fixed inset-0 z-40 bg-black/60 md:hidden animate-[premiosBackdropIn_0.25s_ease-out]"
+              />
+              <div
+                id="formulario-premio"
+                className="premios-sheet fixed inset-x-0 bottom-0 z-50 max-h-[92vh] overflow-y-auto bg-slate-900 border-t border-slate-700 rounded-t-3xl shadow-2xl md:static md:z-auto md:max-h-none md:overflow-visible md:rounded-xl md:border md:border-slate-800 md:shadow-md"
+              >
+                {/* Grip handle (solo móvil) */}
+                <div className="w-10 h-1 rounded-full bg-slate-700 mx-auto mt-3 md:hidden" />
+
+                <div className="p-5 pb-8 md:pb-5 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-sm font-semibold text-white flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-[#D4AF37] animate-pulse" />
+                      {editing ? 'Editar premio' : 'Nuevo premio'}
+                    </h2>
+                    <button onClick={cancelEdit} className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-slate-800 transition-all">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                  </div>
+
+                  {/* Paso 1: Categoría (pills grandes de una fila) */}
+                  <div>
+                    <label className={lbl}>Categoría</label>
+                    <CategoriaPicker value={form.categoria} onChange={setCategoria} />
+                  </div>
+
+                  {/* Paso 2: Inputs dinámicos — sin recuadros anidados */}
+                  <div>
+                    <ConfigFields
+                      categoria={form.categoria}
+                      config={form.configuracion}
+                      onChange={setConfig}
+                      servicios={servicios}
+                      productos={productos}
+                      fieldCls={field}
+                      lblCls={lbl}
+                    />
+                  </div>
+
+                  {/* Paso 3: Ícono (scroll horizontal, no consume alto) */}
+                  <div>
+                    <label className={lbl}>Ícono de canje</label>
+                    <IconPicker value={form.icono} onChange={ic => setForm(f => ({ ...f, icono: ic }))} />
+                  </div>
+
+                  {/* Paso 4: Nombre (70%) + Sellos (30%) en la misma fila */}
+                  <div className="flex gap-2">
+                    <div className="flex-[7] min-w-0">
+                      <label className={lbl}>Nombre</label>
+                      <input className={field} placeholder="Ej. Corte gratis"
+                        value={form.nombre}
+                        onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
+                        onKeyDown={e => e.key === 'Enter' && handleSave()} />
                     </div>
-                    <div className="flex items-center gap-1 shrink-0">
-                      <button onClick={() => openEdit(p)}
-                        className="p-2 rounded-lg text-slate-400 hover:text-[#D4AF37] hover:bg-slate-800/40 transition-colors" title="Editar">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
-                      </button>
-                      <button onClick={() => handleDelete(p.id)}
-                        className="p-2 rounded-lg text-slate-400 hover:text-red-500 hover:bg-slate-800/40 transition-colors" title="Eliminar">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-                      </button>
+                    <div className="flex-[3] min-w-0">
+                      <label className={lbl}>Sellos</label>
+                      <input className={field} type="number" inputMode="numeric" min="1" placeholder="10"
+                        value={form.costoSellos}
+                        onChange={e => setForm(f => ({ ...f, costoSellos: e.target.value }))}
+                        onKeyDown={e => e.key === 'Enter' && handleSave()} />
                     </div>
                   </div>
-                ))}
+
+                  <div>
+                    <label className={lbl}>Descripción <span className="normal-case font-normal text-slate-600">(opcional)</span></label>
+                    <input className={field} placeholder="Ej. Canjea 10 sellos por un corte de cabello de regalo"
+                      value={form.descripcion}
+                      onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))}
+                      onKeyDown={e => e.key === 'Enter' && handleSave()} />
+                  </div>
+
+                  {error && (
+                    <p className="text-xs text-red-400 font-semibold">{error}</p>
+                  )}
+
+                  <div className="flex gap-2 pt-1">
+                    <button onClick={cancelEdit} className="flex-1 py-3 text-sm text-slate-300 hover:text-white rounded-xl border border-slate-700 hover:bg-slate-800 transition-all">
+                      Cancelar
+                    </button>
+                    <button onClick={handleSave}
+                      disabled={saving || !form.nombre || !form.costoSellos}
+                      className="flex-[2] flex items-center justify-center gap-2 py-3 bg-[#D4AF37] hover:bg-yellow-500 disabled:opacity-40 text-black text-sm font-bold rounded-xl transition-colors">
+                      {saving && <span className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin" />}
+                      {editing ? 'Guardar cambios' : 'Agregar premio'}
+                    </button>
+                  </div>
+                </div>
               </div>
-            )}
-          </div>
-
-          {/* Formulario add/edit */}
-          <div id="formulario-premio" className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-md">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold text-white flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-[#D4AF37] animate-pulse" />
-                {editing ? 'Editar premio' : 'Nuevo premio'}
-              </h2>
-              {editing && (
-                <button onClick={cancelEdit} className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-slate-800 transition-all">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                </button>
-              )}
-            </div>
-
-            {/* Categoría del premio */}
-            <div className="mb-4">
-              <label className={lbl}>Categoría</label>
-              <CategoriaPicker value={form.categoria} onChange={setCategoria} />
-            </div>
-
-            {/* Configuración polimórfica según la categoría */}
-            <div className="mb-4 p-3 rounded-lg bg-slate-950/60 border border-slate-800">
-              <ConfigFields
-                categoria={form.categoria}
-                config={form.configuracion}
-                onChange={setConfig}
-                servicios={servicios}
-                productos={productos}
-                fieldCls={field}
-                lblCls={lbl}
-              />
-            </div>
-
-            {/* Icono picker */}
-            <div className="mb-4">
-              <label className={lbl}>Ícono de Canje</label>
-              <IconPicker value={form.icono} onChange={ic => setForm(f => ({ ...f, icono: ic }))} />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3 mb-3">
-              <div>
-                <label className={lbl}>Nombre de Premio</label>
-                <input className={field} placeholder="Ej. Corte gratis"
-                  value={form.nombre}
-                  onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))}
-                  onKeyDown={e => e.key === 'Enter' && handleSave()} />
-              </div>
-              <div>
-                <label className={lbl}>Sellos requeridos</label>
-                <input className={field} type="number" min="1" placeholder="10"
-                  value={form.costoSellos}
-                  onChange={e => setForm(f => ({ ...f, costoSellos: e.target.value }))}
-                  onKeyDown={e => e.key === 'Enter' && handleSave()} />
-              </div>
-            </div>
-
-            <div className="mb-4">
-              <label className={lbl}>Descripción <span className="normal-case font-normal text-slate-600">(opcional)</span></label>
-              <input className={field} placeholder="Ej. Canjea 10 sellos por un corte de cabello de regalo"
-                value={form.descripcion}
-                onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))}
-                onKeyDown={e => e.key === 'Enter' && handleSave()} />
-            </div>
-
-            {error && (
-              <p className="text-xs text-red-400 font-semibold mb-3">{error}</p>
-            )}
-
-            <div className="flex gap-3 justify-end">
-              {editing && (
-                <button onClick={cancelEdit} className="px-4 py-2 text-sm text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-all">
-                  Cancelar
-                </button>
-              )}
-              <button onClick={handleSave}
-                disabled={saving || !form.nombre || !form.costoSellos}
-                className="flex items-center gap-2 px-5 py-2 bg-[#D4AF37] hover:bg-yellow-500 disabled:opacity-40 text-black text-sm font-semibold rounded-lg transition-colors">
-                {saving && <span className="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin" />}
-                {editing ? 'Guardar Cambios' : <><Plus size={15} /> Agregar Premio</>}
-              </button>
-            </div>
-          </div>
+            </>
+          )}
         </div>
 
-        {/* Columna Derecha (Synaptech IA™ Advisor) - Toma 1 parte en escritorio */}
+        {/* Columna Derecha (Synaptech IA™ Advisor) — colapsable en móvil */}
         <div className="lg:col-span-1">
-          <div className="bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800/80 rounded-xl overflow-hidden shadow-lg sticky top-6">
+          {/* Toggle compacto solo en móvil */}
+          <button
+            onClick={() => setAiOpen(v => !v)}
+            className="lg:hidden w-full flex items-center justify-between px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl mb-3 text-left"
+          >
+            <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+              <Sparkles size={13} className="text-[#D4AF37]" /> Ver diagnóstico IA
+            </span>
+            <ChevronDown size={14} className={`text-slate-400 transition-transform ${aiOpen ? 'rotate-180' : ''}`} />
+          </button>
+          <div className={`${aiOpen ? '' : 'hidden lg:block'} bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800/80 rounded-xl overflow-hidden shadow-lg lg:sticky lg:top-6`}>
             
             {/* Header del Asistente */}
             <div className="p-4 border-b border-slate-800/80 bg-gradient-to-r from-slate-900 via-slate-950 to-slate-900 flex items-center justify-between">
