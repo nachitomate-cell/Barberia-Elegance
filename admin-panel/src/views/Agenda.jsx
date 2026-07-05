@@ -8,7 +8,7 @@ import {
   Send, Download, RefreshCw, Copy, Check, ShoppingBag, Gift,
   Users, Eye, UserPlus, MoreHorizontal, GripVertical, AlertTriangle, Zap,
 } from 'lucide-react';
-import { DndContext, PointerSensor, useSensor, useSensors, closestCenter } from '@dnd-kit/core';
+import { DndContext, PointerSensor, TouchSensor, useSensor, useSensors, closestCenter } from '@dnd-kit/core';
 import { SortableContext, horizontalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
@@ -1440,7 +1440,7 @@ function BloqueoBlock({ bloqueo, onDelete }) {
 }
 
 /* ── AppointmentBlock ────────────────────────────────────────── */
-function AppointmentBlock({ cita, colIndex, colTotal, onClick, onContextMenu, onDragStart, onDragEnd, onDropOnCita, isDragged, dragActive }) {
+function AppointmentBlock({ cita, colIndex, colTotal, onClick, onContextMenu, onDragStart, onDragEnd, onDropOnCita, onTouchDrop, isDragged, dragActive }) {
   const { slotIdx, totalSlots, slotMins } = useContext(AgendaCtx);
   const slot  = Math.max(0, Math.min(totalSlots - 1, slotIdx(cita.hora)));
   const spans = Math.max(1, Math.min(totalSlots - slot, Math.round((cita.duracion || cita.duracionServicio || 30) / slotMins)));
@@ -1449,9 +1449,134 @@ function AppointmentBlock({ cita, colIndex, colTotal, onClick, onContextMenu, on
   const arrastrable = cita.estado !== 'Cancelada' && cita.estado !== 'Completada';
   const [over, setOver] = useState(false);
 
+  // ── Soporte táctil (long-press + arrastrar) ─────────────────
+  // HTML5 draggable no dispara eventos en pantallas táctiles, así que
+  // manejamos manualmente touchstart/move/end y usamos elementFromPoint
+  // para saber qué franja horaria queda bajo el dedo al soltar.
+  const cardRef      = useRef(null);
+  const holdTimer    = useRef(null);
+  const isTouchDrag  = useRef(false);
+  const suppressTap  = useRef(false); // evita que el touchend dispare el click "abrir cita"
+  const startPos     = useRef({ x: 0, y: 0 });
+  const lastTarget   = useRef(null);  // { el, barberoId, hora, ciId }
+  const TOUCH_HOVER  = ['!bg-emerald-500/30', 'ring-2', 'ring-inset', 'ring-emerald-400', 'z-10'];
+
+  const clearTouchHover = () => {
+    if (lastTarget.current?.el) {
+      lastTarget.current.el.classList.remove(...TOUCH_HOVER);
+    }
+    lastTarget.current = null;
+  };
+
+  const cancelHold = () => {
+    if (holdTimer.current) { clearTimeout(holdTimer.current); holdTimer.current = null; }
+  };
+
+  // Encuentra la franja horaria (o cita) debajo del dedo. Oculta temporalmente
+  // los pointer-events del propio bloque para poder ver el elemento inferior.
+  const findDropTarget = (x, y) => {
+    const card = cardRef.current;
+    const prevPE = card?.style.pointerEvents;
+    if (card) card.style.pointerEvents = 'none';
+    const el = document.elementFromPoint(x, y);
+    if (card) card.style.pointerEvents = prevPE || '';
+    if (!el) return null;
+    const slotEl = el.closest('[data-slot-barbero]');
+    if (slotEl) {
+      return {
+        el: slotEl,
+        barberoId: slotEl.getAttribute('data-slot-barbero'),
+        hora:      slotEl.getAttribute('data-slot-hora'),
+      };
+    }
+    // Si soltamos encima de otra cita, dejamos que el flujo trate el slot origen
+    // de esa cita como destino (mismo comportamiento que onDropOnCita en desktop).
+    const citaEl = el.closest('[data-cita-barbero]');
+    if (citaEl && citaEl !== card) {
+      return {
+        el: citaEl,
+        barberoId: citaEl.getAttribute('data-cita-barbero'),
+        hora:      citaEl.getAttribute('data-cita-hora'),
+      };
+    }
+    return null;
+  };
+
+  const handleTouchStart = (e) => {
+    if (!arrastrable) return;
+    const t = e.touches[0]; if (!t) return;
+    startPos.current = { x: t.clientX, y: t.clientY };
+    isTouchDrag.current = false;
+    suppressTap.current = false;
+    cancelHold();
+    holdTimer.current = setTimeout(() => {
+      isTouchDrag.current = true;
+      if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+        try { navigator.vibrate(15); } catch { /* noop */ }
+      }
+      onDragStart && onDragStart({ touch: true }, cita);
+    }, 250);
+  };
+
+  const handleTouchMove = (e) => {
+    const t = e.touches[0]; if (!t) return;
+
+    // Aún no arranca el drag: si el dedo se aleja >5 px, es scroll → cancelamos el hold.
+    if (!isTouchDrag.current) {
+      const dx = t.clientX - startPos.current.x;
+      const dy = t.clientY - startPos.current.y;
+      if (Math.hypot(dx, dy) > 5) cancelHold();
+      return;
+    }
+
+    // Drag activo: resalta la franja debajo del dedo (touch-action: none en el
+    // bloque impide que el navegador scrollee, así que no necesitamos preventDefault).
+    const target = findDropTarget(t.clientX, t.clientY);
+    if (target?.el !== lastTarget.current?.el) {
+      clearTouchHover();
+      if (target?.el) {
+        target.el.classList.add(...TOUCH_HOVER);
+        lastTarget.current = target;
+      }
+    } else if (target) {
+      lastTarget.current = target;
+    }
+  };
+
+  const handleTouchEnd = (e) => {
+    cancelHold();
+    if (!isTouchDrag.current) return;
+    isTouchDrag.current = false;
+    suppressTap.current = true;
+    // Bloquea el "click fantasma" que iOS/Android sintetizan después de touchend.
+    if (e.cancelable) e.preventDefault();
+    const target = lastTarget.current;
+    clearTouchHover();
+    if (target?.barberoId && target?.hora) {
+      onTouchDrop && onTouchDrop(target.barberoId, target.hora);
+    } else {
+      onDragEnd && onDragEnd();
+    }
+    // Reset suppressTap tras el ciclo de eventos para el próximo tap.
+    setTimeout(() => { suppressTap.current = false; }, 400);
+  };
+
+  const handleTouchCancel = () => {
+    cancelHold();
+    if (isTouchDrag.current) {
+      isTouchDrag.current = false;
+      clearTouchHover();
+      onDragEnd && onDragEnd();
+    }
+  };
+
   return (
     <div
-      onClick={() => onClick(cita)}
+      ref={cardRef}
+      // Data-* para que otras citas puedan tratar este bloque como slot destino durante touch.
+      data-cita-barbero={cita.barberoId}
+      data-cita-hora={cita.hora}
+      onClick={() => { if (suppressTap.current) return; onClick(cita); }}
       onContextMenu={(e) => { if (onContextMenu) { e.preventDefault(); onContextMenu(e, cita); } }}
       draggable={arrastrable}
       onDragStart={(e) => onDragStart && onDragStart(e, cita)}
@@ -1460,8 +1585,12 @@ function AppointmentBlock({ cita, colIndex, colTotal, onClick, onContextMenu, on
       onDragEnter={() => { if (dragActive && !isDragged) setOver(true); }}
       onDragLeave={() => setOver(false)}
       onDrop={(e) => { e.stopPropagation(); e.preventDefault(); setOver(false); onDropOnCita && onDropOnCita(cita); }}
-      className={`group absolute rounded-md border px-2 py-1 overflow-hidden ${arrastrable ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'} hover:brightness-125 transition-all text-xs ${color} ${
-        isDragged ? 'opacity-40 ring-2 ring-emerald-400 z-30'
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchCancel}
+      className={`group absolute rounded-md border px-2 py-1 overflow-hidden ${arrastrable ? 'cursor-grab active:cursor-grabbing touch-none select-none' : 'cursor-pointer'} hover:brightness-125 transition-transform duration-150 text-xs ${color} ${
+        isDragged ? 'opacity-90 ring-2 ring-emerald-500 shadow-2xl scale-105 z-50'
                   : over ? 'ring-2 ring-amber-400 brightness-125 z-30'
                   : dragActive ? 'ring-1 ring-amber-400/50'
                   : ''
@@ -1511,6 +1640,9 @@ function SlotRow({ idx, barberoId, dateStr, onNewCita, onNewBloqueo, blockMode, 
   const [over, setOver] = useState(false);
   return (
     <div
+      // Los data-* permiten al drag táctil identificar la franja via document.elementFromPoint.
+      data-slot-barbero={barberoId}
+      data-slot-hora={hora}
       onClick={() => blockMode ? onNewBloqueo(barberoId, hora) : onNewCita(barberoId, hora)}
       onDragOver={onDragOver}
       onDragEnter={() => { if (dragActive) setOver(true); }}
@@ -2790,8 +2922,11 @@ export default function Agenda() {
   }, [barberos, barberOrder]);
 
   const dragSensors = useSensors(
-    // El arrastre solo arranca desde la manija (⠿) tras mover 6px → no choca con el tap.
-    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    // Escritorio: pequeño desplazamiento antes de activar (evita conflictos con el tap normal).
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    // Móvil: hay que mantener presionado 250 ms; una vibración/tolerancia mínima evita
+    // que un temblor del dedo cancele el drag. Sin este sensor el reordenar tampoco funcionaba táctil.
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
   );
   const handleReorderBarberos = ({ active, over }) => {
     if (!over || active.id === over.id) return;
@@ -3261,6 +3396,7 @@ export default function Agenda() {
                                 onDragStart={(e, c) => setDraggedCita(c)}
                                 onDragEnd={() => setDraggedCita(null)}
                                 onDropOnCita={(c) => handleDrop(c.barberoId, c.hora)}
+                                onTouchDrop={(bid, hora) => handleDrop(bid, hora)}
                                 isDragged={draggedCita?.id === cita.id}
                                 dragActive={!!draggedCita}
                               />
