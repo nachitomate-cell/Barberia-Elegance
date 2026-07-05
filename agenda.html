@@ -452,6 +452,113 @@
             font-weight: 800 !important;
         }
         html.light-mode #pwaBigInstallCard .text-white\/60 { color: #475569 !important; }
+
+        /* ═══════════════════════════════════════════════════════════════════
+           FIXES POST-QA — tercera pasada tras QA en mobile.
+           Cuatro áreas: header opaco + aire, franjas oscuras vista semana,
+           relieve en estados vacíos, y sticky del selector de días.
+           ═══════════════════════════════════════════════════════════════════ */
+
+        /* (1) Header 100% opaco: el 0.92 dejaba pasar el contenido detrás
+              como un fantasma al scrollear. Sombra sutil en vez de blur. */
+        html.light-mode header.sticky {
+            background: #ffffff !important;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+        }
+        /* Aire extra bajo el header — el pt-8 dejaba el toggle día/semana
+           casi pegado al borde inferior del header en mobile. */
+        html.light-mode #mainApp {
+            padding-top: 1.5rem !important;
+        }
+
+        /* (2) Vista SEMANA — pisa styles inline hardcoded del renderWeekView.
+              Los selectores [style*="..."] alcanzan inline porque llevan
+              !important (regla CSS: !important externo > inline sin bang). */
+        html.light-mode [style*="background:#141418"],
+        html.light-mode [style*="background: #141418"] {
+            background: #ffffff !important;
+        }
+        html.light-mode [style*="background:#1c1810"] {
+            background: #fef3c7 !important; /* cabecera "hoy" — amarillo pastel */
+        }
+        html.light-mode [style*="rgba(0,0,0,0.35)"] {
+            background: rgba(15, 23, 42, 0.05) !important; /* franjas no laborales */
+        }
+        html.light-mode [style*="rgba(255,255,255,0.14)"],
+        html.light-mode [style*="rgba(255,255,255,0.08)"] {
+            border-color: #e2e8f0 !important;
+        }
+        html.light-mode [style*="rgba(255,255,255,0.06)"] {
+            border-top-color: #e2e8f0 !important;
+        }
+        /* Etiquetas de hora "13:00" (span con color inline blanco translúcido) */
+        html.light-mode [style*="color:rgba(255,255,255,0.5)"],
+        html.light-mode [style*="color:rgba(255,255,255,0.55)"],
+        html.light-mode [style*="color:rgba(255,255,255,0.45)"] {
+            color: #334155 !important;
+        }
+        /* Números de fecha en cabeceras semanales (color:#fff inline) */
+        html.light-mode [style*="color:#fff"] {
+            color: #0f172a !important;
+        }
+        /* Contenedores decorativos con fondos ambient blancos casi invisibles */
+        html.light-mode [style*="rgba(255,255,255,0.02)"],
+        html.light-mode [style*="rgba(255,255,255,0.04)"] {
+            background: #ffffff !important;
+        }
+        html.light-mode [style*="1px solid rgba(255,255,255,0.05)"],
+        html.light-mode [style*="1px solid rgba(255,255,255,0.1)"],
+        html.light-mode [style*="1px solid rgba(255,255,255,0.12)"] {
+            border-color: #e2e8f0 !important;
+        }
+
+        /* (3) Estados vacíos con relieve — evita el "flotar en el vacío"
+              cuando la tarjeta queda sobre el fondo #f8fafc del body. */
+        html.light-mode #emptyAgenda {
+            background: #ffffff !important;
+            border: 1px solid #e2e8f0 !important;
+            border-radius: 0.75rem;
+            padding: 1.75rem 1.5rem !important;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+            margin-top: 0.5rem;
+        }
+        html.light-mode #emptyAgenda i { color: #94a3b8 !important; }
+        html.light-mode #emptyAgenda p { color: #475569 !important; }
+
+        html.light-mode #desktopDetailView {
+            background: #ffffff !important;
+            border: 1px solid #e2e8f0 !important;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+        }
+        html.light-mode #desktopEmptyState,
+        html.light-mode #desktopEmptyState i,
+        html.light-mode #desktopEmptyState p {
+            color: #64748b !important;
+        }
+
+        /* Cards internas del carrusel "Últimas reservas recibidas" */
+        html.light-mode #latestReservationsContainer > div {
+            background: #ffffff !important;
+            border-color: #e2e8f0 !important;
+        }
+
+        /* (4) Selector de días — sticky bajo el header para no perder
+              contexto al scrollear los slots del día. top=72px cubre el
+              alto del header (py-5 + contenido ~32px). Solo en modo claro
+              para no arriesgar layouts del modo oscuro existente. */
+        html.light-mode #dayViewHeader {
+            position: sticky;
+            top: 72px;
+            z-index: 40;
+            background: rgba(248, 250, 252, 0.95) !important;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border-bottom: 1px solid #e2e8f0;
+            padding: 0.75rem 0 0.5rem !important;
+            margin-bottom: 1rem !important;
+        }
+        /* Los -mx-6 px-6 del container interno crean sangrado horizontal;
+           en sticky con fondo, el bleed queda incluido bajo el mismo blur. */
     </style>
 </head>
 <body class="min-h-screen bg-brand-bg antialiased" style="padding-bottom: max(2.5rem, env(safe-area-inset-bottom));">
