@@ -22,6 +22,9 @@
     { "source": "/kronnos", "destination": "/kronnos.html" },
     { "source": "/kronnos-admin", "destination": "/kronnos-admin.html" },
     { "source": "/chat", "destination": "/chat.html" },
+    { "source": "/admin", "destination": "/admin/index.html" },
+    { "source": "/admin/**", "destination": "/admin/index.html" },
+    { "source": "/admin-membresias", "destination": "/admin-membresias.html" },
     { "source": "/:slug([^./]+)", "destination": "/barbero.html" }
   ]
 }
