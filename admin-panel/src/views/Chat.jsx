@@ -510,6 +510,10 @@ const PUBLIC_DOMAIN = {
   kronnos_penablanca:   'kronnospenablanca.synaptechspa.cl',
   kronnos_limache:      'kronnoslimache.synaptechspa.cl',
   kronnos_woman:        'kronnoswoman.synaptechspa.cl',
+  omegastudio:          'omegastudio.synaptechspa.cl',
+  alfamen:              'alfamen.synaptechspa.cl',
+  barbersclub:          'barbersclub.synaptechspa.cl',
+  elbarberomoderno:     'elbarberomoderno.synaptechspa.cl',
 };
 
 function getPublicChatUrl(tenantId) {
@@ -519,7 +523,11 @@ function getPublicChatUrl(tenantId) {
   if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
     return `http://localhost:3000/chat?local=${tenantId}`;
   }
-  return `https://synaptechspa.cl/chat?local=${tenantId}`;
+  // Fallback prod: patrón wildcard {tenantId}.synaptechspa.cl (funciona para
+  // tenants nuevos que sigan el naming simple). ANTES caía a synaptechspa.cl
+  // que es un repo Next.js distinto y no tiene /chat → 404.
+  console.warn('[Chat] Tenant no está en PUBLIC_DOMAIN, usando wildcard fallback:', tenantId);
+  return `https://${tenantId}.synaptechspa.cl/chat`;
 }
 
 // ─── Banner compacto con el link público — siempre visible arriba
