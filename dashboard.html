@@ -5129,6 +5129,19 @@
           </div>
         </div>
         <div id="canjeError" class="hidden mb-3 text-xs text-rose-400 font-semibold text-center"></div>
+
+        <!-- Aviso "canje asistido" — visible cuando el dueño desactivó el
+             autoservicio desde el panel Premios. Reemplaza al botón "Generar". -->
+        <div id="canjeAutoAviso" class="hidden mb-3 flex items-start gap-2.5 px-3 py-2.5 rounded-xl" style="background:rgba(212,175,55,0.06);border:1px solid rgba(212,175,55,0.25);">
+          <i class="ph-fill ph-info text-base mt-0.5" style="color:#D4AF37;"></i>
+          <div class="flex-1 min-w-0">
+            <p class="text-[13px] font-semibold text-white">Canje asistido</p>
+            <p class="text-[11px] text-white/60 mt-0.5 leading-relaxed">
+              Muéstrale este premio al staff en el local — ellos generarán el código y descontarán tus sellos al momento.
+            </p>
+          </div>
+        </div>
+
         <div class="flex gap-3">
           <button onclick="cerrarModalCanje()"
             class="flex-1 font-semibold py-3.5 rounded-2xl transition-all active:scale-[0.98] text-sm border border-white/10 text-white/70 hover:text-white hover:bg-white/5">
@@ -6198,6 +6211,18 @@ function abrirModalCanje(prizeId) {
   btn.disabled = false;
   btn.innerHTML = '<i class="ph-bold ph-qr-code"></i> Generar QR / PIN';
 
+  // Respeta el flag "autoservicio de canje" (panel → Premios).
+  // Si el dueño lo apagó, ocultamos el botón "Generar" y mostramos un
+  // aviso pidiendo canje asistido por el staff.
+  const autoAviso = document.getElementById('canjeAutoAviso');
+  if (_canjeAutoEnabled) {
+    btn.classList.remove('hidden');
+    if (autoAviso) autoAviso.classList.add('hidden');
+  } else {
+    btn.classList.add('hidden');
+    if (autoAviso) autoAviso.classList.remove('hidden');
+  }
+
   document.getElementById('canjeModal').classList.remove('hidden');
 }
 
@@ -6574,6 +6599,9 @@ function renderStamps(count, historicos) {
 // el snapshot del user. Si el user no tiene referralCode, se genera aquí y
 // se persiste (backfill para users pre-feature).
 let _referralProgramCache = null;
+// Flag "autoservicio de canje" del panel /premios. Default true para no
+// romper tenants existentes. Se sincroniza junto con el programa de referidos.
+let _canjeAutoEnabled = true;
 
 async function _loadReferralProgramConfig() {
   try {
@@ -6581,8 +6609,19 @@ async function _loadReferralProgramConfig() {
     const ref = tid === 'elegance'
       ? db.collection('settings').doc('general')
       : db.collection('tenants').doc(tid).collection('settings').doc('general');
-    const snap = await ref.get();
-    _referralProgramCache = (snap.exists ? (snap.data() || {}).referralProgram : null) || { enabled: false };
+    // Listener en vivo: si el dueño apaga el toggle desde el panel mientras el
+    // cliente tiene el dashboard abierto, el modal actualiza al vuelo sin recargar.
+    ref.onSnapshot(
+      snap => {
+        const d = snap.exists ? (snap.data() || {}) : {};
+        _referralProgramCache = d.referralProgram || { enabled: false };
+        _canjeAutoEnabled = d.canjeClienteEnabled !== false;
+      },
+      err => {
+        console.warn('[settings] onSnapshot:', err.message);
+        if (!_referralProgramCache) _referralProgramCache = { enabled: false };
+      },
+    );
   } catch (e) {
     _referralProgramCache = { enabled: false };
     console.warn('[referrals] cfg:', e.message);

@@ -40,6 +40,7 @@ function colecciones(tenantId) {
     users:        db.collection(isElegance ? 'users'        : `tenants/${tenantId}/users`),
     premios:      db.collection(isElegance ? 'premios'      : `tenants/${tenantId}/premios`),
     redemptions:  db.collection(isElegance ? 'redemptions'  : `tenants/${tenantId}/redemptions`),
+    settingsRef:  db.doc(isElegance ? 'settings/general' : `tenants/${tenantId}/settings/general`),
   };
 }
 
@@ -76,7 +77,7 @@ exports.crearCanje = onCall(async (req) => {
   }
 
   const uid = req.auth.uid;
-  const { users, premios, redemptions } = colecciones(tenantId);
+  const { users, premios, redemptions, settingsRef } = colecciones(tenantId);
 
   const userRef  = users.doc(uid);
   const premioRef = premios.doc(prizeId);
@@ -89,6 +90,14 @@ exports.crearCanje = onCall(async (req) => {
 
   try {
     await db.runTransaction(async (tx) => {
+      // Validar toggle "autoservicio de canje" (panel Premios).
+      // Default true — solo false explícito bloquea.
+      const setSnap = await tx.get(settingsRef);
+      const setData = setSnap.exists ? (setSnap.data() || {}) : {};
+      if (setData.canjeClienteEnabled === false) {
+        throw new HttpsError('permission-denied', 'El local desactivó el autoservicio de canje. Muéstrale el premio al staff.');
+      }
+
       const [uSnap, pSnap] = await Promise.all([tx.get(userRef), tx.get(premioRef)]);
       if (!uSnap.exists) throw new HttpsError('not-found', 'Tu cuenta de club no existe.');
       if (!pSnap.exists) throw new HttpsError('not-found', 'Este premio ya no está disponible.');

@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
-import { Plus, Trophy, ChevronUp, ChevronDown, Sparkles, Brain, Cpu, RefreshCw, Check, Lightbulb, Zap, HelpCircle, Package, Scissors, Tag } from 'lucide-react';
-import { addDoc, updateDoc, deleteDoc, doc, serverTimestamp } from 'firebase/firestore';
-import { tenantCol } from '../lib/tenantUtils';
+import { Plus, Trophy, ChevronUp, ChevronDown, Sparkles, Brain, Cpu, RefreshCw, Check, Lightbulb, Zap, HelpCircle, Package, Scissors, Tag, Smartphone, Lock } from 'lucide-react';
+import { addDoc, updateDoc, deleteDoc, doc, serverTimestamp, onSnapshot, setDoc } from 'firebase/firestore';
+import { tenantCol, tenantDoc } from '../lib/tenantUtils';
 import { confirmDialog } from '../lib/confirmDialog';
 import { useCollection } from '../hooks/useCollection';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
@@ -315,6 +315,43 @@ export default function Premios() {
   // AI Advisor colapsable en móvil (siempre expandido en desktop)
   const [aiOpen,   setAiOpen]   = useState(false);
 
+  /* ── Toggle "Autoservicio de canje" ─────────────────────────
+     Vive en tenant/settings/general.canjeClienteEnabled.
+     Default TRUE (no romper tenants existentes que ya usan el flow).
+     Cuando está apagado, el cliente ve el premio pero NO puede
+     generar el QR él mismo — solo el staff desde /canjes.
+     CF `crearCanje` valida server-side también. */
+  const [canjeAuto,      setCanjeAuto]      = useState(true);
+  const [savingCanjeAuto, setSavingCanjeAuto] = useState(false);
+  useEffect(() => {
+    const ref = tenantDoc('settings', 'general');
+    const unsub = onSnapshot(
+      ref,
+      snap => {
+        const d = snap.exists() ? snap.data() : {};
+        // Undefined y true → activo; solo false lo desactiva.
+        setCanjeAuto(d.canjeClienteEnabled !== false);
+      },
+      err => { console.warn('[premios] no se pudo leer settings:', err.message); },
+    );
+    return () => unsub();
+  }, []);
+
+  const toggleCanjeAuto = async () => {
+    if (savingCanjeAuto) return;
+    const next = !canjeAuto;
+    setCanjeAuto(next);              // optimista
+    setSavingCanjeAuto(true);
+    try {
+      await setDoc(tenantDoc('settings', 'general'), { canjeClienteEnabled: next }, { merge: true });
+    } catch (e) {
+      console.error('[premios] toggle canje auto:', e);
+      setCanjeAuto(!next);           // revert si falló
+    } finally {
+      setSavingCanjeAuto(false);
+    }
+  };
+
   /* ── Synaptech IA™ Advisor States ────────────────────────── */
   const [aiLoading, setAiLoading] = useState(false);
   const [aiStep, setAiStep]       = useState(0);
@@ -619,6 +656,38 @@ export default function Premios() {
           </div>
           <p className="text-sm text-slate-500 mt-0.5">Define los premios que obtienen los clientes por acumular sellos.</p>
         </div>
+      </div>
+
+      {/* ── Autoservicio de canje ─────────────────────────────────
+          Toggle que controla si el cliente puede generar el QR/PIN
+          desde su dashboard móvil. Cuando está apagado, solo el
+          staff puede cargar canjes desde /canjes. */}
+      <div className="mb-6 bg-slate-900 border border-slate-800 rounded-xl p-4 sm:p-5 flex items-start justify-between gap-4">
+        <div className="flex items-start gap-3 min-w-0">
+          <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 ${canjeAuto ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-800 text-slate-500'}`}>
+            {canjeAuto ? <Smartphone size={18} /> : <Lock size={18} />}
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-white">
+              Autoservicio de canje desde el móvil
+            </p>
+            <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
+              {canjeAuto
+                ? 'El cliente puede generar el QR/PIN de su premio desde el dashboard. Los sellos se descuentan al generar.'
+                : 'Solo el staff puede cargar canjes desde /canjes. El cliente ve el premio pero no puede generar el código él mismo.'}
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={toggleCanjeAuto}
+          disabled={savingCanjeAuto}
+          aria-pressed={canjeAuto}
+          aria-label={canjeAuto ? 'Desactivar autoservicio' : 'Activar autoservicio'}
+          className={`relative shrink-0 w-11 h-6 rounded-full transition-colors disabled:opacity-60 ${canjeAuto ? 'bg-emerald-500' : 'bg-slate-700'}`}
+        >
+          <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${canjeAuto ? 'translate-x-5' : 'translate-x-0.5'}`} />
+        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
