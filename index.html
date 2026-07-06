@@ -10908,10 +10908,27 @@
           return alert(`Espera ${mins} minuto${mins !== 1 ? 's' : ''} antes de realizar otra reserva.`);
         }
 
+        // ── Canonicalización de barberoId ──────────────────────────
+        // Un barbero puede tener DOS docs en /barberos:
+        //   - Doc de enlace: `id` = UID de auth, campo `_mainDocId` → apunta al doc principal.
+        //   - Doc principal: `id` = slug (ej. 'jhoseth-morales').
+        // La agenda del barbero (/agenda) resuelve su `barberId` al doc principal (_mainDocId).
+        // Si acá guardamos la cita con el ID del doc de enlace, el filtro
+        // `where('barberoId', '==', <slug>)` no matchea y la cita NO aparece.
+        // Este helper devuelve el ID canónico (principal) para cualquier barbero
+        // presente en `_fsBarberos`.
+        const _canonicalBarberoId = (id) => {
+          if (!id || id === 'any') return id;
+          const b = (_fsBarberos || []).find(x => x.id === id);
+          return (b && b._mainDocId) ? b._mainDocId : id;
+        };
+
         // Auto-asignación para "Sin preferencia": usa el cache de _multiHoras
         // (calculado en renderHours con getHorasDisponiblesMulti) para evitar
         // un query a Firestore que requeriría auth — el usuario público no está autenticado.
-        let barberoIdFinal = window._selectedBarberId === 'any' ? null : (window._selectedBarberId || null);
+        let barberoIdFinal = window._selectedBarberId === 'any'
+          ? null
+          : _canonicalBarberoId(window._selectedBarberId || null);
         let barberoNombreFinal = window._selectedBarber === 'any' ? '' : (window._selectedBarber || '');
 
         if (window._selectedBarberId === 'any' && _fsBarberos.length > 0) {
@@ -10922,12 +10939,12 @@
             const shuffled = [...availIds].sort(() => Math.random() - 0.5);
             const asignado = _fsBarberos.find(b => b.id === shuffled[0]);
             if (asignado) {
-              barberoIdFinal    = asignado.id;
+              barberoIdFinal    = _canonicalBarberoId(asignado.id);
               barberoNombreFinal = asignado.nombre;
             }
           } else if (_fsBarberos.length > 0) {
             // Fallback: primer barbero de la lista
-            barberoIdFinal    = _fsBarberos[0].id;
+            barberoIdFinal    = _canonicalBarberoId(_fsBarberos[0].id);
             barberoNombreFinal = _fsBarberos[0].nombre;
           }
         }
