@@ -146,7 +146,14 @@
       const cSnap = await db.collection(pathCitas(tid)).get();
       const targets = cSnap.docs.filter(d => {
         const x = d.data();
-        const bidBroken = (x.barberoId === null || x.barberoId === undefined || x.barberoId === '');
+        // Ojo: además de null/undefined/'' hay que atrapar el string literal
+        // 'undefined' — se produce cuando algún callable (asegurar-slot) hace
+        // String(barberoIdFinal) sin chequear que el valor exista.
+        const bid = x.barberoId;
+        const bidBroken = (
+          bid === null || bid === undefined || bid === '' ||
+          bid === 'undefined' || bid === 'null'
+        );
         return bidBroken && x.barbero && nameToId[x.barbero.trim()];
       });
       log('Citas a reparar: ' + targets.length);
