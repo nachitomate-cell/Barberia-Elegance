@@ -198,11 +198,20 @@ export default function Canjes() {
         const expMs = r.expiresAt?.toMillis?.() ?? 0;
         if (expMs <= Date.now()) throw new Error('El canje expiró antes de confirmar.');
 
-        const uSnap = await tx.get(userRef);
-        if (!uSnap.exists()) throw new Error('No se encontró la cuenta del cliente.');
-        const u = uSnap.data();
-        const disp = u.sellosDisponibles ?? u.stamps ?? 0;
-        if (disp < r.costoSellos) throw new Error('Saldo insuficiente del cliente.');
+        // Retro-compat: los canjes nuevos vienen con `sellosCargados: true`
+        // (CF `crearCanje` ya descontó los sellos al generar el QR). Los canjes
+        // legacy (creados antes del refactor) no tienen ese flag y el descuento
+        // ocurre acá, al aprobar. Este check evita el doble-descuento.
+        const sellosYaCargados = r.sellosCargados === true;
+
+        let uData = null;
+        if (!sellosYaCargados) {
+          const uSnap = await tx.get(userRef);
+          if (!uSnap.exists()) throw new Error('No se encontró la cuenta del cliente.');
+          uData = uSnap.data();
+          const disp = uData.sellosDisponibles ?? uData.stamps ?? 0;
+          if (disp < r.costoSellos) throw new Error('Saldo insuficiente del cliente.');
+        }
 
         // Stock (opcional): si el producto se encuentra y descuentaStock=true
         if (stockRef) {
@@ -220,18 +229,35 @@ export default function Canjes() {
           approvedAt:  serverTimestamp(),
           approvedBy:  user?.email || user?.uid || 'staff',
         });
-        tx.update(userRef, {
-          sellosDisponibles: increment(-r.costoSellos),
-          stamps:            increment(-r.costoSellos),
-          historialSellos: arrayUnion({
-            fecha: new Date().toISOString(),
-            tipo:  'canje',
-            cantidad: -r.costoSellos,
-            nota:  `${r.prizeName || 'Premio'} (PIN ${r.token})`,
-            redemptionId: rSnap.id,
-            categoria: r.categoria || 'SERVICIO',
-          }),
-        });
+
+        // Descuento SOLO si el canje es legacy (no tiene sellosCargados=true).
+        // Para canjes nuevos, los sellos ya se descontaron al generar el QR;
+        // acá solo dejamos un item en el historial para la trazabilidad.
+        if (!sellosYaCargados) {
+          tx.update(userRef, {
+            sellosDisponibles: increment(-r.costoSellos),
+            stamps:            increment(-r.costoSellos),
+            historialSellos: arrayUnion({
+              fecha: new Date().toISOString(),
+              tipo:  'canje',
+              cantidad: -r.costoSellos,
+              nota:  `${r.prizeName || 'Premio'} (PIN ${r.token})`,
+              redemptionId: rSnap.id,
+              categoria: r.categoria || 'SERVICIO',
+            }),
+          });
+        } else {
+          tx.update(userRef, {
+            historialSellos: arrayUnion({
+              fecha: new Date().toISOString(),
+              tipo:  'canje-aprobado',
+              cantidad: 0, // sin cambio: los sellos ya se cargaron al generar
+              nota:  `${r.prizeName || 'Premio'} (PIN ${r.token}) — entrega confirmada`,
+              redemptionId: rSnap.id,
+              categoria: r.categoria || 'SERVICIO',
+            }),
+          });
+        }
       });
 
       showToast('✓ Canje aprobado — entrega confirmada', 'ok');

@@ -6207,7 +6207,11 @@ function cerrarModalCanje() {
   _activeRedemption = null;
 }
 
-/* Genera el doc de redemption y muestra el QR + PIN. */
+/* Genera el canje llamando a la CF `crearCanje` (descuenta sellos +
+   crea la redemption en una sola transacción atómica). Antes se hacía
+   con un add() directo desde el cliente, sin descontar → permitía
+   generar N QRs con los mismos sellos hasta que el staff aprobara.
+   Ahora los sellos bajan al instante y solo vuelven si se cancela/expira. */
 async function generarCanjeDesdeModal() {
   const btn = document.getElementById('canjeGenerarBtn');
   const prizeId = btn?.dataset?.prizeId;
@@ -6219,50 +6223,27 @@ async function generarCanjeDesdeModal() {
   btn.innerHTML = '<span class="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin"></span> Generando...';
 
   try {
-    // Validación local (la regla de Firestore la re-valida server-side)
-    const uSnap = await FDB.usersCol().doc(currentUser.uid).get();
-    const uData = uSnap.data() || {};
-    const disp = uData.sellosDisponibles ?? uData.stamps ?? 0;
-    if (disp < p.costoSellos) {
-      _showCanjeError(`Te faltan sellos. Tienes ${disp} y necesitas ${p.costoSellos}.`);
-      btn.disabled = false;
-      btn.innerHTML = '<i class="ph-bold ph-qr-code"></i> Generar QR / PIN';
-      return;
-    }
-
-    // PIN 4 dígitos aleatorio
-    const token = String(Math.floor(1000 + Math.random() * 9000));
-    const now = Date.now();
-    const expiresMs = now + 15 * 60 * 1000; // +15 min
-
-    const payload = {
-      userId:        currentUser.uid,
-      userName:      uData.nombre || currentUser.displayName || '',
-      userEmail:     currentUser.email || '',
-      prizeId:       p.id,
-      prizeName:     p.nombre,
-      categoria:     _readCategoria(p),
-      configuracion: p.configuracion || {},
-      costoSellos:   Number(p.costoSellos),
-      token,
-      status:        'pending',
-      createdAt:     firebase.firestore.FieldValue.serverTimestamp(),
-      expiresAt:     firebase.firestore.Timestamp.fromMillis(expiresMs),
-    };
-
-    const ref = await _tenantCol('redemptions').add(payload);
+    const fn = firebase.functions().httpsCallable('crearCanje');
+    const res = await fn({
+      tenantId: window.CURRENT_TENANT_ID || 'elegance',
+      prizeId:  p.id,
+      ttlMinutes: 15,
+    });
+    const { redemptionId, token, expiresMs } = res.data || {};
+    if (!redemptionId) throw new Error('Respuesta del servidor inválida.');
 
     _activeRedemption = {
-      id: ref.id,
+      id:        redemptionId,
       token,
       expiresMs,
       prizeName: p.nombre,
     };
-
     _mostrarPinYQR(_activeRedemption);
   } catch (e) {
     console.error('[Canje] generar:', e);
-    _showCanjeError(e?.message || 'No pudimos crear tu canje. Reintenta.');
+    // Los errores de httpsCallable vienen con .message legible (definido en la CF).
+    const msg = e?.message || 'No pudimos crear tu canje. Reintenta.';
+    _showCanjeError(msg);
     btn.disabled = false;
     btn.innerHTML = '<i class="ph-bold ph-qr-code"></i> Generar QR / PIN';
   }
@@ -6323,9 +6304,14 @@ async function cancelarCanjeActivo() {
   const originalHtml = btn.innerHTML;
   btn.innerHTML = '<span class="w-4 h-4 border-2 border-white/40 border-t-transparent rounded-full animate-spin"></span> Cancelando...';
   try {
-    await _tenantCol('redemptions').doc(_activeRedemption.id).update({
-      status: 'cancelled',
-      cancelledAt: firebase.firestore.FieldValue.serverTimestamp(),
+    // La CF devuelve los sellos que se descontaron al crear el canje. Antes
+    // se hacía update directo — no devolvía sellos porque no había flag de
+    // "sellosCargados" y el descuento venía después (en el aprove del staff).
+    const fn = firebase.functions().httpsCallable('cancelarCanje');
+    await fn({
+      tenantId:     window.CURRENT_TENANT_ID || 'elegance',
+      redemptionId: _activeRedemption.id,
+      reason:       'user_cancel_modal',
     });
   } catch (e) {
     console.error('[Canje] cancelar:', e);

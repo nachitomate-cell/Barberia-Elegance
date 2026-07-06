@@ -627,6 +627,16 @@ exports.referidosRecompensaElegance = referidosRecompensa.referidosRecompensaEle
 exports.referidosRecompensaTenant   = referidosRecompensa.referidosRecompensaTenant;
 
 // ─────────────────────────────────────────────────────────────────
+//  CANJES ATÓMICOS — ver canjes.js
+//  crearCanje descuenta sellos + crea redemption en una transacción.
+//  cancelarCanje (o expiración automática) devuelve los sellos.
+// ─────────────────────────────────────────────────────────────────
+const canjes = require('./canjes');
+exports.crearCanje              = canjes.crearCanje;
+exports.cancelarCanje           = canjes.cancelarCanje;
+exports.liberarCanjesExpirados  = canjes.liberarCanjesExpirados;
+
+// ─────────────────────────────────────────────────────────────────
 //  CUMPLEAÑOS AUTOMÁTICO — ver cumpleanos.js para detalles
 // ─────────────────────────────────────────────────────────────────
 const cumpleanos = require('./cumpleanos');
