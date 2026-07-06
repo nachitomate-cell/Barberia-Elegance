@@ -133,19 +133,19 @@ function DayKpiCard({ Icon, label, value, sub, delta, invertDelta, accent, index
   return (
     <motion.div
       variants={fadeUp} initial="hidden" animate="show" custom={index}
-      className="relative overflow-hidden bg-slate-800/50 backdrop-blur border border-slate-700/60 rounded-2xl p-5 hover:border-slate-600 transition-colors"
+      className="relative overflow-hidden bg-slate-800/50 backdrop-blur border border-slate-700/60 rounded-2xl p-3 md:p-5 hover:border-slate-600 transition-colors"
     >
       {/* Ícono semitransparente de fondo */}
       <Icon className={`absolute -right-3 -bottom-3 ${accent.text} opacity-[0.07] pointer-events-none`} size={104} strokeWidth={1.5} />
       <div className="relative">
         <div className="flex items-center justify-between">
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide">{label}</p>
+          <p className="text-[10px] md:text-xs font-semibold text-slate-400 uppercase tracking-wide">{label}</p>
           <div className={`p-1.5 rounded-lg ${accent.tile}`}><Icon size={15} /></div>
         </div>
-        <p className="text-2xl sm:text-3xl font-bold text-white mt-3 tabular-nums">{value}</p>
-        <div className="flex items-center gap-2 mt-1.5 min-h-[18px]">
+        <p className="text-xl md:text-2xl lg:text-3xl font-bold text-white mt-2 md:mt-3 tabular-nums">{value}</p>
+        <div className="flex items-center gap-2 mt-1 md:mt-1.5 min-h-[16px]">
           {delta !== undefined && <Delta value={delta} invert={invertDelta} />}
-          {sub && <p className="text-xs text-slate-500 truncate">{sub}</p>}
+          {sub && <p className="text-[9px] md:text-xs text-slate-500 truncate">{sub}</p>}
         </div>
       </div>
     </motion.div>
@@ -485,7 +485,7 @@ export default function Inicio() {
   }
 
   return (
-    <div data-view="inicio" className="max-w-6xl mx-auto space-y-6">
+    <div data-view="inicio" className="max-w-6xl mx-auto space-y-4 md:space-y-6">
 
       {/* ── Header de bienvenida ─────────────────────────────────────── */}
       <motion.div
@@ -543,21 +543,26 @@ export default function Inicio() {
       </div>
 
       {/* ── Meta del mes + Break-even del día ────────────────────────── */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <MetaMesPanel
-          index={4}
-          accent={A}
-          finanzas={finanzas}
-          ventasMes={cur.ventas}
-          configurada={Number(config?.metaMensualVentas) > 0}
-          onConfigurar={() => navigate('/configuracion')}
-        />
-        <BreakEvenPanel
-          index={5}
-          accent={A}
-          finanzas={finanzas}
-          ingresosHoy={dia.ingresos}
-        />
+      {/* Móvil: swipe horizontal con snap. Desktop (md+): grid lg:cols-3 clásico. */}
+      <div className="flex flex-nowrap overflow-x-auto snap-x snap-mandatory no-scrollbar gap-4 pb-2 -mx-4 px-4 md:grid md:grid-cols-1 lg:grid-cols-3 md:overflow-visible md:snap-none md:gap-4 md:pb-0 md:mx-0 md:px-0">
+        <div className="min-w-[85%] sm:min-w-[300px] snap-center flex-none md:min-w-0 md:flex-auto lg:col-span-2">
+          <MetaMesPanel
+            index={4}
+            accent={A}
+            finanzas={finanzas}
+            ventasMes={cur.ventas}
+            configurada={Number(config?.metaMensualVentas) > 0}
+            onConfigurar={() => navigate('/configuracion')}
+          />
+        </div>
+        <div className="min-w-[85%] sm:min-w-[300px] snap-center flex-none md:min-w-0 md:flex-auto">
+          <BreakEvenPanel
+            index={5}
+            accent={A}
+            finanzas={finanzas}
+            ingresosHoy={dia.ingresos}
+          />
+        </div>
       </div>
 
       {/* ── Rendimiento semanal + Próximas citas ─────────────────────── */}
@@ -608,33 +613,43 @@ export default function Inicio() {
           {proximas.length === 0 ? (
             <p className="text-sm text-slate-500 italic text-center py-10">No quedan citas pendientes hoy.</p>
           ) : (
-            <ol className="relative space-y-3">
-              {proximas.map((c, i) => (
-                <li key={c.id || i} className="relative flex gap-3">
-                  {/* Línea + nodo del timeline */}
-                  <div className="flex flex-col items-center">
-                    <span className={`w-2.5 h-2.5 rounded-full ${A.dot} ring-4 ring-slate-800/60 shrink-0 mt-1`} />
-                    {i < proximas.length - 1 && <span className="w-px flex-1 bg-slate-700/60 my-1" />}
-                  </div>
-                  <button
-                    onClick={() => navigate('/agenda')}
-                    className="group/cita flex-1 text-left -mt-0.5 pb-1"
-                    title="Ver en la agenda"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="inline-flex items-center gap-1 text-xs font-bold text-white tabular-nums">
-                        <Clock size={11} className={A.text} />{c.hora || '--:--'}
-                      </span>
-                      <ChevronRight size={14} className="text-slate-600 group-hover/cita:text-slate-300 transition-colors" />
+            <>
+              <ol className="relative space-y-3 [&>li:nth-child(n+4)]:hidden md:[&>li:nth-child(n+4)]:flex">
+                {proximas.map((c, i) => (
+                  <li key={c.id || i} className="relative flex gap-3">
+                    {/* Línea + nodo del timeline */}
+                    <div className="flex flex-col items-center">
+                      <span className={`w-2.5 h-2.5 rounded-full ${A.dot} ring-4 ring-slate-800/60 shrink-0 mt-1`} />
+                      {i < proximas.length - 1 && <span className="w-px flex-1 bg-slate-700/60 my-1" />}
                     </div>
-                    <p className="text-sm font-semibold text-white truncate mt-0.5">{c.clienteNombre || 'Cliente'}</p>
-                    <p className="text-xs text-slate-500 truncate">
-                      {c.servicioNombre || 'Servicio'}{c.barbero ? ` · ${c.barbero}` : ''}
-                    </p>
-                  </button>
-                </li>
-              ))}
-            </ol>
+                    <button
+                      onClick={() => navigate('/agenda')}
+                      className="group/cita flex-1 text-left -mt-0.5 pb-1"
+                      title="Ver en la agenda"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="inline-flex items-center gap-1 text-xs font-bold text-white tabular-nums">
+                          <Clock size={11} className={A.text} />{c.hora || '--:--'}
+                        </span>
+                        <ChevronRight size={14} className="text-slate-600 group-hover/cita:text-slate-300 transition-colors" />
+                      </div>
+                      <p className="text-sm font-semibold text-white truncate mt-0.5">{c.clienteNombre || 'Cliente'}</p>
+                      <p className="text-xs text-slate-500 truncate">
+                        {c.servicioNombre || 'Servicio'}{c.barbero ? ` · ${c.barbero}` : ''}
+                      </p>
+                    </button>
+                  </li>
+                ))}
+              </ol>
+              {proximas.length > 3 && (
+                <button
+                  onClick={() => navigate('/agenda')}
+                  className="md:hidden text-sm text-center text-indigo-400 hover:text-indigo-300 py-3 border-t border-slate-700/50 w-full block mt-2"
+                >
+                  Ver agenda completa
+                </button>
+              )}
+            </>
           )}
         </Panel>
       </div>
@@ -699,28 +714,38 @@ export default function Inicio() {
         {ultimasVisitas.length === 0 ? (
           <p className="text-sm text-slate-500 italic text-center py-8">Sin visitas registradas todavía.</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="text-[11px] text-slate-500 uppercase tracking-wide border-b border-slate-800">
-                  <th className="py-2 font-bold">Nombre</th>
-                  <th className="py-2 font-bold hidden sm:table-cell">Servicio</th>
-                  <th className="py-2 font-bold">Fecha</th>
-                  <th className="py-2 font-bold text-right">Total</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/60">
-                {ultimasVisitas.map((c, i) => (
-                  <tr key={c.id || i} className="hover:bg-slate-800/20">
-                    <td className="py-2.5 font-semibold text-white">{c.clienteNombre || 'Cliente'}</td>
-                    <td className="py-2.5 text-slate-400 hidden sm:table-cell">{c.servicioNombre || '—'}</td>
-                    <td className="py-2.5 text-slate-400">{c.fecha}{c.hora ? `, ${c.hora}` : ''}</td>
-                    <td className={`py-2.5 text-right font-bold ${A.text}`}>{fmtCLP(getPrice(c))}</td>
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="text-[11px] text-slate-500 uppercase tracking-wide border-b border-slate-800">
+                    <th className="py-2 font-bold">Nombre</th>
+                    <th className="py-2 font-bold hidden sm:table-cell">Servicio</th>
+                    <th className="py-2 font-bold">Fecha</th>
+                    <th className="py-2 font-bold text-right">Total</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60 [&>tr:nth-child(n+4)]:hidden md:[&>tr:nth-child(n+4)]:table-row">
+                  {ultimasVisitas.map((c, i) => (
+                    <tr key={c.id || i} className="hover:bg-slate-800/20">
+                      <td className="py-2.5 font-semibold text-white">{c.clienteNombre || 'Cliente'}</td>
+                      <td className="py-2.5 text-slate-400 hidden sm:table-cell">{c.servicioNombre || '—'}</td>
+                      <td className="py-2.5 text-slate-400">{c.fecha}{c.hora ? `, ${c.hora}` : ''}</td>
+                      <td className={`py-2.5 text-right font-bold ${A.text}`}>{fmtCLP(getPrice(c))}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {ultimasVisitas.length > 3 && (
+              <button
+                onClick={() => navigate('/clientes')}
+                className="md:hidden text-sm text-center text-indigo-400 hover:text-indigo-300 py-3 border-t border-slate-700/50 w-full block mt-2"
+              >
+                Ver todos los clientes
+              </button>
+            )}
+          </>
         )}
       </Panel>
 
@@ -729,38 +754,48 @@ export default function Inicio() {
         {cumpleaneros.length === 0 ? (
           <p className="text-sm text-slate-500 italic text-center py-8">No hay cumpleaños registrados este mes.</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="text-[11px] text-slate-500 uppercase tracking-wide border-b border-slate-800">
-                  <th className="py-2 font-bold">Día</th>
-                  <th className="py-2 font-bold">Nombre</th>
-                  <th className="py-2 font-bold hidden sm:table-cell">Teléfono</th>
-                  <th className="py-2 font-bold text-right">Saludar</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/60">
-                {cumpleaneros.map((c, i) => {
-                  const wa = cumpleWaUrl(c);
-                  return (
-                    <tr key={c.id || i} className="hover:bg-slate-800/20">
-                      <td className="py-2.5 text-slate-400">{c._dia < 99 ? String(c._dia).padStart(2, '0') : '—'}</td>
-                      <td className="py-2.5 font-semibold text-white">{c.nombre || 'Cliente'}</td>
-                      <td className="py-2.5 text-slate-400 hidden sm:table-cell">{c.telefono || '—'}</td>
-                      <td className="py-2.5 text-right">
-                        {wa ? (
-                          <a href={wa} target="_blank" rel="noopener noreferrer"
-                             className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-400 hover:text-emerald-300">
-                            <MessageCircle size={13} /> WhatsApp
-                          </a>
-                        ) : <span className="text-xs text-slate-600">Sin teléfono</span>}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="text-[11px] text-slate-500 uppercase tracking-wide border-b border-slate-800">
+                    <th className="py-2 font-bold">Día</th>
+                    <th className="py-2 font-bold">Nombre</th>
+                    <th className="py-2 font-bold hidden sm:table-cell">Teléfono</th>
+                    <th className="py-2 font-bold text-right">Saludar</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60 [&>tr:nth-child(n+4)]:hidden md:[&>tr:nth-child(n+4)]:table-row">
+                  {cumpleaneros.map((c, i) => {
+                    const wa = cumpleWaUrl(c);
+                    return (
+                      <tr key={c.id || i} className="hover:bg-slate-800/20">
+                        <td className="py-2.5 text-slate-400">{c._dia < 99 ? String(c._dia).padStart(2, '0') : '—'}</td>
+                        <td className="py-2.5 font-semibold text-white">{c.nombre || 'Cliente'}</td>
+                        <td className="py-2.5 text-slate-400 hidden sm:table-cell">{c.telefono || '—'}</td>
+                        <td className="py-2.5 text-right">
+                          {wa ? (
+                            <a href={wa} target="_blank" rel="noopener noreferrer"
+                               className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-400 hover:text-emerald-300">
+                              <MessageCircle size={13} /> WhatsApp
+                            </a>
+                          ) : <span className="text-xs text-slate-600">Sin teléfono</span>}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            {cumpleaneros.length > 3 && (
+              <button
+                onClick={() => navigate('/clientes')}
+                className="md:hidden text-sm text-center text-indigo-400 hover:text-indigo-300 py-3 border-t border-slate-700/50 w-full block mt-2"
+              >
+                Ver todos los cumpleaños
+              </button>
+            )}
+          </>
         )}
       </Panel>
 
@@ -917,12 +952,12 @@ function BreakEvenPanel({ index, accent, finanzas, ingresosHoy }) {
  */
 function MonthStat({ Icon, label, value, delta, invertDelta, accent }) {
   return (
-    <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-3.5">
+    <div className="bg-slate-900/40 border border-slate-800 rounded-xl p-3 md:p-5">
       <div className="flex items-center gap-2 mb-2">
         <div className={`p-1.5 rounded-lg ${accent.tile}`}><Icon size={14} /></div>
-        <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide truncate">{label}</p>
+        <p className="text-[10px] md:text-xs font-semibold text-slate-400 uppercase tracking-wide truncate">{label}</p>
       </div>
-      <p className="text-lg font-bold text-white tabular-nums">{value}</p>
+      <p className="text-xl md:text-2xl font-bold text-white tabular-nums">{value}</p>
       {delta !== undefined && <div className="mt-1"><Delta value={delta} invert={invertDelta} /></div>}
     </div>
   );
