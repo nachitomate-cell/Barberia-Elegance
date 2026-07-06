@@ -782,16 +782,6 @@
            Aplica en ambos modos (no está namespaced a light-mode).
            ═══════════════════════════════════════════════════════════════════ */
 
-        /* (1) Vista SEMANA solo desktop — las 7 columnas comprimidas en un
-              móvil se ven ilegibles. En <768px ocultamos el toggle "Semana"
-              y forzamos vista Día (guard en JS también, por si el localStorage
-              trae 'semana' de una sesión desktop previa). */
-        @media (max-width: 767px) {
-            #viewBtnSemana { display: none !important; }
-            /* El toggle queda con un solo botón — lo dejamos ocupando todo */
-            #viewBtnDia { flex: 1; }
-        }
-
         /* (2) Header compacto en mobile — mueve los botones secundarios al
               kebab. Deja visibles solo notificaciones + WhatsApp + kebab. */
         @media (max-width: 639px) {
@@ -1447,9 +1437,7 @@
         let globalConfig = null;
         let todayCitas = [];
         // Vista activa (día/semana) e intervalo de la grilla del día (0 = usa config)
-        // En mobile la vista semana con 7 columnas queda ilegible → forzamos día.
-        // El usuario puede volver a semana desde desktop cuando cambie de dispositivo.
-        let _agendaView   = ((localStorage.getItem('agenda_view') === 'semana') && window.innerWidth >= 768) ? 'semana' : 'dia';
+        let _agendaView   = (localStorage.getItem('agenda_view') === 'semana') ? 'semana' : 'dia';
         let _slotInterval = parseInt(localStorage.getItem('agenda_interval')) || 0;
         // Dirección de la animación al cambiar de día ('next' | 'prev' | null)
         let _dayAnimDir = null;
@@ -3118,10 +3106,6 @@
         }
 
         function setAgendaView(mode) {
-            // Guard: en mobile la semana no está disponible (columnas ilegibles).
-            // Guardamos igual la preferencia real para respetarla si el usuario
-            // vuelve al panel desde desktop más adelante.
-            if (window.innerWidth < 768) mode = 'dia';
             _agendaView = (mode === 'semana') ? 'semana' : 'dia';
             localStorage.setItem('agenda_view', _agendaView);
             const dia = _agendaView === 'dia';
