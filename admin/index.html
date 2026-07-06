@@ -1660,7 +1660,8 @@
       function esc(s){ return String(s == null ? '' : s).replace(/[&<>"]/g, function(c){ return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]; }); }
       var idx = 0;
       Object.keys(all).forEach(function(id){
-        if (TENANTS[id] || SKIP[id]) return;
+        if (SKIP[id]) return;
+        if (TENANTS[id] && grid.querySelector('.tenant-card.' + CSS.escape(id))) return;
         var t = all[id] || {};
         var color = PALETA[idx % PALETA.length]; idx++;
         var rgb = RGB[color] || '148,163,184';

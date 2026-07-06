@@ -5,7 +5,7 @@ import {
   Upload, ChevronDown, Plus, X, Phone, Mail, Percent, Scissors,
   CalendarOff, Clock, Check, KeyRound, Link2, Copy, GripVertical,
   Users, Printer, Wallet, ArrowDownCircle, AlertTriangle, CheckCircle2, DollarSign,
-  Sparkles, ExternalLink, Loader2,
+  Sparkles, Loader2,
 } from 'lucide-react';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { updateDoc, addDoc, deleteDoc, doc, serverTimestamp, deleteField, writeBatch, Timestamp, query, where, getDocs } from 'firebase/firestore';
@@ -26,7 +26,6 @@ import { useCollection } from '../hooks/useCollection';
 import { useAuth } from '../contexts/AuthContext';
 import { useSucursales } from '../hooks/useSucursales';
 import { useTenant } from '../contexts/TenantContext';
-import Badge        from '../components/ui/Badge';
 import DropdownMenu from '../components/ui/DropdownMenu';
 import SlideOver    from '../components/ui/SlideOver';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
@@ -201,17 +200,18 @@ function BookingUrlButton({ nombre }) {
   }
 
   return (
-    <div className="flex items-center w-full gap-1">
+    <div
+      className="group w-full flex items-center gap-2 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 hover:border-slate-600 transition-colors"
+      title={url}>
       <a href={url} target="_blank" rel="noopener noreferrer"
-        className="flex-1 flex items-center gap-1.5 justify-center px-3 py-1.5 bg-slate-800/60 hover:bg-slate-800 text-slate-500 hover:text-emerald-400 text-[11px] font-medium rounded-lg border border-slate-800 hover:border-emerald-900/60 transition-all truncate"
-        title={url}>
-        <Link2 size={11} />
+        className="flex-1 flex items-center gap-1.5 text-slate-400 hover:text-slate-200 text-sm truncate transition-colors">
+        <Link2 size={12} className="text-slate-500 shrink-0" />
         <span className="truncate">/{slugify(nombre)}</span>
       </a>
       <button onClick={copyUrl}
-        className="shrink-0 flex items-center justify-center w-7 h-7 rounded-lg bg-slate-800/60 hover:bg-slate-800 border border-slate-800 text-slate-500 hover:text-white transition-all"
+        className="shrink-0 text-slate-500 group-hover:text-slate-300 hover:!text-white transition-colors"
         title="Copiar enlace">
-        {copied ? <Check size={11} className="text-emerald-400" /> : <Copy size={11} />}
+        {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
       </button>
     </div>
   );
@@ -276,26 +276,27 @@ function BiooBarberoButton({ barber, tenant, canManage }) {
 
   if (handle) {
     return (
-      <div className="w-full space-y-1">
-        <div className="flex items-center w-full gap-1" title={url}>
+      <div className="w-full space-y-2">
+        <div
+          className="group w-full flex items-center gap-2 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 hover:border-violet-500/40 transition-colors"
+          title={url}>
           <a href={url} target="_blank" rel="noopener noreferrer"
-            className="flex-1 flex items-center gap-1.5 justify-center px-3 py-1.5 bg-violet-500/10 hover:bg-violet-500/20 text-violet-300 hover:text-violet-200 text-[11px] font-medium rounded-lg border border-violet-500/30 transition-all truncate">
-            <Sparkles size={11} />
+            className="flex-1 flex items-center gap-1.5 text-slate-400 hover:text-violet-300 text-sm truncate transition-colors">
+            <Sparkles size={12} className="text-violet-400/70 shrink-0" />
             <span className="truncate">bioo.cl/{handle}</span>
-            <ExternalLink size={10} className="opacity-70" />
           </a>
           <button onClick={copy}
-            className="shrink-0 flex items-center justify-center w-7 h-7 rounded-lg bg-violet-500/10 hover:bg-violet-500/20 border border-violet-500/30 text-violet-300 hover:text-white transition-all"
+            className="shrink-0 text-slate-500 group-hover:text-slate-300 hover:!text-white transition-colors"
             title="Copiar enlace">
-            {copied ? <Check size={11} className="text-emerald-400" /> : <Copy size={11} />}
+            {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
           </button>
         </div>
         <button onClick={openEditor} disabled={openBusy}
-          className="flex items-center gap-1.5 w-full justify-center px-3 py-1 bg-slate-800/40 hover:bg-violet-500/10 text-slate-500 hover:text-violet-300 text-[10px] font-medium rounded-md border border-slate-800 hover:border-violet-500/30 transition-all disabled:opacity-60"
+          className="flex items-center gap-1.5 w-full justify-center text-slate-400 hover:text-white hover:bg-slate-700/50 text-sm font-medium rounded-xl py-2 transition-colors disabled:opacity-60"
           title="Abrir editor del bioo como este barbero (SSO)">
           {openBusy
-            ? <><Loader2 size={10} className="animate-spin" /> Abriendo…</>
-            : <><Edit2 size={10} /> Editar su bioo</>}
+            ? <><Loader2 size={14} className="animate-spin" /> Abriendo…</>
+            : <><Edit2 size={14} /> Editar su bioo</>}
         </button>
         {err && <p className="text-[10px] text-rose-400 text-center">{err}</p>}
       </div>
@@ -305,10 +306,10 @@ function BiooBarberoButton({ barber, tenant, canManage }) {
   return (
     <div className="w-full">
       <button onClick={create} disabled={busy}
-        className="flex items-center gap-1.5 w-full justify-center px-3 py-1.5 bg-slate-800/60 hover:bg-violet-500/10 hover:border-violet-500/30 text-slate-400 hover:text-violet-300 text-[11px] font-medium rounded-lg border border-slate-800 transition-all disabled:opacity-60">
+        className="flex items-center gap-1.5 w-full justify-center text-slate-400 hover:text-white hover:bg-slate-700/50 text-sm font-medium rounded-xl py-2 transition-colors disabled:opacity-60">
         {busy
-          ? <><Loader2 size={11} className="animate-spin" /> Creando bioo…</>
-          : <><Sparkles size={11} /> Crear su bioo.cl</>}
+          ? <><Loader2 size={14} className="animate-spin" /> Creando bioo…</>
+          : <><Sparkles size={14} /> Crear su bioo.cl</>}
       </button>
       {err && <p className="mt-1 text-[10px] text-rose-400 text-center">{err}</p>}
     </div>
@@ -338,47 +339,51 @@ function BarberCard({ barber, onEdit, waUrl, onVerAgenda, sucursales = [], dragH
   ];
 
   return (
-    <div className={`relative bg-slate-900 border rounded-xl p-5 flex flex-col items-center gap-3 transition-all ${isDragging ? 'border-emerald-500/40 opacity-60 shadow-xl' : 'border-slate-800 hover:border-slate-700'}`}>
+    <div className={`relative bg-slate-800 border rounded-2xl p-5 flex flex-col items-center gap-4 transition-all duration-200 ${isDragging ? 'border-emerald-500/40 opacity-60 shadow-xl' : 'border-slate-700/50 hover:border-slate-500 hover:-translate-y-0.5'}`}>
       {dragHandleProps && (
-        <div {...dragHandleProps} className="absolute top-3 left-3 touch-none cursor-grab active:cursor-grabbing text-slate-700 hover:text-slate-400 transition-colors" title="Arrastrar para reordenar">
+        <div {...dragHandleProps} className="absolute top-3 left-3 touch-none cursor-grab active:cursor-grabbing text-slate-500 hover:text-white transition-colors" title="Arrastrar para reordenar">
           <GripVertical size={14} />
         </div>
       )}
       {!isStrictAdmin && <div className="absolute top-3 right-3"><DropdownMenu items={menuItems} /></div>}
       {isStrictAdmin  && <div className="absolute top-3 right-3 text-emerald-500/60"><ShieldCheck size={16} /></div>}
 
-      <div className="w-20 h-20 rounded-full overflow-hidden bg-slate-800 border border-slate-700 shrink-0">
+      <div className="w-20 h-20 rounded-full overflow-hidden bg-slate-900 ring-2 ring-slate-700 ring-offset-2 ring-offset-slate-800 shrink-0 mt-1">
         {barber.foto
           ? <img src={barber.foto} alt={barber.nombre} className="w-full h-full object-cover" />
           : <div className="w-full h-full flex items-center justify-center"><User size={32} className="text-slate-600" /></div>}
       </div>
 
       <div className="text-center">
-        <p className="font-semibold text-white text-sm">{barber.nombre}</p>
-        {isAdmin && <p className="text-xs text-emerald-500/70 font-semibold mt-0.5 uppercase tracking-wide">{barber.rol==='jefe'?'Jefe':'Admin'}</p>}
-        {!isAdmin && barber.especialidad && <p className="text-xs text-slate-500 mt-0.5">{barber.especialidad}</p>}
+        <p className="text-lg font-bold text-white leading-tight">{barber.nombre}</p>
+        {isAdmin && <p className="text-xs text-emerald-400/80 font-semibold mt-1 uppercase tracking-wide">{barber.rol==='jefe'?'Jefe':'Admin'}</p>}
+        {!isAdmin && barber.especialidad && <p className="text-sm text-slate-400 mt-1">{barber.especialidad}</p>}
         {barber.sucursalId && (() => {
           const suc = sucursales.find(s => s.id === barber.sucursalId);
           return (
-            <p className="text-[10px] text-slate-600 mt-0.5 flex items-center justify-center gap-1">
+            <p className="text-xs text-slate-500 mt-1 flex items-center justify-center gap-1">
               <span className="inline-block w-1.5 h-1.5 rounded-full bg-slate-600"></span>
               {suc ? suc.nombre : barber.sucursalId}
             </p>
           );
         })()}
-        {barber.comision > 0 && <p className="text-xs text-slate-600 mt-0.5">{barber.comision}% comisión</p>}
-        <div className="mt-2"><Badge variant={isActive?'active':'inactive'}>{isActive?'Activo':'Inactivo'}</Badge></div>
+        {barber.comision > 0 && <p className="text-sm text-slate-400 mt-1">{barber.comision}% comisión</p>}
+        <div className="mt-2.5">
+          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${isActive ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-slate-700/50 text-slate-400 border-slate-600/30'}`}>
+            {isActive?'Activo':'Inactivo'}
+          </span>
+        </div>
       </div>
 
       {isSupportAdmin ? (
         <a href={waUrl} target="_blank" rel="noopener noreferrer"
-          className="mt-1 flex items-center gap-1.5 w-full justify-center px-4 py-2 bg-green-600/10 hover:bg-green-600/20 text-green-400 text-xs font-semibold rounded-lg border border-green-600/30 transition-all">
-          <MessageCircle size={13} /> Soporte vía WhatsApp
+          className="flex items-center gap-1.5 w-full justify-center bg-green-600 hover:bg-green-700 text-white rounded-xl py-2 font-medium text-sm transition-colors">
+          <MessageCircle size={15} /> Soporte vía WhatsApp
         </a>
       ) : (
         <button onClick={onVerAgenda}
-          className="mt-1 flex items-center gap-1.5 w-full justify-center px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold rounded-lg border border-slate-700 transition-all">
-          <Calendar size={13} /> Ver Agenda
+          className="flex items-center gap-1.5 w-full justify-center bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl py-2 font-medium text-sm transition-colors">
+          <Calendar size={15} /> Ver Agenda
         </button>
       )}
 
