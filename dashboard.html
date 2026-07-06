@@ -4361,6 +4361,19 @@
         </button>
       </div>
 
+      <!-- ── MIS PACKS ACTIVOS ────────────────────────────────────
+           Se llena en tiempo real desde user.packsActivos[] cuando el
+           barbero completa una cita de un servicio con isPack=true.
+           Muestra progreso de sesiones consumidas + vencimiento. -->
+      <div id="misPacksSection" class="hidden mx-4 mb-5">
+        <h3 class="text-[10px] font-bold uppercase tracking-widest mb-3 px-1 flex items-center gap-1.5" style="color:rgba(167,139,250,0.95);">
+          <span aria-hidden="true">📦</span>
+          Tus packs activos
+          <span id="misPacksCount" class="ml-auto text-[9px] px-2 py-0.5 rounded-full font-black tabular-nums" style="background:rgba(167,139,250,0.15);color:rgba(167,139,250,1);">0</span>
+        </h3>
+        <div id="misPacksList" class="space-y-2.5"></div>
+      </div>
+
       <!-- ── PREMIOS LIST (collapsible) ── -->
       <div id="premiosSection" class="hidden mx-4 mb-5">
         <h3 class="text-[10px] font-bold uppercase tracking-widest mb-3 px-1" style="color:rgba(255,255,255,0.3);">Tabla de Premios</h3>
@@ -5791,6 +5804,9 @@ async function subscribeUserData(user) {
     // Perfil público (para que amigos me encuentren/comparen) + mi lista de amigos
     syncUserPublic(data);
     renderAmigos(data.amigos || []);
+    // Packs activos (motor de cuponeras). Se filtra client-side por vencimiento
+    // + saldo > 0 para no mostrar los ya agotados o vencidos.
+    renderMisPacks(Array.isArray(data.packsActivos) ? data.packsActivos : []);
     // Referidos: card promocional (solo si el tenant activo el programa)
     renderReferralCard(data);
 
@@ -6591,6 +6607,68 @@ function renderStamps(count, historicos) {
       profileTierProgressEl.innerHTML = `🏆 ¡Has alcanzado el rango máximo <span class="font-bold animate-pulse" style="color:var(--gold);">${_nombreDe('platinum')}</span>!`;
     }
   }
+}
+
+/* ═══ Mis Packs Activos ══════════════════════════════════════════
+   Renderiza el listado de packs (cuponeras) activos del cliente. Se
+   filtran client-side los expirados o sin saldo para dejarlos ocultos
+   visualmente (los datos siguen en el doc para auditoría). */
+function renderMisPacks(packs) {
+  const section = document.getElementById('misPacksSection');
+  const list    = document.getElementById('misPacksList');
+  const count   = document.getElementById('misPacksCount');
+  if (!section || !list) return;
+
+  const now = Date.now();
+  const activos = (packs || []).filter(p => {
+    const rest = Number(p.sesionesRestantes || 0);
+    const vencMs = p.fechaVencimiento?.toMillis?.() ?? 0;
+    return rest > 0 && (!vencMs || vencMs > now);
+  });
+
+  if (activos.length === 0) {
+    section.classList.add('hidden');
+    return;
+  }
+  section.classList.remove('hidden');
+  if (count) count.textContent = activos.length;
+
+  list.innerHTML = activos.map(p => {
+    const total = Math.max(1, Number(p.sesionesTotales || 1));
+    const rest  = Number(p.sesionesRestantes || 0);
+    const usadas = total - rest;
+    const pctUsadas = Math.min(100, Math.round((usadas / total) * 100));
+    const nombre = String(p.nombrePack || 'Pack').replace(/</g, '&lt;');
+    // Vencimiento legible: "vence en 12d" o "vence hoy" cuando faltan <24h
+    let vencChip = '';
+    const vencMs = p.fechaVencimiento?.toMillis?.() ?? 0;
+    if (vencMs) {
+      const diffMs = vencMs - now;
+      const dias = Math.floor(diffMs / (24*60*60*1000));
+      const urgente = dias <= 3;
+      const label = dias <= 0 ? 'vence hoy' : `${dias}d`;
+      vencChip = `<span class="text-[9px] font-bold px-2 py-0.5 rounded-full" style="background:${urgente ? 'rgba(239,68,68,0.15)' : 'rgba(167,139,250,0.15)'};color:${urgente ? 'rgba(252,165,165,1)' : 'rgba(167,139,250,1)'};">${label}</span>`;
+    }
+    return `
+      <div class="rounded-2xl px-4 py-3 flex items-center gap-3 select-none"
+        style="background:linear-gradient(135deg, rgba(167,139,250,0.10) 0%, rgba(167,139,250,0.04) 100%);border:1px solid rgba(167,139,250,0.25);">
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style="background:rgba(167,139,250,0.15);border:1px solid rgba(167,139,250,0.20);">
+          <span class="text-lg leading-none" aria-hidden="true">📦</span>
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2">
+            <p class="text-sm font-bold text-white truncate leading-tight flex-1 min-w-0">${nombre}</p>
+            ${vencChip}
+          </div>
+          <p class="text-[11px] text-white/60 mt-0.5">
+            <span class="text-white font-semibold">${rest}</span> de ${total} sesión${total !== 1 ? 'es' : ''} restante${rest !== 1 ? 's' : ''}
+          </p>
+          <div class="mt-1.5 h-1 rounded-full overflow-hidden" style="background:rgba(255,255,255,0.06);">
+            <div class="h-full transition-all" style="width:${pctUsadas}%;background:linear-gradient(90deg, rgba(167,139,250,0.85), rgba(139,92,246,1));"></div>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
 }
 
 // ─── Referidos: card promocional + acciones ───────────────────

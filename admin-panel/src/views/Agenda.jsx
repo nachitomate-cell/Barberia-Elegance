@@ -1779,9 +1779,31 @@ function AppointmentBlock({ cita, colIndex, colTotal, onClick, onContextMenu, on
             </span>
           );
         })()}
+        {/* Badge de pack: se muestra cuando la cita consume una sesión de
+            un pack (marca `consumeSesionPack: true` seteada por la reserva
+            pública) o cuando la cita ACTIVA un pack (servicio con isPack).
+            Diferenciar visualmente ayuda al barbero a entender que la cita
+            es cortesía / prepaga, no un cobro directo. */}
+        {(cita.consumeSesionPack || cita.esActivacionPack) && (
+          <span
+            title={cita.consumeSesionPack
+              ? `Sesión ${cita.packSesionIndex || '?'} del pack ${cita.packNombre || ''}`
+              : `Activación de pack: ${cita.servicioNombre || ''}`}
+            className="mr-1 inline-flex items-center gap-0.5 px-1 py-px rounded bg-violet-500/25 text-violet-100 text-[8px] font-black uppercase tracking-wide align-middle ring-1 ring-violet-400/50"
+          >
+            📦 {cita.consumeSesionPack ? 'Combo' : 'Nuevo Pack'}
+          </span>
+        )}
         {cita.clienteNombre || 'Cliente'}
       </p>
-      <p className="truncate text-[10px] opacity-75">{cita.servicioNombre}</p>
+      <p className="truncate text-[10px] opacity-75">
+        {cita.servicioNombre}
+        {cita.consumeSesionPack && cita.packSesionIndex && cita.packSesionTotal && (
+          <span className="ml-1 text-violet-300 font-semibold">
+            · Sesión {cita.packSesionIndex}/{cita.packSesionTotal}
+          </span>
+        )}
+      </p>
       <p className="truncate text-[10px] opacity-50">{cita.hora}{cita.sucursalNombre ? ` · ${cita.sucursalNombre}` : ''}</p>
     </div>
   );
