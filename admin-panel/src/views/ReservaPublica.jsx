@@ -45,11 +45,31 @@ function escapeHtml(s) {
   ));
 }
 
+// Convierte una URL de imagen (mismo origen) a data URL para que quede
+// embebida en el SVG del QR y sobreviva exportación PNG/SVG e impresión
+// (about:blank y blob: no pueden resolver rutas relativas).
+async function toDataUrl(src) {
+  try {
+    const res = await fetch(src);
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    return await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
+
 export default function ReservaPublica() {
-  const { id: tenantId, name } = useTenant();
+  const { id: tenantId, name, logo } = useTenant();
   const [copiedKey, setCopiedKey] = useState(null);
   const [copyError, setCopyError] = useState(false);
   const [onlineCount, setOnlineCount] = useState(null);
+  const [logoDataUrl, setLogoDataUrl] = useState(null);
 
   // Link base limpio (para mostrar y copiar). Las variantes por canal llevan
   // UTM para medir el origen de las reservas en Vercel Analytics.
@@ -89,6 +109,18 @@ export default function ReservaPublica() {
     return () => { active = false; };
   }, [tenantId]);
 
+  // Pre-fetch del logo como data URL para incrustar en el centro del QR.
+  // Con data URL, la exportación PNG/SVG y la impresión mantienen el logo.
+  useEffect(() => {
+    let active = true;
+    if (!logo) { setLogoDataUrl(null); return; }
+    (async () => {
+      const url = await toDataUrl(logo);
+      if (active) setLogoDataUrl(url);
+    })();
+    return () => { active = false; };
+  }, [logo]);
+
   // ── Acciones ──────────────────────────────────────────────────────
   const handleCopy = async (key, text) => {
     const ok = await copyText(text);
@@ -113,7 +145,8 @@ export default function ReservaPublica() {
   };
 
   // Serializa el <svg> del QR como string standalone (con xmlns) para
-  // exportar/imprimir.
+  // exportar/imprimir. El logo va como data URL, así que el SVG queda
+  // autocontenido y portable.
   const serializeQR = () => {
     const svg = document.getElementById('reserva-qr-svg');
     if (!svg) return null;
@@ -196,24 +229,30 @@ export default function ReservaPublica() {
 
   const channels = [
     {
-      key: 'instagram', Icon: Instagram, color: 'text-pink-400', bg: 'bg-pink-500/10',
+      key: 'instagram', Icon: Instagram,
+      iconBg: 'bg-gradient-to-tr from-fuchsia-500 via-pink-500 to-amber-400 text-white',
       label: 'Instagram', action: 'copy',
       desc: 'Editar perfil → Sitio web → pega el link. También puedes fijarlo en tus historias destacadas.',
     },
     {
-      key: 'google', Icon: MapPin, color: 'text-blue-400', bg: 'bg-blue-500/10',
+      key: 'google', Icon: MapPin,
+      iconBg: 'bg-blue-500/15 text-blue-400 ring-1 ring-blue-500/40',
       label: 'Google Business', action: 'copy',
       desc: 'En tu perfil de Google → "Agregar sitio web" o pégalo en la descripción del negocio.',
     },
     {
-      key: 'whatsapp', Icon: MessageCircle, color: 'text-green-400', bg: 'bg-green-500/10',
+      key: 'whatsapp', Icon: MessageCircle,
+      iconBg: 'bg-emerald-500/10 text-emerald-500 ring-1 ring-emerald-500/40',
       label: 'WhatsApp Business', action: 'whatsapp',
       desc: 'Agrega el link en tu descripción de WhatsApp Business o compártelo directo a tus clientes.',
     },
   ];
 
-  const btnBase = 'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all border';
-  const btnNeutral = 'bg-slate-800 text-slate-300 hover:bg-slate-700 border-slate-700';
+  const ghostBtn = 'flex items-center gap-1.5 text-slate-400 hover:text-white hover:bg-slate-800 px-3 py-1.5 rounded-lg text-sm border border-slate-700 transition-colors';
+  const primaryBtn = 'flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-lg shadow-emerald-500/20 transition-all';
+  const primaryCopied = 'flex items-center gap-2 bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-sm font-semibold px-4 py-2.5 rounded-xl transition-all';
+  const secondaryBtn = 'flex items-center gap-2 text-slate-300 hover:text-white bg-slate-800/70 hover:bg-slate-800 border border-slate-700 text-sm font-medium px-4 py-2.5 rounded-xl transition-colors';
+  const smallCopyBtn = 'flex items-center gap-1.5 text-xs text-slate-400 hover:text-white bg-slate-800 hover:bg-slate-700 px-3 py-1.5 rounded-md transition-colors shrink-0';
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
@@ -229,44 +268,46 @@ export default function ReservaPublica() {
         </p>
       </div>
 
-      {/* Reservas online del mes */}
+      {/* Stat hero — reservas online del mes */}
       {onlineCount !== null && (
-        <div className="flex items-center gap-3 bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-4">
-          <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0">
-            <CalendarCheck size={18} className="text-emerald-400" />
-          </div>
-          <div>
-            <p className="text-2xl font-bold text-white leading-none">{onlineCount}</p>
-            <p className="text-xs text-slate-400 mt-1">
-              reserva{onlineCount !== 1 ? 's' : ''} online este mes · cada una cae sola en tu agenda
-            </p>
+        <div className="bg-slate-800/40 border border-slate-700 border-t-2 border-t-emerald-500 rounded-2xl p-5 shadow-lg shadow-emerald-500/5">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
+              <CalendarCheck size={22} className="text-emerald-400" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-4xl font-extrabold text-white leading-none tracking-tight">{onlineCount}</p>
+              <p className="text-xs text-slate-400 mt-2">
+                reserva{onlineCount !== 1 ? 's' : ''} online este mes · cada una cae sola en tu agenda
+              </p>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Link Card */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
-        <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Link de reserva</p>
-        <div className="flex items-center gap-2 bg-slate-800 rounded-lg px-3 py-2.5">
-          <Link2 size={13} className="text-slate-500 shrink-0" />
-          <span className="flex-1 text-slate-300 truncate font-mono text-xs">{bookingBase}</span>
+      {/* Link de reserva */}
+      <div className="bg-slate-800/30 border border-slate-700/50 rounded-2xl p-5 space-y-4">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Link de reserva</p>
+        <div className="flex items-center gap-2 bg-slate-900 border border-slate-700 rounded-lg p-3">
+          <Link2 size={14} className="text-slate-500 shrink-0" />
+          <span className="flex-1 text-slate-300 truncate font-mono text-sm">{bookingBase}</span>
         </div>
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => handleCopy('link', bookingBase)}
-            className={`${btnBase} ${copiedKey === 'link' ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' : btnNeutral}`}
+            className={copiedKey === 'link' ? primaryCopied : primaryBtn}
           >
-            {copiedKey === 'link' ? <CheckCheck size={14} /> : <Copy size={14} />}
+            {copiedKey === 'link' ? <CheckCheck size={16} /> : <Copy size={16} />}
             {copiedKey === 'link' ? 'Copiado' : 'Copiar link'}
           </button>
           {canShare && (
-            <button onClick={shareNative} className={`${btnBase} ${btnNeutral}`}>
-              <Share2 size={14} />
+            <button onClick={shareNative} className={secondaryBtn}>
+              <Share2 size={15} />
               Compartir
             </button>
           )}
-          <a href={bookingBase} target="_blank" rel="noopener noreferrer" className={`${btnBase} ${btnNeutral}`}>
-            <ExternalLink size={14} />
+          <a href={bookingBase} target="_blank" rel="noopener noreferrer" className={secondaryBtn}>
+            <ExternalLink size={15} />
             Abrir
           </a>
         </div>
@@ -278,56 +319,59 @@ export default function ReservaPublica() {
       </div>
 
       {/* Mensaje listo para enviar */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
-        <p className="text-sm font-bold text-white">Mensaje listo para enviar</p>
-        <div className="bg-slate-800/60 rounded-lg px-4 py-3 text-sm text-slate-300 leading-relaxed border border-slate-800">
+      <div className="bg-slate-800/30 border border-slate-700/50 rounded-2xl p-5 space-y-4">
+        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">Mensaje listo para enviar</p>
+        <div className="bg-slate-900/80 border-l-4 border-emerald-500 text-slate-300 p-4 rounded-r-xl rounded-bl-xl text-sm leading-relaxed">
           {mensaje}
         </div>
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => handleCopy('mensaje', mensaje)}
-            className={`${btnBase} ${copiedKey === 'mensaje' ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' : btnNeutral}`}
+            className={copiedKey === 'mensaje' ? primaryCopied : primaryBtn}
           >
-            {copiedKey === 'mensaje' ? <CheckCheck size={14} /> : <Copy size={14} />}
+            {copiedKey === 'mensaje' ? <CheckCheck size={16} /> : <Copy size={16} />}
             {copiedKey === 'mensaje' ? 'Copiado' : 'Copiar mensaje'}
           </button>
-          <button
-            onClick={shareWhatsApp}
-            className={`${btnBase} bg-green-500/10 text-green-400 border-green-500/30 hover:bg-green-500/20`}
-          >
-            <MessageCircle size={14} />
+          <button onClick={shareWhatsApp} className={primaryBtn}>
+            <MessageCircle size={16} />
             Enviar por WhatsApp
           </button>
         </div>
       </div>
 
       {/* QR Code */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+      <div className="bg-slate-800/30 border border-slate-700/50 rounded-2xl p-5">
         <div className="flex items-center justify-between mb-5 gap-3 flex-wrap">
           <div>
             <p className="text-sm font-bold text-white">Código QR</p>
             <p className="text-xs text-slate-500 mt-0.5">Imprime y pega en tu local o compártelo en redes</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button onClick={downloadPNG} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700 transition-all">
-              <Download size={12} /> PNG
+            <button onClick={downloadPNG} className={ghostBtn}>
+              <Download size={14} /> PNG
             </button>
-            <button onClick={downloadSVG} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700 transition-all">
-              <FileCode size={12} /> SVG
+            <button onClick={downloadSVG} className={ghostBtn}>
+              <FileCode size={14} /> SVG
             </button>
-            <button onClick={printPoster} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700 transition-all">
-              <Printer size={12} /> Imprimir
+            <button onClick={printPoster} className={ghostBtn}>
+              <Printer size={14} /> Imprimir
             </button>
           </div>
         </div>
         <div className="flex flex-col items-center gap-4">
-          <div className="bg-white p-5 rounded-2xl shadow-xl">
+          <div className="bg-white p-4 rounded-2xl shadow-[0_0_20px_rgba(255,255,255,0.1)] inline-block">
             <QRCodeSVG
               id="reserva-qr-svg"
               value={qrUrl}
-              size={190}
+              size={200}
               level="H"
-              marginSize={4}
+              marginSize={2}
+              imageSettings={logoDataUrl ? {
+                src: logoDataUrl,
+                height: 44,
+                width: 44,
+                excavate: true,
+              } : undefined}
             />
           </div>
           <p className="text-xs text-slate-500 text-center">
@@ -336,23 +380,28 @@ export default function ReservaPublica() {
         </div>
       </div>
 
-      {/* Where to share */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-4">
-        <p className="text-sm font-bold text-white">Dónde compartir</p>
-        <div className="space-y-2">
-          {channels.map(({ Icon, color, bg, label, desc, key, action }) => (
-            <div key={key} className="flex items-start gap-3 p-3 rounded-lg bg-slate-800/50 border border-slate-800">
-              <div className={`w-8 h-8 rounded-lg ${bg} flex items-center justify-center shrink-0 mt-0.5`}>
-                <Icon size={16} className={color} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-white">{label}</p>
-                <p className="text-xs text-slate-400 leading-relaxed mt-0.5">{desc}</p>
+      {/* Dónde compartir */}
+      <div className="bg-slate-800/30 border border-slate-700/50 rounded-2xl p-5">
+        <p className="text-sm font-bold text-white mb-4">Dónde compartir</p>
+        <div>
+          {channels.map(({ Icon, iconBg, label, desc, key, action }) => (
+            <div
+              key={key}
+              className="flex items-start md:items-center justify-between gap-3 bg-slate-900/50 hover:bg-slate-800/80 transition-colors border border-slate-700 rounded-xl p-4 mb-3 last:mb-0"
+            >
+              <div className="flex items-start md:items-center gap-3 min-w-0 flex-1">
+                <div className={`w-10 h-10 rounded-lg ${iconBg} flex items-center justify-center shrink-0`}>
+                  <Icon size={18} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-white">{label}</p>
+                  <p className="text-xs text-slate-400 leading-relaxed mt-0.5">{desc}</p>
+                </div>
               </div>
               {action === 'copy' ? (
                 <button
                   onClick={() => handleCopy(key, urlFor(key))}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700 transition-all shrink-0"
+                  className={smallCopyBtn}
                 >
                   {copiedKey === key ? <CheckCheck size={12} /> : <Copy size={12} />}
                   {copiedKey === key ? 'Copiado' : 'Copiar'}
@@ -360,7 +409,7 @@ export default function ReservaPublica() {
               ) : (
                 <button
                   onClick={shareWhatsApp}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-green-500/10 text-green-400 hover:bg-green-500/20 border border-green-500/30 transition-all shrink-0"
+                  className="flex items-center gap-1.5 text-xs text-emerald-400 hover:text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/15 border border-emerald-500/30 px-3 py-1.5 rounded-md transition-colors shrink-0"
                 >
                   <Share2 size={12} /> Enviar
                 </button>
@@ -371,7 +420,7 @@ export default function ReservaPublica() {
       </div>
 
       {/* Stats hint */}
-      <div className="flex items-start gap-3 p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
+      <div className="flex items-start gap-3 p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/20">
         <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 mt-1.5 shrink-0 animate-pulse" />
         <p className="text-xs text-slate-400 leading-relaxed">
           Cada reserva online queda automáticamente en tu agenda y recibes una notificación en el panel.
