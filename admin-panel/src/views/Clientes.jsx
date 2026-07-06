@@ -1631,8 +1631,8 @@ export default function Clientes() {
 
   return (
     <div className="max-w-4xl mx-auto">
-      {/* Header */}
-      <div className="flex items-start justify-between mb-6">
+      {/* Header — mobile-first: apila titulo/botones en columna y wrap en fila */}
+      <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 w-full mb-6">
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-bold text-white">Clientes y Fidelización</h1>
@@ -1640,7 +1640,7 @@ export default function Clientes() {
           </div>
           <p className="text-sm text-slate-500 mt-0.5">Gestiona sellos y premios de cada cliente.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center flex-wrap gap-2 w-full md:w-auto">
           <button
             onClick={() => setShowNuevoCliente(true)}
             className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border border-slate-700 bg-slate-800 text-white hover:bg-slate-700 transition-all shrink-0"
@@ -1650,7 +1650,7 @@ export default function Clientes() {
           </button>
           <button
             onClick={() => setShowIA(true)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border border-[#D4AF37]/35 bg-[#D4AF37]/5 text-[#D4AF37] hover:bg-[#D4AF37]/10 transition-all"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border border-[#D4AF37]/35 bg-[#D4AF37]/5 text-[#D4AF37] hover:bg-[#D4AF37]/10 transition-all shrink-0"
           >
             <img src="/logo1.png" alt="Synaptech" className="w-3.5 h-3.5 object-contain opacity-80" />
             Synaptech IA
@@ -1669,30 +1669,30 @@ export default function Clientes() {
             </button>
           )}
           <button
-          onClick={() => setShowSinRegistro(true)}
-          className="relative flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold border border-amber-500/30 bg-amber-400/5 text-amber-400 hover:bg-amber-400/10 transition-all shrink-0"
-        >
-          <UserX size={13} />
-          Sin registro
-          {sinRegistro.length > 0 && (
-            <span className="ml-0.5 px-1.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300 font-black text-[10px]">
-              {sinRegistro.length}
-            </span>
-          )}
+            onClick={() => setShowSinRegistro(true)}
+            className="relative flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold border border-amber-500/30 bg-amber-400/5 text-amber-400 hover:bg-amber-400/10 transition-all shrink-0"
+          >
+            <UserX size={13} />
+            Sin registro
+            {sinRegistro.length > 0 && (
+              <span className="ml-0.5 px-1.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300 font-black text-[10px]">
+                {sinRegistro.length}
+              </span>
+            )}
           </button>
         </div>
       </div>
 
-      {/* KPIs */}
-      <div className="grid grid-cols-4 gap-3 mb-5">
+      {/* KPIs — 2x2 en movil, 4 en tablet+ */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 w-full mb-5">
         {[
           { label: 'Clientes',    value: total,            color: 'text-white' },
           { label: 'Citas totales', value: totalCitasGlobal, color: 'text-blue-400' },
           { label: 'Avg sellos',  value: avg,              color: 'text-emerald-400' },
           { label: 'Con premios', value: conPremio,        color: 'text-yellow-400' },
         ].map(({ label, value, color }) => (
-          <div key={label} className="bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-center">
-            <p className={`text-2xl font-black ${color}`}>{value}</p>
+          <div key={label} className="bg-slate-900 border border-slate-800 rounded-xl p-3 md:p-4 text-center">
+            <p className={`text-2xl md:text-3xl font-bold ${color}`}>{value}</p>
             <p className="text-[10px] font-semibold text-slate-500 uppercase tracking-wide mt-0.5">{label}</p>
           </div>
         ))}
@@ -1767,8 +1767,8 @@ export default function Clientes() {
         </div>
       )}
 
-      {/* Search */}
-      <div className="relative mb-3">
+      {/* Search — full width en cualquier viewport */}
+      <div className="relative mb-3 w-full">
         <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
         <input placeholder="Buscar por nombre, correo o teléfono…"
           value={search} onChange={e => setSearch(e.target.value)}
@@ -1780,8 +1780,8 @@ export default function Clientes() {
         )}
       </div>
 
-      {/* Filtros */}
-      <div className="flex gap-1.5 mb-4 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+      {/* Filtros — scroll horizontal nativo con scrollbar oculta */}
+      <div className="flex flex-nowrap overflow-x-auto gap-2 pb-2 mb-4 w-full no-scrollbar [&::-webkit-scrollbar]:hidden">
         {[
           { id: 'todos',       label: 'Todos' },
           { id: 'registrados', label: 'Registrados Club' },
@@ -1805,7 +1805,7 @@ export default function Clientes() {
             active ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300' : 'border-slate-700 text-slate-400 hover:bg-slate-800';
           return (
             <button key={f.id} onClick={() => setFiltro(f.id)}
-              className={`shrink-0 px-3 py-1.5 rounded-full border text-xs font-semibold transition-all ${tierColor}`}>
+              className={`shrink-0 whitespace-nowrap px-3 py-1.5 rounded-full border text-xs font-semibold transition-all ${tierColor}`}>
               {f.label}
             </button>
           );
@@ -1824,94 +1824,101 @@ export default function Clientes() {
         </div>
       )}
 
-      {/* Table */}
-      <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-        {loading ? (
-          <div className="flex justify-center py-16"><div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" /></div>
-        ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center py-16 text-slate-600"><User size={28} className="mb-3" /><p className="text-sm">Sin clientes</p></div>
-        ) : (
-          <div className="divide-y divide-slate-800/60">
-            {paged.map(c => {
-              const stamps = sellos(c);
-              const maxCost = premios.length ? premios[premios.length - 1]?.costoSellos : 10;
-              const pct = Math.min(stamps / Math.max(maxCost, 1) * 100, 100);
-              const badgeCls = stamps >= (maxCost || 10) ? 'text-yellow-400 border-yellow-400/40 bg-yellow-400/10'
-                : stamps >= 5 ? 'text-emerald-400 border-emerald-500/40 bg-emerald-500/10'
-                : 'text-slate-500 border-slate-700';
-              const hasPrize = premios.some(p => stamps >= p.costoSellos);
-              const numCitas = c.email ? (citasPorEmail[c.email] || 0) : 0;
-              return (
-                <div key={c.uid || c.id} onClick={() => setSelected(c)}
-                  className="grid grid-cols-12 items-center px-5 py-4 hover:bg-white/2 transition-colors cursor-pointer group">
-                  <div className="col-span-5 flex items-center gap-3 min-w-0">
-                    <div className="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center overflow-hidden shrink-0">
-                      {c.photoURL
-                        ? <img src={c.photoURL} alt="" className="w-full h-full object-cover" />
-                        : <span className="text-xs font-bold text-slate-400">{initials(c.nombre || c.email || '?')}</span>}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <p className="font-semibold text-white text-sm truncate group-hover:text-emerald-400 transition-colors">{c.nombre || '—'}</p>
-                        {isLegacy(c) && (
-                          <span
-                            title="Cliente importado desde AgendaPro. Aún no se ha registrado en el Club."
-                            className="shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded border border-amber-500/40 bg-amber-500/10 text-amber-300 uppercase tracking-wider"
-                          >
-                            Migrado
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-slate-500 truncate">{c.email}</p>
-                      {numCitas > 0 && (
-                        <p className="text-[10px] text-blue-400/70 font-semibold">{numCitas} cita{numCitas !== 1 ? 's' : ''}</p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="col-span-3 hidden sm:block">
-                    <p className="text-xs text-slate-500 truncate flex items-center gap-1"><Phone size={10} /> {c.telefono || '—'}</p>
-                  </div>
-                  <div className="col-span-5 sm:col-span-3">
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${badgeCls}`}>{stamps} sellos</span>
-                      {hasPrize && <Trophy size={11} className="text-yellow-400" />}
-                    </div>
-                    <div className="w-full bg-white/5 rounded-full h-1"><div className="h-1 rounded-full bg-emerald-500 transition-all" style={{ width: `${pct}%` }} /></div>
-                  </div>
-                  <div className="col-span-2 sm:col-span-1 flex justify-end">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-slate-600 group-hover:text-emerald-400 transition-colors"><polyline points="9 18 15 12 9 6"/></svg>
-                  </div>
+      {/* Lista de clientes — mobile-first, cards flex con truncamiento robusto */}
+      {loading ? (
+        <div className="flex justify-center py-16"><div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" /></div>
+      ) : filtered.length === 0 ? (
+        <div className="flex flex-col items-center py-16 text-slate-600 bg-slate-900 border border-slate-800 rounded-xl">
+          <User size={28} className="mb-3" /><p className="text-sm">Sin clientes</p>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2 mt-4">
+          {paged.map(c => {
+            const stamps  = sellos(c);
+            const maxCost = premios.length ? premios[premios.length - 1]?.costoSellos : 10;
+            const stampsPillCls = stamps >= (maxCost || 10)
+              ? 'text-yellow-400 bg-yellow-400/10 border border-yellow-400/40'
+              : stamps >= 5
+                ? 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20'
+                : 'text-slate-400 bg-slate-800 border border-slate-700';
+            const hasPrize = premios.some(p => stamps >= p.costoSellos);
+            const numCitas = c.email ? (citasPorEmail[c.email] || 0) : 0;
+            return (
+              <div
+                key={c.uid || c.id}
+                onClick={() => setSelected(c)}
+                className="group flex items-center gap-3 p-3 bg-slate-800/40 border border-slate-700/50 rounded-xl hover:bg-slate-800/80 transition-colors cursor-pointer"
+              >
+                {/* Avatar */}
+                <div className="w-10 h-10 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center overflow-hidden shrink-0">
+                  {c.photoURL
+                    ? <img src={c.photoURL} alt="" className="w-full h-full object-cover" />
+                    : <span className="text-xs font-bold text-slate-400">{initials(c.nombre || c.email || '?')}</span>}
                 </div>
-              );
-            })}
-          </div>
-        )}
-        {pageCount > 1 && (
-          <div className="flex items-center justify-between px-5 py-3 border-t border-slate-800">
-            <button
-              onClick={() => setPage(p => Math.max(1, p - 1))}
-              disabled={page === 1}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-400 hover:text-white disabled:opacity-30 transition-colors"
-            >
-              <ChevronLeft size={13} /> Anterior
-            </button>
-            <p className="text-xs text-slate-500">
-              Página{' '}
-              <span className="text-white font-bold">{page}</span>
-              {' '}de{' '}
-              <span className="text-white font-bold">{pageCount}</span>
-              <span className="text-slate-600 ml-1.5">· {filtered.length} clientes</span>
-            </p>
-            <button
-              onClick={() => setPage(p => Math.min(pageCount, p + 1))}
-              disabled={page === pageCount}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-400 hover:text-white disabled:opacity-30 transition-colors"
-            >
-              Siguiente <ChevronRight size={13} />
-            </button>
-          </div>
-        )}
-      </div>
+
+                {/* Info — flex-1 min-w-0 es CRÍTICO para el truncate */}
+                <div className="flex-1 min-w-0">
+                  <span className="text-sm md:text-base font-bold text-white truncate block group-hover:text-emerald-400 transition-colors">
+                    {c.nombre || '—'}
+                  </span>
+                  <span className="text-xs text-slate-400 truncate block">
+                    {c.email || c.telefono || '—'}
+                  </span>
+                  {numCitas > 0 && (
+                    <span className="text-[10px] text-blue-400/70 font-semibold">
+                      {numCitas} cita{numCitas !== 1 ? 's' : ''}
+                    </span>
+                  )}
+                </div>
+
+                {/* Badges — alineados a la derecha sin competir con el nombre */}
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {isLegacy(c) && (
+                    <span
+                      title="Cliente importado desde AgendaPro. Aún no se ha registrado en el Club."
+                      className="hidden sm:inline-block text-[9px] font-bold tracking-wider text-amber-500 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md uppercase"
+                    >
+                      Migrado
+                    </span>
+                  )}
+                  <span className={`text-[10px] px-2 py-1 rounded-full whitespace-nowrap font-semibold ${stampsPillCls}`}>
+                    {stamps} sellos
+                  </span>
+                  {hasPrize && <Trophy size={12} className="text-yellow-400 shrink-0" />}
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-slate-600 group-hover:text-emerald-400 transition-colors shrink-0"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Paginación */}
+      {pageCount > 1 && (
+        <div className="flex items-center justify-between px-1 py-4 mt-2 border-t border-slate-800/60">
+          <button
+            onClick={() => setPage(p => Math.max(1, p - 1))}
+            disabled={page === 1}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-400 hover:text-white disabled:opacity-30 transition-colors"
+          >
+            <ChevronLeft size={13} /> Anterior
+          </button>
+          <p className="text-xs text-slate-500">
+            Página{' '}
+            <span className="text-white font-bold">{page}</span>
+            {' '}de{' '}
+            <span className="text-white font-bold">{pageCount}</span>
+            <span className="text-slate-600 ml-1.5 hidden sm:inline">· {filtered.length} clientes</span>
+          </p>
+          <button
+            onClick={() => setPage(p => Math.min(pageCount, p + 1))}
+            disabled={page === pageCount}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-400 hover:text-white disabled:opacity-30 transition-colors"
+          >
+            Siguiente <ChevronRight size={13} />
+          </button>
+        </div>
+      )}
 
       {/* Modal nuevo cliente */}
       {showNuevoCliente && (
