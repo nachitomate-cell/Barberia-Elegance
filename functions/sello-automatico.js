@@ -353,6 +353,27 @@ async function procesarSello({ tenantId, citaId, citaRef, cita }) {
     }
   }
 
+  // Fallback por sufijo de 9 dígitos (soluciona bug histórico donde el
+  // registro guardó "958856719" y la cita "+56 9 5885 6719" → exact match
+  // fallaba). Requiere que el user tenga `telefonoSuf9` denormalizado
+  // (backfill vía scripts/backfill-users-telefonoSuf9.js).
+  if (!uid) {
+    try {
+      const digs = String(cita.clienteTelefono || '').replace(/\D+/g, '');
+      const suf9 = digs.length >= 9 ? digs.slice(-9) : '';
+      if (suf9) {
+        const q = await cols.users.where('telefonoSuf9', '==', suf9).limit(1).get();
+        if (!q.empty) {
+          uid = q.docs[0].id;
+          await clienteRef.update({ uid });
+          logger.info(`[Sello] ${citaId}: uid resuelto por telefonoSuf9 (${suf9})`);
+        }
+      }
+    } catch (e) {
+      logger.warn(`[Sello] ${citaId}: fallback uid por telefonoSuf9 falló: ${e.message}`);
+    }
+  }
+
   // Fallback final: buscar por email si aún no se encontró uid.
   // Cubre el caso en que el teléfono almacenado en users tiene un formato
   // diferente al de la cita (espacios, +, largo distinto).
@@ -366,6 +387,23 @@ async function procesarSello({ tenantId, citaId, citaRef, cita }) {
       }
     } catch (e) {
       logger.warn(`[Sello] ${citaId}: fallback uid por email falló: ${e.message}`);
+    }
+  }
+
+  // Sincronización preventiva de telefonoSuf9 en users/{uid} para próximas
+  // resoluciones — solo si logramos identificar al usuario y aún no lo tiene.
+  if (uid) {
+    try {
+      const digs = String(cita.clienteTelefono || '').replace(/\D+/g, '');
+      const suf9 = digs.length >= 9 ? digs.slice(-9) : '';
+      if (suf9) {
+        const userSnap = await cols.users.doc(uid).get();
+        if (userSnap.exists && userSnap.data()?.telefonoSuf9 !== suf9) {
+          await cols.users.doc(uid).update({ telefonoSuf9: suf9 });
+        }
+      }
+    } catch (e) {
+      logger.warn(`[Sello] ${citaId}: no se pudo sincronizar telefonoSuf9: ${e.message}`);
     }
   }
 
@@ -410,31 +448,54 @@ async function procesarSello({ tenantId, citaId, citaRef, cita }) {
       ? `Cita completada: ${servicioNombre}`
       : `Cita completada (+${nSellos} sellos): ${servicioNombre}`;
 
-    // Actualizar clientes/{phone} (lookup por teléfono, fuente de verdad para flujos web)
-    await clienteRef.update({
-      sellosDisponibles:  FieldValue.increment(nSellos),
-      sellosHistoricos:   FieldValue.increment(nSellos),
-      historial:          FieldValue.arrayUnion(entradaHistorial),
-      updatedAt:          Timestamp.now(),
-    });
+    // Actualizar clientes/{phone} (lookup por teléfono, fuente de verdad para flujos web).
+    // Usamos set(..., merge:true) en vez de update() para evitar fallos silenciosos
+    // cuando el doc no existe (caso raro observado en yugen: cita antigua cuyo
+    // clientes/{tel} fue borrado o nunca se creó por race con otra CF).
+    try {
+      await clienteRef.set({
+        sellosDisponibles:  FieldValue.increment(nSellos),
+        sellosHistoricos:   FieldValue.increment(nSellos),
+        historial:          FieldValue.arrayUnion(entradaHistorial),
+        updatedAt:          Timestamp.now(),
+        // Aseguramos identidad mínima si el doc se creó recién con este merge
+        telefono:           cita.clienteTelefono || telefono,
+        ...(clienteNombre ? { nombre: clienteNombre } : {}),
+      }, { merge: true });
+    } catch (e) {
+      logger.error(`[Sello] ${citaId}: fallo escritura en clientes/${clienteRef.id}: ${e.message}`);
+      // No abortamos: seguimos con users/ que es lo que ve el cliente final
+    }
 
     // Sincronizar en users/{uid} para que el panel admin muestre el sello al instante
     // (mismos campos que usa el botón "Añadir sello" en /gestion-interna/clientes)
     if (uid) {
-      const userRef = cols.users.doc(uid);
-      await userRef.update({
-        sellosDisponibles: FieldValue.increment(nSellos),
-        sellosHistoricos:  FieldValue.increment(nSellos),
-        stamps:            FieldValue.increment(nSellos),
-        ultimoSello:       Timestamp.now().toDate().toISOString(),
-        historialSellos:   FieldValue.arrayUnion({
-          fecha:    Timestamp.now().toDate().toISOString(),
-          tipo:     'suma',
-          cantidad: nSellos,
-          nota:     notaSello,
-          citaId,
-        }),
-      });
+      try {
+        const userRef = cols.users.doc(uid);
+        await userRef.update({
+          sellosDisponibles: FieldValue.increment(nSellos),
+          sellosHistoricos:  FieldValue.increment(nSellos),
+          stamps:            FieldValue.increment(nSellos),
+          ultimoSello:       Timestamp.now().toDate().toISOString(),
+          historialSellos:   FieldValue.arrayUnion({
+            fecha:    Timestamp.now().toDate().toISOString(),
+            tipo:     'suma',
+            cantidad: nSellos,
+            nota:     notaSello,
+            citaId,
+          }),
+        });
+      } catch (e) {
+        // Este es el fallo crítico: el sello suma en clientes/ pero no llega al
+        // dashboard del cliente. Loggeamos con nivel error para alertar al admin.
+        logger.error(`[Sello] ${citaId}: fallo escritura en users/${uid}: ${e.message}`, {
+          citaId, uid, tenantId, telefono, nSellos,
+        });
+      }
+    } else {
+      // Advertencia visible en Cloud Logging cuando el sello queda huérfano en clientes/
+      // (nunca se pudo resolver el uid del cliente registrado). Facilita el debug.
+      logger.warn(`[Sello] ${citaId}: sumado en clientes/${clienteRef.id} pero SIN uid — el cliente no verá el sello en su panel. Revisar telefonoSuf9 / registro.`);
     }
   }
 

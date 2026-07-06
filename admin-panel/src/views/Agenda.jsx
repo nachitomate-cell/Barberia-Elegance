@@ -19,6 +19,7 @@ import { db } from '../lib/firebase';
 import { tenantCol } from '../lib/tenantUtils';
 import { confirmDialog } from '../lib/confirmDialog';
 import { withTimeout } from '../lib/firestore-helpers';
+import { sanitizarTelefonoCL, sufijo9 } from '../lib/phoneUtils';
 import { useCollection } from '../hooks/useCollection';
 import { useTenant } from '../contexts/TenantContext';
 import ReviewModal from '../components/ReviewModal';
@@ -602,6 +603,15 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
       const fechaCita = form.fecha || dateStr;
       const payload = { ...form, duracionServicio: form.duracion, fecha: fechaCita, updatedAt: serverTimestamp() };
       if (!payload.clienteId) delete payload.clienteId;
+
+      // Normalización de teléfono: quita espacios/guiones/paréntesis y
+      // deriva `clienteTelefonoSuf9` (últimos 9 dígitos) para que la CF
+      // sellosTenant resuelva el uid del cliente sin fallar por formato.
+      if (payload.clienteTelefono) {
+        payload.clienteTelefono = sanitizarTelefonoCL(payload.clienteTelefono);
+        const suf9 = sufijo9(payload.clienteTelefono);
+        if (suf9) payload.clienteTelefonoSuf9 = suf9;
+      }
 
       // ── Sobrecupo / Horario Especial ─────────────────────────────
       // El recargo se suma AL final (después del descuento) y queda persistido

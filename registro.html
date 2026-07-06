@@ -1627,10 +1627,16 @@
         console.warn('[ensureUserDoc] skip ghost user', user.uid);
         return;
       }
+      const _tel   = extra.telefono || '';
+      const _digs  = String(_tel).replace(/\D+/g, '');
+      const _suf9  = _digs.length >= 9 ? _digs.slice(-9) : '';
       const data = {
         nombre:    extra.nombre    || user.displayName || '',
         email:     user.email      || '',
-        telefono:  extra.telefono  || '',
+        telefono:  _tel,
+        // Índice denormalizado usado por la CF sellosTenant como fallback
+        // cuando el teléfono en la cita viene con formato distinto.
+        ...(_suf9 ? { telefonoSuf9: _suf9 } : {}),
         photoURL:  user.photoURL   || null,
         stamps:    0,
         creadoEn:  firebase.firestore.FieldValue.serverTimestamp(),

@@ -10880,13 +10880,27 @@
 
       } else if (currentStep === 4) {
         const nombre = document.getElementById('clientName').value.trim();
-        const tel = document.getElementById('clientPhone').value.trim();
+        let tel = document.getElementById('clientPhone').value.trim();
         const email = document.getElementById('clientEmail').value.trim();
 
         const telDigitos = tel.replace(/\D/g, '');
         if (!nombre || !tel) return showToast('Por favor ingresa tu nombre y teléfono.');
         if (telDigitos.length < 9) return showToast('Ingresa un número de teléfono válido (mínimo 9 dígitos).');
         if (!email) return showToast('Por favor ingresa tu correo para recibir la confirmación.');
+
+        // Normalización de teléfono a canónico "+56XXXXXXXXX" ANTES de guardar
+        // la cita. Sin esto, formatos como "+56 9 5885 6719" quedan almacenados
+        // literalmente y la CF sellosTenant falla al hacer match exacto contra
+        // el registro del usuario (bug histórico corregido con telefonoSuf9).
+        (function normalizarTelPub() {
+          if (telDigitos.length === 9)                 tel = '+56' + telDigitos;
+          else if (telDigitos.length === 11 && telDigitos.startsWith('56')) tel = '+' + telDigitos;
+          else if (tel.startsWith('+'))                tel = '+' + telDigitos; // conserva +, quita espacios
+          else                                          tel = telDigitos;
+        })();
+        // suf9: últimos 9 dígitos. Se persiste en la cita para acelerar el
+        // lookup del uid en la CF (índice denormalizado).
+        const telSuf9 = telDigitos.slice(-9);
 
         // ── Anti-spam de reservas — configurable por tenant ──
         // Lee tenants/{tid}/configuracion/main.{reservaCooldownMin, reservaMaxPorDia}.
@@ -10975,6 +10989,7 @@
             hora:             selectedTimeStr,
             clienteNombre:    nombre,
             clienteTelefono:  tel,
+            clienteTelefonoSuf9: telSuf9,
             clienteEmail:     email,
             servicioId:       selectedServiceObj.id,
             servicioNombre:   selectedServiceObj.nombre + (selectedAddons.length > 0 ? " + " + selectedAddons.map(a => a.nombre).join(" + ") : ""),
@@ -11092,6 +11107,7 @@
             hora:             selectedTimeStr,
             clienteNombre:    nombre,
             clienteTelefono:  tel,
+            clienteTelefonoSuf9: telSuf9,
             clienteEmail:     email,
             servicioNombre:   selectedServiceObj.nombre + (selectedAddons.length > 0 ? " + " + selectedAddons.map(a => a.nombre).join(" + ") : ""),
             duracionServicio: selectedServiceObj.duracion + selectedAddons.reduce((sum, a) => sum + a.duracion, 0),
@@ -11135,7 +11151,7 @@
           console.warn('[Reservar] Sin conexión, guardando en localStorage:', e.message);
           DB.saveBooking({
             fecha: currentDateStr, hora: selectedTimeStr,
-            clienteNombre: nombre, clienteTelefono: tel, clienteEmail: email,
+            clienteNombre: nombre, clienteTelefono: tel, clienteTelefonoSuf9: telSuf9, clienteEmail: email,
             servicioNombre: selectedServiceObj.nombre + (selectedAddons.length > 0 ? " + " + selectedAddons.map(a => a.nombre).join(" + ") : ""),
             duracionServicio: selectedServiceObj.duracion + selectedAddons.reduce((sum, a) => sum + a.duracion, 0),
             barbero:   barberoNombreFinal || SHOP.barberos[0]?.nombre || '',
