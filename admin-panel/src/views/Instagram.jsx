@@ -228,6 +228,15 @@ export default function InstagramPage() {
         </div>
       )}
 
+      {/* Aviso importante — límite de 30 posts */}
+      <div className="flex items-start gap-2.5 p-3 bg-amber-500/5 border border-amber-500/20 rounded-xl">
+        <AlertCircle size={15} className="text-amber-400 mt-0.5 shrink-0" />
+        <p className="text-xs text-amber-300 leading-relaxed">
+          Solo se importan los <span className="font-bold text-amber-200">últimos 30 posts</span> de tu perfil
+          (fotos, álbumes y reels). Los publicados antes de eso no aparecen en el Lookbook. Cuando publiques nuevos, se van sumando.
+        </p>
+      </div>
+
       {/* Cómo funciona */}
       <div className="bg-slate-800/50 border border-slate-700/50 rounded-2xl p-5 space-y-3">
         <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">¿Cómo funciona?</p>
@@ -235,7 +244,7 @@ export default function InstagramPage() {
           {[
             'Conecta tu cuenta de Instagram Business o Creator con un clic.',
             'Los posts se sincronizan automáticamente cada 6 horas.',
-            'Solo se importan fotos e imágenes (reels y videos quedan excluidos).',
+            'Se importan tus últimos 30 posts: fotos, álbumes y reels (los reels muestran el thumbnail con un botón de play).',
             'Las categorías se detectan automáticamente desde los hashtags (#fade, #barba, #clasico…).',
             'El token se renueva solo antes de expirar — no necesitas reconectar cada mes.',
           ].map((t, i) => (
@@ -258,7 +267,7 @@ export default function InstagramPage() {
 
           <div>
             <p className="font-semibold text-emerald-400 mb-1">2. Sincronización automática</p>
-            <p>Cada 6 horas un cron baja tus últimos 25 posts. También puedes tocar <em>"Sincronizar ahora"</em> para forzar la importación inmediata.</p>
+            <p>Cada 6 horas un cron baja tus <strong className="text-white">últimos 30 posts</strong> (fotos, álbumes y reels). También puedes tocar <em>"Sincronizar ahora"</em> para forzar la importación inmediata. Los posts anteriores a los últimos 30 no se importan.</p>
           </div>
 
           <div>
