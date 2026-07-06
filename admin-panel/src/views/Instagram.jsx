@@ -49,12 +49,19 @@ export default function InstagramPage() {
 
   function buildOAuthUrl() {
     if (!appId) return null;
+    // El `state` lleva ahora tenantId + origen del panel (base64url).
+    // Sin el origen, el callback tenía que hardcodear la URL de redirect y
+    // caía en `/gestion-interna/?instagram=connected` relativo, que el browser
+    // resolvía contra el host de Cloud Functions → 404. El backend valida el
+    // origen contra un allow-list para evitar open-redirect.
+    const originB64 = btoa(window.location.origin)
+      .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); // base64url
     const p = new URLSearchParams({
       client_id:     appId,
       redirect_uri:  CALLBACK_URL,
       response_type: 'code',
       scope:         'instagram_business_basic',
-      state:         tenantId,
+      state:         `${tenantId}|${originB64}`,
     });
     return `https://www.instagram.com/oauth/authorize?${p}`;
   }

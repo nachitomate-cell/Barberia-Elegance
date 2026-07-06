@@ -39,6 +39,34 @@ const ALL_TENANTS      = ['elegance', 'ferraza', 'gitana', 'chameleon', 'mapubar
 const BOOTSTRAP_ADMINS = ['ignaciiio.mate@gmail.com', 'barrazanicolasfabian@gmail.com'];
 const CALLBACK_URL     = 'https://us-central1-barberia-elegance.cloudfunctions.net/instagramOAuthCallback';
 
+// Map de fallback tenant → URL absoluta del panel. Se usa cuando el `state`
+// no trae origen o el origen viene fuera de la allow-list. Cubre todos los
+// tenants en ALL_TENANTS con su dominio principal (los alias los cubre el
+// origen dinámico que viene en state).
+const TENANT_PANEL_URL = {
+  elegance:             'https://barberiaelegance.synaptechspa.cl',
+  ferraza:              'https://barberiaferraza.synaptechspa.cl',
+  gitana:               'https://gitananails.synaptechspa.cl',
+  chameleon:            'https://chameleonbarber.synaptechspa.cl',
+  mapubarbershop:       'https://mapubarbershop.synaptechspa.cl',
+  deluxeperfumes:       'https://deluxeperfumes.synaptechspa.cl',
+  lumen:                'https://barberiadjones.synaptechspa.cl',
+  delnero:              'https://delnerobarber.synaptechspa.cl',
+  marcelo_hairdressing: 'https://marcelohairdressing.synaptechspa.cl',
+  aura:                 'https://aurasalon.synaptechspa.cl',
+  machos:               'https://machos.synaptechspa.cl',
+  infinity:             'https://infinity.synaptechspa.cl',
+  sionbarberia:         'https://studiodieciseis.synaptechspa.cl',
+  omegastudio:          'https://omegastudio.synaptechspa.cl',
+  memphis:              'https://memphissalon.synaptechspa.cl',
+};
+
+// Allow-list de orígenes para el redirect post-OAuth. Evita open-redirect
+// (atacante iniciando el flow con `state` apuntando a su dominio). Se aceptan:
+//   - subdominios de synaptechspa.cl, synaptech.cl, yugenstudio.cl
+//   - http(s)://localhost[:port] para dev
+const ALLOWED_ORIGIN_RE = /^https?:\/\/(?:[a-z0-9-]+\.)?(?:synaptechspa\.cl|synaptech\.cl|yugenstudio\.cl|localhost(?::\d+)?)$/i;
+
 // ── Helpers de Firestore ───────────────────────────────────────────
 function igConfigRef(tenantId) {
   return db.collection('_system').doc(`instagram_${tenantId}`);
@@ -110,8 +138,26 @@ exports.instagramOAuthCallback = onRequest(
   { secrets: [INSTAGRAM_APP_SECRET], region: 'us-central1' },
   async (req, res) => {
     const code     = req.query.code;
-    const state    = req.query.state || '';
-    const tenantId = ALL_TENANTS.includes(state) ? state : 'elegance';
+    const stateRaw = String(req.query.state || '');
+    // Nuevo formato: `${tenantId}|${base64url(origin)}`. Backward-compat: si
+    // no hay pipe, tratamos toda la cadena como tenantId (state legacy).
+    const [tenantPart, originB64] = stateRaw.includes('|') ? stateRaw.split('|') : [stateRaw, ''];
+    const tenantId = ALL_TENANTS.includes(tenantPart) ? tenantPart : 'elegance';
+
+    // Decodifica base64url y valida contra la allow-list. Cualquier origen
+    // fuera de allow-list se descarta silenciosamente (fallback al map por
+    // tenant) — evita open-redirect si alguien manipuló el `state`.
+    let clientOrigin = '';
+    if (originB64) {
+      try {
+        const b64 = originB64.replace(/-/g, '+').replace(/_/g, '/') + '='.repeat((4 - originB64.length % 4) % 4);
+        const decoded = Buffer.from(b64, 'base64').toString('utf-8');
+        if (ALLOWED_ORIGIN_RE.test(decoded)) clientOrigin = decoded;
+        else logger.warn('[Instagram] Origen rechazado por allow-list:', decoded);
+      } catch (e) {
+        logger.warn('[Instagram] No se pudo decodificar origen del state:', e.message);
+      }
+    }
 
     if (!code) {
       res.status(400).send('Error: parámetro code faltante en el callback.');
@@ -185,7 +231,12 @@ exports.instagramOAuthCallback = onRequest(
       }, { merge: true });
 
       logger.info(`[Instagram] Conectado tenant=${tenantId} @${meRes.username}`);
-      res.redirect(302, '/gestion-interna/?instagram=connected');
+      // Redirect ABSOLUTO: preferimos el origen del cliente (validado); si no
+      // vino o quedó fuera de la allow-list, usamos el mapa del tenant. El
+      // path relativo anterior resolvía contra el host de Cloud Functions y
+      // rompía con 404. Con URL absoluta el browser cae en el panel real.
+      const baseUrl = clientOrigin || TENANT_PANEL_URL[tenantId] || TENANT_PANEL_URL.elegance;
+      res.redirect(302, `${baseUrl}/gestion-interna/?instagram=connected`);
     } catch (err) {
       logger.error('[Instagram] OAuth error:', err.message);
       res.status(500).send('Error interno: ' + err.message);
