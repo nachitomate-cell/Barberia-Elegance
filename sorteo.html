@@ -111,89 +111,96 @@
                 </svg>
               </div>
             </div>
-            <p class="text-[10px] text-center uppercase tracking-[0.22em] text-slate-400" data-bind="tenant-name">Participa</p>
-            <h1 class="mt-1 font-serif text-2xl sm:text-[26px] font-bold text-center leading-tight" data-bind="nombre">Cargando…</h1>
+            <p class="text-[10px] text-center uppercase tracking-[0.22em] text-neutral-400" data-bind="tenant-name">Participa</p>
+            <h1 class="mt-1 font-sans font-extrabold text-3xl tracking-tight text-center leading-tight text-white" data-bind="nombre">Cargando…</h1>
 
-            <div data-bind="premio-wrap" class="mt-5 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3 text-center">
-              <p class="text-[10px] uppercase tracking-[0.18em] text-emerald-300/80 font-bold">Premio</p>
-              <p class="mt-1 text-sm text-emerald-100 leading-snug" data-bind="premio"></p>
+            <div data-bind="premio-wrap" class="mt-5 rounded-xl bg-white/5 border border-white/10 py-3 px-4 text-center">
+              <p class="text-[10px] uppercase tracking-[0.22em] text-neutral-400 font-bold">Premio</p>
+              <p class="mt-1 text-lg text-white font-semibold leading-snug" data-bind="premio"></p>
             </div>
 
-            <p class="mt-3 text-center text-[11px] text-slate-500" data-bind="fechas"></p>
+            <p class="mt-3 text-center text-[11px] text-neutral-500" data-bind="fechas"></p>
           </div>
 
           <!-- ═══ SCOREBOARD (solo si tipo=FUTBOL) ═══ -->
-          <section id="scoreboard" class="hidden mx-7 mb-3 rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.04] p-4">
-            <p class="text-[10px] font-bold uppercase tracking-[0.22em] text-emerald-300/90 text-center">
-              ⚽ Tu pronóstico
+          <section id="scoreboard" class="hidden mx-6 mb-4 rounded-2xl border border-white/8 bg-white/[0.03] p-5">
+            <p class="text-[10px] font-bold uppercase tracking-[0.22em] text-neutral-400 text-center">
+              Tu pronóstico
             </p>
-            <p id="sb-fecha" class="text-[10px] text-slate-500 text-center mt-1"></p>
-            <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2 mt-4">
+            <p id="sb-fecha" class="text-[10px] text-neutral-500 text-center mt-1"></p>
+
+            <!-- Layout horizontal: [ Equipo 1 ]  [ VS ]  [ Equipo 2 ] -->
+            <div class="flex items-center justify-between gap-2 mt-5">
               <!-- Local -->
-              <div class="flex flex-col items-center gap-2 min-w-0">
+              <div class="flex-1 flex flex-col items-center gap-3 min-w-0">
                 <p id="sb-equipo-local" class="text-xs font-bold text-white text-center truncate max-w-full">Local</p>
-                <div class="flex items-center gap-1.5">
+                <div class="flex items-center gap-2">
                   <button type="button" data-sb-btn="local-minus"
-                    class="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 text-white text-lg font-bold hover:bg-slate-700 active:scale-95 transition-transform">
+                    class="w-9 h-9 rounded-full bg-neutral-800 border border-neutral-700 text-neutral-200 text-xl font-bold hover:bg-neutral-700 active:scale-95 transition-transform">
                     −
                   </button>
-                  <span id="sb-goles-local" class="w-8 text-center text-2xl font-black text-emerald-300 tabular-nums">0</span>
+                  <span id="sb-goles-local" class="w-9 text-center text-3xl font-black text-white tabular-nums">0</span>
                   <button type="button" data-sb-btn="local-plus"
-                    class="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 text-white text-lg font-bold hover:bg-slate-700 active:scale-95 transition-transform">
+                    class="w-9 h-9 rounded-full bg-neutral-800 border border-neutral-700 text-neutral-200 text-xl font-bold hover:bg-neutral-700 active:scale-95 transition-transform">
                     +
                   </button>
                 </div>
               </div>
-              <!-- VS -->
-              <span class="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-1 self-center">vs</span>
+
+              <!-- VS badge (círculo compacto centrado) -->
+              <div class="shrink-0 self-center bg-neutral-800 text-neutral-400 rounded-full text-xs font-bold px-2.5 py-2">
+                VS
+              </div>
+
               <!-- Visita -->
-              <div class="flex flex-col items-center gap-2 min-w-0">
+              <div class="flex-1 flex flex-col items-center gap-3 min-w-0">
                 <p id="sb-equipo-visita" class="text-xs font-bold text-white text-center truncate max-w-full">Visita</p>
-                <div class="flex items-center gap-1.5">
+                <div class="flex items-center gap-2">
                   <button type="button" data-sb-btn="visita-minus"
-                    class="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 text-white text-lg font-bold hover:bg-slate-700 active:scale-95 transition-transform">
+                    class="w-9 h-9 rounded-full bg-neutral-800 border border-neutral-700 text-neutral-200 text-xl font-bold hover:bg-neutral-700 active:scale-95 transition-transform">
                     −
                   </button>
-                  <span id="sb-goles-visita" class="w-8 text-center text-2xl font-black text-emerald-300 tabular-nums">0</span>
+                  <span id="sb-goles-visita" class="w-9 text-center text-3xl font-black text-white tabular-nums">0</span>
                   <button type="button" data-sb-btn="visita-plus"
-                    class="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 text-white text-lg font-bold hover:bg-slate-700 active:scale-95 transition-transform">
+                    class="w-9 h-9 rounded-full bg-neutral-800 border border-neutral-700 text-neutral-200 text-xl font-bold hover:bg-neutral-700 active:scale-95 transition-transform">
                     +
                   </button>
                 </div>
               </div>
             </div>
-            <p class="text-[10.5px] text-center text-slate-500 mt-3 leading-snug">
+
+            <p class="text-[10.5px] text-center text-neutral-500 mt-4 leading-snug">
               Solo entran a la ruleta los que acierten el marcador exacto.
             </p>
           </section>
 
           <!-- Form -->
-          <form id="form-sorteo" class="p-7 pt-3 space-y-3" autocomplete="off" novalidate>
+          <form id="form-sorteo" class="p-7 pt-3 space-y-4" autocomplete="off" novalidate>
             <div>
-              <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wide" for="f-nombre">Nombre completo</label>
+              <label class="text-[10px] uppercase tracking-wider text-neutral-400 font-semibold" for="f-nombre">Nombre completo</label>
               <input id="f-nombre" name="nombre" type="text" required maxlength="80"
                      placeholder="Ej. Juan Pérez"
-                     class="mt-1 w-full bg-slate-800/60 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:border-emerald-500 focus:bg-slate-800 transition-colors" />
+                     class="mt-1.5 w-full bg-neutral-800/50 border border-neutral-700 rounded-xl px-4 py-3 text-sm text-white placeholder-neutral-500 focus:border-emerald-500 focus:ring-0 focus:outline-none transition-colors" />
             </div>
 
             <div>
-              <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wide flex items-center justify-between" for="f-telefono">
+              <label class="text-[10px] uppercase tracking-wider text-neutral-400 font-semibold flex items-center justify-between" for="f-telefono">
                 <span>Teléfono o WhatsApp</span>
-                <span class="text-emerald-400/70 text-[10px] font-semibold">Recomendado</span>
+                <span class="text-emerald-400/70 text-[9px] font-semibold normal-case tracking-normal">Recomendado</span>
               </label>
               <input id="f-telefono" name="telefono" type="tel" inputmode="tel" maxlength="30"
                      placeholder="+56 9 1234 5678"
-                     class="mt-1 w-full bg-slate-800/60 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:border-emerald-500 focus:bg-slate-800 transition-colors" />
+                     class="mt-1.5 w-full bg-neutral-800/50 border border-neutral-700 rounded-xl px-4 py-3 text-sm text-white placeholder-neutral-500 focus:border-emerald-500 focus:ring-0 focus:outline-none transition-colors" />
             </div>
 
             <div>
-              <label class="text-[11px] font-bold text-slate-400 uppercase tracking-wide flex items-center justify-between" for="f-email">
+              <label class="text-[10px] uppercase tracking-wider text-neutral-400 font-semibold flex items-center justify-between" for="f-email">
                 <span>Correo electrónico</span>
-                <span class="text-slate-500 text-[10px] font-semibold">Opcional</span>
+                <span class="text-neutral-500 text-[9px] font-semibold normal-case tracking-normal">Opcional</span>
               </label>
               <input id="f-email" name="email" type="email" maxlength="120"
                      placeholder="tu@correo.com"
-                     class="mt-1 w-full bg-slate-800/60 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:border-emerald-500 focus:bg-slate-800 transition-colors" />
+                     class="mt-1.5 w-full bg-neutral-800/50 border border-neutral-700 rounded-xl px-4 py-3 text-sm text-white placeholder-neutral-500 focus:border-emerald-500 focus:ring-0 focus:outline-none transition-colors" />
             </div>
 
             <p id="form-error" class="hidden text-xs text-red-400 flex items-center gap-1 pt-1">
@@ -204,14 +211,15 @@
             </p>
 
             <button id="btn-submit" type="submit"
-              class="mt-2 w-full inline-flex items-center justify-center gap-2 py-3.5 rounded-xl text-sm font-extrabold bg-emerald-500 text-emerald-950 hover:bg-emerald-400 disabled:opacity-60 disabled:cursor-not-allowed transition-all">
+              class="mt-2 w-full inline-flex items-center justify-center gap-2 py-3.5 rounded-xl text-sm font-extrabold text-emerald-950 shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30 hover:brightness-110 active:scale-[0.99] disabled:opacity-60 disabled:cursor-not-allowed transition-all"
+              style="background: linear-gradient(135deg, #10b981 0%, #34d399 100%);">
               <span data-bind="btn-label">Participar ahora</span>
               <svg data-bind="btn-spinner" class="hidden spin w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
                 <path d="M21 12a9 9 0 1 1-6.219-8.56" />
               </svg>
             </button>
 
-            <p class="text-[10px] text-center text-slate-500 leading-relaxed pt-1">
+            <p class="text-xs text-center text-neutral-500 leading-relaxed mt-4">
               Al participar aceptas que contactemos al ganador por el medio que proporciones.
             </p>
           </form>
@@ -252,6 +260,6 @@
 
   <!-- Toda la lógica del sorteo vive en /js/sorteo.js — cargado con -->
   <!-- cache-buster para que cada deploy invalide la copia en el browser. -->
-  <script src="/js/sorteo.js?v=20260705B"></script>
+  <script src="/js/sorteo.js?v=20260705C"></script>
 </body>
 </html>
