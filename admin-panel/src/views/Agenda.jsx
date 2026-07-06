@@ -13,6 +13,7 @@ import { SortableContext, horizontalListSortingStrategy, useSortable, arrayMove 
 import { CSS } from '@dnd-kit/utilities';
 import {
   addDoc, updateDoc, deleteDoc, doc, getDoc, setDoc, serverTimestamp, where, orderBy, limit, writeBatch, getDocs, query,
+  runTransaction, Timestamp, arrayUnion,
 } from 'firebase/firestore';
 import { motion } from 'framer-motion';
 import { db } from '../lib/firebase';
@@ -25,6 +26,91 @@ import { useTenant } from '../contexts/TenantContext';
 import ReviewModal from '../components/ReviewModal';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 import AIWatermark from '../components/ui/AIWatermark';
+
+/* ════════════════════════════════════════════════════════════════════════
+   MOTOR DE PACKS / CUPONERAS (Fase B)
+   -------------------------------------------------------------------------
+   Se ejecuta cuando una cita pasa a estado `Completada` por primera vez.
+   Dos escenarios:
+
+   1) `servicio.isPack === true` (activación)
+      La cita agota el "primer uso" del pack. Se crea una entrada en
+      `users/{uid}.packsActivos[]` con:
+        { packId, nombrePack, sesionesTotales,
+          sesionesRestantes: total - 1,   // esta cita ya lo consumió
+          fechaCompra, fechaVencimiento,   // vencimiento = compra + diasValidez
+          citaActivacion: cita.id }
+
+   2) `cita.consumeSesionPack === true` + `cita.packRefId` (consumo)
+      La cita es una sesión gratuita usada por el cliente desde su pack ya
+      activo. Se busca esa entrada en packsActivos[] y se decrementa
+      sesionesRestantes en 1.
+
+   La operación es una transacción — si el cliente tiene concurrencia (dos
+   citas Completadas al mismo tiempo), no se pierde saldo.
+
+   Errores no bloquean el guardado de la cita: se loguean.
+   ════════════════════════════════════════════════════════════════════════ */
+async function procesarPackDeCita({ servicio, cita }) {
+  const userId = cita?.userId || cita?.clienteUid || cita?.clienteId;
+  if (!userId) return { skip: 'sin-userId' };
+
+  const esActivacion = !!(servicio && servicio.isPack);
+  const esConsumo    = !!cita.consumeSesionPack && !!cita.packRefId;
+  if (!esActivacion && !esConsumo) return { skip: 'ni-activacion-ni-consumo' };
+
+  const userRef = doc(tenantCol('users'), userId);
+
+  await runTransaction(db, async (tx) => {
+    const uSnap = await tx.get(userRef);
+    if (!uSnap.exists()) return; // sin doc de user, no aplica (cliente no logueado)
+    const uData = uSnap.data() || {};
+    const packs = Array.isArray(uData.packsActivos) ? [...uData.packsActivos] : [];
+    const now = Date.now();
+
+    if (esActivacion) {
+      // Idempotencia: si la cita ya activó un pack previamente (por doble Save),
+      // no volver a crear.
+      const yaActivado = packs.some(p => p.citaActivacion === cita.id);
+      if (yaActivado) return;
+
+      const totalSes = Math.max(1, Number(servicio.sesionesTotales) || 1);
+      const dias     = Math.max(1, Number(servicio.diasValidez)     || 30);
+      packs.push({
+        packId:            servicio.id,
+        nombrePack:        servicio.nombre,
+        sesionesTotales:   totalSes,
+        sesionesRestantes: Math.max(0, totalSes - 1), // la cita actual cuenta como 1
+        fechaCompra:       Timestamp.fromMillis(now),
+        fechaVencimiento:  Timestamp.fromMillis(now + dias * 24 * 60 * 60 * 1000),
+        citaActivacion:    cita.id,
+      });
+    }
+
+    if (esConsumo) {
+      // Busca el pack por packRefId (id interno del cliente en su array).
+      // La reserva pública setea `packRefId` = id lógico + índice, aquí lo
+      // resolvemos por packId + saldo > 0 (idempotencia via `consumido[cita.id]`).
+      const idx = packs.findIndex(p =>
+        p.packId === cita.packRefId &&
+        (p.sesionesRestantes || 0) > 0 &&
+        (!p.fechaVencimiento || (p.fechaVencimiento.toMillis?.() || 0) > now)
+      );
+      if (idx === -1) return; // pack no encontrado / sin saldo / expirado
+      const yaConsumida = Array.isArray(packs[idx].citasConsumo) && packs[idx].citasConsumo.includes(cita.id);
+      if (yaConsumida) return;
+      packs[idx] = {
+        ...packs[idx],
+        sesionesRestantes: Math.max(0, (packs[idx].sesionesRestantes || 0) - 1),
+        citasConsumo: [...(packs[idx].citasConsumo || []), cita.id],
+        ultimoConsumo: Timestamp.fromMillis(now),
+      };
+    }
+
+    tx.update(userRef, { packsActivos: packs, updatedAt: serverTimestamp() });
+  });
+  return { ok: true };
+}
 
 /* ── Columna de barbero arrastrable (reordenar con tap+hold) ───
  * Render-prop: expone setNodeRef/style/listeners para usar la cabecera
@@ -793,6 +879,23 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
             estado: nuevoSaldo <= 0 ? 'usada' : 'parcial',
             ultimoUso: serverTimestamp(),
           }).catch(() => {});
+        }
+
+        // Motor de packs: dispara solo al pasar a Completada por primera vez.
+        // No bloquea el flujo si falla (el pack queda para procesarse manual/
+        // desde soporte). Se ejecuta después del batch principal para que la
+        // cita ya exista con el estado final antes de tocar users.packsActivos.
+        if (form.estado === 'Completada' && !yaEraCompletada) {
+          try {
+            const svc = servicios.find(s => s.id === form.servicioId)
+                     || servicios.find(s => (s.nombre || '') === form.servicioNombre);
+            await procesarPackDeCita({
+              servicio: svc,
+              cita:     { ...cita, ...payload, id: cita.id },
+            });
+          } catch (err) {
+            console.error('[pack] procesarPackDeCita:', err);
+          }
         }
 
         if (form.estado === 'Completada' && !yaEraCompletada && onComplete) {
