@@ -52,6 +52,18 @@ export default defineConfig({
             urlPattern: ({ request }) => request.destination === 'video' || request.destination === 'audio',
             handler: 'NetworkOnly',
           },
+          /* Firestore streaming endpoints — NUNCA cachear.
+             `Listen/channel` y `Write/channel` son long-polling bidireccional
+             (onSnapshot, transaction commits) que devuelven respuestas
+             streaming. Cache.put() truena con
+             "NetworkError: Cache.put() encountered a network error" y rompe
+             TODOS los onSnapshot del panel (incluyendo instagram_app,
+             instagram_${tenantId} y el estado de conexión). Debe ir ANTES
+             de la regla genérica de firestore. */
+          {
+            urlPattern: /^https:\/\/firestore\.googleapis\.com\/.*\/(Listen|Write)\/channel/i,
+            handler: 'NetworkOnly',
+          },
           /* Firebase Firestore / Auth — network-first */
           {
             urlPattern: /^https:\/\/firestore\.googleapis\.com\/.*/i,
