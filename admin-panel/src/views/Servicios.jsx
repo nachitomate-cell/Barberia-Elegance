@@ -359,7 +359,7 @@ export default function Servicios() {
             </div>
             <p className="text-xs text-slate-500 mt-0.5">Arrastra para reordenar. El orden se guarda en Firestore.</p>
           </div>
-          <button onClick={openNew} className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
+          <button onClick={openNew} className="hidden md:flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors">
             <Plus size={16} /> Nuevo servicio
           </button>
         </div>
@@ -383,61 +383,79 @@ export default function Servicios() {
                   onDragOver={e => { e.preventDefault(); setDragOver(s.id); }}
                   onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOver(null); }}
                   onDrop={() => handleDrop(s.id)}
-                  className={`group flex items-center gap-3 sm:gap-4 bg-slate-800/40 border rounded-2xl p-3 sm:p-4 select-none transition-all ${
+                  onClick={() => openEdit(s)}
+                  className={`group flex items-center gap-3 bg-slate-800/40 border rounded-2xl p-3 md:p-4 select-none cursor-pointer transition-all ${
                     dragOver === s.id
                       ? 'border-emerald-500 bg-emerald-500/5 shadow-lg shadow-emerald-500/10'
                       : 'border-slate-700/50 hover:bg-slate-800/80 hover:border-slate-600'
                   }`}>
 
-                  {/* Drag handle — más discreto */}
-                  <svg className="text-slate-600 hover:text-slate-400 cursor-grab active:cursor-grabbing shrink-0 transition-colors"
-                    width="12" height="18" viewBox="0 0 12 18" fill="currentColor">
+                  {/* Drag handle — 6 puntos muy sutiles */}
+                  <svg className="text-slate-600 hover:text-slate-400 cursor-grab active:cursor-grabbing shrink-0 w-5 transition-colors"
+                    viewBox="0 0 12 18" fill="currentColor"
+                    onClick={e => e.stopPropagation()}
+                  >
                     <circle cx="3" cy="3" r="1.5"/><circle cx="9" cy="3" r="1.5"/>
                     <circle cx="3" cy="9" r="1.5"/><circle cx="9" cy="9" r="1.5"/>
                     <circle cx="3" cy="15" r="1.5"/><circle cx="9" cy="15" r="1.5"/>
                   </svg>
 
-                  {/* Image or Icon — contenedor tintado premium */}
+                  {/* Imagen o ícono — compacto en mobile */}
                   {s.imagen ? (
-                    <div className="w-11 h-11 rounded-xl overflow-hidden shrink-0 border border-slate-700">
+                    <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl overflow-hidden shrink-0 border border-slate-700">
                       <img src={s.imagen} alt={s.nombre} className="w-full h-full object-cover" />
                     </div>
                   ) : (
-                    <div className="w-11 h-11 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0">
-                      <i className={`ph ${s.icono || 'ph-scissors'} text-lg`} />
+                    <div className="w-10 h-10 md:w-12 md:h-12 flex-shrink-0 flex items-center justify-center rounded-xl bg-slate-800 border border-slate-700 text-emerald-400">
+                      <i className={`ph ${s.icono || 'ph-scissors'} text-lg md:text-xl`} />
                     </div>
                   )}
 
-                  {/* Info */}
+                  {/* Info — truncamiento robusto con flex-1 min-w-0 */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <h4 className="text-white font-semibold text-sm truncate">{s.nombre}</h4>
-                      <span className="bg-slate-700/50 text-slate-300 border border-slate-600/50 rounded-full px-2.5 py-0.5 text-xs font-medium shrink-0">
+                    <span className="text-sm md:text-base font-bold text-white truncate w-full block">{s.nombre}</span>
+
+                    {/* Precio · Duración en una sola línea */}
+                    <div className="flex items-center text-xs md:text-sm text-slate-400 mt-0.5">
+                      <span>${Math.round(Number(s.precio || 0)).toLocaleString('es-CL')}</span>
+                      <span className="mx-1.5 text-slate-600">·</span>
+                      <span>{s.duracion} min</span>
+                    </div>
+
+                    {/* Badges: fila propia con wrap para no romper el layout */}
+                    <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                      <span className="bg-slate-700/50 text-slate-300 border border-slate-600/50 rounded-full text-[9px] md:text-xs px-2 py-0.5 font-medium">
                         {s.categoria || 'Otro'}
                       </span>
                       {topServicio === s.nombre && (
-                        <span className="bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded-full px-2 py-0.5 text-[10px] font-bold shrink-0">
+                        <span className="bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded-full text-[9px] md:text-xs px-2 py-0.5 font-bold">
                           ✦ Más solicitado
                         </span>
                       )}
-                    </div>
-                    <p className="text-slate-300 text-sm mt-0.5 flex items-center gap-1.5 flex-wrap">
-                      <span>${Math.round(Number(s.precio || 0)).toLocaleString('es-CL')}</span>
-                      <span className="text-slate-600">·</span>
-                      <span>{s.duracion} min</span>
                       {s.preciosPorDia && Object.keys(s.preciosPorDia).length > 0 && (
-                        <span className="bg-amber-400/10 text-amber-400 border border-amber-400/20 rounded-full px-1.5 py-0.5 text-[10px] font-bold">
+                        <span className="bg-amber-400/10 text-amber-400 border border-amber-400/20 rounded-full text-[9px] md:text-xs px-2 py-0.5 font-bold">
                           precio variable
                         </span>
                       )}
-                    </p>
+                    </div>
+
                     {s.descripcion && (
-                      <p className="hidden sm:block text-slate-500 text-sm mt-0.5 line-clamp-1">{s.descripcion}</p>
+                      <p className="hidden md:block text-slate-500 text-sm mt-1 line-clamp-1">{s.descripcion}</p>
                     )}
                   </div>
 
-                  {/* Actions — ghost buttons */}
-                  <div className="flex items-center gap-0.5 shrink-0 sm:opacity-70 sm:group-hover:opacity-100 transition-opacity">
+                  {/* Right side: chevron sutil en móvil, ghost buttons en desktop */}
+                  <svg
+                    className="md:hidden text-slate-500 w-5 flex-shrink-0"
+                    viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <polyline points="9 6 15 12 9 18" />
+                  </svg>
+                  <div
+                    className="hidden md:flex items-center gap-0.5 shrink-0 opacity-70 group-hover:opacity-100 transition-opacity"
+                    onClick={e => e.stopPropagation()}
+                  >
                     <button
                       onClick={() => openEdit(s)}
                       className="text-slate-400 hover:bg-slate-700 hover:text-white p-2 rounded-lg transition-colors"
@@ -506,6 +524,15 @@ export default function Servicios() {
           </div>
         </div>
       </div>
+
+      {/* FAB móvil — acción primaria fija en la esquina inferior derecha */}
+      <button
+        onClick={openNew}
+        className="fixed bottom-6 right-6 md:hidden bg-emerald-600 hover:bg-emerald-500 text-white rounded-full p-4 shadow-lg shadow-emerald-900/50 z-50 transition-colors"
+        aria-label="Nuevo servicio"
+      >
+        <Plus size={24} strokeWidth={2.5} />
+      </button>
 
       {/* ── SlideOver creación/edición ── */}
       <SlideOver
