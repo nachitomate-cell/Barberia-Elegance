@@ -618,6 +618,15 @@ exports.sellosElegance = selloAutomatico.sellosElegance;
 exports.sellosTenant   = selloAutomatico.sellosTenant;
 
 // ─────────────────────────────────────────────────────────────────
+//  RECOMPENSA POR REFERIDO (B2C) — ver referidos-recompensa.js
+//  Otorga sellos o crea redemptions pendientes al crear la primera
+//  cita de un cliente que se registró con `referredByCode`.
+// ─────────────────────────────────────────────────────────────────
+const referidosRecompensa = require('./referidos-recompensa');
+exports.referidosRecompensaElegance = referidosRecompensa.referidosRecompensaElegance;
+exports.referidosRecompensaTenant   = referidosRecompensa.referidosRecompensaTenant;
+
+// ─────────────────────────────────────────────────────────────────
 //  CUMPLEAÑOS AUTOMÁTICO — ver cumpleanos.js para detalles
 // ─────────────────────────────────────────────────────────────────
 const cumpleanos = require('./cumpleanos');
