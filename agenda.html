@@ -838,46 +838,6 @@
             box-shadow: 0 6px 16px rgba(15, 23, 42, 0.15);
         }
 
-        /* (6) Selector de barbero (solo admin) — se muestra debajo del "En vivo"
-              cuando AgendaState.isAdmin === true y hay barberos cargados. */
-        #barberSwitcher {
-            display: none;
-            margin-top: 0.4rem;
-            padding: 0.35rem 1.75rem 0.35rem 0.65rem;
-            border-radius: 0.55rem;
-            background: rgba(255, 255, 255, 0.06);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: #ffffff;
-            font-size: 0.78rem;
-            font-weight: 600;
-            max-width: 180px;
-            outline: none;
-            cursor: pointer;
-            appearance: none;
-            -webkit-appearance: none;
-            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.7)' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
-            background-repeat: no-repeat;
-            background-position: right 0.5rem center;
-            background-size: 0.8rem;
-        }
-        #barberSwitcher.visible { display: block; }
-        #barberSwitcher:hover { background-color: rgba(255, 255, 255, 0.1); }
-        #barberSwitcher:focus {
-            border-color: rgba(255, 255, 255, 0.35);
-            box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
-        }
-        html.light-mode #barberSwitcher {
-            background-color: #f1f5f9;
-            border-color: #e2e8f0;
-            color: #0f172a;
-            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23334155' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
-        }
-        html.light-mode #barberSwitcher:hover  { background-color: #e2e8f0; }
-        html.light-mode #barberSwitcher:focus  { box-shadow: 0 0 0 3px rgba(100, 116, 139, 0.15); }
-        /* Native dropdown lo pinta el sistema — aseguramos legibilidad de options */
-        #barberSwitcher option { background: #0f0f12; color: #ffffff; }
-        html.light-mode #barberSwitcher option { background: #ffffff; color: #0f172a; }
-
         /* Kebab dropdown items — hover + safe-area */
         #kebabMenuPanel [data-menu-item] {
             display: flex;
@@ -992,13 +952,6 @@
                     <div class="live-dot" title="Sincronizado en tiempo real"></div>
                     <p class="text-[10px] text-white/40 uppercase tracking-[0.2em] font-semibold">En Vivo</p>
                 </div>
-                <!-- Selector de barbero (visible solo para admin). Hidden por default:
-                     _syncBarberSwitcherUI le pone la clase .visible cuando corresponde. -->
-                <select id="barberSwitcher" data-count="0"
-                        onchange="_onBarberSwitcherChange(this.value)"
-                        aria-label="Cambiar de barbero"
-                        title="Cambiar de barbero (admin)">
-                </select>
             </div>
         </div>
         <div class="flex items-center gap-1.5 sm:gap-2">
@@ -1491,8 +1444,8 @@
                 weekStart:             null,        // se setea en setAgendaView('semana')
                 barberId:              null,        // se setea después del login
                 timeSlotSeleccionado:  null,        // hora clickeada en el sheet libre
-                isAdmin:               false,       // detectado en resolverInfoBarbero
-                barberos:              [],          // lista poblada si isAdmin
+                // isAdmin y barberos vivían acá cuando /agenda tenía switcher.
+                // Se removieron para forzar que cada barbero solo vea la suya.
             };
             // Claves persistentes en localStorage (con el nombre real de la clave)
             const _persistMap = { view: 'agenda_view', slotInterval: 'agenda_interval' };
@@ -1532,8 +1485,6 @@
                 get weekStart()            { return _data.weekStart; },
                 get barberId()             { return _data.barberId; },
                 get timeSlotSeleccionado() { return _data.timeSlotSeleccionado; },
-                get isAdmin()              { return _data.isAdmin; },
-                get barberos()             { return _data.barberos; },
             };
         })();
         window.AgendaState = AgendaState;
@@ -1549,95 +1500,10 @@
         AgendaState.subscribe('weekStart',           v => { if (v) _currentWeekStart = v; });
         AgendaState.subscribe('barberId',            v => { barberId = v; });
 
-        /* Reacción al cambio de barbero EN RUNTIME (post-bootstrap).
-           No aplica al primer set del login (oldV === null): en ese caso los
-           loaders se disparan por el flujo normal de resolverInfoBarbero. */
-        AgendaState.subscribe('barberId', async (newV, oldV) => {
-            if (oldV == null || newV == null || oldV === newV) return;
-            await _reloadForBarberoChange().catch(err =>
-                console.error('[AgendaState] reload barbero:', err));
-        });
-
-        /* Al detectar admin, muestra el selector y (cuando la lista termine)
-           lo popula. Los dos listeners son independientes: si la lista carga
-           antes que se sepa que es admin, el segundo listener igual pintará. */
-        AgendaState.subscribe('isAdmin',  () => _syncBarberSwitcherUI());
-        AgendaState.subscribe('barberos', () => _syncBarberSwitcherUI());
-        AgendaState.subscribe('barberId', () => _syncBarberSwitcherUI());
-
-        /* ── Loader de la lista de barberos activos del tenant.
-           Reutiliza el snap ya leído en resolverInfoBarbero si viene, sino hace
-           un getDoc extra. Filtra docs de enlace y desactivados; ordena alfabéticamente. */
-        async function _cargarListaBarberos(snapPreloaded) {
-            let snap = snapPreloaded;
-            if (!snap) {
-                try { snap = await tenantCol('barberos').get(); }
-                catch (e) { console.warn('[AgendaState] getBarberos:', e.message); return; }
-            }
-            const list = snap.docs
-                .filter(d => {
-                    const data = d.data() || {};
-                    if (data._mainDocId) return false;  // docs de enlace
-                    if (data.activo === false) return false;
-                    return !!(data.nombre || data.displayName);
-                })
-                .map(d => ({ id: d.id, nombre: d.data().nombre || d.data().displayName || '(sin nombre)' }))
-                .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
-            AgendaState.set('barberos', list);
-        }
-
-        /* ── Swap de barbero: detiene listeners activos, resetea la UI transitoria,
-           relee la config y refresca la vista actual. Todo lo demás sigue igual. */
-        async function _reloadForBarberoChange() {
-            // Detener listeners de citas/bloqueos actuales
-            try { unsubs.forEach(u => u()); unsubs = []; } catch (_) {}
-            try { _weekUnsubs.forEach(u => u()); _weekUnsubs = []; } catch (_) {}
-            // Reset de UI transitoria — el nuevo barbero arranca sin resabios
-            newlyAddedCitas.clear();
-            todayCitas = [];
-            todayBloqueosBarbero = [];
-            todayBloqueosGlobales = [];
-            // Nombre en el header — mientras carga, mostramos "Agenda"
-            const nameEl = document.getElementById('barberNameHeader');
-            if (nameEl) nameEl.textContent = 'Agenda';
-            // Config del nuevo barbero
-            await loadBarberData().catch(err =>
-                console.error('[AgendaState] loadBarberData:', err));
-            // Refrescar la vista actual (día o semana)
-            if (_agendaView === 'dia') {
-                renderDaySelector();
-                loadAgendaData();
-            } else {
-                loadWeekData();
-            }
-            iniciarBannerLiquidaciones(AgendaState.barberId);
-        }
-
-        /* ── Muestra/oculta el <select> del switcher y lo repuebla.
-           Se llama cada vez que cambia isAdmin, barberos o barberId. */
-        function _syncBarberSwitcherUI() {
-            const sel = document.getElementById('barberSwitcher');
-            if (!sel) return;
-            const show = AgendaState.isAdmin && AgendaState.barberos.length > 0;
-            sel.classList.toggle('visible', show);
-            if (!show) return;
-            const activeId = AgendaState.barberId;
-            // Solo repoblamos si cambió la lista (evita perder cursor/foco al
-            // reactivar el listener con la misma data).
-            if (sel.dataset.count !== String(AgendaState.barberos.length)) {
-                sel.innerHTML = AgendaState.barberos
-                    .map(b => `<option value="${b.id}">${b.nombre}</option>`)
-                    .join('');
-                sel.dataset.count = String(AgendaState.barberos.length);
-            }
-            sel.value = activeId || '';
-        }
-
-        /* Handler del <select> — llamado desde el onchange inline. */
-        window._onBarberSwitcherChange = function (newId) {
-            if (!newId) return;
-            AgendaState.set('barberId', newId);
-        };
+        /* Nota: la vista /agenda es privada de CADA barbero — no permite
+           cambiar de perfil aunque el user sea admin/jefe. La agenda multi-
+           barbero solo vive en /gestion-interna/agenda. Por eso no hay
+           listener runtime sobre `barberId`: no debería cambiar tras el login. */
 
         // Tenants que ocultan el teléfono del cliente a los barberos (privacidad)
         function _ocultaTelefono() {
@@ -1807,19 +1673,11 @@
                     }
 
                     // Set inicial del barberId a través del state. El sync listener
-                    // mantiene la let legacy alineada y `_reloadForBarberoChange`
-                    // NO se dispara porque el "post-bootstrap" chequea que oldV
-                    // no sea null.
+                    // mantiene la let legacy `barberId` alineada.
                     AgendaState.set('barberId', myBarberoId);
-                    AgendaState.set('isAdmin', !!info.isAdmin);
-
-                    // Si es admin, cargar catálogo de barberos para el <select>
-                    // superior. No bloqueante: la agenda del propio admin arranca
-                    // igual y el select aparece cuando la lista termine de cargar.
-                    if (info.isAdmin) {
-                        _cargarListaBarberos(info.snap).catch(e =>
-                            console.warn('[AgendaState] cargar barberos:', e.message));
-                    }
+                    // Nota: aunque `info.isAdmin` sea true, /agenda muestra SOLO
+                    // la agenda propia. La vista multi-barbero vive en
+                    // /gestion-interna/agenda — allí sí se puede filtrar/switchear.
 
                     // Garantiza que barberos/{uid} exista antes de iniciar los listeners.
                     // Sin este doc, esBarberoFirestore falla y onSnapshot de /citas queda denegado.
