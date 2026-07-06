@@ -290,9 +290,11 @@ async function syncTenant(tenantId) {
     }
   }
 
-  // Obtener últimos 30 posts de Instagram
+  // Obtener últimos 30 posts de Instagram. Incluimos `permalink` como fallback
+  // para reels: la URL directa del video (media_url) puede expirar en horas
+  // en el CDN de IG, mientras que el permalink es estable.
   const mediaRes = await httpsGet(
-    `https://graph.instagram.com/me/media?fields=id,media_type,media_url,thumbnail_url,caption,timestamp&limit=30&access_token=${token}`
+    `https://graph.instagram.com/me/media?fields=id,media_type,media_url,thumbnail_url,permalink,caption,timestamp&limit=30&access_token=${token}`
   );
 
   if (mediaRes.error) {
@@ -304,10 +306,15 @@ async function syncTenant(tenantId) {
     return { tenantId, error: mediaRes.error.message };
   }
 
-  // Solo imágenes y álbumes (sin videos/reels)
-  const posts = (mediaRes.data || []).filter(p =>
-    (p.media_type === 'IMAGE' || p.media_type === 'CAROUSEL_ALBUM') && p.media_url
-  );
+  // Imágenes, álbumes y videos/reels. Para VIDEO exigimos thumbnail_url
+  // (el poster) porque `url` en el doc se guarda como imagen para que los
+  // renderers existentes muestren un frame sin romperse. La URL del video
+  // va en videoUrl aparte.
+  const posts = (mediaRes.data || []).filter(p => {
+    if (p.media_type === 'IMAGE' || p.media_type === 'CAROUSEL_ALBUM') return !!p.media_url;
+    if (p.media_type === 'VIDEO') return !!p.thumbnail_url;
+    return false;
+  });
   if (!posts.length) return { tenantId, added: 0 };
 
   // Filtrar los ya sincronizados
@@ -324,16 +331,24 @@ async function syncTenant(tenantId) {
 
   const batch = db.batch();
   newPosts.forEach((post, idx) => {
+    const isVideo = post.media_type === 'VIDEO';
     batch.set(col.doc(`ig_${post.id}`), {
-      url:         post.media_url,
-      titulo:      extractTitulo(post.caption),
-      categoria:   extractCategoria(post.caption),
-      source:      'instagram',
-      instagramId: post.id,
-      caption:     post.caption || '',
-      timestamp:   post.timestamp || '',
-      order:       maxOrder + idx + 1,
-      creadoEn:    Timestamp.now(),
+      // Para VIDEO, `url` = thumbnail (poster). Renderers legacy siguen
+      // funcionando (muestran una imagen). El player la sobrescribe si detecta
+      // mediaType === 'VIDEO'.
+      url:          isVideo ? post.thumbnail_url : post.media_url,
+      mediaType:    post.media_type,
+      thumbnailUrl: post.thumbnail_url || null,
+      videoUrl:     isVideo ? (post.media_url || null) : null,
+      permalink:    post.permalink || null,
+      titulo:       extractTitulo(post.caption),
+      categoria:    extractCategoria(post.caption),
+      source:       'instagram',
+      instagramId:  post.id,
+      caption:      post.caption || '',
+      timestamp:    post.timestamp || '',
+      order:        maxOrder + idx + 1,
+      creadoEn:     Timestamp.now(),
     });
   });
   await batch.commit();

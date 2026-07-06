@@ -665,8 +665,15 @@
           el.style.width = '100%'; el.style.display = 'flex'; el.style.flexDirection = 'column'; el.style.gap = '0.7rem';
           var grid = document.createElement('div'); grid.className = 'ig-grid';
           (cfg._fotos || []).slice(0, 6).forEach(function (f) {
-            var a = document.createElement('a'); a.href = blk.url || SHOP.instagram || '#'; a.target = '_blank'; a.rel = 'noopener';
-            a.innerHTML = '<img src="' + esc(f.url) + '" alt="" loading="lazy">';
+            var a = document.createElement('a');
+            // Para reels linkeamos al permalink del post; en fotos, al perfil.
+            a.href = (f.mediaType === 'VIDEO' && f.permalink) ? f.permalink : (blk.url || SHOP.instagram || '#');
+            a.target = '_blank'; a.rel = 'noopener';
+            a.style.position = 'relative';
+            var badge = f.mediaType === 'VIDEO'
+              ? '<span style="position:absolute;top:6px;right:6px;background:rgba(0,0,0,0.55);backdrop-filter:blur(4px);color:#fff;border-radius:999px;padding:3px 6px;font-size:10px;display:flex;align-items:center;gap:3px;pointer-events:none;"><i class="ph-fill ph-play" style="font-size:9px;"></i>Reel</span>'
+              : '';
+            a.innerHTML = '<img src="' + esc(f.url) + '" alt="" loading="lazy">' + badge;
             grid.appendChild(a);
           });
           el.appendChild(grid);

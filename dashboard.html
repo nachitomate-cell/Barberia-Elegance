@@ -5343,6 +5343,24 @@
          onclick="cerrarLookbookViewer()"
          style="animation:fadeIn .3s ease;">
 
+    <!-- Video/Reel: mismo lugar que la <img>. Hidden por defecto.
+         `playsinline` evita el fullscreen forzado en iOS Safari. -->
+    <video id="lookbookViewerVideo"
+           class="hidden max-w-full max-h-full object-contain rounded-2xl shadow-2xl cursor-default"
+           controls playsinline preload="metadata"
+           onclick="event.stopPropagation()"
+           style="animation:fadeIn .3s ease;"></video>
+
+    <!-- Fallback "Ver en Instagram": si el <video> no puede reproducir la
+         URL del CDN (expirada), abre el reel en instagram.com. -->
+    <a id="lbOpenInIg" href="#" target="_blank" rel="noopener noreferrer"
+       onclick="event.stopPropagation()"
+       class="hidden fixed z-[81] bg-black/70 backdrop-blur-sm text-white rounded-full shadow-lg active:opacity-80 transition-opacity flex items-center gap-2"
+       style="top:calc(1rem + env(safe-area-inset-top));left:1rem;padding:0.6rem 1rem;font-size:0.75rem;font-weight:700;">
+      <i class="ph-fill ph-instagram-logo" style="font-size:1rem;"></i>
+      <span>Ver en Instagram</span>
+    </a>
+
     <!-- Botón de like: corazón + contador, centrado abajo -->
     <button id="lbLikeBtn" onclick="event.stopPropagation();toggleLikeViewer()"
             class="hidden fixed z-[81] bg-black/70 backdrop-blur-sm text-white rounded-full shadow-lg active:opacity-80 transition-opacity flex items-center"
@@ -7027,16 +7045,59 @@ function cerrarBarberoBio() {
 }
 
 // ─── Visor Lookbook ───────────────────────────────────────────
+// abrirFotoLookbook(url, photoId) — el 1er arg queda por compat con calls
+// legacy (fotos manuales que pasaban solo la URL). Si viene photoId lo
+// usamos para lookup del doc (permite detectar reels/videos).
 function abrirFotoLookbook(url, photoId) {
-  document.getElementById('lookbookViewerImg').src = url;
+  const imgEl   = document.getElementById('lookbookViewerImg');
+  const videoEl = document.getElementById('lookbookViewerVideo');
+  const igLink  = document.getElementById('lbOpenInIg');
+
+  const doc = photoId ? _lbDocs.find(d => d.id === photoId) : null;
+  const isVideo = !!(doc && doc.mediaType === 'VIDEO' && doc.videoUrl);
+
+  if (isVideo) {
+    // Reel: usa <video>. Poster = thumbnail. Fallback = permalink en IG.
+    videoEl.src    = doc.videoUrl;
+    videoEl.poster = doc.thumbnailUrl || doc.url || '';
+    videoEl.classList.remove('hidden');
+    imgEl.src = '';
+    imgEl.classList.add('hidden');
+    if (doc.permalink) {
+      igLink.href = doc.permalink;
+      igLink.classList.remove('hidden');
+    } else {
+      igLink.classList.add('hidden');
+    }
+    // Auto-play silencioso (los reels de IG suelen tener audio ambiental);
+    // si el navegador lo bloquea, el usuario tiene los controles.
+    try { videoEl.play().catch(() => {}); } catch (_) {}
+  } else {
+    // Foto: comportamiento clásico.
+    imgEl.src = url;
+    imgEl.classList.remove('hidden');
+    videoEl.pause();
+    videoEl.removeAttribute('src');
+    videoEl.load();
+    videoEl.classList.add('hidden');
+    igLink.classList.add('hidden');
+  }
+
   _lbCurrentId = photoId || null;
   _lbSyncViewer();
   document.getElementById('lookbookViewer').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
 }
 function cerrarLookbookViewer() {
+  const videoEl = document.getElementById('lookbookViewerVideo');
   document.getElementById('lookbookViewer').classList.add('hidden');
   document.getElementById('lookbookViewerImg').src = '';
+  // Detener el reel al cerrar para liberar bandwidth y no seguir cargando.
+  videoEl.pause();
+  videoEl.removeAttribute('src');
+  videoEl.load();
+  videoEl.classList.add('hidden');
+  document.getElementById('lbOpenInIg').classList.add('hidden');
   _lbCurrentId = null;
   document.body.style.overflow = '';
 }
@@ -7061,10 +7122,18 @@ function _lbBadgeInner(d, liked) {
             <span>${likes}</span>
           </div>`;
 }
-// Render de una sola tarjeta del lookbook.
+// Render de una sola tarjeta del lookbook. Para reels (mediaType==='VIDEO')
+// mostramos el thumbnail con un badge de play — la reproducción se abre en
+// el visor.
 function _lbItemHtml(d, likedIds) {
-  const url   = d.url;
-  const liked = likedIds.includes(d.id);
+  const url     = d.url;
+  const liked   = likedIds.includes(d.id);
+  const isVideo = d.mediaType === 'VIDEO';
+  const playBadge = isVideo
+    ? `<div class="absolute z-20 left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none flex items-center justify-center rounded-full bg-black/55 backdrop-blur-sm" style="width:44px;height:44px;">
+         <i class="ph-fill ph-play" style="color:#fff;font-size:20px;margin-left:2px;"></i>
+       </div>`
+    : '';
   return `
     <div class="masonry-item rounded-md overflow-hidden border border-white/8 bg-[#111115] relative min-h-[180px] cursor-pointer active:opacity-80 transition-opacity"
          data-lb-id="${d.id}"
@@ -7073,6 +7142,7 @@ function _lbItemHtml(d, likedIds) {
       <img src="${url}" loading="lazy" class="w-full object-cover block relative z-10 opacity-0 transition-opacity duration-500"
            onload="this.style.opacity='1';const s=this.parentElement.querySelector('.lk-sk');if(s)s.remove();"
            onerror="this.parentElement.remove()">
+      ${playBadge}
       <div class="lb-badge-slot">${_lbBadgeInner(d, liked)}</div>
     </div>`;
 }
