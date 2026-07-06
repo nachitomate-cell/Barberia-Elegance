@@ -91,11 +91,12 @@ exports.crearCanje = onCall(async (req) => {
   try {
     await db.runTransaction(async (tx) => {
       // Validar toggle "autoservicio de canje" (panel Premios).
-      // Default true — solo false explícito bloquea.
+      // Opt-in estricto: SOLO === true habilita. Undefined/null/false → bloqueado.
+      // El dueño debe activarlo explícitamente desde el panel.
       const setSnap = await tx.get(settingsRef);
       const setData = setSnap.exists ? (setSnap.data() || {}) : {};
-      if (setData.canjeClienteEnabled === false) {
-        throw new HttpsError('permission-denied', 'El local desactivó el autoservicio de canje. Muéstrale el premio al staff.');
+      if (setData.canjeClienteEnabled !== true) {
+        throw new HttpsError('permission-denied', 'El autoservicio de canje no está habilitado. Muéstrale el premio al staff en el local.');
       }
 
       const [uSnap, pSnap] = await Promise.all([tx.get(userRef), tx.get(premioRef)]);

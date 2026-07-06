@@ -6599,9 +6599,10 @@ function renderStamps(count, historicos) {
 // el snapshot del user. Si el user no tiene referralCode, se genera aquí y
 // se persiste (backfill para users pre-feature).
 let _referralProgramCache = null;
-// Flag "autoservicio de canje" del panel /premios. Default true para no
-// romper tenants existentes. Se sincroniza junto con el programa de referidos.
-let _canjeAutoEnabled = true;
+// Flag "autoservicio de canje" del panel /premios. Default FALSE (opt-in):
+// el dueño debe activarlo desde el panel para permitir que el cliente genere
+// el QR desde el móvil. Sin ese opt-in explícito, el canje es asistido por staff.
+let _canjeAutoEnabled = false;
 
 async function _loadReferralProgramConfig() {
   try {
@@ -6615,7 +6616,8 @@ async function _loadReferralProgramConfig() {
       snap => {
         const d = snap.exists ? (snap.data() || {}) : {};
         _referralProgramCache = d.referralProgram || { enabled: false };
-        _canjeAutoEnabled = d.canjeClienteEnabled !== false;
+        // Opt-in estricto: solo === true habilita el autoservicio.
+        _canjeAutoEnabled = d.canjeClienteEnabled === true;
       },
       err => {
         console.warn('[settings] onSnapshot:', err.message);

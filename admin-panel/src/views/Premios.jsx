@@ -317,11 +317,12 @@ export default function Premios() {
 
   /* ── Toggle "Autoservicio de canje" ─────────────────────────
      Vive en tenant/settings/general.canjeClienteEnabled.
-     Default TRUE (no romper tenants existentes que ya usan el flow).
+     Default FALSE (opt-in): el dueño debe activarlo explícitamente
+     para permitir que el cliente genere el QR desde su móvil.
      Cuando está apagado, el cliente ve el premio pero NO puede
      generar el QR él mismo — solo el staff desde /canjes.
      CF `crearCanje` valida server-side también. */
-  const [canjeAuto,      setCanjeAuto]      = useState(true);
+  const [canjeAuto,      setCanjeAuto]      = useState(false);
   const [savingCanjeAuto, setSavingCanjeAuto] = useState(false);
   useEffect(() => {
     const ref = tenantDoc('settings', 'general');
@@ -329,8 +330,8 @@ export default function Premios() {
       ref,
       snap => {
         const d = snap.exists() ? snap.data() : {};
-        // Undefined y true → activo; solo false lo desactiva.
-        setCanjeAuto(d.canjeClienteEnabled !== false);
+        // Opt-in estricto: activo SOLO si el tenant lo puso === true.
+        setCanjeAuto(d.canjeClienteEnabled === true);
       },
       err => { console.warn('[premios] no se pudo leer settings:', err.message); },
     );
