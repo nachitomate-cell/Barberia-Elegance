@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Fix barberoIds — remap docs de enlace → docs principales</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f172a; color: #e2e8f0; margin: 0; padding: 2rem 1rem; }
+  main { max-width: 640px; margin: 0 auto; }
+  h1 { font-size: 1.15rem; letter-spacing: 0.04em; margin: 0 0 0.5rem; }
+  p  { color: #94a3b8; font-size: 0.9rem; line-height: 1.5; margin: 0.5rem 0; }
+  label { display: block; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #94a3b8; margin-top: 1rem; margin-bottom: 0.35rem; }
+  input { width: 100%; padding: 0.75rem 0.9rem; font-size: 0.95rem; background: #1e293b; border: 1px solid #334155; border-radius: 0.6rem; color: #fff; outline: none; }
+  input:focus { border-color: #64748b; }
+  button { display: block; width: 100%; padding: 0.9rem; margin-top: 1.25rem; background: #10b981; color: #052e21; border: none; border-radius: 0.6rem; font-size: 0.95rem; font-weight: 800; cursor: pointer; letter-spacing: 0.02em; }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  button.secondary { background: #334155; color: #e2e8f0; }
+  pre { background: #020617; border: 1px solid #1e293b; padding: 1rem; border-radius: 0.6rem; font-size: 0.8rem; overflow-x: auto; margin-top: 1rem; max-height: 400px; overflow-y: auto; }
+  .row { display: flex; gap: 0.5rem; align-items: center; margin-top: 0.5rem; }
+  .badge { display: inline-block; padding: 0.15rem 0.5rem; background: #1e293b; border: 1px solid #334155; border-radius: 0.4rem; font-size: 0.7rem; font-weight: 600; }
+  .err { color: #f87171; }
+  .ok  { color: #34d399; }
+</style>
+</head>
+<body>
+<main>
+  <h1>🔧 Fix barberoIds</h1>
+  <p>
+    Repara citas antiguas guardadas con el ID del doc de enlace (UID de auth)
+    en vez del ID del doc principal (<code>_mainDocId</code>). Solo actualiza
+    las que efectivamente están mal — las citas nuevas del código actualizado
+    ya no se ven afectadas.
+  </p>
+  <p>
+    Requiere login con la cuenta bootstrap admin
+    (<code>ignaciiio.mate@gmail.com</code> o
+    <code>barrazanicolasfabian@gmail.com</code>).
+  </p>
+
+  <label for="tenantId">Tenant ID</label>
+  <input id="tenantId" placeholder="elbarberomoderno" value="elbarberomoderno">
+
+  <label for="emailInput">Email</label>
+  <input id="emailInput" type="email" placeholder="ignaciiio.mate@gmail.com" autocomplete="email">
+
+  <label for="passInput">Contraseña</label>
+  <input id="passInput" type="password" autocomplete="current-password">
+
+  <div class="row">
+    <button id="btnLogin">1. Iniciar sesión</button>
+  </div>
+  <div class="row">
+    <button id="btnDryRun" disabled class="secondary">2. Simular (dry-run)</button>
+  </div>
+  <div class="row">
+    <button id="btnApply" disabled>3. Aplicar cambios</button>
+  </div>
+
+  <pre id="log">Estado: esperando login…</pre>
+</main>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="/firebase-config.js?v=1.3"></script>
+<script>
+(function () {
+  const BOOTSTRAP_ADMINS = ['ignaciiio.mate@gmail.com', 'barrazanicolasfabian@gmail.com'];
+  const $log     = document.getElementById('log');
+  const $tenant  = document.getElementById('tenantId');
+  const $email   = document.getElementById('emailInput');
+  const $pass    = document.getElementById('passInput');
+  const $btnLog  = document.getElementById('btnLogin');
+  const $btnDry  = document.getElementById('btnDryRun');
+  const $btnApp  = document.getElementById('btnApply');
+
+  function log(msg, cls) {
+    const line = document.createElement('div');
+    if (cls) line.className = cls;
+    line.textContent = msg;
+    $log.appendChild(line);
+    $log.scrollTop = $log.scrollHeight;
+  }
+
+  function pathCitas(tid) {
+    return 'tenants/' + tid + '/citas';
+  }
+  function pathBarberos(tid) {
+    return 'tenants/' + tid + '/barberos';
+  }
+
+  $btnLog.addEventListener('click', async () => {
+    const email = ($email.value || '').trim().toLowerCase();
+    const pass  = $pass.value;
+    if (!email || !pass) { log('Faltan email o password', 'err'); return; }
+    if (!BOOTSTRAP_ADMINS.includes(email)) {
+      log('Email no está en BOOTSTRAP_ADMINS — no autorizado', 'err');
+      return;
+    }
+    $btnLog.disabled = true;
+    try {
+      await firebase.auth().signInWithEmailAndPassword(email, pass);
+      log('Login OK como ' + email, 'ok');
+      $btnDry.disabled = false;
+      $btnApp.disabled = false;
+    } catch (e) {
+      log('Login falló: ' + (e.message || e.code), 'err');
+      $btnLog.disabled = false;
+    }
+  });
+
+  async function computeRemap(tid) {
+    const db = firebase.firestore();
+    const bSnap = await db.collection(pathBarberos(tid)).get();
+    const remap = {};
+    bSnap.docs.forEach(d => {
+      const data = d.data() || {};
+      if (data._mainDocId && data._mainDocId !== d.id) {
+        remap[d.id] = data._mainDocId;
+      }
+    });
+    return remap;
+  }
+
+  async function collectTargets(tid, remap) {
+    const db = firebase.firestore();
+    const cSnap = await db.collection(pathCitas(tid)).get();
+    return cSnap.docs.filter(d => remap[d.data().barberoId]);
+  }
+
+  $btnDry.addEventListener('click', async () => {
+    const tid = ($tenant.value || '').trim();
+    if (!tid) { log('Falta tenant', 'err'); return; }
+    $btnDry.disabled = true;
+    try {
+      log('— Dry-run para tenant: ' + tid + ' —');
+      const remap = await computeRemap(tid);
+      log('Remap (id doc enlace → _mainDocId):');
+      Object.entries(remap).forEach(([k, v]) => log('  ' + k + ' → ' + v));
+      if (!Object.keys(remap).length) {
+        log('No hay docs de enlace — nada que hacer.', 'ok');
+        return;
+      }
+      const targets = await collectTargets(tid, remap);
+      log('Citas que se actualizarían: ' + targets.length, 'ok');
+      targets.slice(0, 20).forEach(d => {
+        const x = d.data();
+        log('  ' + d.id + ' | fecha:' + x.fecha + ' | hora:' + x.hora + ' | barberoId:' + x.barberoId + ' → ' + remap[x.barberoId]);
+      });
+      if (targets.length > 20) log('  ...(' + (targets.length - 20) + ' más ocultas)');
+    } catch (e) {
+      log('Error dry-run: ' + (e.message || e.code), 'err');
+    } finally {
+      $btnDry.disabled = false;
+    }
+  });
+
+  $btnApp.addEventListener('click', async () => {
+    const tid = ($tenant.value || '').trim();
+    if (!tid) { log('Falta tenant', 'err'); return; }
+    if (!confirm('¿Aplicar el remap en el tenant "' + tid + '"? Esto ESCRIBE en Firestore.')) return;
+    $btnApp.disabled = true;
+    $btnDry.disabled = true;
+    try {
+      log('— Aplicando cambios para tenant: ' + tid + ' —');
+      const remap = await computeRemap(tid);
+      if (!Object.keys(remap).length) {
+        log('No hay docs de enlace — nada que hacer.', 'ok');
+        return;
+      }
+      const targets = await collectTargets(tid, remap);
+      log('Citas a actualizar: ' + targets.length);
+      const db = firebase.firestore();
+      let batch = db.batch(), n = 0, total = 0;
+      for (const d of targets) {
+        batch.update(d.ref, { barberoId: remap[d.data().barberoId] });
+        n++; total++;
+        if (n === 450) {
+          await batch.commit();
+          log('Batch commit (' + total + ' hasta ahora)');
+          batch = db.batch(); n = 0;
+        }
+      }
+      if (n) await batch.commit();
+      log('LISTO. Total actualizadas: ' + total, 'ok');
+    } catch (e) {
+      log('Error apply: ' + (e.message || e.code), 'err');
+    } finally {
+      $btnApp.disabled = false;
+      $btnDry.disabled = false;
+    }
+  });
+})();
+</script>
+</body>
+</html>
