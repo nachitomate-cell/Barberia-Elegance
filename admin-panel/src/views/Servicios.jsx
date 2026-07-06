@@ -339,8 +339,10 @@ export default function Servicios() {
     await updateConfig({ categoriasServicio: categorias.filter(c => c !== nombre) });
   };
 
-  const field = 'w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors';
-  const lbl   = 'block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5';
+  // Estilos base unificados (SaaS premium dark). Todo el form los reutiliza.
+  const field = 'w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors';
+  const lbl   = 'block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5';
+  const help  = 'text-xs text-slate-500 mt-1';
 
   const previewSrc = imagePreview || form.imagen;
 
@@ -511,12 +513,20 @@ export default function Servicios() {
         onClose={() => { resetImageState(); setSlide(false); }}
         title={editing ? 'Editar servicio' : 'Nuevo servicio'}
         footer={
-          <div className="flex gap-3 justify-end">
-            <button onClick={() => { resetImageState(); setSlide(false); }} className="px-4 py-2 text-sm text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-all">Cancelar</button>
+          // Footer premium: sticky con desenfoque para no perder el CTA al scrollear.
+          // (El SlideOver ya lo renderiza fuera del body scrollable, así que la
+          // "adherencia" se logra con bg semitransparente + backdrop-blur.)
+          <div className="flex gap-3 justify-end -mx-6 -mt-4 px-6 pt-4 pb-1 bg-slate-900/80 backdrop-blur-md">
+            <button
+              onClick={() => { resetImageState(); setSlide(false); }}
+              className="px-4 py-2 text-sm text-slate-400 hover:text-white rounded-lg hover:bg-slate-800/60 transition-all"
+            >
+              Cancelar
+            </button>
             <button
               onClick={handleSave}
               disabled={saving || !form.nombre || !form.precio || !form.duracion}
-              className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-sm font-semibold rounded-lg transition-all flex items-center gap-2"
+              className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg shadow-lg shadow-indigo-500/20 transition-all flex items-center gap-2"
             >
               {(saving || imgUploading) && <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />}
               {imgUploading ? 'Subiendo imagen…' : (editing ? 'Guardar' : 'Crear servicio')}
@@ -524,13 +534,15 @@ export default function Servicios() {
           </div>
         }
       >
-        <div className="space-y-4">
+        <div className="space-y-5">
 
+          {/* ── Nombre ── */}
           <div>
             <label className={lbl}>Nombre del servicio</label>
             <input className={field} placeholder="Corte clásico" value={form.nombre} onChange={e => setForm(f => ({ ...f, nombre: e.target.value }))} />
           </div>
 
+          {/* ── Precio + Duración ── */}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className={lbl}>Precio (CLP)</label>
@@ -542,55 +554,52 @@ export default function Servicios() {
             </div>
           </div>
 
+          {/* ── Recargo sobrecupo ── */}
           <div>
             <label className={lbl}>
-              Recargo por Sobrecupo / Horario Especial ($)
-              <span className="text-slate-600 normal-case tracking-normal font-normal ml-1">(opcional)</span>
+              Recargo por Sobrecupo <span className="text-slate-600 normal-case tracking-normal font-normal ml-1">(opcional)</span>
             </label>
             <input
               className={field}
-              type="number"
-              min="0"
-              step="1"
-              inputMode="numeric"
+              type="number" min="0" step="1" inputMode="numeric"
               placeholder="5000"
               value={form.recargoSobrecupoDefault}
               onChange={e => setForm(f => ({ ...f, recargoSobrecupoDefault: e.target.value.replace(/[^\d]/g, '') }))}
             />
-            <p className="text-[11px] text-slate-500 mt-1">
-              Monto sugerido a cobrar sobre el precio base cuando la cita se agenda como sobrecupo
-              o fuera de turno. El barbero podrá ajustarlo en cada cita.
+            <p className={help}>
+              Monto adicional cuando la cita es sobrecupo o fuera de turno. El barbero puede ajustarlo por cita.
             </p>
           </div>
 
-          <div>
-            <label className={lbl}>Categoría</label>
-            <select className={field} value={form.categoria} onChange={e => setForm(f => ({ ...f, categoria: e.target.value }))}>
-              {categorias.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
+          {/* ── Categoría + Ícono ── */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={lbl}>Categoría</label>
+              <select className={field} value={form.categoria} onChange={e => setForm(f => ({ ...f, categoria: e.target.value }))}>
+                {categorias.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className={lbl}>Ícono</label>
+              <IconPicker value={form.icono} onChange={ic => setForm(f => ({ ...f, icono: ic }))} />
+            </div>
           </div>
 
-          <div>
-            <label className={lbl}>Ícono</label>
-            <IconPicker value={form.icono} onChange={ic => setForm(f => ({ ...f, icono: ic }))} />
-          </div>
-
-          {/* ── Imagen del servicio ── */}
+          {/* ── Imagen del servicio (dropzone estilo SaaS) ── */}
           <div>
             <label className={lbl}>
-              Imagen{' '}
-              <span className="text-slate-600 normal-case tracking-normal font-normal">(opcional — aparece en el portal VIP)</span>
+              Imagen <span className="text-slate-600 normal-case tracking-normal font-normal">(opcional · portal VIP)</span>
             </label>
 
             {previewSrc && (
-              <div className="relative mb-2 rounded-xl overflow-hidden bg-slate-800" style={{ aspectRatio: '16/9' }}>
+              <div className="relative mb-2 rounded-xl overflow-hidden bg-slate-800 group" style={{ aspectRatio: '16/9' }}>
                 <img src={previewSrc} alt="" className="w-full h-full object-cover" />
                 <button
                   type="button"
                   onClick={clearImage}
-                  className="absolute top-2 right-2 w-6 h-6 bg-black/60 hover:bg-red-500/80 rounded-full flex items-center justify-center transition-colors"
+                  className="absolute top-2 right-2 w-7 h-7 bg-black/70 hover:bg-red-500 rounded-lg flex items-center justify-center transition-colors ring-1 ring-white/10"
                 >
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5">
                     <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                   </svg>
                 </button>
@@ -600,25 +609,20 @@ export default function Servicios() {
             <button
               type="button"
               onClick={() => imgRef.current?.click()}
-              className="flex items-center justify-center gap-2 w-full px-3 py-2.5 bg-slate-800 border border-dashed border-slate-700 rounded-lg text-sm text-slate-400 hover:border-slate-500 hover:text-slate-300 transition-colors"
+              className="w-full py-6 border-2 border-dashed border-slate-700 hover:border-indigo-500 bg-slate-800/30 hover:bg-slate-800/50 rounded-xl flex flex-col items-center justify-center text-slate-400 hover:text-white transition-all group"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="mb-1.5 opacity-70 group-hover:opacity-100 transition-opacity">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
                 <polyline points="17,8 12,3 7,8"/>
                 <line x1="12" y1="3" x2="12" y2="15"/>
               </svg>
-              {previewSrc ? 'Cambiar imagen' : 'Subir imagen'}
+              <span className="text-sm font-medium">{previewSrc ? 'Cambiar imagen' : 'Arrastra o toca para subir'}</span>
+              <span className="text-[11px] text-slate-500 mt-0.5">JPG / PNG · se comprime a 16:9</span>
             </button>
-            <input
-              ref={imgRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleImageSelect}
-            />
-            <p className="text-[11px] text-slate-600 mt-1">Se comprime automáticamente. Recomendado: 16:9, mínimo 800×450 px.</p>
+            <input ref={imgRef} type="file" accept="image/*" className="hidden" onChange={handleImageSelect} />
           </div>
 
+          {/* ── Descripción ── */}
           <div>
             <label className={lbl}>
               Descripción <span className="text-slate-600 normal-case tracking-normal font-normal">(opcional)</span>
@@ -630,37 +634,46 @@ export default function Servicios() {
               value={form.descripcion}
               onChange={e => setForm(f => ({ ...f, descripcion: e.target.value }))}
             />
-            <p className="text-[11px] text-slate-600 mt-1">Máximo 2 líneas se mostrarán en la app de reserva.</p>
+            <p className={help}>Máximo 2 líneas se mostrarán en la app de reserva.</p>
           </div>
 
-          {/* Precios variables por día */}
+          {/* ══════════════════════════════════════════════════════════
+              TOGGLE: Precios variables por día
+              Fila clickeable con switch iOS. El sub-panel condicional se
+              "pega" visualmente al toggle (rounded-b-none + -mt-px).
+              ══════════════════════════════════════════════════════════ */}
           <div>
-            <button type="button"
+            <button
+              type="button"
               onClick={() => setForm(f => ({ ...f, varPrecios: !f.varPrecios }))}
-              className={`flex items-center gap-2 w-full px-3 py-2.5 rounded-lg border text-sm font-semibold transition-colors ${
+              className={`flex items-center justify-between gap-4 w-full p-4 border transition-colors ${
                 form.varPrecios
-                  ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400'
-                  : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-600'
-              }`}>
-              <span className={`w-8 h-4 rounded-full transition-colors relative ${form.varPrecios ? 'bg-emerald-500' : 'bg-slate-600'}`}>
-                <span className={`absolute top-0.5 w-3 h-3 bg-white rounded-full shadow transition-all ${form.varPrecios ? 'left-4' : 'left-0.5'}`} />
+                  ? 'bg-slate-800/50 border-indigo-500/40 rounded-t-xl border-b-transparent'
+                  : 'bg-slate-800/50 border-slate-700 hover:bg-slate-800 rounded-xl'
+              }`}
+            >
+              <div className="flex-1 text-left min-w-0">
+                <p className="text-sm font-semibold text-white">Precios variables por día</p>
+                <p className="text-xs text-slate-500 mt-0.5">Ajusta el precio según el día de la semana.</p>
+              </div>
+              <span className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${form.varPrecios ? 'bg-indigo-500' : 'bg-slate-600'}`}>
+                <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${form.varPrecios ? 'left-[22px]' : 'left-0.5'}`} />
               </span>
-              Precios variables por día
             </button>
             {form.varPrecios && (
-              <div className="mt-3 bg-slate-800/60 border border-slate-700 rounded-xl p-3">
-                <p className="text-[11px] text-slate-500 mb-3">Deja en blanco para usar el precio base. El precio que pague el cliente dependerá del día que elija.</p>
+              <div className="bg-slate-900/50 border-x border-b border-indigo-500/40 rounded-b-xl p-4">
+                <p className="text-xs text-slate-500 mb-3">Deja en blanco para usar el precio base. El precio dependerá del día que elija el cliente.</p>
                 <div className="grid grid-cols-7 gap-1.5">
                   {DIAS.map(({ key, label }) => (
                     <div key={key} className="flex flex-col items-center gap-1">
-                      <span className={`text-[10px] font-bold uppercase ${key === 0 || key === 6 ? 'text-amber-400' : 'text-slate-400'}`}>{label}</span>
+                      <span className={`text-[10px] font-bold uppercase tracking-wider ${key === 0 || key === 6 ? 'text-amber-400' : 'text-slate-400'}`}>{label}</span>
                       <input
                         type="number"
                         min="0" step="1" inputMode="numeric"
                         placeholder={form.precio || '–'}
                         value={form.ppd[key]}
                         onChange={e => setForm(f => ({ ...f, ppd: { ...f.ppd, [key]: e.target.value.replace(/[^\d]/g, '') } }))}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-1 py-1.5 text-[11px] text-center text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500 transition-colors"
+                        className="w-full bg-slate-800 border border-slate-700 rounded-lg px-1 py-1.5 text-[11px] text-center text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
                       />
                     </div>
                   ))}
@@ -669,30 +682,36 @@ export default function Servicios() {
             )}
           </div>
 
-          {/* ── Pack / Cuponera ────────────────────────────────────
-              Motor de sesiones prepagas. Cuando isPack=true, el precio
-              base representa el costo del PACK COMPLETO. Al completar
-              una cita con este servicio, se activa el pack en el user
-              (users/{uid}.packsActivos) con sesionesRestantes = N-1.
-              Las citas siguientes consumen sesiones del pack (precio 0). */}
+          {/* ══════════════════════════════════════════════════════════
+              TOGGLE: Pack / Cuponera
+              Mismo patrón que precios variables. Motor de sesiones prepagas.
+              ══════════════════════════════════════════════════════════ */}
           <div>
-            <button type="button"
+            <button
+              type="button"
               onClick={() => setForm(f => ({ ...f, isPack: !f.isPack }))}
-              className={`flex items-center gap-2 w-full px-3 py-2.5 rounded-lg border text-sm font-semibold transition-colors ${
+              className={`flex items-center justify-between gap-4 w-full p-4 border transition-colors ${
                 form.isPack
-                  ? 'bg-violet-500/10 border-violet-500/40 text-violet-300'
-                  : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-600'
-              }`}>
-              <span className={`w-8 h-4 rounded-full transition-colors relative ${form.isPack ? 'bg-violet-500' : 'bg-slate-600'}`}>
-                <span className={`absolute top-0.5 w-3 h-3 bg-white rounded-full shadow transition-all ${form.isPack ? 'left-4' : 'left-0.5'}`} />
+                  ? 'bg-slate-800/50 border-violet-500/40 rounded-t-xl border-b-transparent'
+                  : 'bg-slate-800/50 border-slate-700 hover:bg-slate-800 rounded-xl'
+              }`}
+            >
+              <div className="flex-1 text-left min-w-0">
+                <p className="text-sm font-semibold text-white flex items-center gap-1.5">
+                  <span aria-hidden="true">📦</span> Este servicio es un Pack / Combo
+                </p>
+                <p className="text-xs text-slate-500 mt-0.5">Múltiples visitas prepagas dentro de una vigencia.</p>
+              </div>
+              <span className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${form.isPack ? 'bg-violet-500' : 'bg-slate-600'}`}>
+                <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${form.isPack ? 'left-[22px]' : 'left-0.5'}`} />
               </span>
-              📦 Este servicio es un Pack / Combo de múltiples visitas
             </button>
             {form.isPack && (
-              <div className="mt-3 bg-violet-500/[0.04] border border-violet-500/25 rounded-xl p-3.5 space-y-3">
-                <p className="text-[11px] text-slate-400 leading-relaxed">
+              <div className="bg-slate-900/50 border-x border-b border-violet-500/40 rounded-b-xl p-4 space-y-4">
+                <p className="text-xs text-slate-400 leading-relaxed">
                   El cliente paga <span className="text-white font-semibold">${form.precio || '?'}</span> una vez y consume N visitas dentro de la vigencia. Las citas de consumo se cobran <span className="text-white font-semibold">$0</span>.
                 </p>
+
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className={lbl}>Sesiones incluidas</label>
@@ -703,7 +722,7 @@ export default function Servicios() {
                       onChange={e => setForm(f => ({ ...f, sesionesTotales: e.target.value.replace(/[^\d]/g, '') }))}
                       className={field}
                     />
-                    <p className="text-[10px] text-slate-500 mt-1">Cantidad total de citas del pack.</p>
+                    <p className={help}>Cantidad total de citas del pack.</p>
                   </div>
                   <div>
                     <label className={lbl}>Vigencia (días)</label>
@@ -714,31 +733,29 @@ export default function Servicios() {
                       onChange={e => setForm(f => ({ ...f, diasValidez: e.target.value.replace(/[^\d]/g, '') }))}
                       className={field}
                     />
-                    <p className="text-[10px] text-slate-500 mt-1">Días desde la primera cita hasta que expira.</p>
+                    <p className={help}>Días desde la primera cita hasta que expira.</p>
                   </div>
                 </div>
 
-                {/* Servicios que cubre el pack — permite que la reserva pública
-                    detecte automáticamente el consumo. Sin ninguno marcado, el
-                    cliente tiene que elegir el pack manualmente (fallback). */}
+                {/* Servicios cubiertos — checkboxes elegantes */}
                 <div>
                   <label className={lbl}>¿Qué servicios cubre este pack?</label>
-                  <div className="mt-1 bg-neutral-900/50 border border-neutral-700 rounded-lg max-h-56 overflow-y-auto p-2 space-y-1">
+                  <div className="mt-1 bg-slate-950/40 border border-slate-700 rounded-lg max-h-56 overflow-y-auto p-1.5 space-y-0.5">
                     {servicios.filter(s => s.id !== editing).length === 0 ? (
-                      <p className="text-[11px] text-slate-500 py-4 text-center italic">
+                      <p className="text-xs text-slate-500 py-6 text-center italic px-4">
                         Crea primero los servicios normales que quieres incluir en el pack.
                       </p>
                     ) : (
                       servicios
-                        .filter(s => s.id !== editing && !s.isPack) // no incluir otros packs
+                        .filter(s => s.id !== editing && !s.isPack)
                         .sort((a, b) => (a.orden ?? 999) - (b.orden ?? 999))
                         .map(s => {
                           const checked = (form.serviciosIncluidos || []).includes(s.id);
                           return (
                             <label
                               key={s.id}
-                              className={`flex items-center gap-2.5 px-2 py-1.5 rounded-md cursor-pointer transition-colors ${
-                                checked ? 'bg-violet-500/10' : 'hover:bg-neutral-800/60'
+                              className={`flex items-center gap-3 px-2.5 py-2 rounded-lg cursor-pointer transition-colors ${
+                                checked ? 'bg-violet-500/10' : 'hover:bg-slate-800/50'
                               }`}
                             >
                               <input
@@ -750,13 +767,13 @@ export default function Servicios() {
                                   else next.delete(s.id);
                                   setForm(f => ({ ...f, serviciosIncluidos: [...next] }));
                                 }}
-                                className="accent-violet-500 cursor-pointer"
+                                className="w-4 h-4 bg-slate-900 border-slate-600 rounded accent-violet-500 cursor-pointer shrink-0"
                               />
-                              <i className={`ph ${s.icono || 'ph-scissors'} text-sm ${checked ? 'text-violet-300' : 'text-slate-500'}`} />
-                              <span className={`text-[13px] truncate flex-1 ${checked ? 'text-white' : 'text-slate-300'}`}>
+                              <i className={`ph ${s.icono || 'ph-scissors'} text-base ${checked ? 'text-violet-300' : 'text-slate-500'}`} />
+                              <span className={`text-sm truncate flex-1 ${checked ? 'text-white font-medium' : 'text-slate-300'}`}>
                                 {s.nombre}
                               </span>
-                              <span className="text-[10px] text-slate-500 shrink-0">
+                              <span className="text-[10px] text-slate-500 shrink-0 uppercase tracking-wider">
                                 {s.categoria || 'Otro'}
                               </span>
                             </label>
@@ -764,8 +781,8 @@ export default function Servicios() {
                         })
                     )}
                   </div>
-                  <p className="text-[10px] text-slate-500 mt-1.5 leading-relaxed">
-                    Cuando el cliente reserve uno de estos servicios y tenga este pack activo, la web le ofrecerá descontarlo automáticamente en vez de cobrar.
+                  <p className={help}>
+                    Cuando el cliente reserve uno de estos servicios y tenga este pack activo, la web se lo descontará automáticamente.
                   </p>
                 </div>
               </div>
