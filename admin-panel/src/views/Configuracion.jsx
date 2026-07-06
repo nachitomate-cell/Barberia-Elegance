@@ -2,13 +2,26 @@ import { useState, useEffect, useRef } from 'react';
 import {
   Store, MapPin, Phone, Instagram, Image, Clock, Check, Save, HelpCircle, AlertCircle,
   GraduationCap, Scissors, Ban, Info, Sparkles, Target, Layers,
+  Package, Tag, PenLine, Award,
 } from 'lucide-react';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { tenantCol } from '../lib/tenantUtils';
 import { withTimeout } from '../lib/firestore-helpers';
+import { useCollection } from '../hooks/useCollection';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 import { isDailyWelcomeDisabled, setDailyWelcomeDisabled } from '../components/DailyWelcomePanel';
+
+/* Categorías de recompensa del programa de referidos (mismo patrón que Sorteos).
+   El submit persiste { categoria, textoDinamico, detalle } para que sea legible
+   por el dashboard cliente sin lógica extra. */
+const REF_CATEGORIAS = [
+  { key: 'SELLOS',    emoji: '⭐', label: 'Sellos gratis',   Icon: Award    },
+  { key: 'SERVICIO',  emoji: '✂️', label: 'Servicio gratis', Icon: Scissors },
+  { key: 'PRODUCTO',  emoji: '📦', label: 'Producto',        Icon: Package  },
+  { key: 'DESCUENTO', emoji: '🏷️', label: 'Descuento',       Icon: Tag      },
+  { key: 'OTRO',      emoji: '✍️', label: 'Otro',            Icon: PenLine  },
+];
 
 /* ─── Constants ─────────────────────────────────────────────── */
 const DIAS_LABELS = { '1':'Lunes','2':'Martes','3':'Miércoles','4':'Jueves','5':'Viernes','6':'Sábado','0':'Domingo' };
@@ -50,9 +63,19 @@ const DEFAULT_SETTINGS = {
   quienesSomos: { activo: false, texto: '' },
   referralProgram: {
     enabled:     false,
+    // LEGACY (backward compat): mostrado si no hay recompensas nuevas cargadas.
+    // Sigue guardándose para tenants viejos y para el copy general del programa.
     rewardText:  '¡Gana 1 sello gratis por cada amigo que se registre y agende su primer corte!',
-    rewardType:  'stamp',   // 'stamp' | 'discount' | 'custom'
-    rewardValue: 1,
+    rewardType:  'stamp',   // 'stamp' | 'discount' | 'custom'  (legacy)
+    rewardValue: 1,          // (legacy)
+
+    // ── Nuevo (Fase 1): recompensas estructuradas ────────────────────
+    // Mismo formato polimórfico que los premios y sorteos:
+    //   { categoria, textoDinamico, detalle }
+    // La Cloud Function de otorgamiento (Fase 2) leerá `detalle.*` según
+    // categoría (incrementar sellos, crear redemption, aplicar descuento).
+    recompensaReferidor: null, // el cliente que INVITÓ (comparte código)
+    recompensaReferido:  null, // el cliente que USÓ el código (se registra)
   },
 };
 
@@ -197,6 +220,189 @@ function DayRow({ diaKey, config, onChange }) {
   );
 }
 
+/* ────────────────────────────────────────────────────────────────
+   RecompensaEstructurada — sub-form reutilizable para elegir una
+   recompensa del programa de referidos con la misma UX que Premios.
+   Emite hacia arriba el objeto polimórfico:
+     { categoria, textoDinamico, detalle }
+   `textoDinamico` es lo que el dashboard cliente muestra tal cual
+   (frase leíble). `detalle.*` es lo que consumirá la CF de otorgamiento
+   en Fase 2 (productoId, servicioId, tipo/valor de descuento, sellos).
+   ──────────────────────────────────────────────────────────────── */
+function RecompensaEstructurada({ title, subtitle, value, onChange, productos, servicios }) {
+  const inp = 'h-9 text-sm bg-neutral-900 border border-neutral-800 rounded-lg w-full px-3 text-white placeholder-neutral-500 focus:outline-none focus:border-emerald-500';
+  const cat = value?.categoria || null;
+
+  const applyCat = (newCat) => {
+    // Al cambiar de categoría, reseteamos el detalle específico pero mantenemos
+    // la categoría. `textoDinamico` se recalcula recién al escribir/elegir.
+    onChange({ categoria: newCat, textoDinamico: '', detalle: {} });
+  };
+
+  const setDetalle = (patch) => {
+    const next = { ...(value || {}), detalle: { ...(value?.detalle || {}), ...patch } };
+    // Recalcular textoDinamico según la categoría y el detalle actualizado.
+    next.textoDinamico = buildTextoRefRecompensa(next);
+    onChange(next);
+  };
+
+  return (
+    <div className="bg-neutral-900/40 border border-neutral-800 rounded-xl p-3.5 space-y-2.5">
+      <div>
+        <p className="text-sm font-semibold text-white">{title}</p>
+        {subtitle && <p className="text-[11px] text-neutral-500 mt-0.5">{subtitle}</p>}
+      </div>
+
+      <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-5">
+        {REF_CATEGORIAS.map(c => {
+          const active = cat === c.key;
+          return (
+            <button
+              key={c.key} type="button"
+              onClick={() => applyCat(c.key)}
+              className={`flex items-center justify-center gap-1 h-10 text-xs rounded-lg border transition-all ${
+                active
+                  ? 'bg-emerald-500/10 border-emerald-500/40 text-white font-semibold'
+                  : 'bg-neutral-900/70 border-neutral-800 text-neutral-400 hover:text-white'
+              }`}
+            >
+              <span className="text-sm leading-none">{c.emoji}</span>
+              <span className="truncate">{c.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Sub-form dinámico */}
+      {cat === 'SELLOS' && (
+        <div className="flex items-center gap-2">
+          <input
+            type="number" min="1" max="20"
+            value={value?.detalle?.cantidad ?? ''}
+            onChange={e => setDetalle({ cantidad: Math.max(1, Math.min(20, Number(e.target.value) || 0)) })}
+            placeholder="1"
+            className={inp + ' max-w-[100px]'}
+          />
+          <span className="text-xs text-neutral-400">sellos</span>
+        </div>
+      )}
+
+      {cat === 'SERVICIO' && (
+        servicios.length > 0 ? (
+          <select
+            value={value?.detalle?.servicioId || ''}
+            onChange={e => {
+              const svc = servicios.find(s => s.id === e.target.value);
+              setDetalle({ servicioId: svc?.id || '', nombre: svc?.nombre || '' });
+            }}
+            className={inp}
+          >
+            <option value="">Selecciona el servicio a regalar…</option>
+            {servicios.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+          </select>
+        ) : (
+          <p className="text-xs text-amber-400/80 italic h-9 flex items-center px-3 bg-amber-500/5 border border-amber-500/20 rounded-lg">
+            Cargá al menos un servicio primero.
+          </p>
+        )
+      )}
+
+      {cat === 'PRODUCTO' && (
+        productos.length > 0 ? (
+          <select
+            value={value?.detalle?.productoId || ''}
+            onChange={e => {
+              const prod = productos.find(p => p.id === e.target.value);
+              setDetalle({ productoId: prod?.id || '', nombre: prod?.nombre || '' });
+            }}
+            className={inp}
+          >
+            <option value="">Selecciona el producto…</option>
+            {productos.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+          </select>
+        ) : (
+          <input
+            type="text"
+            value={value?.detalle?.nombre || ''}
+            onChange={e => setDetalle({ nombre: e.target.value, custom: true })}
+            placeholder="Sin catálogo — escribe el producto"
+            className={inp}
+          />
+        )
+      )}
+
+      {cat === 'DESCUENTO' && (
+        <div className="grid grid-cols-[80px_1fr_auto] gap-2 items-center">
+          <div className="grid grid-cols-2 p-0.5 bg-neutral-950 border border-neutral-800 rounded-lg h-9">
+            {['%', '$'].map(t => (
+              <button
+                key={t} type="button"
+                onClick={() => setDetalle({ tipo: t })}
+                className={`text-sm font-bold rounded-md transition-all ${
+                  (value?.detalle?.tipo || '%') === t ? 'bg-neutral-800 text-white' : 'text-neutral-500 hover:text-white'
+                }`}
+              >{t}</button>
+            ))}
+          </div>
+          <input
+            type="number" min="1"
+            value={value?.detalle?.valor ?? ''}
+            onChange={e => setDetalle({ valor: Number(e.target.value) || 0 })}
+            placeholder={(value?.detalle?.tipo || '%') === '%' ? 'Ej: 20' : 'Ej: 5000'}
+            className={inp}
+          />
+          <select
+            value={value?.detalle?.aplicaA || 'SERVICIO'}
+            onChange={e => setDetalle({ aplicaA: e.target.value })}
+            className={inp + ' max-w-[130px]'}
+          >
+            <option value="SERVICIO">Servicios</option>
+            <option value="PRODUCTO">Productos</option>
+          </select>
+        </div>
+      )}
+
+      {cat === 'OTRO' && (
+        <input
+          type="text" maxLength="80"
+          value={value?.detalle?.texto || ''}
+          onChange={e => setDetalle({ texto: e.target.value })}
+          placeholder="Ej: Camiseta oficial, café gratis…"
+          className={inp}
+        />
+      )}
+
+      {/* Preview del texto que se mostrará al cliente */}
+      {value?.textoDinamico && (
+        <p className="text-[11px] text-emerald-300 bg-emerald-500/5 border border-emerald-500/20 rounded-md px-2.5 py-1.5">
+          <span className="opacity-60 mr-1">Se mostrará:</span> {value.textoDinamico}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/* Genera el textoDinamico según categoría + detalle. Se guarda junto al doc
+   para que el dashboard cliente no tenga que replicar la lógica. */
+function buildTextoRefRecompensa(rec) {
+  if (!rec || !rec.categoria) return '';
+  const d = rec.detalle || {};
+  switch (rec.categoria) {
+    case 'SELLOS':    return d.cantidad ? `${d.cantidad} sello${d.cantidad !== 1 ? 's' : ''} gratis` : '';
+    case 'SERVICIO':  return d.nombre ? `${d.nombre} gratis` : '';
+    case 'PRODUCTO':  return d.nombre || '';
+    case 'DESCUENTO': {
+      const v = Number(d.valor) || 0;
+      if (!v) return '';
+      const val = (d.tipo || '%') === '%' ? `${v}%` : `$${v.toLocaleString('es-CL')}`;
+      const ap  = d.aplicaA === 'PRODUCTO' ? 'productos' : 'servicios';
+      return `${val} OFF en ${ap}`;
+    }
+    case 'OTRO':      return d.texto || '';
+    default:          return '';
+  }
+}
+
 /* ─── Duración de turnos: presets + rango válido ─────────────────
  * El intervalo alimenta el generador de slots de la reserva pública
  * (booking.service.js). Un valor 0/NaN/negativo/decimal puede romper
@@ -215,6 +421,12 @@ function sanitizeIntervalo(raw) {
 
 /* ─── Main component ─────────────────────────────────────────── */
 export default function Configuracion() {
+  // Catálogos del tenant para poblar los <select> de recompensas de referidos.
+  // Silencioso si el tenant aún no cargó productos/servicios: la UI degrada a
+  // input libre en esas categorías.
+  const { data: productos = [] } = useCollection('productos');
+  const { data: servicios = [] } = useCollection('servicios');
+
   const [form,          setForm]          = useState(DEFAULT_SETTINGS);
   const [intervalo,     setIntervalo]     = useState(30);
   const [customMode,    setCustomMode]    = useState(false); // intervalo personalizado activo
@@ -266,6 +478,10 @@ export default function Configuracion() {
             rewardText:  (d.referralProgram && d.referralProgram.rewardText)  || DEFAULT_SETTINGS.referralProgram.rewardText,
             rewardType:  (d.referralProgram && d.referralProgram.rewardType)  || DEFAULT_SETTINGS.referralProgram.rewardType,
             rewardValue: (d.referralProgram && d.referralProgram.rewardValue != null) ? d.referralProgram.rewardValue : DEFAULT_SETTINGS.referralProgram.rewardValue,
+            // Nuevas recompensas estructuradas — pueden venir null si el tenant
+            // nunca las configuró (default). El UI las trata como "no elegido".
+            recompensaReferidor: (d.referralProgram && d.referralProgram.recompensaReferidor) || null,
+            recompensaReferido:  (d.referralProgram && d.referralProgram.recompensaReferido)  || null,
           },
         });
       }
@@ -880,15 +1096,42 @@ export default function Configuracion() {
           </button>
         </div>
         {form.referralProgram.enabled && (
-          <Field label="Beneficio o recompensa al cliente">
-            <textarea className={`${inp} resize-none`} rows={3}
-              placeholder="Ej: Gana 1 sello gratis por cada amigo referido que asista a su cita."
-              value={form.referralProgram.rewardText}
-              onChange={e => setRef('rewardText', e.target.value)} />
-            <p className="text-[11px] text-slate-500 mt-1.5">
-              Este texto aparece en la tarjeta de referidos del cliente (en <code>/club</code>) y en el mensaje que se comparte por WhatsApp.
-            </p>
-          </Field>
+          <div className="space-y-3 mt-4">
+            <RecompensaEstructurada
+              title="🎁 Recompensa al REFERIDOR"
+              subtitle="Lo que recibe el cliente que comparte su código."
+              value={form.referralProgram.recompensaReferidor}
+              onChange={v => setRef('recompensaReferidor', v)}
+              productos={productos}
+              servicios={servicios}
+            />
+            <RecompensaEstructurada
+              title="🙋 Recompensa al REFERIDO (nuevo cliente)"
+              subtitle="Lo que recibe el cliente que usa el código al registrarse."
+              value={form.referralProgram.recompensaReferido}
+              onChange={v => setRef('recompensaReferido', v)}
+              productos={productos}
+              servicios={servicios}
+            />
+
+            {/* Copy general del programa — se muestra si no hay recompensas nuevas
+                (backward compat con tenants existentes) o como slogan del banner. */}
+            <details className="pt-2">
+              <summary className="text-[11px] text-slate-500 cursor-pointer hover:text-slate-300">
+                Copy del banner (opcional, legacy)
+              </summary>
+              <div className="mt-2">
+                <textarea className={`${inp} resize-none`} rows={2}
+                  placeholder="Ej: Invita amigos y ambos ganan recompensas."
+                  value={form.referralProgram.rewardText}
+                  onChange={e => setRef('rewardText', e.target.value)} />
+                <p className="text-[11px] text-slate-500 mt-1.5">
+                  Texto libre de fallback. Los tenants sin recompensa estructurada
+                  siguen mostrando este mensaje en la tarjeta de <code>/club</code>.
+                </p>
+              </div>
+            </details>
+          </div>
         )}
       </Card>
 
