@@ -4361,6 +4361,19 @@
         </button>
       </div>
 
+      <!-- ── RECOMPENSAS PENDIENTES (siempre visible cuando hay algo) ──
+           Se llena en tiempo real desde tenants/{tid}/redemptions con
+           status:'pending' y userId del cliente logueado. Tap → abre
+           el modal con QR + PIN listo para presentar en el local. -->
+      <div id="pendingRewardsSection" class="hidden mx-4 mb-5">
+        <h3 class="text-[10px] font-bold uppercase tracking-widest mb-3 px-1 flex items-center gap-1.5" style="color:rgba(251,191,36,0.95);">
+          <i class="ph-fill ph-gift"></i>
+          Tus recompensas por canjear
+          <span id="pendingRewardsCount" class="ml-auto text-[9px] px-2 py-0.5 rounded-full font-black tabular-nums" style="background:rgba(251,191,36,0.15);color:rgba(251,191,36,1);">0</span>
+        </h3>
+        <div id="pendingRewardsList" class="space-y-2"></div>
+      </div>
+
       <!-- ── PREMIOS LIST (collapsible) ── -->
       <div id="premiosSection" class="hidden mx-4 mb-5">
         <h3 class="text-[10px] font-bold uppercase tracking-widest mb-3 px-1" style="color:rgba(255,255,255,0.3);">Tabla de Premios</h3>
@@ -5363,6 +5376,7 @@ let _premiosDynamic = [];
 let _userUnsub      = null;
 let _citasUnsub     = null;
 let _premiosUnsub   = null;
+let _pendingRewardsUnsub = null; // listener de redemptions con status:'pending'
 let _lookbookUnsub  = null;
 let _lbDocs         = [];
 let _lbCurrentId    = null;
@@ -5541,6 +5555,7 @@ auth.onAuthStateChanged(async user => {
     if (_userUnsub)     { _userUnsub();     _userUnsub     = null; }
     if (_citasUnsub)    { _citasUnsub();    _citasUnsub    = null; }
     if (_premiosUnsub)  { _premiosUnsub();  _premiosUnsub  = null; }
+    if (_pendingRewardsUnsub) { _pendingRewardsUnsub(); _pendingRewardsUnsub = null; }
     if (_lookbookUnsub) { _lookbookUnsub(); _lookbookUnsub = null; }
     if (_sfUnsub)       { _sfUnsub();       _sfUnsub       = null; }
     if (_chatUnsub)     { _chatUnsub();     _chatUnsub     = null; }
@@ -5569,6 +5584,11 @@ auth.onAuthStateChanged(async user => {
     renderPremiosDashboard(premios);
     renderStamps(userStamps);
   });
+
+  // Suscripción a redemptions pendientes del user — se llena en tiempo real
+  // cuando la CF (Fase 2) otorga una recompensa, o cuando el propio user
+  // genera un canje desde la tabla de premios. Se ordena por createdAt desc.
+  subscribePendingRewards(user);
 
   initLookbook();
   initServicioFavorito(user);
@@ -5960,6 +5980,134 @@ function renderPremiosDashboard(premios) {
     </div>`;
   }).join('');
 }
+
+/* ═══ Recompensas pendientes por canjear ═══════════════════════════
+   Listener en tiempo real a `redemptions` con status:'pending' y
+   userId del cliente logueado. Renderiza cards tocables que abren
+   el modal QR/PIN con la redemption existente (sin generar una nueva). */
+function subscribePendingRewards(user) {
+  if (_pendingRewardsUnsub) { _pendingRewardsUnsub(); _pendingRewardsUnsub = null; }
+  if (!user) return;
+  try {
+    _pendingRewardsUnsub = _tenantCol('redemptions')
+      .where('userId', '==', user.uid)
+      .where('status', '==', 'pending')
+      .onSnapshot(
+        snap => {
+          const list = snap.docs
+            .map(d => ({ id: d.id, ...d.data() }))
+            // Ordenar cliente-side por createdAt desc (evita necesitar índice compuesto)
+            .sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
+          renderPendingRewards(list);
+        },
+        err => {
+          console.warn('[pending-rewards] snapshot:', err.message);
+          renderPendingRewards([]);
+        },
+      );
+  } catch (e) {
+    console.warn('[pending-rewards] subscribe:', e.message);
+  }
+}
+
+function renderPendingRewards(rewards) {
+  const section = document.getElementById('pendingRewardsSection');
+  const list    = document.getElementById('pendingRewardsList');
+  const count   = document.getElementById('pendingRewardsCount');
+  if (!section || !list) return;
+
+  // Filtrar expiradas — la CF `sellosTenant` limpia los expired también,
+  // pero mientras tanto no las mostramos.
+  const now = Date.now();
+  const activos = (rewards || []).filter(r => {
+    const exp = r.expiresAt?.toMillis?.() || 0;
+    return !exp || exp > now;
+  });
+
+  if (activos.length === 0) {
+    section.classList.add('hidden');
+    return;
+  }
+
+  section.classList.remove('hidden');
+  if (count) count.textContent = activos.length;
+
+  list.innerHTML = activos.map(r => {
+    // Origen legible (por si viene del programa de referidos vs canje manual)
+    const origen = r.origen === 'referral_referrer' ? 'Por invitar a un amigo'
+                 : r.origen === 'referral_referred' ? 'Por usar un código al registrarte'
+                 : (r.motivo || '');
+    const safeName = String(r.prizeName || 'Recompensa').replace(/</g, '&lt;');
+    const safeOrigen = String(origen).replace(/</g, '&lt;');
+    // Tiempo restante hasta expirar (si aplica) — helper visual, la validez la
+    // impone el escáner del local al leer el QR/PIN.
+    let ttlBadge = '';
+    const exp = r.expiresAt?.toMillis?.() || 0;
+    if (exp) {
+      const mins = Math.max(0, Math.floor((exp - now) / 60000));
+      if (mins <= 60) {
+        ttlBadge = `<span class="text-[9px] font-bold px-2 py-0.5 rounded-full" style="background:rgba(239,68,68,0.15);color:rgba(252,165,165,1);">${mins}m</span>`;
+      }
+    }
+
+    return `
+      <div onclick="abrirCanjeExistente('${r.id}')" data-red-id="${r.id}"
+        class="flex items-center gap-3 rounded-2xl px-4 py-3 cursor-pointer active:scale-[0.98] transition-transform select-none"
+        style="background:linear-gradient(135deg, rgba(251,191,36,0.10) 0%, rgba(251,191,36,0.04) 100%);border:1px solid rgba(251,191,36,0.25);">
+        <div class="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style="background:rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.20);">
+          <i class="ph-fill ph-gift text-lg" style="color:rgba(251,191,36,1);"></i>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-bold text-white truncate leading-tight">${safeName}</p>
+          ${safeOrigen ? `<p class="text-[11px] text-white/50 mt-0.5 truncate">${safeOrigen}</p>` : ''}
+        </div>
+        <div class="flex items-center gap-1.5 shrink-0">
+          ${ttlBadge}
+          <span class="text-[10px] font-bold px-2 py-1 rounded-full text-white/70" style="background:rgba(255,255,255,0.08);">Canjear →</span>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+/* Abre el modal de QR/PIN con una redemption YA CREADA (por la CF de
+   referidos o por un canje previo). No genera un doc nuevo — se lee
+   el existente. Si el token expiró, se refresca (nuevo token + expiresAt). */
+window.abrirCanjeExistente = async function (redemptionId) {
+  try {
+    const snap = await _tenantCol('redemptions').doc(redemptionId).get();
+    if (!snap.exists) {
+      showToast('Esta recompensa ya no está disponible.', 'err');
+      return;
+    }
+    const data = snap.data() || {};
+    if (data.status !== 'pending') {
+      showToast('Esta recompensa ya fue canjeada.', 'ok');
+      return;
+    }
+
+    const exp = data.expiresAt?.toMillis?.() || 0;
+    _activeRedemption = {
+      id:        redemptionId,
+      token:     data.token || '----',
+      expiresMs: exp,
+      prizeName: data.prizeName || 'Recompensa',
+    };
+    // Nota: si el token expiró, `_mostrarPinYQR` renderea el countdown a 00:00
+    // y muestra el warning "código expiró". El user puede cancelar la redemption
+    // y generar una nueva desde la tabla de premios. No refrescamos el token acá
+    // porque las rules solo permiten al user cambiar status a 'cancelled'.
+
+    // El modal usa dos estados: info (canjeInfoState) y token (canjeTokenState).
+    // Saltamos directo al token porque la redemption ya existe.
+    document.getElementById('canjeInfoState')?.classList.add('hidden');
+    document.getElementById('canjeTokenState')?.classList.remove('hidden');
+    document.getElementById('canjeModal')?.classList.remove('hidden');
+    _mostrarPinYQR(_activeRedemption);
+  } catch (e) {
+    console.error('[canje-existente] error:', e);
+    showToast('No pudimos abrir la recompensa. Reintenta.', 'err');
+  }
+};
 
 /* ═══ Canje seguro: crear redemption doc con PIN 4 dígitos ══════════ */
 let _activeRedemption = null;   // { id, token, expiresAt, prizeName }
@@ -7229,8 +7377,13 @@ async function guardarPerfil() {
   const btn = document.querySelector('[onclick="guardarPerfil()"]');
   if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; }
   try {
-    // Actualizar users/{uid}
+    // Actualizar users/{uid} — persistimos telefonoSuf9 (últimos 9 dígitos)
+    // como índice denormalizado para que la CF sellosTenant pueda resolver
+    // este uid aunque el teléfono en la cita venga con formato distinto.
+    const _telDigits = String(telefono || '').replace(/\D+/g, '');
+    const telefonoSuf9 = _telDigits.length >= 9 ? _telDigits.slice(-9) : '';
     const updateData = { nombre, email, telefono };
+    if (telefonoSuf9) updateData.telefonoSuf9 = telefonoSuf9;
     if (fechaNacimiento !== null) updateData.fechaNacimiento = fechaNacimiento;
     await FDB.usersCol().doc(currentUser.uid).update(updateData);
     await currentUser.updateProfile({ displayName: nombre });
