@@ -9794,6 +9794,78 @@
       window._packsActivosClient = activos;
     }
 
+    /* ── Auto-detección de pack activo ─────────────────────────────────
+       Se llama cada vez que el cliente selecciona un servicio del catálogo.
+       Si tiene un pack activo (cargado por _renderPacksActivosBanner) cuyo
+       array `serviciosIncluidos` contiene el `selectedServiceObj.id`, muta
+       el objeto para que la reserva pase como consumo del pack:
+         - precio → 0
+         - se guardan las marcas consumeSesionPack, packRefId, etc.
+       Si no hay match, limpia las marcas (por si venía de otra selección).
+       Además muestra un toast informativo (una sola vez por selección). */
+    function _aplicarPackSiCorresponde() {
+      if (!selectedServiceObj) return;
+      // Limpiar marcas previas si el servicio actual NO viene "virtual" del
+      // banner "Usar sesión →" (ese ya llega marcado con `consumeSesionPack`).
+      if (selectedServiceObj.consumeSesionPack && selectedServiceObj.id) {
+        // Ya viene marcado desde el banner — no tocar.
+        return;
+      }
+      const packs = window._packsActivosClient || [];
+      const svcId = selectedServiceObj.id;
+      const now = Date.now();
+      const pack = packs.find(p => {
+        const incluidos = Array.isArray(p.serviciosIncluidos) ? p.serviciosIncluidos : [];
+        const rest = Number(p.sesionesRestantes || 0);
+        const vencMs = p.fechaVencimiento?.toMillis?.() ?? 0;
+        return rest > 0
+          && (!vencMs || vencMs > now)
+          && incluidos.includes(svcId);
+      });
+
+      // Sin match: asegurar que el objeto no arrastre marcas de packs viejos.
+      if (!pack) {
+        if (selectedServiceObj._packWasApplied) {
+          // Estaba marcado por un pack anterior — restaurar precio original.
+          const original = (window._fsServices || _fsServices || []).find(s => s.id === selectedServiceObj.id);
+          if (original) {
+            selectedServiceObj.precio = original.precio;
+            selectedServiceObj.duracion = original.duracion;
+          }
+          delete selectedServiceObj.consumeSesionPack;
+          delete selectedServiceObj.packRefId;
+          delete selectedServiceObj.packNombre;
+          delete selectedServiceObj.packSesionIndex;
+          delete selectedServiceObj.packSesionTotal;
+          delete selectedServiceObj._packWasApplied;
+        }
+        return;
+      }
+
+      // Con match: aplicar consumo del pack a la selección actual.
+      const total = Math.max(1, Number(pack.sesionesTotales) || 1);
+      const rest  = Number(pack.sesionesRestantes) || 0;
+      selectedServiceObj.precio = 0;
+      selectedServiceObj.consumeSesionPack = true;
+      selectedServiceObj.packRefId         = pack.packId;
+      selectedServiceObj.packNombre        = pack.nombrePack;
+      selectedServiceObj.packSesionIndex   = Math.max(1, total - rest + 1);
+      selectedServiceObj.packSesionTotal   = total;
+      selectedServiceObj._packWasApplied   = true;
+
+      // Toast informativo — solo una vez por selección (evita repetir si el
+      // cliente ajusta cosas sin cambiar de servicio).
+      const key = `pack_toast_${pack.packId}_${svcId}`;
+      if (window[key]) return;
+      window[key] = true;
+      const toastMsg = `📦 Se descontará de tu ${pack.nombrePack}. Te quedan ${rest} sesión${rest !== 1 ? 'es' : ''}.`;
+      if (typeof showToast === 'function') {
+        showToast(toastMsg, 'ok');
+      } else {
+        console.log('[pack]', toastMsg);
+      }
+    }
+
     /* Al elegir usar una sesión del pack: arma un servicio virtual con
        precio 0 + marcas del pack y avanza al step siguiente (barbero). */
     window._usarSesionDelPack = function (idx) {
@@ -10281,6 +10353,10 @@
       selectedServiceObj = _multiSel[0] || null;
       selectedAddons     = _multiSel.slice(1);
       window._upsellShowed = false;
+      // Auto-detección de pack: si el servicio elegido está incluido en un
+      // pack activo del cliente, lo convertimos en consumo (precio $0 +
+      // marcas). El barbero verá el badge 📦 Combo en la Agenda.
+      _aplicarPackSiCorresponde();
       // El slot VIP guarda un recargo derivado del servicio anterior. Si el
       // usuario cambia de servicio, invalidamos el slot para que renderHours
       // re-emita con el recargoSobrecupoDefault correcto del nuevo servicio.

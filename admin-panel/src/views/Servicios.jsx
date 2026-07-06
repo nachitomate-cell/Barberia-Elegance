@@ -38,12 +38,18 @@ const EMPTY = {
   ppd: { ...EMPTY_PPD }, imagen: null,
   recargoSobrecupoDefault: '',
   // Motor de cuponeras/packs de sesiones.
-  //   isPack:          true si el servicio agrupa N visitas prepagas
-  //   sesionesTotales: cantidad total de visitas del pack (ej. 4)
-  //   diasValidez:     días desde la activación hasta que el pack expira (ej. 30)
+  //   isPack:              true si el servicio agrupa N visitas prepagas
+  //   sesionesTotales:     cantidad total de visitas del pack (ej. 4)
+  //   diasValidez:         días desde la activación hasta que el pack expira (ej. 30)
+  //   serviciosIncluidos:  IDs de los servicios que cubre este pack. Cuando el
+  //                        cliente reserva uno de esos servicios y tiene pack
+  //                        activo, la reserva pública auto-marca el consumo y
+  //                        cobra $0. Sin esto, el cliente tendría que elegir
+  //                        manualmente el pack cada vez.
   isPack: false,
   sesionesTotales: '',
   diasValidez: '',
+  serviciosIncluidos: [],
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────
@@ -176,9 +182,10 @@ export default function Servicios() {
       imagen: s.imagen || null,
       recargoSobrecupoDefault: s.recargoSobrecupoDefault != null ? String(s.recargoSobrecupoDefault) : '',
       // Pack — se guardan como strings en el form para tratarlo como los otros numéricos.
-      isPack:          !!s.isPack,
-      sesionesTotales: s.sesionesTotales != null ? String(s.sesionesTotales) : '',
-      diasValidez:     s.diasValidez     != null ? String(s.diasValidez)     : '',
+      isPack:             !!s.isPack,
+      sesionesTotales:    s.sesionesTotales != null ? String(s.sesionesTotales) : '',
+      diasValidez:        s.diasValidez     != null ? String(s.diasValidez)     : '',
+      serviciosIncluidos: Array.isArray(s.serviciosIncluidos) ? [...s.serviciosIncluidos] : [],
     });
     resetImageState();
     setSlide(true);
@@ -243,6 +250,11 @@ export default function Servicios() {
       if (isPack) {
         base.sesionesTotales = sesionesTotales;
         base.diasValidez     = diasValidez;
+        // IDs de servicios que cubre el pack. Filtramos cadenas vacías y
+        // deduplicamos para no persistir basura.
+        base.serviciosIncluidos = Array.from(new Set(
+          (form.serviciosIncluidos || []).filter(id => typeof id === 'string' && id.length > 0)
+        ));
       }
 
       let imagenUrl = form.imagen ?? null;
@@ -262,8 +274,9 @@ export default function Servicios() {
           preciosPorDia: form.varPrecios ? preciosPorDia : deleteField(),
           // Al desactivar el pack, borramos los campos residuales para que el
           // servicio se comporte como normal en el flujo público y en Agenda.
-          sesionesTotales: isPack ? sesionesTotales : deleteField(),
-          diasValidez:     isPack ? diasValidez     : deleteField(),
+          sesionesTotales:    isPack ? sesionesTotales    : deleteField(),
+          diasValidez:        isPack ? diasValidez        : deleteField(),
+          serviciosIncluidos: isPack ? (base.serviciosIncluidos || []) : deleteField(),
         });
       } else {
         const nextOrden = servicios.length ? Math.max(...servicios.map(s => s.orden ?? 0)) + 1 : 0;
@@ -703,6 +716,57 @@ export default function Servicios() {
                     />
                     <p className="text-[10px] text-slate-500 mt-1">Días desde la primera cita hasta que expira.</p>
                   </div>
+                </div>
+
+                {/* Servicios que cubre el pack — permite que la reserva pública
+                    detecte automáticamente el consumo. Sin ninguno marcado, el
+                    cliente tiene que elegir el pack manualmente (fallback). */}
+                <div>
+                  <label className={lbl}>¿Qué servicios cubre este pack?</label>
+                  <div className="mt-1 bg-neutral-900/50 border border-neutral-700 rounded-lg max-h-56 overflow-y-auto p-2 space-y-1">
+                    {servicios.filter(s => s.id !== editing).length === 0 ? (
+                      <p className="text-[11px] text-slate-500 py-4 text-center italic">
+                        Crea primero los servicios normales que quieres incluir en el pack.
+                      </p>
+                    ) : (
+                      servicios
+                        .filter(s => s.id !== editing && !s.isPack) // no incluir otros packs
+                        .sort((a, b) => (a.orden ?? 999) - (b.orden ?? 999))
+                        .map(s => {
+                          const checked = (form.serviciosIncluidos || []).includes(s.id);
+                          return (
+                            <label
+                              key={s.id}
+                              className={`flex items-center gap-2.5 px-2 py-1.5 rounded-md cursor-pointer transition-colors ${
+                                checked ? 'bg-violet-500/10' : 'hover:bg-neutral-800/60'
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={e => {
+                                  const next = new Set(form.serviciosIncluidos || []);
+                                  if (e.target.checked) next.add(s.id);
+                                  else next.delete(s.id);
+                                  setForm(f => ({ ...f, serviciosIncluidos: [...next] }));
+                                }}
+                                className="accent-violet-500 cursor-pointer"
+                              />
+                              <i className={`ph ${s.icono || 'ph-scissors'} text-sm ${checked ? 'text-violet-300' : 'text-slate-500'}`} />
+                              <span className={`text-[13px] truncate flex-1 ${checked ? 'text-white' : 'text-slate-300'}`}>
+                                {s.nombre}
+                              </span>
+                              <span className="text-[10px] text-slate-500 shrink-0">
+                                {s.categoria || 'Otro'}
+                              </span>
+                            </label>
+                          );
+                        })
+                    )}
+                  </div>
+                  <p className="text-[10px] text-slate-500 mt-1.5 leading-relaxed">
+                    Cuando el cliente reserve uno de estos servicios y tenga este pack activo, la web le ofrecerá descontarlo automáticamente en vez de cobrar.
+                  </p>
                 </div>
               </div>
             )}
