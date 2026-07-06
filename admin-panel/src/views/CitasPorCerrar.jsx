@@ -133,7 +133,7 @@ export default function CitasPorCerrar() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-6 sm:px-6 lg:px-8 pb-32">
+    <div className="max-w-3xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
       {/* Encabezado */}
       <div className="flex items-start gap-3 mb-4">
         <span className="flex p-2 rounded-xl bg-amber-500/15 shrink-0">
@@ -158,7 +158,7 @@ export default function CitasPorCerrar() {
             <span className="text-indigo-400/70 shrink-0">•</span>
             <span>
               <strong className="font-semibold text-white">Completar</strong> registra la cita en Caja, Métricas e Historial. Para evitar spam,{' '}
-              <span className="text-amber-400/90 font-medium">no suma sellos ni pide reseña de Google</span>{' '}
+              <span className="text-amber-400 font-medium">no suma sellos ni pide reseña de Google</span>{' '}
               (cierre retroactivo).
             </span>
           </li>
@@ -197,7 +197,7 @@ export default function CitasPorCerrar() {
                 type="checkbox"
                 checked={allSelected}
                 onChange={toggleAll}
-                className="w-5 h-5 rounded bg-slate-800 border-slate-600 accent-indigo-500 focus:ring-2 focus:ring-indigo-500/40 cursor-pointer"
+                className="w-5 h-5 rounded bg-slate-800 border-slate-600 accent-indigo-600 focus:ring-2 focus:ring-indigo-500/40 cursor-pointer"
               />
               <span className="font-medium">Seleccionar todo</span>
             </label>
@@ -207,7 +207,7 @@ export default function CitasPorCerrar() {
           </div>
 
           {/* Lista de citas */}
-          <div className="pt-3">
+          <div className="pt-3 pb-4">
             {backlog.map(c => {
               const checked = selected.has(c.id);
               const isPendiente = c.estado === 'Pendiente';
@@ -220,7 +220,7 @@ export default function CitasPorCerrar() {
                   onKeyDown={e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggle(c.id); } }}
                   className={`flex items-center gap-4 rounded-xl p-4 mb-3 border transition-colors cursor-pointer ${
                     checked
-                      ? 'bg-indigo-500/10 border-indigo-500/40 hover:bg-indigo-500/15'
+                      ? 'bg-indigo-900/20 border-indigo-500/50 hover:bg-indigo-900/30'
                       : 'bg-slate-800/40 border-slate-700/50 hover:bg-slate-800/80'
                   }`}
                 >
@@ -229,7 +229,7 @@ export default function CitasPorCerrar() {
                     checked={checked}
                     onChange={() => toggle(c.id)}
                     onClick={e => e.stopPropagation()}
-                    className="w-5 h-5 rounded bg-slate-800 border-slate-600 accent-indigo-500 focus:ring-2 focus:ring-indigo-500/40 cursor-pointer shrink-0"
+                    className="w-5 h-5 rounded bg-slate-800 border-slate-600 accent-indigo-600 focus:ring-2 focus:ring-indigo-500/40 cursor-pointer shrink-0"
                   />
                   <span
                     className={`w-2.5 h-2.5 rounded-full shrink-0 ${
@@ -245,9 +245,9 @@ export default function CitasPorCerrar() {
                       {c.servicioNombre || '—'}{c.barbero ? ` · ${c.barbero}` : ''}
                     </p>
                   </div>
-                  <div className="text-right shrink-0">
-                    <p className="text-slate-500 text-xs font-medium">{fmtFecha(c.fecha)}</p>
-                    <p className="text-[10px] text-slate-600 tabular-nums mt-0.5">{c.hora || '—'}</p>
+                  <div className="flex flex-col items-end shrink-0">
+                    <p className="text-[10px] text-slate-400 uppercase tracking-wider">{fmtFecha(c.fecha)}</p>
+                    <p className="text-sm font-medium text-slate-300 tabular-nums mt-0.5">{c.hora || '—'}</p>
                   </div>
                 </div>
               );
@@ -256,30 +256,32 @@ export default function CitasPorCerrar() {
         </>
       )}
 
-      {/* Barra de acciones (sticky) */}
+      {/* Barra de acciones sticky — glassmorphism, 2 filas */}
       {selected.size > 0 && (
-        <div className="fixed bottom-0 inset-x-0 z-30 bg-slate-900/95 backdrop-blur border-t border-slate-800">
-          <div className="max-w-3xl mx-auto px-4 py-3 sm:px-6 lg:px-8 flex flex-wrap items-center gap-2">
-            <div className="flex items-center gap-2 mr-auto">
-              <span className="text-sm font-semibold text-white">{selected.size}</span>
-              <span className="text-xs text-slate-400">seleccionada{selected.size !== 1 ? 's' : ''}</span>
-            </div>
-
+        <div className="sticky bottom-0 w-full bg-slate-900/85 backdrop-blur-xl border-t border-slate-700/50 p-4 flex flex-col gap-3 z-50 shadow-[0_-10px_20px_-5px_rgba(0,0,0,0.3)] rounded-b-xl">
+          {/* Fila 1 — contador + selector de pago */}
+          <div className="flex items-center justify-between w-full">
+            <span className="text-sm font-medium text-slate-300">
+              {selected.size} seleccionada{selected.size !== 1 ? 's' : ''}
+            </span>
             <select
               value={metodoPago}
               onChange={e => setMetodoPago(e.target.value)}
               disabled={busy}
-              className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-500 disabled:opacity-50"
+              className="bg-slate-800 border border-slate-600 text-slate-200 text-sm rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 py-2 pl-3 pr-8 w-auto min-w-[160px] disabled:opacity-50"
               title="Método de pago para las citas completadas (opcional)"
             >
               <option value="">Pago: sin especificar</option>
               {METODOS_PAGO.map(m => <option key={m} value={m}>Pago: {m}</option>)}
             </select>
+          </div>
 
+          {/* Fila 2 — botones de acción al mismo ancho */}
+          <div className="flex items-center gap-3 w-full">
             <button
               onClick={handleNoShow}
               disabled={busy}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 disabled:opacity-50 text-sm font-semibold transition-colors"
+              className="flex-1 bg-rose-500/10 border border-rose-500/20 hover:bg-rose-500/20 disabled:opacity-50 text-rose-400 font-medium py-3 rounded-xl transition-colors flex justify-center items-center gap-2"
             >
               <XCircle size={16} />
               No-show
@@ -288,7 +290,7 @@ export default function CitasPorCerrar() {
             <button
               onClick={handleCompletar}
               disabled={busy}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-emerald-500 text-emerald-950 hover:bg-emerald-400 disabled:opacity-50 text-sm font-bold transition-colors active:scale-95"
+              className="flex-1 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-medium py-3 rounded-xl shadow-lg shadow-emerald-900/20 transition-colors flex justify-center items-center gap-2"
             >
               {busy ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
               Completar
