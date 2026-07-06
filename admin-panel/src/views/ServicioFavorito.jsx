@@ -233,31 +233,37 @@ export default function ServicioFavorito() {
         </div>
       </div>
 
-      {/* Feature toggle */}
+      {/* Feature toggle — tarjeta de estado */}
       {!activoLoad && (
-        <div className={`mb-6 flex items-start gap-4 px-5 py-4 rounded-xl border transition-all ${
-          activo ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-slate-700 bg-slate-900'
+        <div className={`mb-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 p-4 rounded-2xl border transition-all ${
+          activo ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-slate-800/40 border-slate-700/50'
         }`}>
-          <Power size={20} className={`shrink-0 mt-0.5 ${activo ? 'text-emerald-400' : 'text-slate-500'}`} />
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-white">
-              Sección en dashboard:{' '}
-              <span className={activo ? 'text-emerald-400' : 'text-slate-500'}>
-                {activo ? 'Activa' : 'Inactiva'}
-              </span>
-            </p>
-            <p className="text-xs text-slate-500 mt-0.5">
-              {activo
-                ? 'Cada cliente ve su foto personalizada en el panel de fidelización.'
-                : 'Al activar, los clientes con foto asignada la verán en su club.'}
-            </p>
+          <div className="flex items-start gap-3 min-w-0">
+            <span className={`shrink-0 flex items-center justify-center w-10 h-10 rounded-xl ${
+              activo ? 'bg-emerald-500/15' : 'bg-slate-800/60'
+            }`}>
+              <Power size={18} className={activo ? 'text-emerald-400' : 'text-slate-500'} />
+            </span>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-white">
+                Sección en dashboard:{' '}
+                <span className={activo ? 'text-emerald-400' : 'text-slate-500'}>
+                  {activo ? 'Activa' : 'Inactiva'}
+                </span>
+              </p>
+              <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">
+                {activo
+                  ? 'Cada cliente ve su foto personalizada en el panel de fidelización.'
+                  : 'Al activar, los clientes con foto asignada la verán en su club.'}
+              </p>
+            </div>
           </div>
           <button
             onClick={() => activo ? toggleActivo(false) : setConfirmOn(true)}
-            className={`shrink-0 px-4 py-2 rounded-lg text-xs font-semibold border transition-all ${
+            className={`w-full md:w-auto text-center px-4 py-2 rounded-xl text-sm font-medium border transition-colors ${
               activo
-                ? 'border-red-500/30 text-red-400 hover:bg-red-500/10'
-                : 'border-emerald-500/40 text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20'
+                ? 'text-rose-400 border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20'
+                : 'text-emerald-400 border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20'
             }`}
           >
             {activo ? 'Desactivar' : 'Activar'}
@@ -298,75 +304,80 @@ export default function ServicioFavorito() {
         </div>
       )}
 
-      {/* Upload form */}
-      <div className="mb-6 bg-slate-900 border border-slate-700 rounded-xl p-5">
+      {/* Upload form — dropzone horizontal + CTA indigo */}
+      <div className="bg-slate-800/40 border border-slate-700/50 rounded-2xl p-5 mt-4 mb-6">
         <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-          <Plus size={15} className="text-emerald-400" />
+          <Plus size={15} className="text-indigo-400" />
           Asignar foto a un cliente
         </h2>
-        <div className="flex flex-col sm:flex-row gap-4">
-          {/* Photo preview / picker */}
-          <div
-            onClick={() => fileRef.current?.click()}
-            className={`w-24 h-24 shrink-0 rounded-xl border-2 border-dashed flex items-center justify-center overflow-hidden cursor-pointer transition-all ${
-              addPreview ? 'border-emerald-500/60' : 'border-slate-700 hover:border-slate-500'
-            }`}
-          >
-            {addPreview
-              ? <img src={addPreview} alt="Preview" className="w-full h-full object-cover" />
-              : <Camera size={24} className="text-slate-600" />}
-          </div>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleFileSelect}
-          />
 
-          <div className="flex-1 space-y-3">
-            <input
-              type="email"
-              value={addEmail}
-              onChange={e => setAddEmail(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleUpload()}
-              placeholder="correo@cliente.com"
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
-            />
-            {addErr && <p className="text-xs text-red-400">{addErr}</p>}
-            <div className="flex gap-2">
-              <button
-                onClick={() => fileRef.current?.click()}
-                disabled={uploading}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border border-slate-600 text-slate-300 hover:text-white hover:border-slate-500 transition-all disabled:opacity-40"
-              >
-                <Upload size={13} />
-                {addFile ? 'Cambiar' : 'Elegir foto'}
-              </button>
-              <button
-                onClick={handleUpload}
-                disabled={uploading || !addEmail.trim() || !addFile}
-                className="flex-1 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white text-xs font-semibold px-4 py-2 rounded-lg transition-colors"
-              >
-                {uploading ? `${progressLabel} ${progress}%` : 'Guardar'}
-              </button>
-              {(addEmail || addFile) && !uploading && (
-                <button
-                  onClick={clearForm}
-                  className="p-2 rounded-lg text-slate-500 hover:text-white hover:bg-slate-800 transition-all"
-                >
-                  <X size={14} />
-                </button>
-              )}
-            </div>
-          </div>
+        {/* Dropzone: preview inline + label centrado */}
+        <button
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          disabled={uploading}
+          className="border-2 border-dashed border-slate-600 hover:border-indigo-500 bg-slate-900/50 rounded-xl p-6 flex flex-col items-center justify-center text-slate-400 cursor-pointer w-full transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {addPreview ? (
+            <>
+              <img src={addPreview} alt="Preview" className="w-24 h-24 rounded-lg object-cover border border-slate-600 mb-3" />
+              <span className="text-xs font-semibold text-white">Foto lista para subir</span>
+              <span className="text-[10px] text-slate-500 mt-0.5">Toca para cambiarla</span>
+            </>
+          ) : (
+            <>
+              <div className="w-12 h-12 rounded-xl bg-slate-800/80 border border-slate-700 flex items-center justify-center mb-3">
+                <Upload size={20} className="text-slate-500" />
+              </div>
+              <span className="text-sm font-medium text-slate-300">Elegir o arrastrar foto</span>
+              <span className="text-[10px] text-slate-500 mt-1">JPG · PNG · hasta 10 MB</span>
+            </>
+          )}
+        </button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleFileSelect}
+        />
+
+        {/* Correo del cliente */}
+        <input
+          type="email"
+          value={addEmail}
+          onChange={e => setAddEmail(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && handleUpload()}
+          placeholder="correo@cliente.com"
+          className="bg-slate-900 border border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl p-3 w-full text-white placeholder-slate-500 focus:outline-none transition-colors mt-4"
+        />
+        {addErr && <p className="text-xs text-rose-400 mt-2">{addErr}</p>}
+
+        {/* CTA principal + limpiar */}
+        <div className="flex items-center gap-2 mt-4">
+          <button
+            onClick={handleUpload}
+            disabled={uploading || !addEmail.trim() || !addFile}
+            className="flex-1 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl py-3 font-medium shadow-lg shadow-indigo-500/20 transition-colors"
+          >
+            {uploading ? `${progressLabel} ${progress}%` : 'Guardar'}
+          </button>
+          {(addEmail || addFile) && !uploading && (
+            <button
+              onClick={clearForm}
+              className="p-3 rounded-xl text-slate-500 hover:text-white hover:bg-slate-800 transition-colors shrink-0"
+              title="Limpiar"
+            >
+              <X size={16} />
+            </button>
+          )}
         </div>
 
         {uploading && (
           <div className="mt-4">
-            <div className="w-full bg-slate-700 rounded-full h-1.5">
+            <div className="w-full bg-slate-800 rounded-full h-1.5">
               <div
-                className="bg-emerald-500 h-1.5 rounded-full transition-all duration-300"
+                className="bg-indigo-500 h-1.5 rounded-full transition-all duration-300"
                 style={{ width: `${progress}%` }}
               />
             </div>
@@ -374,28 +385,28 @@ export default function ServicioFavorito() {
         )}
       </div>
 
-      {/* Search + count */}
-      <div className="flex items-center gap-3 mb-4">
-        <div className="relative flex-1">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+      {/* Search + count — apilados en columna para no aplastar en movil */}
+      <div className="flex flex-col gap-2 mt-6 mb-4">
+        <span className="text-xs text-slate-400 font-medium px-1">
+          {entradas.length} cliente{entradas.length !== 1 ? 's' : ''} con foto asignada
+        </span>
+        <div className="relative w-full">
+          <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
           <input
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Buscar por correo…"
-            className="w-full pl-8 pr-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
+            className="w-full pl-9 pr-3 py-3 bg-slate-900 border border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none transition-colors"
           />
         </div>
-        <span className="text-xs text-slate-500 shrink-0">
-          {entradas.length} cliente{entradas.length !== 1 ? 's' : ''}
-        </span>
       </div>
 
-      {/* List */}
+      {/* Lista de fotos */}
       {loading ? (
-        <div className="space-y-3">
+        <div className="flex flex-col gap-3">
           {[1, 2, 3].map(i => (
-            <div key={i} className="h-20 bg-slate-800 rounded-xl animate-pulse" />
+            <div key={i} className="h-20 bg-slate-800/40 rounded-xl animate-pulse" />
           ))}
         </div>
       ) : filtered.length === 0 ? (
@@ -411,21 +422,21 @@ export default function ServicioFavorito() {
           )}
         </div>
       ) : (
-        <div className="space-y-2">
+        <div>
           {filtered.map(entrada => {
             const displayUrl = entrada.adminUrl || entrada.clienteUrl || null;
             return (
               <div
                 key={entrada.id}
-                className="flex items-center gap-3 bg-slate-900 border border-slate-800 rounded-xl p-3 hover:border-slate-700 transition-all"
+                className="flex items-center gap-4 bg-slate-800/30 border border-slate-700/50 rounded-xl p-3 hover:bg-slate-800/60 transition-colors mb-3"
               >
-                {/* Thumbnail */}
-                <div className="w-14 h-14 rounded-lg overflow-hidden shrink-0 bg-slate-800 flex items-center justify-center relative">
+                {/* Miniatura destacada */}
+                <div className="w-14 h-14 rounded-lg overflow-hidden bg-slate-800 border border-slate-600 flex items-center justify-center flex-shrink-0">
                   {displayUrl
                     ? <img
                         src={displayUrl}
                         alt=""
-                        className="w-full h-full object-cover"
+                        className="w-14 h-14 rounded-lg object-cover"
                         style={{
                           objectPosition: `${entrada.focalX ?? 50}% ${entrada.focalY ?? 50}%`
                         }}
@@ -433,40 +444,40 @@ export default function ServicioFavorito() {
                     : <UserCircle size={24} className="text-slate-600" />}
                 </div>
 
-                {/* Info */}
+                {/* Info — flex-1 min-w-0 para truncate robusto */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-white truncate">{entrada.email}</p>
-                  <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                  <span className="text-sm font-bold text-white truncate block">{entrada.email}</span>
+                  <div className="flex items-center gap-1.5 flex-wrap">
                     {entrada.adminUrl && (
-                      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400">
-                        del local
+                      <span className="inline-block text-[10px] uppercase tracking-wider text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md mt-1">
+                        Del local
                       </span>
                     )}
                     {entrada.clienteUrl && (
-                      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-400">
-                        {entrada.adminUrl ? '+ propia del cliente' : 'subida por cliente'}
+                      <span className="inline-block text-[10px] uppercase tracking-wider text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-md mt-1">
+                        {entrada.adminUrl ? '+ Propia del cliente' : 'Subida por cliente'}
                       </span>
                     )}
                   </div>
                 </div>
 
-                {/* Actions */}
-                <div className="flex items-center gap-1">
+                {/* Acciones — discretas con hover activo */}
+                <div className="flex items-center gap-2 flex-shrink-0">
                   {displayUrl && (
                     <button
                       onClick={e => handleOpenFocalModal(e, entrada)}
-                      className="p-2 rounded-lg text-slate-500 hover:text-amber-400 hover:bg-amber-950/20 transition-all shrink-0"
-                      title="Ajustar Enfoque"
+                      className="text-slate-500 p-2 rounded-lg hover:bg-slate-700 hover:text-white transition-colors"
+                      title="Ajustar enfoque"
                     >
-                      <Crosshair size={15} />
+                      <Crosshair size={16} />
                     </button>
                   )}
                   <button
                     onClick={() => handleDelete(entrada)}
-                    className="p-2 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-950/30 transition-all shrink-0"
+                    className="text-slate-500 p-2 rounded-lg hover:bg-slate-700 hover:text-rose-400 transition-colors"
                     title="Eliminar"
                   >
-                    <Trash2 size={15} />
+                    <Trash2 size={16} />
                   </button>
                 </div>
               </div>
