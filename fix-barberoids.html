@@ -57,6 +57,9 @@
   <div class="row">
     <button id="btnApply" disabled>3. Aplicar cambios</button>
   </div>
+  <div class="row">
+    <button id="btnDiag" disabled class="secondary">🔍 Diagnosticar (lista todas las citas)</button>
+  </div>
 
   <pre id="log">Estado: esperando login…</pre>
 </main>
@@ -75,6 +78,7 @@
   const $btnLog  = document.getElementById('btnLogin');
   const $btnDry  = document.getElementById('btnDryRun');
   const $btnApp  = document.getElementById('btnApply');
+  const $btnDiag = document.getElementById('btnDiag');
 
   function log(msg, cls) {
     const line = document.createElement('div');
@@ -105,9 +109,49 @@
       log('Login OK como ' + email, 'ok');
       $btnDry.disabled = false;
       $btnApp.disabled = false;
+      $btnDiag.disabled = false;
     } catch (e) {
       log('Login falló: ' + (e.message || e.code), 'err');
       $btnLog.disabled = false;
+    }
+  });
+
+  $btnDiag.addEventListener('click', async () => {
+    const tid = ($tenant.value || '').trim();
+    if (!tid) { log('Falta tenant', 'err'); return; }
+    $btnDiag.disabled = true;
+    try {
+      log('— Diagnóstico para tenant: ' + tid + ' —');
+      const db = firebase.firestore();
+      // Barberos
+      const bSnap = await db.collection(pathBarberos(tid)).get();
+      log('BARBEROS (' + bSnap.docs.length + '):');
+      bSnap.docs.forEach(d => {
+        const x = d.data() || {};
+        log('  id:' + d.id + ' | nombre:' + (x.nombre || '?') + ' | rol:' + (x.rol || 'barbero') + ' | _mainDocId:' + (x._mainDocId || '(none)') + ' | mostrarEnAgenda:' + (x.mostrarEnAgenda !== false));
+      });
+      // Citas: agrupadas por barberoId
+      const cSnap = await db.collection(pathCitas(tid)).get();
+      log('CITAS totales: ' + cSnap.docs.length);
+      const byBid = {};
+      cSnap.docs.forEach(d => {
+        const bid = d.data().barberoId;
+        const key = (bid === null || bid === undefined) ? '(null/undefined)' : String(bid);
+        byBid[key] = byBid[key] || [];
+        byBid[key].push(d);
+      });
+      Object.entries(byBid).forEach(([bid, arr]) => {
+        log('  barberoId="' + bid + '" → ' + arr.length + ' citas');
+        arr.slice(0, 5).forEach(d => {
+          const x = d.data();
+          log('    ' + d.id + ' | ' + x.fecha + ' ' + x.hora + ' | ' + (x.clienteNombre || '?') + ' | barbero:"' + (x.barbero || '?') + '"');
+        });
+        if (arr.length > 5) log('    ...(' + (arr.length - 5) + ' más)');
+      });
+    } catch (e) {
+      log('Error diagnóstico: ' + (e.message || e.code), 'err');
+    } finally {
+      $btnDiag.disabled = false;
     }
   });
 
