@@ -144,7 +144,20 @@ exports.instagramOAuthCallback = onRequest(
     // Nuevo formato: `${tenantId}|${base64url(origin)}`. Backward-compat: si
     // no hay pipe, tratamos toda la cadena como tenantId (state legacy).
     const [tenantPart, originB64] = stateRaw.includes('|') ? stateRaw.split('|') : [stateRaw, ''];
-    const tenantId = ALL_TENANTS.includes(tenantPart) ? tenantPart : 'elegance';
+
+    // Antes: fallback silencioso a 'elegance' → si el tenant no estaba en la
+    // lista, la config se escribía en `_system/instagram_elegance` y contaminaba
+    // esa cuenta. Ahora abortamos con error claro para que la falta de tenant
+    // sea visible en producción (y no un "éxito" que rompe otro tenant).
+    if (!ALL_TENANTS.includes(tenantPart)) {
+      logger.error(`[Instagram] Tenant no reconocido en state: "${tenantPart}". Agrégalo a ALL_TENANTS y redeployá.`);
+      res.status(400).send(
+        `Tenant no reconocido: "${tenantPart}". ` +
+        `Agrégalo a ALL_TENANTS en functions/instagram-sync.js y volvé a hacer firebase deploy --only functions:instagramOAuthCallback.`
+      );
+      return;
+    }
+    const tenantId = tenantPart;
 
     // Decodifica base64url y valida contra la allow-list. Cualquier origen
     // fuera de allow-list se descarta silenciosamente (fallback al map por
