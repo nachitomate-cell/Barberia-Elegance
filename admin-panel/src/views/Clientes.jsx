@@ -901,6 +901,13 @@ function SinRegistroModal({ sinRegistro, shopName, registroUrl, onClose, mode = 
   const [search, setSearch] = useState('');
   const [sendingKey, setSendingKey] = useState(null);
   const [filtroAntig, setFiltroAntig] = useState('todos'); // 'todos' | 'inactivos90' | 'inactivos180'
+  // localSent = clientes marcados como enviados en esta sesión (optimistic UI),
+  // que complementa `invitacionEnviadaAt` de Firestore. nextKey señala al
+  // siguiente cliente pendiente para el auto-scroll y el ring de "próximo".
+  const [localSent, setLocalSent] = useState(() => new Set());
+  const [nextKey, setNextKey] = useState(null);
+  const waitingReturnRef = useRef(false);
+  const cardRefs = useRef(new Map());
 
   const isMigrados = mode === 'migrados';
 
@@ -975,11 +982,31 @@ function SinRegistroModal({ sinRegistro, shopName, registroUrl, onClose, mode = 
 
   const waMsg = (nombre) => (customMsg || TEMPLATES.estandar).replace(/\{nombre\}/g, nombre || 'ahí');
 
-  const waUrl = (telefono, nombre) => {
+  // Normaliza a formato E.164 chileno (sin +): 56 + 9 dígitos.
+  const normalizePhoneCL = (telefono) => {
     const raw = (telefono || '').replace(/\D/g, '');
     if (!raw || raw.length < 8) return null;
-    const num = raw.startsWith('56') ? raw : `56${raw}`;
-    return `https://wa.me/${num}?text=${encodeURIComponent(waMsg(nombre))}`;
+    return raw.startsWith('56') ? raw : `56${raw}`;
+  };
+
+  // Abre WhatsApp por protocolo nativo (whatsapp://). Si a los 1.5s el
+  // navegador sigue visible es que el OS no aceptó el protocolo (no está
+  // instalada la app desktop), y caemos a web.whatsapp.com como respaldo.
+  const openWhatsAppNative = (phone, text) => {
+    const encoded = encodeURIComponent(text);
+    const native  = `whatsapp://send?phone=${phone}&text=${encoded}`;
+    const web     = `https://web.whatsapp.com/send?phone=${phone}&text=${encoded}`;
+    try {
+      window.location.href = native;
+    } catch (_) {
+      window.open(web, '_blank', 'noopener,noreferrer');
+      return;
+    }
+    setTimeout(() => {
+      if (!document.hidden) {
+        window.open(web, '_blank', 'noopener,noreferrer');
+      }
+    }, 1500);
   };
 
   // Solo persistimos en Firestore para clientes migrados (su key === id del doc en users/).
@@ -1009,6 +1036,63 @@ function SinRegistroModal({ sinRegistro, shopName, registroUrl, onClose, mode = 
     () => sinRegistro.filter(c => c.invitacionEnviadaAt).length,
     [sinRegistro],
   );
+
+  // Considera enviado si ya persistio en Firestore O si se envio en esta sesion.
+  const isSent = (c) => !!c.invitacionEnviadaAt || localSent.has(c.key);
+
+  // Flujo "Click & Enter": abre WhatsApp nativo, marca la card como enviada
+  // optimistamente, persiste en Firestore, y prepara al siguiente cliente
+  // para que el auto-scroll lo enfoque cuando el usuario vuelva al panel.
+  const handleEnviar = (c) => {
+    const phone = normalizePhoneCL(c.telefono);
+    if (!phone) return;
+
+    openWhatsAppNative(phone, waMsg(c.nombre));
+
+    setLocalSent(prev => {
+      const next = new Set(prev);
+      next.add(c.key);
+      return next;
+    });
+    persistirInvitacion(c.key);
+
+    // Busca al siguiente pendiente en la lista filtrada actual (que tenga
+    // telefono valido para que el ring apunte a alguien accionable).
+    waitingReturnRef.current = true;
+    const idx = filtered.findIndex(x => x.key === c.key);
+    const next = filtered.slice(idx + 1).find(x =>
+      !x.invitacionEnviadaAt && !localSent.has(x.key) && normalizePhoneCL(x.telefono)
+    );
+    setNextKey(next?.key || null);
+  };
+
+  // Auto-scroll al siguiente al recuperar el foco (Alt+Tab desde WhatsApp).
+  // Usa visibilitychange (mas confiable en desktop) + focus (fallback iOS).
+  useEffect(() => {
+    const onReturn = () => {
+      if (document.hidden) return;
+      if (!waitingReturnRef.current) return;
+      waitingReturnRef.current = false;
+      if (!nextKey) return;
+      const el = cardRefs.current.get(nextKey);
+      if (el && typeof el.scrollIntoView === 'function') {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    };
+    document.addEventListener('visibilitychange', onReturn);
+    window.addEventListener('focus', onReturn);
+    return () => {
+      document.removeEventListener('visibilitychange', onReturn);
+      window.removeEventListener('focus', onReturn);
+    };
+  }, [nextKey]);
+
+  // Al cambiar filtro/busqueda, limpiar el "proximo" para evitar rings sobre
+  // cards que ya no estan en pantalla.
+  useEffect(() => {
+    setNextKey(null);
+    waitingReturnRef.current = false;
+  }, [search, filtroAntig]);
 
   // Templates disponibles en un array (para el segmented control).
   const TEMPLATE_OPTIONS = isMigrados
@@ -1163,15 +1247,24 @@ function SinRegistroModal({ sinRegistro, shopName, registroUrl, onClose, mode = 
                 <p className="text-sm text-slate-500">Sin resultados</p>
               </div>
             ) : filtered.map(c => {
-              const url = waUrl(c.telefono, c.nombre);
-              const yaEnviado = !!c.invitacionEnviadaAt;
-              const fecha = yaEnviado ? fechaCorta(c.invitacionEnviadaAt) : '';
-              const sending = sendingKey === c.key;
+              const phone     = normalizePhoneCL(c.telefono);
+              const yaEnviado = isSent(c);
+              const isNext    = c.key === nextKey && !yaEnviado;
+              const fecha     = c.invitacionEnviadaAt ? fechaCorta(c.invitacionEnviadaAt) : '';
+              const sending   = sendingKey === c.key;
               return (
                 <div
                   key={c.key}
-                  className={`flex items-center justify-between p-3 bg-slate-800/30 hover:bg-slate-800/60 border rounded-xl transition-colors ${
-                    yaEnviado ? 'border-emerald-500/30 opacity-80' : 'border-slate-700/50'
+                  ref={el => {
+                    if (el) cardRefs.current.set(c.key, el);
+                    else    cardRefs.current.delete(c.key);
+                  }}
+                  className={`flex items-center justify-between p-3 bg-slate-800/30 hover:bg-slate-800/60 border rounded-xl transition-all ${
+                    isNext
+                      ? 'border-indigo-500 ring-2 ring-indigo-500 ring-offset-2 ring-offset-slate-900'
+                      : yaEnviado
+                        ? 'border-emerald-500/30 opacity-80'
+                        : 'border-slate-700/50'
                   }`}
                 >
                   {/* Avatar + info — flex-1 min-w-0 mr-3 para truncate */}
@@ -1195,19 +1288,23 @@ function SinRegistroModal({ sinRegistro, shopName, registroUrl, onClose, mode = 
                     </div>
                   </div>
 
-                  {/* Botón enviar — ghost premium (verde solo al hover) */}
-                  {url ? (
-                    <a
-                      href={url}
-                      target="_blank"
-                      rel="noreferrer"
-                      onClick={() => persistirInvitacion(c.key)}
-                      className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-lg hover:bg-emerald-500 hover:text-white transition-colors text-sm font-semibold"
-                      title={`Enviar invitación a ${c.nombre}`}
+                  {/* Botón — abre whatsapp:// nativo + marca como enviado.
+                      Al enviado queda slate + ✓ pero sigue clickeable para reenviar. */}
+                  {phone ? (
+                    <button
+                      type="button"
+                      onClick={() => handleEnviar(c)}
+                      disabled={sending}
+                      className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-60 ${
+                        yaEnviado
+                          ? 'bg-slate-800 text-slate-500 border border-slate-700 hover:bg-slate-700 hover:text-slate-300'
+                          : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500 hover:text-white'
+                      }`}
+                      title={yaEnviado ? `Reenviar a ${c.nombre}` : `Enviar invitación a ${c.nombre}`}
                     >
-                      <Send size={13} />
-                      {sending ? '…' : (yaEnviado ? 'Reenviar' : 'Enviar')}
-                    </a>
+                      {yaEnviado ? <Check size={13} /> : <Send size={13} />}
+                      {yaEnviado ? 'Enviado' : 'Enviar'}
+                    </button>
                   ) : (
                     <span className="text-[10px] text-slate-600 shrink-0">Sin teléfono</span>
                   )}
