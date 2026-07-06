@@ -32,18 +32,20 @@ function getChatSource(chat) {
 
 const SOURCE_META = {
   club: {
-    label:   'Club',
-    Icon:    Crown,
-    pill:    'bg-amber-500/15 text-amber-300 ring-amber-400/25',
-    dot:     'bg-amber-400',
-    desc:    'Cliente del Club · escribió desde su dashboard',
+    label:       'Club',
+    Icon:        Crown,
+    pill:        'bg-amber-500/15 text-amber-300 ring-amber-400/25',
+    pillCompact: 'bg-amber-500/10 text-amber-500 border border-amber-500/20',
+    dot:         'bg-amber-400',
+    desc:        'Cliente del Club · escribió desde su dashboard',
   },
   public_chat: {
-    label:   'Chat público',
-    Icon:    Globe,
-    pill:    'bg-emerald-500/15 text-emerald-300 ring-emerald-400/25',
-    dot:     'bg-emerald-400',
-    desc:    'Visitante anónimo · escribió desde el link de Instagram',
+    label:       'Chat público',
+    Icon:        Globe,
+    pill:        'bg-emerald-500/15 text-emerald-300 ring-emerald-400/25',
+    pillCompact: 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20',
+    dot:         'bg-emerald-400',
+    desc:        'Visitante anónimo · escribió desde el link de Instagram',
   },
 };
 
@@ -55,13 +57,17 @@ const SYNA_AVATAR = `${import.meta.env.BASE_URL || '/'}syna.png`;
 function SourcePill({ source, compact = false }) {
   const meta = SOURCE_META[source] || SOURCE_META.club;
   const { Icon } = meta;
+  if (compact) {
+    // Píldora minúscula tipo SaaS premium — sin icono, solo texto uppercase.
+    return (
+      <span className={`inline-flex items-center rounded-md font-bold uppercase tracking-wider px-2 py-0.5 text-[9px] ${meta.pillCompact}`}>
+        {meta.label}
+      </span>
+    );
+  }
   return (
-    <span
-      className={`inline-flex items-center gap-1 rounded-full ring-1 font-bold ${meta.pill} ${
-        compact ? 'px-1.5 py-0.5 text-[9px]' : 'px-2 py-0.5 text-[10px]'
-      }`}
-    >
-      <Icon size={compact ? 9 : 11} />
+    <span className={`inline-flex items-center gap-1 rounded-full ring-1 font-bold px-2 py-0.5 text-[10px] ${meta.pill}`}>
+      <Icon size={11} />
       <span className="uppercase tracking-wider">{meta.label}</span>
     </span>
   );
@@ -183,51 +189,67 @@ function ChatList({ selectedId, onSelect, chats, filter }) {
   }
 
   return (
-    <ul className="divide-y divide-slate-800">
+    <ul className="p-2">
       {filtered.map(chat => {
         const source = getChatSource(chat);
         const meta   = SOURCE_META[source] || SOURCE_META.club;
         const contact = chat.userEmail || chat.userPhone;
         const needsHuman = !!chat.needsHumanAttention;
+        const isSelected = selectedId === chat.id;
         return (
-          <li key={chat.id}>
+          <li key={chat.id} className="mb-1 last:mb-0">
             <button
               onClick={() => onSelect(chat.id, chat.userName)}
-              className={`w-full flex items-center gap-3 px-4 py-3.5 sm:py-3 text-left transition-colors hover:bg-slate-800/60 active:bg-slate-800/80 ${
-                selectedId === chat.id ? 'bg-slate-800' : needsHuman ? 'bg-amber-500/[0.05]' : ''
+              className={`w-full flex items-center gap-3 p-3 rounded-2xl text-left transition-colors cursor-pointer ${
+                isSelected
+                  ? 'bg-slate-800'
+                  : needsHuman
+                    ? 'bg-amber-500/[0.05] hover:bg-amber-500/10'
+                    : 'hover:bg-slate-800/50'
               }`}
             >
-              {/* Avatar con dot de color por fuente */}
-              <div className="relative shrink-0">
-                <div className="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center">
-                  <User size={18} className="text-slate-400" />
+              {/* Avatar + dot de estado. El border del dot matchea el bg del
+                  container (slate-900) para que "resalte" como en apps nativas. */}
+              <div className="relative w-12 h-12 flex-shrink-0">
+                <div className="w-12 h-12 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center">
+                  <User size={20} className="text-slate-400" />
                 </div>
                 <span
-                  className={`absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full ring-2 ring-slate-900 ${meta.dot}`}
+                  className={`absolute bottom-0 right-0 w-3.5 h-3.5 border-2 border-slate-900 rounded-full ${meta.dot}`}
                   title={meta.label}
                 />
               </div>
+
+              {/* Info — flex-1 min-w-0 crítico para el truncate */}
               <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-semibold text-white truncate">{chat.userName || 'Cliente'}</p>
-                  <span className="text-[10px] text-slate-500 shrink-0">{formatTime(chat.updatedAt)}</span>
+                {/* Fila 1: nombre + fecha */}
+                <div className="flex justify-between items-baseline mb-0.5">
+                  <p className="font-bold text-slate-100 text-base truncate">{chat.userName || 'Cliente'}</p>
+                  <span className="text-[10px] text-slate-500 flex-shrink-0 ml-2">{formatTime(chat.updatedAt)}</span>
                 </div>
-                <div className="flex items-center gap-1.5 mt-0.5">
+
+                {/* Fila 2: badges + contacto */}
+                <div className="flex items-center gap-2 mb-1">
                   <SourcePill source={source} compact />
                   {needsHuman && (
-                    <span className="inline-flex items-center gap-0.5 rounded-full bg-amber-500/15 px-1.5 py-0.5 text-[9px] font-bold text-amber-300 ring-1 ring-amber-400/25 uppercase tracking-wider">
+                    <span className="inline-flex items-center gap-1 rounded-md font-bold uppercase tracking-wider px-2 py-0.5 text-[9px] bg-amber-500/10 text-amber-500 border border-amber-500/20">
                       <AlertCircle size={9} />
                       Atender
                     </span>
                   )}
                   {contact && (
-                    <span className="text-[10px] text-slate-500 truncate">· {contact}</span>
+                    <span className="text-[11px] text-slate-500 truncate">{contact}</span>
                   )}
                 </div>
-                <p className="text-xs text-slate-500 truncate mt-0.5">{chat.lastMessage || '...'}</p>
+
+                {/* Fila 3: último mensaje */}
+                <span className={`text-sm truncate w-full block ${
+                  chat.hasUnread ? 'font-semibold text-white' : 'text-slate-400'
+                }`}>{chat.lastMessage || '...'}</span>
               </div>
+
               {chat.hasUnread && (
-                <span className="w-2 h-2 rounded-full shrink-0" style={{ background: accent.hex }} />
+                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: accent.hex }} />
               )}
             </button>
           </li>
@@ -237,7 +259,7 @@ function ChatList({ selectedId, onSelect, chats, filter }) {
   );
 }
 
-// ─── Tabs de filtro por origen ──────────────────────────────────
+// ─── Tabs de filtro por origen (segmented control iOS) ─────────
 function SourceFilterTabs({ value, onChange, counts }) {
   const tabs = [
     { id: 'all',         label: 'Todos',        count: counts.all },
@@ -245,33 +267,33 @@ function SourceFilterTabs({ value, onChange, counts }) {
     { id: 'public_chat', label: 'Chat público', count: counts.public_chat ?? 0 },
   ];
   return (
-    <div className="flex gap-1 px-3 py-2 border-b border-slate-800 bg-slate-900/50">
-      {tabs.map(t => {
-        const active = value === t.id;
-        const meta = SOURCE_META[t.id];
-        const Icon = meta?.Icon;
-        return (
-          <button
-            key={t.id}
-            onClick={() => onChange(t.id)}
-            className={`flex-1 inline-flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-lg text-[11px] font-bold transition-all ${
-              active
-                ? 'bg-slate-800 text-white ring-1 ring-slate-700'
-                : 'text-slate-400 hover:bg-slate-800/40 hover:text-slate-200'
-            }`}
-          >
-            {Icon && <Icon size={11} />}
-            <span>{t.label}</span>
-            <span
-              className={`text-[10px] tabular-nums px-1.5 rounded-full ${
-                active ? 'bg-slate-700 text-slate-200' : 'bg-slate-800/70 text-slate-500'
+    <div className="px-3 pb-3">
+      <div className="flex items-center gap-1 bg-slate-900/60 p-1 rounded-xl w-full overflow-x-auto no-scrollbar">
+        {tabs.map(t => {
+          const active = value === t.id;
+          const meta = SOURCE_META[t.id];
+          const Icon = meta?.Icon;
+          return (
+            <button
+              key={t.id}
+              onClick={() => onChange(t.id)}
+              className={`flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
+                active
+                  ? 'bg-slate-700 text-white shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              {t.count}
-            </span>
-          </button>
-        );
-      })}
+              {Icon && <Icon size={13} />}
+              <span>{t.label}</span>
+              <span className={`tabular-nums px-1.5 py-0.5 rounded-md text-[10px] font-semibold ${
+                active ? 'bg-slate-600 text-slate-100' : 'bg-slate-800 text-slate-300'
+              }`}>
+                {t.count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -534,7 +556,6 @@ function getPublicChatUrl(tenantId) {
 //     de la lista. Acceso rápido para copiar/compartir sin abrir la guía.
 function PublicLinkBanner({ onOpenQR }) {
   const tenant   = useTenant();
-  const accent   = useAccent();
   const publicUrl = getPublicChatUrl(tenant.id);
   const [copied, setCopied] = useState(false);
 
@@ -550,38 +571,34 @@ function PublicLinkBanner({ onOpenQR }) {
   const displayUrl = publicUrl.replace(/^https?:\/\//, '');
 
   return (
-    <div
-      className="px-3 py-2.5 border-b border-slate-800 bg-slate-900/40"
-      style={{ '--accent-tenant': accent.hex }}
-    >
-      <div className="flex items-center gap-2 mb-1.5">
-        <Instagram size={11} style={{ color: accent.hex }} />
-        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-400">
+    <div className="px-3 py-3">
+      <div className="flex items-center gap-2 mb-2">
+        <Instagram size={11} className="text-slate-500" />
+        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-slate-500">
           Tu link público
         </p>
       </div>
-      <div className="flex items-center gap-1.5 rounded-lg bg-slate-950/70 ring-1 ring-slate-800 px-2.5 py-1.5">
-        <code className="flex-1 text-[11.5px] font-mono text-slate-200 truncate" title={publicUrl}>
+      <div className="bg-slate-900/50 border border-slate-700/50 rounded-2xl p-2 pl-4 flex items-center justify-between gap-2">
+        <code className="flex-1 text-slate-300 text-sm truncate font-mono min-w-0" title={publicUrl}>
           {displayUrl}
         </code>
         <button
           type="button"
           onClick={copy}
-          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[10.5px] font-bold transition-all active:scale-95 shrink-0"
-          style={{ background: accent.hex, color: accent.text }}
+          className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl px-4 py-2 text-sm font-medium transition-colors flex items-center gap-1.5 shrink-0"
           aria-label={copied ? 'Link copiado' : 'Copiar link'}
         >
-          {copied ? <Check size={11} /> : <Copy size={11} />}
+          {copied ? <Check size={13} /> : <Copy size={13} />}
           <span>{copied ? 'Copiado' : 'Copiar'}</span>
         </button>
         <button
           type="button"
           onClick={onOpenQR}
-          className="inline-flex items-center justify-center w-7 h-7 rounded-md text-slate-300 hover:bg-slate-800 active:scale-95 transition-all shrink-0"
+          className="text-slate-400 hover:text-white p-2 rounded-lg transition-colors shrink-0"
           aria-label="Ver código QR"
           title="Ver QR para imprimir"
         >
-          <QrCode size={13} />
+          <QrCode size={16} />
         </button>
       </div>
     </div>
