@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Menu, X, Calendar, ShoppingBag, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Menu, X, Calendar, ShoppingBag, ChevronRight } from 'lucide-react';
 import Sidebar    from './Sidebar';
 import PWABanner           from './PWABanner';
 import NotificationBanner  from './NotificationBanner';
@@ -140,25 +140,50 @@ export default function AdminLayout({ children }) {
         }
       `}</style>
 
-      {/* ── Desktop sidebar (always visible ≥ lg) ── */}
-      {/* Wrapper con transición de ancho. NO lleva overflow-hidden a nivel
-          raíz porque el botón toggle "sobresale" hacia la derecha (-right-3.5)
-          y necesita quedar visible aunque el sidebar colapse a w-0. El clip
-          del contenido se hace en el <div> interno. */}
-      <div className={`hidden lg:flex lg:flex-col lg:shrink-0 relative transition-all duration-300 ease-in-out ${collapsed ? 'lg:w-0' : 'lg:w-60'}`}>
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <Sidebar unreadChats={unreadChats} collapsed={collapsed} />
+      {/* ── Desktop sidebar (always visible ≥ lg) ──
+          Estructura wrapper/inner que arregla el recorte del toggle:
+          - Wrapper (esta <aside>): reserva el espacio flex (w-60 o w-0) y
+            SIN overflow-hidden, para que el botón (absolute -right-3.5)
+            pueda sobresalir a la derecha aunque el sidebar colapse.
+          - Inner (<div>): posición absoluta con w-60 fija + overflow-hidden
+            propio. Al colapsar, se desliza con -translate-x-full en lugar
+            de deformarse. Así el contenido nunca reflowa a mitad de la
+            animación y el ancho de los items es siempre estable. */}
+      <aside
+        className={`hidden lg:flex relative flex-shrink-0 h-screen bg-slate-900 border-r border-slate-800 transition-all duration-300 ease-in-out ${collapsed ? 'lg:w-0' : 'lg:w-60'}`}
+      >
+        <div
+          className={`absolute top-0 left-0 h-full w-60 flex flex-col overflow-hidden transition-transform duration-300 ease-in-out ${collapsed ? '-translate-x-full' : 'translate-x-0'}`}
+        >
+          <Sidebar unreadChats={unreadChats} />
         </div>
-        {/* Botón toggle flotante en el borde derecho — mitad dentro / mitad fuera */}
+        {/* Toggle flotante — hijo directo del wrapper (fuera del inner con
+            overflow-hidden). Queda siempre visible: cuando colapsa, la mitad
+            derecha del botón "asoma" 14px en el main area (siempre clickeable). */}
         <button
           onClick={() => setCollapsed(v => !v)}
-          className="hidden lg:flex absolute -right-3.5 top-10 z-50 items-center justify-center w-7 h-7 bg-slate-800 border border-slate-600 rounded-full text-slate-400 hover:text-white hover:bg-slate-700 hover:border-slate-500 transition-all cursor-pointer shadow-lg"
+          className="hidden lg:flex absolute top-10 -right-3.5 z-50 h-7 w-7 items-center justify-center rounded-full bg-slate-800 border border-slate-600 text-slate-400 hover:text-white hover:bg-slate-700 hover:border-slate-400 shadow-md transition-colors cursor-pointer"
           aria-label={collapsed ? 'Expandir menú' : 'Colapsar menú'}
           title={collapsed ? 'Expandir menú' : 'Colapsar menú'}
         >
-          {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+          {/* Chevron minimalista — apunta hacia adentro (izq) al estar abierto,
+              y rota 180° para apuntar hacia afuera (der) al colapsar. */}
+          <svg
+            className={`transform transition-transform duration-300 ${collapsed ? 'rotate-180' : ''}`}
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden="true"
+          >
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
         </button>
-      </div>
+      </aside>
 
       {/* ── Mobile drawer ── */}
       {mobileOpen && (

@@ -433,7 +433,7 @@ function SidebarItem({ to, label, Icon, accent, variant, onClick, locked = false
 }
 
 /* ── Sidebar ─────────────────────────────────────────────────────── */
-export default function Sidebar({ onClose, unreadChats = 0, collapsed = false }) {
+export default function Sidebar({ onClose, unreadChats = 0 }) {
   const tenant          = useTenant();
   const { role }        = useAuth();
   const isAdminRole     = role === 'admin' || role === 'jefe';
@@ -504,9 +504,7 @@ export default function Sidebar({ onClose, unreadChats = 0, collapsed = false })
   return (
     <aside
       data-component="sidebar"
-      className={`flex flex-col h-full max-h-screen bg-slate-900 border-r border-slate-800 whitespace-nowrap transition-opacity duration-200 ${
-        collapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'
-      }`}
+      className="flex flex-col h-full max-h-screen w-full bg-slate-900 border-r border-slate-800 lg:border-r-0 whitespace-nowrap"
     >
 
       {/* Gradientes de marca para teñir el trazo de los íconos lucide (variant items) */}
