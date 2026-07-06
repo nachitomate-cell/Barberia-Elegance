@@ -140,33 +140,33 @@ export default function CitasPorCerrar() {
           <CalendarClock className="h-5 w-5 text-amber-500" />
         </span>
         <div>
-          <h1 className="text-xl font-bold text-white leading-tight">Citas por cerrar</h1>
-          <p className="text-sm text-slate-400 mt-0.5">
+          <h1 className="text-xl font-bold text-white [html.light_&]:text-slate-900 leading-tight">Citas por cerrar</h1>
+          <p className="text-sm text-slate-400 [html.light_&]:text-slate-600 mt-0.5">
             Citas pasadas que quedaron sin marcar. Ponte al día cerrándolas en lote.
           </p>
         </div>
       </div>
 
       {/* Alerta destacada — regla clave sobre el efecto de cada acción */}
-      <div className="bg-indigo-500/10 border-l-4 border-indigo-500 rounded-r-xl p-4 mb-6">
-        <p className="text-indigo-400 font-bold text-xs uppercase tracking-wider mb-2 flex items-center gap-2">
+      <div className="bg-indigo-500/10 [html.light_&]:bg-indigo-50 border-l-4 border-indigo-500 [html.light_&]:border-indigo-400 rounded-r-xl p-4 mb-6">
+        <p className="text-indigo-400 [html.light_&]:text-indigo-700 font-bold text-xs uppercase tracking-wider mb-2 flex items-center gap-2">
           <Info size={13} />
           Cómo funciona este cierre
         </p>
-        <ul className="space-y-2 text-sm text-slate-300 leading-relaxed">
+        <ul className="space-y-2 text-sm text-slate-300 [html.light_&]:text-slate-700 leading-relaxed">
           <li className="flex gap-2">
-            <span className="text-indigo-400/70 shrink-0">•</span>
+            <span className="text-indigo-400/70 [html.light_&]:text-indigo-500 shrink-0">•</span>
             <span>
-              <strong className="font-semibold text-white">Completar</strong> registra la cita en Caja, Métricas e Historial. Para evitar spam,{' '}
-              <span className="text-amber-400 font-medium">no suma sellos ni pide reseña de Google</span>{' '}
+              <strong className="font-semibold text-white [html.light_&]:text-slate-900">Completar</strong> registra la cita en Caja, Métricas e Historial. Para evitar spam,{' '}
+              <span className="text-amber-400 [html.light_&]:text-amber-600 font-medium">no suma sellos ni pide reseña de Google</span>{' '}
               (cierre retroactivo).
             </span>
           </li>
           <li className="flex gap-2">
-            <span className="text-indigo-400/70 shrink-0">•</span>
+            <span className="text-indigo-400/70 [html.light_&]:text-indigo-500 shrink-0">•</span>
             <span>
               Si el cliente no asistió, márcala estrictamente como{' '}
-              <strong className="text-rose-400 font-semibold">No-show</strong>.
+              <strong className="text-rose-400 [html.light_&]:text-rose-600 font-semibold">No-show</strong>.
             </span>
           </li>
         </ul>
@@ -191,23 +191,23 @@ export default function CitasPorCerrar() {
       ) : (
         <>
           {/* Barra de seleccionar todo — cabecera adherida a la lista */}
-          <div className="flex items-center justify-between bg-slate-900/50 p-3 rounded-t-xl border border-slate-700/50 border-b-slate-700/50">
-            <label className="flex items-center gap-3 text-sm text-slate-300 cursor-pointer select-none">
+          <div className="flex items-center justify-between bg-slate-900/50 [html.light_&]:bg-white p-3 rounded-t-xl border border-slate-700/50 [html.light_&]:border-slate-200 border-b-slate-700/50">
+            <label className="flex items-center gap-3 text-sm text-slate-300 [html.light_&]:text-slate-700 cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={allSelected}
                 onChange={toggleAll}
-                className="w-5 h-5 rounded bg-slate-800 border-slate-600 accent-indigo-600 focus:ring-2 focus:ring-indigo-500/40 cursor-pointer"
+                className="w-5 h-5 rounded bg-slate-800 [html.light_&]:bg-slate-100 border-slate-600 [html.light_&]:border-slate-300 accent-indigo-600 focus:ring-2 focus:ring-indigo-500/40 cursor-pointer"
               />
               <span className="font-medium">Seleccionar todo</span>
             </label>
-            <span className="text-xs font-medium text-slate-500 tabular-nums">
+            <span className="text-xs font-medium text-slate-500 [html.light_&]:text-slate-500 tabular-nums">
               {selected.size > 0 ? `${selected.size} de ${backlog.length}` : `${backlog.length} cita${backlog.length !== 1 ? 's' : ''}`}
             </span>
           </div>
 
-          {/* Lista de citas */}
-          <div className="pt-3 pb-4">
+          {/* Lista de citas — pb-32 para que la ultima card no quede bajo el footer */}
+          <div className="pt-3 pb-32">
             {backlog.map(c => {
               const checked = selected.has(c.id);
               const isPendiente = c.estado === 'Pendiente';
@@ -220,8 +220,8 @@ export default function CitasPorCerrar() {
                   onKeyDown={e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggle(c.id); } }}
                   className={`flex items-center gap-4 rounded-xl p-4 mb-3 border transition-colors cursor-pointer ${
                     checked
-                      ? 'bg-indigo-900/20 border-indigo-500/50 hover:bg-indigo-900/30'
-                      : 'bg-slate-800/40 border-slate-700/50 hover:bg-slate-800/80'
+                      ? 'bg-indigo-900/20 [html.light_&]:bg-indigo-50 border-indigo-500/50 [html.light_&]:border-indigo-200 hover:bg-indigo-900/30 [html.light_&]:hover:bg-indigo-100/70'
+                      : 'bg-slate-800/40 [html.light_&]:bg-white border-slate-700/50 [html.light_&]:border-slate-200 hover:bg-slate-800/80 [html.light_&]:hover:bg-slate-50'
                   }`}
                 >
                   <input
@@ -229,7 +229,7 @@ export default function CitasPorCerrar() {
                     checked={checked}
                     onChange={() => toggle(c.id)}
                     onClick={e => e.stopPropagation()}
-                    className="w-5 h-5 rounded bg-slate-800 border-slate-600 accent-indigo-600 focus:ring-2 focus:ring-indigo-500/40 cursor-pointer shrink-0"
+                    className="w-5 h-5 rounded bg-slate-800 [html.light_&]:bg-slate-100 border-slate-600 [html.light_&]:border-slate-300 accent-indigo-600 focus:ring-2 focus:ring-indigo-500/40 cursor-pointer shrink-0"
                   />
                   <span
                     className={`w-2.5 h-2.5 rounded-full shrink-0 ${
@@ -240,14 +240,14 @@ export default function CitasPorCerrar() {
                     aria-label={isPendiente ? 'Pendiente' : 'Confirmada'}
                   />
                   <div className="flex-1 min-w-0">
-                    <p className="text-white font-bold text-base truncate">{c.clienteNombre || 'Sin nombre'}</p>
-                    <p className="text-slate-400 text-sm truncate">
+                    <p className="text-white [html.light_&]:text-slate-900 font-bold text-base truncate">{c.clienteNombre || 'Sin nombre'}</p>
+                    <p className="text-slate-400 [html.light_&]:text-slate-600 text-sm truncate">
                       {c.servicioNombre || '—'}{c.barbero ? ` · ${c.barbero}` : ''}
                     </p>
                   </div>
                   <div className="flex flex-col items-end shrink-0">
-                    <p className="text-[10px] text-slate-400 uppercase tracking-wider">{fmtFecha(c.fecha)}</p>
-                    <p className="text-sm font-medium text-slate-300 tabular-nums mt-0.5">{c.hora || '—'}</p>
+                    <p className="text-[10px] text-slate-400 [html.light_&]:text-slate-500 uppercase tracking-wider">{fmtFecha(c.fecha)}</p>
+                    <p className="text-sm font-medium text-slate-300 [html.light_&]:text-slate-700 tabular-nums mt-0.5">{c.hora || '—'}</p>
                   </div>
                 </div>
               );
@@ -256,19 +256,20 @@ export default function CitasPorCerrar() {
         </>
       )}
 
-      {/* Barra de acciones sticky — glassmorphism, 2 filas */}
+      {/* Barra de acciones sticky — glassmorphism, 2 filas. z-40 para que el
+          menu lateral mobile (z-60) siga por encima al abrirse. */}
       {selected.size > 0 && (
-        <div className="sticky bottom-0 w-full bg-slate-900/85 backdrop-blur-xl border-t border-slate-700/50 p-4 flex flex-col gap-3 z-50 shadow-[0_-10px_20px_-5px_rgba(0,0,0,0.3)] rounded-b-xl">
+        <div className="sticky bottom-0 w-full bg-slate-900/85 [html.light_&]:bg-white/90 backdrop-blur-xl border-t border-slate-700/50 [html.light_&]:border-slate-200 p-4 flex flex-col gap-3 z-40 shadow-[0_-10px_20px_-5px_rgba(0,0,0,0.3)] rounded-b-xl">
           {/* Fila 1 — contador + selector de pago */}
           <div className="flex items-center justify-between w-full">
-            <span className="text-sm font-medium text-slate-300">
+            <span className="text-sm font-medium text-slate-300 [html.light_&]:text-slate-600">
               {selected.size} seleccionada{selected.size !== 1 ? 's' : ''}
             </span>
             <select
               value={metodoPago}
               onChange={e => setMetodoPago(e.target.value)}
               disabled={busy}
-              className="bg-slate-800 border border-slate-600 text-slate-200 text-sm rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 py-2 pl-3 pr-8 w-auto min-w-[160px] disabled:opacity-50"
+              className="bg-slate-800 [html.light_&]:bg-slate-50 border border-slate-600 [html.light_&]:border-slate-300 text-slate-200 [html.light_&]:text-slate-700 text-sm rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 py-2 pl-3 pr-8 w-auto min-w-[160px] disabled:opacity-50"
               title="Método de pago para las citas completadas (opcional)"
             >
               <option value="">Pago: sin especificar</option>
@@ -281,7 +282,7 @@ export default function CitasPorCerrar() {
             <button
               onClick={handleNoShow}
               disabled={busy}
-              className="flex-1 bg-rose-500/10 border border-rose-500/20 hover:bg-rose-500/20 disabled:opacity-50 text-rose-400 font-medium py-3 rounded-xl transition-colors flex justify-center items-center gap-2"
+              className="flex-1 bg-rose-500/10 [html.light_&]:bg-rose-50 border border-rose-500/20 [html.light_&]:border-rose-200 hover:bg-rose-500/20 [html.light_&]:hover:bg-rose-100 disabled:opacity-50 text-rose-400 [html.light_&]:text-rose-600 font-medium py-3 rounded-xl transition-colors flex justify-center items-center gap-2"
             >
               <XCircle size={16} />
               No-show

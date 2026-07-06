@@ -139,7 +139,7 @@ export default function AdminLayout({ children }) {
 
       {/* ── Mobile drawer ── */}
       {mobileOpen && (
-        <div className="fixed inset-0 z-50 flex lg:hidden animate-fade-in">
+        <div className="fixed inset-0 z-[60] flex lg:hidden animate-fade-in">
           {/* Backdrop */}
           <div
             className="absolute inset-0 bg-black/60 backdrop-blur-sm"
