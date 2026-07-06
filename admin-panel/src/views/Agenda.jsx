@@ -3312,33 +3312,36 @@ export default function Agenda() {
     <AgendaCtx.Provider value={slotCfg}>
     <div data-view="agenda" className="flex flex-col h-full gap-3">
 
-      {/* Toolbar — Alta densidad mobile-first, 2 filas máx */}
+      {/* Toolbar — Mobile-first: se apila en 2 filas en móvil, 1 fila en desktop */}
       <h1 className="sr-only">Agenda</h1>
 
-      {/* ── Fila 1: navegación de fecha + acciones ── */}
-      <div className="flex items-center gap-1.5 shrink-0">
-        <div className="flex items-center gap-0.5 min-w-0">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 w-full shrink-0">
+        {/* ── Fila 1 (móvil) / Izquierda (desktop): navegación de fecha ── */}
+        <div className="flex items-center justify-between w-full md:w-auto gap-0.5 min-w-0">
           <button
             onClick={() => moveDay(-1)}
             aria-label="Día anterior"
-            className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-all"
+            className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-all shrink-0"
           >
             <ChevronLeft size={18} />
           </button>
-          <span className="text-sm font-semibold text-white text-center capitalize whitespace-nowrap tabular-nums px-1">
+          <span className="flex-1 md:flex-none text-sm font-semibold text-white text-center capitalize whitespace-nowrap tabular-nums px-2 truncate">
             {viewMode === 'week' ? formatWeekLabel(date) : formatDateLabel(date)}
           </span>
           <button
             onClick={() => moveDay(1)}
             aria-label="Día siguiente"
-            className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-all"
+            className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-all shrink-0"
           >
             <ChevronRight size={18} />
           </button>
         </div>
+
+        {/* ── Fila 2 (móvil) / Derecha (desktop): controles y acciones ── */}
+        <div className="flex items-center flex-wrap gap-2 w-full md:w-auto">
         <button
           onClick={() => setDate(new Date())}
-          className="h-9 px-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-lg transition-all"
+          className="h-9 px-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-lg transition-all shrink-0"
         >
           Hoy
         </button>
@@ -3348,7 +3351,7 @@ export default function Agenda() {
             filtro no cabe (7 días × N barberos rompe el layout). El label
             "Semana" queda gris + no-click cuando está deshabilitado. */}
         <div
-          className="flex items-center bg-[#1a1b23] border border-slate-800 rounded-lg p-0.5 shrink-0"
+          className="flex items-center bg-slate-800/60 border border-slate-700 rounded-lg p-0.5 shrink-0"
           role="tablist"
           aria-label="Modo de vista"
         >
@@ -3384,7 +3387,7 @@ export default function Agenda() {
           })}
         </div>
 
-        {/* Acciones primarias — pegadas a la derecha */}
+        {/* Acciones primarias — pegadas al final del row en desktop */}
         <div className="flex items-center gap-1.5 ml-auto shrink-0">
         <button
           onClick={() => setCitaModal({ cita: null, barberoId: barberos[0]?.id || '', hora: '09:00' })}
@@ -3455,6 +3458,7 @@ export default function Agenda() {
               />
             </div>
           )}
+        </div>
         </div>
         </div>
       </div>
