@@ -992,6 +992,9 @@ function SinRegistroModal({ sinRegistro, shopName, registroUrl, onClose, mode = 
   // Abre WhatsApp por protocolo nativo (whatsapp://). Si a los 1.5s el
   // navegador sigue visible es que el OS no aceptó el protocolo (no está
   // instalada la app desktop), y caemos a web.whatsapp.com como respaldo.
+  // El fallback web usa un target con nombre estático ('whatsapp_tab') para
+  // reutilizar siempre la misma pestaña en clics sucesivos y no ensuciar la
+  // barra de tareas con ventanas nuevas.
   const openWhatsAppNative = (phone, text) => {
     const encoded = encodeURIComponent(text);
     const native  = `whatsapp://send?phone=${phone}&text=${encoded}`;
@@ -999,12 +1002,12 @@ function SinRegistroModal({ sinRegistro, shopName, registroUrl, onClose, mode = 
     try {
       window.location.href = native;
     } catch (_) {
-      window.open(web, '_blank', 'noopener,noreferrer');
+      window.open(web, 'whatsapp_tab', 'noopener,noreferrer');
       return;
     }
     setTimeout(() => {
       if (!document.hidden) {
-        window.open(web, '_blank', 'noopener,noreferrer');
+        window.open(web, 'whatsapp_tab', 'noopener,noreferrer');
       }
     }, 1500);
   };
