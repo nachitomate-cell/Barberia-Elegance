@@ -1010,6 +1010,24 @@ function SinRegistroModal({ sinRegistro, shopName, registroUrl, onClose, mode = 
     [sinRegistro],
   );
 
+  // Templates disponibles en un array (para el segmented control).
+  const TEMPLATE_OPTIONS = isMigrados
+    ? [
+        { id: 'estandar',  label: 'Estándar' },
+        { id: 'descuento', label: 'Descuento 20%' },
+        { id: 'reactivar', label: 'Reactivación' },
+      ]
+    : [
+        { id: 'estandar',  label: 'Estándar' },
+        { id: 'descuento', label: 'Descuento 20%' },
+      ];
+
+  const FILTROS_ANTIG = [
+    { id: 'todos',        label: 'Todos' },
+    { id: 'inactivos90',  label: '+90d sin ver' },
+    { id: 'inactivos180', label: '+180d sin ver' },
+  ];
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -1018,184 +1036,184 @@ function SinRegistroModal({ sinRegistro, shopName, registroUrl, onClose, mode = 
     >
       <div className="w-full max-w-lg bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl flex flex-col max-h-[85vh]">
 
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800">
-          <div>
+        {/* Header (fijo) */}
+        <div className="shrink-0 flex items-center justify-between px-5 py-4 border-b border-slate-800">
+          <div className="min-w-0">
             <div className="flex items-center gap-2">
               {isMigrados ? (
-                <Send size={15} className="text-amber-400" />
+                <Send size={15} className="text-amber-400 shrink-0" />
               ) : (
-                <UserX size={15} className="text-amber-400" />
+                <UserX size={15} className="text-amber-400 shrink-0" />
               )}
-              <h3 className="font-semibold text-white">
+              <h3 className="font-semibold text-white truncate">
                 {isMigrados ? 'Invitar clientes migrados' : 'Clientes sin registro'}
               </h3>
-              <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-400/10 border border-amber-400/30 text-amber-400">
+              <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-400/10 border border-amber-400/30 text-amber-400 shrink-0">
                 {sinRegistro.length}
               </span>
             </div>
-            <p className="text-xs text-slate-500 mt-0.5">
+            <p className="text-xs text-slate-500 mt-0.5 truncate">
               {isMigrados
                 ? 'Clientes traídos de AgendaPro. Aún no se han unido al Club.'
                 : 'Han agendado pero no se han unido al club de fidelidad'}
             </p>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-slate-800 transition-all">
+          <button onClick={onClose} className="shrink-0 p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-slate-800 transition-all">
             <X size={16} />
           </button>
         </div>
 
-        {/* Búsqueda */}
-        <div className="px-5 pt-4">
-          <div className="relative">
-            <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
-            <input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Buscar por nombre o teléfono…"
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-8 pr-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-slate-500 transition-colors"
-            />
-          </div>
-          <div className="flex items-center justify-between mt-2 mb-1">
-            <p className="text-xs text-slate-600">{filtered.length} cliente{filtered.length !== 1 ? 's' : ''}</p>
-            {isMigrados && enviadosCount > 0 && (
-              <p className="text-xs text-emerald-400 font-semibold">
-                {enviadosCount} / {sinRegistro.length} ya invitado{enviadosCount !== 1 ? 's' : ''}
-              </p>
-            )}
-          </div>
-        </div>
+        {/* Scroll container */}
+        <div className="flex-1 overflow-y-auto">
 
-        {/* Lista */}
-        <div className="flex-1 overflow-y-auto px-5 pb-5 space-y-2 mt-1">
-          {filtered.length === 0 ? (
-            <div className="flex flex-col items-center py-10 gap-2 text-center">
-              <UserX size={28} className="text-slate-700" />
-              <p className="text-sm text-slate-500">Sin resultados</p>
-            </div>
-          ) : filtered.map(c => {
-            const url = waUrl(c.telefono, c.nombre);
-            const yaEnviado = !!c.invitacionEnviadaAt;
-            const fecha = yaEnviado ? fechaCorta(c.invitacionEnviadaAt) : '';
-            const sending = sendingKey === c.key;
-            return (
-              <div key={c.key} className={`flex items-center gap-3 bg-slate-800/50 border rounded-xl px-4 py-3 transition-all ${yaEnviado ? 'border-emerald-500/30 opacity-70' : 'border-slate-800'}`}>
-                {/* Avatar */}
-                <div className="w-9 h-9 rounded-full bg-slate-700 flex items-center justify-center shrink-0">
-                  <span className="text-xs font-bold text-slate-300">
-                    {(c.nombre || '?').trim().split(/\s+/).map(w => w[0]).slice(0,2).join('').toUpperCase()}
-                  </span>
-                </div>
+          {/* ── Sección 1 · Mensaje (segmented control + burbuja WhatsApp) ── */}
+          <div className="px-5 pt-4 pb-4">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2">
+              Mensaje que se enviará
+            </p>
 
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-white truncate">{c.nombre || 'Sin nombre'}</p>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    {c.telefono && <span className="text-[10px] text-slate-500">{c.telefono}</span>}
-                    {!isMigrados && c.count != null && (
-                      <span className="text-[10px] font-bold text-blue-400/80">{c.count} cita{c.count !== 1 ? 's' : ''}</span>
-                    )}
-                    {isMigrados && c.email && (
-                      <span className="text-[10px] text-slate-600 truncate">{c.email}</span>
-                    )}
-                    {isMigrados && yaEnviado && fecha && (
-                      <span className="text-[10px] font-bold text-emerald-400/90">✓ {fecha}</span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Botón WA */}
-                {url ? (
-                  <a
-                    href={url}
-                    target="_blank"
-                    rel="noreferrer"
-                    onClick={() => persistirInvitacion(c.key)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold shrink-0 transition-all hover:opacity-90 active:scale-95"
-                    style={yaEnviado
-                      ? { background: 'rgba(16,185,129,0.15)', color: '#34d399', border: '1px solid rgba(16,185,129,0.4)' }
-                      : { background: '#25D366', color: '#fff' }}
-                    title={`Enviar invitación a ${c.nombre}`}
-                  >
-                    <Send size={11} />
-                    {sending ? '...' : (yaEnviado ? 'Reenviar' : 'Invitar')}
-                  </a>
-                ) : (
-                  <span className="text-[10px] text-slate-600 shrink-0">Sin teléfono</span>
-                )}
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Footer: editor del mensaje + plantillas + filtros */}
-        <div className="px-5 py-3 border-t border-slate-800 bg-slate-800/20 rounded-b-2xl space-y-2">
-          {/* Filtros por antigüedad (solo migrados) */}
-          {isMigrados && (
-            <div className="flex gap-1.5 flex-wrap">
-              {[
-                { id: 'todos',         label: 'Todos',                   cls: 'emerald' },
-                { id: 'inactivos90',   label: 'Inactivos +90d',          cls: 'amber'   },
-                { id: 'inactivos180',  label: 'Inactivos +180d',         cls: 'rose'    },
-              ].map(f => {
-                const active = filtroAntig === f.id;
-                const cls = f.cls;
+            {/* Segmented control de plantillas */}
+            <div className="flex items-center gap-1 bg-slate-900 border border-slate-700 rounded-lg p-1 text-sm w-full mb-3">
+              {TEMPLATE_OPTIONS.map(t => {
+                const active = templateId === t.id;
                 return (
                   <button
-                    key={f.id}
-                    onClick={() => setFiltroAntig(f.id)}
-                    className={`px-2.5 py-1 rounded-full border text-[10px] font-bold transition-all ${
+                    key={t.id}
+                    onClick={() => aplicarTemplate(t.id)}
+                    className={`flex-1 px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap transition-colors ${
                       active
-                        ? cls === 'emerald' ? 'bg-emerald-500/20 border-emerald-400 text-emerald-300'
-                          : cls === 'amber' ? 'bg-amber-500/20 border-amber-400 text-amber-300'
-                          : 'bg-rose-500/20 border-rose-400 text-rose-300'
-                        : 'border-slate-700 text-slate-400 hover:bg-slate-800'
+                        ? 'bg-slate-700 text-white shadow-sm'
+                        : 'text-slate-400 hover:text-slate-200'
                     }`}
                   >
-                    {f.label}
+                    {t.label}
                   </button>
                 );
               })}
             </div>
-          )}
 
-          {/* Selector de plantilla */}
-          <div className="flex gap-1.5 flex-wrap items-center">
-            <span className="text-[10px] text-slate-500 font-semibold uppercase">Plantilla:</span>
-            <button
-              onClick={() => aplicarTemplate('estandar')}
-              className={`px-2.5 py-1 rounded-md text-[10px] font-semibold border transition-all ${templateId === 'estandar' ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300' : 'border-slate-700 text-slate-400 hover:bg-slate-800'}`}
-            >
-              Estándar
-            </button>
-            <button
-              onClick={() => aplicarTemplate('descuento')}
-              className={`px-2.5 py-1 rounded-md text-[10px] font-semibold border transition-all ${templateId === 'descuento' ? 'bg-amber-500/15 border-amber-500/40 text-amber-300' : 'border-slate-700 text-slate-400 hover:bg-slate-800'}`}
-            >
-              Con descuento 20%
-            </button>
-            {isMigrados && (
-              <button
-                onClick={() => aplicarTemplate('reactivar')}
-                className={`px-2.5 py-1 rounded-md text-[10px] font-semibold border transition-all ${templateId === 'reactivar' ? 'bg-rose-500/15 border-rose-500/40 text-rose-300' : 'border-slate-700 text-slate-400 hover:bg-slate-800'}`}
-              >
-                Reactivación VIP
-              </button>
-            )}
+            {/* Burbuja estilo WhatsApp — editable */}
+            <div className="relative">
+              <textarea
+                value={customMsg}
+                onChange={e => onMsgChange(e.target.value)}
+                rows={6}
+                placeholder="Mensaje que se enviará por WhatsApp…"
+                className="w-full bg-[#075E54]/20 border border-[#128C7E]/30 rounded-2xl rounded-tl-sm p-4 text-slate-200 text-sm leading-relaxed focus:outline-none focus:border-[#128C7E]/60 resize-y"
+              />
+            </div>
+            <p className="text-[10px] text-slate-500 mt-1.5">
+              <code className="text-emerald-400/80">{'{nombre}'}</code> se reemplaza por el nombre real del cliente al enviar. Se guarda automáticamente.
+            </p>
           </div>
 
-          {/* Textarea editable */}
-          <div>
-            <textarea
-              value={customMsg}
-              onChange={e => onMsgChange(e.target.value)}
-              rows={5}
-              placeholder="Mensaje que se enviará por WhatsApp…"
-              className="w-full bg-slate-950/60 border border-slate-700/60 rounded-lg px-2.5 py-2 text-[11px] text-slate-300 leading-relaxed focus:outline-none focus:border-slate-500 resize-y font-mono"
-            />
-            <p className="text-[9px] text-slate-600 mt-1">
-              <code className="text-emerald-400/80">{'{nombre}'}</code> se reemplaza por el nombre real del cliente al enviar. El mensaje se guarda automáticamente para la próxima vez.
-            </p>
+          {/* ── Sección 2 · Búsqueda y filtros (sticky) ── */}
+          <div className="sticky top-0 bg-slate-900/95 backdrop-blur-md z-10 px-5 py-3 border-y border-slate-800">
+            <div className="relative">
+              <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+              <input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Buscar por nombre o teléfono…"
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-3 p-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500 transition-colors"
+              />
+            </div>
+
+            {/* Filtros de inactividad (solo migrados) */}
+            {isMigrados && (
+              <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1 mt-3">
+                {FILTROS_ANTIG.map(f => {
+                  const active = filtroAntig === f.id;
+                  return (
+                    <button
+                      key={f.id}
+                      onClick={() => setFiltroAntig(f.id)}
+                      className={`shrink-0 whitespace-nowrap px-3 py-1 rounded-full border text-[11px] font-semibold transition-colors ${
+                        active
+                          ? 'bg-indigo-500/15 border-indigo-500/40 text-indigo-300'
+                          : 'border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+                      }`}
+                    >
+                      {f.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Contadores */}
+            <div className="flex items-center justify-between mt-2">
+              <p className="text-[11px] text-slate-500">
+                <span className="text-slate-300 font-semibold">{filtered.length}</span>{' '}
+                cliente{filtered.length !== 1 ? 's' : ''}
+              </p>
+              {isMigrados && enviadosCount > 0 && (
+                <p className="text-[11px] text-emerald-400 font-semibold">
+                  {enviadosCount} / {sinRegistro.length} ya invitado{enviadosCount !== 1 ? 's' : ''}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* ── Sección 3 · Lista de clientes ── */}
+          <div className="flex flex-col gap-2 mt-4 px-5 pb-5">
+            {filtered.length === 0 ? (
+              <div className="flex flex-col items-center py-10 gap-2 text-center">
+                <UserX size={28} className="text-slate-700" />
+                <p className="text-sm text-slate-500">Sin resultados</p>
+              </div>
+            ) : filtered.map(c => {
+              const url = waUrl(c.telefono, c.nombre);
+              const yaEnviado = !!c.invitacionEnviadaAt;
+              const fecha = yaEnviado ? fechaCorta(c.invitacionEnviadaAt) : '';
+              const sending = sendingKey === c.key;
+              return (
+                <div
+                  key={c.key}
+                  className={`flex items-center justify-between p-3 bg-slate-800/30 hover:bg-slate-800/60 border rounded-xl transition-colors ${
+                    yaEnviado ? 'border-emerald-500/30 opacity-80' : 'border-slate-700/50'
+                  }`}
+                >
+                  {/* Avatar + info — flex-1 min-w-0 mr-3 para truncate */}
+                  <div className="flex items-center gap-3 flex-1 min-w-0 mr-3">
+                    <div className="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center shrink-0">
+                      <span className="text-xs font-bold text-slate-300">
+                        {(c.nombre || '?').trim().split(/\s+/).map(w => w[0]).slice(0,2).join('').toUpperCase()}
+                      </span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-white truncate">{c.nombre || 'Sin nombre'}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        {c.telefono && <span className="text-[10px] text-slate-500 truncate">{c.telefono}</span>}
+                        {!isMigrados && c.count != null && (
+                          <span className="text-[10px] font-bold text-blue-400/80 shrink-0">{c.count} cita{c.count !== 1 ? 's' : ''}</span>
+                        )}
+                        {isMigrados && yaEnviado && fecha && (
+                          <span className="text-[10px] font-bold text-emerald-400/90 shrink-0">✓ {fecha}</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Botón enviar — ghost premium (verde solo al hover) */}
+                  {url ? (
+                    <a
+                      href={url}
+                      target="_blank"
+                      rel="noreferrer"
+                      onClick={() => persistirInvitacion(c.key)}
+                      className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-lg hover:bg-emerald-500 hover:text-white transition-colors text-sm font-semibold"
+                      title={`Enviar invitación a ${c.nombre}`}
+                    >
+                      <Send size={13} />
+                      {sending ? '…' : (yaEnviado ? 'Reenviar' : 'Enviar')}
+                    </a>
+                  ) : (
+                    <span className="text-[10px] text-slate-600 shrink-0">Sin teléfono</span>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
 
