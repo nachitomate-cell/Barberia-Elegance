@@ -60,6 +60,9 @@
   <div class="row">
     <button id="btnDiag" disabled class="secondary">🔍 Diagnosticar (lista todas las citas)</button>
   </div>
+  <div class="row">
+    <button id="btnOrph" disabled>4. Reparar citas huérfanas (barberoId null/undefined → por nombre)</button>
+  </div>
 
   <pre id="log">Estado: esperando login…</pre>
 </main>
@@ -79,6 +82,7 @@
   const $btnDry  = document.getElementById('btnDryRun');
   const $btnApp  = document.getElementById('btnApply');
   const $btnDiag = document.getElementById('btnDiag');
+  const $btnOrph = document.getElementById('btnOrph');
 
   function log(msg, cls) {
     const line = document.createElement('div');
@@ -110,9 +114,67 @@
       $btnDry.disabled = false;
       $btnApp.disabled = false;
       $btnDiag.disabled = false;
+      $btnOrph.disabled = false;
     } catch (e) {
       log('Login falló: ' + (e.message || e.code), 'err');
       $btnLog.disabled = false;
+    }
+  });
+
+  $btnOrph.addEventListener('click', async () => {
+    const tid = ($tenant.value || '').trim();
+    if (!tid) { log('Falta tenant', 'err'); return; }
+    if (!confirm('¿Reparar citas huérfanas del tenant "' + tid + '"? Asigna barberoId por coincidencia de NOMBRE (campo `barbero`) con el doc principal (sin _mainDocId).')) return;
+    $btnOrph.disabled = true;
+    try {
+      log('— Reparación de citas huérfanas para tenant: ' + tid + ' —');
+      const db = firebase.firestore();
+      // Mapa de nombres → id del doc principal (sin _mainDocId, no admin de enlace)
+      const bSnap = await db.collection(pathBarberos(tid)).get();
+      const nameToId = {};
+      bSnap.docs.forEach(d => {
+        const x = d.data() || {};
+        // Solo docs originales (no de enlace) — el barbero real
+        if (x._mainDocId) return;
+        const nombre = (x.nombre || '').trim();
+        if (nombre) nameToId[nombre] = d.id;
+      });
+      log('Nombre → id (principal):');
+      Object.entries(nameToId).forEach(([k, v]) => log('  "' + k + '" → ' + v));
+      if (!Object.keys(nameToId).length) { log('No hay barberos originales para asignar.', 'err'); return; }
+
+      const cSnap = await db.collection(pathCitas(tid)).get();
+      const targets = cSnap.docs.filter(d => {
+        const x = d.data();
+        const bidBroken = (x.barberoId === null || x.barberoId === undefined || x.barberoId === '');
+        return bidBroken && x.barbero && nameToId[x.barbero.trim()];
+      });
+      log('Citas a reparar: ' + targets.length);
+      targets.slice(0, 10).forEach(d => {
+        const x = d.data();
+        log('  ' + d.id + ' | ' + x.fecha + ' ' + x.hora + ' | barbero:"' + x.barbero + '" → ' + nameToId[x.barbero.trim()]);
+      });
+      if (targets.length > 10) log('  ...(' + (targets.length - 10) + ' más)');
+
+      if (!targets.length) { log('Nada que reparar.', 'ok'); return; }
+
+      let batch = db.batch(), n = 0, total = 0;
+      for (const d of targets) {
+        const x = d.data();
+        batch.update(d.ref, { barberoId: nameToId[x.barbero.trim()] });
+        n++; total++;
+        if (n === 450) {
+          await batch.commit();
+          log('Batch commit (' + total + ')');
+          batch = db.batch(); n = 0;
+        }
+      }
+      if (n) await batch.commit();
+      log('LISTO. Total reparadas: ' + total, 'ok');
+    } catch (e) {
+      log('Error reparación: ' + (e.message || e.code), 'err');
+    } finally {
+      $btnOrph.disabled = false;
     }
   });
 

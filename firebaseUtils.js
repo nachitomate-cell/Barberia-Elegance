@@ -1395,7 +1395,17 @@ const FDB = (() => {
       // tambien `activo !== false` por compat con seeds legacy que usaron ese
       // nombre. Ambos "default true" — solo bloquea cuando el campo es
       // literalmente false, docs sin el campo pasan.
-      .filter(b => b.disponible !== false && b.activo !== false && !b._mainDocId && (b.rol !== 'admin' || (window.CURRENT_TENANT_ID || 'elegance') === 'delnero'))
+      // Filtro publico:
+      //   - excluye docs de enlace (_mainDocId apunta al principal)
+      //   - respeta toggle "Desactivar" (disponible/activo === false)
+      //   - excluye admins POR DEFECTO — salvo:
+      //       · tenant 'delnero' (legacy, todos son admins)
+      //       · admin con `mostrarEnAgenda: true` explícito
+      //         (dueño-que-tambien-atiende, ej. elbarberomoderno)
+      .filter(b => b.disponible !== false && b.activo !== false && !b._mainDocId
+        && (b.rol !== 'admin'
+          || b.mostrarEnAgenda === true
+          || (window.CURRENT_TENANT_ID || 'elegance') === 'delnero'))
       .sort((a, b) => {
         // Priorizar docs cuyo id NO coincide con uid — son los docs "originales"
         // que ya tienen citas asignadas. Si el seed creó uno nuevo (uid===id) para
