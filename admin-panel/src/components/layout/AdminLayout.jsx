@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Menu, X, Calendar, ShoppingBag, ChevronRight } from 'lucide-react';
+import { Menu, X, Calendar, ShoppingBag, ChevronRight, ChevronLeft } from 'lucide-react';
 import Sidebar    from './Sidebar';
 import PWABanner           from './PWABanner';
 import NotificationBanner  from './NotificationBanner';
@@ -92,6 +92,14 @@ function ToastCard({ id, type, title, description, targetPath, onDismiss }) {
 
 export default function AdminLayout({ children }) {
   const [mobileOpen, setMobileOpen] = useState(false);
+  // Sidebar colapsable en desktop (persistido). En mobile no aplica —
+  // ahí el drawer sigue siendo un overlay independiente.
+  const [collapsed, setCollapsed] = useState(() => {
+    try { return localStorage.getItem('sidebar-collapsed') === '1'; } catch { return false; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem('sidebar-collapsed', collapsed ? '1' : '0'); } catch { /* noop */ }
+  }, [collapsed]);
   const [toasts, setToasts] = useState([]);
   const unreadChats = useChatNotifications();
 
@@ -133,8 +141,23 @@ export default function AdminLayout({ children }) {
       `}</style>
 
       {/* ── Desktop sidebar (always visible ≥ lg) ── */}
-      <div className="hidden lg:flex lg:flex-col lg:w-60 lg:shrink-0">
-        <Sidebar unreadChats={unreadChats} />
+      {/* Wrapper con transición de ancho. NO lleva overflow-hidden a nivel
+          raíz porque el botón toggle "sobresale" hacia la derecha (-right-3.5)
+          y necesita quedar visible aunque el sidebar colapse a w-0. El clip
+          del contenido se hace en el <div> interno. */}
+      <div className={`hidden lg:flex lg:flex-col lg:shrink-0 relative transition-all duration-300 ease-in-out ${collapsed ? 'lg:w-0' : 'lg:w-60'}`}>
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <Sidebar unreadChats={unreadChats} collapsed={collapsed} />
+        </div>
+        {/* Botón toggle flotante en el borde derecho — mitad dentro / mitad fuera */}
+        <button
+          onClick={() => setCollapsed(v => !v)}
+          className="hidden lg:flex absolute -right-3.5 top-10 z-50 items-center justify-center w-7 h-7 bg-slate-800 border border-slate-600 rounded-full text-slate-400 hover:text-white hover:bg-slate-700 hover:border-slate-500 transition-all cursor-pointer shadow-lg"
+          aria-label={collapsed ? 'Expandir menú' : 'Colapsar menú'}
+          title={collapsed ? 'Expandir menú' : 'Colapsar menú'}
+        >
+          {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
+        </button>
       </div>
 
       {/* ── Mobile drawer ── */}
@@ -152,8 +175,8 @@ export default function AdminLayout({ children }) {
         </div>
       )}
 
-      {/* ── Main area ── */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      {/* ── Main area — flex-1 se expande al colapsar el sidebar ── */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden transition-all duration-300">
 
         {/* Mobile topbar */}
         <header

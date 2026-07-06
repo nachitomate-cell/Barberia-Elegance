@@ -433,7 +433,7 @@ function SidebarItem({ to, label, Icon, accent, variant, onClick, locked = false
 }
 
 /* ── Sidebar ─────────────────────────────────────────────────────── */
-export default function Sidebar({ onClose, unreadChats = 0 }) {
+export default function Sidebar({ onClose, unreadChats = 0, collapsed = false }) {
   const tenant          = useTenant();
   const { role }        = useAuth();
   const isAdminRole     = role === 'admin' || role === 'jefe';
@@ -502,7 +502,12 @@ export default function Sidebar({ onClose, unreadChats = 0 }) {
   const currentSlug = location.pathname.split('/').filter(Boolean).pop();
 
   return (
-    <aside data-component="sidebar" className="flex flex-col h-full max-h-screen bg-slate-900 border-r border-slate-800">
+    <aside
+      data-component="sidebar"
+      className={`flex flex-col h-full max-h-screen bg-slate-900 border-r border-slate-800 whitespace-nowrap transition-opacity duration-200 ${
+        collapsed ? 'opacity-0 pointer-events-none' : 'opacity-100'
+      }`}
+    >
 
       {/* Gradientes de marca para teñir el trazo de los íconos lucide (variant items) */}
       <svg width="0" height="0" className="absolute" aria-hidden="true">
