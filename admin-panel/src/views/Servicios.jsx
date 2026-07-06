@@ -7,6 +7,14 @@ import {
 import {
   ref as storageRef, uploadBytesResumable, getDownloadURL,
 } from 'firebase/storage';
+import {
+  DndContext, closestCenter, PointerSensor, TouchSensor,
+  useSensor, useSensors, DragOverlay,
+} from '@dnd-kit/core';
+import {
+  SortableContext, arrayMove, verticalListSortingStrategy, useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { db, storage } from '../lib/firebase';
 import { tenantCol, resolveTenantId } from '../lib/tenantUtils';
 import { withTimeout } from '../lib/firestore-helpers';
@@ -146,14 +154,21 @@ export default function Servicios() {
   const [form,      setForm]      = useState(EMPTY);
   const [saving,    setSaving]    = useState(false);
   const [newCat,    setNewCat]    = useState('');
-  const [dragOver,  setDragOver]  = useState(null);
+  const [activeId,  setActiveId]  = useState(null);
 
   // Image upload state
   const [imageFile,    setImageFile]    = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [imgUploading, setImgUploading] = useState(false);
   const imgRef  = useRef(null);
-  const dragId  = useRef(null);
+
+  // Sensores dnd-kit — mouse por distancia (8px), touch por long-press (250ms).
+  // `delayOnTouchOnly` de SortableJS = TouchSensor con activationConstraint.delay.
+  // Sin esto, arrastrar en móvil bloquea el scroll vertical.
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor,   { activationConstraint: { delay: 250, tolerance: 5 } }),
+  );
 
   const resetImageState = () => {
     if (imagePreview) URL.revokeObjectURL(imagePreview);
@@ -307,16 +322,23 @@ export default function Servicios() {
     await deleteDoc(doc(tenantCol('servicios'), id));
   };
 
-  const handleDrop = async targetId => {
-    if (!dragId.current || dragId.current === targetId) return;
-    const curr = [...servicios];
-    const fi = curr.findIndex(s => s.id === dragId.current);
-    const ti = curr.findIndex(s => s.id === targetId);
-    if (fi === -1 || ti === -1) return;
-    const [mv] = curr.splice(fi, 1); curr.splice(ti, 0, mv);
-    dragId.current = null; setDragOver(null);
+  const handleDragStart = ({ active }) => {
+    setActiveId(active.id);
+    // Feedback háptico al levantar la tarjeta (solo dispositivos con soporte).
+    if (typeof window !== 'undefined' && window.navigator && window.navigator.vibrate) {
+      window.navigator.vibrate(50);
+    }
+  };
+
+  const handleDragEnd = async ({ active, over }) => {
+    setActiveId(null);
+    if (!over || active.id === over.id) return;
+    const oldIdx = servicios.findIndex(s => s.id === active.id);
+    const newIdx = servicios.findIndex(s => s.id === over.id);
+    if (oldIdx === -1 || newIdx === -1) return;
+    const newOrder = arrayMove(servicios, oldIdx, newIdx);
     const batch = writeBatch(db);
-    curr.forEach((s, i) => batch.update(doc(tenantCol('servicios'), s.id), { orden: i }));
+    newOrder.forEach((s, i) => batch.update(doc(tenantCol('servicios'), s.id), { orden: i }));
     await batch.commit();
   };
 
@@ -375,105 +397,35 @@ export default function Servicios() {
           </div>
         ) : (
           <>
-            <div className="space-y-2.5">
-              {servicios.map(s => (
-                <div key={s.id} draggable
-                  onDragStart={() => { dragId.current = s.id; }}
-                  onDragEnd={() => { dragId.current = null; setDragOver(null); }}
-                  onDragOver={e => { e.preventDefault(); setDragOver(s.id); }}
-                  onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOver(null); }}
-                  onDrop={() => handleDrop(s.id)}
-                  onClick={() => openEdit(s)}
-                  className={`group flex items-center gap-3 bg-slate-800/40 border rounded-2xl p-3 md:p-4 select-none cursor-pointer transition-all ${
-                    dragOver === s.id
-                      ? 'border-emerald-500 bg-emerald-500/5 shadow-lg shadow-emerald-500/10'
-                      : 'border-slate-700/50 hover:bg-slate-800/80 hover:border-slate-600'
-                  }`}>
-
-                  {/* Drag handle — 6 puntos muy sutiles */}
-                  <svg className="text-slate-600 hover:text-slate-400 cursor-grab active:cursor-grabbing shrink-0 w-5 transition-colors"
-                    viewBox="0 0 12 18" fill="currentColor"
-                    onClick={e => e.stopPropagation()}
-                  >
-                    <circle cx="3" cy="3" r="1.5"/><circle cx="9" cy="3" r="1.5"/>
-                    <circle cx="3" cy="9" r="1.5"/><circle cx="9" cy="9" r="1.5"/>
-                    <circle cx="3" cy="15" r="1.5"/><circle cx="9" cy="15" r="1.5"/>
-                  </svg>
-
-                  {/* Imagen o ícono — compacto en mobile */}
-                  {s.imagen ? (
-                    <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl overflow-hidden shrink-0 border border-slate-700">
-                      <img src={s.imagen} alt={s.nombre} className="w-full h-full object-cover" />
-                    </div>
-                  ) : (
-                    <div className="w-10 h-10 md:w-12 md:h-12 flex-shrink-0 flex items-center justify-center rounded-xl bg-slate-800 border border-slate-700 text-emerald-400">
-                      <i className={`ph ${s.icono || 'ph-scissors'} text-lg md:text-xl`} />
-                    </div>
-                  )}
-
-                  {/* Info — truncamiento robusto con flex-1 min-w-0 */}
-                  <div className="flex-1 min-w-0">
-                    <span className="text-sm md:text-base font-bold text-white truncate w-full block">{s.nombre}</span>
-
-                    {/* Precio · Duración en una sola línea */}
-                    <div className="flex items-center text-xs md:text-sm text-slate-400 mt-0.5">
-                      <span>${Math.round(Number(s.precio || 0)).toLocaleString('es-CL')}</span>
-                      <span className="mx-1.5 text-slate-600">·</span>
-                      <span>{s.duracion} min</span>
-                    </div>
-
-                    {/* Badges: fila propia con wrap para no romper el layout */}
-                    <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-                      <span className="bg-slate-700/50 text-slate-300 border border-slate-600/50 rounded-full text-[9px] md:text-xs px-2 py-0.5 font-medium">
-                        {s.categoria || 'Otro'}
-                      </span>
-                      {topServicio === s.nombre && (
-                        <span className="bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded-full text-[9px] md:text-xs px-2 py-0.5 font-bold">
-                          ✦ Más solicitado
-                        </span>
-                      )}
-                      {s.preciosPorDia && Object.keys(s.preciosPorDia).length > 0 && (
-                        <span className="bg-amber-400/10 text-amber-400 border border-amber-400/20 rounded-full text-[9px] md:text-xs px-2 py-0.5 font-bold">
-                          precio variable
-                        </span>
-                      )}
-                    </div>
-
-                    {s.descripcion && (
-                      <p className="hidden md:block text-slate-500 text-sm mt-1 line-clamp-1">{s.descripcion}</p>
-                    )}
-                  </div>
-
-                  {/* Right side: chevron sutil en móvil, ghost buttons en desktop */}
-                  <svg
-                    className="md:hidden text-slate-500 w-5 flex-shrink-0"
-                    viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-                    aria-hidden="true"
-                  >
-                    <polyline points="9 6 15 12 9 18" />
-                  </svg>
-                  <div
-                    className="hidden md:flex items-center gap-0.5 shrink-0 opacity-70 group-hover:opacity-100 transition-opacity"
-                    onClick={e => e.stopPropagation()}
-                  >
-                    <button
-                      onClick={() => openEdit(s)}
-                      className="text-slate-400 hover:bg-slate-700 hover:text-white p-2 rounded-lg transition-colors"
-                      title="Editar"
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
-                    </button>
-                    <button
-                      onClick={() => handleDelete(s.id)}
-                      className="text-slate-400 hover:bg-red-500/10 hover:text-red-400 p-2 rounded-lg transition-colors"
-                      title="Eliminar"
-                    >
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-                    </button>
-                  </div>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragStart={handleDragStart}
+              onDragCancel={() => setActiveId(null)}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext items={servicios.map(s => s.id)} strategy={verticalListSortingStrategy}>
+                <div className="space-y-2.5">
+                  {servicios.map(s => (
+                    <SortableServicioCard
+                      key={s.id}
+                      s={s}
+                      topServicio={topServicio}
+                      openEdit={openEdit}
+                      handleDelete={handleDelete}
+                    />
+                  ))}
                 </div>
-              ))}
-            </div>
+              </SortableContext>
+              <DragOverlay dropAnimation={null}>
+                {activeId ? (
+                  <ServicioOverlayCard
+                    s={servicios.find(x => x.id === activeId)}
+                    topServicio={topServicio}
+                  />
+                ) : null}
+              </DragOverlay>
+            </DndContext>
             {topServicio && (
               <div className="flex items-center gap-2 mt-3 px-1">
                 <img src="/logo1.png" alt="SynapTech" className="h-3 w-auto opacity-30" />
@@ -824,12 +776,143 @@ export default function Servicios() {
           <p>En <strong className="text-white">Servicios</strong> defines los cortes y tratamientos que ofrece el local.</p>
           <ul className="space-y-1.5 list-disc list-inside text-slate-400">
             <li>Crea servicios con nombre, categoría, <span className="text-white">precio</span> y <span className="text-white">duración</span> en minutos.</li>
-            <li><span className="text-white">Arrastra</span> las tarjetas para reordenar cómo se muestran a los clientes.</li>
+            <li><span className="text-white">Mantén presionado el ícono de puntos</span> y arrastra para reordenar (en móvil requiere long-press de ~¼ seg).</li>
             <li>Agrega <span className="text-white">categorías personalizadas</span> para agrupar los servicios (ej: Barba, Color, Premium).</li>
             <li>Sube una <span className="text-white">imagen</span> a cada servicio para que aparezca en el portal VIP del cliente.</li>
           </ul>
         </HelpModal>
       )}
+    </div>
+  );
+}
+
+/* ── Drag handle (6 puntos) ─────────────────────────────────────── */
+function GripIcon() {
+  return (
+    <svg viewBox="0 0 12 18" fill="currentColor" className="w-5 h-5">
+      <circle cx="3" cy="3" r="1.5"/><circle cx="9" cy="3" r="1.5"/>
+      <circle cx="3" cy="9" r="1.5"/><circle cx="9" cy="9" r="1.5"/>
+      <circle cx="3" cy="15" r="1.5"/><circle cx="9" cy="15" r="1.5"/>
+    </svg>
+  );
+}
+
+/* ── Contenido común de la card (icono + info + badges) ─────────── */
+function ServicioCardBody({ s, topServicio }) {
+  return (
+    <>
+      {s.imagen ? (
+        <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl overflow-hidden shrink-0 border border-slate-700">
+          <img src={s.imagen} alt={s.nombre} className="w-full h-full object-cover" />
+        </div>
+      ) : (
+        <div className="w-10 h-10 md:w-12 md:h-12 flex-shrink-0 flex items-center justify-center rounded-xl bg-slate-800 border border-slate-700 text-emerald-400">
+          <i className={`ph ${s.icono || 'ph-scissors'} text-lg md:text-xl`} />
+        </div>
+      )}
+      <div className="flex-1 min-w-0">
+        <span className="text-sm md:text-base font-bold text-white truncate w-full block">{s.nombre}</span>
+        <div className="flex items-center text-xs md:text-sm text-slate-400 mt-0.5">
+          <span>${Math.round(Number(s.precio || 0)).toLocaleString('es-CL')}</span>
+          <span className="mx-1.5 text-slate-600">·</span>
+          <span>{s.duracion} min</span>
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+          <span className="bg-slate-700/50 text-slate-300 border border-slate-600/50 rounded-full text-[9px] md:text-xs px-2 py-0.5 font-medium">
+            {s.categoria || 'Otro'}
+          </span>
+          {topServicio === s.nombre && (
+            <span className="bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded-full text-[9px] md:text-xs px-2 py-0.5 font-bold">
+              ✦ Más solicitado
+            </span>
+          )}
+          {s.preciosPorDia && Object.keys(s.preciosPorDia).length > 0 && (
+            <span className="bg-amber-400/10 text-amber-400 border border-amber-400/20 rounded-full text-[9px] md:text-xs px-2 py-0.5 font-bold">
+              precio variable
+            </span>
+          )}
+        </div>
+        {s.descripcion && (
+          <p className="hidden md:block text-slate-500 text-sm mt-1 line-clamp-1">{s.descripcion}</p>
+        )}
+      </div>
+    </>
+  );
+}
+
+/* ── Card sortable (fila real de la lista) ──────────────────────── */
+function SortableServicioCard({ s, topServicio, openEdit, handleDelete }) {
+  const {
+    attributes, listeners, setNodeRef, transform, transition, isDragging,
+  } = useSortable({ id: s.id });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      onClick={() => openEdit(s)}
+      className={`group flex items-center gap-3 rounded-2xl p-3 md:p-4 select-none cursor-pointer transition-colors ${
+        isDragging
+          ? 'opacity-40 bg-slate-900 border-2 border-dashed border-slate-700'
+          : 'bg-slate-800/40 border border-slate-700/50 hover:bg-slate-800/80 hover:border-slate-600'
+      }`}
+    >
+      {/* Drag handle — únicos listeners. touch-none evita que Chrome mobile
+          arrastre la página al mismo tiempo (scroll-vs-drag). Padding generoso
+          en móvil (p-3) para acertar con el pulgar. */}
+      <button
+        {...attributes}
+        {...listeners}
+        onClick={e => e.stopPropagation()}
+        aria-label="Reordenar servicio"
+        className="p-3 md:p-1 -m-3 md:-m-1 shrink-0 text-slate-600 hover:text-slate-400 cursor-grab active:cursor-grabbing touch-none transition-colors"
+      >
+        <GripIcon />
+      </button>
+
+      <ServicioCardBody s={s} topServicio={topServicio} />
+
+      {/* Chevron sutil en móvil, ghost buttons en desktop */}
+      <svg
+        className="md:hidden text-slate-500 w-5 flex-shrink-0"
+        viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+        aria-hidden="true"
+      >
+        <polyline points="9 6 15 12 9 18" />
+      </svg>
+      <div
+        className="hidden md:flex items-center gap-0.5 shrink-0 opacity-70 group-hover:opacity-100 transition-opacity"
+        onClick={e => e.stopPropagation()}
+      >
+        <button
+          onClick={() => openEdit(s)}
+          className="text-slate-400 hover:bg-slate-700 hover:text-white p-2 rounded-lg transition-colors"
+          title="Editar"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+        </button>
+        <button
+          onClick={() => handleDelete(s.id)}
+          className="text-slate-400 hover:bg-red-500/10 hover:text-red-400 p-2 rounded-lg transition-colors"
+          title="Eliminar"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ── Card elevada del DragOverlay (lo que "flota" con el dedo) ── */
+function ServicioOverlayCard({ s, topServicio }) {
+  if (!s) return null;
+  return (
+    <div className="flex items-center gap-3 rounded-2xl p-3 md:p-4 select-none cursor-grabbing bg-slate-800/95 border border-indigo-500 shadow-2xl shadow-black/60 scale-[1.02] transition-transform duration-200">
+      <div className="p-3 md:p-1 -m-3 md:-m-1 shrink-0 text-slate-300"><GripIcon /></div>
+      <ServicioCardBody s={s} topServicio={topServicio} />
     </div>
   );
 }
