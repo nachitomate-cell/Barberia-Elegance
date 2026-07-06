@@ -322,7 +322,9 @@ service cloud.firestore {
 
       match /participantes/{participanteId} {
         allow read, update, delete: if esAdmin('elegance');
-        allow create: if request.resource.data.keys().hasOnly(['nombre', 'telefono', 'email', 'createdAt'])
+        // `pronostico` es opcional — solo lo envían los sorteos tipo FUTBOL
+        // (marcador { local, visita } con enteros 0-20 para evitar spam).
+        allow create: if request.resource.data.keys().hasOnly(['nombre', 'telefono', 'email', 'createdAt', 'pronostico'])
                       && request.resource.data.nombre is string
                       && request.resource.data.nombre.size() > 0
                       && request.resource.data.nombre.size() <= 80
@@ -331,7 +333,15 @@ service cloud.firestore {
                               && request.resource.data.telefono.size() <= 30))
                       && (!('email' in request.resource.data)
                           || (request.resource.data.email is string
-                              && request.resource.data.email.size() <= 120));
+                              && request.resource.data.email.size() <= 120))
+                      && (!('pronostico' in request.resource.data)
+                          || (request.resource.data.pronostico is map
+                              && request.resource.data.pronostico.local is int
+                              && request.resource.data.pronostico.local >= 0
+                              && request.resource.data.pronostico.local <= 20
+                              && request.resource.data.pronostico.visita is int
+                              && request.resource.data.pronostico.visita >= 0
+                              && request.resource.data.pronostico.visita <= 20));
       }
     }
 
@@ -977,7 +987,9 @@ service cloud.firestore {
 
         match /participantes/{participanteId} {
           allow read, update, delete: if esAdmin(tid);
-          allow create: if request.resource.data.keys().hasOnly(['nombre', 'telefono', 'email', 'createdAt'])
+          // `pronostico` es opcional — solo lo envían los sorteos tipo FUTBOL
+          // (marcador { local, visita } con enteros 0-20 para evitar spam).
+          allow create: if request.resource.data.keys().hasOnly(['nombre', 'telefono', 'email', 'createdAt', 'pronostico'])
                         && request.resource.data.nombre is string
                         && request.resource.data.nombre.size() > 0
                         && request.resource.data.nombre.size() <= 80
@@ -986,7 +998,15 @@ service cloud.firestore {
                                 && request.resource.data.telefono.size() <= 30))
                         && (!('email' in request.resource.data)
                             || (request.resource.data.email is string
-                                && request.resource.data.email.size() <= 120));
+                                && request.resource.data.email.size() <= 120))
+                        && (!('pronostico' in request.resource.data)
+                            || (request.resource.data.pronostico is map
+                                && request.resource.data.pronostico.local is int
+                                && request.resource.data.pronostico.local >= 0
+                                && request.resource.data.pronostico.local <= 20
+                                && request.resource.data.pronostico.visita is int
+                                && request.resource.data.pronostico.visita >= 0
+                                && request.resource.data.pronostico.visita <= 20));
         }
       }
 

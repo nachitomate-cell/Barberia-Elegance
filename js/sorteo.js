@@ -302,18 +302,13 @@ function bindForm(SORTEO_ID, STORAGE_KEY, opts = {}) {
       const ref            = sorteoRef(SORTEO_ID);
       const participanteRef = ref.collection('participantes').doc(contactoId);
 
-      // 1) Dedup a nivel BD: si el doc con este contacto ya existe, cortamos.
-      //    Mucho más robusto que el flag localStorage (que se saltaba con
-      //    modo incógnito u otro dispositivo).
-      const existing = await participanteRef.get();
-      if (existing.exists) {
-        setBusy(false);
-        showError('Este número de contacto ya está participando en este sorteo.');
-        // Marcamos el flag local igual, así la próxima recarga muestra "ya participó"
-        try { localStorage.setItem(STORAGE_KEY, '1'); } catch (_) {}
-        return;
-      }
-
+      // Dedup a nivel BD: NO usamos getDoc previo porque la rule del doc de
+      // participante es `read: esAdmin` — un visitante anónimo no puede leer
+      // (ni siquiera para chequear existencia), Firestore devuelve
+      // permission-denied indistinguible de "no existe".
+      // En su lugar confiamos en el batch.set: si el doc ya existe, la
+      // operación cae en `update` (que solo admite admin) y todo el batch
+      // aborta con permission-denied → catch abajo lo traduce a mensaje amigable.
       const payload = {
         nombre,
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
