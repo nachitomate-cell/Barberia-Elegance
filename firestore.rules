@@ -118,6 +118,15 @@ service cloud.firestore {
     }
 
     // ═══════════════════════════════════════════════════════════════
+    //  _ingresos — snapshot mensual de ingresos proyectados
+    //  Se escribe desde /admin cada vez que se recalcula el widget.
+    //  Solo SynapTech (bootstrap) puede leer y escribir.
+    // ═══════════════════════════════════════════════════════════════
+    match /_ingresos/{mesId} {
+      allow read, write: if esBootstrap();
+    }
+
+    // ═══════════════════════════════════════════════════════════════
     //  _referrals — programa de referidos B2B (SaaS growth loop)
     //
     //  Modelo:
