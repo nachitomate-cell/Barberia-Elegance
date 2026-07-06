@@ -78,6 +78,37 @@ function formatDateLabel(d) {
   return `${cap(weekday)} ${day} ${cap(mesFull)}`;
 }
 
+/* Devuelve las 7 fechas de la semana (lunes a domingo) que contiene la fecha dada.
+   ISO week: si el día es Domingo (getDay=0), la "semana" empieza el LUNES anterior. */
+function getWeekDates(d) {
+  const dow = d.getDay();                         // 0=Dom, 1=Lun, …, 6=Sáb
+  const backToMonday = (dow === 0) ? 6 : dow - 1;
+  const monday = new Date(d);
+  monday.setDate(d.getDate() - backToMonday);
+  monday.setHours(0, 0, 0, 0);
+  const out = [];
+  for (let i = 0; i < 7; i++) {
+    const x = new Date(monday);
+    x.setDate(monday.getDate() + i);
+    out.push(x);
+  }
+  return out;
+}
+
+/* Etiqueta del rango semanal para el toolbar. Formatos:
+     misma-mes: "6 — 12 Jul 2025"
+     cambia-mes: "28 Jun — 4 Jul 2025" */
+function formatWeekLabel(d) {
+  const week = getWeekDates(d);
+  const mon  = week[0], sun = week[6];
+  const cap  = s => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+  const mMon = cap(mon.toLocaleDateString('es-CL', { month: 'short' }).replace('.', ''));
+  const mSun = cap(sun.toLocaleDateString('es-CL', { month: 'short' }).replace('.', ''));
+  const y    = sun.getFullYear();
+  if (mMon === mSun) return `${mon.getDate()} — ${sun.getDate()} ${mMon} ${y}`;
+  return `${mon.getDate()} ${mMon} — ${sun.getDate()} ${mSun} ${y}`;
+}
+
 const STATUS_STYLE = {
   Confirmada: 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300',
   Cancelada:  'bg-red-500/10   border-red-500/30     text-red-400',
@@ -1651,13 +1682,16 @@ function SlotRow({ idx, barberoId, dateStr, onNewCita, onNewBloqueo, blockMode, 
   return (
     <div
       // Los data-* permiten al drag táctil identificar la franja via document.elementFromPoint.
+      // data-slot-fecha lo consumen los handlers de drop en vista semana para
+      // saber en qué día de la columna se soltó la cita.
       data-slot-barbero={barberoId}
       data-slot-hora={hora}
-      onClick={() => blockMode ? onNewBloqueo(barberoId, hora) : onNewCita(barberoId, hora)}
+      data-slot-fecha={dateStr}
+      onClick={() => blockMode ? onNewBloqueo(barberoId, hora, dateStr) : onNewCita(barberoId, hora, dateStr)}
       onDragOver={onDragOver}
       onDragEnter={() => { if (dragActive) setOver(true); }}
       onDragLeave={() => setOver(false)}
-      onDrop={() => { setOver(false); onDrop && onDrop(barberoId, hora); }}
+      onDrop={() => { setOver(false); onDrop && onDrop(barberoId, hora, dateStr); }}
       className={`absolute inset-x-0 h-10 border-b border-slate-800/40 transition-colors ${
         idx % 2 === 0 ? '' : 'bg-slate-800/10'
       } ${blockMode ? 'hover:bg-red-950/20 cursor-crosshair' : 'hover:bg-emerald-900/10 hover:border-dashed hover:border-emerald-500/30 cursor-pointer'} ${
@@ -2761,6 +2795,12 @@ export default function Agenda() {
   const [histModal,     setHistModal]     = useState(null);  // cita seleccionada para ver historial/notas
   const [showDifusionModal, setShowDifusionModal] = useState(false);
   const [soloBarbero,   setSoloBarbero]   = useState(null);   // id del barbero enfocado (null = todos)
+  // Modo de vista de la agenda: 'day' (columnas por barbero) o 'week' (7 columnas del barbero focus).
+  // La vista semanal solo tiene sentido con un profesional filtrado — el efecto de abajo la reset a 'day'
+  // si el usuario quita el filtro.
+  const [viewMode,      setViewMode]      = useState(() => {
+    return (localStorage.getItem('agenda_admin_view') === 'week') ? 'week' : 'day';
+  });
   const [labelStep,     setLabelStep]     = useState(() => Number(localStorage.getItem(SLOT_KEY)) || 15);     // minutos entre etiquetas visibles en el eje
   const [showMenu,      setShowMenu]      = useState(false);  // menú "Más" de acciones secundarias
   const [now,           setNow]           = useState(() => new Date()); // hora actual (línea "ahora")
@@ -2774,6 +2814,12 @@ export default function Agenda() {
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [showMenu]);
+
+  // Guardrail: la vista semanal solo existe con un profesional focus. Si el
+  // usuario quita el filtro (X en la píldora del barbero), volvemos a 'day'.
+  useEffect(() => {
+    if (viewMode === 'week' && !soloBarbero) setViewMode('day');
+  }, [viewMode, soloBarbero]);
 
   // Reloj en vivo: refresca cada 30s para mover la línea "ahora".
   useEffect(() => {
@@ -2843,9 +2889,24 @@ export default function Agenda() {
 
   const dateStr = fmt(date);
 
+  // Semana visible (lunes-domingo) y fechas string para las queries:
+  //   day  → [dateStr]
+  //   week → 7 strings YYYY-MM-DD lunes → domingo
+  // Firestore soporta hasta 30 valores por 'in' → 7 fechas están holgadas.
+  const weekDates    = useMemo(() => getWeekDates(date), [date]);
+  const visibleDates = useMemo(
+    () => (viewMode === 'week' ? weekDates.map(fmt) : [dateStr]),
+    [viewMode, weekDates, dateStr],
+  );
+
   const { data: rawBarberos, loading: barberosLoading } = useCollection('barberos');
-  const { data: citas }       = useCollection('citas',    [where('fecha', '==', dateStr)], [dateStr]);
-  const { data: bloqueos }    = useCollection('bloqueos', [where('fecha', '==', dateStr)], [dateStr]);
+  // Query multi-fecha:
+  //   day  → 1 fecha  → equivale al where(==, dateStr) previo
+  //   week → 7 fechas → where('fecha', 'in', [...]) (Firestore acepta hasta 30 valores)
+  // dep-key: string estable derivada del array, evita re-suscribir en render sin cambio real.
+  const _visibleDatesKey = visibleDates.join(',');
+  const { data: citas }       = useCollection('citas',    [where('fecha', 'in', visibleDates)], [_visibleDatesKey]);
+  const { data: bloqueos }    = useCollection('bloqueos', [where('fecha', 'in', visibleDates)], [_visibleDatesKey]);
   const { data: servicios }   = useCollection('servicios');
   const { data: productos }   = useCollection('productos');
 
@@ -2950,7 +3011,12 @@ export default function Agenda() {
   const focusBarbero    = soloBarbero ? barberos.find(b => b.id === soloBarbero) : null;
   const barberosVisibles = focusBarbero ? [focusBarbero] : orderedBarberos;
 
-  const moveDay = delta => { const d = new Date(date); d.setDate(d.getDate() + delta); setDate(d); };
+  // Navegación: en modo día avanza 1, en modo semana avanza 7 (misma flecha,
+  // salto acorde a la vista).
+  const moveDay = delta => {
+    const step = viewMode === 'week' ? delta * 7 : delta;
+    const d = new Date(date); d.setDate(d.getDate() + step); setDate(d);
+  };
 
   const handleDeleteBloqueo = useCallback(async bloqueo => {
     const batch = writeBatch(db);
@@ -2963,11 +3029,15 @@ export default function Agenda() {
 
   // Al soltar una cita: abre el aviso de la app (no el confirm del navegador).
   // Detecta si el horario destino ya está ocupado → sobrecupo (con precaución).
-  const handleDrop = (barberoId, hora) => {
+  // fechaDestino: en vista semana viene el día de la columna clickeada; en vista
+  // día es undefined y se usa dateStr como antes.
+  const handleDrop = (barberoId, hora, fechaDestino) => {
     if (!draggedCita) return;
 
+    const fecha = fechaDestino || dateStr;
     // Mismo slot → no hacer nada
-    if (draggedCita.barberoId === barberoId && draggedCita.hora === hora) {
+    if (draggedCita.barberoId === barberoId && draggedCita.hora === hora
+        && (draggedCita.fecha || dateStr) === fecha) {
       setDraggedCita(null);
       return;
     }
@@ -2975,14 +3045,18 @@ export default function Agenda() {
     const targetBarbero = barberos.find(b => b.id === barberoId);
     const barberoNombre = targetBarbero?.nombre || '';
 
+    // La ocupación se chequea SOLO dentro de la fecha destino (en vista semana
+    // `citas` trae 7 días — comparar sin filtrar por fecha marcaría sobrecupo
+    // aunque el conflicto sea otro día).
     const ocupada = citas.some(c =>
       c.id !== draggedCita.id &&
       c.barberoId === barberoId &&
       c.hora === hora &&
+      (c.fecha || dateStr) === fecha &&
       c.estado !== 'Cancelada',
     );
 
-    setReagendarModal({ cita: draggedCita, barberoId, barberoNombre, hora, ocupada });
+    setReagendarModal({ cita: draggedCita, barberoId, barberoNombre, hora, fecha, ocupada });
     setDraggedCita(null);
   };
 
@@ -3035,7 +3109,8 @@ export default function Agenda() {
     setReagendarModal(null);
   };
 
-  const openNewCita    = (barberoId, hora) => setCitaModal({ cita: null, barberoId, hora });
+  const openNewCita    = (barberoId, hora, fecha) =>
+    setCitaModal({ cita: null, barberoId, hora, fechaOverride: fecha });
   const openEditCita   = (cita)            => setCitaModal({ cita, barberoId: cita.barberoId, hora: cita.hora });
   // Abre el ReagendarModal manteniendo barbero/hora actuales — solo se cambia la fecha.
   const openReagendar  = (cita)            => setReagendarModal({
@@ -3083,9 +3158,16 @@ export default function Agenda() {
     const msg = buildWaConfirmMsg(tenantId, cita, cita.fecha || dateStr);
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank', 'noopener');
   };
-  const openNewBloqueo = (barberoId, hora) => setBlqModal({ barberoId, hora, tipo: 'parcial' });
+  // Handlers con `fecha` opcional: en vista día usan dateStr; en vista semana
+  // reciben el string del día de la columna clickeada.
+  const openNewBloqueo = (barberoId, hora, fecha) =>
+    setBlqModal({ barberoId, hora, tipo: 'parcial', fechaOverride: fecha });
 
-  const diaGlobalCerrado = bloqueos.some(b => b.todo_el_dia && !b.barberoId);
+  // En modo semana `bloqueos` trae 7 días — el banner sólo tiene sentido para
+  // el día "central" (dateStr), así que filtramos por fecha antes del some.
+  const diaGlobalCerrado = bloqueos.some(b =>
+    b.todo_el_dia && !b.barberoId && b.fecha === dateStr,
+  );
 
   const bloqueosPorBarbero = useCallback((barberoId) =>
     bloqueos.filter(b => !b.barberoId || b.barberoId === barberoId),
@@ -3109,7 +3191,7 @@ export default function Agenda() {
             <ChevronLeft size={18} />
           </button>
           <span className="text-sm font-semibold text-white text-center capitalize whitespace-nowrap tabular-nums px-1">
-            {formatDateLabel(date)}
+            {viewMode === 'week' ? formatWeekLabel(date) : formatDateLabel(date)}
           </span>
           <button
             onClick={() => moveDay(1)}
@@ -3125,6 +3207,47 @@ export default function Agenda() {
         >
           Hoy
         </button>
+
+        {/* Segmento Día / Semana — habilitado sólo con foco de barbero.
+            La vista semanal renderea 7 columnas del profesional filtrado; sin
+            filtro no cabe (7 días × N barberos rompe el layout). El label
+            "Semana" queda gris + no-click cuando está deshabilitado. */}
+        <div
+          className="flex items-center bg-[#1a1b23] border border-slate-800 rounded-lg p-0.5 shrink-0"
+          role="tablist"
+          aria-label="Modo de vista"
+        >
+          {[
+            { key: 'day',  label: 'Día',    enabled: true },
+            { key: 'week', label: 'Semana', enabled: !!soloBarbero },
+          ].map(opt => {
+            const active = viewMode === opt.key;
+            const disabled = !opt.enabled;
+            return (
+              <button
+                key={opt.key}
+                role="tab"
+                aria-selected={active}
+                disabled={disabled}
+                title={disabled ? 'Filtra a un solo profesional para ver la semana' : opt.label}
+                onClick={() => {
+                  if (disabled) return;
+                  setViewMode(opt.key);
+                  try { localStorage.setItem('agenda_admin_view', opt.key); } catch { /* noop */ }
+                }}
+                className={`h-8 px-3 text-xs font-semibold rounded-md transition-colors ${
+                  active
+                    ? 'bg-slate-800 text-white shadow-sm'
+                    : disabled
+                      ? 'text-slate-600 cursor-not-allowed'
+                      : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                }`}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
 
         {/* Acciones primarias — pegadas a la derecha */}
         <div className="flex items-center gap-1.5 ml-auto shrink-0">
@@ -3286,9 +3409,11 @@ export default function Agenda() {
             >
               ✕
             </button>
+            {/* DifusionPanel opera sobre 1 día — en modo semana la query trae 7,
+                así que le pasamos las citas/bloqueos filtradas al día activo. */}
             <DifusionPanel
-              citas={citas}
-              bloqueos={bloqueos}
+              citas={citas.filter(c => c.fecha === dateStr)}
+              bloqueos={bloqueos.filter(b => b.fecha === dateStr)}
               barberos={barberos}
               dateStr={dateStr}
               tenantId={tenantId}
@@ -3354,12 +3479,99 @@ export default function Agenda() {
             <div className="flex-1 flex items-center justify-center py-20 text-slate-600 text-sm">
               Sin barberos activos
             </div>
+          ) : viewMode === 'week' && focusBarbero ? (
+            /* ── Vista SEMANA: 7 columnas del barbero focus ─────────────
+               El eje X ya no es "barbero" sino "día". Sin SortableContext
+               porque no hay reordenamiento posible (1 solo profesional). */
+            weekDates.map(d => {
+              const diaStr     = fmt(d);
+              const isTodayCol = fmt(new Date()) === diaStr;
+              const diasCorto  = ['DOM','LUN','MAR','MIÉ','JUE','VIE','SÁB'];
+              const dayCitas   = citas.filter(c =>
+                c.fecha === diaStr && c.barberoId === focusBarbero.id);
+              const dayBloqueos = bloqueos.filter(b =>
+                b.fecha === diaStr && (!b.barberoId || b.barberoId === focusBarbero.id));
+              const layoutCitas = computeOverlapLayout(dayCitas);
+              return (
+                <div key={diaStr} className="flex-1 min-w-[140px] border-r border-slate-800 last:border-r-0">
+                  {/* Cabecera del día — "LUN 6". "Hoy" resaltado en emerald. */}
+                  <div
+                    className={`h-9 py-1.5 px-3 flex items-center gap-2 border-b border-slate-800 sticky top-0 z-10 ${
+                      isTodayCol ? 'bg-emerald-950/30' : 'bg-slate-900'
+                    }`}
+                  >
+                    <span className={`text-[10px] font-bold uppercase tracking-wider ${
+                      isTodayCol ? 'text-emerald-400' : 'text-slate-500'
+                    }`}>
+                      {diasCorto[d.getDay()]}
+                    </span>
+                    <span className={`text-sm font-semibold tabular-nums ${
+                      isTodayCol ? 'text-white' : 'text-slate-300'
+                    }`}>
+                      {d.getDate()}
+                    </span>
+                  </div>
+
+                  {/* Grilla horaria de este día */}
+                  <div className="relative" style={{ height: `${totalSlots * 40}px` }}>
+                    {timeLabels.map((_, i) => (
+                      <SlotRow
+                        key={i}
+                        idx={i}
+                        barberoId={focusBarbero.id}
+                        dateStr={diaStr}
+                        blockMode={blockMode}
+                        onNewCita={openNewCita}
+                        onNewBloqueo={openNewBloqueo}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={handleDrop}
+                        dragActive={!!draggedCita}
+                      />
+                    ))}
+                    {dayBloqueos.map(blq => (
+                      <BloqueoBlock key={blq.id} bloqueo={blq} onDelete={handleDeleteBloqueo} />
+                    ))}
+                    {layoutCitas.map(({ cita, colIndex, colTotal }) => (
+                      <AppointmentBlock
+                        key={cita.id}
+                        cita={cita}
+                        colIndex={colIndex}
+                        colTotal={colTotal}
+                        onClick={openEditCita}
+                        onContextMenu={(e, c) => setCtxMenu({ x: e.clientX, y: e.clientY, cita: c })}
+                        onDragStart={(e, c) => setDraggedCita(c)}
+                        onDragEnd={() => setDraggedCita(null)}
+                        onDropOnCita={(c) => handleDrop(c.barberoId, c.hora, c.fecha)}
+                        onTouchDrop={(bid, hora) => handleDrop(bid, hora, diaStr)}
+                        isDragged={draggedCita?.id === cita.id}
+                        dragActive={!!draggedCita}
+                      />
+                    ))}
+                    {/* Línea "ahora" solo en la columna del día actual */}
+                    {isTodayCol && showNowLine && (
+                      <div
+                        className="absolute inset-x-0 z-20 pointer-events-none"
+                        style={{ top: `${nowOffsetPx}px` }}
+                      >
+                        <div className="relative h-px bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.6)]">
+                          <span className="absolute left-0 -top-[3px] w-1.5 h-1.5 rounded-full bg-red-500" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })
           ) : (
             <DndContext sensors={dragSensors} collisionDetection={closestCenter} onDragEnd={handleReorderBarberos}>
               <SortableContext items={barberosVisibles.map(b => b.id)} strategy={horizontalListSortingStrategy}>
                 {barberosVisibles.map(b => {
-                  const barberCitas    = citas.filter(c => c.barberoId === b.id);
-                  const barberBloqueos = bloqueosPorBarbero(b.id);
+                  // Filtro por fecha del día visible — la query multi-fecha del
+                  // modo semana puede quedar cacheada un tick al volver a día;
+                  // filtrar acá evita mostrar citas de otros días en el frame
+                  // intermedio antes de que el hook re-suscriba.
+                  const barberCitas    = citas.filter(c => c.fecha === dateStr && c.barberoId === b.id);
+                  const barberBloqueos = bloqueosPorBarbero(b.id).filter(bl => bl.fecha === dateStr);
 
                   // Layout en columnas por solapamiento real de horarios (no solo misma hora)
                   const layoutCitas = computeOverlapLayout(barberCitas);
@@ -3474,7 +3686,7 @@ export default function Agenda() {
           defaultBarberoId={citaModal.barberoId}
           defaultEstado={citaModal.defaultEstado}
           sobrecupo={citaModal.sobrecupo}
-          dateStr={dateStr}
+          dateStr={citaModal.fechaOverride || dateStr}
           onClose={() => setCitaModal(null)}
           onComplete={cita => { setCitaModal(null); setReviewCita(cita); }}
         />
@@ -3482,7 +3694,7 @@ export default function Agenda() {
       {blqModal && (
         <BloqueoModal
           barberos={barberos}
-          dateStr={dateStr}
+          dateStr={blqModal.fechaOverride || dateStr}
           defaultBarberoId={blqModal.barberoId}
           defaultHora={blqModal.hora}
           defaultTipo={blqModal.tipo}
