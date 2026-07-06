@@ -7984,6 +7984,13 @@
           </button>
         </div>
 
+        <!-- ── Pack activo (cuponera): banner destacado ─────────────
+             Aparece solo si el user está logueado y tiene ≥1 pack activo con
+             saldo. Al elegirlo, el flujo se completa con precio $0 y las
+             marcas `consumeSesionPack/packRefId` (que el trigger del panel
+             consume al Completar la cita). Múltiples packs → múltiples cards. -->
+        <div id="packActivoBanner" class="hidden mb-4 space-y-2.5"></div>
+
         <!-- Category Pills -->
         <div id="categoryPills" class="flex gap-2 overflow-x-auto pb-4 mb-4 no-scrollbar -mx-6 px-6 scroll-smooth">
         </div>
@@ -9720,8 +9727,105 @@
       renderCategories(_fsServices);
       _renderServicesGrid(_fsServices);
       _renderBarberos(_fsBarberos);
+      // Renderizar packs activos del user logueado (si aplica). No bloqueante.
+      _renderPacksActivosBanner().catch(err => console.warn('[packs] render banner:', err.message));
       return _shopSettings;
     }
+
+    /* ── Packs activos del cliente logueado ─────────────────────────
+       Lee `packsActivos[]` del user, filtra los con saldo > 0 y no
+       vencidos, y renderiza un banner destacado arriba del listado de
+       servicios. Al tocar uno, arma un `selectedServiceObj` virtual con
+       precio $0 y las marcas `consumeSesionPack/packRefId` y salta al
+       paso siguiente. */
+    async function _renderPacksActivosBanner() {
+      const banner = document.getElementById('packActivoBanner');
+      if (!banner) return;
+      const auth = firebase.auth();
+      const user = auth.currentUser;
+      if (!user || user.isAnonymous) { banner.classList.add('hidden'); return; }
+
+      let packs = [];
+      try {
+        const tid = window.CURRENT_TENANT_ID || 'elegance';
+        const uref = tid === 'elegance'
+          ? firebase.firestore().collection('users').doc(user.uid)
+          : firebase.firestore().collection('tenants').doc(tid).collection('users').doc(user.uid);
+        const snap = await uref.get();
+        packs = Array.isArray(snap.data()?.packsActivos) ? snap.data().packsActivos : [];
+      } catch (e) { console.warn('[packs] fetch:', e.message); }
+
+      const now = Date.now();
+      const activos = packs.filter(p => {
+        const rest = Number(p.sesionesRestantes || 0);
+        const vencMs = p.fechaVencimiento?.toMillis?.() ?? 0;
+        return rest > 0 && (!vencMs || vencMs > now);
+      });
+      if (activos.length === 0) { banner.classList.add('hidden'); return; }
+
+      banner.classList.remove('hidden');
+      banner.innerHTML = activos.map((p, idx) => {
+        const total  = Math.max(1, Number(p.sesionesTotales || 1));
+        const rest   = Number(p.sesionesRestantes || 0);
+        const nombre = String(p.nombrePack || 'Pack').replace(/</g, '&lt;');
+        return `
+          <button type="button"
+            data-pack-idx="${idx}"
+            onclick="_usarSesionDelPack(${idx})"
+            class="w-full text-left rounded-2xl px-4 py-3.5 flex items-center gap-3 active:scale-[0.98] transition-transform"
+            style="background:linear-gradient(135deg, rgba(167,139,250,0.14) 0%, rgba(167,139,250,0.05) 100%);border:1px solid rgba(167,139,250,0.35);">
+            <div class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0" style="background:rgba(167,139,250,0.18);">
+              <span class="text-2xl leading-none" aria-hidden="true">📦</span>
+            </div>
+            <div class="flex-1 min-w-0">
+              <p class="text-[10px] font-bold uppercase tracking-widest" style="color:rgba(167,139,250,0.95);">Tienes un pack activo</p>
+              <p class="text-sm font-bold text-white truncate leading-tight">${nombre}</p>
+              <p class="text-[11px] mt-0.5" style="color:rgba(255,255,255,0.65);">
+                Te quedan <span class="font-bold text-white">${rest}</span> de ${total} sesión${total !== 1 ? 'es' : ''}
+              </p>
+            </div>
+            <span class="shrink-0 text-[10px] font-black px-2.5 py-1 rounded-full text-white" style="background:rgba(167,139,250,0.35);">
+              Usar sesión →
+            </span>
+          </button>`;
+      }).join('');
+
+      // Guardamos el array para que el handler lo consulte por índice.
+      window._packsActivosClient = activos;
+    }
+
+    /* Al elegir usar una sesión del pack: arma un servicio virtual con
+       precio 0 + marcas del pack y avanza al step siguiente (barbero). */
+    window._usarSesionDelPack = function (idx) {
+      const packs = window._packsActivosClient || [];
+      const p = packs[idx];
+      if (!p) return;
+      // Buscar duración de referencia: el catálogo del servicio original.
+      // Si el pack tiene `duracionSesion` guardada, usarla; sino default 30.
+      const dur = Number(p.duracionSesion) || 30;
+      selectedServiceObj = {
+        id:               p.packId,          // referencia al servicio-pack original
+        nombre:           p.nombrePack,
+        precio:           0,                 // sesión cortesía
+        duracion:         dur,
+        // Marcas que consumirá procesarPackDeCita en el panel:
+        consumeSesionPack: true,
+        packRefId:         p.packId,
+        packNombre:        p.nombrePack,
+        packSesionIndex:   Math.max(1, (Number(p.sesionesTotales) || 1) - Number(p.sesionesRestantes || 0) + 1),
+        packSesionTotal:   Number(p.sesionesTotales) || 1,
+      };
+      // Reset campos que dependen del servicio.
+      selectedAddons = [];
+      selectedTimeStr = null;
+      _selectedSlotInfo = null;
+      // Avanzar al step 2 (barbero) igual que si eligiera un servicio del catálogo.
+      if (typeof transitionStep === 'function') transitionStep(1, 2);
+      else if (typeof goToStep === 'function') goToStep(2);
+      currentStep = 2;
+      if (typeof updateProgress === 'function') updateProgress();
+      if (typeof updateContinueBtn === 'function') updateContinueBtn();
+    };
 
     function renderCalendar(customConfig = null) {
       const carousel = document.querySelector('#calendarCarousel');
@@ -11011,6 +11115,19 @@
               precioTotal:       _totalPago,
               slotLockId:        null,
             } : {}),
+            // Consumo de pack: si el cliente eligió "Usar sesión de mi pack"
+            // en el paso 1, esta cita se cobra $0 y arrastra las marcas que
+            // usa Agenda.jsx para decrementar sesionesRestantes al Completar.
+            ...(selectedServiceObj?.consumeSesionPack ? {
+              consumeSesionPack: true,
+              packRefId:         selectedServiceObj.packRefId,
+              packNombre:        selectedServiceObj.packNombre,
+              packSesionIndex:   selectedServiceObj.packSesionIndex,
+              packSesionTotal:   selectedServiceObj.packSesionTotal,
+              precioTipo:        'CANJE_PACK_SESION',
+              precioBase:        0,
+              precioTotal:       0,
+            } : {}),
           };
           const _btnPago = document.getElementById('btnContinue');
           const _btnHtmlPrev = _btnPago ? _btnPago.innerHTML : '';
@@ -11132,6 +11249,17 @@
               recargoSobrecupo:  _recargoVipAdd,
               precioTotal:       _totalAdd,
               slotLockId:        null,
+            } : {}),
+            // Consumo de pack (mismo tratamiento que en la rama con pasarela).
+            ...(selectedServiceObj?.consumeSesionPack ? {
+              consumeSesionPack: true,
+              packRefId:         selectedServiceObj.packRefId,
+              packNombre:        selectedServiceObj.packNombre,
+              packSesionIndex:   selectedServiceObj.packSesionIndex,
+              packSesionTotal:   selectedServiceObj.packSesionTotal,
+              precioTipo:        'CANJE_PACK_SESION',
+              precioBase:        0,
+              precioTotal:       0,
             } : {}),
           });
           citaGuardada = true;
