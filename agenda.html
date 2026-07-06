@@ -471,37 +471,12 @@
             padding-top: 1.5rem !important;
         }
 
-        /* (2) Vista SEMANA — pisa styles inline hardcoded del renderWeekView.
-              Los selectores [style*="..."] alcanzan inline porque llevan
-              !important (regla CSS: !important externo > inline sin bang). */
-        html.light-mode [style*="background:#141418"],
-        html.light-mode [style*="background: #141418"] {
-            background: #ffffff !important;
-        }
-        html.light-mode [style*="background:#1c1810"] {
-            background: #fef3c7 !important; /* cabecera "hoy" — amarillo pastel */
-        }
-        html.light-mode [style*="rgba(0,0,0,0.35)"] {
-            background: rgba(15, 23, 42, 0.05) !important; /* franjas no laborales */
-        }
-        html.light-mode [style*="rgba(255,255,255,0.14)"],
-        html.light-mode [style*="rgba(255,255,255,0.08)"] {
-            border-color: #e2e8f0 !important;
-        }
-        html.light-mode [style*="rgba(255,255,255,0.06)"] {
-            border-top-color: #e2e8f0 !important;
-        }
-        /* Etiquetas de hora "13:00" (span con color inline blanco translúcido) */
-        html.light-mode [style*="color:rgba(255,255,255,0.5)"],
-        html.light-mode [style*="color:rgba(255,255,255,0.55)"],
-        html.light-mode [style*="color:rgba(255,255,255,0.45)"] {
-            color: #334155 !important;
-        }
-        /* Números de fecha en cabeceras semanales (color:#fff inline) */
-        html.light-mode [style*="color:#fff"] {
-            color: #0f172a !important;
-        }
-        /* Contenedores decorativos con fondos ambient blancos casi invisibles */
+        /* (2) Vista SEMANA — antes: attribute-selectors [style*="..."] pisando
+              los cssText inline emitidos por renderWeekView. Ahora ese render
+              lee document.documentElement.classList y pinta con `pal.*`, por
+              lo que este bloque ya NO es necesario. Se conservan solo los
+              overrides que apuntan al HTML estático (modales, contenedores
+              decorativos) que sí siguen siendo inline en el markup. */
         html.light-mode [style*="rgba(255,255,255,0.02)"],
         html.light-mode [style*="rgba(255,255,255,0.04)"] {
             background: #ffffff !important;
@@ -696,68 +671,19 @@
             font-weight: 800 !important;
         }
 
-        /* ── (B) Vista SEMANA — variantes rgb() normalizadas ─────────────
-           El DOM devuelve #141418 como "rgb(20, 20, 24)". Duplicamos los
-           selectores para asegurar match tanto en Chrome (que suele
-           preservar hex al leer style.cssText) como en Safari/Firefox
-           que lo normalizan más agresivo. */
+        /* ── (B) Vista SEMANA — bloque eliminado.
+           Antes: attribute-selectors [style*="rgb(20, 20, 24)"] y variantes
+           normalizadas que perseguían los cssText emitidos por renderWeekView.
+           Ahora renderWeekView lee document.documentElement.classList y pinta
+           con `pal.*`, así que este bloque es innecesario. Se mantienen abajo
+           sólo los overrides que apuntan al HTML estático (modales, backdrops)
+           y al select native option[style="..."] que también viene del markup. */
 
-        /* Cabeceras semanales y columna lateral (#141418) */
-        html.light-mode [style*="background:rgb(20, 20, 24)"],
-        html.light-mode [style*="background: rgb(20, 20, 24)"],
-        html.light-mode [style*="background:rgb(20,20,24)"] {
-            background: #ffffff !important;
-        }
-
-        /* Cabecera "hoy" (#1c1810) — mantiene el destaque en amber-100 */
-        html.light-mode [style*="background:rgb(28, 24, 16)"],
-        html.light-mode [style*="background: rgb(28, 24, 16)"],
-        html.light-mode [style*="background:rgb(28,24,16)"] {
-            background: #fef3c7 !important;
-        }
-
-        /* Franjas fuera de horario / día no laboral (rgba(0,0,0,0.35)
-           el navegador también lo devuelve con espacios). */
-        html.light-mode [style*="rgba(0, 0, 0, 0.35)"] {
-            background: rgba(15, 23, 42, 0.05) !important;
-        }
-
-        /* Bordes translúcidos blancos — variantes con espacios */
-        html.light-mode [style*="rgba(255, 255, 255, 0.14)"],
-        html.light-mode [style*="rgba(255, 255, 255, 0.08)"],
-        html.light-mode [style*="rgba(255, 255, 255, 0.12)"] {
-            border-color: #e2e8f0 !important;
-        }
-        html.light-mode [style*="rgba(255, 255, 255, 0.06)"] {
-            border-top-color: #e2e8f0 !important;
-        }
-
-        /* Labels de horas "13:00" — versión con espacios */
-        html.light-mode [style*="color: rgba(255, 255, 255, 0.5)"],
-        html.light-mode [style*="color: rgba(255, 255, 255, 0.55)"],
-        html.light-mode [style*="color: rgba(255, 255, 255, 0.45)"] {
-            color: #334155 !important;
-            font-weight: 600 !important;
-        }
-        /* Números de día en cabecera semanal (color:#fff → color: rgb(255, 255, 255)) */
-        html.light-mode [style*="color: rgb(255, 255, 255)"],
-        html.light-mode [style*="color:rgb(255, 255, 255)"] {
-            color: #0f172a !important;
-        }
-
-        /* Ambient blancos casi invisibles (0.02..0.06) — con espacios */
+        /* Ambient blancos casi invisibles (0.02..0.06) — contenedores decorativos */
         html.light-mode [style*="rgba(255, 255, 255, 0.02)"],
         html.light-mode [style*="rgba(255, 255, 255, 0.04)"],
         html.light-mode [style*="rgba(255, 255, 255, 0.05)"] {
             background: #f8fafc !important;
-        }
-
-        /* Refuerzo: cabecera de días semanales tiene borde inferior +
-           padding — cuando cubrimos el fondo con !important, si aún queda
-           algún texto legado en blanco hardcoded, lo forzamos oscuro. */
-        html.light-mode #weekColumnsContainer p,
-        html.light-mode #weekColumnsContainer span {
-            color: inherit;
         }
 
         /* Backdrops de otros overlays que no cubrí antes (calendario mini,
@@ -875,6 +801,41 @@
             background: #059669;
             box-shadow: 0 10px 24px -6px rgba(5, 150, 105, 0.45),
                         0 4px 10px rgba(15, 23, 42, 0.15);
+        }
+
+        /* (5) Botón flotante "🎯 Ahora" — pill compacta encima del FAB.
+              Scrollea al #nowIndicator que renderSlots inserta cuando el
+              día visible es hoy. Solo visible cuando hay algo a lo que ir. */
+        #btnScrollAhora {
+            position: fixed;
+            right: 1.5rem;
+            /* FAB (56px) + gap 12px por encima del FAB */
+            bottom: calc(max(1.5rem, env(safe-area-inset-bottom, 0px) + 1rem) + 3.5rem + 0.75rem);
+            display: none;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.5rem 0.9rem;
+            border-radius: 9999px;
+            background: rgba(15, 23, 42, 0.9);
+            color: #ffffff;
+            font-size: 0.8rem;
+            font-weight: 700;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+            z-index: 44;
+            cursor: pointer;
+            transition: transform 0.15s ease, background 0.15s ease;
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+        }
+        #btnScrollAhora:hover  { transform: translateY(-1px); }
+        #btnScrollAhora:active { transform: scale(0.95); }
+        #btnScrollAhora.visible { display: inline-flex; }
+        html.light-mode #btnScrollAhora {
+            background: #ffffff;
+            color: #0f172a;
+            border-color: #e2e8f0;
+            box-shadow: 0 6px 16px rgba(15, 23, 42, 0.15);
         }
 
         /* Kebab dropdown items — hover + safe-area */
@@ -1960,8 +1921,18 @@
             const mSlots = document.getElementById('morningSlots');
             const aSlots = document.getElementById('afternoonSlots');
 
-            mSlots.innerHTML = '';
-            aSlots.innerHTML = '';
+            // Optimización: acumulamos los slots en DocumentFragments y hacemos
+            // UN solo appendChild al final por sección. Antes cada slot forzaba
+            // reflow con insertAdjacentHTML — con 20-30 slots era medible en
+            // móviles gama media. Un `<template>` reutilizable parsea cada
+            // string HTML a Element sin repintar.
+            const mFrag = document.createDocumentFragment();
+            const aFrag = document.createDocumentFragment();
+            const _tmpl = document.createElement('template');
+            const parseHTML = (html) => {
+                _tmpl.innerHTML = html.trim();
+                return _tmpl.content.firstElementChild;
+            };
 
             const yyyy = currentDate.getFullYear();
             const mm = String(currentDate.getMonth() + 1).padStart(2, '0');
@@ -2021,9 +1992,14 @@
             let hasMorning = false;
             let hasAfternoon = false;
 
+            // Cada slot llega como string HTML (buildFreeSlot/buildBlockedSlot/
+            // buildCitaSlot son plantillas). Aquí lo parseamos a Element y lo
+            // apilamos en el fragment de mañana o tarde.
             const appendSlot = (isAfternoon, html) => {
-                if (isAfternoon) { aSlots.insertAdjacentHTML('beforeend', html); hasAfternoon = true; }
-                else { mSlots.insertAdjacentHTML('beforeend', html); hasMorning = true; }
+                const el = parseHTML(html);
+                if (!el) return;
+                if (isAfternoon) { aFrag.appendChild(el); hasAfternoon = true; }
+                else             { mFrag.appendChild(el); hasMorning = true; }
             };
 
             // Packing robusto: las citas SIEMPRE se dibujan en su hora real, sin importar
@@ -2035,18 +2011,22 @@
             while (cur < fin && _guard++ < 600) {
                 const isAfternoon = cur >= 720;
 
-                // Indicador "ahora": antes del primer slot posterior a la hora actual
+                // Indicador "ahora": antes del primer slot posterior a la hora actual.
+                // Le damos id="nowIndicator" para que el botón flotante "🎯 Ahora"
+                // pueda hacer scrollIntoView directamente sobre este elemento.
                 if (isViewingToday && !nowInserted && cur > nowMins) {
                     const hh = Math.floor(nowMins / 60).toString().padStart(2, '0');
                     const mn = (nowMins % 60).toString().padStart(2, '0');
-                    const nowEl = `<div class="flex items-center gap-3 py-1 my-0.5" aria-hidden="true">
+                    const nowEl = parseHTML(`<div id="nowIndicator" class="flex items-center gap-3 py-1 my-0.5" aria-hidden="true">
                         <span class="text-[10px] font-bold text-red-400 w-[50px] text-right shrink-0">${hh}:${mn}</span>
                         <div class="flex-1 h-px bg-red-400/50 relative">
                             <div class="absolute -left-1 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-red-400"></div>
                         </div>
-                    </div>`;
-                    if (isAfternoon) aSlots.insertAdjacentHTML('beforeend', nowEl);
-                    else mSlots.insertAdjacentHTML('beforeend', nowEl);
+                    </div>`);
+                    if (nowEl) {
+                        if (isAfternoon) aFrag.appendChild(nowEl);
+                        else             mFrag.appendChild(nowEl);
+                    }
                     nowInserted = true;
                 }
 
@@ -2093,6 +2073,10 @@
                 cur += interval;
             }
 
+            // Flush único: un solo reflow por sección para el DOM.
+            mSlots.replaceChildren(mFrag);
+            aSlots.replaceChildren(aFrag);
+
             if (hasMorning) mSec.classList.remove('hidden'); else mSec.classList.add('hidden');
             if (hasAfternoon) aSec.classList.remove('hidden'); else aSec.classList.add('hidden');
 
@@ -2110,6 +2094,11 @@
                 eSec.innerHTML = `<i class="ph ph-calendar-check text-4xl text-white/20 mb-3"></i>
                     <p class="text-white/40 text-sm">Sin reservas por ahora.</p>`;
             }
+
+            // Reevaluar visibilidad del botón "🎯 Ahora": depende de que
+            // renderSlots haya insertado #nowIndicator (solo cuando el día
+            // visible es hoy y la hora actual cae dentro del rango laboral).
+            try { window.syncBtnAhoraVisibility && window.syncBtnAhoraVisibility(); } catch (_) { /* noop */ }
         }
 
         function buildCitaSlot(time, cita) {
@@ -2680,6 +2669,42 @@
             const todayStr = _fmtDate(new Date());
             const nowMins  = new Date().getHours() * 60 + new Date().getMinutes();
 
+            // ── Paleta dinámica según modo (light/dark) ───────────────────
+            // Reemplaza los hardcodes hex/rgba que antes pisábamos con CSS
+            // [style*="..."]. Ahora el render elige colores en el momento y
+            // el CSS ya no necesita perseguir la representación normalizada
+            // del DOM. Robusto: si cambiamos un valor, no hay que ajustar CSS.
+            const pal = (function () {
+                const isLight = document.documentElement.classList.contains('light-mode');
+                return isLight ? {
+                    headerBg:       '#ffffff',
+                    hoyBg:          '#fef3c7',
+                    timeColBg:      '#ffffff',
+                    bordeHeader:    '#e2e8f0',
+                    franjaOff:      'rgba(15,23,42,0.05)',
+                    lineaHora:      '#e2e8f0',
+                    horaLabel:      '#334155',
+                    numeroDia:      '#0f172a',
+                    diaCortoNormal: '#64748b',
+                    contadorCitas:  '#64748b',
+                    citaTexto:      '#0f172a',
+                    citaServicio:   '#475569',
+                } : {
+                    headerBg:       '#141418',
+                    hoyBg:          '#1c1810',
+                    timeColBg:      '#141418',
+                    bordeHeader:    'rgba(255,255,255,0.14)',
+                    franjaOff:      'rgba(0,0,0,0.35)',
+                    lineaHora:      'rgba(255,255,255,0.06)',
+                    horaLabel:      'rgba(255,255,255,0.5)',
+                    numeroDia:      '#fff',
+                    diaCortoNormal: 'rgba(255,255,255,0.55)',
+                    contadorCitas:  'rgba(255,255,255,0.45)',
+                    citaTexto:      '#fff',
+                    citaServicio:   'rgba(255,255,255,0.65)',
+                };
+            })();
+
             // ── Rango horario global (mínimo inicio, máximo fin entre los 7 días) ──
             let iniMins = Infinity, finMins = -Infinity;
             for (let i = 0; i < 7; i++) {
@@ -2755,7 +2780,7 @@
 
             // ── Fila 1: Cabeceras de día (sticky) ──
             const emptyHdr = document.createElement('div');
-            emptyHdr.style.cssText = `grid-column:1;grid-row:1;position:sticky;top:0;left:0;z-index:30;background:#141418;padding:8px 0 8px;border-bottom:1px solid rgba(255,255,255,0.14);height:${headerH}px;`;
+            emptyHdr.style.cssText = `grid-column:1;grid-row:1;position:sticky;top:0;left:0;z-index:30;background:${pal.headerBg};padding:8px 0 8px;border-bottom:1px solid ${pal.bordeHeader};height:${headerH}px;`;
             grid.appendChild(emptyHdr);
 
             for (let i = 0; i < 7; i++) {
@@ -2772,16 +2797,16 @@
                     'position:sticky',
                     'top:0',
                     'z-index:10',
-                    `background:${isToday ? '#1c1810' : '#141418'}`,
+                    `background:${isToday ? pal.hoyBg : pal.headerBg}`,
                     'text-align:center',
                     'padding:6px 2px 8px',
                     `height:${headerH}px`,
-                    `border-bottom:${isToday ? '2px solid '+GOLD : '1px solid rgba(255,255,255,0.14)'}`,
+                    `border-bottom:${isToday ? '2px solid '+GOLD : '1px solid '+pal.bordeHeader}`,
                 ].join(';');
                 hdr.innerHTML = `
-                    <p style="font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;color:${isToday ? GOLD : 'rgba(255,255,255,0.55)'};">${diasCorto[d.getDay()]}</p>
-                    <p style="font-size:17px;font-weight:900;line-height:1.1;color:${isToday ? GOLD : '#fff'}">${d.getDate()}</p>
-                    ${citas.length ? `<p style="font-size:8px;font-weight:700;color:${isToday ? GOLD : 'rgba(255,255,255,0.45)'};margin-top:1px;">${citas.length}c</p>` : '<p style="font-size:8px;color:transparent;">0</p>'}
+                    <p style="font-size:8px;font-weight:800;text-transform:uppercase;letter-spacing:0.12em;color:${isToday ? GOLD : pal.diaCortoNormal};">${diasCorto[d.getDay()]}</p>
+                    <p style="font-size:17px;font-weight:900;line-height:1.1;color:${isToday ? GOLD : pal.numeroDia}">${d.getDate()}</p>
+                    ${citas.length ? `<p style="font-size:8px;font-weight:700;color:${isToday ? GOLD : pal.contadorCitas};margin-top:1px;">${citas.length}c</p>` : '<p style="font-size:8px;color:transparent;">0</p>'}
                 `;
                 grid.appendChild(hdr);
             }
@@ -2794,7 +2819,7 @@
                 'position:sticky',
                 'left:0',
                 'z-index:20',
-                'background:#141418',
+                `background:${pal.timeColBg}`,
                 'position:relative',
                 `height:${bodyH}px`,
             ].join(';');
@@ -2815,7 +2840,7 @@
                     'transform:translateY(-50%)',
                     'font-size:9px',
                     'font-weight:700',
-                    'color:rgba(255,255,255,0.5)',
+                    `color:${pal.horaLabel}`,
                     'white-space:nowrap',
                     'pointer-events:none',
                 ].join(';');
@@ -2847,22 +2872,21 @@
                 ].join(';');
 
                 // ── Layer 0: fondo fuera de horario / día no laboral (z:0) ──
-                // Todo el día no laboral: fondo oscuro completo.
                 if (!isLaboral) {
                     const bg = document.createElement('div');
-                    bg.style.cssText = `position:absolute;top:0;left:0;right:0;height:${bodyH}px;background:rgba(0,0,0,0.35);z-index:0;pointer-events:none;`;
+                    bg.style.cssText = `position:absolute;top:0;left:0;right:0;height:${bodyH}px;background:${pal.franjaOff};z-index:0;pointer-events:none;`;
                     dayCol.appendChild(bg);
                 } else {
                     // Franja antes del inicio del día laboral
                     if (dayIni > iniMins) {
                         const before = document.createElement('div');
-                        before.style.cssText = `position:absolute;top:0;left:0;right:0;height:${yOf(dayIni)}px;background:rgba(0,0,0,0.35);z-index:0;pointer-events:none;`;
+                        before.style.cssText = `position:absolute;top:0;left:0;right:0;height:${yOf(dayIni)}px;background:${pal.franjaOff};z-index:0;pointer-events:none;`;
                         dayCol.appendChild(before);
                     }
                     // Franja después del fin del día laboral
                     if (dayFin < finMins) {
                         const after = document.createElement('div');
-                        after.style.cssText = `position:absolute;top:${yOf(dayFin)}px;left:0;right:0;height:${hOf(finMins - dayFin)}px;background:rgba(0,0,0,0.35);z-index:0;pointer-events:none;`;
+                        after.style.cssText = `position:absolute;top:${yOf(dayFin)}px;left:0;right:0;height:${hOf(finMins - dayFin)}px;background:${pal.franjaOff};z-index:0;pointer-events:none;`;
                         dayCol.appendChild(after);
                     }
                 }
@@ -2870,7 +2894,7 @@
                 // ── Layer 0: líneas horizontales por hora (referencia visual) ──
                 for (let m = firstHour; m < finMins; m += 60) {
                     const line = document.createElement('div');
-                    line.style.cssText = `position:absolute;top:${yOf(m)}px;left:0;right:0;border-top:1px solid rgba(255,255,255,0.06);z-index:0;pointer-events:none;`;
+                    line.style.cssText = `position:absolute;top:${yOf(m)}px;left:0;right:0;border-top:1px solid ${pal.lineaHora};z-index:0;pointer-events:none;`;
                     dayCol.appendChild(line);
                 }
 
@@ -3027,10 +3051,10 @@
                         abrirDetalleCitaWeek(fechaStr, cita.id);
                     };
                     el.innerHTML = `
-                        <p style="font-size:10px;font-weight:800;color:#fff;line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                        <p style="font-size:10px;font-weight:800;color:${pal.citaTexto};line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
                             <span style="font-weight:700;color:${leftColor};margin-right:3px;">${cita.hora}</span>${cita.clienteNombre || 'Cliente'}
                         </p>
-                        ${showService ? `<p style="font-size:8px;color:rgba(255,255,255,0.65);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${cita.servicioNombre || ''}</p>` : ''}
+                        ${showService ? `<p style="font-size:8px;color:${pal.citaServicio};margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${cita.servicioNombre || ''}</p>` : ''}
                     `;
                     dayCol.appendChild(el);
                 });
@@ -3130,6 +3154,8 @@
                 // render con datos (scheduleWeekRender). Evita el flash "semana vacía → llena".
                 loadWeekData();
             }
+            // Botón "🎯 Ahora" solo tiene sentido en vista día.
+            try { window.syncBtnAhoraVisibility && window.syncBtnAhoraVisibility(); } catch (_) { /* noop */ }
         }
 
         // ── INTERVALO DE LA GRILLA DEL DÍA (15/30/45/60) ────────────
@@ -4615,6 +4641,14 @@
         // sea instantáneo y no queden textos blancos sobre fondo claro.
         try { if (typeof _updateIntervalUI === 'function') _updateIntervalUI(); } catch (_) { /* noop */ }
         try { if (typeof _updateViewToggleUI === 'function') _updateViewToggleUI(); } catch (_) { /* noop */ }
+        // Vista semana: re-render para que renderWeekView pinte con la paleta
+        // del nuevo modo (los estilos inline los emite el JS, no el CSS).
+        try {
+          if (typeof _agendaView !== 'undefined' && _agendaView === 'semana'
+              && typeof renderWeekView === 'function') {
+            renderWeekView();
+          }
+        } catch (_) { /* noop */ }
       };
 
       // Sync inicial del ícono/theme-color al DOMContentLoaded — el HTML ya
@@ -4641,6 +4675,14 @@
        ═══════════════════════════════════════════════════════════════════ -->
   <button id="fabNuevaCita" onclick="abrirNuevaCitaFAB()" title="Nueva cita rápida" aria-label="Agregar nueva cita">
     <i class="ph-bold ph-plus" style="font-size:1.6rem;"></i>
+  </button>
+
+  <!-- Pill "🎯 Ahora" — scroll suave a la hora actual en la vista día.
+       Visible sólo cuando estás mirando HOY y hay un #nowIndicator que
+       renderSlots inserta entre los slots antes de la hora actual. -->
+  <button id="btnScrollAhora" onclick="scrollToAhora()" title="Ir a la hora actual" aria-label="Scroll a la hora actual">
+    <span aria-hidden="true">🎯</span>
+    <span>Ahora</span>
   </button>
 
   <!-- ═══════════════════════════════════════════════════════════════════
@@ -4745,6 +4787,8 @@
         if (!fab || !main) return;
         const visible = !main.classList.contains('hidden');
         fab.classList.toggle('visible', visible);
+        // Reevaluar el botón "Ahora" también — depende de que main esté visible.
+        syncBtnAhoraVisibility();
       }
       function startFabObserver() {
         const main = document.getElementById('mainApp');
@@ -4758,6 +4802,33 @@
       } else {
         startFabObserver();
       }
+
+      /* ── Botón "🎯 Ahora" — scroll a la hora actual ─────────────────
+         Depende de renderSlots(): cuando el día visible es hoy, esa función
+         inserta un <div id="nowIndicator"> entre los slots. Si existe,
+         mostramos el botón y scrollIntoView lo centra. Si no existe
+         (viendo otro día), el botón queda oculto. */
+      window.scrollToAhora = function () {
+        const el = document.getElementById('nowIndicator');
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+          // Fallback silencioso: no hay indicador, no scrolleamos a lugar
+          // arbitrario para no desorientar al barbero.
+        }
+      };
+      // Expuesta como global para poder llamarla desde renderSlots y desde
+      // setAgendaView sin acoplarnos al IIFE.
+      window.syncBtnAhoraVisibility = function () {
+        const btn = document.getElementById('btnScrollAhora');
+        if (!btn) return;
+        const main = document.getElementById('mainApp');
+        const mainVisible = main && !main.classList.contains('hidden');
+        const isDia = (typeof _agendaView !== 'undefined') ? _agendaView === 'dia' : true;
+        const hasNow = !!document.getElementById('nowIndicator');
+        btn.classList.toggle('visible', mainVisible && isDia && hasNow);
+      };
+      function syncBtnAhoraVisibility() { window.syncBtnAhoraVisibility(); }
     })();
   </script>
 </body>
