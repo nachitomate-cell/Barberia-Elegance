@@ -920,8 +920,10 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
     onClose();
   };
 
-  const field = 'w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors';
-  const lbl   = 'block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1';
+  const field = 'w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors';
+  const lbl   = 'block text-[10px] font-bold tracking-wider text-slate-400 uppercase mb-1.5';
+  const section     = 'bg-slate-800/30 border border-slate-700/50 rounded-xl p-4 space-y-3';
+  const sectionHead = 'text-[10px] font-bold uppercase tracking-widest text-slate-500';
 
   return (
     <Modal
@@ -944,161 +946,243 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
         </div>
       }
     >
-      <div className="relative">
-        <label className={lbl}>Nombre del cliente *</label>
+      {/* ═══ BLOQUE 1 · DATOS DEL CLIENTE ═══ */}
+      <div className={section}>
+        <p className={sectionHead}>Datos del cliente</p>
+
+        {/* Nombre — full width con dropdown de sugerencias */}
         <div className="relative">
-          <input
-            className={field}
-            placeholder="Busca un cliente o escribe el nombre…"
-            value={form.clienteNombre}
-            onChange={e => { setForm(f => ({ ...f, clienteNombre: e.target.value, clienteId: null })); setShowSugg(true); }}
-            onFocus={() => setShowSugg(true)}
-            onBlur={() => setTimeout(() => setShowSugg(false), 150)}
-            autoComplete="off"
-          />
-          {form.clienteId && (
-            <span className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[10px] text-emerald-400 font-semibold pointer-events-none">
-              <User size={10} />
-              Vinculado
-            </span>
-          )}
-        </div>
-        {showSugg && suggestions.length > 0 && (
-          <div className="absolute z-20 w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl overflow-hidden">
-            {suggestions.map(c => (
-              <button
-                key={c.id}
-                type="button"
-                onMouseDown={() => selectCliente(c)}
-                className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-slate-700 text-left transition-colors"
-              >
-                <div className="w-7 h-7 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
-                  <User size={12} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm text-white font-medium truncate">{c.nombre}</p>
-                  {c.telefono && <p className="text-xs text-slate-500 truncate">{c.telefono}</p>}
-                </div>
-                {(() => {
-                  const esLegacy = !!c.uid && c.uid === c.id;
-                  if (esLegacy) return <span className="text-[10px] text-amber-400/80 font-semibold shrink-0">Migrado</span>;
-                  if (c.uid)    return <span className="text-[10px] text-emerald-500/80 font-semibold shrink-0">Club</span>;
-                  return null;
-                })()}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-      {clMember && (
-        <div className="flex items-center gap-2.5 p-3 bg-amber-500/5 border border-amber-500/30 rounded-xl">
-          <div className="w-8 h-8 rounded-lg bg-amber-500/15 flex items-center justify-center shrink-0">
-            <BadgeCheck size={16} className="text-amber-400" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-bold text-amber-400">Cliente Corte al Lápiz</p>
-            <p className="text-[11px] text-slate-400">Cuota actual: {clFmt(clMember.saldo)} · paga a fin de mes</p>
-          </div>
-        </div>
-      )}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div>
-          <label className={lbl}>Email</label>
-          <input className={field} type="email" inputMode="email" placeholder="juan@email.com" value={form.clienteEmail} onChange={e => set('clienteEmail', e.target.value)} />
-        </div>
-        <div>
-          <label className={lbl}>
-            Teléfono
-            {form.estado === 'Completada' && <span className="ml-1 text-amber-400 normal-case font-normal">— opcional (requerido para el sello)</span>}
-          </label>
-          <div className="flex gap-1.5">
+          <label className={lbl}>Nombre del cliente *</label>
+          <div className="relative">
             <input
-              className={`${field} ${telError ? 'border-red-500 focus:border-red-400' : ''}`}
-              type="tel"
-              inputMode="tel"
-              placeholder="+569..."
-              value={form.clienteTelefono}
-              onChange={e => { set('clienteTelefono', e.target.value); if (telError) setTelError(false); }}
+              className={field}
+              placeholder="Busca un cliente o escribe el nombre…"
+              value={form.clienteNombre}
+              onChange={e => { setForm(f => ({ ...f, clienteNombre: e.target.value, clienteId: null })); setShowSugg(true); }}
+              onFocus={() => setShowSugg(true)}
+              onBlur={() => setTimeout(() => setShowSugg(false), 150)}
+              autoComplete="off"
             />
-            {form.clienteTelefono && (
-              <a
-                href={`https://wa.me/${waPhone(form.clienteTelefono)}?text=${encodeURIComponent(buildWaConfirmMsg(tenantId, form, form.fecha || dateStr))}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                title="Enviar confirmación por WhatsApp"
-                className="flex-shrink-0 flex items-center justify-center w-10 rounded-lg bg-emerald-600/15 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-600/30 hover:border-emerald-500/60 transition-colors"
-              >
-                <MessageSquare size={15} />
-              </a>
+            {form.clienteId && (
+              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-[10px] text-emerald-400 font-semibold pointer-events-none">
+                <User size={10} />
+                Vinculado
+              </span>
             )}
           </div>
-          {telError && (
-            <p className="mt-1 text-xs text-red-400 font-semibold">El teléfono es obligatorio para registrar el sello.</p>
+          {showSugg && suggestions.length > 0 && (
+            <div className="absolute z-20 w-full mt-1 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl overflow-hidden">
+              {suggestions.map(c => (
+                <button
+                  key={c.id}
+                  type="button"
+                  onMouseDown={() => selectCliente(c)}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-slate-700 text-left transition-colors"
+                >
+                  <div className="w-7 h-7 rounded-full bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+                    <User size={12} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm text-white font-medium truncate">{c.nombre}</p>
+                    {c.telefono && <p className="text-xs text-slate-500 truncate">{c.telefono}</p>}
+                  </div>
+                  {(() => {
+                    const esLegacy = !!c.uid && c.uid === c.id;
+                    if (esLegacy) return <span className="text-[10px] text-amber-400/80 font-semibold shrink-0">Migrado</span>;
+                    if (c.uid)    return <span className="text-[10px] text-emerald-500/80 font-semibold shrink-0">Club</span>;
+                    return null;
+                  })()}
+                </button>
+              ))}
+            </div>
           )}
         </div>
-      </div>
-      {fotoFavorita && (
-        <div className="p-3 bg-slate-900 border border-slate-750/70 rounded-xl flex items-center gap-3.5 my-2">
-          <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 bg-slate-800 border border-slate-750">
-            <img src={fotoFavorita} alt="Foto favorita" className="w-full h-full object-cover" />
+
+        {/* Chip Corte al Lápiz */}
+        {clMember && (
+          <div className="flex items-center gap-2.5 p-3 bg-amber-500/5 border border-amber-500/30 rounded-lg">
+            <div className="w-8 h-8 rounded-lg bg-amber-500/15 flex items-center justify-center shrink-0">
+              <BadgeCheck size={16} className="text-amber-400" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-bold text-amber-400">Cliente Corte al Lápiz</p>
+              <p className="text-[11px] text-slate-400">Cuota actual: {clFmt(clMember.saldo)} · paga a fin de mes</p>
+            </div>
           </div>
-          <div className="flex-1 min-w-0 text-left">
-            <p className="text-[9px] font-black text-amber-400 uppercase tracking-widest leading-none">📸 Estilo de Referencia</p>
-            <p className="text-[11px] text-slate-400 mt-1.5 leading-normal">El cliente cargó una foto favorita para su servicio.</p>
+        )}
+
+        {/* Foto de referencia */}
+        {fotoFavorita && (
+          <div className="p-3 bg-slate-900 border border-slate-700 rounded-lg flex items-center gap-3">
+            <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 bg-slate-800 border border-slate-700">
+              <img src={fotoFavorita} alt="Foto favorita" className="w-full h-full object-cover" />
+            </div>
+            <div className="flex-1 min-w-0 text-left">
+              <p className="text-[9px] font-black text-amber-400 uppercase tracking-widest leading-none">📸 Estilo de Referencia</p>
+              <p className="text-[11px] text-slate-400 mt-1.5 leading-normal">El cliente cargó una foto favorita para su servicio.</p>
+            </div>
+            <a
+              href={fotoFavorita}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-[10px] font-bold text-white rounded-lg transition-colors border border-slate-700 shrink-0"
+            >
+              Ver grande
+            </a>
           </div>
-          <a
-            href={fotoFavorita}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-750 text-[10px] font-bold text-white rounded-lg transition-colors border border-slate-700 shrink-0"
-          >
-            Ver grande
-          </a>
-        </div>
-      )}
-      <div>
-        <label className={lbl}>Servicio</label>
-        <select className={field} value={form.servicioId} onChange={e => onServicioChange(e.target.value)}>
-          {servicios.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
-          {servicios.length === 0 && <option value="">Sin servicios</option>}
-        </select>
-      </div>
-      <div className="grid grid-cols-2 gap-3 animate-in fade-in slide-in-from-top-1 duration-200">
-        <div>
-          <label className={lbl}>Precio ($)</label>
-          <input className={`${field} disabled:opacity-50 disabled:cursor-not-allowed`} type="number" inputMode="numeric" placeholder="Precio" value={form.precio} disabled={form.cortesia} onChange={e => set('precio', Number(e.target.value))} />
-        </div>
-        <div>
-          <label className={lbl}>Descuento (%)</label>
-          <input className={`${field} disabled:opacity-50 disabled:cursor-not-allowed`} type="number" inputMode="numeric" placeholder="0" min="0" max="100" value={form.porcentajeDescuento || ''} disabled={form.cortesia} onChange={e => handleDiscountChange(e.target.value)} />
+        )}
+
+        {/* Grid: Teléfono (con addon WhatsApp) + Email */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className={lbl}>
+              Teléfono
+              {form.estado === 'Completada' && <span className="ml-1 text-amber-400 normal-case font-normal">— req. sello</span>}
+            </label>
+            <div className={`flex rounded-lg border ${telError ? 'border-red-500 focus-within:border-red-400' : 'border-slate-700 focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500'} overflow-hidden bg-slate-900 transition-colors`}>
+              <input
+                className="flex-1 min-w-0 bg-transparent px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none"
+                type="tel"
+                inputMode="tel"
+                placeholder="+569..."
+                value={form.clienteTelefono}
+                onChange={e => { set('clienteTelefono', e.target.value); if (telError) setTelError(false); }}
+              />
+              {form.clienteTelefono && (
+                <a
+                  href={`https://wa.me/${waPhone(form.clienteTelefono)}?text=${encodeURIComponent(buildWaConfirmMsg(tenantId, form, form.fecha || dateStr))}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title="Enviar confirmación por WhatsApp"
+                  className="flex items-center justify-center px-3 bg-emerald-600 hover:bg-emerald-500 text-white transition-colors border-l border-emerald-700 shrink-0"
+                >
+                  <MessageSquare size={15} />
+                </a>
+              )}
+            </div>
+            {telError && (
+              <p className="mt-1 text-xs text-red-400 font-semibold">El teléfono es obligatorio para registrar el sello.</p>
+            )}
+          </div>
+          <div>
+            <label className={lbl}>Email</label>
+            <input className={field} type="email" inputMode="email" placeholder="juan@email.com" value={form.clienteEmail} onChange={e => set('clienteEmail', e.target.value)} />
+          </div>
         </div>
       </div>
 
-      {/* ── Sobrecupo / Horario Especial ─────────────────────────── */}
-      <div>
+      {/* ═══ BLOQUE 2 · DETALLES DE LA CITA ═══ */}
+      <div className={section}>
+        <p className={sectionHead}>Detalles de la cita</p>
+
+        <div>
+          <label className={lbl}>Servicio</label>
+          <select className={field} value={form.servicioId} onChange={e => onServicioChange(e.target.value)}>
+            {servicios.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+            {servicios.length === 0 && <option value="">Sin servicios</option>}
+          </select>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className={lbl}>Fecha</label>
+            <input className={field} type="date" value={form.fecha} onChange={e => set('fecha', e.target.value)} />
+          </div>
+          <div>
+            <label className={lbl}>
+              Hora
+              {sobrecupoActivo && <span className="ml-1 normal-case font-normal text-amber-400/80">— libre</span>}
+            </label>
+            {sobrecupoActivo ? (
+              <input
+                className={field}
+                type="time"
+                step="900"
+                value={form.hora}
+                onChange={e => set('hora', e.target.value)}
+              />
+            ) : (
+              <select className={field} value={form.hora} onChange={e => set('hora', e.target.value)}>
+                {(pickerLabels.includes(form.hora) ? pickerLabels : [form.hora, ...pickerLabels].filter(Boolean))
+                  .map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            )}
+          </div>
+        </div>
+        {form.fecha && form.fecha !== dateStr && (
+          <p className="text-[11px] text-amber-400 font-medium flex items-center gap-1 -mt-1">
+            <CalendarDays size={11} /> La cita se moverá al {new Date(form.fecha + 'T12:00:00').toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' })}.
+          </p>
+        )}
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className={lbl}>Barbero</label>
+            <select className={field} value={form.barberoId} onChange={e => onBarberoChange(e.target.value)}>
+              {barberos.map(b => <option key={b.id} value={b.id}>{b.nombre}</option>)}
+            </select>
+          </div>
+          {!isNew && (
+            <div>
+              <label className={lbl}>Estado</label>
+              <select className={field} value={form.estado} onChange={e => set('estado', e.target.value)}>
+                <option>Confirmada</option>
+                <option>Completada</option>
+                <option>Cancelada</option>
+              </select>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ═══ BLOQUE 3 · FINANZAS Y NOTAS ═══ */}
+      <div className={section}>
+        <p className={sectionHead}>Finanzas y notas</p>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className={lbl}>Precio ($)</label>
+            <input className={`${field} disabled:opacity-50 disabled:cursor-not-allowed`} type="number" inputMode="numeric" placeholder="Precio" value={form.precio} disabled={form.cortesia} onChange={e => set('precio', Number(e.target.value))} />
+          </div>
+          <div>
+            <label className={lbl}>Descuento (%)</label>
+            <input className={`${field} disabled:opacity-50 disabled:cursor-not-allowed`} type="number" inputMode="numeric" placeholder="0" min="0" max="100" value={form.porcentajeDescuento || ''} disabled={form.cortesia} onChange={e => handleDiscountChange(e.target.value)} />
+          </div>
+        </div>
+
+        {/* Rango descuento chip */}
+        {rangoDesc && !form.cortesia && (
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-500/[0.06] border border-emerald-500/25 text-[11px] text-emerald-300">
+            <BadgeCheck size={13} className="shrink-0" />
+            <span>Rango <b className="text-white">{rangoDesc.nombre}</b> · {rangoDesc.pct}% de descuento en servicios{(Number(form.porcentajeDescuento) || 0) >= rangoDesc.pct ? ' aplicado' : ' (ajustable arriba)'}</span>
+          </div>
+        )}
+
+        {/* Toggle Sobrecupo — fila propia tipo interruptor clickeable */}
         <button
           type="button"
           onClick={() => toggleSobrecupo(!sobrecupoActivo)}
-          className={`flex items-center gap-2 w-full px-3 py-2.5 rounded-lg border text-sm font-semibold transition-colors ${
+          className={`flex items-center justify-between w-full p-3 rounded-lg border transition-colors ${
             sobrecupoActivo
-              ? 'bg-amber-500/10 border-amber-500/40 text-amber-300'
-              : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-600'
+              ? 'bg-amber-500/10 border-amber-500/40'
+              : 'bg-slate-900/50 border-slate-700 hover:border-slate-600'
           }`}
         >
-          <span className={`w-8 h-4 rounded-full transition-colors relative ${sobrecupoActivo ? 'bg-amber-500' : 'bg-slate-600'}`}>
-            <span className={`absolute top-0.5 w-3 h-3 bg-white rounded-full shadow transition-all ${sobrecupoActivo ? 'left-4' : 'left-0.5'}`} />
+          <span className="flex items-center gap-2">
+            <Zap size={14} className={sobrecupoActivo ? 'text-amber-400' : 'text-slate-500'} />
+            <span className={`text-sm font-semibold ${sobrecupoActivo ? 'text-amber-300' : 'text-slate-300'}`}>
+              Sobrecupo / Horario Especial
+            </span>
           </span>
-          <Zap size={14} className="shrink-0" />
-          Sobrecupo / Horario Especial
+          <span className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${sobrecupoActivo ? 'bg-amber-500' : 'bg-slate-700'}`}>
+            <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all ${sobrecupoActivo ? 'left-[22px]' : 'left-0.5'}`} />
+          </span>
         </button>
         {sobrecupoActivo && !form.cortesia && (
-          <div className="mt-3 rounded-xl border border-amber-500/25 bg-amber-500/[0.05] p-3 space-y-3">
+          <div className="rounded-lg border border-amber-500/25 bg-amber-500/[0.05] p-3 space-y-3">
             <div className="flex items-center gap-2 text-[11px] text-amber-300/90">
               <AlertTriangle size={13} className="shrink-0" />
-              <span>
-                Se cobra un recargo extra por atender fuera de tu turno normal o encima de otra cita.
-                El monto es editable — carga el default del servicio si existe.
-              </span>
+              <span>Se cobra un recargo extra por atender fuera de tu turno normal o encima de otra cita.</span>
             </div>
             <div className="grid grid-cols-3 gap-2 items-end">
               <div>
@@ -1133,61 +1217,9 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
             )}
           </div>
         )}
-      </div>
-      {rangoDesc && !form.cortesia && (
-        <div className="flex items-center gap-2 px-3 py-2 -mt-1 rounded-xl bg-emerald-500/[0.06] border border-emerald-500/25 text-[11px] text-emerald-300">
-          <BadgeCheck size={13} className="shrink-0" />
-          <span>Rango <b className="text-white">{rangoDesc.nombre}</b> · {rangoDesc.pct}% de descuento en servicios{(Number(form.porcentajeDescuento) || 0) >= rangoDesc.pct ? ' aplicado' : ' (ajustable arriba)'}</span>
-        </div>
-      )}
-      <div>
-        <label className={lbl}>Fecha</label>
-        <input className={field} type="date" value={form.fecha} onChange={e => set('fecha', e.target.value)} />
-        {form.fecha && form.fecha !== dateStr && (
-          <p className="mt-1 text-[11px] text-amber-400 font-medium flex items-center gap-1">
-            <CalendarDays size={11} /> La cita se moverá al {new Date(form.fecha + 'T12:00:00').toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' })}.
-          </p>
-        )}
-      </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className={lbl}>Barbero</label>
-          <select className={field} value={form.barberoId} onChange={e => onBarberoChange(e.target.value)}>
-            {barberos.map(b => <option key={b.id} value={b.id}>{b.nombre}</option>)}
-          </select>
-        </div>
-        <div>
-          <label className={lbl}>
-            Hora
-            {sobrecupoActivo && <span className="ml-1 normal-case font-normal text-amber-400/80">— libre (24 h)</span>}
-          </label>
-          {sobrecupoActivo ? (
-            <input
-              className={field}
-              type="time"
-              step="900"
-              value={form.hora}
-              onChange={e => set('hora', e.target.value)}
-            />
-          ) : (
-            <select className={field} value={form.hora} onChange={e => set('hora', e.target.value)}>
-              {(pickerLabels.includes(form.hora) ? pickerLabels : [form.hora, ...pickerLabels].filter(Boolean))
-                .map(t => <option key={t} value={t}>{t}</option>)}
-            </select>
-          )}
-        </div>
-      </div>
-      {!isNew && (
-        <div className="space-y-3">
-          <div>
-            <label className={lbl}>Estado</label>
-            <select className={field} value={form.estado} onChange={e => set('estado', e.target.value)}>
-              <option>Confirmada</option>
-              <option>Completada</option>
-              <option>Cancelada</option>
-            </select>
-          </div>
-          
+
+        {!isNew && (
+          <>
           {form.estado === 'Completada' && (
             <>
             {/* Atención de cortesía (gratis) */}
@@ -1291,16 +1323,16 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
             </>
           )}
 
-          {/* Productos vendidos junto a la cita */}
-          <div className="p-3 bg-slate-950 border border-slate-800/80 rounded-xl space-y-2.5">
-            <div className="flex items-center justify-between">
-              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                <ShoppingBag size={11} className="text-emerald-400" />
+          {/* Productos del ticket — estilo recibo */}
+          <div className="bg-slate-900 rounded-lg p-4 border border-slate-700 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
+                <ShoppingBag size={12} className="text-emerald-400" />
                 Productos del Ticket
               </p>
               {totalTicket > 0 && (
-                <span className="text-[10px] text-slate-500">
-                  Total: <span className="text-emerald-400 font-bold">${Math.round(totalTicket).toLocaleString('es-CL')}</span>
+                <span className="text-[10px] text-slate-500 flex items-baseline gap-1.5 shrink-0">
+                  Total: <span className="text-emerald-400 font-bold text-lg leading-none">${Math.round(totalTicket).toLocaleString('es-CL')}</span>
                 </span>
               )}
             </div>
@@ -1437,11 +1469,14 @@ function CitaModal({ cita, barberos, servicios, productos = [], defaultHora, def
               </p>
             )}
           </div>
+          </>
+        )}
+
+        {/* Nota interna — cierre del bloque 3 */}
+        <div>
+          <label className={lbl}>Nota interna</label>
+          <textarea className={`${field} resize-none`} rows={2} placeholder="Ej: Cliente prefiere sin gel..." value={form.nota} onChange={e => set('nota', e.target.value)} />
         </div>
-      )}
-      <div>
-        <label className={lbl}>Nota interna</label>
-        <textarea className={`${field} resize-none`} rows={2} placeholder="Ej: Cliente prefiere sin gel..." value={form.nota} onChange={e => set('nota', e.target.value)} />
       </div>
     </Modal>
   );
