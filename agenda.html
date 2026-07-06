@@ -3627,9 +3627,59 @@
         <button onclick="accionBloquearSlot()" class="w-full py-3.5 rounded-xl text-sm font-bold text-white bg-white/5 border border-white/10 hover:bg-white/10 active:scale-95 transition-all flex items-center justify-center gap-2">
           <i class="ph-bold ph-lock-key text-lg"></i> Bloquear Espacio Rápido
         </button>
+        <button onclick="accionBloquearRango()" class="w-full py-3.5 rounded-xl text-sm font-bold text-white bg-white/5 border border-white/10 hover:bg-white/10 active:scale-95 transition-all flex items-center justify-center gap-2">
+          <i class="ph-bold ph-clock-countdown text-lg"></i> Bloquear rango de horas
+        </button>
       </div>
       <button onclick="cerrarOpcionesSlotLibre()" class="w-full mt-5 py-3 rounded-xl text-sm font-medium text-white/40 hover:text-white transition-colors">
         Cancelar
+      </button>
+    </div>
+  </div>
+
+  <!-- Modal Bloquear Rango de Horas — permite bloquear desde/hasta con motivo opcional. -->
+  <div id="blockRangeModal" class="hidden fixed inset-0 z-[5002] flex items-center justify-center px-4" style="background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);">
+    <div class="w-full max-w-sm rounded-3xl p-6 animate-fade-in" style="background:#0d0d10;border:1px solid rgba(255,255,255,0.1);box-shadow:0 10px 40px rgba(0,0,0,0.8);">
+      <div class="flex items-center justify-between mb-5">
+        <h3 class="text-lg font-bold text-white">Bloquear rango de horas</h3>
+        <button onclick="cerrarBlockRange()" class="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center border border-white/10">
+          <i class="ph-bold ph-x text-white/50"></i>
+        </button>
+      </div>
+
+      <p class="text-[11px] text-white/50 mb-4 leading-relaxed">
+        No se aceptarán reservas online en este rango. Podés eliminarlo tocando el bloque rojo en la agenda.
+      </p>
+
+      <div class="grid grid-cols-2 gap-3 mb-4">
+        <div>
+          <label class="text-[11px] font-bold text-white/40 uppercase tracking-widest block mb-1">Desde</label>
+          <input type="time" id="blockRangeStart"
+            class="w-full rounded-xl px-4 py-3 text-sm text-white outline-none"
+            style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color-scheme:dark;">
+        </div>
+        <div>
+          <label class="text-[11px] font-bold text-white/40 uppercase tracking-widest block mb-1">Hasta</label>
+          <input type="time" id="blockRangeEnd"
+            class="w-full rounded-xl px-4 py-3 text-sm text-white outline-none"
+            style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color-scheme:dark;">
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <label class="text-[11px] font-bold text-white/40 uppercase tracking-widest block mb-1">Motivo (opcional)</label>
+        <input type="text" id="blockRangeMotivo" placeholder="Ej: Almuerzo, curso, capacitación..."
+          maxlength="80"
+          class="w-full rounded-xl px-4 py-3 text-sm text-white placeholder-white/20 outline-none"
+          style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);">
+      </div>
+
+      <p id="blockRangeError" class="text-red-400 text-xs hidden mb-3"></p>
+
+      <button id="blockRangeSaveBtn" onclick="guardarBloqueoRango()"
+        class="w-full py-3.5 rounded-xl text-sm font-bold text-white bg-red-500 hover:bg-red-400 active:scale-95 transition-all flex items-center justify-center gap-2">
+        <i class="ph-bold ph-lock-key text-lg"></i>
+        <span id="blockRangeSaveLabel">Bloquear</span>
       </button>
     </div>
   </div>
@@ -3888,6 +3938,127 @@
     function accionBloquearSlot() {
         cerrarOpcionesSlotLibre();
         agregarBloqueoRapido(_timeSlotSeleccionado);
+    }
+
+    /* ── Bloqueo por RANGO de horas ─────────────────────────────────────
+       A diferencia de accionBloquearSlot (1 solo slot), esto abre un modal
+       con inputs de "desde/hasta" para bloquear un rango arbitrario. Se
+       crea 1 doc en /bloqueos con { hora_inicio, hora_fin } + N slotLocks
+       (uno por cada slot del intervalo dentro del rango) para que la
+       reserva pública tampoco pueda tomar horarios intermedios. */
+    function accionBloquearRango() {
+        cerrarOpcionesSlotLibre();
+        const startTime = _timeSlotSeleccionado || '09:00';
+        // Sugerir 1h de duración por defecto (respeta el intervalo).
+        const cfg = barberConfig || globalConfig || {};
+        const interval = _slotInterval || cfg.intervaloMinutos || 30;
+        const [h, m] = startTime.split(':').map(Number);
+        const endMins = Math.min(h * 60 + m + Math.max(60, interval), 23 * 60 + 45);
+        const endH = Math.floor(endMins / 60);
+        const endM = endMins % 60;
+        const endTime = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+
+        document.getElementById('blockRangeStart').value = startTime;
+        document.getElementById('blockRangeEnd').value   = endTime;
+        document.getElementById('blockRangeMotivo').value = '';
+        document.getElementById('blockRangeError').classList.add('hidden');
+        document.getElementById('blockRangeModal').classList.remove('hidden');
+    }
+
+    function cerrarBlockRange() {
+        document.getElementById('blockRangeModal').classList.add('hidden');
+    }
+
+    async function guardarBloqueoRango() {
+        const start  = document.getElementById('blockRangeStart').value;
+        const end    = document.getElementById('blockRangeEnd').value;
+        const motivo = document.getElementById('blockRangeMotivo').value.trim();
+        const errEl  = document.getElementById('blockRangeError');
+        const btn    = document.getElementById('blockRangeSaveBtn');
+        const label  = document.getElementById('blockRangeSaveLabel');
+
+        const toMins  = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+        const fromMin = m => `${Math.floor(m / 60).toString().padStart(2, '0')}:${(m % 60).toString().padStart(2, '0')}`;
+
+        errEl.classList.add('hidden');
+
+        if (!start || !end) {
+            errEl.textContent = 'Elige hora de inicio y fin.';
+            errEl.classList.remove('hidden');
+            return;
+        }
+        const sMin = toMins(start);
+        const eMin = toMins(end);
+        if (eMin <= sMin) {
+            errEl.textContent = 'La hora de fin debe ser posterior al inicio.';
+            errEl.classList.remove('hidden');
+            return;
+        }
+        if (!barberId) {
+            errEl.textContent = 'No hay barbero activo.';
+            errEl.classList.remove('hidden');
+            return;
+        }
+
+        btn.disabled = true;
+        label.textContent = 'Bloqueando…';
+
+        try {
+            const yyyy = currentDate.getFullYear();
+            const mm   = String(currentDate.getMonth() + 1).padStart(2, '0');
+            const dd   = String(currentDate.getDate()).padStart(2, '0');
+            const fechaStr = `${yyyy}-${mm}-${dd}`;
+
+            const cfg      = barberConfig || globalConfig || {};
+            const interval = _slotInterval || cfg.intervaloMinutos || 30;
+            const safeBid  = String(barberId).replace(/[^a-zA-Z0-9_-]/g, '_');
+
+            // 1 doc /bloqueos con el rango + N slotLocks (1 por slot dentro
+            // del rango). Todo en un solo batch atómico: si algo falla, ni
+            // el bloqueo ni los locks quedan a medias.
+            const bloqueoRef = tenantCol('bloqueos').doc();
+            const batch = db.batch();
+
+            // Marca el primer slot como el "principal" del bloqueo (para poder
+            // borrarlo desde el clic al bloqueo en la grilla del día).
+            const primerLockId = `bloqueo_${safeBid}_${fechaStr}_${start.replace(':', '')}`;
+
+            batch.set(bloqueoRef, {
+                fecha:       fechaStr,
+                barberoId:   barberId,
+                todo_el_dia: false,
+                hora_inicio: start,
+                hora_fin:    end,
+                motivo:      motivo || 'Bloqueo rango',
+                slotLockId:  primerLockId,
+                creadoEn:    firebase.firestore.FieldValue.serverTimestamp(),
+            });
+
+            // 1 slotLock por cada slot del intervalo dentro del rango.
+            // Ejemplo: interval=30, rango 09:00-11:00 → locks a las 09:00,
+            // 09:30, 10:00, 10:30. Los IDs son estables por hora, así que
+            // colisionan con reservas si alguien intentó tomar ese slot antes.
+            for (let m = sMin; m < eMin; m += interval) {
+                const horaSlot = fromMin(m);
+                const lockId = `bloqueo_${safeBid}_${fechaStr}_${horaSlot.replace(':', '')}`;
+                batch.set(tenantCol('slotLocks').doc(lockId), {
+                    bloqueoId: bloqueoRef.id,
+                    fecha:     fechaStr,
+                    hora:      horaSlot,
+                    barberoId: barberId,
+                    creadoEn:  firebase.firestore.FieldValue.serverTimestamp(),
+                });
+            }
+
+            await batch.commit();
+            cerrarBlockRange();
+        } catch (err) {
+            console.error('[Bloqueo rango] error:', err);
+            errEl.textContent = err.message || 'No se pudo crear el bloqueo. Intenta de nuevo.';
+            errEl.classList.remove('hidden');
+            btn.disabled = false;
+            label.textContent = 'Bloquear';
+        }
     }
     function accionAgendarCliente() {
         cerrarOpcionesSlotLibre();
