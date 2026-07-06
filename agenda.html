@@ -776,6 +776,147 @@
         html.light-mode [style*="border-top: 1px solid rgba(255, 255, 255, 0.08)"] {
             border-top-color: #e2e8f0 !important;
         }
+
+        /* ═══════════════════════════════════════════════════════════════════
+           QUINTA PASADA — Mobile-First UX del barbero.
+           Aplica en ambos modos (no está namespaced a light-mode).
+           ═══════════════════════════════════════════════════════════════════ */
+
+        /* (1) Vista SEMANA solo desktop — las 7 columnas comprimidas en un
+              móvil se ven ilegibles. En <768px ocultamos el toggle "Semana"
+              y forzamos vista Día (guard en JS también, por si el localStorage
+              trae 'semana' de una sesión desktop previa). */
+        @media (max-width: 767px) {
+            #viewBtnSemana { display: none !important; }
+            /* El toggle queda con un solo botón — lo dejamos ocupando todo */
+            #viewBtnDia { flex: 1; }
+        }
+
+        /* (2) Header compacto en mobile — mueve los botones secundarios al
+              kebab. Deja visibles solo notificaciones + WhatsApp + kebab. */
+        @media (max-width: 639px) {
+            header.sticky {
+                padding-left: 1rem !important;
+                padding-right: 0.75rem !important;
+                padding-top: 0.85rem !important;
+                padding-bottom: 0.85rem !important;
+            }
+            #theme-toggle,
+            #reloadBtn,
+            #btnSignOut,
+            #btnHome { display: none !important; }
+            /* "EN VIVO" al lado del nombre en la misma línea */
+            #barberLiveWrap {
+                flex-direction: row !important;
+                align-items: center !important;
+                gap: 0.5rem !important;
+                margin-top: 0 !important;
+            }
+            #barberHeaderBlock { flex-direction: column; }
+        }
+        @media (min-width: 640px) {
+            #kebabMenuBtn { display: none !important; }
+        }
+
+        /* Panel dropdown del kebab con transición suave */
+        #kebabMenuPanel {
+            transform-origin: top right;
+            transition: opacity 0.15s ease, transform 0.15s ease;
+        }
+        #kebabMenuPanel.hidden {
+            opacity: 0;
+            transform: scale(0.95);
+            pointer-events: none;
+            display: block !important; /* mantenemos el layout pero invisible */
+        }
+
+        /* (3) Estilos de citas — más padding + contraste refinado.
+              padding-inline extra da respiración al bloque "Hora/Servicio". */
+        .cita-card { padding: 1rem 1.1rem !important; }
+        @media (min-width: 768px) {
+            .cita-card { padding: 1.15rem 1.35rem !important; }
+        }
+
+        /* Completada — en modo oscuro el borde verde solo era muy tenue.
+           Le damos un fondo verde muy leve para que la tarjeta "brille"
+           como éxito, sin comerse la lectura. */
+        html:not(.light-mode) .cita-card:has(> div > div > div > p.text-white) {
+            /* No hay clase específica de estado en el markup — el fondo se
+               ajusta selectivamente por el border-left inline. */
+        }
+        /* Tratamos las cita-card cuya línea izquierda es #10b981 (Completada).
+           attribute selector cubre inline "border-left: 4px solid #10b981;". */
+        html:not(.light-mode) .cita-card[style*="border-left: 4px solid #10b981"],
+        html:not(.light-mode) .cita-card[style*="border-left:4px solid #10b981"] {
+            background: #14322a !important;
+        }
+        /* Confirmada (border azul #6CABDD) — sube el contraste del fondo */
+        html:not(.light-mode) .cita-card[style*="#6CABDD"] {
+            background: #1c2333 !important;
+        }
+
+        /* (4) FAB — botón flotante para agregar cita rápida. Solo visible
+              cuando #mainApp está montado. Safe-area para iPhone home indicator. */
+        #fabNuevaCita {
+            position: fixed;
+            right: 1.5rem;
+            bottom: max(1.5rem, calc(env(safe-area-inset-bottom, 0px) + 1rem));
+            width: 3.5rem;
+            height: 3.5rem;
+            border-radius: 9999px;
+            display: none;              /* JS lo muestra al cargar mainApp */
+            align-items: center;
+            justify-content: center;
+            background: #10b981;
+            color: #ffffff;
+            box-shadow: 0 10px 24px -6px rgba(16, 185, 129, 0.45),
+                        0 4px 10px rgba(0, 0, 0, 0.25);
+            z-index: 45;
+            transition: transform 0.15s ease, box-shadow 0.2s ease;
+            border: none;
+            cursor: pointer;
+        }
+        #fabNuevaCita:hover  { transform: translateY(-1px); }
+        #fabNuevaCita:active { transform: scale(0.94); }
+        #fabNuevaCita.visible { display: flex; }
+
+        /* Light mode: FAB con emerald más profundo para no quemar el ojo */
+        html.light-mode #fabNuevaCita {
+            background: #059669;
+            box-shadow: 0 10px 24px -6px rgba(5, 150, 105, 0.45),
+                        0 4px 10px rgba(15, 23, 42, 0.15);
+        }
+
+        /* Kebab dropdown items — hover + safe-area */
+        #kebabMenuPanel [data-menu-item] {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            padding: 0.7rem 0.85rem;
+            border-radius: 0.65rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            width: 100%;
+            text-align: left;
+            transition: background-color 0.12s ease;
+            color: #ffffff;
+        }
+        #kebabMenuPanel [data-menu-item]:hover {
+            background: rgba(255, 255, 255, 0.06);
+        }
+        html.light-mode #kebabMenuPanel [data-menu-item] { color: #0f172a; }
+        html.light-mode #kebabMenuPanel [data-menu-item]:hover {
+            background: #f1f5f9;
+        }
+        /* Override del fondo #0f0f12 inline del panel en modo claro */
+        html.light-mode #kebabMenuPanel {
+            background: #ffffff !important;
+            border-color: #e2e8f0 !important;
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15) !important;
+        }
+        html.light-mode #kebabMenuPanel [style*="rgba(255,255,255,0.06)"] {
+            background: #e2e8f0 !important; /* divisor entre items */
+        }
     </style>
 </head>
 <body class="min-h-screen bg-brand-bg antialiased" style="padding-bottom: max(2.5rem, env(safe-area-inset-bottom));">
@@ -850,13 +991,13 @@
 
     <!-- Header Navigation -->
     <header class="sticky top-0 z-50 w-full px-6 py-5 flex items-center justify-between bg-brand-bg/90 backdrop-blur-md border-b border-white/5">
-        <div class="flex items-center gap-3">
-            <div class="w-10 h-10 rounded-full border border-white/20 flex items-center justify-center bg-white/5">
+        <div class="flex items-center gap-3 min-w-0" id="barberHeaderBlock">
+            <div class="w-10 h-10 rounded-full border border-white/20 flex items-center justify-center bg-white/5 shrink-0">
                 <i class="ph-bold ph-calendar text-xl text-white"></i>
             </div>
-            <div>
-                <h1 class="text-lg font-bold text-white tracking-tight" id="barberNameHeader">Agenda</h1>
-                <div class="flex items-center gap-2 mt-0.5">
+            <div class="min-w-0">
+                <h1 class="text-lg font-bold text-white tracking-tight truncate" id="barberNameHeader">Agenda</h1>
+                <div class="flex items-center gap-2 mt-0.5" id="barberLiveWrap">
                     <div class="live-dot" title="Sincronizado en tiempo real"></div>
                     <p class="text-[10px] text-white/40 uppercase tracking-[0.2em] font-semibold">En Vivo</p>
                 </div>
@@ -871,6 +1012,7 @@
             <button id="reloadBtn" onclick="recargarAgenda()" class="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors" title="Recargar agenda">
                 <i id="reloadIcon" class="ph-bold ph-arrows-clockwise text-lg text-white/60"></i>
             </button>
+            <!-- Notificaciones y WhatsApp: críticos, siempre visibles -->
             <button id="notifBtn" onclick="solicitarPermisosYObtenerToken()" class="relative w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors" title="Activar notificaciones">
                 <i id="notifIcon" class="ph-bold ph-bell text-lg text-white/60"></i>
                 <span id="notifBadge" class="absolute -top-1 -right-1 flex h-3 w-3 hidden">
@@ -881,12 +1023,45 @@
             <a href="https://wa.me/56983568212?text=Hola%20SynapTech!%20Necesito%20ayuda%20con%20la%20agenda%20%F0%9F%92%88" target="_blank" rel="noopener" class="w-10 h-10 rounded-full border border-[#25D366]/30 bg-[#25D366]/10 flex items-center justify-center hover:bg-[#25D366]/20 hover:scale-105 transition-all" title="Contactar soporte por WhatsApp">
                 <i class="ph-fill ph-whatsapp-logo text-lg text-[#25D366]"></i>
             </a>
-            <button onclick="firebase.auth().signOut()" class="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors" title="Cerrar sesión">
+            <!-- Botones secundarios: en mobile viven dentro del kebab -->
+            <button id="btnSignOut" onclick="firebase.auth().signOut()" class="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors" title="Cerrar sesión">
                 <i class="ph-bold ph-sign-out text-lg text-white/60"></i>
             </button>
-            <button onclick="window.location.href='/'" class="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors hidden sm:flex" title="Ir al inicio">
+            <button id="btnHome" onclick="window.location.href='/'" class="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors hidden sm:flex" title="Ir al inicio">
                 <i class="ph-bold ph-house text-lg text-white/60"></i>
             </button>
+
+            <!-- Kebab (mobile only) — abre el dropdown con acciones secundarias -->
+            <div class="relative">
+                <button id="kebabMenuBtn" onclick="toggleKebabMenu(event)" class="w-10 h-10 rounded-full border border-white/10 flex items-center justify-center hover:bg-white/5 transition-colors" title="Más opciones" aria-label="Abrir menú de opciones" aria-haspopup="true" aria-expanded="false">
+                    <i class="ph-bold ph-dots-three-vertical text-lg text-white/70"></i>
+                </button>
+                <!-- Panel del dropdown. Renderizado siempre (hidden class controla display).
+                     Cliqueo fuera lo cierra (bind global en el script del kebab). -->
+                <div id="kebabMenuPanel" class="hidden absolute right-0 mt-2 w-52 rounded-xl overflow-hidden shadow-2xl z-50"
+                     style="background:#0f0f12;border:1px solid rgba(255,255,255,0.08);"
+                     role="menu">
+                    <div class="p-1.5 space-y-0.5">
+                        <button type="button" data-menu-item onclick="closeKebabMenu(); toggleTheme();" role="menuitem">
+                            <i id="kebabThemeIcon" class="ph-bold ph-sun text-base"></i>
+                            <span id="kebabThemeLabel">Modo claro</span>
+                        </button>
+                        <button type="button" data-menu-item onclick="closeKebabMenu(); recargarAgenda();" role="menuitem">
+                            <i class="ph-bold ph-arrows-clockwise text-base"></i>
+                            <span>Recargar agenda</span>
+                        </button>
+                        <button type="button" data-menu-item onclick="closeKebabMenu(); window.location.href='/';" role="menuitem">
+                            <i class="ph-bold ph-house text-base"></i>
+                            <span>Ir al inicio</span>
+                        </button>
+                        <div style="height:1px;background:rgba(255,255,255,0.06);margin:0.35rem 0;"></div>
+                        <button type="button" data-menu-item onclick="closeKebabMenu(); firebase.auth().signOut();" role="menuitem">
+                            <i class="ph-bold ph-sign-out text-base"></i>
+                            <span>Cerrar sesión</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     </header>
 
@@ -1272,7 +1447,9 @@
         let globalConfig = null;
         let todayCitas = [];
         // Vista activa (día/semana) e intervalo de la grilla del día (0 = usa config)
-        let _agendaView   = (localStorage.getItem('agenda_view') === 'semana') ? 'semana' : 'dia';
+        // En mobile la vista semana con 7 columnas queda ilegible → forzamos día.
+        // El usuario puede volver a semana desde desktop cuando cambie de dispositivo.
+        let _agendaView   = ((localStorage.getItem('agenda_view') === 'semana') && window.innerWidth >= 768) ? 'semana' : 'dia';
         let _slotInterval = parseInt(localStorage.getItem('agenda_interval')) || 0;
         // Dirección de la animación al cambiar de día ('next' | 'prev' | null)
         let _dayAnimDir = null;
@@ -2941,6 +3118,10 @@
         }
 
         function setAgendaView(mode) {
+            // Guard: en mobile la semana no está disponible (columnas ilegibles).
+            // Guardamos igual la preferencia real para respetarla si el usuario
+            // vuelve al panel desde desktop más adelante.
+            if (window.innerWidth < 768) mode = 'dia';
             _agendaView = (mode === 'semana') ? 'semana' : 'dia';
             localStorage.setItem('agenda_view', _agendaView);
             const dia = _agendaView === 'dia';
@@ -4464,6 +4645,134 @@
         document.addEventListener('DOMContentLoaded', syncInitial, { once: true });
       } else {
         syncInitial();
+      }
+    })();
+  </script>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       FAB (Floating Action Button) — nueva cita rápida desde mobile.
+       El botón permanece hidden hasta que el login termina y #mainApp
+       queda visible. Un MutationObserver hace el switch para no invadir
+       el flujo de login existente. Puesto acá para que quede sobre todo.
+       ═══════════════════════════════════════════════════════════════════ -->
+  <button id="fabNuevaCita" onclick="abrirNuevaCitaFAB()" title="Nueva cita rápida" aria-label="Agregar nueva cita">
+    <i class="ph-bold ph-plus" style="font-size:1.6rem;"></i>
+  </button>
+
+  <!-- ═══════════════════════════════════════════════════════════════════
+       Comportamiento del kebab menu (mobile) y del FAB.
+       ═══════════════════════════════════════════════════════════════════ -->
+  <script>
+    (function () {
+      /* ── Kebab dropdown ────────────────────────────────────────────
+         Toggle con clic. Cierra al hacer clic fuera. Sincroniza label
+         y ícono del item "Tema" con el estado actual. */
+      window.toggleKebabMenu = function (ev) {
+        if (ev) ev.stopPropagation();
+        const panel = document.getElementById('kebabMenuPanel');
+        const btn   = document.getElementById('kebabMenuBtn');
+        if (!panel || !btn) return;
+        const wasHidden = panel.classList.contains('hidden');
+        panel.classList.toggle('hidden');
+        btn.setAttribute('aria-expanded', wasHidden ? 'true' : 'false');
+        if (wasHidden) syncKebabThemeItem();
+      };
+      window.closeKebabMenu = function () {
+        const panel = document.getElementById('kebabMenuPanel');
+        const btn   = document.getElementById('kebabMenuBtn');
+        if (panel && !panel.classList.contains('hidden')) {
+          panel.classList.add('hidden');
+          if (btn) btn.setAttribute('aria-expanded', 'false');
+        }
+      };
+      // El item "Tema" en el dropdown refleja hacia dónde vamos si se toca:
+      // sol → "Modo claro" (estás en oscuro), luna → "Modo oscuro" (estás en claro).
+      function syncKebabThemeItem() {
+        const icon  = document.getElementById('kebabThemeIcon');
+        const label = document.getElementById('kebabThemeLabel');
+        const isLight = document.documentElement.classList.contains('light-mode');
+        if (icon)  icon.className  = isLight ? 'ph-bold ph-moon text-base' : 'ph-bold ph-sun text-base';
+        if (label) label.textContent = isLight ? 'Modo oscuro' : 'Modo claro';
+      }
+      // Cerrar el panel con clic fuera (después del propio botón, que ya toggle-a).
+      document.addEventListener('click', function (ev) {
+        const panel = document.getElementById('kebabMenuPanel');
+        if (!panel || panel.classList.contains('hidden')) return;
+        const btn = document.getElementById('kebabMenuBtn');
+        if (btn && btn.contains(ev.target)) return;
+        if (panel.contains(ev.target)) return;
+        closeKebabMenu();
+      });
+      // Cerrar con Escape (accesibilidad)
+      document.addEventListener('keydown', function (ev) {
+        if (ev.key === 'Escape') closeKebabMenu();
+      });
+
+      /* ── FAB: nueva cita rápida ─────────────────────────────────────
+         Redondea la hora actual al próximo múltiplo del intervalo activo
+         (respetando lo que hay en localStorage.agenda_interval o el
+         default del tenant). Luego reusa la lógica existente:
+         accionAgendarCliente() rellena el modal a partir de
+         _timeSlotSeleccionado. */
+      function proximaHoraDisponible() {
+        // Interval: prioridad al del localStorage, luego config del barbero, fallback 30.
+        let interval = parseInt(localStorage.getItem('agenda_interval'), 10);
+        if (!interval || isNaN(interval)) {
+          try {
+            const cfg = (typeof barberConfig !== 'undefined' && barberConfig) || (typeof globalConfig !== 'undefined' && globalConfig) || {};
+            interval = cfg.intervaloMinutos || 30;
+          } catch (_) { interval = 30; }
+        }
+        const now = new Date();
+        const totalMin = now.getHours() * 60 + now.getMinutes();
+        const next = Math.ceil(totalMin / interval) * interval;
+        // Si redondear cruza el día, cortamos a 23:45 para no exceder el horario.
+        const capped = Math.min(next, 23 * 60 + 45);
+        const h = Math.floor(capped / 60);
+        const m = capped % 60;
+        const pad = n => String(n).padStart(2, '0');
+        return `${pad(h)}:${pad(m)}`;
+      }
+      window.abrirNuevaCitaFAB = function () {
+        const time = proximaHoraDisponible();
+        // Reusamos las utilidades existentes del flujo "slot libre → agendar".
+        try {
+          window._timeSlotSeleccionado = time;
+          if (typeof accionAgendarCliente === 'function') {
+            accionAgendarCliente();
+          } else {
+            // Fallback duro: pintar el label y mostrar el modal manualmente.
+            const disp = document.getElementById('agendarHoraDisplay');
+            if (disp) disp.textContent = time;
+            const m = document.getElementById('agendarModal');
+            if (m) m.classList.remove('hidden');
+          }
+        } catch (err) {
+          console.error('[FAB] no se pudo abrir agendarModal:', err);
+        }
+      };
+
+      // Mostrar el FAB cuando #mainApp queda visible (postlogin). Un
+      // MutationObserver evita tener que engancharse al flujo de login
+      // existente. Cierra rápido si el usuario regresa al overlay de login.
+      function syncFabVisibility() {
+        const fab  = document.getElementById('fabNuevaCita');
+        const main = document.getElementById('mainApp');
+        if (!fab || !main) return;
+        const visible = !main.classList.contains('hidden');
+        fab.classList.toggle('visible', visible);
+      }
+      function startFabObserver() {
+        const main = document.getElementById('mainApp');
+        if (!main) return;
+        syncFabVisibility();
+        const obs = new MutationObserver(syncFabVisibility);
+        obs.observe(main, { attributes: true, attributeFilter: ['class'] });
+      }
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', startFabObserver, { once: true });
+      } else {
+        startFabObserver();
       }
     })();
   </script>
