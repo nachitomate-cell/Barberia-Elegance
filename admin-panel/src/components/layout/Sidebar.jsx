@@ -520,9 +520,9 @@ export default function Sidebar({ onClose, unreadChats = 0, collapsed = false })
         </defs>
       </svg>
 
-      {/* Brand */}
+      {/* Brand — fijo, no scrollea */}
       <div
-        className="px-5 pb-5 border-b border-slate-800"
+        className="shrink-0 px-5 pb-5 border-b border-slate-800"
         style={{ paddingTop: 'max(env(safe-area-inset-top), 1.5rem)' }}
       >
         <div className="flex items-start justify-between gap-2">
@@ -545,11 +545,22 @@ export default function Sidebar({ onClose, unreadChats = 0, collapsed = false })
         </div>
       </div>
 
-      {/* Nav agrupado — min-h-0 permite que overflow-y-auto realmente
-          se active dentro del padre flex-col (sin esto, min-height:auto
-          hace crecer al nav más allá del viewport y los últimos ítems
-          quedan cortados en pantallas chicas). */}
-      <nav className="flex-1 min-h-0 px-3 py-3 overflow-y-auto no-scrollbar">
+      {/* Nav agrupado — único área scrollable. `min-h-0` permite que
+          overflow-y-auto se active dentro del padre flex-col (sin esto,
+          `min-height:auto` hace crecer al nav más allá del viewport y los
+          últimos ítems quedan cortados en pantallas chicas).
+          Scrollbar premium: 1.5px, track invisible, thumb slate-700/50 que se
+          ilumina a slate-600/80 al hover. Firefox usa `scrollbar-width/color`
+          nativos vía arbitrary variants. */}
+      <nav
+        className="flex-1 min-h-0 pl-3 pr-2 py-3 overflow-y-auto overflow-x-hidden
+          [scrollbar-width:thin] [scrollbar-color:rgb(51_65_85_/_0.5)_transparent]
+          [&::-webkit-scrollbar]:w-1.5
+          [&::-webkit-scrollbar-track]:bg-transparent
+          [&::-webkit-scrollbar-thumb]:bg-slate-700/50
+          [&::-webkit-scrollbar-thumb]:rounded-full
+          hover:[&::-webkit-scrollbar-thumb]:bg-slate-600/80"
+      >
         {NAV_GROUPS.map(group => {
           const items = group.items.filter(item => !item.adminOnly || isAdminRole);
           if (items.length === 0) return null;
@@ -608,9 +619,9 @@ export default function Sidebar({ onClose, unreadChats = 0, collapsed = false })
         })}
       </nav>
 
-      {/* Footer */}
+      {/* Footer — fijo, no scrollea */}
       <div
-        className="px-3 pt-4 border-t border-slate-800 space-y-2.5"
+        className="shrink-0 px-3 pt-4 border-t border-slate-800 space-y-2.5"
         style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 1rem)' }}
       >
         <a
