@@ -135,26 +135,41 @@ export default function CitasPorCerrar() {
   return (
     <div className="max-w-3xl mx-auto px-4 py-6 sm:px-6 lg:px-8 pb-32">
       {/* Encabezado */}
-      <div className="flex items-start gap-3 mb-1">
+      <div className="flex items-start gap-3 mb-4">
         <span className="flex p-2 rounded-xl bg-amber-500/15 shrink-0">
           <CalendarClock className="h-5 w-5 text-amber-500" />
         </span>
         <div>
-          <h1 className="text-lg font-bold text-white leading-tight">Citas por cerrar</h1>
-          <p className="text-sm text-slate-400">
+          <h1 className="text-xl font-bold text-white leading-tight">Citas por cerrar</h1>
+          <p className="text-sm text-slate-400 mt-0.5">
             Citas pasadas que quedaron sin marcar. Ponte al día cerrándolas en lote.
           </p>
         </div>
       </div>
 
-      {/* Nota de efectos */}
-      <div className="flex items-start gap-2 mt-4 mb-5 text-xs text-slate-400 bg-slate-800/40 border border-slate-800 rounded-xl px-3 py-2.5">
-        <Info size={14} className="text-slate-500 shrink-0 mt-0.5" />
-        <p>
-          <strong className="text-slate-300">Completar</strong> registra la cita en Caja, Métricas e Historial,
-          pero <strong className="text-slate-300">no</strong> suma sellos ni pide reseña de Google
-          (cierre retroactivo). Las que el cliente no asistió, marcalas como <strong className="text-slate-300">no-show</strong>.
+      {/* Alerta destacada — regla clave sobre el efecto de cada acción */}
+      <div className="bg-indigo-500/10 border-l-4 border-indigo-500 rounded-r-xl p-4 mb-6">
+        <p className="text-indigo-400 font-bold text-xs uppercase tracking-wider mb-2 flex items-center gap-2">
+          <Info size={13} />
+          Cómo funciona este cierre
         </p>
+        <ul className="space-y-2 text-sm text-slate-300 leading-relaxed">
+          <li className="flex gap-2">
+            <span className="text-indigo-400/70 shrink-0">•</span>
+            <span>
+              <strong className="font-semibold text-white">Completar</strong> registra la cita en Caja, Métricas e Historial. Para evitar spam,{' '}
+              <span className="text-amber-400/90 font-medium">no suma sellos ni pide reseña de Google</span>{' '}
+              (cierre retroactivo).
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <span className="text-indigo-400/70 shrink-0">•</span>
+            <span>
+              Si el cliente no asistió, márcala estrictamente como{' '}
+              <strong className="text-rose-400 font-semibold">No-show</strong>.
+            </span>
+          </li>
+        </ul>
       </div>
 
       {/* Estados de carga / error / vacío */}
@@ -175,34 +190,38 @@ export default function CitasPorCerrar() {
         </div>
       ) : (
         <>
-          {/* Barra de selección */}
-          <div className="flex items-center justify-between mb-2 px-1">
-            <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer select-none">
+          {/* Barra de seleccionar todo — cabecera adherida a la lista */}
+          <div className="flex items-center justify-between bg-slate-900/50 p-3 rounded-t-xl border border-slate-700/50 border-b-slate-700/50">
+            <label className="flex items-center gap-3 text-sm text-slate-300 cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={allSelected}
                 onChange={toggleAll}
-                className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-amber-500 focus:ring-amber-500/50"
+                className="w-5 h-5 rounded bg-slate-800 border-slate-600 accent-indigo-500 focus:ring-2 focus:ring-indigo-500/40 cursor-pointer"
               />
-              Seleccionar todo
+              <span className="font-medium">Seleccionar todo</span>
             </label>
-            <span className="text-xs text-slate-500">
+            <span className="text-xs font-medium text-slate-500 tabular-nums">
               {selected.size > 0 ? `${selected.size} de ${backlog.length}` : `${backlog.length} cita${backlog.length !== 1 ? 's' : ''}`}
             </span>
           </div>
 
-          {/* Lista */}
-          <div className="space-y-1.5">
+          {/* Lista de citas */}
+          <div className="pt-3">
             {backlog.map(c => {
               const checked = selected.has(c.id);
+              const isPendiente = c.estado === 'Pendiente';
               return (
-                <button
+                <div
                   key={c.id}
                   onClick={() => toggle(c.id)}
-                  className={`w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl border transition-all ${
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggle(c.id); } }}
+                  className={`flex items-center gap-4 rounded-xl p-4 mb-3 border transition-colors cursor-pointer ${
                     checked
-                      ? 'bg-amber-500/10 border-amber-500/40'
-                      : 'bg-slate-800/50 border-slate-800 hover:border-slate-700'
+                      ? 'bg-indigo-500/10 border-indigo-500/40 hover:bg-indigo-500/15'
+                      : 'bg-slate-800/40 border-slate-700/50 hover:bg-slate-800/80'
                   }`}
                 >
                   <input
@@ -210,20 +229,27 @@ export default function CitasPorCerrar() {
                     checked={checked}
                     onChange={() => toggle(c.id)}
                     onClick={e => e.stopPropagation()}
-                    className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-amber-500 focus:ring-amber-500/50 shrink-0"
+                    className="w-5 h-5 rounded bg-slate-800 border-slate-600 accent-indigo-500 focus:ring-2 focus:ring-indigo-500/40 cursor-pointer shrink-0"
                   />
-                  <span className={`w-2 h-2 rounded-full shrink-0 ${c.estado === 'Pendiente' ? 'bg-amber-400' : 'bg-emerald-400'}`} />
+                  <span
+                    className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                      isPendiente
+                        ? 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.5)]'
+                        : 'bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.4)]'
+                    }`}
+                    aria-label={isPendiente ? 'Pendiente' : 'Confirmada'}
+                  />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-white truncate">{c.clienteNombre || 'Sin nombre'}</p>
-                    <p className="text-xs text-slate-500 truncate">
+                    <p className="text-white font-bold text-base truncate">{c.clienteNombre || 'Sin nombre'}</p>
+                    <p className="text-slate-400 text-sm truncate">
                       {c.servicioNombre || '—'}{c.barbero ? ` · ${c.barbero}` : ''}
                     </p>
                   </div>
                   <div className="text-right shrink-0">
-                    <p className="text-xs font-semibold text-slate-400">{fmtFecha(c.fecha)}</p>
-                    <p className="text-[10px] text-slate-600">{c.hora || '—'}</p>
+                    <p className="text-slate-500 text-xs font-medium">{fmtFecha(c.fecha)}</p>
+                    <p className="text-[10px] text-slate-600 tabular-nums mt-0.5">{c.hora || '—'}</p>
                   </div>
-                </button>
+                </div>
               );
             })}
           </div>
