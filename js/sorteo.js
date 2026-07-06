@@ -53,6 +53,8 @@ const DOMAIN_TENANT_MAP = {
   'kronnos-limache.synaptechspa.cl':      'kronnos_limache',
   'kronnoswoman.synaptechspa.cl':         'kronnos_woman',
   'kronnos-woman.synaptechspa.cl':        'kronnos_woman',
+  'barbersclub.synaptechspa.cl':          'barbersclub',
+  'elbarberomoderno.synaptechspa.cl':     'elbarberomoderno',
 };
 
 function resolveTenant() {

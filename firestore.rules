@@ -256,7 +256,12 @@ service cloud.firestore {
                     && request.resource.data.status == 'pending'
                     && request.resource.data.token is string
                     && request.resource.data.costoSellos is number
-                    && get(/databases/$(database)/documents/users/$(uid())).data.get('sellosDisponibles', 0)
+                    && request.resource.data.costoSellos > 0
+                    // Backward-compat: leemos `sellosDisponibles` con fallback a `stamps`
+                    // (users legacy / migrados desde AgendaPro tienen solo `stamps`).
+                    && get(/databases/$(database)/documents/users/$(uid())).data
+                         .get('sellosDisponibles',
+                              get(/databases/$(database)/documents/users/$(uid())).data.get('stamps', 0))
                        >= request.resource.data.costoSellos;
       allow update: if autenticado() && (
         // Cliente cancela lo suyo (solo pending → cancelled)
@@ -898,7 +903,13 @@ service cloud.firestore {
                       && request.resource.data.status == 'pending'
                       && request.resource.data.token is string
                       && request.resource.data.costoSellos is number
-                      && get(/databases/$(database)/documents/tenants/$(tid)/users/$(uid())).data.get('sellosDisponibles', 0)
+                      && request.resource.data.costoSellos > 0
+                      // Backward-compat: `sellosDisponibles` con fallback a `stamps`
+                      // (users legacy tienen solo `stamps` — sello-automatico.js escribe
+                      // ambos hoy, pero data histórica puede tener solo uno).
+                      && get(/databases/$(database)/documents/tenants/$(tid)/users/$(uid())).data
+                           .get('sellosDisponibles',
+                                get(/databases/$(database)/documents/tenants/$(tid)/users/$(uid())).data.get('stamps', 0))
                          >= request.resource.data.costoSellos;
         allow update: if autenticado() && (
           (resource.data.userId == uid()
