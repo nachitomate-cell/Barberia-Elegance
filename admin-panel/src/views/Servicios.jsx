@@ -328,7 +328,7 @@ export default function Servicios() {
           </div>
         ) : (
           <>
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               {servicios.map(s => (
                 <div key={s.id} draggable
                   onDragStart={() => { dragId.current = s.id; }}
@@ -336,55 +336,74 @@ export default function Servicios() {
                   onDragOver={e => { e.preventDefault(); setDragOver(s.id); }}
                   onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOver(null); }}
                   onDrop={() => handleDrop(s.id)}
-                  className={`flex items-center gap-4 bg-slate-900 border rounded-xl p-4 transition-all cursor-grab active:cursor-grabbing select-none ${
-                    dragOver === s.id ? 'border-emerald-500 bg-emerald-500/5' : 'border-slate-800 hover:border-slate-700'
+                  className={`group flex items-center gap-3 sm:gap-4 bg-slate-800/40 border rounded-2xl p-3 sm:p-4 select-none transition-all ${
+                    dragOver === s.id
+                      ? 'border-emerald-500 bg-emerald-500/5 shadow-lg shadow-emerald-500/10'
+                      : 'border-slate-700/50 hover:bg-slate-800/80 hover:border-slate-600'
                   }`}>
 
-                  {/* Drag handle */}
-                  <svg className="text-slate-600 shrink-0" width="12" height="18" viewBox="0 0 12 18" fill="currentColor">
+                  {/* Drag handle — más discreto */}
+                  <svg className="text-slate-600 hover:text-slate-400 cursor-grab active:cursor-grabbing shrink-0 transition-colors"
+                    width="12" height="18" viewBox="0 0 12 18" fill="currentColor">
                     <circle cx="3" cy="3" r="1.5"/><circle cx="9" cy="3" r="1.5"/>
                     <circle cx="3" cy="9" r="1.5"/><circle cx="9" cy="9" r="1.5"/>
                     <circle cx="3" cy="15" r="1.5"/><circle cx="9" cy="15" r="1.5"/>
                   </svg>
 
-                  {/* Image or Icon */}
+                  {/* Image or Icon — contenedor tintado premium */}
                   {s.imagen ? (
-                    <div className="w-10 h-10 rounded-xl overflow-hidden shrink-0 border border-slate-700">
+                    <div className="w-11 h-11 rounded-xl overflow-hidden shrink-0 border border-slate-700">
                       <img src={s.imagen} alt={s.nombre} className="w-full h-full object-cover" />
                     </div>
                   ) : (
-                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
-                      <i className={`ph ${s.icono || 'ph-scissors'} text-base text-emerald-400`} />
+                    <div className="w-11 h-11 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0">
+                      <i className={`ph ${s.icono || 'ph-scissors'} text-lg`} />
                     </div>
                   )}
 
                   {/* Info */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h4 className="font-bold text-white text-sm">{s.nombre}</h4>
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-slate-950 text-slate-400 border-slate-700">{s.categoria || 'Otro'}</span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <h4 className="text-white font-semibold text-sm truncate">{s.nombre}</h4>
+                      <span className="bg-slate-700/50 text-slate-300 border border-slate-600/50 rounded-full px-2.5 py-0.5 text-xs font-medium shrink-0">
+                        {s.categoria || 'Otro'}
+                      </span>
                       {topServicio === s.nombre && (
-                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full border bg-violet-500/10 text-violet-400 border-violet-500/20">✦ Más solicitado</span>
+                        <span className="bg-purple-500/10 text-purple-400 border border-purple-500/20 rounded-full px-2 py-0.5 text-[10px] font-bold shrink-0">
+                          ✦ Más solicitado
+                        </span>
                       )}
                     </div>
-                    <p className="text-xs text-slate-400 mt-0.5">
-                      ${Math.round(Number(s.precio || 0)).toLocaleString('es-CL')} · {s.duracion} min
+                    <p className="text-slate-300 text-sm mt-0.5 flex items-center gap-1.5 flex-wrap">
+                      <span>${Math.round(Number(s.precio || 0)).toLocaleString('es-CL')}</span>
+                      <span className="text-slate-600">·</span>
+                      <span>{s.duracion} min</span>
                       {s.preciosPorDia && Object.keys(s.preciosPorDia).length > 0 && (
-                        <span className="ml-1.5 text-[10px] font-bold text-amber-400/70 bg-amber-400/10 border border-amber-400/20 rounded-full px-1.5 py-0.5">precio variable</span>
+                        <span className="bg-amber-400/10 text-amber-400 border border-amber-400/20 rounded-full px-1.5 py-0.5 text-[10px] font-bold">
+                          precio variable
+                        </span>
                       )}
                     </p>
                     {s.descripcion && (
-                      <p className="hidden sm:block text-[11px] text-slate-600 mt-0.5 truncate">{s.descripcion}</p>
+                      <p className="hidden sm:block text-slate-500 text-sm mt-0.5 line-clamp-1">{s.descripcion}</p>
                     )}
                   </div>
 
-                  {/* Actions */}
-                  <div className="flex items-center gap-2 shrink-0">
-                    <button onClick={() => openEdit(s)} className="p-2.5 rounded-lg bg-blue-500/10 border border-blue-500/25 text-blue-400 hover:bg-blue-500/20 transition-colors">
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+                  {/* Actions — ghost buttons */}
+                  <div className="flex items-center gap-0.5 shrink-0 sm:opacity-70 sm:group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => openEdit(s)}
+                      className="text-slate-400 hover:bg-slate-700 hover:text-white p-2 rounded-lg transition-colors"
+                      title="Editar"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
                     </button>
-                    <button onClick={() => handleDelete(s.id)} className="p-2.5 rounded-lg bg-red-500/10 border border-red-500/25 text-red-400 hover:bg-red-500/20 transition-colors">
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                    <button
+                      onClick={() => handleDelete(s.id)}
+                      className="text-slate-400 hover:bg-red-500/10 hover:text-red-400 p-2 rounded-lg transition-colors"
+                      title="Eliminar"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3,6 5,6 21,6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
                     </button>
                   </div>
                 </div>
@@ -401,26 +420,42 @@ export default function Servicios() {
       </div>
 
       {/* ── Sidebar: categorías ── */}
-      <div className="w-full lg:w-60 shrink-0">
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-          <h2 className="text-sm font-semibold text-white mb-3">Categorías</h2>
-          <div className="space-y-1.5 mb-3">
+      <div className="w-full lg:w-64 shrink-0">
+        <div className="bg-slate-800/30 border border-slate-700/50 rounded-2xl p-5">
+          <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+            <Tag size={14} className="text-slate-400" />
+            Categorías
+          </h2>
+
+          <div className="space-y-1.5 mb-4">
             {categorias.map(c => (
-              <div key={c} className="flex items-center justify-between bg-slate-950 border border-slate-800 rounded-lg px-3 py-2">
-                <span className="text-xs text-white">{c}</span>
-                <button onClick={() => delCategoria(c)} className="text-slate-600 hover:text-red-400 transition-colors p-0.5 rounded">
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              <div key={c} className="bg-slate-900/50 border border-slate-700 rounded-lg p-2.5 flex justify-between items-center">
+                <span className="text-sm text-slate-200">{c}</span>
+                <button
+                  onClick={() => delCategoria(c)}
+                  className="text-slate-500 hover:text-red-400 transition-colors p-0.5 rounded"
+                  aria-label={`Eliminar categoría ${c}`}
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
               </div>
             ))}
           </div>
-          <div className="flex gap-1.5">
+
+          <div className="flex gap-2">
             <input
-              className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
+              className="flex-1 bg-slate-900 border border-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg text-sm px-3 py-2 text-white placeholder-slate-500 focus:outline-none transition-colors"
               placeholder="Nueva categoría..." value={newCat} onChange={e => setNewCat(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && addCategoria()}
             />
-            <button onClick={addCategoria} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg transition-colors">+</button>
+            <button
+              onClick={addCategoria}
+              disabled={!newCat.trim()}
+              className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-lg w-9 h-9 flex items-center justify-center transition-colors shrink-0"
+              aria-label="Añadir categoría"
+            >
+              <Plus size={16} strokeWidth={2.5} />
+            </button>
           </div>
         </div>
       </div>
