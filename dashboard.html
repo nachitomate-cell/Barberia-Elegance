@@ -4361,19 +4361,6 @@
         </button>
       </div>
 
-      <!-- ── RECOMPENSAS PENDIENTES (siempre visible cuando hay algo) ──
-           Se llena en tiempo real desde tenants/{tid}/redemptions con
-           status:'pending' y userId del cliente logueado. Tap → abre
-           el modal con QR + PIN listo para presentar en el local. -->
-      <div id="pendingRewardsSection" class="hidden mx-4 mb-5">
-        <h3 class="text-[10px] font-bold uppercase tracking-widest mb-3 px-1 flex items-center gap-1.5" style="color:rgba(251,191,36,0.95);">
-          <i class="ph-fill ph-gift"></i>
-          Tus recompensas por canjear
-          <span id="pendingRewardsCount" class="ml-auto text-[9px] px-2 py-0.5 rounded-full font-black tabular-nums" style="background:rgba(251,191,36,0.15);color:rgba(251,191,36,1);">0</span>
-        </h3>
-        <div id="pendingRewardsList" class="space-y-2"></div>
-      </div>
-
       <!-- ── PREMIOS LIST (collapsible) ── -->
       <div id="premiosSection" class="hidden mx-4 mb-5">
         <h3 class="text-[10px] font-bold uppercase tracking-widest mb-3 px-1" style="color:rgba(255,255,255,0.3);">Tabla de Premios</h3>
@@ -4589,6 +4576,26 @@
       <div id="productosEmpty" class="hidden flex-col items-center justify-center text-center py-20">
         <i class="ph ph-shopping-bag text-5xl text-white/10 mb-4"></i>
         <p class="text-sm text-gray-600 font-medium">No hay productos disponibles aún.</p>
+      </div>
+    </section>
+
+    <!-- ═══════ PESTAÑA: RECOMPENSAS ═══════
+         Listado de redemptions con status:'pending' del cliente logueado.
+         Se llena en tiempo real. El nav-tab (#navRecompensas) solo aparece
+         cuando hay ≥ 1 pendiente — renderPendingRewards controla el toggle. -->
+    <section id="tabRecompensas" class="tab-panel hidden px-5 pt-6 pb-32 animate-[fadeSlideUp_0.45s_cubic-bezier(0.16,1,0.3,1)_forwards]">
+      <div class="mb-5">
+        <div class="flex items-baseline gap-2">
+          <h2 class="text-2xl font-bold text-white tracking-tight">Recompensas</h2>
+          <span id="pendingRewardsCount" class="text-[10px] px-2 py-0.5 rounded-full font-black tabular-nums" style="background:rgba(251,191,36,0.15);color:rgba(251,191,36,1);">0</span>
+        </div>
+        <p class="text-sm text-gray-500 mt-1">Preséntalas en el local para canjear.</p>
+      </div>
+      <div id="pendingRewardsList" class="space-y-2.5"></div>
+      <div id="pendingRewardsEmpty" class="hidden flex-col items-center justify-center text-center py-20">
+        <i class="ph ph-gift text-5xl text-white/10 mb-4"></i>
+        <p class="text-sm text-gray-600 font-medium">Aún no tienes recompensas.</p>
+        <p class="text-xs text-gray-700 mt-1">Cuando canjees premios o refiera amigos,<br>aparecerán aquí.</p>
       </div>
     </section>
 
@@ -4925,6 +4932,16 @@
         onclick="switchTab('productos')" id="navProductos">
         <i class="nav-icon ph-fill ph-shopping-bag text-2xl transition-all"></i>
         <span class="nav-label text-[9px] font-bold uppercase tracking-widest transition-all">Tienda</span>
+      </button>
+
+      <!-- Recompensas: aparece solo cuando hay pendientes (renderPendingRewards toggle). -->
+      <button class="nav-tab hidden flex-1 flex flex-col items-center justify-center gap-1 py-3 px-1"
+        onclick="switchTab('recompensas')" id="navRecompensas">
+        <span class="relative inline-flex items-center justify-center">
+          <i class="nav-icon ph-fill ph-gift text-2xl transition-all"></i>
+          <span id="recompensasBadge" class="hidden absolute -top-0.5 -right-1.5 min-w-[16px] h-4 px-1 rounded-full text-[9px] font-black text-black flex items-center justify-center tabular-nums" style="background:rgba(251,191,36,1);">0</span>
+        </span>
+        <span class="nav-label text-[9px] font-bold uppercase tracking-widest transition-all">Regalos</span>
       </button>
 
       <button class="nav-tab flex-1 flex flex-col items-center justify-center gap-1 py-3 px-1"
@@ -6011,10 +6028,12 @@ function subscribePendingRewards(user) {
 }
 
 function renderPendingRewards(rewards) {
-  const section = document.getElementById('pendingRewardsSection');
   const list    = document.getElementById('pendingRewardsList');
+  const empty   = document.getElementById('pendingRewardsEmpty');
   const count   = document.getElementById('pendingRewardsCount');
-  if (!section || !list) return;
+  const navBtn  = document.getElementById('navRecompensas');
+  const badge   = document.getElementById('recompensasBadge');
+  if (!list) return;
 
   // Filtrar expiradas — la CF `sellosTenant` limpia los expired también,
   // pero mientras tanto no las mostramos.
@@ -6024,13 +6043,34 @@ function renderPendingRewards(rewards) {
     return !exp || exp > now;
   });
 
+  // Toggle nav-tab: solo aparece si hay ≥ 1 recompensa activa. Badge muestra
+  // el conteo para llamar la atención sin ser invasivo.
+  if (navBtn) {
+    if (activos.length > 0) navBtn.classList.remove('hidden');
+    else                    navBtn.classList.add('hidden');
+  }
+  if (badge) {
+    if (activos.length > 0) {
+      badge.textContent = String(activos.length);
+      badge.classList.remove('hidden');
+    } else {
+      badge.classList.add('hidden');
+    }
+  }
+  if (count) count.textContent = activos.length;
+
+  // Empty state dentro de la pestaña (por si el user llega desde otro punto).
   if (activos.length === 0) {
-    section.classList.add('hidden');
+    list.innerHTML = '';
+    if (empty) empty.classList.remove('hidden');
+    // Si estaba mirando esta tab, redirigimos a loyalty para no dejarlo en un
+    // panel vacío (caso: canjeó la única que tenía).
+    if (typeof activeTab !== 'undefined' && activeTab === 'recompensas') {
+      try { switchTab('loyalty'); } catch(_) {}
+    }
     return;
   }
-
-  section.classList.remove('hidden');
-  if (count) count.textContent = activos.length;
+  if (empty) empty.classList.add('hidden');
 
   list.innerHTML = activos.map(r => {
     // Origen legible (por si viene del programa de referidos vs canje manual)
@@ -7110,8 +7150,8 @@ function switchTab(tab) {
   activeTab = tab;
   if (tab === 'loyalty') marcarAnuncioVisto();
 
-  const panels  = { loyalty: 'tabLoyalty', lookbook: 'tabLookbook', productos: 'tabProductos', profile: 'tabProfile' };
-  const navBtns = { loyalty: 'navLoyalty', lookbook: 'navLookbook', productos: 'navProductos', profile: 'navProfile' };
+  const panels  = { loyalty: 'tabLoyalty', lookbook: 'tabLookbook', productos: 'tabProductos', recompensas: 'tabRecompensas', profile: 'tabProfile' };
+  const navBtns = { loyalty: 'navLoyalty', lookbook: 'navLookbook', productos: 'navProductos', recompensas: 'navRecompensas', profile: 'navProfile' };
 
   Object.values(panels).forEach(id => {
     const el = document.getElementById(id);
@@ -7131,7 +7171,7 @@ function switchTab(tab) {
 }
 
 function updateNavIndicator(tab) {
-  const btnId = { loyalty: 'navLoyalty', lookbook: 'navLookbook', productos: 'navProductos', profile: 'navProfile' }[tab];
+  const btnId = { loyalty: 'navLoyalty', lookbook: 'navLookbook', productos: 'navProductos', recompensas: 'navRecompensas', profile: 'navProfile' }[tab];
   const activeBtn = document.getElementById(btnId);
   const indicator = document.getElementById('navActiveIndicator');
   if (activeBtn && indicator) {
