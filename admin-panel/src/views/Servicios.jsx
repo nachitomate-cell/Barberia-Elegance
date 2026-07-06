@@ -37,6 +37,13 @@ const EMPTY = {
   icono: 'ph-scissors', descripcion: '', varPrecios: false,
   ppd: { ...EMPTY_PPD }, imagen: null,
   recargoSobrecupoDefault: '',
+  // Motor de cuponeras/packs de sesiones.
+  //   isPack:          true si el servicio agrupa N visitas prepagas
+  //   sesionesTotales: cantidad total de visitas del pack (ej. 4)
+  //   diasValidez:     días desde la activación hasta que el pack expira (ej. 30)
+  isPack: false,
+  sesionesTotales: '',
+  diasValidez: '',
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────
@@ -168,6 +175,10 @@ export default function Servicios() {
       varPrecios: !!s.preciosPorDia, ppd,
       imagen: s.imagen || null,
       recargoSobrecupoDefault: s.recargoSobrecupoDefault != null ? String(s.recargoSobrecupoDefault) : '',
+      // Pack — se guardan como strings en el form para tratarlo como los otros numéricos.
+      isPack:          !!s.isPack,
+      sesionesTotales: s.sesionesTotales != null ? String(s.sesionesTotales) : '',
+      diasValidez:     s.diasValidez     != null ? String(s.diasValidez)     : '',
     });
     resetImageState();
     setSlide(true);
@@ -210,12 +221,29 @@ export default function Servicios() {
       const recargoSobrecupoDefault = rawRecargo === ''
         ? 0
         : Math.max(0, Math.round(Number(rawRecargo)) || 0);
+      // Config del pack (solo si isPack está activo). Validamos enteros ≥ 1
+      // para no permitir "0 sesiones" o valores raros que rompen el consumo.
+      const isPack = !!form.isPack;
+      const sesionesTotales = isPack
+        ? Math.max(1, Math.round(Number(form.sesionesTotales) || 0))
+        : 0;
+      const diasValidez = isPack
+        ? Math.max(1, Math.round(Number(form.diasValidez) || 0))
+        : 0;
+
       const base = {
         nombre: form.nombre, categoria: form.categoria,
         precio: basePrecio, duracion: Number(form.duracion),
         icono: form.icono || 'ph-scissors', updatedAt: serverTimestamp(),
         recargoSobrecupoDefault,
+        // Pack / cuponera. isPack=false explícito para que el filtro
+        // "servicios normales" siga funcionando sin tocar los existentes.
+        isPack,
       };
+      if (isPack) {
+        base.sesionesTotales = sesionesTotales;
+        base.diasValidez     = diasValidez;
+      }
 
       let imagenUrl = form.imagen ?? null;
 
@@ -232,6 +260,10 @@ export default function Servicios() {
           imagen:       imagenUrl !== null ? imagenUrl : deleteField(),
           descripcion:  descripcion || deleteField(),
           preciosPorDia: form.varPrecios ? preciosPorDia : deleteField(),
+          // Al desactivar el pack, borramos los campos residuales para que el
+          // servicio se comporte como normal en el flujo público y en Agenda.
+          sesionesTotales: isPack ? sesionesTotales : deleteField(),
+          diasValidez:     isPack ? diasValidez     : deleteField(),
         });
       } else {
         const nextOrden = servicios.length ? Math.max(...servicios.map(s => s.orden ?? 0)) + 1 : 0;
@@ -619,6 +651,58 @@ export default function Servicios() {
                       />
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* ── Pack / Cuponera ────────────────────────────────────
+              Motor de sesiones prepagas. Cuando isPack=true, el precio
+              base representa el costo del PACK COMPLETO. Al completar
+              una cita con este servicio, se activa el pack en el user
+              (users/{uid}.packsActivos) con sesionesRestantes = N-1.
+              Las citas siguientes consumen sesiones del pack (precio 0). */}
+          <div>
+            <button type="button"
+              onClick={() => setForm(f => ({ ...f, isPack: !f.isPack }))}
+              className={`flex items-center gap-2 w-full px-3 py-2.5 rounded-lg border text-sm font-semibold transition-colors ${
+                form.isPack
+                  ? 'bg-violet-500/10 border-violet-500/40 text-violet-300'
+                  : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-600'
+              }`}>
+              <span className={`w-8 h-4 rounded-full transition-colors relative ${form.isPack ? 'bg-violet-500' : 'bg-slate-600'}`}>
+                <span className={`absolute top-0.5 w-3 h-3 bg-white rounded-full shadow transition-all ${form.isPack ? 'left-4' : 'left-0.5'}`} />
+              </span>
+              📦 Este servicio es un Pack / Combo de múltiples visitas
+            </button>
+            {form.isPack && (
+              <div className="mt-3 bg-violet-500/[0.04] border border-violet-500/25 rounded-xl p-3.5 space-y-3">
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  El cliente paga <span className="text-white font-semibold">${form.precio || '?'}</span> una vez y consume N visitas dentro de la vigencia. Las citas de consumo se cobran <span className="text-white font-semibold">$0</span>.
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={lbl}>Sesiones incluidas</label>
+                    <input
+                      type="number" min="1" step="1" inputMode="numeric"
+                      placeholder="Ej: 4"
+                      value={form.sesionesTotales}
+                      onChange={e => setForm(f => ({ ...f, sesionesTotales: e.target.value.replace(/[^\d]/g, '') }))}
+                      className={field}
+                    />
+                    <p className="text-[10px] text-slate-500 mt-1">Cantidad total de citas del pack.</p>
+                  </div>
+                  <div>
+                    <label className={lbl}>Vigencia (días)</label>
+                    <input
+                      type="number" min="1" step="1" inputMode="numeric"
+                      placeholder="Ej: 30"
+                      value={form.diasValidez}
+                      onChange={e => setForm(f => ({ ...f, diasValidez: e.target.value.replace(/[^\d]/g, '') }))}
+                      className={field}
+                    />
+                    <p className="text-[10px] text-slate-500 mt-1">Días desde la primera cita hasta que expira.</p>
+                  </div>
                 </div>
               </div>
             )}
