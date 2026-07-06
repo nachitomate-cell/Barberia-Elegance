@@ -838,6 +838,46 @@
             box-shadow: 0 6px 16px rgba(15, 23, 42, 0.15);
         }
 
+        /* (6) Selector de barbero (solo admin) — se muestra debajo del "En vivo"
+              cuando AgendaState.isAdmin === true y hay barberos cargados. */
+        #barberSwitcher {
+            display: none;
+            margin-top: 0.4rem;
+            padding: 0.35rem 1.75rem 0.35rem 0.65rem;
+            border-radius: 0.55rem;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            font-size: 0.78rem;
+            font-weight: 600;
+            max-width: 180px;
+            outline: none;
+            cursor: pointer;
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.7)' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+            background-repeat: no-repeat;
+            background-position: right 0.5rem center;
+            background-size: 0.8rem;
+        }
+        #barberSwitcher.visible { display: block; }
+        #barberSwitcher:hover { background-color: rgba(255, 255, 255, 0.1); }
+        #barberSwitcher:focus {
+            border-color: rgba(255, 255, 255, 0.35);
+            box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
+        }
+        html.light-mode #barberSwitcher {
+            background-color: #f1f5f9;
+            border-color: #e2e8f0;
+            color: #0f172a;
+            background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23334155' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+        }
+        html.light-mode #barberSwitcher:hover  { background-color: #e2e8f0; }
+        html.light-mode #barberSwitcher:focus  { box-shadow: 0 0 0 3px rgba(100, 116, 139, 0.15); }
+        /* Native dropdown lo pinta el sistema — aseguramos legibilidad de options */
+        #barberSwitcher option { background: #0f0f12; color: #ffffff; }
+        html.light-mode #barberSwitcher option { background: #ffffff; color: #0f172a; }
+
         /* Kebab dropdown items — hover + safe-area */
         #kebabMenuPanel [data-menu-item] {
             display: flex;
@@ -952,6 +992,13 @@
                     <div class="live-dot" title="Sincronizado en tiempo real"></div>
                     <p class="text-[10px] text-white/40 uppercase tracking-[0.2em] font-semibold">En Vivo</p>
                 </div>
+                <!-- Selector de barbero (visible solo para admin). Hidden por default:
+                     _syncBarberSwitcherUI le pone la clase .visible cuando corresponde. -->
+                <select id="barberSwitcher" data-count="0"
+                        onchange="_onBarberSwitcherChange(this.value)"
+                        aria-label="Cambiar de barbero"
+                        title="Cambiar de barbero (admin)">
+                </select>
             </div>
         </div>
         <div class="flex items-center gap-1.5 sm:gap-2">
@@ -1414,6 +1461,184 @@
         // Combina ambos arrays sin race condition
         function getBloqueos() { return [...todayBloqueosBarbero, ...todayBloqueosGlobales]; }
 
+        /* ═══════════════════════════════════════════════════════════════════
+           AgendaState — fuente única de verdad para la agenda.
+           Sustituye el patrón de variables sueltas (_agendaView, _slotInterval,
+           _currentWeekStart, _timeSlotSeleccionado, barberId) por un objeto
+           con setters controlados y un observer pattern simple.
+
+           Uso:
+             AgendaState.set('view', 'semana');   // dispara listeners
+             AgendaState.get('view');             // lectura directa
+             AgendaState.view;                    // shortcut de lectura
+             const off = AgendaState.subscribe('view', cb);  off() para dessuscribir
+
+           Las variables sueltas siguen existiendo por compat (el código legacy
+           las lee), pero un listener las mantiene sincronizadas con el state.
+           El "flujo de mutación" ahora es: los setters escriben al state y el
+           state notifica a los suscriptores (que a su vez actualizan las lets
+           legacy y disparan re-renders selectivos). Un cambio de barbero en
+           runtime (admin) reaprovecha esa cadena sin tocar el resto del código.
+           ═══════════════════════════════════════════════════════════════════ */
+        const AgendaState = (function () {
+            // El init respeta lo que ya calcularon las lets legacy justo antes
+            // (view desde localStorage, slotInterval idem). Así no duplicamos
+            // la lógica de parsing y estamos garantizados coherentes.
+            const _data = {
+                view:                  _agendaView,
+                slotInterval:          _slotInterval,
+                currentDate:           currentDate,
+                weekStart:             null,        // se setea en setAgendaView('semana')
+                barberId:              null,        // se setea después del login
+                timeSlotSeleccionado:  null,        // hora clickeada en el sheet libre
+                isAdmin:               false,       // detectado en resolverInfoBarbero
+                barberos:              [],          // lista poblada si isAdmin
+            };
+            // Claves persistentes en localStorage (con el nombre real de la clave)
+            const _persistMap = { view: 'agenda_view', slotInterval: 'agenda_interval' };
+            const _listeners  = Object.create(null);
+
+            function subscribe(key, cb) {
+                if (!_listeners[key]) _listeners[key] = new Set();
+                _listeners[key].add(cb);
+                return () => _listeners[key].delete(cb);
+            }
+            function emit(key, newV, oldV) {
+                const set = _listeners[key];
+                if (!set) return;
+                set.forEach(cb => {
+                    try { cb(newV, oldV); }
+                    catch (e) { console.error('[AgendaState] listener', key, e); }
+                });
+            }
+            function set(key, value) {
+                const old = _data[key];
+                if (old === value) return; // sin cambios reales
+                _data[key] = value;
+                if (_persistMap[key]) {
+                    try { localStorage.setItem(_persistMap[key], String(value)); }
+                    catch (_) { /* Safari privado */ }
+                }
+                emit(key, value, old);
+            }
+            function get(key) { return _data[key]; }
+
+            return {
+                subscribe, set, get,
+                // Shortcuts de lectura (más cómodos que .get('view'))
+                get view()                 { return _data.view; },
+                get slotInterval()         { return _data.slotInterval; },
+                get currentDate()          { return _data.currentDate; },
+                get weekStart()            { return _data.weekStart; },
+                get barberId()             { return _data.barberId; },
+                get timeSlotSeleccionado() { return _data.timeSlotSeleccionado; },
+                get isAdmin()              { return _data.isAdmin; },
+                get barberos()             { return _data.barberos; },
+            };
+        })();
+        window.AgendaState = AgendaState;
+
+        /* Sincronizadores: mantienen las lets legacy alineadas al state.
+           Así el código legacy que hace `_agendaView === 'dia'` sigue leyendo
+           el valor correcto sin tener que reescribir cada acceso. Los cambios
+           siguen entrando por AgendaState.set(...) desde los setters. */
+        AgendaState.subscribe('view',                v => { _agendaView = v; });
+        AgendaState.subscribe('slotInterval',        v => { _slotInterval = v; });
+        AgendaState.subscribe('timeSlotSeleccionado', v => { window._timeSlotSeleccionado = v; });
+        AgendaState.subscribe('currentDate',         v => { currentDate = v; });
+        AgendaState.subscribe('weekStart',           v => { if (v) _currentWeekStart = v; });
+        AgendaState.subscribe('barberId',            v => { barberId = v; });
+
+        /* Reacción al cambio de barbero EN RUNTIME (post-bootstrap).
+           No aplica al primer set del login (oldV === null): en ese caso los
+           loaders se disparan por el flujo normal de resolverInfoBarbero. */
+        AgendaState.subscribe('barberId', async (newV, oldV) => {
+            if (oldV == null || newV == null || oldV === newV) return;
+            await _reloadForBarberoChange().catch(err =>
+                console.error('[AgendaState] reload barbero:', err));
+        });
+
+        /* Al detectar admin, muestra el selector y (cuando la lista termine)
+           lo popula. Los dos listeners son independientes: si la lista carga
+           antes que se sepa que es admin, el segundo listener igual pintará. */
+        AgendaState.subscribe('isAdmin',  () => _syncBarberSwitcherUI());
+        AgendaState.subscribe('barberos', () => _syncBarberSwitcherUI());
+        AgendaState.subscribe('barberId', () => _syncBarberSwitcherUI());
+
+        /* ── Loader de la lista de barberos activos del tenant.
+           Reutiliza el snap ya leído en resolverInfoBarbero si viene, sino hace
+           un getDoc extra. Filtra docs de enlace y desactivados; ordena alfabéticamente. */
+        async function _cargarListaBarberos(snapPreloaded) {
+            let snap = snapPreloaded;
+            if (!snap) {
+                try { snap = await tenantCol('barberos').get(); }
+                catch (e) { console.warn('[AgendaState] getBarberos:', e.message); return; }
+            }
+            const list = snap.docs
+                .filter(d => {
+                    const data = d.data() || {};
+                    if (data._mainDocId) return false;  // docs de enlace
+                    if (data.activo === false) return false;
+                    return !!(data.nombre || data.displayName);
+                })
+                .map(d => ({ id: d.id, nombre: d.data().nombre || d.data().displayName || '(sin nombre)' }))
+                .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+            AgendaState.set('barberos', list);
+        }
+
+        /* ── Swap de barbero: detiene listeners activos, resetea la UI transitoria,
+           relee la config y refresca la vista actual. Todo lo demás sigue igual. */
+        async function _reloadForBarberoChange() {
+            // Detener listeners de citas/bloqueos actuales
+            try { unsubs.forEach(u => u()); unsubs = []; } catch (_) {}
+            try { _weekUnsubs.forEach(u => u()); _weekUnsubs = []; } catch (_) {}
+            // Reset de UI transitoria — el nuevo barbero arranca sin resabios
+            newlyAddedCitas.clear();
+            todayCitas = [];
+            todayBloqueosBarbero = [];
+            todayBloqueosGlobales = [];
+            // Nombre en el header — mientras carga, mostramos "Agenda"
+            const nameEl = document.getElementById('barberNameHeader');
+            if (nameEl) nameEl.textContent = 'Agenda';
+            // Config del nuevo barbero
+            await loadBarberData().catch(err =>
+                console.error('[AgendaState] loadBarberData:', err));
+            // Refrescar la vista actual (día o semana)
+            if (_agendaView === 'dia') {
+                renderDaySelector();
+                loadAgendaData();
+            } else {
+                loadWeekData();
+            }
+            iniciarBannerLiquidaciones(AgendaState.barberId);
+        }
+
+        /* ── Muestra/oculta el <select> del switcher y lo repuebla.
+           Se llama cada vez que cambia isAdmin, barberos o barberId. */
+        function _syncBarberSwitcherUI() {
+            const sel = document.getElementById('barberSwitcher');
+            if (!sel) return;
+            const show = AgendaState.isAdmin && AgendaState.barberos.length > 0;
+            sel.classList.toggle('visible', show);
+            if (!show) return;
+            const activeId = AgendaState.barberId;
+            // Solo repoblamos si cambió la lista (evita perder cursor/foco al
+            // reactivar el listener con la misma data).
+            if (sel.dataset.count !== String(AgendaState.barberos.length)) {
+                sel.innerHTML = AgendaState.barberos
+                    .map(b => `<option value="${b.id}">${b.nombre}</option>`)
+                    .join('');
+                sel.dataset.count = String(AgendaState.barberos.length);
+            }
+            sel.value = activeId || '';
+        }
+
+        /* Handler del <select> — llamado desde el onchange inline. */
+        window._onBarberSwitcherChange = function (newId) {
+            if (!newId) return;
+            AgendaState.set('barberId', newId);
+        };
+
         // Tenants que ocultan el teléfono del cliente a los barberos (privacidad)
         function _ocultaTelefono() {
             const t = window.CURRENT_TENANT_ID || 'elegance';
@@ -1581,7 +1806,20 @@
                         return;
                     }
 
-                    barberId = myBarberoId;
+                    // Set inicial del barberId a través del state. El sync listener
+                    // mantiene la let legacy alineada y `_reloadForBarberoChange`
+                    // NO se dispara porque el "post-bootstrap" chequea que oldV
+                    // no sea null.
+                    AgendaState.set('barberId', myBarberoId);
+                    AgendaState.set('isAdmin', !!info.isAdmin);
+
+                    // Si es admin, cargar catálogo de barberos para el <select>
+                    // superior. No bloqueante: la agenda del propio admin arranca
+                    // igual y el select aparece cuando la lista termine de cargar.
+                    if (info.isAdmin) {
+                        _cargarListaBarberos(info.snap).catch(e =>
+                            console.warn('[AgendaState] cargar barberos:', e.message));
+                    }
 
                     // Garantiza que barberos/{uid} exista antes de iniciar los listeners.
                     // Sin este doc, esBarberoFirestore falla y onSnapshot de /citas queda denegado.
@@ -1731,14 +1969,19 @@
         // ── MANEJO DE FECHAS ──
         function cambiarDia(offset) {
             _dayAnimDir = offset >= 0 ? 'next' : 'prev';
-            currentDate.setDate(currentDate.getDate() + offset);
+            // Nueva instancia (no mutamos la existente) para que AgendaState
+            // detecte el cambio por identidad y emita a los listeners.
+            const next = new Date(currentDate);
+            next.setDate(next.getDate() + offset);
+            AgendaState.set('currentDate', next);
             renderDaySelector();
             loadAgendaData();
         }
 
         function seleccionarDia(year, month, date) {
-            _dayAnimDir = _dayDir(new Date(year, month, date));
-            currentDate = new Date(year, month, date);
+            const target = new Date(year, month, date);
+            _dayAnimDir = _dayDir(target);
+            AgendaState.set('currentDate', target);
             renderDaySelector();
             loadAgendaData();
         }
@@ -3130,8 +3373,9 @@
         }
 
         function setAgendaView(mode) {
-            _agendaView = (mode === 'semana') ? 'semana' : 'dia';
-            localStorage.setItem('agenda_view', _agendaView);
+            // Fuente de verdad: AgendaState. El listener sync mantiene `_agendaView`
+            // alineado y la persistencia en localStorage la hace AgendaState.set.
+            AgendaState.set('view', (mode === 'semana') ? 'semana' : 'dia');
             const dia = _agendaView === 'dia';
             ['dayViewHeader', 'dayViewGrid', 'dailyStatsDashboard'].forEach(id => {
                 const el = document.getElementById(id);
@@ -3170,8 +3414,7 @@
         }
 
         function setSlotInterval(min) {
-            _slotInterval = min;
-            localStorage.setItem('agenda_interval', String(min));
+            AgendaState.set('slotInterval', min);
             _updateIntervalUI();
             renderSlots();
         }
@@ -3773,6 +4016,10 @@
     let _calDate = new Date();
 
     function abrirOpcionesSlotLibre(time) {
+        AgendaState.set('timeSlotSeleccionado', time);
+        // Legacy: hay handlers que aún leen la variable suelta directamente.
+        // El sync listener de AgendaState mantiene window._timeSlotSeleccionado
+        // alineado, pero mantenemos la asignación local por si alguien la mira.
         _timeSlotSeleccionado = time;
         document.getElementById('freeSlotTimeLabel').textContent = time;
         document.getElementById('freeSlotModal').classList.remove('hidden');
