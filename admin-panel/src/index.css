@@ -1114,6 +1114,181 @@ html.light [data-view="agenda"] [data-cita-barbero] > p:nth-of-type(3) {
   color: #64748b !important;
 }
 
+/* ═══════════════════════════════════════════════════════════════════
+   LIGHT MODE · Agenda — rediseño estilo iOS/Stripe (agregado 2026-07)
+   El diseño previo se apoyaba en bordes 1px que se veían frágiles en
+   light. Ahora usa contraste de superficies + elevación (sombra) +
+   segmented controls iOS. NO toca modo dark.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Regla 1 · Canvas del layout más claro (slate-50 en vez de slate-100)
+   para que el swimlane blanco puro tenga contraste. */
+html.light body { background-color: #f8fafc !important; }
+html.light main.bg-slate-950 { background-color: #f8fafc !important; }
+
+/* Regla 1 · Contenedor del calendario: blanco puro con sombra suave y
+   borde de remate. Reemplaza el bg-slate-900 border-slate-800. */
+html.light [data-view="agenda"] .flex-1.bg-slate-900.rounded-xl {
+  background-color: #ffffff !important;
+  border: 1px solid rgba(226, 232, 240, 0.6) !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04),
+              0 1px 3px rgba(15, 23, 42, 0.06) !important;
+}
+
+/* Regla 2 · Pill contenedor de los segmented controls (toolbar).
+   bg-neutral-900 base → gris slate-100 (fondo del segmento). Los botones
+   quedan sin borde por default (transparente) y con bg-white al activarse. */
+html.light [data-view="agenda"] .bg-neutral-900.border-neutral-800.rounded-xl,
+html.light [data-view="agenda"] .bg-neutral-900.border-neutral-800.rounded-lg {
+  background-color: #f1f5f9 !important;
+  border-color: rgba(226, 232, 240, 0.6) !important;
+}
+
+/* Botón activo (aria-selected=true, o clase bg-slate-800 aplicada por JS):
+   pill blanco con sombra estilo iOS. */
+html.light [data-view="agenda"] [role="tab"][aria-selected="true"],
+html.light [data-view="agenda"] .bg-neutral-900 button.bg-slate-800 {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  font-weight: 700 !important;
+  border: 1px solid rgba(226, 232, 240, 0.5) !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06),
+              0 1px 3px rgba(15, 23, 42, 0.04) !important;
+}
+/* Botones inactivos del segmento: sin fondo, texto slate-600 con hover
+   sutil a slate-900. */
+html.light [data-view="agenda"] [role="tab"]:not([aria-selected="true"]),
+html.light [data-view="agenda"] .bg-neutral-900 button:not(.bg-slate-800) {
+  color: #475569 !important;
+  border-color: transparent !important;
+  background-color: transparent !important;
+}
+html.light [data-view="agenda"] [role="tab"]:not([aria-selected="true"]):hover:not(:disabled),
+html.light [data-view="agenda"] .bg-neutral-900 button:not(.bg-slate-800):hover:not(:disabled) {
+  color: #0f172a !important;
+  background-color: rgba(255, 255, 255, 0.6) !important;
+}
+
+/* Regla 3 · Tarjetas de citas — pastel suave con acento lateral fuerte.
+   Antes: emerald-100 fill + emerald-500 border todos los lados.
+   Ahora: emerald-50 fill + emerald-100 border sutil + emerald-500 SOLO
+   en el borde izquierdo (border-l-4) que ya viene del componente.
+   Sombra suave + hover:shadow-md. */
+html.light [data-view="agenda"] [data-cita-barbero].bg-emerald-500\/20 {
+  background-color: #ecfdf5 !important;  /* emerald-50 */
+  border-color: rgba(167, 243, 208, 0.6) !important;  /* emerald-200/60 */
+  border-left-color: #10b981 !important;  /* emerald-500 sólido en el borde-l */
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+  transition: box-shadow 150ms ease-out !important;
+}
+html.light [data-view="agenda"] [data-cita-barbero].bg-emerald-500\/20:hover {
+  box-shadow: 0 4px 8px rgba(15, 23, 42, 0.06),
+              0 2px 4px rgba(15, 23, 42, 0.04) !important;
+}
+html.light [data-view="agenda"] [data-cita-barbero].bg-emerald-500\/20 > p:nth-of-type(1) {
+  color: #052e16 !important;  /* emerald-950 nombre cliente */
+}
+html.light [data-view="agenda"] [data-cita-barbero].bg-emerald-500\/20 > p:nth-of-type(2) {
+  color: #065f46 !important;  /* emerald-800 servicio */
+}
+html.light [data-view="agenda"] [data-cita-barbero].bg-emerald-500\/20 > p:nth-of-type(3) {
+  color: #047857 !important;  /* emerald-700 hora */
+}
+
+/* Completada (blue): mismo patrón */
+html.light [data-view="agenda"] [data-cita-barbero].bg-blue-500\/10,
+html.light [data-view="agenda"] [data-cita-barbero].bg-blue-500\/20 {
+  background-color: #eff6ff !important;  /* blue-50 */
+  border-color: rgba(191, 219, 254, 0.6) !important;
+  border-left-color: #3b82f6 !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+}
+html.light [data-view="agenda"] [data-cita-barbero].bg-blue-500\/10:hover,
+html.light [data-view="agenda"] [data-cita-barbero].bg-blue-500\/20:hover {
+  box-shadow: 0 4px 8px rgba(15, 23, 42, 0.06),
+              0 2px 4px rgba(15, 23, 42, 0.04) !important;
+}
+html.light [data-view="agenda"] [data-cita-barbero].bg-blue-500\/10 > p:nth-of-type(1),
+html.light [data-view="agenda"] [data-cita-barbero].bg-blue-500\/20 > p:nth-of-type(1) {
+  color: #172554 !important;
+}
+html.light [data-view="agenda"] [data-cita-barbero].bg-blue-500\/10 > p:nth-of-type(2),
+html.light [data-view="agenda"] [data-cita-barbero].bg-blue-500\/20 > p:nth-of-type(2) {
+  color: #1e40af !important;
+}
+
+/* Pendiente (amber): mismo patrón */
+html.light [data-view="agenda"] [data-cita-barbero].bg-amber-500\/20 {
+  background-color: #fffbeb !important;  /* amber-50 */
+  border-color: rgba(253, 230, 138, 0.6) !important;
+  border-left-color: #f59e0b !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+}
+html.light [data-view="agenda"] [data-cita-barbero].bg-amber-500\/20:hover {
+  box-shadow: 0 4px 8px rgba(15, 23, 42, 0.06),
+              0 2px 4px rgba(15, 23, 42, 0.04) !important;
+}
+html.light [data-view="agenda"] [data-cita-barbero].bg-amber-500\/20 > p:nth-of-type(1) {
+  color: #451a03 !important;
+}
+html.light [data-view="agenda"] [data-cita-barbero].bg-amber-500\/20 > p:nth-of-type(2) {
+  color: #92400e !important;
+}
+
+/* Cancelada (red): mismo patrón */
+html.light [data-view="agenda"] [data-cita-barbero].bg-red-500\/10,
+html.light [data-view="agenda"] [data-cita-barbero].bg-red-500\/20 {
+  background-color: #fef2f2 !important;
+  border-color: rgba(254, 202, 202, 0.6) !important;
+  border-left-color: #ef4444 !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+}
+html.light [data-view="agenda"] [data-cita-barbero].bg-red-500\/10:hover,
+html.light [data-view="agenda"] [data-cita-barbero].bg-red-500\/20:hover {
+  box-shadow: 0 4px 8px rgba(15, 23, 42, 0.06),
+              0 2px 4px rgba(15, 23, 42, 0.04) !important;
+}
+html.light [data-view="agenda"] [data-cita-barbero].bg-red-500\/10 > p:nth-of-type(1),
+html.light [data-view="agenda"] [data-cita-barbero].bg-red-500\/20 > p:nth-of-type(1) {
+  color: #450a0a !important;
+}
+html.light [data-view="agenda"] [data-cita-barbero].bg-red-500\/10 > p:nth-of-type(2),
+html.light [data-view="agenda"] [data-cita-barbero].bg-red-500\/20 > p:nth-of-type(2) {
+  color: #991b1b !important;
+}
+
+/* Regla 4 · Banner "N pendientes de cierre" — de amber/10 (translúcido)
+   a naranja sólido con más peso visual, mismo look que Stripe/Linear. */
+html.light div.bg-amber-500\/10.border-amber-500\/30 {
+  background-color: #fff7ed !important;  /* orange-50 */
+  border-color: #fed7aa !important;      /* orange-200 */
+  color: #9a3412 !important;             /* orange-800 */
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
+}
+html.light div.bg-amber-500\/10.border-amber-500\/30 span.text-amber-400,
+html.light div.bg-amber-500\/10.border-amber-500\/30 button.text-amber-300 {
+  color: #c2410c !important;  /* orange-700 */
+}
+html.light div.bg-amber-500\/10.border-amber-500\/30 svg {
+  color: #c2410c !important;
+}
+
+/* Regla 5 · Grid lines más suaves — antes rgba(71,85,105,0.32) (slate-500
+   32%) era demasiado marcado. Ahora slate-200/50 casi imperceptible. */
+html.light [data-view="agenda"] .border-slate-800\/40 {
+  border-color: rgba(226, 232, 240, 0.5) !important;  /* slate-200/50 */
+}
+html.light [data-view="agenda"] .border-slate-800\/60,
+html.light [data-view="agenda"] .border-slate-800\/70,
+html.light [data-view="agenda"] .border-slate-800\/80 {
+  border-color: rgba(226, 232, 240, 0.7) !important;
+}
+/* Filas alternadas (idx impar tiene bg-slate-800/10) — casi transparente
+   sobre blanco. Un tinte gris muy sutil para dar ritmo visual. */
+html.light [data-view="agenda"] .bg-slate-800\/10 {
+  background-color: rgba(248, 250, 252, 0.6) !important;  /* slate-50/60 */
+}
+
 /* Evitar auto-zoom en iOS Safari al enfocar campos de formulario en pantallas móviles */
 @media (max-width: 767px) {
   input, select, textarea {
