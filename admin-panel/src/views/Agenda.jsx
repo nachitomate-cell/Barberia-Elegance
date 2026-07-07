@@ -3599,47 +3599,66 @@ export default function Agenda() {
         <div className="flex min-w-max">
 
           {/* Time axis */}
-          <div className="w-16 shrink-0 sticky left-0 bg-slate-900 z-20 border-r border-slate-800 relative">
-            <div className="h-9 border-b border-slate-800" />
-            {showNowLine && (
-              <div
-                className="absolute right-0 z-30 flex justify-end pr-1 pointer-events-none"
-                style={{ top: `${36 + nowOffsetPx}px`, transform: 'translateY(-50%)' }}
-              >
-                <span className="text-[9px] font-mono font-bold text-white bg-red-500 rounded px-1 py-px shadow-[0_0_6px_rgba(239,68,68,0.6)]">
-                  {nowLabel}
-                </span>
-              </div>
-            )}
-            {timeLabels.map((t, i) => {
-              const [h, m] = t.split(':').map(Number);
-              const tMins = h * 60 + m;
-              const showLabel = tMins % labelStep === 0;
-              const subMarks = [];
-              for (let sub = 15; sub < slotMins; sub += 15) {
-                const total = tMins + sub;
-                if (total % labelStep === 0) {
-                  subMarks.push({
-                    label: `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`,
-                    pct: (sub / slotMins) * 100,
-                  });
-                }
-              }
-              const labelColor = m === 0 ? 'text-slate-400' : m % 30 === 0 ? 'text-slate-500' : 'text-slate-600';
-              return (
-                <div key={i} className="h-10 relative border-b border-slate-800/60">
-                  {showLabel && (
-                    <span className={`absolute right-3 top-0.5 text-[10px] font-mono ${labelColor}`}>{t}</span>
-                  )}
-                  {subMarks.map(({ label, pct }) => (
-                    <div key={label} className="absolute inset-x-0 flex items-center justify-end pr-3" style={{ top: `${pct}%`, transform: 'translateY(-50%)' }}>
-                      <span className="text-[9px] font-mono text-slate-600">{label}</span>
+          {(() => {
+            // El corner del eje de horas debe calzar con la cabecera de cada
+            // columna: en vista día es alta (avatar+nombre+contador ≈ 104 px),
+            // en vista semana el header vuelve a h-9 (36 px). Sin esto, las
+            // horas quedan desplazadas respecto a las filas de citas.
+            const headerH = viewMode === 'week' ? 36 : 104;
+            return (
+              <div className="w-16 shrink-0 sticky left-0 bg-slate-900 z-20 border-r border-neutral-800 relative">
+                <div
+                  className="border-b border-r border-neutral-800 bg-neutral-900/50"
+                  style={{ height: `${headerH}px` }}
+                />
+                {showNowLine && (
+                  <div
+                    className="absolute right-0 z-30 flex justify-end pr-1 pointer-events-none"
+                    style={{ top: `${headerH + nowOffsetPx}px`, transform: 'translateY(-50%)' }}
+                  >
+                    <span className="text-[9px] font-sans font-bold text-white bg-red-500 rounded px-1 py-px shadow-[0_0_6px_rgba(239,68,68,0.6)]">
+                      {nowLabel}
+                    </span>
+                  </div>
+                )}
+                {timeLabels.map((t, i) => {
+                  const [h, m] = t.split(':').map(Number);
+                  const tMins = h * 60 + m;
+                  const showLabel = tMins % labelStep === 0;
+                  const subMarks = [];
+                  for (let sub = 15; sub < slotMins; sub += 15) {
+                    const total = tMins + sub;
+                    if (total % labelStep === 0) {
+                      subMarks.push({
+                        label: `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`,
+                        pct: (sub / slotMins) * 100,
+                      });
+                    }
+                  }
+                  return (
+                    <div key={i} className="relative h-10 border-r border-b border-neutral-800 bg-neutral-900/30">
+                      {showLabel && (
+                        <span className="absolute -top-2.5 left-0 right-0 text-center bg-neutral-950 px-1 mx-auto w-max z-10 font-sans text-xs font-medium text-neutral-400 tracking-wide select-none">
+                          {t}
+                        </span>
+                      )}
+                      {subMarks.map(({ label, pct }) => (
+                        <div
+                          key={label}
+                          className="absolute inset-x-0 flex items-center justify-center"
+                          style={{ top: `${pct}%`, transform: 'translateY(-50%)' }}
+                        >
+                          <span className="font-sans text-[9px] font-medium text-neutral-600 tracking-wide select-none">
+                            {label}
+                          </span>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              );
-            })}
-          </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
 
           {/* Barber columns */}
           {barberosLoading ? (
