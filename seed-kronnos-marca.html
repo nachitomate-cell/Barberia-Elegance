@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Seed · Kronnos MARCA (pool cross-sede)</title>
+  <style>
+    body { font-family: monospace; background: #0a0a0a; color: #94a3b8; padding: 2rem; }
+    h1   { color: #e11d2a; }
+    code { color: #f0a; }
+    button { padding: .75rem 1.5rem; background: #e11d2a; color: #fff; border: none;
+             border-radius: .5rem; font-size: 1rem; font-weight: 700; cursor: pointer; margin-top: 1rem; }
+    button:disabled { opacity: .4; cursor: not-allowed; }
+    pre  { background: #1a1a1a; padding: 1rem; border-radius: .5rem; white-space: pre-wrap; margin-top: 1rem; }
+    .ok  { color: #34d399; }
+    .err { color: #f87171; }
+    .warn{ color: #fbbf24; }
+    .info{ color: #60a5fa; }
+  </style>
+</head>
+<body>
+  <h1>Seed — Kronnos MARCA (pool cross-sede)</h1>
+  <p>Popula <code>tenants/kronnos/</code> con: <b>premios</b>, <b>rangos</b>, <b>descuentos</b>, <b>configuración de canje</b>.</p>
+  <p class="info">Camino 1.5 (2026-07-07): fidelización marca — los 3 tenants legacy (kronnos_penablanca/limache/woman) leen de este pool.</p>
+  <p class="warn">⚠ Reglas de Dexter: sellos suman cross-sede; premio se canjea en sede predominante; empate = sede donde el cliente pide canjear (tiebreak A).</p>
+  <button id="btn" onclick="run()">▶ Ejecutar Seed Marca</button>
+  <pre id="log">Listo para ejecutar…</pre>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="/firebase-config.js?v=1.3"></script>
+  <script>
+    const TENANT = 'kronnos'; // pool marca
+    const log = document.getElementById('log');
+    const btn = document.getElementById('btn');
+
+    function write(msg, cls) {
+      log.innerHTML += `<span class="${cls||''}">${msg}\n</span>`;
+    }
+
+    async function setDoc(path, data) {
+      const parts = path.split('/');
+      let ref = db;
+      for (let i = 0; i < parts.length; i++) {
+        ref = i % 2 === 0 ? ref.collection(parts[i]) : ref.doc(parts[i]);
+      }
+      await ref.set(data, { merge: true });
+      write(`  ✓ ${path}`, 'ok');
+    }
+
+    async function addDoc(colPath, data) {
+      const ref = await db.collection(colPath).add(data);
+      write(`  ✓ ${colPath}/${ref.id}`, 'ok');
+      return ref.id;
+    }
+
+    async function purgeCol(colPath) {
+      const snap = await db.collection(colPath).get();
+      for (const d of snap.docs) await d.ref.delete();
+      if (snap.size) write(`  ✓ Purgado ${colPath} (${snap.size} docs)`, 'warn');
+    }
+
+    async function run() {
+      btn.disabled = true;
+      log.innerHTML = '';
+      try {
+        /* ── 1. PREMIOS marca (los 3 del Excel de config, sede='Todas') ── */
+        write('── Premios (Club Kronnos, cross-sede) ──');
+        await purgeCol(`tenants/${TENANT}/premios`);
+        await addDoc(`tenants/${TENANT}/premios`, {
+          nombre:      'Descuento 30%',
+          descripcion: '30% de descuento en cualquier servicio. Válido por 30 días.',
+          costoSellos: 5,
+          icono:       'ph-tag',
+          activo:      true,
+          categoria:   'DESCUENTO',
+          configuracion: { aplicaA: 'GLOBAL' },
+          scope:       'MARCA',
+        });
+        await addDoc(`tenants/${TENANT}/premios`, {
+          nombre:      'Servicio gratis',
+          descripcion: 'Servicio gratis (hasta el valor del corte clásico). Se canjea en la sede donde tengas más sellos.',
+          costoSellos: 10,
+          icono:       'ph-scissors',
+          activo:      true,
+          categoria:   'SERVICIO',
+          scope:       'MARCA',
+        });
+        await addDoc(`tenants/${TENANT}/premios`, {
+          nombre:      'Pack premium',
+          descripcion: 'Pack de toallas + corte + barba con valor diferenciado.',
+          costoSellos: 15,
+          icono:       'ph-crown',
+          activo:      true,
+          categoria:   'SERVICIO',
+          scope:       'MARCA',
+        });
+
+        /* ── 2. RANGOS Silver/Gold/Platinum (Excel de config) ── */
+        write('\n── Rangos de fidelidad ──');
+        await setDoc(`tenants/${TENANT}/configuracion/rangos`, {
+          rangos: [
+            {
+              id:                'silver',
+              nombre:            'Silver',
+              serviciosParaAlcanzar: 0,
+              sellosPorVisita:   1,
+              descuentoPorc:     0,
+              beneficios:        ['Acceso al Club Kronnos.'],
+            },
+            {
+              id:                'gold',
+              nombre:            'Gold',
+              serviciosParaAlcanzar: 10,
+              sellosPorVisita:   2, // doble sello (regla del Excel)
+              descuentoPorc:     0,
+              beneficios:        ['Doble sello en cada servicio.'],
+            },
+            {
+              id:                'platinum',
+              nombre:            'Platinum',
+              serviciosParaAlcanzar: 25,
+              sellosPorVisita:   2,
+              descuentoPorc:     10, // 10% descuento permanente
+              beneficios:        ['Doble sello.', '10% descuento permanente en todos los servicios.'],
+            },
+          ],
+          actualizadoEn: new Date().toISOString(),
+        });
+
+        /* ── 3. DESCUENTOS globales (Excel de config, sede='Todas') ── */
+        write('\n── Descuentos globales ──');
+        await purgeCol(`tenants/${TENANT}/descuentos`);
+        await addDoc(`tenants/${TENANT}/descuentos`, {
+          nombre:       'Cumpleaños',
+          cuandoAplica: 'Día del cumpleaños del cliente',
+          porcentaje:   0.15,
+          detalle:      'Aplicable a cualquier servicio en cualquier sede Kronnos.',
+          scope:        'MARCA',
+          activo:       true,
+        });
+        await addDoc(`tenants/${TENANT}/descuentos`, {
+          nombre:       'Cliente nuevo',
+          cuandoAplica: 'Primer servicio en Kronnos',
+          porcentaje:   0.10,
+          detalle:      'Sin cupo, válido en todas las sedes.',
+          scope:        'MARCA',
+          activo:       true,
+        });
+        await addDoc(`tenants/${TENANT}/descuentos`, {
+          nombre:       'Lunes promocional',
+          cuandoAplica: 'Todos los lunes',
+          tipo:         '2x1',
+          detalle:      'En cortes masculinos básicos.',
+          scope:        'MARCA',
+          activo:       true,
+        });
+
+        /* ── 4. CONFIGURACIÓN de canje (canjeClienteEnabled) ── */
+        write('\n── Configuración de canje ──');
+        await setDoc(`tenants/${TENANT}/configuracion/canje`, {
+          canjeClienteEnabled: true,
+          tiebreakEmpate:      'sede_actual', // regla A de Dexter
+          notas:               'Canje se ejecuta en sede predominante en sellos. Empate: sede donde el cliente pide canjear.',
+          actualizadoEn:       new Date().toISOString(),
+        });
+
+        write('\n✅ Seed marca completado.', 'ok');
+        write('   Ejecuta ahora los 3 seeds per-sede:', 'info');
+        write('   • /seed-kronnos-penablanca.html', 'info');
+        write('   • /seed-kronnos-limache.html',    'info');
+        write('   • /seed-kronnos-woman.html',      'info');
+      } catch (e) {
+        write(`\n❌ Error: ${e.message}`, 'err');
+      }
+      btn.disabled = false;
+    }
+  </script>
+</body>
+</html>

@@ -11,14 +11,17 @@
              border-radius: .5rem; font-size: 1rem; font-weight: 700; cursor: pointer; margin-top: 1rem; }
     button:disabled { opacity: .4; cursor: not-allowed; }
     pre  { background: #1a1a1a; padding: 1rem; border-radius: .5rem; white-space: pre-wrap; margin-top: 1rem; }
-    .ok  { color: #34d399; } .err { color: #f87171; } .warn{ color: #fbbf24; }
+    .ok  { color: #34d399; }
+    .err { color: #f87171; }
+    .warn{ color: #fbbf24; }
+    .info{ color: #60a5fa; }
   </style>
 </head>
 <body>
   <h1>Seed — Kronnos Woman</h1>
-  <p>Popula <code>tenants/kronnos_woman/</code> con equipo, servicios, premios y anuncio.</p>
-  <p class="warn">⚠ Catálogo parcial: 3 servicios reales confirmados (de ~86). El resto debe cargarlo el cliente desde el panel.</p>
-  <button id="btn" onclick="run()">▶ Ejecutar Seed</button>
+  <p>Popula <code>tenants/kronnos_woman/</code> con: profesionales, servicios (36 del Excel), configuración y anuncio.</p>
+  <p class="info">Camino 1.5: premios/rangos/descuentos NO se cargan aquí — viven en pool marca. Ejecuta primero <code>/seed-kronnos-marca.html</code>.</p>
+  <button id="btn" onclick="run()">▶ Ejecutar Seed Woman</button>
   <pre id="log">Listo para ejecutar…</pre>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -27,14 +30,25 @@
   <script src="/firebase-config.js?v=1.3"></script>
   <script>
     const TENANT = 'kronnos_woman';
-    const log = document.getElementById('log'), btn = document.getElementById('btn');
-    function write(m, c) { log.innerHTML += `<span class="${c||''}">${m}\n</span>`; }
-    async function set(path, data) {
-      const parts = path.split('/'); let ref = db;
-      for (let i = 0; i < parts.length; i++) ref = i % 2 === 0 ? ref.collection(parts[i]) : ref.doc(parts[i]);
-      await ref.set(data, { merge: true }); write(`  ✓ ${path}`, 'ok');
+    const SEDE_ID = 'woman';
+    const log = document.getElementById('log');
+    const btn = document.getElementById('btn');
+
+    function write(msg, cls) {
+      log.innerHTML += `<span class="${cls||''}">${msg}\n</span>`;
     }
-    // Horario Woman: Lun a Dom 09:30–23:00.
+
+    async function setDoc(path, data) {
+      const parts = path.split('/');
+      let ref = db;
+      for (let i = 0; i < parts.length; i++) {
+        ref = i % 2 === 0 ? ref.collection(parts[i]) : ref.doc(parts[i]);
+      }
+      await ref.set(data, { merge: true });
+      write(`  ✓ ${path}`, 'ok');
+    }
+
+    // Horario Woman: Lun a Dom 09:30–23:00 (extendido para servicios femeninos)
     const horarioBase = {
       '1': { activo: true, inicio: '09:30', fin: '23:00', descansos: [] },
       '2': { activo: true, inicio: '09:30', fin: '23:00', descansos: [] },
@@ -44,16 +58,67 @@
       '6': { activo: true, inicio: '09:30', fin: '23:00', descansos: [] },
       '0': { activo: true, inicio: '09:30', fin: '23:00', descansos: [] },
     };
+
+    // Servicios reales del Excel kronnos-configuracion (2).xlsx — Woman (36)
+    const servicios = [
+      { id: 'maquillaje-noche',                     nombre: 'Maquillaje Noche',                     categoria: 'Maquillaje', duracion: 60,  precio: 35000 },
+      { id: 'masaje-corporal',                      nombre: 'Masaje Corporal',                      categoria: 'Masajes',    duracion: 70,  precio: 29990, descripcion: 'Masaje descontracturante' },
+      { id: 'manicura-rusa',                        nombre: 'Manicura Rusa',                        categoria: 'Manicura',   duracion: 45,  precio: 15000, descripcion: 'Técnica E-File' },
+      { id: 'laminado-ceja',                        nombre: 'Laminado de Ceja',                     categoria: 'Pestañas',   duracion: 40,  precio: 15000 },
+      { id: 'masaje-brasil-cacao',                  nombre: 'Masaje Brasil Cacao (botox alisante)', categoria: 'Cabello',    duracion: 90,  precio: 20990 },
+      { id: 'masaje-hidratacion-expres',            nombre: 'Masaje de Hidratación Express',        categoria: 'Cabello',    duracion: 60,  precio: 15000 },
+      { id: 'depilacion-menton',                    nombre: 'Depilación del Mentón',                categoria: 'Otro',       duracion: 10,  precio: 2500 },
+      { id: 'depilacion-media-espalda',             nombre: 'Depilación Media Espalda',             categoria: 'Otro',       duracion: 20,  precio: 6000 },
+      { id: 'masaje-capilar-nanno-botox',           nombre: 'Masaje Capilar (Nano Botox)',          categoria: 'Otro',       duracion: 90,  precio: 26990 },
+      { id: 'masaje-craneal',                       nombre: 'Masaje Craneal',                       categoria: 'Cabello',    duracion: 10,  precio: 2500 },
+      { id: 'limpieza-manicura-basica',             nombre: 'Limpieza de Manicura Básica',          categoria: 'Manicura',   duracion: 60,  precio: 11000 },
+      { id: 'depilacion-nuca',                      nombre: 'Depilación de Nuca',                   categoria: 'Otro',       duracion: 10,  precio: 5000 },
+      { id: 'depilacion-espalda-completa',          nombre: 'Depilación Espalda Completa',          categoria: 'Otro',       duracion: 60,  precio: 10000 },
+      { id: 'depilacion-medio-brazo',               nombre: 'Depilación de Medio Brazo',            categoria: 'Otro',       duracion: 20,  precio: 5500 },
+      { id: 'polygel',                              nombre: 'Polygel',                              categoria: 'Manicura',   duracion: 155, precio: 35000 },
+      { id: 'masaje-reductivo-3-sesiones',          nombre: 'Masaje Reductivo (3 sesiones)',        categoria: 'Masajes',    duracion: 60,  precio: 50000 },
+      { id: 'bano-color',                           nombre: 'Baño Color',                           categoria: 'Cabello',    duracion: 120, precio: 30000 },
+      { id: 'rebaje-largo',                         nombre: 'Rebaje Largo',                         categoria: 'Otro',       duracion: 30,  precio: 8000 },
+      { id: 'global',                               nombre: 'Global',                               categoria: 'Otro',       duracion: 160, precio: 55000 },
+      { id: 'corte-de-puntas',                      nombre: 'Corte de Puntas',                      categoria: 'Cabello',    duracion: 30,  precio: 8990 },
+      { id: 'depilacion-frente',                    nombre: 'Depilación de Frente',                 categoria: 'Otro',       duracion: 15,  precio: 3500 },
+      { id: 'depilacion-pierna-completa',           nombre: 'Depilación Pierna Completa',           categoria: 'Otro',       duracion: 35,  precio: 10000 },
+      { id: 'corte-bob',                            nombre: 'Corte Bob',                            categoria: 'Cabello',    duracion: 60,  precio: 20990 },
+      { id: 'bloque-fantasia',                      nombre: 'Bloque de Fantasía',                   categoria: 'Cabello',    duracion: 240, precio: 55000 },
+      { id: 'depilacion-mejillas',                  nombre: 'Depilación de Mejillas',               categoria: 'Otro',       duracion: 10,  precio: 3500 },
+      { id: 'rebaje-completo',                      nombre: 'Rebaje Completo',                      categoria: 'Otro',       duracion: 30,  precio: 15000 },
+      { id: 'masaje-reductivo-9-sesiones',          nombre: 'Masaje Reductivo (9 sesiones)',        categoria: 'Masajes',    duracion: 240, precio: 120000 },
+      { id: 'mechas',                               nombre: 'Mechas',                               categoria: 'Cabello',    duracion: 10,  precio: 50000 },
+      { id: 'embellecimiento-pie-spa-esmaltado',    nombre: 'Embellecimiento de Pie con Spa + Esmaltado', categoria: 'Manicura', duracion: 120, precio: 25990 },
+      { id: 'depilacion-abdomen-completo',          nombre: 'Depilación Abdomen Completo',          categoria: 'Otro',       duracion: 30,  precio: 8000 },
+      { id: 'corte-bordado',                        nombre: 'Corte Bordado',                        categoria: 'Cabello',    duracion: 60,  precio: 22990 },
+      { id: 'babylights',                           nombre: 'Babylights',                           categoria: 'Cabello',    duracion: 240, precio: 60000 },
+      { id: 'depilacion-brazo-completa',            nombre: 'Depilación de Brazo Completa',         categoria: 'Otro',       duracion: 20,  precio: 8000 },
+      { id: 'retiro-esmaltado-permanente',          nombre: 'Retiro Esmaltado Permanente',          categoria: 'Manicura',   duracion: 35,  precio: 6000 },
+      { id: 'retiro-kapping-gel',                   nombre: 'Retiro Kapping Gel',                   categoria: 'Manicura',   duracion: 30,  precio: 8000 },
+      { id: 'aplicacion-tintura',                   nombre: 'Aplicación de Tintura',                categoria: 'Cabello',    duracion: 60,  precio: 18000 },
+    ];
+
     async function run() {
-      btn.disabled = true; log.innerHTML = '';
+      btn.disabled = true;
+      log.innerHTML = '';
       try {
         write('── Equipo ──');
-        await set(`tenants/${TENANT}/barberos/kelly`,   { nombre: 'Kelly',   especialidad: 'Manicurista', activo: true, disponible: true, foto: null, horario: horarioBase });
-        await set(`tenants/${TENANT}/barberos/ernesto`, { nombre: 'Ernesto', especialidad: 'Estilista',  activo: true, disponible: true, foto: null, horario: horarioBase });
-        await set(`tenants/${TENANT}/barberos/heydee`,  { nombre: 'Heydee',  especialidad: 'Estilista',  activo: true, disponible: true, foto: null, horario: horarioBase });
+        await setDoc(`tenants/${TENANT}/barberos/kelly`, {
+          nombre: 'Kelly', activo: true, disponible: true, foto: null, horario: horarioBase,
+          rol: 'manicurista', sedes: [SEDE_ID],
+        });
+        await setDoc(`tenants/${TENANT}/barberos/ernesto`, {
+          nombre: 'Ernesto', activo: true, disponible: true, foto: null, horario: horarioBase,
+          rol: 'estilista', sedes: [SEDE_ID],
+        });
+        await setDoc(`tenants/${TENANT}/barberos/heydee`, {
+          nombre: 'Heydee', activo: true, disponible: true, foto: null, horario: horarioBase,
+          rol: 'estilista', sedes: [SEDE_ID],
+        });
 
         write('\n── Configuración general ──');
-        await set(`tenants/${TENANT}/configuracion/main`, {
+        await setDoc(`tenants/${TENANT}/configuracion/main`, {
           horarioInicio:    '09:30',
           horarioFin:       '23:00',
           intervaloMinutos: 30,
@@ -62,43 +127,34 @@
           diasBloqueados:   [],
           colacion:         null,
           diasConfig:       {},
+          sedeId:           SEDE_ID,
         });
 
-        write('\n── Servicios ──');
-        await set(`tenants/${TENANT}/servicios/maquillaje-noche`, {
-          nombre: 'Maquillaje Noche', categoria: 'Maquillaje',
-          duracion: 70, precio: 35000, disponible: true, orden: 1,
-          descripcion: 'Maquillaje profesional para eventos de noche.',
-        });
-        await set(`tenants/${TENANT}/servicios/masaje-corporal`, {
-          nombre: 'Masaje Corporal', categoria: 'Masajes',
-          duracion: 70, precio: 29990, disponible: true, orden: 2,
-          descripcion: 'Masaje corporal relajante de cuerpo completo.',
-        });
-        await set(`tenants/${TENANT}/servicios/manicura-rusa`, {
-          nombre: 'Manicura Rusa', categoria: 'Manicura',
-          duracion: 45, precio: 15000, disponible: true, orden: 3,
-          descripcion: 'Manicura rusa con acabado profesional de larga duración.',
-        });
-        write('\n  (Catálogo parcial — faltan ~83 servicios por cargar)', 'warn');
-
-        write('\n── Premios (Club Kronnos Woman) ──');
-        const premSnap = await db.collection(`tenants/${TENANT}/premios`).get();
-        for (const d of premSnap.docs) await d.ref.delete();
-        if (premSnap.size) write(`  ✓ Premios anteriores eliminados (${premSnap.size})`, 'ok');
-        await db.collection(`tenants/${TENANT}/premios`).add({ nombre: 'Descuento 30%', descripcion: '30% de descuento en tu próximo servicio. Válido 30 días.', costoSellos: 5, icono: 'ph-tag', activo: true });
-        write('  ✓ Premio → "Descuento 30%" (5 sellos)', 'ok');
-        await db.collection(`tenants/${TENANT}/premios`).add({ nombre: 'Manicura gratis', descripcion: 'Una Manicura Rusa completamente gratis.', costoSellos: 10, icono: 'ph-hand-heart', activo: true });
-        write('  ✓ Premio → "Manicura gratis" (10 sellos)', 'ok');
+        write('\n── Servicios · Woman (36) ──');
+        for (let i = 0; i < servicios.length; i++) {
+          const s = servicios[i];
+          await setDoc(`tenants/${TENANT}/servicios/${s.id}`, {
+            nombre: s.nombre, categoria: s.categoria,
+            duracion: s.duracion, precio: s.precio,
+            disponible: true, orden: i + 1,
+            descripcion: s.descripcion || '',
+            sedeId: SEDE_ID,
+          });
+        }
 
         write('\n── Anuncio ──');
-        await set(`tenants/${TENANT}/config/anuncio`, {
-          titulo: 'Belleza y estética en Limache', descripcion: 'Manicura, maquillaje, masajes y más, con profesionales de más de 12 años de experiencia. Agenda online.',
-          imagen: '', ctaTexto: 'Reservar ahora', ctaUrl: '/', activo: true, versionId: Date.now().toString(),
+        await setDoc(`tenants/${TENANT}/config/anuncio`, {
+          titulo: 'Belleza y estética en Limache',
+          descripcion: 'Espacio de belleza con más de 12 años de experiencia. Manicura, cabello, masajes y más.',
+          imagen: '', ctaTexto: 'Reservar ahora', ctaUrl: '/', activo: true,
+          versionId: Date.now().toString(),
         });
 
-        write('\n✅ Seed completado. Prueba: /?local=kronnos_woman', 'ok');
-      } catch (e) { write(`\n❌ Error: ${e.message}`, 'err'); }
+        write('\n✅ Seed Woman completado.', 'ok');
+        write('   Prueba: https://kronnoswoman.synaptechspa.cl', 'info');
+      } catch (e) {
+        write(`\n❌ Error: ${e.message}`, 'err');
+      }
       btn.disabled = false;
     }
   </script>

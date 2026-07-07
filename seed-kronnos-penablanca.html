@@ -14,13 +14,14 @@
     .ok  { color: #34d399; }
     .err { color: #f87171; }
     .warn{ color: #fbbf24; }
+    .info{ color: #60a5fa; }
   </style>
 </head>
 <body>
   <h1>Seed — Kronnos Studio Peñablanca</h1>
-  <p>Popula <code>tenants/kronnos_penablanca/</code> con barberos, servicios, premios y anuncio.</p>
-  <p class="warn">⚠ Catálogo parcial: solo 3 servicios reales confirmados desde las capturas. El resto debe cargarlo el cliente desde el panel.</p>
-  <button id="btn" onclick="run()">▶ Ejecutar Seed</button>
+  <p>Popula <code>tenants/kronnos_penablanca/</code> con: barberos, servicios (17 del Excel), configuración y anuncio.</p>
+  <p class="info">Camino 1.5: premios/rangos/descuentos NO se cargan aquí — viven en pool marca. Ejecuta primero <code>/seed-kronnos-marca.html</code>.</p>
+  <button id="btn" onclick="run()">▶ Ejecutar Seed Peñablanca</button>
   <pre id="log">Listo para ejecutar…</pre>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -29,6 +30,7 @@
   <script src="/firebase-config.js?v=1.3"></script>
   <script>
     const TENANT = 'kronnos_penablanca';
+    const SEDE_ID = 'penablanca';
     const log = document.getElementById('log');
     const btn = document.getElementById('btn');
 
@@ -36,7 +38,7 @@
       log.innerHTML += `<span class="${cls||''}">${msg}\n</span>`;
     }
 
-    async function set(path, data) {
+    async function setDoc(path, data) {
       const parts = path.split('/');
       let ref = db;
       for (let i = 0; i < parts.length; i++) {
@@ -46,7 +48,7 @@
       write(`  ✓ ${path}`, 'ok');
     }
 
-    // Horario base Kronnos: Lun a Sáb 10:30–19:00, Dom cerrado.
+    // Horario Kronnos Peñablanca: Lun a Sáb 10:30–19:00.
     const horarioBase = {
       '1': { activo: true,  inicio: '10:30', fin: '19:00', descansos: [] },
       '2': { activo: true,  inicio: '10:30', fin: '19:00', descansos: [] },
@@ -57,25 +59,50 @@
       '0': { activo: false, inicio: '10:30', fin: '19:00', descansos: [] },
     };
 
+    // Servicios reales del Excel kronnos-configuracion (2).xlsx — Peñablanca (17)
+    const servicios = [
+      { id: 'pack-toallas-calientes', nombre: 'Pack Toallas Calientes',      categoria: 'PACKS KRONNOS',        duracion: 45,  precio: 24990, descripcion: 'Incluye corte de cabello y perfilado de barba con productos premium Viking, toallas caliente y fría, lavado de cabello y asesoramiento' },
+      { id: 'corte-barba',            nombre: 'Corte y Barba',                categoria: 'Servicios Masculinos', duracion: 40,  precio: 18990, descripcion: 'Corte + perfilado de barba' },
+      { id: 'corte-masculino',        nombre: 'Corte Masculino',              categoria: 'Servicios Masculinos', duracion: 45,  precio: 12990, descripcion: 'Incluye asesoría antes y después del corte, lavado de cabello y styling.' },
+      { id: 'pack-full-kronnos',      nombre: 'Pack Full Kronnos',            categoria: 'PACKS KRONNOS',        duracion: 75,  precio: 35990, descripcion: 'Incluye corte de cabello, barba con toallas calientes, masaje craneal y aplicación de productos Premium Viking.' },
+      { id: 'corte-dama',             nombre: 'Corte Dama',                   categoria: 'Servicios Femeninos',  duracion: 45,  precio: 14990, descripcion: 'Corte de cabello, con lavado revitalizante para un acabado perfecto' },
+      { id: 'corte-escolar',          nombre: 'Corte Escolar',                categoria: 'Servicios Masculinos', duracion: 30,  precio: 11990, descripcion: 'Corte de cabello Clásico sin degradado' },
+      { id: 'corte-bebe',             nombre: 'Corte Bebé 3 meses a 3 años',  categoria: 'Otro',                 duracion: 45,  precio: 14990, descripcion: 'Corte de especialidad, priorizado en el confort y cuidado del bebé, sin forzar.' },
+      { id: 'corte-de-puntas',        nombre: 'Corte de Puntas',              categoria: 'Servicios Femeninos',  duracion: 20,  precio: 11990, descripcion: 'Revitaliza tu cabello con nuestro servicio de Corte de Puntas. En 20 min eliminamos las puntas dañadas.' },
+      { id: 'barba-simple',           nombre: 'Barba Simple',                 categoria: 'Servicios Masculinos', duracion: 30,  precio: 10990, descripcion: 'Perfilado de barba con definición de contornos y ajuste de largo.' },
+      { id: 'barba-premium',          nombre: 'Barba Premium',                categoria: 'Servicios Masculinos', duracion: 35,  precio: 13990, descripcion: 'Perfilado y afeitado de barba con toallas calientes para acabado premium.' },
+      { id: 'corte-precision',        nombre: 'Corte de Precisión Masculino', categoria: 'Servicios Masculinos', duracion: 55,  precio: 16990, descripcion: 'Corte masculino con técnicas de precisión, acabado limpio y definido.' },
+      { id: 'masaje-craneal',         nombre: 'Masaje Craneal',               categoria: 'Servicios Masculinos', duracion: 5,   precio: 10000, descripcion: '10 min de masaje craneal con exfoliación del cuero cabelludo y activación del folículo.' },
+      { id: 'perfilado-cejas',        nombre: 'Perfilado de Cejas',           categoria: 'Servicios Masculinos', duracion: 10,  precio: 3000,  descripcion: 'Perfilado de cejas para definir su forma, acabado limpio y armonioso.' },
+      { id: 'hidratacion-femenina',   nombre: 'Hidratación de Cabello Femenino', categoria: 'Servicios Femeninos', duracion: 30, precio: 10000, descripcion: 'Lavado de cabello con Shampoo de algas marinas con germen de trigo. Vitamina E.' },
+      { id: 'total-restore',          nombre: 'Tratamiento Restaurador Total Restore', categoria: 'Servicios Femeninos', duracion: 30, precio: 15990, descripcion: 'Tratamiento restaurador para cabellos sensibilizados a base de Algas marinas y Keratina Vegetal.' },
+      { id: 'algaterapia',            nombre: 'Algaterapia',                  categoria: 'Servicios Femeninos',  duracion: 130, precio: 35990, descripcion: 'Tratamiento capilar que fortalece, nutre y revitaliza el cabello desde la raíz.' },
+      { id: 'corte-chasquilla',       nombre: 'Corte Chasquilla',             categoria: 'Servicios Femeninos',  duracion: 10,  precio: 4990,  descripcion: 'Corte de chasquilla para renovar tu estilo con acabado preciso.' },
+    ];
+
     async function run() {
       btn.disabled = true;
       log.innerHTML = '';
       try {
         /* ── Barberos / equipo ── */
         write('── Equipo ──');
-        await set(`tenants/${TENANT}/barberos/martin`, {
+        // Evelyn Contreras cruza sedes (aparece también en Limache). Marca sedes[] para el modelo.
+        await setDoc(`tenants/${TENANT}/barberos/martin`, {
           nombre: 'Martin', activo: true, disponible: true, foto: null, horario: horarioBase,
+          sedes: [SEDE_ID],
         });
-        await set(`tenants/${TENANT}/barberos/evelyn-contreras`, {
+        await setDoc(`tenants/${TENANT}/barberos/evelyn-contreras`, {
           nombre: 'Evelyn Contreras', activo: true, disponible: true, foto: null, horario: horarioBase,
+          sedes: ['penablanca', 'limache'], // cruza 2 sedes
         });
-        await set(`tenants/${TENANT}/barberos/araceli`, {
+        await setDoc(`tenants/${TENANT}/barberos/araceli`, {
           nombre: 'Araceli', activo: true, disponible: true, foto: null, horario: horarioBase,
+          sedes: [SEDE_ID],
         });
 
-        /* ── Configuración general (misma estructura que elegance) ── */
+        /* ── Configuración general ── */
         write('\n── Configuración general ──');
-        await set(`tenants/${TENANT}/configuracion/main`, {
+        await setDoc(`tenants/${TENANT}/configuracion/main`, {
           horarioInicio:    '10:30',
           horarioFin:       '19:00',
           intervaloMinutos: 30,
@@ -84,56 +111,33 @@
           diasBloqueados:   [],
           colacion:         null,
           diasConfig:       {},
+          sedeId:           SEDE_ID, // etiqueta para futuras métricas cross-sede
         });
 
-        /* ── Servicios (reales confirmados) ── */
-        write('\n── Servicios · PACKS KRONNOS ──');
-        await set(`tenants/${TENANT}/servicios/pack-toallas-calientes`, {
-          nombre: 'Pack Kronnos Toallas Calientes', categoria: 'PACKS KRONNOS',
-          duracion: 60, precio: 24990, disponible: true, orden: 1,
-          descripcion: 'Incluye corte de cabello y perfilado de barba con productos premium Viking, finalizando con el ritual de toallas calientes.',
-        });
+        /* ── Servicios (17 del Excel) ── */
+        write('\n── Servicios · Peñablanca (17) ──');
+        for (let i = 0; i < servicios.length; i++) {
+          const s = servicios[i];
+          await setDoc(`tenants/${TENANT}/servicios/${s.id}`, {
+            nombre: s.nombre, categoria: s.categoria,
+            duracion: s.duracion, precio: s.precio,
+            disponible: true, orden: i + 1,
+            descripcion: s.descripcion,
+            sedeId: SEDE_ID,
+          });
+        }
 
-        write('\n── Servicios · Servicios Masculinos ──');
-        await set(`tenants/${TENANT}/servicios/corte-barba-basico`, {
-          nombre: 'Corte y Barba básico', categoria: 'Servicios Masculinos',
-          duracion: 60, precio: 18990, disponible: true, orden: 2,
-          descripcion: 'Servicio "Corte y Barba Básico" diseñado para el hombre: corte de cabello y perfilado de barba.',
-        });
-        await set(`tenants/${TENANT}/servicios/corte-masculino`, {
-          nombre: 'Corte Masculino', categoria: 'Servicios Masculinos',
-          duracion: 45, precio: 12990, disponible: true, orden: 3,
-          descripcion: 'Incluye asesoría antes y después del corte, lavado de cabello y styling.',
-        });
-
-        write('\n  (Catálogo parcial — faltan ~20 servicios por cargar)', 'warn');
-
-        /* ── Premios / Club Kronnos ── */
-        write('\n── Premios (Club Kronnos) ──');
-        const premSnap = await db.collection(`tenants/${TENANT}/premios`).get();
-        for (const d of premSnap.docs) await d.ref.delete();
-        if (premSnap.size) write(`  ✓ Premios anteriores eliminados (${premSnap.size})`, 'ok');
-        await db.collection(`tenants/${TENANT}/premios`).add({
-          nombre: 'Descuento 30%', descripcion: '30% de descuento en tu próximo corte. Válido 30 días.',
-          costoSellos: 5, icono: 'ph-tag', activo: true,
-        });
-        write('  ✓ Premio → "Descuento 30%" (5 sellos)', 'ok');
-        await db.collection(`tenants/${TENANT}/premios`).add({
-          nombre: 'Corte gratis', descripcion: 'Un Corte Masculino completamente gratis. Elige al profesional de tu preferencia.',
-          costoSellos: 10, icono: 'ph-scissors', activo: true,
-        });
-        write('  ✓ Premio → "Corte gratis" (10 sellos)', 'ok');
-
-        /* ── Anuncio de Marketing ── */
+        /* ── Anuncio ── */
         write('\n── Anuncio ──');
-        await set(`tenants/${TENANT}/config/anuncio`, {
+        await setDoc(`tenants/${TENANT}/config/anuncio`, {
           titulo: 'Espacio unisex en Villa Alemana',
           descripcion: 'Barbería y estilismo profesional con más de 12 años de experiencia. Agenda tu hora online.',
           imagen: '', ctaTexto: 'Reservar ahora', ctaUrl: '/', activo: true,
           versionId: Date.now().toString(),
         });
 
-        write('\n✅ Seed completado. Prueba: /?local=kronnos_penablanca', 'ok');
+        write('\n✅ Seed Peñablanca completado.', 'ok');
+        write('   Prueba: https://kronnospenablanca.synaptechspa.cl', 'info');
       } catch (e) {
         write(`\n❌ Error: ${e.message}`, 'err');
       }

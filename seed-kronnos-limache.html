@@ -11,14 +11,17 @@
              border-radius: .5rem; font-size: 1rem; font-weight: 700; cursor: pointer; margin-top: 1rem; }
     button:disabled { opacity: .4; cursor: not-allowed; }
     pre  { background: #1a1a1a; padding: 1rem; border-radius: .5rem; white-space: pre-wrap; margin-top: 1rem; }
-    .ok  { color: #34d399; } .err { color: #f87171; } .warn{ color: #fbbf24; }
+    .ok  { color: #34d399; }
+    .err { color: #f87171; }
+    .warn{ color: #fbbf24; }
+    .info{ color: #60a5fa; }
   </style>
 </head>
 <body>
   <h1>Seed — Kronnos Studio Limache</h1>
-  <p>Popula <code>tenants/kronnos_limache/</code> con barberos, servicios, premios y anuncio.</p>
-  <p class="warn">⚠ Catálogo parcial: 6 servicios reales confirmados desde las capturas. El resto debe cargarlo el cliente desde el panel.</p>
-  <button id="btn" onclick="run()">▶ Ejecutar Seed</button>
+  <p>Popula <code>tenants/kronnos_limache/</code> con: barberos, servicios (9 del Excel), configuración y anuncio.</p>
+  <p class="info">Camino 1.5: premios/rangos/descuentos NO se cargan aquí — viven en pool marca. Ejecuta primero <code>/seed-kronnos-marca.html</code>.</p>
+  <button id="btn" onclick="run()">▶ Ejecutar Seed Limache</button>
   <pre id="log">Listo para ejecutar…</pre>
 
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
@@ -27,13 +30,24 @@
   <script src="/firebase-config.js?v=1.3"></script>
   <script>
     const TENANT = 'kronnos_limache';
-    const log = document.getElementById('log'), btn = document.getElementById('btn');
-    function write(m, c) { log.innerHTML += `<span class="${c||''}">${m}\n</span>`; }
-    async function set(path, data) {
-      const parts = path.split('/'); let ref = db;
-      for (let i = 0; i < parts.length; i++) ref = i % 2 === 0 ? ref.collection(parts[i]) : ref.doc(parts[i]);
-      await ref.set(data, { merge: true }); write(`  ✓ ${path}`, 'ok');
+    const SEDE_ID = 'limache';
+    const log = document.getElementById('log');
+    const btn = document.getElementById('btn');
+
+    function write(msg, cls) {
+      log.innerHTML += `<span class="${cls||''}">${msg}\n</span>`;
     }
+
+    async function setDoc(path, data) {
+      const parts = path.split('/');
+      let ref = db;
+      for (let i = 0; i < parts.length; i++) {
+        ref = i % 2 === 0 ? ref.collection(parts[i]) : ref.doc(parts[i]);
+      }
+      await ref.set(data, { merge: true });
+      write(`  ✓ ${path}`, 'ok');
+    }
+
     const horarioBase = {
       '1': { activo: true,  inicio: '10:30', fin: '19:00', descansos: [] },
       '2': { activo: true,  inicio: '10:30', fin: '19:00', descansos: [] },
@@ -43,18 +57,48 @@
       '6': { activo: true,  inicio: '10:30', fin: '19:00', descansos: [] },
       '0': { activo: false, inicio: '10:30', fin: '19:00', descansos: [] },
     };
+
+    // Servicios reales del Excel kronnos-configuracion (2).xlsx — Limache (9)
+    const servicios = [
+      { id: 'pack-toallas-calientes', nombre: 'Pack Toallas Calientes',    categoria: 'PACKS KRONNOS',        duracion: 60, precio: 24990, descripcion: 'Incluye corte de cabello y perfilado de barba con productos premium Viking, toallas caliente y fría, lavado de cabello y asesoramiento' },
+      { id: 'corte-masculino',        nombre: 'Corte Masculino',            categoria: 'Servicios Masculinos', duracion: 45, precio: 14990, descripcion: 'Incluye asesoría antes y después del corte, lavado de cabello y styling.' },
+      { id: 'corte-barba',            nombre: 'Corte y Barba',              categoria: 'Servicios Masculinos', duracion: 60, precio: 20990, descripcion: 'Corte + perfilado de barba' },
+      { id: 'precision-masculino',    nombre: 'Precisión Masculino',        categoria: 'Servicios Masculinos', duracion: 50, precio: 16990, descripcion: 'Corte masculino con técnicas de precisión.' },
+      { id: 'corte-bebe',             nombre: 'Corte Bebé',                 categoria: 'Servicios Masculinos', duracion: 20, precio: 8990,  descripcion: 'Niños menores de 4 años.' },
+      { id: 'corte-escolar',          nombre: 'Corte Escolar',              categoria: 'Servicios Masculinos', duracion: 30, precio: 12990, descripcion: 'Corte clásico sin degradado.' },
+      { id: 'barba-simple',           nombre: 'Barba Simple',               categoria: 'Servicios Masculinos', duracion: 30, precio: 12990, descripcion: 'Perfilado de barba con definición de contornos.' },
+      { id: 'barba-premium',          nombre: 'Barba Premium',              categoria: 'Servicios Masculinos', duracion: 35, precio: 15990, descripcion: 'Perfilado y afeitado con toallas calientes.' },
+      { id: 'perfilado-ceja',         nombre: 'Perfilado Ceja',             categoria: 'Servicios Masculinos', duracion: 10, precio: 3000,  descripcion: 'Perfilado de cejas para definir su forma.' },
+    ];
+
     async function run() {
-      btn.disabled = true; log.innerHTML = '';
+      btn.disabled = true;
+      log.innerHTML = '';
       try {
         write('── Equipo ──');
-        for (const [id, nombre] of [
-          ['evelyn-contreras', 'Evelyn Contreras'], ['claudio', 'Claudio'],
-          ['cristian-orostica', 'Cristian Orostica'], ['orlando-palacios', 'Orlando Palacios'],
-          ['victor', 'Víctor'],
-        ]) await set(`tenants/${TENANT}/barberos/${id}`, { nombre, activo: true, disponible: true, foto: null, horario: horarioBase });
+        await setDoc(`tenants/${TENANT}/barberos/evelyn-contreras`, {
+          nombre: 'Evelyn Contreras', activo: true, disponible: true, foto: null, horario: horarioBase,
+          sedes: ['penablanca', 'limache'], // cruza 2 sedes
+        });
+        await setDoc(`tenants/${TENANT}/barberos/claudio`, {
+          nombre: 'Claudio', activo: true, disponible: true, foto: null, horario: horarioBase,
+          sedes: [SEDE_ID],
+        });
+        await setDoc(`tenants/${TENANT}/barberos/cristian-orostica`, {
+          nombre: 'Cristian Orostica', activo: true, disponible: true, foto: null, horario: horarioBase,
+          sedes: [SEDE_ID],
+        });
+        await setDoc(`tenants/${TENANT}/barberos/orlando-palacios`, {
+          nombre: 'Orlando Palacios', activo: true, disponible: true, foto: null, horario: horarioBase,
+          sedes: [SEDE_ID],
+        });
+        await setDoc(`tenants/${TENANT}/barberos/victor`, {
+          nombre: 'Víctor', activo: true, disponible: true, foto: null, horario: horarioBase,
+          sedes: [SEDE_ID],
+        });
 
         write('\n── Configuración general ──');
-        await set(`tenants/${TENANT}/configuracion/main`, {
+        await setDoc(`tenants/${TENANT}/configuracion/main`, {
           horarioInicio:    '10:30',
           horarioFin:       '19:00',
           intervaloMinutos: 30,
@@ -63,58 +107,34 @@
           diasBloqueados:   [],
           colacion:         null,
           diasConfig:       {},
+          sedeId:           SEDE_ID,
         });
 
-        write('\n── Servicios ──');
-        await set(`tenants/${TENANT}/servicios/pack-toallas-calientes`, {
-          nombre: 'Pack Kronnos Toallas Calientes', categoria: 'PACKS KRONNOS',
-          duracion: 60, precio: 24990, disponible: true, orden: 1,
-          descripcion: 'Incluye corte de cabello y perfilado de barba con productos premium Viking, finalizando con el ritual de toallas calientes.',
-        });
-        await set(`tenants/${TENANT}/servicios/corte-masculino`, {
-          nombre: 'Corte Masculino', categoria: 'Servicios Masculinos',
-          duracion: 45, precio: 14990, disponible: true, orden: 2,
-          descripcion: 'Incluye asesoría antes y después del corte, lavado de cabello y styling.',
-        });
-        await set(`tenants/${TENANT}/servicios/corte-barba-basico`, {
-          nombre: 'Corte y Barba básico', categoria: 'Servicios Masculinos',
-          duracion: 60, precio: 20990, disponible: true, orden: 3,
-          descripcion: 'Servicio básico que incluye corte de cabello y perfilado de barba con jabón de afeitar.',
-        });
-        await set(`tenants/${TENANT}/servicios/corte-precision`, {
-          nombre: 'Corte de Precisión Masculino', categoria: 'Servicios Masculinos',
-          duracion: 45, precio: 16990, disponible: true, orden: 4,
-          descripcion: 'Corte de precisión masculino con acabado detallado.',
-        });
-        await set(`tenants/${TENANT}/servicios/corte-bebe`, {
-          nombre: 'Corte Bebé (3 meses a 3 años)', categoria: 'Servicios Masculinos',
-          duracion: 30, precio: 16990, disponible: true, orden: 5,
-          descripcion: 'Corte de especialidad, priorizando el confort y cuidado del bebé.',
-        });
-        await set(`tenants/${TENANT}/servicios/corte-escolar`, {
-          nombre: 'Corte Escolar', categoria: 'Servicios Masculinos',
-          duracion: 30, precio: 12990, disponible: true, orden: 6,
-          descripcion: 'Corte varón y adulto (sin degradé).',
-        });
-        write('\n  (Catálogo parcial — faltan ~6 servicios por cargar)', 'warn');
-
-        write('\n── Premios (Club Kronnos) ──');
-        const premSnap = await db.collection(`tenants/${TENANT}/premios`).get();
-        for (const d of premSnap.docs) await d.ref.delete();
-        if (premSnap.size) write(`  ✓ Premios anteriores eliminados (${premSnap.size})`, 'ok');
-        await db.collection(`tenants/${TENANT}/premios`).add({ nombre: 'Descuento 30%', descripcion: '30% de descuento en tu próximo corte. Válido 30 días.', costoSellos: 5, icono: 'ph-tag', activo: true });
-        write('  ✓ Premio → "Descuento 30%" (5 sellos)', 'ok');
-        await db.collection(`tenants/${TENANT}/premios`).add({ nombre: 'Corte gratis', descripcion: 'Un Corte Masculino completamente gratis.', costoSellos: 10, icono: 'ph-scissors', activo: true });
-        write('  ✓ Premio → "Corte gratis" (10 sellos)', 'ok');
+        write('\n── Servicios · Limache (9) ──');
+        for (let i = 0; i < servicios.length; i++) {
+          const s = servicios[i];
+          await setDoc(`tenants/${TENANT}/servicios/${s.id}`, {
+            nombre: s.nombre, categoria: s.categoria,
+            duracion: s.duracion, precio: s.precio,
+            disponible: true, orden: i + 1,
+            descripcion: s.descripcion,
+            sedeId: SEDE_ID,
+          });
+        }
 
         write('\n── Anuncio ──');
-        await set(`tenants/${TENANT}/config/anuncio`, {
-          titulo: 'Espacio unisex en Limache', descripcion: 'Barbería y estilismo profesional con más de 12 años de experiencia. Agenda tu hora online.',
-          imagen: '', ctaTexto: 'Reservar ahora', ctaUrl: '/', activo: true, versionId: Date.now().toString(),
+        await setDoc(`tenants/${TENANT}/config/anuncio`, {
+          titulo: 'Espacio unisex en Limache',
+          descripcion: 'Barbería y estilismo profesional con más de 12 años de experiencia. Agenda tu hora online.',
+          imagen: '', ctaTexto: 'Reservar ahora', ctaUrl: '/', activo: true,
+          versionId: Date.now().toString(),
         });
 
-        write('\n✅ Seed completado. Prueba: /?local=kronnos_limache', 'ok');
-      } catch (e) { write(`\n❌ Error: ${e.message}`, 'err'); }
+        write('\n✅ Seed Limache completado.', 'ok');
+        write('   Prueba: https://kronnoslimache.synaptechspa.cl', 'info');
+      } catch (e) {
+        write(`\n❌ Error: ${e.message}`, 'err');
+      }
       btn.disabled = false;
     }
   </script>
