@@ -8,7 +8,7 @@ import {
   Sparkles, Loader2,
 } from 'lucide-react';
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import { updateDoc, addDoc, setDoc, deleteDoc, doc, serverTimestamp, deleteField, writeBatch, Timestamp, query, where, getDocs } from 'firebase/firestore';
+import { updateDoc, addDoc, deleteDoc, doc, serverTimestamp, deleteField, writeBatch, Timestamp, query, where, getDocs } from 'firebase/firestore';
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors,
 } from '@dnd-kit/core';
@@ -19,7 +19,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage, auth } from '../lib/firebase';
-import { tenantCol, tenantDoc, resolveTenantId } from '../lib/tenantUtils';
+import { tenantCol, resolveTenantId } from '../lib/tenantUtils';
 import { withTimeout } from '../lib/firestore-helpers';
 import { confirmDialog } from '../lib/confirmDialog';
 import { useCollection } from '../hooks/useCollection';
@@ -850,23 +850,19 @@ export default function Equipo() {
         }
       }
 
-      // 2) Firestore: mismo payload que antes + campos de acceso si corresponde.
-      const accesoFields = newUid ? { uid: newUid, authUid: newUid } : {};
+      // 2) Firestore: se preserva el docId original SIEMPRE.
+      //    Si hay newUid, se guarda en authUid del doc (no como docId).
+      //    Esto evita romper la integridad referencial de citas/comisiones
+      //    que apuntan al barberoId original. Las reglas reconocen ambos
+      //    caminos: docId == auth.uid (legacy) o authUid == auth.uid (nuevo).
+      const accesoFields = newUid ? { authUid: newUid } : {};
 
       if (editing) {
         const payload = { ...form, ...accesoFields, updatedAt: serverTimestamp() };
         payload.foto = form.foto || deleteField();
         await updateDoc(doc(db, `${tenantCol('barberos').path}/${editing.id}`), payload);
-      } else if (newUid) {
-        // Con acceso: docId = uid para que las reglas de Firestore que
-        // asumen esa correspondencia funcionen (y el trigger encuentre
-        // el user por resolveUid → docId).
-        const payload = { ...form, ...accesoFields, disponible: true, createdAt: serverTimestamp() };
-        if (!payload.foto) delete payload.foto;
-        await setDoc(tenantDoc('barberos', newUid), payload);
       } else {
-        // Sin acceso: docId random (comportamiento previo).
-        const payload = { ...form, disponible: true, createdAt: serverTimestamp() };
+        const payload = { ...form, ...accesoFields, disponible: true, createdAt: serverTimestamp() };
         if (!payload.foto) delete payload.foto;
         await addDoc(tenantCol('barberos'), payload);
       }
@@ -1308,82 +1304,94 @@ export default function Equipo() {
           </Section>
 
           {/* ── Acceso al panel web ──
-              Solo visible al CREAR un nuevo miembro (o al editar uno que aún
-              no tiene cuenta). Al activar el toggle se crea la cuenta Firebase
-              Auth server-side vía crearAccesoStaff (Cloud Function) para no
-              perder la sesión del admin actual. */}
-          {(!editing || (!editing.uid && !editing.authUid)) && (
-            <Section title="Acceso al panel web" Icon={KeyRound}>
-              <p className="text-[10px] text-slate-500 -mt-1 mb-2">
-                Habilita esto si quieres que el {memberLabel} pueda iniciar sesión en el panel con su email.
-              </p>
-              <button type="button"
-                onClick={() => { setAccesoEnabled(v => !v); setAccesoMsg(''); }}
-                className={`flex items-center gap-2 w-full px-3 py-2.5 rounded-lg border text-sm font-semibold transition-colors ${
-                  accesoEnabled
-                    ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300'
-                    : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-600'
-                }`}>
-                <span className={`w-8 h-4 rounded-full transition-colors relative ${accesoEnabled ? 'bg-emerald-500' : 'bg-slate-600'}`}>
-                  <span className={`absolute top-0.5 w-3 h-3 bg-white rounded-full shadow transition-all ${accesoEnabled ? 'left-4' : 'left-0.5'}`} />
-                </span>
-                Habilitar acceso al panel web
-              </button>
+              Dos estados:
+                (a) Barbero YA tiene cuenta (editing.authUid || editing.uid) →
+                    read-only: badge "Cuenta activa" + email + botón para enviar
+                    recovery vía sendPasswordResetEmail (cliente, sin CF).
+                (b) Barbero NO tiene cuenta → toggle para habilitar + email +
+                    password. Al guardar se llama a crearAccesoStaff (CF) para
+                    no perder la sesión del admin actual. */}
+          <Section title="Acceso al panel web" Icon={KeyRound}>
+            {editing && (editing.authUid || editing.uid) ? (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg border bg-emerald-500/10 border-emerald-500/30 text-emerald-300">
+                  <CheckCircle2 size={16} />
+                  <span className="text-sm font-semibold">Cuenta de acceso activa</span>
+                </div>
 
-              {accesoEnabled && (
-                <div className="mt-3 space-y-3 pl-1">
-                  <div>
-                    <label className={lbl}>Correo electrónico</label>
-                    <input className={field} type="email" placeholder="correo@ejemplo.com"
-                      value={form.email}
-                      onChange={e => set('email', e.target.value)} />
-                    <p className="text-[10px] text-slate-600 mt-1">
-                      Este será el usuario para iniciar sesión.
-                    </p>
+                <div>
+                  <label className={lbl}>Email vinculado</label>
+                  <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-slate-800/60 border border-slate-700 text-sm text-slate-200 font-mono">
+                    <Mail size={13} className="text-slate-500 shrink-0" />
+                    <span className="truncate">{form.email || editing.email || '—'}</span>
                   </div>
-                  <div>
-                    <label className={lbl}>Contraseña temporal</label>
-                    <input className={field} type="password" placeholder="Mínimo 6 caracteres" minLength={6}
-                      value={accesoPassword}
-                      onChange={e => setAccesoPassword(e.target.value)} />
-                    <p className="text-[10px] text-slate-600 mt-1">
-                      Compártela con el {memberLabel} — podrá cambiarla desde su email de restablecimiento.
+                  <p className="text-[10px] text-slate-600 mt-1">
+                    El {memberLabel} inicia sesión en el panel con este correo.
+                  </p>
+                </div>
+
+                <div>
+                  <button type="button" onClick={handlePasswordReset}
+                    disabled={resetSending || !(form.email.trim() || editing.email)}
+                    className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 border border-slate-700 text-slate-300 hover:text-white text-xs font-semibold rounded-lg transition-all">
+                    {resetSending
+                      ? <span className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
+                      : <KeyRound size={13} />}
+                    Enviar enlace de recuperación
+                  </button>
+                  {resetMsg && (
+                    <p className={`text-xs font-semibold mt-2 ${resetMsg.startsWith('✓') ? 'text-emerald-400' : 'text-red-400'}`}>
+                      {resetMsg}
                     </p>
-                  </div>
-                  {accesoMsg && (
-                    <p className="text-xs font-semibold text-red-400 leading-snug">{accesoMsg}</p>
                   )}
                 </div>
-              )}
-            </Section>
-          )}
-
-          {/* ── Seguridad ── */}
-          {editing && (
-            <Section title="Seguridad" Icon={KeyRound}>
-              <p className="text-xs text-slate-500 -mt-1">
-                Envía un enlace al email del {memberLabel} para que restablezca su contraseña. Requiere que tenga cuenta Firebase Auth con ese email.
-              </p>
-              <div className="flex items-center gap-2">
-                <button type="button" onClick={handlePasswordReset}
-                  disabled={resetSending || !form.email.trim()}
-                  className="flex items-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 border border-slate-700 text-slate-300 hover:text-white text-xs font-semibold rounded-lg transition-all">
-                  {resetSending
-                    ? <span className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
-                    : <KeyRound size={13} />}
-                  Enviar enlace de restablecimiento
-                </button>
               </div>
-              {resetMsg && (
-                <p className={`text-xs font-semibold ${resetMsg.startsWith('✓') ? 'text-emerald-400' : 'text-red-400'}`}>
-                  {resetMsg}
+            ) : (
+              <>
+                <p className="text-[10px] text-slate-500 -mt-1 mb-2">
+                  Habilita esto si quieres que el {memberLabel} pueda iniciar sesión en el panel con su email.
                 </p>
-              )}
-              {!form.email.trim() && (
-                <p className="text-[10px] text-slate-600 italic">El barbero necesita un email para usar esta función.</p>
-              )}
-            </Section>
-          )}
+                <button type="button"
+                  onClick={() => { setAccesoEnabled(v => !v); setAccesoMsg(''); }}
+                  className={`flex items-center gap-2 w-full px-3 py-2.5 rounded-lg border text-sm font-semibold transition-colors ${
+                    accesoEnabled
+                      ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300'
+                      : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-600'
+                  }`}>
+                  <span className={`w-8 h-4 rounded-full transition-colors relative ${accesoEnabled ? 'bg-emerald-500' : 'bg-slate-600'}`}>
+                    <span className={`absolute top-0.5 w-3 h-3 bg-white rounded-full shadow transition-all ${accesoEnabled ? 'left-4' : 'left-0.5'}`} />
+                  </span>
+                  Habilitar acceso al panel web
+                </button>
+
+                {accesoEnabled && (
+                  <div className="mt-3 space-y-3 pl-1">
+                    <div>
+                      <label className={lbl}>Correo electrónico</label>
+                      <input className={field} type="email" placeholder="correo@ejemplo.com"
+                        value={form.email}
+                        onChange={e => set('email', e.target.value)} />
+                      <p className="text-[10px] text-slate-600 mt-1">
+                        Este será el usuario para iniciar sesión.
+                      </p>
+                    </div>
+                    <div>
+                      <label className={lbl}>Contraseña temporal</label>
+                      <input className={field} type="password" placeholder="Mínimo 6 caracteres" minLength={6}
+                        value={accesoPassword}
+                        onChange={e => setAccesoPassword(e.target.value)} />
+                      <p className="text-[10px] text-slate-600 mt-1">
+                        Compártela con el {memberLabel} — podrá cambiarla desde su email de restablecimiento.
+                      </p>
+                    </div>
+                    {accesoMsg && (
+                      <p className="text-xs font-semibold text-red-400 leading-snug">{accesoMsg}</p>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+          </Section>
 
           {/* ── Comisión ── */}
           {isAdmin && (

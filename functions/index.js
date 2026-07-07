@@ -56,13 +56,15 @@ async function setClaims(uid, role, tenantId) {
 /**
  * Resuelve el UID de Firebase Auth para un doc de barbero.
  * - Si el docId es directamente un UID de Auth → lo usa.
- * - Si el doc tiene campo `uid` → lo usa.
+ * - Si el doc tiene campo `authUid` (patrón nuevo) → lo usa.
+ * - Si el doc tiene campo `uid` (patrón legacy) → lo usa.
  * - Si el doc tiene `_mainDocId` → el docId ya ES el UID (link-doc).
  */
 function resolveUid(docId, data) {
-  if (data._mainDocId) return docId;      // link-doc: su ID es el UID
-  if (data.uid)        return data.uid;   // campo uid explícito
-  return docId;                           // intentar con el docId directamente
+  if (data._mainDocId) return docId;         // link-doc: su ID es el UID
+  if (data.authUid)    return data.authUid;  // patrón nuevo (Equipo.jsx)
+  if (data.uid)        return data.uid;      // patrón legacy
+  return docId;                              // intentar con el docId directamente
 }
 
 // Trigger: /barberos/{docId} (tenant elegance)

@@ -142,6 +142,13 @@ service cloud.firestore {
     match /_referrals/{tid} {
       allow read:  if esAdmin(tid) || esBootstrap();
       allow write: if esBootstrap();
+
+      // Subcolección: referidos que este tenant trajo, con estado y meses gratis.
+      // Gestionada 100% desde /admin (superadmin) por ahora — cuando el panel
+      // interno del tenant lo exponga, se puede aflojar a esAdmin(tid) en read.
+      match /referidos/{referredTid} {
+        allow read, write: if esBootstrap();
+      }
     }
     match /_referralCodes/{code} {
       // Lectura pública: la landing /refiere/{code} la usa SIN sesión
@@ -193,7 +200,11 @@ service cloud.firestore {
                         && !('_mainDocId' in get(/databases/$(database)/documents/barberos/$(request.resource.data._mainDocId)).data));
       allow update: if esAdmin('elegance')
                     || (esStaff('elegance')
-                        && uid() == barberoId
+                        // Barbero se autoedita: el docId puede ser su propio UID
+                        // (patrón legacy) o el doc puede referenciar su UID vía
+                        // authUid (patrón nuevo — evita migrar docIds existentes).
+                        && (uid() == barberoId
+                            || uid() == resource.data.get('authUid', ''))
                         && sinCambio('rol')
                         && sinCambio('disponible')
                         && sinCambio('comision'));
@@ -855,7 +866,10 @@ service cloud.firestore {
                           && !('_mainDocId' in get(/databases/$(database)/documents/tenants/$(tid)/barberos/$(request.resource.data._mainDocId)).data));
         allow update: if esAdmin(tid)
                       || (esStaff(tid)
-                          && uid() == barberoId
+                          // Barbero se autoedita: docId == su UID (legacy)
+                          // o el doc apunta a su UID vía authUid (nuevo).
+                          && (uid() == barberoId
+                              || uid() == resource.data.get('authUid', ''))
                           && sinCambio('rol')
                           && sinCambio('disponible')
                           && sinCambio('comision'));
