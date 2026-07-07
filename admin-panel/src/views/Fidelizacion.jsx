@@ -72,14 +72,21 @@ function ResumenFidelizacion() {
   const stats = useMemo(() => {
     const sellosDe = u => u.sellosDisponibles ?? u.stamps ?? 0;
     const costoDe  = p => p.costoSellos ?? p.sellosCosto ?? 0;
+    // Espejo de Clientes.jsx:1585 — clientes migrados/importados por staff
+    // tienen uid === docId (teléfono). Los "registrados en el club" son los
+    // que crearon su cuenta de auth propia.
+    const isLegacy = u => !!u?.uid && u.uid === u.id;
 
     const premiosActivos = premios.filter(p => p.activo !== false);
     const menorCosto     = premiosActivos.length
       ? Math.min(...premiosActivos.map(costoDe).filter(c => c > 0))
       : Infinity;
 
-    const miembrosConSellos = users.filter(u => sellosDe(u) > 0).length;
-    const proximosACanjear  = users.filter(u => {
+    // Miembros del club = registrados en la app (matches Clientes → tab "Registrados Club").
+    const registrados      = users.filter(u => !isLegacy(u));
+    const miembrosDelClub  = registrados.length;
+    const conSellosActivos = registrados.filter(u => sellosDe(u) > 0).length;
+    const proximosACanjear = registrados.filter(u => {
       const s = sellosDe(u);
       return s > 0 && menorCosto !== Infinity && s >= menorCosto * 0.7 && s < menorCosto;
     }).length;
@@ -117,9 +124,15 @@ function ResumenFidelizacion() {
         fecha: r.completedAt?.toDate() || r.createdAt?.toDate() || null,
       }));
 
+    // Sellos en circulación: solo cuenta la base registrada — mantener
+    // consistencia con "Miembros del club".
+    const sellosEnCirculacion = registrados.reduce((s, u) => s + sellosDe(u), 0);
+
     return {
-      miembrosConSellos,
+      miembrosDelClub,
+      conSellosActivos,
       proximosACanjear,
+      sellosEnCirculacion,
       canjesCompletados: completados.length,
       canjesPendientes:  pendientes.length,
       premiosActivos:    premiosActivos.length,
@@ -146,9 +159,9 @@ function ResumenFidelizacion() {
         <StatCard
           Icon={Users}
           color="emerald"
-          label="Miembros activos"
-          value={stats.miembrosConSellos.toLocaleString('es-CL')}
-          sub={`${stats.proximosACanjear} a un paso de canjear`}
+          label="Miembros del club"
+          value={stats.miembrosDelClub.toLocaleString('es-CL')}
+          sub={`${stats.conSellosActivos} con sellos · ${stats.proximosACanjear} a un paso`}
         />
         <StatCard
           Icon={CheckCircle2}
@@ -168,7 +181,7 @@ function ResumenFidelizacion() {
           Icon={TrendingUp}
           color="rose"
           label="Sellos disponibles"
-          value={users.reduce((s, u) => s + (u.sellosDisponibles ?? u.stamps ?? 0), 0).toLocaleString('es-CL')}
+          value={stats.sellosEnCirculacion.toLocaleString('es-CL')}
           sub="Total en circulación"
         />
       </div>
