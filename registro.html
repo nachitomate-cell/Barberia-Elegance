@@ -1371,13 +1371,39 @@
       background: #f9fafb !important;
       border-color: rgba(17,24,39,0.24) !important;
     }
-    /* Botón CTA reserva outline */
-    .tenant-infinity .btn-cta-reserva {
+    /* Botón CTA reserva outline (solo cuando NO comparte con .btn-primary) */
+    .tenant-infinity .btn-cta-reserva:not(.btn-primary) {
       border-color: #111827 !important;
       color: #111827 !important;
+      background: transparent !important;
     }
-    .tenant-infinity .btn-cta-reserva:hover {
+    .tenant-infinity .btn-cta-reserva:not(.btn-primary):hover {
       background: rgba(17,24,39,0.06) !important;
+    }
+    /* "CONTINUAR CON MI RESERVA" (#backLink) tiene AMBAS clases btn-primary
+       + btn-cta-reserva → sin este override quedaba fondo navy con texto
+       navy (ilegible). Prevalece el estilo primary sólido. */
+    .tenant-infinity #backLink,
+    .tenant-infinity a.btn-primary.btn-cta-reserva {
+      background: #111827 !important;
+      color: #FFFFFF !important;
+      border: 1px solid #111827 !important;
+      box-shadow: 0 4px 14px rgba(17,24,39,0.20) !important;
+    }
+    .tenant-infinity #backLink i,
+    .tenant-infinity #backLink span,
+    .tenant-infinity a.btn-primary.btn-cta-reserva i,
+    .tenant-infinity a.btn-primary.btn-cta-reserva span {
+      color: #FFFFFF !important;
+    }
+    .tenant-infinity #backLink:hover,
+    .tenant-infinity a.btn-primary.btn-cta-reserva:hover {
+      background: #374151 !important;
+      border-color: #374151 !important;
+    }
+    /* Divisor superior del backLink (border-white/[0.07]) — invisible en blanco */
+    .tenant-infinity #backLinkWrap {
+      border-top-color: rgba(17,24,39,0.08) !important;
     }
     /* Spinner */
     .tenant-infinity .spinner {
