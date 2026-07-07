@@ -508,8 +508,42 @@ export default function Metricas() {
     const ingresos    = completadas.reduce((s, c) => s + getPrice(c), 0);
     const ticket      = completadas.length ? ingresos / completadas.length : 0;
     const ocupacion   = r.length ? (completadas.length / r.length) * 100 : 0;
-    return { total: r.length, completadas: completadas.length, canceladas: canceladas.length, ingresos, ticket, ocupacion };
-  }, [citas, prevRange, getPrice]);
+
+    // Utilidad neta del período anterior — versión simplificada del pnl
+    // para calcular solo el delta comparativo del hero (no todo el P&L).
+    const prevGastos = gastos.filter(g => {
+      const d = parseDateStr(g.fecha || g.creadoEn);
+      return d >= prevRange.inicio && d <= prevRange.fin;
+    });
+    const prevVentas = ventas.filter(v => {
+      const d = parseDateStr(v.fecha || v.createdAt || v.creadoEn);
+      return d >= prevRange.inicio && d <= prevRange.fin && ['confirmed','completed','paid','delivered'].includes(v.status);
+    });
+    const prevIngProd = prevVentas.reduce((s, v) => s + (Number(v.precio) || Number(v.total) || 0), 0);
+    const prevCogs = prevVentas.reduce((s, v) => {
+      const p = productos.find(x => x.id === v.productId);
+      return s + ((Number(p?.precioCosto) || 0) * (Number(v.cantidad) || 1));
+    }, 0);
+    const prevComSvc = completadas.reduce((s, c) => {
+      const b = barberos.find(x => x.id === c.barberoId || x.nombre === c.barbero);
+      return s + (getPrice(c) * (Number(b?.comision) || 0) / 100);
+    }, 0);
+    const prevComProd = prevVentas.reduce((s, v) => {
+      const b = barberos.find(x => x.id === v.barberoId || x.nombre === v.barberoNombre);
+      const pct = b?.comisionProductos !== undefined ? Number(b.comisionProductos) : 10;
+      return s + ((Number(v.precio) || Number(v.total) || 0) * pct / 100);
+    }, 0);
+    const dStart = new Date(prevRange.inicio);
+    const dEnd = new Date(prevRange.fin);
+    const prevDays = Math.max(1, Math.round((dEnd - dStart) / 86400000) + 1);
+    const prevSueldos = barberos.reduce((s, b) => s + ((Number(b.sueldoBase) || 0) * (prevDays / 30)), 0);
+    const prevOpex = prevGastos.filter(g => g.categoria !== 'Sueldos').reduce((s, g) => s + (Number(g.monto) || 0), 0);
+    const prevIngBrutos = ingresos + prevIngProd;
+    const prevTotalCostos = prevCogs + prevComSvc + prevComProd + prevSueldos + prevOpex;
+    const prevUtilidadNeta = prevIngBrutos - prevTotalCostos;
+
+    return { total: r.length, completadas: completadas.length, canceladas: canceladas.length, ingresos, ticket, ocupacion, utilidadNeta: prevUtilidadNeta };
+  }, [citas, prevRange, getPrice, gastos, ventas, productos, barberos, parseDateStr]);
 
   /* Calcula delta % entre actual y previo */
   const pctDelta = useCallback((curr, prev) => {
@@ -750,6 +784,26 @@ export default function Metricas() {
     const utilidadNeta = utilidadBruta - totalOpex;
     const margenNeto = ingresosBrutos > 0 ? (utilidadNeta / ingresosBrutos) * 100 : 0;
 
+    // ── PUNTO DE EQUILIBRIO ──────────────────────────────────────
+    // Métrica clave del asesor: "¿cuánto tengo que facturar para no
+    // perder plata?". Fórmula estándar de contabilidad gerencial:
+    //   BE = Costos Fijos / Margen de contribución %
+    // Costos fijos = sueldos base + gastos operativos NO variables
+    //   (arriendo, servicios, insumos fijos).
+    // Costos variables = comisiones + COGS (cambian con facturación).
+    const costosFijos = totalProportionalBaseSalaries + pureOperatingExpenses;
+    const costosVariables = totalAccruedCommissions + totalCogs;
+    const margenContribucion = ingresosBrutos > 0
+      ? 1 - (costosVariables / ingresosBrutos)
+      : 0.60; // fallback prudente para barberías: 40% comisión promedio
+    const puntoEquilibrio = margenContribucion > 0
+      ? costosFijos / margenContribucion
+      : 0;
+    // Ratio: 100% = justo en equilibrio, >100% = ganando, <100% = perdiendo.
+    const ratioEquilibrio = puntoEquilibrio > 0
+      ? (ingresosBrutos / puntoEquilibrio) * 100
+      : 0;
+
     // Tips neutral pass-through sum
     const propinas = rangeCompletas.reduce((s, c) => s + (Number(c.propina) || 0), 0);
 
@@ -785,6 +839,11 @@ export default function Metricas() {
       totalOpex,
       utilidadNeta,
       margenNeto,
+      costosFijos,
+      costosVariables,
+      margenContribucion,
+      puntoEquilibrio,
+      ratioEquilibrio,
       expenseBreakdown,
       rangeGastos,
       propinas,
@@ -1343,35 +1402,95 @@ export default function Metricas() {
       {activeTab === 'comercial' && (
         <div className="space-y-6">
 
-          {/* KPIs principales (4) — con delta y drill-down */}
+          {/* ═════════ HERO — UTILIDAD NETA ═════════
+              La cifra que le importa al dueño: lo que efectivamente se
+              lleva a casa después de comisiones, sueldos, COGS y gastos.
+              Facturación bruta miente; utilidad neta no. */}
+          {(() => {
+            const un = pnl.utilidadNeta;
+            const prev = prevStats.utilidadNeta ?? 0;
+            const delta = pctDelta(un, prev);
+            const isUp = un >= 0 && (delta == null || delta >= 0);
+            const heroColor = un < 0 ? 'from-rose-500/20 to-rose-500/5 border-rose-500/30' :
+                              un > 0 ? 'from-emerald-500/15 to-emerald-500/5 border-emerald-500/25' :
+                                       'from-slate-500/10 to-slate-500/5 border-slate-500/25';
+            const valueColor = un < 0 ? 'text-rose-400' : un > 0 ? 'text-emerald-400' : 'text-slate-400';
+            return (
+              <div className={`rounded-2xl border bg-gradient-to-br ${heroColor} p-6 md:p-7`}>
+                <div className="flex flex-col md:flex-row md:items-center gap-5 md:gap-8">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Wallet size={16} className="text-slate-400" />
+                      <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+                        Utilidad Neta del período
+                      </p>
+                    </div>
+                    <p className={`text-4xl md:text-5xl font-black tracking-tight leading-none ${valueColor}`}>
+                      {fmtCLP(un)}
+                    </p>
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-xs">
+                      <span className="text-slate-400">
+                        Ingresos brutos: <span className="text-white font-semibold">{fmtCLP(pnl.ingresosBrutos)}</span>
+                      </span>
+                      <span className="text-slate-400">
+                        Margen: <span className={`font-semibold ${pnl.margenNeto >= 15 ? 'text-emerald-400' : pnl.margenNeto >= 0 ? 'text-amber-400' : 'text-rose-400'}`}>
+                          {pnl.margenNeto.toFixed(1)}%
+                        </span>
+                      </span>
+                      {delta != null && (
+                        <span className={`flex items-center gap-1 font-bold ${isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
+                          {isUp ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+                          {Math.abs(delta).toFixed(1)}% vs período anterior
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="md:border-l md:border-slate-800/60 md:pl-6 md:min-w-[240px]">
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">
+                      Ingresos últimos 7 días
+                    </p>
+                    <Sparkline data={sparkData} color={isUp || delta == null ? ct.positive : ct.negative} />
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* ═════════ 4 KPIs CRÍTICOS ═════════
+              Los que un dueño chequea en 30 segundos para saber si su
+              barbería está sana. Todos con delta comparativo cuando aplica. */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <KpiCard Icon={DollarSign} label="Ingresos Servicios"
-              value={fmtCLP(stats.ingresos)}
-              sub={hayPrecios ? `vs ${fmtCLP(prevStats.ingresos)} ant.` : 'Configura precios en Servicios'}
-              color="emerald"
-              delta={pctDelta(stats.ingresos, prevStats.ingresos)}
-              onClick={() => openDrill('ingresos')} />
-            <KpiCard Icon={CalendarCheck} label="Citas Completadas"
-              value={stats.completadas}
-              sub={`${stats.total} agendadas · ${prevStats.completadas} ant.`}
-              color="blue"
-              delta={pctDelta(stats.completadas, prevStats.completadas)}
-              onClick={() => openDrill('completadas')} />
+            {/* PUNTO DE EQUILIBRIO */}
+            <KpiCard Icon={Landmark} label="Punto de Equilibrio"
+              value={fmtCLP(pnl.puntoEquilibrio)}
+              sub={pnl.ratioEquilibrio > 100
+                ? `Superado en ${(pnl.ratioEquilibrio - 100).toFixed(0)}% ✓`
+                : pnl.ratioEquilibrio > 0
+                  ? `Falta ${(100 - pnl.ratioEquilibrio).toFixed(0)}% para cubrirlo`
+                  : 'Sin ingresos aún en el período'}
+              color={pnl.ratioEquilibrio >= 100 ? 'emerald' : pnl.ratioEquilibrio >= 80 ? 'amber' : 'rose'} />
+            {/* TICKET PROMEDIO */}
             <KpiCard Icon={TrendingUp} label="Ticket Promedio"
               value={fmtCLP(stats.ticket)}
               sub={`vs ${fmtCLP(prevStats.ticket)} ant.`}
-              color="amber"
+              color="blue"
               delta={pctDelta(stats.ticket, prevStats.ticket)} />
-            <KpiCard Icon={XCircle} label="Cancelaciones"
-              value={stats.canceladas}
-              sub={stats.total ? `${Math.round((stats.canceladas / stats.total) * 100)}% del total` : '—'}
-              color="red"
-              delta={pctDelta(stats.canceladas, prevStats.canceladas)}
-              invertDelta
-              onClick={() => openDrill('canceladas')} />
+            {/* OCUPACIÓN */}
+            <KpiCard Icon={Activity} label="Tasa de Ocupación"
+              value={`${stats.ocupacion}%`}
+              sub={`vs ${prevStats.ocupacion.toFixed(0)}% ant.`}
+              color={stats.ocupacion >= 70 ? 'emerald' : stats.ocupacion >= 40 ? 'amber' : 'rose'}
+              delta={pctDelta(stats.ocupacion, prevStats.ocupacion)} />
+            {/* RETENCIÓN */}
+            <KpiCard Icon={RefreshCcw} label="Retención Clientes"
+              value={`${stats.pctRecurr}%`}
+              sub="Clientes con más de 1 visita"
+              color={stats.pctRecurr >= 40 ? 'emerald' : stats.pctRecurr >= 20 ? 'amber' : 'rose'} />
           </div>
 
-          {/* KPIs secundarios — colapsable */}
+          {/* ═════════ KPIs SECUNDARIOS — colapsable ═════════
+              Ingresos brutos, completadas, cancelaciones, productos.
+              Importantes pero secundarios al "¿estoy vivo este mes?". */}
           <div>
             <button
               onClick={() => setShowMoreKpis(v => !v)}
@@ -1381,21 +1500,31 @@ export default function Metricas() {
               {showMoreKpis ? 'Ocultar métricas adicionales' : 'Ver métricas adicionales'}
             </button>
             {showMoreKpis && (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-3">
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-3">
+                <KpiCard Icon={DollarSign} label="Ingresos Servicios"
+                  value={fmtCLP(stats.ingresos)}
+                  sub={hayPrecios ? `vs ${fmtCLP(prevStats.ingresos)} ant.` : 'Configura precios'}
+                  color="emerald"
+                  delta={pctDelta(stats.ingresos, prevStats.ingresos)}
+                  onClick={() => openDrill('ingresos')} />
+                <KpiCard Icon={CalendarCheck} label="Citas Completadas"
+                  value={stats.completadas}
+                  sub={`${stats.total} agendadas · ${prevStats.completadas} ant.`}
+                  color="blue"
+                  delta={pctDelta(stats.completadas, prevStats.completadas)}
+                  onClick={() => openDrill('completadas')} />
+                <KpiCard Icon={XCircle} label="Cancelaciones"
+                  value={stats.canceladas}
+                  sub={stats.total ? `${Math.round((stats.canceladas / stats.total) * 100)}% del total` : '—'}
+                  color="red"
+                  delta={pctDelta(stats.canceladas, prevStats.canceladas)}
+                  invertDelta
+                  onClick={() => openDrill('canceladas')} />
                 <KpiCard Icon={ShoppingBag} label="Ingresos Productos"
                   value={fmtCLP(ingresosProductos)}
-                  sub="Reservas confirmadas / Ventas directas"
+                  sub="Ventas de productos"
                   color="purple"
                   onClick={() => openDrill('productos')} />
-                <KpiCard Icon={RefreshCcw} label="Clientes Recurrentes"
-                  value={`${stats.pctRecurr}%`}
-                  sub="Con más de 1 visita (histórico)"
-                  color="cyan" />
-                <KpiCard Icon={Activity} label="Tasa de Ocupación"
-                  value={`${stats.ocupacion}%`}
-                  sub={`vs ${prevStats.ocupacion.toFixed(0)}% ant.`}
-                  color="rose"
-                  delta={pctDelta(stats.ocupacion, prevStats.ocupacion)} />
               </div>
             )}
           </div>
