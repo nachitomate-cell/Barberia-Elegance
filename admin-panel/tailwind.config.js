@@ -26,6 +26,8 @@ export default {
         'confirm-pop':    'confirmPop 0.38s cubic-bezier(0.34,1.56,0.64,1)',
         'confirm-logo':   'confirmLogo 0.6s cubic-bezier(0.34,1.56,0.64,1) both',
         'confirm-ring':   'confirmRing 1.9s ease-out infinite',
+        'shimmer':        'shimmer 3s ease-in-out infinite',
+        'trophy-glow':    'trophyGlow 2.6s ease-in-out infinite',
       },
       keyframes: {
         slideInRight: {
@@ -35,6 +37,14 @@ export default {
         fadeIn: {
           from: { opacity: 0 },
           to:   { opacity: 1 },
+        },
+        shimmer: {
+          '0%,100%': { 'background-position': '0% 50%' },
+          '50%':     { 'background-position': '100% 50%' },
+        },
+        trophyGlow: {
+          '0%,100%': { filter: 'drop-shadow(0 0 2px rgba(251,191,36,0.45))' },
+          '50%':     { filter: 'drop-shadow(0 0 8px rgba(251,191,36,0.9))' },
         },
         confirmPop: {
           '0%':   { opacity: 0, transform: 'scale(0.92) translateY(12px)' },

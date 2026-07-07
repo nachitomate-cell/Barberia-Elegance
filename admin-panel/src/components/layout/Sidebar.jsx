@@ -84,7 +84,7 @@ const NAV_GROUPS_DEFAULT = [
       { to: 'clientes',     label: 'Clientes',     Icon: Star        },
       { to: 'lista-negra',  label: 'Lista Negra',  Icon: UserX,    adminOnly: true },
       { to: 'resenas',      label: 'Reseñas',      Icon: ThumbsUp    },
-      { to: 'fidelizacion', label: 'Fidelización', Icon: Trophy      },
+      { to: 'fidelizacion', label: 'Fidelización', Icon: Trophy,     variant: 'fideli' },
       { to: 'productos',    label: 'Productos',    Icon: ShoppingBag },
     ],
   },
@@ -136,7 +136,7 @@ const NAV_GROUPS_DELUXE = [
     label: 'Club Deluxe',
     items: [
       { to: 'clientes',     label: 'Miembros',     Icon: Users  },
-      { to: 'fidelizacion', label: 'Fidelización', Icon: Trophy },
+      { to: 'fidelizacion', label: 'Fidelización', Icon: Trophy, variant: 'fideli' },
     ],
   },
   {
@@ -339,6 +339,19 @@ const SIDEBAR_VARIANTS = {
     border:    'border-amber-400',
     lightText: '[html.light_&]:text-amber-600',
     lightIcon: '[html.light_&]:text-amber-600',
+  },
+  // Fidelización — trofeo dorado con brillo dinámico. Texto con shimmer sutil
+  // (background-position animado sobre gradiente amber → yellow → amber) y
+  // trofeo con glow pulsante (drop-shadow keyframe). Es el módulo "estrella"
+  // del club, así que se le da presencia sin sobreactuar.
+  fideli: {
+    text:      'text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-400 bg-[length:200%_100%] animate-shimmer font-semibold',
+    icon:      'text-amber-300 animate-trophy-glow group-hover/item:text-yellow-200',
+    hover:     'hover:bg-amber-500/10',
+    bg:        'bg-amber-500/15',
+    border:    'border-amber-400',
+    lightText: '[html.light_&]:text-amber-700',
+    lightIcon: '[html.light_&]:text-amber-600 [html.light_&]:animate-none [html.light_&]:drop-shadow-none',
   },
   // Recibir Pagos — variante AMARILLO/DORADO destacada para configuración de
   // pasarelas (Flow / Mercado Pago / Stripe). Diferencia visualmente la
