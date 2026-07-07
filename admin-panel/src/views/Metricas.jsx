@@ -153,6 +153,22 @@ function DeltaBadge({ delta, invert = false, size = 'sm', compLabel }) {
 
 function KpiCard({ Icon, label, value, sub, color = 'emerald', delta, invertDelta = false, onClick }) {
   const interactive = typeof onClick === 'function';
+  // Auto-scale del valor: cifras largas quiebran el layout en grids
+  // densos (p.ej. cols-5 del P&L). Bajamos el font-size progresivamente
+  // según longitud del string. Sobre 14 chars pasamos a compact.
+  const rawStr = String(value ?? '');
+  const isCurrency = rawStr.startsWith('$') || rawStr.startsWith('-$');
+  let displayValue = value;
+  let valueClass = 'text-2xl';
+  if (rawStr.length > 14 && isCurrency) {
+    // Extraer el número original desde el string CLP: "$1.208.000" → 1208000
+    const num = Number(rawStr.replace(/[^\d-]/g, ''));
+    if (isFinite(num)) displayValue = fmtCLPCompact(num);
+  } else if (rawStr.length > 11) {
+    valueClass = 'text-xl';
+  } else if (rawStr.length > 9) {
+    valueClass = 'text-[1.35rem]';
+  }
   return (
     <div
       onClick={onClick}
@@ -168,7 +184,11 @@ function KpiCard({ Icon, label, value, sub, color = 'emerald', delta, invertDelt
           <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide truncate">{label}</p>
           <DeltaBadge delta={delta} invert={invertDelta} />
         </div>
-        <p className="text-2xl font-bold text-white mt-0.5 truncate">{value}</p>
+        {/* title con el valor original completo para hover — accesibilidad
+            y para que el dueño vea la cifra exacta cuando pasa el mouse. */}
+        <p className={`${valueClass} font-bold text-white mt-0.5 truncate`} title={rawStr}>
+          {displayValue}
+        </p>
         {sub && <p className="text-xs text-slate-500 mt-0.5 truncate">{sub}</p>}
       </div>
     </div>
@@ -303,6 +323,16 @@ function InsightCard({ text, type = 'info' }) {
 }
 
 const fmtCLP  = v => `$${Math.round(v || 0).toLocaleString('es-CL')}`;
+/* Formato compacto para valores grandes — Bloomberg style: $1,2M / $650K.
+   Se usa cuando el card es angosto y el número original no cabe. */
+function fmtCLPCompact(v) {
+  const n = Math.abs(Math.round(v || 0));
+  const sign = (v || 0) < 0 ? '-' : '';
+  if (n >= 1_000_000_000) return `${sign}$${(n / 1_000_000_000).toFixed(1).replace('.', ',')}B`;
+  if (n >= 1_000_000)     return `${sign}$${(n / 1_000_000).toFixed(1).replace('.', ',')}M`;
+  if (n >= 10_000)        return `${sign}$${Math.round(n / 1000)}K`;
+  return fmtCLP(v);
+}
 const rankColor = i => i === 0 ? 'text-amber-400' : i === 1 ? 'text-slate-400' : i === 2 ? 'text-amber-700' : 'text-slate-600';
 const PIE_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4', '#f43f5e', '#14b8a6'];
 
