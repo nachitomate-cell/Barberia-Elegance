@@ -104,29 +104,25 @@ export default function LoginPage() {
 
   const inputClass =
     'w-full h-12 bg-neutral-900 border border-neutral-800 rounded-xl px-4 text-white ' +
-    'placeholder:text-neutral-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 ' +
-    'focus:border-emerald-500 transition-all';
+    'placeholder:text-neutral-500 focus:outline-none focus:border-emerald-500 ' +
+    'focus:ring-1 focus:ring-emerald-500 transition-colors';
 
   return (
     <div className="min-h-screen w-full grid grid-cols-1 lg:grid-cols-2 bg-[#09090b]">
 
-      {/* ── PANEL IZQUIERDO — visual + social proof ─────────────────── */}
+      {/* ── PANEL IZQUIERDO — manifiesto de marca ───────────────────── */}
       <div
-        className="hidden lg:flex bg-cover bg-center bg-no-repeat relative"
+        className="hidden lg:block bg-cover bg-center bg-no-repeat relative"
         style={{ backgroundImage: `url(${bgImage})` }}
       >
-        <div className="absolute inset-0 bg-black/60" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
 
-        <div className="relative z-10 flex flex-col justify-end w-full p-12 xl:p-16">
-          <div className="flex gap-1 mb-5 text-emerald-400" aria-label="5 estrellas">
-            {[0, 1, 2, 3, 4].map(i => <StarIcon key={i} />)}
-          </div>
-          <p className="text-2xl xl:text-3xl font-semibold text-white mb-4 leading-snug max-w-xl">
-            «Pasé de cuadrar caja a las 11 pm a tener mis reportes listos en segundos.»
-          </p>
-          <p className="text-sm text-neutral-400">
-            Fabián Barraza · Barbería Ferraza
+        <div className="absolute bottom-12 left-12 right-12 z-10">
+          <h2 className="text-3xl font-bold text-white tracking-tight mb-3">
+            Menos administración. Más tiempo para tu arte.
+          </h2>
+          <p className="text-neutral-400 text-sm font-medium">
+            Plataforma inteligente de gestión para barberías de alto flujo.
           </p>
         </div>
       </div>
@@ -139,11 +135,11 @@ export default function LoginPage() {
             <img
               src={tenant.logo}
               alt={tenant.name}
-              className="w-11 h-11 rounded-xl object-cover mb-8 ring-1 ring-neutral-800"
+              className="h-16 w-auto object-contain mb-6"
             />
           )}
 
-          <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">
+          <h1 className="text-3xl font-bold text-white mb-1 tracking-tight">
             Bienvenido de vuelta.
           </h1>
           <p className="text-neutral-400 mb-8">
@@ -189,7 +185,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full h-11 bg-emerald-500 hover:bg-emerald-400 text-neutral-950 font-bold rounded-xl flex items-center justify-center transition-all mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full h-11 bg-emerald-500 hover:bg-emerald-400 text-neutral-950 font-bold text-base tracking-wide rounded-xl flex items-center justify-center transition-all mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <span className="w-4 h-4 border-2 border-neutral-950 border-t-transparent rounded-full animate-spin" />
@@ -227,13 +223,6 @@ function LoginError({ error, tenantName }) {
 }
 
 /* ── Íconos (inline SVG, sin dependencias) ─────────────────────────── */
-function StarIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-    </svg>
-  );
-}
 function WhatsappIcon() {
   return (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
