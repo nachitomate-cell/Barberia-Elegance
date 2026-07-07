@@ -29,13 +29,38 @@ const DOMAIN_MAP = {
   'yugen.synaptechspa.cl':             'yugen',
   'yugenstudio.cl':                    'yugen',
   'www.yugenstudio.cl':                'yugen',
-  // Kronnos — cada sede en su propio subdominio sirve también su gestión interna
+  // Kronnos — los subdominios de sede siguen apuntando a los tenants legacy hasta
+  // el cutover D3/D4 (cuando el cliente lea sedeId y filtre). Ver KRONNOS_SUBDOMAIN_SEDE.
   'kronnospenablanca.synaptechspa.cl': 'kronnos_penablanca',
   'kronnoslimache.synaptechspa.cl':    'kronnos_limache',
   'kronnoswoman.synaptechspa.cl':      'kronnos_woman',
   'barbersclub.synaptechspa.cl':       'barbersclub',
   'elbarberomoderno.synaptechspa.cl':  'elbarberomoderno',
 };
+
+// ── Kronnos multi-sede (Camino 1, D2) ─────────────────────────────
+// Espejo del mapa en middleware.js. Fuente de verdad para SedeContext.
+// D3/D4: cuando cutover DOMAIN_MAP a 'kronnos', esta tabla resuelve la sede.
+export const KRONNOS_SUBDOMAIN_SEDE = {
+  'kronnospenablanca.synaptechspa.cl': 'penablanca',
+  'kronnoslimache.synaptechspa.cl':    'limache',
+  'kronnoswoman.synaptechspa.cl':      'woman',
+};
+
+// Tenants legacy Kronnos → sedeId equivalente. Se usan hasta el cutover.
+// Después del cutover, quedan solo como redirección hacia { tenantId:'kronnos', sedeId:X }.
+export const LEGACY_KRONNOS_TO_SEDE = {
+  kronnos_penablanca: 'penablanca',
+  kronnos_limache:    'limache',
+  kronnos_woman:      'woman',
+};
+
+export const KRONNOS_SEDES = ['penablanca', 'limache', 'woman'];
+
+// Un tenant es "multi-sede" si tiene sedes[] internas gestionadas por SedeContext.
+export function isMultiSedeTenant(tid) {
+  return tid === 'kronnos' || tid in LEGACY_KRONNOS_TO_SEDE;
+}
 
 export function resolveTenantId() {
   const url    = new URL(window.location.href);
@@ -47,6 +72,49 @@ export function resolveTenantId() {
   const fromDomain = DOMAIN_MAP[window.location.hostname.toLowerCase()];
   if (fromDomain) return fromDomain;
   return sessionStorage.getItem('saas_current_tenant') || 'elegance';
+}
+
+// ── Resolución de sede para tenants multi-sede (Kronnos) ─────────
+// Prioridad: ?sede= (URL) > subdomain > tenant legacy translation > sessionStorage.
+// Devuelve null si el tenant actual no es multi-sede.
+export function resolveSedeId() {
+  const tid = resolveTenantId();
+  if (!isMultiSedeTenant(tid)) return null;
+
+  // 1) ?sede= override (útil desde el lobby admin: /gestion-interna/?local=kronnos&sede=penablanca)
+  try {
+    const sedeParam = new URL(window.location.href).searchParams.get('sede');
+    if (sedeParam && KRONNOS_SEDES.includes(sedeParam)) {
+      sessionStorage.setItem('saas_current_sede', sedeParam);
+      return sedeParam;
+    }
+  } catch (_) {}
+
+  // 2) Subdomain (kronnospenablanca.synaptechspa.cl → penablanca)
+  const fromSubdomain = KRONNOS_SUBDOMAIN_SEDE[window.location.hostname.toLowerCase()];
+  if (fromSubdomain) return fromSubdomain;
+
+  // 3) Legacy tenant translation (kronnos_penablanca → penablanca) — puente durante migración
+  if (LEGACY_KRONNOS_TO_SEDE[tid]) return LEGACY_KRONNOS_TO_SEDE[tid];
+
+  // 4) Persistido de nav previa
+  try {
+    const persisted = sessionStorage.getItem('saas_current_sede');
+    if (persisted && KRONNOS_SEDES.includes(persisted)) return persisted;
+  } catch (_) {}
+
+  return null;
+}
+
+// Resolver combinado: para el marca-tenant 'kronnos' o legacy alias, devuelve
+// { tenantId: 'kronnos', sedeId: X }. Para el resto, { tenantId, sedeId: null }.
+// Útil para consumidores que quieren pensar directamente en el modelo unificado.
+export function resolveTenantAndSede() {
+  const tid = resolveTenantId();
+  const sedeId = resolveSedeId();
+  // Durante la migración, mantenemos los legacy visibles como tenant propio.
+  // Solo tras el cutover (D4-D5) las 51 vistas migrarán a leer del tenant 'kronnos'.
+  return { tenantId: tid, sedeId };
 }
 
 export function tenantCol(name) {

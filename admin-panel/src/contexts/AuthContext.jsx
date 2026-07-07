@@ -13,8 +13,9 @@ const SUPERADMIN_EMAIL = 'ignaciiio.mate@gmail.com';
 // Un dueño con acceso 'admin' a varias sedes (tenants) del mismo grupo,
 // sin necesidad de registrarlo como barbero en cada una. Con esto inicia
 // sesión una sola vez (mismo dominio + ?local=) y administra las 3 sedes.
+// Kronnos: incluye 'kronnos' (marca unificada, Camino 1 D2) + 3 legacy hasta cutover D4-D5.
 const BRAND_ADMINS = {
-  'administracionkronnos@gmail.com': ['kronnos_penablanca', 'kronnos_limache', 'kronnos_woman'],
+  'administracionkronnos@gmail.com': ['kronnos', 'kronnos_penablanca', 'kronnos_limache', 'kronnos_woman'],
 };
 
 export function AuthProvider({ children }) {

@@ -910,6 +910,35 @@
   window.SHOP = _tenants[tenantId];
   // Lista completa de tenants (la usa el panel de superadmin para no mantener cards a mano).
   try { window.ALL_TENANTS = _tenants; } catch (_) {}
+
+  // ── Kronnos multi-sede (Camino 1, D2): resuelve sedeId en el sitio público ──
+  // Espejo del map en middleware.js y admin-panel/tenantUtils.js.
+  const _kronnosSubdomainSede = {
+    'kronnospenablanca.synaptechspa.cl': 'penablanca',
+    'kronnoslimache.synaptechspa.cl':    'limache',
+    'kronnoswoman.synaptechspa.cl':      'woman',
+  };
+  const _legacyKronnosToSede = {
+    kronnos_penablanca: 'penablanca',
+    kronnos_limache:    'limache',
+    kronnos_woman:      'woman',
+  };
+  let sedeId = null;
+  try {
+    const sedeQ = new URL(window.location.href).searchParams.get('sede');
+    if (sedeQ) sedeId = sedeQ;
+  } catch (_) {}
+  if (!sedeId) sedeId = _kronnosSubdomainSede[window.location.hostname.toLowerCase()] || null;
+  if (!sedeId) sedeId = _legacyKronnosToSede[tenantId] || null;
+  if (sedeId) {
+    try { sessionStorage.setItem('saas_current_sede', sedeId); } catch (_) {}
+  } else {
+    try { sedeId = sessionStorage.getItem('saas_current_sede') || null; } catch (_) {}
+  }
+  window.CURRENT_SEDE_ID = sedeId;
+  // Marca CSS por sede (permite temas en D3): .sede-penablanca / .sede-limache / .sede-woman
+  if (sedeId) document.documentElement.classList.add('sede-' + sedeId);
+
   document.documentElement.classList.add('tenant-' + tenantId);
   if (_themeAlias[tenantId]) {
     document.documentElement.classList.add('tenant-' + _themeAlias[tenantId]);
