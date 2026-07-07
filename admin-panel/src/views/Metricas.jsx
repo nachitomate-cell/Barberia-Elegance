@@ -46,6 +46,39 @@ function getPrevRange(fechaInicio, fechaFin) {
   return { inicio: dateToStr(prevStart), fin: dateToStr(prevEnd), days };
 }
 
+/**
+ * Describe el período anterior en lenguaje natural para el sub-label
+ * de los KPIs. En vez de "vs. ant." genérico, muestra "vs. junio",
+ * "vs. semana pasada", "vs. ayer" — mucho más digerible para el dueño.
+ */
+const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+function describeCompRange(fechaInicio, fechaFin) {
+  const start = new Date(fechaInicio + 'T12:00:00');
+  const end   = new Date(fechaFin    + 'T12:00:00');
+  const days  = Math.round((end - start) / 86400000) + 1;
+  const sameYear = start.getFullYear() === end.getFullYear();
+  const sameMonth = sameYear && start.getMonth() === end.getMonth();
+  // 1 día → "ayer"
+  if (days === 1) return 'ayer';
+  // 7 días exactos → "semana pasada"
+  if (days === 7) return 'semana pasada';
+  // Mes calendario completo → "vs. <mes anterior>"
+  if (sameMonth && start.getDate() === 1) {
+    const nextFirst = new Date(start.getFullYear(), start.getMonth() + 1, 1);
+    const lastOfMonth = new Date(nextFirst.getTime() - 86400000);
+    if (end.getTime() >= lastOfMonth.getTime()) {
+      const prev = new Date(start.getFullYear(), start.getMonth() - 1, 1);
+      return MESES[prev.getMonth()];
+    }
+  }
+  // Rango de 28-31 días → "mes pasado"
+  if (days >= 28 && days <= 31) return 'mes pasado';
+  // Año calendario → "año pasado"
+  if (days >= 360 && days <= 366) return 'año pasado';
+  // Otros: "período anterior de X días"
+  return `${days} días anteriores`;
+}
+
 /* Convierte cualquier número a CSV-safe */
 function csvEscape(v) {
   if (v === null || v === undefined) return '';
@@ -75,7 +108,7 @@ const KPI_COLORS = {
   rose:    'bg-rose-500/10    text-rose-400    border-rose-500/10',
 };
 
-function DeltaBadge({ delta, invert = false }) {
+function DeltaBadge({ delta, invert = false, size = 'sm', compLabel }) {
   if (delta === null || delta === undefined || !isFinite(delta)) return null;
   const isUp = delta > 0;
   const isFlat = Math.abs(delta) < 0.5;
@@ -84,13 +117,20 @@ function DeltaBadge({ delta, invert = false }) {
   const cls = isFlat
     ? 'bg-slate-800 text-slate-400 border-slate-700'
     : good
-      ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/15'
-      : 'bg-rose-500/10 text-rose-400 border-rose-500/15';
+      ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/25'
+      : 'bg-rose-500/15 text-rose-400 border-rose-500/25';
   const Arrow = isFlat ? null : isUp ? ArrowUpRight : ArrowDownRight;
+  // Tamaño 'lg' para el hero: badge más visible con contexto del período.
+  const dims = size === 'lg'
+    ? { pad: 'px-2.5 py-1', text: 'text-xs', gap: 'gap-1', icon: 13 }
+    : { pad: 'px-1.5 py-0.5', text: 'text-[10px]', gap: 'gap-0.5', icon: 10 };
   return (
-    <span className={`inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded border ${cls}`}>
-      {Arrow && <Arrow size={10} />}
+    <span className={`inline-flex items-center ${dims.gap} ${dims.text} font-bold ${dims.pad} rounded border ${cls}`}>
+      {Arrow && <Arrow size={dims.icon} />}
       {isFlat ? '0%' : `${Math.abs(delta).toFixed(1)}%`}
+      {compLabel && size === 'lg' && (
+        <span className="ml-0.5 font-medium opacity-75">vs. {compLabel}</span>
+      )}
     </span>
   );
 }
@@ -500,6 +540,9 @@ export default function Metricas() {
 
   /* ── Período anterior equivalente (para deltas) ── */
   const prevRange = useMemo(() => getPrevRange(fechaInicio, fechaFin), [fechaInicio, fechaFin]);
+  /* Etiqueta del período comparado: "ayer" / "junio" / "mes pasado", etc.
+     Se usa en el badge del hero y en los sub-labels de los KpiCards. */
+  const compLabel = useMemo(() => describeCompRange(fechaInicio, fechaFin), [fechaInicio, fechaFin]);
 
   const prevStats = useMemo(() => {
     const r = citas.filter(c => c.fecha >= prevRange.inicio && c.fecha <= prevRange.fin);
@@ -1428,7 +1471,8 @@ export default function Metricas() {
                     <p className={`text-4xl md:text-5xl font-black tracking-tight leading-none ${valueColor}`}>
                       {fmtCLP(un)}
                     </p>
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-xs">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3 text-xs">
+                      <DeltaBadge delta={delta} size="lg" compLabel={compLabel} />
                       <span className="text-slate-400">
                         Ingresos brutos: <span className="text-white font-semibold">{fmtCLP(pnl.ingresosBrutos)}</span>
                       </span>
@@ -1437,12 +1481,6 @@ export default function Metricas() {
                           {pnl.margenNeto.toFixed(1)}%
                         </span>
                       </span>
-                      {delta != null && (
-                        <span className={`flex items-center gap-1 font-bold ${isUp ? 'text-emerald-400' : 'text-rose-400'}`}>
-                          {isUp ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
-                          {Math.abs(delta).toFixed(1)}% vs período anterior
-                        </span>
-                      )}
                     </div>
                   </div>
                   <div className="md:border-l md:border-slate-800/60 md:pl-6 md:min-w-[240px]">
@@ -1472,13 +1510,13 @@ export default function Metricas() {
             {/* TICKET PROMEDIO */}
             <KpiCard Icon={TrendingUp} label="Ticket Promedio"
               value={fmtCLP(stats.ticket)}
-              sub={`vs ${fmtCLP(prevStats.ticket)} ant.`}
+              sub={`vs ${fmtCLP(prevStats.ticket)} · ${compLabel}`}
               color="blue"
               delta={pctDelta(stats.ticket, prevStats.ticket)} />
             {/* OCUPACIÓN */}
             <KpiCard Icon={Activity} label="Tasa de Ocupación"
               value={`${stats.ocupacion}%`}
-              sub={`vs ${prevStats.ocupacion.toFixed(0)}% ant.`}
+              sub={`vs ${prevStats.ocupacion.toFixed(0)}% · ${compLabel}`}
               color={stats.ocupacion >= 70 ? 'emerald' : stats.ocupacion >= 40 ? 'amber' : 'rose'}
               delta={pctDelta(stats.ocupacion, prevStats.ocupacion)} />
             {/* RETENCIÓN */}
@@ -1503,13 +1541,13 @@ export default function Metricas() {
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-3">
                 <KpiCard Icon={DollarSign} label="Ingresos Servicios"
                   value={fmtCLP(stats.ingresos)}
-                  sub={hayPrecios ? `vs ${fmtCLP(prevStats.ingresos)} ant.` : 'Configura precios'}
+                  sub={hayPrecios ? `vs ${fmtCLP(prevStats.ingresos)} · ${compLabel}` : 'Configura precios'}
                   color="emerald"
                   delta={pctDelta(stats.ingresos, prevStats.ingresos)}
                   onClick={() => openDrill('ingresos')} />
                 <KpiCard Icon={CalendarCheck} label="Citas Completadas"
                   value={stats.completadas}
-                  sub={`${stats.total} agendadas · ${prevStats.completadas} ant.`}
+                  sub={`${stats.total} agendadas · ${prevStats.completadas} en ${compLabel}`}
                   color="blue"
                   delta={pctDelta(stats.completadas, prevStats.completadas)}
                   onClick={() => openDrill('completadas')} />
