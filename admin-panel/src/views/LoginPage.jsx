@@ -151,9 +151,10 @@ export default function LoginPage() {
   }
 
   const inputClass =
-    'w-full h-12 bg-neutral-900 border border-neutral-800 rounded-xl px-4 text-white ' +
-    'placeholder:text-neutral-500 focus:outline-none focus:border-emerald-500 ' +
-    'focus:ring-1 focus:ring-emerald-500 transition-colors';
+    'w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-white ' +
+    'placeholder:text-neutral-500 focus:outline-none focus:bg-white/10 ' +
+    'focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 ' +
+    'transition-all duration-300';
 
   return (
     <div className="min-h-screen w-full grid grid-cols-1 lg:grid-cols-2 bg-[#09090b]">
@@ -189,18 +190,18 @@ export default function LoginPage() {
             <img
               src={tenant.logo}
               alt={tenant.name}
-              className="h-16 w-auto object-contain mb-6"
+              className="h-14 w-auto object-contain mb-8"
             />
           )}
 
-          <h1 className="text-3xl font-bold text-white mb-1 tracking-tight">
+          <h1 className="text-3xl font-extrabold text-white tracking-tight mb-2">
             Bienvenido de vuelta.
           </h1>
-          <p className="text-neutral-400 mb-8">
+          <p className="text-neutral-300 text-sm mb-8">
             Gestiona tu agenda, clientes y caja en un solo lugar.
           </p>
 
-          <form onSubmit={loginEmail} noValidate className="space-y-3">
+          <form onSubmit={loginEmail} noValidate className="space-y-4">
             <input
               type="email"
               placeholder="Correo electrónico"
@@ -226,8 +227,7 @@ export default function LoginPage() {
                 id="rememberMe"
                 checked={rememberMe}
                 onChange={e => setRememberMe(e.target.checked)}
-                className="w-4 h-4 rounded border-neutral-700 bg-neutral-900 cursor-pointer"
-                style={{ accentColor: '#10b981' }}
+                className="accent-emerald-500 h-4 w-4 bg-white/5 border-white/10 rounded cursor-pointer"
               />
               <label htmlFor="rememberMe" className="ml-2 text-sm text-neutral-400 select-none cursor-pointer">
                 Mantener sesión iniciada
@@ -239,7 +239,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full h-11 bg-emerald-500 hover:bg-emerald-400 text-neutral-950 font-bold text-base tracking-wide rounded-xl flex items-center justify-center transition-all mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full h-12 mt-6 bg-emerald-500 hover:bg-emerald-400 text-neutral-950 font-bold text-base rounded-xl flex items-center justify-center transition-all duration-300 shadow-[0_0_15px_rgba(16,185,129,0.2)] hover:shadow-[0_0_25px_rgba(16,185,129,0.4)] hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-[0_0_15px_rgba(16,185,129,0.2)]"
             >
               {loading ? (
                 <span className="w-4 h-4 border-2 border-neutral-950 border-t-transparent rounded-full animate-spin" />
