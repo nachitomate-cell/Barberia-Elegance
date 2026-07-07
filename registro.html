@@ -885,7 +885,7 @@
       background: rgba(17, 24, 39, 0.05) !important;
       color: #111827 !important;
     }
-    /* Ocultar campos de contraseña y botón de recuperar para tenants passwordless (Aura, D'Jones, Kronnos) */
+    /* Ocultar campos de contraseña y botón de recuperar para tenants passwordless (Aura, D'Jones, Kronnos, Infinity, etc.) */
     :is(.tenant-aura,.tenant-latincaribe) #panelLogin .relative,
     :is(.tenant-aura,.tenant-latincaribe) #panelRegister .relative,
     :is(.tenant-aura,.tenant-latincaribe) button[onclick="switchTab('reset')"],
@@ -906,18 +906,25 @@
     .tenant-kronnos_woman button[onclick="switchTab('reset')"],
     .tenant-sionbarberia #panelLogin .relative,
     .tenant-sionbarberia #panelRegister .relative,
-    .tenant-sionbarberia button[onclick="switchTab('reset')"] {
+    .tenant-sionbarberia button[onclick="switchTab('reset')"],
+    .tenant-infinity #panelLogin .relative,
+    .tenant-infinity #panelRegister .relative,
+    .tenant-infinity button[onclick="switchTab('reset')"] {
       display: none !important;
     }
-    /* Mostrar campos de contraseña en Aura y Lumen si hay fallback de contraseña custom */
+    /* Mostrar campos de contraseña en Aura, Lumen, Infinity si hay fallback de contraseña custom */
     html:is(.tenant-aura,.tenant-latincaribe) body.show-password-fallback #panelLogin .relative,
     html:is(.tenant-aura,.tenant-latincaribe) body.show-password-fallback button[onclick="switchTab('reset')"],
     html.tenant-lumen body.show-password-fallback #panelLogin .relative,
     html.tenant-lumen body.show-password-fallback button[onclick="switchTab('reset')"],
+    html.tenant-infinity body.show-password-fallback #panelLogin .relative,
+    html.tenant-infinity body.show-password-fallback button[onclick="switchTab('reset')"],
     :is(.tenant-aura,.tenant-latincaribe).show-password-fallback #panelLogin .relative,
     :is(.tenant-aura,.tenant-latincaribe).show-password-fallback button[onclick="switchTab('reset')"],
     .tenant-lumen.show-password-fallback #panelLogin .relative,
     .tenant-lumen.show-password-fallback button[onclick="switchTab('reset')"],
+    .tenant-infinity.show-password-fallback #panelLogin .relative,
+    .tenant-infinity.show-password-fallback button[onclick="switchTab('reset')"],
     .show-password-fallback #panelLogin .relative,
     .show-password-fallback button[onclick="switchTab('reset')"] {
       display: block !important;
@@ -1286,6 +1293,103 @@
       -webkit-background-clip: text; background-clip: text;
       color: transparent; -webkit-text-fill-color: transparent;
     }
+    /* ══════════════════════════════════════════════════════════════════════════ */
+
+    /* ══════════════════════════════════════════════════════════════════════════
+       INFINITY STUDIO — tema light "Luminous White"
+       Paleta idéntica a dashboard.html: bg blanco, texto navy (#111827)
+       ══════════════════════════════════════════════════════════════════════════ */
+    .tenant-infinity { --gold: #111827; --gold-dim: rgba(17,24,39,0.15); }
+    .tenant-infinity body {
+      background-color: #ffffff !important;
+      background-image:
+        radial-gradient(circle at 50% 0%, rgba(255,255,255,1) 0%, rgba(243,244,246,0.4) 100%),
+        radial-gradient(circle at 10% 40%, rgba(255,255,255,1) 0%, rgba(249,250,251,0.7) 50%, transparent 100%),
+        radial-gradient(circle at 90% 80%, rgba(255,255,255,1) 0%, rgba(243,244,246,0.6) 50%, transparent 100%) !important;
+      background-attachment: fixed !important;
+      color: #111827 !important;
+    }
+    /* Textos base — invertimos los blancos/grises hacia navy */
+    .tenant-infinity h1, .tenant-infinity h2, .tenant-infinity h3,
+    .tenant-infinity .text-white { color: #111827 !important; }
+    .tenant-infinity .text-white\/40 { color: rgba(17,24,39,0.4) !important; }
+    .tenant-infinity .text-white\/50 { color: rgba(17,24,39,0.5) !important; }
+    .tenant-infinity .text-white\/60 { color: rgba(17,24,39,0.6) !important; }
+    .tenant-infinity .text-white\/70 { color: rgba(17,24,39,0.7) !important; }
+    .tenant-infinity .text-white\/80 { color: rgba(17,24,39,0.8) !important; }
+    .tenant-infinity .text-gray-300,
+    .tenant-infinity .text-gray-400 { color: #4B5563 !important; }
+    .tenant-infinity .text-gray-500 { color: #6B7280 !important; }
+    /* Glow ambiental muy sutil (casi imperceptible sobre blanco) */
+    .tenant-infinity .ambient-glow {
+      background: radial-gradient(circle, rgba(17,24,39,0.04) 0%, transparent 65%);
+    }
+    /* Logo ring */
+    .tenant-infinity .logo-ring {
+      border: 2px solid rgba(17,24,39,0.20);
+      box-shadow: 0 0 0 1px rgba(17,24,39,0.05), 0 10px 30px rgba(17,24,39,0.06);
+    }
+    /* Tabs Login/Register */
+    .tenant-infinity .tab-btn { color: rgba(17,24,39,0.45); }
+    .tenant-infinity .tab-btn.active { color: #111827; border-color: #111827; }
+    /* Inputs — fondo blanco puro con borde navy 12% */
+    .tenant-infinity .field {
+      background: #ffffff !important;
+      border-color: rgba(17,24,39,0.12) !important;
+      color: #111827 !important;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);
+    }
+    .tenant-infinity .field::placeholder { color: #9CA3AF !important; }
+    .tenant-infinity .field:focus {
+      border-color: #111827 !important;
+      box-shadow: 0 0 0 1px #111827 !important;
+    }
+    .tenant-infinity input:-webkit-autofill,
+    .tenant-infinity input:-webkit-autofill:hover,
+    .tenant-infinity input:-webkit-autofill:focus {
+      -webkit-box-shadow: 0 0 0 100px #ffffff inset !important;
+      -webkit-text-fill-color: #111827 !important;
+    }
+    /* Botón primario — navy sólido */
+    .tenant-infinity .btn-primary {
+      background: #111827 !important;
+      border-color: #111827 !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 14px rgba(17,24,39,0.20) !important;
+    }
+    .tenant-infinity .btn-primary:hover {
+      background: #374151 !important;
+      border-color: #374151 !important;
+    }
+    /* Botón Google — blanco con borde sutil */
+    .tenant-infinity .btn-google {
+      background: #ffffff !important;
+      border-color: rgba(17,24,39,0.12) !important;
+      color: #111827 !important;
+    }
+    .tenant-infinity .btn-google:hover {
+      background: #f9fafb !important;
+      border-color: rgba(17,24,39,0.24) !important;
+    }
+    /* Botón CTA reserva outline */
+    .tenant-infinity .btn-cta-reserva {
+      border-color: #111827 !important;
+      color: #111827 !important;
+    }
+    .tenant-infinity .btn-cta-reserva:hover {
+      background: rgba(17,24,39,0.06) !important;
+    }
+    /* Spinner */
+    .tenant-infinity .spinner {
+      border: 1px solid rgba(17,24,39,0.15) !important;
+      border-top-color: #111827 !important;
+    }
+    /* Eye toggle (mostrar contraseña) — icono navy sutil */
+    .tenant-infinity .eye-toggle { color: #9ca3af; }
+    .tenant-infinity .eye-toggle:hover { color: #111827; }
+    /* Overlay de loading */
+    .tenant-infinity #loadingOverlay { background: #ffffff !important; }
+    /* Alertas / banners con clases text-red, bg-red, etc. mantienen contraste */
     /* ══════════════════════════════════════════════════════════════════════════ */
 
     /* Eye toggle */
