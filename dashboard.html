@@ -3101,11 +3101,63 @@
     .tenant-infinity .text-white\/80 { color: rgba(17, 24, 39, 0.8) !important; }
     .tenant-infinity .text-white\/90 { color: rgba(17, 24, 39, 0.9) !important; }
 
+    /* ── Rellenos de contraste (agregados 2026-07) ─────────────────
+       El bloque original cubría solo /30 → /90 en tramos de 10. Las
+       opacidades intermedias, spinners con border-white, gray-600/700
+       y placeholders quedaban invisibles sobre el fondo blanco. */
+    .tenant-infinity .text-white\/5   { color: rgba(17, 24, 39, 0.05) !important; }
+    .tenant-infinity .text-white\/15  { color: rgba(17, 24, 39, 0.15) !important; }
+    .tenant-infinity .text-white\/25  { color: rgba(17, 24, 39, 0.25) !important; }
+    .tenant-infinity .text-white\/35  { color: rgba(17, 24, 39, 0.35) !important; }
+    .tenant-infinity .text-white\/45  { color: rgba(17, 24, 39, 0.45) !important; }
+    .tenant-infinity .text-white\/55  { color: rgba(17, 24, 39, 0.55) !important; }
+    .tenant-infinity .text-white\/65  { color: rgba(17, 24, 39, 0.65) !important; }
+    .tenant-infinity .text-white\/75  { color: rgba(17, 24, 39, 0.75) !important; }
+    .tenant-infinity .text-white\/85  { color: rgba(17, 24, 39, 0.85) !important; }
+    .tenant-infinity .text-white\/95  { color: rgba(17, 24, 39, 0.95) !important; }
+
+    /* Backgrounds translúcidos blancos → tinte navy suave (evita cards
+       "invisibles" sobre el fondo blanco). */
+    .tenant-infinity .bg-white\/5   { background-color: rgba(17, 24, 39, 0.04) !important; }
+    .tenant-infinity .bg-white\/8   { background-color: rgba(17, 24, 39, 0.06) !important; }
+    .tenant-infinity .bg-white\/20  { background-color: rgba(17, 24, 39, 0.10) !important; }
+    .tenant-infinity .bg-white\/25  { background-color: rgba(17, 24, 39, 0.12) !important; }
+    .tenant-infinity .bg-white\/30  { background-color: rgba(17, 24, 39, 0.14) !important; }
+    .tenant-infinity .bg-white\/40  { background-color: rgba(17, 24, 39, 0.18) !important; }
+    .tenant-infinity .bg-white\/50  { background-color: rgba(17, 24, 39, 0.22) !important; }
+
+    /* Borders translúcidos blancos — mismos criterios que backgrounds. */
+    .tenant-infinity .border-white\/5,
+    .tenant-infinity .border-white\/15,
+    .tenant-infinity .border-white\/20,
+    .tenant-infinity .border-white\/25,
+    .tenant-infinity .border-white\/30,
+    .tenant-infinity .border-white\/40 { border-color: rgba(17, 24, 39, 0.12) !important; }
+
+    /* Spinners globales — antes solo el spinner de #authGuard se veía;
+       los que se renderizaban en otras pantallas (cargando historial,
+       liquidaciones, etc.) usaban border-white/border-t-white y quedaban
+       invisibles blanco-sobre-blanco. */
+    .tenant-infinity .border-white   { border-color: rgba(17, 24, 39, 0.15) !important; }
+    .tenant-infinity .border-t-white { border-top-color: #111827 !important; }
+
+    /* Textos secundarios en labels de formularios y empty states. */
     .tenant-infinity .text-gray-300 { color: #374151 !important; }
     .tenant-infinity .text-gray-400 { color: #4B5563 !important; }
     .tenant-infinity .text-gray-500 { color: #6B7280 !important; }
+    .tenant-infinity .text-gray-600 { color: #4B5563 !important; }
+    .tenant-infinity .text-gray-700 { color: #374151 !important; }
+    .tenant-infinity .text-gray-800 { color: #1F2937 !important; }
     .tenant-infinity .text-zinc-400 { color: #4B5563 !important; }
     .tenant-infinity .text-zinc-500 { color: #6B7280 !important; }
+    .tenant-infinity .text-zinc-600 { color: #4B5563 !important; }
+    .tenant-infinity .text-zinc-700 { color: #374151 !important; }
+
+    /* Placeholders en inputs y textareas — el gris por default se pierde
+       sobre inputs claros. Este selector es global para el tenant. */
+    .tenant-infinity ::placeholder                    { color: #9CA3AF !important; opacity: 1 !important; }
+    .tenant-infinity ::-webkit-input-placeholder      { color: #9CA3AF !important; opacity: 1 !important; }
+    .tenant-infinity :-ms-input-placeholder           { color: #9CA3AF !important; opacity: 1 !important; }
 
     .tenant-infinity .bg-\\[\\#111115\\] {
       background-color: rgba(255, 255, 255, 0.8) !important;
