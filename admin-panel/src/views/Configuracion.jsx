@@ -740,13 +740,13 @@ export default function Configuracion() {
         </div>
       </Card>
 
-      {/* Duración de Turnos — 3 pills táctiles (mobile-first) */}
+      {/* Duración de Turnos — 4 pills (15/30/45/60) + Personalizado */}
       <Card Icon={Clock} title="Duración de Turnos">
         <p className="text-xs text-slate-500 -mt-1">
           Intervalo entre horas disponibles en la agenda pública de reservas.
         </p>
-        <div className="grid grid-cols-3 gap-2 mb-2">
-          {[15, 30, 45].map(mins => {
+        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mb-2">
+          {INTERVALO_PRESETS.map(mins => {
             const active = !customMode && intervalo === mins;
             return (
               <button
@@ -763,15 +763,45 @@ export default function Configuracion() {
               </button>
             );
           })}
+          <button
+            type="button"
+            onClick={activarCustom}
+            className={`h-11 rounded-lg text-sm font-semibold transition-all border col-span-3 sm:col-span-1 ${
+              customMode
+                ? 'border-emerald-500 bg-emerald-500/12 text-emerald-300 shadow-[0_2px_10px_rgba(16,185,129,0.18)]'
+                : 'border-neutral-700 bg-neutral-900 text-neutral-300 hover:text-white hover:border-neutral-500'
+            }`}
+          >
+            Personalizado
+          </button>
         </div>
-        {/* Chip discreto si el valor guardado no coincide con las 3 pills
-            (ej. tenant heredado con 60 min o custom). Solo lectura visible;
-            picar cualquier pill lo sobrescribe. */}
-        {(customMode || ![15, 30, 45].includes(intervalo)) && (
-          <p className="text-[11px] text-neutral-500 mt-1">
-            Actualmente configurado en <span className="text-neutral-300 font-semibold">{intervalo} min</span>.
-            Elige una pill para simplificarlo.
-          </p>
+
+        {/* Input visible solo cuando el modo personalizado está activo */}
+        {customMode && (
+          <div className="mt-2">
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={customStr}
+                onChange={e => onCustomChange(e.target.value)}
+                onBlur={onCustomBlur}
+                placeholder="ej. 20"
+                className={`w-32 h-11 rounded-lg border bg-neutral-900 text-white text-sm font-semibold text-center focus:outline-none transition-colors ${
+                  customErr
+                    ? 'border-rose-500 focus:border-rose-500'
+                    : 'border-neutral-700 focus:border-emerald-500'
+                }`}
+              />
+              <span className="text-sm text-neutral-400">minutos</span>
+            </div>
+            {customErr && (
+              <p className="text-[11px] text-rose-400 mt-1">
+                Debe ser un número entre {INTERVALO_MIN} y {INTERVALO_MAX}.
+              </p>
+            )}
+          </div>
         )}
       </Card>
 
