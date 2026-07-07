@@ -21,3 +21,7 @@ dist/
 
 # Test/debug screenshots en la raíz
 /error.png
+
+# Logs de import batch (scripts/import-*-<timestamp>.jsonl/.stats.json)
+scripts/import-*.jsonl
+scripts/import-*.stats.json
