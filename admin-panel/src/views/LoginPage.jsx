@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   signInWithEmailAndPassword,
   setPersistence,
@@ -27,6 +27,32 @@ const LOGIN_IMAGE = {
 
 /* Fallback si el tenant no tiene imagen propia — el testimonial habla de Ferraza. */
 const DEFAULT_LOGIN_IMAGE = '/loginferraza.webp';
+
+/* Manifiesto de marca — se rota cada 6s en el panel izquierdo del login. */
+const MANIFIESTO_MARCA = [
+  {
+    titulo: 'Menos administración. Más tiempo para tu arte.',
+    subtitulo: 'Plataforma inteligente de gestión para barberías de alto flujo.',
+  },
+  {
+    titulo: 'El control total de tu negocio, en la palma de tu mano.',
+    subtitulo: 'Métricas en tiempo real, agenda automatizada y control de caja.',
+  },
+  {
+    titulo: 'Tu agenda no se detiene. Tu software tampoco.',
+    subtitulo: 'Infraestructura en la nube de alta disponibilidad para tu local.',
+  },
+  {
+    titulo: 'Métricas claras, decisiones rápidas, crecimiento real.',
+    subtitulo: 'Transforma los datos de tus clientes en estrategias de fidelización.',
+  },
+  {
+    titulo: 'De la reserva a la caja, una experiencia sin fricciones.',
+    subtitulo: 'Simplifica la operación diaria de todo tu equipo de trabajo.',
+  },
+];
+const MANIFIESTO_INTERVAL_MS = 6000;
+const MANIFIESTO_FADE_MS     = 500;
 
 /* Traduce los códigos de error de Firebase Auth a mensajes claros en español. */
 function authErrorMessage(err) {
@@ -65,6 +91,28 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false);
   const [error,      setError]      = useState('');
   const [loading,    setLoading]    = useState(false);
+
+  /* Carrusel del manifiesto de marca (panel izquierdo). */
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isFading,     setIsFading]     = useState(false);
+
+  useEffect(() => {
+    let swapTimeout;
+    const interval = setInterval(() => {
+      setIsFading(true);
+      swapTimeout = setTimeout(() => {
+        setCurrentIndex(i => (i + 1) % MANIFIESTO_MARCA.length);
+        setIsFading(false);
+      }, MANIFIESTO_FADE_MS);
+    }, MANIFIESTO_INTERVAL_MS);
+
+    return () => {
+      clearInterval(interval);
+      if (swapTimeout) clearTimeout(swapTimeout);
+    };
+  }, []);
+
+  const manifiesto = MANIFIESTO_MARCA[currentIndex];
 
   const bgImage = LOGIN_IMAGE[tenant.id] || DEFAULT_LOGIN_IMAGE;
 
@@ -118,12 +166,18 @@ export default function LoginPage() {
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
 
         <div className="absolute bottom-12 left-12 right-12 z-10">
-          <h2 className="text-3xl font-bold text-white tracking-tight mb-3">
-            Menos administración. Más tiempo para tu arte.
-          </h2>
-          <p className="text-neutral-400 text-sm font-medium">
-            Plataforma inteligente de gestión para barberías de alto flujo.
-          </p>
+          <div
+            className={`transition-opacity duration-700 ease-in-out ${
+              isFading ? 'opacity-0' : 'opacity-100'
+            }`}
+          >
+            <h2 className="text-3xl font-bold text-white tracking-tight mb-3">
+              {manifiesto.titulo}
+            </h2>
+            <p className="text-neutral-400 text-sm font-medium">
+              {manifiesto.subtitulo}
+            </p>
+          </div>
         </div>
       </div>
 
