@@ -1064,12 +1064,68 @@ export default function Metricas() {
     }
   }, [citas, rangeVentas, fechaInicio, fechaFin, getPrice, parseDateStr]);
 
-  // Primer fetch: spinner a pantalla completa en lugar de KPIs en $0.
+  // Primer fetch: skeleton que refleja la estructura real del dashboard.
+  // Antes: spinner suelto → sensación de "sin nada". Placeholders en $0
+  // eran peores todavía porque parecían métricas reales de una barbería
+  // fundida. Filosofía Linear: bloques grises con pulse, sin texto.
   if (loading) {
     return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center gap-3">
-        <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-        <p className="text-xs text-slate-500">Cargando métricas…</p>
+      <div className="max-w-7xl mx-auto space-y-4 animate-in fade-in duration-200">
+        {/* Toolbar (filtros de fecha, refresh) */}
+        <div className="flex items-center gap-2">
+          <div className="h-10 w-40 bg-slate-800/40 rounded-lg animate-pulse" />
+          <div className="h-10 w-32 bg-slate-800/40 rounded-lg animate-pulse" />
+          <div className="h-10 w-32 bg-slate-800/40 rounded-lg animate-pulse" />
+          <div className="ml-auto h-10 w-24 bg-slate-800/40 rounded-lg animate-pulse" />
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-2 border-b border-slate-800/60 pb-2">
+          {[80, 60, 70, 90].map((w, i) => (
+            <div key={i} className="h-8 bg-slate-800/40 rounded-md animate-pulse" style={{ width: w }} />
+          ))}
+        </div>
+
+        {/* Hero card (KPI héroe + delta + sparkline) */}
+        <div className="rounded-2xl border border-slate-800/60 bg-slate-900/30 p-6 flex flex-col md:flex-row md:items-center gap-6">
+          <div className="flex-1 space-y-3">
+            <div className="h-3 w-24 bg-slate-800/50 rounded animate-pulse" />
+            <div className="h-10 w-56 bg-slate-800/60 rounded-lg animate-pulse" />
+            <div className="h-4 w-40 bg-slate-800/40 rounded animate-pulse" />
+          </div>
+          <div className="w-full md:w-64 h-16 bg-slate-800/40 rounded-lg animate-pulse" />
+        </div>
+
+        {/* Grid de 4 KPIs críticos */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="rounded-xl border border-slate-800/60 bg-slate-900/30 p-4 space-y-2">
+              <div className="h-3 w-16 bg-slate-800/50 rounded animate-pulse" />
+              <div className="h-7 w-24 bg-slate-800/60 rounded animate-pulse" />
+              <div className="h-3 w-20 bg-slate-800/40 rounded animate-pulse" />
+            </div>
+          ))}
+        </div>
+
+        {/* 2 charts grandes lado a lado */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {Array.from({ length: 2 }).map((_, i) => (
+            <div key={i} className="rounded-xl border border-slate-800/60 bg-slate-900/30 p-5 space-y-3">
+              <div className="h-4 w-32 bg-slate-800/50 rounded animate-pulse" />
+              <div className="h-56 bg-slate-800/30 rounded animate-pulse" />
+            </div>
+          ))}
+        </div>
+
+        {/* Fila de KPIs adicionales */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="rounded-xl border border-slate-800/60 bg-slate-900/30 p-4 space-y-2">
+              <div className="h-3 w-16 bg-slate-800/40 rounded animate-pulse" />
+              <div className="h-6 w-20 bg-slate-800/50 rounded animate-pulse" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
