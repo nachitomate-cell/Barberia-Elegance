@@ -623,7 +623,7 @@ const TENANT_META = {
     },
     registro: {
       title:       'Únete al Club | INFINITY STUDIO',
-      description: 'Crea tu cuenta en el Club Infinity. Acumula sellos y canjea premios exclusivos.',
+      description: 'Crea tu cuenta en la Comunidad Infinity. Acumula sellos y canjea premios exclusivos.',
       ogTitle:     'Únete al Club | INFINITY STUDIO',
       ogDesc:      'Regístrate en Infinity Studio y disfruta de beneficios exclusivos.',
     },

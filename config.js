@@ -657,7 +657,7 @@
       direccion:       '📍 Traslaviña 114 | Viña del Mar',
       horario:         '🕒 Lun a Sáb: 10:00 – 20:00 hrs.',
       telefono:        '56985551234',
-      club:            'Club Infinity',
+      club:            'Comunidad Infinity',
       instagram:       'https://www.instagram.com/infinitystudio23/',
       instagramHandle: '@infinitystudio23',
       waEmoji:         '💈',

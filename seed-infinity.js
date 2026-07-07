@@ -171,7 +171,7 @@ async function seedProfile() {
     name:            "INFINITY STUDIO",
     shortName:       "Infinity",
     slogan:          "Ambiente familiar y confianza son nuestra esencia. Resultados de alto nivel.",
-    club:            "Club Infinity",
+    club:            "Comunidad Infinity",
     address:         "Traslaviña 114, Viña del Mar",
     scheduleText:    "Lunes a sábado 10:00-20:00",
     phone:           "56985551234",
