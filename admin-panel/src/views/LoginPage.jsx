@@ -18,6 +18,7 @@ const LOGIN_IMAGE = {
   yugen:          '/yugen/yugen2.png',
   sionbarberia:   '/dieciseis/banner.png',
   lumen:          '/djones1.png',
+  infinity:       '/infinity/infinit.png',
   kronnos_penablanca: '/kronnos/kronospena.png',
   kronnos_limache:    '/kronnos/kronoslima.png',
   kronnos_woman:      '/kronnos/kronoswoman.png',
