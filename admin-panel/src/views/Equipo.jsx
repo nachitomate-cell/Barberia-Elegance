@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Calendar, Edit2, Trash2, PowerOff, User, ShieldCheck, MessageCircle,
@@ -317,7 +317,7 @@ function BiooBarberoButton({ barber, tenant, canManage }) {
 }
 
 /* ─── BarberCard ─────────────────────────────────────────── */
-function BarberCard({ barber, onEdit, waUrl, onVerAgenda, sucursales = [], dragHandleProps = null, isDragging = false, allowAdminEdit = false, tenant = null, canManageBioo = false }) {
+function BarberCard({ barber, onEdit, waUrl, onVerAgenda, sucursales = [], dragHandleProps = null, isDragging = false, allowAdminEdit = false, tenant = null, canManageBioo = false, linkedMainDocIds = null }) {
   const isActive      = barber.disponible !== false;
   const isStrictAdmin = barber.rol === 'admin' && !allowAdminEdit;
   const isAdmin       = barber.rol === 'admin' || barber.rol === 'jefe';
@@ -372,32 +372,50 @@ function BarberCard({ barber, onEdit, waUrl, onVerAgenda, sucursales = [], dragH
           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${isActive ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-slate-700/50 text-slate-400 border-slate-600/30'}`}>
             {isActive?'Activo':'Inactivo'}
           </span>
-          {/* 3 estados de acceso:
-              (a) authUid  → creado con flujo nuevo (crearAccesoStaff CF)
-              (b) uid solo → legacy: doc con uid explícito o link-doc previo
-              (c) ninguno  → perfil local sin cuenta Firebase Auth */}
-          {barber.authUid ? (
-            <span
-              title={`Acceso Nativo · ${barber.email || 'sin email registrado'}`}
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-            >
-              🔐 Acceso Nativo
-            </span>
-          ) : barber.uid ? (
-            <span
-              title={`Cuenta legacy · ${barber.email || 'sin email registrado'}`}
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20"
-            >
-              ⚠️ Acceso Antiguo
-            </span>
-          ) : (
-            <span
-              title="Este barbero no tiene cuenta de acceso web"
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-neutral-800 text-neutral-400 border border-neutral-700"
-            >
-              Sin acceso web
-            </span>
-          )}
+          {/* 3 estados de acceso web — la detección refleja los 3 caminos
+              que agenda.html usa para autenticar al barbero:
+                (a) authUid           → creado con crearAccesoStaff (flujo nuevo)
+                (b) uid | link-doc | email → cualquier señal de login legacy:
+                     • uid explícito en el doc
+                     • existe un doc-espejo con _mainDocId apuntando a este
+                     • email en el doc (agenda.html hace match por email)
+                (c) nada de lo anterior → perfil sin cuenta Firebase Auth */}
+          {(() => {
+            const hasLinkDoc = !!linkedMainDocIds && linkedMainDocIds.has(barber.id);
+            if (barber.authUid) {
+              return (
+                <span
+                  title={`Cuenta creada desde este panel · ${barber.email || 'sin email registrado'}`}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                >
+                  🔐 Acceso Nativo
+                </span>
+              );
+            }
+            if (barber.uid || hasLinkDoc || barber.email) {
+              const razon = barber.uid
+                ? 'UID legacy vinculado al doc'
+                : hasLinkDoc
+                  ? 'agenda.html creó un doc-espejo tras el primer login'
+                  : 'agenda.html autentica por match de email';
+              return (
+                <span
+                  title={`Puede iniciar sesión (${razon}) — vincula formalmente desde "Editar"`}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                >
+                  ⚠️ Acceso Antiguo
+                </span>
+              );
+            }
+            return (
+              <span
+                title="Este barbero no tiene cuenta ni email registrado; no puede iniciar sesión"
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-neutral-800 text-neutral-400 border border-neutral-700"
+              >
+                Sin acceso web
+              </span>
+            );
+          })()}
         </div>
       </div>
 
@@ -688,6 +706,18 @@ export default function Equipo() {
 
   const memberLabel = resolveTenantId() === 'gitana' ? 'profesional' : 'barbero';
   const memberLabelCap = memberLabel.charAt(0).toUpperCase() + memberLabel.slice(1);
+
+  /* ── Set de barberoIds que YA tienen un link-doc apuntándolos ──
+     agenda.html, tras el primer login, crea un doc espejo con
+     docId=UID y `_mainDocId` apuntando al doc principal del barbero.
+     Ese link-doc confirma que el barbero SÍ puede iniciar sesión, aunque
+     el doc principal no tenga `authUid` ni `uid`. Precomputamos esto para
+     que BarberCard pueda mostrar "Acceso Antiguo" en vez de "Sin acceso"
+     para barberos que loguean vía este patrón (Aura, Ferraza, etc.). */
+  const linkedMainDocIds = useMemo(
+    () => new Set(barberos.filter(b => b._mainDocId).map(b => b._mainDocId)),
+    [barberos]
+  );
 
   /* ── Orden drag-and-drop ── */
   const [orderedBarberos, setOrderedBarberos] = useState([]);
@@ -1036,7 +1066,8 @@ export default function Equipo() {
                   <SortableBarberCard key={b.id} barber={b} onEdit={openEdit} waUrl={waUrl}
                     sucursales={sucursales} onVerAgenda={() => navigate('/agenda')}
                     allowAdminEdit={tenant.id === 'delnero'}
-                    tenant={tenant} canManageBioo={isAdmin} />
+                    tenant={tenant} canManageBioo={isAdmin}
+                    linkedMainDocIds={linkedMainDocIds} />
                 ))}
               </div>
             </SortableContext>
