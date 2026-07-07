@@ -166,6 +166,16 @@ export default function LoginPage() {
       >
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
 
+        {/* Branding SynapTech esquina superior */}
+        <div className="absolute top-8 left-8 sm:left-12 z-20 flex items-center gap-3">
+          <img
+            src="/synaptech/ig.png"
+            alt="SynapTech Logo"
+            className="h-8 w-auto drop-shadow-[0_0_8px_rgba(16,185,129,0.5)]"
+          />
+          <span className="text-white font-bold text-xl tracking-tight">SynapTech</span>
+        </div>
+
         <div className="absolute bottom-12 left-12 right-12 z-10">
           <div
             className={`transition-opacity duration-700 ease-in-out ${
@@ -250,8 +260,13 @@ export default function LoginPage() {
           </form>
         </div>
 
-        <p className="text-xs text-neutral-600 absolute bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap">
-          ⚡ Engineered by SynapTech SpA — Conexión cifrada TLS
+        <p className="text-xs text-neutral-600 flex items-center justify-center absolute bottom-6 left-0 right-0 whitespace-nowrap">
+          <img
+            src="/synaptech/ig.png"
+            alt="SynapTech Icon"
+            className="h-4 w-auto inline-block mr-1.5 opacity-90"
+          />
+          Engineered by SynapTech SpA — Conexión cifrada TLS
         </p>
       </div>
     </div>
