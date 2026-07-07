@@ -1186,16 +1186,13 @@
         </div>
 
         <!-- ── VISTA SEMANAL ──
-             Móvil: flex-col con altura estricta de viewport (100dvh menos
-             el offset del header + toggle) para que el ÚNICO scroll sea
-             el interno del calendario. Sin esto, había scroll anidado
-             (documento + contenedor con max-height:65vh) que competían en
-             iOS y hacían que las primeras horas quedaran atrapadas detrás
-             del header sticky.
-             Desktop (lg:): revierte a block; el parent .lg:h-full ya
-             maneja el scroll a ese nivel. -->
-        <div id="weekViewSection" class="hidden view-in mb-8 flex flex-col overflow-hidden h-[calc(100dvh-180px)] lg:h-auto lg:overflow-visible lg:block">
-            <div class="flex items-center justify-between mb-5 shrink-0">
+             Fluye como block natural del documento. El scroll BIDIMENSIONAL
+             (X + Y) vive dentro de #weekColumnsContainer con max-height
+             calculada; overscroll-behavior-y:auto permite que al llegar al
+             extremo vertical del calendario el gesto pase al documento y
+             el usuario vea "Últimas reservas" debajo. -->
+        <div id="weekViewSection" class="hidden view-in mb-8">
+            <div class="flex items-center justify-between mb-5">
                 <button onclick="cambiarSemana(-1)" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all active:scale-95">
                     <i class="ph-bold ph-caret-left text-white/60"></i>
                 </button>
@@ -1204,7 +1201,7 @@
                     <i class="ph-bold ph-caret-right text-white/60"></i>
                 </button>
             </div>
-            <div id="weekColumnsContainer" class="no-scrollbar flex-1 min-h-0 relative" style="-webkit-overflow-scrolling:touch;">
+            <div id="weekColumnsContainer" class="no-scrollbar relative">
                 <!-- Generado por renderWeekView() -->
             </div>
         </div>
@@ -2892,24 +2889,35 @@
             const yOf      = m => Math.round((m - iniMins) * pxPerMin);
             const hOf      = m => Math.max(1, Math.round(m * pxPerMin));
 
-            // ── Contenedor externo (scroll bidireccional fluido sin trabas) ──
-            // En móvil el parent .weekViewSection define altura estricta con
-            // h-[calc(100dvh-180px)] flex-col, y este contenedor es flex-1 →
-            // ocupa todo el remanente. No forzamos max-height acá porque en
-            // iOS eso creaba scroll anidado que competía con el documento.
-            // En desktop (lg:block del parent) volvemos a max-height:65vh
-            // para que no crezca infinito dentro del scroll de la columna.
+            // ── Contenedor externo (scroll bidimensional fluido) ──
+            // Móvil: max-height calculada del viewport (deja espacio abajo
+            // para "Últimas reservas"). min-height forzado para que siempre
+            // haya área táctil útil incluso si el rango horario del tenant
+            // es corto (ej. 10:00–14:00).
+            // Desktop: max-height 65vh como siempre; el parent .col-span-7
+            // maneja el scroll global de la columna.
+            // Clave iOS: overscroll-behavior-y=auto → cuando el usuario llega
+            // al final vertical del calendario, el gesto continúa y scrollea
+            // el DOCUMENTO, revelando "Últimas reservas". Sin esto queda
+            // "atrapado" dentro del container. En X sí contain: swipe
+            // horizontal se queda en el calendario, no navega el doc.
+            const mobileMaxH = 'calc(100dvh - 280px)';
+            const mobileMinH = '400px';
             const containerBaseCss = [
                 'overflow:auto',
                 'margin:0 -24px',
                 'scrollbar-width:none',
                 '-ms-overflow-style:none',
-                '-webkit-overflow-scrolling:touch',
                 'overscroll-behavior-x:contain',
-                'overscroll-behavior-y:contain',
+                'overscroll-behavior-y:auto',
                 'touch-action:pan-x pan-y',
             ];
-            if (!isMobile) containerBaseCss.push('max-height:65vh');
+            if (isMobile) {
+                containerBaseCss.push(`max-height:${mobileMaxH}`);
+                containerBaseCss.push(`min-height:${mobileMinH}`);
+            } else {
+                containerBaseCss.push('max-height:65vh');
+            }
             container.style.cssText = containerBaseCss.join(';');
 
             container.innerHTML = '';
@@ -2975,19 +2983,23 @@
             }
 
             // ── Fila 2, Col 1: Etiquetas de hora (sticky left) ──
+            // z-index:25 → por encima de citas (z:3) y bloqueos (z:2) para
+            // que al hacer scroll horizontal las citas NO se translucian
+            // detrás de las horas. Border-right marca la separación visual.
+            // El bg es 100% opaco (pal.timeColBg) — antes había un
+            // position:relative que pisaba el sticky y creaba parpadeos.
             const timeCol = document.createElement('div');
             timeCol.style.cssText = [
                 'grid-column:1',
                 'grid-row:2',
                 'position:sticky',
                 'left:0',
-                'z-index:20',
+                'z-index:25',
                 `background:${pal.timeColBg}`,
-                'position:relative',
+                `border-right:1px solid ${pal.bordeHeader}`,
                 `height:${bodyH}px`,
             ].join(';');
-            // Necesita ser relative para posicionar las horas absolutas
-            timeCol.style.position = 'sticky';
+            // Hijo relative → las labels absolutas se anclan a él, no al viewport.
             const timeInner = document.createElement('div');
             timeInner.style.cssText = `position:relative;width:100%;height:${bodyH}px;`;
             // Labels: una por cada hora en punto dentro del rango.
