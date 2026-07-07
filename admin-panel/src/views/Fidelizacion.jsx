@@ -4,7 +4,7 @@ import { onSnapshot, query, where, Timestamp } from 'firebase/firestore';
 import {
   Trophy, ScanLine, Crown, Medal, Sparkles, Gift,
   Users, TrendingUp, Clock, CheckCircle2, Gem, UserX,
-  Send, X, MessageCircle, ChevronRight,
+  Send, X, MessageCircle, ChevronRight, ArrowUpRight, ArrowDownRight, Plus,
 } from 'lucide-react';
 import { tenantCol } from '../lib/tenantUtils';
 import { useTenant } from '../contexts/TenantContext';
@@ -105,8 +105,10 @@ function ResumenFidelizacion() {
   const [users, setUsers]             = useState([]);
   const [premios, setPremios]         = useState([]);
   const [redemptions, setRedemptions] = useState([]);
+  const [redemptions6m, setRedemptions6m] = useState([]);
   const [loading, setLoading]         = useState(true);
   const [broadcast, setBroadcast]     = useState(null); // { type, clients }
+  const [showAllCanjes, setShowAllCanjes] = useState(false);
 
   // users y premios son estado actual — se cargan una sola vez.
   useEffect(() => {
@@ -135,6 +137,52 @@ function ResumenFidelizacion() {
     }, () => {});
     return () => unsubR();
   }, [periodo]);
+
+  // ── Redemptions 6 meses (para la tendencia) ─────────────────────
+  // Fetch one-shot con cache en localStorage (15 min TTL), independiente del
+  // filtro de período. Mismo patrón que Metricas.jsx trend6m.
+  useEffect(() => {
+    if (!tenant?.id) return;
+    const cacheKey = `fideli:trend6m:${tenant.id}`;
+    const TTL_MS   = 15 * 60 * 1000;
+
+    // Hidratar desde cache si existe y no expiró.
+    try {
+      const raw = localStorage.getItem(cacheKey);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed?.updatedAt && (Date.now() - parsed.updatedAt) < TTL_MS) {
+          setRedemptions6m(parsed.data || []);
+          return;
+        }
+      }
+    } catch (_) {}
+
+    // Fetch 6 meses vía onSnapshot one-shot.
+    const hace6m = new Date();
+    hace6m.setMonth(hace6m.getMonth() - 5);
+    hace6m.setDate(1);
+    hace6m.setHours(0, 0, 0, 0);
+
+    const q = query(tenantCol('redemptions'), where('createdAt', '>=', Timestamp.fromDate(hace6m)));
+    const unsub = onSnapshot(q, snap => {
+      const data = snap.docs.map(d => {
+        const r = d.data();
+        // Serializable para localStorage — solo lo que necesitamos.
+        return {
+          id:       d.id,
+          status:   r.status,
+          ms:       r.completedAt?.toMillis?.() || r.createdAt?.toMillis?.() || 0,
+        };
+      });
+      setRedemptions6m(data);
+      try {
+        localStorage.setItem(cacheKey, JSON.stringify({ data, updatedAt: Date.now() }));
+      } catch (_) {}
+      unsub();
+    }, () => { unsub(); });
+    return () => unsub();
+  }, [tenant?.id]);
 
   const stats = useMemo(() => {
     const sellosDe    = u => u.sellosDisponibles ?? u.stamps ?? 0;
@@ -221,6 +269,71 @@ function ResumenFidelizacion() {
 
     const sellosEnCirculacion = registrados.reduce((s, u) => s + sellosDe(u), 0);
 
+    // ── Tendencia 6 meses ─────────────────────────────────────────
+    // Genera buckets por mes calendario. Cada bucket cuenta:
+    //  · canjes completados que cayeron en ese mes (redemptions6m)
+    //  · miembros nuevos (users con creadoEn/fechaRegistro en ese mes)
+    const buckets = [];
+    const now = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      buckets.push({
+        year: d.getFullYear(),
+        month: d.getMonth(),
+        label: d.toLocaleDateString('es-CL', { month: 'short' }),
+        canjes: 0,
+        miembros: 0,
+      });
+    }
+    const bucketFor = (ms) => {
+      if (!ms) return -1;
+      const d = new Date(ms);
+      return buckets.findIndex(b => b.year === d.getFullYear() && b.month === d.getMonth());
+    };
+
+    for (const r of redemptions6m) {
+      if (r.status !== 'completed') continue;
+      const idx = bucketFor(r.ms);
+      if (idx >= 0) buckets[idx].canjes += 1;
+    }
+    for (const u of registrados) {
+      const ms = u.creadoEn?.toMillis?.() || u.fechaRegistro?.toMillis?.() ||
+                 (typeof u.creadoEn === 'string' ? new Date(u.creadoEn).getTime() : null) ||
+                 (typeof u.fechaRegistro === 'string' ? new Date(u.fechaRegistro).getTime() : null);
+      if (!ms) continue;
+      const idx = bucketFor(ms);
+      if (idx >= 0) buckets[idx].miembros += 1;
+    }
+
+    // Delta vs mes anterior (últimos 2 buckets)
+    const last = buckets[buckets.length - 1] || { canjes: 0, miembros: 0 };
+    const prev = buckets[buckets.length - 2] || { canjes: 0, miembros: 0 };
+    const deltaPct = (a, b) => (b === 0 ? (a > 0 ? 100 : 0) : ((a - b) / b) * 100);
+
+    const trend = {
+      buckets,
+      canjes: {
+        actual: last.canjes,
+        deltaPct: deltaPct(last.canjes, prev.canjes),
+        series: buckets.map(b => b.canjes),
+      },
+      miembros: {
+        actual: last.miembros,
+        deltaPct: deltaPct(last.miembros, prev.miembros),
+        series: buckets.map(b => b.miembros),
+      },
+    };
+
+    // Lista completa de canjes ordenados para el modal "Ver todos"
+    const todosLosCanjes = [...completados]
+      .sort((a, b) => (b.completedAt?.seconds || b.createdAt?.seconds || 0) - (a.completedAt?.seconds || a.createdAt?.seconds || 0))
+      .map(r => ({
+        id: r.id,
+        premio: premios.find(p => p.id === r.premioId)?.nombre || r.premio || '—',
+        cliente: r.clienteNombre || r.userName || '—',
+        fecha: r.completedAt?.toDate() || r.createdAt?.toDate() || null,
+      }));
+
     return {
       miembrosDelClub,
       conSellosActivos,
@@ -236,9 +349,11 @@ function ResumenFidelizacion() {
       ultimosCanjes,
       distribucion,
       baseRangos,
+      trend,
+      todosLosCanjes,
       menorCosto: menorCosto === Infinity ? null : menorCosto,
     };
-  }, [users, premios, redemptions]);
+  }, [users, premios, redemptions, redemptions6m]);
 
   const periodoLabel = PERIODOS.find(p => p.key === periodo)?.label || '';
 
@@ -320,6 +435,24 @@ function ResumenFidelizacion() {
             label: `Recuperar a los ${stats.sinVisita30d}`,
             onClick: () => setBroadcast({ type: 'churn', clients: stats.sinVisita30dList }),
           } : null}
+        />
+      </div>
+
+      {/* Tendencia 6 meses — canjes y miembros nuevos con delta vs mes anterior */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <TrendCard
+          Icon={CheckCircle2}
+          color="blue"
+          label="Canjes por mes"
+          data={stats.trend.canjes}
+          buckets={stats.trend.buckets}
+        />
+        <TrendCard
+          Icon={Users}
+          color="emerald"
+          label="Miembros nuevos por mes"
+          data={stats.trend.miembros}
+          buckets={stats.trend.buckets}
         />
       </div>
 
@@ -416,6 +549,14 @@ function ResumenFidelizacion() {
           <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-800">
             <Clock size={16} className="text-emerald-400" />
             <h3 className="text-sm font-bold text-white">Últimos canjes validados</h3>
+            {stats.todosLosCanjes.length > 5 && (
+              <button
+                onClick={() => setShowAllCanjes(true)}
+                className="ml-auto text-xs text-slate-500 hover:text-emerald-400 transition-colors flex items-center gap-1"
+              >
+                Ver todos ({stats.todosLosCanjes.length}) <ChevronRight size={12} />
+              </button>
+            )}
           </div>
           {stats.ultimosCanjes.length === 0 ? (
             <p className="text-sm text-slate-500 italic text-center py-6">Aún no hay canjes validados.</p>
@@ -448,6 +589,14 @@ function ResumenFidelizacion() {
         clients={broadcast?.clients || []}
         tenant={tenant}
         menorCosto={stats.menorCosto}
+      />
+
+      {/* Modal: todos los canjes del período */}
+      <AllCanjesModal
+        open={showAllCanjes}
+        onClose={() => setShowAllCanjes(false)}
+        canjes={stats.todosLosCanjes}
+        periodoLabel={periodoLabel}
       />
     </div>
   );
@@ -483,6 +632,150 @@ function StatCard({ Icon, label, value, sub, color = 'emerald', action = null })
           <ChevronRight size={12} className="shrink-0 opacity-70" />
         </button>
       )}
+    </div>
+  );
+}
+
+/* ── TrendCard + Sparkline ────────────────────────────────────────
+   Mini gráfico de líneas de 6 puntos + delta vs mes anterior.
+   SVG inline puro para evitar dependencia adicional. */
+function Sparkline({ series, color = '#10b981' }) {
+  const w = 100, h = 32, pad = 2;
+  const max = Math.max(1, ...series);
+  const step = series.length > 1 ? (w - pad * 2) / (series.length - 1) : 0;
+  const points = series.map((v, i) => {
+    const x = pad + i * step;
+    const y = h - pad - ((v / max) * (h - pad * 2));
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+  const areaPoints = series.length
+    ? `${pad},${h - pad} ${points} ${w - pad},${h - pad}`
+    : '';
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-8" preserveAspectRatio="none" aria-hidden>
+      <polygon points={areaPoints} fill={color} fillOpacity="0.12" />
+      <polyline points={points} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+const TREND_COLOR = { emerald: '#10b981', blue: '#3b82f6', amber: '#f59e0b', rose: '#f43f5e' };
+
+function TrendCard({ Icon, label, color = 'blue', data, buckets }) {
+  const delta = data.deltaPct;
+  const positive = delta >= 0;
+  const deltaTxt = isFinite(delta)
+    ? `${positive ? '+' : ''}${delta.toFixed(0)}%`
+    : '—';
+  const strokeColor = TREND_COLOR[color] || TREND_COLOR.blue;
+
+  return (
+    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
+      <div className="flex items-start justify-between gap-3 mb-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className={`p-1.5 rounded-lg border ${COLOR_MAP[color] || COLOR_MAP.blue}`}>
+            <Icon size={14} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider truncate">{label}</p>
+            <p className="text-lg font-bold text-white leading-tight">{data.actual}</p>
+          </div>
+        </div>
+        <div className={`flex items-center gap-0.5 text-xs font-semibold shrink-0 px-1.5 py-0.5 rounded ${
+          positive ? 'text-emerald-400 bg-emerald-500/10' : 'text-rose-400 bg-rose-500/10'
+        }`}>
+          {positive ? <ArrowUpRight size={11} /> : <ArrowDownRight size={11} />}
+          {deltaTxt}
+        </div>
+      </div>
+      <Sparkline series={data.series} color={strokeColor} />
+      <div className="flex justify-between mt-1 text-[10px] text-slate-600">
+        {buckets.map((b, i) => (
+          <span key={i} className="capitalize">{b.label}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ── AllCanjesModal ───────────────────────────────────────────────
+   Lista completa de canjes del período seleccionado, paginada. */
+function AllCanjesModal({ open, onClose, canjes, periodoLabel }) {
+  const [page, setPage] = useState(1);
+  const PAGE = 20;
+
+  useEffect(() => { if (!open) setPage(1); }, [open]);
+
+  if (!open) return null;
+
+  const total = canjes.length;
+  const pages = Math.max(1, Math.ceil(total / PAGE));
+  const rows  = canjes.slice((page - 1) * PAGE, page * PAGE);
+
+  return (
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        className="bg-slate-900 border border-slate-800 rounded-xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl"
+      >
+        <div className="flex items-start justify-between p-5 border-b border-slate-800 shrink-0">
+          <div className="min-w-0">
+            <h3 className="text-base font-bold text-white">Canjes validados</h3>
+            <p className="text-xs text-slate-500 mt-0.5">{total} canjes en {periodoLabel.toLowerCase()}</p>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-slate-800 transition-colors shrink-0">
+            <X size={16} />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto">
+          {rows.length === 0 ? (
+            <p className="text-sm text-slate-500 italic text-center py-12">Sin canjes en el período.</p>
+          ) : (
+            <ul className="divide-y divide-slate-800">
+              {rows.map(c => (
+                <li key={c.id} className="flex items-center gap-3 px-5 py-3">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0">
+                    <CheckCircle2 size={14} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-white truncate">{c.premio}</p>
+                    <p className="text-xs text-slate-500 truncate">{c.cliente}</p>
+                  </div>
+                  <span className="text-xs text-slate-500 shrink-0">
+                    {c.fecha ? c.fecha.toLocaleDateString('es-CL', { day: 'numeric', month: 'short', year: '2-digit' }) : '—'}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
+        {pages > 1 && (
+          <div className="flex items-center justify-between p-4 border-t border-slate-800 text-xs shrink-0">
+            <span className="text-slate-500">Página {page} de {pages}</span>
+            <div className="flex gap-1">
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="px-2.5 py-1 rounded-lg font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Anterior
+              </button>
+              <button
+                onClick={() => setPage(p => Math.min(pages, p + 1))}
+                disabled={page === pages}
+                className="px-2.5 py-1 rounded-lg font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                Siguiente
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -649,10 +942,18 @@ export default function Fidelizacion() {
         <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 shrink-0">
           <Trophy size={20} className="text-amber-400" />
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h1 className="text-xl md:text-2xl font-bold text-white truncate">Fidelización</h1>
           <p className="text-xs text-slate-500 truncate">Club, premios, canjes y rangos — todo en un solo lugar</p>
         </div>
+        <button
+          onClick={() => setActiveTab('premios')}
+          className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold bg-amber-500/15 text-amber-400 hover:bg-amber-500/25 border border-amber-500/30 transition-colors"
+        >
+          <Plus size={13} />
+          <span className="hidden sm:inline">Nuevo premio</span>
+          <span className="sm:hidden">Premio</span>
+        </button>
       </header>
 
       {/* Toolbar de tabs */}
