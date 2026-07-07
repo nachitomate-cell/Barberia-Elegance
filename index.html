@@ -6625,39 +6625,91 @@
       box-shadow: none !important;
     }
 
-    /* ── Paso 2 - Fotos de barberos alineadas a Aura ────────────────
-       El JS renderea las fotos con border-[#F9E7B3]/60 + shadow gold-glow
-       + bg-[#111115] fallback → en modo light se ve raro (halo dorado
-       flotando y bg oscuro donde no hay foto). Overrides para que quede
-       limpio como Aura: border neutro sutil, sin glow, bg gris muy claro
-       si no hay foto, íconos placeholder en gris. */
+    /* ── Paso 2 - Cards de barberos COMPACTAS (patrón Aura light) ──
+       El JS renderea las cards con layout vertical grande (flex-col,
+       p-6, foto 80x80, texto centrado). En light minimalista queda
+       demasiado pesado. Forzamos layout horizontal compacto:
+       - flex-direction: row (horizontal, foto izquierda + texto derecha)
+       - padding compacto 12px 16px
+       - foto 48px x 48px (era 80px)
+       - texto alineado a la izquierda
+       - nombre text-base (no text-lg)
+       Estructura visual final ~64px de alto (era ~200px). */
+    .tenant-infinity .barber-option {
+      flex-direction: row !important;
+      align-items: center !important;
+      justify-content: flex-start !important;
+      gap: 12px !important;
+      padding: 12px 16px !important;
+      text-align: left !important;
+      min-height: 64px !important;
+    }
+    /* Foto grande (w-20 h-20) del render default → 48x48 compacto. Aplico
+       a IMG y a DIV (placeholder cuando no hay foto). */
     .tenant-infinity .barber-option img.w-20,
-    .tenant-infinity .barber-option div.w-20.rounded-full,
+    .tenant-infinity .barber-option div.w-20.rounded-full {
+      width: 48px !important;
+      height: 48px !important;
+      margin-bottom: 0 !important;
+      border: 1px solid #D4D4D8 !important;
+      box-shadow: none !important;
+      background: #F4F4F5 !important;
+      filter: none !important;
+      flex-shrink: 0 !important;
+    }
+    /* Foto ya compacta (w-12) del "any" card en elegance-like — mismo estilo */
     .tenant-infinity .barber-option img.w-12,
     .tenant-infinity .barber-option div.w-12.rounded-full {
       border: 1px solid #D4D4D8 !important;
       box-shadow: none !important;
       background: #F4F4F5 !important;
       filter: none !important;
+      flex-shrink: 0 !important;
     }
+    /* Íconos del placeholder de foto: gris claro, sin sombra */
     .tenant-infinity .barber-option i.ph-user,
     .tenant-infinity .barber-option i.ph-shuffle {
       color: #9CA3AF !important;
+      font-size: 18px !important;
       filter: none !important;
       text-shadow: none !important;
     }
-    /* Nombre del barbero: mismo peso y color que Aura (#18181B en vez de #000 absoluto) */
+    /* Wrapper de textos: ocupa el espacio restante y alinea a la izquierda */
+    .tenant-infinity .barber-option > .absolute {
+      display: none !important;
+    }
+    .tenant-infinity .barber-option > span,
+    .tenant-infinity .barber-option > p {
+      text-align: left !important;
+    }
+    /* Nombre del barbero: text-base (no text-lg) y sin mucho margen */
     .tenant-infinity .barber-option .barber-name {
       color: #18181B !important;
       font-weight: 600 !important;
+      font-size: 15px !important;
+      line-height: 1.2 !important;
       letter-spacing: -0.01em !important;
+      margin-bottom: 2px !important;
+      text-align: left !important;
     }
-    /* Especialidad (text-gray-400 uppercase tracking-widest en el render default) */
-    .tenant-infinity .barber-option p.uppercase {
+    /* Especialidad — más chica, tracking normal */
+    .tenant-infinity .barber-option p.uppercase,
+    .tenant-infinity .barber-option p[class*="tracking-widest"] {
       color: #9CA3AF !important;
       font-weight: 500 !important;
+      font-size: 10px !important;
+      letter-spacing: 0.06em !important;
+      margin-bottom: 0 !important;
+      text-align: left !important;
     }
-    /* Estado activo: sombra doble ring como Aura */
+    /* Disponibilidad — inline, discreta */
+    .tenant-infinity .barber-option span.flex.items-center {
+      font-size: 11px !important;
+      justify-content: flex-start !important;
+      margin-top: 2px !important;
+      text-align: left !important;
+    }
+    /* Estado activo: doble ring shadow como Aura */
     .tenant-infinity .barber-option.border-neon {
       background: rgba(17,24,39,0.04) !important;
       border: 1px solid #374151 !important;
@@ -6674,6 +6726,11 @@
       pointer-events: none !important;
       background: linear-gradient(105deg,
         transparent 30%, rgba(156,163,175,0.30) 50%, transparent 70%) !important;
+    }
+    /* Reducir el gap del grid entre cards para que se sientan más densas */
+    .tenant-infinity #barberosGrid {
+      gap: 8px !important;
+      row-gap: 8px !important;
     }
 
     /* Overrides finos para que el rediseño se respete sobre las clases ph */
