@@ -1616,7 +1616,7 @@ function BloqueoBlock({ bloqueo, onDelete }) {
     <div
       title={`Bloqueado${bloqueo.nota ? ': ' + bloqueo.nota : ''}`}
       onClick={async () => { if (await confirmDialog('¿Desbloquear este horario?')) onDelete(bloqueo); }}
-      className="absolute inset-x-0.5 rounded-md border border-neutral-800 bg-neutral-900 bg-[image:repeating-linear-gradient(45deg,transparent,transparent_10px,rgba(255,255,255,0.03)_10px,rgba(255,255,255,0.03)_20px)] px-2 py-1 overflow-hidden cursor-pointer hover:brightness-125 transition-all"
+      className="agenda-blocked-slot absolute inset-x-0.5 rounded-md border border-neutral-800 bg-neutral-900 bg-[image:repeating-linear-gradient(45deg,transparent,transparent_10px,rgba(255,255,255,0.03)_10px,rgba(255,255,255,0.03)_20px)] px-2 py-1 overflow-hidden cursor-pointer hover:brightness-125 transition-all"
       style={{ top: `${startIdx * 40}px`, height: `${spans * 40 - 4}px` }}
     >
       <span className="bg-neutral-950 px-2 py-1 rounded text-xs font-bold text-neutral-400 inline-flex items-center gap-1 mt-1">

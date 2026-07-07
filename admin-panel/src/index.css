@@ -1055,6 +1055,65 @@ html.light [data-view="gift-cards"] .bg-black\/70            { background-color:
 /* Empty state — icono Gift con opacity-30 se ve perdido en claro */
 html.light [data-view="gift-cards"] .opacity-30              { opacity: 0.5 !important; }
 
+/* ── Agenda: pulido para modo claro ────────────────────────────
+   Los cambios recientes en Agenda.jsx (toolbar segmented control,
+   eje de horas, patrón rayado en bloqueos, tarjetas con borde
+   izquierdo grueso) usan clases neutral-* y valores arbitrarios que
+   no están cubiertos por los overrides globales de light mode. Los
+   repintamos con scope [data-view="agenda"] para no filtrar a otras
+   vistas que también usen neutral-*. */
+
+/* Pastillas (toolbar) + backdrop del eje de horas: fondo blanco */
+html.light [data-view="agenda"] .bg-neutral-900,
+html.light [data-view="agenda"] .bg-neutral-900\/50,
+html.light [data-view="agenda"] .bg-neutral-950     { background-color: #ffffff !important; }
+html.light [data-view="agenda"] .bg-neutral-900\/30 { background-color: #f8fafc !important; }
+
+/* Bordes neutrales → slate-200/300 suaves (regla 4: reducir efecto Excel) */
+html.light [data-view="agenda"] .border-neutral-800 { border-color: #e2e8f0 !important; }
+html.light [data-view="agenda"] .border-neutral-700 { border-color: #cbd5e1 !important; }
+
+/* Etiquetas de horas: neutrales → grises legibles */
+html.light [data-view="agenda"] .text-neutral-400 { color: #475569 !important; }
+html.light [data-view="agenda"] .text-neutral-500 { color: #64748b !important; }
+html.light [data-view="agenda"] .text-neutral-600 { color: #94a3b8 !important; }
+
+/* Segmented control: el botón activo (aria-selected=true) queda con
+   fondo slate-200 + texto slate-900 vía overrides globales; solo le
+   subimos el peso para reforzar el estado (regla 1). */
+html.light [data-view="agenda"] [role="tab"][aria-selected="true"] {
+  font-weight: 700 !important;
+}
+
+/* Bloqueos: patrón rayado ultra suave (#f1f5f9) sobre blanco (regla 2) */
+html.light [data-view="agenda"] .agenda-blocked-slot {
+  background-color: #ffffff !important;
+  background-image:
+    repeating-linear-gradient(45deg, transparent, transparent 10px, #f1f5f9 10px, #f1f5f9 20px) !important;
+  border-color: #e2e8f0 !important;
+}
+html.light [data-view="agenda"] .agenda-blocked-slot > span:first-of-type {
+  background-color: rgba(255, 255, 255, 0.85) !important;
+  color: #64748b !important;
+}
+html.light [data-view="agenda"] .agenda-blocked-slot > p {
+  color: #94a3b8 !important;
+}
+
+/* Tarjetas de cita: mayor contraste tipográfico (regla 3).
+   Nombre = slate-900 bold, servicio = slate-700 sólido, hora dim. */
+html.light [data-view="agenda"] [data-cita-barbero] > p:nth-of-type(1) {
+  color: #0f172a !important;
+  font-weight: 700 !important;
+}
+html.light [data-view="agenda"] [data-cita-barbero] > p:nth-of-type(2) {
+  color: #334155 !important;
+  opacity: 1 !important;
+}
+html.light [data-view="agenda"] [data-cita-barbero] > p:nth-of-type(3) {
+  color: #64748b !important;
+}
+
 /* Evitar auto-zoom en iOS Safari al enfocar campos de formulario en pantallas móviles */
 @media (max-width: 767px) {
   input, select, textarea {
