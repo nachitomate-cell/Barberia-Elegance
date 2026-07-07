@@ -622,9 +622,9 @@ const TENANT_META = {
       ogDesc:      'Panel de fidelidad de Infinity Studio. Acumula sellos y disfruta de servicios gratis.',
     },
     registro: {
-      title:       'Únete al Club | INFINITY STUDIO',
+      title:       'Únete a la Comunidad | INFINITY STUDIO',
       description: 'Crea tu cuenta en la Comunidad Infinity. Acumula sellos y canjea premios exclusivos.',
-      ogTitle:     'Únete al Club | INFINITY STUDIO',
+      ogTitle:     'Únete a la Comunidad | INFINITY STUDIO',
       ogDesc:      'Regístrate en Infinity Studio y disfruta de beneficios exclusivos.',
     },
     siteName:    'INFINITY STUDIO',

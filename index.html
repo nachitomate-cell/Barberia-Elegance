@@ -11281,7 +11281,7 @@
                 <!-- Stagger 3: CTA button -->
                 <a href="registro.html" class="club-anim-el flex items-center justify-center gap-2 w-full py-3 rounded-xl text-sm font-bold transition-all active:scale-95" style="animation-delay:300ms;background:var(--accent);color:#160712;box-shadow:0 0 20px rgba(var(--accent-r),var(--accent-g),var(--accent-b),0.25);">
                   <i class="ph-bold ph-user-plus text-base"></i>
-                  Unirme al ${SHOP.club}
+                  ${/^comunidad/i.test(SHOP.club || '') ? 'Unirme a la' : 'Unirme al'} ${SHOP.club}
                 </a>
               </div>
 

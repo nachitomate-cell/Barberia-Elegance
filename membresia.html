@@ -1428,7 +1428,7 @@
       const gateTitle = document.querySelector('#view-gate .gate-title');
       if (gateTitle) gateTitle.textContent = SHOP.club || 'Club';
       const plansTitle = document.querySelector('.plans-hero-title');
-      if (plansTitle) plansTitle.textContent = 'Únete al ' + (SHOP.club || 'Club');
+      if (plansTitle) plansTitle.textContent = (/^comunidad/i.test(SHOP.club || '') ? 'Únete a la ' : 'Únete al ') + (SHOP.club || 'Club');
       if (!IS_DELUXE) {
         const testimonials = document.querySelector('.testimonials-section');
         if (testimonials) testimonials.style.display = 'none';

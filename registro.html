@@ -2247,7 +2247,7 @@
   }
 
   document.addEventListener('DOMContentLoaded', () => {
-    document.title = `Únete al ${SHOP.club} | ${SHOP.nombre}`;
+    document.title = `${/^comunidad/i.test(SHOP.club || '') ? 'Únete a la' : 'Únete al'} ${SHOP.club} | ${SHOP.nombre}`;
     document.getElementById('shopLogo').src = SHOP.logo;
     document.getElementById('shopLogo').alt = SHOP.nombre;
     document.getElementById('heroClubTitle').textContent = SHOP.club;
