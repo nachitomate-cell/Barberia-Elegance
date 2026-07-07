@@ -26,6 +26,13 @@ const PROD_DOMAINS = {
   ferraza:  'https://barberiaferraza.synaptechspa.cl',
   gitana:   'https://gitananails.synaptechspa.cl',
   sionbarberia: 'https://barberiasion.synaptechspa.cl',
+  // Kronnos multi-sede (Camino 1.5): los legacy apuntan a su subdominio para
+  // que el link de registro lleve al cliente al booking de esa sede. El pool
+  // marca comparte users, así que da lo mismo por dónde entren.
+  kronnos:            'https://kronnos.synaptechspa.cl',
+  kronnos_penablanca: 'https://kronnospenablanca.synaptechspa.cl',
+  kronnos_limache:    'https://kronnoslimache.synaptechspa.cl',
+  kronnos_woman:      'https://kronnoswoman.synaptechspa.cl',
 };
 
 function normalizePhone(phone) {
