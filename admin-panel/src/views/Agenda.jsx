@@ -149,7 +149,13 @@ function buildSlotCfg(slotMins, hourStart = 8, hourEnd = 20) {
     totalSlots,
     timeLabels,
     pickerLabels,
-    slotIdx: t => { const [h, m] = t.split(':').map(Number); return Math.floor((h * 60 + m - hourStart * 60) / slotMins); },
+    slotIdx: t => {
+      // Guard: citas legacy pueden tener hora=null/'' y explotarían el layout entero.
+      if (typeof t !== 'string' || !t.includes(':')) return 0;
+      const [h, m] = t.split(':').map(Number);
+      if (!Number.isFinite(h) || !Number.isFinite(m)) return 0;
+      return Math.floor((h * 60 + m - hourStart * 60) / slotMins);
+    },
   };
 }
 
@@ -206,7 +212,13 @@ const STATUS_STYLE = {
 function fmt(d) {
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
-function toMins(t) { const [h, m] = t.split(':').map(Number); return h * 60 + m; }
+function toMins(t) {
+  // Null-safe: t puede llegar null/'' desde citas legacy o bloqueos incompletos.
+  if (typeof t !== 'string' || !t.includes(':')) return 0;
+  const [h, m] = t.split(':').map(Number);
+  if (!Number.isFinite(h) || !Number.isFinite(m)) return 0;
+  return h * 60 + m;
+}
 
 /* ── Layout de columnas por solapamiento real ───────────────────
  * Reparte las citas en columnas lado a lado cuando sus rangos de
@@ -214,6 +226,10 @@ function toMins(t) { const [h, m] = t.split(':').map(Number); return h * 60 + m;
  * misma hora exacta. Devuelve [{ cita, colIndex, colTotal }].          */
 function computeOverlapLayout(citas) {
   const events = citas
+    // Descarta citas sin hora válida — de otro modo toMins() devolvería 0
+    // y las apiñaría todas en el mismo slot del amanecer, rompiendo el
+    // solapamiento. Mejor no renderizarlas y que el admin las repare.
+    .filter(c => typeof c?.hora === 'string' && c.hora.includes(':'))
     .map(c => {
       const start = toMins(c.hora);
       const dur   = Number(c.duracion || c.duracionServicio || 30) || 30;
@@ -1608,6 +1624,13 @@ function BloqueoModal({ barberos, dateStr, defaultBarberoId, defaultHora, defaul
 /* ── BloqueoBlock ────────────────────────────────────────────── */
 function BloqueoBlock({ bloqueo, onDelete }) {
   const { slotIdx, totalSlots } = useContext(AgendaCtx);
+  // Guard: bloqueos parciales (todo_el_dia=false) sin hora_inicio/fin son
+  // basura de importaciones legacy — no los renderizamos.
+  const validRange = bloqueo.todo_el_dia || (
+    typeof bloqueo.hora_inicio === 'string' && bloqueo.hora_inicio.includes(':') &&
+    typeof bloqueo.hora_fin    === 'string' && bloqueo.hora_fin.includes(':')
+  );
+  if (!validRange) return null;
   const startIdx = bloqueo.todo_el_dia ? 0 : Math.max(0, slotIdx(bloqueo.hora_inicio));
   const endIdx   = bloqueo.todo_el_dia ? totalSlots : Math.min(totalSlots, slotIdx(bloqueo.hora_fin));
   const spans    = Math.max(endIdx - startIdx, 1);
@@ -1631,6 +1654,10 @@ function BloqueoBlock({ bloqueo, onDelete }) {
 /* ── AppointmentBlock ────────────────────────────────────────── */
 function AppointmentBlock({ cita, colIndex, colTotal, onClick, onContextMenu, onDragStart, onDragEnd, onDropOnCita, onTouchDrop, isDragged, dragActive }) {
   const { slotIdx, totalSlots, slotMins } = useContext(AgendaCtx);
+  // Defense-in-depth: computeOverlapLayout ya filtra las citas sin hora
+  // válida, pero si esta card llega por otra vía (ej. drag) prefiero no
+  // renderizar nada a explotar la agenda entera.
+  if (typeof cita?.hora !== 'string' || !cita.hora.includes(':')) return null;
   const slot  = Math.max(0, Math.min(totalSlots - 1, slotIdx(cita.hora)));
   const spans = Math.max(1, Math.min(totalSlots - slot, Math.round((cita.duracion || cita.duracionServicio || 30) / slotMins)));
   const color = STATUS_STYLE[cita.estado] ?? STATUS_STYLE.Confirmada;
@@ -3005,6 +3032,8 @@ export default function Agenda() {
       .then(snap => {
         if (!snap.exists()) return;
         const cita = { id: snap.id, ...snap.data() };
+        // Cita legacy sin fecha → no navegamos, solo abrimos el modal con el estado actual.
+        if (typeof cita.fecha !== 'string' || !cita.fecha.includes('-')) return;
         const [y, m, d] = cita.fecha.split('-').map(Number);
         setDate(new Date(y, m - 1, d));
         setCitaModal({ cita, barberoId: cita.barberoId, hora: cita.hora, defaultEstado: 'Completada' });

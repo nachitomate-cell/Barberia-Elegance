@@ -2110,7 +2110,13 @@
 
             eSec.classList.add('hidden');
 
-            const toMins  = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+            const toMins  = t => {
+                // Null-safe: citas legacy con hora=null/'' harían crashear la grilla entera.
+                if (typeof t !== 'string' || !t.includes(':')) return 0;
+                const [h, m] = t.split(':').map(Number);
+                if (!Number.isFinite(h) || !Number.isFinite(m)) return 0;
+                return h * 60 + m;
+            };
             const fromMin = m => `${Math.floor(m / 60).toString().padStart(2, '0')}:${(m % 60).toString().padStart(2, '0')}`;
 
             const ini = toMins(dc.inicio || cfg.horarioInicio || '09:00');
@@ -2631,7 +2637,13 @@
             const cfg = barberConfig || globalConfig;
             const interval = cfg.intervaloMinutos || 30;
 
-            const toMins  = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+            const toMins  = t => {
+                // Null-safe: citas legacy con hora=null/'' harían crashear la grilla entera.
+                if (typeof t !== 'string' || !t.includes(':')) return 0;
+                const [h, m] = t.split(':').map(Number);
+                if (!Number.isFinite(h) || !Number.isFinite(m)) return 0;
+                return h * 60 + m;
+            };
             const fromMin = m => `${Math.floor(m / 60).toString().padStart(2, '0')}:${(m % 60).toString().padStart(2, '0')}`;
 
             const endMins = toMins(time) + interval;
@@ -2812,7 +2824,13 @@
             const cfg = barberConfig || globalConfig;
             if (!cfg) return;
 
-            const toMins  = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+            const toMins  = t => {
+                // Null-safe: citas legacy con hora=null/'' harían crashear la grilla entera.
+                if (typeof t !== 'string' || !t.includes(':')) return 0;
+                const [h, m] = t.split(':').map(Number);
+                if (!Number.isFinite(h) || !Number.isFinite(m)) return 0;
+                return h * 60 + m;
+            };
             const fromMin = m => `${Math.floor(m/60).toString().padStart(2,'0')}:${(m%60).toString().padStart(2,'0')}`;
             const interval = cfg.intervaloMinutos || 30;
             const GOLD = '#c9a84c';
