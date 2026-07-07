@@ -1616,14 +1616,14 @@ function BloqueoBlock({ bloqueo, onDelete }) {
     <div
       title={`Bloqueado${bloqueo.nota ? ': ' + bloqueo.nota : ''}`}
       onClick={async () => { if (await confirmDialog('¿Desbloquear este horario?')) onDelete(bloqueo); }}
-      className="absolute inset-x-0.5 rounded-md border border-red-500/30 bg-red-950/40 px-2 py-1 overflow-hidden cursor-pointer hover:bg-red-950/60 transition-all"
+      className="absolute inset-x-0.5 rounded-md border border-neutral-800 bg-neutral-900 bg-[image:repeating-linear-gradient(45deg,transparent,transparent_10px,rgba(255,255,255,0.03)_10px,rgba(255,255,255,0.03)_20px)] px-2 py-1 overflow-hidden cursor-pointer hover:brightness-125 transition-all"
       style={{ top: `${startIdx * 40}px`, height: `${spans * 40 - 4}px` }}
     >
-      <div className="flex items-center gap-1 text-[10px] text-red-400 font-semibold">
+      <span className="bg-neutral-950 px-2 py-1 rounded text-xs font-bold text-neutral-400 inline-flex items-center gap-1 mt-1">
         <Lock size={10} />
         <span className="truncate">{bloqueo.todo_el_dia ? 'Día cerrado' : `${bloqueo.hora_inicio}–${bloqueo.hora_fin}`}</span>
-      </div>
-      {bloqueo.nota && <p className="text-[9px] text-red-400/60 truncate mt-0.5">{bloqueo.nota}</p>}
+      </span>
+      {bloqueo.nota && <p className="text-[9px] text-neutral-500 truncate mt-0.5">{bloqueo.nota}</p>}
     </div>
   );
 }
@@ -1778,7 +1778,7 @@ function AppointmentBlock({ cita, colIndex, colTotal, onClick, onContextMenu, on
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
       onTouchCancel={handleTouchCancel}
-      className={`group absolute rounded-md border px-2 py-1 overflow-hidden ${arrastrable ? 'cursor-grab active:cursor-grabbing touch-none select-none' : 'cursor-pointer'} hover:brightness-125 transition-transform duration-150 text-xs ${color} ${
+      className={`group absolute rounded-md border border-l-4 shadow-[0_2px_8px_rgba(0,0,0,0.2)] px-2 py-1 overflow-hidden ${arrastrable ? 'cursor-grab active:cursor-grabbing touch-none select-none' : 'cursor-pointer'} hover:brightness-125 transition-transform duration-150 text-xs ${color} ${
         isDragged ? 'opacity-90 ring-2 ring-emerald-500 shadow-2xl scale-105 z-50'
                   : over ? 'ring-2 ring-amber-400 brightness-125 z-30'
                   : dragActive ? 'ring-1 ring-amber-400/50'
@@ -3352,13 +3352,13 @@ export default function Agenda() {
 
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 w-full shrink-0">
         {/* ── Fila 1 (móvil) / Izquierda (desktop): navegación de fecha ── */}
-        <div className="flex items-center justify-between w-full md:w-auto gap-0.5 min-w-0">
+        <div className="flex items-center justify-between w-full md:w-auto bg-neutral-900 border border-neutral-800 p-1 rounded-xl gap-1 min-w-0">
           <button
             onClick={() => moveDay(-1)}
             aria-label="Día anterior"
-            className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-all shrink-0"
+            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-all shrink-0"
           >
-            <ChevronLeft size={18} />
+            <ChevronLeft size={16} />
           </button>
           <span className="flex-1 md:flex-none text-sm font-semibold text-white text-center capitalize whitespace-nowrap tabular-nums px-2 truncate">
             {viewMode === 'week' ? formatWeekLabel(date) : formatDateLabel(date)}
@@ -3366,30 +3366,28 @@ export default function Agenda() {
           <button
             onClick={() => moveDay(1)}
             aria-label="Día siguiente"
-            className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-all shrink-0"
+            className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-all shrink-0"
           >
-            <ChevronRight size={18} />
+            <ChevronRight size={16} />
           </button>
         </div>
 
         {/* ── Fila 2 (móvil) / Derecha (desktop): controles y acciones ── */}
         <div className="flex items-center flex-wrap gap-2 w-full md:w-auto">
-        <button
-          onClick={() => setDate(new Date())}
-          className="h-9 px-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-lg transition-all shrink-0"
-        >
-          Hoy
-        </button>
-
-        {/* Segmento Día / Semana — habilitado sólo con foco de barbero.
-            La vista semanal renderea 7 columnas del profesional filtrado; sin
-            filtro no cabe (7 días × N barberos rompe el layout). El label
-            "Semana" queda gris + no-click cuando está deshabilitado. */}
+        {/* Segmented control estilo iOS: Hoy · Día · Semana
+            "Semana" queda deshabilitado si no hay un profesional filtrado
+            (7 días × N barberos rompe el layout). */}
         <div
-          className="flex items-center bg-slate-800/60 border border-slate-700 rounded-lg p-0.5 shrink-0"
+          className="flex items-center bg-neutral-900 border border-neutral-800 p-1 rounded-xl gap-1 shrink-0"
           role="tablist"
           aria-label="Modo de vista"
         >
+          <button
+            onClick={() => setDate(new Date())}
+            className="h-8 px-3 text-xs font-semibold rounded-md transition-colors text-slate-400 hover:text-white hover:bg-slate-800 shrink-0"
+          >
+            Hoy
+          </button>
           {[
             { key: 'day',  label: 'Día',    enabled: true },
             { key: 'week', label: 'Semana', enabled: !!soloBarbero },
@@ -3413,7 +3411,7 @@ export default function Agenda() {
                     ? 'bg-slate-800 text-white shadow-sm'
                     : disabled
                       ? 'text-slate-600 cursor-not-allowed'
-                      : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                      : 'text-slate-400 hover:text-white hover:bg-slate-800'
                 }`}
               >
                 {opt.label}
@@ -3762,28 +3760,39 @@ export default function Agenda() {
                           <div
                             onClick={() => setSoloBarbero(prev => prev === b.id ? null : b.id)}
                             title={focusBarbero?.id === b.id ? 'Mostrar todos los barberos' : `Ver solo la agenda de ${b.nombre}`}
-                            className="group h-9 py-1.5 pr-3 flex items-center gap-1.5 border-b border-slate-800 sticky top-0 bg-slate-900 z-10 cursor-pointer hover:bg-slate-800/60 transition-colors"
+                            className="group relative flex flex-col items-center justify-center py-3 px-2 border-b border-neutral-800 sticky top-0 bg-slate-900 z-10 cursor-pointer hover:bg-slate-800/60 transition-colors"
                           >
-                            {/* Manija de arrastre dedicada: aísla el reordenar del tap "ver solo" */}
+                            {/* Manija de arrastre — esquina superior izquierda */}
                             <span
                               {...attributes}
                               {...listeners}
                               onClick={e => e.stopPropagation()}
                               title="Mantén presionado y arrastra para reordenar"
                               aria-label={`Reordenar a ${b.nombre}`}
-                              className="shrink-0 h-full pl-2 pr-1 flex items-center text-slate-600 hover:text-emerald-400 cursor-grab active:cursor-grabbing touch-none select-none"
+                              className="absolute top-1.5 left-1.5 text-slate-600 hover:text-emerald-400 cursor-grab active:cursor-grabbing touch-none select-none"
                             >
-                              <GripVertical size={15} />
+                              <GripVertical size={14} />
                             </span>
-                            <div className="w-6 h-6 rounded-full overflow-hidden bg-emerald-500/20 flex items-center justify-center shrink-0">
+                            {/* Indicador de foco — esquina superior derecha */}
+                            <span className="absolute top-1.5 right-1.5">
+                              {focusBarbero?.id === b.id
+                                ? <Users size={13} className="text-emerald-400" />
+                                : <Eye size={13} className="text-slate-600 group-hover:text-emerald-400 transition-colors" />}
+                            </span>
+                            {/* Avatar */}
+                            <div className="w-10 h-10 rounded-full overflow-hidden bg-emerald-500/20 border border-neutral-700 flex items-center justify-center shrink-0">
                               {b.foto
                                 ? <img src={b.foto} alt={b.nombre} className="w-full h-full object-cover" />
-                                : <span className="text-[10px] font-bold text-emerald-400">{b.nombre?.[0] ?? '?'}</span>}
+                                : <span className="text-sm font-bold text-emerald-400">{b.nombre?.[0] ?? '?'}</span>}
                             </div>
-                            <span className="text-xs font-semibold text-white truncate">{b.nombre}</span>
-                            {focusBarbero?.id === b.id
-                              ? <Users size={13} className="ml-auto shrink-0 text-emerald-400" />
-                              : <Eye size={13} className="ml-auto shrink-0 text-slate-600 group-hover:text-emerald-400 transition-colors" />}
+                            {/* Nombre */}
+                            <span className="font-semibold text-sm text-white mt-1 truncate max-w-full">{b.nombre}</span>
+                            {/* Citas del día */}
+                            <span className="text-xs text-neutral-500">
+                              {barberCitas.length === 0
+                                ? 'Sin citas'
+                                : `${barberCitas.length} cita${barberCitas.length === 1 ? '' : 's'}`}
+                            </span>
                           </div>
 
                           <div className="relative" style={{ height: `${totalSlots * 40}px` }}>
