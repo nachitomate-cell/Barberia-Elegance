@@ -21,6 +21,7 @@ import Publicidad  from './views/Publicidad';
 import Metricas    from './views/Metricas';
 import Premios     from './views/Premios';
 import Canjes      from './views/Canjes';
+import Fidelizacion from './views/Fidelizacion';
 import Productos   from './views/Productos';
 import Inventario  from './views/Inventario';
 import Lookbook       from './views/Lookbook';
@@ -102,6 +103,7 @@ function ProtectedApp() {
             <Route path="clientes"        element={<Clientes />} />
             <Route path="lista-negra"     element={<ListaNegra />} />
             <Route path="publicidad"      element={<Publicidad />} />
+            <Route path="fidelizacion"    element={<Fidelizacion />} />
             <Route path="premios"         element={<Premios />} />
             <Route path="canjes"          element={<Canjes />} />
             <Route path="productos"       element={<Productos />} />

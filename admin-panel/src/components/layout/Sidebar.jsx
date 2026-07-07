@@ -37,12 +37,12 @@ function SynaIcon({ size = 16, className = '' }) {
   );
 }
 
-// Ítem de membresía por tenant (se inyecta en el grupo "Clientes").
-// Chameleon usa el módulo clásico de planes; Yūgen usa "Corte al Lápiz"
-// (sistema de cuota/crédito con su propia vista).
+// Ítem de "Corte al Lápiz" para Yūgen — sistema de cuota/crédito, NO es
+// fidelidad clásica, así que vive fuera del módulo Fidelización.
+// Chameleon usaba `membresias` acá; ahora Membresías es un tab dentro de
+// Fidelización, así que solo Yūgen queda en el mapa.
 const MEMBRESIAS_ITEM = {
-  chameleon: { to: 'membresias',     label: 'Membresías',     Icon: Medal },
-  yugen:     { to: 'corte-al-lapiz', label: 'Corte al Lápiz', Icon: Medal },
+  yugen: { to: 'corte-al-lapiz', label: 'Corte al Lápiz', Icon: Medal },
 };
 
 /* ── Grupos de navegación ────────────────────────────────────────── */
@@ -81,13 +81,11 @@ const NAV_GROUPS_DEFAULT = [
     id: 'clientes',
     label: 'Clientes',
     items: [
-      { to: 'clientes',    label: 'Clientes',    Icon: Star        },
-      { to: 'lista-negra', label: 'Lista Negra', Icon: UserX,    adminOnly: true },
-      { to: 'resenas',     label: 'Reseñas',     Icon: ThumbsUp    },
-      { to: 'premios',     label: 'Premios',     Icon: Trophy      },
-      { to: 'canjes',      label: 'Validar Canje', Icon: ScanLine  },
-      { to: 'rangos',      label: 'Rangos',      Icon: Crown       },
-      { to: 'productos',   label: 'Productos',   Icon: ShoppingBag },
+      { to: 'clientes',     label: 'Clientes',     Icon: Star        },
+      { to: 'lista-negra',  label: 'Lista Negra',  Icon: UserX,    adminOnly: true },
+      { to: 'resenas',      label: 'Reseñas',      Icon: ThumbsUp    },
+      { to: 'fidelizacion', label: 'Fidelización', Icon: Trophy      },
+      { to: 'productos',    label: 'Productos',    Icon: ShoppingBag },
     ],
   },
   {
@@ -137,10 +135,8 @@ const NAV_GROUPS_DELUXE = [
     id: 'club',
     label: 'Club Deluxe',
     items: [
-      { to: 'clientes',   label: 'Miembros',    Icon: Users   },
-      { to: 'membresias', label: 'Membresías',  Icon: Medal   },
-      { to: 'premios',    label: 'Premios',       Icon: Trophy   },
-      { to: 'canjes',     label: 'Validar Canje', Icon: ScanLine },
+      { to: 'clientes',     label: 'Miembros',     Icon: Users  },
+      { to: 'fidelizacion', label: 'Fidelización', Icon: Trophy },
     ],
   },
   {
