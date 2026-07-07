@@ -6739,11 +6739,71 @@
       background: rgba(17,24,39,0.03) !important;
     }
     /* Instagram footer link */
-    .tenant-infinity #footerInstagram {
+    .tenant-infinity #footerInstagram,
+    .tenant-infinity #footerInstagram span,
+    .tenant-infinity #footerInstagram i {
       color: #6B7280 !important;
     }
-    .tenant-infinity #footerInstagram:hover {
+    .tenant-infinity #footerInstagram:hover,
+    .tenant-infinity #footerInstagram:hover span,
+    .tenant-infinity #footerInstagram:hover i {
       color: #111827 !important;
+    }
+
+    /* ── Horario grid: renderizado JS con text-gray-300 (no había override) ── */
+    .tenant-infinity #shopHorarioGrid .text-gray-300 {
+      color: #374151 !important;
+    }
+    /* El "dot" decorativo antes del texto — inline usa var(--gold) + opacity 0.5.
+       En Infinity queda un dot navy medio invisible → subimos opacidad y color. */
+    .tenant-infinity #shopHorarioGrid span.w-1.h-1.rounded-full {
+      background: #111827 !important;
+      opacity: 1 !important;
+    }
+
+    /* ── Botón "Quiénes somos" (.qs-btn) — hardcoded a blanco/gold ──
+       texto rgba(229,231,235,0.88) + bg rgba(255,255,255,0.02) + icono gold
+       → sobre fondo blanco todo es invisible o mal contrastado. */
+    .tenant-infinity .qs-btn {
+      color: #374151 !important;
+      background: rgba(17,24,39,0.03) !important;
+      border-bottom-color: rgba(17,24,39,0.08) !important;
+    }
+    .tenant-infinity .qs-btn:active {
+      background: rgba(17,24,39,0.07) !important;
+    }
+    .tenant-infinity .qs-btn i {
+      color: #111827 !important;
+    }
+
+    /* ── Encabezados de pasos: h2.text-neon con text-shadow glow ──
+       "Selecciona tu Servicio", "Selecciona tu Barbero", "Selecciona fecha y
+       hora", "Último paso" — todos con clase text-neon que aplica glow
+       fluorescente. En Infinity light no queda estético. */
+    .tenant-infinity .text-neon,
+    .tenant-infinity h2.text-neon,
+    .tenant-infinity h3.text-neon {
+      color: #111827 !important;
+      text-shadow: none !important;
+    }
+
+    /* ── Botón CTA "Unirme al Club Infinity" (#step4AuthContainer a) ──
+       Sin override quedaba con el color por default del CTA base (transparente
+       o casi). Lo pasamos a pill navy sólido con texto blanco. */
+    .tenant-infinity #step4AuthContainer a.flex {
+      background: #111827 !important;
+      color: #FFFFFF !important;
+      border-color: #111827 !important;
+      box-shadow: 0 4px 14px rgba(17,24,39,0.20) !important;
+    }
+    .tenant-infinity #step4AuthContainer a.flex i,
+    .tenant-infinity #step4AuthContainer a.flex span,
+    .tenant-infinity #step4AuthContainer a.flex p {
+      color: #FFFFFF !important;
+    }
+    .tenant-infinity #step4AuthContainer a.flex:hover {
+      background: #374151 !important;
+      border-color: #374151 !important;
     }
     .tenant-infinity .time-pill.disabled {
       background: #FAFAFA !important;
