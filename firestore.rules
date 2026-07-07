@@ -56,21 +56,34 @@ service cloud.firestore {
       return autenticado() && tenantClaim() == tid;
     }
 
+    // ── Superadmin marca Kronnos (Claudio) ──────────────────────────
+    // Camino 1.5: Claudio administra los 4 tenants Kronnos (marca + 3 legacy)
+    // pero un JWT solo puede tener un tenantId en claims. Este helper le da
+    // acceso admin en los 4 sin comprometer aislamiento de otros tenants.
+    function esKronnosBrandAdmin(tid) {
+      return autenticado()
+          && request.auth.token.email == 'administracionkronnos@gmail.com'
+          && tid in ['kronnos', 'kronnos_penablanca', 'kronnos_limache', 'kronnos_woman'];
+    }
+
     // ── Roles ───────────────────────────────────────────────────────
     function esStaff(tid) {
       return (esDeTenant(tid) && rol() in ['admin', 'jefe', 'barbero'])
           || esBootstrap()
+          || esKronnosBrandAdmin(tid)
           || esBarberoFirestore(tid); // TEMP: eliminar post-migración
     }
 
     function esAdmin(tid) {
       return (esDeTenant(tid) && rol() in ['admin', 'jefe'])
-          || esBootstrap();
+          || esBootstrap()
+          || esKronnosBrandAdmin(tid);
     }
 
     function esAdminEstricto(tid) {
       return (esDeTenant(tid) && rol() == 'admin')
-          || esBootstrap();
+          || esBootstrap()
+          || esKronnosBrandAdmin(tid);
     }
 
     // ── Verificar si el usuario es el cliente de un documento de cita ──
