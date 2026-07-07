@@ -1,7 +1,7 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  addDoc, updateDoc, serverTimestamp,
+  addDoc, updateDoc, deleteDoc, serverTimestamp,
   collection, getDocs, query, orderBy,
 } from 'firebase/firestore';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -12,11 +12,13 @@ import {
   Users, UsersRound, Sparkles, Loader2, PartyPopper, Ticket, AlertCircle,
   Copy, QrCode, Mail, Phone,
   Package, Scissors, Tag, PenLine,
+  MoreVertical, CircleX, Trash2,
 } from 'lucide-react';
 import { tenantCol, tenantDoc } from '../lib/tenantUtils';
 import { withTimeout } from '../lib/firestore-helpers';
 import { useCollection } from '../hooks/useCollection';
 import { useAuth } from '../contexts/AuthContext';
+import { confirmDialog } from '../lib/confirmDialog';
 
 /* ── Helpers ───────────────────────────────────────────────────────── */
 const MONTHS_ES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
@@ -1288,11 +1290,20 @@ function ElegirGanadorModal({ sorteo, onClose }) {
 }
 
 /* ── SorteoRow ────────────────────────────────────────────────────── */
-function SorteoRow({ sorteo, publicLink, onView, onElegirGanador, onVerParticipantes }) {
+function SorteoRow({ sorteo, publicLink, onView, onElegirGanador, onVerParticipantes, onCerrarAhora, onEliminar }) {
   const [copied, setCopied] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
   const cfg = STATUS_CONFIG[sorteo.estado] || STATUS_CONFIG.activo;
   const isActivo  = sorteo.estado === 'activo';
-  const cerrado   = isActivo && isClosingDay(sorteo.fecha_fin);
+  const sinGanador = !sorteo.ganador_nombre && !sorteo.ganador_id;
+  // "Cerrado" = puede elegir ganador. Activa cuando:
+  //  · sigue activo y la fecha_fin ya pasó (flujo normal), o
+  //  · fue finalizado (por fecha o cerrado antes) y aún no hay ganador elegido.
+  const cerrado   = sinGanador && (
+    (isActivo && isClosingDay(sorteo.fecha_fin)) ||
+    sorteo.estado === 'finalizado'
+  );
   const partCount = sorteo.participantes_count ?? 0;
   const progress  = isActivo
     ? computeProgress(sorteo.fecha_inicio, sorteo.fecha_fin)
@@ -1305,6 +1316,14 @@ function SorteoRow({ sorteo, publicLink, onView, onElegirGanador, onVerParticipa
       setTimeout(() => setCopied(false), 2000);
     } catch { /* noop */ }
   };
+
+  // Cerrar dropdown al clickear fuera
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onDoc = e => { if (menuRef.current && !menuRef.current.contains(e.target)) setMenuOpen(false); };
+    document.addEventListener('mousedown', onDoc);
+    return () => document.removeEventListener('mousedown', onDoc);
+  }, [menuOpen]);
 
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-xl hover:border-slate-700 transition-all overflow-hidden">
@@ -1391,6 +1410,44 @@ function SorteoRow({ sorteo, publicLink, onView, onElegirGanador, onVerParticipa
         >
           <Eye size={14} />
         </button>
+
+        {/* Kebab menu — cerrar antes de tiempo + eliminar */}
+        <div className="relative" ref={menuRef}>
+          <button
+            onClick={() => setMenuOpen(v => !v)}
+            className="text-slate-500 hover:text-white transition-colors p-1.5 rounded"
+            title="Más acciones"
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+          >
+            <MoreVertical size={14} />
+          </button>
+          {menuOpen && (
+            <div
+              role="menu"
+              className="absolute right-0 top-full mt-1 min-w-[180px] bg-slate-900 border border-slate-700 rounded-lg shadow-2xl z-20 overflow-hidden"
+            >
+              {isActivo && (
+                <button
+                  role="menuitem"
+                  onClick={() => { setMenuOpen(false); onCerrarAhora(sorteo); }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-200 hover:bg-slate-800 transition-colors text-left"
+                >
+                  <CircleX size={13} className="text-amber-400" />
+                  Cerrar ahora
+                </button>
+              )}
+              <button
+                role="menuitem"
+                onClick={() => { setMenuOpen(false); onEliminar(sorteo); }}
+                className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-400 hover:bg-red-500/10 transition-colors text-left"
+              >
+                <Trash2 size={13} />
+                Eliminar sorteo
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Botón "Elegir ganador" en mobile (full-width abajo) */}
@@ -1447,6 +1504,53 @@ export default function Sorteos() {
   }, [sorteos, filter, search]);
 
   const publicLink = (s) => `${window.location.origin}/sorteo/${s.id}`;
+
+  /* ── Cerrar sorteo antes de la fecha de fin ─────────────────────────
+     Confirma, luego marca estado='finalizado' + finalizadoAntes=true.
+     La lógica de "elegir ganador" queda habilitada porque solo mira
+     estado + participantes (no exige que fecha_fin haya pasado). */
+  const handleCerrarAhora = async (sorteo) => {
+    const partTxt = (sorteo.participantes_count ?? 0) > 0
+      ? `Tiene ${sorteo.participantes_count} participante(s) — podrás elegir ganador de inmediato.`
+      : 'Aún no hay participantes registrados. Igual puedes cerrarlo.';
+    const ok = await confirmDialog({
+      title: 'Cerrar sorteo ahora',
+      message: `¿Cerrar "${sorteo.nombre}" antes de la fecha programada?\n\n${partTxt}`,
+      confirmText: 'Sí, cerrar',
+      cancelText: 'Cancelar',
+    });
+    if (!ok) return;
+    try {
+      await updateDoc(tenantDoc('sorteos', sorteo.id), {
+        estado: 'finalizado',
+        finalizadoAntes: true,
+        finalizadoEn: serverTimestamp(),
+      });
+    } catch (e) {
+      alert('No se pudo cerrar el sorteo. Intenta de nuevo.');
+    }
+  };
+
+  /* ── Eliminar sorteo (destructivo, deja huérfana la subcolección
+     participantes por costo/latency — invisible desde la app) ─────── */
+  const handleEliminar = async (sorteo) => {
+    const partCount = sorteo.participantes_count ?? 0;
+    const advertencia = partCount > 0
+      ? `Se eliminarán también los ${partCount} participante(s) inscritos. Esta acción no se puede deshacer.`
+      : 'Esta acción no se puede deshacer.';
+    const ok = await confirmDialog({
+      title: 'Eliminar sorteo',
+      message: `¿Eliminar "${sorteo.nombre}"?\n\n${advertencia}`,
+      confirmText: 'Sí, eliminar',
+      cancelText: 'Cancelar',
+    });
+    if (!ok) return;
+    try {
+      await deleteDoc(tenantDoc('sorteos', sorteo.id));
+    } catch (e) {
+      alert('No se pudo eliminar el sorteo. Intenta de nuevo.');
+    }
+  };
 
   return (
     <div data-view="sorteos" className="max-w-3xl mx-auto px-4 py-8 space-y-6">
@@ -1543,6 +1647,8 @@ export default function Sorteos() {
               onView={setDetailSorteo}
               onElegirGanador={setChooseSorteo}
               onVerParticipantes={setPartsSorteo}
+              onCerrarAhora={handleCerrarAhora}
+              onEliminar={handleEliminar}
             />
           ))}
         </div>
