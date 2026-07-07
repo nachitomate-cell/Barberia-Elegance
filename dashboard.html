@@ -3285,18 +3285,27 @@
     .tenant-infinity .membership-glow {
       background: radial-gradient(circle, rgba(17, 24, 39, 0.04) 0%, transparent 70%) !important;
     }
-    /* Watermark del club: reemplaza el texto por la imagen /infinit.png
-       (logo/sello del Club Infinity). Se pinta como background del div
-       existente — el color:transparent oculta el carácter original. */
     .tenant-infinity #membershipWatermark {
-      color: transparent !important;
-      background: url('/infinit.png') center/contain no-repeat !important;
-      width: 180px !important;
-      height: 180px !important;
-      right: -12px !important;
-      bottom: -18px !important;
-      opacity: 0.14 !important;
-      font-size: 0 !important;
+      color: rgba(17, 24, 39, 0.02) !important;
+      font-size: 8rem !important;
+      right: 5% !important;
+      bottom: -10% !important;
+      font-family: system-ui, -apple-system, sans-serif !important;
+    }
+
+    /* Hero del club — imagen infinit.png como capa decorativa detrás
+       del texto "Estilo & Confianza" / "Reservar mi cita". Se pinta
+       como ::after del .hero-bg: encima del overlay dark (z:10) pero
+       debajo del contenido (z:20), con opacity moderada para que el
+       texto siga siendo legible sin tapar la imagen. */
+    .tenant-infinity .hero-bg::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: url('/infinit.png') center/contain no-repeat;
+      opacity: 0.55;
+      z-index: 15;
+      pointer-events: none;
     }
     .tenant-infinity #stampsCount { color: #111827 !important; }
     .tenant-infinity #stampsCount span { color: #4B5563 !important; }
