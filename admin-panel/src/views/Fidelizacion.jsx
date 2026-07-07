@@ -3,7 +3,8 @@ import { useSearchParams } from 'react-router-dom';
 import { onSnapshot, query, where, Timestamp } from 'firebase/firestore';
 import {
   Trophy, ScanLine, Crown, Medal, Sparkles, Gift,
-  Users, TrendingUp, Clock, CheckCircle2, Gem,
+  Users, TrendingUp, Clock, CheckCircle2, Gem, UserX,
+  Send, X, MessageCircle, ChevronRight,
 } from 'lucide-react';
 import { tenantCol } from '../lib/tenantUtils';
 import { useTenant } from '../contexts/TenantContext';
@@ -42,6 +43,34 @@ const TIER_STYLE = {
   PLATINUM: { label: 'Platinum', Icon: Gem,   color: '#a855f7', text: 'text-purple-400', bar: 'bg-purple-500' },
 };
 
+// ── WhatsApp broadcast ───────────────────────────────────────────
+// Reutiliza el patrón "Click & Enter" de Clientes.jsx:1005: abre el
+// protocolo nativo whatsapp:// (app instalada), y si a 1.5s el tab sigue
+// visible, cae a web.whatsapp.com en un target estático para no ensuciar
+// la barra de tareas con pestañas nuevas.
+function normalizePhoneCL(raw) {
+  const clean = String(raw ?? '').replace(/\D/g, '');
+  if (!clean || clean.length < 8) return null;
+  return clean.startsWith('56') ? clean : `56${clean}`;
+}
+
+function openWhatsAppNative(phone, text) {
+  const encoded = encodeURIComponent(text);
+  const native  = `whatsapp://send?phone=${phone}&text=${encoded}`;
+  const web     = `https://web.whatsapp.com/send?phone=${phone}&text=${encoded}`;
+  try {
+    window.location.href = native;
+  } catch (_) {
+    window.open(web, 'whatsapp_tab', 'noopener,noreferrer');
+    return;
+  }
+  setTimeout(() => {
+    if (!document.hidden) {
+      window.open(web, 'whatsapp_tab', 'noopener,noreferrer');
+    }
+  }, 1500);
+}
+
 // Selector de período — controla el rango de canjes que se cargan.
 // Miembros/rangos/premios NO dependen del período (son estado actual).
 const PERIODOS = [
@@ -71,11 +100,13 @@ function inicioPeriodo(key) {
    users/premios/redemptions vía tenantCol → funciona en todos los
    tenants (marca-level, elegance legacy, kronnos redirect). */
 function ResumenFidelizacion() {
+  const tenant = useTenant();
   const [periodo, setPeriodo]         = useState('30d');
   const [users, setUsers]             = useState([]);
   const [premios, setPremios]         = useState([]);
   const [redemptions, setRedemptions] = useState([]);
   const [loading, setLoading]         = useState(true);
+  const [broadcast, setBroadcast]     = useState(null); // { type, clients }
 
   // users y premios son estado actual — se cargan una sola vez.
   useEffect(() => {
@@ -123,10 +154,27 @@ function ResumenFidelizacion() {
     const registrados      = users.filter(u => !isLegacy(u));
     const miembrosDelClub  = registrados.length;
     const conSellosActivos = registrados.filter(u => sellosDe(u) > 0).length;
-    const proximosACanjear = registrados.filter(u => {
+
+    // Listas de contactos accionables — se usan tanto para KPIs como para
+    // los CTAs de broadcast (mismo criterio en KPI y modal).
+    const proximosACanjearList = registrados.filter(u => {
       const s = sellosDe(u);
       return s > 0 && menorCosto !== Infinity && s >= menorCosto * 0.7 && s < menorCosto;
-    }).length;
+    });
+
+    // "Sin visita 30d" = miembros que tuvieron actividad (tienen ultimoSello)
+    // pero no han vuelto en 30d. NO cuenta a los que nunca ganaron un sello
+    // — esos nunca "se fueron", no están churneando.
+    const ahora   = Date.now();
+    const cutoff  = ahora - 30 * 864e5;
+    const sinVisita30dList = registrados.filter(u => {
+      if (!u.ultimoSello) return false;
+      const t = new Date(u.ultimoSello).getTime();
+      return isFinite(t) && t < cutoff;
+    }).map(u => ({
+      ...u,
+      diasSinVisita: Math.floor((ahora - new Date(u.ultimoSello).getTime()) / 864e5),
+    }));
 
     // Distribución por rango — solo sobre registrados con al menos 1 sello histórico.
     const distribucion = { SILVER: 0, GOLD: 0, PLATINUM: 0 };
@@ -176,7 +224,10 @@ function ResumenFidelizacion() {
     return {
       miembrosDelClub,
       conSellosActivos,
-      proximosACanjear,
+      proximosACanjear: proximosACanjearList.length,
+      proximosACanjearList,
+      sinVisita30d:     sinVisita30dList.length,
+      sinVisita30dList,
       sellosEnCirculacion,
       canjesCompletados: completados.length,
       canjesPendientes:  pendientes.length,
@@ -236,6 +287,10 @@ function ResumenFidelizacion() {
           label="Miembros del club"
           value={stats.miembrosDelClub.toLocaleString('es-CL')}
           sub={`${stats.conSellosActivos} con sellos · ${stats.proximosACanjear} a un paso`}
+          action={stats.proximosACanjear > 0 ? {
+            label: `Enviar a los ${stats.proximosACanjear} próximos`,
+            onClick: () => setBroadcast({ type: 'proximos', clients: stats.proximosACanjearList }),
+          } : null}
         />
         <StatCard
           Icon={CheckCircle2}
@@ -252,11 +307,19 @@ function ResumenFidelizacion() {
           sub={stats.menorCosto ? `Desde ${stats.menorCosto} sellos` : 'Configura tu primer premio'}
         />
         <StatCard
-          Icon={TrendingUp}
+          Icon={UserX}
           color="rose"
-          label="Sellos disponibles"
-          value={stats.sellosEnCirculacion.toLocaleString('es-CL')}
-          sub="Total en circulación"
+          label="Sin visita 30d"
+          value={stats.sinVisita30d.toLocaleString('es-CL')}
+          sub={
+            stats.miembrosDelClub
+              ? `${((stats.sinVisita30d / stats.miembrosDelClub) * 100).toFixed(0)}% del club en riesgo`
+              : 'Sin miembros aún'
+          }
+          action={stats.sinVisita30d > 0 ? {
+            label: `Recuperar a los ${stats.sinVisita30d}`,
+            onClick: () => setBroadcast({ type: 'churn', clients: stats.sinVisita30dList }),
+          } : null}
         />
       </div>
 
@@ -376,6 +439,16 @@ function ResumenFidelizacion() {
           )}
         </div>
       </div>
+
+      {/* Modal de broadcast WhatsApp */}
+      <BroadcastModal
+        open={!!broadcast}
+        onClose={() => setBroadcast(null)}
+        type={broadcast?.type}
+        clients={broadcast?.clients || []}
+        tenant={tenant}
+        menorCosto={stats.menorCosto}
+      />
     </div>
   );
 }
@@ -387,16 +460,160 @@ const COLOR_MAP = {
   rose:    'bg-rose-500/10 text-rose-400 border-rose-500/20',
 };
 
-function StatCard({ Icon, label, value, sub, color = 'emerald' }) {
+function StatCard({ Icon, label, value, sub, color = 'emerald', action = null }) {
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-start gap-3">
-      <div className={`p-2.5 rounded-lg shrink-0 border ${COLOR_MAP[color] || COLOR_MAP.emerald}`}>
-        <Icon size={20} />
+    <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 flex flex-col gap-3">
+      <div className="flex items-start gap-3">
+        <div className={`p-2.5 rounded-lg shrink-0 border ${COLOR_MAP[color] || COLOR_MAP.emerald}`}>
+          <Icon size={20} />
+        </div>
+        <div className="min-w-0 flex-1">
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider truncate">{label}</p>
+          <p className="text-2xl font-bold text-white mt-0.5 tracking-tight break-words">{value}</p>
+          {sub && <p className="text-xs text-slate-500 mt-0.5 truncate">{sub}</p>}
+        </div>
       </div>
-      <div className="min-w-0 flex-1">
-        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider truncate">{label}</p>
-        <p className="text-2xl font-bold text-white mt-0.5 tracking-tight break-words">{value}</p>
-        {sub && <p className="text-xs text-slate-500 mt-0.5 truncate">{sub}</p>}
+      {action && (
+        <button
+          onClick={action.onClick}
+          className="w-full flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/25 transition-colors"
+        >
+          <MessageCircle size={12} />
+          <span className="truncate">{action.label}</span>
+          <ChevronRight size={12} className="shrink-0 opacity-70" />
+        </button>
+      )}
+    </div>
+  );
+}
+
+/* ── Broadcast modal ──────────────────────────────────────────────
+   Muestra la lista filtrada, permite enviar WhatsApp uno por uno
+   (Click & Enter) o abrir todos en secuencia. Trackea localmente
+   quién ya fue enviado en la sesión. */
+function BroadcastModal({ open, onClose, type, clients, tenant, menorCosto }) {
+  const [sent, setSent] = useState(() => new Set());
+
+  useEffect(() => {
+    if (!open) setSent(new Set());
+  }, [open]);
+
+  if (!open) return null;
+
+  const tenantName = tenant?.name || 'la barbería';
+
+  const title    = type === 'proximos' ? 'Enviar a próximos a canjear' : 'Recuperar clientes sin visita 30d';
+  const subtitle = type === 'proximos'
+    ? `${clients.length} miembros están a un paso de canjear un premio.`
+    : `${clients.length} miembros del club llevan más de 30 días sin volver.`;
+
+  const buildMessage = (c) => {
+    const nombre = (c.nombre || 'hola').split(' ')[0];
+    if (type === 'proximos') {
+      const sellos = c.sellosDisponibles ?? c.stamps ?? 0;
+      const falta  = Math.max(0, (menorCosto || 0) - sellos);
+      const tail   = falta > 0 ? ` Te falta${falta === 1 ? '' : 'n'} solo ${falta} sello${falta === 1 ? '' : 's'} para tu premio 🎁.` : ' ¡Ya puedes canjear tu premio! 🎁';
+      return `¡Hola ${nombre}! 👋 Soy de *${tenantName}*.${tail} Te esperamos pronto para agendarte.`;
+    }
+    // churn
+    const dias = c.diasSinVisita ?? 30;
+    return `¡Hola ${nombre}! 👋 Soy de *${tenantName}*. Hace ${dias} días que no nos vemos y queríamos saber cómo estás 🤝. ¿Te agendamos tu próximo corte esta semana?`;
+  };
+
+  const enviarUno = (c) => {
+    const phone = normalizePhoneCL(c.telefono);
+    if (!phone) return;
+    openWhatsAppNative(phone, buildMessage(c));
+    setSent(prev => {
+      const next = new Set(prev);
+      next.add(c.id);
+      return next;
+    });
+  };
+
+  return (
+    <div
+      onClick={onClose}
+      className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in"
+    >
+      <div
+        onClick={e => e.stopPropagation()}
+        className="bg-slate-900 border border-slate-800 rounded-xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl"
+      >
+        {/* Header */}
+        <div className="flex items-start justify-between p-5 border-b border-slate-800 shrink-0">
+          <div className="min-w-0">
+            <h3 className="text-base font-bold text-white">{title}</h3>
+            <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>
+            <p className="text-[11px] text-slate-600 mt-2">
+              Cada envío abre WhatsApp con el mensaje pre-llenado — presiona <kbd className="px-1 py-0.5 bg-slate-800 rounded text-[10px] font-mono">Enter</kbd> para mandarlo y vuelve acá para el siguiente.
+            </p>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-slate-800 transition-colors shrink-0">
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* Progreso */}
+        <div className="px-5 py-3 border-b border-slate-800 flex items-center justify-between text-xs text-slate-400 shrink-0">
+          <span>{sent.size} de {clients.length} enviados</span>
+          <div className="w-32 h-1 bg-slate-800 rounded-full overflow-hidden">
+            <div className="h-full bg-emerald-500 transition-all" style={{ width: `${clients.length ? (sent.size / clients.length) * 100 : 0}%` }} />
+          </div>
+        </div>
+
+        {/* Lista */}
+        <div className="flex-1 overflow-y-auto">
+          {clients.length === 0 ? (
+            <p className="text-sm text-slate-500 italic text-center py-12">Sin clientes en este segmento.</p>
+          ) : (
+            <ul className="divide-y divide-slate-800">
+              {clients.map(c => {
+                const yaEnviado = sent.has(c.id);
+                const phone     = normalizePhoneCL(c.telefono);
+                const disable   = !phone || yaEnviado;
+                const detalle   = type === 'proximos'
+                  ? `${c.sellosDisponibles ?? c.stamps ?? 0} sellos${menorCosto ? ` / ${menorCosto}` : ''}`
+                  : `${c.diasSinVisita ?? '—'} días sin visita`;
+                return (
+                  <li key={c.id} className="flex items-center gap-3 px-5 py-3 hover:bg-slate-900/40 transition-colors">
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 font-bold text-xs ${yaEnviado ? 'bg-emerald-500/15 text-emerald-400' : 'bg-slate-800 text-slate-400'}`}>
+                      {(c.nombre || '?').slice(0, 1).toUpperCase()}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-white truncate">{c.nombre || 'Sin nombre'}</p>
+                      <p className="text-xs text-slate-500 truncate">{phone ? `+${phone}` : 'Sin teléfono'} · {detalle}</p>
+                    </div>
+                    <button
+                      onClick={() => enviarUno(c)}
+                      disabled={disable}
+                      className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors border ${
+                        yaEnviado
+                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/25'
+                          : phone
+                            ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/40 hover:bg-emerald-500/25'
+                            : 'bg-slate-800 text-slate-600 border-slate-800 cursor-not-allowed'
+                      }`}
+                    >
+                      {yaEnviado ? <CheckCircle2 size={13} /> : <Send size={13} />}
+                      {yaEnviado ? 'Enviado' : phone ? 'Enviar' : 'Sin tel.'}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="p-4 border-t border-slate-800 flex items-center justify-end shrink-0">
+          <button
+            onClick={onClose}
+            className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+          >
+            Cerrar
+          </button>
+        </div>
       </div>
     </div>
   );
