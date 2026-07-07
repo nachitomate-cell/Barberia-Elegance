@@ -1147,9 +1147,17 @@
             </div>
         </div>
 
-        <!-- ── VISTA SEMANAL (solo Chameleon) ── -->
-        <div id="weekViewSection" class="hidden view-in mb-8">
-            <div class="flex items-center justify-between mb-5">
+        <!-- ── VISTA SEMANAL ──
+             Móvil: flex-col con altura estricta de viewport (100dvh menos
+             el offset del header + toggle) para que el ÚNICO scroll sea
+             el interno del calendario. Sin esto, había scroll anidado
+             (documento + contenedor con max-height:65vh) que competían en
+             iOS y hacían que las primeras horas quedaran atrapadas detrás
+             del header sticky.
+             Desktop (lg:): revierte a block; el parent .lg:h-full ya
+             maneja el scroll a ese nivel. -->
+        <div id="weekViewSection" class="hidden view-in mb-8 flex flex-col overflow-hidden h-[calc(100dvh-180px)] lg:h-auto lg:overflow-visible lg:block">
+            <div class="flex items-center justify-between mb-5 shrink-0">
                 <button onclick="cambiarSemana(-1)" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all active:scale-95">
                     <i class="ph-bold ph-caret-left text-white/60"></i>
                 </button>
@@ -1158,7 +1166,7 @@
                     <i class="ph-bold ph-caret-right text-white/60"></i>
                 </button>
             </div>
-            <div id="weekColumnsContainer" class="no-scrollbar" style="-webkit-overflow-scrolling:touch;">
+            <div id="weekColumnsContainer" class="no-scrollbar flex-1 min-h-0 relative" style="-webkit-overflow-scrolling:touch;">
                 <!-- Generado por renderWeekView() -->
             </div>
         </div>
@@ -2841,17 +2849,24 @@
             const hOf      = m => Math.max(1, Math.round(m * pxPerMin));
 
             // ── Contenedor externo (scroll bidireccional fluido sin trabas) ──
-            container.style.cssText = [
+            // En móvil el parent .weekViewSection define altura estricta con
+            // h-[calc(100dvh-180px)] flex-col, y este contenedor es flex-1 →
+            // ocupa todo el remanente. No forzamos max-height acá porque en
+            // iOS eso creaba scroll anidado que competía con el documento.
+            // En desktop (lg:block del parent) volvemos a max-height:65vh
+            // para que no crezca infinito dentro del scroll de la columna.
+            const containerBaseCss = [
                 'overflow:auto',
-                'max-height:65vh',
                 'margin:0 -24px',
                 'scrollbar-width:none',
                 '-ms-overflow-style:none',
                 '-webkit-overflow-scrolling:touch',
                 'overscroll-behavior-x:contain',
-                'overscroll-behavior-y:auto',
+                'overscroll-behavior-y:contain',
                 'touch-action:pan-x pan-y',
-            ].join(';');
+            ];
+            if (!isMobile) containerBaseCss.push('max-height:65vh');
+            container.style.cssText = containerBaseCss.join(';');
 
             container.innerHTML = '';
 
@@ -2880,8 +2895,11 @@
             ].join(';');
 
             // ── Fila 1: Cabeceras de día (sticky) ──
+            // z-index hierarchy: esquina (40) > días (30) > columna horas (20).
+            // Sin esto, al scrollear en diagonal la esquina desaparecía tras
+            // el header de días.
             const emptyHdr = document.createElement('div');
-            emptyHdr.style.cssText = `grid-column:1;grid-row:1;position:sticky;top:0;left:0;z-index:30;background:${pal.headerBg};padding:8px 0 8px;border-bottom:1px solid ${pal.bordeHeader};height:${headerH}px;`;
+            emptyHdr.style.cssText = `grid-column:1;grid-row:1;position:sticky;top:0;left:0;z-index:40;background:${pal.headerBg};padding:8px 0 8px;border-right:1px solid ${pal.bordeHeader};border-bottom:1px solid ${pal.bordeHeader};height:${headerH}px;`;
             grid.appendChild(emptyHdr);
 
             for (let i = 0; i < 7; i++) {
@@ -2897,7 +2915,7 @@
                     'grid-row:1',
                     'position:sticky',
                     'top:0',
-                    'z-index:10',
+                    'z-index:30',
                     `background:${isToday ? pal.hoyBg : pal.headerBg}`,
                     'text-align:center',
                     'padding:6px 2px 8px',
@@ -2928,7 +2946,11 @@
             timeCol.style.position = 'sticky';
             const timeInner = document.createElement('div');
             timeInner.style.cssText = `position:relative;width:100%;height:${bodyH}px;`;
-            // Labels: una por cada hora en punto dentro del rango
+            // Labels: una por cada hora en punto dentro del rango.
+            // Sin translateY(-50%): el borde superior del label queda alineado
+            // con la línea de hora. Antes, la mitad superior del primer label
+            // caía sobre grid-row:1 (que es sticky con z:30/40) y quedaba
+            // cortado detrás del header al scrollTop=0.
             const firstHour = Math.ceil(iniMins / 60) * 60;
             for (let m = firstHour; m <= finMins; m += 60) {
                 const lbl = document.createElement('span');
@@ -2938,7 +2960,7 @@
                     'left:0',
                     'right:0',
                     'text-align:center',
-                    'transform:translateY(-50%)',
+                    'padding-top:2px',
                     'font-size:9px',
                     'font-weight:700',
                     `color:${pal.horaLabel}`,
