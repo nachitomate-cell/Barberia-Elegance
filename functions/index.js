@@ -779,6 +779,14 @@ exports.enviarPushPrueba = enviarPushPrueba.enviarPushPrueba;
 const broadcastAnuncio = require('./broadcast-anuncio');
 exports.broadcastAnuncio = broadcastAnuncio.broadcastAnuncio;
 
+// ─────────────────────────────────────────────────────────────────
+//  RECORDATORIO SEMANAL — CERRAR CITAS DEL DÍA
+//  Cada viernes 20:00 hora Chile manda push a admins + barberos
+//  para que marquen sus citas como Completada (sello + comisión).
+// ─────────────────────────────────────────────────────────────────
+const recordatorioCerrarCitas = require('./recordatorio-cerrar-citas');
+exports.recordatorioCerrarCitasSemanal = recordatorioCerrarCitas.recordatorioCerrarCitasSemanal;
+
 
 // ─────────────────────────────────────────────────────────────────
 //  CONFIRMACIÓN DE CITA POR EMAIL — ver confirmacion-cita.js
