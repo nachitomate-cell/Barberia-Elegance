@@ -6377,20 +6377,31 @@
       color: #000000 !important;
       font-weight: 800 !important;
     }
-    /* Badge "Más solicitado" (violeta por defecto) → gris muy oscuro con texto blanco */
+    /* Badge "✦ Más solicitado" — versión light Infinity refinada.
+       Antes: pill negro absoluto con texto blanco (agresivo sobre bg claro).
+       Ahora: outline navy sutil con fondo navy 4%, texto navy sólido, y
+       la estrella ✦ pasa a un tono amber para preservar el guiño de
+       "destaque" sin gritar. */
     .tenant-infinity .service-option .bg-white\/6,
-    .tenant-infinity .service-option .bg-violet-500\/10 {
-      background: #000000 !important;
-      color: #FFFFFF !important;
-      border-color: #000000 !important;
+    .tenant-infinity .service-option .bg-violet-500\/10,
+    .tenant-infinity .service-option .bg-black {
+      background: rgba(17,24,39,0.04) !important;
+      color: #111827 !important;
+      border-color: rgba(17,24,39,0.20) !important;
     }
     .tenant-infinity .service-option .border-white\/15,
-    .tenant-infinity .service-option .border-violet-500\/20 {
-      border-color: #000000 !important;
+    .tenant-infinity .service-option .border-violet-500\/20,
+    .tenant-infinity .service-option .border-black {
+      border-color: rgba(17,24,39,0.20) !important;
     }
     .tenant-infinity .service-option .text-white\/85,
-    .tenant-infinity .service-option .text-violet-400 {
-      color: #FFFFFF !important;
+    .tenant-infinity .service-option .text-violet-400,
+    .tenant-infinity .service-option .bg-black.text-white {
+      color: #111827 !important;
+    }
+    /* Estrella ✦: primer carácter del span en amber para dar acento */
+    .tenant-infinity .service-option span.inline-flex.rounded-full::first-letter {
+      color: #b45309 !important;
     }
     /* Shimmer al seleccionar — sutil gris para no romper el monocromo */
     .tenant-infinity .service-option.border-neon::after,
