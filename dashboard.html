@@ -3928,6 +3928,45 @@
        blanco por usar inline styles con paleta dark hardcoded.
     ══════════════════════════════════════════════════════════ */
 
+    /* ── Backgrounds con opacidad no cubiertos por el bloque original ──
+       El bloque de línea 3122 mapeaba solo .bg-zinc-900 (sin opacidad),
+       pero Tailwind trata cada variante /XX como selector independiente.
+       Cuando un botón (ej. "Compartir agenda") usaba bg-zinc-900/80 con
+       hijos text-white, el fondo quedaba oscuro (sin override) pero el
+       texto se volvía navy (override activo) → caja negra + letras
+       negras ilegibles. Este bloque cierra todas las variantes. */
+    .tenant-infinity .bg-zinc-900\/40,
+    .tenant-infinity .bg-zinc-900\/60,
+    .tenant-infinity .bg-zinc-900\/80,
+    .tenant-infinity .bg-zinc-950\/20,
+    .tenant-infinity .bg-zinc-950\/60,
+    .tenant-infinity .bg-black\/30,
+    .tenant-infinity .bg-\[\#0a0a0a\],
+    .tenant-infinity .bg-\[\#0a0a0e\],
+    .tenant-infinity .bg-\[\#111113\] {
+      background-color: rgba(255, 255, 255, 0.85) !important;
+      backdrop-filter: blur(12px) !important;
+      -webkit-backdrop-filter: blur(12px) !important;
+    }
+    /* Nota: bg-black/55, /70, /80, /95 son overlays intencionales
+       (scrims de modal y lookbook viewer). NO los intervenimos. */
+
+    /* Borders con opacidad y arbitrary values de zinc/black — mismo criterio. */
+    .tenant-infinity .border-zinc-800\/80,
+    .tenant-infinity .border-black\/20,
+    .tenant-infinity .border-black\/40 { border-color: rgba(17, 24, 39, 0.10) !important; }
+
+    /* Chip / pill con background:var(--gold-glow) en inline style.
+       En Infinity var(--gold-glow) = rgba(255,255,255,0.8) → blanco
+       casi opaco sobre blanco = invisible. Cualquier elemento con ese
+       inline lo forzamos a tinte navy suave y le damos borde. */
+    .tenant-infinity [style*="background:var(--gold-glow)"],
+    .tenant-infinity [style*="background: var(--gold-glow)"] {
+      background: rgba(17, 24, 39, 0.06) !important;
+      border-color: rgba(17, 24, 39, 0.15) !important;
+    }
+
+
     /* ── Rangos: badge "Tu rango" + tier-badge Silver/Platinum ──
        El chip "Tu rango" usa background:var(--gold-glow) que en
        Infinity es rgba(255,255,255,0.8) (blanco casi opaco) →
