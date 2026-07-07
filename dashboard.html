@@ -3923,6 +3923,96 @@
     }
 
     /* ══════════════════════════════════════════════════════════
+       INFINITY — refinamientos de contraste (agregados 2026-07)
+       Bloques específicos que quedaban ilegibles/feos en el tema
+       blanco por usar inline styles con paleta dark hardcoded.
+    ══════════════════════════════════════════════════════════ */
+
+    /* ── Rangos: badge "Tu rango" + tier-badge Silver/Platinum ──
+       El chip "Tu rango" usa background:var(--gold-glow) que en
+       Infinity es rgba(255,255,255,0.8) (blanco casi opaco) →
+       invisible sobre fondo blanco. Lo repintamos como pill
+       navy sólido con texto blanco.
+       Silver #aaa y Platinum #e8d5ff quedaban imperceptibles;
+       les damos bordes navy con fill sutil. */
+    .tenant-infinity .tier-current-label {
+      background: #111827 !important;
+      color: #ffffff !important;
+      border: 1px solid #111827 !important;
+      box-shadow: 0 2px 6px rgba(17, 24, 39, 0.20) !important;
+    }
+    .tenant-infinity .tier-badge {
+      background: rgba(17, 24, 39, 0.04) !important;
+    }
+    .tenant-infinity .tier-badge.silver {
+      color: #475569 !important;
+      border-color: rgba(17, 24, 39, 0.20) !important;
+    }
+    .tenant-infinity .tier-badge.gold {
+      color: #111827 !important;
+      border-color: rgba(17, 24, 39, 0.30) !important;
+      background: rgba(17, 24, 39, 0.06) !important;
+    }
+    .tenant-infinity .tier-badge.platinum {
+      color: #6b21a8 !important;
+      border-color: rgba(107, 33, 168, 0.35) !important;
+      background: rgba(107, 33, 168, 0.06) !important;
+    }
+    /* Highlight de la fila del rango activo — subir contraste del contenedor */
+    .tenant-infinity .tier-row[data-tier].tier-active,
+    .tenant-infinity .tier-row:has(.tier-current-label:not(.hidden)) {
+      background: rgba(17, 24, 39, 0.06) !important;
+      border-color: rgba(17, 24, 39, 0.15) !important;
+    }
+
+    /* ── Aviso "Completa tu fecha de nacimiento" ──
+       Fondo amarillo amber (rgba(234,179,8,0.08)) queda estridente
+       sobre blanco. Lo convertimos a soft alert navy/slate. */
+    .tenant-infinity #perfilIncompletoAviso {
+      background: rgba(17, 24, 39, 0.04) !important;
+      border-color: rgba(17, 24, 39, 0.12) !important;
+    }
+    .tenant-infinity #perfilIncompletoAviso i { color: #6b7280 !important; }
+    .tenant-infinity #perfilIncompletoMsg { color: #374151 !important; }
+
+    /* ── Input "Nombre o correo del amigo" (buscador de amigo) ──
+       El inline style forzaba background:#111118 + color:#ffffff
+       (caja negra con texto blanco). En Infinity queda un boquete
+       oscuro que rompe la estética minimalista. */
+    .tenant-infinity #amigoEmailInput {
+      background: #ffffff !important;
+      border: 1px solid rgba(17, 24, 39, 0.12) !important;
+      color: #111827 !important;
+      caret-color: #111827 !important;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.02) !important;
+    }
+    .tenant-infinity #amigoEmailInput::placeholder { color: #9CA3AF !important; }
+    .tenant-infinity #amigoEmailInput:focus {
+      border-color: #111827 !important;
+      box-shadow: 0 0 0 1px #111827 !important;
+    }
+    /* Botón "Buscar" — inline usa var(--gold-glow) (blanco/80) sobre
+       blanco = invisible. Lo pasamos a solid navy con texto blanco. */
+    .tenant-infinity button[onclick="buscarAmigo()"] {
+      background: #111827 !important;
+      color: #ffffff !important;
+      border-color: #111827 !important;
+      box-shadow: 0 4px 12px rgba(17, 24, 39, 0.15) !important;
+    }
+    .tenant-infinity button[onclick="buscarAmigo()"]:hover {
+      background: #374151 !important;
+      border-color: #374151 !important;
+    }
+
+    /* ── Tarjeta "Comparar con un amigo" — mismo patrón que otros
+       cards de sección: subir un pelo el borde para separarla
+       visualmente del fondo blanco. */
+    .tenant-infinity #profileCompareSection > .rounded-2xl {
+      background: rgba(17, 24, 39, 0.03) !important;
+      border-color: rgba(17, 24, 39, 0.08) !important;
+    }
+
+    /* ══════════════════════════════════════════════════════════
        OMEGA STUDIO — tenant-omegastudio
        Champán #d4a96a sobre fondo oscuro #0c0c0e
     ══════════════════════════════════════════════════════════ */
