@@ -3297,19 +3297,25 @@
       font-family: system-ui, -apple-system, sans-serif !important;
     }
 
-    /* Hero del club — imagen infinit.png como capa decorativa detrás
-       del texto "Estilo & Confianza" / "Reservar mi cita". Se pinta
-       como ::after del .hero-bg: encima del overlay dark (z:10) pero
-       debajo del contenido (z:20), con opacity moderada para que el
-       texto siga siendo legible sin tapar la imagen. */
+    /* Hero del club — imagen infinit.png sólida detrás del texto
+       "Estilo & Confianza" / "Reservar mi cita". Sobre el overlay (z:10)
+       y debajo del contenido (z:20). Con opacity:1 se ve nítida; el
+       text-shadow sutil de los headings preserva legibilidad. */
     .tenant-infinity .hero-bg::after {
       content: '';
       position: absolute;
       inset: 0;
       background: url('/infinit.png') center/contain no-repeat;
-      opacity: 0.55;
+      opacity: 1;
       z-index: 15;
       pointer-events: none;
+    }
+    /* Text-shadow suave sobre los headings para que el texto se lea
+       sobre la imagen sin depender del overlay claro. */
+    .tenant-infinity #heroLine1,
+    .tenant-infinity #heroLine2 {
+      text-shadow: 0 1px 3px rgba(255, 255, 255, 0.8),
+                   0 2px 12px rgba(255, 255, 255, 0.6) !important;
     }
     .tenant-infinity #stampsCount { color: #111827 !important; }
     .tenant-infinity #stampsCount span { color: #4B5563 !important; }
