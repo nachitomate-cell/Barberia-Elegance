@@ -6625,6 +6625,57 @@
       box-shadow: none !important;
     }
 
+    /* ── Paso 2 - Fotos de barberos alineadas a Aura ────────────────
+       El JS renderea las fotos con border-[#F9E7B3]/60 + shadow gold-glow
+       + bg-[#111115] fallback → en modo light se ve raro (halo dorado
+       flotando y bg oscuro donde no hay foto). Overrides para que quede
+       limpio como Aura: border neutro sutil, sin glow, bg gris muy claro
+       si no hay foto, íconos placeholder en gris. */
+    .tenant-infinity .barber-option img.w-20,
+    .tenant-infinity .barber-option div.w-20.rounded-full,
+    .tenant-infinity .barber-option img.w-12,
+    .tenant-infinity .barber-option div.w-12.rounded-full {
+      border: 1px solid #D4D4D8 !important;
+      box-shadow: none !important;
+      background: #F4F4F5 !important;
+      filter: none !important;
+    }
+    .tenant-infinity .barber-option i.ph-user,
+    .tenant-infinity .barber-option i.ph-shuffle {
+      color: #9CA3AF !important;
+      filter: none !important;
+      text-shadow: none !important;
+    }
+    /* Nombre del barbero: mismo peso y color que Aura (#18181B en vez de #000 absoluto) */
+    .tenant-infinity .barber-option .barber-name {
+      color: #18181B !important;
+      font-weight: 600 !important;
+      letter-spacing: -0.01em !important;
+    }
+    /* Especialidad (text-gray-400 uppercase tracking-widest en el render default) */
+    .tenant-infinity .barber-option p.uppercase {
+      color: #9CA3AF !important;
+      font-weight: 500 !important;
+    }
+    /* Estado activo: sombra doble ring como Aura */
+    .tenant-infinity .barber-option.border-neon {
+      background: rgba(17,24,39,0.04) !important;
+      border: 1px solid #374151 !important;
+      box-shadow: 0 0 0 1px rgba(55,65,81,0.25),
+                  0 2px 8px rgba(0,0,0,0.06) !important;
+    }
+    /* Shimmer overlay animado al seleccionar (mismo que Aura) */
+    .tenant-infinity .barber-option.border-neon::after {
+      content: '' !important;
+      position: absolute !important;
+      inset: 0 !important;
+      transform: translateX(-120%) !important;
+      animation: aura-card-shimmer 0.65s cubic-bezier(0.25,0.46,0.45,0.94) 1 !important;
+      pointer-events: none !important;
+      background: linear-gradient(105deg,
+        transparent 30%, rgba(156,163,175,0.30) 50%, transparent 70%) !important;
+    }
+
     /* Overrides finos para que el rediseño se respete sobre las clases ph */
     .tenant-infinity .service-option i.ph,
     .tenant-infinity .service-option i.ph-fill {
