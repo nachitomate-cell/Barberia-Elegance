@@ -372,12 +372,30 @@ function BarberCard({ barber, onEdit, waUrl, onVerAgenda, sucursales = [], dragH
           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${isActive ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-slate-700/50 text-slate-400 border-slate-600/30'}`}>
             {isActive?'Activo':'Inactivo'}
           </span>
-          {(barber.authUid || barber.uid) && (
+          {/* 3 estados de acceso:
+              (a) authUid  → creado con flujo nuevo (crearAccesoStaff CF)
+              (b) uid solo → legacy: doc con uid explícito o link-doc previo
+              (c) ninguno  → perfil local sin cuenta Firebase Auth */}
+          {barber.authUid ? (
             <span
-              title={`Con acceso al panel · ${barber.email || 'sin email registrado'}`}
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border bg-indigo-500/10 text-indigo-300 border-indigo-500/25"
+              title={`Acceso Nativo · ${barber.email || 'sin email registrado'}`}
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
             >
-              <KeyRound size={10} /> Con acceso
+              🔐 Acceso Nativo
+            </span>
+          ) : barber.uid ? (
+            <span
+              title={`Cuenta legacy · ${barber.email || 'sin email registrado'}`}
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20"
+            >
+              ⚠️ Acceso Antiguo
+            </span>
+          ) : (
+            <span
+              title="Este barbero no tiene cuenta de acceso web"
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-neutral-800 text-neutral-400 border border-neutral-700"
+            >
+              Sin acceso web
             </span>
           )}
         </div>
@@ -844,8 +862,26 @@ export default function Equipo() {
           });
           newUid = res?.data?.uid || null;
         } catch (err) {
-          const msg = err?.message || 'No se pudo crear la cuenta.';
-          setAccesoMsg(msg.replace(/^\[.*?\]\s*/, ''));
+          // Errores de callables v2: llegan con code ('functions/already-exists')
+          // y también con err.details / err.message. Detectamos el caso más
+          // común (email ya registrado en Auth pero desvinculado de Firestore)
+          // para dar una guía accionable, sin culpar al sistema.
+          const code    = err?.code || '';
+          const message = err?.message || '';
+          const isEmailTaken =
+            code === 'functions/already-exists' ||
+            code === 'already-exists' ||
+            /email.*already|ya existe|already.exists/i.test(message);
+
+          if (isEmailTaken) {
+            setAccesoMsg(
+              'Este correo ya tiene una cuenta en el sistema. Para vincularla, ' +
+              'busca el UID en Firebase Auth y pégalo manualmente, o usa un ' +
+              'correo distinto.'
+            );
+          } else {
+            setAccesoMsg((message || 'No se pudo crear la cuenta.').replace(/^\[.*?\]\s*/, ''));
+          }
           return; // no seguimos con Firestore si falló Auth
         }
       }
@@ -908,6 +944,11 @@ export default function Equipo() {
   /* ── Shared styles ── */
   const field = 'w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors';
   const lbl   = 'block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5';
+
+  // Barbero editado ya tiene cuenta Firebase Auth (authUid nuevo o uid legacy).
+  // Fuente única de verdad para la UI del modal: si es true → mostramos read-only
+  // + reset. Si es false → mostramos toggle de creación.
+  const hasAccess = !!(editing?.authUid || editing?.uid);
 
   const selectedBarber = barberos.find(b => b.id === sueldoBarberoId);
   const comisionServicioPorc = selectedBarber ? (selectedBarber.comision || 0) : 0;
@@ -1312,7 +1353,7 @@ export default function Equipo() {
                     password. Al guardar se llama a crearAccesoStaff (CF) para
                     no perder la sesión del admin actual. */}
           <Section title="Acceso al panel web" Icon={KeyRound}>
-            {editing && (editing.authUid || editing.uid) ? (
+            {hasAccess ? (
               <div className="space-y-3">
                 <div className="flex items-center gap-2 px-3 py-2.5 rounded-lg border bg-emerald-500/10 border-emerald-500/30 text-emerald-300">
                   <CheckCircle2 size={16} />
