@@ -5803,7 +5803,9 @@ auth.onAuthStateChanged(async user => {
     if (_chatUnsub)     { _chatUnsub();     _chatUnsub     = null; }
     const _chatWidgetEl = document.getElementById('chatWidget');
     if (_chatWidgetEl) _chatWidgetEl.classList.add('hidden');
-    window.location.href = 'registro.html';
+    // Preservar ?local=<tid> para que config.js resuelva el tenant correcto
+    // al aterrizar en registro.html (sin esto cae al fallback 'elegance').
+    window.location.href = 'registro.html' + window.location.search;
     return;
   }
   currentUser = user;
@@ -7829,7 +7831,7 @@ async function guardarPerfil() {
 
 async function signOut() {
   await auth.signOut();
-  window.location.href = 'registro.html';
+  window.location.href = 'registro.html' + window.location.search;
 }
 
 function confirmDeleteAccount() { document.getElementById('deleteModal').classList.remove('hidden'); }
@@ -7840,7 +7842,7 @@ async function deleteAccount() {
   try {
     await FDB.usersCol().doc(currentUser.uid).delete();
     await currentUser.delete();
-    window.location.href = 'index.html';
+    window.location.href = 'index.html' + window.location.search;
   } catch (err) {
     closeDeleteModal();
     if (err.code === 'auth/requires-recent-login') {
@@ -8553,7 +8555,7 @@ async function confirmarReagendamiento() {
     showToast('🔄 Cita cancelada. Redirigiendo...', 'ok');
     cerrarModalReagendar();
     setTimeout(() => {
-      window.location.href = 'index.html';
+      window.location.href = 'index.html' + window.location.search;
     }, 1200);
   } catch (e) {
     console.error('[Reagendar] Error:', e);

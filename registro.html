@@ -1833,7 +1833,8 @@
       }
       return;
     }
-    window.location.href = 'dashboard.html';
+    // Preservar ?local=<tid> para que config.js resuelva el tenant en dashboard.
+    window.location.href = 'dashboard.html' + window.location.search;
   }
 
   // ── Auth: Comprobar sesión activa ─────────────────────────────
