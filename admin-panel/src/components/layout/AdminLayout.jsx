@@ -41,30 +41,35 @@ function ToastCard({ id, type, title, description, targetPath, onDismiss }) {
   };
 
   const Icon = type === 'appointment' ? Calendar : ShoppingBag;
-  const accentColor = type === 'appointment' ? 'bg-amber-500' : 'bg-emerald-500';
-  const accentBorder = type === 'appointment' ? 'border-amber-500/20' : 'border-emerald-500/20';
+  const isAppointment = type === 'appointment';
+  const accentBg     = isAppointment ? 'bg-amber-500'       : 'bg-emerald-500';
+  const accentText   = isAppointment ? 'text-amber-500'     : 'text-emerald-500';
+  const accentBorder = isAppointment ? 'border-l-amber-500' : 'border-l-emerald-500';
 
   return (
-    <div className={`relative w-80 bg-slate-900/90 backdrop-blur-md border ${accentBorder} text-white rounded-xl shadow-2xl p-4 flex flex-col gap-2 transition-all duration-300 transform translate-y-0 animate-slide-in-right overflow-hidden pointer-events-auto`}>
-      {/* Barra de color lateral */}
-      <span className={`absolute left-0 top-0 bottom-0 w-1 ${accentColor}`} />
-
+    <div
+      data-toast-card
+      className={`relative w-80 bg-slate-900 border border-slate-800 border-l-4 ${accentBorder} rounded-xl shadow-lg overflow-hidden p-4 flex flex-col gap-2 animate-slide-in-right pointer-events-auto`}
+    >
       {/* Cabecera */}
-      <div className="flex items-start justify-between gap-2 pl-1.5">
+      <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2">
-          <Icon className={type === 'appointment' ? 'text-amber-400' : 'text-emerald-400'} size={16} />
-          <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300">{title}</h4>
+          <Icon className={accentText} size={16} />
+          <h4 className={`text-xs font-bold uppercase tracking-wider ${accentText}`}>
+            {title}
+          </h4>
         </div>
         <button
           onClick={() => onDismiss(id)}
-          className="text-slate-500 hover:text-white transition-colors p-0.5 rounded"
+          data-toast-close
+          className="text-slate-400 hover:text-white transition-colors p-0.5 rounded"
         >
           <X size={14} />
         </button>
       </div>
 
       {/* Descripción / Mensaje */}
-      <p className="text-xs text-slate-400 pl-1.5 leading-relaxed font-medium">
+      <p className="text-sm font-medium text-slate-200 leading-relaxed">
         {description}
       </p>
 
@@ -72,18 +77,19 @@ function ToastCard({ id, type, title, description, targetPath, onDismiss }) {
       <div className="flex justify-end mt-1">
         <button
           onClick={handleAction}
-          className="flex items-center gap-1 text-[11px] font-bold text-white px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 transition-all border border-slate-700/50"
+          data-toast-action
+          className="flex items-center gap-1 text-sm font-semibold text-white px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 transition-colors border border-slate-700"
         >
           <span>Ver detalles</span>
-          <ChevronRight size={12} />
+          <ChevronRight size={14} />
         </button>
       </div>
 
       {/* Barra de progreso de auto-descarte */}
       <div className="absolute bottom-0 left-0 right-0 h-1 bg-slate-800">
-        <div 
-          className={`h-full ${accentColor} transition-all duration-75`} 
-          style={{ width: `${progress}%` }} 
+        <div
+          className={`h-full ${accentBg} transition-all duration-75`}
+          style={{ width: `${progress}%` }}
         />
       </div>
     </div>

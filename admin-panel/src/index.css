@@ -130,6 +130,21 @@ html.light .border-slate-800\/50,
 html.light .border-slate-700\/60,
 html.light .border-slate-700\/50 { border-color: #e2e8f0 !important; }
 
+/* ── Light mode · Toast de notificación (nueva cita / nueva reserva) ────
+   Se renderiza fuera de cualquier [data-view], así que scopeamos por
+   [data-toast-card] para no colisionar. El resto de colores (bg-slate-900,
+   border-slate-800, bg-slate-800, text-slate-400, text-white) ya están
+   cubiertos por los overrides globales de arriba. */
+html.light [data-toast-card]                       { box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08) !important; }
+html.light [data-toast-card] .text-slate-200       { color: #1e293b !important; }
+html.light [data-toast-card] .text-amber-500       { color: #d97706 !important; }
+html.light [data-toast-card] .text-emerald-500     { color: #059669 !important; }
+html.light [data-toast-card] .border-l-amber-500   { border-left-color: #d97706 !important; }
+html.light [data-toast-card] .border-l-emerald-500 { border-left-color: #059669 !important; }
+html.light [data-toast-card] [data-toast-close]:hover { color: #475569 !important; }
+html.light [data-toast-card] [data-toast-action]   { background-color: #f1f5f9 !important; border-color: #e2e8f0 !important; }
+html.light [data-toast-card] [data-toast-action]:hover { background-color: #e2e8f0 !important; }
+
 /* ── Light mode · Asistente IA de Marketing (chat con estilos inline) ── */
 /* El header y las burbujas de IA usan estilos inline oscuros que el remapeo de
    clases no alcanza; aquí se fuerzan colores claros legibles en modo claro. */
