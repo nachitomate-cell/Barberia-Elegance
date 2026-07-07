@@ -6432,41 +6432,52 @@
       border-color: #E5E5E5 !important;
       transform: none !important;
     }
+    /* Paso 2 — estilo idéntico al de Aura (limpio, sin bordes duros). */
     .tenant-infinity .barber-option {
-      padding: 20px !important;
-      max-width: 95% !important;
+      padding: 16px !important;
       width: 100% !important;
-      margin-left: auto !important;
-      margin-right: auto !important;
-      box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
-      border-color: #E5E5E5 !important;
+      background: #FFFFFF !important;
+      border: 1px solid #D4D4D8 !important;
+      box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04) !important;
       transform: none !important;
     }
 
-    /* Estado activo — borde 1px negro sutil + fondo gris muy claro */
+    /* Estado activo — patrón Aura: navy suave con doble ring en shadow */
     .tenant-infinity .service-option.border-neon,
-    .tenant-infinity .barber-option.border-neon,
-    .tenant-infinity .service-option.border-neon.border-2,
-    .tenant-infinity .barber-option.border-neon.border-2 {
+    .tenant-infinity .service-option.border-neon.border-2 {
       background: #FAFAFA !important;
       border: 1px solid #000000 !important;
       box-shadow: none !important;
       transform: none !important;
     }
-    .tenant-infinity .service-option.bg-brand-neon\/10,
-    .tenant-infinity .barber-option.bg-brand-neon\/10 {
+    .tenant-infinity .barber-option.border-neon,
+    .tenant-infinity .barber-option.border-neon.border-2 {
+      background: rgba(17,24,39,0.04) !important;
+      border: 1px solid #374151 !important;
+      box-shadow: 0 0 0 1px rgba(55,65,81,0.25), 0 2px 8px rgba(0,0,0,0.06) !important;
+      transform: none !important;
+    }
+    .tenant-infinity .service-option.bg-brand-neon\/10 {
       background: #FAFAFA !important;
     }
+    .tenant-infinity .barber-option.bg-brand-neon\/10 {
+      background: rgba(17,24,39,0.04) !important;
+    }
 
-    /* Hover — borde negro sutil (1px), sin cambio de tamaño */
-    .tenant-infinity .service-option:hover,
-    .tenant-infinity .barber-option:hover {
+    /* Hover — sutil, sin cambio de tamaño */
+    .tenant-infinity .service-option:hover {
       border-color: #000000 !important;
       background: #FFFFFF !important;
     }
-    .tenant-infinity .service-option.border-neon:hover,
-    .tenant-infinity .barber-option.border-neon:hover {
+    .tenant-infinity .barber-option:hover {
+      border-color: #9CA3AF !important;
+      background: rgba(156,163,175,0.04) !important;
+    }
+    .tenant-infinity .service-option.border-neon:hover {
       background: #FAFAFA !important;
+    }
+    .tenant-infinity .barber-option.border-neon:hover {
+      background: rgba(17,24,39,0.06) !important;
     }
 
     /* ── Servicios: icono minimalista (sin caja pesada, list row horizontal) ── */
@@ -6565,45 +6576,44 @@
       filter: none !important;
     }
 
-    /* ── Nombre del barbero: más peso y separado de disponibilidad ── */
+    /* ── Tipografía: paleta idéntica a Aura ── */
     .tenant-infinity .barber-option .barber-name {
-      color: #000000 !important;
+      color: #18181B !important;
       font-weight: 600 !important;
       font-size: 1.05rem !important;
       line-height: 1.2 !important;
       letter-spacing: -0.02em !important;
-      margin-bottom: 6px !important;
+      margin-bottom: 4px !important;
     }
-    /* Especialidad y disponibilidad — texto secundario claro */
     .tenant-infinity .barber-option p {
-      color: #666666 !important;
+      color: #6B7280 !important;
       font-weight: 400 !important;
       font-size: 12px !important;
       line-height: 1.35 !important;
     }
-    /* Estado de disponibilidad — más discreto, no compite con el nombre */
+    /* Disponibilidad — gris medio Aura (#9CA3AF), no compite con el nombre */
     .tenant-infinity .barber-option .text-brand-neon,
     .tenant-infinity .barber-option .text-neon {
-      color: #555555 !important;
+      color: #9CA3AF !important;
       font-weight: 500 !important;
       font-size: 12px !important;
       margin-top: 4px !important;
     }
     .tenant-infinity .barber-option .text-brand-neon i,
     .tenant-infinity .barber-option .text-neon i {
-      color: #555555 !important;
+      color: #9CA3AF !important;
     }
 
-    /* ── Radio de selección (barber-radio) — refinado ── */
+    /* ── Radio de selección — patrón Aura: transparente → navy sólido ── */
     .tenant-infinity .barber-option .barber-radio {
-      border-color: #E5E5E5 !important;
-      border-width: 1.5px !important;
+      border-color: #D4D4D8 !important;
+      border-width: 2px !important;
       background: transparent !important;
     }
     .tenant-infinity .barber-option.border-neon .barber-radio {
-      background: #000000 !important;
-      border-color: #000000 !important;
-      box-shadow: inset 0 0 0 2.5px #FAFAFA !important;
+      background: #1F2937 !important;
+      border-color: #1F2937 !important;
+      box-shadow: none !important;
     }
 
     /* Overrides finos para que el rediseño se respete sobre las clases ph */
@@ -6676,6 +6686,64 @@
       color: #FFFFFF !important;
       font-weight: 800 !important;
       box-shadow: none !important;
+    }
+
+    /* ── Footer info card (Ubicación / Horario) — light mode Infinity ──
+       El bloque original usa inline styles con bg #0a0807 y textos gold
+       hardcodeados (rgba(201,168,76,...)). En Infinity la caja quedaba
+       negra con texto navy encima (efecto negro sobre negro). */
+    .tenant-infinity #shopDireccionLink,
+    .tenant-infinity #shopHorarioGrid,
+    .tenant-infinity main > div > div > div[style*="background:#0a0807"] {
+      background: #FFFFFF !important;
+    }
+    .tenant-infinity main > div > div > div[style*="background:#0a0807"] {
+      border-color: rgba(17,24,39,0.08) !important;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04) !important;
+    }
+    /* Ícono contenedor (mapa/reloj) — pastilla navy sutil en vez de gold */
+    .tenant-infinity #shopDireccionLink > div:first-child,
+    .tenant-infinity main div[style*="background:rgba(201,168,76,0.1)"] {
+      background: rgba(17,24,39,0.06) !important;
+      border-color: rgba(17,24,39,0.14) !important;
+    }
+    .tenant-infinity #shopDireccionLink > div:first-child i,
+    .tenant-infinity main i[style*="color:var(--gold)"] {
+      color: #111827 !important;
+    }
+    /* Labels "UBICACIÓN" / "HORARIO" — reemplazan el gold-tenue por navy tenue */
+    .tenant-infinity main p[style*="color:rgba(201,168,76,0.55)"] {
+      color: rgba(17,24,39,0.55) !important;
+    }
+    /* Calle y ciudad */
+    .tenant-infinity #shopDireccionCalle { color: #111827 !important; }
+    .tenant-infinity #shopDireccionCiudad { color: #6B7280 !important; }
+    /* Divisor entre Ubicación y Horario */
+    .tenant-infinity main div[style*="background:rgba(255,255,255,0.06)"] {
+      background: rgba(17,24,39,0.08) !important;
+    }
+    /* Grilla del horario semanal — items internos */
+    .tenant-infinity #shopHorarioGrid,
+    .tenant-infinity #shopHorarioGrid * {
+      color: #374151 !important;
+    }
+    .tenant-infinity #shopHorarioGrid span.rounded-full {
+      background: rgba(17,24,39,0.08) !important;
+      color: #111827 !important;
+    }
+    /* Botón "abrir en Google Maps" (arrow-square-out) */
+    .tenant-infinity #shopDireccionLink i.ph-arrow-square-out {
+      color: rgba(17,24,39,0.35) !important;
+    }
+    .tenant-infinity #shopDireccionLink:active {
+      background: rgba(17,24,39,0.03) !important;
+    }
+    /* Instagram footer link */
+    .tenant-infinity #footerInstagram {
+      color: #6B7280 !important;
+    }
+    .tenant-infinity #footerInstagram:hover {
+      color: #111827 !important;
     }
     .tenant-infinity .time-pill.disabled {
       background: #FAFAFA !important;
