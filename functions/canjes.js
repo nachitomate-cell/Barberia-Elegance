@@ -30,16 +30,24 @@ const { onSchedule }             = require('firebase-functions/v2/scheduler');
 const { logger }                 = require('firebase-functions');
 const admin                      = require('firebase-admin');
 const { FieldValue, Timestamp }  = require('firebase-admin/firestore');
+const marca                      = require('./lib/kronnos-marca');
 
 const db = admin.firestore();
 
 // ── Colecciones según tenant (legacy elegance usa root) ──────────
+// Kronnos (Camino 1.5): users/premios/redemptions van al pool marca para
+// tenants legacy (kronnos_penablanca/limache/woman → tenants/kronnos/*).
+// settingsRef queda per-sede (canjeClienteEnabled se controla por sede).
 function colecciones(tenantId) {
   const isElegance = tenantId === 'elegance';
+  const usersTid    = marca.marcaAwareTenant(tenantId, 'users');
+  const premiosTid  = marca.marcaAwareTenant(tenantId, 'premios');
+  // canjes es la colección lógica; redemptions es su nombre físico legacy.
+  const redemTid    = marca.marcaAwareTenant(tenantId, 'canjes');
   return {
-    users:        db.collection(isElegance ? 'users'        : `tenants/${tenantId}/users`),
-    premios:      db.collection(isElegance ? 'premios'      : `tenants/${tenantId}/premios`),
-    redemptions:  db.collection(isElegance ? 'redemptions'  : `tenants/${tenantId}/redemptions`),
+    users:        db.collection(isElegance ? 'users'        : `tenants/${usersTid}/users`),
+    premios:      db.collection(isElegance ? 'premios'      : `tenants/${premiosTid}/premios`),
+    redemptions:  db.collection(isElegance ? 'redemptions'  : `tenants/${redemTid}/redemptions`),
     settingsRef:  db.doc(isElegance ? 'settings/general' : `tenants/${tenantId}/settings/general`),
   };
 }
@@ -71,6 +79,8 @@ exports.crearCanje = onCall(async (req) => {
   const tenantId = String(req.data?.tenantId || '').trim();
   const prizeId  = String(req.data?.prizeId  || '').trim();
   const ttlMin   = Math.max(1, Math.min(60, parseInt(req.data?.ttlMinutes ?? 15, 10) || 15));
+  // Kronnos: cliente envía sedeCanje solicitada (regla 3 + tiebreak A).
+  const sedeCanjeSolicitada = String(req.data?.sedeCanje || '').trim() || null;
 
   if (!tenantId || !prizeId) {
     throw new HttpsError('invalid-argument', 'Faltan tenantId o prizeId.');
@@ -113,6 +123,12 @@ exports.crearCanje = onCall(async (req) => {
         throw new HttpsError('failed-precondition', `Saldo insuficiente: tienes ${disp} y necesitas ${costo}.`);
       }
 
+      // Kronnos: resolver sede final de canje = predominante o tiebreak A.
+      // sedeAtribuida: sede a la que se imputa contablemente el descuento.
+      const sedeAtribuida = marca.isKronnosLegacy(tenantId)
+        ? marca.resolverSedeCanje(uData.sellosPorSede, sedeCanjeSolicitada)
+        : null;
+
       // Descuento atómico. sellosDisponibles + stamps para compat con lectores
       // legacy (dashboard cliente prefiere sellosDisponibles, otros lugares
       // aún leen stamps).
@@ -126,6 +142,7 @@ exports.crearCanje = onCall(async (req) => {
           nota:         `${pData.nombre || 'Premio'} — QR generado (pendiente aprobación)`,
           redemptionId: redRef.id,
           categoria:    pData.categoria || 'SERVICIO',
+          ...(sedeAtribuida ? { sedeCanje: sedeAtribuida } : {}),
         }),
         updatedAt: FieldValue.serverTimestamp(),
       });
@@ -143,6 +160,9 @@ exports.crearCanje = onCall(async (req) => {
         status:        'pending',
         createdAt:     FieldValue.serverTimestamp(),
         expiresAt,
+        // Kronnos: sede atribuida (regla 3 Dexter + tiebreak A). Nulla en no-Kronnos.
+        // El staff de esta sede es el único que debe aprobar el canje contablemente.
+        ...(sedeAtribuida ? { sedeCanje: sedeAtribuida, tenantOrigen: tenantId } : {}),
         // Marca importante: los sellos YA se descontaron. El staff al aprobar
         // NO debe descontar de nuevo. Este flag lo protege contra bugs.
         sellosCargados: true,

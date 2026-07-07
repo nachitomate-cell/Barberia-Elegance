@@ -117,8 +117,29 @@ export function resolveTenantAndSede() {
   return { tenantId: tid, sedeId };
 }
 
+// ── Camino 1.5 (D3-D4): pool marca Kronnos ──────────────────────
+// Colecciones marca-level (users/sellos/premios/rangos/canjes) para tenants
+// Kronnos legacy se redirigen a tenants/kronnos/*. Operacionales (servicios,
+// barberos, citas, settings) siguen per-sede. Espejo del redirect en
+// firebaseUtils.js — las 51 vistas del admin heredan automáticamente sin migrar.
+export const KRONNOS_MARCA_COLLECTIONS = new Set([
+  'users',
+  'sellos',
+  'premios',
+  'rangos',
+  'canjes',
+]);
+
+function _marcaAwareTenant(tid, colName) {
+  if (LEGACY_KRONNOS_TO_SEDE[tid] && KRONNOS_MARCA_COLLECTIONS.has(colName)) {
+    return 'kronnos';
+  }
+  return tid;
+}
+
 export function tenantCol(name) {
-  const tid = resolveTenantId();
+  const rawTid = resolveTenantId();
+  const tid    = _marcaAwareTenant(rawTid, name);
   return tid === 'elegance'
     ? collection(db, name)
     : collection(db, `tenants/${tid}/${name}`);

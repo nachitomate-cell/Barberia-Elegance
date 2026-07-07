@@ -27,6 +27,7 @@ const { onDocumentWritten } = require('firebase-functions/v2/firestore');
 const { logger }            = require('firebase-functions');
 const admin                 = require('firebase-admin');
 const { FieldValue, Timestamp } = require('firebase-admin/firestore');
+const marca                 = require('./lib/kronnos-marca');
 
 const db = admin.firestore();
 
@@ -61,12 +62,16 @@ function normalizePhone(phone) {
 }
 
 // ── Colecciones según tenant ──────────────────────────────────────
+// Kronnos (Camino 1.5): users es marca-level → tenants/kronnos/users para todos los legacy.
+// clientes también es marca-level (lookup por teléfono cross-sede). citas queda per-sede.
 function colecciones(tenantId) {
   const isElegance = tenantId === 'elegance';
+  const usersTid    = marca.marcaAwareTenant(tenantId, 'users');
+  const clientesTid = marca.marcaAwareTenant(tenantId, 'clientes');
   return {
-    clientes: db.collection(isElegance ? 'clientes'      : `tenants/${tenantId}/clientes`),
-    users:    db.collection(isElegance ? 'users'         : `tenants/${tenantId}/users`),
-    citas:    db.collection(isElegance ? 'citas'         : `tenants/${tenantId}/citas`),
+    clientes: db.collection(isElegance ? 'clientes' : `tenants/${clientesTid}/clientes`),
+    users:    db.collection(isElegance ? 'users'    : `tenants/${usersTid}/users`),
+    citas:    db.collection(isElegance ? 'citas'    : `tenants/${tenantId}/citas`),
   };
 }
 
@@ -256,7 +261,9 @@ async function procesarSello({ tenantId, citaId, citaRef, cita }) {
         const notaSello = nSellos === 1
           ? `Cita completada: ${svcNombre}`
           : `Cita completada (+${nSellos} sellos): ${svcNombre}`;
-        await userRef.update({
+        // Kronnos: incrementa sellosPorSede[sedeId] para calcular sede predominante.
+        const sedeOrigenSt = marca.sedeIdFromLegacy(tenantId);
+        const updSt = {
           sellosDisponibles: FieldValue.increment(nSellos),
           sellosHistoricos:  FieldValue.increment(nSellos),
           stamps:            FieldValue.increment(nSellos),
@@ -267,8 +274,11 @@ async function procesarSello({ tenantId, citaId, citaRef, cita }) {
             cantidad: nSellos,
             nota:     notaSello,
             citaId,
+            ...(sedeOrigenSt ? { sedeId: sedeOrigenSt } : {}),
           }),
-        });
+        };
+        if (sedeOrigenSt) updSt[`sellosPorSede.${sedeOrigenSt}`] = FieldValue.increment(nSellos);
+        await userRef.update(updSt);
       }
       await citaRef.update({
         selloProcesado:      true,
@@ -472,7 +482,10 @@ async function procesarSello({ tenantId, citaId, citaRef, cita }) {
     if (uid) {
       try {
         const userRef = cols.users.doc(uid);
-        await userRef.update({
+        // Kronnos: sedeId de origen (la sede donde ocurrió la cita) para
+        // sellosPorSede[sedeId] + marca en historial (canje predominante).
+        const sedeOrigen = marca.sedeIdFromLegacy(tenantId);
+        const upd = {
           sellosDisponibles: FieldValue.increment(nSellos),
           sellosHistoricos:  FieldValue.increment(nSellos),
           stamps:            FieldValue.increment(nSellos),
@@ -483,8 +496,11 @@ async function procesarSello({ tenantId, citaId, citaRef, cita }) {
             cantidad: nSellos,
             nota:     notaSello,
             citaId,
+            ...(sedeOrigen ? { sedeId: sedeOrigen } : {}),
           }),
-        });
+        };
+        if (sedeOrigen) upd[`sellosPorSede.${sedeOrigen}`] = FieldValue.increment(nSellos);
+        await userRef.update(upd);
       } catch (e) {
         // Este es el fallo crítico: el sello suma en clientes/ pero no llega al
         // dashboard del cliente. Loggeamos con nivel error para alertar al admin.
