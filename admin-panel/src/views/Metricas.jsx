@@ -17,6 +17,7 @@ import { tenantCol, tenantDoc } from '../lib/tenantUtils';
 import HelpModal, { HelpButton } from '../components/ui/HelpModal';
 import AIWatermark from '../components/ui/AIWatermark';
 import { useAuth } from '../contexts/AuthContext';
+import { useChartTheme } from '../hooks/useChartTheme';
 
 function localDateStr() {
   const d = new Date();
@@ -252,6 +253,10 @@ const PIE_COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ec4899', '#8b5cf6', '#06b
 export default function Metricas() {
   const { role } = useAuth();
   const isAdmin = role === 'admin' || role === 'jefe';
+  // Paleta activa según modo (dark/light). Se recalcula cuando el usuario
+  // toggle el tema desde el Sidebar. Los charts Recharts la reciben por
+  // props porque sus SVG no leen los overrides html.light del CSS global.
+  const ct = useChartTheme();
 
   const [showHelp,         setShowHelp]         = useState(false);
   const [activeTab,        setActiveTab]        = useState('comercial');
@@ -1221,7 +1226,7 @@ export default function Metricas() {
                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">
                   Últimos 7 días
                 </p>
-                <Sparkline data={sparkData} color={isUp || delta == null ? '#10b981' : '#f43f5e'} />
+                <Sparkline data={sparkData} color={isUp || delta == null ? ct.positive : ct.negative} />
               </div>
             </div>
           </div>
@@ -1429,18 +1434,18 @@ export default function Metricas() {
             >
               <ResponsiveContainer width="100%" height={240}>
                 <BarChart data={chartData} barSize={18}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                  <XAxis dataKey="mes" tick={{ fill: '#64748b', fontSize: 11 }}
+                  <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} vertical={false} />
+                  <XAxis dataKey="mes" tick={{ fill: ct.axis, fontSize: 11 }}
                     axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fill: '#64748b', fontSize: 10 }}
+                  <YAxis tick={{ fill: ct.axis, fontSize: 10 }}
                     axisLine={false} tickLine={false}
                     tickFormatter={v => hayPrecios ? `$${(v / 1000).toFixed(0)}k` : v} />
                   <Tooltip content={<DarkTooltip fmt={hayPrecios ? fmtCLP : undefined} />} />
                   <Legend wrapperStyle={{ fontSize: 11, paddingTop: 12 }} />
                   {hayPrecios ? (
-                    <Bar dataKey="servicios" name="Servicios ($)" fill="#10b981" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="servicios" name="Servicios ($)" fill={ct.positive} radius={[4, 4, 0, 0]} />
                   ) : (
-                    <Bar dataKey="citas" name="Citas" fill="#10b981" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="citas" name="Citas" fill={ct.positive} radius={[4, 4, 0, 0]} />
                   )}
                 </BarChart>
               </ResponsiveContainer>
@@ -1459,18 +1464,18 @@ export default function Metricas() {
                   height={Math.min(280, Math.max(140, stats.ingresosBar.length * 40))}
                 >
                   <BarChart data={stats.ingresosBar} layout="vertical" barSize={12}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" horizontal={false} />
-                    <XAxis type="number" tick={{ fill: '#64748b', fontSize: 10 }}
+                    <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} horizontal={false} />
+                    <XAxis type="number" tick={{ fill: ct.axis, fontSize: 10 }}
                       axisLine={false} tickLine={false}
                       tickFormatter={v => hayPrecios ? `$${(v / 1000).toFixed(0)}k` : v} />
                     <YAxis type="category" dataKey="nombre"
-                      tick={{ fill: '#94a3b8', fontSize: 11 }}
+                      tick={{ fill: ct.axis, fontSize: 11 }}
                       axisLine={false} tickLine={false} width={65} />
                     <Tooltip content={<DarkTooltip fmt={hayPrecios ? fmtCLP : undefined} />} />
                     <Bar
                       dataKey={hayPrecios ? 'ingresos' : 'citas'}
                       name={hayPrecios ? 'Ingresos' : 'Citas'}
-                      fill="#3b82f6"
+                      fill={ct.neutral}
                       radius={[0, 4, 4, 0]}
                     />
                   </BarChart>
@@ -1497,8 +1502,8 @@ export default function Metricas() {
                           dataKey="value" paddingAngle={4}
                           startAngle={90} endAngle={-270}
                         >
-                          <Cell fill="#10b981" />
-                          <Cell fill="#1e293b" />
+                          <Cell fill={ct.positive} />
+                          <Cell fill={ct.grid} />
                         </Pie>
                         <Tooltip content={<DarkTooltip fmt={v => `${v} clientes`} />} />
                       </PieChart>
@@ -1746,14 +1751,14 @@ export default function Metricas() {
                       <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                  <XAxis dataKey="mes" tick={{ fill: '#64748b', fontSize: 10 }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fill: '#64748b', fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} vertical={false} />
+                  <XAxis dataKey="mes" tick={{ fill: ct.axis, fontSize: 10 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fill: ct.axis, fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} />
                   <Tooltip content={<DarkTooltip fmt={fmtCLP} />} />
                   <Legend wrapperStyle={{ fontSize: 11, paddingTop: 10 }} />
-                  <Area type="monotone" dataKey="Ingresos" stroke="#10b981" strokeWidth={2} fillOpacity={1} fill="url(#colorIngresos)" />
-                  <Area type="monotone" dataKey="Egresos" stroke="#f43f5e" strokeWidth={2} fillOpacity={1} fill="url(#colorEgresos)" />
-                  <Area type="monotone" dataKey="Utilidad Neta" stroke="#3b82f6" strokeWidth={2} fillOpacity={1} fill="url(#colorNeta)" />
+                  <Area type="monotone" dataKey="Ingresos" stroke={ct.positive} strokeWidth={2} fillOpacity={1} fill="url(#colorIngresos)" />
+                  <Area type="monotone" dataKey="Egresos" stroke={ct.negative} strokeWidth={2} fillOpacity={1} fill="url(#colorEgresos)" />
+                  <Area type="monotone" dataKey="Utilidad Neta" stroke={ct.neutral} strokeWidth={2} fillOpacity={1} fill="url(#colorNeta)" />
                 </AreaChart>
               </ResponsiveContainer>
             </ChartCard>
@@ -1991,15 +1996,15 @@ export default function Metricas() {
                   <ChartCard title="Tendencia de Citas (6 meses)" subtitle="Últimos 6 meses históricos · citas e ingresos">
                     <ResponsiveContainer width="100%" height={240}>
                       <BarChart data={b.meses} barSize={14}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                        <XAxis dataKey="mes" tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} tickLine={false} />
-                        <YAxis yAxisId="left" tick={{ fill: '#64748b', fontSize: 10 }} axisLine={false} tickLine={false}
+                        <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} vertical={false} />
+                        <XAxis dataKey="mes" tick={{ fill: ct.axis, fontSize: 11 }} axisLine={false} tickLine={false} />
+                        <YAxis yAxisId="left" tick={{ fill: ct.axis, fontSize: 10 }} axisLine={false} tickLine={false}
                           tickFormatter={v => hayIngB ? `$${(v / 1000).toFixed(0)}k` : v} />
-                        <YAxis yAxisId="right" orientation="right" tick={{ fill: '#64748b', fontSize: 10 }} axisLine={false} tickLine={false} />
+                        <YAxis yAxisId="right" orientation="right" tick={{ fill: ct.axis, fontSize: 10 }} axisLine={false} tickLine={false} />
                         <Tooltip content={<DarkTooltip fmt={hayIngB ? fmtCLP : undefined} />} />
                         <Legend wrapperStyle={{ fontSize: 11, paddingTop: 12 }} />
-                        {hayIngB && <Bar yAxisId="left"  dataKey="ingresos" name="Ingresos ($)" fill="#10b981" radius={[4, 4, 0, 0]} />}
-                        <Bar yAxisId="right" dataKey="citas" name="Citas" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                        {hayIngB && <Bar yAxisId="left"  dataKey="ingresos" name="Ingresos ($)" fill={ct.positive} radius={[4, 4, 0, 0]} />}
+                        <Bar yAxisId="right" dataKey="citas" name="Citas" fill={ct.neutral} radius={[4, 4, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
                   </ChartCard>
@@ -2012,12 +2017,12 @@ export default function Metricas() {
                     ) : (
                       <ResponsiveContainer width="100%" height={Math.min(280, Math.max(140, b.topServicios.length * 44))}>
                         <BarChart data={b.topServicios} layout="vertical" barSize={12}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" horizontal={false} />
-                          <XAxis type="number" tick={{ fill: '#64748b', fontSize: 10 }} axisLine={false} tickLine={false} />
-                          <YAxis type="category" dataKey="nombre" tick={{ fill: '#94a3b8', fontSize: 10 }}
+                          <CartesianGrid strokeDasharray="3 3" stroke={ct.grid} horizontal={false} />
+                          <XAxis type="number" tick={{ fill: ct.axis, fontSize: 10 }} axisLine={false} tickLine={false} />
+                          <YAxis type="category" dataKey="nombre" tick={{ fill: ct.axis, fontSize: 10 }}
                             axisLine={false} tickLine={false} width={80} />
                           <Tooltip content={<DarkTooltip fmt={v => `${v} citas`} />} />
-                          <Bar dataKey="count" name="Citas" fill="#f59e0b" radius={[0, 4, 4, 0]} />
+                          <Bar dataKey="count" name="Citas" fill={ct.accent} radius={[0, 4, 4, 0]} />
                         </BarChart>
                       </ResponsiveContainer>
                     )}
