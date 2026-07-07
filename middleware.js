@@ -33,12 +33,23 @@ const DOMAIN_MAP = {
   'barberiasion.synaptechspa.cl':      'sionbarberia',
   'omegastudio.synaptechspa.cl':       'omegastudio',
   'kronnos.synaptechspa.cl':           'kronnos_lobby',
+  // NOTA: los 3 subdominios de sede siguen apuntando a los tenants legacy hasta el cutover
+  // en D2/D3 (cuando el cliente maneje resolveSedeId). Después mapearán todos a 'kronnos'.
   'kronnospenablanca.synaptechspa.cl': 'kronnos_penablanca',
   'kronnoslimache.synaptechspa.cl':    'kronnos_limache',
   'kronnoswoman.synaptechspa.cl':      'kronnos_woman',
   'admin.kronnos.synaptechspa.cl':     'kronnos_penablanca',
   'barbersclub.synaptechspa.cl':       'barbersclub',
   'elbarberomoderno.synaptechspa.cl':  'elbarberomoderno',
+};
+
+// Kronnos — subdomain → sedeId dentro del tenant único 'kronnos'.
+// Fuente de verdad para SedeContext (cliente) y para SEO por sede en middleware (D2/D3).
+// Ver project_kronnos.md en memoria.
+const KRONNOS_SUBDOMAIN_SEDE = {
+  'kronnospenablanca.synaptechspa.cl': 'penablanca',
+  'kronnoslimache.synaptechspa.cl':    'limache',
+  'kronnoswoman.synaptechspa.cl':      'woman',
 };
 
 const TENANT_META = {
@@ -759,6 +770,48 @@ const TENANT_META = {
       ],
     },
   },
+  // ── KRONNOS · marca unificada (Camino 1, 2026-07-06) ──
+  // Meta base para el tenant 'kronnos'. En D2/D3 el middleware inyectará SEO por sede
+  // usando KRONNOS_SUBDOMAIN_SEDE (subdomain → sedeId) para elegir variante.
+  kronnos: {
+    booking: {
+      title:       'Kronnos Studio | Agenda tu hora',
+      description: 'Reserva en Kronnos Studio. Barbería y estilismo unisex con +12 años de experiencia. Peñablanca, Limache y Woman.',
+      ogTitle:     'Agendar Hora | Kronnos Studio',
+      ogDesc:      'Reserva en Kronnos Studio. Un espacio unisex donde ambos mundos convergen.',
+    },
+    dashboard: {
+      title:       'Mi Club | Kronnos Studio',
+      description: 'Tu panel personal en Kronnos Studio. Sellos cross-sede, rango, premios y cumpleaños.',
+      ogTitle:     'Mi Club | Kronnos Studio',
+      ogDesc:      'Club de fidelidad de Kronnos Studio. Acumula sellos en cualquier sede y disfruta de beneficios.',
+    },
+    registro: {
+      title:       'Únete al Club | Kronnos Studio',
+      description: 'Crea tu cuenta en el Club Kronnos. Sellos que suman entre sedes, cumpleaños con descuento y premios canjeables.',
+      ogTitle:     'Únete al Club | Kronnos Studio',
+      ogDesc:      'Regístrate en Kronnos Studio y disfruta de beneficios exclusivos en las 3 sedes.',
+    },
+    siteName:    'Kronnos Studio',
+    ogImage:     '/kronnos/kronospena.png',
+    themeColor:  '#0a0a0a',
+    appTitle:    'Kronnos',
+    icon:        '/kronnos/studio.jpg',
+    local: { telephone: '', streetAddress: '', addressLocality: 'Valparaíso', schemaType: 'HairSalon', ratingGeneral: 5.0, totalReviews: 960 },
+    manifest: { name: 'Kronnos Studio', short_name: 'Kronnos', theme_color: '#0a0a0a', background_color: '#0a0a0a' },
+    adminManifest: {
+      name: 'Panel Admin · Kronnos', short_name: 'Kronnos', description: 'Panel de administración — Kronnos Studio',
+      theme_color: '#e11d2a', background_color: '#0a0a0a', start_url: '/gestion-interna/?local=kronnos',
+      icons: [
+        { src: '/kronnos/studio.jpg', sizes: 'any', type: 'image/jpeg' },
+        { src: '/gestion-interna/pwa-192.png', sizes: '192x192', type: 'image/png' },
+        { src: '/gestion-interna/pwa-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+      ],
+    },
+  },
+
+  // ── LEGACY: 3 tenants Kronnos separados — en migración a `kronnos` (Camino 1) ──
+  // Se retirarán en D4-D5 tras cutover. Middleware aún los usa por SEO por sede.
   kronnos_penablanca: {
     booking: {
       title:       'Kronnos Studio Peñablanca | Agenda tu hora',

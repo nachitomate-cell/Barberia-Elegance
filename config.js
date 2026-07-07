@@ -83,9 +83,124 @@
       barberos:        [],
       _esSandbox:      true,
     },
+    // ── KRONNOS STUDIO — marca unificada (Camino 1, 2026-07-06) ──
+    // Un solo tenant con las 3 sedes internas (penablanca, limache, woman).
+    // Pool marca compartido: users/sellos/premios/rangos. Catálogo/staff/precio por sede.
+    // Fidelización cross-sede (sellos suman entre sedes). Canje en sede predominante.
+    // Acceso: subdominio (kronnospenablanca/limache/woman.synaptechspa.cl) resuelve la sede;
+    // o ?local=kronnos&sede=X en cualquier dominio.
+    kronnos: {
+      categoriasServicio: ['PACKS KRONNOS', 'Servicios Masculinos', 'Servicios Femeninos', 'Manicura', 'Masajes', 'Maquillaje', 'Pestañas', 'Cabello', 'Otro'],
+      nombre:          'Kronnos Studio',
+      nombreCorto:     'Kronnos',
+      pageTitle:       'Kronnos Studio · Agenda tu hora',
+      bodyBg:          '#0a0a0a',
+      slogan:          'Un espacio unisex donde ambos mundos convergen',
+      sobreNosotros:   'Kronnos Studio es un espacio unisex en donde ambos mundos convergen en manos de profesionales estilistas y barberos con más de 12 años de experiencia.',
+      logo:            '/kronnos/studio.jpg',
+      direccion:       '', // resuelto por sede — ver sedes[]
+      horario:         '', // idem
+      telefono:        '', // idem
+      club:            'Club Kronnos',
+      instagram:       '',
+      instagramHandle: '',
+      waEmoji:         '✂️',
+      googleReviewUrl: '',
+      ratingGeneral:   5.0,
+      totalReviews:    960,
+      reviews:         [],
+      barberos:        [], // resuelto por sede — SedeContext filtra en D2/D3
+      partners:        [],
+      // ── SEDES: fuente de verdad para catálogo/staff/tel/IG/review/tema por local ──
+      sedes: [
+        {
+          id:               'penablanca',
+          nombre:           'Kronnos Studio Peñablanca',
+          tipo:             'Barbería · Estilismo',
+          subdomain:        'kronnospenablanca.synaptechspa.cl',
+          direccion:        '📍 Av. Vicepresidente Bernardo Leighton 20, local 13 · Villa Alemana',
+          horario:          '🕒 Lun a Sáb · 10:30 – 19:00',
+          telefono:         '56982504870',
+          instagram:        'https://www.instagram.com/Kronnos.pb/',
+          instagramHandle:  '@Kronnos.pb',
+          googleReviewUrl:  'https://g.page/r/CalD8G9cDQ8FEAI/review',
+          colorAccent:      '#e11d2a', // rojo Peñablanca
+          heroBgUrl:        '/kronnos/kronospena.png',
+          logo:             '/kronnos/studio.jpg',
+          pageTitle:        'Kronnos Studio Peñablanca | Agenda tu hora',
+          categoriasServicio: ['PACKS KRONNOS', 'Servicios Masculinos', 'Servicios Femeninos', 'Otro'],
+          barberos: [
+            { nombre: 'Martin',            foto: null, disponible: true },
+            { nombre: 'Evelyn Contreras',  foto: null, disponible: true },
+            { nombre: 'Araceli',           foto: null, disponible: true },
+          ],
+          partners: [
+            { name: 'Viking Brand', role: 'Embajador oficial',
+              logo: '/kronnos/viking.jpg',
+              instagram: 'https://www.instagram.com/vikingbrand.chile/' },
+          ],
+        },
+        {
+          id:               'limache',
+          nombre:           'Kronnos Studio Limache',
+          tipo:             'Barbería · Estilismo',
+          subdomain:        'kronnoslimache.synaptechspa.cl',
+          direccion:        '📍 Paseo Las Araucarias 405, local 5 · Limache',
+          horario:          '🕒 Lun a Sáb · 10:30 – 19:00',
+          telefono:         '56920241041',
+          instagram:        'https://www.instagram.com/kronnos.studio/',
+          instagramHandle:  '@kronnos.studio',
+          googleReviewUrl:  'https://g.page/r/CZ4zw9oWz-iJEAI/review',
+          colorAccent:      '#f97316', // naranja Limache
+          heroBgUrl:        '/kronnos/kronoslima.png',
+          logo:             '/kronnos/studio.jpg',
+          pageTitle:        'Kronnos Studio Limache | Agenda tu hora',
+          categoriasServicio: ['PACKS KRONNOS', 'Servicios Masculinos', 'Otro'],
+          barberos: [
+            { nombre: 'Evelyn Contreras',  foto: null, disponible: true },
+            { nombre: 'Claudio',           foto: null, disponible: true },
+            { nombre: 'Cristian Orostica', foto: null, disponible: true },
+            { nombre: 'Orlando Palacios',  foto: null, disponible: true },
+            { nombre: 'Víctor',            foto: null, disponible: true },
+          ],
+          partners: [
+            { name: 'Viking Brand', role: 'Embajador oficial',
+              logo: '/kronnos/viking.jpg',
+              instagram: 'https://www.instagram.com/vikingbrand.chile/' },
+          ],
+        },
+        {
+          id:               'woman',
+          nombre:           'Kronnos Woman',
+          tipo:             'Belleza · Estética',
+          subdomain:        'kronnoswoman.synaptechspa.cl',
+          direccion:        '📍 Palmira Romano Sur 405, local 3 · Limache',
+          horario:          '🕒 Lun a Dom · 09:30 – 23:00',
+          telefono:         '', // pendiente cliente
+          instagram:        'https://www.instagram.com/kronnoswoman/',
+          instagramHandle:  '@kronnoswoman',
+          googleReviewUrl:  '', // pendiente cliente
+          colorAccent:      '#ec4899', // magenta Woman
+          heroBgUrl:        '/kronnos/kronoswoman.png',
+          logo:             '/kronnos/woman.jpg',
+          pageTitle:        'Kronnos Woman | Agenda tu hora',
+          categoriasServicio: ['Manicura', 'Masajes', 'Maquillaje', 'Pestañas', 'Cabello', 'Otro'],
+          barberos: [
+            { nombre: 'Kelly',   foto: null, disponible: true },
+            { nombre: 'Ernesto', foto: null, disponible: true },
+            { nombre: 'Heydee',  foto: null, disponible: true },
+          ],
+          partners: [],
+        },
+      ],
+    },
+
+    // ── LEGACY: 3 tenants Kronnos separados — en migración a `kronnos` (Camino 1) ──
+    // Se eliminarán en D4-D5 tras cutover de UI y datos. Middleware aún los usa para SEO por sede.
+    // Ver project_kronnos.md en memoria para plan completo de migración.
+
     // ── KRONNOS STUDIO PEÑABLANCA — barbería + estilismo unisex (Villa Alemana) ──
     // Acceso: ?local=kronnos_penablanca  o  kronnospenablanca.synaptechspa.cl
-    // Demo inicial. Catálogo parcial (3 servicios reales confirmados); resto pendiente del cliente.
     kronnos_penablanca: {
       categoriasServicio: ['PACKS KRONNOS', 'Servicios Masculinos', 'Servicios Femeninos', 'Manicure', 'Otro'],
       nombre:          'Kronnos Studio Peñablanca',
