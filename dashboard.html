@@ -3605,10 +3605,17 @@
       backdrop-filter: blur(8px) !important;
       -webkit-backdrop-filter: blur(8px) !important;
     }
+    /* Overlay del modal Equipo — dark backdrop navy con blur */
     .tenant-infinity #equipoModal > div:first-child {
       background: rgba(17, 24, 39, 0.25) !important;
       backdrop-filter: blur(8px) !important;
       -webkit-backdrop-filter: blur(8px) !important;
+    }
+    /* Panel principal — el fix anterior solo tocaba el overlay; el
+       panel (bg-[#111115] border-white/10) seguía negro. Ahora blanco. */
+    .tenant-infinity #equipoModal > div:nth-child(2) {
+      background: #ffffff !important;
+      border-top-color: rgba(17,24,39,0.08) !important;
     }
     .tenant-infinity button[onclick="cerrarEquipoModal()"] {
       background: rgba(17, 24, 39, 0.05) !important;
@@ -3619,6 +3626,10 @@
     }
     .tenant-infinity #equipoModal .bg-white\/15 {
       background-color: rgba(17, 24, 39, 0.15) !important;
+    }
+    /* Borde separador del header del modal (border-white/6) */
+    .tenant-infinity #equipoModal .border-white\/6 {
+      border-color: rgba(17,24,39,0.08) !important;
     }
 
     /* Chat Toggle overrides */
@@ -4210,6 +4221,29 @@
     }
     .tenant-infinity #premiosList > div .text-white\/20 {
       color: rgba(17,24,39,0.35) !important;
+    }
+
+    /* ── Empty state de "Mis Citas" (Aún no tienes citas registradas...) ──
+       Card bg-zinc-900 ya mapea a bg claro via override genérico. Faltaba:
+       ícono text-white/10 (invisible), texto text-zinc-500 (OK) y botón
+       .btn-reservar con inline background:var(--gold);color:#050505; que
+       en Infinity da navy sobre navy (ilegible). */
+    .tenant-infinity #profileCitasContent i.ph-calendar-x {
+      color: rgba(17,24,39,0.20) !important;
+      opacity: 1 !important;
+    }
+    .tenant-infinity #profileCitasContent .text-zinc-500 {
+      color: #4B5563 !important;
+    }
+    .tenant-infinity .btn-reservar,
+    .tenant-infinity #profileCitasContent a[href="index.html"] {
+      background: #111827 !important;
+      color: #FFFFFF !important;
+      box-shadow: 0 2px 8px rgba(17,24,39,0.15) !important;
+    }
+    .tenant-infinity .btn-reservar:hover,
+    .tenant-infinity #profileCitasContent a[href="index.html"]:hover {
+      background: #374151 !important;
     }
 
     /* ── Legal: Política de Privacidad + Términos y Condiciones ───
