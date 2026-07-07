@@ -8,7 +8,7 @@ import {
   Sparkles, Loader2,
 } from 'lucide-react';
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import { updateDoc, addDoc, deleteDoc, doc, serverTimestamp, deleteField, writeBatch, Timestamp, query, where, getDocs } from 'firebase/firestore';
+import { updateDoc, addDoc, setDoc, deleteDoc, doc, serverTimestamp, deleteField, writeBatch, Timestamp, query, where, getDocs } from 'firebase/firestore';
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors,
 } from '@dnd-kit/core';
@@ -19,7 +19,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage, auth } from '../lib/firebase';
-import { tenantCol, resolveTenantId } from '../lib/tenantUtils';
+import { tenantCol, tenantDoc, resolveTenantId } from '../lib/tenantUtils';
 import { withTimeout } from '../lib/firestore-helpers';
 import { confirmDialog } from '../lib/confirmDialog';
 import { useCollection } from '../hooks/useCollection';
@@ -368,10 +368,18 @@ function BarberCard({ barber, onEdit, waUrl, onVerAgenda, sucursales = [], dragH
           );
         })()}
         {barber.comision > 0 && <p className="text-sm text-slate-400 mt-1">{barber.comision}% comisión</p>}
-        <div className="mt-2.5">
+        <div className="mt-2.5 flex flex-wrap items-center justify-center gap-1.5">
           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${isActive ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-slate-700/50 text-slate-400 border-slate-600/30'}`}>
             {isActive?'Activo':'Inactivo'}
           </span>
+          {(barber.authUid || barber.uid) && (
+            <span
+              title={`Con acceso al panel · ${barber.email || 'sin email registrado'}`}
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium border bg-indigo-500/10 text-indigo-300 border-indigo-500/25"
+            >
+              <KeyRound size={10} /> Con acceso
+            </span>
+          )}
         </div>
       </div>
 
@@ -719,6 +727,10 @@ export default function Equipo() {
   const [uploadError, setUploadError] = useState('');
   const [resetMsg,  setResetMsg]  = useState('');
   const [resetSending, setResetSending] = useState(false);
+  // Acceso al panel web (transient — no se guarda password en Firestore)
+  const [accesoEnabled,  setAccesoEnabled]  = useState(false);
+  const [accesoPassword, setAccesoPassword] = useState('');
+  const [accesoMsg,      setAccesoMsg]      = useState('');
   const fileRef = useRef(null);
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
@@ -729,6 +741,9 @@ export default function Equipo() {
     setForm({ ...BARBER_EMPTY, horario: DEFAULT_HORARIO() });
     setUploadError('');
     setResetMsg('');
+    setAccesoEnabled(false);
+    setAccesoPassword('');
+    setAccesoMsg('');
     setSlide(true);
   };
 
@@ -753,6 +768,9 @@ export default function Equipo() {
     });
     setUploadError('');
     setResetMsg('');
+    setAccesoEnabled(false);
+    setAccesoPassword('');
+    setAccesoMsg('');
     setSlide(true);
   };
 
@@ -791,17 +809,68 @@ export default function Equipo() {
   /* ── Save ── */
   const handleSave = async () => {
     if (!form.nombre.trim() || saving) return;
+
+    // Si el admin activó "Habilitar acceso al panel web", validamos email y
+    // password ANTES de intentar cualquier escritura (auth o firestore).
+    const wantsAcceso = accesoEnabled && !editing?.uid && !editing?.authUid;
+    if (wantsAcceso) {
+      if (!form.email.trim()) {
+        setAccesoMsg('Ingresa un email para crear el acceso.');
+        return;
+      }
+      if (!accesoPassword || accesoPassword.length < 6) {
+        setAccesoMsg('La contraseña temporal debe tener al menos 6 caracteres.');
+        return;
+      }
+    }
+
     setSaving(true);
+    setAccesoMsg('');
     try {
+      // 1) Crear cuenta Firebase Auth (si el toggle está activo).
+      //    Lo hacemos vía Cloud Function con Admin SDK para no perder la
+      //    sesión del admin actual (createUserWithEmailAndPassword del cliente
+      //    loguea al usuario recién creado).
+      let newUid = null;
+      if (wantsAcceso) {
+        try {
+          const call = httpsCallable(getFunctions(undefined, 'us-central1'), 'crearAccesoStaff');
+          const res  = await call({
+            email:       form.email.trim(),
+            password:    accesoPassword,
+            displayName: form.nombre.trim(),
+            tenantId:    resolveTenantId(),
+            rol:         'barbero',
+          });
+          newUid = res?.data?.uid || null;
+        } catch (err) {
+          const msg = err?.message || 'No se pudo crear la cuenta.';
+          setAccesoMsg(msg.replace(/^\[.*?\]\s*/, ''));
+          return; // no seguimos con Firestore si falló Auth
+        }
+      }
+
+      // 2) Firestore: mismo payload que antes + campos de acceso si corresponde.
+      const accesoFields = newUid ? { uid: newUid, authUid: newUid } : {};
+
       if (editing) {
-        const payload = { ...form, updatedAt: serverTimestamp() };
+        const payload = { ...form, ...accesoFields, updatedAt: serverTimestamp() };
         payload.foto = form.foto || deleteField();
         await updateDoc(doc(db, `${tenantCol('barberos').path}/${editing.id}`), payload);
+      } else if (newUid) {
+        // Con acceso: docId = uid para que las reglas de Firestore que
+        // asumen esa correspondencia funcionen (y el trigger encuentre
+        // el user por resolveUid → docId).
+        const payload = { ...form, ...accesoFields, disponible: true, createdAt: serverTimestamp() };
+        if (!payload.foto) delete payload.foto;
+        await setDoc(tenantDoc('barberos', newUid), payload);
       } else {
+        // Sin acceso: docId random (comportamiento previo).
         const payload = { ...form, disponible: true, createdAt: serverTimestamp() };
         if (!payload.foto) delete payload.foto;
         await addDoc(tenantCol('barberos'), payload);
       }
+
       setSlide(false);
     } finally { setSaving(false); }
   };
@@ -1237,6 +1306,57 @@ export default function Equipo() {
               </div>
             </div>
           </Section>
+
+          {/* ── Acceso al panel web ──
+              Solo visible al CREAR un nuevo miembro (o al editar uno que aún
+              no tiene cuenta). Al activar el toggle se crea la cuenta Firebase
+              Auth server-side vía crearAccesoStaff (Cloud Function) para no
+              perder la sesión del admin actual. */}
+          {(!editing || (!editing.uid && !editing.authUid)) && (
+            <Section title="Acceso al panel web" Icon={KeyRound}>
+              <p className="text-[10px] text-slate-500 -mt-1 mb-2">
+                Habilita esto si quieres que el {memberLabel} pueda iniciar sesión en el panel con su email.
+              </p>
+              <button type="button"
+                onClick={() => { setAccesoEnabled(v => !v); setAccesoMsg(''); }}
+                className={`flex items-center gap-2 w-full px-3 py-2.5 rounded-lg border text-sm font-semibold transition-colors ${
+                  accesoEnabled
+                    ? 'bg-emerald-500/10 border-emerald-500/40 text-emerald-300'
+                    : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-600'
+                }`}>
+                <span className={`w-8 h-4 rounded-full transition-colors relative ${accesoEnabled ? 'bg-emerald-500' : 'bg-slate-600'}`}>
+                  <span className={`absolute top-0.5 w-3 h-3 bg-white rounded-full shadow transition-all ${accesoEnabled ? 'left-4' : 'left-0.5'}`} />
+                </span>
+                Habilitar acceso al panel web
+              </button>
+
+              {accesoEnabled && (
+                <div className="mt-3 space-y-3 pl-1">
+                  <div>
+                    <label className={lbl}>Correo electrónico</label>
+                    <input className={field} type="email" placeholder="correo@ejemplo.com"
+                      value={form.email}
+                      onChange={e => set('email', e.target.value)} />
+                    <p className="text-[10px] text-slate-600 mt-1">
+                      Este será el usuario para iniciar sesión.
+                    </p>
+                  </div>
+                  <div>
+                    <label className={lbl}>Contraseña temporal</label>
+                    <input className={field} type="password" placeholder="Mínimo 6 caracteres" minLength={6}
+                      value={accesoPassword}
+                      onChange={e => setAccesoPassword(e.target.value)} />
+                    <p className="text-[10px] text-slate-600 mt-1">
+                      Compártela con el {memberLabel} — podrá cambiarla desde su email de restablecimiento.
+                    </p>
+                  </div>
+                  {accesoMsg && (
+                    <p className="text-xs font-semibold text-red-400 leading-snug">{accesoMsg}</p>
+                  )}
+                </div>
+              )}
+            </Section>
+          )}
 
           {/* ── Seguridad ── */}
           {editing && (

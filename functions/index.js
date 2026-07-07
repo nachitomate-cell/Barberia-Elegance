@@ -147,6 +147,86 @@ exports.migrarClaimsExistentes = onCall({ region: 'us-central1' }, async (reques
   return { ok: true, migrados, errores };
 });
 
+// ═════════════════════════════════════════════════════════════════
+//  CALLABLE: crearAccesoStaff
+//
+//  Permite a un ADMIN del local crear una cuenta Firebase Auth para
+//  un miembro del equipo (barbero, jefe, admin) desde Equipo.jsx.
+//  Se crea via Admin SDK server-side para que el ADMIN llamador no
+//  pierda su sesión (createUserWithEmailAndPassword desde el cliente
+//  loguea automáticamente al usuario recién creado).
+//
+//  Devuelve: { uid, email }
+//
+//  Autorización: superadmin bootstrap OR (role=='admin' && claim
+//  tenantId coincide con el tenantId objetivo).
+// ═════════════════════════════════════════════════════════════════
+exports.crearAccesoStaff = onCall({ region: 'us-central1' }, async (request) => {
+  const SUPERADMINS = ['ignaciiio.mate@gmail.com', 'barrazanicolasfabian@gmail.com'];
+
+  const callerEmail  = (request.auth?.token?.email || '').toLowerCase();
+  const callerRole   = request.auth?.token?.role;
+  const callerTenant = request.auth?.token?.tenantId;
+
+  const { email, password, displayName, tenantId, rol = 'barbero' } = request.data || {};
+
+  // ── Validación de payload ───────────────────────────────────
+  if (!email || typeof email !== 'string') {
+    throw new HttpsError('invalid-argument', 'Email requerido.');
+  }
+  if (!password || typeof password !== 'string' || password.length < 6) {
+    throw new HttpsError('invalid-argument', 'La contraseña debe tener al menos 6 caracteres.');
+  }
+  if (!tenantId || typeof tenantId !== 'string') {
+    throw new HttpsError('invalid-argument', 'tenantId requerido.');
+  }
+  const rolNorm = String(rol).toLowerCase();
+  if (!['admin', 'jefe', 'barbero'].includes(rolNorm)) {
+    throw new HttpsError('invalid-argument', `Rol inválido: ${rol}`);
+  }
+
+  // ── Autorización ────────────────────────────────────────────
+  const isSuperadmin  = SUPERADMINS.includes(callerEmail);
+  const isTenantAdmin = callerRole === 'admin' && callerTenant === tenantId;
+  if (!isSuperadmin && !isTenantAdmin) {
+    throw new HttpsError('permission-denied', 'Solo el admin del local puede crear accesos.');
+  }
+
+  // ── Crear cuenta Auth + custom claims ───────────────────────
+  const emailNorm = email.trim().toLowerCase();
+  try {
+    const userRecord = await admin.auth().createUser({
+      email:        emailNorm,
+      password,
+      displayName:  (displayName || '').trim() || undefined,
+    });
+
+    // Claims con la misma convención que sincronizarClaims* (role + tenantId).
+    // El trigger de Firestore reasignará esto cuando el frontend guarde el doc
+    // del barbero, pero lo dejamos ya seteado para que el primer login funcione.
+    await admin.auth().setCustomUserClaims(userRecord.uid, {
+      role:     rolNorm,
+      tenantId,
+    });
+
+    logger.info(`[crearAccesoStaff] uid=${userRecord.uid} email=${emailNorm} tenant=${tenantId} role=${rolNorm} by=${callerEmail}`);
+
+    return { uid: userRecord.uid, email: userRecord.email };
+  } catch (err) {
+    if (err.code === 'auth/email-already-exists') {
+      throw new HttpsError('already-exists', 'Ya existe una cuenta con ese correo.');
+    }
+    if (err.code === 'auth/invalid-email') {
+      throw new HttpsError('invalid-argument', 'El correo no tiene un formato válido.');
+    }
+    if (err.code === 'auth/invalid-password' || err.code === 'auth/weak-password') {
+      throw new HttpsError('invalid-argument', 'Contraseña muy débil (mínimo 6 caracteres).');
+    }
+    logger.error('[crearAccesoStaff] Error inesperado:', err);
+    throw new HttpsError('internal', err.message || 'No se pudo crear la cuenta.');
+  }
+});
+
 // ─────────────────────────────────────────────────────────────────
 //  HELPER: obtener tokens filtrados por rol (jefe/admin) y barbero
 // ─────────────────────────────────────────────────────────────────
