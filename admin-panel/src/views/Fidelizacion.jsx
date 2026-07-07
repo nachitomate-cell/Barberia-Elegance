@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { onSnapshot, query, where, Timestamp } from 'firebase/firestore';
 import {
   Trophy, ScanLine, Crown, Medal, Sparkles, Gift,
-  Users, TrendingUp, Clock, CheckCircle2,
+  Users, TrendingUp, Clock, CheckCircle2, Gem,
 } from 'lucide-react';
 import { tenantCol } from '../lib/tenantUtils';
 import { useTenant } from '../contexts/TenantContext';
@@ -27,24 +27,60 @@ const TABS_BASE = [
   { key: 'rangos',  label: 'Rangos',        Icon: Crown    },
 ];
 
-function fmtCLP(v) {
-  return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(v || 0);
+// Umbrales de rango — espejo de Clientes.jsx:43. Si el tenant customizó
+// los thresholds vía Rangos.jsx, el resultado será aproximado (puede
+// leerse desde configuracion/rangos en una iteración futura).
+function calcTier(historicos) {
+  if (historicos >= 25) return 'PLATINUM';
+  if (historicos >= 10) return 'GOLD';
+  return 'SILVER';
+}
+
+const TIER_STYLE = {
+  SILVER:   { label: 'Silver',   Icon: Medal, color: '#94a3b8', text: 'text-slate-300', bar: 'bg-slate-400' },
+  GOLD:     { label: 'Gold',     Icon: Crown, color: '#eab308', text: 'text-yellow-400', bar: 'bg-yellow-500' },
+  PLATINUM: { label: 'Platinum', Icon: Gem,   color: '#a855f7', text: 'text-purple-400', bar: 'bg-purple-500' },
+};
+
+// Selector de período — controla el rango de canjes que se cargan.
+// Miembros/rangos/premios NO dependen del período (son estado actual).
+const PERIODOS = [
+  { key: '30d', label: 'Últimos 30 días',  dias: 30 },
+  { key: '90d', label: 'Últimos 90 días',  dias: 90 },
+  { key: 'mes', label: 'Este mes',         dias: 'mes' },
+  { key: 'ano', label: 'Este año',         dias: 'ano' },
+];
+
+function inicioPeriodo(key) {
+  const now = new Date();
+  if (key === 'mes') {
+    const d = new Date(now); d.setDate(1); d.setHours(0, 0, 0, 0); return d;
+  }
+  if (key === 'ano') {
+    const d = new Date(now); d.setMonth(0, 1); d.setHours(0, 0, 0, 0); return d;
+  }
+  const preset = PERIODOS.find(p => p.key === key);
+  const dias = preset?.dias ?? 30;
+  const d = new Date(now.getTime() - dias * 864e5);
+  d.setHours(0, 0, 0, 0);
+  return d;
 }
 
 /* ── Tab Resumen ─────────────────────────────────────────────────
-   Snapshot del club: miembros con sellos activos, canjes del mes,
-   premios más pedidos y últimos canjes validados. Suscribe a
+   Snapshot del club con período configurable. Suscribe a
    users/premios/redemptions vía tenantCol → funciona en todos los
    tenants (marca-level, elegance legacy, kronnos redirect). */
 function ResumenFidelizacion() {
+  const [periodo, setPeriodo]         = useState('30d');
   const [users, setUsers]             = useState([]);
   const [premios, setPremios]         = useState([]);
   const [redemptions, setRedemptions] = useState([]);
   const [loading, setLoading]         = useState(true);
 
+  // users y premios son estado actual — se cargan una sola vez.
   useEffect(() => {
     let acks = 0;
-    const done = () => { if (++acks >= 3) setLoading(false); };
+    const done = () => { if (++acks >= 2) setLoading(false); };
 
     const unsubU = onSnapshot(tenantCol('users'), snap => {
       setUsers(snap.docs.map(d => ({ id: d.id, ...d.data() })));
@@ -56,22 +92,23 @@ function ResumenFidelizacion() {
       done();
     }, () => done());
 
-    // Solo canjes del mes actual — reduce lecturas y es lo único que se muestra.
-    const inicioMes = new Date();
-    inicioMes.setDate(1);
-    inicioMes.setHours(0, 0, 0, 0);
-    const q = query(tenantCol('redemptions'), where('createdAt', '>=', Timestamp.fromDate(inicioMes)));
-    const unsubR = onSnapshot(q, snap => {
-      setRedemptions(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-      done();
-    }, () => done());
-
-    return () => { unsubU(); unsubP(); unsubR(); };
+    return () => { unsubU(); unsubP(); };
   }, []);
 
+  // redemptions se re-suscribe cuando cambia el período.
+  useEffect(() => {
+    const desde = inicioPeriodo(periodo);
+    const q = query(tenantCol('redemptions'), where('createdAt', '>=', Timestamp.fromDate(desde)));
+    const unsubR = onSnapshot(q, snap => {
+      setRedemptions(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    }, () => {});
+    return () => unsubR();
+  }, [periodo]);
+
   const stats = useMemo(() => {
-    const sellosDe = u => u.sellosDisponibles ?? u.stamps ?? 0;
-    const costoDe  = p => p.costoSellos ?? p.sellosCosto ?? 0;
+    const sellosDe    = u => u.sellosDisponibles ?? u.stamps ?? 0;
+    const historicoDe = u => u.sellosHistoricos  ?? u.stamps ?? 0;
+    const costoDe     = p => p.costoSellos ?? p.sellosCosto ?? 0;
     // Espejo de Clientes.jsx:1585 — clientes migrados/importados por staff
     // tienen uid === docId (teléfono). Los "registrados en el club" son los
     // que crearon su cuenta de auth propia.
@@ -91,10 +128,20 @@ function ResumenFidelizacion() {
       return s > 0 && menorCosto !== Infinity && s >= menorCosto * 0.7 && s < menorCosto;
     }).length;
 
+    // Distribución por rango — solo sobre registrados con al menos 1 sello histórico.
+    const distribucion = { SILVER: 0, GOLD: 0, PLATINUM: 0 };
+    let baseRangos = 0;
+    for (const u of registrados) {
+      const h = historicoDe(u);
+      if (h <= 0) continue;
+      distribucion[calcTier(h)] += 1;
+      baseRangos += 1;
+    }
+
     const completados = redemptions.filter(r => r.status === 'completed');
     const pendientes  = redemptions.filter(r => r.status === 'pending');
 
-    // Top premios canjeados este mes
+    // Top premios canjeados en el período
     const byPremio = new Map();
     completados.forEach(r => {
       const key = r.premioId || r.premio || '—';
@@ -124,8 +171,6 @@ function ResumenFidelizacion() {
         fecha: r.completedAt?.toDate() || r.createdAt?.toDate() || null,
       }));
 
-    // Sellos en circulación: solo cuenta la base registrada — mantener
-    // consistencia con "Miembros del club".
     const sellosEnCirculacion = registrados.reduce((s, u) => s + sellosDe(u), 0);
 
     return {
@@ -138,22 +183,51 @@ function ResumenFidelizacion() {
       premiosActivos:    premiosActivos.length,
       topPremios,
       ultimosCanjes,
+      distribucion,
+      baseRangos,
       menorCosto: menorCosto === Infinity ? null : menorCosto,
     };
   }, [users, premios, redemptions]);
 
+  const periodoLabel = PERIODOS.find(p => p.key === periodo)?.label || '';
+
   if (loading) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {[0, 1, 2, 3].map(i => (
-          <div key={i} className="bg-slate-900 border border-slate-800 rounded-xl p-4 h-24 animate-pulse" />
-        ))}
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[0, 1, 2, 3].map(i => (
+            <div key={i} className="bg-slate-900 border border-slate-800 rounded-xl p-4 h-24 animate-pulse" />
+          ))}
+        </div>
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 h-40 animate-pulse" />
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
+      {/* Selector de período — solo afecta a los canjes */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
+          {PERIODOS.map(p => (
+            <button
+              key={p.key}
+              onClick={() => setPeriodo(p.key)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
+                periodo === p.key
+                  ? 'bg-amber-500/15 text-amber-400 border-amber-500/40'
+                  : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200'
+              }`}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+        <p className="text-[11px] text-slate-500">
+          Los canjes se filtran por período — miembros y rangos son estado actual.
+        </p>
+      </div>
+
       {/* KPIs principales */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
@@ -166,7 +240,7 @@ function ResumenFidelizacion() {
         <StatCard
           Icon={CheckCircle2}
           color="blue"
-          label="Canjes este mes"
+          label={`Canjes · ${periodoLabel.toLowerCase()}`}
           value={stats.canjesCompletados.toLocaleString('es-CL')}
           sub={stats.canjesPendientes > 0 ? `${stats.canjesPendientes} pendientes` : 'Sin pendientes'}
         />
@@ -186,16 +260,72 @@ function ResumenFidelizacion() {
         />
       </div>
 
+      {/* Distribución del club por rango */}
+      <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
+        <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-800">
+          <Crown size={16} className="text-purple-400" />
+          <h3 className="text-sm font-bold text-white">Distribución del club por rango</h3>
+          <span className="ml-auto text-xs text-slate-500">
+            {stats.baseRangos} miembros con historial
+          </span>
+        </div>
+        {stats.baseRangos === 0 ? (
+          <p className="text-sm text-slate-500 italic text-center py-6">
+            Aún no hay miembros con sellos históricos.
+          </p>
+        ) : (
+          <>
+            {/* Barra apilada */}
+            <div className="h-2 rounded-full bg-slate-800 overflow-hidden flex mb-4">
+              {(['SILVER', 'GOLD', 'PLATINUM']).map(t => {
+                const pct = stats.baseRangos ? (stats.distribucion[t] / stats.baseRangos) * 100 : 0;
+                if (pct <= 0) return null;
+                return (
+                  <div
+                    key={t}
+                    className={`h-full ${TIER_STYLE[t].bar} transition-all`}
+                    style={{ width: `${pct}%` }}
+                    title={`${TIER_STYLE[t].label}: ${stats.distribucion[t]} (${pct.toFixed(1)}%)`}
+                  />
+                );
+              })}
+            </div>
+
+            {/* Detalle por rango */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {(['SILVER', 'GOLD', 'PLATINUM']).map(t => {
+                const style = TIER_STYLE[t];
+                const count = stats.distribucion[t];
+                const pct   = stats.baseRangos ? (count / stats.baseRangos) * 100 : 0;
+                return (
+                  <div key={t} className="flex items-center gap-3 p-3 rounded-lg border border-slate-800 bg-slate-950/40">
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0`} style={{ backgroundColor: `${style.color}20`, border: `1px solid ${style.color}40` }}>
+                      <style.Icon size={16} style={{ color: style.color }} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className={`text-xs font-bold uppercase tracking-wider ${style.text}`}>{style.label}</p>
+                      <p className="text-lg font-bold text-white leading-tight">{count.toLocaleString('es-CL')}</p>
+                      <p className="text-[11px] text-slate-500">{pct.toFixed(1)}% del club</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </div>
+
       {/* Top 3 premios + Últimos canjes */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Top premios */}
         <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
           <div className="flex items-center gap-2 mb-4 pb-3 border-b border-slate-800">
             <Gift size={16} className="text-amber-400" />
-            <h3 className="text-sm font-bold text-white">Premios más canjeados este mes</h3>
+            <h3 className="text-sm font-bold text-white">Premios más canjeados</h3>
+            <span className="ml-auto text-xs text-slate-500 truncate">{periodoLabel.toLowerCase()}</span>
           </div>
           {stats.topPremios.length === 0 ? (
-            <p className="text-sm text-slate-500 italic text-center py-6">Aún no hay canjes este mes.</p>
+            <p className="text-sm text-slate-500 italic text-center py-6">Aún no hay canjes en el período.</p>
           ) : (
             <ul className="space-y-3">
               {stats.topPremios.map((p, i) => (
