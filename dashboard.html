@@ -4051,6 +4051,141 @@
       border-color: rgba(17, 24, 39, 0.08) !important;
     }
 
+    /* ── Calificanos en Google (googleReviewCard) ──────────────────
+       Fondo original: linear-gradient(145deg,#0d1b3e,#0a1a10,#2a1200)
+       (dark navy/verde/rojo). Con text-white override quedaba caja
+       oscura + navy encima = ilegible. */
+    .tenant-infinity #googleReviewCardBtn {
+      background: #ffffff !important;
+      border-color: rgba(66,133,244,0.30) !important;
+      box-shadow: 0 0 0 1px rgba(52,168,83,0.10),
+                  0 6px 20px rgba(66,133,244,0.10),
+                  0 2px 6px rgba(0,0,0,0.03) !important;
+    }
+    .tenant-infinity #googleReviewCardBtn .text-white {
+      color: #111827 !important;
+    }
+    /* Subtexto inline color:rgba(255,255,255,0.50) */
+    .tenant-infinity #googleReviewCardBtn p[style*="rgba(255,255,255,0.50)"] {
+      color: #4B5563 !important;
+    }
+    /* Ícono arrow-square-out (Google blue original 0.7) */
+    .tenant-infinity #googleReviewCardBtn i.ph-arrow-square-out {
+      color: rgba(66,133,244,0.85) !important;
+    }
+    /* Separador tricolor Google — bajarle la intensidad para light */
+    .tenant-infinity #googleReviewCardBtn div[style*="linear-gradient(90deg,rgba(66,133,244"] {
+      background: linear-gradient(90deg,
+        rgba(66,133,244,0.35),
+        rgba(52,168,83,0.35),
+        rgba(251,188,4,0.55),
+        rgba(234,67,53,0.35)) !important;
+    }
+
+    /* ── Próximo Premio card + botón "Ver premios" ────────────────
+       .next-reward-card usa bg-[#111115] border-white/8. Ya cubierto
+       parcialmente por overrides genéricos, pero el border/8 y el
+       botón blanco (bg-white text-[#050505]) sobre bg blanco quedaba
+       invisible. */
+    .tenant-infinity .next-reward-card {
+      background: #ffffff !important;
+      border-color: rgba(17,24,39,0.08) !important;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03) !important;
+    }
+    /* Ícono trophy dentro del avatar */
+    .tenant-infinity .next-reward-card .rounded-full.bg-\[\#1a1a1a\] {
+      background: rgba(17,24,39,0.04) !important;
+      border-color: rgba(17,24,39,0.10) !important;
+    }
+    .tenant-infinity .next-reward-card .premio-icon {
+      color: #b45309 !important; /* amber-700, se lee sobre blanco */
+    }
+    /* Botón "Ver premios": era bg-white text-[#050505] → sobre bg
+       blanco quedaba invisible. Lo pasamos a navy sólido con texto blanco. */
+    .tenant-infinity button[onclick="togglePremios()"].bg-white,
+    .tenant-infinity .next-reward-card button {
+      background: #111827 !important;
+      color: #ffffff !important;
+      border: none !important;
+      box-shadow: 0 2px 8px rgba(17,24,39,0.15) !important;
+    }
+    .tenant-infinity button[onclick="togglePremios()"]:hover,
+    .tenant-infinity .next-reward-card button:hover {
+      background: #374151 !important;
+    }
+
+    /* ── Tabla de Premios (heading) ────────────────────────────────
+       Inline color:rgba(255,255,255,0.3) sobre bg blanco = invisible. */
+    .tenant-infinity #premiosSection h3 {
+      color: rgba(17,24,39,0.55) !important;
+    }
+    /* Spinner de carga dentro de premiosList */
+    .tenant-infinity #premiosList .border-white\/20 {
+      border-color: rgba(17,24,39,0.15) !important;
+    }
+    .tenant-infinity #premiosList .border-t-white {
+      border-top-color: #111827 !important;
+    }
+
+    /* ── "Rango" card (dentro de #profileVisitasCard / Mi Perfil) ──
+       Fondo linear-gradient dark con badge y label ilegibles. */
+    .tenant-infinity div[style*="background:linear-gradient(135deg,var(--gold-glow)"] {
+      background: rgba(17,24,39,0.04) !important;
+      border: 1px solid rgba(17,24,39,0.08) !important;
+    }
+    .tenant-infinity #profileTierBadge {
+      color: #111827 !important;
+    }
+    /* Cards de Visitas y Sellos (bg-zinc-900) — el override genérico
+       bg-zinc-900 ya los pinta claros, pero el text-white/50 del contador
+       de Sellos quedaba muy tenue sobre blanco. */
+    .tenant-infinity #profileStamps {
+      color: rgba(17,24,39,0.65) !important;
+    }
+    .tenant-infinity #profileVisitsCount {
+      color: #111827 !important;
+    }
+
+    /* ── "Tu foto favorita" (sfNoPhoto) ────────────────────────────
+       El texto "Sube tu foto de estilo favorito" tenía color:var(--gold)
+       + opacity:0.6. En Infinity var(--gold)=#111827, opacity 60% → OK,
+       pero el ícono cámara con opacity:0.5 quedaba invisible. */
+    .tenant-infinity #sfNoPhoto {
+      background: rgba(17,24,39,0.02) !important;
+      border-radius: 12px !important;
+    }
+    .tenant-infinity #sfNoPhoto div[style*="border-color:var(--gold-dim)"] {
+      border-color: rgba(17,24,39,0.20) !important;
+    }
+    .tenant-infinity #sfNoPhoto i.ph-camera {
+      color: rgba(17,24,39,0.55) !important;
+      opacity: 1 !important;
+    }
+    .tenant-infinity #sfNoPhoto p[style*="color:var(--gold)"] {
+      color: #111827 !important;
+      opacity: 1 !important;
+    }
+
+    /* ── Legal: Política de Privacidad + Términos y Condiciones ───
+       bg-[#111115] con border-white/8 y arrow-right gray-600. */
+    .tenant-infinity #profileTab a[href="privacidad.html"] {
+      background: #ffffff !important;
+      border-color: rgba(17,24,39,0.08) !important;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03) !important;
+    }
+    .tenant-infinity #profileTab a[href="privacidad.html"]:hover {
+      border-color: rgba(17,24,39,0.20) !important;
+    }
+    .tenant-infinity #profileTab a[href="privacidad.html"] .text-gray-500 {
+      color: #6b7280 !important;
+    }
+    .tenant-infinity #profileTab a[href="privacidad.html"] .text-white {
+      color: #111827 !important;
+    }
+    .tenant-infinity #profileTab a[href="privacidad.html"] .text-gray-600 {
+      color: #9ca3af !important;
+    }
+
     /* ══════════════════════════════════════════════════════════
        OMEGA STUDIO — tenant-omegastudio
        Champán #d4a96a sobre fondo oscuro #0c0c0e
