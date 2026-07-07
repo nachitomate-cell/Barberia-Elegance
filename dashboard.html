@@ -4234,6 +4234,107 @@
       color: #9ca3af !important;
     }
 
+    /* ── Canje Modal — bloque INTERIOR de instrucciones (bg-[#1a1a1f]) ──
+       Fondo negro con íconos dorados #D4AF37 y textos text-gray-300.
+       El card externo ya estaba mapeado; faltaba el pill de instrucciones. */
+    .tenant-infinity #canjeInfoState .bg-\[\#1a1a1f\] {
+      background: rgba(17,24,39,0.03) !important;
+      border-color: rgba(17,24,39,0.10) !important;
+    }
+    /* Ícono redondo (trophy/gift) del header del canje modal — usa inline
+       background:rgba(212,175,55,0.12); border rgba(212,175,55,0.3) */
+    .tenant-infinity #canjeCategoryIcon {
+      background: rgba(17,24,39,0.06) !important;
+      border-color: rgba(17,24,39,0.15) !important;
+    }
+    .tenant-infinity #canjeCategoryIcon i,
+    .tenant-infinity #canjeModalSubtitle,
+    .tenant-infinity #canjeInfoState i[style*="color:#D4AF37"] {
+      color: #111827 !important;
+    }
+    /* Textos "Vamos a generarte...", "Muéstraselo al barbero...",
+       "Los sellos solo se descuentan..." (text-gray-300) */
+    .tenant-infinity #canjeInfoState .text-gray-300 {
+      color: #374151 !important;
+    }
+    .tenant-infinity #canjeInfoState strong {
+      color: #111827 !important;
+    }
+    /* Aviso "canje asistido" — inline background rgba(212,175,55,0.06) */
+    .tenant-infinity #canjeAutoAviso {
+      background: rgba(17,24,39,0.04) !important;
+      border-color: rgba(17,24,39,0.15) !important;
+    }
+    .tenant-infinity #canjeAutoAviso i {
+      color: #111827 !important;
+    }
+    .tenant-infinity #canjeAutoAviso .text-white {
+      color: #111827 !important;
+    }
+    .tenant-infinity #canjeAutoAviso .text-white\/60 {
+      color: #4B5563 !important;
+    }
+
+    /* ── Onboarding hint "Cada visita a la barbería suma un sello..." ──
+       Inline: bg rgba(255,255,255,0.03), border rgba(255,255,255,0.07),
+       texto color:rgba(255,255,255,0.4), <span> font-bold text-white/70.
+       Todo blanco → invisible sobre fondo blanco. */
+    .tenant-infinity #sellosOnboarding {
+      background: rgba(17,24,39,0.04) !important;
+      border-color: rgba(17,24,39,0.10) !important;
+    }
+    .tenant-infinity #sellosOnboarding i {
+      color: #111827 !important;
+      opacity: 1 !important;
+    }
+    .tenant-infinity #sellosOnboarding p[style*="rgba(255,255,255,0.4)"] {
+      color: #374151 !important;
+    }
+    .tenant-infinity #sellosOnboarding #onboardingMeta {
+      color: #111827 !important;
+    }
+
+    /* ── Modal Equipo (#equipoModal) — cards de barberos ──
+       Skeleton bg-zinc-900 ya se traduce a claro por override genérico
+       (línea 3122). El header + subtitle usan text-white/25 y color:
+       var(--gold). */
+    .tenant-infinity #equipoModal h3,
+    .tenant-infinity #equipoModal p[style*="color:var(--gold)"] {
+      color: #111827 !important;
+    }
+    .tenant-infinity #equipoModal .text-white\/25 {
+      color: rgba(17,24,39,0.45) !important;
+    }
+    .tenant-infinity #equipoModal .bg-white\/6 {
+      background: rgba(17,24,39,0.06) !important;
+    }
+    .tenant-infinity #equipoModal .bg-white\/15 {
+      background: rgba(17,24,39,0.20) !important;
+    }
+    /* Cards internas de barberos generadas por JS — el bg claro
+       ya está cubierto por bg-zinc-900 genérico. Aseguramos que
+       el texto y los avatars queden legibles. */
+    .tenant-infinity #equipoGrid > div {
+      background: #ffffff !important;
+      border: 1px solid rgba(17,24,39,0.08) !important;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03) !important;
+    }
+    .tenant-infinity #equipoGrid > div .text-white {
+      color: #111827 !important;
+    }
+    .tenant-infinity #equipoGrid > div p,
+    .tenant-infinity #equipoGrid > div span {
+      color: #4B5563 !important;
+    }
+    /* Botón de cerrar el modal — inline bg-white/6 border-white/10 */
+    .tenant-infinity button[onclick="cerrarEquipoModal()"] {
+      background: rgba(17,24,39,0.06) !important;
+      border-color: rgba(17,24,39,0.12) !important;
+    }
+    .tenant-infinity button[onclick="cerrarEquipoModal()"] i {
+      color: #111827 !important;
+    }
+
     /* ══════════════════════════════════════════════════════════
        OMEGA STUDIO — tenant-omegastudio
        Champán #d4a96a sobre fondo oscuro #0c0c0e
