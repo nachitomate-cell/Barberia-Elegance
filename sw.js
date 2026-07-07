@@ -254,14 +254,25 @@ self.addEventListener('notificationclick', event => {
         return clients.openWindow(targetUrl);
       }
 
-      // Priorizar ventana de /agenda ya abierta
-      const agendaClient = clientList.find(c => c.url.includes('/agenda'));
-      if (agendaClient && 'focus' in agendaClient) return agendaClient.focus();
+      // Priorizar ventana que MATCH con la URL objetivo. Antes se prefería
+      // siempre '/agenda' aunque el push fuera para el cliente (sello,
+      // cita confirmada) — eso enviaba al cliente al panel del barbero.
+      // Ahora respetamos data.url: dashboard va a dashboard, agenda a agenda.
+      const targetPath = targetUrl.split('?')[0].split('#')[0];
+      const matchClient = clientList.find(c => {
+        try { return new URL(c.url).pathname.startsWith(targetPath.replace(/\.html$/, '')); }
+        catch { return false; }
+      });
+      if (matchClient && 'focus' in matchClient) {
+        return matchClient.navigate
+          ? matchClient.navigate(targetUrl).then(c => (c || matchClient).focus()).catch(() => matchClient.focus())
+          : matchClient.focus();
+      }
 
-      // Cualquier ventana del mismo origen
+      // Fallback: cualquier ventana del mismo origen, la navegamos a targetUrl
       const anyClient = clientList.find(c => new URL(c.url).origin === self.location.origin);
-      if (anyClient && 'focus' in anyClient) {
-        return anyClient.navigate(targetUrl).then(c => c && c.focus());
+      if (anyClient && 'navigate' in anyClient) {
+        return anyClient.navigate(targetUrl).then(c => c && c.focus()).catch(() => clients.openWindow(targetUrl));
       }
 
       return clients.openWindow(targetUrl);

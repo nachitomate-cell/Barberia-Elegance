@@ -112,7 +112,9 @@ async function notifCitaConfirmada(tenantId, citaId, cita) {
   const sent = await enviarPush(tenantId, uid, {
     title: '✅ Cita confirmada',
     body:  `${servicio || 'Tu cita'}${barbero ? ` con ${barbero}` : ''} · ${fecha} a las ${hora}`,
-    data:  { type: 'cita_confirmada', citaId, fecha, hora },
+    // url → panel del CLIENTE (no del barbero). Sin esto el service worker
+    // caía en su fallback '/agenda' pensado para pushes de "nueva cita".
+    data:  { type: 'cita_confirmada', citaId, fecha, hora, url: '/dashboard.html' },
   });
 
   if (sent > 0) {
@@ -192,7 +194,9 @@ async function notifSelloGanado(tenantId, uid, before, after) {
 
   const selloSent = await enviarPush(tenantId, uid, {
     title, body,
-    data: { type: 'sello_ganado', sellos: dispDesp },
+    // url → panel del CLIENTE. El service worker de agenda por default abría
+    // '/agenda' (destinado al barbero) cuando data.url no venía.
+    data: { type: 'sello_ganado', sellos: dispDesp, url: '/dashboard.html' },
   });
   if (selloSent > 0) {
     await writeNotifLog(db, {
