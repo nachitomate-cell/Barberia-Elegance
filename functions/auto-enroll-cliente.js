@@ -49,6 +49,7 @@ const AUTO_ENROLL_TENANTS = new Set([
   'lumen',        // D'Jones Barber (sin contraseña al Club, igual que aura)
   'yugen',        // Yügen Studio — necesario para listar clientes en Corte al Lápiz
   'sionbarberia', // Studio Dieciséis — cero fricción al Club (passwordless + auto-enroll)
+  'infinity',     // Infinity Studio — passwordless + import batch cargado 2026-07
 ]);
 
 function normalizePhone(phone) {

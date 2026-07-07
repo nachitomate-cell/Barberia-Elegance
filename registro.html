@@ -1717,7 +1717,7 @@
   // ── Tenants "passwordless" (Club sin contraseña): el cliente entra solo con
   // su email; el sistema usa una password fija interna por tenant. Hoy: aura y
   // lumen (D'Jones). Para sumar otro, agregarlo al array.
-  const PASSWORDLESS_TENANTS = ['aura', 'latincaribe', 'lumen', 'kronnos_penablanca', 'kronnos_limache', 'kronnos_woman', 'yugen', 'sionbarberia'];
+  const PASSWORDLESS_TENANTS = ['aura', 'latincaribe', 'lumen', 'kronnos_penablanca', 'kronnos_limache', 'kronnos_woman', 'yugen', 'sionbarberia', 'infinity'];
   function isPasswordless() {
     return PASSWORDLESS_TENANTS.includes(window.CURRENT_TENANT_ID);
   }
@@ -1730,6 +1730,7 @@
       return 'KronnosLoyaltyPassword2026!';
     if (tid === 'yugen') return 'YugenLoyaltyPassword2026!';
     if (tid === 'sionbarberia') return 'DieciseisLoyaltyPassword2026!';
+    if (tid === 'infinity') return 'InfinityLoyaltyPassword2026!';
     return 'AuraLoyaltyPassword2026!';
   }
   auth.onAuthStateChanged(async user => {
