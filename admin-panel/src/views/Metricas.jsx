@@ -47,6 +47,22 @@ function getPrevRange(fechaInicio, fechaFin) {
 }
 
 /**
+ * Formatea un timestamp como "hace X min" / "hace X horas". Se usa para
+ * mostrarle al dueño cuándo se actualizó el trend histórico (cache 15min).
+ */
+function formatAgo(ts) {
+  if (!ts) return '';
+  const diff = Date.now() - ts;
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'hace instantes';
+  if (mins === 1) return 'hace 1 min';
+  if (mins < 60) return `hace ${mins} min`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs === 1) return 'hace 1 hora';
+  return `hace ${hrs} horas`;
+}
+
+/**
  * Describe el período anterior en lenguaje natural para el sub-label
  * de los KPIs. En vez de "vs. ant." genérico, muestra "vs. junio",
  * "vs. semana pasada", "vs. ayer" — mucho más digerible para el dueño.
@@ -324,6 +340,17 @@ export default function Metricas() {
   const [fetching,  setFetching]  = useState(false);  // refetch (solo gira el boton)
   const [loadError, setLoadError] = useState(null);
 
+  // ── CACHE INDEPENDIENTE PARA EL TREND HISTÓRICO DE 6 MESES ────────
+  //  El trend histórico no depende del rango de fecha seleccionado —
+  //  siempre son los últimos 6 meses calendario. Al cambiar el filtro
+  //  "Hoy" → "Semana" → "Mes", NO necesita re-fetchearse.
+  //  Cache TTL 15 min en localStorage por tenant. Estos arrays no se
+  //  filtran por rango: alimentan solo a chartData y pnlHistoricalData.
+  const [citas6m,  setCitas6m]  = useState([]);
+  const [ventas6m, setVentas6m] = useState([]);
+  const [gastos6m, setGastos6m] = useState([]);
+  const [trend6mUpdatedAt, setTrend6mUpdatedAt] = useState(null);
+
   // ID de fetch en curso. Si cambia (cambio de rango o "Actualizar"), las
   // respuestas anteriores se descartan: evita race conditions y pisar estado
   // bueno con datos viejos al cambiar rangos rapido.
@@ -439,6 +466,69 @@ export default function Metricas() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  /* ── Fetch dedicado del histórico 6m con cache localStorage ──
+     Se dispara UNA vez al montar el componente (o cuando cambia el
+     tenant vía key implícita en tenantCol). Si el cache local es
+     fresh (<15min), lo hidrata y evita 3 queries a Firestore. Al
+     cambiar el rango de fechas del filtro NO se re-ejecuta — esa
+     era la fricción principal reportada. */
+  const TREND_CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutos
+  useEffect(() => {
+    let cancelled = false;
+    const tenantKey = tenantCol('citas').path.split('/')[1] || 'root';
+    const CACHE_KEY = `metricas:trend6m:${tenantKey}`;
+    // 1) Hidratar desde cache si existe y no expiró.
+    try {
+      const raw = localStorage.getItem(CACHE_KEY);
+      if (raw) {
+        const cached = JSON.parse(raw);
+        const age = Date.now() - (cached.savedAt || 0);
+        if (age < TREND_CACHE_TTL_MS && Array.isArray(cached.citas)) {
+          setCitas6m(cached.citas);
+          setVentas6m(cached.ventas || []);
+          setGastos6m(cached.gastos || []);
+          setTrend6mUpdatedAt(cached.savedAt);
+          // Con cache fresh, no re-fetcheamos. El próximo mount refrescará.
+          return;
+        }
+      }
+    } catch { /* corrupt cache, ignoramos */ }
+
+    // 2) Fetch fresh (silencioso: no toca la UI del loading principal).
+    (async () => {
+      try {
+        const sixAgo = new Date();
+        sixAgo.setMonth(sixAgo.getMonth() - 6);
+        sixAgo.setDate(1);
+        const cutoff = dateToStr(sixAgo);
+        const [cSnap, vSnap, gSnap] = await Promise.all([
+          withTimeout(getDocs(query(tenantCol('citas'),                where('fecha', '>=', cutoff))), 20000, 'citas6m'),
+          withTimeout(getDocs(query(tenantCol('product_reservations'), where('fecha', '>=', cutoff))), 20000, 'ventas6m'),
+          withTimeout(getDocs(query(tenantCol('gastos'),               where('fecha', '>=', cutoff))), 20000, 'gastos6m'),
+        ]);
+        if (cancelled) return;
+        const citasArr  = cSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const ventasArr = vSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const gastosArr = gSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+        setCitas6m(citasArr);
+        setVentas6m(ventasArr);
+        setGastos6m(gastosArr);
+        const savedAt = Date.now();
+        setTrend6mUpdatedAt(savedAt);
+        try {
+          localStorage.setItem(CACHE_KEY, JSON.stringify({
+            citas: citasArr, ventas: ventasArr, gastos: gastosArr, savedAt,
+          }));
+        } catch { /* quota exceeded, no bloqueamos */ }
+      } catch (err) {
+        // Silencioso: si falla, los memos harán fallback a `citas` del rango.
+        console.warn('[Metricas] trend6m fetch:', err.message);
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Helper to parse dates securely from Firestore timestamp/string/Date
   const parseDateStr = useCallback(val => {
@@ -619,8 +709,11 @@ export default function Metricas() {
     return rangeVentas.reduce((s, v) => s + (Number(v.precio) || Number(v.total) || 0), 0);
   }, [rangeVentas]);
 
-  // Chart data for 6 months (Historical trend for Comercial Tab)
+  // Chart data for 6 months (Historical trend for Comercial Tab).
+  // Fuente: citas6m (cache dedicado independiente del rango de filtro).
+  // Fallback a `citas` si el cache aún no hidrató.
   const chartData = useMemo(() => {
+    const source = citas6m.length ? citas6m : citas;
     const months = [];
     for (let i = 5; i >= 0; i--) {
       const d = new Date();
@@ -631,14 +724,14 @@ export default function Metricas() {
       months.push({ key, label });
     }
     return months.map(({ key, label }) => {
-      const mc = citas.filter(c => c.fecha?.startsWith(key) && c.estado === 'Completada');
+      const mc = source.filter(c => c.fecha?.startsWith(key) && c.estado === 'Completada');
       return {
         mes:       label,
         servicios: mc.reduce((s, c) => s + getPrice(c), 0),
         citas:     mc.length,
       };
     });
-  }, [citas, getPrice]);
+  }, [citas6m, citas, getPrice]);
 
   const hayPrecios = chartData.some(d => d.servicios > 0);
 
@@ -893,8 +986,13 @@ export default function Metricas() {
     };
   }, [citas, fechaInicio, fechaFin, rangeVentas, productos, barberos, gastos, ingresosProductos, getPrice, parseDateStr]);
 
-  // 6-Month P&L Historical Trend AreaChart data
+  // 6-Month P&L Historical Trend AreaChart data.
+  // Fuente: citas6m/ventas6m/gastos6m (cache dedicado). Fallback a los
+  // arrays del rango si el cache aún no hidrató.
   const pnlHistoricalData = useMemo(() => {
+    const cSrc = citas6m.length  ? citas6m  : citas;
+    const vSrc = ventas6m.length ? ventas6m : ventas;
+    const gSrc = gastos6m.length ? gastos6m : gastos;
     const months = [];
     for (let i = 5; i >= 0; i--) {
       const d = new Date();
@@ -906,10 +1004,10 @@ export default function Metricas() {
     }
 
     return months.map(({ key, label }) => {
-      const mc = citas.filter(c => c.fecha?.startsWith(key) && c.estado === 'Completada');
+      const mc = cSrc.filter(c => c.fecha?.startsWith(key) && c.estado === 'Completada');
       const sRev = mc.reduce((s, c) => s + getPrice(c), 0);
 
-      const mv = ventas.filter(v => {
+      const mv = vSrc.filter(v => {
         const d = parseDateStr(v.fecha || v.createdAt || v.creadoEn);
         return d.startsWith(key) && ['confirmed', 'completed', 'paid', 'delivered'].includes(v.status);
       });
@@ -941,8 +1039,8 @@ export default function Metricas() {
 
       const commissions = sComm + pComm;
       const baseSalaries = barberos.reduce((s, b) => s + (Number(b.sueldoBase) || 0), 0);
-      
-      const pureExpenses = gastos.filter(g => {
+
+      const pureExpenses = gSrc.filter(g => {
         const d = parseDateStr(g.fecha || g.creadoEn);
         return d.startsWith(key) && g.categoria !== 'Sueldos';
       }).reduce((s, g) => s + (Number(g.monto) || 0), 0);
@@ -958,7 +1056,7 @@ export default function Metricas() {
         'Utilidad Neta': Math.round(utilidadNeta),
       };
     });
-  }, [citas, ventas, productos, barberos, gastos, getPrice, parseDateStr]);
+  }, [citas6m, ventas6m, gastos6m, citas, ventas, gastos, productos, barberos, getPrice, parseDateStr]);
 
   /* ── 3. Desglose por Método de Pago ─────────────────────────────── */
   const paymentBreakdown = useMemo(() => {
@@ -1649,9 +1747,18 @@ export default function Metricas() {
             <ChartCard
               title="Histórico de Ingresos de Servicios"
               subtitle={
-                hayPrecios
-                  ? 'Citas completadas · últimos 6 meses (vista general)'
-                  : 'Sin precios configurados — muestra cantidad de citas'
+                <span className="flex flex-wrap items-center gap-x-2">
+                  <span>
+                    {hayPrecios
+                      ? 'Citas completadas · últimos 6 meses'
+                      : 'Sin precios configurados — muestra cantidad de citas'}
+                  </span>
+                  {trend6mUpdatedAt && (
+                    <span className="text-[10px] text-slate-500 italic">
+                      · actualizado {formatAgo(trend6mUpdatedAt)}
+                    </span>
+                  )}
+                </span>
               }
               fullWidth
             >
