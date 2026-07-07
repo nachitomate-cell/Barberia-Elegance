@@ -21,10 +21,40 @@ const FDB = (() => {
     BARBEROS:  'barberos',
   };
 
+  // ── Camino 1.5 (D3, 2026-07-07): pool marca Kronnos ─────────────
+  // Los tenants Kronnos legacy (kronnos_penablanca/limache/woman) comparten
+  // fidelización a nivel marca. Sus colecciones marca-level viven en
+  // tenants/kronnos/*, no en tenants/kronnos_<sede>/*. Las operacionales
+  // (servicios, barberos, citas, settings) siguen per-sede.
+  //
+  // Regla de Dexter: sellos suman cross-sede, premio se canjea en la sede
+  // predominante (ver sedeHelpers.js). Este redirect hace que las 20+ vistas
+  // que usan FDB automáticamente lean del lugar correcto sin migrar cada una.
+  const KRONNOS_LEGACY_TO_MARCA = {
+    kronnos_penablanca: 'kronnos',
+    kronnos_limache:    'kronnos',
+    kronnos_woman:      'kronnos',
+  };
+  const KRONNOS_MARCA_COLLECTIONS = new Set([
+    'users',
+    'sellos',
+    'premios',
+    'rangos',
+    'canjes',
+  ]);
+  function _marcaAwareTenant(tid, colName) {
+    if (KRONNOS_LEGACY_TO_MARCA[tid] && KRONNOS_MARCA_COLLECTIONS.has(colName)) {
+      return KRONNOS_LEGACY_TO_MARCA[tid];
+    }
+    return tid;
+  }
+
   // Para elegance usamos las colecciones planas existentes (retrocompat).
   // Para cualquier otro tenant usamos tenants/{id}/{coleccion}.
+  // Para Kronnos legacy + colección marca-level, redirige a tenants/kronnos/{col}.
   function tenantCol(name) {
-    const tid = window.CURRENT_TENANT_ID || 'elegance';
+    const rawTid = window.CURRENT_TENANT_ID || 'elegance';
+    const tid    = _marcaAwareTenant(rawTid, name);
     if (tid === 'elegance') return db.collection(name);
     return db.collection('tenants').doc(tid).collection(name);
   }
@@ -66,7 +96,11 @@ const FDB = (() => {
     return o;
   }
   function _restPath(relPath) {
-    const tid = window.CURRENT_TENANT_ID || 'elegance';
+    const rawTid = window.CURRENT_TENANT_ID || 'elegance';
+    // Primera parte del relPath es el nombre de colección — para Kronnos legacy +
+    // colección marca-level, redirigimos igual que en tenantCol().
+    const firstSeg = String(relPath || '').split('/')[0];
+    const tid = _marcaAwareTenant(rawTid, firstSeg);
     return (tid === 'elegance') ? relPath : ('tenants/' + tid + '/' + relPath);
   }
   function _restUrl(relPath, extra) {
@@ -1708,6 +1742,9 @@ const FDB = (() => {
     getPremios, addPremio, updatePremio, deletePremio, onPremiosChange,
     // Colecciones tenant-aware (para uso directo en admin panel)
     barberosCol, citasCol,
+    // tenantCol público: respeta el redirect marca-aware Kronnos (D3).
+    // Uso: FDB.tenantCol('premios').doc('X').get() → tenants/kronnos/premios si Kronnos legacy.
+    tenantCol,
     // Clientes / Usuarios
     usersCol, getClientes, getClienteByEmail, getClienteByNombre,
     onClienteChange, ensureCliente,

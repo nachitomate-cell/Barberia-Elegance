@@ -939,6 +939,21 @@
   // Marca CSS por sede (permite temas en D3): .sede-penablanca / .sede-limache / .sede-woman
   if (sedeId) document.documentElement.classList.add('sede-' + sedeId);
 
+  // ── Marca-tenant (Camino 1.5, D3): pool compartido de fidelización ─────
+  // Para tenants Kronnos legacy, los datos marca-level (users, sellos, premios,
+  // rangos) viven en tenants/kronnos/* en Firestore, no en tenants/kronnos_<sede>/*.
+  // Los datos operacionales (servicios, barberos, citas, settings) siguen per-sede
+  // en los tenants legacy. dashboard.html usa MARCA_TENANT_ID para queries marca.
+  // Para tenants no-multi-sede, MARCA_TENANT_ID === CURRENT_TENANT_ID (sin efecto).
+  window.MARCA_TENANT_ID = _legacyKronnosToSede[tenantId] ? 'kronnos' : tenantId;
+  window.isKronnosSede = function (sede) {
+    return _legacyKronnosToSede[tenantId] === sede
+        || (tenantId === 'kronnos' && sedeId === sede);
+  };
+  window.isKronnos = function () {
+    return !!(_legacyKronnosToSede[tenantId] || tenantId === 'kronnos');
+  };
+
   document.documentElement.classList.add('tenant-' + tenantId);
   if (_themeAlias[tenantId]) {
     document.documentElement.classList.add('tenant-' + _themeAlias[tenantId]);

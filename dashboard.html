@@ -6195,7 +6195,12 @@ auth.onAuthStateChanged(async user => {
 /* ─── Productos tab ──────────────────────────────────────────── */
 let _isProductsEnabled = false;
 
+// Delega en FDB.tenantCol para heredar el redirect marca-aware Kronnos (D3, Camino 1.5).
+// Colecciones marca-level (users/sellos/premios/rangos/canjes) en tenants Kronnos legacy
+// se redirigen automáticamente a tenants/kronnos/*. Ver firebaseUtils.js.
 function _tenantCol(name) {
+  if (typeof FDB !== 'undefined' && FDB.tenantCol) return FDB.tenantCol(name);
+  // Fallback legacy si FDB no cargó por alguna razón (defensivo — no debería pasar en prod)
   const tid = window.CURRENT_TENANT_ID || 'elegance';
   return tid === 'elegance' ? db.collection(name) : db.collection('tenants').doc(tid).collection(name);
 }
@@ -6339,6 +6344,10 @@ async function subscribeUserData(user) {
     // sellosHistoricos  = total histórico acumulado (nunca disminuye, determina nivel)
     const disponibles = data.sellosDisponibles ?? data.stamps ?? 0;
     const historicos  = data.sellosHistoricos  ?? data.stamps ?? 0;
+
+    // ── Kronnos multi-sede (D3): guardar conteo por sede para calcular ─
+    // sede predominante en canje. sellosPorSede es marca-level pool.
+    window._userSellosPorSede = (data && typeof data.sellosPorSede === 'object' && data.sellosPorSede) || {};
 
     if (_stampsSynced && disponibles > _prevStamps) dispararConfetti();
     _prevStamps   = disponibles;
@@ -6509,6 +6518,38 @@ function _readCategoria(p) {
   return _CAT_META[p?.categoria] ? p.categoria : 'SERVICIO';
 }
 
+// ── Kronnos multi-sede: helpers de sede predominante para canje (D3) ──
+// Regla 3 de Dexter: el premio se canjea en la sede con más sellos del cliente.
+// Tiebreak A (empate): se canjea en la sede donde el cliente lo pide (sede actual).
+const _KRONNOS_SEDE_NOMBRE = { penablanca: 'Peñablanca', limache: 'Limache', woman: 'Woman' };
+function _kronnosSedeCanjeInfo() {
+  // Devuelve { predominante, isEmpate, sedeCanje, resumen }.
+  // predominante: sedeId ganadora o null si empate/sin sellos.
+  // sedeCanje: sede a la que se atribuye contablemente el descuento (aplica tiebreak A).
+  const conteo = window._userSellosPorSede || {};
+  const sedes  = ['penablanca', 'limache', 'woman'];
+  const sedeActual = window.CURRENT_SEDE_ID || null;
+  let max = 0, ganador = null, empate = false;
+  for (const s of sedes) {
+    const n = Number(conteo[s]) || 0;
+    if (n > max)      { max = n; ganador = s; empate = false; }
+    else if (n === max && n > 0) empate = true;
+  }
+  const resumen = sedes.map(s => `${_KRONNOS_SEDE_NOMBRE[s]}: ${Number(conteo[s]) || 0}`).join(' · ');
+  if (max === 0)  return { predominante: null,    isEmpate: false, sedeCanje: sedeActual, resumen };
+  if (empate)     return { predominante: null,    isEmpate: true,  sedeCanje: sedeActual, resumen };
+  return          { predominante: ganador, isEmpate: false, sedeCanje: ganador,    resumen };
+}
+function _kronnosPremioSublinea() {
+  if (!(typeof window.isKronnos === 'function' && window.isKronnos())) return '';
+  const info = _kronnosSedeCanjeInfo();
+  let msg;
+  if (info.predominante)  msg = `Canjeable en Kronnos ${_KRONNOS_SEDE_NOMBRE[info.predominante]}`;
+  else if (info.isEmpate) msg = 'Canjeable en cualquier sede (empate en sellos)';
+  else                    msg = 'Canjeable en la sede donde acumules más sellos';
+  return `<p class="text-[10px] mt-0.5 text-white/50 flex items-center gap-1"><i class="ph ph-map-pin"></i>${msg}</p>`;
+}
+
 function renderPremiosDashboard(premios) {
   const el = document.getElementById('premiosList');
   if (!el) return;
@@ -6565,6 +6606,7 @@ function renderPremiosDashboard(premios) {
         </div>
         <p class="text-sm font-bold text-white">${p.nombre}</p>
         ${restrictLine}
+        ${_kronnosPremioSublinea()}
       </div>
       <i class="ph-bold ph-caret-right text-white/20 text-sm shrink-0"></i>
     </div>`;
@@ -6753,7 +6795,15 @@ function abrirModalCanje(prizeId) {
   _hideCanjeError();
 
   document.getElementById('canjeModalTitle').textContent = p.nombre;
-  document.getElementById('canjeModalSubtitle').textContent = `${p.costoSellos} sello${p.costoSellos !== 1 ? 's' : ''}`;
+  // Kronnos: agrega info de sede predominante al subtitle (regla 3 Dexter + tiebreak A).
+  let _subtitle = `${p.costoSellos} sello${p.costoSellos !== 1 ? 's' : ''}`;
+  if (typeof window.isKronnos === 'function' && window.isKronnos()) {
+    const info = _kronnosSedeCanjeInfo();
+    if (info.predominante)      _subtitle += ` · Canjeable en Kronnos ${_KRONNOS_SEDE_NOMBRE[info.predominante]}`;
+    else if (info.isEmpate)     _subtitle += ` · Canjeable en cualquier sede`;
+    else                        _subtitle += ` · Canjeable donde tengas más sellos`;
+  }
+  document.getElementById('canjeModalSubtitle').textContent = _subtitle;
   document.getElementById('canjeCategoryBadge').innerHTML = `
     <span class="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border"
       style="background:${meta.bg};border-color:${meta.border};color:${meta.color};">
@@ -6809,11 +6859,19 @@ async function generarCanjeDesdeModal() {
 
   try {
     const fn = firebase.functions().httpsCallable('crearCanje');
-    const res = await fn({
+    // Kronnos: incluye sedeCanje (regla 3 + tiebreak A) para que la CF atribuya
+    // contablemente el descuento a la sede correcta. Ignorado por CF pre-D5.
+    const payload = {
       tenantId: window.CURRENT_TENANT_ID || 'elegance',
       prizeId:  p.id,
       ttlMinutes: 15,
-    });
+    };
+    if (typeof window.isKronnos === 'function' && window.isKronnos()) {
+      const info = _kronnosSedeCanjeInfo();
+      payload.marcaTenantId = 'kronnos';
+      payload.sedeCanje = info.sedeCanje; // 'penablanca' | 'limache' | 'woman' | null
+    }
+    const res = await fn(payload);
     const { redemptionId, token, expiresMs } = res.data || {};
     if (!redemptionId) throw new Error('Respuesta del servidor inválida.');
 
