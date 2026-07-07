@@ -172,7 +172,7 @@ function KpiCard({ Icon, label, value, sub, color = 'emerald', delta, invertDelt
   return (
     <div
       onClick={onClick}
-      className={`bg-slate-900 border border-slate-800 rounded-xl p-5 flex items-start gap-4 transition-all ${
+      className={`bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-start gap-3 transition-all ${
         interactive ? 'hover:border-emerald-500/30 hover:bg-slate-900/80 cursor-pointer active:scale-[0.98]' : 'hover:border-slate-700'
       }`}
     >
@@ -181,12 +181,12 @@ function KpiCard({ Icon, label, value, sub, color = 'emerald', delta, invertDelt
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide truncate">{label}</p>
+          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider truncate">{label}</p>
           <DeltaBadge delta={delta} invert={invertDelta} />
         </div>
         {/* title con el valor original completo para hover — accesibilidad
             y para que el dueño vea la cifra exacta cuando pasa el mouse. */}
-        <p className={`${valueClass} font-bold text-white mt-0.5 truncate`} title={rawStr}>
+        <p className={`${valueClass} font-bold text-white mt-0.5 tracking-tight break-words`} title={rawStr}>
           {displayValue}
         </p>
         {sub && <p className="text-xs text-slate-500 mt-0.5 truncate">{sub}</p>}
@@ -1974,7 +1974,7 @@ export default function Metricas() {
       {activeTab === 'pnl' && isAdmin && (
         <div className="space-y-6">
           {/* KPIs Financieros */}
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-5 gap-4">
             <KpiCard Icon={DollarSign} label="Ingresos Brutos"
               value={fmtCLP(pnl.ingresosBrutos)}
               sub="Servicios + Ventas Prod."
