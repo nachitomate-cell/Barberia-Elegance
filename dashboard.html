@@ -4146,14 +4146,23 @@
       color: #111827 !important;
     }
 
-    /* ── "Tu foto favorita" (sfNoPhoto) ────────────────────────────
-       El texto "Sube tu foto de estilo favorito" tenía color:var(--gold)
-       + opacity:0.6. En Infinity var(--gold)=#111827, opacity 60% → OK,
-       pero el ícono cámara con opacity:0.5 quedaba invisible. */
-    .tenant-infinity #sfNoPhoto {
-      background: rgba(17,24,39,0.02) !important;
-      border-radius: 12px !important;
+    /* ── "Tu foto favorita" — CARD PADRE (#servicioFavoritoCard) ──
+       El card wrapper usa bg-[#111115] border-white/8 → quedaba
+       negro absoluto. El fix anterior sólo pintaba el hijo #sfNoPhoto.
+       Ahora arreglamos el card completo. */
+    .tenant-infinity #servicioFavoritoCard {
+      background: #ffffff !important;
+      border-color: rgba(17,24,39,0.08) !important;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03) !important;
     }
+    /* Botón "Cambiar foto" con text-white/30 → invisible sobre blanco */
+    .tenant-infinity #btnSfCambiar {
+      color: rgba(17,24,39,0.55) !important;
+    }
+    .tenant-infinity #btnSfCambiar:hover {
+      color: #111827 !important;
+    }
+    /* Placeholder de subir foto (sfNoPhoto): dashed border + ícono cámara */
     .tenant-infinity #sfNoPhoto div[style*="border-color:var(--gold-dim)"] {
       border-color: rgba(17,24,39,0.20) !important;
     }
@@ -4165,24 +4174,63 @@
       color: #111827 !important;
       opacity: 1 !important;
     }
+    /* Botones Encuadre / Compartir Story (bg-white/5 border-white/10) */
+    .tenant-infinity #sfWithPhoto button {
+      background: rgba(17,24,39,0.04) !important;
+      border-color: rgba(17,24,39,0.10) !important;
+    }
+    .tenant-infinity #sfWithPhoto button:hover {
+      border-color: rgba(17,24,39,0.25) !important;
+    }
 
-    /* ── Legal: Política de Privacidad + Términos y Condiciones ───
-       bg-[#111115] con border-white/8 y arrow-right gray-600. */
-    .tenant-infinity #profileTab a[href="privacidad.html"] {
+    /* ── Premios individuales (renderizados dinámicos en #premiosList) ──
+       Cada item usa bg-[#111115] border-white/8. Al ser generado por JS,
+       el bloque anterior sólo cubría el spinner; los premios reales
+       quedaban negros con texto navy encima. */
+    .tenant-infinity #premiosList > div {
       background: #ffffff !important;
       border-color: rgba(17,24,39,0.08) !important;
       box-shadow: 0 1px 2px rgba(0,0,0,0.03) !important;
     }
-    .tenant-infinity #profileTab a[href="privacidad.html"]:hover {
+    .tenant-infinity #premiosList > div:hover {
       border-color: rgba(17,24,39,0.20) !important;
     }
-    .tenant-infinity #profileTab a[href="privacidad.html"] .text-gray-500 {
-      color: #6b7280 !important;
+    .tenant-infinity #premiosList > div .bg-white\/10 {
+      background: rgba(17,24,39,0.10) !important;
     }
-    .tenant-infinity #profileTab a[href="privacidad.html"] .text-white {
+    /* Contador de sellos (número grande) */
+    .tenant-infinity #premiosList > div span.text-white {
       color: #111827 !important;
     }
-    .tenant-infinity #profileTab a[href="privacidad.html"] .text-gray-600 {
+    .tenant-infinity #premiosList > div p.text-white {
+      color: #111827 !important;
+    }
+    .tenant-infinity #premiosList > div .text-white\/30 {
+      color: rgba(17,24,39,0.55) !important;
+    }
+    .tenant-infinity #premiosList > div .text-white\/20 {
+      color: rgba(17,24,39,0.35) !important;
+    }
+
+    /* ── Legal: Política de Privacidad + Términos y Condiciones ───
+       El fix anterior scopeaba a #profileTab que NO EXISTE. Los <a>
+       viven directo en el DOM sin ancestor con ID. Los targeteamos
+       por href (solo hay 2 links en la página). */
+    .tenant-infinity a[href="privacidad.html"] {
+      background: #ffffff !important;
+      border-color: rgba(17,24,39,0.08) !important;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03) !important;
+    }
+    .tenant-infinity a[href="privacidad.html"]:hover {
+      border-color: rgba(17,24,39,0.20) !important;
+    }
+    .tenant-infinity a[href="privacidad.html"] .text-gray-500 {
+      color: #6b7280 !important;
+    }
+    .tenant-infinity a[href="privacidad.html"] .text-white {
+      color: #111827 !important;
+    }
+    .tenant-infinity a[href="privacidad.html"] .text-gray-600 {
       color: #9ca3af !important;
     }
 
