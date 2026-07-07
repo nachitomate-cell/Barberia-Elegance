@@ -773,6 +773,44 @@
 
         /* (4) FAB — botón flotante para agregar cita rápida. Solo visible
               cuando #mainApp está montado. Safe-area para iPhone home indicator. */
+        /* Slot libre en la grilla semanal (móvil-first).
+           - min-height 44px = touch target de Apple (evita "casi no responde").
+           - :active da feedback ANTES de que abra el modal (tap satisfactorio).
+           - :hover solo aplica en dispositivos con puntero real (tablet+mouse).
+           - user-select:none evita que un tap largo seleccione el "+" y bloquee
+             el gesto de scroll o el segundo tap.
+           Cuando el interval es 15min y hOf(interval) queda debajo de 44px, el
+           min-height lo estira; los slots vecinos se solapan un poco pero el
+           tap sigue siendo utilizable. Para 30/60min, el slot ya calza natural. */
+        .week-empty-slot {
+            min-height: 44px;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            transition: background-color 75ms ease-out;
+        }
+        .week-empty-slot:active {
+            background-color: rgba(38, 38, 38, 0.80) !important;
+        }
+        @media (hover: hover) and (pointer: fine) {
+            .week-empty-slot:hover {
+                background-color: rgba(38, 38, 38, 0.50) !important;
+            }
+        }
+        html.light-mode .week-empty-slot:active {
+            background-color: rgba(15, 23, 42, 0.10) !important;
+        }
+        html.light-mode .week-empty-slot .week-empty-slot__plus {
+            color: rgba(15, 23, 42, 0.35) !important;
+        }
+        .week-empty-slot__plus {
+            font-size: 1.25rem;      /* text-xl */
+            font-weight: 300;        /* font-light */
+            color: #404040;          /* neutral-700 */
+            line-height: 1;
+            pointer-events: none;
+        }
+
         #fabNuevaCita {
             position: fixed;
             right: 1.5rem;
@@ -2549,16 +2587,22 @@
         }
 
         function buildFreeSlot(time) {
+            // min-h-[44px] = touch target de Apple; select-none evita que un
+            // tap largo seleccione el label "Espacio disponible" y se coma el
+            // gesto de scroll. active:bg-white/5 da feedback antes de que el
+            // modal abra. En móvil el candado se oculta y el "+" se muestra
+            // siempre (sin hover). En hover:pointer se conserva el efecto
+            // "candado → +" tipo desktop.
             return `
-            <div class="flex items-center gap-4 py-2.5 border-b border-white/[0.06] hover:border-white/10 transition-colors group cursor-pointer" onclick="abrirOpcionesSlotLibre('${time}')">
+            <div class="flex items-center gap-4 py-2.5 min-h-[44px] border-b border-white/[0.06] hover:border-white/10 transition-colors group cursor-pointer select-none active:bg-white/[0.04]" onclick="abrirOpcionesSlotLibre('${time}')">
                 <div class="text-center min-w-[50px] shrink-0">
-                    <p class="text-sm font-bold text-white/25">${time}</p>
+                    <p class="text-sm font-bold text-white/25 select-none">${time}</p>
                 </div>
                 <div class="h-6 w-[1px] bg-white/5 shrink-0"></div>
-                <p class="flex-1 text-xs font-medium text-white/20 group-hover:text-white/40 transition-colors">Espacio disponible</p>
-                <span class="relative w-8 h-8 flex items-center justify-center shrink-0">
-                    <i class="ph-bold ph-lock-key absolute text-white/15 group-hover:opacity-0 transition-opacity duration-200"></i>
-                    <i class="ph-bold ph-plus absolute text-white/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></i>
+                <p class="flex-1 text-xs font-medium text-white/20 group-hover:text-white/40 transition-colors select-none">Espacio disponible</p>
+                <span class="relative w-8 h-8 flex items-center justify-center shrink-0 pointer-events-none">
+                    <i class="ph-bold ph-lock-key absolute text-white/15 hidden sm:inline sm:group-hover:opacity-0 transition-opacity duration-200"></i>
+                    <i class="ph-bold ph-plus absolute text-white/40 sm:opacity-0 sm:group-hover:opacity-100 group-active:opacity-100 transition-opacity duration-200"></i>
                 </span>
             </div>`;
         }
@@ -3060,6 +3104,10 @@
                         const inColacion = cfg.colacion && m >= toMins(cfg.colacion.inicio) && m < toMins(cfg.colacion.fin);
                         const horaStr = fromMin(m);
                         const slot = document.createElement('div');
+                        // El onclick va en el CONTENEDOR (el <span> del "+" es
+                        // pointer-events:none). Así el touch target es todo el
+                        // slot, no solo el pixel del ícono.
+                        slot.className = 'week-empty-slot';
                         slot.style.cssText = [
                             'position:absolute',
                             `top:${yOf(m)}px`,
@@ -3070,15 +3118,14 @@
                             'display:flex',
                             'align-items:center',
                             'justify-content:center',
-                            'transition:background 0.1s',
                             'z-index:1',
                         ].join(';');
-                        slot.onmouseenter = function() { this.style.background='rgba(201,168,76,0.10)'; };
-                        slot.onmouseleave = function() { this.style.background=''; };
+                        slot.setAttribute('role', 'button');
+                        slot.setAttribute('aria-label', `Agendar cita a las ${horaStr}`);
                         slot.onclick = () => { if (isScrollingWeek) return; abrirOpcionesSlotSemana(fechaStr, horaStr); };
                         slot.innerHTML = inColacion
                             ? ''
-                            : `<i class="ph-bold ph-plus" style="font-size:9px;color:rgba(255,255,255,0.18);pointer-events:none;"></i>`;
+                            : '<span class="week-empty-slot__plus">+</span>';
                         dayCol.appendChild(slot);
                     }
                 }
