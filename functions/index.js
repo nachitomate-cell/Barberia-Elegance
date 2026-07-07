@@ -163,7 +163,10 @@ exports.migrarClaimsExistentes = onCall({ region: 'us-central1' }, async (reques
 //  Autorización: superadmin bootstrap OR (role=='admin' && claim
 //  tenantId coincide con el tenantId objetivo).
 // ═════════════════════════════════════════════════════════════════
-exports.crearAccesoStaff = onCall({ region: 'us-central1' }, async (request) => {
+// cors:true → permite llamadas desde custom domains de tenants
+// (delnerobarber.synaptechspa.cl, elegance.synaptechspa.cl, etc.). Sin esto,
+// el default de v2 solo acepta *.web.app / *.firebaseapp.com y bloquea preflight.
+exports.crearAccesoStaff = onCall({ region: 'us-central1', cors: true }, async (request) => {
   const SUPERADMINS = ['ignaciiio.mate@gmail.com', 'barrazanicolasfabian@gmail.com'];
 
   const callerEmail  = (request.auth?.token?.email || '').toLowerCase();
