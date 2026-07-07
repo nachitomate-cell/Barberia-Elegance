@@ -3204,13 +3204,17 @@
     }
     .tenant-infinity #btnNotifBell i, .tenant-infinity #avatarContainer i { color: #4B5563 !important; }
 
-    /* Hero Section */
+    /* Hero Section — bordes sólidos + doble ring en sombra para que la
+       imagen infinit.png se integre limpia sin verse "flotante" sobre el
+       fondo blanco. Border 1.5px navy 15% + sombra profunda con anillo. */
     .tenant-infinity .hero-bg {
       background-image: url('/infinity_bg.png') !important;
       background-size: cover !important;
       background-position: center !important;
-      border: 1px solid rgba(17, 24, 39, 0.06) !important;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05) !important;
+      border: 1.5px solid rgba(17, 24, 39, 0.18) !important;
+      box-shadow: 0 0 0 1px rgba(17, 24, 39, 0.06),
+                  0 12px 32px rgba(17, 24, 39, 0.14),
+                  0 2px 8px rgba(17, 24, 39, 0.06) !important;
     }
     .tenant-infinity .hero-overlay {
       background: linear-gradient(135deg, rgba(255, 255, 255, 0.75) 0%, rgba(255, 255, 255, 0.95) 100%) !important;
