@@ -25,25 +25,8 @@ const LOGIN_IMAGE = {
   barbersclub:        '/barbersclub/hero-bg.png',
 };
 
-/* Colores de marca SynapTech (tomados del logo): verde lima + verde oscuro. */
-const SYNAPTECH_GREEN      = '#8BC53F';
-const SYNAPTECH_GREEN_DARK = '#5F9E2A';
-
-/* Overrides de acento por tenant — para temas propios (silver-dark, etc.).
-   Si el tenant no está aquí, se usa el acento SynapTech por default. */
-const TENANT_ACCENT = {
-  elbarberomoderno: { light: '#E0E0E0', dark: '#8A8A8A' }, // Silver & Pure Dark
-};
-
-/* Texto legible (negro/blanco) según luminancia del acento — evita botones ilegibles. */
-function readableText(hex) {
-  const c = hex.replace('#', '');
-  const r = parseInt(c.substring(0, 2), 16);
-  const g = parseInt(c.substring(2, 4), 16);
-  const b = parseInt(c.substring(4, 6), 16);
-  const L = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return L > 0.6 ? '#0a0a0a' : '#ffffff';
-}
+/* Fallback si el tenant no tiene imagen propia — el testimonial habla de Ferraza. */
+const DEFAULT_LOGIN_IMAGE = '/loginferraza.webp';
 
 /* Traduce los códigos de error de Firebase Auth a mensajes claros en español. */
 function authErrorMessage(err) {
@@ -79,22 +62,11 @@ export default function LoginPage() {
   const tenant = useTenant();
   const [email,      setEmail]      = useState('');
   const [password,   setPassword]   = useState('');
-  const [rememberMe,   setRememberMe]   = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [error,        setError]        = useState('');
-  const [loading,      setLoading]      = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  const [error,      setError]      = useState('');
+  const [loading,    setLoading]    = useState(false);
 
-  const bgImage   = LOGIN_IMAGE[tenant.id];
-  const brand     = tenant.brand;
-  // Acento SynapTech (verde) por default. Override por tenant en TENANT_ACCENT
-  // (ej. elbarberomoderno usa plata #E0E0E0 para su tema Silver & Dark).
-  const accentPair = TENANT_ACCENT[tenant.id];
-  const accent     = accentPair ? accentPair.light : SYNAPTECH_GREEN;
-  const accentDark = accentPair ? accentPair.dark  : SYNAPTECH_GREEN_DARK;
-  const logo      = tenant.logo;
-  const btnText   = readableText(accent);
-
-  const field = 'lg-field w-full bg-black/40 backdrop-blur-sm border border-white/15 rounded-xl pl-11 pr-4 py-3 text-sm text-white placeholder-white/40 focus:outline-none transition-all';
+  const bgImage = LOGIN_IMAGE[tenant.id] || DEFAULT_LOGIN_IMAGE;
 
   const loginEmail = async e => {
     e?.preventDefault();
@@ -130,124 +102,84 @@ export default function LoginPage() {
     );
   }
 
+  const inputClass =
+    'w-full h-12 bg-neutral-900 border border-neutral-800 rounded-xl px-4 text-white ' +
+    'placeholder:text-neutral-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 ' +
+    'focus:border-emerald-500 transition-all';
+
   return (
-    <div
-      className="min-h-screen relative flex items-center justify-center px-4 overflow-hidden"
-      style={{ '--accent': accent }}
-    >
-      <style>{`
-        .lg-field:focus { border-color: ${accent}; box-shadow: 0 0 0 3px ${accent}30; background: rgba(0,0,0,0.55); }
-        @keyframes lgUp { from { opacity: 0; transform: translateY(16px) } to { opacity: 1; transform: none } }
-      `}</style>
+    <div className="min-h-screen w-full grid grid-cols-1 lg:grid-cols-2 bg-[#09090b]">
 
-      {/* Fondo: foto por sede */}
-      {bgImage ? (
-        <img src={bgImage} alt="" className="absolute inset-0 w-full h-full object-cover" />
-      ) : (
-        <div className="absolute inset-0 bg-slate-950" />
-      )}
-
-      {/* Oscurecido con profundidad hacia abajo (legibilidad del formulario) */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/60 to-black/85" />
-      {/* Glow de acento por sede en la parte superior */}
+      {/* ── PANEL IZQUIERDO — visual + social proof ─────────────────── */}
       <div
-        className="absolute inset-0 pointer-events-none"
-        style={{ background: `radial-gradient(115% 80% at 50% -10%, ${accent}3a 0%, transparent 55%)` }}
-      />
+        className="hidden lg:flex bg-cover bg-center bg-no-repeat relative"
+        style={{ backgroundImage: `url(${bgImage})` }}
+      >
+        <div className="absolute inset-0 bg-black/60" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
 
-      {/* Contenido */}
-      <div className="relative z-10 w-full max-w-sm" style={{ animation: 'lgUp 0.6s cubic-bezier(0.22,1,0.36,1) both' }}>
-
-        {/* Header */}
-        <div className="flex flex-col items-center mb-8 text-center">
-          {logo ? (
-            <img
-              src={logo}
-              alt={tenant.name}
-              className="w-20 h-20 rounded-2xl object-cover mb-4"
-              style={{ boxShadow: `0 0 0 1.5px ${accent}, 0 10px 40px ${accent}55` }}
-            />
-          ) : (
-            <div
-              className="w-20 h-20 rounded-2xl mb-4 flex items-center justify-center text-4xl"
-              style={{ background: 'rgba(255,255,255,0.06)', boxShadow: `inset 0 0 0 1.5px ${accent}66` }}
-            >
-              {tenant.emoji || '✂️'}
-            </div>
-          )}
-          <h1 className="text-2xl font-black text-white tracking-tight">{tenant.name}</h1>
-          {brand ? (
-            <p className="text-sm mt-1.5 font-semibold tracking-wide" style={{ color: accent }}>
-              {brand.sede} · <span className="text-white/50 font-medium">{brand.tagline}</span>
-            </p>
-          ) : (
-            <p className="text-[11px] text-white/45 mt-2 font-medium uppercase" style={{ letterSpacing: '0.2em' }}>
-              Panel de administración
-            </p>
-          )}
+        <div className="relative z-10 flex flex-col justify-end w-full p-12 xl:p-16">
+          <div className="flex gap-1 mb-5 text-emerald-400" aria-label="5 estrellas">
+            {[0, 1, 2, 3, 4].map(i => <StarIcon key={i} />)}
+          </div>
+          <p className="text-2xl xl:text-3xl font-semibold text-white mb-4 leading-snug max-w-xl">
+            «Pasé de cuadrar caja a las 11 pm a tener mis reportes listos en segundos.»
+          </p>
+          <p className="text-sm text-neutral-400">
+            Fabián Barraza · Barbería Ferraza
+          </p>
         </div>
+      </div>
 
-        {/* Card */}
-        <div
-          className="relative rounded-2xl p-6 border border-white/12 overflow-hidden"
-          style={{ background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(20px)' }}
-        >
-          {/* Línea de acento superior */}
-          <div
-            className="absolute top-0 left-0 right-0 h-[3px]"
-            style={{ background: `linear-gradient(90deg, transparent, ${accent}, transparent)` }}
-          />
+      {/* ── PANEL DERECHO — formulario ───────────────────────────────── */}
+      <div className="bg-[#09090b] flex items-center justify-center p-8 sm:p-12 lg:p-24 relative">
+        <div className="w-full max-w-sm">
+
+          {tenant.logo && (
+            <img
+              src={tenant.logo}
+              alt={tenant.name}
+              className="w-11 h-11 rounded-xl object-cover mb-8 ring-1 ring-neutral-800"
+            />
+          )}
+
+          <h1 className="text-3xl font-bold text-white mb-2 tracking-tight">
+            Bienvenido de vuelta.
+          </h1>
+          <p className="text-neutral-400 mb-8">
+            Gestiona tu agenda, clientes y caja en un solo lugar.
+          </p>
 
           <form onSubmit={loginEmail} noValidate className="space-y-3">
-            {/* Correo */}
-            <div className="relative">
-              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/35 pointer-events-none">
-                <MailIcon />
-              </span>
-              <input
-                type="email"
-                className={field}
-                placeholder="Correo electrónico"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                autoComplete="email"
-              />
-            </div>
+            <input
+              type="email"
+              placeholder="Correo electrónico"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              autoComplete="email"
+              className={inputClass}
+              aria-label="Correo electrónico"
+            />
+            <input
+              type="password"
+              placeholder="Contraseña"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              autoComplete="current-password"
+              className={inputClass}
+              aria-label="Contraseña"
+            />
 
-            {/* Contraseña */}
-            <div className="relative">
-              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/35 pointer-events-none">
-                <LockIcon />
-              </span>
-              <input
-                type={showPassword ? 'text' : 'password'}
-                className={`${field} pr-11`}
-                placeholder="Contraseña"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                autoComplete="current-password"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(v => !v)}
-                tabIndex={-1}
-                aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/35 hover:text-white/70 transition-colors"
-              >
-                {showPassword ? <EyeOffIcon /> : <EyeIcon />}
-              </button>
-            </div>
-
-            <div className="flex items-center mt-4 mb-1">
+            <div className="flex items-center pt-1">
               <input
                 type="checkbox"
                 id="rememberMe"
                 checked={rememberMe}
                 onChange={e => setRememberMe(e.target.checked)}
-                className="w-4 h-4 rounded border-white/20 bg-white/10 cursor-pointer"
-                style={{ accentColor: accent }}
+                className="w-4 h-4 rounded border-neutral-700 bg-neutral-900 cursor-pointer"
+                style={{ accentColor: '#10b981' }}
               />
-              <label htmlFor="rememberMe" className="ml-2 text-sm text-white/50 select-none cursor-pointer">
+              <label htmlFor="rememberMe" className="ml-2 text-sm text-neutral-400 select-none cursor-pointer">
                 Mantener sesión iniciada
               </label>
             </div>
@@ -257,21 +189,20 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 disabled:opacity-50 font-bold text-sm rounded-xl transition-all flex items-center justify-center gap-2 mt-1 hover:brightness-110 active:scale-[0.99]"
-              style={{ background: `linear-gradient(135deg, ${accent}, ${accentDark})`, color: btnText, boxShadow: `0 8px 28px ${accent}44` }}
+              className="w-full h-11 bg-emerald-500 hover:bg-emerald-400 text-neutral-950 font-bold rounded-xl flex items-center justify-center transition-all mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading && (
-                <span
-                  className="w-4 h-4 border-2 rounded-full animate-spin"
-                  style={{ borderColor: btnText, borderTopColor: 'transparent' }}
-                />
+              {loading ? (
+                <span className="w-4 h-4 border-2 border-neutral-950 border-t-transparent rounded-full animate-spin" />
+              ) : (
+                'Ingresar'
               )}
-              Ingresar
             </button>
           </form>
         </div>
 
-        <p className="text-center text-[11px] text-white/25 mt-6">{tenant.name} · Panel interno</p>
+        <p className="text-xs text-neutral-600 absolute bottom-6 left-1/2 -translate-x-1/2 whitespace-nowrap">
+          ⚡ Engineered by SynapTech SpA — Conexión cifrada TLS
+        </p>
       </div>
     </div>
   );
@@ -281,7 +212,7 @@ export default function LoginPage() {
 function LoginError({ error, tenantName }) {
   if (!error) return null;
   return (
-    <div className="rounded-xl border border-red-500/25 bg-red-500/10 px-3.5 py-3 space-y-2">
+    <div className="rounded-xl border border-red-500/25 bg-red-500/10 px-3.5 py-3 space-y-2 mt-2">
       <p className="text-xs text-red-300 font-medium leading-relaxed">{error}</p>
       <a
         href={whatsappHelpHref(tenantName)}
@@ -296,44 +227,17 @@ function LoginError({ error, tenantName }) {
 }
 
 /* ── Íconos (inline SVG, sin dependencias) ─────────────────────────── */
+function StarIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+    </svg>
+  );
+}
 function WhatsappIcon() {
   return (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <path d="M.057 24l1.687-6.163a11.867 11.867 0 0 1-1.587-5.946C.157 5.335 5.494 0 12.05 0a11.817 11.817 0 0 1 8.413 3.488 11.824 11.824 0 0 1 3.48 8.414c-.003 6.557-5.338 11.892-11.893 11.892a11.9 11.9 0 0 1-5.688-1.448L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884a9.86 9.86 0 0 0 1.512 5.26l-.999 3.648 3.985-1.207zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.095 3.2 5.076 4.487.71.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z" />
-    </svg>
-  );
-}
-function MailIcon() {
-  return (
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="2" y="4" width="20" height="16" rx="2" />
-      <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" />
-    </svg>
-  );
-}
-function LockIcon() {
-  return (
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="11" width="18" height="11" rx="2" />
-      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-    </svg>
-  );
-}
-function EyeIcon() {
-  return (
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
-      <circle cx="12" cy="12" r="3" />
-    </svg>
-  );
-}
-function EyeOffIcon() {
-  return (
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M9.88 9.88a3 3 0 0 0 4.24 4.24" />
-      <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c6.5 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
-      <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3.5 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
-      <line x1="2" y1="2" x2="22" y2="22" />
     </svg>
   );
 }
