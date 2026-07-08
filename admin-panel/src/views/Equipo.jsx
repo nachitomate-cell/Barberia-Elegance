@@ -78,6 +78,7 @@ const BARBER_EMPTY = {
   comision: 0,
   sueldoBase: 0,
   comisionProductos: 10,
+  comisionProductosMonto: 0, // monto fijo en $ que se suma al % por cada venta de producto
   sucursalId: '',
   serviciosIds: [],
   horario: DEFAULT_HORARIO(),
@@ -666,7 +667,7 @@ export default function Equipo() {
                 <td style="text-align: right;">$${Math.round(data.serviciosComision).toLocaleString('es-CL')}</td>
               </tr>
               <tr>
-                <td>Comisión por Productos</td>
+                <td>Comisión por Productos${(barber.comisionProductosMonto ?? 0) > 0 ? ` <span style="font-size:10px;color:#64748b;">(+ $${Math.round(barber.comisionProductosMonto).toLocaleString('es-CL')} fijo/venta)</span>` : ''}</td>
                 <td style="text-align: right;">$${Math.round(data.productosTotal).toLocaleString('es-CL')}</td>
                 <td style="text-align: right;">${barber.comisionProductos ?? 10}%</td>
                 <td style="text-align: right;">$${Math.round(data.productosComision).toLocaleString('es-CL')}</td>
@@ -806,7 +807,8 @@ export default function Equipo() {
       whatsapp:     b.whatsapp     || '',
       comision:     b.comision     ?? 0,
       sueldoBase:   b.sueldoBase   ?? 0,
-      comisionProductos: b.comisionProductos ?? 10,
+      comisionProductos:      b.comisionProductos      ?? 10,
+      comisionProductosMonto: b.comisionProductosMonto ?? 0,
       sucursalId:   b.sucursalId   || '',
       serviciosIds: b.serviciosIds || [],
       horario:      initHorario(b),
@@ -981,15 +983,20 @@ export default function Equipo() {
   const hasAccess = !!(editing?.authUid || editing?.uid);
 
   const selectedBarber = barberos.find(b => b.id === sueldoBarberoId);
-  const comisionServicioPorc = selectedBarber ? (selectedBarber.comision || 0) : 0;
-  const comisionProductoPorc = selectedBarber ? (selectedBarber.comisionProductos ?? 10) : 10;
+  const comisionServicioPorc  = selectedBarber ? (selectedBarber.comision || 0) : 0;
+  const comisionProductoPorc  = selectedBarber ? (selectedBarber.comisionProductos ?? 10) : 10;
+  const comisionProductoMonto = selectedBarber ? (selectedBarber.comisionProductosMonto ?? 0) : 0;
   const sueldoBaseMonto = selectedBarber ? (selectedBarber.sueldoBase || 0) : 0;
 
   const serviciosBruto = citasSueldos.reduce((acc, curr) => acc + (curr.precio || 0), 0);
   const serviciosComision = citasSueldos.reduce((acc, curr) => acc + ((curr.precio || 0) * comisionServicioPorc / 100), 0);
 
   const productosBruto = ventasSueldos.reduce((acc, curr) => acc + (curr.precioTotal || curr.precio || 0), 0);
-  const productosComision = ventasSueldos.reduce((acc, curr) => acc + ((curr.precioTotal || curr.precio || 0) * comisionProductoPorc / 100), 0);
+  // Comisión por venta = (precio × %) + monto fijo. El monto se aplica una vez por venta.
+  const productosComision = ventasSueldos.reduce(
+    (acc, curr) => acc + ((curr.precioTotal || curr.precio || 0) * comisionProductoPorc / 100) + comisionProductoMonto,
+    0,
+  );
 
   const propinasAcumuladas = citasSueldos.reduce((acc, curr) => acc + (curr.propina || 0), 0);
   const totalPagarCalculado = serviciosComision + productosComision + sueldoBaseMonto;
@@ -1159,7 +1166,10 @@ export default function Equipo() {
                       <span className="font-semibold text-white">{fmtCurrency(serviciosComision)}</span>
                     </div>
                     <div className="flex justify-between text-slate-400">
-                      <span>Comisión Productos ({comisionProductoPorc}%):</span>
+                      <span>
+                        Comisión Productos ({comisionProductoPorc}%
+                        {comisionProductoMonto > 0 && ` + ${fmtCurrency(comisionProductoMonto)}/venta`}):
+                      </span>
                       <span className="font-semibold text-white">{fmtCurrency(productosComision)}</span>
                     </div>
                     <div className="flex justify-between text-slate-400 border-t border-slate-800 pt-2 font-bold text-white text-base">
@@ -1265,7 +1275,7 @@ export default function Equipo() {
                     <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
                       {ventasSueldos.map(v => {
                         const precioVenta = v.precioTotal || v.precio || 0;
-                        const comisionMonto = precioVenta * comisionProductoPorc / 100;
+                        const comisionMonto = precioVenta * comisionProductoPorc / 100 + comisionProductoMonto;
                         const itemDate = v.fecha || v.createdAt || v.creadoEn;
                         const dateStr = typeof itemDate === 'string' ? itemDate.slice(0, 10) : (itemDate?.toDate ? itemDate.toDate().toLocaleDateString('es-CL') : '');
                         return (
@@ -1489,6 +1499,17 @@ export default function Equipo() {
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm font-bold">%</span>
                   </div>
                   <p className="text-[10px] text-slate-600 mt-1">Porcentaje que recibe el barbero sobre la venta de productos (por defecto 10%).</p>
+                </div>
+
+                <div>
+                  <label className={lbl}>Monto fijo por venta de producto ($)</label>
+                  <div className="relative">
+                    <DollarSign size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                    <input className={`${field} pl-8`} type="number" min="0" step="100"
+                      placeholder="0" value={form.comisionProductosMonto}
+                      onChange={e => set('comisionProductosMonto', Number(e.target.value))} />
+                  </div>
+                  <p className="text-[10px] text-slate-600 mt-1">Se <strong className="text-slate-400">suma</strong> al porcentaje: cada venta de producto paga <em>(% × precio) + este monto</em>. Deja en 0 para usar solo el %.</p>
                 </div>
 
                 <div>
