@@ -60,6 +60,17 @@ const NAV_GROUPS_DEFAULT = [
     ],
   },
   {
+    id: 'clientes',
+    label: 'Clientes',
+    items: [
+      { to: 'clientes',     label: 'Clientes',     Icon: Star        },
+      { to: 'lista-negra',  label: 'Lista Negra',  Icon: UserX,    adminOnly: true },
+      { to: 'resenas',      label: 'Reseñas',      Icon: ThumbsUp    },
+      { to: 'fidelizacion', label: 'Fidelización', Icon: Trophy,     variant: 'fideli' },
+      { to: 'productos',    label: 'Productos',    Icon: ShoppingBag },
+    ],
+  },
+  {
     id: 'equipo',
     label: 'Equipo',
     items: [
@@ -75,17 +86,6 @@ const NAV_GROUPS_DEFAULT = [
       { to: 'instagram',         label: 'Instagram',        Icon: Instagram, adminOnly: false, variant: 'instagram' },
       { to: 'link-bio',          label: 'Link in Bio (bioo.cl)', Icon: Link2, adminOnly: true, variant: 'bioo' },
       { to: 'servicio-favorito', label: 'Foto de servicio', Icon: ImagePlus },
-    ],
-  },
-  {
-    id: 'clientes',
-    label: 'Clientes',
-    items: [
-      { to: 'clientes',     label: 'Clientes',     Icon: Star        },
-      { to: 'lista-negra',  label: 'Lista Negra',  Icon: UserX,    adminOnly: true },
-      { to: 'resenas',      label: 'Reseñas',      Icon: ThumbsUp    },
-      { to: 'fidelizacion', label: 'Fidelización', Icon: Trophy,     variant: 'fideli' },
-      { to: 'productos',    label: 'Productos',    Icon: ShoppingBag },
     ],
   },
   {
