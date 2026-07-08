@@ -95,6 +95,17 @@ const NAV_GROUPS_DEFAULT = [
       { to: 'agenda',         label: 'Agenda',          Icon: CalendarDays  },
       { to: 'por-cerrar',     label: 'Por cerrar',      Icon: CalendarClock },
       { to: 'reserva-online', label: 'Reserva online',  Icon: Globe         },
+      { to: 'productos',      label: 'Productos',       Icon: ShoppingBag   },
+    ],
+  },
+  {
+    id: 'clientes',
+    label: 'Clientes',
+    items: [
+      { to: 'clientes',     label: 'Clientes',     Icon: Star          },
+      { to: 'fidelizacion', label: 'Fidelización', Icon: Trophy,       variant: 'fideli' },
+      { to: 'mensajes',     label: 'Mensajes',     Icon: MessageCircle },
+      { to: 'resenas',      label: 'Reseñas',      Icon: ThumbsUp      },
     ],
   },
   {
@@ -105,17 +116,6 @@ const NAV_GROUPS_DEFAULT = [
       { to: 'instagram',     label: 'Instagram',     Icon: Instagram,         adminOnly: false, variant: 'instagram' },
       { to: 'tv-config',     label: 'Pantalla TV',   Icon: PantallaTvIcon,    adminOnly: true, variant: 'tv' },
       { to: 'recibir-pagos', label: 'Recibir Pagos', Icon: RecibirPagosIcon,  adminOnly: true, variant: 'pagos' },
-    ],
-  },
-  {
-    id: 'clientes',
-    label: 'Clientes',
-    items: [
-      { to: 'clientes',     label: 'Clientes',     Icon: Star          },
-      { to: 'mensajes',     label: 'Mensajes',     Icon: MessageCircle },
-      { to: 'resenas',      label: 'Reseñas',      Icon: ThumbsUp      },
-      { to: 'fidelizacion', label: 'Fidelización', Icon: Trophy,       variant: 'fideli' },
-      { to: 'productos',    label: 'Productos',    Icon: ShoppingBag   },
     ],
   },
   {
