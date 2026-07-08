@@ -1326,149 +1326,159 @@ function SorteoRow({ sorteo, publicLink, onView, onElegirGanador, onVerParticipa
   }, [menuOpen]);
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl hover:border-slate-700 transition-all overflow-hidden">
-    <div className="flex items-center gap-4 p-4 flex-wrap">
-      {/* Icono */}
-      <div className={`w-10 h-10 rounded-lg flex items-center justify-center border ${cfg.color.split(' ').slice(1).join(' ')} shrink-0`}>
-        <Trophy size={18} className={cfg.color.split(' ')[0]} />
-      </div>
+    <div className={`bg-gradient-to-r from-slate-900 to-slate-900/80 border border-slate-800 hover:border-slate-700 rounded-2xl p-5 transition-all duration-300 relative overflow-hidden ${
+      isActivo ? 'shadow-[inset_1px_0_0_0_rgba(16,185,129,0.5)]' : ''
+    }`}>
+      {/* Acento lateral izquierdo cuando el sorteo está activo (verde neón) */}
+      {isActivo && (
+        <span
+          aria-hidden
+          className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-emerald-500 to-emerald-500/40 shadow-[0_0_12px_-2px_rgba(16,185,129,0.6)]"
+        />
+      )}
 
-      {/* Info principal */}
-      <div className="flex-1 min-w-[180px]">
-        <p className="font-bold text-sm text-white truncate">{sorteo.nombre}</p>
-        <div className="flex items-center gap-3 mt-1.5 text-xs text-slate-500 flex-wrap">
-          <span className="inline-flex items-center gap-1">
-            <Calendar size={11} />
-            {formatRange(sorteo.fecha_inicio, sorteo.fecha_fin)}
-          </span>
-          <span className="inline-flex items-center gap-2">
-            {partCount > 0 && (
-              <span className="flex -space-x-2" aria-hidden="true">
-                <span className="w-6 h-6 rounded-full bg-slate-700 ring-2 ring-slate-900" />
-                <span className="w-6 h-6 rounded-full bg-slate-600 ring-2 ring-slate-900" />
-                <span className="w-6 h-6 rounded-full bg-slate-700 ring-2 ring-slate-900" />
-              </span>
-            )}
-            <span className="inline-flex items-center gap-1">
-              <Users size={11} />
-              {partCount} {partCount === 1 ? 'participante' : 'participantes'}
-            </span>
-          </span>
+      <div className="flex items-center gap-4 flex-wrap">
+        {/* Icono */}
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${cfg.color.split(' ').slice(1).join(' ')} shrink-0`}>
+          <Trophy size={18} className={cfg.color.split(' ')[0]} />
         </div>
-        {/* Ganador inline cuando finalizado */}
-        {!isActivo && sorteo.ganador_nombre && (
-          <p className="mt-1.5 text-xs font-semibold text-emerald-400 inline-flex items-center gap-1">
-            <PartyPopper size={11} />
-            Ganador: <span className="text-emerald-300">{sorteo.ganador_nombre}</span>
-          </p>
-        )}
-      </div>
 
-      {/* Badge estado */}
-      <span className={`text-xs font-semibold px-2 py-0.5 rounded border ${cfg.color} shrink-0`}>
-        {cfg.label}
-      </span>
+        {/* Info principal */}
+        <div className="flex-1 min-w-[180px]">
+          <p className="text-lg font-bold text-white truncate leading-tight">{sorteo.nombre}</p>
+          <div className="flex items-center gap-4 mt-2 text-sm text-slate-400 flex-wrap">
+            <span className="inline-flex items-center gap-1.5">
+              <Calendar size={13} className="text-slate-500" />
+              {formatRange(sorteo.fecha_inicio, sorteo.fecha_fin)}
+            </span>
+            <span className="inline-flex items-center gap-2">
+              {partCount > 0 && (
+                <span className="flex -space-x-2" aria-hidden="true">
+                  <span className="w-6 h-6 rounded-full bg-slate-700 ring-2 ring-slate-900" />
+                  <span className="w-6 h-6 rounded-full bg-slate-600 ring-2 ring-slate-900" />
+                  <span className="w-6 h-6 rounded-full bg-slate-700 ring-2 ring-slate-900" />
+                </span>
+              )}
+              <span className="inline-flex items-center gap-1.5">
+                <Users size={13} className="text-slate-500" />
+                {partCount} {partCount === 1 ? 'participante' : 'participantes'}
+              </span>
+            </span>
+          </div>
+          {/* Ganador inline cuando finalizado */}
+          {!isActivo && sorteo.ganador_nombre && (
+            <p className="mt-2 text-sm font-semibold text-emerald-400 inline-flex items-center gap-1.5">
+              <PartyPopper size={13} />
+              Ganador: <span className="text-emerald-300">{sorteo.ganador_nombre}</span>
+            </p>
+          )}
+        </div>
 
-      {/* Acciones */}
-      <div className="flex items-center gap-1.5 shrink-0">
-        {/* Elegir ganador (destacado) */}
+        {/* Badge estado */}
+        <span className={`text-xs font-semibold px-2.5 py-1 rounded-lg border ${cfg.color} shrink-0`}>
+          {cfg.label}
+        </span>
+
+        {/* Acciones */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {/* Elegir ganador — HÉROE: sólido con neón, invierte colores en hover */}
+          {cerrado && (
+            <button
+              onClick={() => onElegirGanador(sorteo)}
+              className="hidden sm:inline-flex items-center gap-1.5 bg-emerald-500/10 hover:bg-emerald-500 border border-emerald-500/50 hover:border-emerald-500 text-emerald-400 hover:text-slate-950 font-bold px-4 py-2 rounded-xl transition-all shadow-[0_0_15px_-3px_rgba(16,185,129,0.4)]"
+              title="Elegir ganador"
+            >
+              <Sparkles size={14} /> Elegir ganador
+            </button>
+          )}
+
+          {/* Link público (solo activo) */}
+          {isActivo && (
+            <button
+              onClick={copy}
+              className={`text-slate-500 hover:text-white transition-colors p-2 ${copied ? 'text-emerald-400' : ''}`}
+              title="Copiar link público"
+            >
+              {copied ? <CheckCheck size={16} /> : <Link2 size={16} />}
+            </button>
+          )}
+
+          {/* Ver participantes reales (subcolección) */}
+          <button
+            onClick={() => onVerParticipantes(sorteo)}
+            className="text-slate-500 hover:text-white transition-colors p-2"
+            title="Ver participantes"
+          >
+            <UsersRound size={16} />
+          </button>
+
+          {/* Ver detalles */}
+          <button
+            onClick={() => onView(sorteo)}
+            className="text-slate-500 hover:text-white transition-colors p-2"
+            title="Ver detalles"
+          >
+            <Eye size={16} />
+          </button>
+
+          {/* Kebab menu — cerrar antes de tiempo + eliminar */}
+          <div className="relative" ref={menuRef}>
+            <button
+              onClick={() => setMenuOpen(v => !v)}
+              className="text-slate-500 hover:text-white transition-colors p-2"
+              title="Más acciones"
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+            >
+              <MoreVertical size={16} />
+            </button>
+            {menuOpen && (
+              <div
+                role="menu"
+                className="absolute right-0 top-full mt-1 min-w-[180px] bg-slate-900 border border-slate-700 rounded-xl shadow-2xl z-20 overflow-hidden backdrop-blur-md"
+              >
+                {isActivo && (
+                  <button
+                    role="menuitem"
+                    onClick={() => { setMenuOpen(false); onCerrarAhora(sorteo); }}
+                    className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-200 hover:bg-slate-800 transition-colors text-left"
+                  >
+                    <CircleX size={13} className="text-amber-400" />
+                    Cerrar ahora
+                  </button>
+                )}
+                <button
+                  role="menuitem"
+                  onClick={() => { setMenuOpen(false); onEliminar(sorteo); }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-400 hover:bg-red-500/10 transition-colors text-left"
+                >
+                  <Trash2 size={13} />
+                  Eliminar sorteo
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Botón "Elegir ganador" en mobile (full-width abajo) — con misma estética héroe */}
         {cerrado && (
           <button
             onClick={() => onElegirGanador(sorteo)}
-            className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 border border-emerald-500/30 transition-all"
-            title="Elegir ganador"
+            className="sm:hidden w-full mt-1 inline-flex items-center justify-center gap-1.5 bg-emerald-500/10 hover:bg-emerald-500 border border-emerald-500/50 hover:border-emerald-500 text-emerald-400 hover:text-slate-950 font-bold px-4 py-2.5 rounded-xl transition-all shadow-[0_0_15px_-3px_rgba(16,185,129,0.4)]"
           >
-            <Sparkles size={13} /> Elegir ganador
+            <Sparkles size={14} /> Elegir ganador
           </button>
         )}
-
-        {/* Link público (solo activo) */}
-        {isActivo && (
-          <button
-            onClick={copy}
-            className={`text-slate-500 hover:text-emerald-400 transition-colors p-1.5 rounded ${copied ? 'text-emerald-400' : ''}`}
-            title="Copiar link público"
-          >
-            {copied ? <CheckCheck size={14} /> : <Link2 size={14} />}
-          </button>
-        )}
-
-        {/* Ver participantes reales (subcolección) */}
-        <button
-          onClick={() => onVerParticipantes(sorteo)}
-          className="text-slate-500 hover:text-emerald-400 transition-colors p-1.5 rounded"
-          title="Ver participantes"
-        >
-          <UsersRound size={14} />
-        </button>
-
-        {/* Ver detalles */}
-        <button
-          onClick={() => onView(sorteo)}
-          className="text-slate-500 hover:text-emerald-400 transition-colors p-1.5 rounded"
-          title="Ver detalles"
-        >
-          <Eye size={14} />
-        </button>
-
-        {/* Kebab menu — cerrar antes de tiempo + eliminar */}
-        <div className="relative" ref={menuRef}>
-          <button
-            onClick={() => setMenuOpen(v => !v)}
-            className="text-slate-500 hover:text-white transition-colors p-1.5 rounded"
-            title="Más acciones"
-            aria-haspopup="menu"
-            aria-expanded={menuOpen}
-          >
-            <MoreVertical size={14} />
-          </button>
-          {menuOpen && (
-            <div
-              role="menu"
-              className="absolute right-0 top-full mt-1 min-w-[180px] bg-slate-900 border border-slate-700 rounded-lg shadow-2xl z-20 overflow-hidden"
-            >
-              {isActivo && (
-                <button
-                  role="menuitem"
-                  onClick={() => { setMenuOpen(false); onCerrarAhora(sorteo); }}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-200 hover:bg-slate-800 transition-colors text-left"
-                >
-                  <CircleX size={13} className="text-amber-400" />
-                  Cerrar ahora
-                </button>
-              )}
-              <button
-                role="menuitem"
-                onClick={() => { setMenuOpen(false); onEliminar(sorteo); }}
-                className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-400 hover:bg-red-500/10 transition-colors text-left"
-              >
-                <Trash2 size={13} />
-                Eliminar sorteo
-              </button>
-            </div>
-          )}
-        </div>
       </div>
 
-      {/* Botón "Elegir ganador" en mobile (full-width abajo) */}
-      {cerrado && (
-        <button
-          onClick={() => onElegirGanador(sorteo)}
-          className="sm:hidden w-full mt-1 inline-flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg text-xs font-bold bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 border border-emerald-500/30 transition-all"
-        >
-          <Sparkles size={13} /> Elegir ganador
-        </button>
-      )}
-    </div>
-
-    {/* Barra de progreso del sorteo — activo: proporción del tiempo transcurrido; finalizado: 100%. */}
-    <div className="h-1 bg-slate-800/80">
-      <div
-        className={`h-full transition-all duration-500 ${isActivo ? 'bg-emerald-500' : 'bg-slate-600'}`}
-        style={{ width: `${progress}%` }}
-        aria-hidden="true"
-      />
-    </div>
+      {/* Barra de progreso interna — sutil, alineada al borde inferior de la tarjeta */}
+      <div className="absolute left-0 right-0 bottom-0 h-0.5 bg-slate-800/60">
+        <div
+          className={`h-full transition-all duration-500 ${isActivo ? 'bg-gradient-to-r from-emerald-500 to-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.6)]' : 'bg-slate-600'}`}
+          style={{ width: `${progress}%` }}
+          aria-hidden="true"
+        />
+      </div>
     </div>
   );
 }
@@ -1571,43 +1581,55 @@ export default function Sorteos() {
         </button>
       </div>
 
-      {/* KPIs */}
+      {/* KPIs — glassmorphism con acento verde neón en la tarjeta principal */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {[
-          { label: 'Sorteos activos',       value: stats.activos,       icon: Trophy,        color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
-          { label: 'Total participantes',   value: stats.participantes, icon: Users,         color: 'text-amber-400',   bg: 'bg-amber-500/10'   },
-          { label: 'Sorteos finalizados',   value: stats.finalizados,   icon: PartyPopper,   color: 'text-slate-400',   bg: 'bg-slate-500/10'   },
-        ].map(({ label, value, icon: Icon, color, bg }) => (
-          <div key={label} className="bg-slate-900 border border-slate-800 rounded-xl p-4">
-            <div className={`${bg} rounded-xl p-2.5 w-fit mb-3`}>
+          { label: 'Sorteos activos',     value: stats.activos,       icon: Trophy,      color: 'text-emerald-400', bg: 'bg-emerald-500/10', primary: true  },
+          { label: 'Total participantes', value: stats.participantes, icon: Users,       color: 'text-amber-400',   bg: 'bg-amber-500/10',   primary: false },
+          { label: 'Sorteos finalizados', value: stats.finalizados,   icon: PartyPopper, color: 'text-slate-400',   bg: 'bg-slate-500/10',   primary: false },
+        ].map(({ label, value, icon: Icon, color, bg, primary }) => (
+          <div
+            key={label}
+            className={`bg-slate-900/50 backdrop-blur-md border rounded-2xl p-6 transition-all ${
+              primary
+                ? 'border-emerald-900/50 shadow-[0_0_30px_-10px_rgba(16,185,129,0.3)]'
+                : 'border-slate-800'
+            }`}
+          >
+            <div className={`${bg} rounded-xl p-2.5 w-fit`}>
               <Icon size={16} className={color} />
             </div>
-            <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{label}</p>
-            <p className="text-lg font-bold text-white mt-0.5">{value}</p>
+            <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500 mt-4">{label}</p>
+            <p className="text-4xl md:text-5xl font-black text-white tracking-tight mt-2">{value}</p>
           </div>
         ))}
       </div>
 
-      {/* Filtros */}
-      <div className="flex flex-wrap gap-3 items-center">
-        <div className="flex gap-1 bg-slate-900 border border-slate-800 rounded-lg p-1">
+      {/* Toolbar — segmented control iOS-style + input minimalista */}
+      <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center w-full">
+        {/* Segmented control */}
+        <div className="flex gap-1 bg-slate-900/80 border border-slate-800 rounded-xl p-1.5 shrink-0">
           {[
             { id: 'todas',      label: 'Todas'      },
             { id: 'activo',     label: 'Activo'     },
             { id: 'finalizado', label: 'Finalizado' },
           ].map(t => (
-            <button key={t.id} onClick={() => setFilter(t.id)}
-              className={`px-3 py-1.5 rounded-md text-xs transition-all ${
+            <button
+              key={t.id}
+              onClick={() => setFilter(t.id)}
+              className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 filter === t.id
-                  ? 'bg-slate-700 text-white font-medium shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-white/5 font-medium'
-              }`}>
+                  ? 'bg-slate-700/80 text-white shadow-sm'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
               {t.label}
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-2 flex-1 min-w-[160px] bg-slate-900 border border-slate-800 rounded-lg px-3 py-2">
-          <Search size={13} className="text-slate-500 shrink-0" />
+        {/* Search */}
+        <div className="flex items-center gap-2 flex-1 min-w-[160px] bg-slate-900/50 border border-slate-800 rounded-xl px-3 py-2 focus-within:ring-1 focus-within:ring-emerald-500 focus-within:border-emerald-500/50 transition-all">
+          <Search size={14} className="text-slate-500 shrink-0" />
           <input
             type="text" value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Buscar por nombre del sorteo..."
