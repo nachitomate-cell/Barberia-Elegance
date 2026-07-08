@@ -157,7 +157,8 @@ function ProductCard({ producto, onEdit, onDelete, isDeluxe }) {
   }
 
   return (
-    <div className={`bg-slate-900 border rounded-xl overflow-hidden hover:border-slate-600 transition-all group relative ${producto.activo === false ? 'border-slate-800 opacity-60' : 'border-slate-800'}`}>
+    <div className={`bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-lg transition-transform hover:-translate-y-1 group relative ${producto.activo === false ? 'opacity-60' : ''}`}>
+      {/* Badges flotantes */}
       <div className="absolute top-2 left-2 z-10 flex flex-col gap-1.5">
         {producto.activo === false && (
           <div className="flex items-center gap-1 bg-slate-800/90 border border-slate-700 rounded-full px-2 py-0.5 w-max">
@@ -172,16 +173,20 @@ function ProductCard({ producto, onEdit, onDelete, isDeluxe }) {
           </div>
         )}
       </div>
-      <div className="aspect-[3/4] bg-slate-800 flex items-center justify-center overflow-hidden">
+
+      {/* Escaparate: fondo claro para que la imagen se integre bien */}
+      <div className="bg-white/95 aspect-square p-4 flex items-center justify-center relative">
         {producto.imagen
-          ? <img src={producto.imagen} alt={producto.nombre} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-          : <ImageOff size={28} className="text-slate-600" />}
+          ? <img src={producto.imagen} alt={producto.nombre} className="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform duration-300" />
+          : <ImageOff size={28} className="text-slate-400" />}
       </div>
-      <div className="p-3">
-        <h3 className="font-semibold text-white text-sm leading-tight line-clamp-2">{producto.nombre}</h3>
+
+      {/* Info */}
+      <div className="p-4 bg-slate-900">
+        <h3 className="font-semibold text-white text-sm leading-tight line-clamp-2 min-h-[2.5rem]">{producto.nombre}</h3>
         <div className="flex items-baseline gap-2 mt-2">
           {producto.precio ? (
-            <span className="text-emerald-400 font-bold text-sm">${Number(producto.precio).toLocaleString('es-CL')}</span>
+            <span className="text-lg font-bold text-emerald-400">${Number(producto.precio).toLocaleString('es-CL')}</span>
           ) : (
             <span className="text-slate-500 text-xs italic">Consultar</span>
           )}
@@ -192,14 +197,14 @@ function ProductCard({ producto, onEdit, onDelete, isDeluxe }) {
             <span className="text-[10px] font-bold bg-red-500/15 border border-red-500/30 text-red-400 rounded-full px-1.5 py-0.5">-{off}%</span>
           )}
         </div>
-        <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full border mt-1 inline-block ${
-          isCriticalStock
-            ? 'text-amber-400 border-amber-500/40 bg-amber-500/5'
-            : (producto.stock || 0) > 0
-              ? 'text-slate-500 border-slate-700'
-              : 'text-red-400 border-red-500/30 bg-red-500/5'
-        }`}>Stock: {producto.stock ?? '—'} {isCriticalStock && `(Min: ${producto.stockMinimo})`}</span>
-        <div className="flex gap-2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+        {(producto.stock !== undefined && producto.stock !== null && producto.stock !== '') && (
+          <span className={`mt-2 inline-block bg-slate-800 text-slate-300 text-xs px-2 py-1 rounded-md border border-slate-700 ${
+            isCriticalStock ? 'text-amber-400 border-amber-500/50' : Number(producto.stock) === 0 ? 'text-red-400 border-red-500/40' : ''
+          }`}>
+            Stock: {producto.stock}{isCriticalStock && ` · min ${producto.stockMinimo}`}
+          </span>
+        )}
+        <div className="flex gap-2 mt-3 opacity-0 group-hover:opacity-100 transition-opacity">
           <button onClick={() => onEdit(producto)} className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 hover:bg-blue-500/20 rounded-lg text-xs font-semibold transition-colors">
             <Edit2 size={11} /> Editar
           </button>
@@ -910,16 +915,16 @@ export default function Productos() {
       )}
 
       {/* ── Reservas Pendientes ─────────────────────────────────── */}
-      <div className="mt-10">
-        <div className="flex items-center gap-2 mb-4">
-          <Clock size={16} className="text-amber-400" />
-          <h2 className="text-sm font-bold text-white uppercase tracking-wide">Reservas Pendientes</h2>
+      <div className="bg-slate-900/40 backdrop-blur-sm border border-slate-800/60 rounded-2xl p-6 mt-8">
+        <h2 className="text-sm font-bold text-slate-400 tracking-widest uppercase mb-6 flex items-center gap-2">
+          <Clock size={14} className="text-amber-400" />
+          Reservas Pendientes
           {reservas.length > 0 && (
-            <span className="ml-1 bg-amber-500/20 text-amber-400 text-xs font-bold px-2 py-0.5 rounded-full border border-amber-500/30">
+            <span className="ml-1 bg-amber-500/20 text-amber-400 text-xs font-bold px-2 py-0.5 rounded-full border border-amber-500/30 normal-case tracking-normal">
               {reservas.length}
             </span>
           )}
-        </div>
+        </h2>
 
         {reservasLoading ? (
           <div className="flex justify-center py-10">
@@ -1003,18 +1008,18 @@ export default function Productos() {
         const PERIODO_LABELS = { hoy: 'Hoy', semana: 'Esta semana', mes: 'Este mes', todo: 'Todo' };
 
         return (
-          <div className="mt-10">
+          <div className="bg-slate-900/40 backdrop-blur-sm border border-slate-800/60 rounded-2xl p-6 mt-8">
             {/* Cabecera */}
-            <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-              <div className="flex items-center gap-2">
-                <History size={16} className="text-emerald-400" />
-                <h2 className="text-sm font-bold text-white uppercase tracking-wide">Historial de Ventas</h2>
+            <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+              <h2 className="text-sm font-bold text-slate-400 tracking-widest uppercase flex items-center gap-2">
+                <History size={14} className="text-emerald-400" />
+                Historial de Ventas
                 {!ventasLoading && (
-                  <span className="ml-1 bg-slate-800 text-slate-400 text-xs font-bold px-2 py-0.5 rounded-full border border-slate-700">
+                  <span className="ml-1 bg-slate-800 text-slate-400 text-xs font-bold px-2 py-0.5 rounded-full border border-slate-700 normal-case tracking-normal">
                     {ventasFiltradas.length}
                   </span>
                 )}
-              </div>
+              </h2>
 
               {/* Filtros */}
               <div className="flex items-center gap-2 flex-wrap">
@@ -1049,18 +1054,23 @@ export default function Productos() {
 
             {/* KPIs */}
             {!ventasLoading && ventasFiltradas.length > 0 && (
-              <div className="grid grid-cols-3 gap-3 mb-5">
-                <div className="px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl">
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Total vendido</p>
-                  <p className="text-lg font-bold text-emerald-400">${totalMonto.toLocaleString('es-CL')}</p>
+              <div className="grid grid-cols-3 gap-3 mb-6">
+                <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5">
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Total vendido</p>
+                  <p className="text-3xl font-black text-emerald-400 mt-1 drop-shadow-[0_0_8px_rgba(16,185,129,0.3)] tracking-tight break-words">
+                    ${totalMonto.toLocaleString('es-CL')}
+                  </p>
                 </div>
-                <div className="px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl">
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Unidades</p>
-                  <p className="text-lg font-bold text-white">{totalUnidades}</p>
+                <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5">
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Unidades</p>
+                  <p className="text-3xl font-black text-white mt-1 tracking-tight">{totalUnidades}</p>
                 </div>
-                <div className="px-4 py-3 bg-slate-900 border border-slate-800 rounded-xl min-w-0">
-                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide mb-1">Más vendido</p>
-                  <p className="text-sm font-bold text-white truncate">{topProd ? `${topProd[0]} ×${topProd[1]}` : '—'}</p>
+                <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5 min-w-0">
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Más vendido</p>
+                  <p className="text-3xl font-black text-white mt-1 truncate tracking-tight">
+                    {topProd ? topProd[0] : '—'}
+                  </p>
+                  {topProd && <p className="text-xs text-slate-500 mt-1">×{topProd[1]} unidades</p>}
                 </div>
               </div>
             )}
@@ -1076,77 +1086,75 @@ export default function Productos() {
                 Sin ventas en {PERIODO_LABELS[filtroPeriodo].toLowerCase()}{filtroBarberoH ? ` para ${barberos.find(b => b.id === filtroBarberoH)?.nombre || 'este barbero'}` : ''}.
               </div>
             ) : (
-              <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-slate-800">
-                        <th className="text-left px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wide">Fecha</th>
-                        <th className="text-left px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wide">Producto</th>
-                        <th className="text-left px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wide hidden sm:table-cell">Cliente</th>
-                        <th className="text-left px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wide hidden md:table-cell">Barbero</th>
-                        <th className="text-left px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wide hidden md:table-cell">Pago</th>
-                        <th className="text-right px-4 py-2.5 text-[10px] font-bold text-slate-500 uppercase tracking-wide">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-800/60">
-                      {ventasFiltradas.map(v => {
-                        const prod = productos?.find(p => p.id === v.productId);
-                        const fecha = v.fecha || fechaStr(v.createdAt);
-                        const qty   = Number(v.cantidad) || 1;
-                        const isDirecta = v.userEmail === 'admin@barberia.cl';
-                        return (
-                          <tr key={v.id} className="hover:bg-slate-800/40 transition-colors">
-                            <td className="px-4 py-3 text-xs text-slate-400 whitespace-nowrap">{fecha}</td>
-                            <td className="px-4 py-3">
-                              <div className="flex items-center gap-2.5 min-w-0">
-                                {prod?.imagen
-                                  ? <img src={prod.imagen} alt="" className="w-7 h-7 rounded-md object-cover shrink-0 border border-slate-700" />
-                                  : <div className="w-7 h-7 rounded-md bg-slate-800 border border-slate-700 flex items-center justify-center shrink-0"><Package size={12} className="text-slate-600" /></div>
-                                }
-                                <div className="min-w-0">
-                                  <p className="text-sm font-medium text-white truncate">{v.productName || '—'}</p>
-                                  {qty > 1 && <p className="text-[10px] text-slate-500">×{qty} unidades</p>}
-                                </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr>
+                      <th className="text-left px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider pb-4 border-b border-slate-800">Fecha</th>
+                      <th className="text-left px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider pb-4 border-b border-slate-800">Producto</th>
+                      <th className="text-left px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider pb-4 border-b border-slate-800 hidden sm:table-cell">Cliente</th>
+                      <th className="text-left px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider pb-4 border-b border-slate-800 hidden md:table-cell">Barbero</th>
+                      <th className="text-left px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider pb-4 border-b border-slate-800 hidden md:table-cell">Pago</th>
+                      <th className="text-right px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider pb-4 border-b border-slate-800">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {ventasFiltradas.map(v => {
+                      const prod = productos?.find(p => p.id === v.productId);
+                      const fecha = v.fecha || fechaStr(v.createdAt);
+                      const qty   = Number(v.cantidad) || 1;
+                      const isDirecta = v.userEmail === 'admin@barberia.cl';
+                      return (
+                        <tr key={v.id} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
+                          <td className="px-4 py-3 text-xs text-slate-400 whitespace-nowrap">{fecha}</td>
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              {prod?.imagen
+                                ? <img src={prod.imagen} alt="" className="w-7 h-7 rounded-md object-cover shrink-0 border border-slate-700" />
+                                : <div className="w-7 h-7 rounded-md bg-slate-800 border border-slate-700 flex items-center justify-center shrink-0"><Package size={12} className="text-slate-600" /></div>
+                              }
+                              <div className="min-w-0">
+                                <p className="text-sm font-medium text-white truncate">{v.productName || '—'}</p>
+                                {qty > 1 && <p className="text-[10px] text-slate-500">×{qty} unidades</p>}
                               </div>
-                            </td>
-                            <td className="px-4 py-3 hidden sm:table-cell">
-                              <div className="flex items-center gap-1.5">
-                                <User size={11} className="text-slate-600 shrink-0" />
-                                <span className="text-xs text-slate-400 truncate max-w-[120px]">
-                                  {isDirecta ? 'Venta directa' : (v.userName || '—')}
-                                </span>
-                              </div>
-                            </td>
-                            <td className="px-4 py-3 hidden md:table-cell">
-                              <span className="text-xs text-slate-400">{v.barberoNombre || '—'}</span>
-                            </td>
-                            <td className="px-4 py-3 hidden md:table-cell">
-                              {v.metodoPago ? (
-                                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border border-slate-700 text-slate-400">
-                                  <CreditCard size={9} />{v.metodoPago}
-                                </span>
-                              ) : <span className="text-xs text-slate-600">—</span>}
-                            </td>
-                            <td className="px-4 py-3 text-right">
-                              <span className="text-sm font-bold text-emerald-400 whitespace-nowrap">
-                                ${(Number(v.precio) || 0).toLocaleString('es-CL')}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 hidden sm:table-cell">
+                            <div className="flex items-center gap-1.5">
+                              <User size={11} className="text-slate-600 shrink-0" />
+                              <span className="text-xs text-slate-400 truncate max-w-[120px]">
+                                {isDirecta ? 'Venta directa' : (v.userName || '—')}
                               </span>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                    {ventasFiltradas.length > 1 && (
-                      <tfoot>
-                        <tr className="border-t border-slate-700">
-                          <td colSpan={5} className="px-4 py-2.5 text-xs font-bold text-slate-400 uppercase tracking-wide">Total</td>
-                          <td className="px-4 py-2.5 text-right text-sm font-bold text-emerald-400">${totalMonto.toLocaleString('es-CL')}</td>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 hidden md:table-cell">
+                            <span className="text-xs text-slate-400">{v.barberoNombre || '—'}</span>
+                          </td>
+                          <td className="px-4 py-3 hidden md:table-cell">
+                            {v.metodoPago ? (
+                              <span className="inline-flex items-center gap-1 bg-slate-800 text-slate-300 border border-slate-700 rounded-md px-2 py-1 text-xs">
+                                <CreditCard size={9} />{v.metodoPago}
+                              </span>
+                            ) : <span className="text-xs text-slate-600">—</span>}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <span className="font-medium text-emerald-400 whitespace-nowrap">
+                              ${(Number(v.precio) || 0).toLocaleString('es-CL')}
+                            </span>
+                          </td>
                         </tr>
-                      </tfoot>
-                    )}
-                  </table>
-                </div>
+                      );
+                    })}
+                  </tbody>
+                  {ventasFiltradas.length > 1 && (
+                    <tfoot>
+                      <tr className="border-t border-slate-700">
+                        <td colSpan={5} className="px-4 pt-4 text-xs font-bold text-slate-400 uppercase tracking-wide">Total</td>
+                        <td className="px-4 pt-4 text-right font-medium text-emerald-400">${totalMonto.toLocaleString('es-CL')}</td>
+                      </tr>
+                    </tfoot>
+                  )}
+                </table>
               </div>
             )}
           </div>
