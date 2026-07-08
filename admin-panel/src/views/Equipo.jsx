@@ -5,7 +5,7 @@ import {
   Upload, ChevronDown, Plus, X, Phone, Mail, Percent, Scissors,
   CalendarOff, Clock, Check, KeyRound, Link2, Copy, GripVertical,
   Users, Printer, Wallet, ArrowDownCircle, AlertTriangle, CheckCircle2, DollarSign,
-  Sparkles, Loader2,
+  Sparkles, Loader2, Lock, Globe,
 } from 'lucide-react';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { updateDoc, addDoc, deleteDoc, doc, serverTimestamp, deleteField, writeBatch, Timestamp, query, where, getDocs } from 'firebase/firestore';
@@ -53,6 +53,49 @@ function barberPublicUrl(nombre) {
   const tid    = resolveTenantId();
   const domain = TENANT_DOMAINS[tid] ?? window.location.hostname;
   return `https://${domain}/${slugify(nombre)}`;
+}
+
+// Link a la agenda personal del barbero (privada, requiere login).
+// Es el mismo /agenda.html para todos — la auth determina qué citas ve.
+function barberPersonalUrl() {
+  const tid    = resolveTenantId();
+  const domain = TENANT_DOMAINS[tid] ?? window.location.hostname;
+  return `https://${domain}/agenda.html`;
+}
+
+/* ─── PersonalAgendaButton ───────────────────────────────────
+ * Link a la agenda PRIVADA del barbero (/agenda.html). El barbero
+ * inicia sesión con su cuenta y ve solo sus citas. Es el link que
+ * el admin le pasa por WhatsApp para que lo instale como PWA.
+ */
+function PersonalAgendaButton() {
+  const [copied, setCopied] = useState(false);
+  const url = barberPersonalUrl();
+
+  function copyUrl(e) {
+    e.stopPropagation();
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  return (
+    <div
+      className="group w-full flex items-center gap-2 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 hover:border-slate-600 transition-colors"
+      title={url}>
+      <a href={url} target="_blank" rel="noopener noreferrer"
+        className="flex-1 flex items-center gap-1.5 text-slate-400 hover:text-slate-200 text-sm truncate transition-colors">
+        <Lock size={12} className="text-indigo-400 shrink-0" />
+        <span className="truncate">/agenda.html</span>
+      </a>
+      <button onClick={copyUrl}
+        className="shrink-0 text-slate-500 group-hover:text-slate-300 hover:!text-white transition-colors"
+        title="Copiar enlace de agenda personal">
+        {copied ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+      </button>
+    </div>
+  );
 }
 
 const DIAS_LABELS = { '1':'Lunes','2':'Martes','3':'Miércoles','4':'Jueves','5':'Viernes','6':'Sábado','0':'Domingo' };
@@ -432,8 +475,50 @@ function BarberCard({ barber, onEdit, waUrl, onVerAgenda, sucursales = [], dragH
         </button>
       )}
 
+      {/* ── Sección: Links del barbero ─────────────────────────────
+          Dos links con propósitos MUY distintos que antes se confundían:
+          1) Agenda personal PRIVADA (/agenda.html) — para el barbero
+          2) Página pública de reserva (/{slug}) — para los clientes */}
       {!isSupportAdmin && barber.nombre && (
-        <BookingUrlButton nombre={barber.nombre} />
+        <div className="w-full mt-1 space-y-4">
+          {/* PRIVADO: Agenda personal del barbero */}
+          <div className="w-full space-y-2 bg-indigo-500/[0.04] border border-indigo-500/15 rounded-xl p-3">
+            <div className="flex items-start gap-2">
+              <div className="p-1.5 rounded-lg bg-indigo-500/15 border border-indigo-500/25 shrink-0 mt-0.5">
+                <Lock size={11} className="text-indigo-300" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] font-bold uppercase tracking-widest text-indigo-300 leading-tight">
+                  Agenda personal (privada)
+                </p>
+                <p className="text-[10.5px] text-slate-400 mt-1 leading-snug">
+                  Este link se lo pasas <strong className="text-slate-200">al barbero</strong>.
+                  Es su vista privada para gestionar sus citas del día — inicia sesión con su cuenta y solo ve las suyas.
+                </p>
+              </div>
+            </div>
+            <PersonalAgendaButton />
+          </div>
+
+          {/* PÚBLICO: Página de reserva del barbero */}
+          <div className="w-full space-y-2 bg-emerald-500/[0.04] border border-emerald-500/15 rounded-xl p-3">
+            <div className="flex items-start gap-2">
+              <div className="p-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/25 shrink-0 mt-0.5">
+                <Globe size={11} className="text-emerald-300" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] font-bold uppercase tracking-widest text-emerald-300 leading-tight">
+                  Página pública de reserva
+                </p>
+                <p className="text-[10.5px] text-slate-400 mt-1 leading-snug">
+                  Este link es <strong className="text-slate-200">para tus clientes</strong>.
+                  Al abrirlo, verán la lista de servicios y horarios de {barber.nombre?.split(' ')[0] || 'este barbero'} y pueden reservar con él directo.
+                </p>
+              </div>
+            </div>
+            <BookingUrlButton nombre={barber.nombre} />
+          </div>
+        </div>
       )}
 
       {!isSupportAdmin && tenant && (
