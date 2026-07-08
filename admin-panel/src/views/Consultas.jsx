@@ -1,5 +1,8 @@
 import { useState, useMemo } from 'react';
-import { HelpCircle, ChevronDown, Search, MessageCircle, LifeBuoy } from 'lucide-react';
+import {
+  HelpCircle, ChevronDown, Search, MessageCircle, LifeBuoy,
+  GraduationCap, Sparkles, TrendingUp, Users, Wallet, Bell, Lock,
+} from 'lucide-react';
 
 // Número de soporte de SynapTech (mismo que aparece en Soporte y en /agenda.html).
 const WA_NUMERO = '56983568212';
@@ -49,54 +52,98 @@ const FAQS = [
     cat: 'Ventas, métricas y contabilidad',
     items: [
       {
-        q: '¿Dónde veo cuántos clientes atendí y cuánto vendí en el mes?',
-        a: 'En Métricas ves el resumen del mes (clientes y ventas). En Caja y Comisiones tienes el detalle por servicio, por barbero y por forma de pago.',
+        q: '¿Dónde veo los ingresos y las métricas del local?',
+        a: 'En Métricas están los ingresos, gastos, utilidad neta y las principales KPIs de tu negocio. Puedes filtrar por período (30 días, mes, año o rango custom) para comparar y decidir con datos.',
       },
       {
-        q: '¿Puedo exportar los datos para mi contador?',
-        a: 'Sí. En Comisiones y en Caja puedes exportar el detalle del período para cuadrar con tu contador o tu declaración.',
+        q: '¿Cómo registro un gasto o una compra?',
+        a: 'En Gastos agregas cada egreso con categoría y método de pago. Estos gastos se restan de tu utilidad neta en Métricas para darte el número real.',
       },
       {
-        q: '¿El sistema emite las boletas del SII?',
-        a: 'El panel te entrega el resumen de ventas del mes para cuadrar, pero la boleta electrónica la emite un facturador aparte (manual desde tu facturador, o automático si se integra uno). El SII pide una boleta por cada venta, no una sola por todo el mes.',
-      },
-    ],
-  },
-  {
-    cat: 'Página pública y reservas online',
-    items: [
-      {
-        q: '¿Cómo comparto mi link de reserva?',
-        a: 'Abajo en el menú está el botón "Ver agenda pública": ese es tu link para reservar. Cópialo y compártelo por WhatsApp, Instagram o donde quieras.',
-      },
-      {
-        q: '¿Cómo funciona la política de cancelación?',
-        a: 'En Configuración defines con cuánta anticipación mínima un cliente puede cancelar o reagendar. Con "Sin límite" pueden hacerlo en cualquier momento.',
+        q: '¿Cómo calculo la comisión de un barbero?',
+        a: 'En Equipo → tab Sueldos, elige el barbero y el período. Verás automáticamente el bruto de servicios y productos, la comisión que le corresponde, sueldo base y propinas. Puedes imprimir el reporte para respaldo.',
       },
     ],
   },
   {
-    cat: 'Cuenta y diseño',
+    cat: 'Club de fidelidad',
     items: [
       {
-        q: '¿Cómo pago mi mensualidad?',
-        a: 'En Mensualidad ves tu estado de pago, el monto y la fecha. Si tienes un pago próximo o atrasado, el sistema te avisa con un banner.',
+        q: '¿Cómo funciona el club y los sellos?',
+        a: 'Los clientes acumulan sellos por cada visita completada. Al juntar suficientes, canjean un premio (producto, servicio gratis o descuento). Tú configuras los premios y el costo en sellos desde Fidelización.',
       },
       {
-        q: '¿Puedo cambiar el diseño de la agenda por mi cuenta?',
-        a: 'El día a día (tu info, logo, horarios, servicios, precios, política de cancelación) lo cambias tú desde el panel. El diseño y la estructura de la agenda (cómo se ve, agregar o quitar módulos, colores) lo hace el equipo de SynapTech: nos lo pides por WhatsApp y lo dejamos andando, así nadie rompe la agenda sin querer.',
+        q: '¿Cómo apruebo un canje del cliente?',
+        a: 'El cliente genera un PIN de 4 dígitos en su app. Ve a Fidelización → Validar Canje, ingresa el PIN y confirma la entrega. El sistema descuenta sellos y actualiza stock automáticamente.',
+      },
+    ],
+  },
+  {
+    cat: 'Configuración y pagos',
+    items: [
+      {
+        q: '¿Cómo cambio el logo o los datos del local?',
+        a: 'Ve a Configuración. Ahí ajustas nombre, dirección, teléfono, logo, redes sociales y todo lo que aparece en tu página pública de reservas.',
       },
       {
-        q: '¿Cómo activo las notificaciones en el celular?',
-        a: 'Instala el panel como app (PWA) desde el aviso que aparece en pantalla y acepta las notificaciones. Así te llegan avisos de nuevas reservas y recordatorios directo al celular.',
+        q: '¿Cómo activo el cobro con Mercado Pago o Flow?',
+        a: 'En Recibir Pagos conectas tu cuenta de MP o Flow con OAuth. Una vez conectado, los clientes pueden pagar la reserva online (paga anticipo o total según lo configures).',
       },
     ],
   },
 ];
 
+/* ── Módulo Academia: previews de lecciones que estamos preparando ─── */
+const LECCIONES_PROXIMAS = [
+  {
+    Icon: Users,
+    titulo: 'Convierte el 40% de tus reservas nuevas en clientes recurrentes',
+    duracion: '3 min',
+    color: 'emerald',
+    hint: 'El script exacto post-primera-visita que sube retención',
+  },
+  {
+    Icon: TrendingUp,
+    titulo: 'Los 3 KPIs que separan una barbería rentable de una que apenas sobrevive',
+    duracion: '4 min',
+    color: 'amber',
+    hint: 'Ticket promedio · Ocupación · Punto de equilibrio',
+  },
+  {
+    Icon: MessageCircle,
+    titulo: 'El WhatsApp que rescata clientes que llevan 30d sin visita',
+    duracion: '2 min',
+    color: 'blue',
+    hint: 'Con templates listos para copiar y pegar',
+  },
+  {
+    Icon: Bell,
+    titulo: 'Sellos, rangos y premios: cómo diseñar un club que la gente use',
+    duracion: '5 min',
+    color: 'purple',
+    hint: 'Errores típicos + qué copiar de los mejores clubes',
+  },
+  {
+    Icon: Wallet,
+    titulo: 'Corta gastos ocultos: la lectura mensual de Métricas paso a paso',
+    duracion: '4 min',
+    color: 'rose',
+    hint: 'Los 6 números que revisas el 1° de cada mes',
+  },
+];
+
+const LECCION_COLOR = {
+  emerald: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
+  amber:   'bg-amber-500/10 text-amber-400 border-amber-500/25',
+  blue:    'bg-blue-500/10 text-blue-400 border-blue-500/20',
+  purple:  'bg-purple-500/10 text-purple-400 border-purple-500/25',
+  rose:    'bg-rose-500/10 text-rose-400 border-rose-500/20',
+};
+
+/* Item colapsable de FAQ. */
 function FaqItem({ q, a, open, onToggle }) {
   return (
-    <div className="border border-slate-800 rounded-xl overflow-hidden bg-slate-900">
+    <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
       <button
         onClick={onToggle}
         className="w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-slate-800/40 transition-colors"
@@ -116,7 +163,8 @@ function FaqItem({ q, a, open, onToggle }) {
   );
 }
 
-export default function Consultas() {
+/* Tab 1: FAQs. */
+function TabFAQs() {
   const [openKey, setOpenKey] = useState(null);
   const [search,  setSearch]  = useState('');
 
@@ -135,23 +183,10 @@ export default function Consultas() {
   }, [term]);
 
   const sinResultados = grupos.length === 0;
-
   const waLink = `https://wa.me/${WA_NUMERO}?text=${encodeURIComponent('Hola SynapTech, tengo una consulta sobre el panel:')}`;
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6 pb-10">
-
-      {/* Header */}
-      <div>
-        <h1 className="text-xl font-bold text-white flex items-center gap-2">
-          <HelpCircle size={20} className="text-emerald-400" />
-          Consultas
-        </h1>
-        <p className="text-sm text-slate-500 mt-0.5">
-          Las dudas más comunes y cómo resolverlas. Si no encuentras lo que buscas, escríbenos.
-        </p>
-      </div>
-
+    <div className="space-y-6">
       {/* Buscador */}
       <div className="relative">
         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
@@ -210,7 +245,144 @@ export default function Consultas() {
           Contactar por WhatsApp
         </a>
       </div>
+    </div>
+  );
+}
 
+/* Tab 2: Academia (placeholder ingenioso). */
+function TabAcademia() {
+  const waLink = `https://wa.me/${WA_NUMERO}?text=${encodeURIComponent('Hola SynapTech, quiero que me avisen cuando la Academia esté lista.')}`;
+
+  return (
+    <div className="space-y-6">
+      {/* Hero */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-amber-500/10 via-rose-500/10 to-purple-500/10 border border-amber-500/25 rounded-2xl p-6 sm:p-8">
+        {/* Decoración: sparkles flotantes */}
+        <Sparkles size={14} className="absolute top-6 right-8 text-amber-300/60 animate-sparkle-pop" />
+        <Sparkles size={10} className="absolute bottom-8 right-14 text-rose-300/50 animate-sparkle-pop [animation-delay:0.6s]" />
+        <Sparkles size={12} className="absolute top-14 right-24 text-yellow-200/50 animate-sparkle-pop [animation-delay:1.2s]" />
+
+        <div className="flex items-start gap-3 mb-3">
+          <div className="p-2.5 rounded-xl bg-gradient-to-br from-amber-500/25 to-rose-500/20 border border-amber-500/30 shrink-0">
+            <GraduationCap size={22} className="text-amber-300 animate-trophy-glow" />
+          </div>
+          <div className="min-w-0">
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-400 bg-amber-500/15 border border-amber-500/25 px-2 py-0.5 rounded-full uppercase tracking-wider mb-1.5">
+              <Lock size={9} /> En construcción · próximamente
+            </span>
+            <h2 className="text-xl sm:text-2xl font-black text-white leading-tight">
+              Academia SynapTech
+            </h2>
+          </div>
+        </div>
+
+        <p className="text-sm sm:text-[15px] text-slate-300 leading-relaxed max-w-2xl">
+          Estamos empaquetando el <strong className="text-white">know-how de las barberías que más facturan</strong> en
+          lecciones cortas de 2–5 minutos: agenda, retención, marketing y finanzas.
+          Todo aplicable el mismo día que lo ves.
+        </p>
+        <p className="text-xs text-slate-400 mt-3">
+          Sin cursos eternos ni teoría. Solo tácticas concretas, con guiones listos para copiar y ejemplos reales.
+        </p>
+      </div>
+
+      {/* Preview de lecciones */}
+      <div>
+        <div className="flex items-center gap-2 mb-3 px-1">
+          <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">Lo que va a estar disponible</span>
+          <div className="flex-1 h-px bg-slate-800" />
+        </div>
+        <div className="space-y-2.5">
+          {LECCIONES_PROXIMAS.map((l, i) => (
+            <div key={i} className="bg-slate-900 border border-slate-800 rounded-xl p-4 hover:border-slate-700 transition-colors">
+              <div className="flex items-start gap-3">
+                <div className={`p-2 rounded-lg border shrink-0 ${LECCION_COLOR[l.color]}`}>
+                  <l.Icon size={16} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                      Lección {i + 1}
+                    </span>
+                    <span className="text-[10px] text-slate-600">·</span>
+                    <span className="text-[10px] text-slate-500">{l.duracion}</span>
+                  </div>
+                  <p className="text-sm font-bold text-white leading-tight">{l.titulo}</p>
+                  <p className="text-xs text-slate-500 mt-1 leading-snug">{l.hint}</p>
+                </div>
+                <span className="hidden sm:inline text-[10px] text-slate-600 shrink-0 mt-1">Próximamente</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* CTA: avísame */}
+      <div className="bg-gradient-to-br from-amber-500/10 to-rose-500/10 border border-amber-500/25 rounded-xl px-5 py-6 text-center">
+        <Bell size={22} className="mx-auto text-amber-300 mb-2" />
+        <h3 className="text-sm font-bold text-white">¿Quieres ser el primero en verla?</h3>
+        <p className="text-xs text-slate-400 mt-1 mb-4">
+          Te avisamos por WhatsApp apenas la primera tanda de lecciones esté lista.
+        </p>
+        <a
+          href={waLink}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-400 hover:to-rose-400 text-white text-sm font-bold rounded-lg transition-all active:scale-[0.98] shadow-lg shadow-amber-500/20"
+        >
+          <MessageCircle size={16} />
+          Avísame cuando esté lista
+        </a>
+      </div>
+    </div>
+  );
+}
+
+const TABS = [
+  { key: 'faqs',     label: 'Preguntas frecuentes', Icon: HelpCircle    },
+  { key: 'academia', label: 'Academia',             Icon: GraduationCap },
+];
+
+export default function Consultas() {
+  const [tab, setTab] = useState('faqs');
+
+  return (
+    <div className="max-w-2xl mx-auto space-y-6 pb-10">
+      {/* Header */}
+      <div>
+        <h1 className="text-xl font-bold text-white flex items-center gap-2">
+          <HelpCircle size={20} className="text-emerald-400" />
+          Consultas
+        </h1>
+        <p className="text-sm text-slate-500 mt-0.5">
+          Resuelve dudas rápidas o aprende a exprimirle el máximo a tu panel.
+        </p>
+      </div>
+
+      {/* Toolbar de tabs */}
+      <div className="flex flex-wrap gap-1 border-b border-slate-800">
+        {TABS.map(t => {
+          const active = tab === t.key;
+          return (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={`flex items-center gap-2 px-3 md:px-4 py-2.5 text-sm font-semibold transition-all border-b-2 -mb-px ${
+                active
+                  ? 'text-emerald-400 border-emerald-400'
+                  : 'text-slate-500 border-transparent hover:text-slate-300'
+              }`}
+            >
+              <t.Icon size={14} />
+              <span>{t.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Contenido */}
+      {tab === 'faqs'     && <TabFAQs />}
+      {tab === 'academia' && <TabAcademia />}
     </div>
   );
 }
