@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import {
   Monitor, ExternalLink, Save, Check, ChevronRight,
   AlertCircle, Eye, Palette, Images, Users, Megaphone, ShoppingBag, QrCode,
-  ImagePlus, Trash2, Upload, Music, Cable, Wifi, X,
+  ImagePlus, Trash2, Upload, Music, Cable, Wifi, X, RotateCcw, Sparkles,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { getDoc, setDoc, getDocs, query, where, doc, deleteDoc } from 'firebase/firestore';
@@ -684,6 +684,57 @@ function TVSimulator({ config, bgUrl, tenantId }) {
 
 // ── Componente principal ──────────────────────────────────────────
 
+// ── Presets de "look" para la TV ──────────────────────────────────
+// Cada preset es un overlay parcial que se mergea sobre el config actual.
+// Toca solo campos de estilo/layout — nunca oferta, media, ni slidesActivos.
+const LOOK_PRESETS = [
+  {
+    id: 'minimalista',
+    label: 'Minimalista',
+    desc: 'Solo lo esencial. Sin header, sin marquesina, listado compacto.',
+    accent: '#e2e8f0',
+    patch: {
+      hideHeader:  true,
+      hideTicker:  true,
+      cardsFondo:  false,
+      rawVideoBg:  false,
+      sidebarSize: 'sm',
+      headerSize:  'sm',
+      qr: { color: '#e2e8f0' },
+    },
+  },
+  {
+    id: 'neon',
+    label: 'Neón',
+    desc: 'Colores vibrantes, video crudo, tarjetas con fondo destacado.',
+    accent: '#10b981',
+    patch: {
+      hideHeader:  false,
+      hideTicker:  false,
+      cardsFondo:  true,
+      rawVideoBg:  true,
+      sidebarSize: 'md',
+      headerSize:  'md',
+      qr: { color: '#10b981' },
+    },
+  },
+  {
+    id: 'clasico',
+    label: 'Clásico barbería',
+    desc: 'Dorado tradicional, todo visible, apto para local premium.',
+    accent: '#D4AF37',
+    patch: {
+      hideHeader:  false,
+      hideTicker:  false,
+      cardsFondo:  false,
+      rawVideoBg:  false,
+      sidebarSize: 'md',
+      headerSize:  'md',
+      qr: { color: '#D4AF37' },
+    },
+  },
+];
+
 // Tabs para organizar la vista (evita el scroll infinito de 10 cards seguidas)
 const TABS = [
   { key: 'contenido',  label: 'Contenido',  desc: 'Fondo y slides' },
@@ -704,6 +755,10 @@ export default function TVConfig() {
   // parte en YouTube, si no en Local. El usuario puede cambiar libremente
   // sin perder data (los 2 fields coexisten en Firestore).
   const [mediaMode, setMediaMode] = useState('local');
+  // Snapshot del ultimo config guardado (o del cargado inicial). Se usa para
+  // el boton "Descartar cambios" — resetea todo lo que se toco desde el
+  // ultimo save. Se actualiza en el load inicial y en cada handleSave exitoso.
+  const [savedConfig, setSavedConfig] = useState(CONFIG_DEFAULT);
   const [loading,       setLoading]       = useState(true);
   const [saving,        setSaving]        = useState(false);
   const [saved,         setSaved]         = useState(false);
@@ -742,7 +797,7 @@ export default function TVConfig() {
       .then(snap => {
         if (snap.exists()) {
           const d = snap.data();
-          setConfig({
+          const loaded = {
             oferta:        { ...OFERTA_DEFAULT, ...(d.oferta || {}) },
             duracionSlide: d.duracionSlide ?? 15,
             slidesActivos: { oferta: true, lookbook: true, equipo: true, productos: true, ...(d.slidesActivos || {}) },
@@ -757,7 +812,9 @@ export default function TVConfig() {
             headerSize:    d.headerSize || 'md',
             hideTicker:    d.hideTicker === true,
             cardsFondo:    d.cardsFondo === true,
-          });
+          };
+          setConfig(loaded);
+          setSavedConfig(loaded); // snapshot inicial para "Descartar cambios"
           if (d.backgroundUrl) setBgUrl(d.backgroundUrl);
           // Auto-selecciona el modo inicial del bloque unificado según lo guardado:
           // si hay YouTube video, arranca en ese modo; si no, en Local.
@@ -926,6 +983,25 @@ export default function TVConfig() {
     setMarcas(prev => prev.filter(x => x.id !== m.id));
   };
 
+  // Descartar cambios: restaura el config al ultimo estado guardado.
+  const handleUndo = () => {
+    setConfig(savedConfig);
+    setDirty(false);
+  };
+
+  // Presets de look — aplican un overlay parcial sobre el config actual.
+  // El usuario puede seguir editando después de aplicar; el preset es solo
+  // un punto de partida rapido, no un lock.
+  const applyPreset = (patch) => {
+    setConfig(prev => ({
+      ...prev,
+      ...patch,
+      // qr se mergea profundo para no perder el size si el preset no lo trae
+      qr: { ...prev.qr, ...(patch.qr || {}) },
+    }));
+    setDirty(true);
+  };
+
   const handleSave = async () => {
     if (saving) return;
     setSaving(true);
@@ -949,6 +1025,7 @@ export default function TVConfig() {
       }, { merge: true });
       setSaved(true);
       setDirty(false);
+      setSavedConfig(config); // snapshot al guardar → punto de "no cambios"
       clearTimeout(savedTimer.current);
       savedTimer.current = setTimeout(() => setSaved(false), 2500);
     } catch (e) {
@@ -1012,6 +1089,16 @@ export default function TVConfig() {
           >
             <ExternalLink size={13} /> Ver TV en vivo
           </a>
+          {/* Descartar cambios — solo visible cuando hay algo por deshacer */}
+          {dirty && !saving && (
+            <button
+              onClick={handleUndo}
+              title="Restaura la configuración a como estaba en el último guardado"
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold text-amber-400 border border-amber-500/40 hover:text-white hover:bg-amber-600 hover:border-amber-500 transition-all bg-amber-500/10"
+            >
+              <RotateCcw size={13} /> Descartar
+            </button>
+          )}
           <button
             onClick={handleSave}
             disabled={saving}
@@ -1450,11 +1537,70 @@ export default function TVConfig() {
           {tab === 'estilo' && (
           <>
 
+          {/* ── Presets de look ────────────────────────────────────────
+              Cada preset es un overlay parcial que se mergea sobre el
+              config actual: NO borra la oferta, media o slidesActivos.
+              Sirve como punto de partida rapido; el user sigue editando
+              despues normalmente. */}
+          <Card icon={Sparkles} title="Presets de look">
+            <p className="text-xs text-slate-500 -mt-1">
+              Aplica un estilo predefinido con un click. Solo cambia toggles y colores — no toca oferta, fondo ni slides activos.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {LOOK_PRESETS.map(p => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => applyPreset(p.patch)}
+                  className="group text-left p-4 bg-slate-800/40 border border-slate-800 hover:border-slate-600 rounded-xl transition-all hover:bg-slate-800/60"
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <div
+                      className="w-6 h-6 rounded-lg border border-white/10 shadow-sm"
+                      style={{ background: p.accent }}
+                    />
+                    <p className="text-sm font-bold text-white">{p.label}</p>
+                  </div>
+                  <p className="text-[11px] text-slate-500 leading-snug">{p.desc}</p>
+                  <p className="text-[10px] text-emerald-400 font-semibold mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    Aplicar →
+                  </p>
+                </button>
+              ))}
+            </div>
+            <p className="text-[10px] text-slate-600 bg-slate-800/30 rounded-xl px-3 py-2.5 leading-relaxed border border-slate-800">
+              💡 <strong className="text-slate-400">Tip:</strong> Después de aplicar un preset podés seguir ajustando los toggles individualmente. Usá <strong className="text-amber-400">Descartar</strong> en la barra de arriba si querés volver al estado guardado.
+            </p>
+          </Card>
+
           {/* ── QR ────────────────────────────────────────────────────── */}
           <Card icon={QrCode} title="Código QR">
             <p className="text-xs text-slate-500 -mt-1">
               El QR aparece fijo en la esquina inferior derecha del carrusel y apunta al registro del club.
             </p>
+
+            {/* Preview inline del QR real con el color y tamaño elegidos */}
+            <div className="flex items-center gap-4 p-4 bg-slate-950/40 border border-slate-800/60 rounded-2xl">
+              <div className="p-3 bg-white rounded-2xl shadow-lg shrink-0">
+                <QRCodeSVG
+                  value={`${window.location.origin}/registro.html?local=${tenantId}`}
+                  size={96}
+                  fgColor={qrColor}
+                  bgColor="#ffffff"
+                  level="M"
+                />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Vista previa real</p>
+                <p className="text-sm font-bold text-white truncate">Escanealo con tu celu para probar</p>
+                <p className="text-[11px] text-slate-500 leading-relaxed mt-1 truncate">
+                  <span className="opacity-60">→</span> /registro.html?local={tenantId}
+                </p>
+                <p className="text-[10.5px] text-slate-600 mt-2 leading-snug">
+                  Se renderiza a {config.qr.size}px en la TV — este preview es más chico pero el color es el mismo.
+                </p>
+              </div>
+            </div>
 
             <Field label="Color del QR">
               <div className="space-y-3">
