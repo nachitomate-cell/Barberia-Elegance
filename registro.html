@@ -1721,6 +1721,16 @@
     return `${prefix}-${suffix}`;
   }
 
+  // Extrae ?ref= (o ?referral=) de la URL. Sanitiza a A-Z0-9 y guion, 20 chars max.
+  function _extractReferralFromUrl() {
+    try {
+      const usp = new URLSearchParams(window.location.search);
+      const raw = usp.get('ref') || usp.get('referral') || '';
+      const clean = String(raw).toUpperCase().replace(/[^A-Z0-9-]/g, '').slice(0, 20);
+      return clean || '';
+    } catch { return ''; }
+  }
+
   // Lee tenants/{tid}/settings/general.referralProgram (root para elegance)
   // y muestra el input de "código de referido" si el programa está activo.
   async function _loadReferralProgramConfig() {
@@ -1735,6 +1745,16 @@
       if (rp && rp.enabled) {
         const block = document.getElementById('referralInputBlock');
         if (block) block.classList.remove('hidden');
+        // Auto-fill si viene desde WhatsApp con ?ref=CODIGO. Aprovechamos
+        // para saltar a la pestaña "Crear cuenta" — si abrió el link es
+        // porque nunca se registró, no tiene sentido dejarlo en Login.
+        const fromUrl = _extractReferralFromUrl();
+        if (fromUrl) {
+          const input = document.getElementById('referralCodeInput');
+          if (input && !input.value) input.value = fromUrl;
+          window._referralFromUrl = fromUrl;
+          try { switchTab && switchTab('signup'); } catch {}
+        }
       }
     } catch (e) { console.warn('[referrals] cfg:', e.message); }
   }

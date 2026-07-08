@@ -60,7 +60,7 @@ export default function WhatsAppBot() {
         />
         <div className="relative">
           <h2 className="text-2xl md:text-3xl font-black text-white leading-tight max-w-xl">
-            Tu barbería <span className="text-[#25D366]">responde sola</span>. Vos ganás horas de tu día.
+            Tu barbería <span className="text-[#25D366]">responde sola</span>. Recupera horas de tu día.
           </h2>
           <p className="text-sm text-slate-300 mt-3 leading-relaxed max-w-2xl">
             Un bot inteligente conectado a tu WhatsApp que responde en segundos a preguntas frecuentes
@@ -90,7 +90,7 @@ export default function WhatsAppBot() {
           </div>
 
           <p className="text-[11px] text-slate-500 mt-4 leading-snug max-w-xl">
-            Al hacer clic te abrimos un chat de WhatsApp directo con el equipo SynapTech con un mensaje pre-armado.
+            Al hacer clic te abrimos un chat de WhatsApp directo con el equipo SynapTech con un mensaje listo.
             Coordinamos una llamada de 30 min para configurar el bot a la medida de tu local.
           </p>
         </div>
@@ -120,7 +120,7 @@ export default function WhatsAppBot() {
               Icon: ShieldCheck,
               color: 'purple',
               title: 'Handoff humano inteligente',
-              desc: 'Cuando el bot detecta que algo necesita tu atención (cliente enojado, pedido complejo, situación fuera de guion), te avisa al toque.',
+              desc: 'Cuando el bot detecta que algo necesita tu atención (cliente molesto, pedido complejo, situación fuera de guion), te avisa de inmediato.',
             },
             {
               Icon: TrendingUp,
@@ -172,12 +172,12 @@ export default function WhatsAppBot() {
             {
               n: 1,
               title: 'Contáctanos por WhatsApp',
-              desc: 'Con el botón verde de arriba nos escribís. Agendamos una llamada de 30 min sin costo para entender tu caso.',
+              desc: 'Con el botón verde de arriba nos escribes. Agendamos una llamada de 30 min sin costo para entender tu caso.',
             },
             {
               n: 2,
               title: 'Preparamos el número dedicado',
-              desc: 'Te guiamos: podés usar tu número actual del local o comprar uno nuevo (~$3.000 CLP inicial + $8k mensual). Recomendamos el nuevo para no perder tu WhatsApp personal.',
+              desc: 'Te guiamos: puedes usar tu número actual del local o comprar uno nuevo (~$3.000 CLP inicial + $8k mensual). Recomendamos el nuevo para no perder tu WhatsApp personal.',
             },
             {
               n: 3,
@@ -192,7 +192,7 @@ export default function WhatsAppBot() {
             {
               n: 5,
               title: 'Prueba y ajustes',
-              desc: 'Corre en modo prueba una semana. Ajustamos según lo que veamos. Cuando estás 100% conforme, activamos para todos tus clientes.',
+              desc: 'Funciona en modo prueba durante una semana. Ajustamos según lo que veamos. Cuando estés 100% conforme, activamos para todos tus clientes.',
             },
           ].map(step => (
             <div key={step.n} className="flex gap-3 items-start">
@@ -273,7 +273,7 @@ export default function WhatsAppBot() {
           className="inline-flex items-center gap-2 mt-5 px-6 py-3 rounded-xl bg-[#25D366] hover:bg-[#20BD5A] text-white text-sm font-bold transition-all shadow-[0_0_25px_-5px_rgba(37,211,102,0.6)] active:scale-[0.98]"
         >
           <MessageCircle size={16} />
-          Escribinos ahora al WhatsApp de SynapTech
+          Escríbenos ahora al WhatsApp de SynapTech
         </a>
       </div>
     </div>

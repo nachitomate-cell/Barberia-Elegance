@@ -5,15 +5,16 @@ import {
   Trophy, ScanLine, Crown, Medal, Sparkles, Gift,
   Users, TrendingUp, Clock, CheckCircle2, Gem, UserX,
   Send, X, MessageCircle, ChevronRight, ArrowUpRight, ArrowDownRight, Plus,
-  Smartphone, ExternalLink, RefreshCw,
+  Smartphone, ExternalLink, RefreshCw, Share2,
 } from 'lucide-react';
 import { tenantCol } from '../lib/tenantUtils';
 import { useTenant } from '../contexts/TenantContext';
 
-import Premios     from './Premios';
-import Canjes      from './Canjes';
-import Rangos      from './Rangos';
-import Membresias  from './Membresias';
+import Premios       from './Premios';
+import Canjes        from './Canjes';
+import Rangos        from './Rangos';
+import Membresias    from './Membresias';
+import ReferidosBoca from './ReferidosBoca';
 
 /* ── Tabs disponibles según tenant ────────────────────────────────
    Todos los tenants tienen Resumen / Premios / Validar Canje / Rangos.
@@ -23,11 +24,12 @@ import Membresias  from './Membresias';
 const HAS_MEMBRESIAS = new Set(['chameleon', 'deluxeperfumes']);
 
 const TABS_BASE = [
-  { key: 'resumen', label: 'Resumen',       Icon: Sparkles   },
-  { key: 'premios', label: 'Premios',       Icon: Trophy     },
-  { key: 'canjes',  label: 'Validar Canje', Icon: ScanLine   },
-  { key: 'rangos',  label: 'Rangos',        Icon: Crown      },
-  { key: 'preview', label: 'Vista previa',  Icon: Smartphone },
+  { key: 'resumen',     label: 'Resumen',       Icon: Sparkles   },
+  { key: 'premios',     label: 'Premios',       Icon: Trophy     },
+  { key: 'canjes',      label: 'Validar Canje', Icon: ScanLine   },
+  { key: 'rangos',      label: 'Rangos',        Icon: Crown      },
+  { key: 'boca-a-boca', label: 'Boca a boca',   Icon: Share2     },
+  { key: 'preview',     label: 'Vista previa',  Icon: Smartphone },
 ];
 
 // Escenarios que puede seleccionar el admin en el tab "Vista previa".
@@ -1128,12 +1130,13 @@ export default function Fidelizacion() {
 
       {/* Contenido */}
       <div>
-        {activeTab === 'resumen'    && <ResumenFidelizacion />}
-        {activeTab === 'premios'    && <Premios />}
-        {activeTab === 'canjes'     && <Canjes />}
-        {activeTab === 'rangos'     && <Rangos />}
-        {activeTab === 'preview'    && <PreviewDashboard />}
-        {activeTab === 'membresias' && HAS_MEMBRESIAS.has(tenant.id) && <Membresias />}
+        {activeTab === 'resumen'     && <ResumenFidelizacion />}
+        {activeTab === 'premios'     && <Premios />}
+        {activeTab === 'canjes'      && <Canjes />}
+        {activeTab === 'rangos'      && <Rangos />}
+        {activeTab === 'boca-a-boca' && <ReferidosBoca />}
+        {activeTab === 'preview'     && <PreviewDashboard />}
+        {activeTab === 'membresias'  && HAS_MEMBRESIAS.has(tenant.id) && <Membresias />}
       </div>
     </div>
   );

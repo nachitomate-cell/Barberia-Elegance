@@ -318,6 +318,16 @@ service cloud.firestore {
                         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stock']));
     }
 
+    // ── /referral_awards ───────────────────────────────────────────
+    // Audit log del programa de referidos B2C: la CF referidos-recompensa
+    // escribe un doc por cada recompensa otorgada. Solo admin lo consulta
+    // desde el tab "Boca a boca" de Fidelización. Escritura solo vía CF
+    // (Admin SDK bypasea rules), por eso el cliente no puede write.
+    match /referral_awards/{docId} {
+      allow read: if esAdmin('elegance');
+      allow write: if false;
+    }
+
     // ── /review_intents (Google reviews · tracking de intención) ───
     // Espejo del path tenants/{tid}/review_intents (elegance vive en root).
     match /review_intents/{docId} {
@@ -1020,6 +1030,14 @@ service cloud.firestore {
         allow update: if esAdmin(tid)
                       || (esStaff(tid)
                           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stock']));
+      }
+
+      // ── referral_awards ──────────────────────────────────────────
+      // Audit log del programa de referidos B2C (espejo del path root).
+      // Escritura solo vía CF referidosRecompensaTenant (Admin SDK).
+      match /referral_awards/{docId} {
+        allow read: if esAdmin(tid);
+        allow write: if false;
       }
 
       // ── giftCards ─────────────────────────────────────────────────

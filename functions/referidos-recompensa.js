@@ -4,9 +4,13 @@
 // ─────────────────────────────────────────────────────────────────
 //  RECOMPENSA AUTOMÁTICA POR REFERIDO (B2C)
 //
-//  Dispara cuando se CREA una cita. Si es la primera cita del cliente
-//  Y el cliente se registró usando el `referralCode` de otro cliente,
-//  otorga:
+//  Dispara en cada WRITE de una cita y otorga solo si la cita quedó
+//  en estado 'Completada'. Con esto evitamos que un cliente cobre
+//  la recompensa reservando + cancelando (antes usábamos onCreate y
+//  cualquier cita agendada disparaba el flujo).
+//
+//  Si es la primera cita del cliente Y el cliente se registró usando
+//  el `referralCode` de otro cliente, otorga:
 //    · Recompensa al REFERIDO (el que hizo la reserva)
 //    · Recompensa al REFERIDOR (el que lo invitó)
 //
@@ -29,7 +33,7 @@
 //    firebase deploy --only functions:referidosRecompensaElegance,functions:referidosRecompensaTenant
 // ─────────────────────────────────────────────────────────────────
 
-const { onDocumentCreated }       = require('firebase-functions/v2/firestore');
+const { onDocumentWritten }       = require('firebase-functions/v2/firestore');
 const { logger }                  = require('firebase-functions');
 const admin                       = require('firebase-admin');
 const { FieldValue, Timestamp }   = require('firebase-admin/firestore');
@@ -43,8 +47,17 @@ function colecciones(tenantId) {
     users:        db.collection(isElegance ? 'users'        : `tenants/${tenantId}/users`),
     citas:        db.collection(isElegance ? 'citas'        : `tenants/${tenantId}/citas`),
     redemptions:  db.collection(isElegance ? 'redemptions'  : `tenants/${tenantId}/redemptions`),
+    // Auditoría: cada recompensa otorgada queda aquí para que el dueño
+    // pueda ver "cuánto le costó el programa" y hacer forecasts. Se lee
+    // desde el nuevo tab "Referidos" del panel Fidelización.
+    auditLog:     db.collection(isElegance ? 'referral_awards' : `tenants/${tenantId}/referral_awards`),
     settingsRef:  db.doc       (isElegance ? 'settings/general' : `tenants/${tenantId}/settings/general`),
   };
+}
+
+// Normaliza un teléfono a digits-only para compararlos (anti-fraude).
+function normPhone(p) {
+  return String(p || '').replace(/\D/g, '');
 }
 
 // Cuenta las citas del user (excluye la actual). Si es 0 → es la primera.
@@ -60,6 +73,7 @@ async function esPrimeraCita({ citasCol, userId, citaIdActual }) {
 
 // Otorga una recompensa polimórfica a un user. Si es SELLOS incrementa
 // el balance; caso contrario crea un redemption pendiente (canjeable).
+// Devuelve un resumen para el audit log.
 async function otorgar({ tenantId, users, redemptions, userId, recompensa, origen, motivo }) {
   if (!recompensa || !recompensa.categoria) return { ok: false, reason: 'sin-recompensa' };
 
@@ -115,7 +129,12 @@ async function procesarRecompensa({ tenantId, citaId, cita }) {
   const userId = cita?.userId;
   if (!userId) return { skip: 'sin-userId' };
 
-  const { users, citas, redemptions, settingsRef } = colecciones(tenantId);
+  // GUARD 1 — Solo otorgar cuando la cita se COMPLETA, no cuando se agenda.
+  // Si otorgamos al crear la cita, un cliente malicioso puede: registrarse
+  // con código → agendar → cancelar → cobrar recompensa igual.
+  if (cita.estado !== 'Completada') return { skip: 'cita-no-completada', estado: cita.estado };
+
+  const { users, citas, redemptions, auditLog, settingsRef } = colecciones(tenantId);
 
   // Idempotencia: si ya se otorgaron las recompensas, salir.
   const userSnap = await users.doc(userId).get();
@@ -127,7 +146,10 @@ async function procesarRecompensa({ tenantId, citaId, cita }) {
   const referredByCode = userData.referredByCode;
   if (!referredByCode) return { skip: 'sin-referredByCode' };
 
-  // Debe ser su primera cita (evita otorgar en la #2 si la #1 fue cancelada).
+  // Debe ser su primera cita COMPLETADA. Chequeamos solo citas del mismo user.
+  // Ojo: esPrimeraCita cuenta TODAS las citas del user; con el guard de
+  // estado arriba, permite otorgar en la primera cita completada aunque
+  // haya cancelado 3 antes.
   const esPrimera = await esPrimeraCita({ citasCol: citas, userId, citaIdActual: citaId });
   if (!esPrimera) return { skip: 'no-es-primera-cita' };
 
@@ -140,6 +162,38 @@ async function procesarRecompensa({ tenantId, citaId, cita }) {
   const recRefdor  = rp.recompensaReferidor || null; // el que lo invitó
   if (!recRefdo && !recRefdor) return { skip: 'sin-recompensas-configuradas' };
 
+  // Buscar al REFERIDOR primero (para poder validar anti-fraude).
+  const referidorUid = await findReferidorUid({ users, referralCode: referredByCode });
+  let referidorData  = null;
+  if (referidorUid) {
+    const refSnap = await users.doc(referidorUid).get();
+    referidorData = refSnap.exists ? refSnap.data() : null;
+  }
+
+  // GUARD 2 — Anti-fraude: si el referidor y el referido comparten teléfono
+  // normalizado, es la misma persona intentando auto-referirse.
+  if (referidorData) {
+    const phoneRefdor = normPhone(referidorData.telefono);
+    const phoneRefdo  = normPhone(userData.telefono);
+    if (phoneRefdor && phoneRefdo && phoneRefdor === phoneRefdo) {
+      // Marcar el intento para auditoria + no otorgar
+      await users.doc(userId).set({
+        referralRewardsGranted:  true, // idempotencia dura para que no vuelva a intentar
+        referralStatus:          'blocked_self_referral',
+        referralBlockedReason:   'phone-duplicate',
+        referralRewardsGrantedAt: FieldValue.serverTimestamp(),
+      }, { merge: true });
+      logger.warn(`[referidos-recompensa] ${tenantId}/${citaId}: bloqueado por auto-referral (phone match)`);
+      return { skip: 'auto-referral-blocked', referidorUid };
+    }
+  }
+
+  // GUARD 3 — El referidor debe seguir "activo". Si su user tiene
+  // referralActive === false (marcado por el dueño), no otorgamos.
+  if (referidorData && referidorData.referralActive === false) {
+    return { skip: 'referidor-deshabilitado', referidorUid };
+  }
+
   // Otorgar al REFERIDO (dueño de la cita).
   const resRefdo = recRefdo
     ? await otorgar({
@@ -149,8 +203,7 @@ async function procesarRecompensa({ tenantId, citaId, cita }) {
       }).catch(err => ({ ok: false, reason: err.message }))
     : { ok: false, reason: 'no-configurada' };
 
-  // Buscar y otorgar al REFERIDOR.
-  const referidorUid = await findReferidorUid({ users, referralCode: referredByCode });
+  // Otorgar al REFERIDOR.
   const resRefdor = (recRefdor && referidorUid)
     ? await otorgar({
         tenantId, users, redemptions, userId: referidorUid, recompensa: recRefdor,
@@ -159,22 +212,60 @@ async function procesarRecompensa({ tenantId, citaId, cita }) {
       }).catch(err => ({ ok: false, reason: err.message }))
     : { ok: false, reason: referidorUid ? 'no-configurada' : 'referidor-no-encontrado' };
 
-  // Marcar user como ya procesado para idempotencia estricta.
+  // Marcar user como ya procesado + status completed (antes se quedaba en pending).
   await users.doc(userId).set({
     referralRewardsGranted:    true,
     referralRewardsGrantedAt:  FieldValue.serverTimestamp(),
+    referralStatus:            'completed',
     updatedAt:                 FieldValue.serverTimestamp(),
   }, { merge: true });
+
+  // Actualizar contador del referidor (para top-referidores en el panel)
+  if (referidorUid) {
+    await users.doc(referidorUid).set({
+      referralConversionsCount: FieldValue.increment(1),
+      referralLastConversionAt: FieldValue.serverTimestamp(),
+    }, { merge: true });
+  }
+
+  // Audit log: doc por evento para que el dueño vea qué se otorgó y a quién.
+  try {
+    await auditLog.add({
+      citaId,
+      referidoUid:      userId,
+      referidoNombre:   userData.nombre || null,
+      referidorUid:     referidorUid || null,
+      referidorNombre:  referidorData?.nombre || null,
+      referidorCode:    referredByCode,
+      resRefdo,
+      resRefdor,
+      createdAt:        FieldValue.serverTimestamp(),
+    });
+  } catch (e) {
+    logger.warn(`[referidos-recompensa] audit log failed: ${e.message}`);
+  }
 
   logger.info(`[referidos-recompensa] ${tenantId}/${citaId}: refdo=${JSON.stringify(resRefdo)} refdor=${JSON.stringify(resRefdor)} referidor=${referidorUid}`);
   return { ok: true, resRefdo, resRefdor, referidorUid };
 }
 
+// Solo procesamos si la cita quedó en Completada. Además: si el estado
+// anterior ya era Completada, no re-ejecutamos (la idempotencia dura del
+// user ya lo previene, pero así ahorramos reads).
+function debeProcesar(event) {
+  const after  = event.data?.after?.data();
+  if (!after) return { run: false, reason: 'sin-after' };
+  if (after.estado !== 'Completada') return { run: false, reason: 'no-completada' };
+  const before = event.data?.before?.data();
+  if (before && before.estado === 'Completada') return { run: false, reason: 'ya-completada-antes' };
+  return { run: true, cita: after };
+}
+
 // ── Export 1: elegance root (/citas/{citaId}) ─────────────────────
-exports.referidosRecompensaElegance = onDocumentCreated('citas/{citaId}', async (event) => {
+exports.referidosRecompensaElegance = onDocumentWritten('citas/{citaId}', async (event) => {
   const citaId = event.params.citaId;
-  const cita   = event.data?.data();
-  if (!cita) return null;
+  const { run, cita } = debeProcesar(event);
+  if (!run) return null;
   try {
     const res = await procesarRecompensa({ tenantId: 'elegance', citaId, cita });
     logger.info(`[referidos-recompensa] elegance/${citaId}: ${JSON.stringify(res)}`);
@@ -185,12 +276,12 @@ exports.referidosRecompensaElegance = onDocumentCreated('citas/{citaId}', async 
 });
 
 // ── Export 2: multi-tenant (/tenants/{tid}/citas/{citaId}) ────────
-exports.referidosRecompensaTenant = onDocumentCreated(
+exports.referidosRecompensaTenant = onDocumentWritten(
   'tenants/{tid}/citas/{citaId}',
   async (event) => {
     const { tid, citaId } = event.params;
-    const cita = event.data?.data();
-    if (!cita) return null;
+    const { run, cita } = debeProcesar(event);
+    if (!run) return null;
     try {
       const res = await procesarRecompensa({ tenantId: tid, citaId, cita });
       logger.info(`[referidos-recompensa] ${tid}/${citaId}: ${JSON.stringify(res)}`);
