@@ -478,8 +478,11 @@ function BarberCard({ barber, onEdit, waUrl, onVerAgenda, sucursales = [], dragH
       {/* ── Sección: Links del barbero ─────────────────────────────
           Dos links con propósitos MUY distintos que antes se confundían:
           1) Agenda personal PRIVADA (/agenda.html) — para el barbero
-          2) Página pública de reserva (/{slug}) — para los clientes */}
-      {!isSupportAdmin && barber.nombre && (
+          2) Página pública de reserva (/{slug}) — para los clientes
+          IMPORTANTE: solo aplica a barberos que ATIENDEN clientes.
+          El rol 'admin' (dueño/administrador) no tiene ninguno de los
+          dos: no atiende citas propias ni tiene página de reserva. */}
+      {!isSupportAdmin && !isAdmin && barber.nombre && (
         <div className="w-full mt-1 space-y-4">
           {/* PRIVADO: Agenda personal del barbero */}
           <div className="w-full space-y-2 bg-indigo-500/[0.04] border border-indigo-500/15 rounded-xl p-3">
@@ -1142,6 +1145,22 @@ export default function Equipo() {
         </div>
       ) : activeTab === 'miembros' ? (
         <>
+          {/* Filosofía SynapTech: crecimiento sin cobrar por barbero extra */}
+          <div className="mb-4 bg-gradient-to-r from-emerald-500/10 via-emerald-500/5 to-transparent border border-emerald-500/25 rounded-xl px-4 py-3 flex items-start gap-3">
+            <div className="p-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/25 shrink-0 mt-0.5">
+              <Sparkles size={14} className="text-emerald-400" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-white leading-tight">
+                En SynapTech creemos que crecer <span className="text-emerald-400">no debería costarte más</span>.
+              </p>
+              <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                Suma todos los {memberLabel}s que quieras — <strong className="text-slate-200">nunca cobramos extra por integrantes del equipo</strong>.
+                Cuando tu negocio crece, nosotros crecemos contigo.
+              </p>
+            </div>
+          </div>
+
           <p className="text-xs text-slate-600 mb-3 flex items-center gap-1.5">
             <GripVertical size={11} /> Arrastra las tarjetas para cambiar el orden en la vista de clientes
           </p>
