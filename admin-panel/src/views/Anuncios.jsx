@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { tenantCol, tenantDoc, resolveTenantId, isMultiSedeTenant, KRONNOS_SEDES } from '../lib/tenantUtils';
 import { db } from '../lib/firebase';
+import { withTimeout } from '../lib/firestore-helpers';
 import { useTenant } from '../contexts/TenantContext';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -526,7 +527,7 @@ function TabAjustes({ tenantId }) {
   useEffect(() => {
     (async () => {
       try {
-        const snap = await getDoc(tenantDoc('configuracion', 'anuncios'));
+        const snap = await withTimeout(getDoc(tenantDoc('configuracion', 'anuncios')), 10000, 'anuncios/config-load');
         if (snap.exists()) setCfg(prev => ({ ...prev, ...snap.data() }));
       } catch {}
       setLoading(false);
