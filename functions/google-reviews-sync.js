@@ -56,10 +56,15 @@ async function syncTenant(tenantId, apiKey) {
   const placeId = snap.exists ? (snap.data().placeId || '') : '';
   if (!placeId) return { tenantId, skipped: 'sin placeId' };
 
+  // X-Goog-Language-Code: 'es' pide a Google Places que traduzca automaticamente
+  // las reseñas y el relativePublishTimeDescription al español. Google usa su
+  // propio sistema de traducción (mismo que Maps) — es gratis y de buena calidad.
+  // Si la reseña original ya está en español, la devuelve tal cual sin tocarla.
   const res = await fetch(`https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}`, {
     headers: {
-      'X-Goog-Api-Key':   apiKey,
-      'X-Goog-FieldMask': 'rating,userRatingCount,reviews',
+      'X-Goog-Api-Key':       apiKey,
+      'X-Goog-FieldMask':     'rating,userRatingCount,reviews',
+      'X-Goog-Language-Code': 'es',
     },
   });
   if (!res.ok) {
