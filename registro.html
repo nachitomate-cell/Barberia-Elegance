@@ -2223,8 +2223,11 @@
   });
 
   // ── Prefijo +56 automático para teléfono ─────────────────────
+  // Solo se autorrellena '+56 ' (código país de Chile). El usuario tipea
+  // el resto (típicamente '9 XXXX XXXX' para móviles), lo que da más
+  // flexibilidad y visualmente se ve más limpio que '+569 …'.
   function initPhonePrefix(inputId) {
-    const PREFIX = '+56 9 ';
+    const PREFIX = '+56 ';
     const input = document.getElementById(inputId);
     if (!input) return;
     input.addEventListener('focus', () => {
