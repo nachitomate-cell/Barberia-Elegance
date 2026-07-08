@@ -5,10 +5,10 @@ import {
   Upload, ChevronDown, Plus, X, Phone, Mail, Percent, Scissors,
   CalendarOff, Clock, Check, KeyRound, Link2, Copy, GripVertical,
   Users, Printer, Wallet, ArrowDownCircle, AlertTriangle, CheckCircle2, DollarSign,
-  Sparkles, Loader2, Lock, Globe,
+  Sparkles, Loader2, Lock, Globe, Shuffle, HelpCircle,
 } from 'lucide-react';
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import { updateDoc, addDoc, deleteDoc, doc, serverTimestamp, deleteField, writeBatch, Timestamp, query, where, getDocs } from 'firebase/firestore';
+import { updateDoc, addDoc, deleteDoc, doc, serverTimestamp, deleteField, writeBatch, Timestamp, query, where, getDocs, setDoc, getDoc, onSnapshot } from 'firebase/firestore';
 import {
   DndContext, closestCenter, PointerSensor, useSensor, useSensors,
 } from '@dnd-kit/core';
@@ -581,6 +581,43 @@ export default function Equipo() {
 
   /* ── Pestañas (Tabs) ── */
   const [activeTab, setActiveTab] = useState('miembros');
+
+  /* ── Randomizador de barberos ──────────────────────────────────
+     Toggle configurable por tenant que hace que la página pública
+     de reserva muestre los barberos en orden aleatorio en vez del
+     orden manual del drag-and-drop. Guardado en:
+       tenants/{tid}/configuracion/main.randomizarBarberos
+     Con `null` como estado "no configurado aun" (mientras carga). */
+  const [randomBarberos,    setRandomBarberos]    = useState(null);
+  const [savingRandom,      setSavingRandom]      = useState(false);
+  const [showRandomHelp,    setShowRandomHelp]    = useState(false);
+  useEffect(() => {
+    const tid = resolveTenantId();
+    const cfgRef = tid === 'elegance'
+      ? doc(db, 'configuracion', 'main')
+      : doc(db, 'tenants', tid, 'configuracion', 'main');
+    const unsub = onSnapshot(cfgRef, snap => {
+      const data = snap.exists() ? snap.data() : {};
+      // Default a false si el campo no existe (opt-in).
+      setRandomBarberos(data.randomizarBarberos === true);
+    }, () => setRandomBarberos(false));
+    return () => unsub();
+  }, []);
+  async function toggleRandomBarberos() {
+    if (savingRandom || randomBarberos === null) return;
+    setSavingRandom(true);
+    try {
+      const tid = resolveTenantId();
+      const cfgRef = tid === 'elegance'
+        ? doc(db, 'configuracion', 'main')
+        : doc(db, 'tenants', tid, 'configuracion', 'main');
+      await setDoc(cfgRef, { randomizarBarberos: !randomBarberos }, { merge: true });
+    } catch (e) {
+      console.error('[Equipo] toggleRandomBarberos:', e);
+    } finally {
+      setSavingRandom(false);
+    }
+  }
 
   /* ── Sueldos y Comisiones State ── */
   const [sueldoBarberoId, setSueldoBarberoId] = useState('');
@@ -1191,6 +1228,117 @@ export default function Equipo() {
               </p>
             </div>
           </div>
+
+          {/* Toggle: aleatorizar orden de barberos en la página pública */}
+          <div className="mb-4 flex items-center justify-between gap-3 bg-slate-900/60 border border-slate-800 rounded-xl px-4 py-3">
+            <div className="flex items-start gap-3 min-w-0">
+              <div className={`p-1.5 rounded-lg shrink-0 mt-0.5 border transition-colors ${
+                randomBarberos ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' : 'bg-slate-800 border-slate-700 text-slate-500'
+              }`}>
+                <Shuffle size={13} />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <p className="text-sm font-bold text-white leading-tight">Aleatorizar orden de {memberLabel}s</p>
+                  <button
+                    type="button"
+                    onClick={() => setShowRandomHelp(true)}
+                    className="text-slate-500 hover:text-emerald-400 transition-colors"
+                    title="¿Cómo funciona?"
+                    aria-label="Cómo funciona el orden aleatorio"
+                  >
+                    <HelpCircle size={14} />
+                  </button>
+                </div>
+                <p className="text-[11px] text-slate-500 mt-0.5 leading-snug">
+                  Cuando está activo, cada cliente ve los {memberLabel}s en orden distinto en tu página pública. Nadie queda pegado arriba.
+                </p>
+              </div>
+            </div>
+            {/* Toggle switch */}
+            <button
+              type="button"
+              onClick={toggleRandomBarberos}
+              disabled={savingRandom || randomBarberos === null}
+              className="relative w-11 h-6 rounded-full shrink-0 transition-colors disabled:opacity-50"
+              style={{ background: randomBarberos ? '#10b981' : '#334155' }}
+              aria-pressed={!!randomBarberos}
+              aria-label="Activar aleatorización de barberos"
+            >
+              <div
+                className="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all"
+                style={{ left: randomBarberos ? '22px' : '2px' }}
+              />
+              {savingRandom && (
+                <span className="absolute inset-0 flex items-center justify-center">
+                  <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                </span>
+              )}
+            </button>
+          </div>
+
+          {/* Modal de ayuda del randomizador */}
+          {showRandomHelp && (
+            <div
+              onClick={() => setShowRandomHelp(false)}
+              className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+            >
+              <div
+                onClick={e => e.stopPropagation()}
+                className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md shadow-2xl"
+              >
+                <div className="flex items-start justify-between p-5 border-b border-slate-800">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 rounded-xl bg-emerald-500/15 border border-emerald-500/25">
+                      <Shuffle size={16} className="text-emerald-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-bold text-white leading-tight">¿Qué hace el orden aleatorio?</h3>
+                      <p className="text-[11px] text-slate-500">Distribuye las oportunidades de forma justa</p>
+                    </div>
+                  </div>
+                  <button onClick={() => setShowRandomHelp(false)} className="p-1.5 rounded-lg text-slate-500 hover:text-white hover:bg-slate-800 transition-colors">
+                    <X size={16} />
+                  </button>
+                </div>
+                <div className="p-5 space-y-4 text-sm text-slate-300 leading-relaxed">
+                  <p>
+                    Cuando <strong className="text-white">está apagado</strong>, tus clientes ven los {memberLabel}s siempre en el orden manual que armaste con el drag-and-drop.
+                    Los que están arriba tienden a recibir más reservas porque los clientes eligen sin scrollear.
+                  </p>
+                  <p>
+                    Cuando <strong className="text-white">está encendido</strong>, cada vez que un cliente abre tu página pública ve el orden <strong className="text-emerald-400">aleatorio</strong>. Ningún {memberLabel} queda pegado arriba, todos tienen la misma probabilidad de aparecer primero.
+                  </p>
+                  <div className="bg-slate-800/40 border border-slate-800 rounded-xl p-3">
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Cuándo activarlo</p>
+                    <ul className="text-xs text-slate-400 space-y-1.5 list-disc list-inside">
+                      <li>Querés que las citas se repartan parejo entre todo el equipo</li>
+                      <li>Tenés {memberLabel}s nuevos que también merecen visibilidad</li>
+                      <li>Prefieres que la elección no dependa de "quién quedó arriba"</li>
+                    </ul>
+                  </div>
+                  <div className="bg-slate-800/40 border border-slate-800 rounded-xl p-3">
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Cuándo apagarlo</p>
+                    <ul className="text-xs text-slate-400 space-y-1.5 list-disc list-inside">
+                      <li>Querés que el {memberLabel} más experimentado aparezca primero</li>
+                      <li>Preferís controlar tú el orden con el drag-and-drop</li>
+                    </ul>
+                  </div>
+                  <p className="text-[11px] text-slate-500 italic">
+                    El cambio se aplica al toque en la página pública — no hace falta guardar ni recargar.
+                  </p>
+                </div>
+                <div className="p-4 border-t border-slate-800 flex justify-end">
+                  <button
+                    onClick={() => setShowRandomHelp(false)}
+                    className="px-4 py-2 rounded-lg text-sm font-semibold bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 border border-emerald-500/30 transition-colors"
+                  >
+                    Entendido
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           <p className="text-xs text-slate-600 mb-3 flex items-center gap-1.5">
             <GripVertical size={11} /> Arrastra las tarjetas para cambiar el orden en la vista de clientes

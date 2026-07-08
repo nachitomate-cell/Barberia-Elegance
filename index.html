@@ -9676,11 +9676,31 @@
         </button>
       `;
 
-      // Aura/Elegance: shuffle barbers so no one gets a permanent "top" position
-      const _shuffleBarberos = ((window.CURRENT_TENANT_ID === 'aura' || window.CURRENT_TENANT_ID === 'latincaribe') || window.CURRENT_TENANT_ID === 'lumen' || window.CURRENT_TENANT_ID === 'machos' || window.CURRENT_TENANT_ID === 'sionbarberia' || window.CURRENT_TENANT_ID === 'elegance' || window.CURRENT_TENANT_ID === 'kronnos_penablanca' || window.CURRENT_TENANT_ID === 'kronnos_limache' || window.CURRENT_TENANT_ID === 'kronnos_woman' || !window.CURRENT_TENANT_ID);
-      const _barberosOrden = _shuffleBarberos
-        ? [...barberos].sort(() => Math.random() - 0.5)
-        : barberos;
+      // Shuffle configurable por tenant. Si el admin marcó el toggle en
+      // /gestion-interna/equipo, se guarda en configuracion/main.randomizarBarberos
+      // y esa es la fuente de verdad. Fallback: whitelist historica de tenants
+      // que ya lo tenian activo antes del toggle (backward compat — no queremos
+      // que se apague solo por deployar el cambio).
+      const _cfgRandom = _fsConfig && typeof _fsConfig.randomizarBarberos === 'boolean'
+        ? _fsConfig.randomizarBarberos
+        : null;
+      const _legacyRandomTenants = new Set([
+        'aura', 'latincaribe', 'lumen', 'machos', 'sionbarberia',
+        'elegance', 'kronnos_penablanca', 'kronnos_limache', 'kronnos_woman',
+      ]);
+      const _shuffleBarberos = _cfgRandom !== null
+        ? _cfgRandom
+        : (_legacyRandomTenants.has(window.CURRENT_TENANT_ID) || !window.CURRENT_TENANT_ID);
+      // Fisher-Yates para distribucion perfectamente uniforme (el clasico
+      // sort(() => Math.random()-0.5) tiene sesgo detectable).
+      let _barberosOrden = barberos;
+      if (_shuffleBarberos) {
+        _barberosOrden = [...barberos];
+        for (let i = _barberosOrden.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [_barberosOrden[i], _barberosOrden[j]] = [_barberosOrden[j], _barberosOrden[i]];
+        }
+      }
 
       grid.className = 'flex flex-col gap-4';
       grid.innerHTML = anyCard + _barberosOrden.map(b => {
