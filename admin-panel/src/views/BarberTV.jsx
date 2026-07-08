@@ -947,6 +947,7 @@ export default function BarberTV() {
   const [qrConfig,       setQrConfig]       = useState({ color: '', size: 160 });
   const [backgroundUrl,  setBackgroundUrl]  = useState(() => sessionStorage.getItem(`tv_bg_${tenantId}`) || '');
   const [youtubeUrl,     setYoutubeUrl]     = useState('');
+  const [youtubeVideoUrl, setYoutubeVideoUrl] = useState('');
   const [ytPlayer,       setYtPlayer]       = useState(null);
   const [audioState,     setAudioState]     = useState('paused'); // 'paused', 'playing', 'blocked'
   const [hideSlideshow,  setHideSlideshow]  = useState(false);
@@ -1112,6 +1113,7 @@ export default function BarberTV() {
       if (bgUrl) sessionStorage.setItem(`tv_bg_${tenantId}`, bgUrl);
       else        sessionStorage.removeItem(`tv_bg_${tenantId}`);
       setYoutubeUrl(d.youtubeUrl || '');
+      setYoutubeVideoUrl(d.youtubeVideoUrl || '');
       setHideSlideshow(d.hideSlideshow === true);
       setRawVideoBg(d.rawVideoBg === true);
       setSidebarSize(d.sidebarSize || 'md');
@@ -1277,8 +1279,36 @@ export default function BarberTV() {
         {/* Carrusel — 74% */}
         <main className="flex-1 relative overflow-hidden" onClick={handleCarouselClick}>
 
-          {/* ── Imagen/Video de fondo (solo dentro del área de carrusel) ── */}
-          {backgroundUrl && (
+          {/* ── YouTube video de fondo (tiene prioridad sobre backgroundUrl) ──
+              Se renderiza como iframe con autoplay+mute+loop. Soporta URLs
+              de video individual (playlist=videoId hack para loopear un solo
+              video) y playlists reales (list=PL...). Silenciado siempre para
+              evitar el bloqueo de autoplay con audio de Chrome. */}
+          {(() => {
+            const url = (youtubeVideoUrl || '').trim();
+            if (!url) return null;
+            const vMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/|v\/))([\w-]{11})/);
+            const pMatch = url.match(/[?&]list=([\w-]+)/);
+            const videoId    = vMatch?.[1] || '';
+            const playlistId = pMatch?.[1] || '';
+            if (!videoId && !playlistId) return null;
+            const src = playlistId
+              ? `https://www.youtube.com/embed/videoseries?list=${playlistId}&autoplay=1&mute=1&loop=1&controls=0&modestbranding=1&rel=0&playsinline=1`
+              : `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&controls=0&modestbranding=1&rel=0&playsinline=1&playlist=${videoId}`;
+            return (
+              <iframe
+                src={src}
+                title="YouTube background"
+                aria-hidden="true"
+                className="absolute inset-0 w-full h-full pointer-events-none"
+                style={{ filter: rawVideoBg ? 'none' : 'brightness(0.68) saturate(0.85)', zIndex: 0, border: 0 }}
+                allow="autoplay; encrypted-media"
+              />
+            );
+          })()}
+
+          {/* ── Imagen/Video de fondo (solo si NO hay YouTube video de fondo) ── */}
+          {!youtubeVideoUrl && backgroundUrl && (
             <>
               {isVideoBg ? (
                 <video

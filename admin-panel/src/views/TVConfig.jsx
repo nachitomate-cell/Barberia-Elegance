@@ -58,7 +58,8 @@ const CONFIG_DEFAULT = {
   slidesActivos: { oferta: true, lookbook: true, equipo: true, productos: true },
   accentColor:   '',
   qr:            { color: '', size: 160 },
-  youtubeUrl:    '',
+  youtubeUrl:      '',   // audio only (playa en modo hidden)
+  youtubeVideoUrl: '',   // video visible en el fondo de la TV
   hideSlideshow: false,
   rawVideoBg:    false,
   sidebarSize:   'md',
@@ -730,7 +731,8 @@ export default function TVConfig() {
             slidesActivos: { oferta: true, lookbook: true, equipo: true, productos: true, ...(d.slidesActivos || {}) },
             accentColor:   d.accentColor || '',
             qr:            { color: '', size: 160, ...(d.qr || {}) },
-            youtubeUrl:    d.youtubeUrl || '',
+            youtubeUrl:      d.youtubeUrl      || '',
+            youtubeVideoUrl: d.youtubeVideoUrl || '',
             hideSlideshow: d.hideSlideshow === true,
             rawVideoBg:    d.rawVideoBg === true,
             sidebarSize:   d.sidebarSize || 'md',
@@ -909,7 +911,8 @@ export default function TVConfig() {
         slidesActivos: config.slidesActivos,
         accentColor:   config.accentColor,
         qr:            config.qr,
-        youtubeUrl:    config.youtubeUrl || '',
+        youtubeUrl:      config.youtubeUrl      || '',
+        youtubeVideoUrl: config.youtubeVideoUrl || '',
         hideSlideshow: config.hideSlideshow === true,
         rawVideoBg:    config.rawVideoBg === true,
         sidebarSize:   config.sidebarSize || 'md',
@@ -1108,6 +1111,69 @@ export default function TVConfig() {
             
             <p className="text-[10px] text-slate-600 bg-slate-800/30 rounded-xl px-3 py-2.5 leading-relaxed border border-slate-800">
               💡 **Recomendación:** Utiliza streams continuos de música ambiental Lofi, jazz o chillout para mantener una atmósfera relajante en el local.
+            </p>
+          </Card>
+
+          {/* ── Video de YouTube (fondo visible) ─────────────────────────
+              Diferente al de música: acá el video se VE (silenciado por default)
+              como fondo del carrusel, reemplazando cualquier imagen/video subido.
+              Soporta URLs individuales y playlists (ver hint). */}
+          <Card icon={Music} title="Video de YouTube (fondo)">
+            <p className="text-xs text-slate-500 -mt-1">
+              Reproduce un video de YouTube <strong className="text-slate-300">visible</strong> como fondo de la pantalla.
+              Silenciado por default (Chrome bloquea autoplay con audio). Si dejas
+              este campo lleno, tiene prioridad sobre la imagen/video subido arriba.
+            </p>
+
+            <Field
+              label="URL del video o playlist de YouTube"
+              hint="Ejemplos:  https://www.youtube.com/watch?v=XXXX  ·  https://youtu.be/XXXX  ·  playlist: https://www.youtube.com/playlist?list=PL..."
+            >
+              <input
+                className={inp}
+                placeholder="https://www.youtube.com/watch?v=..."
+                value={config.youtubeVideoUrl || ''}
+                onChange={e => update('youtubeVideoUrl', e.target.value)}
+              />
+            </Field>
+
+            {/* Preview inline */}
+            {(() => {
+              const url = (config.youtubeVideoUrl || '').trim();
+              if (!url) return null;
+              // Extraer video ID o playlist ID
+              const vMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/|v\/))([\w-]{11})/);
+              const pMatch = url.match(/[?&]list=([\w-]+)/);
+              const videoId    = vMatch?.[1] || '';
+              const playlistId = pMatch?.[1] || '';
+              if (!videoId && !playlistId) {
+                return (
+                  <p className="text-xs text-rose-400 bg-rose-500/5 border border-rose-500/25 rounded-lg px-3 py-2">
+                    ⚠️ No pudimos reconocer un ID de video o playlist en esa URL. Verifica que sea de YouTube.
+                  </p>
+                );
+              }
+              const src = playlistId
+                ? `https://www.youtube.com/embed/videoseries?list=${playlistId}&autoplay=1&mute=1&loop=1&controls=0&modestbranding=1&rel=0&playsinline=1`
+                : `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&loop=1&controls=0&modestbranding=1&rel=0&playsinline=1&playlist=${videoId}`;
+              return (
+                <div className="mt-2">
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Preview</p>
+                  <div className="aspect-video rounded-xl overflow-hidden border border-slate-800 bg-slate-950">
+                    <iframe
+                      src={src}
+                      title="Preview YouTube"
+                      className="w-full h-full"
+                      allow="autoplay; encrypted-media"
+                      allowFullScreen
+                    />
+                  </div>
+                </div>
+              );
+            })()}
+
+            <p className="text-[10px] text-slate-600 bg-slate-800/30 rounded-xl px-3 py-2.5 leading-relaxed border border-slate-800">
+              💡 <strong className="text-slate-400">Tip:</strong> Para varios videos en rotación, arma una <strong>playlist</strong> en YouTube (puede ser oculta) y pega la URL — se reproducirán uno tras otro en loop.
             </p>
           </Card>
 
