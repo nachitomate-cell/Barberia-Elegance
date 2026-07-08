@@ -50,16 +50,17 @@ function GoogleIcon({ size = 16, className = '' }) {
   );
 }
 
-// Ícono custom para "Pantalla TV" — pantalla con "señal de play" que evoca
-// la barbería mostrando su contenido digital. Cian neón para amarrar con
-// la variante 'tv' (cyan/tech). El color viene por CSS (currentColor).
-function PantallaTvIcon({ size = 16, className = '', strokeWidth = 2 }) {
+// Ícono oficial de YouTube (rectángulo rojo con triángulo blanco) para el
+// item "Pantalla TV" en el sidebar — refleja que el módulo permite reproducir
+// contenido de YouTube en las pantallas del local.
+function PantallaTvIcon({ size = 16, className = '' }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
-      <rect x="2" y="4" width="20" height="14" rx="2" stroke="currentColor" strokeWidth={strokeWidth} />
-      <path d="M10 9.5v5l4.5-2.5-4.5-2.5z" fill="currentColor" stroke="none" />
-      <line x1="8" y1="21" x2="16" y2="21" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" />
-      <line x1="12" y1="18" x2="12" y2="21" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" />
+    <svg width={size} height={size} viewBox="0 0 24 24" className={className} aria-hidden>
+      <path
+        fill="#FF0000"
+        d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814z"
+      />
+      <path fill="#FFFFFF" d="M9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
     </svg>
   );
 }

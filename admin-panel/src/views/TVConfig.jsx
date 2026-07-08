@@ -85,13 +85,15 @@ const ACCENT_PRESETS = [
 
 function Card({ icon: Icon, title, badge, children }) {
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-      <div className="flex items-center gap-2.5 px-5 py-4 border-b border-slate-800 bg-slate-800/30">
-        <Icon size={15} className="text-slate-400 shrink-0" />
-        <h2 className="text-sm font-semibold text-white flex-1">{title}</h2>
+    <div className="bg-slate-900/50 backdrop-blur-md border border-slate-800/60 rounded-2xl overflow-hidden shadow-lg shadow-black/10 transition-all hover:border-slate-800">
+      <div className="flex items-center gap-3 px-6 py-5 border-b border-slate-800/60 bg-gradient-to-r from-slate-800/25 via-slate-800/10 to-transparent">
+        <div className="p-2 rounded-xl bg-slate-800/60 border border-slate-700/50 shrink-0">
+          <Icon size={14} className="text-emerald-400" />
+        </div>
+        <h2 className="text-base font-bold text-white flex-1 tracking-tight">{title}</h2>
         {badge}
       </div>
-      <div className="px-5 py-5 space-y-4">{children}</div>
+      <div className="px-6 py-6 space-y-5">{children}</div>
     </div>
   );
 }
@@ -948,24 +950,33 @@ export default function TVConfig() {
   );
 
   return (
-    <div data-view="tv-config" className="max-w-7xl mx-auto px-4 lg:px-6 py-6 pb-20 space-y-6">
+    <div data-view="tv-config" className="max-w-7xl mx-auto px-4 lg:px-8 py-8 pb-24 space-y-8">
 
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-slate-900/40 p-5 rounded-2xl border border-slate-800 shadow-md">
-        <div>
-          <h1 className="text-xl font-black text-white flex items-center gap-2.5">
-            <Monitor className="text-emerald-500" size={22} />
-            Pantalla TV
+      {/* Header — hero Apple-style con glassmorphism y glow ambiental */}
+      <div className="relative flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5 bg-slate-900/40 backdrop-blur-md p-6 lg:p-8 rounded-3xl border border-slate-800/60 shadow-2xl shadow-black/20 overflow-hidden">
+        {/* Ambient glow */}
+        <div
+          aria-hidden
+          className="absolute -top-16 -right-16 w-64 h-64 bg-emerald-500/10 blur-[80px] rounded-full pointer-events-none"
+        />
+        <div className="relative min-w-0">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-2xl bg-emerald-500/15 border border-emerald-500/25 shrink-0 shadow-[0_0_20px_-8px_rgba(16,185,129,0.5)]">
+              <Monitor className="text-emerald-400" size={20} />
+            </div>
+            <h1 className="text-2xl lg:text-3xl font-black text-white tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
+              Pantalla TV
+            </h1>
             <HelpButton onClick={() => setShowHelp(true)} />
-          </h1>
-          <p className="text-sm text-slate-400 mt-1">
-            Configura el contenido de la pantalla del local en tiempo real con vista previa en vivo
+          </div>
+          <p className="text-sm text-slate-400 mt-2 max-w-xl leading-relaxed">
+            Diseña el contenido de la pantalla del local en tiempo real. Los cambios se aplican al instante con vista previa en vivo.
           </p>
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="relative flex items-center gap-2 shrink-0 flex-wrap">
           <button
             onClick={() => setShowConnect(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-emerald-400 border border-emerald-500/40 hover:text-white hover:bg-emerald-600 hover:border-emerald-500 transition-all bg-emerald-500/10 shadow-sm"
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold text-emerald-400 border border-emerald-500/40 hover:text-white hover:bg-emerald-600 hover:border-emerald-500 transition-all bg-emerald-500/10"
           >
             <Cable size={13} /> ¿Cómo lo conecto?
           </button>
@@ -973,21 +984,21 @@ export default function TVConfig() {
             href="/gestion-interna/tv"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-slate-400 border border-slate-700 hover:text-white hover:border-slate-500 hover:bg-slate-800/50 transition-all bg-slate-800/40 shadow-sm"
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold text-slate-400 border border-slate-700 hover:text-white hover:border-slate-500 hover:bg-slate-800/50 transition-all bg-slate-800/40"
           >
             <ExternalLink size={13} /> Ver TV en vivo
           </a>
           <button
             onClick={handleSave}
             disabled={saving}
-            className="relative flex items-center gap-2 px-4.5 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-sm font-bold rounded-xl transition-all shadow-lg shadow-emerald-950/20"
+            className="relative flex items-center gap-2 px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-slate-950 text-sm font-bold rounded-xl transition-all shadow-[0_0_25px_-5px_rgba(16,185,129,0.5)]"
           >
             {saving
-              ? <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ? <span className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
               : saved ? <Check size={15} /> : <Save size={15} />}
             {saved ? 'Guardado' : 'Guardar Cambios'}
             {dirty && !saving && !saved && (
-              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-400 border-2 border-slate-950" />
+              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-amber-400 border-2 border-slate-950 animate-pulse" />
             )}
           </button>
         </div>
