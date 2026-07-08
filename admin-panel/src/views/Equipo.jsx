@@ -365,6 +365,9 @@ function BarberCard({ barber, onEdit, waUrl, onVerAgenda, sucursales = [], dragH
   const isActive      = barber.disponible !== false;
   const isStrictAdmin = barber.rol === 'admin' && !allowAdminEdit;
   const isAdmin       = barber.rol === 'admin' || barber.rol === 'jefe';
+  // Toggle desplegable: por default colapsado para no saturar el grid con
+  // los mismos 2 párrafos explicativos repetidos en cada card del equipo.
+  const [linksOpen, setLinksOpen] = useState(false);
   const isSupportAdmin= (barber.email || '').toLowerCase().trim() === SUPPORT_EMAIL;
   const colPath       = tenantCol('barberos').path;
 
@@ -475,52 +478,73 @@ function BarberCard({ barber, onEdit, waUrl, onVerAgenda, sucursales = [], dragH
         </button>
       )}
 
-      {/* ── Sección: Links del barbero ─────────────────────────────
-          Dos links con propósitos MUY distintos que antes se confundían:
+      {/* ── Sección: Links del barbero (desplegable) ───────────────
+          Dos links con propósitos MUY distintos:
           1) Agenda personal PRIVADA (/agenda.html) — para el barbero
           2) Página pública de reserva (/{slug}) — para los clientes
-          IMPORTANTE: solo aplica a barberos que ATIENDEN clientes.
-          El rol 'admin' (dueño/administrador) no tiene ninguno de los
-          dos: no atiende citas propias ni tiene página de reserva. */}
+          Colapsado por default para no saturar el grid con texto repetido. */}
       {!isSupportAdmin && !isAdmin && barber.nombre && (
-        <div className="w-full mt-1 space-y-4">
-          {/* PRIVADO: Agenda personal del barbero */}
-          <div className="w-full space-y-2 bg-indigo-500/[0.04] border border-indigo-500/15 rounded-xl p-3">
-            <div className="flex items-start gap-2">
-              <div className="p-1.5 rounded-lg bg-indigo-500/15 border border-indigo-500/25 shrink-0 mt-0.5">
-                <Lock size={11} className="text-indigo-300" />
-              </div>
-              <div className="min-w-0">
-                <p className="text-[11px] font-bold uppercase tracking-widest text-indigo-300 leading-tight">
-                  Agenda personal (privada)
-                </p>
-                <p className="text-[10.5px] text-slate-400 mt-1 leading-snug">
-                  Este link se lo pasas <strong className="text-slate-200">al barbero</strong>.
-                  Es su vista privada para gestionar sus citas del día — inicia sesión con su cuenta y solo ve las suyas.
-                </p>
-              </div>
-            </div>
-            <PersonalAgendaButton />
-          </div>
+        <div className="w-full mt-1">
+          {/* Toggle */}
+          <button
+            type="button"
+            onClick={() => setLinksOpen(v => !v)}
+            aria-expanded={linksOpen}
+            className="w-full flex items-center justify-between gap-2 px-3 py-2 bg-slate-900/60 border border-slate-700/60 rounded-xl text-xs font-semibold text-slate-300 hover:bg-slate-900 hover:border-slate-600 transition-colors"
+          >
+            <span className="flex items-center gap-1.5">
+              <Link2 size={12} className="text-slate-400" />
+              Links del barbero
+              <span className="text-[10px] text-slate-500 font-normal">(agenda + reserva)</span>
+            </span>
+            <ChevronDown
+              size={14}
+              className={`text-slate-500 transition-transform duration-200 ${linksOpen ? 'rotate-180' : ''}`}
+            />
+          </button>
 
-          {/* PÚBLICO: Página de reserva del barbero */}
-          <div className="w-full space-y-2 bg-emerald-500/[0.04] border border-emerald-500/15 rounded-xl p-3">
-            <div className="flex items-start gap-2">
-              <div className="p-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/25 shrink-0 mt-0.5">
-                <Globe size={11} className="text-emerald-300" />
+          {/* Contenido colapsable */}
+          {linksOpen && (
+            <div className="w-full mt-3 space-y-3">
+              {/* PRIVADO: Agenda personal del barbero */}
+              <div className="w-full space-y-2 bg-indigo-500/[0.04] border border-indigo-500/15 rounded-xl p-3">
+                <div className="flex items-start gap-2">
+                  <div className="p-1.5 rounded-lg bg-indigo-500/15 border border-indigo-500/25 shrink-0 mt-0.5">
+                    <Lock size={11} className="text-indigo-300" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-bold uppercase tracking-widest text-indigo-300 leading-tight">
+                      Agenda personal (privada)
+                    </p>
+                    <p className="text-[10.5px] text-slate-400 mt-1 leading-snug">
+                      Este link se lo pasas <strong className="text-slate-200">al barbero</strong>.
+                      Es su vista privada para gestionar sus citas del día — inicia sesión con su cuenta y solo ve las suyas.
+                    </p>
+                  </div>
+                </div>
+                <PersonalAgendaButton />
               </div>
-              <div className="min-w-0">
-                <p className="text-[11px] font-bold uppercase tracking-widest text-emerald-300 leading-tight">
-                  Página pública de reserva
-                </p>
-                <p className="text-[10.5px] text-slate-400 mt-1 leading-snug">
-                  Este link es <strong className="text-slate-200">para tus clientes</strong>.
-                  Al abrirlo, verán la lista de servicios y horarios de {barber.nombre?.split(' ')[0] || 'este barbero'} y pueden reservar con él directo.
-                </p>
+
+              {/* PÚBLICO: Página de reserva del barbero */}
+              <div className="w-full space-y-2 bg-emerald-500/[0.04] border border-emerald-500/15 rounded-xl p-3">
+                <div className="flex items-start gap-2">
+                  <div className="p-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/25 shrink-0 mt-0.5">
+                    <Globe size={11} className="text-emerald-300" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[11px] font-bold uppercase tracking-widest text-emerald-300 leading-tight">
+                      Página pública de reserva
+                    </p>
+                    <p className="text-[10.5px] text-slate-400 mt-1 leading-snug">
+                      Este link es <strong className="text-slate-200">para tus clientes</strong>.
+                      Al abrirlo, verán la lista de servicios y horarios de {barber.nombre?.split(' ')[0] || 'este barbero'} y pueden reservar con él directo.
+                    </p>
+                  </div>
+                </div>
+                <BookingUrlButton nombre={barber.nombre} />
               </div>
             </div>
-            <BookingUrlButton nombre={barber.nombre} />
-          </div>
+          )}
         </div>
       )}
 
