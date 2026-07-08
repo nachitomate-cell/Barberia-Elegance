@@ -5187,6 +5187,25 @@
         </div>
       </div>
 
+      <!-- ── Opt-out de anuncios ── -->
+      <!-- Toggle discreto que permite al cliente dejar de recibir push
+           publicitario. No afecta notificaciones transaccionales (cita
+           confirmada, sello ganado). Escribe en tenants/{tid}/anuncios_optout. -->
+      <div id="anuncioOptOutRow" class="mb-4 rounded-2xl border border-white/8 bg-white/3 px-4 py-3">
+        <div class="flex items-center justify-between gap-3">
+          <div class="flex-1 min-w-0">
+            <p class="text-[13px] font-semibold text-white leading-tight">Recibir novedades y promos</p>
+            <p class="text-[11px] text-white/40 mt-0.5">No afecta confirmaciones ni sellos.</p>
+          </div>
+          <button id="anuncioOptOutToggle" type="button" role="switch"
+            aria-checked="true"
+            class="shrink-0 relative w-11 h-6 rounded-full bg-emerald-500 transition-colors"
+            onclick="toggleAnuncioOptOut()">
+            <span class="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform" style="transform: translateX(20px);"></span>
+          </button>
+        </div>
+      </div>
+
       <!-- ── Cómo funciona el club (solo Aura) ── -->
       <!-- Bloque explicativo de qué desbloquea cada rango. Hidden por defecto;
            se muestra únicamente cuando html.tenant-aura está activo. -->
@@ -6270,8 +6289,82 @@ async function runPreviewMode() {
   try { cargarAnuncio(); } catch (_) {}
 }
 
+// ─── Anuncios · toggle opt-out cliente ────────────────────────────
+// Lee/escribe tenants/{tid}/anuncios_optout/{uid}. Si existe doc → opted out.
+let _anuncioOptOutState = null; // true = recibiendo (default), false = opt-out
+function _updateAnuncioToggleUI() {
+  const btn = document.getElementById('anuncioOptOutToggle');
+  if (!btn) return;
+  const knob = btn.querySelector('span');
+  if (_anuncioOptOutState === false) {
+    btn.setAttribute('aria-checked', 'false');
+    btn.classList.remove('bg-emerald-500');
+    btn.classList.add('bg-white/15');
+    if (knob) knob.style.transform = 'translateX(0)';
+  } else {
+    btn.setAttribute('aria-checked', 'true');
+    btn.classList.remove('bg-white/15');
+    btn.classList.add('bg-emerald-500');
+    if (knob) knob.style.transform = 'translateX(20px)';
+  }
+}
+async function _loadAnuncioOptOut() {
+  try {
+    const user = auth.currentUser;
+    if (!user) return;
+    // anuncios_optout es marca-aware para Kronnos (via _tenantCol/FDB.tenantCol).
+    const ref = _tenantCol('anuncios_optout').doc(user.uid);
+    const snap = await ref.get();
+    _anuncioOptOutState = !snap.exists; // existe = opted out = state:false
+    _updateAnuncioToggleUI();
+  } catch (e) { console.warn('[anuncio-optout] load:', e.message); }
+}
+window.toggleAnuncioOptOut = async function () {
+  const user = auth.currentUser;
+  if (!user) return;
+  const ref = _tenantCol('anuncios_optout').doc(user.uid);
+  try {
+    if (_anuncioOptOutState !== false) {
+      // Actualmente recibiendo → opt-out
+      await ref.set({ optedOutAt: new Date().toISOString(), uid: user.uid });
+      _anuncioOptOutState = false;
+    } else {
+      // Actualmente opt-out → volver a recibir
+      await ref.delete();
+      _anuncioOptOutState = true;
+    }
+    _updateAnuncioToggleUI();
+  } catch (e) { console.error('[anuncio-optout] toggle:', e.message); }
+};
+
+// ─── Anuncios · tracking apertura desde deep link ?ann={id} ───────
+// Cuando el cliente entra vía click en un push, la URL trae ?ann={anuncioId}.
+// Llamamos trackAperturaAnuncio para registrar el open + habilitar conversion
+// attribution en las próximas 7 días. Idempotente en el server side.
+async function trackAperturaAnuncioDesdeUrl(userAuth) {
+  try {
+    const url = new URL(window.location.href);
+    const anuncioId = url.searchParams.get('ann');
+    if (!anuncioId || !userAuth) return;
+    const tenantId = window.CURRENT_TENANT_ID || 'elegance';
+    const fn = firebase.functions().httpsCallable('trackAperturaAnuncio');
+    await fn({ tenantId, anuncioId });
+    // Limpia el param para que un refresh no lo cuente 2 veces (idempotente igual,
+    // pero cuida la UX del link).
+    url.searchParams.delete('ann');
+    window.history.replaceState({}, '', url.toString());
+  } catch (e) {
+    console.warn('[anuncio] trackApertura failed:', e.message);
+  }
+}
+
 // ─── Auth Guard ───────────────────────────────────────────────
 auth.onAuthStateChanged(async user => {
+  // Deep link de anuncio: trackear apertura si el user está logueado
+  if (user && !user.isAnonymous) {
+    trackAperturaAnuncioDesdeUrl(user);
+    _loadAnuncioOptOut();
+  }
   // MODO PREVIEW: ignora el estado real de auth y ejecuta el flujo con mock user.
   // Solo la primera vez — llamadas subsecuentes (por cambios de auth) son no-op.
   if (PREVIEW) {
@@ -7533,7 +7626,10 @@ window.shareReferralWhatsApp = function (ev) {
   if (!code) return;
   const nombreLocal = SHOP.nombre || SHOP.nombreCorto || 'nuestro Club';
   const origin = window.location.origin || '';
-  const msg = `¡Únete al Club de ${nombreLocal}! Regístrate usando mi código ${code} en ${origin}/club y agendemos.`;
+  // Link con ?ref=CODIGO: registro.html lo detecta y pre-rellena el input.
+  // Así el amigo no tiene que copiar/pegar (donde se pierde el 40% del flujo).
+  const link = `${origin}/registro?ref=${encodeURIComponent(code)}`;
+  const msg = `¡Únete al Club de ${nombreLocal}! Regístrate con mi link y agendamos:\n${link}`;
   const url = 'https://wa.me/?text=' + encodeURIComponent(msg);
   window.open(url, '_blank', 'noopener,noreferrer');
 };

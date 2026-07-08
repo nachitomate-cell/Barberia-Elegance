@@ -5,7 +5,7 @@ import {
   Trophy, ShoppingBag, Images, LogOut, ChevronRight, ScanLine,
   Sun, Moon, ExternalLink, Settings, TrendingDown, MessageCircle, X,
   Megaphone, ImagePlus, CreditCard, Monitor, Headphones, Medal, Camera, GraduationCap, Wallet, Package, ThumbsUp, Crown,
-  Globe, Banknote, Gift, ClipboardList, Building2, Home, Lock, HelpCircle, Link2, Instagram, CircleDollarSign, Sparkles, UserX, Award, Bot, Ticket,
+  Globe, Banknote, Gift, ClipboardList, Building2, Home, Lock, HelpCircle, Link2, Instagram, CircleDollarSign, Sparkles, UserX, Award, Bot, Ticket, BellRing,
 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { doc, onSnapshot, where } from 'firebase/firestore';
@@ -170,6 +170,7 @@ const NAV_GROUPS_DEFAULT = [
     adminOnly: true,
     items: [
       { to: 'marketing',     label: 'Marketing',      Icon: Megaphone,    adminOnly: true },
+      { to: 'anuncios',      label: 'Anuncios',       Icon: BellRing,     adminOnly: true },
       { to: 'gift-cards',    label: 'Gift Cards',     Icon: Gift,         adminOnly: true, variant: 'giftcard' },
       { to: 'sorteos',       label: 'Sorteos',        Icon: Ticket,       adminOnly: true },
       { to: 'lista-espera',  label: 'Lista de espera',Icon: ClipboardList,adminOnly: true },

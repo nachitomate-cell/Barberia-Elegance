@@ -45,6 +45,8 @@ const FDB = (() => {
     // cargó a tenants/kronnos/clientes/. Sin este redirect, lookups per-sede
     // devolvían vacío. Espejo del set en functions/lib/kronnos-marca.js.
     'clientes',
+    // anuncios_optout: opt-out aplica a las 3 sedes Kronnos (pool marca).
+    'anuncios_optout',
   ]);
   function _marcaAwareTenant(tid, colName) {
     if (KRONNOS_LEGACY_TO_MARCA[tid] && KRONNOS_MARCA_COLLECTIONS.has(colName)) {

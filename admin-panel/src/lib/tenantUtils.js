@@ -132,6 +132,8 @@ export const KRONNOS_MARCA_COLLECTIONS = new Set([
   // cargó a tenants/kronnos/clientes/. Sin este redirect, lookups per-sede
   // devolvían vacío. Espejo del set en functions/lib/kronnos-marca.js.
   'clientes',
+  // anuncios_optout: opt-out aplica a las 3 sedes Kronnos (pool marca).
+  'anuncios_optout',
 ]);
 
 function _marcaAwareTenant(tid, colName) {

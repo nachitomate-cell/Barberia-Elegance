@@ -1126,6 +1126,29 @@ service cloud.firestore {
         allow write: if esAdmin(tid);
       }
 
+      // ── anuncios (push publicitario al cliente) ──────────────────
+      // Read: solo staff del tenant. Write: solo CF (via admin SDK).
+      // Los admins ven el historial y estadísticas desde el panel.
+      match /anuncios/{anuncioId} {
+        allow read:  if esStaff(tid);
+        allow write: if false; // solo Cloud Functions vía admin SDK
+
+        match /recipients/{uid} {
+          allow read:  if esStaff(tid);
+          allow write: if false;
+        }
+      }
+
+      // ── anuncios_optout (lista de opt-out del cliente) ───────────
+      // El cliente puede leer/setear su propio opt-out. Staff lo lee para
+      // respetar exclusiones. La CF también escribe/lee vía admin SDK.
+      match /anuncios_optout/{userId} {
+        allow read:   if autenticado() && (uid() == userId || esStaff(tid));
+        allow create: if autenticado() && uid() == userId;
+        allow update: if autenticado() && uid() == userId;
+        allow delete: if autenticado() && uid() == userId;
+      }
+
       // ── servicioFavorito ──────────────────────────────────────────
       match /servicioFavorito/{docId} {
         allow read:   if autenticado() && (

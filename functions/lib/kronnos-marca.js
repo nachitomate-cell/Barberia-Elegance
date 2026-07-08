@@ -44,6 +44,9 @@ const MARCA_COLLECTIONS = new Set([
   // clientes es lookup por teléfono cross-sede: un mismo cliente atendido en
   // varias sedes debe ser un solo doc en tenants/kronnos/clientes/{tel}.
   'clientes',
+  // anuncios_optout: si un cliente Kronnos dice "no más pushes", opt-out
+  // aplica a las 3 sedes. Vive en pool marca.
+  'anuncios_optout',
 ]);
 
 // Sedes válidas — para validar sedeCanje del payload cliente.

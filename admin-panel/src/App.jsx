@@ -34,6 +34,7 @@ import AgendaBarbero    from './views/AgendaBarbero';
 import Chat            from './views/Chat';
 import ChatbotConfig   from './views/ChatbotConfig';
 import Marketing        from './views/Marketing';
+import Anuncios         from './views/Anuncios';
 import ServicioFavorito from './views/ServicioFavorito';
 import LoginPage        from './views/LoginPage';
 import BarberTV         from './views/BarberTV';
@@ -125,6 +126,7 @@ function ProtectedApp() {
             <Route path="mensajes"        element={<Chat />} />
             <Route path="chatbot"         element={<ChatbotConfig />} />
             <Route path="marketing"       element={<BillingGate><Marketing /></BillingGate>} />
+            <Route path="anuncios"        element={<BillingGate><Anuncios /></BillingGate>} />
             <Route path="soporte"         element={<Soporte />} />
             <Route path="consultas"       element={<Consultas />} />
             <Route path="membresias"      element={<Membresias />} />

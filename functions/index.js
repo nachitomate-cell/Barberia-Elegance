@@ -783,6 +783,19 @@ const broadcastAnuncio = require('./broadcast-anuncio');
 exports.broadcastAnuncio = broadcastAnuncio.broadcastAnuncio;
 
 // ─────────────────────────────────────────────────────────────────
+//  ANUNCIOS AL CLIENTE (push publicitario con targeting + métricas)
+//  Broadcast a clientes del Club con reglas duras server-side:
+//  cooldown, max/mes, ventana horaria, exclusión con cita 72h, opt-out.
+//  Kronnos-aware (users viven en pool marca). Tracking opens + conversions.
+// ─────────────────────────────────────────────────────────────────
+const anunciosCliente = require('./anuncios-cliente');
+exports.enviarAnuncioCliente             = anunciosCliente.enviarAnuncioCliente;
+exports.previewAudienciaAnuncio          = anunciosCliente.previewAudienciaAnuncio;
+exports.trackAperturaAnuncio             = anunciosCliente.trackAperturaAnuncio;
+exports.onCitaCreadaAnuncioConvElegance  = anunciosCliente.onCitaCreadaAnuncioConvElegance;
+exports.onCitaCreadaAnuncioConvTenant    = anunciosCliente.onCitaCreadaAnuncioConvTenant;
+
+// ─────────────────────────────────────────────────────────────────
 //  RECORDATORIO SEMANAL — CERRAR CITAS DEL DÍA
 //  Cada viernes 20:00 hora Chile manda push a admins + barberos
 //  para que marquen sus citas como Completada (sello + comisión).
