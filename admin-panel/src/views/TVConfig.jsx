@@ -684,11 +684,26 @@ function TVSimulator({ config, bgUrl, tenantId }) {
 
 // ── Componente principal ──────────────────────────────────────────
 
+// Tabs para organizar la vista (evita el scroll infinito de 10 cards seguidas)
+const TABS = [
+  { key: 'contenido',  label: 'Contenido',  desc: 'Fondo y slides' },
+  { key: 'layout',     label: 'Layout',     desc: 'Toggles y tamaños' },
+  { key: 'estilo',     label: 'Estilo',     desc: 'QR y branding' },
+  { key: 'publicidad', label: 'Publicidad', desc: 'Marcas auspiciadoras' },
+];
+
 export default function TVConfig() {
   const [config,        setConfig]        = useState(CONFIG_DEFAULT);
   const [showHelp,      setShowHelp]      = useState(false);
   const [showConnect,   setShowConnect]   = useState(false);
   const [connectTab,    setConnectTab]    = useState('cable');
+  const [tab,           setTab]           = useState('contenido');
+  // Modo del bloque de fondo unificado: cual input mostrar
+  // ('local' = archivo subido, 'youtube-video' = video de YouTube visible).
+  // El default se infiere del estado actual: si hay youtubeVideoUrl la vista
+  // parte en YouTube, si no en Local. El usuario puede cambiar libremente
+  // sin perder data (los 2 fields coexisten en Firestore).
+  const [mediaMode, setMediaMode] = useState('local');
   const [loading,       setLoading]       = useState(true);
   const [saving,        setSaving]        = useState(false);
   const [saved,         setSaved]         = useState(false);
@@ -744,6 +759,10 @@ export default function TVConfig() {
             cardsFondo:    d.cardsFondo === true,
           });
           if (d.backgroundUrl) setBgUrl(d.backgroundUrl);
+          // Auto-selecciona el modo inicial del bloque unificado según lo guardado:
+          // si hay YouTube video, arranca en ese modo; si no, en Local.
+          if (d.youtubeVideoUrl) setMediaMode('youtube-video');
+          else                    setMediaMode('local');
         }
       })
       .finally(() => setLoading(false));
@@ -1017,14 +1036,76 @@ export default function TVConfig() {
         </div>
       )}
 
+      {/* ── Tabs de navegación ───────────────────────────────────
+          Reemplazan el scroll infinito de 10 cards apiladas. Cada tab
+          agrupa cards por proposito (Contenido, Layout, Estilo, Publicidad). */}
+      <div className="flex flex-wrap gap-1 border-b border-slate-800/60">
+        {TABS.map(t => {
+          const active = tab === t.key;
+          return (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={`flex flex-col items-start px-4 md:px-5 py-3 transition-all border-b-2 -mb-px ${
+                active
+                  ? 'text-emerald-400 border-emerald-400'
+                  : 'text-slate-500 border-transparent hover:text-slate-300'
+              }`}
+            >
+              <span className="text-sm font-bold">{t.label}</span>
+              <span className="text-[10px] font-medium opacity-60">{t.desc}</span>
+            </button>
+          );
+        })}
+      </div>
+
       {/* Grid de dos columnas responsive */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
         {/* COLUMNA IZQUIERDA: FORMULARIOS (Col 7) */}
         <div className="lg:col-span-7 space-y-6">
 
+          {/* ═════════ TAB: CONTENIDO ═════════════════════════════════ */}
+          {tab === 'contenido' && (
+          <>
+
           {/* ── Fondo de pantalla TV ───────────────────────────────────────── */}
           <Card icon={ImagePlus} title="Fondo de Pantalla TV">
+            {/* Selector de modo — reemplaza la separacion de 2 cards */}
+            <div className="flex gap-2 bg-slate-800/40 p-1 rounded-xl border border-slate-800">
+              {[
+                { key: 'local',         label: 'Archivo local',       Icon: ImagePlus },
+                { key: 'youtube-video', label: 'Video de YouTube',    Icon: Music },
+              ].map(m => {
+                const active = mediaMode === m.key;
+                return (
+                  <button
+                    key={m.key}
+                    type="button"
+                    onClick={() => setMediaMode(m.key)}
+                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${
+                      active
+                        ? 'bg-emerald-600 text-white shadow-md shadow-emerald-950/20'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <m.Icon size={13} />
+                    {m.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Aviso de precedencia cuando ambos estan seteados */}
+            {bgUrl && config.youtubeVideoUrl && (
+              <p className="text-[11px] text-amber-400/80 bg-amber-500/5 border border-amber-500/20 rounded-lg px-3 py-2">
+                ⚠️ Tienes ambos configurados. En la TV se muestra el <strong>Video de YouTube</strong> (tiene prioridad).
+                Elimina uno de los dos si quieres cambiar el orden.
+              </p>
+            )}
+
+            {mediaMode === 'local' && (
+            <>
             <p className="text-xs text-slate-500 -mt-1">
               Se aplica en toda la pantalla TV con brillo reducido para no tapar el contenido.
               Soporta imágenes (comprimidas automáticamente) y videos (se suben crudos para mantener la calidad).
@@ -1105,40 +1186,14 @@ export default function TVConfig() {
                 <input ref={bgInputRef} type="file" accept="image/*,video/*" className="hidden" onChange={handleBgUpload} disabled={bgUploading} />
               </label>
             )}
-          </Card>
+            </>
+            )}
 
-          {/* ── Música de Fondo (YouTube) ──────────────────────────────── */}
-          <Card icon={Music} title="Música de Fondo (YouTube)">
-            <p className="text-xs text-slate-500 -mt-1">
-              Permite reproducir transmisiones en vivo (ej. radios Lofi), playlists o cualquier video de YouTube de fondo con audio en la sala de espera.
-            </p>
-
-            <Field
-              label="URL o ID de YouTube"
-              hint="Pega la dirección del video de YouTube (ej. https://www.youtube.com/watch?v=5qap5aO4i9A)"
-            >
-              <input
-                className={inp}
-                placeholder="https://www.youtube.com/watch?v=..."
-                value={config.youtubeUrl || ''}
-                onChange={e => update('youtubeUrl', e.target.value)}
-              />
-            </Field>
-            
-            <p className="text-[10px] text-slate-600 bg-slate-800/30 rounded-xl px-3 py-2.5 leading-relaxed border border-slate-800">
-              💡 **Recomendación:** Utiliza streams continuos de música ambiental Lofi, jazz o chillout para mantener una atmósfera relajante en el local.
-            </p>
-          </Card>
-
-          {/* ── Video de YouTube (fondo visible) ─────────────────────────
-              Diferente al de música: acá el video se VE (silenciado por default)
-              como fondo del carrusel, reemplazando cualquier imagen/video subido.
-              Soporta URLs individuales y playlists (ver hint). */}
-          <Card icon={Music} title="Video de YouTube (fondo)">
+            {mediaMode === 'youtube-video' && (
+            <>
             <p className="text-xs text-slate-500 -mt-1">
               Reproduce un video de YouTube <strong className="text-slate-300">visible</strong> como fondo de la pantalla.
-              Silenciado por default (Chrome bloquea autoplay con audio). Si dejas
-              este campo lleno, tiene prioridad sobre la imagen/video subido arriba.
+              Silenciado por default (Chrome bloquea autoplay con audio).
             </p>
 
             <Field
@@ -1157,7 +1212,6 @@ export default function TVConfig() {
             {(() => {
               const url = (config.youtubeVideoUrl || '').trim();
               if (!url) return null;
-              // Extraer video ID o playlist ID
               const vMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/|v\/))([\w-]{11})/);
               const pMatch = url.match(/[?&]list=([\w-]+)/);
               const videoId    = vMatch?.[1] || '';
@@ -1191,7 +1245,42 @@ export default function TVConfig() {
             <p className="text-[10px] text-slate-600 bg-slate-800/30 rounded-xl px-3 py-2.5 leading-relaxed border border-slate-800">
               💡 <strong className="text-slate-400">Tip:</strong> Para varios videos en rotación, arma una <strong>playlist</strong> en YouTube (puede ser oculta) y pega la URL — se reproducirán uno tras otro en loop.
             </p>
+            </>
+            )}
           </Card>
+
+          {/* ── Música de Fondo (YouTube) ──────────────────────────────── */}
+          <Card icon={Music} title="Música de Fondo (YouTube)">
+            <p className="text-xs text-slate-500 -mt-1">
+              Permite reproducir transmisiones en vivo (ej. radios Lofi), playlists o cualquier video de YouTube de fondo con audio en la sala de espera.
+            </p>
+
+            <Field
+              label="URL o ID de YouTube"
+              hint="Pega la dirección del video de YouTube (ej. https://www.youtube.com/watch?v=5qap5aO4i9A)"
+            >
+              <input
+                className={inp}
+                placeholder="https://www.youtube.com/watch?v=..."
+                value={config.youtubeUrl || ''}
+                onChange={e => update('youtubeUrl', e.target.value)}
+              />
+            </Field>
+            
+            <p className="text-[10px] text-slate-600 bg-slate-800/30 rounded-xl px-3 py-2.5 leading-relaxed border border-slate-800">
+              💡 **Recomendación:** Utiliza streams continuos de música ambiental Lofi, jazz o chillout para mantener una atmósfera relajante en el local.
+            </p>
+          </Card>
+
+          {/* La antigua card "Video de YouTube (fondo)" se unificó dentro
+              de la card "Fondo de Pantalla TV" via el mediaMode selector. */}
+
+          </>
+          )}
+
+          {/* ═════════ TAB: LAYOUT ═════════════════════════════════════ */}
+          {tab === 'layout' && (
+          <>
 
           {/* ── General ───────────────────────────────────────────────── */}
           <Card icon={Monitor} title="Configuración General">
@@ -1354,6 +1443,13 @@ export default function TVConfig() {
 
           </Card>
 
+          </>
+          )}
+
+          {/* ═════════ TAB: ESTILO ════════════════════════════════════ */}
+          {tab === 'estilo' && (
+          <>
+
           {/* ── QR ────────────────────────────────────────────────────── */}
           <Card icon={QrCode} title="Código QR">
             <p className="text-xs text-slate-500 -mt-1">
@@ -1462,6 +1558,13 @@ export default function TVConfig() {
               </div>
             </Field>
           </Card>
+
+          </>
+          )}
+
+          {/* ═════════ TAB: CONTENIDO (parte 2 — slides 1-4) ══════════ */}
+          {tab === 'contenido' && (
+          <>
 
           {/* ── Slide Anuncio ─────────────────────────────────────────── */}
           <Card
@@ -1676,6 +1779,13 @@ export default function TVConfig() {
             </p>
           </Card>
 
+          </>
+          )}
+
+          {/* ═════════ TAB: PUBLICIDAD ═══════════════════════════════ */}
+          {tab === 'publicidad' && (
+          <>
+
           {/* ── Slide Marcas (Solo Elegance) ──────────────────────────── */}
           {tenantId === 'elegance' && (
             <Card
@@ -1761,6 +1871,20 @@ export default function TVConfig() {
                 </div>
               )}
             </Card>
+          )}
+
+          </>
+          )}
+
+          {/* Empty state: publicidad tab en tenants sin Elegance */}
+          {tab === 'publicidad' && tenantId !== 'elegance' && (
+            <div className="bg-slate-900/40 border border-dashed border-slate-800 rounded-2xl p-8 text-center">
+              <Megaphone size={22} className="mx-auto text-slate-600 mb-2" />
+              <p className="text-sm font-semibold text-slate-400">Publicidad de marcas — Solo Elegance</p>
+              <p className="text-xs text-slate-600 mt-1 max-w-sm mx-auto leading-relaxed">
+                Este slide de auspiciadores está disponible por ahora solo en Elegance. Contáctate con soporte si querés activarlo en tu local.
+              </p>
+            </div>
           )}
 
         </div>
