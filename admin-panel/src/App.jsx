@@ -50,6 +50,7 @@ import ReservaPublica   from './views/ReservaPublica';
 import Comisiones       from './views/Comisiones';
 import GiftCards        from './views/GiftCards';
 import Sorteos          from './views/Sorteos';
+import Google           from './views/Google';
 import ListaEspera      from './views/ListaEspera';
 import Sucursales       from './views/Sucursales';
 import RecibirPagos     from './views/RecibirPagos';
@@ -136,6 +137,7 @@ function ProtectedApp() {
             <Route path="comisiones"      element={<BillingGate><Comisiones /></BillingGate>} />
             <Route path="gift-cards"      element={<GiftCards />} />
             <Route path="sorteos"         element={<Sorteos />} />
+            <Route path="google"          element={<Google />} />
             <Route path="lista-espera"    element={<ListaEspera />} />
             <Route path="sucursales"      element={<Sucursales />} />
             <Route path="booking-preview"   element={<BookingFlow />} />

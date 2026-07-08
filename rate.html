@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>¿Cómo estuvo tu experiencia?</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="config.js"></script>
+  <script src="firebase-config.js?v=1.3"></script>
+  <script src="firebaseUtils.js?v=3.1"></script>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .star-btn { transition: transform 0.15s ease, filter 0.15s ease; }
+    .star-btn:hover { transform: scale(1.15); filter: drop-shadow(0 0 12px rgba(251,191,36,0.5)); }
+    .star-btn:active { transform: scale(1.05); }
+    .fade-in { animation: fadeIn 0.4s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-center p-4">
+
+  <!-- Estado 1: cargando -->
+  <div id="viewLoading" class="text-center">
+    <div class="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+    <p class="text-slate-400 text-sm mt-3">Cargando…</p>
+  </div>
+
+  <!-- Estado 2: error (link inválido/expirado/ya usado) -->
+  <div id="viewError" class="hidden text-center max-w-md fade-in">
+    <div class="w-16 h-16 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center mx-auto mb-4">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-slate-500">
+        <circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+      </svg>
+    </div>
+    <h1 class="text-lg font-bold text-white mb-1">Este link no es válido</h1>
+    <p id="errorMsg" class="text-sm text-slate-400 leading-relaxed">
+      El link puede haber expirado o ya fue usado. Si acabas de recibirlo, avísale al local para que te mande uno nuevo.
+    </p>
+  </div>
+
+  <!-- Estado 3: pedir rating (5 estrellas) -->
+  <div id="viewRate" class="hidden text-center max-w-md fade-in">
+    <div class="mb-6">
+      <div id="tenantLogo" class="w-16 h-16 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center mx-auto mb-4 overflow-hidden"></div>
+      <h1 class="text-2xl font-bold text-white leading-tight">¿Cómo estuvo tu experiencia?</h1>
+      <p id="tenantName" class="text-sm text-slate-400 mt-2"></p>
+    </div>
+
+    <p class="text-xs text-slate-500 mb-4">Tap en las estrellas para calificar</p>
+    <div id="starsRow" class="flex justify-center gap-2 sm:gap-3 mb-8">
+      <!-- 5 star buttons inyectadas por JS -->
+    </div>
+    <p class="text-[11px] text-slate-600 leading-relaxed max-w-xs mx-auto">
+      Con 4 o 5 estrellas te llevamos directo a Google Maps. Con menos, te preguntamos qué falló para poder mejorar.
+    </p>
+  </div>
+
+  <!-- Estado 4: feedback negativo (formulario) -->
+  <div id="viewFeedback" class="hidden max-w-md fade-in">
+    <div class="text-center mb-5">
+      <div class="w-14 h-14 rounded-full bg-amber-500/15 border border-amber-500/30 flex items-center justify-center mx-auto mb-3">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-amber-400">
+          <path d="M9 11H1l3-9 5 9zm4 0l5-9 5 9h-8zm-8 4l3 9 5-9H5zm11 0h8l-5 9-3-9z" transform="translate(0,1)"/>
+        </svg>
+      </div>
+      <h1 class="text-xl font-bold text-white leading-tight">Lamentamos que no fuera excelente</h1>
+      <p class="text-sm text-slate-400 mt-2 leading-relaxed">
+        Tu opinión NO se publica en Google — llega directo al dueño del local para que pueda mejorar.
+      </p>
+    </div>
+    <textarea
+      id="feedbackText"
+      rows="5"
+      placeholder="Cuéntanos qué falló o qué esperabas distinto…"
+      class="w-full bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500 transition-colors resize-none"
+    ></textarea>
+    <button
+      id="btnSendFeedback"
+      class="w-full mt-4 flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed text-slate-950 text-sm font-bold transition-colors"
+    >
+      Enviar feedback
+    </button>
+    <p id="feedbackErr" class="hidden text-xs text-rose-400 font-semibold mt-3 text-center"></p>
+  </div>
+
+  <!-- Estado 5: gracias (final) -->
+  <div id="viewThanks" class="hidden text-center max-w-md fade-in">
+    <div class="w-16 h-16 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center mx-auto mb-4">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-emerald-400">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
+    </div>
+    <h1 class="text-lg font-bold text-white mb-1">¡Gracias!</h1>
+    <p class="text-sm text-slate-400 leading-relaxed">
+      Ya puedes cerrar esta ventana. Tu feedback llegó al local.
+    </p>
+  </div>
+
+<script>
+(async function() {
+  const params  = new URLSearchParams(location.search);
+  const intentId = params.get('t');
+  const token   = params.get('s');
+
+  const $ = id => document.getElementById(id);
+
+  function show(view) {
+    ['viewLoading', 'viewError', 'viewRate', 'viewFeedback', 'viewThanks']
+      .forEach(v => $(v).classList.add('hidden'));
+    $(view).classList.remove('hidden');
+  }
+
+  function showError(msg) {
+    if (msg) $('errorMsg').textContent = msg;
+    show('viewError');
+  }
+
+  if (!intentId || !token) return showError('Este link no tiene los parámetros correctos.');
+
+  // Inicializar Firebase con la config global (config.js define window.CURRENT_TENANT_ID).
+  try { firebase.initializeApp(firebaseConfig); } catch (_) {}
+  const db = firebase.firestore();
+
+  // Referencia al intent — respeta la ruta marca-level como el resto del panel.
+  const tid = window.CURRENT_TENANT_ID || 'elegance';
+  const intentRef = tid === 'elegance'
+    ? db.collection('review_intents').doc(intentId)
+    : db.collection('tenants').doc(tid).collection('review_intents').doc(intentId);
+
+  let intent;
+  try {
+    const snap = await intentRef.get();
+    if (!snap.exists) return showError('Este link ya no existe.');
+    intent = snap.data();
+  } catch (e) {
+    console.error('[rate] get intent:', e);
+    return showError('No pudimos cargar tu link. Intenta más tarde.');
+  }
+
+  // Validar token — es el "shared secret" entre el admin y este link
+  if (intent.token !== token) return showError('El link no es válido.');
+
+  // Validar status — solo pendientes se pueden calificar
+  if (intent.status !== 'pending') {
+    return showError('Este link ya fue utilizado. ¡Gracias por tu opinión!');
+  }
+
+  // Validar expiración
+  const expMs = intent.expiresAt?.toMillis?.() ?? 0;
+  if (expMs && expMs < Date.now()) {
+    return showError('Este link ya expiró. Pídele al local uno nuevo.');
+  }
+
+  // Registrar apertura de la landing (sin bloquear la UI si falla)
+  intentRef.update({
+    landingOpenedAt: firebase.firestore.FieldValue.serverTimestamp(),
+  }).catch(() => {});
+
+  // Cargar branding del tenant (logo + nombre)
+  try {
+    const shop = window.SHOP || {};
+    if (shop.nombre) $('tenantName').textContent = shop.nombre;
+    if (shop.logo) {
+      $('tenantLogo').innerHTML = `<img src="${shop.logo}" alt="" class="w-full h-full object-contain" />`;
+    }
+  } catch (_) {}
+
+  // Cargar placeId de Google (necesario para el redirect en positivo)
+  let placeId = '';
+  try {
+    const settingsRef = tid === 'elegance'
+      ? db.collection('settings').doc('googleReviews')
+      : db.collection('tenants').doc(tid).collection('settings').doc('googleReviews');
+    const settingsSnap = await settingsRef.get();
+    placeId = settingsSnap.exists ? (settingsSnap.data().placeId || '') : '';
+  } catch (_) {}
+
+  // Renderizar las 5 estrellas
+  const starsRow = $('starsRow');
+  for (let n = 1; n <= 5; n++) {
+    const btn = document.createElement('button');
+    btn.className = 'star-btn w-14 h-14 sm:w-16 sm:h-16 focus:outline-none';
+    btn.setAttribute('aria-label', `${n} estrella${n>1?'s':''}`);
+    btn.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-full h-full">
+        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+              fill="#475569" stroke="#334155" stroke-width="0.5"
+              class="star-shape" data-n="${n}"/>
+      </svg>
+    `;
+    btn.onclick = () => handleRating(n);
+    starsRow.appendChild(btn);
+  }
+
+  show('viewRate');
+
+  async function handleRating(rating) {
+    // Colorear estrellas hasta la seleccionada
+    starsRow.querySelectorAll('.star-shape').forEach(s => {
+      const nn = Number(s.getAttribute('data-n'));
+      if (nn <= rating) s.setAttribute('fill', '#FBBF24');
+    });
+
+    if (rating >= 4) {
+      // POSITIVO → registrar y redirigir a Google Maps
+      const nowUpdate = {
+        status:               'positive_redirected',
+        rating,
+        ratedAt:              firebase.firestore.FieldValue.serverTimestamp(),
+        redirectedToGoogleAt: firebase.firestore.FieldValue.serverTimestamp(),
+      };
+      try { await intentRef.update(nowUpdate); } catch (e) { console.warn('[rate] update positive:', e); }
+
+      // Pequeña pausa para que el usuario vea la animación de la estrella
+      setTimeout(() => {
+        if (placeId) {
+          window.location.href = `https://search.google.com/local/writereview?placeid=${placeId}`;
+        } else {
+          // Sin placeId, mostrar gracias (no hay a donde redirigir)
+          show('viewThanks');
+        }
+      }, 700);
+    } else {
+      // NEGATIVO → formulario de feedback interno
+      try {
+        await intentRef.update({
+          rating,
+          ratedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        });
+      } catch (e) { console.warn('[rate] update rating:', e); }
+      show('viewFeedback');
+    }
+  }
+
+  $('btnSendFeedback').onclick = async () => {
+    const btn = $('btnSendFeedback');
+    const txt = $('feedbackText').value.trim();
+    btn.disabled = true;
+    btn.textContent = 'Enviando…';
+    try {
+      await intentRef.update({
+        status:        'negative_feedback',
+        feedbackText:  txt || '(sin comentario)',
+      });
+      show('viewThanks');
+    } catch (e) {
+      console.error('[rate] send feedback:', e);
+      $('feedbackErr').textContent = 'No pudimos enviar el feedback. Reintenta.';
+      $('feedbackErr').classList.remove('hidden');
+      btn.disabled = false;
+      btn.textContent = 'Enviar feedback';
+    }
+  };
+})();
+</script>
+
+</body>
+</html>

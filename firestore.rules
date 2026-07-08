@@ -318,6 +318,20 @@ service cloud.firestore {
                         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stock']));
     }
 
+    // ── /review_intents (Google reviews · tracking de intención) ───
+    // Espejo del path tenants/{tid}/review_intents (elegance vive en root).
+    match /review_intents/{docId} {
+      allow read: if true;
+      allow create: if esAdmin('elegance');
+      allow update: if resource.data.status == 'pending'
+                    && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                         'status', 'rating', 'ratedAt', 'redirectedToGoogleAt',
+                         'feedbackText', 'landingOpenedAt',
+                       ])
+                    && request.resource.data.status in ['positive_redirected', 'negative_feedback', 'pending'];
+      allow delete: if esAdmin('elegance');
+    }
+
     // ── /giftCards ─────────────────────────────────────────────────
     // Lectura PÚBLICA: la página /saldo-gift-card consulta sin auth
     // con query where('codigo','==',code). El campo "codigo" actúa
@@ -973,6 +987,28 @@ service cloud.firestore {
       match /chatbot/{docId} {
         allow read: if true;
         allow write: if esAdmin(tid);
+      }
+
+      // ── review_intents (Google reviews · tracking de intención) ──
+      // El admin genera un link único que se manda al cliente por WhatsApp
+      // ("¿cómo estuvo tu experiencia?"). El cliente abre la landing pública
+      // /rate.html y califica. Si es positivo, la landing redirige a Google
+      // y registra el momento; si es negativo, guarda feedback interno.
+      // - Read PÚBLICO (la landing lo lee sin auth). La seguridad viene del
+      //   token de 14 chars alfanuméricos que solo el admin conoce.
+      // - Create solo admin del tenant.
+      // - Update SIN auth (desde la landing) acotado a los campos que
+      //   necesita cambiar y con status forward-only desde 'pending'.
+      match /review_intents/{docId} {
+        allow read: if true;
+        allow create: if esAdmin(tid);
+        allow update: if resource.data.status == 'pending'
+                      && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+                           'status', 'rating', 'ratedAt', 'redirectedToGoogleAt',
+                           'feedbackText', 'landingOpenedAt',
+                         ])
+                      && request.resource.data.status in ['positive_redirected', 'negative_feedback', 'pending'];
+        allow delete: if esAdmin(tid);
       }
 
       // ── productos ─────────────────────────────────────────────────
