@@ -128,6 +128,10 @@ export const KRONNOS_MARCA_COLLECTIONS = new Set([
   'premios',
   'rangos',
   'canjes',
+  // clientes es lookup por teléfono cross-sede: el import Weibook (2944 docs)
+  // cargó a tenants/kronnos/clientes/. Sin este redirect, lookups per-sede
+  // devolvían vacío. Espejo del set en functions/lib/kronnos-marca.js.
+  'clientes',
 ]);
 
 function _marcaAwareTenant(tid, colName) {
