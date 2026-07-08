@@ -801,26 +801,26 @@ export default function Productos() {
             </p>
           )}
         </div>
-        <div className="flex gap-2.5">
+        <div className="flex flex-wrap items-center gap-2 md:gap-4 w-full md:w-auto">
           <button
             onClick={() => setStoryOpen(true)}
             disabled={loading}
             title="Generar imagen para historia de Instagram"
-            className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-semibold px-4 py-2 rounded-lg border border-slate-700 hover:border-slate-600 transition-colors"
+            className="flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-semibold px-4 py-2 rounded-lg border border-slate-700 hover:border-slate-600 transition-colors"
           >
             <Share2 size={16} className="text-emerald-400" /> Imagen historia
           </button>
           <button
             onClick={openVentaRapida}
             disabled={loading}
-            className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-semibold px-4 py-2 rounded-lg border border-slate-700 hover:border-slate-600 transition-colors"
+            className="flex items-center justify-center gap-2 bg-slate-800 hover:bg-slate-700 text-white text-sm font-semibold px-4 py-2 rounded-lg border border-slate-700 hover:border-slate-600 transition-colors"
           >
             <ShoppingBag size={16} className="text-emerald-400" /> Venta Rápida
           </button>
           <button
             onClick={openNew}
             disabled={loading}
-            className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+            className="w-full md:w-auto flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
           >
             <Plus size={16} /> Agregar producto
           </button>
@@ -938,32 +938,35 @@ export default function Productos() {
         ) : (
           <div className="space-y-3">
             {reservas.map(r => (
-              <div key={r.id} className="flex items-center gap-4 px-5 py-4 bg-slate-900 border border-slate-800 rounded-xl hover:border-slate-700 transition-colors">
+              <div
+                key={r.id}
+                className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-5 py-4 bg-slate-900 border border-slate-800 rounded-xl hover:border-slate-700 transition-colors"
+              >
                 {/* Info */}
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-white truncate">{r.userName || '—'}</p>
                   <p className="text-xs text-slate-400 mt-0.5 truncate">{r.productName}</p>
-                  <p className="text-xs text-slate-600 mt-0.5">{fmtDate(r.createdAt)}</p>
+                  <p className="text-xs text-slate-600 mt-0.5 whitespace-nowrap">{fmtDate(r.createdAt)}</p>
                 </div>
                 {/* Precio */}
                 {r.precio ? (
-                  <span className="text-sm font-bold text-emerald-400 shrink-0">
+                  <span className="text-sm font-bold text-emerald-400 shrink-0 whitespace-nowrap">
                     ${Number(r.precio).toLocaleString('es-CL')}
                   </span>
                 ) : (
-                  <span className="text-xs text-slate-500 italic shrink-0">Consultar en el local</span>
+                  <span className="text-xs text-slate-500 italic shrink-0 whitespace-nowrap">Consultar en el local</span>
                 )}
                 {/* Acciones */}
                 <div className="flex gap-2 shrink-0">
                   <button
                     onClick={() => openEntregaModal(r)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-[#D4AF37]/10 border border-[#D4AF37]/40 text-[#D4AF37] hover:bg-[#D4AF37]/20 rounded-lg text-xs font-semibold transition-colors"
+                    className="flex-1 md:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 bg-[#D4AF37]/10 border border-[#D4AF37]/40 text-[#D4AF37] hover:bg-[#D4AF37]/20 rounded-lg text-xs font-semibold transition-colors"
                   >
                     <CheckCircle2 size={12} /> Entregado
                   </button>
                   <button
                     onClick={() => cancelarReserva(r.id)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-transparent border border-red-500/30 text-red-400 hover:bg-red-500/10 rounded-lg text-xs font-semibold transition-colors"
+                    className="flex-1 md:flex-none flex items-center justify-center gap-1.5 px-3 py-1.5 bg-transparent border border-red-500/30 text-red-400 hover:bg-red-500/10 rounded-lg text-xs font-semibold transition-colors"
                   >
                     <XCircle size={12} /> Cancelar
                   </button>
@@ -1054,10 +1057,10 @@ export default function Productos() {
 
             {/* KPIs */}
             {!ventasLoading && ventasFiltradas.length > 0 && (
-              <div className="grid grid-cols-3 gap-3 mb-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-6">
                 <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5">
                   <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Total vendido</p>
-                  <p className="text-3xl font-black text-emerald-400 mt-1 drop-shadow-[0_0_8px_rgba(16,185,129,0.3)] tracking-tight break-words">
+                  <p className="text-3xl font-black text-emerald-400 mt-1 drop-shadow-[0_0_8px_rgba(16,185,129,0.3)] tracking-tight">
                     ${totalMonto.toLocaleString('es-CL')}
                   </p>
                 </div>
@@ -1067,7 +1070,7 @@ export default function Productos() {
                 </div>
                 <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-5 min-w-0">
                   <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">Más vendido</p>
-                  <p className="text-3xl font-black text-white mt-1 truncate tracking-tight">
+                  <p className="text-3xl font-black text-white mt-1 tracking-tight break-words">
                     {topProd ? topProd[0] : '—'}
                   </p>
                   {topProd && <p className="text-xs text-slate-500 mt-1">×{topProd[1]} unidades</p>}
@@ -1086,16 +1089,16 @@ export default function Productos() {
                 Sin ventas en {PERIODO_LABELS[filtroPeriodo].toLowerCase()}{filtroBarberoH ? ` para ${barberos.find(b => b.id === filtroBarberoH)?.nombre || 'este barbero'}` : ''}.
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              <div className="w-full overflow-x-auto pb-4 custom-scrollbar">
                 <table className="w-full text-sm">
                   <thead>
                     <tr>
-                      <th className="text-left px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider pb-4 border-b border-slate-800">Fecha</th>
-                      <th className="text-left px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider pb-4 border-b border-slate-800">Producto</th>
-                      <th className="text-left px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider pb-4 border-b border-slate-800 hidden sm:table-cell">Cliente</th>
-                      <th className="text-left px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider pb-4 border-b border-slate-800 hidden md:table-cell">Barbero</th>
-                      <th className="text-left px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider pb-4 border-b border-slate-800 hidden md:table-cell">Pago</th>
-                      <th className="text-right px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider pb-4 border-b border-slate-800">Total</th>
+                      <th className="text-left px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider pb-4 border-b border-slate-800 whitespace-nowrap">Fecha</th>
+                      <th className="text-left px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider pb-4 border-b border-slate-800 whitespace-nowrap">Producto</th>
+                      <th className="text-left px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider pb-4 border-b border-slate-800 whitespace-nowrap">Cliente</th>
+                      <th className="text-left px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider pb-4 border-b border-slate-800 whitespace-nowrap">Barbero</th>
+                      <th className="text-left px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider pb-4 border-b border-slate-800 whitespace-nowrap">Pago</th>
+                      <th className="text-right px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider pb-4 border-b border-slate-800 whitespace-nowrap">Total</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1107,7 +1110,7 @@ export default function Productos() {
                       return (
                         <tr key={v.id} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
                           <td className="px-4 py-3 text-xs text-slate-400 whitespace-nowrap">{fecha}</td>
-                          <td className="px-4 py-3">
+                          <td className="px-4 py-3 whitespace-nowrap">
                             <div className="flex items-center gap-2.5 min-w-0">
                               {prod?.imagen
                                 ? <img src={prod.imagen} alt="" className="w-7 h-7 rounded-md object-cover shrink-0 border border-slate-700" />
@@ -1119,26 +1122,26 @@ export default function Productos() {
                               </div>
                             </div>
                           </td>
-                          <td className="px-4 py-3 hidden sm:table-cell">
+                          <td className="px-4 py-3 whitespace-nowrap">
                             <div className="flex items-center gap-1.5">
                               <User size={11} className="text-slate-600 shrink-0" />
-                              <span className="text-xs text-slate-400 truncate max-w-[120px]">
+                              <span className="text-xs text-slate-400 truncate max-w-[140px]">
                                 {isDirecta ? 'Venta directa' : (v.userName || '—')}
                               </span>
                             </div>
                           </td>
-                          <td className="px-4 py-3 hidden md:table-cell">
+                          <td className="px-4 py-3 whitespace-nowrap">
                             <span className="text-xs text-slate-400">{v.barberoNombre || '—'}</span>
                           </td>
-                          <td className="px-4 py-3 hidden md:table-cell">
+                          <td className="px-4 py-3 whitespace-nowrap">
                             {v.metodoPago ? (
                               <span className="inline-flex items-center gap-1 bg-slate-800 text-slate-300 border border-slate-700 rounded-md px-2 py-1 text-xs">
                                 <CreditCard size={9} />{v.metodoPago}
                               </span>
                             ) : <span className="text-xs text-slate-600">—</span>}
                           </td>
-                          <td className="px-4 py-3 text-right">
-                            <span className="font-medium text-emerald-400 whitespace-nowrap">
+                          <td className="px-4 py-3 text-right whitespace-nowrap">
+                            <span className="font-medium text-emerald-400">
                               ${(Number(v.precio) || 0).toLocaleString('es-CL')}
                             </span>
                           </td>
@@ -1149,8 +1152,8 @@ export default function Productos() {
                   {ventasFiltradas.length > 1 && (
                     <tfoot>
                       <tr className="border-t border-slate-700">
-                        <td colSpan={5} className="px-4 pt-4 text-xs font-bold text-slate-400 uppercase tracking-wide">Total</td>
-                        <td className="px-4 pt-4 text-right font-medium text-emerald-400">${totalMonto.toLocaleString('es-CL')}</td>
+                        <td colSpan={5} className="px-4 pt-4 text-xs font-bold text-slate-400 uppercase tracking-wide whitespace-nowrap">Total</td>
+                        <td className="px-4 pt-4 text-right font-medium text-emerald-400 whitespace-nowrap">${totalMonto.toLocaleString('es-CL')}</td>
                       </tr>
                     </tfoot>
                   )}
