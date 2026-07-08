@@ -158,7 +158,10 @@ export default function ServicioFavorito() {
         const task = uploadBytesResumable(
           storageRef(storage, storagePath(emailKey, filename)),
           compressed,
-          { contentType: 'image/jpeg' },
+          {
+            contentType: 'image/jpeg',
+            cacheControl: 'public, max-age=31536000, immutable',
+          },
         );
         task.on(
           'state_changed',

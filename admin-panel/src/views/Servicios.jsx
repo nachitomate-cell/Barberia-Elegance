@@ -89,7 +89,10 @@ async function uploadServiceImage(tenantId, serviceId, blob) {
     ? `servicios/${serviceId}/imagen.jpg`
     : `tenants/${tenantId}/servicios/${serviceId}/imagen.jpg`;
   const sRef = storageRef(storage, path);
-  const task = uploadBytesResumable(sRef, blob, { contentType: 'image/jpeg' });
+  // Cache 1 día: el path es fijo (servicios/{id}/imagen.jpg) — si el user
+  // actualiza el servicio el URL puede seguir siendo el mismo, asi que no
+  // podemos usar immutable como en barberos/productos.
+  const task = uploadBytesResumable(sRef, blob, { contentType: 'image/jpeg', cacheControl: 'public, max-age=86400' });
   return new Promise((resolve, reject) => {
     task.on('state_changed', null, reject, async () => {
       resolve(await getDownloadURL(task.snapshot.ref));

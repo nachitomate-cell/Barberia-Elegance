@@ -952,7 +952,14 @@ export default function Equipo() {
       const snap = await uploadBytes(
         storageRef(storage, path),
         file,
-        { contentType: file.type || 'image/jpeg' },
+        {
+          contentType: file.type || 'image/jpeg',
+          // Cache 1 año inmutable: cada foto tiene un path con timestamp unico
+          // (Date.now()_filename), asi que el navegador puede cachearla
+          // agresivamente sin revalidacion. Fija el problema de "la foto se
+          // recarga cada vez que se abre Agenda/Equipo/etc".
+          cacheControl: 'public, max-age=31536000, immutable',
+        },
       );
       const url = await getDownloadURL(snap.ref);
       set('foto', url);

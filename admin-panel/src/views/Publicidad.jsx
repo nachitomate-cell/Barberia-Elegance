@@ -88,7 +88,10 @@ export default function Publicidad() {
       const snap = await uploadBytes(
         storageRef(storage, path),
         file,
-        { contentType: file.type || 'image/png' },
+        {
+          contentType: file.type || 'image/png',
+          cacheControl: 'public, max-age=31536000, immutable',
+        },
       );
       const url  = await getDownloadURL(snap.ref);
       const next = marcas.slice();

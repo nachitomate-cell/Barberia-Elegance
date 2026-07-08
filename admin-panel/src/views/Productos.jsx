@@ -727,7 +727,10 @@ export default function Productos() {
       const snap     = await uploadBytes(
         storageRef(storage, path),
         file,
-        { contentType: file.type || 'image/jpeg' },
+        {
+          contentType: file.type || 'image/jpeg',
+          cacheControl: 'public, max-age=31536000, immutable', // path con timestamp único → cache agresivo seguro
+        },
       );
       const url = await getDownloadURL(snap.ref);
       setForm(f => ({ ...f, imagen: url, imagenPath: path }));

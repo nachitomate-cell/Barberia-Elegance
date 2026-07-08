@@ -312,7 +312,10 @@ function DesignCustomizer({ tenantName, tenantLogo, design, onUpdate }) {
       const snap = await uploadBytes(
         storageRef(storage, path),
         file,
-        { contentType: file.type || 'image/jpeg' },
+        {
+          contentType: file.type || 'image/jpeg',
+          cacheControl: 'public, max-age=31536000, immutable',
+        },
       );
       const url = await getDownloadURL(snap.ref);
       await onUpdate({ templateImageUrl: url });

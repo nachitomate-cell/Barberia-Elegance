@@ -149,7 +149,10 @@ export default function Lookbook() {
           const task = uploadBytesResumable(
             storageRef(storage, storagePath(filename)),
             compressed,
-            { contentType: 'image/jpeg' },
+            {
+              contentType: 'image/jpeg',
+              cacheControl: 'public, max-age=31536000, immutable',
+            },
           );
           task.on(
             'state_changed',

@@ -801,7 +801,9 @@ export default function TVConfig() {
       const contentType = isVideo ? file.type : 'image/jpeg';
       const tid = resolveTenantId();
       const sRef = storageRef(storage, `tenants/${tid}/tv-bg.${ext}`);
-      await uploadBytes(sRef, blob, { contentType });
+      // Cache 1 día: el path es fijo (tv-bg.{ext}) — no podemos usar immutable
+      // porque cuando el user sube uno nuevo, el URL puede seguir siendo el mismo.
+      await uploadBytes(sRef, blob, { contentType, cacheControl: 'public, max-age=86400' });
       const url = await getDownloadURL(sRef);
       await setDoc(tenantDoc('configuracion', 'tv'), { backgroundUrl: url }, { merge: true });
       setBgUrl(url);
@@ -861,7 +863,10 @@ export default function TVConfig() {
       const blob = await compressImage(marcaImg, { maxPx: 800, quality: 0.8 });
       const id = Date.now().toString();
       const sRef = storageRef(storage, `tenants/${tenantId}/publicidad_tv/${id}.jpg`);
-      await uploadBytes(sRef, blob, { contentType: 'image/jpeg' });
+      await uploadBytes(sRef, blob, {
+        contentType: 'image/jpeg',
+        cacheControl: 'public, max-age=31536000, immutable', // {id}.jpg con timestamp único
+      });
       const url = await getDownloadURL(sRef);
       
       const newMarca = { id, nombre: marcaNombre, descripcion: marcaDesc.trim(), logoUrl: url, activo: true, createdAt: new Date().toISOString() };
