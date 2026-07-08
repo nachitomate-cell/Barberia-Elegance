@@ -340,18 +340,23 @@ const SIDEBAR_VARIANTS = {
     lightText: '[html.light_&]:text-amber-600',
     lightIcon: '[html.light_&]:text-amber-600',
   },
-  // Fidelización — trofeo dorado con brillo dinámico. Texto con shimmer sutil
-  // (background-position animado sobre gradiente amber → yellow → amber) y
-  // trofeo con glow pulsante (drop-shadow keyframe). Es el módulo "estrella"
-  // del club, así que se le da presencia sin sobreactuar.
+  // Fidelización — módulo estrella del club: gradiente vibrante rose → amber →
+  // yellow con shimmer continuo, trofeo con glow pulsante Y halo expansivo
+  // (dos rings concéntricos que salen del ícono), sparkle rotativo en la
+  // esquina, y fondo con gradiente animado sutil en el ítem completo. El
+  // objetivo es que sea IMPOSIBLE que pase desapercibido en el sidebar.
   fideli: {
-    text:      'text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-400 bg-[length:200%_100%] animate-shimmer font-semibold',
-    icon:      'text-amber-300 animate-trophy-glow group-hover/item:text-yellow-200',
-    hover:     'hover:bg-amber-500/10',
-    bg:        'bg-amber-500/15',
-    border:    'border-amber-400',
+    text:      'text-transparent bg-clip-text bg-gradient-to-r from-rose-400 via-amber-300 to-yellow-200 bg-[length:200%_100%] animate-shimmer font-bold',
+    // Ver SidebarItem: el ícono trofeo lleva el halo expansivo + sparkle overlay
+    // vía DOM adicional; el `icon` clase solo controla color/glow del propio SVG.
+    icon:      'text-amber-300 animate-trophy-glow group-hover/item:text-yellow-200 group-hover/item:scale-110',
+    hover:     'hover:bg-gradient-to-r hover:from-rose-500/10 hover:via-amber-500/15 hover:to-yellow-500/10',
+    bg:        'bg-gradient-to-r from-rose-500/15 via-amber-500/20 to-yellow-500/15 bg-[length:200%_100%] animate-fideli-bg',
+    border:    'border-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.35)]',
     lightText: '[html.light_&]:text-amber-700',
-    lightIcon: '[html.light_&]:text-amber-600 [html.light_&]:animate-none [html.light_&]:drop-shadow-none',
+    lightIcon: '[html.light_&]:text-amber-600 [html.light_&]:animate-none [html.light_&]:drop-shadow-none [html.light_&]:group-hover/item:scale-100',
+    // Flag para que SidebarItem renderice el DOM extra (halo + sparkle)
+    isFideli:  true,
   },
   // Recibir Pagos — variante AMARILLO/DORADO destacada para configuración de
   // pasarelas (Flow / Mercado Pago / Stripe). Diferencia visualmente la
@@ -414,14 +419,36 @@ function SidebarItem({ to, label, Icon, accent, variant, onClick, locked = false
               className="w-4 h-4 shrink-0 object-contain group-hover/item:scale-110 transition-transform duration-150"
             />
           )}
-          <Icon
-            size={16}
-            /* Peso de línea CONSTANTE en ítems de marca (legibilidad del gradiente);
-               los estándar sí engrosan al activarse. */
-            strokeWidth={variant ? 2 : (isActive ? 2.5 : 2)}
-            stroke={variant?.stroke}
-            className={`shrink-0 group-hover/item:scale-110 group-hover/item:translate-x-0.5 transition-all duration-150 ${variant?.icon || ''} ${variant?.lightIcon || ''}`}
-          />
+          {/* Ítem Fidelización: el ícono va envuelto en un contenedor relative
+              para poder superponer el halo expansivo y el sparkle rotativo
+              alrededor del trofeo (le da presencia sin volarlo). */}
+          {variant?.isFideli ? (
+            <span className="relative inline-flex items-center justify-center shrink-0 w-5 h-5 transition-all duration-150 group-hover/item:scale-110 group-hover/item:translate-x-0.5 [html.light_&]:group-hover/item:scale-100">
+              {/* Halo expansivo (ping) — solo en modo oscuro para no sobrecargar */}
+              <span className="absolute inset-0 rounded-full bg-amber-400/40 animate-trophy-halo [html.light_&]:hidden" aria-hidden />
+              <span className="absolute inset-0 rounded-full bg-rose-400/25 animate-trophy-halo [animation-delay:0.9s] [html.light_&]:hidden" aria-hidden />
+              <Icon
+                size={16}
+                strokeWidth={2.2}
+                className={`relative z-10 ${variant?.icon || ''} ${variant?.lightIcon || ''}`}
+              />
+              {/* Sparkle decorativo arriba a la derecha del trofeo */}
+              <Sparkles
+                size={9}
+                className="absolute -top-1 -right-1 z-20 text-yellow-200 animate-sparkle-pop drop-shadow-[0_0_4px_rgba(253,224,71,0.9)] [html.light_&]:text-amber-500 [html.light_&]:animate-none [html.light_&]:drop-shadow-none"
+                aria-hidden
+              />
+            </span>
+          ) : (
+            <Icon
+              size={16}
+              /* Peso de línea CONSTANTE en ítems de marca (legibilidad del gradiente);
+                 los estándar sí engrosan al activarse. */
+              strokeWidth={variant ? 2 : (isActive ? 2.5 : 2)}
+              stroke={variant?.stroke}
+              className={`shrink-0 group-hover/item:scale-110 group-hover/item:translate-x-0.5 transition-all duration-150 ${variant?.icon || ''} ${variant?.lightIcon || ''}`}
+            />
+          )}
           <span className={`flex-1 ${variant?.text || ''} ${variant?.lightText || ''}`}>{label}</span>
           {locked && <Lock size={12} className="shrink-0 text-red-400/70" />}
           {dot && !hasBadge && (

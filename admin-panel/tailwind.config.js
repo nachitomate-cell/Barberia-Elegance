@@ -28,6 +28,9 @@ export default {
         'confirm-ring':   'confirmRing 1.9s ease-out infinite',
         'shimmer':        'shimmer 3s ease-in-out infinite',
         'trophy-glow':    'trophyGlow 2.6s ease-in-out infinite',
+        'trophy-halo':    'trophyHalo 2.4s ease-out infinite',
+        'sparkle-pop':    'sparklePop 1.8s ease-in-out infinite',
+        'fideli-bg':      'fideliBg 6s ease-in-out infinite',
       },
       keyframes: {
         slideInRight: {
@@ -43,8 +46,21 @@ export default {
           '50%':     { 'background-position': '100% 50%' },
         },
         trophyGlow: {
-          '0%,100%': { filter: 'drop-shadow(0 0 2px rgba(251,191,36,0.45))' },
-          '50%':     { filter: 'drop-shadow(0 0 8px rgba(251,191,36,0.9))' },
+          '0%,100%': { filter: 'drop-shadow(0 0 2px rgba(251,191,36,0.55)) drop-shadow(0 0 6px rgba(244,63,94,0.15))' },
+          '50%':     { filter: 'drop-shadow(0 0 10px rgba(251,191,36,1)) drop-shadow(0 0 14px rgba(244,63,94,0.35))' },
+        },
+        trophyHalo: {
+          '0%':   { opacity: 0.7, transform: 'scale(0.6)' },
+          '80%':  { opacity: 0,   transform: 'scale(1.8)' },
+          '100%': { opacity: 0,   transform: 'scale(1.8)' },
+        },
+        sparklePop: {
+          '0%,100%': { opacity: 0.3, transform: 'scale(0.7) rotate(0deg)' },
+          '50%':     { opacity: 1,   transform: 'scale(1.1) rotate(20deg)' },
+        },
+        fideliBg: {
+          '0%,100%': { 'background-position': '0% 50%' },
+          '50%':     { 'background-position': '100% 50%' },
         },
         confirmPop: {
           '0%':   { opacity: 0, transform: 'scale(0.92) translateY(12px)' },
