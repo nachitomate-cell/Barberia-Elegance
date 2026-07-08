@@ -50,6 +50,32 @@ function GoogleIcon({ size = 16, className = '' }) {
   );
 }
 
+// Ícono custom para "Pantalla TV" — pantalla con "señal de play" que evoca
+// la barbería mostrando su contenido digital. Cian neón para amarrar con
+// la variante 'tv' (cyan/tech). El color viene por CSS (currentColor).
+function PantallaTvIcon({ size = 16, className = '', strokeWidth = 2 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <rect x="2" y="4" width="20" height="14" rx="2" stroke="currentColor" strokeWidth={strokeWidth} />
+      <path d="M10 9.5v5l4.5-2.5-4.5-2.5z" fill="currentColor" stroke="none" />
+      <line x1="8" y1="21" x2="16" y2="21" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" />
+      <line x1="12" y1="18" x2="12" y2="21" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" />
+    </svg>
+  );
+}
+
+// Ícono custom para "Recibir Pagos" — tarjeta de crédito con un check mark
+// que evoca "pago aprobado". El color viene por CSS (currentColor).
+function RecibirPagosIcon({ size = 16, className = '', strokeWidth = 2 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" strokeWidth={strokeWidth} />
+      <line x1="2" y1="10" x2="22" y2="10" stroke="currentColor" strokeWidth={strokeWidth} />
+      <path d="M15 15l2 2 4-4" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+    </svg>
+  );
+}
+
 // Ítem de "Corte al Lápiz" para Yūgen — sistema de cuota/crédito, NO es
 // fidelidad clásica, así que vive fuera del módulo Fidelización.
 // Chameleon usaba `membresias` acá; ahora Membresías es un tab dentro de
@@ -76,8 +102,8 @@ const NAV_GROUPS_DEFAULT = [
     items: [
       { to: 'google',        label: 'Google',        Icon: GoogleIcon,        adminOnly: true, variant: 'google' },
       { to: 'instagram',     label: 'Instagram',     Icon: Instagram,         adminOnly: false, variant: 'instagram' },
-      { to: 'tv-config',     label: 'Pantalla TV',   Icon: Monitor,           adminOnly: true, variant: 'tv' },
-      { to: 'recibir-pagos', label: 'Recibir Pagos', Icon: CircleDollarSign,  adminOnly: true, variant: 'pagos' },
+      { to: 'tv-config',     label: 'Pantalla TV',   Icon: PantallaTvIcon,    adminOnly: true, variant: 'tv' },
+      { to: 'recibir-pagos', label: 'Recibir Pagos', Icon: RecibirPagosIcon,  adminOnly: true, variant: 'pagos' },
     ],
   },
   {
