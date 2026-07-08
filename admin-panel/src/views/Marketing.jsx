@@ -1320,8 +1320,6 @@ export default function Marketing() {
             </span>
           </div>
 
-        </div>
-
       </div>
       )}
 
