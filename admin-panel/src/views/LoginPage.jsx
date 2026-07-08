@@ -151,16 +151,18 @@ export default function LoginPage() {
     );
   }
 
+  // Inputs: estilo glass premium — bg suave con borde neutral que se ilumina
+  // en focus. Se aplica el mismo estilo en mobile y desktop.
   const inputClass =
-    'w-full h-12 bg-white/5 border border-white/10 rounded-xl px-4 text-white ' +
-    'placeholder:text-neutral-500 focus:outline-none focus:bg-white/10 ' +
+    'w-full bg-neutral-900/50 border border-neutral-800 rounded-xl px-4 py-3.5 ' +
+    'text-white placeholder-neutral-500 focus:outline-none focus:bg-neutral-900 ' +
     'focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 ' +
-    'transition-all duration-300';
+    'transition-all';
 
   return (
-    <div className="min-h-screen w-full grid grid-cols-1 lg:grid-cols-2 bg-[#09090b]">
+    <div className="min-h-[100dvh] w-full grid grid-cols-1 lg:grid-cols-2 bg-[#050505]">
 
-      {/* ── PANEL IZQUIERDO — manifiesto de marca ───────────────────── */}
+      {/* ── PANEL IZQUIERDO — manifiesto de marca (solo desktop) ───── */}
       <div
         className="hidden lg:block bg-cover bg-center bg-no-repeat relative"
         style={{ backgroundImage: `url(${bgImage})` }}
@@ -193,9 +195,21 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* ── PANEL DERECHO — formulario ───────────────────────────────── */}
-      <div className="bg-[#09090b] flex items-center justify-center p-8 sm:p-12 lg:p-24 relative">
-        <div className="w-full max-w-sm">
+      {/* ── PANEL DERECHO — formulario (full bleed en mobile) ───────
+          En mobile: fondo negro sólido, sin bordes ni redondeos,
+          altura 100dvh (dinámica, respeta la barra del navegador).
+          En desktop: mantiene la mitad derecha del split-screen. */}
+      <div className="min-h-[100dvh] w-full flex flex-col justify-center relative bg-[#050505] lg:bg-[#09090b] px-6 sm:px-10 lg:px-24">
+
+        {/* Ambient glow — resplandor sutil detrás del formulario para romper
+            el negro absoluto sin sobrecargar. Solo decorativo. */}
+        <div
+          aria-hidden
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md aspect-square bg-emerald-500/10 blur-[100px] rounded-full pointer-events-none z-0"
+        />
+
+        {/* Formulario — z-10 para quedar sobre el glow */}
+        <div className="w-full max-w-sm mx-auto relative z-10">
 
           {tenant.logo && (
             <img
@@ -250,10 +264,10 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full h-12 mt-6 bg-emerald-500 hover:bg-emerald-400 text-neutral-950 font-bold text-base rounded-xl flex items-center justify-center transition-all duration-300 shadow-[0_0_15px_rgba(16,185,129,0.2)] hover:shadow-[0_0_25px_rgba(16,185,129,0.4)] hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-[0_0_15px_rgba(16,185,129,0.2)]"
+              className="w-full mt-6 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl py-3.5 shadow-[0_0_20px_-5px_rgba(16,185,129,0.4)] flex items-center justify-center transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? (
-                <span className="w-4 h-4 border-2 border-neutral-950 border-t-transparent rounded-full animate-spin" />
+                <span className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
               ) : (
                 'Ingresar'
               )}
@@ -261,7 +275,8 @@ export default function LoginPage() {
           </form>
         </div>
 
-        <p className="text-xs text-neutral-600 flex items-center justify-center absolute bottom-6 left-0 right-0 whitespace-nowrap">
+        {/* Footer anclado al pie por mt-auto (flex-col en el contenedor) */}
+        <p className="text-xs text-neutral-600 flex items-center justify-center whitespace-nowrap mt-auto pb-6 pt-10 relative z-10">
           <img
             src="/synaptech/ig.png"
             alt="SynapTech Icon"
