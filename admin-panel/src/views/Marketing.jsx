@@ -799,6 +799,9 @@ export default function Marketing() {
   const [statsLoading, setStatsLoading] = useState(true);
   const [uploading,    setUploading]    = useState(false);
   const [uploadError,  setUploadError]  = useState('');
+  // Tabs: 'anuncio' (preview + config del banner) | 'ia' (recomendador + chat IA)
+  // Reduce la carga cognitiva: la vista ya no muestra 5 módulos a la vez.
+  const [tab, setTab] = useState('anuncio');
   const fileInputRef = useRef(null);
   const savedTimer = useRef(null);
 
@@ -944,7 +947,7 @@ export default function Marketing() {
   };
 
   // Inputs seamless con anillo gold al focus.
-  const field = 'w-full bg-slate-950/60 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:bg-slate-950 transition-all';
+  const field = 'w-full bg-slate-950/60 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-400/20 focus:bg-slate-950 transition-all';
   const lbl   = 'block text-[10px] font-bold text-slate-400 uppercase tracking-[0.14em] mb-1.5';
 
   if (loading) {
@@ -958,101 +961,84 @@ export default function Marketing() {
   return (
     <div data-view="marketing" className="max-w-5xl mx-auto p-4 sm:p-6 space-y-6">
 
-      {/* ─────── HERO PREMIUM ─────── */}
-      <motion.section
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: [0.2, 0.8, 0.2, 1] }}
-        className="hero-card-gold relative overflow-hidden rounded-3xl border p-5 sm:p-6"
-        style={{
-          background:
-            'linear-gradient(135deg, rgba(50,40,10,0.55) 0%, rgba(15,23,42,0.95) 60%), ' +
-            'radial-gradient(ellipse at top right, rgba(212,175,55,0.22), transparent 60%)',
-          borderColor: 'rgba(212,175,55,0.18)',
-        }}
-      >
-        {/* halo gold pulsante */}
-        <motion.div
-          aria-hidden
-          className="hero-halo pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full"
-          style={{ background: 'radial-gradient(circle, rgba(212,175,55,0.3), transparent 70%)', filter: 'blur(32px)' }}
-          animate={{ opacity: [0.5, 0.85, 0.5], scale: [1, 1.05, 1] }}
-          transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }}
-        />
-        {/* grid pattern */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 opacity-[0.05]"
-          style={{
-            backgroundImage:
-              'linear-gradient(to right, white 1px, transparent 1px), linear-gradient(to bottom, white 1px, transparent 1px)',
-            backgroundSize: '32px 32px',
-            maskImage: 'radial-gradient(ellipse at center, black 30%, transparent 75%)',
-            WebkitMaskImage: 'radial-gradient(ellipse at center, black 30%, transparent 75%)',
-          }}
-        />
-
-        <div className="relative">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="min-w-0 flex-1">
+      {/* ─────── HERO MINIMALISTA ─────── */}
+      {/* Reemplaza el hero premium con halo/grid animado por uno sobrio:
+          título + subtítulo + 3 stats + botón "Imagen historia". Los datos
+          siguen ahí (contexto útil), pero sin la carga visual del halo. */}
+      <section className="space-y-4">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25 shrink-0">
+              <Megaphone size={20} className="text-amber-400" />
+            </div>
+            <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <span
-                  className="grid h-10 w-10 place-items-center rounded-2xl ring-1"
-                  style={{ background: 'rgba(212,175,55,0.12)', borderColor: 'rgba(212,175,55,0.3)', color: '#D4AF37', boxShadow: 'inset 0 0 0 1px rgba(212,175,55,0.25)' }}
-                >
-                  <Megaphone size={18} />
-                </span>
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-[0.18em]" style={{ color: 'rgba(212,175,55,0.85)' }}>
-                    Buzón de campañas
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <h1 className="text-2xl font-black tracking-tight text-white sm:text-[28px]">Marketing</h1>
-                    <HelpButton onClick={() => setShowHelp(true)} />
-                  </div>
-                </div>
+                <h1 className="text-xl sm:text-2xl font-bold text-white leading-tight">Marketing</h1>
+                <HelpButton onClick={() => setShowHelp(true)} />
               </div>
-              <p className="mt-2 max-w-md text-xs leading-relaxed text-amber-50/75">
-                Banner publicitario en la app de tus clientes + recomendaciones IA en tiempo
-                real con tus datos reales.
+              <p className="text-xs text-slate-500 leading-snug">
+                Banner en la app del cliente + recomendaciones IA con tus datos reales
               </p>
             </div>
-
-            <button
-              onClick={() => setStoryOpen(true)}
-              title="Generar imagen para historia de Instagram"
-              className="group inline-flex shrink-0 items-center gap-2 rounded-2xl px-5 py-3 text-sm font-extrabold transition-all hover:scale-[1.02] active:scale-95"
-              style={{ background: '#D4AF37', color: '#1a1208', boxShadow: '0 8px 24px -8px rgba(212,175,55,0.55)' }}
-            >
-              <Share2 size={15} className="transition-transform group-hover:rotate-12" />
-              Imagen historia
-            </button>
           </div>
 
-          {/* Stats inline (datos reales del local) */}
-          <div className="mt-5 grid grid-cols-3 gap-2">
-            <HeroStat
-              label="Reservas (30d)"
-              value={statsLoading ? '…' : stats.totalCitasMes || 0}
-              Icon={Calendar}
-              tone="text-emerald-300"
-            />
-            <HeroStat
-              label="Club"
-              value={statsLoading ? '…' : stats.totalMiembros || 0}
-              Icon={Users}
-              tone="text-violet-300"
-            />
-            <HeroStat
-              label="Top servicio"
-              value={statsLoading ? '…' : (stats.servicioTop || '—')}
-              Icon={TrendingUp}
-              tone="text-amber-300"
-              small
-            />
-          </div>
+          <button
+            onClick={() => setStoryOpen(true)}
+            title="Generar imagen para historia de Instagram"
+            className="group inline-flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold bg-amber-500/15 text-amber-400 hover:bg-amber-500/25 border border-amber-500/30 transition-colors"
+          >
+            <Share2 size={13} className="transition-transform group-hover:rotate-12" />
+            Imagen historia
+          </button>
         </div>
-      </motion.section>
+
+        {/* Stats compactas del local */}
+        <div className="grid grid-cols-3 gap-2">
+          <HeroStat
+            label="Reservas (30d)"
+            value={statsLoading ? '…' : stats.totalCitasMes || 0}
+            Icon={Calendar}
+            tone="text-emerald-300"
+          />
+          <HeroStat
+            label="Club"
+            value={statsLoading ? '…' : stats.totalMiembros || 0}
+            Icon={Users}
+            tone="text-violet-300"
+          />
+          <HeroStat
+            label="Top servicio"
+            value={statsLoading ? '…' : (stats.servicioTop || '—')}
+            Icon={TrendingUp}
+            tone="text-amber-300"
+            small
+          />
+        </div>
+      </section>
+
+      {/* ─────── TABS ─────── */}
+      <div className="flex flex-wrap gap-1 border-b border-slate-800">
+        {[
+          { key: 'anuncio', label: 'Mi anuncio', Icon: Megaphone },
+          { key: 'ia',      label: 'Ideas con IA', Icon: Sparkles },
+        ].map(t => {
+          const active = tab === t.key;
+          return (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={`flex items-center gap-2 px-3 md:px-4 py-2.5 text-sm font-semibold transition-all border-b-2 -mb-px ${
+                active
+                  ? 'text-amber-400 border-amber-400'
+                  : 'text-slate-500 border-transparent hover:text-slate-300'
+              }`}
+            >
+              <t.Icon size={14} />
+              <span>{t.label}</span>
+            </button>
+          );
+        })}
+      </div>
 
       {storyOpen && (
         <CampaignStoryGenerator
@@ -1063,10 +1049,9 @@ export default function Marketing() {
         />
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-        {/* Columna Izquierda: Formulario y Vista Previa (col-span-2) */}
-        <div className="lg:col-span-2 space-y-5">
+      {/* ─────── TAB "Mi anuncio": Preview + Form ─────── */}
+      {tab === 'anuncio' && (
+      <div className="space-y-5">
 
           {/* Wrapper del preview con header */}
           {form.imagen && (
@@ -1074,8 +1059,8 @@ export default function Marketing() {
               <div className="mb-2.5 flex items-center justify-between px-1">
                 <p className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
                   <span className="relative flex h-1.5 w-1.5">
-                    <span className="absolute inset-0 animate-ping rounded-full opacity-60" style={{ background: '#D4AF37' }} />
-                    <span className="relative h-1.5 w-1.5 rounded-full" style={{ background: '#D4AF37' }} />
+                    <span className="absolute inset-0 animate-ping rounded-full opacity-60 bg-amber-400" />
+                    <span className="relative h-1.5 w-1.5 rounded-full bg-amber-400" />
                   </span>
                   Vista previa en vivo
                 </p>
@@ -1147,7 +1132,7 @@ export default function Marketing() {
             {/* Toggle activo como switch premium */}
             <div className={`flex items-center justify-between gap-4 rounded-2xl border p-4 transition-all ${
               form.activo
-                ? 'border-[#D4AF37]/30 bg-[#D4AF37]/[0.06]'
+                ? 'border-amber-500/30 bg-amber-500/[0.06]'
                 : 'border-slate-800 bg-slate-950/40'
             }`}>
               <div className="min-w-0">
@@ -1313,8 +1298,7 @@ export default function Marketing() {
               <button
                 onClick={handleSave}
                 disabled={saving || !form.titulo}
-                className="inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-extrabold transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
-                style={{ background: '#D4AF37', color: '#1a1208', boxShadow: '0 6px 20px -6px rgba(212,175,55,0.55)' }}
+                className="inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-extrabold transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed bg-amber-400 hover:bg-amber-300 text-black shadow-lg shadow-amber-500/25"
               >
                 {saving
                   ? <span className="h-3.5 w-3.5 rounded-full border-2 border-black border-t-transparent animate-spin" />
@@ -1338,25 +1322,31 @@ export default function Marketing() {
 
         </div>
 
-        {/* Columna Derecha: Asistente IA (Chat) y Recomendador de Banners (col-span-1) */}
-        <div className="lg:col-span-1 space-y-6">
-          
-          {/* Módulo Nuevo: Recomendador IA de Banners */}
-          <RecomendadorBannersIA 
-            stats={stats} 
-            statsLoading={statsLoading} 
-            onApply={handleApplyCampaign} 
-          />
-
-          {/* Asistente IA (Chat) de Marketing */}
-          <AsistenteIA 
-            stats={stats} 
-            statsLoading={statsLoading} 
-          />
-
-        </div>
-
       </div>
+      )}
+
+      {/* ─────── TAB "Ideas con IA": Recomendador + Asistente ─────── */}
+      {tab === 'ia' && (
+      <div className="space-y-6">
+        {/* Módulo Nuevo: Recomendador IA de Banners */}
+        <RecomendadorBannersIA
+          stats={stats}
+          statsLoading={statsLoading}
+          onApply={(payload) => {
+            handleApplyCampaign(payload);
+            // Al aplicar una campaña IA, saltamos automáticamente al tab del
+            // anuncio para que el usuario vea la config ya rellenada.
+            setTab('anuncio');
+          }}
+        />
+
+        {/* Asistente IA (Chat) de Marketing */}
+        <AsistenteIA
+          stats={stats}
+          statsLoading={statsLoading}
+        />
+      </div>
+      )}
 
       {showHelp && (
         <HelpModal title="Ayuda — Marketing" onClose={() => setShowHelp(false)}>
