@@ -14,7 +14,11 @@ import {
   orderBy,
   limit as qLimit,
 } from 'firebase/firestore';
-import { KeyRound, ScanLine, User, Package, Scissors, Tag, CheckCircle2, XCircle, Clock, RefreshCw } from 'lucide-react';
+import {
+  KeyRound, ScanLine, User, Package, Scissors, Tag, CheckCircle2, XCircle,
+  Clock, RefreshCw, Smartphone, Info, HelpCircle, ArrowRight, Sparkles,
+  Timer, ShieldCheck,
+} from 'lucide-react';
 import { db } from '../lib/firebase';
 import { tenantCol, resolveTenantId } from '../lib/tenantUtils';
 import { useAuth } from '../contexts/AuthContext';
@@ -277,15 +281,46 @@ export default function Canjes() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-xl font-bold text-white flex items-center gap-2">
-          <ScanLine size={20} className="text-[#D4AF37]" />
-          Validar Canje
-        </h1>
-        <p className="text-sm text-slate-500 mt-0.5">
-          Pídele al cliente el PIN de 4 dígitos que aparece en su app y valídalo aquí.
+    <div className="max-w-5xl mx-auto space-y-6">
+      {/* ── Header + intro ───────────────────────────────────────── */}
+      <div>
+        <div className="flex items-center gap-2 mb-2">
+          <div className="p-2 rounded-lg bg-amber-500/10 border border-amber-500/25">
+            <ScanLine size={18} className="text-amber-400" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-white leading-tight">Validar Canje</h1>
+            <p className="text-xs text-slate-500">Aprueba y entrega premios del club de fidelidad</p>
+          </div>
+        </div>
+        <p className="text-sm text-slate-400 leading-relaxed mt-3 max-w-3xl">
+          Un miembro del club quiere reclamar su premio. Pídele el <strong className="text-white">PIN de 4 dígitos</strong> que
+          generó en su app y confírmalo acá: se descuentan sellos automáticamente,
+          se actualiza el stock (si aplica) y queda registro en el historial del cliente.
         </p>
+      </div>
+
+      {/* ── Cómo funciona (3 pasos) ─────────────────────────────── */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {[
+          { n: 1, Icon: Smartphone,   title: 'Cliente muestra su PIN',    desc: 'Lo genera en su app tocando "Canjear premio". Válido 5 minutos.' },
+          { n: 2, Icon: KeyRound,     title: 'Ingresa los 4 dígitos',      desc: 'Se valida solo al llegar al 4to número. Aparece la instrucción de entrega.' },
+          { n: 3, Icon: CheckCircle2, title: 'Confirma la entrega',        desc: 'Descuenta sellos, ajusta stock y registra el canje en el historial.' },
+        ].map(({ n, Icon, title, desc }, i, arr) => (
+          <div key={n} className="relative bg-slate-900 border border-slate-800 rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="w-6 h-6 rounded-full bg-amber-500/15 text-amber-400 text-xs font-black flex items-center justify-center border border-amber-500/25">
+                {n}
+              </span>
+              <Icon size={14} className="text-slate-400" />
+            </div>
+            <p className="text-sm font-bold text-white leading-tight">{title}</p>
+            <p className="text-[11px] text-slate-500 mt-1 leading-snug">{desc}</p>
+            {i < arr.length - 1 && (
+              <ArrowRight size={14} className="hidden sm:block absolute top-1/2 -right-3 -translate-y-1/2 text-slate-700 z-10 bg-slate-950 rounded-full" />
+            )}
+          </div>
+        ))}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
@@ -294,9 +329,14 @@ export default function Canjes() {
 
           {/* Input PIN */}
           <div className="bg-slate-900 border border-slate-800 rounded-xl p-5">
-            <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2 block flex items-center gap-1.5">
-              <KeyRound size={12} className="text-[#D4AF37]" /> PIN del cliente
-            </label>
+            <div className="flex items-center justify-between mb-3">
+              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                <KeyRound size={12} className="text-amber-400" /> PIN del cliente
+              </label>
+              <span className="text-[10px] text-slate-600 italic flex items-center gap-1">
+                <Timer size={10} /> Válido 5 min
+              </span>
+            </div>
             <div className="flex gap-2">
               <input
                 ref={pinRef}
@@ -312,12 +352,12 @@ export default function Canjes() {
                 }}
                 onKeyDown={e => e.key === 'Enter' && buscarPorPin(pin)}
                 placeholder="0000"
-                className="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-4 py-4 text-3xl font-black text-center text-white tracking-[0.6em] focus:border-[#D4AF37] focus:outline-none"
+                className="flex-1 bg-slate-950 border border-slate-700 rounded-lg px-4 py-4 text-3xl font-black text-center text-white tracking-[0.6em] focus:border-amber-400 focus:outline-none"
               />
               <button
                 onClick={() => buscarPorPin(pin)}
                 disabled={searching || pin.length !== 4}
-                className="px-5 rounded-lg bg-[#D4AF37] text-black font-bold text-sm disabled:opacity-40 hover:bg-yellow-500 transition-colors flex items-center gap-1.5"
+                className="px-5 rounded-lg bg-amber-400 text-black font-bold text-sm disabled:opacity-40 hover:bg-amber-300 transition-colors flex items-center gap-1.5"
               >
                 {searching
                   ? <span className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
@@ -325,12 +365,30 @@ export default function Canjes() {
                 Validar
               </button>
             </div>
+            <p className="text-[11px] text-slate-500 mt-2 leading-snug">
+              El cliente ve este código en <strong className="text-slate-400">Mi Club → Canjear premio</strong> de su app.
+              Se valida solo al ingresar los 4 dígitos.
+            </p>
             {errorMsg && (
               <p className="text-xs text-rose-400 font-semibold mt-2 flex items-center gap-1">
                 <XCircle size={12} /> {errorMsg}
               </p>
             )}
           </div>
+
+          {/* Estado vacío antes de que aparezca la tarjeta */}
+          {!candidato && !errorMsg && (
+            <div className="bg-slate-950/40 border border-dashed border-slate-800 rounded-xl p-6 text-center">
+              <div className="w-12 h-12 mx-auto rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center mb-3">
+                <ScanLine size={20} className="text-slate-600" />
+              </div>
+              <p className="text-sm font-semibold text-slate-400">Esperando el PIN del cliente</p>
+              <p className="text-xs text-slate-600 mt-1 max-w-sm mx-auto leading-relaxed">
+                Cuando ingreses los 4 dígitos correctos, verás acá el detalle del premio,
+                la instrucción de entrega y el botón para confirmar.
+              </p>
+            </div>
+          )}
 
           {/* Tarjeta del canje encontrado */}
           {candidato && catMeta && (
@@ -363,23 +421,37 @@ export default function Canjes() {
               {/* Cuerpo con premio + instrucción */}
               <div className="p-5 space-y-4">
                 <div>
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Premio</span>
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Premio a entregar</span>
                   <h2 className="text-lg font-black text-white leading-tight mt-0.5">
                     {candidato.prizeName || 'Premio'}
                   </h2>
-                  <p className="text-xs text-[#D4AF37] font-semibold mt-1">
-                    🏆 Costo: {candidato.costoSellos} sello{candidato.costoSellos !== 1 ? 's' : ''}
+                  <p className="text-xs text-amber-400 font-semibold mt-1">
+                    🏆 Costo: {candidato.costoSellos} sello{candidato.costoSellos !== 1 ? 's' : ''} · se descuentan al confirmar
                   </p>
                 </div>
 
                 {/* Instrucción para el barbero */}
                 <div className={`rounded-lg border px-4 py-3 ${catColorMap[catMeta.color]}`}>
                   <p className="text-[10px] font-bold uppercase tracking-widest opacity-70 mb-0.5">
-                    Instrucción
+                    Qué debes hacer
                   </p>
                   <p className="text-sm font-semibold">
                     {buildInstruccion(candidato)}
                   </p>
+                </div>
+
+                {/* Recordatorio de qué pasa al confirmar */}
+                <div className="bg-slate-950/50 border border-slate-800 rounded-lg p-3">
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                    <ShieldCheck size={11} /> Al confirmar la entrega
+                  </p>
+                  <ul className="space-y-1 text-[11px] text-slate-400">
+                    <li className="flex items-start gap-1.5"><span className="text-emerald-400 shrink-0">✓</span> Se descuentan {candidato.costoSellos} sello{candidato.costoSellos !== 1 ? 's' : ''} del saldo del cliente</li>
+                    {candidato.categoria === 'PRODUCTO' && (candidato.configuracion?.descuentaStock) && (
+                      <li className="flex items-start gap-1.5"><span className="text-emerald-400 shrink-0">✓</span> Se descuenta 1 unidad del stock del producto</li>
+                    )}
+                    <li className="flex items-start gap-1.5"><span className="text-emerald-400 shrink-0">✓</span> Queda registro en el historial del cliente (trazabilidad)</li>
+                  </ul>
                 </div>
 
                 {countdown.expired && (
@@ -415,18 +487,28 @@ export default function Canjes() {
         {/* Cola de canjes pendientes */}
         <div className="lg:col-span-2">
           <div className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden">
-            <div className="px-4 py-3 border-b border-slate-800 flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                Canjes pendientes
-              </span>
-              <span className="text-[10px] px-2 py-0.5 bg-slate-800 text-slate-400 rounded-full font-mono">
-                {queue.length}
-              </span>
+            <div className="px-4 py-3 border-b border-slate-800">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  Canjes en curso
+                </span>
+                <span className="text-[10px] px-2 py-0.5 bg-slate-800 text-slate-400 rounded-full font-mono">
+                  {queue.length}
+                </span>
+              </div>
+              <p className="text-[10.5px] text-slate-600 leading-snug">
+                PINs activos generados por clientes. Toca uno para auto-validarlo.
+              </p>
             </div>
             {queue.length === 0 ? (
-              <div className="flex flex-col items-center py-10 text-slate-600 text-xs">
-                <Clock size={22} className="mb-2 text-slate-700" />
-                Sin canjes activos.
+              <div className="flex flex-col items-center py-10 text-slate-500 text-xs px-4 text-center">
+                <div className="w-10 h-10 rounded-full bg-slate-800/60 border border-slate-800 flex items-center justify-center mb-3">
+                  <Clock size={16} className="text-slate-600" />
+                </div>
+                <p className="font-semibold text-slate-400">Sin canjes activos</p>
+                <p className="text-[10.5px] text-slate-600 mt-1 leading-relaxed max-w-[220px]">
+                  Cuando un cliente genere un PIN desde su app, aparecerá acá con cuenta regresiva.
+                </p>
               </div>
             ) : (
               <ul className="divide-y divide-slate-800 max-h-[520px] overflow-y-auto">
@@ -447,7 +529,7 @@ export default function Canjes() {
                           {r.prizeName || '—'}
                         </p>
                         <p className="text-[10px] text-slate-500 flex items-center gap-2">
-                          <span className="font-mono font-bold text-[#D4AF37]">{r.token}</span>
+                          <span className="font-mono font-bold text-amber-400">{r.token}</span>
                           <span>·</span>
                           <span>{min}m restantes</span>
                         </p>
@@ -459,6 +541,60 @@ export default function Canjes() {
             )}
           </div>
         </div>
+      </div>
+
+      {/* ── Legenda de tipos de premio ──────────────────────────── */}
+      <div className="bg-slate-950/40 border border-slate-800 rounded-xl p-5">
+        <div className="flex items-center gap-2 mb-3">
+          <Info size={14} className="text-slate-400" />
+          <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Tipos de premio que verás</h3>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {Object.entries(CATEGORIAS).map(([key, cat]) => (
+            <div key={key} className={`rounded-lg border p-3 ${catColorMap[cat.color]}`}>
+              <div className="flex items-center gap-2 mb-1.5">
+                <cat.Icon size={14} />
+                <p className="text-xs font-bold uppercase tracking-wider">{cat.label}</p>
+              </div>
+              <p className="text-[11px] leading-snug opacity-90">
+                {key === 'PRODUCTO'  && 'Entregas un ítem físico del inventario. Si el premio lo pide, se descuenta 1 unidad del stock.'}
+                {key === 'SERVICIO'  && 'Aplicas un servicio gratis (corte, arreglo de barba, etc.). Puede requerir reservar turno.'}
+                {key === 'DESCUENTO' && 'Aplicas un descuento (% o monto fijo) en la caja al próximo pago del cliente.'}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Tips / casos raros ──────────────────────────────────── */}
+      <div className="bg-slate-950/40 border border-slate-800 rounded-xl p-5">
+        <div className="flex items-center gap-2 mb-3">
+          <HelpCircle size={14} className="text-slate-400" />
+          <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider">Casos que podrías ver</h3>
+        </div>
+        <ul className="space-y-2 text-xs text-slate-400">
+          <li className="flex items-start gap-2">
+            <Timer size={12} className="text-rose-400 shrink-0 mt-0.5" />
+            <div>
+              <strong className="text-slate-200">El PIN expiró.</strong> Los canjes duran 5 minutos.
+              Pídele al cliente que abra su app y genere uno nuevo — los sellos no se pierden.
+            </div>
+          </li>
+          <li className="flex items-start gap-2">
+            <Sparkles size={12} className="text-amber-400 shrink-0 mt-0.5" />
+            <div>
+              <strong className="text-slate-200">Producto sin stock.</strong> El sistema igual permite confirmar
+              (los sellos ya se descontaron cuando el cliente generó el PIN). Coordina con el cliente para reponer o cambiar el premio.
+            </div>
+          </li>
+          <li className="flex items-start gap-2">
+            <ShieldCheck size={12} className="text-emerald-400 shrink-0 mt-0.5" />
+            <div>
+              <strong className="text-slate-200">Verifica visualmente.</strong> Antes de confirmar, revisa que el
+              nombre y la foto del cliente en la tarjeta coincidan con quien está frente a ti.
+            </div>
+          </li>
+        </ul>
       </div>
 
       {/* Toast */}
